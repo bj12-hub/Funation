@@ -57,3 +57,10 @@
 .itemSelected {
   color: var(--color-primary);
 }
+
+/* Narrow screens show only the flag. */
+@media (max-width: 480px) {
+  .label {
+    display: none;
+  }
+}
