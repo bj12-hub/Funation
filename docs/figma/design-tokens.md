@@ -24,6 +24,10 @@ Implementation: `apps/web/src/styles/tokens.css`
 - **Global header menu** uses the most complete set:
   LIVE · 인기 크리에이터 · 명예의 전당 · 고객센터.
 
+- **Home tokens (2026-09-28).** The home screen (727:2742) added media overlay
+  colors/gradients, `--color-accent-soft`, `--color-neutral-soft`, `--color-bg-footer`,
+  `--color-bg-light`, `--font-size-40` and `--shadow-button`, taken directly from that frame.
+
 ## Rules from the Figma board
 
 - User-facing UI must not expose supply discount rate, supply cost, or margin

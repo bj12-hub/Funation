@@ -1,3 +1,4 @@
+import { GlobalFooter } from "@/components/layout/GlobalFooter";
 import { GlobalHeader } from "@/components/layout/GlobalHeader";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
@@ -8,6 +9,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     <>
       <GlobalHeader user={user} />
       <main>{children}</main>
+      <GlobalFooter />
     </>
   );
 }
