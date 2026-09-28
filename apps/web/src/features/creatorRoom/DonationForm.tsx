@@ -4,10 +4,13 @@ import { useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ChargeModal } from "@/features/walletCharge";
 import { formatNumber } from "@/lib/format";
-import type { CreatorRoom, DonationType } from "@/services/creators/creatorRoom";
+import type { DonationCatalog } from "@/services/donations/donationCatalog";
 import { requestDonation } from "@/services/donations/donate";
-import { MAX_DONATION_MESSAGE as MAX_MESSAGE } from "@/services/donations/donationTypes";
 import { DonationCompleteDialog, DonationConfirmDialog, InsufficientFnDialog } from "./DonationDialogs";
+import { MiniFields, SignatureFields, TextFields, VideoFields, WishlistFields } from "./donation/Fields";
+import { SignaturePopup } from "./donation/SignaturePopup";
+import { buildDraft, initialStates, isFormKey, type FormKey, type FormStates } from "./donation/drafts";
+import panel from "./donation/donation.module.css";
 import styles from "./room.module.css";
 
 type Dialog =
@@ -15,12 +18,17 @@ type Dialog =
   | { kind: "CONFIRM" }
   | { kind: "COMPLETE"; fnAmount: number; balance: number }
   | { kind: "INSUFFICIENT"; balance: number }
-  | { kind: "CHARGE" };
+  | { kind: "CHARGE" }
+  | { kind: "SIGNATURES" };
+
+const CHIPS_PER_PAGE = 6;
 
 /**
- * Figma 610:138 donation tab → 613:6 확인 → 613:122 완료, or 613:237 FN 부족 → FN 충전 modal.
- * The server validates, checks the balance and debits; each confirmed submission carries an
- * idempotency key so a double click or a retry never debits twice. Balance is display-only.
+ * Donation tab. Figma 610:138 · 851:4546 (일반) · 851:4665 (미니) · 851:4788 (영상) · 851:4929 (시그니처)
+ * · 851:5054 (위시) → 613:6 확인 → 613:122 완료, or 613:237 FN 부족 → FN 충전 modal.
+ *
+ * Every type goes through the same Donation Core: one confirm step, one server action, one debit.
+ * Each confirmed submission carries an idempotency key so a double click or retry never debits twice.
  */
 export function DonationForm({
   creatorId,
@@ -32,17 +40,16 @@ export function DonationForm({
 }: {
   creatorId: string;
   name: string;
-  donation: CreatorRoom["donation"];
+  donation: DonationCatalog;
   signedIn: boolean;
   fnBalance: number | null;
-  onDonated: (donation: { fnAmount: number; message: string; anonymous: boolean }) => void;
+  onDonated: (donation: { fnAmount: number; text: string; anonymous: boolean }) => void;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const [typeIndex, setTypeIndex] = useState(0);
-  const [amount, setAmount] = useState("");
-  const [message, setMessage] = useState("");
-  const [voiceId, setVoiceId] = useState<string | null>(donation.voices[0]?.id ?? null);
+  const [chipPage, setChipPage] = useState(0);
+  const [states, setStates] = useState<FormStates>(() => initialStates(donation));
   const [hideProfile, setHideProfile] = useState(false);
   const [dialog, setDialog] = useState<Dialog>({ kind: "NONE" });
   const [pending, setPending] = useState(false);
@@ -50,21 +57,22 @@ export function DonationForm({
   // One key per confirmed request; kept when the outcome is unknown so a retry cannot debit twice.
   const keyRef = useRef<string | null>(null);
 
-  const type: DonationType = donation.types[typeIndex];
-  const value = Number(amount);
-  const tooSmall = amount !== "" && value < donation.minAmount;
+  const type = donation.types[typeIndex];
+  const formKey = isFormKey(type.key) && type.available ? type.key : null;
+  const draft = formKey ? buildDraft(formKey, states, donation) : null;
   const loginHref = `/login?next=${encodeURIComponent(pathname)}`;
+  const pageCount = Math.ceil(donation.types.length / CHIPS_PER_PAGE);
+  const chips = donation.types.slice(chipPage * CHIPS_PER_PAGE, (chipPage + 1) * CHIPS_PER_PAGE);
 
-  /** Any edit makes it a different request. */
-  const edit = <T,>(apply: () => T) => {
-    keyRef.current = null;
-    return apply();
+  const update = <K extends FormKey>(key: K) => (next: FormStates[K]) => {
+    keyRef.current = null; // any edit makes it a different request
+    setStates((s) => ({ ...s, [key]: next }));
   };
 
   const open = () => {
-    if (!amount || tooSmall) return;
+    if (!draft?.details || draft.amount === null) return;
     // UX pre-check with the server-provided balance; the server checks again on submit.
-    if (fnBalance !== null && value > fnBalance) {
+    if (fnBalance !== null && draft.amount > fnBalance) {
       setDialog({ kind: "INSUFFICIENT", balance: fnBalance });
       return;
     }
@@ -73,19 +81,18 @@ export function DonationForm({
   };
 
   const confirm = async () => {
+    if (!draft?.details || !formKey) return;
     keyRef.current ??= crypto.randomUUID();
-    const text = message.trim();
     setPending(true);
     setError(null);
     try {
-      const result = await requestDonation({ creatorId, type: type.key, amount: value, message: text, voiceId, hideProfile, idempotencyKey: keyRef.current });
+      const result = await requestDonation({ ...draft.details, creatorId, hideProfile, idempotencyKey: keyRef.current });
       switch (result.status) {
         case "COMPLETED":
           keyRef.current = null;
           setDialog({ kind: "COMPLETE", fnAmount: result.fnAmount, balance: result.balance });
-          onDonated({ fnAmount: result.fnAmount, message: text, anonymous: hideProfile });
-          setAmount("");
-          setMessage("");
+          onDonated({ fnAmount: result.fnAmount, text: draft.chatText, anonymous: hideProfile });
+          setStates((s) => ({ ...s, [formKey]: initialStates(donation)[formKey] }));
           router.refresh(); // header, side nav and this tab show the new server balance
           break;
         case "INSUFFICIENT_FN":
@@ -109,39 +116,41 @@ export function DonationForm({
     }
   };
 
+  const selectType = (index: number) => {
+    setTypeIndex(index);
+    keyRef.current = null;
+  };
+
   return (
     <div className={styles.donation}>
       <div className={styles.typeRow}>
-        <button
-          type="button"
-          className={styles.typeArrow}
-          aria-label="이전 후원 유형"
-          disabled={typeIndex === 0}
-          onClick={() => edit(() => setTypeIndex((i) => i - 1))}
-        >
+        <button type="button" className={styles.typeArrow} aria-label="이전 후원 유형" disabled={chipPage === 0} onClick={() => setChipPage((p) => p - 1)}>
           ‹
         </button>
         <div className={styles.types} role="radiogroup" aria-label="후원 유형">
-          {donation.types.map((t, i) => (
-            <button
-              key={t.key}
-              type="button"
-              role="radio"
-              aria-checked={i === typeIndex}
-              className={`${styles.type} ${i === typeIndex ? styles.typeOn : ""}`}
-              onClick={() => edit(() => setTypeIndex(i))}
-            >
-              <span aria-hidden="true">{t.emoji}</span>
-              <span>{t.label}</span>
-            </button>
-          ))}
+          {chips.map((t) => {
+            const i = donation.types.indexOf(t);
+            return (
+              <button
+                key={t.key}
+                type="button"
+                role="radio"
+                aria-checked={i === typeIndex}
+                className={`${styles.type} ${i === typeIndex ? styles.typeOn : ""}`}
+                onClick={() => selectType(i)}
+              >
+                <span aria-hidden="true">{t.emoji}</span>
+                <span>{t.label}</span>
+              </button>
+            );
+          })}
         </div>
         <button
           type="button"
           className={styles.typeArrow}
           aria-label="다음 후원 유형"
-          disabled={typeIndex === donation.types.length - 1}
-          onClick={() => edit(() => setTypeIndex((i) => i + 1))}
+          disabled={chipPage >= pageCount - 1}
+          onClick={() => setChipPage((p) => p + 1)}
         >
           ›
         </button>
@@ -160,70 +169,28 @@ export function DonationForm({
           if (signedIn) open();
         }}
       >
-        <label className={styles.field}>
-          <span className={styles.fieldLabel}>후원 금액</span>
-          <span className={styles.inputBox}>
-            <input
-              className={styles.input}
-              aria-label="후원 금액"
-              inputMode="numeric"
-              placeholder={`${formatNumber(donation.minAmount)}`}
-              value={amount ? formatNumber(value) : ""}
-              onChange={(e) => edit(() => setAmount(e.target.value.replace(/[^\d]/g, "").replace(/^0+/, "").slice(0, 9)))}
-              aria-invalid={tooSmall}
-              aria-describedby="donation-amount-hint"
-            />
-            <span className={styles.suffix}>FN</span>
-          </span>
-        </label>
-
-        <label className={styles.field}>
-          <span className={styles.fieldLabel}>
-            후원 메시지
-            <span>
-              {message.length}/{MAX_MESSAGE}
-            </span>
-          </span>
-          <span className={styles.inputBox}>
-            <textarea
-              className={styles.textarea}
-              placeholder="크리에이터에게 전할 메시지를 입력하세요"
-              maxLength={MAX_MESSAGE}
-              value={message}
-              onChange={(e) => edit(() => setMessage(e.target.value))}
-            />
-          </span>
-        </label>
-
-        {donation.voices.map((v) => (
-          <button
-            key={v.id}
-            type="button"
-            className={styles.voice}
-            aria-pressed={voiceId === v.id}
-            onClick={() => edit(() => setVoiceId((current) => (current === v.id ? null : v.id)))}
-          >
-            <span className={styles.voiceEmoji} aria-hidden="true">
-              {v.emoji}
-            </span>
-            <span className={styles.voiceText}>
-              <span className={styles.voiceTitle}>
-                {v.name} · {v.description}
-              </span>
-              {/* TODO: voice catalog and preview audio are TBD. */}
-              <span className={styles.voiceDetail}>보이스 / 상품 선택  ·  미리듣기 ▶</span>
-            </span>
-            {voiceId === v.id && (
-              <span className={styles.voiceCheck} aria-hidden="true">
-                ✓
-              </span>
-            )}
-          </button>
-        ))}
-
-        <p id="donation-amount-hint" className={`${styles.validation} ${tooSmall ? styles.validationError : ""}`}>
-          {tooSmall ? "!" : "✓"} 최소 {formatNumber(donation.minAmount)} FN부터 후원할 수 있어요
-        </p>
+        {formKey === "TEXT" && <TextFields value={states.TEXT} onChange={update("TEXT")} catalog={donation} balance={fnBalance} error={draft?.error ?? null} />}
+        {formKey === "MINI" && (
+          <MiniFields value={states.MINI} onChange={update("MINI")} catalog={donation} balance={fnBalance} error={draft?.error ?? null} onEnter={() => signedIn && open()} />
+        )}
+        {formKey === "VIDEO" && <VideoFields value={states.VIDEO} onChange={update("VIDEO")} catalog={donation} balance={fnBalance} error={draft?.error ?? null} />}
+        {formKey === "SIGNATURE" && (
+          <SignatureFields
+            value={states.SIGNATURE}
+            onChange={update("SIGNATURE")}
+            catalog={donation}
+            balance={fnBalance}
+            onOpenAll={() => setDialog({ kind: "SIGNATURES" })}
+          />
+        )}
+        {formKey === "WISHLIST" && (
+          <WishlistFields value={states.WISHLIST} onChange={update("WISHLIST")} catalog={donation} balance={fnBalance} creatorName={name} error={draft?.error ?? null} />
+        )}
+        {!formKey && (
+          <p className={panel.unavailable} role="status">
+            준비 중인 후원 유형이에요.
+          </p>
+        )}
 
         <div className={styles.toggleRow}>
           <button
@@ -232,14 +199,17 @@ export function DonationForm({
             aria-checked={hideProfile}
             aria-label="프로필 숨기기"
             className={styles.miniToggle}
-            onClick={() => edit(() => setHideProfile((h) => !h))}
+            onClick={() => {
+              setHideProfile((h) => !h);
+              keyRef.current = null;
+            }}
           />
           <span aria-hidden="true">프로필 숨기기</span>
         </div>
       </form>
 
       {signedIn ? (
-        <button type="button" className={styles.submit} disabled={!amount || tooSmall} onClick={open}>
+        <button type="button" className={styles.submit} disabled={!draft?.details} onClick={open}>
           {name}님에게 후원하기
         </button>
       ) : (
@@ -251,8 +221,8 @@ export function DonationForm({
       <DonationConfirmDialog
         open={dialog.kind === "CONFIRM"}
         creatorName={name}
-        amount={value}
-        message={message.trim()}
+        amount={draft?.amount ?? 0}
+        rows={draft?.summary ?? []}
         pending={pending}
         error={error}
         onCancel={() => setDialog({ kind: "NONE" })}
@@ -269,6 +239,16 @@ export function DonationForm({
         balance={dialog.kind === "INSUFFICIENT" ? dialog.balance : 0}
         onCancel={() => setDialog({ kind: "NONE" })}
         onCharge={() => setDialog({ kind: "CHARGE" })}
+      />
+      <SignaturePopup
+        open={dialog.kind === "SIGNATURES"}
+        signatures={donation.signatures}
+        initial={states.SIGNATURE.signatureId}
+        onClose={() => setDialog({ kind: "NONE" })}
+        onSelect={(id) => {
+          update("SIGNATURE")({ ...states.SIGNATURE, signatureId: id });
+          setDialog({ kind: "NONE" });
+        }}
       />
       {dialog.kind === "CHARGE" && <ChargeModal onClose={() => setDialog({ kind: "NONE" })} />}
     </div>

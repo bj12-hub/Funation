@@ -9,7 +9,7 @@ export function DonationConfirmDialog({
   open,
   creatorName,
   amount,
-  message,
+  rows,
   pending,
   error,
   onCancel,
@@ -18,7 +18,8 @@ export function DonationConfirmDialog({
   open: boolean;
   creatorName: string;
   amount: number;
-  message: string;
+  /** Type-specific rows (message, signature, video …). */
+  rows: { label: string; value: string }[];
   pending: boolean;
   error: string | null;
   onCancel: () => void;
@@ -36,10 +37,12 @@ export function DonationConfirmDialog({
           <dt>후원 금액</dt>
           <dd className={styles.amount}>{formatNumber(amount)} FN</dd>
         </div>
-        <div className={styles.infoMessage}>
-          <dt>후원 메시지</dt>
-          <dd>{message || "메시지 없음"}</dd>
-        </div>
+        {rows.map((row) => (
+          <div key={row.label} className={styles.infoMessage}>
+            <dt>{row.label}</dt>
+            <dd>{row.value}</dd>
+          </div>
+        ))}
       </dl>
       {error && (
         <p className={styles.error} role="alert">
