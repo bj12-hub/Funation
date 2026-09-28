@@ -4,12 +4,13 @@ import { PlayOutlineIcon, PlusSmallIcon, VideoIcon, YoutubeLogoIcon } from "@/co
 import { formatNumber } from "@/lib/format";
 import type { LoginProvider, MyAccount } from "@/services/account/myAccount";
 import type { Platform } from "@/types/platform";
+import { FunationIdEditor, NicknameEditor, PasswordEditor, PhotoEditor } from "./editors";
 import { MarketingConsentSetting, RankingVisibilitySettings } from "./SettingToggles";
 import styles from "./mypage.module.css";
 
-// Flows behind these buttons (photo upload, nickname/ID/password change, provider linking,
-// identity verification, FN history/charge, platform connect/disconnect, withdrawal) are not
-// designed or connected yet; they render as unavailable.
+// Flows behind these buttons (provider linking, identity verification, FN history/charge,
+// platform connect/disconnect, withdrawal) are not built yet; they render as unavailable.
+// Photo, nickname, ID and password changes live in ./editors.
 const UNAVAILABLE = { "aria-disabled": true, title: "준비 중인 기능입니다" } as const;
 
 const PROVIDERS: { key: LoginProvider; label: string; logo: ReactNode }[] = [
@@ -44,16 +45,22 @@ export function MyPageScreen({ account }: { account: MyAccount }) {
           <Row label="프로필 사진">
             <div className={styles.avatarRow}>
               {account.avatarUrl ? (
-                <Image src={account.avatarUrl} alt="" width={80} height={80} className={styles.avatar} />
+                <Image
+                  src={account.avatarUrl}
+                  alt=""
+                  width={80}
+                  height={80}
+                  className={styles.avatar}
+                  // Mock uploads are data URLs, which the image optimizer does not handle.
+                  unoptimized={account.avatarUrl.startsWith("data:")}
+                />
               ) : (
                 <span className={`${styles.avatar} ${styles.avatarFallback}`} aria-hidden="true">
                   {account.nickname.slice(0, 1)}
                 </span>
               )}
               <div className={styles.avatarActions}>
-                <button type="button" className={styles.primaryButton} {...UNAVAILABLE}>
-                  사진 변경
-                </button>
+                <PhotoEditor triggerClassName={styles.primaryButton} currentUrl={account.avatarUrl} nickname={account.nickname} />
                 <p className={styles.hint}>JPG, PNG 형식의 이미지만 업로드 가능합니다 (최대 5MB)</p>
               </div>
             </div>
@@ -63,19 +70,13 @@ export function MyPageScreen({ account }: { account: MyAccount }) {
             <div className={styles.pair}>
               <Label text="닉네임" info />
               <span className={styles.value}>{account.nickname}</span>
-              <button type="button" className={styles.actionButton} {...UNAVAILABLE}>
-                수정
-              </button>
+              <NicknameEditor triggerClassName={styles.actionButton} />
             </div>
             <div className={styles.pair}>
               <Label text="Funation ID" info />
               <span className={styles.value}>@{account.funationId}</span>
-              <button type="button" className={styles.actionButton} {...UNAVAILABLE}>
-                수정
-              </button>
-              <button type="button" className={styles.actionButton} {...UNAVAILABLE}>
-                비밀번호 변경
-              </button>
+              <FunationIdEditor triggerClassName={styles.actionButton} />
+              <PasswordEditor triggerClassName={styles.actionButton} />
             </div>
           </div>
 
