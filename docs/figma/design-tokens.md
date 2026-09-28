@@ -14,12 +14,13 @@ Implementation: `apps/web/src/styles/tokens.css`
 - **Service screens are the source of truth.** The `01 Design System` board
   (node `799:2558`) previously used different values (Noto Sans KR / Roboto Mono,
   `#fb7185`, `#34d399`, `#292943` ...). On 2026-09-28 the board was updated to the
-  service-screen values, and a `Design tokens` section (node `899:2`) mirroring
+  service-screen values, and a `Design tokens` section (node `902:2`) mirroring
   `tokens.css` was added to it.
-- **Brand name is `Funation`.** All Latin spellings in the Figma file
-  (`FunNation`, `FUNNATION`, `funnation` — 689 text nodes, 55 layer names) were
-  changed to `Funation` / `FUNATION`. Code uses `Funation`.
-  The Korean spelling in Figma (`펀네이션`) has not been changed yet.
+- **Brand name is `Funation`.** All brand spellings in the Figma file were changed
+  to `Funation` (`FUNATION` for all-caps): Latin `FunNation` / `FUNNATION` /
+  `funnation` (689) and Korean `펀네이션` (431), plus 56 layer names.
+  Every changed text node was verified against its expected string.
+  Code and new UI copy must use `Funation` only.
 - **Global header menu** uses the most complete set:
   LIVE · 인기 크리에이터 · 명예의 전당 · 고객센터.
 
