@@ -37,6 +37,7 @@ export type CreatorSummary = {
   isNew: boolean;
   /** Current viewers while live; `null` when offline. */
   viewerCount: number | null;
+  subscriberCount: number;
   /**
    * Avatar ring in Figma: brand gradient, cyan (new creators) or plain.
    * TODO: the rule for the brand ring is not defined yet; the mock mirrors Figma.
@@ -60,6 +61,12 @@ export type CreatorPage = {
 
 export const CREATORS_PAGE_SIZE = 10;
 
+/** Single creator by id, or `null`. */
+export async function getCreatorById(id: string): Promise<CreatorSummary | null> {
+  if (!USE_MOCK) throw new Error("Creator API is not connected yet.");
+  return MOCK_CREATORS.find((c) => c.id === id) ?? null;
+}
+
 export async function getCreators({ category, query, sort = "viewers", page = 1 }: CreatorQuery): Promise<CreatorPage> {
   if (!USE_MOCK) throw new Error("Creator API is not connected yet.");
   await mockDelay(300);
@@ -82,18 +89,19 @@ export async function getCreators({ category, query, sort = "viewers", page = 1 
 }
 
 // ── Mock data: copy and images from Figma 690:5 ───────────────────────────────
+// Subscriber counts for c1–c6 follow the home screen (727:2742); c7–c10 are sample values.
 
 const A = (n: number) => `/mock/creators/creator-${n}.png`;
 
 const MOCK_CREATORS: CreatorSummary[] = [
-  { id: "c1", name: "침착맨", avatarUrl: A(1), description: "삼국지 및 일상 토크 최강자", categories: ["VARIETY", "TRAVEL", "DRAMA"], isLive: true, isNew: false, viewerCount: 14_820, ring: "brand" },
-  { id: "c2", name: "곽튜브", avatarUrl: A(2), description: "힐링과 유머 가득한 세계 여행 브이로그", categories: ["TRAVEL", "SPORTS"], isLive: true, isNew: false, viewerCount: 18_430, ring: "plain" },
-  { id: "c3", name: "빠니보틀", avatarUrl: A(3), description: "날것 그대로의 해외 생존 여행기", categories: ["TRAVEL", "MUSIC"], isLive: true, isNew: false, viewerCount: 12_760, ring: "plain" },
-  { id: "c4", name: "피식대학", avatarUrl: A(4), description: "글로벌 쇼 및 다채로운 캐릭터 코미디", categories: ["VARIETY", "GAME", "MUKBANG"], isLive: true, isNew: false, viewerCount: 19_210, ring: "brand" },
-  { id: "c5", name: "워크맨", avatarUrl: A(5), description: "세상의 모든 직업 알바 체험기", categories: ["VARIETY", "DRAMA"], isLive: true, isNew: false, viewerCount: 16_980, ring: "plain" },
-  { id: "c6", name: "먹방 쯔양", avatarUrl: A(6), description: "기록적인 대식과 따뜻한 소통 먹방", categories: ["MUKBANG", "VARIETY", "DAILY"], isLive: true, isNew: false, viewerCount: 11_540, ring: "plain" },
-  { id: "c7", name: "테크마스터", avatarUrl: A(7), description: "가장 빠르고 상세한 신제품 리뷰", categories: ["GAME", "SPORTS"], isLive: true, isNew: true, viewerCount: 8_970, ring: "new" },
-  { id: "c8", name: "댕댕하우스", avatarUrl: A(8), description: "귀여운 강아지 형제들의 매일매일", categories: ["DAILY", "VARIETY"], isLive: true, isNew: false, viewerCount: 9_310, ring: "plain" },
-  { id: "c9", name: "맛있는 하루", avatarUrl: A(9), description: "숨겨진 로컬 맛집과 야시장 정복", categories: ["MUKBANG", "TRAVEL", "DAILY"], isLive: true, isNew: true, viewerCount: 7_680, ring: "new" },
-  { id: "c10", name: "STAR BEATS", avatarUrl: A(10), description: "케이팝 댄스 및 초고화질 퍼포먼스 전문", categories: ["MUSIC", "VARIETY"], isLive: true, isNew: false, viewerCount: 13_240, ring: "plain" }
+  { id: "c1", name: "침착맨", avatarUrl: A(1), description: "삼국지 및 일상 토크 최강자", categories: ["VARIETY", "TRAVEL", "DRAMA"], isLive: true, isNew: false, viewerCount: 14_820, subscriberCount: 2_600_000, ring: "brand" },
+  { id: "c2", name: "곽튜브", avatarUrl: A(2), description: "힐링과 유머 가득한 세계 여행 브이로그", categories: ["TRAVEL", "SPORTS"], isLive: true, isNew: false, viewerCount: 18_430, subscriberCount: 1_950_000, ring: "plain" },
+  { id: "c3", name: "빠니보틀", avatarUrl: A(3), description: "날것 그대로의 해외 생존 여행기", categories: ["TRAVEL", "MUSIC"], isLive: true, isNew: false, viewerCount: 12_760, subscriberCount: 2_400_000, ring: "plain" },
+  { id: "c4", name: "피식대학", avatarUrl: A(4), description: "글로벌 쇼 및 다채로운 캐릭터 코미디", categories: ["VARIETY", "GAME", "MUKBANG"], isLive: true, isNew: false, viewerCount: 19_210, subscriberCount: 3_050_000, ring: "brand" },
+  { id: "c5", name: "워크맨", avatarUrl: A(5), description: "세상의 모든 직업 알바 체험기", categories: ["VARIETY", "DRAMA"], isLive: true, isNew: false, viewerCount: 16_980, subscriberCount: 4_100_000, ring: "plain" },
+  { id: "c6", name: "먹방 쯔양", avatarUrl: A(6), description: "기록적인 대식과 따뜻한 소통 먹방", categories: ["MUKBANG", "VARIETY", "DAILY"], isLive: true, isNew: false, viewerCount: 11_540, subscriberCount: 9_800_000, ring: "plain" },
+  { id: "c7", name: "테크마스터", avatarUrl: A(7), description: "가장 빠르고 상세한 신제품 리뷰", categories: ["GAME", "SPORTS"], isLive: true, isNew: true, viewerCount: 8_970, subscriberCount: 420_000, ring: "new" },
+  { id: "c8", name: "댕댕하우스", avatarUrl: A(8), description: "귀여운 강아지 형제들의 매일매일", categories: ["DAILY", "VARIETY"], isLive: true, isNew: false, viewerCount: 9_310, subscriberCount: 880_000, ring: "plain" },
+  { id: "c9", name: "맛있는 하루", avatarUrl: A(9), description: "숨겨진 로컬 맛집과 야시장 정복", categories: ["MUKBANG", "TRAVEL", "DAILY"], isLive: true, isNew: true, viewerCount: 7_680, subscriberCount: 310_000, ring: "new" },
+  { id: "c10", name: "STAR BEATS", avatarUrl: A(10), description: "케이팝 댄스 및 초고화질 퍼포먼스 전문", categories: ["MUSIC", "VARIETY"], isLive: true, isNew: false, viewerCount: 13_240, subscriberCount: 1_270_000, ring: "plain" }
 ];

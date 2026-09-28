@@ -90,7 +90,9 @@ export function FavoritesScreen({ data, query, promotion }: Props) {
               <Image src={c.avatarUrl} alt="" width={48} height={48} className={styles.avatar} />
               <div className={styles.details}>
                 <span className={styles.nameRow}>
-                  <strong className={styles.name}>{c.name}</strong>
+                  <Link href={`/creators/${c.creatorId}`} className={styles.name}>
+                    {c.name}
+                  </Link>
                   {c.verified && (
                     <span className={styles.verified} role="img" aria-label="인증된 크리에이터">
                       <VerifiedCheckIcon />

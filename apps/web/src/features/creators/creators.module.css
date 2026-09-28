@@ -193,6 +193,11 @@
   background: var(--color-surface);
 }
 
+.card:hover,
+.card:focus-visible {
+  border-color: var(--color-border-emphasis);
+}
+
 .ring {
   display: flex;
   flex-shrink: 0;
