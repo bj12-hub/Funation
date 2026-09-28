@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function Page() {
   // Route guard for UX only; the backend must authorize every account read and update.
   const account = await getMyAccount();
-  if (!account) redirect("/login");
+  if (!account) redirect("/login?next=/mypage");
 
   return (
     <SideNavLayout
