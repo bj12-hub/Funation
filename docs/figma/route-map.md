@@ -10,9 +10,9 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/password-reset` | ✅ | 13:179 · 718:626 · 718:582 · 720:18 · 720:60 · 720:103 · 718:244 |
 | `/live` | ✅ | funnation-all-live-page 617:316 (전체라이브) — `?category=` preselects a category |
 | `/live/popular` | ✅ | funnation-popular-live-page 617:5 (인기라이브) |
-| `/creators` | 🚧 | 4:7 · 690:5 |
+| `/creators` | ✅ | funation-all-creators-page 690:5 — `?category=` `?q=` `?sort=` `?page=` |
 | `/hall-of-fame` | 🚧 | 3:637 |
-| `/support` | 🚧 | — (no screen yet) |
+| `/support` | 🚧 | 고객센터 4:7 (previously listed under `/creators` by mistake) |
 | `/mypage` | 🚧 | 622:4 · 735:4119 |
 | `/terms/[slug]` | 🚧 | 722:3 (terms text pending) — slugs: youth, service, privacy, marketing, operation |
 
@@ -41,3 +41,5 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | Side nav (live) | 홈 · 추천 라이브 · 실시간 인기 급상승 | `/` · `/live` · `/live/popular` |
 | Side nav (live) | 즐겨찾기 · 출석체크 · 설정 · FN 충전 · QR 충전 · FN 내역 | not wired — screens pending |
 | Side nav (live) | 로그인 (guest card) · 마이페이지 | `/login` · `/mypage` |
+| Creators | 카테고리 탭 · 검색 · 정렬 · 페이지 | `/creators?category=&q=&sort=&page=` |
+| Creators | 크리에이터 카드 | not wired — creator detail pending |
