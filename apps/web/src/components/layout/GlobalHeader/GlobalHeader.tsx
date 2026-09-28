@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LanguageMenu } from "../LanguageMenu";
 import styles from "./GlobalHeader.module.css";
 
 /**
@@ -100,12 +101,7 @@ export function GlobalHeader({ user, showMenuButton = true, onMenuClick }: Globa
           </Link>
         )}
 
-        <button type="button" className={styles.language} aria-label="언어 선택: 한국어">
-          <span className={styles.languageFlag} aria-hidden="true">
-            🇰🇷
-          </span>
-          <span>한국어</span>
-        </button>
+        <LanguageMenu />
 
         {user ? (
           <button type="button" className={styles.profile} aria-haspopup="menu">

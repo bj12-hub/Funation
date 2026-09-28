@@ -140,21 +140,6 @@
   white-space: nowrap;
 }
 
-.language {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-medium);
-  white-space: nowrap;
-}
-
-.languageFlag {
-  font-family: var(--font-latin);
-  font-size: var(--font-size-16);
-}
-
 .loginButton {
   padding: 10px 24px;
   border-radius: var(--radius-20);
