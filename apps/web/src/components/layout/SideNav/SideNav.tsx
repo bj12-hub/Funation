@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType, SVGProps } from "react";
-import { AirplayIcon, CalendarIcon, HomeIcon, SettingsIcon, StarIcon, TrendingUpIcon } from "@/components/icons";
+import { AirplayIcon, CalendarIcon, HistoryIcon, HomeIcon, SettingsIcon, StarIcon, TrendingUpIcon } from "@/components/icons";
 import { formatNumber } from "@/lib/format";
 import styles from "./SideNav.module.css";
 
 /**
- * Left navigation used by the live pages.
- * Figma: sidebar 617:344 (active "추천 라이브") · 617:33 (active "실시간 인기 급상승")
+ * Left navigation used by the live pages and my page.
+ * Figma: sidebar 617:344 (active "추천 라이브") · 617:33 (active "실시간 인기 급상승") · 735:4119 (with "시청 기록")
  */
 
 export type SideNavUser = {
@@ -36,9 +36,16 @@ const MENU: MenuItem[] = [
   { label: "실시간 인기 급상승", Icon: TrendingUpIcon, href: "/live/popular" }
 ];
 
+const WATCH_HISTORY: MenuItem = { label: "시청 기록", Icon: HistoryIcon };
 const SETTINGS: MenuItem = { label: "설정", Icon: SettingsIcon };
 
-export function SideNav({ user }: { user: SideNavUser | null }) {
+type SideNavProps = {
+  user: SideNavUser | null;
+  /** 시청 기록 appears only in the my page variant (735:4119). */
+  showWatchHistory?: boolean;
+};
+
+export function SideNav({ user, showWatchHistory = false }: SideNavProps) {
   const pathname = usePathname() ?? "/";
 
   return (
@@ -61,6 +68,7 @@ export function SideNav({ user }: { user: SideNavUser | null }) {
         {MENU.map((item) => (
           <MenuLink key={item.label} item={item} active={item.href === pathname} />
         ))}
+        {showWatchHistory && <MenuLink item={WATCH_HISTORY} active={false} />}
         <hr className={styles.divider} />
         <MenuLink item={SETTINGS} active={false} />
       </nav>

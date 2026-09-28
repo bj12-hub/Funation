@@ -396,3 +396,75 @@ export function TrophyMarkSmallIcon(props: IconProps) {
     </svg>
   );
 }
+
+/* My page (Figma 735:4119) */
+
+/** Figma 735:4200 — sidebar 시청 기록 (currentColor like the other sidebar icons) */
+export function HistoryIcon(props: IconProps) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" {...props}>
+      <path
+        d="M9 1C13.4183 1 17 4.58172 17 9C17 13.4183 13.4183 17 9 17C4.58172 17 1 13.4183 1 9C1 4.58172 4.58172 1 9 1ZM9 2.59961C8.44785 2.59961 8.00021 3.0475 8 3.59961V9.61816L12.1523 11.6943C12.6463 11.9413 13.2472 11.741 13.4941 11.2471C13.7411 10.7531 13.5409 10.1523 13.0469 9.90527L10 8.38184V3.59961C9.99979 3.0475 9.55215 2.59961 9 2.59961Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/** Figma 735:4297 — check inside an active toggle knob */
+export function ToggleCheckIcon(props: IconProps) {
+  return (
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" {...props}>
+      <path
+        d="M8.333 2.5L3.75013 7.083L1.667 4.99982"
+        stroke="#3B82F6"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/** Figma 735:4317 — 20px YouTube mark on platform cards */
+export function YoutubeLogoIcon(props: IconProps) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" {...props}>
+      <path
+        d="M2.0826 5.83379C1.50047 8.58073 1.50047 11.4192 2.0826 14.1661C2.15908 14.4451 2.30687 14.6993 2.51142 14.9038C2.71597 15.1084 2.97024 15.2561 3.24922 15.3326C7.7186 16.0731 12.2794 16.0731 16.7488 15.3326C17.0278 15.2561 17.282 15.1084 17.4866 14.9038C17.6911 14.6993 17.8389 14.4451 17.9154 14.1661C18.4975 11.4192 18.4975 8.58073 17.9154 5.83379C17.8389 5.55483 17.6911 5.30059 17.4866 5.09606C17.282 4.89152 17.0278 4.74375 16.7488 4.66727C12.2794 3.92691 7.71862 3.92691 3.24922 4.66727C2.97024 4.74375 2.71597 4.89152 2.51142 5.09606C2.30687 5.30059 2.15908 5.55483 2.0826 5.83379Z"
+        stroke="#F3F4F6"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/** Figma 735:4338 — 20px SOOP mark on platform cards */
+export function VideoIcon(props: IconProps) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" {...props}>
+      <path
+        d="M13.3336 10.8336L17.6864 13.7352C17.7492 13.777 17.8221 13.8009 17.8974 13.8045C17.9727 13.8081 18.0475 13.7912 18.114 13.7557C18.1804 13.7201 18.236 13.6672 18.2747 13.6025C18.3135 13.5379 18.334 13.4639 18.334 13.3886V6.55855C18.334 6.48524 18.3147 6.41322 18.278 6.34976C18.2413 6.2863 18.1884 6.23366 18.1249 6.19714C18.0613 6.16062 17.9892 6.14152 17.9159 6.14177C17.8426 6.14202 17.7706 6.1616 17.7073 6.19855L13.3336 8.75022M3.3328 5H11.6668C12.5873 5 13.3336 5.74619 13.3336 6.66667V13.3333C13.3336 14.2538 12.5873 15 11.6668 15H3.3328C2.41225 15 1.666 14.2538 1.666 13.3333V6.66667C1.666 5.74619 2.41225 5 3.3328 5Z"
+        stroke="#F3F4F6"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/** Figma 735:4332 — 12px plus in 연결 추가 */
+export function PlusSmallIcon(props: IconProps) {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" {...props}>
+      <path
+        d="M2.4996 6H9.5004M6 2.4996V9.5004"
+        stroke="#8B5CF6"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
