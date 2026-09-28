@@ -13,7 +13,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/creators` | ✅ | funation-all-creators-page 690:5 — `?category=` `?q=` `?sort=` `?page=` |
 | `/hall-of-fame` | ✅ | funation-hall-of-fame 3:637 — `?period=all|week|day` (default 이번 달) |
 | `/support` | 🚧 | 고객센터 4:7 (previously listed under `/creators` by mistake) |
-| `/mypage` | 🚧 | 622:4 · 735:4119 |
+| `/mypage` | ✅ | funation-my-page 735:4119 · 622:4 — redirects to `/login` without a session |
 | `/terms/[slug]` | 🚧 | 722:3 (terms text pending) — slugs: youth, service, privacy, marketing, operation |
 
 ## Link wiring
@@ -45,3 +45,5 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | Creators | 크리에이터 카드 | not wired — creator detail pending |
 | Hall of fame | 기간 탭 | `/hall-of-fame?period=` |
 | Hall of fame | 나도 서포터 되기 | not wired — destination TBD |
+| My page | 랭킹 노출 · 마케팅 동의 토글 | saved via account service (mock) |
+| My page | 사진 변경 · 수정 · 비밀번호 변경 · 연동 관리 · 인증하기 · FN 내역/충전 · 플랫폼 연결 · 회원 탈퇴 | not wired — flows pending |

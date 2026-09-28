@@ -1,0 +1,48 @@
+/* 48 × 24 track, 20px knob, 2px inset */
+
+.track {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  width: 48px;
+  height: 24px;
+  padding: 2px;
+  border-radius: var(--radius-12);
+  background: var(--color-surface-strong);
+  transition: background-color 0.15s ease;
+}
+
+.on {
+  background: var(--color-info);
+}
+
+.knob {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--color-bg-light);
+  transition: transform 0.15s ease;
+}
+
+.on .knob {
+  transform: translateX(24px);
+}
+
+.track:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.track[aria-busy="true"] {
+  cursor: progress;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track,
+  .knob {
+    transition: none;
+  }
+}
