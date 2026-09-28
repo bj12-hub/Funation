@@ -1,0 +1,207 @@
+/* Figma nav-bar: 710:305 (guest), 710:978 (signed in) */
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--header-height);
+  padding: 0 var(--layout-gutter);
+  background: var(--color-bg-page);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: var(--shadow-header);
+}
+
+/* ── Left: menu + logo ─────────────────────────────── */
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 48px;
+}
+
+.menuButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-6);
+}
+
+.menuBar {
+  width: 20px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--color-text-primary);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logoText {
+  font-size: var(--font-size-28);
+  font-weight: var(--font-weight-black);
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  white-space: nowrap;
+}
+
+.logoBadge {
+  padding: 2px 6px;
+  border-radius: var(--radius-4);
+  background: var(--color-accent);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-10);
+  font-weight: var(--font-weight-extrabold);
+  line-height: normal;
+}
+
+/* ── Center: nav links ─────────────────────────────── */
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  white-space: nowrap;
+}
+
+.liveTab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: var(--radius-20);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-15);
+  font-weight: var(--font-weight-bold);
+}
+
+.liveTabActive {
+  background: var(--color-live);
+  color: var(--color-text-inverse);
+}
+
+.liveDot {
+  font-family: var(--font-latin);
+  font-size: var(--font-size-10);
+}
+
+.navLink {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-15);
+  font-weight: var(--font-weight-medium);
+}
+
+.navLink:hover,
+.liveTab:hover {
+  color: var(--color-text-primary);
+}
+
+.liveTabActive:hover {
+  color: var(--color-text-inverse);
+}
+
+.navLinkActive {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+/* ── Right: account ────────────────────────────────── */
+
+.rightGuest,
+.rightSignedIn {
+  display: flex;
+  align-items: center;
+}
+
+.rightGuest {
+  gap: 24px;
+}
+
+.rightSignedIn {
+  gap: 20px;
+}
+
+.myPage {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-15);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.language {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.languageFlag {
+  font-family: var(--font-latin);
+  font-size: var(--font-size-16);
+}
+
+.loginButton {
+  padding: 10px 24px;
+  border-radius: var(--radius-20);
+  background: var(--gradient-cta);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.avatar,
+.avatarFallback {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-pill);
+  flex-shrink: 0;
+}
+
+.avatar {
+  object-fit: cover;
+}
+
+.avatarFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-raised);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+}
+
+.profileName {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
+.caret {
+  color: var(--color-text-secondary);
+  font-size: 8px;
+  font-weight: var(--font-weight-bold);
+}
