@@ -35,14 +35,14 @@ export function SidePanel({
       ...list,
       { id: `local-${Date.now()}`, kind: "CHAT", nickname: nickname ?? "나", handle: "", color: "var(--color-accent)", avatarUrl: null, text }
     ]);
-  const announceDonation = ({ fnAmount, message, anonymous }: { fnAmount: number; message: string; anonymous: boolean }) =>
+  const announceDonation = ({ fnAmount, text, anonymous }: { fnAmount: number; text: string; anonymous: boolean }) =>
     setMessages((list) => [
       ...list,
       {
         id: `donation-${Date.now()}`,
         kind: "DONATION",
         title: `${anonymous ? "익명" : (nickname ?? "나")} 님이 ${formatNumber(fnAmount)} FN을 후원했습니다.`,
-        text: message
+        text
       }
     ]);
 

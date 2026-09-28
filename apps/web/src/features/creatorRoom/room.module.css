@@ -688,10 +688,10 @@
   min-height: 42px;
   margin-top: auto;
   border-radius: var(--radius-8);
-  background: var(--color-accent);
+  background: var(--gradient-accent-button); /* 851:* donate button */
   color: var(--color-text-on-accent);
-  font-size: var(--font-size-15);
-  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-extrabold);
 }
 
 .submit:disabled {

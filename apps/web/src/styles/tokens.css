@@ -143,6 +143,14 @@
   --color-light-panel-bg: #f5f5f5;
   --color-sheet-bg: #161630;
 
+  /* ── Donation types (851:* · 875:1815) ────────────────── */
+  --color-text-faint: #696b7a;
+  --color-intro-bg: rgba(139, 92, 246, 0.1);
+  --color-popup-border: #3a3a64;
+  --color-popup-footer-bg: #0e0e1d;
+  --color-card-on-bg: #24172e;
+  --shadow-popup: 0 24px 60px 4px rgba(0, 0, 0, 0.6);
+
   /* ── Status ───────────────────────────────────────────── */
   --color-success: #10b981;
   --color-warning: #f97316;

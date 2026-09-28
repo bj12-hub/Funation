@@ -1,16 +1,28 @@
-import type { DonationType } from "@/services/creators/creatorRoom";
-
 /**
  * Donation request / result types. Client-safe; the action lives in ./donate.ts.
- * Figma: 610:138 (form) · 613:6 (확인) · 613:122 (완료) · 613:237 (FN 부족)
+ * Figma: 610:138 · 851:* (forms) · 613:6 (확인) · 613:122 (완료) · 613:237 (FN 부족)
+ *
+ * One Donation Core handles every type; only the details differ (CLAUDE.md §10).
+ * Signature and wishlist prices are looked up on the server — the browser never sends an amount for them.
  */
 
-export type DonationRequest = {
+export type DonationDetails =
+  | { type: "TEXT"; amount: number; message: string; voiceId: string | null }
+  | { type: "MINI"; amount: number; text: string; colorId: string }
+  | {
+      type: "VIDEO";
+      amount: number;
+      videoUrl: string;
+      startSec: number;
+      endSec: number;
+      saveToLibrary: boolean;
+      termsAgreed: boolean;
+    }
+  | { type: "SIGNATURE"; signatureId: string; message: string }
+  | { type: "WISHLIST"; itemId: string; message: string; voiceId: string | null };
+
+export type DonationRequest = DonationDetails & {
   creatorId: string;
-  type: DonationType["key"];
-  amount: number;
-  message: string;
-  voiceId: string | null;
   hideProfile: boolean;
   /** Generated once per confirmed submission; the same key never debits twice. */
   idempotencyKey: string;
@@ -24,7 +36,11 @@ export type DonationResult =
       /** Balance after the debit, from the server. */
       balance: number;
     }
-  | { status: "INSUFFICIENT_FN"; balance: number }
+  | { status: "INSUFFICIENT_FN"; balance: number; required: number }
   | { status: "IN_PROGRESS" | "CONFLICT" | "INVALID" | "NOT_FOUND" | "UNAUTHORIZED" };
 
-export const MAX_DONATION_MESSAGE = 100;
+/** Accepts youtube.com/watch?v=… and youtu.be/… (other hosts are TBD). Returns the video id or null. */
+export function parseYouTubeId(url: string): string | null {
+  const m = url.trim().match(/^(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/watch\?(?:.*&)?v=|youtu\.be\/)([\w-]{6,20})(?:[&?#].*)?$/i);
+  return m ? m[1] : null;
+}
