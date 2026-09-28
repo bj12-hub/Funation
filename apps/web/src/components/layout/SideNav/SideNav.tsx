@@ -33,7 +33,7 @@ const MENU: MenuItem[] = [
   { label: "홈", Icon: HomeIcon, href: "/" },
   { label: "추천 라이브", Icon: AirplayIcon, href: "/live", badge: { text: "LIVE", tone: "live" } },
   { label: "즐겨찾기", Icon: StarIcon, href: "/favorites" },
-  { label: "출석체크", Icon: CalendarIcon, badge: { text: "EVENT", tone: "event" } },
+  { label: "출석체크", Icon: CalendarIcon, href: "/attendance", badge: { text: "EVENT", tone: "event" } },
   { label: "실시간 인기 급상승", Icon: TrendingUpIcon, href: "/live/popular" }
 ];
 

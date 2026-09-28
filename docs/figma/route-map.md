@@ -19,6 +19,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/wallet/charges` | ✅ | FN 충전내역 640:2 · 639:2 (empty) · 상세 643:4 · 644:6 · 644:185 · 644:364 — signed-in only, `?period=` `?from=` `?to=` `?page=` |
 | `/wallet/donations` | ✅ | FN 후원내역 632:4 · 637:214 (empty) — signed-in only, `?type=` (basic · quest · game) + period params |
 | `/wallet` | ✅ | redirects to `/wallet/charges` |
+| `/attendance` | ✅ | funation-attendance-page 583:4 · 585:452 (checked in) · 585:66 (완료 popup) · 585:830 (보상 popup) — signed-in only |
 | `/terms/[slug]` | 🚧 | 722:3 (terms text pending) — slugs: youth, service, privacy, marketing, operation |
 
 ## Link wiring
@@ -48,7 +49,8 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | Side nav | 즐겨찾기 | `/favorites` |
 | Side nav | FN 내역 | `/wallet/charges` |
 | Side nav | FN 충전 · 모바일에서 충전 (QR코드) | charge modal 595:1869 · QR popup 587:147 (QR target TBD) |
-| Side nav | 출석체크 · 시청 기록 · 설정 | not wired — screens pending |
+| Side nav | 출석체크 | `/attendance` |
+| Side nav | 시청 기록 · 설정 | not wired — screens pending |
 | Side nav (live) | 로그인 (guest card) · 마이페이지 | `/login` · `/mypage` |
 | Creators | 카테고리 탭 · 검색 · 정렬 · 페이지 | `/creators?category=&q=&sort=&page=` |
 | Creators | 크리에이터 카드 | `/creators/[id]` |

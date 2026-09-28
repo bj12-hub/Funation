@@ -1,0 +1,598 @@
+/* 출석체크 — Figma 583:4 (main column px 60, py 40, gap 32) · 585:452 · 585:66 · 585:830 */
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  max-width: 1160px;
+  padding: 40px 60px 64px;
+}
+
+/* ── Header ───────────────────────────────────────── */
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.title {
+  margin: 0 0 8px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-28);
+  font-weight: var(--font-weight-extrabold);
+  line-height: normal;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-15);
+}
+
+.streak {
+  padding: 10px 20px;
+  border: 1px solid var(--color-border);
+  border-radius: 30px;
+  background: var(--color-surface);
+  color: var(--color-accent);
+  font-size: var(--font-size-15);
+  font-weight: var(--font-weight-bold);
+}
+
+.streakOn {
+  border-color: var(--color-accent);
+}
+
+/* ── Widgets ──────────────────────────────────────── */
+
+.widgets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 24px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 32px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-16);
+  background: var(--color-surface);
+}
+
+.cardDone {
+  border-color: var(--color-accent);
+}
+
+.cardHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cardTitle {
+  margin: 0;
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-bold);
+}
+
+.stampRow {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.stamp {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border: 2px solid var(--color-accent);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
+  box-shadow: 0 0 8px rgba(236, 72, 153, 0.3);
+  font-family: var(--font-latin);
+  font-size: var(--font-size-32);
+}
+
+.stampText {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.stampText strong {
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-16);
+}
+
+.stampText .done {
+  color: var(--color-success);
+}
+
+.stampButton {
+  padding: 16px 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-12);
+  background: var(--gradient-accent-button);
+  box-shadow: 0 4px 8px rgba(236, 72, 153, 0.4);
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.stampButton:disabled {
+  cursor: progress;
+}
+
+.stampButtonDone,
+.stampButtonDone:disabled {
+  border-color: var(--color-accent);
+  background: var(--color-surface-raised);
+  box-shadow: none;
+  color: var(--color-accent);
+  cursor: default;
+}
+
+.dday {
+  color: var(--color-highlight);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+}
+
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progressLabels,
+.progressFoot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.progressLabels {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.progressLabels strong {
+  color: var(--color-text-on-accent);
+}
+
+.progressFoot {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-12);
+}
+
+.track {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--color-surface-raised);
+}
+
+.fill {
+  height: 100%;
+  border-radius: 6px;
+  background: var(--color-highlight);
+}
+
+.allDone {
+  margin: 0;
+  color: var(--color-success);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+}
+
+.tip {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+/* ── Calendar ─────────────────────────────────────── */
+
+.calendar {
+  gap: 24px;
+}
+
+.calendarTitle {
+  margin: 0;
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-20);
+  font-weight: var(--font-weight-bold);
+}
+
+.legend {
+  display: flex;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-12);
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dot {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-border-emphasis);
+}
+
+.cell .dot {
+  width: 12px;
+  height: 12px;
+}
+
+.dotDone {
+  background: var(--color-accent);
+}
+
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.weekRow {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.weekday {
+  padding: 8px 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+  text-align: center;
+}
+
+.sun {
+  color: var(--color-accent);
+}
+
+.sat {
+  color: var(--color-highlight);
+}
+
+.cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 72px;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  background: var(--color-bg-page);
+}
+
+.today {
+  border: 2px solid var(--color-accent);
+  background: var(--color-surface-raised);
+}
+
+.dayChecked {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-11);
+  font-weight: var(--font-weight-medium);
+}
+
+.dayPending {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-medium);
+}
+
+.dayToday {
+  color: var(--color-accent);
+  font-size: var(--font-size-11);
+  font-weight: var(--font-weight-bold);
+}
+
+.todayLabel {
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+  font-family: var(--font-latin);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+}
+
+/* ── Rewards ──────────────────────────────────────── */
+
+.rewards {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.rewardsTitle {
+  margin: 0;
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-20);
+  font-weight: var(--font-weight-bold);
+}
+
+.rewardCards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rewardCards li {
+  display: flex;
+}
+
+.rewardCard {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-12);
+  background: var(--color-surface);
+  text-align: left;
+}
+
+.rewardAchieved {
+  border-color: var(--color-accent);
+}
+
+.rewardClickable:hover {
+  box-shadow: 0 0 0 1px var(--color-accent), 0 8px 20px rgba(236, 72, 153, 0.2);
+}
+
+.rewardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-15);
+}
+
+.chip {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border: 1px solid;
+  border-radius: var(--radius-4);
+  font-size: var(--font-size-11);
+  font-weight: var(--font-weight-bold);
+}
+
+.chipClaimed {
+  border-color: var(--color-success);
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--color-success);
+}
+
+.chipClaimable {
+  border-color: var(--color-primary);
+  background: rgba(139, 92, 246, 0.2);
+  color: var(--color-primary);
+}
+
+.rewardBody {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rewardEmoji {
+  font-family: var(--font-latin);
+  font-size: var(--font-size-32);
+}
+
+.rewardText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-12);
+}
+
+.rewardText strong {
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-extrabold);
+}
+
+/* ── Popups (585:444 · 585:1209) ──────────────────── */
+
+.popup {
+  border-color: var(--color-border);
+  border-radius: 24px;
+  background: var(--color-surface);
+  box-shadow: 0 16px 20px rgba(0, 0, 0, 0.8);
+}
+
+.popup::backdrop {
+  background: rgba(2, 2, 6, 0.75);
+}
+
+.popup > div {
+  gap: 28px;
+  padding: 40px;
+  text-align: center;
+}
+
+.popupHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.popupIconRing,
+.popupIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-latin);
+}
+
+.popupIconRing {
+  width: 80px;
+  height: 80px;
+  border: 2px solid var(--color-accent);
+  border-radius: var(--radius-pill);
+  background: var(--color-accent-soft);
+  font-size: 36px;
+}
+
+.popupIcon {
+  height: 80px;
+  font-size: 48px;
+}
+
+.popupTitle {
+  margin: 0;
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.popupBody {
+  margin: -12px 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-15);
+  line-height: 22px;
+}
+
+.accent {
+  color: var(--color-accent);
+}
+
+.popupActions {
+  display: flex;
+  gap: 12px;
+}
+
+.gradientButton,
+.closeButton {
+  flex: 1;
+  width: 100%;
+  padding: 14px 0;
+  border-radius: var(--radius-12);
+  font-size: var(--font-size-16);
+}
+
+.gradientButton {
+  background: var(--gradient-accent-button);
+  color: var(--color-text-on-accent);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.closeButton {
+  border: 1px solid var(--color-border-emphasis);
+  background: var(--color-surface-raised);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-bold);
+}
+
+.gradientButton:disabled,
+.closeButton:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+/* ── Responsive ───────────────────────────────────── */
+
+@media (max-width: 1100px) {
+  .content {
+    padding: 32px 24px 48px;
+  }
+
+  .widgets {
+    grid-template-columns: 1fr;
+  }
+
+  .rewardCards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .content {
+    gap: 24px;
+    padding: 24px 16px 40px;
+  }
+
+  .title {
+    font-size: var(--font-size-24);
+  }
+
+  .card {
+    padding: 20px;
+  }
+
+  .grid,
+  .weekRow {
+    gap: 4px;
+  }
+
+  .cell {
+    height: 56px;
+    padding: 4px;
+  }
+
+  .check {
+    width: 22px;
+    height: 22px;
+    font-size: var(--font-size-12);
+  }
+
+  .todayLabel {
+    font-size: 9px;
+  }
+
+  .rewardCards {
+    grid-template-columns: 1fr;
+  }
+
+  .popup > div {
+    padding: 28px 20px;
+  }
+}
