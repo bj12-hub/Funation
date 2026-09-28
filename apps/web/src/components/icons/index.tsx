@@ -327,3 +327,44 @@ export function SearchSmallIcon(props: IconProps) {
     </svg>
   );
 }
+
+/** Figma 690:5 search box — 18px search */
+export function SearchLargeIcon(props: IconProps) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" {...props}>
+      <path
+        d="M15.7501 15.7501L12.4951 12.4951M14.25 8.25C14.25 11.5637 11.5637 14.25 8.25 14.25C4.93629 14.25 2.25 11.5637 2.25 8.25C2.25 4.93629 4.93629 2.25 8.25 2.25C11.5637 2.25 14.25 4.93629 14.25 8.25Z"
+        stroke="#9CA3AF"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/** Figma 690:5 sort pill — 14px chevron down */
+export function ChevronDownSmallIcon(props: IconProps) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" {...props}>
+      <path d="M3.5 5.25L7 8.75L10.5 5.25" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** Figma 690:5 pagination — 16px chevron left */
+export function PageChevronLeftIcon(props: IconProps) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" {...props}>
+      <path d="M10 12L6 8L10 4" stroke="#F3F4F6" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** Figma 690:5 pagination — 16px chevron right */
+export function PageChevronRightIcon(props: IconProps) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" {...props}>
+      <path d="M6 12L10 8L6 4" stroke="#F3F4F6" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
