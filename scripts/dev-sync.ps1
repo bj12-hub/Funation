@@ -11,6 +11,7 @@
   Stop with Ctrl + C.
 
   NOTE: this script resets the local branch to match GitHub.
+  It only does so while the preview branch is checked out; on any other branch it pauses.
   If you have local, uncommitted edits, syncing is skipped so nothing is lost.
 #>
 param(
@@ -51,9 +52,23 @@ Write-Sync ("On {0}: {1}" -f $Branch, (git log -1 --format="%h %s"))
 npm.cmd install --no-audit --no-fund --loglevel=error
 $server = Start-DevServer
 
+$pausedNotice = $false
+
 try {
   while ($true) {
     Start-Sleep -Seconds $IntervalSeconds
+
+    # Only sync while the preview branch is checked out. Resetting any other
+    # branch would throw away commits made on it (e.g. main or feature/*).
+    $current = (git rev-parse --abbrev-ref HEAD).Trim()
+    if ($current -ne $Branch) {
+      if (-not $pausedNotice) {
+        Write-Sync "On branch '$current', not '$Branch' - syncing paused until you switch back." "Yellow"
+        $pausedNotice = $true
+      }
+      continue
+    }
+    $pausedNotice = $false
 
     git fetch origin $Branch --quiet 2>$null
     if ($LASTEXITCODE -ne 0) { continue }
