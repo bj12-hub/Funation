@@ -14,6 +14,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/hall-of-fame` | ✅ | funation-hall-of-fame 3:637 — `?period=all|week|day` (default 이번 달) |
 | `/support` | ✅ | 고객센터 4:7 — `?q=` searches the FAQ |
 | `/mypage` | ✅ | funation-my-page 735:4119 · 622:4 — redirects to `/login` without a session |
+| `/favorites` | ✅ | funation-favorites-page 735:3856 — signed-in only, `?q=` `?page=` |
 | `/terms/[slug]` | 🚧 | 722:3 (terms text pending) — slugs: youth, service, privacy, marketing, operation |
 
 ## Link wiring
@@ -39,7 +40,8 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | Live tabs | 인기라이브 · 전체라이브 | `/live/popular` · `/live` |
 | Live popular | 섹션 제목 `>` | `/live?category=<CATEGORY>` |
 | Side nav (live) | 홈 · 추천 라이브 · 실시간 인기 급상승 | `/` · `/live` · `/live/popular` |
-| Side nav (live) | 즐겨찾기 · 출석체크 · 설정 · FN 충전 · QR 충전 · FN 내역 | not wired — screens pending |
+| Side nav | 즐겨찾기 | `/favorites` |
+| Side nav | 출석체크 · 시청 기록 · 설정 · FN 충전 · QR 충전 · FN 내역 | not wired — screens pending |
 | Side nav (live) | 로그인 (guest card) · 마이페이지 | `/login` · `/mypage` |
 | Creators | 카테고리 탭 · 검색 · 정렬 · 페이지 | `/creators?category=&q=&sort=&page=` |
 | Creators | 크리에이터 카드 | not wired — creator detail pending |
