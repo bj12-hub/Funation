@@ -16,6 +16,8 @@
   --color-surface-raised: #1a1a2e;
   --color-surface-strong: #20203e;
   --color-overlay: rgba(0, 0, 0, 0.8);
+  --color-bg-footer: #000000;
+  --color-bg-light: #ffffff;
 
   /* ── Border ───────────────────────────────────────────── */
   --color-border: #20203e;
@@ -36,11 +38,21 @@
   --color-info: #3b82f6;
   --color-live: #f5bf0a;
   --color-highlight: #06b6d4;
+  --color-accent-soft: rgba(236, 72, 153, 0.1);
+  --color-neutral-soft: rgba(156, 163, 175, 0.1);
 
   --gradient-brand: linear-gradient(90deg, #8b5cf6 0%, #ec4899 100%);
   --gradient-cta: linear-gradient(90deg, #6366f1 0%, #4f46e5 100%);
   --gradient-primary-button: linear-gradient(90deg, #8b5cf6 0%, #6366f1 100%);
   --gradient-accent-button: linear-gradient(90deg, #8b5cf6 0%, #ec4899 100%);
+
+  /* ── Media overlays (home 727:2742) ───────────────────── */
+  --color-media-dim: rgba(0, 0, 0, 0.4);
+  --color-media-badge: rgba(0, 0, 0, 0.7);
+  --color-media-badge-border: rgba(255, 255, 255, 0.2);
+  --color-media-text-muted: rgba(255, 255, 255, 0.8);
+  --gradient-hero-overlay: linear-gradient(158.75deg, rgba(8, 8, 17, 0.7) 25%, rgba(8, 8, 17, 0) 50%, #080811 75%);
+  --gradient-thumbnail-overlay: linear-gradient(150.64deg, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.7) 75%);
 
   /* ── Status ───────────────────────────────────────────── */
   --color-success: #10b981;
@@ -77,6 +89,7 @@
   --font-size-24: 24px;
   --font-size-28: 28px;
   --font-size-32: 32px;
+  --font-size-40: 40px;
 
   --font-weight-regular: 400;
   --font-weight-medium: 500;
@@ -98,6 +111,7 @@
   /* ── Elevation ────────────────────────────────────────── */
   --shadow-header: 0 8px 12px rgba(0, 0, 0, 0.4);
   --shadow-card: 0 16px 32px rgba(0, 0, 0, 0.5);
+  --shadow-button: 0 4px 6px rgba(0, 0, 0, 0.2);
 
   /* ── Layout ───────────────────────────────────────────── */
   --layout-max-width: 1440px;

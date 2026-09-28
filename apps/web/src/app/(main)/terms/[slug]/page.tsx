@@ -7,7 +7,8 @@ const TERMS: Record<string, string> = {
   youth: "청소년 보호정책",
   service: "서비스 이용약관",
   privacy: "개인정보 처리 방침",
-  marketing: "광고성 정보 수신 및 마케팅 활용 동의"
+  marketing: "광고성 정보 수신 및 마케팅 활용 동의",
+  operation: "운영정책" // footer link (727:3200)
 };
 
 export function generateStaticParams() {

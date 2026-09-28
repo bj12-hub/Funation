@@ -43,6 +43,26 @@
   font-weight: var(--font-weight-regular);
 }
 
+.light {
+  background: var(--color-bg-light);
+  color: var(--color-text-inverse);
+}
+
+.surface {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-on-accent);
+}
+
+.lg {
+  padding: 0 28px;
+  font-size: var(--font-size-16);
+}
+
+.button[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
 .button:disabled {
   background: var(--color-button-disabled-bg);
   color: var(--color-text-tertiary);
