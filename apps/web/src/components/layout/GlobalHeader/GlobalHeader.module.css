@@ -190,3 +190,99 @@
   font-size: 8px;
   font-weight: var(--font-weight-bold);
 }
+
+/* ── Mobile menu (below 900px; not in Figma) ───────── */
+
+.mobileOnly {
+  display: none;
+}
+
+.mobileNav {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 16px 16px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-page);
+  box-shadow: var(--shadow-header);
+}
+
+.mobileNavLink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 4px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-15);
+  font-weight: var(--font-weight-medium);
+}
+
+.mobileNavLink:last-child {
+  border-bottom: 0;
+}
+
+.mobileNavLinkActive {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+/* ── Responsive ───────────────────────────────────── */
+
+@media (max-width: 1200px) {
+  .header {
+    padding: 0 24px;
+  }
+
+  .left {
+    gap: 24px;
+  }
+
+  .nav {
+    gap: 24px;
+  }
+}
+
+@media (max-width: 900px) {
+  .header {
+    gap: 12px;
+    padding: 0 16px;
+    height: 64px;
+  }
+
+  .left {
+    gap: 12px;
+  }
+
+  .desktopOnly,
+  .nav {
+    display: none;
+  }
+
+  .mobileOnly {
+    display: flex;
+  }
+
+  .rightGuest,
+  .rightSignedIn {
+    gap: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .logoText {
+    font-size: var(--font-size-24);
+  }
+
+  .loginButton {
+    padding: 8px 16px;
+  }
+
+  .profileName,
+  .caret {
+    display: none;
+  }
+}
