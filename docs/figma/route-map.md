@@ -8,7 +8,8 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/login` | ✅ | 13:7 · 718:123 · 718:168 · 718:213 |
 | `/signup` | ✅ | 280:56 · 13:63 · 722:473 · 722:536 · 722:599 · 45:39 · 722:692–722:1059 · 723:183 |
 | `/password-reset` | ✅ | 13:179 · 718:626 · 718:582 · 720:18 · 720:60 · 720:103 · 718:244 |
-| `/live` | 🚧 | 617:316 · 617:5 |
+| `/live` | ✅ | funnation-all-live-page 617:316 (전체라이브) — `?category=` preselects a category |
+| `/live/popular` | ✅ | funnation-popular-live-page 617:5 (인기라이브) |
 | `/creators` | 🚧 | 4:7 · 690:5 |
 | `/hall-of-fame` | 🚧 | 3:637 |
 | `/support` | 🚧 | — (no screen yet) |
@@ -35,3 +36,8 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | Footer | 이용약관 · 개인정보처리방침 · 청소년보호정책 · 운영정책 | `/terms/{service,privacy,youth,operation}` |
 | Footer | 고객지원 links | `/support` |
 | Footer | 회사소개 links · SNS icons | plain text — destinations TBD |
+| Live tabs | 인기라이브 · 전체라이브 | `/live/popular` · `/live` |
+| Live popular | 섹션 제목 `>` | `/live?category=<CATEGORY>` |
+| Side nav (live) | 홈 · 추천 라이브 · 실시간 인기 급상승 | `/` · `/live` · `/live/popular` |
+| Side nav (live) | 즐겨찾기 · 출석체크 · 설정 · FN 충전 · QR 충전 · FN 내역 | not wired — screens pending |
+| Side nav (live) | 로그인 (guest card) · 마이페이지 | `/login` · `/mypage` |

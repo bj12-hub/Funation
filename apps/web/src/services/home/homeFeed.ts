@@ -1,4 +1,5 @@
 import { USE_MOCK, mockDelay } from "@/lib/mock";
+import type { Platform } from "@/types/platform";
 
 /**
  * Home feed contract (Figma 727:2742).
@@ -6,7 +7,7 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
  * Platform-specific DTOs must be mapped to these types on the server (see PlatformAdapter).
  */
 
-export type Platform = "YOUTUBE" | "FLEXTV" | "SOOP";
+export type { Platform } from "@/types/platform";
 
 export type LiveCategory = "VARIETY" | "DRAMA" | "SPORTS" | "MUSIC" | "GAME" | "MUKBANG" | "DAILY";
 
