@@ -98,6 +98,20 @@
   --color-kakao-banner-subtext: #3d363d;
   --color-page-current: #4a4a6a;
 
+  /* ── Creator room (826:685 · 610:138 · 710:195) ───────── */
+  --color-panel-field-bg: #191936;
+  --color-chip-bg: #1f1f3d;
+  --color-accent-tint: rgba(236, 72, 153, 0.14);
+  --color-channel-chip-bg: #24252a;
+  --color-channel-chip-border: #35363c;
+  --color-player-scrim: rgba(0, 0, 0, 0.5);
+  --color-goal-bg: rgba(18, 18, 37, 0.75);
+  --color-offline-notice-bg: rgba(11, 9, 17, 0.87);
+  --color-toast-bg: rgba(41, 38, 48, 0.95);
+  --color-toast-border: #4a4554;
+  --color-toast-mark: #55d6a4;
+  --gradient-player-controls: linear-gradient(172deg, transparent 25%, rgba(0, 0, 0, 0.9) 75%);
+
   /* ── Status ───────────────────────────────────────────── */
   --color-success: #10b981;
   --color-warning: #f97316;

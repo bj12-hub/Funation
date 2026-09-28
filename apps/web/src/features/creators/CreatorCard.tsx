@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { formatNumber } from "@/lib/format";
 import { CREATOR_CATEGORY_LABEL, type CreatorSummary } from "@/services/creators/creators";
 import styles from "./creators.module.css";
@@ -7,12 +8,11 @@ import styles from "./creators.module.css";
 const TAG_TONES = [styles.tagCyan, styles.tagPurple, styles.tagPink];
 
 /**
- * Figma 690:5 creator card (236.8 × 251).
- * TODO: link to the creator detail page once it exists.
+ * Figma 690:5 creator card (236.8 × 251). Links to the creator channel page.
  */
 export function CreatorCard({ creator }: { creator: CreatorSummary }) {
   return (
-    <article className={styles.card}>
+    <Link href={`/creators/${creator.id}`} className={styles.card}>
       <span className={`${styles.ring} ${styles[`ring_${creator.ring}`]}`}>
         <Image src={creator.avatarUrl} alt="" width={90} height={90} className={styles.avatar} />
       </span>
@@ -36,6 +36,6 @@ export function CreatorCard({ creator }: { creator: CreatorSummary }) {
       <p className={styles.description} title={creator.description}>
         {creator.description}
       </p>
-    </article>
+    </Link>
   );
 }

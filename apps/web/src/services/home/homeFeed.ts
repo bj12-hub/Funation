@@ -138,12 +138,12 @@ const MOCK_HOME_FEED: HomeFeed = {
     { id: "r5", rank: 5, thumbnailUrl: `${IMG}/ranking-5.jpg`, title: "고양이 구조센터 새 가족 만나는 날 — 입양 라이브", channelName: "냥이들의천국", viewerCount: 3_904, href: "/live" }
   ],
   creators: [
-    { id: "c1", name: "피식대학", avatarUrl: `${IMG}/creator-1.png`, subscriberCount: 3_050_000, href: "/creators" },
-    { id: "c2", name: "빠니보틀", avatarUrl: `${IMG}/creator-2.png`, subscriberCount: 2_400_000, href: "/creators" },
-    { id: "c3", name: "워크맨", avatarUrl: `${IMG}/creator-3.png`, subscriberCount: 4_100_000, href: "/creators" },
-    { id: "c4", name: "침착맨", avatarUrl: `${IMG}/creator-4.png`, subscriberCount: 2_600_000, href: "/creators" },
-    { id: "c5", name: "곽튜브", avatarUrl: `${IMG}/creator-5.png`, subscriberCount: 1_950_000, href: "/creators" },
-    { id: "c6", name: "먹방 쯔양", avatarUrl: `${IMG}/creator-6.png`, subscriberCount: 9_800_000, href: "/creators" }
+    { id: "c4", name: "피식대학", avatarUrl: `${IMG}/creator-1.png`, subscriberCount: 3_050_000, href: "/creators/c4" },
+    { id: "c3", name: "빠니보틀", avatarUrl: `${IMG}/creator-2.png`, subscriberCount: 2_400_000, href: "/creators/c3" },
+    { id: "c5", name: "워크맨", avatarUrl: `${IMG}/creator-3.png`, subscriberCount: 4_100_000, href: "/creators/c5" },
+    { id: "c1", name: "침착맨", avatarUrl: `${IMG}/creator-4.png`, subscriberCount: 2_600_000, href: "/creators/c1" },
+    { id: "c2", name: "곽튜브", avatarUrl: `${IMG}/creator-5.png`, subscriberCount: 1_950_000, href: "/creators/c2" },
+    { id: "c6", name: "먹방 쯔양", avatarUrl: `${IMG}/creator-6.png`, subscriberCount: 9_800_000, href: "/creators/c6" }
   ],
   promotion: {
     id: "p1",

@@ -2,6 +2,7 @@
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
+import { getCreatorById } from "@/services/creators/creators";
 
 /**
  * Favorite creators of the signed-in member.
@@ -61,6 +62,35 @@ export async function removeFavorite(creatorId: unknown): Promise<{ status: "REM
   if (index < 0) return { status: "NOT_FOUND" };
   list.splice(index, 1);
   return { status: "REMOVED" };
+}
+
+/** Whether the signed-in member has favorited the creator (false for guests). */
+export async function isFavorite(creatorId: string): Promise<boolean> {
+  if (!USE_MOCK) throw new Error("Favorites API is not connected yet.");
+  if (!(await getSession())) return false;
+  return favorites().some((f) => f.creatorId === creatorId);
+}
+
+/** Figma 826:510 — adds the creator; idempotent (adding twice keeps one entry). */
+export async function addFavorite(creatorId: unknown): Promise<{ status: "ADDED" | "NOT_FOUND" | "UNAUTHORIZED" }> {
+  if (!USE_MOCK) throw new Error("Favorites API is not connected yet.");
+  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (typeof creatorId !== "string") return { status: "NOT_FOUND" };
+  const creator = await getCreatorById(creatorId);
+  if (!creator) return { status: "NOT_FOUND" };
+  await mockDelay(300);
+  const list = favorites();
+  if (!list.some((f) => f.creatorId === creatorId)) {
+    list.unshift({
+      creatorId,
+      name: creator.name,
+      avatarUrl: creator.avatarUrl,
+      subscriberCount: creator.subscriberCount,
+      verified: true,
+      isLive: creator.isLive
+    });
+  }
+  return { status: "ADDED" };
 }
 
 export async function getFavoritesPromotion(): Promise<PromotionBanner | null> {
