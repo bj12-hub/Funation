@@ -39,3 +39,5 @@ npm run dev:sync
 This starts the dev server and pulls new commits from `origin/preview` every 10 seconds.
 The browser reloads automatically. Stop with `Ctrl + C`.
 If you edit files locally, syncing pauses so your changes are not overwritten.
+Syncing also pauses whenever a branch other than `preview` is checked out, so work on
+`main` or `feature/*` is never reset.
