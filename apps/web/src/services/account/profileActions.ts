@@ -1,7 +1,7 @@
 "use server";
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
-import { endSession, getSession } from "@/lib/session";
+import { getSession, revokeSession } from "@/lib/session";
 import {
   PROFILE_PHOTO_MAX_BYTES,
   PROFILE_PHOTO_TYPES,
@@ -120,7 +120,7 @@ export async function changePassword(input: { current: unknown; next: unknown; c
   mockCredentials.password = next;
   mockCredentials.recentPasswords = [next, ...mockCredentials.recentPasswords].slice(0, 3);
   // Figma 747:738: the member must sign in again after changing the password.
-  await endSession();
+  await revokeSession();
   return { status: "CHANGED" };
 }
 

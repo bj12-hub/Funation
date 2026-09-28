@@ -12,6 +12,8 @@ type MockState = {
   account: MyAccount;
   credentials: { password: string; recentPasswords: string[] };
   changeHistory: { nicknameChangedAt: Date | null; funationIdChangedAt: Date | null };
+  /** Server-side revocation (e.g. after a password change); cleared on the next login. */
+  session: { revoked: boolean };
 };
 
 const globalForMock = globalThis as typeof globalThis & { __funationMockState?: MockState };
@@ -34,12 +36,17 @@ const state = (globalForMock.__funationMockState ??= {
   },
   // The login mock accepts this password; a password change updates it.
   credentials: { password: "password", recentPasswords: ["password"] },
-  changeHistory: { nicknameChangedAt: null, funationIdChangedAt: null }
+  changeHistory: { nicknameChangedAt: null, funationIdChangedAt: null },
+  session: { revoked: false }
 });
+
+// Fields added after a dev server started are filled in on hot reload.
+state.session ??= { revoked: false };
 
 export const mockAccount = state.account;
 export const mockCredentials = state.credentials;
 export const mockChangeHistory = state.changeHistory;
+export const mockSessionState = state.session;
 
 // Sample values from the Figma error states (747:74, 747:120, 747:349, 747:394).
 export const MOCK_TAKEN_NICKNAMES = ["funation"];

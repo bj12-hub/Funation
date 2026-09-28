@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { USE_MOCK } from "@/lib/mock";
-import { mockAccount } from "@/services/account/mockStore";
+import { mockAccount, mockSessionState } from "@/services/account/mockStore";
 
 /**
  * Server-side session access (Server Components, Server Actions and route handlers only).
@@ -29,7 +29,7 @@ export async function getSession(): Promise<Session | null> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
   // TODO: validate the token with the backend once it exists.
-  if (USE_MOCK && token === MOCK_TOKEN) {
+  if (USE_MOCK && token === MOCK_TOKEN && !mockSessionState.revoked) {
     // Display fields follow the (editable) mock account.
     const { nickname, funationId, avatarUrl } = mockAccount;
     return { userId: MOCK_USER_ID, nickname, funationId, avatarUrl };
@@ -40,6 +40,7 @@ export async function getSession(): Promise<Session | null> {
 /** Issues the session cookie after the credentials were accepted. */
 export async function startSession({ keepSignedIn }: { keepSignedIn: boolean }) {
   if (!USE_MOCK) throw new Error("Session API is not connected yet.");
+  mockSessionState.revoked = false;
   (await cookies()).set(SESSION_COOKIE, MOCK_TOKEN, {
     httpOnly: true,
     sameSite: "lax",
@@ -51,6 +52,16 @@ export async function startSession({ keepSignedIn }: { keepSignedIn: boolean }) 
 
 export async function endSession() {
   (await cookies()).delete(SESSION_COOKIE);
+}
+
+/**
+ * Invalidates the current session on the server without touching the cookie, so the page that
+ * called the Server Action is not re-rendered immediately (the success modal stays visible).
+ * The next request is treated as signed out.
+ */
+export async function revokeSession() {
+  // TODO: revoke on the backend once it exists.
+  if (USE_MOCK) mockSessionState.revoked = true;
 }
 
 const MOCK_USER_ID = "u-hongGD123";
