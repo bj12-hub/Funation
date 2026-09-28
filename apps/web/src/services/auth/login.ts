@@ -1,0 +1,50 @@
+/**
+ * Login service contract.
+ *
+ * The backend is not decided yet (see docs/product/open-decisions.md), so this
+ * module only defines the contract the UI depends on, plus a development-only
+ * mock. Login attempts, failure counting and lockout MUST be enforced by the
+ * server; the mock only exists to exercise the Figma states locally.
+ */
+
+export type LoginRequest = {
+  identifier: string; // email or ID
+  password: string;
+  keepSignedIn: boolean;
+};
+
+export type LoginResult =
+  | { status: "SUCCESS" }
+  | { status: "UNKNOWN_ID" }
+  | { status: "WRONG_PASSWORD" }
+  | { status: "LOCKED" };
+
+export async function login(request: LoginRequest): Promise<LoginResult> {
+  if (process.env.NODE_ENV !== "production") {
+    return devMockLogin(request);
+  }
+  throw new Error("Login API is not connected yet.");
+}
+
+/* ── Development mock ───────────────────────────────────────
+ * identifier "unknown"            → UNKNOWN_ID
+ * password   "password"           → SUCCESS
+ * any other password              → WRONG_PASSWORD, LOCKED after 5 failures
+ */
+const MAX_FAILURES = 5;
+const failures = new Map<string, number>();
+
+async function devMockLogin({ identifier, password }: LoginRequest): Promise<LoginResult> {
+  await new Promise((resolve) => setTimeout(resolve, 400));
+
+  if ((failures.get(identifier) ?? 0) >= MAX_FAILURES) return { status: "LOCKED" };
+  if (identifier === "unknown") return { status: "UNKNOWN_ID" };
+  if (password === "password") {
+    failures.delete(identifier);
+    return { status: "SUCCESS" };
+  }
+
+  const count = (failures.get(identifier) ?? 0) + 1;
+  failures.set(identifier, count);
+  return count >= MAX_FAILURES ? { status: "LOCKED" } : { status: "WRONG_PASSWORD" };
+}

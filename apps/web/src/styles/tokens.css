@@ -39,11 +39,24 @@
 
   --gradient-brand: linear-gradient(90deg, #8b5cf6 0%, #ec4899 100%);
   --gradient-cta: linear-gradient(90deg, #6366f1 0%, #4f46e5 100%);
+  --gradient-primary-button: linear-gradient(90deg, #8b5cf6 0%, #6366f1 100%);
 
   /* ── Status ───────────────────────────────────────────── */
   --color-success: #10b981;
   --color-warning: #f97316;
   --color-danger: #ef4444;
+  --color-error-text: #f87171;
+  --color-danger-surface: #2a1420;
+  --color-danger-border: #5a2837;
+
+  /* ── Form ─────────────────────────────────────────────── */
+  --color-input-bg: #0e0e1f;
+
+  /* ── Third-party brand (social login) ─────────────────── */
+  --color-google-bg: #ffffff;
+  --color-google-text: #1f2937;
+  --color-kakao-bg: #fee500;
+  --color-kakao-text: #181600;
 
   /* ── Typography ───────────────────────────────────────── */
   --font-sans: "Gothic A1", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
@@ -81,6 +94,7 @@
 
   /* ── Elevation ────────────────────────────────────────── */
   --shadow-header: 0 8px 12px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 16px 32px rgba(0, 0, 0, 0.5);
 
   /* ── Layout ───────────────────────────────────────────── */
   --layout-max-width: 1440px;
