@@ -25,3 +25,17 @@ Component
  ↓
 API Service
 ```
+
+## Local preview with auto-sync (Windows)
+
+Claude pushes the latest work-in-progress to the `preview` branch.
+To see it locally without running git commands by hand:
+
+```powershell
+cd ~\Documents\Funation
+npm run dev:sync
+```
+
+This starts the dev server and pulls new commits from `origin/preview` every 10 seconds.
+The browser reloads automatically. Stop with `Ctrl + C`.
+If you edit files locally, syncing pauses so your changes are not overwritten.
