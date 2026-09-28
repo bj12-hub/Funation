@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { PlayOutlineIcon, VideoIcon, YoutubeLogoIcon } from "@/components/icons";
 import { formatNumber } from "@/lib/format";
@@ -112,9 +113,9 @@ export function MyPageScreen({ account }: { account: MyAccount }) {
 
           <Row label="보유 FN">
             <span className={styles.value}>{formatNumber(account.fnBalance)} FN</span>
-            <button type="button" className={styles.actionButton} {...UNAVAILABLE}>
+            <Link href="/wallet/charges" className={styles.actionButton}>
               FN 내역
-            </button>
+            </Link>
             <button type="button" className={styles.actionButton} {...UNAVAILABLE}>
               FN 충전
             </button>

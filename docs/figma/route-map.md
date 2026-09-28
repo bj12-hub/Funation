@@ -15,6 +15,10 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/support` | ✅ | 고객센터 4:7 — `?q=` searches the FAQ |
 | `/mypage` | ✅ | funation-my-page 735:4119 · 622:4 — redirects to `/login` without a session |
 | `/favorites` | ✅ | funation-favorites-page 735:3856 — signed-in only, `?q=` `?page=` |
+| `/creators/[id]` | ✅ | 라이브 826:685 (채팅) · 610:138 (후원), 오프라인 710:195, 공유 826:387 — donation submit pending (FN wallet) |
+| `/wallet/charges` | ✅ | FN 충전내역 640:2 · 639:2 (empty) · 상세 643:4 · 644:6 · 644:185 · 644:364 — signed-in only, `?period=` `?from=` `?to=` `?page=` |
+| `/wallet/donations` | ✅ | FN 후원내역 632:4 · 637:214 (empty) — signed-in only, `?type=` (basic · quest · game) + period params |
+| `/wallet` | ✅ | redirects to `/wallet/charges` |
 | `/terms/[slug]` | 🚧 | 722:3 (terms text pending) — slugs: youth, service, privacy, marketing, operation |
 
 ## Link wiring
@@ -32,7 +36,8 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | Signup complete | 로그인 페이지로 이동 · 간편 로그인 연동하러 가기 | `/login` · `/mypage` |
 | Password reset | 로그인으로 돌아가기 | `/login` |
 | Home | 히어로 바로 시청하기 · 지금 뜨는 영상 · 랭킹 · 현재 라이브 방송 | `/live` (live detail route pending) |
-| Home | 인기 크리에이터 · 전체보기 | `/creators` |
+| Home | 인기 크리에이터 | `/creators/[id]` |
+| Home | 인기 크리에이터 전체보기 | `/creators` |
 | Home | 보관함에 저장 · 이벤트 배너 지금 참여하기 | not wired — destination TBD |
 | Footer | 이용약관 · 개인정보처리방침 · 청소년보호정책 · 운영정책 | `/terms/{service,privacy,youth,operation}` |
 | Footer | 고객지원 links | `/support` |
@@ -41,15 +46,22 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | Live popular | 섹션 제목 `>` | `/live?category=<CATEGORY>` |
 | Side nav (live) | 홈 · 추천 라이브 · 실시간 인기 급상승 | `/` · `/live` · `/live/popular` |
 | Side nav | 즐겨찾기 | `/favorites` |
-| Side nav | 출석체크 · 시청 기록 · 설정 · FN 충전 · QR 충전 · FN 내역 | not wired — screens pending |
+| Side nav | FN 내역 | `/wallet/charges` |
+| Side nav | 출석체크 · 시청 기록 · 설정 · FN 충전 · QR 충전 | not wired — screens pending |
 | Side nav (live) | 로그인 (guest card) · 마이페이지 | `/login` · `/mypage` |
 | Creators | 카테고리 탭 · 검색 · 정렬 · 페이지 | `/creators?category=&q=&sort=&page=` |
-| Creators | 크리에이터 카드 | not wired — creator detail pending |
+| Creators | 크리에이터 카드 | `/creators/[id]` |
+| Favorites | 크리에이터 이름 | `/creators/[id]` |
+| Creator room | 즐겨찾기 · 공유 · 후원/채팅 탭 | favorite server action · share modal · donation submit pending |
+| FN 내역 | 충전 내역 · 후원 내역 탭 · 마이페이지 breadcrumb | `/wallet/charges` · `/wallet/donations` · `/mypage` |
+| FN 내역 | CSV 다운로드 | `/api/wallet/charges` · `/api/wallet/donations` (session required) |
+| FN 내역 | FN 충전 · 매출전표 영수증 | not wired — charge flow / payment provider pending |
 | Hall of fame | 기간 탭 | `/hall-of-fame?period=` |
 | Hall of fame | 나도 서포터 되기 | not wired — destination TBD |
 | My page | 랭킹 노출 · 마케팅 동의 토글 | saved via account service (mock) |
 | My page | 사진 변경 · 닉네임/ID 수정 · 비밀번호 변경 | modals 743:1955 · 743:1997 · 743:2040 · 743:2084 (server actions, mock) |
 | My page | 로그인 연동 관리 · 인증하기 · 플랫폼 연결/해제 | modals 743:2133–2227 · 743:2274 + 750:* · 743:2442 · 743:2488 (mock hand-offs, TBD) |
-| My page | FN 내역/충전 · 회원 탈퇴 | not wired — flows pending |
+| My page | FN 내역 | `/wallet/charges` |
+| My page | FN 충전 · 회원 탈퇴 | not wired — flows pending |
 | Support | 자주 묻는 질문 바로가기 · 비밀번호 FAQ | `#faq` · `/password-reset` |
 | Support | 문의하기 · 가이드 보기 | not wired — screens pending |
