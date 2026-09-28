@@ -1,5 +1,6 @@
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import type { Platform } from "@/types/platform";
+import { getMockDonationCatalog, type DonationCatalog } from "@/services/donations/donationCatalog";
 import { getCreatorById } from "./creators";
 
 /**
@@ -34,10 +35,6 @@ export type LiveStream = {
 
 export type OfflineStream = { status: "OFFLINE"; imageUrl: string };
 
-export type DonationType = { key: "TEXT" | "MINI" | "VIDEO" | "SIGNATURE" | "WISHLIST" | "LUCKYBOX"; emoji: string; label: string; title: string };
-
-export type Voice = { id: string; emoji: string; name: string; description: string };
-
 export type CreatorRoom = {
   creatorId: string;
   name: string;
@@ -46,12 +43,7 @@ export type CreatorRoom = {
   channels: { platform: Platform; logoUrl: string }[];
   banner: RoomBanner | null;
   stream: LiveStream | OfflineStream;
-  donation: {
-    types: DonationType[];
-    /** Minimum amount per donation in FN (Figma 610:138 "최소 1,000 FN부터"). Server-owned; TBD. */
-    minAmount: number;
-    voices: Voice[];
-  };
+  donation: DonationCatalog;
 };
 
 export async function getCreatorRoom(creatorId: string): Promise<CreatorRoom | null> {
@@ -79,7 +71,7 @@ export async function getCreatorRoom(creatorId: string): Promise<CreatorRoom | n
             goal: { current: 740_000, target: 1_000_000 }
           }
         : { status: "OFFLINE", imageUrl: "/mock/room/offline.jpg" },
-    donation: DONATION
+    donation: getMockDonationCatalog()
   };
 }
 
@@ -99,17 +91,4 @@ const BANNER: RoomBanner = {
   description: "지금 구독하면 광고 없는 초고화질 무제한 스트리밍이 첫 달 무료! 최신 오리지널 예능 단독 오픈.",
   ctaLabel: "지금 참여하기",
   imageUrl: "/mock/home/promo-banner.jpg"
-};
-
-export const DONATION: CreatorRoom["donation"] = {
-  types: [
-    { key: "TEXT", emoji: "💬", label: "일반", title: "일반 후원" },
-    { key: "MINI", emoji: "⚡", label: "미니", title: "미니 후원" },
-    { key: "VIDEO", emoji: "🎬", label: "영상", title: "영상 후원" },
-    { key: "SIGNATURE", emoji: "✨", label: "시그니처", title: "시그니처 후원" },
-    { key: "WISHLIST", emoji: "🎁", label: "위시", title: "위시리스트 후원" },
-    { key: "LUCKYBOX", emoji: "🎲", label: "럭키박스", title: "럭키박스 후원" }
-  ],
-  minAmount: 1_000,
-  voices: [{ id: "mina", emoji: "👧", name: "미나", description: "명랑한 보이스" }]
 };
