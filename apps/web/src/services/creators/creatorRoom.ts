@@ -101,7 +101,7 @@ const BANNER: RoomBanner = {
   imageUrl: "/mock/home/promo-banner.jpg"
 };
 
-const DONATION: CreatorRoom["donation"] = {
+export const DONATION: CreatorRoom["donation"] = {
   types: [
     { key: "TEXT", emoji: "💬", label: "일반", title: "일반 후원" },
     { key: "MINI", emoji: "⚡", label: "미니", title: "미니 후원" },

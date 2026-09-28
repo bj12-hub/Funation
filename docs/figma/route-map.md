@@ -15,7 +15,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/support` | ✅ | 고객센터 4:7 — `?q=` searches the FAQ |
 | `/mypage` | ✅ | funation-my-page 735:4119 · 622:4 — redirects to `/login` without a session |
 | `/favorites` | ✅ | funation-favorites-page 735:3856 — signed-in only, `?q=` `?page=` |
-| `/creators/[id]` | ✅ | 라이브 826:685 (채팅) · 610:138 (후원), 오프라인 710:195, 공유 826:387 — donation submit pending (FN wallet) |
+| `/creators/[id]` | ✅ | 라이브 826:685 (채팅) · 610:138 (후원), 오프라인 710:195, 공유 826:387 · 후원 확인 613:6 · 완료 613:122 · FN 부족 613:237 |
 | `/wallet/charges` | ✅ | FN 충전내역 640:2 · 639:2 (empty) · 상세 643:4 · 644:6 · 644:185 · 644:364 — signed-in only, `?period=` `?from=` `?to=` `?page=` |
 | `/wallet/donations` | ✅ | FN 후원내역 632:4 · 637:214 (empty) — signed-in only, `?type=` (basic · quest · game) + period params |
 | `/wallet` | ✅ | redirects to `/wallet/charges` |
@@ -53,7 +53,8 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | Creators | 카테고리 탭 · 검색 · 정렬 · 페이지 | `/creators?category=&q=&sort=&page=` |
 | Creators | 크리에이터 카드 | `/creators/[id]` |
 | Favorites | 크리에이터 이름 | `/creators/[id]` |
-| Creator room | 즐겨찾기 · 공유 · 후원/채팅 탭 | favorite server action · share modal · donation submit pending |
+| Creator room | 즐겨찾기 · 공유 · 채팅 탭 | favorite server action · share modal · local chat echo |
+| Creator room | 후원하기 | 확인 → 완료 popups (donation server action) · FN 부족 → charge modal |
 | FN 내역 | 충전 내역 · 후원 내역 탭 · 마이페이지 breadcrumb | `/wallet/charges` · `/wallet/donations` · `/mypage` |
 | FN 내역 | CSV 다운로드 | `/api/wallet/charges` · `/api/wallet/donations` (session required) |
 | FN 내역 | FN 충전 | charge modal (595:1869 · 595:5475 · 601:839 · 606:540 · 739:*) |

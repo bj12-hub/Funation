@@ -1,0 +1,160 @@
+/* Donation popups — Figma 613:6 · 613:122 · 613:237 (460 wide, gap 20) */
+
+.lead {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-14);
+  line-height: 1.5;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0;
+  overflow: hidden;
+  border-radius: var(--radius-8);
+  background: var(--color-surface-strong);
+}
+
+.infoRow,
+.infoMessage {
+  padding: 12px;
+  background: var(--color-chip-bg);
+}
+
+.infoRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.infoMessage {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.info dt {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+}
+
+.info dd {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.strong {
+  font-weight: var(--font-weight-bold);
+}
+
+.amount {
+  color: var(--color-accent) !important;
+  font-size: var(--font-size-15) !important;
+  font-weight: var(--font-weight-extrabold);
+}
+
+.remaining {
+  color: var(--color-live) !important;
+  font-weight: var(--font-weight-bold);
+}
+
+.center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 8px;
+  border: 2px solid;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-latin);
+  font-size: 28px;
+}
+
+.badgePink {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.badgeGold {
+  border-color: var(--color-live);
+  background: rgba(245, 191, 10, 0.1);
+}
+
+.headline {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.sub {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.body {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.4;
+}
+
+.error {
+  margin: 0;
+  color: var(--color-error-text);
+  font-size: var(--font-size-12);
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+}
+
+.cancel,
+.pink,
+.purple {
+  flex: 1;
+  padding: 14px 0;
+  border-radius: var(--radius-8);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+}
+
+.cancel {
+  background: var(--color-chip-bg);
+  color: var(--color-text-secondary);
+}
+
+.pink {
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+}
+
+.purple {
+  width: 100%;
+  background: var(--color-primary);
+  color: var(--color-text-on-accent);
+}
+
+.cancel:disabled,
+.pink:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
