@@ -24,8 +24,10 @@ export type MyAccount = {
   nickname: string;
   funationId: string;
   avatarUrl: string | null;
-  linkedLoginProviders: Record<LoginProvider, boolean>;
-  identityVerified: boolean;
+  /** Linked social login accounts; `null` when not linked. `linkedAt` is an ISO date string. */
+  linkedLoginProviders: Record<LoginProvider, { identifier: string; linkedAt: string } | null>;
+  /** Real-name verification result from the verification provider; `null` when not verified. */
+  identity: { name: string; birthDate: string; verifiedAt: string } | null;
   fnBalance: number;
   rankingVisibility: Record<RankingVisibilityKey, boolean>;
   /** Broadcasting platform accounts; `handle` is null when not connected. */

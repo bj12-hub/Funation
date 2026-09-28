@@ -46,6 +46,8 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | Hall of fame | 기간 탭 | `/hall-of-fame?period=` |
 | Hall of fame | 나도 서포터 되기 | not wired — destination TBD |
 | My page | 랭킹 노출 · 마케팅 동의 토글 | saved via account service (mock) |
-| My page | 사진 변경 · 수정 · 비밀번호 변경 · 연동 관리 · 인증하기 · FN 내역/충전 · 플랫폼 연결 · 회원 탈퇴 | not wired — flows pending |
+| My page | 사진 변경 · 닉네임/ID 수정 · 비밀번호 변경 | modals 743:1955 · 743:1997 · 743:2040 · 743:2084 (server actions, mock) |
+| My page | 로그인 연동 관리 · 인증하기 · 플랫폼 연결/해제 | modals 743:2133–2227 · 743:2274 + 750:* · 743:2442 · 743:2488 (mock hand-offs, TBD) |
+| My page | FN 내역/충전 · 회원 탈퇴 | not wired — flows pending |
 | Support | 자주 묻는 질문 바로가기 · 비밀번호 FAQ | `#faq` · `/password-reset` |
 | Support | 문의하기 · 가이드 보기 | not wired — screens pending |

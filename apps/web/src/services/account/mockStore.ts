@@ -16,15 +16,21 @@ type MockState = {
   session: { revoked: boolean };
 };
 
-const globalForMock = globalThis as typeof globalThis & { __funationMockState?: MockState };
+// Bump the key when the state shape changes so a running dev server starts from fresh data.
+const globalForMock = globalThis as typeof globalThis & { __funationMockStateV2?: MockState };
 
-const state = (globalForMock.__funationMockState ??= {
+const state = (globalForMock.__funationMockStateV2 ??= {
   account: {
     nickname: "홍길동",
     funationId: "hongGD123",
     avatarUrl: "/mock/account/avatar.png",
-    linkedLoginProviders: { NAVER: false, GOOGLE: true, KAKAO: true },
-    identityVerified: false,
+    // Figma 743:2203 / 743:2250 sample accounts (connected 2026. 09. 12 14:32 KST).
+    linkedLoginProviders: {
+      NAVER: null,
+      GOOGLE: { identifier: "honggd@gmail.com", linkedAt: "2026-09-12T05:32:00.000Z" },
+      KAKAO: { identifier: "honggd_kakao", linkedAt: "2026-09-12T05:32:00.000Z" }
+    },
+    identity: null,
     fnBalance: 5_000,
     rankingVisibility: { quest: true, luckyBox: true, play: false },
     connectedPlatforms: [
@@ -39,9 +45,6 @@ const state = (globalForMock.__funationMockState ??= {
   changeHistory: { nicknameChangedAt: null, funationIdChangedAt: null },
   session: { revoked: false }
 });
-
-// Fields added after a dev server started are filled in on hot reload.
-state.session ??= { revoked: false };
 
 export const mockAccount = state.account;
 export const mockCredentials = state.credentials;

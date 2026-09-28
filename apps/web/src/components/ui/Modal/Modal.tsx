@@ -11,13 +11,18 @@ type ModalProps = {
   children?: ReactNode;
   /** Action row (Figma: two equal buttons). */
   footer?: ReactNode;
+  /**
+   * Replaces the default title block (e.g. the 본인인증 result header 750:*). `title` is still
+   * used as the dialog's accessible name. Receives the close handler for its own × button.
+   */
+  customHeader?: ReactNode;
 };
 
 /**
  * Modal dialog. Figma shell: my page edit modals (743:1978 …) — 520px, radius 16, dimmed backdrop.
  * Uses the native <dialog> for focus trapping, Esc to close and inert background.
  */
-export function Modal({ open, onClose, title, description, children, footer }: ModalProps) {
+export function Modal({ open, onClose, title, description, children, footer, customHeader }: ModalProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const descriptionId = useId();
@@ -33,8 +38,9 @@ export function Modal({ open, onClose, title, description, children, footer }: M
     <dialog
       ref={ref}
       className={styles.dialog}
-      aria-labelledby={titleId}
-      aria-describedby={description ? descriptionId : undefined}
+      aria-labelledby={customHeader ? undefined : titleId}
+      aria-label={customHeader ? title : undefined}
+      aria-describedby={description && !customHeader ? descriptionId : undefined}
       onCancel={(e) => {
         e.preventDefault();
         onClose();
@@ -46,21 +52,23 @@ export function Modal({ open, onClose, title, description, children, footer }: M
     >
       {open && (
         <div className={styles.panel}>
-          <header className={styles.header}>
-            <div className={styles.titleRow}>
-              <h2 id={titleId} className={styles.title}>
-                {title}
-              </h2>
-              <button type="button" className={styles.close} aria-label="닫기" onClick={onClose}>
-                ×
-              </button>
-            </div>
-            {description && (
-              <p id={descriptionId} className={styles.description}>
-                {description}
-              </p>
-            )}
-          </header>
+          {customHeader ?? (
+            <header className={styles.header}>
+              <div className={styles.titleRow}>
+                <h2 id={titleId} className={styles.title}>
+                  {title}
+                </h2>
+                <button type="button" className={styles.close} aria-label="닫기" onClick={onClose}>
+                  ×
+                </button>
+              </div>
+              {description && (
+                <p id={descriptionId} className={styles.description}>
+                  {description}
+                </p>
+              )}
+            </header>
+          )}
           {children}
           {footer && <div className={styles.footer}>{footer}</div>}
         </div>

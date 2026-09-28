@@ -1,16 +1,16 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
-import { PlayOutlineIcon, PlusSmallIcon, VideoIcon, YoutubeLogoIcon } from "@/components/icons";
+import { PlayOutlineIcon, VideoIcon, YoutubeLogoIcon } from "@/components/icons";
 import { formatNumber } from "@/lib/format";
 import type { LoginProvider, MyAccount } from "@/services/account/myAccount";
 import type { Platform } from "@/types/platform";
 import { FunationIdEditor, NicknameEditor, PasswordEditor, PhotoEditor } from "./editors";
+import { IdentityVerification, PlatformConnect, PlatformDisconnect, ProviderLinkEditor } from "./linking";
 import { MarketingConsentSetting, RankingVisibilitySettings } from "./SettingToggles";
 import styles from "./mypage.module.css";
 
-// Flows behind these buttons (provider linking, identity verification, FN history/charge,
-// platform connect/disconnect, withdrawal) are not built yet; they render as unavailable.
-// Photo, nickname, ID and password changes live in ./editors.
+// FN history/charge and withdrawal are not built yet; they render as unavailable.
+// Profile changes live in ./editors; provider, identity and platform links in ./linking.
 const UNAVAILABLE = { "aria-disabled": true, title: "준비 중인 기능입니다" } as const;
 
 const PROVIDERS: { key: LoginProvider; label: string; logo: ReactNode }[] = [
@@ -89,9 +89,7 @@ export function MyPageScreen({ account }: { account: MyAccount }) {
                     {p.logo}
                     <span className={styles.providerName}>{p.label}</span>
                     <span className={styles.statusBadge}>{linked ? "연결됨" : "미연결"}</span>
-                    <button type="button" className={styles.smallButton} {...UNAVAILABLE}>
-                      {linked ? "관리" : "연결하기"}
-                    </button>
+                    <ProviderLinkEditor provider={p.key} link={linked} triggerClassName={styles.smallButton} />
                   </li>
                 );
               })}
@@ -100,7 +98,7 @@ export function MyPageScreen({ account }: { account: MyAccount }) {
 
           <Row label="본인인증 여부">
             <div className={styles.valueGroup}>
-              {account.identityVerified ? (
+              {account.identity ? (
                 <span className={styles.verified}>본인인증 완료</span>
               ) : (
                 <>
@@ -109,11 +107,7 @@ export function MyPageScreen({ account }: { account: MyAccount }) {
                 </>
               )}
             </div>
-            {!account.identityVerified && (
-              <button type="button" className={`${styles.actionButton} ${styles.actionPrimary}`} {...UNAVAILABLE}>
-                인증하기
-              </button>
-            )}
+            {!account.identity && <IdentityVerification triggerClassName={`${styles.actionButton} ${styles.actionPrimary}`} />}
           </Row>
 
           <Row label="보유 FN">
@@ -153,14 +147,9 @@ export function MyPageScreen({ account }: { account: MyAccount }) {
                 </span>
               </div>
               {handle ? (
-                <button type="button" className={styles.disconnectButton} {...UNAVAILABLE}>
-                  연결 해제
-                </button>
+                <PlatformDisconnect platform={platform} label={PLATFORMS[platform].label} handle={handle} triggerClassName={styles.disconnectButton} />
               ) : (
-                <button type="button" className={styles.connectButton} {...UNAVAILABLE}>
-                  <PlusSmallIcon />
-                  연결 추가
-                </button>
+                <PlatformConnect platform={platform} label={PLATFORMS[platform].label} triggerClassName={styles.connectButton} />
               )}
             </li>
           ))}
