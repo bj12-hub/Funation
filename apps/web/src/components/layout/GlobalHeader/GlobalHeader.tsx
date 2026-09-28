@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { logout } from "@/services/auth/logout";
 import { LanguageMenu } from "../LanguageMenu";
+import { ProfileMenu } from "./ProfileMenu";
 import styles from "./GlobalHeader.module.css";
 
 /**
@@ -104,20 +106,7 @@ export function GlobalHeader({ user, showMenuButton = true, onMenuClick }: Globa
         <LanguageMenu />
 
         {user ? (
-          <button type="button" className={styles.profile} aria-haspopup="menu">
-            {user.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element -- user-supplied avatar from an arbitrary host
-              <img className={styles.avatar} src={user.avatarUrl} alt="" width={32} height={32} />
-            ) : (
-              <span className={styles.avatarFallback} aria-hidden="true">
-                {user.nickname.slice(0, 1)}
-              </span>
-            )}
-            <span className={styles.profileName}>{user.nickname}의 FuN!</span>
-            <span className={styles.caret} aria-hidden="true">
-              ▼
-            </span>
-          </button>
+          <ProfileMenu user={user} />
         ) : (
           <Link href="/login" className={styles.loginButton}>
             로그인
@@ -134,6 +123,13 @@ export function GlobalHeader({ user, showMenuButton = true, onMenuClick }: Globa
             <Link href="/mypage" className={styles.mobileNavLink} aria-current={isActive(pathname, "/mypage") ? "page" : undefined}>
               마이페이지
             </Link>
+          )}
+          {user && (
+            <form action={logout}>
+              <button type="submit" className={styles.mobileNavLink}>
+                로그아웃
+              </button>
+            </form>
           )}
         </nav>
       )}

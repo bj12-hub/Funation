@@ -1,7 +1,14 @@
 import { SideNavLayout } from "@/components/layout/SideNav";
+import { getMyAccount } from "@/services/account/myAccount";
 
 // Figma 617:316 / 617:5 — 260px side navigation + content.
-export default function LiveLayout({ children }: { children: React.ReactNode }) {
-  // TODO: pass the signed-in user (with server-provided FN balance) once authentication exists.
-  return <SideNavLayout user={null}>{children}</SideNavLayout>;
+export default async function LiveLayout({ children }: { children: React.ReactNode }) {
+  const account = await getMyAccount();
+  const user = account && {
+    nickname: account.nickname,
+    funationId: account.funationId,
+    avatarUrl: account.avatarUrl,
+    fnBalance: account.fnBalance
+  };
+  return <SideNavLayout user={user}>{children}</SideNavLayout>;
 }

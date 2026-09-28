@@ -23,7 +23,8 @@ const MESSAGES = {
   ERROR: "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요"
 } as const;
 
-export function LoginForm() {
+/** `next`: where to go after signing in (already validated as a same-site path). */
+export function LoginForm({ next = "/" }: { next?: string }) {
   const router = useRouter();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -47,7 +48,9 @@ export function LoginForm() {
     try {
       const result = await login({ identifier: identifier.trim(), password, keepSignedIn });
       if (result.status === "SUCCESS") {
-        router.push("/");
+        // The session cookie was set by the server action; refresh so layouts read it.
+        router.replace(next);
+        router.refresh();
         return;
       }
       setState(result.status);

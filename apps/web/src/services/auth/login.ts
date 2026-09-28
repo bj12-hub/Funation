@@ -1,4 +1,7 @@
+"use server";
+
 import { USE_MOCK, mockDelay } from "@/lib/mock";
+import { startSession } from "@/lib/session";
 
 /**
  * Login service contract.
@@ -7,6 +10,9 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
  * module only defines the contract the UI depends on, plus a development-only
  * mock. Login attempts, failure counting and lockout MUST be enforced by the
  * server; the mock only exists to exercise the Figma states locally.
+ *
+ * This is a Server Action: credentials are checked on the server and, on success,
+ * the session cookie is issued there (httpOnly), never in the browser.
  */
 
 export type LoginRequest = {
@@ -22,10 +28,10 @@ export type LoginResult =
   | { status: "LOCKED" };
 
 export async function login(request: LoginRequest): Promise<LoginResult> {
-  if (USE_MOCK) {
-    return devMockLogin(request);
-  }
-  throw new Error("Login API is not connected yet.");
+  if (!USE_MOCK) throw new Error("Login API is not connected yet.");
+  const result = await devMockLogin(request);
+  if (result.status === "SUCCESS") await startSession({ keepSignedIn: request.keepSignedIn });
+  return result;
 }
 
 /* ── Development mock ───────────────────────────────────────
