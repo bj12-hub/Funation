@@ -1,9 +1,24 @@
 import type { Metadata } from "next";
-import { ComingSoon } from "@/components/layout/ComingSoon";
+import { redirect } from "next/navigation";
+import { SideNavLayout } from "@/components/layout/SideNav";
+import { MyPageScreen } from "@/features/mypage";
+import { getMyAccount } from "@/services/account/myAccount";
 
-// Figma: funnation-my-page 622:4, 735:4119
+// Figma: funation-my-page 735:4119 · 622:4
 export const metadata: Metadata = { title: "마이페이지 | Funation" };
+export const dynamic = "force-dynamic";
 
-export default function Page() {
-  return <ComingSoon title="마이페이지" />;
+export default async function Page() {
+  // Route guard for UX only; the backend must authorize every account read and update.
+  const account = await getMyAccount();
+  if (!account) redirect("/login");
+
+  return (
+    <SideNavLayout
+      user={{ nickname: account.nickname, funationId: account.funationId, avatarUrl: account.avatarUrl, fnBalance: account.fnBalance }}
+      showWatchHistory
+    >
+      <MyPageScreen account={account} />
+    </SideNavLayout>
+  );
 }
