@@ -149,6 +149,10 @@ const DONATION_ROWS: [number, string, string, string, string, number, string, Do
 ];
 
 function mockDonations(): (DonationRecord & { category: DonationCategory })[] {
+  return [...mockWallet.donations, ...seedDonations()];
+}
+
+function seedDonations(): (DonationRecord & { category: DonationCategory })[] {
   return DONATION_ROWS.map(([daysAgo, time, creatorId, creatorName, message, fnAmount, typeLabel, category, status], i) => ({
     id: `dn${i + 1}`,
     donatedAt: stamp(daysAgo, time),

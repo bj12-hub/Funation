@@ -1,17 +1,18 @@
 import type { ChargeResult } from "./chargeTypes";
-import type { ChargeRecord } from "./walletTypes";
+import type { DonationResult } from "@/services/donations/donationTypes";
+import type { ChargeRecord, DonationCategory, DonationRecord } from "./walletTypes";
 
 /**
- * Development-only, in-memory wallet data for the charge mock. Server-side only; resets when the
- * dev server restarts. Kept on `globalThis` for the same reason as services/account/mockStore.ts.
- * The balance itself lives on the mock account (`mockAccount.fnBalance`).
+ * Development-only, in-memory wallet data for the charge and donation mocks. Server-side only;
+ * resets when the dev server restarts. Kept on `globalThis` for the same reason as
+ * services/account/mockStore.ts. The balance itself lives on the mock account (`mockAccount.fnBalance`).
  */
 
-type IdempotencyEntry = {
+type IdempotencyEntry<R> = {
   /** Request the key was first used with; a different request under the same key is a conflict. */
   fingerprint: string;
   /** `null` while the first request is still running. */
-  result: ChargeResult | null;
+  result: R | null;
 };
 
 type MockWalletState = {
@@ -19,14 +20,20 @@ type MockWalletState = {
   marketingOptIn: boolean;
   /** Charges made through the mock, newest first (seed history is in walletHistory.ts). */
   charges: ChargeRecord[];
-  idempotency: Record<string, IdempotencyEntry>;
+  /** Donations made through the mock, newest first. */
+  donations: (DonationRecord & { category: DonationCategory })[];
+  idempotency: Record<string, IdempotencyEntry<ChargeResult>>;
+  donationIdempotency: Record<string, IdempotencyEntry<DonationResult>>;
 };
 
-const globalForWallet = globalThis as typeof globalThis & { __funationMockWallet?: MockWalletState };
+// Bump the key when the state shape changes so a running dev server starts from fresh data.
+const globalForWallet = globalThis as typeof globalThis & { __funationMockWalletV2?: MockWalletState };
 
-export const mockWallet = (globalForWallet.__funationMockWallet ??= {
+export const mockWallet = (globalForWallet.__funationMockWalletV2 ??= {
   chargeTermsAgreedAt: null,
   marketingOptIn: false,
   charges: [],
-  idempotency: {}
+  donations: [],
+  idempotency: {},
+  donationIdempotency: {}
 });

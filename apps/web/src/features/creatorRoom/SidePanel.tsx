@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { formatNumber } from "@/lib/format";
 import type { CreatorRoom } from "@/services/creators/creatorRoom";
 import { ChatPanel } from "./ChatPanel";
+import { MOCK_MESSAGES, type ChatMessage } from "./chatMessages";
 import { DonationForm } from "./DonationForm";
 import styles from "./room.module.css";
 
@@ -26,6 +28,23 @@ export function SidePanel({
   nickname: string | null;
 }) {
   const [tab, setTab] = useState<Tab>("CHAT");
+  // Local echo only; the realtime chat and donation feed are TBD.
+  const [messages, setMessages] = useState<ChatMessage[]>(MOCK_MESSAGES);
+  const sendChat = (text: string) =>
+    setMessages((list) => [
+      ...list,
+      { id: `local-${Date.now()}`, kind: "CHAT", nickname: nickname ?? "나", handle: "", color: "var(--color-accent)", avatarUrl: null, text }
+    ]);
+  const announceDonation = ({ fnAmount, message, anonymous }: { fnAmount: number; message: string; anonymous: boolean }) =>
+    setMessages((list) => [
+      ...list,
+      {
+        id: `donation-${Date.now()}`,
+        kind: "DONATION",
+        title: `${anonymous ? "익명" : (nickname ?? "나")} 님이 ${formatNumber(fnAmount)} FN을 후원했습니다.`,
+        text: message
+      }
+    ]);
 
   return (
     <section className={styles.panel} aria-label="후원 및 채팅">
@@ -47,10 +66,17 @@ export function SidePanel({
       </div>
       {/* Both panels stay mounted so a draft message or amount survives tab switches. */}
       <div id="room-panel-DONATION" role="tabpanel" aria-labelledby="room-tab-DONATION" className={styles.tabPanel} hidden={tab !== "DONATION"}>
-        <DonationForm name={room.name} donation={room.donation} signedIn={signedIn} fnBalance={fnBalance} />
+        <DonationForm
+          creatorId={room.creatorId}
+          name={room.name}
+          donation={room.donation}
+          signedIn={signedIn}
+          fnBalance={fnBalance}
+          onDonated={announceDonation}
+        />
       </div>
       <div id="room-panel-CHAT" role="tabpanel" aria-labelledby="room-tab-CHAT" className={styles.tabPanel} hidden={tab !== "CHAT"}>
-        <ChatPanel signedIn={signedIn} nickname={nickname} />
+        <ChatPanel signedIn={signedIn} messages={messages} onSend={sendChat} />
       </div>
     </section>
   );
