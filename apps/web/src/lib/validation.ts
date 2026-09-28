@@ -22,3 +22,17 @@ export function formatPhone(value: string) {
 }
 
 export const isValidPhone = (value: string) => /^01[016789]-\d{3,4}-\d{4}$/.test(value);
+
+/*
+ * My page edit rules (Figma 747:28 · 747:304 · 747:579). The server applies the same checks.
+ */
+
+/** Funation ID: 5–20 lowercase English letters or digits (Figma 747:304 copy). */
+export const isValidFunationId = (value: string) => /^[a-z0-9]{5,20}$/.test(value);
+
+/** Password change: 8–20 chars with a letter, a digit and a special character (Figma 747:579 copy). */
+export const isValidNewPassword = (value: string) => value.length <= 20 && isValidPassword(value);
+
+/** Profile photo types and size (Figma 745:52 · 745:98). */
+export const PROFILE_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+export const PROFILE_PHOTO_MAX_BYTES = 5 * 1024 * 1024;
