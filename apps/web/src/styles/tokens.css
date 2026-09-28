@@ -86,6 +86,11 @@
   --color-photo-error-bg: #2b1723;
   --color-photo-success-bg: #122a27;
   --shadow-modal: 0 24px 60px rgba(0, 0, 0, 0.6);
+  --color-warning-text: #fbbf24;
+  --color-success-tint: #10251f;
+  --color-warning-tint: #292114;
+  --color-danger-box: rgba(248, 113, 113, 0.07);
+  --color-danger-box-border: rgba(248, 113, 113, 0.22);
 
   /* ── Status ───────────────────────────────────────────── */
   --color-success: #10b981;
