@@ -8,8 +8,8 @@ import styles from "./GlobalHeader.module.css";
  * Global navigation bar.
  *
  * Figma:
- * - Guest:     710:305  (FunNation creator donation page_with login / nav-bar)
- * - Signed in: 710:978  (FunNation creator donation page / nav-bar)
+ * - Guest:     710:305  (Funation creator donation page_with login / nav-bar)
+ * - Signed in: 710:978  (Funation creator donation page / nav-bar)
  */
 
 export type GlobalHeaderUser = {
@@ -54,8 +54,8 @@ export function GlobalHeader({ user, showMenuButton = true, onMenuClick }: Globa
             <span className={styles.menuBar} />
           </button>
         )}
-        <Link href="/" className={styles.logo} aria-label="FunNation 홈">
-          <span className={styles.logoText}>FunNation</span>
+        <Link href="/" className={styles.logo} aria-label="Funation 홈">
+          <span className={styles.logoText}>Funation</span>
           <span className={styles.logoBadge}>ON</span>
         </Link>
       </div>
