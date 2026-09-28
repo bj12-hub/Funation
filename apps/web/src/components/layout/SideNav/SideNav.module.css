@@ -1,0 +1,234 @@
+/* Figma sidebar 617:344 — 260px, bg #0d0d1a, right border */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: 260px;
+  border-right: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+}
+
+/* ── Profile card (637:180) ───────────────────────── */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-12);
+  background: var(--color-surface-raised);
+}
+
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-pill);
+  object-fit: cover;
+}
+
+.avatarFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-strong);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-bold);
+}
+
+.profileText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.nickname {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-bold);
+}
+
+.idLabel {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-11);
+  font-weight: var(--font-weight-medium);
+}
+
+.idValue {
+  overflow: hidden;
+  color: var(--color-text-soft);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-semibold);
+  text-overflow: ellipsis;
+}
+
+.balance {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-medium);
+}
+
+.balance strong {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-15);
+  font-weight: var(--font-weight-bold);
+}
+
+.cardActions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.outlineButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 10px 0;
+  border: 1px solid var(--color-border-emphasis);
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+  color: var(--color-text-soft);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-semibold);
+  line-height: normal;
+}
+
+.outlineButton:hover {
+  color: var(--color-text-primary);
+}
+
+.guestText {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+  line-height: 20px;
+}
+
+.loginButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 0;
+  border-radius: var(--radius-8);
+  background: var(--gradient-cta);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+}
+
+/* ── Charge buttons (637:208) ─────────────────────── */
+
+.charge {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px 16px;
+}
+
+.chargeButton {
+  padding: 12px 0;
+  border-radius: var(--radius-8);
+  background: var(--color-charge);
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-15);
+  font-weight: var(--font-weight-bold);
+}
+
+.sidebar [aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+/* ── Menu (617:362) ───────────────────────────────── */
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+}
+
+.card + .menu {
+  margin-top: 20px;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 24px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-15);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.menuItem:hover {
+  color: var(--color-text-primary);
+}
+
+.menuItemActive,
+.menuItemActive:hover {
+  background: var(--color-nav-active-bg);
+  color: var(--color-text-on-accent);
+  font-weight: var(--font-weight-semibold);
+}
+
+.menuItemDisabled:hover {
+  color: var(--color-text-secondary);
+}
+
+.menuIcon {
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+}
+
+.menuItemActive .menuIcon {
+  color: var(--color-accent);
+}
+
+.badge {
+  padding: 2px 6px;
+  border-radius: var(--radius-4);
+  color: var(--color-text-on-accent);
+  font-family: var(--font-latin);
+  font-weight: var(--font-weight-extrabold);
+  line-height: normal;
+}
+
+.live {
+  background: var(--color-accent);
+  font-size: var(--font-size-10);
+}
+
+.event {
+  background: var(--color-primary);
+  font-size: 9px;
+}
+
+.divider {
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+/* The sidebar is a 1440px-layout element; narrower screens rely on the header menu. */
+@media (max-width: 1024px) {
+  .sidebar {
+    display: none;
+  }
+}

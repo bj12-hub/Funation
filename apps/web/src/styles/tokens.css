@@ -28,6 +28,7 @@
   --color-text-primary: #f3f4f6;
   --color-text-secondary: #9ca3af;
   --color-text-tertiary: #6b7280;
+  --color-text-soft: #c0c0d0;
   --color-text-inverse: #000000;
   --color-text-on-accent: #ffffff;
 
@@ -40,6 +41,8 @@
   --color-highlight: #06b6d4;
   --color-accent-soft: rgba(236, 72, 153, 0.1);
   --color-neutral-soft: rgba(156, 163, 175, 0.1);
+  --color-charge: #4a90e2;
+  --color-nav-active-bg: #1a1030;
 
   --gradient-brand: linear-gradient(90deg, #8b5cf6 0%, #ec4899 100%);
   --gradient-cta: linear-gradient(90deg, #6366f1 0%, #4f46e5 100%);
