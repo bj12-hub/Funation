@@ -112,6 +112,19 @@
   --color-toast-mark: #55d6a4;
   --gradient-player-controls: linear-gradient(172deg, transparent 25%, rgba(0, 0, 0, 0.9) 75%);
 
+  /* ── FN history (640:2 · 632:4 · 643:4) ───────────────── */
+  --color-segment-bg: #161623;
+  --color-segment-active-bg: rgba(255, 255, 255, 0.12);
+  --color-segment-text: #646473;
+  --color-date-input-bg: #1e1e2a;
+  --color-date-input-border: rgba(255, 255, 255, 0.08);
+  --color-fn-chip-bg: #1a1a3a;
+  --color-balance-label: #a5a5c7;
+  --color-pill-processing-bg: #1c1400;
+  --color-pill-completed-text: #4ade80;
+  --color-pill-completed-bg: #052e16;
+  --color-pill-cancelled-bg: #1c0a0a;
+
   /* ── Status ───────────────────────────────────────────── */
   --color-success: #10b981;
   --color-warning: #f97316;

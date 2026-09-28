@@ -743,3 +743,33 @@ export function DefaultAvatarIcon(props: IconProps) {
     </svg>
   );
 }
+
+/* FN history (Figma 640:2 · 643:4) */
+
+/** Figma 637:786 — 14px CSV 다운로드 icon; stroke uses currentColor (#F3F4F6) */
+export function DownloadIcon(props: IconProps) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" {...props}>
+      <path
+        d="M7 8.75V1.75M9.91667 5.83333L7 8.75L4.08333 5.83333M12.25 8.75V11.0833C12.25 11.3928 12.1271 11.6895 11.9083 11.9083C11.6895 12.1271 11.3928 12.25 11.0833 12.25H2.91667C2.60725 12.25 2.3105 12.1271 2.09171 11.9083C1.87292 11.6895 1.75 11.3928 1.75 11.0833V8.75"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/** Figma 643:343 — 18px receipt file icon (#EC4899) */
+export function FileIcon(props: IconProps) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" {...props}>
+      <path
+        d="M10.4998 1.4994H4.50045C4.10266 1.4994 3.72117 1.65745 3.4399 1.93878C3.15862 2.2201 3.0006 2.60167 3.0006 2.99952V15.0005C3.0006 15.3983 3.15862 15.7799 3.4399 16.0612C3.72117 16.3426 4.10266 16.5006 4.50045 16.5006H13.4995C13.8973 16.5006 14.2788 16.3426 14.5601 16.0612C14.8414 15.7799 14.9994 15.3983 14.9994 15.0005V5.99976M10.4998 1.4994C10.7372 1.49902 10.9724 1.54561 11.1917 1.63649C11.411 1.72737 11.6102 1.86075 11.7777 2.02894L14.4685 4.72016C14.6371 4.8878 14.7708 5.0872 14.8619 5.30683C14.9531 5.52646 14.9998 5.76197 14.9994 5.99976M10.4998 1.4994V5.2497C10.4998 5.44863 10.5789 5.63941 10.7195 5.78007C10.8601 5.92073 11.0509 5.99976 11.2498 5.99976L14.9994 5.99976"
+        stroke="#EC4899"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}

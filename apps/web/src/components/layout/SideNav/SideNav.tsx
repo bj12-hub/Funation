@@ -126,10 +126,9 @@ function ProfileCard({ user }: { user: SideNavUser }) {
         <Link href="/mypage" className={styles.outlineButton}>
           마이페이지
         </Link>
-        {/* TODO: FN 내역 screen is not built yet. */}
-        <button type="button" className={styles.outlineButton} aria-disabled="true" title="준비 중인 기능입니다">
+        <Link href="/wallet/charges" className={styles.outlineButton}>
           FN 내역
-        </button>
+        </Link>
       </div>
     </section>
   );
