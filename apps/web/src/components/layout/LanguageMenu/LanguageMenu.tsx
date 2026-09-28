@@ -46,7 +46,7 @@ export function LanguageMenu() {
         <span className={styles.flag} aria-hidden="true">
           {current.flag}
         </span>
-        <span>{current.label}</span>
+        <span className={styles.label}>{current.label}</span>
       </button>
       {open && (
         <ul className={styles.menu} role="listbox" aria-label="언어">
