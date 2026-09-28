@@ -57,6 +57,18 @@
   --gradient-hero-overlay: linear-gradient(158.75deg, rgba(8, 8, 17, 0.7) 25%, rgba(8, 8, 17, 0) 50%, #080811 75%);
   --gradient-thumbnail-overlay: linear-gradient(150.64deg, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.7) 75%);
 
+  /* ── Supporter ranking (hall of fame 3:637) ───────────── */
+  --color-gold: #f59e0b;
+  --color-gold-soft: rgba(245, 158, 11, 0.13);
+  --color-bronze: #d97706;
+  --color-tier-silver-bg: #4b5563;
+  --color-tier-bronze-bg: #78350f;
+  --color-tier-bronze-text: #fdba74;
+  --gradient-rank-gold: linear-gradient(90deg, #fbbf24 0%, #d97706 100%);
+  --gradient-rank-silver: linear-gradient(90deg, #f3f4f6 0%, #9ca3af 100%);
+  --gradient-rank-bronze: linear-gradient(90deg, #fdba74 0%, #b45309 100%);
+  --gradient-hof-hero-overlay: linear-gradient(162.28deg, rgba(8, 8, 17, 0.7) 25%, rgba(8, 8, 17, 0.5) 50%, #080811 75%);
+
   /* ── Status ───────────────────────────────────────────── */
   --color-success: #10b981;
   --color-warning: #f97316;
