@@ -40,6 +40,7 @@
   --gradient-brand: linear-gradient(90deg, #8b5cf6 0%, #ec4899 100%);
   --gradient-cta: linear-gradient(90deg, #6366f1 0%, #4f46e5 100%);
   --gradient-primary-button: linear-gradient(90deg, #8b5cf6 0%, #6366f1 100%);
+  --gradient-accent-button: linear-gradient(90deg, #8b5cf6 0%, #ec4899 100%);
 
   /* ── Status ───────────────────────────────────────────── */
   --color-success: #10b981;
@@ -51,6 +52,8 @@
 
   /* ── Form ─────────────────────────────────────────────── */
   --color-input-bg: #0e0e1f;
+  --color-button-disabled-bg: #25253a;
+  --color-button-secondary-bg: #1f1f3d;
 
   /* ── Third-party brand (social login) ─────────────────── */
   --color-google-bg: #ffffff;

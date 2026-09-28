@@ -75,3 +75,39 @@ export function MessageCircleIcon(props: IconProps) {
     </svg>
   );
 }
+
+/** Figma 280:79 — 14px check used in the signup stepper */
+export function CheckIcon(props: IconProps) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" {...props}>
+      <path d="M11.6664 3.5L5.25036 9.9162L2.33398 6.99975" stroke="#F3F4F6" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** Figma 282:56 — 16px check used in checkboxes */
+export function CheckboxCheckIcon(props: IconProps) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" {...props}>
+      <path d="M13.3336 4L6.00097 11.3328L2.66797 7.99971" stroke="#F3F4F6" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** Figma 282:62 */
+export function ChevronRightIcon(props: IconProps) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" {...props}>
+      <path d="M6.75 13.5L11.25 9L6.75 4.5" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** Figma 718:686 */
+export function ArrowLeftIcon(props: IconProps) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" {...props}>
+      <path d="M8.00021 3.33203L3.33301 7.99923L8.00021 12.6664M3.33301 7.99923H12.6674" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}

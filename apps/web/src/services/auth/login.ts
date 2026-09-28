@@ -1,3 +1,5 @@
+import { USE_MOCK, mockDelay } from "@/lib/mock";
+
 /**
  * Login service contract.
  *
@@ -20,7 +22,7 @@ export type LoginResult =
   | { status: "LOCKED" };
 
 export async function login(request: LoginRequest): Promise<LoginResult> {
-  if (process.env.NODE_ENV !== "production") {
+  if (USE_MOCK) {
     return devMockLogin(request);
   }
   throw new Error("Login API is not connected yet.");
@@ -35,7 +37,7 @@ const MAX_FAILURES = 5;
 const failures = new Map<string, number>();
 
 async function devMockLogin({ identifier, password }: LoginRequest): Promise<LoginResult> {
-  await new Promise((resolve) => setTimeout(resolve, 400));
+  await mockDelay();
 
   if ((failures.get(identifier) ?? 0) >= MAX_FAILURES) return { status: "LOCKED" };
   if (identifier === "unknown") return { status: "UNKNOWN_ID" };
