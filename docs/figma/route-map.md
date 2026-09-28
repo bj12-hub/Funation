@@ -47,7 +47,8 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | Side nav (live) | 홈 · 추천 라이브 · 실시간 인기 급상승 | `/` · `/live` · `/live/popular` |
 | Side nav | 즐겨찾기 | `/favorites` |
 | Side nav | FN 내역 | `/wallet/charges` |
-| Side nav | 출석체크 · 시청 기록 · 설정 · FN 충전 · QR 충전 | not wired — screens pending |
+| Side nav | FN 충전 · 모바일에서 충전 (QR코드) | charge modal 595:1869 · QR popup 587:147 (QR target TBD) |
+| Side nav | 출석체크 · 시청 기록 · 설정 | not wired — screens pending |
 | Side nav (live) | 로그인 (guest card) · 마이페이지 | `/login` · `/mypage` |
 | Creators | 카테고리 탭 · 검색 · 정렬 · 페이지 | `/creators?category=&q=&sort=&page=` |
 | Creators | 크리에이터 카드 | `/creators/[id]` |
@@ -55,13 +56,15 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | Creator room | 즐겨찾기 · 공유 · 후원/채팅 탭 | favorite server action · share modal · donation submit pending |
 | FN 내역 | 충전 내역 · 후원 내역 탭 · 마이페이지 breadcrumb | `/wallet/charges` · `/wallet/donations` · `/mypage` |
 | FN 내역 | CSV 다운로드 | `/api/wallet/charges` · `/api/wallet/donations` (session required) |
-| FN 내역 | FN 충전 · 매출전표 영수증 | not wired — charge flow / payment provider pending |
+| FN 내역 | FN 충전 | charge modal (595:1869 · 595:5475 · 601:839 · 606:540 · 739:*) |
+| FN 내역 | 매출전표 영수증 | not wired — payment provider pending |
 | Hall of fame | 기간 탭 | `/hall-of-fame?period=` |
 | Hall of fame | 나도 서포터 되기 | not wired — destination TBD |
 | My page | 랭킹 노출 · 마케팅 동의 토글 | saved via account service (mock) |
 | My page | 사진 변경 · 닉네임/ID 수정 · 비밀번호 변경 | modals 743:1955 · 743:1997 · 743:2040 · 743:2084 (server actions, mock) |
 | My page | 로그인 연동 관리 · 인증하기 · 플랫폼 연결/해제 | modals 743:2133–2227 · 743:2274 + 750:* · 743:2442 · 743:2488 (mock hand-offs, TBD) |
 | My page | FN 내역 | `/wallet/charges` |
-| My page | FN 충전 · 회원 탈퇴 | not wired — flows pending |
+| My page | FN 충전 | charge modal |
+| My page | 회원 탈퇴 | not wired — flow pending |
 | Support | 자주 묻는 질문 바로가기 · 비밀번호 FAQ | `#faq` · `/password-reset` |
 | Support | 문의하기 · 가이드 보기 | not wired — screens pending |

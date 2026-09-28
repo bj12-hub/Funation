@@ -125,6 +125,24 @@
   --color-pill-completed-bg: #052e16;
   --color-pill-cancelled-bg: #1c0a0a;
 
+  /* ── FN charge (595:1869 · 601:839 · 587:147 · 739:*) ─── */
+  --color-charge-balance-bg: #292945;
+  --color-charge-option-on-bg: rgba(139, 92, 246, 0.13);
+  --color-kakaopay-bg: #ffeb00;
+  --color-kakaopay-text: #0d0d0d;
+  --color-naverpay-bg: #03c75a;
+  --color-card-scrim: rgba(0, 0, 0, 0.4);
+  --color-error-card-bg: #080811;
+  --color-error-chip-bg: #181832;
+  --color-light-text: #1a1a1a;
+  --color-light-text-sub: #757575;
+  --color-light-text-muted: #555555;
+  --color-light-tile-bg: #f9fafb;
+  --color-light-tile-border: #e5e7eb;
+  --color-light-tile-on-bg: #f0f6ff;
+  --color-light-panel-bg: #f5f5f5;
+  --color-sheet-bg: #161630;
+
   /* ── Status ───────────────────────────────────────────── */
   --color-success: #10b981;
   --color-warning: #f97316;

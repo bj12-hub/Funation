@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import type { ComponentType, SVGProps } from "react";
 import { AirplayIcon, CalendarIcon, HistoryIcon, HomeIcon, SettingsIcon, StarIcon, TrendingUpIcon } from "@/components/icons";
 import { formatNumber } from "@/lib/format";
+import { ChargeTrigger, QrChargeTrigger } from "@/features/walletCharge";
 import styles from "./SideNav.module.css";
 
 /**
@@ -54,13 +55,8 @@ export function SideNav({ user, showWatchHistory = false }: SideNavProps) {
 
       {user && (
         <div className={styles.charge}>
-          {/* TODO: FN 충전 / QR 충전 screens are not built yet. */}
-          <button type="button" className={styles.chargeButton} aria-disabled="true" title="준비 중인 기능입니다">
-            FN 충전
-          </button>
-          <button type="button" className={styles.outlineButton} aria-disabled="true" title="준비 중인 기능입니다">
-            모바일에서 충전 (QR코드)
-          </button>
+          <ChargeTrigger className={styles.chargeButton} />
+          <QrChargeTrigger className={styles.outlineButton} />
         </div>
       )}
 

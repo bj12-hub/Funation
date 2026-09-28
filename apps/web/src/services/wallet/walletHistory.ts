@@ -1,6 +1,7 @@
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
+import { mockWallet } from "./mockWalletStore";
 import { toDateString, type Period } from "@/lib/period";
 import type { ChargeRecord, ChargeStatus, DonationCategory, DonationRecord, DonationStatus, HistoryPage, WalletSummary } from "./walletTypes";
 
@@ -106,6 +107,10 @@ const CHARGE_ROWS: [number, string, MethodKey, number, ChargeStatus][] = [
 ];
 
 function mockCharges(): ChargeRecord[] {
+  return [...mockWallet.charges, ...seedCharges()];
+}
+
+function seedCharges(): ChargeRecord[] {
   return CHARGE_ROWS.map(([daysAgo, time, method, fnAmount, status], i) => {
     const chargedAt = stamp(daysAgo, time);
     const m = METHODS[method];
