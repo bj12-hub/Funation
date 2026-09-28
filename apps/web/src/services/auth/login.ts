@@ -2,6 +2,7 @@
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { startSession } from "@/lib/session";
+import { mockCredentials } from "@/services/account/mockStore";
 
 /**
  * Login service contract.
@@ -36,7 +37,7 @@ export async function login(request: LoginRequest): Promise<LoginResult> {
 
 /* ── Development mock ───────────────────────────────────────
  * identifier "unknown"            → UNKNOWN_ID
- * password   "password"           → SUCCESS
+ * password   mockCredentials.password (initially "password") → SUCCESS
  * any other password              → WRONG_PASSWORD, LOCKED after 5 failures
  */
 const MAX_FAILURES = 5;
@@ -47,7 +48,7 @@ async function devMockLogin({ identifier, password }: LoginRequest): Promise<Log
 
   if ((failures.get(identifier) ?? 0) >= MAX_FAILURES) return { status: "LOCKED" };
   if (identifier === "unknown") return { status: "UNKNOWN_ID" };
-  if (password === "password") {
+  if (password === mockCredentials.password) {
     failures.delete(identifier);
     return { status: "SUCCESS" };
   }

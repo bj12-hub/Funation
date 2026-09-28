@@ -35,6 +35,7 @@
   /* ── Brand / accent ───────────────────────────────────── */
   --color-primary: #8b5cf6;
   --color-primary-soft: rgba(139, 92, 246, 0.15);
+  --color-primary-light: #a78bfa;
   --color-accent: #ec4899;
   --color-info: #3b82f6;
   --color-live: #f5bf0a;
@@ -68,6 +69,23 @@
   --gradient-rank-silver: linear-gradient(90deg, #f3f4f6 0%, #9ca3af 100%);
   --gradient-rank-bronze: linear-gradient(90deg, #fdba74 0%, #b45309 100%);
   --gradient-hof-hero-overlay: linear-gradient(162.28deg, rgba(8, 8, 17, 0.7) 25%, rgba(8, 8, 17, 0.5) 50%, #080811 75%);
+
+  /* ── Modal (my page edit modals 743:1978) ────────────── */
+  --color-modal-bg: #18182e;
+  --color-modal-border: #3b3b68;
+  --color-modal-backdrop: rgba(5, 5, 10, 0.8);
+  --color-modal-field-border: #29294a;
+  --color-modal-field-bg: #0f1024;
+  --color-success-text: #34d399;
+  --color-success-soft: rgba(52, 211, 153, 0.09);
+  --color-danger-soft: rgba(239, 68, 68, 0.08);
+  --color-notice-soft: rgba(139, 92, 246, 0.09);
+  --color-nickname-error: #fb7185;
+  --color-nickname-error-bg: #351a2a;
+  --color-nickname-success-bg: #123128;
+  --color-photo-error-bg: #2b1723;
+  --color-photo-success-bg: #122a27;
+  --shadow-modal: 0 24px 60px rgba(0, 0, 0, 0.6);
 
   /* ── Status ───────────────────────────────────────────── */
   --color-success: #10b981;
