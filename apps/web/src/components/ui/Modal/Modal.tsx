@@ -16,13 +16,17 @@ type ModalProps = {
    * used as the dialog's accessible name. Receives the close handler for its own × button.
    */
   customHeader?: ReactNode;
+  /** Panel width in px (default 520). */
+  width?: number;
+  /** Extra class on the <dialog>, e.g. a light theme (결제수단변경 601:839). */
+  className?: string;
 };
 
 /**
  * Modal dialog. Figma shell: my page edit modals (743:1978 …) — 520px, radius 16, dimmed backdrop.
  * Uses the native <dialog> for focus trapping, Esc to close and inert background.
  */
-export function Modal({ open, onClose, title, description, children, footer, customHeader }: ModalProps) {
+export function Modal({ open, onClose, title, description, children, footer, customHeader, width, className }: ModalProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const descriptionId = useId();
@@ -37,7 +41,8 @@ export function Modal({ open, onClose, title, description, children, footer, cus
   return (
     <dialog
       ref={ref}
-      className={styles.dialog}
+      className={className ? `${styles.dialog} ${className}` : styles.dialog}
+      style={width ? { width: `min(${width}px, calc(100vw - 32px))` } : undefined}
       aria-labelledby={customHeader ? undefined : titleId}
       aria-label={customHeader ? title : undefined}
       aria-describedby={description && !customHeader ? descriptionId : undefined}

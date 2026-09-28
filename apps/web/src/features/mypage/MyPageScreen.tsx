@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { PlayOutlineIcon, VideoIcon, YoutubeLogoIcon } from "@/components/icons";
+import { ChargeTrigger } from "@/features/walletCharge";
 import { formatNumber } from "@/lib/format";
 import type { LoginProvider, MyAccount } from "@/services/account/myAccount";
 import type { Platform } from "@/types/platform";
@@ -116,9 +117,7 @@ export function MyPageScreen({ account }: { account: MyAccount }) {
             <Link href="/wallet/charges" className={styles.actionButton}>
               FN 내역
             </Link>
-            <button type="button" className={styles.actionButton} {...UNAVAILABLE}>
-              FN 충전
-            </button>
+            <ChargeTrigger className={styles.actionButton} />
           </Row>
         </div>
       </section>
