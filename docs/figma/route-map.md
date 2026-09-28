@@ -11,7 +11,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/live` | ✅ | funnation-all-live-page 617:316 (전체라이브) — `?category=` preselects a category |
 | `/live/popular` | ✅ | funnation-popular-live-page 617:5 (인기라이브) |
 | `/creators` | ✅ | funation-all-creators-page 690:5 — `?category=` `?q=` `?sort=` `?page=` |
-| `/hall-of-fame` | 🚧 | 3:637 |
+| `/hall-of-fame` | ✅ | funation-hall-of-fame 3:637 — `?period=all|week|day` (default 이번 달) |
 | `/support` | 🚧 | 고객센터 4:7 (previously listed under `/creators` by mistake) |
 | `/mypage` | 🚧 | 622:4 · 735:4119 |
 | `/terms/[slug]` | 🚧 | 722:3 (terms text pending) — slugs: youth, service, privacy, marketing, operation |
@@ -43,3 +43,5 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | Side nav (live) | 로그인 (guest card) · 마이페이지 | `/login` · `/mypage` |
 | Creators | 카테고리 탭 · 검색 · 정렬 · 페이지 | `/creators?category=&q=&sort=&page=` |
 | Creators | 크리에이터 카드 | not wired — creator detail pending |
+| Hall of fame | 기간 탭 | `/hall-of-fame?period=` |
+| Hall of fame | 나도 서포터 되기 | not wired — destination TBD |
