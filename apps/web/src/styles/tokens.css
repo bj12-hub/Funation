@@ -1,0 +1,89 @@
+/*
+ * Funation design tokens
+ *
+ * Source: Figma file PXOl6e2HQVWsu9qx9iagJV (펀페이)
+ * Extracted from usage frequency across 350 service frames (1440px wide),
+ * excluding the 01–08 documentation boards. See docs/figma/design-tokens.md.
+ *
+ * Only reference these variables from components. Do not hardcode hex values.
+ */
+
+:root {
+  /* ── Background / surface ─────────────────────────────── */
+  --color-bg-page: #080811;
+  --color-bg-subtle: #0d0d1a;
+  --color-surface: #121225;
+  --color-surface-raised: #1a1a2e;
+  --color-surface-strong: #20203e;
+  --color-overlay: rgba(0, 0, 0, 0.8);
+
+  /* ── Border ───────────────────────────────────────────── */
+  --color-border: #20203e;
+  --color-border-strong: #29294b;
+  --color-border-emphasis: #30305a;
+
+  /* ── Text ─────────────────────────────────────────────── */
+  --color-text-primary: #f3f4f6;
+  --color-text-secondary: #9ca3af;
+  --color-text-tertiary: #6b7280;
+  --color-text-inverse: #000000;
+  --color-text-on-accent: #ffffff;
+
+  /* ── Brand / accent ───────────────────────────────────── */
+  --color-primary: #8b5cf6;
+  --color-primary-soft: rgba(139, 92, 246, 0.15);
+  --color-accent: #ec4899;
+  --color-info: #3b82f6;
+  --color-live: #f5bf0a;
+  --color-highlight: #06b6d4;
+
+  --gradient-brand: linear-gradient(90deg, #8b5cf6 0%, #ec4899 100%);
+  --gradient-cta: linear-gradient(90deg, #6366f1 0%, #4f46e5 100%);
+
+  /* ── Status ───────────────────────────────────────────── */
+  --color-success: #10b981;
+  --color-warning: #f97316;
+  --color-danger: #ef4444;
+
+  /* ── Typography ───────────────────────────────────────── */
+  --font-sans: "Gothic A1", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-latin: "Inter", var(--font-sans);
+
+  --font-size-10: 10px;
+  --font-size-11: 11px;
+  --font-size-12: 12px;
+  --font-size-13: 13px;
+  --font-size-14: 14px;
+  --font-size-15: 15px;
+  --font-size-16: 16px;
+  --font-size-18: 18px;
+  --font-size-20: 20px;
+  --font-size-24: 24px;
+  --font-size-28: 28px;
+  --font-size-32: 32px;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  --font-weight-black: 900;
+
+  /* ── Radius ───────────────────────────────────────────── */
+  --radius-2: 2px;
+  --radius-4: 4px;
+  --radius-6: 6px;
+  --radius-8: 8px;
+  --radius-12: 12px;
+  --radius-16: 16px;
+  --radius-20: 20px;
+  --radius-pill: 999px;
+
+  /* ── Elevation ────────────────────────────────────────── */
+  --shadow-header: 0 8px 12px rgba(0, 0, 0, 0.4);
+
+  /* ── Layout ───────────────────────────────────────────── */
+  --layout-max-width: 1440px;
+  --layout-gutter: 80px;
+  --header-height: 80px;
+}

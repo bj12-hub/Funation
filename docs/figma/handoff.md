@@ -1,5 +1,9 @@
 # Figma Developer Handoff
 
+Figma file: https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV (펀페이)
+
+Design tokens: see `design-tokens.md`.
+
 Figma is the visual/product source of truth.
 
 ## Confirmed Platform Scope

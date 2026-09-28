@@ -1,8 +1,13 @@
+import { GlobalHeader } from "@/components/layout/GlobalHeader";
+
 export default function HomePage() {
+  // TODO: replace with the server session once authentication is implemented.
+  const user = null;
+
   return (
-    <main>
-      <h1>Funation</h1>
-      <p>Broadcasting donation platform</p>
-    </main>
+    <>
+      <GlobalHeader user={user} />
+      <main />
+    </>
   );
 }
