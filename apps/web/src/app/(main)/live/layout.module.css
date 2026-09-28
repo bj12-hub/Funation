@@ -1,0 +1,10 @@
+.shell {
+  display: flex;
+  align-items: stretch;
+  min-height: calc(100vh - var(--header-height));
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+}

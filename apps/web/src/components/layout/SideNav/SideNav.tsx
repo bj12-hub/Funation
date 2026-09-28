@@ -1,0 +1,140 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import type { ComponentType, SVGProps } from "react";
+import { AirplayIcon, CalendarIcon, HomeIcon, SettingsIcon, StarIcon, TrendingUpIcon } from "@/components/icons";
+import { formatNumber } from "@/lib/format";
+import styles from "./SideNav.module.css";
+
+/**
+ * Left navigation used by the live pages.
+ * Figma: sidebar 617:344 (active "추천 라이브") · 617:33 (active "실시간 인기 급상승")
+ */
+
+export type SideNavUser = {
+  nickname: string;
+  funationId: string;
+  avatarUrl?: string | null;
+  /** Server-provided balance. The client never calculates it. `null` while unknown. */
+  fnBalance: number | null;
+};
+
+type MenuItem = {
+  label: string;
+  Icon: ComponentType<SVGProps<SVGSVGElement>>;
+  /** Items without `href` have no screen yet. */
+  href?: string;
+  badge?: { text: string; tone: "live" | "event" };
+};
+
+const MENU: MenuItem[] = [
+  { label: "홈", Icon: HomeIcon, href: "/" },
+  { label: "추천 라이브", Icon: AirplayIcon, href: "/live", badge: { text: "LIVE", tone: "live" } },
+  { label: "즐겨찾기", Icon: StarIcon },
+  { label: "출석체크", Icon: CalendarIcon, badge: { text: "EVENT", tone: "event" } },
+  { label: "실시간 인기 급상승", Icon: TrendingUpIcon, href: "/live/popular" }
+];
+
+const SETTINGS: MenuItem = { label: "설정", Icon: SettingsIcon };
+
+export function SideNav({ user }: { user: SideNavUser | null }) {
+  const pathname = usePathname() ?? "/";
+
+  return (
+    <aside className={styles.sidebar} aria-label="보조 메뉴">
+      {user ? <ProfileCard user={user} /> : <GuestCard />}
+
+      {user && (
+        <div className={styles.charge}>
+          {/* TODO: FN 충전 / QR 충전 screens are not built yet. */}
+          <button type="button" className={styles.chargeButton} aria-disabled="true" title="준비 중인 기능입니다">
+            FN 충전
+          </button>
+          <button type="button" className={styles.outlineButton} aria-disabled="true" title="준비 중인 기능입니다">
+            모바일에서 충전 (QR코드)
+          </button>
+        </div>
+      )}
+
+      <nav className={styles.menu} aria-label="라이브 메뉴">
+        {MENU.map((item) => (
+          <MenuLink key={item.label} item={item} active={item.href === pathname} />
+        ))}
+        <hr className={styles.divider} />
+        <MenuLink item={SETTINGS} active={false} />
+      </nav>
+    </aside>
+  );
+}
+
+function MenuLink({ item, active }: { item: MenuItem; active: boolean }) {
+  const content = (
+    <>
+      <item.Icon className={styles.menuIcon} />
+      <span>{item.label}</span>
+      {item.badge && <span className={`${styles.badge} ${styles[item.badge.tone]}`}>{item.badge.text}</span>}
+    </>
+  );
+
+  if (!item.href) {
+    return (
+      <span className={`${styles.menuItem} ${styles.menuItemDisabled}`} aria-disabled="true" title="준비 중인 기능입니다">
+        {content}
+      </span>
+    );
+  }
+
+  return (
+    <Link href={item.href} className={`${styles.menuItem} ${active ? styles.menuItemActive : ""}`} aria-current={active ? "page" : undefined}>
+      {content}
+    </Link>
+  );
+}
+
+function ProfileCard({ user }: { user: SideNavUser }) {
+  return (
+    <section className={styles.card} aria-label="내 정보">
+      <div className={styles.profile}>
+        {user.avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- user-supplied avatar from an arbitrary host
+          <img className={styles.avatar} src={user.avatarUrl} alt="" width={48} height={48} />
+        ) : (
+          <span className={`${styles.avatar} ${styles.avatarFallback}`} aria-hidden="true">
+            {user.nickname.slice(0, 1)}
+          </span>
+        )}
+        <div className={styles.profileText}>
+          <strong className={styles.nickname}>{user.nickname}</strong>
+          <span className={styles.idLabel}>Funation ID</span>
+          <span className={styles.idValue}>@{user.funationId}</span>
+        </div>
+      </div>
+      <div className={styles.balance}>
+        <span>현재 보유 FN</span>
+        <strong>{user.fnBalance === null ? "—" : `${formatNumber(user.fnBalance)} FN`}</strong>
+      </div>
+      <div className={styles.cardActions}>
+        <Link href="/mypage" className={styles.outlineButton}>
+          마이페이지
+        </Link>
+        {/* TODO: FN 내역 screen is not built yet. */}
+        <button type="button" className={styles.outlineButton} aria-disabled="true" title="준비 중인 기능입니다">
+          FN 내역
+        </button>
+      </div>
+    </section>
+  );
+}
+
+/** Guest state is not in Figma; it keeps the card slot and points to login. */
+function GuestCard() {
+  return (
+    <section className={styles.card} aria-label="로그인 안내">
+      <p className={styles.guestText}>로그인하면 보유 FN과 후원 내역을 확인할 수 있어요.</p>
+      <Link href="/login" className={styles.loginButton}>
+        로그인
+      </Link>
+    </section>
+  );
+}
