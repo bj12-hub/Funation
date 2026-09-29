@@ -1,0 +1,262 @@
+/**
+ * 후원위젯/알림설정 — Figma 529:4 (page) and the widget popups in 531:* (route `/creator/widgets`).
+ * Client-safe catalog, setting shapes and defaults. The actions live in ./widgetSettings.ts.
+ *
+ * Defaults follow the design's sample values. Font list, size range and URL format are TBD.
+ */
+
+export type AlertKey = "TEXT" | "SIGNATURE" | "VOICE" | "VIDEO" | "ROULETTE" | "VOTE" | "QUEST" | "DRAWING" | "LUCKYBOX" | "PLAY";
+
+export type WidgetKey =
+  | "CHAT"
+  | "QR"
+  | "GOAL"
+  | "TOTAL"
+  | "RECENT"
+  | "EVENT"
+  | "MINI"
+  | "RANKING"
+  | "CUSTOM_SOUND"
+  | "VOTE"
+  | "QUEST"
+  | "DRAWING"
+  | "LUCKYBOX"
+  | "PLAY"
+  | "GACHA"
+  | "WALLPAPER";
+
+export type CatalogCard<K extends string> = { key: K; emoji: string; color: string; title: string; description: string };
+
+/** 529:4 "후원 알림 설정". No popups are designed for these yet. */
+export const ALERT_CARDS: CatalogCard<AlertKey>[] = [
+  { key: "TEXT", emoji: "💬", color: "#3b82f6", title: "텍스트 후원 알림", description: "텍스트로 후원 메시지를 받으며 도네이터와 소통할 수 있습니다." },
+  { key: "SIGNATURE", emoji: "⭐", color: "#f97316", title: "시그니처 후원 알림", description: "지정한 시그니처 리액션을 선택해서 후원할 수 있습니다." },
+  { key: "VOICE", emoji: "🎙️", color: "#8b5cf6", title: "음성 후원 알림", description: "녹음한 음성 또는 자막독음을 통하여 후원 메시지를 받을 수 있습니다." },
+  { key: "VIDEO", emoji: "📹", color: "#f97316", title: "영상 후원 알림", description: "후원과 함께 공유한 영상을 받아 볼 수 있습니다." },
+  { key: "ROULETTE", emoji: "🎡", color: "#8b5cf6", title: "룰렛 후원 알림", description: "여러가지 항목을 설정하여 룰렛을 돌릴 수 있습니다." },
+  { key: "VOTE", emoji: "🗳️", color: "#737385", title: "투표 알림", description: "도네이터들의 의견을 투표를 통해 받을 수 있습니다." },
+  { key: "QUEST", emoji: "🚩", color: "#10b981", title: "퀘스트 알림", description: "도네이터들의 요구를 퀘스트를 통해 듣고 수행해 나갈 수 있습니다." },
+  { key: "DRAWING", emoji: "🎨", color: "#8b5cf6", title: "그림 후원 알림", description: "도네이터가 직접 그린 그림을 통해 소통할 수 있습니다." },
+  { key: "LUCKYBOX", emoji: "❓", color: "#ec4899", title: "럭키박스 알림", description: "도네이터들이 보내준 럭키박스를 통해 함께 즐기며 소통할 수 있습니다." },
+  { key: "PLAY", emoji: "🕹️", color: "#10b981", title: "플레이 후원 알림", description: "퀴즈와 같은 재미있고 다양한 방법으로 도네이터와 소통할 수 있습니다." }
+];
+
+/** 529:4 "후원 위젯 설정". */
+export const WIDGET_CARDS: CatalogCard<WidgetKey>[] = [
+  { key: "CHAT", emoji: "💬", color: "#3b82f6", title: "채팅창", description: "방송화면에 채팅창을 띄워 소통하며 볼 수 있습니다." },
+  { key: "QR", emoji: "🔲", color: "#0d9488", title: "후원 QR코드", description: "QR코드가 방송화면에 항상 노출되게 해보세요." },
+  { key: "GOAL", emoji: "🎯", color: "#1e3a8a", title: "후원목표", description: "목표금액을 설정하여 시청자와 소통해 보세요." },
+  { key: "TOTAL", emoji: "🐷", color: "#84cc16", title: "후원누적금액", description: "실시간 기간 동안 누적된 후원 금액을 화면에 노출합니다." },
+  { key: "RECENT", emoji: "🔔", color: "#d97706", title: "최근알림", description: "최근 후원 혹은 피드에 흐르는 텍스트로 노출합니다." },
+  { key: "EVENT", emoji: "🎉", color: "#ec4899", title: "이벤트", description: "후원 및 각종 알림 등을 나열하여 노출합니다." },
+  { key: "MINI", emoji: "🪙", color: "#6b7280", title: "미니후원", description: "1,000FN 미만의 소액후원을 받을 수 있도록 설정합니다." },
+  { key: "RANKING", emoji: "👑", color: "#8b5cf6", title: "후원랭킹", description: "후원금을 기준으로 순위를 화면에 노출합니다." },
+  { key: "CUSTOM_SOUND", emoji: "🔊", color: "#8b5cf6", title: "커스텀 사운드", description: "크리에이터가 지정한 단어가 발화될 때 특별한 음성효과를 재생합니다." },
+  { key: "VOTE", emoji: "📊", color: "#737385", title: "투표", description: "실시간 투표 현황을 위젯으로 방송에 띄웁니다." },
+  { key: "QUEST", emoji: "⚔️", color: "#10b981", title: "퀘스트", description: "현재 진행 중인 후원 미션/퀘스트 목록을 노출합니다." },
+  { key: "DRAWING", emoji: "🖼️", color: "#8b5cf6", title: "그림후원", description: "받은 그림 후원을 실시간으로 방송 화면에 전시합니다." },
+  { key: "LUCKYBOX", emoji: "📦", color: "#ec4899", title: "럭키박스", description: "실시간 럭키박스 당첨 현황과 연출을 보여줍니다." },
+  { key: "PLAY", emoji: "🎮", color: "#10b981", title: "플레이", description: "미니게임과 참여형 콘텐츠 화면 위젯입니다." },
+  { key: "GACHA", emoji: "🧸", color: "#f97316", title: "뽑기 후원", description: "시청자와 함께 다양한 뽑기 이벤트를 진행합니다." },
+  { key: "WALLPAPER", emoji: "🖼️", color: "#ef4444", title: "벽지", description: "후원 액션을 남길 수 있는 특수 배경 위젯입니다." }
+];
+
+/** URL path segment per widget (the design mixes /widget/ and /widgets/; one pattern is used). */
+export const WIDGET_PATHS: Record<WidgetKey, string> = {
+  CHAT: "chat",
+  QR: "qr",
+  GOAL: "goal",
+  TOTAL: "total-donation",
+  RECENT: "recent-alerts",
+  EVENT: "event",
+  MINI: "mini-donation",
+  RANKING: "sponsor-ranking",
+  CUSTOM_SOUND: "custom-sound",
+  VOTE: "vote",
+  QUEST: "quest",
+  DRAWING: "drawing",
+  LUCKYBOX: "luckybox",
+  PLAY: "play",
+  GACHA: "gacha",
+  WALLPAPER: "wallpaper"
+};
+
+// ── Shared field types ───────────────────────────────────────────────────────
+
+/** Fonts shown across the popups. The final list (and licensing) is TBD. */
+export const FONT_FAMILIES = ["제주 고딕", "Pretendard", "나눔바른고딕", "맑은 고딕", "기본 시스템 폰트"] as const;
+export type FontFamily = (typeof FONT_FAMILIES)[number];
+export const FONT_SIZES = [12, 14, 15, 16, 18, 20, 24, 28, 32, 36, 40, 48] as const;
+
+export type FontSetting = { family: FontFamily; size: number; color: string };
+
+export const ALERT_EFFECTS_IN = ["Fade In", "Slide In", "Zoom In", "없음"] as const;
+export const ALERT_EFFECTS_OUT = ["Fade Out", "Slide Out", "Zoom Out", "없음"] as const;
+
+export const isHexColor = (v: unknown): v is string => typeof v === "string" && /^#[0-9A-Fa-f]{6}$/.test(v);
+
+// ── Per-widget settings (PR 1: 채팅창 · QR · 후원목표 · 후원누적금액) ─────────────────
+
+export const CHAT_STYLES = [
+  { key: "LINE_PLAIN", label: "한 줄 테두리 없음" },
+  { key: "LINE_BOX", label: "한 줄 상자 테두리" },
+  { key: "BOX_ALIGNED", label: "상자 테두리 (정렬)" },
+  { key: "BUBBLE", label: "말풍선형" },
+  { key: "BOX_SIMPLE", label: "상자형 심플" }
+] as const;
+export const NICKNAME_BG = [
+  { key: "ALWAYS", label: "항상 표시" },
+  { key: "DARK_ONLY", label: "어두운 닉네임만" },
+  { key: "NEVER", label: "표시 안 함" }
+] as const;
+export const CHAT_MAX_LINES = 20;
+export const CHAT_MAX_FILTERS = 30;
+export const NICKNAME_MAX = 20;
+
+export type ChatSettings = {
+  style: (typeof CHAT_STYLES)[number]["key"];
+  effectIn: (typeof ALERT_EFFECTS_IN)[number];
+  effectOut: (typeof ALERT_EFFECTS_OUT)[number];
+  font: FontSetting;
+  creatorNicknameColor: boolean;
+  nicknameBackground: (typeof NICKNAME_BG)[number]["key"];
+  maxLines: number;
+  autoHide: boolean;
+  hideAfterSec: number;
+  hidePlatformIcon: boolean;
+  filteredNicknames: string[];
+};
+
+export const QR_STYLES = [
+  { key: "BASIC", label: "기본형" },
+  { key: "ROUND", label: "라운드형" },
+  { key: "CIRCLE", label: "원형" },
+  { key: "SOFT", label: "부드러운형" }
+] as const;
+export const QR_CAPTION_MAX = 20;
+
+export type QrSettings = {
+  codeStyle: (typeof QR_STYLES)[number]["key"];
+  borderColor: string;
+  centerLogo: boolean;
+  captionEnabled: boolean;
+  caption: string;
+  captionPosition: "TOP" | "BOTTOM";
+  captionFont: { family: FontFamily; size: number };
+};
+
+export const GOAL_STYLES = [
+  { key: "BASIC", label: "기본형" },
+  { key: "ONE_LINE", label: "기본 한 줄" },
+  { key: "SIMPLE", label: "심플 레이아웃" }
+] as const;
+export const GOAL_TITLE_MAX = 30;
+/** Input guard only; the real ceiling is TBD. */
+export const GOAL_AMOUNT_MAX = 1_000_000_000;
+
+export type GoalSettings = {
+  style: (typeof GOAL_STYLES)[number]["key"];
+  title: string;
+  startAmount: number;
+  goalAmount: number;
+  from: string;
+  to: string;
+  showPercent: boolean;
+  barColor: string;
+  barBackground: string;
+  barHeight: number;
+  textOutline: boolean;
+  font: { family: FontFamily; size: number };
+};
+
+export const TOTAL_TITLE_MAX = 20;
+export const TOTAL_TEMPLATE_MAX = 40;
+export const TOTAL_TEMPLATE_TOKEN = "{total_amount}";
+
+export type TotalSettings = {
+  title: string;
+  template: string;
+  /** `YYYY-MM-DDTHH:mm` (local). */
+  from: string;
+  to: string;
+  titleFont: FontSetting;
+  contentFont: FontSetting;
+  textOutline: boolean;
+};
+
+export type WidgetSettingsMap = {
+  CHAT: ChatSettings;
+  QR: QrSettings;
+  GOAL: GoalSettings;
+  TOTAL: TotalSettings;
+};
+export type EditableWidgetKey = keyof WidgetSettingsMap;
+export const EDITABLE_WIDGETS: EditableWidgetKey[] = ["CHAT", "QR", "GOAL", "TOTAL"];
+export const isEditableWidget = (k: unknown): k is EditableWidgetKey => EDITABLE_WIDGETS.includes(k as EditableWidgetKey);
+
+/** Values the server reads for previews (not editable). */
+export type WidgetLiveData = {
+  /** FN donated within the goal period (GOAL preview). */
+  goalCurrent: number;
+  /** FN donated within the total period (TOTAL preview). */
+  totalAmount: number;
+  /** QR image (mock asset; the real QR is generated by the backend — TBD). */
+  qrImageUrl: string;
+};
+
+export type WidgetDetail<K extends EditableWidgetKey = EditableWidgetKey> = {
+  key: K;
+  url: string;
+  settings: WidgetSettingsMap[K];
+  live: WidgetLiveData;
+};
+
+export type WidgetSaveResult = { status: "SAVED" } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
+
+export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
+  CHAT: {
+    style: "LINE_BOX",
+    effectIn: "Fade In",
+    effectOut: "Fade Out",
+    font: { family: "제주 고딕", size: 24, color: "#FFFFFF" },
+    creatorNicknameColor: true,
+    nicknameBackground: "DARK_ONLY",
+    maxLines: 8,
+    autoHide: true,
+    hideAfterSec: 15,
+    hidePlatformIcon: false,
+    filteredNicknames: ["Nightbot", "MooBot", "StreamElements"]
+  },
+  QR: {
+    codeStyle: "BASIC",
+    borderColor: "#519CFF",
+    centerLogo: true,
+    captionEnabled: true,
+    caption: "후원 하기",
+    captionPosition: "TOP",
+    captionFont: { family: "Pretendard", size: 18 }
+  },
+  GOAL: {
+    style: "BASIC",
+    title: "캠방 장비 교체 가자!",
+    startAmount: 0,
+    goalAmount: 100_000,
+    from: "2026-09-01",
+    to: "2026-09-30",
+    showPercent: true,
+    barColor: "#519CFF",
+    barBackground: "#FFFFFF",
+    barHeight: 40,
+    textOutline: true,
+    font: { family: "Pretendard", size: 14 }
+  },
+  TOTAL: {
+    title: "총 후원 금액",
+    template: "{total_amount}FN",
+    from: "2026-01-01T00:00",
+    to: "2026-12-31T23:59",
+    titleFont: { family: "제주 고딕", size: 24, color: "#FFFFFF" },
+    contentFont: { family: "제주 고딕", size: 28, color: "#F5BF0A" },
+    textOutline: true
+  }
+};
