@@ -1006,3 +1006,10 @@ button.badge {
     padding: 20px 16px;
   }
 }
+
+.desc {
+  margin: 0;
+  color: #9ca3af;
+  font-size: var(--font-size-14);
+  line-height: 1.5;
+}
