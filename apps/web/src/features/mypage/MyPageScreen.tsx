@@ -136,6 +136,10 @@ export function MyPageScreen({ account }: { account: MyAccount }) {
             <strong>별명 관리</strong>
             <span>후원할 때 쓰는 별명과 별명별 누적 후원</span>
           </Link>
+          <Link href="/mypage/ranking" className={styles.identityLink}>
+            <strong>내 랭킹</strong>
+            <span>전체·크리에이터별 내 후원 순위</span>
+          </Link>
         </div>
       </section>
 

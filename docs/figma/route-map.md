@@ -22,6 +22,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/events` · `/events/[id]` | ✅ code-first | 이벤트 — `?filter=all|ongoing|upcoming|ended|mine`; join is recorded only, rewards TBD |
 | `/messages` | ✅ code-first | 쪽지 — `?box=inbox|sent|archive|spam` `?q=` `?page=` `?to=<creatorId>` (opens compose); send limit placeholder (TBD) |
 | `/mypage/titles` | ✅ code-first | 칭호·등급 — no Figma frame (docs/figma/code-first-screens.md); grade / title thresholds are placeholders (TBD) |
+| `/mypage/ranking` | ✅ code-first | 내 후원 랭킹 — `?period=all|year|month`; other donors are mock sample data |
 | `/mypage/nicknames` | ✅ code-first | 별명 관리 — no Figma frame |
 | `/favorites` | ✅ | funation-favorites-page 735:3856 — signed-in only, `?q=` `?page=` |
 | `/creators/[id]` | ✅ | 라이브 826:685 (채팅) · 610:138 (후원), 오프라인 710:195, 공유 826:387 · 후원 유형 851:4546 (일반) · 851:4665 (미니) · 851:4788 (영상) · 851:4929 + 875:1815 (시그니처) · 851:5054 (위시) · 851:5174 + 875:6948–8546 (럭키박스) · 867:2458 (룰렛) · 867:2545 (퀘스트) · 867:2647 (그림) · 867:2755 / 867:2855 / 867:2955 (퀴즈) · 후원 확인 613:6 · 완료 613:122 · FN 부족 613:237 |

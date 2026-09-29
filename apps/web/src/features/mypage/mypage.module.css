@@ -491,7 +491,7 @@
 /* 후원자 프로필 links (code-first) */
 .identityLinks {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
