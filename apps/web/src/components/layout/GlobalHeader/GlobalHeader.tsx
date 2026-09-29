@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { RoleChooser } from "@/features/auth/login/RoleChooser";
 import { logout } from "@/services/auth/logout";
 import { LanguageMenu } from "../LanguageMenu";
+import { ThemeToggle } from "../ThemeToggle";
 import { CreatorProfileMenu, type CreatorHeaderInfo } from "./CreatorProfileMenu";
 import { ProfileMenu } from "./ProfileMenu";
 import styles from "./GlobalHeader.module.css";
@@ -124,6 +125,8 @@ export function GlobalHeader({ user, showMenuButton = true, onMenuClick, creator
           </Link>
         )}
 
+        {/* The creator studio is dark-only for now (light TBD), so the switch is hidden there. */}
+        {!creator && <ThemeToggle />}
         <LanguageMenu />
 
         {user && creator ? (

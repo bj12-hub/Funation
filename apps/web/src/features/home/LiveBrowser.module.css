@@ -118,7 +118,7 @@
 }
 
 .liveInfo strong {
-  color: var(--color-text-on-accent);
+  color: var(--color-text-primary);
   font-weight: var(--font-weight-bold);
 }
 
