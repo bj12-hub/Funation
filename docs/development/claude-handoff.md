@@ -31,9 +31,12 @@ How screens have been built so far, so a new Claude session (or account) can con
 The user runs `npm run dev:sync` on port 3000 (tracks `origin/preview`). Do not start a second dev
 server on that checkout; use the isolated worktree instead.
 
-## 3. Pull requests (no `gh` CLI)
+## 3. Pull requests
 
-- Open `https://github.com/<owner>/Funation/compare/main...<branch>?expand=1&title=<url-encoded title>`
+- Since 2026-09-29 the GitHub CLI is installed and signed in (`gh auth status`). Claude's shell may not have
+  it on PATH — call `"C:\Program Files\GitHub CLI\gh.exe"`. Prefer `gh pr create --base main --head <branch>
+  --title ... --body-file ...`.
+- Fallback without `gh`: open `https://github.com/<owner>/Funation/compare/main...<branch>?expand=1&title=<url-encoded title>`
   in the built-in browser (the user is signed in to GitHub there — never type credentials; ask the user to sign in).
 - Fill `textarea[name="pull_request[body]"]` via the native value setter + `input` event, then click the
   visible "Create pull request" button.
@@ -84,8 +87,12 @@ creator studio: dashboard, account settings + OBS guides, ranking, 후원위젯/
 후원관리+ (5 tabs).
 
 Remaining:
-- 정산설정 (Figma 429:*, 433:*, 437:*, 443:*, 452:*, 458:*, 463:*, 466–480:*, 776:*) — many policy TBDs
-  (fees, schedule, minimum, identity verification, tax); build screens/flows, leave amounts TBD.
+- 정산설정 — 등록 flow done (`/creator/settlement`, `/register`, `/register/form`; frames in route-map).
+  Pending: 정산 신청 `/creator/settlement/apply` (458:4 · 466:2 · 469:195 · 469:2 · 475:2 · 473:2 · 477:2 ·
+  463:2) and 정산 관리 `/creator/settlement/manage` (478:2 · 479:144 · 480:2). Figma conflicts to keep TBD:
+  minimum 10,000원 (429:4) vs 40,000 FN (466:2 · 469:195); fee 6.6% (473:2) vs per-method table (475:2);
+  terms name 주식회사 투스라이프; 443:5 lists 트위치 · 치지직 (out of scope). Nav-bars 482:244 · 482:420
+  belong to frames not yet located (top frame id = its workspace-wrapper id − 20).
 - SOOP / FlexTV money donation (817:*).
 - `/terms/[slug]` body text (722:3, pending copy).
 - Undesigned: 그림후원 widget popup, 10 alert-card popups, 게임/크루 후원 lists, donor block entry point.
