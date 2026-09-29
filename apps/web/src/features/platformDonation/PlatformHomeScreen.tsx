@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PLATFORMS, type PlatformHome } from "@/services/platformDonation/platformTypes";
 import { CreatorRow, PlatformHeader, SearchForm } from "./parts";
 import styles from "./platformDonation.module.css";
@@ -16,6 +17,9 @@ export function PlatformHomeScreen({ home }: { home: PlatformHome }) {
     <div className={styles.content}>
       <PlatformHeader platform={home.platform} subtitle={p.tagline} balance={home.balance} />
       <SearchForm platform={home.platform} />
+      <Link href={`/donation/history?tab=${p.slug}`} className={styles.historyLink}>
+        {p.name} 후원 내역 보기 ›
+      </Link>
       {sections.map((s) => (
         <section key={s.title} className={styles.section} aria-label={s.title}>
           <h2 className={styles.sectionTitle}>{s.title}</h2>

@@ -82,6 +82,57 @@ export type PlatformDonationInput = {
   idempotencyKey: string;
 };
 
+// ── 후원 내역 (817:8038 · 817:8223) ───────────────────────────────────────────────
+
+/** Direct = donations made inside Funation (creator room). Assumption — the Figma "Direct" tab is undefined (TBD). */
+export type HistorySource = PlatformKey | "DIRECT";
+export const HISTORY_TABS = [
+  { key: "all", label: "전체" },
+  { key: "soop", label: "SOOP" },
+  { key: "flextv", label: "FlexTV" },
+  { key: "direct", label: "Direct" }
+] as const;
+export type HistoryTab = (typeof HISTORY_TABS)[number]["key"];
+export const HISTORY_PERIODS = [
+  { key: "30", label: "최근 30일" },
+  { key: "90", label: "최근 90일" },
+  { key: "all", label: "전체 기간" }
+] as const;
+export type HistoryPeriod = (typeof HISTORY_PERIODS)[number]["key"];
+
+export type HistoryStatus = "COMPLETED" | "PROCESSING" | "FAILED" | "REFUNDING" | "REFUNDED";
+export const HISTORY_STATUS_LABEL: Record<HistoryStatus, string> = {
+  COMPLETED: "완료",
+  PROCESSING: "처리중",
+  FAILED: "실패",
+  REFUNDING: "환불중",
+  REFUNDED: "환불완료"
+};
+export const SOURCE_LABEL: Record<HistorySource, string> = { SOOP: "SOOP", FLEXTV: "FlexTV", DIRECT: "Direct" };
+
+export type HistoryItem = {
+  transactionId: string;
+  externalTransactionId: string | null;
+  source: HistorySource;
+  creatorName: string;
+  productLabel: string;
+  fnAmount: number;
+  status: HistoryStatus;
+  createdAt: string;
+  completedAt: string | null;
+  failureReason: string | null;
+};
+
+export type HistoryView = {
+  balance: number;
+  tab: HistoryTab;
+  period: HistoryPeriod;
+  status: HistoryStatus | "all";
+  q: string;
+  items: HistoryItem[];
+  selected: HistoryItem | null;
+};
+
 export type PlatformDonationResult =
   | {
       status: "COMPLETED";
