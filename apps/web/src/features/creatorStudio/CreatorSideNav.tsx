@@ -9,7 +9,7 @@ type Item = { label: string; emoji: string; href?: string };
 /** Figma 245:14 sidebar (240 wide). Items without `href` have no screen yet. */
 const ITEMS: Item[] = [
   { label: "대시보드", emoji: "📊", href: "/creator" },
-  { label: "후원위젯/알림설정", emoji: "🔔" },
+  { label: "후원위젯/알림설정", emoji: "🔔", href: "/creator/widgets" },
   { label: "크리에이터 랭킹", emoji: "🏆", href: "/creator/ranking" },
   { label: "후원관리+", emoji: "💰" },
   { label: "계정설정", emoji: "⚙️", href: "/creator/settings" },
