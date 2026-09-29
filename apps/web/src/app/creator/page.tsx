@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { CreatorDashboardScreen } from "@/features/creatorStudio/CreatorDashboardScreen";
-import { getCreatorDashboard, getCreatorProfile, parseStatsPeriod } from "@/services/creator/creatorStudio";
+import { getCreatorDashboard, getCreatorProfile, getDashboardSummary, parseStatsPeriod } from "@/services/creator/creatorStudio";
 import { getLatestUpdates } from "@/services/creator/updates";
 
 // Figma: creator-dashboard 245:14
@@ -14,7 +14,7 @@ const one = (v: string | string[] | undefined) => (typeof v === "string" ? v : u
 export default async function Page({ searchParams }: { searchParams: SearchParams }) {
   const raw = await searchParams;
   const period = parseStatsPeriod({ period: one(raw.period), from: one(raw.from), to: one(raw.to) });
-  const [profile, dashboard, updates] = await Promise.all([getCreatorProfile(), getCreatorDashboard(period), getLatestUpdates(3)]);
+  const [profile, dashboard, updates, summary] = await Promise.all([getCreatorProfile(), getCreatorDashboard(period), getLatestUpdates(3), getDashboardSummary()]);
   if (!profile || !dashboard) redirect("/login?role=creator&next=/creator");
-  return <CreatorDashboardScreen profile={profile} dashboard={dashboard} updates={updates} />;
+  return <CreatorDashboardScreen profile={profile} dashboard={dashboard} updates={updates} summary={summary} />;
 }

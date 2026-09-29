@@ -147,6 +147,26 @@ The studio header follows the funnation studio: logo + **스튜디오** badge on
 | (소식) | 소식 `/creator/updates` | 소식 |
 
 - The 후원관리+ tabs are linked one by one; the sidebar marks the active `?tab=`.
+
+### Dashboard (`/creator`)
+
+The top cards follow the funnation dashboard. They are laid out in two columns, and the server computes every value (`getDashboardSummary`).
+
+| funnation card | Ours |
+|---|---|
+| 내 채널 · 채널 설정 › | The existing channel card: profile, 후원 링크, 계정 관리 / 정산 관리. |
+| 받은 후원 · 후원 내역 › | 오늘 · 이번 주 · 이번 달 (₩ + 건수) and 누적. Links to 후원관리+ 후원 리스트. |
+| 정산 · 정산 신청 › | 정산 가능 · 누적 수익 · 누적 출금, in FN from the settlement records. |
+| 후원자 순위 · 랭킹 위젯 › | This month's top 5. Links to the widgets page. |
+| 소식 · 전체 › | 업데이트 소식 card |
+
+The Figma sections stay below the cards: 이벤트 / 크리애드 banners, 후원 통계 (period filter + chart), and 최근 후원 내역 + ranking tabs.
+
+TBD:
+
+- Whether 이번 주 means the calendar week or the last 7 days. The mock uses the last 7 days.
+- Whether 누적 수익 counts pending requests.
+- ₩ versus FN units on the dashboard. The FN exchange rate is TBD.
 - The dashboard stays the funnation 수익 현황 equivalent.
 
 ## Open decisions (TBD)
