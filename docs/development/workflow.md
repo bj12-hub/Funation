@@ -41,3 +41,9 @@ The browser reloads automatically. Stop with `Ctrl + C`.
 If you edit files locally, syncing pauses so your changes are not overwritten.
 Syncing also pauses whenever a branch other than `preview` is checked out, so work on
 `main` or `feature/*` is never reset.
+
+## Claude working notes
+
+How Claude builds, tests, opens and merges each screen (Figma usage, isolated test server,
+`scripts/merge-pr.sh`, conventions, remaining work) is written up in
+[`claude-handoff.md`](claude-handoff.md).
