@@ -14,6 +14,8 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/hall-of-fame` | ✅ | funation-hall-of-fame 3:637 — `?period=all|week|day` (default 이번 달) |
 | `/support` | ✅ | 고객센터 4:7 — `?q=` searches the FAQ |
 | `/mypage` | ✅ | funation-my-page 735:4119 · 622:4 — redirects to `/login` without a session |
+| `/mypage/titles` | ✅ code-first | 칭호·등급 — no Figma frame (docs/figma/code-first-screens.md); grade / title thresholds are placeholders (TBD) |
+| `/mypage/nicknames` | ✅ code-first | 별명 관리 — no Figma frame |
 | `/favorites` | ✅ | funation-favorites-page 735:3856 — signed-in only, `?q=` `?page=` |
 | `/creators/[id]` | ✅ | 라이브 826:685 (채팅) · 610:138 (후원), 오프라인 710:195, 공유 826:387 · 후원 유형 851:4546 (일반) · 851:4665 (미니) · 851:4788 (영상) · 851:4929 + 875:1815 (시그니처) · 851:5054 (위시) · 851:5174 + 875:6948–8546 (럭키박스) · 867:2458 (룰렛) · 867:2545 (퀘스트) · 867:2647 (그림) · 867:2755 / 867:2855 / 867:2955 (퀴즈) · 후원 확인 613:6 · 완료 613:122 · FN 부족 613:237 |
 | `/wallet/charges` | ✅ | FN 충전내역 640:2 · 639:2 (empty) · 상세 643:4 · 644:6 · 644:185 · 644:364 — signed-in only, `?period=` `?from=` `?to=` `?page=` |

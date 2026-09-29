@@ -5,6 +5,7 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
 import { getCreatorById } from "@/services/creators/creators";
+import { attributeDonation, ownsNickname } from "@/services/supporter/identityCore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { getMockDonationCatalog, luckyTierFor, type DonationCatalog } from "./donationCatalog";
 import { MAX_DRAWING_CHARS, parseYouTubeId, type DonationResult } from "./donationTypes";
@@ -56,6 +57,7 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
       category: HISTORY_CATEGORY[request.type] ?? "basic",
       status: "COMPLETED"
     });
+    attributeDonation(donationId, request.nicknameId);
     result = { status: "COMPLETED", donationId, fnAmount: request.amount, balance: mockAccount.fnBalance };
   }
   mockWallet.donationIdempotency[idempotencyKey].result = result;
@@ -68,6 +70,7 @@ type Parsed = {
   idempotencyKey: string;
   creatorId: string;
   hideProfile: boolean;
+  nicknameId: string | null;
   type: string;
   amount: number;
   /** Text recorded in the donation history. */
@@ -99,7 +102,10 @@ function parse(input: unknown, catalog: DonationCatalog): Parsed | null {
   const typeInfo = catalog.types.find((t) => t.key === v.type);
   if (!typeInfo?.available) return null;
 
-  const common = { idempotencyKey: v.idempotencyKey, creatorId: v.creatorId, hideProfile: v.hideProfile, type: typeInfo.key };
+  // Optional donation nickname (별명): must belong to the supporter; null = the default nickname.
+  if (v.nicknameId !== undefined && v.nicknameId !== null && !ownsNickname(v.nicknameId)) return null;
+  const nicknameId = typeof v.nicknameId === "string" ? v.nicknameId : null;
+  const common = { idempotencyKey: v.idempotencyKey, creatorId: v.creatorId, hideProfile: v.hideProfile, nicknameId, type: typeInfo.key };
   const amountOk = (min: number) => typeof v.amount === "number" && Number.isInteger(v.amount) && v.amount >= min && v.amount <= MAX_FN;
   const text = (value: unknown, max: number, required = false) =>
     typeof value === "string" && value.trim().length <= max && (!required || value.trim().length > 0) ? value.trim() : null;

@@ -48,6 +48,8 @@ export const MAX_DRAWING_CHARS = 400_000;
 export type DonationRequest = DonationDetails & {
   creatorId: string;
   hideProfile: boolean;
+  /** Donation nickname (별명) id; omitted or null = the default nickname. Must belong to the supporter. */
+  nicknameId?: string | null;
   /** Generated once per confirmed submission; the same key never debits twice. */
   idempotencyKey: string;
 };

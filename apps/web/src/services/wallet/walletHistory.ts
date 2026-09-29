@@ -235,6 +235,11 @@ const DONATION_ROWS: [number, string, string, string, string, number, string, Do
   [12, "20:40:19", "c10", "STAR BEATS", "퀴즈 정답 맞혀볼게요", 2_000, "퀴즈", "game", "COMPLETED"]
 ];
 
+/** All donation records of the signed-in mock member (server-side; used by supporter identity). */
+export function listDonationRecords(): (DonationRecord & { category: DonationCategory })[] {
+  return mockDonations();
+}
+
 function mockDonations(): (DonationRecord & { category: DonationCategory })[] {
   return [...mockWallet.donations, ...seedDonations()];
 }
