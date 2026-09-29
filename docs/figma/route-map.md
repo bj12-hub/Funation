@@ -21,6 +21,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/wallet` | ✅ | redirects to `/wallet/charges` |
 | `/creator` | ✅ | creator-dashboard 245:14 · profile dropdown 758:41 / 296:500 — signed-in only, `?period=` `?from=` `?to=` (creator role check TBD) |
 | `/creator/settings` | ✅ | creator-account-settings-page 315:405 · 315:2 · 프로필 수정 326:496 — signed-in only |
+| `/creator/ranking` | ✅ | creator ranking 405:4 (퀘스트) · 405:302 (럭키박스) · 405:598 (플레이) — signed-in only, `?type=` `?period=` `?q=` `?page=` (scoring/season/tie rules TBD) |
 | `/attendance` | ✅ | funation-attendance-page 583:4 · 585:452 (checked in) · 585:66 (완료 popup) · 585:830 (보상 popup) — signed-in only |
 | `/terms/[slug]` | 🚧 | 722:3 (terms text pending) — slugs: youth, service, privacy, marketing, operation |
 
@@ -35,8 +36,9 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | Header (creator) | 📺 크리에이터 · 고객센터 · 크리에이터 · 채널 메뉴 | `/creator` · `/support` · `/creator` · dropdown 758:41 (계정설정 `/creator/settings` · 로그아웃) |
 | Profile menu (supporter) | 크리에이터 | `/creator` |
 | Creator sidebar | 대시보드 | `/creator` |
+| Creator sidebar | 크리에이터 랭킹 | `/creator/ranking` |
 | Creator sidebar | 계정설정 | `/creator/settings` |
-| Creator sidebar | 후원위젯/알림설정 · 크리에이터 랭킹 · 후원관리+ · 정산설정 | not wired — screens pending |
+| Creator sidebar | 후원위젯/알림설정 · 후원관리+ · 정산설정 | not wired — screens pending |
 | Creator dashboard | 계정 관리 · 정산 관리 | `/creator/settings` · not wired (settlement pending) |
 | Creator settings | OBS · Xsplit · 동시 송출 세팅 | setup guide popups 328:581 · 328:927 · 328:1266 (download links: official OBS / XSplit pages) |
 | Header | 언어 선택 | dropdown (265:242) — i18n pending |
