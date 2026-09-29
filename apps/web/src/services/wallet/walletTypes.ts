@@ -30,7 +30,12 @@ export type ChargeRecord = {
   status: ChargeStatus;
   /** Transaction ID; `null` when no transaction was completed. */
   transactionId: string | null;
+  /** 환불 요청 (code-first). Present once the member asked for a refund; review is TBD. */
+  refund?: { status: "REQUESTED"; requestedAt: string } | null;
 };
+
+export const REFUND_REASON_MAX = 200;
+export type RefundRequestResult = { status: "REQUESTED"; requestedAt: string } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
 
 export type DonationCategory = "basic" | "quest" | "game";
 
