@@ -4,6 +4,7 @@ import { toDateString } from "@/lib/period";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
+import { enqueueDonationAlert } from "@/services/creator/alertCore";
 import { getCreatorById } from "@/services/creators/creators";
 import { attributeMemberDonation, isActiveMember } from "@/services/crew/crewCore";
 import { attributeDonation, ownsNickname } from "@/services/supporter/identityCore";
@@ -60,6 +61,13 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
     });
     attributeDonation(donationId, request.nicknameId);
     attributeMemberDonation(donationId, creator.id, request.memberId, request.amount);
+    // Alert delivery (TBD: donor display name rules — anonymous, 별명, hidden profile).
+    enqueueDonationAlert(creator.id, {
+      donor: request.hideProfile ? "익명" : mockAccount.nickname,
+      message: request.summary,
+      fnAmount: request.amount,
+      typeLabel: catalog.types.find((t) => t.key === request.type)!.title
+    });
     result = { status: "COMPLETED", donationId, fnAmount: request.amount, balance: mockAccount.fnBalance };
   }
   mockWallet.donationIdempotency[idempotencyKey].result = result;
