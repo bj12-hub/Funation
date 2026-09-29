@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { SideNavLayout } from "@/components/layout/SideNav";
 import { MyPageScreen } from "@/features/mypage";
 import { getMyAccount } from "@/services/account/myAccount";
 
@@ -14,11 +13,8 @@ export default async function Page() {
   if (!account) redirect("/login?next=/mypage");
 
   return (
-    <SideNavLayout
-      user={{ nickname: account.nickname, funationId: account.funationId, avatarUrl: account.avatarUrl, fnBalance: account.fnBalance }}
-      showWatchHistory
-    >
+    <>
       <MyPageScreen account={account} />
-    </SideNavLayout>
+    </>
   );
 }
