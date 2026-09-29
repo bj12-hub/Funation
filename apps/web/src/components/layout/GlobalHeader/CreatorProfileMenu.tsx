@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { logout } from "@/services/auth/logout";
 import { PLATFORM_LABEL, type Platform } from "@/types/platform";
@@ -69,10 +70,9 @@ export function CreatorProfileMenu({ user, creator }: { user: GlobalHeaderUser; 
             ))}
           </ul>
           <div className={styles.creatorMenuActions}>
-            {/* TODO: creator account settings (315:405) are the next creator screen. */}
-            <span role="menuitem" aria-disabled="true" className={styles.creatorMenuSettings} title="준비 중인 기능입니다">
+            <Link href="/creator/settings" role="menuitem" className={styles.creatorMenuSettings} onClick={() => setOpen(false)}>
               계정설정
-            </span>
+            </Link>
             <form action={logout}>
               <button type="submit" role="menuitem" className={styles.creatorMenuLogout}>
                 로그아웃
