@@ -31,6 +31,7 @@ export function CrewScoreOverlay({ data }: { data: BroadcastLive | null }) {
   return (
     <div className={styles.overlay}>
       <h1 className={styles.title}>{data.title}</h1>
+      {data.oneshotPot !== null && <p className={styles.oneshot}>한방 모으는 중 · {formatNumber(data.oneshotPot)} FN</p>}
       {data.teamMode && (
         <div className={styles.teams}>
           {data.teams.map((t) => (
