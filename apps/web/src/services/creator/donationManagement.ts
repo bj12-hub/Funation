@@ -2,8 +2,23 @@
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
+import { PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES } from "@/lib/validation";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import {
+  BLOCK_PAGE_SIZE,
+  FILTER_STRENGTHS,
+  FILTER_WORDS_MAX,
+  FILTER_WORD_MAX,
+  TITLE_DESCRIPTION_MAX,
+  TITLE_NAME_MAX,
+  TITLE_TIERS,
+  type BlockPlatform,
+  type BlockedDonor,
+  type BlockedDonorPage,
+  type FilterSettings,
+  type FilterStrength,
+  type TitleSaveResult,
+  type TitleTier,
   BANNED_WORDS_MAX,
   BANNED_WORD_MAX,
   LIST_KINDS,
@@ -256,4 +271,144 @@ export async function getDonorRanking(period: RankPeriod): Promise<DonorRanking 
       ? { nickname: "Boharium", avatarUrl: first.avatarUrl, rank: 1, change: 2, points: first.points, totalAmount: Math.round(2_580_000 * scale), count: Math.max(1, Math.round(154 * scale)) }
       : null
   };
+}
+
+// ── 후원 필터링 ────────────────────────────────────────────────────────────────
+
+type MockFilters = { settings: FilterSettings; blocked: BlockedDonor[]; titles: TitleTier[] };
+
+const BLOCK_SEED: [string, string, string, BlockPlatform, string][] = [
+  ["2026-09-11T04:12:00", "bad_player", "악성유저1", "FLEXTV", "부적절한 닉네임 사용 및 연속적인 도배 광고"],
+  ["2026-09-10T18:22:00", "spam_bot99", "광고봇", "SOOP", "불법 홍보 사이트 및 도배 스팸 전송"],
+  ["2026-09-09T11:45:00", "no_manner", "비방러", "YOUTUBE", "타인 비방 목적의 비속어 메시지 후원 발생"],
+  ["2026-09-08T22:10:00", "spoiler_king", "스포일러", "FLEXTV", "게임 중요 스토리 무단 스포일러 도배"]
+];
+
+const globalForFilters = globalThis as typeof globalThis & { __funationMockDonationFilters?: MockFilters };
+const filters = (globalForFilters.__funationMockDonationFilters ??= {
+  settings: { strength: "NORMAL", blockSpam: true, words: ["광고", "어그로", "욕설"] },
+  blocked: BLOCK_SEED.map(([at, donorId, nickname, platform, reason], i) => ({
+    id: `b${i + 1}`,
+    blockedAt: new Date(at).toISOString(),
+    donorId,
+    nickname,
+    platform,
+    reason
+  })),
+  titles: TITLE_TIERS.map((threshold) => ({ threshold, enabled: false, name: "", description: "", iconUrl: null, color: "#FFFFFF" }))
+});
+
+export async function getFilterSettings(): Promise<FilterSettings | null> {
+  assertMock();
+  if (!(await getSession())) return null;
+  await mockDelay(250);
+  return structuredClone(filters.settings);
+}
+
+export async function setFilterStrength(strength: unknown): Promise<ManagementSaveResult> {
+  assertMock();
+  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!FILTER_STRENGTHS.some((s) => s.key === strength)) return { status: "INVALID", message: "필터 강도를 선택해 주세요." };
+  await mockDelay(250);
+  filters.settings.strength = strength as FilterStrength;
+  return { status: "SAVED" };
+}
+
+export async function setSpamBlock(on: unknown): Promise<ManagementSaveResult> {
+  assertMock();
+  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (typeof on !== "boolean") return { status: "INVALID", message: "설정 값을 확인해 주세요." };
+  await mockDelay(250);
+  filters.settings.blockSpam = on;
+  return { status: "SAVED" };
+}
+
+export async function addFilterWord(word: unknown): Promise<ManagementSaveResult> {
+  assertMock();
+  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  const w = typeof word === "string" ? word.trim() : "";
+  if (w.length < 1 || w.length > FILTER_WORD_MAX) return { status: "INVALID", message: `단어는 1~${FILTER_WORD_MAX}자로 입력해 주세요.` };
+  if (filters.settings.words.includes(w)) return { status: "INVALID", message: "이미 등록된 단어입니다." };
+  if (filters.settings.words.length >= FILTER_WORDS_MAX) return { status: "INVALID", message: `단어는 최대 ${FILTER_WORDS_MAX}개까지 등록할 수 있어요.` };
+  await mockDelay(250);
+  filters.settings.words = [...filters.settings.words, w];
+  return { status: "SAVED" };
+}
+
+/** Idempotent. */
+export async function removeFilterWord(word: unknown): Promise<ManagementSaveResult> {
+  assertMock();
+  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  await mockDelay(200);
+  filters.settings.words = filters.settings.words.filter((w) => w !== word);
+  return { status: "SAVED" };
+}
+
+export async function getBlockedDonors(input: { query: string; page: number }): Promise<BlockedDonorPage | null> {
+  assertMock();
+  if (!(await getSession())) return null;
+  await mockDelay(250);
+  const query = input.query.trim().slice(0, LIST_QUERY_MAX);
+  const q = query.toLowerCase();
+  const matched = filters.blocked.filter((b) => !q || b.nickname.toLowerCase().includes(q) || b.donorId.toLowerCase().includes(q));
+  const totalPages = Math.max(1, Math.ceil(matched.length / BLOCK_PAGE_SIZE));
+  const page = Math.min(Math.max(1, Math.floor(input.page) || 1), totalPages);
+  return { query, page, totalPages, total: matched.length, items: matched.slice((page - 1) * BLOCK_PAGE_SIZE, page * BLOCK_PAGE_SIZE) };
+}
+
+/** 해제. Idempotent: unblocking someone who is not blocked is not an error. TODO: audit log on the backend. */
+export async function unblockDonor(id: unknown): Promise<ManagementSaveResult> {
+  assertMock();
+  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  await mockDelay(300);
+  filters.blocked = filters.blocked.filter((b) => b.id !== id);
+  return { status: "SAVED" };
+}
+
+// ── 칭호 설정 ─────────────────────────────────────────────────────────────────
+
+export async function getTitleTiers(): Promise<TitleTier[] | null> {
+  assertMock();
+  if (!(await getSession())) return null;
+  await mockDelay(250);
+  return structuredClone(filters.titles);
+}
+
+const findTier = (threshold: unknown) => filters.titles.find((t) => t.threshold === threshold);
+
+export async function setTitleEnabled(threshold: unknown, enabled: unknown): Promise<TitleSaveResult> {
+  assertMock();
+  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  const tier = findTier(threshold);
+  if (!tier || typeof enabled !== "boolean") return { status: "INVALID", message: "칭호 정보를 확인해 주세요." };
+  if (enabled && !tier.name) return { status: "INVALID", message: "칭호명을 먼저 설정해 주세요." };
+  await mockDelay(250);
+  tier.enabled = enabled;
+  return { status: "SAVED", tier: structuredClone(tier) };
+}
+
+/** FormData: threshold, name, description, color, optional icon (image), removeIcon ("1"). */
+export async function saveTitleTier(formData: FormData): Promise<TitleSaveResult> {
+  assertMock();
+  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  const tier = findTier(Number(formData.get("threshold")));
+  if (!tier) return { status: "INVALID", message: "칭호 정보를 확인해 주세요." };
+  const name = String(formData.get("name") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
+  const color = String(formData.get("color") ?? "");
+  const icon = formData.get("icon");
+  if (name.length < 1 || name.length > TITLE_NAME_MAX) return { status: "INVALID", message: `칭호명은 1~${TITLE_NAME_MAX}자로 입력해 주세요.` };
+  if (description.length > TITLE_DESCRIPTION_MAX) return { status: "INVALID", message: `칭호 설명은 ${TITLE_DESCRIPTION_MAX}자 이내로 입력해 주세요.` };
+  if (MOCK_FORBIDDEN_WORDS.some((w) => `${name} ${description}`.toLowerCase().includes(w))) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
+  if (!/^#[0-9A-Fa-f]{6}$/.test(color)) return { status: "INVALID", message: "색상은 #RRGGBB 형식으로 입력해 주세요." };
+  let iconUrl = formData.get("removeIcon") === "1" ? null : tier.iconUrl;
+  if (icon instanceof File && icon.size > 0) {
+    if (!(PROFILE_PHOTO_TYPES as readonly string[]).includes(icon.type)) return { status: "INVALID", message: "JPG, PNG, WEBP 이미지만 등록할 수 있어요." };
+    if (icon.size > PROFILE_PHOTO_MAX_BYTES) return { status: "INVALID", message: "이미지는 5MB 이하만 등록할 수 있어요." };
+    // Mock storage: data URL in memory.
+    iconUrl = `data:${icon.type};base64,${Buffer.from(await icon.arrayBuffer()).toString("base64")}`;
+  }
+  await mockDelay(400);
+  Object.assign(tier, { name, description, color: color.toUpperCase(), iconUrl });
+  return { status: "SAVED", tier: structuredClone(tier) };
 }
