@@ -1,0 +1,89 @@
+/* OBS crew scoreboard overlay (code-first). Readable on any stream background. */
+
+.overlay {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(100%, 480px);
+  padding: 16px;
+  border-radius: var(--radius-16);
+  background: var(--color-overlay);
+  color: var(--color-text-on-accent);
+  font-family: var(--font-sans, inherit);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.teams {
+  display: flex;
+  gap: 6px;
+  font-weight: var(--font-weight-bold);
+}
+
+.teams span {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: var(--radius-8);
+}
+
+.teams [data-team="A"] {
+  background: var(--color-info);
+}
+
+.teams [data-team="B"] {
+  background: var(--color-accent);
+  text-align: right;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rows li {
+  display: grid;
+  grid-template-columns: 22px 90px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--font-size-14);
+}
+
+.rank {
+  color: var(--color-live);
+  font-weight: var(--font-weight-extrabold);
+  text-align: center;
+}
+
+.name {
+  overflow: hidden;
+  font-weight: var(--font-weight-bold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bar {
+  height: 10px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-media-badge-border);
+}
+
+.bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.4s ease;
+}
+
+.score {
+  font-family: var(--font-latin);
+  font-weight: var(--font-weight-extrabold);
+}

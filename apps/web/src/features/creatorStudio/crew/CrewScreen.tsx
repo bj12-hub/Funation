@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { formatNumber } from "@/lib/format";
 import { addCrewMember, removeCrewMember, updateCrewMember } from "@/services/crew/crew";
 import { CREW_ROLES, MAX_CREW_MEMBERS, crewRoleLabel, type CrewRole, type CrewSaveResult, type CrewStudioView } from "@/services/crew/crewTypes";
+import { CrewTabs } from "./CrewTabs";
 import styles from "./crew.module.css";
 
 /**
@@ -42,6 +43,7 @@ export function CrewScreen({ view }: { view: CrewStudioView }) {
           {view.channelName}의 크루 멤버를 관리하세요. 후원자는 후원할 때 멤버를 지정할 수 있고, 멤버별 순위가 집계돼요.
         </p>
       </header>
+      <CrewTabs active="members" />
 
       <section className={styles.card} aria-labelledby="crew-members">
         <div className={styles.cardHead}>
