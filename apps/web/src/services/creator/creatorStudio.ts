@@ -1,6 +1,7 @@
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
+import { mockCreator } from "./mockCreatorStore";
 import type { Platform } from "@/types/platform";
 import { eachDay, type StatsPeriod } from "./creatorStats";
 
@@ -43,10 +44,11 @@ export async function getCreatorProfile(): Promise<CreatorProfile | null> {
   if (!USE_MOCK) throw new Error("Creator API is not connected yet.");
   if (!(await getSession())) return null;
   return {
-    channelName: `${mockAccount.nickname}의 방송`,
-    handle: "honggildong",
-    avatarUrl: mockAccount.avatarUrl,
-    donateUrl: "https://funation.com/donate/honggildong",
+    channelName: mockCreator.channelName,
+    handle: mockCreator.handle,
+    // Slot 0 of the creator profile images is the 대표 image; fall back to the member photo.
+    avatarUrl: mockCreator.images[0] ?? mockAccount.avatarUrl,
+    donateUrl: `https://funation.com/donate/${mockCreator.handle}`,
     // Dropdown 758:41 shows 치지직/Twitch, which are not confirmed platforms; the confirmed ones are used.
     platforms: mockAccount.connectedPlatforms.map((p) => ({ platform: p.platform, logoUrl: LOGOS[p.platform], connected: p.handle !== null }))
   };
