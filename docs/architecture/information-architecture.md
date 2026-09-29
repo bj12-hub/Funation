@@ -190,7 +190,7 @@ The catalog follows the funnation 위젯 page (`features/creatorStudio/widgets/w
   - 후원 연동 (`/creator/widgets/link`): broadcast-platform donations shown in 후원 알림 in their own currency (not Somnation payments)
   - 게임 · 이벤트: ours; funnation keeps these under 엑셀방송
   - 타이머
-- **도구:** 오버레이 주소, 리모컨, 이미지·사운드 (TBD), 후원 연동 (TBD).
+- **도구:** 오버레이 주소, 리모컨, 이미지·사운드, 후원 연동.
 
 Each item does one of three things:
 
