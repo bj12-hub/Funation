@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { RoleChooser } from "@/features/auth/login/RoleChooser";
 import { logout } from "@/services/auth/logout";
 import { LanguageMenu } from "../LanguageMenu";
+import { CreatorProfileMenu, type CreatorHeaderInfo } from "./CreatorProfileMenu";
 import { ProfileMenu } from "./ProfileMenu";
 import styles from "./GlobalHeader.module.css";
 
@@ -15,6 +16,8 @@ import styles from "./GlobalHeader.module.css";
  * Figma:
  * - Guest:     710:305  (Funation creator donation page_with login / nav-bar)
  * - Signed in: 710:978  (Funation creator donation page / nav-bar)
+ *
+ * - Creator:   245:14 (📺 크리에이터 · 고객센터, channel profile dropdown 758:41)
  *
  * Figma only has the 1440px layout. Below 900px the center links move into a
  * dropdown opened by the mobile menu toggle.
@@ -28,13 +31,20 @@ export type GlobalHeaderUser = {
 type NavItem = {
   href: string;
   label: string;
-  isLive?: boolean;
+  /** Rendered as the yellow pill tab with this emoji (🔴 LIVE, 📺 크리에이터). */
+  pillEmoji?: string;
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/live", label: "LIVE", isLive: true },
+  { href: "/live", label: "LIVE", pillEmoji: "🔴" },
   { href: "/creators", label: "인기 크리에이터" },
   { href: "/hall-of-fame", label: "명예의 전당" },
+  { href: "/support", label: "고객센터" }
+];
+
+/** Creator pages (Figma 245:14). */
+const CREATOR_NAV_ITEMS: NavItem[] = [
+  { href: "/creator", label: "크리에이터", pillEmoji: "📺" },
   { href: "/support", label: "고객센터" }
 ];
 
@@ -43,14 +53,17 @@ type GlobalHeaderProps = {
   user: GlobalHeaderUser | null;
   showMenuButton?: boolean;
   onMenuClick?: () => void;
+  /** Creator pages swap the nav and the profile menu. */
+  creator?: CreatorHeaderInfo | null;
 };
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function GlobalHeader({ user, showMenuButton = true, onMenuClick }: GlobalHeaderProps) {
+export function GlobalHeader({ user, showMenuButton = true, onMenuClick, creator = null }: GlobalHeaderProps) {
   const pathname = usePathname() ?? "/";
+  const navItems = creator ? CREATOR_NAV_ITEMS : NAV_ITEMS;
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Close the mobile menu after navigating.
@@ -92,21 +105,28 @@ export function GlobalHeader({ user, showMenuButton = true, onMenuClick }: Globa
       </div>
 
       <nav className={styles.nav} aria-label="주요 메뉴">
-        {NAV_ITEMS.map((item) => (
+        {navItems.map((item) => (
           <NavLink key={item.href} item={item} active={isActive(pathname, item.href)} />
         ))}
       </nav>
 
       <div className={user ? styles.rightSignedIn : styles.rightGuest}>
-        {user && (
+        {user && !creator && (
           <Link href="/mypage" className={`${styles.myPage} ${styles.desktopOnly}`}>
             마이페이지
+          </Link>
+        )}
+        {user && creator && (
+          <Link href="/creator" className={`${styles.myPage} ${styles.creatorMode} ${styles.desktopOnly}`}>
+            크리에이터
           </Link>
         )}
 
         <LanguageMenu />
 
-        {user ? (
+        {user && creator ? (
+          <CreatorProfileMenu user={user} creator={creator} />
+        ) : user ? (
           <ProfileMenu user={user} />
         ) : (
           // Figma 280:2: the guest login button opens the 로그인/회원가입 role chooser.
@@ -116,7 +136,7 @@ export function GlobalHeader({ user, showMenuButton = true, onMenuClick }: Globa
 
       {mobileOpen && (
         <nav id="global-mobile-nav" className={styles.mobileNav} aria-label="주요 메뉴">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <NavLink key={item.href} item={item} active={isActive(pathname, item.href)} mobile />
           ))}
           {user && (
@@ -143,9 +163,9 @@ function NavLink({ item, active, mobile = false }: { item: NavItem; active: bool
   if (mobile) {
     return (
       <Link href={item.href} className={`${styles.mobileNavLink} ${active ? styles.mobileNavLinkActive : ""}`} aria-current={current}>
-        {item.isLive && (
+        {item.pillEmoji && (
           <span className={styles.liveDot} aria-hidden="true">
-            🔴
+            {item.pillEmoji}
           </span>
         )}
         {item.label}
@@ -153,11 +173,11 @@ function NavLink({ item, active, mobile = false }: { item: NavItem; active: bool
     );
   }
 
-  if (item.isLive) {
+  if (item.pillEmoji) {
     return (
       <Link href={item.href} className={`${styles.liveTab} ${active ? styles.liveTabActive : ""}`} aria-current={current}>
         <span className={styles.liveDot} aria-hidden="true">
-          🔴
+          {item.pillEmoji}
         </span>
         <span>{item.label}</span>
       </Link>
