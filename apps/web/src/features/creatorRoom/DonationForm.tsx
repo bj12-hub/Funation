@@ -8,6 +8,7 @@ import type { DonationCatalog } from "@/services/donations/donationCatalog";
 import { requestDonation } from "@/services/donations/donate";
 import { DonationCompleteDialog, DonationConfirmDialog, InsufficientFnDialog } from "./DonationDialogs";
 import { MiniFields, SignatureFields, TextFields, VideoFields, WishlistFields } from "./donation/Fields";
+import { LuckyBoxFields } from "./donation/LuckyBoxFields";
 import { SignaturePopup } from "./donation/SignaturePopup";
 import { buildDraft, initialStates, isFormKey, type FormKey, type FormStates } from "./donation/drafts";
 import panel from "./donation/donation.module.css";
@@ -17,7 +18,7 @@ type Dialog =
   | { kind: "NONE" }
   | { kind: "CONFIRM" }
   | { kind: "COMPLETE"; fnAmount: number; balance: number }
-  | { kind: "INSUFFICIENT"; balance: number }
+  | { kind: "INSUFFICIENT"; balance: number; required: number }
   | { kind: "CHARGE" }
   | { kind: "SIGNATURES" };
 
@@ -25,7 +26,7 @@ const CHIPS_PER_PAGE = 6;
 
 /**
  * Donation tab. Figma 610:138 · 851:4546 (일반) · 851:4665 (미니) · 851:4788 (영상) · 851:4929 (시그니처)
- * · 851:5054 (위시) → 613:6 확인 → 613:122 완료, or 613:237 FN 부족 → FN 충전 modal.
+ * · 851:5054 (위시) · 851:5174 (럭키박스) → 613:6 확인 → 613:122 완료, or 613:237 FN 부족 → FN 충전 modal.
  *
  * Every type goes through the same Donation Core: one confirm step, one server action, one debit.
  * Each confirmed submission carries an idempotency key so a double click or retry never debits twice.
@@ -73,7 +74,7 @@ export function DonationForm({
     if (!draft?.details || draft.amount === null) return;
     // UX pre-check with the server-provided balance; the server checks again on submit.
     if (fnBalance !== null && draft.amount > fnBalance) {
-      setDialog({ kind: "INSUFFICIENT", balance: fnBalance });
+      setDialog({ kind: "INSUFFICIENT", balance: fnBalance, required: draft.amount });
       return;
     }
     setError(null);
@@ -97,7 +98,7 @@ export function DonationForm({
           break;
         case "INSUFFICIENT_FN":
           keyRef.current = null;
-          setDialog({ kind: "INSUFFICIENT", balance: result.balance });
+          setDialog({ kind: "INSUFFICIENT", balance: result.balance, required: result.required });
           break;
         case "IN_PROGRESS":
           setError("후원을 처리하고 있습니다. 잠시 후 다시 시도해 주세요.");
@@ -183,6 +184,7 @@ export function DonationForm({
             onOpenAll={() => setDialog({ kind: "SIGNATURES" })}
           />
         )}
+        {formKey === "LUCKYBOX" && <LuckyBoxFields value={states.LUCKYBOX} onChange={update("LUCKYBOX")} catalog={donation} />}
         {formKey === "WISHLIST" && (
           <WishlistFields value={states.WISHLIST} onChange={update("WISHLIST")} catalog={donation} balance={fnBalance} creatorName={name} error={draft?.error ?? null} />
         )}
@@ -210,7 +212,7 @@ export function DonationForm({
 
       {signedIn ? (
         <button type="button" className={styles.submit} disabled={!draft?.details} onClick={open}>
-          {name}님에게 후원하기
+          {draft?.buttonLabel ?? `${name}님에게 후원하기`}
         </button>
       ) : (
         <button type="button" className={styles.submit} onClick={() => router.push(loginHref)}>
@@ -237,6 +239,8 @@ export function DonationForm({
       <InsufficientFnDialog
         open={dialog.kind === "INSUFFICIENT"}
         balance={dialog.kind === "INSUFFICIENT" ? dialog.balance : 0}
+        // LuckyBox uses the detailed 875:8546 variant.
+        required={dialog.kind === "INSUFFICIENT" && type.key === "LUCKYBOX" ? dialog.required : undefined}
         onCancel={() => setDialog({ kind: "NONE" })}
         onCharge={() => setDialog({ kind: "CHARGE" })}
       />
