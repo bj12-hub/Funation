@@ -636,3 +636,15 @@
 .grow {
   flex: 1;
 }
+
+.historyLink {
+  align-self: flex-end;
+  margin-top: -12px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+}
+
+.historyLink:hover {
+  color: var(--color-primary-light);
+}

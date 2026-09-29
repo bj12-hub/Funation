@@ -185,7 +185,7 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
             </div>
           </dl>
           <div className={styles.actions}>
-            <Link href="/wallet/donations" className={styles.secondaryButton}>
+            <Link href="/donation/history" className={styles.secondaryButton}>
               후원 내역 보기
             </Link>
             <button type="button" className={styles.primaryButton} onClick={reset}>
@@ -210,7 +210,7 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
           <p className={styles.muted}>{info.text}</p>
           {info.notCharged && <p className={styles.notCharged}>FN은 차감되지 않았습니다.</p>}
           <div className={styles.actions}>
-            <Link href="/wallet/donations" className={styles.secondaryButton}>
+            <Link href="/donation/history" className={styles.secondaryButton}>
               후원 내역
             </Link>
             {info.searchAgain ? (
