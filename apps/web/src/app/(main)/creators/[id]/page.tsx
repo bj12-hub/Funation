@@ -6,6 +6,7 @@ import { getCreatorById } from "@/services/creators/creators";
 import { getCreatorRoom } from "@/services/creators/creatorRoom";
 import { getChannelMonthlyRanking, getChannelPosts } from "@/services/creators/channelHome";
 import { CHANNEL_POSTS_PAGE } from "@/services/creators/channelTypes";
+import { getPublicChannelVideos } from "@/services/creators/channelVideos";
 import { parseChannelView } from "@/features/creatorRoom/channelView";
 import { getCrewPublic } from "@/services/crew/crew";
 import { isFavorite } from "@/services/favorites/favorites";
@@ -25,14 +26,16 @@ export default async function Page({ params, searchParams }: { params: Params; s
   const { id } = await params;
   const { tab, view, show } = await searchParams;
   const postsShow = Math.min(Math.max(CHANNEL_POSTS_PAGE, Math.floor(Number(show)) || CHANNEL_POSTS_PAGE), 100);
-  const [room, account, favorite, crew, creator, ranking, posts] = await Promise.all([
+  const channelView = tab === "donation" ? "home" : parseChannelView(view);
+  const [room, account, favorite, crew, creator, ranking, posts, videos] = await Promise.all([
     getCreatorRoom(id),
     getMyAccount(),
     isFavorite(id),
     getCrewPublic(id),
     getCreatorById(id),
     getChannelMonthlyRanking(id),
-    getChannelPosts(id, postsShow)
+    getChannelPosts(id, postsShow),
+    channelView === "videos" ? getPublicChannelVideos(id) : null
   ]);
   if (!room || !creator || !ranking || !posts) notFound();
 
@@ -42,12 +45,13 @@ export default async function Page({ params, searchParams }: { params: Params; s
       viewer={account ? { nickname: account.nickname, fnBalance: account.fnBalance } : null}
       isFavorite={favorite}
       initialTab={tab === "donation" ? "DONATION" : "CHAT"}
-      view={tab === "donation" ? "home" : parseChannelView(view)}
+      view={channelView}
       crew={crew}
       about={{ description: creator.description, categories: creator.categories, subscriberCount: creator.subscriberCount, joinedAt: creator.joinedAt }}
       ranking={ranking}
       posts={posts}
       postsShow={postsShow}
+      videos={videos}
     />
   );
 }

@@ -20,8 +20,8 @@ const GROUPS: Group[] = [
       { label: "채널 설정", emoji: "⚙️", href: "/creator/settings" },
       { label: "후원 페이지 설정", emoji: "🧾", href: "/creator/donations?tab=settings" },
       { label: "칭호 관리", emoji: "🏅", href: "/creator/donations?tab=titles" },
-      { label: "유튜브 연동", emoji: "▶️" },
-      { label: "영상 목록", emoji: "🎞️" }
+      { label: "유튜브 연동", emoji: "▶️", href: "/creator/youtube" },
+      { label: "영상 목록", emoji: "🎞️", href: "/creator/videos" }
     ]
   },
   {
@@ -30,7 +30,7 @@ const GROUPS: Group[] = [
       { label: "위젯", emoji: "🔔", href: "/creator/widgets" },
       { label: "방송 도구", emoji: "🛠️", href: "/creator/widgets/tools" },
       { label: "오버레이 주소", emoji: "🔗", href: "/creator/widgets/overlays" },
-      { label: "이미지·사운드", emoji: "🎵" },
+      { label: "이미지·사운드", emoji: "🎵", href: "/creator/widgets/assets" },
       { label: "리모컨", emoji: "🎛️", href: "/creator/remote" }
     ]
   },
