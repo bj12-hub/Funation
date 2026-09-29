@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { formatNumber } from "@/lib/format";
 import type { OverlayTool } from "@/services/creator/broadcastToolTypes";
 import styles from "./toolOverlay.module.css";
+import { useReloadSignal } from "../remote/useReloadSignal";
 import { clock, timerSeconds } from "./timerMath";
 
 const SPEED_SEC = { SLOW: 30, NORMAL: 18, FAST: 10 } as const;
@@ -18,6 +19,7 @@ export function ToolOverlay({ data }: { data: OverlayTool }) {
   const [now, setNow] = useState<number | null>(null);
   const serverNow = data.tool === "timer" ? data.serverNow : null;
   const [skew, setSkew] = useState(0);
+  useReloadSignal(data.reloadSeq);
 
   useEffect(() => {
     // OBS keys out transparent pixels, so both <html> and <body> must drop the page background.
@@ -68,9 +70,11 @@ export function ToolOverlay({ data }: { data: OverlayTool }) {
       if (now === null) return null;
       return <p className={styles.timer}>{clock(timerSeconds(data.state, now, skew))}</p>;
     case "credits":
+      // Shown only while rolling (리모컨 / 방송 도구 "시작"); a new start restarts from the top.
+      if (!data.state.rollingSince) return null;
       return (
         <div className={styles.credits}>
-          <div className={styles.creditsRoll}>
+          <div key={data.state.rollingSince} className={styles.creditsRoll}>
             <h1>{data.state.title}</h1>
             {data.crew.length > 0 && (
               <ol>

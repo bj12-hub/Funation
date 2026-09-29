@@ -11,6 +11,7 @@ import {
   MARQUEE_LINES_MAX,
   MARQUEE_LINE_MAX,
   SUBTITLE_MAX,
+  TIMER_ADJUST_STEPS,
   TIMER_MAX_SEC,
   isToolKey,
   type OverlayTool,
@@ -19,6 +20,7 @@ import {
   type ToolStates,
   type ToolsView
 } from "./broadcastToolTypes";
+import { mockAlerts } from "./alertCore";
 import { mockCreator } from "./mockCreatorStore";
 
 /**
@@ -31,12 +33,13 @@ const assertMock = () => {
   if (!USE_MOCK) throw new Error("Broadcast tools API is not connected yet.");
 };
 
-const g = globalThis as typeof globalThis & { __funationMockToolsV1?: ToolStates };
-const tools = (g.__funationMockToolsV1 ??= {
+// V2: credits gained rollingSince.
+const g = globalThis as typeof globalThis & { __funationMockToolsV2?: ToolStates };
+const tools = (g.__funationMockToolsV2 ??= {
   subtitle: { text: "", size: "M" },
   marquee: { lines: ["오늘도 방송에 와 주셔서 감사합니다!"], speed: "NORMAL" },
   timer: { mode: "COUNTDOWN", durationSec: 600, startedAt: null, elapsedBeforeSec: 0 },
-  credits: { title: "오늘의 방송을 함께해 주신 분들", thanks: ["시청해 주신 모든 분들 감사합니다"], includeCrew: true }
+  credits: { title: "오늘의 방송을 함께해 주신 분들", thanks: ["시청해 주신 모든 분들 감사합니다"], includeCrew: true, rollingSince: null }
 });
 
 const bad = (s: string) => MOCK_FORBIDDEN_WORDS.some((w) => s.toLowerCase().includes(w));
@@ -120,6 +123,35 @@ export async function controlTimer(action: unknown): Promise<ToolResult> {
   return { status: "SAVED" };
 }
 
+/**
+ * 퀵 조정: moves the shown time by `deltaSec` (countdown: more time left; stopwatch: more elapsed),
+ * clamped to 0 … TIMER_MAX_SEC. Works while running or paused.
+ */
+export async function adjustTimer(deltaSec: unknown): Promise<ToolResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  if (!TIMER_ADJUST_STEPS.includes(deltaSec as (typeof TIMER_ADJUST_STEPS)[number])) return { status: "INVALID", message: "조정 값을 확인해 주세요." };
+  const t = tools.timer;
+  const delta = deltaSec as number;
+  const running = t.startedAt ? Math.floor((Date.now() - new Date(t.startedAt).getTime()) / 1000) : 0;
+  const elapsed = t.elapsedBeforeSec + running;
+  // Shown time: countdown = duration - elapsed, stopwatch = elapsed.
+  const shown = t.mode === "COUNTDOWN" ? t.durationSec - elapsed : elapsed;
+  const target = Math.min(TIMER_MAX_SEC, Math.max(0, shown + delta));
+  const targetElapsed = t.mode === "COUNTDOWN" ? t.durationSec - target : target;
+  t.elapsedBeforeSec = targetElapsed - running;
+  return { status: "SAVED" };
+}
+
+/** 엔딩 크레딧 시작 / 중지. START while rolling restarts from the top. */
+export async function controlCredits(action: unknown): Promise<ToolResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  if (action !== "START" && action !== "STOP") return { status: "INVALID", message: "알 수 없는 동작이에요." };
+  tools.credits.rollingSince = action === "START" ? new Date().toISOString() : null;
+  return { status: "SAVED" };
+}
+
 export async function saveCredits(input: unknown): Promise<ToolResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
@@ -133,7 +165,7 @@ export async function saveCredits(input: unknown): Promise<ToolResult> {
   if (bad(title) || thanks.some(bad)) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
   if (typeof v.includeCrew !== "boolean") return { status: "INVALID", message: "설정을 확인해 주세요." };
   await mockDelay(150);
-  tools.credits = { title, thanks, includeCrew: v.includeCrew };
+  tools.credits = { title, thanks, includeCrew: v.includeCrew, rollingSince: tools.credits.rollingSince };
   return { status: "SAVED" };
 }
 
@@ -141,14 +173,16 @@ export async function saveCredits(input: unknown): Promise<ToolResult> {
 export async function getOverlayTool(tool: unknown, key: unknown): Promise<OverlayTool | "FORBIDDEN"> {
   assertMock();
   if (typeof key !== "string" || key !== mockCreator.integrationKey || !isToolKey(tool)) return "FORBIDDEN";
+  // reloadSeq: bumped by 리모컨 "오버레이 새로고침"; overlays reload themselves when it changes.
+  const reloadSeq = mockAlerts.reloadSeq;
   switch (tool) {
     case "subtitle":
-      return { tool, state: { ...tools.subtitle } };
+      return { tool, state: { ...tools.subtitle }, reloadSeq };
     case "marquee":
-      return { tool, state: { ...tools.marquee, lines: [...tools.marquee.lines] } };
+      return { tool, state: { ...tools.marquee, lines: [...tools.marquee.lines] }, reloadSeq };
     case "timer":
-      return { tool, state: { ...tools.timer }, serverNow: new Date().toISOString() };
+      return { tool, state: { ...tools.timer }, serverNow: new Date().toISOString(), reloadSeq };
     case "credits":
-      return { tool, state: { ...tools.credits, thanks: [...tools.credits.thanks] }, crew: tools.credits.includeCrew ? crewTop() : [] };
+      return { tool, state: { ...tools.credits, thanks: [...tools.credits.thanks] }, crew: tools.credits.includeCrew ? crewTop() : [], reloadSeq };
   }
 }

@@ -13,14 +13,20 @@ type MockAlerts = {
   shownAt: number | null;
   /** 테스트 후원 request ids already accepted (double-click / retry dedupe). */
   testRequests: Record<string, string>;
+  /** Signals for open overlays: a changed value means "stop speaking" / "reload yourself". */
+  ttsSkipSeq: number;
+  reloadSeq: number;
 };
 
-const g = globalThis as typeof globalThis & { __funationMockAlertsV1?: MockAlerts };
-export const mockAlerts = (g.__funationMockAlertsV1 ??= {
+// V2: overlay signals (ttsSkipSeq, reloadSeq).
+const g = globalThis as typeof globalThis & { __funationMockAlertsV2?: MockAlerts };
+export const mockAlerts = (g.__funationMockAlertsV2 ??= {
   items: [],
   controls: { paused: false, muted: false, minFn: 0, alertVolume: 50, ttsVolume: 80, displaySec: 8 },
   shownAt: null,
-  testRequests: {}
+  testRequests: {},
+  ttsSkipSeq: 0,
+  reloadSeq: 0
 });
 
 export function enqueueAlert(input: { kind: AlertKind; donor: string; message: string; fnAmount: number; typeLabel: string }, now = Date.now()) {

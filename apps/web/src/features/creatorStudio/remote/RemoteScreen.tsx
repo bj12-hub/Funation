@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { formatNumber } from "@/lib/format";
-import { cancelAllAlerts, replayAlert, sendTestAlert, setAlertControls, skipCurrentAlert } from "@/services/creator/alertRemote";
+import { cancelAllAlerts, reloadOverlays, replayAlert, sendTestAlert, setAlertControls, skipCurrentAlert, skipTts } from "@/services/creator/alertRemote";
+import type { ToolStates } from "@/services/creator/broadcastToolTypes";
 import {
   ALERT_DISPLAY_SEC,
   TEST_AMOUNT_PRESETS,
@@ -18,6 +19,7 @@ import {
 import styles from "../crew/crew.module.css";
 import { CopyButton } from "../settings/SettingsCards";
 import remote from "./remote.module.css";
+import { ToolsRemote } from "./ToolsRemote";
 
 const STATUS_LABEL: Record<AlertStatus, string> = { QUEUED: "대기", SHOWING: "표시 중", DONE: "완료", SKIPPED: "건너뜀", FILTERED: "최소 금액 미만" };
 const time = (iso: string) => new Date(iso).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -27,7 +29,7 @@ const time = (iso: string) => new Date(iso).toLocaleTimeString("ko-KR", { hour: 
  * queue that the OBS alert overlay shows: pause, mute, skip, cancel, volumes, minimum amount and
  * 테스트 후원 (display only — no FN moves). Refreshes from the server every few seconds.
  */
-export function RemoteScreen({ view, overlayPath }: { view: RemoteView; overlayPath: string }) {
+export function RemoteScreen({ view, overlayPath, tools }: { view: RemoteView; overlayPath: string; tools: Pick<ToolStates, "timer" | "credits"> }) {
   const router = useRouter();
   const { controls } = view;
   const [amount, setAmount] = useState(10_000);
@@ -147,6 +149,12 @@ export function RemoteScreen({ view, overlayPath }: { view: RemoteView; overlayP
           >
             ✕ 전체 알림 취소
           </button>
+          <button type="button" className={styles.ghost} disabled={pending || !view.showing} onClick={() => run(skipTts, "TTS를 건너뛰었어요.")}>
+            🔕 TTS 스킵
+          </button>
+          <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(reloadOverlays, "열려 있는 오버레이를 새로고침해요.")}>
+            ↻ 오버레이 새로고침
+          </button>
         </div>
         <div className={remote.status}>
           <span>
@@ -164,6 +172,8 @@ export function RemoteScreen({ view, overlayPath }: { view: RemoteView; overlayP
           <span>대기 {view.queued.length}건</span>
         </div>
       </section>
+
+      <ToolsRemote tools={tools} pending={pending} run={run} />
 
       <div className={remote.columns}>
         <section className={styles.card} aria-labelledby="test-title">

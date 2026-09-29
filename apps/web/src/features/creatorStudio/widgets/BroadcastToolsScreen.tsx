@@ -4,11 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { formatNumber } from "@/lib/format";
-import { configureTimer, controlTimer, saveCredits, saveMarquee, saveSubtitle } from "@/services/creator/broadcastTools";
+import { adjustTimer, configureTimer, controlCredits, controlTimer, saveCredits, saveMarquee, saveSubtitle } from "@/services/creator/broadcastTools";
 import {
   CREDITS_LINES_MAX,
   MARQUEE_LINES_MAX,
   SUBTITLE_MAX,
+  TIMER_ADJUST_STEPS,
   TOOL_CARDS,
   type MarqueeState,
   type SubtitleState,
@@ -18,6 +19,7 @@ import {
   type ToolsView
 } from "@/services/creator/broadcastToolTypes";
 import styles from "../crew/crew.module.css";
+import { signedSec } from "../remote/ToolsRemote";
 import { CopyButton } from "../settings/SettingsCards";
 import { clock, timerSeconds } from "./timerMath";
 
@@ -201,13 +203,20 @@ export function BroadcastToolsScreen({ view, overlayKey }: { view: ToolsView; ov
                 </button>
               ) : (
                 <button type="button" className={styles.primary} disabled={pending || (mode === "COUNTDOWN" && shown === 0)} onClick={() => timerAction("START")}>
-                  {states.timer.elapsedBeforeSec ? "이어서 시작" : "시작"}
+                  {states.timer.elapsedBeforeSec > 0 ? "이어서 시작" : "시작"}
                 </button>
               )}
               <button type="button" className={styles.ghost} disabled={pending} onClick={() => timerAction("RESET")}>
                 초기화
               </button>
             </span>
+          </div>
+          <div className={styles.actions} role="group" aria-label="타이머 퀵 조정">
+            {TIMER_ADJUST_STEPS.map((s) => (
+              <button key={s} type="button" className={styles.chipOff} disabled={pending} onClick={() => run("timer", () => adjustTimer(s))}>
+                {signedSec(s)}
+              </button>
+            ))}
           </div>
           <form
             className={styles.addRow}
@@ -270,6 +279,15 @@ export function BroadcastToolsScreen({ view, overlayKey }: { view: ToolsView; ov
             </p>
           )}
           <div className={styles.actions}>
+            <span className={styles.muted}>{states.credits.rollingSince ? "방송 화면에 흐르는 중" : "대기 중"}</span>
+            <button
+              type="button"
+              className={styles.ghost}
+              disabled={pending}
+              onClick={() => run("credits", () => controlCredits(states.credits.rollingSince ? "STOP" : "START"), states.credits.rollingSince ? "크레딧을 멈췄어요." : "크레딧을 시작했어요.")}
+            >
+              {states.credits.rollingSince ? "크레딧 중지" : "🎬 크레딧 시작"}
+            </button>
             <button type="submit" className={styles.primary} disabled={pending}>
               저장
             </button>
