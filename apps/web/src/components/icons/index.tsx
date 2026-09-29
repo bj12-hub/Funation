@@ -971,3 +971,18 @@ export function MailOutlineIcon(props: IconProps) {
     </svg>
   );
 }
+
+/** 20px speech-bubbles outline in currentColor — side nav "커뮤니티" (code-first). */
+export function CommunityOutlineIcon(props: IconProps) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" {...props}>
+      <path
+        d="M21 11.5C21 15.64 16.97 19 12 19C10.93 19 9.9 18.84 8.95 18.55L4 20L5.3 16.4C3.86 15.07 3 13.36 3 11.5C3 7.36 7.03 4 12 4C16.97 4 21 7.36 21 11.5Z M8 11.5H8.01 M12 11.5H12.01 M16 11.5H16.01"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
