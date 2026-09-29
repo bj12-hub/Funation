@@ -97,6 +97,54 @@ export type RegistrationResult =
   | { status: "INVALID"; message: string; field?: string }
   | { status: "NO_TERMS" | "ALREADY_REGISTERED" | "UNAUTHORIZED" };
 
+// ── 정산 신청 (458:4 · 469:* · 473:2 · 477:2 · 463:2) ─────────────────────────────────
+
+export type SettlementStatus = "PENDING" | "APPROVED" | "REJECTED";
+export const SETTLEMENT_STATUS_LABEL: Record<SettlementStatus, string> = { PENDING: "승인대기", APPROVED: "승인", REJECTED: "거절" };
+
+export type SettlementHistoryItem = {
+  id: string;
+  status: SettlementStatus;
+  requestedAt: string;
+  periodFrom: string;
+  periodTo: string;
+  amountFn: number;
+  feeFn: number;
+  netKrw: number;
+  payoutDate: string | null;
+};
+
+export type SettlementApplyView = {
+  availableFn: number;
+  /** Minimum request from the server's policy (TBD — Figma sample). Null when no minimum applies. */
+  minFn: number | null;
+  code: string;
+  registrant: string;
+  holder: string;
+  bankName: string;
+  accountMasked: string;
+  autoSettlement: boolean;
+  hasPending: boolean;
+  /** Last 8 months, oldest first: month `yyyy-mm` and the amount paid out (원) for requests made that month. */
+  monthly: { month: string; krw: number }[];
+  recent: SettlementHistoryItem[];
+};
+
+/** Server-computed breakdown shown in 473:2 / 477:2. The browser never computes these. */
+export type SettlementQuote = {
+  amountFn: number;
+  paymentFeeRate: number;
+  paymentFeeFn: number;
+  serviceFeeRate: number;
+  serviceFeeFn: number;
+  totalFeeFn: number;
+  netKrw: number;
+};
+
+export type QuoteResult = { status: "OK"; quote: SettlementQuote } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" | "NOT_REGISTERED" };
+export type SaveAutoResult = { status: "SAVED"; on: boolean } | { status: "INVALID" | "UNAUTHORIZED" | "NOT_REGISTERED" };
+export type RequestResult ={ status: "REQUESTED"; quote: SettlementQuote; requestId: string } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" | "NOT_REGISTERED" };
+
 /** What the settlement pages need to know about the creator's registration. Account numbers are masked. */
 export type SettlementOverview = {
   registered: boolean;
