@@ -354,31 +354,6 @@ input.input:focus,
   background: var(--color-primary);
 }
 
-.tiles {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.tile {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 80px;
-  padding: 8px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-8);
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(236, 72, 153, 0.08));
-  color: var(--color-text-primary);
-  font-size: var(--font-size-12);
-  font-weight: var(--font-weight-bold);
-  text-align: center;
-  cursor: not-allowed;
-}
-
 /* Main platform */
 
 .radioGrid {

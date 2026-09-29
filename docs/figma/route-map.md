@@ -38,7 +38,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | Creator sidebar | 계정설정 | `/creator/settings` |
 | Creator sidebar | 후원위젯/알림설정 · 크리에이터 랭킹 · 후원관리+ · 정산설정 | not wired — screens pending |
 | Creator dashboard | 계정 관리 · 정산 관리 | `/creator/settings` · not wired (settlement pending) |
-| Creator settings | OBS · Xsplit · 동시 송출 세팅 | not wired — setup popups 328:581 · 328:927 · 328:1266 pending |
+| Creator settings | OBS · Xsplit · 동시 송출 세팅 | setup guide popups 328:581 · 328:927 · 328:1266 (download links: official OBS / XSplit pages) |
 | Header | 언어 선택 | dropdown (265:242) — i18n pending |
 | Login | 비밀번호 찾기 · 회원가입 | `/password-reset` · `/signup` |
 | Login lockout | 비밀번호 재설정으로 이동 · 고객센터 | `/password-reset` · `/support` |

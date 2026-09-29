@@ -78,6 +78,8 @@ export type CreatorSettings = {
   languages: CreatorLanguage[];
   donateUrl: string;
   rtmpUrl: string;
+  /** 통합 알림창 (alert widget) URL for OBS/Xsplit browser sources (328:907). Format TBD. */
+  alertWidgetUrl: string;
   /** Only the last 4 characters are ever sent unless the member asks to copy it. */
   integrationKeyMasked: string;
   mainPlatform: MainPlatform;
