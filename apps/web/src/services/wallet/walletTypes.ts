@@ -51,6 +51,10 @@ export const DONATION_STATUS_LABEL: Record<DonationStatus, string> = {
   REFUNDED: "환불완료"
 };
 
+/** funnation 내 후원 내역 filters (validated by the page before reaching the service). */
+export type DonationFilter = { q?: string; min?: number; max?: number; sort?: "latest" | "oldest" };
+export const DONATION_QUERY_MAX = 40;
+
 export type DonationRecord = {
   id: string;
   donatedAt: string;
