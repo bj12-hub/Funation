@@ -3,7 +3,7 @@ import { WIDGET_CARDS, type WidgetKey } from "@/services/creator/widgetSettingsT
 /**
  * 위젯 catalog layout — structure follows the funnation 위젯 page (인기 · 전체 by group · 도구).
  * Items reuse the Figma widget popups (529:4 / 531:*) where they exist, link to our code-first screens
- * (리모컨, 방송 도구, 크루 방송, 오버레이 주소), or show 준비 중 (TBD features).
+ * (리모컨, 방송 도구, 크루 방송, 오버레이 주소, …). The `soon` action (준비 중) stays for future items.
  */
 export type CatalogAction = { type: "widget"; key: WidgetKey } | { type: "link"; href: string } | { type: "soon" };
 export type CatalogItem = { id: string; emoji: string; title: string; description: string; action: CatalogAction };
@@ -14,7 +14,6 @@ const widget = (key: WidgetKey, overrides?: Partial<Pick<CatalogItem, "title" | 
   return { id: key, emoji: c.emoji, title: overrides?.title ?? c.title, description: overrides?.description ?? c.description, action: { type: "widget", key } };
 };
 const link = (id: string, emoji: string, title: string, description: string, href: string): CatalogItem => ({ id, emoji, title, description, action: { type: "link", href } });
-const soon = (id: string, emoji: string, title: string, description: string): CatalogItem => ({ id, emoji, title, description, action: { type: "soon" } });
 
 const ALERT = link("ALERT", "🔔", "후원 알림", "후원이 들어오면 화면에 알림을 표시합니다. 리모컨에서 제어해요.", "/creator/remote");
 const SUBTITLE = link("SUBTITLE", "💬", "자막", "리모컨에서 입력하는 실시간 텍스트 자막을 표시합니다.", "/creator/widgets/tools");
@@ -70,7 +69,7 @@ export const TOOLS: CatalogItem[] = [
   link("OVERLAYS", "🔗", "오버레이 주소", "OBS에 넣을 모든 오버레이 주소를 한곳에서 복사합니다.", "/creator/widgets/overlays"),
   link("REMOTE", "🎛️", "리모컨", "후원 알림 · 방송 도구를 한 화면에서 제어합니다.", "/creator/remote"),
   link("ASSETS", "🎵", "이미지·사운드", "위젯이 쓰는 이미지와 사운드를 올리고 관리합니다.", "/creator/widgets/assets"),
-  soon("LINK", "🔌", "후원 연동", "외부 후원 플랫폼을 연결합니다.")
+  link("LINK", "🔌", "후원 연동", "방송 플랫폼에서 받은 후원을 후원 알림에 함께 띄웁니다.", "/creator/widgets/link")
 ];
 
 /** Distinct widgets across the 전체 groups (for the section count). */

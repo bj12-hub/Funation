@@ -1,3 +1,5 @@
+import { formatNumber } from "@/lib/format";
+
 /**
  * 후원 알림 대기열 + 리모컨 — code-first, no Figma frame (docs/figma/code-first-screens.md).
  * Reference: docs/research/funnation-reference.md §3 (리모컨). The server owns the queue: the OBS
@@ -5,7 +7,8 @@
  * Test alerts are display-only — they never touch FN balances, ledgers or earnings.
  */
 
-export type AlertKind = "DONATION" | "TEST";
+/** EXTERNAL = a donation made on a broadcast platform (후원 연동); shown in its own currency, never converted to FN. */
+export type AlertKind = "DONATION" | "TEST" | "EXTERNAL";
 /** QUEUED → SHOWING → DONE; SKIPPED (리모컨) and FILTERED (below the minimum) are never shown. */
 export type AlertStatus = "QUEUED" | "SHOWING" | "DONE" | "SKIPPED" | "FILTERED";
 
@@ -15,6 +18,8 @@ export type AlertItem = {
   donor: string;
   message: string;
   fnAmount: number;
+  /** Set for EXTERNAL alerts, e.g. "₩5,000" (the FN exchange rate is TBD, so no conversion). */
+  amountLabel?: string;
   typeLabel: string;
   createdAt: string;
   status: AlertStatus;
@@ -55,3 +60,6 @@ export type OverlayAlert = {
 };
 
 export type RemoteResult = { status: "SAVED" } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
+
+/** How an alert's amount reads on screen. */
+export const alertAmount = (a: { fnAmount: number; amountLabel?: string }) => a.amountLabel ?? `${formatNumber(a.fnAmount)} FN`;

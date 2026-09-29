@@ -1,5 +1,5 @@
 import type { Platform } from "@/types/platform";
-import { PlatformError, type ChannelProfile, type ChannelVideo, type PlatformCapability } from "./platformTypes";
+import { PlatformError, type ChannelProfile, type ChannelVideo, type ExternalDonationEvent, type PlatformCapability } from "./platformTypes";
 
 /**
  * PlatformAdapter (CLAUDE.md §9) — server-only. Each platform declares what it can do; callers check
@@ -12,6 +12,8 @@ export interface PlatformAdapter {
   capabilities: readonly PlatformCapability[];
   getChannel(handle: string): Promise<ChannelProfile>;
   listVideos(externalChannelId: string, opts?: { max?: number }): Promise<ChannelVideo[]>;
+  /** Events after `cursor` (opaque), oldest first. Only for adapters with DONATION_EVENTS. */
+  fetchDonationEvents(externalChannelId: string, cursor: string | null): Promise<{ events: ExternalDonationEvent[]; cursor: string | null }>;
 }
 
 const TIMEOUT_MS = 5_000;
@@ -32,8 +34,19 @@ async function withTimeout<T>(p: Promise<T>, ms = TIMEOUT_MS): Promise<T> {
 type YtChannelDto = { id: string; snippet: { title: string; customUrl: string }; statistics: { subscriberCount: string } };
 type YtVideoDto = { id: { videoId: string }; snippet: { title: string; publishedAt: string }; contentDetails: { duration: string }; statistics: { viewCount: string } };
 
-const g = globalThis as typeof globalThis & { __funationMockYouTubeRemoteV1?: { uploads: Record<string, number> } };
-const remote = () => (g.__funationMockYouTubeRemoteV1 ??= { uploads: {} });
+type YtSuperChatDto = { id: string; snippet: { publishedAt: string; superChatDetails: { amountMicros: string; currency: string; userComment: string } }; authorDetails: { displayName: string } };
+
+const g = globalThis as typeof globalThis & { __funationMockYouTubeRemoteV2?: { uploads: Record<string, number>; chats: Record<string, YtSuperChatDto[]> } };
+const remote = () => (g.__funationMockYouTubeRemoteV2 ??= { uploads: {}, chats: {} });
+
+/** Mock only: a paid chat arrives on the channel (the developer simulator in 후원 연동 calls this). */
+export function mockYouTubeSuperChat(channelId: string, input: { id: string; donor: string; message: string; value: number; currency: string }) {
+  (remote().chats[channelId] ??= []).push({
+    id: input.id,
+    snippet: { publishedAt: new Date().toISOString(), superChatDetails: { amountMicros: String(Math.round(input.value * 1_000_000)), currency: input.currency, userComment: input.message } },
+    authorDetails: { displayName: input.donor }
+  });
+}
 
 function hash(s: string) {
   let h = 2166136261;
@@ -98,7 +111,7 @@ export const mapYouTubeVideo = (v: YtVideoDto): ChannelVideo => {
 
 export const YouTubeAdapter: PlatformAdapter = {
   platform: "YOUTUBE",
-  capabilities: ["CHANNEL_PROFILE", "VIDEO_LIST", "LIVE_STATUS"],
+  capabilities: ["CHANNEL_PROFILE", "VIDEO_LIST", "LIVE_STATUS", "DONATION_EVENTS"],
   async getChannel(handle) {
     const dto = await withTimeout(ytFetchChannel(handle));
     return { platform: "YOUTUBE", externalChannelId: dto.id, title: dto.snippet.title, handle: dto.snippet.customUrl, subscriberCount: Number(dto.statistics.subscriberCount) || 0 };
@@ -106,10 +119,26 @@ export const YouTubeAdapter: PlatformAdapter = {
   async listVideos(externalChannelId, opts) {
     const dtos = await withTimeout(ytFetchVideos(externalChannelId, opts?.max ?? 50));
     return dtos.map(mapYouTubeVideo);
+  },
+  async fetchDonationEvents(externalChannelId, cursor) {
+    const all = remote().chats[externalChannelId] ?? [];
+    const from = cursor ? Number(cursor) || 0 : 0;
+    const events = all.slice(from).map(
+      (d): ExternalDonationEvent => ({
+        platform: "YOUTUBE",
+        externalEventId: d.id,
+        donorName: d.authorDetails.displayName.slice(0, 40),
+        message: d.snippet.superChatDetails.userComment.slice(0, 200),
+        amount: { value: Number(d.snippet.superChatDetails.amountMicros) / 1_000_000, currency: d.snippet.superChatDetails.currency },
+        kindLabel: "YouTube 슈퍼챗",
+        occurredAt: d.snippet.publishedAt
+      })
+    );
+    return { events, cursor: String(all.length) };
   }
 };
 
-/** FlexTV / SOOP: video lists are not confirmed for these APIs (TBD), so they declare no VIDEO_LIST. */
+/** FlexTV / SOOP: video lists and donation events are not confirmed for these APIs (TBD), so neither is declared. */
 const unsupported = (platform: Platform): PlatformAdapter => ({
   platform,
   capabilities: ["LIVE_STATUS"],
@@ -117,6 +146,9 @@ const unsupported = (platform: Platform): PlatformAdapter => ({
     throw new PlatformError("UNSUPPORTED", "unsupported");
   },
   async listVideos() {
+    throw new PlatformError("UNSUPPORTED", "unsupported");
+  },
+  async fetchDonationEvents() {
     throw new PlatformError("UNSUPPORTED", "unsupported");
   }
 });

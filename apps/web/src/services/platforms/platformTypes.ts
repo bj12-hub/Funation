@@ -5,7 +5,7 @@ import type { Platform } from "@/types/platform";
  * these; external DTOs never leave the adapter. Client-safe.
  */
 
-export type PlatformCapability = "CHANNEL_PROFILE" | "VIDEO_LIST" | "LIVE_STATUS" | "CHAT_EVENTS";
+export type PlatformCapability = "CHANNEL_PROFILE" | "VIDEO_LIST" | "LIVE_STATUS" | "CHAT_EVENTS" | "DONATION_EVENTS";
 
 export type ChannelProfile = { platform: Platform; externalChannelId: string; title: string; handle: string; subscriberCount: number };
 
@@ -21,6 +21,18 @@ export type ChannelVideo = {
   publishedAt: string;
   viewCount: number;
   url: string;
+};
+
+/** A donation made on a broadcast platform (e.g. a paid chat). Amount stays in the platform's currency. */
+export type ExternalDonationEvent = {
+  platform: Platform;
+  /** The platform's own event id — the dedupe key (platforms may deliver an event more than once). */
+  externalEventId: string;
+  donorName: string;
+  message: string;
+  amount: { value: number; currency: string };
+  kindLabel: string;
+  occurredAt: string;
 };
 
 export type PlatformErrorCode = "TIMEOUT" | "NOT_FOUND" | "UNAUTHORIZED" | "UNSUPPORTED" | "UNAVAILABLE";

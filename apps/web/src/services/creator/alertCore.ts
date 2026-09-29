@@ -29,8 +29,9 @@ export const mockAlerts = (g.__funationMockAlertsV2 ??= {
   reloadSeq: 0
 });
 
-export function enqueueAlert(input: { kind: AlertKind; donor: string; message: string; fnAmount: number; typeLabel: string }, now = Date.now()) {
-  const filtered = input.fnAmount < mockAlerts.controls.minFn;
+export function enqueueAlert(input: { kind: AlertKind; donor: string; message: string; fnAmount: number; amountLabel?: string; typeLabel: string }, now = Date.now()) {
+  // The FN minimum cannot apply to other currencies (no exchange rate — TBD), so external alerts pass.
+  const filtered = input.kind !== "EXTERNAL" && input.fnAmount < mockAlerts.controls.minFn;
   const item: AlertItem = {
     id: `al-${now}-${mockAlerts.items.length}`,
     ...input,
