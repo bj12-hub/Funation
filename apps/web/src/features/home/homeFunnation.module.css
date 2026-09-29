@@ -1,0 +1,173 @@
+/* Home blocks — funnation structure (code-first), built from existing tokens. */
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  padding: 24px 32px;
+}
+
+.blockHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.blockTitle,
+.blockTitleLarge,
+.rowTitle {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.blockTitle {
+  font-size: var(--font-size-16);
+}
+
+.blockTitleLarge {
+  font-size: var(--font-size-24);
+}
+
+.rowTitle {
+  font-size: var(--font-size-18);
+}
+
+.textButton {
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-medium);
+}
+
+.textButton:hover {
+  color: var(--color-text-primary);
+}
+
+.empty {
+  margin: 0;
+  padding: 24px 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-14);
+  text-align: center;
+}
+
+/* ── Creator strip ── */
+
+.strip {
+  display: flex;
+  gap: 18px;
+  margin: 0;
+  padding: 0 0 6px;
+  overflow-x: auto;
+  list-style: none;
+  scrollbar-width: thin;
+}
+
+.stripItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 80px;
+  cursor: pointer;
+}
+
+.stripRing {
+  display: flex;
+  padding: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--gradient-brand);
+}
+
+.stripAvatar {
+  width: 64px;
+  height: 64px;
+  border: 2px solid var(--color-bg-page);
+  border-radius: var(--radius-pill);
+  object-fit: cover;
+}
+
+.stripName {
+  overflow: hidden;
+  width: 100%;
+  color: var(--color-text-soft);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stripItem:hover .stripName {
+  color: var(--color-text-primary);
+}
+
+/* ── 전체 방송 tabs + rows ── */
+
+.tabs {
+  display: flex;
+  gap: 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tab {
+  padding: 10px 2px;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-15);
+  font-weight: var(--font-weight-semibold);
+}
+
+.tab[aria-selected="true"] {
+  border-bottom-color: var(--color-accent);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.moreLink {
+  display: block;
+  margin-top: 16px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  text-align: center;
+}
+
+@media (max-width: 1200px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .block {
+    padding: 20px 16px;
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
