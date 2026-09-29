@@ -95,7 +95,7 @@ export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
           <caption className={styles.srOnly}>{LIST_KINDS.find((k) => k.key === kind)?.label} 목록</caption>
           <thead>
             <tr>
-              <th scope="col" style={{ width: 150 }}>
+              <th scope="col" style={{ width: 176 }}>
                 시간
               </th>
               <th scope="col" style={{ width: 200 }}>
@@ -120,7 +120,7 @@ export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
             ) : (
               items.map((d) => (
                 <tr key={d.id}>
-                  <td className={styles.muted}>{formatAt(d.at)}</td>
+                  <td className={`${styles.muted} ${styles.nowrap}`}>{formatAt(d.at)}</td>
                   <td className={styles.strong}>
                     <span className={styles.ellipsis}>
                       {d.donorNickname} ({d.donorId})
