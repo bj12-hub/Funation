@@ -193,7 +193,9 @@ const MOCK_HOME_FEED: Omit<HomeFeed, "creators" | "notices"> & { creators: Omit<
     label: "이벤트",
     title: "Funation 첫 결제 프로모션! 프리미엄 1개월 무료 체험",
     description: "지금 구독하면 광고 없는 초고화질 무제한 스트리밍이 첫 달 무료! 최신 오리지널 예능 단독 오픈.",
-    ctaLabel: "지금 참여하기"
+    ctaLabel: "지금 참여하기",
+    // Code-first: the events page (the specific promotion page is still TBD).
+    href: "/events"
   },
   liveBroadcasts: [
     { id: "l1", thumbnailUrl: `${IMG}/live-1.jpg`, title: "라이브 무대에서 가슴이 웅장해지는 보이스를 전달하는 신예 싱어송라이터", channelName: "온스테이지 코리아", channelAvatarUrl: `${IMG}/live-avatar-1.png`, viewerCount: 124_000, platform: "YOUTUBE", category: "MUSIC", href: "/live" },
