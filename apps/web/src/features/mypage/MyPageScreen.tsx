@@ -122,6 +122,23 @@ export function MyPageScreen({ account }: { account: MyAccount }) {
         </div>
       </section>
 
+      {/* Code-first (no Figma frame): supporter identity entry points. */}
+      <section className={styles.section} aria-labelledby="mypage-identity">
+        <h2 id="mypage-identity" className={styles.sectionTitle}>
+          🎖️ 후원자 프로필
+        </h2>
+        <div className={styles.identityLinks}>
+          <Link href="/mypage/titles" className={styles.identityLink}>
+            <strong>칭호·등급</strong>
+            <span>등급, 글로벌·크리에이터 칭호와 후원 알림 표시</span>
+          </Link>
+          <Link href="/mypage/nicknames" className={styles.identityLink}>
+            <strong>별명 관리</strong>
+            <span>후원할 때 쓰는 별명과 별명별 누적 후원</span>
+          </Link>
+        </div>
+      </section>
+
       <section className={styles.section} aria-labelledby="mypage-ranking">
         <h2 id="mypage-ranking" className={styles.sectionTitle}>
           🏆 내 랭킹 노출 설정

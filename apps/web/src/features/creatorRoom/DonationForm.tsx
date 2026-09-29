@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ChargeModal } from "@/features/walletCharge";
 import { formatNumber } from "@/lib/format";
 import type { DonationCatalog } from "@/services/donations/donationCatalog";
 import { requestDonation } from "@/services/donations/donate";
+import { getDonationNicknameOptions } from "@/services/supporter/identity";
 import { DonationCompleteDialog, DonationConfirmDialog, InsufficientFnDialog } from "./DonationDialogs";
 import { MiniFields, SignatureFields, TextFields, VideoFields, WishlistFields } from "./donation/Fields";
 import { DrawingFields, QuestFields, QuizChoiceFields, QuizDrawingFields, QuizInitialFields, RouletteFields } from "./donation/GameFields";
@@ -53,6 +54,17 @@ export function DonationForm({
   const [chipPage, setChipPage] = useState(0);
   const [states, setStates] = useState<FormStates>(() => initialStates(donation));
   const [hideProfile, setHideProfile] = useState(false);
+  // Donation nicknames (별명); the first entry is the default and is sent as null.
+  const [nicknames, setNicknames] = useState<{ id: string; name: string }[]>([]);
+  const [nicknameId, setNicknameId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!signedIn) return;
+    let alive = true;
+    getDonationNicknameOptions().then((list) => alive && list && setNicknames(list));
+    return () => {
+      alive = false;
+    };
+  }, [signedIn]);
   // Remounts the fields after a completed donation (e.g. clears the drawing canvas).
   const [formVersion, setFormVersion] = useState(0);
   const [dialog, setDialog] = useState<Dialog>({ kind: "NONE" });
@@ -90,7 +102,7 @@ export function DonationForm({
     setPending(true);
     setError(null);
     try {
-      const result = await requestDonation({ ...draft.details, creatorId, hideProfile, idempotencyKey: keyRef.current });
+      const result = await requestDonation({ ...draft.details, creatorId, hideProfile, nicknameId, idempotencyKey: keyRef.current });
       switch (result.status) {
         case "COMPLETED":
           keyRef.current = null;
@@ -203,6 +215,28 @@ export function DonationForm({
           <p className={panel.unavailable} role="status">
             준비 중인 후원 유형이에요.
           </p>
+        )}
+
+        {/* Code-first (no Figma frame): donate under one of the supporter's 별명. */}
+        {signedIn && nicknames.length > 1 && (
+          <label className={styles.nicknameRow}>
+            <span>별명</span>
+            <select
+              value={nicknameId ?? ""}
+              onChange={(e) => {
+                setNicknameId(e.target.value || null);
+                keyRef.current = null;
+              }}
+              aria-label="후원 별명"
+            >
+              {nicknames.map((n, i) => (
+                <option key={n.id} value={i === 0 ? "" : n.id}>
+                  {n.name}
+                  {i === 0 ? " (대표)" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
         )}
 
         <div className={styles.toggleRow}>
