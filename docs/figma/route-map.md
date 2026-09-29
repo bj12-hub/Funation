@@ -17,6 +17,8 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/channel/new` | ✅ code-first | 내 채널 만들기 — signed-in non-creators; grants the Creator role (review/approval TBD) |
 | `/creator/crew/broadcast` | ✅ code-first | 크루 방송 운영 — no Figma frame; score = FN during the broadcast + 보정 (points are not money) |
 | `/overlay/crew/[key]` | ✅ code-first | OBS scoreboard overlay; `key` = integration key (reissue invalidates it) |
+| `/creator/remote` | ✅ code-first | 리모컨 — server-owned alert queue; 테스트 후원 is display only (no FN) |
+| `/overlay/alert/[key]` | ✅ code-first | OBS donation alert overlay; `key` = integration key |
 | `/creator/widgets/tools` | ✅ code-first | 방송 도구 remote — 자막 · 전광판 · 타이머 · 엔딩 크레딧 (server-owned state) |
 | `/overlay/tool/[tool]/[key]` | ✅ code-first | OBS overlays for the tools; `tool` = subtitle / marquee / timer / credits, `key` = integration key |
 | `/creator/crew` | ✅ code-first | 크루 관리 — no Figma frame; Creator role; member split of earnings TBD |
