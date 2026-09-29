@@ -115,6 +115,23 @@ The page follows the funnation channel page (`/store/{slug}`). From top to botto
   - **리더보드:** 누적 · 이번 달 · 이번 주, with 과거 기록 as TBD. It shows the podium and the list, and "더 보기 (shown/total)" loads 20 more each time.
   - **실시간 랭킹:** 최근 30분 · 1시간 · 3시간 · 6시간.
 
+### 고객센터 (`/support`)
+
+The tabs follow the funnation 고객센터 (`?tab=`). The Figma 4:7 hero, search and FAQ accordion keep their visuals.
+
+- **공지사항 (default):**
+  - 일반 · 업데이트 · 점검 tags and a 중요 mark.
+  - Summary, date and views, with a detail page at `/support/notices/[id]`.
+  - The copy is ours; funnation notices are not copied.
+- **자주 묻는 질문:** the funnation category set (계정/로그인 · 결제/충전 · 후원 · 정산/출금 · 크리에이터 · 위젯 · 이벤트 · 커뮤니티 · 일반) plus search.
+  - Answers describe the current app.
+  - Policy-dependent answers stay empty (TBD), for example refunds and the settlement schedule.
+- **1:1 문의:**
+  - The contact channels, which are still Figma placeholders (TBD).
+  - A form (유형 · 제목 · 내용) with server validation and a requestId against double submits.
+  - 내 문의 내역. Answers need an operator console (TBD).
+- **Footer:** the 고객지원 links now open the matching tab.
+
 ### 마이 (My area)
 
 - **내 정보 (`/mypage`):** funnation 내 프로필. A 내 등급 card sits on top:
