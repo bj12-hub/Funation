@@ -87,8 +87,8 @@ creator studio: dashboard, account settings + OBS guides, ranking, 후원위젯/
 후원관리+ (5 tabs).
 
 Remaining:
-- 정산설정 — 등록 and 신청 done (`/creator/settlement`, `/register`, `/register/form`, `/apply`; frames in
-  route-map). Pending: 정산 관리 `/creator/settlement/manage` (478:2 · 479:144 · 480:2). Figma conflicts to keep TBD:
+- 정산설정 — all designed screens done (`/creator/settlement`, `/register`, `/register/form`, `/apply`,
+  `/manage`; frames in route-map). Not designed: 세금계산서/증빙 download (429:112 copy). Figma conflicts to keep TBD:
   minimum 10,000원 (429:4) vs 40,000 FN (466:2 · 469:195); fee 6.6% (473:2) vs per-method table (475:2);
   terms name 주식회사 투스라이프; 443:5 lists 트위치 · 치지직 (out of scope). Nav-bars 482:244 · 482:420
   belong to frames not yet located (top frame id = its workspace-wrapper id − 20).

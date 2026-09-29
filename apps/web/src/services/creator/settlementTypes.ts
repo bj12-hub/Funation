@@ -145,6 +145,35 @@ export type QuoteResult = { status: "OK"; quote: SettlementQuote } | { status: "
 export type SaveAutoResult = { status: "SAVED"; on: boolean } | { status: "INVALID" | "UNAUTHORIZED" | "NOT_REGISTERED" };
 export type RequestResult ={ status: "REQUESTED"; quote: SettlementQuote; requestId: string } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" | "NOT_REGISTERED" };
 
+// ── 정산 관리 (478:2 · 479:144 · 480:2) ────────────────────────────────────────────────
+
+/** 기간 presets (478:2): 일별 = 오늘, 주별 = 최근 7일, 월별 = 최근 1개월, 연별 = 최근 1년, 기간별 = 직접 입력. */
+export const MANAGE_PERIODS = [
+  { key: "day", label: "일별" },
+  { key: "week", label: "주별" },
+  { key: "month", label: "월별" },
+  { key: "year", label: "연별" },
+  { key: "custom", label: "기간별" }
+] as const;
+export type ManagePeriod = (typeof MANAGE_PERIODS)[number]["key"];
+export const isManagePeriod = (v: unknown): v is ManagePeriod => MANAGE_PERIODS.some((p) => p.key === v);
+export const MANAGE_PAGE_SIZE = 10;
+
+export type SettlementManageView = {
+  registrant: string;
+  bankName: string;
+  accountMasked: string;
+  memberType: MemberType;
+  period: ManagePeriod;
+  from: string;
+  to: string;
+  items: SettlementHistoryItem[];
+  page: number;
+  totalPages: number;
+};
+
+export type ResetResult = { status: "RESET" } | { status: "UNAUTHORIZED" | "NOT_REGISTERED" };
+
 /** What the settlement pages need to know about the creator's registration. Account numbers are masked. */
 export type SettlementOverview = {
   registered: boolean;

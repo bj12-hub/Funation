@@ -27,6 +27,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/creator/settlement` | ✅ | settlement-management 429:4 · 정산 자료 등록 필요 433:4 · 이미 등록 462:2 — signed-in only; `?registered=1` shows the submitted toast; settlement date / minimum / payout schedule copy shown as designed, policy TBD |
 | `/creator/settlement/register` | ✅ | 이용동의 429:139 (개인) · 443:257 (외국인) · 433:138 (개인사업자) · 437:338 (법인) · 대한민국 이외 452:4 / 452:47 — `?type=` preselects the member type; overseas answers lead nowhere yet (TBD) |
 | `/creator/settlement/apply` | ✅ | 정산 신청 458:4 · 463:2 (승인 대기) — popups 466:2 (정산 관련 안내) · 469:195 / 469:2 (정산 신청) · 475:2 (수수료 안내) · 473:2 (확인) · 477:2 (완료) — registered creators only; minimum / fee / FN→KRW are server-side mock policy (Figma samples, TBD) |
+| `/creator/settlement/manage` | ✅ | 정산 관리 478:2 · 479:144 (기간별) · 정산 정보 변경 480:2 — registered creators only, `?period=day|week|month|year|custom` `?from=` `?to=` `?page=` (filters by 신청일; default 연별) |
 | `/creator/settlement/register/form` | ✅ | 정산 자료 등록 429:219 (개인) · 443:5 (외국인) · 433:210 (개인사업자) · 437:4 (법인) — `?type=` required, reachable only after 이용동의 for that type |
 | `/attendance` | ✅ | funation-attendance-page 583:4 · 585:452 (checked in) · 585:66 (완료 popup) · 585:830 (보상 popup) — signed-in only |
 | `/terms/[slug]` | 🚧 | 722:3 (terms text pending) — slugs: youth, service, privacy, marketing, operation |
@@ -47,13 +48,14 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | Creator sidebar | 크리에이터 랭킹 | `/creator/ranking` |
 | Creator sidebar | 계정설정 | `/creator/settings` |
 | Creator sidebar | 정산설정 | `/creator/settlement` |
-| Settlement home | 정산 등록 · 정산 신청 · 정산 관리 cards | not registered → 433:4 (정산등록 → `/creator/settlement/register`); registered → 정산 등록 opens 462:2 (→ `/creator/settlement/manage`), 신청/관리 link to `/creator/settlement/apply` · `/creator/settlement/manage` (pending) |
+| Settlement home | 정산 등록 · 정산 신청 · 정산 관리 cards | not registered → 433:4 (정산등록 → `/creator/settlement/register`); registered → 정산 등록 opens 462:2 (→ `/creator/settlement/manage`), 신청/관리 link to `/creator/settlement/apply` · `/creator/settlement/manage` |
 | Settlement tabs | 정산 등록 · 정산 신청 · 정산 관리 | `/creator/settlement` · `/creator/settlement/apply` · `/creator/settlement/manage` |
 | Settlement apply | 정산 신청 · 안내 bar / ⓘ · 자세히 보기 / 수수료 ⓘ · 더보기 | request popups · 466:2 · 475:2 · `/creator/settlement/manage` |
+| Settlement manage | 정보 변경 → 480:2 변경하기 · 기간 presets / 조회 · 페이지 | clears the registration → `/creator/settlement/register` · `?period=` … |
 | Settlement terms | 다음 | `/creator/settlement/register/form?type=` |
 | Settlement form | 유형 탭 · 뒤로 · 신청하기 | 이용동의 for that type · 이용동의 · `/creator/settlement?registered=1` |
 | Settlement form | 주소 검색 · 신분증/통장사본 안내 links | toast (address provider TBD) · labels only (guide pages TBD) |
-| Creator dashboard | 계정 관리 · 정산 관리 | `/creator/settings` · `/creator/settlement` |
+| Creator dashboard | 계정 관리 · 정산 관리 | `/creator/settings` · `/creator/settlement/manage` (→ `/creator/settlement` when not registered) |
 | Creator settings | OBS · Xsplit · 동시 송출 세팅 | setup guide popups 328:581 · 328:927 · 328:1266 (download links: official OBS / XSplit pages) |
 | Header | 언어 선택 | dropdown (265:242) — i18n pending |
 | Login | 비밀번호 찾기 · 회원가입 | `/password-reset` · `/signup` |
