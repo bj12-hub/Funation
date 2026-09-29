@@ -1,0 +1,154 @@
+/* 대시보드 summary cards — funnation structure (code-first), existing tokens. */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+@media (max-width: 1100px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pageTitle {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-black);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: 20px 22px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-16);
+  background: var(--color-surface);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.more {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.more:hover {
+  color: var(--color-text-primary);
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
+  border-radius: var(--radius-12);
+  background: var(--color-surface-raised);
+}
+
+.tileLabel {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-12);
+}
+
+.tileValue {
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-family: var(--font-latin);
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-extrabold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tileSub {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-12);
+}
+
+.total {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.total strong {
+  color: var(--color-text-primary);
+  font-family: var(--font-latin);
+}
+
+.ranks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ranks li {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+}
+
+.rank {
+  color: var(--color-text-tertiary);
+  font-family: var(--font-latin);
+  font-weight: var(--font-weight-extrabold);
+  text-align: center;
+}
+
+.rank[data-top] {
+  color: var(--color-live);
+}
+
+.donor {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.amount {
+  font-family: var(--font-latin);
+  font-weight: var(--font-weight-bold);
+}
+
+.caption,
+.empty {
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-12);
+}
+
+.empty {
+  padding: 20px 0;
+  text-align: center;
+}

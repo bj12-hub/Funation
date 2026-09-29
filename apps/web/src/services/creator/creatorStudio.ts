@@ -2,6 +2,7 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
 import { mockCreator } from "./mockCreatorStore";
+import { mockSettlement } from "./mockSettlementStore";
 import type { Platform } from "@/types/platform";
 import { eachDay, type StatsPeriod } from "./creatorStats";
 
@@ -142,3 +143,42 @@ const RANKINGS: CreatorDashboard["rankings"] = {
     { rank: 5, donor: "초보러너", amount: 45_000 }
   ]
 };
+
+// ── 대시보드 요약 카드 (funnation structure, code-first) ───────────────────────
+
+export type DashboardSummary = {
+  /** 받은 후원 in ₩ (same source and unit as the stats above). */
+  received: { today: Tally; week: Tally; month: Tally; total: Tally };
+  /** 정산 in FN (settlement records). 누적 수익 = 정산 가능 + 요청 중 + 승인(지급); 누적 출금 = 승인된 정산. */
+  settlement: { availableFn: number; earnedFn: number; withdrawnFn: number };
+  /** This month's top supporters. */
+  topDonors: RankEntry[];
+};
+type Tally = { amount: number; count: number };
+
+/**
+ * funnation 대시보드 cards: 받은 후원 (오늘 · 이번 주 · 이번 달 · 누적), 정산 (정산 가능 · 누적 수익 ·
+ * 누적 출금) and 후원자 순위. Everything is computed on the server from the mock records.
+ * TBD: whether 이번 주 is the calendar week or the last 7 days (the mock uses the last 7 days).
+ */
+export async function getDashboardSummary(): Promise<DashboardSummary | null> {
+  if (!USE_MOCK) throw new Error("Creator API is not connected yet.");
+  if (!(await getCreatorSession())) return null;
+  await mockDelay(150);
+  const today = new Date();
+  const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const daysAgo = (n: number) => iso(new Date(today.getFullYear(), today.getMonth(), today.getDate() - n));
+  const tally = (from: string): Tally => {
+    const amount = eachDay(from, iso(today)).reduce((s, d) => s + mockDailyRevenue(d), 0);
+    return { amount, count: Math.round(amount / 19_140) };
+  };
+  const monthStart = iso(new Date(today.getFullYear(), today.getMonth(), 1));
+  const sum = (status: "APPROVED" | "PENDING") => mockSettlement.requests.filter((r) => r.status === status).reduce((s, r) => s + r.amountFn, 0);
+  const paid = sum("APPROVED");
+  const pending = sum("PENDING");
+  return {
+    received: { today: tally(iso(today)), week: tally(daysAgo(6)), month: tally(monthStart), total: tally(mockCreator.debutDate) },
+    settlement: { availableFn: mockSettlement.availableFn, earnedFn: mockSettlement.availableFn + pending + paid, withdrawnFn: paid },
+    topDonors: RANKINGS.month.slice(0, 5)
+  };
+}
