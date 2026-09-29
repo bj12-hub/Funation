@@ -1,0 +1,30 @@
+/**
+ * 커뮤니티 게시판 — code-first, no Figma frame (docs/figma/code-first-screens.md).
+ * Reference: docs/research/funnation-reference.md §1. Moderation (reports, hiding, bans), images,
+ * notice pinning and retention are TBD.
+ */
+
+export const BOARD_CATEGORIES = [
+  { key: "FREE", label: "자유" },
+  { key: "TIP", label: "팁/공략" },
+  { key: "QNA", label: "질문" },
+  { key: "BUG", label: "버그" },
+  { key: "BRAG", label: "자랑" }
+] as const;
+export type BoardCategory = (typeof BOARD_CATEGORIES)[number]["key"];
+export const isBoardCategory = (v: unknown): v is BoardCategory => BOARD_CATEGORIES.some((c) => c.key === v);
+export const categoryLabel = (c: BoardCategory) => BOARD_CATEGORIES.find((x) => x.key === c)!.label;
+
+export const TITLE_MAX = 60;
+export const BODY_MAX = 3000;
+export const COMMENT_MAX = 300;
+export const POSTS_PAGE_SIZE = 15;
+
+export type PostSummary = { id: string; category: BoardCategory; title: string; authorName: string; createdAt: string; commentCount: number; views: number };
+export type Comment = { id: string; authorName: string; body: string; createdAt: string; mine: boolean };
+export type PostDetail = PostSummary & { body: string; mine: boolean; comments: Comment[]; updatedAt: string | null };
+
+export type BoardView = { category: BoardCategory | "ALL"; q: string; items: PostSummary[]; page: number; totalPages: number; total: number };
+
+export type PostSaveResult = { status: "SAVED"; id: string } | { status: "INVALID"; message: string } | { status: "NOT_FOUND" | "FORBIDDEN" | "UNAUTHORIZED" };
+export type CommentResult = { status: "SAVED" } | { status: "INVALID"; message: string } | { status: "NOT_FOUND" | "FORBIDDEN" | "UNAUTHORIZED" };
