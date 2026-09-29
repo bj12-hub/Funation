@@ -2,6 +2,7 @@
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
+import { mockAccount } from "@/services/account/mockStore";
 import { mockSettlement, newSettlementCode } from "./mockSettlementStore";
 import {
   BANKS,
@@ -39,12 +40,23 @@ export async function getSettlementOverview(): Promise<SettlementOverview | null
   if (!(await getCreatorSession())) return null;
   await mockDelay(200);
   const r = mockSettlement.registration;
+  // Review workflow is TBD: the mock treats submitted documents as approved.
+  const review = r ? "APPROVED" : "NOT_SUBMITTED";
+  const identityVerified = mockAccount.identity !== null;
+  const bankRegistered = !!r?.accountMasked;
   return {
     registered: r !== null,
     registrant: r?.registrant ?? null,
     memberType: r?.memberType ?? null,
     bankName: r?.bankName ?? null,
-    accountMasked: r?.accountMasked ?? null
+    accountMasked: r?.accountMasked ?? null,
+    checklist: {
+      identityVerified,
+      documentsSubmitted: r !== null,
+      review,
+      bankRegistered,
+      ready: identityVerified && r !== null && review === "APPROVED" && bankRegistered
+    }
   };
 }
 

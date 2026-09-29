@@ -323,3 +323,101 @@ button.card {
     gap: 20px;
   }
 }
+
+/* ── 정산 준비 체크리스트 (code-first) ── */
+
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-16);
+  background: var(--color-surface);
+}
+
+.checklistHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.checklistCount {
+  color: var(--color-primary-light);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.checklistSteps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.checklistSteps li {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-12);
+  background: var(--color-surface-raised);
+}
+
+.checklistSteps li[data-done] {
+  border-color: var(--color-platform-success);
+}
+
+.checklistMark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-strong);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+}
+
+[data-done] > .checklistMark {
+  background: var(--color-platform-success-bg);
+  color: var(--color-platform-success);
+}
+
+.checklistText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-12);
+}
+
+.checklistText strong {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+}
+
+.checklistAction {
+  align-self: flex-start;
+  color: var(--color-primary-light);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  text-decoration: underline;
+}
+
+.checklistNote {
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-12);
+}
+
+@media (max-width: 1024px) {
+  .checklistSteps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
