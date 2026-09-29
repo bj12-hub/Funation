@@ -2,7 +2,7 @@
 
 import { useId, type ReactNode } from "react";
 import { Toggle } from "@/components/ui/Toggle";
-import { FONT_FAMILIES, FONT_SIZES, isHexColor, type FontFamily } from "@/services/creator/widgetSettingsTypes";
+import { FONT_FAMILIES, FONT_LEVELS, FONT_SIZES, isHexColor, type ColorFont, type FontFamily, type LeveledFont } from "@/services/creator/widgetSettingsTypes";
 import styles from "./widgets.module.css";
 
 /** Popup section title: 4×16 purple bar + 14px bold (Figma 372:7). */
@@ -190,6 +190,54 @@ export function SwitchText({ label, checked, onChange, text }: { label: string; 
     <span className={styles.inline}>
       <Toggle label={label} checked={checked} onChange={onChange} />
       {text && <span className={styles.hint}>{text}</span>}
+    </span>
+  );
+}
+
+export function LeveledFontFields({ label, value, onChange }: { label: string; value: LeveledFont; onChange: (v: LeveledFont) => void }) {
+  return (
+    <div className={styles.inline}>
+      <Select label={`${label} 서체`} value={value.family} options={FONT_FAMILIES} width={140} onChange={(family) => onChange({ ...value, family })} />
+      <Select
+        label={`${label} 크기`}
+        value={value.level}
+        options={FONT_LEVELS.map((l) => l.key)}
+        width={140}
+        format={(k) => FONT_LEVELS.find((l) => l.key === k)?.label ?? k}
+        onChange={(level) => onChange({ ...value, level })}
+      />
+      <ColorField label={`${label} 색상`} value={value.color} onChange={(color) => onChange({ ...value, color })} />
+    </div>
+  );
+}
+
+export function ColorFontFields({ label, value, onChange }: { label: string; value: ColorFont; onChange: (v: ColorFont) => void }) {
+  return (
+    <div className={styles.inline}>
+      <Select label={`${label} 서체`} value={value.family} options={FONT_FAMILIES} width={140} onChange={(family) => onChange({ ...value, family })} />
+      <ColorField label={`${label} 색상`} value={value.color} onChange={(color) => onChange({ ...value, color })} />
+    </div>
+  );
+}
+
+export function PercentSlider({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+  return (
+    <div className={styles.slider}>
+      <input type="range" aria-label={label} min={0} max={100} step={1} value={value} onChange={(e) => onChange(Number(e.target.value))} />
+      <div className={styles.sliderScale} aria-hidden="true">
+        <span>0%</span>
+        <span>{value}%</span>
+        <span>100%</span>
+      </div>
+    </div>
+  );
+}
+
+/** Tip badge for fields whose rule the design explains only with a "?" icon. */
+export function Help({ text }: { text: string }) {
+  return (
+    <span className={styles.help} title={text} aria-label={text} role="img">
+      ?
     </span>
   );
 }
