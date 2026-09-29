@@ -55,5 +55,7 @@ Since 2026-09-29 features without a Figma frame are built in code first and desi
 
 | `/creator/widgets/effects` 이펙트 · 효과 (`widgets/EffectsScreen.tsx`) + `/overlay/effects/[key]` | effects PR | 이모지 리액션 (사용 · 최소 FN · 이모지 1~6개 · 개수) and 레이어 효과 (금액 구간별 꽃가루 / 하트 비 / 별빛 / 불꽃놀이); overlay plays with each donation alert |
 | `/creator/widgets/signatures` 시그니처 후원 (`widgets/SignaturesScreen.tsx`) | signature PR | 시그니처 추가 · 수정 · 삭제 · 숨기기 · 순서 (이름, 가격 = 채널 설정, 프리셋 이미지, 매칭 규칙 "선택 시에만" / "선택 + 금액 일치"); the room panel and the Donation Core read the managed list. TBD: per-channel catalogs, image upload (이미지·사운드 library) |
+| `/creator/widgets/video` 영상 후원 (`widgets/media/VideoScreen.tsx`) + `/overlay/video/[key]` | video-drawing PR | 서버 대기열 (재생 중 · 대기 · 지난 요청), 지금 재생 / 건너뛰기 / 다시 대기열로, 자동 재생 · 최대 재생 시간 · 볼륨 (채널 설정), 테스트 영상; 오버레이는 youtube-nocookie embed. TBD: 볼륨 적용 (IFrame API), 영상 심사/거절 정책, 환불 |
+| `/creator/widgets/drawing` 그림후원 (`widgets/media/DrawingScreen.tsx`) + `/overlay/drawing/[key]` | video-drawing PR | 새 그림 자동 전시 (전시 시간 = 채널 설정), 다시 전시 · 내리기 · 삭제, 테스트 그림; 최근 30개 보관. TBD: 보관 기간, 신고/검수 |
 
 Add a row whenever a new code-first screen ships (see `docs/research/funnation-reference.md` for the planned features).

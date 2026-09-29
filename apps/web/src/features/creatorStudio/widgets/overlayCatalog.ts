@@ -24,6 +24,24 @@ export const OVERLAYS: OverlayEntry[] = [
     manage: "/creator/widgets/effects"
   },
   {
+    id: "video",
+    group: "알림",
+    title: "영상 후원",
+    description: "영상 후원 대기열에서 재생 중인 영상을 띄워요.",
+    size: "1280 × 720",
+    path: (k) => `/overlay/video/${k}`,
+    manage: "/creator/widgets/video"
+  },
+  {
+    id: "drawing",
+    group: "알림",
+    title: "그림후원",
+    description: "받은 그림을 전시 시간 동안 띄워요.",
+    size: "800 × 700",
+    path: (k) => `/overlay/drawing/${k}`,
+    manage: "/creator/widgets/drawing"
+  },
+  {
     id: "crew",
     group: "점수·순위",
     title: "크루 점수판",
