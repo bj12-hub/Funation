@@ -169,7 +169,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary | null> {
   const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const daysAgo = (n: number) => iso(new Date(today.getFullYear(), today.getMonth(), today.getDate() - n));
   const tally = (from: string): Tally => {
-    const amount = eachDay(from, iso(today)).reduce((s, d) => s + mockDailyRevenue(d), 0);
+    const amount = sumRevenue(from, iso(today));
     return { amount, count: Math.round(amount / 19_140) };
   };
   const monthStart = iso(new Date(today.getFullYear(), today.getMonth(), 1));
@@ -179,6 +179,65 @@ export async function getDashboardSummary(): Promise<DashboardSummary | null> {
   return {
     received: { today: tally(iso(today)), week: tally(daysAgo(6)), month: tally(monthStart), total: tally(mockCreator.debutDate) },
     settlement: { availableFn: mockSettlement.availableFn, earnedFn: mockSettlement.availableFn + pending + paid, withdrawnFn: paid },
+    topDonors: RANKINGS.month.slice(0, 5)
+  };
+}
+
+/** Mock revenue over any range (eachDay is capped at MAX_RANGE_DAYS for the stats filter). */
+function sumRevenue(from: string, to: string) {
+  let total = 0;
+  const d = new Date(`${from}T00:00:00`);
+  const end = new Date(`${to}T00:00:00`);
+  for (; d <= end; d.setDate(d.getDate() + 1)) total += mockDailyRevenue(isoDay(d));
+  return total;
+}
+
+const isoDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+// ── 수익 현황 (funnation 수익 대시보드, code-first) ──────────────────────────────
+
+export type RevenueOverview = {
+  /** ₩, same source as the dashboard stats. */
+  totalRevenue: number;
+  today: { amount: number; count: number };
+  thisMonth: number;
+  /** 미정산 = settlement 정산 가능 (FN). */
+  unsettledFn: number;
+  /** Last 30 days, oldest first. */
+  daily: { label: string; amount: number }[];
+  /** Last 6 months incl. this one, oldest first. */
+  monthly: { label: string; amount: number }[];
+  topDonors: RankEntry[];
+};
+
+/**
+ * 수익 현황 (route `/creator/revenue`): totals, 30-day daily and 6-month monthly trends, top supporters.
+ * Computed on the server from the mock records. TBD: 수익원별 상세 (per donation type / store) needs
+ * per-type revenue data; gross vs net of fees.
+ */
+export async function getRevenueOverview(): Promise<RevenueOverview | null> {
+  if (!USE_MOCK) throw new Error("Creator API is not connected yet.");
+  if (!(await getCreatorSession())) return null;
+  await mockDelay(200);
+  const now = new Date();
+  const today = isoDay(now);
+  const daily = Array.from({ length: 30 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29 + i);
+    return { label: `${d.getMonth() + 1}/${d.getDate()}`, amount: mockDailyRevenue(isoDay(d)) };
+  });
+  const monthly = Array.from({ length: 6 }, (_, i) => {
+    const first = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
+    const last = i === 5 ? now : new Date(first.getFullYear(), first.getMonth() + 1, 0);
+    return { label: `${first.getMonth() + 1}월`, amount: sumRevenue(isoDay(first), isoDay(last)) };
+  });
+  const todayAmount = mockDailyRevenue(today);
+  return {
+    totalRevenue: sumRevenue(mockCreator.debutDate, today),
+    today: { amount: todayAmount, count: Math.round(todayAmount / 19_140) },
+    thisMonth: monthly[5].amount,
+    unsettledFn: mockSettlement.availableFn,
+    daily,
+    monthly,
     topDonors: RANKINGS.month.slice(0, 5)
   };
 }

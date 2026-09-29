@@ -45,6 +45,7 @@ const GROUPS: Group[] = [
   {
     title: "수익",
     items: [
+      { label: "수익 현황", emoji: "📊", href: "/creator/revenue" },
       { label: "받은 후원", emoji: "💰", href: "/creator/donations?tab=list" },
       { label: "후원 순위", emoji: "🏆", href: "/creator/donations?tab=ranking" },
       { label: "후원 필터링", emoji: "🛡️", href: "/creator/donations?tab=filtering" },
