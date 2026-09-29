@@ -1,9 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { formatNumber } from "@/lib/format";
-import type { CreatorDashboard, CreatorProfile } from "@/services/creator/creatorStudio";
+import type { CreatorDashboard, CreatorProfile, DashboardSummary } from "@/services/creator/creatorStudio";
 import type { UpdatesView } from "@/services/creator/updatesTypes";
+import { ReceivedCard, SettlementCard, TopDonorsCard } from "./DashboardSummaryCards";
 import { LinkActions, RankingTabs } from "./DashboardWidgets";
+import summary from "./dashboardSummary.module.css";
 import { RevenueChart } from "./RevenueChart";
 import { StatsFilter } from "./StatsFilter";
 import styles from "./studio.module.css";
@@ -23,12 +25,24 @@ function timeAgo(iso: string) {
  * Creator dashboard. Figma 245:14 (route `/creator`).
  * Amounts are ₩ as in the design and come from the server as-is (gross/net and fees are TBD).
  */
-export function CreatorDashboardScreen({ profile, dashboard, updates }: { profile: CreatorProfile; dashboard: CreatorDashboard; updates: UpdatesView | null }) {
+export function CreatorDashboardScreen({
+  profile,
+  dashboard,
+  updates,
+  summary: data
+}: {
+  profile: CreatorProfile;
+  dashboard: CreatorDashboard;
+  updates: UpdatesView | null;
+  summary: DashboardSummary | null;
+}) {
   const { stats, period } = dashboard;
   return (
     <div className={styles.content}>
-      <div className={styles.topRow}>
-        <section className={`${styles.card} ${styles.infoCard}`} aria-label="내 방송 정보">
+      <h1 className={summary.pageTitle}>대시보드</h1>
+      {/* Top cards follow the funnation dashboard: 내 채널 · 받은 후원 · 정산 · 후원자 순위 · 소식 (code-first). */}
+      <div className={summary.grid}>
+        <section className={`${styles.card} ${styles.infoCard}`} aria-label="내 채널">
           {profile.avatarUrl ? (
             <Image src={profile.avatarUrl} alt="" width={80} height={80} className={styles.infoAvatar} />
           ) : (
@@ -56,6 +70,10 @@ export function CreatorDashboardScreen({ profile, dashboard, updates }: { profil
           </div>
         </section>
 
+        {data && <ReceivedCard received={data.received} />}
+        {data && <SettlementCard settlement={data.settlement} />}
+        {data && <TopDonorsCard donors={data.topDonors} />}
+        {updates && <UpdatesCard view={updates} />}
         <section className={`${styles.card} ${styles.quickCard}`} aria-label="이벤트 및 크리애드">
           {dashboard.banners.event && (
             <div className={styles.quickItem}>
@@ -146,8 +164,6 @@ export function CreatorDashboardScreen({ profile, dashboard, updates }: { profil
         </section>
         <RankingTabs rankings={dashboard.rankings} />
       </div>
-      {/* Code-first (not in Figma 245:14): 업데이트 소식 */}
-      {updates && <UpdatesCard view={updates} />}
     </div>
   );
 }
