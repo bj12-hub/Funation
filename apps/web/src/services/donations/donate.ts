@@ -9,7 +9,8 @@ import { getCreatorById } from "@/services/creators/creators";
 import { attributeMemberDonation, isActiveMember, recordBroadcastDonation } from "@/services/crew/crewCore";
 import { attributeDonation, ownsNickname } from "@/services/supporter/identityCore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
-import { getMockDonationCatalog, luckyTierFor, type DonationCatalog } from "./donationCatalog";
+import { luckyTierFor, type DonationCatalog } from "./donationCatalog";
+import { getDonationCatalog, matchSignatureByAmount } from "./signatureCore";
 import { MAX_DRAWING_CHARS, parseYouTubeId, type DonationResult } from "./donationTypes";
 
 /**
@@ -24,7 +25,7 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
   if (!USE_MOCK) throw new Error("Donation API is not connected yet.");
   if (!(await getSession())) return { status: "UNAUTHORIZED" };
 
-  const catalog = getMockDonationCatalog();
+  const catalog = getDonationCatalog();
   const parsed = parse(input, catalog);
   if (!parsed) return { status: "INVALID" };
   const creator = await getCreatorById(parsed.creatorId);
@@ -67,12 +68,18 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
       donor: request.hideProfile ? "익명" : mockAccount.nickname,
       message: request.summary,
       fnAmount: request.amount,
-      typeLabel: catalog.types.find((t) => t.key === request.type)!.title
+      // 금액 매칭 (시그니처 관리): a 일반 후원 whose amount equals an AMOUNT-match signature alerts as that signature.
+      typeLabel: alertTypeLabel(catalog, request.type, request.amount)
     });
     result = { status: "COMPLETED", donationId, fnAmount: request.amount, balance: mockAccount.fnBalance };
   }
   mockWallet.donationIdempotency[idempotencyKey].result = result;
   return result;
+}
+
+function alertTypeLabel(catalog: DonationCatalog, type: string, amount: number) {
+  const matched = type === "TEXT" ? matchSignatureByAmount(amount) : null;
+  return matched ? `시그니처 · ${matched.name}` : catalog.types.find((t) => t.key === type)!.title;
 }
 
 // ── Validation ───────────────────────────────────────────────────────────────

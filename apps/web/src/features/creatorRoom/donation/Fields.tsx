@@ -268,6 +268,7 @@ export function SignatureFields({ value, onChange, catalog, onOpenAll }: Props<S
           전체보기 〉
         </button>
       </div>
+      {cards.length === 0 && <p className={styles.selectedNote}>아직 준비된 시그니처가 없어요.</p>}
       <div className={styles.signatureGrid} role="radiogroup" aria-label="시그니처">
         {cards.map((s) => (
           <button
