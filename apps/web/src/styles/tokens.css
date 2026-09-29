@@ -159,6 +159,23 @@
   --color-recommend-border: #3a3568;
   --color-recommend-icon-bg: #28224b;
 
+  /* ── Home popups (688:646 · 200:115 · 200:223) ─────────── */
+  --color-profile-bg: #1e1f23;
+  --color-profile-footer-bg: #25262a;
+  --color-profile-close-bg: #191a1e;
+  --color-profile-blue: #2878f0;
+  --color-profile-text: #f7f7f8;
+  --color-profile-muted: #777a83;
+  --color-notice-blue: #1c82ff;
+  --color-notice-ink: #111115;
+  --color-notice-muted: #66667a;
+  --color-notice-bar-bg: #101022;
+  --color-notice-dark-card: #16162a;
+  --color-notice-red: #ff3b30;
+  --color-notice-body: #a3a3c2;
+  --color-notice-check-border: #4d4d66;
+  --color-notice-check-label: #8e8ea8;
+
   /* ── Status ───────────────────────────────────────────── */
   --color-success: #10b981;
   --color-warning: #f97316;

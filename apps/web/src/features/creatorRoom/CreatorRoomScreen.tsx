@@ -9,7 +9,17 @@ import styles from "./room.module.css";
 type Viewer = { nickname: string; fnBalance: number } | null;
 
 /** Figma 826:685 / 610:138 (live) · 710:195 (offline) — route `/creators/[id]`. */
-export function CreatorRoomScreen({ room, viewer, isFavorite }: { room: CreatorRoom; viewer: Viewer; isFavorite: boolean }) {
+export function CreatorRoomScreen({
+  room,
+  viewer,
+  isFavorite,
+  initialTab
+}: {
+  room: CreatorRoom;
+  viewer: Viewer;
+  isFavorite: boolean;
+  initialTab?: "DONATION" | "CHAT";
+}) {
   return (
     <div className={styles.page}>
       {room.banner && (
@@ -61,7 +71,7 @@ export function CreatorRoomScreen({ room, viewer, isFavorite }: { room: CreatorR
           <Player name={room.name} stream={room.stream} />
           {room.stream.status === "LIVE" && <p className={styles.caption}>{room.stream.caption}</p>}
         </div>
-        <SidePanel room={room} signedIn={viewer !== null} fnBalance={viewer?.fnBalance ?? null} nickname={viewer?.nickname ?? null} />
+        <SidePanel room={room} signedIn={viewer !== null} fnBalance={viewer?.fnBalance ?? null} nickname={viewer?.nickname ?? null} initialTab={initialTab} />
       </div>
     </div>
   );

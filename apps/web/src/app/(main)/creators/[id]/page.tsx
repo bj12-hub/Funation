@@ -10,14 +10,16 @@ import { isFavorite } from "@/services/favorites/favorites";
 export const dynamic = "force-dynamic";
 
 type Params = Promise<{ id: string }>;
+type SearchParams = Promise<{ tab?: string | string[] }>;
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const creator = await getCreatorById((await params).id);
   return { title: creator ? `${creator.name} | Funation` : "크리에이터 | Funation" };
 }
 
-export default async function Page({ params }: { params: Params }) {
+export default async function Page({ params, searchParams }: { params: Params; searchParams: SearchParams }) {
   const { id } = await params;
+  const { tab } = await searchParams;
   const [room, account, favorite] = await Promise.all([getCreatorRoom(id), getMyAccount(), isFavorite(id)]);
   if (!room) notFound();
 
@@ -26,6 +28,7 @@ export default async function Page({ params }: { params: Params }) {
       room={room}
       viewer={account ? { nickname: account.nickname, fnBalance: account.fnBalance } : null}
       isFavorite={favorite}
+      initialTab={tab === "donation" ? "DONATION" : "CHAT"}
     />
   );
 }
