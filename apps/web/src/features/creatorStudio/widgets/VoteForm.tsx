@@ -43,7 +43,8 @@ export function VoteForm({ value: v, onChange }: FormProps<"VOTE">) {
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
   const [openId, setOpenId] = useState<string | null>(v.presets[0]?.id ?? null);
   const [checked, setChecked] = useState<string[]>([]);
-  const preview = v.presets[0];
+  // The preview follows the preset being edited.
+  const preview = v.presets.find((p) => p.id === openId) ?? v.presets[0];
   const items = preview && preview.items.some((i) => i.trim()) ? preview.items : ["Item 3", "Item 2", "Item 4", "Item 1"];
 
   const updatePreset = (id: string, patch: Partial<VotePreset>) => set("presets", v.presets.map((p) => (p.id === id ? { ...p, ...patch } : p)));
