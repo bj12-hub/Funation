@@ -3,7 +3,7 @@ import { CreatorsScreen, type CreatorsParams } from "@/features/creators";
 import { CREATOR_CATEGORY_LABEL, CREATOR_SORT_LABEL, getCreators, type CreatorCategory, type CreatorSort } from "@/services/creators/creators";
 
 // Figma: funation-all-creators-page 690:5
-export const metadata: Metadata = { title: "인기 크리에이터 | Somnation" };
+export const metadata: Metadata = { title: "크리에이터 찾기 | Somnation" };
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;

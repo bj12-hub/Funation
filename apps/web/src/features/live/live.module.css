@@ -314,3 +314,53 @@
     flex: 1 1 auto;
   }
 }
+
+/* ── 전체 방송 (funnation structure) ─────────────────── */
+
+.pageDescription {
+  margin: -6px 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-14);
+}
+
+.chipBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.chipBar .chip {
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-13);
+}
+
+.platformSelect {
+  margin-left: auto;
+}
+
+.grid4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.section .more {
+  margin-top: 20px;
+}
+
+@media (max-width: 1200px) {
+  .grid4 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .grid4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .platformSelect {
+    margin-left: 0;
+  }
+}
