@@ -53,7 +53,10 @@ export const GROUPS: CatalogGroup[] = [
   },
   {
     title: "이펙트 · 효과",
-    items: [soon("EMOJI", "😍", "이모지 리액션", "후원 시 이모지가 화면에 떠다니는 효과입니다."), soon("LAYER", "✨", "레이어 효과", "후원 금액에 따라 화면 전체 효과를 표시합니다.")]
+    items: [
+      link("EMOJI", "😍", "이모지 리액션", "후원 시 이모지가 화면에 떠오르는 효과입니다.", "/creator/widgets/effects"),
+      link("LAYER", "✨", "레이어 효과", "후원 금액 구간에 따라 화면 전체 효과를 표시합니다.", "/creator/widgets/effects")
+    ]
   },
   {
     // Ours (funnation puts these under 엑셀방송).

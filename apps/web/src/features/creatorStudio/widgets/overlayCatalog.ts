@@ -15,6 +15,15 @@ export const OVERLAYS: OverlayEntry[] = [
     manage: "/creator/remote"
   },
   {
+    id: "effects",
+    group: "알림",
+    title: "이펙트 · 효과",
+    description: "후원 알림과 함께 이모지 리액션 · 레이어 효과를 띄워요.",
+    size: "1920 × 1080",
+    path: (k) => `/overlay/effects/${k}`,
+    manage: "/creator/widgets/effects"
+  },
+  {
     id: "crew",
     group: "점수·순위",
     title: "크루 점수판",
