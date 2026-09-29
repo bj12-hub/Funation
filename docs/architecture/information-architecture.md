@@ -98,7 +98,7 @@ The page follows the funnation channel page (`/store/{slug}`). From top to botto
 - **Tabs** (`?view=`):
   - **홈:** the existing Figma room (player + 후원/채팅 panel), then 월간 후원 랭킹 and the latest 채널 커뮤니티 posts.
   - **크루:** the channel's active crew members.
-  - **영상:** empty for now; VOD needs the YouTube integration (TBD).
+  - **영상:** videos from platforms whose adapter supports VIDEO_LIST (YouTube mock); 전체 · 다시보기 · 쇼츠.
   - **커뮤니티:** the channel's own feed (signed-in posting, author delete; moderation TBD).
   - **시그니처:** the signature catalog, sortable by 금액 낮은순 · 높은순 · 이름순. A card links to the 후원 panel.
   - **소개:** intro, categories, platforms, subscribers and join date.
@@ -165,7 +165,7 @@ The studio header follows the funnation studio: logo + **스튜디오** badge on
 | Group | Items (route) | funnation equivalent |
 |---|---|---|
 | (내 채널) | 대시보드 `/creator` | 대시보드 |
-| 채널 | 채널 설정 `/creator/settings` · 후원 페이지 설정 `?tab=settings` · 칭호 관리 `?tab=titles` · 유튜브 연동 (TBD) · 영상 목록 (TBD) | 채널 설정 · 유튜브 연동 · 영상 목록 · 칭호 관리 |
+| 채널 | 채널 설정 `/creator/settings` · 후원 페이지 설정 `?tab=settings` · 칭호 관리 `?tab=titles` · 유튜브 연동 `/creator/youtube` · 영상 목록 `/creator/videos` | 채널 설정 · 유튜브 연동 · 영상 목록 · 칭호 관리 |
 | 방송 | 위젯 · 방송 도구 · 오버레이 주소 · 이미지·사운드 (TBD) · 리모컨 | 위젯 · 오버레이 주소 · 이미지·사운드 · 리모컨 |
 | 크루 방송 | 크루 관리 · 방송 운영 | 엑셀방송 · 엑셀콘 |
 | 수익 | 수익 현황 `/creator/revenue` · 받은 후원 `?tab=list` · 후원 순위 `?tab=ranking` · 후원 필터링 `?tab=filtering` · 크리에이터 랭킹 | 현황 · 받은 후원 |
