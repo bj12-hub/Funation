@@ -14,21 +14,47 @@ import {
   type WidgetKey
 } from "@/services/creator/widgetSettingsTypes";
 import { CopyButton } from "../settings/SettingsCards";
+import { CustomSoundForm } from "./CustomSoundForm";
 import { ChatForm, GoalForm, QrForm, TotalForm, type FormProps } from "./forms";
+import { EventForm, MiniForm, RecentForm } from "./listForms";
+import { RankingForm } from "./RankingForm";
+import { VoteForm } from "./VoteForm";
 import styles from "./widgets.module.css";
 
-const FORMS: { [K in EditableWidgetKey]: ComponentType<FormProps<K>> } = { CHAT: ChatForm, QR: QrForm, GOAL: GoalForm, TOTAL: TotalForm };
+const FORMS: { [K in EditableWidgetKey]: ComponentType<FormProps<K>> } = {
+  CHAT: ChatForm,
+  QR: QrForm,
+  GOAL: GoalForm,
+  TOTAL: TotalForm,
+  RECENT: RecentForm,
+  EVENT: EventForm,
+  MINI: MiniForm,
+  RANKING: RankingForm,
+  VOTE: VoteForm,
+  CUSTOM_SOUND: CustomSoundForm
+};
 
 /** Popup titles; the URL label varies in the design (통합 채팅창 URL · 위젯 연동 URL …). */
 const MODAL_COPY: Record<EditableWidgetKey, { title: string; urlLabel: string }> = {
   CHAT: { title: "채팅창 위젯 설정", urlLabel: "통합 채팅창 URL" },
   QR: { title: "후원 QR코드 위젯 설정", urlLabel: "QR코드 위젯 URL" },
   GOAL: { title: "후원목표 위젯 설정", urlLabel: "후원목표 위젯 URL" },
-  TOTAL: { title: "후원누적금액 위젯 설정", urlLabel: "위젯 연동 URL" }
+  TOTAL: { title: "후원누적금액 위젯 설정", urlLabel: "위젯 연동 URL" },
+  RECENT: { title: "최근알림 위젯 설정", urlLabel: "최근알림 위젯 URL" },
+  EVENT: { title: "이벤트 위젯 설정", urlLabel: "이벤트 위젯 URL" },
+  MINI: { title: "미니후원 위젯 설정", urlLabel: "미니후원 위젯 URL" },
+  RANKING: { title: "후원랭킹 위젯 설정", urlLabel: "후원랭킹 위젯 URL" },
+  VOTE: { title: "투표 위젯 설정", urlLabel: "투표 위젯 URL" },
+  // 373:1307 has no URL box: sounds play through the alert widget.
+  CUSTOM_SOUND: { title: "커스텀 사운드 설정", urlLabel: "" }
 };
 
+/** Widgets whose popup saves item by item instead of through the footer. */
+const SELF_SAVING: EditableWidgetKey[] = ["CUSTOM_SOUND"];
+
 /**
- * 후원위젯/알림설정. Figma 529:4 (route `/creator/widgets`); popups 364:6 · 364:158 · 364:265 · 372:7.
+ * 후원위젯/알림설정. Figma 529:4 (route `/creator/widgets`); popups 364:6 · 364:158 · 364:265 · 372:7 ·
+ * 531:1370 (최근알림) · 531:1598 (이벤트) · 531:1826 (미니후원) · 315:650 (후원랭킹) · 315:858 (투표) · 373:1307 (커스텀 사운드).
  * The alert cards have no designed popup yet, and the remaining widget popups follow in later PRs.
  */
 export function WidgetSettingsScreen({ alertWidgetUrl }: { alertWidgetUrl: string }) {
@@ -115,6 +141,7 @@ function WidgetModal({
   const [attempt, setAttempt] = useState(0);
   const busy = useRef(false);
   const copy = MODAL_COPY[widgetKey];
+  const selfSaving = SELF_SAVING.includes(widgetKey);
 
   useEffect(() => {
     let alive = true;
@@ -185,16 +212,18 @@ function WidgetModal({
         )}
         {state.status === "READY" && draft && (
           <>
-            <div className={styles.urlBox}>
-              <span className={styles.urlLabel}>{copy.urlLabel}</span>
-              <div className={styles.urlRow}>
-                <span className={styles.urlField}>{state.detail.url}</span>
-                <CopyButton value={state.detail.url} label="URL 복사" className={styles.copyButton} />
-                <a href={state.detail.url} target="_blank" rel="noopener noreferrer" className={styles.openButton}>
-                  열기
-                </a>
+            {copy.urlLabel && (
+              <div className={styles.urlBox}>
+                <span className={styles.urlLabel}>{copy.urlLabel}</span>
+                <div className={styles.urlRow}>
+                  <span className={styles.urlField}>{state.detail.url}</span>
+                  <CopyButton value={state.detail.url} label="URL 복사" className={styles.copyButton} />
+                  <a href={state.detail.url} target="_blank" rel="noopener noreferrer" className={styles.openButton}>
+                    열기
+                  </a>
+                </div>
               </div>
-            </div>
+            )}
             <Form value={draft} onChange={setDraft} live={state.detail.live} />
           </>
         )}
@@ -208,11 +237,13 @@ function WidgetModal({
         {/* The design leaves this button's action undefined; it copies the 통합 알림창 URL (TBD). */}
         <CopyButton value={alertWidgetUrl} label="알림창 URL ⓘ" className={styles.footerGhost} />
         <button type="button" className={styles.footerGhost} onClick={onClose}>
-          취소
+          {selfSaving ? "닫기" : "취소"}
         </button>
-        <button type="button" className={styles.footerPrimary} onClick={save} disabled={state.status !== "READY" || saving}>
-          {saving ? "저장 중…" : "설정 저장"}
-        </button>
+        {!selfSaving && (
+          <button type="button" className={styles.footerPrimary} onClick={save} disabled={state.status !== "READY" || saving}>
+            {saving ? "저장 중…" : "설정 저장"}
+          </button>
+        )}
       </footer>
     </Modal>
   );
