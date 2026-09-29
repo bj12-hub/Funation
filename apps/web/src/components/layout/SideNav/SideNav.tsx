@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType, SVGProps } from "react";
-import { AirplayIcon, CalendarIcon, HistoryIcon, HomeIcon, SettingsIcon, StarIcon, TrendingUpIcon } from "@/components/icons";
+import { AirplayIcon, CalendarIcon, GiftOutlineIcon, HeartOutlineIcon, HistoryIcon, HomeIcon, SettingsIcon, StarIcon, TrendingUpIcon } from "@/components/icons";
 import { formatNumber } from "@/lib/format";
 import { ChargeTrigger, QrChargeTrigger } from "@/features/walletCharge";
 import styles from "./SideNav.module.css";
@@ -31,6 +31,9 @@ type MenuItem = {
 
 const MENU: MenuItem[] = [
   { label: "홈", Icon: HomeIcon, href: "/" },
+  // SOOP · FlexTV 머니 후원 (Figma 817:9411 · 817:8761 sidebars).
+  { label: "SOOP 후원", Icon: GiftOutlineIcon, href: "/donation/soop" },
+  { label: "FlexTV 후원", Icon: HeartOutlineIcon, href: "/donation/flextv" },
   { label: "추천 라이브", Icon: AirplayIcon, href: "/live", badge: { text: "LIVE", tone: "live" } },
   { label: "즐겨찾기", Icon: StarIcon, href: "/favorites" },
   { label: "출석체크", Icon: CalendarIcon, href: "/attendance", badge: { text: "EVENT", tone: "event" } },
@@ -62,7 +65,7 @@ export function SideNav({ user, showWatchHistory = false }: SideNavProps) {
 
       <nav className={styles.menu} aria-label="라이브 메뉴">
         {MENU.map((item) => (
-          <MenuLink key={item.label} item={item} active={item.href === pathname} />
+          <MenuLink key={item.label} item={item} active={item.href === pathname || (!!item.href?.startsWith("/donation/") && pathname.startsWith(`${item.href}/`))} />
         ))}
         {showWatchHistory && <MenuLink item={WATCH_HISTORY} active={false} />}
         <hr className={styles.divider} />

@@ -29,6 +29,9 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/creator/settlement/apply` | ✅ | 정산 신청 458:4 · 463:2 (승인 대기) — popups 466:2 (정산 관련 안내) · 469:195 / 469:2 (정산 신청) · 475:2 (수수료 안내) · 473:2 (확인) · 477:2 (완료) — registered creators only; minimum / fee / FN→KRW are server-side mock policy (Figma samples, TBD) |
 | `/creator/settlement/manage` | ✅ | 정산 관리 478:2 · 479:144 (기간별) · 정산 정보 변경 480:2 — registered creators only, `?period=day|week|month|year|custom` `?from=` `?to=` `?page=` (filters by 신청일; default 연별) |
 | `/creator/settlement/register/form` | ✅ | 정산 자료 등록 429:219 (개인) · 443:5 (외국인) · 433:210 (개인사업자) · 437:4 (법인) — `?type=` required, reachable only after 이용동의 for that type |
+| `/donation/[platform]` | ✅ | SOOP 후원 817:9017 · FlexTV 후원 817:8317 — `soop` · `flextv`, signed-in only; 최근 후원 / 인기 lists (product panel moved to the detail step) |
+| `/donation/[platform]/search` | ✅ | 817:9146 · 817:8449 — `?q=`; results + empty |
+| `/donation/[platform]/[creatorId]` | ✅ | 상세·상품 817:9242 / 817:8597 · 메시지·결제 817:9334 / 817:8684 · 확인 817:9411 / 817:8761 · 처리 중 817:9509 / 817:8843 · 완료 817:9553 / 817:8886 · 오류 817:9618 / 817:8948 · FN 부족 817:7699 · 세션 만료 817:7872 — prices from the server adapter catalog (FN ↔ 별풍선/하트 rate TBD) |
 | `/attendance` | ✅ | funation-attendance-page 583:4 · 585:452 (checked in) · 585:66 (완료 popup) · 585:830 (보상 popup) — signed-in only |
 | `/terms/[slug]` | 🚧 | 722:3 (terms text pending) — slugs: youth, service, privacy, marketing, operation |
 
@@ -75,6 +78,8 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | Live tabs | 인기라이브 · 전체라이브 | `/live/popular` · `/live` |
 | Live popular | 섹션 제목 `>` | `/live?category=<CATEGORY>` |
 | Side nav (live) | 홈 · 추천 라이브 · 실시간 인기 급상승 | `/` · `/live` · `/live/popular` |
+| Side nav | SOOP 후원 · FlexTV 후원 | `/donation/soop` · `/donation/flextv` |
+| Platform donation | 검색 · 후원하기 (row) · 후원 내역 (보기) · FN 충전 | `/donation/[platform]/search?q=` · `/donation/[platform]/[creatorId]` · `/wallet/donations` (platform history 817:8038 pending) · charge modal |
 | Side nav | 즐겨찾기 | `/favorites` |
 | Side nav | FN 내역 | `/wallet/charges` |
 | Side nav | FN 충전 · 모바일에서 충전 (QR코드) | charge modal 595:1869 · QR popup 587:147 (QR target TBD) |
