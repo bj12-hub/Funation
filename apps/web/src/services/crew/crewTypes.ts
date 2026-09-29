@@ -88,6 +88,19 @@ export type BroadcastLive = {
   rows: ScoreRow[];
   teams: { key: TeamKey; score: number }[];
   logs: ScoreLog[];
+  subBoards: SubBoard[];
+};
+
+export const SUB_BOARD_MAX = 5;
+export const SUB_BOARD_TITLE_MAX = 20;
+
+/** Score = member FN donated (targeted + 후원 리스트 반영) while the board is open. Display points only. */
+export type SubBoard = {
+  no: number;
+  title: string;
+  openedAt: string;
+  closedAt: string | null;
+  rows: { memberId: string; name: string; color: string; score: number }[];
 };
 
 export type BroadcastSummary = { id: string; title: string; project: string | null; round: number | null; startedAt: string; endedAt: string; totalScore: number; winner: string | null; top: { name: string; score: number }[] };

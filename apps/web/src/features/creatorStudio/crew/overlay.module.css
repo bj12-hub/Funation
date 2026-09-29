@@ -96,3 +96,9 @@
   color: var(--color-live);
   font-weight: var(--font-weight-extrabold);
 }
+
+.closed {
+  color: var(--color-media-text-muted);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+}

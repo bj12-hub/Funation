@@ -66,8 +66,23 @@ function liveView(b: MockBroadcast): BroadcastLive {
     teamMode: b.teamMode,
     rows,
     teams: b.teamMode ? (["A", "B"] as TeamKey[]).map((key) => ({ key, score: rows.filter((r) => r.team === key).reduce((s, r) => s + r.score, 0) })) : [],
-    logs: [...b.adjustments].reverse().slice(0, 30).map((a) => ({ id: a.id, at: a.at, memberName: byId.get(a.memberId) ?? "삭제된 멤버", points: a.points, reason: a.reason }))
+    logs: [...b.adjustments].reverse().slice(0, 30).map((a) => ({ id: a.id, at: a.at, memberName: byId.get(a.memberId) ?? "삭제된 멤버", points: a.points, reason: a.reason })),
+    subBoards: (b.subBoards ?? []).map((s) => ({ no: s.no, title: s.title, openedAt: s.openedAt, closedAt: s.closedAt, rows: windowRows(b, s.openedAt, s.closedAt) }))
   };
+}
+
+/** 서브 점수판 rows: FN donated to each active member between `from` and `to` (open board = now). */
+function windowRows(b: MockBroadcast, from: string, to: string | null) {
+  const end = to ?? new Date(Date.now() + 1000).toISOString();
+  const inWindow = (at: string) => at >= from && at <= end;
+  return members()
+    .filter((m) => m.active)
+    .map((m) => {
+      const targeted = mockCrew.attributions.filter((a) => a.channelId === b.channelId && a.memberId === m.id && inWindow(a.at)).reduce((s, a) => s + a.fnAmount, 0);
+      const feed = (b.feed ?? []).filter((f) => f.status === "ASSIGNED" && f.memberId === m.id && inWindow(f.at)).reduce((s, f) => s + f.fnAmount, 0);
+      return { memberId: m.id, name: m.name, color: m.color, score: targeted + feed };
+    })
+    .sort((x, y) => y.score - x.score || x.name.localeCompare(y.name));
 }
 
 function feedView(b: MockBroadcast): FeedView {
@@ -192,6 +207,7 @@ export async function endBroadcast(broadcastId: unknown): Promise<BroadcastResul
     live.oneshot = null;
   }
   live.endedAt = new Date().toISOString();
+  for (const s of live.subBoards ?? []) s.closedAt ??= live.endedAt;
   live.final = scoreRows(live).map((r) => ({ memberId: r.memberId, name: r.name, score: r.score }));
   return { status: "SAVED" };
 }

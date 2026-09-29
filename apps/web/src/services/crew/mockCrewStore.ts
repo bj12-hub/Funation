@@ -29,6 +29,8 @@ export type MockBroadcast = {
   oneshot?: { startedAt: string } | null;
   /** 시뮬 후원 request ids already accepted. */
   simRequests?: string[];
+  /** 서브 점수판: window-scored boards under the main one (numbered from 1 per broadcast). */
+  subBoards?: { no: number; title: string; openedAt: string; closedAt: string | null; requestId: string }[];
   /** Final ranking frozen at the end (members may be renamed or removed later). */
   final: { memberId: string; name: string; score: number }[] | null;
 };
