@@ -397,3 +397,55 @@
 .ok {
   color: var(--color-success-text);
 }
+
+/* 영상 탭 (code-first) */
+.videoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.videoCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: inherit;
+}
+
+.videoThumb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-8);
+  background: var(--color-surface-strong);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-20);
+}
+
+.videoThumb[data-kind="SHORTS"] {
+  background: var(--color-surface-raised);
+}
+
+.videoLen {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  padding: 1px 6px;
+  border-radius: var(--radius-4);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-11);
+}
+
+.videoTitle {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+}
+
+.videoCard:hover .videoTitle {
+  text-decoration: underline;
+}

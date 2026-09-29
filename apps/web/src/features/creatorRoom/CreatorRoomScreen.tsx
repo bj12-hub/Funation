@@ -6,6 +6,7 @@ import type { CreatorCategory } from "@/services/creators/creators";
 import type { CrewPublic } from "@/services/crew/crewTypes";
 import { PLATFORM_LABEL } from "@/types/platform";
 import type { ChannelPostsView, ChannelRanking } from "@/services/creators/channelTypes";
+import type { PublicChannelVideos } from "@/services/creators/channelVideos";
 import { ChannelCommunity, ChannelHomeExtras } from "./ChannelHome";
 import { AboutView, ChannelTabs, CrewView, SignaturesView, VideosView } from "./ChannelViews";
 import type { ChannelView } from "./channelView";
@@ -32,7 +33,8 @@ export function CreatorRoomScreen({
   about,
   ranking,
   posts,
-  postsShow
+  postsShow,
+  videos
 }: {
   room: CreatorRoom;
   viewer: Viewer;
@@ -44,6 +46,7 @@ export function CreatorRoomScreen({
   ranking: ChannelRanking;
   posts: ChannelPostsView;
   postsShow: number;
+  videos: PublicChannelVideos | null;
 }) {
   const donateHref = `/creators/${room.creatorId}?tab=donation`;
   return (
@@ -104,7 +107,7 @@ export function CreatorRoomScreen({
       {view !== "home" && (
         <section className={channel.panel} aria-label="채널">
           {view === "crew" && <CrewView crew={crew} name={room.name} />}
-          {view === "videos" && <VideosView name={room.name} />}
+          {view === "videos" && videos && <VideosView name={room.name} data={videos} />}
           {view === "community" && <ChannelCommunity creatorId={room.creatorId} name={room.name} view={posts} signedIn={viewer !== null} show={postsShow} />}
           {view === "signatures" && <SignaturesView signatures={room.donation.signatures} donateHref={donateHref} />}
           {view === "about" && (

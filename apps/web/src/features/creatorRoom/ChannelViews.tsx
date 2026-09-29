@@ -6,7 +6,9 @@ import { useState } from "react";
 import { formatCompactKo, formatNumber } from "@/lib/format";
 import { CREATOR_CATEGORY_LABEL, type CreatorCategory } from "@/services/creators/creators";
 import { crewRoleLabel, type CrewPublic } from "@/services/crew/crewTypes";
+import type { PublicChannelVideos } from "@/services/creators/channelVideos";
 import type { Signature } from "@/services/donations/donationCatalog";
+import { PLATFORM_ERROR_LABEL, type VideoKind } from "@/services/platforms/platformTypes";
 import { PLATFORM_LABEL, type Platform } from "@/types/platform";
 import { CHANNEL_VIEWS, type ChannelView } from "./channelView";
 import styles from "./channel.module.css";
@@ -45,10 +47,54 @@ export function CrewView({ crew, name }: { crew: CrewPublic; name: string }) {
   );
 }
 
-/** 영상 — VOD needs the YouTube integration (TBD). */
-export function VideosView({ name }: { name: string }) {
-  return <p className={styles.empty}>{name} 님의 다시보기 · 쇼츠는 영상 연동 후 여기에 표시돼요.</p>;
+/** 영상 — videos from platforms whose adapter supports VIDEO_LIST (YouTube), newest first. */
+export function VideosView({ name, data }: { name: string; data: PublicChannelVideos }) {
+  const [kind, setKind] = useState<"ALL" | VideoKind>("ALL");
+  if (data.unsupported) return <p className={styles.empty}>{name} 님의 방송 플랫폼은 아직 영상 목록을 지원하지 않아요.</p>;
+  const list = data.videos.filter((v) => kind === "ALL" || v.kind === kind);
+  return (
+    <>
+      <div className={styles.sorts} role="group" aria-label="영상 종류">
+        {VIDEO_KINDS.map((k) => (
+          <button key={k.key} type="button" className={styles.sort} aria-pressed={kind === k.key} onClick={() => setKind(k.key)}>
+            {k.label}
+          </button>
+        ))}
+      </div>
+      {data.error && (
+        <p className={styles.muted} role="status">
+          {PLATFORM_ERROR_LABEL[data.error]}
+        </p>
+      )}
+      {list.length === 0 ? (
+        <p className={styles.empty}>아직 영상이 없어요.</p>
+      ) : (
+        <ul className={styles.videoGrid}>
+          {list.map((v) => (
+            <li key={v.externalId}>
+              <a href={v.url} target="_blank" rel="noopener noreferrer" className={styles.videoCard}>
+                <span className={styles.videoThumb} data-kind={v.kind} aria-hidden="true">
+                  ▶<span className={styles.videoLen}>{videoLength(v.durationSec)}</span>
+                </span>
+                <strong className={styles.videoTitle}>{v.title}</strong>
+                <span className={styles.muted}>
+                  {PLATFORM_LABEL[v.platform]} · 조회 {formatCompactKo(v.viewCount)} · {v.publishedAt.slice(0, 10).replace(/-/g, ".")}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
+  );
 }
+
+const VIDEO_KINDS = [
+  { key: "ALL", label: "전체" },
+  { key: "VOD", label: "다시보기" },
+  { key: "SHORTS", label: "쇼츠" }
+] as const;
+const videoLength = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
 
 const SIG_SORTS = [
   { key: "asc", label: "금액 낮은순" },
