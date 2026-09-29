@@ -9,7 +9,7 @@ import styles from "./home.module.css";
 export function TrendingSection({ videos }: { videos: TrendingVideo[] }) {
   return (
     <section className={styles.section} aria-labelledby="home-trending">
-      <SectionHeader id="home-trending" title="🔥 지금 뜨는 영상" viewAllHref="/live" />
+      <SectionHeader id="home-trending" title="인기 라이브 영상 모음" viewAllHref="/live/popular" />
       {videos.length === 0 ? (
         <p className={styles.empty}>지금 뜨는 영상이 없습니다.</p>
       ) : (

@@ -42,6 +42,30 @@ Changes from before:
   - 투네이션 내역 이관: needs a product decision.
   - 알림 (notifications)
 
+### Home (`/`)
+
+Sections now follow the funnation home order. Card and banner visuals keep the Figma components.
+
+| Order | funnation | Ours |
+|---|---|---|
+| 1 | 요즘 인기 많은 크리에이터에게 후원하세요! + 새로고침 | `CreatorStrip`: avatar row. 새로고침 reshuffles the order for display only. A creator opens the profile popup. |
+| 2 | Promotion banner | `HeroCarousel` (Figma hero slides) |
+| 3 | 전체 방송: 인기 라이브 / 전체 라이브 | `HomeLiveTabs` (see below) |
+| 4 | 인기 라이브 영상 모음 | `TrendingSection`, renamed; 전체보기 → `/live/popular` |
+| 5 | Premium banner | `PromoBanner` |
+
+`HomeLiveTabs` has two tabs:
+
+- **인기 라이브:** one "{카테고리} 추천 라이브" row per recommended section, then 그 외 라이브. Each row shows 4 cards and links to 전체보기 `/live?category=`.
+- **전체 라이브:** the 12 channels with the most viewers, plus a link to `/live`.
+
+The old Figma home sections were removed from the home page:
+
+- 지금 뜨는 영상: renamed to 인기 라이브 영상 모음.
+- LIVE 시청자 수 랭킹 TOP 5
+- ✨ LIVE 인기 크리에이터 grid: replaced by the strip.
+- 관심사 카테고리 + 현재 라이브 방송: replaced by the category rows. The full filter is on `/live`.
+
 ### Phones
 
 A bottom tab bar (≤900px): 홈 · 즐겨찾기 · 커뮤니티 · 마이.
