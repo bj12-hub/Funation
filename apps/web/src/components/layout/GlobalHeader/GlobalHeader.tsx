@@ -20,7 +20,9 @@ import styles from "./GlobalHeader.module.css";
  * - Creator:   245:14 (📺 크리에이터 · 고객센터, channel profile dropdown 758:41)
  *
  * Figma only has the 1440px layout. Below 900px the center links move into a
- * dropdown opened by the mobile menu toggle.
+ * dropdown opened by the mobile menu toggle. Between 901px and 1240px the
+ * language button shows only the flag, up to 1024px the 마이페이지 link is hidden
+ * (it is in the profile dropdown), and the profile name ellipsizes if still too long.
  */
 
 export type GlobalHeaderUser = {

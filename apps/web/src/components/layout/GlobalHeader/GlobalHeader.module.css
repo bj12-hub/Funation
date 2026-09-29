@@ -7,6 +7,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   height: var(--header-height);
   padding: 0 var(--layout-gutter);
   background: var(--color-bg-page);
@@ -16,8 +17,10 @@
 
 /* ── Left: menu + logo ─────────────────────────────── */
 
+/* Logo and nav keep their size; the profile name gives way on narrow screens. */
 .left {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 48px;
 }
@@ -70,6 +73,7 @@
 
 .nav {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 40px;
   white-space: nowrap;
@@ -123,6 +127,7 @@
 .rightSignedIn {
   display: flex;
   align-items: center;
+  min-width: 0;
 }
 
 .rightGuest {
@@ -154,6 +159,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .avatar,
@@ -183,9 +190,13 @@
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-bold);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .caret {
+  flex-shrink: 0;
   color: var(--color-text-secondary);
   font-size: 8px;
   font-weight: var(--font-weight-bold);
@@ -246,6 +257,13 @@
   }
 }
 
+/* 901–1024px: 마이페이지 is also in the profile dropdown, so drop the duplicate link. */
+@media (min-width: 901px) and (max-width: 1024px) {
+  .myPage {
+    display: none;
+  }
+}
+
 @media (max-width: 900px) {
   .header {
     gap: 12px;
@@ -291,6 +309,7 @@
 
 .profileRoot {
   position: relative;
+  min-width: 0;
 }
 
 .profileMenu {
