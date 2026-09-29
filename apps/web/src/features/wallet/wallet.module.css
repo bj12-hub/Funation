@@ -655,3 +655,80 @@
     position: static;
   }
 }
+
+/* ── 환불 요청 (code-first) ── */
+
+.refund {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.refundButton {
+  align-self: flex-start;
+  padding: 8px 14px;
+  border: 1px solid var(--color-danger-border);
+  border-radius: var(--radius-8);
+  color: var(--color-error-text);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+}
+
+.refundLabel {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+}
+
+.refundInput {
+  min-height: 72px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-8);
+  background: var(--color-input-bg);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
+  resize: vertical;
+}
+
+.refundNote {
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-12);
+}
+
+.refundError {
+  margin: 0;
+  color: var(--color-error-text);
+  font-size: var(--font-size-12);
+}
+
+.refundActions {
+  display: flex;
+  gap: 8px;
+}
+
+.refundActions > * {
+  flex: 1;
+}
+
+.refundDone {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-8);
+  background: var(--color-history-refunding-bg);
+  color: var(--color-live);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+}
+
+.refundTag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-history-refunding-bg);
+  color: var(--color-live);
+  font-size: var(--font-size-11);
+  font-weight: var(--font-weight-bold);
+}
