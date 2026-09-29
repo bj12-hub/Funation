@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState, type CSSProperties } from "react";
+import { useState } from "react";
 import { DownloadIcon } from "@/components/icons";
 import { formatNumber } from "@/lib/format";
 import {
@@ -25,6 +25,7 @@ import {
   type WidgetSettingsMap
 } from "@/services/creator/widgetSettingsTypes";
 import { ColorField, FontFields, NumberField, Preview, Radios, Row, Section, Select, SwitchText } from "./fields";
+import { fontStyle } from "./previewStyle";
 import styles from "./widgets.module.css";
 
 export type FormProps<K extends EditableWidgetKey> = {
@@ -32,15 +33,6 @@ export type FormProps<K extends EditableWidgetKey> = {
   onChange: (v: WidgetSettingsMap[K]) => void;
   live: WidgetLiveData;
 };
-
-/** Preview text size, scaled down so large overlay sizes still fit the popup. */
-const previewSize = (px: number) => Math.round(Math.min(Math.max(px * 0.7, 12), 24));
-const fontStyle = (f: { family: string; size: number; color?: string }, outline = false): CSSProperties => ({
-  fontFamily: `"${f.family}", var(--font-sans)`,
-  fontSize: previewSize(f.size),
-  color: f.color,
-  textShadow: outline ? "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000" : undefined
-});
 
 // ── 채팅창 (364:6) ─────────────────────────────────────────────────────────────
 
