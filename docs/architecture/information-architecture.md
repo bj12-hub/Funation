@@ -10,7 +10,7 @@
 |---|---|---|
 | Left | ☰ · logo | ☰ (collapses the side menu; on phones and tablets it opens the drawer) · logo |
 | Center | LIVE · 인기 크리에이터 · 명예의 전당 · 고객센터 | — (the links moved to the side menu) |
-| Right | 마이페이지 · theme · language · profile | 검색 (→ /creators) · **충전 {FN}** (→ /wallet) · 알림 (TBD, disabled) · theme · language · profile |
+| Right | 마이페이지 · theme · language · profile | 검색 (→ /creators) · **충전 {FN}** (→ /wallet) · 알림 (bell popover → `/notifications`) · theme · language · profile |
 
 Auth pages keep the Figma header.
 
@@ -156,7 +156,7 @@ A bottom tab bar (≤900px): 홈 · 즐겨찾기 · 커뮤니티 · 마이.
 
 ### Header
 
-The studio header follows the funnation studio: logo + **스튜디오** badge on the left; 사이트로 (home), 알림 (TBD, disabled), language and the channel menu on the right. The Figma nav (📺 크리에이터 · 고객센터) was removed.
+The studio header follows the funnation studio: logo + **스튜디오** badge on the left; 사이트로 (home), 알림 (the same bell), language and the channel menu on the right. The Figma nav (📺 크리에이터 · 고객센터) was removed.
 
 ### Sidebar
 
@@ -180,9 +180,9 @@ The catalog follows the funnation 위젯 page (`features/creatorStudio/widgets/w
 
 - **인기:** 후원 알림 (→ 리모컨), 후원자 랭킹, 목표.
 - **전체**, grouped:
-  - 후원 알림: 후원 알림, 미션 · 퀘스트, 영상 (TBD), 시그니처 후원 (TBD), 커스텀 사운드, 미니후원, 최근알림, 이벤트
+  - 후원 알림: 후원 알림, 미션 · 퀘스트, 영상, 시그니처 후원, 커스텀 사운드, 미니후원, 최근알림, 이벤트
   - 게이지 · 랭킹: 후원자 랭킹, 목표, 후원누적금액, 크루 점수판
-  - 표시 · 자막: 배너 (TBD), 자막, 전광판, 엔딩 크레딧, 채팅창, QR, 벽지
+  - 표시 · 자막: 배너, 자막, 전광판, 엔딩 크레딧, 채팅창, QR, 벽지
   - 이펙트 · 효과: 이모지 리액션 and 레이어 효과, set up at `/creator/widgets/effects`
   - 시그니처 후원: signatures and matching rules, managed at `/creator/widgets/signatures` (feeds the room 시그니처 후원 panel)
   - 영상 · 그림후원: the 영상 후원 queue (`/creator/widgets/video`) and the 그림후원 gallery (`/creator/widgets/drawing`), each with an OBS overlay

@@ -16,6 +16,7 @@ import {
   type PaymentMethodId
 } from "./chargeTypes";
 import { mockWallet } from "./mockWalletStore";
+import { notify } from "@/services/notifications/notificationCore";
 
 /**
  * FN charge (Payment → FN issuance → Wallet Transaction, docs/domains/payment.md).
@@ -132,6 +133,7 @@ function completeCharge(fnAmount: number, methodId: PaymentMethodId): ChargeResu
     status: "COMPLETED",
     transactionId
   });
+  notify({ kind: "CHARGE", title: "FN 충전이 완료됐어요", body: `${fnAmount.toLocaleString("ko-KR")} FN · ${method.name}`, href: "/wallet/charges", dedupeKey: `charge:${transactionId}` });
   return { status: "COMPLETED", transactionId, fnAmount, price, methodId, balance: mockAccount.fnBalance };
 }
 
