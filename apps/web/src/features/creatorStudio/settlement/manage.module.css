@@ -1,0 +1,257 @@
+/* 정산 관리 — Figma 478:2 · 479:144 · 480:2 */
+
+.infoCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 24px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-12);
+  background: var(--color-surface);
+}
+
+.info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 0;
+  margin: 0;
+}
+
+.info div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 20px;
+  border-left: 1px solid var(--color-border-strong);
+}
+
+.info div:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.info dt {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-11);
+}
+
+.info dd {
+  margin: 0;
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+}
+
+.changeButton {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  border-radius: var(--radius-8);
+  background: var(--color-surface-strong);
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+}
+
+.changeButton:hover {
+  background: var(--color-border-emphasis);
+}
+
+.dangerButton {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  border-radius: var(--radius-8);
+  background: var(--color-danger);
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-15);
+  font-weight: var(--font-weight-bold);
+}
+
+.dangerButton:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+/* ── Filter ── */
+
+.filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 28px;
+}
+
+.segment {
+  display: flex;
+  padding: 4px;
+  border-radius: var(--radius-8);
+  background: var(--color-surface);
+}
+
+.segment button {
+  padding: 6px 14px;
+  border-radius: var(--radius-6);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
+}
+
+.segment button[aria-pressed="true"] {
+  background: var(--color-surface-strong);
+  color: var(--color-text-on-accent);
+  font-weight: var(--font-weight-bold);
+}
+
+.dates {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-secondary);
+}
+
+.date {
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-6);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-12);
+  color-scheme: dark;
+}
+
+.date:disabled {
+  color: var(--color-text-secondary);
+}
+
+.search {
+  height: 34px;
+  padding: 0 20px;
+  border-radius: var(--radius-6);
+  background: var(--color-info);
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+}
+
+.search:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ── Table ── */
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-12);
+  background: var(--color-surface);
+}
+
+.table {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+  font-size: var(--font-size-12);
+  white-space: nowrap;
+}
+
+.table th {
+  padding: 14px 16px;
+  background: var(--color-settlement-field-bar);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+  text-align: left;
+}
+
+.table td {
+  padding: 10px 16px;
+  border-top: 1px solid var(--color-settlement-row-divider);
+  color: var(--color-text-soft);
+}
+
+.table td.fee {
+  color: var(--color-error-text);
+}
+
+.table td.net {
+  color: var(--color-text-on-accent);
+  font-weight: var(--font-weight-bold);
+}
+
+.table td.empty {
+  padding: 48px 16px;
+  color: var(--color-text-tertiary);
+  text-align: center;
+}
+
+/* ── Pagination ── */
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.pageButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-6);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+}
+
+.pageButton[aria-current="page"] {
+  background: var(--color-info);
+  color: var(--color-text-on-accent);
+}
+
+.pageButton[aria-disabled="true"] {
+  opacity: 0.4;
+}
+
+@media (max-width: 767px) {
+  .infoCard {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .info {
+    flex-direction: column;
+  }
+
+  .info div {
+    padding: 0;
+    border-left: 0;
+  }
+
+  .filter {
+    gap: 12px;
+  }
+
+  .segment {
+    width: 100%;
+  }
+
+  .segment button {
+    flex: 1;
+    padding: 6px 4px;
+  }
+
+  .dates {
+    flex: 1;
+  }
+
+  .date {
+    flex: 1;
+    min-width: 0;
+  }
+}
