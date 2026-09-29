@@ -3,6 +3,7 @@
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
+import { recordCredit } from "@/services/wallet/mockCreditStore";
 import type { AttendanceReward, AttendanceSummary, CheckInResult, ClaimResult } from "./attendanceTypes";
 
 /**
@@ -32,6 +33,7 @@ export async function checkIn(): Promise<CheckInResult> {
   s.checked.push(today); // recorded before the delay so a concurrent call sees it
   await mockDelay(500);
   mockAccount.fnBalance += DAILY_REWARD;
+  recordCredit(DAILY_REWARD, "출석체크");
   const claimable = summarize(s).rewards.find((r) => r.status === "CLAIMABLE" && r.days === s.checked.length) ?? null;
   return { status: "CHECKED_IN", reward: DAILY_REWARD, balance: mockAccount.fnBalance, claimable };
 }
@@ -45,6 +47,7 @@ export async function claimAttendanceReward(days: unknown): Promise<ClaimResult>
   s.claimed.push(reward.days); // before the delay: a second click finds it claimed
   await mockDelay(400);
   mockAccount.fnBalance += reward.fnAmount;
+  recordCredit(reward.fnAmount, `출석 ${reward.days}일 보상`);
   return { status: "CLAIMED", fnAmount: reward.fnAmount, balance: mockAccount.fnBalance };
 }
 

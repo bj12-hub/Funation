@@ -57,8 +57,9 @@ export function PasswordResetFlow() {
     if (next.password || next.confirm || !token) return;
     setBusy(true);
     try {
-      await resetPassword(token, password);
-      setView("DONE");
+      const result = await resetPassword(token, password);
+      if (result.status === "RESET") setView("DONE");
+      else setPwErrors({ password: "비밀번호가 형식에 맞지 않습니다. 다시 입력해 주세요.", confirm: undefined });
     } finally {
       setBusy(false);
     }

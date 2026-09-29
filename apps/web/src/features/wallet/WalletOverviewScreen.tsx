@@ -4,7 +4,7 @@ import { formatNumber } from "@/lib/format";
 import { LEDGER_KIND_LABEL, LEDGER_PERIODS, type LedgerKind, type WalletOverview } from "@/services/wallet/walletTypes";
 import styles from "./walletOverview.module.css";
 
-const KINDS: (LedgerKind | "all")[] = ["all", "CHARGE", "USE", "REFUND"];
+const KINDS: (LedgerKind | "all")[] = ["all", "CHARGE", "USE", "REFUND", "REWARD"];
 const dotted = (s: string) => s.replace(/-/g, ".");
 const signed = (n: number) => `${n > 0 ? "+" : "-"}${formatNumber(Math.abs(n))} FN`;
 

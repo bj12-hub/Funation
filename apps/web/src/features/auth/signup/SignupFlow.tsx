@@ -48,7 +48,8 @@ export function SignupFlow() {
       });
       if (result.status === "CREATED") setStep(4);
       else if (result.status === "EMAIL_TAKEN") setSubmitError("이미 사용 중인 이메일입니다. 다른 이메일을 사용해 주세요.");
-      else setSubmitError("이미 사용 중인 닉네임입니다. 다른 닉네임을 사용해 주세요.");
+      else if (result.status === "NICKNAME_TAKEN") setSubmitError("이미 사용 중인 닉네임입니다. 다른 닉네임을 사용해 주세요.");
+      else setSubmitError("입력한 정보를 다시 확인해 주세요.");
     } catch {
       setSubmitError("일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요");
     } finally {

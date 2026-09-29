@@ -143,7 +143,11 @@ export type SettlementQuote = {
 
 export type QuoteResult = { status: "OK"; quote: SettlementQuote } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" | "NOT_REGISTERED" };
 export type SaveAutoResult = { status: "SAVED"; on: boolean } | { status: "INVALID" | "UNAUTHORIZED" | "NOT_REGISTERED" };
-export type RequestResult ={ status: "REQUESTED"; quote: SettlementQuote; requestId: string } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" | "NOT_REGISTERED" };
+export type RequestResult =
+  | { status: "REQUESTED"; quote: SettlementQuote; requestId: string }
+  | { status: "INVALID"; message: string }
+  /** CONFLICT: the Idempotency-Key was already used for a different amount. */
+  | { status: "UNAUTHORIZED" | "NOT_REGISTERED" | "CONFLICT" };
 
 // ── 정산 관리 (478:2 · 479:144 · 480:2) ────────────────────────────────────────────────
 
