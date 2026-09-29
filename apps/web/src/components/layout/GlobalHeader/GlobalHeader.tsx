@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { BellOutlineIcon, HomeIcon, SearchOutlineIcon } from "@/components/icons";
+import { HomeIcon, SearchOutlineIcon } from "@/components/icons";
 import { RoleChooser } from "@/features/auth/login/RoleChooser";
 import { formatNumber } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
@@ -12,6 +12,7 @@ import { logout } from "@/services/auth/logout";
 import { LanguageMenu } from "../LanguageMenu";
 import { ThemeToggle } from "../ThemeToggle";
 import { CreatorProfileMenu, type CreatorHeaderInfo } from "./CreatorProfileMenu";
+import { NotificationBell } from "./NotificationBell";
 import { ProfileMenu } from "./ProfileMenu";
 import styles from "./GlobalHeader.module.css";
 
@@ -201,7 +202,7 @@ function NavLink({ item, active, mobile = false }: { item: NavItem; active: bool
 /**
  * Site header — funnation structure: ☰ (side menu) · logo on the left; 검색 · 충전 (FN) · 알림 ·
  * theme · language · profile on the right. The menu links live in the side menu, not the header.
- * 알림 is disabled until a notification service exists (TBD).
+ * 알림 opens the notification popover (NotificationBell).
  */
 function SiteHeader({ user, creatorRole, onMenuClick, menuExpanded }: { user: GlobalHeaderUser | null; creatorRole: boolean; onMenuClick: () => void; menuExpanded: boolean }) {
   const { t } = useI18n();
@@ -229,11 +230,7 @@ function SiteHeader({ user, creatorRole, onMenuClick, menuExpanded }: { user: Gl
             <span>{user.fnBalance == null ? "—" : formatNumber(user.fnBalance)}</span>
           </Link>
         )}
-        {user && (
-          <button type="button" className={styles.iconButton} aria-label={t("common.notifications")} title={t("common.comingSoon")} aria-disabled="true">
-            <BellOutlineIcon />
-          </button>
-        )}
+        {user && <NotificationBell />}
         <ThemeToggle />
         <LanguageMenu />
         {user ? <ProfileMenu user={user} creatorRole={creatorRole} /> : <RoleChooser className={styles.loginButton} />}
@@ -260,9 +257,7 @@ function StudioHeader({ user, creator }: { user: GlobalHeaderUser; creator: Crea
         <Link href="/" className={styles.iconButton} aria-label={t("common.toSite")} title={t("common.toSite")}>
           <HomeIcon />
         </Link>
-        <button type="button" className={styles.iconButton} aria-label={t("common.notifications")} title={t("common.comingSoon")} aria-disabled="true">
-          <BellOutlineIcon />
-        </button>
+        <NotificationBell />
         <LanguageMenu />
         <CreatorProfileMenu user={user} creator={creator} />
       </div>
