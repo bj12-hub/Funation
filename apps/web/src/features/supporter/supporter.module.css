@@ -388,3 +388,77 @@
     flex-basis: 100%;
   }
 }
+
+/* ── 내 랭킹 (code-first) ── */
+
+.segmentLink {
+  padding: 6px 14px;
+  border-radius: var(--radius-6);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.segmentLink[aria-current="page"] {
+  background: var(--color-surface-strong);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+nav.segment {
+  align-self: flex-start;
+}
+
+.rankBadge {
+  color: var(--color-primary-light);
+  font-size: var(--font-size-14);
+  white-space: nowrap;
+}
+
+.board {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.board li {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-14);
+}
+
+.board li[data-me] {
+  border-radius: var(--radius-8);
+  background: var(--color-primary-soft);
+}
+
+.boardRank {
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-extrabold);
+  text-align: center;
+}
+
+.board li:nth-child(-n + 3) .boardRank {
+  color: var(--color-gold);
+}
+
+.boardName {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  color: var(--color-text-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.boardValue {
+  color: var(--color-text-soft);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
