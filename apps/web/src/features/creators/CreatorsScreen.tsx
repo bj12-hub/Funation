@@ -1,58 +1,41 @@
 import Link from "next/link";
 import { PageChevronLeftIcon, PageChevronRightIcon } from "@/components/icons";
-import { CREATOR_CATEGORY_LABEL, type CreatorCategory, type CreatorPage } from "@/services/creators/creators";
+import { CREATOR_SORT_LABEL, type CreatorPage, type CreatorSort } from "@/services/creators/creators";
 import { CreatorCard } from "./CreatorCard";
-import { CreatorSortSelect } from "./CreatorControls";
 import { CreatorSearch } from "./CreatorSearch";
 import { creatorsHref, type CreatorsParams } from "./creatorsHref";
-import styles from "./creators.module.css";
+import styles from "./creatorsDirectory.module.css";
 
 /**
- * Creator directory.
- * Figma: funation-all-creators-page 690:5 (route `/creators`, all roles incl. guests)
+ * 크리에이터 찾기 — structure follows funnation (docs/architecture/information-architecture.md):
+ * title + "지금 N명이 방송 중이에요", search, 인기순 · 라이브 · 최신순, two-column creator cards, paging.
+ * Route `/creators` (all roles incl. guests). Figma 690:5 (card visuals adapted).
  */
 export function CreatorsScreen({ data, params }: { data: CreatorPage; params: CreatorsParams }) {
-  const categories = Object.keys(CREATOR_CATEGORY_LABEL) as CreatorCategory[];
-  const filtered = Boolean(params.category || params.query);
+  const sort: CreatorSort = params.sort ?? "popular";
+  const filtered = Boolean(params.category || params.query || sort === "live");
 
   return (
     <div className={styles.page}>
-      <header className={styles.hero}>
-        <div className={styles.heroRow}>
-          <div className={styles.heroText}>
-            <h1 className={styles.title}>✨ 썸네이션 크리에이터 목록</h1>
-            <p className={styles.subtitle}>취향 저격 예능부터 숨겨진 꿀잼 라이브까지, 지금 가장 핫한 크리에이터들을 한눈에 만나보세요.</p>
-          </div>
-          <CreatorSearch key={params.query ?? ""} params={params} />
-        </div>
-
-        <div className={styles.filters}>
-          <nav className={styles.tabs} aria-label="카테고리">
-            <Link
-              href={creatorsHref(params, { category: undefined })}
-              className={`${styles.tab} ${!params.category ? styles.tabActive : ""}`}
-              aria-current={!params.category ? "page" : undefined}
-            >
-              전체
-            </Link>
-            {categories.map((c) => (
-              <Link
-                key={c}
-                href={creatorsHref(params, { category: c })}
-                className={`${styles.tab} ${params.category === c ? styles.tabActive : ""}`}
-                aria-current={params.category === c ? "page" : undefined}
-              >
-                {CREATOR_CATEGORY_LABEL[c]}
-              </Link>
-            ))}
-          </nav>
-          <CreatorSortSelect params={params} />
-        </div>
+      <header className={styles.header}>
+        <h1 className={styles.title}>크리에이터</h1>
+        <p className={styles.subtitle}>{data.liveCount > 0 ? `지금 ${data.liveCount}명이 방송 중이에요` : "지금 방송 중인 크리에이터가 없어요"}</p>
       </header>
 
-      <section className={styles.results} aria-label="크리에이터">
+      <div className={styles.controls}>
+        <CreatorSearch key={params.query ?? ""} params={params} />
+        <nav className={styles.sorts} aria-label="정렬">
+          {(Object.keys(CREATOR_SORT_LABEL) as CreatorSort[]).map((s) => (
+            <Link key={s} href={creatorsHref(params, { sort: s })} className={styles.sort} aria-current={sort === s ? "page" : undefined}>
+              {CREATOR_SORT_LABEL[s]}
+            </Link>
+          ))}
+        </nav>
+      </div>
+
+      <section aria-label="크리에이터 목록">
         {params.query && (
-          <p className={styles.resultNote}>
+          <p className={styles.note}>
             ‘{params.query}’ 검색 결과 {data.totalCount}명
           </p>
         )}
@@ -65,51 +48,37 @@ export function CreatorsScreen({ data, params }: { data: CreatorPage; params: Cr
             ))}
           </div>
         )}
-
-        {data.totalPages > 1 && <Pagination params={params} page={data.page} totalPages={data.totalPages} />}
+        {data.totalPages > 1 && <Pager params={params} page={data.page} totalPages={data.totalPages} />}
       </section>
     </div>
   );
 }
 
-/** Figma 690:5 pagination — shows up to 5 page numbers around the current page. */
-function Pagination({ params, page, totalPages }: { params: CreatorsParams; page: number; totalPages: number }) {
-  const first = Math.max(1, Math.min(page - 2, totalPages - 4));
-  const pages = Array.from({ length: Math.min(5, totalPages) }, (_, i) => first + i);
-
+/** funnation-style 이전 / 다음 paging with the page position. */
+function Pager({ params, page, totalPages }: { params: CreatorsParams; page: number; totalPages: number }) {
   return (
-    <nav className={styles.pagination} aria-label="페이지">
-      <PageLink params={params} page={page - 1} disabled={page <= 1} label="이전 페이지">
-        <PageChevronLeftIcon />
-      </PageLink>
-      {pages.map((p) => (
-        <Link
-          key={p}
-          href={creatorsHref(params, { page: p })}
-          className={`${styles.pageButton} ${p === page ? styles.pageActive : ""}`}
-          aria-current={p === page ? "page" : undefined}
-        >
-          {p}
+    <nav className={styles.pager} aria-label="페이지">
+      {page > 1 ? (
+        <Link href={creatorsHref(params, { page: page - 1 })} className={styles.pageButton}>
+          <PageChevronLeftIcon /> 이전
         </Link>
-      ))}
-      <PageLink params={params} page={page + 1} disabled={page >= totalPages} label="다음 페이지">
-        <PageChevronRightIcon />
-      </PageLink>
-    </nav>
-  );
-}
-
-function PageLink({ params, page, disabled, label, children }: { params: CreatorsParams; page: number; disabled: boolean; label: string; children: React.ReactNode }) {
-  if (disabled) {
-    return (
-      <span className={`${styles.pageArrow} ${styles.pageDisabled}`} aria-disabled="true" aria-label={label}>
-        {children}
+      ) : (
+        <span className={styles.pageButton} aria-disabled="true">
+          <PageChevronLeftIcon /> 이전
+        </span>
+      )}
+      <span className={styles.pagePos}>
+        {page} / {totalPages}
       </span>
-    );
-  }
-  return (
-    <Link href={creatorsHref(params, { page })} className={styles.pageArrow} aria-label={label}>
-      {children}
-    </Link>
+      {page < totalPages ? (
+        <Link href={creatorsHref(params, { page: page + 1 })} className={styles.pageButton}>
+          다음 <PageChevronRightIcon />
+        </Link>
+      ) : (
+        <span className={styles.pageButton} aria-disabled="true">
+          다음 <PageChevronRightIcon />
+        </span>
+      )}
+    </nav>
   );
 }
