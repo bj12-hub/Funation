@@ -66,6 +66,29 @@ The old Figma home sections were removed from the home page:
 - ✨ LIVE 인기 크리에이터 grid: replaced by the strip.
 - 관심사 카테고리 + 현재 라이브 방송: replaced by the category rows. The full filter is on `/live`.
 
+### 크리에이터 찾기 (`/creators`)
+
+The page follows funnation `/donor/stores`. From top to bottom:
+
+- **Header:** the title "크리에이터" and the line "지금 N명이 방송 중이에요". The count comes from the server (`CreatorPage.liveCount`).
+- **Controls:** a search box, and sort tabs **인기순 · 라이브 · 최신순**.
+  - 인기순: by subscribers. This becomes the site follower count once follows exist (TBD).
+  - 라이브: only live creators, by viewers.
+  - 최신순: by `joinedAt`.
+- **Cards:** two columns of wide cards. Each shows the avatar, a LIVE tag, the name, a two-line intro, 구독자, and 시청 N while live. Live cards are highlighted.
+- **Paging:** 이전 / 다음 with the page position.
+- **Removed:** the Figma category tabs. The `category` parameter still works on the server.
+
+### 전체 방송 (`/live`, `/live/popular`)
+
+The page follows funnation `/donor/videos`. From top to bottom:
+
+- **Header:** "전체 방송" and "지금 방송 중인 라이브를 한곳에서 만나보세요", with the tabs **인기 라이브 · 전체 라이브**.
+- **Filters:** 전체 plus a chip for every category (with an emoji), and our platform filter.
+- **Grid:** four columns, sorted by viewers.
+- **더 보기 (보이는 수/전체):** shows 12 more each time.
+- **Removed:** the creator/title search and the sort dropdown. The header search covers creators.
+
 ### Phones
 
 A bottom tab bar (≤900px): 홈 · 즐겨찾기 · 커뮤니티 · 마이.

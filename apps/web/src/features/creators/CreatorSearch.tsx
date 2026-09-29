@@ -10,7 +10,7 @@ export function CreatorSearch({ params }: { params: CreatorsParams }) {
   return (
     <form role="search" action="/creators" className={styles.search}>
       {params.category && <input type="hidden" name="category" value={params.category} />}
-      {params.sort && params.sort !== "viewers" && <input type="hidden" name="sort" value={params.sort} />}
+      {params.sort && params.sort !== "popular" && <input type="hidden" name="sort" value={params.sort} />}
       <SearchLargeIcon />
       <input
         type="search"

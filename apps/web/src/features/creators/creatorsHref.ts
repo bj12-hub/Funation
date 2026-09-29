@@ -13,7 +13,7 @@ export function creatorsHref(current: CreatorsParams, next: Partial<CreatorsPara
   const params = new URLSearchParams();
   if (merged.category) params.set("category", merged.category);
   if (merged.query) params.set("q", merged.query);
-  if (merged.sort && merged.sort !== "viewers") params.set("sort", merged.sort);
+  if (merged.sort && merged.sort !== "popular") params.set("sort", merged.sort);
   if (merged.page && merged.page > 1) params.set("page", String(merged.page));
   const qs = params.toString();
   return qs ? `/creators?${qs}` : "/creators";
