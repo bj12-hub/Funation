@@ -184,14 +184,154 @@ export type TotalSettings = {
   textOutline: boolean;
 };
 
+// ── PR 2: 최근알림 · 이벤트 · 미니후원 · 후원랭킹 · 투표 · 커스텀 사운드 ──────────────────
+
+export const TEMPLATE_MAX = 60;
+
+/** Alert text per confirmed platform (the design shows 치지직/아프리카). Event mapping per platform is TBD. */
+export const RECENT_PLATFORMS = [
+  { key: "YOUTUBE", label: "YouTube", color: "#ff0000" },
+  { key: "FLEXTV", label: "FlexTV", color: "#f5bf0a" },
+  { key: "SOOP", label: "SOOP", color: "#1e6bff" }
+] as const;
+export type RecentPlatform = (typeof RECENT_PLATFORMS)[number]["key"];
+export const RECENT_EFFECTS = ["Fade In / Out", "Slide In / Out", "없음"] as const;
+export const RECENT_SCROLL_SPEEDS = [0.3, 0.5, 1, 2] as const;
+
+export type RecentSettings = {
+  effect: (typeof RECENT_EFFECTS)[number];
+  count: number;
+  lineGap: number;
+  scrollSpeedSec: (typeof RECENT_SCROLL_SPEEDS)[number];
+  font: FontSetting;
+  nicknameColor: boolean;
+  textOutline: boolean;
+  templates: Record<RecentPlatform, string>;
+};
+
+export const EVENT_STYLES = [
+  { key: "BASIC", label: "기본형" },
+  { key: "BOX", label: "박스형" },
+  { key: "LIST", label: "리스트형" }
+] as const;
+export const EVENT_ORDERS = ["최신순", "오래된순"] as const;
+
+export type EventSettings = {
+  style: (typeof EVENT_STYLES)[number]["key"];
+  order: (typeof EVENT_ORDERS)[number];
+  effect: (typeof RECENT_EFFECTS)[number];
+  font: FontSetting;
+  nicknameColor: boolean;
+  nicknameBackground: boolean;
+  maxLines: number;
+  autoHide: boolean;
+  hideAfterSec: number;
+};
+
+export type MiniSettings = {
+  style: "SCROLL" | "BUBBLE";
+  direction: "RTL" | "LTR";
+  /** 1 (slow) – 100 (fast). */
+  speed: number;
+  /** Where the text starts, 0–100 % of the widget width. */
+  startPercent: number;
+  showAmount: boolean;
+  showNickname: boolean;
+  /** Mini donations below this FN are not shown on the widget. */
+  minAmount: number;
+  font: FontSetting;
+  textOutline: boolean;
+};
+
+export const RANKING_STYLES = [
+  { key: "TEXT", label: "텍스트", image: "/mock/creator/widgets/ranking-style-1.png" },
+  { key: "SCROLL_TEXT", label: "스크롤 되는 텍스트", image: "/mock/creator/widgets/ranking-style-2.png" },
+  { key: "SIMPLE", label: "심플", image: "/mock/creator/widgets/ranking-style-3.png" },
+  { key: "LINE_BOX", label: "한 줄 상자 테두리", image: "/mock/creator/widgets/ranking-style-4.png" }
+] as const;
+export const RANKING_NAME_TYPES = [
+  { key: "ACCOUNT", label: "계정" },
+  { key: "DONATION_NAME", label: "후원시 설정한 이름" }
+] as const;
+/** Periods offered for the widget ranking (design shows 월간 selected; the full list is TBD). */
+export const RANKING_WIDGET_PERIODS = ["일간", "주간", "월간", "전체"] as const;
+export const RANKING_SPEEDS = [
+  { key: "VERY_SLOW", label: "매우 느리게" },
+  { key: "SLOW", label: "느리게" },
+  { key: "NORMAL", label: "보통" },
+  { key: "FAST", label: "빠르게" },
+  { key: "VERY_FAST", label: "매우 빠르게" }
+] as const;
+export const RANKING_MAX_RANKS = 10;
+
+export type RankTierStyle = { font: FontSetting; accentColor: string };
+export type RankingSettings = {
+  style: (typeof RANKING_STYLES)[number]["key"];
+  title: string;
+  titleFont: FontSetting;
+  nameType: (typeof RANKING_NAME_TYPES)[number]["key"];
+  period: (typeof RANKING_WIDGET_PERIODS)[number];
+  showAmount: boolean;
+  ranks: number;
+  /** `{rank}` · `{name}` · `{amount}` parts. */
+  format: { rank: string; name: string; amount: string };
+  scrollGap: number;
+  scrollSpeed: (typeof RANKING_SPEEDS)[number]["key"];
+  first: RankTierStyle;
+  others: RankTierStyle;
+};
+
+export const VOTE_PRESET_MAX = 10;
+export const VOTE_ITEMS_MIN = 2;
+export const VOTE_ITEMS_MAX = 10;
+export const VOTE_ITEM_MAX_CHARS = 10;
+export const VOTE_NAME_MAX = 30;
+/** Input guards only — vote pricing limits are TBD. */
+export const VOTE_PRICE_MAX = 10_000_000;
+export const VOTE_DURATION_MAX_SEC = 24 * 3600;
+export const VOTE_COLORS = ["#28BA93", "#3B82F6", "#8B5CF6", "#EC4899", "#F97316", "#EAB308"] as const;
+
+export type VotePreset = {
+  id: string;
+  name: string;
+  color: string;
+  durationSec: number;
+  pricePerVote: number;
+  freeVotes: number;
+  items: string[];
+};
+export type VoteSettings = {
+  enabled: boolean;
+  titleFont: FontSetting;
+  infoFont: FontSetting;
+  itemFont: FontSetting;
+  presets: VotePreset[];
+};
+
+export const CUSTOM_SOUND_MAX = 20;
+export const CUSTOM_SOUND_WORD_MAX = 20;
+/** Mock upload guard; the real size/format policy is TBD. */
+export const CUSTOM_SOUND_MAX_BYTES = 2 * 1024 * 1024;
+export const CUSTOM_SOUND_TYPES = ["audio/mpeg", "audio/wav", "audio/x-wav", "audio/ogg"] as const;
+
+export type CustomSound = { id: string; word: string; fileName: string; fileUrl: string; volume: number };
+/** Saved per sound through saveCustomSound/deleteCustomSound, not through the popup footer. */
+export type CustomSoundSettings = { sounds: CustomSound[] };
+
 export type WidgetSettingsMap = {
   CHAT: ChatSettings;
   QR: QrSettings;
   GOAL: GoalSettings;
   TOTAL: TotalSettings;
+  RECENT: RecentSettings;
+  EVENT: EventSettings;
+  MINI: MiniSettings;
+  RANKING: RankingSettings;
+  VOTE: VoteSettings;
+  CUSTOM_SOUND: CustomSoundSettings;
 };
 export type EditableWidgetKey = keyof WidgetSettingsMap;
-export const EDITABLE_WIDGETS: EditableWidgetKey[] = ["CHAT", "QR", "GOAL", "TOTAL"];
+export const EDITABLE_WIDGETS: EditableWidgetKey[] = ["CHAT", "QR", "GOAL", "TOTAL", "RECENT", "EVENT", "MINI", "RANKING", "VOTE", "CUSTOM_SOUND"];
 export const isEditableWidget = (k: unknown): k is EditableWidgetKey => EDITABLE_WIDGETS.includes(k as EditableWidgetKey);
 
 /** Values the server reads for previews (not editable). */
@@ -202,7 +342,16 @@ export type WidgetLiveData = {
   totalAmount: number;
   /** QR image (mock asset; the real QR is generated by the backend — TBD). */
   qrImageUrl: string;
+  /** Top donors for the RANKING preview. */
+  ranking: { name: string; amount: number }[];
+  /** Lowest mini donation amount (MINI preview / guard). */
+  miniMinAmount: number;
 };
+
+export type CustomSoundResult =
+  | { status: "SAVED"; sound: CustomSound }
+  | { status: "INVALID"; message: string }
+  | { status: "UNAUTHORIZED" };
 
 export type WidgetDetail<K extends EditableWidgetKey = EditableWidgetKey> = {
   key: K;
@@ -258,5 +407,64 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     titleFont: { family: "제주 고딕", size: 24, color: "#FFFFFF" },
     contentFont: { family: "제주 고딕", size: 28, color: "#F5BF0A" },
     textOutline: true
-  }
+  },
+  RECENT: {
+    effect: "Fade In / Out",
+    count: 3,
+    lineGap: 10,
+    scrollSpeedSec: 0.5,
+    font: { family: "나눔바른고딕", size: 14, color: "#FFFFFF" },
+    nicknameColor: true,
+    textOutline: false,
+    templates: {
+      YOUTUBE: "{nickname}님이 {amount} 후원했습니다.",
+      FLEXTV: "{nickname}님이 {amount} 후원했습니다.",
+      SOOP: "{nickname}님이 별풍선 {count}개를 후원했습니다."
+    }
+  },
+  EVENT: {
+    style: "BOX",
+    order: "최신순",
+    effect: "Slide In / Out",
+    font: { family: "기본 시스템 폰트", size: 16, color: "#FFFFFF" },
+    nicknameColor: true,
+    nicknameBackground: true,
+    maxLines: 8,
+    autoHide: true,
+    hideAfterSec: 15
+  },
+  MINI: {
+    style: "SCROLL",
+    direction: "RTL",
+    speed: 30,
+    startPercent: 0,
+    showAmount: true,
+    showNickname: true,
+    // The design shows 1,000, which would hide every mini donation (they are under 1,000 FN); TBD.
+    minAmount: 100,
+    font: { family: "맑은 고딕", size: 15, color: "#FFFFFF" },
+    textOutline: true
+  },
+  RANKING: {
+    style: "SIMPLE",
+    title: "후원랭킹",
+    titleFont: { family: "제주 고딕", size: 24, color: "#000000" },
+    nameType: "ACCOUNT",
+    period: "월간",
+    showAmount: true,
+    ranks: 5,
+    format: { rank: "{rank}등", name: "{name}", amount: "{amount}FN" },
+    scrollGap: 10,
+    scrollSpeed: "FAST",
+    first: { font: { family: "제주 고딕", size: 24, color: "#FFFFFF" }, accentColor: "#FFFFFF" },
+    others: { font: { family: "제주 고딕", size: 24, color: "#FFFFFF" }, accentColor: "#FFFFFF" }
+  },
+  VOTE: {
+    enabled: true,
+    titleFont: { family: "제주 고딕", size: 36, color: "#28BA93" },
+    infoFont: { family: "제주 고딕", size: 24, color: "#000000" },
+    itemFont: { family: "제주 고딕", size: 24, color: "#000000" },
+    presets: [{ id: "preset-1", name: "", color: "#28BA93", durationSec: 300, pricePerVote: 1_000, freeVotes: 0, items: ["", ""] }]
+  },
+  CUSTOM_SOUND: { sounds: [] }
 };
