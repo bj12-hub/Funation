@@ -1306,6 +1306,336 @@
   font-size: 40px;
 }
 
+/* ── PR 4 widgets: 뽑기 후원 · 벽지 ── */
+
+.gachaPreview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-text-primary);
+}
+
+.gachaPreview p {
+  margin: 0;
+  font-weight: var(--font-weight-bold);
+}
+
+.gachaLabel {
+  color: #f5bf0a;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+}
+
+.capsuleMachine {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.capsuleGlobe {
+  width: 96px;
+  height: 96px;
+  border: 3px solid #ec4899;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #6b2150, #2a0b24);
+}
+
+.capsuleBody {
+  width: 80px;
+  height: 90px;
+  margin-top: -6px;
+  border-radius: 6px 6px 12px 12px;
+  background: #3b82f6;
+}
+
+.gachaBox {
+  font-family: var(--font-latin);
+  font-size: 80px;
+  line-height: 1;
+}
+
+.creditList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  margin: 0;
+  padding: 12px 16px 12px 32px;
+  border-radius: var(--radius-8);
+  background: rgba(0, 0, 0, 0.4);
+  font-size: var(--font-size-13);
+}
+
+.presetOn {
+  border-color: var(--color-primary);
+}
+
+.dangerButton,
+.purpleSmall {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: var(--radius-8);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+}
+
+.dangerButton {
+  border: 1px solid #ef4444;
+  color: #f87171;
+}
+
+.purpleSmall {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.dangerButton:disabled,
+.purpleSmall:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.gachaThumbs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.gachaThumb {
+  padding: 14px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  background: #16162d;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+}
+
+.prizeList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.prizeList li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px auto auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.warnText {
+  margin: 0;
+  color: #fbbf24;
+  font-size: var(--font-size-13);
+}
+
+.unclaimed {
+  color: #34d399 !important;
+  font-weight: var(--font-weight-bold);
+}
+
+.wallpaperPreview {
+  overflow: hidden;
+  border-radius: var(--radius-12);
+  background: #f3f4f6;
+}
+
+.wpTabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: #e5e7eb;
+}
+
+.wpTabs button {
+  padding: 10px 0;
+  color: #6b7280;
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+}
+
+.wpTabs button[aria-selected="true"] {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.wpStage {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 20px 24px;
+}
+
+.wpStageLabel {
+  color: #4b5563;
+  font-size: var(--font-size-12);
+}
+
+.wpItem {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.wpImage,
+.wpImageEmpty {
+  width: 72px;
+  height: 72px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.wpImageEmpty,
+.wpThumbEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #d1d5db;
+  color: #6b7280;
+  font-size: var(--font-size-12);
+}
+
+.wpAmount,
+.wpBoxAmount {
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.wpBoxAmount {
+  padding: 2px 10px;
+  border-radius: 4px;
+  background: #111827;
+  font-size: var(--font-size-13);
+}
+
+.wpNick {
+  padding: 6px 18px;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+}
+
+.wp_BOX .wpNick {
+  border-radius: 4px;
+}
+
+.wpBubble {
+  padding: 2px 10px;
+  border-radius: 8px 8px 8px 2px;
+  background: var(--color-info);
+  color: #ffffff;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+}
+
+.fold {
+  border-top: 1px solid var(--color-border);
+}
+
+.fold summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+  list-style: none;
+}
+
+.fold summary::-webkit-details-marker {
+  display: none;
+}
+
+.fold summary::after {
+  color: var(--color-text-secondary);
+  content: "∨";
+}
+
+.fold[open] summary::after {
+  content: "∧";
+}
+
+.foldBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 8px;
+}
+
+.setupCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.setupCard strong {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
+}
+
+.screenFrame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 88px;
+  border: 2px dashed var(--color-border-strong);
+  border-radius: var(--radius-8);
+  background: #16162d;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+}
+
+.subTitle {
+  margin: 8px 0 0;
+  color: #60a5fa;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+}
+
+.addTile,
+.wpThumb,
+.wpThumbEmpty {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-8);
+}
+
+.addTile {
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-bg-page);
+  color: var(--color-text-primary);
+  font-size: 20px;
+}
+
+.wpThumb {
+  border: 2px solid var(--color-info);
+  object-fit: cover;
+}
+
+.roundNav {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-surface-strong);
+  color: var(--color-text-secondary);
+}
+
+.roundNav:disabled,
+.addTile:disabled {
+  opacity: 0.4;
+}
+
 @media (max-width: 1100px) {
   .grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -1,5 +1,19 @@
 import {
   ALERT_EFFECTS_IN,
+  GACHA_BOARD_PERIODS,
+  GACHA_BOARD_SPEEDS,
+  GACHA_BOARD_TYPES,
+  GACHA_MAX,
+  GACHA_NAME_MAX,
+  GACHA_PRIZES_MAX,
+  GACHA_PRIZE_MODES,
+  GACHA_STYLES,
+  GACHA_THEMES,
+  WALLPAPER_LAYOUTS,
+  type Gacha,
+  type GachaPrize,
+  type GachaSettings,
+  type WallpaperSettings,
   AUTO_REFUND_MINUTES,
   FONT_LEVELS,
   PRIZE_MAX,
@@ -427,7 +441,98 @@ const parsePlay: Parser<PlayWidgetSettings> = (v) => {
   };
 };
 
-export const PARSERS: { [K in Exclude<EditableWidgetKey, "CUSTOM_SOUND">]: Parser<WidgetSettingsMap[K]> } = {
+// ── 뽑기 후원 · 벽지 ───────────────────────────────────────────────────────────
+
+const ID = /^[\w-]{1,40}$/;
+
+function parseGachaItem(raw: unknown): Gacha | string {
+  const g = obj(raw);
+  if (typeof g.id !== "string" || !ID.test(g.id)) return "뽑기 정보를 확인해 주세요.";
+  if (!text(g.name, GACHA_NAME_MAX, 1)) return `뽑기 이름은 1~${GACHA_NAME_MAX}자로 입력해 주세요.`;
+  if (!int(g.price, 1, PRIZE_MAX)) return "뽑기 가격을 확인해 주세요.";
+  if (!keyOf(g.style, GACHA_STYLES) || !keyOf(g.theme, GACHA_THEMES) || !keyOf(g.prizeMode, GACHA_PRIZE_MODES)) return "선택 항목을 확인해 주세요.";
+  if (!int(g.spinSec, 1, 30)) return "기계 회전 시간은 1~30초로 입력해 주세요.";
+  if (!text(g.messageTemplate, TEMPLATE_MAX, 1) || !(g.messageTemplate as string).includes("{닉네임}")) {
+    return `알림 메시지 템플릿은 {닉네임}을 포함해 ${TEMPLATE_MAX}자 이내로 입력해 주세요.`;
+  }
+  if (!isHexColor(g.pointColor)) return COLOR_ERROR;
+  if (![g.enabled, g.limitEnabled].every(bool) || !int(g.limitCount, 1, 1000)) return "설정 값을 확인해 주세요.";
+  const prizes = Array.isArray(g.prizes) ? g.prizes : null;
+  if (!prizes || prizes.length < 1 || prizes.length > GACHA_PRIZES_MAX) return `상품은 1~${GACHA_PRIZES_MAX}개까지 등록할 수 있어요.`;
+  const probability = g.prizeMode === "PROBABILITY";
+  const out: GachaPrize[] = [];
+  for (const rp of prizes) {
+    const p = obj(rp);
+    if (typeof p.id !== "string" || !ID.test(p.id) || !oneOf(p.kind, ["PRIZE", "BLANK"] as const)) return "상품 정보를 확인해 주세요.";
+    if (!text(p.name, GACHA_NAME_MAX, 1)) return `상품 이름은 1~${GACHA_NAME_MAX}자로 입력해 주세요.`;
+    if (!int(p.value, 0, probability ? 100 : 100_000)) return probability ? "확률은 0~100%로 입력해 주세요." : "상품 수량을 확인해 주세요.";
+    out.push({ id: p.id, name: (p.name as string).trim(), kind: p.kind, value: p.value as number });
+  }
+  if (probability && out.reduce((sum, p) => sum + p.value, 0) !== 100) return "당첨확률형은 상품 확률의 합이 100%여야 해요.";
+  if (new Set(out.map((p) => p.id)).size !== out.length) return "상품 정보를 확인해 주세요.";
+  return {
+    id: g.id,
+    name: (g.name as string).trim(),
+    price: g.price as number,
+    enabled: g.enabled as boolean,
+    style: g.style,
+    theme: g.theme,
+    spinSec: g.spinSec as number,
+    messageTemplate: (g.messageTemplate as string).trim(),
+    pointColor: g.pointColor.toUpperCase(),
+    limitEnabled: g.limitEnabled as boolean,
+    limitCount: g.limitCount as number,
+    prizeMode: g.prizeMode,
+    prizes: out
+  };
+}
+
+const parseGacha: Parser<GachaSettings> = (v) => {
+  const list = Array.isArray(v.gachas) ? v.gachas : null;
+  if (!list || list.length > GACHA_MAX) return `뽑기는 최대 ${GACHA_MAX}개까지 만들 수 있어요.`;
+  const gachas: Gacha[] = [];
+  for (const raw of list) {
+    const g = parseGachaItem(raw);
+    if (typeof g === "string") return g;
+    gachas.push(g);
+  }
+  if (new Set(gachas.map((g) => g.id)).size !== gachas.length) return "뽑기 정보를 확인해 주세요.";
+  const credit = obj(v.credit);
+  if (!int(credit.historyCount, 1, 20) || !int(credit.displaySec, 1, 60)) return "크레딧 스타일 세부 설정을 확인해 주세요.";
+  const board = obj(v.board);
+  if (!keyOf(board.productType, GACHA_BOARD_TYPES) || !keyOf(board.speed, GACHA_BOARD_SPEEDS) || !oneOf(board.period, GACHA_BOARD_PERIODS)) {
+    return "당첨 리스트 위젯 설정을 확인해 주세요.";
+  }
+  if (!text(board.title, 20, 1)) return "위젯 타이틀은 1~20자로 입력해 주세요.";
+  return {
+    gachas,
+    credit: { historyCount: credit.historyCount as number, displaySec: credit.displaySec as number },
+    board: { productType: board.productType, title: (board.title as string).trim(), period: board.period, speed: board.speed }
+  };
+};
+
+const parseWallpaper: Parser<Omit<WallpaperSettings, "images">> = (v) => {
+  const fnFont = colorFont(v.fnFont);
+  const nicknameFont = colorFont(v.nicknameFont);
+  if (!fnFont || !nicknameFont) return "폰트/색상 설정을 확인해 주세요.";
+  if (!keyOf(v.layout, WALLPAPER_LAYOUTS)) return "벽지 레이아웃을 선택해 주세요.";
+  if (![v.fnOutline, v.nicknameColor, v.textBoxColor].every(isHexColor)) return COLOR_ERROR;
+  if (!bool(v.preferDonationImage)) return "설정 값을 확인해 주세요.";
+  return {
+    layout: v.layout,
+    fnFont,
+    fnOutline: (v.fnOutline as string).toUpperCase(),
+    preferDonationImage: v.preferDonationImage,
+    nicknameFont,
+    nicknameColor: (v.nicknameColor as string).toUpperCase(),
+    textBoxColor: (v.textBoxColor as string).toUpperCase()
+  };
+};
+
+/** WALLPAPER images are managed separately, so its parser returns the settings without them. */
+export type ParsedSettings<K extends EditableWidgetKey> = K extends "WALLPAPER" ? Omit<WallpaperSettings, "images"> : WidgetSettingsMap[K];
+
+export const PARSERS: { [K in Exclude<EditableWidgetKey, "CUSTOM_SOUND">]: Parser<ParsedSettings<K>> } = {
   CHAT: parseChat,
   QR: parseQr,
   GOAL: parseGoal,
@@ -439,5 +544,7 @@ export const PARSERS: { [K in Exclude<EditableWidgetKey, "CUSTOM_SOUND">]: Parse
   VOTE: parseVote,
   LUCKYBOX: parseLuckybox,
   QUEST: parseQuest,
-  PLAY: parsePlay
+  PLAY: parsePlay,
+  GACHA: parseGacha,
+  WALLPAPER: parseWallpaper
 };

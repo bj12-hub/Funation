@@ -393,6 +393,93 @@ export type PlayWidgetSettings = {
   };
 };
 
+// ── PR 4: 뽑기 후원 · 벽지 ────────────────────────────────────────────────────────
+// A paid draw with odds is regulated content; odds disclosure, legal review and payout rules are TBD.
+
+export const GACHA_STYLES = [
+  { key: "CAPSULE", label: "캡슐", tab: "🔵 캡슐 스타일" },
+  { key: "BOX", label: "박스", tab: "🎁 박스 스타일" },
+  { key: "CREDIT", label: "크레딧", tab: "📋 크레딧 스타일" }
+] as const;
+export type GachaStyle = (typeof GACHA_STYLES)[number]["key"];
+export const GACHA_THEMES = [
+  { key: "BASIC", label: "기본 테마" },
+  { key: "PEPERO", label: "빼빼로 데이" },
+  { key: "CHRISTMAS", label: "크리스마스" },
+  { key: "VALENTINE", label: "발렌타인 데이" },
+  { key: "NEW_YEAR", label: "새해 설날" }
+] as const;
+export const GACHA_PRIZE_MODES = [
+  { key: "PROBABILITY", label: "당첨확률형" },
+  { key: "STOCK", label: "상품소진형" }
+] as const;
+export const GACHA_MAX = 10;
+export const GACHA_PRIZES_MAX = 20;
+export const GACHA_NAME_MAX = 20;
+export const GACHA_TEMPLATE_TOKENS = ["{닉네임}", "{금액}"] as const;
+
+export type GachaPrize = { id: string; name: string; kind: "PRIZE" | "BLANK"; /** % (PROBABILITY) or stock count (STOCK). */ value: number };
+export type Gacha = {
+  id: string;
+  name: string;
+  price: number;
+  enabled: boolean;
+  style: GachaStyle;
+  theme: (typeof GACHA_THEMES)[number]["key"];
+  spinSec: number;
+  messageTemplate: string;
+  pointColor: string;
+  limitEnabled: boolean;
+  limitCount: number;
+  prizeMode: (typeof GACHA_PRIZE_MODES)[number]["key"];
+  prizes: GachaPrize[];
+};
+export const GACHA_BOARD_PERIODS = ["오늘 기준", "최근 7일 기준", "최근 30일 기준"] as const;
+export const GACHA_BOARD_SPEEDS = [
+  { key: "NORMAL", label: "보통" },
+  { key: "FAST", label: "빠름" },
+  { key: "FIXED", label: "고정" }
+] as const;
+export const GACHA_BOARD_TYPES = [
+  { key: "ALL", label: "전체" },
+  { key: "PROBABILITY", label: "당첨확률형" },
+  { key: "STOCK", label: "상품소진형" }
+] as const;
+
+export type GachaSettings = {
+  gachas: Gacha[];
+  credit: { historyCount: number; displaySec: number };
+  board: {
+    productType: (typeof GACHA_BOARD_TYPES)[number]["key"];
+    title: string;
+    period: (typeof GACHA_BOARD_PERIODS)[number];
+    speed: (typeof GACHA_BOARD_SPEEDS)[number]["key"];
+  };
+};
+
+export const WALLPAPER_LAYOUTS = [
+  { key: "BASIC", label: "기본형" },
+  { key: "BUBBLE", label: "말풍선형" },
+  { key: "BOX", label: "박스형" }
+] as const;
+export const WALLPAPER_IMAGES_MAX = 10;
+export type WallpaperImage = { id: string; url: string };
+export type WallpaperSettings = {
+  layout: (typeof WALLPAPER_LAYOUTS)[number]["key"];
+  fnFont: ColorFont;
+  fnOutline: string;
+  preferDonationImage: boolean;
+  /** Managed by uploadWallpaperImage/deleteWallpaperImage; the footer save keeps them as they are. */
+  images: WallpaperImage[];
+  nicknameFont: ColorFont;
+  nicknameColor: string;
+  textBoxColor: string;
+};
+
+export type WallpaperImageResult =
+  | { status: "UPLOADED"; image: WallpaperImage }
+  | { status: "UNSUPPORTED" | "TOO_LARGE" | "LIMIT" | "FAILED" | "UNAUTHORIZED" };
+
 export type WidgetSettingsMap = {
   CHAT: ChatSettings;
   QR: QrSettings;
@@ -407,9 +494,11 @@ export type WidgetSettingsMap = {
   LUCKYBOX: LuckyboxWidgetSettings;
   QUEST: QuestWidgetSettings;
   PLAY: PlayWidgetSettings;
+  GACHA: GachaSettings;
+  WALLPAPER: WallpaperSettings;
 };
 export type EditableWidgetKey = keyof WidgetSettingsMap;
-export const EDITABLE_WIDGETS: EditableWidgetKey[] = ["CHAT", "QR", "GOAL", "TOTAL", "RECENT", "EVENT", "MINI", "RANKING", "VOTE", "CUSTOM_SOUND", "LUCKYBOX", "QUEST", "PLAY"];
+export const EDITABLE_WIDGETS: EditableWidgetKey[] = ["CHAT", "QR", "GOAL", "TOTAL", "RECENT", "EVENT", "MINI", "RANKING", "VOTE", "CUSTOM_SOUND", "LUCKYBOX", "QUEST", "PLAY", "GACHA", "WALLPAPER"];
 export const isEditableWidget = (k: unknown): k is EditableWidgetKey => EDITABLE_WIDGETS.includes(k as EditableWidgetKey);
 
 /** Values the server reads for previews (not editable). */
@@ -424,6 +513,10 @@ export type WidgetLiveData = {
   ranking: { name: string; amount: number }[];
   /** Lowest mini donation amount (MINI preview / guard). */
   miniMinAmount: number;
+  /** 당첨 리스트 위젯 (전광판) URL and the latest wins for its preview. */
+  gachaBoardUrl: string;
+  gachaWins: { gacha: string; prize: string; claimed: boolean | null }[];
+  gachaUnclaimed: number;
 };
 
 export type CustomSoundResult =
@@ -585,5 +678,36 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
       INITIAL: { questionFont: { family: "제주 고딕", level: "NORMAL", color: "#000000" }, hintFont: { family: "제주 고딕", level: "NORMAL", color: "#FFFFFF" } },
       DRAWING: { questionFont: { family: "제주 고딕", level: "NORMAL", color: "#000000" } }
     }
+  },
+  GACHA: {
+    gachas: [
+      {
+        id: "gacha-1",
+        name: "뽑기 후원",
+        price: 3_000,
+        enabled: true,
+        style: "CAPSULE",
+        theme: "BASIC",
+        spinSec: 5,
+        messageTemplate: "{닉네임}님이 {금액} 뽑기 후원을 하였습니다!",
+        pointColor: "#519CFF",
+        limitEnabled: false,
+        limitCount: 1,
+        prizeMode: "PROBABILITY",
+        prizes: [{ id: "prize-1", name: "뽑기1", kind: "BLANK", value: 100 }]
+      }
+    ],
+    credit: { historyCount: 5, displaySec: 5 },
+    board: { productType: "ALL", title: "뽑기 당첨 리스트", period: "최근 7일 기준", speed: "NORMAL" }
+  },
+  WALLPAPER: {
+    layout: "BASIC",
+    fnFont: { family: "제주 고딕", color: "#FFFFFF" },
+    fnOutline: "#000000",
+    preferDonationImage: true,
+    images: [{ id: "wp-1", url: "/mock/creator/widgets/wallpaper-cat.png" }],
+    nicknameFont: { family: "제주 고딕", color: "#FFFFFF" },
+    nicknameColor: "#519CFF",
+    textBoxColor: "#000000"
   }
 };
