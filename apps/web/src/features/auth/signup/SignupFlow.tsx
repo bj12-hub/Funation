@@ -89,7 +89,7 @@ export function SignupFlow() {
             </span>
             <h1 className={shared.centerTitle}>회원가입을 축하합니다!</h1>
             <p className={shared.centerText}>
-              Funation 계정 생성이 완료되었습니다.
+              썸네이션 계정 생성이 완료되었습니다.
               <br />
               이제 로그인하고 다양한 콘텐츠를 만나보세요.
             </p>

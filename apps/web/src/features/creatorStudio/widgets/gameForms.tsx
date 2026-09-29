@@ -331,7 +331,7 @@ export function PlayForm({ value: v, onChange }: FormProps<"PLAY">) {
                   Q. 크리에이터를 지원하고, 즐거운 방송 문화를 만드는 최적의 소통 서비스는?
                 </p>
                 <ol className={styles.playOptions}>
-                  {["도네이션", "토네이션", "Funation"].map((o) => (
+                  {["도네이션", "토네이션", "썸네이션"].map((o) => (
                     <li key={o} style={lf(v.games.CHOICE.optionFont)}>
                       {o}
                     </li>

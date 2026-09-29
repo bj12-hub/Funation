@@ -3,7 +3,7 @@ import { AllLiveScreen } from "@/features/live";
 import { getAllLiveChannels, LIVE_CATEGORY_LABEL, type LiveCategory } from "@/services/live/liveChannels";
 
 // Figma: funnation-all-live-page 617:316 (전체라이브)
-export const metadata: Metadata = { title: "LIVE | Funation" };
+export const metadata: Metadata = { title: "LIVE | Somnation" };
 export const dynamic = "force-dynamic";
 
 function parseCategory(value: string | string[] | undefined): LiveCategory | undefined {

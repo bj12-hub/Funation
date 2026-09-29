@@ -79,8 +79,8 @@ export function FunationIdEditor({ triggerClassName }: { triggerClassName: strin
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title="Funation ID 수정"
-        description="나만의 Funation ID를 설정해 주세요."
+        title="썸네이션 ID 수정"
+        description="나만의 썸네이션 ID를 설정해 주세요."
         footer={
           <>
             <button type="button" className={styles.secondary} onClick={() => setOpen(false)}>
@@ -101,7 +101,7 @@ export function FunationIdEditor({ triggerClassName }: { triggerClassName: strin
         <div className={styles.content}>
           <div className={styles.field}>
             <label htmlFor="funation-id-input" className={styles.label}>
-              Funation ID
+              썸네이션 ID
             </label>
             <div className={`${styles.inputBox} ${error ? styles.inputError : ""}`}>
               <span className={styles.prefix} aria-hidden="true">
@@ -139,7 +139,7 @@ export function FunationIdEditor({ triggerClassName }: { triggerClassName: strin
             {limited && (
               <Message tone="error" text={`최근 ID를 변경하여 지금은 수정할 수 없습니다. ${formatKoreanDate(state.availableFrom)}부터 변경할 수 있어요.`} />
             )}
-            {changed && <Message tone="success" text={`Funation ID가 @${state.value}로 변경되었습니다.`} />}
+            {changed && <Message tone="success" text={`썸네이션 ID가 @${state.value}로 변경되었습니다.`} />}
             {state.kind === "IDLE" && (
               <p className={`${styles.message} ${styles.messageNotice}`}>
                 <span className={styles.messageGlyph} aria-hidden="true">

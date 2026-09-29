@@ -191,7 +191,7 @@ const MOCK_HOME_FEED: Omit<HomeFeed, "creators" | "notices"> & { creators: Omit<
     id: "p1",
     imageUrl: `${IMG}/promo-banner.jpg`,
     label: "이벤트",
-    title: "Funation 첫 결제 프로모션! 프리미엄 1개월 무료 체험",
+    title: "썸네이션 첫 결제 프로모션! 프리미엄 1개월 무료 체험",
     description: "지금 구독하면 광고 없는 초고화질 무제한 스트리밍이 첫 달 무료! 최신 오리지널 예능 단독 오픈.",
     ctaLabel: "지금 참여하기",
     // Code-first: the events page (the specific promotion page is still TBD).
@@ -216,15 +216,15 @@ const MOCK_CHANNELS: PopularCreator["profile"]["channels"] = [
 
 // 200:115 · 200:223 copy. The first slide of the Figma carousel is missing from the file.
 const MOCK_NOTICES: HomeNotice[] = [
-  { id: "n-id-connect", kind: "ID_CONNECT", badge: "ID CONNECTION", titleAccent: "Funation ID로", title: "꼭 연결해 주세요!" },
+  { id: "n-id-connect", kind: "ID_CONNECT", badge: "ID CONNECTION", titleAccent: "썸네이션 ID로", title: "꼭 연결해 주세요!" },
   {
     id: "n-fraud",
     kind: "FRAUD_WARNING",
     tag: "보이스피싱 경고",
-    title: "Funation 사칭 / 사기 주의 안내",
+    title: "썸네이션 사칭 / 사기 주의 안내",
     lead: "최근 당사를 사칭하여 입금을 요구하는 보이스피싱 사례가 확인되고 있습니다.",
-    emphasis: "Funation은 개인의 자금을 직접 요구하거나 처리하는 업무를 절대 진행하지 않습니다.",
-    callout: "따라서 아래와 같은 요청을 받으신 경우 즉시 응대 중단 및 Funation 고객센터로 확인해주시기 바랍니다.",
-    bullets: ["정산 소유권 양도 요구", "보증보험료·각종 수수료 납부 요청", "Funation FN 및 그 외 금전 송금을 유도하는 모든 연락"]
+    emphasis: "썸네이션은 개인의 자금을 직접 요구하거나 처리하는 업무를 절대 진행하지 않습니다.",
+    callout: "따라서 아래와 같은 요청을 받으신 경우 즉시 응대 중단 및 썸네이션 고객센터로 확인해주시기 바랍니다.",
+    bullets: ["정산 소유권 양도 요구", "보증보험료·각종 수수료 납부 요청", "썸네이션 FN 및 그 외 금전 송금을 유도하는 모든 연락"]
   }
 ];

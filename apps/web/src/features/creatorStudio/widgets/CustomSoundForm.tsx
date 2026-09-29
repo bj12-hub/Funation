@@ -155,7 +155,7 @@ function SoundCard({ card, onSaved, onRemoved }: { card: Card; onSaved: (s: Cust
         </div>
       </div>
       <p className={styles.warningBox}>
-        ※알림※ 업로드한 음원에 대한 모든 책임은 게시자(크리에이터)에게 있으며, Funation은 이로 인해 발생할 수 있는 모든 민/형사상 분쟁에 대해 일절 책임지지 않습니다.
+        ※알림※ 업로드한 음원에 대한 모든 책임은 게시자(크리에이터)에게 있으며, 썸네이션은 이로 인해 발생할 수 있는 모든 민/형사상 분쟁에 대해 일절 책임지지 않습니다.
       </p>
       {message && (
         <p className={message.tone === "error" ? styles.error : styles.okText} role={message.tone === "error" ? "alert" : "status"}>

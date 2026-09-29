@@ -100,8 +100,8 @@ export function GlobalHeader({ user, showMenuButton = true, onMenuClick, creator
           <span className={styles.menuBar} />
           <span className={styles.menuBar} />
         </button>
-        <Link href="/" className={styles.logo} aria-label="Funation 홈">
-          <span className={styles.logoText}>Funation</span>
+        <Link href="/" className={styles.logo} aria-label="Somnation 홈">
+          <span className={styles.logoText}>Somnation</span>
           <span className={styles.logoBadge}>ON</span>
         </Link>
       </div>

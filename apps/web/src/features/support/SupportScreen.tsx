@@ -20,7 +20,7 @@ const UNAVAILABLE = { "aria-disabled": true, title: "준비 중인 기능입니�
 const CONTACTS: { title: string; value: string; icon: ReactNode }[] = [
   { title: "이메일", value: "support@funation.co.kr", icon: <MailIcon /> },
   { title: "전화", value: "1588-9999 (평일 09:00-18:00)", icon: <PhoneIcon /> },
-  { title: "카카오톡 상담", value: "@Funation", icon: <MessageSquareIcon /> }
+  { title: "카카오톡 상담", value: "@썸네이션", icon: <MessageSquareIcon /> }
 ];
 
 /**
@@ -32,7 +32,7 @@ export function SupportScreen({ faqs, query }: { faqs: FaqItem[]; query?: string
     <div className={styles.page}>
       <header className={styles.hero}>
         <h1 className={styles.title}>고객센터</h1>
-        <p className={styles.subtitle}>무엇을 도와드릴까요? Funation 이용에 관한 모든 궁금증을 해결해 드립니다.</p>
+        <p className={styles.subtitle}>무엇을 도와드릴까요? 썸네이션 이용에 관한 모든 궁금증을 해결해 드립니다.</p>
         {/* Plain GET form: works without JavaScript and with IME input. */}
         <form role="search" action="/support#faq" className={styles.search}>
           <SearchMediumIcon />
@@ -64,7 +64,7 @@ export function SupportScreen({ faqs, query }: { faqs: FaqItem[]; query?: string
               바로가기
             </a>
           </ServiceCard>
-          <ServiceCard icon={<BookOpenIcon />} title="간편 이용 가이드" description="Funation의 주요 기능과 사용법을 쉽게 알아보세요.">
+          <ServiceCard icon={<BookOpenIcon />} title="간편 이용 가이드" description="썸네이션의 주요 기능과 사용법을 쉽게 알아보세요.">
             {/* TODO: usage guide is not designed yet. */}
             <button type="button" className={styles.cta} {...UNAVAILABLE}>
               가이드 보기

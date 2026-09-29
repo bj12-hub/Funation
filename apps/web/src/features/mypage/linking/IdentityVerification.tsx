@@ -202,7 +202,7 @@ function resultView(r: Result): View {
         tone: "success",
         label: "본인인증 완료",
         title: "본인인증이 완료되었어요",
-        description: "이제 Funation의 모든 서비스를 안전하게 이용할 수 있습니다.",
+        description: "이제 썸네이션의 모든 서비스를 안전하게 이용할 수 있습니다.",
         detailTitle: "인증 결과",
         rows: (
           <>
@@ -237,7 +237,7 @@ function resultView(r: Result): View {
         detailTitle: "가입 계정",
         rows: (
           <>
-            <Row label="Funation ID">{r.maskedFunationId}</Row>
+            <Row label="썸네이션 ID">{r.maskedFunationId}</Row>
             <Row label="가입일">{formatDotDate(r.joinedAt)}</Row>
             <Row>개인정보 보호를 위해 일부 정보만 표시됩니다.</Row>
           </>

@@ -1,5 +1,7 @@
 # Funation
 
+> **Service brand:** Somnation (썸네이션). User-facing text uses "Somnation" in English contexts and "썸네이션" in Korean sentences ("썸네이션 ID"). The repository, packages and code identifiers keep the name Funation.
+
 Funation is a broadcasting donation platform connecting **Creators** and **Supporters**.
 
 ## Confirmed Platform Scope

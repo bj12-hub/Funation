@@ -75,7 +75,7 @@ export function MyPageScreen({ account }: { account: MyAccount }) {
               <NicknameEditor triggerClassName={styles.actionButton} />
             </div>
             <div className={styles.pair}>
-              <Label text="Funation ID" info />
+              <Label text="썸네이션 ID" info />
               <span className={styles.value}>@{account.funationId}</span>
               <FunationIdEditor triggerClassName={styles.actionButton} />
               <PasswordEditor triggerClassName={styles.actionButton} />

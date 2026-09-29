@@ -4,7 +4,7 @@ import { SettlementManageScreen } from "@/features/creatorStudio/settlement/Sett
 import { getSettlementManageView } from "@/services/creator/settlementManagement";
 
 // Figma: 정산 관리 478:2 (월별) · 479:144 (기간별) · 정산 정보 변경 480:2
-export const metadata: Metadata = { title: "정산 관리 | Funation 크리에이터" };
+export const metadata: Metadata = { title: "정산 관리 | Somnation 크리에이터" };
 export const dynamic = "force-dynamic";
 
 type Search = { period?: string; from?: string; to?: string; page?: string };

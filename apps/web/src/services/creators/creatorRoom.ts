@@ -87,7 +87,7 @@ const CHANNELS: CreatorRoom["channels"] = [
 
 const BANNER: RoomBanner = {
   label: "이벤트",
-  title: "Funation 첫 결제 프로모션! 프리미엄 1개월 무료 체험",
+  title: "썸네이션 첫 결제 프로모션! 프리미엄 1개월 무료 체험",
   description: "지금 구독하면 광고 없는 초고화질 무제한 스트리밍이 첫 달 무료! 최신 오리지널 예능 단독 오픈.",
   ctaLabel: "지금 참여하기",
   imageUrl: "/mock/home/promo-banner.jpg",

@@ -18,7 +18,7 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  return { title: `${TERMS[slug] ?? "약관"} | Funation` };
+  return { title: `${TERMS[slug] ?? "약관"} | Somnation` };
 }
 
 export default async function TermsPage({ params }: { params: Promise<{ slug: string }> }) {

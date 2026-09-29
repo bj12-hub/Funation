@@ -49,7 +49,7 @@ export function HallOfFameScreen({ ranking }: { ranking: SupporterRanking }) {
               우리의 크리에이터를 빛나게 해주신 최고의 서포터들
             </h1>
             <p className={styles.heroDescription}>
-              Funation 생태계를 함께 만들고, 크리에이터들의 도전에 힘을 보태주신 고마운 분들을 기억합니다. 매일 실시간 및 정기 후원 내역을
+              썸네이션 생태계를 함께 만들고, 크리에이터들의 도전에 힘을 보태주신 고마운 분들을 기억합니다. 매일 실시간 및 정기 후원 내역을
               집계하여 최고의 명예를 헌정합니다.
             </p>
           </div>
