@@ -148,6 +148,28 @@ The studio header follows the funnation studio: logo + **스튜디오** badge on
 
 - The 후원관리+ tabs are linked one by one; the sidebar marks the active `?tab=`.
 
+### 위젯 (`/creator/widgets`)
+
+The catalog follows the funnation 위젯 page (`features/creatorStudio/widgets/widgetCatalog.ts`). It has three sections:
+
+- **인기:** 후원 알림 (→ 리모컨), 후원자 랭킹, 목표.
+- **전체**, grouped:
+  - 후원 알림: 후원 알림, 미션 · 퀘스트, 영상 (TBD), 시그니처 후원 (TBD), 커스텀 사운드, 미니후원, 최근알림, 이벤트
+  - 게이지 · 랭킹: 후원자 랭킹, 목표, 후원누적금액, 크루 점수판
+  - 표시 · 자막: 배너 (TBD), 자막, 전광판, 엔딩 크레딧, 채팅창, QR, 벽지
+  - 이펙트 · 효과: 이모지 리액션 (TBD), 레이어 효과 (TBD)
+  - 게임 · 이벤트: ours; funnation keeps these under 엑셀방송
+  - 타이머
+- **도구:** 오버레이 주소, 리모컨, 이미지·사운드 (TBD), 후원 연동 (TBD).
+
+Each item does one of three things:
+
+- opens its Figma popup;
+- links to our screen (방송 도구, 리모컨, 크루 방송, 오버레이 주소);
+- shows 준비 중.
+
+The Figma "후원 알림 설정" alert-type cards are no longer listed; they had no popups.
+
 ### Dashboard (`/creator`)
 
 The top cards follow the funnation dashboard. They are laid out in two columns, and the server computes every value (`getDashboardSummary`).
