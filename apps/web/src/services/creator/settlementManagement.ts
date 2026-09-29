@@ -1,7 +1,7 @@
 "use server";
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
-import { getSession } from "@/lib/session";
+import { getCreatorSession } from "@/lib/session";
 import { mockSettlement } from "./mockSettlementStore";
 import { MANAGE_PAGE_SIZE, isManagePeriod, type ManagePeriod, type ResetResult, type SettlementManageView } from "./settlementTypes";
 
@@ -30,7 +30,7 @@ function presetRange(period: Exclude<ManagePeriod, "custom">): { from: string; t
 
 export async function getSettlementManageView(params: { period?: unknown; from?: unknown; to?: unknown; page?: unknown }): Promise<SettlementManageView | "UNAUTHORIZED" | "NOT_REGISTERED"> {
   assertMock();
-  if (!(await getSession())) return "UNAUTHORIZED";
+  if (!(await getCreatorSession())) return "UNAUTHORIZED";
   const reg = mockSettlement.registration;
   if (!reg) return "NOT_REGISTERED";
 
@@ -70,7 +70,7 @@ export async function getSettlementManageView(params: { period?: unknown; from?:
  */
 export async function resetSettlementRegistration(): Promise<ResetResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (!mockSettlement.registration) return { status: "NOT_REGISTERED" };
   await mockDelay(400);
   // TODO: the backend archives the old registration for audit instead of deleting it outright.

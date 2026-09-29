@@ -1,7 +1,7 @@
 "use server";
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
-import { getSession } from "@/lib/session";
+import { getCreatorSession } from "@/lib/session";
 import { MOCK_SETTLEMENT_POLICY, mockSettlement, type MockSettlementRequest } from "./mockSettlementStore";
 import type { QuoteResult, RequestResult, SaveAutoResult, SettlementApplyView, SettlementHistoryItem, SettlementQuote } from "./settlementTypes";
 
@@ -49,7 +49,7 @@ function checkAmount(amount: unknown): { ok: true; amountFn: number } | { ok: fa
 
 export async function getSettlementApplyView(): Promise<SettlementApplyView | "UNAUTHORIZED" | "NOT_REGISTERED"> {
   assertMock();
-  if (!(await getSession())) return "UNAUTHORIZED";
+  if (!(await getCreatorSession())) return "UNAUTHORIZED";
   const reg = mockSettlement.registration;
   if (!reg) return "NOT_REGISTERED";
   await mockDelay(250);
@@ -81,7 +81,7 @@ export async function getSettlementApplyView(): Promise<SettlementApplyView | "U
 /** Fee breakdown for 473:2. Validates the amount against the server balance and policy. */
 export async function quoteSettlement(amount: unknown): Promise<QuoteResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (!mockSettlement.registration) return { status: "NOT_REGISTERED" };
   const check = checkAmount(amount);
   if (!check.ok) return { status: "INVALID", message: check.message };
@@ -95,7 +95,7 @@ export async function quoteSettlement(amount: unknown): Promise<QuoteResult> {
  */
 export async function requestSettlement(input: unknown): Promise<RequestResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (!mockSettlement.registration) return { status: "NOT_REGISTERED" };
   const v = (typeof input === "object" && input !== null ? input : {}) as { amountFn?: unknown; idempotencyKey?: unknown };
   const key = v.idempotencyKey;
@@ -138,7 +138,7 @@ export async function requestSettlement(input: unknown): Promise<RequestResult> 
 /** 자동 정산 신청 ON/OFF (458:85). Takes effect from next month per 466:2 copy (TBD). */
 export async function setAutoSettlement(on: unknown): Promise<SaveAutoResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (!mockSettlement.registration) return { status: "NOT_REGISTERED" };
   if (typeof on !== "boolean") return { status: "INVALID" };
   await mockDelay(300);
