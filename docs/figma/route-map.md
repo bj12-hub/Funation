@@ -18,6 +18,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/creator/crew/broadcast` | ✅ code-first | 크루 방송 운영 — no Figma frame; score = FN during the broadcast + 보정 (points are not money) |
 | `/overlay/crew/[key]` | ✅ code-first | OBS scoreboard overlay; `key` = integration key (reissue invalidates it) |
 | `/creator/crew` | ✅ code-first | 크루 관리 — no Figma frame; Creator role; member split of earnings TBD |
+| `/community` · `/community/new` · `/community/[id]` · `/community/[id]/edit` | ✅ code-first | 커뮤니티 — `?category=FREE|TIP|QNA|BUG|BRAG` `?q=` `?page=`; reading is public, writing needs a session, edits are author-only; moderation TBD |
 | `/messages` | ✅ code-first | 쪽지 — `?box=inbox|sent|archive|spam` `?q=` `?page=` `?to=<creatorId>` (opens compose); send limit placeholder (TBD) |
 | `/mypage/titles` | ✅ code-first | 칭호·등급 — no Figma frame (docs/figma/code-first-screens.md); grade / title thresholds are placeholders (TBD) |
 | `/mypage/nicknames` | ✅ code-first | 별명 관리 — no Figma frame |

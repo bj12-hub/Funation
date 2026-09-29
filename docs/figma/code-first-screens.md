@@ -26,4 +26,6 @@ Since 2026-09-29 features without a Figma frame are built in code first and desi
 
 | `/messages` 쪽지 (`features/messages/MessagesScreen.tsx`) + side nav "쪽지" + room "✉️ 쪽지" action | messages PR | 4 mailboxes with counts, search, bulk 보관/스팸신고/삭제, expand-to-read, 답장, compose modal (`?to=`) |
 
+| `/community` · `/community/new` · `/community/[id]` · `/community/[id]/edit` (`features/community/*`) + side nav "커뮤니티" | community PR | Board list (분류 tabs, search, pages), editor (분류 chips), post detail with author actions and comments |
+
 Add a row whenever a new code-first screen ships (see `docs/research/funnation-reference.md` for the planned features).
