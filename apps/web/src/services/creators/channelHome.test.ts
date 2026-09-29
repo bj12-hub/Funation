@@ -1,0 +1,57 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { key, mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
+
+vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
+vi.mock("@/lib/session", () => mockSessionModule());
+
+/** 채널 홈 보강: server-computed monthly ranking and the channel's own community feed. */
+async function load() {
+  const home = await import("./channelHome");
+  const { requestDonation } = await import("@/services/donations/donate");
+  const { mockAccount } = await import("@/services/account/mockStore");
+  mockAccount.fnBalance = 2_000_000;
+  return { ...home, requestDonation };
+}
+
+describe("channel home", () => {
+  beforeEach(() => resetMockStores());
+
+  it("ranks this month's supporters and puts the viewer's completed donations in", async () => {
+    const m = await load();
+    const before = (await m.getChannelMonthlyRanking("c1"))!;
+    expect(before.rows).toHaveLength(10);
+    expect(before.rows.some((r) => r.me)).toBe(false);
+    expect(before.rows.map((r) => r.fnAmount)).toEqual([...before.rows.map((r) => r.fnAmount)].sort((a, b) => b - a));
+    expect(await m.getChannelMonthlyRanking("c1")).toEqual(before);
+
+    await m.requestDonation({ creatorId: "c1", hideProfile: false, type: "TEXT", amount: 1_000_000, message: "", voiceId: null, idempotencyKey: key(1) });
+    const after = (await m.getChannelMonthlyRanking("c1"))!;
+    expect(after.rows[0]).toMatchObject({ rank: 1, me: true, fnAmount: 1_000_000 });
+    expect((await m.getChannelMonthlyRanking("c2"))!.rows.some((r) => r.me)).toBe(false);
+    expect(await m.getChannelMonthlyRanking("nope")).toBeNull();
+  });
+
+  it("posts once per request id, pages, and lets only the author delete", async () => {
+    const m = await load();
+    const seeded = (await m.getChannelPosts("c1"))!;
+    expect(seeded.items.length).toBeGreaterThan(0);
+    const first = await m.createChannelPost({ creatorId: "c1", body: "  응원해요  ", requestId: key(2) });
+    expect(await m.createChannelPost({ creatorId: "c1", body: "응원해요", requestId: key(2) })).toEqual(first);
+    const view = (await m.getChannelPosts("c1"))!;
+    expect(view.total).toBe(seeded.total + 1);
+    expect(view.items[0]).toMatchObject({ body: "응원해요", mine: true });
+    expect((await m.getChannelPosts("c1", 2))!).toMatchObject({ hasMore: true });
+    expect((await m.getChannelPosts("c2"))!.items.some((p) => p.body === "응원해요")).toBe(false);
+
+    expect(await m.deleteChannelPost(seeded.items[0].id)).toEqual({ status: "FORBIDDEN" });
+    expect(await m.deleteChannelPost(view.items[0].id)).toEqual({ status: "DELETED" });
+    expect((await m.getChannelPosts("c1"))!.total).toBe(seeded.total);
+
+    expect((await m.createChannelPost({ creatorId: "c1", body: " ", requestId: key(3) })).status).toBe("INVALID");
+    expect((await m.createChannelPost({ creatorId: "c1", body: "x".repeat(501), requestId: key(4) })).status).toBe("INVALID");
+    expect(await m.createChannelPost({ creatorId: "nope", body: "hi", requestId: key(5) })).toEqual({ status: "NOT_FOUND" });
+    signIn(null);
+    expect(await m.createChannelPost({ creatorId: "c1", body: "hi", requestId: key(6) })).toEqual({ status: "UNAUTHORIZED" });
+    expect((await m.getChannelPosts("c1"))!.items.every((p) => !p.mine)).toBe(true);
+  });
+});
