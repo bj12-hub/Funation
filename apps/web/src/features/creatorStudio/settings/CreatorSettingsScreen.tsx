@@ -58,9 +58,9 @@ export function CreatorSettingsScreen({ settings }: { settings: CreatorSettings 
 
           <section className={`${styles.card} ${styles.donateCard}`} aria-labelledby="set-donate">
             <h3 id="set-donate" className={styles.cardTitle}>
-              Funation 후원 세팅
+              썸네이션 후원 세팅
             </h3>
-            <p className={styles.urlLabel}>[{settings.channelName}]의 Funation URL</p>
+            <p className={styles.urlLabel}>[{settings.channelName}]의 썸네이션 URL</p>
             <div className={styles.fieldRow}>
               <span className={`${styles.input} ${styles.urlText}`}>{settings.donateUrl}</span>
               <span className={styles.urlButtons}>

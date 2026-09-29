@@ -5,7 +5,7 @@ import { getSession } from "@/lib/session";
 import { getEvent } from "@/services/events/events";
 
 // Code-first (no Figma frame): 이벤트 상세
-export const metadata: Metadata = { title: "이벤트 | Funation" };
+export const metadata: Metadata = { title: "이벤트 | Somnation" };
 export const dynamic = "force-dynamic";
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {

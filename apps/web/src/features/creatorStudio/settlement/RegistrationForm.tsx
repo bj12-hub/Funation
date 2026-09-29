@@ -94,7 +94,7 @@ export function RegistrationForm({ memberType }: { memberType: MemberType }) {
     </Field>
   );
   const channelField = (
-    <Field label="Funation 사용채널" group>
+    <Field label="썸네이션 사용채널" group>
       <span className={styles.row}>
         <ChannelSelect />
         <TextInput name="channelUrl" type="url" maxLength={300} placeholder="채널 URL을 입력해 주세요" aria-label="채널 URL" />

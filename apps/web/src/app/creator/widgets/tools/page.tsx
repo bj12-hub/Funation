@@ -4,7 +4,7 @@ import { BroadcastToolsScreen } from "@/features/creatorStudio/widgets/Broadcast
 import { getOverlayKey, getToolsView } from "@/services/creator/broadcastTools";
 
 // Code-first (no Figma frame): 방송 도구 (자막 · 전광판 · 타이머 · 엔딩 크레딧) — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: "방송 도구 | Funation 크리에이터" };
+export const metadata: Metadata = { title: "방송 도구 | Somnation 크리에이터" };
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

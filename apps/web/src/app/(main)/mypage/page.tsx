@@ -5,7 +5,7 @@ import { MyPageScreen } from "@/features/mypage";
 import { getMyAccount } from "@/services/account/myAccount";
 
 // Figma: funation-my-page 735:4119 · 622:4
-export const metadata: Metadata = { title: "마이페이지 | Funation" };
+export const metadata: Metadata = { title: "마이페이지 | Somnation" };
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

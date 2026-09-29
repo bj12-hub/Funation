@@ -38,7 +38,7 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
 
 // TODO: Figma placeholder values — replace with the confirmed business registration details (TBD).
 const COMPANY_LINES = [
-  "(주)Funation 엔터테인먼트 | 대표이사: 홍길동 | 서울특별시 강남구 테헤란로 123 펀타워 15층",
+  "(주)썸네이션 엔터테인먼트 | 대표이사: 홍길동 | 서울특별시 강남구 테헤란로 123 펀타워 15층",
   "사업자등록번호: 120-81-12345 | 통신판매업신고: 제 2026-서울강남-9999호 | 고객센터: 1588-9999"
 ];
 
@@ -56,9 +56,9 @@ export function GlobalFooter() {
       <div className={styles.inner}>
         <div className={styles.top}>
           <div className={styles.brand}>
-            <span className={styles.logo}>Funation</span>
+            <span className={styles.logo}>Somnation</span>
             <p className={styles.about}>
-              Funation은 트렌디하고 재미있는 대한민국 모든 예능, 스포츠, 게임 비디오 콘텐츠를 실시간으로 가장 빠르게 모아 즐기는
+              썸네이션은 트렌디하고 재미있는 대한민국 모든 예능, 스포츠, 게임 비디오 콘텐츠를 실시간으로 가장 빠르게 모아 즐기는
               K-비디오 통합 엔터테인먼트 플랫폼입니다.
             </p>
           </div>
@@ -91,7 +91,7 @@ export function GlobalFooter() {
             {COMPANY_LINES.map((line) => (
               <p key={line}>{line}</p>
             ))}
-            <p className={styles.copyright}>Copyright © 2026 Funation Inc. All rights reserved.</p>
+            <p className={styles.copyright}>Copyright © 2026 Somnation Inc. All rights reserved.</p>
           </div>
           <ul className={styles.socials}>
             {SOCIALS.map(({ label, Icon }) => (

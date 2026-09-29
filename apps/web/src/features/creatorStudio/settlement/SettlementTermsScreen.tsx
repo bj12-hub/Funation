@@ -95,7 +95,7 @@ export function SettlementTermsScreen({ initialType }: { initialType: MemberType
             <section className={styles.agreements} aria-labelledby="terms-agree">
               <div className={styles.agreeHead}>
                 <h2 id="terms-agree" className={styles.agreeTitle}>
-                  Funation 서비스 이용 및 정산등록 동의
+                  썸네이션 서비스 이용 및 정산등록 동의
                 </h2>
                 <p className={styles.agreeLead}>정산 과정에 필요한 서비스 약관 및 개인정보 수집, 이용 동의에 동의해 주세요.</p>
               </div>

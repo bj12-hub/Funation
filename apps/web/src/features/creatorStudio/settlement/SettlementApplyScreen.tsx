@@ -16,7 +16,7 @@ export function SettlementApplyScreen({ view }: { view: SettlementApplyView }) {
   return (
     <div className={styles.content}>
       <SettlementTabs active="apply" />
-      <h1 className={styles.pageTitle}>Funation 정산 현황</h1>
+      <h1 className={styles.pageTitle}>썸네이션 정산 현황</h1>
 
       <div className={styles.topRow}>
         <SettlementRequestFlow view={view} />

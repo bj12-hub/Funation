@@ -8,7 +8,7 @@ import styles from "./settlement.module.css";
 export function SettlementHomeScreen({ registered, justRegistered, checklist }: { registered: boolean; justRegistered: boolean; checklist: Checklist }) {
   return (
     <div className={styles.content}>
-      <h1 className={styles.pageTitle}>Funation 정산 현황</h1>
+      <h1 className={styles.pageTitle}>썸네이션 정산 현황</h1>
       {/* 정산 승인 is per request (정산 관리), so the banner only tracks registration here. */}
       <SettlementStepper current={registered ? 1 : 0} />
 

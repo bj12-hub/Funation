@@ -42,7 +42,7 @@ export function SettlementGuideModal({ open, onClose, minFn }: { open: boolean; 
           </h3>
           <h4 className={styles.guideSub}>수동 정산</h4>
           <p>
-            정산 신청 조건을 충족한 경우 Funation 크리에이터로 로그인한 후<br />
+            정산 신청 조건을 충족한 경우 썸네이션 크리에이터로 로그인한 후<br />
             &apos;계정 관리 &gt; 정산 관리&apos;에서 직접 정산을 신청할 수 있습니다.
           </p>
           <ul className={styles.guideBox}>
@@ -106,7 +106,7 @@ const FEE_GROUPS: { title: string; emoji: string; rows: [string, string][] }[] =
     emoji: "🏦",
     rows: [
       ["인터넷뱅킹 (실시간)", "2.07%"],
-      ["Funation 간편결제", "2.07%"],
+      ["썸네이션 간편결제", "2.07%"],
       ["인터넷뱅킹 (간편)", "3.83%"],
       ["가상계좌", "6.83%"]
     ]
@@ -128,7 +128,7 @@ const FEE_GROUPS: { title: string; emoji: string; rows: [string, string][] }[] =
     rows: [
       ["문화상품권 등", "9.83%"],
       ["기프티쇼 (기프티콘)", "17.27%"],
-      ["Funation FN 교환권", "14.17%"]
+      ["썸네이션 FN 교환권", "14.17%"]
     ]
   },
   {
@@ -158,7 +158,7 @@ export function FeeGuideModal({ open, onClose }: { open: boolean; onClose: () =>
         </button>
       }
     >
-      <p className={styles.feeIntro}>실제 입금액은 후원받은 금액에서 PG사 수수료, 원천/소득세, Funation 이용 수수료가 공제된 금액이 입금됩니다.</p>
+      <p className={styles.feeIntro}>실제 입금액은 후원받은 금액에서 PG사 수수료, 원천/소득세, 썸네이션 이용 수수료가 공제된 금액이 입금됩니다.</p>
       <div className={styles.feeGrid}>
         {[FEE_GROUPS.slice(0, half), FEE_GROUPS.slice(half)].map((col, i) => (
           <div key={i} className={styles.feeCol}>

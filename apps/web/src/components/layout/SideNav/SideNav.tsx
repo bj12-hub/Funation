@@ -117,7 +117,7 @@ function ProfileCard({ user }: { user: SideNavUser }) {
         )}
         <div className={styles.profileText}>
           <strong className={styles.nickname}>{user.nickname}</strong>
-          <span className={styles.idLabel}>Funation ID</span>
+          <span className={styles.idLabel}>썸네이션 ID</span>
           <span className={styles.idValue}>@{user.funationId}</span>
         </div>
       </div>

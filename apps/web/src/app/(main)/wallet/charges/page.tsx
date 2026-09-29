@@ -4,7 +4,7 @@ import { ChargeHistoryScreen, parseHistoryParams, type RawParams } from "@/featu
 import { getChargeHistory, getWalletSummary } from "@/services/wallet/walletHistory";
 
 // Figma: 640:2 · 639:2 · 643:4
-export const metadata: Metadata = { title: "FN 충전내역 | Funation" };
+export const metadata: Metadata = { title: "FN 충전내역 | Somnation" };
 export const dynamic = "force-dynamic";
 
 export default async function Page({ searchParams }: { searchParams: Promise<RawParams> }) {

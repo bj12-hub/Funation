@@ -4,7 +4,7 @@ import { CreatorRankingScreen } from "@/features/creatorStudio/ranking/CreatorRa
 import { getCreatorRanking, parseRankingPeriod, parseRankingType } from "@/services/creator/creatorRanking";
 
 // Figma: creator ranking 405:4 (퀘스트) · 405:302 (럭키박스) · 405:598 (플레이)
-export const metadata: Metadata = { title: "크리에이터 랭킹 | Funation" };
+export const metadata: Metadata = { title: "크리에이터 랭킹 | Somnation" };
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;

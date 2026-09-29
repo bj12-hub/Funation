@@ -54,12 +54,12 @@ export function FunationSettingsCard({ live, marketing, languages }: { live: boo
   return (
     <section className={`${styles.card} ${styles.funation}`} aria-labelledby="set-funation">
       <h3 id="set-funation" className={styles.cardTitle}>
-        Funation 설정
+        썸네이션 설정
       </h3>
       <div className={styles.toggleRow}>
         <div>
           <strong>Live 프로필 노출</strong>
-          <span>Funation에 방송을 공개합니다.</span>
+          <span>썸네이션에 방송을 공개합니다.</span>
         </div>
         <Toggle label="Live 프로필 노출" checked={state.live} busy={pending} onChange={(v) => run({ ...state, live: v }, () => setLiveProfileVisible(v))} />
       </div>

@@ -20,7 +20,7 @@ export function CreatorsScreen({ data, params }: { data: CreatorPage; params: Cr
       <header className={styles.hero}>
         <div className={styles.heroRow}>
           <div className={styles.heroText}>
-            <h1 className={styles.title}>✨ Funation 크리에이터 목록</h1>
+            <h1 className={styles.title}>✨ 썸네이션 크리에이터 목록</h1>
             <p className={styles.subtitle}>취향 저격 예능부터 숨겨진 꿀잼 라이브까지, 지금 가장 핫한 크리에이터들을 한눈에 만나보세요.</p>
           </div>
           <CreatorSearch key={params.query ?? ""} params={params} />

@@ -99,7 +99,7 @@ export async function getFavoritesPromotion(): Promise<PromotionBanner | null> {
   // TBD: the "1,000 FN" reward and title are promotion policy, and the CTA destination.
   return {
     label: "이벤트",
-    title: "Funation 공식 카카오톡 채널 연동 이벤트!",
+    title: "썸네이션 공식 카카오톡 채널 연동 이벤트!",
     description: "지금 카카오톡 채널 추가하고 간편 계정 연동을 완료해보세요. 1,000 FN 즉시 적립 및 단독 칭호 즉시 지급!",
     ctaLabel: "채널 바로 연동하기"
   };
