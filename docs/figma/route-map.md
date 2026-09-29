@@ -14,6 +14,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/hall-of-fame` | ✅ | funation-hall-of-fame 3:637 — `?period=all|week|day` (default 이번 달) |
 | `/support` | ✅ | 고객센터 4:7 — `?q=` searches the FAQ |
 | `/mypage` | ✅ | funation-my-page 735:4119 · 622:4 — redirects to `/login` without a session |
+| `/creator/crew` | ✅ code-first | 크루 관리 — no Figma frame; Creator role; member split of earnings TBD |
 | `/mypage/titles` | ✅ code-first | 칭호·등급 — no Figma frame (docs/figma/code-first-screens.md); grade / title thresholds are placeholders (TBD) |
 | `/mypage/nicknames` | ✅ code-first | 별명 관리 — no Figma frame |
 | `/favorites` | ✅ | funation-favorites-page 735:3856 — signed-in only, `?q=` `?page=` |

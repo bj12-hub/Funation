@@ -50,6 +50,8 @@ export type DonationRequest = DonationDetails & {
   hideProfile: boolean;
   /** Donation nickname (별명) id; omitted or null = the default nickname. Must belong to the supporter. */
   nicknameId?: string | null;
+  /** Crew member the donation is for (크루 멤버 지정); must be an active member of the creator's crew. */
+  memberId?: string | null;
   /** Generated once per confirmed submission; the same key never debits twice. */
   idempotencyKey: string;
 };
