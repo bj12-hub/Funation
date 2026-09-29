@@ -54,6 +54,9 @@ export function ProfileMenu({ user }: { user: GlobalHeaderUser }) {
           <Link href="/mypage" role="menuitem" className={styles.profileMenuItem} onClick={() => setOpen(false)}>
             마이페이지
           </Link>
+          <Link href="/creator" role="menuitem" className={styles.profileMenuItem} onClick={() => setOpen(false)}>
+            크리에이터
+          </Link>
           <form action={logout}>
             <button type="submit" role="menuitem" className={styles.profileMenuItem}>
               로그아웃
