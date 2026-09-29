@@ -1,4 +1,5 @@
 import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
+import { notify } from "@/services/notifications/notificationCore";
 import type { AlertControls, AlertItem, AlertKind } from "./alertTypes";
 
 /**
@@ -49,7 +50,8 @@ export function enqueueAlert(input: { kind: AlertKind; donor: string; message: s
  */
 export function enqueueDonationAlert(creatorId: string, input: { donor: string; message: string; fnAmount: number; typeLabel: string }) {
   if (creatorId !== STUDIO_CHANNEL) return;
-  enqueueAlert({ kind: "DONATION", ...input });
+  const item = enqueueAlert({ kind: "DONATION", ...input });
+  notify({ kind: "DONATION_RECEIVED", title: "새 후원이 들어왔어요", body: `${input.donor}님 · ${input.fnAmount.toLocaleString("ko-KR")} FN`, href: "/creator/donations?tab=list", dedupeKey: `alert:${item.id}` });
 }
 
 /** Moves the queue forward: finishes an expired alert and puts the next one on screen. */

@@ -12,6 +12,7 @@ import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { luckyTierFor, type DonationCatalog } from "./donationCatalog";
 import { getDonationCatalog, matchSignatureByAmount } from "./signatureCore";
 import { addDonationDrawing, enqueueDonationVideo } from "@/services/creator/mediaCore";
+import { notify } from "@/services/notifications/notificationCore";
 import { MAX_DRAWING_CHARS, parseYouTubeId, type DonationResult } from "./donationTypes";
 
 /**
@@ -77,6 +78,7 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
     const d = request.details as Record<string, unknown>;
     if (request.type === "VIDEO") enqueueDonationVideo(creator.id, { donor, fnAmount: request.amount, videoId: d.videoId as string, startSec: d.start as number, endSec: d.end as number });
     if (request.type === "DRAWING") addDonationDrawing(creator.id, { donor, title: d.title as string, fnAmount: request.amount, image: d.image as string });
+    notify({ kind: "DONATION_SENT", title: "후원을 보냈어요", body: `${creator.name}님께 ${request.amount.toLocaleString("ko-KR")} FN`, href: "/wallet/donations", dedupeKey: `donation:${idempotencyKey}` });
     result = { status: "COMPLETED", donationId, fnAmount: request.amount, balance: mockAccount.fnBalance };
   }
   mockWallet.donationIdempotency[idempotencyKey].result = result;
