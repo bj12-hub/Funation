@@ -16,6 +16,16 @@ export type WishlistState = { itemId: string | null; message: string; voiceId: s
 /** Each box has a stable id so React keys survive deletes. */
 export type LuckyState = { boxes: { id: number; winner: boolean }[]; selected: number | null; amount: string; terms: boolean };
 
+export type RouletteState = { tierKey: string };
+/** Time limits are typed as minutes + seconds (867:* "10분 00초"). */
+export type TimeLimit = { minutes: string; seconds: string };
+export type QuestState = { title: string; success: string; fail: string; cancel: string; time: TimeLimit; creatorDecides: boolean; terms: boolean };
+export type DrawingState = { amount: string; title: string; image: string | null; showProcess: boolean; canvasMode: boolean; terms: boolean };
+export type QuizRewardsState = { time: TimeLimit; correct: string; wrong: string; terms: boolean };
+export type QuizChoiceState = QuizRewardsState & { question: string; options: string[]; correctIndex: number };
+export type QuizInitialState = QuizRewardsState & { question: string; answer: string; hint: string };
+export type QuizDrawingState = QuizRewardsState & { image: string | null; question: string; answer: string };
+
 export type FormStates = {
   TEXT: TextState;
   MINI: MiniState;
@@ -23,6 +33,12 @@ export type FormStates = {
   SIGNATURE: SignatureState;
   WISHLIST: WishlistState;
   LUCKYBOX: LuckyState;
+  ROULETTE: RouletteState;
+  QUEST: QuestState;
+  DRAWING: DrawingState;
+  QUIZ_CHOICE: QuizChoiceState;
+  QUIZ_INITIAL: QuizInitialState;
+  QUIZ_DRAWING: QuizDrawingState;
 };
 
 export type FormKey = keyof FormStates;
@@ -45,7 +61,54 @@ export function initialStates(catalog: DonationCatalog): FormStates {
       selected: 2,
       amount: String(catalog.luckyBox.presets[1] ?? catalog.luckyBox.minAmount),
       terms: false
-    }
+    },
+    // 867:2494 selects GOLD.
+    ROULETTE: { tierKey: catalog.roulette.tiers[1]?.key ?? catalog.roulette.tiers[0]?.key ?? "" },
+    QUEST: { title: "", success: "", fail: "", cancel: "", time: { minutes: "10", seconds: "00" }, creatorDecides: true, terms: false },
+    DRAWING: { amount: "", title: "", image: null, showProcess: true, canvasMode: false, terms: false },
+    QUIZ_CHOICE: { question: "", options: ["", "", ""], correctIndex: 0, ...quizDefaults() },
+    QUIZ_INITIAL: { question: "", answer: "", hint: "", ...quizDefaults() },
+    QUIZ_DRAWING: { image: null, question: "", answer: "", ...quizDefaults() }
+  };
+}
+
+function quizDefaults(): QuizRewardsState {
+  return { time: { minutes: "00", seconds: "30" }, correct: "", wrong: "", terms: false };
+}
+
+/** Minutes + seconds → seconds, or null when not a valid positive time. */
+export function timeToSec(time: TimeLimit): number | null {
+  const m = Number(time.minutes || "0");
+  const s = Number(time.seconds || "0");
+  if (!Number.isInteger(m) || !Number.isInteger(s) || s > 59 || m < 0 || s < 0) return null;
+  const total = m * 60 + s;
+  return total > 0 ? total : null;
+}
+
+function quizDraft(s: QuizRewardsState, catalog: DonationCatalog, title: string) {
+  const correct = digits(s.correct);
+  const wrong = digits(s.wrong);
+  const amount = correct === null && wrong === null ? null : Math.max(correct ?? 0, wrong ?? 0);
+  const time = timeToSec(s.time);
+  const error =
+    amount !== null && amount < catalog.game.minAmount
+      ? `보상 금액은 ${formatNumber(catalog.game.minAmount)} FN 이상이어야 해요.`
+      : time === null
+        ? "제한 시간을 확인해 주세요."
+        : time > catalog.game.maxTimeSec
+          ? `제한 시간은 최대 ${catalog.game.maxTimeSec / 60}분이에요.`
+          : null;
+  return {
+    amount,
+    error,
+    time,
+    ready: correct !== null && wrong !== null && !error && s.terms,
+    rewards: { timeLimitSec: time ?? 0, correctReward: correct ?? 0, wrongReward: wrong ?? 0, termsAgreed: true as const },
+    buttonLabel: `${title} ${formatNumber(amount ?? 0)} FN 후원하기`,
+    summaryRows: [
+      { label: "제한 시간", value: `${s.time.minutes || "0"}분 ${s.time.seconds || "0"}초` },
+      { label: "보상", value: `정답 ${formatNumber(correct ?? 0)} FN · 오답 ${formatNumber(wrong ?? 0)} FN` }
+    ]
   };
 }
 
@@ -184,9 +247,128 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
         buttonLabel: `${tier.label} BOX ${formatNumber(amount ?? 0)} FN 후원하기`
       };
     }
+    case "ROULETTE": {
+      const tier = catalog.roulette.tiers.find((t) => t.key === states.ROULETTE.tierKey) ?? null;
+      return {
+        details: tier ? { type: "ROULETTE", tierKey: tier.key } : null,
+        amount: tier?.amount ?? null,
+        error: null,
+        summary: [{ label: "룰렛", value: tier ? `${tier.label} 룰렛` : "-" }],
+        chatText: `🎡 ${tier?.label ?? ""} 룰렛`,
+        buttonLabel: tier ? `${tier.label} 룰렛 ${formatNumber(tier.amount)} FN 후원하기` : undefined
+      };
+    }
+    case "QUEST": {
+      const s = states.QUEST;
+      const success = digits(s.success);
+      const fail = digits(s.fail);
+      const cancel = digits(s.cancel);
+      const time = timeToSec(s.time);
+      const title = s.title.trim();
+      const error =
+        success !== null && success < catalog.game.minAmount
+          ? `성공 보상은 ${formatNumber(catalog.game.minAmount)} FN 이상이어야 해요.`
+          : success !== null && ((fail ?? 0) > success || (cancel ?? 0) > success)
+            ? "실패·취소 금액은 성공 보상보다 클 수 없어요."
+            : time === null || time > catalog.game.maxTimeSec
+              ? "제한 시간을 확인해 주세요."
+              : null;
+      const ready = title && success !== null && fail !== null && cancel !== null && time !== null && !error && s.terms;
+      return {
+        details: ready
+          ? { type: "QUEST", title, successReward: success, failAmount: fail, cancelAmount: cancel, timeLimitSec: time, creatorDecides: s.creatorDecides, termsAgreed: true }
+          : null,
+        amount: success,
+        error,
+        summary: [
+          { label: "퀘스트", value: title || "-" },
+          { label: "실패 · 취소 금액", value: `${formatNumber(fail ?? 0)} FN · ${formatNumber(cancel ?? 0)} FN` },
+          { label: "제한 시간", value: `${s.time.minutes || "0"}분 ${s.time.seconds || "0"}초` }
+        ],
+        chatText: `🏆 퀘스트: ${title}`,
+        buttonLabel: `퀘스트 ${formatNumber(success ?? 0)} FN 후원하기`
+      };
+    }
+    case "DRAWING": {
+      const s = states.DRAWING;
+      const amount = digits(s.amount);
+      const tooSmall = amount !== null && amount < catalog.game.minAmount;
+      const title = s.title.trim();
+      return {
+        details:
+          amount !== null && !tooSmall && title && s.image && s.terms
+            ? { type: "DRAWING", amount, title, image: s.image, showProcess: s.showProcess, canvasMode: s.canvasMode, termsAgreed: true }
+            : null,
+        amount,
+        error: tooSmall ? `최소 ${formatNumber(catalog.game.minAmount)} FN부터 후원할 수 있어요` : null,
+        summary: [{ label: "그림 제목", value: title || "-" }],
+        chatText: `🎨 ${title}`,
+        buttonLabel: `그림 후원 ${formatNumber(amount ?? 0)} FN 보내기`
+      };
+    }
+    case "QUIZ_CHOICE": {
+      const s = states.QUIZ_CHOICE;
+      const q = quizDraft(s, catalog, "객관식 퀴즈");
+      const question = s.question.trim();
+      const options = s.options.map((o) => o.trim());
+      const ok = question && options.every(Boolean) && q.ready;
+      return {
+        details: ok ? { type: "QUIZ_CHOICE", question, options, correctIndex: s.correctIndex, ...q.rewards } : null,
+        amount: q.amount,
+        error: q.error,
+        summary: [
+          { label: "문제", value: question || "-" },
+          { label: "정답", value: options[s.correctIndex] || "-" },
+          ...q.summaryRows
+        ],
+        chatText: `☷ 객관식 퀴즈: ${question}`,
+        buttonLabel: q.buttonLabel
+      };
+    }
+    case "QUIZ_INITIAL": {
+      const s = states.QUIZ_INITIAL;
+      const q = quizDraft(s, catalog, "초성 퀴즈");
+      const question = s.question.trim();
+      const answer = s.answer.trim();
+      return {
+        details: question && answer && q.ready ? { type: "QUIZ_INITIAL", question, answer, hint: s.hint.trim(), ...q.rewards } : null,
+        amount: q.amount,
+        error: q.error,
+        summary: [{ label: "문제", value: question || "-" }, { label: "정답 · 힌트", value: `${answer || "-"} · ${s.hint.trim() || "없음"}` }, ...q.summaryRows],
+        chatText: `ㄱ 초성 퀴즈: ${question}`,
+        buttonLabel: q.buttonLabel
+      };
+    }
+    case "QUIZ_DRAWING": {
+      const s = states.QUIZ_DRAWING;
+      const q = quizDraft(s, catalog, "그림 퀴즈");
+      const question = s.question.trim();
+      const answer = s.answer.trim();
+      return {
+        details: question && answer && s.image && q.ready ? { type: "QUIZ_DRAWING", image: s.image, question, answer, ...q.rewards } : null,
+        amount: q.amount,
+        error: q.error,
+        summary: [{ label: "문제", value: question || "-" }, { label: "정답", value: answer || "-" }, ...q.summaryRows],
+        chatText: `✎ 그림 퀴즈: ${question}`,
+        buttonLabel: q.buttonLabel
+      };
+    }
   }
 }
 
-const FORM_KEYS: Record<FormKey, true> = { TEXT: true, MINI: true, VIDEO: true, SIGNATURE: true, WISHLIST: true, LUCKYBOX: true };
+const FORM_KEYS: Record<FormKey, true> = {
+  TEXT: true,
+  MINI: true,
+  VIDEO: true,
+  SIGNATURE: true,
+  WISHLIST: true,
+  LUCKYBOX: true,
+  ROULETTE: true,
+  QUEST: true,
+  DRAWING: true,
+  QUIZ_CHOICE: true,
+  QUIZ_INITIAL: true,
+  QUIZ_DRAWING: true
+};
 
 export const isFormKey = (key: DonationTypeKey): key is FormKey => key in FORM_KEYS;
