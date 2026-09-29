@@ -1,5 +1,5 @@
 import { USE_MOCK, mockDelay } from "@/lib/mock";
-import { getSession } from "@/lib/session";
+import { getCreatorSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
 import { mockCreator } from "./mockCreatorStore";
 
@@ -76,7 +76,7 @@ export const parseRankingPeriod = (v: string | undefined): RankingPeriod =>
 
 export async function getCreatorRanking(input: { type: RankingType; period: RankingPeriod; query?: string; page?: number }): Promise<CreatorRanking | null> {
   if (!USE_MOCK) throw new Error("Creator ranking API is not connected yet.");
-  if (!(await getSession())) return null;
+  if (!(await getCreatorSession())) return null;
   await mockDelay(300);
 
   const query = (input.query ?? "").trim().slice(0, RANKING_QUERY_MAX);

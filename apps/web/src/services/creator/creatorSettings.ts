@@ -1,7 +1,7 @@
 "use server";
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
-import { getSession } from "@/lib/session";
+import { getCreatorSession } from "@/lib/session";
 import { PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES } from "@/lib/validation";
 import { MOCK_FORBIDDEN_WORDS, mockAccount } from "@/services/account/mockStore";
 import {
@@ -36,7 +36,7 @@ const isIsoDate = (v: unknown): v is string => typeof v === "string" && /^\d{4}-
 
 export async function getCreatorSettings(): Promise<CreatorSettings | null> {
   assertMock();
-  if (!(await getSession())) return null;
+  if (!(await getCreatorSession())) return null;
   await mockDelay(300);
   const c = mockCreator;
   return {
@@ -66,7 +66,7 @@ export async function getCreatorSettings(): Promise<CreatorSettings | null> {
 
 export async function setLiveProfileVisible(visible: unknown): Promise<SaveResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (typeof visible !== "boolean") return { status: "INVALID" };
   await mockDelay(300);
   mockCreator.liveProfileVisible = visible;
@@ -75,7 +75,7 @@ export async function setLiveProfileVisible(visible: unknown): Promise<SaveResul
 
 export async function setCreatorLanguages(languages: unknown): Promise<SaveResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const keys = CREATOR_LANGUAGES.map((l) => l.key) as string[];
   if (!Array.isArray(languages) || languages.length === 0 || !languages.every((l) => keys.includes(l))) {
     return { status: "INVALID", message: "언어를 1개 이상 선택해 주세요." };
@@ -87,7 +87,7 @@ export async function setCreatorLanguages(languages: unknown): Promise<SaveResul
 
 export async function setMainPlatform(platform: unknown): Promise<SaveResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (!MAIN_PLATFORMS.some((p) => p.key === platform)) return { status: "INVALID" };
   await mockDelay(300);
   mockCreator.mainPlatform = platform as typeof mockCreator.mainPlatform;
@@ -96,7 +96,7 @@ export async function setMainPlatform(platform: unknown): Promise<SaveResult> {
 
 export async function saveSnsLinks(links: unknown): Promise<SaveResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (!Array.isArray(links) || links.length !== SNS_KINDS.length) return { status: "INVALID" };
   const parsed = links.map((l) => (typeof l === "object" && l !== null ? (l as { kind?: unknown; url?: unknown }) : {}));
   const kindsOk = parsed.every((l) => SNS_KINDS.some((k) => k.key === l.kind));
@@ -113,14 +113,14 @@ export async function saveSnsLinks(links: unknown): Promise<SaveResult> {
 /** Full key, only for the explicit 복사 action. */
 export async function revealIntegrationKey(): Promise<{ status: "OK"; key: string } | { status: "UNAUTHORIZED" }> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   return { status: "OK", key: mockCreator.integrationKey };
 }
 
 /** Invalidates the previous key immediately (315:646 warning copy). */
 export async function reissueIntegrationKey(): Promise<{ status: "REISSUED"; masked: string } | { status: "UNAUTHORIZED" }> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   await mockDelay(500);
   mockCreator.integrationKey = newIntegrationKey();
   // TODO: the backend must also revoke integrations that used the old key and audit the change.
@@ -131,7 +131,7 @@ export async function reissueIntegrationKey(): Promise<{ status: "REISSUED"; mas
 
 export async function changeChannelName(name: unknown): Promise<SaveResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (typeof name !== "string" || !isValidChannelName(name)) {
     return { status: "INVALID", message: "2~20자의 한글, 영문, 숫자, 공백, _만 사용할 수 있어요." };
   }
@@ -143,7 +143,7 @@ export async function changeChannelName(name: unknown): Promise<SaveResult> {
 
 export async function saveCreatorProfile(input: unknown): Promise<SaveResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (typeof input !== "object" || input === null) return { status: "INVALID" };
   const v = input as Record<string, unknown>;
   if (!isIsoDate(v.birthday) || !isIsoDate(v.debutDate)) return { status: "INVALID", message: "날짜를 확인해 주세요." };
@@ -185,7 +185,7 @@ export type ImageUploadResult = { status: "UPLOADED"; url: string } | { status: 
 /** Uploads one of the three profile images (slot 0 is 대표). Same file rules as my page (745:52 · 745:98). */
 export async function uploadCreatorImage(formData: FormData): Promise<ImageUploadResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const slot = Number(formData.get("slot"));
   const file = formData.get("image");
   if (!Number.isInteger(slot) || slot < 0 || slot >= MAX_PROFILE_IMAGES || !(file instanceof File)) return { status: "FAILED" };

@@ -1,7 +1,7 @@
 "use server";
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
-import { getSession } from "@/lib/session";
+import { getCreatorSession } from "@/lib/session";
 import { PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES } from "@/lib/validation";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import {
@@ -73,14 +73,14 @@ const assertMock = () => {
 
 export async function getDonationPageSettings(): Promise<DonationPageSettings | null> {
   assertMock();
-  if (!(await getSession())) return null;
+  if (!(await getCreatorSession())) return null;
   await mockDelay(250);
   return { donateUrlBase: DONATE_BASE, slug: mockCreator.handle, ...structuredClone(store) };
 }
 
 export async function checkDonationSlug(slug: unknown): Promise<SlugCheckResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (typeof slug !== "string" || !isValidSlug(slug)) return { status: "INVALID", message: "3~20자의 영문 소문자, 숫자, _만 사용할 수 있어요." };
   await mockDelay(300);
   if (slug === mockCreator.handle) return { status: "SAME" };
@@ -100,7 +100,7 @@ export async function changeDonationSlug(slug: unknown): Promise<ManagementSaveR
 
 export async function saveOneLineMessage(message: unknown): Promise<ManagementSaveResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (typeof message !== "string" || message.trim().length > ONE_LINE_MESSAGE_MAX) return { status: "INVALID", message: `한 줄 메시지는 ${ONE_LINE_MESSAGE_MAX}자 이내로 입력해 주세요.` };
   if (MOCK_FORBIDDEN_WORDS.some((w) => message.toLowerCase().includes(w))) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
   await mockDelay(300);
@@ -110,7 +110,7 @@ export async function saveOneLineMessage(message: unknown): Promise<ManagementSa
 
 export async function setPageOption(key: unknown, value: unknown): Promise<ManagementSaveResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (!PAGE_OPTIONS.some((o) => o.key === key) || typeof value !== "boolean") return { status: "INVALID", message: "설정 값을 확인해 주세요." };
   await mockDelay(250);
   store.options[key as PageOptionKey] = value;
@@ -119,7 +119,7 @@ export async function setPageOption(key: unknown, value: unknown): Promise<Manag
 
 export async function setReplacementTarget(target: unknown, value: unknown): Promise<ManagementSaveResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if ((target !== "nickname" && target !== "text") || typeof value !== "boolean") return { status: "INVALID", message: "설정 값을 확인해 주세요." };
   await mockDelay(250);
   if (target === "nickname") store.replacement.applyToNickname = value;
@@ -129,7 +129,7 @@ export async function setReplacementTarget(target: unknown, value: unknown): Pro
 
 export async function addBannedWord(word: unknown): Promise<ManagementSaveResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const w = typeof word === "string" ? word.trim() : "";
   if (w.length < 1 || w.length > BANNED_WORD_MAX) return { status: "INVALID", message: `금지어는 1~${BANNED_WORD_MAX}자로 입력해 주세요.` };
   if (store.replacement.bannedWords.includes(w)) return { status: "INVALID", message: "이미 등록된 금지어입니다." };
@@ -142,7 +142,7 @@ export async function addBannedWord(word: unknown): Promise<ManagementSaveResult
 /** Idempotent: removing a word that is already gone is not an error. */
 export async function removeBannedWord(word: unknown): Promise<ManagementSaveResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   await mockDelay(200);
   store.replacement.bannedWords = store.replacement.bannedWords.filter((w) => w !== word);
   return { status: "SAVED" };
@@ -150,7 +150,7 @@ export async function removeBannedWord(word: unknown): Promise<ManagementSaveRes
 
 export async function saveReplacementMessage(message: unknown): Promise<ManagementSaveResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (typeof message !== "string" || message.trim().length > REPLACEMENT_MESSAGE_MAX) {
     return { status: "INVALID", message: `대체 메시지는 ${REPLACEMENT_MESSAGE_MAX}자 이내로 입력해 주세요.` };
   }
@@ -198,7 +198,7 @@ function mockQuestDonations(): ReceivedDonation[] {
 
 export async function getReceivedDonations(input: { kind: ListKind; period: ListPeriod; status: StatusFilter; query: string; page: number }): Promise<ReceivedDonationPage | null> {
   assertMock();
-  if (!(await getSession())) return null;
+  if (!(await getCreatorSession())) return null;
   await mockDelay(300);
   const kind = LIST_KINDS.some((k) => k.key === input.kind) ? input.kind : "quest";
   const status: StatusFilter = input.status === "ALL" || QUEST_STATUSES.some((s) => s.key === input.status) ? input.status : "ALL";
@@ -250,7 +250,7 @@ const RANK_SCALE: Record<RankPeriod, number> = { day: 0.04, week: 0.2, month: 0.
 
 export async function getDonorRanking(period: RankPeriod): Promise<DonorRanking | null> {
   assertMock();
-  if (!(await getSession())) return null;
+  if (!(await getCreatorSession())) return null;
   await mockDelay(300);
   const p = RANK_PERIODS.some((x) => x.key === period) ? period : "month";
   const scale = RANK_SCALE[p];
@@ -300,14 +300,14 @@ const filters = (globalForFilters.__funationMockDonationFilters ??= {
 
 export async function getFilterSettings(): Promise<FilterSettings | null> {
   assertMock();
-  if (!(await getSession())) return null;
+  if (!(await getCreatorSession())) return null;
   await mockDelay(250);
   return structuredClone(filters.settings);
 }
 
 export async function setFilterStrength(strength: unknown): Promise<ManagementSaveResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (!FILTER_STRENGTHS.some((s) => s.key === strength)) return { status: "INVALID", message: "필터 강도를 선택해 주세요." };
   await mockDelay(250);
   filters.settings.strength = strength as FilterStrength;
@@ -316,7 +316,7 @@ export async function setFilterStrength(strength: unknown): Promise<ManagementSa
 
 export async function setSpamBlock(on: unknown): Promise<ManagementSaveResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (typeof on !== "boolean") return { status: "INVALID", message: "설정 값을 확인해 주세요." };
   await mockDelay(250);
   filters.settings.blockSpam = on;
@@ -325,7 +325,7 @@ export async function setSpamBlock(on: unknown): Promise<ManagementSaveResult> {
 
 export async function addFilterWord(word: unknown): Promise<ManagementSaveResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const w = typeof word === "string" ? word.trim() : "";
   if (w.length < 1 || w.length > FILTER_WORD_MAX) return { status: "INVALID", message: `단어는 1~${FILTER_WORD_MAX}자로 입력해 주세요.` };
   if (filters.settings.words.includes(w)) return { status: "INVALID", message: "이미 등록된 단어입니다." };
@@ -338,7 +338,7 @@ export async function addFilterWord(word: unknown): Promise<ManagementSaveResult
 /** Idempotent. */
 export async function removeFilterWord(word: unknown): Promise<ManagementSaveResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   await mockDelay(200);
   filters.settings.words = filters.settings.words.filter((w) => w !== word);
   return { status: "SAVED" };
@@ -346,7 +346,7 @@ export async function removeFilterWord(word: unknown): Promise<ManagementSaveRes
 
 export async function getBlockedDonors(input: { query: string; page: number }): Promise<BlockedDonorPage | null> {
   assertMock();
-  if (!(await getSession())) return null;
+  if (!(await getCreatorSession())) return null;
   await mockDelay(250);
   const query = input.query.trim().slice(0, LIST_QUERY_MAX);
   const q = query.toLowerCase();
@@ -359,7 +359,7 @@ export async function getBlockedDonors(input: { query: string; page: number }): 
 /** 해제. Idempotent: unblocking someone who is not blocked is not an error. TODO: audit log on the backend. */
 export async function unblockDonor(id: unknown): Promise<ManagementSaveResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   await mockDelay(300);
   filters.blocked = filters.blocked.filter((b) => b.id !== id);
   return { status: "SAVED" };
@@ -369,7 +369,7 @@ export async function unblockDonor(id: unknown): Promise<ManagementSaveResult> {
 
 export async function getTitleTiers(): Promise<TitleTier[] | null> {
   assertMock();
-  if (!(await getSession())) return null;
+  if (!(await getCreatorSession())) return null;
   await mockDelay(250);
   return structuredClone(filters.titles);
 }
@@ -378,7 +378,7 @@ const findTier = (threshold: unknown) => filters.titles.find((t) => t.threshold 
 
 export async function setTitleEnabled(threshold: unknown, enabled: unknown): Promise<TitleSaveResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const tier = findTier(threshold);
   if (!tier || typeof enabled !== "boolean") return { status: "INVALID", message: "칭호 정보를 확인해 주세요." };
   if (enabled && !tier.name) return { status: "INVALID", message: "칭호명을 먼저 설정해 주세요." };
@@ -390,7 +390,7 @@ export async function setTitleEnabled(threshold: unknown, enabled: unknown): Pro
 /** FormData: threshold, name, description, color, optional icon (image), removeIcon ("1"). */
 export async function saveTitleTier(formData: FormData): Promise<TitleSaveResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const tier = findTier(Number(formData.get("threshold")));
   if (!tier) return { status: "INVALID", message: "칭호 정보를 확인해 주세요." };
   const name = String(formData.get("name") ?? "").trim();

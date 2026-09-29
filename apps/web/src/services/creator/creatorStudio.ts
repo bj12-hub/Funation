@@ -1,5 +1,5 @@
 import { USE_MOCK, mockDelay } from "@/lib/mock";
-import { getSession } from "@/lib/session";
+import { getCreatorSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
 import { mockCreator } from "./mockCreatorStore";
 import type { Platform } from "@/types/platform";
@@ -42,7 +42,7 @@ export type CreatorDashboard = {
 
 export async function getCreatorProfile(): Promise<CreatorProfile | null> {
   if (!USE_MOCK) throw new Error("Creator API is not connected yet.");
-  if (!(await getSession())) return null;
+  if (!(await getCreatorSession())) return null;
   return {
     channelName: mockCreator.channelName,
     handle: mockCreator.handle,
@@ -56,7 +56,7 @@ export async function getCreatorProfile(): Promise<CreatorProfile | null> {
 
 export async function getCreatorDashboard(period: StatsPeriod): Promise<CreatorDashboard | null> {
   if (!USE_MOCK) throw new Error("Creator API is not connected yet.");
-  if (!(await getSession())) return null;
+  if (!(await getCreatorSession())) return null;
   await mockDelay(300);
 
   const days = eachDay(period.from, period.to);

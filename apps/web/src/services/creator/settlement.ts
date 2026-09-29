@@ -1,7 +1,7 @@
 "use server";
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
-import { getSession } from "@/lib/session";
+import { getCreatorSession } from "@/lib/session";
 import { mockSettlement, newSettlementCode } from "./mockSettlementStore";
 import {
   BANKS,
@@ -36,7 +36,7 @@ const assertMock = () => {
 
 export async function getSettlementOverview(): Promise<SettlementOverview | null> {
   assertMock();
-  if (!(await getSession())) return null;
+  if (!(await getCreatorSession())) return null;
   await mockDelay(200);
   const r = mockSettlement.registration;
   return {
@@ -51,7 +51,7 @@ export async function getSettlementOverview(): Promise<SettlementOverview | null
 /** Required consents of 429:162 — all four must be agreed. */
 export async function acceptSettlementTerms(input: unknown): Promise<TermsResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (typeof input !== "object" || input === null) return { status: "INVALID" };
   const v = input as { memberType?: unknown; agreed?: unknown };
   if (!isMemberType(v.memberType)) return { status: "INVALID", message: "회원 유형을 선택해 주세요." };
@@ -70,7 +70,7 @@ export async function acceptSettlementTerms(input: unknown): Promise<TermsResult
  */
 export async function submitOverseasAnswers(answers: unknown): Promise<OverseasResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (!Array.isArray(answers) || answers.length !== OVERSEAS_QUESTIONS.length || !answers.every((a) => typeof a === "boolean")) {
     return { status: "INVALID", message: "모든 질문에 답해 주세요." };
   }
@@ -191,7 +191,7 @@ const maskAccount = (no: string) => `${"*".repeat(Math.max(0, no.length - 4))}${
  */
 export async function registerSettlement(formData: FormData): Promise<RegistrationResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const type = formData.get("memberType");
   if (!isMemberType(type)) return { status: "INVALID", message: "회원 유형을 확인해 주세요." };
   if (mockSettlement.terms?.memberType !== type) return { status: "NO_TERMS" };
@@ -228,6 +228,6 @@ export async function registerSettlement(formData: FormData): Promise<Registrati
 /** Whether the 이용동의 step was completed for this member type (the form page requires it). */
 export async function hasAcceptedSettlementTerms(memberType: unknown): Promise<boolean> {
   assertMock();
-  if (!(await getSession())) return false;
+  if (!(await getCreatorSession())) return false;
   return isMemberType(memberType) && mockSettlement.terms?.memberType === memberType;
 }

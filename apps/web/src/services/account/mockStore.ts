@@ -1,3 +1,4 @@
+import type { Role } from "@/types/role";
 import type { MyAccount } from "./myAccount";
 
 /**
@@ -14,7 +15,7 @@ type MockState = {
   credentials: { password: string; recentPasswords: string[]; changedAt: string };
   changeHistory: { nicknameChangedAt: Date | null; funationIdChangedAt: Date | null };
   /** Server-side revocation (e.g. after a password change); cleared on the next login. */
-  session: { revoked: boolean };
+  session: { revoked: boolean; roles?: Role[] };
 };
 
 // Bump the key when the state shape changes so a running dev server starts from fresh data.
@@ -45,7 +46,7 @@ const state = (globalForMock.__funationMockStateV3 ??= {
   // Changed 7 months ago so the 비밀번호 변경 권유 screen (718:335) shows after login.
   credentials: { password: "password", recentPasswords: ["password"], changedAt: new Date(Date.now() - 210 * 86_400_000).toISOString() },
   changeHistory: { nicknameChangedAt: null, funationIdChangedAt: null },
-  session: { revoked: false }
+  session: { revoked: false, roles: ["SUPPORTER", "CREATOR"] }
 });
 
 export const mockAccount = state.account;
