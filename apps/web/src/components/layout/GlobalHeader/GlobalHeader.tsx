@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { RoleChooser } from "@/features/auth/login/RoleChooser";
 import { logout } from "@/services/auth/logout";
 import { LanguageMenu } from "../LanguageMenu";
 import { ProfileMenu } from "./ProfileMenu";
@@ -108,9 +109,8 @@ export function GlobalHeader({ user, showMenuButton = true, onMenuClick }: Globa
         {user ? (
           <ProfileMenu user={user} />
         ) : (
-          <Link href="/login" className={styles.loginButton}>
-            로그인
-          </Link>
+          // Figma 280:2: the guest login button opens the 로그인/회원가입 role chooser.
+          <RoleChooser className={styles.loginButton} />
         )}
       </div>
 
