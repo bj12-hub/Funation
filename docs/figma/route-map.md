@@ -4,7 +4,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 
 | Route | Status | Figma frames |
 |---|---|---|
-| `/` | ✅ | funation-videos-page 727:2742 |
+| `/` | ✅ | funation-videos-page 727:2742 · popups 709:2 / 688:646 · 200:115 · 200:223 |
 | `/login` | ✅ | 13:7 · 718:123 · 718:168 · 718:213 · `/login/password-change` 718:335 (비밀번호 변경 권유, the login action redirects here when the password is old) — `?role=` from 280:2 is passed through (TBD) |
 | `/signup` | ✅ | 280:56 · 13:63 · 722:473 · 722:536 · 722:599 · 45:39 · 722:692–722:1059 · 723:183 |
 | `/password-reset` | ✅ | 13:179 · 718:626 · 718:582 · 720:18 · 720:60 · 720:103 · 718:244 |
@@ -38,7 +38,8 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | Signup complete | 로그인 페이지로 이동 · 간편 로그인 연동하러 가기 | `/login` · `/mypage` |
 | Password reset | 로그인으로 돌아가기 | `/login` |
 | Home | 히어로 바로 시청하기 · 지금 뜨는 영상 · 랭킹 · 현재 라이브 방송 | `/live` (live detail route pending) |
-| Home | 인기 크리에이터 | `/creators/[id]` |
+| Home | 인기 크리에이터 | 크리에이터 프로필 popup 688:646 → 후원하기 `/creators/[id]?tab=donation` |
+| Home | 첫 방문 공지 | notice carousel 200:115 · 200:223 (오늘 하루 열지 않음 · 닫기) |
 | Home | 인기 크리에이터 전체보기 | `/creators` |
 | Home | 보관함에 저장 · 이벤트 배너 지금 참여하기 | not wired — destination TBD |
 | Footer | 이용약관 · 개인정보처리방침 · 청소년보호정책 · 운영정책 | `/terms/{service,privacy,youth,operation}` |

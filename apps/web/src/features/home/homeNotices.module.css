@@ -1,0 +1,472 @@
+/* Home arrival notices — Figma 200:115 (white card) · 200:223 (warning card). Cards 520 wide. */
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* The dialog itself is transparent: arrows sit outside the card. */
+.dialog {
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dialog::backdrop {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+}
+
+.dialog > div {
+  padding: 0;
+}
+
+.stage {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.arrow {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--radius-pill);
+  background: #1a1a35;
+  color: var(--color-text-on-accent);
+  font-size: 24px;
+}
+
+.card {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 560px;
+  overflow: hidden;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
+}
+
+.light {
+  border-radius: 24px;
+  background: var(--color-bg-light);
+}
+
+.warning {
+  border: 1.5px solid rgba(255, 59, 48, 0.4);
+  border-radius: var(--radius-16);
+  background: var(--color-notice-dark-card);
+}
+
+/* Dots + bottom bar */
+
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: auto;
+  padding: 16px 0;
+}
+
+.dot,
+.dotOn {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: #d4d4de;
+}
+
+.dotOn {
+  width: 22px;
+  background: var(--color-notice-ink);
+}
+
+.warning .dot {
+  background: #3a3a55;
+}
+
+.warning .dotOn {
+  background: var(--color-text-on-accent);
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 50px;
+  padding: 0 24px;
+  background: var(--color-notice-bar-bg);
+}
+
+.hideToday {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-notice-check-label);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+.hideToday input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--color-notice-check-border);
+  border-radius: var(--radius-4);
+  background: var(--color-notice-dark-card);
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-11);
+}
+
+.hideToday input:focus-visible + .box {
+  outline: 2px solid var(--color-primary-light);
+  outline-offset: 2px;
+}
+
+.closeText {
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* ── ID 연결 안내 (200:157) ── */
+
+.lightBody {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 24px 28px 0;
+  text-align: center;
+}
+
+.lightHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  align-self: stretch;
+}
+
+.miniBrand {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-notice-ink);
+  font-family: var(--font-latin);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.miniBrand span {
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-4);
+  background: var(--color-notice-blue);
+}
+
+.noticeLabel {
+  color: var(--color-notice-muted);
+  font-family: var(--font-latin);
+  font-size: var(--font-size-11);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.04em;
+}
+
+.badge {
+  padding: 4px 10px;
+  border-radius: var(--radius-12);
+  background: #f0f4ff;
+  color: var(--color-notice-blue);
+  font-family: var(--font-latin);
+  font-size: var(--font-size-11);
+  font-weight: var(--font-weight-bold);
+}
+
+.lightTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  color: var(--color-notice-ink);
+  font-size: var(--font-size-28);
+  font-weight: var(--font-weight-extrabold);
+  line-height: 1.2;
+}
+
+.lightTitle span {
+  color: var(--color-notice-blue);
+}
+
+.illustration {
+  position: relative;
+  width: 100%;
+  max-width: 464px;
+  height: 220px;
+}
+
+.laptop {
+  position: absolute;
+  top: 30px;
+  left: 50%;
+  width: 240px;
+  transform: translateX(-50%);
+}
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  height: 140px;
+  padding: 22px 30px;
+  border: 10px solid #2e2e3a;
+  border-radius: var(--radius-12) var(--radius-12) 0 0;
+  background: var(--color-bg-light);
+}
+
+.screenLogo {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-8);
+  background: var(--color-notice-blue);
+}
+
+.screenLine {
+  width: 100%;
+  height: 10px;
+  border-radius: 5px;
+  background: #ececf2;
+}
+
+.screenButton {
+  width: 100%;
+  height: 14px;
+  border-radius: 7px;
+  background: var(--color-notice-blue);
+}
+
+.base {
+  width: 280px;
+  height: 14px;
+  margin-left: -20px;
+  border-radius: 0 0 12px 12px;
+  background: linear-gradient(#8e8e9f, #b8b8c7);
+}
+
+.bubble {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-light);
+  box-shadow: 0 6px 6px rgba(0, 0, 0, 0.15);
+}
+
+.bubble img {
+  border-radius: var(--radius-8);
+}
+
+.bubble0 {
+  top: 12px;
+  left: 44px;
+}
+
+.bubble1 {
+  top: 100px;
+  right: 30px;
+}
+
+.bubble2 {
+  bottom: 18px;
+  left: 70px;
+}
+
+/* ── 사칭/사기 주의 (200:274) ── */
+
+.warningBody {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 24px 32px 0;
+  text-align: center;
+}
+
+.warningHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  align-self: stretch;
+}
+
+.wordmark {
+  color: var(--color-text-on-accent);
+  font-family: var(--font-latin);
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-black);
+}
+
+.wordmark span {
+  color: #8a5cf5;
+}
+
+.tag {
+  padding: 4px 8px;
+  border-radius: var(--radius-4);
+  background: rgba(255, 59, 48, 0.13);
+  color: var(--color-notice-red);
+  font-size: var(--font-size-10);
+  font-weight: var(--font-weight-bold);
+}
+
+.warningIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 204, 0, 0.1);
+}
+
+.warningIcon svg {
+  width: 40px;
+  height: 40px;
+}
+
+.warningIcon svg path {
+  stroke: #ffcc00;
+}
+
+.warningTitle {
+  margin: 0;
+  max-width: 300px;
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-extrabold);
+  line-height: 34px;
+}
+
+.paragraphs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.paragraphs p {
+  margin: 0;
+  color: var(--color-notice-body);
+  font-size: var(--font-size-14);
+  line-height: 20px;
+}
+
+.paragraphs .emphasis {
+  color: var(--color-text-on-accent);
+  font-weight: var(--font-weight-bold);
+}
+
+.callout {
+  margin: 0;
+  padding: 12px;
+  border: 1px solid rgba(255, 59, 48, 0.2);
+  border-radius: var(--radius-8);
+  background: rgba(255, 59, 48, 0.07);
+  color: #ff453a;
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-semibold);
+  line-height: 18px;
+}
+
+.bullets {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-self: stretch;
+  margin: 0;
+  padding: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-12);
+  background: #10101e;
+  list-style: none;
+  text-align: left;
+}
+
+.bullets li {
+  display: flex;
+  gap: 8px;
+  color: var(--color-notice-body);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-medium);
+  line-height: 18px;
+}
+
+.bullets li::before {
+  content: "•";
+  color: var(--color-notice-red);
+}
+
+@media (max-width: 640px) {
+  .stage {
+    gap: 8px;
+  }
+
+  .arrow {
+    width: 36px;
+    height: 36px;
+    font-size: var(--font-size-18);
+  }
+
+  .card {
+    min-height: 0;
+  }
+
+  .lightBody,
+  .warningBody {
+    padding: 20px 16px 0;
+  }
+
+  .lightTitle {
+    font-size: var(--font-size-20);
+  }
+
+  .illustration {
+    height: 180px;
+    transform: scale(0.85);
+  }
+
+  .warningTitle {
+    font-size: var(--font-size-18);
+    line-height: 26px;
+  }
+
+  .bar {
+    padding: 0 16px;
+  }
+
+  .hideToday,
+  .closeText {
+    font-size: var(--font-size-12);
+  }
+}
