@@ -150,6 +150,9 @@
   --color-popup-footer-bg: #0e0e1d;
   --color-card-on-bg: #24172e;
   --shadow-popup: 0 24px 60px 4px rgba(0, 0, 0, 0.6);
+  --color-lucky-emerald: #22c55e;
+  --color-lucky-emerald-bg: #123d2c;
+  --color-lucky-royal-bg: #4a3510;
 
   /* ── Status ───────────────────────────────────────────── */
   --color-success: #10b981;

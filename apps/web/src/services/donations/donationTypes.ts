@@ -19,7 +19,9 @@ export type DonationDetails =
       termsAgreed: boolean;
     }
   | { type: "SIGNATURE"; signatureId: string; message: string }
-  | { type: "WISHLIST"; itemId: string; message: string; voiceId: string | null };
+  | { type: "WISHLIST"; itemId: string; message: string; voiceId: string | null }
+  /** The draw itself happens on the server after the debit (TBD). */
+  | { type: "LUCKYBOX"; amount: number; boxCount: number; winnerCount: number; termsAgreed: boolean };
 
 export type DonationRequest = DonationDetails & {
   creatorId: string;
