@@ -142,7 +142,7 @@ The studio header follows the funnation studio: logo + **스튜디오** badge on
 | 채널 | 채널 설정 `/creator/settings` · 후원 페이지 설정 `?tab=settings` · 칭호 관리 `?tab=titles` · 유튜브 연동 (TBD) · 영상 목록 (TBD) | 채널 설정 · 유튜브 연동 · 영상 목록 · 칭호 관리 |
 | 방송 | 위젯 · 방송 도구 · 오버레이 주소 · 이미지·사운드 (TBD) · 리모컨 | 위젯 · 오버레이 주소 · 이미지·사운드 · 리모컨 |
 | 크루 방송 | 크루 관리 · 방송 운영 | 엑셀방송 · 엑셀콘 |
-| 수익 | 받은 후원 `?tab=list` · 후원 순위 `?tab=ranking` · 후원 필터링 `?tab=filtering` · 크리에이터 랭킹 | 현황 · 받은 후원 |
+| 수익 | 수익 현황 `/creator/revenue` · 받은 후원 `?tab=list` · 후원 순위 `?tab=ranking` · 후원 필터링 `?tab=filtering` · 크리에이터 랭킹 | 현황 · 받은 후원 |
 | 정산 | 정산 현황 · 정산 인증·등록 · 정산 신청 · 정산 관리 | 정산 인증 · 정산 신청 |
 | (소식) | 소식 `/creator/updates` | 소식 |
 
@@ -161,6 +161,19 @@ The top cards follow the funnation dashboard. They are laid out in two columns, 
 | 소식 · 전체 › | 업데이트 소식 card |
 
 The Figma sections stay below the cards: 이벤트 / 크리애드 banners, 후원 통계 (period filter + chart), and 최근 후원 내역 + ranking tabs.
+
+The 누적 value now sums the whole period since the channel debut. Before, the stats day helper capped it at 366 days.
+
+### 수익 현황 (`/creator/revenue`)
+
+This follows the funnation 수익 대시보드. The server computes every value (`getRevenueOverview`).
+
+- **Header:** title with a **정산 요청** button.
+- **Tiles:** 총 수익 (전체 기간) · 미정산 (정산 가능 FN) · 오늘 후원 (₩, 건수) · 이번 달.
+- **Trends:** 일별 후원 추이 (last 30 days) and 월별 수익 추이 (last 6 months).
+- **상위 후원자.**
+- **바로가기:** 받은 후원, 정산 현황, 정산 요청.
+- **TBD:** 수익원별 상세 (per donation type or store) needs per-type revenue data.
 
 TBD:
 
