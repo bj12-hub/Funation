@@ -207,6 +207,17 @@
   --color-settlement-popup-box: #2a2a3c;
   --color-settlement-done-bg: rgba(34, 197, 94, 0.15);
 
+  /* ── Platform donation (817:9017 · 817:8317 · 817:9618) ── */
+  --color-platform-live: #fb7185;
+  --color-platform-live-bg: rgba(251, 113, 133, 0.13);
+  --color-platform-offline: #68687a;
+  --color-platform-offline-bg: rgba(104, 104, 122, 0.13);
+  --color-platform-selected-bg: rgba(139, 92, 246, 0.09);
+  --color-platform-alert-bg: rgba(239, 68, 68, 0.09);
+  --color-platform-alert-border: rgba(239, 68, 68, 0.33);
+  --color-platform-success: #34d399;
+  --color-platform-success-bg: rgba(52, 211, 153, 0.13);
+
   /* ── Status ───────────────────────────────────────────── */
   --color-success: #10b981;
   --color-warning: #f97316;
