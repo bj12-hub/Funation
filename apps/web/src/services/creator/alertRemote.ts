@@ -133,6 +133,22 @@ export async function replayAlert(id: unknown): Promise<RemoteResult> {
   return { status: "SAVED" };
 }
 
+/** TTS 스킵: stops the speech on screen now (the alert itself keeps showing). */
+export async function skipTts(): Promise<RemoteResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  mockAlerts.ttsSkipSeq += 1;
+  return { status: "SAVED" };
+}
+
+/** 오버레이 새로고침: every open alert / tool overlay reloads on its next poll. */
+export async function reloadOverlays(): Promise<RemoteResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  mockAlerts.reloadSeq += 1;
+  return { status: "SAVED" };
+}
+
 /** OBS overlay read — no login; the integration key is the secret. */
 export async function getOverlayAlert(key: unknown): Promise<OverlayAlert | "FORBIDDEN"> {
   assertMock();
@@ -142,6 +158,8 @@ export async function getOverlayAlert(key: unknown): Promise<OverlayAlert | "FOR
   const showing = mockAlerts.items.find((a) => a.status === "SHOWING");
   return {
     alert: showing && mockAlerts.shownAt !== null ? { ...showing, endsAt: new Date(mockAlerts.shownAt + displaySec * 1000).toISOString() } : null,
-    controls: { muted, alertVolume, ttsVolume }
+    controls: { muted, alertVolume, ttsVolume },
+    ttsSkipSeq: mockAlerts.ttsSkipSeq,
+    reloadSeq: mockAlerts.reloadSeq
   };
 }

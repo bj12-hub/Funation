@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { formatNumber } from "@/lib/format";
 import type { OverlayAlert } from "@/services/creator/alertTypes";
 import styles from "./alertOverlay.module.css";
+import { useReloadSignal } from "./useReloadSignal";
 
 /**
  * OBS alert overlay (code-first). Transparent page that re-reads the server queue every second and
@@ -29,6 +30,16 @@ export function AlertOverlay({ data }: { data: OverlayAlert }) {
   }, [router]);
 
   const { alert, controls } = data;
+  useReloadSignal(data.reloadSeq);
+
+  // TTS 스킵 from the remote: stop speaking (the card stays until its time is up).
+  const skipSeq = useRef(data.ttsSkipSeq);
+  useEffect(() => {
+    if (data.ttsSkipSeq === skipSeq.current) return;
+    skipSeq.current = data.ttsSkipSeq;
+    if (typeof speechSynthesis !== "undefined") speechSynthesis.cancel();
+  }, [data.ttsSkipSeq]);
+
   useEffect(() => {
     if (!alert || spoken.current === alert.id) return;
     spoken.current = alert.id;

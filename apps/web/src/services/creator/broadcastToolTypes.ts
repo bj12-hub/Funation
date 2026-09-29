@@ -27,18 +27,21 @@ export type SubtitleState = { text: string; size: "S" | "M" | "L" };
 export type MarqueeState = { lines: string[]; speed: "SLOW" | "NORMAL" | "FAST" };
 /** Countdown runs from `durationSec`; the stopwatch counts up. `startedAt` null = stopped/paused. */
 export type TimerState = { mode: "COUNTDOWN" | "STOPWATCH"; durationSec: number; startedAt: string | null; elapsedBeforeSec: number };
-export type CreditsState = { title: string; thanks: string[]; includeCrew: boolean };
+/** `rollingSince` null = not rolling (overlay hidden); a new value restarts the roll. */
+export type CreditsState = { title: string; thanks: string[]; includeCrew: boolean; rollingSince: string | null };
 
 export type ToolStates = { subtitle: SubtitleState; marquee: MarqueeState; timer: TimerState; credits: CreditsState };
 
 export type ToolsView = { states: ToolStates; overlayBase: string; crew: { name: string; score: number }[] };
 
 export type TimerAction = "START" | "PAUSE" | "RESET";
+/** 퀵 조정 (seconds added to the shown time; negative subtracts). */
+export const TIMER_ADJUST_STEPS = [-60, -30, 30, 60] as const;
 
 export type ToolResult = { status: "SAVED" } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
 
 export type OverlayTool =
-  | { tool: "subtitle"; state: SubtitleState }
-  | { tool: "marquee"; state: MarqueeState }
-  | { tool: "timer"; state: TimerState; serverNow: string }
-  | { tool: "credits"; state: CreditsState; crew: { name: string; score: number }[] };
+  | { tool: "subtitle"; state: SubtitleState; reloadSeq: number }
+  | { tool: "marquee"; state: MarqueeState; reloadSeq: number }
+  | { tool: "timer"; state: TimerState; serverNow: string; reloadSeq: number }
+  | { tool: "credits"; state: CreditsState; crew: { name: string; score: number }[]; reloadSeq: number };

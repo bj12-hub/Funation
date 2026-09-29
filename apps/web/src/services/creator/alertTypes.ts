@@ -50,6 +50,8 @@ export type RemoteView = {
 export type OverlayAlert = {
   alert: (AlertItem & { endsAt: string }) | null;
   controls: Pick<AlertControls, "muted" | "alertVolume" | "ttsVolume">;
+  ttsSkipSeq: number;
+  reloadSeq: number;
 };
 
 export type RemoteResult = { status: "SAVED" } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
