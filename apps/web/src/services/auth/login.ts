@@ -1,6 +1,8 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
+import { safeRedirectPath } from "@/lib/safeRedirect";
 import { startSession } from "@/lib/session";
 import { mockCredentials } from "@/services/account/mockStore";
 
@@ -20,6 +22,8 @@ export type LoginRequest = {
   identifier: string; // email or ID
   password: string;
   keepSignedIn: boolean;
+  /** Where to go after signing in; validated here as a same-site path. */
+  next?: string;
 };
 
 export type LoginResult =
@@ -31,7 +35,13 @@ export type LoginResult =
 export async function login(request: LoginRequest): Promise<LoginResult> {
   if (!USE_MOCK) throw new Error("Login API is not connected yet.");
   const result = await devMockLogin(request);
-  if (result.status === "SUCCESS") await startSession({ keepSignedIn: request.keepSignedIn });
+  if (result.status !== "SUCCESS") return result;
+  await startSession({ keepSignedIn: request.keepSignedIn });
+  // Figma 718:335: an old password gets the change prompt first. Redirecting from the action keeps the
+  // prompt from being skipped by /login, which sends signed-in members on to `next`.
+  if (isPasswordOld()) {
+    redirect(`/login/password-change?next=${encodeURIComponent(safeRedirectPath(request.next))}`);
+  }
   return result;
 }
 
@@ -41,6 +51,13 @@ export async function login(request: LoginRequest): Promise<LoginResult> {
  * any other password              → WRONG_PASSWORD, LOCKED after 5 failures
  */
 const MAX_FAILURES = 5;
+
+/** Figma 718:335 copy says "6개월 이상"; the real rule is the backend's (TBD). */
+const PASSWORD_MAX_AGE_DAYS = 180;
+
+function isPasswordOld() {
+  return Date.now() - new Date(mockCredentials.changedAt).getTime() > PASSWORD_MAX_AGE_DAYS * 86_400_000;
+}
 const failures = new Map<string, number>();
 
 async function devMockLogin({ identifier, password }: LoginRequest): Promise<LoginResult> {

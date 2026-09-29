@@ -5,7 +5,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | Route | Status | Figma frames |
 |---|---|---|
 | `/` | ✅ | funation-videos-page 727:2742 |
-| `/login` | ✅ | 13:7 · 718:123 · 718:168 · 718:213 |
+| `/login` | ✅ | 13:7 · 718:123 · 718:168 · 718:213 · `/login/password-change` 718:335 (비밀번호 변경 권유, the login action redirects here when the password is old) — `?role=` from 280:2 is passed through (TBD) |
 | `/signup` | ✅ | 280:56 · 13:63 · 722:473 · 722:536 · 722:599 · 45:39 · 722:692–722:1059 · 723:183 |
 | `/password-reset` | ✅ | 13:179 · 718:626 · 718:582 · 720:18 · 720:60 · 720:103 · 718:244 |
 | `/live` | ✅ | funnation-all-live-page 617:316 (전체라이브) — `?category=` preselects a category |
@@ -28,7 +28,8 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 |---|---|---|
 | Header | 로고 | `/` |
 | Header | LIVE · 인기 크리에이터 · 명예의 전당 · 고객센터 | `/live` · `/creators` · `/hall-of-fame` · `/support` |
-| Header | 마이페이지 / 로그인 | `/mypage` / `/login` |
+| Header | 마이페이지 | `/mypage` |
+| Header | 로그인 (guest) | 로그인/회원가입 role chooser 280:2 → `/login?role=` (creator · donator) |
 | Header | 언어 선택 | dropdown (265:242) — i18n pending |
 | Login | 비밀번호 찾기 · 회원가입 | `/password-reset` · `/signup` |
 | Login lockout | 비밀번호 재설정으로 이동 · 고객센터 | `/password-reset` · `/support` |

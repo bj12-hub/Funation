@@ -174,3 +174,54 @@
   font-size: var(--font-size-13);
   text-align: center;
 }
+
+/* ── Password change recommendation (718:335) ── */
+.recommend {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--color-recommend-border);
+  border-radius: var(--radius-12);
+  background: var(--color-recommend-bg);
+}
+
+.recommend p {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+  line-height: 1.55;
+  text-align: center;
+}
+
+.recommendIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-pill);
+  background: var(--color-recommend-icon-bg);
+}
+
+.buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.laterButton {
+  width: 100%;
+  height: 48px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  background: var(--color-input-bg);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+}
+
+.laterButton:hover {
+  color: var(--color-text-primary);
+}
