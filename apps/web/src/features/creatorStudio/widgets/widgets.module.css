@@ -1587,7 +1587,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  aspect-ratio: 16 / 9;
+  height: 88px;
   border: 2px dashed var(--color-border-strong);
   border-radius: var(--radius-8);
   background: #16162d;
