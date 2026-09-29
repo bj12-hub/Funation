@@ -19,7 +19,8 @@ How screens have been built so far, so a new Claude session (or account) can con
 2. Extract the spec (frame ids, copy, states, sample data), then implement:
    - route in `apps/web/src/app/...`, UI in `src/features/...`, data in `src/services/...`
    - update `docs/figma/route-map.md` (route table + link wiring)
-3. `npx tsc --noEmit -p apps/web` and `npx eslint` on the touched folders.
+3. `npx tsc --noEmit -p apps/web`, `npx eslint` on the touched folders and `npm run test:web` (Vitest).
+   Financial / idempotency / role logic gets a `*.test.ts` next to the service (helpers in `src/test/mockEnv.ts`).
 4. Commit with prefix `feat:` / `fix:` / `docs:` and the co-author trailer.
 5. Verify on the isolated test server (§4) — desktop 1440 and mobile 375, no horizontal scroll.
 6. Push the branch, open the PR (§3), then merge:
