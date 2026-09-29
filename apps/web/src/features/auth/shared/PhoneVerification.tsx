@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { useCountdown } from "@/hooks/useCountdown";
 import { formatPhone, isValidPhone } from "@/lib/validation";
-import { CODE_LENGTH, CODE_TTL_SECONDS, sendPhoneCode, verifyPhoneCode } from "@/services/auth/verification";
+import { sendPhoneCode, verifyPhoneCode } from "@/services/auth/verification";
+import { CODE_LENGTH, CODE_TTL_SECONDS } from "@/services/auth/verificationTypes";
 import shared from "./form.module.css";
 
 /**
