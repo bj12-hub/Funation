@@ -30,10 +30,10 @@ const COLUMNS: { title: MessageKey; links: FooterLink[] }[] = [
   {
     title: "footer.help",
     links: [
-      { label: "footer.faq", href: "/support" },
-      { label: "footer.inquiry", href: "/support" },
-      { label: "footer.ads", href: "/support" },
-      { label: "footer.report", href: "/support" }
+      { label: "footer.faq", href: "/support?tab=faq" },
+      { label: "footer.inquiry", href: "/support?tab=inquiry" },
+      { label: "footer.ads", href: "/support?tab=inquiry" },
+      { label: "footer.report", href: "/support?tab=inquiry" }
     ]
   }
 ];
