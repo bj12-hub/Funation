@@ -154,6 +154,11 @@
   --color-lucky-emerald-bg: #123d2c;
   --color-lucky-royal-bg: #4a3510;
 
+  /* ── Auth extras (718:335 · 280:2) ─────────────────────── */
+  --color-recommend-bg: #19172d;
+  --color-recommend-border: #3a3568;
+  --color-recommend-icon-bg: #28224b;
+
   /* ── Status ───────────────────────────────────────────── */
   --color-success: #10b981;
   --color-warning: #f97316;

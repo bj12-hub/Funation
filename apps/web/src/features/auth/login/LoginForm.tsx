@@ -12,7 +12,7 @@ import styles from "./LoginForm.module.css";
 
 /**
  * Login screen.
- * Figma: DEFAULT 13:7 · UNKNOWN ID 718:123 · WRONG PASSWORD 718:168 · LOCKED 718:213
+ * Figma: DEFAULT 13:7 · UNKNOWN ID 718:123 · WRONG PASSWORD 718:168 · LOCKED 718:213 (718:335 is its own route: /login/password-change)
  */
 
 type FormState = "DEFAULT" | "PROCESSING" | "UNKNOWN_ID" | "WRONG_PASSWORD" | "LOCKED" | "ERROR";
@@ -46,7 +46,9 @@ export function LoginForm({ next = "/" }: { next?: string }) {
 
     setState("PROCESSING");
     try {
-      const result = await login({ identifier: identifier.trim(), password, keepSignedIn });
+      const result = await login({ identifier: identifier.trim(), password, keepSignedIn, next });
+      // A server-side redirect (password change prompt) resolves without a result.
+      if (!result) return;
       if (result.status === "SUCCESS") {
         // The session cookie was set by the server action; refresh so layouts read it.
         router.replace(next);

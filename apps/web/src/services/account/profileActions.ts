@@ -119,6 +119,7 @@ export async function changePassword(input: { current: unknown; next: unknown; c
   if (mockCredentials.recentPasswords.includes(next)) return { status: "REUSED" };
   mockCredentials.password = next;
   mockCredentials.recentPasswords = [next, ...mockCredentials.recentPasswords].slice(0, 3);
+  mockCredentials.changedAt = new Date().toISOString();
   // Figma 747:738: the member must sign in again after changing the password.
   await revokeSession();
   return { status: "CHANGED" };
