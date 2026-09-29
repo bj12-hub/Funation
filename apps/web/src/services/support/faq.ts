@@ -27,7 +27,7 @@ export async function getFaqs(query?: string): Promise<FaqItem[]> {
 // undecided policies (see docs/product/open-decisions.md) and are intentionally empty.
 
 const MOCK_FAQS: FaqItem[] = [
-  { id: "donate", question: "Funation 후원은 어떻게 하나요?", answer: null },
+  { id: "donate", question: "썸네이션 후원은 어떻게 하나요?", answer: null },
   { id: "creator", question: "크리에이터 등록은 어떻게 하나요?", answer: null },
   { id: "settlement", question: "후원금 정산은 언제 되나요?", answer: null },
   { id: "membership", question: "구독 멤버십 혜택은 무엇인가요?", answer: null },

@@ -145,7 +145,7 @@ export function TitlesScreen({ identity }: { identity: SupporterIdentity }) {
         <h2 id="st-global" className={styles.cardTitle}>
           글로벌 칭호 · {identity.global.earned.length} / {GLOBAL_TITLES.length}
         </h2>
-        <p className={styles.muted}>Funation 전체 누적 후원 {formatNumber(identity.global.lifetimeFn)} FN 기준이에요. 어느 크리에이터에게 후원해도 붙어요.</p>
+        <p className={styles.muted}>썸네이션 전체 누적 후원 {formatNumber(identity.global.lifetimeFn)} FN 기준이에요. 어느 크리에이터에게 후원해도 붙어요.</p>
         <ProgressBar progress={identity.global.progress} />
         <ol className={styles.ladder}>
           {GLOBAL_TITLES.map((t) => (

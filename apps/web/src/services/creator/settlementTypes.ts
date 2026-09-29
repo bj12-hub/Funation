@@ -24,7 +24,7 @@ export const OVERSEAS_QUESTIONS = [
   "대한민국을 제외한 국가의 국적 혹은 영주권을 소유하고 있으십니까?",
   "대한민국에 연간 183일 이상 체류하고 계십니까?",
   "대한민국 내 시중은행에 본인명의의 계좌를 보유하고 계십니까?",
-  "Funation 이용을 통한 정산금액을 제외하고 대한민국 국세청에 신고되는 소득이 있으십니까?"
+  "썸네이션 이용을 통한 정산금액을 제외하고 대한민국 국세청에 신고되는 소득이 있으십니까?"
 ] as const;
 
 export type TermsResult = { status: "ACCEPTED"; memberType: MemberType } | { status: "INVALID" | "UNAUTHORIZED"; message?: string };

@@ -14,7 +14,7 @@ type SearchParams = Promise<{ tab?: string | string[] }>;
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const creator = await getCreatorById((await params).id);
-  return { title: creator ? `${creator.name} | Funation` : "크리에이터 | Funation" };
+  return { title: creator ? `${creator.name} | Somnation` : "크리에이터 | Somnation" };
 }
 
 export default async function Page({ params, searchParams }: { params: Params; searchParams: SearchParams }) {

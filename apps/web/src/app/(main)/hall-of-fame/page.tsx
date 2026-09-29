@@ -3,7 +3,7 @@ import { HallOfFameScreen } from "@/features/hallOfFame";
 import { DEFAULT_RANKING_PERIOD, RANKING_PERIOD_LABEL, getSupporterRanking, type RankingPeriod } from "@/services/hallOfFame/supporterRanking";
 
 // Figma: funation-hall-of-fame 3:637
-export const metadata: Metadata = { title: "명예의 전당 | Funation" };
+export const metadata: Metadata = { title: "명예의 전당 | Somnation" };
 export const dynamic = "force-dynamic";
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ period?: string | string[] }> }) {

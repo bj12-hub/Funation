@@ -16,7 +16,7 @@ import styles from "./home.module.css";
 export function HomeScreen({ feed }: { feed: HomeFeed }) {
   return (
     <>
-      <h1 className={styles.srOnly}>Funation 홈</h1>
+      <h1 className={styles.srOnly}>썸네이션 홈</h1>
       <HeroCarousel slides={feed.heroSlides} />
       <TrendingSection videos={feed.trending} />
       <LiveRankingSection items={feed.ranking} />

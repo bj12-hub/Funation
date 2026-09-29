@@ -3,7 +3,7 @@ import { PopularLiveScreen } from "@/features/live";
 import { getPopularLiveSections } from "@/services/live/liveChannels";
 
 // Figma: funnation-popular-live-page 617:5 (인기라이브)
-export const metadata: Metadata = { title: "인기 LIVE | Funation" };
+export const metadata: Metadata = { title: "인기 LIVE | Somnation" };
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

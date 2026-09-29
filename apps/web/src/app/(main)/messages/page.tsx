@@ -6,7 +6,7 @@ import { getMyAccount } from "@/services/account/myAccount";
 import { getMailbox, getMessageRecipients } from "@/services/messages/messages";
 
 // Code-first (no Figma frame): 쪽지 — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: "쪽지 | Funation" };
+export const metadata: Metadata = { title: "쪽지 | Somnation" };
 export const dynamic = "force-dynamic";
 
 type Search = { box?: string; q?: string; page?: string; to?: string };

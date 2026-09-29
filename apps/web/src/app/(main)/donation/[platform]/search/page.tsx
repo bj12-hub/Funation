@@ -11,7 +11,7 @@ type Props = { params: Promise<{ platform: string }>; searchParams: Promise<{ q?
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const platform = platformFromSlug((await params).platform);
-  return { title: platform ? `${PLATFORMS[platform].name} ${PLATFORMS[platform].creatorWord} 검색 | Funation` : "Funation" };
+  return { title: platform ? `${PLATFORMS[platform].name} ${PLATFORMS[platform].creatorWord} 검색 | Somnation` : "Somnation" };
 }
 
 export default async function Page({ params, searchParams }: Props) {

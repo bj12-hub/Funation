@@ -107,7 +107,7 @@ function IdConnect({ notice }: { notice: Extract<HomeNotice, { kind: "ID_CONNECT
       <header className={styles.lightHeader}>
         <span className={styles.miniBrand}>
           <span aria-hidden="true" />
-          Funation
+          썸네이션
         </span>
         <span className={styles.noticeLabel}>NOTICE</span>
       </header>

@@ -18,7 +18,7 @@ export function Player({ name, stream }: { name: string; stream: CreatorRoom["st
           <p className={styles.offlineText}>{name} 님은 오프라인 상태입니다.</p>
         </div>
         <div className={`${styles.controls} ${styles.controlsOffline}`}>
-          <span className={styles.streamBrand}>Funation STREAM</span>
+          <span className={styles.streamBrand}>Somnation STREAM</span>
         </div>
       </div>
     );
