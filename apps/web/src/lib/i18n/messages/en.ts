@@ -24,7 +24,10 @@ export const en: Messages = {
     search: "Search",
     charge: "Charge",
     chargeAria: "Charge FN · balance {balance} FN",
-    notifications: "Notifications"
+    notifications: "Notifications",
+    studio: "Studio",
+    studioHome: "Creator studio home",
+    toSite: "Go to the site"
   },
   nav: {
     live: "LIVE",
