@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { formatNumber } from "@/lib/format";
 import { deleteSignature, moveSignature, saveSignature } from "@/services/donations/signatures";
+import type { Asset } from "@/services/creator/assetTypes";
 import { SIGNATURE_IMAGE_PRESETS, SIGNATURE_LIMITS, type ManagedSignature, type SignatureMatch, type SignatureResult } from "@/services/donations/signatureTypes";
 import styles from "../crew/crew.module.css";
 import local from "./signatures.module.css";
@@ -18,7 +19,7 @@ const blank = (): Draft => ({ id: null, name: "", price: 10_000, imageUrl: SIGNA
  * 시그니처 후원 관리 — code-first (no Figma frame). Route `/creator/widgets/signatures`.
  * The list is what supporters see in the room's 시그니처 후원 panel, in this order.
  */
-export function SignaturesScreen({ items }: { items: ManagedSignature[] }) {
+export function SignaturesScreen({ items, library }: { items: ManagedSignature[]; library: Asset[] }) {
   const router = useRouter();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [note, setNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
@@ -165,14 +166,16 @@ export function SignaturesScreen({ items }: { items: ManagedSignature[] }) {
             </label>
           </div>
           <div className={local.images} role="radiogroup" aria-label="이미지">
-            {SIGNATURE_IMAGE_PRESETS.map((src, i) => (
+            {[...SIGNATURE_IMAGE_PRESETS, ...library.map((a) => a.url)].map((src, i) => (
               <button key={src} type="button" role="radio" aria-checked={draft.imageUrl === src} aria-label={`이미지 ${i + 1}`} className={local.image} onClick={() => setDraft({ ...draft, imageUrl: src })}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={src} alt="" />
               </button>
             ))}
           </div>
-          <p className={styles.note}>이미지 업로드는 이미지·사운드 라이브러리가 생기면 연결돼요.</p>
+          <p className={styles.note}>
+            기본 이미지 {SIGNATURE_IMAGE_PRESETS.length}장 뒤에 <Link href="/creator/widgets/assets">이미지·사운드</Link> 라이브러리의 이미지가 이어져요.
+          </p>
           <div className={styles.actions}>
             <button type="button" className={styles.ghost} disabled={pending} onClick={() => setDraft(null)}>
               취소

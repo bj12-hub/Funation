@@ -49,7 +49,7 @@ export const GROUPS: CatalogGroup[] = [
   },
   {
     title: "표시 · 자막",
-    items: [soon("BANNER", "🖼️", "배너", "이미지 슬라이드쇼 배너를 화면 상/하/중앙에 표시합니다."), SUBTITLE, MARQUEE, CREDITS, widget("CHAT"), widget("QR"), widget("WALLPAPER")]
+    items: [link("BANNER", "🖼️", "배너", "이미지 슬라이드쇼 배너를 화면 상/하/중앙에 표시합니다.", "/creator/widgets/banner"), SUBTITLE, MARQUEE, CREDITS, widget("CHAT"), widget("QR"), widget("WALLPAPER")]
   },
   {
     title: "이펙트 · 효과",
@@ -69,7 +69,7 @@ export const GROUPS: CatalogGroup[] = [
 export const TOOLS: CatalogItem[] = [
   link("OVERLAYS", "🔗", "오버레이 주소", "OBS에 넣을 모든 오버레이 주소를 한곳에서 복사합니다.", "/creator/widgets/overlays"),
   link("REMOTE", "🎛️", "리모컨", "후원 알림 · 방송 도구를 한 화면에서 제어합니다.", "/creator/remote"),
-  soon("ASSETS", "🎵", "이미지·사운드", "위젯이 쓰는 이미지와 사운드를 올리고 관리합니다."),
+  link("ASSETS", "🎵", "이미지·사운드", "위젯이 쓰는 이미지와 사운드를 올리고 관리합니다.", "/creator/widgets/assets"),
   soon("LINK", "🔌", "후원 연동", "외부 후원 플랫폼을 연결합니다.")
 ];
 
