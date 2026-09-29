@@ -1,28 +1,28 @@
 import type { HomeFeed } from "@/services/home/homeFeed";
+import type { LiveChannel, PopularLiveSection } from "@/services/live/liveChannels";
+import { CreatorStrip } from "./CreatorStrip";
 import { HeroCarousel } from "./HeroCarousel";
+import { HomeLiveTabs } from "./HomeLiveTabs";
 import { HomeNotices } from "./HomeNotices";
-import { LiveBrowser } from "./LiveBrowser";
-import { LiveRankingSection } from "./LiveRankingSection";
-import { PopularCreatorsSection } from "./PopularCreatorsSection";
 import { PromoBanner } from "./PromoBanner";
 import { TrendingSection } from "./TrendingSection";
 import styles from "./home.module.css";
 
 /**
- * Home screen.
- * Figma: funation-videos-page 727:2742 (route `/`, all roles incl. guests)
- * Popups: 크리에이터 프로필 688:646 (709:2) · arrival notices 200:115 · 200:223
+ * Home screen — section order follows funnation (docs/architecture/information-architecture.md):
+ * 인기 크리에이터 strip → banner → 전체 방송 (인기 라이브 / 전체 라이브, category rows) →
+ * 인기 라이브 영상 모음 → promotion. Card and banner visuals keep the Figma components
+ * (funation-videos-page 727:2742). Popups: 크리에이터 프로필 688:646 · arrival notices 200:115 · 200:223.
  */
-export function HomeScreen({ feed }: { feed: HomeFeed }) {
+export function HomeScreen({ feed, liveSections, liveChannels }: { feed: HomeFeed; liveSections: PopularLiveSection[]; liveChannels: LiveChannel[] }) {
   return (
     <>
       <h1 className={styles.srOnly}>썸네이션 홈</h1>
+      <CreatorStrip creators={feed.creators} />
       <HeroCarousel slides={feed.heroSlides} />
+      <HomeLiveTabs sections={liveSections} channels={liveChannels} />
       <TrendingSection videos={feed.trending} />
-      <LiveRankingSection items={feed.ranking} />
-      <PopularCreatorsSection creators={feed.creators} />
       {feed.promotion && <PromoBanner promotion={feed.promotion} />}
-      <LiveBrowser broadcasts={feed.liveBroadcasts} />
       <HomeNotices notices={feed.notices} />
     </>
   );
