@@ -4,16 +4,11 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useTransition, type ComponentType } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
-import { TOOL_CARDS } from "@/services/creator/broadcastToolTypes";
 import { getWidgetDetail, saveWidgetSettings } from "@/services/creator/widgetSettings";
 import {
-  ALERT_CARDS,
-  WIDGET_CARDS,
   isEditableWidget,
-  type CatalogCard,
   type EditableWidgetKey,
-  type WidgetDetail,
-  type WidgetKey
+  type WidgetDetail
 } from "@/services/creator/widgetSettingsTypes";
 import { CopyButton } from "../settings/SettingsCards";
 import { CustomSoundForm } from "./CustomSoundForm";
@@ -24,6 +19,8 @@ import { EventForm, MiniForm, RecentForm } from "./listForms";
 import { RankingForm } from "./RankingForm";
 import { VoteForm } from "./VoteForm";
 import { WallpaperForm } from "./WallpaperForm";
+import { ALL_COUNT, GROUPS, POPULAR, TOOLS, type CatalogItem } from "./widgetCatalog";
+import catalog from "./widgetCatalog.module.css";
 import styles from "./widgets.module.css";
 
 const FORMS: { [K in EditableWidgetKey]: ComponentType<FormProps<K>> } = {
@@ -71,7 +68,8 @@ const SELF_SAVING: EditableWidgetKey[] = ["CUSTOM_SOUND"];
  * 후원위젯/알림설정. Figma 529:4 (route `/creator/widgets`); popups 364:6 · 364:158 · 364:265 · 372:7 ·
  * 531:1370 (최근알림) · 531:1598 (이벤트) · 531:1826 (미니후원) · 315:650 (후원랭킹) · 315:858 (투표) · 373:1307 (커스텀 사운드) ·
  * 373:1356 (럭키박스) · 373:1598 (퀘스트) · 373:1785 (플레이) · 373:3675 (뽑기 후원) · 395:145 (벽지).
- * Alert cards and 그림후원 stay informational until their popups are designed.
+ * Catalog layout follows the funnation 위젯 page (인기 · 전체 by group · 도구; see ./widgetCatalog.ts).
+ * The Figma 후원 알림 설정 alert-type cards are no longer listed (they had no popups); 그림후원 is 준비 중.
  */
 export function WidgetSettingsScreen({ alertWidgetUrl }: { alertWidgetUrl: string }) {
   const [openKey, setOpenKey] = useState<EditableWidgetKey | null>(null);
@@ -80,39 +78,20 @@ export function WidgetSettingsScreen({ alertWidgetUrl }: { alertWidgetUrl: strin
 
   return (
     <div className={styles.content}>
-      <h1 className={styles.srOnly}>후원위젯/알림설정</h1>
-      <CardGrid title="후원 알림 설정" cards={ALERT_CARDS} />
-      <CardGrid title="후원 위젯 설정" cards={WIDGET_CARDS} onOpen={(k) => isEditableWidget(k) && setOpenKey(k)} />
-      {/* Code-first (no Figma frame): 방송 도구 remote — docs/figma/code-first-screens.md */}
-      <section className={styles.group} aria-label="방송 도구">
-        <h2 className={styles.groupTitle}>방송 도구</h2>
-        <ul className={styles.grid}>
-          {TOOL_CARDS.map((c) => (
-            <li key={c.key}>
-              <Link href="/creator/widgets/tools" className={`${styles.card} ${styles.cardButton}`}>
-                <span className={styles.cardIcon} style={{ background: "var(--color-surface-raised)" }} aria-hidden="true">
-                  {c.emoji}
-                </span>
-                <span className={styles.cardText}>
-                  <strong>{c.title}</strong>
-                  <span>{c.description}</span>
-                </span>
-              </Link>
-            </li>
-          ))}
-          <li>
-            <Link href="/creator/widgets/overlays" className={`${styles.card} ${styles.cardButton}`}>
-              <span className={styles.cardIcon} style={{ background: "var(--color-surface-raised)" }} aria-hidden="true">
-                🔗
-              </span>
-              <span className={styles.cardText}>
-                <strong>오버레이 주소</strong>
-                <span>OBS에 넣을 모든 오버레이 주소를 한곳에서 복사해요.</span>
-              </span>
-            </Link>
-          </li>
-        </ul>
+      <header className={catalog.header}>
+        <h1 className={catalog.title}>위젯</h1>
+        <p className={catalog.subtitle}>방송 화면에 띄울 위젯을 고르고 설정하세요. 오버레이 주소는 도구에서 한 번에 복사할 수 있어요.</p>
+      </header>
+      <CatalogGrid title="인기" count={POPULAR.length} items={POPULAR} onOpen={setOpenKey} />
+      <section className={styles.group} aria-label="전체 위젯">
+        <h2 className={styles.groupTitle}>
+          전체 <span className={catalog.count}>{ALL_COUNT}</span>
+        </h2>
+        {GROUPS.map((g) => (
+          <CatalogGrid key={g.title} title={g.title} items={g.items} onOpen={setOpenKey} sub />
+        ))}
       </section>
+      <CatalogGrid title="도구" count={TOOLS.length} items={TOOLS} onOpen={setOpenKey} />
       {openKey && (
         <WidgetModal
           key={openKey}
@@ -130,32 +109,43 @@ export function WidgetSettingsScreen({ alertWidgetUrl }: { alertWidgetUrl: strin
   );
 }
 
-function CardGrid<K extends string>({ title, cards, onOpen }: { title: string; cards: CatalogCard<K>[]; onOpen?: (k: WidgetKey) => void }) {
+/** One catalog section (funnation 위젯 layout). `sub` renders a group inside 전체. */
+function CatalogGrid({ title, count, items, onOpen, sub = false }: { title: string; count?: number; items: CatalogItem[]; onOpen: (k: EditableWidgetKey) => void; sub?: boolean }) {
+  const Heading = sub ? "h3" : "h2";
   return (
-    <section className={styles.group} aria-label={title}>
-      <h2 className={styles.groupTitle}>{title}</h2>
+    <section className={sub ? catalog.subGroup : styles.group} aria-label={title}>
+      <Heading className={sub ? catalog.subTitle : styles.groupTitle}>
+        {title} {count !== undefined && <span className={catalog.count}>{count}</span>}
+      </Heading>
       <ul className={styles.grid}>
-        {cards.map((c) => {
+        {items.map((item) => {
           const body = (
             <>
-              <span className={styles.cardIcon} style={{ background: c.color }} aria-hidden="true">
-                {c.emoji}
+              <span className={styles.cardIcon} style={{ background: "var(--color-surface-raised)" }} aria-hidden="true">
+                {item.emoji}
               </span>
               <span className={styles.cardText}>
-                <strong>{c.title}</strong>
-                <span>{c.description}</span>
+                <strong>
+                  {item.title}
+                  {item.action.type === "soon" && <span className={catalog.soon}>준비 중</span>}
+                </strong>
+                <span>{item.description}</span>
               </span>
             </>
           );
-          const ready = onOpen && isEditableWidget(c.key);
+          const a = item.action;
           return (
-            <li key={c.key}>
-              {ready ? (
-                <button type="button" className={`${styles.card} ${styles.cardButton}`} aria-haspopup="dialog" onClick={() => onOpen(c.key as WidgetKey)}>
+            <li key={item.id}>
+              {a.type === "widget" && isEditableWidget(a.key) ? (
+                <button type="button" className={`${styles.card} ${styles.cardButton}`} aria-haspopup="dialog" onClick={() => onOpen(a.key as EditableWidgetKey)}>
                   {body}
                 </button>
+              ) : a.type === "link" ? (
+                <Link href={a.href} className={`${styles.card} ${styles.cardButton}`}>
+                  {body}
+                </Link>
               ) : (
-                <div className={`${styles.card} ${onOpen ? styles.cardSoon : ""}`} title={onOpen ? "준비 중인 기능입니다" : undefined}>
+                <div className={`${styles.card} ${styles.cardSoon}`} title="준비 중인 기능입니다" aria-disabled="true">
                   {body}
                 </div>
               )}
