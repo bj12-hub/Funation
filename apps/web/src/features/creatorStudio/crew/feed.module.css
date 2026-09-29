@@ -1,0 +1,91 @@
+/* 후원 리스트 — code-first, no Figma frame. Layout on top of crew.module.css. */
+
+.badge {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-platform-live-bg);
+  color: var(--color-platform-live);
+  font-size: var(--font-size-12);
+  vertical-align: middle;
+}
+
+.panel summary {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+}
+
+.keywords {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.keywords li {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .split {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panelBox {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-12);
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+}
+
+.panelBox[data-live] {
+  border-color: var(--color-live);
+}
+
+.pot {
+  color: var(--color-live);
+}
+
+.status {
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-neutral-soft);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-12);
+  white-space: nowrap;
+}
+
+.status[data-status="ASSIGNED"] {
+  background: var(--color-success-soft);
+  color: var(--color-success-text);
+}
+
+.status[data-status="PENDING"],
+.status[data-status="POT"] {
+  background: var(--color-gold-soft);
+  color: var(--color-live);
+}
+
+.status[data-status="UNMATCHED"] {
+  background: var(--color-platform-live-bg);
+  color: var(--color-platform-live);
+}

@@ -6,7 +6,7 @@ import { getSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
 import { enqueueDonationAlert } from "@/services/creator/alertCore";
 import { getCreatorById } from "@/services/creators/creators";
-import { attributeMemberDonation, isActiveMember } from "@/services/crew/crewCore";
+import { attributeMemberDonation, isActiveMember, recordBroadcastDonation } from "@/services/crew/crewCore";
 import { attributeDonation, ownsNickname } from "@/services/supporter/identityCore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { getMockDonationCatalog, luckyTierFor, type DonationCatalog } from "./donationCatalog";
@@ -61,6 +61,7 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
     });
     attributeDonation(donationId, request.nicknameId);
     attributeMemberDonation(donationId, creator.id, request.memberId, request.amount);
+    if (!request.memberId) recordBroadcastDonation(creator.id, { donor: request.hideProfile ? "익명" : mockAccount.nickname, message: request.summary, fnAmount: request.amount });
     // Alert delivery (TBD: donor display name rules — anonymous, 별명, hidden profile).
     enqueueDonationAlert(creator.id, {
       donor: request.hideProfile ? "익명" : mockAccount.nickname,

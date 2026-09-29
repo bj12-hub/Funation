@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { formatNumber } from "@/lib/format";
 import { adjustScore, endBroadcast, startBroadcast } from "@/services/crew/crewBroadcast";
-import { BROADCAST_TITLE_MAX, type BroadcastResult, type BroadcastView, type TeamKey } from "@/services/crew/crewTypes";
+import { BROADCAST_TITLE_MAX, PROJECT_NAME_MAX, type BroadcastResult, type BroadcastView, type TeamKey } from "@/services/crew/crewTypes";
+import { BroadcastFeed } from "./BroadcastFeed";
 import { CrewTabs } from "./CrewTabs";
 import styles from "./crew.module.css";
 
@@ -23,19 +24,22 @@ const signed = (n: number) => `${n > 0 ? "+" : ""}${formatNumber(n)}`;
 export function BroadcastScreen({ view }: { view: BroadcastView }) {
   const router = useRouter();
   const [title, setTitle] = useState("");
+  const [project, setProject] = useState("");
   const [teamMode, setTeamMode] = useState(false);
   const [teams, setTeams] = useState<Record<string, TeamKey | "">>({});
   const [reason, setReason] = useState("");
   const [custom, setCustom] = useState("");
   const [message, setMessage] = useState<{ tone: "error" | "ok"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
-  const [now, setNow] = useState(() => Date.now());
+  // null until mounted so the server and client render the same markup (the clock is client-only).
+  const [now, setNow] = useState<number | null>(null);
   const live = view.live;
   const active = view.members.filter((m) => m.active);
 
   // Live clock + periodic server refresh (new donations, other remotes).
   useEffect(() => {
     if (!live) return;
+    setNow(Date.now());
     const tick = setInterval(() => setNow(Date.now()), 1000);
     const poll = setInterval(() => router.refresh(), 5000);
     return () => {
@@ -91,10 +95,24 @@ export function BroadcastScreen({ view }: { view: BroadcastView }) {
             onSubmit={(e) => {
               e.preventDefault();
               const assigned = Object.fromEntries(Object.entries(teams).filter(([, t]) => t));
-              run(() => startBroadcast({ title, teamMode, teams: assigned }), "방송을 시작했어요.");
+              run(() => startBroadcast({ title, project, teamMode, teams: assigned }), "방송을 시작했어요.");
             }}
           >
             <input className={styles.input} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="방송 제목 (예: 시즌1 3회차)" maxLength={BROADCAST_TITLE_MAX} aria-label="방송 제목" />
+            <input
+              className={styles.input}
+              value={project}
+              onChange={(e) => setProject(e.target.value)}
+              placeholder="프로젝트 (선택) — 같은 프로젝트로 시작하면 회차가 자동으로 붙어요"
+              maxLength={PROJECT_NAME_MAX}
+              aria-label="프로젝트"
+              list="bc-projects"
+            />
+            <datalist id="bc-projects">
+              {view.projects.map((p) => (
+                <option key={p} value={p} />
+              ))}
+            </datalist>
             <label className={styles.checkRow}>
               <input type="checkbox" checked={teamMode} onChange={(e) => setTeamMode(e.target.checked)} />
               팀 배틀 (A팀 vs B팀)
@@ -129,9 +147,14 @@ export function BroadcastScreen({ view }: { view: BroadcastView }) {
           <div className={styles.cardHead}>
             <h2 id="bc-live" className={styles.cardTitle}>
               <span className={styles.liveDot} aria-hidden="true" /> {live.title}
+              {live.project && (
+                <span className={styles.chip}>
+                  {live.project} · {live.round}회차
+                </span>
+              )}
             </h2>
             <span className={styles.clock} aria-label="진행 시간">
-              {elapsed(live.startedAt, now)}
+              {now === null ? "--:--:--" : elapsed(live.startedAt, now)}
             </span>
           </div>
 
@@ -172,7 +195,7 @@ export function BroadcastScreen({ view }: { view: BroadcastView }) {
                 <span className={styles.boardScore}>
                   <strong>{formatNumber(r.score)}</strong>
                   <span className={styles.muted}>
-                    후원 {formatNumber(r.donatedFn)} · 보정 {signed(r.adjust)}
+                    후원 {formatNumber(r.donatedFn + r.feedFn)} · 보정 {signed(r.adjust)}
                   </span>
                 </span>
                 <span className={styles.boardButtons}>
@@ -210,6 +233,8 @@ export function BroadcastScreen({ view }: { view: BroadcastView }) {
         </section>
       )}
 
+      {live && view.feed && <BroadcastFeed broadcastId={live.id} members={view.members} view={view.feed} pending={pending} run={run} />}
+
       <section className={styles.card} aria-labelledby="bc-overlay">
         <h2 id="bc-overlay" className={styles.cardTitle}>
           OBS 점수판 오버레이
@@ -234,7 +259,10 @@ export function BroadcastScreen({ view }: { view: BroadcastView }) {
             {view.history.map((h) => (
               <li key={h.id} className={styles.row}>
                 <div className={styles.rowMain}>
-                  <strong className={styles.rowTitle}>{h.title}</strong>
+                  <strong className={styles.rowTitle}>
+                    {h.title}
+                    {h.project && <span className={styles.chipOff}>{h.project} · {h.round}회차</span>}
+                  </strong>
                   <span className={styles.muted}>
                     {time(h.startedAt)} ~ {time(h.endedAt)} · 총 {formatNumber(h.totalScore)}점{h.winner ? ` · 1위 ${h.winner}` : ""}
                   </span>
