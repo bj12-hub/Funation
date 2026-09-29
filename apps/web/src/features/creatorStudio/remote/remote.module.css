@@ -1,0 +1,82 @@
+/* 리모컨 — code-first, no Figma frame. Layout on top of crew.module.css. */
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.status {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+@media (max-width: 900px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.slider {
+  display: grid;
+  grid-template-columns: 60px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.slider input {
+  accent-color: var(--color-primary);
+}
+
+.slider strong {
+  color: var(--color-text-primary);
+  text-align: right;
+}
+
+.testTag,
+.statusTag {
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-12);
+  white-space: nowrap;
+}
+
+.testTag {
+  margin-left: 8px;
+  background: var(--color-neutral-soft);
+  color: var(--color-text-secondary);
+}
+
+.statusTag {
+  background: var(--color-neutral-soft);
+  color: var(--color-text-secondary);
+}
+
+.statusTag[data-status="SHOWING"] {
+  background: var(--color-platform-live-bg);
+  color: var(--color-platform-live);
+}
+
+.statusTag[data-status="QUEUED"] {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-light);
+}
+
+.statusTag[data-status="DONE"] {
+  background: var(--color-success-soft);
+  color: var(--color-success-text);
+}
