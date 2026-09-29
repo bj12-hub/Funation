@@ -1,0 +1,207 @@
+/* Creator channel tabs (funnation structure, code-first) — existing tokens. */
+
+.tabs {
+  display: flex;
+  gap: 24px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tab {
+  flex-shrink: 0;
+  padding: 12px 2px;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-15);
+  font-weight: var(--font-weight-semibold);
+}
+
+.tab[aria-current="page"] {
+  border-bottom-color: var(--color-accent);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+.panel {
+  padding: 24px 0 40px;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 56px 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-14);
+  text-align: center;
+}
+
+.empty p {
+  margin: 0;
+}
+
+.link {
+  color: var(--color-primary-light);
+  font-weight: var(--font-weight-semibold);
+}
+
+.muted {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-12);
+}
+
+.donateButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: var(--radius-8);
+  background: var(--gradient-primary-button);
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+}
+
+.subscribers {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+/* 크루 */
+.crewGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.crewCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 18px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-12);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+}
+
+.crewDot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-on-accent);
+  font-weight: var(--font-weight-extrabold);
+}
+
+/* 시그니처 */
+.sorts {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.sort {
+  padding: 6px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.sort[aria-pressed="true"] {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-text-on-accent);
+}
+
+.sigGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sigCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-12);
+  background: var(--color-surface);
+}
+
+.sigCard:hover {
+  border-color: var(--color-border-emphasis);
+}
+
+.sigImage {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 1;
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+}
+
+.sigImage img {
+  object-fit: cover;
+}
+
+.sigPrice {
+  color: var(--color-text-primary);
+  font-family: var(--font-latin);
+  font-size: var(--font-size-14);
+}
+
+.sigName {
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 소개 */
+.about {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-width: 720px;
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-12);
+  background: var(--color-surface);
+}
+
+.about div {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 16px;
+  padding: 14px 18px;
+}
+
+.about div + div {
+  border-top: 1px solid var(--color-border);
+}
+
+.about dt {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-13);
+}
+
+.about dd {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+}

@@ -1,6 +1,13 @@
 import Image from "next/image";
 import type { CreatorRoom } from "@/services/creators/creatorRoom";
+import Link from "next/link";
+import { formatCompactKo } from "@/lib/format";
+import type { CreatorCategory } from "@/services/creators/creators";
+import type { CrewPublic } from "@/services/crew/crewTypes";
 import { PLATFORM_LABEL } from "@/types/platform";
+import { AboutView, ChannelTabs, CommunityView, CrewView, SignaturesView, VideosView } from "./ChannelViews";
+import type { ChannelView } from "./channelView";
+import channel from "./channel.module.css";
 import { Player } from "./Player";
 import { RoomActions } from "./RoomActions";
 import { SidePanel } from "./SidePanel";
@@ -8,18 +15,29 @@ import styles from "./room.module.css";
 
 type Viewer = { nickname: string; fnBalance: number } | null;
 
-/** Figma 826:685 / 610:138 (live) · 710:195 (offline) — route `/creators/[id]`. */
+/**
+ * Creator channel — route `/creators/[id]`. Structure follows the funnation channel page: banner, profile
+ * row with 후원하기, then tabs 홈 · 크루 · 영상 · 커뮤니티 · 시그니처 · 소개 (`?view=`). 홈 keeps the Figma room
+ * (826:685 / 610:138 live · 710:195 offline): player + 후원/채팅 panel.
+ */
 export function CreatorRoomScreen({
   room,
   viewer,
   isFavorite,
-  initialTab
+  initialTab,
+  view = "home",
+  crew,
+  about
 }: {
   room: CreatorRoom;
   viewer: Viewer;
   isFavorite: boolean;
   initialTab?: "DONATION" | "CHAT";
+  view?: ChannelView;
+  crew: CrewPublic;
+  about: { description: string; categories: CreatorCategory[]; subscriberCount: number; joinedAt: string };
 }) {
+  const donateHref = `/creators/${room.creatorId}?tab=donation`;
   return (
     <div className={styles.page}>
       {room.banner && (
@@ -61,18 +79,41 @@ export function CreatorRoomScreen({
               </ul>
             </div>
             <span className={styles.tagline}>{room.tagline}</span>
+            <span className={channel.subscribers}>구독자 {formatCompactKo(about.subscriberCount)}명</span>
           </div>
         </div>
-        <RoomActions creatorId={room.creatorId} name={room.name} initialFavorite={isFavorite} signedIn={viewer !== null} />
+        <div className={styles.creatorActions}>
+          {/* funnation: 후원하기 is the primary channel action; it opens the 후원 panel on 홈. */}
+          <Link href={donateHref} className={channel.donateButton} scroll={false}>
+            💝 후원하기
+          </Link>
+          <RoomActions creatorId={room.creatorId} name={room.name} initialFavorite={isFavorite} signedIn={viewer !== null} />
+        </div>
       </div>
 
+      <ChannelTabs creatorId={room.creatorId} active={view} />
+
+      {view !== "home" && (
+        <section className={channel.panel} aria-label="채널">
+          {view === "crew" && <CrewView crew={crew} name={room.name} />}
+          {view === "videos" && <VideosView name={room.name} />}
+          {view === "community" && <CommunityView />}
+          {view === "signatures" && <SignaturesView signatures={room.donation.signatures} donateHref={donateHref} />}
+          {view === "about" && (
+            <AboutView about={{ name: room.name, description: about.description, categories: about.categories, subscriberCount: about.subscriberCount, joinedAt: about.joinedAt, platforms: room.channels.map((c) => c.platform) }} />
+          )}
+        </section>
+      )}
+
+      {view === "home" && (
       <div className={styles.main}>
         <div className={styles.playerColumn}>
           <Player name={room.name} stream={room.stream} />
           {room.stream.status === "LIVE" && <p className={styles.caption}>{room.stream.caption}</p>}
         </div>
-        <SidePanel room={room} signedIn={viewer !== null} fnBalance={viewer?.fnBalance ?? null} nickname={viewer?.nickname ?? null} initialTab={initialTab} />
+        <SidePanel key={initialTab} room={room} signedIn={viewer !== null} fnBalance={viewer?.fnBalance ?? null} nickname={viewer?.nickname ?? null} initialTab={initialTab} />
       </div>
+      )}
     </div>
   );
 }

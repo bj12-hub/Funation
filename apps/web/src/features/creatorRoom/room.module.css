@@ -1027,3 +1027,11 @@
   color: var(--color-text-tertiary);
   font-size: var(--font-size-11);
 }
+
+/* Channel header actions (funnation: 후원하기 first). */
+.creatorActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
