@@ -650,3 +650,9 @@ a.sideItemActive:hover {
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-bold);
 }
+
+.noAccessLink {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+  text-decoration: underline;
+}
