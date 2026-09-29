@@ -20,6 +20,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/wallet/donations` | ✅ | FN 후원내역 632:4 · 637:214 (empty) — signed-in only, `?type=` (basic · quest · game) + period params |
 | `/wallet` | ✅ | redirects to `/wallet/charges` |
 | `/creator` | ✅ | creator-dashboard 245:14 · profile dropdown 758:41 / 296:500 — signed-in only, `?period=` `?from=` `?to=` (creator role check TBD) |
+| `/creator/settings` | ✅ | creator-account-settings-page 315:405 · 315:2 · 프로필 수정 326:496 — signed-in only |
 | `/attendance` | ✅ | funation-attendance-page 583:4 · 585:452 (checked in) · 585:66 (완료 popup) · 585:830 (보상 popup) — signed-in only |
 | `/terms/[slug]` | 🚧 | 722:3 (terms text pending) — slugs: youth, service, privacy, marketing, operation |
 
@@ -31,10 +32,13 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | Header | LIVE · 인기 크리에이터 · 명예의 전당 · 고객센터 | `/live` · `/creators` · `/hall-of-fame` · `/support` |
 | Header | 마이페이지 | `/mypage` |
 | Header | 로그인 (guest) | 로그인/회원가입 role chooser 280:2 → `/login?role=` (creator → `next=/creator` · donator → current page) |
-| Header (creator) | 📺 크리에이터 · 고객센터 · 크리에이터 · 채널 메뉴 | `/creator` · `/support` · `/creator` · dropdown 758:41 (계정설정 `/creator/settings` pending · 로그아웃) |
+| Header (creator) | 📺 크리에이터 · 고객센터 · 크리에이터 · 채널 메뉴 | `/creator` · `/support` · `/creator` · dropdown 758:41 (계정설정 `/creator/settings` · 로그아웃) |
 | Profile menu (supporter) | 크리에이터 | `/creator` |
 | Creator sidebar | 대시보드 | `/creator` |
-| Creator sidebar | 후원위젯/알림설정 · 크리에이터 랭킹 · 후원관리+ · 계정설정 · 정산설정 | not wired — screens pending |
+| Creator sidebar | 계정설정 | `/creator/settings` |
+| Creator sidebar | 후원위젯/알림설정 · 크리에이터 랭킹 · 후원관리+ · 정산설정 | not wired — screens pending |
+| Creator dashboard | 계정 관리 · 정산 관리 | `/creator/settings` · not wired (settlement pending) |
+| Creator settings | OBS · Xsplit · 동시 송출 세팅 | not wired — setup popups 328:581 · 328:927 · 328:1266 pending |
 | Header | 언어 선택 | dropdown (265:242) — i18n pending |
 | Login | 비밀번호 찾기 · 회원가입 | `/password-reset` · `/signup` |
 | Login lockout | 비밀번호 재설정으로 이동 · 고객센터 | `/password-reset` · `/support` |

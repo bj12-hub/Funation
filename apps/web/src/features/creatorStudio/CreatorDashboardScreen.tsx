@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { formatNumber } from "@/lib/format";
 import type { CreatorDashboard, CreatorProfile } from "@/services/creator/creatorStudio";
 import { LinkActions, RankingTabs } from "./DashboardWidgets";
@@ -42,10 +43,10 @@ export function CreatorDashboardScreen({ profile, dashboard }: { profile: Creato
               <LinkActions url={profile.donateUrl} />
             </div>
             <div className={styles.infoButtons}>
-              {/* TODO: account settings (315:405) and settlement (429:*) are the next creator screens. */}
-              <span className={styles.gradientPill} aria-disabled="true" title="준비 중인 기능입니다">
+              <Link href="/creator/settings" className={styles.gradientPill}>
                 계정 관리
-              </span>
+              </Link>
+              {/* TODO: settlement (429:* · 458:* · 478:2) is not built yet. */}
               <span className={styles.outlinePill} aria-disabled="true" title="준비 중인 기능입니다">
                 정산 관리
               </span>
