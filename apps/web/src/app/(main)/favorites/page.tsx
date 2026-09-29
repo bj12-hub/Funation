@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { SideNavLayout } from "@/components/layout/SideNav";
 import { FavoritesScreen } from "@/features/favorites";
 import { getMyAccount } from "@/services/account/myAccount";
 import { getFavorites, getFavoritesPromotion } from "@/services/favorites/favorites";
@@ -21,11 +20,8 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
   if (!account || !data) redirect("/login?next=/favorites");
 
   return (
-    <SideNavLayout
-      user={{ nickname: account.nickname, funationId: account.funationId, avatarUrl: account.avatarUrl, fnBalance: account.fnBalance }}
-      showWatchHistory
-    >
+    <>
       <FavoritesScreen data={data} query={query} promotion={promotion} />
-    </SideNavLayout>
+    </>
   );
 }

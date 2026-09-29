@@ -1,18 +1,39 @@
 "use client";
 
 import Link from "next/link";
-import { useI18n } from "@/lib/i18n/I18nProvider";
-import type { MessageKey } from "@/lib/i18n/translate";
 import { usePathname } from "next/navigation";
 import type { ComponentType, SVGProps } from "react";
-import { AirplayIcon, CalendarIcon, CommunityOutlineIcon, GiftOutlineIcon, HeartOutlineIcon, HistoryIcon, HomeIcon, MailOutlineIcon, ReceiptOutlineIcon, SettingsIcon, StarIcon, TrendingUpIcon, WalletOutlineIcon } from "@/components/icons";
-import { formatNumber } from "@/lib/format";
+import {
+  AirplayIcon,
+  CalendarIcon,
+  CommunityOutlineIcon,
+  GiftIcon,
+  GiftOutlineIcon,
+  HeartOutlineIcon,
+  HelpCircleIcon,
+  HomeIcon,
+  MailOutlineIcon,
+  ReceiptOutlineIcon,
+  SearchOutlineIcon,
+  SettingsIcon,
+  SmileIcon,
+  StarIcon,
+  TrendingUpIcon,
+  TrophyMarkIcon,
+  UserIcon,
+  VideoCameraIcon,
+  WalletOutlineIcon
+} from "@/components/icons";
 import { ChargeTrigger, QrChargeTrigger } from "@/features/walletCharge";
+import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import styles from "./SideNav.module.css";
 
 /**
- * Left navigation used by the live pages and my page.
- * Figma: sidebar 617:344 (active "추천 라이브") · 617:33 (active "실시간 인기 급상승") · 735:4119 (with "시청 기록")
+ * Site side menu — structure follows funnation (docs/research/funnation-reference.md §0):
+ * profile card + 크리에이터 스튜디오 entry, then 둘러보기 · 후원 · 마이 · 더보기 groups.
+ * Rendered on every (main) page by AppShell. Visual styles keep the Figma tokens (sidebar 617:344).
  */
 
 export type SideNavUser = {
@@ -21,6 +42,8 @@ export type SideNavUser = {
   avatarUrl?: string | null;
   /** Server-provided balance. The client never calculates it. `null` while unknown. */
   fnBalance: number | null;
+  /** Has the Creator role (shows 크리에이터 스튜디오; otherwise 내 채널 만들기). */
+  creator: boolean;
 };
 
 type MenuItem = {
@@ -31,37 +54,68 @@ type MenuItem = {
   badge?: { text: string; tone: "live" | "event" };
 };
 
-const MENU: MenuItem[] = [
-  { label: "side.home", Icon: HomeIcon, href: "/" },
-  // SOOP · FlexTV 머니 후원 (Figma 817:9411 · 817:8761 sidebars).
-  { label: "side.soop", Icon: GiftOutlineIcon, href: "/donation/soop" },
-  { label: "side.flextv", Icon: HeartOutlineIcon, href: "/donation/flextv" },
-  { label: "side.donationHistory", Icon: ReceiptOutlineIcon, href: "/donation/history" },
-  { label: "side.wallet", Icon: WalletOutlineIcon, href: "/wallet" },
-  { label: "side.messages", Icon: MailOutlineIcon, href: "/messages" },
-  { label: "side.community", Icon: CommunityOutlineIcon, href: "/community" },
-  { label: "side.recommendedLive", Icon: AirplayIcon, href: "/live", badge: { text: "LIVE", tone: "live" } },
-  { label: "side.favorites", Icon: StarIcon, href: "/favorites" },
-  { label: "side.attendance", Icon: CalendarIcon, href: "/attendance", badge: { text: "EVENT", tone: "event" } },
-  { label: "side.trending", Icon: TrendingUpIcon, href: "/live/popular" }
+type MenuGroup = { title: MessageKey | null; items: MenuItem[]; signedInOnly?: boolean };
+
+const GROUPS: MenuGroup[] = [
+  {
+    title: null,
+    items: [
+      { label: "side.home", Icon: HomeIcon, href: "/" },
+      { label: "side.allLive", Icon: AirplayIcon, href: "/live", badge: { text: "LIVE", tone: "live" } },
+      { label: "side.findCreators", Icon: SearchOutlineIcon, href: "/creators" },
+      { label: "side.favorites", Icon: StarIcon, href: "/favorites" },
+      { label: "side.community", Icon: CommunityOutlineIcon, href: "/community" }
+    ]
+  },
+  {
+    // Our confirmed platforms (CLAUDE.md §9); not in funnation.
+    title: "side.groupDonate",
+    items: [
+      { label: "side.soop", Icon: GiftOutlineIcon, href: "/donation/soop" },
+      { label: "side.flextv", Icon: HeartOutlineIcon, href: "/donation/flextv" },
+      { label: "side.platformHistory", Icon: ReceiptOutlineIcon, href: "/donation/history" }
+    ]
+  },
+  {
+    title: "side.groupMy",
+    signedInOnly: true,
+    items: [
+      { label: "side.myInfo", Icon: UserIcon, href: "/mypage" },
+      { label: "side.donationHistory", Icon: GiftIcon, href: "/wallet/donations" },
+      { label: "side.wallet", Icon: WalletOutlineIcon, href: "/wallet" },
+      { label: "side.messages", Icon: MailOutlineIcon, href: "/messages" },
+      { label: "side.titles", Icon: TrophyMarkIcon, href: "/mypage/titles" },
+      { label: "side.nicknames", Icon: SmileIcon, href: "/mypage/nicknames" },
+      { label: "side.ranking", Icon: TrendingUpIcon, href: "/mypage/ranking" }
+    ]
+  },
+  {
+    title: "side.groupMore",
+    items: [
+      { label: "side.events", Icon: GiftIcon, href: "/events" },
+      { label: "side.attendance", Icon: CalendarIcon, href: "/attendance", badge: { text: "EVENT", tone: "event" } },
+      { label: "side.hallOfFame", Icon: TrophyMarkIcon, href: "/hall-of-fame" },
+      { label: "side.support", Icon: HelpCircleIcon, href: "/support" },
+      { label: "side.settings", Icon: SettingsIcon }
+    ]
+  }
 ];
 
-const WATCH_HISTORY: MenuItem = { label: "side.watchHistory", Icon: HistoryIcon };
-const SETTINGS: MenuItem = { label: "side.settings", Icon: SettingsIcon };
+const ALL_HREFS = GROUPS.flatMap((g) => g.items.map((i) => i.href)).filter((h): h is string => Boolean(h));
 
-type SideNavProps = {
-  user: SideNavUser | null;
-  /** 시청 기록 appears only in the my page variant (735:4119). */
-  showWatchHistory?: boolean;
-};
+/** The most specific menu href that contains the current path (so /wallet/donations ≠ /wallet). */
+export function activeHref(pathname: string) {
+  return ALL_HREFS.filter((h) => (h === "/" ? pathname === "/" : pathname === h || pathname.startsWith(`${h}/`))).sort((a, b) => b.length - a.length)[0] ?? null;
+}
 
-export function SideNav({ user, showWatchHistory = false }: SideNavProps) {
+export function SideNav({ user, onNavigate }: { user: SideNavUser | null; onNavigate?: () => void }) {
   const pathname = usePathname() ?? "/";
   const { t } = useI18n();
+  const active = activeHref(pathname);
 
   return (
     <aside className={styles.sidebar} aria-label={t("side.aside")}>
-      {user ? <ProfileCard user={user} /> : <GuestCard />}
+      <div className={styles.top}>{user ? <ProfileCard user={user} onNavigate={onNavigate} /> : <GuestCard />}</div>
 
       {user && (
         <div className={styles.charge}>
@@ -71,18 +125,20 @@ export function SideNav({ user, showWatchHistory = false }: SideNavProps) {
       )}
 
       <nav className={styles.menu} aria-label={t("side.liveMenu")}>
-        {MENU.map((item) => (
-          <MenuLink key={item.href ?? item.label} item={item} active={item.href === pathname || (!!item.href?.startsWith("/donation/") && pathname.startsWith(`${item.href}/`))} />
+        {GROUPS.filter((g) => user || !g.signedInOnly).map((g, i) => (
+          <div key={g.title ?? i} className={styles.group}>
+            {g.title && <p className={styles.groupTitle}>{t(g.title)}</p>}
+            {g.items.map((item) => (
+              <MenuLink key={item.label} item={item} active={item.href === active} onNavigate={onNavigate} />
+            ))}
+          </div>
         ))}
-        {showWatchHistory && <MenuLink item={WATCH_HISTORY} active={false} />}
-        <hr className={styles.divider} />
-        <MenuLink item={SETTINGS} active={false} />
       </nav>
     </aside>
   );
 }
 
-function MenuLink({ item, active }: { item: MenuItem; active: boolean }) {
+function MenuLink({ item, active, onNavigate }: { item: MenuItem; active: boolean; onNavigate?: () => void }) {
   const { t } = useI18n();
   const content = (
     <>
@@ -101,13 +157,13 @@ function MenuLink({ item, active }: { item: MenuItem; active: boolean }) {
   }
 
   return (
-    <Link href={item.href} className={`${styles.menuItem} ${active ? styles.menuItemActive : ""}`} aria-current={active ? "page" : undefined}>
+    <Link href={item.href} className={`${styles.menuItem} ${active ? styles.menuItemActive : ""}`} aria-current={active ? "page" : undefined} onClick={onNavigate}>
       {content}
     </Link>
   );
 }
 
-function ProfileCard({ user }: { user: SideNavUser }) {
+function ProfileCard({ user, onNavigate }: { user: SideNavUser; onNavigate?: () => void }) {
   const { t } = useI18n();
   return (
     <section className={styles.card} aria-label={t("side.myInfo")}>
@@ -130,14 +186,11 @@ function ProfileCard({ user }: { user: SideNavUser }) {
         <span>{t("side.balance")}</span>
         <strong>{user.fnBalance === null ? "—" : `${formatNumber(user.fnBalance)} FN`}</strong>
       </div>
-      <div className={styles.cardActions}>
-        <Link href="/mypage" className={styles.outlineButton}>
-          {t("common.myPage")}
-        </Link>
-        <Link href="/wallet/charges" className={styles.outlineButton}>
-          {t("side.fnHistory")}
-        </Link>
-      </div>
+      {/* funnation: the studio entry sits right under the profile. Members without the role create a channel first. */}
+      <Link href={user.creator ? "/creator" : "/channel/new"} className={styles.studioButton} onClick={onNavigate}>
+        <VideoCameraIcon className={styles.menuIcon} aria-hidden="true" />
+        {t(user.creator ? "side.creatorStudio" : "side.createChannel")}
+      </Link>
     </section>
   );
 }

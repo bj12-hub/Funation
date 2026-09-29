@@ -11,7 +11,7 @@ import styles from "./GlobalHeader.module.css";
  * Signed-in profile button (Figma 710:978 profile-logged-in) with its dropdown.
  * The dropdown itself is not in Figma; it reuses the language menu styling.
  */
-export function ProfileMenu({ user }: { user: GlobalHeaderUser }) {
+export function ProfileMenu({ user, creatorRole = true }: { user: GlobalHeaderUser; creatorRole?: boolean }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -56,8 +56,8 @@ export function ProfileMenu({ user }: { user: GlobalHeaderUser }) {
           <Link href="/mypage" role="menuitem" className={styles.profileMenuItem} onClick={() => setOpen(false)}>
             {t("common.myPage")}
           </Link>
-          <Link href="/creator" role="menuitem" className={styles.profileMenuItem} onClick={() => setOpen(false)}>
-            {t("common.creator")}
+          <Link href={creatorRole ? "/creator" : "/channel/new"} role="menuitem" className={styles.profileMenuItem} onClick={() => setOpen(false)}>
+            {t(creatorRole ? "common.creator" : "side.createChannel")}
           </Link>
           <form action={logout}>
             <button type="submit" role="menuitem" className={styles.profileMenuItem}>
