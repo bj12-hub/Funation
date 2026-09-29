@@ -2,8 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { formatNumber } from "@/lib/format";
-import type { OverlayAlert } from "@/services/creator/alertTypes";
+import { alertAmount, type OverlayAlert } from "@/services/creator/alertTypes";
 import styles from "./alertOverlay.module.css";
 import { useReloadSignal } from "./useReloadSignal";
 
@@ -55,7 +54,7 @@ export function AlertOverlay({ data }: { data: OverlayAlert }) {
     <div className={styles.stage}>
       <div key={alert.id} className={styles.card} role="status">
         <p className={styles.headline}>
-          <strong>{alert.donor}</strong>님이 <strong className={styles.amount}>{formatNumber(alert.fnAmount)} FN</strong> 후원!
+          <strong>{alert.donor}</strong>님이 <strong className={styles.amount}>{alertAmount(alert)}</strong> 후원!
         </p>
         {alert.message && <p className={styles.message}>{alert.message}</p>}
         <p className={styles.type}>{alert.typeLabel}</p>

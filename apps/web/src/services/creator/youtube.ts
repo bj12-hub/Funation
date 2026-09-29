@@ -3,7 +3,8 @@
 import { USE_MOCK } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { YouTubeAdapter } from "@/services/platforms/adapters";
-import { PlatformError, type ChannelProfile, type ChannelVideo, type PlatformErrorCode } from "@/services/platforms/platformTypes";
+import { PlatformError, type ChannelVideo, type PlatformErrorCode } from "@/services/platforms/platformTypes";
+import { youtubeStore, type YouTubeStore } from "./youtubeCore";
 import { HANDLE_PATTERN, type ManagedVideo, type YouTubeIntegration, type YouTubeResult } from "./youtubeTypes";
 
 /**
@@ -12,16 +13,8 @@ import { HANDLE_PATTERN, type ManagedVideo, type YouTubeIntegration, type YouTub
  * video id, so re-syncing never duplicates a video and keeps the creator's settings for it.
  */
 
-type Store = {
-  channel: ChannelProfile | null;
-  connectedAt: string | null;
-  lastSyncedAt: string | null;
-  lastError: PlatformErrorCode | null;
-  videos: Record<string, ManagedVideo>;
-  requests: Record<string, true>;
-};
-const g = globalThis as typeof globalThis & { __funationMockYouTubeV1?: Store };
-const store = (): Store => (g.__funationMockYouTubeV1 ??= { channel: null, connectedAt: null, lastSyncedAt: null, lastError: null, videos: {}, requests: {} });
+type Store = YouTubeStore;
+const store = youtubeStore;
 
 const assertMock = () => {
   if (!USE_MOCK) throw new Error("YouTube integration API is not connected yet.");

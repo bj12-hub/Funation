@@ -8,6 +8,7 @@ import { cancelAllAlerts, reloadOverlays, replayAlert, sendTestAlert, setAlertCo
 import type { ToolStates } from "@/services/creator/broadcastToolTypes";
 import {
   ALERT_DISPLAY_SEC,
+  alertAmount,
   TEST_AMOUNT_PRESETS,
   TEST_DONOR_MAX,
   TEST_MESSAGE_MAX,
@@ -161,7 +162,7 @@ export function RemoteScreen({ view, overlayPath, tools }: { view: RemoteView; o
             {view.showing ? (
               <>
                 <span className={styles.liveDot} aria-hidden="true" />
-                표시 중: {view.showing.donor} · {formatNumber(view.showing.fnAmount)} FN
+                표시 중: {view.showing.donor} · {alertAmount(view.showing)}
               </>
             ) : controls.paused ? (
               "일시정지됨 — 새 알림은 대기열에 쌓여요"
@@ -275,8 +276,9 @@ function AlertRow({ alert, disabled, onReplay }: { alert: AlertItem; disabled: b
     <li className={styles.row}>
       <div className={styles.rowMain}>
         <span className={styles.rowTitle}>
-          {alert.donor} · {formatNumber(alert.fnAmount)} FN
+          {alert.donor} · {alertAmount(alert)}
           {alert.kind === "TEST" && <span className={remote.testTag}>테스트</span>}
+          {alert.kind === "EXTERNAL" && <span className={remote.testTag}>연동</span>}
         </span>
         <span className={styles.muted}>
           {time(alert.createdAt)} · {alert.typeLabel}
