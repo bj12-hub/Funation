@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { applyThemePreference, readThemePreference, resolveTheme, type Theme } from "@/lib/theme";
 import styles from "./ThemeToggle.module.css";
 
@@ -10,6 +11,7 @@ import styles from "./ThemeToggle.module.css";
  */
 export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme | null>(null);
+  const { t } = useI18n();
 
   useEffect(() => {
     setTheme(resolveTheme(readThemePreference(), window.matchMedia("(prefers-color-scheme: light)").matches));
@@ -20,8 +22,8 @@ export function ThemeToggle() {
     <button
       type="button"
       className={styles.toggle}
-      aria-label={theme ? `${next === "light" ? "라이트" : "다크"} 모드로 전환` : "테마 전환"}
-      title={theme ? `${next === "light" ? "라이트" : "다크"} 모드` : undefined}
+      aria-label={theme ? t(next === "light" ? "common.themeToLight" : "common.themeToDark") : t("common.themeToggle")}
+      title={theme ? t(next === "light" ? "common.themeLight" : "common.themeDark") : undefined}
       onClick={() => {
         applyThemePreference(next);
         setTheme(next);

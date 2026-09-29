@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { useEffect, useRef, useState } from "react";
 import { logout } from "@/services/auth/logout";
 import type { GlobalHeaderUser } from "./GlobalHeader";
@@ -26,6 +27,7 @@ export function ProfileMenu({ user }: { user: GlobalHeaderUser }) {
     };
   }, [open]);
 
+  const { t } = useI18n();
   return (
     <div className={styles.profileRoot} ref={rootRef}>
       <button
@@ -33,7 +35,7 @@ export function ProfileMenu({ user }: { user: GlobalHeaderUser }) {
         className={styles.profile}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={`${user.nickname} 계정 메뉴`}
+        aria-label={t("profile.accountMenu", { name: user.nickname })}
         onClick={() => setOpen((v) => !v)}
       >
         {user.avatarUrl ? (
@@ -44,7 +46,7 @@ export function ProfileMenu({ user }: { user: GlobalHeaderUser }) {
             {user.nickname.slice(0, 1)}
           </span>
         )}
-        <span className={styles.profileName}>{user.nickname}의 FuN!</span>
+        <span className={styles.profileName}>{t("profile.fun", { name: user.nickname })}</span>
         <span className={styles.caret} aria-hidden="true">
           ▼
         </span>
@@ -52,14 +54,14 @@ export function ProfileMenu({ user }: { user: GlobalHeaderUser }) {
       {open && (
         <div className={styles.profileMenu} role="menu">
           <Link href="/mypage" role="menuitem" className={styles.profileMenuItem} onClick={() => setOpen(false)}>
-            마이페이지
+            {t("common.myPage")}
           </Link>
           <Link href="/creator" role="menuitem" className={styles.profileMenuItem} onClick={() => setOpen(false)}>
-            크리에이터
+            {t("common.creator")}
           </Link>
           <form action={logout}>
             <button type="submit" role="menuitem" className={styles.profileMenuItem}>
-              로그아웃
+              {t("common.logout")}
             </button>
           </form>
         </div>
