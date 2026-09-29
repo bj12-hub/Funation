@@ -97,5 +97,6 @@ Remaining:
   (`/donation/history`) and FN Wallet (`/wallet`, 817:7552) done. Dev-only failing mocks: SOOP 게임왕, FlexTV 하트요정 (API_ERROR).
 - `/terms/[slug]` body text (722:3, pending copy).
 - Undesigned: 그림후원 widget popup, 10 alert-card popups, 게임/크루 후원 lists, donor block entry point.
-- Cross-cutting TBDs: creator role check, widget settings ↔ donation flow (quest minimum, refunds,
+- Creator role: `Session.roles` + `getCreatorSession()` (lib/session.ts) guard every creator service; granting the role is TBD.
+- Cross-cutting TBDs: widget settings ↔ donation flow (quest minimum, refunds,
   gacha odds disclosure/legal review), ranking formulas, platform event mapping.

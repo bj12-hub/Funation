@@ -19,7 +19,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/wallet/charges` | ✅ | FN 충전내역 640:2 · 639:2 (empty) · 상세 643:4 · 644:6 · 644:185 · 644:364 — signed-in only, `?period=` `?from=` `?to=` `?page=` |
 | `/wallet/donations` | ✅ | FN 후원내역 632:4 · 637:214 (empty) — signed-in only, `?type=` (basic · quest · game) + period params |
 | `/wallet` | ✅ | FN Wallet 817:7552 — 사용 가능 · 보류 중 (0, locking TBD) · 누적 사용 + 충전·사용·환불 list, `?kind=CHARGE|USE|REFUND` `?period=30|90|all` `?page=` (no running-balance column: needs a reconciled ledger, TBD) |
-| `/creator` | ✅ | creator-dashboard 245:14 · profile dropdown 758:41 / 296:500 — signed-in only, `?period=` `?from=` `?to=` (creator role check TBD) |
+| `/creator` | ✅ | creator-dashboard 245:14 · profile dropdown 758:41 / 296:500 — signed-in only, `?period=` `?from=` `?to=` — Creator role required (non-creators see 크리에이터 권한이 필요합니다; how the role is granted is TBD) |
 | `/creator/settings` | ✅ | creator-account-settings-page 315:405 · 315:2 · 프로필 수정 326:496 — signed-in only |
 | `/creator/ranking` | ✅ | creator ranking 405:4 (퀘스트) · 405:302 (럭키박스) · 405:598 (플레이) — signed-in only, `?type=` `?period=` `?q=` `?page=` (scoring/season/tie rules TBD) |
 | `/creator/widgets` | ✅ | donation-widget-notification-settings 529:4 — popups 364:6 (채팅창) · 364:158 (QR) · 364:265 (후원목표) · 372:7 (후원누적금액) · 531:1370 (최근알림) · 531:1598 (이벤트) · 531:1826 (미니후원) · 315:650 (후원랭킹) · 315:858 (투표) · 373:1307 (커스텀 사운드) · 373:1356 (럭키박스) · 373:1598 (퀘스트) · 373:1785 (플레이) · 373:3675 (뽑기 후원) · 395:145 (벽지); 그림후원 + alert cards have no popup design (informational cards) — signed-in only |

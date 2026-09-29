@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { USE_MOCK } from "@/lib/mock";
 import { mockAccount, mockSessionState } from "@/services/account/mockStore";
+import type { Role } from "@/types/role";
 
 /**
  * Server-side session access (Server Components, Server Actions and route handlers only).
@@ -23,7 +24,12 @@ export type Session = {
   nickname: string;
   funationId: string;
   avatarUrl: string | null;
+  /** Server-resolved roles. Never taken from the client. */
+  roles: Role[];
 };
+
+/** The Figma sample member (홍길동) runs a channel, so the mock grants both roles. */
+const DEFAULT_MOCK_ROLES: Role[] = ["SUPPORTER", "CREATOR"];
 
 export async function getSession(): Promise<Session | null> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
@@ -32,9 +38,21 @@ export async function getSession(): Promise<Session | null> {
   if (USE_MOCK && token === MOCK_TOKEN && !mockSessionState.revoked) {
     // Display fields follow the (editable) mock account.
     const { nickname, funationId, avatarUrl } = mockAccount;
-    return { userId: MOCK_USER_ID, nickname, funationId, avatarUrl };
+    return { userId: MOCK_USER_ID, nickname, funationId, avatarUrl, roles: [...(mockSessionState.roles ?? DEFAULT_MOCK_ROLES)] };
   }
   return null;
+}
+
+export const hasRole = (session: Session | null, role: Role): boolean => !!session && session.roles.includes(role);
+
+/**
+ * Session of a member with the Creator role, or `null`. Every creator-studio read and Server Action
+ * uses this instead of `getSession()`, so a signed-in supporter cannot call creator APIs directly.
+ * TBD: how the Creator role is granted (application / approval / platform verification).
+ */
+export async function getCreatorSession(): Promise<Session | null> {
+  const session = await getSession();
+  return hasRole(session, "CREATOR") ? session : null;
 }
 
 /** Issues the session cookie after the credentials were accepted. */

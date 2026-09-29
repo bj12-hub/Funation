@@ -2,7 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
-import { getSession } from "@/lib/session";
+import { getCreatorSession } from "@/lib/session";
 import { PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES } from "@/lib/validation";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { mockCreator } from "./mockCreatorStore";
@@ -39,7 +39,7 @@ const assertMock = () => {
 
 export async function getWidgetDetail(key: unknown): Promise<WidgetDetail | null> {
   assertMock();
-  if (!(await getSession()) || !isEditableWidget(key)) return null;
+  if (!(await getCreatorSession()) || !isEditableWidget(key)) return null;
   await mockDelay(300);
   return {
     key,
@@ -74,7 +74,7 @@ export async function getWidgetDetail(key: unknown): Promise<WidgetDetail | null
 
 export async function saveWidgetSettings(key: unknown, input: unknown): Promise<WidgetSaveResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (!isEditableWidget(key) || key === "CUSTOM_SOUND") return { status: "INVALID", message: "알 수 없는 위젯입니다." };
   const parsed = PARSERS[key](typeof input === "object" && input !== null ? (input as Record<string, unknown>) : {});
   if (typeof parsed === "string") return { status: "INVALID", message: parsed };
@@ -92,7 +92,7 @@ export async function saveWidgetSettings(key: unknown, input: unknown): Promise<
  */
 export async function saveCustomSound(formData: FormData): Promise<CustomSoundResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const id = String(formData.get("id") ?? "");
   const word = String(formData.get("word") ?? "").trim();
   const volume = Number(formData.get("volume"));
@@ -127,7 +127,7 @@ export async function saveCustomSound(formData: FormData): Promise<CustomSoundRe
 
 export async function deleteCustomSound(id: unknown): Promise<{ status: "DELETED" } | { status: "UNAUTHORIZED" }> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   await mockDelay(300);
   // Idempotent: deleting a sound that is already gone is not an error.
   store.CUSTOM_SOUND.sounds = store.CUSTOM_SOUND.sounds.filter((s) => s.id !== id);
@@ -139,7 +139,7 @@ export async function deleteCustomSound(id: unknown): Promise<{ status: "DELETED
 /** Same file rules as profile photos (JPG/PNG/WEBP, 5MB). The real limits for wallpaper images are TBD. */
 export async function uploadWallpaperImage(formData: FormData): Promise<WallpaperImageResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const file = formData.get("image");
   if (!(file instanceof File) || file.size === 0) return { status: "FAILED" };
   if (store.WALLPAPER.images.length >= WALLPAPER_IMAGES_MAX) return { status: "LIMIT" };
@@ -154,7 +154,7 @@ export async function uploadWallpaperImage(formData: FormData): Promise<Wallpape
 
 export async function deleteWallpaperImage(id: unknown): Promise<{ status: "DELETED" } | { status: "UNAUTHORIZED" }> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   await mockDelay(300);
   store.WALLPAPER.images = store.WALLPAPER.images.filter((i) => i.id !== id);
   return { status: "DELETED" };
