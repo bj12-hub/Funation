@@ -100,6 +100,17 @@ export function WidgetSettingsScreen({ alertWidgetUrl }: { alertWidgetUrl: strin
               </Link>
             </li>
           ))}
+          <li>
+            <Link href="/creator/widgets/overlays" className={`${styles.card} ${styles.cardButton}`}>
+              <span className={styles.cardIcon} style={{ background: "var(--color-surface-raised)" }} aria-hidden="true">
+                🔗
+              </span>
+              <span className={styles.cardText}>
+                <strong>오버레이 주소</strong>
+                <span>OBS에 넣을 모든 오버레이 주소를 한곳에서 복사해요.</span>
+              </span>
+            </Link>
+          </li>
         </ul>
       </section>
       {openKey && (
