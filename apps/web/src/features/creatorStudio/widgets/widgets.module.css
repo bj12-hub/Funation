@@ -1091,6 +1091,221 @@
   opacity: 0.6;
 }
 
+/* ── PR 3 widgets: 럭키박스 · 퀘스트 · 플레이 ── */
+
+.gamePreview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.luckyCard,
+.playCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  color: var(--color-text-primary);
+}
+
+.luckyCard p {
+  margin: 0;
+  font-weight: var(--font-weight-bold);
+  text-align: center;
+}
+
+.boxes {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  font-family: var(--font-latin);
+  font-size: 32px;
+}
+
+.queueRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-8);
+  background: rgba(0, 0, 0, 0.35);
+  font-weight: var(--font-weight-bold);
+}
+
+.timeBadge {
+  margin-left: auto;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-info);
+  color: #ffffff;
+  font-size: var(--font-size-12);
+}
+
+.questFancy,
+.questSimple {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 12px;
+  font-weight: var(--font-weight-bold);
+}
+
+.questFancy {
+  border: 2px solid #f5bf0a;
+  background: linear-gradient(135deg, #4c1d95, #be185d);
+  box-shadow: 0 0 18px rgba(245, 191, 10, 0.35);
+}
+
+.questSimple {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.questBadge {
+  align-self: flex-start;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  background: #f5bf0a;
+  color: #111827;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.questMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.questThumbs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.questThumbFancy,
+.questThumbSimple {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-12);
+}
+
+.questThumbFancy {
+  background: linear-gradient(135deg, #4c1d95, #be185d);
+}
+
+.questThumbFancy b {
+  color: #f5bf0a;
+}
+
+.questThumbSimple {
+  background: #16162d;
+}
+
+.remoteChip {
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+}
+
+.noteTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-12);
+}
+
+.noteTable th,
+.noteTable td {
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.noteTable th {
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+}
+
+.playTabs {
+  display: flex;
+  gap: 8px;
+}
+
+.playTabs button {
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+}
+
+.playTabs .playTabOn {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.playHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-weight: var(--font-weight-bold);
+}
+
+.playQuestion {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-8);
+  background: #ffffff;
+  font-weight: var(--font-weight-bold);
+}
+
+.playOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0 0 0 20px;
+}
+
+.playOptions li {
+  font-weight: var(--font-weight-bold);
+}
+
+.playHint {
+  margin: 0;
+  font-size: 28px;
+  font-weight: var(--font-weight-extrabold);
+  letter-spacing: 8px;
+  text-align: center;
+}
+
+.playCanvas {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+  border-radius: var(--radius-8);
+  background: #ffffff;
+  font-family: var(--font-latin);
+  font-size: 40px;
+}
+
 @media (max-width: 1100px) {
   .grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

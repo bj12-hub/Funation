@@ -1,5 +1,16 @@
 import {
   ALERT_EFFECTS_IN,
+  AUTO_REFUND_MINUTES,
+  FONT_LEVELS,
+  PRIZE_MAX,
+  QUEST_STYLES,
+  type AutoRefundMinutes,
+  type ColorFont,
+  type LeveledFont,
+  type LuckyboxWidgetSettings,
+  type PlayWidgetSettings,
+  type QuestWidgetSettings,
+  type QueueDisplay,
   ALERT_EFFECTS_OUT,
   CHAT_MAX_FILTERS,
   CHAT_MAX_LINES,
@@ -306,6 +317,116 @@ const parseVote: Parser<VoteSettings> = (v) => {
   return { enabled: v.enabled, titleFont, infoFont, itemFont, presets: out };
 };
 
+// ── 럭키박스 · 퀘스트 · 플레이 ───────────────────────────────────────────────────
+
+const obj = (v: unknown) => (typeof v === "object" && v !== null ? v : {}) as Raw;
+
+function leveledFont(v: unknown): LeveledFont | null {
+  const f = obj(v);
+  if (!oneOf(f.family, FONT_FAMILIES) || !keyOf(f.level, FONT_LEVELS) || !isHexColor(f.color)) return null;
+  return { family: f.family, level: f.level, color: f.color.toUpperCase() };
+}
+
+function colorFont(v: unknown): ColorFont | null {
+  const f = obj(v);
+  if (!oneOf(f.family, FONT_FAMILIES) || !isHexColor(f.color)) return null;
+  return { family: f.family, color: f.color.toUpperCase() };
+}
+
+function queue(v: unknown): QueueDisplay | null {
+  const q = obj(v);
+  const nicknameFont = leveledFont(q.nicknameFont);
+  const prizeFont = leveledFont(q.prizeFont);
+  const timeFont = leveledFont(q.timeFont);
+  if (!nicknameFont || !prizeFont || !timeFont || !isHexColor(q.bgColor) || !int(q.bgOpacity, 0, 100)) return null;
+  return { bgColor: q.bgColor.toUpperCase(), bgOpacity: q.bgOpacity as number, nicknameFont, prizeFont, timeFont };
+}
+
+const isRefund = (v: unknown): v is AutoRefundMinutes => (AUTO_REFUND_MINUTES as readonly unknown[]).includes(v);
+const PERCENT_ERROR = "비율은 0~100%로 입력해 주세요.";
+
+const parseLuckybox: Parser<LuckyboxWidgetSettings> = (v) => {
+  const nicknameFont = leveledFont(v.nicknameFont);
+  const prizeFont = leveledFont(v.prizeFont);
+  const q = queue(v.queue);
+  if (!nicknameFont || !prizeFont || !q) return "폰트/색상 설정을 확인해 주세요.";
+  if (!bool(v.enabled) || !int(v.bgOpacity, 0, 100)) return "설정 값을 확인해 주세요.";
+  if (!int(v.minPrize, 0, PRIZE_MAX)) return "최소 당첨 상금을 확인해 주세요.";
+  if (!int(v.minPangPercent, 0, 100)) return PERCENT_ERROR;
+  if (!isRefund(v.autoRefundMinutes)) return "자동환불시간을 선택해 주세요.";
+  return {
+    enabled: v.enabled,
+    bgOpacity: v.bgOpacity as number,
+    nicknameFont,
+    prizeFont,
+    queue: q,
+    minPrize: v.minPrize as number,
+    minPangPercent: v.minPangPercent as number,
+    autoRefundMinutes: v.autoRefundMinutes
+  };
+};
+
+const parseQuest: Parser<QuestWidgetSettings> = (v) => {
+  const titleFont = colorFont(v.titleFont);
+  const timeFont = colorFont(v.timeFont);
+  const prizeFont = colorFont(v.prizeFont);
+  if (!titleFont || !timeFont || !prizeFont) return "폰트/색상 설정을 확인해 주세요.";
+  if (!keyOf(v.style, QUEST_STYLES)) return "위젯 스타일을 선택해 주세요.";
+  if (![v.enabled, v.allowExtension, v.showSuccessAuthorityMenu].every(bool)) return "설정 값을 확인해 주세요.";
+  if (!int(v.minAmount, 1, PRIZE_MAX)) return "후원 최소 FN을 확인해 주세요.";
+  if (![v.cancelPenaltyPercent, v.failPenaltyCreatorPercent, v.failPenaltyDonorPercent].every((p) => int(p, 0, 100))) return PERCENT_ERROR;
+  if (!int(v.maxCount, 1, 50)) return "최대 개수는 1~50개로 입력해 주세요.";
+  if (!int(v.intervalSec, 0, 3600)) return "등록 간격시간은 0~3600초로 입력해 주세요.";
+  return {
+    enabled: v.enabled as boolean,
+    style: v.style,
+    titleFont,
+    timeFont,
+    prizeFont,
+    minAmount: v.minAmount as number,
+    cancelPenaltyPercent: v.cancelPenaltyPercent as number,
+    failPenaltyCreatorPercent: v.failPenaltyCreatorPercent as number,
+    failPenaltyDonorPercent: v.failPenaltyDonorPercent as number,
+    maxCount: v.maxCount as number,
+    intervalSec: v.intervalSec as number,
+    allowExtension: v.allowExtension as boolean,
+    showSuccessAuthorityMenu: v.showSuccessAuthorityMenu as boolean
+  };
+};
+
+const parsePlay: Parser<PlayWidgetSettings> = (v) => {
+  const nicknameFont = leveledFont(v.nicknameFont);
+  const prizeFont = leveledFont(v.prizeFont);
+  const q = queue(v.queue);
+  const g = obj(v.games);
+  const choice = obj(g.CHOICE);
+  const initial = obj(g.INITIAL);
+  const drawing = obj(g.DRAWING);
+  const games = {
+    CHOICE: { questionFont: leveledFont(choice.questionFont), optionFont: leveledFont(choice.optionFont) },
+    INITIAL: { questionFont: leveledFont(initial.questionFont), hintFont: leveledFont(initial.hintFont) },
+    DRAWING: { questionFont: leveledFont(drawing.questionFont) }
+  };
+  const gameFonts = [games.CHOICE.questionFont, games.CHOICE.optionFont, games.INITIAL.questionFont, games.INITIAL.hintFont, games.DRAWING.questionFont];
+  if (!nicknameFont || !prizeFont || !q || gameFonts.some((f) => !f)) return "폰트/색상 설정을 확인해 주세요.";
+  if (![v.enabled, v.bgm, obj(v.queue).useDefaultBg].every(bool) || !int(v.opacity, 0, 100)) return "설정 값을 확인해 주세요.";
+  if (!int(v.minPrize, 0, PRIZE_MAX)) return "최소 정답 상금을 확인해 주세요.";
+  if (!int(v.minWrongPercent, 0, 100)) return PERCENT_ERROR;
+  if (!isRefund(v.autoRefundMinutes)) return "자동환불시간을 선택해 주세요.";
+  return {
+    enabled: v.enabled as boolean,
+    bgm: v.bgm as boolean,
+    opacity: v.opacity as number,
+    nicknameFont,
+    prizeFont,
+    queue: { ...q, useDefaultBg: obj(v.queue).useDefaultBg as boolean },
+    minPrize: v.minPrize as number,
+    minWrongPercent: v.minWrongPercent as number,
+    autoRefundMinutes: v.autoRefundMinutes,
+    games: games as PlayWidgetSettings["games"]
+  };
+};
+
 export const PARSERS: { [K in Exclude<EditableWidgetKey, "CUSTOM_SOUND">]: Parser<WidgetSettingsMap[K]> } = {
   CHAT: parseChat,
   QR: parseQr,
@@ -315,5 +436,8 @@ export const PARSERS: { [K in Exclude<EditableWidgetKey, "CUSTOM_SOUND">]: Parse
   EVENT: parseEvent,
   MINI: parseMini,
   RANKING: parseRanking,
-  VOTE: parseVote
+  VOTE: parseVote,
+  LUCKYBOX: parseLuckybox,
+  QUEST: parseQuest,
+  PLAY: parsePlay
 };
