@@ -78,6 +78,18 @@ describe("리모컨 / 후원 알림 대기열", () => {
     expect((await getRemoteView())!.showing).toMatchObject({ kind: "DONATION", donor: "홍길동" });
   });
 
+  it("sends TTS-skip and overlay-reload signals to open overlays", async () => {
+    const { skipTts, reloadOverlays, getOverlayAlert, overlayKey } = await load();
+    const tools = await import("./broadcastTools");
+    expect(await getOverlayAlert(overlayKey)).toMatchObject({ ttsSkipSeq: 0, reloadSeq: 0 });
+    await skipTts();
+    await reloadOverlays();
+    expect(await getOverlayAlert(overlayKey)).toMatchObject({ ttsSkipSeq: 1, reloadSeq: 1 });
+    expect(await tools.getOverlayTool("timer", overlayKey)).toMatchObject({ reloadSeq: 1 });
+    signIn(["SUPPORTER"]);
+    expect(await reloadOverlays()).toEqual({ status: "UNAUTHORIZED" });
+  });
+
   it("rejects non-creators and wrong overlay keys", async () => {
     const { getOverlayAlert, sendTestAlert, cancelAllAlerts, getRemoteView } = await load();
     expect(await getOverlayAlert("wrong")).toBe("FORBIDDEN");

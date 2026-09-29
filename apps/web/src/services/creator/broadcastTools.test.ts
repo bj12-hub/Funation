@@ -19,13 +19,13 @@ describe("방송 도구", () => {
   it("shows saved subtitle and marquee on the overlay, and validates input", async () => {
     const { saveSubtitle, saveMarquee, getOverlayTool, overlayKey } = await load();
     expect(await saveSubtitle({ text: "  잠시 쉬어갈게요  ", size: "L" })).toEqual({ status: "SAVED" });
-    expect(await getOverlayTool("subtitle", overlayKey)).toEqual({ tool: "subtitle", state: { text: "잠시 쉬어갈게요", size: "L" } });
+    expect(await getOverlayTool("subtitle", overlayKey)).toEqual({ tool: "subtitle", state: { text: "잠시 쉬어갈게요", size: "L" }, reloadSeq: 0 });
     expect((await saveSubtitle({ text: "x".repeat(81), size: "M" })).status).toBe("INVALID");
     expect((await saveSubtitle({ text: "운영자 공지", size: "M" })).status).toBe("INVALID");
     expect((await saveSubtitle({ text: "hi", size: "XL" })).status).toBe("INVALID");
 
     expect(await saveMarquee({ lines: ["공지 1", " ", "공지 2"], speed: "FAST" })).toEqual({ status: "SAVED" });
-    expect(await getOverlayTool("marquee", overlayKey)).toEqual({ tool: "marquee", state: { lines: ["공지 1", "공지 2"], speed: "FAST" } });
+    expect(await getOverlayTool("marquee", overlayKey)).toEqual({ tool: "marquee", state: { lines: ["공지 1", "공지 2"], speed: "FAST" }, reloadSeq: 0 });
     expect((await saveMarquee({ lines: Array(6).fill("a"), speed: "FAST" })).status).toBe("INVALID");
   });
 
@@ -63,6 +63,43 @@ describe("방송 도구", () => {
     await saveCredits({ title: "감사합니다", thanks: [], includeCrew: false });
     expect(await getOverlayTool("credits", overlayKey)).toMatchObject({ crew: [] });
     expect((await saveCredits({ title: "", thanks: [], includeCrew: false })).status).toBe("INVALID");
+  });
+
+it("퀵 조정 moves the shown time in both modes, clamped at zero", async () => {
+    vi.useFakeTimers({ now: new Date("2026-09-30T12:00:00Z"), toFake: ["Date"] });
+    const { configureTimer, controlTimer, adjustTimer, getOverlayTool, overlayKey } = await load();
+    const shown = async () => {
+      const t = await getOverlayTool("timer", overlayKey);
+      if (t === "FORBIDDEN" || t.tool !== "timer") throw new Error("expected timer");
+      return timerSeconds(t.state, Date.now());
+    };
+    await configureTimer({ mode: "COUNTDOWN", durationSec: 120 });
+    await controlTimer("START");
+    vi.setSystemTime(new Date("2026-09-30T12:00:30Z"));
+    expect(await shown()).toBe(90);
+    await adjustTimer(60);
+    expect(await shown()).toBe(150); // running countdown: more time left
+    await adjustTimer(-60);
+    await adjustTimer(-60);
+    await adjustTimer(-60);
+    expect(await shown()).toBe(0);
+    await configureTimer({ mode: "STOPWATCH", durationSec: 600 });
+    await adjustTimer(30);
+    expect(await shown()).toBe(30);
+    expect((await adjustTimer(45)).status).toBe("INVALID");
+  });
+
+  it("rolls the ending credits only between 시작 and 중지, keeping the roll across saves", async () => {
+    const { controlCredits, saveCredits, getOverlayTool, overlayKey } = await load();
+    expect(await getOverlayTool("credits", overlayKey)).toMatchObject({ state: { rollingSince: null } });
+    await controlCredits("START");
+    await saveCredits({ title: "감사합니다", thanks: ["또 만나요"], includeCrew: false });
+    const rolling = await getOverlayTool("credits", overlayKey);
+    if (rolling === "FORBIDDEN" || rolling.tool !== "credits") throw new Error("expected credits");
+    expect(rolling.state.rollingSince).not.toBeNull();
+    await controlCredits("STOP");
+    expect(await getOverlayTool("credits", overlayKey)).toMatchObject({ state: { rollingSince: null } });
+    expect((await controlCredits("PAUSE")).status).toBe("INVALID");
   });
 
   it("rejects wrong overlay keys, unknown tools and non-creators", async () => {
