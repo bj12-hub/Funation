@@ -17,7 +17,7 @@ export type ManagedSignature = {
 
 export const SIGNATURE_LIMITS = { max: 50, nameMax: 20, priceMin: 100, priceMax: 10_000_000 } as const;
 
-/** Preset images until the 이미지·사운드 library exists. */
+/** Preset images; creators can also pick a library image (`/api/media/[id]`). */
 export const SIGNATURE_IMAGE_PRESETS = Array.from({ length: 8 }, (_, i) => `/mock/room/signatures/sig-${i + 1}.png`);
 
 export type SignatureResult = { status: "SAVED"; id: string } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };

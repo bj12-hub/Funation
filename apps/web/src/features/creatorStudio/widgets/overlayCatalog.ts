@@ -51,6 +51,15 @@ export const OVERLAYS: OverlayEntry[] = [
     manage: "/creator/crew/broadcast"
   },
   {
+    id: "banner",
+    group: "표시·자막",
+    title: "배너",
+    description: "라이브러리 이미지를 슬라이드쇼로 띄워요.",
+    size: "1920 × 1080",
+    path: (k) => `/overlay/banner/${k}`,
+    manage: "/creator/widgets/banner"
+  },
+  {
     id: "subtitle",
     group: "표시·자막",
     title: "자막",

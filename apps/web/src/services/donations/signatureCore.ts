@@ -1,5 +1,7 @@
 import { getMockDonationCatalog, type DonationCatalog, type Signature } from "./donationCatalog";
-import type { ManagedSignature } from "./signatureTypes";
+import { findAsset } from "@/services/creator/assetCore";
+import { assetUrl } from "@/services/creator/assetTypes";
+import { SIGNATURE_IMAGE_PRESETS, type ManagedSignature } from "./signatureTypes";
 
 /**
  * Server-only signature store (not a "use server" module). Seeded from the Figma catalog; the creator's
@@ -18,11 +20,18 @@ export const mockSignatures = (g.__funationMockSignaturesV1 ??= ((): Store => {
   };
 })());
 
+/** A preset image or an IMAGE in the creator's library. */
+export function isSignatureImage(url: string) {
+  if (SIGNATURE_IMAGE_PRESETS.includes(url)) return true;
+  const id = url.startsWith("/api/media/") ? url.slice("/api/media/".length) : null;
+  return !!id && !!findAsset(id, "IMAGE") && assetUrl(id) === url;
+}
+
 /** Active signatures in the creator's order, shaped for the donation panel. */
 export function activeSignatures(): Signature[] {
   return mockSignatures.items
     .filter((s) => s.active)
-    .map((s, i) => ({ id: s.id, name: s.name, price: s.price, imageUrl: s.imageUrl, favorite: mockSignatures.favorites[s.id] ?? false, rank: i + 1 }));
+    .map((s, i) => ({ id: s.id, name: s.name, price: s.price, imageUrl: isSignatureImage(s.imageUrl) ? s.imageUrl : SIGNATURE_IMAGE_PRESETS[0], favorite: mockSignatures.favorites[s.id] ?? false, rank: i + 1 }));
 }
 
 /** The donation catalog with the managed signatures (used by the room and the Donation Core). */

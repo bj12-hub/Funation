@@ -3,8 +3,8 @@
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
-import { mockSignatures } from "./signatureCore";
-import { SIGNATURE_IMAGE_PRESETS, SIGNATURE_LIMITS, type ManagedSignature, type SignatureResult } from "./signatureTypes";
+import { isSignatureImage, mockSignatures } from "./signatureCore";
+import { SIGNATURE_LIMITS, type ManagedSignature, type SignatureResult } from "./signatureTypes";
 
 /**
  * 시그니처 관리 Server Actions — code-first. Route `/creator/widgets/signatures`. Creator only; every
@@ -32,7 +32,7 @@ export async function saveSignature(input: unknown): Promise<SignatureResult> {
   if (typeof price !== "number" || !Number.isInteger(price) || price < SIGNATURE_LIMITS.priceMin || price > SIGNATURE_LIMITS.priceMax) {
     return { status: "INVALID", message: `가격은 ${SIGNATURE_LIMITS.priceMin.toLocaleString()} ~ ${SIGNATURE_LIMITS.priceMax.toLocaleString()} FN이에요.` };
   }
-  if (typeof v.imageUrl !== "string" || !SIGNATURE_IMAGE_PRESETS.includes(v.imageUrl)) return { status: "INVALID", message: "이미지를 골라 주세요." };
+  if (typeof v.imageUrl !== "string" || !isSignatureImage(v.imageUrl)) return { status: "INVALID", message: "이미지를 골라 주세요." };
   if (v.match !== "SELECT" && v.match !== "AMOUNT") return { status: "INVALID", message: "매칭 규칙을 확인해 주세요." };
   if (typeof v.active !== "boolean") return { status: "INVALID", message: "사용 여부를 확인해 주세요." };
 
