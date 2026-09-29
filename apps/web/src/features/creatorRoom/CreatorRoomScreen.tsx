@@ -5,7 +5,9 @@ import { formatCompactKo } from "@/lib/format";
 import type { CreatorCategory } from "@/services/creators/creators";
 import type { CrewPublic } from "@/services/crew/crewTypes";
 import { PLATFORM_LABEL } from "@/types/platform";
-import { AboutView, ChannelTabs, CommunityView, CrewView, SignaturesView, VideosView } from "./ChannelViews";
+import type { ChannelPostsView, ChannelRanking } from "@/services/creators/channelTypes";
+import { ChannelCommunity, ChannelHomeExtras } from "./ChannelHome";
+import { AboutView, ChannelTabs, CrewView, SignaturesView, VideosView } from "./ChannelViews";
 import type { ChannelView } from "./channelView";
 import channel from "./channel.module.css";
 import { Player } from "./Player";
@@ -27,7 +29,10 @@ export function CreatorRoomScreen({
   initialTab,
   view = "home",
   crew,
-  about
+  about,
+  ranking,
+  posts,
+  postsShow
 }: {
   room: CreatorRoom;
   viewer: Viewer;
@@ -36,6 +41,9 @@ export function CreatorRoomScreen({
   view?: ChannelView;
   crew: CrewPublic;
   about: { description: string; categories: CreatorCategory[]; subscriberCount: number; joinedAt: string };
+  ranking: ChannelRanking;
+  posts: ChannelPostsView;
+  postsShow: number;
 }) {
   const donateHref = `/creators/${room.creatorId}?tab=donation`;
   return (
@@ -97,7 +105,7 @@ export function CreatorRoomScreen({
         <section className={channel.panel} aria-label="채널">
           {view === "crew" && <CrewView crew={crew} name={room.name} />}
           {view === "videos" && <VideosView name={room.name} />}
-          {view === "community" && <CommunityView />}
+          {view === "community" && <ChannelCommunity creatorId={room.creatorId} name={room.name} view={posts} signedIn={viewer !== null} show={postsShow} />}
           {view === "signatures" && <SignaturesView signatures={room.donation.signatures} donateHref={donateHref} />}
           {view === "about" && (
             <AboutView about={{ name: room.name, description: about.description, categories: about.categories, subscriberCount: about.subscriberCount, joinedAt: about.joinedAt, platforms: room.channels.map((c) => c.platform) }} />
@@ -114,6 +122,7 @@ export function CreatorRoomScreen({
         <SidePanel key={initialTab} room={room} signedIn={viewer !== null} fnBalance={viewer?.fnBalance ?? null} nickname={viewer?.nickname ?? null} initialTab={initialTab} />
       </div>
       )}
+      {view === "home" && <ChannelHomeExtras creatorId={room.creatorId} ranking={ranking} posts={posts.items.slice(0, 3)} />}
     </div>
   );
 }

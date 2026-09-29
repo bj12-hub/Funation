@@ -96,10 +96,10 @@ The page follows the funnation channel page (`/store/{slug}`). From top to botto
 - **Banner.**
 - **Profile row:** avatar, name, platforms, intro and 구독자. The actions are **💝 후원하기**, which opens the 후원 panel on 홈 (`?tab=donation`), then 즐겨찾기 (funnation 팔로우), 공유 and 쪽지.
 - **Tabs** (`?view=`):
-  - **홈:** the existing Figma room (player + 후원/채팅 panel).
+  - **홈:** the existing Figma room (player + 후원/채팅 panel), then 월간 후원 랭킹 and the latest 채널 커뮤니티 posts.
   - **크루:** the channel's active crew members.
   - **영상:** empty for now; VOD needs the YouTube integration (TBD).
-  - **커뮤니티:** channel boards are TBD; it links to the site community.
+  - **커뮤니티:** the channel's own feed (signed-in posting, author delete; moderation TBD).
   - **시그니처:** the signature catalog, sortable by 금액 낮은순 · 높은순 · 이름순. A card links to the 후원 panel.
   - **소개:** intro, categories, platforms, subscribers and join date.
 - **Not built yet:**
