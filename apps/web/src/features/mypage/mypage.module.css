@@ -487,3 +487,37 @@
     padding: 16px;
   }
 }
+
+/* 후원자 프로필 links (code-first) */
+.identityLinks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.identityLink {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-12);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.identityLink strong {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-15);
+}
+
+.identityLink:hover {
+  border-color: var(--color-primary);
+}
+
+@media (max-width: 767px) {
+  .identityLinks {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
