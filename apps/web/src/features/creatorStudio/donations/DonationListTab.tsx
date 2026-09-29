@@ -8,6 +8,7 @@ import {
   QUEST_STATUSES,
   type ReceivedDonationPage
 } from "@/services/creator/donationManagementTypes";
+import { CsvExportButton } from "./CsvExportButton";
 import { YearSelect } from "./YearSelect";
 import styles from "./donations.module.css";
 
@@ -88,6 +89,7 @@ export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
         <button type="submit" className={styles.solidPurple}>
           검색
         </button>
+        <CsvExportButton filter={{ kind, period, status, query }} />
       </form>
 
       <div className={styles.table}>

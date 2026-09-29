@@ -39,6 +39,8 @@ import {
   type QuestStatus,
   type RankPeriod,
   type ReceivedDonation,
+  type CsvExportResult,
+  CSV_EXPORT_MAX,
   type ReceivedDonationPage,
   type SlugCheckResult,
   type StatusFilter
@@ -196,10 +198,10 @@ function mockQuestDonations(): ReceivedDonation[] {
   });
 }
 
-export async function getReceivedDonations(input: { kind: ListKind; period: ListPeriod; status: StatusFilter; query: string; page: number }): Promise<ReceivedDonationPage | null> {
-  assertMock();
-  if (!(await getCreatorSession())) return null;
-  await mockDelay(300);
+type ListFilter = { kind: ListKind; period: ListPeriod; status: StatusFilter; query: string };
+
+/** Server-side filtering shared by the paged list and the CSV export. */
+function filterReceived(input: ListFilter) {
   const kind = LIST_KINDS.some((k) => k.key === input.kind) ? input.kind : "quest";
   const status: StatusFilter = input.status === "ALL" || QUEST_STATUSES.some((s) => s.key === input.status) ? input.status : "ALL";
   const query = input.query.trim().slice(0, LIST_QUERY_MAX).toLowerCase();
@@ -216,6 +218,14 @@ export async function getReceivedDonations(input: { kind: ListKind; period: List
     if (status !== "ALL" && d.status !== status) return false;
     return !query || d.donorNickname.toLowerCase().includes(query) || d.donorId.toLowerCase().includes(query);
   });
+  return { kind, status, matched, years };
+}
+
+export async function getReceivedDonations(input: ListFilter & { page: number }): Promise<ReceivedDonationPage | null> {
+  assertMock();
+  if (!(await getCreatorSession())) return null;
+  await mockDelay(300);
+  const { kind, status, matched, years } = filterReceived(input);
   const totalPages = Math.max(1, Math.ceil(matched.length / LIST_PAGE_SIZE));
   const page = Math.min(Math.max(1, Math.floor(input.page) || 1), totalPages);
   return {
@@ -228,6 +238,48 @@ export async function getReceivedDonations(input: { kind: ListKind; period: List
     total: matched.length,
     items: matched.slice((page - 1) * LIST_PAGE_SIZE, page * LIST_PAGE_SIZE),
     years
+  };
+}
+
+/** Spreadsheet-safe CSV cell: always quoted; formula-looking text (= + - @ tab CR) gets a leading '. */
+function csvCell(value: string | number) {
+  let text = String(value);
+  if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * 후원 리스트 CSV — code-first (funnation reference: 받은 후원 엑셀 다운로드). Same filters as the list,
+ * every page, capped at CSV_EXPORT_MAX rows. UTF-8 with BOM so Excel opens Korean text correctly.
+ * TBD: an audited export log, and whether donor ids may be exported (privacy review).
+ */
+export async function exportReceivedDonationsCsv(input: unknown): Promise<CsvExportResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
+  const p = (typeof v.period === "object" && v.period !== null ? v.period : {}) as Record<string, unknown>;
+  if (typeof p.from !== "string" || typeof p.to !== "string" || !DAY.test(p.from) || !DAY.test(p.to) || p.from > p.to) return { status: "INVALID" };
+  const { kind, matched } = filterReceived({
+    kind: v.kind as ListKind,
+    period: { preset: "range", from: p.from, to: p.to },
+    status: v.status as StatusFilter,
+    query: typeof v.query === "string" ? v.query : ""
+  });
+  await mockDelay(300);
+  const rows = matched.slice(0, CSV_EXPORT_MAX);
+  const label = (s: QuestStatus) => QUEST_STATUSES.find((q) => q.key === s)!.label;
+  const lines = [
+    ["후원일시", "후원자 닉네임", "후원자 아이디", "금액(FN)", "메시지", "상태"].map(csvCell).join(","),
+    ...rows.map((d) => [d.at, d.donorNickname, d.donorId, d.amount, d.message, label(d.status)].map(csvCell).join(","))
+  ];
+  return {
+    status: "OK",
+    filename: `somnation-donations-${kind}-${p.from}_${p.to}.csv`,
+    csv: "﻿" + lines.join("\r\n"),
+    rows: rows.length,
+    truncated: matched.length > rows.length
   };
 }
 
