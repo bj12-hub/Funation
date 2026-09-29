@@ -6,6 +6,8 @@ import { ChargeModal } from "@/features/walletCharge";
 import { formatNumber } from "@/lib/format";
 import type { DonationCatalog } from "@/services/donations/donationCatalog";
 import { requestDonation } from "@/services/donations/donate";
+import { getCrewPublic } from "@/services/crew/crew";
+import type { CrewPublic } from "@/services/crew/crewTypes";
 import { getDonationNicknameOptions } from "@/services/supporter/identity";
 import { DonationCompleteDialog, DonationConfirmDialog, InsufficientFnDialog } from "./DonationDialogs";
 import { MiniFields, SignatureFields, TextFields, VideoFields, WishlistFields } from "./donation/Fields";
@@ -65,6 +67,16 @@ export function DonationForm({
       alive = false;
     };
   }, [signedIn]);
+  // Crew members of this creator (크루 멤버 지정); optional, validated again on the server.
+  const [members, setMembers] = useState<CrewPublic["members"]>([]);
+  const [memberId, setMemberId] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    getCrewPublic(creatorId).then((crew) => alive && setMembers(crew.members));
+    return () => {
+      alive = false;
+    };
+  }, [creatorId]);
   // Remounts the fields after a completed donation (e.g. clears the drawing canvas).
   const [formVersion, setFormVersion] = useState(0);
   const [dialog, setDialog] = useState<Dialog>({ kind: "NONE" });
@@ -102,7 +114,7 @@ export function DonationForm({
     setPending(true);
     setError(null);
     try {
-      const result = await requestDonation({ ...draft.details, creatorId, hideProfile, nicknameId, idempotencyKey: keyRef.current });
+      const result = await requestDonation({ ...draft.details, creatorId, hideProfile, nicknameId, memberId, idempotencyKey: keyRef.current });
       switch (result.status) {
         case "COMPLETED":
           keyRef.current = null;
@@ -215,6 +227,32 @@ export function DonationForm({
           <p className={panel.unavailable} role="status">
             준비 중인 후원 유형이에요.
           </p>
+        )}
+
+        {/* Code-first (no Figma frame): attribute the donation to a crew member. */}
+        {members.length > 0 && (
+          <div className={styles.memberRow}>
+            <span className={styles.memberLabel}>멤버 지정 (선택)</span>
+            <div className={styles.memberChips} role="radiogroup" aria-label="크루 멤버">
+              {[{ id: null as string | null, name: "지정 안 함", color: "transparent" }, ...members].map((m) => (
+                <button
+                  key={m.id ?? "none"}
+                  type="button"
+                  role="radio"
+                  aria-checked={memberId === m.id}
+                  className={styles.memberChip}
+                  onClick={() => {
+                    setMemberId(m.id);
+                    keyRef.current = null;
+                  }}
+                >
+                  {m.id && <span className={styles.memberDot} style={{ background: m.color }} aria-hidden="true" />}
+                  {m.name}
+                </button>
+              ))}
+            </div>
+            <span className={styles.memberHint}>멤버를 고르면 그 멤버의 순위에 집계돼요.</span>
+          </div>
         )}
 
         {/* Code-first (no Figma frame): donate under one of the supporter's 별명. */}

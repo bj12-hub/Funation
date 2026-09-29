@@ -980,3 +980,50 @@
   font-size: var(--font-size-13);
   color-scheme: dark;
 }
+
+/* 크루 멤버 지정 (code-first) */
+.memberRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.memberLabel {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.memberChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.memberChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-12);
+}
+
+.memberChip[aria-checked="true"] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+.memberDot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+}
+
+.memberHint {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-11);
+}
