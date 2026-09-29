@@ -17,14 +17,17 @@ export default async function CreatorLayout({ children }: { children: ReactNode 
   if (!session) redirect("/login?role=creator&next=/creator");
 
   if (!hasRole(session, "CREATOR")) {
-    // No design for this state (TBD): how a supporter applies to become a creator is not decided.
+    // Code-first (no Figma frame): members become creators by creating a channel (approval TBD).
     return (
       <>
         <GlobalHeader user={{ nickname: session.nickname, avatarUrl: session.avatarUrl }} />
         <main className={styles.noAccess}>
           <h1 className={styles.noAccessTitle}>크리에이터 권한이 필요합니다</h1>
-          <p className={styles.noAccessText}>크리에이터 스튜디오는 크리에이터로 등록된 회원만 이용할 수 있어요.</p>
-          <Link href="/" className={styles.noAccessButton}>
+          <p className={styles.noAccessText}>크리에이터 스튜디오는 채널을 만든 회원만 이용할 수 있어요.</p>
+          <Link href="/channel/new" className={styles.noAccessButton}>
+            내 채널 만들기
+          </Link>
+          <Link href="/" className={styles.noAccessLink}>
             홈으로 가기
           </Link>
         </main>
