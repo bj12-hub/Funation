@@ -19,6 +19,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/overlay/crew/[key]` | ✅ code-first | OBS scoreboard overlay; `key` = integration key (reissue invalidates it) |
 | `/creator/crew` | ✅ code-first | 크루 관리 — no Figma frame; Creator role; member split of earnings TBD |
 | `/community` · `/community/new` · `/community/[id]` · `/community/[id]/edit` | ✅ code-first | 커뮤니티 — `?category=FREE|TIP|QNA|BUG|BRAG` `?q=` `?page=`; reading is public, writing needs a session, edits are author-only; moderation TBD |
+| `/events` · `/events/[id]` | ✅ code-first | 이벤트 — `?filter=all|ongoing|upcoming|ended|mine`; join is recorded only, rewards TBD |
 | `/messages` | ✅ code-first | 쪽지 — `?box=inbox|sent|archive|spam` `?q=` `?page=` `?to=<creatorId>` (opens compose); send limit placeholder (TBD) |
 | `/mypage/titles` | ✅ code-first | 칭호·등급 — no Figma frame (docs/figma/code-first-screens.md); grade / title thresholds are placeholders (TBD) |
 | `/mypage/nicknames` | ✅ code-first | 별명 관리 — no Figma frame |
@@ -80,7 +81,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | Home | 인기 크리에이터 | 크리에이터 프로필 popup 688:646 → 후원하기 `/creators/[id]?tab=donation` |
 | Home | 첫 방문 공지 | notice carousel 200:115 · 200:223 (오늘 하루 열지 않음 · 닫기) |
 | Home | 인기 크리에이터 전체보기 | `/creators` |
-| Home | 보관함에 저장 · 이벤트 배너 지금 참여하기 | not wired — destination TBD |
+| Home | 보관함에 저장 · 이벤트 배너 지금 참여하기 | not wired (TBD) · `/events` (code-first) |
 | Footer | 이용약관 · 개인정보처리방침 · 청소년보호정책 · 운영정책 | `/terms/{service,privacy,youth,operation}` |
 | Footer | 고객지원 links | `/support` |
 | Footer | 회사소개 links · SNS icons | plain text — destinations TBD |
