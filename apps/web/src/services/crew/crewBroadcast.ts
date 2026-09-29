@@ -8,6 +8,8 @@ import {
   ADJUST_REASON_MAX,
   BROADCAST_TITLE_MAX,
   MAX_ADJUST_POINTS,
+  PROJECT_NAME_MAX,
+  type FeedView,
   type BroadcastLive,
   type BroadcastResult,
   type BroadcastSummary,
@@ -15,6 +17,7 @@ import {
   type ScoreRow,
   type TeamKey
 } from "./crewTypes";
+import { liveBroadcastOf } from "./crewCore";
 import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 /**
@@ -33,18 +36,19 @@ const assertMock = () => {
 
 const broadcasts = () => (mockCrew.broadcasts ??= []);
 const members = () => mockCrew.crews[STUDIO_CHANNEL] ?? [];
-const liveOf = (channelId: string) => broadcasts().find((b) => b.channelId === channelId && !b.endedAt) ?? null;
+const liveOf = liveBroadcastOf;
 
 function scoreRows(b: MockBroadcast): ScoreRow[] {
   const end = b.endedAt ?? new Date(Date.now() + 1000).toISOString();
   const rows = members()
-    .filter((m) => m.active || b.teams[m.id] !== undefined || b.adjustments.some((a) => a.memberId === m.id))
+    .filter((m) => m.active || b.teams[m.id] !== undefined || b.adjustments.some((a) => a.memberId === m.id) || (b.feed ?? []).some((f) => f.memberId === m.id))
     .map((m) => {
       const donatedFn = mockCrew.attributions
         .filter((a) => a.channelId === b.channelId && a.memberId === m.id && a.at >= b.startedAt && a.at <= end)
         .reduce((s, a) => s + a.fnAmount, 0);
       const adjust = b.adjustments.filter((a) => a.memberId === m.id).reduce((s, a) => s + a.points, 0);
-      return { memberId: m.id, name: m.name, color: m.color, team: b.teams[m.id] ?? null, donatedFn, adjust, score: donatedFn + adjust };
+      const feedFn = (b.feed ?? []).filter((f) => f.status === "ASSIGNED" && f.memberId === m.id).reduce((s, f) => s + f.fnAmount, 0);
+      return { memberId: m.id, name: m.name, color: m.color, team: b.teams[m.id] ?? null, donatedFn, feedFn, adjust, score: donatedFn + feedFn + adjust };
     });
   return rows.sort((x, y) => y.score - x.score || x.name.localeCompare(y.name));
 }
@@ -55,6 +59,9 @@ function liveView(b: MockBroadcast): BroadcastLive {
   return {
     id: b.id,
     title: b.title,
+    project: b.project ?? null,
+    round: b.round ?? null,
+    oneshotPot: b.oneshot ? (b.feed ?? []).filter((f) => f.status === "POT").reduce((s, f) => s + f.fnAmount, 0) : null,
     startedAt: b.startedAt,
     teamMode: b.teamMode,
     rows,
@@ -63,11 +70,23 @@ function liveView(b: MockBroadcast): BroadcastLive {
   };
 }
 
+function feedView(b: MockBroadcast): FeedView {
+  const pot = (b.feed ?? []).filter((f) => f.status === "POT");
+  return {
+    assignMode: b.assignMode ?? "AUTO",
+    keywords: structuredClone(mockCrew.keywords ?? {}),
+    entries: [...(b.feed ?? [])].reverse().slice(0, 200),
+    oneshot: b.oneshot ? { startedAt: b.oneshot.startedAt, potFn: pot.reduce((s, f) => s + f.fnAmount, 0), count: pot.length } : null
+  };
+}
+
 function summary(b: MockBroadcast): BroadcastSummary {
   const final = b.final ?? scoreRows(b).map((r) => ({ memberId: r.memberId, name: r.name, score: r.score }));
   return {
     id: b.id,
     title: b.title,
+    project: b.project ?? null,
+    round: b.round ?? null,
     startedAt: b.startedAt,
     endedAt: b.endedAt ?? "",
     totalScore: final.reduce((s, r) => s + r.score, 0),
@@ -84,6 +103,9 @@ export async function getBroadcastView(): Promise<BroadcastView | null> {
   return {
     members: structuredClone(members()),
     live: live ? liveView(live) : null,
+    feed: live ? feedView(live) : null,
+    keywords: structuredClone(mockCrew.keywords ?? {}),
+    projects: [...new Set(broadcasts().filter((b) => b.channelId === STUDIO_CHANNEL && b.project).map((b) => b.project as string))],
     history: broadcasts()
       .filter((b) => b.channelId === STUDIO_CHANNEL && b.endedAt)
       .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
@@ -96,10 +118,13 @@ export async function getBroadcastView(): Promise<BroadcastView | null> {
 export async function startBroadcast(input: unknown): Promise<BroadcastResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
-  const v = (typeof input === "object" && input !== null ? input : {}) as { title?: unknown; teamMode?: unknown; teams?: unknown };
+  const v = (typeof input === "object" && input !== null ? input : {}) as { title?: unknown; teamMode?: unknown; teams?: unknown; project?: unknown };
   const title = typeof v.title === "string" ? v.title.trim() : "";
   if (!title || title.length > BROADCAST_TITLE_MAX) return { status: "INVALID", message: `방송 제목을 1~${BROADCAST_TITLE_MAX}자로 입력해 주세요.` };
   if (MOCK_FORBIDDEN_WORDS.some((w) => title.toLowerCase().includes(w))) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
+  const project = typeof v.project === "string" ? v.project.trim() : "";
+  if (project.length > PROJECT_NAME_MAX) return { status: "INVALID", message: `프로젝트 이름은 ${PROJECT_NAME_MAX}자 이내로 입력해 주세요.` };
+  if (MOCK_FORBIDDEN_WORDS.some((w) => project.toLowerCase().includes(w))) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
   if (typeof v.teamMode !== "boolean") return { status: "INVALID", message: "팀 모드를 확인해 주세요." };
   const teams: Record<string, TeamKey> = {};
   if (v.teamMode) {
@@ -117,6 +142,13 @@ export async function startBroadcast(input: unknown): Promise<BroadcastResult> {
     id: `bc-${Date.now().toString(36)}`,
     channelId: STUDIO_CHANNEL,
     title,
+    // 회차 = this project's broadcast count + 1 (numbered automatically on start).
+    project: project || null,
+    round: project ? broadcasts().filter((b) => b.channelId === STUDIO_CHANNEL && b.project === project).length + 1 : null,
+    assignMode: "AUTO",
+    feed: [],
+    oneshot: null,
+    simRequests: [],
     startedAt: new Date().toISOString(),
     endedAt: null,
     teamMode: v.teamMode,
@@ -154,6 +186,11 @@ export async function endBroadcast(broadcastId: unknown): Promise<BroadcastResul
   const live = liveOf(STUDIO_CHANNEL);
   if (!live || live.id !== broadcastId) return { status: "SAVED" }; // already ended: idempotent
   await mockDelay(300);
+  // An open 한방 is closed without a winner: its pot goes back to 미지정 (never scored).
+  if (live.oneshot) {
+    for (const f of live.feed ?? []) if (f.status === "POT") Object.assign(f, { status: "UNMATCHED", oneshot: false });
+    live.oneshot = null;
+  }
   live.endedAt = new Date().toISOString();
   live.final = scoreRows(live).map((r) => ({ memberId: r.memberId, name: r.name, score: r.score }));
   return { status: "SAVED" };

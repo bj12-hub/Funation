@@ -1,4 +1,4 @@
-import type { CrewMember } from "./crewTypes";
+import type { AssignMode, CrewMember, FeedEntry } from "./crewTypes";
 
 /**
  * Development-only crew state, keyed by channel id: the studio creator's own channel
@@ -20,6 +20,15 @@ export type MockBroadcast = {
   teamMode: boolean;
   teams: Record<string, "A" | "B">;
   adjustments: { id: string; at: string; memberId: string; points: number; reason: string }[];
+  project?: string | null;
+  round?: number | null;
+  assignMode?: AssignMode;
+  /** 후원 리스트 (newest last). */
+  feed?: FeedEntry[];
+  /** Active 한방 window. */
+  oneshot?: { startedAt: string } | null;
+  /** 시뮬 후원 request ids already accepted. */
+  simRequests?: string[];
   /** Final ranking frozen at the end (members may be renamed or removed later). */
   final: { memberId: string; name: string; score: number }[] | null;
 };
@@ -28,6 +37,8 @@ type MockCrew = {
   crews: Record<string, CrewMember[]>;
   attributions: Attribution[];
   broadcasts?: MockBroadcast[];
+  /** 후원 리스트 keywords per member id (kept across broadcasts). */
+  keywords?: Record<string, string[]>;
 };
 
 const m = (id: string, name: string, role: CrewMember["role"], color: string, active = true): CrewMember => ({ id, name, role, active, color });

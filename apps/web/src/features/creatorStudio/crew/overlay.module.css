@@ -87,3 +87,12 @@
   font-family: var(--font-latin);
   font-weight: var(--font-weight-extrabold);
 }
+
+.oneshot {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: var(--radius-8);
+  background: var(--color-gold-soft);
+  color: var(--color-live);
+  font-weight: var(--font-weight-extrabold);
+}
