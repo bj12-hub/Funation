@@ -11,6 +11,7 @@ import { attributeDonation, ownsNickname } from "@/services/supporter/identityCo
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { luckyTierFor, type DonationCatalog } from "./donationCatalog";
 import { getDonationCatalog, matchSignatureByAmount } from "./signatureCore";
+import { addDonationDrawing, enqueueDonationVideo } from "@/services/creator/mediaCore";
 import { MAX_DRAWING_CHARS, parseYouTubeId, type DonationResult } from "./donationTypes";
 
 /**
@@ -71,6 +72,11 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
       // 금액 매칭 (시그니처 관리): a 일반 후원 whose amount equals an AMOUNT-match signature alerts as that signature.
       typeLabel: alertTypeLabel(catalog, request.type, request.amount)
     });
+    // 영상 · 그림후원 위젯: paid requests reach the creator's queue / gallery.
+    const donor = request.hideProfile ? "익명" : mockAccount.nickname;
+    const d = request.details as Record<string, unknown>;
+    if (request.type === "VIDEO") enqueueDonationVideo(creator.id, { donor, fnAmount: request.amount, videoId: d.videoId as string, startSec: d.start as number, endSec: d.end as number });
+    if (request.type === "DRAWING") addDonationDrawing(creator.id, { donor, title: d.title as string, fnAmount: request.amount, image: d.image as string });
     result = { status: "COMPLETED", donationId, fnAmount: request.amount, balance: mockAccount.fnBalance };
   }
   mockWallet.donationIdempotency[idempotencyKey].result = result;
@@ -210,7 +216,7 @@ function parse(input: unknown, catalog: DonationCatalog): Parsed | null {
       const title = text(v.title, game.maxText, true);
       if (!amountOk(game.minAmount) || !title || !isDrawing(v.image) || typeof v.showProcess !== "boolean" || typeof v.canvasMode !== "boolean" || v.termsAgreed !== true)
         return null;
-      return { ...common, amount: v.amount as number, summary: `그림: ${title}`, details: { title, showProcess: v.showProcess, canvasMode: v.canvasMode } };
+      return { ...common, amount: v.amount as number, summary: `그림: ${title}`, details: { title, image: v.image, showProcess: v.showProcess, canvasMode: v.canvasMode } };
     }
     case "QUIZ_CHOICE": {
       const question = text(v.question, game.maxText, true);
