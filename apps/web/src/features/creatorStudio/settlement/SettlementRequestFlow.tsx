@@ -68,8 +68,8 @@ export function SettlementRequestFlow({ view }: { view: SettlementApplyView }) {
       if (res.status === "REQUESTED") {
         setQuote(res.quote);
         setStep("complete");
-      } else if (res.status === "INVALID") {
-        setError(res.message);
+      } else if (res.status === "INVALID" || res.status === "CONFLICT") {
+        setError(res.status === "INVALID" ? res.message : "요청이 중복되었어요. 금액을 확인하고 다시 신청해 주세요.");
         setStep("request");
       } else handleResult(res.status);
     });

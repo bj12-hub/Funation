@@ -61,6 +61,13 @@ describe("정산 신청", () => {
     expect(store.requests.filter((r) => r.status === "PENDING")).toHaveLength(1);
   });
 
+  it("returns CONFLICT when a key is reused for a different amount", async () => {
+    const { requestSettlement, store } = await load();
+    await requestSettlement({ amountFn: 90_000, idempotencyKey: key(7) });
+    expect(await requestSettlement({ amountFn: 50_000, idempotencyKey: key(7) })).toEqual({ status: "CONFLICT" });
+    expect(store.availableFn).toBe(37_500);
+  });
+
   it("does not let a second key overdraw the balance", async () => {
     const { requestSettlement, store } = await load();
     await requestSettlement({ amountFn: 90_000, idempotencyKey: key(3) });

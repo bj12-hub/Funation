@@ -59,8 +59,9 @@ export type DonationRecord = {
 
 // ── FN Wallet (Figma 817:7552) ─────────────────────────────────────────────────
 
-export type LedgerKind = "CHARGE" | "USE" | "REFUND";
-export const LEDGER_KIND_LABEL: Record<LedgerKind, string> = { CHARGE: "충전", USE: "사용", REFUND: "환불" };
+export type LedgerKind = "CHARGE" | "USE" | "REFUND" | "REWARD";
+/** REWARD: FN credited without a payment (출석 보상 등). */
+export const LEDGER_KIND_LABEL: Record<LedgerKind, string> = { CHARGE: "충전", USE: "사용", REFUND: "환불", REWARD: "적립" };
 export const LEDGER_PERIODS = [
   { key: "30", label: "최근 30일" },
   { key: "90", label: "최근 90일" },

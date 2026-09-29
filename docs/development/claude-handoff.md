@@ -4,6 +4,14 @@ How screens have been built so far, so a new Claude session (or account) can con
 "이어서 진행해줘". Rules in `CLAUDE.md` still take precedence; screen status lives in
 [`docs/figma/route-map.md`](../figma/route-map.md).
 
+## 0. Direction (since 2026-09-29)
+
+- **Code first, Figma later.** Features without a Figma frame (incl. the ideas in
+  `docs/research/funnation-reference.md`) are built in code with existing tokens/components, marked
+  "code-first (no Figma frame)" in comments and listed in `docs/figma/code-first-screens.md`.
+  Policy numbers stay TBD; funnation values are reference only.
+- Backend contract for every mock service: `docs/architecture/api-contract.md`.
+
 ## 1. Figma
 
 - File key: `PXOl6e2HQVWsu9qx9iagJV` (single page `0:1`, too large for `get_metadata` on the page — walk node ids).

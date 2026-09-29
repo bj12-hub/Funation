@@ -1,6 +1,7 @@
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
+import { mockCredits } from "./mockCreditStore";
 import { mockWallet } from "./mockWalletStore";
 import { toDateString, type Period } from "@/lib/period";
 import {
@@ -73,7 +74,7 @@ export async function getDonationHistory(input: {
 export async function getWalletOverview(input: { kind?: unknown; period?: unknown; page?: unknown }): Promise<WalletOverview | null> {
   if (!USE_MOCK) throw new Error("Wallet API is not connected yet.");
   if (!(await getSession())) return null;
-  const kind = input.kind === "CHARGE" || input.kind === "USE" || input.kind === "REFUND" ? input.kind : "all";
+  const kind = input.kind === "CHARGE" || input.kind === "USE" || input.kind === "REFUND" || input.kind === "REWARD" ? input.kind : "all";
   const period: LedgerPeriod = LEDGER_PERIODS.some((p) => p.key === input.period) ? (input.period as LedgerPeriod) : "30";
   await mockDelay(300);
 
@@ -113,7 +114,10 @@ export async function getWalletOverview(input: { kind?: unknown; period?: unknow
           tone: "refund",
           at: d.donatedAt.slice(0, 16)
         })
-      )
+      ),
+    ...mockCredits.credits.map(
+      (c): LedgerEntry => ({ id: c.id, kind: "REWARD", description: c.reason, deltaFn: c.fnAmount, statusLabel: "완료", tone: "done", at: c.at })
+    )
   ].sort((a, b) => b.at.localeCompare(a.at));
 
   const since = period === "all" ? "" : toDateString(new Date(Date.now() - Number(period) * 86_400_000));

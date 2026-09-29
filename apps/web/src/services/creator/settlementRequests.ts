@@ -104,6 +104,8 @@ export async function requestSettlement(input: unknown): Promise<RequestResult> 
   const existing = mockSettlement.idempotency[key];
   if (existing) {
     const r = mockSettlement.requests.find((x) => x.id === existing);
+    // Same key, different amount: a client bug or tampering — never reinterpret the first request.
+    if (r && r.amountFn !== v.amountFn) return { status: "CONFLICT" };
     if (r) return { status: "REQUESTED", requestId: r.id, quote: quoteFor(r.amountFn) };
   }
 
