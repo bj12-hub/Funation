@@ -1,2 +1,5 @@
 # PowerShell scripts must keep CRLF line endings on Windows
 *.ps1 text eol=crlf
+
+# Shell scripts run under Git Bash and must keep LF line endings
+*.sh text eol=lf
