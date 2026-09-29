@@ -54,19 +54,19 @@ The studio header follows the funnation studio: logo + **스튜디오** badge on
 
 ### Sidebar
 
-:
+`features/creatorStudio/CreatorSideNav.tsx`:
 
 | Group | Items (route) | funnation equivalent |
 |---|---|---|
-| (내 채널) | 대시보드  | 대시보드 |
-| 채널 | 채널 설정  · 후원 페이지 설정  · 칭호 관리  · 유튜브 연동 (TBD) · 영상 목록 (TBD) | 채널 설정 · 유튜브 연동 · 영상 목록 · 칭호 관리 |
+| (내 채널) | 대시보드 `/creator` | 대시보드 |
+| 채널 | 채널 설정 `/creator/settings` · 후원 페이지 설정 `?tab=settings` · 칭호 관리 `?tab=titles` · 유튜브 연동 (TBD) · 영상 목록 (TBD) | 채널 설정 · 유튜브 연동 · 영상 목록 · 칭호 관리 |
 | 방송 | 위젯 · 방송 도구 · 오버레이 주소 · 이미지·사운드 (TBD) · 리모컨 | 위젯 · 오버레이 주소 · 이미지·사운드 · 리모컨 |
 | 크루 방송 | 크루 관리 · 방송 운영 | 엑셀방송 · 엑셀콘 |
-| 수익 | 받은 후원  · 후원 순위  · 후원 필터링  · 크리에이터 랭킹 | 현황 · 받은 후원 |
+| 수익 | 받은 후원 `?tab=list` · 후원 순위 `?tab=ranking` · 후원 필터링 `?tab=filtering` · 크리에이터 랭킹 | 현황 · 받은 후원 |
 | 정산 | 정산 현황 · 정산 인증·등록 · 정산 신청 · 정산 관리 | 정산 인증 · 정산 신청 |
-| (소식) | 소식  | 소식 |
+| (소식) | 소식 `/creator/updates` | 소식 |
 
-- The 후원관리+ tabs are linked one by one; the sidebar marks the active .
+- The 후원관리+ tabs are linked one by one; the sidebar marks the active `?tab=`.
 - The dashboard stays the funnation 수익 현황 equivalent.
 
 ## Open decisions (TBD)
