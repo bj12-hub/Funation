@@ -89,8 +89,57 @@ export function DonationCompleteDialog({ open, fnAmount, balance, onClose }: { o
   );
 }
 
-/** Figma 613:237 FN 부족 안내 */
-export function InsufficientFnDialog({ open, balance, onCancel, onCharge }: { open: boolean; balance: number; onCancel: () => void; onCharge: () => void }) {
+/**
+ * Figma 613:237 FN 부족 안내. With `required` it uses the LuckyBox variant 875:8546
+ * (현재 보유 / 필요 금액 / 부족 금액). The numbers come from the server or its catalog.
+ */
+export function InsufficientFnDialog({
+  open,
+  balance,
+  required,
+  onCancel,
+  onCharge
+}: {
+  open: boolean;
+  balance: number;
+  required?: number;
+  onCancel: () => void;
+  onCharge: () => void;
+}) {
+  if (required !== undefined) {
+    return (
+      <Modal open={open} onClose={onCancel} title="FN 잔액이 부족해요" width={460}>
+        <div className={styles.center}>
+          <span className={styles.bigEmoji} aria-hidden="true">
+            💳
+          </span>
+          <strong className={styles.headline}>FN 잔액이 부족해요</strong>
+        </div>
+        <dl className={styles.shortage}>
+          <div>
+            <dt>현재 보유</dt>
+            <dd>{formatNumber(balance)} FN</dd>
+          </div>
+          <div>
+            <dt>필요 금액</dt>
+            <dd>{formatNumber(required)} FN</dd>
+          </div>
+          <div>
+            <dt>부족 금액</dt>
+            <dd className={styles.short}>{formatNumber(Math.max(0, required - balance))} FN</dd>
+          </div>
+        </dl>
+        <div className={styles.actions}>
+          <button type="button" className={styles.cancel} onClick={onCancel}>
+            취소
+          </button>
+          <button type="button" className={styles.pink} onClick={onCharge}>
+            FN 충전하기
+          </button>
+        </div>
+      </Modal>
+    );
+  }
   return (
     <Modal open={open} onClose={onCancel} title="FN 부족 안내" width={460}>
       <div className={styles.center}>

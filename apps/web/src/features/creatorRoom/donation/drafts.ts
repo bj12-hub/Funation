@@ -1,5 +1,5 @@
 import { formatNumber } from "@/lib/format";
-import type { DonationCatalog, DonationTypeKey } from "@/services/donations/donationCatalog";
+import { luckyTierFor, type DonationCatalog, type DonationTypeKey } from "@/services/donations/donationCatalog";
 import { parseYouTubeId, type DonationDetails } from "@/services/donations/donationTypes";
 
 /**
@@ -13,6 +13,8 @@ export type MiniState = { amount: string; text: string; colorId: string; enterTo
 export type VideoState = { amount: string; url: string; start: string; end: string; saveToLibrary: boolean; terms: boolean };
 export type SignatureState = { signatureId: string | null; message: string };
 export type WishlistState = { itemId: string | null; message: string; voiceId: string | null };
+/** Each box has a stable id so React keys survive deletes. */
+export type LuckyState = { boxes: { id: number; winner: boolean }[]; selected: number | null; amount: string; terms: boolean };
 
 export type FormStates = {
   TEXT: TextState;
@@ -20,6 +22,7 @@ export type FormStates = {
   VIDEO: VideoState;
   SIGNATURE: SignatureState;
   WISHLIST: WishlistState;
+  LUCKYBOX: LuckyState;
 };
 
 export type FormKey = keyof FormStates;
@@ -31,7 +34,18 @@ export function initialStates(catalog: DonationCatalog): FormStates {
     MINI: { amount: "", text: "", colorId: catalog.miniColors[1]?.id ?? catalog.miniColors[0]?.id ?? "", enterToSend: true },
     VIDEO: { amount: "", url: "", start: "00:00", end: "00:30", saveToLibrary: false, terms: false },
     SIGNATURE: { signatureId: null, message: "" },
-    WISHLIST: { itemId: null, message: "", voiceId }
+    WISHLIST: { itemId: null, message: "", voiceId },
+    // 851:5231 default: three boxes, the middle one wins, 5,000 FN.
+    LUCKYBOX: {
+      boxes: [
+        { id: 1, winner: false },
+        { id: 2, winner: true },
+        { id: 3, winner: false }
+      ],
+      selected: 2,
+      amount: String(catalog.luckyBox.presets[1] ?? catalog.luckyBox.minAmount),
+      terms: false
+    }
   };
 }
 
@@ -45,6 +59,8 @@ export type Draft = {
   summary: { label: string; value: string }[];
   /** Text for the chat notice after success. */
   chatText: string;
+  /** Submit label when the type has its own (e.g. "GOLD BOX 5,000 FN 후원하기"). */
+  buttonLabel?: string;
 };
 
 /** "mm:ss" → seconds, or null. */
@@ -142,7 +158,35 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
         chatText: `🎁 ${item?.name ?? ""}`
       };
     }
+    case "LUCKYBOX": {
+      const s = states.LUCKYBOX;
+      const lucky = catalog.luckyBox;
+      const amount = digits(s.amount);
+      const winners = s.boxes.filter((b) => b.winner).length;
+      const tier = luckyTierFor(lucky, amount ?? 0);
+      const error =
+        amount === null || amount < lucky.minAmount
+          ? `후원 금액은 ${formatNumber(lucky.minAmount)} FN 이상 입력해주세요.`
+          : amount > lucky.maxAmount
+            ? `후원 금액은 ${formatNumber(lucky.maxAmount)} FN 이하로 입력해주세요.`
+            : winners === 0
+              ? "당첨될 박스를 1개 이상 선택해주세요."
+              : null;
+      return {
+        details: !error && amount !== null && s.terms ? { type: "LUCKYBOX", amount, boxCount: s.boxes.length, winnerCount: winners, termsAgreed: true } : null,
+        amount,
+        error,
+        summary: [
+          { label: "박스 등급", value: `${tier.label} BOX` },
+          { label: "박스 구성", value: `박스 ${s.boxes.length}개 · 당첨 ${winners}개` }
+        ],
+        chatText: `🎲 ${tier.label} BOX 럭키박스`,
+        buttonLabel: `${tier.label} BOX ${formatNumber(amount ?? 0)} FN 후원하기`
+      };
+    }
   }
 }
 
-export const isFormKey = (key: DonationTypeKey): key is FormKey => key !== "LUCKYBOX";
+const FORM_KEYS: Record<FormKey, true> = { TEXT: true, MINI: true, VIDEO: true, SIGNATURE: true, WISHLIST: true, LUCKYBOX: true };
+
+export const isFormKey = (key: DonationTypeKey): key is FormKey => key in FORM_KEYS;

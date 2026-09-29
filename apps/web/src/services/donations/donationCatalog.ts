@@ -35,6 +35,34 @@ export type WishlistItem = { id: string; emoji: string; name: string; price: num
 
 export type MiniColor = { id: string; label: string; hex: string };
 
+export type LuckyTierTone = "silver" | "gold" | "emerald" | "royal";
+
+export type LuckyTier = {
+  key: string;
+  /** Shown on the button, e.g. "GOLD" → "GOLD BOX 5,000 FN 후원하기". */
+  label: string;
+  /** Lowest amount (FN) for this tier; the tier applies up to the next tier's minimum. */
+  min: number;
+  emoji: string;
+  boxEmoji: string;
+  tone: LuckyTierTone;
+  /** Grade box copy when this tier is active; `null` uses the default explanation. */
+  headline: string | null;
+  description: string | null;
+};
+
+export type LuckyBoxConfig = {
+  minAmount: number;
+  maxAmount: number;
+  minBoxes: number;
+  maxBoxes: number;
+  presets: number[];
+  tiers: LuckyTier[];
+  /** Published draw ranges and odds (851:5231). */
+  odds: { range: string; percent: number }[];
+  terms: { title: string; body: string }[];
+};
+
 export type DonationCatalog = {
   types: DonationTypeInfo[];
   /** Minimum FN per donation type. Design shows 1,000 (일반) and 100 (미니); others TBD. */
@@ -45,6 +73,7 @@ export type DonationCatalog = {
   signatures: Signature[];
   wishlist: WishlistItem[];
   miniColors: MiniColor[];
+  luckyBox: LuckyBoxConfig;
 };
 
 export function getMockDonationCatalog(): DonationCatalog {
@@ -60,8 +89,7 @@ const MOCK_CATALOG: DonationCatalog = {
     { key: "VIDEO", emoji: "🎬", label: "영상", title: "영상 후원", available: true },
     { key: "SIGNATURE", emoji: "✨", label: "시그니처", title: "시그니처 후원", available: true },
     { key: "WISHLIST", emoji: "🎁", label: "위시", title: "위시 후원", available: true },
-    // TODO: LuckyBox panel (851:5174 · 875:*) is a separate change.
-    { key: "LUCKYBOX", emoji: "🎲", label: "럭키박스", title: "럭키박스 후원", available: false }
+    { key: "LUCKYBOX", emoji: "🎲", label: "럭키박스", title: "럭키박스 후원", available: true }
   ],
   minAmount: { TEXT: 1_000, MINI: 100, VIDEO: 1_000 },
   maxLength: { message: 100, mini: 30 },
@@ -90,5 +118,57 @@ const MOCK_CATALOG: DonationCatalog = {
     { id: "lavender", label: "연보라", hex: "#c4b5fd" },
     { id: "cyan", label: "하늘", hex: "#06b6d4" },
     { id: "yellow", label: "노랑", hex: "#f5bf0a" }
-  ]
+  ],
+  // 851:5231 · 875:6948–8546. The design disagrees on tiers (SILVER 1,000/GOLD 5,000/ROYAL 10,000 in the
+  // base panel, EMERALD 10,000 and PREMIUM ROYAL 50,000 in the states, six ranges from 3,000 to 499,999 in
+  // the guide). The mock uses the state frames; every number here is TBD.
+  luckyBox: {
+    minAmount: 1_000,
+    maxAmount: 50_000,
+    minBoxes: 2,
+    maxBoxes: 5,
+    presets: [1_000, 5_000, 10_000, 30_000, 50_000],
+    tiers: [
+      { key: "SILVER", label: "SILVER", min: 1_000, emoji: "🎁", boxEmoji: "🎁", tone: "silver", headline: null, description: null },
+      { key: "GOLD", label: "GOLD", min: 5_000, emoji: "🎁", boxEmoji: "🎁", tone: "gold", headline: null, description: null },
+      {
+        key: "EMERALD",
+        label: "EMERALD",
+        min: 10_000,
+        emoji: "💚",
+        boxEmoji: "🧰",
+        tone: "emerald",
+        headline: "💚 10,000 FN · EMERALD 등급 박스로 업그레이드",
+        description: "더 높은 당첨 상한과 특별한 초록 보물함이 적용됩니다."
+      },
+      {
+        key: "ROYAL",
+        label: "ROYAL",
+        min: 50_000,
+        emoji: "👑",
+        boxEmoji: "👑",
+        tone: "royal",
+        headline: "👑 50,000 FN · PREMIUM ROYAL 등급 박스",
+        description: "프리미엄 골드 외형과 로열 등급 추첨 범위가 적용됩니다."
+      }
+    ],
+    odds: [
+      { range: "1,000~4,999 FN", percent: 70 },
+      { range: "5,000~19,999 FN", percent: 28 },
+      { range: "20,000~50,000 FN", percent: 2 }
+    ],
+    // 875:7952 copy.
+    terms: [
+      { title: "1. 추첨 방법", body: "선택한 당첨 박스 수와 공개된 확률에 따라 후원 완료 시 무작위로 추첨합니다." },
+      { title: "2. 당첨 금액", body: "박스 등급별 추첨 범위 안에서 FN 당첨 금액이 결정됩니다." },
+      { title: "3. 확률 공개", body: "등급별 확률과 추첨 범위는 결제 전 화면에서 반드시 확인할 수 있습니다." },
+      { title: "4. 취소 및 환불 제한", body: "추첨이 시작된 럭키박스 후원은 결과와 관계없이 취소 또는 환불할 수 없습니다." },
+      { title: "5. 필수 동의", body: "이용약관 및 확률 안내를 확인하고 필수 동의한 뒤 후원하기를 진행해주세요." }
+    ]
+  }
 };
+
+/** Tier for an amount (the lowest tier below its minimum). */
+export function luckyTierFor(config: LuckyBoxConfig, amount: number): LuckyTier {
+  return [...config.tiers].reverse().find((t) => amount >= t.min) ?? config.tiers[0];
+}

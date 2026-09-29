@@ -6,7 +6,7 @@ import { getSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
 import { getCreatorById } from "@/services/creators/creators";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
-import { getMockDonationCatalog, type DonationCatalog } from "./donationCatalog";
+import { getMockDonationCatalog, luckyTierFor, type DonationCatalog } from "./donationCatalog";
 import { parseYouTubeId, type DonationResult } from "./donationTypes";
 
 /**
@@ -126,6 +126,23 @@ function parse(input: unknown, catalog: DonationCatalog): Parsed | null {
       const message = text(v.message, catalog.maxLength.message);
       if (!item || !item.inStock || message === null || !voiceOk(v.voiceId)) return null;
       return { ...common, amount: item.price, summary: message || item.name, details: { itemId: item.id, message, voiceId: v.voiceId } };
+    }
+    case "LUCKYBOX": {
+      const lucky = catalog.luckyBox;
+      const boxes = v.boxCount;
+      const winners = v.winnerCount;
+      const amount = v.amount;
+      const amountValid = typeof amount === "number" && Number.isInteger(amount) && amount >= lucky.minAmount && amount <= lucky.maxAmount;
+      const boxesValid = Number.isInteger(boxes) && (boxes as number) >= lucky.minBoxes && (boxes as number) <= lucky.maxBoxes;
+      const winnersValid = Number.isInteger(winners) && (winners as number) >= 1 && (winners as number) <= (boxes as number);
+      if (!amountValid || !boxesValid || !winnersValid || v.termsAgreed !== true) return null;
+      const tier = luckyTierFor(lucky, amount);
+      return {
+        ...common,
+        amount,
+        summary: `${tier.label} BOX · 박스 ${boxes}개 · 당첨 ${winners}개`,
+        details: { tier: tier.key, boxCount: boxes, winnerCount: winners }
+      };
     }
     default:
       return null;
