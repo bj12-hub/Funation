@@ -206,3 +206,12 @@ export type TitleTier = {
 };
 
 export type TitleSaveResult = { status: "SAVED"; tier: TitleTier } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
+
+// ── 후원 리스트 CSV (code-first) ──────────────────────────────────────────────
+
+export const CSV_EXPORT_MAX = 5_000;
+
+export type CsvExportResult =
+  | { status: "OK"; filename: string; csv: string; rows: number; truncated: boolean }
+  | { status: "INVALID" }
+  | { status: "UNAUTHORIZED" };
