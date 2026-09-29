@@ -2,10 +2,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { formatNumber } from "@/lib/format";
 import type { CreatorDashboard, CreatorProfile } from "@/services/creator/creatorStudio";
+import type { UpdatesView } from "@/services/creator/updatesTypes";
 import { LinkActions, RankingTabs } from "./DashboardWidgets";
 import { RevenueChart } from "./RevenueChart";
 import { StatsFilter } from "./StatsFilter";
 import styles from "./studio.module.css";
+import { UpdatesCard } from "./updates/UpdatesCard";
 
 /** Server-side relative time ("10분 전"), so server and client HTML match. */
 function timeAgo(iso: string) {
@@ -21,7 +23,7 @@ function timeAgo(iso: string) {
  * Creator dashboard. Figma 245:14 (route `/creator`).
  * Amounts are ₩ as in the design and come from the server as-is (gross/net and fees are TBD).
  */
-export function CreatorDashboardScreen({ profile, dashboard }: { profile: CreatorProfile; dashboard: CreatorDashboard }) {
+export function CreatorDashboardScreen({ profile, dashboard, updates }: { profile: CreatorProfile; dashboard: CreatorDashboard; updates: UpdatesView | null }) {
   const { stats, period } = dashboard;
   return (
     <div className={styles.content}>
@@ -144,6 +146,8 @@ export function CreatorDashboardScreen({ profile, dashboard }: { profile: Creato
         </section>
         <RankingTabs rankings={dashboard.rankings} />
       </div>
+      {/* Code-first (not in Figma 245:14): 업데이트 소식 */}
+      {updates && <UpdatesCard view={updates} />}
     </div>
   );
 }

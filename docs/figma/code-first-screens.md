@@ -41,4 +41,6 @@ Since 2026-09-29 features without a Figma frame are built in code first and desi
 
 | 후원관리+ 후원 리스트 "CSV 다운로드" (`donations/CsvExportButton.tsx`) | donations csv PR | Button beside 검색; exports the current filters (all pages, max 5,000 rows), UTF-8 BOM, result note |
 
+| `/creator/updates` 업데이트 소식 (`features/creatorStudio/updates/*`) + 대시보드 "업데이트 소식" card + sidebar "📰 업데이트 소식" | creator updates PR | Posts (NEW mark, 신규 · 개선 · 버그 수정 counts, date), expandable item lists with links; read state on the server |
+
 Add a row whenever a new code-first screen ships (see `docs/research/funnation-reference.md` for the planned features).
