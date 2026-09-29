@@ -927,3 +927,33 @@ export function HeartOutlineIcon(props: IconProps) {
     </svg>
   );
 }
+
+/** 20px receipt/list outline in currentColor — side nav "후원 내역" (Figma 817:9411 sidebar ✓ 후원 내역). */
+export function ReceiptOutlineIcon(props: IconProps) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" {...props}>
+      <path
+        d="M4 2V22L7 20L10 22L12 20.5L14 22L17 20L20 22V2L17 4L14 2L12 3.5L10 2L7 4L4 2ZM8 8H16M8 12H16M8 16H12"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/** 20px wallet outline in currentColor — side nav "FN Wallet" (Figma 817:9411 sidebar ▣ FN Wallet). */
+export function WalletOutlineIcon(props: IconProps) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" {...props}>
+      <path
+        d="M20 12V8H6C4.89543 8 4 7.10457 4 6M4 6C4 4.89543 4.89543 4 6 4H18V8M4 6V18C4 19.1046 4.89543 20 6 20H20V16M18 12C16.8954 12 16 12.8954 16 14C16 15.1046 16.8954 16 18 16H22V12H18Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}

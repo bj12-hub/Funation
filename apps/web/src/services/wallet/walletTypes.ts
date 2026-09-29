@@ -57,5 +57,39 @@ export type DonationRecord = {
   status: DonationStatus;
 };
 
+// ── FN Wallet (Figma 817:7552) ─────────────────────────────────────────────────
+
+export type LedgerKind = "CHARGE" | "USE" | "REFUND";
+export const LEDGER_KIND_LABEL: Record<LedgerKind, string> = { CHARGE: "충전", USE: "사용", REFUND: "환불" };
+export const LEDGER_PERIODS = [
+  { key: "30", label: "최근 30일" },
+  { key: "90", label: "최근 90일" },
+  { key: "all", label: "전체 기간" }
+] as const;
+export type LedgerPeriod = (typeof LEDGER_PERIODS)[number]["key"];
+
+export type LedgerEntry = {
+  id: string;
+  kind: LedgerKind;
+  description: string;
+  /** Signed FN change: + for 충전/환불, − for 사용. */
+  deltaFn: number;
+  statusLabel: string;
+  tone: "done" | "pending" | "failed" | "refund";
+  at: string;
+};
+
+export type WalletOverview = {
+  available: number;
+  /** FN held for in-flight requests. The locking policy is TBD, so the mock reports 0. */
+  locked: number;
+  totalUsed: number;
+  kind: LedgerKind | "all";
+  period: LedgerPeriod;
+  entries: LedgerEntry[];
+  page: number;
+  totalPages: number;
+};
+
 export type HistoryPage<T> = { items: T[]; totalCount: number; page: number; totalPages: number; period: Period };
 
