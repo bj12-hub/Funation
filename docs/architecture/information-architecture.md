@@ -106,6 +106,22 @@ The page follows the funnation channel page (`/store/{slug}`). From top to botto
   - The funnation 홈 extras: 다시보기, 쇼츠, 월간 후원 랭킹 and the community preview. They need VOD data and a public per-creator donor ranking (TBD).
   - The 라이브 button.
 
+### 마이 (My area)
+
+- **내 정보 (`/mypage`):** funnation 내 프로필. A 내 등급 card sits on top:
+  - current grade and 최근 30일 후원
+  - progress to the next grade
+  - 다음 등급 미리보기 (→ `/mypage/titles`)
+  - 크리에이터 스튜디오로, or 내 채널 만들기 for members without the Creator role
+- **후원 내역 (`/wallet/donations`):** funnation 내 후원 내역. The Figma type tabs and period filter stay. Added, all server-side:
+  - search by 크리에이터명 · 메시지
+  - 최소 / 최대 FN
+  - 최신순 / 오래된순
+  - the "결과 N건 · 합계 N FN" summary
+
+  The CSV export uses the same filters.
+- **지갑 (`/wallet`):** unchanged. Its 전체 · 충전 · 사용 · 환불 · 적립 ledger already covers funnation's 사용 · 충전 내역 tabs. funnation's 구매 내역 (store purchases) and 환불 안내 (policy text) are TBD: we have no store, and the refund policy is undecided.
+
 ### Phones
 
 A bottom tab bar (≤900px): 홈 · 즐겨찾기 · 커뮤니티 · 마이.

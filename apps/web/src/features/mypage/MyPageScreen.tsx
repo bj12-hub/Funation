@@ -5,6 +5,7 @@ import { PlayOutlineIcon, VideoIcon, YoutubeLogoIcon } from "@/components/icons"
 import { ChargeTrigger } from "@/features/walletCharge";
 import { formatNumber } from "@/lib/format";
 import type { LoginProvider, MyAccount } from "@/services/account/myAccount";
+import { gradeLabel, type SupporterIdentity } from "@/services/supporter/identityTypes";
 import type { Platform } from "@/types/platform";
 import { FunationIdEditor, NicknameEditor, PasswordEditor, PhotoEditor } from "./editors";
 import { IdentityVerification, PlatformConnect, PlatformDisconnect, ProviderLinkEditor } from "./linking";
@@ -31,13 +32,48 @@ const PLATFORMS: Record<Platform, { label: string; icon: ReactNode }> = {
  * My page.
  * Figma: funation-my-page 735:4119 (622:4 is the same screen with Naver linked)
  */
-export function MyPageScreen({ account }: { account: MyAccount }) {
+export function MyPageScreen({ account, grade, creator }: { account: MyAccount; grade: SupporterIdentity["grade"] | null; creator: boolean }) {
   return (
     <div className={styles.content}>
       <header className={styles.header}>
-        <h1 className={styles.title}>마이페이지</h1>
-        <p className={styles.subtitle}>안녕하세요, 마이페이지에서 나의 회원 정보를 한 눈에 파악하고 관리하세요.</p>
+        <h1 className={styles.title}>내 정보</h1>
+        <p className={styles.subtitle}>안녕하세요, 나의 회원 정보와 후원 등급을 한 눈에 파악하고 관리하세요.</p>
       </header>
+
+      {/* Code-first (funnation 내 프로필): grade card with the next grade and the studio entry. */}
+      {grade && (
+        <section className={styles.gradeCard} aria-labelledby="mypage-grade">
+          <div className={styles.gradeMain}>
+            <span className={styles.gradeLabel} id="mypage-grade">
+              내 등급
+            </span>
+            <strong className={styles.gradeName}>{gradeLabel(grade.key)}</strong>
+            <span className={styles.gradeMeta}>최근 30일 후원 {formatNumber(grade.last30Fn)} FN</span>
+          </div>
+          <div className={styles.gradeProgress}>
+            {grade.progress.nextLabel ? (
+              <>
+                <span className={styles.gradeMeta}>
+                  다음 등급 <strong>{grade.progress.nextLabel}</strong>까지 {formatNumber(Math.max(0, (grade.progress.nextMinFn ?? 0) - grade.progress.currentFn))} FN
+                </span>
+                <span className={styles.gradeBar} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={grade.progress.percent} aria-label="다음 등급 진행률">
+                  <span style={{ width: `${grade.progress.percent}%` }} />
+                </span>
+              </>
+            ) : (
+              <span className={styles.gradeMeta}>최고 등급이에요.</span>
+            )}
+          </div>
+          <div className={styles.gradeActions}>
+            <Link href="/mypage/titles" className={styles.actionButton}>
+              다음 등급 미리보기
+            </Link>
+            <Link href={creator ? "/creator" : "/channel/new"} className={styles.actionButton}>
+              {creator ? "크리에이터 스튜디오로" : "내 채널 만들기"}
+            </Link>
+          </div>
+        </section>
+      )}
 
       <section className={styles.section} aria-labelledby="mypage-account">
         <h2 id="mypage-account" className={styles.sectionTitle}>

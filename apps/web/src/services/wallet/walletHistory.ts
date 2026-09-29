@@ -12,6 +12,7 @@ import {
   type ChargeRecord,
   type ChargeStatus,
   type DonationCategory,
+  type DonationFilter,
   type DonationRecord,
   type DonationStatus,
   type HistoryPage,
@@ -52,19 +53,33 @@ export async function getChargeHistory(input: { period: Period; page?: number; a
   );
 }
 
+/**
+ * FN 후원내역 (Figma 632:4) + funnation-style filters: search (크리에이터명 · 메시지), min / max FN,
+ * 최신순 / 오래된순, and the filtered total ("결과 N건 · 합계 N FN"). All filtering is server-side.
+ */
 export async function getDonationHistory(input: {
   period: Period;
   category: DonationCategory;
   page?: number;
   all?: boolean;
-}): Promise<HistoryPage<DonationRecord> | null> {
+  filter?: DonationFilter;
+}): Promise<(HistoryPage<DonationRecord> & { totalFn: number }) | null> {
   if (!USE_MOCK) throw new Error("Wallet API is not connected yet.");
   if (!(await getSession())) return null;
   await mockDelay(300);
-  return paginate(
-    mockDonations().filter((d) => d.category === input.category && inPeriod(d.donatedAt, input.period)),
-    input
-  );
+  const f = input.filter ?? {};
+  const q = f.q?.trim().toLowerCase() ?? "";
+  const rows = mockDonations()
+    .filter(
+      (d) =>
+        d.category === input.category &&
+        inPeriod(d.donatedAt, input.period) &&
+        (!q || d.creatorName.toLowerCase().includes(q) || d.message.toLowerCase().includes(q)) &&
+        (f.min === undefined || d.fnAmount >= f.min) &&
+        (f.max === undefined || d.fnAmount <= f.max)
+    )
+    .sort((a, b) => (f.sort === "oldest" ? a.donatedAt.localeCompare(b.donatedAt) : b.donatedAt.localeCompare(a.donatedAt)));
+  return { ...paginate(rows, input), totalFn: rows.reduce((s, d) => s + d.fnAmount, 0) };
 }
 
 /**
