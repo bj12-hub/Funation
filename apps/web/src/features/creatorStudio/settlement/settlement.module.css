@@ -201,6 +201,99 @@
   line-height: 1.25;
 }
 
+button.card {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* ── Notice modal (433:4 · 462:2 · 480:2) ── */
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.noticeIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--color-gold-soft);
+  color: var(--color-gold);
+}
+
+.noticeIcon svg path {
+  stroke: var(--color-gold);
+}
+
+.noticeTitle {
+  margin: 0;
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-20);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.noticeText {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  color: var(--color-text-soft);
+  font-size: var(--font-size-14);
+  line-height: 1.5;
+}
+
+/* ── Buttons (settlement flows use the blue #3b82f6 primary) ── */
+
+.btnBlue,
+.btnGhost {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: var(--radius-8);
+  font-size: var(--font-size-15);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
+.btnBlue {
+  border: 1px solid var(--color-info);
+  background: var(--color-info);
+  color: var(--color-text-on-accent);
+}
+
+.btnBlue:hover {
+  filter: brightness(1.08);
+}
+
+.btnBlue:disabled,
+.btnBlue[aria-disabled="true"] {
+  border-color: var(--color-button-disabled-bg);
+  background: var(--color-button-disabled-bg);
+  color: var(--color-text-tertiary);
+  cursor: not-allowed;
+  filter: none;
+}
+
+.btnGhost {
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+}
+
+.btnGhost:hover {
+  border-color: var(--color-border-emphasis);
+}
+
 @media (max-width: 1024px) {
   .cards {
     grid-template-columns: minmax(0, 1fr);

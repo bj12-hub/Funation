@@ -24,7 +24,9 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/creator/ranking` | ✅ | creator ranking 405:4 (퀘스트) · 405:302 (럭키박스) · 405:598 (플레이) — signed-in only, `?type=` `?period=` `?q=` `?page=` (scoring/season/tie rules TBD) |
 | `/creator/widgets` | ✅ | donation-widget-notification-settings 529:4 — popups 364:6 (채팅창) · 364:158 (QR) · 364:265 (후원목표) · 372:7 (후원누적금액) · 531:1370 (최근알림) · 531:1598 (이벤트) · 531:1826 (미니후원) · 315:650 (후원랭킹) · 315:858 (투표) · 373:1307 (커스텀 사운드) · 373:1356 (럭키박스) · 373:1598 (퀘스트) · 373:1785 (플레이) · 373:3675 (뽑기 후원) · 395:145 (벽지); 그림후원 + alert cards have no popup design (informational cards) — signed-in only |
 | `/creator/donations` | ✅ | donation-management 539:7 (후원 페이지 설정) · 539:156 (후원 리스트, 퀘스트) · 539:303 (후원 순위) — `?tab=` `?kind=` `?period=` `?status=` `?q=` `?page=` · 539:466 / 539:574 (후원 필터링 · 차단 리스트, `?sub=filter|block`) · 539:690 (칭호 설정) — signed-in only |
-| `/creator/settlement` | ✅ | settlement-management 429:4 (정산 현황 · 정산을 시작할까요? cards) — signed-in only; settlement date / minimum / payout schedule copy shown as designed, policy TBD |
+| `/creator/settlement` | ✅ | settlement-management 429:4 · 정산 자료 등록 필요 433:4 · 이미 등록 462:2 — signed-in only; `?registered=1` shows the submitted toast; settlement date / minimum / payout schedule copy shown as designed, policy TBD |
+| `/creator/settlement/register` | ✅ | 이용동의 429:139 (개인) · 443:257 (외국인) · 433:138 (개인사업자) · 437:338 (법인) · 대한민국 이외 452:4 / 452:47 — `?type=` preselects the member type; overseas answers lead nowhere yet (TBD) |
+| `/creator/settlement/register/form` | ✅ | 정산 자료 등록 429:219 (개인) · 443:5 (외국인) · 433:210 (개인사업자) · 437:4 (법인) — `?type=` required, reachable only after 이용동의 for that type |
 | `/attendance` | ✅ | funation-attendance-page 583:4 · 585:452 (checked in) · 585:66 (완료 popup) · 585:830 (보상 popup) — signed-in only |
 | `/terms/[slug]` | 🚧 | 722:3 (terms text pending) — slugs: youth, service, privacy, marketing, operation |
 
@@ -44,7 +46,11 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | Creator sidebar | 크리에이터 랭킹 | `/creator/ranking` |
 | Creator sidebar | 계정설정 | `/creator/settings` |
 | Creator sidebar | 정산설정 | `/creator/settlement` |
-| Creator dashboard | 계정 관리 · 정산 관리 | `/creator/settings` · not wired (settlement pending) |
+| Settlement home | 정산 등록 · 정산 신청 · 정산 관리 cards | not registered → 433:4 (정산등록 → `/creator/settlement/register`); registered → 정산 등록 opens 462:2 (→ `/creator/settlement/manage`), 신청/관리 link to `/creator/settlement/apply` · `/creator/settlement/manage` (pending) |
+| Settlement terms | 다음 | `/creator/settlement/register/form?type=` |
+| Settlement form | 유형 탭 · 뒤로 · 신청하기 | 이용동의 for that type · 이용동의 · `/creator/settlement?registered=1` |
+| Settlement form | 주소 검색 · 신분증/통장사본 안내 links | toast (address provider TBD) · labels only (guide pages TBD) |
+| Creator dashboard | 계정 관리 · 정산 관리 | `/creator/settings` · `/creator/settlement` |
 | Creator settings | OBS · Xsplit · 동시 송출 세팅 | setup guide popups 328:581 · 328:927 · 328:1266 (download links: official OBS / XSplit pages) |
 | Header | 언어 선택 | dropdown (265:242) — i18n pending |
 | Login | 비밀번호 찾기 · 회원가입 | `/password-reset` · `/signup` |
@@ -67,8 +73,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | Side nav | 즐겨찾기 | `/favorites` |
 | Side nav | FN 내역 | `/wallet/charges` |
 | Side nav | FN 충전 · 모바일에서 충전 (QR코드) | charge modal 595:1869 · QR popup 587:147 (QR target TBD) |
-| Side nav | 출석체크 | `/creator/settlement` | ✅ | settlement-management 429:4 (정산 현황 · 정산을 시작할까요? cards) — signed-in only; settlement date / minimum / payout schedule copy shown as designed, policy TBD |
-| `/attendance` |
+| Side nav | 출석체크 | `/attendance` |
 | Side nav | 시청 기록 · 설정 | not wired — screens pending |
 | Side nav (live) | 로그인 (guest card) · 마이페이지 | `/login` · `/mypage` |
 | Creators | 카테고리 탭 · 검색 · 정렬 · 페이지 | `/creators?category=&q=&sort=&page=` |

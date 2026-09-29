@@ -30,7 +30,8 @@ export function CreatorSideNav() {
               {item.label}
             </>
           );
-          const active = item.href === pathname;
+          // Sub-pages (e.g. /creator/settlement/register) keep their section highlighted.
+          const active = item.href === "/creator" ? pathname === item.href : !!item.href && (pathname === item.href || pathname.startsWith(`${item.href}/`));
           return (
             <li key={item.label}>
               {item.href ? (

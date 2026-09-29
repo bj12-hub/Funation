@@ -182,6 +182,12 @@
   --color-settlement-label-off: rgba(255, 255, 255, 0.5);
   --color-settlement-icon-bg: rgba(255, 255, 255, 0.13);
   --color-settlement-card-icon-bg: rgba(139, 92, 246, 0.13);
+  --color-settlement-choice-on: #1f1f3d;
+  --color-settlement-choice-off: #0b0813;
+  --color-settlement-choice-border: #2a2a4e;
+  --color-settlement-muted: #94a3b8;
+  --color-settlement-terms-text: #8f9cae;
+  --color-settlement-field-bar: #1a1a35;
 
   /* ── Status ───────────────────────────────────────────── */
   --color-success: #10b981;
