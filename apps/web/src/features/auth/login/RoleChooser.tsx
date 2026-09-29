@@ -14,8 +14,8 @@ const ROLES = [
 
 /**
  * Figma 280:2 로그인/회원가입 — the header "로그인" button opens a role chooser.
- * Both roles continue to the login page for now: creator sign-in/sign-up and the creator area are not
- * designed yet, so the role is only passed along as `?role=` (TBD).
+ * Both roles use the same login page (a creator-specific sign-up is not designed yet; `?role=` is passed along,
+ * TBD). After signing in, 크리에이터 goes to the creator dashboard and 도네이터 back to the current page.
  */
 export function RoleChooser({ className }: { className?: string }) {
   const [open, setOpen] = useState(false);
@@ -23,7 +23,8 @@ export function RoleChooser({ className }: { className?: string }) {
   const next = pathname.startsWith("/login") || pathname.startsWith("/signup") ? null : pathname;
   const href = (role: string) => {
     const params = new URLSearchParams({ role });
-    if (next && next !== "/") params.set("next", next);
+    const target = role === "creator" ? "/creator" : next;
+    if (target && target !== "/") params.set("next", target);
     return `/login?${params.toString()}`;
   };
 
