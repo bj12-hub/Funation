@@ -7,7 +7,19 @@
  * display data; the donation action re-reads them from the server copy (TBD policies are flagged).
  */
 
-export type DonationTypeKey = "TEXT" | "MINI" | "VIDEO" | "SIGNATURE" | "WISHLIST" | "LUCKYBOX";
+export type DonationTypeKey =
+  | "TEXT"
+  | "MINI"
+  | "VIDEO"
+  | "SIGNATURE"
+  | "WISHLIST"
+  | "LUCKYBOX"
+  | "ROULETTE"
+  | "QUEST"
+  | "DRAWING"
+  | "QUIZ_CHOICE"
+  | "QUIZ_INITIAL"
+  | "QUIZ_DRAWING";
 
 export type DonationTypeInfo = {
   key: DonationTypeKey;
@@ -74,6 +86,10 @@ export type DonationCatalog = {
   wishlist: WishlistItem[];
   miniColors: MiniColor[];
   luckyBox: LuckyBoxConfig;
+  /** 867:2494 roulette tiers and published prize odds. */
+  roulette: { tiers: { key: string; label: string; amount: number }[]; odds: { prize: string; percent: number }[] };
+  /** Quest, drawing and quiz (867:*). Minimum and limits are TBD. */
+  game: { minAmount: number; maxTimeSec: number; quizOptions: { min: number; max: number }; maxText: number };
 };
 
 export function getMockDonationCatalog(): DonationCatalog {
@@ -89,7 +105,14 @@ const MOCK_CATALOG: DonationCatalog = {
     { key: "VIDEO", emoji: "🎬", label: "영상", title: "영상 후원", available: true },
     { key: "SIGNATURE", emoji: "✨", label: "시그니처", title: "시그니처 후원", available: true },
     { key: "WISHLIST", emoji: "🎁", label: "위시", title: "위시 후원", available: true },
-    { key: "LUCKYBOX", emoji: "🎲", label: "럭키박스", title: "럭키박스 후원", available: true }
+    { key: "LUCKYBOX", emoji: "🎲", label: "럭키박스", title: "럭키박스 후원", available: true },
+    // Page 2 (867:*). ☷, ㄱ and ✎ are text glyphs in the design.
+    { key: "ROULETTE", emoji: "🎡", label: "룰렛", title: "룰렛 후원", available: true },
+    { key: "QUEST", emoji: "🏆", label: "퀘스트", title: "퀘스트 후원", available: true },
+    { key: "DRAWING", emoji: "🎨", label: "그림", title: "그림 후원", available: true },
+    { key: "QUIZ_CHOICE", emoji: "☷", label: "객관식", title: "객관식 퀴즈", available: true },
+    { key: "QUIZ_INITIAL", emoji: "ㄱ", label: "초성", title: "초성 퀴즈", available: true },
+    { key: "QUIZ_DRAWING", emoji: "✎", label: "그림퀴즈", title: "그림 퀴즈", available: true }
   ],
   minAmount: { TEXT: 1_000, MINI: 100, VIDEO: 1_000 },
   maxLength: { message: 100, mini: 30 },
@@ -119,6 +142,22 @@ const MOCK_CATALOG: DonationCatalog = {
     { id: "cyan", label: "하늘", hex: "#06b6d4" },
     { id: "yellow", label: "노랑", hex: "#f5bf0a" }
   ],
+  // 867:2494. Design shows these tiers and odds; all TBD.
+  roulette: {
+    tiers: [
+      { key: "SILVER", label: "SILVER", amount: 1_000 },
+      { key: "GOLD", label: "GOLD", amount: 5_000 },
+      { key: "ROYAL", label: "ROYAL", amount: 10_000 }
+    ],
+    odds: [
+      { prize: "1,000 FN", percent: 55 },
+      { prize: "5,000 FN", percent: 30 },
+      { prize: "10,000 FN", percent: 13 },
+      { prize: "50,000 FN", percent: 2 }
+    ]
+  },
+  // Assumptions: 1,000 FN minimum like 일반 후원, time limit up to 60 min, 2–5 quiz options, 50-char text fields.
+  game: { minAmount: 1_000, maxTimeSec: 3_600, quizOptions: { min: 2, max: 5 }, maxText: 50 },
   // 851:5231 · 875:6948–8546. The design disagrees on tiers (SILVER 1,000/GOLD 5,000/ROYAL 10,000 in the
   // base panel, EMERALD 10,000 and PREMIUM ROYAL 50,000 in the states, six ranges from 3,000 to 499,999 in
   // the guide). The mock uses the state frames; every number here is TBD.
