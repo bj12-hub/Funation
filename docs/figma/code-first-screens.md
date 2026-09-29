@@ -59,5 +59,6 @@ Since 2026-09-29 features without a Figma frame are built in code first and desi
 | `/creator/widgets/drawing` 그림후원 (`widgets/media/DrawingScreen.tsx`) + `/overlay/drawing/[key]` | video-drawing PR | 새 그림 자동 전시 (전시 시간 = 채널 설정), 다시 전시 · 내리기 · 삭제, 테스트 그림; 최근 30개 보관. TBD: 보관 기간, 신고/검수 |
 | `/creator/widgets/assets` 이미지·사운드 (`widgets/library/AssetsScreen.tsx`) + `/api/media/[id]` | asset-banner PR | 이미지 (PNG · JPG · GIF · WEBP, 5MB) / 사운드 (MP3 · WAV · OGG, 2MB) 올리기 · 미리보기 · 이름 변경 · 삭제; 파일 내용으로 형식 검사 (SVG 불가), mock CDN은 추측 불가 id + nosniff. TBD: 업로드 정책 · 용량 · 검수, 커스텀 사운드 "라이브러리" 연결 |
 | `/creator/widgets/banner` 배너 (`widgets/library/BannerScreen.tsx`) + `/overlay/banner/[key]` | asset-banner PR | 라이브러리 이미지 최대 10장 슬라이드, 위치 상단 · 중앙 · 하단, 넘김 간격 3~60초; 지운 이미지는 건너뜀. 시그니처 이미지도 라이브러리에서 고를 수 있음 |
+| `/creators/[id]` 홈 보강 · `?view=community` (`creatorRoom/ChannelHome.tsx`) | channel-home PR | 홈 아래 월간 후원 랭킹 (서버 집계, 이번 달 내 후원 포함 · '나' 표시) + 채널 커뮤니티 최근 글 3개; 커뮤니티 탭은 채널 전용 피드 (로그인 후 글쓰기 500자, 작성자 삭제, 더 보기). TBD: 랭킹 집계 기준 · 비공개 후원자, 신고 · 숨김 · 채널 운영자 관리 |
 
 Add a row whenever a new code-first screen ships (see `docs/research/funnation-reference.md` for the planned features).

@@ -50,18 +50,6 @@ export function VideosView({ name }: { name: string }) {
   return <p className={styles.empty}>{name} 님의 다시보기 · 쇼츠는 영상 연동 후 여기에 표시돼요.</p>;
 }
 
-/** 커뮤니티 — per-channel boards are TBD; the site community is linked meanwhile. */
-export function CommunityView() {
-  return (
-    <div className={styles.empty}>
-      <p>채널 커뮤니티는 준비 중이에요.</p>
-      <Link href="/community" className={styles.link}>
-        전체 커뮤니티 보기 ›
-      </Link>
-    </div>
-  );
-}
-
 const SIG_SORTS = [
   { key: "asc", label: "금액 낮은순" },
   { key: "desc", label: "금액 높은순" },

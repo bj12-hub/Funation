@@ -4,6 +4,8 @@ import { CreatorRoomScreen } from "@/features/creatorRoom";
 import { getMyAccount } from "@/services/account/myAccount";
 import { getCreatorById } from "@/services/creators/creators";
 import { getCreatorRoom } from "@/services/creators/creatorRoom";
+import { getChannelMonthlyRanking, getChannelPosts } from "@/services/creators/channelHome";
+import { CHANNEL_POSTS_PAGE } from "@/services/creators/channelTypes";
 import { parseChannelView } from "@/features/creatorRoom/channelView";
 import { getCrewPublic } from "@/services/crew/crew";
 import { isFavorite } from "@/services/favorites/favorites";
@@ -12,7 +14,7 @@ import { isFavorite } from "@/services/favorites/favorites";
 export const dynamic = "force-dynamic";
 
 type Params = Promise<{ id: string }>;
-type SearchParams = Promise<{ tab?: string | string[]; view?: string | string[] }>;
+type SearchParams = Promise<{ tab?: string | string[]; view?: string | string[]; show?: string | string[] }>;
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const creator = await getCreatorById((await params).id);
@@ -21,9 +23,18 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 
 export default async function Page({ params, searchParams }: { params: Params; searchParams: SearchParams }) {
   const { id } = await params;
-  const { tab, view } = await searchParams;
-  const [room, account, favorite, crew, creator] = await Promise.all([getCreatorRoom(id), getMyAccount(), isFavorite(id), getCrewPublic(id), getCreatorById(id)]);
-  if (!room || !creator) notFound();
+  const { tab, view, show } = await searchParams;
+  const postsShow = Math.min(Math.max(CHANNEL_POSTS_PAGE, Math.floor(Number(show)) || CHANNEL_POSTS_PAGE), 100);
+  const [room, account, favorite, crew, creator, ranking, posts] = await Promise.all([
+    getCreatorRoom(id),
+    getMyAccount(),
+    isFavorite(id),
+    getCrewPublic(id),
+    getCreatorById(id),
+    getChannelMonthlyRanking(id),
+    getChannelPosts(id, postsShow)
+  ]);
+  if (!room || !creator || !ranking || !posts) notFound();
 
   return (
     <CreatorRoomScreen
@@ -34,6 +45,9 @@ export default async function Page({ params, searchParams }: { params: Params; s
       view={tab === "donation" ? "home" : parseChannelView(view)}
       crew={crew}
       about={{ description: creator.description, categories: creator.categories, subscriberCount: creator.subscriberCount, joinedAt: creator.joinedAt }}
+      ranking={ranking}
+      posts={posts}
+      postsShow={postsShow}
     />
   );
 }
