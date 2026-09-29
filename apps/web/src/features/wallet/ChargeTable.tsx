@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 import { FileIcon } from "@/components/icons";
 import { Modal } from "@/components/ui/Modal";
 import { formatNumber } from "@/lib/format";
-import { CHARGE_STATUS_LABEL, type ChargeRecord, type ChargeStatus } from "@/services/wallet/walletTypes";
+import { requestChargeRefund } from "@/services/wallet/refund";
+import { CHARGE_STATUS_LABEL, REFUND_REASON_MAX, type ChargeRecord, type ChargeStatus } from "@/services/wallet/walletTypes";
 import styles from "./wallet.module.css";
 
 const PILL: Record<ChargeStatus, string> = {
@@ -55,6 +57,7 @@ export function ChargeTable({ items }: { items: ChargeRecord[] }) {
                   </td>
                   <td className={styles.center}>
                     <span className={`${styles.pill} ${PILL[c.status]}`}>{CHARGE_STATUS_LABEL[c.status]}</span>
+                    {c.refund && <span className={styles.refundTag}>환불 요청</span>}
                   </td>
                   <td className={styles.center}>
                     <button type="button" className={styles.detailButton} onClick={() => setSelected(c)} aria-label={`${c.chargedAt} 충전 자세히`}>
@@ -86,6 +89,71 @@ export function ChargeTable({ items }: { items: ChargeRecord[] }) {
         {selected && <ChargeDetail charge={selected} />}
       </Modal>
     </>
+  );
+}
+
+/**
+ * 환불 요청 (code-first, no Figma frame). Only records the request — the refund policy and review
+ * are TBD, so the copy promises nothing about eligibility or timing.
+ */
+function RefundSection({ charge }: { charge: ChargeRecord }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [requestedAt, setRequestedAt] = useState<string | null>(charge.refund?.requestedAt ?? null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  if (requestedAt) {
+    return (
+      <p className={styles.refundDone} role="status">
+        환불 요청이 접수됐어요 · 심사 중 ({new Date(requestedAt).toLocaleDateString("ko-KR")})
+      </p>
+    );
+  }
+  if (charge.status !== "COMPLETED") return null;
+
+  const submit = () => {
+    setError(null);
+    startTransition(async () => {
+      const res = await requestChargeRefund({ chargeId: charge.id, reason });
+      if (res.status === "REQUESTED") {
+        setRequestedAt(res.requestedAt);
+        router.refresh();
+      } else if (res.status === "UNAUTHORIZED") router.push("/login?next=/wallet/charges");
+      else setError(res.message);
+    });
+  };
+
+  return (
+    <div className={styles.refund}>
+      {!open ? (
+        <button type="button" className={styles.refundButton} onClick={() => setOpen(true)}>
+          환불 요청
+        </button>
+      ) : (
+        <>
+          <label className={styles.refundLabel} htmlFor={`refund-${charge.id}`}>
+            환불 사유 (선택)
+          </label>
+          <textarea id={`refund-${charge.id}`} className={styles.refundInput} value={reason} maxLength={REFUND_REASON_MAX} onChange={(e) => setReason(e.target.value)} />
+          <p className={styles.refundNote}>환불 가능 여부와 처리 기간은 정책이 확정된 뒤 안내돼요(TBD). 요청은 접수 후 검토돼요.</p>
+          {error && (
+            <p className={styles.refundError} role="alert">
+              {error}
+            </p>
+          )}
+          <div className={styles.refundActions}>
+            <button type="button" className={styles.modalSecondary} onClick={() => setOpen(false)} disabled={pending}>
+              취소
+            </button>
+            <button type="button" className={styles.modalPrimary} onClick={submit} disabled={pending} aria-busy={pending || undefined}>
+              {pending ? "접수 중..." : "환불 요청하기"}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -125,6 +193,8 @@ function ChargeDetail({ charge }: { charge: ChargeRecord }) {
           <dd className={styles.detailTid}>{charge.transactionId ?? "-"}</dd>
         </div>
       </dl>
+
+      <RefundSection charge={charge} />
 
       {/* TODO: receipt (매출전표) comes from the payment provider, which is TBD. */}
       <div className={styles.receipt}>

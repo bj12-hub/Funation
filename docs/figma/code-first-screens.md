@@ -22,4 +22,6 @@ Since 2026-09-29 features without a Figma frame are built in code first and desi
 
 | `/creator/settlement` 정산 준비 체크리스트 (`settlement/SettlementChecklist.tsx`) | settlement checklist PR | 4 steps (본인인증 · 정산 자료 등록 · 서류 심사 · 정산 계좌) with links; sits between the 429:4 banner and cards |
 
+| `/wallet/charges` 상세정보 popup "환불 요청" + list tag (`features/wallet/ChargeTable.tsx`) | refund request PR | Request form (사유), 접수·심사 중 state inside Figma 643:4; policy copy is TBD |
+
 Add a row whenever a new code-first screen ships (see `docs/research/funnation-reference.md` for the planned features).
