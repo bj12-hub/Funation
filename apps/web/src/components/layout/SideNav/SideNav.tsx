@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType, SVGProps } from "react";
-import { AirplayIcon, CalendarIcon, GiftOutlineIcon, HeartOutlineIcon, HistoryIcon, HomeIcon, SettingsIcon, StarIcon, TrendingUpIcon } from "@/components/icons";
+import { AirplayIcon, CalendarIcon, GiftOutlineIcon, HeartOutlineIcon, HistoryIcon, HomeIcon, ReceiptOutlineIcon, SettingsIcon, StarIcon, TrendingUpIcon, WalletOutlineIcon } from "@/components/icons";
 import { formatNumber } from "@/lib/format";
 import { ChargeTrigger, QrChargeTrigger } from "@/features/walletCharge";
 import styles from "./SideNav.module.css";
@@ -34,6 +34,8 @@ const MENU: MenuItem[] = [
   // SOOP · FlexTV 머니 후원 (Figma 817:9411 · 817:8761 sidebars).
   { label: "SOOP 후원", Icon: GiftOutlineIcon, href: "/donation/soop" },
   { label: "FlexTV 후원", Icon: HeartOutlineIcon, href: "/donation/flextv" },
+  { label: "후원 내역", Icon: ReceiptOutlineIcon, href: "/donation/history" },
+  { label: "FN Wallet", Icon: WalletOutlineIcon, href: "/wallet" },
   { label: "추천 라이브", Icon: AirplayIcon, href: "/live", badge: { text: "LIVE", tone: "live" } },
   { label: "즐겨찾기", Icon: StarIcon, href: "/favorites" },
   { label: "출석체크", Icon: CalendarIcon, href: "/attendance", badge: { text: "EVENT", tone: "event" } },

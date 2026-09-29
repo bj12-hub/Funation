@@ -93,8 +93,8 @@ Remaining:
   terms name 주식회사 투스라이프; 443:5 lists 트위치 · 치지직 (out of scope). Nav-bars 482:244 · 482:420
   belong to frames not yet located (top frame id = its workspace-wrapper id − 20).
 - SOOP / FlexTV money donation (817:7552–9848, grid at x 63835/65435/67035): donation flow done
-  (`/donation/[platform]`, PlatformAdapter mocks in `services/platformDonation`). 후원 내역 done
-  (`/donation/history`). Pending: FN Wallet 817:7552. Dev-only failing mocks: SOOP 게임왕, FlexTV 하트요정 (API_ERROR).
+  (`/donation/[platform]`, PlatformAdapter mocks in `services/platformDonation`). 후원 내역
+  (`/donation/history`) and FN Wallet (`/wallet`, 817:7552) done. Dev-only failing mocks: SOOP 게임왕, FlexTV 하트요정 (API_ERROR).
 - `/terms/[slug]` body text (722:3, pending copy).
 - Undesigned: 그림후원 widget popup, 10 alert-card popups, 게임/크루 후원 lists, donor block entry point.
 - Cross-cutting TBDs: creator role check, widget settings ↔ donation flow (quest minimum, refunds,

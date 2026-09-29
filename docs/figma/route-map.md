@@ -18,7 +18,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/creators/[id]` | ✅ | 라이브 826:685 (채팅) · 610:138 (후원), 오프라인 710:195, 공유 826:387 · 후원 유형 851:4546 (일반) · 851:4665 (미니) · 851:4788 (영상) · 851:4929 + 875:1815 (시그니처) · 851:5054 (위시) · 851:5174 + 875:6948–8546 (럭키박스) · 867:2458 (룰렛) · 867:2545 (퀘스트) · 867:2647 (그림) · 867:2755 / 867:2855 / 867:2955 (퀴즈) · 후원 확인 613:6 · 완료 613:122 · FN 부족 613:237 |
 | `/wallet/charges` | ✅ | FN 충전내역 640:2 · 639:2 (empty) · 상세 643:4 · 644:6 · 644:185 · 644:364 — signed-in only, `?period=` `?from=` `?to=` `?page=` |
 | `/wallet/donations` | ✅ | FN 후원내역 632:4 · 637:214 (empty) — signed-in only, `?type=` (basic · quest · game) + period params |
-| `/wallet` | ✅ | redirects to `/wallet/charges` |
+| `/wallet` | ✅ | FN Wallet 817:7552 — 사용 가능 · 보류 중 (0, locking TBD) · 누적 사용 + 충전·사용·환불 list, `?kind=CHARGE|USE|REFUND` `?period=30|90|all` `?page=` (no running-balance column: needs a reconciled ledger, TBD) |
 | `/creator` | ✅ | creator-dashboard 245:14 · profile dropdown 758:41 / 296:500 — signed-in only, `?period=` `?from=` `?to=` (creator role check TBD) |
 | `/creator/settings` | ✅ | creator-account-settings-page 315:405 · 315:2 · 프로필 수정 326:496 — signed-in only |
 | `/creator/ranking` | ✅ | creator ranking 405:4 (퀘스트) · 405:302 (럭키박스) · 405:598 (플레이) — signed-in only, `?type=` `?period=` `?q=` `?page=` (scoring/season/tie rules TBD) |
@@ -79,7 +79,8 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | Live tabs | 인기라이브 · 전체라이브 | `/live/popular` · `/live` |
 | Live popular | 섹션 제목 `>` | `/live?category=<CATEGORY>` |
 | Side nav (live) | 홈 · 추천 라이브 · 실시간 인기 급상승 | `/` · `/live` · `/live/popular` |
-| Side nav | SOOP 후원 · FlexTV 후원 | `/donation/soop` · `/donation/flextv` |
+| Side nav | SOOP 후원 · FlexTV 후원 · 후원 내역 · FN Wallet | `/donation/soop` · `/donation/flextv` · `/donation/history` · `/wallet` |
+| FN Wallet | + FN 충전 · FN 내역 자세히 보기 | charge modal · `/wallet/charges` |
 | Platform donation | 검색 · 후원하기 (row) · 후원 내역 (보기) · FN 충전 | `/donation/[platform]/search?q=` · `/donation/[platform]/[creatorId]` · `/donation/history` (home: `?tab=<platform>`) · charge modal |
 | Side nav | 즐겨찾기 | `/favorites` |
 | Side nav | FN 내역 | `/wallet/charges` |
