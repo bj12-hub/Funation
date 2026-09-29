@@ -183,7 +183,7 @@ The catalog follows the funnation 위젯 page (`features/creatorStudio/widgets/w
   - 후원 알림: 후원 알림, 미션 · 퀘스트, 영상 (TBD), 시그니처 후원 (TBD), 커스텀 사운드, 미니후원, 최근알림, 이벤트
   - 게이지 · 랭킹: 후원자 랭킹, 목표, 후원누적금액, 크루 점수판
   - 표시 · 자막: 배너 (TBD), 자막, 전광판, 엔딩 크레딧, 채팅창, QR, 벽지
-  - 이펙트 · 효과: 이모지 리액션 (TBD), 레이어 효과 (TBD)
+  - 이펙트 · 효과: 이모지 리액션 and 레이어 효과, set up at `/creator/widgets/effects`
   - 게임 · 이벤트: ours; funnation keeps these under 엑셀방송
   - 타이머
 - **도구:** 오버레이 주소, 리모컨, 이미지·사운드 (TBD), 후원 연동 (TBD).
