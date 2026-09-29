@@ -1,0 +1,80 @@
+"use server";
+
+import { USE_MOCK, mockDelay } from "@/lib/mock";
+import { getSession } from "@/lib/session";
+import { mockSettlement } from "./mockSettlementStore";
+import { MANAGE_PAGE_SIZE, isManagePeriod, type ManagePeriod, type ResetResult, type SettlementManageView } from "./settlementTypes";
+
+/**
+ * 정산 관리 — Figma 478:2 (월별) · 479:144 (기간별) · 480:2 (정산 정보 변경).
+ * History is filtered by 신청일 on the server. TBD: creator role check, whether a re-registration
+ * is allowed while a request is pending (466:2 says pending requests keep the old information),
+ * retention of the removed registration for audit, 세금계산서/증빙 downloads.
+ */
+
+const assertMock = () => {
+  if (!USE_MOCK) throw new Error("Settlement API is not connected yet.");
+};
+
+const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const isIsoDate = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(new Date(`${v}T00:00:00`).getTime());
+
+function presetRange(period: Exclude<ManagePeriod, "custom">): { from: string; to: string } {
+  const today = new Date();
+  const start = new Date(today);
+  if (period === "week") start.setDate(start.getDate() - 6);
+  if (period === "month") start.setMonth(start.getMonth() - 1);
+  if (period === "year") start.setFullYear(start.getFullYear() - 1);
+  return { from: ymd(start), to: ymd(today) };
+}
+
+export async function getSettlementManageView(params: { period?: unknown; from?: unknown; to?: unknown; page?: unknown }): Promise<SettlementManageView | "UNAUTHORIZED" | "NOT_REGISTERED"> {
+  assertMock();
+  if (!(await getSession())) return "UNAUTHORIZED";
+  const reg = mockSettlement.registration;
+  if (!reg) return "NOT_REGISTERED";
+
+  // Default 연별 so the whole recent history is visible on first load.
+  const period: ManagePeriod = isManagePeriod(params.period) ? params.period : "year";
+  let { from, to } = period === "custom" ? { from: "", to: "" } : presetRange(period);
+  if (period === "custom") {
+    const fallback = presetRange("month");
+    from = isIsoDate(params.from) ? params.from : fallback.from;
+    to = isIsoDate(params.to) ? params.to : fallback.to;
+    if (from > to) [from, to] = [to, from];
+  }
+
+  await mockDelay(250);
+  const filtered = mockSettlement.requests.filter((r) => r.requestedAt >= from && r.requestedAt <= to);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / MANAGE_PAGE_SIZE));
+  const pageNum = Number(params.page);
+  const page = Number.isInteger(pageNum) && pageNum >= 1 && pageNum <= totalPages ? pageNum : 1;
+
+  return {
+    registrant: reg.registrant,
+    bankName: reg.bankName,
+    accountMasked: reg.accountMasked,
+    memberType: reg.memberType,
+    period,
+    from,
+    to,
+    items: filtered.slice((page - 1) * MANAGE_PAGE_SIZE, page * MANAGE_PAGE_SIZE).map((r) => ({ ...r })),
+    page,
+    totalPages
+  };
+}
+
+/**
+ * 정산 정보 변경 → 변경하기 (480:2): "현재의 정보는 삭제되며, 정산 정보 재등록이 진행됩니다." Removes the
+ * current registration so the 정산 등록 flow starts again. Existing requests are kept.
+ */
+export async function resetSettlementRegistration(): Promise<ResetResult> {
+  assertMock();
+  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  if (!mockSettlement.registration) return { status: "NOT_REGISTERED" };
+  await mockDelay(400);
+  // TODO: the backend archives the old registration for audit instead of deleting it outright.
+  mockSettlement.registration = null;
+  mockSettlement.terms = null;
+  return { status: "RESET" };
+}

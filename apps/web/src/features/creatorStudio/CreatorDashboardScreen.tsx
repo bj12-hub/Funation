@@ -46,8 +46,8 @@ export function CreatorDashboardScreen({ profile, dashboard }: { profile: Creato
               <Link href="/creator/settings" className={styles.gradientPill}>
                 계정 관리
               </Link>
-              {/* Settlement home (429:4); points at 정산 관리 (478:2) once that page exists. */}
-              <Link href="/creator/settlement" className={styles.outlinePill}>
+              {/* 정산 관리 (478:2); unregistered creators are sent to the settlement home (429:4). */}
+              <Link href="/creator/settlement/manage" className={styles.outlinePill}>
                 정산 관리
               </Link>
             </div>
