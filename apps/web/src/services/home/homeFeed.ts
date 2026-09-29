@@ -1,4 +1,5 @@
 import { USE_MOCK, mockDelay } from "@/lib/mock";
+import { CREATOR_CATEGORY_LABEL, getCreatorById } from "@/services/creators/creators";
 import type { Platform } from "@/types/platform";
 
 /**
@@ -50,7 +51,32 @@ export type PopularCreator = {
   avatarUrl: string;
   subscriberCount: number;
   href: string;
+  /** Figma 688:646 크리에이터 프로필 popup. */
+  profile: {
+    verified: boolean;
+    /** One-line status under the name. */
+    status: string;
+    tags: string[];
+    channels: { platform: Platform; logoUrl: string }[];
+  };
 };
+
+/**
+ * Arrival notices shown as a carousel over the home page (Figma 200:115 · 200:223).
+ * Copy is server content so operations can change it without a release.
+ */
+export type HomeNotice =
+  | { id: string; kind: "ID_CONNECT"; badge: string; titleAccent: string; title: string }
+  | {
+      id: string;
+      kind: "FRAUD_WARNING";
+      tag: string;
+      title: string;
+      lead: string;
+      emphasis: string;
+      callout: string;
+      bullets: string[];
+    };
 
 export type Promotion = {
   id: string;
@@ -82,12 +108,27 @@ export type HomeFeed = {
   creators: PopularCreator[];
   promotion: Promotion | null;
   liveBroadcasts: LiveBroadcast[];
+  notices: HomeNotice[];
 };
 
 export async function getHomeFeed(): Promise<HomeFeed> {
   if (!USE_MOCK) throw new Error("Home feed API is not connected yet.");
   await mockDelay(300);
-  return MOCK_HOME_FEED;
+  const creators = await Promise.all(
+    MOCK_HOME_FEED.creators.map(async (c) => {
+      const detail = await getCreatorById(c.id);
+      return {
+        ...c,
+        profile: {
+          verified: true,
+          status: detail?.description ?? "",
+          tags: (detail?.categories ?? []).map((k) => `#${CREATOR_CATEGORY_LABEL[k]}`),
+          channels: MOCK_CHANNELS
+        }
+      };
+    })
+  );
+  return { ...MOCK_HOME_FEED, creators, notices: MOCK_NOTICES };
 }
 
 // ── Mock data: copy and images from Figma 727:2742 ────────────────────────────
@@ -102,7 +143,8 @@ const MOCK_TRENDING: TrendingVideo[] = [
   { id: "t4", rank: 4, thumbnailUrl: `${IMG}/trending-4.jpg`, title: "[K리그] 손에 땀을 쥐는 매치: 후반 추가시간 극장 동점골!", channelName: "KLEAGUE TV", viewerCount: 8_500, isLive: true, href: "/live" }
 ];
 
-const MOCK_HOME_FEED: HomeFeed = {
+// Profiles and notices are added in getHomeFeed.
+const MOCK_HOME_FEED: Omit<HomeFeed, "creators" | "notices"> & { creators: Omit<PopularCreator, "profile">[] } = {
   heroSlides: [
     {
       id: "h1",
@@ -162,3 +204,25 @@ const MOCK_HOME_FEED: HomeFeed = {
     { id: "l6", thumbnailUrl: `${IMG}/live-6.jpg`, title: "서울에서 가장 오래된 역대급 두툼 삼겹살 맛집을 라이브로 탐방하는 방송", channelName: "미식가들의 세상", channelAvatarUrl: `${IMG}/live-avatar-6.png`, viewerCount: 65_000, platform: "YOUTUBE", category: "MUKBANG", href: "/live" }
   ]
 };
+
+// 688:646 channel chips; the same mock logos as the creator room.
+const MOCK_CHANNELS: PopularCreator["profile"]["channels"] = [
+  { platform: "YOUTUBE", logoUrl: "/mock/room/logo-youtube.png" },
+  { platform: "SOOP", logoUrl: "/mock/room/logo-soop.png" },
+  { platform: "FLEXTV", logoUrl: "/mock/room/logo-flextv.png" }
+];
+
+// 200:115 · 200:223 copy. The first slide of the Figma carousel is missing from the file.
+const MOCK_NOTICES: HomeNotice[] = [
+  { id: "n-id-connect", kind: "ID_CONNECT", badge: "ID CONNECTION", titleAccent: "Funation ID로", title: "꼭 연결해 주세요!" },
+  {
+    id: "n-fraud",
+    kind: "FRAUD_WARNING",
+    tag: "보이스피싱 경고",
+    title: "Funation 사칭 / 사기 주의 안내",
+    lead: "최근 당사를 사칭하여 입금을 요구하는 보이스피싱 사례가 확인되고 있습니다.",
+    emphasis: "Funation은 개인의 자금을 직접 요구하거나 처리하는 업무를 절대 진행하지 않습니다.",
+    callout: "따라서 아래와 같은 요청을 받으신 경우 즉시 응대 중단 및 Funation 고객센터로 확인해주시기 바랍니다.",
+    bullets: ["정산 소유권 양도 요구", "보증보험료·각종 수수료 납부 요청", "Funation FN 및 그 외 금전 송금을 유도하는 모든 연락"]
+  }
+];

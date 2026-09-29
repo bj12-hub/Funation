@@ -8,7 +8,7 @@ import { MOCK_MESSAGES, type ChatMessage } from "./chatMessages";
 import { DonationForm } from "./DonationForm";
 import styles from "./room.module.css";
 
-type Tab = "DONATION" | "CHAT";
+export type Tab = "DONATION" | "CHAT";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "DONATION", label: "후원하기" },
@@ -20,14 +20,17 @@ export function SidePanel({
   room,
   signedIn,
   fnBalance,
-  nickname
+  nickname,
+  initialTab = "CHAT"
 }: {
   room: CreatorRoom;
   signedIn: boolean;
   fnBalance: number | null;
   nickname: string | null;
+  /** `?tab=donation` (e.g. from the home 크리에이터 프로필 popup) opens the donation tab. */
+  initialTab?: Tab;
 }) {
-  const [tab, setTab] = useState<Tab>("CHAT");
+  const [tab, setTab] = useState<Tab>(initialTab);
   // Local echo only; the realtime chat and donation feed are TBD.
   const [messages, setMessages] = useState<ChatMessage[]>(MOCK_MESSAGES);
   const sendChat = (text: string) =>
