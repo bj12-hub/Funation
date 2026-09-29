@@ -22,7 +22,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/creator` | ✅ | creator-dashboard 245:14 · profile dropdown 758:41 / 296:500 — signed-in only, `?period=` `?from=` `?to=` (creator role check TBD) |
 | `/creator/settings` | ✅ | creator-account-settings-page 315:405 · 315:2 · 프로필 수정 326:496 — signed-in only |
 | `/creator/ranking` | ✅ | creator ranking 405:4 (퀘스트) · 405:302 (럭키박스) · 405:598 (플레이) — signed-in only, `?type=` `?period=` `?q=` `?page=` (scoring/season/tie rules TBD) |
-| `/creator/widgets` | 🚧 | donation-widget-notification-settings 529:4 — popups 364:6 (채팅창) · 364:158 (QR) · 364:265 (후원목표) · 372:7 (후원누적금액) · 531:1370 (최근알림) · 531:1598 (이벤트) · 531:1826 (미니후원) · 315:650 (후원랭킹) · 315:858 (투표) · 373:1307 (커스텀 사운드); 럭키박스/퀘스트/플레이/뽑기/벽지 pending, 그림후원 + alert cards have no popup design — signed-in only |
+| `/creator/widgets` | 🚧 | donation-widget-notification-settings 529:4 — popups 364:6 (채팅창) · 364:158 (QR) · 364:265 (후원목표) · 372:7 (후원누적금액) · 531:1370 (최근알림) · 531:1598 (이벤트) · 531:1826 (미니후원) · 315:650 (후원랭킹) · 315:858 (투표) · 373:1307 (커스텀 사운드) · 373:1356 (럭키박스) · 373:1598 (퀘스트) · 373:1785 (플레이); 뽑기/벽지 pending, 그림후원 + alert cards have no popup design — signed-in only |
 | `/attendance` | ✅ | funation-attendance-page 583:4 · 585:452 (checked in) · 585:66 (완료 popup) · 585:830 (보상 popup) — signed-in only |
 | `/terms/[slug]` | 🚧 | 722:3 (terms text pending) — slugs: youth, service, privacy, marketing, operation |
 

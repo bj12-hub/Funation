@@ -27,8 +27,8 @@ import {
  * TBD: creator role check, widget URL format/secret rotation, audit of setting changes, audio storage.
  */
 
-const globalForWidgets = globalThis as typeof globalThis & { __funationMockWidgetsV2?: WidgetSettingsMap };
-const store = (globalForWidgets.__funationMockWidgetsV2 ??= structuredClone(DEFAULT_WIDGET_SETTINGS));
+const globalForWidgets = globalThis as typeof globalThis & { __funationMockWidgetsV3?: WidgetSettingsMap };
+const store = (globalForWidgets.__funationMockWidgetsV3 ??= structuredClone(DEFAULT_WIDGET_SETTINGS));
 
 const assertMock = () => {
   if (!USE_MOCK) throw new Error("Widget settings API is not connected yet.");
