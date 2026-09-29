@@ -1,3 +1,3 @@
 export { ChargeHistoryScreen } from "./ChargeHistoryScreen";
 export { DonationHistoryScreen } from "./DonationHistoryScreen";
-export { parseHistoryParams, type RawParams } from "./historyParams";
+export { parseDonationFilter, parseHistoryParams, type RawParams } from "./historyParams";

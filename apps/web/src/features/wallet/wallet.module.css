@@ -732,3 +732,51 @@
   font-size: var(--font-size-11);
   font-weight: var(--font-weight-bold);
 }
+
+/* ── 후원 내역 search row (funnation structure) ─────── */
+
+.donationSearch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-tertiary);
+}
+
+.donationSearchInput,
+.donationAmount,
+.donationSort {
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  background: var(--color-input-bg);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--font-size-13);
+}
+
+.donationSearchInput {
+  flex: 1;
+  min-width: 200px;
+}
+
+.donationAmount {
+  width: 110px;
+}
+
+.donationSearchButton {
+  height: 38px;
+  padding: 0 18px;
+  border-radius: var(--radius-8);
+  background: var(--color-primary);
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+}
+
+.donationSummary {
+  margin: -8px 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
