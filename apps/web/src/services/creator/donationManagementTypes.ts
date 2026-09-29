@@ -161,3 +161,48 @@ export type DonorRanking = {
   /** Summary card: the top supporter for the period. */
   top: { nickname: string; avatarUrl: string | null; rank: number; change: number; points: number; totalAmount: number; count: number } | null;
 };
+
+// ── 후원 필터링 (539:466 · 539:574) ─────────────────────────────────────────────
+
+export const FILTER_SUBTABS = [
+  { key: "filter", label: "필터링" },
+  { key: "block", label: "차단 리스트" }
+] as const;
+export type FilterSubtab = (typeof FILTER_SUBTABS)[number]["key"];
+
+export const FILTER_STRENGTHS = [
+  { key: "HIGH", label: "매우 높음" },
+  { key: "NORMAL", label: "보통" },
+  { key: "OFF", label: "사용 안 함" }
+] as const;
+export type FilterStrength = (typeof FILTER_STRENGTHS)[number]["key"];
+export const FILTER_WORD_MAX = 20;
+export const FILTER_WORDS_MAX = 100;
+
+export type FilterSettings = { strength: FilterStrength; blockSpam: boolean; words: string[] };
+
+/** Confirmed platforms (the design's 치지직 / 아프리카TV samples are mapped to FlexTV / SOOP). */
+export const BLOCK_PLATFORM_LABEL = { YOUTUBE: "YouTube", FLEXTV: "FlexTV", SOOP: "SOOP", FUNATION: "Funation" } as const;
+export type BlockPlatform = keyof typeof BLOCK_PLATFORM_LABEL;
+
+export type BlockedDonor = { id: string; blockedAt: string; donorId: string; nickname: string; platform: BlockPlatform; reason: string };
+export const BLOCK_PAGE_SIZE = 10;
+export type BlockedDonorPage = { query: string; page: number; totalPages: number; total: number; items: BlockedDonor[] };
+
+// ── 칭호 설정 (539:690) ─────────────────────────────────────────────────────────
+
+/** Cumulative-FN thresholds shown in the design (whether creators can edit them is TBD). */
+export const TITLE_TIERS = [900_000_000, 800_000_000, 700_000_000, 600_000_000, 500_000_000, 400_000_000, 300_000_000, 200_000_000, 100_000_000, 70_000_000, 50_000_000, 30_000_000] as const;
+export const TITLE_NAME_MAX = 8;
+export const TITLE_DESCRIPTION_MAX = 40;
+
+export type TitleTier = {
+  threshold: number;
+  enabled: boolean;
+  name: string;
+  description: string;
+  iconUrl: string | null;
+  color: string;
+};
+
+export type TitleSaveResult = { status: "SAVED"; tier: TitleTier } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };

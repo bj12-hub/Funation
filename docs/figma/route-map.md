@@ -23,7 +23,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/creator/settings` | ✅ | creator-account-settings-page 315:405 · 315:2 · 프로필 수정 326:496 — signed-in only |
 | `/creator/ranking` | ✅ | creator ranking 405:4 (퀘스트) · 405:302 (럭키박스) · 405:598 (플레이) — signed-in only, `?type=` `?period=` `?q=` `?page=` (scoring/season/tie rules TBD) |
 | `/creator/widgets` | ✅ | donation-widget-notification-settings 529:4 — popups 364:6 (채팅창) · 364:158 (QR) · 364:265 (후원목표) · 372:7 (후원누적금액) · 531:1370 (최근알림) · 531:1598 (이벤트) · 531:1826 (미니후원) · 315:650 (후원랭킹) · 315:858 (투표) · 373:1307 (커스텀 사운드) · 373:1356 (럭키박스) · 373:1598 (퀘스트) · 373:1785 (플레이) · 373:3675 (뽑기 후원) · 395:145 (벽지); 그림후원 + alert cards have no popup design (informational cards) — signed-in only |
-| `/creator/donations` | 🚧 | donation-management 539:7 (후원 페이지 설정) · 539:156 (후원 리스트, 퀘스트) · 539:303 (후원 순위) — `?tab=` `?kind=` `?period=` `?status=` `?q=` `?page=`; 후원 필터링 539:466/539:574 · 칭호 설정 539:690 pending — signed-in only |
+| `/creator/donations` | ✅ | donation-management 539:7 (후원 페이지 설정) · 539:156 (후원 리스트, 퀘스트) · 539:303 (후원 순위) — `?tab=` `?kind=` `?period=` `?status=` `?q=` `?page=` · 539:466 / 539:574 (후원 필터링 · 차단 리스트, `?sub=filter|block`) · 539:690 (칭호 설정) — signed-in only |
 | `/attendance` | ✅ | funation-attendance-page 583:4 · 585:452 (checked in) · 585:66 (완료 popup) · 585:830 (보상 popup) — signed-in only |
 | `/terms/[slug]` | 🚧 | 722:3 (terms text pending) — slugs: youth, service, privacy, marketing, operation |
 
