@@ -28,4 +28,6 @@ Since 2026-09-29 features without a Figma frame are built in code first and desi
 
 | `/community` · `/community/new` · `/community/[id]` · `/community/[id]/edit` (`features/community/*`) + side nav "커뮤니티" | community PR | Board list (분류 tabs, search, pages), editor (분류 chips), post detail with author actions and comments |
 
+| `/events` · `/events/[id]` (`features/events/*`); home + room promo "지금 참여하기" → `/events` | events PR | Filter tabs, event cards (phase / 참여함), detail with 참여하기 and reward TBD note |
+
 Add a row whenever a new code-first screen ships (see `docs/research/funnation-reference.md` for the planned features).

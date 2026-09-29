@@ -90,5 +90,7 @@ const BANNER: RoomBanner = {
   title: "Funation 첫 결제 프로모션! 프리미엄 1개월 무료 체험",
   description: "지금 구독하면 광고 없는 초고화질 무제한 스트리밍이 첫 달 무료! 최신 오리지널 예능 단독 오픈.",
   ctaLabel: "지금 참여하기",
-  imageUrl: "/mock/home/promo-banner.jpg"
+  imageUrl: "/mock/home/promo-banner.jpg",
+  // Code-first: the events page (the specific promotion page is still TBD).
+  href: "/events"
 };
