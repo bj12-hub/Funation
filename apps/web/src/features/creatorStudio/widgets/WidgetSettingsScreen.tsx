@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useTransition, type ComponentType } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
+import { TOOL_CARDS } from "@/services/creator/broadcastToolTypes";
 import { getWidgetDetail, saveWidgetSettings } from "@/services/creator/widgetSettings";
 import {
   ALERT_CARDS,
@@ -81,6 +83,25 @@ export function WidgetSettingsScreen({ alertWidgetUrl }: { alertWidgetUrl: strin
       <h1 className={styles.srOnly}>후원위젯/알림설정</h1>
       <CardGrid title="후원 알림 설정" cards={ALERT_CARDS} />
       <CardGrid title="후원 위젯 설정" cards={WIDGET_CARDS} onOpen={(k) => isEditableWidget(k) && setOpenKey(k)} />
+      {/* Code-first (no Figma frame): 방송 도구 remote — docs/figma/code-first-screens.md */}
+      <section className={styles.group} aria-label="방송 도구">
+        <h2 className={styles.groupTitle}>방송 도구</h2>
+        <ul className={styles.grid}>
+          {TOOL_CARDS.map((c) => (
+            <li key={c.key}>
+              <Link href="/creator/widgets/tools" className={`${styles.card} ${styles.cardButton}`}>
+                <span className={styles.cardIcon} style={{ background: "var(--color-surface-raised)" }} aria-hidden="true">
+                  {c.emoji}
+                </span>
+                <span className={styles.cardText}>
+                  <strong>{c.title}</strong>
+                  <span>{c.description}</span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
       {openKey && (
         <WidgetModal
           key={openKey}
