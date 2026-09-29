@@ -99,7 +99,7 @@
 }
 
 .balanceValue {
-  color: var(--color-text-on-accent);
+  color: var(--color-text-primary);
   font-family: var(--font-latin);
   font-size: var(--font-size-40);
   font-weight: var(--font-weight-extrabold);
@@ -198,7 +198,7 @@
 .segmentActive,
 .segmentActive:hover {
   background: var(--color-segment-active-bg);
-  color: var(--color-text-on-accent);
+  color: var(--color-text-primary);
   font-weight: var(--font-weight-semibold);
 }
 

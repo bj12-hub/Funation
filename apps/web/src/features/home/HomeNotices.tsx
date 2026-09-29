@@ -53,7 +53,8 @@ export function HomeNotices({ notices }: { notices: HomeNotice[] }) {
 
   return (
     <Modal open={open} onClose={close} title="공지사항" width={664} className={styles.dialog} customHeader={<span className={styles.srOnly}>공지사항</span>}>
-      <div className={styles.stage}>
+      {/* Figma notice popups are dark-only: keep dark tokens in the light theme. */}
+      <div className={styles.stage} data-theme="dark">
         {notices.length > 1 && (
           <button type="button" className={styles.arrow} onClick={() => go(-1)} aria-label="이전 공지">
             ‹

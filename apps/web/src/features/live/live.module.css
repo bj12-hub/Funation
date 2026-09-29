@@ -24,7 +24,7 @@
 
 .title {
   margin: 0;
-  color: var(--color-text-on-accent);
+  color: var(--color-text-primary);
   font-size: var(--font-size-32);
   font-weight: var(--font-weight-extrabold);
   line-height: normal;
@@ -68,7 +68,7 @@
 
 .tabActive,
 .tabActive:hover {
-  color: var(--color-text-on-accent);
+  color: var(--color-text-primary);
   font-weight: var(--font-weight-bold);
 }
 

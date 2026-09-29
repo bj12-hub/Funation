@@ -38,8 +38,9 @@ export default async function CreatorLayout({ children }: { children: ReactNode 
   const profile = await getCreatorProfile();
   if (!profile) redirect("/login?role=creator&next=/creator");
 
+  // The studio keeps the dark theme (its Figma frames and several hardcoded colors are dark-only; light TBD).
   return (
-    <>
+    <div data-theme="dark" className={styles.themeScope}>
       <GlobalHeader
         user={{ nickname: session.nickname, avatarUrl: session.avatarUrl }}
         creator={{ channelName: profile.channelName, platforms: profile.platforms }}
@@ -48,6 +49,6 @@ export default async function CreatorLayout({ children }: { children: ReactNode 
         <CreatorSideNav />
         <main className={styles.main}>{children}</main>
       </div>
-    </>
+    </div>
   );
 }
