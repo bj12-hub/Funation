@@ -8,7 +8,12 @@
  * Only reference these variables from components. Do not hardcode hex values.
  */
 
-:root {
+/* Dark is the default theme (Figma). [data-theme="dark"] re-applies it inside a light page
+ * (creator studio, OBS overlays). Light overrides live at the end of this file. */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+
   /* ── Background / surface ─────────────────────────────── */
   --color-bg-page: #080811;
   --color-bg-subtle: #0d0d1a;
@@ -284,4 +289,107 @@
   --layout-max-width: 1440px;
   --layout-gutter: 80px;
   --header-height: 80px;
+}
+
+/*
+ * Light theme — code-first (no Figma frames yet; docs/figma/code-first-screens.md).
+ * Only surface / text / border / form tokens change. Brand colors, media scrims (text over images or
+ * video) and third-party brand colors stay the same. Creator studio and overlays keep the dark theme.
+ */
+[data-theme="light"] {
+  color-scheme: light;
+
+  --color-bg-page: #f6f6fb;
+  --color-bg-subtle: #eeeef6;
+  --color-surface: #ffffff;
+  --color-surface-raised: #f3f3f9;
+  --color-surface-strong: #e8e8f2;
+  --color-bg-footer: #eeeef4;
+
+  --color-border: #e4e4ee;
+  --color-border-strong: #d6d6e4;
+  --color-border-emphasis: #c8c8dc;
+
+  --color-text-primary: #15151f;
+  --color-text-secondary: #5b5d6b;
+  --color-text-tertiary: #80828f;
+  --color-text-soft: #3d3d4d;
+  --color-text-faint: #8a8c99;
+
+  --color-primary-soft: rgba(139, 92, 246, 0.12);
+  --color-primary-light: #7c3aed;
+  --color-live: #b98100;
+  --color-neutral-soft: rgba(107, 114, 128, 0.12);
+  --color-nav-active-bg: #efe9ff;
+
+  --gradient-hero-overlay: linear-gradient(158.75deg, rgba(8, 8, 17, 0.7) 25%, rgba(8, 8, 17, 0) 50%, #f6f6fb 75%);
+  --gradient-hof-hero-overlay: linear-gradient(162.28deg, rgba(8, 8, 17, 0.7) 25%, rgba(8, 8, 17, 0.4) 50%, #f6f6fb 75%);
+
+  --color-modal-bg: #ffffff;
+  --color-modal-border: #e0e0ec;
+  --color-modal-backdrop: rgba(15, 15, 30, 0.45);
+  --color-modal-field-border: #d9d9e6;
+  --color-modal-field-bg: #f7f7fb;
+  --shadow-modal: 0 24px 60px rgba(20, 20, 50, 0.18);
+  --shadow-popup: 0 24px 60px 4px rgba(20, 20, 50, 0.18);
+  --shadow-header: 0 8px 12px rgba(20, 20, 50, 0.06);
+  --shadow-card: 0 16px 32px rgba(20, 20, 50, 0.1);
+  --shadow-button: 0 4px 6px rgba(20, 20, 50, 0.08);
+
+  --color-success-text: #059669;
+  --color-warning-text: #b45309;
+  --color-error-text: #dc2626;
+  --color-nickname-error: #e11d48;
+  --color-nickname-error-bg: #fde8ee;
+  --color-nickname-success-bg: #e3f7ee;
+  --color-photo-error-bg: #fdeaf0;
+  --color-photo-success-bg: #e4f6f0;
+  --color-success-tint: #e7f7f0;
+  --color-warning-tint: #fdf3e1;
+  --color-danger-surface: #fdecef;
+  --color-danger-border: #f5c2cc;
+
+  --color-page-current: #6d6d92;
+  --color-panel-field-bg: #f3f3f9;
+  --color-chip-bg: #eeeef7;
+  --color-channel-chip-bg: #f1f1f5;
+  --color-channel-chip-border: #dcdce4;
+  --color-segment-bg: #ececf4;
+  --color-segment-active-bg: #ffffff;
+  --color-segment-text: #6b6b7b;
+  --color-date-input-bg: #ffffff;
+  --color-date-input-border: #d9d9e6;
+  --color-fn-chip-bg: #efeefe;
+  --color-balance-label: #6a6a8a;
+  --color-pill-processing-bg: #fff4d6;
+  --color-pill-completed-text: #15803d;
+  --color-pill-completed-bg: #dcfce7;
+  --color-pill-cancelled-bg: #fee2e2;
+  --color-charge-balance-bg: #eeeef8;
+  --color-error-card-bg: #ffffff;
+  --color-error-chip-bg: #eeeef7;
+  --color-sheet-bg: #ffffff;
+  --color-popup-border: #dcdcea;
+  --color-popup-footer-bg: #f5f5fa;
+  --color-card-on-bg: #f3ecfd;
+  --color-lucky-emerald-bg: #dcf5e7;
+  --color-lucky-royal-bg: #fbeccb;
+  --color-recommend-bg: #f5f3ff;
+  --color-recommend-border: #ddd6fe;
+  --color-recommend-icon-bg: #ede9fe;
+  --color-profile-bg: #ffffff;
+  --color-profile-footer-bg: #f5f5f7;
+  --color-profile-close-bg: #eeeef2;
+  --color-profile-text: #15151f;
+  --color-profile-muted: #6b6e78;
+  --color-notice-bar-bg: #eef0fb;
+  --color-notice-dark-card: #f4f4fa;
+  --color-notice-body: #55556e;
+  --color-notice-check-border: #c4c4d4;
+  --color-notice-check-label: #6e6e88;
+  --color-platform-offline: #7b7b8c;
+
+  --color-input-bg: #ffffff;
+  --color-button-disabled-bg: #e4e4ec;
+  --color-button-secondary-bg: #ececf6;
 }

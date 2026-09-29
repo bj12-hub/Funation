@@ -656,3 +656,10 @@ a.sideItemActive:hover {
   font-size: var(--font-size-13);
   text-decoration: underline;
 }
+
+/* Dark theme scope for the whole studio (see app/creator/layout.tsx). */
+.themeScope {
+  min-height: 100vh;
+  background: var(--color-bg-page);
+  color: var(--color-text-primary);
+}
