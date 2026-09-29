@@ -1,6 +1,7 @@
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import type { Platform } from "@/types/platform";
-import { getMockDonationCatalog, type DonationCatalog } from "@/services/donations/donationCatalog";
+import type { DonationCatalog } from "@/services/donations/donationCatalog";
+import { getDonationCatalog } from "@/services/donations/signatureCore";
 import { getCreatorById } from "./creators";
 
 /**
@@ -71,7 +72,7 @@ export async function getCreatorRoom(creatorId: string): Promise<CreatorRoom | n
             goal: { current: 740_000, target: 1_000_000 }
           }
         : { status: "OFFLINE", imageUrl: "/mock/room/offline.jpg" },
-    donation: getMockDonationCatalog()
+    donation: getDonationCatalog()
   };
 }
 

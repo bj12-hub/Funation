@@ -31,7 +31,7 @@ export const GROUPS: CatalogGroup[] = [
       ALERT,
       widget("QUEST", { title: "미션 · 퀘스트" }),
       soon("VIDEO", "📹", "영상", "영상 후원 요청을 관리하고 재생합니다."),
-      soon("SIGNATURE", "⭐", "시그니처 후원", "후원에 붙는 시그니처를 만들고 매칭 규칙을 정합니다."),
+      link("SIGNATURE", "⭐", "시그니처 후원", "후원에 붙는 시그니처를 만들고 매칭 규칙을 정합니다.", "/creator/widgets/signatures"),
       widget("CUSTOM_SOUND"),
       widget("MINI"),
       widget("RECENT"),
