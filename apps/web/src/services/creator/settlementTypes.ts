@@ -185,4 +185,23 @@ export type SettlementOverview = {
   memberType: MemberType | null;
   bankName: string | null;
   accountMasked: string | null;
+  /** 정산 준비 체크리스트 (code-first, no Figma frame). */
+  checklist: SettlementChecklist;
+};
+
+export type ReviewStatus = "NOT_SUBMITTED" | "IN_REVIEW" | "APPROVED" | "REJECTED";
+export const REVIEW_LABEL: Record<ReviewStatus, string> = { NOT_SUBMITTED: "미제출", IN_REVIEW: "심사 중", APPROVED: "승인", REJECTED: "반려" };
+
+/**
+ * Steps a creator completes before requesting settlement. Reference: funnation.co.kr's
+ * 본인인증 → 신분증 → 계좌 checklist (docs/research/funnation-reference.md P1-4). The review workflow
+ * is TBD — the mock approves submitted documents immediately.
+ */
+export type SettlementChecklist = {
+  identityVerified: boolean;
+  documentsSubmitted: boolean;
+  review: ReviewStatus;
+  bankRegistered: boolean;
+  /** All steps done — the 정산 신청 card becomes the next action. */
+  ready: boolean;
 };
