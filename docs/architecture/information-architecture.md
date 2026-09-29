@@ -106,6 +106,15 @@ The page follows the funnation channel page (`/store/{slug}`). From top to botto
   - The funnation 홈 extras: 다시보기, 쇼츠, 월간 후원 랭킹 and the community preview. They need VOD data and a public per-creator donor ranking (TBD).
   - The 라이브 button.
 
+### 커뮤니티 · 이벤트 · 명예의 전당
+
+- **커뮤니티 (`/community`):** already matches funnation. It has 전체 게시글 N개, 게시글 검색, 글쓰기, and the tabs 전체 · 자유 · 팁/공략 · 질문 · 버그 · 자랑.
+- **이벤트 (`/events`):** already matches funnation (전체 · 진행 중 · 예정 · 내 참여), plus our 종료 tab.
+- **명예의 전당 (`/hall-of-fame`):** the Figma hero, podium and promo stay. The funnation tabs (`?tab=`) were added:
+  - **칭호 갤러리:** our global title and grade ladders with FN ranges. Names and thresholds are placeholders (TBD); funnation's tiers and XP values are not copied.
+  - **리더보드:** 누적 · 이번 달 · 이번 주, with 과거 기록 as TBD. It shows the podium and the list, and "더 보기 (shown/total)" loads 20 more each time.
+  - **실시간 랭킹:** 최근 30분 · 1시간 · 3시간 · 6시간.
+
 ### 마이 (My area)
 
 - **내 정보 (`/mypage`):** funnation 내 프로필. A 내 등급 card sits on top:
