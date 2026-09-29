@@ -3,6 +3,7 @@
 import { randomUUID } from "node:crypto";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
+import { PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES } from "@/lib/validation";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { mockCreator } from "./mockCreatorStore";
 import { PARSERS } from "./widgetParsers";
@@ -12,12 +13,14 @@ import {
   CUSTOM_SOUND_TYPES,
   CUSTOM_SOUND_WORD_MAX,
   DEFAULT_WIDGET_SETTINGS,
+  WALLPAPER_IMAGES_MAX,
   WIDGET_PATHS,
   isEditableWidget,
   type CustomSound,
   type CustomSoundResult,
   type WidgetDetail,
   type WidgetSaveResult,
+  type WallpaperImageResult,
   type WidgetSettingsMap
 } from "./widgetSettingsTypes";
 
@@ -27,8 +30,8 @@ import {
  * TBD: creator role check, widget URL format/secret rotation, audit of setting changes, audio storage.
  */
 
-const globalForWidgets = globalThis as typeof globalThis & { __funationMockWidgetsV3?: WidgetSettingsMap };
-const store = (globalForWidgets.__funationMockWidgetsV3 ??= structuredClone(DEFAULT_WIDGET_SETTINGS));
+const globalForWidgets = globalThis as typeof globalThis & { __funationMockWidgetsV4?: WidgetSettingsMap };
+const store = (globalForWidgets.__funationMockWidgetsV4 ??= structuredClone(DEFAULT_WIDGET_SETTINGS));
 
 const assertMock = () => {
   if (!USE_MOCK) throw new Error("Widget settings API is not connected yet.");
@@ -58,7 +61,13 @@ export async function getWidgetDetail(key: unknown): Promise<WidgetDetail | null
         { name: "치즈냥", amount: 2_000 },
         { name: "노을", amount: 1_000 }
       ],
-      miniMinAmount: 100
+      miniMinAmount: 100,
+      gachaBoardUrl: `https://funation.com/widget/gacha-win/${mockCreator.handle}`,
+      gachaWins: [
+        { gacha: "뽑기 후원", prize: "문화상품권 5천원", claimed: false },
+        { gacha: "뽑기 후원", prize: "꽝 (다음 기회에)", claimed: null }
+      ],
+      gachaUnclaimed: 55
     }
   } as WidgetDetail;
 }
@@ -70,7 +79,8 @@ export async function saveWidgetSettings(key: unknown, input: unknown): Promise<
   const parsed = PARSERS[key](typeof input === "object" && input !== null ? (input as Record<string, unknown>) : {});
   if (typeof parsed === "string") return { status: "INVALID", message: parsed };
   await mockDelay(400);
-  (store as Record<string, unknown>)[key] = parsed;
+  // Wallpaper images are uploaded/deleted on their own; keep the stored list.
+  (store as Record<string, unknown>)[key] = key === "WALLPAPER" ? { ...parsed, images: store.WALLPAPER.images } : parsed;
   return { status: "SAVED" };
 }
 
@@ -121,5 +131,31 @@ export async function deleteCustomSound(id: unknown): Promise<{ status: "DELETED
   await mockDelay(300);
   // Idempotent: deleting a sound that is already gone is not an error.
   store.CUSTOM_SOUND.sounds = store.CUSTOM_SOUND.sounds.filter((s) => s.id !== id);
+  return { status: "DELETED" };
+}
+
+// ── 벽지 이미지 (395:145) ───────────────────────────────────────────────────────
+
+/** Same file rules as profile photos (JPG/PNG/WEBP, 5MB). The real limits for wallpaper images are TBD. */
+export async function uploadWallpaperImage(formData: FormData): Promise<WallpaperImageResult> {
+  assertMock();
+  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  const file = formData.get("image");
+  if (!(file instanceof File) || file.size === 0) return { status: "FAILED" };
+  if (store.WALLPAPER.images.length >= WALLPAPER_IMAGES_MAX) return { status: "LIMIT" };
+  if (!(PROFILE_PHOTO_TYPES as readonly string[]).includes(file.type)) return { status: "UNSUPPORTED" };
+  if (file.size > PROFILE_PHOTO_MAX_BYTES) return { status: "TOO_LARGE" };
+  await mockDelay(500);
+  // Mock storage: data URL in memory.
+  const image = { id: randomUUID(), url: `data:${file.type};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}` };
+  store.WALLPAPER.images = [...store.WALLPAPER.images, image];
+  return { status: "UPLOADED", image };
+}
+
+export async function deleteWallpaperImage(id: unknown): Promise<{ status: "DELETED" } | { status: "UNAUTHORIZED" }> {
+  assertMock();
+  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  await mockDelay(300);
+  store.WALLPAPER.images = store.WALLPAPER.images.filter((i) => i.id !== id);
   return { status: "DELETED" };
 }
