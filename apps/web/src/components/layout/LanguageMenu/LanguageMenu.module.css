@@ -58,8 +58,9 @@
   color: var(--color-primary);
 }
 
-/* Narrow screens show only the flag. */
-@media (max-width: 480px) {
+/* Narrow screens show only the flag (the trigger keeps its aria-label).
+   901–1240px: the desktop nav is still shown and needs the room. */
+@media (max-width: 480px), (min-width: 901px) and (max-width: 1240px) {
   .label {
     display: none;
   }
