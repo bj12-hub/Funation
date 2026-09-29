@@ -16,7 +16,9 @@ const ITEMS: Item[] = [
   { label: "리모컨", emoji: "🎛️", href: "/creator/remote" },
   { label: "크루 관리", emoji: "👥", href: "/creator/crew" },
   { label: "계정설정", emoji: "⚙️", href: "/creator/settings" },
-  { label: "정산설정", emoji: "📋", href: "/creator/settlement" }
+  { label: "정산설정", emoji: "📋", href: "/creator/settlement" },
+  // Code-first (no Figma frame).
+  { label: "업데이트 소식", emoji: "📰", href: "/creator/updates" }
 ];
 
 export function CreatorSideNav() {
