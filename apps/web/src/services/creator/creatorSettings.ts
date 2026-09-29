@@ -54,6 +54,8 @@ export async function getCreatorSettings(): Promise<CreatorSettings | null> {
     languages: [...c.languages],
     donateUrl: `https://funation.com/donate/${c.handle}`,
     rtmpUrl: `rtmp://live.funation.com/stream/${c.handle}`,
+    // The guide design shows the donate URL as the widget URL; the real overlay URL is TBD.
+    alertWidgetUrl: `https://funation.com/donate/${c.handle}`,
     integrationKeyMasked: mask(c.integrationKey),
     mainPlatform: c.mainPlatform,
     sns: structuredClone(c.sns)
