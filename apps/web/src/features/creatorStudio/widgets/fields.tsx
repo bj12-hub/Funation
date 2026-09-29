@@ -197,7 +197,7 @@ export function SwitchText({ label, checked, onChange, text }: { label: string; 
 export function LeveledFontFields({ label, value, onChange }: { label: string; value: LeveledFont; onChange: (v: LeveledFont) => void }) {
   return (
     <div className={styles.inline}>
-      <Select label={`${label} 서체`} value={value.family} options={FONT_FAMILIES} width={140} onChange={(family) => onChange({ ...value, family })} />
+      <Select label={`${label} 서체`} value={value.family} options={FONT_FAMILIES} width={128} onChange={(family) => onChange({ ...value, family })} />
       <Select
         label={`${label} 크기`}
         value={value.level}
@@ -206,7 +206,7 @@ export function LeveledFontFields({ label, value, onChange }: { label: string; v
         format={(k) => FONT_LEVELS.find((l) => l.key === k)?.label ?? k}
         onChange={(level) => onChange({ ...value, level })}
       />
-      <ColorField label={`${label} 색상`} value={value.color} onChange={(color) => onChange({ ...value, color })} />
+      <ColorField label={`${label} 색상`} value={value.color} width={130} onChange={(color) => onChange({ ...value, color })} />
     </div>
   );
 }
