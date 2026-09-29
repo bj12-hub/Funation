@@ -186,6 +186,7 @@ The catalog follows the funnation 위젯 page (`features/creatorStudio/widgets/w
   - 이펙트 · 효과: 이모지 리액션 and 레이어 효과, set up at `/creator/widgets/effects`
   - 시그니처 후원: signatures and matching rules, managed at `/creator/widgets/signatures` (feeds the room 시그니처 후원 panel)
   - 영상 · 그림후원: the 영상 후원 queue (`/creator/widgets/video`) and the 그림후원 gallery (`/creator/widgets/drawing`), each with an OBS overlay
+  - 이미지·사운드 (`/creator/widgets/assets`): the library used by 배너 (`/creator/widgets/banner`, OBS banner overlay) and 시그니처 images
   - 게임 · 이벤트: ours; funnation keeps these under 엑셀방송
   - 타이머
 - **도구:** 오버레이 주소, 리모컨, 이미지·사운드 (TBD), 후원 연동 (TBD).
