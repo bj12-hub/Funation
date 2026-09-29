@@ -26,6 +26,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/creator/donations` | ✅ | donation-management 539:7 (후원 페이지 설정) · 539:156 (후원 리스트, 퀘스트) · 539:303 (후원 순위) — `?tab=` `?kind=` `?period=` `?status=` `?q=` `?page=` · 539:466 / 539:574 (후원 필터링 · 차단 리스트, `?sub=filter|block`) · 539:690 (칭호 설정) — signed-in only |
 | `/creator/settlement` | ✅ | settlement-management 429:4 · 정산 자료 등록 필요 433:4 · 이미 등록 462:2 — signed-in only; `?registered=1` shows the submitted toast; settlement date / minimum / payout schedule copy shown as designed, policy TBD |
 | `/creator/settlement/register` | ✅ | 이용동의 429:139 (개인) · 443:257 (외국인) · 433:138 (개인사업자) · 437:338 (법인) · 대한민국 이외 452:4 / 452:47 — `?type=` preselects the member type; overseas answers lead nowhere yet (TBD) |
+| `/creator/settlement/apply` | ✅ | 정산 신청 458:4 · 463:2 (승인 대기) — popups 466:2 (정산 관련 안내) · 469:195 / 469:2 (정산 신청) · 475:2 (수수료 안내) · 473:2 (확인) · 477:2 (완료) — registered creators only; minimum / fee / FN→KRW are server-side mock policy (Figma samples, TBD) |
 | `/creator/settlement/register/form` | ✅ | 정산 자료 등록 429:219 (개인) · 443:5 (외국인) · 433:210 (개인사업자) · 437:4 (법인) — `?type=` required, reachable only after 이용동의 for that type |
 | `/attendance` | ✅ | funation-attendance-page 583:4 · 585:452 (checked in) · 585:66 (완료 popup) · 585:830 (보상 popup) — signed-in only |
 | `/terms/[slug]` | 🚧 | 722:3 (terms text pending) — slugs: youth, service, privacy, marketing, operation |
@@ -47,6 +48,8 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | Creator sidebar | 계정설정 | `/creator/settings` |
 | Creator sidebar | 정산설정 | `/creator/settlement` |
 | Settlement home | 정산 등록 · 정산 신청 · 정산 관리 cards | not registered → 433:4 (정산등록 → `/creator/settlement/register`); registered → 정산 등록 opens 462:2 (→ `/creator/settlement/manage`), 신청/관리 link to `/creator/settlement/apply` · `/creator/settlement/manage` (pending) |
+| Settlement tabs | 정산 등록 · 정산 신청 · 정산 관리 | `/creator/settlement` · `/creator/settlement/apply` · `/creator/settlement/manage` |
+| Settlement apply | 정산 신청 · 안내 bar / ⓘ · 자세히 보기 / 수수료 ⓘ · 더보기 | request popups · 466:2 · 475:2 · `/creator/settlement/manage` |
 | Settlement terms | 다음 | `/creator/settlement/register/form?type=` |
 | Settlement form | 유형 탭 · 뒤로 · 신청하기 | 이용동의 for that type · 이용동의 · `/creator/settlement?registered=1` |
 | Settlement form | 주소 검색 · 신분증/통장사본 안내 links | toast (address provider TBD) · labels only (guide pages TBD) |
