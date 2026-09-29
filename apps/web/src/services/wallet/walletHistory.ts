@@ -3,7 +3,21 @@ import { getSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
 import { mockWallet } from "./mockWalletStore";
 import { toDateString, type Period } from "@/lib/period";
-import type { ChargeRecord, ChargeStatus, DonationCategory, DonationRecord, DonationStatus, HistoryPage, WalletSummary } from "./walletTypes";
+import {
+  CHARGE_STATUS_LABEL,
+  DONATION_STATUS_LABEL,
+  LEDGER_PERIODS,
+  type ChargeRecord,
+  type ChargeStatus,
+  type DonationCategory,
+  type DonationRecord,
+  type DonationStatus,
+  type HistoryPage,
+  type LedgerEntry,
+  type LedgerPeriod,
+  type WalletOverview,
+  type WalletSummary
+} from "./walletTypes";
 
 export * from "./walletTypes";
 
@@ -49,6 +63,75 @@ export async function getDonationHistory(input: {
     mockDonations().filter((d) => d.category === input.category && inPeriod(d.donatedAt, input.period)),
     input
   );
+}
+
+/**
+ * FN Wallet (Figma 817:7552): summary + one 충전·사용·환불 list built from the charge and donation
+ * records on the server. A running balance column is not shown — the mock history is not a
+ * reconciled ledger; the backend ledger must provide balance-after values (TBD).
+ */
+export async function getWalletOverview(input: { kind?: unknown; period?: unknown; page?: unknown }): Promise<WalletOverview | null> {
+  if (!USE_MOCK) throw new Error("Wallet API is not connected yet.");
+  if (!(await getSession())) return null;
+  const kind = input.kind === "CHARGE" || input.kind === "USE" || input.kind === "REFUND" ? input.kind : "all";
+  const period: LedgerPeriod = LEDGER_PERIODS.some((p) => p.key === input.period) ? (input.period as LedgerPeriod) : "30";
+  await mockDelay(300);
+
+  const donations = mockDonations();
+  const entries: LedgerEntry[] = [
+    ...mockCharges().map(
+      (c): LedgerEntry => ({
+        id: c.id,
+        kind: "CHARGE",
+        description: `FN 충전 · ${c.methodLabel}`,
+        deltaFn: c.fnAmount,
+        statusLabel: CHARGE_STATUS_LABEL[c.status],
+        tone: c.status === "COMPLETED" ? "done" : c.status === "PROCESSING" ? "pending" : "failed",
+        at: c.chargedAt.slice(0, 16)
+      })
+    ),
+    ...donations.map(
+      (d): LedgerEntry => ({
+        id: d.id,
+        kind: "USE",
+        description: `${d.typeLabel} · ${d.creatorName}`,
+        deltaFn: -d.fnAmount,
+        statusLabel: DONATION_STATUS_LABEL[d.status],
+        tone: d.status === "COMPLETED" ? "done" : d.status === "FAILED" ? "failed" : d.status === "REFUNDED" || d.status === "REFUNDING" ? "refund" : "pending",
+        at: d.donatedAt.slice(0, 16)
+      })
+    ),
+    ...donations
+      .filter((d) => d.status === "REFUNDED")
+      .map(
+        (d): LedgerEntry => ({
+          id: `${d.id}-refund`,
+          kind: "REFUND",
+          description: `환불 · ${d.typeLabel}`,
+          deltaFn: d.fnAmount,
+          statusLabel: DONATION_STATUS_LABEL.REFUNDED,
+          tone: "refund",
+          at: d.donatedAt.slice(0, 16)
+        })
+      )
+  ].sort((a, b) => b.at.localeCompare(a.at));
+
+  const since = period === "all" ? "" : toDateString(new Date(Date.now() - Number(period) * 86_400_000));
+  const filtered = entries.filter((e) => (kind === "all" || e.kind === kind) && (!since || e.at.slice(0, 10) >= since));
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const n = Number(input.page);
+  const page = Number.isInteger(n) && n >= 1 && n <= totalPages ? n : 1;
+
+  return {
+    available: mockAccount.fnBalance,
+    locked: 0,
+    totalUsed: donations.filter((d) => d.status === "COMPLETED").reduce((sum, d) => sum + d.fnAmount, 0),
+    kind,
+    period,
+    entries: filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    page,
+    totalPages
+  };
 }
 
 function inPeriod(timestamp: string, period: Period) {
