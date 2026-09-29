@@ -1,5 +1,6 @@
 import type { CreatorSettings } from "@/services/creator/creatorSettingsTypes";
 import { ProfileEditModal } from "./ProfileEditModal";
+import { SetupGuides } from "./SetupGuides";
 import { CopyButton, FunationSettingsCard, IntegrationKey, MainPlatformCard, SnsCard } from "./SettingsCards";
 import styles from "./settings.module.css";
 
@@ -69,16 +70,7 @@ export function CreatorSettingsScreen({ settings }: { settings: CreatorSettings 
                 </a>
               </span>
             </div>
-            {/* TODO: OBS / XSplit / 동시 송출 setup popups (328:581 · 328:927 · 328:1266) are not built yet. */}
-            <ul className={styles.tiles}>
-              {["OBS 세팅", "Xsplit 세팅", "2가지 플랫폼 동시 송출 OBS 세팅"].map((t) => (
-                <li key={t}>
-                  <span className={styles.tile} aria-disabled="true" title="준비 중인 기능입니다">
-                    {t}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <SetupGuides channelName={settings.channelName} widgetUrl={settings.alertWidgetUrl} />
           </section>
         </div>
 
