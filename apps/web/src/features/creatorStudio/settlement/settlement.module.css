@@ -1,0 +1,232 @@
+/* 정산설정 — Figma 429:4 (content px 40 / pt 40 / pb 80, gap 36) */
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  max-width: 1200px;
+  padding: 40px 40px 80px;
+}
+
+.pageTitle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-black);
+}
+
+.pageTitle::before {
+  content: "";
+  flex-shrink: 0;
+  width: 4px;
+  height: 24px;
+  border-radius: var(--radius-2);
+  background: var(--color-primary);
+}
+
+/* ── Stepper banner (429:54) ── */
+
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 32px 48px;
+  border-radius: var(--radius-16);
+  background: var(--gradient-settlement-banner);
+}
+
+.stepper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 650px;
+  max-width: 100%;
+}
+
+.track {
+  display: flex;
+  align-items: center;
+}
+
+.trackDot {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-pill);
+  background: var(--color-settlement-track-off);
+}
+
+.trackDot[data-state="current"],
+.trackDot[data-state="done"] {
+  background: var(--color-bg-light);
+}
+
+.trackDot[data-state="current"] {
+  background: radial-gradient(circle, var(--color-primary) 0 4px, var(--color-bg-light) 4.5px);
+}
+
+.trackLine {
+  flex: 1;
+  height: 2px;
+  background: var(--color-settlement-track-off);
+}
+
+.trackLine[data-on] {
+  background: var(--color-bg-light);
+}
+
+.stepLabels {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stepLabels li {
+  width: 100px;
+  color: var(--color-settlement-label-off);
+  font-size: var(--font-size-15);
+  font-weight: var(--font-weight-medium);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.stepLabels li[data-on] {
+  color: var(--color-text-on-accent);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.bannerIcon {
+  display: flex;
+  flex-shrink: 0;
+  padding: 12px;
+  border-radius: var(--radius-12);
+  background: var(--color-settlement-icon-bg);
+}
+
+/* ── Start cards (429:73) ── */
+
+.startSection {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+
+.startTitle {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-20);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  height: 100%;
+  padding: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-16);
+  background: var(--color-surface);
+  transition: border-color 0.15s;
+}
+
+.card:hover,
+.card:focus-visible {
+  border-color: var(--color-primary);
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cardIcon {
+  display: flex;
+  flex-shrink: 0;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--color-settlement-card-icon-bg);
+}
+
+.cardText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cardTitle {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.cardLead {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
+}
+
+.cardChevron {
+  flex-shrink: 0;
+}
+
+.cardNotes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding-left: 16px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+  line-height: 1.25;
+}
+
+@media (max-width: 1024px) {
+  .cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .content {
+    gap: 24px;
+    padding: 24px 16px 60px;
+  }
+
+  .banner {
+    padding: 24px 20px;
+  }
+
+  .bannerIcon {
+    display: none;
+  }
+
+  .stepLabels li {
+    width: auto;
+    font-size: var(--font-size-13);
+  }
+
+  .startSection {
+    gap: 20px;
+  }
+}

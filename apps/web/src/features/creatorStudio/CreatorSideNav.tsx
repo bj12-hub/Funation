@@ -13,7 +13,7 @@ const ITEMS: Item[] = [
   { label: "크리에이터 랭킹", emoji: "🏆", href: "/creator/ranking" },
   { label: "후원관리+", emoji: "💰", href: "/creator/donations" },
   { label: "계정설정", emoji: "⚙️", href: "/creator/settings" },
-  { label: "정산설정", emoji: "📋" }
+  { label: "정산설정", emoji: "📋", href: "/creator/settlement" }
 ];
 
 export function CreatorSideNav() {
