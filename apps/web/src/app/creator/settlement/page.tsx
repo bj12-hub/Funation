@@ -10,5 +10,5 @@ export const dynamic = "force-dynamic";
 export default async function Page({ searchParams }: { searchParams: Promise<{ registered?: string }> }) {
   const [overview, { registered }] = await Promise.all([getSettlementOverview(), searchParams]);
   if (!overview) redirect("/login?role=creator&next=/creator/settlement");
-  return <SettlementHomeScreen registered={overview.registered} justRegistered={overview.registered && registered === "1"} />;
+  return <SettlementHomeScreen registered={overview.registered} justRegistered={overview.registered && registered === "1"} checklist={overview.checklist} />;
 }
