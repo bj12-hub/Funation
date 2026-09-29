@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { SideNavLayout } from "@/components/layout/SideNav";
 import { getMyAccount } from "@/services/account/myAccount";
 
 // Figma 817:9017 · 817:8317 — SOOP / FlexTV 후원 pages share the side navigation. Signed-in members only.
@@ -12,11 +11,8 @@ export default async function DonationLayout({ children }: { children: ReactNode
   if (!account) redirect("/login?next=/donation/soop");
 
   return (
-    <SideNavLayout
-      user={{ nickname: account.nickname, funationId: account.funationId, avatarUrl: account.avatarUrl, fnBalance: account.fnBalance }}
-      showWatchHistory
-    >
+    <>
       {children}
-    </SideNavLayout>
+    </>
   );
 }

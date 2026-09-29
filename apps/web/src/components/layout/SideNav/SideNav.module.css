@@ -5,8 +5,14 @@
   flex-direction: column;
   flex-shrink: 0;
   width: 260px;
+  height: 100%;
+  overflow-y: auto;
   border-right: 1px solid var(--color-border);
   background: var(--color-bg-subtle);
+}
+
+.top {
+  padding: 16px 16px 0;
 }
 
 /* ── Profile card (637:180) ───────────────────────── */
@@ -169,7 +175,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 24px;
+  padding: 11px 24px;
   color: var(--color-text-secondary);
   font-size: var(--font-size-15);
   font-weight: var(--font-weight-medium);
@@ -193,6 +199,8 @@
 
 .menuIcon {
   flex-shrink: 0;
+  width: 20px;
+  height: 20px;
   color: var(--color-text-secondary);
 }
 
@@ -226,9 +234,40 @@
   border-top: 1px solid var(--color-border);
 }
 
-/* The sidebar is a 1440px-layout element; narrower screens rely on the header menu. */
-@media (max-width: 1024px) {
-  .sidebar {
-    display: none;
-  }
+/* ── Groups (funnation structure) ─────────────────── */
+
+.group {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 0;
+}
+
+.group + .group {
+  border-top: 1px solid var(--color-border);
+}
+
+.groupTitle {
+  margin: 0;
+  padding: 10px 24px 4px;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+}
+
+.studioButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 0;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-8);
+  background: var(--color-primary-soft);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+}
+
+.studioButton .menuIcon {
+  color: var(--color-primary-light);
 }

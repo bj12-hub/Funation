@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { SideNavLayout } from "@/components/layout/SideNav";
 import { MessagesScreen } from "@/features/messages/MessagesScreen";
 import { getMyAccount } from "@/services/account/myAccount";
 import { getMailbox, getMessageRecipients } from "@/services/messages/messages";
@@ -17,8 +16,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
   if (!account || !view || !recipients) redirect("/login?next=/messages");
   const composeTo = typeof params.to === "string" && recipients.some((r) => r.id === params.to) ? params.to : null;
   return (
-    <SideNavLayout user={{ nickname: account.nickname, funationId: account.funationId, avatarUrl: account.avatarUrl, fnBalance: account.fnBalance }} showWatchHistory>
+    <>
       <MessagesScreen view={view} recipients={recipients} composeTo={composeTo} />
-    </SideNavLayout>
+    </>
   );
 }

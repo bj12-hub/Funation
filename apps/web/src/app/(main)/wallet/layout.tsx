@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { SideNavLayout } from "@/components/layout/SideNav";
 import { getMyAccount } from "@/services/account/myAccount";
 
 // Figma 640:2 · 632:4 — FN 내역 pages share the side navigation. Signed-in members only.
@@ -12,11 +11,8 @@ export default async function WalletLayout({ children }: { children: ReactNode }
   if (!account) redirect("/login?next=/wallet/charges");
 
   return (
-    <SideNavLayout
-      user={{ nickname: account.nickname, funationId: account.funationId, avatarUrl: account.avatarUrl, fnBalance: account.fnBalance }}
-      showWatchHistory
-    >
+    <>
       {children}
-    </SideNavLayout>
+    </>
   );
 }

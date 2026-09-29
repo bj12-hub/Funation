@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { BellOutlineIcon, SearchOutlineIcon } from "@/components/icons";
 import { RoleChooser } from "@/features/auth/login/RoleChooser";
+import { formatNumber } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { logout } from "@/services/auth/logout";
@@ -31,6 +33,8 @@ import styles from "./GlobalHeader.module.css";
 export type GlobalHeaderUser = {
   nickname: string;
   avatarUrl?: string | null;
+  /** Server-provided FN balance for the 충전 chip (site shell only). */
+  fnBalance?: number | null;
 };
 
 type NavItem = {
@@ -60,13 +64,17 @@ type GlobalHeaderProps = {
   onMenuClick?: () => void;
   /** Creator pages swap the nav and the profile menu. */
   creator?: CreatorHeaderInfo | null;
+  /** Site shell: whether the member has the Creator role (profile menu entry). */
+  creatorRole?: boolean;
+  /** Site shell: side menu visible (for the ☰ button's aria-expanded). */
+  menuExpanded?: boolean;
 };
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function GlobalHeader({ user, showMenuButton = true, onMenuClick, creator = null }: GlobalHeaderProps) {
+export function GlobalHeader({ user, showMenuButton = true, onMenuClick, creator = null, creatorRole = false, menuExpanded = true }: GlobalHeaderProps) {
   const pathname = usePathname() ?? "/";
   const navItems = creator ? CREATOR_NAV_ITEMS : NAV_ITEMS;
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -81,6 +89,9 @@ export function GlobalHeader({ user, showMenuButton = true, onMenuClick, creator
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [mobileOpen]);
+
+  // Site pages (AppShell) use the funnation-style header; auth and studio pages keep the Figma one.
+  if (onMenuClick && !creator) return <SiteHeader user={user} creatorRole={creatorRole} onMenuClick={onMenuClick} menuExpanded={menuExpanded} />;
 
   return (
     <header className={styles.header}>
@@ -197,5 +208,49 @@ function NavLink({ item, active, mobile = false }: { item: NavItem; active: bool
     <Link href={item.href} className={`${styles.navLink} ${active ? styles.navLinkActive : ""}`} aria-current={current}>
       {label}
     </Link>
+  );
+}
+
+/**
+ * Site header — funnation structure: ☰ (side menu) · logo on the left; 검색 · 충전 (FN) · 알림 ·
+ * theme · language · profile on the right. The menu links live in the side menu, not the header.
+ * 알림 is disabled until a notification service exists (TBD).
+ */
+function SiteHeader({ user, creatorRole, onMenuClick, menuExpanded }: { user: GlobalHeaderUser | null; creatorRole: boolean; onMenuClick: () => void; menuExpanded: boolean }) {
+  const { t } = useI18n();
+  return (
+    <header className={styles.header}>
+      <div className={styles.left}>
+        <button type="button" className={styles.menuButton} aria-label={t(menuExpanded ? "common.closeMenu" : "common.openMenu")} aria-expanded={menuExpanded} aria-controls="site-side-menu" onClick={onMenuClick}>
+          <span className={styles.menuBar} />
+          <span className={styles.menuBar} />
+          <span className={styles.menuBar} />
+        </button>
+        <Link href="/" className={styles.logo} aria-label={t("common.homeAria")}>
+          <span className={styles.logoText}>Somnation</span>
+          <span className={styles.logoBadge}>ON</span>
+        </Link>
+      </div>
+
+      <div className={user ? styles.rightSignedIn : styles.rightGuest}>
+        <Link href="/creators" className={styles.iconButton} aria-label={t("common.search")} title={t("common.search")}>
+          <SearchOutlineIcon />
+        </Link>
+        {user && (
+          <Link href="/wallet" className={styles.chargeChip} aria-label={t("common.chargeAria", { balance: user.fnBalance == null ? "—" : formatNumber(user.fnBalance) })}>
+            <span className={styles.chargeLabel}>{t("common.charge")}</span>
+            <span>{user.fnBalance == null ? "—" : formatNumber(user.fnBalance)}</span>
+          </Link>
+        )}
+        {user && (
+          <button type="button" className={styles.iconButton} aria-label={t("common.notifications")} title={t("common.comingSoon")} aria-disabled="true">
+            <BellOutlineIcon />
+          </button>
+        )}
+        <ThemeToggle />
+        <LanguageMenu />
+        {user ? <ProfileMenu user={user} creatorRole={creatorRole} /> : <RoleChooser className={styles.loginButton} />}
+      </div>
+    </header>
   );
 }

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { SideNavLayout } from "@/components/layout/SideNav";
 import { MyRankingScreen } from "@/features/supporter/MyRankingScreen";
 import { getMyAccount } from "@/services/account/myAccount";
 import { getMyRanking } from "@/services/supporter/ranking";
@@ -13,8 +12,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
   const [account, view] = await Promise.all([getMyAccount(), getMyRanking((await searchParams).period)]);
   if (!account || !view) redirect("/login?next=/mypage/ranking");
   return (
-    <SideNavLayout user={{ nickname: account.nickname, funationId: account.funationId, avatarUrl: account.avatarUrl, fnBalance: account.fnBalance }} showWatchHistory>
+    <>
       <MyRankingScreen view={view} />
-    </SideNavLayout>
+    </>
   );
 }
