@@ -89,6 +89,23 @@ The page follows funnation `/donor/videos`. From top to bottom:
 - **더 보기 (보이는 수/전체):** shows 12 more each time.
 - **Removed:** the creator/title search and the sort dropdown. The header search covers creators.
 
+### Creator channel (`/creators/[id]`)
+
+The page follows the funnation channel page (`/store/{slug}`). From top to bottom:
+
+- **Banner.**
+- **Profile row:** avatar, name, platforms, intro and 구독자. The actions are **💝 후원하기**, which opens the 후원 panel on 홈 (`?tab=donation`), then 즐겨찾기 (funnation 팔로우), 공유 and 쪽지.
+- **Tabs** (`?view=`):
+  - **홈:** the existing Figma room (player + 후원/채팅 panel).
+  - **크루:** the channel's active crew members.
+  - **영상:** empty for now; VOD needs the YouTube integration (TBD).
+  - **커뮤니티:** channel boards are TBD; it links to the site community.
+  - **시그니처:** the signature catalog, sortable by 금액 낮은순 · 높은순 · 이름순. A card links to the 후원 panel.
+  - **소개:** intro, categories, platforms, subscribers and join date.
+- **Not built yet:**
+  - The funnation 홈 extras: 다시보기, 쇼츠, 월간 후원 랭킹 and the community preview. They need VOD data and a public per-creator donor ranking (TBD).
+  - The 라이브 button.
+
 ### Phones
 
 A bottom tab bar (≤900px): 홈 · 즐겨찾기 · 커뮤니티 · 마이.
