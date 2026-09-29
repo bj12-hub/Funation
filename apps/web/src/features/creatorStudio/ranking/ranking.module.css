@@ -98,6 +98,7 @@
 .myStats dt {
   color: #94a3b8;
   font-size: var(--font-size-13);
+  white-space: nowrap;
   text-transform: uppercase;
 }
 
@@ -272,7 +273,7 @@
 
 .table table {
   width: 100%;
-  min-width: 760px;
+  min-width: 960px;
   border-collapse: collapse;
   table-layout: fixed;
 }
@@ -483,9 +484,24 @@ a.pageButton:hover {
   opacity: 0.45;
 }
 
+@media (max-width: 1100px) {
+  .myCard {
+    flex-wrap: wrap;
+  }
+}
+
 @media (max-width: 900px) {
   .content {
     padding: 24px 16px 60px;
+  }
+
+  .tabs {
+    gap: 0;
+    overflow-x: auto;
+  }
+
+  .tab {
+    padding-inline: 12px;
   }
 
   .myCard {
