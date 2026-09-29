@@ -2,7 +2,7 @@
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
-import { mockSettlement } from "./mockSettlementStore";
+import { mockSettlement, newSettlementCode } from "./mockSettlementStore";
 import {
   BANKS,
   CHANNEL_PLATFORMS,
@@ -214,8 +214,10 @@ export async function registerSettlement(formData: FormData): Promise<Registrati
   mockSettlement.registration = {
     memberType: type,
     registrant,
+    holder: v.holder,
     bankName: v.bank,
     accountMasked: maskAccount(v.accountNo),
+    code: newSettlementCode(),
     submittedAt: new Date().toISOString()
   };
   mockSettlement.terms = null;
