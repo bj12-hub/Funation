@@ -8,6 +8,7 @@ import type { DonationCatalog } from "@/services/donations/donationCatalog";
 import { requestDonation } from "@/services/donations/donate";
 import { DonationCompleteDialog, DonationConfirmDialog, InsufficientFnDialog } from "./DonationDialogs";
 import { MiniFields, SignatureFields, TextFields, VideoFields, WishlistFields } from "./donation/Fields";
+import { DrawingFields, QuestFields, QuizChoiceFields, QuizDrawingFields, QuizInitialFields, RouletteFields } from "./donation/GameFields";
 import { LuckyBoxFields } from "./donation/LuckyBoxFields";
 import { SignaturePopup } from "./donation/SignaturePopup";
 import { buildDraft, initialStates, isFormKey, type FormKey, type FormStates } from "./donation/drafts";
@@ -26,7 +27,7 @@ const CHIPS_PER_PAGE = 6;
 
 /**
  * Donation tab. Figma 610:138 · 851:4546 (일반) · 851:4665 (미니) · 851:4788 (영상) · 851:4929 (시그니처)
- * · 851:5054 (위시) · 851:5174 (럭키박스) → 613:6 확인 → 613:122 완료, or 613:237 FN 부족 → FN 충전 modal.
+ * · 851:5054 (위시) · 851:5174 (럭키박스) · 867:* (룰렛·퀘스트·그림·퀴즈) → 613:6 확인 → 613:122 완료, or 613:237 FN 부족 → FN 충전 modal.
  *
  * Every type goes through the same Donation Core: one confirm step, one server action, one debit.
  * Each confirmed submission carries an idempotency key so a double click or retry never debits twice.
@@ -52,6 +53,8 @@ export function DonationForm({
   const [chipPage, setChipPage] = useState(0);
   const [states, setStates] = useState<FormStates>(() => initialStates(donation));
   const [hideProfile, setHideProfile] = useState(false);
+  // Remounts the fields after a completed donation (e.g. clears the drawing canvas).
+  const [formVersion, setFormVersion] = useState(0);
   const [dialog, setDialog] = useState<Dialog>({ kind: "NONE" });
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,6 +97,7 @@ export function DonationForm({
           setDialog({ kind: "COMPLETE", fnAmount: result.fnAmount, balance: result.balance });
           onDonated({ fnAmount: result.fnAmount, text: draft.chatText, anonymous: hideProfile });
           setStates((s) => ({ ...s, [formKey]: initialStates(donation)[formKey] }));
+          setFormVersion((v) => v + 1);
           router.refresh(); // header, side nav and this tab show the new server balance
           break;
         case "INSUFFICIENT_FN":
@@ -163,6 +167,7 @@ export function DonationForm({
       </div>
 
       <form
+        key={formVersion}
         className={styles.form}
         noValidate
         onSubmit={(e) => {
@@ -185,6 +190,12 @@ export function DonationForm({
           />
         )}
         {formKey === "LUCKYBOX" && <LuckyBoxFields value={states.LUCKYBOX} onChange={update("LUCKYBOX")} catalog={donation} />}
+        {formKey === "ROULETTE" && <RouletteFields value={states.ROULETTE} onChange={update("ROULETTE")} catalog={donation} error={null} />}
+        {formKey === "QUEST" && <QuestFields value={states.QUEST} onChange={update("QUEST")} catalog={donation} error={draft?.error ?? null} />}
+        {formKey === "DRAWING" && <DrawingFields value={states.DRAWING} onChange={update("DRAWING")} catalog={donation} error={draft?.error ?? null} />}
+        {formKey === "QUIZ_CHOICE" && <QuizChoiceFields value={states.QUIZ_CHOICE} onChange={update("QUIZ_CHOICE")} catalog={donation} error={draft?.error ?? null} />}
+        {formKey === "QUIZ_INITIAL" && <QuizInitialFields value={states.QUIZ_INITIAL} onChange={update("QUIZ_INITIAL")} catalog={donation} error={draft?.error ?? null} />}
+        {formKey === "QUIZ_DRAWING" && <QuizDrawingFields value={states.QUIZ_DRAWING} onChange={update("QUIZ_DRAWING")} catalog={donation} error={draft?.error ?? null} />}
         {formKey === "WISHLIST" && (
           <WishlistFields value={states.WISHLIST} onChange={update("WISHLIST")} catalog={donation} balance={fnBalance} creatorName={name} error={draft?.error ?? null} />
         )}
