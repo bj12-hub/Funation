@@ -7,6 +7,7 @@ import { adjustScore, endBroadcast, startBroadcast } from "@/services/crew/crewB
 import { BROADCAST_TITLE_MAX, PROJECT_NAME_MAX, type BroadcastResult, type BroadcastView, type TeamKey } from "@/services/crew/crewTypes";
 import { BroadcastFeed } from "./BroadcastFeed";
 import { CrewTabs } from "./CrewTabs";
+import { SubBoards } from "./SubBoards";
 import styles from "./crew.module.css";
 
 const elapsed = (from: string, now: number) => {
@@ -234,6 +235,7 @@ export function BroadcastScreen({ view }: { view: BroadcastView }) {
       )}
 
       {live && view.feed && <BroadcastFeed broadcastId={live.id} members={view.members} view={view.feed} pending={pending} run={run} />}
+      {live && <SubBoards broadcastId={live.id} boards={live.subBoards} overlayPath={view.overlayPath} pending={pending} run={run} />}
 
       <section className={styles.card} aria-labelledby="bc-overlay">
         <h2 id="bc-overlay" className={styles.cardTitle}>
