@@ -22,7 +22,10 @@ export const ko = {
     search: "검색",
     charge: "충전",
     chargeAria: "FN 충전 · 보유 {balance} FN",
-    notifications: "알림"
+    notifications: "알림",
+    studio: "스튜디오",
+    studioHome: "크리에이터 스튜디오 홈",
+    toSite: "사이트로 이동"
   },
   nav: {
     live: "LIVE",
