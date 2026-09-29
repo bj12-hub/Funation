@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { BellOutlineIcon, SearchOutlineIcon } from "@/components/icons";
+import { BellOutlineIcon, HomeIcon, SearchOutlineIcon } from "@/components/icons";
 import { RoleChooser } from "@/features/auth/login/RoleChooser";
 import { formatNumber } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
@@ -51,12 +51,6 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/support", label: "nav.support" }
 ];
 
-/** Creator pages (Figma 245:14). */
-const CREATOR_NAV_ITEMS: NavItem[] = [
-  { href: "/creator", label: "nav.creatorStudio", pillEmoji: "📺" },
-  { href: "/support", label: "nav.support" }
-];
-
 type GlobalHeaderProps = {
   /** Signed-in user. `null` renders the guest state with the login button. */
   user: GlobalHeaderUser | null;
@@ -76,7 +70,7 @@ function isActive(pathname: string, href: string) {
 
 export function GlobalHeader({ user, showMenuButton = true, onMenuClick, creator = null, creatorRole = false, menuExpanded = true }: GlobalHeaderProps) {
   const pathname = usePathname() ?? "/";
-  const navItems = creator ? CREATOR_NAV_ITEMS : NAV_ITEMS;
+  const navItems = NAV_ITEMS;
   const [mobileOpen, setMobileOpen] = useState(false);
   const { t } = useI18n();
 
@@ -91,6 +85,7 @@ export function GlobalHeader({ user, showMenuButton = true, onMenuClick, creator
   }, [mobileOpen]);
 
   // Site pages (AppShell) use the funnation-style header; auth and studio pages keep the Figma one.
+  if (user && creator) return <StudioHeader user={user} creator={creator} />;
   if (onMenuClick && !creator) return <SiteHeader user={user} creatorRole={creatorRole} onMenuClick={onMenuClick} menuExpanded={menuExpanded} />;
 
   return (
@@ -128,24 +123,16 @@ export function GlobalHeader({ user, showMenuButton = true, onMenuClick, creator
       </nav>
 
       <div className={user ? styles.rightSignedIn : styles.rightGuest}>
-        {user && !creator && (
+        {user && (
           <Link href="/mypage" className={`${styles.myPage} ${styles.desktopOnly}`}>
             {t("common.myPage")}
           </Link>
         )}
-        {user && creator && (
-          <Link href="/creator" className={`${styles.myPage} ${styles.creatorMode} ${styles.desktopOnly}`}>
-            {t("common.creator")}
-          </Link>
-        )}
 
-        {/* The creator studio is dark-only for now (light TBD), so the switch is hidden there. */}
-        {!creator && <ThemeToggle />}
+        <ThemeToggle />
         <LanguageMenu />
 
-        {user && creator ? (
-          <CreatorProfileMenu user={user} creator={creator} />
-        ) : user ? (
+        {user ? (
           <ProfileMenu user={user} />
         ) : (
           // Figma 280:2: the guest login button opens the 로그인/회원가입 role chooser.
@@ -250,6 +237,34 @@ function SiteHeader({ user, creatorRole, onMenuClick, menuExpanded }: { user: Gl
         <ThemeToggle />
         <LanguageMenu />
         {user ? <ProfileMenu user={user} creatorRole={creatorRole} /> : <RoleChooser className={styles.loginButton} />}
+      </div>
+    </header>
+  );
+}
+
+/**
+ * Creator studio header — funnation structure: logo + 스튜디오 on the left; 사이트로 (home) · 알림 ·
+ * language · channel menu on the right. Studio navigation lives in the studio sidebar.
+ */
+function StudioHeader({ user, creator }: { user: GlobalHeaderUser; creator: CreatorHeaderInfo }) {
+  const { t } = useI18n();
+  return (
+    <header className={styles.header}>
+      <div className={styles.left}>
+        <Link href="/creator" className={styles.logo} aria-label={t("common.studioHome")}>
+          <span className={styles.logoText}>Somnation</span>
+          <span className={styles.studioBadge}>{t("common.studio")}</span>
+        </Link>
+      </div>
+      <div className={styles.rightSignedIn}>
+        <Link href="/" className={styles.iconButton} aria-label={t("common.toSite")} title={t("common.toSite")}>
+          <HomeIcon />
+        </Link>
+        <button type="button" className={styles.iconButton} aria-label={t("common.notifications")} title={t("common.comingSoon")} aria-disabled="true">
+          <BellOutlineIcon />
+        </button>
+        <LanguageMenu />
+        <CreatorProfileMenu user={user} creator={creator} />
       </div>
     </header>
   );
