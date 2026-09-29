@@ -16,10 +16,12 @@ import {
 import { CopyButton } from "../settings/SettingsCards";
 import { CustomSoundForm } from "./CustomSoundForm";
 import { ChatForm, GoalForm, QrForm, TotalForm, type FormProps } from "./forms";
+import { GachaForm } from "./GachaForm";
 import { LuckyboxForm, PlayForm, QuestForm } from "./gameForms";
 import { EventForm, MiniForm, RecentForm } from "./listForms";
 import { RankingForm } from "./RankingForm";
 import { VoteForm } from "./VoteForm";
+import { WallpaperForm } from "./WallpaperForm";
 import styles from "./widgets.module.css";
 
 const FORMS: { [K in EditableWidgetKey]: ComponentType<FormProps<K>> } = {
@@ -35,7 +37,9 @@ const FORMS: { [K in EditableWidgetKey]: ComponentType<FormProps<K>> } = {
   CUSTOM_SOUND: CustomSoundForm,
   LUCKYBOX: LuckyboxForm,
   QUEST: QuestForm,
-  PLAY: PlayForm
+  PLAY: PlayForm,
+  GACHA: GachaForm,
+  WALLPAPER: WallpaperForm
 };
 
 /** Popup titles; the URL label varies in the design (통합 채팅창 URL · 위젯 연동 URL …). */
@@ -53,7 +57,9 @@ const MODAL_COPY: Record<EditableWidgetKey, { title: string; urlLabel: string }>
   CUSTOM_SOUND: { title: "커스텀 사운드 설정", urlLabel: "" },
   LUCKYBOX: { title: "럭키박스 위젯 설정", urlLabel: "럭키박스 위젯 URL" },
   QUEST: { title: "퀘스트 위젯 설정", urlLabel: "퀘스트 위젯 URL" },
-  PLAY: { title: "플레이 후원 위젯 설정", urlLabel: "플레이 위젯 URL" }
+  PLAY: { title: "플레이 후원 위젯 설정", urlLabel: "플레이 위젯 URL" },
+  GACHA: { title: "뽑기 후원 위젯 설정", urlLabel: "뽑기 후원 위젯 URL" },
+  WALLPAPER: { title: "벽지 위젯 설정", urlLabel: "벽지 위젯 URL" }
 };
 
 /** Widgets whose popup saves item by item instead of through the footer. */
@@ -62,8 +68,8 @@ const SELF_SAVING: EditableWidgetKey[] = ["CUSTOM_SOUND"];
 /**
  * 후원위젯/알림설정. Figma 529:4 (route `/creator/widgets`); popups 364:6 · 364:158 · 364:265 · 372:7 ·
  * 531:1370 (최근알림) · 531:1598 (이벤트) · 531:1826 (미니후원) · 315:650 (후원랭킹) · 315:858 (투표) · 373:1307 (커스텀 사운드) ·
- * 373:1356 (럭키박스) · 373:1598 (퀘스트) · 373:1785 (플레이).
- * The alert cards have no designed popup yet, and the remaining widget popups follow in later PRs.
+ * 373:1356 (럭키박스) · 373:1598 (퀘스트) · 373:1785 (플레이) · 373:3675 (뽑기 후원) · 395:145 (벽지).
+ * Alert cards and 그림후원 stay informational until their popups are designed.
  */
 export function WidgetSettingsScreen({ alertWidgetUrl }: { alertWidgetUrl: string }) {
   const [openKey, setOpenKey] = useState<EditableWidgetKey | null>(null);
