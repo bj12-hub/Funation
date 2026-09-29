@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Usage (Git Bash, from anywhere): bash scripts/merge-pr.sh <pr-number> <branch> "<title>"
 #
-# Merges origin/<branch> into origin/main in a throwaway worktree, runs tsc / eslint / next build,
+# Merges origin/<branch> into origin/main in a throwaway worktree, runs tsc / eslint / vitest / next build,
 # pushes main (fast-forward only, so GitHub marks the PR as merged), then merges main into preview
 # and pushes it so `npm run dev:sync` picks it up.
 #
@@ -45,7 +45,7 @@ MERGE=$(git -C "$W" rev-parse HEAD)
 # Share the root node_modules through a junction instead of installing again.
 MSYS_NO_PATHCONV=1 cmd /c mklink /J "$(cygpath -w "$W/node_modules")" "$(cygpath -w "$REPO/node_modules")" >/dev/null
 LOG="$WORK/build-$PR.log"
-(cd "$W/apps/web" && npx tsc --noEmit && npx eslint . && npx next build >"$LOG" 2>&1) \
+(cd "$W/apps/web" && npx tsc --noEmit && npx eslint . && npx vitest run && npx next build >"$LOG" 2>&1) \
   || { echo "CHECKS FAILED (see $LOG)"; tail -30 "$LOG" 2>/dev/null; exit 1; }
 echo "checks ok"
 
