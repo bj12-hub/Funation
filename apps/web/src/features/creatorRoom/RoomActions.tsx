@@ -52,6 +52,14 @@ export function RoomActions({ creatorId, name, initialFavorite, signedIn }: { cr
         <button type="button" className={styles.actionButton} onClick={() => setShareOpen(true)}>
           🔗 공유
         </button>
+        {/* Code-first (no Figma frame): write to this creator. */}
+        <button
+          type="button"
+          className={styles.actionButton}
+          onClick={() => router.push(signedIn ? `/messages?to=${encodeURIComponent(creatorId)}` : `/login?next=${encodeURIComponent(pathname)}`)}
+        >
+          ✉️ 쪽지
+        </button>
       </div>
       <ShareModal
         open={shareOpen}
