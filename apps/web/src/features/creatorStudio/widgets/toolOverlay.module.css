@@ -1,0 +1,110 @@
+/* 방송 도구 OBS overlays (code-first). Readable on any stream background. */
+
+.subtitle,
+.timer {
+  display: inline-block;
+  margin: 0;
+  padding: 10px 20px;
+  border-radius: var(--radius-12);
+  background: var(--color-overlay);
+  color: var(--color-text-on-accent);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.subtitle {
+  font-size: var(--font-size-24);
+}
+
+.subtitle[data-size="S"] {
+  font-size: var(--font-size-18);
+}
+
+.subtitle[data-size="L"] {
+  font-size: 40px;
+}
+
+.timer {
+  font-family: var(--font-latin);
+  font-size: 48px;
+  font-variant-numeric: tabular-nums;
+}
+
+.marquee {
+  overflow: hidden;
+  padding: 8px 0;
+  background: var(--color-overlay);
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
+.marquee span {
+  display: inline-block;
+  padding-left: 100%;
+  animation: scroll linear infinite;
+}
+
+@keyframes scroll {
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+.credits {
+  height: 100vh;
+  overflow: hidden;
+  color: var(--color-text-on-accent);
+  text-align: center;
+  text-shadow: 0 2px 6px var(--color-overlay);
+}
+
+.creditsRoll {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 100vh;
+  animation: roll 30s linear infinite;
+}
+
+.creditsRoll h1 {
+  margin: 0 0 12px;
+  font-size: 32px;
+  font-weight: var(--font-weight-black);
+}
+
+.creditsRoll ol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-size-18);
+}
+
+.creditsRoll li {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  font-weight: var(--font-weight-bold);
+}
+
+.creditsRoll p {
+  margin: 0;
+  font-size: var(--font-size-18);
+}
+
+@keyframes roll {
+  to {
+    transform: translateY(-100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee span,
+  .creditsRoll {
+    padding: 0;
+    animation: none;
+  }
+}
