@@ -27,4 +27,30 @@ export type CrewPublic = { members: { id: string; name: string; role: CrewRole; 
 
 export type CrewSaveResult = { status: "SAVED" } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
 
+// ── 크루 방송 (회차 · 점수판 · 이력) ────────────────────────────────────────────────
+
+export type TeamKey = "A" | "B";
+export const MAX_ADJUST_POINTS = 10_000_000;
+export const ADJUST_REASON_MAX = 40;
+export const BROADCAST_TITLE_MAX = 40;
+
+export type ScoreRow = { memberId: string; name: string; color: string; team: TeamKey | null; donatedFn: number; adjust: number; score: number };
+export type ScoreLog = { id: string; at: string; memberName: string; points: number; reason: string };
+
+export type BroadcastLive = {
+  id: string;
+  title: string;
+  startedAt: string;
+  teamMode: boolean;
+  rows: ScoreRow[];
+  teams: { key: TeamKey; score: number }[];
+  logs: ScoreLog[];
+};
+
+export type BroadcastSummary = { id: string; title: string; startedAt: string; endedAt: string; totalScore: number; winner: string | null; top: { name: string; score: number }[] };
+
+export type BroadcastView = { members: CrewMember[]; live: BroadcastLive | null; history: BroadcastSummary[]; overlayPath: string };
+
+export type BroadcastResult = { status: "SAVED" } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
+
 export const crewRoleLabel = (r: CrewRole) => CREW_ROLES.find((x) => x.key === r)!.label;

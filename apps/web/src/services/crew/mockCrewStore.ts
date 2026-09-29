@@ -11,9 +11,23 @@ export const STUDIO_CHANNEL = "studio";
 
 type Attribution = { donationId: string; channelId: string; memberId: string; fnAmount: number; at: string };
 
+export type MockBroadcast = {
+  id: string;
+  channelId: string;
+  title: string;
+  startedAt: string;
+  endedAt: string | null;
+  teamMode: boolean;
+  teams: Record<string, "A" | "B">;
+  adjustments: { id: string; at: string; memberId: string; points: number; reason: string }[];
+  /** Final ranking frozen at the end (members may be renamed or removed later). */
+  final: { memberId: string; name: string; score: number }[] | null;
+};
+
 type MockCrew = {
   crews: Record<string, CrewMember[]>;
   attributions: Attribution[];
+  broadcasts?: MockBroadcast[];
 };
 
 const m = (id: string, name: string, role: CrewMember["role"], color: string, active = true): CrewMember => ({ id, name, role, active, color });
