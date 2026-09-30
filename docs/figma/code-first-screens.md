@@ -78,6 +78,8 @@ Add a row whenever a new code-first screen ships (see `docs/research/funnation-r
 
 | `/admin/platforms` 플랫폼 연동 · `/admin/system` 시스템 (`features/admin/system/SystemScreens.tsx`) + 사이트 공지 배너 (`components/layout/SiteBanner`) | admin platform-system PR | 플랫폼별 어댑터 지원 기능 · 스튜디오 연결 · 동기화 · 후원 연동 · 연결 확인(지연 시간 · 오류 코드); 사이트 공지 배너(안내 / 주의, 문구 120자, 내부 링크, 켜기 · 끄기, 감사 로그) — 사이트 모든 페이지 상단 표시; 실행 환경 정보. 운영자 세션은 회원 세션과 분리(사이트에서는 비로그인). TBD: 배너 예약 · 여러 배너, OAuth · 웹훅 · 할당량 모니터링 |
 
+| 관리자 콘솔 → 별도 앱 `apps/admin` (http://localhost:3200) | separate admin app PR | 위 `/admin/*` 화면을 사이트에서 분리: 어드민 앱 라우트는 `/`, `/audit`, `/members`, `/creators`, `/payments`, `/donations`, `/settlements`, `/content`, `/platforms`, `/system`, `/login`. 데이터는 사이트 관리자 API(`/api/admin/*`)로만 읽고 씀. 사이트의 `/admin`은 삭제 |
+
 ## Figma
 
 구현된 전체 화면 캡처는 [current-build.md](current-build.md)의 새 파일(Somnation — 현재 구현)에 있어요. 펀페이 파일에 잠시 두었던 "코드 우선 화면" 페이지는 2026-09-30에 삭제했어요.

@@ -4,6 +4,9 @@ import { key, mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv"
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
 
+/** The operator the admin API acts for (the route layer authorises the admin app first). */
+const OP = { userId: "adm-test", nickname: "테스트 운영자" };
+
 /** 회원 · 크리에이터 관리: search, reasoned suspend / restore with audit, enforcement on public pages. */
 async function load() {
   const members = await import("./members");
@@ -33,11 +36,11 @@ describe("admin members", () => {
   it("suspends with a reason once per request, hides a suspended creator and restores with audit", async () => {
     const m = await load();
     const id = m.creatorMemberId("c1");
-    expect((await m.suspendMember({ id, days: 7, reason: "짧음", requestId: key(1) })).status).toBe("INVALID");
-    expect((await m.suspendMember({ id, days: 3, reason: "운영 정책 위반 (테스트)", requestId: key(1) })).status).toBe("INVALID");
-    expect(await m.suspendMember({ id, days: 7, reason: "운영 정책 위반 (테스트)", requestId: key(2) })).toEqual({ status: "OK" });
-    expect(await m.suspendMember({ id, days: 7, reason: "운영 정책 위반 (테스트)", requestId: key(2) })).toEqual({ status: "OK" });
-    expect((await m.suspendMember({ id, days: 7, reason: "운영 정책 위반 (테스트)", requestId: key(3) })).status).toBe("INVALID");
+    expect((await m.suspendMember(OP, { id, days: 7, reason: "짧음", requestId: key(1) })).status).toBe("INVALID");
+    expect((await m.suspendMember(OP, { id, days: 3, reason: "운영 정책 위반 (테스트)", requestId: key(1) })).status).toBe("INVALID");
+    expect(await m.suspendMember(OP, { id, days: 7, reason: "운영 정책 위반 (테스트)", requestId: key(2) })).toEqual({ status: "OK" });
+    expect(await m.suspendMember(OP, { id, days: 7, reason: "운영 정책 위반 (테스트)", requestId: key(2) })).toEqual({ status: "OK" });
+    expect((await m.suspendMember(OP, { id, days: 7, reason: "운영 정책 위반 (테스트)", requestId: key(3) })).status).toBe("INVALID");
 
     expect(await m.getCreatorById("c1")).toBeNull();
     expect((await m.getCreators({ page: 1 })).items.some((c) => c.id === "c1")).toBe(false);
@@ -46,15 +49,15 @@ describe("admin members", () => {
     expect(detail.member.suspension).toMatchObject({ reason: "운영 정책 위반 (테스트)" });
     expect(detail.audit.map((e) => e.action)).toEqual(["MEMBER_SUSPEND"]);
 
-    expect(await m.restoreMember({ id, reason: "소명 확인 후 해제" })).toEqual({ status: "OK" });
-    expect(await m.restoreMember({ id, reason: "소명 확인 후 해제" })).toEqual({ status: "OK" });
+    expect(await m.restoreMember(OP, { id, reason: "소명 확인 후 해제" })).toEqual({ status: "OK" });
+    expect(await m.restoreMember(OP, { id, reason: "소명 확인 후 해제" })).toEqual({ status: "OK" });
     expect(await m.getCreatorById("c1")).not.toBeNull();
     expect(m.auditEntries().map((e) => e.action)).toEqual(["MEMBER_RESTORE", "MEMBER_SUSPEND"]);
   });
 
   it("lets a suspension expire and blocks the sample member's sign-in while it lasts", async () => {
     const m = await load();
-    await m.suspendMember({ id: m.SAMPLE_MEMBER_ID, days: 1, reason: "테스트 정지 사유", requestId: key(4) });
+    await m.suspendMember(OP, { id: m.SAMPLE_MEMBER_ID, days: 1, reason: "테스트 정지 사유", requestId: key(4) });
     expect(m.isMemberSuspended(m.SAMPLE_MEMBER_ID)).toBe(true);
     expect(m.isMemberSuspended(m.SAMPLE_MEMBER_ID, Date.now() + 2 * 86_400_000)).toBe(false);
     const { login } = await import("@/services/auth/login");
@@ -62,11 +65,4 @@ describe("admin members", () => {
     expect(await login({ identifier: "hongGD123", password: mockCredentials.password, keepSignedIn: false })).toEqual({ status: "SUSPENDED" });
   });
 
-  it("requires the Admin role", async () => {
-    const m = await load();
-    signIn(["SUPPORTER", "CREATOR"]);
-    expect(await m.listMembers()).toBeNull();
-    expect(await m.suspendMember({ id: "u-s001", days: 1, reason: "권한 없음 테스트", requestId: key(5) })).toEqual({ status: "UNAUTHORIZED" });
-    expect(await m.listAdminCreators()).toBeNull();
-  });
 });

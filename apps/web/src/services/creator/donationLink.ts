@@ -7,7 +7,7 @@ import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { ADAPTERS, mockYouTubeSuperChat } from "@/services/platforms/adapters";
 import type { Platform } from "@/types/platform";
 import { enqueueAlert } from "./alertCore";
-import { SIM_CURRENCIES, formatMoney, type DonationLinkResult, type DonationLinkView, type LinkedDonation } from "./donationLinkTypes";
+import { SIM_CURRENCIES, formatMoney, type DonationLinkResult, type DonationLinkView } from "./donationLinkTypes";
 import { donationLinkStore } from "./donationLinkCore";
 import { youtubeStore } from "./youtubeCore";
 

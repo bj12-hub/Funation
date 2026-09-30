@@ -1,44 +1,31 @@
-"use server";
-
-import { redirect } from "next/navigation";
 import { USE_MOCK } from "@/lib/mock";
 import { toDateString } from "@/lib/period";
-import { endSession, getAdminSession, startMockAdminSession } from "@/lib/session";
 import { mockSettlement } from "@/services/creator/mockSettlementStore";
 import { getCreators } from "@/services/creators/creators";
 import { mockRefunds } from "@/services/wallet/mockRefundStore";
 import { listChargeRecords, listDonationRecords } from "@/services/wallet/walletHistory";
-import { AUDIT_PAGE, type AdminDashboard, type AuditPage } from "./adminTypes";
+import { AUDIT_PAGE, type AdminActor, type AdminDashboard, type AuditPage } from "./adminTypes";
 import { auditEntries, recordAudit } from "./auditCore";
 
 /**
- * 관리자 콘솔 Server Actions — code-first. Routes `/admin/*`. Every read and action re-checks the
- * Admin role on the server (the layout guard is UX only). Totals are computed here, never in the browser.
+ * 관리자 API logic — code-first. Server-only: called by the admin API routes (`/api/admin/*`), which
+ * authorise the separate admin app first (lib/adminApi.ts). Totals are computed here, never in a browser.
  */
 
 const assertMock = () => {
   if (!USE_MOCK) throw new Error("Admin API is not connected yet.");
 };
 
-/** Development only: the mock operator sign-in (the real admin login and 2FA are TBD). */
-export async function signInMockAdmin(): Promise<void> {
+/** The admin app reports operator sign-in / sign-out so they land in the same audit log. */
+export async function recordSessionEvent(admin: AdminActor, event: unknown): Promise<{ status: "OK" } | { status: "INVALID"; message: string }> {
   assertMock();
-  await startMockAdminSession();
-  recordAudit({ userId: "adm-operator", nickname: "운영자" }, "ADMIN_SIGN_IN");
-  redirect("/admin");
-}
-
-export async function signOutAdmin(): Promise<void> {
-  assertMock();
-  const session = await getAdminSession();
-  if (session) recordAudit(session, "ADMIN_SIGN_OUT");
-  await endSession();
-  redirect("/admin/login");
+  if (event !== "SIGN_IN" && event !== "SIGN_OUT") return { status: "INVALID", message: "알 수 없는 이벤트예요." };
+  recordAudit(admin, event === "SIGN_IN" ? "ADMIN_SIGN_IN" : "ADMIN_SIGN_OUT");
+  return { status: "OK" };
 }
 
 export async function getAdminDashboard(): Promise<AdminDashboard | null> {
   assertMock();
-  if (!(await getAdminSession())) return null;
   const month = toDateString(new Date()).slice(0, 7);
   const creators = await getCreators({ page: 1 });
   const charges = listChargeRecords().filter((c) => c.chargedAt.startsWith(month));
@@ -61,7 +48,6 @@ export async function getAdminDashboard(): Promise<AdminDashboard | null> {
 
 export async function listAuditLog(input: { show?: unknown } = {}): Promise<AuditPage | null> {
   assertMock();
-  if (!(await getAdminSession())) return null;
   const all = auditEntries();
   const count = Math.min(Math.max(1, Math.floor(Number(input.show)) || AUDIT_PAGE), 500);
   return { items: all.slice(0, count), total: all.length, hasMore: all.length > count };

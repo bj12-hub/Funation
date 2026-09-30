@@ -1,0 +1,395 @@
+/*
+ * Funation design tokens
+ *
+ * Source: Figma file PXOl6e2HQVWsu9qx9iagJV (펀페이)
+ * Extracted from usage frequency across 350 service frames (1440px wide),
+ * excluding the 01–08 documentation boards. See docs/figma/design-tokens.md.
+ *
+ * Only reference these variables from components. Do not hardcode hex values.
+ */
+
+/* Dark is the default theme (Figma). [data-theme="dark"] re-applies it inside a light page
+ * (creator studio, OBS overlays). Light overrides live at the end of this file. */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* ── Background / surface ─────────────────────────────── */
+  --color-bg-page: #080811;
+  --color-bg-subtle: #0d0d1a;
+  --color-surface: #121225;
+  --color-surface-raised: #1a1a2e;
+  --color-surface-strong: #20203e;
+  --color-overlay: rgba(0, 0, 0, 0.8);
+  --color-bg-footer: #000000;
+  --color-bg-light: #ffffff;
+
+  /* ── Border ───────────────────────────────────────────── */
+  --color-border: #20203e;
+  --color-border-strong: #29294b;
+  --color-border-emphasis: #30305a;
+
+  /* ── Text ─────────────────────────────────────────────── */
+  --color-text-primary: #f3f4f6;
+  --color-text-secondary: #9ca3af;
+  --color-text-tertiary: #6b7280;
+  --color-text-soft: #c0c0d0;
+  --color-text-inverse: #000000;
+  --color-text-on-accent: #ffffff;
+
+  /* ── Brand / accent ───────────────────────────────────── */
+  --color-primary: #8b5cf6;
+  --color-primary-soft: rgba(139, 92, 246, 0.15);
+  --color-primary-light: #a78bfa;
+  --color-accent: #ec4899;
+  --color-info: #3b82f6;
+  --color-live: #f5bf0a;
+  --color-highlight: #06b6d4;
+  --color-accent-soft: rgba(236, 72, 153, 0.1);
+  --color-neutral-soft: rgba(156, 163, 175, 0.1);
+  --color-charge: #4a90e2;
+  --color-nav-active-bg: #1a1030;
+
+  --gradient-brand: linear-gradient(90deg, #8b5cf6 0%, #ec4899 100%);
+  --gradient-cta: linear-gradient(90deg, #6366f1 0%, #4f46e5 100%);
+  --gradient-primary-button: linear-gradient(90deg, #8b5cf6 0%, #6366f1 100%);
+  --gradient-accent-button: linear-gradient(90deg, #8b5cf6 0%, #ec4899 100%);
+
+  /* ── Media overlays (home 727:2742) ───────────────────── */
+  --color-media-dim: rgba(0, 0, 0, 0.4);
+  --color-media-badge: rgba(0, 0, 0, 0.7);
+  --color-media-badge-border: rgba(255, 255, 255, 0.2);
+  --color-media-text-muted: rgba(255, 255, 255, 0.8);
+  --gradient-hero-overlay: linear-gradient(158.75deg, rgba(8, 8, 17, 0.7) 25%, rgba(8, 8, 17, 0) 50%, #080811 75%);
+  --gradient-thumbnail-overlay: linear-gradient(150.64deg, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.7) 75%);
+
+  /* ── Supporter ranking (hall of fame 3:637) ───────────── */
+  --color-gold: #f59e0b;
+  --color-gold-soft: rgba(245, 158, 11, 0.13);
+  --color-bronze: #d97706;
+  --color-tier-silver-bg: #4b5563;
+  --color-tier-bronze-bg: #78350f;
+  --color-tier-bronze-text: #fdba74;
+  --gradient-rank-gold: linear-gradient(90deg, #fbbf24 0%, #d97706 100%);
+  --gradient-rank-silver: linear-gradient(90deg, #f3f4f6 0%, #9ca3af 100%);
+  --gradient-rank-bronze: linear-gradient(90deg, #fdba74 0%, #b45309 100%);
+  --gradient-hof-hero-overlay: linear-gradient(162.28deg, rgba(8, 8, 17, 0.7) 25%, rgba(8, 8, 17, 0.5) 50%, #080811 75%);
+
+  /* ── Modal (my page edit modals 743:1978) ────────────── */
+  --color-modal-bg: #18182e;
+  --color-modal-border: #3b3b68;
+  --color-modal-backdrop: rgba(5, 5, 10, 0.8);
+  --color-modal-field-border: #29294a;
+  --color-modal-field-bg: #0f1024;
+  --color-success-text: #34d399;
+  --color-success-soft: rgba(52, 211, 153, 0.09);
+  --color-danger-soft: rgba(239, 68, 68, 0.08);
+  --color-notice-soft: rgba(139, 92, 246, 0.09);
+  --color-nickname-error: #fb7185;
+  --color-nickname-error-bg: #351a2a;
+  --color-nickname-success-bg: #123128;
+  --color-photo-error-bg: #2b1723;
+  --color-photo-success-bg: #122a27;
+  --shadow-modal: 0 24px 60px rgba(0, 0, 0, 0.6);
+  --color-warning-text: #fbbf24;
+  --color-success-tint: #10251f;
+  --color-warning-tint: #292114;
+  --color-danger-box: rgba(248, 113, 113, 0.07);
+  --color-danger-box-border: rgba(248, 113, 113, 0.22);
+
+  /* ── Favorites (735:3856) ─────────────────────────────── */
+  --color-kakao-banner-bg: #f9dd35;
+  --color-kakao-banner-text: #1d161d;
+  --color-kakao-banner-subtext: #3d363d;
+  --color-page-current: #4a4a6a;
+
+  /* ── Creator room (826:685 · 610:138 · 710:195) ───────── */
+  --color-panel-field-bg: #191936;
+  --color-chip-bg: #1f1f3d;
+  --color-accent-tint: rgba(236, 72, 153, 0.14);
+  --color-channel-chip-bg: #24252a;
+  --color-channel-chip-border: #35363c;
+  --color-player-scrim: rgba(0, 0, 0, 0.5);
+  --color-goal-bg: rgba(18, 18, 37, 0.75);
+  --color-offline-notice-bg: rgba(11, 9, 17, 0.87);
+  --color-toast-bg: rgba(41, 38, 48, 0.95);
+  --color-toast-border: #4a4554;
+  --color-toast-mark: #55d6a4;
+  --gradient-player-controls: linear-gradient(172deg, transparent 25%, rgba(0, 0, 0, 0.9) 75%);
+
+  /* ── FN history (640:2 · 632:4 · 643:4) ───────────────── */
+  --color-segment-bg: #161623;
+  --color-segment-active-bg: rgba(255, 255, 255, 0.12);
+  --color-segment-text: #646473;
+  --color-date-input-bg: #1e1e2a;
+  --color-date-input-border: rgba(255, 255, 255, 0.08);
+  --color-fn-chip-bg: #1a1a3a;
+  --color-balance-label: #a5a5c7;
+  --color-pill-processing-bg: #1c1400;
+  --color-pill-completed-text: #4ade80;
+  --color-pill-completed-bg: #052e16;
+  --color-pill-cancelled-bg: #1c0a0a;
+
+  /* ── FN charge (595:1869 · 601:839 · 587:147 · 739:*) ─── */
+  --color-charge-balance-bg: #292945;
+  --color-charge-option-on-bg: rgba(139, 92, 246, 0.13);
+  --color-kakaopay-bg: #ffeb00;
+  --color-kakaopay-text: #0d0d0d;
+  --color-naverpay-bg: #03c75a;
+  --color-card-scrim: rgba(0, 0, 0, 0.4);
+  --color-error-card-bg: #080811;
+  --color-error-chip-bg: #181832;
+  --color-light-text: #1a1a1a;
+  --color-light-text-sub: #757575;
+  --color-light-text-muted: #555555;
+  --color-light-tile-bg: #f9fafb;
+  --color-light-tile-border: #e5e7eb;
+  --color-light-tile-on-bg: #f0f6ff;
+  --color-light-panel-bg: #f5f5f5;
+  --color-sheet-bg: #161630;
+
+  /* ── Donation types (851:* · 875:1815) ────────────────── */
+  --color-text-faint: #696b7a;
+  --color-intro-bg: rgba(139, 92, 246, 0.1);
+  --color-popup-border: #3a3a64;
+  --color-popup-footer-bg: #0e0e1d;
+  --color-card-on-bg: #24172e;
+  --shadow-popup: 0 24px 60px 4px rgba(0, 0, 0, 0.6);
+  --color-lucky-emerald: #22c55e;
+  --color-lucky-emerald-bg: #123d2c;
+  --color-lucky-royal-bg: #4a3510;
+
+  /* ── Auth extras (718:335 · 280:2) ─────────────────────── */
+  --color-recommend-bg: #19172d;
+  --color-recommend-border: #3a3568;
+  --color-recommend-icon-bg: #28224b;
+
+  /* ── Home popups (688:646 · 200:115 · 200:223) ─────────── */
+  --color-profile-bg: #1e1f23;
+  --color-profile-footer-bg: #25262a;
+  --color-profile-close-bg: #191a1e;
+  --color-profile-blue: #2878f0;
+  --color-profile-text: #f7f7f8;
+  --color-profile-muted: #777a83;
+  --color-notice-blue: #1c82ff;
+  --color-notice-ink: #111115;
+  --color-notice-muted: #66667a;
+  --color-notice-bar-bg: #101022;
+  --color-notice-dark-card: #16162a;
+  --color-notice-red: #ff3b30;
+  --color-notice-body: #a3a3c2;
+  --color-notice-check-border: #4d4d66;
+  --color-notice-check-label: #8e8ea8;
+
+  /* ── Settlement (429:4) ──────────────────────────────── */
+  --gradient-settlement-banner: linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #8b5cf6 100%);
+  --color-settlement-track-off: rgba(255, 255, 255, 0.31);
+  --color-settlement-label-off: rgba(255, 255, 255, 0.5);
+  --color-settlement-icon-bg: rgba(255, 255, 255, 0.13);
+  --color-settlement-card-icon-bg: rgba(139, 92, 246, 0.13);
+  --color-settlement-choice-on: #1f1f3d;
+  --color-settlement-choice-off: #0b0813;
+  --color-settlement-choice-border: #2a2a4e;
+  --color-settlement-muted: #94a3b8;
+  --color-settlement-terms-text: #8f9cae;
+  --color-settlement-field-bar: #1a1a35;
+  /* 정산 신청 (458:4 · 463:2 · 469:* · 473:2 · 477:2) */
+  --gradient-settlement-cash: linear-gradient(90deg, #3b82f6 0%, #6366f1 100%);
+  --color-settlement-cash-button: rgba(30, 30, 56, 0.4);
+  --color-settlement-cash-border: rgba(255, 255, 255, 0.13);
+  --color-settlement-info-bar: #3b366b;
+  --color-settlement-pending-bar: #10b981;
+  --color-settlement-toggle-bg: rgba(255, 255, 255, 0.2);
+  --color-settlement-toggle-off-text: rgba(255, 255, 255, 0.53);
+  --color-settlement-toggle-on-text: #1e1e38;
+  --color-settlement-tab-active: rgba(255, 255, 255, 0.08);
+  --color-settlement-tab-border: rgba(255, 255, 255, 0.1);
+  --color-settlement-tab-text: rgba(255, 255, 255, 0.7);
+  --color-settlement-bar: #60a5fa;
+  --color-settlement-approved: #22c55e;
+  --color-settlement-row-divider: rgba(255, 255, 255, 0.08);
+  --color-settlement-popup-bg: #1e1e2e;
+  --color-settlement-popup-box: #2a2a3c;
+  --color-settlement-done-bg: rgba(34, 197, 94, 0.15);
+
+  /* ── Platform donation (817:9017 · 817:8317 · 817:9618) ── */
+  --color-platform-live: #fb7185;
+  --color-platform-live-bg: rgba(251, 113, 133, 0.13);
+  --color-platform-offline: #68687a;
+  --color-platform-offline-bg: rgba(104, 104, 122, 0.13);
+  --color-platform-selected-bg: rgba(139, 92, 246, 0.09);
+  --color-platform-alert-bg: rgba(239, 68, 68, 0.09);
+  --color-platform-alert-border: rgba(239, 68, 68, 0.33);
+  --color-platform-success: #34d399;
+  --color-platform-success-bg: rgba(52, 211, 153, 0.13);
+  --color-history-processing-bg: rgba(74, 144, 226, 0.13);
+  --color-history-refunding-bg: rgba(245, 191, 10, 0.13);
+  --color-history-refunded-bg: rgba(139, 92, 246, 0.13);
+
+  /* ── Status ───────────────────────────────────────────── */
+  --color-success: #10b981;
+  --color-warning: #f97316;
+  --color-danger: #ef4444;
+  --color-error-text: #f87171;
+  --color-danger-surface: #2a1420;
+  --color-danger-border: #5a2837;
+
+  /* ── Form ─────────────────────────────────────────────── */
+  --color-input-bg: #0e0e1f;
+  --color-button-disabled-bg: #25253a;
+  --color-button-secondary-bg: #1f1f3d;
+
+  /* ── Third-party brand (social login) ─────────────────── */
+  --color-google-bg: #ffffff;
+  --color-google-text: #1f2937;
+  --color-kakao-bg: #fee500;
+  --color-kakao-text: #181600;
+
+  /* ── Typography ───────────────────────────────────────── */
+  --font-sans: "Gothic A1", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-latin: "Inter", var(--font-sans);
+
+  --font-size-10: 10px;
+  --font-size-11: 11px;
+  --font-size-12: 12px;
+  --font-size-13: 13px;
+  --font-size-14: 14px;
+  --font-size-15: 15px;
+  --font-size-16: 16px;
+  --font-size-18: 18px;
+  --font-size-20: 20px;
+  --font-size-24: 24px;
+  --font-size-28: 28px;
+  --font-size-32: 32px;
+  --font-size-40: 40px;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  --font-weight-black: 900;
+
+  /* ── Radius ───────────────────────────────────────────── */
+  --radius-2: 2px;
+  --radius-4: 4px;
+  --radius-6: 6px;
+  --radius-8: 8px;
+  --radius-12: 12px;
+  --radius-16: 16px;
+  --radius-20: 20px;
+  --radius-pill: 999px;
+
+  /* ── Elevation ────────────────────────────────────────── */
+  --shadow-header: 0 8px 12px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 16px 32px rgba(0, 0, 0, 0.5);
+  --shadow-button: 0 4px 6px rgba(0, 0, 0, 0.2);
+
+  /* ── Layout ───────────────────────────────────────────── */
+  --layout-max-width: 1440px;
+  --layout-gutter: 80px;
+  --header-height: 80px;
+}
+
+/*
+ * Light theme — code-first (no Figma frames yet; docs/figma/code-first-screens.md).
+ * Only surface / text / border / form tokens change. Brand colors, media scrims (text over images or
+ * video) and third-party brand colors stay the same. Creator studio and overlays keep the dark theme.
+ */
+[data-theme="light"] {
+  color-scheme: light;
+
+  --color-bg-page: #f6f6fb;
+  --color-bg-subtle: #eeeef6;
+  --color-surface: #ffffff;
+  --color-surface-raised: #f3f3f9;
+  --color-surface-strong: #e8e8f2;
+  --color-bg-footer: #eeeef4;
+
+  --color-border: #e4e4ee;
+  --color-border-strong: #d6d6e4;
+  --color-border-emphasis: #c8c8dc;
+
+  --color-text-primary: #15151f;
+  --color-text-secondary: #5b5d6b;
+  --color-text-tertiary: #80828f;
+  --color-text-soft: #3d3d4d;
+  --color-text-faint: #8a8c99;
+
+  --color-primary-soft: rgba(139, 92, 246, 0.12);
+  --color-primary-light: #7c3aed;
+  --color-live: #b98100;
+  --color-neutral-soft: rgba(107, 114, 128, 0.12);
+  --color-nav-active-bg: #efe9ff;
+
+  --gradient-hero-overlay: linear-gradient(158.75deg, rgba(8, 8, 17, 0.7) 25%, rgba(8, 8, 17, 0) 50%, #f6f6fb 75%);
+  --gradient-hof-hero-overlay: linear-gradient(162.28deg, rgba(8, 8, 17, 0.7) 25%, rgba(8, 8, 17, 0.4) 50%, #f6f6fb 75%);
+
+  --color-modal-bg: #ffffff;
+  --color-modal-border: #e0e0ec;
+  --color-modal-backdrop: rgba(15, 15, 30, 0.45);
+  --color-modal-field-border: #d9d9e6;
+  --color-modal-field-bg: #f7f7fb;
+  --shadow-modal: 0 24px 60px rgba(20, 20, 50, 0.18);
+  --shadow-popup: 0 24px 60px 4px rgba(20, 20, 50, 0.18);
+  --shadow-header: 0 8px 12px rgba(20, 20, 50, 0.06);
+  --shadow-card: 0 16px 32px rgba(20, 20, 50, 0.1);
+  --shadow-button: 0 4px 6px rgba(20, 20, 50, 0.08);
+
+  --color-success-text: #059669;
+  --color-warning-text: #b45309;
+  --color-error-text: #dc2626;
+  --color-nickname-error: #e11d48;
+  --color-nickname-error-bg: #fde8ee;
+  --color-nickname-success-bg: #e3f7ee;
+  --color-photo-error-bg: #fdeaf0;
+  --color-photo-success-bg: #e4f6f0;
+  --color-success-tint: #e7f7f0;
+  --color-warning-tint: #fdf3e1;
+  --color-danger-surface: #fdecef;
+  --color-danger-border: #f5c2cc;
+
+  --color-page-current: #6d6d92;
+  --color-panel-field-bg: #f3f3f9;
+  --color-chip-bg: #eeeef7;
+  --color-channel-chip-bg: #f1f1f5;
+  --color-channel-chip-border: #dcdce4;
+  --color-segment-bg: #ececf4;
+  --color-segment-active-bg: #ffffff;
+  --color-segment-text: #6b6b7b;
+  --color-date-input-bg: #ffffff;
+  --color-date-input-border: #d9d9e6;
+  --color-fn-chip-bg: #efeefe;
+  --color-balance-label: #6a6a8a;
+  --color-pill-processing-bg: #fff4d6;
+  --color-pill-completed-text: #15803d;
+  --color-pill-completed-bg: #dcfce7;
+  --color-pill-cancelled-bg: #fee2e2;
+  --color-charge-balance-bg: #eeeef8;
+  --color-error-card-bg: #ffffff;
+  --color-error-chip-bg: #eeeef7;
+  --color-sheet-bg: #ffffff;
+  --color-popup-border: #dcdcea;
+  --color-popup-footer-bg: #f5f5fa;
+  --color-card-on-bg: #f3ecfd;
+  --color-lucky-emerald-bg: #dcf5e7;
+  --color-lucky-royal-bg: #fbeccb;
+  --color-recommend-bg: #f5f3ff;
+  --color-recommend-border: #ddd6fe;
+  --color-recommend-icon-bg: #ede9fe;
+  --color-profile-bg: #ffffff;
+  --color-profile-footer-bg: #f5f5f7;
+  --color-profile-close-bg: #eeeef2;
+  --color-profile-text: #15151f;
+  --color-profile-muted: #6b6e78;
+  --color-notice-bar-bg: #eef0fb;
+  --color-notice-dark-card: #f4f4fa;
+  --color-notice-body: #55556e;
+  --color-notice-check-border: #c4c4d4;
+  --color-notice-check-label: #6e6e88;
+  --color-platform-offline: #7b7b8c;
+
+  --color-input-bg: #ffffff;
+  --color-button-disabled-bg: #e4e4ec;
+  --color-button-secondary-bg: #ececf6;
+}

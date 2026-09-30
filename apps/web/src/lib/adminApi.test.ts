@@ -1,0 +1,62 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { key, mockSessionModule, resetMockStores } from "@/test/mockEnv";
+
+vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
+vi.mock("@/lib/session", () => mockSessionModule());
+
+/** Admin API (`/api/admin/*`): shared-secret + operator headers; no cookie can reach it. */
+const TOKEN = "test-admin-api-token-000000";
+const headers = (extra: Record<string, string> = {}) => ({
+  authorization: `Bearer ${TOKEN}`,
+  "x-admin-operator-id": "adm-1",
+  "x-admin-operator-name": encodeURIComponent("테스트 운영자"),
+  "content-type": "application/json",
+  ...extra
+});
+const ctx = <P,>(params: P) => ({ params: Promise.resolve(params) });
+
+describe("admin api", () => {
+  beforeEach(() => {
+    resetMockStores();
+    vi.stubEnv("ADMIN_API_TOKEN", TOKEN);
+  });
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("authorises only the shared secret with a valid operator", async () => {
+    const { authorizeAdminRequest } = await import("./adminApi");
+    const req = (h: Record<string, string>) => new Request("http://x/api/admin/dashboard", { headers: h });
+    expect(authorizeAdminRequest(req(headers()))).toEqual({ ok: true, admin: { userId: "adm-1", nickname: "테스트 운영자" } });
+    expect(authorizeAdminRequest(req(headers({ authorization: "Bearer wrong" })))).toEqual({ ok: false, status: 401 });
+    expect(authorizeAdminRequest(req({ ...headers(), authorization: "" }))).toEqual({ ok: false, status: 401 });
+    expect(authorizeAdminRequest(req(headers({ "x-admin-operator-id": "bad id!" })))).toEqual({ ok: false, status: 401 });
+    expect(authorizeAdminRequest(req(headers({ "x-admin-operator-name": "" })))).toEqual({ ok: false, status: 401 });
+    // A member's session cookie is irrelevant: without the secret the API refuses.
+    expect(authorizeAdminRequest(req({ cookie: "funation_session=mock-session-hongGD123" }))).toEqual({ ok: false, status: 401 });
+  });
+
+  it("refuses to run in production without a configured token", async () => {
+    vi.stubEnv("ADMIN_API_TOKEN", "");
+    vi.stubEnv("NODE_ENV", "production");
+    const { authorizeAdminRequest } = await import("./adminApi");
+    expect(authorizeAdminRequest(new Request("http://x", { headers: headers() }))).toEqual({ ok: false, status: 503 });
+  });
+
+  it("serves routes as JSON, audits with the operator and returns 404 for unknown ids", async () => {
+    const dashboard = await import("@/app/api/admin/dashboard/route");
+    const res = await dashboard.GET(new Request("http://x/api/admin/dashboard", { headers: headers() }), ctx({}));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect((await res.json()).creators.total).toBeGreaterThan(0);
+    expect((await dashboard.GET(new Request("http://x", { headers: { authorization: "Bearer nope" } }), ctx({}))).status).toBe(401);
+
+    const suspend = await import("@/app/api/admin/members/[id]/suspend/route");
+    const body = JSON.stringify({ days: 1, reason: "API 경유 테스트 정지", requestId: key(1) });
+    const r = await suspend.POST(new Request("http://x", { method: "POST", headers: headers(), body }), ctx({ id: "u-s001" }));
+    expect(await r.json()).toEqual({ status: "OK" });
+    const { auditEntries } = await import("@/services/admin/auditCore");
+    expect(auditEntries()[0]).toMatchObject({ action: "MEMBER_SUSPEND", actorId: "adm-1", actorName: "테스트 운영자", target: "member:u-s001" });
+
+    const detail = await import("@/app/api/admin/members/[id]/route");
+    expect((await detail.GET(new Request("http://x", { headers: headers() }), ctx({ id: "nope" }))).status).toBe(404);
+  });
+});
