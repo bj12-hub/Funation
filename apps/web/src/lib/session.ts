@@ -18,6 +18,9 @@ export const SESSION_COOKIE = "funation_session";
 const KEEP_SIGNED_IN_SECONDS = 60 * 60 * 24 * 30;
 
 const MOCK_TOKEN = "mock-session-hongGD123";
+/** A separate mock operator (not the sample member) for the admin console. How Admin is granted is TBD. */
+const MOCK_ADMIN_TOKEN = "mock-session-admin";
+const MOCK_ADMIN = { userId: "adm-operator", nickname: "운영자", funationId: "operator", avatarUrl: null, roles: ["ADMIN"] as Role[] };
 
 export type Session = {
   userId: string;
@@ -40,6 +43,7 @@ export async function getSession(): Promise<Session | null> {
     const { nickname, funationId, avatarUrl } = mockAccount;
     return { userId: MOCK_USER_ID, nickname, funationId, avatarUrl, roles: [...(mockSessionState.roles ?? DEFAULT_MOCK_ROLES)] };
   }
+  if (USE_MOCK && token === MOCK_ADMIN_TOKEN) return { ...MOCK_ADMIN, roles: [...MOCK_ADMIN.roles] };
   return null;
 }
 
@@ -53,6 +57,18 @@ export const hasRole = (session: Session | null, role: Role): boolean => !!sessi
 export async function getCreatorSession(): Promise<Session | null> {
   const session = await getSession();
   return hasRole(session, "CREATOR") ? session : null;
+}
+
+/** Session of a member with the Admin role, or `null`. Every admin read and Server Action uses this. */
+export async function getAdminSession(): Promise<Session | null> {
+  const session = await getSession();
+  return hasRole(session, "ADMIN") ? session : null;
+}
+
+/** Development only: signs in as the mock operator (replaces any member session). */
+export async function startMockAdminSession() {
+  if (!USE_MOCK) throw new Error("Admin sign-in is not connected yet.");
+  (await cookies()).set(SESSION_COOKIE, MOCK_ADMIN_TOKEN, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/" });
 }
 
 /** Issues the session cookie after the credentials were accepted. */

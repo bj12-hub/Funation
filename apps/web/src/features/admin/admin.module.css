@@ -1,0 +1,238 @@
+/* 관리자 콘솔 — code-first. Shell and sidebar reuse creatorStudio/studio.module.css. */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logoText {
+  background: var(--gradient-primary-button);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-size: var(--font-size-20);
+  font-weight: var(--font-weight-bold);
+}
+
+.badge {
+  padding: 2px 8px;
+  border: 1px solid var(--color-error-text);
+  border-radius: var(--radius-pill);
+  color: var(--color-error-text);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.headerLink {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.headerLink:hover {
+  color: var(--color-text-primary);
+}
+
+.operator {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-semibold);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 1160px;
+}
+
+.pageHead {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.title {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-20);
+  font-weight: var(--font-weight-bold);
+}
+
+.muted {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-12);
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.tile,
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-12);
+  background: var(--color-surface);
+}
+
+.tileValue {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-20);
+  font-variant-numeric: tabular-nums;
+}
+
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+  gap: 16px;
+}
+
+.card {
+  gap: 12px;
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cardTitle {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-bold);
+}
+
+.link {
+  color: var(--color-primary-light);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-semibold);
+}
+
+.queue {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.queue li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+}
+
+.queue li .muted {
+  grid-column: 1 / -1;
+}
+
+.warn {
+  color: var(--color-warning-text);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-13);
+}
+
+.table th,
+.table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  text-align: left;
+  vertical-align: top;
+}
+
+.table th {
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.table td:nth-child(2) {
+  color: var(--color-text-primary);
+}
+
+.empty {
+  margin: 0;
+  padding: 32px 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-14);
+  text-align: center;
+}
+
+/* 로그인 */
+.login {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  max-width: 420px;
+  margin: 12vh auto 0;
+  padding: 36px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-12);
+  background: var(--color-surface);
+  text-align: center;
+}
+
+.primary {
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--radius-8);
+  background: var(--gradient-primary-button);
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+}
+
+.page {
+  min-height: 100vh;
+  background: var(--color-bg-page);
+}
+
+@media (max-width: 900px) {
+  .split {
+    grid-template-columns: 1fr;
+  }
+
+  .table {
+    display: block;
+    overflow-x: auto;
+  }
+}
+
+.loginForm {
+  width: 100%;
+}
