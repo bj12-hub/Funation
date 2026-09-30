@@ -1,4 +1,5 @@
 import { USE_MOCK, mockDelay } from "@/lib/mock";
+import { isCreatorSuspended } from "@/services/admin/memberCore";
 
 /**
  * Creator directory contract.
@@ -74,7 +75,14 @@ export const CREATORS_PAGE_SIZE = 10;
 /** Single creator by id, or `null`. */
 export async function getCreatorById(id: string): Promise<CreatorSummary | null> {
   if (!USE_MOCK) throw new Error("Creator API is not connected yet.");
-  return MOCK_CREATORS.find((c) => c.id === id) ?? null;
+  // 운영 정책에 따라 정지된 크리에이터의 채널은 공개 화면에서 사라져요 (TBD: 안내 페이지).
+  return MOCK_CREATORS.find((c) => c.id === id && !isCreatorSuspended(c.id)) ?? null;
+}
+
+/** Admin console only: every creator, suspended ones included (callers must check the Admin role). */
+export async function getAllCreatorsForAdmin(): Promise<CreatorSummary[]> {
+  if (!USE_MOCK) throw new Error("Creator API is not connected yet.");
+  return MOCK_CREATORS.map((c) => ({ ...c }));
 }
 
 export async function getCreators({ category, query, sort = "popular", page = 1 }: CreatorQuery): Promise<CreatorPage> {
@@ -82,7 +90,8 @@ export async function getCreators({ category, query, sort = "popular", page = 1 
   await mockDelay(300);
 
   const keyword = query?.trim().toLowerCase();
-  const filtered = MOCK_CREATORS.filter(
+  const visible = MOCK_CREATORS.filter((c) => !isCreatorSuspended(c.id));
+  const filtered = visible.filter(
     (c) =>
       (!category || c.categories.includes(category)) &&
       (!keyword || c.name.toLowerCase().includes(keyword) || c.description.toLowerCase().includes(keyword))
@@ -101,7 +110,7 @@ export async function getCreators({ category, query, sort = "popular", page = 1 
     page: current,
     totalPages,
     totalCount: filtered.length,
-    liveCount: MOCK_CREATORS.filter((c) => c.isLive).length
+    liveCount: visible.filter((c) => c.isLive).length
   };
 }
 

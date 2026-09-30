@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { SAMPLE_MEMBER_ID, isMemberSuspended } from "@/services/admin/memberCore";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { safeRedirectPath } from "@/lib/safeRedirect";
 import { startSession } from "@/lib/session";
@@ -30,7 +31,8 @@ export type LoginResult =
   | { status: "SUCCESS" }
   | { status: "UNKNOWN_ID" }
   | { status: "WRONG_PASSWORD" }
-  | { status: "LOCKED" };
+  | { status: "LOCKED" }
+  | { status: "SUSPENDED" };
 
 export async function login(request: LoginRequest): Promise<LoginResult> {
   if (!USE_MOCK) throw new Error("Login API is not connected yet.");
@@ -67,6 +69,8 @@ async function devMockLogin({ identifier, password }: LoginRequest): Promise<Log
   if (identifier === "unknown") return { status: "UNKNOWN_ID" };
   if (password === mockCredentials.password) {
     failures.delete(identifier);
+    // 이용 정지 (관리자 콘솔): the sample member cannot sign in while suspended.
+    if (isMemberSuspended(SAMPLE_MEMBER_ID)) return { status: "SUSPENDED" };
     return { status: "SUCCESS" };
   }
 

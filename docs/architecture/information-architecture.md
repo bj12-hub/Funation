@@ -247,6 +247,6 @@ TBD:
 Code-first; groups follow docs/figma/screen-inventory.md "Admin". Admin role only (layout guard + getAdminSession on every read/action). A separate mock operator signs in at `/admin/login` (dev only).
 
 - 대시보드 `/admin` · 감사 로그 `/admin/audit`
-- 회원: 회원 관리 · 크리에이터 관리 (next)
+- 회원: 회원 관리 `/admin/members` (상세 · 이용 정지/해제) · 크리에이터 관리 `/admin/creators`
 - 거래: 후원 운영 · 결제 · 환불 · 정산 심사 (next)
 - 운영: 신고 처리 · 콘텐츠 관리 · 플랫폼 연동 · 시스템 (next)
