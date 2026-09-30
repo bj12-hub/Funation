@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { deleteMessages, markMessageRead, moveMessages, sendMessage } from "@/services/messages/messages";
 import { MAILBOXES, MESSAGE_BODY_MAX, SEND_LIMIT_PER_HOUR, type MailboxView, type MessageResult, type Recipient } from "@/services/messages/messageTypes";
+import { ModerationActions } from "../moderation/ModerationActions";
 import styles from "./messages.module.css";
 
 const when = (iso: string) => new Date(iso).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
@@ -146,6 +147,7 @@ export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxV
                   답장
                 </button>
               )}
+              {openId === m.id && m.direction === "IN" && <ModerationActions target={{ type: "MESSAGE", id: m.id }} signedIn />}
             </li>
           ))}
         </ul>

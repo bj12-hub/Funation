@@ -449,3 +449,7 @@
 .videoCard:hover .videoTitle {
   text-decoration: underline;
 }
+
+.postModeration {
+  margin-left: auto;
+}

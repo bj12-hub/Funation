@@ -1035,3 +1035,9 @@
   align-items: center;
   gap: 8px;
 }
+
+/* 채널 신고 (code-first) */
+.reportLink {
+  align-self: center;
+  margin-left: 4px;
+}

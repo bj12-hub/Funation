@@ -72,6 +72,11 @@ export async function deleteFaq(id: unknown) {
   return send("DELETE", `/content/faqs/${seg(id)}`);
 }
 
+export async function decideReport(input: unknown) {
+  const v = obj(input);
+  return send("POST", `/reports/${seg(v.id)}`, { action: v.action, note: v.note });
+}
+
 export async function checkPlatform(platform: unknown) {
   return send("POST", `/platforms/${seg(platform)}/check`);
 }

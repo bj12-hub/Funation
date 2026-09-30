@@ -1,6 +1,7 @@
 "use server";
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
+import { isBlockedBy } from "@/services/moderation/moderationCore";
 import { getSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { getCreatorById, getCreators } from "@/services/creators/creators";
@@ -21,18 +22,21 @@ const inBox = (m: MockMessage, box: Mailbox) => !m.deleted && m.folder === box;
 
 export async function getMailbox(params: { box?: unknown; q?: unknown; page?: unknown }): Promise<MailboxView | null> {
   assertMock();
-  if (!(await getSession())) return null;
+  const session = await getSession();
+  if (!session) return null;
   const box: Mailbox = isMailbox(params.box) ? params.box : "inbox";
   const q = typeof params.q === "string" ? params.q.trim().slice(0, 40) : "";
   await mockDelay(200);
   const needle = q.toLowerCase();
-  const all = mockMessages.messages
+  // 차단: mail from blocked senders is not shown (sent mail stays).
+  const visible = mockMessages.messages.filter((m) => m.direction === "OUT" || !isBlockedBy(session.userId, m.peerId));
+  const all = visible
     .filter((m) => inBox(m, box) && (!needle || m.body.toLowerCase().includes(needle) || m.peerName.toLowerCase().includes(needle)))
     .sort((a, b) => b.sentAt.localeCompare(a.sentAt));
   const totalPages = Math.max(1, Math.ceil(all.length / MESSAGE_PAGE_SIZE));
   const n = Number(params.page);
   const page = Number.isInteger(n) && n >= 1 && n <= totalPages ? n : 1;
-  const counts = Object.fromEntries(MAILBOXES.map((b) => [b.key, mockMessages.messages.filter((m) => inBox(m, b.key)).length])) as Record<Mailbox, number>;
+  const counts = Object.fromEntries(MAILBOXES.map((b) => [b.key, visible.filter((m) => inBox(m, b.key)).length])) as Record<Mailbox, number>;
   return {
     box,
     q,
@@ -40,7 +44,7 @@ export async function getMailbox(params: { box?: unknown; q?: unknown; page?: un
     page,
     totalPages,
     counts,
-    unread: mockMessages.messages.filter((m) => inBox(m, "inbox") && !m.read).length
+    unread: visible.filter((m) => inBox(m, "inbox") && !m.read).length
   };
 }
 

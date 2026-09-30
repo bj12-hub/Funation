@@ -80,6 +80,8 @@ Add a row whenever a new code-first screen ships (see `docs/research/funnation-r
 
 | 관리자 콘솔 → 별도 앱 `apps/admin` (http://localhost:3200) | separate admin app PR | 위 `/admin/*` 화면을 사이트에서 분리: 어드민 앱 라우트는 `/`, `/audit`, `/members`, `/creators`, `/payments`, `/donations`, `/settlements`, `/content`, `/platforms`, `/system`, `/login`. 데이터는 사이트 관리자 API(`/api/admin/*`)로만 읽고 씀. 사이트의 `/admin`은 삭제 |
 
+| 신고 · 차단: 커뮤니티 글 · 댓글, 채널 커뮤니티 글, 받은 쪽지, 크리에이터 채널의 "신고" (+ 작성자 "차단") (`features/moderation/ModerationActions.tsx`), `/mypage/blocks` 차단 관리, 어드민 앱 `/reports` 신고 처리 | report-block PR | 신고 사유 6종(스팸 · 욕설 · 음란 · 개인정보 · 사칭 · 기타, 기타는 내용 필수) + 상세, 회원 · 대상별 1회, 신고 당시 내용 스냅샷; 차단 시 해당 작성자의 글 · 댓글 · 채널 글 · 쪽지가 보이지 않음(상대에게 알리지 않음), 작성자 id는 서버에서만 확인; 운영자 숨김 / 기각(메모 필수 · 최종 · 감사 로그, 같은 콘텐츠 신고 일괄 종료), 대시보드 신고 대기 건수. TBD: 사유별 처리 기준 · 제재 단계 · 이의 제기, 신고 남용 방지 |
+
 ## Figma
 
 구현된 전체 화면 캡처는 [current-build.md](current-build.md)의 새 파일(Somnation — 현재 구현)에 있어요. 펀페이 파일에 잠시 두었던 "코드 우선 화면" 페이지는 2026-09-30에 삭제했어요.

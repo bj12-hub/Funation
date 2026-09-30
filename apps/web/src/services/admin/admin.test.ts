@@ -31,7 +31,7 @@ describe("admin console", () => {
     const d = (await m.getAdminDashboard())!;
     expect(d.donations.monthFn).toBeGreaterThanOrEqual(7_000);
     expect(d.pending.refunds).toBe(1);
-    expect(d.pending.reports).toBeNull();
+    expect(d.pending.reports).toBe(0);
     expect(d.creators.total).toBeGreaterThan(0);
   });
 

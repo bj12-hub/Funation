@@ -176,6 +176,10 @@ export function MyPageScreen({ account, grade, creator }: { account: MyAccount; 
             <strong>내 랭킹</strong>
             <span>전체·크리에이터별 내 후원 순위</span>
           </Link>
+          <Link href="/mypage/blocks" className={styles.identityLink}>
+            <strong>차단 관리</strong>
+            <span>차단한 사용자와 차단 해제</span>
+          </Link>
         </div>
       </section>
 
