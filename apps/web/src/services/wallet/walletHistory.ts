@@ -213,7 +213,7 @@ function mockCharges(): ChargeRecord[] {
   const refunds = new Map(mockRefunds.requests.map((r) => [r.chargeId, r]));
   return [...mockWallet.charges, ...seedCharges()].map((c) => {
     const r = refunds.get(c.id);
-    return r ? { ...c, refund: { status: r.status, requestedAt: r.requestedAt } } : c;
+    return r ? { ...c, refund: { status: r.status, requestedAt: r.requestedAt, decidedAt: r.decision?.at, note: r.status === "REJECTED" ? r.decision?.note : undefined } } : c;
   });
 }
 

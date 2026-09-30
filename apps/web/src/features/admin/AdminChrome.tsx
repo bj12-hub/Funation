@@ -31,8 +31,8 @@ export const ADMIN_GROUPS: Group[] = [
   {
     title: "거래",
     items: [
-      { label: "후원 운영", emoji: "💝" },
-      { label: "결제 · 환불", emoji: "💳" },
+      { label: "후원 운영", emoji: "💝", href: "/admin/donations" },
+      { label: "결제 · 환불", emoji: "💳", href: "/admin/payments" },
       { label: "정산 심사", emoji: "🧮" }
     ]
   },

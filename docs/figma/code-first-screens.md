@@ -70,6 +70,8 @@ Add a row whenever a new code-first screen ships (see `docs/research/funnation-r
 
 | `/admin/members` 회원 관리 · `/admin/members/[id]` 회원 상세 · `/admin/creators` 크리에이터 관리 (`features/admin/members/*`) | admin members PR | 검색 (닉네임 · ID · 회원 번호) · 역할 · 상태 필터 · 페이지, 상세 정보, 이용 정지 (1 · 7 · 30일 · 무기한, 사유 필수) / 해제 (사유 필수), 처리 이력(감사 로그). 정지 중: 회원 로그인 차단 · 세션 무효, 크리에이터 채널은 공개 화면에서 숨김. 로그인 화면 "이용이 정지된 계정" 문구. TBD: 정지 사유 기준 · 이의 제기 · 정지 중 FN · 정산 처리, 개인정보 열람 권한 |
 
+| `/admin/payments` 결제 · 환불 (충전 내역 · 환불 요청 탭) · `/admin/donations` 후원 운영 (`features/admin/payments/*`) + 회원 FN 충전내역 환불 상태 | admin payments PR | 충전 거래 목록(회원 · 수단 · 상태 · 거래 번호), 환불 요청 심사(승인 = 서버에서 FN 회수 · 보유 FN 부족 시 불가, 거절 = 메모 안내, 처리 메모 필수 · 최종 · 감사 로그), 회원 화면에 "환불 완료 / 환불 거절" 표시; 후원 상태별 · 유형별 합계와 목록(조회 전용). TBD: 결제대행사 결제 취소(원화), 부분 사용 충전 환불, 후원 취소 · 환불 규칙 |
+
 ## Figma
 
 구현된 전체 화면 캡처는 [current-build.md](current-build.md)의 새 파일(Somnation — 현재 구현)에 있어요. 펀페이 파일에 잠시 두었던 "코드 우선 화면" 페이지는 2026-09-30에 삭제했어요.

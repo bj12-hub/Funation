@@ -57,7 +57,7 @@ export function ChargeTable({ items }: { items: ChargeRecord[] }) {
                   </td>
                   <td className={styles.center}>
                     <span className={`${styles.pill} ${PILL[c.status]}`}>{CHARGE_STATUS_LABEL[c.status]}</span>
-                    {c.refund && <span className={styles.refundTag}>환불 요청</span>}
+                    {c.refund && <span className={styles.refundTag}>{c.refund.status === "APPROVED" ? "환불 완료" : c.refund.status === "REJECTED" ? "환불 거절" : "환불 요청"}</span>}
                   </td>
                   <td className={styles.center}>
                     <button type="button" className={styles.detailButton} onClick={() => setSelected(c)} aria-label={`${c.chargedAt} 충전 자세히`}>
@@ -104,6 +104,20 @@ function RefundSection({ charge }: { charge: ChargeRecord }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  if (charge.refund?.status === "APPROVED") {
+    return (
+      <p className={styles.refundDone} role="status">
+        환불이 승인됐어요 · FN이 회수됐어요 ({new Date(charge.refund.decidedAt ?? charge.refund.requestedAt).toLocaleDateString("ko-KR")}). 결제 취소 처리 시점은 결제 수단에 따라 달라요 (TBD).
+      </p>
+    );
+  }
+  if (charge.refund?.status === "REJECTED") {
+    return (
+      <p className={styles.refundDone} role="status">
+        환불 요청이 거절됐어요{charge.refund.note ? ` · 사유: ${charge.refund.note}` : ""}
+      </p>
+    );
+  }
   if (requestedAt) {
     return (
       <p className={styles.refundDone} role="status">
