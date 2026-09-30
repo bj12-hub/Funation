@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { addComment, deleteComment, deletePost } from "@/services/community/community";
 import { COMMENT_MAX, categoryLabel, type PostDetail } from "@/services/community/communityTypes";
+import { ModerationActions } from "../moderation/ModerationActions";
 import styles from "./community.module.css";
 
 const when = (iso: string) => new Date(iso).toLocaleString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
@@ -41,6 +42,7 @@ export function PostScreen({ post, signedIn }: { post: PostDetail; signedIn: boo
             {post.authorName} · {when(post.createdAt)}
             {post.updatedAt ? " (수정됨)" : ""} · 조회 {post.views}
           </span>
+          {!post.mine && <ModerationActions target={{ type: "POST", id: post.id }} signedIn={signedIn} />}
         </header>
         <p className={styles.postBody}>{post.body}</p>
         {post.mine && (
@@ -78,6 +80,7 @@ export function PostScreen({ post, signedIn }: { post: PostDetail; signedIn: boo
                 <span className={styles.meta}>
                   <strong>{c.authorName}</strong> · {when(c.createdAt)}
                 </span>
+                {!c.mine && <ModerationActions target={{ type: "COMMENT", id: c.id, parentId: post.id }} signedIn={signedIn} />}
                 <p className={styles.commentBody}>{c.body}</p>
                 {c.mine && (
                   <button type="button" className={styles.link} disabled={pending} onClick={() => act(() => deleteComment(post.id, c.id))}>

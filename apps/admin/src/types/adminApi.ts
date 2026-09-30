@@ -22,7 +22,7 @@ export const PLATFORM_ERROR_LABEL: Record<PlatformErrorCode, string> = {
 
 // ── Audit · dashboard ─────────────────────────────────────────────────────────
 
-export type AuditAction = "ADMIN_SIGN_IN" | "ADMIN_SIGN_OUT" | "MEMBER_SUSPEND" | "MEMBER_RESTORE" | "REFUND_APPROVE" | "REFUND_REJECT" | "SETTLEMENT_APPROVE" | "SETTLEMENT_REJECT" | "CONTENT_UPDATE" | "SYSTEM_UPDATE";
+export type AuditAction = "ADMIN_SIGN_IN" | "ADMIN_SIGN_OUT" | "MEMBER_SUSPEND" | "MEMBER_RESTORE" | "REFUND_APPROVE" | "REFUND_REJECT" | "SETTLEMENT_APPROVE" | "SETTLEMENT_REJECT" | "CONTENT_UPDATE" | "SYSTEM_UPDATE" | "REPORT_DISMISS" | "REPORT_HIDE";
 
 export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
   ADMIN_SIGN_IN: "관리자 로그인",
@@ -34,7 +34,9 @@ export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
   SETTLEMENT_APPROVE: "정산 승인",
   SETTLEMENT_REJECT: "정산 반려",
   CONTENT_UPDATE: "콘텐츠 변경",
-  SYSTEM_UPDATE: "시스템 설정 변경"
+  SYSTEM_UPDATE: "시스템 설정 변경",
+  REPORT_DISMISS: "신고 기각",
+  REPORT_HIDE: "신고 콘텐츠 숨김"
 };
 
 export type AuditEntry = { id: string; at: string; actorId: string; actorName: string; action: AuditAction; target: string | null; reason: string | null };
@@ -182,6 +184,31 @@ export type SystemView = {
   runtime: { mock: boolean; nodeEnv: string; auditEntries: number };
 };
 export const BANNER_MESSAGE_MAX = 120;
+
+// ── Reports (신고) ─────────────────────────────────────────────────────────────
+
+export type ReportTargetType = "POST" | "COMMENT" | "CHANNEL_POST" | "MESSAGE" | "CREATOR";
+export const REPORT_TARGET_LABEL: Record<ReportTargetType, string> = { POST: "커뮤니티 글", COMMENT: "댓글", CHANNEL_POST: "채널 커뮤니티 글", MESSAGE: "쪽지", CREATOR: "크리에이터 채널" };
+export type ReportReason = "SPAM" | "ABUSE" | "SEXUAL" | "PRIVACY" | "IMPERSONATION" | "ETC";
+export const REPORT_REASON_LABEL: Record<ReportReason, string> = { SPAM: "스팸 · 광고", ABUSE: "욕설 · 비하 · 혐오", SEXUAL: "음란 · 선정적 내용", PRIVACY: "개인정보 노출", IMPERSONATION: "사칭", ETC: "기타" };
+export type ReportStatus = "OPEN" | "DISMISSED" | "ACTIONED";
+export const REPORT_STATUSES: ReportStatus[] = ["OPEN", "DISMISSED", "ACTIONED"];
+export type Report = {
+  id: string;
+  target: { type: ReportTargetType; id: string; parentId?: string };
+  authorId: string;
+  authorName: string;
+  snapshot: string;
+  reason: ReportReason;
+  detail: string;
+  reporterId: string;
+  reporterName: string;
+  createdAt: string;
+  status: ReportStatus;
+  resolution: { at: string; by: string; action: "DISMISS" | "HIDE"; note: string } | null;
+};
+export type AdminReportView = { rows: (Report & { authorIsMember: boolean })[]; counts: Record<ReportStatus, number> };
+export const REPORT_NOTE = { min: 2, max: 200 } as const;
 
 // ── Mutation results ──────────────────────────────────────────────────────────
 

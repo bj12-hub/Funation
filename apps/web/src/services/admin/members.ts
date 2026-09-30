@@ -39,6 +39,11 @@ async function directory(): Promise<AdminMember[]> {
   return [sample, ...creators, ...supporters];
 }
 
+/** Ids present in the member directory (reports link to 회원 상세 only for these). */
+export async function memberIds(): Promise<Set<string>> {
+  return new Set((await directory()).map((m) => m.id));
+}
+
 const parseFilter = (input: Record<string, unknown>): MemberFilter => ({
   q: typeof input.q === "string" ? input.q.trim().slice(0, 40) : "",
   role: input.role === "SUPPORTER" || input.role === "CREATOR" ? input.role : "ALL",

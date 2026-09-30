@@ -1,10 +1,12 @@
 "use server";
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
+import { isBlockedBy } from "@/services/moderation/moderationCore";
 import { toDateString } from "@/lib/period";
 import { getSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
+import { channelCommunityStore } from "./channelCommunityCore";
 import { getCreatorById } from "./creators";
 import { CHANNEL_POST_MAX, CHANNEL_POSTS_PAGE, type ChannelPostResult, type ChannelPostsView, type ChannelRanking } from "./channelTypes";
 
@@ -14,10 +16,7 @@ import { CHANNEL_POST_MAX, CHANNEL_POSTS_PAGE, type ChannelPostResult, type Chan
  * data, the other supporters are generated per channel.
  */
 
-type StoredPost = { id: string; creatorId: string; authorId: string; authorName: string; body: string; createdAt: string; deleted: boolean };
-type Store = { posts: StoredPost[]; requests: Record<string, string>; seeded: Record<string, true> };
-const g = globalThis as typeof globalThis & { __funationMockChannelHomeV1?: Store };
-const store = (): Store => (g.__funationMockChannelHomeV1 ??= { posts: [], requests: {}, seeded: {} });
+const store = channelCommunityStore;
 
 const assertMock = () => {
   if (!USE_MOCK) throw new Error("Channel API is not connected yet.");
@@ -70,7 +69,7 @@ export async function getChannelPosts(creatorId: unknown, show: unknown = CHANNE
   seedPosts(creatorId);
   const session = await getSession();
   const all = store()
-    .posts.filter((p) => p.creatorId === creatorId && !p.deleted)
+    .posts.filter((p) => p.creatorId === creatorId && !p.deleted && !isBlockedBy(session?.userId, p.authorId))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const count = Math.min(Math.max(1, Math.floor(Number(show)) || CHANNEL_POSTS_PAGE), 100);
   return {

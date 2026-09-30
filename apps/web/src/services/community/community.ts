@@ -1,6 +1,7 @@
 "use server";
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
+import { isBlockedBy } from "@/services/moderation/moderationCore";
 import { getSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import {
@@ -45,8 +46,10 @@ export async function getBoard(params: { category?: unknown; q?: unknown; page?:
   const q = typeof params.q === "string" ? params.q.trim().slice(0, 40) : "";
   await mockDelay(200);
   const needle = q.toLowerCase();
+  // 차단: posts by authors the viewer blocked are left out.
+  const viewer = (await getSession())?.userId;
   const all = mockCommunity.posts
-    .filter((p) => live(p) && (category === "ALL" || p.category === category) && (!needle || p.title.toLowerCase().includes(needle) || p.body.toLowerCase().includes(needle)))
+    .filter((p) => live(p) && !isBlockedBy(viewer, p.authorId) && (category === "ALL" || p.category === category) && (!needle || p.title.toLowerCase().includes(needle) || p.body.toLowerCase().includes(needle)))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const totalPages = Math.max(1, Math.ceil(all.length / POSTS_PAGE_SIZE));
   const n = Number(params.page);
@@ -59,7 +62,7 @@ export async function getPost(id: unknown): Promise<PostDetail | null> {
   assertMock();
   const session = await getSession();
   const p = typeof id === "string" ? mockCommunity.posts.find((x) => x.id === id && live(x)) : undefined;
-  if (!p) return null;
+  if (!p || isBlockedBy(session?.userId, p.authorId)) return null;
   await mockDelay(150);
   p.views += 1;
   return {
@@ -68,7 +71,7 @@ export async function getPost(id: unknown): Promise<PostDetail | null> {
     updatedAt: p.updatedAt,
     mine: !!session && session.userId === p.authorId,
     comments: p.comments
-      .filter((c) => !c.deleted)
+      .filter((c) => !c.deleted && !isBlockedBy(session?.userId, c.authorId))
       .map((c) => ({ id: c.id, authorName: c.authorName, body: c.body, createdAt: c.createdAt, mine: !!session && session.userId === c.authorId }))
   };
 }

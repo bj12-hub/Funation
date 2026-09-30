@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
 import { addFavorite, removeFavorite } from "@/services/favorites/favorites";
+import { ModerationActions } from "../moderation/ModerationActions";
 import styles from "./room.module.css";
 
 type ToastState = { message: string; tone: "accent" | "neutral" } | null;
@@ -60,6 +61,7 @@ export function RoomActions({ creatorId, name, initialFavorite, signedIn }: { cr
         >
           ✉️ 쪽지
         </button>
+        <ModerationActions target={{ type: "CREATOR", id: creatorId }} signedIn={signedIn} block={false} className={styles.reportLink} />
       </div>
       <ShareModal
         open={shareOpen}

@@ -16,7 +16,7 @@ export function AdminDashboardScreen({ data }: { data: AdminDashboard }) {
   const queues = [
     { label: "환불 요청", count: data.pending.refunds, note: "결제 · 환불 › 환불 요청에서 심사" },
     { label: "정산 신청", count: data.pending.settlements, note: "정산 심사에서 처리" },
-    { label: "신고", count: data.pending.reports, note: "신고 기능 준비 중" }
+    { label: "신고", count: data.pending.reports, note: "신고 처리에서 확인" }
   ];
   return (
     <div className={styles.content}>
