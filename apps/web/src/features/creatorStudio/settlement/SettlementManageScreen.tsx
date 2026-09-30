@@ -75,6 +75,7 @@ export function SettlementManageScreen({ view }: { view: SettlementManageView })
                       <span className={applyStyles.badge} data-status={r.status}>
                         {SETTLEMENT_STATUS_LABEL[r.status]}
                       </span>
+                      {r.reviewNote && <p className={styles.reviewNote}>사유: {r.reviewNote}</p>}
                     </td>
                     <td>{r.requestedAt}</td>
                     <td>

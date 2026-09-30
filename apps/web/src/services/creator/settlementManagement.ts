@@ -58,7 +58,7 @@ export async function getSettlementManageView(params: { period?: unknown; from?:
     period,
     from,
     to,
-    items: filtered.slice((page - 1) * MANAGE_PAGE_SIZE, page * MANAGE_PAGE_SIZE).map((r) => ({ ...r })),
+    items: filtered.slice((page - 1) * MANAGE_PAGE_SIZE, page * MANAGE_PAGE_SIZE).map(({ review, ...r }) => ({ ...r, reviewNote: r.status === "REJECTED" ? review?.note : undefined })),
     page,
     totalPages
   };

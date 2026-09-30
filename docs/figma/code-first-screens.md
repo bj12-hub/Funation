@@ -72,6 +72,8 @@ Add a row whenever a new code-first screen ships (see `docs/research/funnation-r
 
 | `/admin/payments` 결제 · 환불 (충전 내역 · 환불 요청 탭) · `/admin/donations` 후원 운영 (`features/admin/payments/*`) + 회원 FN 충전내역 환불 상태 | admin payments PR | 충전 거래 목록(회원 · 수단 · 상태 · 거래 번호), 환불 요청 심사(승인 = 서버에서 FN 회수 · 보유 FN 부족 시 불가, 거절 = 메모 안내, 처리 메모 필수 · 최종 · 감사 로그), 회원 화면에 "환불 완료 / 환불 거절" 표시; 후원 상태별 · 유형별 합계와 목록(조회 전용). TBD: 결제대행사 결제 취소(원화), 부분 사용 충전 환불, 후원 취소 · 환불 규칙 |
 
+| `/admin/settlements` 정산 심사 (`features/admin/settlements/*`) + 스튜디오 정산 관리 반려 사유 | admin settlements PR | 정산 등록 정보(마스킹), 상태 탭(전체 · 심사 대기 · 승인 · 반려), 신청별 금액 · 기간 · 수수료 · 실지급 · 지급 예정일, 승인 / 반려(처리 메모 필수 · 최종 · 감사 로그), 반려 시 실지급 0 · 지급일 해제 · 신청 금액을 신청 가능 금액으로 반환; 크리에이터 정산 관리 표에 반려 사유 표시. TBD: 서류 심사 · 실제 지급(이체) · 정책 수치 |
+
 ## Figma
 
 구현된 전체 화면 캡처는 [current-build.md](current-build.md)의 새 파일(Somnation — 현재 구현)에 있어요. 펀페이 파일에 잠시 두었던 "코드 우선 화면" 페이지는 2026-09-30에 삭제했어요.
