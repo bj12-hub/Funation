@@ -477,3 +477,22 @@
   color: var(--color-text-secondary);
   font-size: var(--font-size-13);
 }
+
+/* 콘텐츠 관리 */
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.rowActions {
+  display: flex;
+  gap: 6px;
+}
+
+.card > .input,
+.card > .textarea {
+  width: 100%;
+}
