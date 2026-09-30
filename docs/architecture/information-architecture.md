@@ -242,11 +242,17 @@ TBD:
 - A settings page (what it holds).
 - Whether the header search should become a full search page (live + creators + community) instead of linking to 크리에이터 찾기.
 
-## 관리자 콘솔 (/admin)
+## 관리자 콘솔 (별도 앱 apps/admin)
 
-Code-first; groups follow docs/figma/screen-inventory.md "Admin". Admin role only (layout guard + getAdminSession on every read/action). A separate mock operator signs in at `/admin/login` (dev only); the operator session is not a member session, so the operator is a guest on the site.
+The admin console is a **separate Next.js app** (`apps/admin`, port 3200), not part of the site. It has no data of its own: its server calls the site's admin API (`apps/web` → `/api/admin/*`) with a shared secret (`ADMIN_API_TOKEN`) and the operator's identity; the site validates, applies and audits every change. Browsers never reach the admin API (no cookies, secret stays on the admin server). Operators sign in to the admin app only (mock operator in development; SSO / 2FA / IP allowlist TBD). Groups follow docs/figma/screen-inventory.md "Admin".
 
-- 대시보드 `/admin` · 감사 로그 `/admin/audit`
-- 회원: 회원 관리 `/admin/members` (상세 · 이용 정지/해제) · 크리에이터 관리 `/admin/creators`
-- 거래: 후원 운영 `/admin/donations` · 결제 · 환불 `/admin/payments` (환불 심사) · 정산 심사 `/admin/settlements`
-- 운영: 콘텐츠 관리 `/admin/content` (공지 · FAQ) · 플랫폼 연동 `/admin/platforms` · 시스템 `/admin/system` (사이트 공지 배너) · 신고 처리 (신고 기능 이후)
+| Admin app route | Site API |
+|---|---|
+| 대시보드 `/` · 감사 로그 `/audit` | `GET /dashboard`, `GET /audit`, `POST /audit/session` |
+| 회원 관리 `/members`, `/members/[id]` · 크리에이터 관리 `/creators` | `GET /members`, `GET /members/[id]`, `POST /members/[id]/suspend`, `POST /members/[id]/restore`, `GET /creators` |
+| 결제 · 환불 `/payments` · 후원 운영 `/donations` | `GET /payments`, `POST /refunds/[chargeId]`, `GET /donations` |
+| 정산 심사 `/settlements` | `GET /settlements`, `POST /settlements/[id]` |
+| 콘텐츠 관리 `/content` | `GET|POST /content/notices`, `DELETE /content/notices/[id]`, same for `/content/faqs` |
+| 플랫폼 연동 `/platforms` · 시스템 `/system` | `GET /platforms`, `POST /platforms/[platform]/check`, `GET /system`, `PUT /system/banner` |
+
+신고 처리 follows once reporting exists. When the backend (`apps/api`) is built it serves the same contract (`apps/admin/src/types/adminApi.ts`).

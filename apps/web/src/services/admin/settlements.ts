@@ -1,15 +1,13 @@
-"use server";
-
 import { USE_MOCK } from "@/lib/mock";
-import { getAdminSession } from "@/lib/session";
 import { mockCreator } from "@/services/creator/mockCreatorStore";
 import { mockSettlement } from "@/services/creator/mockSettlementStore";
 import { memberTypeLabel, type SettlementStatus } from "@/services/creator/settlementTypes";
+import type { AdminActor } from "./adminTypes";
 import { recordAudit } from "./auditCore";
 import { SETTLEMENT_NOTE, type AdminSettlementView, type SettlementDecisionResult } from "./settlementTypes";
 
 /**
- * 정산 심사 Server Actions — code-first. Route `/admin/settlements` (`?status=`). Admin only.
+ * 정산 심사 API logic — code-first (called by `/api/admin/*`). Admin app screens `/admin/settlements` (`?status=`). Admin only.
  * Approve keeps the scheduled payout; reject cancels it and releases the held earnings back to the
  * creator's available balance. Decisions are final and written to the audit log. The mock has one
  * settling creator (the studio channel); the real payout / bank transfer is TBD.
@@ -22,7 +20,6 @@ const STATUSES: SettlementStatus[] = ["PENDING", "APPROVED", "REJECTED"];
 
 export async function getSettlementReview(input: { status?: unknown } = {}): Promise<AdminSettlementView | null> {
   assertMock();
-  if (!(await getAdminSession())) return null;
   const all = mockSettlement.requests;
   const counts = Object.fromEntries(STATUSES.map((s) => [s, all.filter((r) => r.status === s).length])) as AdminSettlementView["counts"];
   const filtered = STATUSES.includes(input.status as SettlementStatus) ? all.filter((r) => r.status === input.status) : all;
@@ -37,10 +34,8 @@ export async function getSettlementReview(input: { status?: unknown } = {}): Pro
   };
 }
 
-export async function decideSettlement(input: unknown): Promise<SettlementDecisionResult> {
+export async function decideSettlement(admin: AdminActor, input: unknown): Promise<SettlementDecisionResult> {
   assertMock();
-  const admin = await getAdminSession();
-  if (!admin) return { status: "UNAUTHORIZED" };
   const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   const request = mockSettlement.requests.find((r) => r.id === v.id);
   if (!request) return { status: "NOT_FOUND" };

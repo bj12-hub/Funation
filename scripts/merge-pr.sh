@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Usage (Git Bash, from anywhere): bash scripts/merge-pr.sh <pr-number> <branch> "<title>"
 #
-# Merges origin/<branch> into origin/main in a throwaway worktree, runs tsc / eslint / vitest / next build,
+# Merges origin/<branch> into origin/main in a throwaway worktree, runs tsc / eslint / vitest / next build
+# for apps/web and apps/admin,
 # pushes main (fast-forward only, so GitHub marks the PR as merged), then merges main into preview
 # and pushes it so `npm run dev:sync` picks it up.
 #
@@ -47,6 +48,11 @@ MSYS_NO_PATHCONV=1 cmd /c mklink /J "$(cygpath -w "$W/node_modules")" "$(cygpath
 LOG="$WORK/build-$PR.log"
 (cd "$W/apps/web" && npx tsc --noEmit && npx eslint . && npx vitest run && npx next build >"$LOG" 2>&1) \
   || { echo "CHECKS FAILED (see $LOG)"; tail -30 "$LOG" 2>/dev/null; exit 1; }
+# The separate admin console (apps/admin) gets the same checks when it exists on the merged tree.
+if [ -d "$W/apps/admin" ]; then
+  (cd "$W/apps/admin" && npx tsc --noEmit && npx eslint . && npx vitest run && npx next build >>"$LOG" 2>&1) \
+    || { echo "ADMIN CHECKS FAILED (see $LOG)"; tail -30 "$LOG" 2>/dev/null; exit 1; }
+fi
 echo "checks ok"
 
 git merge-base --is-ancestor origin/main "$MERGE"

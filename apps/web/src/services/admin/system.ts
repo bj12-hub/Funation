@@ -1,18 +1,16 @@
-"use server";
-
 import { USE_MOCK } from "@/lib/mock";
-import { getAdminSession } from "@/lib/session";
 import { donationLinkStore } from "@/services/creator/donationLinkCore";
 import { youtubeStore } from "@/services/creator/youtubeCore";
 import { ADAPTERS } from "@/services/platforms/adapters";
 import { PlatformError, type PlatformErrorCode } from "@/services/platforms/platformTypes";
 import { BANNER_MESSAGE_MAX, siteBannerStore } from "@/services/system/siteBanner";
 import type { Platform } from "@/types/platform";
+import type { AdminActor } from "./adminTypes";
 import { auditStore, recordAudit } from "./auditCore";
 import type { PlatformStatusRow, SystemResult, SystemView } from "./systemTypes";
 
 /**
- * 플랫폼 연동 · 시스템 Server Actions — code-first. Routes `/admin/platforms`, `/admin/system`. Admin only.
+ * 플랫폼 연동 · 시스템 API logic — code-first (called by `/api/admin/*`). Admin app screens `/admin/platforms`, `/admin/system`. Admin only.
  * The connection check calls each adapter the way production code would (timeouts and error codes
  * included) and never exposes platform DTOs.
  */
@@ -28,7 +26,6 @@ const checks = (): Checks => (g.__funationMockPlatformChecksV1 ??= {});
 
 export async function getPlatformStatus(): Promise<PlatformStatusRow[] | null> {
   assertMock();
-  if (!(await getAdminSession())) return null;
   const yt = youtubeStore();
   const link = donationLinkStore();
   return PLATFORMS.map((p) => ({
@@ -46,7 +43,6 @@ export async function getPlatformStatus(): Promise<PlatformStatusRow[] | null> {
 /** 연결 확인: a lightweight read through the adapter; the result is kept for the status table. */
 export async function checkPlatform(platform: unknown): Promise<SystemResult> {
   assertMock();
-  if (!(await getAdminSession())) return { status: "UNAUTHORIZED" };
   if (!PLATFORMS.includes(platform as Platform)) return { status: "INVALID", message: "알 수 없는 플랫폼이에요." };
   const p = platform as Platform;
   const started = Date.now();
@@ -62,14 +58,11 @@ export async function checkPlatform(platform: unknown): Promise<SystemResult> {
 
 export async function getSystemView(): Promise<SystemView | null> {
   assertMock();
-  if (!(await getAdminSession())) return null;
   return { banner: { ...siteBannerStore() }, runtime: { mock: USE_MOCK, nodeEnv: process.env.NODE_ENV ?? "unknown", auditEntries: auditStore().entries.length } };
 }
 
-export async function saveSiteBanner(input: unknown): Promise<SystemResult> {
+export async function saveSiteBanner(admin: AdminActor, input: unknown): Promise<SystemResult> {
   assertMock();
-  const admin = await getAdminSession();
-  if (!admin) return { status: "UNAUTHORIZED" };
   const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   const message = typeof v.message === "string" ? v.message.trim() : "";
   const href = typeof v.href === "string" ? v.href.trim() : "";

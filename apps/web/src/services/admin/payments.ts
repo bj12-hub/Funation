@@ -1,17 +1,15 @@
-"use server";
-
 import { USE_MOCK } from "@/lib/mock";
-import { getAdminSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
 import { mockRefunds } from "@/services/wallet/mockRefundStore";
 import { listChargeRecords, listDonationRecords } from "@/services/wallet/walletHistory";
 import type { DonationStatus } from "@/services/wallet/walletTypes";
+import type { AdminActor } from "./adminTypes";
 import { recordAudit } from "./auditCore";
 import { SAMPLE_MEMBER_ID } from "./memberCore";
 import { REFUND_NOTE, type AdminRefund, type DonationsView, type PaymentsView, type RefundDecisionResult } from "./paymentTypes";
 
 /**
- * 후원 · 결제 운영 Server Actions — code-first. Routes `/admin/payments`, `/admin/donations`.
+ * 후원 · 결제 운영 API logic — code-first (called by `/api/admin/*`). Admin app screens `/admin/payments`, `/admin/donations`.
  * Admin only. A refund decision is final and logged; approval takes the FN back on the server.
  * The mock has one member with wallet data (the sample member); per-member ledgers are TBD.
  */
@@ -41,7 +39,6 @@ function refunds(): AdminRefund[] {
 
 export async function getPaymentsView(): Promise<PaymentsView | null> {
   assertMock();
-  if (!(await getAdminSession())) return null;
   const charges = listChargeRecords()
     .map((c) => ({ ...c, ...owner() }))
     .sort((a, b) => b.chargedAt.localeCompare(a.chargedAt));
@@ -52,10 +49,8 @@ export async function getPaymentsView(): Promise<PaymentsView | null> {
  * 환불 승인: the charged FN must still be in the balance (spent FN cannot be taken back — the real
  * rule for partially used charges is TBD). The balance change and the decision happen together.
  */
-export async function decideRefund(input: unknown): Promise<RefundDecisionResult> {
+export async function decideRefund(admin: AdminActor, input: unknown): Promise<RefundDecisionResult> {
   assertMock();
-  const admin = await getAdminSession();
-  if (!admin) return { status: "UNAUTHORIZED" };
   const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   const request = mockRefunds.requests.find((r) => r.chargeId === v.chargeId);
   if (!request) return { status: "NOT_FOUND" };
@@ -81,7 +76,6 @@ export async function decideRefund(input: unknown): Promise<RefundDecisionResult
 
 export async function getDonationsView(input: { status?: unknown } = {}): Promise<DonationsView | null> {
   assertMock();
-  if (!(await getAdminSession())) return null;
   const all = listDonationRecords()
     .map((d) => ({ ...d, ...owner() }))
     .sort((a, b) => b.donatedAt.localeCompare(a.donatedAt));

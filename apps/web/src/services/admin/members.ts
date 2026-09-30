@@ -1,17 +1,15 @@
-"use server";
-
 import { USE_MOCK } from "@/lib/mock";
-import { getAdminSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
 import { getAllCreatorsForAdmin } from "@/services/creators/creators";
 import { listDonationRecords } from "@/services/wallet/walletHistory";
 import type { AuditEntry } from "./adminTypes";
+import type { AdminActor } from "./adminTypes";
 import { auditEntries, recordAudit } from "./auditCore";
 import { SAMPLE_MEMBER_ID, creatorMemberId, isMemberSuspended, memberStore, suspensionOf } from "./memberCore";
 import { MEMBERS_PAGE, SUSPEND_DAYS, SUSPEND_REASON, type AdminCreatorRow, type AdminMember, type MemberActionResult, type MemberFilter, type MemberPage } from "./memberTypes";
 
 /**
- * 회원 · 크리에이터 관리 Server Actions — code-first. Routes `/admin/members`, `/admin/members/[id]`,
+ * 회원 · 크리에이터 관리 API logic — code-first (called by `/api/admin/*`). Admin app screens `/admin/members`, `/admin/members/[id]`,
  * `/admin/creators`. Admin only; every suspend / restore needs a reason and is written to the audit log.
  */
 
@@ -50,7 +48,6 @@ const parseFilter = (input: Record<string, unknown>): MemberFilter => ({
 
 export async function listMembers(input: Record<string, unknown> = {}): Promise<MemberPage | null> {
   assertMock();
-  if (!(await getAdminSession())) return null;
   const filter = parseFilter(input);
   const q = filter.q.toLowerCase();
   const all = (await directory()).filter(
@@ -66,16 +63,13 @@ export async function listMembers(input: Record<string, unknown> = {}): Promise<
 
 export async function getMemberDetail(id: unknown): Promise<{ member: AdminMember; audit: AuditEntry[] } | null> {
   assertMock();
-  if (!(await getAdminSession())) return null;
   const member = (await directory()).find((m) => m.id === id);
   if (!member) return null;
   return { member, audit: auditEntries().filter((e) => e.target === `member:${member.id}`) };
 }
 
-export async function suspendMember(input: unknown): Promise<MemberActionResult> {
+export async function suspendMember(admin: AdminActor, input: unknown): Promise<MemberActionResult> {
   assertMock();
-  const admin = await getAdminSession();
-  if (!admin) return { status: "UNAUTHORIZED" };
   const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   if (typeof v.requestId !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
   const store = memberStore();
@@ -93,10 +87,8 @@ export async function suspendMember(input: unknown): Promise<MemberActionResult>
   return { status: "OK" };
 }
 
-export async function restoreMember(input: unknown): Promise<MemberActionResult> {
+export async function restoreMember(admin: AdminActor, input: unknown): Promise<MemberActionResult> {
   assertMock();
-  const admin = await getAdminSession();
-  if (!admin) return { status: "UNAUTHORIZED" };
   const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   const member = (await directory()).find((m) => m.id === v.id);
   if (!member) return { status: "NOT_FOUND" };
@@ -111,7 +103,6 @@ export async function restoreMember(input: unknown): Promise<MemberActionResult>
 
 export async function listAdminCreators(input: { q?: unknown } = {}): Promise<AdminCreatorRow[] | null> {
   assertMock();
-  if (!(await getAdminSession())) return null;
   const q = typeof input.q === "string" ? input.q.trim().toLowerCase() : "";
   return (await getAllCreatorsForAdmin())
     .filter((c) => !q || c.name.toLowerCase().includes(q) || c.id === q)

@@ -20,8 +20,6 @@ export function mockSessionModule() {
     SESSION_COOKIE: "funation_session",
     getSession: vi.fn(async () => session()),
     getCreatorSession: vi.fn(async () => (sessionState.roles?.includes("CREATOR") ? session() : null)),
-    getAdminSession: vi.fn(async () => (sessionState.roles?.includes("ADMIN") ? session() : null)),
-    startMockAdminSession: vi.fn(),
     hasRole: (s: { roles: Role[] } | null, role: Role) => !!s && s.roles.includes(role),
     startSession: vi.fn(),
     endSession: vi.fn(),
