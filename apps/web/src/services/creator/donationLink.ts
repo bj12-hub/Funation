@@ -8,6 +8,7 @@ import { ADAPTERS, mockYouTubeSuperChat } from "@/services/platforms/adapters";
 import type { Platform } from "@/types/platform";
 import { enqueueAlert } from "./alertCore";
 import { SIM_CURRENCIES, formatMoney, type DonationLinkResult, type DonationLinkView, type LinkedDonation } from "./donationLinkTypes";
+import { donationLinkStore } from "./donationLinkCore";
 import { youtubeStore } from "./youtubeCore";
 
 /**
@@ -18,24 +19,7 @@ import { youtubeStore } from "./youtubeCore";
 
 const PLATFORMS: Platform[] = ["YOUTUBE", "FLEXTV", "SOOP"];
 
-type Store = {
-  enabled: Record<Platform, boolean>;
-  cursors: Partial<Record<Platform, string | null>>;
-  seen: Record<string, true>;
-  stats: Record<Platform, { received: number; duplicates: number; lastEventAt: string | null }>;
-  recent: LinkedDonation[];
-  requests: Record<string, true>;
-};
-const g = globalThis as typeof globalThis & { __funationMockDonationLinkV1?: Store };
-const store = (): Store =>
-  (g.__funationMockDonationLinkV1 ??= {
-    enabled: { YOUTUBE: false, FLEXTV: false, SOOP: false },
-    cursors: {},
-    seen: {},
-    stats: { YOUTUBE: { received: 0, duplicates: 0, lastEventAt: null }, FLEXTV: { received: 0, duplicates: 0, lastEventAt: null }, SOOP: { received: 0, duplicates: 0, lastEventAt: null } },
-    recent: [],
-    requests: {}
-  });
+const store = donationLinkStore;
 
 const assertMock = () => {
   if (!USE_MOCK) throw new Error("Donation link API is not connected yet.");

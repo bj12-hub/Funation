@@ -3,7 +3,7 @@
  * Admin actions are recorded in an append-only audit log; who may do what (admin sub-roles) is TBD.
  */
 
-export type AuditAction = "ADMIN_SIGN_IN" | "ADMIN_SIGN_OUT" | "MEMBER_SUSPEND" | "MEMBER_RESTORE" | "REFUND_APPROVE" | "REFUND_REJECT" | "SETTLEMENT_APPROVE" | "SETTLEMENT_REJECT" | "CONTENT_UPDATE";
+export type AuditAction = "ADMIN_SIGN_IN" | "ADMIN_SIGN_OUT" | "MEMBER_SUSPEND" | "MEMBER_RESTORE" | "REFUND_APPROVE" | "REFUND_REJECT" | "SETTLEMENT_APPROVE" | "SETTLEMENT_REJECT" | "CONTENT_UPDATE" | "SYSTEM_UPDATE";
 
 export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
   ADMIN_SIGN_IN: "관리자 로그인",
@@ -14,7 +14,8 @@ export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
   REFUND_REJECT: "환불 거절",
   SETTLEMENT_APPROVE: "정산 승인",
   SETTLEMENT_REJECT: "정산 반려",
-  CONTENT_UPDATE: "콘텐츠 변경"
+  CONTENT_UPDATE: "콘텐츠 변경",
+  SYSTEM_UPDATE: "시스템 설정 변경"
 };
 
 export type AuditEntry = {
