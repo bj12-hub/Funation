@@ -45,7 +45,6 @@ export async function getSession(): Promise<Session | null> {
     const { nickname, funationId, avatarUrl } = mockAccount;
     return { userId: MOCK_USER_ID, nickname, funationId, avatarUrl, roles: [...(mockSessionState.roles ?? DEFAULT_MOCK_ROLES)] };
   }
-  if (USE_MOCK && token === MOCK_ADMIN_TOKEN) return { ...MOCK_ADMIN, roles: [...MOCK_ADMIN.roles] };
   return null;
 }
 
@@ -61,10 +60,15 @@ export async function getCreatorSession(): Promise<Session | null> {
   return hasRole(session, "CREATOR") ? session : null;
 }
 
-/** Session of a member with the Admin role, or `null`. Every admin read and Server Action uses this. */
+/**
+ * Session of an operator with the Admin role, or `null`. Every admin read and Server Action uses this.
+ * The operator session is separate from member sessions: `getSession()` never returns it, so an
+ * operator browsing the site is a guest there and can never act as a member.
+ */
 export async function getAdminSession(): Promise<Session | null> {
-  const session = await getSession();
-  return hasRole(session, "ADMIN") ? session : null;
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  if (USE_MOCK && token === MOCK_ADMIN_TOKEN) return { ...MOCK_ADMIN, roles: [...MOCK_ADMIN.roles] };
+  return null;
 }
 
 /** Development only: signs in as the mock operator (replaces any member session). */

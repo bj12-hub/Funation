@@ -76,6 +76,8 @@ Add a row whenever a new code-first screen ships (see `docs/research/funnation-r
 
 | `/admin/content` 콘텐츠 관리 (공지사항 · 자주 묻는 질문 탭, `features/admin/content/ContentManager.tsx`) | admin content PR | 공지 등록 · 수정 · 삭제(분류 · 중요 고정 · 제목 · 요약 · 본문 문단), FAQ 등록 · 수정 · 삭제(분류 · 질문 · 답변 비우면 준비 중 · 사이트 내부 링크만), 고객센터가 같은 데이터를 읽어 즉시 반영, 새 공지는 사이트 알림 발송, 모든 변경 감사 로그. TBD: 예약 게시 · 게시 기간 · 이미지 첨부 · 승인 절차 |
 
+| `/admin/platforms` 플랫폼 연동 · `/admin/system` 시스템 (`features/admin/system/SystemScreens.tsx`) + 사이트 공지 배너 (`components/layout/SiteBanner`) | admin platform-system PR | 플랫폼별 어댑터 지원 기능 · 스튜디오 연결 · 동기화 · 후원 연동 · 연결 확인(지연 시간 · 오류 코드); 사이트 공지 배너(안내 / 주의, 문구 120자, 내부 링크, 켜기 · 끄기, 감사 로그) — 사이트 모든 페이지 상단 표시; 실행 환경 정보. 운영자 세션은 회원 세션과 분리(사이트에서는 비로그인). TBD: 배너 예약 · 여러 배너, OAuth · 웹훅 · 할당량 모니터링 |
+
 ## Figma
 
 구현된 전체 화면 캡처는 [current-build.md](current-build.md)의 새 파일(Somnation — 현재 구현)에 있어요. 펀페이 파일에 잠시 두었던 "코드 우선 화면" 페이지는 2026-09-30에 삭제했어요.

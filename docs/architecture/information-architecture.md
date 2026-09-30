@@ -244,9 +244,9 @@ TBD:
 
 ## 관리자 콘솔 (/admin)
 
-Code-first; groups follow docs/figma/screen-inventory.md "Admin". Admin role only (layout guard + getAdminSession on every read/action). A separate mock operator signs in at `/admin/login` (dev only).
+Code-first; groups follow docs/figma/screen-inventory.md "Admin". Admin role only (layout guard + getAdminSession on every read/action). A separate mock operator signs in at `/admin/login` (dev only); the operator session is not a member session, so the operator is a guest on the site.
 
 - 대시보드 `/admin` · 감사 로그 `/admin/audit`
 - 회원: 회원 관리 `/admin/members` (상세 · 이용 정지/해제) · 크리에이터 관리 `/admin/creators`
 - 거래: 후원 운영 `/admin/donations` · 결제 · 환불 `/admin/payments` (환불 심사) · 정산 심사 `/admin/settlements`
-- 운영: 콘텐츠 관리 `/admin/content` (공지 · FAQ) · 신고 처리 · 플랫폼 연동 · 시스템 (next)
+- 운영: 콘텐츠 관리 `/admin/content` (공지 · FAQ) · 플랫폼 연동 `/admin/platforms` · 시스템 `/admin/system` (사이트 공지 배너) · 신고 처리 (신고 기능 이후)
