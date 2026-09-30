@@ -68,6 +68,8 @@ Add a row whenever a new code-first screen ships (see `docs/research/funnation-r
 
 | `/admin` 관리자 콘솔 (`features/admin/*`, `app/admin/(console)`) + `/admin/login` + `/admin/audit` | admin shell PR | 관리자 전용 헤더 · 사이드바 (회원 · 거래 · 운영 그룹, 미구현 항목은 준비 중), 운영 대시보드 (크리에이터 · 이번 달 충전 · 후원 · 처리 대기), 감사 로그 (수정 불가 기록), 개발용 운영자 mock 로그인. TBD: 관리자 인증(SSO · 2FA · IP 제한), 관리자 세부 권한, 로그 보관 기간 |
 
+| `/admin/members` 회원 관리 · `/admin/members/[id]` 회원 상세 · `/admin/creators` 크리에이터 관리 (`features/admin/members/*`) | admin members PR | 검색 (닉네임 · ID · 회원 번호) · 역할 · 상태 필터 · 페이지, 상세 정보, 이용 정지 (1 · 7 · 30일 · 무기한, 사유 필수) / 해제 (사유 필수), 처리 이력(감사 로그). 정지 중: 회원 로그인 차단 · 세션 무효, 크리에이터 채널은 공개 화면에서 숨김. 로그인 화면 "이용이 정지된 계정" 문구. TBD: 정지 사유 기준 · 이의 제기 · 정지 중 FN · 정산 처리, 개인정보 열람 권한 |
+
 ## Figma
 
 구현된 전체 화면 캡처는 [current-build.md](current-build.md)의 새 파일(Somnation — 현재 구현)에 있어요. 펀페이 파일에 잠시 두었던 "코드 우선 화면" 페이지는 2026-09-30에 삭제했어요.

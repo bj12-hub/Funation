@@ -15,11 +15,13 @@ import styles from "./LoginForm.module.css";
  * Figma: DEFAULT 13:7 · UNKNOWN ID 718:123 · WRONG PASSWORD 718:168 · LOCKED 718:213 (718:335 is its own route: /login/password-change)
  */
 
-type FormState = "DEFAULT" | "PROCESSING" | "UNKNOWN_ID" | "WRONG_PASSWORD" | "LOCKED" | "ERROR";
+type FormState = "DEFAULT" | "PROCESSING" | "UNKNOWN_ID" | "WRONG_PASSWORD" | "LOCKED" | "SUSPENDED" | "ERROR";
 
 const MESSAGES = {
   UNKNOWN_ID: "등록되지 않은 아이디입니다",
   WRONG_PASSWORD: "비밀번호가 일치하지 않습니다. 다시 입력해 주세요",
+  // Code-first (no Figma frame): the account is suspended by an operator (appeal flow TBD).
+  SUSPENDED: "운영 정책에 따라 이용이 정지된 계정입니다. 고객센터로 문의해 주세요",
   ERROR: "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요"
 } as const;
 
@@ -120,9 +122,9 @@ export function LoginForm({ next = "/" }: { next?: string }) {
           </Link>
         </div>
 
-        {state === "ERROR" && (
+        {(state === "ERROR" || state === "SUSPENDED") && (
           <p className={styles.formError} role="alert">
-            {MESSAGES.ERROR}
+            {MESSAGES[state]}
           </p>
         )}
 
