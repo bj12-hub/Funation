@@ -66,62 +66,6 @@ Since 2026-09-29 features without a Figma frame are built in code first and desi
 
 Add a row whenever a new code-first screen ships (see `docs/research/funnation-reference.md` for the planned features).
 
-## Figma 캡처 페이지 (2026-09-30)
+## Figma
 
-> 사이트 전체 캡처는 새 파일로 정리했어요 — [current-build.md](current-build.md). 아래 표는 펀페이 파일에 먼저 넣은 코드 우선 화면 캡처예요.
-
-Figma 파일의 **코드 우선 화면 (2026-09)** 페이지 (node `993:2`)에 위 화면들과 funnation 기준으로 재구성한 화면을 localhost mock 데이터로 1440px 전체 페이지 캡처해 이미지 프레임으로 넣었어요. 편집 가능한 디자인이 아니라 **참고용 캡처**이며, Page 1의 기존 프레임은 바뀌지 않았어요. 다시 그린 화면은 아래 표에 프레임 id를 바꿔 적어 주세요.
-
-| ID | 화면 | 라우트 | Figma node |
-|---|---|---|---|
-| S01-home | 홈 (funnation 구성) | `/` | [993:13](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-13) |
-| S02-home-light | 홈 — 라이트 테마 | `/` | [993:16](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-16) |
-| S03-bell | 헤더 알림 팝오버 | `/` | [993:19](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-19) |
-| S04-notifications | 알림 /notifications | `/notifications` | [993:22](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-22) |
-| S05-creators | 크리에이터 찾기 /creators | `/creators` | [993:25](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-25) |
-| S06-live | 전체 방송 /live | `/live` | [993:28](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-28) |
-| S07-hof | 명예의 전당 /hall-of-fame | `/hall-of-fame` | [993:31](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-31) |
-| S08-community | 커뮤니티 /community | `/community` | [993:34](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-34) |
-| S09-community-new | 커뮤니티 글쓰기 | `/community/new` | [993:37](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-37) |
-| S10-events | 이벤트 /events | `/events` | [993:40](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-40) |
-| S11-support | 고객센터 /support | `/support` | [993:43](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-43) |
-| S12-notice | 공지 상세 | `/support/notices/brand` | [993:46](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-46) |
-| C01-home | 채널 홈 + 월간 랭킹 · 커뮤니티 | `/creators/c1` | [993:50](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-50) |
-| C02-crew | 크루 탭 | `/creators/c4?view=crew` | [993:53](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-53) |
-| C03-videos | 영상 탭 | `/creators/c1?view=videos` | [993:56](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-56) |
-| C04-community | 커뮤니티 탭 | `/creators/c1?view=community` | [993:59](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-59) |
-| C05-signatures | 시그니처 탭 | `/creators/c1?view=signatures` | [993:62](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-62) |
-| C06-about | 소개 탭 | `/creators/c1?view=about` | [993:65](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-65) |
-| M01-mypage | 마이페이지 | `/mypage` | [993:69](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-69) |
-| M02-titles | 칭호·등급 | `/mypage/titles` | [993:72](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-72) |
-| M03-nicknames | 별명 관리 | `/mypage/nicknames` | [993:75](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-75) |
-| M04-ranking | 내 후원 랭킹 | `/mypage/ranking` | [993:78](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-78) |
-| M05-wallet | FN Wallet | `/wallet` | [993:81](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-81) |
-| M06-messages | 쪽지 | `/messages` | [993:84](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-84) |
-| M07-favorites | 즐겨찾기 | `/favorites` | [993:87](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-87) |
-| M09-attendance | 출석체크 | `/attendance` | [993:90](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-90) |
-| T01-dashboard | 대시보드 /creator | `/creator` | [993:94](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-94) |
-| T02-revenue | 수익 현황 | `/creator/revenue` | [993:97](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-97) |
-| T03-donations | 받은 후원 (CSV) | `/creator/donations?tab=list` | [993:100](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-100) |
-| T04-settlement | 정산 현황 + 체크리스트 | `/creator/settlement` | [993:103](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-103) |
-| T05-updates | 업데이트 소식 | `/creator/updates` | [993:106](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-106) |
-| W01-widgets | 위젯 목록 (funnation 구성) | `/creator/widgets` | [993:110](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-110) |
-| W02-tools | 방송 도구 | `/creator/widgets/tools` | [993:113](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-113) |
-| W03-overlays | 오버레이 주소 | `/creator/widgets/overlays` | [993:116](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-116) |
-| W04-remote | 리모컨 | `/creator/remote` | [993:119](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-119) |
-| W05-effects | 이펙트 · 효과 | `/creator/widgets/effects` | [993:122](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-122) |
-| W06-signatures | 시그니처 후원 (편집 열림) | `/creator/widgets/signatures` | [993:125](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-125) |
-| W07-video | 영상 후원 | `/creator/widgets/video` | [993:128](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-128) |
-| W08-drawing | 그림후원 | `/creator/widgets/drawing` | [993:131](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-131) |
-| W09-assets | 이미지·사운드 | `/creator/widgets/assets` | [993:134](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-134) |
-| W10-banner | 배너 | `/creator/widgets/banner` | [993:137](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-137) |
-| W11-link | 후원 연동 | `/creator/widgets/link` | [993:140](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-140) |
-| Y01-youtube | 유튜브 연동 | `/creator/youtube` | [993:144](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-144) |
-| Y02-videos | 영상 목록 | `/creator/videos` | [993:147](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-147) |
-| Y03-crew | 크루 관리 | `/creator/crew` | [993:150](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-150) |
-| Y04-broadcast | 크루 방송 운영 | `/creator/crew/broadcast` | [993:153](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-153) |
-| O01-drawing | 그림후원 오버레이 (800×700) | `/overlay/drawing/[key]` | [993:157](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-157) |
-| O02-banner | 배너 오버레이 (1920×1080) | `/overlay/banner/[key]` | [993:160](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-160) |
-| O03-crew | 크루 점수판 오버레이 (480×600) | `/overlay/crew/[key]` | [993:163](https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV?node-id=993-163) |
-
-캡처는 개발용 스크립트(headless Chrome · mock 세션)로 만들었어요. 다시 캡처할 때도 같은 ID를 써서 프레임 이미지만 바꾸면 돼요.
+구현된 전체 화면 캡처는 [current-build.md](current-build.md)의 새 파일(Somnation — 현재 구현)에 있어요. 펀페이 파일에 잠시 두었던 "코드 우선 화면" 페이지는 2026-09-30에 삭제했어요.
