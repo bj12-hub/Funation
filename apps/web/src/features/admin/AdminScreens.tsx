@@ -14,7 +14,7 @@ export function AdminDashboardScreen({ data }: { data: AdminDashboard }) {
     { label: "처리 중 충전", value: `${formatNumber(data.charges.processing)}건`, sub: "결제 확인 대기" }
   ];
   const queues = [
-    { label: "환불 요청", count: data.pending.refunds, note: "결제 · 환불에서 심사 (준비 중)" },
+    { label: "환불 요청", count: data.pending.refunds, note: "결제 · 환불 › 환불 요청에서 심사" },
     { label: "정산 신청", count: data.pending.settlements, note: "정산 심사에서 처리 (준비 중)" },
     { label: "신고", count: data.pending.reports, note: "신고 기능 준비 중" }
   ];
