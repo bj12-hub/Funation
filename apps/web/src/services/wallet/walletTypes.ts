@@ -30,8 +30,8 @@ export type ChargeRecord = {
   status: ChargeStatus;
   /** Transaction ID; `null` when no transaction was completed. */
   transactionId: string | null;
-  /** 환불 요청 (code-first). Present once the member asked for a refund; review is TBD. */
-  refund?: { status: "REQUESTED"; requestedAt: string } | null;
+  /** 환불 요청 (code-first). Present once the member asked for a refund; an operator decides it. */
+  refund?: { status: "REQUESTED" | "APPROVED" | "REJECTED"; requestedAt: string; decidedAt?: string; note?: string } | null;
 };
 
 export const REFUND_REASON_MAX = 200;
