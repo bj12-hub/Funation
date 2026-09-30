@@ -244,7 +244,7 @@ TBD:
 
 ## 관리자 콘솔 (별도 앱 apps/admin)
 
-The admin console is a **separate Next.js app** (`apps/admin`, port 3200), not part of the site. It has no data of its own: its server calls the site's admin API (`apps/web` → `/api/admin/*`) with a shared secret (`ADMIN_API_TOKEN`) and the operator's identity; the site validates, applies and audits every change. Browsers never reach the admin API (no cookies, secret stays on the admin server). Operators sign in to the admin app only (mock operator in development; SSO / 2FA / IP allowlist TBD). Groups follow docs/figma/screen-inventory.md "Admin".
+The admin console is a **separate Next.js app** (`apps/admin`, port 3200), deployed on the **admin subdomain** (e.g. admin.<site domain>, domain TBD — see docs/development/admin-subdomain.md), not part of the site. It has no data of its own: its server calls the site's admin API (`apps/web` → `/api/admin/*`) with a shared secret (`ADMIN_API_TOKEN`) and the operator's identity; the site validates, applies and audits every change. Browsers never reach the admin API (no cookies, secret stays on the admin server). Operators sign in to the admin app only (mock operator in development; SSO / 2FA / IP allowlist TBD). Groups follow docs/figma/screen-inventory.md "Admin".
 
 | Admin app route | Site API |
 |---|---|
