@@ -68,6 +68,8 @@ Add a row whenever a new code-first screen ships (see `docs/research/funnation-r
 
 ## Figma 캡처 페이지 (2026-09-30)
 
+> 사이트 전체 캡처는 새 파일로 정리했어요 — [current-build.md](current-build.md). 아래 표는 펀페이 파일에 먼저 넣은 코드 우선 화면 캡처예요.
+
 Figma 파일의 **코드 우선 화면 (2026-09)** 페이지 (node `993:2`)에 위 화면들과 funnation 기준으로 재구성한 화면을 localhost mock 데이터로 1440px 전체 페이지 캡처해 이미지 프레임으로 넣었어요. 편집 가능한 디자인이 아니라 **참고용 캡처**이며, Page 1의 기존 프레임은 바뀌지 않았어요. 다시 그린 화면은 아래 표에 프레임 id를 바꿔 적어 주세요.
 
 | ID | 화면 | 라우트 | Figma node |
