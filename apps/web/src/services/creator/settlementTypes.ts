@@ -112,6 +112,8 @@ export type SettlementHistoryItem = {
   feeFn: number;
   netKrw: number;
   payoutDate: string | null;
+  /** 반려 사유 from the admin review (code-first). */
+  reviewNote?: string;
 };
 
 export type SettlementApplyView = {

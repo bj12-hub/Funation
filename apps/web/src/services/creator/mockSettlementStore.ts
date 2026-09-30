@@ -31,6 +31,8 @@ export type MockSettlementRequest = {
   netKrw: number;
   /** 지급(예정)일, yyyy-mm-dd; null when rejected. */
   payoutDate: string | null;
+  /** 정산 심사 (관리자 콘솔): who decided and the note shown to the creator. */
+  review?: { at: string; by: string; note: string };
 };
 
 type MockSettlement = {
