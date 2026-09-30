@@ -1,18 +1,16 @@
-"use server";
-
 import { USE_MOCK } from "@/lib/mock";
 import { toDateString } from "@/lib/period";
-import { getAdminSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { notify } from "@/services/notifications/notificationCore";
 import { faqStore } from "@/services/support/faq";
 import { noticeStore } from "@/services/support/notices";
 import { FAQ_CATEGORIES, NOTICE_CATEGORY_LABEL, type FaqItem, type Notice } from "@/services/support/supportTypes";
+import type { AdminActor } from "./adminTypes";
 import { recordAudit } from "./auditCore";
 import { FAQ_LIMITS, NOTICE_LIMITS, type ContentResult } from "./contentTypes";
 
 /**
- * 콘텐츠 관리 Server Actions — code-first. Route `/admin/content` (`?tab=notices|faq`). Admin only; the
+ * 콘텐츠 관리 API logic — code-first (called by `/api/admin/*`). Admin app screens `/admin/content` (`?tab=notices|faq`). Admin only; the
  * 고객센터 reads the same stores, so changes show on the site immediately. Every change is audited.
  */
 
@@ -27,14 +25,11 @@ const requests = (g.__funationMockContentRequestsV1 ??= {});
 
 export async function listNoticesAdmin(): Promise<Notice[] | null> {
   assertMock();
-  if (!(await getAdminSession())) return null;
   return [...noticeStore().items].sort((a, b) => Number(b.important) - Number(a.important) || b.date.localeCompare(a.date)).map((n) => structuredClone(n));
 }
 
-export async function saveNotice(input: unknown): Promise<ContentResult> {
+export async function saveNotice(admin: AdminActor, input: unknown): Promise<ContentResult> {
   assertMock();
-  const admin = await getAdminSession();
-  if (!admin) return { status: "UNAUTHORIZED" };
   const v = obj(input);
   const id = typeof v.id === "string" && v.id ? v.id : null;
   if (!id) {
@@ -69,10 +64,8 @@ export async function saveNotice(input: unknown): Promise<ContentResult> {
   return { status: "OK", id: newId };
 }
 
-export async function deleteNotice(id: unknown): Promise<ContentResult> {
+export async function deleteNotice(admin: AdminActor, id: unknown): Promise<ContentResult> {
   assertMock();
-  const admin = await getAdminSession();
-  if (!admin) return { status: "UNAUTHORIZED" };
   const store = noticeStore();
   const n = store.items.find((x) => x.id === id);
   if (!n) return { status: "NOT_FOUND" };
@@ -83,14 +76,11 @@ export async function deleteNotice(id: unknown): Promise<ContentResult> {
 
 export async function listFaqsAdmin(): Promise<FaqItem[] | null> {
   assertMock();
-  if (!(await getAdminSession())) return null;
   return faqStore().items.map((f) => structuredClone(f));
 }
 
-export async function saveFaq(input: unknown): Promise<ContentResult> {
+export async function saveFaq(admin: AdminActor, input: unknown): Promise<ContentResult> {
   assertMock();
-  const admin = await getAdminSession();
-  if (!admin) return { status: "UNAUTHORIZED" };
   const v = obj(input);
   const id = typeof v.id === "string" && v.id ? v.id : null;
   if (!id) {
@@ -125,10 +115,8 @@ export async function saveFaq(input: unknown): Promise<ContentResult> {
   return { status: "OK", id: newId };
 }
 
-export async function deleteFaq(id: unknown): Promise<ContentResult> {
+export async function deleteFaq(admin: AdminActor, id: unknown): Promise<ContentResult> {
   assertMock();
-  const admin = await getAdminSession();
-  if (!admin) return { status: "UNAUTHORIZED" };
   const store = faqStore();
   const f = store.items.find((x) => x.id === id);
   if (!f) return { status: "NOT_FOUND" };

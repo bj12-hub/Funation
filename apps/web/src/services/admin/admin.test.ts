@@ -3,7 +3,9 @@ import { key, mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv"
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
-vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
+
+/** The operator the admin API acts for (the route layer authorises the admin app first). */
+const OP = { userId: "adm-test", nickname: "테스트 운영자" };
 
 /** 관리자 콘솔: Admin role only, server-computed totals, append-only audit log. */
 async function load() {
@@ -18,14 +20,6 @@ async function load() {
 describe("admin console", () => {
   beforeEach(() => resetMockStores());
 
-  it("refuses members without the Admin role", async () => {
-    const m = await load();
-    signIn(["SUPPORTER", "CREATOR"]);
-    expect(await m.getAdminDashboard()).toBeNull();
-    expect(await m.listAuditLog()).toBeNull();
-    signIn(null);
-    expect(await m.getAdminDashboard()).toBeNull();
-  });
 
   it("computes the dashboard on the server from completed records", async () => {
     const m = await load();
@@ -41,12 +35,11 @@ describe("admin console", () => {
     expect(d.creators.total).toBeGreaterThan(0);
   });
 
-  it("records sign-in and sign-out in the audit log, newest first", async () => {
+  it("records the admin app's sign-in and sign-out in the audit log, newest first", async () => {
     const m = await load();
-    await m.signInMockAdmin();
-    signIn(["ADMIN"]);
-    await m.signOutAdmin();
-    signIn(["ADMIN"]);
+    expect(await m.recordSessionEvent(OP, "SIGN_IN")).toEqual({ status: "OK" });
+    expect(await m.recordSessionEvent(OP, "SIGN_OUT")).toEqual({ status: "OK" });
+    expect((await m.recordSessionEvent(OP, "HACK")).status).toBe("INVALID");
     const log = (await m.listAuditLog())!;
     expect(log.items.map((e) => e.action)).toEqual(["ADMIN_SIGN_OUT", "ADMIN_SIGN_IN"]);
     expect(log.total).toBe(2);

@@ -149,3 +149,7 @@ Reusable Component
 ```
 
 Do not create unrelated UI patterns when an existing Figma component can be reused.
+
+## Admin console
+
+The admin console is a separate app: `apps/admin` (`npm run dev:admin`, http://localhost:3200). It reads and writes through the site's admin API (`/api/admin/*`, shared `ADMIN_API_TOKEN`). See `apps/admin/README.md`.

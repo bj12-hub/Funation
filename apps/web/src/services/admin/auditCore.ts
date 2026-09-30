@@ -1,5 +1,4 @@
-import type { Session } from "@/lib/session";
-import type { AuditAction, AuditEntry } from "./adminTypes";
+import type { AdminActor, AuditAction, AuditEntry } from "./adminTypes";
 
 /**
  * Server-only audit log (not a "use server" module). Append-only: entries are never edited or removed
@@ -10,7 +9,7 @@ type Store = { entries: AuditEntry[] };
 const g = globalThis as typeof globalThis & { __funationMockAuditV1?: Store };
 export const auditStore = (): Store => (g.__funationMockAuditV1 ??= { entries: [] });
 
-export function recordAudit(actor: Pick<Session, "userId" | "nickname">, action: AuditAction, target: string | null = null, reason: string | null = null, now = Date.now()) {
+export function recordAudit(actor: AdminActor, action: AuditAction, target: string | null = null, reason: string | null = null, now = Date.now()) {
   const s = auditStore();
   const entry: AuditEntry = { id: `au-${now.toString(36)}-${s.entries.length}`, at: new Date(now).toISOString(), actorId: actor.userId, actorName: actor.nickname, action, target, reason };
   s.entries.push(entry);

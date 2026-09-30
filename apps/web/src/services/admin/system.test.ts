@@ -4,6 +4,9 @@ import { key, mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv"
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
 
+/** The operator the admin API acts for (the route layer authorises the admin app first). */
+const OP = { userId: "adm-test", nickname: "테스트 운영자" };
+
 /** 플랫폼 연동 · 시스템: adapter status and checks, the site banner the layout shows. */
 async function load() {
   const system = await import("./system");
@@ -39,21 +42,14 @@ describe("admin platforms and system", () => {
     const m = await load();
     signIn(["ADMIN"]);
     expect(await m.getSiteBanner()).toBeNull();
-    expect((await m.saveSiteBanner({ enabled: true, level: "WARNING", message: "", href: "" })).status).toBe("INVALID");
-    expect((await m.saveSiteBanner({ enabled: true, level: "WARNING", message: "점검 안내", href: "https://evil.example" })).status).toBe("INVALID");
-    expect(await m.saveSiteBanner({ enabled: true, level: "WARNING", message: "점검 안내", href: "/support" })).toEqual({ status: "OK" });
+    expect((await m.saveSiteBanner(OP, { enabled: true, level: "WARNING", message: "", href: "" })).status).toBe("INVALID");
+    expect((await m.saveSiteBanner(OP, { enabled: true, level: "WARNING", message: "점검 안내", href: "https://evil.example" })).status).toBe("INVALID");
+    expect(await m.saveSiteBanner(OP, { enabled: true, level: "WARNING", message: "점검 안내", href: "/support" })).toEqual({ status: "OK" });
     expect(await m.getSiteBanner()).toEqual({ level: "WARNING", message: "점검 안내", href: "/support" });
-    await m.saveSiteBanner({ enabled: false, level: "INFO", message: "점검 안내", href: "" });
+    await m.saveSiteBanner(OP, { enabled: false, level: "INFO", message: "점검 안내", href: "" });
     expect(await m.getSiteBanner()).toBeNull();
     expect(m.auditEntries().map((e) => e.action)).toEqual(["SYSTEM_UPDATE", "SYSTEM_UPDATE"]);
     expect((await m.getSystemView())!.runtime).toMatchObject({ mock: true, auditEntries: 2 });
   });
 
-  it("requires the Admin role", async () => {
-    const m = await load();
-    signIn(["SUPPORTER", "CREATOR"]);
-    expect(await m.getPlatformStatus()).toBeNull();
-    expect(await m.saveSiteBanner({ enabled: true, level: "INFO", message: "x", href: "" })).toEqual({ status: "UNAUTHORIZED" });
-    expect(await m.checkPlatform("YOUTUBE")).toEqual({ status: "UNAUTHORIZED" });
-  });
 });

@@ -3,6 +3,9 @@
  * Admin actions are recorded in an append-only audit log; who may do what (admin sub-roles) is TBD.
  */
 
+/** The operator an admin API call acts for (sent by the admin app; how operators authenticate is TBD). */
+export type AdminActor = { userId: string; nickname: string };
+
 export type AuditAction = "ADMIN_SIGN_IN" | "ADMIN_SIGN_OUT" | "MEMBER_SUSPEND" | "MEMBER_RESTORE" | "REFUND_APPROVE" | "REFUND_REJECT" | "SETTLEMENT_APPROVE" | "SETTLEMENT_REJECT" | "CONTENT_UPDATE" | "SYSTEM_UPDATE";
 
 export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
