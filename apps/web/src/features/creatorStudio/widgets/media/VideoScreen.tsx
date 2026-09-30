@@ -102,7 +102,7 @@ export function VideoScreen({ view, overlayPath }: { view: VideoQueueView; overl
               <span className={styles.muted}>
                 {p.kind === "TEST" ? "테스트 요청" : `${p.donor} · ${formatNumber(p.fnAmount)} FN`} · 구간 {clock(p.startSec)}–{clock(p.endSec)}
               </span>
-              {left !== null && <span className={styles.muted}>남은 시간 {clock(left)}</span>}
+              {left !== null && <span className={styles.muted}> · 남은 시간 {clock(left)}</span>}
             </div>
           </div>
         ) : (
