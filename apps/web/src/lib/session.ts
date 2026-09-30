@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { USE_MOCK } from "@/lib/mock";
 import { mockAccount, mockSessionState } from "@/services/account/mockStore";
+import { isMemberSuspended } from "@/services/admin/memberCore";
 import type { Role } from "@/types/role";
 
 /**
@@ -38,7 +39,8 @@ export async function getSession(): Promise<Session | null> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
   // TODO: validate the token with the backend once it exists.
-  if (USE_MOCK && token === MOCK_TOKEN && !mockSessionState.revoked) {
+  // A suspended member is treated as signed out on every request (the backend must enforce this too).
+  if (USE_MOCK && token === MOCK_TOKEN && !mockSessionState.revoked && !isMemberSuspended(MOCK_USER_ID)) {
     // Display fields follow the (editable) mock account.
     const { nickname, funationId, avatarUrl } = mockAccount;
     return { userId: MOCK_USER_ID, nickname, funationId, avatarUrl, roles: [...(mockSessionState.roles ?? DEFAULT_MOCK_ROLES)] };

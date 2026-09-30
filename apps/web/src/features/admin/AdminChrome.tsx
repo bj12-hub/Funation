@@ -24,8 +24,8 @@ export const ADMIN_GROUPS: Group[] = [
   {
     title: "회원",
     items: [
-      { label: "회원 관리", emoji: "👤" },
-      { label: "크리에이터 관리", emoji: "🎙️" }
+      { label: "회원 관리", emoji: "👤", href: "/admin/members" },
+      { label: "크리에이터 관리", emoji: "🎙️", href: "/admin/creators" }
     ]
   },
   {
