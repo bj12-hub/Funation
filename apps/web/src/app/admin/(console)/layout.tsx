@@ -3,16 +3,16 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AdminHeader, AdminSideNav } from "@/features/admin/AdminChrome";
 import studio from "@/features/creatorStudio/studio.module.css";
-import { getSession, hasRole } from "@/lib/session";
+import { getAdminSession, getSession } from "@/lib/session";
 
 // Code-first (no Figma frame): 관리자 콘솔 shell. Admin role only.
 export const dynamic = "force-dynamic";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   // UX guard only; every admin service re-checks the role (getAdminSession) and the backend must too.
-  const session = await getSession();
-  if (!session) redirect("/admin/login");
-  if (!hasRole(session, "ADMIN")) {
+  const session = await getAdminSession();
+  if (!session) {
+    if (!(await getSession())) redirect("/admin/login");
     return (
       <div data-theme="dark" className={studio.themeScope}>
         <main className={studio.noAccess}>

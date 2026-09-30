@@ -1,0 +1,27 @@
+/* 사이트 공지 배너 — code-first. */
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-primary-soft);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
+}
+
+.banner[data-level="WARNING"] {
+  background: var(--color-warning-tint);
+  color: var(--color-warning-text);
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+}
+
+.link {
+  flex: none;
+  font-weight: var(--font-weight-semibold);
+  text-decoration: underline;
+}
