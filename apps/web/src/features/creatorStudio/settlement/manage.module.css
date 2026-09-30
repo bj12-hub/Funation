@@ -255,3 +255,10 @@
     min-width: 0;
   }
 }
+
+/* 정산 심사 반려 사유 (code-first) */
+.reviewNote {
+  margin: 4px 0 0;
+  color: var(--color-error-text);
+  font-size: var(--font-size-11);
+}
