@@ -2,6 +2,8 @@
 
 Figma file: https://www.figma.com/design/PXOl6e2HQVWsu9qx9iagJV (펀페이)
 
+Current build captures (all implemented screens, 2026-09-30): https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj — see [current-build.md](current-build.md).
+
 Design tokens: see `design-tokens.md`.
 
 Figma is the visual/product source of truth.
