@@ -12,12 +12,16 @@ export async function getFaqs(input: { query?: string; category?: FaqCategory } 
   if (!USE_MOCK) throw new Error("Support API is not connected yet.");
   await mockDelay(200);
   const keyword = input.query?.trim().toLowerCase();
-  return MOCK_FAQS.filter(
+  return faqStore().items.filter(
     (f) =>
       (!input.category || f.category === input.category) &&
       (!keyword || f.question.toLowerCase().includes(keyword) || (f.answer?.toLowerCase().includes(keyword) ?? false))
   );
 }
+
+const g = globalThis as typeof globalThis & { __funationMockFaqsV1?: { items: FaqItem[] } };
+/** Server-only store shared with services/admin/content.ts (operators edit FAQs in the admin console). */
+export const faqStore = () => (g.__funationMockFaqsV1 ??= { items: structuredClone(MOCK_FAQS) });
 
 const MOCK_FAQS: FaqItem[] = [
   { id: "signup", category: "ACCOUNT", question: "회원가입은 어떻게 하나요?", answer: "로그인 화면의 ‘회원가입’에서 약관 동의 후 이메일로 가입할 수 있어요.", link: { href: "/signup", label: "회원가입" } },

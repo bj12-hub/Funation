@@ -1,0 +1,62 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { key, mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
+
+vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
+vi.mock("@/lib/session", () => mockSessionModule());
+
+/** 콘텐츠 관리: the 고객센터 reads what operators save; creates are deduped, changes audited. */
+async function load() {
+  const content = await import("./content");
+  const { getNotices, getNotice } = await import("@/services/support/notices");
+  const { getFaqs } = await import("@/services/support/faq");
+  const { auditEntries } = await import("./auditCore");
+  const { notificationStore } = await import("@/services/notifications/notificationCore");
+  return { ...content, getNotices, getNotice, getFaqs, auditEntries, notificationStore };
+}
+
+const notice = { category: "UPDATE", important: true, title: "관리자 콘솔 공지", summary: "요약 문장", body: "첫 문단\n\n둘째 문단" };
+
+describe("admin content", () => {
+  beforeEach(() => {
+    resetMockStores();
+    signIn(["ADMIN"]);
+  });
+
+  it("publishes a notice once, shows it first on the site and notifies members", async () => {
+    const m = await load();
+    const res = await m.saveNotice({ ...notice, requestId: key(1) });
+    expect(await m.saveNotice({ ...notice, requestId: key(1) })).toEqual(res);
+    if (res.status !== "OK") throw new Error("not saved");
+    expect((await m.getNotices())[0]).toMatchObject({ id: res.id, title: "관리자 콘솔 공지", body: ["첫 문단", "둘째 문단"], views: 0 });
+    expect(m.notificationStore().items[0]).toMatchObject({ kind: "NOTICE", href: `/support/notices/${res.id}` });
+
+    await m.saveNotice({ ...notice, id: res.id, title: "수정된 제목", important: false });
+    expect((await m.getNotice(res.id))!.title).toBe("수정된 제목");
+    await m.deleteNotice(res.id);
+    expect(await m.getNotice(res.id)).toBeNull();
+    expect(m.auditEntries().map((e) => e.reason?.split(" · ")[0])).toEqual(["공지 삭제", "공지 수정", "공지 등록"]);
+  });
+
+  it("validates notices and FAQs, keeps FAQ links inside the site", async () => {
+    const m = await load();
+    expect((await m.saveNotice({ ...notice, title: "", requestId: key(2) })).status).toBe("INVALID");
+    expect((await m.saveNotice({ ...notice, category: "NOPE", requestId: key(3) })).status).toBe("INVALID");
+    const faq = { category: "DONATION", question: "새 질문인가요?", answer: "", linkHref: "", linkLabel: "" };
+    expect((await m.saveFaq({ ...faq, linkHref: "https://evil.example", linkLabel: "x", requestId: key(4) })).status).toBe("INVALID");
+    expect((await m.saveFaq({ ...faq, linkHref: "//evil.example", linkLabel: "x", requestId: key(5) })).status).toBe("INVALID");
+    const ok = await m.saveFaq({ ...faq, linkHref: "/wallet", linkLabel: "지갑", requestId: key(6) });
+    expect(ok.status).toBe("OK");
+    const found = (await m.getFaqs({ query: "새 질문" }))[0];
+    expect(found).toMatchObject({ answer: null, link: { href: "/wallet", label: "지갑" } });
+    await m.deleteFaq(found.id);
+    expect(await m.getFaqs({ query: "새 질문" })).toHaveLength(0);
+  });
+
+  it("requires the Admin role", async () => {
+    const m = await load();
+    signIn(["SUPPORTER", "CREATOR"]);
+    expect(await m.listNoticesAdmin()).toBeNull();
+    expect(await m.saveNotice({ ...notice, requestId: key(7) })).toEqual({ status: "UNAUTHORIZED" });
+    expect(await m.deleteFaq("signup")).toEqual({ status: "UNAUTHORIZED" });
+  });
+});
