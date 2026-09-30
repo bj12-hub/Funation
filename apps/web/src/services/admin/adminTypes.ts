@@ -6,7 +6,7 @@
 /** The operator an admin API call acts for (sent by the admin app; how operators authenticate is TBD). */
 export type AdminActor = { userId: string; nickname: string };
 
-export type AuditAction = "ADMIN_SIGN_IN" | "ADMIN_SIGN_OUT" | "MEMBER_SUSPEND" | "MEMBER_RESTORE" | "REFUND_APPROVE" | "REFUND_REJECT" | "SETTLEMENT_APPROVE" | "SETTLEMENT_REJECT" | "CONTENT_UPDATE" | "SYSTEM_UPDATE";
+export type AuditAction = "ADMIN_SIGN_IN" | "ADMIN_SIGN_OUT" | "MEMBER_SUSPEND" | "MEMBER_RESTORE" | "REFUND_APPROVE" | "REFUND_REJECT" | "SETTLEMENT_APPROVE" | "SETTLEMENT_REJECT" | "CONTENT_UPDATE" | "SYSTEM_UPDATE" | "REPORT_DISMISS" | "REPORT_HIDE";
 
 export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
   ADMIN_SIGN_IN: "관리자 로그인",
@@ -18,7 +18,9 @@ export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
   SETTLEMENT_APPROVE: "정산 승인",
   SETTLEMENT_REJECT: "정산 반려",
   CONTENT_UPDATE: "콘텐츠 변경",
-  SYSTEM_UPDATE: "시스템 설정 변경"
+  SYSTEM_UPDATE: "시스템 설정 변경",
+  REPORT_DISMISS: "신고 기각",
+  REPORT_HIDE: "신고 콘텐츠 숨김"
 };
 
 export type AuditEntry = {

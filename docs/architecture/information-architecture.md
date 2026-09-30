@@ -255,4 +255,4 @@ The admin console is a **separate Next.js app** (`apps/admin`, port 3200), deplo
 | 콘텐츠 관리 `/content` | `GET|POST /content/notices`, `DELETE /content/notices/[id]`, same for `/content/faqs` |
 | 플랫폼 연동 `/platforms` · 시스템 `/system` | `GET /platforms`, `POST /platforms/[platform]/check`, `GET /system`, `PUT /system/banner` |
 
-신고 처리 follows once reporting exists. When the backend (`apps/api`) is built it serves the same contract (`apps/admin/src/types/adminApi.ts`).
+신고 처리 `/reports` ↔ `GET /reports`, `POST /reports/[id]` (숨김 / 기각). Members report and block on the site; the block list is `/mypage/blocks`. When the backend (`apps/api`) is built it serves the same contract (`apps/admin/src/types/adminApi.ts`).

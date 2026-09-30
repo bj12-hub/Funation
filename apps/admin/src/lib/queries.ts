@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import type {
   AdminCreatorRow,
   AdminDashboard,
+  AdminReportView,
   AdminSettlementView,
   AuditPage,
   DonationsView,
@@ -39,5 +40,6 @@ export const loadDonations = (status: string | null) => get<DonationsView>(`/don
 export const loadSettlements = (status: string | null) => get<AdminSettlementView>(`/settlements${qs({ status })}`);
 export const loadNotices = () => get<Notice[]>("/content/notices");
 export const loadFaqs = () => get<FaqItem[]>("/content/faqs");
+export const loadReports = (status: string | null) => get<AdminReportView>(`/reports${qs({ status })}`);
 export const loadPlatforms = () => get<PlatformStatusRow[]>("/platforms");
 export const loadSystem = () => get<SystemView>("/system");

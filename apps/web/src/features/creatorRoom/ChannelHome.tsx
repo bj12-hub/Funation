@@ -6,6 +6,7 @@ import { useRef, useState, useTransition } from "react";
 import { formatNumber } from "@/lib/format";
 import { createChannelPost, deleteChannelPost } from "@/services/creators/channelHome";
 import { CHANNEL_POST_MAX, CHANNEL_POSTS_PAGE, type ChannelPost, type ChannelPostsView, type ChannelRanking } from "@/services/creators/channelTypes";
+import { ModerationActions } from "../moderation/ModerationActions";
 import styles from "./channel.module.css";
 
 const when = (iso: string) => {
@@ -150,10 +151,12 @@ export function ChannelCommunity({ creatorId, name, view, signedIn, show }: { cr
               <div className={styles.postHead}>
                 <strong>{p.authorName}</strong>
                 <span className={styles.muted}>{when(p.createdAt)}</span>
-                {p.mine && (
+                {p.mine ? (
                   <button type="button" className={styles.sort} disabled={pending} onClick={() => remove(p.id)}>
                     삭제
                   </button>
+                ) : (
+                  <ModerationActions target={{ type: "CHANNEL_POST", id: p.id }} signedIn={signedIn} className={styles.postModeration} />
                 )}
               </div>
               <p className={styles.postText}>{p.body}</p>

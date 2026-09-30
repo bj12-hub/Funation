@@ -1,6 +1,7 @@
 import { USE_MOCK } from "@/lib/mock";
 import { toDateString } from "@/lib/period";
 import { mockSettlement } from "@/services/creator/mockSettlementStore";
+import { moderationStore } from "@/services/moderation/moderationCore";
 import { getCreators } from "@/services/creators/creators";
 import { mockRefunds } from "@/services/wallet/mockRefundStore";
 import { listChargeRecords, listDonationRecords } from "@/services/wallet/walletHistory";
@@ -40,8 +41,11 @@ export async function getAdminDashboard(): Promise<AdminDashboard | null> {
       processing: charges.filter((c) => c.status === "PROCESSING").length
     },
     donations: { monthCount: donations.length, monthFn: donations.reduce((s, d) => s + d.fnAmount, 0) },
-    // 신고 is not built yet, so its queue is unknown (null) rather than 0.
-    pending: { refunds: mockRefunds.requests.filter((r) => r.status === "REQUESTED").length, settlements: mockSettlement.requests.filter((r) => r.status === "PENDING").length, reports: null },
+    pending: {
+      refunds: mockRefunds.requests.filter((r) => r.status === "REQUESTED").length,
+      settlements: mockSettlement.requests.filter((r) => r.status === "PENDING").length,
+      reports: moderationStore().reports.filter((r) => r.status === "OPEN").length
+    },
     recentAudit: auditEntries().slice(0, 8)
   };
 }
