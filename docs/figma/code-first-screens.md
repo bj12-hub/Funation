@@ -74,6 +74,8 @@ Add a row whenever a new code-first screen ships (see `docs/research/funnation-r
 
 | `/admin/settlements` 정산 심사 (`features/admin/settlements/*`) + 스튜디오 정산 관리 반려 사유 | admin settlements PR | 정산 등록 정보(마스킹), 상태 탭(전체 · 심사 대기 · 승인 · 반려), 신청별 금액 · 기간 · 수수료 · 실지급 · 지급 예정일, 승인 / 반려(처리 메모 필수 · 최종 · 감사 로그), 반려 시 실지급 0 · 지급일 해제 · 신청 금액을 신청 가능 금액으로 반환; 크리에이터 정산 관리 표에 반려 사유 표시. TBD: 서류 심사 · 실제 지급(이체) · 정책 수치 |
 
+| `/admin/content` 콘텐츠 관리 (공지사항 · 자주 묻는 질문 탭, `features/admin/content/ContentManager.tsx`) | admin content PR | 공지 등록 · 수정 · 삭제(분류 · 중요 고정 · 제목 · 요약 · 본문 문단), FAQ 등록 · 수정 · 삭제(분류 · 질문 · 답변 비우면 준비 중 · 사이트 내부 링크만), 고객센터가 같은 데이터를 읽어 즉시 반영, 새 공지는 사이트 알림 발송, 모든 변경 감사 로그. TBD: 예약 게시 · 게시 기간 · 이미지 첨부 · 승인 절차 |
+
 ## Figma
 
 구현된 전체 화면 캡처는 [current-build.md](current-build.md)의 새 파일(Somnation — 현재 구현)에 있어요. 펀페이 파일에 잠시 두었던 "코드 우선 화면" 페이지는 2026-09-30에 삭제했어요.

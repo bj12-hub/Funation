@@ -40,7 +40,7 @@ export const ADMIN_GROUPS: Group[] = [
     title: "운영",
     items: [
       { label: "신고 처리", emoji: "🚨" },
-      { label: "콘텐츠 관리", emoji: "📢" },
+      { label: "콘텐츠 관리", emoji: "📢", href: "/admin/content" },
       { label: "플랫폼 연동", emoji: "🔌" },
       { label: "시스템", emoji: "⚙️" }
     ]
