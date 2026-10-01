@@ -146,6 +146,7 @@
   margin-left: 6px;
   color: var(--color-warning-text);
   font-size: var(--font-size-12);
+  white-space: nowrap;
 }
 
 .time {
