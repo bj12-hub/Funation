@@ -77,6 +77,8 @@ Figma: [Somnation — 현재 구현 (2026-09)](https://www.figma.com/design/PMnj
 
 ## 4 스튜디오
 
+2026-10-02: C01 통합 채팅 추가, W03 오버레이 주소 · W11 후원 연동 다시 캡처(채팅 그룹 · 모든 플랫폼 테스트 후원).
+
 | ID | 화면 | 라우트 | Figma |
 |---|---|---|---|
 | T01-dashboard | 대시보드 /creator | `/creator` | [2:168](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-168) |
@@ -99,6 +101,7 @@ Figma: [Somnation — 현재 구현 (2026-09)](https://www.figma.com/design/PMnj
 | W09-assets | 이미지·사운드 | `/creator/widgets/assets` | [2:221](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-221) |
 | W10-banner | 배너 | `/creator/widgets/banner` | [2:224](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-224) |
 | W11-link | 후원 연동 | `/creator/widgets/link` | [2:227](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-227) |
+| C01-chat | 통합 채팅 (YouTube · 치지직 · SOOP · FlexTV) | `/creator/chat` | [41:4](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=41-4) |
 | Y03-crew | 크루 관리 | `/creator/crew` | [2:231](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-231) |
 | Y04-broadcast | 크루 방송 운영 | `/creator/crew/broadcast` | [2:234](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-234) |
 | T03-donations | 받은 후원 (CSV) | `/creator/donations?tab=list` | [2:238](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-238) |
@@ -125,6 +128,7 @@ Figma: [Somnation — 현재 구현 (2026-09)](https://www.figma.com/design/PMnj
 | O01-drawing | 그림후원 오버레이 (800×700) | `/overlay/drawing/[key]` | [2:290](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-290) |
 | O02-banner | 배너 오버레이 (1920×1080) | `/overlay/banner/[key]` | [2:293](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-293) |
 | O03-crew | 크루 점수판 오버레이 (480×600) | `/overlay/crew/[key]` | [2:296](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-296) |
+| O04-chat | 통합 채팅 오버레이 (400×600) | `/overlay/chat/[key]` | [41:7](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=41-7) |
 
 ## 6 어드민 (별도 앱 apps/admin · admin 서브도메인)
 
