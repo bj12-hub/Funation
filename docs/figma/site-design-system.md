@@ -50,12 +50,44 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | Channel Card | `46:206` | Status (Connected · Disconnected · YouTube link), Platform, Name, Info | `UnifiedChatScreen.tsx` Channels |
 | Overlay Chat Line | `46:208` | Platform, Name, Message, Show role | `chatOverlay.module.css` |
 
-## 레이아웃
+## 레이아웃 (9 레이아웃 · 스튜디오)
 
-| ID | 화면 | 라우트 | 노드 |
-|---|---|---|---|
-| C01 | 통합 채팅 | `/creator/chat` | `49:2` |
-| O04 | 통합 채팅 오버레이 (400 × 600) | `/overlay/chat/[key]` | `49:504` |
+섹션은 스튜디오 메뉴 순서예요. 화면은 실제 화면의 구조(레이아웃 · 간격 · 색 · 글자)를 읽어 만든 편집 가능한 프레임이고,
+색은 변수, 글자는 텍스트 스타일, 버튼 · 입력창 · 헤더 · 사이드바는 컴포넌트예요. 화면 속 이름 · 숫자는 예시 값이에요.
 
-다음 단계: 스튜디오의 다른 화면(대시보드 · 위젯 · 리모컨 · 후원 연동 …)을 같은 컴포넌트로 옮기고, 필요한 컴포넌트를
-추가해요. 화면 속 이름 · 숫자는 예시 값이에요.
+| 섹션 | ID | 화면 | 라우트 | 노드 |
+|---|---|---|---|---|
+| 통합 채팅 | C01 | 통합 채팅 | `/creator/chat` | `49:2` |
+| 통합 채팅 | O04 | 통합 채팅 오버레이 (400 × 600) | `/overlay/chat/[key]` | `49:504` |
+| 대시보드 · 수익 · 소식 | T01 | 대시보드 | `/creator` | `59:443` |
+| 대시보드 · 수익 · 소식 | T02 | 수익 현황 | `/creator/revenue` | `59:808` |
+| 대시보드 · 수익 · 소식 | T02b | 크리에이터 랭킹 | `/creator/ranking` | `61:646` |
+| 대시보드 · 수익 · 소식 | T05 | 업데이트 소식 | `/creator/updates` | `61:968` |
+| 채널 | H01 | 채널 설정 (계정설정) | `/creator/settings` | `62:846` |
+| 채널 | H02 | 후원 페이지 설정 | `/creator/donations?tab=settings` | `62:1111` |
+| 채널 | H03 | 칭호 관리 | `/creator/donations?tab=titles` | `62:1332` |
+| 채널 | Y01 | 유튜브 연동 | `/creator/youtube` | `62:1539` |
+| 채널 | Y02 | 영상 목록 | `/creator/videos` | `63:1255` |
+| 방송 · 위젯 | W01 | 위젯 목록 | `/creator/widgets` | `63:1485` |
+| 방송 · 위젯 | W02 | 방송 도구 | `/creator/widgets/tools` | `64:1471` |
+| 방송 · 위젯 | W03 | 오버레이 주소 | `/creator/widgets/overlays` | `64:1678` |
+| 방송 · 위젯 | W04 | 리모컨 | `/creator/remote` | `64:1972` |
+| 방송 · 위젯 | W05 | 이펙트 · 효과 | `/creator/widgets/effects` | `66:1840` |
+| 방송 · 위젯 | W06 | 시그니처 후원 (편집 열림) | `/creator/widgets/signatures` | `66:2016` |
+| 방송 · 위젯 | W07 | 영상 후원 | `/creator/widgets/video` | `66:2322` |
+| 방송 · 위젯 | W08 | 그림후원 | `/creator/widgets/drawing` | `66:2498` |
+| 방송 · 위젯 | W09 | 이미지·사운드 | `/creator/widgets/assets` | `66:2653` |
+| 방송 · 위젯 | W10 | 배너 | `/creator/widgets/banner` | `66:2782` |
+| 방송 · 위젯 | W11 | 후원 연동 | `/creator/widgets/link` | `67:2520` |
+| 크루 방송 | Y03 | 크루 관리 | `/creator/crew` | `67:2696` |
+| 크루 방송 | Y04 | 크루 방송 운영 | `/creator/crew/broadcast` | `67:2905` |
+| 후원 관리 | T03 | 받은 후원 | `/creator/donations?tab=list` | `67:3046` |
+| 후원 관리 | T03b | 후원 순위 | `/creator/donations?tab=ranking` | `68:2958` |
+| 후원 관리 | T03c | 후원 필터링 | `/creator/donations?tab=filtering` | `68:3293` |
+| 정산 | T04 | 정산 현황 + 체크리스트 | `/creator/settlement` | `68:3459` |
+| 정산 | T04b | 정산 인증·등록 (이용동의) | `/creator/settlement/register` | `68:3655` |
+| 정산 | T04c | 정산 자료 등록 | `/creator/settlement/register/form` | `69:3359` |
+
+아직 없는 화면: **정산 신청**(`/creator/settlement/apply`) · **정산 관리**(`/creator/settlement/manage`). 정산 등록(주민등록번호 · 계좌)을 마쳐야 열리는 화면이라, 개인 · 금융 정보 입력이 필요해 이번에는 만들지 않았어요.
+
+다음 단계: 사이트(홈 · 채널 · 후원 · 마이 · 지갑) 화면을 같은 방식으로 옮겨요. 화면 속 이름 · 숫자는 예시 값이에요.
