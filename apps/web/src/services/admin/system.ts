@@ -1,7 +1,8 @@
 import { USE_MOCK } from "@/lib/mock";
 import { donationLinkStore } from "@/services/creator/donationLinkCore";
 import { youtubeStore } from "@/services/creator/youtubeCore";
-import { ADAPTERS } from "@/services/platforms/adapters";
+import { broadcastChannel } from "@/services/broadcast/channelsCore";
+import { ADAPTERS, BROADCAST_PLATFORMS } from "@/services/platforms/adapters";
 import { PlatformError, type PlatformErrorCode } from "@/services/platforms/platformTypes";
 import { BANNER_MESSAGE_MAX, siteBannerStore } from "@/services/system/siteBanner";
 import type { Platform } from "@/types/platform";
@@ -18,7 +19,7 @@ import type { PlatformStatusRow, SystemResult, SystemView } from "./systemTypes"
 const assertMock = () => {
   if (!USE_MOCK) throw new Error("Admin system API is not connected yet.");
 };
-const PLATFORMS: Platform[] = ["YOUTUBE", "FLEXTV", "SOOP"];
+const PLATFORMS: Platform[] = BROADCAST_PLATFORMS;
 
 type Checks = Partial<Record<Platform, PlatformStatusRow["lastCheck"]>>;
 const g = globalThis as typeof globalThis & { __funationMockPlatformChecksV1?: Checks };
@@ -31,10 +32,11 @@ export async function getPlatformStatus(): Promise<PlatformStatusRow[] | null> {
   return PLATFORMS.map((p) => ({
     platform: p,
     capabilities: [...ADAPTERS[p].capabilities],
+    unverified: [...ADAPTERS[p].unverified],
     connection:
       p === "YOUTUBE"
         ? { connected: !!yt.channel, channelTitle: yt.channel?.title ?? null, lastSyncedAt: yt.lastSyncedAt, lastError: yt.lastError, videoCount: Object.keys(yt.videos).length }
-        : { connected: false, channelTitle: null, lastSyncedAt: null, lastError: null, videoCount: 0 },
+        : { connected: !!broadcastChannel(p), channelTitle: broadcastChannel(p)?.title ?? null, lastSyncedAt: null, lastError: null, videoCount: 0 },
     donationLink: { enabled: link.enabled[p], ...link.stats[p] },
     lastCheck: checks()[p] ?? null
   }));

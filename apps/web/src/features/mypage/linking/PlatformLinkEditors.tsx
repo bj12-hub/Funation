@@ -14,7 +14,7 @@ import styles from "./linking.module.css";
  * Other platforms reuse the same layouts with their own name (not separately designed).
  */
 
-const GLYPH: Record<Platform, string> = { YOUTUBE: "▶", FLEXTV: "F", SOOP: "S" };
+const GLYPH: Record<Platform, string> = { YOUTUBE: "▶", FLEXTV: "F", SOOP: "S", CHZZK: "C" };
 const GENERIC_ERROR = "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요";
 
 type DisconnectProps = { platform: Platform; label: string; handle: string; triggerClassName: string };

@@ -98,7 +98,8 @@ function bucket(daily: { date: string; amount: number }[]) {
 const LOGOS: Record<Platform, string> = {
   YOUTUBE: "/mock/room/logo-youtube.png",
   SOOP: "/mock/room/logo-soop.png",
-  FLEXTV: "/mock/room/logo-flextv.png"
+  FLEXTV: "/mock/room/logo-flextv.png",
+  CHZZK: "/mock/room/logo-chzzk.svg"
 };
 
 /** Figma chart 01.01–01.07 (₩28만 … ₩35만), repeated by weekday so any range has plausible data. */

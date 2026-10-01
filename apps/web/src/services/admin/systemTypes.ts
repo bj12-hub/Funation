@@ -6,7 +6,9 @@ import type { Platform } from "@/types/platform";
 export type PlatformStatusRow = {
   platform: Platform;
   capabilities: PlatformCapability[];
-  /** Studio account connection (mock: only YouTube connects). */
+  /** Declared for the mock but not confirmed against the real API yet (TBD). */
+  unverified: PlatformCapability[];
+  /** Studio channel connection (유튜브 연동 · 통합 채팅 › 채널 연결). */
   connection: { connected: boolean; channelTitle: string | null; lastSyncedAt: string | null; lastError: PlatformErrorCode | null; videoCount: number };
   donationLink: { enabled: boolean; received: number; duplicates: number; lastEventAt: string | null };
   lastCheck: { at: string; ok: boolean; latencyMs: number; error: PlatformErrorCode | null } | null;
