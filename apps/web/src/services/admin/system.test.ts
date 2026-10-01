@@ -25,16 +25,19 @@ describe("admin platforms and system", () => {
     await m.connectYouTube({ handle: "adminview", requestId: key(1) });
     signIn(["ADMIN"]);
     const rows = (await m.getPlatformStatus())!;
-    expect(rows.map((r) => r.platform)).toEqual(["YOUTUBE", "FLEXTV", "SOOP"]);
-    expect(rows[0].capabilities).toContain("DONATION_EVENTS");
+    expect(rows.map((r) => r.platform)).toEqual(["YOUTUBE", "CHZZK", "SOOP", "FLEXTV"]);
+    expect(rows[0].capabilities).toEqual(expect.arrayContaining(["DONATION_EVENTS", "CHAT_EVENTS", "CHAT_SEND", "CHAT_MODERATE"]));
+    expect(rows[0].unverified).toEqual([]);
     expect(rows[0].connection).toMatchObject({ connected: true, videoCount: 8 });
-    expect(rows[1].capabilities).toEqual(["LIVE_STATUS"]);
+    expect(rows[2].capabilities).not.toContain("CHAT_MODERATE");
+    expect(rows[2].unverified).toContain("CHAT_EVENTS");
+    expect(rows[2].connection.connected).toBe(false);
 
     await m.checkPlatform("YOUTUBE");
     await m.checkPlatform("SOOP");
     const after = (await m.getPlatformStatus())!;
     expect(after[0].lastCheck).toMatchObject({ ok: true, error: null });
-    expect(after[2].lastCheck).toMatchObject({ ok: false, error: "UNSUPPORTED" });
+    expect(after[2].lastCheck).toMatchObject({ ok: true, error: null });
     expect((await m.checkPlatform("TWITCH")).status).toBe("INVALID");
   });
 

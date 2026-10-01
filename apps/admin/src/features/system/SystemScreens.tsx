@@ -6,7 +6,7 @@ import { checkPlatform, saveSiteBanner } from "@/lib/actions";
 import { type PlatformStatusRow, type SystemView, PLATFORM_ERROR_LABEL, BANNER_MESSAGE_MAX, PLATFORM_LABEL } from "@/types/adminApi";
 import styles from "../admin.module.css";
 
-const CAP_LABEL: Record<string, string> = { CHANNEL_PROFILE: "채널 정보", VIDEO_LIST: "영상 목록", LIVE_STATUS: "방송 상태", CHAT_EVENTS: "채팅", DONATION_EVENTS: "후원 이벤트" };
+const CAP_LABEL: Record<string, string> = { CHANNEL_PROFILE: "채널 정보", VIDEO_LIST: "영상 목록", LIVE_STATUS: "방송 상태", CHAT_EVENTS: "채팅 읽기", CHAT_SEND: "채팅 보내기", CHAT_MODERATE: "채팅 관리", DONATION_EVENTS: "후원 이벤트" };
 const at = (iso: string | null) => (iso ? new Date(iso).toLocaleString("ko-KR", { dateStyle: "short", timeStyle: "short" }) : "—");
 
 /** 플랫폼 연동 — code-first. Route `/platforms`. Adapter capabilities, connections and a check. */
@@ -22,7 +22,7 @@ export function PlatformsScreen({ rows }: { rows: PlatformStatusRow[] }) {
     <div className={styles.content}>
       <header className={styles.pageHead}>
         <h1 className={styles.title}>플랫폼 연동</h1>
-        <p className={styles.muted}>플랫폼 어댑터가 지원하는 기능과 연동 상태예요. FlexTV · SOOP의 API 지원 범위는 확인 중이라 방송 상태만 선언돼 있어요 (TBD). 실서비스는 OAuth · 웹훅 · 할당량 모니터링이 필요해요.</p>
+        <p className={styles.muted}>플랫폼 어댑터가 지원하는 기능과 연동 상태예요. 치지직 · SOOP · FlexTV의 채팅 · 후원 API 지원 범위는 확인 중이에요 — 「확인 중」 표시는 mock에만 선언된 기능이에요 (TBD). 실서비스는 OAuth · 웹훅 · 할당량 모니터링이 필요해요.</p>
       </header>
       <div className={styles.tiles}>
         {rows.map((r) => (
@@ -33,7 +33,7 @@ export function PlatformsScreen({ rows }: { rows: PlatformStatusRow[] }) {
                 연결 확인
               </button>
             </div>
-            <p className={styles.muted}>지원 기능: {r.capabilities.map((c) => CAP_LABEL[c] ?? c).join(" · ")}</p>
+            <p className={styles.muted}>지원 기능: {r.capabilities.map((c) => `${CAP_LABEL[c] ?? c}${r.unverified.includes(c) ? "(확인 중)" : ""}`).join(" · ")}</p>
             <dl className={styles.facts}>
               <div>
                 <dt>스튜디오 연결</dt>

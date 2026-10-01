@@ -9,6 +9,7 @@ Funation is a broadcasting donation platform connecting **Creators** and **Suppo
 - YouTube
 - FlexTV
 - SOOP
+- CHZZK (치지직)
 
 ## Technology
 
@@ -39,7 +40,8 @@ Donation Core
 Platform Adapter
    ├── YouTube
    ├── FlexTV
-   └── SOOP
+   ├── SOOP
+   └── CHZZK
    ↓
 Creator
    ↓

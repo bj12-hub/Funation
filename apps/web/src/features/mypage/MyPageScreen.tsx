@@ -25,7 +25,8 @@ const PROVIDERS: { key: LoginProvider; label: string; logo: ReactNode }[] = [
 const PLATFORMS: Record<Platform, { label: string; icon: ReactNode }> = {
   YOUTUBE: { label: "YouTube", icon: <YoutubeLogoIcon /> },
   FLEXTV: { label: "FLEX TV", icon: <PlayOutlineIcon /> },
-  SOOP: { label: "SOOP", icon: <VideoIcon /> }
+  SOOP: { label: "SOOP", icon: <VideoIcon /> },
+  CHZZK: { label: "치지직", icon: <VideoIcon /> }
 };
 
 /**

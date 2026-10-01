@@ -24,8 +24,9 @@ describe("donation link", () => {
     const view = (await m.getDonationLinks())!;
     expect(view.links.map((l) => [l.platform, l.supported, l.connected])).toEqual([
       ["YOUTUBE", true, false],
-      ["FLEXTV", false, false],
-      ["SOOP", false, false]
+      ["CHZZK", true, false],
+      ["SOOP", true, false],
+      ["FLEXTV", true, false]
     ]);
     expect((await m.setDonationLink({ platform: "YOUTUBE", enabled: true })).status).toBe("INVALID");
     expect((await m.setDonationLink({ platform: "SOOP", enabled: true })).status).toBe("INVALID");
@@ -54,6 +55,29 @@ describe("donation link", () => {
     expect(view.recent[0]).toMatchObject({ donor: "시청자", amountLabel: "US$12.50" });
     expect(m.account.fnBalance).toBe(balance);
     expect(m.wallet.donations).toHaveLength(0);
+  });
+
+  it("puts every platform's donations into one alert queue, one at a time, deduped per platform event", async () => {
+    const m = await load();
+    const unified = await import("@/services/broadcast/unifiedChat");
+    await m.connectYouTube({ handle: "linked", requestId: key(10) });
+    for (const platform of ["CHZZK", "SOOP"]) {
+      expect(await unified.connectBroadcastChannel({ platform, handle: "linked" })).toEqual({ status: "OK" });
+      expect(await m.setDonationLink({ platform, enabled: true })).toEqual({ status: "OK" });
+    }
+    await m.setDonationLink({ platform: "YOUTUBE", enabled: true });
+    m.alerts.controls.minFn = 1_000_000;
+
+    expect(await m.simulateExternalDonation(chat(11, { platform: "SOOP", value: 10, redeliver: true }))).toEqual({ status: "OK", ingested: 1, duplicates: 1 });
+    expect(await m.simulateExternalDonation(chat(12, { platform: "CHZZK", value: 1000 }))).toEqual({ status: "OK", ingested: 1, duplicates: 0 });
+    expect(await m.simulateExternalDonation(chat(13, { platform: "YOUTUBE", value: 5000 }))).toEqual({ status: "OK", ingested: 1, duplicates: 0 });
+    expect((await m.simulateExternalDonation(chat(14, { platform: "CHZZK", value: 1.5 }))).status).toBe("INVALID");
+
+    expect(m.alerts.items.map((a) => [a.typeLabel, a.amountLabel, a.status])).toEqual([
+      ["SOOP 별풍선", "10 별풍선", "SHOWING"],
+      ["치지직 치즈", "1000 치즈", "QUEUED"],
+      ["YouTube 슈퍼챗", "₩5,000", "QUEUED"]
+    ]);
   });
 
   it("validates the simulator and requires the creator role", async () => {
