@@ -1,17 +1,17 @@
-// Runs inside a site page. Returns a compact layout tree of the main column (or the donation panel with ?tab=donation) for site-renderer.js.
+// Runs inside an admin console page (apps/admin). Returns a compact layout tree of the main column for admin-renderer.js.
 (() => {
-  const TOKENS = ["bg-page","bg-subtle","surface","surface-raised","surface-strong","border","border-strong","text-primary","text-secondary","text-tertiary","text-on-accent","primary","primary-light","primary-soft","nav-active-bg","accent","info","success","success-text","success-soft","danger","danger-soft","danger-border","error-text","warning-text","chip-bg","input-bg","neutral-soft"];
+  const TOKENS = ["bg-page","bg-surface","bg-subtle","bg-hover","bg-sidebar","bg-sidebar-active","text-primary","text-secondary","text-tertiary","text-inverse","border-default","border-strong","accent-default","accent-hover","accent-soft","accent-text","status-success-bg","status-success-text","status-warning-bg","status-warning-text","status-danger-bg","status-danger-text","status-danger","status-info-bg","status-info-text"];
   const probe = document.createElement("div");
   document.body.appendChild(probe);
   const norm = (v) => { probe.style.color = ""; probe.style.color = v; return getComputedStyle(probe).color; };
   const root = getComputedStyle(document.documentElement);
   const val = {};
-  for (const t of TOKENS) val[t] = norm(root.getPropertyValue("--color-" + t).trim());
+  for (const t of TOKENS) val[t] = norm(root.getPropertyValue("--adm-color-" + t).trim());
   probe.remove();
   const pick = (order) => { const m = {}; for (const t of order) if (val[t] && !(val[t] in m)) m[val[t]] = t; return m; };
-  const FILL = pick(["bg-page","bg-subtle","surface","surface-raised","surface-strong","input-bg","chip-bg","primary-soft","nav-active-bg","success-soft","danger-soft","neutral-soft","primary","accent","info","success","danger","border","border-strong"]);
-  const STROKE = pick(["border","border-strong","primary","primary-light","danger-border","danger","success","error-text","surface-strong"]);
-  const TEXT = pick(["text-primary","text-secondary","text-tertiary","text-on-accent","primary-light","primary","success-text","error-text","warning-text","accent","info","success","danger"]);
+  const FILL = pick(["bg-page","bg-surface","bg-subtle","bg-hover","accent-soft","status-success-bg","status-warning-bg","status-danger-bg","status-info-bg","accent-default","status-danger","bg-sidebar","bg-sidebar-active","border-default","border-strong"]);
+  const STROKE = pick(["border-default","border-strong","accent-default","status-danger","status-danger-text","status-success-text","status-warning-text","status-info-text"]);
+  const TEXT = pick(["text-primary","text-secondary","text-tertiary","text-inverse","accent-default","accent-text","status-success-text","status-warning-text","status-danger-text","status-danger","status-info-text"]);
   const hex = (c) => { const m = c.match(/rgba?\(([^)]+)\)/); if (!m) return null; const [r, g, b, a = "1"] = m[1].split(",").map((s) => s.trim()); if (Number(a) === 0) return null; const h = "#" + [r, g, b].map((x) => Number(x).toString(16).padStart(2, "0")).join(""); return Number(a) < 1 ? h + Math.round(Number(a) * 255).toString(16).padStart(2, "0") : h; };
   const col = (c, map) => { if (!c || c === "rgba(0, 0, 0, 0)" || c === "transparent") return null; return map[c] ?? hex(c); };
   const px = (v) => Math.round(parseFloat(v) || 0);
@@ -35,7 +35,6 @@
     if (!visible(el, cs, r) || depth > 22) return null;
     const tag = el.tagName;
     if (tag === "SCRIPT" || tag === "STYLE" || tag === "NOSCRIPT") return null;
-    if (tag === "FOOTER") return ["footer"];
     if (tag === "INPUT" && (el.type === "checkbox" || el.type === "radio")) return ["c", el.checked ? 1 : 0, el.type === "radio" ? 1 : 0];
     if (tag === "INPUT" && el.type === "range") return ["m", Math.round(r.width), 6, 3, "primary"];
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
@@ -79,16 +78,10 @@
     if (!o.f && !o.s && !o.p && !o.h && kids.length === 1 && Array.isArray(kids[0]) && kids[0][0] === "t") return kids[0];
     return o;
   }
-  const header = document.querySelector('header[class*="GlobalHeader_header"]');
-  const side = document.querySelector('aside[class*="SideNav_sidebar"]');
-  const panel = location.search.includes("tab=donation") ? document.querySelector('[class*="room_donation"]') : null;
-  const main = panel || document.querySelector('[class*="AppShell_main"]') || document.querySelector("main") || document.body;
+  const side = document.querySelector('aside');
+  const main = document.querySelector("main") || document.querySelector('[class*="login"]') || document.body;
   const active = side ? (side.querySelector('[aria-current="page"]')?.innerText.replace(/\s+/g, " ").trim() ?? null) : null;
-  const tops = [...document.querySelectorAll("body *")].filter((el) => { const cs = getComputedStyle(el); if (cs.position !== "fixed") return false; const r = el.getBoundingClientRect(); if (r.width < 200 || r.height < 120) return false; if ((side && side.contains(el)) || el.closest("#site-side-menu")) return false; return !el.closest("header"); });
-  const pops = header ? [...header.querySelectorAll("*")].filter((el) => { const cs = getComputedStyle(el); const r = el.getBoundingClientRect(); return (cs.position === "absolute" || cs.position === "fixed") && r.width >= 200 && r.height >= 120; }) : [];
-  tops.push(...pops);
-  const overlays = tops.filter((el) => !tops.some((o) => o !== el && o.contains(el))).map((el) => { const r = el.getBoundingClientRect(); return { x: Math.round(r.x), y: Math.round(r.y), tree: walk(el, 0) }; }).filter((o) => o.tree);
-  const headerKind = header ? (header.querySelector('[class*="rightGuest"]') ? "guest" : "signed") : null;
-  const sideOpen = !!side && side.getBoundingClientRect().width > 100;
-  return JSON.stringify({ panel: !!panel, active, headerKind: panel ? null : headerKind, sideOpen: panel ? false : sideOpen, w: Math.round(main.getBoundingClientRect().width), tree: walk(main, 0), overlays });
+  const crumb = document.querySelector("header p")?.innerText.trim() ?? null;
+  const overlays = [...document.querySelectorAll("body *")].filter((el) => { const cs = getComputedStyle(el); if (cs.position !== "fixed") return false; const r = el.getBoundingClientRect(); if (r.width < 200 || r.height < 120) return false; return !(side && side.contains(el)) && !el.closest("header") && !el.closest("nextjs-portal"); }).filter((el, i, a) => !a.some((o) => o !== el && o.contains(el))).map((el) => { const r = el.getBoundingClientRect(); return { x: Math.round(r.x), y: Math.round(r.y), tree: walk(el, 0) }; }).filter((o) => o.tree);
+  return JSON.stringify({ chrome: !!side, active, crumb, w: Math.round(main.getBoundingClientRect().width), tree: walk(side ? main : document.body, 0), overlays });
 })()
