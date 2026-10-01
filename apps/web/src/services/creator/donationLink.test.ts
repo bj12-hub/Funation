@@ -73,10 +73,10 @@ describe("donation link", () => {
     expect(await m.simulateExternalDonation(chat(13, { platform: "YOUTUBE", value: 5000 }))).toEqual({ status: "OK", ingested: 1, duplicates: 0 });
     expect((await m.simulateExternalDonation(chat(14, { platform: "CHZZK", value: 1.5 }))).status).toBe("INVALID");
 
-    expect(m.alerts.items.map((a) => [a.typeLabel, a.amountLabel, a.status])).toEqual([
-      ["SOOP 별풍선", "10 별풍선", "SHOWING"],
-      ["치지직 치즈", "1000 치즈", "QUEUED"],
-      ["YouTube 슈퍼챗", "₩5,000", "QUEUED"]
+    expect(m.alerts.items.map((a) => [a.platform, a.typeLabel, a.amountLabel, a.status])).toEqual([
+      ["SOOP", "SOOP 별풍선", "10 별풍선", "SHOWING"],
+      ["CHZZK", "치지직 치즈", "1000 치즈", "QUEUED"],
+      ["YOUTUBE", "YouTube 슈퍼챗", "₩5,000", "QUEUED"]
     ]);
   });
 

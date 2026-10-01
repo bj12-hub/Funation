@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { PlatformMark } from "@/features/broadcast/PlatformMark";
 import { alertAmount, type OverlayAlert } from "@/services/creator/alertTypes";
 import styles from "./alertOverlay.module.css";
 import { useReloadSignal } from "./useReloadSignal";
@@ -57,7 +58,9 @@ export function AlertOverlay({ data }: { data: OverlayAlert }) {
           <strong>{alert.donor}</strong>님이 <strong className={styles.amount}>{alertAmount(alert)}</strong> 후원!
         </p>
         {alert.message && <p className={styles.message}>{alert.message}</p>}
-        <p className={styles.type}>{alert.typeLabel}</p>
+        <p className={styles.type}>
+          {alert.platform && <PlatformMark platform={alert.platform} size="sm" />} {alert.typeLabel}
+        </p>
       </div>
     </div>
   );

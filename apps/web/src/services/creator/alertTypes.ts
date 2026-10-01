@@ -1,4 +1,5 @@
 import { formatNumber } from "@/lib/format";
+import type { Platform } from "@/types/platform";
 
 /**
  * 후원 알림 대기열 + 리모컨 — code-first, no Figma frame (docs/figma/code-first-screens.md).
@@ -21,6 +22,8 @@ export type AlertItem = {
   /** Set for EXTERNAL alerts, e.g. "₩5,000" (the FN exchange rate is TBD, so no conversion). */
   amountLabel?: string;
   typeLabel: string;
+  /** Broadcast platform an EXTERNAL alert came from (통합 후원 알림 shows its mark). */
+  platform?: Platform;
   createdAt: string;
   status: AlertStatus;
 };
