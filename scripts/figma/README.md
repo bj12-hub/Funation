@@ -28,3 +28,12 @@ Site screens (page 10) use the same format with three site-specific scripts:
   `{ id, name, group, url, active, headerKind: "signed" | "guest" | null, sideOpen, width, theme?, overlays?, tree }`:
   it adds the header instance, the side menu with `active` highlighted, absolute `overlays` (`{ x, y, tree }`) and an
   explicit Light mode when `theme` is `"light"`.
+
+Admin screens (Somnation Admin file `Js5MCzkGmAZ9QY0w3nLUe8`, page "Layouts") use the same format:
+
+- `admin-walker.js` runs inside an `apps/admin` page (mock operator session on localhost) and maps colours to the
+  `--adm-color-*` tokens (`bg-page`, `status-success-bg`, …). It returns `{ chrome, active, crumb, tree, overlays }`.
+- `admin-renderer.js` is stored as `somnation` / `adminRenderer` in that file. Tokens map to the `color/*` variables
+  (`bg-page` → `color/bg/page`), font keys to the `Admin/*` text styles, and it places the Sidebar (active item) and
+  Topbar (breadcrumb) instances plus Button · Badge · Input · Tab instances. `somnation` / `adminHelpers` holds small
+  builders (table, card, tabs, …) used to keep each `use_figma` call short.
