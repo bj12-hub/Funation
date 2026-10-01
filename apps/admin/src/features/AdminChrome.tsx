@@ -3,47 +3,48 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOutOperator } from "@/lib/actions";
-import studio from "./shell.module.css";
 import { SITE_URL } from "@/lib/siteUrl";
 import styles from "./admin.module.css";
+import shell from "./shell.module.css";
 
 /**
- * 관리자 콘솔 chrome — code-first (no Figma frame). Groups follow docs/figma/screen-inventory.md "Admin":
- * 회원 · 크리에이터 · 후원 · 결제 · 정산 · 플랫폼 · 시스템. Items without `href` are 준비 중.
+ * 관리자 콘솔 chrome — Figma "Somnation Admin" Sidebar (3:29) · Topbar (3:63) · SideNav Item (2:44).
+ * Groups follow docs/figma/screen-inventory.md "Admin": 회원 · 크리에이터 · 후원 · 결제 · 정산 · 플랫폼 · 시스템.
+ * Items without `href` are 준비 중.
  */
-type Item = { label: string; emoji: string; href?: string };
+type Item = { label: string; href?: string };
 type Group = { title: string | null; items: Item[] };
 
 export const ADMIN_GROUPS: Group[] = [
   {
     title: null,
     items: [
-      { label: "대시보드", emoji: "📊", href: "/" },
-      { label: "감사 로그", emoji: "🧾", href: "/audit" }
+      { label: "대시보드", href: "/" },
+      { label: "감사 로그", href: "/audit" }
     ]
   },
   {
     title: "회원",
     items: [
-      { label: "회원 관리", emoji: "👤", href: "/members" },
-      { label: "크리에이터 관리", emoji: "🎙️", href: "/creators" }
+      { label: "회원 관리", href: "/members" },
+      { label: "크리에이터 관리", href: "/creators" }
     ]
   },
   {
     title: "거래",
     items: [
-      { label: "후원 운영", emoji: "💝", href: "/donations" },
-      { label: "결제 · 환불", emoji: "💳", href: "/payments" },
-      { label: "정산 심사", emoji: "🧮", href: "/settlements" }
+      { label: "후원 운영", href: "/donations" },
+      { label: "결제 · 환불", href: "/payments" },
+      { label: "정산 심사", href: "/settlements" }
     ]
   },
   {
     title: "운영",
     items: [
-      { label: "신고 처리", emoji: "🚨", href: "/reports" },
-      { label: "콘텐츠 관리", emoji: "📢", href: "/content" },
-      { label: "플랫폼 연동", emoji: "🔌", href: "/platforms" },
-      { label: "시스템", emoji: "⚙️", href: "/system" }
+      { label: "신고 처리", href: "/reports" },
+      { label: "콘텐츠 관리", href: "/content" },
+      { label: "플랫폼 연동", href: "/platforms" },
+      { label: "시스템", href: "/system" }
     ]
   }
 ];
@@ -55,20 +56,38 @@ export function adminActiveHref(pathname: string) {
   return PATHS.filter((h) => (h === "/" ? pathname === h : pathname === h || pathname.startsWith(`${h}/`))).sort((a, b) => b.length - a.length)[0] ?? null;
 }
 
-export function AdminHeader({ operator }: { operator: string }) {
+/** "그룹 / 메뉴" plus the detail segment (e.g. 회원 / 회원 관리 / m-1042). */
+export function adminBreadcrumb(pathname: string) {
+  const href = adminActiveHref(pathname);
+  const group = ADMIN_GROUPS.find((g) => g.items.some((i) => i.href === href));
+  const item = group?.items.find((i) => i.href === href);
+  if (!group || !item || !href) return "관리자 콘솔";
+  const parts = [group.title, item.label].filter((p): p is string => !!p);
+  const rest = href === "/" ? "" : pathname.slice(href.length).replace(/^\/+/, "");
+  if (rest) parts.push(decodeURIComponent(rest.split("/")[0]));
+  return parts.join(" / ");
+}
+
+export function AdminTopbar({ operator, mock }: { operator: string; mock: boolean }) {
+  const crumb = adminBreadcrumb(usePathname() ?? "/");
   return (
-    <header className={styles.header}>
-      <Link href="/" className={styles.logo}>
-        <span className={styles.logoText}>Somnation</span>
-        <span className={styles.badge}>관리자</span>
-      </Link>
-      <div className={styles.headerRight}>
-        <a href={SITE_URL} className={styles.headerLink} target="_blank" rel="noreferrer">
-          사이트 열기
+    <header className={shell.topbar}>
+      <p className={shell.crumb}>{crumb}</p>
+      <div className={shell.topRight}>
+        {mock && (
+          <span className={styles.chipWarn} title="mock 데이터 · 서버를 다시 시작하면 초기화돼요">
+            MOCK
+          </span>
+        )}
+        <a href={SITE_URL} className={shell.topLink} target="_blank" rel="noreferrer">
+          사이트 열기 ↗
         </a>
-        <span className={styles.operator}>🛡️ {operator}</span>
+        <span className={shell.avatar} aria-hidden="true">
+          {operator.slice(0, 1)}
+        </span>
+        <span className={shell.operator}>{operator}</span>
         <form action={signOutOperator}>
-          <button type="submit" className={styles.headerLink}>
+          <button type="submit" className={shell.signOut}>
             로그아웃
           </button>
         </form>
@@ -80,38 +99,47 @@ export function AdminHeader({ operator }: { operator: string }) {
 export function AdminSideNav() {
   const active = adminActiveHref(usePathname() ?? "/");
   return (
-    <nav className={studio.sidebar} aria-label="관리자 메뉴">
-      {ADMIN_GROUPS.map((g, i) => (
-        <div key={g.title ?? `g${i}`} className={studio.sideGroup}>
-          {g.title && <p className={studio.sideGroupTitle}>{g.title}</p>}
-          <ul>
-            {g.items.map((item) => {
-              const content = (
-                <>
-                  <span className={studio.sideEmoji} aria-hidden="true">
-                    {item.emoji}
-                  </span>
-                  {item.label}
-                </>
-              );
-              const on = item.href === active;
-              return (
-                <li key={item.label}>
-                  {item.href ? (
-                    <Link href={item.href} className={`${studio.sideItem} ${on ? studio.sideItemActive : ""}`} aria-current={on ? "page" : undefined}>
-                      {content}
-                    </Link>
-                  ) : (
-                    <span className={`${studio.sideItem} ${studio.sideItemOff}`} aria-disabled="true" title="준비 중인 기능입니다">
-                      {content}
-                    </span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      ))}
-    </nav>
+    <aside className={shell.sidebar}>
+      <Link href="/" className={shell.brand} aria-label="Somnation 관리자 콘솔 대시보드">
+        <span className={shell.brandMark} aria-hidden="true">
+          S
+        </span>
+        <span className={shell.brandName}>
+          Somnation
+          <span className={shell.brandSub}>Admin Console</span>
+        </span>
+      </Link>
+      <nav aria-label="관리자 메뉴">
+        {ADMIN_GROUPS.map((g, i) => (
+          <div key={g.title ?? `g${i}`} className={shell.sideGroup}>
+            {g.title && <p className={shell.sideGroupTitle}>{g.title}</p>}
+            <ul>
+              {g.items.map((item) => {
+                const content = (
+                  <>
+                    <span className={shell.sideDot} aria-hidden="true" />
+                    {item.label}
+                  </>
+                );
+                const on = item.href === active;
+                return (
+                  <li key={item.label}>
+                    {item.href ? (
+                      <Link href={item.href} className={`${shell.sideItem} ${on ? shell.sideItemActive : ""}`} aria-current={on ? "page" : undefined}>
+                        {content}
+                      </Link>
+                    ) : (
+                      <span className={`${shell.sideItem} ${shell.sideItemOff}`} aria-disabled="true" title="준비 중인 기능입니다">
+                        {content}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </nav>
+    </aside>
   );
 }

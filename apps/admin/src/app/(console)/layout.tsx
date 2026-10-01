@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { AdminHeader, AdminSideNav } from "@/features/AdminChrome";
-import studio from "@/features/shell.module.css";
-import { getOperator } from "@/lib/session";
+import { AdminSideNav, AdminTopbar } from "@/features/AdminChrome";
+import shell from "@/features/shell.module.css";
+import { getOperator, isMock } from "@/lib/session";
 
 // Admin console shell. Operators only; every page load and action re-checks the operator on the server,
 // and the site's admin API re-authorises the app itself.
@@ -12,11 +12,11 @@ export default async function ConsoleLayout({ children }: { children: ReactNode 
   const operator = await getOperator();
   if (!operator) redirect("/login");
   return (
-    <div className={studio.themeScope}>
-      <AdminHeader operator={operator.name} />
-      <div className={studio.shell}>
-        <AdminSideNav />
-        <main className={studio.main}>{children}</main>
+    <div className={shell.themeScope}>
+      <AdminSideNav />
+      <div className={shell.column}>
+        <AdminTopbar operator={operator.name} mock={isMock()} />
+        <main className={shell.main}>{children}</main>
       </div>
     </div>
   );

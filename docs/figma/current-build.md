@@ -129,6 +129,7 @@ Figma: [Somnation — 현재 구현 (2026-09)](https://www.figma.com/design/PMnj
 ## 6 어드민 (별도 앱 apps/admin · admin 서브도메인)
 
 2026-10-01 추가. 라우트는 어드민 앱 기준(admin.<도메인>)이에요.
+어드민 디자인 원본은 별도 파일 **Somnation Admin**이에요 ([admin-design-system.md](admin-design-system.md)). 이 페이지의 캡처는 어드민 전용 디자인을 적용하기 전(사이트 다크 토큰) 화면이라 다시 캡처해야 해요.
 
 | ID | 화면 | 라우트 | Figma |
 |---|---|---|---|

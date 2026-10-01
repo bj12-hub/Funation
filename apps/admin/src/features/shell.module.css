@@ -1,54 +1,87 @@
-/* 관리자 콘솔 shell — sidebar layout follows the creator studio of the site (tokens shared). */
+/* 관리자 콘솔 shell — Figma "Somnation Admin" components Sidebar (3:29) · Topbar (3:63) · SideNav Item (2:44). */
 
 .themeScope {
-  min-height: 100vh;
-  background: var(--color-bg-page);
-  color: var(--color-text-primary);
-}
-
-.shell {
   display: flex;
   align-items: stretch;
-  min-height: calc(100vh - 64px);
+  min-height: 100vh;
+  /* Keeps the sidebar column dark below the sticky sidebar on long pages. */
+  background: linear-gradient(to right, var(--adm-color-bg-sidebar) var(--adm-sidebar-width), var(--adm-color-bg-page) var(--adm-sidebar-width));
+  color: var(--adm-color-text-primary);
+}
+
+.column {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .main {
   flex: 1;
   min-width: 0;
-  padding: 32px 40px 80px;
+  padding: var(--adm-space-8) var(--adm-space-8) 80px;
 }
 
+/* Sidebar */
 .sidebar {
   position: sticky;
   top: 0;
+  display: flex;
+  flex-direction: column;
   flex-shrink: 0;
-  width: 240px;
-  height: calc(100vh - 64px);
-  padding: 12px 16px 20px;
+  width: var(--adm-sidebar-width);
+  height: 100vh;
+  padding: var(--adm-space-5) var(--adm-space-4);
   overflow-y: auto;
-  border-right: 1px solid var(--color-border);
+  background: var(--adm-color-bg-sidebar);
 }
 
-.sideGroup {
-  padding: 8px 0;
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--adm-space-2);
+  padding: 0 var(--adm-space-3) var(--adm-space-5);
+}
+
+.brandMark {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--adm-radius-md);
+  background: var(--adm-color-accent-default);
+  color: var(--adm-color-text-inverse);
+  font: var(--adm-text-body-strong);
+}
+
+.brandName {
+  display: flex;
+  flex-direction: column;
+  color: var(--adm-color-text-sidebar-active);
+  font: var(--adm-text-body-strong);
+}
+
+.brandSub {
+  color: var(--adm-color-text-sidebar);
+  font: var(--adm-text-caption);
 }
 
 .sideGroup + .sideGroup {
-  border-top: 1px solid var(--color-border);
+  margin-top: var(--adm-space-2);
 }
 
 .sideGroupTitle {
   margin: 0;
-  padding: 6px 16px 6px 19px;
-  color: var(--color-text-tertiary);
-  font-size: var(--font-size-12);
-  font-weight: var(--font-weight-bold);
+  padding: var(--adm-space-2) var(--adm-space-3) 6px;
+  color: var(--adm-color-text-sidebar);
+  font: var(--adm-text-label);
+  opacity: 0.6;
 }
 
 .sidebar ul {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--adm-space-1);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -57,27 +90,25 @@
 .sideItem {
   display: flex;
   align-items: center;
-  gap: 12px;
-  height: 40px;
-  padding: 10px 16px;
-  border-left: 3px solid transparent;
-  border-radius: 10px;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-medium);
+  gap: 10px;
+  height: 36px;
+  padding: var(--adm-space-2) var(--adm-space-3);
+  border-radius: var(--adm-radius-md);
+  color: var(--adm-color-text-sidebar);
+  font: var(--adm-text-body);
   white-space: nowrap;
 }
 
 a.sideItem:hover {
-  color: var(--color-text-primary);
+  background: var(--adm-color-bg-sidebar-active);
+  color: var(--adm-color-text-sidebar-active);
 }
 
 .sideItemActive,
 a.sideItemActive:hover {
-  border-left-color: var(--color-primary);
-  background: var(--color-primary-soft);
-  color: var(--color-text-on-accent);
-  font-weight: var(--font-weight-bold);
+  background: var(--adm-color-bg-sidebar-active);
+  color: var(--adm-color-text-sidebar-active);
+  font: var(--adm-text-body-strong);
 }
 
 .sideItemOff {
@@ -85,60 +116,111 @@ a.sideItemActive:hover {
   opacity: 0.55;
 }
 
-.sideEmoji {
-  display: flex;
-  justify-content: center;
-  width: 20px;
-  font-family: var(--font-latin);
+.sideDot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--adm-radius-full);
+  background: currentColor;
 }
 
-.noAccess {
+.sideItemActive .sideDot {
+  background: var(--adm-color-accent-default);
+}
+
+/* Topbar */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  min-height: 100vh;
-  padding: 120px 16px;
-  text-align: center;
+  justify-content: space-between;
+  gap: var(--adm-space-4);
+  height: var(--adm-topbar-height);
+  padding: 0 var(--adm-space-6);
+  border-bottom: 1px solid var(--adm-color-border-default);
+  background: var(--adm-color-bg-surface);
 }
 
-.noAccessTitle {
+.crumb {
   margin: 0;
-  color: var(--color-text-primary);
-  font-size: var(--font-size-24);
-  font-weight: var(--font-weight-extrabold);
+  overflow: hidden;
+  color: var(--adm-color-text-secondary);
+  font: var(--adm-text-body);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.noAccessText {
-  margin: 0;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-14);
+.topRight {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--adm-space-3);
 }
 
-.noAccessButton {
-  margin-top: 12px;
-  padding: 12px 24px;
-  border-radius: var(--radius-8);
-  background: var(--gradient-primary-button);
-  color: var(--color-text-on-accent);
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-bold);
+.topLink {
+  color: var(--adm-color-accent-text);
+  font: var(--adm-text-body);
+}
+
+.topLink:hover {
+  text-decoration: underline;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--adm-radius-full);
+  background: var(--adm-color-accent-soft);
+  color: var(--adm-color-accent-text);
+  font: var(--adm-text-label);
+}
+
+.operator {
+  color: var(--adm-color-text-primary);
+  font: var(--adm-text-body-strong);
+}
+
+.signOut {
+  color: var(--adm-color-text-tertiary);
+  font: var(--adm-text-body);
+}
+
+.signOut:hover {
+  color: var(--adm-color-text-primary);
 }
 
 @media (max-width: 900px) {
-  .shell {
+  .themeScope {
     flex-direction: column;
+    background: var(--adm-color-bg-page);
   }
 
   .sidebar {
     position: static;
     width: 100%;
     height: auto;
-    border-right: 0;
-    border-bottom: 1px solid var(--color-border);
+  }
+
+  .sidebar ul {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .topbar {
+    position: static;
+    padding: 0 var(--adm-space-4);
+  }
+
+  .operator,
+  .crumb {
+    display: none;
   }
 
   .main {
-    padding: 24px 16px 60px;
+    padding: var(--adm-space-6) var(--adm-space-4) 60px;
   }
 }
