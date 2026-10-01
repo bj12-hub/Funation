@@ -149,7 +149,7 @@ function mockChannel(platform: Platform, prefix: string, handle: string): Channe
 
 /** The streamer's own message, echoed back into the chat feed like the platforms do. */
 function echoOwner(platform: Platform, channelId: string, text: string) {
-  return mockViewerChat(platform, channelId, { userId: `owner:${channelId}`, nick: "스트리머", text, role: "OWNER" });
+  return mockViewerChat(platform, channelId, { userId: `owner:${channelId}`, nick: "내 방송 계정", text, role: "OWNER" });
 }
 
 // ── YouTube ──────────────────────────────────────────────────────────────────
