@@ -9,6 +9,7 @@ Confirmed external broadcasting platforms:
 - YouTube
 - FlexTV
 - SOOP
+- CHZZK (치지직, added 2026-10-01 for unified chat and donation alerts)
 
 Frontend:
 
@@ -166,6 +167,7 @@ Confirmed:
 YouTube
 FlexTV
 SOOP
+CHZZK
 ```
 
 Recommended backend abstraction:
@@ -174,7 +176,8 @@ Recommended backend abstraction:
 PlatformAdapter
 ├── YouTubeAdapter
 ├── FlexTVAdapter
-└── SoopAdapter
+├── SoopAdapter
+└── ChzzkAdapter
 ```
 
 Never expose external platform DTOs directly to the core donation domain.

@@ -11,13 +11,16 @@ export type DonationLinkStore = {
   requests: Record<string, true>;
 };
 
-const g = globalThis as typeof globalThis & { __funationMockDonationLinkV1?: DonationLinkStore };
+const ALL: Platform[] = ["YOUTUBE", "CHZZK", "SOOP", "FLEXTV"];
+const per = <T>(make: () => T) => Object.fromEntries(ALL.map((p) => [p, make()])) as Record<Platform, T>;
+
+const g = globalThis as typeof globalThis & { __funationMockDonationLinkV2?: DonationLinkStore };
 export const donationLinkStore = (): DonationLinkStore =>
-  (g.__funationMockDonationLinkV1 ??= {
-    enabled: { YOUTUBE: false, FLEXTV: false, SOOP: false },
+  (g.__funationMockDonationLinkV2 ??= {
+    enabled: per(() => false),
     cursors: {},
     seen: {},
-    stats: { YOUTUBE: { received: 0, duplicates: 0, lastEventAt: null }, FLEXTV: { received: 0, duplicates: 0, lastEventAt: null }, SOOP: { received: 0, duplicates: 0, lastEventAt: null } },
+    stats: per(() => ({ received: 0, duplicates: 0, lastEventAt: null })),
     recent: [],
     requests: {}
   });

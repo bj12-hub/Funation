@@ -1,5 +1,14 @@
 import type { Platform } from "@/types/platform";
-import { PlatformError, type ChannelProfile, type ChannelVideo, type ExternalDonationEvent, type PlatformCapability } from "./platformTypes";
+import {
+  channelRemote,
+  consumeFailure,
+  mockViewerChat,
+  type ChzzkChatDto,
+  type FlexChatDto,
+  type SoopChatDto,
+  type YtChatDto
+} from "./mockBroadcastRemote";
+import { PlatformError, type ChannelProfile, type ChannelVideo, type ChatAuthorRole, type ExternalChatMessage, type ExternalDonationEvent, type PlatformCapability } from "./platformTypes";
 
 /**
  * PlatformAdapter (CLAUDE.md §9) — server-only. Each platform declares what it can do; callers check
@@ -10,10 +19,23 @@ import { PlatformError, type ChannelProfile, type ChannelVideo, type ExternalDon
 export interface PlatformAdapter {
   platform: Platform;
   capabilities: readonly PlatformCapability[];
+  /**
+   * Declared for the mock but not yet confirmed against the platform's real API (TBD). Screens show
+   * these as "확인 중" so nobody mistakes the mock for a verified integration.
+   */
+  unverified: readonly PlatformCapability[];
   getChannel(handle: string): Promise<ChannelProfile>;
   listVideos(externalChannelId: string, opts?: { max?: number }): Promise<ChannelVideo[]>;
   /** Events after `cursor` (opaque), oldest first. Only for adapters with DONATION_EVENTS. */
   fetchDonationEvents(externalChannelId: string, cursor: string | null): Promise<{ events: ExternalDonationEvent[]; cursor: string | null }>;
+  /** Live chat after `cursor`, oldest first. CHAT_EVENTS only. */
+  fetchChatMessages(externalChannelId: string, cursor: string | null): Promise<{ messages: ExternalChatMessage[]; cursor: string | null }>;
+  /** Posts as the channel owner. CHAT_SEND only. Returns the platform's message id. */
+  sendChatMessage(externalChannelId: string, text: string): Promise<{ externalMessageId: string }>;
+  /** CHAT_MODERATE only. */
+  deleteChatMessage(externalChannelId: string, externalMessageId: string): Promise<void>;
+  /** `durationSec` null = permanent. CHAT_MODERATE only. */
+  banChatUser(externalChannelId: string, platformUserId: string, durationSec: number | null): Promise<void>;
 }
 
 const TIMEOUT_MS = 5_000;
@@ -108,10 +130,51 @@ export const mapYouTubeVideo = (v: YtVideoDto): ChannelVideo => {
     url: `https://www.youtube.com/watch?v=${encodeURIComponent(v.id.videoId)}`
   };
 };
+// ── Chat helpers ─────────────────────────────────────────────────────────────
 
+const MAX_TEXT = 200;
+const clip = (s: string, n: number) => s.slice(0, n);
+/** Index cursor over an append-only remote list (the real APIs use page tokens / socket offsets). */
+const sliceFrom = <T>(list: T[], cursor: string | null) => ({ items: list.slice(cursor ? Number(cursor) || 0 : 0), cursor: String(list.length) });
+const unsupportedCall = async (): Promise<never> => {
+  throw new PlatformError("UNSUPPORTED", "unsupported");
+};
+
+/** Mock channel lookup for platforms whose profile API is unconfirmed (TBD): the handle becomes the id. */
+function mockChannel(platform: Platform, prefix: string, handle: string): ChannelProfile {
+  simulateFailure(handle);
+  const clean = handle.replace(/^@/, "").trim();
+  return { platform, externalChannelId: `${prefix}${hash(`${platform}:${clean}`).toString(36)}`, title: `${clean} 채널`, handle: clean, subscriberCount: 0 };
+}
+
+/** The streamer's own message, echoed back into the chat feed like the platforms do. */
+function echoOwner(platform: Platform, channelId: string, text: string) {
+  return mockViewerChat(platform, channelId, { userId: `owner:${channelId}`, nick: "스트리머", text, role: "OWNER" });
+}
+
+// ── YouTube ──────────────────────────────────────────────────────────────────
+
+function ytRoles(a: YtChatDto["authorDetails"]): ChatAuthorRole[] {
+  const roles: ChatAuthorRole[] = [];
+  if (a.isChatOwner) roles.push("OWNER");
+  if (a.isChatModerator) roles.push("MODERATOR");
+  if (a.isChatSponsor) roles.push("MEMBER");
+  return roles;
+}
+
+export const mapYouTubeChat = (d: YtChatDto): ExternalChatMessage => ({
+  platform: "YOUTUBE",
+  externalMessageId: d.id,
+  author: { platformUserId: d.authorDetails.channelId, displayName: clip(d.authorDetails.displayName, 40), roles: ytRoles(d.authorDetails) },
+  text: clip(d.snippet.displayMessage, MAX_TEXT),
+  sentAt: d.snippet.publishedAt
+});
+
+/** YouTube Data API: liveChatMessages.list / insert / delete and liveChatBans.insert (OAuth — TBD). */
 export const YouTubeAdapter: PlatformAdapter = {
   platform: "YOUTUBE",
-  capabilities: ["CHANNEL_PROFILE", "VIDEO_LIST", "LIVE_STATUS", "DONATION_EVENTS"],
+  capabilities: ["CHANNEL_PROFILE", "VIDEO_LIST", "LIVE_STATUS", "DONATION_EVENTS", "CHAT_EVENTS", "CHAT_SEND", "CHAT_MODERATE"],
+  unverified: [],
   async getChannel(handle) {
     const dto = await withTimeout(ytFetchChannel(handle));
     return { platform: "YOUTUBE", externalChannelId: dto.id, title: dto.snippet.title, handle: dto.snippet.customUrl, subscriberCount: Number(dto.statistics.subscriberCount) || 0 };
@@ -135,22 +198,173 @@ export const YouTubeAdapter: PlatformAdapter = {
       })
     );
     return { events, cursor: String(all.length) };
+  },
+  async fetchChatMessages(channelId, cursor) {
+    consumeFailure("YOUTUBE");
+    const r = channelRemote(channelId);
+    const { items, cursor: next } = sliceFrom(r.yt, cursor);
+    return { messages: items.filter((d) => !r.deleted[d.id]).map(mapYouTubeChat), cursor: next };
+  },
+  async sendChatMessage(channelId, text) {
+    consumeFailure("YOUTUBE");
+    return { externalMessageId: echoOwner("YOUTUBE", channelId, clip(text, MAX_TEXT)) };
+  },
+  async deleteChatMessage(channelId, id) {
+    consumeFailure("YOUTUBE");
+    channelRemote(channelId).deleted[id] = true;
+  },
+  async banChatUser(channelId, userId, durationSec) {
+    consumeFailure("YOUTUBE");
+    channelRemote(channelId).bans[userId] = { untilMs: durationSec === null ? null : Date.now() + durationSec * 1000 };
   }
 };
 
-/** FlexTV / SOOP: video lists and donation events are not confirmed for these APIs (TBD), so neither is declared. */
-const unsupported = (platform: Platform): PlatformAdapter => ({
-  platform,
-  capabilities: ["LIVE_STATUS"],
-  async getChannel() {
-    throw new PlatformError("UNSUPPORTED", "unsupported");
-  },
-  async listVideos() {
-    throw new PlatformError("UNSUPPORTED", "unsupported");
-  },
-  async fetchDonationEvents() {
-    throw new PlatformError("UNSUPPORTED", "unsupported");
-  }
+// ── CHZZK (치지직) — Open API scope unconfirmed (TBD) ─────────────────────────
+
+function chzzkRoles(p: ChzzkChatDto["profile"]): ChatAuthorRole[] {
+  const roles: ChatAuthorRole[] = [];
+  if (p.userRoleCode === "streamer") roles.push("OWNER");
+  if (p.userRoleCode === "streaming_chat_manager") roles.push("MODERATOR");
+  if (p.subscription) roles.push("MEMBER");
+  return roles;
+}
+
+export const mapChzzkChat = (d: ChzzkChatDto): ExternalChatMessage => ({
+  platform: "CHZZK",
+  externalMessageId: d.messageId,
+  author: { platformUserId: d.senderChannelId, displayName: clip(d.profile.nickname, 40), roles: chzzkRoles(d.profile) },
+  text: clip(d.content, MAX_TEXT),
+  sentAt: new Date(d.messageTime).toISOString()
 });
 
-export const ADAPTERS: Record<Platform, PlatformAdapter> = { YOUTUBE: YouTubeAdapter, FLEXTV: unsupported("FLEXTV"), SOOP: unsupported("SOOP") };
+export const ChzzkAdapter: PlatformAdapter = {
+  platform: "CHZZK",
+  capabilities: ["CHANNEL_PROFILE", "LIVE_STATUS", "DONATION_EVENTS", "CHAT_EVENTS", "CHAT_SEND"],
+  unverified: ["CHANNEL_PROFILE", "DONATION_EVENTS", "CHAT_EVENTS", "CHAT_SEND"],
+  async getChannel(handle) {
+    return mockChannel("CHZZK", "chz_", handle);
+  },
+  listVideos: unsupportedCall,
+  async fetchDonationEvents(channelId, cursor) {
+    const { items, cursor: next } = sliceFrom(channelRemote(channelId).chzzkDonations, cursor);
+    return {
+      events: items.map((d) => ({
+        platform: "CHZZK" as const,
+        externalEventId: d.donationId,
+        donorName: clip(d.donatorNickname, 40),
+        message: clip(d.donationText, 200),
+        amount: { value: Number(d.payAmount) || 0, currency: "치즈" },
+        kindLabel: "치지직 치즈",
+        occurredAt: new Date(d.donatedAt).toISOString()
+      })),
+      cursor: next
+    };
+  },
+  async fetchChatMessages(channelId, cursor) {
+    consumeFailure("CHZZK");
+    const { items, cursor: next } = sliceFrom(channelRemote(channelId).chzzk, cursor);
+    return { messages: items.map(mapChzzkChat), cursor: next };
+  },
+  async sendChatMessage(channelId, text) {
+    consumeFailure("CHZZK");
+    return { externalMessageId: echoOwner("CHZZK", channelId, clip(text, MAX_TEXT)) };
+  },
+  deleteChatMessage: unsupportedCall,
+  banChatUser: unsupportedCall
+};
+
+// ── SOOP — chat / 별풍선 APIs unconfirmed (TBD) ───────────────────────────────
+
+const SOOP_ROLE: Record<SoopChatDto["userFlag"], ChatAuthorRole[]> = { bj: ["OWNER"], manager: ["MODERATOR"], fan: ["MEMBER"], normal: [] };
+
+export const mapSoopChat = (d: SoopChatDto): ExternalChatMessage => ({
+  platform: "SOOP",
+  externalMessageId: `soop-${d.chatNo}`,
+  author: { platformUserId: d.userId, displayName: clip(d.userNick, 40), roles: SOOP_ROLE[d.userFlag] },
+  text: clip(d.message, MAX_TEXT),
+  sentAt: new Date(d.ts).toISOString()
+});
+
+export const SoopAdapter: PlatformAdapter = {
+  platform: "SOOP",
+  capabilities: ["CHANNEL_PROFILE", "LIVE_STATUS", "DONATION_EVENTS", "CHAT_EVENTS"],
+  unverified: ["CHANNEL_PROFILE", "DONATION_EVENTS", "CHAT_EVENTS"],
+  async getChannel(handle) {
+    return mockChannel("SOOP", "soop_", handle);
+  },
+  listVideos: unsupportedCall,
+  async fetchDonationEvents(channelId, cursor) {
+    const { items, cursor: next } = sliceFrom(channelRemote(channelId).soopBalloons, cursor);
+    return {
+      events: items.map((d) => ({
+        platform: "SOOP" as const,
+        externalEventId: `balloon-${d.balloonNo}`,
+        donorName: clip(d.userNick, 40),
+        message: clip(d.message, 200),
+        amount: { value: d.count, currency: "별풍선" },
+        kindLabel: "SOOP 별풍선",
+        occurredAt: new Date(d.ts).toISOString()
+      })),
+      cursor: next
+    };
+  },
+  async fetchChatMessages(channelId, cursor) {
+    consumeFailure("SOOP");
+    const { items, cursor: next } = sliceFrom(channelRemote(channelId).soop, cursor);
+    return { messages: items.map(mapSoopChat), cursor: next };
+  },
+  sendChatMessage: unsupportedCall,
+  deleteChatMessage: unsupportedCall,
+  banChatUser: unsupportedCall
+};
+
+// ── FlexTV — chat / donation APIs unconfirmed (TBD) ──────────────────────────
+
+const FLEX_ROLE: Record<FlexChatDto["user"]["grade"], ChatAuthorRole[]> = { OWNER: ["OWNER"], MANAGER: ["MODERATOR"], VIP: ["MEMBER"], NORMAL: [] };
+
+export const mapFlexChat = (d: FlexChatDto): ExternalChatMessage => ({
+  platform: "FLEXTV",
+  externalMessageId: d.id,
+  author: { platformUserId: d.user.id, displayName: clip(d.user.nick, 40), roles: FLEX_ROLE[d.user.grade] },
+  text: clip(d.text, MAX_TEXT),
+  sentAt: d.createdAt
+});
+
+export const FlexTvAdapter: PlatformAdapter = {
+  platform: "FLEXTV",
+  capabilities: ["CHANNEL_PROFILE", "LIVE_STATUS", "DONATION_EVENTS", "CHAT_EVENTS"],
+  unverified: ["CHANNEL_PROFILE", "DONATION_EVENTS", "CHAT_EVENTS"],
+  async getChannel(handle) {
+    return mockChannel("FLEXTV", "flex_", handle);
+  },
+  listVideos: unsupportedCall,
+  async fetchDonationEvents(channelId, cursor) {
+    const { items, cursor: next } = sliceFrom(channelRemote(channelId).flexDonations, cursor);
+    return {
+      events: items.map((d) => ({
+        platform: "FLEXTV" as const,
+        externalEventId: d.id,
+        donorName: clip(d.user.nick, 40),
+        message: clip(d.text, 200),
+        // FlexTV's donation unit is unconfirmed (TBD); shown as delivered, never converted.
+        amount: { value: d.amount, currency: "FlexTV 후원" },
+        kindLabel: "FlexTV 후원",
+        occurredAt: d.createdAt
+      })),
+      cursor: next
+    };
+  },
+  async fetchChatMessages(channelId, cursor) {
+    consumeFailure("FLEXTV");
+    const { items, cursor: next } = sliceFrom(channelRemote(channelId).flex, cursor);
+    return { messages: items.map(mapFlexChat), cursor: next };
+  },
+  sendChatMessage: unsupportedCall,
+  deleteChatMessage: unsupportedCall,
+  banChatUser: unsupportedCall
+};
+
+export const ADAPTERS: Record<Platform, PlatformAdapter> = { YOUTUBE: YouTubeAdapter, CHZZK: ChzzkAdapter, SOOP: SoopAdapter, FLEXTV: FlexTvAdapter };
+
+/** Integration order on screens. */
+export const BROADCAST_PLATFORMS: Platform[] = ["YOUTUBE", "CHZZK", "SOOP", "FLEXTV"];
