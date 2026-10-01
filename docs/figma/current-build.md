@@ -4,7 +4,7 @@ Figma: [Somnation — 현재 구현 (2026-09)](https://www.figma.com/design/PMnj
 
 코드로 구현된 사이트 전체 화면을 localhost mock 데이터로 1440px 전체 페이지 캡처해 정리한 파일이에요. 프레임은 **참고용 이미지**이고 편집 가능한 디자인 레이어가 아니에요. 원본 디자인 파일(펀페이, `PXOl6e2HQVWsu9qx9iagJV`)은 바꾸지 않았어요 (잠시 추가했던 "코드 우선 화면" 페이지는 삭제).
 
-- 페이지: 0 README · 1 사이트 · 둘러보기 · 2 채널 · 후원 · 3 마이 · 지갑 · 4 스튜디오 · 5 인증 · 약관 · OBS
+- 페이지: 0 README · 1 사이트 · 둘러보기 · 2 채널 · 후원 · 3 마이 · 지갑 · 4 스튜디오 · 5 인증 · 약관 · OBS · 6 어드민
 - 프레임 이름: `[ID] 화면명`, 위 캡션: 라우트
 - 캡처 방법: headless Chrome + mock 세션 쿠키 (개발용 스크립트), 같은 ID로 다시 캡처해 이미지를 바꾸면 돼요
 - 다시 그린(편집 가능한) 화면이 생기면 아래 표에 그 프레임 id를 적어 주세요
@@ -125,3 +125,25 @@ Figma: [Somnation — 현재 구현 (2026-09)](https://www.figma.com/design/PMnj
 | O01-drawing | 그림후원 오버레이 (800×700) | `/overlay/drawing/[key]` | [2:290](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-290) |
 | O02-banner | 배너 오버레이 (1920×1080) | `/overlay/banner/[key]` | [2:293](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-293) |
 | O03-crew | 크루 점수판 오버레이 (480×600) | `/overlay/crew/[key]` | [2:296](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-296) |
+
+## 6 어드민 (별도 앱 apps/admin · admin 서브도메인)
+
+2026-10-01 추가. 라우트는 어드민 앱 기준(admin.<도메인>)이에요.
+
+| ID | 화면 | 라우트 | Figma |
+|---|---|---|---|
+| AD01-login | 로그인 | `/login` | [19:7](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=19-7) |
+| AD02-dashboard | 운영 대시보드 | `/` | [19:10](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=19-10) |
+| AD03-audit | 감사 로그 | `/audit` | [19:13](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=19-13) |
+| AD04-members | 회원 관리 | `/members` | [19:17](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=19-17) |
+| AD05-member | 회원 상세 · 이용 제한 | `/members/[id]` | [19:20](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=19-20) |
+| AD06-creators | 크리에이터 관리 | `/creators` | [19:23](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=19-23) |
+| AD07-payments | 결제 · 충전 내역 | `/payments` | [19:27](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=19-27) |
+| AD08-refunds | 환불 요청 | `/payments?tab=refunds` | [19:30](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=19-30) |
+| AD09-donations | 후원 운영 | `/donations` | [19:33](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=19-33) |
+| AD10-settlements | 정산 심사 | `/settlements` | [19:36](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=19-36) |
+| AD11-reports | 신고 처리 | `/reports` | [19:40](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=19-40) |
+| AD12-content | 콘텐츠 관리 · 공지 | `/content` | [19:43](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=19-43) |
+| AD13-faq | 콘텐츠 관리 · FAQ | `/content?tab=faq` | [19:46](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=19-46) |
+| AD14-platforms | 플랫폼 연동 | `/platforms` | [19:49](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=19-49) |
+| AD15-system | 시스템 · 공지 배너 | `/system` | [19:52](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=19-52) |
