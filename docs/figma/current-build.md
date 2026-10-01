@@ -4,7 +4,7 @@ Figma: [Somnation — 현재 구현 (2026-09)](https://www.figma.com/design/PMnj
 
 코드로 구현된 사이트 전체 화면을 localhost mock 데이터로 1440px 전체 페이지 캡처해 정리한 파일이에요. 프레임은 **참고용 이미지**이고 편집 가능한 디자인 레이어가 아니에요. 원본 디자인 파일(펀페이, `PXOl6e2HQVWsu9qx9iagJV`)은 바꾸지 않았어요 (잠시 추가했던 "코드 우선 화면" 페이지는 삭제).
 
-- 페이지: 0 README · 1 사이트 · 둘러보기 · 2 채널 · 후원 · 3 마이 · 지갑 · 4 스튜디오 · 5 인증 · 약관 · OBS · 6 어드민 · 7 디자인 · Foundations · 8 디자인 · Components · 9 레이아웃 · 스튜디오
+- 페이지: 0 README · 1 사이트 · 둘러보기 · 2 채널 · 후원 · 3 마이 · 지갑 · 4 스튜디오 · 5 인증 · 약관 · OBS · 6 어드민 · 7 디자인 · Foundations · 8 디자인 · Components · 9 레이아웃 · 스튜디오 · 10 레이아웃 · 사이트
 - 1–6은 화면 캡처(이미지)예요. 편집 가능한 레이아웃은 7–9 페이지에 단계적으로 만들어요 — [site-design-system.md](site-design-system.md).
 - 프레임 이름: `[ID] 화면명`, 위 캡션: 라우트
 - 캡처 방법: headless Chrome + mock 세션 쿠키 (개발용 스크립트), 같은 ID로 다시 캡처해 이미지를 바꾸면 돼요
