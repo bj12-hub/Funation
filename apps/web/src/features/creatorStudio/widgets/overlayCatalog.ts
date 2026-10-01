@@ -6,6 +6,15 @@ export type OverlayEntry = { id: string; group: string; title: string; descripti
 
 export const OVERLAYS: OverlayEntry[] = [
   {
+    id: "chat",
+    group: "채팅",
+    title: "통합 채팅",
+    description: "YouTube · 치지직 · SOOP · FlexTV 채팅을 플랫폼 표시와 함께 한 창에 모아 보여 줘요.",
+    size: "400 × 600",
+    path: (k) => `/overlay/chat/${k}`,
+    manage: "/creator/chat"
+  },
+  {
     id: "alert",
     group: "알림",
     title: "후원 알림",

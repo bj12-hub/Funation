@@ -1,4 +1,5 @@
 import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
+import type { Platform } from "@/types/platform";
 import { notify } from "@/services/notifications/notificationCore";
 import type { AlertControls, AlertItem, AlertKind } from "./alertTypes";
 
@@ -30,7 +31,7 @@ export const mockAlerts = (g.__funationMockAlertsV2 ??= {
   reloadSeq: 0
 });
 
-export function enqueueAlert(input: { kind: AlertKind; donor: string; message: string; fnAmount: number; amountLabel?: string; typeLabel: string }, now = Date.now()) {
+export function enqueueAlert(input: { kind: AlertKind; donor: string; message: string; fnAmount: number; amountLabel?: string; typeLabel: string; platform?: Platform }, now = Date.now()) {
   // The FN minimum cannot apply to other currencies (no exchange rate — TBD), so external alerts pass.
   const filtered = input.kind !== "EXTERNAL" && input.fnAmount < mockAlerts.controls.minFn;
   const item: AlertItem = {
