@@ -49,7 +49,7 @@ async function ingest() {
       }
       s.seen[k] = true;
       const amountLabel = formatMoney(e.amount.value, e.amount.currency);
-      enqueueAlert({ kind: "EXTERNAL", donor: e.donorName, message: e.message, fnAmount: 0, amountLabel, typeLabel: e.kindLabel });
+      enqueueAlert({ kind: "EXTERNAL", donor: e.donorName, message: e.message, fnAmount: 0, amountLabel, typeLabel: e.kindLabel, platform: p });
       s.recent.unshift({ key: k, platform: p, donor: e.donorName, message: e.message, amountLabel, kindLabel: e.kindLabel, receivedAt: new Date().toISOString() });
       s.recent.length = Math.min(s.recent.length, 20);
       s.stats[p].received++;
