@@ -7,12 +7,12 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false }
 };
 
-// Same fonts as the site (Gothic A1 for Korean UI, Inter for Latin runs).
-const FONT_STYLESHEET = "https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;600;700;800;900&family=Inter:wght@400;500;700;800&display=swap";
+// Admin type (Figma "Somnation Admin" text styles): Noto Sans KR for Korean UI, Inter for numbers.
+const FONT_STYLESHEET = "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;700&display=swap";
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ko" data-theme="dark">
+    <html lang="ko">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
