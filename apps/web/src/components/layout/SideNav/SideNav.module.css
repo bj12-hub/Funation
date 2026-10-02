@@ -93,12 +93,6 @@
   font-weight: var(--font-weight-bold);
 }
 
-.cardActions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
 .outlineButton {
   display: flex;
   align-items: center;
@@ -225,13 +219,6 @@
 .event {
   background: var(--color-primary);
   font-size: 9px;
-}
-
-.divider {
-  width: 100%;
-  margin: 0;
-  border: 0;
-  border-top: 1px solid var(--color-border);
 }
 
 /* ── Groups (funnation structure) ─────────────────── */
