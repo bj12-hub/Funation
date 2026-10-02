@@ -3,7 +3,7 @@
 import { USE_MOCK } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
-import { liveBroadcastOf } from "./crewCore";
+import { liveBroadcastOf, openBoard } from "./crewCore";
 import { SUB_BOARD_MAX, SUB_BOARD_TITLE_MAX, type BroadcastResult } from "./crewTypes";
 import { STUDIO_CHANNEL } from "./mockCrewStore";
 
@@ -27,16 +27,14 @@ export async function openSubBoard(input: unknown): Promise<BroadcastResult> {
   const live = liveBroadcastOf(STUDIO_CHANNEL);
   if (!live || live.id !== v.broadcastId) return notLive;
   if (typeof v.requestId !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
-  const boards = (live.subBoards ??= []);
+  const boards = live.subBoards ?? [];
   if (boards.some((b) => b.requestId === v.requestId)) return { status: "SAVED" };
   if (boards.length >= SUB_BOARD_MAX) return { status: "INVALID", message: `서브 점수판은 방송당 ${SUB_BOARD_MAX}개까지예요.` };
-  const title = (typeof v.title === "string" ? v.title.trim() : "") || `서브 ${boards.length + 1}판`;
+  const title = typeof v.title === "string" ? v.title.trim() : "";
   if (title.length > SUB_BOARD_TITLE_MAX) return { status: "INVALID", message: `판 이름은 ${SUB_BOARD_TITLE_MAX}자 이내로 입력해 주세요.` };
   if (MOCK_FORBIDDEN_WORDS.some((w) => title.toLowerCase().includes(w))) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
-  const now = new Date().toISOString();
-  for (const b of boards) if (!b.closedAt) b.closedAt = now;
-  boards.push({ no: boards.length + 1, title, openedAt: now, closedAt: null, requestId: v.requestId });
-  return { status: "SAVED" };
+  const error = openBoard(live, title, v.requestId);
+  return error ? { status: "INVALID", message: error } : { status: "SAVED" };
 }
 
 /** 판 마감: freezes the board's window. Closing a closed board is a no-op. */

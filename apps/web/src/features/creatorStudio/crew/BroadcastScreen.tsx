@@ -7,6 +7,7 @@ import { adjustScore, endBroadcast, startBroadcast } from "@/services/crew/crewB
 import { BROADCAST_TITLE_MAX, PROJECT_NAME_MAX, type BroadcastResult, type BroadcastView, type TeamKey } from "@/services/crew/crewTypes";
 import { BattlePanel } from "./BattlePanel";
 import { BroadcastFeed } from "./BroadcastFeed";
+import { ScenarioPanel } from "./ScenarioPanel";
 import { StealPanel } from "./StealPanel";
 import { CrewTabs } from "./CrewTabs";
 import { SubBoards } from "./SubBoards";
@@ -237,6 +238,7 @@ export function BroadcastScreen({ view }: { view: BroadcastView }) {
         </section>
       )}
 
+      <ScenarioPanel plan={view.scenario} live={live ? { broadcastId: live.id, scenario: live.scenario } : null} overlayPath={view.overlayPath} pending={pending} run={run} />
       {live && (
         <BattlePanel broadcastId={live.id} teamMode={live.teamMode} members={view.members} battles={live.battles} overlayPath={view.overlayPath} pending={pending} run={run} />
       )}
