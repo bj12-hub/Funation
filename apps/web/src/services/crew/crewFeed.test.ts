@@ -29,10 +29,10 @@ describe("후원 리스트", () => {
 
   it("assigns by keyword in 자동 mode and leaves ambiguous or unmatched entries 미지정", async () => {
     const { simulateDonation, getBroadcastView, assignFeedEntry, id } = await startLive();
-    await simulateDonation({ broadcastId: id, requestId: key(1), fnAmount: 10_000, message: "GD 화이팅" });
-    await simulateDonation({ broadcastId: id, requestId: key(1), fnAmount: 10_000, message: "GD 화이팅" }); // same request → once
-    await simulateDonation({ broadcastId: id, requestId: key(2), fnAmount: 5_000, message: "길동 하늘 둘 다" });
-    await simulateDonation({ broadcastId: id, requestId: key(3), fnAmount: 3_000, message: "그냥 응원" });
+    await simulateDonation({ broadcastId: id, requestId: key(1), amount: 10_000, message: "GD 화이팅" });
+    await simulateDonation({ broadcastId: id, requestId: key(1), amount: 10_000, message: "GD 화이팅" }); // same request → once
+    await simulateDonation({ broadcastId: id, requestId: key(2), amount: 5_000, message: "길동 하늘 둘 다" });
+    await simulateDonation({ broadcastId: id, requestId: key(3), amount: 3_000, message: "그냥 응원" });
     let view = (await getBroadcastView())!;
     expect(view.feed!.entries.map((e) => e.status)).toEqual(["UNMATCHED", "UNMATCHED", "ASSIGNED"]);
     expect(score(view, "cm-s1")).toBe(10_000);
@@ -47,7 +47,7 @@ describe("후원 리스트", () => {
   it("waits for confirmation in 확인 후 mode, and 취소 removes an entry from the score", async () => {
     const { simulateDonation, getBroadcastView, assignFeedEntry, cancelFeedEntry, setAssignMode, id } = await startLive();
     await setAssignMode({ broadcastId: id, mode: "CONFIRM" });
-    await simulateDonation({ broadcastId: id, requestId: key(1), fnAmount: 7_000, message: "하늘님 최고" });
+    await simulateDonation({ broadcastId: id, requestId: key(1), amount: 7_000, message: "하늘님 최고" });
     let view = (await getBroadcastView())!;
     const entry = view.feed!.entries[0];
     expect(entry).toMatchObject({ status: "PENDING", suggestedMemberId: "cm-s2" });
@@ -65,10 +65,10 @@ describe("후원 리스트", () => {
     const { simulateDonation, getBroadcastView, startOneshot, stopOneshot, getOverlayScoreboard, id } = await startLive();
     const { mockCreator } = await import("@/services/creator/mockCreatorStore");
     await startOneshot({ broadcastId: id });
-    await simulateDonation({ broadcastId: id, requestId: key(1), fnAmount: 4_000, message: "길동" });
-    await simulateDonation({ broadcastId: id, requestId: key(2), fnAmount: 6_000, message: "" });
+    await simulateDonation({ broadcastId: id, requestId: key(1), amount: 4_000, message: "길동" });
+    await simulateDonation({ broadcastId: id, requestId: key(2), amount: 6_000, message: "" });
     let view = (await getBroadcastView())!;
-    expect(view.feed!.oneshot).toMatchObject({ potFn: 10_000, count: 2 });
+    expect(view.feed!.oneshot).toMatchObject({ potPoints: 10_000, count: 2 });
     expect(score(view, "cm-s1")).toBe(0);
     expect(await getOverlayScoreboard(mockCreator.integrationKey)).toMatchObject({ oneshotPot: 10_000 });
 
@@ -79,7 +79,7 @@ describe("후원 리스트", () => {
     expect(view.feed!.entries.every((e) => e.oneshot)).toBe(true);
 
     await startOneshot({ broadcastId: id });
-    await simulateDonation({ broadcastId: id, requestId: key(3), fnAmount: 2_000, message: "하늘" });
+    await simulateDonation({ broadcastId: id, requestId: key(3), amount: 2_000, message: "하늘" });
     await stopOneshot({ broadcastId: id, memberId: null });
     view = (await getBroadcastView())!;
     expect(view.feed!.entries[0]).toMatchObject({ status: "ASSIGNED", memberId: "cm-s2", oneshot: false });

@@ -8,6 +8,8 @@ import { broadcastChannelId } from "@/services/broadcast/channelsCore";
 import { ADAPTERS, BROADCAST_PLATFORMS, mockYouTubeSuperChat } from "@/services/platforms/adapters";
 import { mockPlatformDonation } from "@/services/platforms/mockBroadcastRemote";
 import type { Platform } from "@/types/platform";
+import { recordBroadcastExternal } from "@/services/crew/crewCore";
+import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
 import { enqueueAlert } from "./alertCore";
 import { SIM_CURRENCIES, formatMoney, type DonationLinkResult, type DonationLinkView } from "./donationLinkTypes";
 import { donationLinkStore } from "./donationLinkCore";
@@ -15,7 +17,8 @@ import { donationLinkStore } from "./donationLinkCore";
 /**
  * 후원 연동 Server Actions — code-first. Route `/creator/widgets/link`.
  * Pulls donation events through each platform adapter (DONATION_EVENTS), dedupes them by the platform's
- * event id and queues them as EXTERNAL alerts. Nothing here touches FN, wallets or earnings.
+ * event id and queues them as EXTERNAL alerts (and, during a crew broadcast, 후원 리스트 entries for the
+ * 자동엑셀). Nothing here touches FN, wallets or earnings.
  */
 
 const PLATFORMS: Platform[] = BROADCAST_PLATFORMS;
@@ -50,6 +53,8 @@ async function ingest() {
       s.seen[k] = true;
       const amountLabel = formatMoney(e.amount.value, e.amount.currency);
       enqueueAlert({ kind: "EXTERNAL", donor: e.donorName, message: e.message, fnAmount: 0, amountLabel, typeLabel: e.kindLabel, platform: p });
+      // 자동엑셀: a live crew broadcast also lists it in its own unit (scored after conversion).
+      recordBroadcastExternal(STUDIO_CHANNEL, { platform: p, donor: e.donorName, message: e.message, value: e.amount.value, currency: e.amount.currency });
       s.recent.unshift({ key: k, platform: p, donor: e.donorName, message: e.message, amountLabel, kindLabel: e.kindLabel, receivedAt: new Date().toISOString() });
       s.recent.length = Math.min(s.recent.length, 20);
       s.stats[p].received++;

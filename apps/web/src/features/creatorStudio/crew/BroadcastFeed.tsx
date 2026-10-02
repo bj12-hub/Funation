@@ -2,8 +2,21 @@
 
 import { useRef, useState } from "react";
 import { formatNumber } from "@/lib/format";
-import { assignFeedEntry, cancelFeedEntry, setAssignMode, setMemberKeywords, simulateDonation, startOneshot, stopOneshot } from "@/services/crew/crewFeed";
-import { KEYWORDS_PER_MEMBER, type BroadcastResult, type CrewMember, type FeedEntry, type FeedStatus, type FeedView } from "@/services/crew/crewTypes";
+import { assignFeedEntry, cancelFeedEntry, setAssignMode, setEntryContribution, setMemberKeywords, simulateDonation, startOneshot, stopOneshot } from "@/services/crew/crewFeed";
+import {
+  EXCEL_UNITS,
+  KEYWORDS_PER_MEMBER,
+  type BroadcastResult,
+  type Contribution,
+  type CrewMember,
+  type ExcelSettings,
+  type ExcelUnit,
+  type FeedEntryView,
+  type FeedStatus,
+  type FeedView
+} from "@/services/crew/crewTypes";
+import { PLATFORM_LABEL } from "@/types/platform";
+import { ExcelPanel, ExcelSummary } from "./ExcelPanel";
 import styles from "./crew.module.css";
 import feed from "./feed.module.css";
 
@@ -16,11 +29,14 @@ const FILTERS = [
 ] as const;
 type Filter = (typeof FILTERS)[number]["key"];
 const time = (iso: string) => new Date(iso).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+const unitLabel = (u: ExcelUnit) => EXCEL_UNITS.find((x) => x.key === u)!.label;
+const amountText = (amount: number, unit: ExcelUnit) => `${formatNumber(amount)} ${unitLabel(unit)}`;
 
 /**
  * 후원 리스트 — code-first (no Figma frame), inside `/creator/crew/broadcast` while live.
- * Keywords per member, 반영 방식 (자동 / 확인 후), 시뮬 후원, 한방, and the entry list where the
- * operator assigns, confirms or cancels. All scoring happens on the server.
+ * Keywords per member, 반영 방식 (자동 / 확인 후), 자동엑셀 (원화 환산 · 배수 · 수기 기여도), 시뮬 후원,
+ * 한방, 플랫폼 · BJ별 정리 and the entry list where the operator assigns, confirms or cancels. All
+ * scoring happens on the server.
  */
 export function BroadcastFeed({
   broadcastId,
@@ -39,6 +55,7 @@ export function BroadcastFeed({
   const nameOf = new Map(members.map((m) => [m.id, m]));
   const [filter, setFilter] = useState<Filter>("ALL");
   const [simAmount, setSimAmount] = useState("10000");
+  const [simUnit, setSimUnit] = useState<ExcelUnit>("FN");
   const [simDonor, setSimDonor] = useState("");
   const [simMessage, setSimMessage] = useState("");
   const [target, setTarget] = useState("");
@@ -53,7 +70,7 @@ export function BroadcastFeed({
     simId.current ??= crypto.randomUUID();
     const requestId = simId.current;
     run(async () => {
-      const res = await simulateDonation({ broadcastId, requestId, fnAmount: Math.floor(Number(simAmount) || 0), donor: simDonor, message: simMessage });
+      const res = await simulateDonation({ broadcastId, requestId, amount: Number(simAmount) || 0, unit: simUnit, donor: simDonor, message: simMessage });
       if (res.status === "SAVED") {
         simId.current = null;
         setSimMessage("");
@@ -79,6 +96,9 @@ export function BroadcastFeed({
       <p className={styles.note}>
         방송 중 멤버 지정 없이 들어온 후원이 여기에 쌓여요. 메시지에 멤버 키워드가 있으면 그 멤버에게 배정돼요. 키워드가 없거나 여러 멤버와 겹치면 미지정으로 남아요.
       </p>
+
+      <ExcelPanel settings={view.excel} pending={pending} run={run} />
+      <ExcelSummary rows={view.summary} />
 
       <details className={feed.panel}>
         <summary>멤버 키워드 (멤버당 {KEYWORDS_PER_MEMBER}개)</summary>
@@ -108,11 +128,18 @@ export function BroadcastFeed({
       <div className={feed.split}>
         <div className={feed.panelBox}>
           <strong>시뮬 후원</strong>
-          <p className={styles.note}>연습용이에요. 점수판에만 반영되고 FN은 움직이지 않아요.</p>
+          <p className={styles.note}>연습용이에요. 점수판에만 반영되고 FN이나 플랫폼 후원은 움직이지 않아요.</p>
           <div className={styles.addRow}>
-            <input className={styles.inputSmall} inputMode="numeric" aria-label="시뮬 금액(FN)" value={simAmount} onChange={(e) => setSimAmount(e.target.value.replace(/\D/g, "").slice(0, 8))} />
-            <input className={styles.input} aria-label="시뮬 후원자명" placeholder="후원자명" value={simDonor} onChange={(e) => setSimDonor(e.target.value)} maxLength={60} />
+            <input className={styles.inputSmall} inputMode="decimal" aria-label="시뮬 금액" value={simAmount} onChange={(e) => setSimAmount(e.target.value.replace(/[^\d.]/g, "").slice(0, 11))} />
+            <select className={`${styles.select} ${feed.grow}`} aria-label="시뮬 단위" value={simUnit} onChange={(e) => setSimUnit(e.target.value as ExcelUnit)}>
+              {EXCEL_UNITS.map((u) => (
+                <option key={u.key} value={u.key}>
+                  {u.platform ? `${PLATFORM_LABEL[u.platform]} · ${u.label}` : `썸네이션 · ${u.label}`}
+                </option>
+              ))}
+            </select>
           </div>
+          <input className={styles.input} aria-label="시뮬 후원자명" placeholder="후원자명" value={simDonor} onChange={(e) => setSimDonor(e.target.value)} maxLength={60} />
           <div className={styles.addRow}>
             <input className={styles.input} aria-label="시뮬 메시지" placeholder="메시지 (키워드 포함 시 자동 배정)" value={simMessage} onChange={(e) => setSimMessage(e.target.value)} maxLength={60} />
             <button type="button" className={styles.primary} disabled={pending || !Number(simAmount)} onClick={simulate}>
@@ -126,7 +153,7 @@ export function BroadcastFeed({
           {view.oneshot ? (
             <>
               <p className={styles.muted}>
-                모으는 중 · {view.oneshot.count}건 <strong className={feed.pot}>{formatNumber(view.oneshot.potFn)} FN</strong>
+                모으는 중 · {view.oneshot.count}건 <strong className={feed.pot}>{formatNumber(view.oneshot.potPoints)}점</strong>
               </p>
               <div className={styles.addRow}>
                 <select className={styles.select} aria-label="몰아줄 멤버" value={target} onChange={(e) => setTarget(e.target.value)}>
@@ -176,7 +203,7 @@ export function BroadcastFeed({
       ) : (
         <ul className={styles.list}>
           {entries.map((e) => (
-            <EntryRow key={e.id} entry={e} active={active} nameOf={nameOf} pending={pending} broadcastId={broadcastId} run={run} />
+            <EntryRow key={e.id} entry={e} excel={view.excel} active={active} nameOf={nameOf} pending={pending} broadcastId={broadcastId} run={run} />
           ))}
         </ul>
       )}
@@ -186,13 +213,15 @@ export function BroadcastFeed({
 
 function EntryRow({
   entry: e,
+  excel,
   active,
   nameOf,
   pending,
   broadcastId,
   run
 }: {
-  entry: FeedEntry;
+  entry: FeedEntryView;
+  excel: ExcelSettings;
   active: CrewMember[];
   nameOf: Map<string, CrewMember>;
   pending: boolean;
@@ -204,7 +233,8 @@ function EntryRow({
     <li className={styles.row} data-inactive={e.status === "CANCELLED" ? "" : undefined}>
       <div className={styles.rowMain}>
         <span className={styles.rowTitle}>
-          {e.donor} · {formatNumber(e.fnAmount)} FN
+          {e.donor} · {amountText(e.amount, e.unit)}
+          {e.platform && <span className={styles.chipOff}>{PLATFORM_LABEL[e.platform]}</span>}
           {e.source === "SIM" && <span className={styles.chipOff}>시뮬</span>}
           {e.oneshot && <span className={styles.chip}>한방</span>}
         </span>
@@ -213,6 +243,7 @@ function EntryRow({
           {e.message && ` · ${e.message}`}
         </span>
       </div>
+      <ContributionCell entry={e} excel={excel} pending={pending} broadcastId={broadcastId} run={run} />
       <span className={feed.status} data-status={e.status}>
         {STATUS[e.status]}
         {e.status === "PENDING" && suggested && ` → ${suggested.name}`}
@@ -246,5 +277,73 @@ function EntryRow({
         </span>
       )}
     </li>
+  );
+}
+
+type Mode = "AUTO" | Contribution["kind"];
+
+/** 기여도: the server's points, with 수기 입력 as fixed points or ×배수 (sent on blur / Enter, no save step). */
+function ContributionCell({
+  entry: e,
+  excel,
+  pending,
+  broadcastId,
+  run
+}: {
+  entry: FeedEntryView;
+  excel: ExcelSettings;
+  pending: boolean;
+  broadcastId: string;
+  run: (action: () => Promise<BroadcastResult>, ok?: string) => void;
+}) {
+  const mode: Mode = e.contribution?.kind ?? "AUTO";
+  const send = (contribution: Contribution | null) => run(() => setEntryContribution({ broadcastId, entryId: e.id, contribution }));
+  const commit = (raw: string, kind: Contribution["kind"]) => {
+    if (raw.trim() === "") return;
+    const value = Number(raw.replace(/,/g, ""));
+    if (e.contribution?.kind === kind && e.contribution.value === value) return;
+    send({ kind, value });
+  };
+  const missing = e.base === null && e.contribution?.kind !== "POINTS";
+  const baseText = e.base === null ? null : `${formatNumber(Math.round(e.base))}${excel.unit === "KRW" ? "원" : " FN"}`;
+  return (
+    <span className={feed.contribution}>
+      <span className={feed.points}>
+        <strong>{formatNumber(e.points)}점</strong>
+        <span className={styles.muted}>
+          {missing ? (excel.unit === "KRW" ? "환산값 미설정" : "원화 환산에서 반영") : mode === "POINTS" ? "수기 입력" : `${baseText} × ${e.multiplier}`}
+        </span>
+      </span>
+      {e.status !== "CANCELLED" && (
+        <span className={feed.contributionEdit}>
+          <select
+            className={styles.select}
+            aria-label={`${e.donor} 기여도 방식`}
+            value={mode}
+            disabled={pending}
+            onChange={(ev) => {
+              const next = ev.target.value as Mode;
+              if (next === "AUTO") send(null);
+              else send(next === "POINTS" ? { kind: "POINTS", value: e.points } : { kind: "MULTIPLIER", value: e.multiplier });
+            }}
+          >
+            <option value="AUTO">규칙</option>
+            <option value="POINTS">점수</option>
+            <option value="MULTIPLIER">배수</option>
+          </select>
+          {mode !== "AUTO" && (
+            <input
+              key={`${mode}-${e.contribution?.value}`}
+              className={styles.inputSmall}
+              inputMode="decimal"
+              aria-label={`${e.donor} 기여도 ${mode === "POINTS" ? "점수" : "배수"}`}
+              defaultValue={e.contribution?.value}
+              onBlur={(ev) => commit(ev.target.value, mode)}
+              onKeyDown={(ev) => ev.key === "Enter" && (ev.target as HTMLInputElement).blur()}
+            />
+          )}
+        </span>
+      )}
+    </span>
   );
 }

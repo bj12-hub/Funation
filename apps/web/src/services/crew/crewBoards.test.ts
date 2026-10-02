@@ -27,18 +27,18 @@ describe("서브 점수판", () => {
     const id = (await m.getBroadcastView())!.live!.id;
 
     vi.setSystemTime(new Date("2026-09-30T12:01:00Z"));
-    await m.simulateDonation({ broadcastId: id, requestId: key(1), fnAmount: 1_000, message: "하늘" }); // before any board
+    await m.simulateDonation({ broadcastId: id, requestId: key(1), amount: 1_000, message: "하늘" }); // before any board
     vi.setSystemTime(new Date("2026-09-30T12:02:00Z"));
     await m.openSubBoard({ broadcastId: id, requestId: key(10), title: "1라운드" });
     await m.openSubBoard({ broadcastId: id, requestId: key(10), title: "1라운드" }); // same request → once
     vi.setSystemTime(new Date("2026-09-30T12:03:00Z"));
-    await m.simulateDonation({ broadcastId: id, requestId: key(2), fnAmount: 5_000, message: "하늘" });
+    await m.simulateDonation({ broadcastId: id, requestId: key(2), amount: 5_000, message: "하늘" });
     m.attributeMemberDonation("dn-x", "studio", "cm-s1", 7_000);
 
     vi.setSystemTime(new Date("2026-09-30T12:04:00Z"));
     await m.openSubBoard({ broadcastId: id, requestId: key(11), title: "" }); // closes board 1
     vi.setSystemTime(new Date("2026-09-30T12:05:00Z"));
-    await m.simulateDonation({ broadcastId: id, requestId: key(3), fnAmount: 2_000, message: "하늘" });
+    await m.simulateDonation({ broadcastId: id, requestId: key(3), amount: 2_000, message: "하늘" });
 
     const live = (await m.getBroadcastView())!.live!;
     expect(live.subBoards.map((b) => [b.no, b.title, b.closedAt !== null])).toEqual([
@@ -49,12 +49,12 @@ describe("서브 점수판", () => {
     expect(score(live.subBoards[0], "cm-s1")).toBe(7_000);
     expect(score(live.subBoards[1], "cm-s2")).toBe(2_000);
     // The main board still counts everything.
-    expect(live.rows.find((r) => r.memberId === "cm-s2")!.feedFn).toBe(8_000);
+    expect(live.rows.find((r) => r.memberId === "cm-s2")!.feed).toBe(8_000);
 
     await m.closeSubBoard({ broadcastId: id, no: 2 });
     await m.closeSubBoard({ broadcastId: id, no: 2 }); // no-op
     vi.setSystemTime(new Date("2026-09-30T12:06:00Z"));
-    await m.simulateDonation({ broadcastId: id, requestId: key(4), fnAmount: 9_000, message: "하늘" });
+    await m.simulateDonation({ broadcastId: id, requestId: key(4), amount: 9_000, message: "하늘" });
     const after = (await m.getBroadcastView())!.live!;
     expect(score(after.subBoards[1], "cm-s2")).toBe(2_000);
   });
