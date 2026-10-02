@@ -20,7 +20,7 @@ import {
   type ToolStates,
   type ToolsView
 } from "./broadcastToolTypes";
-import { mockAlerts } from "./alertCore";
+import { reloadSeqOf } from "./alertCore";
 import { mockCreator } from "./mockCreatorStore";
 
 /**
@@ -174,7 +174,7 @@ export async function getOverlayTool(tool: unknown, key: unknown): Promise<Overl
   assertMock();
   if (typeof key !== "string" || key !== mockCreator.integrationKey || !isToolKey(tool)) return "FORBIDDEN";
   // reloadSeq: bumped by 리모컨 "오버레이 새로고침"; overlays reload themselves when it changes.
-  const reloadSeq = mockAlerts.reloadSeq;
+  const reloadSeq = reloadSeqOf(tool);
   switch (tool) {
     case "subtitle":
       return { tool, state: { ...tools.subtitle }, reloadSeq };
