@@ -2,7 +2,7 @@
 
 import { USE_MOCK } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
-import { advance, mockAlerts } from "./alertCore";
+import { advance, mockAlerts, reloadSeqOf } from "./alertCore";
 import {
   DEFAULT_EFFECTS,
   EFFECT_LIMITS,
@@ -75,7 +75,7 @@ export async function getOverlayEffects(key: unknown): Promise<OverlayEffects | 
   if (typeof key !== "string" || key !== mockCreator.integrationKey) return "FORBIDDEN";
   advance();
   const showing = mockAlerts.items.find((a) => a.status === "SHOWING");
-  const reloadSeq = mockAlerts.reloadSeq;
+  const reloadSeq = reloadSeqOf("effects");
   if (!showing) return { alertId: null, emoji: null, layer: null, reloadSeq };
   return { alertId: showing.id, ...resolve(store(), showing.fnAmount), reloadSeq };
 }

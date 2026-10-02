@@ -51,6 +51,7 @@ Since 2026-09-29 features without a Figma frame are built in code first and desi
 | 라이트 테마 (`styles/tokens.css` [data-theme="light"]) + 헤더 ☀️/🌙 토글 (`components/layout/ThemeToggle`) | light theme PR | Main site only; creator studio, OBS overlays and the home notice popups stay dark. Light values for every surface/text/border/form token need a Figma pass |
 
 | 리모컨 "방송 도구" card (`remote/ToolsRemote.tsx`) + 전체 제어 "TTS 스킵" · "오버레이 새로고침"; 방송 도구 타이머 퀵 조정 · 크레딧 시작/중지 | remote controls PR | Timer ±30/60초, 시작/재개/일시정지/초기화; 엔딩 크레딧 시작 · 처음부터 · 중지 (overlay shows credits only while rolling) |
+| 리모컨 "기능별 새로고침" card (`remote/RemoteScreen.tsx`) + 전체 제어 "전체 오버레이 새로고침" | overlay-reload PR | 오버레이마다 따로 새로고침: 후원 알림 · 이펙트 · 영상 후원 · 그림 후원 · 배너 · 자막 · 전광판 · 타이머 · 엔딩 크레딧 · 통합 채팅 · 크루 점수판(배틀 · 강탈 · 시나리오 포함). 다른 오버레이는 그대로, 다음 읽기(몇 초) 때 반영 |
 
 | 방송 운영 "서브 점수판" (`crew/SubBoards.tsx`) + `/overlay/crew/[key]?board=번호` | crew sub boards PR | 새 판 (이름, 최대 5판), 진행 중 / 마감, 구간 TOP 3, OBS 주소 복사; overlay shows the board with a 마감 mark |
 

@@ -1,7 +1,7 @@
 import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
 import type { Platform } from "@/types/platform";
 import { notify } from "@/services/notifications/notificationCore";
-import type { AlertControls, AlertItem, AlertKind } from "./alertTypes";
+import type { AlertControls, AlertItem, AlertKind, OverlayTarget } from "./alertTypes";
 
 /**
  * Server-only alert queue internals (not a "use server" module): only the Donation Core and the
@@ -18,6 +18,8 @@ type MockAlerts = {
   /** Signals for open overlays: a changed value means "stop speaking" / "reload yourself". */
   ttsSkipSeq: number;
   reloadSeq: number;
+  /** 기능별 새로고침 counters (added to `reloadSeq`). */
+  reloadSeqs?: Partial<Record<OverlayTarget, number>>;
 };
 
 // V2: overlay signals (ttsSkipSeq, reloadSeq).
@@ -30,6 +32,9 @@ export const mockAlerts = (g.__funationMockAlertsV2 ??= {
   ttsSkipSeq: 0,
   reloadSeq: 0
 });
+
+/** The reload signal one overlay watches: 전체 새로고침 + its own 기능별 새로고침. */
+export const reloadSeqOf = (target: OverlayTarget) => mockAlerts.reloadSeq + (mockAlerts.reloadSeqs?.[target] ?? 0);
 
 export function enqueueAlert(input: { kind: AlertKind; donor: string; badges?: string[]; message: string; fnAmount: number; amountLabel?: string; typeLabel: string; platform?: Platform }, now = Date.now()) {
   // The FN minimum cannot apply to other currencies (no exchange rate — TBD), so external alerts pass.
