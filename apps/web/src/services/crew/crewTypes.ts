@@ -36,8 +36,11 @@ export const MAX_ADJUST_POINTS = 10_000_000;
 export const ADJUST_REASON_MAX = 40;
 export const BROADCAST_TITLE_MAX = 40;
 
-/** Points (자동엑셀 기준): `donated` = member-targeted donations; `feed` = 후원 리스트 entries assigned to the member. */
-export type ScoreRow = { memberId: string; name: string; color: string; team: TeamKey | null; donated: number; feed: number; adjust: number; score: number };
+/**
+ * Points (자동엑셀 기준): `donated` = member-targeted donations; `feed` = 후원 리스트 entries assigned to
+ * the member; `stolen` = net 기여도 강탈 (taken minus lost).
+ */
+export type ScoreRow = { memberId: string; name: string; color: string; team: TeamKey | null; donated: number; feed: number; adjust: number; stolen: number; score: number };
 
 // ── 후원 리스트 (키워드 배정 · 한방) — reference: funnation 엑셀콘 v3 ────────────────────
 
@@ -149,7 +152,25 @@ export type BroadcastLive = {
   subBoards: SubBoard[];
   /** 실시간 배틀 of this broadcast (oldest first; at most one RUNNING). */
   battles: Battle[];
+  /** 기여도 강탈 spins (newest first). */
+  steals: StealRecord[];
 };
+
+// ── 기여도 강탈 룰렛 — code-first; slots and odds are set by the creator (no defaults, TBD) ────────
+
+export const STEAL_SLOTS_MAX = 12;
+export const STEAL_LABEL_MAX = 12;
+export const STEAL_WEIGHT_MAX = 100;
+export const STEAL_POINTS_MAX = 10_000_000;
+
+/** PERCENT: that % of the target's current score. POINTS: a fixed amount (never more than the target has). MISS: 꽝. */
+export type StealKind = "PERCENT" | "POINTS" | "MISS";
+/** `weight` = relative chance (a slot with weight 2 comes up twice as often as weight 1). */
+export type StealSlot = { id: string; label: string; kind: StealKind; value: number; weight: number };
+
+export type StealRecord = { id: string; at: string; thiefId: string; thiefName: string; targetId: string; targetName: string; slotId: string; slotLabel: string; points: number };
+
+export type StealSpinResult = { status: "SPUN"; record: StealRecord; slotIndex: number } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
 
 // ── 실시간 배틀 (같은 크루 안 BJ 1:1 또는 A팀 vs B팀 · 타이머) — code-first ─────────────────────
 
@@ -203,6 +224,8 @@ export type BroadcastView = {
   live: BroadcastLive | null;
   /** Only while live; never sent to the overlay (donor messages stay in the studio). */
   feed: FeedView | null;
+  /** 기여도 강탈 룰렛 slots (kept across broadcasts). */
+  stealSlots: StealSlot[];
   keywords: Record<string, string[]>;
   /** Existing project names (for the start form). */
   projects: string[];

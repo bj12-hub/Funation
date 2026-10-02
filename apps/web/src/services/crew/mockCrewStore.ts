@@ -1,4 +1,4 @@
-import type { AssignMode, CrewMember, ExcelSettings, FeedEntry } from "./crewTypes";
+import type { AssignMode, CrewMember, ExcelSettings, FeedEntry, StealSlot } from "./crewTypes";
 
 /**
  * Development-only crew state, keyed by channel id: the studio creator's own channel
@@ -33,6 +33,8 @@ export type MockBroadcast = {
   subBoards?: { no: number; title: string; openedAt: string; closedAt: string | null; requestId: string }[];
   /** 실시간 배틀: side A/B member ids, timer and the request ids already applied (start · time changes). */
   battles?: { no: number; title: string; mode: "MEMBERS" | "TEAMS"; a: string[]; b: string[]; startedAt: string; endsAt: string; stoppedAt: string | null; requests: string[] }[];
+  /** 기여도 강탈: points moved from `target` to `thief` (request id = record id, so a retry returns the same spin). */
+  steals?: { id: string; at: string; thief: string; target: string; slotId: string; slotLabel: string; points: number }[];
   /** Final ranking frozen at the end (members may be renamed or removed later). */
   final: { memberId: string; name: string; score: number }[] | null;
 };
@@ -45,6 +47,8 @@ type MockCrew = {
   keywords?: Record<string, string[]>;
   /** 자동엑셀 settings per channel (kept across broadcasts). */
   excel?: Record<string, ExcelSettings>;
+  /** 기여도 강탈 룰렛 slots per channel. */
+  stealSlots?: Record<string, StealSlot[]>;
 };
 
 const m = (id: string, name: string, role: CrewMember["role"], color: string, active = true): CrewMember => ({ id, name, role, active, color });
