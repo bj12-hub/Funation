@@ -137,12 +137,6 @@
   min-width: 0;
 }
 
-.cardInfo {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-
 .cardText {
   display: flex;
   flex: 1;
@@ -182,183 +176,6 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 32px;
-}
-
-/* ── Ranking list ─────────────────────────────────── */
-
-.rankingList {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.rankingRow {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-12);
-  background: var(--color-surface);
-  transition: border-color 0.15s ease;
-}
-
-.rankingRow:hover {
-  border-color: var(--color-border-emphasis);
-}
-
-.rank {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-20);
-  background: var(--color-neutral-soft);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-20);
-  font-weight: var(--font-weight-extrabold);
-}
-
-.rankTop {
-  background: var(--color-accent-soft);
-  color: var(--color-accent);
-}
-
-.rankingThumb {
-  position: relative;
-  flex-shrink: 0;
-  width: 140px;
-  height: 80px;
-  overflow: hidden;
-  border-radius: var(--radius-8);
-  background: var(--color-surface-raised);
-}
-
-.rankingLive {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  padding: 4px 8px;
-  border-radius: var(--radius-pill);
-  background: var(--color-accent);
-  color: var(--color-text-on-accent);
-  font-size: var(--font-size-11);
-  font-weight: var(--font-weight-bold);
-  line-height: normal;
-}
-
-.rankingText {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-}
-
-.rankingTitle {
-  margin: 0;
-  overflow: hidden;
-  color: var(--color-text-primary);
-  font-size: var(--font-size-16);
-  font-weight: var(--font-weight-bold);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.rankingChannel {
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-13);
-}
-
-.rankingStats {
-  display: flex;
-  flex-shrink: 0;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 10px;
-}
-
-.viewers {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-  white-space: nowrap;
-}
-
-.viewersCount {
-  color: var(--color-highlight);
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-bold);
-}
-
-.viewersLabel {
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-11);
-}
-
-/* ── Popular creators: 6 × 187px ──────────────────── */
-
-.creatorGrid {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 32px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.creator {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-}
-
-.creatorRing {
-  display: flex;
-  width: 110px;
-  height: 110px;
-  padding: 3px;
-  border-radius: 55px;
-  background: var(--gradient-brand);
-  transition: transform 0.15s ease;
-}
-
-.creator:hover .creatorRing {
-  transform: translateY(-2px);
-}
-
-.creatorAvatar {
-  width: 104px;
-  height: 104px;
-  border-radius: var(--radius-pill);
-  object-fit: cover;
-}
-
-.creatorText {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  white-space: nowrap;
-}
-
-.creatorName {
-  color: var(--color-text-primary);
-  font-size: var(--font-size-16);
-  font-weight: var(--font-weight-bold);
-}
-
-.creatorSubs {
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-12);
 }
 
 /* ── Promo banner (180px) ─────────────────────────── */
@@ -427,10 +244,6 @@
   .trendingGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
-  .creatorGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 768px) {
@@ -455,10 +268,5 @@
   .trendingGrid {
     grid-template-columns: minmax(0, 1fr);
     gap: 24px;
-  }
-
-  .rankingThumb,
-  .rankingStats {
-    display: none;
   }
 }

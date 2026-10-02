@@ -33,16 +33,6 @@ export type TrendingVideo = {
   href: string;
 };
 
-export type RankedLive = {
-  id: string;
-  rank: number;
-  thumbnailUrl: string;
-  title: string;
-  channelName: string;
-  viewerCount: number;
-  href: string;
-};
-
 export type PopularCreator = {
   id: string;
   name: string;
@@ -90,7 +80,6 @@ export type Promotion = {
 export type HomeFeed = {
   heroSlides: HeroSlide[];
   trending: TrendingVideo[];
-  ranking: RankedLive[];
   creators: PopularCreator[];
   promotion: Promotion | null;
   notices: HomeNotice[];
@@ -159,13 +148,6 @@ const MOCK_HOME_FEED: Omit<HomeFeed, "creators" | "notices"> & { creators: Omit<
     })
   ],
   trending: MOCK_TRENDING,
-  ranking: [
-    { id: "r1", rank: 1, thumbnailUrl: `${IMG}/trending-1.jpg`, title: "불꽃크루 엑셀방송 시즌2 4회차 · 직급전", channelName: "불꽃크루", viewerCount: 3_920, href: "/live" },
-    { id: "r2", rank: 2, thumbnailUrl: `${IMG}/live-3.jpg`, title: "별빛크루 댄스 엑셀 · 팀 배틀 1부", channelName: "별빛크루", viewerCount: 2_870, href: "/live" },
-    { id: "r3", rank: 3, thumbnailUrl: `${IMG}/trending-2.jpg`, title: "금요일 밤 소통 방송 · 오늘의 사연", channelName: "하루봄", viewerCount: 2_410, href: "/live" },
-    { id: "r4", rank: 4, thumbnailUrl: `${IMG}/live-1.jpg`, title: "신청곡 받는 라이브 노래방", channelName: "도도쭈", viewerCount: 1_830, href: "/live" },
-    { id: "r5", rank: 5, thumbnailUrl: `${IMG}/ranking-5.jpg`, title: "토끼 귀 버츄얼의 그림 그리기 방송", channelName: "린토끼", viewerCount: 640, href: "/live" }
-  ],
   creators: [
     { id: "c4", name: "불꽃크루", avatarUrl: `${IMG}/creator-1.png`, subscriberCount: 91_000, href: "/creators/c4" },
     { id: "c1", name: "하루봄", avatarUrl: `${IMG}/creator-2.png`, subscriberCount: 48_000, href: "/creators/c1" },
