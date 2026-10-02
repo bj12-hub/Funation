@@ -33,7 +33,7 @@ describe("donation history filters", () => {
   });
 
   it("drops invalid filter params", () => {
-    expect(parseDonationFilter({ q: "  침착맨 ", min: "1000", max: "-5", sort: "weird" })).toEqual({ q: "침착맨", min: 1000, max: undefined, sort: undefined });
+    expect(parseDonationFilter({ q: "  하루봄 ", min: "1000", max: "-5", sort: "weird" })).toEqual({ q: "하루봄", min: 1000, max: undefined, sort: undefined });
     expect(parseDonationFilter({ sort: "oldest", min: "1.5" })).toEqual({ q: undefined, min: undefined, max: undefined, sort: "oldest" });
   });
 });

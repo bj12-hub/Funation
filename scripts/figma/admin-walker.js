@@ -40,7 +40,7 @@
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
       const v = tag === "SELECT" ? (el.options[el.selectedIndex]?.text ?? "") : el.value; const ph = !v; return ["i", txt(v || el.placeholder || ""), Math.round(r.width), Math.round(r.height), ph ? 1 : 0, tag === "SELECT" ? 1 : 0, tag === "TEXTAREA" ? 1 : 0];
     }
-    if (["IMG", "VIDEO", "CANVAS", "IFRAME", "svg", "SVG", "PICTURE"].includes(tag)) { const m = ["m", Math.round(r.width), Math.round(r.height), px(cs.borderTopLeftRadius), col(cs.color, TEXT)]; if (tag.toLowerCase() === "svg") { const d = el.querySelector("path")?.getAttribute("d"); if (d) m.push(el.getAttribute("width") + ":" + d.replace(/\s+/g, "").slice(0, 40)); } return m; }
+    if (["IMG", "VIDEO", "CANVAS", "IFRAME", "svg", "SVG", "PICTURE"].includes(tag)) { const m = ["m", Math.round(r.width), Math.round(r.height), px(cs.borderTopLeftRadius), col(cs.color, TEXT)]; if (tag === "IMG") { const raw = el.currentSrc || el.src || ""; const q = raw.match(/[?&]url=([^&]+)/); m.push("img:" + (q ? decodeURIComponent(q[1]) : raw.replace(location.origin, ""))); } if (tag.toLowerCase() === "svg") { const d = el.querySelector("path")?.getAttribute("d"); if (d) m.push(el.getAttribute("width") + ":" + d.replace(/\s+/g, "").slice(0, 40)); } return m; }
     const o = box(cs, r);
     o.w = Math.round(r.width);
     // Leaf text (possibly inside a box, e.g. chip or button)
