@@ -3,27 +3,21 @@
 import Link from "next/link";
 import { useState } from "react";
 import { LiveChannelCard } from "@/features/live/LiveChannelCard";
-import { LIVE_CATEGORY_LABEL, type LiveCategory, type LiveChannel, type PopularLiveSection } from "@/services/live/liveChannels";
+import { POPULAR_LIVE_COUNT, type LiveChannel } from "@/services/live/liveChannels";
 import styles from "./homeFunnation.module.css";
 
 /** Cards per row on the home (funnation shows four). */
 const PER_ROW = 4;
 
-/** Title emoji per category (display only). */
-const CATEGORY_EMOJI: Partial<Record<LiveCategory, string>> = { MUSIC_DANCE: "🎤", TALK: "💬", VIRTUAL: "🎮", GAME: "🕹️", VARIETY: "🎉" };
-
 /**
  * 전체 방송 — home live block (funnation structure). Tabs:
- * - 인기 라이브: "{카테고리} 추천 라이브" rows from the recommended sections, then 그 외 라이브
- *   (live channels outside those categories). Each row links to /live filtered by category.
+ * - 인기 라이브: the most watched live channels (no topic categories — 2026-10-02 product decision).
  * - 전체 라이브: every live channel by viewers, linking to /live.
  */
-export function HomeLiveTabs({ sections, channels }: { sections: PopularLiveSection[]; channels: LiveChannel[] }) {
+export function HomeLiveTabs({ channels }: { channels: LiveChannel[] }) {
   const [tab, setTab] = useState<"popular" | "all">("popular");
-  const rows = sections.filter((s) => s.channels.length > 0);
-  const covered = new Set(rows.map((s) => s.category));
-  const others = channels.filter((c) => !covered.has(c.category)).sort((a, b) => b.viewerCount - a.viewerCount);
   const all = [...channels].sort((a, b) => b.viewerCount - a.viewerCount);
+  const popular = all.slice(0, POPULAR_LIVE_COUNT);
 
   return (
     <section className={styles.block} aria-labelledby="home-all-live">
@@ -47,17 +41,11 @@ export function HomeLiveTabs({ sections, channels }: { sections: PopularLiveSect
 
       {tab === "popular" ? (
         <div className={styles.rows} role="tabpanel">
-          {rows.map((s) => (
-            <LiveRow
-              key={s.category}
-              id={`home-row-${s.category}`}
-              title={`${LIVE_CATEGORY_LABEL[s.category]} 추천 라이브 ${CATEGORY_EMOJI[s.category] ?? ""}`.trim()}
-              href={`/live?category=${s.category}`}
-              channels={s.channels.slice(0, PER_ROW)}
-            />
-          ))}
-          {others.length > 0 && <LiveRow id="home-row-others" title="그 외 라이브" href="/live" channels={others.slice(0, PER_ROW)} />}
-          {rows.length === 0 && others.length === 0 && <p className={styles.empty}>진행 중인 라이브 방송이 없습니다.</p>}
+          {popular.length > 0 ? (
+            <LiveRow id="home-row-popular" title="지금 가장 많이 보는 라이브" href="/live/popular" channels={popular} />
+          ) : (
+            <p className={styles.empty}>진행 중인 라이브 방송이 없습니다.</p>
+          )}
         </div>
       ) : (
         <div role="tabpanel">
