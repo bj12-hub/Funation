@@ -29,7 +29,7 @@ describe("admin members", () => {
     expect(all.items).toHaveLength(20);
     expect((await m.listMembers({ page: 2 }))!.items).toHaveLength(11);
     expect((await m.listMembers({ role: "CREATOR" }))!.total).toBe(11);
-    expect((await m.listMembers({ q: "침착" }))!.items.map((x) => x.creatorId)).toEqual(["c1"]);
+    expect((await m.listMembers({ q: "하루봄" }))!.items.map((x) => x.creatorId)).toEqual(["c1"]);
     expect((await m.listMembers({ status: "SUSPENDED" }))!.total).toBe(0);
   });
 

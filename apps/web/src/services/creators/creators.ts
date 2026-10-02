@@ -114,20 +114,21 @@ export async function getCreators({ category, query, sort = "popular", page = 1 
   };
 }
 
-// ── Mock data: copy and images from Figma 690:5 ───────────────────────────────
-// Subscriber counts for c1–c6 follow the home screen (727:2742); c7–c10 are sample values.
+// ── Mock data ──────────────────────────────────────────────────────────────────
+// Fictional personal broadcasters and 엑셀방송 crews (the service focus); no real creators.
+// Layout follows Figma 690:5. Avatars are original illustrations (scripts/mock-images).
 
 const A = (n: number) => `/mock/creators/creator-${n}.png`;
 
 const MOCK_CREATORS: CreatorSummary[] = [
-  { id: "c1", name: "침착맨", avatarUrl: A(1), description: "삼국지 및 일상 토크 최강자", categories: ["VARIETY", "TRAVEL", "DRAMA"], isLive: true, isNew: false, viewerCount: 14_820, subscriberCount: 2_600_000, joinedAt: "2024-03-02", ring: "brand" },
-  { id: "c2", name: "곽튜브", avatarUrl: A(2), description: "힐링과 유머 가득한 세계 여행 브이로그", categories: ["TRAVEL", "SPORTS"], isLive: true, isNew: false, viewerCount: 18_430, subscriberCount: 1_950_000, joinedAt: "2024-05-11", ring: "plain" },
-  { id: "c3", name: "빠니보틀", avatarUrl: A(3), description: "날것 그대로의 해외 생존 여행기", categories: ["TRAVEL", "MUSIC"], isLive: true, isNew: false, viewerCount: 12_760, subscriberCount: 2_400_000, joinedAt: "2024-07-20", ring: "plain" },
-  { id: "c4", name: "피식대학", avatarUrl: A(4), description: "글로벌 쇼 및 다채로운 캐릭터 코미디", categories: ["VARIETY", "GAME", "MUKBANG"], isLive: true, isNew: false, viewerCount: 19_210, subscriberCount: 3_050_000, joinedAt: "2024-09-08", ring: "brand" },
-  { id: "c5", name: "워크맨", avatarUrl: A(5), description: "세상의 모든 직업 알바 체험기", categories: ["VARIETY", "DRAMA"], isLive: true, isNew: false, viewerCount: 16_980, subscriberCount: 4_100_000, joinedAt: "2025-01-15", ring: "plain" },
-  { id: "c6", name: "먹방 쯔양", avatarUrl: A(6), description: "기록적인 대식과 따뜻한 소통 먹방", categories: ["MUKBANG", "VARIETY", "DAILY"], isLive: true, isNew: false, viewerCount: 11_540, subscriberCount: 9_800_000, joinedAt: "2025-03-30", ring: "plain" },
-  { id: "c7", name: "테크마스터", avatarUrl: A(7), description: "가장 빠르고 상세한 신제품 리뷰", categories: ["GAME", "SPORTS"], isLive: false, isNew: true, viewerCount: null, subscriberCount: 420_000, joinedAt: "2026-08-21", ring: "new" },
-  { id: "c8", name: "댕댕하우스", avatarUrl: A(8), description: "귀여운 강아지 형제들의 매일매일", categories: ["DAILY", "VARIETY"], isLive: true, isNew: false, viewerCount: 9_310, subscriberCount: 880_000, joinedAt: "2025-11-02", ring: "plain" },
-  { id: "c9", name: "맛있는 하루", avatarUrl: A(9), description: "숨겨진 로컬 맛집과 야시장 정복", categories: ["MUKBANG", "TRAVEL", "DAILY"], isLive: false, isNew: true, viewerCount: null, subscriberCount: 310_000, joinedAt: "2026-09-05", ring: "new" },
-  { id: "c10", name: "STAR BEATS", avatarUrl: A(10), description: "케이팝 댄스 및 초고화질 퍼포먼스 전문", categories: ["MUSIC", "VARIETY"], isLive: true, isNew: false, viewerCount: 13_240, subscriberCount: 1_270_000, joinedAt: "2026-02-14", ring: "plain" }
+  { id: "c1", name: "하루봄", avatarUrl: A(1), description: "매일 밤 9시, 수다로 하루를 마무리하는 소통 방송", categories: ["VARIETY", "DAILY"], isLive: true, isNew: false, viewerCount: 2_410, subscriberCount: 48_000, joinedAt: "2024-03-02", ring: "brand" },
+  { id: "c2", name: "도도쭈", avatarUrl: A(2), description: "신청곡 받아 부르는 라이브 노래방", categories: ["MUSIC", "VARIETY"], isLive: true, isNew: false, viewerCount: 1_830, subscriberCount: 36_000, joinedAt: "2024-05-11", ring: "plain" },
+  { id: "c3", name: "밤톨게임", avatarUrl: A(3), description: "시청자랑 같이 랭크 올리는 게임 개인방송", categories: ["GAME"], isLive: true, isNew: false, viewerCount: 1_290, subscriberCount: 27_000, joinedAt: "2024-07-20", ring: "plain" },
+  { id: "c4", name: "불꽃크루", avatarUrl: A(4), description: "6인 엑셀방송 크루 · 매주 금·토 시즌제 직급전", categories: ["VARIETY", "MUSIC"], isLive: true, isNew: false, viewerCount: 3_920, subscriberCount: 91_000, joinedAt: "2024-09-08", ring: "brand" },
+  { id: "c5", name: "새벽감성", avatarUrl: A(5), description: "사연 읽어 주는 잔잔한 새벽 라디오 토크", categories: ["VARIETY", "DAILY"], isLive: true, isNew: false, viewerCount: 980, subscriberCount: 21_000, joinedAt: "2025-01-15", ring: "plain" },
+  { id: "c6", name: "먹깨비소이", avatarUrl: A(6), description: "시청자 추천 메뉴로 달리는 야식 먹방", categories: ["MUKBANG", "DAILY"], isLive: true, isNew: false, viewerCount: 1_540, subscriberCount: 33_000, joinedAt: "2025-03-30", ring: "plain" },
+  { id: "c7", name: "린토끼", avatarUrl: A(7), description: "그림 그리며 수다 떠는 버츄얼 방송", categories: ["GAME", "DAILY"], isLive: false, isNew: true, viewerCount: null, subscriberCount: 8_400, joinedAt: "2026-08-21", ring: "new" },
+  { id: "c8", name: "댕댕하우스", avatarUrl: A(8), description: "강아지 형제와 함께하는 일상 개인방송", categories: ["DAILY", "VARIETY"], isLive: true, isNew: false, viewerCount: 760, subscriberCount: 15_000, joinedAt: "2025-11-02", ring: "plain" },
+  { id: "c9", name: "맛있는 하루", avatarUrl: A(9), description: "동네 맛집 포장해서 같이 먹는 먹방", categories: ["MUKBANG", "DAILY"], isLive: false, isNew: true, viewerCount: null, subscriberCount: 6_200, joinedAt: "2026-09-05", ring: "new" },
+  { id: "c10", name: "별빛크루", avatarUrl: A(10), description: "댄스 엑셀방송 크루 · 직급전과 팀 배틀", categories: ["MUSIC", "VARIETY"], isLive: true, isNew: false, viewerCount: 2_870, subscriberCount: 64_000, joinedAt: "2026-02-14", ring: "plain" }
 ];
