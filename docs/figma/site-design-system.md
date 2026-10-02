@@ -148,6 +148,7 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 방송 방 후원 패널 | D-QUIZ_INITIAL | 초성 퀴즈 | `/creators/c1?tab=donation` | `79:3418` |
 | 방송 방 후원 패널 | D-QUIZ_DRAWING | 그림 퀴즈 | `/creators/c1?tab=donation` | `79:3495` |
 | 방송 방 후원 패널 | D-crew-member | 크루 멤버 지정 | `/creators/c4?tab=donation` | `79:3580` |
+| 방송 방 후원 패널 | D-confirm | 후원하기 확인 + 후원 알림 미리보기 (613:6 + code-first) | `/creators/c1?tab=donation` | `112:8173` |
 | 플랫폼 후원 | P01 | SOOP 후원 | `/donation/soop` | `80:3182` |
 | 플랫폼 후원 | P02 | FlexTV 후원 | `/donation/flextv` | `80:3424` |
 | 플랫폼 후원 | P03 | 플랫폼 크리에이터 검색 | `/donation/soop/search` | `80:3665` |
@@ -173,6 +174,7 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 약관 | L01 | 서비스 이용약관 | `/terms/service` | `88:6124` |
 | 약관 | L02 | 개인정보 처리방침 | `/terms/privacy` | `88:6307` |
 | OBS 오버레이 | O02 | 후원 알림 (800×600) | `/overlay/alert/[key]` | `92:6819` |
+| OBS 오버레이 | O02b | 후원 알림 · 등급·칭호 배지 (실제 후원) | `/overlay/alert/[key]` | `112:8207` |
 | OBS 오버레이 | O03 | 이펙트 · 효과 (1920×1080) — 파티클 위치는 예시 배치 | `/overlay/effects/[key]` | `92:6828` |
 | OBS 오버레이 | O04 | 영상 후원 (1280×720) — YouTube 임베드 자리 | `/overlay/video/[key]` | `92:6849` |
 | OBS 오버레이 | O05 | 그림후원 (800×700) | `/overlay/drawing/[key]` | `92:6856` |
