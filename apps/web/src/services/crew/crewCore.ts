@@ -1,5 +1,5 @@
 import type { Platform } from "@/types/platform";
-import { isExcelUnit, type ExcelSettings, type ExcelUnit, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow } from "./crewTypes";
+import { isExcelUnit, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow } from "./crewTypes";
 import { mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 // ── 후원 리스트 (server-only) ──────────────────────────────────────────────────
@@ -79,7 +79,7 @@ export function scoreEntry(e: FeedEntry, s: ExcelSettings): FeedEntryView {
 
 /**
  * Points each member received between `from` and `to` (targeted donations + assigned 후원 리스트
- * entries, 자동엑셀 points). Used by 서브 점수판 and 실시간 배틀. `to` null = now.
+ * entries, 자동엑셀 points, ± 기여도 강탈). Used by 서브 점수판 and 실시간 배틀. `to` null = now.
  */
 export function windowScores(b: MockBroadcast, from: string, to: string | null): Map<string, number> {
   const end = to ?? new Date(Date.now() + 1000).toISOString();
@@ -89,7 +89,18 @@ export function windowScores(b: MockBroadcast, from: string, to: string | null):
   const add = (id: string, p: number) => scores.set(id, (scores.get(id) ?? 0) + p);
   for (const a of mockCrew.attributions) if (a.channelId === b.channelId && inWindow(a.at)) add(a.memberId, scoreFn(a.fnAmount, s));
   for (const f of b.feed ?? []) if (f.status === "ASSIGNED" && f.memberId && inWindow(f.at)) add(f.memberId, scoreEntry(f, s).points);
+  // 기여도 강탈 moves points between members inside the same window.
+  for (const x of b.steals ?? []) if (inWindow(x.at)) {
+    add(x.thief, x.points);
+    add(x.target, -x.points);
+  }
   return scores;
+}
+
+/** A 기여도 강탈 record with member names (removed members keep a placeholder). */
+export function stealRecordView(channelId: string, x: NonNullable<MockBroadcast["steals"]>[number]): StealRecord {
+  const name = (id: string) => (mockCrew.crews[channelId] ?? []).find((m) => m.id === id)?.name ?? "삭제된 멤버";
+  return { id: x.id, at: x.at, thiefId: x.thief, thiefName: name(x.thief), targetId: x.target, targetName: name(x.target), slotId: x.slotId, slotLabel: x.slotLabel, points: x.points };
 }
 
 /** Points for a member-targeted FN donation (same conversion and 배수 규칙 as the list). */

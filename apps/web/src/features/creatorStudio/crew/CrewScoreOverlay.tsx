@@ -1,11 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { formatNumber } from "@/lib/format";
-import type { Battle, BroadcastLive, SubBoard } from "@/services/crew/crewTypes";
+import type { Battle, BroadcastLive, StealRecord, SubBoard } from "@/services/crew/crewTypes";
 import { BattleBoard, useCountdown } from "./BattlePanel";
+import { stealText } from "./StealPanel";
 import battleStyles from "./battle.module.css";
+import stealStyles from "./steal.module.css";
 import styles from "./overlay.module.css";
 
 /**
@@ -77,6 +79,29 @@ export function BattleOverlay({ battle }: { battle: Battle | null }) {
     <div className={styles.overlay}>
       {battle.running && <span className={battleStyles.overlayTimer}>{`${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`}</span>}
       <BattleBoard battle={battle} big />
+    </div>
+  );
+}
+
+const STEAL_SHOW_MS = 15_000;
+
+/** 기여도 강탈 overlay (`?steal`): the latest spin for 15 seconds, then nothing until the next one. */
+export function StealOverlay({ latest }: { latest: StealRecord | null }) {
+  useOverlayPage();
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    setNow(Date.now());
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  if (!latest || now === null || now - new Date(latest.at).getTime() > STEAL_SHOW_MS) return null;
+  return (
+    <div className={styles.overlay}>
+      <div key={latest.id} className={stealStyles.overlayCard} role="status">
+        <span>기여도 강탈 · {latest.slotLabel}</span>
+        <strong>{latest.points > 0 ? `${latest.thiefName} ← ${latest.targetName} ${formatNumber(latest.points)}점` : "꽝!"}</strong>
+        <span>{stealText(latest)}</span>
+      </div>
     </div>
   );
 }

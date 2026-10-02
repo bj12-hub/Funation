@@ -20,7 +20,7 @@ import {
   type ScoreRow,
   type TeamKey
 } from "./crewTypes";
-import { excelOf, liveBroadcastOf, scoreEntry, scoreFn, windowScores } from "./crewCore";
+import { excelOf, liveBroadcastOf, scoreEntry, scoreFn, stealRecordView, windowScores } from "./crewCore";
 import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 /**
@@ -52,14 +52,15 @@ function scoreRows(b: MockBroadcast): ScoreRow[] {
   const s = excelOf(b.channelId);
   const feed = scoredFeed(b);
   const rows = members()
-    .filter((m) => m.active || b.teams[m.id] !== undefined || b.adjustments.some((a) => a.memberId === m.id) || (b.feed ?? []).some((f) => f.memberId === m.id))
+    .filter((m) => m.active || b.teams[m.id] !== undefined || b.adjustments.some((a) => a.memberId === m.id) || (b.feed ?? []).some((f) => f.memberId === m.id) || (b.steals ?? []).some((x) => x.thief === m.id || x.target === m.id))
     .map((m) => {
       const donated = mockCrew.attributions
         .filter((a) => a.channelId === b.channelId && a.memberId === m.id && a.at >= b.startedAt && a.at <= end)
         .reduce((sum, a) => sum + scoreFn(a.fnAmount, s), 0);
       const adjust = b.adjustments.filter((a) => a.memberId === m.id).reduce((sum, a) => sum + a.points, 0);
       const fromFeed = feed.filter((f) => f.status === "ASSIGNED" && f.memberId === m.id).reduce((sum, f) => sum + f.points, 0);
-      return { memberId: m.id, name: m.name, color: m.color, team: b.teams[m.id] ?? null, donated, feed: fromFeed, adjust, score: donated + fromFeed + adjust };
+      const stolen = (b.steals ?? []).reduce((sum, x) => sum + (x.thief === m.id ? x.points : 0) - (x.target === m.id ? x.points : 0), 0);
+      return { memberId: m.id, name: m.name, color: m.color, team: b.teams[m.id] ?? null, donated, feed: fromFeed, adjust, stolen, score: donated + fromFeed + adjust + stolen };
     });
   return rows.sort((x, y) => y.score - x.score || x.name.localeCompare(y.name));
 }
@@ -79,7 +80,8 @@ function liveView(b: MockBroadcast): BroadcastLive {
     teams: b.teamMode ? (["A", "B"] as TeamKey[]).map((key) => ({ key, score: rows.filter((r) => r.team === key).reduce((s, r) => s + r.score, 0) })) : [],
     logs: [...b.adjustments].reverse().slice(0, 30).map((a) => ({ id: a.id, at: a.at, memberName: byId.get(a.memberId) ?? "삭제된 멤버", points: a.points, reason: a.reason })),
     subBoards: (b.subBoards ?? []).map((s) => ({ no: s.no, title: s.title, openedAt: s.openedAt, closedAt: s.closedAt, rows: windowRows(b, s.openedAt, s.closedAt) })),
-    battles: (b.battles ?? []).map((x) => battleView(b, x))
+    battles: (b.battles ?? []).map((x) => battleView(b, x)),
+    steals: [...(b.steals ?? [])].reverse().slice(0, 30).map((x) => stealRecordView(b.channelId, x))
   };
 }
 
@@ -172,6 +174,7 @@ export async function getBroadcastView(): Promise<BroadcastView | null> {
     live: live ? liveView(live) : null,
     feed: live ? feedView(live) : null,
     keywords: structuredClone(mockCrew.keywords ?? {}),
+    stealSlots: structuredClone(mockCrew.stealSlots?.[STUDIO_CHANNEL] ?? []),
     projects: [...new Set(broadcasts().filter((b) => b.channelId === STUDIO_CHANNEL && b.project).map((b) => b.project as string))],
     history: broadcasts()
       .filter((b) => b.channelId === STUDIO_CHANNEL && b.endedAt)
