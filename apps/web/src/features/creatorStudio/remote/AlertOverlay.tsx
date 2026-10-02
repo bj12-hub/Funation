@@ -54,6 +54,15 @@ export function AlertOverlay({ data }: { data: OverlayAlert }) {
   return (
     <div className={styles.stage}>
       <div key={alert.id} className={styles.card} role="status">
+        {alert.badges && alert.badges.length > 0 && (
+          <span className={styles.badges}>
+            {alert.badges.map((b) => (
+              <span key={b} className={styles.badge}>
+                {b}
+              </span>
+            ))}
+          </span>
+        )}
         <p className={styles.headline}>
           <strong>{alert.donor}</strong>님이 <strong className={styles.amount}>{alertAmount(alert)}</strong> 후원!
         </p>

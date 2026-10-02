@@ -78,10 +78,33 @@ describe("후원자 정체성", () => {
     expect((await saveEquipSettings({ showGrade: "yes", globalTitle: "AUTO", showStoreTitle: true })).status).toBe("INVALID");
   });
 
+  it("previews exactly what the Donation Core puts on the alert: 별명, 등급·칭호, hidden profile", async () => {
+    const { addDonationNickname, getAlertBadges, getSupporterIdentity, requestDonation } = await load();
+    const { mockAlerts } = await import("@/services/creator/alertCore");
+    const creators = await import("@/services/creators/creators");
+    await requestDonation(text(120_000, 5));
+    await addDonationNickname("응원단장");
+    const nick = (await getSupporterIdentity())!.nicknames.find((n) => n.name === "응원단장")!;
+    expect(await getAlertBadges(nick.id, "c1")).toEqual({ name: "응원단장", grade: "VIP", globalTitle: "골드 서포터", storeTitle: "찐팬" });
+    expect((await getAlertBadges(nick.id, "c2"))?.storeTitle).toBeNull();
+    expect((await getAlertBadges("nk-not-mine", "c1"))?.name).not.toBe("nk-not-mine");
+
+    // Only the studio channel has an overlay queue in mock mode.
+    const c1 = (await creators.getCreatorById("c1"))!;
+    vi.spyOn(creators, "getCreatorById").mockResolvedValue({ ...c1, id: "studio" });
+    const preview = (await getAlertBadges(nick.id, "studio"))!;
+    expect((await requestDonation({ ...text(1_000, 6, nick.id), creatorId: "studio" })).status).toBe("COMPLETED");
+    expect(mockAlerts.items.at(-1)).toMatchObject({ kind: "DONATION", donor: "응원단장", badges: ["VIP", "골드 서포터"] });
+    expect(preview).toMatchObject({ name: "응원단장", grade: "VIP", globalTitle: "골드 서포터", storeTitle: null });
+    await requestDonation({ ...text(1_000, 7, nick.id), creatorId: "studio", hideProfile: true });
+    expect(mockAlerts.items.at(-1)).toMatchObject({ donor: "익명", badges: [] });
+  });
+
   it("requires a session", async () => {
-    const { getSupporterIdentity, addDonationNickname } = await load();
+    const { getSupporterIdentity, addDonationNickname, getAlertBadges } = await load();
     signIn(null);
     expect(await getSupporterIdentity()).toBeNull();
     expect((await addDonationNickname("응원단장")).status).toBe("UNAUTHORIZED");
+    expect(await getAlertBadges(null, "c1")).toBeNull();
   });
 });

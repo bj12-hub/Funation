@@ -8,8 +8,9 @@ import type { DonationCatalog } from "@/services/donations/donationCatalog";
 import { requestDonation } from "@/services/donations/donate";
 import { getCrewPublic } from "@/services/crew/crew";
 import type { CrewPublic } from "@/services/crew/crewTypes";
-import { getDonationNicknameOptions } from "@/services/supporter/identity";
-import { DonationCompleteDialog, DonationConfirmDialog, InsufficientFnDialog } from "./DonationDialogs";
+import { getAlertBadges, getDonationNicknameOptions } from "@/services/supporter/identity";
+import { alertBadgeLabels } from "@/services/supporter/identityTypes";
+import { DonationCompleteDialog, DonationConfirmDialog, InsufficientFnDialog, type AlertPreview } from "./DonationDialogs";
 import { MiniFields, SignatureFields, TextFields, VideoFields, WishlistFields } from "./donation/Fields";
 import { DrawingFields, QuestFields, QuizChoiceFields, QuizDrawingFields, QuizInitialFields, RouletteFields } from "./donation/GameFields";
 import { LuckyBoxFields } from "./donation/LuckyBoxFields";
@@ -80,6 +81,9 @@ export function DonationForm({
   // Remounts the fields after a completed donation (e.g. clears the drawing canvas).
   const [formVersion, setFormVersion] = useState(0);
   const [dialog, setDialog] = useState<Dialog>({ kind: "NONE" });
+  // 후원 알림 미리보기 in the confirm dialog; the counter drops answers for an earlier opening.
+  const [alertPreview, setAlertPreview] = useState<AlertPreview | null>(null);
+  const previewSeq = useRef(0);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // One key per confirmed request; kept when the outcome is unknown so a retry cannot debit twice.
@@ -106,6 +110,17 @@ export function DonationForm({
     }
     setError(null);
     setDialog({ kind: "CONFIRM" });
+    loadAlertPreview();
+  };
+
+  const loadAlertPreview = () => {
+    const seq = ++previewSeq.current;
+    // A hidden profile is delivered as 익명 without badges (same rule as the Donation Core).
+    if (hideProfile) return setAlertPreview({ status: "READY", name: "익명", badges: [] });
+    setAlertPreview({ status: "LOADING" });
+    getAlertBadges(nicknameId, creatorId)
+      .then((b) => seq === previewSeq.current && setAlertPreview(b ? { status: "READY", name: b.name, badges: alertBadgeLabels(b) } : { status: "ERROR" }))
+      .catch(() => seq === previewSeq.current && setAlertPreview({ status: "ERROR" }));
   };
 
   const confirm = async () => {
@@ -308,6 +323,7 @@ export function DonationForm({
         creatorName={name}
         amount={draft?.amount ?? 0}
         rows={draft?.summary ?? []}
+        alert={alertPreview}
         pending={pending}
         error={error}
         onCancel={() => setDialog({ kind: "NONE" })}
