@@ -1,4 +1,5 @@
-import type { FeedEntry, FeedSource, MemberRankRow } from "./crewTypes";
+import type { Platform } from "@/types/platform";
+import { isExcelUnit, type ExcelSettings, type ExcelUnit, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow } from "./crewTypes";
 import { mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 // ── 후원 리스트 (server-only) ──────────────────────────────────────────────────
@@ -13,11 +14,13 @@ export function matchMember(channelId: string, message: string): string | null {
   return hits.length === 1 ? hits[0].id : null;
 }
 
+type FeedInput = { donor: string; message: string; amount: number; unit: ExcelUnit; platform: Platform | null; source: FeedSource };
+
 /** Adds a donation to the live broadcast's 후원 리스트, applying 한방 and the assign mode. */
-export function addFeedEntry(b: MockBroadcast, input: { donor: string; message: string; fnAmount: number; source: FeedSource }, now = Date.now()): FeedEntry {
+export function addFeedEntry(b: MockBroadcast, input: FeedInput, now = Date.now()): FeedEntry {
   const feed = (b.feed ??= []);
   const suggested = matchMember(b.channelId, input.message);
-  const base = { id: `fd-${now.toString(36)}-${feed.length}`, at: new Date(now).toISOString(), ...input, suggestedMemberId: suggested, oneshot: false };
+  const base = { id: `fd-${now.toString(36)}-${feed.length}`, at: new Date(now).toISOString(), ...input, suggestedMemberId: suggested, oneshot: false, contribution: null };
   let entry: FeedEntry;
   if (b.oneshot) entry = { ...base, status: "POT", memberId: null, oneshot: true };
   else if (suggested && (b.assignMode ?? "AUTO") === "AUTO") entry = { ...base, status: "ASSIGNED", memberId: suggested };
@@ -32,7 +35,52 @@ export function addFeedEntry(b: MockBroadcast, input: { donor: string; message: 
  */
 export function recordBroadcastDonation(channelId: string, input: { donor: string; message: string; fnAmount: number }) {
   const live = liveBroadcastOf(channelId);
-  if (live) addFeedEntry(live, { ...input, source: "DONATION" });
+  if (live) addFeedEntry(live, { donor: input.donor, message: input.message, amount: input.fnAmount, unit: "FN", platform: null, source: "DONATION" });
+}
+
+/**
+ * Called by 후원 연동 for each new (deduped) platform donation. Units the 자동엑셀 does not know stay
+ * out of the list (the alert is still shown).
+ */
+export function recordBroadcastExternal(channelId: string, input: { platform: Platform; donor: string; message: string; value: number; currency: string }) {
+  const live = liveBroadcastOf(channelId);
+  if (!live || !isExcelUnit(input.currency)) return;
+  addFeedEntry(live, { donor: input.donor, message: input.message, amount: input.value, unit: input.currency, platform: input.platform, source: "DONATION" });
+}
+
+// ── 자동엑셀 (server-only scoring) ─────────────────────────────────────────────
+
+export const DEFAULT_EXCEL: ExcelSettings = { unit: "FN", rates: {}, rules: [] };
+export const excelOf = (channelId: string): ExcelSettings => mockCrew.excel?.[channelId] ?? DEFAULT_EXCEL;
+
+/**
+ * Amount in the score unit. FN 기준: only FN counts (1 FN = 1점, the original scoreboard). 원화 기준:
+ * 원 as is, every other unit times the creator's value — null while that value is not set.
+ */
+export function baseAmount(amount: number, unit: ExcelUnit, s: ExcelSettings): number | null {
+  if (s.unit === "FN") return unit === "FN" ? amount : null;
+  if (unit === "KRW") return amount;
+  const rate = s.rates[unit];
+  return rate === undefined ? null : amount * rate;
+}
+
+/** The highest 배수 규칙 whose threshold the converted amount reaches (1 when none). */
+export const ruleMultiplier = (base: number | null, s: ExcelSettings) =>
+  base === null ? 1 : s.rules.filter((r) => base >= r.min).reduce((m, r) => (r.min >= m.min ? r : m), { min: -1, multiplier: 1 }).multiplier;
+
+/** Score of one entry: 수기 기여도 (points or multiplier) wins over the 배수 규칙. */
+export function scoreEntry(e: FeedEntry, s: ExcelSettings): FeedEntryView {
+  const base = baseAmount(e.amount, e.unit, s);
+  const c = e.contribution;
+  const multiplier = c?.kind === "MULTIPLIER" ? c.value : ruleMultiplier(base, s);
+  const points = c?.kind === "POINTS" ? c.value : base === null ? 0 : Math.round(base * multiplier);
+  return { ...e, base, multiplier, points };
+}
+
+/** Points for a member-targeted FN donation (same conversion and 배수 규칙 as the list). */
+export function scoreFn(fnAmount: number, s: ExcelSettings) {
+  const base = baseAmount(fnAmount, "FN", s);
+  return base === null ? 0 : Math.round(base * ruleMultiplier(base, s));
 }
 
 /**

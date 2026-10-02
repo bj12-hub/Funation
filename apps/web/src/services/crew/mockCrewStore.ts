@@ -1,4 +1,4 @@
-import type { AssignMode, CrewMember, FeedEntry } from "./crewTypes";
+import type { AssignMode, CrewMember, ExcelSettings, FeedEntry } from "./crewTypes";
 
 /**
  * Development-only crew state, keyed by channel id: the studio creator's own channel
@@ -41,6 +41,8 @@ type MockCrew = {
   broadcasts?: MockBroadcast[];
   /** 후원 리스트 keywords per member id (kept across broadcasts). */
   keywords?: Record<string, string[]>;
+  /** 자동엑셀 settings per channel (kept across broadcasts). */
+  excel?: Record<string, ExcelSettings>;
 };
 
 const m = (id: string, name: string, role: CrewMember["role"], color: string, active = true): CrewMember => ({ id, name, role, active, color });

@@ -1,3 +1,5 @@
+import type { Platform } from "@/types/platform";
+
 /**
  * Crew (크루) — code-first, no Figma frame (docs/figma/code-first-screens.md). A channel can have
  * crew members; supporters may attribute a donation to a member, and the channel sees a per-member
@@ -34,8 +36,8 @@ export const MAX_ADJUST_POINTS = 10_000_000;
 export const ADJUST_REASON_MAX = 40;
 export const BROADCAST_TITLE_MAX = 40;
 
-/** `donatedFn` = member-targeted donations; `feedFn` = 후원 리스트 entries assigned to the member. */
-export type ScoreRow = { memberId: string; name: string; color: string; team: TeamKey | null; donatedFn: number; feedFn: number; adjust: number; score: number };
+/** Points (자동엑셀 기준): `donated` = member-targeted donations; `feed` = 후원 리스트 entries assigned to the member. */
+export type ScoreRow = { memberId: string; name: string; color: string; team: TeamKey | null; donated: number; feed: number; adjust: number; score: number };
 
 // ── 후원 리스트 (키워드 배정 · 한방) — reference: funnation 엑셀콘 v3 ────────────────────
 
@@ -56,7 +58,11 @@ export type FeedEntry = {
   at: string;
   donor: string;
   message: string;
-  fnAmount: number;
+  /** Amount in its own unit: FN (Somnation), 원 · USD · JPY (YouTube), 별풍선 (SOOP), 치즈 (CHZZK), FlexTV 후원. */
+  amount: number;
+  unit: ExcelUnit;
+  /** Broadcast platform the donation came from; null = Somnation (FN). */
+  platform: Platform | null;
   source: FeedSource;
   status: FeedStatus;
   memberId: string | null;
@@ -64,15 +70,67 @@ export type FeedEntry = {
   suggestedMemberId: string | null;
   /** Given through a 한방 (badge). */
   oneshot: boolean;
+  /** 기여도 수기 입력: fixed points or a multiplier of the converted amount. null = 배수 규칙. */
+  contribution: Contribution | null;
+};
+
+/** A 후원 리스트 entry with its server-computed score (자동엑셀). */
+export type FeedEntryView = FeedEntry & {
+  /** Amount in the score unit (FN or 원); null = no conversion value for this unit yet. */
+  base: number | null;
+  multiplier: number;
+  points: number;
 };
 
 export type FeedView = {
   assignMode: AssignMode;
   keywords: Record<string, string[]>;
   /** Newest first. */
-  entries: FeedEntry[];
-  oneshot: { startedAt: string; potFn: number; count: number } | null;
+  entries: FeedEntryView[];
+  oneshot: { startedAt: string; potPoints: number; count: number } | null;
+  excel: ExcelSettings;
+  /** 플랫폼 · BJ별 정리: points per source (Somnation + each platform) for every member, plus 미지정. */
+  summary: FeedSummaryRow[];
 };
+
+// ── 자동엑셀 (원화 환산 · 기여도) — code-first; conversion values are entered by the creator ─────────
+
+/** Units a 후원 리스트 entry can carry. 원 is the 원화 기준 itself; every other unit needs a value. */
+export const EXCEL_UNITS = [
+  { key: "FN", label: "FN", platform: null },
+  { key: "KRW", label: "원", platform: "YOUTUBE" },
+  { key: "USD", label: "USD", platform: "YOUTUBE" },
+  { key: "JPY", label: "JPY", platform: "YOUTUBE" },
+  { key: "별풍선", label: "별풍선", platform: "SOOP" },
+  { key: "치즈", label: "치즈", platform: "CHZZK" },
+  { key: "FlexTV 후원", label: "FlexTV 후원", platform: "FLEXTV" }
+] as const satisfies readonly { key: string; label: string; platform: Platform | null }[];
+export type ExcelUnit = (typeof EXCEL_UNITS)[number]["key"];
+export const isExcelUnit = (v: unknown): v is ExcelUnit => EXCEL_UNITS.some((u) => u.key === v);
+
+/** FN: 1 FN = 1점 (기존 점수판). KRW: every unit is converted to 원 with the creator's values. */
+export type ExcelScoreUnit = "FN" | "KRW";
+
+/** 배수 규칙: an entry whose converted amount is at least `min` gets `multiplier` (the highest matching rule wins). */
+export type MultiplierRule = { min: number; multiplier: number };
+
+export type ExcelSettings = {
+  unit: ExcelScoreUnit;
+  /** 1 unit = N원, entered by the creator (TBD: platform rates are not decided). Missing = not set. */
+  rates: Partial<Record<ExcelUnit, number>>;
+  rules: MultiplierRule[];
+};
+
+export const EXCEL_RULES_MAX = 5;
+export const EXCEL_RATE_MAX = 1_000_000;
+export const EXCEL_RULE_MIN_MAX = 1_000_000_000;
+export const EXCEL_MULTIPLIER_MAX = 100;
+
+export type Contribution = { kind: "POINTS"; value: number } | { kind: "MULTIPLIER"; value: number };
+
+/** Source columns of 플랫폼 · BJ별 정리. */
+export type FeedSourceKey = "SOMNATION" | Platform;
+export type FeedSummaryRow = { memberId: string | null; name: string; color: string | null; points: Partial<Record<FeedSourceKey, number>>; total: number };
 export type ScoreLog = { id: string; at: string; memberName: string; points: number; reason: string };
 
 export type BroadcastLive = {
@@ -81,7 +139,7 @@ export type BroadcastLive = {
   /** 프로젝트 (preset) name and its auto-numbered 회차. */
   project: string | null;
   round: number | null;
-  /** FN collected by an active 한방 window (shown on the overlay). */
+  /** Points collected by an active 한방 window (shown on the overlay). */
   oneshotPot: number | null;
   startedAt: string;
   teamMode: boolean;

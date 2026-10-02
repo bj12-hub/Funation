@@ -9,6 +9,8 @@ import {
   BROADCAST_TITLE_MAX,
   MAX_ADJUST_POINTS,
   PROJECT_NAME_MAX,
+  type FeedSourceKey,
+  type FeedSummaryRow,
   type FeedView,
   type BroadcastLive,
   type BroadcastResult,
@@ -17,15 +19,15 @@ import {
   type ScoreRow,
   type TeamKey
 } from "./crewTypes";
-import { liveBroadcastOf } from "./crewCore";
+import { excelOf, liveBroadcastOf, scoreEntry, scoreFn } from "./crewCore";
 import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 /**
  * 크루 방송 (회차 · 점수판 · 이력) — code-first (no Figma frame). Studio route
  * `/creator/crew/broadcast`, OBS overlay `/overlay/crew/[key]`.
  *
- * A member's score = FN donated to them during the broadcast (server records) + manual 보정 points
- * from the remote. Points are display scores, not money. Each 보정 carries an id so a double click
+ * A member's score = points for donations to them during the broadcast (server records; 자동엑셀
+ * converts each unit and applies 배수 규칙 · 수기 기여도) + manual 보정 points from the remote. Points are display scores, not money. Each 보정 carries an id so a double click
  * never applies twice. TBD: 상금/prize mapping, presets, multi-platform donation feeds, overlay
  * styles, whether scores may go negative.
  */
@@ -38,17 +40,25 @@ const broadcasts = () => (mockCrew.broadcasts ??= []);
 const members = () => mockCrew.crews[STUDIO_CHANNEL] ?? [];
 const liveOf = liveBroadcastOf;
 
+/** Every 후원 리스트 entry with its points under the channel's current 자동엑셀 settings. */
+const scoredFeed = (b: MockBroadcast) => {
+  const s = excelOf(b.channelId);
+  return (b.feed ?? []).map((f) => scoreEntry(f, s));
+};
+
 function scoreRows(b: MockBroadcast): ScoreRow[] {
   const end = b.endedAt ?? new Date(Date.now() + 1000).toISOString();
+  const s = excelOf(b.channelId);
+  const feed = scoredFeed(b);
   const rows = members()
     .filter((m) => m.active || b.teams[m.id] !== undefined || b.adjustments.some((a) => a.memberId === m.id) || (b.feed ?? []).some((f) => f.memberId === m.id))
     .map((m) => {
-      const donatedFn = mockCrew.attributions
+      const donated = mockCrew.attributions
         .filter((a) => a.channelId === b.channelId && a.memberId === m.id && a.at >= b.startedAt && a.at <= end)
-        .reduce((s, a) => s + a.fnAmount, 0);
-      const adjust = b.adjustments.filter((a) => a.memberId === m.id).reduce((s, a) => s + a.points, 0);
-      const feedFn = (b.feed ?? []).filter((f) => f.status === "ASSIGNED" && f.memberId === m.id).reduce((s, f) => s + f.fnAmount, 0);
-      return { memberId: m.id, name: m.name, color: m.color, team: b.teams[m.id] ?? null, donatedFn, feedFn, adjust, score: donatedFn + feedFn + adjust };
+        .reduce((sum, a) => sum + scoreFn(a.fnAmount, s), 0);
+      const adjust = b.adjustments.filter((a) => a.memberId === m.id).reduce((sum, a) => sum + a.points, 0);
+      const fromFeed = feed.filter((f) => f.status === "ASSIGNED" && f.memberId === m.id).reduce((sum, f) => sum + f.points, 0);
+      return { memberId: m.id, name: m.name, color: m.color, team: b.teams[m.id] ?? null, donated, feed: fromFeed, adjust, score: donated + fromFeed + adjust };
     });
   return rows.sort((x, y) => y.score - x.score || x.name.localeCompare(y.name));
 }
@@ -61,7 +71,7 @@ function liveView(b: MockBroadcast): BroadcastLive {
     title: b.title,
     project: b.project ?? null,
     round: b.round ?? null,
-    oneshotPot: b.oneshot ? (b.feed ?? []).filter((f) => f.status === "POT").reduce((s, f) => s + f.fnAmount, 0) : null,
+    oneshotPot: b.oneshot ? scoredFeed(b).filter((f) => f.status === "POT").reduce((s, f) => s + f.points, 0) : null,
     startedAt: b.startedAt,
     teamMode: b.teamMode,
     rows,
@@ -71,28 +81,51 @@ function liveView(b: MockBroadcast): BroadcastLive {
   };
 }
 
-/** 서브 점수판 rows: FN donated to each active member between `from` and `to` (open board = now). */
+/** 서브 점수판 rows: points donated to each active member between `from` and `to` (open board = now). */
 function windowRows(b: MockBroadcast, from: string, to: string | null) {
   const end = to ?? new Date(Date.now() + 1000).toISOString();
   const inWindow = (at: string) => at >= from && at <= end;
+  const s = excelOf(b.channelId);
+  const scored = scoredFeed(b);
   return members()
     .filter((m) => m.active)
     .map((m) => {
-      const targeted = mockCrew.attributions.filter((a) => a.channelId === b.channelId && a.memberId === m.id && inWindow(a.at)).reduce((s, a) => s + a.fnAmount, 0);
-      const feed = (b.feed ?? []).filter((f) => f.status === "ASSIGNED" && f.memberId === m.id && inWindow(f.at)).reduce((s, f) => s + f.fnAmount, 0);
+      const targeted = mockCrew.attributions.filter((a) => a.channelId === b.channelId && a.memberId === m.id && inWindow(a.at)).reduce((sum, a) => sum + scoreFn(a.fnAmount, s), 0);
+      const feed = scored.filter((f) => f.status === "ASSIGNED" && f.memberId === m.id && inWindow(f.at)).reduce((sum, f) => sum + f.points, 0);
       return { memberId: m.id, name: m.name, color: m.color, score: targeted + feed };
     })
     .sort((x, y) => y.score - x.score || x.name.localeCompare(y.name));
 }
 
 function feedView(b: MockBroadcast): FeedView {
-  const pot = (b.feed ?? []).filter((f) => f.status === "POT");
+  const scored = scoredFeed(b);
+  const pot = scored.filter((f) => f.status === "POT");
   return {
     assignMode: b.assignMode ?? "AUTO",
     keywords: structuredClone(mockCrew.keywords ?? {}),
-    entries: [...(b.feed ?? [])].reverse().slice(0, 200),
-    oneshot: b.oneshot ? { startedAt: b.oneshot.startedAt, potFn: pot.reduce((s, f) => s + f.fnAmount, 0), count: pot.length } : null
+    entries: structuredClone(scored.reverse().slice(0, 200)),
+    oneshot: b.oneshot ? { startedAt: b.oneshot.startedAt, potPoints: pot.reduce((s, f) => s + f.points, 0), count: pot.length } : null,
+    excel: structuredClone(excelOf(b.channelId)),
+    summary: feedSummary(b)
   };
+}
+
+/** 플랫폼 · BJ별 정리: assigned points per source for each member, plus everything not yet assigned. */
+function feedSummary(b: MockBroadcast): FeedSummaryRow[] {
+  const counted = scoredFeed(b).filter((f) => f.status !== "CANCELLED");
+  const row = (memberId: string | null, name: string, color: string | null, list: typeof counted): FeedSummaryRow => {
+    const points: Partial<Record<FeedSourceKey, number>> = {};
+    for (const f of list) {
+      const k: FeedSourceKey = f.platform ?? "SOMNATION";
+      points[k] = (points[k] ?? 0) + f.points;
+    }
+    return { memberId, name, color, points, total: list.reduce((s, f) => s + f.points, 0) };
+  };
+  const rows = members()
+    .filter((m) => m.active || counted.some((f) => f.memberId === m.id))
+    .map((m) => row(m.id, m.name, m.color, counted.filter((f) => f.status === "ASSIGNED" && f.memberId === m.id)));
+  rows.push(row(null, "미지정 · 대기 · 한방", null, counted.filter((f) => f.status !== "ASSIGNED")));
+  return rows;
 }
 
 function summary(b: MockBroadcast): BroadcastSummary {
