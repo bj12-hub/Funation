@@ -3,13 +3,14 @@
 import { USE_MOCK } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
-import { advance, enqueueAlert, mockAlerts } from "./alertCore";
+import { advance, enqueueAlert, mockAlerts, reloadSeqOf } from "./alertCore";
 import {
   ALERT_DISPLAY_SEC,
   ALERT_MIN_FN_MAX,
   TEST_AMOUNT_MAX,
   TEST_DONOR_MAX,
   TEST_MESSAGE_MAX,
+  isOverlayTarget,
   type OverlayAlert,
   type RemoteResult,
   type RemoteView
@@ -141,12 +142,27 @@ export async function skipTts(): Promise<RemoteResult> {
   return { status: "SAVED" };
 }
 
-/** 오버레이 새로고침: every open alert / tool overlay reloads on its next poll. */
-export async function reloadOverlays(): Promise<RemoteResult> {
+/**
+ * 오버레이 새로고침: with `{ target }` only that overlay reloads (기능별 새로고침); without it every open
+ * overlay reloads on its next poll.
+ */
+export async function reloadOverlays(input?: unknown): Promise<RemoteResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
-  mockAlerts.reloadSeq += 1;
+  const target = (typeof input === "object" && input !== null ? (input as Record<string, unknown>) : {}).target;
+  if (target === undefined) mockAlerts.reloadSeq += 1;
+  else if (isOverlayTarget(target)) {
+    const seqs = (mockAlerts.reloadSeqs ??= {});
+    seqs[target] = (seqs[target] ?? 0) + 1;
+  } else return { status: "INVALID", message: "새로고침할 오버레이를 확인해 주세요." };
   return { status: "SAVED" };
+}
+
+/** Reload signal for overlays whose data has no room for it (통합 채팅 · 크루 점수판). No login; the key is the secret. */
+export async function getOverlayReloadSeq(key: unknown, target: unknown): Promise<number | "FORBIDDEN"> {
+  assertMock();
+  if (typeof key !== "string" || key !== mockCreator.integrationKey || !isOverlayTarget(target)) return "FORBIDDEN";
+  return reloadSeqOf(target);
 }
 
 /** OBS overlay read — no login; the integration key is the secret. */
@@ -160,6 +176,6 @@ export async function getOverlayAlert(key: unknown): Promise<OverlayAlert | "FOR
     alert: showing && mockAlerts.shownAt !== null ? { ...showing, endsAt: new Date(mockAlerts.shownAt + displaySec * 1000).toISOString() } : null,
     controls: { muted, alertVolume, ttsVolume },
     ttsSkipSeq: mockAlerts.ttsSkipSeq,
-    reloadSeq: mockAlerts.reloadSeq
+    reloadSeq: reloadSeqOf("alert")
   };
 }

@@ -3,7 +3,7 @@
 import { USE_MOCK } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { parseYouTubeId } from "@/services/donations/donationTypes";
-import { mockAlerts } from "./alertCore";
+import { reloadSeqOf } from "./alertCore";
 import { addDrawing, advanceVideos, currentDrawing, enqueueVideo, mockMedia, playingEndsAt, playingVideo, playSeconds, showDrawing, startVideo } from "./mediaCore";
 import { mockCreator } from "./mockCreatorStore";
 import { MEDIA_LIMITS, type DrawingView, type MediaResult, type OverlayDrawing, type OverlayVideo, type VideoQueueView } from "./mediaTypes";
@@ -104,7 +104,7 @@ export async function getOverlayVideo(key: unknown): Promise<OverlayVideo | "FOR
   return {
     playing: p ? { id: p.id, videoId: p.videoId, startSec: p.startSec, endSec: p.startSec + playSeconds(p), endsAt: playingEndsAt(p) } : null,
     volume: mockMedia.videoSettings.volume,
-    reloadSeq: mockAlerts.reloadSeq
+    reloadSeq: reloadSeqOf("video")
   };
 }
 
@@ -173,6 +173,6 @@ export async function getOverlayDrawing(key: unknown): Promise<OverlayDrawing | 
   const cur = currentDrawing();
   return {
     drawing: cur ? { id: cur.drawing.id, donor: cur.drawing.donor, title: cur.drawing.title, fnAmount: cur.drawing.fnAmount, image: cur.drawing.image, until: cur.until } : null,
-    reloadSeq: mockAlerts.reloadSeq
+    reloadSeq: reloadSeqOf("drawing")
   };
 }

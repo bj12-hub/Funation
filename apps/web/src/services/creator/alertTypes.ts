@@ -66,5 +66,22 @@ export type OverlayAlert = {
 
 export type RemoteResult = { status: "SAVED" } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
 
+/** 기능별 새로고침: each OBS overlay can be reloaded on its own (or all at once). */
+export const OVERLAY_TARGETS = [
+  { key: "alert", label: "후원 알림" },
+  { key: "effects", label: "이펙트 · 효과" },
+  { key: "video", label: "영상 후원" },
+  { key: "drawing", label: "그림 후원" },
+  { key: "banner", label: "배너" },
+  { key: "subtitle", label: "자막" },
+  { key: "marquee", label: "전광판" },
+  { key: "timer", label: "타이머" },
+  { key: "credits", label: "엔딩 크레딧" },
+  { key: "chat", label: "통합 채팅" },
+  { key: "crew", label: "크루 점수판 · 배틀 · 강탈 · 시나리오" }
+] as const;
+export type OverlayTarget = (typeof OVERLAY_TARGETS)[number]["key"];
+export const isOverlayTarget = (v: unknown): v is OverlayTarget => OVERLAY_TARGETS.some((t) => t.key === v);
+
 /** How an alert's amount reads on screen. */
 export const alertAmount = (a: { fnAmount: number; amountLabel?: string }) => a.amountLabel ?? `${formatNumber(a.fnAmount)} FN`;

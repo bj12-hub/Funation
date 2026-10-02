@@ -90,6 +90,24 @@ describe("리모컨 / 후원 알림 대기열", () => {
     expect(await reloadOverlays()).toEqual({ status: "UNAUTHORIZED" });
   });
 
+  it("reloads one overlay at a time (기능별 새로고침) on top of the reload-all signal", async () => {
+    const { reloadOverlays, getOverlayAlert, getOverlayReloadSeq, overlayKey } = await load();
+    const tools = await import("./broadcastTools");
+    expect(await reloadOverlays({ target: "timer" })).toEqual({ status: "SAVED" });
+    expect(await tools.getOverlayTool("timer", overlayKey)).toMatchObject({ reloadSeq: 1 });
+    expect(await tools.getOverlayTool("subtitle", overlayKey)).toMatchObject({ reloadSeq: 0 });
+    expect(await getOverlayAlert(overlayKey)).toMatchObject({ reloadSeq: 0 });
+    await reloadOverlays({ target: "crew" });
+    expect(await getOverlayReloadSeq(overlayKey, "crew")).toBe(1);
+    expect(await getOverlayReloadSeq(overlayKey, "chat")).toBe(0);
+    await reloadOverlays();
+    expect(await getOverlayReloadSeq(overlayKey, "chat")).toBe(1);
+    expect(await tools.getOverlayTool("timer", overlayKey)).toMatchObject({ reloadSeq: 2 });
+    expect((await reloadOverlays({ target: "nope" })).status).toBe("INVALID");
+    expect(await getOverlayReloadSeq("wrong-key", "chat")).toBe("FORBIDDEN");
+    expect(await getOverlayReloadSeq(overlayKey, "nope")).toBe("FORBIDDEN");
+  });
+
   it("rejects non-creators and wrong overlay keys", async () => {
     const { getOverlayAlert, sendTestAlert, cancelAllAlerts, getRemoteView } = await load();
     expect(await getOverlayAlert("wrong")).toBe("FORBIDDEN");

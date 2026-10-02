@@ -8,6 +8,7 @@ import { cancelAllAlerts, reloadOverlays, replayAlert, sendTestAlert, setAlertCo
 import type { ToolStates } from "@/services/creator/broadcastToolTypes";
 import {
   ALERT_DISPLAY_SEC,
+  OVERLAY_TARGETS,
   alertAmount,
   TEST_AMOUNT_PRESETS,
   TEST_DONOR_MAX,
@@ -153,8 +154,8 @@ export function RemoteScreen({ view, overlayPath, tools }: { view: RemoteView; o
           <button type="button" className={styles.ghost} disabled={pending || !view.showing} onClick={() => run(skipTts, "TTS를 건너뛰었어요.")}>
             🔕 TTS 스킵
           </button>
-          <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(reloadOverlays, "열려 있는 오버레이를 새로고침해요.")}>
-            ↻ 오버레이 새로고침
+          <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => reloadOverlays(), "열려 있는 모든 오버레이를 새로고침해요.")}>
+            ↻ 전체 오버레이 새로고침
           </button>
         </div>
         <div className={remote.status}>
@@ -171,6 +172,20 @@ export function RemoteScreen({ view, overlayPath, tools }: { view: RemoteView; o
             )}
           </span>
           <span>대기 {view.queued.length}건</span>
+        </div>
+      </section>
+
+      <section className={styles.card} aria-labelledby="reload-title">
+        <h2 className={styles.cardTitle} id="reload-title">
+          기능별 새로고침
+        </h2>
+        <p className={styles.note}>OBS에서 한 화면만 멈췄을 때 그 오버레이만 다시 불러와요. 다른 오버레이는 그대로예요. 몇 초 안에 반영돼요.</p>
+        <div className={remote.buttons}>
+          {OVERLAY_TARGETS.map((t) => (
+            <button key={t.key} type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => reloadOverlays({ target: t.key }), `${t.label} 오버레이를 새로고침해요.`)}>
+              ↻ {t.label}
+            </button>
+          ))}
         </div>
       </section>
 

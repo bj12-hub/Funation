@@ -10,22 +10,24 @@ import { stealText } from "./StealPanel";
 import scenStyles from "./scenario.module.css";
 import battleStyles from "./battle.module.css";
 import stealStyles from "./steal.module.css";
+import { useReloadSignal } from "../remote/useReloadSignal";
 import styles from "./overlay.module.css";
 
 /**
  * OBS overlay (code-first). Transparent page that re-reads the live scoreboard from the server every
  * 3 seconds. Shows nothing while no broadcast is running.
  */
-export function CrewScoreOverlay({ data }: { data: BroadcastLive | null }) {
-  useOverlayPage();
+export function CrewScoreOverlay({ data, reloadSeq }: { data: BroadcastLive | null; reloadSeq: number }) {
+  useOverlayPage(reloadSeq);
 
   if (!data) return null;
   return <MainBoard data={data} />;
 }
 
-/** Transparent page + 3-second server refresh shared by both scoreboard overlays. */
-function useOverlayPage() {
+/** Transparent page + 3-second server refresh + 기능별 새로고침, shared by every crew overlay. */
+function useOverlayPage(reloadSeq: number) {
   const router = useRouter();
+  useReloadSignal(reloadSeq);
   useEffect(() => {
     // OBS keys out transparent pixels, so both <html> and <body> must drop the page background.
     const root = document.documentElement;
@@ -73,8 +75,8 @@ function MainBoard({ data }: { data: BroadcastLive }) {
 }
 
 /** 실시간 배틀 overlay (`?battle`): the running battle (or the last result) with its timer. */
-export function BattleOverlay({ battle }: { battle: Battle | null }) {
-  useOverlayPage();
+export function BattleOverlay({ battle, reloadSeq }: { battle: Battle | null; reloadSeq: number }) {
+  useOverlayPage(reloadSeq);
   const left = useCountdown(battle ?? undefined);
   if (!battle) return null;
   return (
@@ -86,8 +88,8 @@ export function BattleOverlay({ battle }: { battle: Battle | null }) {
 }
 
 /** 콘텐츠 시나리오 overlay (`?scenario`): the running part, its time and what comes next. */
-export function ScenarioOverlay({ scenario }: { scenario: ScenarioLive | null }) {
-  useOverlayPage();
+export function ScenarioOverlay({ scenario, reloadSeq }: { scenario: ScenarioLive | null; reloadSeq: number }) {
+  useOverlayPage(reloadSeq);
   const elapsed = usePartElapsed(scenario);
   if (!scenario || scenario.current === null) return null;
   const i = scenario.current;
@@ -113,8 +115,8 @@ export function ScenarioOverlay({ scenario }: { scenario: ScenarioLive | null })
 const STEAL_SHOW_MS = 15_000;
 
 /** 기여도 강탈 overlay (`?steal`): the latest spin for 15 seconds, then nothing until the next one. */
-export function StealOverlay({ latest }: { latest: StealRecord | null }) {
-  useOverlayPage();
+export function StealOverlay({ latest, reloadSeq }: { latest: StealRecord | null; reloadSeq: number }) {
+  useOverlayPage(reloadSeq);
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
     setNow(Date.now());
@@ -134,8 +136,8 @@ export function StealOverlay({ latest }: { latest: StealRecord | null }) {
 }
 
 /** 서브 점수판 overlay (`?board=번호`): same polling and transparency as the main board. */
-export function SubBoardOverlay({ board }: { board: SubBoard | null }) {
-  useOverlayPage();
+export function SubBoardOverlay({ board, reloadSeq }: { board: SubBoard | null; reloadSeq: number }) {
+  useOverlayPage(reloadSeq);
   if (!board) return null;
   const max = Math.max(1, ...board.rows.map((r) => r.score));
   return (
