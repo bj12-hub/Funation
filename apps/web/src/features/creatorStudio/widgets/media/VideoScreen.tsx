@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { formatNumber } from "@/lib/format";
 import { addTestVideo, controlVideo, saveVideoSettings } from "@/services/creator/media";
+import { videoThumbUrl } from "@/services/creator/videoThumb";
 import { MEDIA_LIMITS, type MediaResult, type VideoQueueView, type VideoRequest, type VideoSettings } from "@/services/creator/mediaTypes";
 import styles from "../../crew/crew.module.css";
 import { CopyButton } from "../../settings/SettingsCards";
@@ -96,7 +97,7 @@ export function VideoScreen({ view, overlayPath }: { view: VideoQueueView; overl
         {p ? (
           <div className={local.now}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className={local.videoThumb} src={`https://i.ytimg.com/vi/${p.videoId}/mqdefault.jpg`} alt="" />
+            <img className={local.videoThumb} src={videoThumbUrl(p.videoId)} alt="" />
             <div className={styles.rowMain}>
               <span className={styles.rowTitle}>youtu.be/{p.videoId}</span>
               <span className={styles.muted}>
@@ -225,7 +226,7 @@ function VideoRow({ v, status, children }: { v: VideoRequest; status?: string; c
   return (
     <li className={styles.row}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className={local.rowThumb} src={`https://i.ytimg.com/vi/${v.videoId}/default.jpg`} alt="" />
+      <img className={local.rowThumb} src={videoThumbUrl(v.videoId, "default")} alt="" />
       <div className={styles.rowMain}>
         <span className={styles.rowTitle}>youtu.be/{v.videoId}</span>
         <span className={styles.muted}>
