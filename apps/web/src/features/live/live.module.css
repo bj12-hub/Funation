@@ -97,8 +97,7 @@
   gap: 12px;
 }
 
-.control,
-.chip {
+.control {
   padding: 8px 16px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-8);
@@ -129,22 +128,6 @@
   color: var(--color-text-secondary);
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-medium);
-}
-
-.chip {
-  color: var(--color-text-secondary);
-}
-
-.chip:hover {
-  color: var(--color-text-primary);
-}
-
-.chipActive,
-.chipActive:hover {
-  border-color: var(--color-primary);
-  background: var(--color-primary);
-  color: var(--color-text-on-accent);
-  font-weight: var(--font-weight-bold);
 }
 
 .searchGroup {
@@ -237,12 +220,6 @@
 
 /* ── Popular sections (617:102) ───────────────────── */
 
-.popularList {
-  display: flex;
-  flex-direction: column;
-  gap: 48px;
-}
-
 .popularSection {
   display: flex;
   flex-direction: column;
@@ -272,12 +249,6 @@
 
 .more:hover {
   color: var(--color-text-primary);
-}
-
-.moreCaret {
-  color: var(--color-text-tertiary);
-  font-size: var(--font-size-10);
-  font-weight: var(--font-weight-regular);
 }
 
 /* ── Responsive ───────────────────────────────────── */
@@ -328,11 +299,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-}
-
-.chipBar .chip {
-  border-radius: var(--radius-pill);
-  font-size: var(--font-size-13);
 }
 
 .platformSelect {

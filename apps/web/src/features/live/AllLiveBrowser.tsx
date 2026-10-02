@@ -1,68 +1,34 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { LIVE_CATEGORY_LABEL, type LiveCategory, type LiveChannel } from "@/services/live/liveChannels";
+import type { LiveChannel } from "@/services/live/liveChannels";
 import { PLATFORM_LABEL, type Platform } from "@/types/platform";
 import { LiveChannelCard } from "./LiveChannelCard";
 import styles from "./live.module.css";
 
-/** Chip emoji per category (display only), in the funnation 전체 방송 style. */
-const CATEGORY_EMOJI: Record<LiveCategory, string> = {
-  NEWS_ECONOMY: "📰",
-  MUSIC_DANCE: "🎤",
-  GAME: "🎮",
-  DAILY_TRAVEL: "🏕️",
-  FINANCE: "💹",
-  MUKBANG: "🍚",
-  TALK: "💬",
-  SPORTS: "⚽",
-  VARIETY: "🎉",
-  VIRTUAL: "⭐"
-};
-
 /** Cards revealed per "더 보기" step (funnation shows 12). */
 const STEP = 12;
 
-type AllLiveBrowserProps = {
-  channels: LiveChannel[];
-  /** From `?category=` (e.g. the home category rows). */
-  initialCategory?: LiveCategory;
-};
-
 /**
- * 전체 방송 list — structure follows funnation: 전체 + category chips, a four-column grid sorted by
- * viewers, and "더 보기 (보이는 수/전체)". The 방송 플랫폼 filter is ours (confirmed platforms).
+ * 전체 방송 list — a four-column grid sorted by viewers with "더 보기 (보이는 수/전체)" (funnation structure).
+ * No topic categories (2026-10-02 product decision); only the 방송 플랫폼 filter (confirmed platforms).
  * Filters the list already loaded for the page (TODO: server-side once the live list API exists).
  */
-export function AllLiveBrowser({ channels, initialCategory }: AllLiveBrowserProps) {
+export function AllLiveBrowser({ channels }: { channels: LiveChannel[] }) {
   const [platform, setPlatform] = useState<Platform | "ALL">("ALL");
-  const [category, setCategory] = useState<LiveCategory | null>(initialCategory ?? null);
   const [shown, setShown] = useState(STEP);
 
   const visible = useMemo(
     () =>
       channels
-        .filter((c) => (platform === "ALL" || c.platform === platform) && (!category || c.category === category))
+        .filter((c) => platform === "ALL" || c.platform === platform)
         .sort((a, b) => b.viewerCount - a.viewerCount),
-    [channels, platform, category]
+    [channels, platform]
   );
-
-  const pick = (c: LiveCategory | null) => {
-    setCategory(c);
-    setShown(STEP);
-  };
 
   return (
     <>
-      <div className={styles.chipBar} role="group" aria-label="카테고리">
-        <button type="button" className={`${styles.chip} ${!category ? styles.chipActive : ""}`} aria-pressed={!category} onClick={() => pick(null)}>
-          전체
-        </button>
-        {(Object.keys(LIVE_CATEGORY_LABEL) as LiveCategory[]).map((c) => (
-          <button key={c} type="button" className={`${styles.chip} ${category === c ? styles.chipActive : ""}`} aria-pressed={category === c} onClick={() => pick(c)}>
-            <span aria-hidden="true">{CATEGORY_EMOJI[c]}</span> {LIVE_CATEGORY_LABEL[c]}
-          </button>
-        ))}
+      <div className={styles.chipBar} role="group" aria-label="필터">
         <select
           className={`${styles.control} ${styles.platformSelect}`}
           aria-label="방송 플랫폼"
