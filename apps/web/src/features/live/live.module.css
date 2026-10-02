@@ -78,25 +78,6 @@
 
 /* ── Filter bar (617:413) ─────────────────────────── */
 
-.filterBar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 16px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-12);
-  background: var(--color-surface);
-}
-
-.filterGroup {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-}
-
 .control {
   padding: 8px 16px;
   border: 1px solid var(--color-border);
@@ -119,55 +100,7 @@
   cursor: pointer;
 }
 
-.controlStrong {
-  font-weight: var(--font-weight-bold);
-}
-
-.chipLabel {
-  padding: 8px 16px;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-medium);
-}
-
-.searchGroup {
-  flex: 0 1 auto;
-  flex-wrap: nowrap;
-  min-width: 0;
-}
-
 /* Figma 314px; shrinks first when the bar is narrower than 1100px. */
-.search {
-  display: flex;
-  flex: 0 1 314px;
-  align-items: center;
-  gap: 8px;
-  min-width: 160px;
-  padding: 8px 16px;
-  border: 1px solid var(--color-border);
-  border-radius: 30px;
-  background: var(--color-bg-page);
-}
-
-.search:focus-within {
-  border-color: var(--color-primary);
-}
-
-.searchInput {
-  flex: 1;
-  min-width: 0;
-  padding: 0;
-  border: 0;
-  outline: none;
-  background: transparent;
-  color: var(--color-text-primary);
-  font: inherit;
-  font-size: var(--font-size-13);
-}
-
-.searchInput::placeholder {
-  color: var(--color-text-tertiary);
-}
 
 /* ── Sections ─────────────────────────────────────── */
 
@@ -175,13 +108,6 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
-}
-
-.sectionHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
 }
 
 .sectionTitle {
@@ -194,11 +120,6 @@
 
 .sectionTitle a:hover {
   color: var(--color-text-secondary);
-}
-
-.sectionCount {
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-14);
 }
 
 .empty {
@@ -275,14 +196,6 @@
 
   .grid {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .searchGroup {
-    flex: 1 1 100%;
-  }
-
-  .search {
-    flex: 1 1 auto;
   }
 }
 

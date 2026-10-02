@@ -16,13 +16,6 @@ export function formatNumber(value: number) {
   return value.toLocaleString("ko-KR");
 }
 
-/** 6300 → "01:45:00" (live elapsed time, Figma 617:453) */
-export function formatDuration(totalSeconds: number) {
-  const s = Math.max(0, Math.floor(totalSeconds));
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`;
-}
-
 function trimDecimal(value: number) {
   const rounded = value >= 100 ? Math.round(value) : Math.round(value * 10) / 10;
   return String(rounded);

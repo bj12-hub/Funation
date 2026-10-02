@@ -11,16 +11,6 @@ import type { Platform } from "@/types/platform";
  */
 export type PlatformCapability = "CHANNEL_PROFILE" | "VIDEO_LIST" | "LIVE_STATUS" | "CHAT_EVENTS" | "CHAT_SEND" | "CHAT_MODERATE" | "DONATION_EVENTS";
 
-export const CAPABILITY_LABEL: Record<PlatformCapability, string> = {
-  CHANNEL_PROFILE: "채널 정보",
-  VIDEO_LIST: "영상 목록",
-  LIVE_STATUS: "방송 상태",
-  CHAT_EVENTS: "채팅 읽기",
-  CHAT_SEND: "채팅 보내기",
-  CHAT_MODERATE: "채팅 관리(삭제 · 차단)",
-  DONATION_EVENTS: "후원 이벤트"
-};
-
 /** A live-chat message as the core domain sees it. Platform DTOs are mapped inside the adapter. */
 export type ExternalChatMessage = {
   platform: Platform;
