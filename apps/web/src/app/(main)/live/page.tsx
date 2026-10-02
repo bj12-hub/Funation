@@ -1,16 +1,12 @@
 import type { Metadata } from "next";
 import { AllLiveScreen } from "@/features/live";
-import { getAllLiveChannels, LIVE_CATEGORY_LABEL, type LiveCategory } from "@/services/live/liveChannels";
+import { getAllLiveChannels } from "@/services/live/liveChannels";
 
-// Figma: funnation-all-live-page 617:316 (전체라이브)
+// Figma: funnation-all-live-page 617:316 (전체라이브), without the category chips
 export const metadata: Metadata = { title: "전체 방송 | Somnation" };
 export const dynamic = "force-dynamic";
 
-function parseCategory(value: string | string[] | undefined): LiveCategory | undefined {
-  return typeof value === "string" && value in LIVE_CATEGORY_LABEL ? (value as LiveCategory) : undefined;
-}
-
-export default async function Page({ searchParams }: { searchParams: Promise<{ category?: string | string[] }> }) {
-  const [{ category }, channels] = await Promise.all([searchParams, getAllLiveChannels()]);
-  return <AllLiveScreen channels={channels} initialCategory={parseCategory(category)} />;
+export default async function Page() {
+  const channels = await getAllLiveChannels();
+  return <AllLiveScreen channels={channels} />;
 }

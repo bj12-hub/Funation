@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { formatDuration, formatNumber } from "@/lib/format";
-import { LIVE_CATEGORY_LABEL, type LiveChannel } from "@/services/live/liveChannels";
+import type { LiveChannel } from "@/services/live/liveChannels";
 import styles from "./LiveChannelCard.module.css";
 
 type LiveChannelCardProps = {
@@ -22,7 +22,6 @@ export function LiveChannelCard({ channel, variant, sizes }: LiveChannelCardProp
         <span className={styles.shade} />
         <span className={`${styles.badge} ${styles.live}`}>LIVE</span>
         <span className={`${styles.badge} ${styles.viewers}`}>시청자 {formatNumber(channel.viewerCount)}명</span>
-        {full && <span className={`${styles.badge} ${styles.category}`}>{LIVE_CATEGORY_LABEL[channel.category]}</span>}
       </div>
       <div className={styles.info}>
         <Image src={channel.channelAvatarUrl} alt="" width={avatarSize} height={avatarSize} className={styles.avatar} />
