@@ -154,6 +154,26 @@ export type BroadcastLive = {
   battles: Battle[];
   /** 기여도 강탈 spins (newest first). */
   steals: StealRecord[];
+  /** 콘텐츠 시나리오 progress (null until the first part starts). */
+  scenario: ScenarioLive | null;
+};
+
+// ── 콘텐츠 시나리오 도우미 (1부 ~ 5부) — code-first ─────────────────────────────────────────────
+
+export const SCENARIO_PARTS_MAX = 5;
+export const SCENARIO_TITLE_MAX = 20;
+export const SCENARIO_MEMO_MAX = 200;
+export const SCENARIO_MINUTES_MAX = 600;
+
+/** One 부 of the plan. `minutes` null = no planned length. `openBoard` opens a 서브 점수판 when the part starts. */
+export type ScenarioPart = { title: string; minutes: number | null; memo: string; openBoard: boolean };
+
+export type ScenarioLive = {
+  /** The plan as it was when the first part started (later edits apply to the next broadcast). */
+  parts: ScenarioPart[];
+  /** Index of the running part; null after 시나리오 마치기. */
+  current: number | null;
+  history: { index: number; title: string; startedAt: string; endedAt: string | null }[];
 };
 
 // ── 기여도 강탈 룰렛 — code-first; slots and odds are set by the creator (no defaults, TBD) ────────
@@ -226,6 +246,8 @@ export type BroadcastView = {
   feed: FeedView | null;
   /** 기여도 강탈 룰렛 slots (kept across broadcasts). */
   stealSlots: StealSlot[];
+  /** 콘텐츠 시나리오 plan (kept across broadcasts; editable before going live). */
+  scenario: ScenarioPart[];
   keywords: Record<string, string[]>;
   /** Existing project names (for the start form). */
   projects: string[];

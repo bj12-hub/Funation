@@ -1,5 +1,5 @@
 import type { Platform } from "@/types/platform";
-import { isExcelUnit, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow } from "./crewTypes";
+import { SUB_BOARD_MAX, isExcelUnit, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow } from "./crewTypes";
 import { mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 // ── 후원 리스트 (server-only) ──────────────────────────────────────────────────
@@ -46,6 +46,19 @@ export function recordBroadcastExternal(channelId: string, input: { platform: Pl
   const live = liveBroadcastOf(channelId);
   if (!live || !isExcelUnit(input.currency)) return;
   addFeedEntry(live, { donor: input.donor, message: input.message, amount: input.value, unit: input.currency, platform: input.platform, source: "DONATION" });
+}
+
+/**
+ * Opens a 서브 점수판 (closing the open one). Shared by 새 판 and 콘텐츠 시나리오. Returns an error
+ * message, or null when opened (or already opened for this request id).
+ */
+export function openBoard(b: MockBroadcast, title: string, requestId: string, now = new Date().toISOString()): string | null {
+  const boards = (b.subBoards ??= []);
+  if (boards.some((x) => x.requestId === requestId)) return null;
+  if (boards.length >= SUB_BOARD_MAX) return `서브 점수판은 방송당 ${SUB_BOARD_MAX}개까지예요.`;
+  for (const x of boards) if (!x.closedAt) x.closedAt = now;
+  boards.push({ no: boards.length + 1, title: title || `서브 ${boards.length + 1}판`, openedAt: now, closedAt: null, requestId });
+  return null;
 }
 
 // ── 자동엑셀 (server-only scoring) ─────────────────────────────────────────────

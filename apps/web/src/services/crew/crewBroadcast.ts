@@ -81,7 +81,14 @@ function liveView(b: MockBroadcast): BroadcastLive {
     logs: [...b.adjustments].reverse().slice(0, 30).map((a) => ({ id: a.id, at: a.at, memberName: byId.get(a.memberId) ?? "삭제된 멤버", points: a.points, reason: a.reason })),
     subBoards: (b.subBoards ?? []).map((s) => ({ no: s.no, title: s.title, openedAt: s.openedAt, closedAt: s.closedAt, rows: windowRows(b, s.openedAt, s.closedAt) })),
     battles: (b.battles ?? []).map((x) => battleView(b, x)),
-    steals: [...(b.steals ?? [])].reverse().slice(0, 30).map((x) => stealRecordView(b.channelId, x))
+    steals: [...(b.steals ?? [])].reverse().slice(0, 30).map((x) => stealRecordView(b.channelId, x)),
+    scenario: b.scenario
+      ? {
+          parts: structuredClone(b.scenario.parts),
+          current: b.scenario.current,
+          history: b.scenario.history.map((h) => ({ ...h, title: b.scenario!.parts[h.index]?.title ?? `${h.index + 1}부` }))
+        }
+      : null
   };
 }
 
@@ -175,6 +182,7 @@ export async function getBroadcastView(): Promise<BroadcastView | null> {
     feed: live ? feedView(live) : null,
     keywords: structuredClone(mockCrew.keywords ?? {}),
     stealSlots: structuredClone(mockCrew.stealSlots?.[STUDIO_CHANNEL] ?? []),
+    scenario: structuredClone(mockCrew.scenario?.[STUDIO_CHANNEL] ?? []),
     projects: [...new Set(broadcasts().filter((b) => b.channelId === STUDIO_CHANNEL && b.project).map((b) => b.project as string))],
     history: broadcasts()
       .filter((b) => b.channelId === STUDIO_CHANNEL && b.endedAt)
@@ -264,6 +272,10 @@ export async function endBroadcast(broadcastId: unknown): Promise<BroadcastResul
   live.endedAt = new Date().toISOString();
   for (const s of live.subBoards ?? []) s.closedAt ??= live.endedAt;
   for (const x of live.battles ?? []) if (new Date(x.endsAt).getTime() > Date.now()) x.stoppedAt ??= live.endedAt;
+  if (live.scenario) {
+    for (const h of live.scenario.history) h.endedAt ??= live.endedAt;
+    live.scenario.current = null;
+  }
   live.final = scoreRows(live).map((r) => ({ memberId: r.memberId, name: r.name, score: r.score }));
   return { status: "SAVED" };
 }
