@@ -3,7 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { formatNumber } from "@/lib/format";
-import type { BroadcastLive, SubBoard } from "@/services/crew/crewTypes";
+import type { Battle, BroadcastLive, SubBoard } from "@/services/crew/crewTypes";
+import { BattleBoard, useCountdown } from "./BattlePanel";
+import battleStyles from "./battle.module.css";
 import styles from "./overlay.module.css";
 
 /**
@@ -62,6 +64,19 @@ function MainBoard({ data }: { data: BroadcastLive }) {
           </li>
         ))}
       </ol>
+    </div>
+  );
+}
+
+/** 실시간 배틀 overlay (`?battle`): the running battle (or the last result) with its timer. */
+export function BattleOverlay({ battle }: { battle: Battle | null }) {
+  useOverlayPage();
+  const left = useCountdown(battle ?? undefined);
+  if (!battle) return null;
+  return (
+    <div className={styles.overlay}>
+      {battle.running && <span className={battleStyles.overlayTimer}>{`${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`}</span>}
+      <BattleBoard battle={battle} big />
     </div>
   );
 }

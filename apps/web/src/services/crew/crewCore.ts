@@ -77,6 +77,21 @@ export function scoreEntry(e: FeedEntry, s: ExcelSettings): FeedEntryView {
   return { ...e, base, multiplier, points };
 }
 
+/**
+ * Points each member received between `from` and `to` (targeted donations + assigned 후원 리스트
+ * entries, 자동엑셀 points). Used by 서브 점수판 and 실시간 배틀. `to` null = now.
+ */
+export function windowScores(b: MockBroadcast, from: string, to: string | null): Map<string, number> {
+  const end = to ?? new Date(Date.now() + 1000).toISOString();
+  const inWindow = (at: string) => at >= from && at <= end;
+  const s = excelOf(b.channelId);
+  const scores = new Map<string, number>();
+  const add = (id: string, p: number) => scores.set(id, (scores.get(id) ?? 0) + p);
+  for (const a of mockCrew.attributions) if (a.channelId === b.channelId && inWindow(a.at)) add(a.memberId, scoreFn(a.fnAmount, s));
+  for (const f of b.feed ?? []) if (f.status === "ASSIGNED" && f.memberId && inWindow(f.at)) add(f.memberId, scoreEntry(f, s).points);
+  return scores;
+}
+
 /** Points for a member-targeted FN donation (same conversion and 배수 규칙 as the list). */
 export function scoreFn(fnAmount: number, s: ExcelSettings) {
   const base = baseAmount(fnAmount, "FN", s);

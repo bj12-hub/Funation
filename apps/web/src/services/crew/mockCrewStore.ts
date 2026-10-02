@@ -31,6 +31,8 @@ export type MockBroadcast = {
   simRequests?: string[];
   /** 서브 점수판: window-scored boards under the main one (numbered from 1 per broadcast). */
   subBoards?: { no: number; title: string; openedAt: string; closedAt: string | null; requestId: string }[];
+  /** 실시간 배틀: side A/B member ids, timer and the request ids already applied (start · time changes). */
+  battles?: { no: number; title: string; mode: "MEMBERS" | "TEAMS"; a: string[]; b: string[]; startedAt: string; endsAt: string; stoppedAt: string | null; requests: string[] }[];
   /** Final ranking frozen at the end (members may be renamed or removed later). */
   final: { memberId: string; name: string; score: number }[] | null;
 };
