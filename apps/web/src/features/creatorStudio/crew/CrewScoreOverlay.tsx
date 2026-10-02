@@ -3,9 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { formatNumber } from "@/lib/format";
-import type { Battle, BroadcastLive, StealRecord, SubBoard } from "@/services/crew/crewTypes";
+import type { Battle, BroadcastLive, ScenarioLive, StealRecord, SubBoard } from "@/services/crew/crewTypes";
 import { BattleBoard, useCountdown } from "./BattlePanel";
+import { partName, usePartElapsed } from "./ScenarioPanel";
 import { stealText } from "./StealPanel";
+import scenStyles from "./scenario.module.css";
 import battleStyles from "./battle.module.css";
 import stealStyles from "./steal.module.css";
 import styles from "./overlay.module.css";
@@ -79,6 +81,31 @@ export function BattleOverlay({ battle }: { battle: Battle | null }) {
     <div className={styles.overlay}>
       {battle.running && <span className={battleStyles.overlayTimer}>{`${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`}</span>}
       <BattleBoard battle={battle} big />
+    </div>
+  );
+}
+
+/** 콘텐츠 시나리오 overlay (`?scenario`): the running part, its time and what comes next. */
+export function ScenarioOverlay({ scenario }: { scenario: ScenarioLive | null }) {
+  useOverlayPage();
+  const elapsed = usePartElapsed(scenario);
+  if (!scenario || scenario.current === null) return null;
+  const i = scenario.current;
+  const part = scenario.parts[i];
+  const next = scenario.parts[i + 1];
+  const mm = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+  return (
+    <div className={styles.overlay}>
+      <div className={scenStyles.overlayPart}>
+        <strong>{partName(i, part)}</strong>
+        {elapsed !== null && (
+          <span>
+            {mm(elapsed)}
+            {part.minutes ? ` / ${part.minutes}분` : ""}
+          </span>
+        )}
+        {next && <span className={scenStyles.overlayNext}>다음 · {partName(i + 1, next)}</span>}
+      </div>
     </div>
   );
 }
