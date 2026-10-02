@@ -74,10 +74,3 @@
   display: flex;
   flex-shrink: 0;
 }
-
-.requiredHint {
-  margin: -12px 0 0;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-13);
-  text-align: center;
-}

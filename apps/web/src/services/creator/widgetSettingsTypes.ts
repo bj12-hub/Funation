@@ -5,8 +5,6 @@
  * Defaults follow the design's sample values. Font list, size range and URL format are TBD.
  */
 
-export type AlertKey = "TEXT" | "SIGNATURE" | "VOICE" | "VIDEO" | "ROULETTE" | "VOTE" | "QUEST" | "DRAWING" | "LUCKYBOX" | "PLAY";
-
 export type WidgetKey =
   | "CHAT"
   | "QR"
@@ -26,20 +24,6 @@ export type WidgetKey =
   | "WALLPAPER";
 
 export type CatalogCard<K extends string> = { key: K; emoji: string; color: string; title: string; description: string };
-
-/** 529:4 "후원 알림 설정". No popups are designed for these yet. */
-export const ALERT_CARDS: CatalogCard<AlertKey>[] = [
-  { key: "TEXT", emoji: "💬", color: "#3b82f6", title: "텍스트 후원 알림", description: "텍스트로 후원 메시지를 받으며 도네이터와 소통할 수 있습니다." },
-  { key: "SIGNATURE", emoji: "⭐", color: "#f97316", title: "시그니처 후원 알림", description: "지정한 시그니처 리액션을 선택해서 후원할 수 있습니다." },
-  { key: "VOICE", emoji: "🎙️", color: "#8b5cf6", title: "음성 후원 알림", description: "녹음한 음성 또는 자막독음을 통하여 후원 메시지를 받을 수 있습니다." },
-  { key: "VIDEO", emoji: "📹", color: "#f97316", title: "영상 후원 알림", description: "후원과 함께 공유한 영상을 받아 볼 수 있습니다." },
-  { key: "ROULETTE", emoji: "🎡", color: "#8b5cf6", title: "룰렛 후원 알림", description: "여러가지 항목을 설정하여 룰렛을 돌릴 수 있습니다." },
-  { key: "VOTE", emoji: "🗳️", color: "#737385", title: "투표 알림", description: "도네이터들의 의견을 투표를 통해 받을 수 있습니다." },
-  { key: "QUEST", emoji: "🚩", color: "#10b981", title: "퀘스트 알림", description: "도네이터들의 요구를 퀘스트를 통해 듣고 수행해 나갈 수 있습니다." },
-  { key: "DRAWING", emoji: "🎨", color: "#8b5cf6", title: "그림 후원 알림", description: "도네이터가 직접 그린 그림을 통해 소통할 수 있습니다." },
-  { key: "LUCKYBOX", emoji: "❓", color: "#ec4899", title: "럭키박스 알림", description: "도네이터들이 보내준 럭키박스를 통해 함께 즐기며 소통할 수 있습니다." },
-  { key: "PLAY", emoji: "🕹️", color: "#10b981", title: "플레이 후원 알림", description: "퀴즈와 같은 재미있고 다양한 방법으로 도네이터와 소통할 수 있습니다." }
-];
 
 /** 529:4 "후원 위젯 설정". */
 export const WIDGET_CARDS: CatalogCard<WidgetKey>[] = [
@@ -416,7 +400,6 @@ export const GACHA_PRIZE_MODES = [
 export const GACHA_MAX = 10;
 export const GACHA_PRIZES_MAX = 20;
 export const GACHA_NAME_MAX = 20;
-export const GACHA_TEMPLATE_TOKENS = ["{닉네임}", "{금액}"] as const;
 
 export type GachaPrize = { id: string; name: string; kind: "PRIZE" | "BLANK"; /** % (PROBABILITY) or stock count (STOCK). */ value: number };
 export type Gacha = {

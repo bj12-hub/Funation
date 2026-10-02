@@ -15,8 +15,6 @@
   box-shadow: var(--shadow-header);
 }
 
-/* ── Left: menu + logo ─────────────────────────────── */
-
 /* Logo and nav keep their size; the profile name gives way on narrow screens. */
 .left {
   display: flex;
@@ -350,10 +348,6 @@
 }
 
 /* ── Creator variant (Figma 245:14 · 758:41) ───────── */
-
-.creatorMode {
-  color: var(--color-live);
-}
 
 .profileOpen {
   border-radius: var(--radius-8);

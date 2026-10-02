@@ -16,7 +16,6 @@ export const REPORT_REASONS = [
   { key: "ETC", label: "기타" }
 ] as const;
 export type ReportReason = (typeof REPORT_REASONS)[number]["key"];
-export const reportReasonLabel = (r: ReportReason) => REPORT_REASONS.find((x) => x.key === r)?.label ?? r;
 
 export const REPORT_DETAIL_MAX = 300;
 
