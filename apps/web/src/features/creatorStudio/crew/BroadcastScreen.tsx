@@ -7,6 +7,7 @@ import { adjustScore, endBroadcast, startBroadcast } from "@/services/crew/crewB
 import { BROADCAST_TITLE_MAX, PROJECT_NAME_MAX, type BroadcastResult, type BroadcastView, type TeamKey } from "@/services/crew/crewTypes";
 import { BattlePanel } from "./BattlePanel";
 import { BroadcastFeed } from "./BroadcastFeed";
+import { StealPanel } from "./StealPanel";
 import { CrewTabs } from "./CrewTabs";
 import { SubBoards } from "./SubBoards";
 import styles from "./crew.module.css";
@@ -198,6 +199,7 @@ export function BroadcastScreen({ view }: { view: BroadcastView }) {
                   <strong>{formatNumber(r.score)}</strong>
                   <span className={styles.muted}>
                     후원 {formatNumber(r.donated + r.feed)} · 보정 {signed(r.adjust)}
+                    {r.stolen !== 0 && ` · 강탈 ${signed(r.stolen)}`}
                   </span>
                 </span>
                 <span className={styles.boardButtons}>
@@ -237,6 +239,18 @@ export function BroadcastScreen({ view }: { view: BroadcastView }) {
 
       {live && (
         <BattlePanel broadcastId={live.id} teamMode={live.teamMode} members={view.members} battles={live.battles} overlayPath={view.overlayPath} pending={pending} run={run} />
+      )}
+      {live && (
+        <StealPanel
+          broadcastId={live.id}
+          members={view.members}
+          slots={view.stealSlots}
+          records={live.steals}
+          battle={live.battles.find((b) => b.running)}
+          overlayPath={view.overlayPath}
+          pending={pending}
+          run={run}
+        />
       )}
       {live && view.feed && <BroadcastFeed broadcastId={live.id} members={view.members} view={view.feed} pending={pending} run={run} />}
       {live && <SubBoards broadcastId={live.id} boards={live.subBoards} overlayPath={view.overlayPath} pending={pending} run={run} />}
