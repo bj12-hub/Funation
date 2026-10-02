@@ -11,6 +11,7 @@ import {
   PROJECT_NAME_MAX,
   type FeedSourceKey,
   type FeedSummaryRow,
+  type Battle,
   type FeedView,
   type BroadcastLive,
   type BroadcastResult,
@@ -19,7 +20,7 @@ import {
   type ScoreRow,
   type TeamKey
 } from "./crewTypes";
-import { excelOf, liveBroadcastOf, scoreEntry, scoreFn } from "./crewCore";
+import { excelOf, liveBroadcastOf, scoreEntry, scoreFn, windowScores } from "./crewCore";
 import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 /**
@@ -77,23 +78,41 @@ function liveView(b: MockBroadcast): BroadcastLive {
     rows,
     teams: b.teamMode ? (["A", "B"] as TeamKey[]).map((key) => ({ key, score: rows.filter((r) => r.team === key).reduce((s, r) => s + r.score, 0) })) : [],
     logs: [...b.adjustments].reverse().slice(0, 30).map((a) => ({ id: a.id, at: a.at, memberName: byId.get(a.memberId) ?? "삭제된 멤버", points: a.points, reason: a.reason })),
-    subBoards: (b.subBoards ?? []).map((s) => ({ no: s.no, title: s.title, openedAt: s.openedAt, closedAt: s.closedAt, rows: windowRows(b, s.openedAt, s.closedAt) }))
+    subBoards: (b.subBoards ?? []).map((s) => ({ no: s.no, title: s.title, openedAt: s.openedAt, closedAt: s.closedAt, rows: windowRows(b, s.openedAt, s.closedAt) })),
+    battles: (b.battles ?? []).map((x) => battleView(b, x))
   };
+}
+
+const TEAM_COLOR = { A: "#3b82f6", B: "#ec4899" } as const;
+
+/** One 실시간 배틀 with side scores over its window (start → stop or time-out, whichever is first). */
+function battleView(b: MockBroadcast, x: NonNullable<MockBroadcast["battles"]>[number], now = Date.now()): Battle {
+  const endMs = Math.min(new Date(x.endsAt).getTime(), x.stoppedAt ? new Date(x.stoppedAt).getTime() : Infinity);
+  const running = endMs > now;
+  const scores = windowScores(b, x.startedAt, running ? null : new Date(endMs).toISOString());
+  const byId = new Map(members().map((m) => [m.id, m]));
+  const side = (key: "A" | "B", ids: string[]) => {
+    const one = x.mode === "MEMBERS" ? byId.get(ids[0]) : undefined;
+    return {
+      key,
+      label: x.mode === "MEMBERS" ? (one?.name ?? "삭제된 멤버") : `${key}팀`,
+      color: one?.color ?? TEAM_COLOR[key],
+      memberIds: [...ids],
+      score: ids.reduce((s, id) => s + (scores.get(id) ?? 0), 0)
+    };
+  };
+  const sides: [Battle["sides"][0], Battle["sides"][1]] = [side("A", x.a), side("B", x.b)];
+  const [a, c] = sides;
+  const leader = a.score === 0 && c.score === 0 ? null : a.score === c.score ? "DRAW" : a.score > c.score ? "A" : "B";
+  return { no: x.no, title: x.title, mode: x.mode, startedAt: x.startedAt, endsAt: x.endsAt, stoppedAt: x.stoppedAt, running, remainingSec: running ? Math.ceil((endMs - now) / 1000) : 0, sides, leader };
 }
 
 /** 서브 점수판 rows: points donated to each active member between `from` and `to` (open board = now). */
 function windowRows(b: MockBroadcast, from: string, to: string | null) {
-  const end = to ?? new Date(Date.now() + 1000).toISOString();
-  const inWindow = (at: string) => at >= from && at <= end;
-  const s = excelOf(b.channelId);
-  const scored = scoredFeed(b);
+  const scores = windowScores(b, from, to);
   return members()
     .filter((m) => m.active)
-    .map((m) => {
-      const targeted = mockCrew.attributions.filter((a) => a.channelId === b.channelId && a.memberId === m.id && inWindow(a.at)).reduce((sum, a) => sum + scoreFn(a.fnAmount, s), 0);
-      const feed = scored.filter((f) => f.status === "ASSIGNED" && f.memberId === m.id && inWindow(f.at)).reduce((sum, f) => sum + f.points, 0);
-      return { memberId: m.id, name: m.name, color: m.color, score: targeted + feed };
-    })
+    .map((m) => ({ memberId: m.id, name: m.name, color: m.color, score: scores.get(m.id) ?? 0 }))
     .sort((x, y) => y.score - x.score || x.name.localeCompare(y.name));
 }
 
@@ -241,6 +260,7 @@ export async function endBroadcast(broadcastId: unknown): Promise<BroadcastResul
   }
   live.endedAt = new Date().toISOString();
   for (const s of live.subBoards ?? []) s.closedAt ??= live.endedAt;
+  for (const x of live.battles ?? []) if (new Date(x.endsAt).getTime() > Date.now()) x.stoppedAt ??= live.endedAt;
   live.final = scoreRows(live).map((r) => ({ memberId: r.memberId, name: r.name, score: r.score }));
   return { status: "SAVED" };
 }

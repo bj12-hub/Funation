@@ -5,6 +5,7 @@ import { useEffect, useState, useTransition } from "react";
 import { formatNumber } from "@/lib/format";
 import { adjustScore, endBroadcast, startBroadcast } from "@/services/crew/crewBroadcast";
 import { BROADCAST_TITLE_MAX, PROJECT_NAME_MAX, type BroadcastResult, type BroadcastView, type TeamKey } from "@/services/crew/crewTypes";
+import { BattlePanel } from "./BattlePanel";
 import { BroadcastFeed } from "./BroadcastFeed";
 import { CrewTabs } from "./CrewTabs";
 import { SubBoards } from "./SubBoards";
@@ -76,7 +77,7 @@ export function BroadcastScreen({ view }: { view: BroadcastView }) {
     <div className={styles.content}>
       <header className={styles.header}>
         <h1 className={styles.title}>크루 관리</h1>
-        <p className={styles.subtitle}>방송 회차를 시작하고 점수판을 운영하세요. 멤버 점수 = 방송 중 그 멤버에게 들어온 후원 FN + 보정 점수예요.</p>
+        <p className={styles.subtitle}>방송 회차를 시작하고 점수판을 운영하세요. 멤버 점수 = 방송 중 그 멤버에게 들어온 후원 점수(자동엑셀 기준) + 보정 점수예요.</p>
       </header>
       <CrewTabs active="broadcast" />
 
@@ -234,6 +235,9 @@ export function BroadcastScreen({ view }: { view: BroadcastView }) {
         </section>
       )}
 
+      {live && (
+        <BattlePanel broadcastId={live.id} teamMode={live.teamMode} members={view.members} battles={live.battles} overlayPath={view.overlayPath} pending={pending} run={run} />
+      )}
       {live && view.feed && <BroadcastFeed broadcastId={live.id} members={view.members} view={view.feed} pending={pending} run={run} />}
       {live && <SubBoards broadcastId={live.id} boards={live.subBoards} overlayPath={view.overlayPath} pending={pending} run={run} />}
 
