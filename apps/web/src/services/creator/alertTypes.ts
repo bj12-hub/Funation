@@ -17,6 +17,8 @@ export type AlertItem = {
   id: string;
   kind: AlertKind;
   donor: string;
+  /** 등급·칭호 labels resolved on the server when the donation completed (DONATION only). */
+  badges?: string[];
   message: string;
   fnAmount: number;
   /** Set for EXTERNAL alerts, e.g. "₩5,000" (the FN exchange rate is TBD, so no conversion). */

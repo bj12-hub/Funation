@@ -67,6 +67,9 @@ export type IdentitySaveResult = { status: "SAVED" } | { status: "INVALID"; mess
 /** What a donation alert shows for this supporter (server-resolved). */
 export type AlertBadges = { name: string; grade: string | null; globalTitle: string | null; storeTitle: string | null };
 
+/** Badge labels in the order an alert shows them (grade → global title → creator title). */
+export const alertBadgeLabels = (b: AlertBadges) => [b.grade, b.globalTitle, b.storeTitle].filter((x): x is string => x !== null);
+
 export const gradeLabel = (k: GradeKey) => GRADES.find((g) => g.key === k)!.label;
 export const globalTitleLabel = (k: GlobalTitleKey) => GLOBAL_TITLES.find((t) => t.key === k)!.label;
 export const storeTitleLabel = (k: StoreTitleKey) => STORE_TITLES.find((t) => t.key === k)!.label;
