@@ -10,8 +10,6 @@ import type { Platform } from "@/types/platform";
 
 export type { Platform } from "@/types/platform";
 
-export type LiveCategory = "VARIETY" | "DRAMA" | "SPORTS" | "MUSIC" | "GAME" | "MUKBANG" | "DAILY";
-
 export type HeroSlide = {
   id: string;
   imageUrl: string;
@@ -89,25 +87,12 @@ export type Promotion = {
   href?: string;
 };
 
-export type LiveBroadcast = {
-  id: string;
-  thumbnailUrl: string;
-  title: string;
-  channelName: string;
-  channelAvatarUrl: string;
-  viewerCount: number;
-  platform: Platform;
-  category: LiveCategory;
-  href: string;
-};
-
 export type HomeFeed = {
   heroSlides: HeroSlide[];
   trending: TrendingVideo[];
   ranking: RankedLive[];
   creators: PopularCreator[];
   promotion: Promotion | null;
-  liveBroadcasts: LiveBroadcast[];
   notices: HomeNotice[];
 };
 
@@ -198,15 +183,7 @@ const MOCK_HOME_FEED: Omit<HomeFeed, "creators" | "notices"> & { creators: Omit<
     ctaLabel: "이벤트 보기",
     // Code-first: the events page (the specific promotion page is still TBD).
     href: "/events"
-  },
-  liveBroadcasts: [
-    { id: "l1", thumbnailUrl: `${IMG}/live-1.jpg`, title: "신청곡 받아요 · 라이브 노래방 개인방송", channelName: "도도쭈", channelAvatarUrl: `${IMG}/live-avatar-1.png`, viewerCount: 1_830, platform: "YOUTUBE", category: "MUSIC", href: "/live" },
-    { id: "l2", thumbnailUrl: `${IMG}/live-2.jpg`, title: "주말 드라마 같이보기 소통 방송", channelName: "수다봇치", channelAvatarUrl: `${IMG}/live-avatar-2.png`, viewerCount: 870, platform: "SOOP", category: "DRAMA", href: "/live" },
-    { id: "l3", thumbnailUrl: `${IMG}/live-3.jpg`, title: "[엑셀] 별빛크루 직급전 · 체육대회 팀 배틀", channelName: "별빛크루", channelAvatarUrl: `${IMG}/live-avatar-3.png`, viewerCount: 2_870, platform: "FLEXTV", category: "SPORTS", href: "/live" },
-    { id: "l4", thumbnailUrl: `${IMG}/live-4.jpg`, title: "새벽 라디오 · 사연 읽어 드려요", channelName: "새벽감성", channelAvatarUrl: `${IMG}/live-avatar-4.png`, viewerCount: 980, platform: "YOUTUBE", category: "DAILY", href: "/live" },
-    { id: "l5", thumbnailUrl: `${IMG}/live-5.jpg`, title: "시참 내전 · 같이 하실 분 들어오세요", channelName: "겜돌이준", channelAvatarUrl: `${IMG}/live-avatar-5.png`, viewerCount: 1_120, platform: "SOOP", category: "GAME", href: "/live" },
-    { id: "l6", thumbnailUrl: `${IMG}/live-6.jpg`, title: "동네 분식 포장해서 같이 먹어요", channelName: "냠냠하루", channelAvatarUrl: `${IMG}/live-avatar-6.png`, viewerCount: 690, platform: "FLEXTV", category: "MUKBANG", href: "/live" }
-  ]
+  }
 };
 
 // 688:646 channel chips; the same mock logos as the creator room.
