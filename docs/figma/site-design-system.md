@@ -51,6 +51,12 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | Channel Card | `46:206` | Status (Connected · Disconnected · YouTube link), Platform, Name, Info | `UnifiedChatScreen.tsx` Channels |
 | Overlay Chat Line | `46:208` | Platform, Name, Message, Show role | `chatOverlay.module.css` |
 
+## 아이콘 (8 디자인 · Components → Icons 섹션)
+
+코드의 `apps/web/src/components/icons/index.tsx`(펀페이 Figma에서 옮긴 SVG)와 같은 아이콘 58개를 `Icon/<이름>` 컴포넌트로 만들었어요 (이름 = 코드의 `<이름>Icon`). 설명에 `currentColor`라고 적힌 아이콘은 쓰는 곳의 글자색을 따라요 — 레이아웃에서는 인스턴스의 선 색을 그 자리의 색 변수로 바꿔 두었어요.
+
+레이아웃의 회색 자리표시 사각형 중 실제 SVG 아이콘 자리는 인스턴스로 바꿨어요 (화면 29곳 + 사이트 헤더 · 사이드 메뉴 · 푸터 컴포넌트). 남은 회색 사각형은 썸네일 · 아바타 · 배너 같은 이미지 자리예요. 화면을 다시 읽어 아이콘 순서를 맞추는 방식이라, 레이아웃을 만든 뒤 바뀐 일부(스튜디오 토글 체크, 정산 시작 카드 화살표, 홈 "전체보기" 화살표, FN 충전 약관 체크)는 그대로예요.
+
 ## 레이아웃 (9 레이아웃 · 스튜디오)
 
 섹션은 스튜디오 메뉴 순서예요. 화면은 실제 화면의 구조(레이아웃 · 간격 · 색 · 글자)를 읽어 만든 편집 가능한 프레임이고,

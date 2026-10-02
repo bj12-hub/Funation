@@ -37,3 +37,8 @@ Admin screens (Somnation Admin file `Js5MCzkGmAZ9QY0w3nLUe8`, page "Layouts") us
   (`bg-page` → `color/bg/page`), font keys to the `Admin/*` text styles, and it places the Sidebar (active item) and
   Topbar (breadcrumb) instances plus Button · Badge · Input · Tab instances. `somnation` / `adminHelpers` holds small
   builders (table, card, tabs, …) used to keep each `use_figma` call short.
+
+Icons: the walkers add a sixth element to inline-SVG media, `["m", w, h, radius, color, "<width>:<first path d, 40 chars>"]`.
+`svg-collect.js` returns every visible inline SVG of a page keyed by that signature. The SVGs became `Icon/<Name>` components on page 8
+(ids in shared plugin data `somnation` / `iconComponents`), and `somnation` / `iconReplace` swaps the placeholder rectangles of a
+screen for instances by aligning the rectangle sizes with the walker's media sequence.
