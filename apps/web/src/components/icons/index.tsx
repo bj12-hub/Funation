@@ -369,16 +369,15 @@ export function PageChevronRightIcon(props: IconProps) {
   );
 }
 
-/** Figma 3:672 — hall of fame title mark (path kept exactly as exported) */
+/** Trophy outline (cup · handles · stem · base) on a 24px grid. The Figma 3:672 export only drew a corner of the cup. */
+const TROPHY_PATH =
+  "M7 4H17V9C17 11.7614 14.7614 14 12 14C9.23858 14 7 11.7614 7 9V4ZM7 6H5C3.89543 6 3 6.89543 3 8C3 9.10457 3.89543 10 5 10H7M17 6H19C20.1046 6 21 6.89543 21 8C21 9.10457 20.1046 10 19 10H17M12 14V17M9 17H15L16 20H8L9 17Z";
+
+/** Figma 3:672 — hall of fame title mark; also the side nav 칭호 · 명예의 전당 icon. Stroke uses currentColor. */
 export function TrophyMarkIcon(props: IconProps) {
   return (
-    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" {...props}>
-      <path
-        d="M9.66797 1V4.66699C9.66797 5.46273 9.35173 6.22639 8.78906 6.78906C8.2264 7.35168 7.46269 7.66699 6.66699 7.66699C5.8715 7.66694 5.10848 7.35146 4.5459 6.78906C4.05363 6.2968 3.74989 5.6506 3.68164 4.96387L3.66699 4.66699V1H9.66797ZM1.66699 3.66699C1.49015 3.66699 1.32036 3.59673 1.19531 3.47168C1.07028 3.34663 1 3.17684 1 3C1.00006 2.82324 1.07032 2.65331 1.19531 2.52832C1.32034 2.40341 1.49025 2.33301 1.66699 2.33301V3.66699ZM11.668 2.33301C11.8445 2.33311 12.0137 2.40362 12.1387 2.52832C12.2637 2.65331 12.3339 2.82324 12.334 3C12.334 3.17685 12.2637 3.34663 12.1387 3.47168C12.0137 3.59653 11.8446 3.66689 11.668 3.66699V2.33301Z"
-        stroke="#F59E0B"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" {...props}>
+      <path d={TROPHY_PATH} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -386,13 +385,8 @@ export function TrophyMarkIcon(props: IconProps) {
 /** Figma 3:702 — 14px mark in the "1위 서포터" pill */
 export function TrophyMarkSmallIcon(props: IconProps) {
   return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" {...props}>
-      <path
-        d="M9.66797 1V4.66699C9.66797 5.46273 9.35173 6.22639 8.78906 6.78906C8.2264 7.35168 7.46269 7.66699 6.66699 7.66699C5.8715 7.66694 5.10848 7.35146 4.5459 6.78906C4.05363 6.2968 3.74989 5.6506 3.68164 4.96387L3.66699 4.66699V1H9.66797ZM1.66699 3.66699C1.49015 3.66699 1.32036 3.59673 1.19531 3.47168C1.07028 3.34663 1 3.17684 1 3C1.00006 2.82324 1.07032 2.65331 1.19531 2.52832C1.32034 2.40341 1.49025 2.33301 1.66699 2.33301V3.66699ZM11.668 2.33301C11.8445 2.33311 12.0137 2.40362 12.1387 2.52832C12.2637 2.65331 12.3339 2.82324 12.334 3C12.334 3.17685 12.2637 3.34663 12.1387 3.47168C12.0137 3.59653 11.8446 3.66689 11.668 3.66699V2.33301Z"
-        stroke="#F59E0B"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" {...props}>
+      <path d={TROPHY_PATH} stroke="#F59E0B" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

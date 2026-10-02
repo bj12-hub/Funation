@@ -68,6 +68,7 @@
 
 .heroMark {
   flex-shrink: 0;
+  color: var(--color-gold);
 }
 
 .heroDescription {
