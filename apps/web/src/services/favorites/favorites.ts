@@ -111,9 +111,9 @@ const globalForFavorites = globalThis as typeof globalThis & { __funationMockFav
 
 function favorites() {
   return (globalForFavorites.__funationMockFavorites ??= [
-    { creatorId: "c4", name: "피식대학", avatarUrl: "/mock/favorites/creator-1.png", subscriberCount: 3_050_000, verified: true, isLive: true },
-    { creatorId: "c3", name: "빠니보틀", avatarUrl: "/mock/favorites/creator-2.png", subscriberCount: 2_400_000, verified: true, isLive: false },
-    { creatorId: "c1", name: "침착맨", avatarUrl: "/mock/favorites/creator-3.png", subscriberCount: 2_600_000, verified: true, isLive: true },
-    { creatorId: "c2", name: "곽튜브", avatarUrl: "/mock/favorites/creator-4.png", subscriberCount: 1_950_000, verified: true, isLive: false }
+    { creatorId: "c4", name: "불꽃크루", avatarUrl: "/mock/favorites/creator-1.png", subscriberCount: 91_000, verified: true, isLive: true },
+    { creatorId: "c3", name: "밤톨게임", avatarUrl: "/mock/favorites/creator-2.png", subscriberCount: 27_000, verified: true, isLive: false },
+    { creatorId: "c1", name: "하루봄", avatarUrl: "/mock/favorites/creator-3.png", subscriberCount: 48_000, verified: true, isLive: true },
+    { creatorId: "c2", name: "도도쭈", avatarUrl: "/mock/favorites/creator-4.png", subscriberCount: 36_000, verified: true, isLive: false }
   ]);
 }

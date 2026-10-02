@@ -64,7 +64,7 @@ export async function getCreatorRoom(creatorId: string): Promise<CreatorRoom | n
       creator.isLive && creator.viewerCount !== null && !MOCK_OFFLINE.includes(creator.id)
         ? {
             status: "LIVE",
-            caption: "이노레이블 x 탑스트리머 4차 특별오디션 생중계 중! 후원 및 실시간 투표에 참여해보세요.",
+            caption: "금요일 밤 소통 방송 중! 오늘의 사연과 시청자 투표에 참여해 보세요.",
             viewerCount: creator.viewerCount,
             thumbnailUrl: "/mock/room/stream-chat.jpg",
             rankBadge: creator.id === "c4" ? "TOP 1 RANKER" : null,
@@ -77,7 +77,7 @@ export async function getCreatorRoom(creatorId: string): Promise<CreatorRoom | n
 }
 
 // ── Mock data: Figma 826:685 / 610:138 ─────────────────────────────────────────
-// 빠니보틀(c3) and 곽튜브(c2) are offline, as in the favorites frame 735:3856, so 710:195 can be seen.
+// 밤톨게임(c3) and 도도쭈(c2) are offline, as in the favorites frame 735:3856, so 710:195 can be seen.
 const MOCK_OFFLINE = ["c2", "c3"];
 
 const CHANNELS: CreatorRoom["channels"] = [
@@ -88,9 +88,9 @@ const CHANNELS: CreatorRoom["channels"] = [
 
 const BANNER: RoomBanner = {
   label: "이벤트",
-  title: "썸네이션 첫 결제 프로모션! 프리미엄 1개월 무료 체험",
-  description: "지금 구독하면 광고 없는 초고화질 무제한 스트리밍이 첫 달 무료! 최신 오리지널 예능 단독 오픈.",
-  ctaLabel: "지금 참여하기",
+  title: "크루 방송 시즌 오픈 기념 이벤트",
+  description: "엑셀방송에 참여한 시청자를 위한 시즌 이벤트예요. 보상 내용은 확정되면 안내돼요 (TBD).",
+  ctaLabel: "이벤트 보기",
   imageUrl: "/mock/home/promo-banner.jpg",
   // Code-first: the events page (the specific promotion page is still TBD).
   href: "/events"
