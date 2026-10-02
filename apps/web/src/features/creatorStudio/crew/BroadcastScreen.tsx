@@ -196,7 +196,7 @@ export function BroadcastScreen({ view }: { view: BroadcastView }) {
                 <span className={styles.boardScore}>
                   <strong>{formatNumber(r.score)}</strong>
                   <span className={styles.muted}>
-                    후원 {formatNumber(r.donatedFn + r.feedFn)} · 보정 {signed(r.adjust)}
+                    후원 {formatNumber(r.donated + r.feed)} · 보정 {signed(r.adjust)}
                   </span>
                 </span>
                 <span className={styles.boardButtons}>
