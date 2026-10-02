@@ -55,7 +55,14 @@ const JOBS = [
   ["hall-of-fame/promo.jpg", 1536, 672, S.heroArt(1536, 672, 62, "promo")],
   ...[1, 2, 3].map((n) => [`hall-of-fame/supporter-${n}.png`, 188, 208, S.avatar(208, 70 + n).replace('width="208"', 'width="188"').replace('viewBox="0 0 208 208"', 'viewBox="10 0 188 208"')]),
   ...[4, 5, 6, 7, 8, 9, 10].map((n) => [`hall-of-fame/supporter-${n}.png`, 88, 88, S.avatar(88, 70 + n)]),
-  ["account/avatar.png", 160, 160, S.avatar(160, 99)]
+  ["account/avatar.png", 160, 160, S.avatar(160, 99)],
+  // Video donation thumbnails shown in mock mode instead of i.ytimg.com (320×180 like YouTube mqdefault)
+  ["video/thumb-1.jpg", 320, 180, S.singThumb(320, 180, 81)],
+  ["video/thumb-2.jpg", 320, 180, S.gameThumb(320, 180, 82)],
+  ["video/thumb-3.jpg", 320, 180, S.excelThumb(320, 180, 83, { members: crewA, count: 4, title: "하이라이트 · 역전" })],
+  ["video/thumb-4.jpg", 320, 180, S.mukbangThumb(320, 180, 84)],
+  ["video/thumb-5.jpg", 320, 180, S.talkThumb(320, 180, 85, { neon: "클립" })],
+  ["video/thumb-6.jpg", 320, 180, S.virtualThumb(320, 180, 86)]
 ];
 
 const only = process.argv[2];
