@@ -21,6 +21,7 @@ Since 2026-09-29 features without a Figma frame are built in code first and desi
 | `/creator/crew/broadcast` 방송 운영 (`crew/BroadcastScreen.tsx`) + 멤버/방송 운영 tabs | crew broadcast PR | Start form (팀 배틀 배정), live scoreboard with 보정 buttons, team gauge, 보정 로그, OBS 주소, 방송 이력 |
 | 방송 운영 "후원 리스트" (`crew/BroadcastFeed.tsx`) + 시작 폼 "프로젝트" | crew broadcast v3 PR | 멤버 키워드, 반영 방식 (자동 / 확인 후), 시뮬 후원, 한방 (시작 · STOP 몰아주기 · 취소), 필터 (전체 · 미지정·대기 · 반영 · 취소 건), 멤버 배정 select; 프로젝트 · 회차 chip on live title and history |
 | 방송 운영 "자동엑셀" (`crew/ExcelPanel.tsx`, `BroadcastFeed.tsx`) | auto-excel PR | 점수 기준 (FN 그대로 / 원화 환산), 단위별 환산값 직접 입력 (FN · USD · JPY · 별풍선 · 치즈 · FlexTV 후원, 기본값 없음 — TBD), 배수 규칙 (기준 금액 이상 ×배수, 최대 5개), 후원별 기여도 (규칙 / 점수 / 배수 수기 입력), 플랫폼 · BJ별 기여도 표, 시뮬 후원 단위 선택, 후원 연동 이벤트가 후원 리스트에 들어옴. 저장 버튼 없이 입력 즉시 반영 |
+| 방송 운영 "실시간 배틀" (`crew/BattlePanel.tsx`) + OBS `/overlay/crew/[key]?battle` | crew battle PR | BJ 1:1 또는 A팀 vs B팀(팀 배틀 방송), 배틀 시간(분 · 3/5/10분 프리셋), 남은 시간 표시, ±30초 · ±1분, 지금 끝내기, 줄다리기 게이지, 앞서는 중 / 승리 · 무승부, 배틀 기록, 오버레이 주소 복사. 점수 = 배틀 중 받은 자동엑셀 점수(보정 제외). TBD: 배틀 배수 · 벌칙 · 상금 |
 | `/overlay/crew/[key]` OBS scoreboard (`crew/CrewScoreOverlay.tsx`) | crew broadcast PR | Transparent browser source, top 10 + team gauge |
 
 | `/creator/settlement` 정산 준비 체크리스트 (`settlement/SettlementChecklist.tsx`) | settlement checklist PR | 4 steps (본인인증 · 정산 자료 등록 · 서류 심사 · 정산 계좌) with links; sits between the 429:4 banner and cards |

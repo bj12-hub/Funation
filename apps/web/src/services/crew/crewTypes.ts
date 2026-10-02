@@ -147,6 +147,41 @@ export type BroadcastLive = {
   teams: { key: TeamKey; score: number }[];
   logs: ScoreLog[];
   subBoards: SubBoard[];
+  /** 실시간 배틀 of this broadcast (oldest first; at most one RUNNING). */
+  battles: Battle[];
+};
+
+// ── 실시간 배틀 (같은 크루 안 BJ 1:1 또는 A팀 vs B팀 · 타이머) — code-first ─────────────────────
+
+export const BATTLES_MAX = 20;
+export const BATTLE_TITLE_MAX = 20;
+export const BATTLE_MIN_SEC = 10;
+export const BATTLE_MAX_SEC = 3 * 3600;
+/** Quick time buttons on the remote (seconds; negative takes time away). */
+export const BATTLE_TIME_STEPS = [-60, -30, 30, 60] as const;
+
+/** MEMBERS: one BJ against another. TEAMS: the broadcast's A팀 vs B팀 (team mode only). */
+export type BattleMode = "MEMBERS" | "TEAMS";
+export type BattleSide = { key: TeamKey; label: string; color: string; memberIds: string[]; score: number };
+
+/**
+ * Score of a side = points its members received while the battle runs (same 자동엑셀 points as the
+ * scoreboard, 보정 excluded). The battle ends when time runs out or the operator stops it.
+ */
+export type Battle = {
+  no: number;
+  title: string;
+  mode: BattleMode;
+  startedAt: string;
+  endsAt: string;
+  /** Set when stopped early (or by 방송 종료); otherwise the battle ends at `endsAt`. */
+  stoppedAt: string | null;
+  running: boolean;
+  /** Seconds left when the view was built (0 once ended). */
+  remainingSec: number;
+  sides: [BattleSide, BattleSide];
+  /** Leading side while running; the result once ended. null = no points yet. */
+  leader: TeamKey | "DRAW" | null;
 };
 
 export const SUB_BOARD_MAX = 5;
