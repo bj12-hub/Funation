@@ -7,7 +7,8 @@ import { mockAccount } from "@/services/account/mockStore";
 import { enqueueDonationAlert } from "@/services/creator/alertCore";
 import { getCreatorById } from "@/services/creators/creators";
 import { attributeMemberDonation, isActiveMember, recordBroadcastDonation } from "@/services/crew/crewCore";
-import { attributeDonation, ownsNickname } from "@/services/supporter/identityCore";
+import { attributeDonation, ownsNickname, resolveBadges } from "@/services/supporter/identityCore";
+import { alertBadgeLabels } from "@/services/supporter/identityTypes";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { luckyTierFor, type DonationCatalog } from "./donationCatalog";
 import { getDonationCatalog, matchSignatureByAmount } from "./signatureCore";
@@ -47,6 +48,11 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
   if (mockAccount.fnBalance < request.amount) {
     result = { status: "INSUFFICIENT_FN", balance: mockAccount.fnBalance, required: request.amount };
   } else {
+    // What the alert shows — the same values as the confirm dialog preview (getAlertBadges), resolved
+    // before this donation counts. A hidden profile shows 익명 without badges (TBD: final display rules).
+    const shown = request.hideProfile ? null : resolveBadges(request.nicknameId, creator.id);
+    const donor = shown?.name ?? "익명";
+    const badges = shown ? alertBadgeLabels(shown) : [];
     // Debit and record in one step (the backend must do this in a single transaction).
     mockAccount.fnBalance -= request.amount;
     const now = new Date();
@@ -64,17 +70,16 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
     });
     attributeDonation(donationId, request.nicknameId);
     attributeMemberDonation(donationId, creator.id, request.memberId, request.amount);
-    if (!request.memberId) recordBroadcastDonation(creator.id, { donor: request.hideProfile ? "익명" : mockAccount.nickname, message: request.summary, fnAmount: request.amount });
-    // Alert delivery (TBD: donor display name rules — anonymous, 별명, hidden profile).
+    if (!request.memberId) recordBroadcastDonation(creator.id, { donor, message: request.summary, fnAmount: request.amount });
     enqueueDonationAlert(creator.id, {
-      donor: request.hideProfile ? "익명" : mockAccount.nickname,
+      donor,
+      badges,
       message: request.summary,
       fnAmount: request.amount,
       // 금액 매칭 (시그니처 관리): a 일반 후원 whose amount equals an AMOUNT-match signature alerts as that signature.
       typeLabel: alertTypeLabel(catalog, request.type, request.amount)
     });
     // 영상 · 그림후원 위젯: paid requests reach the creator's queue / gallery.
-    const donor = request.hideProfile ? "익명" : mockAccount.nickname;
     const d = request.details as Record<string, unknown>;
     if (request.type === "VIDEO") enqueueDonationVideo(creator.id, { donor, fnAmount: request.amount, videoId: d.videoId as string, startSec: d.start as number, endSec: d.end as number });
     if (request.type === "DRAWING") addDonationDrawing(creator.id, { donor, title: d.title as string, fnAmount: request.amount, image: d.image as string });

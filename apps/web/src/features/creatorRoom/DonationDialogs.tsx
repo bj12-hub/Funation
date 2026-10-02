@@ -4,12 +4,16 @@ import { Modal } from "@/components/ui/Modal";
 import { formatNumber } from "@/lib/format";
 import styles from "./donationDialogs.module.css";
 
-/** Figma 613:6 후원하기 확인 */
+/** What the donation alert will show — resolved on the server (getAlertBadges), never assembled in the browser. */
+export type AlertPreview = { status: "LOADING" } | { status: "READY"; name: string; badges: string[] } | { status: "ERROR" };
+
+/** Figma 613:6 후원하기 확인 (+ 후원 알림 미리보기, code-first) */
 export function DonationConfirmDialog({
   open,
   creatorName,
   amount,
   rows,
+  alert,
   pending,
   error,
   onCancel,
@@ -20,6 +24,8 @@ export function DonationConfirmDialog({
   amount: number;
   /** Type-specific rows (message, signature, video …). */
   rows: { label: string; value: string }[];
+  /** null = signed-out or no preview. */
+  alert: AlertPreview | null;
   pending: boolean;
   error: string | null;
   onCancel: () => void;
@@ -44,6 +50,31 @@ export function DonationConfirmDialog({
           </div>
         ))}
       </dl>
+      {alert && (
+        <section className={styles.alertPreview} aria-labelledby="donation-alert-preview" aria-busy={alert.status === "LOADING"}>
+          <h3 id="donation-alert-preview" className={styles.alertPreviewTitle}>
+            후원 알림 미리보기
+          </h3>
+          {alert.status === "LOADING" && <p className={styles.alertPreviewNote}>불러오는 중…</p>}
+          {alert.status === "ERROR" && <p className={styles.alertPreviewNote}>미리보기를 불러오지 못했어요. 후원은 그대로 진행할 수 있어요.</p>}
+          {alert.status === "READY" && (
+            <>
+              {alert.badges.length > 0 && (
+                <span className={styles.alertBadges}>
+                  {alert.badges.map((b) => (
+                    <span key={b} className={styles.alertBadge}>
+                      {b}
+                    </span>
+                  ))}
+                </span>
+              )}
+              <p className={styles.alertHeadline}>
+                <strong>{alert.name}</strong>님이 <strong className={styles.alertAmount}>{formatNumber(amount)} FN</strong> 후원!
+              </p>
+            </>
+          )}
+        </section>
+      )}
       {error && (
         <p className={styles.error} role="alert">
           {error}
