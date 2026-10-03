@@ -8,7 +8,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/login` | ✅ | 13:7 · 718:123 · 718:168 · 718:213 · `/login/password-change` 718:335 (비밀번호 변경 권유, the login action redirects here when the password is old) — `?role=` from 280:2 is passed through (TBD) |
 | `/signup` | ✅ | 280:56 · 13:63 · 722:473 · 722:536 · 722:599 · 45:39 · 722:692–722:1059 · 723:183 |
 | `/password-reset` | ✅ | 13:179 · 718:626 · 718:582 · 720:18 · 720:60 · 720:103 · 718:244 |
-| `/live` | ✅ | funnation-all-live-page 617:316 (전체라이브) — `?category=` preselects a category |
+| `/live` | ✅ | funnation-all-live-page 617:316 (전체라이브) — 인기 / 전체 두 구분만, 주제 카테고리 없음 |
 | `/live/popular` | ✅ | funnation-popular-live-page 617:5 (인기라이브) |
 | `/creators` | ✅ | funation-all-creators-page 690:5 — `?category=` `?q=` `?sort=` `?page=` |
 | `/hall-of-fame` | ✅ | funation-hall-of-fame 3:637 — `?period=all|week|day` (default 이번 달) |
@@ -33,7 +33,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/favorites` | ✅ | funation-favorites-page 735:3856 — signed-in only, `?q=` `?page=` |
 | `/creators/[id]` | ✅ | 라이브 826:685 (채팅) · 610:138 (후원), 오프라인 710:195, 공유 826:387 · 후원 유형 851:4546 (일반) · 851:4665 (미니) · 851:4788 (영상) · 851:4929 + 875:1815 (시그니처) · 851:5054 (위시) · 851:5174 + 875:6948–8546 (럭키박스) · 867:2458 (룰렛) · 867:2545 (퀘스트) · 867:2647 (그림) · 867:2755 / 867:2855 / 867:2955 (퀴즈) · 후원 확인 613:6 · 완료 613:122 · FN 부족 613:237 |
 | `/wallet/charges` | ✅ | FN 충전내역 640:2 · 639:2 (empty) · 상세 643:4 · 644:6 · 644:185 · 644:364 — signed-in only, `?period=` `?from=` `?to=` `?page=` |
-| `/wallet/donations` | ✅ | FN 후원내역 632:4 · 637:214 (empty) — signed-in only, `?type=` (basic · quest · game) + period params |
+| `/wallet/donations` | ✅ | FN 후원내역 632:4 · 637:214 (empty) — signed-in only, `?type=` (basic · quest · game) + period params; 퀘스트 탭: 내가 보낸 진행 중 퀘스트에 성공 / 실패 · 환불 (실패 = 전액 환불, 2026-10-04) |
 | `/wallet` | ✅ | FN Wallet 817:7552 — 사용 가능 · 보류 중 (0, locking TBD) · 누적 사용 + 충전·사용·환불 list, `?kind=CHARGE|USE|REFUND` `?period=30|90|all` `?page=` (no running-balance column: needs a reconciled ledger, TBD) |
 | `/creator` | ✅ | creator-dashboard 245:14 · profile dropdown 758:41 / 296:500 — signed-in only, `?period=` `?from=` `?to=` — Creator role required (non-creators see 크리에이터 권한이 필요합니다; how the role is granted is TBD) |
 | `/creator/settings` | ✅ | creator-account-settings-page 315:405 · 315:2 · 프로필 수정 326:496 — signed-in only |
@@ -50,6 +50,28 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/donation/[platform]/search` | ✅ | 817:9146 · 817:8449 — `?q=`; results + empty |
 | `/donation/[platform]/[creatorId]` | ✅ | 상세·상품 817:9242 / 817:8597 · 메시지·결제 817:9334 / 817:8684 · 확인 817:9411 / 817:8761 · 처리 중 817:9509 / 817:8843 · 완료 817:9553 / 817:8886 · 오류 817:9618 / 817:8948 · FN 부족 817:7699 · 세션 만료 817:7872 — prices from the server adapter catalog (FN ↔ 별풍선/하트 rate TBD) |
 | `/attendance` | ✅ | funation-attendance-page 583:4 · 585:452 (checked in) · 585:66 (완료 popup) · 585:830 (보상 popup) — signed-in only |
+| `/creator/chat` | ✅ code-first | 통합 채팅 — 치지직 · SOOP · FlexTV · YouTube 채팅, 채팅창 링크, 매니저 링크 (C01 `49:2` · C01b `129:2`) |
+| `/popout/chat` | ✅ code-first | 통합 채팅창 (단독 웹페이지, 크리에이터 로그인) — C02 `120:8188` · C02b `127:3` |
+| `/popout/chat/m/[token]` | ✅ code-first | 매니저 채팅창 (링크별 권한, 계정 없이) — C03 `123:8244` · C03b `125:2` · C04 `123:8311` · C04b `124:110` |
+| `/creator/revenue` | ✅ code-first | 수익 현황 — T02 `59:808` |
+| `/creator/youtube` | ✅ code-first | 유튜브 연동 — Y01 `62:1539` |
+| `/creator/videos` | ✅ code-first | 영상 목록 — Y02 `63:1255` |
+| `/creator/widgets/effects` | ✅ code-first | 이펙트 · 효과 — W05 `66:1840` |
+| `/creator/widgets/signatures` | ✅ code-first | 시그니처 후원 — W06 `66:2016` |
+| `/creator/widgets/video` | ✅ code-first | 영상 후원 관리 — W07 `66:2322` |
+| `/creator/widgets/drawing` | ✅ code-first | 그림후원 — W08 `66:2498` |
+| `/creator/widgets/assets` | ✅ code-first | 이미지·사운드 라이브러리 — W09 `66:2653` |
+| `/creator/widgets/banner` | ✅ code-first | 배너 (기능 제어 OFF 안내) — W10 `66:2782` |
+| `/creator/widgets/link` | ✅ code-first | 후원 연동 (플랫폼 후원 → 후원 알림) — W11 `67:2520` |
+| `/overlay/effects/[key]` | ✅ code-first | OBS 이펙트 — O03 `92:6828` · OFF O03-off `133:34` |
+| `/overlay/video/[key]` | ✅ code-first | OBS 영상 후원 — O04 `92:6849` · OFF O04-off `133:56` |
+| `/overlay/drawing/[key]` | ✅ code-first | OBS 그림후원 — O05 `92:6856` · OFF O05-off `133:64` |
+| `/overlay/banner/[key]` | ✅ code-first | OBS 배너 — O07 `92:6888` · OFF O07-off `133:75` |
+| `/overlay/chat/[key]` | ✅ code-first | OBS 통합 채팅 — O04 `49:504` · O04b `130:51` · OFF O04c `132:2` |
+| `/overlay/widget/[widget]/[key]` | ✅ code-first | OBS 후원 위젯 — `widget` = goal · total · ranking · recent · event · qr · quest; O12~O17 `146:8173`… · O18 `154:14403` · OFF O12-off `146:8241` |
+| `/notifications` | ✅ code-first | 알림 — S04 `74:444` (헤더 벨 팝오버 S03 `89:7290`) |
+| `/mypage/blocks` | ✅ code-first | 차단 관리 — M10 `151:8644` · 비어 있음 M10b `151:8861` |
+| `/support/notices/[id]` | ✅ code-first | 공지 상세 — S12 `76:2163` |
 | `/terms/[slug]` | 🚧 | 722:3 (terms text pending) — slugs: youth, service, privacy, marketing, operation |
 
 ## Link wiring
@@ -88,12 +110,11 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | Home | 인기 크리에이터 | 크리에이터 프로필 popup 688:646 → 후원하기 `/creators/[id]?tab=donation` |
 | Home | 첫 방문 공지 | notice carousel 200:115 · 200:223 (오늘 하루 열지 않음 · 닫기) |
 | Home | 인기 크리에이터 전체보기 | `/creators` |
-| Home | 보관함에 저장 · 이벤트 배너 지금 참여하기 | not wired (TBD) · `/events` (code-first) |
+| Home | 이벤트 배너 지금 참여하기 | `/events` (code-first) — 보관함 기능은 없음 (2026-10-04 결정, 버튼 삭제) |
 | Footer | 이용약관 · 개인정보처리방침 · 청소년보호정책 · 운영정책 | `/terms/{service,privacy,youth,operation}` |
 | Footer | 고객지원 links | `/support` |
 | Footer | 회사소개 links · SNS icons | plain text — destinations TBD |
 | Live tabs | 인기라이브 · 전체라이브 | `/live/popular` · `/live` |
-| Live popular | 섹션 제목 `>` | `/live?category=<CATEGORY>` |
 | Side nav (live) | 홈 · 추천 라이브 · 실시간 인기 급상승 | `/` · `/live` · `/live/popular` |
 | Side nav | SOOP 후원 · FlexTV 후원 · 후원 내역 · FN Wallet | `/donation/soop` · `/donation/flextv` · `/donation/history` · `/wallet` |
 | FN Wallet | + FN 충전 · FN 내역 자세히 보기 | charge modal · `/wallet/charges` |
@@ -106,7 +127,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | Side nav (live) | 로그인 (guest card) · 마이페이지 | `/login` · `/mypage` |
 | Creators | 카테고리 탭 · 검색 · 정렬 · 페이지 | `/creators?category=&q=&sort=&page=` |
 | Creators | 크리에이터 카드 | `/creators/[id]` |
-| Favorites | 크리에이터 이름 | `/creators/[id]` |
+| Favorites | 크리에이터 이름 · 후원하기 | `/creators/[id]` · `/creators/[id]?tab=donation` |
 | Creator room | 즐겨찾기 · 공유 · 채팅 탭 | favorite server action · share modal · local chat echo |
 | Creator room | 후원하기 | 확인 → 완료 popups (donation server action) · FN 부족 → charge modal |
 | FN 내역 | 충전 내역 · 후원 내역 탭 · 마이페이지 breadcrumb | `/wallet/charges` · `/wallet/donations` · `/mypage` |
@@ -114,7 +135,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | FN 내역 | FN 충전 | charge modal (595:1869 · 595:5475 · 601:839 · 606:540 · 739:*) |
 | FN 내역 | 매출전표 영수증 | not wired — payment provider pending |
 | Hall of fame | 기간 탭 | `/hall-of-fame?period=` |
-| Hall of fame | 나도 서포터 되기 | not wired — destination TBD |
+| Hall of fame | 나도 서포터 되기 | `/creators` (2026-10-04 결정) |
 | My page | 랭킹 노출 · 마케팅 동의 토글 | saved via account service (mock) |
 | My page | 사진 변경 · 닉네임/ID 수정 · 비밀번호 변경 | modals 743:1955 · 743:1997 · 743:2040 · 743:2084 (server actions, mock) |
 | My page | 로그인 연동 관리 · 인증하기 · 플랫폼 연결/해제 | modals 743:2133–2227 · 743:2274 + 750:* · 743:2442 · 743:2488 (mock hand-offs, TBD) |

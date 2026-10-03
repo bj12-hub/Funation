@@ -5,7 +5,8 @@ import styles from "./dashboardSummary.module.css";
 
 /** Card shell with the funnation "제목 · 바로가기 ›" header. */
 export function SummaryCard({ title, href, linkLabel, children }: { title: string; href: string; linkLabel: string; children: React.ReactNode }) {
-  const id = `dash-${title}`;
+  // An id cannot contain spaces (aria-labelledby splits on them).
+  const id = `dash-${title.replace(/\s+/g, "-")}`;
   return (
     <section className={styles.card} aria-labelledby={id}>
       <div className={styles.head}>
