@@ -9,6 +9,7 @@ import { findAsset, matchesContent } from "./assetCore";
 import { QR_SAMPLE_IMAGE, WIDGET_OVERLAYS, WIDGET_OVERLAY_SETTINGS, widgetOverlayPath } from "./widgetOverlayTypes";
 import { readWidget, widgetStore } from "./widgetStore";
 import { mockCreator } from "./mockCreatorStore";
+import { studioWins } from "@/services/donations/gachaCore";
 import { PARSERS } from "./widgetParsers";
 import {
   CUSTOM_SOUND_MAX,
@@ -47,6 +48,7 @@ export async function getWidgetDetail(key: unknown): Promise<WidgetDetail | null
   assertMock();
   if (!(await getCreatorSession()) || !isEditableWidget(key)) return null;
   await mockDelay(300);
+  const wins = studioWins();
   return {
     key,
     url: `https://somnation.com/widget/${WIDGET_PATHS[key]}/${mockCreator.handle}`,
@@ -70,12 +72,9 @@ export async function getWidgetDetail(key: unknown): Promise<WidgetDetail | null
         { name: "노을", amount: 1_000 }
       ],
       miniMinAmount: 100,
-      gachaBoardUrl: `https://somnation.com/widget/gacha-win/${mockCreator.handle}`,
-      gachaWins: [
-        { gacha: "뽑기 후원", prize: "문화상품권 5천원", claimed: false },
-        { gacha: "뽑기 후원", prize: "꽝 (다음 기회에)", claimed: null }
-      ],
-      gachaUnclaimed: 55
+      gachaBoardUrl: widgetOverlayPath("gacha-board", mockCreator.integrationKey),
+      gachaWins: wins.wins,
+      gachaUnclaimed: wins.unclaimed
     }
   } as WidgetDetail;
 }

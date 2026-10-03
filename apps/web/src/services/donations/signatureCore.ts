@@ -1,5 +1,6 @@
 import { getMockDonationCatalog, rouletteOffer, type DonationCatalog, type Signature } from "./donationCatalog";
 import { readWidget } from "@/services/creator/widgetStore";
+import { gachaOffers } from "./gachaCore";
 import { findAsset } from "@/services/creator/assetCore";
 import { assetUrl } from "@/services/creator/assetTypes";
 import { SIGNATURE_IMAGE_PRESETS, type ManagedSignature } from "./signatureTypes";
@@ -35,9 +36,9 @@ export function activeSignatures(): Signature[] {
     .map((s, i) => ({ id: s.id, name: s.name, price: s.price, imageUrl: isSignatureImage(s.imageUrl) ? s.imageUrl : SIGNATURE_IMAGE_PRESETS[0], favorite: mockSignatures.favorites[s.id] ?? false, rank: i + 1 }));
 }
 
-/** The donation catalog with the managed signatures and the 룰렛 settings (used by the room and the Donation Core). */
+/** The donation catalog with the managed signatures and the 룰렛 · 뽑기 settings (used by the room and the Donation Core). */
 export function getDonationCatalog(): DonationCatalog {
-  return { ...getMockDonationCatalog(), signatures: activeSignatures(), roulette: rouletteOffer(readWidget("ROULETTE")) };
+  return { ...getMockDonationCatalog(), signatures: activeSignatures(), roulette: rouletteOffer(readWidget("ROULETTE")), gacha: gachaOffers() };
 }
 
 /** 금액 매칭: an active AMOUNT-match signature whose price equals the 일반 후원 amount, if any. */

@@ -94,8 +94,8 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 방송 · 위젯 | W01d | 투표 위젯 팝업 (무료 · 1인 1표, 프리셋) | `/creator/widgets` | `161:9654` |
 | 방송 · 위젯 | W01e | 룰렛 설정 팝업 (항목 · 확률, 크리에이터 상품) | `/creator/widgets` | `164:9319` |
 | 방송 · 위젯 | W02 | 방송 도구 | `/creator/widgets/tools` | `64:1471` |
-| 방송 · 위젯 | W03 | 오버레이 주소 (후원 위젯 9종 · 투표 · 룰렛 포함 20개) | `/creator/widgets/overlays` | `160:4982` |
-| 방송 · 위젯 | W04 | 리모컨 (기능 제어 · 볼륨 · 방송 도구 · 투표 · 룰렛 대기열) | `/creator/remote` | `163:5103` |
+| 방송 · 위젯 | W03 | 오버레이 주소 (후원 위젯 11종 · 투표 · 룰렛 · 뽑기 포함 22개) | `/creator/widgets/overlays` | `160:4982` |
+| 방송 · 위젯 | W04 | 리모컨 (기능 제어 · 볼륨 · 방송 도구 · 투표 · 룰렛 · 뽑기 수령 처리) | `/creator/remote` | `163:5103` |
 | 방송 · 위젯 | W05 | 이펙트 · 효과 | `/creator/widgets/effects` | `66:1840` |
 | 방송 · 위젯 | W06 | 시그니처 후원 (편집 열림) | `/creator/widgets/signatures` | `66:2016` |
 | 방송 · 위젯 | W07 | 영상 후원 | `/creator/widgets/video` | `66:2322` |
@@ -160,6 +160,7 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 방송 방 후원 패널 | D-WISHLIST | 위시 | `/creators/c1?tab=donation` | `78:3398` |
 | 방송 방 후원 패널 | D-LUCKYBOX | 럭키박스 | `/creators/c1?tab=donation` | `78:3465` |
 | 방송 방 후원 패널 | D-ROULETTE | 룰렛 (크리에이터 항목 · 확률, 내 룰렛) | `/creators/c1?tab=donation` | `164:8940` |
+| 방송 방 후원 패널 | D-GACHA | 뽑기 (확률 · 상품 안내 동의, 내 뽑기) | `/creators/c1?tab=donation` | `166:8940` |
 | 방송 방 후원 패널 | D-QUEST | 퀘스트 (실패 · 취소 시 전액 환불) | `/creators/c1?tab=donation` | `158:8946` |
 | 방송 방 후원 패널 | D-DRAWING | 그림 | `/creators/c1?tab=donation` | `79:3259` |
 | 방송 방 후원 패널 | D-QUIZ_CHOICE | 객관식 퀴즈 | `/creators/c1?tab=donation` | `79:3329` |
@@ -228,5 +229,8 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | OBS 오버레이 | O19 | 투표 (600×500, 진행 중 · 표 수는 예시) | `/overlay/widget/vote/[key]` | `161:9339` |
 | OBS 오버레이 | O20 | 룰렛 (640×360, 회전 중) | `/overlay/widget/roulette/[key]` | `164:9017` |
 | OBS 오버레이 | O20b | 룰렛 (640×360, 결과 공개) | `/overlay/widget/roulette/[key]` | `164:9032` |
+| OBS 오버레이 | O21 | 뽑기 (640×400, 뽑는 중 · 캡슐, 코드 구조대로 그린 예시) | `/overlay/widget/gacha/[key]` | `166:8981` |
+| OBS 오버레이 | O21b | 뽑기 (640×400, 당첨 공개) | `/overlay/widget/gacha/[key]` | `166:8992` |
+| OBS 오버레이 | O22 | 뽑기 당첨 리스트 (800×120, 전광판) | `/overlay/widget/gacha-board/[key]` | `166:9003` |
 
 OBS 오버레이는 투명 배경이라 회색 바탕 위에 그렸어요. 테스트 후원 · 테스트 그림 · 방송 도구 켜기 · 크루 방송 시작으로 띄운 상태를 읽었고, 이펙트(무작위 파티클)와 영상(외부 임베드)은 코드 구조대로 그린 예시 배치예요. 통합 채팅 오버레이는 9 페이지(O04 `49:504`)에 있어요. 아이콘은 회색 자리표시 사각형이에요.

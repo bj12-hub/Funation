@@ -8,6 +8,7 @@
  */
 
 import { DEFAULT_WIDGET_SETTINGS, type RouletteSettings } from "@/services/creator/widgetSettingsTypes";
+import type { GachaOffer } from "./gachaTypes";
 
 export type DonationTypeKey =
   | "TEXT"
@@ -21,7 +22,8 @@ export type DonationTypeKey =
   | "DRAWING"
   | "QUIZ_CHOICE"
   | "QUIZ_INITIAL"
-  | "QUIZ_DRAWING";
+  | "QUIZ_DRAWING"
+  | "GACHA";
 
 export type DonationTypeInfo = {
   key: DonationTypeKey;
@@ -93,6 +95,8 @@ export type DonationCatalog = {
    * percents are shown before paying; the server draws.
    */
   roulette: { enabled: boolean; minAmount: number; dailyLimit: number; items: { name: string; percent: number }[] };
+  /** 뽑기 from the creator's 뽑기 widget (enabled ones); prices are server-owned. */
+  gacha: GachaOffer[];
   /** Quest, drawing and quiz (867:*). Minimum and limits are TBD. */
   game: { minAmount: number; maxTimeSec: number; quizOptions: { min: number; max: number }; maxText: number };
 };
@@ -125,7 +129,9 @@ const MOCK_CATALOG: DonationCatalog = {
     { key: "DRAWING", emoji: "🎨", label: "그림", title: "그림 후원", available: true },
     { key: "QUIZ_CHOICE", emoji: "☷", label: "객관식", title: "객관식 퀴즈", available: true },
     { key: "QUIZ_INITIAL", emoji: "ㄱ", label: "초성", title: "초성 퀴즈", available: true },
-    { key: "QUIZ_DRAWING", emoji: "✎", label: "그림퀴즈", title: "그림 퀴즈", available: true }
+    { key: "QUIZ_DRAWING", emoji: "✎", label: "그림퀴즈", title: "그림 퀴즈", available: true },
+    // Code-first: the 뽑기 후원 widget (373:3675) as a donation type (2026-10-04 결정: 당첨은 크리에이터 상품).
+    { key: "GACHA", emoji: "🧸", label: "뽑기", title: "뽑기 후원", available: true }
   ],
   minAmount: { TEXT: 1_000, MINI: 100, VIDEO: 1_000 },
   maxLength: { message: 100, mini: 30 },
@@ -157,6 +163,8 @@ const MOCK_CATALOG: DonationCatalog = {
   ],
   // Replaced by the creator's 룰렛 settings in getDonationCatalog (signatureCore).
   roulette: rouletteOffer(DEFAULT_WIDGET_SETTINGS.ROULETTE),
+  // Replaced by the creator's 뽑기 settings in getDonationCatalog (signatureCore).
+  gacha: [],
   // Assumptions: 1,000 FN minimum like 일반 후원, time limit up to 60 min, 2–5 quiz options, 50-char text fields.
   game: { minAmount: 1_000, maxTimeSec: 3_600, quizOptions: { min: 2, max: 5 }, maxText: 50 },
   // 851:5231 · 875:6948–8546. The design disagrees on tiers (SILVER 1,000/GOLD 5,000/ROYAL 10,000 in the

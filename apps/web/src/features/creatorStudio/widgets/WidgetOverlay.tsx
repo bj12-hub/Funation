@@ -77,6 +77,10 @@ export function WidgetOverlay({ data }: { data: OverlayWidget }) {
       return <Vote data={data} />;
     case "roulette":
       return <Roulette data={data} />;
+    case "gacha":
+      return <GachaDraw data={data} />;
+    case "gacha-board":
+      return <GachaBoard data={data} />;
   }
 }
 
@@ -301,6 +305,74 @@ function Roulette({ data }: { data: Extract<OverlayWidget, { widget: "roulette" 
           <span className={styles.rouletteMeta}>
             {formatNumber(s.amount)} FN · {s.no}
           </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * 뽑기: the machine (캡슐 · 박스) turns for 기계 회전 시간, then the prize shows for 화면 노출 시간; the 크레딧
+ * style lists the latest prizes instead of a machine. Prizes are the creator's (no FN).
+ */
+function GachaDraw({ data }: { data: Extract<OverlayWidget, { widget: "gacha" }> }) {
+  const s = data.stage;
+  if (!s) return null;
+  const spinning = s.status === "SPINNING" || s.prize === null;
+  return (
+    <div className={styles.gacha} data-status={s.status} style={{ borderColor: s.pointColor }}>
+      <div className={styles.rouletteHead}>
+        <span>{s.gachaName}</span>
+        <b>{spinning ? "DRAWING" : s.blank ? "BLANK" : "WINNER"}</b>
+      </div>
+      {s.style === "CREDIT" ? (
+        <ol className={styles.gachaCredit}>
+          {data.history.map((h, i) => (
+            <li key={i}>
+              {h.donor} · {h.prize}
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <span className={styles.gachaMachine} data-style={s.style} data-spin={spinning || undefined} aria-hidden="true">
+          {s.style === "BOX" ? "🎁" : "🔵"}
+        </span>
+      )}
+      <p className={styles.gachaMessage}>{s.message}</p>
+      {spinning ? (
+        <span className={styles.rouletteMeta}>뽑는 중… · {s.no}</span>
+      ) : (
+        <strong className={styles.gachaPrize} style={{ color: s.blank ? undefined : s.pointColor }}>
+          {s.blank ? `${s.donor} 님 아쉽게도 꽝!` : `🎉 ${s.prize} 당첨!`}
+        </strong>
+      )}
+    </div>
+  );
+}
+
+const BOARD_SEC = { NORMAL: 25, FAST: 12, FIXED: 0 } as const;
+
+/** 뽑기 당첨 리스트 (전광판): prizes in the 산정 기간, scrolling unless 고정. */
+function GachaBoard({ data }: { data: Extract<OverlayWidget, { widget: "gacha-board" }> }) {
+  const b = data.board;
+  const sec = BOARD_SEC[b.speed];
+  const item = (r: (typeof b.rows)[number], copy = "") => (
+    <li key={copy + r.id} aria-hidden={copy ? true : undefined}>
+      <b>{r.donor}</b> {r.prize}
+      {r.claimed && <span className={styles.gachaClaimed}>수령</span>}
+    </li>
+  );
+  return (
+    <div className={styles.gachaBoard}>
+      <strong>{b.title}</strong>
+      {b.rows.length === 0 ? (
+        <span className={styles.rouletteMeta}>아직 당첨된 상품이 없어요</span>
+      ) : (
+        <div className={styles.rankScroll}>
+          <ol style={sec ? { animationDuration: `${sec}s` } : { animation: "none" }}>
+            {b.rows.map((r) => item(r))}
+            {sec > 0 && b.rows.map((r) => item(r, "again-"))}
+          </ol>
         </div>
       )}
     </div>
