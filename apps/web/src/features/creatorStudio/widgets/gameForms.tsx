@@ -161,17 +161,6 @@ const AUTHORITY_TABLE = [
 export function QuestForm({ value: v, onChange }: FormProps<"QUEST">) {
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
   const prize = Math.max(3_000, v.minAmount);
-  const percent = (key: "cancelPenaltyPercent", label: string, help: string) => (
-    <Row
-      label={
-        <>
-          {label} <Help text={help} />
-        </>
-      }
-    >
-      <NumberField label={label} value={v[key]} max={100} suffix="%" onChange={(x) => set(key, x)} />
-    </Row>
-  );
 
   return (
     <>
@@ -238,10 +227,12 @@ export function QuestForm({ value: v, onChange }: FormProps<"QUEST">) {
           >
             <NumberField label="후원 최소 FN" value={v.minAmount} max={PRIZE_MAX} grouped width={140} suffix="FN" onChange={(x) => set("minAmount", x)} />
           </Row>
-          {percent("cancelPenaltyPercent", "취소 패널티 비율", "크리에이터가 퀘스트를 취소할 때 적용되는 비율입니다. 정산 방식은 TBD입니다.")}
-          {/* 2026-10-04 결정: a failed quest refunds the whole amount, so there is no 실패 패널티. */}
-          <Row label="실패한 퀘스트">
+          {/* 2026-10-04 결정: failed or cancelled quests refund everything (no 실패 · 취소 패널티); past the time limit a quest waits for a decision. */}
+          <Row label="실패 · 취소한 퀘스트">
             <span className={styles.hint}>후원한 FN이 후원자에게 전액 환불돼요 (패널티 없음).</span>
+          </Row>
+          <Row label="제한 시간이 지나면">
+            <span className={styles.hint}>결과를 정할 때까지 진행 중으로 남아요.</span>
           </Row>
           <Row
             label={

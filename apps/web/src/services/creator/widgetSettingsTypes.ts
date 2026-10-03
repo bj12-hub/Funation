@@ -346,8 +346,6 @@ export type QuestWidgetSettings = {
   timeFont: ColorFont;
   prizeFont: ColorFont;
   minAmount: number;
-  /** TBD: how the 취소 패널티 is settled. A failed quest refunds everything, so there is no 실패 패널티. */
-  cancelPenaltyPercent: number;
   maxCount: number;
   intervalSec: number;
   allowExtension: boolean;
@@ -643,7 +641,6 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     timeFont: { family: "제주 고딕", color: "#FFFFFF" },
     prizeFont: { family: "제주 고딕", color: "#FFFFFF" },
     minAmount: 3_000,
-    cancelPenaltyPercent: 10,
     maxCount: 5,
     intervalSec: 60,
     allowExtension: true,

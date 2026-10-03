@@ -47,7 +47,7 @@ import {
 import { crewDonationRows } from "@/services/crew/crewCore";
 import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
 import { decideQuest, findQuest, mockQuests } from "@/services/donations/questCore";
-import { isQuestOutcome, type QuestDecideResult } from "@/services/donations/questTypes";
+import { isQuestAction, type QuestAction, type QuestDecideResult } from "@/services/donations/questTypes";
 import { getDonationCatalog } from "@/services/donations/signatureCore";
 import { FIXTURE_AMOUNTS, FIXTURE_DONORS } from "./receivedFixtures";
 import { mockCreator } from "./mockCreatorStore";
@@ -181,23 +181,24 @@ function questDonations(): ReceivedDonation[] {
       message: q.title,
       status: q.status,
       detail: null,
-      canDecide: q.status === "IN_PROGRESS" && q.creatorDecides
+      questActions: (q.status !== "IN_PROGRESS" ? [] : q.creatorDecides ? ["SUCCESS", "FAILED", "CANCELED"] : ["CANCELED"]) as QuestAction[]
     }))
     .sort((x, y) => y.at.localeCompare(x.at));
 }
 
 /**
- * The creator settles a quest sent to this channel (only when the supporter turned on 크리에이터 성공 결정).
- * FAILED refunds the whole amount to the supporter. Deciding again with the same outcome is a no-op.
+ * The creator settles a quest sent to this channel: 성공 / 실패 only when the supporter turned on 크리에이터
+ * 성공 결정, 취소 always. FAILED and CANCELED refund the whole amount to the supporter. Deciding again with
+ * the same outcome is a no-op.
  */
 export async function decideReceivedQuest(input: unknown): Promise<QuestDecideResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
-  if (!isQuestOutcome(v.outcome)) return { status: "INVALID" };
+  if (!isQuestAction(v.outcome)) return { status: "INVALID" };
   const quest = findQuest(v.id);
   if (!quest || quest.channelId !== STUDIO_CHANNEL) return { status: "NOT_FOUND" };
-  if (!quest.creatorDecides) return { status: "FORBIDDEN" };
+  if (v.outcome !== "CANCELED" && !quest.creatorDecides) return { status: "FORBIDDEN" };
   await mockDelay(300);
   return decideQuest(quest, v.outcome, "CREATOR");
 }

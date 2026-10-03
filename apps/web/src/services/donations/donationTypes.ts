@@ -27,8 +27,6 @@ export type DonationDetails =
       type: "QUEST";
       title: string;
       successReward: number;
-      /** TBD: what the 취소 금액 means (a failure always refunds the whole amount). */
-      cancelAmount: number;
       timeLimitSec: number;
       creatorDecides: boolean;
       termsAgreed: boolean;
