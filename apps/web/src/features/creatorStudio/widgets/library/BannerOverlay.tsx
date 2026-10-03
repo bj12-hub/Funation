@@ -30,7 +30,7 @@ export function BannerOverlay({ data }: { data: OverlayBanner }) {
     };
   }, [router]);
 
-  if (!data.enabled || now === null) return null;
+  if (!data.enabled || !data.on || now === null) return null;
   const current = slideIndexAt(now, data.intervalSec, data.slides.length);
   return (
     <div className={styles.stage} data-position={data.position}>

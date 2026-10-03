@@ -46,6 +46,8 @@ export function ToolOverlay({ data }: { data: OverlayTool }) {
     return () => clearInterval(tick);
   }, [data.tool]);
 
+  // 리모컨 기능 제어 OFF: show nothing.
+  if (!data.on) return null;
   switch (data.tool) {
     case "subtitle":
       if (!data.state.text) return null;

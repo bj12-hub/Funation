@@ -1,7 +1,7 @@
 import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
 import type { Platform } from "@/types/platform";
 import { notify } from "@/services/notifications/notificationCore";
-import type { AlertControls, AlertItem, AlertKind, OverlayTarget } from "./alertTypes";
+import type { AlertControls, AlertItem, AlertKind, OverlaySignal, OverlayTarget } from "./alertTypes";
 
 /**
  * Server-only alert queue internals (not a "use server" module): only the Donation Core and the
@@ -20,6 +20,8 @@ type MockAlerts = {
   reloadSeq: number;
   /** 기능별 새로고침 counters (added to `reloadSeq`). */
   reloadSeqs?: Partial<Record<OverlayTarget, number>>;
+  /** 기능 제어: overlays switched OFF (missing = ON). */
+  overlayOff?: Partial<Record<OverlayTarget, boolean>>;
 };
 
 // V2: overlay signals (ttsSkipSeq, reloadSeq).
@@ -35,6 +37,9 @@ export const mockAlerts = (g.__funationMockAlertsV2 ??= {
 
 /** The reload signal one overlay watches: 전체 새로고침 + its own 기능별 새로고침. */
 export const reloadSeqOf = (target: OverlayTarget) => mockAlerts.reloadSeq + (mockAlerts.reloadSeqs?.[target] ?? 0);
+export const isOverlayOn = (target: OverlayTarget) => !mockAlerts.overlayOff?.[target];
+/** Reload signal + ON/OFF for one overlay read. */
+export const overlaySignal = (target: OverlayTarget): OverlaySignal => ({ reloadSeq: reloadSeqOf(target), on: isOverlayOn(target) });
 
 export function enqueueAlert(input: { kind: AlertKind; donor: string; badges?: string[]; message: string; fnAmount: number; amountLabel?: string; typeLabel: string; platform?: Platform }, now = Date.now()) {
   // The FN minimum cannot apply to other currencies (no exchange rate — TBD), so external alerts pass.

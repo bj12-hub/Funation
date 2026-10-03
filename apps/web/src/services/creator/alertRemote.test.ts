@@ -91,21 +91,47 @@ describe("리모컨 / 후원 알림 대기열", () => {
   });
 
   it("reloads one overlay at a time (기능별 새로고침) on top of the reload-all signal", async () => {
-    const { reloadOverlays, getOverlayAlert, getOverlayReloadSeq, overlayKey } = await load();
+    const { reloadOverlays, getOverlayAlert, getOverlaySignal, overlayKey } = await load();
     const tools = await import("./broadcastTools");
     expect(await reloadOverlays({ target: "timer" })).toEqual({ status: "SAVED" });
     expect(await tools.getOverlayTool("timer", overlayKey)).toMatchObject({ reloadSeq: 1 });
     expect(await tools.getOverlayTool("subtitle", overlayKey)).toMatchObject({ reloadSeq: 0 });
     expect(await getOverlayAlert(overlayKey)).toMatchObject({ reloadSeq: 0 });
     await reloadOverlays({ target: "crew" });
-    expect(await getOverlayReloadSeq(overlayKey, "crew")).toBe(1);
-    expect(await getOverlayReloadSeq(overlayKey, "chat")).toBe(0);
+    expect(await getOverlaySignal(overlayKey, "crew")).toMatchObject({ reloadSeq: 1, on: true });
+    expect(await getOverlaySignal(overlayKey, "chat")).toMatchObject({ reloadSeq: 0, on: true });
     await reloadOverlays();
-    expect(await getOverlayReloadSeq(overlayKey, "chat")).toBe(1);
+    expect(await getOverlaySignal(overlayKey, "chat")).toMatchObject({ reloadSeq: 1, on: true });
     expect(await tools.getOverlayTool("timer", overlayKey)).toMatchObject({ reloadSeq: 2 });
     expect((await reloadOverlays({ target: "nope" })).status).toBe("INVALID");
-    expect(await getOverlayReloadSeq("wrong-key", "chat")).toBe("FORBIDDEN");
-    expect(await getOverlayReloadSeq(overlayKey, "nope")).toBe("FORBIDDEN");
+    expect(await getOverlaySignal("wrong-key", "chat")).toBe("FORBIDDEN");
+    expect(await getOverlaySignal(overlayKey, "nope")).toBe("FORBIDDEN");
+  });
+
+  it("switches one overlay OFF and ON (기능 제어) and sets the video volume", async () => {
+    const { setOverlaySwitch, setVideoVolume, getRemoteView, getOverlayAlert, getOverlaySignal, overlayKey } = await load();
+    const tools = await import("./broadcastTools");
+    const media = await import("./media");
+    expect((await getRemoteView())!.overlays.on).toMatchObject({ alert: true, timer: true, crew: true });
+    expect(await setOverlaySwitch({ target: "timer", on: false })).toEqual({ status: "SAVED" });
+    expect(await setOverlaySwitch({ target: "timer", on: false })).toEqual({ status: "SAVED" }); // same value twice
+    expect(await tools.getOverlayTool("timer", overlayKey)).toMatchObject({ on: false });
+    expect(await tools.getOverlayTool("subtitle", overlayKey)).toMatchObject({ on: true });
+    expect(await getOverlayAlert(overlayKey)).toMatchObject({ on: true });
+    await setOverlaySwitch({ target: "crew", on: false });
+    expect(await getOverlaySignal(overlayKey, "crew")).toMatchObject({ on: false });
+    expect((await getRemoteView())!.overlays.on).toMatchObject({ timer: false, crew: false, chat: true });
+    await setOverlaySwitch({ target: "timer", on: true });
+    expect(await tools.getOverlayTool("timer", overlayKey)).toMatchObject({ on: true });
+    expect((await setOverlaySwitch({ target: "timer", on: "yes" })).status).toBe("INVALID");
+    expect((await setOverlaySwitch({ target: "nope", on: true })).status).toBe("INVALID");
+
+    expect(await setVideoVolume({ volume: 35 })).toEqual({ status: "SAVED" });
+    expect((await getRemoteView())!.overlays.videoVolume).toBe(35);
+    expect(await media.getOverlayVideo(overlayKey)).toMatchObject({ volume: 35, on: true });
+    expect((await setVideoVolume({ volume: 101 })).status).toBe("INVALID");
+    signIn(["SUPPORTER"]);
+    expect(await setOverlaySwitch({ target: "timer", on: false })).toEqual({ status: "UNAUTHORIZED" });
   });
 
   it("rejects non-creators and wrong overlay keys", async () => {

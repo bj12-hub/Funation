@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { formatNumber } from "@/lib/format";
 import type { OverlayDrawing, OverlayVideo } from "@/services/creator/mediaTypes";
 import { useReloadSignal } from "../../remote/useReloadSignal";
@@ -24,19 +24,38 @@ function useOverlayPoll(reloadSeq: number) {
   }, [router]);
 }
 
+/** YouTube IFrame API command over postMessage (no script tag needed). */
+function sendVolume(frame: HTMLIFrameElement | null, volume: number) {
+  frame?.contentWindow?.postMessage(JSON.stringify({ event: "command", func: "setVolume", args: [volume] }), "https://www.youtube-nocookie.com");
+}
+
 /**
  * OBS video overlay (code-first): embeds the clip the server has on screen. The server ends it after its
- * range, so the iframe simply disappears; a new id remounts the player.
+ * range, so the iframe simply disappears; a new id remounts the player. 볼륨 (리모컨 · 영상 후원 설정) is
+ * sent to the player through the YouTube IFrame API message channel (`enablejsapi=1`).
  */
 export function VideoOverlay({ data }: { data: OverlayVideo }) {
   useOverlayPoll(data.reloadSeq);
+  const frame = useRef<HTMLIFrameElement>(null);
   const p = data.playing;
-  if (!p) return null;
-  const src = `https://www.youtube-nocookie.com/embed/${p.videoId}?autoplay=1&controls=0&rel=0&start=${p.startSec}&end=${p.endSec}`;
+  const volume = data.volume;
+  // Volume changed while a clip plays.
+  useEffect(() => sendVolume(frame.current, volume), [volume]);
+  // 리모컨 기능 제어 OFF: no player at all (so no sound either).
+  if (!p || !data.on) return null;
+  const src = `https://www.youtube-nocookie.com/embed/${p.videoId}?autoplay=1&controls=0&rel=0&enablejsapi=1&start=${p.startSec}&end=${p.endSec}`;
   return (
     <div className={styles.video}>
-      {/* Volume is applied by OBS audio control; the embed has no volume URL parameter (TBD: IFrame API). */}
-      <iframe key={p.id} className={styles.frame} src={src} title="영상 후원" allow="autoplay; encrypted-media" referrerPolicy="strict-origin-when-cross-origin" />
+      <iframe
+        ref={frame}
+        key={p.id}
+        className={styles.frame}
+        src={src}
+        title="영상 후원"
+        allow="autoplay; encrypted-media"
+        referrerPolicy="strict-origin-when-cross-origin"
+        onLoad={() => sendVolume(frame.current, volume)}
+      />
     </div>
   );
 }
@@ -45,7 +64,7 @@ export function VideoOverlay({ data }: { data: OverlayVideo }) {
 export function DrawingOverlay({ data }: { data: OverlayDrawing }) {
   useOverlayPoll(data.reloadSeq);
   const d = data.drawing;
-  if (!d) return null;
+  if (!d || !data.on) return null;
   return (
     <figure key={d.id} className={styles.drawing}>
       {/* eslint-disable-next-line @next/next/no-img-element */}

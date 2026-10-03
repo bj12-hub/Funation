@@ -36,7 +36,7 @@ export function EffectsOverlay({ data }: { data: OverlayEffects }) {
   useEffect(() => {
     if (!data.alertId || played.current === data.alertId) return;
     played.current = data.alertId;
-    if (!data.emoji && !data.layer) return;
+    if (!data.on || (!data.emoji && !data.layer)) return;
     const rand = (min: number, max: number) => min + Math.random() * (max - min);
     const emoji = data.emoji
       ? Array.from({ length: data.emoji.count }, (_, i) => ({
@@ -58,7 +58,7 @@ export function EffectsOverlay({ data }: { data: OverlayEffects }) {
     return () => clearTimeout(clear);
   }, [data]);
 
-  if (!burst) return null;
+  if (!burst || !data.on) return null;
   const style = (p: Particle) =>
     ({ left: `${p.x}%`, fontSize: `${p.size}px`, animationDelay: `${p.delay}s`, animationDuration: `${p.duration}s`, "--drift": `${p.drift}px` }) as CSSProperties;
   return (

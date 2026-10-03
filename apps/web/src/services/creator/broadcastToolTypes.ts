@@ -40,8 +40,10 @@ export const TIMER_ADJUST_STEPS = [-60, -30, 30, 60] as const;
 
 export type ToolResult = { status: "SAVED" } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
 
-export type OverlayTool =
-  | { tool: "subtitle"; state: SubtitleState; reloadSeq: number }
-  | { tool: "marquee"; state: MarqueeState; reloadSeq: number }
-  | { tool: "timer"; state: TimerState; serverNow: string; reloadSeq: number }
-  | { tool: "credits"; state: CreditsState; crew: { name: string; score: number }[]; reloadSeq: number };
+/** `on` = 리모컨 기능 제어 ON/OFF. */
+export type OverlayTool = (
+  | { tool: "subtitle"; state: SubtitleState }
+  | { tool: "marquee"; state: MarqueeState }
+  | { tool: "timer"; state: TimerState; serverNow: string }
+  | { tool: "credits"; state: CreditsState; crew: { name: string; score: number }[] }
+) & { reloadSeq: number; on: boolean };
