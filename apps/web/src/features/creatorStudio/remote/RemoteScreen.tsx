@@ -30,10 +30,12 @@ import {
   type RemoteResult,
   type RemoteView
 } from "@/services/creator/alertTypes";
+import type { VoteRemoteView } from "@/services/votes/voteTypes";
 import styles from "../crew/crew.module.css";
 import { CopyButton } from "../settings/SettingsCards";
 import remote from "./remote.module.css";
 import { ToolsRemote } from "./ToolsRemote";
+import { VoteRemote } from "./VoteRemote";
 
 const STATUS_LABEL: Record<AlertStatus, string> = { QUEUED: "대기", SHOWING: "표시 중", DONE: "완료", SKIPPED: "건너뜀", FILTERED: "최소 금액 미만" };
 const time = (iso: string) => new Date(iso).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -41,9 +43,20 @@ const time = (iso: string) => new Date(iso).toLocaleTimeString("ko-KR", { hour: 
 /**
  * 리모컨 — code-first (no Figma frame). Route `/creator/remote`. Controls the server-side alert
  * queue that the OBS alert overlay shows: pause, mute, skip, cancel, volumes, minimum amount and
- * 테스트 후원 (display only — no FN moves). Refreshes from the server every few seconds.
+ * 테스트 후원 (display only — no FN moves), plus 방송 도구 and 투표. Refreshes from the server every few
+ * seconds.
  */
-export function RemoteScreen({ view, overlayPath, tools }: { view: RemoteView; overlayPath: string; tools: Pick<ToolStates, "timer" | "credits"> }) {
+export function RemoteScreen({
+  view,
+  overlayPath,
+  tools,
+  vote
+}: {
+  view: RemoteView;
+  overlayPath: string;
+  tools: Pick<ToolStates, "timer" | "credits">;
+  vote: VoteRemoteView;
+}) {
   const router = useRouter();
   const { controls } = view;
   const [amount, setAmount] = useState(10_000);
@@ -260,6 +273,8 @@ export function RemoteScreen({ view, overlayPath, tools }: { view: RemoteView; o
       </div>
 
       <ToolsRemote tools={tools} pending={pending} run={run} />
+
+      <VoteRemote view={vote} pending={pending} run={run} />
 
       <div className={remote.columns}>
         <section className={styles.card} aria-labelledby="test-title">

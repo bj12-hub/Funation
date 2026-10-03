@@ -10,6 +10,7 @@ import { getPublicChannelVideos } from "@/services/creators/channelVideos";
 import { parseChannelView } from "@/features/creatorRoom/channelView";
 import { getCrewPublic } from "@/services/crew/crew";
 import { isFavorite } from "@/services/favorites/favorites";
+import { getRoomVote } from "@/services/votes/votes";
 
 // Figma: live 826:685 · 610:138, offline 710:195
 export const dynamic = "force-dynamic";
@@ -27,7 +28,7 @@ export default async function Page({ params, searchParams }: { params: Params; s
   const { tab, view, show } = await searchParams;
   const postsShow = Math.min(Math.max(CHANNEL_POSTS_PAGE, Math.floor(Number(show)) || CHANNEL_POSTS_PAGE), 100);
   const channelView = tab === "donation" ? "home" : parseChannelView(view);
-  const [room, account, favorite, crew, creator, ranking, posts, videos] = await Promise.all([
+  const [room, account, favorite, crew, creator, ranking, posts, videos, vote] = await Promise.all([
     getCreatorRoom(id),
     getMyAccount(),
     isFavorite(id),
@@ -35,7 +36,8 @@ export default async function Page({ params, searchParams }: { params: Params; s
     getCreatorById(id),
     getChannelMonthlyRanking(id),
     getChannelPosts(id, postsShow),
-    channelView === "videos" ? getPublicChannelVideos(id) : null
+    channelView === "videos" ? getPublicChannelVideos(id) : null,
+    getRoomVote(id)
   ]);
   if (!room || !creator || !ranking || !posts) notFound();
 
@@ -52,6 +54,7 @@ export default async function Page({ params, searchParams }: { params: Params; s
       posts={posts}
       postsShow={postsShow}
       videos={videos}
+      vote={vote}
     />
   );
 }

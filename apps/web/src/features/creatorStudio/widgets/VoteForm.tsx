@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { formatNumber } from "@/lib/format";
 import {
   VOTE_COLORS,
   VOTE_DURATION_MAX_SEC,
@@ -10,10 +9,9 @@ import {
   VOTE_ITEM_MAX_CHARS,
   VOTE_NAME_MAX,
   VOTE_PRESET_MAX,
-  VOTE_PRICE_MAX,
   type VotePreset
 } from "@/services/creator/widgetSettingsTypes";
-import { FontFields, NumberField, Preview, Row, Section, SwitchText } from "./fields";
+import { FontFields, Preview, Row, Section, SwitchText } from "./fields";
 import type { FormProps } from "./forms";
 import { fontStyle } from "./previewStyle";
 import styles from "./widgets.module.css";
@@ -33,12 +31,13 @@ const newPreset = (index: number): VotePreset => ({
   name: "",
   color: VOTE_COLORS[index % VOTE_COLORS.length],
   durationSec: 300,
-  pricePerVote: 1_000,
-  freeVotes: 0,
   items: ["", ""]
 });
 
-/** 투표 위젯 설정 — Figma 315:858. Presets are meant to be run from the remote control (not built yet). */
+/**
+ * 투표 위젯 설정 — Figma 315:858. Presets are started and ended from the 리모컨; voting is free
+ * (2026-10-04 결정: one vote per signed-in viewer, no FN price or 무료 투표권).
+ */
 export function VoteForm({ value: v, onChange }: FormProps<"VOTE">) {
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
   const [openId, setOpenId] = useState<string | null>(v.presets[0]?.id ?? null);
@@ -55,7 +54,7 @@ export function VoteForm({ value: v, onChange }: FormProps<"VOTE">) {
         <div className={styles.votePreview}>
           <strong style={fontStyle(v.titleFont)}>{preview?.name.trim() || "투표 예시"}</strong>
           <div className={styles.voteInfo} style={fontStyle(v.infoFont)}>
-            <span>1 표: {formatNumber(preview?.pricePerVote ?? 1_000)}FN</span>
+            <span>1인 1표 · 무료</span>
             <span>투표 종료까지 {toHms(preview?.durationSec ?? 300)}</span>
           </div>
           <ol>
@@ -120,6 +119,7 @@ export function VoteForm({ value: v, onChange }: FormProps<"VOTE">) {
         }
       >
         <p className={styles.notice}>※ 투표 프리셋을 설정하면 리모컨에서 최소 조작으로 투표 기능을 사용할 수 있습니다.</p>
+        <p className={styles.notice}>※ 투표는 무료예요. 로그인한 시청자가 방송 방에서 투표마다 한 번씩 참여해요.</p>
         {v.presets.length === 0 && <p className={styles.hint}>프리셋이 없습니다. 프리셋을 추가해 주세요.</p>}
         <ul className={styles.presetList}>
           {v.presets.map((p, index) => {
@@ -193,21 +193,6 @@ function PresetFields({ preset: p, onChange }: { preset: VotePreset; onChange: (
             if (sec !== null) onChange({ durationSec: Math.min(sec, VOTE_DURATION_MAX_SEC) });
           }}
         />
-      </Row>
-      <Row label="투표 1회 참여 금액">
-        <NumberField label="투표 1회 참여 금액" value={p.pricePerVote} max={VOTE_PRICE_MAX} grouped width={140} suffix="FN" onChange={(x) => onChange({ pricePerVote: x })} />
-      </Row>
-      <Row
-        label={
-          <>
-            무료 투표권{" "}
-            <span className={styles.help} title="시청자가 FN 없이 참여할 수 있는 투표 수입니다. 지급 기준은 TBD입니다.">
-              ?
-            </span>
-          </>
-        }
-      >
-        <NumberField label="무료 투표권" value={p.freeVotes} max={1000} onChange={(x) => onChange({ freeVotes: x })} />
       </Row>
       <div className={styles.sectionHead}>
         <span className={styles.rowLabel}>투표 항목</span>

@@ -271,8 +271,6 @@ export const VOTE_ITEMS_MIN = 2;
 export const VOTE_ITEMS_MAX = 10;
 export const VOTE_ITEM_MAX_CHARS = 10;
 export const VOTE_NAME_MAX = 30;
-/** Input guards only — vote pricing limits are TBD. */
-export const VOTE_PRICE_MAX = 10_000_000;
 export const VOTE_DURATION_MAX_SEC = 24 * 3600;
 export const VOTE_COLORS = ["#28BA93", "#3B82F6", "#8B5CF6", "#EC4899", "#F97316", "#EAB308"] as const;
 
@@ -281,8 +279,7 @@ export type VotePreset = {
   name: string;
   color: string;
   durationSec: number;
-  pricePerVote: number;
-  freeVotes: number;
+  /** 투표는 무료 (2026-10-04 결정): signed-in viewers vote once each, no FN price or 무료 투표권. */
   items: string[];
 };
 export type VoteSettings = {
@@ -621,7 +618,7 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     titleFont: { family: "제주 고딕", size: 36, color: "#28BA93" },
     infoFont: { family: "제주 고딕", size: 24, color: "#000000" },
     itemFont: { family: "제주 고딕", size: 24, color: "#000000" },
-    presets: [{ id: "preset-1", name: "", color: "#28BA93", durationSec: 300, pricePerVote: 1_000, freeVotes: 0, items: ["", ""] }]
+    presets: [{ id: "preset-1", name: "", color: "#28BA93", durationSec: 300, items: ["", ""] }]
   },
   CUSTOM_SOUND: { sounds: [] },
   LUCKYBOX: {

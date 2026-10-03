@@ -188,5 +188,15 @@ export const OVERLAYS: OverlayEntry[] = [
     size: "600 × 400",
     path: (k) => widgetOverlayPath("quest", k),
     manage: "/creator/widgets"
+  },
+  {
+    id: "widget-vote",
+    target: "widgets",
+    group: "알림",
+    title: "투표",
+    description: "리모컨에서 시작한 무료 투표의 항목별 표 수와 남은 시간을 보여 줘요.",
+    size: "600 × 500",
+    path: (k) => widgetOverlayPath("vote", k),
+    manage: "/creator/remote"
   }
 ];
