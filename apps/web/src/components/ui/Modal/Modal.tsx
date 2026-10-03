@@ -43,9 +43,10 @@ export function Modal({ open, onClose, title, description, children, footer, cus
       ref={ref}
       className={className ? `${styles.dialog} ${className}` : styles.dialog}
       style={width ? { width: `min(${width}px, calc(100vw - 32px))` } : undefined}
-      aria-labelledby={customHeader ? undefined : titleId}
-      aria-label={customHeader ? title : undefined}
-      aria-describedby={description && !customHeader ? descriptionId : undefined}
+      // The title and description only exist while open, so a closed dialog must not point at them.
+      aria-labelledby={open && !customHeader ? titleId : undefined}
+      aria-label={!open || customHeader ? title : undefined}
+      aria-describedby={open && description && !customHeader ? descriptionId : undefined}
       onCancel={(e) => {
         e.preventDefault();
         onClose();
