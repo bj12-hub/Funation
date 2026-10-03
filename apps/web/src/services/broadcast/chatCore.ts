@@ -1,9 +1,24 @@
+import { randomBytes } from "node:crypto";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { ADAPTERS, BROADCAST_PLATFORMS } from "@/services/platforms/adapters";
-import { PlatformError, type ExternalChatMessage, type PlatformErrorCode } from "@/services/platforms/platformTypes";
+import { PLATFORM_ERROR_LABEL, PlatformError, type ExternalChatMessage, type PlatformErrorCode } from "@/services/platforms/platformTypes";
 import { PLATFORM_LABEL, type Platform } from "@/types/platform";
 import { broadcastChannel, broadcastChannelId } from "./channelsCore";
-import type { ChatOverlayLine, ChatPlatformState, ChatSendOutcome, ModerationAction, ModerationEntry, UnifiedChatMessage, UnifiedChatView } from "./chatTypes";
+import {
+  BAN_DURATIONS,
+  CHAT_TEXT_MAX,
+  managerChatPath,
+  type ChatActionResult,
+  type ChatOverlayLine,
+  type ChatPlatformState,
+  type ChatSendOutcome,
+  type ChatSendResult,
+  type ManagerLink,
+  type ManagerPermission,
+  type ModerationAction,
+  type ModerationEntry,
+  type UnifiedChatMessage
+} from "./chatTypes";
 
 /**
  * Server-only 통합 채팅 core (not a "use server" module): merges every connected platform's chat into one
@@ -32,7 +47,11 @@ export type ChatStore = {
   log: ModerationEntry[];
   requests: Record<string, true>;
   lastIngestAt: number;
+  /** 매니저 채팅창 링크 (mock keeps the token as is; the real backend stores only a hash). */
+  managerLinks?: StoredManagerLink[];
 };
+
+export type StoredManagerLink = { id: string; name: string; token: string; permissions: ManagerPermission[]; createdAt: string; lastUsedAt: string | null; requestId: string };
 
 const g = globalThis as typeof globalThis & { __funationMockUnifiedChatV1?: ChatStore };
 export const chatStore = (): ChatStore =>
@@ -112,9 +131,9 @@ export function mockChatReconnect(p: Platform) {
   chatStore().cursors[p] = null;
 }
 
-function log(action: ModerationAction, m: UnifiedChatMessage, detail: string) {
+function log(action: ModerationAction, m: UnifiedChatMessage, detail: string, by: string | null) {
   const s = chatStore();
-  s.log.unshift({ at: new Date().toISOString(), action, platform: m.platform, target: m.author.displayName, detail });
+  s.log.unshift({ at: new Date().toISOString(), action, platform: m.platform, target: m.author.displayName, detail, by });
   s.log.length = Math.min(s.log.length, LOG_MAX);
 }
 
@@ -136,7 +155,7 @@ export function platformStates(): ChatPlatformState[] {
   });
 }
 
-export function chatView(limit = 200): UnifiedChatView {
+export function chatView(limit = 200) {
   const s = chatStore();
   return structuredClone({ platforms: platformStates(), messages: s.messages.slice(-limit), log: s.log.slice(0, 20) });
 }
@@ -185,30 +204,101 @@ export async function sendChat(requestId: string, text: string, platforms: Platf
 export const findMessage = (id: string) => chatStore().messages.find((m) => m.id === id) ?? null;
 
 /** Ours only — works for every platform. Platform-side deletion is `deleteOnPlatform`. */
-export function setHidden(m: UnifiedChatMessage, hidden: boolean) {
+export function setHidden(m: UnifiedChatMessage, hidden: boolean, by: string | null = null) {
   if (hidden && m.hidden) return;
   if (!hidden && (m.hidden === "DELETED" || m.hidden === "BANNED")) throw new PlatformError("UNSUPPORTED", "removed on platform");
   m.hidden = hidden ? "MANUAL" : null;
-  log(hidden ? "HIDE" : "UNHIDE", m, m.text.slice(0, 40));
+  log(hidden ? "HIDE" : "UNHIDE", m, m.text.slice(0, 40), by);
 }
 
-export async function deleteOnPlatform(m: UnifiedChatMessage) {
+export async function deleteOnPlatform(m: UnifiedChatMessage, by: string | null = null) {
   if (!can(m.platform, "CHAT_MODERATE")) throw new PlatformError("UNSUPPORTED", "unsupported");
   const channel = broadcastChannelId(m.platform);
   if (!channel) throw new PlatformError("UNAUTHORIZED", "not connected");
   if (m.hidden === "DELETED") return;
   await ADAPTERS[m.platform].deleteChatMessage(channel, m.externalMessageId);
   m.hidden = "DELETED";
-  log("DELETE", m, m.text.slice(0, 40));
+  log("DELETE", m, m.text.slice(0, 40), by);
 }
 
 /** Bans the author on that platform and hides everything they wrote there. */
-export async function banOnPlatform(m: UnifiedChatMessage, durationSec: number | null, durationLabel: string) {
+export async function banOnPlatform(m: UnifiedChatMessage, durationSec: number | null, durationLabel: string, by: string | null = null) {
   if (!can(m.platform, "CHAT_MODERATE")) throw new PlatformError("UNSUPPORTED", "unsupported");
   const channel = broadcastChannelId(m.platform);
   if (!channel) throw new PlatformError("UNAUTHORIZED", "not connected");
   if (m.author.roles.includes("OWNER")) throw new PlatformError("UNSUPPORTED", "cannot ban the owner");
   await ADAPTERS[m.platform].banChatUser(channel, m.author.platformUserId, durationSec);
   for (const x of chatStore().messages) if (x.platform === m.platform && x.author.platformUserId === m.author.platformUserId && x.hidden !== "DELETED") x.hidden = "BANNED";
-  log("BAN", m, `${PLATFORM_LABEL[m.platform]} ${durationLabel}`);
+  log("BAN", m, `${PLATFORM_LABEL[m.platform]} ${durationLabel}`, by);
+}
+
+// ── Moderation / send actions shared by the creator (session) and manager links (token) ─────────────
+
+const obj = (v: unknown) => (typeof v === "object" && v !== null ? v : {}) as Record<string, unknown>;
+const isRequestId = (v: unknown): v is string => typeof v === "string" && /^[A-Za-z0-9-]{16,64}$/.test(v);
+const failure = (e: unknown): ChatActionResult => ({ status: "FAILED", message: e instanceof PlatformError ? PLATFORM_ERROR_LABEL[e.code] : "처리하지 못했어요. 잠시 후 다시 시도해 주세요." });
+
+/** 숨김 · 다시 보이기 on our overlay. `by` = manager name (null = creator). */
+export function hideAction(input: unknown, by: string | null): ChatActionResult {
+  const v = obj(input);
+  const m = typeof v.id === "string" ? findMessage(v.id) : null;
+  if (!m || typeof v.hidden !== "boolean") return { status: "INVALID", message: "메시지를 찾을 수 없어요." };
+  try {
+    setHidden(m, v.hidden, by);
+  } catch {
+    return { status: "INVALID", message: "플랫폼에서 삭제 · 차단된 메시지는 다시 보이게 할 수 없어요." };
+  }
+  return { status: "OK" };
+}
+
+export async function deleteAction(input: unknown, by: string | null): Promise<ChatActionResult> {
+  const v = obj(input);
+  const m = typeof v.id === "string" ? findMessage(v.id) : null;
+  if (!m) return { status: "INVALID", message: "메시지를 찾을 수 없어요." };
+  try {
+    await deleteOnPlatform(m, by);
+  } catch (e) {
+    return failure(e);
+  }
+  return { status: "OK" };
+}
+
+export async function banAction(input: unknown, by: string | null): Promise<ChatActionResult> {
+  const v = obj(input);
+  const m = typeof v.id === "string" ? findMessage(v.id) : null;
+  const duration = BAN_DURATIONS.find((d) => d.sec === v.durationSec);
+  if (!m || !duration) return { status: "INVALID", message: "잘못된 요청입니다." };
+  if (m.author.roles.includes("OWNER")) return { status: "INVALID", message: "스트리머 본인은 차단할 수 없어요." };
+  try {
+    await banOnPlatform(m, duration.sec, duration.label, by);
+  } catch (e) {
+    return failure(e);
+  }
+  return { status: "OK" };
+}
+
+/** 통합 입력: one message to the chosen platforms (sent as the channel). Partial failure is reported per platform. */
+export async function sendAction(input: unknown): Promise<ChatSendResult> {
+  const v = obj(input);
+  if (!isRequestId(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
+  const text = typeof v.text === "string" ? v.text.trim() : "";
+  if (!text || text.length > CHAT_TEXT_MAX) return { status: "INVALID", message: `메시지를 1~${CHAT_TEXT_MAX}자로 입력해 주세요.` };
+  if (MOCK_FORBIDDEN_WORDS.some((w) => text.toLowerCase().includes(w))) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
+  const platforms = Array.isArray(v.platforms) ? [...new Set(v.platforms.filter((p): p is Platform => BROADCAST_PLATFORMS.includes(p as Platform)))] : [];
+  if (platforms.length === 0) return { status: "INVALID", message: "보낼 플랫폼을 골라 주세요." };
+  const existing = chatStore().sends[v.requestId];
+  if (existing && existing.text !== text) return { status: "INVALID", message: "잘못된 요청입니다." };
+  return { status: "OK", results: await sendChat(v.requestId, text, existing?.platforms ?? platforms) };
+}
+
+// ── 매니저 채팅창 링크 ──────────────────────────────────────────────────────────
+
+export const managerLinks = () => (chatStore().managerLinks ??= []);
+/** 192-bit random token, URL-safe. */
+export const newManagerToken = () => randomBytes(24).toString("base64url");
+export const isManagerToken = (v: unknown): v is string => typeof v === "string" && /^[A-Za-z0-9_-]{32}$/.test(v);
+export const managerLinkByToken = (token: unknown) => (isManagerToken(token) ? (managerLinks().find((l) => l.token === token) ?? null) : null);
+
+export function managerLinksView(): ManagerLink[] {
+  return managerLinks().map((l) => ({ id: l.id, name: l.name, path: managerChatPath(l.token), permissions: [...l.permissions], createdAt: l.createdAt, lastUsedAt: l.lastUsedAt }));
 }
