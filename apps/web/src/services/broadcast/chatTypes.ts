@@ -44,9 +44,32 @@ export type ChatPlatformState = {
 
 export type ModerationAction = "HIDE" | "UNHIDE" | "DELETE" | "BAN";
 
-export type ModerationEntry = { at: string; action: ModerationAction; platform: Platform; target: string; detail: string };
+/** `by`: null = the creator, otherwise the manager link's name (매니저 채팅창 링크). */
+export type ModerationEntry = { at: string; action: ModerationAction; platform: Platform; target: string; detail: string; by: string | null };
 
-export type UnifiedChatView = { platforms: ChatPlatformState[]; messages: UnifiedChatMessage[]; log: ModerationEntry[] };
+export type UnifiedChatView = { platforms: ChatPlatformState[]; messages: UnifiedChatMessage[]; log: ModerationEntry[]; managerLinks: ManagerLink[] };
+
+// ── 매니저 채팅창 링크 — code-first. A link per manager; the creator picks what it may do (viewing is always on).
+
+export const MANAGER_PERMISSIONS = [
+  { key: "HIDE", label: "숨김", hint: "오버레이에서 가리기 · 다시 보이기" },
+  { key: "MODERATE", label: "삭제 · 차단", hint: "플랫폼에서 메시지 삭제 · 시청자 차단" },
+  { key: "SEND", label: "통합 입력", hint: "채널 이름으로 모든 플랫폼에 보내기" }
+] as const;
+export type ManagerPermission = (typeof MANAGER_PERMISSIONS)[number]["key"];
+export const isManagerPermission = (v: unknown): v is ManagerPermission => MANAGER_PERMISSIONS.some((p) => p.key === v);
+export const MANAGER_LINKS_MAX = 5;
+export const MANAGER_NAME_MAX = 12;
+/** A new link starts with 숨김 only; the creator turns on more. */
+export const MANAGER_DEFAULT_PERMISSIONS: ManagerPermission[] = ["HIDE"];
+
+/** Shown to the creator only (the path carries the secret token). */
+export type ManagerLink = { id: string; name: string; path: string; permissions: ManagerPermission[]; createdAt: string; lastUsedAt: string | null };
+
+/** What a manager link sees: the feed and its own permissions (no log, no other links, no channel settings). */
+export type ManagerChatView = { name: string; permissions: ManagerPermission[]; platforms: ChatPlatformState[]; messages: UnifiedChatMessage[] };
+
+export const managerChatPath = (token: string) => `/popout/chat/m/${token}`;
 
 export type ChatSendOutcome =
   | { status: "SENT"; externalMessageId: string }

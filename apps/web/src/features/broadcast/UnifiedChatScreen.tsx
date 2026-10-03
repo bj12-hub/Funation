@@ -14,15 +14,33 @@ import {
   simulateViewerChat
 } from "@/services/broadcast/unifiedChat";
 import {
+  createManagerLink,
+  deleteManagerLink,
+  getManagerChat,
+  managerBanAuthor,
+  managerDeleteMessage,
+  managerHideMessage,
+  managerSendChat,
+  setManagerLinkPermissions
+} from "@/services/broadcast/managerChat";
+import {
   BAN_DURATIONS,
   CHAT_WINDOW_PATH,
   CHAT_TEXT_MAX,
   HIDDEN_LABEL,
+  MANAGER_DEFAULT_PERMISSIONS,
+  MANAGER_LINKS_MAX,
+  MANAGER_NAME_MAX,
+  MANAGER_PERMISSIONS,
   ROLE_LABEL,
   SEND_OUTCOME_LABEL,
   type ChatActionResult,
   type ChatPlatformState,
   type ChatSendOutcome,
+  type ChatSendResult,
+  type ManagerChatView,
+  type ManagerLink,
+  type ManagerPermission,
   type UnifiedChatMessage,
   type UnifiedChatView
 } from "@/services/broadcast/chatTypes";
@@ -87,8 +105,8 @@ export function UnifiedChatScreen({ initial, variant = "studio" }: { initial: Un
             채널 연결 · 관리 기록 ↗
           </Link>
         </header>
-        <Feed view={view} states={states} pending={pending} run={run} />
-        <Composer states={states} onDone={refresh} setNote={setNote} />
+        <Feed view={view} states={states} pending={pending} run={run} api={CREATOR_API} />
+        <Composer states={states} onDone={refresh} setNote={setNote} send={sendUnifiedChat} />
         {note && (
           <p className={note.tone === "error" ? crew.error : crew.ok} role={note.tone === "error" ? "alert" : "status"}>
             {note.text}
@@ -126,10 +144,12 @@ export function UnifiedChatScreen({ initial, variant = "studio" }: { initial: Un
         </div>
       </section>
 
+      <ManagerLinks links={view.managerLinks} origin={origin} pending={pending} run={run} />
+
       <div className={styles.layout}>
         <div className={styles.side}>
-          <Feed view={view} states={states} pending={pending} run={run} />
-          <Composer states={states} onDone={refresh} setNote={setNote} />
+          <Feed view={view} states={states} pending={pending} run={run} api={CREATOR_API} />
+          <Composer states={states} onDone={refresh} setNote={setNote} send={sendUnifiedChat} />
         </div>
         <div className={styles.side}>
           <Channels states={view.platforms} pending={pending} run={run} />
@@ -145,6 +165,7 @@ export function UnifiedChatScreen({ initial, variant = "studio" }: { initial: Un
                 {view.log.map((l, i) => (
                   <li key={`${l.at}-${i}`}>
                     {time(l.at)} · {PLATFORM_LABEL[l.platform]} · {{ HIDE: "숨김", UNHIDE: "다시 보이기", DELETE: "삭제", BAN: "차단" }[l.action]} · {l.target} · {l.detail}
+                    {l.by && ` · 매니저 ${l.by}`}
                   </li>
                 ))}
               </ul>
@@ -164,7 +185,16 @@ export function UnifiedChatScreen({ initial, variant = "studio" }: { initial: Un
 
 type RunFn = (action: () => Promise<ChatActionResult>, ok: string) => void;
 
-function Feed({ view, states, pending, run }: { view: UnifiedChatView; states: Record<Platform, ChatPlatformState>; pending: boolean; run: RunFn }) {
+/** What one chat screen may do — the creator gets everything; a manager link only what the creator allowed. */
+type ChatApi = {
+  hide?: (input: { id: string; hidden: boolean }) => Promise<ChatActionResult>;
+  remove?: (input: { id: string }) => Promise<ChatActionResult>;
+  ban?: (input: { id: string; durationSec: number | null }) => Promise<ChatActionResult>;
+};
+const CREATOR_API: ChatApi = { hide: hideChatMessage, remove: deleteChatMessage, ban: banChatAuthor };
+type FeedView = { platforms: ChatPlatformState[]; messages: UnifiedChatMessage[] };
+
+function Feed({ view, states, pending, run, api }: { view: FeedView; states: Record<Platform, ChatPlatformState>; pending: boolean; run: RunFn; api: ChatApi }) {
   const [filter, setFilter] = useState<Filter>("ALL");
   const [query, setQuery] = useState("");
   const [showHidden, setShowHidden] = useState(true);
@@ -221,7 +251,7 @@ function Feed({ view, states, pending, run }: { view: UnifiedChatView; states: R
           }}
         >
           {rows.map((m) => (
-            <Line key={m.id} m={m} state={states[m.platform]} pending={pending} run={run} />
+            <Line key={m.id} m={m} state={states[m.platform]} pending={pending} run={run} api={api} />
           ))}
         </ol>
       )}
@@ -229,11 +259,14 @@ function Feed({ view, states, pending, run }: { view: UnifiedChatView; states: R
   );
 }
 
-function Line({ m, state, pending, run }: { m: UnifiedChatMessage; state: ChatPlatformState; pending: boolean; run: RunFn }) {
+function Line({ m, state, pending, run, api }: { m: UnifiedChatMessage; state: ChatPlatformState; pending: boolean; run: RunFn; api: ChatApi }) {
   const [ban, setBan] = useState<string>("300");
   const removed = m.hidden === "DELETED" || m.hidden === "BANNED";
   const isOwner = m.author.roles.includes("OWNER");
   const duration = BAN_DURATIONS.find((d) => String(d.sec) === ban)!;
+  const canHide = !removed && !!api.hide;
+  const canRemove = !removed && !!api.remove;
+  const canBan = !isOwner && m.hidden !== "BANNED" && !!api.ban;
   return (
     <li className={styles.line} data-hidden={m.hidden ? "" : undefined}>
       <PlatformMark platform={m.platform} />
@@ -249,52 +282,64 @@ function Line({ m, state, pending, run }: { m: UnifiedChatMessage; state: ChatPl
         {m.fromStudio && <span className={styles.flag}>· 통합 입력</span>}
       </div>
       <span className={styles.time}>{time(m.sentAt)}</span>
-      <div className={styles.lineActions}>
-        {!removed && (
-          <button type="button" className={styles.mini} disabled={pending} onClick={() => run(() => hideChatMessage({ id: m.id, hidden: !m.hidden }), m.hidden ? "다시 보이게 했어요." : "오버레이에서 숨겼어요.")}>
-            {m.hidden ? "보이기" : "숨김"}
-          </button>
-        )}
-        {!removed && (
-          <button
-            type="button"
-            className={`${styles.mini} ${styles.miniDanger}`}
-            disabled={pending || !state.canModerate}
-            title={state.canModerate ? `${PLATFORM_LABEL[m.platform]}에서 삭제` : UNSUPPORTED_TITLE}
-            onClick={() => window.confirm(`${PLATFORM_LABEL[m.platform]}에서 이 메시지를 삭제할까요?`) && run(() => deleteChatMessage({ id: m.id }), "플랫폼에서 삭제했어요.")}
-          >
-            삭제
-          </button>
-        )}
-        {!isOwner && m.hidden !== "BANNED" && (
-          <>
-            <select className={styles.banSelect} aria-label="차단 기간" value={ban} onChange={(e) => setBan(e.target.value)} disabled={!state.canModerate}>
-              {BAN_DURATIONS.map((d) => (
-                <option key={d.label} value={String(d.sec)}>
-                  {d.label}
-                </option>
-              ))}
-            </select>
+      {(canHide || canRemove || canBan) && (
+        <div className={styles.lineActions}>
+          {canHide && (
+            <button type="button" className={styles.mini} disabled={pending} onClick={() => run(() => api.hide!({ id: m.id, hidden: !m.hidden }), m.hidden ? "다시 보이게 했어요." : "오버레이에서 숨겼어요.")}>
+              {m.hidden ? "보이기" : "숨김"}
+            </button>
+          )}
+          {canRemove && (
             <button
               type="button"
               className={`${styles.mini} ${styles.miniDanger}`}
               disabled={pending || !state.canModerate}
-              title={state.canModerate ? `${PLATFORM_LABEL[m.platform]}에서 차단` : UNSUPPORTED_TITLE}
-              onClick={() =>
-                window.confirm(`${m.author.displayName}님을 ${PLATFORM_LABEL[m.platform]}에서 ${duration.label} 차단할까요?`) &&
-                run(() => banChatAuthor({ id: m.id, durationSec: duration.sec }), `${duration.label} 차단했어요.`)
-              }
+              title={state.canModerate ? `${PLATFORM_LABEL[m.platform]}에서 삭제` : UNSUPPORTED_TITLE}
+              onClick={() => window.confirm(`${PLATFORM_LABEL[m.platform]}에서 이 메시지를 삭제할까요?`) && run(() => api.remove!({ id: m.id }), "플랫폼에서 삭제했어요.")}
             >
-              차단
+              삭제
             </button>
-          </>
-        )}
-      </div>
+          )}
+          {canBan && (
+            <>
+              <select className={styles.banSelect} aria-label="차단 기간" value={ban} onChange={(e) => setBan(e.target.value)} disabled={!state.canModerate}>
+                {BAN_DURATIONS.map((d) => (
+                  <option key={d.label} value={String(d.sec)}>
+                    {d.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className={`${styles.mini} ${styles.miniDanger}`}
+                disabled={pending || !state.canModerate}
+                title={state.canModerate ? `${PLATFORM_LABEL[m.platform]}에서 차단` : UNSUPPORTED_TITLE}
+                onClick={() =>
+                  window.confirm(`${m.author.displayName}님을 ${PLATFORM_LABEL[m.platform]}에서 ${duration.label} 차단할까요?`) &&
+                  run(() => api.ban!({ id: m.id, durationSec: duration.sec }), `${duration.label} 차단했어요.`)
+                }
+              >
+                차단
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </li>
   );
 }
 
-function Composer({ states, onDone, setNote }: { states: Record<Platform, ChatPlatformState>; onDone: () => Promise<void>; setNote: (n: Note) => void }) {
+function Composer({
+  states,
+  onDone,
+  setNote,
+  send: sendFn
+}: {
+  states: Record<Platform, ChatPlatformState>;
+  onDone: () => Promise<void>;
+  setNote: (n: Note) => void;
+  send: (input: { requestId: string; text: string; platforms: Platform[] }) => Promise<ChatSendResult>;
+}) {
   const [text, setText] = useState("");
   const [targets, setTargets] = useState<Platform[]>([]);
   const [results, setResults] = useState<Partial<Record<Platform, ChatSendOutcome>> | null>(null);
@@ -312,7 +357,7 @@ function Composer({ states, onDone, setNote }: { states: Record<Platform, ChatPl
     setNote(null);
     startTransition(async () => {
       try {
-        const res = await sendUnifiedChat({ requestId: requestId.current!.id, text: body, platforms: effective });
+        const res = await sendFn({ requestId: requestId.current!.id, text: body, platforms: effective });
         if (res.status !== "OK") {
           setNote({ tone: "error", text: res.status === "INVALID" ? res.message : "로그인이 필요합니다." });
           return;
@@ -488,5 +533,174 @@ function Simulator({ states, pending, run }: { states: Record<Platform, ChatPlat
       </button>
       <p className={crew.note}>시청자가 플랫폼에서 채팅한 것처럼 흉내 내요. 채널이 연결된 플랫폼만 고를 수 있어요.</p>
     </section>
+  );
+}
+
+/**
+ * 매니저 채팅창 링크 (studio): one link per manager with the permissions the creator picks. Anyone with the
+ * link can use it without logging in, so it is shown only here; deleting it stops the link at once.
+ */
+function ManagerLinks({ links, origin, pending, run }: { links: ManagerLink[]; origin: string; pending: boolean; run: RunFn }) {
+  const [name, setName] = useState("");
+  const [perms, setPerms] = useState<ManagerPermission[]>(MANAGER_DEFAULT_PERMISSIONS);
+  const requestId = useRef<string | null>(null);
+  const toggle = (list: ManagerPermission[], p: ManagerPermission, on: boolean) => (on ? [...new Set([...list, p])] : list.filter((x) => x !== p));
+  const create = () => {
+    requestId.current ??= crypto.randomUUID();
+    const id = requestId.current;
+    run(async () => {
+      const res = await createManagerLink({ requestId: id, name, permissions: perms });
+      if (res.status === "OK") {
+        requestId.current = null;
+        setName("");
+        setPerms(MANAGER_DEFAULT_PERMISSIONS);
+      }
+      return res;
+    }, `${name.trim()} 매니저 링크를 만들었어요.`);
+  };
+
+  return (
+    <section className={crew.card} aria-labelledby="uc-managers">
+      <h2 className={crew.cardTitle} id="uc-managers">
+        👥 매니저 채팅창 링크
+      </h2>
+      <p className={crew.note}>
+        매니저마다 링크를 따로 만들고 할 수 있는 일을 골라요. 보기는 항상 되고, 숨김 · 삭제 · 차단 · 통합 입력은 켠 것만 할 수 있어요. 링크를 가진 사람은 로그인 없이 쓸 수 있으니 믿을 수 있는 매니저에게만
+        주고, 그만두면 바로 삭제하세요. 매니저가 한 일은 관리 기록에 이름과 함께 남아요.
+      </p>
+      {links.length > 0 && (
+        <ul className={styles.managerList}>
+          {links.map((l) => {
+            const url = `${origin}${l.path}`;
+            return (
+              <li key={l.id}>
+                <div className={styles.managerHead}>
+                  <strong>{l.name}</strong>
+                  <span className={crew.muted}>{l.lastUsedAt ? `마지막 사용 ${time(l.lastUsedAt)}` : "아직 열지 않음"}</span>
+                  <button
+                    type="button"
+                    className={crew.danger}
+                    disabled={pending}
+                    onClick={() => window.confirm(`${l.name} 매니저 링크를 삭제할까요? 이 링크로는 더 이상 열 수 없어요.`) && run(() => deleteManagerLink({ id: l.id }), "링크를 삭제했어요.")}
+                  >
+                    삭제
+                  </button>
+                </div>
+                <div className={styles.permRow} role="group" aria-label={`${l.name} 권한`}>
+                  <span className={crew.chipOff}>보기</span>
+                  {MANAGER_PERMISSIONS.map((p) => (
+                    <label key={p.key} className={crew.checkRow} title={p.hint}>
+                      <input
+                        type="checkbox"
+                        checked={l.permissions.includes(p.key)}
+                        disabled={pending}
+                        onChange={(e) => run(() => setManagerLinkPermissions({ id: l.id, permissions: toggle(l.permissions, p.key, e.target.checked) }), "권한을 바꿨어요.")}
+                      />
+                      {p.label}
+                    </label>
+                  ))}
+                </div>
+                <div className={crew.addRow}>
+                  <input className={crew.input} value={url} readOnly aria-label={`${l.name} 매니저 링크`} onFocus={(e) => e.target.select()} />
+                  <CopyButton value={url} label="복사" className={crew.ghost} />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {links.length < MANAGER_LINKS_MAX ? (
+        <form
+          className={styles.managerForm}
+          onSubmit={(e) => {
+            e.preventDefault();
+            create();
+          }}
+        >
+          <input className={crew.input} aria-label="매니저 이름" placeholder="매니저 이름 (예: 채팅 매니저 지민)" maxLength={MANAGER_NAME_MAX} value={name} onChange={(e) => setName(e.target.value)} />
+          <div className={styles.permRow} role="group" aria-label="새 링크 권한">
+            {MANAGER_PERMISSIONS.map((p) => (
+              <label key={p.key} className={crew.checkRow} title={p.hint}>
+                <input type="checkbox" checked={perms.includes(p.key)} onChange={(e) => setPerms(toggle(perms, p.key, e.target.checked))} />
+                {p.label}
+              </label>
+            ))}
+          </div>
+          <button type="submit" className={crew.primary} disabled={pending || !name.trim()}>
+            링크 만들기
+          </button>
+        </form>
+      ) : (
+        <p className={crew.muted}>매니저 링크는 {MANAGER_LINKS_MAX}개까지예요. 쓰지 않는 링크를 삭제해 주세요.</p>
+      )}
+    </section>
+  );
+}
+
+/**
+ * 매니저 채팅창 (`/popout/chat/m/[token]`, no login): the chat with only the actions this link allows.
+ * Permission changes and deletion apply on the next read (every 1.5s).
+ */
+export function ManagerChatScreen({ token, initial }: { token: string; initial: ManagerChatView }) {
+  const [view, setView] = useState<ManagerChatView | null>(initial);
+  const [note, setNote] = useState<Note>(null);
+  const [pending, startTransition] = useTransition();
+
+  const refresh = useCallback(async () => {
+    const next = await getManagerChat(token).catch(() => undefined);
+    if (next === "FORBIDDEN") setView(null);
+    else if (next) setView(next);
+  }, [token]);
+
+  useEffect(() => {
+    const t = setInterval(refresh, POLL_MS);
+    return () => clearInterval(t);
+  }, [refresh]);
+
+  const run: RunFn = (action, ok) => {
+    setNote(null);
+    startTransition(async () => {
+      try {
+        const res = await action();
+        if (res.status === "OK") setNote({ tone: "ok", text: ok });
+        else setNote({ tone: "error", text: res.status === "UNAUTHORIZED" ? "이 링크에는 그 권한이 없어요." : res.message });
+      } catch {
+        setNote({ tone: "error", text: "처리하지 못했어요. 잠시 후 다시 시도해 주세요." });
+      }
+      await refresh();
+    });
+  };
+
+  const states = useMemo(() => Object.fromEntries((view?.platforms ?? []).map((p) => [p.platform, p])) as Record<Platform, ChatPlatformState>, [view?.platforms]);
+  const perms = view?.permissions ?? [];
+  const api: ChatApi = {
+    hide: perms.includes("HIDE") ? (i) => managerHideMessage(token, i) : undefined,
+    remove: perms.includes("MODERATE") ? (i) => managerDeleteMessage(token, i) : undefined,
+    ban: perms.includes("MODERATE") ? (i) => managerBanAuthor(token, i) : undefined
+  };
+
+  if (!view) {
+    return (
+      <div className={styles.window}>
+        <p className={crew.empty}>이 매니저 링크는 삭제되었거나 사용할 수 없어요. 크리에이터에게 새 링크를 받아 주세요.</p>
+      </div>
+    );
+  }
+  return (
+    <div className={styles.window}>
+      <header className={styles.windowHead}>
+        <h1 className={crew.cardTitle}>통합 채팅</h1>
+        <span className={crew.muted}>
+          매니저 {view.name} · 보기{MANAGER_PERMISSIONS.filter((p) => perms.includes(p.key)).map((p) => ` · ${p.label}`).join("")}
+        </span>
+      </header>
+      <Feed view={view} states={states} pending={pending} run={run} api={api} />
+      {perms.includes("SEND") && <Composer states={states} onDone={refresh} setNote={setNote} send={(i) => managerSendChat(token, i)} />}
+      {note && (
+        <p className={note.tone === "error" ? crew.error : crew.ok} role={note.tone === "error" ? "alert" : "status"}>
+          {note.text}
+        </p>
+      )}
+    </div>
   );
 }
