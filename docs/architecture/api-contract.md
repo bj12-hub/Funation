@@ -77,18 +77,18 @@ TBD: payment provider, FN packages, FN/KRW rate (mock `×1.1`), limits, expiry, 
 
 ### donations (`services/donations/donate.requestDonation`, S)
 
-One Donation Core for every type (CLAUDE.md §10). Common input: `idempotencyKey`, `creatorId`, `hideProfile`, `type`. Prices for SIGNATURE / WISHLIST / ROULETTE come from the server catalog.
+One Donation Core for every type (CLAUDE.md §10). Common input: `idempotencyKey`, `creatorId`, `hideProfile`, `type`. Prices for SIGNATURE / WISHLIST / GACHA and the ROULETTE minimum come from the server catalog (the 룰렛 · 뽑기 widget settings).
 
 | Type | Enforced input | Amount charged |
 |---|---|---|
 | TEXT · MINI · VIDEO | ≥ 1,000 / ≥ 100 / ≥ 1,000; message ≤ 100 / text ≤ 30; YouTube URL + range | amount |
 | SIGNATURE · WISHLIST | catalog id (in stock) + message ≤ 100 | catalog price |
-| LUCKYBOX | 1,000–50,000; boxes 2–5; winners 1–boxes | amount |
-| ROULETTE | tier SILVER/GOLD/ROYAL | tier price |
-| QUEST | title ≤ 50; success ≥ 1,000; fail/cancel ≤ success; time ≤ 3,600 s | success reward |
-| DRAWING · QUIZ_* | PNG ≤ 400 KB chars; quiz options 2–5 | amount / max(correct, wrong) |
+| ROULETTE | 룰렛 on; amount ≥ 최소 참여 금액; 1인 하루 횟수 | amount (one spin; the result is drawn at payment) |
+| GACHA | enabled 뽑기, not sold out; 확률 안내 동의; 1인 횟수 한도 | 뽑기 price (the prize is drawn at payment) |
+| QUEST | title ≤ 50; success ≥ 1,000; time ≤ 3,600 s (failed or canceled = full refund) | success reward |
+| DRAWING | PNG ≤ 400 KB chars | amount |
 
-Result: `COMPLETED{donationId, fnAmount, balance}` · `INSUFFICIENT_FN{balance, required}` · `IN_PROGRESS` · `CONFLICT` · `INVALID` · `NOT_FOUND` · `UNAUTHORIZED`. TBD: revenue share, fees, refunds, quest/quiz settlement, overlay delivery.
+Result: `COMPLETED{donationId, fnAmount, balance}` · `INSUFFICIENT_FN{balance, required}` · `IN_PROGRESS` · `CONFLICT` · `INVALID` · `NOT_FOUND` · `UNAUTHORIZED`. TBD: revenue share, fees, refunds other than quests, overlay delivery. LUCKYBOX and QUIZ_* were removed (2026-10-04).
 
 ### platformDonation (`services/platformDonation`, S)
 

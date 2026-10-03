@@ -12,8 +12,7 @@ import { getAlertBadges, getDonationNicknameOptions } from "@/services/supporter
 import { alertBadgeLabels } from "@/services/supporter/identityTypes";
 import { DonationCompleteDialog, DonationConfirmDialog, InsufficientFnDialog, type AlertPreview } from "./DonationDialogs";
 import { MiniFields, SignatureFields, TextFields, VideoFields, WishlistFields } from "./donation/Fields";
-import { DrawingFields, GachaFields, QuestFields, QuizChoiceFields, QuizDrawingFields, QuizInitialFields, RouletteFields } from "./donation/GameFields";
-import { LuckyBoxFields } from "./donation/LuckyBoxFields";
+import { DrawingFields, GachaFields, QuestFields, RouletteFields } from "./donation/GameFields";
 import { SignaturePopup } from "./donation/SignaturePopup";
 import { buildDraft, initialStates, isFormKey, type FormKey, type FormStates } from "./donation/drafts";
 import panel from "./donation/donation.module.css";
@@ -31,7 +30,7 @@ const CHIPS_PER_PAGE = 6;
 
 /**
  * Donation tab. Figma 610:138 · 851:4546 (일반) · 851:4665 (미니) · 851:4788 (영상) · 851:4929 (시그니처)
- * · 851:5054 (위시) · 851:5174 (럭키박스) · 867:* (룰렛·퀘스트·그림·퀴즈) → 613:6 확인 → 613:122 완료, or 613:237 FN 부족 → FN 충전 modal.
+ * · 851:5054 (위시) · 867:* (룰렛·퀘스트·그림) · 뽑기 (code-first) → 613:6 확인 → 613:122 완료, or 613:237 FN 부족 → FN 충전 modal.
  *
  * Every type goes through the same Donation Core: one confirm step, one server action, one debit.
  * Each confirmed submission carries an idempotency key so a double click or retry never debits twice.
@@ -228,18 +227,14 @@ export function DonationForm({
             onOpenAll={() => setDialog({ kind: "SIGNATURES" })}
           />
         )}
-        {formKey === "LUCKYBOX" && <LuckyBoxFields value={states.LUCKYBOX} onChange={update("LUCKYBOX")} catalog={donation} />}
         {formKey === "ROULETTE" && (
           <RouletteFields value={states.ROULETTE} onChange={update("ROULETTE")} catalog={donation} error={draft?.error ?? null} creatorId={creatorId} signedIn={signedIn} />
         )}
         {formKey === "QUEST" && <QuestFields value={states.QUEST} onChange={update("QUEST")} catalog={donation} error={draft?.error ?? null} />}
         {formKey === "DRAWING" && <DrawingFields value={states.DRAWING} onChange={update("DRAWING")} catalog={donation} error={draft?.error ?? null} />}
-        {formKey === "QUIZ_CHOICE" && <QuizChoiceFields value={states.QUIZ_CHOICE} onChange={update("QUIZ_CHOICE")} catalog={donation} error={draft?.error ?? null} />}
-        {formKey === "QUIZ_INITIAL" && <QuizInitialFields value={states.QUIZ_INITIAL} onChange={update("QUIZ_INITIAL")} catalog={donation} error={draft?.error ?? null} />}
         {formKey === "GACHA" && (
           <GachaFields value={states.GACHA} onChange={update("GACHA")} catalog={donation} error={draft?.error ?? null} creatorId={creatorId} signedIn={signedIn} />
         )}
-        {formKey === "QUIZ_DRAWING" && <QuizDrawingFields value={states.QUIZ_DRAWING} onChange={update("QUIZ_DRAWING")} catalog={donation} error={draft?.error ?? null} />}
         {formKey === "WISHLIST" && (
           <WishlistFields value={states.WISHLIST} onChange={update("WISHLIST")} catalog={donation} balance={fnBalance} creatorName={name} error={draft?.error ?? null} />
         )}
@@ -343,8 +338,6 @@ export function DonationForm({
       <InsufficientFnDialog
         open={dialog.kind === "INSUFFICIENT"}
         balance={dialog.kind === "INSUFFICIENT" ? dialog.balance : 0}
-        // LuckyBox uses the detailed 875:8546 variant.
-        required={dialog.kind === "INSUFFICIENT" && type.key === "LUCKYBOX" ? dialog.required : undefined}
         onCancel={() => setDialog({ kind: "NONE" })}
         onCharge={() => setDialog({ kind: "CHARGE" })}
       />

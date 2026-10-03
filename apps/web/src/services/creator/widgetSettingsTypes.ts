@@ -18,8 +18,6 @@ export type WidgetKey =
   | "VOTE"
   | "QUEST"
   | "DRAWING"
-  | "LUCKYBOX"
-  | "PLAY"
   | "GACHA"
   | "ROULETTE"
   | "WALLPAPER";
@@ -40,8 +38,6 @@ export const WIDGET_CARDS: CatalogCard<WidgetKey>[] = [
   { key: "VOTE", emoji: "📊", color: "#737385", title: "투표", description: "실시간 투표 현황을 위젯으로 방송에 띄웁니다." },
   { key: "QUEST", emoji: "⚔️", color: "#10b981", title: "퀘스트", description: "현재 진행 중인 후원 미션/퀘스트 목록을 노출합니다." },
   { key: "DRAWING", emoji: "🖼️", color: "#8b5cf6", title: "그림후원", description: "받은 그림 후원을 실시간으로 방송 화면에 전시합니다." },
-  { key: "LUCKYBOX", emoji: "📦", color: "#ec4899", title: "럭키박스", description: "실시간 럭키박스 당첨 현황과 연출을 보여줍니다." },
-  { key: "PLAY", emoji: "🎮", color: "#10b981", title: "플레이", description: "미니게임과 참여형 콘텐츠 화면 위젯입니다." },
   { key: "GACHA", emoji: "🧸", color: "#f97316", title: "뽑기 후원", description: "시청자와 함께 다양한 뽑기 이벤트를 진행합니다." },
   { key: "ROULETTE", emoji: "🎡", color: "#0ea5e9", title: "룰렛", description: "후원으로 참여하는 룰렛 항목과 확률을 정하고 방송 화면에 돌립니다." },
   { key: "WALLPAPER", emoji: "🖼️", color: "#ef4444", title: "벽지", description: "후원 액션을 남길 수 있는 특수 배경 위젯입니다." }
@@ -61,8 +57,6 @@ export const WIDGET_PATHS: Record<WidgetKey, string> = {
   VOTE: "vote",
   QUEST: "quest",
   DRAWING: "drawing",
-  LUCKYBOX: "luckybox",
-  PLAY: "play",
   GACHA: "gacha",
   ROULETTE: "roulette",
   WALLPAPER: "wallpaper"
@@ -303,36 +297,12 @@ export type CustomSound = { id: string; word: string; fileName: string; fileUrl:
 /** Saved per sound through saveCustomSound/deleteCustomSound, not through the popup footer. */
 export type CustomSoundSettings = { sounds: CustomSound[] };
 
-// ── PR 3: 럭키박스 · 퀘스트 · 플레이 ─────────────────────────────────────────────
-// Prize/penalty/refund values below are the creator's settings as designed. Their allowed ranges and
-// how the donation flow applies them are TBD (the donation form still uses the catalog values).
+// ── PR 3: 퀘스트 (럭키박스 · 플레이 위젯은 2026-10-04 결정으로 없앰) ─────────────────────────
 
-export const FONT_LEVELS = [
-  { key: "SMALL", label: "폰트크기 작게" },
-  { key: "NORMAL", label: "폰트크기 보통" },
-  { key: "LARGE", label: "폰트크기 크게" }
-] as const;
-export type FontLevel = (typeof FONT_LEVELS)[number]["key"];
-export type LeveledFont = { family: FontFamily; level: FontLevel; color: string };
 export type ColorFont = { family: FontFamily; color: string };
 
-export const AUTO_REFUND_MINUTES = [1, 5, 10, 15, 30, 60] as const;
-export type AutoRefundMinutes = (typeof AUTO_REFUND_MINUTES)[number];
 /** Input guards only; real limits are TBD. */
 export const PRIZE_MAX = 10_000_000;
-
-export type QueueDisplay = { bgColor: string; bgOpacity: number; nicknameFont: LeveledFont; prizeFont: LeveledFont; timeFont: LeveledFont };
-
-export type LuckyboxWidgetSettings = {
-  enabled: boolean;
-  bgOpacity: number;
-  nicknameFont: LeveledFont;
-  prizeFont: LeveledFont;
-  queue: QueueDisplay;
-  minPrize: number;
-  minPangPercent: number;
-  autoRefundMinutes: AutoRefundMinutes;
-};
 
 export const QUEST_STYLES = [
   { key: "FANCY", label: "화려한" },
@@ -350,29 +320,6 @@ export type QuestWidgetSettings = {
   intervalSec: number;
   allowExtension: boolean;
   showSuccessAuthorityMenu: boolean;
-};
-
-export const PLAY_GAMES = [
-  { key: "CHOICE", label: "객관식 퀴즈" },
-  { key: "INITIAL", label: "초성 퀴즈" },
-  { key: "DRAWING", label: "그림 퀴즈" }
-] as const;
-
-export type PlayWidgetSettings = {
-  enabled: boolean;
-  bgm: boolean;
-  opacity: number;
-  nicknameFont: LeveledFont;
-  prizeFont: LeveledFont;
-  queue: QueueDisplay & { useDefaultBg: boolean };
-  minPrize: number;
-  minWrongPercent: number;
-  autoRefundMinutes: AutoRefundMinutes;
-  games: {
-    CHOICE: { questionFont: LeveledFont; optionFont: LeveledFont };
-    INITIAL: { questionFont: LeveledFont; hintFont: LeveledFont };
-    DRAWING: { questionFont: LeveledFont };
-  };
 };
 
 // ── 룰렛 (code-first; 2026-10-04 결정: 당첨은 크리에이터 상품, FN 지급 없음) ──────────────
@@ -499,15 +446,13 @@ export type WidgetSettingsMap = {
   RANKING: RankingSettings;
   VOTE: VoteSettings;
   CUSTOM_SOUND: CustomSoundSettings;
-  LUCKYBOX: LuckyboxWidgetSettings;
   QUEST: QuestWidgetSettings;
-  PLAY: PlayWidgetSettings;
   GACHA: GachaSettings;
   ROULETTE: RouletteSettings;
   WALLPAPER: WallpaperSettings;
 };
 export type EditableWidgetKey = keyof WidgetSettingsMap;
-export const EDITABLE_WIDGETS: EditableWidgetKey[] = ["CHAT", "QR", "GOAL", "TOTAL", "RECENT", "EVENT", "MINI", "RANKING", "VOTE", "CUSTOM_SOUND", "LUCKYBOX", "QUEST", "PLAY", "GACHA", "ROULETTE", "WALLPAPER"];
+export const EDITABLE_WIDGETS: EditableWidgetKey[] = ["CHAT", "QR", "GOAL", "TOTAL", "RECENT", "EVENT", "MINI", "RANKING", "VOTE", "CUSTOM_SOUND", "QUEST", "GACHA", "ROULETTE", "WALLPAPER"];
 export const isEditableWidget = (k: unknown): k is EditableWidgetKey => EDITABLE_WIDGETS.includes(k as EditableWidgetKey);
 
 /** Values the server reads for previews (not editable). */
@@ -650,16 +595,6 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     presets: [{ id: "preset-1", name: "", color: "#28BA93", durationSec: 300, items: ["", ""] }]
   },
   CUSTOM_SOUND: { sounds: [] },
-  LUCKYBOX: {
-    enabled: true,
-    bgOpacity: 100,
-    nicknameFont: { family: "제주 고딕", level: "NORMAL", color: "#18C9FF" },
-    prizeFont: { family: "제주 고딕", level: "NORMAL", color: "#FFFFFF" },
-    queue: { bgColor: "#FFFFFF", bgOpacity: 40, nicknameFont: { family: "제주 고딕", level: "NORMAL", color: "#FFFFFF" }, prizeFont: { family: "제주 고딕", level: "NORMAL", color: "#FFFFFF" }, timeFont: { family: "제주 고딕", level: "NORMAL", color: "#FFFFFF" } },
-    minPrize: 5_000,
-    minPangPercent: 10,
-    autoRefundMinutes: 30
-  },
   QUEST: {
     enabled: true,
     style: "FANCY",
@@ -671,22 +606,6 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     intervalSec: 60,
     allowExtension: true,
     showSuccessAuthorityMenu: true
-  },
-  PLAY: {
-    enabled: true,
-    bgm: true,
-    opacity: 50,
-    nicknameFont: { family: "제주 고딕", level: "NORMAL", color: "#18C9FF" },
-    prizeFont: { family: "제주 고딕", level: "NORMAL", color: "#FFFFFF" },
-    queue: { useDefaultBg: true, bgColor: "#FFFFFF", bgOpacity: 40, nicknameFont: { family: "제주 고딕", level: "NORMAL", color: "#FFFFFF" }, prizeFont: { family: "제주 고딕", level: "NORMAL", color: "#FFFFFF" }, timeFont: { family: "제주 고딕", level: "NORMAL", color: "#FFFFFF" } },
-    minPrize: 5_000,
-    minWrongPercent: 10,
-    autoRefundMinutes: 60,
-    games: {
-      CHOICE: { questionFont: { family: "제주 고딕", level: "NORMAL", color: "#000000" }, optionFont: { family: "제주 고딕", level: "NORMAL", color: "#FFFFFF" } },
-      INITIAL: { questionFont: { family: "제주 고딕", level: "NORMAL", color: "#000000" }, hintFont: { family: "제주 고딕", level: "NORMAL", color: "#FFFFFF" } },
-      DRAWING: { questionFont: { family: "제주 고딕", level: "NORMAL", color: "#000000" } }
-    }
   },
   GACHA: {
     gachas: [

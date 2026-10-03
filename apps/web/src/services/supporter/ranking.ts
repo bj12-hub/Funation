@@ -74,6 +74,6 @@ export async function getMyRanking(period: unknown): Promise<MyRankingView | nul
     topPercent: meRow ? Math.max(1, Math.round((meRow.rank / everyone.length) * 100)) : null,
     board,
     creators,
-    visible: Object.values(mockAccount.rankingVisibility).some(Boolean)
+    visible: mockAccount.rankingVisibility.quest
   };
 }

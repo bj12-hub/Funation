@@ -39,8 +39,6 @@ function useSavedToggle(initial: boolean, save: (next: boolean) => Promise<Updat
 
 const RANKING_ITEMS: { key: RankingVisibilityKey; label: string }[] = [
   { key: "quest", label: "퀘스트 랭킹 노출" },
-  { key: "luckyBox", label: "럭키박스 랭킹 노출" },
-  { key: "play", label: "플레이 랭킹 노출" }
 ];
 
 /** Figma 735:4292 ranking-card */

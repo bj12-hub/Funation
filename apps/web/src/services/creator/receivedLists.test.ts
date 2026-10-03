@@ -35,7 +35,7 @@ describe("받은 후원 게임 · 크루 목록", () => {
     const m = await load();
     const all = (await m.getReceivedDonations({ kind: "game", period: range, status: "ALL", query: "", page: 1 }))!;
     expect(all.total).toBeGreaterThan(0);
-    expect(all.items.every((d) => d.status === null && ["룰렛 후원", "객관식 퀴즈", "초성 퀴즈", "그림 퀴즈"].includes(d.detail!))).toBe(true);
+    expect(all.items.every((d) => d.status === null && ["룰렛 후원", "뽑기 후원"].includes(d.detail!))).toBe(true);
     const filtered = (await m.getReceivedDonations({ kind: "game", period: range, status: "FAILED", query: "", page: 1 }))!;
     expect(filtered).toMatchObject({ status: "ALL", total: all.total });
     const csv = await m.exportReceivedDonationsCsv({ kind: "game", period: wide, status: "ALL", query: "" });
