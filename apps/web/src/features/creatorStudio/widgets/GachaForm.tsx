@@ -22,6 +22,7 @@ import {
 import { CopyButton } from "../settings/SettingsCards";
 import { ColorField, NumberField, Preview, Radios, Row, Section, Select, SwitchText } from "./fields";
 import type { FormProps } from "./forms";
+import { LibrarySoundField } from "./library/LibrarySounds";
 import styles from "./widgets.module.css";
 
 const uid = (p: string) => `${p}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -39,7 +40,8 @@ const newGacha = (n: number): Gacha => ({
   limitEnabled: false,
   limitCount: 1,
   prizeMode: "PROBABILITY",
-  prizes: [{ id: uid("prize"), name: "뽑기1", kind: "BLANK", value: 100 }]
+  prizes: [{ id: uid("prize"), name: "뽑기1", kind: "BLANK", value: 100 }],
+  winSoundId: null
 });
 
 /** 뽑기 후원 위젯 설정 — Figma 373:3675. Odds disclosure and payout rules for paid draws are TBD. */
@@ -267,9 +269,8 @@ function GachaDetail({ gacha: g, onChange }: { gacha: Gacha; onChange: (patch: P
       <Section title="효과음 및 디테일 연출">
         <div className={styles.rows}>
           <Row label="당첨 연출 효과음">
-            <button type="button" className={styles.purpleSmall} disabled title="준비 중인 기능입니다">
-              🔊 효과음 설정
-            </button>
+            {/* Code-first: the sound comes from 이미지·사운드 (the draw overlay that plays it is TBD). */}
+            <LibrarySoundField label="효과음 설정" buttonClassName={styles.purpleSmall} value={g.winSoundId ?? null} onChange={(id) => onChange({ winSoundId: id })} />
           </Row>
           <Row label="기계 회전 시간">
             <NumberField label="기계 회전 시간" value={g.spinSec} max={30} suffix="초" onChange={(x) => onChange({ spinSec: x })} />

@@ -26,7 +26,8 @@ import { MAX_DRAWING_CHARS, parseYouTubeId, type DonationResult } from "./donati
  */
 export async function requestDonation(input: unknown): Promise<DonationResult> {
   if (!USE_MOCK) throw new Error("Donation API is not connected yet.");
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  const session = await getSession();
+  if (!session) return { status: "UNAUTHORIZED" };
 
   const catalog = getDonationCatalog();
   const parsed = parse(input, catalog);
@@ -69,7 +70,7 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
       status: "COMPLETED"
     });
     attributeDonation(donationId, request.nicknameId);
-    attributeMemberDonation(donationId, creator.id, request.memberId, request.amount);
+    attributeMemberDonation(donationId, creator.id, request.memberId, request.amount, { donor, donorId: request.hideProfile ? "" : session.funationId, message: request.summary });
     if (!request.memberId) recordBroadcastDonation(creator.id, { donor, message: request.summary, fnAmount: request.amount });
     enqueueDonationAlert(creator.id, {
       donor,

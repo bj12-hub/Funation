@@ -444,6 +444,7 @@ const parsePlay: Parser<PlayWidgetSettings> = (v) => {
 // ── 뽑기 후원 · 벽지 ───────────────────────────────────────────────────────────
 
 const ID = /^[\w-]{1,40}$/;
+const ASSET_ID = /^[\w-]{1,64}$/;
 
 function parseGachaItem(raw: unknown): Gacha | string {
   const g = obj(raw);
@@ -457,6 +458,8 @@ function parseGachaItem(raw: unknown): Gacha | string {
   }
   if (!isHexColor(g.pointColor)) return COLOR_ERROR;
   if (![g.enabled, g.limitEnabled].every(bool) || !int(g.limitCount, 1, 1000)) return "설정 값을 확인해 주세요.";
+  // Older saved settings have no winSoundId; whether the sound is in the library is checked on save.
+  if (g.winSoundId !== undefined && g.winSoundId !== null && (typeof g.winSoundId !== "string" || !ASSET_ID.test(g.winSoundId))) return "효과음을 다시 선택해 주세요.";
   const prizes = Array.isArray(g.prizes) ? g.prizes : null;
   if (!prizes || prizes.length < 1 || prizes.length > GACHA_PRIZES_MAX) return `상품은 1~${GACHA_PRIZES_MAX}개까지 등록할 수 있어요.`;
   const probability = g.prizeMode === "PROBABILITY";
@@ -483,7 +486,8 @@ function parseGachaItem(raw: unknown): Gacha | string {
     limitEnabled: g.limitEnabled as boolean,
     limitCount: g.limitCount as number,
     prizeMode: g.prizeMode,
-    prizes: out
+    prizes: out,
+    winSoundId: typeof g.winSoundId === "string" ? g.winSoundId : null
   };
 }
 

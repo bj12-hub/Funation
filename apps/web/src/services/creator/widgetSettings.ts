@@ -5,6 +5,7 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES } from "@/lib/validation";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
+import { findAsset } from "./assetCore";
 import { mockCreator } from "./mockCreatorStore";
 import { PARSERS } from "./widgetParsers";
 import {
@@ -44,7 +45,7 @@ export async function getWidgetDetail(key: unknown): Promise<WidgetDetail | null
   return {
     key,
     url: `https://funation.com/widget/${WIDGET_PATHS[key]}/${mockCreator.handle}`,
-    settings: structuredClone(store[key]),
+    settings: key === "GACHA" ? withLiveSounds(store.GACHA) : structuredClone(store[key]),
     live: {
       goalCurrent: 100_000,
       totalAmount: 250_000,
@@ -72,12 +73,22 @@ export async function getWidgetDetail(key: unknown): Promise<WidgetDetail | null
   } as WidgetDetail;
 }
 
+/** A 당첨 효과음 deleted from the library reads as "none", like the 배너's deleted slides. */
+function withLiveSounds(s: WidgetSettingsMap["GACHA"]): WidgetSettingsMap["GACHA"] {
+  const copy = structuredClone(s);
+  for (const g of copy.gachas) g.winSoundId = g.winSoundId && findAsset(g.winSoundId, "SOUND") ? g.winSoundId : null;
+  return copy;
+}
+
 export async function saveWidgetSettings(key: unknown, input: unknown): Promise<WidgetSaveResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (!isEditableWidget(key) || key === "CUSTOM_SOUND") return { status: "INVALID", message: "알 수 없는 위젯입니다." };
   const parsed = PARSERS[key](typeof input === "object" && input !== null ? (input as Record<string, unknown>) : {});
   if (typeof parsed === "string") return { status: "INVALID", message: parsed };
+  if (key === "GACHA" && (parsed as WidgetSettingsMap["GACHA"]).gachas.some((g) => g.winSoundId && !findAsset(g.winSoundId, "SOUND"))) {
+    return { status: "INVALID", message: "라이브러리에 없는 효과음이 있어요. 다시 선택해 주세요." };
+  }
   await mockDelay(400);
   // Wallpaper images are uploaded/deleted on their own; keep the stored list.
   (store as Record<string, unknown>)[key] = key === "WALLPAPER" ? { ...parsed, images: store.WALLPAPER.images } : parsed;
@@ -87,8 +98,10 @@ export async function saveWidgetSettings(key: unknown, input: unknown): Promise<
 // ── 커스텀 사운드 (373:1307) ───────────────────────────────────────────────────
 
 /**
- * Adds or updates one sound. FormData: `id` (empty for new), `word`, `volume`, optional `file`.
- * A new sound needs a file; an update without a file keeps the existing audio.
+ * Adds or updates one sound. FormData: `id` (empty for new), `word`, `volume`, and either `file` or
+ * `assetId` (a SOUND from the 이미지·사운드 library). A new sound needs one of them; an update without
+ * either keeps the existing audio. A library sound is copied, so deleting it from the library later
+ * does not break this sound.
  */
 export async function saveCustomSound(formData: FormData): Promise<CustomSoundResult> {
   assertMock();
@@ -97,6 +110,7 @@ export async function saveCustomSound(formData: FormData): Promise<CustomSoundRe
   const word = String(formData.get("word") ?? "").trim();
   const volume = Number(formData.get("volume"));
   const file = formData.get("file");
+  const assetId = String(formData.get("assetId") ?? "");
   const sounds = store.CUSTOM_SOUND.sounds;
   const existing = id ? sounds.find((s) => s.id === id) : undefined;
 
@@ -108,8 +122,15 @@ export async function saveCustomSound(formData: FormData): Promise<CustomSoundRe
   if (!Number.isInteger(volume) || volume < 0 || volume > 100) return { status: "INVALID", message: "볼륨을 확인해 주세요." };
 
   const hasFile = file instanceof File && file.size > 0;
-  if (!existing && !hasFile) return { status: "INVALID", message: "효과음 파일을 선택해 주세요." };
+  if (!existing && !hasFile && !assetId) return { status: "INVALID", message: "효과음 파일을 선택해 주세요." };
   let audio: { fileName: string; fileUrl: string } | null = null;
+  if (!hasFile && assetId) {
+    const asset = findAsset(assetId, "SOUND");
+    if (!asset) return { status: "INVALID", message: "라이브러리에 없는 사운드예요. 다시 선택해 주세요." };
+    if (!(CUSTOM_SOUND_TYPES as readonly string[]).includes(asset.mime)) return { status: "INVALID", message: "MP3, WAV, OGG 파일만 등록할 수 있어요." };
+    if (asset.size > CUSTOM_SOUND_MAX_BYTES) return { status: "INVALID", message: "파일은 2MB 이하만 등록할 수 있어요." };
+    audio = { fileName: asset.name, fileUrl: `data:${asset.mime};base64,${asset.bytes.toString("base64")}` };
+  }
   if (hasFile) {
     if (!(CUSTOM_SOUND_TYPES as readonly string[]).includes(file.type)) return { status: "INVALID", message: "MP3, WAV, OGG 파일만 등록할 수 있어요." };
     if (file.size > CUSTOM_SOUND_MAX_BYTES) return { status: "INVALID", message: "파일은 2MB 이하만 등록할 수 있어요." };

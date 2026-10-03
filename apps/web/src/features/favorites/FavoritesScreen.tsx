@@ -103,8 +103,7 @@ export function FavoritesScreen({ data, query, promotion }: Props) {
               </div>
               <span className={`${styles.status} ${c.isLive ? styles.live : ""}`}>{c.isLive ? "방송 중" : "오프라인"}</span>
               <div className={styles.actions}>
-                {/* TODO: donation flow is not built yet. */}
-                <Button className={styles.donate} aria-disabled="true" title="준비 중인 기능입니다">
+                <Button href={`/creators/${c.creatorId}?tab=donation`} className={styles.donate}>
                   후원하기
                 </Button>
                 <RemoveFavoriteButtons creatorId={c.creatorId} name={c.name} part="button" />

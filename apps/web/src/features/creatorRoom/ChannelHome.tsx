@@ -169,7 +169,7 @@ export function ChannelCommunity({ creatorId, name, view, signedIn, show }: { cr
           더 보기 ({view.items.length}/{view.total})
         </Link>
       )}
-      <p className={styles.muted}>신고 · 숨김 등 관리 기능은 준비 중이에요 (TBD).</p>
+      <p className={styles.muted}>글마다 신고할 수 있어요. 채널 주인의 글 숨김 · 관리는 준비 중이에요 (TBD).</p>
     </div>
   );
 }

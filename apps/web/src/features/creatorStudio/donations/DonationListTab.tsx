@@ -30,7 +30,8 @@ function href(params: Params) {
 
 /**
  * 후원 리스트 — Figma 539:156. Filters are links and a GET form, so every state is a URL.
- * Only 퀘스트 후원 is designed; 게임 · 크루 show an empty state until their designs exist.
+ * Only 퀘스트 후원 is designed; 게임 후원 (룰렛 · 퀴즈) and 크루 후원 (멤버를 지정한 후원) are code-first with
+ * the same table — the last column shows the game or the member, and the 상태 filter is quest-only.
  */
 export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
   const { kind, period, status, query, page, totalPages, total, items, years } = data;
@@ -41,6 +42,7 @@ export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
   const pages = Array.from({ length: Math.min(WINDOW, totalPages) }, (_, i) => start + i);
   const first = total === 0 ? 0 : (page - 1) * LIST_PAGE_SIZE + 1;
   const last = Math.min(total, page * LIST_PAGE_SIZE);
+  const kindInfo = LIST_KINDS.find((k) => k.key === kind)!;
 
   return (
     <div className={styles.stack}>
@@ -77,14 +79,16 @@ export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
           <span aria-hidden="true">~</span>
           <input type="date" name="to" aria-label="종료일" defaultValue={period.to} />
         </span>
-        <select name="status" aria-label="상태 필터" defaultValue={status} className={styles.select}>
-          <option value="ALL">전체 필터</option>
-          {QUEST_STATUSES.map((s) => (
-            <option key={s.key} value={s.key}>
-              {s.label}
-            </option>
-          ))}
-        </select>
+        {kind === "quest" && (
+          <select name="status" aria-label="상태 필터" defaultValue={status} className={styles.select}>
+            <option value="ALL">전체 필터</option>
+            {QUEST_STATUSES.map((s) => (
+              <option key={s.key} value={s.key}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        )}
         <input name="q" type="search" aria-label="후원자 검색" className={styles.searchInput} placeholder="후원자 닉네임 or 아이디" defaultValue={query} maxLength={LIST_QUERY_MAX} />
         <button type="submit" className={styles.solidPurple}>
           검색
@@ -94,7 +98,7 @@ export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
 
       <div className={styles.table}>
         <table>
-          <caption className={styles.srOnly}>{LIST_KINDS.find((k) => k.key === kind)?.label} 목록</caption>
+          <caption className={styles.srOnly}>{kindInfo.label} 목록</caption>
           <thead>
             <tr>
               <th scope="col" style={{ width: 176 }}>
@@ -108,7 +112,7 @@ export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
               </th>
               <th scope="col">내용</th>
               <th scope="col" className={styles.right} style={{ width: 120 }}>
-                퀘스트 상태
+                {kindInfo.column}
               </th>
             </tr>
           </thead>
@@ -116,7 +120,7 @@ export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
             {items.length === 0 ? (
               <tr>
                 <td colSpan={5} className={styles.empty}>
-                  {kind !== "quest" ? "준비 중인 목록입니다." : query ? `'${query}' 검색 결과가 없습니다.` : "선택한 기간에 받은 후원이 없습니다."}
+                  {query ? `'${query}' 검색 결과가 없습니다.` : kind === "crew" ? "선택한 기간에 멤버를 지정해 받은 후원이 없습니다." : "선택한 기간에 받은 후원이 없습니다."}
                 </td>
               </tr>
             ) : (
@@ -125,7 +129,8 @@ export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
                   <td className={`${styles.muted} ${styles.nowrap}`}>{formatAt(d.at)}</td>
                   <td className={styles.strong}>
                     <span className={styles.ellipsis}>
-                      {d.donorNickname} ({d.donorId})
+                      {d.donorNickname}
+                      {d.donorId && ` (${d.donorId})`}
                     </span>
                   </td>
                   <td className={styles.amount}>{formatNumber(d.amount)} FN</td>
@@ -133,7 +138,11 @@ export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
                     <span className={styles.ellipsis}>{d.message}</span>
                   </td>
                   <td className={styles.right}>
-                    <span className={`${styles.badge} ${STATUS_CLASS[d.status]}`}>{QUEST_STATUSES.find((s) => s.key === d.status)?.label}</span>
+                    {d.status ? (
+                      <span className={`${styles.badge} ${STATUS_CLASS[d.status]}`}>{QUEST_STATUSES.find((s) => s.key === d.status)?.label}</span>
+                    ) : (
+                      <span className={styles.strong}>{d.detail}</span>
+                    )}
                   </td>
                 </tr>
               ))
