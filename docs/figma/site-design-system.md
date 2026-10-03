@@ -82,7 +82,7 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 방송 · 위젯 | W01 | 위젯 목록 | `/creator/widgets` | `63:1485` |
 | 방송 · 위젯 | W02 | 방송 도구 | `/creator/widgets/tools` | `64:1471` |
 | 방송 · 위젯 | W03 | 오버레이 주소 | `/creator/widgets/overlays` | `64:1678` |
-| 방송 · 위젯 | W04 | 리모컨 | `/creator/remote` | `64:1972` |
+| 방송 · 위젯 | W04 | 리모컨 (기능별 새로고침) | `/creator/remote` | `116:4092` |
 | 방송 · 위젯 | W05 | 이펙트 · 효과 | `/creator/widgets/effects` | `66:1840` |
 | 방송 · 위젯 | W06 | 시그니처 후원 (편집 열림) | `/creator/widgets/signatures` | `66:2016` |
 | 방송 · 위젯 | W07 | 영상 후원 | `/creator/widgets/video` | `66:2322` |
@@ -91,7 +91,8 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 방송 · 위젯 | W10 | 배너 | `/creator/widgets/banner` | `66:2782` |
 | 방송 · 위젯 | W11 | 후원 연동 | `/creator/widgets/link` | `67:2520` |
 | 크루 방송 | Y03 | 크루 관리 | `/creator/crew` | `67:2696` |
-| 크루 방송 | Y04 | 크루 방송 운영 | `/creator/crew/broadcast` | `67:2905` |
+| 크루 방송 | Y04 | 크루 방송 운영 (방송 전 · 시나리오 편집) | `/creator/crew/broadcast` | `116:3886` |
+| 크루 방송 | Y04b | 크루 방송 운영 (방송 중 · 자동엑셀 · 배틀 · 기여도 강탈 · 시나리오, 예시 입력값) | `/creator/crew/broadcast` | `117:3911` |
 | 후원 관리 | T03 | 받은 후원 | `/creator/donations?tab=list` | `67:3046` |
 | 후원 관리 | T03b | 후원 순위 | `/creator/donations?tab=ranking` | `68:2958` |
 | 후원 관리 | T03c | 후원 필터링 | `/creator/donations?tab=filtering` | `68:3293` |
@@ -179,6 +180,9 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | OBS 오버레이 | O04 | 영상 후원 (1280×720) — YouTube 임베드 자리 | `/overlay/video/[key]` | `92:6849` |
 | OBS 오버레이 | O05 | 그림후원 (800×700) | `/overlay/drawing/[key]` | `92:6856` |
 | OBS 오버레이 | O06 | 크루 점수판 (480×600) | `/overlay/crew/[key]` | `92:6866` |
+| OBS 오버레이 | O06b | 실시간 배틀 (480×600) | `/overlay/crew/[key]?battle` | `119:8173` |
+| OBS 오버레이 | O06c | 기여도 강탈 (480×600) | `/overlay/crew/[key]?steal` | `119:8191` |
+| OBS 오버레이 | O06d | 콘텐츠 시나리오 (480×600) | `/overlay/crew/[key]?scenario` | `119:8199` |
 | OBS 오버레이 | O07 | 배너 (1920×1080) | `/overlay/banner/[key]` | `92:6888` |
 | OBS 오버레이 | O08 | 자막 (1920×200) | `/overlay/tool/subtitle/[key]` | `92:6894` |
 | OBS 오버레이 | O09 | 전광판 (1920×100) | `/overlay/tool/marquee/[key]` | `92:6900` |
