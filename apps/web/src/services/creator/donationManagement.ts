@@ -68,7 +68,7 @@ const store = (globalForMgmt.__funationMockDonationMgmt ??= {
 
 /** Addresses already used by other creators (mock). */
 const TAKEN_SLUGS = ["taen", "boharium", "seran", "admin", "funation", "donate", "creator"];
-const DONATE_BASE = "https://funation.com/donate/";
+const DONATE_BASE = "https://somnation.com/donate/";
 
 const assertMock = () => {
   if (!USE_MOCK) throw new Error("Donation management API is not connected yet.");
@@ -363,7 +363,7 @@ export async function getDonorRanking(period: RankPeriod): Promise<DonorRanking 
 type MockFilters = { settings: FilterSettings; blocked: BlockedDonor[]; titles: TitleTier[] };
 
 const BLOCK_SEED: [string, string, string, BlockPlatform, string][] = [
-  ["2026-09-11T04:12:00", "bad_player", "악성유저1", "FLEXTV", "부적절한 닉네임 사용 및 연속적인 도배 광고"],
+  ["2026-09-11T04:12:00", "bad_player", "악성유저1", "CHZZK", "부적절한 닉네임 사용 및 연속적인 도배 광고"],
   ["2026-09-10T18:22:00", "spam_bot99", "광고봇", "SOOP", "불법 홍보 사이트 및 도배 스팸 전송"],
   ["2026-09-09T11:45:00", "no_manner", "비방러", "YOUTUBE", "타인 비방 목적의 비속어 메시지 후원 발생"],
   ["2026-09-08T22:10:00", "spoiler_king", "스포일러", "FLEXTV", "게임 중요 스토리 무단 스포일러 도배"]

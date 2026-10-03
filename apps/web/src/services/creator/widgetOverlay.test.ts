@@ -65,6 +65,12 @@ describe("후원 위젯 계산", () => {
     // A template asking for the platform's item count falls back to the default line (count mapping TBD).
     const soop = recentLines([alert("2026-10-03T10:00:00", "풍선러", 0, { kind: "EXTERNAL", platform: "SOOP", amountLabel: "₩1,000" })], D.RECENT)[0];
     expect(`${soop.before}${soop.nickname}${soop.after}`).toBe("풍선러님이 ₩1,000 후원했습니다.");
+    // 치지직 (confirmed 2026-10-01) has its own line like the other platforms.
+    const chzzk = recentLines([alert("2026-10-03T10:00:00", "치즈팬", 0, { kind: "EXTERNAL", platform: "CHZZK", amountLabel: "₩2,000" })], {
+      ...D.RECENT,
+      templates: { ...D.RECENT.templates, CHZZK: "치즈 {amount} 고마워요 {nickname}님" }
+    })[0];
+    expect([chzzk.before, chzzk.nickname, chzzk.after]).toEqual(["치즈 ₩2,000 고마워요 ", "치즈팬", "님"]);
     expect(eventLines(feed, { ...D.EVENT, maxLines: 2, order: "오래된순" }).map((l) => l.nickname)).toEqual(["유튜버팬", "치즈냥"]);
     expect(eventLines(feed, { ...D.EVENT, maxLines: 2, order: "최신순" }).map((l) => l.nickname)).toEqual(["치즈냥", "유튜버팬"]);
   });
@@ -96,6 +102,19 @@ describe("후원 위젯 오버레이", () => {
     expect(await m.saveWidgetSettings("TOTAL", { ...detail.settings, title: "이번 달 후원" })).toEqual({ status: "SAVED" });
     const saved = await m.getOverlayWidget("total", m.overlayKey);
     expect(saved !== "FORBIDDEN" && saved.widget === "total" && saved.settings.title).toBe("이번 달 후원");
+  });
+
+  it("reads 최근알림 settings saved before 치지직 with the default 치지직 line", async () => {
+    const m = await load();
+    const { widgetStore } = await import("./widgetStore");
+    const old: Record<string, string> = { ...widgetStore.RECENT.templates };
+    delete old.CHZZK;
+    widgetStore.RECENT.templates = old as typeof widgetStore.RECENT.templates;
+    const detail = (await m.getWidgetDetail("RECENT"))!;
+    expect((detail.settings as typeof D.RECENT).templates.CHZZK).toBe(D.RECENT.templates.CHZZK);
+    expect(await m.saveWidgetSettings("RECENT", detail.settings)).toEqual({ status: "SAVED" });
+    const overlay = await m.getOverlayWidget("recent", m.overlayKey);
+    expect(overlay !== "FORBIDDEN" && overlay.widget === "recent" && overlay.settings.templates.CHZZK).toBe(D.RECENT.templates.CHZZK);
   });
 
   it("follows the 리모컨 후원 위젯 switch and 새로고침", async () => {

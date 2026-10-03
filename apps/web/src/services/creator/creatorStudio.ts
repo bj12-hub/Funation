@@ -49,7 +49,7 @@ export async function getCreatorProfile(): Promise<CreatorProfile | null> {
     handle: mockCreator.handle,
     // Slot 0 of the creator profile images is the 대표 image; fall back to the member photo.
     avatarUrl: mockCreator.images[0] ?? mockAccount.avatarUrl,
-    donateUrl: `https://funation.com/donate/${mockCreator.handle}`,
+    donateUrl: `https://somnation.com/donate/${mockCreator.handle}`,
     // Dropdown 758:41 shows 치지직/Twitch, which are not confirmed platforms; the confirmed ones are used.
     platforms: mockAccount.connectedPlatforms.map((p) => ({ platform: p.platform, logoUrl: LOGOS[p.platform], connected: p.handle !== null }))
   };

@@ -7,7 +7,7 @@ import { PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES } from "@/lib/validation";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { findAsset } from "./assetCore";
 import { QR_SAMPLE_IMAGE, WIDGET_OVERLAYS, WIDGET_OVERLAY_SETTINGS, widgetOverlayPath } from "./widgetOverlayTypes";
-import { widgetStore } from "./widgetStore";
+import { readWidget, widgetStore } from "./widgetStore";
 import { mockCreator } from "./mockCreatorStore";
 import { PARSERS } from "./widgetParsers";
 import {
@@ -49,10 +49,10 @@ export async function getWidgetDetail(key: unknown): Promise<WidgetDetail | null
   await mockDelay(300);
   return {
     key,
-    url: `https://funation.com/widget/${WIDGET_PATHS[key]}/${mockCreator.handle}`,
+    url: `https://somnation.com/widget/${WIDGET_PATHS[key]}/${mockCreator.handle}`,
     // 후원 위젯 with an OBS overlay show its real address (the popup adds the site origin and masks the key).
     overlayPath: overlayPathFor(key),
-    settings: key === "GACHA" ? withLiveSounds(store.GACHA) : structuredClone(store[key]),
+    settings: key === "GACHA" ? withLiveSounds(store.GACHA) : readWidget(key),
     live: {
       goalCurrent: 100_000,
       totalAmount: 250_000,
@@ -70,7 +70,7 @@ export async function getWidgetDetail(key: unknown): Promise<WidgetDetail | null
         { name: "노을", amount: 1_000 }
       ],
       miniMinAmount: 100,
-      gachaBoardUrl: `https://funation.com/widget/gacha-win/${mockCreator.handle}`,
+      gachaBoardUrl: `https://somnation.com/widget/gacha-win/${mockCreator.handle}`,
       gachaWins: [
         { gacha: "뽑기 후원", prize: "문화상품권 5천원", claimed: false },
         { gacha: "뽑기 후원", prize: "꽝 (다음 기회에)", claimed: null }
