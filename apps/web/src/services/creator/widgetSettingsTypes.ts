@@ -416,6 +416,8 @@ export type Gacha = {
   limitCount: number;
   prizeMode: (typeof GACHA_PRIZE_MODES)[number]["key"];
   prizes: GachaPrize[];
+  /** 당첨 연출 효과음: a SOUND from the 이미지·사운드 library (null = none). */
+  winSoundId: string | null;
 };
 export const GACHA_BOARD_PERIODS = ["오늘 기준", "최근 7일 기준", "최근 30일 기준"] as const;
 export const GACHA_BOARD_SPEEDS = [
@@ -677,7 +679,8 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
         limitEnabled: false,
         limitCount: 1,
         prizeMode: "PROBABILITY",
-        prizes: [{ id: "prize-1", name: "뽑기1", kind: "BLANK", value: 100 }]
+        prizes: [{ id: "prize-1", name: "뽑기1", kind: "BLANK", value: 100 }],
+        winSoundId: null
       }
     ],
     credit: { historyCount: 5, displaySec: 5 },

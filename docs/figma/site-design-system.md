@@ -89,6 +89,8 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 채널 | Y01 | 유튜브 연동 | `/creator/youtube` | `62:1539` |
 | 채널 | Y02 | 영상 목록 | `/creator/videos` | `63:1255` |
 | 방송 · 위젯 | W01 | 위젯 목록 | `/creator/widgets` | `63:1485` |
+| 방송 · 위젯 | W01b | 커스텀 사운드 팝업 (라이브러리에서 고르기) | `/creator/widgets` | `144:8419` |
+| 방송 · 위젯 | W01c | 뽑기 후원 팝업 (당첨 효과음 · 라이브러리) | `/creator/widgets` | `144:8944` |
 | 방송 · 위젯 | W02 | 방송 도구 | `/creator/widgets/tools` | `64:1471` |
 | 방송 · 위젯 | W03 | 오버레이 주소 (기능 제어 OFF 표시 · 배너 OFF 예시) | `/creator/widgets/overlays` | `136:4527` |
 | 방송 · 위젯 | W04 | 리모컨 (꺼진 오버레이 요약 · 기능 제어 · 볼륨 제어, 배너 OFF 예시) | `/creator/remote` | `121:4113` |
@@ -105,6 +107,8 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 후원 관리 | T03 | 받은 후원 | `/creator/donations?tab=list` | `67:3046` |
 | 후원 관리 | T03b | 후원 순위 | `/creator/donations?tab=ranking` | `68:2958` |
 | 후원 관리 | T03c | 후원 필터링 | `/creator/donations?tab=filtering` | `68:3293` |
+| 후원 관리 | T03d | 받은 후원 · 게임 후원 (룰렛 · 퀴즈) | `/creator/donations?tab=list&kind=game` | `142:4530` |
+| 후원 관리 | T03e | 받은 후원 · 크루 후원 (멤버 지정) | `/creator/donations?tab=list&kind=crew` | `143:4635` |
 | 정산 | T04 | 정산 현황 + 체크리스트 | `/creator/settlement` | `68:3459` |
 | 정산 | T04b | 정산 인증·등록 (이용동의) | `/creator/settlement/register` | `68:3655` |
 | 정산 | T04c | 정산 자료 등록 | `/creator/settlement/register/form` | `69:3359` |

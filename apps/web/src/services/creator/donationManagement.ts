@@ -45,6 +45,9 @@ import {
   type SlugCheckResult,
   type StatusFilter
 } from "./donationManagementTypes";
+import { crewDonationRows } from "@/services/crew/crewCore";
+import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
+import { getDonationCatalog } from "@/services/donations/signatureCore";
 import { mockCreator } from "./mockCreatorStore";
 
 /**
@@ -194,8 +197,37 @@ function mockQuestDonations(): ReceivedDonation[] {
     const at = new Date(now - Math.round(i * i * 0.35 * 86_400_000 + i * 3_700_000));
     // Only the most recent quest is still running.
     const status: QuestStatus = i === 1 ? "IN_PROGRESS" : STATUS_CYCLE[i % STATUS_CYCLE.length];
-    return { id: `q${i + 1}`, at: at.toISOString(), donorNickname: nick, donorId: id, amount: AMOUNTS[i % AMOUNTS.length], message: MESSAGES[i % MESSAGES.length], status };
+    return { id: `q${i + 1}`, at: at.toISOString(), donorNickname: nick, donorId: id, amount: AMOUNTS[i % AMOUNTS.length], message: MESSAGES[i % MESSAGES.length], status, detail: null };
   });
+}
+
+/** The 게임 후원 types — the same ones the supporter's 후원내역 files under 게임 후원 (donate.ts). */
+const GAME_TYPES = ["ROULETTE", "QUIZ_CHOICE", "QUIZ_INITIAL", "QUIZ_DRAWING"];
+const GAME_MESSAGES = ["룰렛 한 번 돌려 주세요!", "이 문제 맞히면 인정", "초성 보고 맞혀 보세요 ㅋㅋ", "제 그림 맞혀 주세요", "꽝만 나오지 마라…", "오늘의 퀴즈 갑니다"];
+
+/** 게임 후원 (code-first): 24 donations spread over ~10 months ending now (deterministic mock). */
+function mockGameDonations(): ReceivedDonation[] {
+  const titles = GAME_TYPES.map((k) => getDonationCatalog().types.find((t) => t.key === k)?.title ?? k);
+  const now = Date.now();
+  return Array.from({ length: 24 }, (_, i) => {
+    const [nick, id] = DONORS[(i + 3) % DONORS.length];
+    const at = new Date(now - Math.round(i * i * 0.5 * 86_400_000 + i * 5_100_000 + 1_800_000));
+    return { id: `g${i + 1}`, at: at.toISOString(), donorNickname: nick, donorId: id, amount: AMOUNTS[(i + 2) % AMOUNTS.length], message: GAME_MESSAGES[i % GAME_MESSAGES.length], status: null, detail: titles[i % titles.length] };
+  });
+}
+
+/** 크루 후원 (code-first): donations sent for a crew member of the studio's crew (후원 패널 멤버 지정). */
+function crewDonations(): ReceivedDonation[] {
+  return crewDonationRows(STUDIO_CHANNEL).map((r) => ({
+    id: r.id,
+    at: r.at,
+    donorNickname: r.donor,
+    donorId: r.donorId,
+    amount: r.fnAmount,
+    message: r.message,
+    status: null,
+    detail: r.member
+  }));
 }
 
 type ListFilter = { kind: ListKind; period: ListPeriod; status: StatusFilter; query: string };
@@ -203,10 +235,10 @@ type ListFilter = { kind: ListKind; period: ListPeriod; status: StatusFilter; qu
 /** Server-side filtering shared by the paged list and the CSV export. */
 function filterReceived(input: ListFilter) {
   const kind = LIST_KINDS.some((k) => k.key === input.kind) ? input.kind : "quest";
-  const status: StatusFilter = input.status === "ALL" || QUEST_STATUSES.some((s) => s.key === input.status) ? input.status : "ALL";
+  // The 상태 filter only exists for 퀘스트 후원.
+  const status: StatusFilter = kind === "quest" && QUEST_STATUSES.some((s) => s.key === input.status) ? input.status : "ALL";
   const query = input.query.trim().slice(0, LIST_QUERY_MAX).toLowerCase();
-  // 게임 · 크루 lists are not designed yet: they return no rows.
-  const all = kind === "quest" ? mockQuestDonations() : [];
+  const all = kind === "quest" ? mockQuestDonations() : kind === "game" ? mockGameDonations() : crewDonations();
   const years = [...new Set(all.map((d) => new Date(d.at).getFullYear()))].sort((a, b) => b - a);
   const localDate = (iso: string) => {
     const d = new Date(iso);
@@ -269,10 +301,11 @@ export async function exportReceivedDonationsCsv(input: unknown): Promise<CsvExp
   });
   await mockDelay(300);
   const rows = matched.slice(0, CSV_EXPORT_MAX);
-  const label = (s: QuestStatus) => QUEST_STATUSES.find((q) => q.key === s)!.label;
+  const last = (d: ReceivedDonation) => (d.status ? QUEST_STATUSES.find((q) => q.key === d.status)!.label : (d.detail ?? ""));
+  const column = kind === "quest" ? "상태" : LIST_KINDS.find((k) => k.key === kind)!.column;
   const lines = [
-    ["후원일시", "후원자 닉네임", "후원자 아이디", "금액(FN)", "메시지", "상태"].map(csvCell).join(","),
-    ...rows.map((d) => [d.at, d.donorNickname, d.donorId, d.amount, d.message, label(d.status)].map(csvCell).join(","))
+    ["후원일시", "후원자 닉네임", "후원자 아이디", "금액(FN)", "메시지", column].map(csvCell).join(","),
+    ...rows.map((d) => [d.at, d.donorNickname, d.donorId, d.amount, d.message, last(d)].map(csvCell).join(","))
   ];
   return {
     status: "OK",

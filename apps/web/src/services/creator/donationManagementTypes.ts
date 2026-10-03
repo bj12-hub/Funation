@@ -47,10 +47,11 @@ export type ManagementSaveResult = { status: "SAVED" } | { status: "INVALID"; me
 
 // ── 후원 리스트 (539:156) ────────────────────────────────────────────────────────
 
+/** `column`: the last column of each list (게임 · 크루 are code-first, no Figma frame). */
 export const LIST_KINDS = [
-  { key: "quest", label: "퀘스트 후원" },
-  { key: "game", label: "게임 후원" },
-  { key: "crew", label: "크루 후원" }
+  { key: "quest", label: "퀘스트 후원", column: "퀘스트 상태" },
+  { key: "game", label: "게임 후원", column: "게임 종류" },
+  { key: "crew", label: "크루 후원", column: "멤버" }
 ] as const;
 export type ListKind = (typeof LIST_KINDS)[number]["key"];
 
@@ -85,7 +86,10 @@ export type ReceivedDonation = {
   /** FN, as recorded by the server. */
   amount: number;
   message: string;
-  status: QuestStatus;
+  /** 퀘스트 후원 only. */
+  status: QuestStatus | null;
+  /** 게임 후원: the game (룰렛 후원, 객관식 퀴즈 …) · 크루 후원: the member it was sent for. */
+  detail: string | null;
 };
 
 export type ReceivedDonationPage = {
