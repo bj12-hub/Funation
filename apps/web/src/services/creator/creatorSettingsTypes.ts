@@ -10,11 +10,12 @@ export const CREATOR_LANGUAGES: { key: CreatorLanguage; label: string }[] = [
   { key: "zh", label: "中文" }
 ];
 
-export type MainPlatform = "SOOP" | "FLEXTV" | "YOUTUBE" | "OTHER";
+export type MainPlatform = "SOOP" | "FLEXTV" | "YOUTUBE" | "CHZZK" | "OTHER";
 export const MAIN_PLATFORMS: { key: MainPlatform; label: string; color: string }[] = [
   { key: "SOOP", label: "SOOP (아프리카TV)", color: "#1e6bff" },
   { key: "FLEXTV", label: "FlexTV (플렉스TV)", color: "#f5bf0a" },
   { key: "YOUTUBE", label: "Youtube", color: "#ff0000" },
+  { key: "CHZZK", label: "치지직 (CHZZK)", color: "#00d26a" },
   { key: "OTHER", label: "기타", color: "#3a3a4a" }
 ];
 

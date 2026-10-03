@@ -14,9 +14,8 @@ import styles from "./widgetOverlay.module.css";
 const OUTLINE = "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000";
 const QR_RADIUS = { BASIC: 0, ROUND: 16, CIRCLE: 999, SOFT: 32 } as const;
 const SCROLL_SEC = { VERY_SLOW: 40, SLOW: 30, NORMAL: 20, FAST: 12, VERY_FAST: 7 } as const;
-/** Somnation's own donations and 치지직 (not in the 최근알림 platform list yet). */
+/** Somnation's own donations. */
 const OWN_COLOR = "#a78bfa";
-const CHZZK_COLOR = "#00d26a";
 
 /** Full-size text style for an overlay (the popup preview scales the same settings down). */
 const font = (f: { family: string; size: number; color?: string }, outline = false): CSSProperties => ({
@@ -26,8 +25,7 @@ const font = (f: { family: string; size: number; color?: string }, outline = fal
   textShadow: outline ? OUTLINE : undefined
 });
 
-const nickColor = (l: WidgetFeedLine) =>
-  l.platform === null ? OWN_COLOR : l.platform === "CHZZK" ? CHZZK_COLOR : (RECENT_PLATFORMS.find((p) => p.key === l.platform)?.color ?? OWN_COLOR);
+const nickColor = (l: WidgetFeedLine) => RECENT_PLATFORMS.find((p) => p.key === l.platform)?.color ?? OWN_COLOR;
 
 const tag = (l: WidgetFeedLine) => (l.kind === "TEST" ? "[테스트] " : l.platform ? `[${PLATFORM_LABEL[l.platform]}] ` : "");
 

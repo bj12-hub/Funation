@@ -172,11 +172,12 @@ export type TotalSettings = {
 
 export const TEMPLATE_MAX = 60;
 
-/** Alert text per confirmed platform (the design shows 치지직/아프리카). Event mapping per platform is TBD. */
+/** Alert text per confirmed platform (치지직 added 2026-10-01). Event mapping per platform is TBD. */
 export const RECENT_PLATFORMS = [
   { key: "YOUTUBE", label: "YouTube", color: "#ff0000" },
   { key: "FLEXTV", label: "FlexTV", color: "#f5bf0a" },
-  { key: "SOOP", label: "SOOP", color: "#1e6bff" }
+  { key: "SOOP", label: "SOOP", color: "#1e6bff" },
+  { key: "CHZZK", label: "치지직", color: "#00d26a" }
 ] as const;
 export type RecentPlatform = (typeof RECENT_PLATFORMS)[number]["key"];
 export const RECENT_EFFECTS = ["Fade In / Out", "Slide In / Out", "없음"] as const;
@@ -577,7 +578,8 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     templates: {
       YOUTUBE: "{nickname}님이 {amount} 후원했습니다.",
       FLEXTV: "{nickname}님이 {amount} 후원했습니다.",
-      SOOP: "{nickname}님이 별풍선 {count}개를 후원했습니다."
+      SOOP: "{nickname}님이 별풍선 {count}개를 후원했습니다.",
+      CHZZK: "{nickname}님이 {amount} 후원했습니다."
     }
   },
   EVENT: {
