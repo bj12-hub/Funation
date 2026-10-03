@@ -81,14 +81,14 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 통합 채팅 | O04c | 통합 채팅 오버레이 · 리모컨 기능 제어 OFF (400 × 600, 아무것도 표시 안 함) | `/overlay/chat/[key]` | `132:2` |
 | 대시보드 · 수익 · 소식 | T01 | 대시보드 | `/creator` | `59:443` |
 | 대시보드 · 수익 · 소식 | T02 | 수익 현황 | `/creator/revenue` | `59:808` |
-| 대시보드 · 수익 · 소식 | T02b | 크리에이터 랭킹 | `/creator/ranking` | `61:646` |
+| 대시보드 · 수익 · 소식 | T02b | 크리에이터 랭킹 (퀘스트 탭만) | `/creator/ranking` | `61:646` |
 | 대시보드 · 수익 · 소식 | T05 | 업데이트 소식 | `/creator/updates` | `61:968` |
 | 채널 | H01 | 채널 설정 (계정설정) | `/creator/settings` | `62:846` |
 | 채널 | H02 | 후원 페이지 설정 | `/creator/donations?tab=settings` | `62:1111` |
 | 채널 | H03 | 칭호 관리 | `/creator/donations?tab=titles` | `62:1332` |
 | 채널 | Y01 | 유튜브 연동 | `/creator/youtube` | `62:1539` |
 | 채널 | Y02 | 영상 목록 | `/creator/videos` | `63:1255` |
-| 방송 · 위젯 | W01 | 위젯 목록 | `/creator/widgets` | `63:1485` |
+| 방송 · 위젯 | W01 | 위젯 목록 (룰렛 포함, 럭키박스 · 플레이 없음) | `/creator/widgets` | `63:1485` |
 | 방송 · 위젯 | W01b | 커스텀 사운드 팝업 (라이브러리에서 고르기) | `/creator/widgets` | `144:8419` |
 | 방송 · 위젯 | W01c | 뽑기 후원 팝업 (당첨 효과음 · 라이브러리) | `/creator/widgets` | `144:8944` |
 | 방송 · 위젯 | W01d | 투표 위젯 팝업 (무료 · 1인 1표, 프리셋) | `/creator/widgets` | `161:9654` |
@@ -109,7 +109,7 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 후원 관리 | T03 | 받은 후원 (퀘스트 성공 · 실패 · 취소, 실패 · 취소 시 환불) | `/creator/donations?tab=list` | `158:13983` |
 | 후원 관리 | T03b | 후원 순위 | `/creator/donations?tab=ranking` | `68:2958` |
 | 후원 관리 | T03c | 후원 필터링 | `/creator/donations?tab=filtering` | `68:3293` |
-| 후원 관리 | T03d | 받은 후원 · 게임 후원 (룰렛 · 퀴즈) | `/creator/donations?tab=list&kind=game` | `142:4530` |
+| 후원 관리 | T03d | 받은 후원 · 게임 후원 (룰렛 · 뽑기) | `/creator/donations?tab=list&kind=game` | `142:4530` |
 | 후원 관리 | T03e | 받은 후원 · 크루 후원 (멤버 지정) | `/creator/donations?tab=list&kind=crew` | `143:4635` |
 | 정산 | T04 | 정산 현황 + 체크리스트 | `/creator/settlement` | `68:3459` |
 | 정산 | T04b | 정산 인증·등록 (이용동의) | `/creator/settlement/register` | `68:3655` |
@@ -158,14 +158,10 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 방송 방 후원 패널 | D-VIDEO | 영상 (URL 입력만) | `/creators/c1?tab=donation` | `154:9022` |
 | 방송 방 후원 패널 | D-SIGNATURE | 시그니처 | `/creators/c1?tab=donation` | `78:3330` |
 | 방송 방 후원 패널 | D-WISHLIST | 위시 | `/creators/c1?tab=donation` | `78:3398` |
-| 방송 방 후원 패널 | D-LUCKYBOX | 럭키박스 | `/creators/c1?tab=donation` | `78:3465` |
 | 방송 방 후원 패널 | D-ROULETTE | 룰렛 (크리에이터 항목 · 확률, 내 룰렛) | `/creators/c1?tab=donation` | `164:8940` |
 | 방송 방 후원 패널 | D-GACHA | 뽑기 (확률 · 상품 안내 동의, 내 뽑기) | `/creators/c1?tab=donation` | `166:8940` |
 | 방송 방 후원 패널 | D-QUEST | 퀘스트 (실패 · 취소 시 전액 환불) | `/creators/c1?tab=donation` | `158:8946` |
 | 방송 방 후원 패널 | D-DRAWING | 그림 | `/creators/c1?tab=donation` | `79:3259` |
-| 방송 방 후원 패널 | D-QUIZ_CHOICE | 객관식 퀴즈 | `/creators/c1?tab=donation` | `79:3329` |
-| 방송 방 후원 패널 | D-QUIZ_INITIAL | 초성 퀴즈 | `/creators/c1?tab=donation` | `79:3418` |
-| 방송 방 후원 패널 | D-QUIZ_DRAWING | 그림 퀴즈 | `/creators/c1?tab=donation` | `79:3495` |
 | 방송 방 후원 패널 | D-crew-member | 크루 멤버 지정 | `/creators/c4?tab=donation` | `79:3580` |
 | 방송 방 후원 패널 | D-confirm | 후원하기 확인 + 후원 알림 미리보기 (613:6 + code-first) | `/creators/c1?tab=donation` | `112:8173` |
 | 플랫폼 후원 | P01 | SOOP 후원 | `/donation/soop` | `80:3182` |
@@ -173,7 +169,7 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 플랫폼 후원 | P03 | 플랫폼 크리에이터 검색 | `/donation/soop/search` | `80:3665` |
 | 플랫폼 후원 | P04 | 플랫폼 크리에이터 후원 | `/donation/soop/kim_stream` | `80:3859` |
 | 플랫폼 후원 | P05 | 플랫폼 후원 내역 | `/donation/history` | `80:4080` |
-| 마이 | M01 | 마이페이지 | `/mypage` | `81:4024` |
+| 마이 | M01 | 마이페이지 (랭킹 노출: 퀘스트) | `/mypage` | `81:4024` |
 | 마이 | M02 | 칭호·등급 | `/mypage/titles` | `81:4359` |
 | 마이 | M03 | 별명 관리 | `/mypage/nicknames` | `81:4688` |
 | 마이 | M04 | 내 후원 랭킹 | `/mypage/ranking` | `82:4528` |

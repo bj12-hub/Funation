@@ -28,7 +28,7 @@ describe("reports", () => {
     expect(await m.submitReport({ target, reason: "ABUSE" })).toEqual({ status: "ALREADY_REPORTED" });
     const r = m.moderationStore().reports[0];
     expect(r).toMatchObject({ target: { type: "POST", id: "p-2" }, authorName: "새벽라디오", status: "OPEN", reporterId: "u-test" });
-    expect(r.snapshot).toContain("럭키박스");
+    expect(r.snapshot).toContain("룰렛");
 
     expect((await m.submitReport({ target, reason: "NOPE" })).status).toBe("INVALID");
     expect((await m.submitReport({ target: { type: "POST", id: "p-3" }, reason: "ETC", detail: "" })).status).toBe("INVALID");

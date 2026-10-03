@@ -2,7 +2,7 @@
 
 import { useId, type ReactNode } from "react";
 import { Toggle } from "@/components/ui/Toggle";
-import { FONT_FAMILIES, FONT_LEVELS, FONT_SIZES, isHexColor, type ColorFont, type FontFamily, type LeveledFont } from "@/services/creator/widgetSettingsTypes";
+import { FONT_FAMILIES, FONT_SIZES, isHexColor, type ColorFont, type FontFamily } from "@/services/creator/widgetSettingsTypes";
 import styles from "./widgets.module.css";
 
 /** Popup section title: 4×16 purple bar + 14px bold (Figma 372:7). */
@@ -191,23 +191,6 @@ export function SwitchText({ label, checked, onChange, text }: { label: string; 
       <Toggle label={label} checked={checked} onChange={onChange} />
       {text && <span className={styles.hint}>{text}</span>}
     </span>
-  );
-}
-
-export function LeveledFontFields({ label, value, onChange }: { label: string; value: LeveledFont; onChange: (v: LeveledFont) => void }) {
-  return (
-    <div className={styles.inline}>
-      <Select label={`${label} 서체`} value={value.family} options={FONT_FAMILIES} width={128} onChange={(family) => onChange({ ...value, family })} />
-      <Select
-        label={`${label} 크기`}
-        value={value.level}
-        options={FONT_LEVELS.map((l) => l.key)}
-        width={140}
-        format={(k) => FONT_LEVELS.find((l) => l.key === k)?.label ?? k}
-        onChange={(level) => onChange({ ...value, level })}
-      />
-      <ColorField label={`${label} 색상`} value={value.color} width={130} onChange={(color) => onChange({ ...value, color })} />
-    </div>
   );
 }
 

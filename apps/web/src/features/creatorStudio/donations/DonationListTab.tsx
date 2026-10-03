@@ -32,7 +32,7 @@ function href(params: Params) {
 
 /**
  * 후원 리스트 — Figma 539:156. Filters are links and a GET form, so every state is a URL.
- * Only 퀘스트 후원 is designed; 게임 후원 (룰렛 · 퀴즈) and 크루 후원 (멤버를 지정한 후원) are code-first with
+ * Only 퀘스트 후원 is designed; 게임 후원 (룰렛 · 뽑기) and 크루 후원 (멤버를 지정한 후원) are code-first with
  * the same table — the last column shows the game or the member, and the 상태 filter is quest-only.
  */
 export function DonationListTab({ data }: { data: ReceivedDonationPage }) {

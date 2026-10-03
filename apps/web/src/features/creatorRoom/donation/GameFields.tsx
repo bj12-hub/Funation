@@ -8,15 +8,15 @@ import { getRoomGacha } from "@/services/donations/gacha";
 import { GACHA_STATUS_LABEL, type RoomGacha } from "@/services/donations/gachaTypes";
 import { getRoomRoulette } from "@/services/donations/roulette";
 import { ROULETTE_STATUS_LABEL, isBlankPrize, rouletteColor, type RoomRoulette } from "@/services/donations/rouletteTypes";
-import type { DrawingState, GachaState, QuestState, QuizChoiceState, QuizDrawingState, QuizInitialState, QuizRewardsState, RouletteState, TimeLimit } from "./drafts";
+import type { DrawingState, GachaState, QuestState, RouletteState, TimeLimit } from "./drafts";
 import { SwitchRow } from "./Fields";
 import room from "../room.module.css";
 import styles from "./game.module.css";
 
 /**
- * Page-2 donation types. Figma 867:2458 룰렛 (now 펀페이 1009:510 · 1009:222 · 1009:473) · 867:2545 퀘스트 ·
- * 867:2647 그림 · 867:2755 객관식 · 867:2855 초성 · 867:2955 그림 퀴즈. The roulette result is drawn by the
- * server and revealed on the broadcast; quiz judgement is TBD. These forms only collect the request.
+ * Game donation types. Figma 867:2458 룰렛 (now 펀페이 1009:510 · 1009:222 · 1009:473) · 867:2545 퀘스트 ·
+ * 867:2647 그림 · code-first 뽑기. Roulette and 뽑기 results are drawn by the server and revealed on the
+ * broadcast. The quiz types and 럭키박스 were removed (2026-10-04 결정).
  */
 
 type Props<S> = { value: S; onChange: (next: S) => void; catalog: DonationCatalog; error: string | null };
@@ -74,24 +74,6 @@ const ErrorLine = ({ error }: { error: string | null }) =>
       ! {error}
     </p>
   ) : null;
-
-function QuizRewardFields<S extends QuizRewardsState>({ value, onChange, columns = 3 }: { value: S; onChange: (next: S) => void; columns?: 2 | 3 }) {
-  const time = <TimeInput value={value.time} onChange={(time) => onChange({ ...value, time })} />;
-  const correct = <FnInput label="정답 보상" value={value.correct} onChange={(correct) => onChange({ ...value, correct })} />;
-  const wrong = <FnInput label="오답 보상" value={value.wrong} onChange={(wrong) => onChange({ ...value, wrong })} />;
-  return columns === 3 ? (
-    <div className={styles.cols3}>
-      {time}
-      {correct}
-      {wrong}
-    </div>
-  ) : (
-    <div className={styles.cols2}>
-      {correct}
-      {wrong}
-    </div>
-  );
-}
 
 // ── 룰렛 (펀페이 1009:510 참여 · 1009:323 OFF · 1009:222 대기 · 1009:473 결과) ────────────────
 
@@ -237,83 +219,6 @@ export function DrawingFields({ value, onChange, catalog, error }: Props<Drawing
       <DrawingPad placeholder="✦ 〰 ✦" initial={value.image} onChange={(image) => onChange({ ...value, image })} />
       <FnInput label="후원 금액" value={value.amount} onChange={(amount) => onChange({ ...value, amount })} />
       <TextInput label="그림 제목" value={value.title} onChange={(title) => onChange({ ...value, title })} max={catalog.game.maxText} placeholder="그림에 붙일 제목" />
-      <Terms checked={value.terms} onChange={(terms) => onChange({ ...value, terms })} />
-      <ErrorLine error={error} />
-    </>
-  );
-}
-
-// ── 객관식 퀴즈 (867:2791) ───────────────────────────────────────────────────
-
-export function QuizChoiceFields({ value, onChange, catalog, error }: Props<QuizChoiceState>) {
-  const { min, max } = catalog.game.quizOptions;
-  const setOption = (i: number, text: string) => onChange({ ...value, options: value.options.map((o, j) => (j === i ? text : o)) });
-  const removeOption = (i: number) =>
-    onChange({
-      ...value,
-      options: value.options.filter((_, j) => j !== i),
-      correctIndex: value.correctIndex === i ? 0 : value.correctIndex > i ? value.correctIndex - 1 : value.correctIndex
-    });
-
-  return (
-    <>
-      <TextInput label="문제" value={value.question} onChange={(question) => onChange({ ...value, question })} max={catalog.game.maxText} placeholder="크리에이터가 맞힐 문제" tall />
-      <div className={styles.field}>
-        <span className={styles.label}>보기 · 정답 선택</span>
-        <ol className={styles.options}>
-          {value.options.map((o, i) => (
-            <li key={i} className={`${styles.option} ${value.correctIndex === i ? styles.optionOn : ""}`}>
-              <input type="radio" name="quiz-correct" checked={value.correctIndex === i} onChange={() => onChange({ ...value, correctIndex: i })} aria-label={`${i + 1}번을 정답으로`} />
-              <span aria-hidden="true">{"①②③④⑤"[i]}</span>
-              <input className={styles.optionInput} value={o} maxLength={catalog.game.maxText} placeholder={`보기 ${i + 1}`} onChange={(e) => setOption(i, e.target.value)} aria-label={`보기 ${i + 1}`} />
-              {value.options.length > min && (
-                <button type="button" className={styles.optionRemove} onClick={() => removeOption(i)} aria-label={`보기 ${i + 1} 삭제`}>
-                  ×
-                </button>
-              )}
-            </li>
-          ))}
-        </ol>
-        {value.options.length < max && (
-          <button type="button" className={styles.addOption} onClick={() => onChange({ ...value, options: [...value.options, ""] })}>
-            ＋ 항목 추가
-          </button>
-        )}
-      </div>
-      <QuizRewardFields value={value} onChange={onChange} />
-      <Terms checked={value.terms} onChange={(terms) => onChange({ ...value, terms })} />
-      <ErrorLine error={error} />
-    </>
-  );
-}
-
-// ── 초성 퀴즈 (867:2891) ─────────────────────────────────────────────────────
-
-export function QuizInitialFields({ value, onChange, catalog, error }: Props<QuizInitialState>) {
-  return (
-    <>
-      <TextInput label="문제" value={value.question} onChange={(question) => onChange({ ...value, question })} max={catalog.game.maxText} placeholder="크리에이터가 맞힐 문제" />
-      <TextInput label="정답" value={value.answer} onChange={(answer) => onChange({ ...value, answer })} max={catalog.game.maxText} placeholder="정답" />
-      <TextInput label="힌트" value={value.hint} onChange={(hint) => onChange({ ...value, hint })} max={catalog.game.maxText} placeholder="예: ㅂㅂ ㅇㄹ" />
-      <QuizRewardFields value={value} onChange={onChange} />
-      <Terms checked={value.terms} onChange={(terms) => onChange({ ...value, terms })} />
-      <ErrorLine error={error} />
-    </>
-  );
-}
-
-// ── 그림 퀴즈 (867:2991) ─────────────────────────────────────────────────────
-
-export function QuizDrawingFields({ value, onChange, catalog, error }: Props<QuizDrawingState>) {
-  return (
-    <>
-      <DrawingPad placeholder="☁ ?" initial={value.image} onChange={(image) => onChange({ ...value, image })} />
-      <TextInput label="문제" value={value.question} onChange={(question) => onChange({ ...value, question })} max={catalog.game.maxText} placeholder="그림 속 정답을 묻는 문제" />
-      <div className={styles.cols2}>
-        <TextInput label="정답" value={value.answer} onChange={(answer) => onChange({ ...value, answer })} max={catalog.game.maxText} placeholder="정답" />
-        <TimeInput value={value.time} onChange={(time) => onChange({ ...value, time })} />
-      </div>
-      <QuizRewardFields value={value} onChange={onChange} columns={2} />
       <Terms checked={value.terms} onChange={(terms) => onChange({ ...value, terms })} />
       <ErrorLine error={error} />
     </>

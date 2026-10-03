@@ -16,7 +16,7 @@ import { CopyButton } from "../settings/SettingsCards";
 import { CustomSoundForm } from "./CustomSoundForm";
 import { ChatForm, GoalForm, QrForm, TotalForm, type FormProps } from "./forms";
 import { GachaForm } from "./GachaForm";
-import { LuckyboxForm, PlayForm, QuestForm } from "./gameForms";
+import { QuestForm } from "./gameForms";
 import { EventForm, MiniForm, RecentForm } from "./listForms";
 import { RankingForm } from "./RankingForm";
 import { RouletteForm } from "./RouletteForm";
@@ -37,9 +37,7 @@ const FORMS: { [K in EditableWidgetKey]: ComponentType<FormProps<K>> } = {
   RANKING: RankingForm,
   VOTE: VoteForm,
   CUSTOM_SOUND: CustomSoundForm,
-  LUCKYBOX: LuckyboxForm,
   QUEST: QuestForm,
-  PLAY: PlayForm,
   GACHA: GachaForm,
   ROULETTE: RouletteForm,
   WALLPAPER: WallpaperForm
@@ -58,9 +56,7 @@ const MODAL_COPY: Record<EditableWidgetKey, { title: string; urlLabel: string }>
   VOTE: { title: "투표 위젯 설정", urlLabel: "투표 위젯 URL" },
   // 373:1307 has no URL box: sounds play through the alert widget.
   CUSTOM_SOUND: { title: "커스텀 사운드 설정", urlLabel: "" },
-  LUCKYBOX: { title: "럭키박스 위젯 설정", urlLabel: "럭키박스 위젯 URL" },
   QUEST: { title: "퀘스트 위젯 설정", urlLabel: "퀘스트 위젯 URL" },
-  PLAY: { title: "플레이 후원 위젯 설정", urlLabel: "플레이 위젯 URL" },
   GACHA: { title: "뽑기 후원 위젯 설정", urlLabel: "뽑기 후원 위젯 URL" },
   ROULETTE: { title: "룰렛 설정", urlLabel: "룰렛 위젯 URL" },
   WALLPAPER: { title: "벽지 위젯 설정", urlLabel: "벽지 위젯 URL" }
@@ -72,7 +68,8 @@ const SELF_SAVING: EditableWidgetKey[] = ["CUSTOM_SOUND"];
 /**
  * 후원위젯/알림설정. Figma 529:4 (route `/creator/widgets`); popups 364:6 · 364:158 · 364:265 · 372:7 ·
  * 531:1370 (최근알림) · 531:1598 (이벤트) · 531:1826 (미니후원) · 315:650 (후원랭킹) · 315:858 (투표) · 373:1307 (커스텀 사운드) ·
- * 373:1356 (럭키박스) · 373:1598 (퀘스트) · 373:1785 (플레이) · 373:3675 (뽑기 후원) · 395:145 (벽지).
+ * 373:1598 (퀘스트) · 373:3675 (뽑기 후원) · 395:145 (벽지) · code-first 룰렛. 럭키박스 (373:1356) and 플레이 (373:1785)
+ * were removed (2026-10-04 결정).
  * Catalog layout follows the funnation 위젯 page (인기 · 전체 by group · 도구; see ./widgetCatalog.ts).
  * The Figma 후원 알림 설정 alert-type cards are no longer listed (they had no popups); 그림후원 links to its own page.
  */

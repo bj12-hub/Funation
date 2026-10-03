@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { CreatorRankingScreen } from "@/features/creatorStudio/ranking/CreatorRankingScreen";
 import { getCreatorRanking, parseRankingPeriod, parseRankingType } from "@/services/creator/creatorRanking";
 
-// Figma: creator ranking 405:4 (퀘스트) · 405:302 (럭키박스) · 405:598 (플레이)
+// Figma: creator ranking 405:4 (퀘스트); 럭키박스 · 플레이 tabs removed (2026-10-04 결정)
 export const metadata: Metadata = { title: "크리에이터 랭킹 | Somnation" };
 export const dynamic = "force-dynamic";
 

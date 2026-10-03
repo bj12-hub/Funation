@@ -204,8 +204,8 @@ export async function decideReceivedQuest(input: unknown): Promise<QuestDecideRe
 }
 
 /** The 게임 후원 types — the same ones the supporter's 후원내역 files under 게임 후원 (donate.ts). */
-const GAME_TYPES = ["ROULETTE", "QUIZ_CHOICE", "QUIZ_INITIAL", "QUIZ_DRAWING"];
-const GAME_MESSAGES = ["룰렛 한 번 돌려 주세요!", "이 문제 맞히면 인정", "초성 보고 맞혀 보세요 ㅋㅋ", "제 그림 맞혀 주세요", "꽝만 나오지 마라…", "오늘의 퀴즈 갑니다"];
+const GAME_TYPES = ["ROULETTE", "GACHA"];
+const GAME_MESSAGES = ["룰렛 한 번 돌려 주세요!", "뽑기 한 판 갑니다", "스탬프 나와라!", "상품권 노려 봅니다", "꽝만 나오지 마라…", "오늘의 행운 테스트"];
 
 /** 게임 후원 (code-first): 24 donations spread over ~10 months ending now (deterministic mock). */
 function mockGameDonations(): ReceivedDonation[] {

@@ -1,5 +1,5 @@
 import { formatNumber } from "@/lib/format";
-import { luckyTierFor, type DonationCatalog, type DonationTypeKey } from "@/services/donations/donationCatalog";
+import type { DonationCatalog, DonationTypeKey } from "@/services/donations/donationCatalog";
 import { parseYouTubeId, type DonationDetails } from "@/services/donations/donationTypes";
 
 /**
@@ -13,8 +13,6 @@ export type MiniState = { amount: string; text: string; colorId: string; enterTo
 export type VideoState = { amount: string; url: string; start: string; end: string; terms: boolean };
 export type SignatureState = { signatureId: string | null; message: string };
 export type WishlistState = { itemId: string | null; message: string; voiceId: string | null };
-/** Each box has a stable id so React keys survive deletes. */
-export type LuckyState = { boxes: { id: number; winner: boolean }[]; selected: number | null; amount: string; terms: boolean };
 
 /** `limitReached` comes from the room's 룰렛 status (today's 참여 가능 횟수); the server checks again. */
 export type RouletteState = { amount: string; limitReached: boolean };
@@ -24,10 +22,6 @@ export type GachaState = { gachaId: string | null; terms: boolean; limitReached:
 export type TimeLimit = { minutes: string; seconds: string };
 export type QuestState = { title: string; success: string; time: TimeLimit; creatorDecides: boolean; terms: boolean };
 export type DrawingState = { amount: string; title: string; image: string | null; showProcess: boolean; canvasMode: boolean; terms: boolean };
-export type QuizRewardsState = { time: TimeLimit; correct: string; wrong: string; terms: boolean };
-export type QuizChoiceState = QuizRewardsState & { question: string; options: string[]; correctIndex: number };
-export type QuizInitialState = QuizRewardsState & { question: string; answer: string; hint: string };
-export type QuizDrawingState = QuizRewardsState & { image: string | null; question: string; answer: string };
 
 export type FormStates = {
   TEXT: TextState;
@@ -35,13 +29,9 @@ export type FormStates = {
   VIDEO: VideoState;
   SIGNATURE: SignatureState;
   WISHLIST: WishlistState;
-  LUCKYBOX: LuckyState;
   ROULETTE: RouletteState;
   QUEST: QuestState;
   DRAWING: DrawingState;
-  QUIZ_CHOICE: QuizChoiceState;
-  QUIZ_INITIAL: QuizInitialState;
-  QUIZ_DRAWING: QuizDrawingState;
   GACHA: GachaState;
 };
 
@@ -55,30 +45,12 @@ export function initialStates(catalog: DonationCatalog): FormStates {
     VIDEO: { amount: "", url: "", start: "00:00", end: "00:30", terms: false },
     SIGNATURE: { signatureId: null, message: "" },
     WISHLIST: { itemId: null, message: "", voiceId },
-    // 851:5231 default: three boxes, the middle one wins, 5,000 FN.
-    LUCKYBOX: {
-      boxes: [
-        { id: 1, winner: false },
-        { id: 2, winner: true },
-        { id: 3, winner: false }
-      ],
-      selected: 2,
-      amount: String(catalog.luckyBox.presets[1] ?? catalog.luckyBox.minAmount),
-      terms: false
-    },
     // 펀페이 1009:510: the 참여 금액 starts at the minimum.
     ROULETTE: { amount: String(catalog.roulette.minAmount), limitReached: false },
     QUEST: { title: "", success: "", time: { minutes: "10", seconds: "00" }, creatorDecides: true, terms: false },
     DRAWING: { amount: "", title: "", image: null, showProcess: true, canvasMode: false, terms: false },
-    QUIZ_CHOICE: { question: "", options: ["", "", ""], correctIndex: 0, ...quizDefaults() },
-    QUIZ_INITIAL: { question: "", answer: "", hint: "", ...quizDefaults() },
-    QUIZ_DRAWING: { image: null, question: "", answer: "", ...quizDefaults() },
     GACHA: { gachaId: catalog.gacha.find((x) => !x.soldOut)?.id ?? catalog.gacha[0]?.id ?? null, terms: false, limitReached: false }
   };
-}
-
-function quizDefaults(): QuizRewardsState {
-  return { time: { minutes: "00", seconds: "30" }, correct: "", wrong: "", terms: false };
 }
 
 /** Minutes + seconds → seconds, or null when not a valid positive time. */
@@ -88,33 +60,6 @@ export function timeToSec(time: TimeLimit): number | null {
   if (!Number.isInteger(m) || !Number.isInteger(s) || s > 59 || m < 0 || s < 0) return null;
   const total = m * 60 + s;
   return total > 0 ? total : null;
-}
-
-function quizDraft(s: QuizRewardsState, catalog: DonationCatalog, title: string) {
-  const correct = digits(s.correct);
-  const wrong = digits(s.wrong);
-  const amount = correct === null && wrong === null ? null : Math.max(correct ?? 0, wrong ?? 0);
-  const time = timeToSec(s.time);
-  const error =
-    amount !== null && amount < catalog.game.minAmount
-      ? `보상 금액은 ${formatNumber(catalog.game.minAmount)} FN 이상이어야 해요.`
-      : time === null
-        ? "제한 시간을 확인해 주세요."
-        : time > catalog.game.maxTimeSec
-          ? `제한 시간은 최대 ${catalog.game.maxTimeSec / 60}분이에요.`
-          : null;
-  return {
-    amount,
-    error,
-    time,
-    ready: correct !== null && wrong !== null && !error && s.terms,
-    rewards: { timeLimitSec: time ?? 0, correctReward: correct ?? 0, wrongReward: wrong ?? 0, termsAgreed: true as const },
-    buttonLabel: `${title} ${formatNumber(amount ?? 0)} FN 후원하기`,
-    summaryRows: [
-      { label: "제한 시간", value: `${s.time.minutes || "0"}분 ${s.time.seconds || "0"}초` },
-      { label: "보상", value: `정답 ${formatNumber(correct ?? 0)} FN · 오답 ${formatNumber(wrong ?? 0)} FN` }
-    ]
-  };
 }
 
 export type Draft = {
@@ -127,7 +72,7 @@ export type Draft = {
   summary: { label: string; value: string }[];
   /** Text for the chat notice after success. */
   chatText: string;
-  /** Submit label when the type has its own (e.g. "GOLD BOX 5,000 FN 후원하기"). */
+  /** Submit label when the type has its own (e.g. "뽑기 후원 3,000 FN 뽑기"). */
   buttonLabel?: string;
 };
 
@@ -226,32 +171,6 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
         chatText: `🎁 ${item?.name ?? ""}`
       };
     }
-    case "LUCKYBOX": {
-      const s = states.LUCKYBOX;
-      const lucky = catalog.luckyBox;
-      const amount = digits(s.amount);
-      const winners = s.boxes.filter((b) => b.winner).length;
-      const tier = luckyTierFor(lucky, amount ?? 0);
-      const error =
-        amount === null || amount < lucky.minAmount
-          ? `후원 금액은 ${formatNumber(lucky.minAmount)} FN 이상 입력해주세요.`
-          : amount > lucky.maxAmount
-            ? `후원 금액은 ${formatNumber(lucky.maxAmount)} FN 이하로 입력해주세요.`
-            : winners === 0
-              ? "당첨될 박스를 1개 이상 선택해주세요."
-              : null;
-      return {
-        details: !error && amount !== null && s.terms ? { type: "LUCKYBOX", amount, boxCount: s.boxes.length, winnerCount: winners, termsAgreed: true } : null,
-        amount,
-        error,
-        summary: [
-          { label: "박스 등급", value: `${tier.label} BOX` },
-          { label: "박스 구성", value: `박스 ${s.boxes.length}개 · 당첨 ${winners}개` }
-        ],
-        chatText: `🎲 ${tier.label} BOX 럭키박스`,
-        buttonLabel: `${tier.label} BOX ${formatNumber(amount ?? 0)} FN 후원하기`
-      };
-    }
     case "ROULETTE": {
       const r = catalog.roulette;
       const s = states.ROULETTE;
@@ -337,53 +256,6 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
         buttonLabel: `그림 후원 ${formatNumber(amount ?? 0)} FN 보내기`
       };
     }
-    case "QUIZ_CHOICE": {
-      const s = states.QUIZ_CHOICE;
-      const q = quizDraft(s, catalog, "객관식 퀴즈");
-      const question = s.question.trim();
-      const options = s.options.map((o) => o.trim());
-      const ok = question && options.every(Boolean) && q.ready;
-      return {
-        details: ok ? { type: "QUIZ_CHOICE", question, options, correctIndex: s.correctIndex, ...q.rewards } : null,
-        amount: q.amount,
-        error: q.error,
-        summary: [
-          { label: "문제", value: question || "-" },
-          { label: "정답", value: options[s.correctIndex] || "-" },
-          ...q.summaryRows
-        ],
-        chatText: `☷ 객관식 퀴즈: ${question}`,
-        buttonLabel: q.buttonLabel
-      };
-    }
-    case "QUIZ_INITIAL": {
-      const s = states.QUIZ_INITIAL;
-      const q = quizDraft(s, catalog, "초성 퀴즈");
-      const question = s.question.trim();
-      const answer = s.answer.trim();
-      return {
-        details: question && answer && q.ready ? { type: "QUIZ_INITIAL", question, answer, hint: s.hint.trim(), ...q.rewards } : null,
-        amount: q.amount,
-        error: q.error,
-        summary: [{ label: "문제", value: question || "-" }, { label: "정답 · 힌트", value: `${answer || "-"} · ${s.hint.trim() || "없음"}` }, ...q.summaryRows],
-        chatText: `ㄱ 초성 퀴즈: ${question}`,
-        buttonLabel: q.buttonLabel
-      };
-    }
-    case "QUIZ_DRAWING": {
-      const s = states.QUIZ_DRAWING;
-      const q = quizDraft(s, catalog, "그림 퀴즈");
-      const question = s.question.trim();
-      const answer = s.answer.trim();
-      return {
-        details: question && answer && s.image && q.ready ? { type: "QUIZ_DRAWING", image: s.image, question, answer, ...q.rewards } : null,
-        amount: q.amount,
-        error: q.error,
-        summary: [{ label: "문제", value: question || "-" }, { label: "정답", value: answer || "-" }, ...q.summaryRows],
-        chatText: `✎ 그림 퀴즈: ${question}`,
-        buttonLabel: q.buttonLabel
-      };
-    }
   }
 }
 
@@ -393,13 +265,9 @@ const FORM_KEYS: Record<FormKey, true> = {
   VIDEO: true,
   SIGNATURE: true,
   WISHLIST: true,
-  LUCKYBOX: true,
   ROULETTE: true,
   QUEST: true,
   DRAWING: true,
-  QUIZ_CHOICE: true,
-  QUIZ_INITIAL: true,
-  QUIZ_DRAWING: true,
   GACHA: true
 };
 

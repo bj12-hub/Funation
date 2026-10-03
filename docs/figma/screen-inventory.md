@@ -42,11 +42,12 @@
 - Video
 - Signature
 - Wishlist
-- LuckyBox
 - Quest
 - Drawing
-- Quiz
 - Roulette
+- Gacha (뽑기)
+
+LuckyBox and Quiz were removed on 2026-10-04 (product decision).
 
 ## Wallet / Payment
 

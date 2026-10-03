@@ -46,13 +46,9 @@ Figma: [Somnation — 현재 구현 (2026-09)](https://www.figma.com/design/PMnj
 | D-VIDEO | 후원 패널 · 영상 | `/creators/c1?tab=donation` | [2:83](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-83) |
 | D-SIGNATURE | 후원 패널 · 시그니처 | `/creators/c1?tab=donation` | [2:86](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-86) |
 | D-WISHLIST | 후원 패널 · 위시 | `/creators/c1?tab=donation` | [2:89](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-89) |
-| D-LUCKYBOX | 후원 패널 · 럭키박스 | `/creators/c1?tab=donation` | [2:92](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-92) |
 | D-ROULETTE | 후원 패널 · 룰렛 | `/creators/c1?tab=donation` | [2:95](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-95) |
 | D-QUEST | 후원 패널 · 퀘스트 | `/creators/c1?tab=donation` | [2:98](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-98) |
 | D-DRAWING | 후원 패널 · 그림 | `/creators/c1?tab=donation` | [2:101](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-101) |
-| D-QUIZ_CHOICE | 후원 패널 · 객관식 | `/creators/c1?tab=donation` | [2:104](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-104) |
-| D-QUIZ_INITIAL | 후원 패널 · 초성 | `/creators/c1?tab=donation` | [2:107](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-107) |
-| D-QUIZ_DRAWING | 후원 패널 · 그림퀴즈 | `/creators/c1?tab=donation` | [2:110](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-110) |
 | D-crew-member | 후원 패널 · 크루 멤버 지정 | `/creators/c4?tab=donation` | [2:113](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-113) |
 | P01-soop | SOOP 후원 /donation/soop | `/donation/soop` | [2:117](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-117) |
 | P02-flextv | FlexTV 후원 /donation/flextv | `/donation/flextv` | [2:120](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-120) |
