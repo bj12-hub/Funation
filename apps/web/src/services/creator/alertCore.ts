@@ -24,10 +24,35 @@ type MockAlerts = {
   overlayOff?: Partial<Record<OverlayTarget, boolean>>;
 };
 
-// V2: overlay signals (ttsSkipSeq, reloadSeq).
-const g = globalThis as typeof globalThis & { __funationMockAlertsV2?: MockAlerts };
-export const mockAlerts = (g.__funationMockAlertsV2 ??= {
-  items: [],
+/**
+ * Past donations already shown on stream (mock): the studio channel receives no room donations in mock
+ * mode, so the 후원 위젯 (목표 · 누적 · 랭킹 …) and the 리모컨 history start with these.
+ */
+function seedHistory(now = Date.now()): AlertItem[] {
+  const seeds: [string, number, string, number][] = [
+    ["별빛소나타", 50_000, "오늘 방송 최고예요!", 27],
+    ["치즈냥", 10_000, "노래 한 곡 부탁드려요", 20],
+    ["우주비행사", 30_000, "늘 응원합니다", 14],
+    ["익명", 5_000, "", 9],
+    ["별빛소나타", 20_000, "또 왔어요 ㅎㅎ", 5],
+    ["초코쿠키", 3_000, "화이팅!", 2]
+  ];
+  return seeds.map(([donor, fnAmount, message, daysAgo], i) => ({
+    id: `al-seed-${i + 1}`,
+    kind: "DONATION",
+    donor,
+    message,
+    fnAmount,
+    typeLabel: "일반 후원",
+    createdAt: new Date(now - daysAgo * 86_400_000).toISOString(),
+    status: "DONE"
+  }));
+}
+
+// V3: seeded donation history (V2 added overlay signals).
+const g = globalThis as typeof globalThis & { __funationMockAlertsV3?: MockAlerts };
+export const mockAlerts = (g.__funationMockAlertsV3 ??= {
+  items: seedHistory(),
   controls: { paused: false, muted: false, minFn: 0, alertVolume: 50, ttsVolume: 80, displaySec: 8 },
   shownAt: null,
   testRequests: {},

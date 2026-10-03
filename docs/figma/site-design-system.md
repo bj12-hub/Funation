@@ -92,8 +92,8 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 방송 · 위젯 | W01b | 커스텀 사운드 팝업 (라이브러리에서 고르기) | `/creator/widgets` | `144:8419` |
 | 방송 · 위젯 | W01c | 뽑기 후원 팝업 (당첨 효과음 · 라이브러리) | `/creator/widgets` | `144:8944` |
 | 방송 · 위젯 | W02 | 방송 도구 | `/creator/widgets/tools` | `64:1471` |
-| 방송 · 위젯 | W03 | 오버레이 주소 (기능 제어 OFF 표시 · 배너 OFF 예시) | `/creator/widgets/overlays` | `136:4527` |
-| 방송 · 위젯 | W04 | 리모컨 (꺼진 오버레이 요약 · 기능 제어 · 볼륨 제어, 배너 OFF 예시) | `/creator/remote` | `121:4113` |
+| 방송 · 위젯 | W03 | 오버레이 주소 (기능 제어 OFF 표시 · 배너 OFF 예시, 후원 위젯 6종 포함 17개) | `/creator/widgets/overlays` | `136:4527` |
+| 방송 · 위젯 | W04 | 리모컨 (꺼진 오버레이 요약 · 기능 제어(후원 위젯 포함) · 볼륨 제어, 배너 OFF 예시) | `/creator/remote` | `121:4113` |
 | 방송 · 위젯 | W05 | 이펙트 · 효과 | `/creator/widgets/effects` | `66:1840` |
 | 방송 · 위젯 | W06 | 시그니처 후원 (편집 열림) | `/creator/widgets/signatures` | `66:2016` |
 | 방송 · 위젯 | W07 | 영상 후원 | `/creator/widgets/video` | `66:2322` |
@@ -211,5 +211,12 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | OBS 오버레이 | O10-off | 타이머 · 기능 제어 OFF (600×200) | `/overlay/tool/timer/[key]` | `133:96` |
 | OBS 오버레이 | O11 | 엔딩 크레딧 (1920×1080, 흐르는 중) | `/overlay/tool/credits/[key]` | `92:6912` |
 | OBS 오버레이 | O11-off | 엔딩 크레딧 · 기능 제어 OFF (1920×1080) | `/overlay/tool/credits/[key]` | `133:103` |
+| OBS 오버레이 | O12 | 후원목표 (800×200, 산정 기간 9월 · 목업 후원 이력) | `/overlay/widget/goal/[key]` | `146:8173` |
+| OBS 오버레이 | O13 | 후원누적금액 (600×120) | `/overlay/widget/total/[key]` | `146:8186` |
+| OBS 오버레이 | O14 | 후원랭킹 (400×500, 심플 · 월간) | `/overlay/widget/ranking/[key]` | `146:8193` |
+| OBS 오버레이 | O15 | 최근알림 (800×200, 최근 3건) | `/overlay/widget/recent/[key]` | `146:8203` |
+| OBS 오버레이 | O16 | 이벤트 (500×600, 박스형 · 새 후원 직후, 15초 뒤 자동 숨김) | `/overlay/widget/event/[key]` | `146:8217` |
+| OBS 오버레이 | O17 | 후원 QR코드 (300×360, 캡션 위 · QR 이미지는 자리표시) | `/overlay/widget/qr/[key]` | `146:8231` |
+| OBS 오버레이 | O12-off | 후원 위젯 · 기능 제어 OFF (6종 공통, 아무것도 표시 안 함) | `/overlay/widget/[widget]/[key]` | `146:8241` |
 
 OBS 오버레이는 투명 배경이라 회색 바탕 위에 그렸어요. 테스트 후원 · 테스트 그림 · 방송 도구 켜기 · 크루 방송 시작으로 띄운 상태를 읽었고, 이펙트(무작위 파티클)와 영상(외부 임베드)은 코드 구조대로 그린 예시 배치예요. 통합 채팅 오버레이는 9 페이지(O04 `49:504`)에 있어요. 아이콘은 회색 자리표시 사각형이에요.

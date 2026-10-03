@@ -15,14 +15,15 @@ const mask = (key: string) => `${key.slice(0, 4)}-····-····-····`;
 /**
  * 오버레이 주소 — code-first (no Figma frame). Route `/creator/widgets/overlays`. Lists every OBS
  * overlay with its recommended size; the key is masked on screen and only copied in full.
- * Widget-popup URLs (채팅, QR, 목표 …) are not listed until those overlays exist. Overlays switched OFF in
+ * 후원 위젯 with an overlay (목표 · 누적 · 랭킹 · 최근알림 · 이벤트 · QR) are listed; the other widget popups
+ * (투표, 럭키박스 …) have no overlay yet. Overlays switched OFF in
  * the 리모컨 기능 제어 are marked, with a one-click 켜기.
  */
 export function OverlayUrlsScreen({ overlayKey, switches }: { overlayKey: string; switches: Record<OverlayTarget, boolean> }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const off = OVERLAYS.filter((o) => !switches[o.id]);
+  const off = OVERLAYS.filter((o) => !switches[o.target]);
   const turnOn = (target: OverlayTarget) =>
     startTransition(async () => {
       setError(null);
@@ -64,18 +65,18 @@ export function OverlayUrlsScreen({ overlayKey, switches }: { overlayKey: string
             {OVERLAYS.filter((o) => o.group === g).map((o) => {
               const url = `${origin}${o.path(overlayKey)}`;
               return (
-                <li key={o.id} className={styles.row} data-off={switches[o.id] ? undefined : ""}>
+                <li key={o.id} className={styles.row} data-off={switches[o.target] ? undefined : ""}>
                   <div className={`${styles.rowMain} ${local.main}`}>
                     <span className={styles.rowTitle}>
                       {o.title} <span className={local.size}>OBS {o.size}</span>
-                      {!switches[o.id] && <span className={local.off}>OFF</span>}
+                      {!switches[o.target] && <span className={local.off}>OFF</span>}
                     </span>
-                    <span className={styles.muted}>{switches[o.id] ? o.description : "리모컨 기능 제어에서 꺼져 있어요. OBS 소스는 그대로지만 화면 · 소리가 나오지 않아요."}</span>
+                    <span className={styles.muted}>{switches[o.target] ? o.description : "리모컨 기능 제어에서 꺼져 있어요. OBS 소스는 그대로지만 화면 · 소리가 나오지 않아요."}</span>
                     <code className={local.url}>{`${origin}${o.path(mask(overlayKey))}`}</code>
                   </div>
                   <div className={styles.rowActions}>
-                    {!switches[o.id] && (
-                      <button type="button" className={styles.primary} disabled={pending} onClick={() => turnOn(o.id)}>
+                    {!switches[o.target] && (
+                      <button type="button" className={styles.primary} disabled={pending} onClick={() => turnOn(o.target)}>
                         켜기
                       </button>
                     )}

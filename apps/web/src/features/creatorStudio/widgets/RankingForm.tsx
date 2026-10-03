@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { formatNumber } from "@/lib/format";
+import { fillRank } from "@/services/creator/widgetOverlayCore";
 import {
   RANKING_MAX_RANKS,
   RANKING_NAME_TYPES,
@@ -15,8 +15,7 @@ import type { FormProps } from "./forms";
 import { fontStyle } from "./previewStyle";
 import styles from "./widgets.module.css";
 
-const fill = (t: string, rank: number, name: string, amount: number) =>
-  t.replaceAll("{rank}", String(rank)).replaceAll("{name}", name).replaceAll("{amount}", formatNumber(amount));
+const fill = fillRank;
 
 /** 후원랭킹 위젯 설정 — Figma 315:650. */
 export function RankingForm({ value: v, onChange, live }: FormProps<"RANKING">) {
