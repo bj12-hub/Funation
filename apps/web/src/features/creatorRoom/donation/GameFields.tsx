@@ -93,6 +93,8 @@ export function RouletteFields({
 }: Props<RouletteState> & { creatorId: string; signedIn: boolean }) {
   const r = catalog.roulette;
   const [status, setStatus] = useState<RoomRoulette | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const limitReached = signedIn && r.dailyLimit > 0 && status?.usedToday != null && status.usedToday >= r.dailyLimit;
   const latest = useRef({ value, onChange });
   latest.current = { value, onChange };
@@ -101,15 +103,19 @@ export function RouletteFields({
     let alive = true;
     const load = () =>
       getRoomRoulette(creatorId)
-        .then((s) => alive && setStatus(s))
-        .catch(() => undefined);
+        .then((s) => {
+          if (!alive) return;
+          setStatus(s);
+          setLoadFailed(false);
+        })
+        .catch(() => alive && setLoadFailed(true));
     load();
     const poll = setInterval(load, 3000);
     return () => {
       alive = false;
       clearInterval(poll);
     };
-  }, [creatorId]);
+  }, [creatorId, attempt]);
 
   useEffect(() => {
     const { value: v, onChange: set } = latest.current;
@@ -163,9 +169,20 @@ export function RouletteFields({
       <FnInput label="참여 금액" value={value.amount} onChange={(amount) => onChange({ ...value, amount })} />
       <ErrorLine error={error} />
       <p className={styles.gameNote}>당첨 항목은 크리에이터가 방송에서 진행하는 상품 · 미션이에요. FN으로 지급되지 않아요. 결과는 후원할 때 서버가 정하고, 방송 화면에서 룰렛이 멈추면 공개돼요.</p>
-      {signedIn && status && status.mine.length > 0 && (
+      {signedIn && (
         <section className={styles.myRoulette} aria-labelledby="my-roulette">
           <h3 id="my-roulette">내 룰렛</h3>
+          <MyListState
+            loading={!status && !loadFailed}
+            failed={!status && loadFailed}
+            empty={!!status && status.mine.length === 0}
+            loadingText="룰렛 정보를 불러오고 있어요…"
+            failedText="룰렛을 불러오지 못했어요."
+            emptyTitle="참여한 룰렛이 없어요"
+            emptyText="룰렛에 참여하면 대기 순서와 당첨 결과가 이곳에 표시됩니다."
+            onRetry={() => setAttempt((n) => n + 1)}
+          />
+          {status && status.mine.length > 0 && (
           <ul>
             {status.mine.map((m) => (
               <li key={m.id}>
@@ -184,6 +201,7 @@ export function RouletteFields({
               </li>
             ))}
           </ul>
+          )}
         </section>
       )}
     </>
@@ -380,6 +398,8 @@ export function GachaFields({
   const offers = catalog.gacha;
   const offer = offers.find((x) => x.id === value.gachaId) ?? null;
   const [status, setStatus] = useState<RoomGacha | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const used = offer && status?.usedToday ? (status.usedToday[offer.id] ?? 0) : 0;
   const limitReached = signedIn && offer !== null && offer.limit !== null && used >= offer.limit;
   const latest = useRef({ value, onChange });
@@ -389,15 +409,19 @@ export function GachaFields({
     let alive = true;
     const load = () =>
       getRoomGacha(creatorId)
-        .then((s) => alive && setStatus(s))
-        .catch(() => undefined);
+        .then((s) => {
+          if (!alive) return;
+          setStatus(s);
+          setLoadFailed(false);
+        })
+        .catch(() => alive && setLoadFailed(true));
     load();
     const poll = setInterval(load, 3000);
     return () => {
       alive = false;
       clearInterval(poll);
     };
-  }, [creatorId]);
+  }, [creatorId, attempt]);
 
   useEffect(() => {
     const { value: v, onChange: set } = latest.current;
@@ -459,9 +483,20 @@ export function GachaFields({
       <ErrorLine error={error} />
       <SwitchRow label="뽑기 확률 · 상품 안내 동의 (필수)" checked={value.terms} onChange={(terms) => onChange({ ...value, terms })} />
       <p className={styles.gameNote}>당첨 상품은 크리에이터가 직접 지급해요. FN으로 지급되지 않아요. 결과는 후원할 때 서버가 정하고, 방송 화면의 뽑기 기계가 멈추면 공개돼요.</p>
-      {signedIn && status && status.mine.length > 0 && (
+      {signedIn && (
         <section className={styles.myRoulette} aria-labelledby="my-gacha">
           <h3 id="my-gacha">내 뽑기</h3>
+          <MyListState
+            loading={!status && !loadFailed}
+            failed={!status && loadFailed}
+            empty={!!status && status.mine.length === 0}
+            loadingText="뽑기 정보를 불러오고 있어요…"
+            failedText="뽑기를 불러오지 못했어요."
+            emptyTitle="참여한 뽑기가 없어요"
+            emptyText="뽑기에 참여하면 실행 순서와 당첨 결과가 이곳에 표시됩니다."
+            onRetry={() => setAttempt((n) => n + 1)}
+          />
+          {status && status.mine.length > 0 && (
           <ul>
             {status.mine.map((m) => (
               <li key={m.id}>
@@ -474,8 +509,56 @@ export function GachaFields({
               </li>
             ))}
           </ul>
+          )}
         </section>
       )}
     </>
   );
+}
+
+/** 내 룰렛 · 내 뽑기 states: 불러오는 중 (1009:37), 불러오지 못함 + 다시 시도 (1009:5), 비어 있음 (1009:68). */
+function MyListState({
+  loading,
+  failed,
+  empty,
+  loadingText,
+  failedText,
+  emptyTitle,
+  emptyText,
+  onRetry
+}: {
+  loading: boolean;
+  failed: boolean;
+  empty: boolean;
+  loadingText: string;
+  failedText: string;
+  emptyTitle: string;
+  emptyText: string;
+  onRetry: () => void;
+}) {
+  if (loading) {
+    return (
+      <p className={styles.myState} role="status">
+        {loadingText}
+      </p>
+    );
+  }
+  if (failed) {
+    return (
+      <p className={styles.myState} role="alert">
+        {failedText}{" "}
+        <button type="button" className={styles.myRetry} onClick={onRetry}>
+          다시 시도
+        </button>
+      </p>
+    );
+  }
+  if (empty) {
+    return (
+      <p className={styles.myState}>
+        <strong>{emptyTitle}</strong> {emptyText}
+      </p>
+    );
+  }
+  return null;
 }
