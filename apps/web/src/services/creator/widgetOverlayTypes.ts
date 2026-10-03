@@ -1,14 +1,15 @@
 /**
- * 후원 위젯 OBS overlays (code-first): 후원목표 · 후원누적금액 · 후원랭킹 · 최근알림 · 이벤트 · 후원 QR코드 · 퀘스트 · 투표.
+ * 후원 위젯 OBS overlays (code-first): 후원목표 · 후원누적금액 · 후원랭킹 · 최근알림 · 이벤트 · 후원 QR코드 · 퀘스트 · 투표 · 룰렛.
  * Each reads its saved widget settings plus the creator's donation feed at
  * `/overlay/widget/[widget]/[integrationKey]`. Client-safe types only.
  */
 import type { Platform } from "@/types/platform";
 import type { AlertKind, OverlaySignal } from "./alertTypes";
+import type { RouletteStage } from "@/services/donations/rouletteTypes";
 import type { VoteBoard } from "@/services/votes/voteTypes";
-import type { EventSettings, GoalSettings, QrSettings, QuestWidgetSettings, RankingSettings, RecentSettings, TotalSettings, VoteSettings, WidgetKey } from "./widgetSettingsTypes";
+import type { EventSettings, GoalSettings, QrSettings, QuestWidgetSettings, RankingSettings, RecentSettings, RouletteSettings, TotalSettings, VoteSettings, WidgetKey } from "./widgetSettingsTypes";
 
-export const WIDGET_OVERLAYS = ["goal", "total", "ranking", "recent", "event", "qr", "quest", "vote"] as const;
+export const WIDGET_OVERLAYS = ["goal", "total", "ranking", "recent", "event", "qr", "quest", "vote", "roulette"] as const;
 export type WidgetOverlayKind = (typeof WIDGET_OVERLAYS)[number];
 export const isWidgetOverlay = (v: unknown): v is WidgetOverlayKind => WIDGET_OVERLAYS.includes(v as WidgetOverlayKind);
 
@@ -21,7 +22,8 @@ export const WIDGET_OVERLAY_SETTINGS: Record<WidgetOverlayKind, WidgetKey> = {
   event: "EVENT",
   qr: "QR",
   quest: "QUEST",
-  vote: "VOTE"
+  vote: "VOTE",
+  roulette: "ROULETTE"
 };
 
 /** Mock QR image (the popup preview uses the same one). TBD: a real QR for the creator's donation page. */
@@ -61,4 +63,6 @@ export type OverlayWidget = Common &
     | { widget: "quest"; settings: QuestWidgetSettings; quests: WidgetQuest[] }
     /** `vote` null = no vote on screen. */
     | { widget: "vote"; settings: VoteSettings; vote: VoteBoard | null }
+    /** `stage` null = the wheel is idle (nothing on screen). */
+    | { widget: "roulette"; settings: RouletteSettings; stage: RouletteStage | null }
   );

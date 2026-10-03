@@ -4,15 +4,17 @@ import { useEffect, useRef, useState } from "react";
 import { formatNumber } from "@/lib/format";
 import type { DonationCatalog } from "@/services/donations/donationCatalog";
 import { MAX_DRAWING_CHARS } from "@/services/donations/donationTypes";
+import { getRoomRoulette } from "@/services/donations/roulette";
+import { ROULETTE_STATUS_LABEL, isBlankPrize, rouletteColor, type RoomRoulette } from "@/services/donations/rouletteTypes";
 import type { DrawingState, QuestState, QuizChoiceState, QuizDrawingState, QuizInitialState, QuizRewardsState, RouletteState, TimeLimit } from "./drafts";
 import { SwitchRow } from "./Fields";
 import room from "../room.module.css";
 import styles from "./game.module.css";
 
 /**
- * Page-2 donation types. Figma 867:2458 룰렛 · 867:2545 퀘스트 · 867:2647 그림 · 867:2755 객관식 ·
- * 867:2855 초성 · 867:2955 그림 퀴즈. Outcomes (spin result, quest/quiz judgement) happen on the
- * broadcast side and are TBD; these forms only collect the request.
+ * Page-2 donation types. Figma 867:2458 룰렛 (now 펀페이 1009:510 · 1009:222 · 1009:473) · 867:2545 퀘스트 ·
+ * 867:2647 그림 · 867:2755 객관식 · 867:2855 초성 · 867:2955 그림 퀴즈. The roulette result is drawn by the
+ * server and revealed on the broadcast; quiz judgement is TBD. These forms only collect the request.
  */
 
 type Props<S> = { value: S; onChange: (next: S) => void; catalog: DonationCatalog; error: string | null };
@@ -89,36 +91,117 @@ function QuizRewardFields<S extends QuizRewardsState>({ value, onChange, columns
   );
 }
 
-// ── 룰렛 (867:2494) ──────────────────────────────────────────────────────────
+// ── 룰렛 (펀페이 1009:510 참여 · 1009:323 OFF · 1009:222 대기 · 1009:473 결과) ────────────────
 
-export function RouletteFields({ value, onChange, catalog }: Props<RouletteState>) {
+const time = (iso: string) => new Date(iso).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+
+/**
+ * 룰렛: items and percents from the creator's settings (shown before paying), 참여 조건 · 참여 가능 횟수,
+ * and 내 룰렛 (대기 순서 · 결과), refreshed every few seconds. Prizes are the creator's (no FN).
+ */
+export function RouletteFields({
+  value,
+  onChange,
+  catalog,
+  error,
+  creatorId,
+  signedIn
+}: Props<RouletteState> & { creatorId: string; signedIn: boolean }) {
+  const r = catalog.roulette;
+  const [status, setStatus] = useState<RoomRoulette | null>(null);
+  const limitReached = signedIn && r.dailyLimit > 0 && status?.usedToday != null && status.usedToday >= r.dailyLimit;
+  const latest = useRef({ value, onChange });
+  latest.current = { value, onChange };
+
+  useEffect(() => {
+    let alive = true;
+    const load = () =>
+      getRoomRoulette(creatorId)
+        .then((s) => alive && setStatus(s))
+        .catch(() => undefined);
+    load();
+    const poll = setInterval(load, 3000);
+    return () => {
+      alive = false;
+      clearInterval(poll);
+    };
+  }, [creatorId]);
+
+  useEffect(() => {
+    const { value: v, onChange: set } = latest.current;
+    if (v.limitReached !== limitReached) set({ ...v, limitReached });
+  }, [limitReached]);
+
+  if (!r.enabled) {
+    return (
+      <div className={styles.rouletteOff} role="status">
+        <strong>룰렛이 꺼져 있어요</strong>
+        <p>현재 크리에이터가 룰렛 후원을 받지 않고 있습니다. 참여가 열리면 다시 확인해 주세요.</p>
+      </div>
+    );
+  }
+  const left = r.dailyLimit === 0 || status?.usedToday == null ? null : Math.max(0, r.dailyLimit - status.usedToday);
   return (
     <>
-      <div className={styles.tiers} role="radiogroup" aria-label="룰렛 등급">
-        {catalog.roulette.tiers.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            role="radio"
-            aria-checked={value.tierKey === t.key}
-            className={`${styles.tier} ${value.tierKey === t.key ? styles.tierOn : ""}`}
-            onClick={() => onChange({ tierKey: t.key })}
-          >
-            <strong>{t.label}</strong>
-            <span>{formatNumber(t.amount)} FN</span>
-          </button>
-        ))}
-      </div>
+      <dl className={styles.rouletteInfo}>
+        <div>
+          <dt>참여 조건</dt>
+          <dd>{formatNumber(r.minAmount)} FN 이상</dd>
+        </div>
+        <div>
+          <dt>참여 가능 횟수</dt>
+          <dd>{r.dailyLimit === 0 ? "제한 없음" : `하루 ${r.dailyLimit}회`}</dd>
+        </div>
+        {left !== null && (
+          <div>
+            <dt>남은 참여</dt>
+            <dd>{left}회</dd>
+          </div>
+        )}
+        {status && (
+          <div>
+            <dt>대기 중</dt>
+            <dd>{status.waiting}회</dd>
+          </div>
+        )}
+      </dl>
       <div className={styles.odds}>
-        <strong>룰렛 결과 / 당첨 확률</strong>
+        <strong>룰렛 항목 / 확률</strong>
         <ul>
-          {catalog.roulette.odds.map((o) => (
-            <li key={o.prize}>
-              {o.prize} · {o.percent}%
+          {r.items.map((it, i) => (
+            <li key={it.name + i}>
+              <span className={styles.rouletteDot} style={{ background: rouletteColor(it.name, i) }} aria-hidden="true" />
+              {it.name} · {it.percent}%
             </li>
           ))}
         </ul>
       </div>
+      <FnInput label="참여 금액" value={value.amount} onChange={(amount) => onChange({ ...value, amount })} />
+      <ErrorLine error={error} />
+      <p className={styles.gameNote}>당첨 항목은 크리에이터가 방송에서 진행하는 상품 · 미션이에요. FN으로 지급되지 않아요. 결과는 후원할 때 서버가 정하고, 방송 화면에서 룰렛이 멈추면 공개돼요.</p>
+      {signedIn && status && status.mine.length > 0 && (
+        <section className={styles.myRoulette} aria-labelledby="my-roulette">
+          <h3 id="my-roulette">내 룰렛</h3>
+          <ul>
+            {status.mine.map((m) => (
+              <li key={m.id}>
+                <span className={styles.rouletteNo}>
+                  {m.no} · {time(m.createdAt)} · {formatNumber(m.amount)} FN
+                </span>
+                <strong data-status={m.status}>
+                  {m.result !== null
+                    ? isBlankPrize(m.result)
+                      ? "아쉽게도 꽝"
+                      : `${m.result} 당첨!`
+                    : m.status === "QUEUED"
+                      ? `대기 중 · ${m.position}번째`
+                      : ROULETTE_STATUS_LABEL[m.status]}
+                </strong>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </>
   );
 }
@@ -132,7 +215,7 @@ export function QuestFields({ value, onChange, catalog, error }: Props<QuestStat
       <FnInput label="성공 보상" value={value.success} onChange={(success) => onChange({ ...value, success })} />
       <TimeInput value={value.time} onChange={(time) => onChange({ ...value, time })} />
       {/* 2026-10-04 결정: a failed or cancelled quest refunds the whole amount (no 실패 · 취소 금액). */}
-      <p className={styles.refundNote}>퀘스트가 실패하거나 크리에이터가 취소하면 후원한 FN이 전액 환불돼요.</p>
+      <p className={styles.gameNote}>퀘스트가 실패하거나 크리에이터가 취소하면 후원한 FN이 전액 환불돼요.</p>
       <SwitchRow label="크리에이터 성공 결정" checked={value.creatorDecides} onChange={(creatorDecides) => onChange({ ...value, creatorDecides })} />
       <Terms checked={value.terms} onChange={(terms) => onChange({ ...value, terms })} />
       <ErrorLine error={error} />

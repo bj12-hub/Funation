@@ -7,6 +7,8 @@
  * display data; the donation action re-reads them from the server copy (TBD policies are flagged).
  */
 
+import { DEFAULT_WIDGET_SETTINGS, type RouletteSettings } from "@/services/creator/widgetSettingsTypes";
+
 export type DonationTypeKey =
   | "TEXT"
   | "MINI"
@@ -86,11 +88,22 @@ export type DonationCatalog = {
   wishlist: WishlistItem[];
   miniColors: MiniColor[];
   luckyBox: LuckyBoxConfig;
-  /** 867:2494 roulette tiers and published prize odds. */
-  roulette: { tiers: { key: string; label: string; amount: number }[]; odds: { prize: string; percent: number }[] };
+  /**
+   * 룰렛 from the creator's 룰렛 settings (2026-10-04 결정: 당첨은 크리에이터 상품, FN 지급 없음). Items and
+   * percents are shown before paying; the server draws.
+   */
+  roulette: { enabled: boolean; minAmount: number; dailyLimit: number; items: { name: string; percent: number }[] };
   /** Quest, drawing and quiz (867:*). Minimum and limits are TBD. */
   game: { minAmount: number; maxTimeSec: number; quizOptions: { min: number; max: number }; maxText: number };
 };
+
+/** What the donation panel shows of the 룰렛 settings. */
+export const rouletteOffer = (s: RouletteSettings): DonationCatalog["roulette"] => ({
+  enabled: s.enabled,
+  minAmount: s.minAmount,
+  dailyLimit: s.dailyLimit,
+  items: s.items.map(({ name, percent }) => ({ name, percent }))
+});
 
 export function getMockDonationCatalog(): DonationCatalog {
   return MOCK_CATALOG;
@@ -142,20 +155,8 @@ const MOCK_CATALOG: DonationCatalog = {
     { id: "cyan", label: "하늘", hex: "#06b6d4" },
     { id: "yellow", label: "노랑", hex: "#f5bf0a" }
   ],
-  // 867:2494. Design shows these tiers and odds; all TBD.
-  roulette: {
-    tiers: [
-      { key: "SILVER", label: "SILVER", amount: 1_000 },
-      { key: "GOLD", label: "GOLD", amount: 5_000 },
-      { key: "ROYAL", label: "ROYAL", amount: 10_000 }
-    ],
-    odds: [
-      { prize: "1,000 FN", percent: 55 },
-      { prize: "5,000 FN", percent: 30 },
-      { prize: "10,000 FN", percent: 13 },
-      { prize: "50,000 FN", percent: 2 }
-    ]
-  },
+  // Replaced by the creator's 룰렛 settings in getDonationCatalog (signatureCore).
+  roulette: rouletteOffer(DEFAULT_WIDGET_SETTINGS.ROULETTE),
   // Assumptions: 1,000 FN minimum like 일반 후원, time limit up to 60 min, 2–5 quiz options, 50-char text fields.
   game: { minAmount: 1_000, maxTimeSec: 3_600, quizOptions: { min: 2, max: 5 }, maxText: 50 },
   // 851:5231 · 875:6948–8546. The design disagrees on tiers (SILVER 1,000/GOLD 5,000/ROYAL 10,000 in the

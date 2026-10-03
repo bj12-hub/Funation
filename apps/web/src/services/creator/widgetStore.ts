@@ -6,6 +6,10 @@ import { DEFAULT_WIDGET_SETTINGS, type EditableWidgetKey, type WidgetSettingsMap
  */
 const g = globalThis as typeof globalThis & { __funationMockWidgetsV4?: WidgetSettingsMap };
 export const widgetStore = (g.__funationMockWidgetsV4 ??= structuredClone(DEFAULT_WIDGET_SETTINGS));
+// A store created before a widget existed (e.g. 룰렛) starts that widget from its defaults.
+for (const key of Object.keys(DEFAULT_WIDGET_SETTINGS) as (keyof WidgetSettingsMap)[]) {
+  (widgetStore as Record<string, unknown>)[key] ??= structuredClone(DEFAULT_WIDGET_SETTINGS[key]);
+}
 
 /** A copy of one widget's settings; fields added later (e.g. 치지직 최근알림 문구) read with their defaults. */
 export function readWidget<K extends EditableWidgetKey>(key: K): WidgetSettingsMap[K] {

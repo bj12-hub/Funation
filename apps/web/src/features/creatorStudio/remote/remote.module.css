@@ -198,3 +198,26 @@
   inset: 0 auto 0 0;
   opacity: 0.3;
 }
+
+/* ── 룰렛 ── */
+.rouletteStage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  padding: 12px 14px;
+  border: 1px solid #0ea5e9;
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+}
+
+.rouletteStage[data-status="RESULT"] {
+  border-color: #f5bf0a;
+}
+
+.rouletteStage strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

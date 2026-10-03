@@ -19,6 +19,7 @@ import { GachaForm } from "./GachaForm";
 import { LuckyboxForm, PlayForm, QuestForm } from "./gameForms";
 import { EventForm, MiniForm, RecentForm } from "./listForms";
 import { RankingForm } from "./RankingForm";
+import { RouletteForm } from "./RouletteForm";
 import { VoteForm } from "./VoteForm";
 import { WallpaperForm } from "./WallpaperForm";
 import { ALL_COUNT, GROUPS, POPULAR, TOOLS, type CatalogItem } from "./widgetCatalog";
@@ -40,6 +41,7 @@ const FORMS: { [K in EditableWidgetKey]: ComponentType<FormProps<K>> } = {
   QUEST: QuestForm,
   PLAY: PlayForm,
   GACHA: GachaForm,
+  ROULETTE: RouletteForm,
   WALLPAPER: WallpaperForm
 };
 
@@ -60,6 +62,7 @@ const MODAL_COPY: Record<EditableWidgetKey, { title: string; urlLabel: string }>
   QUEST: { title: "퀘스트 위젯 설정", urlLabel: "퀘스트 위젯 URL" },
   PLAY: { title: "플레이 후원 위젯 설정", urlLabel: "플레이 위젯 URL" },
   GACHA: { title: "뽑기 후원 위젯 설정", urlLabel: "뽑기 후원 위젯 URL" },
+  ROULETTE: { title: "룰렛 설정", urlLabel: "룰렛 위젯 URL" },
   WALLPAPER: { title: "벽지 위젯 설정", urlLabel: "벽지 위젯 URL" }
 };
 
