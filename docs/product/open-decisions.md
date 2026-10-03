@@ -14,7 +14,7 @@ Still TBD:
 - FN/fiat conversion
 - Creator revenue share
 - Platform commission
-- Game prizes (decided 2026-10-04: 룰렛 · 뽑기 · 럭키박스 wins are creator goods, never FN; the server draws and the overlay shows the result — 룰렛 built, see docs/domains/donation.md; odds disclosure / legal review still TBD)
+- Game prizes (decided 2026-10-04: 룰렛 · 뽑기 · 럭키박스 wins are creator goods, never FN; the server draws and the overlay shows the result — 룰렛 · 뽑기 built, 럭키박스 mechanics TBD, see docs/domains/donation.md; odds disclosure / legal review still TBD)
 - Vote pricing (decided 2026-10-04: free only — one vote per signed-in viewer, no FN; see docs/domains/vote.md)
 - Refund policy (decided 2026-10-04: a failed or creator-canceled 퀘스트 후원 refunds the whole amount, and a quest past its time limit waits for a decision — see docs/domains/donation.md; other refunds still TBD)
 - Chargeback policy

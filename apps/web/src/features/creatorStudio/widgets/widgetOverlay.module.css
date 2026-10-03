@@ -412,3 +412,105 @@
   font-size: 14px;
   letter-spacing: 0.2em;
 }
+
+/* ── 뽑기 (code-first) ── */
+.gacha {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 600px;
+  margin: 12px;
+  padding: 20px 24px;
+  border: 3px solid;
+  border-radius: 18px;
+  background: rgb(15 23 42 / 92%);
+  color: #ffffff;
+  font-weight: var(--font-weight-bold);
+  text-align: center;
+}
+
+.gacha .rouletteHead {
+  align-self: stretch;
+}
+
+.gachaMachine {
+  font-size: 96px;
+  line-height: 1;
+}
+
+.gachaMachine[data-spin] {
+  animation: gachaShake 0.35s ease-in-out infinite alternate;
+}
+
+@keyframes gachaShake {
+  from {
+    transform: rotate(-12deg) scale(0.96);
+  }
+
+  to {
+    transform: rotate(12deg) scale(1.04);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gachaMachine[data-spin] {
+    animation: none;
+  }
+}
+
+.gachaCredit {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  font-size: 18px;
+  list-style: none;
+}
+
+.gachaMessage {
+  margin: 0;
+  font-size: 20px;
+}
+
+.gachaPrize {
+  font-size: 34px;
+  font-weight: var(--font-weight-black);
+}
+
+.gachaBoard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 12px;
+  padding: 12px 18px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: rgb(0 0 0 / 70%);
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
+.gachaBoard > strong {
+  flex-shrink: 0;
+  color: #f5bf0a;
+}
+
+.gachaBoard ol {
+  display: flex;
+  gap: 32px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gachaClaimed {
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 20%);
+  font-size: 13px;
+}

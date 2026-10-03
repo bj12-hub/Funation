@@ -30,11 +30,13 @@ import {
   type RemoteResult,
   type RemoteView
 } from "@/services/creator/alertTypes";
+import type { GachaRemoteView } from "@/services/donations/gachaTypes";
 import type { RouletteRemoteView } from "@/services/donations/rouletteTypes";
 import type { VoteRemoteView } from "@/services/votes/voteTypes";
 import styles from "../crew/crew.module.css";
 import { CopyButton } from "../settings/SettingsCards";
 import remote from "./remote.module.css";
+import { GachaRemote } from "./GachaRemote";
 import { RouletteRemote } from "./RouletteRemote";
 import { ToolsRemote } from "./ToolsRemote";
 import { VoteRemote } from "./VoteRemote";
@@ -45,7 +47,7 @@ const time = (iso: string) => new Date(iso).toLocaleTimeString("ko-KR", { hour: 
 /**
  * 리모컨 — code-first (no Figma frame). Route `/creator/remote`. Controls the server-side alert
  * queue that the OBS alert overlay shows: pause, mute, skip, cancel, volumes, minimum amount and
- * 테스트 후원 (display only — no FN moves), plus 방송 도구, 투표 and 룰렛. Refreshes from the server every few
+ * 테스트 후원 (display only — no FN moves), plus 방송 도구, 투표, 룰렛 and 뽑기. Refreshes from the server every few
  * seconds.
  */
 export function RemoteScreen({
@@ -53,13 +55,15 @@ export function RemoteScreen({
   overlayPath,
   tools,
   vote,
-  roulette
+  roulette,
+  gacha
 }: {
   view: RemoteView;
   overlayPath: string;
   tools: Pick<ToolStates, "timer" | "credits">;
   vote: VoteRemoteView;
   roulette: RouletteRemoteView;
+  gacha: GachaRemoteView;
 }) {
   const router = useRouter();
   const { controls } = view;
@@ -281,6 +285,8 @@ export function RemoteScreen({
       <VoteRemote view={vote} pending={pending} run={run} />
 
       <RouletteRemote view={roulette} pending={pending} run={run} />
+
+      <GachaRemote view={gacha} pending={pending} run={run} />
 
       <div className={remote.columns}>
         <section className={styles.card} aria-labelledby="test-title">

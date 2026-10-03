@@ -4,9 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { formatNumber } from "@/lib/format";
 import type { DonationCatalog } from "@/services/donations/donationCatalog";
 import { MAX_DRAWING_CHARS } from "@/services/donations/donationTypes";
+import { getRoomGacha } from "@/services/donations/gacha";
+import { GACHA_STATUS_LABEL, type RoomGacha } from "@/services/donations/gachaTypes";
 import { getRoomRoulette } from "@/services/donations/roulette";
 import { ROULETTE_STATUS_LABEL, isBlankPrize, rouletteColor, type RoomRoulette } from "@/services/donations/rouletteTypes";
-import type { DrawingState, QuestState, QuizChoiceState, QuizDrawingState, QuizInitialState, QuizRewardsState, RouletteState, TimeLimit } from "./drafts";
+import type { DrawingState, GachaState, QuestState, QuizChoiceState, QuizDrawingState, QuizInitialState, QuizRewardsState, RouletteState, TimeLimit } from "./drafts";
 import { SwitchRow } from "./Fields";
 import room from "../room.module.css";
 import styles from "./game.module.css";
@@ -452,5 +454,123 @@ function DrawingPad({ placeholder, initial, onChange }: { placeholder: string; i
         </p>
       )}
     </div>
+  );
+}
+
+// ── 뽑기 (code-first: 뽑기 후원 위젯 373:3675 as a donation type) ─────────────────────
+
+/**
+ * 뽑기: the creator's enabled 뽑기 with price and 당첨확률형 percents or 상품소진형 stock (shown before paying),
+ * 1인 횟수 한도, the required 확률 · 상품 안내 agreement, and 내 뽑기 (실행 대기 · 결과). Prizes are the
+ * creator's (no FN); the server draws at payment.
+ */
+export function GachaFields({
+  value,
+  onChange,
+  catalog,
+  error,
+  creatorId,
+  signedIn
+}: Props<GachaState> & { creatorId: string; signedIn: boolean }) {
+  const offers = catalog.gacha;
+  const offer = offers.find((x) => x.id === value.gachaId) ?? null;
+  const [status, setStatus] = useState<RoomGacha | null>(null);
+  const used = offer && status?.usedToday ? (status.usedToday[offer.id] ?? 0) : 0;
+  const limitReached = signedIn && offer !== null && offer.limit !== null && used >= offer.limit;
+  const latest = useRef({ value, onChange });
+  latest.current = { value, onChange };
+
+  useEffect(() => {
+    let alive = true;
+    const load = () =>
+      getRoomGacha(creatorId)
+        .then((s) => alive && setStatus(s))
+        .catch(() => undefined);
+    load();
+    const poll = setInterval(load, 3000);
+    return () => {
+      alive = false;
+      clearInterval(poll);
+    };
+  }, [creatorId]);
+
+  useEffect(() => {
+    const { value: v, onChange: set } = latest.current;
+    if (v.limitReached !== limitReached) set({ ...v, limitReached });
+  }, [limitReached]);
+
+  if (offers.length === 0) {
+    return (
+      <div className={styles.rouletteOff} role="status">
+        <strong>진행 중인 뽑기가 없어요</strong>
+        <p>크리에이터가 뽑기를 열면 이곳에서 참여할 수 있어요.</p>
+      </div>
+    );
+  }
+  return (
+    <>
+      <div className={styles.gachaList} role="radiogroup" aria-label="뽑기 선택">
+        {offers.map((x) => (
+          <button
+            key={x.id}
+            type="button"
+            role="radio"
+            aria-checked={value.gachaId === x.id}
+            className={`${styles.tier} ${value.gachaId === x.id ? styles.tierOn : ""}`}
+            disabled={x.soldOut}
+            onClick={() => onChange({ ...value, gachaId: x.id })}
+          >
+            <strong>{x.name}</strong>
+            <span>{x.soldOut ? "모두 소진" : `${formatNumber(x.price)} FN`}</span>
+          </button>
+        ))}
+      </div>
+      {offer && (
+        <>
+          <div className={styles.odds}>
+            <strong>{offer.mode === "PROBABILITY" ? "상품 / 당첨 확률" : "상품 / 남은 수량"}</strong>
+            <ul>
+              {offer.prizes.map((p, i) => (
+                <li key={p.name + i}>
+                  {p.blank && !p.name.includes("꽝") ? `${p.name} (꽝)` : p.name} · {offer.mode === "PROBABILITY" ? `${p.percent}%` : `${p.left}개`}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <dl className={styles.rouletteInfo}>
+            <div>
+              <dt>참여 가능 횟수</dt>
+              <dd>{offer.limit === null ? "제한 없음" : `하루 ${offer.limit}회`}</dd>
+            </div>
+            {signedIn && offer.limit !== null && status?.usedToday && (
+              <div>
+                <dt>남은 참여</dt>
+                <dd>{Math.max(0, offer.limit - used)}회</dd>
+              </div>
+            )}
+          </dl>
+        </>
+      )}
+      <ErrorLine error={error} />
+      <SwitchRow label="뽑기 확률 · 상품 안내 동의 (필수)" checked={value.terms} onChange={(terms) => onChange({ ...value, terms })} />
+      <p className={styles.gameNote}>당첨 상품은 크리에이터가 직접 지급해요. FN으로 지급되지 않아요. 결과는 후원할 때 서버가 정하고, 방송 화면의 뽑기 기계가 멈추면 공개돼요.</p>
+      {signedIn && status && status.mine.length > 0 && (
+        <section className={styles.myRoulette} aria-labelledby="my-gacha">
+          <h3 id="my-gacha">내 뽑기</h3>
+          <ul>
+            {status.mine.map((m) => (
+              <li key={m.id}>
+                <span className={styles.rouletteNo}>
+                  {m.no} · {m.gachaName} · {time(m.createdAt)}
+                </span>
+                <strong data-status={m.status}>
+                  {m.prize !== null ? (m.blank ? "아쉽게도 꽝" : `${m.prize} 당첨!`) : m.status === "QUEUED" ? `실행 대기 · ${m.position}번째` : GACHA_STATUS_LABEL[m.status]}
+                </strong>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </>
   );
 }

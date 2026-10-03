@@ -18,7 +18,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/creator/crew/broadcast` | ✅ code-first | 크루 방송 운영 — no Figma frame; score = FN during the broadcast + 보정 (points are not money) |
 | `/overlay/crew/[key]` | ✅ code-first | OBS scoreboard overlay; `key` = integration key (reissue invalidates it) |
 | `/creator/updates` | ✅ code-first | 업데이트 소식 — release notes, unread tracked on the server |
-| `/creator/remote` | ✅ code-first | 리모컨 — server-owned alert queue; 테스트 후원 is display only (no FN); 방송 도구; 투표 시작 · 종료 · 결과 내리기 (무료 투표); 룰렛 ▶ 시작 · 일시정지 · ✓ 완료 — W04 `163:5103` |
+| `/creator/remote` | ✅ code-first | 리모컨 — server-owned alert queue; 테스트 후원 is display only (no FN); 방송 도구; 투표 시작 · 종료 · 결과 내리기 (무료 투표); 룰렛 ▶ 시작 · 일시정지 · ✓ 완료; 뽑기 ✓ 완료 · 수령 처리 — W04 `163:5103` |
 | `/overlay/alert/[key]` | ✅ code-first | OBS donation alert overlay; `key` = integration key |
 | `/creator/widgets/overlays` | ✅ code-first | 오버레이 주소 — every OBS overlay URL (key masked on screen) |
 | `/creator/widgets/tools` | ✅ code-first | 방송 도구 remote — 자막 · 전광판 · 타이머 · 엔딩 크레딧 (server-owned state) |
@@ -68,7 +68,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/overlay/drawing/[key]` | ✅ code-first | OBS 그림후원 — O05 `92:6856` · OFF O05-off `133:64` |
 | `/overlay/banner/[key]` | ✅ code-first | OBS 배너 — O07 `92:6888` · OFF O07-off `133:75` |
 | `/overlay/chat/[key]` | ✅ code-first | OBS 통합 채팅 — O04 `49:504` · O04b `130:51` · OFF O04c `132:2` |
-| `/overlay/widget/[widget]/[key]` | ✅ code-first | OBS 후원 위젯 — `widget` = goal · total · ranking · recent · event · qr · quest · vote · roulette; O12~O17 `146:8173`… · O18 `154:14403` · O19 `161:9339` (vote) · O20 `164:9017` / O20b `164:9032` (roulette) · OFF O12-off `146:8241` |
+| `/overlay/widget/[widget]/[key]` | ✅ code-first | OBS 후원 위젯 — `widget` = goal · total · ranking · recent · event · qr · quest · vote · roulette · gacha · gacha-board; O12~O17 `146:8173`… · O18 `154:14403` · O19 `161:9339` (vote) · O20 `164:9017` / O20b `164:9032` (roulette) · O21 `166:8981` / O21b `166:8992` (gacha) · O22 `166:9003` (gacha-board) · OFF O12-off `146:8241` |
 | `/notifications` | ✅ code-first | 알림 — S04 `74:444` (헤더 벨 팝오버 S03 `89:7290`) |
 | `/mypage/blocks` | ✅ code-first | 차단 관리 — M10 `151:8644` · 비어 있음 M10b `151:8861` |
 | `/support/notices/[id]` | ✅ code-first | 공지 상세 — S12 `76:2163` |

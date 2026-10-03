@@ -6,6 +6,7 @@ import { mockCreator } from "./mockCreatorStore";
 import { mockQuests } from "@/services/donations/questCore";
 import { currentRun, voteBoard } from "@/services/votes/voteCore";
 import { stageOf } from "@/services/donations/rouletteCore";
+import { boardOf, channelRows as gachaRows, stageOf as gachaStageOf } from "@/services/donations/gachaCore";
 import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
 import { eventLines, goalProgress, rankingRows, recentLines, totalAmount } from "./widgetOverlayCore";
 import { QR_SAMPLE_IMAGE, isWidgetOverlay, type OverlayWidget } from "./widgetOverlayTypes";
@@ -63,5 +64,17 @@ export async function getOverlayWidget(widget: unknown, key: unknown): Promise<O
     case "roulette":
       // The studio channel's wheel: spinning, or the result for a few seconds (펀페이 1009:199 · 1009:181).
       return { widget, settings: readWidget("ROULETTE"), stage: stageOf(STUDIO_CHANNEL), ...common };
+    case "gacha": {
+      // The studio channel's draws, one at a time (기계 회전 시간, then the result for 화면 노출 시간).
+      const settings = readWidget("GACHA");
+      const stage = gachaStageOf(STUDIO_CHANNEL);
+      const history = gachaRows(STUDIO_CHANNEL)
+        .recent.filter((r) => r.prize !== null && !r.blank)
+        .slice(0, settings.credit.historyCount)
+        .map((r) => ({ donor: r.donor, prize: r.prize as string }));
+      return { widget, settings, stage, history, ...common };
+    }
+    case "gacha-board":
+      return { widget, settings: readWidget("GACHA"), board: boardOf(STUDIO_CHANNEL), ...common };
   }
 }
