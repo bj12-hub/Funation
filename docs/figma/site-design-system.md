@@ -185,17 +185,27 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 약관 | L02 | 개인정보 처리방침 | `/terms/privacy` | `88:6307` |
 | OBS 오버레이 | O02 | 후원 알림 (800×600) | `/overlay/alert/[key]` | `92:6819` |
 | OBS 오버레이 | O02b | 후원 알림 · 등급·칭호 배지 (실제 후원) | `/overlay/alert/[key]` | `112:8207` |
+| OBS 오버레이 | O02-off | 후원 알림 · 기능 제어 OFF (800×600) | `/overlay/alert/[key]` | `133:25` |
 | OBS 오버레이 | O03 | 이펙트 · 효과 (1920×1080) — 파티클 위치는 예시 배치 | `/overlay/effects/[key]` | `92:6828` |
+| OBS 오버레이 | O03-off | 이펙트 · 효과 · 기능 제어 OFF (1920×1080) | `/overlay/effects/[key]` | `133:34` |
 | OBS 오버레이 | O04 | 영상 후원 (1280×720) — YouTube 임베드 자리 | `/overlay/video/[key]` | `92:6849` |
+| OBS 오버레이 | O04-off | 영상 후원 · 기능 제어 OFF (1280×720) | `/overlay/video/[key]` | `133:56` |
 | OBS 오버레이 | O05 | 그림후원 (800×700) | `/overlay/drawing/[key]` | `92:6856` |
+| OBS 오버레이 | O05-off | 그림 후원 · 기능 제어 OFF (800×700) | `/overlay/drawing/[key]` | `133:64` |
 | OBS 오버레이 | O06 | 크루 점수판 (480×600) | `/overlay/crew/[key]` | `92:6866` |
 | OBS 오버레이 | O06b | 실시간 배틀 (480×600) | `/overlay/crew/[key]?battle` | `119:8173` |
 | OBS 오버레이 | O06c | 기여도 강탈 (480×600) | `/overlay/crew/[key]?steal` | `119:8191` |
 | OBS 오버레이 | O06d | 콘텐츠 시나리오 (480×600) | `/overlay/crew/[key]?scenario` | `119:8199` |
+| OBS 오버레이 | O06-off | 크루 점수판 · 배틀 · 강탈 · 시나리오 · 기능 제어 OFF (480×600) | `/overlay/crew/[key]` | `133:2` |
 | OBS 오버레이 | O07 | 배너 (1920×1080) | `/overlay/banner/[key]` | `92:6888` |
+| OBS 오버레이 | O07-off | 배너 · 기능 제어 OFF (1920×1080) | `/overlay/banner/[key]` | `133:75` |
 | OBS 오버레이 | O08 | 자막 (1920×200) | `/overlay/tool/subtitle/[key]` | `92:6894` |
+| OBS 오버레이 | O08-off | 자막 · 기능 제어 OFF (1920×200) | `/overlay/tool/subtitle/[key]` | `133:82` |
 | OBS 오버레이 | O09 | 전광판 (1920×100) | `/overlay/tool/marquee/[key]` | `92:6900` |
+| OBS 오버레이 | O09-off | 전광판 · 기능 제어 OFF (1920×100) | `/overlay/tool/marquee/[key]` | `133:89` |
 | OBS 오버레이 | O10 | 타이머 (600×200) | `/overlay/tool/timer/[key]` | `92:6906` |
+| OBS 오버레이 | O10-off | 타이머 · 기능 제어 OFF (600×200) | `/overlay/tool/timer/[key]` | `133:96` |
 | OBS 오버레이 | O11 | 엔딩 크레딧 (1920×1080, 흐르는 중) | `/overlay/tool/credits/[key]` | `92:6912` |
+| OBS 오버레이 | O11-off | 엔딩 크레딧 · 기능 제어 OFF (1920×1080) | `/overlay/tool/credits/[key]` | `133:103` |
 
 OBS 오버레이는 투명 배경이라 회색 바탕 위에 그렸어요. 테스트 후원 · 테스트 그림 · 방송 도구 켜기 · 크루 방송 시작으로 띄운 상태를 읽었고, 이펙트(무작위 파티클)와 영상(외부 임베드)은 코드 구조대로 그린 예시 배치예요. 통합 채팅 오버레이는 9 페이지(O04 `49:504`)에 있어요. 아이콘은 회색 자리표시 사각형이에요.
