@@ -11,6 +11,7 @@ import {
   sendTestAlert,
   setAlertControls,
   setOverlaySwitch,
+  turnOnAllOverlays,
   setVideoVolume,
   skipCurrentAlert,
   skipTts
@@ -88,6 +89,8 @@ export function RemoteScreen({ view, overlayPath, tools }: { view: RemoteView; o
   };
 
   // A slider sends its value when released (pointer or keyboard); the label shows the server's value.
+  const offOverlays = OVERLAY_TARGETS.filter((t) => !view.overlays.on[t.key]);
+
   const slider = (label: string, value: number, save: (v: number) => Promise<RemoteResult>) => (
     <label className={remote.slider}>
       <span>{label}</span>
@@ -112,6 +115,17 @@ export function RemoteScreen({ view, overlayPath, tools }: { view: RemoteView; o
         <h1 className={styles.title}>리모컨</h1>
         <p className={styles.subtitle}>방송 중 후원 알림을 한 화면에서 제어하세요. 알림 오버레이는 이 대기열을 그대로 보여 줘요.</p>
       </header>
+
+      {offOverlays.length > 0 && (
+        <div className={remote.offSummary} role="status">
+          <span>
+            꺼진 오버레이 {offOverlays.length}개 · {offOverlays.map((t) => t.label).join(", ")} — 방송 화면에 나오지 않아요. 아래 <a href="#switch-title">기능 제어</a>에서 하나씩 켤 수도 있어요.
+          </span>
+          <button type="button" className={styles.primary} disabled={pending} onClick={() => run(turnOnAllOverlays, "꺼진 오버레이를 모두 켰어요.")}>
+            모두 켜기
+          </button>
+        </div>
+      )}
 
       <section className={styles.card} aria-labelledby="overlay-title">
         <div className={styles.cardHead}>

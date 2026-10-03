@@ -185,6 +185,14 @@ export async function setOverlaySwitch(input: unknown): Promise<RemoteResult> {
   return { status: "SAVED" };
 }
 
+/** 모두 켜기: every overlay switched OFF in 기능 제어 comes back on. Calling it again changes nothing. */
+export async function turnOnAllOverlays(): Promise<RemoteResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  mockAlerts.overlayOff = {};
+  return { status: "SAVED" };
+}
+
 /** 기능 제어 ON/OFF of every overlay (오버레이 주소 page). */
 export async function getOverlaySwitches(): Promise<Record<OverlayTarget, boolean> | null> {
   assertMock();
