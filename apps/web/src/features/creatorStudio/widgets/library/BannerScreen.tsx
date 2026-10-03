@@ -5,7 +5,9 @@ import { useEffect, useState, useTransition } from "react";
 import { saveBannerSettings } from "@/services/creator/banner";
 import { BANNER_LIMITS, BANNER_POSITIONS, type BannerPosition, type BannerSettings } from "@/services/creator/bannerTypes";
 import type { Asset } from "@/services/creator/assetTypes";
+import type { OverlayTarget } from "@/services/creator/alertTypes";
 import styles from "../../crew/crew.module.css";
+import { OverlayOffNotice } from "../../remote/OverlayOffNotice";
 import { CopyButton } from "../../settings/SettingsCards";
 import local from "./library.module.css";
 
@@ -13,7 +15,7 @@ import local from "./library.module.css";
  * 배너 위젯 — code-first (no Figma frame). Route `/creator/widgets/banner`.
  * Pick library images as slides; the OBS banner overlay cycles them at the chosen position.
  */
-export function BannerScreen({ initial, library, overlayPath }: { initial: BannerSettings; library: Asset[]; overlayPath: string }) {
+export function BannerScreen({ initial, library, overlayPath, switches }: { initial: BannerSettings; library: Asset[]; overlayPath: string; switches: Record<OverlayTarget, boolean> }) {
   const [s, setS] = useState<BannerSettings>(initial);
   const [note, setNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
@@ -51,6 +53,7 @@ export function BannerScreen({ initial, library, overlayPath }: { initial: Banne
           <Link href="/creator/widgets">← 위젯</Link> · 이미지는 <Link href="/creator/widgets/assets">이미지·사운드</Link>에서 올려요.
         </p>
       </header>
+      <OverlayOffNotice targets={["banner"]} switches={switches} />
 
       <section className={styles.card} aria-labelledby="bn-overlay">
         <div className={styles.cardHead}>
