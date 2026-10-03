@@ -78,6 +78,7 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 통합 채팅 | C04b | 매니저 채팅창 · 전체 권한 · 메시지에 마우스 올림 (데스크톱) | `/popout/chat/m/[token]` | `124:110` |
 | 통합 채팅 | O04 | 통합 채팅 오버레이 (400 × 600) | `/overlay/chat/[key]` | `49:504` |
 | 통합 채팅 | O04b | 통합 채팅 오버레이 · 숨김 반영 후 (400 × 600, C01b에서 숨긴 메시지가 빠진 상태) | `/overlay/chat/[key]` | `130:51` |
+| 통합 채팅 | O04c | 통합 채팅 오버레이 · 리모컨 기능 제어 OFF (400 × 600, 아무것도 표시 안 함) | `/overlay/chat/[key]` | `132:2` |
 | 대시보드 · 수익 · 소식 | T01 | 대시보드 | `/creator` | `59:443` |
 | 대시보드 · 수익 · 소식 | T02 | 수익 현황 | `/creator/revenue` | `59:808` |
 | 대시보드 · 수익 · 소식 | T02b | 크리에이터 랭킹 | `/creator/ranking` | `61:646` |
