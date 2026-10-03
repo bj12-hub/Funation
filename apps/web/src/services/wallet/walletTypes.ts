@@ -70,6 +70,8 @@ export type DonationRecord = {
   refundedAt?: string;
   /** 퀘스트 후원 rows: the quest's result and whether the member can decide it now. */
   quest?: QuestView;
+  /** 룰렛 · 뽑기 rows: where the spin/draw is, or its result once revealed (e.g. "룰렛 결과 · 스탬프 당첨"). */
+  gameResult?: string;
 };
 
 // ── FN Wallet (Figma 817:7552) ─────────────────────────────────────────────────

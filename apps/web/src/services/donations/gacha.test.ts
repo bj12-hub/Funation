@@ -19,11 +19,12 @@ async function load() {
   const widgets = await import("@/services/creator/widgetSettings");
   const overlay = await import("@/services/creator/widgetOverlay");
   const { getDonationCatalog } = await import("./signatureCore");
+  const { getDonationHistory } = await import("@/services/wallet/walletHistory");
   const { widgetStore } = await import("@/services/creator/widgetStore");
   const { mockCreator } = await import("@/services/creator/mockCreatorStore");
   const { STUDIO_CHANNEL } = await import("@/services/crew/mockCrewStore");
   mockAccount.fnBalance = 100_000;
-  return { ...core, ...room, ...remote, ...widgets, ...overlay, requestDonation, getDonationCatalog, widgetStore, account: mockAccount, overlayKey: mockCreator.integrationKey, STUDIO_CHANNEL };
+  return { ...core, ...room, ...remote, ...widgets, ...overlay, requestDonation, getDonationCatalog, getDonationHistory, widgetStore, account: mockAccount, overlayKey: mockCreator.integrationKey, STUDIO_CHANNEL };
 }
 type M = Awaited<ReturnType<typeof load>>;
 
@@ -81,6 +82,13 @@ describe("뽑기 후원", () => {
 
     const t = Date.parse(record.startedAt!) + record.spinMs + 1;
     expect(m.roomView("c1", "u-test", t).mine[0]).toMatchObject({ status: "RESULT", prize: record.prize, blank: record.blank });
+
+    // 후원 내역 › 게임 후원: the draw state, then the prize once the machine stopped.
+    const range = { preset: "range" as const, from: "2000-01-01", to: "2099-12-31" };
+    const row = async () => (await m.getDonationHistory({ period: range, category: "game" }))!.items.find((d) => d.id === record.id)!;
+    expect((await row()).gameResult).toBe("뽑는 중");
+    record.startedAt = new Date(Date.now() - record.spinMs - 500).toISOString();
+    expect((await row()).gameResult).toBe(record.blank ? "뽑기 결과 · 꽝" : `뽑기 결과 · ${record.prize} 당첨`);
     expect(m.account.fnBalance).toBe(97_000);
   });
 
