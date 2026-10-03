@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useTransition, type ComponentType } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
+import type { OverlayTarget } from "@/services/creator/alertTypes";
 import { getWidgetDetail, saveWidgetSettings } from "@/services/creator/widgetSettings";
 import {
   isEditableWidget,
   type EditableWidgetKey,
   type WidgetDetail
 } from "@/services/creator/widgetSettingsTypes";
+import { OverlayOffNotice } from "../remote/OverlayOffNotice";
 import { CopyButton } from "../settings/SettingsCards";
 import { CustomSoundForm } from "./CustomSoundForm";
 import { ChatForm, GoalForm, QrForm, TotalForm, type FormProps } from "./forms";
@@ -71,7 +73,7 @@ const SELF_SAVING: EditableWidgetKey[] = ["CUSTOM_SOUND"];
  * Catalog layout follows the funnation 위젯 page (인기 · 전체 by group · 도구; see ./widgetCatalog.ts).
  * The Figma 후원 알림 설정 alert-type cards are no longer listed (they had no popups); 그림후원 links to its own page.
  */
-export function WidgetSettingsScreen({ alertWidgetUrl }: { alertWidgetUrl: string }) {
+export function WidgetSettingsScreen({ alertWidgetUrl, switches }: { alertWidgetUrl: string; switches: Record<OverlayTarget, boolean> }) {
   const [openKey, setOpenKey] = useState<EditableWidgetKey | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const clearToast = useCallback(() => setToast(null), []);
@@ -82,6 +84,7 @@ export function WidgetSettingsScreen({ alertWidgetUrl }: { alertWidgetUrl: strin
         <h1 className={catalog.title}>위젯</h1>
         <p className={catalog.subtitle}>방송 화면에 띄울 위젯을 고르고 설정하세요. 오버레이 주소는 도구에서 한 번에 복사할 수 있어요.</p>
       </header>
+      <OverlayOffNotice targets={["widgets"]} switches={switches} />
       <CatalogGrid title="인기" count={POPULAR.length} items={POPULAR} onOpen={setOpenKey} />
       <section className={styles.group} aria-label="전체 위젯">
         <h2 className={styles.groupTitle}>
@@ -154,6 +157,28 @@ function CatalogGrid({ title, count, items, onOpen, sub = false }: { title: stri
         })}
       </ul>
     </section>
+  );
+}
+
+const maskKey = (path: string) => path.replace(/[^/]+$/, (k) => `${k.slice(0, 4)}-····-····-····`);
+
+/**
+ * The widget's address. A 후원 위젯 with an OBS overlay (code-first) shows its real overlay URL with the
+ * key masked (copy · 열기 use the full URL); the others keep the design's placeholder URL (TBD).
+ */
+function WidgetUrl({ detail }: { detail: WidgetDetail }) {
+  const [origin, setOrigin] = useState("");
+  useEffect(() => setOrigin(window.location.origin), []);
+  const url = detail.overlayPath ? `${origin}${detail.overlayPath}` : detail.url;
+  const shown = detail.overlayPath ? `${origin}${maskKey(detail.overlayPath)}` : detail.url;
+  return (
+    <div className={styles.urlRow}>
+      <span className={styles.urlField}>{shown}</span>
+      <CopyButton value={url} label="URL 복사" className={styles.copyButton} />
+      <a href={url} target="_blank" rel="noopener noreferrer" className={styles.openButton}>
+        열기
+      </a>
+    </div>
   );
 }
 
@@ -251,13 +276,7 @@ function WidgetModal({
             {copy.urlLabel && (
               <div className={styles.urlBox}>
                 <span className={styles.urlLabel}>{copy.urlLabel}</span>
-                <div className={styles.urlRow}>
-                  <span className={styles.urlField}>{state.detail.url}</span>
-                  <CopyButton value={state.detail.url} label="URL 복사" className={styles.copyButton} />
-                  <a href={state.detail.url} target="_blank" rel="noopener noreferrer" className={styles.openButton}>
-                    열기
-                  </a>
-                </div>
+                <WidgetUrl detail={state.detail} />
               </div>
             )}
             <Form value={draft} onChange={setDraft} live={state.detail.live} />

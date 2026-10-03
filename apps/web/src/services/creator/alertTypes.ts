@@ -81,6 +81,7 @@ export const OVERLAY_TARGETS = [
   { key: "marquee", label: "전광판" },
   { key: "timer", label: "타이머" },
   { key: "credits", label: "엔딩 크레딧" },
+  { key: "widgets", label: "후원 위젯 (목표 · 누적 · 랭킹 · 최근알림 · 이벤트 · QR)" },
   { key: "chat", label: "통합 채팅" },
   { key: "crew", label: "크루 점수판 · 배틀 · 강탈 · 시나리오" }
 ] as const;

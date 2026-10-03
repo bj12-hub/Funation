@@ -11,6 +11,7 @@ async function load() {
   const { mockAlerts } = await import("./alertCore");
   const { mockAccount } = await import("@/services/account/mockStore");
   const { mockWallet } = await import("@/services/wallet/mockWalletStore");
+  mockAlerts.items.length = 0; // start from an empty queue (the mock seeds past donations)
   return { ...link, ...yt, alerts: mockAlerts, account: mockAccount, wallet: mockWallet };
 }
 
