@@ -16,7 +16,7 @@ const mask = (key: string) => `${key.slice(0, 4)}-····-····-····`;
  * 오버레이 주소 — code-first (no Figma frame). Route `/creator/widgets/overlays`. Lists every OBS
  * overlay with its recommended size; the key is masked on screen and only copied in full.
  * 후원 위젯 with an overlay (목표 · 누적 · 랭킹 · 최근알림 · 이벤트 · QR) are listed; the other widget popups
- * (투표, 럭키박스 …) have no overlay yet. Overlays switched OFF in
+ * (미니후원, 커스텀 사운드 …) have no overlay of their own. Overlays switched OFF in
  * the 리모컨 기능 제어 are marked, with a one-click 켜기.
  */
 export function OverlayUrlsScreen({ overlayKey, switches }: { overlayKey: string; switches: Record<OverlayTarget, boolean> }) {

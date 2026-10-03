@@ -1,7 +1,7 @@
 /**
  * Per-creator donation catalog: types, minimums, voices, signatures, wishlist, mini colors.
  * Figma: 851:4546 (일반) · 851:4665 (미니) · 851:4788 (영상) · 851:4929 (시그니처) · 875:1815 (시그니처 전체보기)
- *        · 851:5054 (위시) · 851:5174 (럭키박스)
+ *        · 851:5054 (위시). 럭키박스 (851:5174) and the quiz types were removed (2026-10-04 결정).
  *
  * Client-safe: client components import the types only. Prices and minimums are server-owned
  * display data; the donation action re-reads them from the server copy (TBD policies are flagged).
@@ -16,13 +16,9 @@ export type DonationTypeKey =
   | "VIDEO"
   | "SIGNATURE"
   | "WISHLIST"
-  | "LUCKYBOX"
   | "ROULETTE"
   | "QUEST"
   | "DRAWING"
-  | "QUIZ_CHOICE"
-  | "QUIZ_INITIAL"
-  | "QUIZ_DRAWING"
   | "GACHA";
 
 export type DonationTypeInfo = {
@@ -51,34 +47,6 @@ export type WishlistItem = { id: string; emoji: string; name: string; price: num
 
 export type MiniColor = { id: string; label: string; hex: string };
 
-export type LuckyTierTone = "silver" | "gold" | "emerald" | "royal";
-
-export type LuckyTier = {
-  key: string;
-  /** Shown on the button, e.g. "GOLD" → "GOLD BOX 5,000 FN 후원하기". */
-  label: string;
-  /** Lowest amount (FN) for this tier; the tier applies up to the next tier's minimum. */
-  min: number;
-  emoji: string;
-  boxEmoji: string;
-  tone: LuckyTierTone;
-  /** Grade box copy when this tier is active; `null` uses the default explanation. */
-  headline: string | null;
-  description: string | null;
-};
-
-export type LuckyBoxConfig = {
-  minAmount: number;
-  maxAmount: number;
-  minBoxes: number;
-  maxBoxes: number;
-  presets: number[];
-  tiers: LuckyTier[];
-  /** Published draw ranges and odds (851:5231). */
-  odds: { range: string; percent: number }[];
-  terms: { title: string; body: string }[];
-};
-
 export type DonationCatalog = {
   types: DonationTypeInfo[];
   /** Minimum FN per donation type. Design shows 1,000 (일반) and 100 (미니); others TBD. */
@@ -89,7 +57,6 @@ export type DonationCatalog = {
   signatures: Signature[];
   wishlist: WishlistItem[];
   miniColors: MiniColor[];
-  luckyBox: LuckyBoxConfig;
   /**
    * 룰렛 from the creator's 룰렛 settings (2026-10-04 결정: 당첨은 크리에이터 상품, FN 지급 없음). Items and
    * percents are shown before paying; the server draws.
@@ -98,7 +65,7 @@ export type DonationCatalog = {
   /** 뽑기 from the creator's 뽑기 widget (enabled ones); prices are server-owned. */
   gacha: GachaOffer[];
   /** Quest, drawing and quiz (867:*). Minimum and limits are TBD. */
-  game: { minAmount: number; maxTimeSec: number; quizOptions: { min: number; max: number }; maxText: number };
+  game: { minAmount: number; maxTimeSec: number; maxText: number };
 };
 
 /** What the donation panel shows of the 룰렛 settings. */
@@ -122,14 +89,10 @@ const MOCK_CATALOG: DonationCatalog = {
     { key: "VIDEO", emoji: "🎬", label: "영상", title: "영상 후원", available: true },
     { key: "SIGNATURE", emoji: "✨", label: "시그니처", title: "시그니처 후원", available: true },
     { key: "WISHLIST", emoji: "🎁", label: "위시", title: "위시 후원", available: true },
-    { key: "LUCKYBOX", emoji: "🎲", label: "럭키박스", title: "럭키박스 후원", available: true },
     // Page 2 (867:*). ☷, ㄱ and ✎ are text glyphs in the design.
     { key: "ROULETTE", emoji: "🎡", label: "룰렛", title: "룰렛 후원", available: true },
     { key: "QUEST", emoji: "🏆", label: "퀘스트", title: "퀘스트 후원", available: true },
     { key: "DRAWING", emoji: "🎨", label: "그림", title: "그림 후원", available: true },
-    { key: "QUIZ_CHOICE", emoji: "☷", label: "객관식", title: "객관식 퀴즈", available: true },
-    { key: "QUIZ_INITIAL", emoji: "ㄱ", label: "초성", title: "초성 퀴즈", available: true },
-    { key: "QUIZ_DRAWING", emoji: "✎", label: "그림퀴즈", title: "그림 퀴즈", available: true },
     // Code-first: the 뽑기 후원 widget (373:3675) as a donation type (2026-10-04 결정: 당첨은 크리에이터 상품).
     { key: "GACHA", emoji: "🧸", label: "뽑기", title: "뽑기 후원", available: true }
   ],
@@ -165,58 +128,6 @@ const MOCK_CATALOG: DonationCatalog = {
   roulette: rouletteOffer(DEFAULT_WIDGET_SETTINGS.ROULETTE),
   // Replaced by the creator's 뽑기 settings in getDonationCatalog (signatureCore).
   gacha: [],
-  // Assumptions: 1,000 FN minimum like 일반 후원, time limit up to 60 min, 2–5 quiz options, 50-char text fields.
-  game: { minAmount: 1_000, maxTimeSec: 3_600, quizOptions: { min: 2, max: 5 }, maxText: 50 },
-  // 851:5231 · 875:6948–8546. The design disagrees on tiers (SILVER 1,000/GOLD 5,000/ROYAL 10,000 in the
-  // base panel, EMERALD 10,000 and PREMIUM ROYAL 50,000 in the states, six ranges from 3,000 to 499,999 in
-  // the guide). The mock uses the state frames; every number here is TBD.
-  luckyBox: {
-    minAmount: 1_000,
-    maxAmount: 50_000,
-    minBoxes: 2,
-    maxBoxes: 5,
-    presets: [1_000, 5_000, 10_000, 30_000, 50_000],
-    tiers: [
-      { key: "SILVER", label: "SILVER", min: 1_000, emoji: "🎁", boxEmoji: "🎁", tone: "silver", headline: null, description: null },
-      { key: "GOLD", label: "GOLD", min: 5_000, emoji: "🎁", boxEmoji: "🎁", tone: "gold", headline: null, description: null },
-      {
-        key: "EMERALD",
-        label: "EMERALD",
-        min: 10_000,
-        emoji: "💚",
-        boxEmoji: "🧰",
-        tone: "emerald",
-        headline: "💚 10,000 FN · EMERALD 등급 박스로 업그레이드",
-        description: "더 높은 당첨 상한과 특별한 초록 보물함이 적용됩니다."
-      },
-      {
-        key: "ROYAL",
-        label: "ROYAL",
-        min: 50_000,
-        emoji: "👑",
-        boxEmoji: "👑",
-        tone: "royal",
-        headline: "👑 50,000 FN · PREMIUM ROYAL 등급 박스",
-        description: "프리미엄 골드 외형과 로열 등급 추첨 범위가 적용됩니다."
-      }
-    ],
-    odds: [
-      { range: "1,000~4,999 FN", percent: 70 },
-      { range: "5,000~19,999 FN", percent: 28 },
-      { range: "20,000~50,000 FN", percent: 2 }
-    ],
-    // 875:7952 copy.
-    terms: [
-      { title: "1. 추첨 방법", body: "선택한 당첨 박스 수와 공개된 확률에 따라 후원 완료 시 무작위로 추첨합니다." },
-      { title: "2. 당첨 금액", body: "박스 등급별 추첨 범위 안에서 FN 당첨 금액이 결정됩니다." },
-      { title: "3. 확률 공개", body: "등급별 확률과 추첨 범위는 결제 전 화면에서 반드시 확인할 수 있습니다." },
-      { title: "4. 취소 및 환불 제한", body: "추첨이 시작된 럭키박스 후원은 결과와 관계없이 취소 또는 환불할 수 없습니다." },
-      { title: "5. 필수 동의", body: "이용약관 및 확률 안내를 확인하고 필수 동의한 뒤 후원하기를 진행해주세요." }
-    ]
-  }
+  // Assumptions: 1,000 FN minimum like 일반 후원, time limit up to 60 min, 50-char text fields.
+  game: { minAmount: 1_000, maxTimeSec: 3_600, maxText: 50 },
 };
-
-/** Tier for an amount (the lowest tier below its minimum). */
-export function luckyTierFor(config: LuckyBoxConfig, amount: number): LuckyTier {
-  return [...config.tiers].reverse().find((t) => amount >= t.min) ?? config.tiers[0];
-}

@@ -10,7 +10,7 @@ import { attributeMemberDonation, isActiveMember, recordBroadcastDonation } from
 import { attributeDonation, ownsNickname, resolveBadges } from "@/services/supporter/identityCore";
 import { alertBadgeLabels } from "@/services/supporter/identityTypes";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
-import { luckyTierFor, type DonationCatalog } from "./donationCatalog";
+import type { DonationCatalog } from "./donationCatalog";
 import { recordQuest } from "./questCore";
 import { canParticipate, enqueueSpin } from "./rouletteCore";
 import { canDraw, enqueueDraw } from "./gachaCore";
@@ -145,9 +145,6 @@ const MAX_FN = 999_999_999;
 const HISTORY_CATEGORY: Partial<Record<string, "basic" | "quest" | "game">> = {
   QUEST: "quest",
   ROULETTE: "game",
-  QUIZ_CHOICE: "game",
-  QUIZ_INITIAL: "game",
-  QUIZ_DRAWING: "game",
   GACHA: "game"
 };
 
@@ -214,23 +211,6 @@ function parse(input: unknown, catalog: DonationCatalog): Parsed | null {
       if (!item || !item.inStock || message === null || !voiceOk(v.voiceId)) return null;
       return { ...common, amount: item.price, summary: message || item.name, details: { itemId: item.id, message, voiceId: v.voiceId } };
     }
-    case "LUCKYBOX": {
-      const lucky = catalog.luckyBox;
-      const boxes = v.boxCount;
-      const winners = v.winnerCount;
-      const amount = v.amount;
-      const amountValid = typeof amount === "number" && Number.isInteger(amount) && amount >= lucky.minAmount && amount <= lucky.maxAmount;
-      const boxesValid = Number.isInteger(boxes) && (boxes as number) >= lucky.minBoxes && (boxes as number) <= lucky.maxBoxes;
-      const winnersValid = Number.isInteger(winners) && (winners as number) >= 1 && (winners as number) <= (boxes as number);
-      if (!amountValid || !boxesValid || !winnersValid || v.termsAgreed !== true) return null;
-      const tier = luckyTierFor(lucky, amount);
-      return {
-        ...common,
-        amount,
-        summary: `${tier.label} BOX · 박스 ${boxes}개 · 당첨 ${winners}개`,
-        details: { tier: tier.key, boxCount: boxes, winnerCount: winners }
-      };
-    }
     case "ROULETTE": {
       const roulette = catalog.roulette;
       if (!roulette.enabled || !isFn(v.amount, roulette.minAmount)) return null;
@@ -260,30 +240,6 @@ function parse(input: unknown, catalog: DonationCatalog): Parsed | null {
         return null;
       return { ...common, amount: v.amount as number, summary: `그림: ${title}`, details: { title, image: v.image, showProcess: v.showProcess, canvasMode: v.canvasMode } };
     }
-    case "QUIZ_CHOICE": {
-      const question = text(v.question, game.maxText, true);
-      const options = Array.isArray(v.options) ? v.options.map((o) => text(o, game.maxText, true)) : [];
-      const optionsOk = options.length >= game.quizOptions.min && options.length <= game.quizOptions.max && options.every((o) => o);
-      const indexOk = Number.isInteger(v.correctIndex) && (v.correctIndex as number) >= 0 && (v.correctIndex as number) < options.length;
-      const rewards = quizRewards(v);
-      if (!question || !optionsOk || !indexOk || !rewards) return null;
-      return { ...common, amount: rewards.amount, summary: `객관식 퀴즈: ${question}`, details: { question, options, correctIndex: v.correctIndex, ...rewards.details } };
-    }
-    case "QUIZ_INITIAL": {
-      const question = text(v.question, game.maxText, true);
-      const answer = text(v.answer, game.maxText, true);
-      const hint = text(v.hint, game.maxText);
-      const rewards = quizRewards(v);
-      if (!question || !answer || hint === null || !rewards) return null;
-      return { ...common, amount: rewards.amount, summary: `초성 퀴즈: ${question}`, details: { question, answer, hint, ...rewards.details } };
-    }
-    case "QUIZ_DRAWING": {
-      const question = text(v.question, game.maxText, true);
-      const answer = text(v.answer, game.maxText, true);
-      const rewards = quizRewards(v);
-      if (!question || !answer || !isDrawing(v.image) || !rewards) return null;
-      return { ...common, amount: rewards.amount, summary: `그림 퀴즈: ${question}`, details: { question, answer, ...rewards.details } };
-    }
     default:
       return null;
   }
@@ -292,11 +248,4 @@ function parse(input: unknown, catalog: DonationCatalog): Parsed | null {
     return Number.isInteger(value) && (value as number) > 0 && (value as number) <= game.maxTimeSec;
   }
 
-  /** The larger reward is held from the balance; settling the difference is TBD. */
-  function quizRewards(q: Record<string, unknown>) {
-    const { correctReward, wrongReward } = q;
-    if (!isFn(correctReward) || !isFn(wrongReward) || Math.max(correctReward, wrongReward) < game.minAmount) return null;
-    if (!timeOk(q.timeLimitSec) || q.termsAgreed !== true) return null;
-    return { amount: Math.max(correctReward, wrongReward), details: { timeLimitSec: q.timeLimitSec, correctReward, wrongReward } };
-  }
 }

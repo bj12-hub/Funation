@@ -60,7 +60,7 @@ export const GROUPS: CatalogGroup[] = [
   {
     // Ours (funnation puts these under 엑셀방송).
     title: "게임 · 이벤트",
-    items: [widget("VOTE"), widget("ROULETTE"), widget("LUCKYBOX"), widget("PLAY"), widget("GACHA"), link("DRAWING", "🖼️", "그림후원", "받은 그림 후원을 방송 화면에 전시합니다.", "/creator/widgets/drawing")]
+    items: [widget("VOTE"), widget("ROULETTE"), widget("GACHA"), link("DRAWING", "🖼️", "그림후원", "받은 그림 후원을 방송 화면에 전시합니다.", "/creator/widgets/drawing")]
   },
   { title: "타이머", items: [TIMER] }
 ];

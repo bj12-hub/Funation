@@ -36,7 +36,7 @@ const seed: MockPost[] = [
     deleted: false,
     comments: [{ id: "cm-1", authorId: "u-sample-2", authorName: "새벽라디오", body: "덕분에 바로 성공했어요!", createdAt: ago(28), deleted: false }]
   },
-  { id: "p-2", category: "QNA", title: "럭키박스 후원은 어떻게 당첨이 정해지나요?", body: "당첨 방식이 궁금합니다.", authorId: "u-sample-2", authorName: "새벽라디오", createdAt: ago(10), updatedAt: null, views: 42, deleted: false, comments: [] },
+  { id: "p-2", category: "QNA", title: "룰렛 후원은 어떻게 당첨이 정해지나요?", body: "당첨 방식이 궁금합니다.", authorId: "u-sample-2", authorName: "새벽라디오", createdAt: ago(10), updatedAt: null, views: 42, deleted: false, comments: [] },
   { id: "p-3", category: "FREE", title: "오늘 불꽃크루 엑셀방송 레전드였네요", body: "막판 순위 역전 3번 연속 터짐 ㅋㅋ", authorId: "u-sample-3", authorName: "콩트러버", createdAt: ago(2), updatedAt: null, views: 17, deleted: false, comments: [] }
 ];
 

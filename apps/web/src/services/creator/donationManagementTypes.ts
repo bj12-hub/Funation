@@ -92,7 +92,7 @@ export type ReceivedDonation = {
   message: string;
   /** 퀘스트 후원 only. */
   status: QuestStatus | null;
-  /** 게임 후원: the game (룰렛 후원, 객관식 퀴즈 …) · 크루 후원: the member it was sent for. */
+  /** 게임 후원: the game (룰렛 후원 · 뽑기 후원) · 크루 후원: the member it was sent for. */
   detail: string | null;
   /** 퀘스트 후원: what the creator can do with this running quest now (성공 · 실패 only with 크리에이터 성공 결정; 취소 always). */
   questActions?: QuestAction[];

@@ -18,7 +18,8 @@ import type { Platform } from "@/types/platform";
 
 export type LoginProvider = "NAVER" | "GOOGLE" | "KAKAO";
 
-export type RankingVisibilityKey = "quest" | "luckyBox" | "play";
+/** 럭키박스 · 플레이 rankings were removed (2026-10-04 결정). */
+export type RankingVisibilityKey = "quest";
 
 export type MyAccount = {
   nickname: string;
@@ -48,7 +49,7 @@ export async function getMyAccount(): Promise<MyAccount | null> {
 
 // Server Actions below can be called directly from the browser: check the session and the input.
 
-const RANKING_KEYS: readonly RankingVisibilityKey[] = ["quest", "luckyBox", "play"];
+const RANKING_KEYS: readonly RankingVisibilityKey[] = ["quest"];
 
 export async function updateRankingVisibility(key: RankingVisibilityKey, visible: boolean): Promise<UpdateResult> {
   if (!USE_MOCK) throw new Error("Account API is not connected yet.");

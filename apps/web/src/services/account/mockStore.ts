@@ -34,7 +34,7 @@ const state = (globalForMock.__funationMockStateV3 ??= {
     },
     identity: null,
     fnBalance: 5_000,
-    rankingVisibility: { quest: true, luckyBox: true, play: false },
+    rankingVisibility: { quest: true },
     connectedPlatforms: [
       { platform: "YOUTUBE", handle: "hongGD_tube" },
       { platform: "FLEXTV", handle: null },
