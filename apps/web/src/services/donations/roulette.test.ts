@@ -18,10 +18,11 @@ async function load() {
   const widgets = await import("@/services/creator/widgetSettings");
   const overlay = await import("@/services/creator/widgetOverlay");
   const { getDonationCatalog } = await import("./signatureCore");
+  const { getDonationHistory } = await import("@/services/wallet/walletHistory");
   const { mockCreator } = await import("@/services/creator/mockCreatorStore");
   const { STUDIO_CHANNEL } = await import("@/services/crew/mockCrewStore");
   mockAccount.fnBalance = 100_000;
-  return { ...core, ...room, ...remote, ...widgets, ...overlay, requestDonation, getDonationCatalog, account: mockAccount, overlayKey: mockCreator.integrationKey, STUDIO_CHANNEL };
+  return { ...core, ...room, ...remote, ...widgets, ...overlay, requestDonation, getDonationCatalog, getDonationHistory, account: mockAccount, overlayKey: mockCreator.integrationKey, STUDIO_CHANNEL };
 }
 type M = Awaited<ReturnType<typeof load>>;
 
@@ -80,8 +81,16 @@ describe("룰렛", () => {
     expect(await m.requestDonation(join(4))).toEqual({ status: "INVALID" }); // 하루 2회 사용
     expect(m.account.fnBalance).toBe(78_000); // only the two debits — no prize credited
 
+    // 후원 내역 › 게임 후원 shows where the spin is, then its result once revealed.
+    const range = { preset: "range" as const, from: "2000-01-01", to: "2099-12-31" };
+    const row = async () => (await m.getDonationHistory({ period: range, category: "game" }))!.items.find((d) => d.id === spin.id)!;
+    expect((await row()).gameResult).toBe("룰렛 대기 중");
+    spin.startedAt = new Date(Date.now() - spin.spinMs - 1_000).toISOString();
+    const name = spin.items[spin.resultIndex].name;
+    expect((await row()).gameResult).toBe(name === "꽝" ? "룰렛 결과 · 꽝" : `룰렛 결과 · ${name} 당첨`);
+
     signIn(null);
-    expect((await m.getRoomRoulette("c1"))!).toMatchObject({ waiting: 2, usedToday: null, mine: [] });
+    expect((await m.getRoomRoulette("c1"))!).toMatchObject({ waiting: 1, usedToday: null, mine: [] }); // the first one is spinning now
   });
 
   it("is closed while 후원 받기 is off", async () => {
