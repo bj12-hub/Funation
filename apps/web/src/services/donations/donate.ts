@@ -13,6 +13,7 @@ import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { luckyTierFor, type DonationCatalog } from "./donationCatalog";
 import { recordQuest } from "./questCore";
 import { canParticipate, enqueueSpin } from "./rouletteCore";
+import { canDraw, enqueueDraw } from "./gachaCore";
 import { getDonationCatalog, matchSignatureByAmount } from "./signatureCore";
 import { addDonationDrawing, enqueueDonationVideo } from "@/services/creator/mediaCore";
 import { notify } from "@/services/notifications/notificationCore";
@@ -50,6 +51,9 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
   let result: DonationResult;
   if (request.type === "ROULETTE" && !canParticipate(creator.id, session.userId, request.amount)) {
     // 룰렛 turned off or today's 참여 가능 횟수 used up since the panel loaded.
+    result = { status: "INVALID" };
+  } else if (request.type === "GACHA" && !canDraw(creator.id, session.userId, request.details.gachaId as string)) {
+    // 뽑기 turned off, sold out (상품소진형) or 1인 횟수 한도 reached since the panel loaded.
     result = { status: "INVALID" };
   } else if (mockAccount.fnBalance < request.amount) {
     result = { status: "INSUFFICIENT_FN", balance: mockAccount.fnBalance, required: request.amount };
@@ -91,6 +95,8 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
       });
     }
     // 룰렛: the result is drawn now and revealed when the wheel spins (no FN prize — 2026-10-04 결정).
+    // 뽑기: the prize is drawn now (stock goes down) and played on the 뽑기 overlay (no FN prize).
+    if (request.type === "GACHA") enqueueDraw({ id: donationId, channelId: creator.id, supporterUserId: session.userId, donor, gachaId: request.details.gachaId as string });
     if (request.type === "ROULETTE") enqueueSpin({ id: donationId, channelId: creator.id, supporterUserId: session.userId, donor, amount: request.amount });
     attributeMemberDonation(donationId, creator.id, request.memberId, request.amount, { donor, donorId: request.hideProfile ? "" : session.funationId, message: request.summary });
     if (!request.memberId) recordBroadcastDonation(creator.id, { donor, message: request.summary, fnAmount: request.amount });
@@ -141,7 +147,8 @@ const HISTORY_CATEGORY: Partial<Record<string, "basic" | "quest" | "game">> = {
   ROULETTE: "game",
   QUIZ_CHOICE: "game",
   QUIZ_INITIAL: "game",
-  QUIZ_DRAWING: "game"
+  QUIZ_DRAWING: "game",
+  GACHA: "game"
 };
 
 const isFn = (value: unknown, min = 0): value is number => typeof value === "number" && Number.isInteger(value) && value >= min && value <= MAX_FN;
@@ -228,6 +235,11 @@ function parse(input: unknown, catalog: DonationCatalog): Parsed | null {
       const roulette = catalog.roulette;
       if (!roulette.enabled || !isFn(v.amount, roulette.minAmount)) return null;
       return { ...common, amount: v.amount as number, summary: "룰렛 참여 1회", details: {} };
+    }
+    case "GACHA": {
+      const offer = catalog.gacha.find((x) => x.id === v.gachaId);
+      if (!offer || offer.soldOut || v.termsAgreed !== true) return null;
+      return { ...common, amount: offer.price, summary: `${offer.name} 뽑기`, details: { gachaId: offer.id } };
     }
     case "QUEST": {
       const title = text(v.title, game.maxText, true);

@@ -34,7 +34,9 @@ export type DonationDetails =
   | { type: "DRAWING"; amount: number; title: string; image: string; showProcess: boolean; canvasMode: boolean; termsAgreed: boolean }
   | ({ type: "QUIZ_CHOICE"; question: string; options: string[]; correctIndex: number } & QuizRewards)
   | ({ type: "QUIZ_INITIAL"; question: string; answer: string; hint: string } & QuizRewards)
-  | ({ type: "QUIZ_DRAWING"; image: string; question: string; answer: string } & QuizRewards);
+  | ({ type: "QUIZ_DRAWING"; image: string; question: string; answer: string } & QuizRewards)
+  /** The price comes from the creator's 뽑기 settings; the prize is drawn by the server. */
+  | { type: "GACHA"; gachaId: string; termsAgreed: boolean };
 
 /** Shared by the three quiz types (867:2791 · 867:2891 · 867:2991). */
 export type QuizRewards = { timeLimitSec: number; correctReward: number; wrongReward: number; termsAgreed: boolean };

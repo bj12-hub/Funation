@@ -12,7 +12,7 @@ import { getAlertBadges, getDonationNicknameOptions } from "@/services/supporter
 import { alertBadgeLabels } from "@/services/supporter/identityTypes";
 import { DonationCompleteDialog, DonationConfirmDialog, InsufficientFnDialog, type AlertPreview } from "./DonationDialogs";
 import { MiniFields, SignatureFields, TextFields, VideoFields, WishlistFields } from "./donation/Fields";
-import { DrawingFields, QuestFields, QuizChoiceFields, QuizDrawingFields, QuizInitialFields, RouletteFields } from "./donation/GameFields";
+import { DrawingFields, GachaFields, QuestFields, QuizChoiceFields, QuizDrawingFields, QuizInitialFields, RouletteFields } from "./donation/GameFields";
 import { LuckyBoxFields } from "./donation/LuckyBoxFields";
 import { SignaturePopup } from "./donation/SignaturePopup";
 import { buildDraft, initialStates, isFormKey, type FormKey, type FormStates } from "./donation/drafts";
@@ -236,6 +236,9 @@ export function DonationForm({
         {formKey === "DRAWING" && <DrawingFields value={states.DRAWING} onChange={update("DRAWING")} catalog={donation} error={draft?.error ?? null} />}
         {formKey === "QUIZ_CHOICE" && <QuizChoiceFields value={states.QUIZ_CHOICE} onChange={update("QUIZ_CHOICE")} catalog={donation} error={draft?.error ?? null} />}
         {formKey === "QUIZ_INITIAL" && <QuizInitialFields value={states.QUIZ_INITIAL} onChange={update("QUIZ_INITIAL")} catalog={donation} error={draft?.error ?? null} />}
+        {formKey === "GACHA" && (
+          <GachaFields value={states.GACHA} onChange={update("GACHA")} catalog={donation} error={draft?.error ?? null} creatorId={creatorId} signedIn={signedIn} />
+        )}
         {formKey === "QUIZ_DRAWING" && <QuizDrawingFields value={states.QUIZ_DRAWING} onChange={update("QUIZ_DRAWING")} catalog={donation} error={draft?.error ?? null} />}
         {formKey === "WISHLIST" && (
           <WishlistFields value={states.WISHLIST} onChange={update("WISHLIST")} catalog={donation} balance={fnBalance} creatorName={name} error={draft?.error ?? null} />

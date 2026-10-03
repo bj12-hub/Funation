@@ -18,6 +18,8 @@ export type LuckyState = { boxes: { id: number; winner: boolean }[]; selected: n
 
 /** `limitReached` comes from the room's 룰렛 status (today's 참여 가능 횟수); the server checks again. */
 export type RouletteState = { amount: string; limitReached: boolean };
+/** `limitReached` comes from the room's 뽑기 status (1인 횟수 한도 for the chosen 뽑기); the server checks again. */
+export type GachaState = { gachaId: string | null; terms: boolean; limitReached: boolean };
 /** Time limits are typed as minutes + seconds (867:* "10분 00초"). */
 export type TimeLimit = { minutes: string; seconds: string };
 export type QuestState = { title: string; success: string; time: TimeLimit; creatorDecides: boolean; terms: boolean };
@@ -40,6 +42,7 @@ export type FormStates = {
   QUIZ_CHOICE: QuizChoiceState;
   QUIZ_INITIAL: QuizInitialState;
   QUIZ_DRAWING: QuizDrawingState;
+  GACHA: GachaState;
 };
 
 export type FormKey = keyof FormStates;
@@ -69,7 +72,8 @@ export function initialStates(catalog: DonationCatalog): FormStates {
     DRAWING: { amount: "", title: "", image: null, showProcess: true, canvasMode: false, terms: false },
     QUIZ_CHOICE: { question: "", options: ["", "", ""], correctIndex: 0, ...quizDefaults() },
     QUIZ_INITIAL: { question: "", answer: "", hint: "", ...quizDefaults() },
-    QUIZ_DRAWING: { image: null, question: "", answer: "", ...quizDefaults() }
+    QUIZ_DRAWING: { image: null, question: "", answer: "", ...quizDefaults() },
+    GACHA: { gachaId: catalog.gacha.find((x) => !x.soldOut)?.id ?? catalog.gacha[0]?.id ?? null, terms: false, limitReached: false }
   };
 }
 
@@ -272,6 +276,23 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
         buttonLabel: r.enabled ? `${formatNumber(amount ?? r.minAmount)} FN으로 참여하기` : "룰렛이 꺼져 있어요"
       };
     }
+    case "GACHA": {
+      const s = states.GACHA;
+      const offer = catalog.gacha.find((x) => x.id === s.gachaId) ?? null;
+      const error = !offer ? null : offer.soldOut ? "상품이 모두 소진됐어요." : s.limitReached ? "오늘 이 뽑기의 참여 한도를 모두 사용했어요." : null;
+      const ok = offer !== null && error === null && s.terms;
+      return {
+        details: ok ? { type: "GACHA", gachaId: offer.id, termsAgreed: true } : null,
+        amount: ok ? offer.price : null,
+        error,
+        summary: [
+          { label: "뽑기", value: offer?.name ?? "-" },
+          { label: "당첨", value: "크리에이터 상품 (FN 지급 없음)" }
+        ],
+        chatText: `🧸 ${offer?.name ?? ""} 뽑기`,
+        buttonLabel: offer ? `${offer.name} ${formatNumber(offer.price)} FN 뽑기` : "진행 중인 뽑기가 없어요"
+      };
+    }
     case "QUEST": {
       const s = states.QUEST;
       const success = digits(s.success);
@@ -378,7 +399,8 @@ const FORM_KEYS: Record<FormKey, true> = {
   DRAWING: true,
   QUIZ_CHOICE: true,
   QUIZ_INITIAL: true,
-  QUIZ_DRAWING: true
+  QUIZ_DRAWING: true,
+  GACHA: true
 };
 
 export const isFormKey = (key: DonationTypeKey): key is FormKey => key in FORM_KEYS;

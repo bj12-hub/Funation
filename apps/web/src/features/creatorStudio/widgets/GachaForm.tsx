@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Toggle } from "@/components/ui/Toggle";
 import { formatNumber } from "@/lib/format";
 import {
@@ -44,13 +44,20 @@ const newGacha = (n: number): Gacha => ({
   winSoundId: null
 });
 
-/** 뽑기 후원 위젯 설정 — Figma 373:3675. Odds disclosure and payout rules for paid draws are TBD. */
+/**
+ * 뽑기 후원 위젯 설정 — Figma 373:3675. Viewers draw from the creator room (뽑기 donation type); prizes are the
+ * creator's (2026-10-04 결정: FN 지급 없음). 당첨 내역 and the 전광판 read the real draws. Odds disclosure and
+ * legal review for paid draws are TBD.
+ */
 export function GachaForm({ value: v, onChange, live }: FormProps<"GACHA">) {
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
   const [previewStyle, setPreviewStyle] = useState<GachaStyle>(v.gachas[0]?.style ?? "CAPSULE");
   const [selectedId, setSelectedId] = useState<string | null>(v.gachas[0]?.id ?? null);
   const [checked, setChecked] = useState<string[]>([]);
   const [historyFor, setHistoryFor] = useState<string | null>(null);
+  // The board URL is a path; the key is masked on screen and copied in full.
+  const [origin, setOrigin] = useState("");
+  useEffect(() => setOrigin(window.location.origin), []);
   const selected = v.gachas.find((g) => g.id === selectedId) ?? null;
   const updateGacha = (id: string, patch: Partial<Gacha>) => set("gachas", v.gachas.map((g) => (g.id === id ? { ...g, ...patch } : g)));
   const sample = selected ?? v.gachas[0];
@@ -176,8 +183,8 @@ export function GachaForm({ value: v, onChange, live }: FormProps<"GACHA">) {
           <div className={styles.urlBox}>
             <span className={styles.urlLabel}>당첨 리스트 위젯 URL</span>
             <div className={styles.urlRow}>
-              <span className={styles.urlField}>{live.gachaBoardUrl}</span>
-              <CopyButton value={live.gachaBoardUrl} label="복사" className={styles.copyButton} />
+              <span className={styles.urlField}>{`${origin}${live.gachaBoardUrl.replace(/[^/]+$/, (k) => `${k.slice(0, 4)}-····-····-····`)}`}</span>
+              <CopyButton value={`${origin}${live.gachaBoardUrl}`} label="복사" className={styles.copyButton} />
             </div>
           </div>
           <div className={styles.subCard}>

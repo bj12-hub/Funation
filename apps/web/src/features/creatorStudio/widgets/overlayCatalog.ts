@@ -208,5 +208,25 @@ export const OVERLAYS: OverlayEntry[] = [
     size: "640 × 360",
     path: (k) => widgetOverlayPath("roulette", k),
     manage: "/creator/remote"
+  },
+  {
+    id: "widget-gacha",
+    target: "widgets",
+    group: "알림",
+    title: "뽑기",
+    description: "뽑기 후원이 들어오면 뽑기 기계가 돌아가고 당첨 상품을 보여 줘요. 당첨은 크리에이터 상품이에요.",
+    size: "640 × 400",
+    path: (k) => widgetOverlayPath("gacha", k),
+    manage: "/creator/widgets"
+  },
+  {
+    id: "widget-gacha-board",
+    target: "widgets",
+    group: "점수·순위",
+    title: "뽑기 당첨 리스트",
+    description: "산정 기간 동안 당첨된 상품을 전광판처럼 흘려 보여 줘요.",
+    size: "800 × 120",
+    path: (k) => widgetOverlayPath("gacha-board", k),
+    manage: "/creator/widgets"
   }
 ];

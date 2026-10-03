@@ -522,7 +522,7 @@ export type WidgetLiveData = {
   ranking: { name: string; amount: number }[];
   /** Lowest mini donation amount (MINI preview / guard). */
   miniMinAmount: number;
-  /** 당첨 리스트 위젯 (전광판) URL and the latest wins for its preview. */
+  /** 당첨 리스트 위젯 (전광판) overlay path (with the integration key) and the latest wins (뽑기 후원 records). */
   gachaBoardUrl: string;
   gachaWins: { gacha: string; prize: string; claimed: boolean | null }[];
   gachaUnclaimed: number;
