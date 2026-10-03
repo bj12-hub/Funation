@@ -15,6 +15,7 @@ import {
 } from "@/services/broadcast/unifiedChat";
 import {
   BAN_DURATIONS,
+  CHAT_WINDOW_PATH,
   CHAT_TEXT_MAX,
   HIDDEN_LABEL,
   ROLE_LABEL,
@@ -28,6 +29,7 @@ import {
 import { PLATFORM_ERROR_LABEL } from "@/services/platforms/platformTypes";
 import { PLATFORM_LABEL, type Platform } from "@/types/platform";
 import crew from "../creatorStudio/crew/crew.module.css";
+import { CopyButton } from "../creatorStudio/settings/SettingsCards";
 import styles from "./chat.module.css";
 import { PlatformMark } from "./PlatformMark";
 
@@ -40,9 +42,10 @@ type Filter = Platform | "ALL";
 /**
  * 통합 채팅 — code-first (no Figma frame; reference: weflab 채팅창). Route `/creator/chat`.
  * One feed for every platform the creator streams to; send to all at once; hide on our overlay; delete and
- * ban on the platform where its API allows it.
+ * ban on the platform where its API allows it. `variant="window"` is the same chat as a standalone page
+ * (`/popout/chat`): feed and composer only, filling the window.
  */
-export function UnifiedChatScreen({ initial }: { initial: UnifiedChatView }) {
+export function UnifiedChatScreen({ initial, variant = "studio" }: { initial: UnifiedChatView; variant?: "studio" | "window" }) {
   const [view, setView] = useState(initial);
   const [note, setNote] = useState<Note>(null);
   const [pending, startTransition] = useTransition();
@@ -72,6 +75,28 @@ export function UnifiedChatScreen({ initial }: { initial: UnifiedChatView }) {
   };
 
   const states = useMemo(() => Object.fromEntries(view.platforms.map((p) => [p.platform, p])) as Record<Platform, ChatPlatformState>, [view.platforms]);
+  const [origin, setOrigin] = useState("");
+  useEffect(() => setOrigin(window.location.origin), []);
+
+  if (variant === "window") {
+    return (
+      <div className={styles.window}>
+        <header className={styles.windowHead}>
+          <h1 className={crew.cardTitle}>통합 채팅</h1>
+          <Link className={crew.muted} href="/creator/chat" target="_blank" rel="noreferrer">
+            채널 연결 · 관리 기록 ↗
+          </Link>
+        </header>
+        <Feed view={view} states={states} pending={pending} run={run} />
+        <Composer states={states} onDone={refresh} setNote={setNote} />
+        {note && (
+          <p className={note.tone === "error" ? crew.error : crew.ok} role={note.tone === "error" ? "alert" : "status"}>
+            {note.text}
+          </p>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={crew.content}>
@@ -82,6 +107,24 @@ export function UnifiedChatScreen({ initial }: { initial: UnifiedChatView }) {
           방송 화면용 채팅창은 <Link href="/creator/widgets/overlays">오버레이 주소</Link>의 &lsquo;통합 채팅&rsquo;을 OBS에 넣어요 · 숨김은 오버레이에서만 가리고, 삭제 · 차단은 플랫폼에서 처리돼요 · 플랫폼마다 지원 범위가 달라요.
         </p>
       </header>
+
+      <section className={crew.card} aria-labelledby="uc-window">
+        <div className={crew.cardHead}>
+          <h2 className={crew.cardTitle} id="uc-window">
+            🔗 채팅창 링크
+          </h2>
+          <button type="button" className={crew.primary} onClick={() => window.open(CHAT_WINDOW_PATH, "somnation-chat", "width=440,height=780")}>
+            새 창으로 열기
+          </button>
+        </div>
+        <p className={crew.note}>
+          채팅만 따로 보는 웹페이지예요. 다른 모니터, OBS &lsquo;사용자 정의 브라우저 독&rsquo;, 휴대폰 브라우저에서 열어 두고 보고 · 보내고 · 관리할 수 있어요. 로그인한 크리에이터만 열 수 있어요 (매니저용 링크는 TBD).
+        </p>
+        <div className={crew.addRow}>
+          <input className={crew.input} value={`${origin}${CHAT_WINDOW_PATH}`} readOnly aria-label="채팅창 링크" onFocus={(e) => e.target.select()} />
+          <CopyButton value={`${origin}${CHAT_WINDOW_PATH}`} label="복사" className={crew.ghost} />
+        </div>
+      </section>
 
       <div className={styles.layout}>
         <div className={styles.side}>
