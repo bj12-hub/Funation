@@ -59,7 +59,6 @@ import {
   VOTE_ITEM_MAX_CHARS,
   VOTE_NAME_MAX,
   VOTE_PRESET_MAX,
-  VOTE_PRICE_MAX,
   isHexColor,
   type ChatSettings,
   type EditableWidgetKey,
@@ -311,8 +310,6 @@ const parseVote: Parser<VoteSettings> = (v) => {
     if (!text(p.name, VOTE_NAME_MAX)) return `투표 이름은 ${VOTE_NAME_MAX}자 이내로 입력해 주세요.`;
     if (!oneOf(p.color, VOTE_COLORS)) return "프리셋 색상을 확인해 주세요.";
     if (!int(p.durationSec, 10, VOTE_DURATION_MAX_SEC)) return "투표 시간은 00:00:10 ~ 24:00:00 사이로 입력해 주세요.";
-    if (!int(p.pricePerVote, 1, VOTE_PRICE_MAX)) return "투표 1회 참여 금액을 확인해 주세요.";
-    if (!int(p.freeVotes, 0, 1000)) return "무료 투표권은 0~1000으로 입력해 주세요.";
     const items = Array.isArray(p.items) ? p.items : null;
     if (!items || items.length < VOTE_ITEMS_MIN || items.length > VOTE_ITEMS_MAX || !items.every((i) => text(i, VOTE_ITEM_MAX_CHARS))) {
       return `투표 항목은 ${VOTE_ITEMS_MIN}~${VOTE_ITEMS_MAX}개, 각 ${VOTE_ITEM_MAX_CHARS}자 이내로 입력해 주세요.`;
@@ -322,8 +319,6 @@ const parseVote: Parser<VoteSettings> = (v) => {
       name: (p.name as string).trim(),
       color: p.color,
       durationSec: p.durationSec as number,
-      pricePerVote: p.pricePerVote as number,
-      freeVotes: p.freeVotes as number,
       items: (items as string[]).map((i) => i.trim())
     });
   }

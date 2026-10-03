@@ -1,13 +1,14 @@
 /**
- * 후원 위젯 OBS overlays (code-first): 후원목표 · 후원누적금액 · 후원랭킹 · 최근알림 · 이벤트 · 후원 QR코드.
+ * 후원 위젯 OBS overlays (code-first): 후원목표 · 후원누적금액 · 후원랭킹 · 최근알림 · 이벤트 · 후원 QR코드 · 퀘스트 · 투표.
  * Each reads its saved widget settings plus the creator's donation feed at
  * `/overlay/widget/[widget]/[integrationKey]`. Client-safe types only.
  */
 import type { Platform } from "@/types/platform";
 import type { AlertKind, OverlaySignal } from "./alertTypes";
-import type { EventSettings, GoalSettings, QrSettings, QuestWidgetSettings, RankingSettings, RecentSettings, TotalSettings, WidgetKey } from "./widgetSettingsTypes";
+import type { VoteBoard } from "@/services/votes/voteTypes";
+import type { EventSettings, GoalSettings, QrSettings, QuestWidgetSettings, RankingSettings, RecentSettings, TotalSettings, VoteSettings, WidgetKey } from "./widgetSettingsTypes";
 
-export const WIDGET_OVERLAYS = ["goal", "total", "ranking", "recent", "event", "qr", "quest"] as const;
+export const WIDGET_OVERLAYS = ["goal", "total", "ranking", "recent", "event", "qr", "quest", "vote"] as const;
 export type WidgetOverlayKind = (typeof WIDGET_OVERLAYS)[number];
 export const isWidgetOverlay = (v: unknown): v is WidgetOverlayKind => WIDGET_OVERLAYS.includes(v as WidgetOverlayKind);
 
@@ -19,7 +20,8 @@ export const WIDGET_OVERLAY_SETTINGS: Record<WidgetOverlayKind, WidgetKey> = {
   recent: "RECENT",
   event: "EVENT",
   qr: "QR",
-  quest: "QUEST"
+  quest: "QUEST",
+  vote: "VOTE"
 };
 
 /** Mock QR image (the popup preview uses the same one). TBD: a real QR for the creator's donation page. */
@@ -57,4 +59,6 @@ export type OverlayWidget = Common &
     | { widget: "event"; settings: EventSettings; lines: WidgetFeedLine[] }
     | { widget: "qr"; settings: QrSettings; imageUrl: string }
     | { widget: "quest"; settings: QuestWidgetSettings; quests: WidgetQuest[] }
+    /** `vote` null = no vote on screen. */
+    | { widget: "vote"; settings: VoteSettings; vote: VoteBoard | null }
   );
