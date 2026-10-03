@@ -21,6 +21,7 @@ import {
   ALERT_DISPLAY_SEC,
   OVERLAY_TARGETS,
   alertAmount,
+  offOverlayTargets,
   TEST_AMOUNT_PRESETS,
   TEST_DONOR_MAX,
   TEST_MESSAGE_MAX,
@@ -89,7 +90,7 @@ export function RemoteScreen({ view, overlayPath, tools }: { view: RemoteView; o
   };
 
   // A slider sends its value when released (pointer or keyboard); the label shows the server's value.
-  const offOverlays = OVERLAY_TARGETS.filter((t) => !view.overlays.on[t.key]);
+  const offOverlays = offOverlayTargets(view.overlays.on);
 
   const slider = (label: string, value: number, save: (v: number) => Promise<RemoteResult>) => (
     <label className={remote.slider}>

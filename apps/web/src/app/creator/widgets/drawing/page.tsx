@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { DrawingScreen } from "@/features/creatorStudio/widgets/media/DrawingScreen";
+import { getOverlaySwitches } from "@/services/creator/alertRemote";
 import { getOverlayKey } from "@/services/creator/broadcastTools";
 import { getDrawings } from "@/services/creator/media";
 
@@ -9,7 +10,7 @@ export const metadata: Metadata = { title: "그림후원 | Somnation 크리에�
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const [view, key] = await Promise.all([getDrawings(), getOverlayKey()]);
-  if (!view || !key) redirect("/login?role=creator&next=/creator/widgets/drawing");
-  return <DrawingScreen view={view} overlayPath={`/overlay/drawing/${key}`} />;
+  const [view, key, switches] = await Promise.all([getDrawings(), getOverlayKey(), getOverlaySwitches()]);
+  if (!view || !key || !switches) redirect("/login?role=creator&next=/creator/widgets/drawing");
+  return <DrawingScreen view={view} overlayPath={`/overlay/drawing/${key}`} switches={switches} />;
 }

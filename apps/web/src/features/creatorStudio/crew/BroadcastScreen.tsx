@@ -5,6 +5,8 @@ import { useEffect, useState, useTransition } from "react";
 import { formatNumber } from "@/lib/format";
 import { adjustScore, endBroadcast, startBroadcast } from "@/services/crew/crewBroadcast";
 import { BROADCAST_TITLE_MAX, PROJECT_NAME_MAX, type BroadcastResult, type BroadcastView, type TeamKey } from "@/services/crew/crewTypes";
+import type { OverlayTarget } from "@/services/creator/alertTypes";
+import { OverlayOffNotice } from "../remote/OverlayOffNotice";
 import { BattlePanel } from "./BattlePanel";
 import { BroadcastFeed } from "./BroadcastFeed";
 import { ScenarioPanel } from "./ScenarioPanel";
@@ -25,7 +27,7 @@ const signed = (n: number) => `${n > 0 ? "+" : ""}${formatNumber(n)}`;
  * (optional 팀 배틀), watch the scoreboard (server scores), apply 보정 from the remote, end it and
  * review the history. Scores refresh from the server every few seconds while live.
  */
-export function BroadcastScreen({ view }: { view: BroadcastView }) {
+export function BroadcastScreen({ view, switches }: { view: BroadcastView; switches: Record<OverlayTarget, boolean> }) {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [project, setProject] = useState("");
@@ -81,6 +83,7 @@ export function BroadcastScreen({ view }: { view: BroadcastView }) {
         <h1 className={styles.title}>크루 관리</h1>
         <p className={styles.subtitle}>방송 회차를 시작하고 점수판을 운영하세요. 멤버 점수 = 방송 중 그 멤버에게 들어온 후원 점수(자동엑셀 기준) + 보정 점수예요.</p>
       </header>
+      <OverlayOffNotice targets={["crew"]} switches={switches} />
       <CrewTabs active="broadcast" />
 
       {message && (

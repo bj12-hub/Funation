@@ -87,6 +87,10 @@ export const OVERLAY_TARGETS = [
 export type OverlayTarget = (typeof OVERLAY_TARGETS)[number]["key"];
 export const isOverlayTarget = (v: unknown): v is OverlayTarget => OVERLAY_TARGETS.some((t) => t.key === v);
 
+/** The overlays among `targets` (default: all) switched OFF in 기능 제어, in 기능 제어 order. */
+export const offOverlayTargets = (switches: Record<OverlayTarget, boolean>, targets?: readonly OverlayTarget[]) =>
+  OVERLAY_TARGETS.filter((t) => (!targets || targets.includes(t.key)) && !switches[t.key]);
+
 /** What every overlay reads besides its own data: 기능별 새로고침 and 기능 제어 ON/OFF. */
 export type OverlaySignal = { reloadSeq: number; on: boolean };
 
