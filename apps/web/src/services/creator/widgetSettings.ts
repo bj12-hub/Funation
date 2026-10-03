@@ -6,6 +6,8 @@ import { getCreatorSession } from "@/lib/session";
 import { PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES } from "@/lib/validation";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { findAsset } from "./assetCore";
+import { QR_SAMPLE_IMAGE, WIDGET_OVERLAYS, WIDGET_OVERLAY_SETTINGS, widgetOverlayPath } from "./widgetOverlayTypes";
+import { widgetStore } from "./widgetStore";
 import { mockCreator } from "./mockCreatorStore";
 import { PARSERS } from "./widgetParsers";
 import {
@@ -13,7 +15,6 @@ import {
   CUSTOM_SOUND_MAX_BYTES,
   CUSTOM_SOUND_TYPES,
   CUSTOM_SOUND_WORD_MAX,
-  DEFAULT_WIDGET_SETTINGS,
   WALLPAPER_IMAGES_MAX,
   WIDGET_PATHS,
   isEditableWidget,
@@ -31,11 +32,15 @@ import {
  * TBD: creator role check, widget URL format/secret rotation, audit of setting changes, audio storage.
  */
 
-const globalForWidgets = globalThis as typeof globalThis & { __funationMockWidgetsV4?: WidgetSettingsMap };
-const store = (globalForWidgets.__funationMockWidgetsV4 ??= structuredClone(DEFAULT_WIDGET_SETTINGS));
+const store = widgetStore;
 
 const assertMock = () => {
   if (!USE_MOCK) throw new Error("Widget settings API is not connected yet.");
+};
+
+const overlayPathFor = (key: string) => {
+  const widget = WIDGET_OVERLAYS.find((w) => WIDGET_OVERLAY_SETTINGS[w] === key);
+  return widget ? widgetOverlayPath(widget, mockCreator.integrationKey) : null;
 };
 
 export async function getWidgetDetail(key: unknown): Promise<WidgetDetail | null> {
@@ -45,11 +50,13 @@ export async function getWidgetDetail(key: unknown): Promise<WidgetDetail | null
   return {
     key,
     url: `https://funation.com/widget/${WIDGET_PATHS[key]}/${mockCreator.handle}`,
+    // 후원 위젯 with an OBS overlay show its real address (the popup adds the site origin and masks the key).
+    overlayPath: overlayPathFor(key),
     settings: key === "GACHA" ? withLiveSounds(store.GACHA) : structuredClone(store[key]),
     live: {
       goalCurrent: 100_000,
       totalAmount: 250_000,
-      qrImageUrl: "/mock/creator/widgets/qr-sample.png",
+      qrImageUrl: QR_SAMPLE_IMAGE,
       ranking: [
         { name: "하니마루", amount: 200_000 },
         { name: "오라", amount: 100_000 },

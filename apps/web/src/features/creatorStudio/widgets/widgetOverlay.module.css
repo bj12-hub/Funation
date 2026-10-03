@@ -1,0 +1,219 @@
+/* 후원 위젯 OBS overlays — code-first. Transparent; sizes follow the widget settings. */
+
+.goal,
+.ranking,
+.feed,
+.qr,
+.total {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 12px;
+}
+
+/* ── 후원목표 ── */
+.goal {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.goal[data-style="ONE_LINE"] {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.goal[data-style="ONE_LINE"] .goalBar {
+  flex: 1;
+}
+
+.goalHead,
+.goalFoot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-weight: var(--font-weight-bold);
+}
+
+.goalBar {
+  overflow: hidden;
+  border-radius: 999px;
+}
+
+.goalBar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.6s ease;
+}
+
+/* ── 후원누적금액 ── */
+.total {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-weight: var(--font-weight-bold);
+}
+
+/* ── 후원랭킹 ── */
+.ranking {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ranking ol {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ranking li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
+.ranking[data-style="LINE_BOX"] li {
+  padding: 6px 12px;
+  border: 2px solid currentColor;
+  border-radius: 8px;
+}
+
+.ranking[data-style="SIMPLE"] li {
+  justify-content: space-between;
+}
+
+.rankScroll {
+  overflow: hidden;
+}
+
+.rankScroll ol {
+  flex-direction: row;
+  width: max-content;
+  animation: rank-scroll linear infinite;
+}
+
+@keyframes rank-scroll {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* ── 최근알림 · 이벤트 ── */
+.feed {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+}
+
+.line {
+  font-weight: var(--font-weight-medium);
+  animation-fill-mode: both;
+  animation-timing-function: ease-out;
+}
+
+.line[data-effect="Fade In / Out"] {
+  animation-name: line-fade;
+}
+
+.line[data-effect="Slide In / Out"] {
+  animation-name: line-slide;
+}
+
+.line b {
+  font-weight: var(--font-weight-extrabold);
+}
+
+.nickBg {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgb(0 0 0 / 55%);
+}
+
+.feed[data-event="BOX"] .line {
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgb(15 15 30 / 72%);
+}
+
+.feed[data-event="LIST"] .line {
+  padding: 6px 0;
+  border-bottom: 1px solid rgb(255 255 255 / 25%);
+}
+
+@keyframes line-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes line-slide {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ── 후원 QR코드 ── */
+.qr {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.qrCaption {
+  font-weight: var(--font-weight-bold);
+}
+
+.qrTile {
+  position: relative;
+  display: flex;
+  padding: 14px;
+  overflow: hidden;
+  border: 6px solid;
+  background: #ffffff;
+}
+
+.qrTile img {
+  display: block;
+}
+
+.qrLogo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 3px solid #ffffff;
+  border-radius: 12px;
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: var(--font-weight-black);
+  transform: translate(-50%, -50%);
+}

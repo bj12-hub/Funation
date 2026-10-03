@@ -512,6 +512,8 @@ export type CustomSoundResult =
 export type WidgetDetail<K extends EditableWidgetKey = EditableWidgetKey> = {
   key: K;
   url: string;
+  /** `/overlay/widget/…/[integrationKey]` when this widget has an OBS overlay (code-first), else null. */
+  overlayPath: string | null;
   settings: WidgetSettingsMap[K];
   live: WidgetLiveData;
 };
