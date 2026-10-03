@@ -14,6 +14,13 @@ import {
   type GachaPrize,
   type GachaSettings,
   type WallpaperSettings,
+  ROULETTE_DAILY_LIMIT_MAX,
+  ROULETTE_ITEMS_MAX,
+  ROULETTE_ITEMS_MIN,
+  ROULETTE_ITEM_MAX_CHARS,
+  ROULETTE_SPIN_SEC,
+  type RouletteItem,
+  type RouletteSettings,
   AUTO_REFUND_MINUTES,
   FONT_LEVELS,
   PRIZE_MAX,
@@ -506,6 +513,27 @@ const parseGacha: Parser<GachaSettings> = (v) => {
   };
 };
 
+/** 룰렛: 1,000 FN 최소 (게임 후원과 같은 하한) ~ PRIZE_MAX, 항목 2~10개 · 확률 정수 합 100. */
+const parseRoulette: Parser<RouletteSettings> = (v) => {
+  if (!bool(v.enabled) || !bool(v.autoStart)) return "설정 값을 확인해 주세요.";
+  if (!int(v.minAmount, 1_000, PRIZE_MAX)) return "최소 참여 금액은 1,000 FN 이상으로 입력해 주세요.";
+  if (!int(v.dailyLimit, 0, ROULETTE_DAILY_LIMIT_MAX)) return `참여 가능 횟수는 0~${ROULETTE_DAILY_LIMIT_MAX}회로 입력해 주세요.`;
+  if (!int(v.spinSec, ROULETTE_SPIN_SEC.min, ROULETTE_SPIN_SEC.max)) return `회전 시간은 ${ROULETTE_SPIN_SEC.min}~${ROULETTE_SPIN_SEC.max}초로 입력해 주세요.`;
+  const items = Array.isArray(v.items) ? v.items : null;
+  if (!items || items.length < ROULETTE_ITEMS_MIN || items.length > ROULETTE_ITEMS_MAX) return `룰렛 항목은 ${ROULETTE_ITEMS_MIN}~${ROULETTE_ITEMS_MAX}개로 만들어 주세요.`;
+  const out: RouletteItem[] = [];
+  for (const raw of items) {
+    const it = obj(raw);
+    if (typeof it.id !== "string" || !ID.test(it.id)) return "룰렛 항목 정보를 확인해 주세요.";
+    if (!text(it.name, ROULETTE_ITEM_MAX_CHARS, 1)) return `항목 이름은 1~${ROULETTE_ITEM_MAX_CHARS}자로 입력해 주세요.`;
+    if (!int(it.percent, 1, 100)) return "항목 확률은 1~100%로 입력해 주세요.";
+    out.push({ id: it.id, name: (it.name as string).trim(), percent: it.percent as number });
+  }
+  if (out.reduce((sum, it) => sum + it.percent, 0) !== 100) return "항목 확률의 합이 100%가 되어야 해요.";
+  if (new Set(out.map((it) => it.id)).size !== out.length) return "룰렛 항목 정보를 확인해 주세요.";
+  return { enabled: v.enabled, minAmount: v.minAmount, dailyLimit: v.dailyLimit, items: out, spinSec: v.spinSec, autoStart: v.autoStart };
+};
+
 const parseWallpaper: Parser<Omit<WallpaperSettings, "images">> = (v) => {
   const fnFont = colorFont(v.fnFont);
   const nicknameFont = colorFont(v.nicknameFont);
@@ -541,5 +569,6 @@ export const PARSERS: { [K in Exclude<EditableWidgetKey, "CUSTOM_SOUND">]: Parse
   QUEST: parseQuest,
   PLAY: parsePlay,
   GACHA: parseGacha,
+  ROULETTE: parseRoulette,
   WALLPAPER: parseWallpaper
 };

@@ -12,6 +12,7 @@ import { alertBadgeLabels } from "@/services/supporter/identityTypes";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { luckyTierFor, type DonationCatalog } from "./donationCatalog";
 import { recordQuest } from "./questCore";
+import { canParticipate, enqueueSpin } from "./rouletteCore";
 import { getDonationCatalog, matchSignatureByAmount } from "./signatureCore";
 import { addDonationDrawing, enqueueDonationVideo } from "@/services/creator/mediaCore";
 import { notify } from "@/services/notifications/notificationCore";
@@ -47,7 +48,10 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
 
   await mockDelay(600);
   let result: DonationResult;
-  if (mockAccount.fnBalance < request.amount) {
+  if (request.type === "ROULETTE" && !canParticipate(creator.id, session.userId, request.amount)) {
+    // 룰렛 turned off or today's 참여 가능 횟수 used up since the panel loaded.
+    result = { status: "INVALID" };
+  } else if (mockAccount.fnBalance < request.amount) {
     result = { status: "INSUFFICIENT_FN", balance: mockAccount.fnBalance, required: request.amount };
   } else {
     // What the alert shows — the same values as the confirm dialog preview (getAlertBadges), resolved
@@ -86,6 +90,8 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
         createdAt: now.toISOString()
       });
     }
+    // 룰렛: the result is drawn now and revealed when the wheel spins (no FN prize — 2026-10-04 결정).
+    if (request.type === "ROULETTE") enqueueSpin({ id: donationId, channelId: creator.id, supporterUserId: session.userId, donor, amount: request.amount });
     attributeMemberDonation(donationId, creator.id, request.memberId, request.amount, { donor, donorId: request.hideProfile ? "" : session.funationId, message: request.summary });
     if (!request.memberId) recordBroadcastDonation(creator.id, { donor, message: request.summary, fnAmount: request.amount });
     enqueueDonationAlert(creator.id, {
@@ -219,9 +225,9 @@ function parse(input: unknown, catalog: DonationCatalog): Parsed | null {
       };
     }
     case "ROULETTE": {
-      const tier = catalog.roulette.tiers.find((t) => t.key === v.tierKey);
-      if (!tier) return null;
-      return { ...common, amount: tier.amount, summary: `${tier.label} 룰렛`, details: { tierKey: tier.key } };
+      const roulette = catalog.roulette;
+      if (!roulette.enabled || !isFn(v.amount, roulette.minAmount)) return null;
+      return { ...common, amount: v.amount as number, summary: "룰렛 참여 1회", details: {} };
     }
     case "QUEST": {
       const title = text(v.title, game.maxText, true);

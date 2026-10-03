@@ -5,6 +5,7 @@ import { mockAlerts, overlaySignal } from "./alertCore";
 import { mockCreator } from "./mockCreatorStore";
 import { mockQuests } from "@/services/donations/questCore";
 import { currentRun, voteBoard } from "@/services/votes/voteCore";
+import { stageOf } from "@/services/donations/rouletteCore";
 import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
 import { eventLines, goalProgress, rankingRows, recentLines, totalAmount } from "./widgetOverlayCore";
 import { QR_SAMPLE_IMAGE, isWidgetOverlay, type OverlayWidget } from "./widgetOverlayTypes";
@@ -59,5 +60,8 @@ export async function getOverlayWidget(widget: unknown, key: unknown): Promise<O
       const run = currentRun(STUDIO_CHANNEL);
       return { widget, settings: readWidget("VOTE"), vote: run ? voteBoard(run) : null, ...common };
     }
+    case "roulette":
+      // The studio channel's wheel: spinning, or the result for a few seconds (펀페이 1009:199 · 1009:181).
+      return { widget, settings: readWidget("ROULETTE"), stage: stageOf(STUDIO_CHANNEL), ...common };
   }
 }

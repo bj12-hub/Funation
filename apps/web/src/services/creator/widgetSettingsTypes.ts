@@ -21,6 +21,7 @@ export type WidgetKey =
   | "LUCKYBOX"
   | "PLAY"
   | "GACHA"
+  | "ROULETTE"
   | "WALLPAPER";
 
 export type CatalogCard<K extends string> = { key: K; emoji: string; color: string; title: string; description: string };
@@ -42,6 +43,7 @@ export const WIDGET_CARDS: CatalogCard<WidgetKey>[] = [
   { key: "LUCKYBOX", emoji: "📦", color: "#ec4899", title: "럭키박스", description: "실시간 럭키박스 당첨 현황과 연출을 보여줍니다." },
   { key: "PLAY", emoji: "🎮", color: "#10b981", title: "플레이", description: "미니게임과 참여형 콘텐츠 화면 위젯입니다." },
   { key: "GACHA", emoji: "🧸", color: "#f97316", title: "뽑기 후원", description: "시청자와 함께 다양한 뽑기 이벤트를 진행합니다." },
+  { key: "ROULETTE", emoji: "🎡", color: "#0ea5e9", title: "룰렛", description: "후원으로 참여하는 룰렛 항목과 확률을 정하고 방송 화면에 돌립니다." },
   { key: "WALLPAPER", emoji: "🖼️", color: "#ef4444", title: "벽지", description: "후원 액션을 남길 수 있는 특수 배경 위젯입니다." }
 ];
 
@@ -62,6 +64,7 @@ export const WIDGET_PATHS: Record<WidgetKey, string> = {
   LUCKYBOX: "luckybox",
   PLAY: "play",
   GACHA: "gacha",
+  ROULETTE: "roulette",
   WALLPAPER: "wallpaper"
 };
 
@@ -372,6 +375,31 @@ export type PlayWidgetSettings = {
   };
 };
 
+// ── 룰렛 (code-first; 2026-10-04 결정: 당첨은 크리에이터 상품, FN 지급 없음) ──────────────
+// Figma 펀페이 1009:510 (시청자 참여) · 1009:355 (Web Remote 룰렛 제어) · 1009:199/181 (방송 위젯).
+
+export const ROULETTE_ITEMS_MIN = 2;
+export const ROULETTE_ITEMS_MAX = 10;
+export const ROULETTE_ITEM_MAX_CHARS = 12;
+export const ROULETTE_DAILY_LIMIT_MAX = 100;
+export const ROULETTE_SPIN_SEC = { min: 3, max: 15 } as const;
+
+export type RouletteItem = { id: string; name: string; percent: number };
+export type RouletteSettings = {
+  /** 후원 받기: off shows "룰렛이 꺼져 있어요" in the room and refuses new participations. */
+  enabled: boolean;
+  /** 최소 참여 금액 (FN). One participation = one spin, whatever the amount. */
+  minAmount: number;
+  /** 1인 하루 참여 가능 횟수 (0 = 제한 없음). The counting period is TBD — today (server date) for now. */
+  dailyLimit: number;
+  /** 룰렛 항목: integer percents that add up to 100. An item named "꽝" is a blank. */
+  items: RouletteItem[];
+  /** How long the wheel spins on the broadcast before the result shows. */
+  spinSec: number;
+  /** 룰렛 자동 시작: the next participation spins as soon as the wheel is free; off = 리모컨 ▶ 시작. */
+  autoStart: boolean;
+};
+
 // ── PR 4: 뽑기 후원 · 벽지 ────────────────────────────────────────────────────────
 // A paid draw with odds is regulated content; odds disclosure, legal review and payout rules are TBD.
 
@@ -475,10 +503,11 @@ export type WidgetSettingsMap = {
   QUEST: QuestWidgetSettings;
   PLAY: PlayWidgetSettings;
   GACHA: GachaSettings;
+  ROULETTE: RouletteSettings;
   WALLPAPER: WallpaperSettings;
 };
 export type EditableWidgetKey = keyof WidgetSettingsMap;
-export const EDITABLE_WIDGETS: EditableWidgetKey[] = ["CHAT", "QR", "GOAL", "TOTAL", "RECENT", "EVENT", "MINI", "RANKING", "VOTE", "CUSTOM_SOUND", "LUCKYBOX", "QUEST", "PLAY", "GACHA", "WALLPAPER"];
+export const EDITABLE_WIDGETS: EditableWidgetKey[] = ["CHAT", "QR", "GOAL", "TOTAL", "RECENT", "EVENT", "MINI", "RANKING", "VOTE", "CUSTOM_SOUND", "LUCKYBOX", "QUEST", "PLAY", "GACHA", "ROULETTE", "WALLPAPER"];
 export const isEditableWidget = (k: unknown): k is EditableWidgetKey => EDITABLE_WIDGETS.includes(k as EditableWidgetKey);
 
 /** Values the server reads for previews (not editable). */
@@ -680,6 +709,20 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     ],
     credit: { historyCount: 5, displaySec: 5 },
     board: { productType: "ALL", title: "뽑기 당첨 리스트", period: "최근 7일 기준", speed: "NORMAL" }
+  },
+  // 펀페이 1009:510 sample: 10,000 FN 이상 · 3회 · 꽝 50 / 스탬프 25 / 시그니처 15 / 미션 10.
+  ROULETTE: {
+    enabled: true,
+    minAmount: 10_000,
+    dailyLimit: 3,
+    items: [
+      { id: "rl-blank", name: "꽝", percent: 50 },
+      { id: "rl-stamp", name: "스탬프", percent: 25 },
+      { id: "rl-signature", name: "시그니처", percent: 15 },
+      { id: "rl-mission", name: "미션", percent: 10 }
+    ],
+    spinSec: 5,
+    autoStart: false
   },
   WALLPAPER: {
     layout: "BASIC",

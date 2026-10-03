@@ -21,8 +21,8 @@ export type DonationDetails =
   | { type: "WISHLIST"; itemId: string; message: string; voiceId: string | null }
   /** The draw itself happens on the server after the debit (TBD). */
   | { type: "LUCKYBOX"; amount: number; boxCount: number; winnerCount: number; termsAgreed: boolean }
-  /** The roulette amount comes from the server tier. */
-  | { type: "ROULETTE"; tierKey: string }
+  /** One spin per participation; the amount must reach the creator's 최소 참여 금액 (server settings). */
+  | { type: "ROULETTE"; amount: number }
   | {
       type: "QUEST";
       title: string;
