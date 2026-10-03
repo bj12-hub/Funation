@@ -341,3 +341,41 @@
     pointer-events: auto;
   }
 }
+
+/* 채팅창 링크 (/popout/chat): the chat fills the browser window or OBS dock. */
+.window {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100dvh;
+  padding: 10px;
+  background: var(--color-bg-page);
+}
+
+.windowHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 4px;
+}
+
+.windowHead h1 {
+  margin: 0;
+}
+
+.window .feedCard {
+  flex: 1;
+  min-height: 0;
+  padding: 14px;
+}
+
+.window .feed {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+
+.window > section:not(.feedCard) {
+  padding: 14px;
+}
