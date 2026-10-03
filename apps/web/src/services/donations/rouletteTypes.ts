@@ -5,11 +5,13 @@
  * (방송 위젯). Client-safe types only.
  */
 
-export type RouletteSpinStatus = "QUEUED" | "SPINNING" | "RESULT" | "DONE";
+/** WAITING = the wheel stopped and the result waits for 리모컨 ✓ 결과 공개 (결과 자동 노출 off). */
+export type RouletteSpinStatus = "QUEUED" | "SPINNING" | "WAITING" | "RESULT" | "DONE";
 
 export const ROULETTE_STATUS_LABEL: Record<RouletteSpinStatus, string> = {
   QUEUED: "대기 중",
   SPINNING: "회전 중",
+  WAITING: "결과 대기",
   RESULT: "결과 확인",
   DONE: "완료"
 };
@@ -57,7 +59,7 @@ export type RoomRoulette = { waiting: number; participantsToday: number; usedTod
 export type RouletteStage = {
   id: string;
   no: string;
-  status: "SPINNING" | "RESULT";
+  status: "SPINNING" | "WAITING" | "RESULT";
   donor: string;
   amount: number;
   items: { name: string; percent: number }[];
@@ -84,7 +86,10 @@ export type RouletteRemoteRow = {
 export type RouletteRemoteView = {
   enabled: boolean;
   autoStart: boolean;
+  autoReveal: boolean;
   paused: boolean;
+  /** 위젯 화면 숨기기: the overlay shows nothing while spins go on. */
+  hidden: boolean;
   dailyLimit: number;
   items: { name: string; percent: number }[];
   stage: RouletteStage | null;

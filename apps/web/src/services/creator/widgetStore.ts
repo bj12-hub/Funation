@@ -18,6 +18,10 @@ export function readWidget<K extends EditableWidgetKey>(key: K): WidgetSettingsM
     const recent = copy as WidgetSettingsMap["RECENT"];
     recent.templates = { ...DEFAULT_WIDGET_SETTINGS.RECENT.templates, ...recent.templates };
   }
+  if (key === "ROULETTE") {
+    // 룰렛 settings saved before 결과 자동 노출 read with its default.
+    return { ...DEFAULT_WIDGET_SETTINGS.ROULETTE, ...copy } as WidgetSettingsMap[K];
+  }
   if (key === "VOTE") {
     // Presets saved before 무료 투표 (2026-10-04) carried a price and 무료 투표권; drop them.
     const vote = copy as WidgetSettingsMap["VOTE"];

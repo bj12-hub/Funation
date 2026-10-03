@@ -152,6 +152,11 @@ describe("뽑기 후원", () => {
     d.startedAt = new Date(Date.now() - d.spinMs - 500).toISOString();
     const o = await m.getOverlayWidget("gacha", m.overlayKey);
     expect(o !== "FORBIDDEN" && o.widget === "gacha" && o.stage).toMatchObject({ status: "RESULT", prize: "문화상품권 5천원" });
+    expect(await m.setGachaHidden({ hidden: true })).toEqual({ status: "SAVED" });
+    const hidden = await m.getOverlayWidget("gacha", m.overlayKey);
+    expect(hidden !== "FORBIDDEN" && hidden.widget === "gacha" && hidden.stage).toBeNull();
+    expect((await m.getGachaRemote())!).toMatchObject({ hidden: true, stage: { status: "RESULT" } });
+    await m.setGachaHidden({ hidden: false });
     expect(await m.finishGachaDraw({ drawId: d.id })).toEqual({ status: "SAVED" });
     const after = await m.getOverlayWidget("gacha", m.overlayKey);
     expect(after !== "FORBIDDEN" && after.widget === "gacha" && after.stage).toBeNull();
