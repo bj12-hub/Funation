@@ -11,6 +11,7 @@ import { attributeDonation, ownsNickname, resolveBadges } from "@/services/suppo
 import { alertBadgeLabels } from "@/services/supporter/identityTypes";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { luckyTierFor, type DonationCatalog } from "./donationCatalog";
+import { recordQuest } from "./questCore";
 import { getDonationCatalog, matchSignatureByAmount } from "./signatureCore";
 import { addDonationDrawing, enqueueDonationVideo } from "@/services/creator/mediaCore";
 import { notify } from "@/services/notifications/notificationCore";
@@ -70,6 +71,21 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
       status: "COMPLETED"
     });
     attributeDonation(donationId, request.nicknameId);
+    if (request.type === "QUEST") {
+      const d = request.details as { title: string; timeLimitSec: number; creatorDecides: boolean };
+      recordQuest({
+        id: donationId,
+        channelId: creator.id,
+        supporterUserId: session.userId,
+        donor,
+        donorId: request.hideProfile ? "" : session.funationId,
+        title: d.title,
+        amount: request.amount,
+        timeLimitSec: d.timeLimitSec,
+        creatorDecides: d.creatorDecides,
+        createdAt: now.toISOString()
+      });
+    }
     attributeMemberDonation(donationId, creator.id, request.memberId, request.amount, { donor, donorId: request.hideProfile ? "" : session.funationId, message: request.summary });
     if (!request.memberId) recordBroadcastDonation(creator.id, { donor, message: request.summary, fnAmount: request.amount });
     enqueueDonationAlert(creator.id, {
@@ -164,12 +180,13 @@ function parse(input: unknown, catalog: DonationCatalog): Parsed | null {
       const start = v.startSec;
       const end = v.endSec;
       const rangeOk = Number.isInteger(start) && Number.isInteger(end) && (start as number) >= 0 && (end as number) > (start as number);
-      if (!amountOk(catalog.minAmount.VIDEO) || !videoId || !rangeOk || v.termsAgreed !== true || typeof v.saveToLibrary !== "boolean") return null;
+      if (!amountOk(catalog.minAmount.VIDEO) || !videoId || !rangeOk || v.termsAgreed !== true) return null;
       return {
         ...common,
         amount: v.amount as number,
         summary: `영상 youtu.be/${videoId}`,
-        details: { videoId, start, end, saveToLibrary: v.saveToLibrary }
+        // 2026-10-04 결정: no video library (no 라이브러리 tab, no 내 라이브러리에 등록).
+        details: { videoId, start, end }
       };
     }
     case "SIGNATURE": {
@@ -208,16 +225,15 @@ function parse(input: unknown, catalog: DonationCatalog): Parsed | null {
     }
     case "QUEST": {
       const title = text(v.title, game.maxText, true);
-      const { successReward, failAmount, cancelAmount } = v;
-      // TBD: what happens to the difference on failure or cancel (refund policy).
-      const rewardsOk =
-        isFn(successReward, game.minAmount) && isFn(failAmount) && isFn(cancelAmount) && failAmount <= successReward && cancelAmount <= successReward;
+      const { successReward, cancelAmount } = v;
+      // A failed quest refunds the whole amount (2026-10-04 결정), so there is no 실패 금액. TBD: 취소 금액 rules.
+      const rewardsOk = isFn(successReward, game.minAmount) && isFn(cancelAmount) && cancelAmount <= successReward;
       if (!title || !rewardsOk || !timeOk(v.timeLimitSec) || typeof v.creatorDecides !== "boolean" || v.termsAgreed !== true) return null;
       return {
         ...common,
         amount: successReward,
         summary: `퀘스트: ${title}`,
-        details: { title, successReward, failAmount, cancelAmount, timeLimitSec: v.timeLimitSec, creatorDecides: v.creatorDecides }
+        details: { title, successReward, cancelAmount, timeLimitSec: v.timeLimitSec, creatorDecides: v.creatorDecides }
       };
     }
     case "DRAWING": {

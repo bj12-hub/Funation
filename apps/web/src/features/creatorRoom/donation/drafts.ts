@@ -10,7 +10,7 @@ import { parseYouTubeId, type DonationDetails } from "@/services/donations/donat
 
 export type TextState = { amount: string; message: string; voiceId: string | null };
 export type MiniState = { amount: string; text: string; colorId: string; enterToSend: boolean };
-export type VideoState = { amount: string; url: string; start: string; end: string; saveToLibrary: boolean; terms: boolean };
+export type VideoState = { amount: string; url: string; start: string; end: string; terms: boolean };
 export type SignatureState = { signatureId: string | null; message: string };
 export type WishlistState = { itemId: string | null; message: string; voiceId: string | null };
 /** Each box has a stable id so React keys survive deletes. */
@@ -19,7 +19,7 @@ export type LuckyState = { boxes: { id: number; winner: boolean }[]; selected: n
 export type RouletteState = { tierKey: string };
 /** Time limits are typed as minutes + seconds (867:* "10분 00초"). */
 export type TimeLimit = { minutes: string; seconds: string };
-export type QuestState = { title: string; success: string; fail: string; cancel: string; time: TimeLimit; creatorDecides: boolean; terms: boolean };
+export type QuestState = { title: string; success: string; cancel: string; time: TimeLimit; creatorDecides: boolean; terms: boolean };
 export type DrawingState = { amount: string; title: string; image: string | null; showProcess: boolean; canvasMode: boolean; terms: boolean };
 export type QuizRewardsState = { time: TimeLimit; correct: string; wrong: string; terms: boolean };
 export type QuizChoiceState = QuizRewardsState & { question: string; options: string[]; correctIndex: number };
@@ -48,7 +48,7 @@ export function initialStates(catalog: DonationCatalog): FormStates {
   return {
     TEXT: { amount: "", message: "", voiceId },
     MINI: { amount: "", text: "", colorId: catalog.miniColors[1]?.id ?? catalog.miniColors[0]?.id ?? "", enterToSend: true },
-    VIDEO: { amount: "", url: "", start: "00:00", end: "00:30", saveToLibrary: false, terms: false },
+    VIDEO: { amount: "", url: "", start: "00:00", end: "00:30", terms: false },
     SIGNATURE: { signatureId: null, message: "" },
     WISHLIST: { itemId: null, message: "", voiceId },
     // 851:5231 default: three boxes, the middle one wins, 5,000 FN.
@@ -64,7 +64,7 @@ export function initialStates(catalog: DonationCatalog): FormStates {
     },
     // 867:2494 selects GOLD.
     ROULETTE: { tierKey: catalog.roulette.tiers[1]?.key ?? catalog.roulette.tiers[0]?.key ?? "" },
-    QUEST: { title: "", success: "", fail: "", cancel: "", time: { minutes: "10", seconds: "00" }, creatorDecides: true, terms: false },
+    QUEST: { title: "", success: "", cancel: "", time: { minutes: "10", seconds: "00" }, creatorDecides: true, terms: false },
     DRAWING: { amount: "", title: "", image: null, showProcess: true, canvasMode: false, terms: false },
     QUIZ_CHOICE: { question: "", options: ["", "", ""], correctIndex: 0, ...quizDefaults() },
     QUIZ_INITIAL: { question: "", answer: "", hint: "", ...quizDefaults() },
@@ -182,7 +182,7 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
       const complete = amount !== null && !error && videoId && s.terms && start !== null && end !== null;
       return {
         details: complete
-          ? { type: "VIDEO", amount, videoUrl: s.url.trim(), startSec: start, endSec: end, saveToLibrary: s.saveToLibrary, termsAgreed: true }
+          ? { type: "VIDEO", amount, videoUrl: s.url.trim(), startSec: start, endSec: end, termsAgreed: true }
           : null,
         amount,
         error,
@@ -261,28 +261,28 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
     case "QUEST": {
       const s = states.QUEST;
       const success = digits(s.success);
-      const fail = digits(s.fail);
       const cancel = digits(s.cancel);
       const time = timeToSec(s.time);
       const title = s.title.trim();
       const error =
         success !== null && success < catalog.game.minAmount
           ? `성공 보상은 ${formatNumber(catalog.game.minAmount)} FN 이상이어야 해요.`
-          : success !== null && ((fail ?? 0) > success || (cancel ?? 0) > success)
-            ? "실패·취소 금액은 성공 보상보다 클 수 없어요."
+          : success !== null && (cancel ?? 0) > success
+            ? "취소 금액은 성공 보상보다 클 수 없어요."
             : time === null || time > catalog.game.maxTimeSec
               ? "제한 시간을 확인해 주세요."
               : null;
-      const ready = title && success !== null && fail !== null && cancel !== null && time !== null && !error && s.terms;
+      const ready = title && success !== null && cancel !== null && time !== null && !error && s.terms;
       return {
         details: ready
-          ? { type: "QUEST", title, successReward: success, failAmount: fail, cancelAmount: cancel, timeLimitSec: time, creatorDecides: s.creatorDecides, termsAgreed: true }
+          ? { type: "QUEST", title, successReward: success, cancelAmount: cancel, timeLimitSec: time, creatorDecides: s.creatorDecides, termsAgreed: true }
           : null,
         amount: success,
         error,
         summary: [
           { label: "퀘스트", value: title || "-" },
-          { label: "실패 · 취소 금액", value: `${formatNumber(fail ?? 0)} FN · ${formatNumber(cancel ?? 0)} FN` },
+          { label: "실패 시", value: "전액 환불" },
+          { label: "취소 금액", value: `${formatNumber(cancel ?? 0)} FN` },
           { label: "제한 시간", value: `${s.time.minutes || "0"}분 ${s.time.seconds || "0"}초` }
         ],
         chatText: `🏆 퀘스트: ${title}`,

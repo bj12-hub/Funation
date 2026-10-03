@@ -69,6 +69,8 @@ export function WidgetOverlay({ data }: { data: OverlayWidget }) {
       return <EventList data={data} />;
     case "qr":
       return <Qr data={data} />;
+    case "quest":
+      return <Quests data={data} />;
   }
 }
 
@@ -182,6 +184,39 @@ function EventList({ data }: { data: Extract<OverlayWidget, { widget: "event" }>
     <ul className={styles.feed} data-event={s.style} style={font(s.font)}>
       {visible.map((l) => (
         <Line key={l.id} l={l} colored={s.nicknameColor} background={s.nicknameBackground} effect={s.effect} durationSec={0.5} />
+      ))}
+    </ul>
+  );
+}
+
+/** 퀘스트: running quests with a live countdown (server clock, corrected for skew); 시간 초과 when it ends. */
+function Quests({ data }: { data: Extract<OverlayWidget, { widget: "quest" }> }) {
+  const s = data.settings;
+  const [skew, setSkew] = useState(0);
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => setSkew(new Date(data.serverNow).getTime() - Date.now()), [data.serverNow]);
+  useEffect(() => {
+    setNow(Date.now());
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(tick);
+  }, []);
+  if (!s.enabled || data.quests.length === 0) return null;
+  const left = (endsAt: string) => {
+    if (now === null) return "";
+    const sec = Math.floor((new Date(endsAt).getTime() - (now + skew)) / 1000);
+    return sec <= 0 ? "시간 초과" : `남은시간 ${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
+  };
+  return (
+    <ul className={styles.quests}>
+      {data.quests.map((q) => (
+        <li key={q.id} className={styles.quest} data-style={s.style}>
+          {s.style === "FANCY" && <span className={styles.questBadge}>QUEST</span>}
+          <strong style={font({ ...s.titleFont, size: 26 })}>{q.title}</strong>
+          <span className={styles.questMeta}>
+            <span style={font({ ...s.timeFont, size: 18 })}>{left(q.endsAt)}</span>
+            <span style={font({ ...s.prizeFont, size: 18 })}>상금 {formatNumber(q.amount)}FN</span>
+          </span>
+        </li>
       ))}
     </ul>
   );

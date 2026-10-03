@@ -3,6 +3,8 @@
 import { USE_MOCK } from "@/lib/mock";
 import { mockAlerts, overlaySignal } from "./alertCore";
 import { mockCreator } from "./mockCreatorStore";
+import { mockQuests } from "@/services/donations/questCore";
+import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
 import { eventLines, goalProgress, rankingRows, recentLines, totalAmount } from "./widgetOverlayCore";
 import { QR_SAMPLE_IMAGE, isWidgetOverlay, type OverlayWidget } from "./widgetOverlayTypes";
 import { readWidget } from "./widgetStore";
@@ -40,5 +42,15 @@ export async function getOverlayWidget(widget: unknown, key: unknown): Promise<O
     }
     case "qr":
       return { widget, settings: readWidget("QR"), imageUrl: QR_SAMPLE_IMAGE, ...common };
+    case "quest": {
+      // Running quests of this channel, oldest first, up to 최대 개수. TBD: what happens after the time limit.
+      const settings = readWidget("QUEST");
+      const quests = mockQuests.items
+        .filter((q) => q.channelId === STUDIO_CHANNEL && q.status === "IN_PROGRESS")
+        .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+        .slice(0, settings.maxCount)
+        .map((q) => ({ id: q.id, title: q.title, amount: q.amount, endsAt: new Date(Date.parse(q.createdAt) + q.timeLimitSec * 1000).toISOString() }));
+      return { widget, settings, quests, ...common };
+    }
   }
 }

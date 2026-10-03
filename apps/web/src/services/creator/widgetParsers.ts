@@ -388,7 +388,7 @@ const parseQuest: Parser<QuestWidgetSettings> = (v) => {
   if (!keyOf(v.style, QUEST_STYLES)) return "위젯 스타일을 선택해 주세요.";
   if (![v.enabled, v.allowExtension, v.showSuccessAuthorityMenu].every(bool)) return "설정 값을 확인해 주세요.";
   if (!int(v.minAmount, 1, PRIZE_MAX)) return "후원 최소 FN을 확인해 주세요.";
-  if (![v.cancelPenaltyPercent, v.failPenaltyCreatorPercent, v.failPenaltyDonorPercent].every((p) => int(p, 0, 100))) return PERCENT_ERROR;
+  if (!int(v.cancelPenaltyPercent, 0, 100)) return PERCENT_ERROR;
   if (!int(v.maxCount, 1, 50)) return "최대 개수는 1~50개로 입력해 주세요.";
   if (!int(v.intervalSec, 0, 3600)) return "등록 간격시간은 0~3600초로 입력해 주세요.";
   return {
@@ -399,8 +399,6 @@ const parseQuest: Parser<QuestWidgetSettings> = (v) => {
     prizeFont,
     minAmount: v.minAmount as number,
     cancelPenaltyPercent: v.cancelPenaltyPercent as number,
-    failPenaltyCreatorPercent: v.failPenaltyCreatorPercent as number,
-    failPenaltyDonorPercent: v.failPenaltyDonorPercent as number,
     maxCount: v.maxCount as number,
     intervalSec: v.intervalSec as number,
     allowExtension: v.allowExtension as boolean,

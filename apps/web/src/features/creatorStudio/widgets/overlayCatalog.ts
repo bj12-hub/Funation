@@ -178,5 +178,15 @@ export const OVERLAYS: OverlayEntry[] = [
     size: "300 × 360",
     path: (k) => widgetOverlayPath("qr", k),
     manage: "/creator/widgets"
+  },
+  {
+    id: "widget-quest",
+    target: "widgets",
+    group: "알림",
+    title: "퀘스트",
+    description: "진행 중인 퀘스트 후원과 남은 시간 · 상금을 보여 줘요.",
+    size: "600 × 400",
+    path: (k) => widgetOverlayPath("quest", k),
+    manage: "/creator/widgets"
   }
 ];

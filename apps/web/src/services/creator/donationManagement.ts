@@ -36,7 +36,6 @@ import {
   type ListPeriod,
   type ManagementSaveResult,
   type PageOptionKey,
-  type QuestStatus,
   type RankPeriod,
   type ReceivedDonation,
   type CsvExportResult,
@@ -47,7 +46,10 @@ import {
 } from "./donationManagementTypes";
 import { crewDonationRows } from "@/services/crew/crewCore";
 import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
+import { decideQuest, findQuest, mockQuests } from "@/services/donations/questCore";
+import { isQuestOutcome, type QuestDecideResult } from "@/services/donations/questTypes";
 import { getDonationCatalog } from "@/services/donations/signatureCore";
+import { FIXTURE_AMOUNTS, FIXTURE_DONORS } from "./receivedFixtures";
 import { mockCreator } from "./mockCreatorStore";
 
 /**
@@ -166,39 +168,38 @@ export async function saveReplacementMessage(message: unknown): Promise<Manageme
 
 // ── 후원 리스트 ────────────────────────────────────────────────────────────────
 
-const DONORS: [string, string][] = [
-  ["우주비행사", "space_runner"],
-  ["행복한하루", "happy_day"],
-  ["보해매니아", "bohae_fan"],
-  ["초코쿠키", "choco_pie"],
-  ["별빛소나타", "star_sonata"],
-  ["치즈냥", "cheese_cat"],
-  ["노을지기", "sunset_keeper"],
-  ["코코넛", "coconut99"]
-];
-const MESSAGES = [
-  "이번 퀘스트 꼭 클리어해주세요 화이팅!!",
-  "리액션이 아주 귀여우시네요 ㅋㅋㅋ",
-  "오늘 방송 꿀잼 보장 퀘스트",
-  "저녁 식사 미션입니다.",
-  "노래 한 곡 불러주세요!",
-  "보스 노데스 클리어 도전",
-  "랜덤 뽑기 3번 연속 성공하기",
-  "시청자 이름 불러주기"
-];
-const STATUS_CYCLE: QuestStatus[] = ["SUCCESS", "SUCCESS", "FAILED"];
-const AMOUNTS = [50_000, 10_000, 100_000, 5_000, 3_000, 20_000, 30_000, 7_000];
+/** 퀘스트 후원: the studio's quest records, newest first. 결정 buttons show while the creator may decide. */
+function questDonations(): ReceivedDonation[] {
+  return mockQuests.items
+    .filter((q) => q.channelId === STUDIO_CHANNEL)
+    .map((q) => ({
+      id: q.id,
+      at: q.createdAt,
+      donorNickname: q.donor,
+      donorId: q.donorId,
+      amount: q.amount,
+      message: q.title,
+      status: q.status,
+      detail: null,
+      canDecide: q.status === "IN_PROGRESS" && q.creatorDecides
+    }))
+    .sort((x, y) => y.at.localeCompare(x.at));
+}
 
-/** 36 quest donations spread over ~14 months ending now (deterministic mock). */
-function mockQuestDonations(): ReceivedDonation[] {
-  const now = Date.now();
-  return Array.from({ length: 36 }, (_, i) => {
-    const [nick, id] = DONORS[i % DONORS.length];
-    const at = new Date(now - Math.round(i * i * 0.35 * 86_400_000 + i * 3_700_000));
-    // Only the most recent quest is still running.
-    const status: QuestStatus = i === 1 ? "IN_PROGRESS" : STATUS_CYCLE[i % STATUS_CYCLE.length];
-    return { id: `q${i + 1}`, at: at.toISOString(), donorNickname: nick, donorId: id, amount: AMOUNTS[i % AMOUNTS.length], message: MESSAGES[i % MESSAGES.length], status, detail: null };
-  });
+/**
+ * The creator settles a quest sent to this channel (only when the supporter turned on 크리에이터 성공 결정).
+ * FAILED refunds the whole amount to the supporter. Deciding again with the same outcome is a no-op.
+ */
+export async function decideReceivedQuest(input: unknown): Promise<QuestDecideResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
+  if (!isQuestOutcome(v.outcome)) return { status: "INVALID" };
+  const quest = findQuest(v.id);
+  if (!quest || quest.channelId !== STUDIO_CHANNEL) return { status: "NOT_FOUND" };
+  if (!quest.creatorDecides) return { status: "FORBIDDEN" };
+  await mockDelay(300);
+  return decideQuest(quest, v.outcome, "CREATOR");
 }
 
 /** The 게임 후원 types — the same ones the supporter's 후원내역 files under 게임 후원 (donate.ts). */
@@ -210,9 +211,9 @@ function mockGameDonations(): ReceivedDonation[] {
   const titles = GAME_TYPES.map((k) => getDonationCatalog().types.find((t) => t.key === k)?.title ?? k);
   const now = Date.now();
   return Array.from({ length: 24 }, (_, i) => {
-    const [nick, id] = DONORS[(i + 3) % DONORS.length];
+    const [nick, id] = FIXTURE_DONORS[(i + 3) % FIXTURE_DONORS.length];
     const at = new Date(now - Math.round(i * i * 0.5 * 86_400_000 + i * 5_100_000 + 1_800_000));
-    return { id: `g${i + 1}`, at: at.toISOString(), donorNickname: nick, donorId: id, amount: AMOUNTS[(i + 2) % AMOUNTS.length], message: GAME_MESSAGES[i % GAME_MESSAGES.length], status: null, detail: titles[i % titles.length] };
+    return { id: `g${i + 1}`, at: at.toISOString(), donorNickname: nick, donorId: id, amount: FIXTURE_AMOUNTS[(i + 2) % FIXTURE_AMOUNTS.length], message: GAME_MESSAGES[i % GAME_MESSAGES.length], status: null, detail: titles[i % titles.length] };
   });
 }
 
@@ -238,7 +239,7 @@ function filterReceived(input: ListFilter) {
   // The 상태 filter only exists for 퀘스트 후원.
   const status: StatusFilter = kind === "quest" && QUEST_STATUSES.some((s) => s.key === input.status) ? input.status : "ALL";
   const query = input.query.trim().slice(0, LIST_QUERY_MAX).toLowerCase();
-  const all = kind === "quest" ? mockQuestDonations() : kind === "game" ? mockGameDonations() : crewDonations();
+  const all = kind === "quest" ? questDonations() : kind === "game" ? mockGameDonations() : crewDonations();
   const years = [...new Set(all.map((d) => new Date(d.at).getFullYear()))].sort((a, b) => b - a);
   const localDate = (iso: string) => {
     const d = new Date(iso);

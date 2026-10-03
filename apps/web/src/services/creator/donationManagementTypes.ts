@@ -68,7 +68,8 @@ export type ListPeriodPreset = (typeof LIST_PERIODS)[number]["key"] | "year" | "
 export const QUEST_STATUSES = [
   { key: "SUCCESS", label: "성공" },
   { key: "IN_PROGRESS", label: "진행중" },
-  { key: "FAILED", label: "실패" }
+  // A failed quest refunds the whole amount (2026-10-04 결정).
+  { key: "FAILED", label: "실패 · 환불" }
 ] as const;
 export type QuestStatus = (typeof QUEST_STATUSES)[number]["key"];
 export type StatusFilter = QuestStatus | "ALL";
@@ -90,6 +91,8 @@ export type ReceivedDonation = {
   status: QuestStatus | null;
   /** 게임 후원: the game (룰렛 후원, 객관식 퀴즈 …) · 크루 후원: the member it was sent for. */
   detail: string | null;
+  /** 퀘스트 후원: the creator may decide this running quest now. */
+  canDecide?: boolean;
 };
 
 export type ReceivedDonationPage = {
