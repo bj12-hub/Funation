@@ -104,7 +104,7 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 크루 방송 | Y03 | 크루 관리 | `/creator/crew` | `67:2696` |
 | 크루 방송 | Y04 | 크루 방송 운영 (방송 전 · 시나리오 편집) | `/creator/crew/broadcast` | `116:3886` |
 | 크루 방송 | Y04b | 크루 방송 운영 (방송 중 · 자동엑셀 · 배틀 · 기여도 강탈 · 시나리오, 예시 입력값) | `/creator/crew/broadcast` | `117:3911` |
-| 후원 관리 | T03 | 받은 후원 (퀘스트 결정 버튼 · 실패 시 환불) | `/creator/donations?tab=list` | `154:14067` |
+| 후원 관리 | T03 | 받은 후원 (퀘스트 성공 · 실패 · 취소, 실패 · 취소 시 환불) | `/creator/donations?tab=list` | `158:13983` |
 | 후원 관리 | T03b | 후원 순위 | `/creator/donations?tab=ranking` | `68:2958` |
 | 후원 관리 | T03c | 후원 필터링 | `/creator/donations?tab=filtering` | `68:3293` |
 | 후원 관리 | T03d | 받은 후원 · 게임 후원 (룰렛 · 퀴즈) | `/creator/donations?tab=list&kind=game` | `142:4530` |
@@ -158,7 +158,7 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 방송 방 후원 패널 | D-WISHLIST | 위시 | `/creators/c1?tab=donation` | `78:3398` |
 | 방송 방 후원 패널 | D-LUCKYBOX | 럭키박스 | `/creators/c1?tab=donation` | `78:3465` |
 | 방송 방 후원 패널 | D-ROULETTE | 룰렛 | `/creators/c1?tab=donation` | `78:3558` |
-| 방송 방 후원 패널 | D-QUEST | 퀘스트 (실패 시 전액 환불) | `/creators/c1?tab=donation` | `154:8951` |
+| 방송 방 후원 패널 | D-QUEST | 퀘스트 (실패 · 취소 시 전액 환불) | `/creators/c1?tab=donation` | `158:8946` |
 | 방송 방 후원 패널 | D-DRAWING | 그림 | `/creators/c1?tab=donation` | `79:3259` |
 | 방송 방 후원 패널 | D-QUIZ_CHOICE | 객관식 퀴즈 | `/creators/c1?tab=donation` | `79:3329` |
 | 방송 방 후원 패널 | D-QUIZ_INITIAL | 초성 퀴즈 | `/creators/c1?tab=donation` | `79:3418` |

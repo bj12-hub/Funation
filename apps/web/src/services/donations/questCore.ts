@@ -5,13 +5,13 @@ import { FIXTURE_AMOUNTS, FIXTURE_DONORS, QUEST_TITLES } from "@/services/creato
 import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
 import { notify } from "@/services/notifications/notificationCore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
-import type { QuestDecideResult, QuestOutcome } from "./questTypes";
+import type { QuestAction, QuestDecideResult } from "./questTypes";
 
 /**
  * Server-only quest records (not a "use server" module). A 퀘스트 후원 holds the full amount from the
- * moment it is sent; the decision settles it: SUCCESS keeps it with the creator, FAILED refunds all of
- * it to the supporter (2026-10-04 결정). A result never changes once decided. TBD: what happens when
- * the time limit passes without a decision, and the 취소 금액 rules.
+ * moment it is sent; the decision settles it: SUCCESS keeps it with the creator, FAILED or CANCELED
+ * (creator only) refunds all of it to the supporter (2026-10-04 결정). A result never changes once decided,
+ * and a quest past its time limit keeps running until someone decides (2026-10-04 결정).
  */
 
 export type QuestDecider = "CREATOR" | "DONOR";
@@ -35,7 +35,7 @@ export type QuestRecord = {
   status: QuestStatus;
   decidedAt: string | null;
   decidedBy: QuestDecider | null;
-  /** FN returned to the supporter (the whole amount when FAILED). */
+  /** FN returned to the supporter (the whole amount when FAILED or CANCELED). */
   refundedFn: number;
 };
 
@@ -82,18 +82,18 @@ export function recordQuest(input: Omit<QuestRecord, "status" | "decidedAt" | "d
  * Settles a quest once. Deciding again with the same outcome returns the same result (retry-safe);
  * the other outcome is refused. The caller has already checked who may decide.
  */
-export function decideQuest(q: QuestRecord, outcome: QuestOutcome, by: QuestDecider, now = new Date()): QuestDecideResult {
+export function decideQuest(q: QuestRecord, outcome: QuestAction, by: QuestDecider, now = new Date()): QuestDecideResult {
   if (q.status !== "IN_PROGRESS") {
     return q.status === outcome ? { status: "OK", questStatus: q.status, refundedFn: q.refundedFn } : { status: "ALREADY_DECIDED", questStatus: q.status };
   }
   q.status = outcome;
   q.decidedAt = now.toISOString();
   q.decidedBy = by;
-  if (outcome === "FAILED") refund(q, now);
+  if (outcome === "FAILED" || outcome === "CANCELED") refund(q, now);
   return { status: "OK", questStatus: q.status, refundedFn: q.refundedFn };
 }
 
-/** 퀘스트 실패 = 후원 금액 전액 환불. In mock mode the wallet is the signed-in member's own. */
+/** 퀘스트 실패 · 취소 = 후원 금액 전액 환불. In mock mode the wallet is the signed-in member's own. */
 function refund(q: QuestRecord, now: Date) {
   q.refundedFn = q.amount;
   const record = mockWallet.donations.find((d) => d.id === q.id);
@@ -103,7 +103,7 @@ function refund(q: QuestRecord, now: Date) {
   mockAccount.fnBalance += q.amount;
   notify({
     kind: "REFUND",
-    title: "퀘스트 후원이 환불됐어요",
+    title: q.status === "CANCELED" ? "퀘스트가 취소돼 환불됐어요" : "퀘스트 후원이 환불됐어요",
     body: `${q.title} · ${q.amount.toLocaleString("ko-KR")} FN`,
     href: "/wallet/donations?type=quest",
     dedupeKey: `quest-refund:${q.id}`

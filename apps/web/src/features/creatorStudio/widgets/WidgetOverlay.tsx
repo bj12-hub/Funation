@@ -204,7 +204,7 @@ function Quests({ data }: { data: Extract<OverlayWidget, { widget: "quest" }> })
   const left = (endsAt: string) => {
     if (now === null) return "";
     const sec = Math.floor((new Date(endsAt).getTime() - (now + skew)) / 1000);
-    return sec <= 0 ? "시간 초과" : `남은시간 ${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
+    return sec <= 0 ? "시간 초과 · 결과 대기" : `남은시간 ${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
   };
   return (
     <ul className={styles.quests}>
