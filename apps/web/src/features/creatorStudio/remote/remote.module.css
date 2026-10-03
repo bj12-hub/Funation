@@ -121,3 +121,23 @@
   color: var(--color-text-primary);
   font-size: var(--font-size-14);
 }
+
+/* 꺼진 오버레이 요약 (top of the remote) */
+.offSummary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-danger-border);
+  border-radius: var(--radius-12);
+  background: var(--color-danger-soft);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+}
+
+.offSummary a {
+  color: var(--color-primary-light);
+  font-weight: var(--font-weight-bold);
+}

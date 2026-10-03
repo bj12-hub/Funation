@@ -109,7 +109,7 @@ describe("리모컨 / 후원 알림 대기열", () => {
   });
 
   it("switches one overlay OFF and ON (기능 제어) and sets the video volume", async () => {
-    const { setOverlaySwitch, setVideoVolume, getRemoteView, getOverlayAlert, getOverlaySignal, getOverlaySwitches, overlayKey } = await load();
+    const { setOverlaySwitch, setVideoVolume, getRemoteView, getOverlayAlert, getOverlaySignal, getOverlaySwitches, turnOnAllOverlays, overlayKey } = await load();
     const tools = await import("./broadcastTools");
     const media = await import("./media");
     expect((await getRemoteView())!.overlays.on).toMatchObject({ alert: true, timer: true, crew: true });
@@ -122,6 +122,9 @@ describe("리모컨 / 후원 알림 대기열", () => {
     expect(await getOverlaySignal(overlayKey, "crew")).toMatchObject({ on: false });
     expect((await getRemoteView())!.overlays.on).toMatchObject({ timer: false, crew: false, chat: true });
     expect(await getOverlaySwitches()).toMatchObject({ timer: false, crew: false, chat: true, alert: true }); // 오버레이 주소 page
+    expect(await turnOnAllOverlays()).toEqual({ status: "SAVED" });
+    expect(Object.values((await getOverlaySwitches())!).every(Boolean)).toBe(true);
+    await setOverlaySwitch({ target: "crew", on: false });
     await setOverlaySwitch({ target: "timer", on: true });
     expect(await tools.getOverlayTool("timer", overlayKey)).toMatchObject({ on: true });
     expect((await setOverlaySwitch({ target: "timer", on: "yes" })).status).toBe("INVALID");

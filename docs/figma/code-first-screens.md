@@ -54,6 +54,7 @@ Since 2026-09-29 features without a Figma frame are built in code first and desi
 | 리모컨 "방송 도구" card (`remote/ToolsRemote.tsx`) + 전체 제어 "TTS 스킵" · "오버레이 새로고침"; 방송 도구 타이머 퀵 조정 · 크레딧 시작/중지 | remote controls PR | Timer ±30/60초, 시작/재개/일시정지/초기화; 엔딩 크레딧 시작 · 처음부터 · 중지 (overlay shows credits only while rolling) |
 | 리모컨 "기능별 새로고침" card (`remote/RemoteScreen.tsx`) + 전체 제어 "전체 오버레이 새로고침" | overlay-reload PR | 오버레이마다 따로 새로고침: 후원 알림 · 이펙트 · 영상 후원 · 그림 후원 · 배너 · 자막 · 전광판 · 타이머 · 엔딩 크레딧 · 통합 채팅 · 크루 점수판(배틀 · 강탈 · 시나리오 포함). 다른 오버레이는 그대로, 다음 읽기(몇 초) 때 반영 (기능 제어 카드로 대체) |
 | 리모컨 "기능 제어" · "볼륨 제어" cards (`remote/RemoteScreen.tsx`; replaces the 기능별 새로고침 card) | overlay-switches PR | 위플랩 리모컨처럼 오버레이마다 ON/OFF + ↻ 새로고침 한 줄씩 (OFF = 화면 · 소리 없음, OBS 소스는 유지, 끈 동안 지나간 알림은 다시 나오지 않음). 볼륨: 후원 알림음 · 후원 TTS · 영상 후원(영상 오버레이에 YouTube IFrame API로 적용). 전체 음소거 안내 Figma: W04 `121:4113`. |
+| 리모컨 "꺼진 오버레이" 요약 (`remote/RemoteScreen.tsx`) | remote-off-summary PR | 화면 맨 위: 기능 제어에서 꺼진 오버레이 개수 · 이름 · "기능 제어" 바로가기 + "모두 켜기"(한 번에 ON, 다시 눌러도 그대로). 꺼진 게 없으면 표시 안 함. Figma: W04 `121:4113` |
 
 | 방송 운영 "서브 점수판" (`crew/SubBoards.tsx`) + `/overlay/crew/[key]?board=번호` | crew sub boards PR | 새 판 (이름, 최대 5판), 진행 중 / 마감, 구간 TOP 3, OBS 주소 복사; overlay shows the board with a 마감 mark |
 
