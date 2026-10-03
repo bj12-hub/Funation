@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { PlayIcon, PlusIcon } from "@/components/icons";
+import { PlayIcon } from "@/components/icons";
 import { Button } from "@/components/ui/Button";
 import { formatCompactKo } from "@/lib/format";
 import type { HeroSlide } from "@/services/home/homeFeed";
@@ -73,11 +73,6 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
             <Button href={slide.href} variant="light" size="lg">
               <PlayIcon />
               바로 시청하기
-            </Button>
-            {/* TODO: 보관함 (library) is not specified yet. */}
-            <Button variant="surface" size="lg" aria-disabled="true" title="준비 중인 기능입니다">
-              <PlusIcon />
-              보관함에 저장
             </Button>
           </div>
         </div>

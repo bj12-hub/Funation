@@ -37,6 +37,8 @@ export type ChargeRecord = {
 export const REFUND_REASON_MAX = 200;
 export type RefundRequestResult = { status: "REQUESTED"; requestedAt: string } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
 
+import type { QuestView } from "@/services/donations/questTypes";
+
 export type DonationCategory = "basic" | "quest" | "game";
 
 export const DONATION_CATEGORY_LABEL: Record<DonationCategory, string> = { basic: "기본 후원", quest: "퀘스트 후원", game: "게임 후원" };
@@ -64,6 +66,10 @@ export type DonationRecord = {
   fnAmount: number;
   typeLabel: string;
   status: DonationStatus;
+  /** When a refund completed (e.g. a failed 퀘스트 후원). */
+  refundedAt?: string;
+  /** 퀘스트 후원 rows: the quest's result and whether the member can decide it now. */
+  quest?: QuestView;
 };
 
 // ── FN Wallet (Figma 817:7552) ─────────────────────────────────────────────────

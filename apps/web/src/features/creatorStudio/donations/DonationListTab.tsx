@@ -8,6 +8,8 @@ import {
   QUEST_STATUSES,
   type ReceivedDonationPage
 } from "@/services/creator/donationManagementTypes";
+import { QuestDecide } from "@/features/donations/QuestDecide";
+import { decideReceivedQuest } from "@/services/creator/donationManagement";
 import { CsvExportButton } from "./CsvExportButton";
 import { YearSelect } from "./YearSelect";
 import styles from "./donations.module.css";
@@ -111,7 +113,7 @@ export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
                 후원금액
               </th>
               <th scope="col">내용</th>
-              <th scope="col" className={styles.right} style={{ width: 120 }}>
+              <th scope="col" className={styles.right} style={{ width: kind === "quest" ? 170 : 120 }}>
                 {kindInfo.column}
               </th>
             </tr>
@@ -138,7 +140,9 @@ export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
                     <span className={styles.ellipsis}>{d.message}</span>
                   </td>
                   <td className={styles.right}>
-                    {d.status ? (
+                    {d.canDecide ? (
+                      <QuestDecide id={d.id} decide={decideReceivedQuest} />
+                    ) : d.status ? (
                       <span className={`${styles.badge} ${STATUS_CLASS[d.status]}`}>{QUEST_STATUSES.find((s) => s.key === d.status)?.label}</span>
                     ) : (
                       <span className={styles.strong}>{d.detail}</span>

@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { formatNumber } from "@/lib/format";
+import { QuestDecide } from "@/features/donations/QuestDecide";
+import { QUEST_STATUSES } from "@/services/creator/donationManagementTypes";
+import { decideMyQuest } from "@/services/donations/quests";
 import { DONATION_STATUS_LABEL, type DonationRecord, type DonationStatus } from "@/services/wallet/walletTypes";
 import styles from "./wallet.module.css";
 
@@ -55,7 +58,18 @@ export function DonationTable({ items }: { items: DonationRecord[] }) {
                 <td className={styles.center}>
                   <span className={styles.typeChip}>{d.typeLabel}</span>
                 </td>
-                <td className={`${styles.center} ${STATUS_TONE[d.status]}`}>{DONATION_STATUS_LABEL[d.status]}</td>
+                <td className={`${styles.center} ${STATUS_TONE[d.status]}`}>
+                  {DONATION_STATUS_LABEL[d.status]}
+                  {/* 퀘스트 후원: the quest's result, or the buttons while the member can decide it. */}
+                  {d.quest &&
+                    (d.quest.canDecide ? (
+                      <span className={styles.questDecide}>
+                        <QuestDecide id={d.id} decide={decideMyQuest} />
+                      </span>
+                    ) : (
+                      <span className={styles.questState}>퀘스트 {QUEST_STATUSES.find((s) => s.key === d.quest!.status)?.label}</span>
+                    ))}
+                </td>
               </tr>
             ))
           )}

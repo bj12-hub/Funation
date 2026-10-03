@@ -15,7 +15,6 @@ export type DonationDetails =
       videoUrl: string;
       startSec: number;
       endSec: number;
-      saveToLibrary: boolean;
       termsAgreed: boolean;
     }
   | { type: "SIGNATURE"; signatureId: string; message: string }
@@ -28,7 +27,7 @@ export type DonationDetails =
       type: "QUEST";
       title: string;
       successReward: number;
-      failAmount: number;
+      /** TBD: what the 취소 금액 means (a failure always refunds the whole amount). */
       cancelAmount: number;
       timeLimitSec: number;
       creatorDecides: boolean;
