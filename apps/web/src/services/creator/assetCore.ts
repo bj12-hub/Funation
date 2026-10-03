@@ -18,6 +18,14 @@ export function findAsset(id: unknown, kind?: AssetKind) {
   return a && (!kind || a.kind === kind) ? a : null;
 }
 
+const WAV_ALIASES = ["audio/wav", "audio/x-wav"];
+
+/** Whether the bytes really are the declared type (a renamed file cannot pass as an image or sound). */
+export function matchesContent(bytes: Buffer, declared: string) {
+  const sniffed = sniffMime(bytes);
+  return sniffed === declared || (sniffed === "audio/wav" && WAV_ALIASES.includes(declared));
+}
+
 /** Checks the file's leading bytes so a renamed file cannot pass as another type. */
 export function sniffMime(b: Buffer): string | null {
   const at = (i: number, ...v: number[]) => v.every((x, j) => b[i + j] === x);
