@@ -139,6 +139,7 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 커뮤니티 · 이벤트 | S08 | 커뮤니티 | `/community` | `75:1375` |
 | 커뮤니티 · 이벤트 | S08b | 커뮤니티 글 상세 | `/community/p-1` | `75:1591` |
 | 커뮤니티 · 이벤트 | S09 | 커뮤니티 글쓰기 | `/community/new` | `76:1342` |
+| 커뮤니티 · 이벤트 | S09b | 커뮤니티 글 수정 (작성자만) | `/community/[id]/edit` | `151:8418` |
 | 커뮤니티 · 이벤트 | S10 | 이벤트 | `/events` | `76:1541` |
 | 커뮤니티 · 이벤트 | S10b | 이벤트 상세 | `/events/ev-first-donation` | `76:1753` |
 | 고객센터 | S11 | 고객센터 | `/support` | `76:1941` |
@@ -149,6 +150,7 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 크리에이터 채널 | C04 | 커뮤니티 탭 | `/creators/c1` | `77:2803` |
 | 크리에이터 채널 | C05 | 시그니처 탭 | `/creators/c1` | `77:3079` |
 | 크리에이터 채널 | C06 | 소개 탭 | `/creators/c1` | `77:3353` |
+| 크리에이터 채널 | C07 | 내 채널 만들기 (주소 확인 완료 · 예시 입력값, 코드로 그린 레이아웃 — 크리에이터 계정은 이 화면이 열리지 않음) | `/channel/new` | `151:8173` |
 | 방송 방 후원 패널 | D-TEXT | 일반 | `/creators/c1?tab=donation` | `77:3595` |
 | 방송 방 후원 패널 | D-MINI | 미니 | `/creators/c1?tab=donation` | `78:3182` |
 | 방송 방 후원 패널 | D-VIDEO | 영상 | `/creators/c1?tab=donation` | `78:3249` |
@@ -175,6 +177,8 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 마이 | M06 | 쪽지 | `/messages` | `82:4849` |
 | 마이 | M07 | 즐겨찾기 | `/favorites` | `82:5066` |
 | 마이 | M09 | 출석체크 | `/attendance` | `82:5322` |
+| 마이 | M10 | 차단 관리 (차단한 사용자 2명) | `/mypage/blocks` | `151:8644` |
+| 마이 | M10b | 차단 관리 · 비어 있음 | `/mypage/blocks` | `151:8861` |
 | FN 지갑 | M05 | FN Wallet | `/wallet` | `84:5202` |
 | FN 지갑 | M05b | FN 충전 (모달) | `/wallet` | `85:5369` |
 | FN 지갑 | M05c | 충전 내역 | `/wallet/charges` | `86:5536` |

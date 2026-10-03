@@ -17,6 +17,7 @@ import {
   mockChangeHistory,
   mockCredentials
 } from "./mockStore";
+import { matchesContent } from "@/services/creator/assetCore";
 
 /**
  * My page profile changes (Figma 743:1955 photo · 743:1997 nickname · 743:2040 ID · 743:2084 password).
@@ -132,9 +133,11 @@ export async function uploadProfilePhoto(formData: FormData): Promise<PhotoUploa
   if (!(file instanceof File)) return { status: "FAILED" };
   if (!(PROFILE_PHOTO_TYPES as readonly string[]).includes(file.type)) return { status: "UNSUPPORTED" };
   if (file.size > PROFILE_PHOTO_MAX_BYTES) return { status: "TOO_LARGE" };
+  // The bytes must really be that image type (a renamed file is refused).
+  const bytes = Buffer.from(await file.arrayBuffer());
+  if (!matchesContent(bytes, file.type)) return { status: "UNSUPPORTED" };
   await mockDelay(600);
   // Mock storage: keep the image in memory as a data URL. The real backend stores it and returns a URL.
-  const bytes = Buffer.from(await file.arrayBuffer());
   mockAccount.avatarUrl = `data:${file.type};base64,${bytes.toString("base64")}`;
   return { status: "UPLOADED", avatarUrl: mockAccount.avatarUrl };
 }

@@ -55,4 +55,23 @@ describe("라이브러리 사운드", () => {
     await m.deleteAsset(win.id);
     expect(((await m.getWidgetDetail("GACHA"))!.settings as typeof gacha).gachas[0].winSoundId).toBeNull();
   });
+
+  it("checks the bytes of uploaded sounds and wallpaper images, not just the declared type", async () => {
+    const m = await load();
+    const fake = soundForm({ word: "가짜" });
+    fake.set("file", new File([new Uint8Array([0x3c, 0x73, 0x76, 0x67])], "x.mp3", { type: "audio/mpeg" }));
+    expect(await m.saveCustomSound(fake)).toMatchObject({ status: "INVALID", message: "파일 내용이 형식과 맞지 않아요." });
+    const real = soundForm({ word: "진짜" });
+    real.set("file", new File([new Uint8Array(MP3)], "x.mp3", { type: "audio/mpeg" }));
+    expect((await m.saveCustomSound(real)).status).toBe("SAVED");
+
+    const image = (bytes: number[], type: string) => {
+      const fd = new FormData();
+      fd.set("image", new File([new Uint8Array(bytes)], "wp.png", { type }));
+      return fd;
+    };
+    expect(await m.uploadWallpaperImage(image([0x3c, 0x73, 0x76, 0x67], "image/png"))).toEqual({ status: "UNSUPPORTED" });
+    const png = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0];
+    expect((await m.uploadWallpaperImage(image(png, "image/png"))).status).toBe("UPLOADED");
+  });
 });

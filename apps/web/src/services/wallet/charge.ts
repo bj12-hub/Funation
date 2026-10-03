@@ -116,13 +116,16 @@ function completeCharge(fnAmount: number, methodId: PaymentMethodId): ChargeResu
   const now = new Date();
   const time = now.toTimeString().slice(0, 8);
   const chargedAt = `${toDateString(now)} ${time}`;
-  const transactionId = `TXN-${toDateString(now).replaceAll("-", "")}-${String(now.getTime() % 100_000).padStart(5, "0")}`;
+  // Next number of the day, so two charges never share an id (a time-based suffix repeated every 100 s).
+  const prefix = `TXN-${toDateString(now).replaceAll("-", "")}-`;
+  const used = mockWallet.charges.flatMap((c) => (c.transactionId?.startsWith(prefix) ? [Number(c.transactionId.slice(prefix.length))] : []));
+  const transactionId = `${prefix}${String(Math.max(0, ...used) + 1).padStart(5, "0")}`;
   const price = mockPrice(fnAmount);
   const method = PAYMENT_METHODS[methodId];
 
   mockAccount.fnBalance += fnAmount;
   mockWallet.charges.unshift({
-    id: `ch-${now.getTime()}`,
+    id: `ch-${transactionId}`,
     chargedAt,
     // History rows use an emoji mark (640:2): 💳 cards, 📱 app payments, otherwise the method's own emoji.
     methodEmoji: /\p{Extended_Pictographic}/u.test(method.glyph) ? method.glyph : methodId.endsWith("_PAY") ? "📱" : "💳",

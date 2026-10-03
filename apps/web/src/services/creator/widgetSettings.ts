@@ -5,7 +5,7 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES } from "@/lib/validation";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
-import { findAsset } from "./assetCore";
+import { findAsset, matchesContent } from "./assetCore";
 import { QR_SAMPLE_IMAGE, WIDGET_OVERLAYS, WIDGET_OVERLAY_SETTINGS, widgetOverlayPath } from "./widgetOverlayTypes";
 import { readWidget, widgetStore } from "./widgetStore";
 import { mockCreator } from "./mockCreatorStore";
@@ -141,8 +141,10 @@ export async function saveCustomSound(formData: FormData): Promise<CustomSoundRe
   if (hasFile) {
     if (!(CUSTOM_SOUND_TYPES as readonly string[]).includes(file.type)) return { status: "INVALID", message: "MP3, WAV, OGG 파일만 등록할 수 있어요." };
     if (file.size > CUSTOM_SOUND_MAX_BYTES) return { status: "INVALID", message: "파일은 2MB 이하만 등록할 수 있어요." };
+    const bytes = Buffer.from(await file.arrayBuffer());
+    if (!matchesContent(bytes, file.type)) return { status: "INVALID", message: "파일 내용이 형식과 맞지 않아요." };
     // Mock storage: data URL in memory. The real backend stores the file (and may scan it) and returns a URL.
-    audio = { fileName: file.name.slice(0, 80), fileUrl: `data:${file.type};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}` };
+    audio = { fileName: file.name.slice(0, 80), fileUrl: `data:${file.type};base64,${bytes.toString("base64")}` };
   }
   await mockDelay(400);
 
@@ -173,9 +175,11 @@ export async function uploadWallpaperImage(formData: FormData): Promise<Wallpape
   if (store.WALLPAPER.images.length >= WALLPAPER_IMAGES_MAX) return { status: "LIMIT" };
   if (!(PROFILE_PHOTO_TYPES as readonly string[]).includes(file.type)) return { status: "UNSUPPORTED" };
   if (file.size > PROFILE_PHOTO_MAX_BYTES) return { status: "TOO_LARGE" };
+  const bytes = Buffer.from(await file.arrayBuffer());
+  if (!matchesContent(bytes, file.type)) return { status: "UNSUPPORTED" };
   await mockDelay(500);
   // Mock storage: data URL in memory.
-  const image = { id: randomUUID(), url: `data:${file.type};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}` };
+  const image = { id: randomUUID(), url: `data:${file.type};base64,${bytes.toString("base64")}` };
   store.WALLPAPER.images = [...store.WALLPAPER.images, image];
   return { status: "UPLOADED", image };
 }
