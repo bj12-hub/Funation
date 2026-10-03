@@ -9,7 +9,8 @@ import type { AssignMode, CrewMember, ExcelSettings, FeedEntry, ScenarioPart, St
 
 export const STUDIO_CHANNEL = "studio";
 
-type Attribution = { donationId: string; channelId: string; memberId: string; fnAmount: number; at: string };
+/** `donor` · `donorId` · `message`: what the 크루 후원 list shows (donorId is empty for a hidden profile). */
+type Attribution = { donationId: string; channelId: string; memberId: string; fnAmount: number; at: string; donor?: string; donorId?: string; message?: string };
 
 export type MockBroadcast = {
   id: string;
@@ -71,9 +72,9 @@ export const mockCrew = (g.__funationMockCrewV1 ??= {
     c4: [m("cm-c4-1", "재형", "LEADER", "#8b5cf6"), m("cm-c4-2", "용주", "MEMBER", "#10b981"), m("cm-c4-3", "민수", "MEMBER", "#3b82f6")]
   },
   attributions: [
-    { donationId: "seed-1", channelId: STUDIO_CHANNEL, memberId: "cm-s2", fnAmount: 50_000, at: monthStamp(2) },
-    { donationId: "seed-2", channelId: STUDIO_CHANNEL, memberId: "cm-s1", fnAmount: 30_000, at: monthStamp(3) },
-    { donationId: "seed-3", channelId: STUDIO_CHANNEL, memberId: "cm-s3", fnAmount: 12_000, at: monthStamp(1) },
-    { donationId: "seed-4", channelId: STUDIO_CHANNEL, memberId: "cm-s2", fnAmount: 8_000, at: monthStamp(0) }
+    { donationId: "seed-1", channelId: STUDIO_CHANNEL, memberId: "cm-s2", fnAmount: 50_000, at: monthStamp(2), donor: "별빛소나타", donorId: "star_sonata", message: "하늘님 오늘 노래 최고였어요!" },
+    { donationId: "seed-2", channelId: STUDIO_CHANNEL, memberId: "cm-s1", fnAmount: 30_000, at: monthStamp(3), donor: "우주비행사", donorId: "space_runner", message: "길동 리더 화이팅" },
+    { donationId: "seed-3", channelId: STUDIO_CHANNEL, memberId: "cm-s3", fnAmount: 12_000, at: monthStamp(1), donor: "치즈냥", donorId: "cheese_cat", message: "바다님 리액션 귀여워요 ㅋㅋ" },
+    { donationId: "seed-4", channelId: STUDIO_CHANNEL, memberId: "cm-s2", fnAmount: 8_000, at: monthStamp(0), donor: "익명", donorId: "", message: "응원합니다" }
   ]
 });

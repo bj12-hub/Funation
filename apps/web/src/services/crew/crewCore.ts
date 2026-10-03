@@ -131,9 +131,32 @@ export function scoreFn(fnAmount: number, s: ExcelSettings) {
 export const isActiveMember = (channelId: string, memberId: unknown) =>
   typeof memberId === "string" && (mockCrew.crews[channelId] ?? []).some((x) => x.id === memberId && x.active);
 
-export function attributeMemberDonation(donationId: string, channelId: string, memberId: string | null, fnAmount: number) {
+export function attributeMemberDonation(
+  donationId: string,
+  channelId: string,
+  memberId: string | null,
+  fnAmount: number,
+  shown: { donor: string; donorId: string; message: string } = { donor: "익명", donorId: "", message: "" }
+) {
   if (!memberId || !isActiveMember(channelId, memberId)) return;
-  mockCrew.attributions.push({ donationId, channelId, memberId, fnAmount, at: new Date().toISOString() });
+  mockCrew.attributions.push({ donationId, channelId, memberId, fnAmount, at: new Date().toISOString(), ...shown });
+}
+
+/** 받은 후원 "크루 후원": donations sent for a member, newest first (removed members keep a placeholder). */
+export function crewDonationRows(channelId: string) {
+  const members = mockCrew.crews[channelId] ?? [];
+  return mockCrew.attributions
+    .filter((a) => a.channelId === channelId)
+    .map((a) => ({
+      id: a.donationId,
+      at: a.at,
+      donor: a.donor ?? "익명",
+      donorId: a.donorId ?? "",
+      fnAmount: a.fnAmount,
+      message: a.message ?? "",
+      member: members.find((m) => m.id === a.memberId)?.name ?? "삭제된 멤버"
+    }))
+    .sort((a, b) => b.at.localeCompare(a.at));
 }
 
 /** This month's per-member totals for a channel (members without donations included, sorted by FN). */

@@ -69,7 +69,7 @@ const SELF_SAVING: EditableWidgetKey[] = ["CUSTOM_SOUND"];
  * 531:1370 (최근알림) · 531:1598 (이벤트) · 531:1826 (미니후원) · 315:650 (후원랭킹) · 315:858 (투표) · 373:1307 (커스텀 사운드) ·
  * 373:1356 (럭키박스) · 373:1598 (퀘스트) · 373:1785 (플레이) · 373:3675 (뽑기 후원) · 395:145 (벽지).
  * Catalog layout follows the funnation 위젯 page (인기 · 전체 by group · 도구; see ./widgetCatalog.ts).
- * The Figma 후원 알림 설정 alert-type cards are no longer listed (they had no popups); 그림후원 is 준비 중.
+ * The Figma 후원 알림 설정 alert-type cards are no longer listed (they had no popups); 그림후원 links to its own page.
  */
 export function WidgetSettingsScreen({ alertWidgetUrl }: { alertWidgetUrl: string }) {
   const [openKey, setOpenKey] = useState<EditableWidgetKey | null>(null);
