@@ -68,7 +68,8 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 
 | 섹션 | ID | 화면 | 라우트 | 노드 |
 |---|---|---|---|---|
-| 통합 채팅 | C01 | 통합 채팅 | `/creator/chat` | `49:2` |
+| 통합 채팅 | C01 | 통합 채팅 (+ 채팅창 링크 카드) | `/creator/chat` | `49:2` |
+| 통합 채팅 | C02 | 채팅창 링크 (440 × 780, 스튜디오 메뉴 없음) | `/popout/chat` | `120:8188` |
 | 통합 채팅 | O04 | 통합 채팅 오버레이 (400 × 600) | `/overlay/chat/[key]` | `49:504` |
 | 대시보드 · 수익 · 소식 | T01 | 대시보드 | `/creator` | `59:443` |
 | 대시보드 · 수익 · 소식 | T02 | 수익 현황 | `/creator/revenue` | `59:808` |
@@ -82,7 +83,7 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 방송 · 위젯 | W01 | 위젯 목록 | `/creator/widgets` | `63:1485` |
 | 방송 · 위젯 | W02 | 방송 도구 | `/creator/widgets/tools` | `64:1471` |
 | 방송 · 위젯 | W03 | 오버레이 주소 | `/creator/widgets/overlays` | `64:1678` |
-| 방송 · 위젯 | W04 | 리모컨 (기능별 새로고침) | `/creator/remote` | `116:4092` |
+| 방송 · 위젯 | W04 | 리모컨 (기능 제어 · 볼륨 제어) | `/creator/remote` | `121:4113` |
 | 방송 · 위젯 | W05 | 이펙트 · 효과 | `/creator/widgets/effects` | `66:1840` |
 | 방송 · 위젯 | W06 | 시그니처 후원 (편집 열림) | `/creator/widgets/signatures` | `66:2016` |
 | 방송 · 위젯 | W07 | 영상 후원 | `/creator/widgets/video` | `66:2322` |
