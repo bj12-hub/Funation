@@ -436,7 +436,7 @@ const parseGacha: Parser<GachaSettings> = (v) => {
 
 /** 룰렛: 1,000 FN 최소 (게임 후원과 같은 하한) ~ PRIZE_MAX, 항목 2~10개 · 확률 정수 합 100. */
 const parseRoulette: Parser<RouletteSettings> = (v) => {
-  if (!bool(v.enabled) || !bool(v.autoStart)) return "설정 값을 확인해 주세요.";
+  if (!bool(v.enabled) || !bool(v.autoStart) || !bool(v.autoReveal)) return "설정 값을 확인해 주세요.";
   if (!int(v.minAmount, 1_000, PRIZE_MAX)) return "최소 참여 금액은 1,000 FN 이상으로 입력해 주세요.";
   if (!int(v.dailyLimit, 0, ROULETTE_DAILY_LIMIT_MAX)) return `참여 가능 횟수는 0~${ROULETTE_DAILY_LIMIT_MAX}회로 입력해 주세요.`;
   if (!int(v.spinSec, ROULETTE_SPIN_SEC.min, ROULETTE_SPIN_SEC.max)) return `회전 시간은 ${ROULETTE_SPIN_SEC.min}~${ROULETTE_SPIN_SEC.max}초로 입력해 주세요.`;
@@ -452,7 +452,7 @@ const parseRoulette: Parser<RouletteSettings> = (v) => {
   }
   if (out.reduce((sum, it) => sum + it.percent, 0) !== 100) return "항목 확률의 합이 100%가 되어야 해요.";
   if (new Set(out.map((it) => it.id)).size !== out.length) return "룰렛 항목 정보를 확인해 주세요.";
-  return { enabled: v.enabled, minAmount: v.minAmount, dailyLimit: v.dailyLimit, items: out, spinSec: v.spinSec, autoStart: v.autoStart };
+  return { enabled: v.enabled, minAmount: v.minAmount, dailyLimit: v.dailyLimit, items: out, spinSec: v.spinSec, autoStart: v.autoStart, autoReveal: v.autoReveal };
 };
 
 const parseWallpaper: Parser<Omit<WallpaperSettings, "images">> = (v) => {

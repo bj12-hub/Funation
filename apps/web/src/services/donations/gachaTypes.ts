@@ -83,7 +83,7 @@ export type GachaRow = {
   claimed: boolean | null;
 };
 
-export type GachaRemoteView = { stage: GachaStage | null; queue: GachaRow[]; recent: GachaRow[]; unclaimed: number };
+export type GachaRemoteView = { stage: GachaStage | null; queue: GachaRow[]; recent: GachaRow[]; unclaimed: number; hidden: boolean };
 
 /** 당첨 리스트 위젯 (전광판): prizes won in the period, newest first. */
 export type GachaBoardView = { title: string; speed: "NORMAL" | "FAST" | "FIXED"; rows: { id: string; donor: string; gachaName: string; prize: string; claimed: boolean }[] };

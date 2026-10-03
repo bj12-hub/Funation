@@ -37,7 +37,7 @@ export type GachaDraw = {
   claimed: boolean | null;
 };
 
-type Store = { draws: GachaDraw[]; seq: number };
+type Store = { draws: GachaDraw[]; seq: number; hidden?: Record<string, boolean> };
 
 /** Weighted pick; `rand(n)` returns 0..n-1. */
 export function weightedIndex(weights: number[], rand: (n: number) => number = randomInt) {
@@ -81,6 +81,9 @@ function seed(now = Date.now()): Store {
 
 const g = globalThis as typeof globalThis & { __funationMockGachaV1?: Store };
 export const mockGacha = (g.__funationMockGachaV1 ??= seed());
+
+/** 화면 숨기기 per channel (펀페이 1009:6768): draws still play, the overlay shows nothing. */
+export const isHidden = (channelId: string) => mockGacha.hidden?.[channelId] === true;
 
 const settings = (): GachaSettings => widgetStore.GACHA;
 const findGacha = (id: unknown) => settings().gachas.find((x) => x.id === id && x.enabled) ?? null;

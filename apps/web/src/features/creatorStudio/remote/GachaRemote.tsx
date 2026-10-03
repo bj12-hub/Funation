@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { formatNumber } from "@/lib/format";
-import { finishGachaDraw, setGachaClaimed } from "@/services/creator/gachaRemote";
+import { finishGachaDraw, setGachaClaimed, setGachaHidden } from "@/services/creator/gachaRemote";
 import { GACHA_STATUS_LABEL, type GachaControlResult, type GachaRemoteView, type GachaRow } from "@/services/donations/gachaTypes";
 import styles from "../crew/crew.module.css";
 import remote from "./remote.module.css";
@@ -39,6 +39,15 @@ export function GachaRemote({
         <span>
           실행 대기 {view.queue.length}건 · 미수령 상품 {view.unclaimed}건
         </span>
+        <button
+          type="button"
+          className={view.hidden ? styles.chip : styles.chipOff}
+          aria-pressed={view.hidden}
+          disabled={pending}
+          onClick={() => run(() => setGachaHidden({ hidden: !view.hidden }), view.hidden ? "뽑기 위젯을 다시 보여 줘요." : "뽑기 위젯을 방송 화면에서 숨겼어요.")}
+        >
+          {view.hidden ? "화면 숨김" : "화면 보임"}
+        </button>
       </div>
 
       {s && (

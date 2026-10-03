@@ -168,4 +168,33 @@ describe("룰렛", () => {
     expect((await m.getRouletteRemote())!.paused).toBe(true);
     expect((await m.setRoulettePaused({ paused: "yes" })).status).toBe("INVALID");
   });
+  it("waits for ✓ 결과 공개 when 결과 자동 노출 is off, and follows the 리모컨 switches and 위젯 화면 숨기기", async () => {
+    const m = await load();
+    signIn(["SUPPORTER"]);
+    expect(await m.setRouletteSwitch({ key: "autoReveal", on: false })).toEqual({ status: "UNAUTHORIZED" });
+    signIn();
+    expect((await m.setRouletteSwitch({ key: "minAmount", on: false })).status).toBe("INVALID");
+    expect(await m.setRouletteSwitch({ key: "autoReveal", on: false })).toEqual({ status: "SAVED" });
+    expect((await m.getRouletteRemote())!.autoReveal).toBe(false);
+
+    await m.startNextSpin();
+    const started = (await stage(m))!;
+    const spin = m.mockRoulette.spins.find((s) => s.id === started.id)!;
+    spin.startedAt = new Date(Date.now() - spin.spinMs - 30_000).toISOString(); // long past the spin
+    const waiting = (await stage(m))!;
+    expect(waiting).toMatchObject({ status: "WAITING", result: null });
+    expect((await m.startNextSpin()).status).toBe("INVALID"); // the stopped wheel still holds the screen
+    expect(m.roomView(m.STUDIO_CHANNEL, spin.supporterUserId).mine[0]).toMatchObject({ status: "WAITING", result: null });
+    expect(await m.revealRouletteSpin({ spinId: spin.id })).toEqual({ status: "SAVED" });
+    expect((await stage(m))!).toMatchObject({ status: "RESULT", result: spin.items[spin.resultIndex].name });
+
+    expect(await m.setRouletteHidden({ hidden: true })).toEqual({ status: "SAVED" });
+    expect(await stage(m)).toBeNull(); // the overlay hides it
+    expect((await m.getRouletteRemote())!).toMatchObject({ hidden: true, stage: { status: "RESULT" } });
+    await m.setRouletteHidden({ hidden: false });
+
+    expect(await m.setRouletteSwitch({ key: "enabled", on: false })).toEqual({ status: "SAVED" });
+    expect(m.getDonationCatalog().roulette.enabled).toBe(false);
+    expect((await m.getWidgetDetail("ROULETTE"))!.settings).toMatchObject({ enabled: false, autoReveal: false });
+  });
 });
