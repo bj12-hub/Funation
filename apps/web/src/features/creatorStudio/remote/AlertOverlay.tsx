@@ -43,14 +43,15 @@ export function AlertOverlay({ data }: { data: OverlayAlert }) {
   useEffect(() => {
     if (!alert || spoken.current === alert.id) return;
     spoken.current = alert.id;
-    if (controls.muted || controls.ttsVolume === 0 || !alert.message || typeof speechSynthesis === "undefined") return;
+    if (!data.on || controls.muted || controls.ttsVolume === 0 || !alert.message || typeof speechSynthesis === "undefined") return;
     const u = new SpeechSynthesisUtterance(alert.message);
     u.lang = "ko-KR";
     u.volume = controls.ttsVolume / 100;
     speechSynthesis.speak(u);
-  }, [alert, controls.muted, controls.ttsVolume]);
+  }, [alert, controls.muted, controls.ttsVolume, data.on]);
 
-  if (!alert) return null;
+  // 리모컨 기능 제어 OFF: nothing on screen and no TTS.
+  if (!alert || !data.on) return null;
   return (
     <div className={styles.stage}>
       <div key={alert.id} className={styles.card} role="status">

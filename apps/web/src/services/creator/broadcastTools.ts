@@ -20,7 +20,7 @@ import {
   type ToolStates,
   type ToolsView
 } from "./broadcastToolTypes";
-import { reloadSeqOf } from "./alertCore";
+import { overlaySignal } from "./alertCore";
 import { mockCreator } from "./mockCreatorStore";
 
 /**
@@ -173,16 +173,16 @@ export async function saveCredits(input: unknown): Promise<ToolResult> {
 export async function getOverlayTool(tool: unknown, key: unknown): Promise<OverlayTool | "FORBIDDEN"> {
   assertMock();
   if (typeof key !== "string" || key !== mockCreator.integrationKey || !isToolKey(tool)) return "FORBIDDEN";
-  // reloadSeq: bumped by 리모컨 "오버레이 새로고침"; overlays reload themselves when it changes.
-  const reloadSeq = reloadSeqOf(tool);
+  // 리모컨 signals: 오버레이 새로고침 (reloadSeq) and 기능 제어 ON/OFF (on).
+  const signal = overlaySignal(tool);
   switch (tool) {
     case "subtitle":
-      return { tool, state: { ...tools.subtitle }, reloadSeq };
+      return { tool, state: { ...tools.subtitle }, ...signal };
     case "marquee":
-      return { tool, state: { ...tools.marquee, lines: [...tools.marquee.lines] }, reloadSeq };
+      return { tool, state: { ...tools.marquee, lines: [...tools.marquee.lines] }, ...signal };
     case "timer":
-      return { tool, state: { ...tools.timer }, serverNow: new Date().toISOString(), reloadSeq };
+      return { tool, state: { ...tools.timer }, serverNow: new Date().toISOString(), ...signal };
     case "credits":
-      return { tool, state: { ...tools.credits, thanks: [...tools.credits.thanks] }, crew: tools.credits.includeCrew ? crewTop() : [], reloadSeq };
+      return { tool, state: { ...tools.credits, thanks: [...tools.credits.thanks] }, crew: tools.credits.includeCrew ? crewTop() : [], ...signal };
   }
 }

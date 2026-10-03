@@ -4,7 +4,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { formatNumber } from "@/lib/format";
-import { cancelAllAlerts, reloadOverlays, replayAlert, sendTestAlert, setAlertControls, skipCurrentAlert, skipTts } from "@/services/creator/alertRemote";
+import {
+  cancelAllAlerts,
+  reloadOverlays,
+  replayAlert,
+  sendTestAlert,
+  setAlertControls,
+  setOverlaySwitch,
+  setVideoVolume,
+  skipCurrentAlert,
+  skipTts
+} from "@/services/creator/alertRemote";
 import type { ToolStates } from "@/services/creator/broadcastToolTypes";
 import {
   ALERT_DISPLAY_SEC,
@@ -77,20 +87,22 @@ export function RemoteScreen({ view, overlayPath, tools }: { view: RemoteView; o
     });
   };
 
-  const volume = (key: "alertVolume" | "ttsVolume", label: string) => (
+  // A slider sends its value when released (pointer or keyboard); the label shows the server's value.
+  const slider = (label: string, value: number, save: (v: number) => Promise<RemoteResult>) => (
     <label className={remote.slider}>
       <span>{label}</span>
       <input
+        key={value}
         type="range"
         min={0}
         max={100}
         step={5}
-        defaultValue={controls[key]}
+        defaultValue={value}
         aria-label={`${label} 볼륨`}
-        onPointerUp={(e) => run(() => setAlertControls({ [key]: Number((e.target as HTMLInputElement).value) }))}
-        onKeyUp={(e) => run(() => setAlertControls({ [key]: Number((e.target as HTMLInputElement).value) }))}
+        onPointerUp={(e) => run(() => save(Number((e.target as HTMLInputElement).value)))}
+        onKeyUp={(e) => run(() => save(Number((e.target as HTMLInputElement).value)))}
       />
-      <strong>{controls[key]}%</strong>
+      <strong>{value}%</strong>
     </label>
   );
 
@@ -175,19 +187,62 @@ export function RemoteScreen({ view, overlayPath, tools }: { view: RemoteView; o
         </div>
       </section>
 
-      <section className={styles.card} aria-labelledby="reload-title">
-        <h2 className={styles.cardTitle} id="reload-title">
-          기능별 새로고침
-        </h2>
-        <p className={styles.note}>OBS에서 한 화면만 멈췄을 때 그 오버레이만 다시 불러와요. 다른 오버레이는 그대로예요. 몇 초 안에 반영돼요.</p>
-        <div className={remote.buttons}>
-          {OVERLAY_TARGETS.map((t) => (
-            <button key={t.key} type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => reloadOverlays({ target: t.key }), `${t.label} 오버레이를 새로고침해요.`)}>
-              ↻ {t.label}
-            </button>
-          ))}
-        </div>
-      </section>
+      <div className={remote.columns}>
+        <section className={styles.card} aria-labelledby="switch-title">
+          <h2 className={styles.cardTitle} id="switch-title">
+            기능 제어
+          </h2>
+          <p className={styles.note}>
+            OFF로 두면 그 오버레이는 화면 · 소리가 모두 꺼져요 (OBS 소스는 그대로). 끈 동안 지나간 알림은 다시 나오지 않으니, 잠깐 멈출 때는 &lsquo;전체 일시정지&rsquo;를 써요. ↻는 그 오버레이만 다시
+            불러와요.
+          </p>
+          <ul className={remote.switches}>
+            {OVERLAY_TARGETS.map((t) => {
+              const on = view.overlays.on[t.key];
+              return (
+                <li key={t.key} data-off={on ? undefined : ""}>
+                  <span className={remote.switchName}>{t.label}</span>
+                  <span className={styles.segment} role="group" aria-label={`${t.label} 켜기 · 끄기`}>
+                    {([true, false] as const).map((v) => (
+                      <button
+                        key={String(v)}
+                        type="button"
+                        aria-pressed={on === v}
+                        disabled={pending}
+                        onClick={() => on !== v && run(() => setOverlaySwitch({ target: t.key, on: v }), `${t.label} 오버레이를 ${v ? "켰어요" : "껐어요"}.`)}
+                      >
+                        {v ? "ON" : "OFF"}
+                      </button>
+                    ))}
+                  </span>
+                  <button
+                    type="button"
+                    className={styles.ghost}
+                    disabled={pending}
+                    aria-label={`${t.label} 새로고침`}
+                    onClick={() => run(() => reloadOverlays({ target: t.key }), `${t.label} 오버레이를 새로고침해요.`)}
+                  >
+                    ↻
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+
+        <section className={styles.card} aria-labelledby="volume-title">
+          <h2 className={styles.cardTitle} id="volume-title">
+            볼륨 제어
+          </h2>
+          <p className={styles.note}>
+            오버레이가 내는 소리의 크기예요. 한 번에 모두 끄려면 &lsquo;전체 음소거&rsquo;를 써요. OBS 오디오 믹서의 소스 볼륨과는 따로예요.
+          </p>
+          {slider("후원 알림음", controls.alertVolume, (v) => setAlertControls({ alertVolume: v }))}
+          {slider("후원 TTS", controls.ttsVolume, (v) => setAlertControls({ ttsVolume: v }))}
+          {slider("영상 후원", view.overlays.videoVolume, (v) => setVideoVolume({ volume: v }))}
+          {controls.muted && <p className={styles.muted}>지금은 전체 음소거 중이라 후원 알림 소리가 나지 않아요.</p>}
+        </section>
+      </div>
 
       <ToolsRemote tools={tools} pending={pending} run={run} />
 
@@ -225,8 +280,6 @@ export function RemoteScreen({ view, overlayPath, tools }: { view: RemoteView; o
           <h2 className={styles.cardTitle} id="widget-title">
             알림 설정
           </h2>
-          {volume("alertVolume", "알림음")}
-          {volume("ttsVolume", "TTS")}
           <form
             className={styles.addRow}
             onSubmit={(e) => {
