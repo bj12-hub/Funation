@@ -5,9 +5,9 @@
  */
 import type { Platform } from "@/types/platform";
 import type { AlertKind, OverlaySignal } from "./alertTypes";
-import type { EventSettings, GoalSettings, QrSettings, RankingSettings, RecentSettings, TotalSettings, WidgetKey } from "./widgetSettingsTypes";
+import type { EventSettings, GoalSettings, QrSettings, QuestWidgetSettings, RankingSettings, RecentSettings, TotalSettings, WidgetKey } from "./widgetSettingsTypes";
 
-export const WIDGET_OVERLAYS = ["goal", "total", "ranking", "recent", "event", "qr"] as const;
+export const WIDGET_OVERLAYS = ["goal", "total", "ranking", "recent", "event", "qr", "quest"] as const;
 export type WidgetOverlayKind = (typeof WIDGET_OVERLAYS)[number];
 export const isWidgetOverlay = (v: unknown): v is WidgetOverlayKind => WIDGET_OVERLAYS.includes(v as WidgetOverlayKind);
 
@@ -18,7 +18,8 @@ export const WIDGET_OVERLAY_SETTINGS: Record<WidgetOverlayKind, WidgetKey> = {
   ranking: "RANKING",
   recent: "RECENT",
   event: "EVENT",
-  qr: "QR"
+  qr: "QR",
+  quest: "QUEST"
 };
 
 /** Mock QR image (the popup preview uses the same one). TBD: a real QR for the creator's donation page. */
@@ -42,6 +43,9 @@ export type WidgetFeedLine = {
 
 export type WidgetRankRow = { rank: number; name: string; fnAmount: number };
 
+/** A running quest on the 퀘스트 overlay; `endsAt` = sent time + 제한 시간. */
+export type WidgetQuest = { id: string; title: string; amount: number; endsAt: string };
+
 type Common = OverlaySignal & { serverNow: string };
 
 export type OverlayWidget = Common &
@@ -52,4 +56,5 @@ export type OverlayWidget = Common &
     | { widget: "recent"; settings: RecentSettings; lines: WidgetFeedLine[] }
     | { widget: "event"; settings: EventSettings; lines: WidgetFeedLine[] }
     | { widget: "qr"; settings: QrSettings; imageUrl: string }
+    | { widget: "quest"; settings: QuestWidgetSettings; quests: WidgetQuest[] }
   );

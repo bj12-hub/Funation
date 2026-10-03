@@ -131,12 +131,11 @@ export function QuestFields({ value, onChange, catalog, error }: Props<QuestStat
       <TextInput label="퀘스트 제목" value={value.title} onChange={(title) => onChange({ ...value, title })} max={catalog.game.maxText} placeholder="크리에이터에게 요청할 퀘스트" />
       <div className={styles.cols2}>
         <FnInput label="성공 보상" value={value.success} onChange={(success) => onChange({ ...value, success })} />
-        <FnInput label="실패 금액" value={value.fail} onChange={(fail) => onChange({ ...value, fail })} />
-      </div>
-      <div className={styles.cols2}>
         <FnInput label="취소 금액" value={value.cancel} onChange={(cancel) => onChange({ ...value, cancel })} />
-        <TimeInput value={value.time} onChange={(time) => onChange({ ...value, time })} />
       </div>
+      <TimeInput value={value.time} onChange={(time) => onChange({ ...value, time })} />
+      {/* 2026-10-04 결정: a failed quest refunds the whole amount, so there is no 실패 금액. */}
+      <p className={styles.refundNote}>퀘스트가 실패하면 후원한 FN이 전액 환불돼요.</p>
       <SwitchRow label="크리에이터 성공 결정" checked={value.creatorDecides} onChange={(creatorDecides) => onChange({ ...value, creatorDecides })} />
       <Terms checked={value.terms} onChange={(terms) => onChange({ ...value, terms })} />
       <ErrorLine error={error} />

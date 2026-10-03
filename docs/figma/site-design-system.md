@@ -104,7 +104,7 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 크루 방송 | Y03 | 크루 관리 | `/creator/crew` | `67:2696` |
 | 크루 방송 | Y04 | 크루 방송 운영 (방송 전 · 시나리오 편집) | `/creator/crew/broadcast` | `116:3886` |
 | 크루 방송 | Y04b | 크루 방송 운영 (방송 중 · 자동엑셀 · 배틀 · 기여도 강탈 · 시나리오, 예시 입력값) | `/creator/crew/broadcast` | `117:3911` |
-| 후원 관리 | T03 | 받은 후원 | `/creator/donations?tab=list` | `67:3046` |
+| 후원 관리 | T03 | 받은 후원 (퀘스트 결정 버튼 · 실패 시 환불) | `/creator/donations?tab=list` | `154:14067` |
 | 후원 관리 | T03b | 후원 순위 | `/creator/donations?tab=ranking` | `68:2958` |
 | 후원 관리 | T03c | 후원 필터링 | `/creator/donations?tab=filtering` | `68:3293` |
 | 후원 관리 | T03d | 받은 후원 · 게임 후원 (룰렛 · 퀴즈) | `/creator/donations?tab=list&kind=game` | `142:4530` |
@@ -153,12 +153,12 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 크리에이터 채널 | C07 | 내 채널 만들기 (주소 확인 완료 · 예시 입력값, 코드로 그린 레이아웃 — 크리에이터 계정은 이 화면이 열리지 않음) | `/channel/new` | `151:8173` |
 | 방송 방 후원 패널 | D-TEXT | 일반 | `/creators/c1?tab=donation` | `77:3595` |
 | 방송 방 후원 패널 | D-MINI | 미니 | `/creators/c1?tab=donation` | `78:3182` |
-| 방송 방 후원 패널 | D-VIDEO | 영상 | `/creators/c1?tab=donation` | `78:3249` |
+| 방송 방 후원 패널 | D-VIDEO | 영상 (URL 입력만) | `/creators/c1?tab=donation` | `154:9022` |
 | 방송 방 후원 패널 | D-SIGNATURE | 시그니처 | `/creators/c1?tab=donation` | `78:3330` |
 | 방송 방 후원 패널 | D-WISHLIST | 위시 | `/creators/c1?tab=donation` | `78:3398` |
 | 방송 방 후원 패널 | D-LUCKYBOX | 럭키박스 | `/creators/c1?tab=donation` | `78:3465` |
 | 방송 방 후원 패널 | D-ROULETTE | 룰렛 | `/creators/c1?tab=donation` | `78:3558` |
-| 방송 방 후원 패널 | D-QUEST | 퀘스트 | `/creators/c1?tab=donation` | `79:3182` |
+| 방송 방 후원 패널 | D-QUEST | 퀘스트 (실패 시 전액 환불) | `/creators/c1?tab=donation` | `154:8951` |
 | 방송 방 후원 패널 | D-DRAWING | 그림 | `/creators/c1?tab=donation` | `79:3259` |
 | 방송 방 후원 패널 | D-QUIZ_CHOICE | 객관식 퀴즈 | `/creators/c1?tab=donation` | `79:3329` |
 | 방송 방 후원 패널 | D-QUIZ_INITIAL | 초성 퀴즈 | `/creators/c1?tab=donation` | `79:3418` |
@@ -222,5 +222,6 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | OBS 오버레이 | O16 | 이벤트 (500×600, 박스형 · 새 후원 직후, 15초 뒤 자동 숨김) | `/overlay/widget/event/[key]` | `146:8217` |
 | OBS 오버레이 | O17 | 후원 QR코드 (300×360, 캡션 위 · QR 이미지는 자리표시) | `/overlay/widget/qr/[key]` | `146:8231` |
 | OBS 오버레이 | O12-off | 후원 위젯 · 기능 제어 OFF (6종 공통, 아무것도 표시 안 함) | `/overlay/widget/[widget]/[key]` | `146:8241` |
+| OBS 오버레이 | O18 | 퀘스트 (600×400, 화려한 · 진행 중 2건, 남은 시간 · 상금) | `/overlay/widget/quest/[key]` | `154:14403` |
 
 OBS 오버레이는 투명 배경이라 회색 바탕 위에 그렸어요. 테스트 후원 · 테스트 그림 · 방송 도구 켜기 · 크루 방송 시작으로 띄운 상태를 읽었고, 이펙트(무작위 파티클)와 영상(외부 임베드)은 코드 구조대로 그린 예시 배치예요. 통합 채팅 오버레이는 9 페이지(O04 `49:504`)에 있어요. 아이콘은 회색 자리표시 사각형이에요.

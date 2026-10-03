@@ -90,8 +90,8 @@ export function HallOfFameScreen({ tab, ranking, live }: Props) {
               서포터즈 랭킹에 등재되면 프로필 전용 한정판 배지, 채팅 강조 하이라이트 및 비공개 오리지널 콘텐츠 사전 입장권을 지급해 드립니다.
             </p>
           </div>
-          {/* TODO: destination not defined in Figma yet. */}
-          <Button variant="light" size="lg" className={styles.promoCta} aria-disabled="true" title="준비 중인 기능입니다">
+          {/* 2026-10-04 결정: 후원할 크리에이터를 찾는 화면으로. */}
+          <Button href="/creators" variant="light" size="lg" className={styles.promoCta}>
             나도 서포터 되기
           </Button>
         </div>

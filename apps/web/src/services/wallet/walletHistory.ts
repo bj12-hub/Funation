@@ -1,6 +1,7 @@
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
+import { findQuest } from "@/services/donations/questCore";
 import { mockCredits } from "./mockCreditStore";
 import { mockRefunds } from "./mockRefundStore";
 import { mockWallet } from "./mockWalletStore";
@@ -65,7 +66,8 @@ export async function getDonationHistory(input: {
   filter?: DonationFilter;
 }): Promise<(HistoryPage<DonationRecord> & { totalFn: number }) | null> {
   if (!USE_MOCK) throw new Error("Wallet API is not connected yet.");
-  if (!(await getSession())) return null;
+  const session = await getSession();
+  if (!session) return null;
   await mockDelay(300);
   const f = input.filter ?? {};
   const q = f.q?.trim().toLowerCase() ?? "";
@@ -79,7 +81,13 @@ export async function getDonationHistory(input: {
         (f.max === undefined || d.fnAmount <= f.max)
     )
     .sort((a, b) => (f.sort === "oldest" ? a.donatedAt.localeCompare(b.donatedAt) : b.donatedAt.localeCompare(a.donatedAt)));
-  return { ...paginate(rows, input), totalFn: rows.reduce((s, d) => s + d.fnAmount, 0) };
+  const page = paginate(rows, input);
+  // 퀘스트 후원: the quest's result; the member who sent it can always decide while it runs.
+  const items = page.items.map((d) => {
+    const q = d.category === "quest" ? findQuest(d.id) : null;
+    return q ? { ...d, quest: { status: q.status, canDecide: q.status === "IN_PROGRESS" && q.supporterUserId === session.userId } } : d;
+  });
+  return { ...page, items, totalFn: rows.reduce((s, d) => s + d.fnAmount, 0) };
 }
 
 /**
@@ -128,7 +136,7 @@ export async function getWalletOverview(input: { kind?: unknown; period?: unknow
           deltaFn: d.fnAmount,
           statusLabel: DONATION_STATUS_LABEL.REFUNDED,
           tone: "refund",
-          at: d.donatedAt.slice(0, 16)
+          at: (d.refundedAt ?? d.donatedAt).slice(0, 16)
         })
       ),
     ...mockCredits.credits.map(

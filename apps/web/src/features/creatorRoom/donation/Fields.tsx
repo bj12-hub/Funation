@@ -196,15 +196,6 @@ export function VideoFields({ value, onChange, balance, error }: Props<VideoStat
   return (
     <>
       <AmountField value={value.amount} onChange={(amount) => onChange({ ...value, amount })} hint={<Balance balance={balance} />} />
-      <div className={styles.sourceTabs} role="tablist" aria-label="영상 선택 방식">
-        <button type="button" role="tab" aria-selected className={`${styles.sourceTab} ${styles.sourceTabOn}`}>
-          🔗 URL 입력 <span aria-hidden="true">✓</span>
-        </button>
-        {/* TODO: the member's video library is TBD. */}
-        <button type="button" role="tab" aria-selected={false} className={styles.sourceTab} aria-disabled="true" title="준비 중인 기능입니다">
-          ▦ 라이브러리
-        </button>
-      </div>
       <label className={room.field}>
         <span className={room.fieldLabel}>영상 URL</span>
         <span className={room.inputBox}>
@@ -241,7 +232,6 @@ export function VideoFields({ value, onChange, balance, error }: Props<VideoStat
           <span className={`${room.inputBox} ${styles.readonlyBox}`}>{length === null ? "-" : `${length}초`}</span>
         </div>
       </div>
-      <SwitchRow label="내 라이브러리에 등록" checked={value.saveToLibrary} onChange={(saveToLibrary) => onChange({ ...value, saveToLibrary })} />
       <SwitchRow label="영상 후원 이용약관 동의 (필수)" checked={value.terms} onChange={(terms) => onChange({ ...value, terms })} />
       {error && (
         <p className={`${room.validation} ${room.validationError}`} role="alert">

@@ -780,3 +780,15 @@
   color: var(--color-text-secondary);
   font-size: var(--font-size-13);
 }
+
+/* 퀘스트 후원 결과 (code-first) */
+.questDecide,
+.questState {
+  display: block;
+  margin-top: 6px;
+}
+
+.questState {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-12);
+}
