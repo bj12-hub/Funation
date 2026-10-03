@@ -2,7 +2,10 @@
  * Every OBS browser-source overlay the app serves, for the 오버레이 주소 page (code-first).
  * Sizes are recommended OBS source sizes (placeholders until designs exist).
  */
-export type OverlayEntry = { id: string; group: string; title: string; description: string; size: string; path: (key: string) => string; manage: string };
+import type { OverlayTarget } from "@/services/creator/alertTypes";
+
+/** `id` is also the 리모컨 기능 제어 target, so the page can show which overlays are switched OFF. */
+export type OverlayEntry = { id: OverlayTarget; group: string; title: string; description: string; size: string; path: (key: string) => string; manage: string };
 
 export const OVERLAYS: OverlayEntry[] = [
   {

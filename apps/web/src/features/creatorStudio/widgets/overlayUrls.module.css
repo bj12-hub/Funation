@@ -25,3 +25,29 @@
   gap: 4px;
   min-width: 0;
 }
+
+/* 리모컨 기능 제어 OFF */
+.off {
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-danger-soft);
+  color: var(--color-error-text);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+}
+
+.offSummary {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--color-danger-border);
+  border-radius: var(--radius-12);
+  background: var(--color-danger-soft);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+}
+
+.offSummary a {
+  color: var(--color-primary-light);
+  font-weight: var(--font-weight-bold);
+}
