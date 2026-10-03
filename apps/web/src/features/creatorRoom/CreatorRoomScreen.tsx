@@ -7,12 +7,14 @@ import type { CrewPublic } from "@/services/crew/crewTypes";
 import { PLATFORM_LABEL } from "@/types/platform";
 import type { ChannelPostsView, ChannelRanking } from "@/services/creators/channelTypes";
 import type { PublicChannelVideos } from "@/services/creators/channelVideos";
+import type { RoomVote } from "@/services/votes/voteTypes";
 import { ChannelCommunity, ChannelHomeExtras } from "./ChannelHome";
 import { AboutView, ChannelTabs, CrewView, SignaturesView, VideosView } from "./ChannelViews";
 import type { ChannelView } from "./channelView";
 import channel from "./channel.module.css";
 import { Player } from "./Player";
 import { RoomActions } from "./RoomActions";
+import { RoomVoteCard } from "./RoomVote";
 import { SidePanel } from "./SidePanel";
 import styles from "./room.module.css";
 
@@ -34,7 +36,8 @@ export function CreatorRoomScreen({
   ranking,
   posts,
   postsShow,
-  videos
+  videos,
+  vote
 }: {
   room: CreatorRoom;
   viewer: Viewer;
@@ -47,6 +50,8 @@ export function CreatorRoomScreen({
   posts: ChannelPostsView;
   postsShow: number;
   videos: PublicChannelVideos | null;
+  /** The channel's 투표 on screen (code-first), shown under the player. */
+  vote: RoomVote | null;
 }) {
   const donateHref = `/creators/${room.creatorId}?tab=donation`;
   return (
@@ -121,6 +126,7 @@ export function CreatorRoomScreen({
         <div className={styles.playerColumn}>
           <Player name={room.name} stream={room.stream} />
           {room.stream.status === "LIVE" && <p className={styles.caption}>{room.stream.caption}</p>}
+          <RoomVoteCard channelId={room.creatorId} signedIn={viewer !== null} initial={vote} />
         </div>
         <SidePanel key={initialTab} room={room} signedIn={viewer !== null} fnBalance={viewer?.fnBalance ?? null} nickname={viewer?.nickname ?? null} initialTab={initialTab} />
       </div>

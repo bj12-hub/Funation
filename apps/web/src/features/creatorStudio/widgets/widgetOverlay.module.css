@@ -262,3 +262,58 @@
   justify-content: space-between;
   gap: 16px;
 }
+
+/* ── 투표 (the settings preview is light, and the default fonts are black) ── */
+.vote {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 560px;
+  margin: 12px;
+  padding: 20px 24px;
+  border: 4px solid;
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.vote > strong {
+  font-weight: var(--font-weight-extrabold);
+}
+
+.voteInfo {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-weight: var(--font-weight-bold);
+}
+
+.vote ol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vote li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  overflow: hidden;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: #e5e7eb;
+  font-weight: var(--font-weight-bold);
+}
+
+.vote li > span:not(.voteBar) {
+  position: relative;
+}
+
+.voteBar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  opacity: 0.35;
+  transition: width 0.4s ease;
+}

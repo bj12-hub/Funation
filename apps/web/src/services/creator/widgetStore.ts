@@ -14,5 +14,10 @@ export function readWidget<K extends EditableWidgetKey>(key: K): WidgetSettingsM
     const recent = copy as WidgetSettingsMap["RECENT"];
     recent.templates = { ...DEFAULT_WIDGET_SETTINGS.RECENT.templates, ...recent.templates };
   }
+  if (key === "VOTE") {
+    // Presets saved before 무료 투표 (2026-10-04) carried a price and 무료 투표권; drop them.
+    const vote = copy as WidgetSettingsMap["VOTE"];
+    vote.presets = vote.presets.map(({ id, name, color, durationSec, items }) => ({ id, name, color, durationSec, items }));
+  }
   return copy;
 }

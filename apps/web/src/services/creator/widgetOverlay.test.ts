@@ -90,7 +90,7 @@ describe("후원 위젯 오버레이", () => {
   it("needs the integration key and a known widget, and reads the saved settings", async () => {
     const m = await load();
     expect(await m.getOverlayWidget("goal", "wrong-key")).toBe("FORBIDDEN");
-    expect(await m.getOverlayWidget("vote", m.overlayKey)).toBe("FORBIDDEN");
+    expect(await m.getOverlayWidget("luckybox", m.overlayKey)).toBe("FORBIDDEN");
     const total = await m.getOverlayWidget("total", m.overlayKey);
     if (total === "FORBIDDEN" || total.widget !== "total") throw new Error("total");
     expect(total.on).toBe(true);
@@ -98,7 +98,8 @@ describe("후원 위젯 오버레이", () => {
 
     const detail = (await m.getWidgetDetail("TOTAL"))!;
     expect(detail.overlayPath).toBe(`/overlay/widget/total/${m.overlayKey}`);
-    expect((await m.getWidgetDetail("VOTE"))!.overlayPath).toBeNull();
+    expect((await m.getWidgetDetail("VOTE"))!.overlayPath).toBe(`/overlay/widget/vote/${m.overlayKey}`);
+    expect((await m.getWidgetDetail("LUCKYBOX"))!.overlayPath).toBeNull();
     expect(await m.saveWidgetSettings("TOTAL", { ...detail.settings, title: "이번 달 후원" })).toEqual({ status: "SAVED" });
     const saved = await m.getOverlayWidget("total", m.overlayKey);
     expect(saved !== "FORBIDDEN" && saved.widget === "total" && saved.settings.title).toBe("이번 달 후원");

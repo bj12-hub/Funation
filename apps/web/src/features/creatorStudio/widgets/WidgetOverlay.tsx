@@ -6,6 +6,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { formatNumber } from "@/lib/format";
 import { fillRank, fillTotal } from "@/services/creator/widgetOverlayCore";
 import type { OverlayWidget, WidgetFeedLine } from "@/services/creator/widgetOverlayTypes";
+import { rankItems, votePercent } from "@/services/votes/voteTypes";
 import { RECENT_PLATFORMS } from "@/services/creator/widgetSettingsTypes";
 import { PLATFORM_LABEL } from "@/types/platform";
 import { useReloadSignal } from "../remote/useReloadSignal";
@@ -71,6 +72,8 @@ export function WidgetOverlay({ data }: { data: OverlayWidget }) {
       return <Qr data={data} />;
     case "quest":
       return <Quests data={data} />;
+    case "vote":
+      return <Vote data={data} />;
   }
 }
 
@@ -189,21 +192,27 @@ function EventList({ data }: { data: Extract<OverlayWidget, { widget: "event" }>
   );
 }
 
-/** 퀘스트: running quests with a live countdown (server clock, corrected for skew); 시간 초과 when it ends. */
-function Quests({ data }: { data: Extract<OverlayWidget, { widget: "quest" }> }) {
-  const s = data.settings;
+/** Server time each second (corrected for clock skew); null until mounted. */
+function useServerClock(serverNow: string) {
   const [skew, setSkew] = useState(0);
   const [now, setNow] = useState<number | null>(null);
-  useEffect(() => setSkew(new Date(data.serverNow).getTime() - Date.now()), [data.serverNow]);
+  useEffect(() => setSkew(new Date(serverNow).getTime() - Date.now()), [serverNow]);
   useEffect(() => {
     setNow(Date.now());
     const tick = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(tick);
   }, []);
+  return now === null ? null : now + skew;
+}
+
+/** 퀘스트: running quests with a live countdown; 시간 초과 · 결과 대기 when it ends. */
+function Quests({ data }: { data: Extract<OverlayWidget, { widget: "quest" }> }) {
+  const s = data.settings;
+  const now = useServerClock(data.serverNow);
   if (!s.enabled || data.quests.length === 0) return null;
   const left = (endsAt: string) => {
     if (now === null) return "";
-    const sec = Math.floor((new Date(endsAt).getTime() - (now + skew)) / 1000);
+    const sec = Math.floor((new Date(endsAt).getTime() - now) / 1000);
     return sec <= 0 ? "시간 초과 · 결과 대기" : `남은시간 ${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
   };
   return (
@@ -219,6 +228,37 @@ function Quests({ data }: { data: Extract<OverlayWidget, { widget: "quest" }> })
         </li>
       ))}
     </ul>
+  );
+}
+
+const hms = (sec: number) => [Math.floor(sec / 3600), Math.floor((sec % 3600) / 60), sec % 60].map((n) => String(n).padStart(2, "0")).join(":");
+
+/** 투표: the 리모컨's vote, items ranked by votes (ties share a rank) with a bar in the preset color. */
+function Vote({ data }: { data: Extract<OverlayWidget, { widget: "vote" }> }) {
+  const s = data.settings;
+  const now = useServerClock(data.serverNow);
+  const v = data.vote;
+  if (!s.enabled || !v) return null;
+  const left = now === null ? null : Math.max(0, Math.floor((new Date(v.endsAt).getTime() - now) / 1000));
+  const ended = v.ended || left === 0;
+  return (
+    <div className={styles.vote} style={{ borderColor: v.color }}>
+      <strong style={font(s.titleFont)}>{v.name}</strong>
+      <div className={styles.voteInfo} style={font(s.infoFont)}>
+        <span>1인 1표 · 총 {formatNumber(v.total)}표</span>
+        <span>{ended ? "투표 종료" : left === null ? "" : `투표 종료까지 ${hms(left)}`}</span>
+      </div>
+      <ol>
+        {rankItems(v).map((it) => (
+          <li key={it.index} style={font(s.itemFont)}>
+            <span className={styles.voteBar} style={{ width: `${votePercent(it.count, v.total)}%`, background: v.color }} aria-hidden="true" />
+            <span>{it.rank}등</span>
+            <span>{it.label}</span>
+            <span>{formatNumber(it.count)}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }
 
