@@ -90,7 +90,7 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 채널 | Y02 | 영상 목록 | `/creator/videos` | `63:1255` |
 | 방송 · 위젯 | W01 | 위젯 목록 | `/creator/widgets` | `63:1485` |
 | 방송 · 위젯 | W02 | 방송 도구 | `/creator/widgets/tools` | `64:1471` |
-| 방송 · 위젯 | W03 | 오버레이 주소 | `/creator/widgets/overlays` | `64:1678` |
+| 방송 · 위젯 | W03 | 오버레이 주소 (기능 제어 OFF 표시 · 배너 OFF 예시) | `/creator/widgets/overlays` | `136:4527` |
 | 방송 · 위젯 | W04 | 리모컨 (기능 제어 · 볼륨 제어) | `/creator/remote` | `121:4113` |
 | 방송 · 위젯 | W05 | 이펙트 · 효과 | `/creator/widgets/effects` | `66:1840` |
 | 방송 · 위젯 | W06 | 시그니처 후원 (편집 열림) | `/creator/widgets/signatures` | `66:2016` |

@@ -185,6 +185,13 @@ export async function setOverlaySwitch(input: unknown): Promise<RemoteResult> {
   return { status: "SAVED" };
 }
 
+/** 기능 제어 ON/OFF of every overlay (오버레이 주소 page). */
+export async function getOverlaySwitches(): Promise<Record<OverlayTarget, boolean> | null> {
+  assertMock();
+  if (!(await getCreatorSession())) return null;
+  return Object.fromEntries(OVERLAY_TARGETS.map((t) => [t.key, isOverlayOn(t.key)])) as Record<OverlayTarget, boolean>;
+}
+
 /** 볼륨 제어: the video donation player's volume (same value as 영상 후원 설정). */
 export async function setVideoVolume(input: unknown): Promise<RemoteResult> {
   assertMock();
