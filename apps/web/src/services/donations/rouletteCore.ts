@@ -41,9 +41,12 @@ export type RouletteSpin = {
   spinMs: number;
   /** Finished early from the 리모컨 (otherwise the result leaves after ROULETTE_RESULT_SEC). */
   doneAt: string | null;
+  /** 결과 자동 노출 when the spin started (absent on older records = on), and when ✓ 결과 공개 was pressed. */
+  autoReveal?: boolean;
+  revealedAt?: string | null;
 };
 
-type Store = { spins: RouletteSpin[]; paused: Record<string, boolean>; seq: number };
+type Store = { spins: RouletteSpin[]; paused: Record<string, boolean>; seq: number; hidden?: Record<string, boolean> };
 
 /** Index by integer percents (they add up to 100). `rand(n)` returns 0..n-1. */
 export function drawIndex(items: { percent: number }[], rand: (n: number) => number = randomInt) {
@@ -80,21 +83,30 @@ function seed(now = Date.now()): Store {
   return {
     spins: [spin(24088, "미션마스터", 20_000, 40, 2), spin(24089, "행운가득", 10_000, 30, 0), spin(24090, "룰렛장인", 10_000, 6, null), spin(24091, "오늘도행운", 30_000, 3, null)],
     paused: {},
+    hidden: {},
     seq: 24091
   };
 }
 
 const g = globalThis as typeof globalThis & { __funationMockRouletteV1?: Store };
 export const mockRoulette = (g.__funationMockRouletteV1 ??= seed());
+mockRoulette.hidden ??= {};
+
+/** 위젯 화면 숨기기 per channel. */
+export const isHidden = (channelId: string) => mockRoulette.hidden?.[channelId] === true;
 
 const settings = (): RouletteSettings => readWidget("ROULETTE");
 
+/** When the result went on screen: right after the spin, or at ✓ 결과 공개 when 결과 자동 노출 was off. */
+const shownFrom = (s: RouletteSpin) => (s.autoReveal === false ? (s.revealedAt ? Date.parse(s.revealedAt) : null) : Date.parse(s.startedAt!) + s.spinMs);
+
 export function statusOf(s: RouletteSpin, now = Date.now()): RouletteSpinStatus {
   if (!s.startedAt) return "QUEUED";
-  const t = now - Date.parse(s.startedAt);
-  if (t < s.spinMs) return "SPINNING";
-  if (s.doneAt || t >= s.spinMs + ROULETTE_RESULT_SEC * 1000) return "DONE";
-  return "RESULT";
+  if (now - Date.parse(s.startedAt) < s.spinMs) return "SPINNING";
+  if (s.doneAt) return "DONE";
+  const from = shownFrom(s);
+  if (from === null) return "WAITING";
+  return now - from < ROULETTE_RESULT_SEC * 1000 ? "RESULT" : "DONE";
 }
 
 const ofChannel = (channelId: string) => mockRoulette.spins.filter((s) => s.channelId === channelId);
@@ -102,8 +114,11 @@ const queued = (channelId: string) => ofChannel(channelId).filter((s) => !s.star
 const active = (channelId: string, now: number) => ofChannel(channelId).find((s) => s.startedAt && statusOf(s, now) !== "DONE") ?? null;
 
 export function startSpin(s: RouletteSpin, now = Date.now()) {
+  const st = settings();
   s.startedAt = new Date(now).toISOString();
-  s.spinMs = settings().spinSec * 1000;
+  s.spinMs = st.spinSec * 1000;
+  s.autoReveal = st.autoReveal;
+  s.revealedAt = null;
 }
 
 /** 자동 시작: the oldest waiting spin starts once the wheel is free (unless 일시정지). */
@@ -154,9 +169,9 @@ export function stageOf(channelId: string, now = Date.now()): RouletteStage | nu
   advance(channelId, now);
   const s = active(channelId, now);
   if (!s) return null;
-  const status = statusOf(s, now) as "SPINNING" | "RESULT";
-  const start = Date.parse(s.startedAt!);
-  const endsAt = status === "SPINNING" ? start + s.spinMs : start + s.spinMs + ROULETTE_RESULT_SEC * 1000;
+  const status = statusOf(s, now) as "SPINNING" | "WAITING" | "RESULT";
+  const spinEnd = Date.parse(s.startedAt!) + s.spinMs;
+  const endsAt = status === "RESULT" ? (shownFrom(s) as number) + ROULETTE_RESULT_SEC * 1000 : spinEnd;
   return { id: s.id, no: rouletteNo(s.seq), status, donor: s.donor, amount: s.amount, items: s.items, nth: s.nth, limit: s.limit, result: revealed(s, now), endsAt: new Date(endsAt).toISOString() };
 }
 

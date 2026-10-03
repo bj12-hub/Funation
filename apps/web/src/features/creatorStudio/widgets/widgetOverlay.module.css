@@ -514,3 +514,7 @@
   background: rgb(255 255 255 / 20%);
   font-size: 13px;
 }
+
+.rouletteWheel[data-stopped] {
+  animation: none;
+}

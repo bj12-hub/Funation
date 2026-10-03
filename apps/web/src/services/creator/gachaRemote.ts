@@ -3,7 +3,7 @@
 import { USE_MOCK } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
-import { channelRows, mockGacha, stageOf, statusOf } from "@/services/donations/gachaCore";
+import { channelRows, isHidden, mockGacha, stageOf, statusOf } from "@/services/donations/gachaCore";
 import type { GachaControlResult, GachaRemoteView } from "@/services/donations/gachaTypes";
 
 /**
@@ -21,7 +21,7 @@ const studioDraw = (id: unknown) => mockGacha.draws.find((d) => d.channelId === 
 export async function getGachaRemote(): Promise<GachaRemoteView | null> {
   assertMock();
   if (!(await getCreatorSession())) return null;
-  return { stage: stageOf(STUDIO_CHANNEL), ...channelRows(STUDIO_CHANNEL) };
+  return { stage: stageOf(STUDIO_CHANNEL), ...channelRows(STUDIO_CHANNEL), hidden: isHidden(STUDIO_CHANNEL) };
 }
 
 /** ✓ 완료: a shown result leaves the 뽑기 overlay now (the next draw can start). */
@@ -34,6 +34,16 @@ export async function finishGachaDraw(input: unknown): Promise<GachaControlResul
   if (status === "DONE") return { status: "SAVED" };
   if (status !== "RESULT") return { status: "INVALID", message: "결과가 나온 뒤 완료할 수 있어요." };
   draw.doneAt = new Date().toISOString();
+  return { status: "SAVED" };
+}
+
+/** 화면 숨기기: the 뽑기 overlay shows nothing while draws go on. */
+export async function setGachaHidden(input: unknown): Promise<GachaControlResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const hidden = (input as { hidden?: unknown } | null)?.hidden;
+  if (typeof hidden !== "boolean") return { status: "INVALID", message: "요청 정보를 확인해 주세요." };
+  mockGacha.hidden = { ...mockGacha.hidden, [STUDIO_CHANNEL]: hidden };
   return { status: "SAVED" };
 }
 

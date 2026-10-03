@@ -271,7 +271,8 @@ function Vote({ data }: { data: Extract<OverlayWidget, { widget: "vote" }> }) {
 
 /**
  * 룰렛 (펀페이 1009:199 SPINNING · 1009:181 RESULT): the wheel turns until the server reveals the result,
- * which stays for a few seconds. Prizes are the creator's (no FN).
+ * which stays for a few seconds. With 결과 자동 노출 off the wheel stops (WAITING) until ✓ 결과 공개.
+ * Prizes are the creator's (no FN).
  */
 function Roulette({ data }: { data: Extract<OverlayWidget, { widget: "roulette" }> }) {
   const s = data.stage;
@@ -283,17 +284,17 @@ function Roulette({ data }: { data: Extract<OverlayWidget, { widget: "roulette" 
         <span>룰렛</span>
         <b>{s.status}</b>
       </div>
-      {s.status === "SPINNING" || s.result === null ? (
+      {s.status !== "RESULT" || s.result === null ? (
         <div className={styles.rouletteBody}>
-          <span className={styles.rouletteWheel} style={{ background: wheelGradient(s.items) }} aria-hidden="true" />
+          <span className={styles.rouletteWheel} data-stopped={s.status === "WAITING" || undefined} style={{ background: wheelGradient(s.items) }} aria-hidden="true" />
           <div className={styles.rouletteText}>
             <span className={styles.rouletteItems}>{s.items.map((it) => it.name).join(" · ")}</span>
-            <strong>룰렛이 돌아가고 있어요!</strong>
+            <strong>{s.status === "WAITING" ? "룰렛이 멈췄어요!" : "룰렛이 돌아가고 있어요!"}</strong>
             <span>
               {s.donor} · {formatNumber(s.amount)} FN
             </span>
             <span className={styles.rouletteMeta}>
-              {count} · 결과 계산 중
+              {count} · {s.status === "WAITING" ? "결과 공개 대기" : "결과 계산 중"}
             </span>
           </div>
         </div>

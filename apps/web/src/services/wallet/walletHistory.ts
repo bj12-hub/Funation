@@ -100,7 +100,7 @@ function gameResultOf(id: string): string | null {
   const spin = spinState(id);
   if (spin) {
     if (spin.result !== null) return isBlankPrize(spin.result) ? "룰렛 결과 · 꽝" : `룰렛 결과 · ${spin.result} 당첨`;
-    return spin.status === "QUEUED" ? "룰렛 대기 중" : "룰렛 회전 중";
+    return spin.status === "QUEUED" ? "룰렛 대기 중" : spin.status === "WAITING" ? "룰렛 결과 대기" : "룰렛 회전 중";
   }
   const draw = drawState(id);
   if (draw) {

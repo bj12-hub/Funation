@@ -345,6 +345,8 @@ export type RouletteSettings = {
   spinSec: number;
   /** 룰렛 자동 시작: the next participation spins as soon as the wheel is free; off = 리모컨 ▶ 시작. */
   autoStart: boolean;
+  /** 결과 자동 노출 (펀페이 1009:355): off = the wheel stops and waits for 리모컨 ✓ 결과 공개. */
+  autoReveal: boolean;
 };
 
 // ── PR 4: 뽑기 후원 · 벽지 ────────────────────────────────────────────────────────
@@ -641,7 +643,8 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
       { id: "rl-mission", name: "미션", percent: 10 }
     ],
     spinSec: 5,
-    autoStart: false
+    autoStart: false,
+    autoReveal: true
   },
   WALLPAPER: {
     layout: "BASIC",

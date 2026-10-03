@@ -56,6 +56,14 @@ export function RouletteForm({ value: v, onChange }: FormProps<"ROULETTE">) {
           <Row label="회전 시간">
             <NumberField label="회전 시간" value={v.spinSec} max={ROULETTE_SPIN_SEC.max} suffix={`초 (${ROULETTE_SPIN_SEC.min}~${ROULETTE_SPIN_SEC.max})`} onChange={(x) => set("spinSec", x)} />
           </Row>
+          <Row label="결과 자동 노출">
+            <SwitchText
+              label="결과 자동 노출"
+              checked={v.autoReveal}
+              onChange={(x) => set("autoReveal", x)}
+              text={v.autoReveal ? "룰렛이 멈추면 바로 결과가 보여요" : "리모컨에서 ✓ 결과 공개를 눌러야 보여요"}
+            />
+          </Row>
           <Row label="자동 시작">
             <SwitchText
               label="룰렛 자동 시작"
