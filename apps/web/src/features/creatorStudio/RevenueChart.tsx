@@ -34,7 +34,8 @@ function smoothPath(points: { x: number; y: number }[]) {
  * Figma 287:38 기간별 수익 그래프 — smooth area chart (purple line, gradient fill, labelled points).
  * The design draws it from ~150 rectangles; this is a plain SVG built from the server series.
  */
-export function RevenueChart({ series }: { series: { label: string; amount: number }[] }) {
+/** `fillId` must be unique on the page (two charts would otherwise share one gradient). */
+export function RevenueChart({ series, fillId = "revenue-fill" }: { series: { label: string; amount: number }[]; fillId?: string }) {
   if (series.length === 0) {
     return <p className={styles.chartEmpty}>표시할 후원 수익이 없습니다.</p>;
   }
@@ -55,7 +56,7 @@ export function RevenueChart({ series }: { series: { label: string; amount: numb
   return (
     <svg className={styles.chart} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`기간별 수익: ${series.map((s) => `${s.label} ${won(s.amount)}`).join(", ")}`}>
       <defs>
-        <linearGradient id="revenue-fill" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="rgba(139,92,246,0.3)" />
           <stop offset="100%" stopColor="rgba(139,92,246,0.01)" />
         </linearGradient>
@@ -68,7 +69,7 @@ export function RevenueChart({ series }: { series: { label: string; amount: numb
           </text>
         </g>
       ))}
-      <path d={area} fill="url(#revenue-fill)" />
+      <path d={area} fill={`url(#${fillId})`} />
       <path d={line} className={styles.chartLine} />
       {points.map((p, i) => (
         <g key={series[i].label}>

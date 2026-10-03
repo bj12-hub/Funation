@@ -42,13 +42,13 @@ export function RevenueScreen({ data }: { data: RevenueOverview }) {
               {data.daily[0].label} ~ {data.daily[data.daily.length - 1].label} (최근 30일)
             </p>
             <div className={studio.chartArea}>
-              <RevenueChart series={data.daily} />
+              <RevenueChart series={data.daily} fillId="revenue-fill-daily" />
             </div>
           </SummaryCard>
           <SummaryCard title="월별 수익 추이" href="/creator/settlement/manage" linkLabel="정산 관리">
             <p className={styles.range}>최근 6개월</p>
             <div className={studio.chartArea}>
-              <RevenueChart series={data.monthly} />
+              <RevenueChart series={data.monthly} fillId="revenue-fill-monthly" />
             </div>
           </SummaryCard>
           <TopDonorsCard donors={data.topDonors} />

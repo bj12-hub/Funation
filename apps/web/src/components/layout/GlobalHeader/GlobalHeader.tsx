@@ -104,7 +104,8 @@ export function GlobalHeader({ user, showMenuButton = true, onMenuClick, creator
           className={`${styles.menuButton} ${styles.mobileOnly}`}
           aria-label={t(mobileOpen ? "common.closeMenu" : "common.openMenu")}
           aria-expanded={mobileOpen}
-          aria-controls="global-mobile-nav"
+          // The menu is only rendered while open.
+          aria-controls={mobileOpen ? "global-mobile-nav" : undefined}
           onClick={() => setMobileOpen((v) => !v)}
         >
           <span className={styles.menuBar} />

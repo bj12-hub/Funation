@@ -34,7 +34,7 @@ export function UpdatesScreen({ view }: { view: UpdatesView }) {
             const expanded = open === p.id;
             return (
               <li key={p.id} className={styles.card}>
-                <button type="button" className={local.head} aria-expanded={expanded} aria-controls={`${p.id}-body`} onClick={() => setOpen(expanded ? null : p.id)}>
+                <button type="button" className={local.head} aria-expanded={expanded} aria-controls={expanded ? `${p.id}-body` : undefined} onClick={() => setOpen(expanded ? null : p.id)}>
                   <span className={local.titleRow}>
                     {p.unread && <span className={local.new}>NEW</span>}
                     <strong className={styles.cardTitle}>{p.title}</strong>
