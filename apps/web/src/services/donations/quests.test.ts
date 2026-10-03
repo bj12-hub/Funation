@@ -27,7 +27,6 @@ const quest = (n: number, creatorId: string, creatorDecides: boolean, extra: Rec
   type: "QUEST",
   title: `퀘스트 ${n}`,
   successReward: 10_000,
-  cancelAmount: 0,
   timeLimitSec: 600,
   creatorDecides,
   termsAgreed: true,
@@ -78,10 +77,9 @@ describe("퀘스트 후원 결과", () => {
     expect(await m.decideMyQuest({ id: sent.donationId, outcome: "FAILED" })).toEqual({ status: "UNAUTHORIZED" });
   });
 
-  it("drops the 실패 금액 from the request and checks the 취소 금액", async () => {
+  it("has no 실패 · 취소 금액 (a failure or a cancel refunds everything)", async () => {
     const m = await load();
-    expect((await m.requestDonation(quest(1, "c1", true, { cancelAmount: 20_000 }))).status).toBe("INVALID");
-    const sent = await m.requestDonation(quest(2, "c1", true, { failAmount: 5_000 }));
+    const sent = await m.requestDonation(quest(2, "c1", true, { failAmount: 5_000, cancelAmount: 20_000 }));
     expect(sent.status).toBe("COMPLETED");
     expect(m.mockQuests.items[0]).toMatchObject({ title: "퀘스트 2", amount: 10_000, status: "IN_PROGRESS", creatorDecides: true });
   });
@@ -93,12 +91,15 @@ describe("크리에이터의 퀘스트 결정", () => {
   it("decides quests sent to the studio when 크리에이터 성공 결정 is on, and refunds on FAILED", async () => {
     const m = await load();
     const list = async () => (await m.getReceivedDonations({ kind: "quest", period: range, status: "ALL", query: "", page: 1 }))!.items;
-    const running = (await list()).filter((d) => d.canDecide);
-    expect(running.map((d) => d.status)).toEqual(["IN_PROGRESS", "IN_PROGRESS"]);
+    const running = (await list()).filter((d) => d.questActions?.length);
+    expect(running.map((d) => [d.status, d.questActions])).toEqual([
+      ["IN_PROGRESS", ["SUCCESS", "FAILED", "CANCELED"]],
+      ["IN_PROGRESS", ["SUCCESS", "FAILED", "CANCELED"]]
+    ]);
     const target = running[0];
     expect(await m.decideReceivedQuest({ id: target.id, outcome: "FAILED" })).toEqual({ status: "OK", questStatus: "FAILED", refundedFn: target.amount });
     expect(await m.decideReceivedQuest({ id: target.id, outcome: "SUCCESS" })).toEqual({ status: "ALREADY_DECIDED", questStatus: "FAILED" });
-    expect((await list()).find((d) => d.id === target.id)).toMatchObject({ status: "FAILED", canDecide: false });
+    expect((await list()).find((d) => d.id === target.id)).toMatchObject({ status: "FAILED", questActions: [] });
     expect(await m.decideReceivedQuest({ id: "nope", outcome: "SUCCESS" })).toEqual({ status: "NOT_FOUND" });
     signIn(["SUPPORTER"]);
     expect(await m.decideReceivedQuest({ id: running[1].id, outcome: "SUCCESS" })).toEqual({ status: "UNAUTHORIZED" });
@@ -115,7 +116,31 @@ describe("크리에이터의 퀘스트 결정", () => {
     expect(await m.decideMyQuest({ id: sent.donationId, outcome: "FAILED" })).toMatchObject({ status: "OK", refundedFn: 10_000 });
     expect(m.account.fnBalance).toBe(100_000);
     const row = (await m.getReceivedDonations({ kind: "quest", period: range, status: "FAILED", query: "", page: 1 }))!.items.find((d) => d.id === sent.donationId);
-    expect(row).toMatchObject({ status: "FAILED", canDecide: false });
+    expect(row).toMatchObject({ status: "FAILED", questActions: [] });
+  });
+
+  it("lets the creator cancel any running quest with a full refund (2026-10-04 결정), once", async () => {
+    const m = await load();
+    const c1 = (await m.creators.getCreatorById("c1"))!;
+    vi.spyOn(m.creators, "getCreatorById").mockResolvedValue({ ...c1, id: "studio" });
+    const sent = await m.requestDonation(quest(1, "studio", false));
+    if (sent.status !== "COMPLETED") throw new Error(sent.status);
+    const before = (await m.getReceivedDonations({ kind: "quest", period: range, status: "ALL", query: "", page: 1 }))!.items.find((d) => d.id === sent.donationId)!;
+    expect(before.questActions).toEqual(["CANCELED"]); // the supporter decides 성공 · 실패
+    expect(await m.decideMyQuest({ id: sent.donationId, outcome: "CANCELED" })).toEqual({ status: "INVALID" }); // only the creator cancels
+    expect(await m.decideReceivedQuest({ id: sent.donationId, outcome: "CANCELED" })).toEqual({ status: "OK", questStatus: "CANCELED", refundedFn: 10_000 });
+    expect(await m.decideReceivedQuest({ id: sent.donationId, outcome: "CANCELED" })).toEqual({ status: "OK", questStatus: "CANCELED", refundedFn: 10_000 });
+    expect(await m.decideMyQuest({ id: sent.donationId, outcome: "SUCCESS" })).toEqual({ status: "ALREADY_DECIDED", questStatus: "CANCELED" });
+    expect(m.account.fnBalance).toBe(100_000);
+    expect(m.walletStore.donations.find((d) => d.id === sent.donationId)!.status).toBe("REFUNDED");
+  });
+
+  it("keeps a quest past its time limit running until someone decides (2026-10-04 결정)", async () => {
+    const m = await load();
+    const q = m.mockQuests.items.find((x) => x.status === "IN_PROGRESS")!;
+    q.createdAt = new Date(Date.now() - (q.timeLimitSec + 3_600) * 1000).toISOString();
+    const row = (await m.getReceivedDonations({ kind: "quest", period: range, status: "IN_PROGRESS", query: "", page: 1 }))!.items.find((d) => d.id === q.id);
+    expect(row).toMatchObject({ status: "IN_PROGRESS", questActions: ["SUCCESS", "FAILED", "CANCELED"] });
   });
 
   it("shows the running quests on the 퀘스트 overlay", async () => {

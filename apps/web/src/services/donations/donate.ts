@@ -225,15 +225,15 @@ function parse(input: unknown, catalog: DonationCatalog): Parsed | null {
     }
     case "QUEST": {
       const title = text(v.title, game.maxText, true);
-      const { successReward, cancelAmount } = v;
-      // A failed quest refunds the whole amount (2026-10-04 결정), so there is no 실패 금액. TBD: 취소 금액 rules.
-      const rewardsOk = isFn(successReward, game.minAmount) && isFn(cancelAmount) && cancelAmount <= successReward;
+      const { successReward } = v;
+      // A failed or cancelled quest refunds the whole amount (2026-10-04 결정): no 실패 · 취소 금액.
+      const rewardsOk = isFn(successReward, game.minAmount);
       if (!title || !rewardsOk || !timeOk(v.timeLimitSec) || typeof v.creatorDecides !== "boolean" || v.termsAgreed !== true) return null;
       return {
         ...common,
         amount: successReward,
         summary: `퀘스트: ${title}`,
-        details: { title, successReward, cancelAmount, timeLimitSec: v.timeLimitSec, creatorDecides: v.creatorDecides }
+        details: { title, successReward, timeLimitSec: v.timeLimitSec, creatorDecides: v.creatorDecides }
       };
     }
     case "DRAWING": {

@@ -14,7 +14,7 @@ import { CsvExportButton } from "./CsvExportButton";
 import { YearSelect } from "./YearSelect";
 import styles from "./donations.module.css";
 
-const STATUS_CLASS = { SUCCESS: styles.badgeSuccess, IN_PROGRESS: styles.badgeProgress, FAILED: styles.badgeFailed } as const;
+const STATUS_CLASS = { SUCCESS: styles.badgeSuccess, IN_PROGRESS: styles.badgeProgress, FAILED: styles.badgeFailed, CANCELED: styles.badgeFailed } as const;
 const WINDOW = 5;
 
 function formatAt(iso: string) {
@@ -113,7 +113,7 @@ export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
                 후원금액
               </th>
               <th scope="col">내용</th>
-              <th scope="col" className={styles.right} style={{ width: kind === "quest" ? 170 : 120 }}>
+              <th scope="col" className={styles.right} style={{ width: kind === "quest" ? 250 : 120 }}>
                 {kindInfo.column}
               </th>
             </tr>
@@ -140,8 +140,8 @@ export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
                     <span className={styles.ellipsis}>{d.message}</span>
                   </td>
                   <td className={styles.right}>
-                    {d.canDecide ? (
-                      <QuestDecide id={d.id} decide={decideReceivedQuest} />
+                    {d.questActions?.length ? (
+                      <QuestDecide id={d.id} decide={decideReceivedQuest} actions={d.questActions} />
                     ) : d.status ? (
                       <span className={`${styles.badge} ${STATUS_CLASS[d.status]}`}>{QUEST_STATUSES.find((s) => s.key === d.status)?.label}</span>
                     ) : (

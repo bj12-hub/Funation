@@ -3,12 +3,17 @@ import type { QuestStatus } from "@/services/creator/donationManagementTypes";
 /**
  * 퀘스트 후원 결과 (code-first). Who decides follows the 결정 권한 table of the quest widget (Figma): the
  * supporter who sent it can always decide; the creator too when "크리에이터 성공 결정" was on. A failed
- * quest refunds the whole amount (2026-10-04 결정).
+ * quest refunds the whole amount, and so does a quest the creator cancels (2026-10-04 결정). A quest past its
+ * time limit keeps running until someone decides (2026-10-04 결정).
  * Client-safe types only.
  */
 export const QUEST_OUTCOMES = ["SUCCESS", "FAILED"] as const;
 export type QuestOutcome = (typeof QUEST_OUTCOMES)[number];
 export const isQuestOutcome = (v: unknown): v is QuestOutcome => QUEST_OUTCOMES.includes(v as QuestOutcome);
+
+/** What a decider can do: a result, or 취소 (creator only). */
+export type QuestAction = QuestOutcome | "CANCELED";
+export const isQuestAction = (v: unknown): v is QuestAction => isQuestOutcome(v) || v === "CANCELED";
 
 export type QuestDecideResult =
   | { status: "OK"; questStatus: QuestStatus; refundedFn: number }

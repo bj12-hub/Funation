@@ -2,13 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import type { QuestDecideResult, QuestOutcome } from "@/services/donations/questTypes";
+import type { QuestAction, QuestDecideResult } from "@/services/donations/questTypes";
 import styles from "./questDecide.module.css";
 
-const CONFIRM: Record<QuestOutcome, string> = {
+const CONFIRM: Record<QuestAction, string> = {
   SUCCESS: "퀘스트를 성공으로 정할까요? 정한 결과는 바꿀 수 없어요.",
-  FAILED: "퀘스트를 실패로 정할까요? 후원한 FN은 후원자에게 전액 환불되고, 정한 결과는 바꿀 수 없어요."
+  FAILED: "퀘스트를 실패로 정할까요? 후원한 FN은 후원자에게 전액 환불되고, 정한 결과는 바꿀 수 없어요.",
+  CANCELED: "퀘스트를 취소할까요? 후원한 FN은 후원자에게 전액 환불되고, 되돌릴 수 없어요."
 };
+
+const LABEL: Record<QuestAction, string> = { SUCCESS: "성공", FAILED: "실패 · 환불", CANCELED: "취소 · 환불" };
 
 const FAIL_TEXT: Record<Exclude<QuestDecideResult["status"], "OK">, string> = {
   ALREADY_DECIDED: "이미 다른 결과로 정해진 퀘스트예요.",
@@ -19,14 +22,22 @@ const FAIL_TEXT: Record<Exclude<QuestDecideResult["status"], "OK">, string> = {
 };
 
 /**
- * 퀘스트 결과 버튼 (code-first): 성공 / 실패 · 환불, each confirmed first. `decide` is the server action of
- * the side that is deciding (the creator's 받은 후원 or the supporter's 후원 내역).
+ * 퀘스트 결과 버튼 (code-first): 성공 / 실패 · 환불 / 취소 · 환불 (`actions`), each confirmed first. `decide` is
+ * the server action of the side that is deciding (the creator's 받은 후원 or the supporter's 후원 내역).
  */
-export function QuestDecide({ id, decide }: { id: string; decide: (input: { id: string; outcome: QuestOutcome }) => Promise<QuestDecideResult> }) {
+export function QuestDecide({
+  id,
+  decide,
+  actions = ["SUCCESS", "FAILED"]
+}: {
+  id: string;
+  decide: (input: { id: string; outcome: QuestAction }) => Promise<QuestDecideResult>;
+  actions?: QuestAction[];
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const run = (outcome: QuestOutcome) => {
+  const run = (outcome: QuestAction) => {
     if (!window.confirm(CONFIRM[outcome])) return;
     startTransition(async () => {
       setError(null);
@@ -42,12 +53,11 @@ export function QuestDecide({ id, decide }: { id: string; decide: (input: { id: 
   return (
     <span className={styles.wrap}>
       <span className={styles.buttons}>
-        <button type="button" className={styles.success} disabled={pending} onClick={() => run("SUCCESS")}>
-          성공
-        </button>
-        <button type="button" className={styles.fail} disabled={pending} onClick={() => run("FAILED")}>
-          실패 · 환불
-        </button>
+        {actions.map((a) => (
+          <button key={a} type="button" className={a === "SUCCESS" ? styles.success : styles.fail} disabled={pending} onClick={() => run(a)}>
+            {LABEL[a]}
+          </button>
+        ))}
       </span>
       {error && (
         <span className={styles.error} role="alert">
