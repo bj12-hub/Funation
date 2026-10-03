@@ -6,7 +6,9 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { formatNumber } from "@/lib/format";
 import { addTestDrawing, deleteDrawing, saveDrawingSettings, setDrawingShowing } from "@/services/creator/media";
 import { MEDIA_LIMITS, type DrawingView, type MediaResult } from "@/services/creator/mediaTypes";
+import type { OverlayTarget } from "@/services/creator/alertTypes";
 import styles from "../../crew/crew.module.css";
+import { OverlayOffNotice } from "../../remote/OverlayOffNotice";
 import { CopyButton } from "../../settings/SettingsCards";
 import local from "./media.module.css";
 
@@ -14,7 +16,7 @@ import local from "./media.module.css";
  * 그림후원 위젯 — code-first (no Figma frame). Route `/creator/widgets/drawing`.
  * A new 그림 후원 goes on the OBS drawing overlay for the 전시 시간; the creator can show any again.
  */
-export function DrawingScreen({ view, overlayPath }: { view: DrawingView; overlayPath: string }) {
+export function DrawingScreen({ view, overlayPath, switches }: { view: DrawingView; overlayPath: string; switches: Record<OverlayTarget, boolean> }) {
   const router = useRouter();
   const [displaySec, setDisplaySec] = useState(view.settings.displaySec);
   const [note, setNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
@@ -57,6 +59,7 @@ export function DrawingScreen({ view, overlayPath }: { view: DrawingView; overla
           <Link href="/creator/widgets">← 위젯</Link>
         </p>
       </header>
+      <OverlayOffNotice targets={["drawing"]} switches={switches} />
 
       <section className={styles.card} aria-labelledby="drw-overlay">
         <div className={styles.cardHead}>

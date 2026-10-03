@@ -97,7 +97,7 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 방송 · 위젯 | W07 | 영상 후원 | `/creator/widgets/video` | `66:2322` |
 | 방송 · 위젯 | W08 | 그림후원 | `/creator/widgets/drawing` | `66:2498` |
 | 방송 · 위젯 | W09 | 이미지·사운드 | `/creator/widgets/assets` | `66:2653` |
-| 방송 · 위젯 | W10 | 배너 | `/creator/widgets/banner` | `66:2782` |
+| 방송 · 위젯 | W10 | 배너 (기능 제어 OFF 안내 · 배너 OFF 예시) | `/creator/widgets/banner` | `66:2782` |
 | 방송 · 위젯 | W11 | 후원 연동 | `/creator/widgets/link` | `67:2520` |
 | 크루 방송 | Y03 | 크루 관리 | `/creator/crew` | `67:2696` |
 | 크루 방송 | Y04 | 크루 방송 운영 (방송 전 · 시나리오 편집) | `/creator/crew/broadcast` | `116:3886` |

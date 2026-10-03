@@ -7,7 +7,9 @@ import { formatNumber } from "@/lib/format";
 import { addTestVideo, controlVideo, saveVideoSettings } from "@/services/creator/media";
 import { videoThumbUrl } from "@/services/creator/videoThumb";
 import { MEDIA_LIMITS, type MediaResult, type VideoQueueView, type VideoRequest, type VideoSettings } from "@/services/creator/mediaTypes";
+import type { OverlayTarget } from "@/services/creator/alertTypes";
 import styles from "../../crew/crew.module.css";
+import { OverlayOffNotice } from "../../remote/OverlayOffNotice";
 import { CopyButton } from "../../settings/SettingsCards";
 import local from "./media.module.css";
 
@@ -18,7 +20,7 @@ const STATUS_LABEL = { DONE: "재생 완료", SKIPPED: "건너뜀" } as const;
  * 영상 후원 위젯 — code-first (no Figma frame). Route `/creator/widgets/video`.
  * 영상 후원 requests wait in a server queue; the OBS video overlay plays whatever the server says is on.
  */
-export function VideoScreen({ view, overlayPath }: { view: VideoQueueView; overlayPath: string }) {
+export function VideoScreen({ view, overlayPath, switches }: { view: VideoQueueView; overlayPath: string; switches: Record<OverlayTarget, boolean> }) {
   const router = useRouter();
   const [settings, setSettings] = useState<VideoSettings>(view.settings);
   const [test, setTest] = useState({ url: "", startSec: 0, endSec: 30 });
@@ -72,6 +74,7 @@ export function VideoScreen({ view, overlayPath }: { view: VideoQueueView; overl
           <Link href="/creator/widgets">← 위젯</Link>
         </p>
       </header>
+      <OverlayOffNotice targets={["video"]} switches={switches} />
 
       <section className={styles.card} aria-labelledby="vid-overlay">
         <div className={styles.cardHead}>

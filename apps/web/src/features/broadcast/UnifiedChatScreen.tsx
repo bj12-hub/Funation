@@ -46,6 +46,8 @@ import {
 } from "@/services/broadcast/chatTypes";
 import { PLATFORM_ERROR_LABEL } from "@/services/platforms/platformTypes";
 import { PLATFORM_LABEL, type Platform } from "@/types/platform";
+import type { OverlayTarget } from "@/services/creator/alertTypes";
+import { OverlayOffNotice } from "../creatorStudio/remote/OverlayOffNotice";
 import crew from "../creatorStudio/crew/crew.module.css";
 import { CopyButton } from "../creatorStudio/settings/SettingsCards";
 import styles from "./chat.module.css";
@@ -63,7 +65,7 @@ type Filter = Platform | "ALL";
  * ban on the platform where its API allows it. `variant="window"` is the same chat as a standalone page
  * (`/popout/chat`): feed and composer only, filling the window.
  */
-export function UnifiedChatScreen({ initial, variant = "studio" }: { initial: UnifiedChatView; variant?: "studio" | "window" }) {
+export function UnifiedChatScreen({ initial, variant = "studio", switches }: { initial: UnifiedChatView; variant?: "studio" | "window"; switches?: Record<OverlayTarget, boolean> }) {
   const [view, setView] = useState(initial);
   const [note, setNote] = useState<Note>(null);
   const [pending, startTransition] = useTransition();
@@ -125,6 +127,7 @@ export function UnifiedChatScreen({ initial, variant = "studio" }: { initial: Un
           방송 화면용 채팅창은 <Link href="/creator/widgets/overlays">오버레이 주소</Link>의 &lsquo;통합 채팅&rsquo;을 OBS에 넣어요 · 숨김은 오버레이에서만 가리고, 삭제 · 차단은 플랫폼에서 처리돼요 · 플랫폼마다 지원 범위가 달라요.
         </p>
       </header>
+      {switches && <OverlayOffNotice targets={["chat"]} switches={switches} />}
 
       <section className={crew.card} aria-labelledby="uc-window">
         <div className={crew.cardHead}>

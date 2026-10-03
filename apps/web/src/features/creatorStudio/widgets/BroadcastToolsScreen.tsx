@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { formatNumber } from "@/lib/format";
 import { adjustTimer, configureTimer, controlCredits, controlTimer, saveCredits, saveMarquee, saveSubtitle } from "@/services/creator/broadcastTools";
+import type { OverlayTarget } from "@/services/creator/alertTypes";
 import {
   CREDITS_LINES_MAX,
   MARQUEE_LINES_MAX,
@@ -19,6 +20,7 @@ import {
   type ToolsView
 } from "@/services/creator/broadcastToolTypes";
 import styles from "../crew/crew.module.css";
+import { OverlayOffNotice } from "../remote/OverlayOffNotice";
 import { signedSec } from "../remote/ToolsRemote";
 import { CopyButton } from "../settings/SettingsCards";
 import { clock, timerSeconds } from "./timerMath";
@@ -30,7 +32,7 @@ const lines = (s: string) => s.split("\n").map((l) => l.trim()).filter(Boolean);
  * 전광판 · 타이머 · 엔딩 크레딧; each card shows its OBS overlay URL. The server owns every state
  * (the overlay polls it), so this screen only sends changes.
  */
-export function BroadcastToolsScreen({ view, overlayKey }: { view: ToolsView; overlayKey: string }) {
+export function BroadcastToolsScreen({ view, overlayKey, switches }: { view: ToolsView; overlayKey: string; switches: Record<OverlayTarget, boolean> }) {
   const router = useRouter();
   const { states } = view;
   const [subtitle, setSubtitle] = useState<SubtitleState>(states.subtitle);
@@ -106,6 +108,7 @@ export function BroadcastToolsScreen({ view, overlayKey }: { view: ToolsView; ov
           <Link href="/creator/widgets">← 후원위젯/알림설정</Link> · 오버레이 URL에는 연동 키가 들어 있어요. 외부에 공유하지 마세요.
         </p>
       </header>
+      <OverlayOffNotice targets={["subtitle", "marquee", "timer", "credits"]} switches={switches} />
 
       {card(
         "subtitle",

@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { saveEffectSettings } from "@/services/creator/effects";
 import { EFFECT_LIMITS, EMOJI_PRESETS, LAYER_EFFECTS, type EffectSettings, type LayerEffect } from "@/services/creator/effectsTypes";
+import type { OverlayTarget } from "@/services/creator/alertTypes";
 import styles from "../crew/crew.module.css";
+import { OverlayOffNotice } from "../remote/OverlayOffNotice";
 import { CopyButton } from "../settings/SettingsCards";
 import local from "./effects.module.css";
 
@@ -12,7 +14,7 @@ import local from "./effects.module.css";
  * 이모지 리액션 · 레이어 효과 설정 — code-first (no Figma frame). Route `/creator/widgets/effects`.
  * Effects play with each donation alert on the OBS effects overlay; triggers are channel settings.
  */
-export function EffectsScreen({ initial, overlayPath }: { initial: EffectSettings; overlayPath: string }) {
+export function EffectsScreen({ initial, overlayPath, switches }: { initial: EffectSettings; overlayPath: string; switches: Record<OverlayTarget, boolean> }) {
   const [s, setS] = useState<EffectSettings>(initial);
   const [note, setNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
@@ -50,6 +52,7 @@ export function EffectsScreen({ initial, overlayPath }: { initial: EffectSetting
           <Link href="/creator/widgets">← 위젯</Link> · 테스트는 <Link href="/creator/remote">리모컨</Link>의 테스트 후원으로 해 보세요.
         </p>
       </header>
+      <OverlayOffNotice targets={["effects"]} switches={switches} />
 
       <section className={styles.card} aria-labelledby="fx-overlay">
         <div className={styles.cardHead}>
