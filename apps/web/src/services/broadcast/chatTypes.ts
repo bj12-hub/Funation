@@ -81,3 +81,6 @@ export const SEND_OUTCOME_LABEL: Record<ChatSendOutcome["status"], string> = {
 };
 
 export const HIDDEN_LABEL: Record<ChatHiddenReason, string> = { MANUAL: "숨김", FILTER: "금칙어", DELETED: "삭제됨", BANNED: "차단됨" };
+
+/** 채팅창 링크: the chat as its own web page (no studio menu), for a second monitor, an OBS browser dock or a phone. */
+export const CHAT_WINDOW_PATH = "/popout/chat";
