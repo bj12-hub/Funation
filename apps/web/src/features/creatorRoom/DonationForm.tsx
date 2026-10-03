@@ -229,7 +229,9 @@ export function DonationForm({
           />
         )}
         {formKey === "LUCKYBOX" && <LuckyBoxFields value={states.LUCKYBOX} onChange={update("LUCKYBOX")} catalog={donation} />}
-        {formKey === "ROULETTE" && <RouletteFields value={states.ROULETTE} onChange={update("ROULETTE")} catalog={donation} error={null} />}
+        {formKey === "ROULETTE" && (
+          <RouletteFields value={states.ROULETTE} onChange={update("ROULETTE")} catalog={donation} error={draft?.error ?? null} creatorId={creatorId} signedIn={signedIn} />
+        )}
         {formKey === "QUEST" && <QuestFields value={states.QUEST} onChange={update("QUEST")} catalog={donation} error={draft?.error ?? null} />}
         {formKey === "DRAWING" && <DrawingFields value={states.DRAWING} onChange={update("DRAWING")} catalog={donation} error={draft?.error ?? null} />}
         {formKey === "QUIZ_CHOICE" && <QuizChoiceFields value={states.QUIZ_CHOICE} onChange={update("QUIZ_CHOICE")} catalog={donation} error={draft?.error ?? null} />}

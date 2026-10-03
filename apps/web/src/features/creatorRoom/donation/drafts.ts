@@ -16,7 +16,8 @@ export type WishlistState = { itemId: string | null; message: string; voiceId: s
 /** Each box has a stable id so React keys survive deletes. */
 export type LuckyState = { boxes: { id: number; winner: boolean }[]; selected: number | null; amount: string; terms: boolean };
 
-export type RouletteState = { tierKey: string };
+/** `limitReached` comes from the room's 룰렛 status (today's 참여 가능 횟수); the server checks again. */
+export type RouletteState = { amount: string; limitReached: boolean };
 /** Time limits are typed as minutes + seconds (867:* "10분 00초"). */
 export type TimeLimit = { minutes: string; seconds: string };
 export type QuestState = { title: string; success: string; time: TimeLimit; creatorDecides: boolean; terms: boolean };
@@ -62,8 +63,8 @@ export function initialStates(catalog: DonationCatalog): FormStates {
       amount: String(catalog.luckyBox.presets[1] ?? catalog.luckyBox.minAmount),
       terms: false
     },
-    // 867:2494 selects GOLD.
-    ROULETTE: { tierKey: catalog.roulette.tiers[1]?.key ?? catalog.roulette.tiers[0]?.key ?? "" },
+    // 펀페이 1009:510: the 참여 금액 starts at the minimum.
+    ROULETTE: { amount: String(catalog.roulette.minAmount), limitReached: false },
     QUEST: { title: "", success: "", time: { minutes: "10", seconds: "00" }, creatorDecides: true, terms: false },
     DRAWING: { amount: "", title: "", image: null, showProcess: true, canvasMode: false, terms: false },
     QUIZ_CHOICE: { question: "", options: ["", "", ""], correctIndex: 0, ...quizDefaults() },
@@ -248,14 +249,27 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
       };
     }
     case "ROULETTE": {
-      const tier = catalog.roulette.tiers.find((t) => t.key === states.ROULETTE.tierKey) ?? null;
+      const r = catalog.roulette;
+      const s = states.ROULETTE;
+      const amount = s.amount ? Number(s.amount) : null;
+      const error = !r.enabled
+        ? null
+        : s.limitReached
+          ? "오늘 참여 가능 횟수를 모두 사용했어요."
+          : amount !== null && amount < r.minAmount
+            ? `${formatNumber(r.minAmount)} FN 이상이어야 참여할 수 있어요.`
+            : null;
+      const ok = r.enabled && amount !== null && error === null;
       return {
-        details: tier ? { type: "ROULETTE", tierKey: tier.key } : null,
-        amount: tier?.amount ?? null,
-        error: null,
-        summary: [{ label: "룰렛", value: tier ? `${tier.label} 룰렛` : "-" }],
-        chatText: `🎡 ${tier?.label ?? ""} 룰렛`,
-        buttonLabel: tier ? `${tier.label} 룰렛 ${formatNumber(tier.amount)} FN 후원하기` : undefined
+        details: ok ? { type: "ROULETTE", amount } : null,
+        amount: ok ? amount : null,
+        error,
+        summary: [
+          { label: "룰렛", value: "참여 1회" },
+          { label: "당첨", value: "크리에이터 상품 (FN 지급 없음)" }
+        ],
+        chatText: "🎡 룰렛 참여",
+        buttonLabel: r.enabled ? `${formatNumber(amount ?? r.minAmount)} FN으로 참여하기` : "룰렛이 꺼져 있어요"
       };
     }
     case "QUEST": {

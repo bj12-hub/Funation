@@ -230,8 +230,113 @@
 }
 
 /* 퀘스트: 실패 시 전액 환불 안내 (2026-10-04 결정) */
-.refundNote {
+.gameNote {
   margin: 0;
   color: var(--color-text-secondary);
   font-size: var(--font-size-12);
+}
+
+/* ── 룰렛 (펀페이 1009:510 · 1009:323 · 1009:222 · 1009:473) ── */
+.rouletteOff {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 14px;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-8);
+  color: var(--color-text-primary);
+  text-align: center;
+}
+
+.rouletteOff p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-12);
+}
+
+.rouletteInfo {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+}
+
+.rouletteInfo div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: var(--radius-8);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.rouletteInfo dt {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-10);
+}
+
+.rouletteInfo dd {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+}
+
+.rouletteDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+}
+
+.myRoulette {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.myRoulette h3 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+}
+
+.myRoulette ul {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.myRoulette li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  font-size: var(--font-size-12);
+}
+
+.myRoulette strong {
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.myRoulette strong[data-status="RESULT"],
+.myRoulette strong[data-status="DONE"] {
+  color: var(--color-accent);
+}
+
+.rouletteNo {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

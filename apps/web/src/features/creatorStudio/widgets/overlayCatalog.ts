@@ -198,5 +198,15 @@ export const OVERLAYS: OverlayEntry[] = [
     size: "600 × 500",
     path: (k) => widgetOverlayPath("vote", k),
     manage: "/creator/remote"
+  },
+  {
+    id: "widget-roulette",
+    target: "widgets",
+    group: "알림",
+    title: "룰렛",
+    description: "룰렛 참여가 돌아가는 모습과 당첨 결과를 보여 줘요. 당첨은 크리에이터 상품이에요.",
+    size: "640 × 360",
+    path: (k) => widgetOverlayPath("roulette", k),
+    manage: "/creator/remote"
   }
 ];

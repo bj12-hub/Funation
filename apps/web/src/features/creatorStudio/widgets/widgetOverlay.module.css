@@ -317,3 +317,98 @@
   opacity: 0.35;
   transition: width 0.4s ease;
 }
+
+/* ── 룰렛 (펀페이 1009:199 SPINNING · 1009:181 RESULT, 640 × 360) ── */
+.roulette {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 600px;
+  margin: 12px;
+  padding: 20px 24px;
+  border: 3px solid #0ea5e9;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgb(15 23 42 / 92%), rgb(30 27 75 / 92%));
+  color: #ffffff;
+  font-weight: var(--font-weight-bold);
+}
+
+.roulette[data-status="RESULT"] {
+  border-color: #f5bf0a;
+  box-shadow: 0 0 28px rgb(245 191 10 / 35%);
+}
+
+.rouletteHead {
+  display: flex;
+  justify-content: space-between;
+  font-size: 16px;
+}
+
+.rouletteHead b {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 15%);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+}
+
+.rouletteBody {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.rouletteWheel {
+  flex-shrink: 0;
+  width: 150px;
+  height: 150px;
+  border: 5px solid #ffffff;
+  border-radius: 50%;
+  animation: rouletteSpin 0.8s linear infinite;
+}
+
+@keyframes rouletteSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rouletteWheel {
+    animation-duration: 4s;
+  }
+}
+
+.rouletteText,
+.rouletteResult {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 18px;
+}
+
+.rouletteText strong {
+  font-size: 26px;
+}
+
+.rouletteItems,
+.rouletteMeta {
+  color: rgb(255 255 255 / 70%);
+  font-size: 15px;
+}
+
+.rouletteResult {
+  align-items: center;
+  text-align: center;
+}
+
+.roulettePrize {
+  color: #f5bf0a;
+  font-size: 44px;
+  font-weight: var(--font-weight-black);
+}
+
+.rouletteResult b {
+  font-size: 14px;
+  letter-spacing: 0.2em;
+}

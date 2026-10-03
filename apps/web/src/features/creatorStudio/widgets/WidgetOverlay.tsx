@@ -7,6 +7,7 @@ import { formatNumber } from "@/lib/format";
 import { fillRank, fillTotal } from "@/services/creator/widgetOverlayCore";
 import type { OverlayWidget, WidgetFeedLine } from "@/services/creator/widgetOverlayTypes";
 import { rankItems, votePercent } from "@/services/votes/voteTypes";
+import { isBlankPrize, wheelGradient } from "@/services/donations/rouletteTypes";
 import { RECENT_PLATFORMS } from "@/services/creator/widgetSettingsTypes";
 import { PLATFORM_LABEL } from "@/types/platform";
 import { useReloadSignal } from "../remote/useReloadSignal";
@@ -74,6 +75,8 @@ export function WidgetOverlay({ data }: { data: OverlayWidget }) {
       return <Quests data={data} />;
     case "vote":
       return <Vote data={data} />;
+    case "roulette":
+      return <Roulette data={data} />;
   }
 }
 
@@ -258,6 +261,48 @@ function Vote({ data }: { data: Extract<OverlayWidget, { widget: "vote" }> }) {
           </li>
         ))}
       </ol>
+    </div>
+  );
+}
+
+/**
+ * 룰렛 (펀페이 1009:199 SPINNING · 1009:181 RESULT): the wheel turns until the server reveals the result,
+ * which stays for a few seconds. Prizes are the creator's (no FN).
+ */
+function Roulette({ data }: { data: Extract<OverlayWidget, { widget: "roulette" }> }) {
+  const s = data.stage;
+  if (!s) return null;
+  const count = s.limit > 0 ? `참여 횟수 ${s.nth} / ${s.limit}` : `오늘 ${s.nth}번째 참여`;
+  return (
+    <div className={styles.roulette} data-status={s.status}>
+      <div className={styles.rouletteHead}>
+        <span>룰렛</span>
+        <b>{s.status}</b>
+      </div>
+      {s.status === "SPINNING" || s.result === null ? (
+        <div className={styles.rouletteBody}>
+          <span className={styles.rouletteWheel} style={{ background: wheelGradient(s.items) }} aria-hidden="true" />
+          <div className={styles.rouletteText}>
+            <span className={styles.rouletteItems}>{s.items.map((it) => it.name).join(" · ")}</span>
+            <strong>룰렛이 돌아가고 있어요!</strong>
+            <span>
+              {s.donor} · {formatNumber(s.amount)} FN
+            </span>
+            <span className={styles.rouletteMeta}>
+              {count} · 결과 계산 중
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className={styles.rouletteResult}>
+          <strong className={styles.roulettePrize}>{s.result}</strong>
+          <b>{isBlankPrize(s.result) ? "BLANK" : "WINNER"}</b>
+          <span>{isBlankPrize(s.result) ? `${s.donor} 님 아쉽게도 꽝!` : `${s.donor} 님 당첨!`}</span>
+          <span className={styles.rouletteMeta}>
+            {formatNumber(s.amount)} FN · {s.no}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
