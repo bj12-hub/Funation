@@ -185,8 +185,8 @@ export const FILTER_WORDS_MAX = 100;
 
 export type FilterSettings = { strength: FilterStrength; blockSpam: boolean; words: string[] };
 
-/** Confirmed platforms (the design's 치지직 / 아프리카TV samples are mapped to FlexTV / SOOP). */
-export const BLOCK_PLATFORM_LABEL = { YOUTUBE: "YouTube", FLEXTV: "FlexTV", SOOP: "SOOP", FUNATION: "Somnation" } as const;
+/** Confirmed platforms (the design's 아프리카TV sample is SOOP; 치지직 is confirmed since 2026-10-01). */
+export const BLOCK_PLATFORM_LABEL = { YOUTUBE: "YouTube", FLEXTV: "FlexTV", SOOP: "SOOP", CHZZK: "치지직", FUNATION: "Somnation" } as const;
 export type BlockPlatform = keyof typeof BLOCK_PLATFORM_LABEL;
 
 export type BlockedDonor = { id: string; blockedAt: string; donorId: string; nickname: string; platform: BlockPlatform; reason: string };

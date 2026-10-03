@@ -98,8 +98,8 @@ function line(a: AlertItem, template: string): WidgetFeedLine {
 
 /**
  * 최근알림: the latest `count` donations, newest first. Platform donations use that platform's template;
- * Somnation donations and 치지직 (no template yet) use the default line, and so does a template asking for
- * `{count}` (the platform's item count is not mapped yet — TBD). 테스트 후원 shows so the remote can try it.
+ * Somnation donations use the default line, and so does a template asking for `{count}` (the platform's
+ * item count is not mapped yet — TBD). 테스트 후원 shows so the remote can try it.
  */
 export function recentLines(items: AlertItem[], s: RecentSettings): WidgetFeedLine[] {
   return items

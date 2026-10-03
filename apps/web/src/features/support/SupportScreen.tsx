@@ -21,7 +21,7 @@ import styles from "./support.module.css";
 // TODO: Figma placeholder contact details — replace with the confirmed support channels (TBD).
 // Rendered as text (not mailto/tel links) until they are confirmed.
 const CONTACTS: { title: string; value: string; icon: ReactNode }[] = [
-  { title: "이메일", value: "support@funation.co.kr", icon: <MailIcon /> },
+  { title: "이메일", value: "support@somnation.co.kr", icon: <MailIcon /> },
   { title: "전화", value: "1588-9999 (평일 09:00-18:00)", icon: <PhoneIcon /> },
   { title: "카카오톡 상담", value: "@썸네이션", icon: <MessageSquareIcon /> }
 ];

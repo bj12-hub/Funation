@@ -5,7 +5,7 @@ import { mockAlerts, overlaySignal } from "./alertCore";
 import { mockCreator } from "./mockCreatorStore";
 import { eventLines, goalProgress, rankingRows, recentLines, totalAmount } from "./widgetOverlayCore";
 import { QR_SAMPLE_IMAGE, isWidgetOverlay, type OverlayWidget } from "./widgetOverlayTypes";
-import { widgetStore } from "./widgetStore";
+import { readWidget } from "./widgetStore";
 
 /**
  * 후원 위젯 OBS overlays (code-first): no login — the integration key in the URL is the credential, like
@@ -19,26 +19,26 @@ export async function getOverlayWidget(widget: unknown, key: unknown): Promise<O
   const items = mockAlerts.items;
   switch (widget) {
     case "goal": {
-      const settings = structuredClone(widgetStore.GOAL);
+      const settings = readWidget("GOAL");
       return { widget, settings, ...goalProgress(items, settings), ...common };
     }
     case "total": {
-      const settings = structuredClone(widgetStore.TOTAL);
+      const settings = readWidget("TOTAL");
       return { widget, settings, total: totalAmount(items, settings), ...common };
     }
     case "ranking": {
-      const settings = structuredClone(widgetStore.RANKING);
+      const settings = readWidget("RANKING");
       return { widget, settings, rows: rankingRows(items, settings), ...common };
     }
     case "recent": {
-      const settings = structuredClone(widgetStore.RECENT);
+      const settings = readWidget("RECENT");
       return { widget, settings, lines: recentLines(items, settings), ...common };
     }
     case "event": {
-      const settings = structuredClone(widgetStore.EVENT);
+      const settings = readWidget("EVENT");
       return { widget, settings, lines: eventLines(items, settings), ...common };
     }
     case "qr":
-      return { widget, settings: structuredClone(widgetStore.QR), imageUrl: QR_SAMPLE_IMAGE, ...common };
+      return { widget, settings: readWidget("QR"), imageUrl: QR_SAMPLE_IMAGE, ...common };
   }
 }

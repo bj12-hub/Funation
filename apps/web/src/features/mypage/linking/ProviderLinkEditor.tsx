@@ -119,7 +119,7 @@ export function ProviderLinkEditor({ provider, link, triggerClassName }: Props) 
                 </ul>
               </div>
               <p className={`${styles.dangerNote} ${styles.dangerNoteLarge}`}>
-                연결 후에는 {meta.account}으로 FUNATION에 간편 로그인이 가능해져요. 연결을 취소하면 해당 계정으로 로그인할 수 없게 됩니다.
+                연결 후에는 {meta.account}으로 Somnation에 간편 로그인이 가능해져요. 연결을 취소하면 해당 계정으로 로그인할 수 없게 됩니다.
               </p>
             </>
           )}
