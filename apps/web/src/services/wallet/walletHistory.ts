@@ -2,6 +2,9 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
 import { findQuest } from "@/services/donations/questCore";
+import { drawState } from "@/services/donations/gachaCore";
+import { spinState } from "@/services/donations/rouletteCore";
+import { isBlankPrize } from "@/services/donations/rouletteTypes";
 import { mockCredits } from "./mockCreditStore";
 import { mockRefunds } from "./mockRefundStore";
 import { mockWallet } from "./mockWalletStore";
@@ -83,11 +86,28 @@ export async function getDonationHistory(input: {
     .sort((a, b) => (f.sort === "oldest" ? a.donatedAt.localeCompare(b.donatedAt) : b.donatedAt.localeCompare(a.donatedAt)));
   const page = paginate(rows, input);
   // 퀘스트 후원: the quest's result; the member who sent it can always decide while it runs.
+  // 룰렛 · 뽑기: where the spin/draw is, or its result once the broadcast revealed it.
   const items = page.items.map((d) => {
     const q = d.category === "quest" ? findQuest(d.id) : null;
-    return q ? { ...d, quest: { status: q.status, canDecide: q.status === "IN_PROGRESS" && q.supporterUserId === session.userId } } : d;
+    if (q) return { ...d, quest: { status: q.status, canDecide: q.status === "IN_PROGRESS" && q.supporterUserId === session.userId } };
+    const gameResult = d.category === "game" ? gameResultOf(d.id) : null;
+    return gameResult ? { ...d, gameResult } : d;
   });
   return { ...page, items, totalFn: rows.reduce((s, d) => s + d.fnAmount, 0) };
+}
+
+function gameResultOf(id: string): string | null {
+  const spin = spinState(id);
+  if (spin) {
+    if (spin.result !== null) return isBlankPrize(spin.result) ? "룰렛 결과 · 꽝" : `룰렛 결과 · ${spin.result} 당첨`;
+    return spin.status === "QUEUED" ? "룰렛 대기 중" : "룰렛 회전 중";
+  }
+  const draw = drawState(id);
+  if (draw) {
+    if (draw.prize !== null) return draw.blank ? "뽑기 결과 · 꽝" : `뽑기 결과 · ${draw.prize} 당첨`;
+    return draw.status === "QUEUED" ? "뽑기 실행 대기" : "뽑는 중";
+  }
+  return null;
 }
 
 /**

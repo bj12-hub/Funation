@@ -179,6 +179,14 @@ export function channelRows(channelId: string, now = Date.now()) {
   };
 }
 
+/** One participation's state for the supporter's 후원 내역 (result only once revealed), or null. */
+export function spinState(id: string, now = Date.now()) {
+  const s = mockRoulette.spins.find((x) => x.id === id);
+  if (!s) return null;
+  advance(s.channelId, now);
+  return { status: statusOf(s, now), result: revealed(s, now) };
+}
+
 export function roomView(channelId: string, userId: string | null, now = Date.now()): RoomRoulette {
   const { queue, participantsToday } = channelRows(channelId, now);
   const ids = queue.map((r) => r.id);

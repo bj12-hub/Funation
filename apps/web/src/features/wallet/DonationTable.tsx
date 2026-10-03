@@ -69,6 +69,8 @@ export function DonationTable({ items }: { items: DonationRecord[] }) {
                     ) : (
                       <span className={styles.questState}>퀘스트 {QUEST_STATUSES.find((s) => s.key === d.quest!.status)?.label}</span>
                     ))}
+                  {/* 룰렛 · 뽑기: the spin/draw state or its result (prizes are the creator's, no FN). */}
+                  {d.gameResult && <span className={styles.questState}>{d.gameResult}</span>}
                 </td>
               </tr>
             ))

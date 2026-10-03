@@ -224,6 +224,15 @@ export function channelRows(channelId: string, now = Date.now()) {
   };
 }
 
+/** One draw's state for the supporter's 후원 내역 (prize only once revealed), or null. */
+export function drawState(id: string, now = Date.now()) {
+  const d = mockGacha.draws.find((x) => x.id === id);
+  if (!d) return null;
+  advance(d.channelId, now);
+  const show = revealed(d, now);
+  return { status: statusOf(d, now), prize: show ? d.prize : null, blank: show ? d.blank : null };
+}
+
 export function roomView(channelId: string, userId: string | null, now = Date.now()): RoomGacha {
   const { queue } = channelRows(channelId, now);
   const ids = queue.map((r) => r.id);
