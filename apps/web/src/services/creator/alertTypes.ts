@@ -55,6 +55,8 @@ export type RemoteView = {
   queued: AlertItem[];
   /** Newest first, excluding queued. */
   recent: AlertItem[];
+  /** 기능 제어: ON/OFF per overlay and the video donation volume (alert volumes live in `controls`). */
+  overlays: { on: Record<OverlayTarget, boolean>; videoVolume: number };
 };
 
 export type OverlayAlert = {
@@ -62,6 +64,8 @@ export type OverlayAlert = {
   controls: Pick<AlertControls, "muted" | "alertVolume" | "ttsVolume">;
   ttsSkipSeq: number;
   reloadSeq: number;
+  /** 기능 제어 ON/OFF: false = the overlay shows (and speaks) nothing. */
+  on: boolean;
 };
 
 export type RemoteResult = { status: "SAVED" } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
@@ -82,6 +86,9 @@ export const OVERLAY_TARGETS = [
 ] as const;
 export type OverlayTarget = (typeof OVERLAY_TARGETS)[number]["key"];
 export const isOverlayTarget = (v: unknown): v is OverlayTarget => OVERLAY_TARGETS.some((t) => t.key === v);
+
+/** What every overlay reads besides its own data: 기능별 새로고침 and 기능 제어 ON/OFF. */
+export type OverlaySignal = { reloadSeq: number; on: boolean };
 
 /** How an alert's amount reads on screen. */
 export const alertAmount = (a: { fnAmount: number; amountLabel?: string }) => a.amountLabel ?? `${formatNumber(a.fnAmount)} FN`;

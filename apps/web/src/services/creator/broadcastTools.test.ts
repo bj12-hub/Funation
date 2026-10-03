@@ -19,13 +19,13 @@ describe("방송 도구", () => {
   it("shows saved subtitle and marquee on the overlay, and validates input", async () => {
     const { saveSubtitle, saveMarquee, getOverlayTool, overlayKey } = await load();
     expect(await saveSubtitle({ text: "  잠시 쉬어갈게요  ", size: "L" })).toEqual({ status: "SAVED" });
-    expect(await getOverlayTool("subtitle", overlayKey)).toEqual({ tool: "subtitle", state: { text: "잠시 쉬어갈게요", size: "L" }, reloadSeq: 0 });
+    expect(await getOverlayTool("subtitle", overlayKey)).toEqual({ tool: "subtitle", state: { text: "잠시 쉬어갈게요", size: "L" }, reloadSeq: 0, on: true });
     expect((await saveSubtitle({ text: "x".repeat(81), size: "M" })).status).toBe("INVALID");
     expect((await saveSubtitle({ text: "운영자 공지", size: "M" })).status).toBe("INVALID");
     expect((await saveSubtitle({ text: "hi", size: "XL" })).status).toBe("INVALID");
 
     expect(await saveMarquee({ lines: ["공지 1", " ", "공지 2"], speed: "FAST" })).toEqual({ status: "SAVED" });
-    expect(await getOverlayTool("marquee", overlayKey)).toEqual({ tool: "marquee", state: { lines: ["공지 1", "공지 2"], speed: "FAST" }, reloadSeq: 0 });
+    expect(await getOverlayTool("marquee", overlayKey)).toEqual({ tool: "marquee", state: { lines: ["공지 1", "공지 2"], speed: "FAST" }, reloadSeq: 0, on: true });
     expect((await saveMarquee({ lines: Array(6).fill("a"), speed: "FAST" })).status).toBe("INVALID");
   });
 

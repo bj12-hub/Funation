@@ -21,7 +21,7 @@ export const BANNER_POSITIONS: { key: BannerPosition; label: string }[] = [
 
 export const BANNER_LIMITS = { slidesMax: 10, intervalMin: 3, intervalMax: 60 } as const;
 
-export type OverlayBanner = { enabled: boolean; position: BannerPosition; intervalSec: number; slides: { id: string; url: string }[]; reloadSeq: number };
+export type OverlayBanner = { enabled: boolean; position: BannerPosition; intervalSec: number; slides: { id: string; url: string }[]; reloadSeq: number; on: boolean };
 
 export type BannerResult = { status: "SAVED" } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
 

@@ -32,6 +32,8 @@ export type OverlayEffects = {
   layer: LayerEffect | null;
   /** 리모컨 "오버레이 새로고침" signal. */
   reloadSeq: number;
+  /** 리모컨 기능 제어 ON/OFF. */
+  on: boolean;
 };
 
 export type EffectsResult = { status: "SAVED" } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };

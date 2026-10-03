@@ -32,7 +32,7 @@ export type VideoQueueView = {
   history: VideoRequest[];
 };
 
-export type OverlayVideo = { playing: { id: string; videoId: string; startSec: number; endSec: number; endsAt: string } | null; volume: number; reloadSeq: number };
+export type OverlayVideo = { playing: { id: string; videoId: string; startSec: number; endSec: number; endsAt: string } | null; volume: number; reloadSeq: number; on: boolean };
 
 export type Drawing = { id: string; kind: "DONATION" | "TEST"; donor: string; title: string; fnAmount: number; image: string; receivedAt: string };
 
@@ -40,7 +40,7 @@ export type DrawingSettings = { displaySec: number };
 
 export type DrawingView = { settings: DrawingSettings; showing: { id: string; until: string } | null; drawings: Drawing[] };
 
-export type OverlayDrawing = { drawing: (Omit<Drawing, "kind" | "receivedAt"> & { until: string }) | null; reloadSeq: number };
+export type OverlayDrawing = { drawing: (Omit<Drawing, "kind" | "receivedAt"> & { until: string }) | null; reloadSeq: number; on: boolean };
 
 export const MEDIA_LIMITS = { maxSecMin: 10, maxSecMax: 600, displaySecMin: 5, displaySecMax: 120, historyMax: 30, drawingsMax: 30 } as const;
 

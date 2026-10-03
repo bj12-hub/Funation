@@ -2,7 +2,7 @@
 
 import { USE_MOCK } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
-import { reloadSeqOf } from "./alertCore";
+import { overlaySignal } from "./alertCore";
 import { findAsset } from "./assetCore";
 import { BANNER_LIMITS, type BannerResult, type BannerSettings, type OverlayBanner } from "./bannerTypes";
 import { mockCreator } from "./mockCreatorStore";
@@ -51,5 +51,5 @@ export async function getOverlayBanner(key: unknown): Promise<OverlayBanner | "F
   if (typeof key !== "string" || key !== mockCreator.integrationKey) return "FORBIDDEN";
   const s = store();
   const slides = liveSlides(s.slides).map((id) => ({ id, url: findAsset(id)!.url }));
-  return { enabled: s.enabled && slides.length > 0, position: s.position, intervalSec: s.intervalSec, slides, reloadSeq: reloadSeqOf("banner") };
+  return { enabled: s.enabled && slides.length > 0, position: s.position, intervalSec: s.intervalSec, slides, ...overlaySignal("banner") };
 }

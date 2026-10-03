@@ -3,7 +3,8 @@
 import { USE_MOCK } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
-import { advance, enqueueAlert, mockAlerts, reloadSeqOf } from "./alertCore";
+import { advance, enqueueAlert, isOverlayOn, mockAlerts, overlaySignal } from "./alertCore";
+import { mockMedia } from "./mediaCore";
 import {
   ALERT_DISPLAY_SEC,
   ALERT_MIN_FN_MAX,
@@ -11,7 +12,10 @@ import {
   TEST_DONOR_MAX,
   TEST_MESSAGE_MAX,
   isOverlayTarget,
+  OVERLAY_TARGETS,
   type OverlayAlert,
+  type OverlaySignal,
+  type OverlayTarget,
   type RemoteResult,
   type RemoteView
 } from "./alertTypes";
@@ -40,7 +44,8 @@ export async function getRemoteView(): Promise<RemoteView | null> {
     recent: items
       .filter((a) => a.status !== "QUEUED" && a.status !== "SHOWING")
       .slice(-RECENT_MAX)
-      .reverse()
+      .reverse(),
+    overlays: { on: Object.fromEntries(OVERLAY_TARGETS.map((t) => [t.key, isOverlayOn(t.key)])) as Record<OverlayTarget, boolean>, videoVolume: mockMedia.videoSettings.volume }
   };
 }
 
@@ -158,11 +163,36 @@ export async function reloadOverlays(input?: unknown): Promise<RemoteResult> {
   return { status: "SAVED" };
 }
 
-/** Reload signal for overlays whose data has no room for it (통합 채팅 · 크루 점수판). No login; the key is the secret. */
-export async function getOverlayReloadSeq(key: unknown, target: unknown): Promise<number | "FORBIDDEN"> {
+/** Reload + ON/OFF signal for overlays whose data has no room for it (통합 채팅 · 크루 점수판). No login; the key is the secret. */
+export async function getOverlaySignal(key: unknown, target: unknown): Promise<OverlaySignal | "FORBIDDEN"> {
   assertMock();
   if (typeof key !== "string" || key !== mockCreator.integrationKey || !isOverlayTarget(target)) return "FORBIDDEN";
-  return reloadSeqOf(target);
+  return overlaySignal(target);
+}
+
+/**
+ * 기능 제어 ON/OFF (위플랩 리모컨처럼): an OFF overlay shows and plays nothing until it is switched back on.
+ * Its data keeps moving (an alert shown while 후원 알림 is OFF is not replayed later — use 전체 일시정지 to hold the queue).
+ */
+export async function setOverlaySwitch(input: unknown): Promise<RemoteResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
+  if (!isOverlayTarget(v.target) || typeof v.on !== "boolean") return { status: "INVALID", message: "설정을 확인해 주세요." };
+  const off = (mockAlerts.overlayOff ??= {});
+  if (v.on) delete off[v.target];
+  else off[v.target] = true;
+  return { status: "SAVED" };
+}
+
+/** 볼륨 제어: the video donation player's volume (same value as 영상 후원 설정). */
+export async function setVideoVolume(input: unknown): Promise<RemoteResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const volume = (typeof input === "object" && input !== null ? (input as Record<string, unknown>) : {}).volume;
+  if (typeof volume !== "number" || !Number.isInteger(volume) || volume < 0 || volume > 100) return { status: "INVALID", message: "볼륨은 0 ~ 100 사이예요." };
+  mockMedia.videoSettings = { ...mockMedia.videoSettings, volume };
+  return { status: "SAVED" };
 }
 
 /** OBS overlay read — no login; the integration key is the secret. */
@@ -176,6 +206,6 @@ export async function getOverlayAlert(key: unknown): Promise<OverlayAlert | "FOR
     alert: showing && mockAlerts.shownAt !== null ? { ...showing, endsAt: new Date(mockAlerts.shownAt + displaySec * 1000).toISOString() } : null,
     controls: { muted, alertVolume, ttsVolume },
     ttsSkipSeq: mockAlerts.ttsSkipSeq,
-    reloadSeq: reloadSeqOf("alert")
+    ...overlaySignal("alert")
   };
 }
