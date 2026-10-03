@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
-import { findAsset, mockAssets, publicAsset, sniffMime } from "./assetCore";
+import { findAsset, matchesContent, mockAssets, publicAsset, sniffMime } from "./assetCore";
 import { ASSET_LIMITS, ASSET_TYPES, assetUrl, type Asset, type AssetKind, type AssetResult } from "./assetTypes";
 
 /**
@@ -17,7 +17,6 @@ const assertMock = () => {
 };
 const invalid = (message: string) => ({ status: "INVALID", message }) as const;
 const nameOk = (name: string) => name.length >= 1 && name.length <= ASSET_LIMITS.nameMax && !MOCK_FORBIDDEN_WORDS.some((w) => name.toLowerCase().includes(w));
-const WAV_ALIASES = ["audio/wav", "audio/x-wav"];
 
 export async function listAssets(kind?: AssetKind): Promise<Asset[] | null> {
   assertMock();
@@ -43,9 +42,8 @@ export async function uploadAsset(formData: FormData): Promise<AssetResult> {
   if (used + file.size > ASSET_LIMITS.totalBytes) return invalid("라이브러리 용량이 부족해요. 쓰지 않는 파일을 지워 주세요.");
 
   const bytes = Buffer.from(await file.arrayBuffer());
-  const sniffed = sniffMime(bytes);
-  const sameType = sniffed === file.type || (sniffed === "audio/wav" && WAV_ALIASES.includes(file.type));
-  if (!sameType) return invalid("파일 내용이 형식과 맞지 않아요.");
+  if (!matchesContent(bytes, file.type)) return invalid("파일 내용이 형식과 맞지 않아요.");
+  const sniffed = sniffMime(bytes)!;
 
   const rawName = String(formData.get("name") ?? "").trim() || file.name.replace(/\.[^.]+$/, "").trim();
   const name = rawName.slice(0, ASSET_LIMITS.nameMax);
