@@ -74,15 +74,21 @@
   color-scheme: dark;
 }
 
+/* flex: 1 is for rows; min-height keeps the 40px field when it sits in a column (flex-basis 0 would collapse it). */
 .input {
   flex: 1;
   min-width: 0;
+  min-height: 40px;
 }
 
+/* inline-flex: a <Link> with these classes centers its label like a <button>. */
 .primary,
 .ghost,
 .danger {
+  display: inline-flex;
   flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
   height: 36px;
   padding: 0 14px;
   border-radius: var(--radius-8);
