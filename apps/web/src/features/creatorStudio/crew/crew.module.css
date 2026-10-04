@@ -100,7 +100,9 @@
   color: var(--color-text-on-accent);
 }
 
-.primary:disabled {
+.primary:disabled,
+.ghost:disabled,
+.danger:disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
