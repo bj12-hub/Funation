@@ -14,22 +14,22 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/hall-of-fame` | ✅ | funation-hall-of-fame 3:637 — `?period=all|week|day` (default 이번 달) |
 | `/support` | ✅ | 고객센터 4:7 — `?q=` searches the FAQ |
 | `/mypage` | ✅ | funation-my-page 735:4119 · 622:4 — redirects to `/login` without a session |
-| `/channel/new` | ✅ code-first | 내 채널 만들기 — signed-in non-creators; grants the Creator role (review/approval TBD) |
-| `/creator/crew/broadcast` | ✅ code-first | 크루 방송 운영 — no Figma frame; score = FN during the broadcast + 보정 (points are not money) |
-| `/overlay/crew/[key]` | ✅ code-first | OBS scoreboard overlay; `key` = integration key (reissue invalidates it) |
-| `/creator/updates` | ✅ code-first | 업데이트 소식 — release notes, unread tracked on the server |
+| `/channel/new` | ✅ code-first | 내 채널 만들기 — signed-in non-creators; grants the Creator role (review/approval TBD); Figma C07 `151:8173` (현재 구현 레이아웃) |
+| `/creator/crew/broadcast` | ✅ code-first | 크루 방송 운영 — score = FN during the broadcast + 보정 (points are not money); Figma Y04 `116:3886` · Y04b 방송 중 `117:3911` (현재 구현 레이아웃) |
+| `/overlay/crew/[key]` | ✅ code-first | OBS scoreboard overlay; `key` = integration key (reissue invalidates it); Figma O06 `92:6866` · O06b 배틀 `119:8173` · O06c 강탈 `119:8191` · O06d 시나리오 `119:8199` · OFF `133:2` (현재 구현 레이아웃) |
+| `/creator/updates` | ✅ code-first | 업데이트 소식 — release notes, unread tracked on the server; Figma T05 `61:968` (현재 구현 레이아웃) |
 | `/creator/remote` | ✅ code-first | 리모컨 — server-owned alert queue; 테스트 후원 is display only (no FN); 방송 도구; 투표 시작 · 종료 · 결과 내리기 (무료 투표); 룰렛 ▶ 시작 · 일시정지 · ✓ 완료; 뽑기 ✓ 완료 · 수령 처리 — W04 `163:5103` |
-| `/overlay/alert/[key]` | ✅ code-first | OBS donation alert overlay; `key` = integration key |
-| `/creator/widgets/overlays` | ✅ code-first | 오버레이 주소 — every OBS overlay URL (key masked on screen) |
-| `/creator/widgets/tools` | ✅ code-first | 방송 도구 remote — 자막 · 전광판 · 타이머 · 엔딩 크레딧 (server-owned state) |
-| `/overlay/tool/[tool]/[key]` | ✅ code-first | OBS overlays for the tools; `tool` = subtitle / marquee / timer / credits, `key` = integration key |
-| `/creator/crew` | ✅ code-first | 크루 관리 — no Figma frame; Creator role; member split of earnings TBD |
-| `/community` · `/community/new` · `/community/[id]` · `/community/[id]/edit` | ✅ code-first | 커뮤니티 — `?category=FREE|TIP|QNA|BUG|BRAG` `?q=` `?page=`; reading is public, writing needs a session, edits are author-only; moderation TBD |
-| `/events` · `/events/[id]` | ✅ code-first | 이벤트 — `?filter=all|ongoing|upcoming|ended|mine`; join is recorded only, rewards TBD |
-| `/messages` | ✅ code-first | 쪽지 — `?box=inbox|sent|archive|spam` `?q=` `?page=` `?to=<creatorId>` (opens compose); send limit placeholder (TBD) |
-| `/mypage/titles` | ✅ code-first | 칭호·등급 — no Figma frame (docs/figma/code-first-screens.md); grade / title thresholds are placeholders (TBD) |
-| `/mypage/ranking` | ✅ code-first | 내 후원 랭킹 — `?period=all|year|month`; other donors are mock sample data |
-| `/mypage/nicknames` | ✅ code-first | 별명 관리 — no Figma frame |
+| `/overlay/alert/[key]` | ✅ code-first | OBS donation alert overlay; `key` = integration key; Figma O02 `92:6819` · O02b 등급 · 칭호 `112:8207` · OFF `133:25` (현재 구현 레이아웃) |
+| `/creator/widgets/overlays` | ✅ code-first | 오버레이 주소 — every OBS overlay URL (key masked on screen); Figma W03 `160:4982` (현재 구현 레이아웃) |
+| `/creator/widgets/tools` | ✅ code-first | 방송 도구 remote — 자막 · 전광판 · 타이머 · 엔딩 크레딧 (server-owned state); Figma W02 `64:1471` (현재 구현 레이아웃) |
+| `/overlay/tool/[tool]/[key]` | ✅ code-first | OBS overlays for the tools; `tool` = subtitle / marquee / timer / credits, `key` = integration key; Figma O08 자막 `92:6894` · O09 전광판 `92:6900` · O10 타이머 `92:6906` · O11 엔딩 크레딧 `92:6912` · OFF `133:82` · `133:89` · `133:96` · `133:103` (현재 구현 레이아웃) |
+| `/creator/crew` | ✅ code-first | 크루 관리 — Creator role; member split of earnings TBD; Figma Y03 `67:2696` (현재 구현 레이아웃) |
+| `/community` · `/community/new` · `/community/[id]` · `/community/[id]/edit` | ✅ code-first | 커뮤니티 — `?category=FREE|TIP|QNA|BUG|BRAG` `?q=` `?page=`; reading is public, writing needs a session, edits are author-only; moderation TBD; Figma S08 `75:1375` · S08b `75:1591` · S09 `76:1342` · S09b `151:8418` (현재 구현 레이아웃) |
+| `/events` · `/events/[id]` | ✅ code-first | 이벤트 — `?filter=all|ongoing|upcoming|ended|mine`; join is recorded only, rewards TBD; Figma S10 `76:1541` · S10b `76:1753` (현재 구현 레이아웃) |
+| `/messages` | ✅ code-first | 쪽지 — `?box=inbox|sent|archive|spam` `?q=` `?page=` `?to=<creatorId>` (opens compose); send limit placeholder (TBD); Figma M06 `82:4849` (현재 구현 레이아웃) |
+| `/mypage/titles` | ✅ code-first | 칭호·등급 — grade / title thresholds are placeholders (TBD); Figma M02 `81:4359` (현재 구현 레이아웃) |
+| `/mypage/ranking` | ✅ code-first | 내 후원 랭킹 — `?period=all|year|month`; other donors are mock sample data; Figma M04 `82:4528` (현재 구현 레이아웃) |
+| `/mypage/nicknames` | ✅ code-first | 별명 관리; Figma M03 `81:4688` (현재 구현 레이아웃) |
 | `/favorites` | ✅ | funation-favorites-page 735:3856 — signed-in only, `?q=` `?page=` |
 | `/creators/[id]` | ✅ | 라이브 826:685 (채팅) · 610:138 (후원), 오프라인 710:195, 공유 826:387 · 후원 유형 851:4546 (일반) · 851:4665 (미니) · 851:4788 (영상) · 851:4929 + 875:1815 (시그니처) · 851:5054 (위시) · 867:2458 + 펀페이 1009:510 (룰렛) · 867:2545 (퀘스트) · 867:2647 (그림) · 뽑기 (code-first; 럭키박스 · 퀴즈는 2026-10-04 삭제) · 후원 확인 613:6 · 완료 613:122 · FN 부족 613:237 |
 | `/wallet/charges` | ✅ | FN 충전내역 640:2 · 639:2 (empty) · 상세 643:4 · 644:6 · 644:185 · 644:364 — signed-in only, `?period=` `?from=` `?to=` `?page=` |
