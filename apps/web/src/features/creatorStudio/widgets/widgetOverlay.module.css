@@ -518,3 +518,97 @@
 .rouletteWheel[data-stopped] {
   animation: none;
 }
+
+/* ── 벽지 (자동 배치 스티커 벽) — full-screen 1920 × 1080; the server places each sticker. ── */
+.wall {
+  position: relative;
+  overflow: hidden;
+}
+
+.sticker {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 200px;
+  animation: sticker-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes sticker-in {
+  from {
+    scale: 0.2;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sticker {
+    animation: none;
+  }
+}
+
+.stickerFrame {
+  position: relative;
+}
+
+.stickerTest {
+  position: absolute;
+  top: -8px;
+  right: -12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #64748b;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: var(--font-weight-bold);
+}
+
+.stickerImage {
+  display: block;
+  width: 140px;
+  height: 140px;
+  border-radius: 12px;
+  background: rgb(255 255 255 / 25%);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 35%);
+  object-fit: cover;
+}
+
+.stickerAmount,
+.stickerBoxAmount {
+  font-size: 26px;
+  font-weight: var(--font-weight-extrabold);
+  white-space: nowrap;
+}
+
+.stickerBoxAmount {
+  padding: 2px 12px;
+  border-radius: 6px;
+  background: #111827;
+  font-size: 20px;
+}
+
+.stickerNick {
+  max-width: 200px;
+  overflow: hidden;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 17px;
+  font-weight: var(--font-weight-bold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sticker[data-layout="BOX"] .stickerNick {
+  border-radius: 6px;
+}
+
+.stickerBubble {
+  padding: 4px 12px;
+  border-radius: 12px 12px 12px 2px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}

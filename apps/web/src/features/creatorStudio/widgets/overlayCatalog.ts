@@ -228,5 +228,15 @@ export const OVERLAYS: OverlayEntry[] = [
     size: "800 × 120",
     path: (k) => widgetOverlayPath("gacha-board", k),
     manage: "/creator/widgets"
+  },
+  {
+    id: "widget-wallpaper",
+    target: "widgets",
+    group: "알림",
+    title: "벽지",
+    description: "후원마다 벽지 이미지 · 닉네임 · 금액 스티커를 화면 빈 자리에 붙여 방송 내내 남겨요. 리모컨에서 비울 수 있어요.",
+    size: "1920 × 1080",
+    path: (k) => widgetOverlayPath("wallpaper", k),
+    manage: "/creator/remote"
   }
 ];

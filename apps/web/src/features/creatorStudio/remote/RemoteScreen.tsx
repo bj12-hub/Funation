@@ -33,6 +33,7 @@ import {
 import type { GachaRemoteView } from "@/services/donations/gachaTypes";
 import type { RouletteRemoteView } from "@/services/donations/rouletteTypes";
 import type { VoteRemoteView } from "@/services/votes/voteTypes";
+import type { WallpaperRemoteView } from "@/services/creator/wallpaperRemote";
 import styles from "../crew/crew.module.css";
 import { CopyButton } from "../settings/SettingsCards";
 import remote from "./remote.module.css";
@@ -40,6 +41,7 @@ import { GachaRemote } from "./GachaRemote";
 import { RouletteRemote } from "./RouletteRemote";
 import { ToolsRemote } from "./ToolsRemote";
 import { VoteRemote } from "./VoteRemote";
+import { WallpaperRemote } from "./WallpaperRemote";
 
 const STATUS_LABEL: Record<AlertStatus, string> = { QUEUED: "대기", SHOWING: "표시 중", DONE: "완료", SKIPPED: "건너뜀", FILTERED: "최소 금액 미만" };
 const time = (iso: string) => new Date(iso).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -47,7 +49,7 @@ const time = (iso: string) => new Date(iso).toLocaleTimeString("ko-KR", { hour: 
 /**
  * 리모컨 — code-first (no Figma frame). Route `/creator/remote`. Controls the server-side alert
  * queue that the OBS alert overlay shows: pause, mute, skip, cancel, volumes, minimum amount and
- * 테스트 후원 (display only — no FN moves), plus 방송 도구, 투표, 룰렛 and 뽑기. Refreshes from the server every few
+ * 테스트 후원 (display only — no FN moves), plus 방송 도구, 투표, 룰렛, 뽑기 and 벽지. Refreshes from the server every few
  * seconds.
  */
 export function RemoteScreen({
@@ -56,7 +58,8 @@ export function RemoteScreen({
   tools,
   vote,
   roulette,
-  gacha
+  gacha,
+  wallpaper
 }: {
   view: RemoteView;
   overlayPath: string;
@@ -64,6 +67,7 @@ export function RemoteScreen({
   vote: VoteRemoteView;
   roulette: RouletteRemoteView;
   gacha: GachaRemoteView;
+  wallpaper: WallpaperRemoteView;
 }) {
   const router = useRouter();
   const { controls } = view;
@@ -287,6 +291,8 @@ export function RemoteScreen({
       <RouletteRemote view={roulette} pending={pending} run={run} />
 
       <GachaRemote view={gacha} pending={pending} run={run} />
+
+      <WallpaperRemote view={wallpaper} pending={pending} run={run} />
 
       <div className={remote.columns}>
         <section className={styles.card} aria-labelledby="test-title">
