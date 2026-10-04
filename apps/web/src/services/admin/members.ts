@@ -6,6 +6,7 @@ import type { AuditEntry } from "./adminTypes";
 import type { AdminActor } from "./adminTypes";
 import { auditEntries, recordAudit } from "./auditCore";
 import { SAMPLE_MEMBER_ID, creatorMemberId, isMemberSuspended, memberStore, suspensionOf } from "./memberCore";
+import { withdrawalOf } from "@/services/account/withdrawalCore";
 import { MEMBERS_PAGE, SUSPEND_DAYS, SUSPEND_REASON, type AdminCreatorRow, type AdminMember, type MemberActionResult, type MemberFilter, type MemberPage } from "./memberTypes";
 
 /**
@@ -20,8 +21,14 @@ const assertMock = () => {
 async function directory(): Promise<AdminMember[]> {
   const now = Date.now();
   const status = (id: string) => (isMemberSuspended(id, now) ? "SUSPENDED" : "ACTIVE") as AdminMember["status"];
-  const withStatus = (m: Omit<AdminMember, "status" | "suspension">): AdminMember => ({ ...m, status: status(m.id), suspension: isMemberSuspended(m.id, now) ? suspensionOf(m.id) : null });
-  const sample = withStatus({
+  const withStatus = (m: Omit<AdminMember, "status" | "suspension" | "withdrawal">): AdminMember => ({
+    ...m,
+    status: status(m.id),
+    suspension: isMemberSuspended(m.id, now) ? suspensionOf(m.id) : null,
+    withdrawal: null
+  });
+  const withdrawal = withdrawalOf();
+  const active = withStatus({
     id: SAMPLE_MEMBER_ID,
     nickname: mockAccount.nickname,
     funationId: mockAccount.funationId,
@@ -32,6 +39,8 @@ async function directory(): Promise<AdminMember[]> {
     donationTotalFn: listDonationRecords().filter((d) => d.status === "COMPLETED").reduce((s, d) => s + d.fnAmount, 0),
     creatorId: null
   });
+  // 회원 탈퇴: the sample member stays listed as 탈퇴 with what was forfeited.
+  const sample: AdminMember = withdrawal ? { ...active, status: "WITHDRAWN", suspension: null, withdrawal: { at: withdrawal.at, forfeitedFn: withdrawal.forfeitedFn } } : active;
   const creators = (await getAllCreatorsForAdmin()).map((c) =>
     withStatus({ id: creatorMemberId(c.id), nickname: c.name, funationId: `creator-${c.id}`, roles: ["SUPPORTER", "CREATOR"], joinedAt: c.joinedAt, lastActiveAt: c.joinedAt, fnBalance: 0, donationTotalFn: 0, creatorId: c.id })
   );
@@ -47,7 +56,7 @@ export async function memberIds(): Promise<Set<string>> {
 const parseFilter = (input: Record<string, unknown>): MemberFilter => ({
   q: typeof input.q === "string" ? input.q.trim().slice(0, 40) : "",
   role: input.role === "SUPPORTER" || input.role === "CREATOR" ? input.role : "ALL",
-  status: input.status === "ACTIVE" || input.status === "SUSPENDED" ? input.status : "ALL",
+  status: input.status === "ACTIVE" || input.status === "SUSPENDED" || input.status === "WITHDRAWN" ? input.status : "ALL",
   page: Math.max(1, Math.floor(Number(input.page)) || 1)
 });
 
@@ -85,6 +94,7 @@ export async function suspendMember(admin: AdminActor, input: unknown): Promise<
   if (reason.length < SUSPEND_REASON.min || reason.length > SUSPEND_REASON.max) return { status: "INVALID", message: `사유를 ${SUSPEND_REASON.min}~${SUSPEND_REASON.max}자로 입력해 주세요.` };
   if (!SUSPEND_DAYS.includes(v.days as never)) return { status: "INVALID", message: "정지 기간을 골라 주세요." };
   if (member.status === "SUSPENDED") return { status: "INVALID", message: "이미 정지된 회원이에요." };
+  if (member.status === "WITHDRAWN") return { status: "INVALID", message: "탈퇴한 회원이에요." };
   const now = Date.now();
   store.suspensions[member.id] = { reason, at: new Date(now).toISOString(), until: v.days === null ? null : new Date(now + (v.days as number) * 86_400_000).toISOString(), by: admin.nickname };
   store.requests[v.requestId] = true;

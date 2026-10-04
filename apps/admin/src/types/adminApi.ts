@@ -54,7 +54,7 @@ export const AUDIT_PAGE = 30;
 
 // ── Members · creators ────────────────────────────────────────────────────────
 
-export type MemberStatus = "ACTIVE" | "SUSPENDED";
+export type MemberStatus = "ACTIVE" | "SUSPENDED" | "WITHDRAWN";
 export type Suspension = { reason: string; at: string; until: string | null; by: string };
 export type AdminMember = {
   id: string;
@@ -65,6 +65,8 @@ export type AdminMember = {
   lastActiveAt: string;
   status: MemberStatus;
   suspension: Suspension | null;
+  /** 회원 탈퇴: when, and the FN the member agreed to forfeit. */
+  withdrawal: { at: string; forfeitedFn: number } | null;
   fnBalance: number;
   donationTotalFn: number;
   creatorId: string | null;

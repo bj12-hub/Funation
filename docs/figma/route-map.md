@@ -71,6 +71,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/overlay/widget/[widget]/[key]` | ✅ code-first | OBS 후원 위젯 — `widget` = goal · total · ranking · recent · event · qr · quest · vote · roulette · gacha · gacha-board · wallpaper; O12~O17 `146:8173`… · O18 `154:14403` · O19 `161:9339` (vote) · O20 `164:9017` / O20b `164:9032` (roulette) · O21 `166:8981` / O21b `166:8992` (gacha) · O22 `166:9003` (gacha-board) · O23 `175:8939` (wallpaper) · OFF O12-off `146:8241` |
 | `/notifications` | ✅ code-first | 알림 — S04 `74:444` (헤더 벨 팝오버 S03 `89:7290`) |
 | `/mypage/blocks` | ✅ code-first | 차단 관리 — M10 `151:8644` · 비어 있음 M10b `151:8861` |
+| `/mypage/withdraw` | ✅ code-first | 회원 탈퇴 — M11 `177:8939` (동의) · M11b `177:9170` (정산 대기 수익이 있는 크리에이터, 탈퇴 불가) · M11c `177:9397` (완료) |
 | `/support/notices/[id]` | ✅ code-first | 공지 상세 — S12 `76:2163` |
 | `/terms/[slug]` | 🚧 | 722:3 (terms text pending) — slugs: youth, service, privacy, marketing, operation |
 
@@ -141,6 +142,6 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | My page | 로그인 연동 관리 · 인증하기 · 플랫폼 연결/해제 | modals 743:2133–2227 · 743:2274 + 750:* · 743:2442 · 743:2488 (mock hand-offs, TBD) |
 | My page | FN 내역 | `/wallet/charges` |
 | My page | FN 충전 | charge modal |
-| My page | 회원 탈퇴 | not wired — flow pending |
+| My page | 회원 탈퇴 | `/mypage/withdraw` (2026-10-04 결정: 남은 FN 소멸 동의 후 탈퇴) |
 | Support | 자주 묻는 질문 바로가기 · 비밀번호 FAQ | `#faq` · `/password-reset` |
 | Support | 문의하기 · 가이드 보기 | not wired — screens pending |

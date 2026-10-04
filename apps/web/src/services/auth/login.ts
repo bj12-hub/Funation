@@ -6,6 +6,7 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { safeRedirectPath } from "@/lib/safeRedirect";
 import { startSession } from "@/lib/session";
 import { mockCredentials } from "@/services/account/mockStore";
+import { isWithdrawn } from "@/services/account/withdrawalCore";
 
 /**
  * Login service contract.
@@ -48,7 +49,7 @@ export async function login(request: LoginRequest): Promise<LoginResult> {
 }
 
 /* ── Development mock ───────────────────────────────────────
- * identifier "unknown"            → UNKNOWN_ID
+ * identifier "unknown"            → UNKNOWN_ID (also every identifier once the sample account withdrew)
  * password   mockCredentials.password (initially "password") → SUCCESS
  * any other password              → WRONG_PASSWORD, LOCKED after 5 failures
  */
@@ -66,7 +67,7 @@ async function devMockLogin({ identifier, password }: LoginRequest): Promise<Log
   await mockDelay();
 
   if ((failures.get(identifier) ?? 0) >= MAX_FAILURES) return { status: "LOCKED" };
-  if (identifier === "unknown") return { status: "UNKNOWN_ID" };
+  if (identifier === "unknown" || isWithdrawn()) return { status: "UNKNOWN_ID" };
   if (password === mockCredentials.password) {
     failures.delete(identifier);
     // 이용 정지 (관리자 콘솔): the sample member cannot sign in while suspended.

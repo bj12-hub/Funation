@@ -87,6 +87,7 @@ Display 24 Bold · Title 18 Bold · Subtitle 15 Medium · Body 14 · Body Strong
 | 개요 | AD03 | 감사 로그 | `/audit` | `20:1055` |
 | 회원 | AD04 | 회원 관리 | `/members` | `17:134` |
 | 회원 | AD05 | 회원 상세 · 이용 정지 | `/members/m-c10` | `20:1193` |
+| 회원 | AD05b | 회원 상세 · 탈퇴 (탈퇴 기록 · 소멸 FN, 이용 제한 변경 불가) | `/members/u-hongGD123` | `22:2160` |
 | 회원 | AD06 | 크리에이터 관리 | `/creators` | `17:1627` |
 | 거래 | AD09 | 후원 운영 | `/donations` | `18:333` |
 | 거래 | AD07 | 결제 · 충전 내역 | `/payments` | `18:651` |
