@@ -222,7 +222,7 @@ function SiteHeader({ user, creatorRole, onMenuClick, menuExpanded }: { user: Gl
       </div>
 
       <div className={user ? styles.rightSignedIn : styles.rightGuest}>
-        <Link href="/creators" className={styles.iconButton} aria-label={t("common.search")} title={t("common.search")}>
+        <Link href="/creators" className={`${styles.iconButton} ${styles.searchButton}`} aria-label={t("common.search")} title={t("common.search")}>
           <SearchOutlineIcon />
         </Link>
         {user && (
