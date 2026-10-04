@@ -102,8 +102,9 @@ const shownFrom = (s: RouletteSpin) => (s.autoReveal === false ? (s.revealedAt ?
 
 export function statusOf(s: RouletteSpin, now = Date.now()): RouletteSpinStatus {
   if (!s.startedAt) return "QUEUED";
-  if (now - Date.parse(s.startedAt) < s.spinMs) return "SPINNING";
+  // A finished spin (✓ 완료, or a seed) is done whatever `now` is asked about.
   if (s.doneAt) return "DONE";
+  if (now - Date.parse(s.startedAt) < s.spinMs) return "SPINNING";
   const from = shownFrom(s);
   if (from === null) return "WAITING";
   return now - from < ROULETTE_RESULT_SEC * 1000 ? "RESULT" : "DONE";

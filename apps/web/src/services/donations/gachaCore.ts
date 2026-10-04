@@ -120,9 +120,11 @@ export function canDraw(channelId: string, userId: string, gachaId: string, now 
 
 export function statusOf(d: GachaDraw, now = Date.now()): GachaDrawStatus {
   if (!d.startedAt) return "QUEUED";
+  // A finished draw (✓ 완료, or a seed) is done whatever `now` is asked about.
+  if (d.doneAt) return "DONE";
   const t = now - Date.parse(d.startedAt);
   if (t < d.spinMs) return "SPINNING";
-  if (d.doneAt || t >= d.spinMs + d.showMs) return "DONE";
+  if (t >= d.spinMs + d.showMs) return "DONE";
   return "RESULT";
 }
 
