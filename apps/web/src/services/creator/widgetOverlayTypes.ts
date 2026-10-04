@@ -1,5 +1,5 @@
 /**
- * 후원 위젯 OBS overlays (code-first): 후원목표 · 후원누적금액 · 후원랭킹 · 최근알림 · 이벤트 · 후원 QR코드 · 퀘스트 · 투표 · 룰렛 · 뽑기 · 뽑기 당첨 리스트.
+ * 후원 위젯 OBS overlays (code-first): 후원목표 · 후원누적금액 · 후원랭킹 · 최근알림 · 이벤트 · 후원 QR코드 · 퀘스트 · 투표 · 룰렛 · 뽑기 · 뽑기 당첨 리스트 · 벽지.
  * Each reads its saved widget settings plus the creator's donation feed at
  * `/overlay/widget/[widget]/[integrationKey]`. Client-safe types only.
  */
@@ -8,9 +8,9 @@ import type { AlertKind, OverlaySignal } from "./alertTypes";
 import type { GachaBoardView, GachaStage } from "@/services/donations/gachaTypes";
 import type { RouletteStage } from "@/services/donations/rouletteTypes";
 import type { VoteBoard } from "@/services/votes/voteTypes";
-import type { EventSettings, GachaSettings, GoalSettings, QrSettings, QuestWidgetSettings, RankingSettings, RecentSettings, RouletteSettings, TotalSettings, VoteSettings, WidgetKey } from "./widgetSettingsTypes";
+import type { EventSettings, GachaSettings, GoalSettings, QrSettings, QuestWidgetSettings, RankingSettings, RecentSettings, RouletteSettings, TotalSettings, VoteSettings, WallpaperSettings, WidgetKey } from "./widgetSettingsTypes";
 
-export const WIDGET_OVERLAYS = ["goal", "total", "ranking", "recent", "event", "qr", "quest", "vote", "roulette", "gacha", "gacha-board"] as const;
+export const WIDGET_OVERLAYS = ["goal", "total", "ranking", "recent", "event", "qr", "quest", "vote", "roulette", "gacha", "gacha-board", "wallpaper"] as const;
 export type WidgetOverlayKind = (typeof WIDGET_OVERLAYS)[number];
 export const isWidgetOverlay = (v: unknown): v is WidgetOverlayKind => WIDGET_OVERLAYS.includes(v as WidgetOverlayKind);
 
@@ -26,7 +26,8 @@ export const WIDGET_OVERLAY_SETTINGS: Record<WidgetOverlayKind, WidgetKey> = {
   vote: "VOTE",
   roulette: "ROULETTE",
   gacha: "GACHA",
-  "gacha-board": "GACHA"
+  "gacha-board": "GACHA",
+  wallpaper: "WALLPAPER"
 };
 
 /** Mock QR image (the popup preview uses the same one). TBD: a real QR for the creator's donation page. */
@@ -47,6 +48,12 @@ export type WidgetFeedLine = {
   before: string;
   after: string;
 };
+
+/** 벽지: the full-screen OBS source the stickers are placed on. */
+export const WALL_SIZE = { w: 1920, h: 1080 } as const;
+
+/** One sticker on the 벽지; `image` indexes the overlay's `images` (sent once, not per sticker), null = none registered. */
+export type WallSticker = { id: string; x: number; y: number; rotate: number; image: number | null; nickname: string; amount: string; test: boolean };
 
 export type WidgetRankRow = { rank: number; name: string; fnAmount: number };
 
@@ -71,4 +78,6 @@ export type OverlayWidget = Common &
     /** `history` = the latest prizes for the 크레딧 style. */
     | { widget: "gacha"; settings: GachaSettings; stage: GachaStage | null; history: { donor: string; prize: string }[] }
     | { widget: "gacha-board"; settings: GachaSettings; board: GachaBoardView }
+    /** 벽지 (2026-10-04 결정: 자동 배치 스티커 벽): stickers placed by the server on the 1920 × 1080 screen. */
+    | { widget: "wallpaper"; settings: Omit<WallpaperSettings, "images">; images: string[]; stickers: WallSticker[] }
   );
