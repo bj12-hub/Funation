@@ -288,9 +288,21 @@
   }
 }
 
+/* Phones: the header must fit 375px without a horizontal scroll (검색 · 충전 are hidden at the end of this file). */
 @media (max-width: 480px) {
+  .header,
+  .left,
+  .rightGuest,
+  .rightSignedIn {
+    gap: 8px;
+  }
+
   .logoText {
-    font-size: var(--font-size-24);
+    font-size: var(--font-size-20);
+  }
+
+  .logoBadge {
+    display: none;
   }
 
   .loginButton {
@@ -614,4 +626,13 @@
 
 .bellAll:hover {
   color: var(--color-text-primary);
+}
+
+/* Up to 680px the signed-in header has no room for 검색 and the FN 충전 chip; both are also in the side
+   menu (크리에이터 찾기 · 보유 FN · FN 충전). Kept last so it wins over the base rules above. */
+@media (max-width: 680px) {
+  .searchButton,
+  .chargeChip {
+    display: none;
+  }
 }
