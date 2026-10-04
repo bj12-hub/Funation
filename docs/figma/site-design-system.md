@@ -178,6 +178,9 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 마이 | M09 | 출석체크 | `/attendance` | `82:5322` |
 | 마이 | M10 | 차단 관리 (차단한 사용자 2명) | `/mypage/blocks` | `151:8644` |
 | 마이 | M10b | 차단 관리 · 비어 있음 | `/mypage/blocks` | `151:8861` |
+| 마이 | M11 | 회원 탈퇴 (남은 FN 소멸 동의 · 두 항목 체크) | `/mypage/withdraw` | `177:8939` |
+| 마이 | M11b | 회원 탈퇴 · 정산 대기 수익이 있는 크리에이터 (탈퇴 불가) | `/mypage/withdraw` | `177:9170` |
+| 마이 | M11c | 회원 탈퇴 · 완료 | `/mypage/withdraw` | `177:9397` |
 | FN 지갑 | M05 | FN Wallet | `/wallet` | `84:5202` |
 | FN 지갑 | M05b | FN 충전 (모달) | `/wallet` | `85:5369` |
 | FN 지갑 | M05c | 충전 내역 | `/wallet/charges` | `86:5536` |

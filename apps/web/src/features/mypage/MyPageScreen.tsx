@@ -12,9 +12,7 @@ import { IdentityVerification, PlatformConnect, PlatformDisconnect, ProviderLink
 import { MarketingConsentSetting, RankingVisibilitySettings } from "./SettingToggles";
 import styles from "./mypage.module.css";
 
-// FN history/charge and withdrawal are not built yet; they render as unavailable.
-// Profile changes live in ./editors; provider, identity and platform links in ./linking.
-const UNAVAILABLE = { "aria-disabled": true, title: "준비 중인 기능입니다" } as const;
+// Profile changes live in ./editors; provider, identity and platform links in ./linking; 회원 탈퇴 in ./WithdrawScreen.
 
 const PROVIDERS: { key: LoginProvider; label: string; logo: ReactNode }[] = [
   { key: "NAVER", label: "네이버", logo: <span className={styles.providerLetter}>N</span> },
@@ -223,9 +221,9 @@ export function MyPageScreen({ account, grade, creator }: { account: MyAccount; 
       </section>
 
       <div className={styles.footerActions}>
-        <button type="button" className={styles.withdrawButton} {...UNAVAILABLE}>
+        <Link href="/mypage/withdraw" className={styles.withdrawButton}>
           회원 탈퇴
-        </button>
+        </Link>
       </div>
     </div>
   );

@@ -8,8 +8,14 @@ import { MemberActions } from "./MemberActions";
 const ROLE_LABEL = { SUPPORTER: "후원자", CREATOR: "크리에이터", ADMIN: "관리자" } as const;
 const day = (iso: string) => iso.slice(0, 10).replace(/-/g, ".");
 
+const STATUS_CHIP = {
+  ACTIVE: { label: "정상", className: styles.chipOk },
+  SUSPENDED: { label: "정지", className: styles.chipBad },
+  WITHDRAWN: { label: "탈퇴", className: styles.chipNeutral }
+} as const;
+
 function StatusChip({ status }: { status: AdminMember["status"] }) {
-  return <span className={status === "SUSPENDED" ? styles.chipBad : styles.chipOk}>{status === "SUSPENDED" ? "정지" : "정상"}</span>;
+  return <span className={STATUS_CHIP[status].className}>{STATUS_CHIP[status].label}</span>;
 }
 
 /** 회원 관리 — code-first. Route `/members` (`?q=&role=&status=&page=`). */
@@ -33,6 +39,7 @@ export function MembersScreen({ page }: { page: MemberPage }) {
           <option value="ALL">전체 상태</option>
           <option value="ACTIVE">정상</option>
           <option value="SUSPENDED">정지</option>
+          <option value="WITHDRAWN">탈퇴</option>
         </select>
         <button type="submit" className={styles.button}>
           검색
@@ -136,7 +143,13 @@ export function MemberDetailScreen({ member, audit }: { member: AdminMember; aud
               {member.suspension.until ? `${day(member.suspension.until)}까지` : "무기한"} 정지 · 사유: {member.suspension.reason} · 처리: {member.suspension.by}
             </p>
           )}
-          <MemberActions id={member.id} suspended={member.status === "SUSPENDED"} />
+          {member.withdrawal ? (
+            <p className={styles.muted}>
+              {new Date(member.withdrawal.at).toLocaleString("ko-KR")} 회원 탈퇴 · 소멸 FN {formatNumber(member.withdrawal.forfeitedFn)} FN (회원 동의) · 탈퇴한 회원은 이용 제한을 바꿀 수 없어요.
+            </p>
+          ) : (
+            <MemberActions id={member.id} suspended={member.status === "SUSPENDED"} />
+          )}
           <h3 className={styles.subTitle}>처리 이력</h3>
           {audit.length === 0 ? (
             <p className={styles.muted}>처리 이력이 없어요.</p>

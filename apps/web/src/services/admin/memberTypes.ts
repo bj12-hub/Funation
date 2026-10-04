@@ -5,7 +5,8 @@ import type { Role } from "@/types/role";
  * suspended member keeps — FN balance, pending settlements) are TBD; durations here are operator choices.
  */
 
-export type MemberStatus = "ACTIVE" | "SUSPENDED";
+/** WITHDRAWN = 회원 탈퇴 (2026-10-04 결정); the record stays for audit. */
+export type MemberStatus = "ACTIVE" | "SUSPENDED" | "WITHDRAWN";
 
 export type Suspension = { reason: string; at: string; until: string | null; by: string };
 
@@ -18,6 +19,8 @@ export type AdminMember = {
   lastActiveAt: string;
   status: MemberStatus;
   suspension: Suspension | null;
+  /** 회원 탈퇴: when, and the FN the member agreed to forfeit. */
+  withdrawal: { at: string; forfeitedFn: number } | null;
   /** Server-side values (mock: only the sample member has real wallet data). */
   fnBalance: number;
   donationTotalFn: number;
