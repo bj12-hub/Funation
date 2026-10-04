@@ -73,6 +73,11 @@
   font-size: var(--font-size-13);
 }
 
+.filterChip:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .filterChip[aria-pressed="true"] {
   border-color: var(--color-primary);
   background: var(--color-primary-soft);

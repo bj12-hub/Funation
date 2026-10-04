@@ -230,7 +230,7 @@ function Feed({ view, states, pending, run, api }: { view: FeedView; states: Rec
           전체
         </button>
         {view.platforms.map((p) => (
-          <button key={p.platform} type="button" className={styles.filterChip} aria-pressed={filter === p.platform} onClick={() => setFilter(p.platform)} disabled={!p.connected}>
+          <button key={p.platform} type="button" className={styles.filterChip} aria-pressed={filter === p.platform} onClick={() => setFilter(p.platform)} disabled={!p.connected} title={p.connected ? undefined : "연결되지 않은 플랫폼이에요"}>
             <PlatformMark platform={p.platform} size="sm" />
             {PLATFORM_LABEL[p.platform]}
           </button>
