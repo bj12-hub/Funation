@@ -398,22 +398,22 @@ function Wallpaper({ data }: { data: Extract<OverlayWidget, { widget: "wallpaper
         return (
           <div key={t.id} className={styles.sticker} data-layout={s.layout} style={{ left: t.x, top: t.y, rotate: `${t.rotate}deg` }}>
             {s.layout === "BUBBLE" && <span className={styles.stickerBubble}>{t.amount}</span>}
-            {url ? (
-              // eslint-disable-next-line @next/next/no-img-element -- uploaded images are data URLs in the mock
-              <img src={url} alt="" className={styles.stickerImage} />
-            ) : (
-              <span className={styles.stickerImage} aria-hidden="true" />
-            )}
+            <span className={styles.stickerFrame}>
+              {url ? (
+                // eslint-disable-next-line @next/next/no-img-element -- uploaded images are data URLs in the mock
+                <img src={url} alt="" className={styles.stickerImage} />
+              ) : (
+                <span className={styles.stickerImage} aria-hidden="true" />
+              )}
+              {t.test && <span className={styles.stickerTest}>테스트</span>}
+            </span>
             {s.layout === "BASIC" && (
               <strong className={styles.stickerAmount} style={fn}>
                 {t.amount}
               </strong>
             )}
             <span className={styles.stickerNick} style={nick}>
-              <b style={{ color: s.nicknameColor }}>
-                {t.test && "[테스트] "}
-                {t.nickname}
-              </b>{" "}
+              <b style={{ color: s.nicknameColor }}>{t.nickname}</b>{" "}
               님
             </span>
             {s.layout === "BOX" && (

@@ -548,6 +548,22 @@
   }
 }
 
+.stickerFrame {
+  position: relative;
+}
+
+.stickerTest {
+  position: absolute;
+  top: -8px;
+  right: -12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #64748b;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: var(--font-weight-bold);
+}
+
 .stickerImage {
   display: block;
   width: 140px;
@@ -575,9 +591,9 @@
 .stickerNick {
   max-width: 200px;
   overflow: hidden;
-  padding: 6px 16px;
+  padding: 6px 14px;
   border-radius: 999px;
-  font-size: 18px;
+  font-size: 17px;
   font-weight: var(--font-weight-bold);
   text-overflow: ellipsis;
   white-space: nowrap;
