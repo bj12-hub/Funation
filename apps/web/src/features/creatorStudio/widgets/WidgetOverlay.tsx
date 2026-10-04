@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, type CSSProperties } from "react";
 import { formatNumber } from "@/lib/format";
 import { fillRank, fillTotal } from "@/services/creator/widgetOverlayCore";
-import type { OverlayWidget, WidgetFeedLine } from "@/services/creator/widgetOverlayTypes";
+import { WALL_SIZE, type OverlayWidget, type WidgetFeedLine } from "@/services/creator/widgetOverlayTypes";
 import { rankItems, votePercent } from "@/services/votes/voteTypes";
 import { isBlankPrize, wheelGradient } from "@/services/donations/rouletteTypes";
 import { RECENT_PLATFORMS } from "@/services/creator/widgetSettingsTypes";
@@ -81,6 +81,8 @@ export function WidgetOverlay({ data }: { data: OverlayWidget }) {
       return <GachaDraw data={data} />;
     case "gacha-board":
       return <GachaBoard data={data} />;
+    case "wallpaper":
+      return <Wallpaper data={data} />;
   }
 }
 
@@ -376,6 +378,52 @@ function GachaBoard({ data }: { data: Extract<OverlayWidget, { widget: "gacha-bo
           </ol>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * 벽지 (2026-10-04 결정: 자동 배치 스티커 벽): one sticker per donation where the server placed it on the
+ * 1920 × 1080 screen, in the 벽지 레이아웃 of the settings preview (기본형 · 말풍선형 · 박스형). Stickers stay
+ * until 리모컨 벽지 비우기; a new one pops in.
+ */
+function Wallpaper({ data }: { data: Extract<OverlayWidget, { widget: "wallpaper" }> }) {
+  const s = data.settings;
+  const fn: CSSProperties = { fontFamily: `"${s.fnFont.family}", var(--font-sans)`, color: s.fnFont.color, WebkitTextStroke: `2px ${s.fnOutline}`, paintOrder: "stroke fill" };
+  const nick: CSSProperties = { fontFamily: `"${s.nicknameFont.family}", var(--font-sans)`, color: s.nicknameFont.color, background: s.textBoxColor };
+  return (
+    <div className={styles.wall} style={{ width: WALL_SIZE.w, height: WALL_SIZE.h }}>
+      {data.stickers.map((t) => {
+        const url = t.image === null ? null : data.images[t.image];
+        return (
+          <div key={t.id} className={styles.sticker} data-layout={s.layout} style={{ left: t.x, top: t.y, rotate: `${t.rotate}deg` }}>
+            {s.layout === "BUBBLE" && <span className={styles.stickerBubble}>{t.amount}</span>}
+            {url ? (
+              // eslint-disable-next-line @next/next/no-img-element -- uploaded images are data URLs in the mock
+              <img src={url} alt="" className={styles.stickerImage} />
+            ) : (
+              <span className={styles.stickerImage} aria-hidden="true" />
+            )}
+            {s.layout === "BASIC" && (
+              <strong className={styles.stickerAmount} style={fn}>
+                {t.amount}
+              </strong>
+            )}
+            <span className={styles.stickerNick} style={nick}>
+              <b style={{ color: s.nicknameColor }}>
+                {t.test && "[테스트] "}
+                {t.nickname}
+              </b>{" "}
+              님
+            </span>
+            {s.layout === "BOX" && (
+              <strong className={styles.stickerBoxAmount} style={fn}>
+                {t.amount}
+              </strong>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

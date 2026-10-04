@@ -11,6 +11,7 @@ import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
 import { eventLines, goalProgress, rankingRows, recentLines, totalAmount } from "./widgetOverlayCore";
 import { QR_SAMPLE_IMAGE, isWidgetOverlay, type OverlayWidget } from "./widgetOverlayTypes";
 import { readWidget } from "./widgetStore";
+import { clearedAtOf, wallStickers } from "./wallpaperCore";
 
 /**
  * 후원 위젯 OBS overlays (code-first): no login — the integration key in the URL is the credential, like
@@ -80,5 +81,11 @@ export async function getOverlayWidget(widget: unknown, key: unknown): Promise<O
     }
     case "gacha-board":
       return { widget, settings: readWidget("GACHA"), board: boardOf(STUDIO_CHANNEL), ...common };
+    case "wallpaper": {
+      // Stickers since the last 벽지 비우기 (리모컨). The images go once; each sticker points at one.
+      const { images, ...settings } = readWidget("WALLPAPER");
+      const stickers = wallStickers(items, { images }, clearedAtOf(STUDIO_CHANNEL));
+      return { widget, settings, images: images.map((i) => i.url), stickers, ...common };
+    }
   }
 }
