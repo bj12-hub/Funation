@@ -16,8 +16,8 @@ export function PopularLiveList({ channels }: { channels: LiveChannel[] }) {
         지금 가장 많이 보는 라이브
       </h2>
       <div className={styles.popularGrid}>
-        {channels.map((c) => (
-          <LiveChannelCard key={c.id} channel={c} variant="compact" sizes="(max-width: 1200px) 50vw, 263px" />
+        {channels.map((c, i) => (
+          <LiveChannelCard key={c.id} channel={c} variant="compact" sizes="(max-width: 1200px) 50vw, 263px" priority={i < 4} />
         ))}
       </div>
     </section>
