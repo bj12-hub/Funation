@@ -54,6 +54,7 @@
 
 .searchInput {
   flex: 1;
+  align-self: stretch;
   min-width: 0;
   padding: 0;
   border: 0;

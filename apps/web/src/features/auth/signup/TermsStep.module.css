@@ -73,4 +73,8 @@
 .view {
   display: flex;
   flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
 }

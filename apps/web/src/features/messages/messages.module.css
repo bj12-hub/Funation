@@ -180,13 +180,21 @@
 
 .item {
   display: grid;
-  grid-template-columns: 20px minmax(0, 1fr) auto auto;
+  grid-template-columns: 24px minmax(0, 1fr) auto auto;
   align-items: start;
   gap: 12px;
   padding: 14px 16px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-12);
   background: var(--color-surface);
+}
+
+/* 쪽지 선택: a 24 × 24 touch target (WCAG 2.5.8). */
+.item > input[type="checkbox"] {
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  accent-color: var(--color-primary);
 }
 
 .item[data-unread] {
