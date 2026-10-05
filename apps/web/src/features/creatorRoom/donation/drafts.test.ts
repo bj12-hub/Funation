@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getMockDonationCatalog, type DonationCatalog } from "@/services/donations/donationCatalog";
-import { buildDraft, initialStates, isFormKey, parseClock, timeToSec, type FormStates } from "./drafts";
+import { AMOUNT_INPUT_MAX, addAmount, buildDraft, initialStates, isFormKey, parseClock, timeToSec, type FormStates } from "./drafts";
 
 /**
  * The donation panel's form → request step. The server validates everything again; these checks are what the
@@ -103,6 +103,12 @@ describe("후원 폼 → 요청", () => {
     expect(buildDraft("DRAWING", states({ DRAWING: base }), catalog).details).toMatchObject({ type: "DRAWING", title: "고양이" });
     expect(buildDraft("DRAWING", states({ DRAWING: { ...base, image: null } }), catalog).details).toBeNull();
     expect(buildDraft("DRAWING", states({ DRAWING: { ...base, amount: "500" } }), catalog).error).toContain("1,000 FN");
+  });
+
+  it("빠른 금액 추가 adds to the typed amount and stays within the input", () => {
+    expect(addAmount("", 1_000)).toBe("1000");
+    expect(addAmount("2500", 10_000)).toBe("12500");
+    expect(addAmount("999999000", 5_000)).toBe(String(AMOUNT_INPUT_MAX));
   });
 
   it("knows which donation types have a form", () => {

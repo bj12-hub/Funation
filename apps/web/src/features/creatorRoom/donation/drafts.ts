@@ -84,6 +84,23 @@ export function parseClock(value: string): number | null {
 
 const digits = (value: string) => (value ? Number(value) : null);
 
+/** 빠른 금액 추가 (funnation 참고, 2026-10-06 결정): each button adds to what is typed; 전액 sets the balance. */
+export const QUICK_AMOUNTS: { add: number; label: string }[] = [
+  { add: 1_000, label: "+1천" },
+  { add: 5_000, label: "+5천" },
+  { add: 10_000, label: "+1만" },
+  { add: 50_000, label: "+5만" },
+  { add: 100_000, label: "+10만" }
+];
+/** The amount input keeps 9 digits. */
+export const AMOUNT_INPUT_MAX = 999_999_999;
+
+/** `current` (digits or "") plus `add`, as the digits the amount input holds (capped at the input's 9 digits). */
+export function addAmount(current: string, add: number): string {
+  const base = current ? Number(current) : 0;
+  return String(Math.min(AMOUNT_INPUT_MAX, (Number.isFinite(base) ? base : 0) + add));
+}
+
 export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCatalog): Draft {
   switch (key) {
     case "TEXT": {
