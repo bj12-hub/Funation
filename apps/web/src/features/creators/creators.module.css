@@ -41,7 +41,9 @@
 .searchInput {
   flex: 1;
   min-width: 0;
-  padding: 0;
+  /* Covers the box's padding (layout unchanged), so tapping anywhere on the box focuses the field. */
+  padding: 12px 0;
+  margin: -12px 0;
   border: 0;
   outline: none;
   background: transparent;

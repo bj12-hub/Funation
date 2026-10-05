@@ -13,6 +13,10 @@
 .iconButton {
   display: flex;
   flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
 }
 
 /* ── Options row ── */
@@ -29,6 +33,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  min-height: 24px;
   cursor: pointer;
 }
 

@@ -71,6 +71,7 @@
 }
 
 .select select {
+  align-self: stretch;
   border: 0;
   background: transparent;
   color: var(--color-text-primary);
@@ -104,6 +105,7 @@
 
 .searchBox input {
   flex: 1;
+  align-self: stretch;
   min-width: 0;
   border: 0;
   background: transparent;

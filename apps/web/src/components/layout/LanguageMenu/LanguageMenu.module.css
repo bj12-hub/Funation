@@ -5,7 +5,11 @@
 .trigger {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
+  /* At least 24 × 24 even when only the flag shows (narrow screens). */
+  min-width: 24px;
+  min-height: 24px;
   color: var(--color-text-secondary);
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-medium);
