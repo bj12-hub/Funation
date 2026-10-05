@@ -9,6 +9,7 @@ import {
   BROADCAST_TITLE_MAX,
   MAX_ADJUST_POINTS,
   PROJECT_NAME_MAX,
+  rankUpPair,
   type FeedSourceKey,
   type FeedSummaryRow,
   type Battle,
@@ -71,6 +72,7 @@ function scoreRows(b: MockBroadcast): ScoreRow[] {
 
 function liveView(b: MockBroadcast): BroadcastLive {
   const rows = scoreRows(b);
+  const rankUp = rankUpPair(rows);
   const byId = new Map(members().map((m) => [m.id, m.name]));
   return {
     id: b.id,
@@ -92,7 +94,9 @@ function liveView(b: MockBroadcast): BroadcastLive {
           current: b.scenario.current,
           history: b.scenario.history.map((h) => ({ ...h, title: b.scenario!.parts[h.index]?.title ?? `${h.index + 1}부` }))
         }
-      : null
+      : null,
+    rankUp,
+    showRankUp: !!b.showRankUp
   };
 }
 
@@ -242,6 +246,18 @@ export async function startBroadcast(input: unknown): Promise<BroadcastResult> {
     adjustments: [],
     final: null
   });
+  return { status: "SAVED" };
+}
+
+/** 랭크업을 OBS 점수판에 표시 / 숨기기 (the studio always shows it). Setting the same value again is a no-op. */
+export async function setRankUpOverlay(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
+  const live = liveOf(STUDIO_CHANNEL);
+  if (!live || live.id !== v.broadcastId) return { status: "INVALID", message: "진행 중인 방송이 아니에요." };
+  if (typeof v.on !== "boolean") return { status: "INVALID", message: "설정을 확인해 주세요." };
+  live.showRankUp = v.on;
   return { status: "SAVED" };
 }
 

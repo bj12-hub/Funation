@@ -49,6 +49,11 @@ function MainBoard({ data }: { data: BroadcastLive }) {
     <div className={styles.overlay}>
       <h1 className={styles.title}>{data.title}</h1>
       {data.oneshotPot !== null && <p className={styles.oneshot}>한방 모으는 중 · {formatNumber(data.oneshotPot)}점</p>}
+      {data.showRankUp && data.rankUp && (
+        <p className={styles.rankUp}>
+          🔥 랭크업 · {data.rankUp.lower.name} → {data.rankUp.upper.name} {data.rankUp.gap === 0 ? "동점!" : `${formatNumber(data.rankUp.gap)}점 차`}
+        </p>
+      )}
       {data.teamMode && (
         <div className={styles.teams}>
           {data.teams.map((t) => (
