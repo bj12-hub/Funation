@@ -51,6 +51,7 @@ import { isQuestAction, type QuestAction, type QuestDecideResult } from "@/servi
 import { getDonationCatalog } from "@/services/donations/signatureCore";
 import { FIXTURE_AMOUNTS, FIXTURE_DONORS } from "./receivedFixtures";
 import { mockCreator } from "./mockCreatorStore";
+import { isIsoDate } from "@/lib/period";
 
 /**
  * 후원관리+ (route `/creator/donations`). Server Actions re-check the session and validate input.
@@ -282,7 +283,6 @@ function csvCell(value: string | number) {
   return `"${text.replace(/"/g, '""')}"`;
 }
 
-const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
  * 후원 리스트 CSV — code-first (funnation reference: 받은 후원 엑셀 다운로드). Same filters as the list,
@@ -294,7 +294,7 @@ export async function exportReceivedDonationsCsv(input: unknown): Promise<CsvExp
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   const p = (typeof v.period === "object" && v.period !== null ? v.period : {}) as Record<string, unknown>;
-  if (typeof p.from !== "string" || typeof p.to !== "string" || !DAY.test(p.from) || !DAY.test(p.to) || p.from > p.to) return { status: "INVALID" };
+  if (typeof p.from !== "string" || typeof p.to !== "string" || !isIsoDate(p.from) || !isIsoDate(p.to) || p.from > p.to) return { status: "INVALID" };
   const { kind, matched } = filterReceived({
     kind: v.kind as ListKind,
     period: { preset: "range", from: p.from, to: p.to },
