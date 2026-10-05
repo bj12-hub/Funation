@@ -78,7 +78,7 @@ export function CreatorDashboardScreen({
           {dashboard.banners.event && (
             <div className={styles.quickItem}>
               <h2 className={styles.quickTitle}>이벤트</h2>
-              <Image src={dashboard.banners.event.imageUrl} alt={dashboard.banners.event.alt} width={268} height={111} className={`${styles.banner} ${styles.bannerEvent}`} />
+              <Image src={dashboard.banners.event.imageUrl} alt={dashboard.banners.event.alt} width={268} height={111} priority className={`${styles.banner} ${styles.bannerEvent}`} />
             </div>
           )}
           {dashboard.banners.ad && (

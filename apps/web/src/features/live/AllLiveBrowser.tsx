@@ -53,8 +53,8 @@ export function AllLiveBrowser({ channels }: { channels: LiveChannel[] }) {
         ) : (
           <>
             <div className={styles.grid4}>
-              {visible.slice(0, shown).map((c) => (
-                <LiveChannelCard key={c.id} channel={c} variant="compact" sizes="(max-width: 900px) 50vw, 25vw" />
+              {visible.slice(0, shown).map((c, i) => (
+                <LiveChannelCard key={c.id} channel={c} variant="compact" sizes="(max-width: 900px) 50vw, 25vw" priority={i < 4} />
               ))}
             </div>
             {shown < visible.length && (
