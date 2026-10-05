@@ -112,6 +112,8 @@ Figma: [Somnation — 현재 구현 (2026-09)](https://www.figma.com/design/PMnj
 
 ## 5 인증 · 약관 · OBS
 
+2026-10-06: L01 · L02 다시 캡처(조항 목차 자리표시, 본문 TBD).
+
 | ID | 화면 | 라우트 | Figma |
 |---|---|---|---|
 | A01-login | 로그인 | `/login` | [2:264](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-264) |
@@ -120,8 +122,8 @@ Figma: [Somnation — 현재 구현 (2026-09)](https://www.figma.com/design/PMnj
 | A04-password-reset | 비밀번호 재설정 | `/password-reset` | [2:273](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-273) |
 | A05-password-change | 비밀번호 변경 | `/login/password-change` | [2:276](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-276) |
 | A06-home-guest | 홈 (비로그인) | `/` | [2:279](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-279) |
-| L01-terms-service | 서비스 이용약관 | `/terms/service` | [2:283](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-283) |
-| L02-terms-privacy | 개인정보 처리방침 | `/terms/privacy` | [2:286](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-286) |
+| L01-terms-service | 서비스 이용약관 (조항 목차 · 본문 TBD) | `/terms/service` | [2:283](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-283) |
+| L02-terms-privacy | 개인정보 처리 방침 (조항 목차 · 본문 TBD) | `/terms/privacy` | [2:286](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-286) |
 | O01-drawing | 그림후원 오버레이 (800×700) | `/overlay/drawing/[key]` | [2:290](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-290) |
 | O02-banner | 배너 오버레이 (1920×1080) | `/overlay/banner/[key]` | [2:293](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-293) |
 | O03-crew | 크루 점수판 오버레이 (480×600) | `/overlay/crew/[key]` | [2:296](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj?node-id=2-296) |
