@@ -1,7 +1,7 @@
 /* Donation type fields — Figma 851:4546 … 851:5054 · popup 875:1863 */
 
 .hintAccent {
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   font-size: var(--font-size-10);
   font-weight: var(--font-weight-regular);
 }
@@ -132,7 +132,7 @@
 }
 
 .linkButton {
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   font-size: var(--font-size-11);
   font-weight: var(--font-weight-regular);
 }
@@ -195,7 +195,7 @@
 
 .selectedNote {
   margin: 0;
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   font-size: var(--font-size-10);
 }
 
@@ -338,7 +338,7 @@
 }
 
 .resultsRow strong {
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   font-weight: var(--font-weight-extrabold);
 }
 
@@ -424,7 +424,7 @@
 }
 
 .popupCardOn .popupPrice {
-  color: var(--color-accent);
+  color: var(--color-accent-text);
 }
 
 .popupEmpty {

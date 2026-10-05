@@ -158,7 +158,7 @@
 
 .addOption {
   align-self: flex-start;
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   font-size: 9px;
   font-weight: var(--font-weight-bold);
 }
@@ -330,7 +330,7 @@
 
 .myRoulette strong[data-status="RESULT"],
 .myRoulette strong[data-status="DONE"] {
-  color: var(--color-accent);
+  color: var(--color-accent-text);
 }
 
 .rouletteNo {
@@ -364,7 +364,7 @@
 }
 
 .myRetry {
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   font-weight: var(--font-weight-bold);
   text-decoration: underline;
 }

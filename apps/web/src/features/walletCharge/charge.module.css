@@ -36,7 +36,7 @@
 }
 
 .accent {
-  color: var(--color-accent) !important;
+  color: var(--color-accent-text) !important;
 }
 
 /* ── Form ─────────────────────────────────────────── */
@@ -67,7 +67,7 @@
 }
 
 .balance strong {
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   font-family: var(--font-latin);
   font-size: 30px;
   font-weight: var(--font-weight-bold);
@@ -126,7 +126,7 @@
 }
 
 .amountOn .price {
-  color: var(--color-accent);
+  color: var(--color-accent-text);
 }
 
 .customOpen {
@@ -178,7 +178,7 @@
 }
 
 .quoteRow strong {
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   font-weight: var(--font-weight-bold);
 }
 
@@ -380,7 +380,7 @@
 
 .total {
   flex-shrink: 0;
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   font-size: 22px;
   font-weight: var(--font-weight-extrabold);
 }
@@ -495,7 +495,7 @@
 }
 
 .required {
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   font-weight: var(--font-weight-bold);
 }
 
@@ -554,7 +554,7 @@ label:has(input:focus-visible) .box {
 }
 
 .successCard strong {
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   font-family: var(--font-latin);
   font-size: var(--font-size-32);
   font-weight: var(--font-weight-extrabold);
@@ -612,7 +612,7 @@ label:has(input:focus-visible) .box {
 }
 
 .failureCard strong {
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   font-size: 17px;
   font-weight: var(--font-weight-extrabold);
 }

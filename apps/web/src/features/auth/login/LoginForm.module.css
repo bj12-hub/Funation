@@ -144,7 +144,7 @@
 }
 
 .signupLink {
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   font-weight: var(--font-weight-bold);
 }
 

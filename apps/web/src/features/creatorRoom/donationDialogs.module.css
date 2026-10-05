@@ -55,7 +55,7 @@
 }
 
 .amount {
-  color: var(--color-accent) !important;
+  color: var(--color-accent-text) !important;
   font-size: var(--font-size-15) !important;
   font-weight: var(--font-weight-extrabold);
 }

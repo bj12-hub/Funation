@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { DefaultAvatarIcon, GiftIcon, SmileIcon } from "@/components/icons";
 import type { ChatMessage } from "./chatMessages";
@@ -59,7 +59,7 @@ export function ChatPanel({ signedIn, messages, onSend }: { signedIn: boolean; m
                 <DefaultAvatarIcon className={styles.messageAvatar} aria-hidden="true" />
               )}
               <span className={styles.messageBody}>
-                <span className={styles.messageNick} style={{ color: m.color }}>
+                <span className={styles.messageNick} style={{ "--nick": m.color } as CSSProperties}>
                   {m.nickname}
                   {m.handle && <span className={styles.messageHandle}> @{m.handle}</span>}
                 </span>

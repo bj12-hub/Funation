@@ -45,7 +45,7 @@ export function Player({ name, stream }: { name: string; stream: CreatorRoom["st
       </div>
 
       {stream.goal && (
-        <div className={styles.goal}>
+        <div className={styles.goal} data-theme="dark">
           <div className={styles.goalHeader}>
             <span>🏁 오늘 목표 후원 금액</span>
             <span className={styles.goalPercent}>{percent}% 달성</span>

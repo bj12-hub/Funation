@@ -34,6 +34,8 @@
   --color-text-secondary: #9ca3af;
   --color-text-tertiary: #6b7280;
   --color-text-soft: #c0c0d0;
+  /* Light grey secondary text on dark surfaces (was hard-coded #d1d5db). */
+  --color-text-dim: #d1d5db;
   --color-text-inverse: #000000;
   --color-text-on-accent: #ffffff;
 
@@ -42,6 +44,8 @@
   --color-primary-soft: rgba(139, 92, 246, 0.15);
   --color-primary-light: #a78bfa;
   --color-accent: #ec4899;
+  /* The accent pink as text (light theme: a darker pink that keeps 4.5:1 on white). */
+  --color-accent-text: var(--color-accent);
   --color-info: #3b82f6;
   --color-live: #f5bf0a;
   --color-highlight: #06b6d4;
@@ -293,7 +297,8 @@
 
 /*
  * Light theme — code-first (no Figma frames yet; docs/figma/code-first-screens.md).
- * Only surface / text / border / form tokens change. Brand colors, media scrims (text over images or
+ * Surface / text / border / form tokens change, and the status colors used as text (success · live · charge ·
+ * gold) get darker shades so they keep 4.5:1 on light backgrounds (WCAG AA). Brand colors, media scrims (text over images or
  * video) and third-party brand colors stay the same. Creator studio and overlays keep the dark theme.
  */
 [data-theme="light"] {
@@ -312,9 +317,19 @@
 
   --color-text-primary: #15151f;
   --color-text-secondary: #5b5d6b;
-  --color-text-tertiary: #80828f;
+  --color-text-tertiary: #646675;
   --color-text-soft: #3d3d4d;
   --color-text-faint: #8a8c99;
+  --color-text-dim: #4b4b5c;
+  --color-accent-text: #be185d;
+
+  /* Status colors (AA on white, on their 13% tints and with white text on top). */
+  --color-success: #047857;
+  --color-platform-success: #047857;
+  --color-platform-live: #be123c;
+  --color-charge: #2563eb;
+  --color-gold: #b45309;
+  --color-danger: #c81e1e;
 
   --color-primary-soft: rgba(139, 92, 246, 0.12);
   --color-primary-light: #7c3aed;
@@ -336,7 +351,7 @@
   --shadow-card: 0 16px 32px rgba(20, 20, 50, 0.1);
   --shadow-button: 0 4px 6px rgba(20, 20, 50, 0.08);
 
-  --color-success-text: #059669;
+  --color-success-text: #047857;
   --color-warning-text: #b45309;
   --color-error-text: #dc2626;
   --color-nickname-error: #e11d48;
