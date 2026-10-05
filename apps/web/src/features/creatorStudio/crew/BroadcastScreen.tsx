@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { formatNumber } from "@/lib/format";
-import { adjustScore, endBroadcast, startBroadcast } from "@/services/crew/crewBroadcast";
+import { adjustScore, endBroadcast, setRankUpOverlay, startBroadcast } from "@/services/crew/crewBroadcast";
 import { BROADCAST_TITLE_MAX, PROJECT_NAME_MAX, type BroadcastResult, type BroadcastView, type TeamKey } from "@/services/crew/crewTypes";
 import type { OverlayTarget } from "@/services/creator/alertTypes";
 import { OverlayOffNotice } from "../remote/OverlayOffNotice";
@@ -221,6 +221,25 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
               </li>
             ))}
           </ol>
+
+          {/* 랭크업 (code-first, 2026-10-06): the closest overtake on the board. */}
+          <div className={styles.rankUp} role="status" aria-label="랭크업">
+            <span>
+              🔥 랭크업{" "}
+              {live.rankUp ? (
+                <>
+                  <strong>{live.rankUp.lower.name}</strong>({live.rankUp.lower.rank}위) → <strong>{live.rankUp.upper.name}</strong>({live.rankUp.upper.rank}위){" "}
+                  {live.rankUp.gap === 0 ? "동점!" : `${formatNumber(live.rankUp.gap)}점 차`}
+                </>
+              ) : (
+                <span className={styles.muted}>점수가 쌓이면 역전이 가장 가까운 두 멤버를 보여 줘요.</span>
+              )}
+            </span>
+            <label className={styles.checkRow}>
+              <input type="checkbox" checked={live.showRankUp} disabled={pending} onChange={(e) => run(() => setRankUpOverlay({ broadcastId: live.id, on: e.target.checked }), e.target.checked ? "OBS 점수판에 랭크업을 띄웠어요." : "랭크업을 내렸어요.")} />
+              OBS 점수판에 표시
+            </label>
+          </div>
 
           {live.logs.length > 0 && (
             <details className={styles.logs}>

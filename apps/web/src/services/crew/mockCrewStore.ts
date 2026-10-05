@@ -28,6 +28,8 @@ export type MockBroadcast = {
   feed?: FeedEntry[];
   /** Active 한방 window. */
   oneshot?: { startedAt: string } | null;
+  /** 랭크업 on the OBS scoreboard (2026-10-06). */
+  showRankUp?: boolean;
   /** 시뮬 후원 request ids already accepted. */
   simRequests?: string[];
   /** 서브 점수판: window-scored boards under the main one (numbered from 1 per broadcast). */
