@@ -247,6 +247,40 @@
   white-space: nowrap;
 }
 
+/* Page size (15 · 30 · 50개씩) on the left, pages on the right. */
+.listFooter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sizes {
+  display: flex;
+  gap: 4px;
+}
+
+.size {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: var(--radius-6);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.size:hover {
+  color: var(--color-text-primary);
+}
+
+.size[aria-current="true"] {
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+}
+
 .pagination {
   display: flex;
   justify-content: center;
