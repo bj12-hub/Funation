@@ -32,7 +32,7 @@
 .tabActive,
 .tabActive:hover {
   border-bottom-color: var(--color-accent);
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   font-weight: var(--font-weight-bold);
 }
 
@@ -54,7 +54,7 @@
 }
 
 .breadcrumbCurrent {
-  color: var(--color-accent);
+  color: var(--color-accent-text);
 }
 
 .title {
@@ -122,7 +122,7 @@
 }
 
 .metaAvailable {
-  color: #d1d5db;
+  color: var(--color-text-dim);
 }
 
 .metaExpiring {
@@ -363,7 +363,7 @@
 }
 
 .creator:hover {
-  color: var(--color-accent);
+  color: var(--color-accent-text);
 }
 
 .message {
@@ -374,7 +374,7 @@
 }
 
 .usedFn {
-  color: var(--color-accent) !important;
+  color: var(--color-accent-text) !important;
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-bold);
 }
