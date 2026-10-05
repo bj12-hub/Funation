@@ -4,7 +4,7 @@
  * Client-safe types and option lists; the actions live in ./donationManagement.ts.
  */
 
-import { toDateString } from "@/lib/period";
+import { isIsoDate, toDateString } from "@/lib/period";
 
 export const MANAGEMENT_TABS = [
   { key: "settings", label: "후원 페이지 설정" },
@@ -136,8 +136,7 @@ export function parseListPeriod(raw: { period?: string; from?: string; to?: stri
       break;
     }
     case "range": {
-      const ok = (v?: string) => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
-      if (ok(raw.from) && ok(raw.to) && raw.from! <= raw.to!) return { preset: "range", from: raw.from!, to: raw.to! };
+      if (isIsoDate(raw.from) && isIsoDate(raw.to) && raw.from <= raw.to) return { preset: "range", from: raw.from!, to: raw.to! };
       break;
     }
   }
