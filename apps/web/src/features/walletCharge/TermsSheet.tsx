@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { CheckboxCheckIcon } from "@/components/icons";
 import { CHARGE_CONSENTS, type ChargeConsentKey } from "@/services/wallet/chargeTypes";
@@ -54,10 +55,16 @@ export function TermsSheet({ onCancel, onAgree }: { onCancel: () => void; onAgre
               <span className={c.required ? styles.required : styles.optional}>[{c.required ? "필수" : "선택"}]</span>
               {c.label}
             </label>
-            {/* TODO: terms documents for the charge flow are not provided yet. */}
-            <span className={styles.viewTerms} aria-disabled="true" title="약관 문서 준비 중">
-              보기 ›
-            </span>
+            {/* Opens in a new tab so the charge in progress is kept. */}
+            {c.href ? (
+              <Link href={c.href} target="_blank" className={styles.viewTerms} aria-label={`${c.label} 보기 (새 탭)`}>
+                보기 ›
+              </Link>
+            ) : (
+              <span className={`${styles.viewTerms} ${styles.viewTermsOff}`} aria-disabled="true" title="약관 문서 준비 중">
+                보기 ›
+              </span>
+            )}
           </li>
         ))}
       </ul>

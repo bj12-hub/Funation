@@ -504,9 +504,20 @@
 }
 
 .viewTerms {
+  display: inline-flex;
   flex-shrink: 0;
+  align-items: center;
+  min-height: 24px;
   color: var(--color-text-secondary);
   font-size: var(--font-size-12);
+}
+
+a.viewTerms:hover {
+  color: var(--color-text-primary);
+  text-decoration: underline;
+}
+
+.viewTermsOff {
   cursor: not-allowed;
 }
 
