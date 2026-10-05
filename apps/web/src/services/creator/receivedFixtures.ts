@@ -3,7 +3,7 @@
 export const FIXTURE_DONORS: [string, string][] = [
   ["우주비행사", "space_runner"],
   ["행복한하루", "happy_day"],
-  ["보해매니아", "bohae_fan"],
+  ["별가루매니아", "stardust_fan"],
   ["초코쿠키", "choco_pie"],
   ["별빛소나타", "star_sonata"],
   ["치즈냥", "cheese_cat"],
