@@ -126,6 +126,23 @@ export function windowScores(b: MockBroadcast, from: string, to: string | null):
   return scores;
 }
 
+/**
+ * 배틀 배수 on the main scoreboard (2026-10-05 결정): what a battle member received while a ×n battle ran counts n
+ * times. Returns the extra points per member, (배수 − 1) × that member's points in the battle window (the same
+ * points the battle board multiplies). Battles at 1배 add nothing.
+ */
+export function battleBonus(b: MockBroadcast, now = Date.now()): Map<string, number> {
+  const bonus = new Map<string, number>();
+  for (const x of b.battles ?? []) {
+    const m = x.multiplier ?? 1;
+    if (m === 1) continue;
+    const endMs = Math.min(Date.parse(x.endsAt), x.stoppedAt ? Date.parse(x.stoppedAt) : Infinity);
+    const scores = windowScores(b, x.startedAt, endMs > now ? null : new Date(endMs).toISOString());
+    for (const id of [...x.a, ...x.b]) bonus.set(id, (bonus.get(id) ?? 0) + Math.round((scores.get(id) ?? 0) * (m - 1)));
+  }
+  return bonus;
+}
+
 /** A 기여도 강탈 record with member names (removed members keep a placeholder). */
 export function stealRecordView(channelId: string, x: NonNullable<MockBroadcast["steals"]>[number]): StealRecord {
   const name = (id: string) => (mockCrew.crews[channelId] ?? []).find((m) => m.id === id)?.name ?? "삭제된 멤버";

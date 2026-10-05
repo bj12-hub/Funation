@@ -114,8 +114,9 @@ describe("실시간 배틀", () => {
     const b = (await battles())[1];
     expect(b).toMatchObject({ multiplier: 2, penalty: "노래 한 곡", leader: "A" });
     expect(b.sides.map((s) => s.score)).toEqual([6_000, 2_000]);
-    // The main scoreboard keeps the plain points.
-    expect((await getBroadcastView())!.live!.rows.find((r) => r.memberId === "cm-s1")!.score).toBe(3_000);
+    // The main scoreboard counts the battle points × 배수 too (2026-10-05 결정), shown as its own part.
+    const row = (await getBroadcastView())!.live!.rows.find((r) => r.memberId === "cm-s1")!;
+    expect(row).toMatchObject({ feed: 3_000, battle: 3_000, score: 6_000 });
     await stopBattle({ broadcastId: id, no: 2 });
 
     // Changed for one battle only.
@@ -132,5 +133,31 @@ describe("실시간 배틀", () => {
     expect((await getBroadcastView())!.battleRules).toEqual({ multiplier: 1, penalty: "" });
     signIn(["SUPPORTER"]);
     expect(await setBattleRules({ multiplier: 3, penalty: "" })).toEqual({ status: "UNAUTHORIZED" });
+  });
+
+  it("keeps the 배틀 배수 in team scores and in the frozen final ranking", async () => {
+    const { startBattle, stopBattle, endBroadcast, getBroadcastView, donate, id } = await startLive(true);
+    await donate(1_000, "하늘"); // before the battle: counted once
+    at(10);
+    expect(await startBattle({ broadcastId: id, requestId: key(1), mode: "TEAMS", durationSec: 60, multiplier: 3, penalty: "" })).toEqual({ status: "SAVED" });
+    await donate(1_000, "길동");
+    await donate(2_000, "하늘");
+    at(30);
+    await stopBattle({ broadcastId: id, no: 1 });
+    at(31);
+    await donate(1_000, "길동"); // after the battle: counted once
+    const live = (await getBroadcastView())!.live!;
+    const byId = Object.fromEntries(live.rows.map((r) => [r.memberId, r]));
+    // ×3 battle: what each member received during it (길동 1,000 · 하늘 2,000) counts 2 more times.
+    expect([byId["cm-s1"].battle, byId["cm-s2"].battle, byId["cm-s3"].battle]).toEqual([2_000, 4_000, 0]);
+    for (const r of live.rows) expect(r.score).toBe(r.donated + r.feed + r.adjust + r.stolen + r.battle);
+    expect(live.teams).toEqual([
+      { key: "A", score: byId["cm-s1"].score },
+      { key: "B", score: byId["cm-s2"].score + byId["cm-s3"].score }
+    ]);
+    expect(live.battles[0].sides.map((s) => s.score)).toEqual([3_000, 6_000]);
+    const total = live.rows.reduce((sum, r) => sum + r.score, 0);
+    await endBroadcast(id);
+    expect((await getBroadcastView())!.history[0].totalScore).toBe(total);
   });
 });

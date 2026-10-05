@@ -20,7 +20,7 @@ import {
   type ScoreRow,
   type TeamKey
 } from "./crewTypes";
-import { battleRulesOf, excelOf, liveBroadcastOf, scoreEntry, scoreFn, stealRecordView, stealRulesOf, windowScores } from "./crewCore";
+import { battleBonus, battleRulesOf, excelOf, liveBroadcastOf, scoreEntry, scoreFn, stealRecordView, stealRulesOf, windowScores } from "./crewCore";
 import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 /**
@@ -51,6 +51,7 @@ function scoreRows(b: MockBroadcast): ScoreRow[] {
   const end = b.endedAt ?? new Date(Date.now() + 1000).toISOString();
   const s = excelOf(b.channelId);
   const feed = scoredFeed(b);
+  const bonus = battleBonus(b);
   const rows = members()
     .filter((m) => m.active || b.teams[m.id] !== undefined || b.adjustments.some((a) => a.memberId === m.id) || (b.feed ?? []).some((f) => f.memberId === m.id) || (b.steals ?? []).some((x) => x.thief === m.id || x.target === m.id))
     .map((m) => {
@@ -60,7 +61,8 @@ function scoreRows(b: MockBroadcast): ScoreRow[] {
       const adjust = b.adjustments.filter((a) => a.memberId === m.id).reduce((sum, a) => sum + a.points, 0);
       const fromFeed = feed.filter((f) => f.status === "ASSIGNED" && f.memberId === m.id).reduce((sum, f) => sum + f.points, 0);
       const stolen = (b.steals ?? []).reduce((sum, x) => sum + (x.thief === m.id ? x.points : 0) - (x.target === m.id ? x.points : 0), 0);
-      return { memberId: m.id, name: m.name, color: m.color, team: b.teams[m.id] ?? null, donated, feed: fromFeed, adjust, stolen, score: donated + fromFeed + adjust + stolen };
+      const battle = bonus.get(m.id) ?? 0;
+      return { memberId: m.id, name: m.name, color: m.color, team: b.teams[m.id] ?? null, donated, feed: fromFeed, adjust, stolen, battle, score: donated + fromFeed + adjust + stolen + battle };
     });
   return rows.sort((x, y) => y.score - x.score || x.name.localeCompare(y.name));
 }
