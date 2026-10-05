@@ -98,6 +98,12 @@ export type ReceivedDonation = {
   questActions?: QuestAction[];
 };
 
+/**
+ * 받은 후원 요약 (funnation 참고, 2026-10-06 결정) over the rows the filters match (every page). Quests that
+ * failed or were cancelled were refunded in full (2026-10-04 결정), so they are not counted. 이번 주 starts on Monday.
+ */
+export type ReceivedStats = { totalFn: number; count: number; todayFn: number; weekFn: number; averageFn: number };
+
 export type ReceivedDonationPage = {
   kind: ListKind;
   period: ListPeriod;
@@ -107,9 +113,27 @@ export type ReceivedDonationPage = {
   totalPages: number;
   total: number;
   items: ReceivedDonation[];
+  stats: ReceivedStats;
   /** Years that have data, for 연도 선택. */
   years: number[];
 };
+
+/** See ReceivedStats: refunded quests are left out; 이번 주 runs from Monday 00:00 (local). */
+export function receivedStats(rows: Pick<ReceivedDonation, "at" | "amount" | "status">[], now = new Date()): ReceivedStats {
+  const counted = rows.filter((d) => d.status !== "FAILED" && d.status !== "CANCELED");
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const weekStart = today - ((new Date(today).getDay() + 6) % 7) * 86_400_000;
+  const sum = (list: typeof counted) => list.reduce((s, d) => s + d.amount, 0);
+  const totalFn = sum(counted);
+  return {
+    totalFn,
+    count: counted.length,
+    todayFn: sum(counted.filter((d) => Date.parse(d.at) >= today)),
+    weekFn: sum(counted.filter((d) => Date.parse(d.at) >= weekStart)),
+    averageFn: counted.length ? Math.round(totalFn / counted.length) : 0
+  };
+}
+
 
 const shift = (d: Date, months: number, days = 0) => {
   const x = new Date(d);

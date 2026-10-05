@@ -1013,3 +1013,51 @@ button.badge {
   font-size: var(--font-size-14);
   line-height: 1.5;
 }
+
+/* 후원 리스트 요약 (code-first): four tiles in the studio card style. */
+.listStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.listStats div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 20px;
+  border: 1px solid #23234a;
+  border-radius: var(--radius-12);
+  background: #121225;
+}
+
+.listStats dt {
+  color: #9ca3af;
+  font-size: var(--font-size-12);
+}
+
+.listStats dd {
+  margin: 0;
+  color: #ffffff;
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-bold);
+}
+
+.listStatsCount {
+  color: #9ca3af;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-regular);
+}
+
+.listStatsNote {
+  margin: -4px 0 0;
+  color: #9ca3af;
+  font-size: var(--font-size-12);
+}
+
+@media (max-width: 767px) {
+  .listStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

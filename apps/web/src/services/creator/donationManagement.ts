@@ -41,6 +41,7 @@ import {
   type CsvExportResult,
   CSV_EXPORT_MAX,
   type ReceivedDonationPage,
+  receivedStats,
   type SlugCheckResult,
   type StatusFilter
 } from "./donationManagementTypes";
@@ -272,6 +273,7 @@ export async function getReceivedDonations(input: ListFilter & { page: number })
     totalPages,
     total: matched.length,
     items: matched.slice((page - 1) * LIST_PAGE_SIZE, page * LIST_PAGE_SIZE),
+    stats: receivedStats(matched),
     years
   };
 }

@@ -36,7 +36,7 @@ function href(params: Params) {
  * the same table — the last column shows the game or the member, and the 상태 filter is quest-only.
  */
 export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
-  const { kind, period, status, query, page, totalPages, total, items, years } = data;
+  const { kind, period, status, query, page, totalPages, total, items, stats, years } = data;
   const periodParams: Params =
     period.preset === "range" ? { period: "range", from: period.from, to: period.to } : period.preset === "year" ? { period: "year", year: period.year } : { period: period.preset };
   const base: Params = { kind, ...periodParams, status, q: query };
@@ -97,6 +97,29 @@ export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
         </button>
         <CsvExportButton filter={{ kind, period, status, query }} />
       </form>
+
+      {/* Code-first (2026-10-06, funnation 받은 후원 요약): over every row the filters match. */}
+      <dl className={styles.listStats} aria-label="조회한 후원 요약">
+        <div>
+          <dt>총 수령액</dt>
+          <dd className={styles.teal}>{formatNumber(stats.totalFn)} FN</dd>
+        </div>
+        <div>
+          <dt>오늘</dt>
+          <dd>{formatNumber(stats.todayFn)} FN</dd>
+        </div>
+        <div>
+          <dt>이번 주</dt>
+          <dd>{formatNumber(stats.weekFn)} FN</dd>
+        </div>
+        <div>
+          <dt>평균 금액</dt>
+          <dd>
+            {formatNumber(stats.averageFn)} FN <span className={styles.listStatsCount}>· {formatNumber(stats.count)}건</span>
+          </dd>
+        </div>
+      </dl>
+      {kind === "quest" && <p className={styles.listStatsNote}>실패 · 취소된 퀘스트는 전액 환불돼 요약에서 빠져요.</p>}
 
       <div className={styles.table}>
         <table>
