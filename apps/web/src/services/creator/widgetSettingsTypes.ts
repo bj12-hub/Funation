@@ -245,9 +245,20 @@ export const RANKING_SPEEDS = [
   { key: "VERY_FAST", label: "매우 빠르게" }
 ] as const;
 export const RANKING_MAX_RANKS = 10;
+/**
+ * Which board the 후원랭킹 widget shows (funnation 탭, 2026-10-06 결정): 후원자 랭킹 (default), 크루 후원 순위 (members of the
+ * creator's crew by FN donated for them) and 수단별 보드 (Somnation FN and each platform in its own unit, by 건수).
+ */
+export const RANKING_BOARDS = [
+  { key: "DONOR", label: "후원자 랭킹" },
+  { key: "CREW", label: "크루 후원 순위" },
+  { key: "SOURCE", label: "수단별 보드" }
+] as const;
+export type RankingBoard = (typeof RANKING_BOARDS)[number]["key"];
 
 export type RankTierStyle = { font: FontSetting; accentColor: string };
 export type RankingSettings = {
+  board: RankingBoard;
   style: (typeof RANKING_STYLES)[number]["key"];
   title: string;
   titleFont: FontSetting;
@@ -467,6 +478,9 @@ export type WidgetLiveData = {
   qrImageUrl: string;
   /** Top donors for the RANKING preview. */
   ranking: { name: string; amount: number }[];
+  /** 크루 후원 순위 / 수단별 보드 previews (amountLabel replaces the FN amount on 수단별 보드). */
+  crewRanking: { name: string; amount: number }[];
+  sourceBoard: { name: string; amount: number; amountLabel: string }[];
   /** Lowest mini donation amount (MINI preview / guard). */
   miniMinAmount: number;
   /** 당첨 리스트 위젯 (전광판) overlay path (with the integration key) and the latest wins (뽑기 후원 records). */
@@ -576,6 +590,7 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     textOutline: true
   },
   RANKING: {
+    board: "DONOR",
     style: "SIMPLE",
     title: "후원랭킹",
     titleFont: { family: "제주 고딕", size: 24, color: "#000000" },

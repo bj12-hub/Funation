@@ -135,6 +135,8 @@ Add a row whenever a new code-first screen ships (see `docs/research/funnation-r
 
 | `/creator/widgets/overlays/preview/[id]` 오버레이 미리보기 (`widgets/OverlayPreview.tsx`) + 오버레이 주소 "미리보기" | overlay-preview PR | 2026-10-06 결정(funnation `preview=true`). 오버레이를 OBS 권장 크기로 그려 화면 폭에 맞게 축소, 배경 체크무늬 · 어두운 · 밝은, 새로고침 · 새 탭 · 설정, 꺼진 오버레이 안내. 후원 알림 · 이펙트 · 벽지는 "테스트 후원 보내기"(화면 표시만, FN 이동 없음) |
 
+| 후원랭킹 위젯 "랭킹 종류" (`widgets/RankingForm.tsx`, `widgetOverlayCore.ts` crewRankingRows · sourceBoardRows) | ranking-widget-boards PR | 2026-10-06 결정(funnation 탭). 후원자 랭킹(기본) · 크루 후원 순위(멤버 지정 후원을 멤버별 FN 합계, 기간 적용) · 수단별 보드(썸네이션 FN과 플랫폼 후원을 각 단위로 합계, 후원 건수 순, 통화가 다르면 줄을 나눔, 테스트 제외). 수단별 보드는 금액 표시 형식 대신 단위를 그대로 표시. 이전에 저장한 설정은 후원자 랭킹 |
+
 ## Figma
 
 구현된 전체 화면 캡처는 [current-build.md](current-build.md)의 새 파일(Somnation — 현재 구현)에 있어요. 펀페이 파일에 잠시 두었던 "코드 우선 화면" 페이지는 2026-09-30에 삭제했어요.

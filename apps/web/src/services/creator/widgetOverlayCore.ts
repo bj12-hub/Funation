@@ -1,5 +1,7 @@
 import { formatNumber } from "@/lib/format";
+import { PLATFORM_LABEL, type Platform } from "@/types/platform";
 import type { AlertItem } from "./alertTypes";
+import { formatMoney } from "./donationLinkTypes";
 import type { WidgetFeedLine, WidgetRankRow } from "./widgetOverlayTypes";
 import {
   RECENT_PLATFORMS,
@@ -82,9 +84,74 @@ export function rankingRows(items: AlertItem[], s: RankingSettings, now = new Da
     .map(([name, v], i) => ({ rank: i + 1, name, fnAmount: v.fn }));
 }
 
+/** 크루 후원 순위: crew members by FN donated for them (멤버 지정) in the period; members with nothing are left out. */
+export function crewRankingRows(
+  attributions: { memberId: string; fnAmount: number; at: string }[],
+  members: { id: string; name: string }[],
+  s: Pick<RankingSettings, "period" | "ranks">,
+  now = new Date()
+): WidgetRankRow[] {
+  const since = rankingSince(s.period, now);
+  const names = new Map(members.map((m) => [m.id, m.name]));
+  const totals = new Map<string, number>();
+  for (const a of attributions) {
+    if (Date.parse(a.at) < since || !names.has(a.memberId)) continue;
+    totals.set(a.memberId, (totals.get(a.memberId) ?? 0) + a.fnAmount);
+  }
+  return [...totals]
+    .filter(([, fn]) => fn > 0)
+    .sort((x, y) => y[1] - x[1] || names.get(x[0])!.localeCompare(names.get(y[0])!))
+    .slice(0, s.ranks)
+    .map(([id, fn], i) => ({ rank: i + 1, name: names.get(id)!, fnAmount: fn }));
+}
+
+const SOURCE_ORDER = ["SOMNATION", "YOUTUBE", "CHZZK", "SOOP", "FLEXTV"];
+
+/**
+ * 수단별 보드: Somnation FN donations and each platform's donations in their own unit (no FN rate — TBD), ordered by
+ * 건수. A platform paying in two currencies gets a line per currency. 테스트 후원 never counts.
+ */
+export function sourceBoardRows(items: AlertItem[], s: Pick<RankingSettings, "period" | "ranks">, now = new Date()): WidgetRankRow[] {
+  const since = rankingSince(s.period, now);
+  const groups = new Map<string, { source: string; currency: string; value: number; count: number }>();
+  for (const a of items) {
+    if (Date.parse(a.createdAt) < since) continue;
+    const g =
+      a.kind === "DONATION"
+        ? { source: "SOMNATION", currency: "FN", value: a.fnAmount }
+        : a.kind === "EXTERNAL" && a.platform && a.native
+          ? { source: a.platform, currency: a.native.currency, value: a.native.value }
+          : null;
+    if (!g) continue;
+    const key = `${g.source}|${g.currency}`;
+    const cur = groups.get(key) ?? { source: g.source, currency: g.currency, value: 0, count: 0 };
+    cur.value += g.value;
+    cur.count += 1;
+    groups.set(key, cur);
+  }
+  const list = [...groups.values()];
+  const perSource = (src: string) => list.filter((x) => x.source === src).length;
+  return list
+    .sort((x, y) => y.count - x.count || SOURCE_ORDER.indexOf(x.source) - SOURCE_ORDER.indexOf(y.source) || x.currency.localeCompare(y.currency))
+    .slice(0, s.ranks)
+    .map((x, i) => {
+      const label = x.source === "SOMNATION" ? "썸네이션 FN" : PLATFORM_LABEL[x.source as Platform];
+      return {
+        rank: i + 1,
+        name: `${perSource(x.source) > 1 ? `${label} ${x.currency}` : label} · ${formatNumber(x.count)}건`,
+        fnAmount: x.source === "SOMNATION" ? x.value : 0,
+        amountLabel: x.currency === "FN" ? `${formatNumber(x.value)} FN` : formatMoney(x.value, x.currency)
+      };
+    });
+}
+
 /** `{rank}` · `{name}` · `{amount}` in a 후원랭킹 format part. */
 export const fillRank = (t: string, rank: number, name: string, amount: number) =>
   t.replaceAll("{rank}", String(rank)).replaceAll("{name}", name).replaceAll("{amount}", formatNumber(amount));
+
+/** The amount part of a row: the 금액 format, or the row's own label on 수단별 보드 (units differ, so no FN template). */
+export const rankAmountText = (t: string, r: { rank: number; name: string; fnAmount: number; amountLabel?: string }) =>
+  r.amountLabel ?? fillRank(t, r.rank, r.name, r.fnAmount);
 
 const DEFAULT_LINE = "{nickname}님이 {amount} 후원했습니다.";
 const EVENT_LINE = "{nickname}님이 {amount} 후원!";

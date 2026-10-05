@@ -69,7 +69,7 @@ export const isOverlayOn = (target: OverlayTarget) => !mockAlerts.overlayOff?.[t
 export const overlaySignal = (target: OverlayTarget): OverlaySignal => ({ reloadSeq: reloadSeqOf(target), on: isOverlayOn(target) });
 
 export function enqueueAlert(
-  input: { kind: AlertKind; donor: string; badges?: string[]; message: string; fnAmount: number; amountLabel?: string; typeLabel: string; platform?: Platform; imageUrl?: string; soundUrl?: string },
+  input: { kind: AlertKind; donor: string; badges?: string[]; message: string; fnAmount: number; amountLabel?: string; typeLabel: string; platform?: Platform; imageUrl?: string; soundUrl?: string; native?: { value: number; currency: string } },
   now = Date.now()
 ) {
   // The FN minimum cannot apply to other currencies (no exchange rate — TBD), so external alerts pass.
