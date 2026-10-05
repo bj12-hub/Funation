@@ -5,13 +5,22 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { deleteMessages, markMessageRead, moveMessages, sendMessage } from "@/services/messages/messages";
-import { MAILBOXES, MESSAGE_BODY_MAX, SEND_LIMIT_PER_HOUR, type MailboxView, type MessageResult, type Recipient } from "@/services/messages/messageTypes";
+import {
+  MAILBOXES,
+  MESSAGE_BODY_MAX,
+  MESSAGE_PAGE_SIZE,
+  MESSAGE_PAGE_SIZES,
+  SEND_LIMIT_PER_HOUR,
+  type MailboxView,
+  type MessageResult,
+  type Recipient
+} from "@/services/messages/messageTypes";
 import { ModerationActions } from "../moderation/ModerationActions";
 import styles from "./messages.module.css";
 
 const when = (iso: string) => new Date(iso).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 
-/** 쪽지 — code-first (no Figma frame). Route `/messages` (`?box=` `?q=` `?page=` `?to=` opens compose). */
+/** 쪽지 — code-first (no Figma frame). Route `/messages` (`?box=` `?q=` `?page=` `?size=` `?to=` opens compose). */
 export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxView; recipients: Recipient[]; composeTo: string | null }) {
   const router = useRouter();
   const [selected, setSelected] = useState<string[]>([]);
@@ -24,8 +33,9 @@ export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxV
   const received = view.box !== "sent";
 
   const href = (patch: Record<string, string>) => {
-    const p = new URLSearchParams({ box: view.box, q: view.q, page: String(view.page), ...patch });
-    for (const [k, v] of [...p.entries()]) if (!v || (k === "page" && v === "1") || (k === "box" && v === "inbox")) p.delete(k);
+    const p = new URLSearchParams({ box: view.box, q: view.q, page: String(view.page), size: String(view.size), ...patch });
+    for (const [k, v] of [...p.entries()])
+      if (!v || (k === "page" && v === "1") || (k === "box" && v === "inbox") || (k === "size" && v === String(MESSAGE_PAGE_SIZE))) p.delete(k);
     const s = p.toString();
     return `/messages${s ? `?${s}` : ""}`;
   };
@@ -70,6 +80,7 @@ export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxV
       <div className={styles.toolbar}>
         <form action="/messages" className={styles.search} role="search">
           <input type="hidden" name="box" value={view.box} />
+          {view.size !== MESSAGE_PAGE_SIZE && <input type="hidden" name="size" value={view.size} />}
           <input name="q" defaultValue={view.q} placeholder="내용 또는 이름 검색" aria-label="쪽지 검색" maxLength={40} className={styles.input} />
           <button type="submit" className={styles.ghost}>
             검색
@@ -153,14 +164,25 @@ export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxV
         </ul>
       )}
 
-      {view.totalPages > 1 && (
-        <nav className={styles.pagination} aria-label="페이지">
-          {Array.from({ length: view.totalPages }, (_, i) => i + 1).map((n) => (
-            <Link key={n} href={href({ page: String(n) })} className={styles.page} aria-current={n === view.page ? "page" : undefined}>
-              {n}
-            </Link>
-          ))}
-        </nav>
+      {view.total > MESSAGE_PAGE_SIZES[0] && (
+        <div className={styles.listFooter}>
+          <nav className={styles.sizes} aria-label="한 페이지에 볼 쪽지 수">
+            {MESSAGE_PAGE_SIZES.map((n) => (
+              <Link key={n} href={href({ size: String(n), page: "1" })} className={styles.size} aria-current={n === view.size ? "true" : undefined}>
+                {n}개씩
+              </Link>
+            ))}
+          </nav>
+          {view.totalPages > 1 && (
+            <nav className={styles.pagination} aria-label="페이지">
+              {Array.from({ length: view.totalPages }, (_, i) => i + 1).map((n) => (
+                <Link key={n} href={href({ page: String(n) })} className={styles.page} aria-current={n === view.page ? "page" : undefined}>
+                  {n}
+                </Link>
+              ))}
+            </nav>
+          )}
+        </div>
       )}
 
       <Modal

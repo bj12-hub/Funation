@@ -5,7 +5,7 @@ import { isBlockedBy } from "@/services/moderation/moderationCore";
 import { getSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { getCreatorById, getCreators } from "@/services/creators/creators";
-import { MAILBOXES, MESSAGE_BODY_MAX, MESSAGE_PAGE_SIZE, SEND_LIMIT_PER_HOUR, isMailbox, type Mailbox, type MailboxView, type MessageResult, type Recipient } from "./messageTypes";
+import { MAILBOXES, MESSAGE_BODY_MAX, SEND_LIMIT_PER_HOUR, isMailbox, parseMessagePageSize, type Mailbox, type MailboxView, type MessageResult, type Recipient } from "./messageTypes";
 import { mockMessages, type MockMessage } from "./mockMessageStore";
 
 /**
@@ -20,12 +20,13 @@ const assertMock = () => {
 
 const inBox = (m: MockMessage, box: Mailbox) => !m.deleted && m.folder === box;
 
-export async function getMailbox(params: { box?: unknown; q?: unknown; page?: unknown }): Promise<MailboxView | null> {
+export async function getMailbox(params: { box?: unknown; q?: unknown; page?: unknown; size?: unknown }): Promise<MailboxView | null> {
   assertMock();
   const session = await getSession();
   if (!session) return null;
   const box: Mailbox = isMailbox(params.box) ? params.box : "inbox";
   const q = typeof params.q === "string" ? params.q.trim().slice(0, 40) : "";
+  const size = parseMessagePageSize(params.size);
   await mockDelay(200);
   const needle = q.toLowerCase();
   // 차단: mail from blocked senders is not shown (sent mail stays).
@@ -33,16 +34,18 @@ export async function getMailbox(params: { box?: unknown; q?: unknown; page?: un
   const all = visible
     .filter((m) => inBox(m, box) && (!needle || m.body.toLowerCase().includes(needle) || m.peerName.toLowerCase().includes(needle)))
     .sort((a, b) => b.sentAt.localeCompare(a.sentAt));
-  const totalPages = Math.max(1, Math.ceil(all.length / MESSAGE_PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(all.length / size));
   const n = Number(params.page);
   const page = Number.isInteger(n) && n >= 1 && n <= totalPages ? n : 1;
   const counts = Object.fromEntries(MAILBOXES.map((b) => [b.key, visible.filter((m) => inBox(m, b.key)).length])) as Record<Mailbox, number>;
   return {
     box,
     q,
-    items: all.slice((page - 1) * MESSAGE_PAGE_SIZE, page * MESSAGE_PAGE_SIZE).map(({ id, peerId, peerName, body, sentAt, read, direction }) => ({ id, peerId, peerName, body, sentAt, read, direction })),
+    items: all.slice((page - 1) * size, page * size).map(({ id, peerId, peerName, body, sentAt, read, direction }) => ({ id, peerId, peerName, body, sentAt, read, direction })),
     page,
     totalPages,
+    size,
+    total: all.length,
     counts,
     unread: visible.filter((m) => inBox(m, "inbox") && !m.read).length
   };
