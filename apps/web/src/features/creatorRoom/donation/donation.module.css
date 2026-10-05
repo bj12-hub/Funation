@@ -10,6 +10,41 @@
   border-color: var(--color-nickname-error) !important;
 }
 
+/* 빠른 금액 추가 under the amount (code-first, 2026-10-06): six equal chips, 24px+ tall. */
+.amountGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.quickAmounts {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.quickAmount {
+  min-height: 26px;
+  padding: 0 2px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-6);
+  background: var(--color-panel-field-bg);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-11);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.quickAmount:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-text-primary);
+}
+
+.quickAmount:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .intro {
   margin: 0;
   padding: 10px;
