@@ -842,12 +842,61 @@
   color: var(--color-text-tertiary);
 }
 
-.emoji {
+/* 이모지 고르기 (code-first, 2026-10-06): toggle in the input, the grid opens above the composer. */
+.emojiWrap {
+  position: relative;
   display: flex;
 }
 
-.emoji[aria-disabled="true"] {
+.emoji {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+}
+
+.emoji:hover:not(:disabled),
+.emoji[aria-expanded="true"] {
+  color: var(--color-text-primary);
+}
+
+.emoji:disabled {
   cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.emojiPicker {
+  position: absolute;
+  right: -12px;
+  bottom: calc(100% + 12px);
+  z-index: 5;
+  display: grid;
+  grid-template-columns: repeat(6, 36px);
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-12);
+  background: var(--color-surface-raised);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.emojiPicker button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-8);
+  font-family: var(--font-latin);
+  font-size: 20px;
+  line-height: 1;
+}
+
+.emojiPicker button:hover {
+  background: var(--color-chip-bg);
 }
 
 .send {

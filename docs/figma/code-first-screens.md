@@ -121,6 +121,8 @@ Add a row whenever a new code-first screen ships (see `docs/research/funnation-r
 
 | `/terms/[slug]` 약관 · 정책 6종 조항 목차 (`features/terms/TermsDocument.tsx` · `termsOutline.ts`) | terms-outline PR | 2026-10-06 결정 "조항 목차만 자리표시로". 문서 탭(서비스 이용약관 · 개인정보 처리 방침 · 청소년 보호정책 · 운영정책 · 마케팅 동의 · 크리에이터 이용약관) → "법무 검토 중" 배지 · 제목 · 시행일 / 버전 TBD → 안내 → 목차(조항 앵커, 2열) → 조항별 제목 + "법무 검토 중 (TBD)", 약관은 부칙. 조항 제목만 정했고 내용 · 시행일 · 버전 · 운영 회사명은 법무 검토 후(TBD). 목록에 없는 문서는 404. Figma: L01 `190:9523` · L02 `190:9788` |
 
+| 방송 방 채팅 이모지 고르기 (`creatorRoom/ChatPanel.tsx` · `chatEmoji.ts`) | chat-emoji PR | 2026-10-06 결정(기본 유니코드 이모지). 입력칸 😊 → 입력칸 위 6×4 그리드(24개, 한국어 이름), 커서 위치에 넣기 · 선택 영역 바꾸기, 여러 개 연속 입력(창 유지), 메시지 최대 200자를 넘으면 무시, Esc · 바깥 클릭으로 닫기(Esc는 😊로 포커스 복귀), 전송하면 닫힘, 로그인 전에는 비활성. TBD: 채널별 이모티콘. Figma: D-CHAT-emoji `197:9523` |
+
 ## Figma
 
 구현된 전체 화면 캡처는 [current-build.md](current-build.md)의 새 파일(Somnation — 현재 구현)에 있어요. 펀페이 파일에 잠시 두었던 "코드 우선 화면" 페이지는 2026-09-30에 삭제했어요.

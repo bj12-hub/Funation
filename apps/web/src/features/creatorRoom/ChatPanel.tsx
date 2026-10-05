@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { DefaultAvatarIcon, GiftIcon, SmileIcon } from "@/components/icons";
+import { CHAT_EMOJIS, insertEmoji } from "./chatEmoji";
 import type { ChatMessage } from "./chatMessages";
 import styles from "./room.module.css";
 
@@ -17,14 +18,49 @@ export function ChatPanel({ signedIn, messages, onSend }: { signedIn: boolean; m
   const router = useRouter();
   const pathname = usePathname();
   const [draft, setDraft] = useState("");
+  const [emojiOpen, setEmojiOpen] = useState(false);
   const listRef = useRef<HTMLOListElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const emojiRef = useRef<HTMLDivElement>(null);
+  const emojiToggleRef = useRef<HTMLButtonElement>(null);
+  /**
+   * Caret after the last picked emoji. React rewrites the input's value on each pick, which moves the DOM caret to
+   * the end, so picks in a row continue from here; once the input is focused again its own selection is used.
+   */
+  const caretRef = useRef<{ start: number; end: number } | null>(null);
 
   useEffect(() => {
     const list = listRef.current;
     if (list) list.scrollTop = list.scrollHeight;
   }, [messages]);
 
+  useEffect(() => {
+    if (!emojiOpen) return;
+    const onClick = (e: MouseEvent) => !emojiRef.current?.contains(e.target as Node) && setEmojiOpen(false);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setEmojiOpen(false);
+      emojiToggleRef.current?.focus();
+    };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [emojiOpen]);
+
   const text = draft.trim();
+
+  // The picker stays open so several emoji can be added; focus stays on it for keyboard users.
+  const pickEmoji = (emoji: string) => {
+    const input = inputRef.current;
+    const caret = caretRef.current ?? { start: input?.selectionStart ?? draft.length, end: input?.selectionEnd ?? draft.length };
+    const next = insertEmoji(draft, emoji, caret.start, caret.end, MAX_LENGTH);
+    if (!next) return;
+    setDraft(next.text);
+    caretRef.current = { start: next.caret, end: next.caret };
+  };
 
   const send = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,6 +71,8 @@ export function ChatPanel({ signedIn, messages, onSend }: { signedIn: boolean; m
     if (!text) return;
     onSend(text);
     setDraft("");
+    setEmojiOpen(false);
+    caretRef.current = null;
   };
 
   return (
@@ -77,13 +115,34 @@ export function ChatPanel({ signedIn, messages, onSend }: { signedIn: boolean; m
             value={draft}
             maxLength={MAX_LENGTH}
             placeholder={signedIn ? "실시간 라이브 채팅에 참여하세요..." : "로그인 후 채팅에 참여할 수 있어요"}
+            ref={inputRef}
             onChange={(e) => setDraft(e.target.value)}
+            onFocus={() => (caretRef.current = null)}
             readOnly={!signedIn}
           />
-          {/* TODO: emoji picker is TBD. */}
-          <span className={styles.emoji} aria-hidden="true">
-            <SmileIcon />
-          </span>
+          <div className={styles.emojiWrap} ref={emojiRef}>
+            <button
+              ref={emojiToggleRef}
+              type="button"
+              className={styles.emoji}
+              aria-label="이모지"
+              aria-expanded={emojiOpen}
+              aria-controls="chat-emoji"
+              disabled={!signedIn}
+              onClick={() => setEmojiOpen((v) => !v)}
+            >
+              <SmileIcon />
+            </button>
+            {emojiOpen && (
+              <div id="chat-emoji" className={styles.emojiPicker} role="group" aria-label="이모지 고르기">
+                {CHAT_EMOJIS.map((e) => (
+                  <button key={e.emoji} type="button" aria-label={e.label} title={e.label} onClick={() => pickEmoji(e.emoji)}>
+                    {e.emoji}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         <button type="submit" className={styles.send} disabled={signedIn && !text}>
           {signedIn ? "채팅 전송" : "로그인하고 채팅하기"}
