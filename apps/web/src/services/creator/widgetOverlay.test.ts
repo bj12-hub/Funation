@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { key, mockSessionModule, resetMockStores } from "@/test/mockEnv";
 import type { AlertItem } from "./alertTypes";
-import { eventLines, goalProgress, rankingRows, recentLines, totalAmount } from "./widgetOverlayCore";
+import { crewRankingRows, eventLines, goalProgress, rankAmountText, rankingRows, recentLines, sourceBoardRows, totalAmount } from "./widgetOverlayCore";
 import { DEFAULT_WIDGET_SETTINGS } from "./widgetSettingsTypes";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
@@ -19,6 +19,68 @@ const alert = (at: string, donor: string, fnAmount: number, extra: Partial<Alert
   createdAt: new Date(at).toISOString(),
   status: "DONE",
   ...extra
+});
+
+/** 후원랭킹 위젯 랭킹 종류 (code-first, 2026-10-06): 크루 후원 순위 and 수단별 보드. */
+describe("랭킹 종류", () => {
+  const now = new Date("2026-10-03T12:00:00");
+  const at = (d: string) => new Date(d).toISOString();
+
+  it("ranks crew members by FN donated for them in the period, leaving out other members and older donations", () => {
+    const members = [
+      { id: "m1", name: "하루" },
+      { id: "m2", name: "도도" },
+      { id: "m3", name: "밤톨" }
+    ];
+    const attributions = [
+      { memberId: "m1", fnAmount: 5_000, at: at("2026-10-01T10:00:00") },
+      { memberId: "m2", fnAmount: 9_000, at: at("2026-10-02T10:00:00") },
+      { memberId: "m1", fnAmount: 6_000, at: at("2026-10-03T10:00:00") },
+      { memberId: "gone", fnAmount: 99_000, at: at("2026-10-03T10:00:00") }, // removed member
+      { memberId: "m3", fnAmount: 50_000, at: at("2026-09-20T10:00:00") } // last month
+    ];
+    const rows = crewRankingRows(attributions, members, { period: "월간", ranks: 5 }, now);
+    expect(rows.map((r) => [r.rank, r.name, r.fnAmount])).toEqual([
+      [1, "하루", 11_000],
+      [2, "도도", 9_000]
+    ]);
+    expect(crewRankingRows(attributions, members, { period: "전체", ranks: 1 }, now).map((r) => r.name)).toEqual(["밤톨"]);
+  });
+
+  it("boards Somnation FN and each platform in its own unit by 건수, never mixing units or counting tests", () => {
+    const item = (kind: AlertItem["kind"], extra: Partial<AlertItem> = {}): AlertItem => alert("2026-10-03T09:00:00", "누군가", kind === "DONATION" ? 1_000 : 0, { kind, ...extra });
+    const feed = [
+      item("DONATION"),
+      item("DONATION"),
+      item("TEST", { fnAmount: 50_000 }),
+      item("EXTERNAL", { platform: "SOOP", native: { value: 10, currency: "별풍선" } }),
+      item("EXTERNAL", { platform: "SOOP", native: { value: 30, currency: "별풍선" } }),
+      item("EXTERNAL", { platform: "SOOP", native: { value: 5, currency: "별풍선" } }),
+      item("EXTERNAL", { platform: "YOUTUBE", native: { value: 5_000, currency: "KRW" } }),
+      item("EXTERNAL", { platform: "YOUTUBE", native: { value: 3, currency: "USD" } }),
+      item("EXTERNAL", { platform: "CHZZK" }) // no native amount (older alert): skipped
+    ];
+    const rows = sourceBoardRows(feed, { period: "월간", ranks: 10 }, now);
+    expect(rows.map((r) => [r.rank, r.name])).toEqual([
+      [1, "SOOP · 3건"],
+      [2, "썸네이션 FN · 2건"],
+      [3, "YouTube KRW · 1건"],
+      [4, "YouTube USD · 1건"]
+    ]);
+    expect(rows[0].amountLabel).toBe("45 별풍선");
+    expect(rows[1]).toMatchObject({ fnAmount: 2_000, amountLabel: "2,000 FN" });
+    expect(rankAmountText("{amount}FN", rows[0])).toBe("45 별풍선");
+    expect(rankAmountText("{amount}FN", { rank: 1, name: "a", fnAmount: 1_500 })).toBe("1,500FN");
+  });
+
+  it("reads settings saved before the boards as 후원자 랭킹 and rejects unknown boards", async () => {
+    const { PARSERS } = await import("./widgetParsers");
+    const { board: _drop, ...old } = D.RANKING;
+    void _drop;
+    expect(PARSERS.RANKING(old)).toMatchObject({ board: "DONOR" });
+    expect(PARSERS.RANKING({ ...D.RANKING, board: "SOURCE" })).toMatchObject({ board: "SOURCE" });
+    expect(typeof PARSERS.RANKING({ ...D.RANKING, board: "LUCKY" })).toBe("string");
+  });
 });
 
 /** 후원 위젯 overlays (code-first): numbers from the donation feed, settings from 위젯 settings. */

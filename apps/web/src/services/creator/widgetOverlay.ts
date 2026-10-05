@@ -7,8 +7,8 @@ import { mockQuests } from "@/services/donations/questCore";
 import { currentRun, voteBoard } from "@/services/votes/voteCore";
 import { isHidden, stageOf } from "@/services/donations/rouletteCore";
 import { boardOf, channelRows as gachaRows, isHidden as gachaHidden, stageOf as gachaStageOf } from "@/services/donations/gachaCore";
-import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
-import { eventLines, goalProgress, rankingRows, recentLines, totalAmount } from "./widgetOverlayCore";
+import { STUDIO_CHANNEL, mockCrew } from "@/services/crew/mockCrewStore";
+import { crewRankingRows, eventLines, goalProgress, rankingRows, recentLines, sourceBoardRows, totalAmount } from "./widgetOverlayCore";
 import { QR_SAMPLE_IMAGE, isWidgetOverlay, type OverlayWidget } from "./widgetOverlayTypes";
 import { readWidget } from "./widgetStore";
 import { clearedAtOf, wallStickers } from "./wallpaperCore";
@@ -34,7 +34,13 @@ export async function getOverlayWidget(widget: unknown, key: unknown): Promise<O
     }
     case "ranking": {
       const settings = readWidget("RANKING");
-      return { widget, settings, rows: rankingRows(items, settings), ...common };
+      const rows =
+        settings.board === "CREW"
+          ? crewRankingRows(mockCrew.attributions.filter((a) => a.channelId === STUDIO_CHANNEL), mockCrew.crews[STUDIO_CHANNEL] ?? [], settings)
+          : settings.board === "SOURCE"
+            ? sourceBoardRows(items, settings)
+            : rankingRows(items, settings);
+      return { widget, settings, rows, ...common };
     }
     case "recent": {
       const settings = readWidget("RECENT");

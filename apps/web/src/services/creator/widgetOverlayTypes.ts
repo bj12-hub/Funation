@@ -58,7 +58,8 @@ export const WALL_SIZE = { w: 1920, h: 1080 } as const;
  */
 export type WallSticker = { id: string; x: number; y: number; rotate: number; image: number | null; imageUrl: string | null; nickname: string; amount: string; test: boolean };
 
-export type WidgetRankRow = { rank: number; name: string; fnAmount: number };
+/** `amountLabel` replaces the FN amount (수단별 보드: each platform in its own unit). */
+export type WidgetRankRow = { rank: number; name: string; fnAmount: number; amountLabel?: string };
 
 /** A running quest on the 퀘스트 overlay; `endsAt` = sent time + 제한 시간. */
 export type WidgetQuest = { id: string; title: string; amount: number; endsAt: string };

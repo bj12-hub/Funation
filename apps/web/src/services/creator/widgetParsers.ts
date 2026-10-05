@@ -40,6 +40,7 @@ import {
   NICKNAME_MAX,
   QR_CAPTION_MAX,
   QR_STYLES,
+  RANKING_BOARDS,
   RANKING_MAX_RANKS,
   RANKING_NAME_TYPES,
   RANKING_SPEEDS,
@@ -271,6 +272,9 @@ const parseRanking: Parser<RankingSettings> = (v) => {
   const others = tier(v.others);
   if (!titleFont || !first || !others) return "폰트/색상 설정을 확인해 주세요.";
   if (!keyOf(v.style, RANKING_STYLES) || !keyOf(v.nameType, RANKING_NAME_TYPES) || !keyOf(v.scrollSpeed, RANKING_SPEEDS)) return "선택 항목을 확인해 주세요.";
+  // Settings saved before the boards existed have none: 후원자 랭킹.
+  const board = v.board === undefined ? "DONOR" : v.board;
+  if (!keyOf(board, RANKING_BOARDS)) return "랭킹 종류를 확인해 주세요.";
   if (!oneOf(v.period, RANKING_WIDGET_PERIODS)) return "산정 기간을 확인해 주세요.";
   if (!text(v.title, 20, 1)) return "위젯 제목은 1~20자로 입력해 주세요.";
   if (!bool(v.showAmount)) return "설정 값을 확인해 주세요.";
@@ -282,6 +286,7 @@ const parseRanking: Parser<RankingSettings> = (v) => {
   }
   return {
     style: v.style,
+    board,
     title: (v.title as string).trim(),
     titleFont,
     nameType: v.nameType,

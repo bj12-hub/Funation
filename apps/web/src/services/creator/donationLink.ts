@@ -52,7 +52,7 @@ async function ingest() {
       }
       s.seen[k] = true;
       const amountLabel = formatMoney(e.amount.value, e.amount.currency);
-      enqueueAlert({ kind: "EXTERNAL", donor: e.donorName, message: e.message, fnAmount: 0, amountLabel, typeLabel: e.kindLabel, platform: p });
+      enqueueAlert({ kind: "EXTERNAL", donor: e.donorName, message: e.message, fnAmount: 0, amountLabel, typeLabel: e.kindLabel, platform: p, native: e.amount });
       // 자동엑셀: a live crew broadcast also lists it in its own unit (scored after conversion).
       recordBroadcastExternal(STUDIO_CHANNEL, { platform: p, donor: e.donorName, message: e.message, value: e.amount.value, currency: e.amount.currency });
       s.recent.unshift({ key: k, platform: p, donor: e.donorName, message: e.message, amountLabel, kindLabel: e.kindLabel, receivedAt: new Date().toISOString() });
