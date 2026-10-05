@@ -65,8 +65,8 @@ export type AdminMember = {
   lastActiveAt: string;
   status: MemberStatus;
   suspension: Suspension | null;
-  /** 회원 탈퇴: when, and the FN the member agreed to forfeit. */
-  withdrawal: { at: string; forfeitedFn: number } | null;
+  /** 회원 탈퇴: when, and the FN and creator earnings the member agreed to forfeit. */
+  withdrawal: { at: string; forfeitedFn: number; forfeitedEarningsFn: number } | null;
   fnBalance: number;
   donationTotalFn: number;
   creatorId: string | null;
@@ -125,8 +125,9 @@ export type DonationsView = {
 
 // ── Settlements ───────────────────────────────────────────────────────────────
 
-export type SettlementStatus = "PENDING" | "APPROVED" | "REJECTED";
-export const SETTLEMENT_STATUSES: SettlementStatus[] = ["PENDING", "APPROVED", "REJECTED"];
+/** FORFEITED = 탈퇴 소멸: the creator withdrew and agreed to forfeit earnings waiting for settlement. */
+export type SettlementStatus = "PENDING" | "APPROVED" | "REJECTED" | "FORFEITED";
+export const SETTLEMENT_STATUSES: SettlementStatus[] = ["PENDING", "APPROVED", "REJECTED", "FORFEITED"];
 export type AdminSettlementRow = {
   id: string;
   creatorName: string;

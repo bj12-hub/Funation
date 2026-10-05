@@ -99,8 +99,9 @@ export type RegistrationResult =
 
 // ── 정산 신청 (458:4 · 469:* · 473:2 · 477:2 · 463:2) ─────────────────────────────────
 
-export type SettlementStatus = "PENDING" | "APPROVED" | "REJECTED";
-export const SETTLEMENT_STATUS_LABEL: Record<SettlementStatus, string> = { PENDING: "승인대기", APPROVED: "승인", REJECTED: "거절" };
+/** FORFEITED = the creator withdrew and agreed to forfeit earnings waiting for settlement (2026-10-05 결정). */
+export type SettlementStatus = "PENDING" | "APPROVED" | "REJECTED" | "FORFEITED";
+export const SETTLEMENT_STATUS_LABEL: Record<SettlementStatus, string> = { PENDING: "승인대기", APPROVED: "승인", REJECTED: "거절", FORFEITED: "탈퇴 소멸" };
 
 export type SettlementHistoryItem = {
   id: string;

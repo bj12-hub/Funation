@@ -19,8 +19,8 @@ export type AdminMember = {
   lastActiveAt: string;
   status: MemberStatus;
   suspension: Suspension | null;
-  /** 회원 탈퇴: when, and the FN the member agreed to forfeit. */
-  withdrawal: { at: string; forfeitedFn: number } | null;
+  /** 회원 탈퇴: when, and the FN and creator earnings (정산 대기 수익) the member agreed to forfeit. */
+  withdrawal: { at: string; forfeitedFn: number; forfeitedEarningsFn: number } | null;
   /** Server-side values (mock: only the sample member has real wallet data). */
   fnBalance: number;
   donationTotalFn: number;

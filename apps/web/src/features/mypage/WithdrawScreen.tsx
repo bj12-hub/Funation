@@ -10,41 +10,51 @@ import type { WithdrawalInfo } from "@/services/account/withdrawalTypes";
 import styles from "./withdraw.module.css";
 
 /**
- * 회원 탈퇴 — code-first (no Figma frame), route `/mypage/withdraw` (2026-10-04 결정: 남은 FN 소멸 동의 후 바로 탈퇴).
- * Shows what withdrawal does, asks for the FN forfeit consent (when there is a balance) and the final
- * consent, then ends the account on the server. A creator with earnings waiting for settlement is
- * blocked (their handling is TBD) and pointed to 정산 · 고객센터.
+ * 회원 탈퇴 — code-first (no Figma frame), route `/mypage/withdraw` (2026-10-04 결정: 남은 FN 소멸 동의 후 바로 탈퇴;
+ * 2026-10-05: 크리에이터 정산 대기 수익도 소멸 동의, 탈퇴 직전 비밀번호 재입력, 탈퇴 후 바로 재가입 가능).
+ * Shows what withdrawal does, asks for a forfeit consent per amount (남은 FN · 정산 대기 수익, when there is one),
+ * the final consent and the password, then ends the account on the server.
  */
 export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
   const router = useRouter();
   const [forfeit, setForfeit] = useState(false);
+  const [earningsForfeit, setEarningsForfeit] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [password, setPassword] = useState("");
+  const [passwordError, setPasswordError] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [pending, startTransition] = useTransition();
   // One id per intended withdrawal: a double click or a retry after a lost response reuses it.
   const requestId = useRef<string | null>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
   const hasFn = info.fnBalance > 0;
-  const ready = confirmed && (!hasFn || forfeit);
+  const hasEarnings = info.unsettledFn > 0;
+  const ready = confirmed && (!hasFn || forfeit) && (!hasEarnings || earningsForfeit) && password.length > 0;
 
   const submit = () => {
     if (!ready || pending) return;
     setError(null);
+    setPasswordError(false);
     requestId.current ??= crypto.randomUUID();
     const id = requestId.current;
     startTransition(async () => {
       try {
-        const r = await withdrawAccount({ requestId: id, confirmed, forfeitAgreed: forfeit, fnBalance: info.fnBalance });
+        const r = await withdrawAccount({ requestId: id, confirmed, forfeitAgreed: forfeit, earningsForfeitAgreed: earningsForfeit, fnBalance: info.fnBalance, unsettledFn: info.unsettledFn, password });
         if (r.status === "WITHDRAWN") {
           setDone(true);
           return;
         }
         requestId.current = null;
         if (r.status === "UNAUTHORIZED") router.push("/login?next=/mypage/withdraw");
-        else {
-          if (r.status === "INVALID") setError(r.message);
-          // The balance or the settlement state changed: show the server's numbers again.
+        else if (r.status === "WRONG_PASSWORD") {
+          setPasswordError(true);
+          passwordRef.current?.select();
+        } else {
+          setError(r.message);
+          // An amount changed: show the server's numbers again and ask for the consents again.
           setForfeit(false);
+          setEarningsForfeit(false);
           router.refresh();
         }
       } catch {
@@ -60,7 +70,7 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
           <h1 className={styles.title} id="withdraw-done">
             탈퇴가 완료됐어요
           </h1>
-          <p className={styles.subtitle}>그동안 썸네이션을 이용해 주셔서 감사합니다.</p>
+          <p className={styles.subtitle}>그동안 썸네이션을 이용해 주셔서 감사합니다. 언제든 새 계정으로 다시 가입할 수 있어요.</p>
           {/* A full load, so the header drops the signed-in member. */}
           <Button type="button" onClick={() => window.location.assign("/")}>
             홈으로
@@ -88,67 +98,94 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
         <p className={styles.note}>{hasFn ? "탈퇴하면 남은 FN은 모두 소멸되고, 탈퇴 후에는 되살릴 수 없어요." : "남은 FN이 없어요."}</p>
       </section>
 
+      {hasEarnings && (
+        <section className={styles.warnCard} aria-labelledby="withdraw-earnings">
+          <h2 className={styles.cardTitle} id="withdraw-earnings">
+            정산 대기 수익
+          </h2>
+          <strong className={styles.balance}>{formatNumber(info.unsettledFn)} FN</strong>
+          <p className={styles.note}>정산 가능 금액과 정산 신청 중인 금액이에요. 탈퇴하면 함께 소멸되고, 진행 중인 정산 신청도 취소돼요. 먼저 정산을 받고 싶다면 탈퇴 전에 정산을 마쳐 주세요.</p>
+          <div className={styles.links}>
+            <Link href="/creator/settlement">정산 화면으로</Link>
+          </div>
+        </section>
+      )}
+
       <section className={styles.card} aria-labelledby="withdraw-effects">
         <h2 className={styles.cardTitle} id="withdraw-effects">
           탈퇴하면 이렇게 돼요
         </h2>
         <ul className={styles.effects}>
           {hasFn && <li>남은 FN {formatNumber(info.fnBalance)} FN이 소멸돼요.</li>}
+          {hasEarnings && <li>정산 대기 수익 {formatNumber(info.unsettledFn)} FN이 소멸되고, 진행 중인 정산 신청은 취소돼요.</li>}
           <li>네이버 · Google · 카카오 로그인 연결과 방송 플랫폼 연결이 모두 해제돼요.</li>
-          <li>탈퇴한 계정으로는 다시 로그인할 수 없어요.</li>
+          <li>탈퇴한 계정으로는 다시 로그인할 수 없어요. 새 계정으로는 바로 다시 가입할 수 있지만, 이전 FN과 기록은 돌아오지 않아요.</li>
           {info.creator && <li>크리에이터 스튜디오와 채널도 더 이상 이용할 수 없어요.</li>}
         </ul>
       </section>
 
-      {info.blocked ? (
-        <section className={styles.blocked} role="alert" aria-labelledby="withdraw-blocked">
-          <h2 className={styles.cardTitle} id="withdraw-blocked">
-            지금은 탈퇴할 수 없어요
-          </h2>
-          <p>
-            정산을 기다리는 수익 <strong>{formatNumber(info.unsettledFn)} FN</strong>이 있어요. 크리에이터 수익이 남아 있으면 탈퇴를 진행할 수 없어요.
-          </p>
-          <div className={styles.links}>
-            <Link href="/creator/settlement">정산 화면으로</Link>
-            <Link href="/support?tab=inquiry">고객센터 1:1 문의</Link>
-          </div>
-        </section>
-      ) : (
-        <section className={styles.card} aria-labelledby="withdraw-consent">
-          <h2 className={styles.cardTitle} id="withdraw-consent">
-            동의
-          </h2>
-          {hasFn && (
-            <label className={styles.check}>
-              <input type="checkbox" checked={forfeit} disabled={pending} onChange={(e) => setForfeit(e.target.checked)} />
-              <span>
-                <b>(필수)</b> 남은 FN {formatNumber(info.fnBalance)} FN이 소멸되는 것에 동의합니다.
-              </span>
-            </label>
-          )}
+      <section className={styles.card} aria-labelledby="withdraw-consent">
+        <h2 className={styles.cardTitle} id="withdraw-consent">
+          동의 및 본인 확인
+        </h2>
+        {hasFn && (
           <label className={styles.check}>
-            <input type="checkbox" checked={confirmed} disabled={pending} onChange={(e) => setConfirmed(e.target.checked)} />
+            <input type="checkbox" checked={forfeit} disabled={pending} onChange={(e) => setForfeit(e.target.checked)} />
             <span>
-              <b>(필수)</b> 위 내용을 모두 확인했고, 회원 탈퇴에 동의합니다.
+              <b>(필수)</b> 남은 FN {formatNumber(info.fnBalance)} FN이 소멸되는 것에 동의합니다.
             </span>
           </label>
-          {error && (
-            <p className={styles.error} role="alert">
-              {error}
-            </p>
-          )}
-        </section>
-      )}
+        )}
+        {hasEarnings && (
+          <label className={styles.check}>
+            <input type="checkbox" checked={earningsForfeit} disabled={pending} onChange={(e) => setEarningsForfeit(e.target.checked)} />
+            <span>
+              <b>(필수)</b> 정산 대기 수익 {formatNumber(info.unsettledFn)} FN이 소멸되고 정산 신청이 취소되는 것에 동의합니다.
+            </span>
+          </label>
+        )}
+        <label className={styles.check}>
+          <input type="checkbox" checked={confirmed} disabled={pending} onChange={(e) => setConfirmed(e.target.checked)} />
+          <span>
+            <b>(필수)</b> 위 내용을 모두 확인했고, 회원 탈퇴에 동의합니다.
+          </span>
+        </label>
+        <label className={styles.field}>
+          <span>비밀번호 확인</span>
+          <input
+            ref={passwordRef}
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            disabled={pending}
+            aria-invalid={passwordError || undefined}
+            aria-describedby={passwordError ? "withdraw-password-error" : undefined}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setPasswordError(false);
+            }}
+            placeholder="본인 확인을 위해 비밀번호를 입력해 주세요"
+          />
+        </label>
+        {passwordError && (
+          <p className={styles.error} id="withdraw-password-error" role="alert">
+            비밀번호가 일치하지 않아요. 다시 입력해 주세요.
+          </p>
+        )}
+        {error && (
+          <p className={styles.error} role="alert">
+            {error}
+          </p>
+        )}
+      </section>
 
       <div className={styles.actions}>
         <Button href="/mypage" variant="secondary">
-          {info.blocked ? "돌아가기" : "취소"}
+          취소
         </Button>
-        {!info.blocked && (
-          <button type="button" className={styles.danger} disabled={!ready || pending} aria-busy={pending} onClick={submit}>
-            {pending ? "탈퇴 처리 중…" : "탈퇴하기"}
-          </button>
-        )}
+        <button type="button" className={styles.danger} disabled={!ready || pending} aria-busy={pending} onClick={submit}>
+          {pending ? "탈퇴 처리 중…" : "탈퇴하기"}
+        </button>
       </div>
     </div>
   );

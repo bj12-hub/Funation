@@ -1,16 +1,35 @@
 /**
- * 회원 탈퇴 (2026-10-04 결정: 남은 FN 소멸 동의 후 바로 탈퇴) — server-only state, not a "use server" module,
- * so the session, the login mock and the admin member directory can read it without import cycles.
- * The mock has one account (the sample member). A withdrawn account cannot sign in; the record (when,
- * how much FN was forfeited) stays for audit. Rejoining and how long records are kept are TBD.
+ * 회원 탈퇴 (2026-10-04 결정: 남은 FN 소멸 동의 후 바로 탈퇴; 2026-10-05: 크리에이터 정산 대기 수익도 소멸 동의,
+ * 비밀번호 재입력, 바로 재가입 가능) — server-only state, not a "use server" module, so the session, the login
+ * mock, the wallet history and the admin member directory can read it without import cycles.
+ * The mock has one account slot (the sample member). A withdrawn account cannot sign in; its record (who,
+ * when, what was forfeited) stays for audit, also after the same person signs up again as a new account.
+ * How long records are kept is TBD.
  */
 
-export type Withdrawal = { at: string; requestId: string; forfeitedFn: number };
+export type Withdrawal = {
+  at: string;
+  requestId: string;
+  /** FN balance the member agreed to forfeit. */
+  forfeitedFn: number;
+  /** Creator earnings waiting for settlement (정산 가능 + 정산 신청 중) the member agreed to forfeit. */
+  forfeitedEarningsFn: number;
+  /** Who withdrew (the admin directory keeps listing them as 탈퇴). */
+  nickname: string;
+  funationId: string;
+};
 
-type Store = { withdrawal: Withdrawal | null };
-const g = globalThis as typeof globalThis & { __funationMockWithdrawalV1?: Store };
-export const withdrawalStore = (): Store => (g.__funationMockWithdrawalV1 ??= { withdrawal: null });
+type Store = {
+  withdrawal: Withdrawal | null;
+  /** Earlier withdrawals of the slot, before a 재가입 started a new account. */
+  past: Withdrawal[];
+  /** Local "YYYY-MM-DD HH:MM:SS" when the current account started (재가입); earlier wallet records are not its own. */
+  accountSince: string | null;
+};
+const g = globalThis as typeof globalThis & { __funationMockWithdrawalV2?: Store };
+export const withdrawalStore = (): Store => (g.__funationMockWithdrawalV2 ??= { withdrawal: null, past: [], accountSince: null });
 
 /** The sample account's withdrawal, or null while it is active. */
 export const withdrawalOf = () => withdrawalStore().withdrawal;
 export const isWithdrawn = () => withdrawalOf() !== null;
+export const accountSince = () => withdrawalStore().accountSince;
