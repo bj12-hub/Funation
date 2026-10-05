@@ -320,16 +320,17 @@ export async function exportReceivedDonationsCsv(input: unknown): Promise<CsvExp
 
 // ── 후원 순위 ─────────────────────────────────────────────────────────────────
 
+// Numbers follow the design's sample rows; the nicknames are fictional (the samples looked like real viewers).
 const RANK_SEED: [string, number, number, number, number][] = [
   // nickname, change, points, count, successRate
-  ["보해리움 Boharium", 1, 19_742, 954, 48],
-  ["세란이(SERAN)", 0, 12_632, 49, 56],
-  ["승냥이1", 134, 5_845, 147, 47],
-  ["개그우현양기버", 0, 5_019, 116, 31],
-  ["째이", -2, 4_677, 32, 19],
+  ["별가루 Stardust", 1, 19_742, 954, 48],
+  ["도토리(DOTORI)", 0, 12_632, 49, 56],
+  ["여우비1", 134, 5_845, 147, 47],
+  ["웃음충전소장님", 0, 5_019, 116, 31],
+  ["쭈니", -2, 4_677, 32, 19],
   ["우주비행사", 3, 3_904, 88, 62],
   ["행복한하루", -1, 3_120, 41, 44],
-  ["보해매니아", 0, 2_880, 57, 39],
+  ["별가루매니아", 0, 2_880, 57, 39],
   ["초코쿠키", 5, 2_415, 23, 35],
   ["별빛소나타", -4, 1_990, 19, 28]
 ];
@@ -355,7 +356,7 @@ export async function getDonorRanking(period: RankPeriod): Promise<DonorRanking 
     period: p,
     rows,
     top: first
-      ? { nickname: "Boharium", avatarUrl: first.avatarUrl, rank: 1, change: 2, points: first.points, totalAmount: Math.round(2_580_000 * scale), count: Math.max(1, Math.round(154 * scale)) }
+      ? { nickname: "Stardust", avatarUrl: first.avatarUrl, rank: 1, change: 2, points: first.points, totalAmount: Math.round(2_580_000 * scale), count: Math.max(1, Math.round(154 * scale)) }
       : null
   };
 }
