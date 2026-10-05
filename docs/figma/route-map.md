@@ -134,6 +134,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | FN 내역 | 충전 내역 · 후원 내역 탭 · 마이페이지 breadcrumb | `/wallet/charges` · `/wallet/donations` · `/mypage` |
 | FN 내역 | CSV 다운로드 | `/api/wallet/charges` · `/api/wallet/donations` (session required) |
 | FN 내역 | FN 충전 | charge modal (595:1869 · 595:5475 · 601:839 · 606:540 · 739:*) |
+| FN 충전 약관 동의 (595:5475) | 보기 › | 개인정보 → `/terms/privacy` · 결제 · 환불 → `/terms/service` · 마케팅 → `/terms/marketing` (새 탭); 법정대리인 동의는 문서 TBD로 비활성 |
 | FN 내역 | 매출전표 영수증 | not wired — payment provider pending |
 | Hall of fame | 기간 탭 | `/hall-of-fame?period=` |
 | Hall of fame | 나도 서포터 되기 | `/creators` (2026-10-04 결정) |

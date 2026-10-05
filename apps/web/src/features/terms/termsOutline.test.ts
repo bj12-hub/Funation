@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { CHARGE_CONSENTS } from "@/services/wallet/chargeTypes";
 import { clauseHeading, isTermsSlug, TERMS_DOCS, TERMS_SLUGS } from "./termsOutline";
 
 describe("약관 조항 목차", () => {
@@ -6,6 +7,12 @@ describe("약관 조항 목차", () => {
     for (const slug of ["service", "privacy", "youth", "operation", "marketing", "creator"]) expect(isTermsSlug(slug)).toBe(true);
     for (const bad of ["", "refund", "toString", "__proto__"]) expect(isTermsSlug(bad)).toBe(false);
     expect(TERMS_SLUGS).toHaveLength(6);
+  });
+
+  it("links each FN 충전 consent that has a document to an existing page", () => {
+    const linked = CHARGE_CONSENTS.filter((c) => c.href);
+    expect(linked.map((c) => c.key)).toEqual(["privacy", "payment", "marketing"]);
+    for (const c of linked) expect(isTermsSlug(c.href!.replace(/^\/terms\//, ""))).toBe(true);
   });
 
   it("numbers 약관 by article and policies by section", () => {
