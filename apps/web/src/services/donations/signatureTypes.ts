@@ -11,6 +11,8 @@ export type ManagedSignature = {
   name: string;
   price: number;
   imageUrl: string;
+  /** A SOUND from the creator's library played with the signature's alert (null = none; code-first, 2026-10-06). */
+  soundUrl: string | null;
   match: SignatureMatch;
   active: boolean;
 };

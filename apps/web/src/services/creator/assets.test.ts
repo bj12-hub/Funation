@@ -82,6 +82,34 @@ describe("asset library", () => {
     expect((await m.saveSignature({ ...zero, imageUrl: a.url })).status).toBe("INVALID");
   });
 
+  it("pairs an image and a sound with the same name and lets a signature carry only a library sound", async () => {
+    const m = await load();
+    const { pairOf } = await import("./assetTypes");
+    const MP3 = [0x49, 0x44, 0x33, 0x04, 0, 0, 0, 0, 0, 0];
+    const img = await m.uploadAsset(form(11, PNG, "image/png", "축하.png"));
+    const snd = await m.uploadAsset(form(12, MP3, "audio/mpeg", " 축하 .mp3"));
+    const other = await m.uploadAsset(form(13, MP3, "audio/mpeg", "박수.mp3"));
+    if (img.status !== "SAVED" || snd.status !== "SAVED" || other.status !== "SAVED") throw new Error("upload");
+    const library = (await m.listAssets())!;
+    expect(pairOf(img.asset, library)?.id).toBe(snd.asset.id);
+    expect(pairOf(snd.asset, library)?.id).toBe(img.asset.id);
+    expect(pairOf(other.asset, library)).toBeNull();
+
+    const base = { name: "축하 시그", price: 7_000, imageUrl: img.asset.url, match: "SELECT", active: true };
+    const saved = await m.saveSignature({ ...base, soundUrl: snd.asset.url, requestId: key(14) });
+    expect(saved.status).toBe("SAVED");
+    expect((await m.listSignatures())!.find((s) => s.name === "축하 시그")!.soundUrl).toBe(snd.asset.url);
+    for (const bad of [img.asset.url, "https://evil.example/a.mp3", "/api/media/nope", 3]) {
+      expect((await m.saveSignature({ ...base, name: "다른 시그", soundUrl: bad, requestId: key(15) })).status).toBe("INVALID");
+    }
+    // No sound given = none (older clients).
+    expect((await m.saveSignature({ ...base, name: "무음 시그", requestId: key(16) })).status).toBe("SAVED");
+    expect((await m.listSignatures())!.find((s) => s.name === "무음 시그")!.soundUrl).toBeNull();
+    // A deleted sound no longer counts.
+    await m.deleteAsset(snd.asset.id);
+    expect(m.isSignatureSound(snd.asset.url)).toBe(false);
+  });
+
   it("requires the creator role", async () => {
     const m = await load();
     signIn(["SUPPORTER"]);
