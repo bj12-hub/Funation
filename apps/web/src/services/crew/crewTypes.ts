@@ -148,6 +148,35 @@ export type FeedSourceKey = "SOMNATION" | Platform;
 export type FeedSummaryRow = { memberId: string | null; name: string; color: string | null; points: Partial<Record<FeedSourceKey, number>>; total: number };
 export type ScoreLog = { id: string; at: string; memberName: string; points: number; reason: string };
 
+/**
+ * 랭크업 (엑셀방송, funnation 참고 — 2026-10-06 결정): the two neighbours on the scoreboard with the smallest gap, i.e.
+ * the overtake that is closest. Ties pick the higher pair; 0 = 동점. None until someone above has points.
+ */
+export type RankUp = {
+  upper: { memberId: string; name: string; rank: number; score: number };
+  lower: { memberId: string; name: string; rank: number; score: number };
+  gap: number;
+};
+
+/** `rows` sorted best first (the scoreboard order). */
+export function rankUpPair(rows: Pick<ScoreRow, "memberId" | "name" | "score">[]): RankUp | null {
+  let best: RankUp | null = null;
+  for (let i = 1; i < rows.length; i++) {
+    const upper = rows[i - 1];
+    const lower = rows[i];
+    if (upper.score <= 0) break;
+    const gap = upper.score - lower.score;
+    if (!best || gap < best.gap) {
+      best = {
+        upper: { memberId: upper.memberId, name: upper.name, rank: i, score: upper.score },
+        lower: { memberId: lower.memberId, name: lower.name, rank: i + 1, score: lower.score },
+        gap
+      };
+    }
+  }
+  return best;
+}
+
 export type BroadcastLive = {
   id: string;
   title: string;
@@ -168,6 +197,9 @@ export type BroadcastLive = {
   steals: StealRecord[];
   /** 콘텐츠 시나리오 progress (null until the first part starts). */
   scenario: ScenarioLive | null;
+  rankUp: RankUp | null;
+  /** The operator shows 랭크업 on the OBS scoreboard. */
+  showRankUp: boolean;
 };
 
 // ── 콘텐츠 시나리오 도우미 (1부 ~ 5부) — code-first ─────────────────────────────────────────────

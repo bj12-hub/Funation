@@ -139,6 +139,8 @@ Add a row whenever a new code-first screen ships (see `docs/research/funnation-r
 
 | 크루 직급 · 직급 배수 (`crew/GradesCard.tsx` · CrewScreen 멤버별 직급, `crewCore.gradeBonus`, 방송 운영 점수 "직급 배수") | crew-grades PR | 2026-10-06 결정(funnation 직급). 직급 최대 10개(이름 10자, 배수 0 초과 10배 이하 · 소수 둘째 자리, 기본 1배), 멤버마다 직급 선택. 점수판에서 멤버가 방송 중 받은 점수(후원 · 후원 리스트)에 배수를 곱한 추가분을 "직급 배수"로 따로 표시(강탈 · 보정 · 배틀 배수 제외), 강탈 기준 점수에도 반영, 배수 변경은 즉시 반영. 직급을 지우면 그 멤버는 직급 없음 |
 
+| 랭크업 (`crew/BroadcastScreen.tsx` 점수판 아래 · `CrewScoreOverlay.tsx`, `crewTypes.rankUpPair`, `setRankUpOverlay`) | crew-rank-up PR | 2026-10-06 결정(funnation 랭크업). 점수판에서 이웃한 두 멤버 중 점수 차가 가장 작은 쌍(같으면 위쪽 쌍, 0점 차 = 동점)을 "🔥 랭크업 아래 멤버(순위) → 위 멤버(순위) N점 차"로 표시, 위 멤버 점수가 0이면 표시 없음. "OBS 점수판에 표시"를 켜면 크루 점수판 오버레이 제목 아래에 띄움 |
+
 ## Figma
 
 구현된 전체 화면 캡처는 [current-build.md](current-build.md)의 새 파일(Somnation — 현재 구현)에 있어요. 펀페이 파일에 잠시 두었던 "코드 우선 화면" 페이지는 2026-09-30에 삭제했어요.

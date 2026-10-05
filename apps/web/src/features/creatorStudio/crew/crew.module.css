@@ -479,6 +479,21 @@
   font-size: var(--font-size-12);
 }
 
+/* 랭크업 line under the scoreboard (code-first). */
+.rankUp {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
+}
+
 .logs {
   color: var(--color-text-soft);
   font-size: var(--font-size-12);
