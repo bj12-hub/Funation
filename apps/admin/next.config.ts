@@ -4,12 +4,12 @@ import type { NextConfig } from "next";
 // It talks to the site only through the server-side admin API client (src/lib/siteApi.ts).
 const production = process.env.NODE_ENV === "production";
 
-/** No third-party scripts; fonts come from Google Fonts like on the site. Dev needs eval for React Refresh. */
+/** No third-party scripts or fonts (next/font serves the fonts from this app). Dev needs eval for React Refresh. */
 const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${production ? "" : " 'unsafe-eval'"}`,
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' https://fonts.gstatic.com",
+  "style-src 'self' 'unsafe-inline'",
+  "font-src 'self'",
   "img-src 'self' data: https:",
   `connect-src 'self'${production ? "" : " ws:"}`,
   "frame-ancestors 'none'",

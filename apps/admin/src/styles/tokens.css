@@ -58,8 +58,9 @@
   --adm-radius-full: 999px;
 
   /* Typography — Figma text styles Admin/* */
-  --adm-font-sans: "Noto Sans KR", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --adm-font-number: "Inter", "Noto Sans KR", system-ui, sans-serif;
+  /* --font-noto / --font-inter come from next/font (app/layout.tsx) on <html>. */
+  --adm-font-sans: var(--font-noto), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --adm-font-number: var(--font-inter), var(--font-noto), system-ui, sans-serif;
   --adm-text-display: 700 24px / 1.35 var(--adm-font-sans); /* Admin/Display */
   --adm-text-title: 700 18px / 1.4 var(--adm-font-sans); /* Admin/Title */
   --adm-text-subtitle: 500 15px / 1.45 var(--adm-font-sans); /* Admin/Subtitle */
