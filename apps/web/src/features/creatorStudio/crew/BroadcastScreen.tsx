@@ -243,13 +243,23 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
 
       <ScenarioPanel plan={view.scenario} live={live ? { broadcastId: live.id, scenario: live.scenario } : null} overlayPath={view.overlayPath} pending={pending} run={run} />
       {live && (
-        <BattlePanel broadcastId={live.id} teamMode={live.teamMode} members={view.members} battles={live.battles} overlayPath={view.overlayPath} pending={pending} run={run} />
+        <BattlePanel
+          broadcastId={live.id}
+          teamMode={live.teamMode}
+          members={view.members}
+          battles={live.battles}
+          rules={view.battleRules}
+          overlayPath={view.overlayPath}
+          pending={pending}
+          run={run}
+        />
       )}
       {live && (
         <StealPanel
           broadcastId={live.id}
           members={view.members}
           slots={view.stealSlots}
+          rules={view.stealRules}
           records={live.steals}
           battle={live.battles.find((b) => b.running)}
           overlayPath={view.overlayPath}

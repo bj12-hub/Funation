@@ -106,3 +106,17 @@
     transform: scale(0.94);
   }
 }
+
+/* 강탈 기준 · 쿨다운 (2026-10-05) */
+.rules {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.cooldown {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}

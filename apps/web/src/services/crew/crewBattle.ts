@@ -3,7 +3,7 @@
 import { USE_MOCK } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
-import { liveBroadcastOf } from "./crewCore";
+import { battleRulesOf, liveBroadcastOf, parseBattleRules } from "./crewCore";
 import { BATTLES_MAX, BATTLE_MAX_SEC, BATTLE_MIN_SEC, BATTLE_TITLE_MAX, type BroadcastResult } from "./crewTypes";
 import { STUDIO_CHANNEL, mockCrew } from "./mockCrewStore";
 
@@ -12,7 +12,8 @@ import { STUDIO_CHANNEL, mockCrew } from "./mockCrewStore";
  * Two BJs of the crew (or A팀 vs B팀 in team mode) battle for a set time; a side's score is the
  * points its members receive while the battle runs. One battle runs at a time. Start and time
  * changes carry a request id so a retried click never starts twice or adds time twice.
- * OBS: the crew scoreboard URL + `?battle`. TBD: 배틀 배수 · 벌칙 · prize mapping.
+ * OBS: the crew scoreboard URL + `?battle`. 배수 · 벌칙 (2026-10-05 결정): platform defaults 1배 · 벌칙 없음, the creator
+ * changes them per battle and can keep their own defaults. TBD: prize mapping.
  */
 
 const assertMock = () => {
@@ -42,6 +43,10 @@ export async function startBattle(input: unknown): Promise<BroadcastResult> {
   const title = (typeof v.title === "string" ? v.title.trim() : "") || `배틀 ${battles.length + 1}`;
   if (title.length > BATTLE_TITLE_MAX) return { status: "INVALID", message: `배틀 이름은 ${BATTLE_TITLE_MAX}자 이내로 입력해 주세요.` };
   if (MOCK_FORBIDDEN_WORDS.some((w) => title.toLowerCase().includes(w))) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
+  // 배수 · 벌칙: what the form sent, or the channel's defaults when left out.
+  const defaults = battleRulesOf(STUDIO_CHANNEL);
+  const rules = parseBattleRules({ multiplier: v.multiplier ?? defaults.multiplier, penalty: v.penalty ?? defaults.penalty }, MOCK_FORBIDDEN_WORDS);
+  if ("message" in rules) return { status: "INVALID", message: rules.message };
 
   let a: string[];
   let b: string[];
@@ -57,7 +62,34 @@ export async function startBattle(input: unknown): Promise<BroadcastResult> {
   } else return { status: "INVALID", message: "배틀 방식을 골라 주세요." };
 
   const now = Date.now();
-  battles.push({ no: battles.length + 1, title, mode: v.mode, a, b, startedAt: new Date(now).toISOString(), endsAt: new Date(now + sec * 1000).toISOString(), stoppedAt: null, requests: [v.requestId] });
+  battles.push({
+    no: battles.length + 1,
+    title,
+    mode: v.mode,
+    a,
+    b,
+    startedAt: new Date(now).toISOString(),
+    endsAt: new Date(now + sec * 1000).toISOString(),
+    stoppedAt: null,
+    requests: [v.requestId],
+    multiplier: rules.multiplier,
+    penalty: rules.penalty
+  });
+  return { status: "SAVED" };
+}
+
+/** The channel's 배수 · 벌칙 for new battles (kept across broadcasts). `reset` goes back to the platform defaults. */
+export async function setBattleRules(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = rec(input);
+  if (v.reset === true) {
+    if (mockCrew.battleRules) delete mockCrew.battleRules[STUDIO_CHANNEL];
+    return { status: "SAVED" };
+  }
+  const rules = parseBattleRules(v, MOCK_FORBIDDEN_WORDS);
+  if ("message" in rules) return { status: "INVALID", message: rules.message };
+  (mockCrew.battleRules ??= {})[STUDIO_CHANNEL] = rules;
   return { status: "SAVED" };
 }
 

@@ -94,4 +94,43 @@ describe("실시간 배틀", () => {
     signIn(["SUPPORTER"]);
     expect(await startBattle({ broadcastId: id, requestId: key(6), mode: "TEAMS", durationSec: 60 })).toEqual({ status: "UNAUTHORIZED" });
   });
+
+  it("multiplies the battle score by its 배수, keeps the 벌칙, and starts from the channel's defaults", async () => {
+    const { startBattle, stopBattle, setBattleRules, donate, battles, getBroadcastView, id } = await startLive();
+    const start = (n: number, extra: Record<string, unknown> = {}) =>
+      startBattle({ broadcastId: id, requestId: key(n), mode: "MEMBERS", memberA: "cm-s1", memberB: "cm-s2", durationSec: 60, ...extra });
+    // Platform defaults (2026-10-05 결정): 1배 · 벌칙 없음.
+    expect((await getBroadcastView())!.battleRules).toEqual({ multiplier: 1, penalty: "" });
+    expect(await start(1)).toEqual({ status: "SAVED" });
+    expect((await battles())[0]).toMatchObject({ multiplier: 1, penalty: "" });
+    await stopBattle({ broadcastId: id, no: 1 });
+
+    expect(await setBattleRules({ multiplier: 2, penalty: "  노래 한 곡 " })).toEqual({ status: "SAVED" });
+    expect((await getBroadcastView())!.battleRules).toEqual({ multiplier: 2, penalty: "노래 한 곡" });
+    at(10);
+    expect(await start(2)).toEqual({ status: "SAVED" }); // no 배수 sent → the channel's defaults
+    await donate(3_000, "길동");
+    await donate(1_000, "하늘");
+    const b = (await battles())[1];
+    expect(b).toMatchObject({ multiplier: 2, penalty: "노래 한 곡", leader: "A" });
+    expect(b.sides.map((s) => s.score)).toEqual([6_000, 2_000]);
+    // The main scoreboard keeps the plain points.
+    expect((await getBroadcastView())!.live!.rows.find((r) => r.memberId === "cm-s1")!.score).toBe(3_000);
+    await stopBattle({ broadcastId: id, no: 2 });
+
+    // Changed for one battle only.
+    expect(await start(3, { multiplier: 1.5, penalty: "" })).toEqual({ status: "SAVED" });
+    expect((await battles())[2]).toMatchObject({ multiplier: 1.5, penalty: "" });
+    await stopBattle({ broadcastId: id, no: 3 });
+    expect((await getBroadcastView())!.battleRules.multiplier).toBe(2);
+
+    for (const bad of [{ multiplier: 0 }, { multiplier: 11 }, { multiplier: 1.234 }, { multiplier: 2, penalty: "가".repeat(41) }, { multiplier: 2, penalty: "admin 벌칙" }]) {
+      expect((await setBattleRules({ penalty: "", ...bad })).status).toBe("INVALID");
+    }
+    expect((await start(4, { multiplier: -1 })).status).toBe("INVALID");
+    expect(await setBattleRules({ reset: true })).toEqual({ status: "SAVED" });
+    expect((await getBroadcastView())!.battleRules).toEqual({ multiplier: 1, penalty: "" });
+    signIn(["SUPPORTER"]);
+    expect(await setBattleRules({ multiplier: 3, penalty: "" })).toEqual({ status: "UNAUTHORIZED" });
+  });
 });

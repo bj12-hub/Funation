@@ -15,7 +15,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/support` | ✅ | 고객센터 4:7 — `?q=` searches the FAQ |
 | `/mypage` | ✅ | funation-my-page 735:4119 · 622:4 — redirects to `/login` without a session |
 | `/channel/new` | ✅ code-first | 내 채널 만들기 — signed-in non-creators; grants the Creator role (review/approval TBD); Figma C07 `151:8173` (현재 구현 레이아웃) |
-| `/creator/crew/broadcast` | ✅ code-first | 크루 방송 운영 — score = FN during the broadcast + 보정 (points are not money); Figma Y04 `116:3886` · Y04b 방송 중 `117:3911` (현재 구현 레이아웃) |
+| `/creator/crew/broadcast` | ✅ code-first | 크루 방송 운영 — score = FN during the broadcast + 보정 (points are not money); Figma Y04 `116:3886` · Y04b 방송 중 `117:3911` · Y04c 배틀 배수 · 벌칙, 강탈 기준 `185:5234` (현재 구현 레이아웃) |
 | `/overlay/crew/[key]` | ✅ code-first | OBS scoreboard overlay; `key` = integration key (reissue invalidates it); Figma O06 `92:6866` · O06b 배틀 `119:8173` · O06c 강탈 `119:8191` · O06d 시나리오 `119:8199` · OFF `133:2` (현재 구현 레이아웃) |
 | `/creator/updates` | ✅ code-first | 업데이트 소식 — release notes, unread tracked on the server; Figma T05 `61:968` (현재 구현 레이아웃) |
 | `/creator/remote` | ✅ code-first | 리모컨 — server-owned alert queue; 테스트 후원 is display only (no FN); 방송 도구; 투표 시작 · 종료 · 결과 내리기 (무료 투표); 룰렛 ▶ 시작 · 일시정지 · ✓ 완료; 뽑기 ✓ 완료 · 수령 처리 — W04 `163:5103` |
