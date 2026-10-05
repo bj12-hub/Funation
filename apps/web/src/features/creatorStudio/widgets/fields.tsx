@@ -203,19 +203,6 @@ export function ColorFontFields({ label, value, onChange }: { label: string; val
   );
 }
 
-export function PercentSlider({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
-  return (
-    <div className={styles.slider}>
-      <input type="range" aria-label={label} min={0} max={100} step={1} value={value} onChange={(e) => onChange(Number(e.target.value))} />
-      <div className={styles.sliderScale} aria-hidden="true">
-        <span>0%</span>
-        <span>{value}%</span>
-        <span>100%</span>
-      </div>
-    </div>
-  );
-}
-
 /** Tip badge for fields whose rule the design explains only with a "?" icon. */
 export function Help({ text }: { text: string }) {
   return (
