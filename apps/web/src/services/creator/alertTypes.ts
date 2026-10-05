@@ -26,6 +26,8 @@ export type AlertItem = {
   typeLabel: string;
   /** Broadcast platform an EXTERNAL alert came from (통합 후원 알림 shows its mark). */
   platform?: Platform;
+  /** The signature's image for a 시그니처 후원 (or a 일반 후원 matched to a signature by amount); 벽지 "후원 이미지 우선" uses it. */
+  imageUrl?: string;
   createdAt: string;
   status: AlertStatus;
 };

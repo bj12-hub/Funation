@@ -66,7 +66,10 @@ export const isOverlayOn = (target: OverlayTarget) => !mockAlerts.overlayOff?.[t
 /** Reload signal + ON/OFF for one overlay read. */
 export const overlaySignal = (target: OverlayTarget): OverlaySignal => ({ reloadSeq: reloadSeqOf(target), on: isOverlayOn(target) });
 
-export function enqueueAlert(input: { kind: AlertKind; donor: string; badges?: string[]; message: string; fnAmount: number; amountLabel?: string; typeLabel: string; platform?: Platform }, now = Date.now()) {
+export function enqueueAlert(
+  input: { kind: AlertKind; donor: string; badges?: string[]; message: string; fnAmount: number; amountLabel?: string; typeLabel: string; platform?: Platform; imageUrl?: string },
+  now = Date.now()
+) {
   // The FN minimum cannot apply to other currencies (no exchange rate — TBD), so external alerts pass.
   const filtered = input.kind !== "EXTERNAL" && input.fnAmount < mockAlerts.controls.minFn;
   const item: AlertItem = {
@@ -84,7 +87,7 @@ export function enqueueAlert(input: { kind: AlertKind; donor: string; badges?: s
  * Called by the Donation Core after a completed donation. Only donations to the studio creator's own
  * channel reach this creator's overlay (TBD: per-creator queues once channels are real).
  */
-export function enqueueDonationAlert(creatorId: string, input: { donor: string; badges?: string[]; message: string; fnAmount: number; typeLabel: string }) {
+export function enqueueDonationAlert(creatorId: string, input: { donor: string; badges?: string[]; message: string; fnAmount: number; typeLabel: string; imageUrl?: string }) {
   if (creatorId !== STUDIO_CHANNEL) return;
   const item = enqueueAlert({ kind: "DONATION", ...input });
   notify({ kind: "DONATION_RECEIVED", title: "새 후원이 들어왔어요", body: `${input.donor}님 · ${input.fnAmount.toLocaleString("ko-KR")} FN`, href: "/creator/donations?tab=list", dedupeKey: `alert:${item.id}` });

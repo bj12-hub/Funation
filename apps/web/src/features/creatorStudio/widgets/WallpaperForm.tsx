@@ -155,7 +155,7 @@ export function WallpaperForm({ value: v, onChange }: FormProps<"WALLPAPER">) {
               label="후원 이미지 우선"
               checked={v.preferDonationImage}
               onChange={(x) => set("preferDonationImage", x)}
-              text="설정 시 일반 후원 이미지가 없을 때만 벽지 이미지 노출"
+              text="켜면 시그니처 후원은 시그니처 이미지로, 나머지 후원은 벽지 이미지로 붙어요"
             />
           </Row>
           <Row label="벽지 이미지 등록">
