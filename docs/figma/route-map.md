@@ -18,15 +18,15 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/creator/crew/broadcast` | ✅ code-first | 크루 방송 운영 — score = FN during the broadcast + 보정 (points are not money); Figma Y04 `116:3886` · Y04b 방송 중 `117:3911` · Y04c 배틀 배수 · 벌칙, 강탈 기준 `185:5234` (현재 구현 레이아웃) |
 | `/overlay/crew/[key]` | ✅ code-first | OBS scoreboard overlay; `key` = integration key (reissue invalidates it); Figma O06 `92:6866` · O06b 배틀 `119:8173` · O06c 강탈 `119:8191` · O06d 시나리오 `119:8199` · OFF `133:2` (현재 구현 레이아웃) |
 | `/creator/updates` | ✅ code-first | 업데이트 소식 — release notes, unread tracked on the server; Figma T05 `61:968` (현재 구현 레이아웃) |
-| `/creator/remote` | ✅ code-first | 리모컨 — server-owned alert queue; 테스트 후원 is display only (no FN); 방송 도구; 투표 시작 · 종료 · 결과 내리기 (무료 투표); 룰렛 ▶ 시작 · 일시정지 · ✓ 완료; 뽑기 ✓ 완료 · 수령 처리 — W04 `163:5103` |
+| `/creator/remote` | ✅ code-first | 리모컨 — server-owned alert queue; 테스트 후원 is display only (no FN); 방송 도구; 투표 시작 · 종료 · 결과 내리기 (무료 투표); 룰렛 ▶ 시작 · 일시정지 · ✓ 완료; 뽑기 ✓ 완료 · 수령 처리 — W04 `202:5483` |
 | `/overlay/alert/[key]` | ✅ code-first | OBS donation alert overlay; `key` = integration key; Figma O02 `92:6819` · O02b 등급 · 칭호 `112:8207` · OFF `133:25` (현재 구현 레이아웃) |
 | `/creator/widgets/overlays` | ✅ code-first | 오버레이 주소 — every OBS overlay URL (key masked on screen); Figma W03 `160:4982` (현재 구현 레이아웃) |
 | `/creator/widgets/tools` | ✅ code-first | 방송 도구 remote — 자막 · 전광판 · 타이머 · 엔딩 크레딧 (server-owned state); Figma W02 `64:1471` (현재 구현 레이아웃) |
 | `/overlay/tool/[tool]/[key]` | ✅ code-first | OBS overlays for the tools; `tool` = subtitle / marquee / timer / credits, `key` = integration key; Figma O08 자막 `92:6894` · O09 전광판 `92:6900` · O10 타이머 `92:6906` · O11 엔딩 크레딧 `92:6912` · OFF `133:82` · `133:89` · `133:96` · `133:103` (현재 구현 레이아웃) |
-| `/creator/crew` | ✅ code-first | 크루 관리 — Creator role; member split of earnings TBD; Figma Y03 `67:2696` (현재 구현 레이아웃) |
+| `/creator/crew` | ✅ code-first | 크루 관리 — Creator role; member split of earnings TBD; Figma Y03 `200:5757` (현재 구현 레이아웃) |
 | `/community` · `/community/new` · `/community/[id]` · `/community/[id]/edit` | ✅ code-first | 커뮤니티 — `?category=FREE|TIP|QNA|BUG|BRAG` `?q=` `?page=`; reading is public, writing needs a session, edits are author-only; moderation TBD; Figma S08 `75:1375` · S08b `75:1591` · S09 `76:1342` · S09b `151:8418` (현재 구현 레이아웃) |
 | `/events` · `/events/[id]` | ✅ code-first | 이벤트 — `?filter=all|ongoing|upcoming|ended|mine`; join is recorded only, rewards TBD; Figma S10 `76:1541` · S10b `76:1753` (현재 구현 레이아웃) |
-| `/messages` | ✅ code-first | 쪽지 — `?box=inbox|sent|archive|spam` `?q=` `?page=` `?to=<creatorId>` (opens compose); send limit placeholder (TBD); Figma M06 `82:4849` (현재 구현 레이아웃) |
+| `/messages` | ✅ code-first | 쪽지 — `?box=inbox|sent|archive|spam` `?q=` `?page=` `?to=<creatorId>` (opens compose); send limit placeholder (TBD); Figma M06 `199:9995` (현재 구현 레이아웃) |
 | `/mypage/titles` | ✅ code-first | 칭호·등급 — grade / title thresholds are placeholders (TBD); Figma M02 `81:4359` (현재 구현 레이아웃) |
 | `/mypage/ranking` | ✅ code-first | 내 후원 랭킹 — `?period=all|year|month`; other donors are mock sample data; Figma M04 `82:4528` (현재 구현 레이아웃) |
 | `/mypage/nicknames` | ✅ code-first | 별명 관리; Figma M03 `81:4688` (현재 구현 레이아웃) |
@@ -53,14 +53,14 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/creator/chat` | ✅ code-first | 통합 채팅 — 치지직 · SOOP · FlexTV · YouTube 채팅, 채팅창 링크, 매니저 링크 (C01 `49:2` · C01b `129:2`) |
 | `/popout/chat` | ✅ code-first | 통합 채팅창 (단독 웹페이지, 크리에이터 로그인) — C02 `120:8188` · C02b `127:3` |
 | `/popout/chat/m/[token]` | ✅ code-first | 매니저 채팅창 (링크별 권한, 계정 없이) — C03 `123:8244` · C03b `125:2` · C04 `123:8311` · C04b `124:110` |
-| `/creator/revenue` | ✅ code-first | 수익 현황 — T02 `59:808` |
+| `/creator/revenue` | ✅ code-first | 수익 현황 — T02 `200:5365` |
 | `/creator/youtube` | ✅ code-first | 유튜브 연동 — Y01 `62:1539` |
 | `/creator/videos` | ✅ code-first | 영상 목록 — Y02 `63:1255` |
 | `/creator/widgets/effects` | ✅ code-first | 이펙트 · 효과 — W05 `66:1840` |
-| `/creator/widgets/signatures` | ✅ code-first | 시그니처 후원 — W06 `66:2016` |
+| `/creator/widgets/signatures` | ✅ code-first | 시그니처 후원 — W06 `201:5481` |
 | `/creator/widgets/video` | ✅ code-first | 영상 후원 관리 — W07 `66:2322` |
 | `/creator/widgets/drawing` | ✅ code-first | 그림후원 — W08 `66:2498` |
-| `/creator/widgets/assets` | ✅ code-first | 이미지·사운드 라이브러리 — W09 `66:2653` |
+| `/creator/widgets/assets` | ✅ code-first | 이미지·사운드 라이브러리 — W09 `200:5619` |
 | `/creator/widgets/banner` | ✅ code-first | 배너 (기능 제어 OFF 안내) — W10 `66:2782` |
 | `/creator/widgets/link` | ✅ code-first | 후원 연동 (플랫폼 후원 → 후원 알림) — W11 `67:2520` |
 | `/overlay/effects/[key]` | ✅ code-first | OBS 이펙트 — O03 `92:6828` · OFF O03-off `133:34` |
