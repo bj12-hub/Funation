@@ -107,7 +107,7 @@ export function SettlementApplyScreen({ view }: { view: SettlementApplyView }) {
                       </span>
                       <span className={styles.muted}>{r.requestedAt.slice(0, 7)}</span>
                     </span>
-                    <strong className={styles.historyAmount}>{r.status === "REJECTED" ? `${fn(r.amountFn)} FN` : `${fn(r.netKrw)} 원`}</strong>
+                    <strong className={styles.historyAmount}>{r.status === "REJECTED" || r.status === "FORFEITED" ? `${fn(r.amountFn)} FN` : `${fn(r.netKrw)} 원`}</strong>
                   </li>
                 ))}
               </ul>

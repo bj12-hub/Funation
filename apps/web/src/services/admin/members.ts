@@ -6,7 +6,7 @@ import type { AuditEntry } from "./adminTypes";
 import type { AdminActor } from "./adminTypes";
 import { auditEntries, recordAudit } from "./auditCore";
 import { SAMPLE_MEMBER_ID, creatorMemberId, isMemberSuspended, memberStore, suspensionOf } from "./memberCore";
-import { withdrawalOf } from "@/services/account/withdrawalCore";
+import { withdrawalOf, withdrawalStore, type Withdrawal } from "@/services/account/withdrawalCore";
 import { MEMBERS_PAGE, SUSPEND_DAYS, SUSPEND_REASON, type AdminCreatorRow, type AdminMember, type MemberActionResult, type MemberFilter, type MemberPage } from "./memberTypes";
 
 /**
@@ -39,13 +39,29 @@ async function directory(): Promise<AdminMember[]> {
     donationTotalFn: listDonationRecords().filter((d) => d.status === "COMPLETED").reduce((s, d) => s + d.fnAmount, 0),
     creatorId: null
   });
+  const record = (w: Withdrawal) => ({ at: w.at, forfeitedFn: w.forfeitedFn, forfeitedEarningsFn: w.forfeitedEarningsFn });
   // 회원 탈퇴: the sample member stays listed as 탈퇴 with what was forfeited.
-  const sample: AdminMember = withdrawal ? { ...active, status: "WITHDRAWN", suspension: null, withdrawal: { at: withdrawal.at, forfeitedFn: withdrawal.forfeitedFn } } : active;
+  const sample: AdminMember = withdrawal ? { ...active, status: "WITHDRAWN", suspension: null, withdrawal: record(withdrawal) } : active;
+  // After a 재가입 the slot is a new account; the withdrawn ones stay in the directory (mock ids `…-w1`, `…-w2`).
+  const withdrawn = withdrawalStore().past.map(
+    (w, i): AdminMember => ({
+      ...active,
+      id: `${SAMPLE_MEMBER_ID}-w${i + 1}`,
+      nickname: w.nickname,
+      funationId: w.funationId,
+      lastActiveAt: w.at.slice(0, 10),
+      fnBalance: 0,
+      donationTotalFn: 0,
+      status: "WITHDRAWN",
+      suspension: null,
+      withdrawal: record(w)
+    })
+  );
   const creators = (await getAllCreatorsForAdmin()).map((c) =>
     withStatus({ id: creatorMemberId(c.id), nickname: c.name, funationId: `creator-${c.id}`, roles: ["SUPPORTER", "CREATOR"], joinedAt: c.joinedAt, lastActiveAt: c.joinedAt, fnBalance: 0, donationTotalFn: 0, creatorId: c.id })
   );
   const supporters = memberStore().supporters.map((s) => withStatus({ ...s, roles: ["SUPPORTER"], creatorId: null }));
-  return [sample, ...creators, ...supporters];
+  return [sample, ...withdrawn, ...creators, ...supporters];
 }
 
 /** Ids present in the member directory (reports link to 회원 상세 only for these). */

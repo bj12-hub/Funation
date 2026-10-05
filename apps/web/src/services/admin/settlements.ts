@@ -16,7 +16,7 @@ import { SETTLEMENT_NOTE, type AdminSettlementView, type SettlementDecisionResul
 const assertMock = () => {
   if (!USE_MOCK) throw new Error("Admin settlement API is not connected yet.");
 };
-const STATUSES: SettlementStatus[] = ["PENDING", "APPROVED", "REJECTED"];
+const STATUSES: SettlementStatus[] = ["PENDING", "APPROVED", "REJECTED", "FORFEITED"];
 
 export async function getSettlementReview(input: { status?: unknown } = {}): Promise<AdminSettlementView | null> {
   assertMock();

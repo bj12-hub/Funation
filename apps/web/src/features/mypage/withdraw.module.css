@@ -34,7 +34,7 @@
 }
 
 .card,
-.blocked {
+.warnCard {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -44,15 +44,10 @@
   background: var(--color-surface);
 }
 
-.blocked {
+/* 정산 대기 수익: forfeited on withdrawal, so it stands out. */
+.warnCard {
   border-color: var(--color-danger-box-border);
   background: var(--color-danger-box);
-  color: var(--color-text-primary);
-  font-size: var(--font-size-14);
-}
-
-.blocked p {
-  margin: 0;
 }
 
 .cardTitle {
@@ -120,6 +115,31 @@
   text-decoration: underline;
 }
 
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+}
+
+.field input {
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-8);
+  background: var(--color-input-bg);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-regular);
+}
+
+.field input[aria-invalid="true"] {
+  border-color: var(--color-danger);
+}
+
 .error {
   margin: 0;
   color: var(--color-error-text);
@@ -164,7 +184,7 @@
   }
 
   .card,
-  .blocked,
+  .warnCard,
   .done {
     padding: 20px;
   }

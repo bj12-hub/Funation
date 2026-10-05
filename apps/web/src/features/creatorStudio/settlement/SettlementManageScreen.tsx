@@ -68,7 +68,7 @@ export function SettlementManageScreen({ view }: { view: SettlementManageView })
               </tr>
             ) : (
               view.items.map((r) => {
-                const rejected = r.status === "REJECTED";
+                const rejected = r.status === "REJECTED" || r.status === "FORFEITED";
                 return (
                   <tr key={r.id}>
                     <td>

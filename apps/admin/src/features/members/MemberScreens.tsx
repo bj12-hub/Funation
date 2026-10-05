@@ -145,7 +145,8 @@ export function MemberDetailScreen({ member, audit }: { member: AdminMember; aud
           )}
           {member.withdrawal ? (
             <p className={styles.muted}>
-              {new Date(member.withdrawal.at).toLocaleString("ko-KR")} 회원 탈퇴 · 소멸 FN {formatNumber(member.withdrawal.forfeitedFn)} FN (회원 동의) · 탈퇴한 회원은 이용 제한을 바꿀 수 없어요.
+              {new Date(member.withdrawal.at).toLocaleString("ko-KR")} 회원 탈퇴 · 소멸 FN {formatNumber(member.withdrawal.forfeitedFn)} FN
+              {member.withdrawal.forfeitedEarningsFn > 0 && ` · 소멸 정산 대기 수익 ${formatNumber(member.withdrawal.forfeitedEarningsFn)} FN`} (회원 동의) · 탈퇴한 회원은 이용 제한을 바꿀 수 없어요.
             </p>
           ) : (
             <MemberActions id={member.id} suspended={member.status === "SUSPENDED"} />
