@@ -1,4 +1,4 @@
-import type { AssignMode, BattleRules, CrewMember, ExcelSettings, FeedEntry, ScenarioPart, StealRules, StealSlot } from "./crewTypes";
+import type { AssignMode, BattleRules, CrewGrade, CrewMember, ExcelSettings, FeedEntry, ScenarioPart, StealRules, StealSlot } from "./crewTypes";
 
 /**
  * Development-only crew state, keyed by channel id: the studio creator's own channel
@@ -71,6 +71,8 @@ type MockCrew = {
   battleRules?: Record<string, BattleRules>;
   /** 콘텐츠 시나리오 plan per channel. */
   scenario?: Record<string, ScenarioPart[]>;
+  /** 직급 per channel (missing = none). */
+  grades?: Record<string, CrewGrade[]>;
 };
 
 const m = (id: string, name: string, role: CrewMember["role"], color: string, active = true): CrewMember => ({ id, name, role, active, color });

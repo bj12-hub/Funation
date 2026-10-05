@@ -137,6 +137,8 @@ Add a row whenever a new code-first screen ships (see `docs/research/funnation-r
 
 | 후원랭킹 위젯 "랭킹 종류" (`widgets/RankingForm.tsx`, `widgetOverlayCore.ts` crewRankingRows · sourceBoardRows) | ranking-widget-boards PR | 2026-10-06 결정(funnation 탭). 후원자 랭킹(기본) · 크루 후원 순위(멤버 지정 후원을 멤버별 FN 합계, 기간 적용) · 수단별 보드(썸네이션 FN과 플랫폼 후원을 각 단위로 합계, 후원 건수 순, 통화가 다르면 줄을 나눔, 테스트 제외). 수단별 보드는 금액 표시 형식 대신 단위를 그대로 표시. 이전에 저장한 설정은 후원자 랭킹 |
 
+| 크루 직급 · 직급 배수 (`crew/GradesCard.tsx` · CrewScreen 멤버별 직급, `crewCore.gradeBonus`, 방송 운영 점수 "직급 배수") | crew-grades PR | 2026-10-06 결정(funnation 직급). 직급 최대 10개(이름 10자, 배수 0 초과 10배 이하 · 소수 둘째 자리, 기본 1배), 멤버마다 직급 선택. 점수판에서 멤버가 방송 중 받은 점수(후원 · 후원 리스트)에 배수를 곱한 추가분을 "직급 배수"로 따로 표시(강탈 · 보정 · 배틀 배수 제외), 강탈 기준 점수에도 반영, 배수 변경은 즉시 반영. 직급을 지우면 그 멤버는 직급 없음 |
+
 ## Figma
 
 구현된 전체 화면 캡처는 [current-build.md](current-build.md)의 새 파일(Somnation — 현재 구현)에 있어요. 펀페이 파일에 잠시 두었던 "코드 우선 화면" 페이지는 2026-09-30에 삭제했어요.

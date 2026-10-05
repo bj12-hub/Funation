@@ -18,11 +18,22 @@ export const CREW_ROLES = [
 ] as const;
 export type CrewRole = (typeof CREW_ROLES)[number]["key"];
 
-export type CrewMember = { id: string; name: string; role: CrewRole; active: boolean; color: string };
+/** `gradeId`: the member's 직급 (see CrewGrade), null/missing = none. */
+export type CrewMember = { id: string; name: string; role: CrewRole; active: boolean; color: string; gradeId?: string | null };
+
+/**
+ * 직급 (엑셀방송 직급전, funnation 참고 — 2026-10-06 결정). The creator names the grades; each has a 직급 배수 that
+ * multiplies what a member of that grade receives in a broadcast (donations + 후원 리스트). The default 배수 is 1배
+ * (no effect), like 배틀 (2026-10-05 결정); the creator can change it.
+ */
+export type CrewGrade = { id: string; name: string; multiplier: number };
+export const GRADES_MAX = 10;
+export const GRADE_NAME_MAX = 10;
+export const GRADE_MULTIPLIER_MAX = 10;
 
 export type MemberRankRow = { memberId: string; name: string; role: CrewRole; totalFn: number; count: number; sharePercent: number };
 
-export type CrewStudioView = { channelName: string; members: CrewMember[]; ranking: MemberRankRow[]; month: string };
+export type CrewStudioView = { channelName: string; members: CrewMember[]; grades: CrewGrade[]; ranking: MemberRankRow[]; month: string };
 
 /** Public crew info for a channel's donation panel (active members only). */
 export type CrewPublic = { members: { id: string; name: string; role: CrewRole; color: string }[] };
@@ -41,7 +52,7 @@ export const BROADCAST_TITLE_MAX = 40;
  * the member; `stolen` = net 기여도 강탈 (taken minus lost).
  */
 /** `battle` = extra points from 배틀 배수 (what the member received in a ×n battle counts n times; 2026-10-05 결정). */
-export type ScoreRow = { memberId: string; name: string; color: string; team: TeamKey | null; donated: number; feed: number; adjust: number; stolen: number; battle: number; score: number };
+export type ScoreRow = { memberId: string; name: string; color: string; team: TeamKey | null; donated: number; feed: number; adjust: number; stolen: number; battle: number; grade: number; score: number };
 
 // ── 후원 리스트 (키워드 배정 · 한방) — reference: funnation 엑셀콘 v3 ────────────────────
 

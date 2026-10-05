@@ -205,6 +205,7 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
                     후원 {formatNumber(r.donated + r.feed)} · 보정 {signed(r.adjust)}
                     {r.stolen !== 0 && ` · 강탈 ${signed(r.stolen)}`}
                     {r.battle !== 0 && ` · 배틀 배수 ${signed(r.battle)}`}
+                    {r.grade !== 0 && ` · 직급 배수 ${signed(r.grade)}`}
                   </span>
                 </span>
                 <span className={styles.boardButtons}>

@@ -4,7 +4,7 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { mockCreator } from "@/services/creator/mockCreatorStore";
-import { memberRanking } from "./crewCore";
+import { gradesOf, memberRanking, parseGrades } from "./crewCore";
 import { CREW_ROLES, MAX_CREW_MEMBERS, MEMBER_NAME_RULE, type CrewPublic, type CrewRole, type CrewSaveResult, type CrewStudioView } from "./crewTypes";
 import { STUDIO_CHANNEL, mockCrew } from "./mockCrewStore";
 
@@ -37,6 +37,7 @@ export async function getCrewStudio(): Promise<CrewStudioView | null> {
   return {
     channelName: mockCreator.channelName,
     members: structuredClone(crew()),
+    grades: structuredClone(gradesOf(STUDIO_CHANNEL)),
     ranking: memberRanking(STUDIO_CHANNEL),
     month: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
   };
@@ -66,17 +67,35 @@ export async function updateCrewMember(id: unknown, input: unknown): Promise<Cre
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const target = crew().find((x) => x.id === id);
   if (!target) return { status: "INVALID", message: "멤버를 찾을 수 없어요." };
-  const v = (typeof input === "object" && input !== null ? input : {}) as { name?: unknown; role?: unknown; active?: unknown };
+  const v = (typeof input === "object" && input !== null ? input : {}) as { name?: unknown; role?: unknown; active?: unknown; gradeId?: unknown };
   if (v.name !== undefined) {
     const error = checkName(v.name, target.id);
     if (error) return { status: "INVALID", message: error };
   }
   if (v.role !== undefined && !CREW_ROLES.some((r) => r.key === v.role)) return { status: "INVALID", message: "역할을 확인해 주세요." };
   if (v.active !== undefined && typeof v.active !== "boolean") return { status: "INVALID", message: "상태를 확인해 주세요." };
+  if (v.gradeId !== undefined && v.gradeId !== null && !gradesOf(STUDIO_CHANNEL).some((g) => g.id === v.gradeId)) return { status: "INVALID", message: "직급을 확인해 주세요." };
   await mockDelay(250);
   if (typeof v.name === "string") target.name = v.name.trim();
   if (v.role !== undefined) target.role = v.role as CrewRole;
   if (typeof v.active === "boolean") target.active = v.active;
+  if (v.gradeId !== undefined) target.gradeId = (v.gradeId as string | null) ?? null;
+  return { status: "SAVED" };
+}
+
+/**
+ * 직급 (2026-10-06 결정): replaces the channel's grade list (names + 직급 배수). Members whose grade was removed go back
+ * to none. A running broadcast's scoreboard follows the new 배수 at once (like 자동엑셀 settings).
+ */
+export async function saveCrewGrades(input: unknown): Promise<CrewSaveResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = (typeof input === "object" && input !== null ? input : {}) as { grades?: unknown };
+  const grades = parseGrades(v.grades, MOCK_FORBIDDEN_WORDS);
+  if ("message" in grades) return { status: "INVALID", message: grades.message };
+  await mockDelay(200);
+  (mockCrew.grades ??= {})[STUDIO_CHANNEL] = grades;
+  for (const m of crew()) if (m.gradeId && !grades.some((g) => g.id === m.gradeId)) m.gradeId = null;
   return { status: "SAVED" };
 }
 
