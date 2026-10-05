@@ -4,17 +4,18 @@ import type { AdminSettlementView, SettlementStatus } from "@/types/adminApi";
 import styles from "../admin.module.css";
 import { SettlementDecision } from "./SettlementDecision";
 
-const LABEL: Record<SettlementStatus, string> = { PENDING: "심사 대기", APPROVED: "승인", REJECTED: "반려" };
-const CHIP: Record<SettlementStatus, string> = { PENDING: styles.chipWarn, APPROVED: styles.chipOk, REJECTED: styles.chipBad };
+const LABEL: Record<SettlementStatus, string> = { PENDING: "심사 대기", APPROVED: "승인", REJECTED: "반려", FORFEITED: "탈퇴 소멸" };
+const CHIP: Record<SettlementStatus, string> = { PENDING: styles.chipWarn, APPROVED: styles.chipOk, REJECTED: styles.chipBad, FORFEITED: styles.chipNeutral };
 
 /** 정산 심사 — code-first. Route `/settlements` (`?status=`). */
 export function SettlementReviewScreen({ view, status }: { view: AdminSettlementView; status: SettlementStatus | null }) {
   const reg = view.registration;
   const tabs: { key: SettlementStatus | null; label: string; count: number }[] = [
-    { key: null, label: "전체", count: view.counts.PENDING + view.counts.APPROVED + view.counts.REJECTED },
+    { key: null, label: "전체", count: view.counts.PENDING + view.counts.APPROVED + view.counts.REJECTED + view.counts.FORFEITED },
     { key: "PENDING", label: "심사 대기", count: view.counts.PENDING },
     { key: "APPROVED", label: "승인", count: view.counts.APPROVED },
-    { key: "REJECTED", label: "반려", count: view.counts.REJECTED }
+    { key: "REJECTED", label: "반려", count: view.counts.REJECTED },
+    { key: "FORFEITED", label: "탈퇴 소멸", count: view.counts.FORFEITED }
   ];
   return (
     <div className={styles.content}>

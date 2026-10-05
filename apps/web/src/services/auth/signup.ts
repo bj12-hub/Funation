@@ -2,11 +2,13 @@
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { isEmail, isValidNickname, isValidPassword } from "@/lib/validation";
+import { startNewAccount } from "@/services/account/rejoin";
 
 /**
  * Sign-up contract (Server Actions, so the mock rules never ship to the browser). Duplicate checks
  * are advisory; `signup` re-checks formats, required agreements and duplicates on submit.
  * TBD: phone-verification token validation, age rules, account creation on the backend.
+ * A withdrawn member can sign up again right away (2026-10-05 결정) as a new account — nothing is restored.
  */
 
 export type AvailabilityResult = { available: boolean };
@@ -61,5 +63,7 @@ export async function signup(request: SignupRequest): Promise<SignupResult> {
   await mockDelay();
   if (TAKEN_EMAILS.has(r.email!.trim().toLowerCase())) return { status: "EMAIL_TAKEN" };
   if (TAKEN_NICKNAMES.has(r.nickname!.trim().toLowerCase())) return { status: "NICKNAME_TAKEN" };
+  // The mock has one account slot: after a withdrawal it becomes the new account.
+  startNewAccount({ nickname: r.nickname!.trim(), password: r.password!, marketing: a!.marketing });
   return { status: "CREATED" };
 }

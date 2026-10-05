@@ -1,6 +1,7 @@
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
+import { accountSince } from "@/services/account/withdrawalCore";
 import { findQuest } from "@/services/donations/questCore";
 import { drawState } from "@/services/donations/gachaCore";
 import { spinState } from "@/services/donations/rouletteCore";
@@ -159,7 +160,7 @@ export async function getWalletOverview(input: { kind?: unknown; period?: unknow
           at: (d.refundedAt ?? d.donatedAt).slice(0, 16)
         })
       ),
-    ...mockCredits.credits.map(
+    ...mockCredits.credits.filter((c) => !accountSince() || c.at >= accountSince()!.slice(0, 16)).map(
       (c): LedgerEntry => ({ id: c.id, kind: "REWARD", description: c.reason, deltaFn: c.fnAmount, statusLabel: "완료", tone: "done", at: c.at })
     )
   ].sort((a, b) => b.at.localeCompare(a.at));
@@ -239,7 +240,10 @@ const CHARGE_ROWS: [number, string, MethodKey, number, ChargeStatus][] = [
 
 function mockCharges(): ChargeRecord[] {
   const refunds = new Map(mockRefunds.requests.map((r) => [r.chargeId, r]));
-  return [...mockWallet.charges, ...seedCharges()].map((c) => {
+  // After a 재가입 the sample (seed) history belongs to the withdrawn account; only the new account's charges remain.
+  const since = accountSince();
+  const charges = since ? mockWallet.charges.filter((c) => c.chargedAt >= since) : [...mockWallet.charges, ...seedCharges()];
+  return charges.map((c) => {
     const r = refunds.get(c.id);
     return r ? { ...c, refund: { status: r.status, requestedAt: r.requestedAt, decidedAt: r.decision?.at, note: r.status === "REJECTED" ? r.decision?.note : undefined } } : c;
   });
@@ -293,8 +297,10 @@ export function listDonationRecords(): (DonationRecord & { category: DonationCat
   return mockDonations();
 }
 
+/** Records of the current account only: after a 재가입 the withdrawn account's history is not shown. */
 function mockDonations(): (DonationRecord & { category: DonationCategory })[] {
-  return [...mockWallet.donations, ...seedDonations()];
+  const since = accountSince();
+  return since ? mockWallet.donations.filter((d) => d.donatedAt >= since) : [...mockWallet.donations, ...seedDonations()];
 }
 
 function seedDonations(): (DonationRecord & { category: DonationCategory })[] {
