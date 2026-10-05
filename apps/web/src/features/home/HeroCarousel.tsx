@@ -11,17 +11,37 @@ import styles from "./HeroCarousel.module.css";
 /** Auto-advance interval. Not specified in Figma. */
 const AUTOPLAY_MS = 6000;
 
-/** Figma 727:2743 — hero banner with carousel dots (727:2768) */
+/** True when the viewer asked the system for less motion (then the banner does not move on its own). */
+function useReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const q = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduced(q.matches);
+    const on = (e: MediaQueryListEvent) => setReduced(e.matches);
+    q.addEventListener("change", on);
+    return () => q.removeEventListener("change", on);
+  }, []);
+  return reduced;
+}
+
+/**
+ * Figma 727:2743 — hero banner with carousel dots (727:2768). Auto-advance stops on hover / focus, with the
+ * ⏸ button (touch screens have no hover; WCAG 2.2.2) and when the system asks for reduced motion. Screen readers
+ * hear the slide text only when it changes because the viewer moved it, not every few seconds.
+ */
 export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [stopped, setStopped] = useState(false);
+  const reducedMotion = useReducedMotion();
   const count = slides.length;
+  const autoplay = count > 1 && !stopped && !reducedMotion;
 
   useEffect(() => {
-    if (paused || count < 2) return;
+    if (!autoplay || paused) return;
     const timer = setTimeout(() => setIndex((i) => (i + 1) % count), AUTOPLAY_MS);
     return () => clearTimeout(timer);
-  }, [index, paused, count]);
+  }, [index, paused, count, autoplay]);
 
   if (count === 0) return null;
   const slide = slides[Math.min(index, count - 1)];
@@ -51,7 +71,7 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
       <span className={styles.shade} />
 
       <div className={styles.inner}>
-        <div className={styles.meta} aria-live="polite">
+        <div className={styles.meta} aria-live={autoplay ? "off" : "polite"}>
           <div className={styles.labels}>
             <span className={styles.badge}>{slide.badge}</span>
             {slide.highlight && <span className={styles.highlight}>{slide.highlight}</span>}
@@ -89,6 +109,17 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
                 onClick={() => setIndex(i)}
               />
             ))}
+            {!reducedMotion && (
+              <button
+                type="button"
+                className={styles.playToggle}
+                aria-label={stopped ? "자동 넘김 다시 시작" : "자동 넘김 멈추기"}
+                aria-pressed={stopped}
+                onClick={() => setStopped((v) => !v)}
+              >
+                <span aria-hidden="true">{stopped ? "▶" : "⏸"}</span>
+              </button>
+            )}
           </div>
         )}
       </div>

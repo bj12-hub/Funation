@@ -72,17 +72,27 @@
 .dots {
   display: flex;
   justify-content: center;
-  gap: 6px;
+  /* Wide enough apart that each dot's 24 × 24 touch area stays its own. */
+  gap: 16px;
   margin-top: auto;
   padding: 16px 0;
 }
 
+/* Touch target: the dot stays small, a transparent area around it makes it at least 24 × 24 (WCAG 2.5.8). */
 .dot,
 .dotOn {
+  position: relative;
   width: 8px;
   height: 8px;
   border-radius: var(--radius-pill);
   background: #d4d4de;
+}
+
+.dot::before,
+.dotOn::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
 }
 
 .dotOn {
@@ -111,6 +121,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  min-height: 24px;
   color: var(--color-notice-check-label);
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-medium);
