@@ -131,6 +131,8 @@ Add a row whenever a new code-first screen ships (see `docs/research/funnation-r
 
 | 리모컨 볼륨 "시그니처 소리" + 알림 오버레이 시그니처 소리 재생 (`remote/RemoteScreen.tsx`, `remote/AlertOverlay.tsx`, `signatureCore.signatureSoundFor`) | remote-signature-volume PR | 2026-10-06 결정(funnation 차이). 시그니처 후원(또는 금액 매칭된 일반 후원) 알림이 시그니처의 소리를 한 번 재생, 볼륨 0–100(기본 80), 음소거 · 기능 제어 OFF · 알림 종료 시 멈춤, 볼륨 변경은 바로 반영 |
 
+| 수익 현황 "수익원별 상세" (`revenue/RevenueScreen.tsx`, `creatorStudio.ts` bySource · splitByWeight) | revenue-by-source PR | 2026-10-06 결정(funnation 차이). 이번 달 수익을 후원 유형별(9종) · 후원 경로별(방송 방 직접 · SOOP · FlexTV 플랫폼 후원)로 금액 · 비율 · 막대. 목업은 고정 비율로 나눔(합계는 정확히 이번 달), 실제 집계는 백엔드. TBD: 상품(스토어) 수익 |
+
 ## Figma
 
 구현된 전체 화면 캡처는 [current-build.md](current-build.md)의 새 파일(Somnation — 현재 구현)에 있어요. 펀페이 파일에 잠시 두었던 "코드 우선 화면" 페이지는 2026-09-30에 삭제했어요.

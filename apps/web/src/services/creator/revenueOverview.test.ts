@@ -8,6 +8,24 @@ vi.mock("@/lib/session", () => mockSessionModule());
 describe("revenue overview", () => {
   beforeEach(() => resetMockStores());
 
+  it("splits this month into 수익원별 상세 that add up exactly, largest first", async () => {
+    const { getRevenueOverview, splitByWeight } = await import("./creatorStudio");
+    const data = (await getRevenueOverview())!;
+    for (const list of [data.bySource.types, data.bySource.routes]) {
+      expect(list.reduce((s, p) => s + p.amount, 0)).toBe(data.thisMonth);
+      expect(list.map((p) => p.amount)).toEqual([...list.map((p) => p.amount)].sort((a, b) => b - a));
+    }
+    expect(data.bySource.types).toHaveLength(9);
+    expect(data.bySource.routes.map((r) => r.key)).toEqual(["DIRECT", "SOOP", "FLEXTV"]);
+    const odd = splitByWeight(10, [
+      { key: "a", label: "A", weight: 1 },
+      { key: "b", label: "B", weight: 1 },
+      { key: "c", label: "C", weight: 1 }
+    ]);
+    expect(odd.map((p) => p.amount)).toEqual([4, 3, 3]);
+    expect(splitByWeight(0, [{ key: "a", label: "A", weight: 1 }])[0].amount).toBe(0);
+  });
+
   it("returns consistent totals and trend series", async () => {
     const { getRevenueOverview, getDashboardSummary } = await import("./creatorStudio");
     const r = (await getRevenueOverview())!;
