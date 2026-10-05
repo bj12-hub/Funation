@@ -84,7 +84,7 @@ export async function getOverlayWidget(widget: unknown, key: unknown): Promise<O
     case "wallpaper": {
       // Stickers since the last 벽지 비우기 (리모컨). The images go once; each sticker points at one.
       const { images, ...settings } = readWidget("WALLPAPER");
-      const stickers = wallStickers(items, { images }, clearedAtOf(STUDIO_CHANNEL));
+      const stickers = wallStickers(items, { images, preferDonationImage: settings.preferDonationImage }, clearedAtOf(STUDIO_CHANNEL));
       return { widget, settings, images: images.map((i) => i.url), stickers, ...common };
     }
   }

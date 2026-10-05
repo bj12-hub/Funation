@@ -52,8 +52,11 @@ export type WidgetFeedLine = {
 /** 벽지: the full-screen OBS source the stickers are placed on. */
 export const WALL_SIZE = { w: 1920, h: 1080 } as const;
 
-/** One sticker on the 벽지; `image` indexes the overlay's `images` (sent once, not per sticker), null = none registered. */
-export type WallSticker = { id: string; x: number; y: number; rotate: number; image: number | null; nickname: string; amount: string; test: boolean };
+/**
+ * One sticker on the 벽지. `image` indexes the overlay's 벽지 `images` (sent once, not per sticker), null = none
+ * registered; `imageUrl` is the donation's own image (시그니처) used instead when "후원 이미지 우선" is on.
+ */
+export type WallSticker = { id: string; x: number; y: number; rotate: number; image: number | null; imageUrl: string | null; nickname: string; amount: string; test: boolean };
 
 export type WidgetRankRow = { rank: number; name: string; fnAmount: number };
 
