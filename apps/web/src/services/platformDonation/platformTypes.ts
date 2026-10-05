@@ -99,6 +99,14 @@ export const HISTORY_PERIODS = [
   { key: "all", label: "전체 기간" }
 ] as const;
 export type HistoryPeriod = (typeof HISTORY_PERIODS)[number]["key"];
+/** 최신순 / 오래된순 (funnation 참고, 2026-10-06 결정). */
+export const HISTORY_SORTS = [
+  { key: "newest", label: "최신순" },
+  { key: "oldest", label: "오래된순" }
+] as const;
+export type HistorySort = (typeof HISTORY_SORTS)[number]["key"];
+/** Rows the list shows (pagination size is TBD); 결과 건수 · 합계 cover every match. */
+export const HISTORY_LIST_MAX = 50;
 
 export type HistoryStatus = "COMPLETED" | "PROCESSING" | "FAILED" | "REFUNDING" | "REFUNDED";
 export const HISTORY_STATUS_LABEL: Record<HistoryStatus, string> = {
@@ -129,7 +137,12 @@ export type HistoryView = {
   period: HistoryPeriod;
   status: HistoryStatus | "all";
   q: string;
+  sort: HistorySort;
   items: HistoryItem[];
+  /** Every matching transaction (the list stops at HISTORY_LIST_MAX). */
+  total: number;
+  /** FN of the matching 완료 transactions — failed or refunded ones moved no FN to the creator. */
+  completedFn: number;
   selected: HistoryItem | null;
 };
 

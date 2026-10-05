@@ -29,6 +29,22 @@ describe("후원 내역", () => {
     expect(await m.getDonationHistory({})).toBeNull();
   });
 
+  it("sorts oldest first on request and sums only 완료 FN over every match", async () => {
+    const m = await load();
+    const newest = (await m.getDonationHistory({ period: "all" }))!;
+    const oldest = (await m.getDonationHistory({ period: "all", sort: "oldest" }))!;
+    expect(newest.sort).toBe("newest");
+    expect(oldest.sort).toBe("oldest");
+    expect(oldest.items.map((i) => i.transactionId)).toEqual([...newest.items].reverse().map((i) => i.transactionId));
+    expect((await m.getDonationHistory({ sort: "random" }))!.sort).toBe("newest");
+    expect(newest.total).toBe(newest.items.length);
+    const completed = newest.items.filter((i) => i.status === "COMPLETED").reduce((sum, i) => sum + i.fnAmount, 0);
+    expect(newest.completedFn).toBe(completed);
+    expect(newest.items.some((i) => i.status !== "COMPLETED")).toBe(true); // the sum really leaves something out
+    const failed = (await m.getDonationHistory({ period: "all", status: "FAILED" }))!;
+    expect(failed.completedFn).toBe(0);
+  });
+
   it("filters by tab, status and search, ignores unknown values and opens one transaction", async () => {
     const m = await load();
     const soop = (await m.getDonationHistory({ tab: "soop", period: "all" }))!;

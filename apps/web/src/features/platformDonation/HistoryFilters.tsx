@@ -2,11 +2,11 @@
 
 import { useRef } from "react";
 import { SearchIcon } from "@/components/icons";
-import { HISTORY_PERIODS, HISTORY_STATUS_LABEL, type HistoryPeriod, type HistoryStatus, type HistoryTab } from "@/services/platformDonation/platformTypes";
+import { HISTORY_PERIODS, HISTORY_SORTS, HISTORY_STATUS_LABEL, type HistoryPeriod, type HistorySort, type HistoryStatus, type HistoryTab } from "@/services/platformDonation/platformTypes";
 import styles from "./history.module.css";
 
-/** 기간 · 상태 filters and 검색 (817:8038). A plain GET form: selects submit on change. */
-export function HistoryFilters({ tab, period, status, q }: { tab: HistoryTab; period: HistoryPeriod; status: HistoryStatus | "all"; q: string }) {
+/** 기간 · 상태 filters, 정렬 (code-first) and 검색 (817:8038). A plain GET form: selects submit on change. */
+export function HistoryFilters({ tab, period, status, q, sort }: { tab: HistoryTab; period: HistoryPeriod; status: HistoryStatus | "all"; q: string; sort: HistorySort }) {
   const ref = useRef<HTMLFormElement>(null);
   const submit = () => ref.current?.requestSubmit();
   return (
@@ -29,6 +29,16 @@ export function HistoryFilters({ tab, period, status, q }: { tab: HistoryTab; pe
           {(Object.keys(HISTORY_STATUS_LABEL) as HistoryStatus[]).map((s) => (
             <option key={s} value={s}>
               {HISTORY_STATUS_LABEL[s]}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className={styles.select}>
+        <span>정렬</span>
+        <select name="sort" defaultValue={sort} onChange={submit}>
+          {HISTORY_SORTS.map((s) => (
+            <option key={s.key} value={s.key}>
+              {s.label}
             </option>
           ))}
         </select>
