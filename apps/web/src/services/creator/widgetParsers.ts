@@ -75,6 +75,7 @@ import {
   type VoteSettings,
   type WidgetSettingsMap
 } from "./widgetSettingsTypes";
+import { isIsoDate, isIsoDateTime } from "@/lib/period";
 
 /**
  * Server-side validation for widget settings (used by ./widgetSettings.ts). Each parser rebuilds the
@@ -89,8 +90,8 @@ const keyOf = <T extends { key: string }>(v: unknown, list: readonly T[]): v is 
 const bool = (v: unknown): v is boolean => typeof v === "boolean";
 const int = (v: unknown, min: number, max: number): v is number => Number.isInteger(v) && (v as number) >= min && (v as number) <= max;
 const text = (v: unknown, max: number, min = 0) => typeof v === "string" && v.trim().length >= min && v.trim().length <= max;
-const isDate = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
-const isDateTime = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
+const isDate = isIsoDate;
+const isDateTime = isIsoDateTime;
 
 function font(v: unknown, withColor: true): FontSetting | null;
 function font(v: unknown, withColor: false): Omit<FontSetting, "color"> | null;

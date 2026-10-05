@@ -51,10 +51,26 @@ export function toDateString(d: Date) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-function parseDate(value?: string) {
-  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+/**
+ * A real calendar day as `YYYY-MM-DD`. The format check alone is not enough: `new Date("2026-02-30")` rolls
+ * over to 3월 2일 instead of failing, so the parsed day must print back as the same string.
+ */
+export function isIsoDate(value: unknown): value is string {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const d = new Date(`${value}T00:00:00`);
-  return Number.isNaN(d.getTime()) || toDateString(d) !== value ? null : value;
+  return !Number.isNaN(d.getTime()) && toDateString(d) === value;
+}
+
+/** A real local date and time as `YYYY-MM-DDTHH:mm` (datetime-local inputs), same round-trip check. */
+export function isIsoDateTime(value: unknown): value is string {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return false;
+  const [day, time] = value.split("T");
+  const [h, m] = time.split(":").map(Number);
+  return isIsoDate(day) && h <= 23 && m <= 59;
+}
+
+function parseDate(value?: string) {
+  return isIsoDate(value) ? value : null;
 }
 
 function daysBetween(from: string, to: string) {

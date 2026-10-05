@@ -4,6 +4,7 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { mockSettlement } from "./mockSettlementStore";
 import { MANAGE_PAGE_SIZE, isManagePeriod, type ManagePeriod, type ResetResult, type SettlementManageView } from "./settlementTypes";
+import { isIsoDate } from "@/lib/period";
 
 /**
  * 정산 관리 — Figma 478:2 (월별) · 479:144 (기간별) · 480:2 (정산 정보 변경).
@@ -17,7 +18,6 @@ const assertMock = () => {
 };
 
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-const isIsoDate = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(new Date(`${v}T00:00:00`).getTime());
 
 function presetRange(period: Exclude<ManagePeriod, "custom">): { from: string; to: string } {
   const today = new Date();

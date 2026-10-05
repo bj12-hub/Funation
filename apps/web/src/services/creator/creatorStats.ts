@@ -2,6 +2,7 @@
  * Creator dashboard period filter (Figma 245:14 · 287:16: 오늘 / 1주일 / 1개월 / 3개월 / 6개월 / 1년 + dates).
  * Client-safe: shared by the server (URL parsing) and the filter UI.
  */
+import { isIsoDate } from "@/lib/period";
 
 export type StatsPreset = "today" | "week" | "month" | "3months" | "6months" | "year" | "range";
 
@@ -33,8 +34,7 @@ export function presetPeriod(preset: Exclude<StatsPreset, "range">, today = new 
 export function parseStatsPeriod(raw: { period?: string; from?: string; to?: string }): StatsPeriod {
   const preset = raw.period && raw.period in STATS_PRESET_LABEL ? (raw.period as StatsPreset) : "week";
   if (preset !== "range") return presetPeriod(preset);
-  const ok = (v?: string) => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(new Date(`${v}T00:00:00`).getTime());
-  if (!ok(raw.from) || !ok(raw.to) || raw.from! > raw.to! || eachDay(raw.from!, raw.to!).length > MAX_RANGE_DAYS) return presetPeriod("week");
+  if (!isIsoDate(raw.from) || !isIsoDate(raw.to) || raw.from! > raw.to! || eachDay(raw.from!, raw.to!).length > MAX_RANGE_DAYS) return presetPeriod("week");
   return { preset, from: raw.from!, to: raw.to! };
 }
 

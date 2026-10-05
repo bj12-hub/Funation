@@ -18,6 +18,7 @@ import {
   type SaveResult
 } from "./creatorSettingsTypes";
 import { mockCreator, newIntegrationKey } from "./mockCreatorStore";
+import { isIsoDate } from "@/lib/period";
 
 /**
  * Creator account settings — Figma 315:405 · 315:2 (route `/creator/settings`) and 326:496 (프로필 수정).
@@ -32,7 +33,6 @@ const assertMock = () => {
 };
 
 const mask = (key: string) => `****-****-****-${key.slice(-4)}`;
-const isIsoDate = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(new Date(`${v}T00:00:00`).getTime());
 
 export async function getCreatorSettings(): Promise<CreatorSettings | null> {
   assertMock();
