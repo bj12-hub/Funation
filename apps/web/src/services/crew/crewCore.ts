@@ -1,5 +1,5 @@
 import type { Platform } from "@/types/platform";
-import { BATTLE_MULTIPLIER_MAX, BATTLE_PENALTY_MAX, PLATFORM_BATTLE_RULES, PLATFORM_STEAL_RULES, SUB_BOARD_MAX, isExcelUnit, type BattleRules, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow } from "./crewTypes";
+import { BATTLE_MULTIPLIER_MAX, BATTLE_PENALTY_MAX, GRADES_MAX, GRADE_MULTIPLIER_MAX, GRADE_NAME_MAX, PLATFORM_BATTLE_RULES, PLATFORM_STEAL_RULES, SUB_BOARD_MAX, isExcelUnit, type BattleRules, type CrewGrade, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow } from "./crewTypes";
 import { mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 // ── 후원 리스트 (server-only) ──────────────────────────────────────────────────
@@ -124,6 +124,52 @@ export function windowScores(b: MockBroadcast, from: string, to: string | null):
     add(x.target, -x.points);
   }
   return scores;
+}
+
+export const gradesOf = (channelId: string): CrewGrade[] => mockCrew.grades?.[channelId] ?? [];
+
+/** Validates a 직급 list (names unique, 배수 like 배틀: more than 0, up to the max, two decimals). Ids are kept or made. */
+export function parseGrades(input: unknown, forbidden: string[]): CrewGrade[] | { message: string } {
+  if (!Array.isArray(input) || input.length > GRADES_MAX) return { message: `직급은 ${GRADES_MAX}개까지 만들 수 있어요.` };
+  const out: CrewGrade[] = [];
+  for (const raw of input) {
+    const v = (typeof raw === "object" && raw !== null ? raw : {}) as Record<string, unknown>;
+    const name = typeof v.name === "string" ? v.name.trim() : "";
+    if (!name || name.length > GRADE_NAME_MAX) return { message: `직급 이름은 1~${GRADE_NAME_MAX}자로 입력해 주세요.` };
+    if (forbidden.some((w) => name.toLowerCase().includes(w))) return { message: "사용할 수 없는 단어가 포함되어 있어요." };
+    if (out.some((g) => g.name === name)) return { message: "같은 이름의 직급이 있어요." };
+    const m = v.multiplier;
+    if (typeof m !== "number" || !Number.isFinite(m) || m <= 0 || m > GRADE_MULTIPLIER_MAX || Math.abs(Math.round(m * 100) - m * 100) > 1e-6) {
+      return { message: `직급 배수는 0보다 크고 ${GRADE_MULTIPLIER_MAX}배 이하, 소수 둘째 자리까지예요.` };
+    }
+    const id = typeof v.id === "string" && /^gr-[a-z0-9-]{1,40}$/.test(v.id) ? v.id : `gr-${Date.now().toString(36)}-${out.length}`;
+    out.push({ id, name, multiplier: Math.round(m * 100) / 100 });
+  }
+  return out;
+}
+
+/**
+ * 직급 배수 on the scoreboard (2026-10-06 결정): what a member received in the broadcast — donations for them and
+ * assigned 후원 리스트 entries, not 강탈 · 보정 · 배틀 — counts × their 직급 배수. Returns the extra points per member,
+ * (배수 − 1) × those points. Members without a grade, or with 1배, add nothing.
+ */
+export function gradeBonus(b: MockBroadcast): Map<string, number> {
+  const grades = gradesOf(b.channelId);
+  const bonus = new Map<string, number>();
+  const mult = new Map<string, number>();
+  for (const m of mockCrew.crews[b.channelId] ?? []) {
+    const x = grades.find((g) => g.id === m.gradeId)?.multiplier ?? 1;
+    if (x !== 1) mult.set(m.id, x);
+  }
+  if (!mult.size) return bonus;
+  const end = b.endedAt ?? new Date(Date.now() + 1000).toISOString();
+  const s = excelOf(b.channelId);
+  const received = new Map<string, number>();
+  const add = (id: string, p: number) => mult.has(id) && received.set(id, (received.get(id) ?? 0) + p);
+  for (const a of mockCrew.attributions) if (a.channelId === b.channelId && a.at >= b.startedAt && a.at <= end) add(a.memberId, scoreFn(a.fnAmount, s));
+  for (const f of b.feed ?? []) if (f.status === "ASSIGNED" && f.memberId) add(f.memberId, scoreEntry(f, s).points);
+  for (const [id, points] of received) bonus.set(id, Math.round(points * (mult.get(id)! - 1)));
+  return bonus;
 }
 
 /**

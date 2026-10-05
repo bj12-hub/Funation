@@ -4,7 +4,7 @@ import { randomInt, randomUUID } from "node:crypto";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
-import { battleBonus, liveBroadcastOf, stealRecordView, stealRulesOf, windowScores } from "./crewCore";
+import { battleBonus, gradeBonus, liveBroadcastOf, stealRecordView, stealRulesOf, windowScores } from "./crewCore";
 import {
   STEAL_BASES,
   STEAL_COOLDOWN_MAX,
@@ -80,10 +80,10 @@ export async function setStealRules(input: unknown): Promise<BroadcastResult> {
   return { status: "SAVED" };
 }
 
-/** The target's current scoreboard score (donations · 후원 리스트 · 강탈 in this broadcast + 보정 + 배틀 배수). */
+/** The target's current scoreboard score (donations · 후원 리스트 · 강탈 in this broadcast + 보정 + 배틀 배수 + 직급 배수). */
 function currentScore(b: MockBroadcast, memberId: string) {
   const fromWindow = windowScores(b, b.startedAt, null).get(memberId) ?? 0;
-  return fromWindow + b.adjustments.filter((a) => a.memberId === memberId).reduce((s, a) => s + a.points, 0) + (battleBonus(b).get(memberId) ?? 0);
+  return fromWindow + b.adjustments.filter((a) => a.memberId === memberId).reduce((s, a) => s + a.points, 0) + (battleBonus(b).get(memberId) ?? 0) + (gradeBonus(b).get(memberId) ?? 0);
 }
 
 export async function spinSteal(input: unknown): Promise<StealSpinResult> {
