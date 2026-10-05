@@ -9,16 +9,18 @@ type LiveChannelCardProps = {
   /** `full`: 전체라이브 card (617:438). `compact`: 인기라이브 card (617:107). */
   variant: "full" | "compact";
   sizes: string;
+  /** Cards in the first row: load the thumbnail early (it is the page's largest image). */
+  priority?: boolean;
 };
 
-export function LiveChannelCard({ channel, variant, sizes }: LiveChannelCardProps) {
+export function LiveChannelCard({ channel, variant, sizes, priority = false }: LiveChannelCardProps) {
   const full = variant === "full";
   const avatarSize = full ? 36 : 32;
 
   return (
     <Link href={channel.href} className={`${styles.card} ${styles[variant]}`}>
       <div className={styles.thumb}>
-        <Image src={channel.thumbnailUrl} alt="" fill sizes={sizes} className={styles.thumbImage} />
+        <Image src={channel.thumbnailUrl} alt="" fill sizes={sizes} priority={priority} className={styles.thumbImage} />
         <span className={styles.shade} />
         <span className={`${styles.badge} ${styles.live}`}>LIVE</span>
         <span className={`${styles.badge} ${styles.viewers}`}>시청자 {formatNumber(channel.viewerCount)}명</span>
