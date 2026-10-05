@@ -83,9 +83,9 @@ export function OverlayUrlsScreen({ overlayKey, switches }: { overlayKey: string
                     <Link href={o.manage} className={styles.ghost}>
                       설정
                     </Link>
-                    <a href={url} target="_blank" rel="noopener noreferrer" className={styles.ghost}>
+                    <Link href={`/creator/widgets/overlays/preview/${o.id}`} className={styles.ghost}>
                       미리보기
-                    </a>
+                    </Link>
                     <CopyButton value={url} label="복사" className={styles.ghost} />
                   </div>
                 </li>

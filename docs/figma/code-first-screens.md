@@ -133,6 +133,8 @@ Add a row whenever a new code-first screen ships (see `docs/research/funnation-r
 
 | 수익 현황 "수익원별 상세" (`revenue/RevenueScreen.tsx`, `creatorStudio.ts` bySource · splitByWeight) | revenue-by-source PR | 2026-10-06 결정(funnation 차이). 이번 달 수익을 후원 유형별(9종) · 후원 경로별(방송 방 직접 · SOOP · FlexTV 플랫폼 후원)로 금액 · 비율 · 막대. 목업은 고정 비율로 나눔(합계는 정확히 이번 달), 실제 집계는 백엔드. TBD: 상품(스토어) 수익 |
 
+| `/creator/widgets/overlays/preview/[id]` 오버레이 미리보기 (`widgets/OverlayPreview.tsx`) + 오버레이 주소 "미리보기" | overlay-preview PR | 2026-10-06 결정(funnation `preview=true`). 오버레이를 OBS 권장 크기로 그려 화면 폭에 맞게 축소, 배경 체크무늬 · 어두운 · 밝은, 새로고침 · 새 탭 · 설정, 꺼진 오버레이 안내. 후원 알림 · 이펙트 · 벽지는 "테스트 후원 보내기"(화면 표시만, FN 이동 없음) |
+
 ## Figma
 
 구현된 전체 화면 캡처는 [current-build.md](current-build.md)의 새 파일(Somnation — 현재 구현)에 있어요. 펀페이 파일에 잠시 두었던 "코드 우선 화면" 페이지는 2026-09-30에 삭제했어요.
