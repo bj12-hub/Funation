@@ -85,7 +85,7 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 통합 채팅 | O04b | 통합 채팅 오버레이 · 숨김 반영 후 (400 × 600, C01b에서 숨긴 메시지가 빠진 상태) | `/overlay/chat/[key]` | `130:51` |
 | 통합 채팅 | O04c | 통합 채팅 오버레이 · 리모컨 기능 제어 OFF (400 × 600, 아무것도 표시 안 함) | `/overlay/chat/[key]` | `132:2` |
 | 대시보드 · 수익 · 소식 | T01 | 대시보드 | `/creator` | `59:443` |
-| 대시보드 · 수익 · 소식 | T02 | 수익 현황 | `/creator/revenue` | `59:808` |
+| 대시보드 · 수익 · 소식 | T02 | 수익 현황 | `/creator/revenue` | `200:5365` |
 | 대시보드 · 수익 · 소식 | T02b | 크리에이터 랭킹 (퀘스트 탭만) | `/creator/ranking` | `61:646` |
 | 대시보드 · 수익 · 소식 | T05 | 업데이트 소식 | `/creator/updates` | `61:968` |
 | 채널 | H01 | 채널 설정 (계정설정) | `/creator/settings` | `62:846` |
@@ -100,19 +100,22 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 방송 · 위젯 | W01e | 룰렛 설정 팝업 (항목 · 확률, 크리에이터 상품) | `/creator/widgets` | `164:9319` |
 | 방송 · 위젯 | W02 | 방송 도구 | `/creator/widgets/tools` | `64:1471` |
 | 방송 · 위젯 | W03 | 오버레이 주소 (후원 위젯 11종 · 투표 · 룰렛 · 뽑기 포함 22개) | `/creator/widgets/overlays` | `160:4982` |
-| 방송 · 위젯 | W04 | 리모컨 (기능 제어 · 볼륨 · 방송 도구 · 투표 · 룰렛 스위치 · 뽑기 수령 처리) | `/creator/remote` | `163:5103` |
+| 방송 · 위젯 | W04 | 리모컨 (기능 제어 · 볼륨 · 시그니처 소리 · 방송 도구 · 투표 · 룰렛 스위치 · 뽑기 수령 처리) | `/creator/remote` | `202:5483` |
 | 방송 · 위젯 | W05 | 이펙트 · 효과 | `/creator/widgets/effects` | `66:1840` |
-| 방송 · 위젯 | W06 | 시그니처 후원 (편집 열림) | `/creator/widgets/signatures` | `66:2016` |
+| 방송 · 위젯 | W06 | 시그니처 후원 (편집 열림) | `/creator/widgets/signatures` | `201:5481` |
 | 방송 · 위젯 | W07 | 영상 후원 | `/creator/widgets/video` | `66:2322` |
 | 방송 · 위젯 | W08 | 그림후원 | `/creator/widgets/drawing` | `66:2498` |
-| 방송 · 위젯 | W09 | 이미지·사운드 | `/creator/widgets/assets` | `66:2653` |
+| 방송 · 위젯 | W09 | 이미지·사운드 | `/creator/widgets/assets` | `200:5619` |
+| 방송 · 위젯 | W03b | 오버레이 미리보기 (OBS 크기 · 배경 · 테스트 후원) | `/creator/widgets/overlays/preview/[id]` | `200:5999` |
+| 방송 · 위젯 | W01f | 후원랭킹 위젯 팝업 (랭킹 종류 · 수단별 보드) | `/creator/widgets` | `205:15223` |
 | 방송 · 위젯 | W10 | 배너 (기능 제어 OFF 안내 · 배너 OFF 예시) | `/creator/widgets/banner` | `66:2782` |
 | 방송 · 위젯 | W11 | 후원 연동 | `/creator/widgets/link` | `67:2520` |
-| 크루 방송 | Y03 | 크루 관리 | `/creator/crew` | `67:2696` |
+| 크루 방송 | Y03 | 크루 관리 | `/creator/crew` | `200:5757` |
+| 크루 방송 | Y04d | 크루 방송 운영 (방송 중 · 랭크업 · OBS 점수판에 표시) | `/creator/crew/broadcast` | `203:5480` |
 | 크루 방송 | Y04 | 크루 방송 운영 (방송 전 · 시나리오 편집) | `/creator/crew/broadcast` | `116:3886` |
 | 크루 방송 | Y04b | 크루 방송 운영 (방송 중 · 자동엑셀 · 배틀 · 기여도 강탈 · 시나리오, 예시 입력값) | `/creator/crew/broadcast` | `117:3911` |
 | 크루 방송 | Y04c | 크루 방송 운영 (배틀 배수 · 벌칙 기본값, 강탈 기준 · 쿨다운 — 시나리오 · 후원 리스트 카드 생략) | `/creator/crew/broadcast` | `185:5234` |
-| 후원 관리 | T03 | 받은 후원 (퀘스트 성공 · 실패 · 취소, 실패 · 취소 시 환불) | `/creator/donations?tab=list` | `158:13983` |
+| 후원 관리 | T03 | 받은 후원 (퀘스트 성공 · 실패 · 취소, 실패 · 취소 시 환불) | `/creator/donations?tab=list` | `204:5585` |
 | 후원 관리 | T03b | 후원 순위 | `/creator/donations?tab=ranking` | `68:2958` |
 | 후원 관리 | T03c | 후원 필터링 | `/creator/donations?tab=filtering` | `68:3293` |
 | 후원 관리 | T03d | 받은 후원 · 게임 후원 (룰렛 · 뽑기) | `/creator/donations?tab=list&kind=game` | `142:4530` |
@@ -159,9 +162,9 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 크리에이터 채널 | C05 | 시그니처 탭 | `/creators/c1` | `77:3079` |
 | 크리에이터 채널 | C06 | 소개 탭 | `/creators/c1` | `77:3353` |
 | 크리에이터 채널 | C07 | 내 채널 만들기 (주소 확인 완료 · 예시 입력값, 코드로 그린 레이아웃 — 크리에이터 계정은 이 화면이 열리지 않음) | `/channel/new` | `151:8173` |
-| 방송 방 후원 패널 | D-TEXT | 일반 | `/creators/c1?tab=donation` | `77:3595` |
+| 방송 방 후원 패널 | D-TEXT | 일반 | `/creators/c1?tab=donation` | `199:9524` |
 | 방송 방 후원 패널 | D-MINI | 미니 | `/creators/c1?tab=donation` | `78:3182` |
-| 방송 방 후원 패널 | D-VIDEO | 영상 (URL 입력만) | `/creators/c1?tab=donation` | `154:9022` |
+| 방송 방 후원 패널 | D-VIDEO | 영상 (URL 입력만) | `/creators/c1?tab=donation` | `199:9597` |
 | 방송 방 후원 패널 | D-SIGNATURE | 시그니처 | `/creators/c1?tab=donation` | `78:3330` |
 | 방송 방 후원 패널 | D-WISHLIST | 위시 | `/creators/c1?tab=donation` | `78:3398` |
 | 방송 방 후원 패널 | D-ROULETTE | 룰렛 (크리에이터 항목 · 확률, 내 룰렛) | `/creators/c1?tab=donation` | `164:8940` |
@@ -174,12 +177,12 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 플랫폼 후원 | P02 | FlexTV 후원 | `/donation/flextv` | `80:3424` |
 | 플랫폼 후원 | P03 | 플랫폼 크리에이터 검색 | `/donation/soop/search` | `80:3665` |
 | 플랫폼 후원 | P04 | 플랫폼 크리에이터 후원 | `/donation/soop/kim_stream` | `80:3859` |
-| 플랫폼 후원 | P05 | 플랫폼 후원 내역 | `/donation/history` | `80:4080` |
+| 플랫폼 후원 | P05 | 플랫폼 후원 내역 | `/donation/history` | `199:9683` |
 | 마이 | M01 | 마이페이지 (랭킹 노출: 퀘스트) | `/mypage` | `81:4024` |
 | 마이 | M02 | 칭호·등급 | `/mypage/titles` | `81:4359` |
 | 마이 | M03 | 별명 관리 | `/mypage/nicknames` | `81:4688` |
 | 마이 | M04 | 내 후원 랭킹 | `/mypage/ranking` | `82:4528` |
-| 마이 | M06 | 쪽지 | `/messages` | `82:4849` |
+| 마이 | M06 | 쪽지 | `/messages` | `199:9995` |
 | 마이 | M07 | 즐겨찾기 | `/favorites` | `82:5066` |
 | 마이 | M09 | 출석체크 | `/attendance` | `82:5322` |
 | 마이 | M10 | 차단 관리 (차단한 사용자 2명) | `/mypage/blocks` | `151:8644` |
