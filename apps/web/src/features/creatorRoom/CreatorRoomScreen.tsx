@@ -57,7 +57,7 @@ export function CreatorRoomScreen({
   return (
     <div className={styles.page}>
       {room.banner && (
-        <section className={styles.banner} aria-labelledby="room-banner-title">
+        <section className={styles.banner} aria-labelledby="room-banner-title" data-theme="dark">
           <Image src={room.banner.imageUrl} alt="" fill sizes="(max-width: 1440px) 100vw, 1280px" className={styles.bannerImage} />
           <span className={styles.bannerShade} aria-hidden="true" />
           <div className={styles.bannerText}>

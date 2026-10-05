@@ -37,7 +37,7 @@
   border: 1px solid var(--color-border);
   border-radius: 30px;
   background: var(--color-surface);
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   font-size: var(--font-size-15);
   font-weight: var(--font-weight-bold);
 }
@@ -142,7 +142,7 @@
   border-color: var(--color-accent);
   background: var(--color-surface-raised);
   box-shadow: none;
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   cursor: default;
 }
 
@@ -273,7 +273,7 @@
 }
 
 .sun {
-  color: var(--color-accent);
+  color: var(--color-accent-text);
 }
 
 .sat {
@@ -311,7 +311,7 @@
 }
 
 .dayToday {
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   font-size: var(--font-size-11);
   font-weight: var(--font-weight-bold);
 }
@@ -502,7 +502,7 @@
 }
 
 .accent {
-  color: var(--color-accent);
+  color: var(--color-accent-text);
 }
 
 .popupActions {

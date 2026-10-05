@@ -90,6 +90,6 @@
   }
 
   .tab[aria-current="page"] svg {
-    color: var(--color-accent);
+    color: var(--color-accent-text);
   }
 }
