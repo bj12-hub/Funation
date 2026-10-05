@@ -28,6 +28,30 @@ const memberDonation = (n: number, creatorId: string, memberId: string | null, h
 });
 
 /** 받은 후원 "게임 후원" · "크루 후원" (code-first): same table, the last column is the game or the member. */
+describe("받은 후원 요약", () => {
+  it("counts every match except refunded quests; 이번 주 starts on Monday", async () => {
+    const { receivedStats } = await import("./donationManagementTypes");
+    const now = new Date(2026, 9, 7, 15, 0); // Wed 2026-10-07
+    const at = (d: number, h = 12) => new Date(2026, 9, d, h).toISOString();
+    const rows = [
+      { at: at(7), amount: 10_000, status: "SUCCESS" as const }, // today
+      { at: at(5), amount: 5_000, status: "IN_PROGRESS" as const }, // Mon, this week
+      { at: at(4), amount: 3_000, status: null }, // Sun, last week
+      { at: at(7, 9), amount: 50_000, status: "FAILED" as const }, // refunded
+      { at: at(6), amount: 70_000, status: "CANCELED" as const } // refunded
+    ];
+    expect(receivedStats(rows, now)).toEqual({ totalFn: 18_000, count: 3, todayFn: 10_000, weekFn: 15_000, averageFn: 6_000 });
+    expect(receivedStats([], now)).toEqual({ totalFn: 0, count: 0, todayFn: 0, weekFn: 0, averageFn: 0 });
+  });
+
+  it("is part of every list page and covers all pages", async () => {
+    const m = await load();
+    const page1 = (await m.getReceivedDonations({ kind: "game", period: range, status: "ALL", query: "", page: 1 }))!;
+    expect(page1.stats.count).toBe(page1.total);
+    expect(page1.stats.totalFn).toBeGreaterThan(0);
+  });
+});
+
 describe("받은 후원 게임 · 크루 목록", () => {
   beforeEach(() => resetMockStores());
 

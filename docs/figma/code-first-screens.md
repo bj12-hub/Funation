@@ -125,6 +125,8 @@ Add a row whenever a new code-first screen ships (see `docs/research/funnation-r
 
 | 후원 패널 빠른 금액 추가 (`creatorRoom/donation/Fields.tsx` AmountField · `drafts.ts` addAmount) | quick-amounts PR | 2026-10-06 결정(funnation 차이). 일반 · 영상 후원의 금액 아래 +1천 · +5천 · +1만 · +5만 · +10만 · 전액(보유 FN, 없으면 비활성). 누르면 입력한 금액에 더함(입력칸 9자리까지), 최소 금액 · 잔액 확인은 기존대로 |
 
+| 후원관리+ 후원 리스트 요약 (`donations/DonationListTab.tsx` · `donationManagementTypes.ts` receivedStats) | received-stats PR | 2026-10-06 결정(funnation 차이). 검색 · 기간 · 상태 조건에 맞는 모든 행 기준 총 수령액 · 오늘 · 이번 주(월요일부터) · 평균 금액 · 건수. 실패 · 취소된 퀘스트는 전액 환불이라 제외(안내 문구) |
+
 ## Figma
 
 구현된 전체 화면 캡처는 [current-build.md](current-build.md)의 새 파일(Somnation — 현재 구현)에 있어요. 펀페이 파일에 잠시 두었던 "코드 우선 화면" 페이지는 2026-09-30에 삭제했어요.
