@@ -104,7 +104,7 @@ export function BattlePanel({
         </h2>
         {current && <span className={battle.timer}>{clock(left)}</span>}
       </div>
-      <p className={styles.note}>BJ 두 명(팀 배틀 방송이면 A팀 vs B팀)이 정한 시간 동안 받은 후원 점수 × 배수로 겨뤄요. 보정 점수는 들어가지 않고, 배수는 배틀 점수에만 적용돼요. 진 쪽이 벌칙을 해요.</p>
+      <p className={styles.note}>BJ 두 명(팀 배틀 방송이면 A팀 vs B팀)이 정한 시간 동안 받은 후원 점수 × 배수로 겨뤄요. 보정 점수는 들어가지 않고, 배틀 중 받은 점수는 메인 점수판에도 배수만큼 들어가요. 진 쪽이 벌칙을 해요.</p>
 
       {current ? (
         <>

@@ -40,7 +40,8 @@ export const BROADCAST_TITLE_MAX = 40;
  * Points (자동엑셀 기준): `donated` = member-targeted donations; `feed` = 후원 리스트 entries assigned to
  * the member; `stolen` = net 기여도 강탈 (taken minus lost).
  */
-export type ScoreRow = { memberId: string; name: string; color: string; team: TeamKey | null; donated: number; feed: number; adjust: number; stolen: number; score: number };
+/** `battle` = extra points from 배틀 배수 (what the member received in a ×n battle counts n times; 2026-10-05 결정). */
+export type ScoreRow = { memberId: string; name: string; color: string; team: TeamKey | null; donated: number; feed: number; adjust: number; stolen: number; battle: number; score: number };
 
 // ── 후원 리스트 (키워드 배정 · 한방) — reference: funnation 엑셀콘 v3 ────────────────────
 
@@ -227,7 +228,8 @@ export type BattleSide = { key: TeamKey; label: string; color: string; memberIds
 
 /**
  * Score of a side = points its members received while the battle runs (same 자동엑셀 points as the
- * scoreboard, 보정 excluded) × the battle's 배수. The main scoreboard is not multiplied. The battle ends when
+ * scoreboard, 보정 excluded) × the battle's 배수. The main scoreboard counts those points × 배수 too (2026-10-05 결정;
+ * see ScoreRow.battle). The battle ends when
  * time runs out or the operator stops it; the losing side does the 벌칙 (empty = 벌칙 없음).
  */
 export type Battle = {
