@@ -6,6 +6,7 @@ import { formatNumber } from "@/lib/format";
 import { addCrewMember, removeCrewMember, updateCrewMember } from "@/services/crew/crew";
 import { CREW_ROLES, MAX_CREW_MEMBERS, crewRoleLabel, type CrewRole, type CrewSaveResult, type CrewStudioView } from "@/services/crew/crewTypes";
 import { CrewTabs } from "./CrewTabs";
+import { GradesCard } from "./GradesCard";
 import styles from "./crew.module.css";
 
 /**
@@ -89,6 +90,7 @@ export function CrewScreen({ view }: { view: CrewStudioView }) {
                     <strong className={styles.rowTitle}>
                       {mem.name} <span className={styles.chip}>{crewRoleLabel(mem.role)}</span>
                       {!mem.active && <span className={styles.chipOff}>휴식</span>}
+                      {view.grades.find((g) => g.id === mem.gradeId) && <span className={styles.chip}>{view.grades.find((g) => g.id === mem.gradeId)!.name}</span>}
                     </strong>
                   )}
                 </div>
@@ -104,6 +106,22 @@ export function CrewScreen({ view }: { view: CrewStudioView }) {
                     </>
                   ) : (
                     <>
+                      {view.grades.length > 0 && (
+                        <select
+                          className={styles.select}
+                          aria-label={`${mem.name} 직급`}
+                          value={view.grades.some((g) => g.id === mem.gradeId) ? (mem.gradeId as string) : ""}
+                          disabled={pending}
+                          onChange={(e) => run(() => updateCrewMember(mem.id, { gradeId: e.target.value || null }), "직급을 바꿨어요.")}
+                        >
+                          <option value="">직급 없음</option>
+                          {view.grades.map((g) => (
+                            <option key={g.id} value={g.id}>
+                              {g.name} (×{g.multiplier})
+                            </option>
+                          ))}
+                        </select>
+                      )}
                       <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => updateCrewMember(mem.id, { active: !mem.active }), mem.active ? "휴식으로 바꿨어요." : "활동으로 바꿨어요.")}>
                         {mem.active ? "휴식" : "활동"}
                       </button>
@@ -122,6 +140,8 @@ export function CrewScreen({ view }: { view: CrewStudioView }) {
         )}
         <p className={styles.note}>휴식 중인 멤버는 후원 패널에서 지정할 수 없어요. 삭제해도 지난 후원 기록은 남아요.</p>
       </section>
+
+      <GradesCard grades={view.grades} pending={pending} run={run} />
 
       <section className={styles.card} aria-labelledby="crew-rank">
         <h2 id="crew-rank" className={styles.cardTitle}>
