@@ -75,7 +75,8 @@
   padding: var(--adm-space-2) var(--adm-space-3) 6px;
   color: var(--adm-color-text-sidebar);
   font: var(--adm-text-label);
-  opacity: 0.6;
+  /* Dimmer than the menu items, still 4.6:1 on the sidebar (WCAG AA). */
+  opacity: 0.75;
 }
 
 .sidebar ul {
