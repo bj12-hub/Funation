@@ -7,7 +7,7 @@ import { getDonationHistory } from "@/services/platformDonation/donationHistory"
 export const metadata: Metadata = { title: "후원 내역 | Somnation" };
 export const dynamic = "force-dynamic";
 
-type Search = { tab?: string; period?: string; status?: string; q?: string; tx?: string };
+type Search = { tab?: string; period?: string; status?: string; q?: string; sort?: string; tx?: string };
 
 export default async function Page({ searchParams }: { searchParams: Promise<Search> }) {
   const view = await getDonationHistory(await searchParams);

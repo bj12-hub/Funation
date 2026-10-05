@@ -5,7 +5,7 @@ import { getSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { mockPlatform } from "./mockPlatformStore";
-import { HISTORY_PERIODS, HISTORY_STATUS_LABEL, HISTORY_TABS, type HistoryItem, type HistoryPeriod, type HistoryStatus, type HistoryTab, type HistoryView } from "./platformTypes";
+import { HISTORY_LIST_MAX, HISTORY_PERIODS, HISTORY_SORTS, HISTORY_STATUS_LABEL, HISTORY_TABS, type HistoryItem, type HistoryPeriod, type HistoryStatus, type HistoryTab, type HistoryView } from "./platformTypes";
 
 /**
  * 후원 내역 — Figma 817:8038 (table + 거래 상세) · 817:8223 (status badges + detail).
@@ -53,13 +53,14 @@ function allItems(): HistoryItem[] {
   return [...platform, ...direct].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-export async function getDonationHistory(params: { tab?: unknown; period?: unknown; status?: unknown; q?: unknown; tx?: unknown }): Promise<HistoryView | null> {
+export async function getDonationHistory(params: { tab?: unknown; period?: unknown; status?: unknown; q?: unknown; sort?: unknown; tx?: unknown }): Promise<HistoryView | null> {
   assertMock();
   if (!(await getSession())) return null;
   const tab: HistoryTab = oneOf(HISTORY_TABS, params.tab, "all");
   const period: HistoryPeriod = oneOf(HISTORY_PERIODS, params.period, "30");
   const status = isStatus(params.status) ? params.status : "all";
   const q = typeof params.q === "string" ? params.q.trim().slice(0, 40) : "";
+  const sort = oneOf(HISTORY_SORTS, params.sort, "newest");
 
   await mockDelay(250);
   const since = period === "all" ? "" : (() => {
@@ -77,6 +78,8 @@ export async function getDonationHistory(params: { tab?: unknown; period?: unkno
       (status === "all" || i.status === status) &&
       (!needle || i.creatorName.toLowerCase().includes(needle) || i.transactionId.toLowerCase().includes(needle) || (i.externalTransactionId ?? "").toLowerCase().includes(needle))
   );
+  if (sort === "oldest") items.reverse();
   const selected = typeof params.tx === "string" ? (items.find((i) => i.transactionId === params.tx) ?? null) : null;
-  return { balance: mockAccount.fnBalance, tab, period, status, q, items: items.slice(0, 50), selected };
+  const completedFn = items.reduce((sum, i) => (i.status === "COMPLETED" ? sum + i.fnAmount : sum), 0);
+  return { balance: mockAccount.fnBalance, tab, period, status, q, sort, items: items.slice(0, HISTORY_LIST_MAX), total: items.length, completedFn, selected };
 }

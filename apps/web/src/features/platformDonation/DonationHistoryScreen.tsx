@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatNumber } from "@/lib/format";
-import { HISTORY_STATUS_LABEL, HISTORY_TABS, SOURCE_LABEL, type HistoryItem, type HistoryView } from "@/services/platformDonation/platformTypes";
+import { HISTORY_LIST_MAX, HISTORY_STATUS_LABEL, HISTORY_TABS, SOURCE_LABEL, type HistoryItem, type HistoryView } from "@/services/platformDonation/platformTypes";
 import { HistoryFilters } from "./HistoryFilters";
 import styles from "./history.module.css";
 
@@ -9,12 +9,12 @@ const dotted = (s: string) => s.replace(/-/g, ".");
 /** Figma 817:8038 · 817:8223 — 후원 내역 (route `/donation/history`). */
 export function DonationHistoryScreen({ view }: { view: HistoryView }) {
   const href = (patch: Record<string, string | null>) => {
-    const p = new URLSearchParams({ tab: view.tab, period: view.period, status: view.status, q: view.q });
+    const p = new URLSearchParams({ tab: view.tab, period: view.period, status: view.status, q: view.q, sort: view.sort });
     for (const [k, v] of Object.entries(patch)) {
       if (v === null) p.delete(k);
       else p.set(k, v);
     }
-    for (const [k, v] of [...p.entries()]) if (!v || (k === "status" && v === "all")) p.delete(k);
+    for (const [k, v] of [...p.entries()]) if (!v || (k === "status" && v === "all") || (k === "sort" && v === "newest")) p.delete(k);
     return `/donation/history?${p}`;
   };
 
@@ -33,7 +33,13 @@ export function DonationHistoryScreen({ view }: { view: HistoryView }) {
         ))}
       </nav>
 
-      <HistoryFilters key={`${view.tab}-${view.period}-${view.status}-${view.q}`} tab={view.tab} period={view.period} status={view.status} q={view.q} />
+      <HistoryFilters key={`${view.tab}-${view.period}-${view.status}-${view.q}-${view.sort}`} tab={view.tab} period={view.period} status={view.status} q={view.q} sort={view.sort} />
+
+      {/* Code-first (2026-10-06): 결과 건수 · 완료 합계 over every match, like FN 내역's 결과 · 합계. */}
+      <p className={styles.summary} role="status">
+        결과 {formatNumber(view.total)}건 · 완료 합계 {formatNumber(view.completedFn)} FN
+        {view.total > HISTORY_LIST_MAX && ` · 목록은 ${HISTORY_LIST_MAX}건까지 보여요`}
+      </p>
 
       <div className={styles.body}>
         <div className={styles.tableWrap}>
