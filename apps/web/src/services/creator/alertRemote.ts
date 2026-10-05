@@ -82,7 +82,7 @@ export async function setAlertControls(input: unknown): Promise<RemoteResult> {
       next[k] = v[k] as boolean;
     }
   }
-  for (const k of ["alertVolume", "ttsVolume"] as const) {
+  for (const k of ["alertVolume", "ttsVolume", "signatureVolume"] as const) {
     if (k in v) {
       if (!vol(v[k])) return { status: "INVALID", message: "볼륨은 0 ~ 100 사이예요." };
       next[k] = v[k] as number;
@@ -215,11 +215,11 @@ export async function getOverlayAlert(key: unknown): Promise<OverlayAlert | "FOR
   assertMock();
   if (typeof key !== "string" || key !== mockCreator.integrationKey) return "FORBIDDEN";
   advance();
-  const { muted, alertVolume, ttsVolume, displaySec } = mockAlerts.controls;
+  const { muted, alertVolume, ttsVolume, signatureVolume, displaySec } = mockAlerts.controls;
   const showing = mockAlerts.items.find((a) => a.status === "SHOWING");
   return {
     alert: showing && mockAlerts.shownAt !== null ? { ...showing, endsAt: new Date(mockAlerts.shownAt + displaySec * 1000).toISOString() } : null,
-    controls: { muted, alertVolume, ttsVolume },
+    controls: { muted, alertVolume, ttsVolume, signatureVolume },
     ttsSkipSeq: mockAlerts.ttsSkipSeq,
     ...overlaySignal("alert")
   };

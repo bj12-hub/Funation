@@ -56,6 +56,13 @@ export function matchSignatureByAmount(amount: number): ManagedSignature | null 
  * The signature image a donation carries to the alert feed (벽지 "후원 이미지 우선", 2026-10-05 결정): the chosen
  * signature of a 시그니처 후원, or the amount-matched signature of a 일반 후원. Other donations have none.
  */
+/** The signature's library sound for a 시그니처 후원 (or an amount-matched 일반 후원); the alert overlay plays it. */
+export function signatureSoundFor(type: string, amount: number, details: unknown): string | undefined {
+  const id = (details as { signatureId?: string } | null)?.signatureId;
+  const sig = type === "SIGNATURE" ? mockSignatures.items.find((s) => s.active && s.id === id) : type === "TEXT" ? matchSignatureByAmount(amount) : null;
+  return sig?.soundUrl && isSignatureSound(sig.soundUrl) ? sig.soundUrl : undefined;
+}
+
 export function signatureImageFor(catalog: DonationCatalog, type: string, amount: number, details: unknown): string | undefined {
   if (type === "SIGNATURE") return catalog.signatures.find((s) => s.id === (details as { signatureId?: string } | null)?.signatureId)?.imageUrl;
   return type === "TEXT" ? (matchSignatureByAmount(amount)?.imageUrl ?? undefined) : undefined;
