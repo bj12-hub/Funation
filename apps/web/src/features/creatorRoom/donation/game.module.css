@@ -13,20 +13,6 @@
   font-weight: var(--font-weight-bold);
 }
 
-.cols2,
-.cols3 {
-  display: grid;
-  gap: 6px;
-}
-
-.cols2 {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.cols3 {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
 .time {
   gap: 2px;
   color: var(--color-text-secondary);
@@ -53,12 +39,6 @@
 }
 
 /* Roulette */
-
-.tiers {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-}
 
 .tier {
   display: flex;
@@ -104,63 +84,6 @@
   color: var(--color-text-secondary);
   font-size: 9px;
   line-height: 1.5;
-}
-
-/* Quiz options */
-
-.options {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.option {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 25px;
-  padding: 0 8px;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-6);
-  background: var(--color-panel-field-bg);
-  color: var(--color-text-secondary);
-  font-size: 9px;
-}
-
-.option input[type="radio"] {
-  margin: 0;
-  accent-color: var(--color-accent);
-}
-
-.optionOn {
-  border-color: var(--color-accent);
-}
-
-.optionInput {
-  flex: 1;
-  min-width: 0;
-  padding: 5px 0;
-  border: 0;
-  outline: none;
-  background: transparent;
-  color: var(--color-text-primary);
-  font: inherit;
-  font-size: var(--font-size-11);
-}
-
-.optionRemove {
-  color: var(--color-text-faint);
-  font-size: var(--font-size-14);
-}
-
-.addOption {
-  align-self: flex-start;
-  color: var(--color-accent-text);
-  font-size: 9px;
-  font-weight: var(--font-weight-bold);
 }
 
 /* Drawing pad (388×78 in the design) */

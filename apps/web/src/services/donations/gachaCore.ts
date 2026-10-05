@@ -105,8 +105,6 @@ export function gachaOffers(): GachaOffer[] {
     }));
 }
 
-export const priceOf = (gachaId: unknown) => findGacha(gachaId)?.price ?? null;
-
 export const usedToday = (channelId: string, userId: string, gachaId: string, now = Date.now()) =>
   mockGacha.draws.filter((d) => d.channelId === channelId && d.supporterUserId === userId && d.gachaId === gachaId && d.day === toDateString(new Date(now))).length;
 
