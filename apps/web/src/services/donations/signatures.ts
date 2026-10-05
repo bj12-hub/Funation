@@ -3,7 +3,7 @@
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
-import { isSignatureImage, mockSignatures } from "./signatureCore";
+import { isSignatureImage, isSignatureSound, mockSignatures } from "./signatureCore";
 import { SIGNATURE_LIMITS, type ManagedSignature, type SignatureResult } from "./signatureTypes";
 
 /**
@@ -33,6 +33,12 @@ export async function saveSignature(input: unknown): Promise<SignatureResult> {
     return { status: "INVALID", message: `가격은 ${SIGNATURE_LIMITS.priceMin.toLocaleString()} ~ ${SIGNATURE_LIMITS.priceMax.toLocaleString()} FN이에요.` };
   }
   if (typeof v.imageUrl !== "string" || !isSignatureImage(v.imageUrl)) return { status: "INVALID", message: "이미지를 골라 주세요." };
+  // Optional; older clients send nothing (= none).
+  let soundUrl: string | null = null;
+  if (v.soundUrl !== undefined && v.soundUrl !== null) {
+    if (typeof v.soundUrl !== "string" || !isSignatureSound(v.soundUrl)) return { status: "INVALID", message: "소리는 라이브러리의 사운드만 고를 수 있어요." };
+    soundUrl = v.soundUrl;
+  }
   if (v.match !== "SELECT" && v.match !== "AMOUNT") return { status: "INVALID", message: "매칭 규칙을 확인해 주세요." };
   if (typeof v.active !== "boolean") return { status: "INVALID", message: "사용 여부를 확인해 주세요." };
 
@@ -50,7 +56,7 @@ export async function saveSignature(input: unknown): Promise<SignatureResult> {
   if (v.match === "AMOUNT" && v.active && items.some((s) => s.id !== id && s.active && s.match === "AMOUNT" && s.price === price)) {
     return { status: "INVALID", message: "같은 가격으로 금액 매칭 중인 시그니처가 있어요." };
   }
-  const next = { name, price, imageUrl: v.imageUrl, match: v.match, active: v.active } as const;
+  const next = { name, price, imageUrl: v.imageUrl, soundUrl, match: v.match, active: v.active } as const;
   if (existing) {
     Object.assign(existing, next);
     return { status: "SAVED", id: existing.id };

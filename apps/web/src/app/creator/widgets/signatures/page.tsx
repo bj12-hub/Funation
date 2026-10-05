@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "시그니처 후원 | Somnation 크�
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const [items, library] = await Promise.all([listSignatures(), listAssets("IMAGE")]);
+  const [items, library] = await Promise.all([listSignatures(), listAssets()]);
   if (!items || !library) redirect("/login?role=creator&next=/creator/widgets/signatures");
   return <SignaturesScreen items={items} library={library} />;
 }
