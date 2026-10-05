@@ -209,12 +209,44 @@ export type RevenueOverview = {
   /** Last 6 months incl. this one, oldest first. */
   monthly: { label: string; amount: number }[];
   topDonors: RankEntry[];
+  /** 수익원별 상세 for 이번 달 (₩): by donation type and by route, each summing to `thisMonth`, largest first. */
+  bySource: { types: RevenueShare[]; routes: RevenueShare[] };
 };
+
+export type RevenueShare = { key: string; label: string; amount: number };
+
+/** Splits `total` by integer weights so the parts add up exactly (the remainder goes to the largest part). */
+export function splitByWeight(total: number, weights: { key: string; label: string; weight: number }[]): RevenueShare[] {
+  const sum = weights.reduce((s, w) => s + w.weight, 0);
+  const parts = weights.map((w) => ({ key: w.key, label: w.label, amount: sum ? Math.floor((total * w.weight) / sum) : 0 }));
+  parts.sort((a, b) => b.amount - a.amount);
+  if (parts.length) parts[0].amount += total - parts.reduce((s, p) => s + p.amount, 0);
+  return parts;
+}
+
+// 수익원별 상세 (funnation 참고, 2026-10-06 결정). The mock has one daily revenue series, so it splits the month by
+// fixed weights; the real backend sums completed donations by type and by route.
+const MOCK_TYPE_WEIGHTS = [
+  { key: "TEXT", label: "일반 후원", weight: 38 },
+  { key: "SIGNATURE", label: "시그니처 후원", weight: 22 },
+  { key: "MINI", label: "미니 후원", weight: 9 },
+  { key: "VIDEO", label: "영상 후원", weight: 8 },
+  { key: "QUEST", label: "퀘스트 후원", weight: 7 },
+  { key: "ROULETTE", label: "룰렛 후원", weight: 5 },
+  { key: "GACHA", label: "뽑기 후원", weight: 4 },
+  { key: "WISHLIST", label: "위시 후원", weight: 4 },
+  { key: "DRAWING", label: "그림 후원", weight: 3 }
+];
+const MOCK_ROUTE_WEIGHTS = [
+  { key: "DIRECT", label: "방송 방 (직접 후원)", weight: 70 },
+  { key: "SOOP", label: "SOOP 플랫폼 후원", weight: 20 },
+  { key: "FLEXTV", label: "FlexTV 플랫폼 후원", weight: 10 }
+];
 
 /**
  * 수익 현황 (route `/creator/revenue`): totals, 30-day daily and 6-month monthly trends, top supporters.
- * Computed on the server from the mock records. TBD: 수익원별 상세 (per donation type / store) needs
- * per-type revenue data; gross vs net of fees.
+ * Computed on the server from the mock records. 수익원별 상세 is a mock split (see MOCK_TYPE_WEIGHTS). TBD: store
+ * (상품) revenue, gross vs net of fees.
  */
 export async function getRevenueOverview(): Promise<RevenueOverview | null> {
   if (!USE_MOCK) throw new Error("Creator API is not connected yet.");
@@ -239,6 +271,7 @@ export async function getRevenueOverview(): Promise<RevenueOverview | null> {
     unsettledFn: mockSettlement.availableFn,
     daily,
     monthly,
-    topDonors: RANKINGS.month.slice(0, 5)
+    topDonors: RANKINGS.month.slice(0, 5),
+    bySource: { types: splitByWeight(monthly[5].amount, MOCK_TYPE_WEIGHTS), routes: splitByWeight(monthly[5].amount, MOCK_ROUTE_WEIGHTS) }
   };
 }
