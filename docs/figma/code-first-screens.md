@@ -123,6 +123,8 @@ Add a row whenever a new code-first screen ships (see `docs/research/funnation-r
 
 | 방송 방 채팅 이모지 고르기 (`creatorRoom/ChatPanel.tsx` · `chatEmoji.ts`) | chat-emoji PR | 2026-10-06 결정(기본 유니코드 이모지). 입력칸 😊 → 입력칸 위 6×4 그리드(24개, 한국어 이름), 커서 위치에 넣기 · 선택 영역 바꾸기, 여러 개 연속 입력(창 유지), 메시지 최대 200자를 넘으면 무시, Esc · 바깥 클릭으로 닫기(Esc는 😊로 포커스 복귀), 전송하면 닫힘, 로그인 전에는 비활성. TBD: 채널별 이모티콘. Figma: D-CHAT-emoji `197:9523` |
 
+| 후원 패널 빠른 금액 추가 (`creatorRoom/donation/Fields.tsx` AmountField · `drafts.ts` addAmount) | quick-amounts PR | 2026-10-06 결정(funnation 차이). 일반 · 영상 후원의 금액 아래 +1천 · +5천 · +1만 · +5만 · +10만 · 전액(보유 FN, 없으면 비활성). 누르면 입력한 금액에 더함(입력칸 9자리까지), 최소 금액 · 잔액 확인은 기존대로 |
+
 ## Figma
 
 구현된 전체 화면 캡처는 [current-build.md](current-build.md)의 새 파일(Somnation — 현재 구현)에 있어요. 펀페이 파일에 잠시 두었던 "코드 우선 화면" 페이지는 2026-09-30에 삭제했어요.

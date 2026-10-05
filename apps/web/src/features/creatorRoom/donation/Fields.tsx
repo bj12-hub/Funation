@@ -4,7 +4,7 @@ import { useId, type ReactNode } from "react";
 import { formatNumber } from "@/lib/format";
 import type { DonationCatalog, Voice } from "@/services/donations/donationCatalog";
 import { parseYouTubeId } from "@/services/donations/donationTypes";
-import { parseClock, type MiniState, type SignatureState, type TextState, type VideoState, type WishlistState } from "./drafts";
+import { AMOUNT_INPUT_MAX, QUICK_AMOUNTS, addAmount, parseClock, type MiniState, type SignatureState, type TextState, type VideoState, type WishlistState } from "./drafts";
 import room from "../room.module.css";
 import styles from "./donation.module.css";
 
@@ -14,8 +14,21 @@ const onlyDigits = (raw: string) => raw.replace(/[^\d]/g, "").replace(/^0+/, "")
 
 // ── Shared pieces ────────────────────────────────────────────────────────────
 
-function AmountField({ value, onChange, hint, error }: { value: string; onChange: (v: string) => void; hint?: ReactNode; error?: boolean }) {
-  return (
+function AmountField({
+  value,
+  onChange,
+  hint,
+  error,
+  quick
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  hint?: ReactNode;
+  error?: boolean;
+  /** Shows the 빠른 금액 추가 row; 전액 needs the balance. */
+  quick?: { balance: number | null };
+}) {
+  const field = (
     <label className={room.field}>
       <span className={room.fieldLabel}>
         후원 금액
@@ -34,6 +47,29 @@ function AmountField({ value, onChange, hint, error }: { value: string; onChange
         <span className={room.suffix}>FN</span>
       </span>
     </label>
+  );
+  if (!quick) return field;
+  const all = quick.balance !== null && quick.balance > 0 ? Math.min(quick.balance, AMOUNT_INPUT_MAX) : null;
+  return (
+    <div className={styles.amountGroup}>
+      {field}
+      <div className={styles.quickAmounts} role="group" aria-label="빠른 금액 추가">
+        {QUICK_AMOUNTS.map((q) => (
+          <button key={q.add} type="button" className={styles.quickAmount} aria-label={`${formatNumber(q.add)} FN 더하기`} onClick={() => onChange(addAmount(value, q.add))}>
+            {q.label}
+          </button>
+        ))}
+        <button
+          type="button"
+          className={styles.quickAmount}
+          disabled={all === null}
+          aria-label={all === null ? "보유 FN 전액" : `보유 FN 전액 (${formatNumber(all)} FN)`}
+          onClick={() => all !== null && onChange(String(all))}
+        >
+          전액
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -99,7 +135,13 @@ const Balance = ({ balance }: { balance: number | null }) => (balance === null ?
 export function TextFields({ value, onChange, catalog, balance, error }: Props<TextState> & { error: string | null }) {
   return (
     <>
-      <AmountField value={value.amount} onChange={(amount) => onChange({ ...value, amount })} hint={<Balance balance={balance} />} error={!!error} />
+      <AmountField
+        value={value.amount}
+        onChange={(amount) => onChange({ ...value, amount })}
+        hint={<Balance balance={balance} />}
+        error={!!error}
+        quick={{ balance }}
+      />
       <MessageField
         label="후원 메시지"
         value={value.message}
@@ -195,7 +237,7 @@ export function VideoFields({ value, onChange, balance, error }: Props<VideoStat
 
   return (
     <>
-      <AmountField value={value.amount} onChange={(amount) => onChange({ ...value, amount })} hint={<Balance balance={balance} />} />
+      <AmountField value={value.amount} onChange={(amount) => onChange({ ...value, amount })} hint={<Balance balance={balance} />} quick={{ balance }} />
       <label className={room.field}>
         <span className={room.fieldLabel}>영상 URL</span>
         <span className={room.inputBox}>
