@@ -33,6 +33,11 @@
 변수의 WEB 코드 문법이 CSS 변수 이름과 같아요. 기본 버튼의 그라데이션(`--gradient-primary-button`)은 피그마에서
 변수로 연결할 수 없어 값으로 넣었어요.
 
+Light 모드 값은 코드의 라이트 테마 대비 정리(WCAG AA, #172 · #176)와 맞췄어요 (2026-10-06): `text/tertiary` `#646675`,
+`primary/default` `#7c3aed`, `accent/default` `#db2777`, `status/info` `#2563eb`, `status/success` · `success-text` `#047857`,
+`status/danger` `#c81e1e`, `status/error-text` `#b91c1c`. Dark 모드(Figma 원본)는 그대로예요. S02 라이트 홈의 변수에 연결되지 않은
+다크 전용 값(헤더 메뉴 선, 충전 파랑, 연회색 글자, 검은 푸터)도 라이트 값으로 바꿨어요.
+
 텍스트 스타일 `Site/*`: Page Title 24 Black · Card Title 18 ExtraBold · Subtitle 15 · Body 14 · Body Strong 14 SemiBold ·
 Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Medium · Overlay 18 · Overlay Name 18 Bold.
 
