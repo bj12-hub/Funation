@@ -27,6 +27,22 @@ describe("쪽지", () => {
     expect((await sendMessage({ to: "c4", body: "admin 입니다" })).status).toBe("INVALID");
   });
 
+  it("pages by the chosen size (15 · 30 · 50), falling back to 15", async () => {
+    const { getMailbox } = await load();
+    const { mockMessages } = await import("./mockMessageStore");
+    for (let i = 0; i < 40; i++) {
+      mockMessages.messages.push({ id: `ms-x${i}`, direction: "IN", peerId: "c1", peerName: "하루봄", body: `공지 ${i}`, sentAt: new Date(2026, 0, 1, 0, i).toISOString(), read: true, folder: "inbox", deleted: false });
+    }
+    const def = (await getMailbox({ box: "inbox" }))!;
+    expect(def).toMatchObject({ size: 15, total: 42, totalPages: 3 });
+    expect(def.items).toHaveLength(15);
+    const thirty = (await getMailbox({ box: "inbox", size: "30", page: "2" }))!;
+    expect(thirty).toMatchObject({ size: 30, totalPages: 2, page: 2 });
+    expect(thirty.items).toHaveLength(12);
+    expect((await getMailbox({ box: "inbox", size: "50" }))!.items).toHaveLength(42);
+    for (const bad of ["20", "-1", "abc", undefined]) expect((await getMailbox({ box: "inbox", size: bad }))!.size).toBe(15);
+  });
+
   it("limits sends per hour (placeholder anti-spam)", async () => {
     const { sendMessage } = await load();
     for (let i = 0; i < 20; i++) expect((await sendMessage({ to: "c1", body: `메시지 ${i}` })).status).toBe("SAVED");

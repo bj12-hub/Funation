@@ -8,7 +8,7 @@ import { getMailbox, getMessageRecipients } from "@/services/messages/messages";
 export const metadata: Metadata = { title: "쪽지 | Somnation" };
 export const dynamic = "force-dynamic";
 
-type Search = { box?: string; q?: string; page?: string; to?: string };
+type Search = { box?: string; q?: string; page?: string; size?: string; to?: string };
 
 export default async function Page({ searchParams }: { searchParams: Promise<Search> }) {
   const params = await searchParams;

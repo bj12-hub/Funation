@@ -5,7 +5,12 @@
  */
 
 export const MESSAGE_BODY_MAX = 500;
-export const MESSAGE_PAGE_SIZE = 15;
+/** 한 페이지에 볼 쪽지 수 (`?size=`, funnation 참고 — 2026-10-06 결정). */
+export const MESSAGE_PAGE_SIZES = [15, 30, 50] as const;
+export type MessagePageSize = (typeof MESSAGE_PAGE_SIZES)[number];
+export const MESSAGE_PAGE_SIZE: MessagePageSize = 15;
+export const parseMessagePageSize = (v: unknown): MessagePageSize =>
+  MESSAGE_PAGE_SIZES.find((n) => String(n) === String(v)) ?? MESSAGE_PAGE_SIZE;
 /** Placeholder anti-spam guard (TBD): messages a member may send per hour. */
 export const SEND_LIMIT_PER_HOUR = 20;
 
@@ -35,6 +40,9 @@ export type MailboxView = {
   items: MessageItem[];
   page: number;
   totalPages: number;
+  size: MessagePageSize;
+  /** Matching messages in this box (all pages). */
+  total: number;
   counts: Record<Mailbox, number>;
   unread: number;
 };
