@@ -105,3 +105,37 @@
   font-variant-numeric: tabular-nums;
   font-weight: var(--font-weight-extrabold);
 }
+
+/* 배수 · 벌칙 (2026-10-05) */
+.multiplier {
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-light);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  vertical-align: middle;
+}
+
+.board[data-big] .multiplier {
+  font-size: var(--font-size-18);
+}
+
+.penalty {
+  margin: 0;
+  color: var(--color-warning-text);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-semibold);
+}
+
+.board[data-big] .penalty {
+  font-size: var(--font-size-20);
+}
+
+.rulesRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}

@@ -1,8 +1,24 @@
 import type { Platform } from "@/types/platform";
-import { SUB_BOARD_MAX, isExcelUnit, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow } from "./crewTypes";
+import { BATTLE_MULTIPLIER_MAX, BATTLE_PENALTY_MAX, PLATFORM_BATTLE_RULES, PLATFORM_STEAL_RULES, SUB_BOARD_MAX, isExcelUnit, type BattleRules, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow } from "./crewTypes";
 import { mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 // ── 후원 리스트 (server-only) ──────────────────────────────────────────────────
+
+/** 배틀 배수 · 벌칙 for new battles and 강탈 기준 of a channel (platform defaults until the creator changes them). */
+export const battleRulesOf = (channelId: string): BattleRules => mockCrew.battleRules?.[channelId] ?? PLATFORM_BATTLE_RULES;
+export const stealRulesOf = (channelId: string) => mockCrew.stealRules?.[channelId] ?? PLATFORM_STEAL_RULES;
+
+/** Validates a 배수 (more than 0, up to BATTLE_MULTIPLIER_MAX, two decimals) and a 벌칙 (optional text). */
+export function parseBattleRules(v: Record<string, unknown>, forbidden: string[]): BattleRules | { message: string } {
+  const m = v.multiplier;
+  if (typeof m !== "number" || !Number.isFinite(m) || m <= 0 || m > BATTLE_MULTIPLIER_MAX || Math.abs(Math.round(m * 100) - m * 100) > 1e-6) {
+    return { message: `배수는 0보다 크고 ${BATTLE_MULTIPLIER_MAX}배 이하, 소수 둘째 자리까지예요.` };
+  }
+  const penalty = typeof v.penalty === "string" ? v.penalty.trim() : "";
+  if (penalty.length > BATTLE_PENALTY_MAX) return { message: `벌칙은 ${BATTLE_PENALTY_MAX}자 이내로 입력해 주세요.` };
+  if (forbidden.some((w) => penalty.toLowerCase().includes(w))) return { message: "사용할 수 없는 단어가 포함되어 있어요." };
+  return { multiplier: Math.round(m * 100) / 100, penalty };
+}
 
 export const liveBroadcastOf = (channelId: string) => (mockCrew.broadcasts ?? []).find((b) => b.channelId === channelId && !b.endedAt) ?? null;
 

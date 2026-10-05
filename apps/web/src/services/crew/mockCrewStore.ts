@@ -1,4 +1,4 @@
-import type { AssignMode, CrewMember, ExcelSettings, FeedEntry, ScenarioPart, StealSlot } from "./crewTypes";
+import type { AssignMode, BattleRules, CrewMember, ExcelSettings, FeedEntry, ScenarioPart, StealRules, StealSlot } from "./crewTypes";
 
 /**
  * Development-only crew state, keyed by channel id: the studio creator's own channel
@@ -33,7 +33,20 @@ export type MockBroadcast = {
   /** 서브 점수판: window-scored boards under the main one (numbered from 1 per broadcast). */
   subBoards?: { no: number; title: string; openedAt: string; closedAt: string | null; requestId: string }[];
   /** 실시간 배틀: side A/B member ids, timer and the request ids already applied (start · time changes). */
-  battles?: { no: number; title: string; mode: "MEMBERS" | "TEAMS"; a: string[]; b: string[]; startedAt: string; endsAt: string; stoppedAt: string | null; requests: string[] }[];
+  battles?: {
+    no: number;
+    title: string;
+    mode: "MEMBERS" | "TEAMS";
+    a: string[];
+    b: string[];
+    startedAt: string;
+    endsAt: string;
+    stoppedAt: string | null;
+    requests: string[];
+    /** 배수 · 벌칙 chosen at the start (missing on battles from before 2026-10-05 = 1배 · 없음). */
+    multiplier?: number;
+    penalty?: string;
+  }[];
   /** 기여도 강탈: points moved from `target` to `thief` (request id = record id, so a retry returns the same spin). */
   steals?: { id: string; at: string; thief: string; target: string; slotId: string; slotLabel: string; points: number }[];
   /** 콘텐츠 시나리오 progress: plan snapshot, running part and part history (request ids dedupe 다음 부로). */
@@ -52,6 +65,10 @@ type MockCrew = {
   excel?: Record<string, ExcelSettings>;
   /** 기여도 강탈 룰렛 slots per channel. */
   stealSlots?: Record<string, StealSlot[]>;
+  /** 강탈 기준 · 쿨다운 per channel (missing = platform defaults). */
+  stealRules?: Record<string, StealRules>;
+  /** 배틀 배수 · 벌칙 defaults per channel (missing = platform defaults). */
+  battleRules?: Record<string, BattleRules>;
   /** 콘텐츠 시나리오 plan per channel. */
   scenario?: Record<string, ScenarioPart[]>;
 };

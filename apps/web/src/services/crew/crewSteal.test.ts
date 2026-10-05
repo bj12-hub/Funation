@@ -81,4 +81,42 @@ describe("기여도 강탈 룰렛", () => {
     signIn(["SUPPORTER"]);
     expect(await spinSteal({ broadcastId: id, requestId: key(5), thiefId: "cm-s1", targetId: "cm-s2" })).toEqual({ status: "UNAUTHORIZED" });
   });
+
+  it("follows the 강탈 기준 and 쿨다운, starting from the platform defaults", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const T0 = new Date("2026-10-05T12:00:00Z").getTime();
+    vi.setSystemTime(T0);
+    try {
+      const { setStealSlots, setStealRules, spinSteal, startBattle, donate, view, id } = await startLive();
+      const spin = (n: number) => spinSteal({ broadcastId: id, requestId: key(n), thiefId: "cm-s1", targetId: "cm-s2" });
+      // Platform defaults (2026-10-05 결정): 방송 전체 점수 · 쿨다운 없음.
+      expect((await view()).stealRules).toEqual({ basis: "BROADCAST", cooldownSec: 0 });
+      await setStealSlots({ slots: SLOTS });
+      await donate(10_000, "하늘"); // before any battle
+      expect(await setStealRules({ basis: "BATTLE", cooldownSec: 60 })).toEqual({ status: "SAVED" });
+      expect(await spin(1)).toMatchObject({ status: "INVALID" }); // no battle to measure
+
+      vi.setSystemTime(T0 + 1_000);
+      await startBattle({ broadcastId: id, requestId: key(2), mode: "MEMBERS", memberA: "cm-s1", memberB: "cm-s2", durationSec: 300 });
+      vi.setSystemTime(T0 + 2_000);
+      await donate(2_000, "하늘");
+      roll.next = 0; // 30% of the battle score (2,000), not of the whole broadcast
+      const first = await spin(3);
+      expect(first.status === "SPUN" && first.record.points).toBe(600);
+
+      roll.next = 2;
+      expect(await spin(4)).toMatchObject({ status: "INVALID", message: "쿨다운 중이에요. 60초 뒤에 다시 돌릴 수 있어요." });
+      expect((await spin(3)).status).toBe("SPUN"); // a retry of the spun request is not a new spin
+      vi.setSystemTime(T0 + 63_000);
+      expect((await spin(4)).status).toBe("SPUN");
+
+      expect((await setStealRules({ basis: "ALL", cooldownSec: 0 })).status).toBe("INVALID");
+      expect((await setStealRules({ basis: "BROADCAST", cooldownSec: 3_601 })).status).toBe("INVALID");
+      expect((await setStealRules({ basis: "BROADCAST", cooldownSec: 1.5 })).status).toBe("INVALID");
+      expect(await setStealRules({ reset: true })).toEqual({ status: "SAVED" });
+      expect((await view()).stealRules).toEqual({ basis: "BROADCAST", cooldownSec: 0 });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
