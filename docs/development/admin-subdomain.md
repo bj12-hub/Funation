@@ -15,7 +15,7 @@ https://admin.<site domain>   apps/admin  operator console
 | Cookies | Both apps set **host-only** cookies (no `Domain`). The site's member session never reaches the admin host and vice versa. In production the admin cookie is `__Host-somnation_admin` (Secure, Path=/, no Domain — enforced by the browser), SameSite=Strict, 8 h lifetime. **Never** add `Domain=.<site domain>` to either app's cookies. |
 | Admin API | `/api/admin/*` on the site accepts only `Authorization: Bearer <ADMIN_API_TOKEN>` + operator headers from the admin server. No cookies, no CORS headers, so browsers cannot call it. Production without the token → 503. |
 | Wrong host | `ADMIN_HOST` makes the admin app answer 404 on any other Host (bare IP, stray DNS names). |
-| Headers | CSP (self + Google Fonts), `X-Frame-Options: DENY`, `frame-ancestors 'none'`, `noindex`, HSTS in production. |
+| Headers | CSP (self only — fonts are self-hosted by next/font since 2026-10-06), `X-Frame-Options: DENY`, `frame-ancestors 'none'`, `noindex`, HSTS in production. |
 | Network (recommended) | Point `SITE_API_URL` at an internal address of the site, and restrict `/api/admin/*` at the edge to the admin server (IP allowlist / private network). Operator SSO · 2FA · IP allowlist for the console itself are TBD. |
 
 ## Environment
