@@ -67,7 +67,8 @@ funation/
 │   └── development/
 │
 ├── apps/
-│   ├── web/                 # Next.js + TypeScript
+│   ├── web/                 # Next.js + TypeScript (site, studio, OBS overlays, admin API)
+│   ├── admin/               # Next.js admin console (separate app, port 3200)
 │   └── api/                 # Backend - TBD
 │
 └── packages/
@@ -128,9 +129,12 @@ Donation Core
       ↓
 PlatformAdapter
       ├── YouTubeAdapter
-      ├── FlexTVAdapter
-      └── SoopAdapter
+      ├── FlexTvAdapter
+      ├── SoopAdapter
+      └── ChzzkAdapter
 ```
+
+Adapters live in `apps/web/src/services/platforms/adapters.ts`; each declares its capabilities, since the platforms' APIs differ.
 
 Do not place external platform API logic directly in the Donation Core.
 
