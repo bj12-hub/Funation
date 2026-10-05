@@ -250,8 +250,9 @@
   --color-kakao-text: #181600;
 
   /* ── Typography ───────────────────────────────────────── */
-  --font-sans: "Gothic A1", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
-  --font-latin: "Inter", var(--font-sans);
+  /* --font-gothic / --font-inter come from next/font (app/layout.tsx) on <html>. */
+  --font-sans: var(--font-gothic), "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-latin: var(--font-inter), var(--font-sans);
 
   --font-size-10: 10px;
   --font-size-11: 11px;
