@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { deleteAsset, renameAsset, uploadAsset } from "@/services/creator/assets";
-import { ASSET_LIMITS, ASSET_TYPES, type Asset, type AssetKind, type AssetResult } from "@/services/creator/assetTypes";
+import { ASSET_LIMITS, ASSET_TYPES, pairOf, type Asset, type AssetKind, type AssetResult } from "@/services/creator/assetTypes";
 import styles from "../../crew/crew.module.css";
 import local from "./library.module.css";
 
@@ -13,7 +13,8 @@ const size = (bytes: number) => (bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024)
 
 /**
  * 이미지·사운드 라이브러리 — code-first (no Figma frame). Route `/creator/widgets/assets`.
- * Files here are used by 배너 (slides) and 시그니처 후원 (images). Upload policy and review are TBD.
+ * Files here are used by 배너 (slides) and 시그니처 후원 (images, and sounds — an image and a sound with the same
+ * name pair up, 자동 매칭 2026-10-06). Upload policy and review are TBD.
  */
 export function AssetsScreen({ items }: { items: Asset[] }) {
   const router = useRouter();
@@ -99,6 +100,9 @@ export function AssetsScreen({ items }: { items: Asset[] }) {
           이미지 PNG · JPG · GIF · WEBP ({ASSET_LIMITS.bytes.IMAGE / 1024 / 1024}MB 이하), 사운드 MP3 · WAV · OGG ({ASSET_LIMITS.bytes.SOUND / 1024 / 1024}MB 이하). 저작권이 있는 파일은 올리지
           마세요 (검수 정책 TBD).
         </p>
+        <p className={styles.note}>
+          이미지와 사운드의 이름이 같으면(예: 축하.png · 축하.mp3) 짝으로 묶여요. <Link href="/creator/widgets/signatures">시그니처</Link>에 그 이미지를 고르면 사운드가 소리로 함께 붙어요.
+        </p>
       </section>
 
       <section className={styles.card} aria-labelledby="asset-list">
@@ -141,6 +145,7 @@ export function AssetsScreen({ items }: { items: Asset[] }) {
                   )}
                   <span className={styles.muted}>
                     {a.mime.split("/")[1].toUpperCase()} · {size(a.size)}
+                    {pairOf(a, items) && ` · 🔗 ${a.kind === "IMAGE" ? "사운드" : "이미지"} 짝`}
                   </span>
                 </div>
                 <div className={styles.rowActions}>

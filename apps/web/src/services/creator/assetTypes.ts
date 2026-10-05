@@ -30,4 +30,16 @@ export const ASSET_LIMITS = {
 
 export const assetUrl = (id: string) => `/api/media/${id}`;
 
+/**
+ * 이미지·사운드 자동 매칭 (funnation 참고, 2026-10-06 결정): an image and a sound with the same name (uploads drop the
+ * extension; case and surrounding spaces are ignored) belong together — picking the image for a 시그니처 brings the sound.
+ */
+const pairKey = (name: string) => name.trim().toLowerCase();
+
+/** The other half of `asset`'s pair in `library`, if any (the first match by upload order). */
+export function pairOf(asset: Pick<Asset, "kind" | "name">, library: Asset[]): Asset | null {
+  const other: AssetKind = asset.kind === "IMAGE" ? "SOUND" : "IMAGE";
+  return library.find((a) => a.kind === other && pairKey(a.name) === pairKey(asset.name)) ?? null;
+}
+
 export type AssetResult = { status: "SAVED"; asset: Asset } | { status: "DELETED" } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };

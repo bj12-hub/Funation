@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { formatNumber } from "@/lib/format";
 import { deleteSignature, moveSignature, saveSignature } from "@/services/donations/signatures";
-import type { Asset } from "@/services/creator/assetTypes";
+import { pairOf, type Asset } from "@/services/creator/assetTypes";
 import { SIGNATURE_IMAGE_PRESETS, SIGNATURE_LIMITS, type ManagedSignature, type SignatureMatch, type SignatureResult } from "@/services/donations/signatureTypes";
 import styles from "../crew/crew.module.css";
 import local from "./signatures.module.css";
@@ -13,15 +13,21 @@ import local from "./signatures.module.css";
 type Draft = Omit<ManagedSignature, "id"> & { id: string | null };
 
 const MATCH_LABEL: Record<SignatureMatch, string> = { SELECT: "선택 시에만", AMOUNT: "선택 + 금액 일치" };
-const blank = (): Draft => ({ id: null, name: "", price: 10_000, imageUrl: SIGNATURE_IMAGE_PRESETS[0], match: "SELECT", active: true });
+const blank = (): Draft => ({ id: null, name: "", price: 10_000, imageUrl: SIGNATURE_IMAGE_PRESETS[0], soundUrl: null, match: "SELECT", active: true });
 
 /**
  * 시그니처 후원 관리 — code-first (no Figma frame). Route `/creator/widgets/signatures`.
- * The list is what supporters see in the room's 시그니처 후원 panel, in this order.
+ * The list is what supporters see in the room's 시그니처 후원 panel, in this order. `library` is the creator's
+ * 이미지·사운드: picking a library image also picks the sound with the same name (자동 매칭, 2026-10-06 결정).
  */
 export function SignaturesScreen({ items, library }: { items: ManagedSignature[]; library: Asset[] }) {
   const router = useRouter();
+  const images = library.filter((a) => a.kind === "IMAGE");
+  const sounds = library.filter((a) => a.kind === "SOUND");
+  const soundName = (url: string | null) => sounds.find((a) => a.url === url)?.name ?? null;
   const [draft, setDraft] = useState<Draft | null>(null);
+  /** The sound was picked by 자동 매칭 (a hand-picked sound is never replaced). */
+  const [autoSound, setAutoSound] = useState(false);
   const [note, setNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
   const requestId = useRef<string | null>(null);
@@ -44,7 +50,17 @@ export function SignaturesScreen({ items, library }: { items: ManagedSignature[]
 
   const openNew = () => {
     requestId.current = null;
+    setAutoSound(false);
     setDraft(blank());
+  };
+  const pickImage = (src: string) => {
+    if (!draft) return;
+    const image = images.find((a) => a.url === src);
+    const match = image ? pairOf(image, library) : null;
+    if (draft.soundUrl === null || autoSound) {
+      setDraft({ ...draft, imageUrl: src, soundUrl: match?.url ?? null });
+      setAutoSound(!!match);
+    } else setDraft({ ...draft, imageUrl: src });
   };
   const submit = () => {
     if (!draft) return;
@@ -95,6 +111,7 @@ export function SignaturesScreen({ items, library }: { items: ManagedSignature[]
                   <span className={styles.rowTitle}>{s.name}</span>
                   <span className={styles.muted}>
                     {formatNumber(s.price)} FN · {MATCH_LABEL[s.match]}
+                    {soundName(s.soundUrl) && ` · 🔊 ${soundName(s.soundUrl)}`}
                   </span>
                 </div>
                 <span className={s.active ? styles.chip : styles.chipOff}>{s.active ? "사용" : "숨김"}</span>
@@ -114,7 +131,15 @@ export function SignaturesScreen({ items, library }: { items: ManagedSignature[]
                   <button type="button" className={styles.ghost} disabled={pending} onClick={() => toggle(s)}>
                     {s.active ? "숨기기" : "사용"}
                   </button>
-                  <button type="button" className={styles.ghost} disabled={pending} onClick={() => setDraft({ ...s })}>
+                  <button
+                    type="button"
+                    className={styles.ghost}
+                    disabled={pending}
+                    onClick={() => {
+                      setAutoSound(false);
+                      setDraft({ ...s, soundUrl: soundName(s.soundUrl) ? s.soundUrl : null });
+                    }}
+                  >
                     수정
                   </button>
                   <button type="button" className={styles.danger} disabled={pending} onClick={() => remove(s)}>
@@ -166,16 +191,44 @@ export function SignaturesScreen({ items, library }: { items: ManagedSignature[]
             </label>
           </div>
           <div className={local.images} role="radiogroup" aria-label="이미지">
-            {[...SIGNATURE_IMAGE_PRESETS, ...library.map((a) => a.url)].map((src, i) => (
-              <button key={src} type="button" role="radio" aria-checked={draft.imageUrl === src} aria-label={`이미지 ${i + 1}`} className={local.image} onClick={() => setDraft({ ...draft, imageUrl: src })}>
+            {[...SIGNATURE_IMAGE_PRESETS, ...images.map((a) => a.url)].map((src, i) => (
+              <button key={src} type="button" role="radio" aria-checked={draft.imageUrl === src} aria-label={`이미지 ${i + 1}`} className={local.image} onClick={() => pickImage(src)}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={src} alt="" />
               </button>
             ))}
           </div>
           <p className={styles.note}>
-            기본 이미지 {SIGNATURE_IMAGE_PRESETS.length}장 뒤에 <Link href="/creator/widgets/assets">이미지·사운드</Link> 라이브러리의 이미지가 이어져요.
+            기본 이미지 {SIGNATURE_IMAGE_PRESETS.length}장 뒤에 <Link href="/creator/widgets/assets">이미지·사운드</Link> 라이브러리의 이미지가 이어져요. 라이브러리
+            이미지를 고르면 이름이 같은 사운드가 소리로 함께 붙어요.
           </p>
+          <div className={local.sound}>
+            <label className={local.field}>
+              <span>소리 (알림과 함께 재생)</span>
+              <select
+                className={styles.select}
+                value={draft.soundUrl ?? ""}
+                onChange={(e) => {
+                  setAutoSound(false);
+                  setDraft({ ...draft, soundUrl: e.target.value || null });
+                }}
+              >
+                <option value="">소리 없음</option>
+                {sounds.map((a) => (
+                  <option key={a.id} value={a.url}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {draft.soundUrl && <audio className={local.audio} src={draft.soundUrl} controls preload="none" aria-label="고른 소리 미리 듣기" />}
+            {autoSound && draft.soundUrl && (
+              <p className={styles.note} role="status">
+                이름이 같은 사운드 &lsquo;{soundName(draft.soundUrl)}&rsquo;를 함께 골랐어요.
+              </p>
+            )}
+            {sounds.length === 0 && <p className={styles.note}>라이브러리에 사운드를 올리면 고를 수 있어요.</p>}
+          </div>
           <div className={styles.actions}>
             <button type="button" className={styles.ghost} disabled={pending} onClick={() => setDraft(null)}>
               취소

@@ -24,6 +24,27 @@
   color: var(--color-text-secondary);
 }
 
+/* 소리: select + preview (자동 매칭 note under it). */
+.sound {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.sound .field {
+  min-width: 220px;
+}
+
+.audio {
+  height: 36px;
+}
+
+.sound p {
+  flex-basis: 100%;
+  margin: 0;
+}
+
 .images {
   display: flex;
   flex-wrap: wrap;

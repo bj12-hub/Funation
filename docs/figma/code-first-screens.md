@@ -127,6 +127,8 @@ Add a row whenever a new code-first screen ships (see `docs/research/funnation-r
 
 | 후원관리+ 후원 리스트 요약 (`donations/DonationListTab.tsx` · `donationManagementTypes.ts` receivedStats) | received-stats PR | 2026-10-06 결정(funnation 차이). 검색 · 기간 · 상태 조건에 맞는 모든 행 기준 총 수령액 · 오늘 · 이번 주(월요일부터) · 평균 금액 · 건수. 실패 · 취소된 퀘스트는 전액 환불이라 제외(안내 문구) |
 
+| 이미지·사운드 자동 매칭 + 시그니처 소리 (`library/AssetsScreen.tsx`, `SignaturesScreen.tsx`, `assetTypes.ts` pairOf, `ManagedSignature.soundUrl`) | library-sound-matching PR | 2026-10-06 결정(funnation 차이). 이름이 같은 이미지 · 사운드(확장자 제외, 대소문자 · 앞뒤 공백 무시)는 짝 — 라이브러리에 "🔗 짝" 표시, 시그니처 편집에서 라이브러리 이미지를 고르면 같은 이름 사운드를 소리로 자동 선택(직접 고른 소리는 바꾸지 않음), 소리 선택 · 미리 듣기. 서버는 라이브러리 사운드만 허용, 지운 사운드는 무음. TBD: 짝으로 시그니처 일괄 만들기(가격 입력 필요) |
+
 ## Figma
 
 구현된 전체 화면 캡처는 [current-build.md](current-build.md)의 새 파일(Somnation — 현재 구현)에 있어요. 펀페이 파일에 잠시 두었던 "코드 우선 화면" 페이지는 2026-09-30에 삭제했어요.

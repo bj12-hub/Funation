@@ -16,7 +16,7 @@ const g = globalThis as typeof globalThis & { __funationMockSignaturesV1?: Store
 export const mockSignatures = (g.__funationMockSignaturesV1 ??= ((): Store => {
   const seed = getMockDonationCatalog().signatures;
   return {
-    items: seed.map((s): ManagedSignature => ({ id: s.id, name: s.name, price: s.price, imageUrl: s.imageUrl, match: "SELECT", active: true })),
+    items: seed.map((s): ManagedSignature => ({ id: s.id, name: s.name, price: s.price, imageUrl: s.imageUrl, soundUrl: null, match: "SELECT", active: true })),
     requests: {},
     favorites: Object.fromEntries(seed.map((s) => [s.id, s.favorite]))
   };
@@ -27,6 +27,12 @@ export function isSignatureImage(url: string) {
   if (SIGNATURE_IMAGE_PRESETS.includes(url)) return true;
   const id = url.startsWith("/api/media/") ? url.slice("/api/media/".length) : null;
   return !!id && !!findAsset(id, "IMAGE") && assetUrl(id) === url;
+}
+
+/** A SOUND in the creator's library (a deleted file no longer counts, so its signature plays nothing). */
+export function isSignatureSound(url: string) {
+  const id = url.startsWith("/api/media/") ? url.slice("/api/media/".length) : null;
+  return !!id && !!findAsset(id, "SOUND") && assetUrl(id) === url;
 }
 
 /** Active signatures in the creator's order, shaped for the donation panel. */
