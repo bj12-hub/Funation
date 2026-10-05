@@ -176,7 +176,7 @@ export type ScenarioLive = {
   history: { index: number; title: string; startedAt: string; endedAt: string | null }[];
 };
 
-// ── 기여도 강탈 룰렛 — code-first; slots and odds are set by the creator (no defaults, TBD) ────────
+// ── 기여도 강탈 룰렛 — code-first; slots and odds are set by the creator ────────────────────────
 
 export const STEAL_SLOTS_MAX = 12;
 export const STEAL_LABEL_MAX = 12;
@@ -190,6 +190,20 @@ export type StealSlot = { id: string; label: string; kind: StealKind; value: num
 
 export type StealRecord = { id: string; at: string; thiefId: string; thiefName: string; targetId: string; targetName: string; slotId: string; slotLabel: string; points: number };
 
+/** 강탈 기준 (2026-10-05 결정: 플랫폼 기본값 + 크리에이터 수정). BROADCAST: the target's score in the whole broadcast
+ * (보정 included). BATTLE: what the target received in the running battle only. */
+export type StealBasis = "BROADCAST" | "BATTLE";
+export const STEAL_BASES: { key: StealBasis; label: string }[] = [
+  { key: "BROADCAST", label: "방송 전체 점수" },
+  { key: "BATTLE", label: "진행 중인 배틀 점수" }
+];
+export const STEAL_COOLDOWN_MAX = 3600;
+/** 쿨다운 choices on the remote (seconds; 0 = 없음). */
+export const STEAL_COOLDOWN_STEPS = [0, 30, 60, 180, 300] as const;
+export type StealRules = { basis: StealBasis; cooldownSec: number };
+/** Platform defaults: 방송 전체 점수, 쿨다운 없음. */
+export const PLATFORM_STEAL_RULES: StealRules = { basis: "BROADCAST", cooldownSec: 0 };
+
 export type StealSpinResult = { status: "SPUN"; record: StealRecord; slotIndex: number } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
 
 // ── 실시간 배틀 (같은 크루 안 BJ 1:1 또는 A팀 vs B팀 · 타이머) — code-first ─────────────────────
@@ -200,6 +214,12 @@ export const BATTLE_MIN_SEC = 10;
 export const BATTLE_MAX_SEC = 3 * 3600;
 /** Quick time buttons on the remote (seconds; negative takes time away). */
 export const BATTLE_TIME_STEPS = [-60, -30, 30, 60] as const;
+export const BATTLE_MULTIPLIER_MAX = 10;
+export const BATTLE_PENALTY_MAX = 40;
+/** 배틀 배수 · 벌칙 (2026-10-05 결정: 플랫폼 기본값 + 크리에이터 수정). The channel keeps its own defaults for new battles. */
+export type BattleRules = { multiplier: number; penalty: string };
+/** Platform defaults: 배수 1배, 벌칙 없음. */
+export const PLATFORM_BATTLE_RULES: BattleRules = { multiplier: 1, penalty: "" };
 
 /** MEMBERS: one BJ against another. TEAMS: the broadcast's A팀 vs B팀 (team mode only). */
 export type BattleMode = "MEMBERS" | "TEAMS";
@@ -207,7 +227,8 @@ export type BattleSide = { key: TeamKey; label: string; color: string; memberIds
 
 /**
  * Score of a side = points its members received while the battle runs (same 자동엑셀 points as the
- * scoreboard, 보정 excluded). The battle ends when time runs out or the operator stops it.
+ * scoreboard, 보정 excluded) × the battle's 배수. The main scoreboard is not multiplied. The battle ends when
+ * time runs out or the operator stops it; the losing side does the 벌칙 (empty = 벌칙 없음).
  */
 export type Battle = {
   no: number;
@@ -221,6 +242,8 @@ export type Battle = {
   /** Seconds left when the view was built (0 once ended). */
   remainingSec: number;
   sides: [BattleSide, BattleSide];
+  multiplier: number;
+  penalty: string;
   /** Leading side while running; the result once ended. null = no points yet. */
   leader: TeamKey | "DRAW" | null;
 };
@@ -246,6 +269,9 @@ export type BroadcastView = {
   feed: FeedView | null;
   /** 기여도 강탈 룰렛 slots (kept across broadcasts). */
   stealSlots: StealSlot[];
+  /** 강탈 기준 · 쿨다운 and the 배틀 배수 · 벌칙 for new battles (kept across broadcasts; platform defaults until changed). */
+  stealRules: StealRules;
+  battleRules: BattleRules;
   /** 콘텐츠 시나리오 plan (kept across broadcasts; editable before going live). */
   scenario: ScenarioPart[];
   keywords: Record<string, string[]>;

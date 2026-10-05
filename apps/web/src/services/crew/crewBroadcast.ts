@@ -20,7 +20,7 @@ import {
   type ScoreRow,
   type TeamKey
 } from "./crewTypes";
-import { excelOf, liveBroadcastOf, scoreEntry, scoreFn, stealRecordView, windowScores } from "./crewCore";
+import { battleRulesOf, excelOf, liveBroadcastOf, scoreEntry, scoreFn, stealRecordView, stealRulesOf, windowScores } from "./crewCore";
 import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 /**
@@ -100,6 +100,7 @@ function battleView(b: MockBroadcast, x: NonNullable<MockBroadcast["battles"]>[n
   const running = endMs > now;
   const scores = windowScores(b, x.startedAt, running ? null : new Date(endMs).toISOString());
   const byId = new Map(members().map((m) => [m.id, m]));
+  const multiplier = x.multiplier ?? 1;
   const side = (key: "A" | "B", ids: string[]) => {
     const one = x.mode === "MEMBERS" ? byId.get(ids[0]) : undefined;
     return {
@@ -107,13 +108,14 @@ function battleView(b: MockBroadcast, x: NonNullable<MockBroadcast["battles"]>[n
       label: x.mode === "MEMBERS" ? (one?.name ?? "삭제된 멤버") : `${key}팀`,
       color: one?.color ?? TEAM_COLOR[key],
       memberIds: [...ids],
-      score: ids.reduce((s, id) => s + (scores.get(id) ?? 0), 0)
+      // 배틀 배수 applies to the battle score only (the main scoreboard keeps the plain points).
+      score: Math.round(ids.reduce((s, id) => s + (scores.get(id) ?? 0), 0) * multiplier)
     };
   };
   const sides: [Battle["sides"][0], Battle["sides"][1]] = [side("A", x.a), side("B", x.b)];
   const [a, c] = sides;
   const leader = a.score === 0 && c.score === 0 ? null : a.score === c.score ? "DRAW" : a.score > c.score ? "A" : "B";
-  return { no: x.no, title: x.title, mode: x.mode, startedAt: x.startedAt, endsAt: x.endsAt, stoppedAt: x.stoppedAt, running, remainingSec: running ? Math.ceil((endMs - now) / 1000) : 0, sides, leader };
+  return { no: x.no, title: x.title, mode: x.mode, startedAt: x.startedAt, endsAt: x.endsAt, stoppedAt: x.stoppedAt, running, remainingSec: running ? Math.ceil((endMs - now) / 1000) : 0, sides, multiplier, penalty: x.penalty ?? "", leader };
 }
 
 /** 서브 점수판 rows: points donated to each active member between `from` and `to` (open board = now). */
@@ -182,6 +184,8 @@ export async function getBroadcastView(): Promise<BroadcastView | null> {
     feed: live ? feedView(live) : null,
     keywords: structuredClone(mockCrew.keywords ?? {}),
     stealSlots: structuredClone(mockCrew.stealSlots?.[STUDIO_CHANNEL] ?? []),
+    stealRules: { ...stealRulesOf(STUDIO_CHANNEL) },
+    battleRules: { ...battleRulesOf(STUDIO_CHANNEL) },
     scenario: structuredClone(mockCrew.scenario?.[STUDIO_CHANNEL] ?? []),
     projects: [...new Set(broadcasts().filter((b) => b.channelId === STUDIO_CHANNEL && b.project).map((b) => b.project as string))],
     history: broadcasts()

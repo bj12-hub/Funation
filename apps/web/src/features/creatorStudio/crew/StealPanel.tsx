@@ -3,8 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { formatNumber } from "@/lib/format";
-import { setStealSlots, spinSteal } from "@/services/crew/crewSteal";
+import { setStealRules, setStealSlots, spinSteal } from "@/services/crew/crewSteal";
 import {
+  PLATFORM_STEAL_RULES,
+  STEAL_BASES,
+  STEAL_COOLDOWN_STEPS,
   STEAL_LABEL_MAX,
   STEAL_SLOTS_MAX,
   type Battle,
@@ -12,6 +15,7 @@ import {
   type CrewMember,
   type StealKind,
   type StealRecord,
+  type StealRules,
   type StealSlot
 } from "@/services/crew/crewTypes";
 import { CopyButton } from "../settings/SettingsCards";
@@ -28,12 +32,14 @@ export const stealText = (r: StealRecord) =>
 
 /**
  * 기여도 강탈 룰렛 — code-first (no Figma frame), inside `/creator/crew/broadcast` while live. The
- * creator makes the slots (no presets — rules are TBD); the server draws the slot and moves the points.
+ * creator makes the slots; the server draws the slot and moves the points. 강탈 기준 · 쿨다운 (2026-10-05 결정)
+ * start from the platform defaults (방송 전체 점수 · 쿨다운 없음) and save as soon as they change.
  */
 export function StealPanel({
   broadcastId,
   members,
   slots,
+  rules,
   records,
   battle,
   overlayPath,
@@ -43,6 +49,7 @@ export function StealPanel({
   broadcastId: string;
   members: CrewMember[];
   slots: StealSlot[];
+  rules: StealRules;
   records: StealRecord[];
   battle: Battle | undefined;
   overlayPath: string;
@@ -111,6 +118,44 @@ export function StealPanel({
         기여도 강탈 룰렛
       </h2>
       <p className={styles.note}>룰렛을 돌려 상대 BJ의 기여도를 빼앗아 와요. 칸과 확률은 직접 정해요. 빼앗는 점수는 상대가 가진 점수보다 클 수 없어요.</p>
+      <div className={steal.rules} role="group" aria-label="강탈 기준">
+        <span className={styles.muted}>기준 점수</span>
+        <span className={styles.segment}>
+          {STEAL_BASES.map((b) => (
+            <button
+              key={b.key}
+              type="button"
+              aria-pressed={rules.basis === b.key}
+              disabled={pending}
+              onClick={() => rules.basis !== b.key && run(() => setStealRules({ basis: b.key, cooldownSec: rules.cooldownSec }))}
+            >
+              {b.label}
+            </button>
+          ))}
+        </span>
+        <label className={steal.cooldown}>
+          <span className={styles.muted}>쿨다운</span>
+          <select
+            className={styles.select}
+            value={rules.cooldownSec}
+            disabled={pending}
+            onChange={(e) => run(() => setStealRules({ basis: rules.basis, cooldownSec: Number(e.target.value) }))}
+          >
+            {[...new Set([...STEAL_COOLDOWN_STEPS, rules.cooldownSec])].sort((a, b) => a - b).map((s) => (
+              <option key={s} value={s}>
+                {s === 0 ? "없음" : s >= 60 ? `${s / 60}분` : `${s}초`}
+              </option>
+            ))}
+          </select>
+        </label>
+        {rules.basis === PLATFORM_STEAL_RULES.basis && rules.cooldownSec === PLATFORM_STEAL_RULES.cooldownSec ? (
+          <span className={styles.muted}>플랫폼 기본값</span>
+        ) : (
+          <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => setStealRules({ reset: true }), "플랫폼 기본값(방송 전체 점수 · 쿨다운 없음)으로 되돌렸어요.")}>
+            플랫폼 기본값으로
+          </button>
+        )}
+      </div>
 
       <div className={steal.layout}>
         <div className={steal.wheelBox}>
@@ -153,9 +198,15 @@ export function StealPanel({
               ))}
             </select>
           </div>
-          <button type="button" className={styles.primary} disabled={pending || spin.spinning || !slots.length || !thief || !target || thief === target} onClick={() => void doSpin()}>
+          <button
+            type="button"
+            className={styles.primary}
+            disabled={pending || spin.spinning || !slots.length || !thief || !target || thief === target || (rules.basis === "BATTLE" && !battle)}
+            onClick={() => void doSpin()}
+          >
             룰렛 돌리기
           </button>
+          {rules.basis === "BATTLE" && !battle && <p className={styles.note}>기준 점수가 배틀 점수라서 배틀이 진행 중일 때만 돌릴 수 있어요.</p>}
           {error && (
             <p className={styles.error} role="alert">
               {error}
