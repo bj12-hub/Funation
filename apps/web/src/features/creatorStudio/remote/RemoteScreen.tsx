@@ -279,6 +279,7 @@ export function RemoteScreen({
           </p>
           {slider("후원 알림음", controls.alertVolume, (v) => setAlertControls({ alertVolume: v }))}
           {slider("후원 TTS", controls.ttsVolume, (v) => setAlertControls({ ttsVolume: v }))}
+          {slider("시그니처 소리", controls.signatureVolume, (v) => setAlertControls({ signatureVolume: v }))}
           {slider("영상 후원", view.overlays.videoVolume, (v) => setVideoVolume({ volume: v }))}
           {controls.muted && <p className={styles.muted}>지금은 전체 음소거 중이라 후원 알림 소리가 나지 않아요.</p>}
         </section>

@@ -28,6 +28,8 @@ export type AlertItem = {
   platform?: Platform;
   /** The signature's image for a 시그니처 후원 (or a 일반 후원 matched to a signature by amount); 벽지 "후원 이미지 우선" uses it. */
   imageUrl?: string;
+  /** The signature's sound (library), played by the overlay at 시그니처 볼륨 (code-first, 2026-10-06). */
+  soundUrl?: string;
   createdAt: string;
   status: AlertStatus;
 };
@@ -40,6 +42,8 @@ export type AlertControls = {
   /** 0–100 */
   alertVolume: number;
   ttsVolume: number;
+  /** 시그니처 소리 (0–100). */
+  signatureVolume: number;
   /** Seconds an alert stays on screen. Default is a placeholder (TBD). */
   displaySec: number;
 };
@@ -63,7 +67,7 @@ export type RemoteView = {
 
 export type OverlayAlert = {
   alert: (AlertItem & { endsAt: string }) | null;
-  controls: Pick<AlertControls, "muted" | "alertVolume" | "ttsVolume">;
+  controls: Pick<AlertControls, "muted" | "alertVolume" | "ttsVolume" | "signatureVolume">;
   ttsSkipSeq: number;
   reloadSeq: number;
   /** 기능 제어 ON/OFF: false = the overlay shows (and speaks) nothing. */
