@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatNumber } from "@/lib/format";
-import type { RevenueOverview } from "@/services/creator/creatorStudio";
+import type { RevenueOverview, RevenueShare } from "@/services/creator/creatorStudio";
 import { SummaryCard, TopDonorsCard } from "../DashboardSummaryCards";
 import { RevenueChart } from "../RevenueChart";
 import summary from "../dashboardSummary.module.css";
@@ -52,6 +52,14 @@ export function RevenueScreen({ data }: { data: RevenueOverview }) {
             </div>
           </SummaryCard>
           <TopDonorsCard donors={data.topDonors} />
+          <section className={summary.card} aria-labelledby="revenue-sources">
+            <h2 id="revenue-sources" className={summary.title}>
+              수익원별 상세
+            </h2>
+            <p className={styles.range}>이번 달 · ₩{formatNumber(data.thisMonth)}</p>
+            <ShareList title="후원 유형별" items={data.bySource.types} total={data.thisMonth} />
+            <ShareList title="후원 경로별" items={data.bySource.routes} total={data.thisMonth} />
+          </section>
           <section className={summary.card} aria-labelledby="revenue-links">
             <h2 id="revenue-links" className={summary.title}>
               바로가기
@@ -76,10 +84,34 @@ export function RevenueScreen({ data }: { data: RevenueOverview }) {
                 </Link>
               </li>
             </ul>
-            <p className={summary.caption}>수익원별 상세(후원 유형 · 상품)는 준비 중이에요.</p>
           </section>
         </div>
       )}
+    </div>
+  );
+}
+
+/** One breakdown: label, ₩ and share, with a bar (code-first, 2026-10-06). */
+function ShareList({ title, items, total }: { title: string; items: RevenueShare[]; total: number }) {
+  return (
+    <div className={styles.shares}>
+      <h3 className={styles.sharesTitle}>{title}</h3>
+      <ul className={styles.shareList}>
+        {items.map((i) => {
+          const pct = total > 0 ? Math.round((i.amount / total) * 1000) / 10 : 0;
+          return (
+            <li key={i.key} className={styles.share}>
+              <span className={styles.shareLabel}>{i.label}</span>
+              <span className={styles.shareValue}>
+                ₩{formatNumber(i.amount)} <span className={styles.sharePct}>{pct}%</span>
+              </span>
+              <span className={styles.shareBar} aria-hidden="true">
+                <span style={{ width: `${pct}%` }} />
+              </span>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

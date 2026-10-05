@@ -110,3 +110,64 @@
   color: var(--color-text-tertiary);
   font-size: var(--font-size-12);
 }
+
+/* 수익원별 상세 (code-first): two breakdown lists with share bars. */
+.shares {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sharesTitle {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-semibold);
+}
+
+.shareList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.share {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  font-size: var(--font-size-13);
+}
+
+.shareLabel {
+  color: var(--color-text-primary);
+}
+
+.shareValue {
+  color: var(--color-text-primary);
+  font-family: var(--font-latin);
+  font-weight: var(--font-weight-bold);
+  text-align: right;
+}
+
+.sharePct {
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-regular);
+}
+
+.shareBar {
+  grid-column: 1 / -1;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-chip-bg);
+}
+
+.shareBar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--gradient-primary-button);
+}
