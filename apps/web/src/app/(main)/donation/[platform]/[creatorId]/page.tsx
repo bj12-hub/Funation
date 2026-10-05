@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import { cache } from "react";
 import { PlatformDonationFlow } from "@/features/platformDonation/PlatformDonationFlow";
 import { getPlatformCreatorDetail } from "@/services/platformDonation/platformDonation";
 import { PLATFORMS, platformFromSlug } from "@/services/platformDonation/platformTypes";
@@ -9,16 +10,23 @@ export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ platform: string; creatorId: string }> };
 
+// One read per request for the title and the page.
+const readDetail = cache(getPlatformCreatorDetail);
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const platform = platformFromSlug((await params).platform);
-  return { title: platform ? `${PLATFORMS[platform].name} 후원 | Somnation` : "Somnation" };
+  const { platform: slug, creatorId } = await params;
+  const platform = platformFromSlug(slug);
+  if (!platform) return { title: "Somnation" };
+  const detail = await readDetail(platform, creatorId);
+  const name = typeof detail === "object" ? `${detail.creator.nickname} · ` : "";
+  return { title: `${name}${PLATFORMS[platform].name} 후원 | Somnation` };
 }
 
 export default async function Page({ params }: Props) {
   const { platform: slug, creatorId } = await params;
   const platform = platformFromSlug(slug);
   if (!platform) notFound();
-  const detail = await getPlatformCreatorDetail(platform, creatorId);
+  const detail = await readDetail(platform, creatorId);
   if (detail === "UNAUTHORIZED") redirect(`/login?next=/donation/${slug}/${creatorId}`);
   if (detail === "NOT_FOUND") notFound();
   return <PlatformDonationFlow detail={detail} />;
