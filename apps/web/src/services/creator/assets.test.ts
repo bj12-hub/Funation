@@ -110,6 +110,29 @@ describe("asset library", () => {
     expect(m.isSignatureSound(snd.asset.url)).toBe(false);
   });
 
+  it("plays the chosen signature's sound with its alert at 시그니처 볼륨", async () => {
+    const m = await load();
+    const alerts = await import("./alertRemote");
+    const MP3 = [0x49, 0x44, 0x33, 0x04, 0, 0, 0, 0, 0, 0];
+    const snd = await m.uploadAsset(form(21, MP3, "audio/mpeg", "팡파레.mp3"));
+    if (snd.status !== "SAVED") throw new Error("upload");
+    const sig = m.mockSignatures.items[0];
+    sig.soundUrl = snd.asset.url;
+    expect(m.signatureSoundFor("SIGNATURE", sig.price, { signatureId: sig.id })).toBe(snd.asset.url);
+    expect(m.signatureSoundFor("SIGNATURE", sig.price, { signatureId: "nope" })).toBeUndefined();
+    expect(m.signatureSoundFor("TEXT", sig.price, {})).toBeUndefined(); // not an AMOUNT match yet
+    sig.match = "AMOUNT";
+    expect(m.signatureSoundFor("TEXT", sig.price, {})).toBe(snd.asset.url);
+    sig.active = false;
+    expect(m.signatureSoundFor("SIGNATURE", sig.price, { signatureId: sig.id })).toBeUndefined();
+
+    expect((await alerts.setAlertControls({ signatureVolume: 35 })).status).toBe("SAVED");
+    for (const bad of [-1, 101, 2.5, "50"]) expect((await alerts.setAlertControls({ signatureVolume: bad })).status).toBe("INVALID");
+    const overlay = await alerts.getOverlayAlert(m.overlayKey);
+    if (overlay === "FORBIDDEN") throw new Error("key");
+    expect(overlay.controls.signatureVolume).toBe(35);
+  });
+
   it("requires the creator role", async () => {
     const m = await load();
     signIn(["SUPPORTER"]);

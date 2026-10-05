@@ -14,7 +14,7 @@ import type { DonationCatalog } from "./donationCatalog";
 import { recordQuest } from "./questCore";
 import { canParticipate, enqueueSpin } from "./rouletteCore";
 import { canDraw, enqueueDraw } from "./gachaCore";
-import { getDonationCatalog, matchSignatureByAmount, signatureImageFor } from "./signatureCore";
+import { getDonationCatalog, matchSignatureByAmount, signatureImageFor, signatureSoundFor } from "./signatureCore";
 import { addDonationDrawing, enqueueDonationVideo } from "@/services/creator/mediaCore";
 import { notify } from "@/services/notifications/notificationCore";
 import { MAX_DRAWING_CHARS, parseYouTubeId, type DonationResult } from "./donationTypes";
@@ -107,7 +107,8 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
       fnAmount: request.amount,
       // 금액 매칭 (시그니처 관리): a 일반 후원 whose amount equals an AMOUNT-match signature alerts as that signature.
       typeLabel: alertTypeLabel(catalog, request.type, request.amount),
-      imageUrl: signatureImageFor(catalog, request.type, request.amount, request.details)
+      imageUrl: signatureImageFor(catalog, request.type, request.amount, request.details),
+      soundUrl: signatureSoundFor(request.type, request.amount, request.details)
     });
     // 영상 · 그림후원 위젯: paid requests reach the creator's queue / gallery.
     const d = request.details as Record<string, unknown>;
