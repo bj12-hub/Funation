@@ -298,7 +298,8 @@
 /*
  * Light theme — code-first (no Figma frames yet; docs/figma/code-first-screens.md).
  * Surface / text / border / form tokens change, and the status colors used as text (success · live · charge ·
- * gold) get darker shades so they keep 4.5:1 on light backgrounds (WCAG AA). Brand colors, media scrims (text over images or
+ * gold) and the brand fills (primary · accent · info) get darker shades so they keep 4.5:1 on light backgrounds
+ * (WCAG AA). The logo gradient, media scrims (text over images or
  * video) and third-party brand colors stay the same. Creator studio and overlays keep the dark theme.
  */
 [data-theme="light"] {
@@ -331,6 +332,15 @@
   --color-gold: #b45309;
   --color-danger: #c81e1e;
 
+  /* Brand fills one shade darker so white labels on badges and buttons keep 4.5:1 (2026-10-05 결정; the dark
+     theme keeps the Figma colors). The logo gradient (--gradient-brand) stays. */
+  --color-primary: #7c3aed;
+  --color-accent: #db2777;
+  --color-info: #2563eb;
+  --gradient-primary-button: linear-gradient(90deg, #7c3aed 0%, #4f46e5 100%);
+  --gradient-accent-button: linear-gradient(90deg, #7c3aed 0%, #db2777 100%);
+  --gradient-cta: linear-gradient(90deg, #4f46e5 0%, #4338ca 100%);
+
   --color-primary-soft: rgba(139, 92, 246, 0.12);
   --color-primary-light: #7c3aed;
   --color-live: #b98100;
@@ -353,7 +363,7 @@
 
   --color-success-text: #047857;
   --color-warning-text: #b45309;
-  --color-error-text: #dc2626;
+  --color-error-text: #b91c1c;
   --color-nickname-error: #e11d48;
   --color-nickname-error-bg: #fde8ee;
   --color-nickname-success-bg: #e3f7ee;
@@ -371,7 +381,7 @@
   --color-channel-chip-border: #dcdce4;
   --color-segment-bg: #ececf4;
   --color-segment-active-bg: #ffffff;
-  --color-segment-text: #6b6b7b;
+  --color-segment-text: #5f5f6c;
   --color-date-input-bg: #ffffff;
   --color-date-input-border: #d9d9e6;
   --color-fn-chip-bg: #efeefe;
