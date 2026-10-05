@@ -453,6 +453,7 @@
 .pageCurrent:hover {
   border-color: var(--color-primary);
   background: var(--color-primary);
+  color: var(--color-text-on-accent);
   font-weight: var(--font-weight-bold);
 }
 
