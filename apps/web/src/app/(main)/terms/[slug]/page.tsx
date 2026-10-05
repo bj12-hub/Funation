@@ -1,29 +1,25 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ComingSoon } from "@/components/layout/ComingSoon";
+import { TermsDocument } from "@/features/terms/TermsDocument";
+import { isTermsSlug, TERMS_DOCS, TERMS_SLUGS } from "@/features/terms/termsOutline";
 
-// Figma: 약관 상세 예시 722:3 (terms text not provided yet)
-const TERMS: Record<string, string> = {
-  youth: "청소년 보호정책",
-  service: "서비스 이용약관",
-  privacy: "개인정보 처리 방침",
-  marketing: "광고성 정보 수신 및 마케팅 활용 동의",
-  operation: "운영정책", // footer link (727:3200)
-  creator: "크리에이터 이용약관" // 채널 만들기 (code-first)
-};
+// Figma: 약관 상세 예시 722:3 (terms text not provided yet) — clause outline only until legal review (2026-10-06).
+// Slugs: footer (service · privacy · youth · operation 727:3200), 회원가입 (marketing), 채널 만들기 (creator).
+
+// Only the listed documents exist; any other slug is a 404.
+export const dynamicParams = false;
 
 export function generateStaticParams() {
-  return Object.keys(TERMS).map((slug) => ({ slug }));
+  return TERMS_SLUGS.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  return { title: `${TERMS[slug] ?? "약관"} | Somnation` };
+  return { title: `${isTermsSlug(slug) ? TERMS_DOCS[slug].title : "약관"} | Somnation` };
 }
 
 export default async function TermsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const title = TERMS[slug];
-  if (!title) notFound();
-  return <ComingSoon title={title} description="약관 전문은 확정되는 대로 게시됩니다." />;
+  if (!isTermsSlug(slug)) notFound();
+  return <TermsDocument slug={slug} />;
 }

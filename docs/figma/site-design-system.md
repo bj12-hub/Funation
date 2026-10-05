@@ -197,8 +197,8 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 인증 | A04 | 비밀번호 재설정 | `/password-reset` | `88:6027` |
 | 인증 | A05 | 비밀번호 변경 | `/login/password-change` | `88:6072` |
 | 인증 | A06 | 홈 (비로그인, 게스트 헤더) | `/` | `89:6579` |
-| 약관 | L01 | 서비스 이용약관 | `/terms/service` | `88:6124` |
-| 약관 | L02 | 개인정보 처리방침 | `/terms/privacy` | `88:6307` |
+| 약관 | L01 | 서비스 이용약관 (조항 목차 · 본문 TBD) | `/terms/service` | `190:9523` |
+| 약관 | L02 | 개인정보 처리 방침 (조항 목차 · 본문 TBD) | `/terms/privacy` | `190:9788` |
 | OBS 오버레이 | O02 | 후원 알림 (800×600) | `/overlay/alert/[key]` | `92:6819` |
 | OBS 오버레이 | O02b | 후원 알림 · 등급·칭호 배지 (실제 후원) | `/overlay/alert/[key]` | `112:8207` |
 | OBS 오버레이 | O02-off | 후원 알림 · 기능 제어 OFF (800×600) | `/overlay/alert/[key]` | `133:25` |
