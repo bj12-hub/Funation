@@ -394,7 +394,7 @@ function Wallpaper({ data }: { data: Extract<OverlayWidget, { widget: "wallpaper
   return (
     <div className={styles.wall} style={{ width: WALL_SIZE.w, height: WALL_SIZE.h }}>
       {data.stickers.map((t) => {
-        const url = t.image === null ? null : data.images[t.image];
+        const url = t.imageUrl ?? (t.image === null ? null : data.images[t.image]);
         return (
           <div key={t.id} className={styles.sticker} data-layout={s.layout} style={{ left: t.x, top: t.y, rotate: `${t.rotate}deg` }}>
             {s.layout === "BUBBLE" && <span className={styles.stickerBubble}>{t.amount}</span>}

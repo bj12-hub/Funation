@@ -118,3 +118,35 @@ describe("벽지 오버레이 · 리모컨", () => {
     expect(await m.getWallpaperRemote()).toBeNull();
   });
 });
+
+describe("벽지 후원 이미지 우선 (2026-10-05 결정: 시그니처 이미지)", () => {
+  beforeEach(() => resetMockStores());
+
+  it("uses a 시그니처 후원's image when the setting is on, and the 벽지 images otherwise", async () => {
+    const m = await load();
+    const feed = [item(1, { imageUrl: "/sig.png", typeLabel: "시그니처 후원" }), item(2)];
+    const on = m.wallStickers(feed, { images, preferDonationImage: true }, at(0));
+    expect(on.map((s) => [s.imageUrl, s.image])).toEqual([
+      ["/sig.png", null],
+      [null, 1]
+    ]);
+    const off = m.wallStickers(feed, { images, preferDonationImage: false }, at(0));
+    expect(off.map((s) => [s.imageUrl, s.image])).toEqual([
+      [null, 0],
+      [null, 1]
+    ]);
+  });
+
+  it("gives the alert the chosen signature's image, or the amount-matched one for a 일반 후원", async () => {
+    const { signatureImageFor, getDonationCatalog, mockSignatures } = await import("@/services/donations/signatureCore");
+    const catalog = getDonationCatalog();
+    const sig = catalog.signatures[0];
+    expect(signatureImageFor(catalog, "SIGNATURE", sig.price, { signatureId: sig.id })).toBe(sig.imageUrl);
+    expect(signatureImageFor(catalog, "SIGNATURE", sig.price, { signatureId: "nope" })).toBeUndefined();
+    expect(signatureImageFor(catalog, "TEXT", 12_345, {})).toBeUndefined();
+    const managed = mockSignatures.items[0];
+    managed.match = "AMOUNT";
+    expect(signatureImageFor(catalog, "TEXT", managed.price, {})).toBe(managed.imageUrl);
+    expect(signatureImageFor(catalog, "MINI", managed.price, {})).toBeUndefined();
+  });
+});

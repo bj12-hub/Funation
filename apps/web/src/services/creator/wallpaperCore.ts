@@ -54,9 +54,10 @@ const amountOf = (a: AlertItem) => a.amountLabel ?? `${formatNumber(a.fnAmount)}
  * The stickers on the wall: feed donations after `clearedAt` (all kinds, 테스트 후원 included so the 리모컨
  * can try it; alerts the 리모컨 skipped or the 최소 금액 filter hid get none), the latest WALL_SLOTS of them.
  * The k-th sticker since the wall was cleared takes the k-th slot of the wall's shuffled order, so the
- * visible ones never overlap. 벽지 images rotate in order.
+ * visible ones never overlap. 벽지 images rotate in order; with 후원 이미지 우선 a 시그니처 후원 shows its signature
+ * image instead (2026-10-05 결정).
  */
-export function wallStickers(items: AlertItem[], settings: Pick<WallpaperSettings, "images">, clearedAt: string | null): WallSticker[] {
+export function wallStickers(items: AlertItem[], settings: Pick<WallpaperSettings, "images"> & { preferDonationImage?: boolean }, clearedAt: string | null): WallSticker[] {
   const since = clearedAt ? Date.parse(clearedAt) : 0;
   const all = items.filter((a) => Date.parse(a.createdAt) > since && a.status !== "SKIPPED" && a.status !== "FILTERED");
   const order = slotOrder(clearedAt ?? "wall");
@@ -67,13 +68,15 @@ export function wallStickers(items: AlertItem[], settings: Pick<WallpaperSetting
     const h = hash(a.id);
     const jitterX = (h % 41) - 20;
     const jitterY = ((h >>> 8) % 41) - 20;
-    const image = settings.images.length ? k % settings.images.length : null;
+    const own = settings.preferDonationImage && a.imageUrl ? a.imageUrl : null;
+    const image = own || !settings.images.length ? null : k % settings.images.length;
     return {
       id: a.id,
       x: Math.round((slot % COLS) * CELL.w + 20 + jitterX),
       y: Math.round(Math.floor(slot / COLS) * CELL.h + 30 + jitterY),
       rotate: ((h >>> 16) % 13) - 6,
       image,
+      imageUrl: own,
       nickname: a.donor,
       amount: amountOf(a),
       test: a.kind === "TEST"
