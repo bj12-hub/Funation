@@ -226,6 +226,7 @@
 .actionPrimary {
   border-color: transparent;
   background: var(--color-primary);
+  color: var(--color-text-on-accent);
 }
 
 .smallButton {
