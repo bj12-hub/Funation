@@ -129,7 +129,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | Creators | 카테고리 탭 · 검색 · 정렬 · 페이지 | `/creators?category=&q=&sort=&page=` |
 | Creators | 크리에이터 카드 | `/creators/[id]` |
 | Favorites | 크리에이터 이름 · 후원하기 | `/creators/[id]` · `/creators/[id]?tab=donation` |
-| Creator room | 즐겨찾기 · 공유 · 채팅 탭 | favorite server action · share modal · local chat echo |
+| Creator room | 즐겨찾기 · 공유 · 채팅 탭 | favorite server action · share modal (네이버 · 텔레그램 · X + 링크 복사; 826:387의 카카오톡은 앱 키가 생길 때까지 숨김, 2026-10-06) · local chat echo |
 | Creator room | 후원하기 | 확인 → 완료 popups (donation server action) · FN 부족 → charge modal |
 | FN 내역 | 충전 내역 · 후원 내역 탭 · 마이페이지 breadcrumb | `/wallet/charges` · `/wallet/donations` · `/mypage` |
 | FN 내역 | CSV 다운로드 | `/api/wallet/charges` · `/api/wallet/donations` (session required) |

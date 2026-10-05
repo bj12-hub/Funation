@@ -77,8 +77,8 @@ export function RoomActions({ creatorId, name, initialFavorite, signedIn }: { cr
   );
 }
 
+// 카카오톡 is left out until the Kakao JS SDK app key exists (2026-10-06 결정: hidden rather than shown disabled).
 const SHARE_TARGETS = [
-  { key: "kakao", emoji: "💬", label: "카카오톡", url: null },
   { key: "naver", emoji: "🟢", label: "네이버", url: (u: string, t: string) => `https://share.naver.com/web/shareView?url=${u}&title=${t}` },
   { key: "telegram", emoji: "✈️", label: "텔레그램", url: (u: string, t: string) => `https://t.me/share/url?url=${u}&text=${t}` },
   { key: "x", emoji: "𝕏", label: "X", url: (u: string, t: string) => `https://twitter.com/intent/tweet?url=${u}&text=${t}` }
@@ -103,25 +103,17 @@ function ShareModal({ open, name, onClose, onDone }: { open: boolean; name: stri
       <ul className={styles.shareTargets}>
         {SHARE_TARGETS.map((t) => (
           <li key={t.key}>
-            {t.url ? (
-              <button
-                type="button"
-                className={styles.shareTarget}
-                onClick={() => {
-                  window.open(t.url(encodeURIComponent(link), encodeURIComponent(`${name} | Somnation`)), "_blank", "noopener,noreferrer");
-                  onDone("공유가 완료되었습니다.");
-                }}
-              >
-                <span aria-hidden="true">{t.emoji}</span>
-                <span>{t.label}</span>
-              </button>
-            ) : (
-              // TODO: KakaoTalk share needs the Kakao JS SDK app key (TBD).
-              <button type="button" className={styles.shareTarget} aria-disabled="true" title="준비 중인 기능입니다">
-                <span aria-hidden="true">{t.emoji}</span>
-                <span>{t.label}</span>
-              </button>
-            )}
+            <button
+              type="button"
+              className={styles.shareTarget}
+              onClick={() => {
+                window.open(t.url(encodeURIComponent(link), encodeURIComponent(`${name} | Somnation`)), "_blank", "noopener,noreferrer");
+                onDone("공유가 완료되었습니다.");
+              }}
+            >
+              <span aria-hidden="true">{t.emoji}</span>
+              <span>{t.label}</span>
+            </button>
           </li>
         ))}
       </ul>
