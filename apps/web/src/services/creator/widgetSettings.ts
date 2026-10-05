@@ -10,6 +10,8 @@ import { QR_SAMPLE_IMAGE, WIDGET_OVERLAYS, WIDGET_OVERLAY_SETTINGS, widgetOverla
 import { readWidget, widgetStore } from "./widgetStore";
 import { mockCreator } from "./mockCreatorStore";
 import { studioWins } from "@/services/donations/gachaCore";
+import { memberRanking } from "@/services/crew/crewCore";
+import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
 import { PARSERS } from "./widgetParsers";
 import {
   CUSTOM_SOUND_MAX,
@@ -70,6 +72,16 @@ export async function getWidgetDetail(key: unknown): Promise<WidgetDetail | null
         { name: "달빛소나타", amount: 3_000 },
         { name: "치즈냥", amount: 2_000 },
         { name: "노을", amount: 1_000 }
+      ],
+      // 크루 후원 순위: this month's real member totals; 수단별 보드: a fixed sample (platform units differ).
+      crewRanking: memberRanking(STUDIO_CHANNEL)
+        .filter((r) => r.totalFn > 0)
+        .map((r) => ({ name: r.name, amount: r.totalFn })),
+      sourceBoard: [
+        { name: "썸네이션 FN · 12건", amount: 125_000, amountLabel: "125,000 FN" },
+        { name: "SOOP · 8건", amount: 0, amountLabel: "350 별풍선" },
+        { name: "치지직 · 5건", amount: 0, amountLabel: "30,000 치즈" },
+        { name: "YouTube · 2건", amount: 0, amountLabel: "₩20,000" }
       ],
       miniMinAmount: 100,
       gachaBoardUrl: widgetOverlayPath("gacha-board", mockCreator.integrationKey),

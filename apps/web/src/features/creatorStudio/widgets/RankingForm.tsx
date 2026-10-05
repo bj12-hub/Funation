@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { fillRank } from "@/services/creator/widgetOverlayCore";
 import {
+  RANKING_BOARDS,
   RANKING_MAX_RANKS,
   RANKING_NAME_TYPES,
   RANKING_SPEEDS,
@@ -17,10 +18,11 @@ import styles from "./widgets.module.css";
 
 const fill = fillRank;
 
-/** 후원랭킹 위젯 설정 — Figma 315:650. */
+/** 후원랭킹 위젯 설정 — Figma 315:650. 랭킹 종류 (크루 후원 순위 · 수단별 보드) is code-first (2026-10-06). */
 export function RankingForm({ value: v, onChange, live }: FormProps<"RANKING">) {
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
-  const rows = live.ranking.slice(0, v.ranks);
+  const source: { name: string; amount: number; amountLabel?: string }[] = v.board === "CREW" ? live.crewRanking : v.board === "SOURCE" ? live.sourceBoard : live.ranking;
+  const rows = source.slice(0, v.ranks);
 
   return (
     <>
@@ -34,16 +36,27 @@ export function RankingForm({ value: v, onChange, live }: FormProps<"RANKING">) 
                 <li key={r.name} style={fontStyle(tier.font)}>
                   <span>{fill(v.format.rank, i + 1, r.name, r.amount)}</span>
                   <span style={{ color: tier.accentColor }}>{fill(v.format.name, i + 1, r.name, r.amount)}</span>
-                  {v.showAmount && <span style={{ color: tier.accentColor }}>{fill(v.format.amount, i + 1, r.name, r.amount)}</span>}
+                  {v.showAmount && <span style={{ color: tier.accentColor }}>{r.amountLabel ?? fill(v.format.amount, i + 1, r.name, r.amount)}</span>}
                 </li>
               );
             })}
           </ol>
+          {rows.length === 0 && <p className={styles.hint}>이번 달 크루 멤버에게 지정된 후원이 아직 없어요.</p>}
         </div>
       </Preview>
 
       <Section title="기본 설정">
         <div className={styles.rows}>
+          <Row label="랭킹 종류">
+            <Radios name="rank-board" label="랭킹 종류" options={RANKING_BOARDS} value={v.board} onChange={(x) => set("board", x)} />
+          </Row>
+          {v.board !== "DONOR" && (
+            <p className={styles.hint}>
+              {v.board === "CREW"
+                ? "크루 멤버에게 지정된 후원(멤버 지정)을 멤버별로 합쳐 순위를 보여 줘요."
+                : "썸네이션 FN과 플랫폼 후원을 수단마다 그 단위로 합쳐 후원 건수가 많은 순으로 보여 줘요. 금액 표시 형식 대신 각 단위가 그대로 나와요."}
+            </p>
+          )}
           <Row label="위젯 스타일">
             <div className={styles.filterBox}>
               <Radios name="rank-style" label="위젯 스타일" options={RANKING_STYLES} value={v.style} onChange={(x) => set("style", x)} />

@@ -28,6 +28,8 @@ export type AlertItem = {
   platform?: Platform;
   /** The signature's image for a 시그니처 후원 (or a 일반 후원 matched to a signature by amount); 벽지 "후원 이미지 우선" uses it. */
   imageUrl?: string;
+  /** EXTERNAL: the amount in the platform's own unit (KRW, 별풍선, 치즈 …), summed per platform on 수단별 보드. */
+  native?: { value: number; currency: string };
   /** The signature's sound (library), played by the overlay at 시그니처 볼륨 (code-first, 2026-10-06). */
   soundUrl?: string;
   createdAt: string;
