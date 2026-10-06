@@ -200,6 +200,8 @@ export type BroadcastLive = {
   rankUp: RankUp | null;
   /** The operator shows 랭크업 on the OBS scoreboard. */
   showRankUp: boolean;
+  /** 팬 메시지 · 요청사항 sent from the room during this broadcast. */
+  fanNotes: FanNotesView;
 };
 
 // ── 콘텐츠 시나리오 도우미 (1부 ~ 5부) — code-first ─────────────────────────────────────────────
@@ -329,3 +331,41 @@ export type BroadcastView = {
 export type BroadcastResult = { status: "SAVED" } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
 
 export const crewRoleLabel = (r: CrewRole) => CREW_ROLES.find((x) => x.key === r)!.label;
+
+// ── 팬 메시지 · 요청사항 — code-first (funnation 엑셀방송, 2026-10-06 결정) ──────────────────────────
+
+export const FAN_NOTE_KINDS = [
+  { key: "MESSAGE", label: "팬 메시지", emoji: "💌" },
+  { key: "REQUEST", label: "요청사항", emoji: "🙋" }
+] as const;
+export type FanNoteKind = (typeof FAN_NOTE_KINDS)[number]["key"];
+
+/** NEW = not handled yet; DONE = 확인 · 완료; HIDDEN = the operator hid it (the sender still sees "전달됨"). */
+export type FanNoteStatus = "NEW" | "DONE" | "HIDDEN";
+
+/** `cooldownSec` · `perBroadcast` are placeholder anti-spam limits (TBD: 도배 정책). `mine` = notes the sender sees. */
+export const FAN_NOTE_LIMITS = { textMax: 100, cooldownSec: 30, perBroadcast: 500, mine: 5, shown: 200 } as const;
+
+/** One note as the operator sees it (the sender's account id stays on the server). */
+export type FanNote = { id: string; at: string; kind: FanNoteKind; memberId: string | null; memberName: string | null; author: string; text: string; status: FanNoteStatus };
+
+/** `notes`: newest first, at most FAN_NOTE_LIMITS.shown; `counts` cover every note of the broadcast. */
+export type FanNotesView = { open: boolean; notes: FanNote[]; counts: Record<FanNoteStatus, number> };
+
+/** The room card while the channel's crew broadcast takes notes (null otherwise). */
+export type RoomFanNotes = {
+  broadcastId: string;
+  title: string;
+  members: { id: string; name: string; color: string }[];
+  /** Seconds until this viewer may send again (0 = now; always 0 when signed out). */
+  cooldownLeft: number;
+  /** This viewer's latest notes (newest first); `done` once the operator marks it 완료. */
+  mine: { id: string; kind: FanNoteKind; memberName: string | null; text: string; done: boolean }[];
+};
+
+export type FanNoteResult =
+  | { status: "SENT"; room: RoomFanNotes }
+  | { status: "COOLDOWN"; seconds: number }
+  | { status: "CLOSED" }
+  | { status: "INVALID"; message: string }
+  | { status: "UNAUTHORIZED" };

@@ -140,6 +140,7 @@ Add a row whenever a new code-first screen ships (see `docs/research/funnation-r
 
 | 크루 직급 · 직급 배수 (`crew/GradesCard.tsx` · CrewScreen 멤버별 직급, `crewCore.gradeBonus`, 방송 운영 점수 "직급 배수") | crew-grades PR | 2026-10-06 결정(funnation 직급). 직급 최대 10개(이름 10자, 배수 0 초과 10배 이하 · 소수 둘째 자리, 기본 1배), 멤버마다 직급 선택. 점수판에서 멤버가 방송 중 받은 점수(후원 · 후원 리스트)에 배수를 곱한 추가분을 "직급 배수"로 따로 표시(강탈 · 보정 · 배틀 배수 제외), 강탈 기준 점수에도 반영, 배수 변경은 즉시 반영. 직급을 지우면 그 멤버는 직급 없음 |
 
+| 팬 메시지 · 요청사항 (`crew/FanNotesPanel.tsx` 방송 운영 · `creatorRoom/RoomFanNotes.tsx` 채널 홈 플레이어 아래, `services/crew/crewFanNotes.ts`) | crew-fan-notes PR | 2026-10-06 결정(funnation 엑셀방송 팬 메시지 · 요청사항). 크루 방송이 진행 중인 채널 홈에서 로그인한 시청자가 무료로 보냄: 종류(💌 팬 메시지 / 🙋 요청사항) · 받는 멤버(크루 전체 또는 활동 멤버) · 100자, 한 사람당 30초에 한 번 · 방송당 500개(도배 기준 TBD), requestId로 중복 방지, 금칙어 검사, 내가 보낸 글 5개(전달됨 / 완료). 운영자는 처리 전 · 완료 · 숨김 · 전체와 종류 · 멤버로 걸러 보고 완료 · 숨기기 · 되돌리기, "방송 방에서 받기" 켜기/끄기, 테스트 팬 메시지 · 요청사항. 보낸 사람 계정 id는 서버에만. 목업: 스튜디오 채널은 공개 방이 없어 c4 방에 진행 중 데모 방송을 둠 |
 | 랭크업 (`crew/BroadcastScreen.tsx` 점수판 아래 · `CrewScoreOverlay.tsx`, `crewTypes.rankUpPair`, `setRankUpOverlay`) | crew-rank-up PR | 2026-10-06 결정(funnation 랭크업). 점수판에서 이웃한 두 멤버 중 점수 차가 가장 작은 쌍(같으면 위쪽 쌍, 0점 차 = 동점)을 "🔥 랭크업 아래 멤버(순위) → 위 멤버(순위) N점 차"로 표시, 위 멤버 점수가 0이면 표시 없음. "OBS 점수판에 표시"를 켜면 크루 점수판 오버레이 제목 아래에 띄움 |
 
 ## Figma

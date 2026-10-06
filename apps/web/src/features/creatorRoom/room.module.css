@@ -1220,3 +1220,112 @@
   color: var(--color-error-text);
   font-size: var(--font-size-13);
 }
+
+/* ── 팬 메시지 · 요청사항 (code-first, 2026-10-06) — header · button · notes reuse the 투표 card classes ── */
+
+.fan {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-12);
+  background: var(--color-surface);
+}
+
+.fanRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.fanKinds {
+  display: flex;
+  gap: 6px;
+}
+
+.fanKinds button {
+  padding: 6px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.fanKinds button[aria-checked="true"] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+.fanSelect,
+.fanText {
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-8);
+  background: var(--color-input-bg);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+}
+
+.fanSelect {
+  height: 36px;
+  padding: 0 10px;
+}
+
+.fanText {
+  width: 100%;
+  padding: 10px 12px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.fanSend {
+  padding: 10px 18px;
+}
+
+.fanMine {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--color-border);
+  list-style: none;
+}
+
+.fanMine li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.fanMineText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fanSent,
+.fanDone {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-12);
+}
+
+.fanSent {
+  background: var(--color-neutral-soft);
+  color: var(--color-text-secondary);
+}
+
+.fanDone {
+  background: var(--color-success-soft);
+  color: var(--color-success-text);
+}

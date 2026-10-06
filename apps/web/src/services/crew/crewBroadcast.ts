@@ -21,7 +21,7 @@ import {
   type ScoreRow,
   type TeamKey
 } from "./crewTypes";
-import { battleBonus, battleRulesOf, gradeBonus, excelOf, liveBroadcastOf, scoreEntry, scoreFn, stealRecordView, stealRulesOf, windowScores } from "./crewCore";
+import { battleBonus, battleRulesOf, fanNotesView, gradeBonus, excelOf, liveBroadcastOf, scoreEntry, scoreFn, stealRecordView, stealRulesOf, windowScores } from "./crewCore";
 import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 /**
@@ -96,7 +96,8 @@ function liveView(b: MockBroadcast): BroadcastLive {
         }
       : null,
     rankUp,
-    showRankUp: !!b.showRankUp
+    showRankUp: !!b.showRankUp,
+    fanNotes: fanNotesView(b)
   };
 }
 
