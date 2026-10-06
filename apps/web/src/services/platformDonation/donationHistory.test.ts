@@ -52,6 +52,7 @@ describe("후원 내역", () => {
     expect(soop.items.every((i) => i.source === "SOOP")).toBe(true);
     const odd = (await m.getDonationHistory({ tab: "hack", period: "7", status: "WHATEVER" }))!;
     expect([odd.tab, odd.period, odd.status]).toEqual(["all", "30", "all"]);
+    expect((await m.getDonationHistory({ status: "constructor" }))!.status).toBe("all");
     const one = soop.items[0];
     const found = (await m.getDonationHistory({ tab: "soop", period: "all", q: one.transactionId.toUpperCase(), tx: one.transactionId }))!;
     expect(found.items.map((i) => i.transactionId)).toContain(one.transactionId);

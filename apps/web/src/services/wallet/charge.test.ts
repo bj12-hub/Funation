@@ -40,6 +40,10 @@ describe("FN 충전", () => {
     for (const bad of [
       custom(1, 500),
       { ...custom(2, 5_000), methodId: "BITCOIN" },
+      // Inherited object keys are not payment methods.
+      { ...custom(6, 5_000), methodId: "__proto__" },
+      { ...custom(7, 5_000), methodId: "constructor" },
+      { ...custom(8, 5_000), methodId: "toString" },
       { ...custom(3, 5_000), idempotencyKey: "short" },
       { amount: { packageId: "fn-12345" }, methodId: "CARD", idempotencyKey: key(4) },
       { amount: { customAmount: "5000" }, methodId: "CARD", idempotencyKey: key(5) }

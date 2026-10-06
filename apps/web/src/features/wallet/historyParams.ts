@@ -12,7 +12,7 @@ export function parseHistoryParams(raw: RawParams) {
   return {
     period: parsePeriod({ period: one(raw.period), from: one(raw.from), to: one(raw.to) }),
     page: Number.isInteger(page) && page > 1 ? page : 1,
-    category: (type && type in DONATION_CATEGORY_LABEL ? type : "basic") as DonationCategory
+    category: (type && Object.hasOwn(DONATION_CATEGORY_LABEL, type) ? type : "basic") as DonationCategory
   };
 }
 

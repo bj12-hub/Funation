@@ -39,7 +39,7 @@ export async function saveNotice(admin: AdminActor, input: unknown): Promise<Con
   const title = str(v.title);
   const summary = str(v.summary);
   const bodyText = str(v.body);
-  if (!(typeof v.category === "string" && v.category in NOTICE_CATEGORY_LABEL)) return { status: "INVALID", message: "분류를 골라 주세요." };
+  if (!(typeof v.category === "string" && Object.hasOwn(NOTICE_CATEGORY_LABEL, v.category))) return { status: "INVALID", message: "분류를 골라 주세요." };
   if (!title || title.length > NOTICE_LIMITS.title) return { status: "INVALID", message: `제목을 1~${NOTICE_LIMITS.title}자로 입력해 주세요.` };
   if (!summary || summary.length > NOTICE_LIMITS.summary) return { status: "INVALID", message: `요약을 1~${NOTICE_LIMITS.summary}자로 입력해 주세요.` };
   if (!bodyText || bodyText.length > NOTICE_LIMITS.body) return { status: "INVALID", message: `본문을 1~${NOTICE_LIMITS.body}자로 입력해 주세요.` };

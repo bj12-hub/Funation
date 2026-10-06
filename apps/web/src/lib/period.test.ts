@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { parseHistoryParams } from "@/features/wallet/historyParams";
 import { isIsoDate, isIsoDateTime, parsePeriod } from "./period";
 import { parseStatsPeriod } from "@/services/creator/creatorStats";
 import { parseListPeriod } from "@/services/creator/donationManagementTypes";
@@ -22,6 +23,14 @@ describe("날짜 검증", () => {
     expect(parseStatsPeriod({ period: "range", from: "2026-02-30", to: "2026-03-05" }).preset).toBe("week");
     expect(parseStatsPeriod({ period: "range", from: "2026-02-27", to: "2026-03-05" })).toEqual({ preset: "range", from: "2026-02-27", to: "2026-03-05" });
     expect(parseListPeriod({ period: "range", from: "2026-04-31", to: "2026-05-02" }).preset).toBe("1y");
+  });
+
+  it("ignores inherited object keys as presets and categories", () => {
+    for (const key of ["__proto__", "constructor", "toString"]) {
+      expect(parsePeriod({ period: key }).preset).toBe("month");
+      expect(parseStatsPeriod({ period: key }).preset).toBe("week");
+      expect(parseHistoryParams({ type: key }).category).toBe("basic");
+    }
   });
 
   it("does not save widget periods on impossible days", () => {

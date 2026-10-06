@@ -44,6 +44,7 @@ describe("admin content", () => {
     const m = await load();
     expect((await m.saveNotice(OP, { ...notice, title: "", requestId: key(2) })).status).toBe("INVALID");
     expect((await m.saveNotice(OP, { ...notice, category: "NOPE", requestId: key(3) })).status).toBe("INVALID");
+    expect((await m.saveNotice(OP, { ...notice, category: "constructor", requestId: key(3) })).status).toBe("INVALID");
     const faq = { category: "DONATION", question: "새 질문인가요?", answer: "", linkHref: "", linkLabel: "" };
     expect((await m.saveFaq(OP, { ...faq, linkHref: "https://evil.example", linkLabel: "x", requestId: key(4) })).status).toBe("INVALID");
     expect((await m.saveFaq(OP, { ...faq, linkHref: "//evil.example", linkLabel: "x", requestId: key(5) })).status).toBe("INVALID");

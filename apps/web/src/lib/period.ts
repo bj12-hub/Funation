@@ -38,7 +38,7 @@ export function presetRange(preset: Exclude<PeriodPreset, "range">, today = new 
 
 /** Validates URL params; falls back to 월별. */
 export function parsePeriod(raw: { period?: string; from?: string; to?: string }): Period {
-  const preset = raw.period && raw.period in PERIOD_LABEL ? (raw.period as PeriodPreset) : "month";
+  const preset = raw.period && Object.hasOwn(PERIOD_LABEL, raw.period) ? (raw.period as PeriodPreset) : "month";
   if (preset !== "range") return { preset, ...presetRange(preset) };
   const from = parseDate(raw.from);
   const to = parseDate(raw.to);

@@ -34,7 +34,7 @@ const assertMock = () => {
   if (!USE_MOCK) throw new Error("Platform donation API is not connected yet.");
 };
 
-const isPlatform = (v: unknown): v is PlatformKey => typeof v === "string" && v in PLATFORMS;
+const isPlatform = (v: unknown): v is PlatformKey => typeof v === "string" && Object.hasOwn(PLATFORMS, v);
 const isId = (v: unknown): v is string => typeof v === "string" && /^[A-Za-z0-9_-]{1,40}$/.test(v);
 
 export async function getPlatformHome(platform: PlatformKey): Promise<PlatformHome | null> {

@@ -26,7 +26,7 @@ describe("admin console", () => {
     signIn(["SUPPORTER"]);
     m.mockAccount.fnBalance = 100_000;
     await m.requestDonation({ creatorId: "c1", hideProfile: false, type: "TEXT", amount: 7_000, message: "", voiceId: null, idempotencyKey: key(1) });
-    m.mockRefunds.requests.push({ chargeId: "ch-x", requestedAt: "2026-09-30", reason: "", status: "REQUESTED" });
+    m.mockRefunds.requests.push({ chargeId: "ch-x", memberId: "u-test", accountSince: null, requestedAt: "2026-09-30", reason: "", status: "REQUESTED" });
     signIn(["ADMIN"]);
     const d = (await m.getAdminDashboard())!;
     expect(d.donations.monthFn).toBeGreaterThanOrEqual(7_000);

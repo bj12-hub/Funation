@@ -7,7 +7,7 @@ import { drawState } from "@/services/donations/gachaCore";
 import { spinState } from "@/services/donations/rouletteCore";
 import { isBlankPrize } from "@/services/donations/rouletteTypes";
 import { mockCredits } from "./mockCreditStore";
-import { mockRefunds } from "./mockRefundStore";
+import { mockRefunds, refundView } from "./mockRefundStore";
 import { mockWallet } from "./mockWalletStore";
 import { toDateString, type Period } from "@/lib/period";
 import {
@@ -115,6 +115,8 @@ function gameResultOf(id: string): string | null {
  * FN Wallet (Figma 817:7552): summary + one 충전·사용·환불 list built from the charge and donation
  * records on the server. A running balance column is not shown — the mock history is not a
  * reconciled ledger; the backend ledger must provide balance-after values (TBD).
+ * An approved charge refund shows like a refunded donation: the charge row turns 환불완료 and a
+ * separate 환불 row records the FN taken back (−), so `?kind=REFUND` lists it too.
  */
 export async function getWalletOverview(input: { kind?: unknown; period?: unknown; page?: unknown }): Promise<WalletOverview | null> {
   if (!USE_MOCK) throw new Error("Wallet API is not connected yet.");
@@ -124,18 +126,26 @@ export async function getWalletOverview(input: { kind?: unknown; period?: unknow
   await mockDelay(300);
 
   const donations = mockDonations();
+  const charges = mockCharges();
+  const debits = new Map(mockRefunds.requests.flatMap((r) => (r.debit ? [[r.chargeId, r.debit] as const] : [])));
   const entries: LedgerEntry[] = [
-    ...mockCharges().map(
+    ...charges.map(
       (c): LedgerEntry => ({
         id: c.id,
         kind: "CHARGE",
         description: `FN 충전 · ${c.methodLabel}`,
         deltaFn: c.fnAmount,
-        statusLabel: CHARGE_STATUS_LABEL[c.status],
-        tone: c.status === "COMPLETED" ? "done" : c.status === "PROCESSING" ? "pending" : "failed",
+        statusLabel: debits.has(c.id) ? DONATION_STATUS_LABEL.REFUNDED : CHARGE_STATUS_LABEL[c.status],
+        tone: debits.has(c.id) ? "refund" : c.status === "COMPLETED" ? "done" : c.status === "PROCESSING" ? "pending" : "failed",
         at: c.chargedAt.slice(0, 16)
       })
     ),
+    ...charges.flatMap((c): LedgerEntry[] => {
+      const debit = debits.get(c.id);
+      return debit
+        ? [{ id: `${c.id}-refund`, kind: "REFUND", description: `충전 환불 · ${c.methodLabel}`, deltaFn: -debit.fnAmount, statusLabel: DONATION_STATUS_LABEL.REFUNDED, tone: "refund", at: debit.at.slice(0, 16) }]
+        : [];
+    }),
     ...donations.map(
       (d): LedgerEntry => ({
         id: d.id,
@@ -245,13 +255,18 @@ function mockCharges(): ChargeRecord[] {
   const charges = since ? mockWallet.charges.filter((c) => c.chargedAt >= since) : [...mockWallet.charges, ...seedCharges()];
   return charges.map((c) => {
     const r = refunds.get(c.id);
-    return r ? { ...c, refund: { status: r.status, requestedAt: r.requestedAt, decidedAt: r.decision?.at, note: r.status === "REJECTED" ? r.decision?.note : undefined } } : c;
+    return r ? { ...c, refund: refundView(r) } : c;
   });
 }
 
 /** All charge records of the signed-in mock member (server-side; used by refund requests). */
 export function listChargeRecords(): ChargeRecord[] {
   return mockCharges();
+}
+
+/** A charge of any account, also one that withdrew (server-side; the admin console shows what a refund request was for). */
+export function findChargeRecord(id: string): ChargeRecord | null {
+  return [...mockWallet.charges, ...seedCharges()].find((c) => c.id === id) ?? null;
 }
 
 function seedCharges(): ChargeRecord[] {
