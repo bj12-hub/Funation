@@ -103,6 +103,10 @@ export function AssetsScreen({ items }: { items: Asset[] }) {
         <p className={styles.note}>
           이미지와 사운드의 이름이 같으면(예: 축하.png · 축하.mp3) 짝으로 묶여요. <Link href="/creator/widgets/signatures">시그니처</Link>에 그 이미지를 고르면 사운드가 소리로 함께 붙어요.
         </p>
+        <p className={styles.note}>
+          올린 이미지 여러 장을 <Link href="/creator/widgets/signatures?bulk=1">시그니처로 한 번에 만들 수</Link> 있어요. 파일 이름에 가격을 넣어 두면(예: 1004 하트.png) 가격 칸이
+          채워져요.
+        </p>
       </section>
 
       <section className={styles.card} aria-labelledby="asset-list">

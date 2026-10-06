@@ -57,7 +57,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/creator/youtube` | ✅ code-first | 유튜브 연동 — Y01 `62:1539` |
 | `/creator/videos` | ✅ code-first | 영상 목록 — Y02 `63:1255` |
 | `/creator/widgets/effects` | ✅ code-first | 이펙트 · 효과 — W05 `66:1840` |
-| `/creator/widgets/signatures` | ✅ code-first | 시그니처 후원 — W06 `201:5481` |
+| `/creator/widgets/signatures` | ✅ code-first | 시그니처 후원 — W06 `201:5481`, 한 번에 만들기 W06b `209:5689` |
 | `/creator/widgets/video` | ✅ code-first | 영상 후원 관리 — W07 `66:2322` |
 | `/creator/widgets/drawing` | ✅ code-first | 그림후원 — W08 `66:2498` |
 | `/creator/widgets/assets` | ✅ code-first | 이미지·사운드 라이브러리 — W09 `200:5619` |
