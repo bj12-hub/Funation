@@ -184,7 +184,7 @@ The catalog follows the funnation 위젯 page (`features/creatorStudio/widgets/w
   - 게이지 · 랭킹: 후원자 랭킹, 목표, 후원누적금액, 크루 점수판
   - 표시 · 자막: 배너, 자막, 전광판, 엔딩 크레딧, 채팅창, QR, 벽지
   - 이펙트 · 효과: 이모지 리액션 and 레이어 효과, set up at `/creator/widgets/effects`
-  - 시그니처 후원: signatures and matching rules, managed at `/creator/widgets/signatures` (feeds the room 시그니처 후원 panel)
+  - 시그니처 후원: signatures and matching rules, managed at `/creator/widgets/signatures` (feeds the room 시그니처 후원 panel); "한 번에 만들기" turns several library images into signatures at once
   - 영상 · 그림후원: the 영상 후원 queue (`/creator/widgets/video`) and the 그림후원 gallery (`/creator/widgets/drawing`), each with an OBS overlay
   - 이미지·사운드 (`/creator/widgets/assets`): the library used by 배너 (`/creator/widgets/banner`, OBS banner overlay) and 시그니처 images
   - 후원 연동 (`/creator/widgets/link`): broadcast-platform donations shown in 후원 알림 in their own currency (not Somnation payments)

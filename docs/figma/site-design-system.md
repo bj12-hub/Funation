@@ -103,6 +103,7 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 방송 · 위젯 | W04 | 리모컨 (기능 제어 · 볼륨 · 시그니처 소리 · 방송 도구 · 투표 · 룰렛 스위치 · 뽑기 수령 처리) | `/creator/remote` | `202:5483` |
 | 방송 · 위젯 | W05 | 이펙트 · 효과 | `/creator/widgets/effects` | `66:1840` |
 | 방송 · 위젯 | W06 | 시그니처 후원 (편집 열림) | `/creator/widgets/signatures` | `201:5481` |
+| 방송 · 위젯 | W06b | 시그니처 후원 (한 번에 만들기) | `/creator/widgets/signatures?bulk=1` | `209:5689` |
 | 방송 · 위젯 | W07 | 영상 후원 | `/creator/widgets/video` | `66:2322` |
 | 방송 · 위젯 | W08 | 그림후원 | `/creator/widgets/drawing` | `66:2498` |
 | 방송 · 위젯 | W09 | 이미지·사운드 | `/creator/widgets/assets` | `200:5619` |

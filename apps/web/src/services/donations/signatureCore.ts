@@ -10,7 +10,13 @@ import { SIGNATURE_IMAGE_PRESETS, type ManagedSignature } from "./signatureTypes
  * edits replace the catalog's signatures for every donation panel in the mock (per-channel catalogs TBD).
  */
 
-type Store = { items: ManagedSignature[]; requests: Record<string, string>; favorites: Record<string, boolean> };
+type Store = {
+  items: ManagedSignature[];
+  requests: Record<string, string>;
+  /** 일괄 만들기 requestId → the ids it created (added 2026-10-06; older dev stores start without it). */
+  bulk?: Record<string, string[]>;
+  favorites: Record<string, boolean>;
+};
 const g = globalThis as typeof globalThis & { __funationMockSignaturesV1?: Store };
 
 export const mockSignatures = (g.__funationMockSignaturesV1 ??= ((): Store => {

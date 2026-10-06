@@ -8,6 +8,7 @@ import { deleteSignature, moveSignature, saveSignature } from "@/services/donati
 import { pairOf, type Asset } from "@/services/creator/assetTypes";
 import { SIGNATURE_IMAGE_PRESETS, SIGNATURE_LIMITS, type ManagedSignature, type SignatureMatch, type SignatureResult } from "@/services/donations/signatureTypes";
 import styles from "../crew/crew.module.css";
+import { BulkSignatures } from "./BulkSignatures";
 import local from "./signatures.module.css";
 
 type Draft = Omit<ManagedSignature, "id"> & { id: string | null };
@@ -18,14 +19,16 @@ const blank = (): Draft => ({ id: null, name: "", price: 10_000, imageUrl: SIGNA
 /**
  * 시그니처 후원 관리 — code-first (no Figma frame). Route `/creator/widgets/signatures`.
  * The list is what supporters see in the room's 시그니처 후원 panel, in this order. `library` is the creator's
- * 이미지·사운드: picking a library image also picks the sound with the same name (자동 매칭, 2026-10-06 결정).
+ * 이미지·사운드: picking a library image also picks the sound with the same name (자동 매칭, 2026-10-06 결정), and
+ * "한 번에 만들기" turns several library images into signatures at once (`?bulk=1` opens it, from the library page).
  */
-export function SignaturesScreen({ items, library }: { items: ManagedSignature[]; library: Asset[] }) {
+export function SignaturesScreen({ items, library, startBulk = false }: { items: ManagedSignature[]; library: Asset[]; startBulk?: boolean }) {
   const router = useRouter();
   const images = library.filter((a) => a.kind === "IMAGE");
   const sounds = library.filter((a) => a.kind === "SOUND");
   const soundName = (url: string | null) => sounds.find((a) => a.url === url)?.name ?? null;
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [bulk, setBulk] = useState(startBulk);
   /** The sound was picked by 자동 매칭 (a hand-picked sound is never replaced). */
   const [autoSound, setAutoSound] = useState(false);
   const [note, setNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
@@ -51,7 +54,13 @@ export function SignaturesScreen({ items, library }: { items: ManagedSignature[]
   const openNew = () => {
     requestId.current = null;
     setAutoSound(false);
+    setBulk(false);
     setDraft(blank());
+  };
+  const openBulk = () => {
+    setDraft(null);
+    setNote(null);
+    setBulk(true);
   };
   const pickImage = (src: string) => {
     if (!draft) return;
@@ -92,9 +101,14 @@ export function SignaturesScreen({ items, library }: { items: ManagedSignature[]
           <h2 className={styles.cardTitle} id="sig-list">
             ⭐ 시그니처 목록
           </h2>
-          <button type="button" className={styles.primary} onClick={openNew} disabled={pending || items.length >= SIGNATURE_LIMITS.max}>
-            + 시그니처 추가
-          </button>
+          <div className={styles.rowActions}>
+            <button type="button" className={styles.ghost} onClick={openBulk} disabled={pending || bulk}>
+              📚 한 번에 만들기
+            </button>
+            <button type="button" className={styles.primary} onClick={openNew} disabled={pending || items.length >= SIGNATURE_LIMITS.max}>
+              + 시그니처 추가
+            </button>
+          </div>
         </div>
         <p className={styles.note}>
           <strong>금액 일치</strong>로 두면 일반 후원 금액이 시그니처 가격과 같을 때도 그 시그니처로 알림이 떠요. 위에서부터 방송 방에 보이는 순서예요.
@@ -137,6 +151,7 @@ export function SignaturesScreen({ items, library }: { items: ManagedSignature[]
                     disabled={pending}
                     onClick={() => {
                       setAutoSound(false);
+                      setBulk(false);
                       setDraft({ ...s, soundUrl: soundName(s.soundUrl) ? s.soundUrl : null });
                     }}
                   >
@@ -151,6 +166,20 @@ export function SignaturesScreen({ items, library }: { items: ManagedSignature[]
           </ul>
         )}
       </section>
+
+      {bulk && (
+        <BulkSignatures
+          items={items}
+          library={library}
+          matchLabels={MATCH_LABEL}
+          onClose={() => setBulk(false)}
+          onDone={(count) => {
+            setBulk(false);
+            setNote({ tone: "ok", text: `시그니처 ${count}개를 만들었어요. 목록 아래쪽에 추가됐어요.` });
+            router.refresh();
+          }}
+        />
+      )}
 
       {draft && (
         <section className={styles.card} aria-labelledby="sig-edit">
