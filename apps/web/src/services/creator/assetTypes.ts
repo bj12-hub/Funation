@@ -42,4 +42,32 @@ export function pairOf(asset: Pick<Asset, "kind" | "name">, library: Asset[]): A
   return library.find((a) => a.kind === other && pairKey(a.name) === pairKey(asset.name)) ?? null;
 }
 
+/** 라이브러리 정렬 (funnation "정렬·필터", code-first 2026-10-06). The store keeps the newest first. */
+export const ASSET_SORTS = [
+  { key: "NEW", label: "최신순" },
+  { key: "OLD", label: "오래된순" },
+  { key: "NAME", label: "이름순" },
+  { key: "SIZE", label: "큰 파일순" }
+] as const;
+export type AssetSort = (typeof ASSET_SORTS)[number]["key"];
+
+export type AssetFilter = { kind: AssetKind; query: string; sort: AssetSort; pairedOnly: boolean };
+
+/** The files of one kind matching the name search (case and spaces ignored) and the 짝 filter, in the chosen order. */
+export function filterAssets(library: Asset[], f: AssetFilter): Asset[] {
+  const q = f.query.trim().toLowerCase();
+  const shown = library.filter((a) => a.kind === f.kind && (!q || a.name.toLowerCase().includes(q)) && (!f.pairedOnly || pairOf(a, library)));
+  const time = (a: Asset) => Date.parse(a.uploadedAt) || 0;
+  // Uploads in the same millisecond fall back to the store's order (newest first).
+  const at = new Map(library.map((a, i) => [a.id, i]));
+  const pos = (a: Asset) => at.get(a.id) ?? 0;
+  const by: Record<AssetSort, (a: Asset, b: Asset) => number> = {
+    NEW: (a, b) => time(b) - time(a) || pos(a) - pos(b),
+    OLD: (a, b) => time(a) - time(b) || pos(b) - pos(a),
+    NAME: (a, b) => a.name.localeCompare(b.name, "ko") || pos(a) - pos(b),
+    SIZE: (a, b) => b.size - a.size || pos(a) - pos(b)
+  };
+  return shown.sort(by[f.sort]);
+}
+
 export type AssetResult = { status: "SAVED"; asset: Asset } | { status: "DELETED" } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };

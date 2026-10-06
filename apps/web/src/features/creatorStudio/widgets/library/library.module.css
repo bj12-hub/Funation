@@ -75,3 +75,15 @@
 .pick[aria-pressed="true"] {
   border-color: var(--color-primary);
 }
+
+/* 이름 찾기 · 정렬 · 짝 필터 (2026-10-06). */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.filters input[type="search"] {
+  flex: 1 1 200px;
+}
