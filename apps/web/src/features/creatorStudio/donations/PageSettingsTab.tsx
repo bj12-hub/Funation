@@ -15,6 +15,7 @@ import {
 } from "@/services/creator/donationManagement";
 import {
   BANNED_WORD_MAX,
+  DEFAULT_REPLACEMENT_MESSAGE,
   ONE_LINE_MESSAGE_MAX,
   PAGE_OPTIONS,
   REPLACEMENT_MESSAGE_MAX,
@@ -372,6 +373,8 @@ function ReplacementCard({ initial, notify }: { initial: DonationPageSettings["r
             </button>
           )}
         </div>
+        {/* Code-first copy (2026-10-06 결정 "기본 문구로 표시"). */}
+        <p className={styles.helper}>비워 두면 메시지는 &quot;{DEFAULT_REPLACEMENT_MESSAGE}&quot;, 닉네임은 &quot;익명&quot;으로 보여요.</p>
       </Line>
     </Card>
   );
