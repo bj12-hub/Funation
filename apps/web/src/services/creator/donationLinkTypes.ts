@@ -1,3 +1,4 @@
+import { formatNumber } from "@/lib/format";
 import type { Platform } from "@/types/platform";
 
 /**
@@ -29,7 +30,8 @@ export const formatMoney = (value: number, currency: string) => {
   try {
     return new Intl.NumberFormat("ko-KR", { style: "currency", currency }).format(value);
   } catch {
-    return `${value} ${currency}`;
+    // Platform units (치즈 · 별풍선 …) are not ISO currencies.
+    return `${formatNumber(value)} ${currency}`;
   }
 };
 

@@ -8,6 +8,7 @@ import {
   ADJUST_REASON_MAX,
   BROADCAST_TITLE_MAX,
   MAX_ADJUST_POINTS,
+  OVERLAY_BOARD_ROWS,
   PROJECT_NAME_MAX,
   rankUpPair,
   type FeedSourceKey,
@@ -21,7 +22,7 @@ import {
   type ScoreRow,
   type TeamKey
 } from "./crewTypes";
-import { battleBonus, battleRulesOf, fanNotesView, gradeBonus, excelOf, liveBroadcastOf, scoreEntry, scoreFn, stealRecordView, stealRulesOf, windowScores } from "./crewCore";
+import { battleBonus, battleRulesOf, fanNotesView, gradeBonus, gradeMultipliersOf, excelOf, liveBroadcastOf, scoreEntry, scoreFn, stealRecordView, stealRulesOf, windowScores } from "./crewCore";
 import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 /**
@@ -245,6 +246,7 @@ export async function startBroadcast(input: unknown): Promise<BroadcastResult> {
     teamMode: v.teamMode,
     teams,
     adjustments: [],
+    gradeMultipliers: gradeMultipliersOf(STUDIO_CHANNEL),
     final: null
   });
   return { status: "SAVED" };
@@ -317,5 +319,11 @@ export async function getOverlayScoreboard(overlayKey: unknown): Promise<Broadca
   const view = liveView(live);
   // The overlay page is reachable with the key alone: operator logs and viewers' notes (with nicknames, hidden ones
   // too) stay in the studio.
-  return { ...view, logs: [], fanNotes: { open: view.fanNotes.open, rules: view.fanNotes.rules, notes: [], counts: { NEW: 0, DONE: 0, HIDDEN: 0 } } };
+  return {
+    ...view,
+    logs: [],
+    fanNotes: { open: view.fanNotes.open, rules: view.fanNotes.rules, notes: [], counts: { NEW: 0, DONE: 0, HIDDEN: 0 } },
+    // 랭크업 between members who are on the board; a closer pair further down would name people OBS does not show.
+    rankUp: rankUpPair(view.rows.slice(0, OVERLAY_BOARD_ROWS))
+  };
 }

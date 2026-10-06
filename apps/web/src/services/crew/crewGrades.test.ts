@@ -67,9 +67,67 @@ describe("직급 · 직급 배수", () => {
     const staffRow = rows.find((r) => r.memberId === "cm-s2")!;
     expect(staffRow).toMatchObject({ feed: 5_000, grade: 0 });
     expect(staffRow.score).toBe(staffRow.donated + 5_000);
-    // Changing the 배수 applies at once.
+    // A changed 배수 applies from the next broadcast; the live one keeps the 배수 it started with.
     await m.saveCrewGrades({ grades: [{ id: boss.id, name: "부장", multiplier: 1.5 }, { id: staff.id, name: "사원", multiplier: 1 }] });
-    expect((await m.getBroadcastView())!.live!.rows.find((r) => r.memberId === "cm-s1")).toMatchObject({ grade: 1_500, score: 4_500 });
+    expect((await m.getBroadcastView())!.live!.rows.find((r) => r.memberId === "cm-s1")).toMatchObject({ grade: 3_000, score: 6_000 });
+    await m.endBroadcast(id);
+    await m.startBroadcast({ title: "직급전 2", teamMode: false, teams: {} });
+    const next = (await m.getBroadcastView())!.live!.id;
+    await m.simulateDonation({ broadcastId: next, requestId: key(3), amount: 3_000, unit: "FN", message: "길동" });
+    expect((await m.getBroadcastView())!.live!.rows.find((r) => r.memberId === "cm-s1")).toMatchObject({ feed: 3_000, grade: 1_500, score: 4_500 });
+  });
+
+  it("never leaves a steal resting on a 배수 changed afterwards", async () => {
+    const m = await load();
+    const { stealRulesOf } = await import("./crewCore");
+    await m.saveCrewGrades({ grades: [{ name: "부장", multiplier: 10 }] });
+    const [boss] = (await m.getCrewStudio())!.grades;
+    await m.updateCrewMember("cm-s1", { gradeId: boss.id });
+    await m.setMemberKeywords({ memberId: "cm-s1", keywords: ["길동"] });
+    await m.startBroadcast({ title: "강탈전", teamMode: false, teams: {} });
+    const id = (await m.getBroadcastView())!.live!.id;
+    await m.simulateDonation({ broadcastId: id, requestId: key(1), amount: 1_000, unit: "FN", message: "길동" });
+    const before = (await m.getBroadcastView())!.live!.rows;
+    expect(before.find((r) => r.memberId === "cm-s1")!.score).toBe(10_000);
+    expect(stealRulesOf).toBeTypeOf("function");
+    // Removing the grade mid-broadcast does not take the 10배 points back from under a steal.
+    await m.updateCrewMember("cm-s1", { gradeId: null });
+    await m.saveCrewGrades({ grades: [] });
+    const after = (await m.getBroadcastView())!.live!.rows;
+    expect(after.find((r) => r.memberId === "cm-s1")!.score).toBe(10_000);
+  });
+
+  it("checks the rounded 배수, rounds the bonus in whole points and keeps only known grade ids", async () => {
+    const { parseGrades, parseMultiplier } = await import("./crewCore");
+    expect(parseMultiplier(0.00000001, 10)).toBeNull(); // would be stored as 0
+    expect(parseMultiplier(0.004, 10)).toBeNull();
+    expect(parseMultiplier(1.15, 10)).toBe(1.15);
+    expect(parseMultiplier(0.1 + 0.2, 10)).toBe(0.3);
+    expect(parseMultiplier(10.001, 10)).toBeNull();
+    const parsed = parseGrades(
+      [
+        { id: "gr-a", name: "부장", multiplier: 2 },
+        { id: "gr-a", name: "사원", multiplier: 1 },
+        { id: "gr-made-up", name: "인턴", multiplier: 1 }
+      ],
+      [],
+      ["gr-a"]
+    );
+    if (!Array.isArray(parsed)) throw new Error(parsed.message);
+    expect(parsed[0].id).toBe("gr-a");
+    expect(new Set(parsed.map((g) => g.id)).size).toBe(3);
+    expect(parsed[2].id).not.toBe("gr-made-up");
+
+    const m = await load();
+    await m.saveCrewGrades({ grades: [{ name: "부장", multiplier: 1.15 }] });
+    const [boss] = (await m.getCrewStudio())!.grades;
+    await m.updateCrewMember("cm-s1", { gradeId: boss.id });
+    await m.setMemberKeywords({ memberId: "cm-s1", keywords: ["길동"] });
+    await m.startBroadcast({ title: "반올림", teamMode: false, teams: {} });
+    const id = (await m.getBroadcastView())!.live!.id;
+    await m.simulateDonation({ broadcastId: id, requestId: key(1), amount: 1_010, unit: "FN", message: "길동" });
+    // 1,010 × 0.15 = 151.5 → 152 (floating point alone gives 151).
+    expect((await m.getBroadcastView())!.live!.rows.find((r) => r.memberId === "cm-s1")!.grade).toBe(152);
   });
 
   it("is for creators only", async () => {

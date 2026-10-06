@@ -178,6 +178,9 @@ export function rankUpPair(rows: Pick<ScoreRow, "memberId" | "name" | "score">[]
   return best;
 }
 
+/** Rows the OBS crew scoreboard lists (main board and 서브 점수판). */
+export const OVERLAY_BOARD_ROWS = 10;
+
 export type BroadcastLive = {
   id: string;
   title: string;

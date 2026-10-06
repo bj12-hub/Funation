@@ -10,20 +10,23 @@ import { QR_SAMPLE_IMAGE, WIDGET_OVERLAYS, WIDGET_OVERLAY_SETTINGS, widgetOverla
 import { readWidget, widgetStore } from "./widgetStore";
 import { mockCreator } from "./mockCreatorStore";
 import { studioWins } from "@/services/donations/gachaCore";
-import { memberRanking } from "@/services/crew/crewCore";
-import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
+import { STUDIO_CHANNEL, mockCrew } from "@/services/crew/mockCrewStore";
+import { crewRankingRows } from "./widgetOverlayCore";
 import { PARSERS } from "./widgetParsers";
 import {
   CUSTOM_SOUND_MAX,
   CUSTOM_SOUND_MAX_BYTES,
   CUSTOM_SOUND_TYPES,
   CUSTOM_SOUND_WORD_MAX,
+  RANKING_MAX_RANKS,
+  RANKING_WIDGET_PERIODS,
   WALLPAPER_IMAGES_MAX,
   WIDGET_PATHS,
   isEditableWidget,
   type CustomSound,
   type CustomSoundResult,
   type WidgetDetail,
+  type WidgetLiveData,
   type WidgetSaveResult,
   type WallpaperImageResult,
   type WidgetSettingsMap
@@ -73,10 +76,16 @@ export async function getWidgetDetail(key: unknown): Promise<WidgetDetail | null
         { name: "치즈냥", amount: 2_000 },
         { name: "노을", amount: 1_000 }
       ],
-      // 크루 후원 순위: this month's real member totals; 수단별 보드: a fixed sample (platform units differ).
-      crewRanking: memberRanking(STUDIO_CHANNEL)
-        .filter((r) => r.totalFn > 0)
-        .map((r) => ({ name: r.name, amount: r.totalFn })),
+      // 크루 후원 순위: real member totals for each 기간, counted as the overlay does; 수단별 보드: a fixed sample.
+      crewRanking: Object.fromEntries(
+        RANKING_WIDGET_PERIODS.map((period) => [
+          period,
+          crewRankingRows(mockCrew.attributions.filter((a) => a.channelId === STUDIO_CHANNEL), mockCrew.crews[STUDIO_CHANNEL] ?? [], { period, ranks: RANKING_MAX_RANKS }).map((r) => ({
+            name: r.name,
+            amount: r.fnAmount
+          }))
+        ])
+      ) as WidgetLiveData["crewRanking"],
       sourceBoard: [
         { name: "썸네이션 FN · 12건", amount: 125_000, amountLabel: "125,000 FN" },
         { name: "SOOP · 8건", amount: 0, amountLabel: "350 별풍선" },

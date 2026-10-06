@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fillRank } from "./widgetOverlayCore";
+import { formatMoney } from "./donationLinkTypes";
 import { key, mockSessionModule, resetMockStores } from "@/test/mockEnv";
 import type { AlertItem } from "./alertTypes";
 import { crewRankingRows, eventLines, goalProgress, rankAmountText, rankingRows, recentLines, sourceBoardRows, totalAmount } from "./widgetOverlayCore";
@@ -190,5 +192,25 @@ describe("후원 위젯 오버레이", () => {
     const after = await m.getOverlayWidget("qr", m.overlayKey);
     expect(after !== "FORBIDDEN" && after.reloadSeq).toBeGreaterThan(before);
     await m.setOverlaySwitch({ target: "widgets", on: true });
+  });
+});
+
+describe("후원랭킹 위젯 · 수단별 보드 표시", () => {
+  beforeEach(() => resetMockStores());
+
+  it("fills {amount} with a row's own unit and groups digits in platform units", () => {
+    expect(fillRank("{name} ({amount})", 2, "SOOP · 3건", 0, "30,000 별풍선")).toBe("SOOP · 3건 (30,000 별풍선)");
+    expect(fillRank("{rank}위 {amount}", 1, "a", 12_000)).toBe("1위 12,000");
+    expect(formatMoney(30_000, "치즈")).toBe("30,000 치즈");
+  });
+
+  it("reads 랭킹 종류 as 후원자 랭킹 for settings saved before it existed, and previews 크루 후원 순위 per 기간", async () => {
+    const { widgetStore, readWidget } = await import("./widgetStore");
+    delete (widgetStore.RANKING as { board?: string }).board;
+    expect(readWidget("RANKING").board).toBe("DONOR");
+    const { getWidgetDetail } = await import("./widgetSettings");
+    const detail = await getWidgetDetail("RANKING");
+    if (!detail) throw new Error("no detail");
+    expect(Object.keys(detail.live.crewRanking).sort()).toEqual(["일간", "월간", "전체", "주간"].sort());
   });
 });

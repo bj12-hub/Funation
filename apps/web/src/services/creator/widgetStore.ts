@@ -22,6 +22,10 @@ export function readWidget<K extends EditableWidgetKey>(key: K): WidgetSettingsM
     // 룰렛 settings saved before 결과 자동 노출 read with its default.
     return { ...DEFAULT_WIDGET_SETTINGS.ROULETTE, ...copy } as WidgetSettingsMap[K];
   }
+  if (key === "RANKING") {
+    // Settings saved before 랭킹 종류 (2026-10-06) read as 후원자 랭킹, like the parser does.
+    (copy as WidgetSettingsMap["RANKING"]).board ??= "DONOR";
+  }
   if (key === "VOTE") {
     // Presets saved before 무료 투표 (2026-10-04) carried a price and 무료 투표권; drop them.
     const vote = copy as WidgetSettingsMap["VOTE"];
