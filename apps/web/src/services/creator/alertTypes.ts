@@ -32,6 +32,12 @@ export type AlertItem = {
   native?: { value: number; currency: string };
   /** The signature's sound (library), played by the overlay at 시그니처 볼륨 (code-first, 2026-10-06). */
   soundUrl?: string;
+  /**
+   * 퀘스트 후원: the quest (= donation) id. The FN is held until the quest succeeds and refunded if it fails or is
+   * cancelled (2026-10-04 결정), so 목표 · 누적 · 랭킹 count the alert only once `questSucceeded`.
+   */
+  questId?: string;
+  questSucceeded?: boolean;
   createdAt: string;
   status: AlertStatus;
 };

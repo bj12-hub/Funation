@@ -19,8 +19,11 @@ import {
  *
  * 목표 · 누적 · 랭킹 count completed Somnation donations only: 테스트 후원 never counts, and platform
  * donations (후원 연동) have no FN rate yet (TBD). An alert hidden by the 최소 금액 filter still counts.
+ * A 퀘스트 후원 counts only once it succeeded (held until then, refunded on 실패 · 취소 — 2026-10-04 결정), at the
+ * time its alert went out.
  */
-export const countedDonations = (items: AlertItem[]) => items.filter((a) => a.kind === "DONATION");
+const counts = (a: AlertItem) => a.kind === "DONATION" && (a.questId === undefined || a.questSucceeded === true);
+export const countedDonations = (items: AlertItem[]) => items.filter(counts);
 
 function sumBetween(items: AlertItem[], from: number, to: number) {
   return countedDonations(items)
@@ -118,7 +121,9 @@ export function sourceBoardRows(items: AlertItem[], s: Pick<RankingSettings, "pe
     if (Date.parse(a.createdAt) < since) continue;
     const g =
       a.kind === "DONATION"
-        ? { source: "SOMNATION", currency: "FN", value: a.fnAmount }
+        ? counts(a)
+          ? { source: "SOMNATION", currency: "FN", value: a.fnAmount }
+          : null
         : a.kind === "EXTERNAL" && a.platform && a.native
           ? { source: a.platform, currency: a.native.currency, value: a.native.value }
           : null;

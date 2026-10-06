@@ -2,6 +2,8 @@ import { toDateString } from "@/lib/period";
 import { mockAccount } from "@/services/account/mockStore";
 import type { QuestStatus } from "@/services/creator/donationManagementTypes";
 import { FIXTURE_AMOUNTS, FIXTURE_DONORS, QUEST_TITLES } from "@/services/creator/receivedFixtures";
+import { settleQuestAlerts } from "@/services/creator/alertCore";
+import { recordAttribution, recordBroadcastDonation } from "@/services/crew/crewCore";
 import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
 import { notify } from "@/services/notifications/notificationCore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
@@ -12,6 +14,9 @@ import type { QuestAction, QuestDecideResult } from "./questTypes";
  * moment it is sent; the decision settles it: SUCCESS keeps it with the creator, FAILED or CANCELED
  * (creator only) refunds all of it to the supporter (2026-10-04 결정). A result never changes once decided,
  * and a quest past its time limit keeps running until someone decides (2026-10-04 결정).
+ *
+ * While it runs, the supporter's 후원 내역 row is PROCESSING (held, not yet given) and nothing counts for the creator:
+ * crew points · member ranking · the live broadcast's 후원 리스트 and the 후원 위젯 totals all wait for SUCCESS.
  */
 
 export type QuestDecider = "CREATOR" | "DONOR";
@@ -37,6 +42,11 @@ export type QuestRecord = {
   decidedBy: QuestDecider | null;
   /** FN returned to the supporter (the whole amount when FAILED or CANCELED). */
   refundedFn: number;
+  /**
+   * What SUCCESS hands to the crew side (missing on the studio's sample quests): the member it was sent for (크루 멤버
+   * 지정), the crew broadcast live when it was sent, and the text for the 크루 후원 list / 후원 리스트.
+   */
+  crew?: { memberId: string | null; broadcastId: string | null; message: string };
 };
 
 const STATUS_CYCLE: QuestStatus[] = ["SUCCESS", "SUCCESS", "FAILED"];
@@ -73,7 +83,7 @@ export const mockQuests = (g.__funationMockQuestsV1 ??= { items: seedQuests() })
 
 export const findQuest = (id: unknown) => (typeof id === "string" ? (mockQuests.items.find((q) => q.id === id) ?? null) : null);
 
-/** Called by the Donation Core after a completed 퀘스트 후원. */
+/** Called by the Donation Core right after the debit of a 퀘스트 후원 (the FN is held from here). */
 export function recordQuest(input: Omit<QuestRecord, "status" | "decidedAt" | "decidedBy" | "refundedFn">) {
   mockQuests.items.unshift({ ...input, status: "IN_PROGRESS", decidedAt: null, decidedBy: null, refundedFn: 0 });
 }
@@ -89,15 +99,36 @@ export function decideQuest(q: QuestRecord, outcome: QuestAction, by: QuestDecid
   q.status = outcome;
   q.decidedAt = now.toISOString();
   q.decidedBy = by;
-  if (outcome === "FAILED" || outcome === "CANCELED") refund(q, now);
+  if (outcome === "SUCCESS") succeed(q);
+  else refund(q, now);
   return { status: "OK", questStatus: q.status, refundedFn: q.refundedFn };
 }
 
-/** 퀘스트 실패 · 취소 = 후원 금액 전액 환불. In mock mode the wallet is the signed-in member's own. */
+/**
+ * 퀘스트 성공 = the FN is now the creator's: the supporter's row is completed, the alert counts in the 후원 위젯, and
+ * the crew side gets it now — the member's points and ranking from this moment (a crew battle running now counts it),
+ * the 후원 리스트 only while the broadcast that was live when it was sent is still on. After that broadcast ended its
+ * board is final, so a quest decided later reaches the member ranking only.
+ */
+function succeed(q: QuestRecord) {
+  const record = mockWallet.donations.find((d) => d.id === q.id);
+  if (record?.status === "PROCESSING") record.status = "COMPLETED";
+  settleQuestAlerts(q.id);
+  const crew = q.crew;
+  if (!crew) return;
+  const shown = { donor: q.donor, donorId: q.donorId, message: crew.message };
+  if (crew.memberId) recordAttribution(q.id, q.channelId, crew.memberId, q.amount, shown);
+  else if (crew.broadcastId) recordBroadcastDonation(q.channelId, { donor: q.donor, message: crew.message, fnAmount: q.amount }, crew.broadcastId);
+}
+
+/**
+ * 퀘스트 실패 · 취소 = 후원 금액 전액 환불. In mock mode the wallet is the signed-in member's own. Rows written before
+ * quests were held as PROCESSING are COMPLETED; they refund the same way.
+ */
 function refund(q: QuestRecord, now: Date) {
   q.refundedFn = q.amount;
   const record = mockWallet.donations.find((d) => d.id === q.id);
-  if (!record || record.status !== "COMPLETED") return;
+  if (!record || (record.status !== "PROCESSING" && record.status !== "COMPLETED")) return;
   record.status = "REFUNDED";
   record.refundedAt = `${toDateString(now)} ${now.toTimeString().slice(0, 8)}`;
   mockAccount.fnBalance += q.amount;

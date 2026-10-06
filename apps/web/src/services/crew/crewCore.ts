@@ -56,10 +56,12 @@ export function addFeedEntry(b: MockBroadcast, input: FeedInput, now = Date.now(
 /**
  * Called by the Donation Core for a completed donation without a member target. Only a live crew
  * broadcast on that channel collects it (member-targeted donations are already scored directly).
+ * `broadcastId`: only that broadcast may collect it (a 퀘스트 settled after its broadcast ended is not listed).
  */
-export function recordBroadcastDonation(channelId: string, input: { donor: string; message: string; fnAmount: number }) {
+export function recordBroadcastDonation(channelId: string, input: { donor: string; message: string; fnAmount: number }, broadcastId?: string | null) {
   const live = liveBroadcastOf(channelId);
-  if (live) addFeedEntry(live, { donor: input.donor, message: input.message, amount: input.fnAmount, unit: "FN", platform: null, source: "DONATION" });
+  if (!live || (broadcastId !== undefined && live.id !== broadcastId)) return;
+  addFeedEntry(live, { donor: input.donor, message: input.message, amount: input.fnAmount, unit: "FN", platform: null, source: "DONATION" });
 }
 
 /**
@@ -241,6 +243,16 @@ export function attributeMemberDonation(
   shown: { donor: string; donorId: string; message: string } = { donor: "익명", donorId: "", message: "" }
 ) {
   if (!memberId || !isActiveMember(channelId, memberId)) return;
+  recordAttribution(donationId, channelId, memberId, fnAmount, shown);
+}
+
+/**
+ * Records the member a donation was sent for, now (scoreboards and rankings count it from this moment). A settled
+ * 퀘스트 calls this directly: the member was checked when the quest was sent, and a member set inactive or removed
+ * since still gets it (a removed one shows as 삭제된 멤버, like any older donation).
+ */
+export function recordAttribution(donationId: string, channelId: string, memberId: string, fnAmount: number, shown: { donor: string; donorId: string; message: string }) {
+  if (mockCrew.attributions.some((a) => a.donationId === donationId)) return;
   mockCrew.attributions.push({ donationId, channelId, memberId, fnAmount, at: new Date().toISOString(), ...shown });
 }
 

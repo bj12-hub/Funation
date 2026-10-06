@@ -46,12 +46,13 @@ import {
   type StatusFilter
 } from "./donationManagementTypes";
 import { crewDonationRows } from "@/services/crew/crewCore";
-import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
+import { STUDIO_CHANNEL, mockCrew } from "@/services/crew/mockCrewStore";
 import { decideQuest, findQuest, mockQuests } from "@/services/donations/questCore";
 import { isQuestAction, type QuestAction, type QuestDecideResult } from "@/services/donations/questTypes";
 import { getDonationCatalog } from "@/services/donations/signatureCore";
 import { FIXTURE_AMOUNTS, FIXTURE_DONORS } from "./receivedFixtures";
 import { mockCreator } from "./mockCreatorStore";
+import { donationPageStore } from "./donationPageCore";
 import { isIsoDate } from "@/lib/period";
 
 /**
@@ -61,14 +62,8 @@ import { isIsoDate } from "@/lib/period";
  * ranking point / success-rate formulas, audit of setting changes.
  */
 
-type MockManagement = Omit<DonationPageSettings, "donateUrlBase" | "slug">;
-
-const globalForMgmt = globalThis as typeof globalThis & { __funationMockDonationMgmt?: MockManagement };
-const store = (globalForMgmt.__funationMockDonationMgmt ??= {
-  oneLineMessage: "제 방송을 시청해주셔서 감사합니다.",
-  options: { rankPublic: false, historyPublic: true, nicknameChangeable: true, customSoundPublic: false },
-  replacement: { applyToNickname: false, applyToText: true, bannedWords: ["클리어"], message: "" }
-});
+// 후원 페이지 설정 (the Donation Core reads its 대체 메시지 표시 설정 — see donationPageCore.ts).
+const store = donationPageStore;
 
 /** Addresses already used by other creators (mock). */
 const TAKEN_SLUGS = ["taen", "boharium", "seran", "admin", "funation", "donate", "creator"];
@@ -223,18 +218,26 @@ function mockGameDonations(): ReceivedDonation[] {
 /**
  * 크루 후원 (code-first): donations sent for a crew member of the studio's crew (후원 패널 멤버 지정). A member can be
  * picked for a 퀘스트 too; such a row carries the quest's status, so a refunded quest leaves the summary here as well.
+ * A quest reaches the member (crew points · ranking) only when it succeeds; until then, or once refunded, its row
+ * comes from the quest record (sent time), so the list still shows it as held or refunded.
  */
 function crewDonations(): ReceivedDonation[] {
-  return crewDonationRows(STUDIO_CHANNEL).map((r) => ({
-    id: r.id,
-    at: r.at,
-    donorNickname: r.donor,
-    donorId: r.donorId,
-    amount: r.fnAmount,
-    message: r.message,
-    status: findQuest(r.id)?.status ?? null,
-    detail: r.member
-  }));
+  const names = new Map((mockCrew.crews[STUDIO_CHANNEL] ?? []).map((m) => [m.id, m.name]));
+  const unsettled = mockQuests.items
+    .filter((q) => q.channelId === STUDIO_CHANNEL && q.crew?.memberId && q.status !== "SUCCESS")
+    .map((q) => ({ id: q.id, at: q.createdAt, donor: q.donor, donorId: q.donorId, fnAmount: q.amount, message: q.crew!.message, member: names.get(q.crew!.memberId!) ?? "삭제된 멤버" }));
+  return [...crewDonationRows(STUDIO_CHANNEL), ...unsettled]
+    .map((r) => ({
+      id: r.id,
+      at: r.at,
+      donorNickname: r.donor,
+      donorId: r.donorId,
+      amount: r.fnAmount,
+      message: r.message,
+      status: findQuest(r.id)?.status ?? null,
+      detail: r.member
+    }))
+    .sort((a, b) => b.at.localeCompare(a.at));
 }
 
 type ListFilter = { kind: ListKind; period: ListPeriod; status: StatusFilter; query: string };

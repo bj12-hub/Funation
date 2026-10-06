@@ -2,6 +2,7 @@ import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
 import type { Platform } from "@/types/platform";
 import { notify } from "@/services/notifications/notificationCore";
 import type { AlertControls, AlertItem, AlertKind, OverlaySignal, OverlayTarget } from "./alertTypes";
+import { shownOnStream } from "./donationPageCore";
 
 /**
  * Server-only alert queue internals (not a "use server" module): only the Donation Core and the
@@ -69,7 +70,20 @@ export const isOverlayOn = (target: OverlayTarget) => !mockAlerts.overlayOff?.[t
 export const overlaySignal = (target: OverlayTarget): OverlaySignal => ({ reloadSeq: reloadSeqOf(target), on: isOverlayOn(target) });
 
 export function enqueueAlert(
-  input: { kind: AlertKind; donor: string; badges?: string[]; message: string; fnAmount: number; amountLabel?: string; typeLabel: string; platform?: Platform; imageUrl?: string; soundUrl?: string; native?: { value: number; currency: string } },
+  input: {
+    kind: AlertKind;
+    donor: string;
+    badges?: string[];
+    message: string;
+    fnAmount: number;
+    amountLabel?: string;
+    typeLabel: string;
+    platform?: Platform;
+    imageUrl?: string;
+    soundUrl?: string;
+    native?: { value: number; currency: string };
+    questId?: string;
+  },
   now = Date.now()
 ) {
   // The FN minimum cannot apply to other currencies (no exchange rate — TBD), so external alerts pass.
@@ -87,15 +101,23 @@ export function enqueueAlert(
 
 /**
  * Called by the Donation Core after a completed donation. Only donations to the studio creator's own
- * channel reach this creator's overlay (TBD: per-creator queues once channels are real).
+ * channel reach this creator's overlay (TBD: per-creator queues once channels are real). The creator's
+ * 대체 메시지 표시 설정 applies to the name and message shown (and spoken) on stream.
+ * A 퀘스트 후원 passes its `questId`: the alert shows when it is sent, but its FN counts in the 후원 위젯 only
+ * once the quest succeeds (settleQuestAlerts).
  */
 export function enqueueDonationAlert(
   creatorId: string,
-  input: { donor: string; badges?: string[]; message: string; fnAmount: number; typeLabel: string; imageUrl?: string; soundUrl?: string }
+  input: { donor: string; badges?: string[]; message: string; fnAmount: number; typeLabel: string; imageUrl?: string; soundUrl?: string; questId?: string }
 ) {
   if (creatorId !== STUDIO_CHANNEL) return;
-  const item = enqueueAlert({ kind: "DONATION", ...input });
+  const item = enqueueAlert({ kind: "DONATION", ...input, ...shownOnStream(input) });
   notify({ kind: "DONATION_RECEIVED", title: "새 후원이 들어왔어요", body: `${input.donor}님 · ${input.fnAmount.toLocaleString("ko-KR")} FN`, href: "/creator/donations?tab=list", dedupeKey: `alert:${item.id}` });
+}
+
+/** A 퀘스트 후원 succeeded: its alerts (and 다시 보내기 copies) now count in 목표 · 누적 · 랭킹. Calling it again changes nothing. */
+export function settleQuestAlerts(questId: string) {
+  for (const a of mockAlerts.items) if (a.questId === questId) a.questSucceeded = true;
 }
 
 /** Moves the queue forward: finishes an expired alert and puts the next one on screen. */

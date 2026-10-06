@@ -6,6 +6,7 @@ import { ChargeModal } from "@/features/walletCharge";
 import { formatNumber } from "@/lib/format";
 import type { DonationCatalog } from "@/services/donations/donationCatalog";
 import { requestDonation } from "@/services/donations/donate";
+import type { DonationResult } from "@/services/donations/donationTypes";
 import { getCrewPublic } from "@/services/crew/crew";
 import type { CrewPublic } from "@/services/crew/crewTypes";
 import { getAlertBadges, getDonationNicknameOptions } from "@/services/supporter/identity";
@@ -15,6 +16,7 @@ import { MiniFields, SignatureFields, TextFields, VideoFields, WishlistFields } 
 import { DrawingFields, GachaFields, QuestFields, RouletteFields } from "./donation/GameFields";
 import { SignaturePopup } from "./donation/SignaturePopup";
 import { buildDraft, initialStates, isFormKey, type FormKey, type FormStates } from "./donation/drafts";
+import { submitDonation, type Sent, type SubmitState } from "./donation/submit";
 import panel from "./donation/donation.module.css";
 import styles from "./room.module.css";
 
@@ -85,8 +87,10 @@ export function DonationForm({
   const previewSeq = useRef(0);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // One key per confirmed request; kept when the outcome is unknown so a retry cannot debit twice.
-  const keyRef = useRef<string | null>(null);
+  // A request whose outcome is unknown is re-sent with its key before anything else goes out (see donation/submit.ts),
+  // so a retry after a lost answer, an edit or a toggle can never debit twice.
+  const submitState = useRef<SubmitState<FormKey>>({ unsettled: null });
+  const sending = useRef(false);
 
   const type = donation.types[typeIndex];
   const formKey = isFormKey(type.key) && type.available ? type.key : null;
@@ -95,10 +99,7 @@ export function DonationForm({
   const pageCount = Math.ceil(donation.types.length / CHIPS_PER_PAGE);
   const chips = donation.types.slice(chipPage * CHIPS_PER_PAGE, (chipPage + 1) * CHIPS_PER_PAGE);
 
-  const update = <K extends FormKey>(key: K) => (next: FormStates[K]) => {
-    keyRef.current = null; // any edit makes it a different request
-    setStates((s) => ({ ...s, [key]: next }));
-  };
+  const update = <K extends FormKey>(key: K) => (next: FormStates[K]) => setStates((s) => ({ ...s, [key]: next }));
 
   const open = () => {
     if (!draft?.details || draft.amount === null) return;
@@ -122,47 +123,53 @@ export function DonationForm({
       .catch(() => seq === previewSeq.current && setAlertPreview({ status: "ERROR" }));
   };
 
+  /** Shows what happened to `sent` (the form's request, or an earlier one whose answer had been lost). */
+  const show = (sent: Sent<FormKey>, result: DonationResult) => {
+    switch (result.status) {
+      case "COMPLETED":
+        setDialog({ kind: "COMPLETE", fnAmount: result.fnAmount, balance: result.balance });
+        onDonated({ fnAmount: result.fnAmount, text: sent.chatText, anonymous: sent.request.hideProfile });
+        setStates((s) => ({ ...s, [sent.formKey]: initialStates(donation)[sent.formKey] }));
+        setFormVersion((v) => v + 1);
+        router.refresh(); // header, side nav and this tab show the new server balance
+        break;
+      case "INSUFFICIENT_FN":
+        setDialog({ kind: "INSUFFICIENT", balance: result.balance, required: result.required });
+        break;
+      case "PRICE_CHANGED":
+        // Nothing was debited. The refresh brings the creator's new price into the panel and this dialog.
+        setError(`크리에이터가 가격을 바꿨어요. 지금 가격은 ${formatNumber(result.amount)} FN이에요. 확인하고 다시 후원해 주세요.`);
+        router.refresh();
+        break;
+      case "IN_PROGRESS":
+        setError("후원을 처리하고 있습니다. 잠시 후 다시 시도해 주세요.");
+        break;
+      case "UNAUTHORIZED":
+        router.push(loginHref);
+        break;
+      default:
+        setError(result.status === "INVALID" && result.message ? result.message : "후원 정보를 다시 확인해 주세요.");
+    }
+  };
+
   const confirm = async () => {
-    if (!draft?.details || !formKey) return;
-    keyRef.current ??= crypto.randomUUID();
+    if (!draft?.details || !formKey || sending.current) return;
+    sending.current = true;
     setPending(true);
     setError(null);
+    const form = { ...draft.details, creatorId, hideProfile, nicknameId, memberId };
     try {
-      const result = await requestDonation({ ...draft.details, creatorId, hideProfile, nicknameId, memberId, idempotencyKey: keyRef.current });
-      switch (result.status) {
-        case "COMPLETED":
-          keyRef.current = null;
-          setDialog({ kind: "COMPLETE", fnAmount: result.fnAmount, balance: result.balance });
-          onDonated({ fnAmount: result.fnAmount, text: draft.chatText, anonymous: hideProfile });
-          setStates((s) => ({ ...s, [formKey]: initialStates(donation)[formKey] }));
-          setFormVersion((v) => v + 1);
-          router.refresh(); // header, side nav and this tab show the new server balance
-          break;
-        case "INSUFFICIENT_FN":
-          keyRef.current = null;
-          setDialog({ kind: "INSUFFICIENT", balance: result.balance, required: result.required });
-          break;
-        case "IN_PROGRESS":
-          setError("후원을 처리하고 있습니다. 잠시 후 다시 시도해 주세요.");
-          break;
-        case "UNAUTHORIZED":
-          router.push(loginHref);
-          break;
-        default:
-          keyRef.current = null;
-          setError("후원 정보를 다시 확인해 주세요.");
-      }
+      const { sent, result } = await submitDonation(submitState.current, form, { formKey, chatText: draft.chatText }, requestDonation, () => crypto.randomUUID());
+      show(sent, result);
     } catch {
       setError("후원 결과를 확인하지 못했습니다. 다시 시도해 주세요.");
     } finally {
+      sending.current = false;
       setPending(false);
     }
   };
 
-  const selectType = (index: number) => {
-    setTypeIndex(index);
-    keyRef.current = null;
-  };
+  const selectType = (index: number) => setTypeIndex(index);
 
   return (
     <div className={styles.donation}>
@@ -256,10 +263,7 @@ export function DonationForm({
                   role="radio"
                   aria-checked={memberId === m.id}
                   className={styles.memberChip}
-                  onClick={() => {
-                    setMemberId(m.id);
-                    keyRef.current = null;
-                  }}
+                  onClick={() => setMemberId(m.id)}
                 >
                   {m.id && <span className={styles.memberDot} style={{ background: m.color }} aria-hidden="true" />}
                   {m.name}
@@ -276,10 +280,7 @@ export function DonationForm({
             <span>별명</span>
             <select
               value={nicknameId ?? ""}
-              onChange={(e) => {
-                setNicknameId(e.target.value || null);
-                keyRef.current = null;
-              }}
+              onChange={(e) => setNicknameId(e.target.value || null)}
               aria-label="후원 별명"
             >
               {nicknames.map((n, i) => (
@@ -299,10 +300,7 @@ export function DonationForm({
             aria-checked={hideProfile}
             aria-label="프로필 숨기기"
             className={styles.miniToggle}
-            onClick={() => {
-              setHideProfile((h) => !h);
-              keyRef.current = null;
-            }}
+            onClick={() => setHideProfile((h) => !h)}
           />
           <span aria-hidden="true">프로필 숨기기</span>
         </div>

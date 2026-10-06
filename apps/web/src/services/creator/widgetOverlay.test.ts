@@ -105,6 +105,22 @@ describe("후원 위젯 계산", () => {
     expect(totalAmount(feed, { ...D.TOTAL, from: "2026-10-02T09:00", to: "2026-10-02T12:00" })).toBe(55_000);
   });
 
+  it("counts a 퀘스트 후원 only once it succeeded (held until then, refunded on 실패 · 취소)", () => {
+    const quests = [
+      alert("2026-10-03T10:00:00", "퀘스터", 20_000, { questId: "q-run" }),
+      alert("2026-10-03T10:30:00", "퀘스터", 40_000, { questId: "q-won", questSucceeded: true }),
+      alert("2026-10-03T11:00:00", "퀘스터", 80_000, { questId: "q-lost" })
+    ];
+    const all = [...feed, ...quests];
+    const range = { ...D.TOTAL, from: "2026-10-03T00:00", to: "2026-10-03T23:59" };
+    expect(totalAmount(all, range) - totalAmount(feed, range)).toBe(40_000);
+    expect(rankingRows(all, { ...D.RANKING, period: "일간", ranks: 5 }, now)).toEqual([
+      { rank: 1, name: "퀘스터", fnAmount: 40_000 },
+      { rank: 2, name: "치즈냥", fnAmount: 10_000 }
+    ]);
+    expect(sourceBoardRows(all, { period: "일간", ranks: 5 }, now)).toEqual([expect.objectContaining({ name: "썸네이션 FN · 2건", fnAmount: 50_000 })]);
+  });
+
   it("ranks donors by FN in the period, without 익명", () => {
     const ranking = (period: (typeof D.RANKING)["period"], ranks = 5) => rankingRows(feed, { ...D.RANKING, period, ranks }, now).map((r) => [r.rank, r.name, r.fnAmount]);
     expect(ranking("전체")).toEqual([
