@@ -8,8 +8,11 @@ import { listSignatures } from "@/services/donations/signatures";
 export const metadata: Metadata = { title: "시그니처 후원 | Somnation 크리에이터" };
 export const dynamic = "force-dynamic";
 
-export default async function Page() {
-  const [items, library] = await Promise.all([listSignatures(), listAssets()]);
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+export default async function Page({ searchParams }: { searchParams: SearchParams }) {
+  const [items, library, raw] = await Promise.all([listSignatures(), listAssets(), searchParams]);
   if (!items || !library) redirect("/login?role=creator&next=/creator/widgets/signatures");
-  return <SignaturesScreen items={items} library={library} />;
+  // `?bulk=1` (이미지·사운드 page link) opens 한 번에 만들기.
+  return <SignaturesScreen items={items} library={library} startBulk={raw.bulk === "1"} />;
 }

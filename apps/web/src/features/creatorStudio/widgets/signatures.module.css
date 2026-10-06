@@ -70,3 +70,99 @@
 .image[aria-checked="true"] {
   border-color: var(--color-primary);
 }
+
+/* ── 한 번에 만들기 (시그니처 일괄 만들기, 2026-10-06) ── */
+
+.bulkBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bulkGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bulkTile {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  text-align: left;
+}
+
+.bulkTile img {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--radius-6);
+  object-fit: cover;
+  background: var(--color-surface);
+}
+
+.bulkTile[aria-checked="true"] {
+  border-color: var(--color-primary);
+}
+
+.bulkTile:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.bulkName {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bulkTags {
+  display: flex;
+  min-height: 18px;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.bulkTags span {
+  padding: 1px 6px;
+  border-radius: var(--radius-6);
+  background: var(--color-surface-strong);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+}
+
+.bulkCommon {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+/* thumb · 이름 · 가격 · 소리 · 빼기; wraps on narrow screens. */
+.bulkRow {
+  align-items: flex-end;
+}
+
+.bulkRow .field {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+.bulkRow[data-error] {
+  border-color: var(--color-danger-border);
+}
+
+.bulkError {
+  flex-basis: 100%;
+}
