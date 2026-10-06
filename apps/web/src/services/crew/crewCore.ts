@@ -1,5 +1,5 @@
 import type { Platform } from "@/types/platform";
-import { BATTLE_MULTIPLIER_MAX, BATTLE_PENALTY_MAX, FAN_NOTE_LIMITS, GRADES_MAX, GRADE_MULTIPLIER_MAX, GRADE_NAME_MAX, PLATFORM_BATTLE_RULES, PLATFORM_STEAL_RULES, SUB_BOARD_MAX, isExcelUnit, type BattleRules, type CrewGrade, type FanNotesView, type RoomFanNotes, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow } from "./crewTypes";
+import { BATTLE_MULTIPLIER_MAX, BATTLE_PENALTY_MAX, FAN_NOTE_LIMITS, GRADES_MAX, PLATFORM_FAN_NOTE_RULES, GRADE_MULTIPLIER_MAX, GRADE_NAME_MAX, PLATFORM_BATTLE_RULES, PLATFORM_STEAL_RULES, SUB_BOARD_MAX, isExcelUnit, type BattleRules, type CrewGrade, type FanNoteRules, type FanNotesView, type RoomFanNotes, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow } from "./crewTypes";
 import { mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 // ── 후원 리스트 (server-only) ──────────────────────────────────────────────────
@@ -260,6 +260,9 @@ export function memberRanking(channelId: string): MemberRankRow[] {
 
 // ── 팬 메시지 · 요청사항 (2026-10-06) ──
 
+/** The channel's 팬 메시지 도배 기준 (platform defaults until the creator changes them). */
+export const fanNoteRulesOf = (channelId: string): FanNoteRules => ({ ...PLATFORM_FAN_NOTE_RULES, ...mockCrew.fanNoteRules?.[channelId] });
+
 const memberNames = (channelId: string) => new Map((mockCrew.crews[channelId] ?? []).map((m) => [m.id, m.name]));
 
 /** The operator's list: newest first (capped), member names from the channel's crew, counts over every note. */
@@ -272,7 +275,7 @@ export function fanNotesView(b: MockBroadcast): FanNotesView {
     .reverse()
     .slice(0, FAN_NOTE_LIMITS.shown)
     .map(({ id, at, kind, memberId, author, text, status }) => ({ id, at, kind, memberId, memberName: memberId ? (names.get(memberId) ?? "삭제된 멤버") : null, author, text, status }));
-  return { open: !b.fanNotesClosed, notes, counts };
+  return { open: !b.fanNotesClosed, rules: fanNoteRulesOf(b.channelId), notes, counts };
 }
 
 /** The room card for one viewer (`userId` null = signed out): active members, cooldown and their own notes. */
@@ -281,12 +284,14 @@ export function roomFanNotes(b: MockBroadcast, userId: string | null, now = Date
   const names = memberNames(b.channelId);
   const mine = userId ? (b.fanNotes ?? []).filter((n) => n.userId === userId) : [];
   const last = mine.at(-1);
-  const cooldownLeft = last ? Math.max(0, Math.ceil((Date.parse(last.at) + FAN_NOTE_LIMITS.cooldownSec * 1000 - now) / 1000)) : 0;
+  const { cooldownSec } = fanNoteRulesOf(b.channelId);
+  const cooldownLeft = last ? Math.max(0, Math.ceil((Date.parse(last.at) + cooldownSec * 1000 - now) / 1000)) : 0;
   return {
     broadcastId: b.id,
     title: b.title,
     members: crew.filter((m) => m.active).map(({ id, name, color }) => ({ id, name, color })),
     cooldownLeft,
+    cooldownSec,
     mine: [...mine]
       .reverse()
       .slice(0, FAN_NOTE_LIMITS.mine)

@@ -3,15 +3,16 @@
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession, getSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
-import { FAN_NOTE_KINDS, FAN_NOTE_LIMITS, type BroadcastResult, type FanNoteResult, type FanNoteStatus, type RoomFanNotes } from "./crewTypes";
-import { liveBroadcastOf, roomFanNotes } from "./crewCore";
+import { FAN_NOTE_KINDS, FAN_NOTE_LIMITS, FAN_NOTE_RULE_RANGE, type BroadcastResult, type FanNoteResult, type FanNoteStatus, type RoomFanNotes } from "./crewTypes";
+import { fanNoteRulesOf, liveBroadcastOf, roomFanNotes } from "./crewCore";
 import { STUDIO_CHANNEL, mockCrew } from "./mockCrewStore";
 
 /**
  * 팬 메시지 · 요청사항 — code-first (funnation 엑셀방송, 2026-10-06 결정). While a channel's crew broadcast is live,
  * signed-in viewers send a free note (팬 메시지 or 요청사항, to one member or the whole crew) from the channel room;
- * the operator reads them in `/creator/crew/broadcast` and marks them 완료 or hides them. One note per viewer every
- * FAN_NOTE_LIMITS.cooldownSec (TBD: 도배 정책); a repeated `requestId` returns the first result.
+ * the operator reads them in `/creator/crew/broadcast` and marks them 완료 or hides them. The channel's 도배 기준
+ * (seconds between notes per viewer, notes per broadcast) is the creator's, with platform defaults; a repeated
+ * `requestId` returns the first result.
  */
 
 const assertMock = () => {
@@ -53,7 +54,7 @@ export async function sendFanNote(input: unknown): Promise<FanNoteResult> {
   if (MOCK_FORBIDDEN_WORDS.some((w) => text.toLowerCase().includes(w))) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
   const cooldown = roomFanNotes(live, session.userId).cooldownLeft;
   if (cooldown > 0) return { status: "COOLDOWN", seconds: cooldown };
-  if (notes.length >= FAN_NOTE_LIMITS.perBroadcast) return { status: "INVALID", message: "이번 방송에 받을 수 있는 메시지가 모두 찼어요." };
+  if (notes.length >= fanNoteRulesOf(v.channelId).perBroadcast) return { status: "INVALID", message: "이번 방송에 받을 수 있는 메시지가 모두 찼어요." };
 
   notes.push({
     id: `fn-${Date.now().toString(36)}-${notes.length}`,
@@ -88,7 +89,7 @@ export async function simulateFanNote(input: unknown): Promise<BroadcastResult> 
   if (!isKind(v.kind) || typeof v.requestId !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
   const notes = (live.fanNotes ??= []);
   if (notes.some((n) => n.requestId === v.requestId)) return { status: "SAVED" };
-  if (notes.length >= FAN_NOTE_LIMITS.perBroadcast) return { status: "INVALID", message: "이번 방송에 받을 수 있는 메시지가 모두 찼어요." };
+  if (notes.length >= fanNoteRulesOf(live.channelId).perBroadcast) return { status: "INVALID", message: "이번 방송에 받을 수 있는 메시지가 모두 찼어요." };
   notes.push({ id: `fn-${Date.now().toString(36)}-${notes.length}`, at: new Date().toISOString(), userId: "test-viewer", author: "테스트 시청자", kind: v.kind, memberId: null, text: TEST_NOTES[v.kind], status: "NEW", requestId: v.requestId });
   return { status: "SAVED" };
 }
@@ -104,6 +105,23 @@ export async function setFanNoteStatus(input: unknown): Promise<BroadcastResult>
   if (!note) return { status: "INVALID", message: "메시지를 찾을 수 없어요." };
   if (!STATUSES.includes(v.status as FanNoteStatus)) return { status: "INVALID", message: "처리 상태를 확인해 주세요." };
   note.status = v.status as FanNoteStatus;
+  return { status: "SAVED" };
+}
+
+/**
+ * 도배 기준 저장 (2026-10-06 결정): whole seconds between two notes from one viewer and the most notes per broadcast,
+ * within FAN_NOTE_RULE_RANGE. Kept for the channel and applied to the live broadcast at once (notes already in stay).
+ */
+export async function saveFanNoteRules(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = obj(input);
+  const within = (x: unknown, [min, max]: readonly [number, number]) => typeof x === "number" && Number.isInteger(x) && x >= min && x <= max;
+  const [cMin, cMax] = FAN_NOTE_RULE_RANGE.cooldownSec;
+  const [pMin, pMax] = FAN_NOTE_RULE_RANGE.perBroadcast;
+  if (!within(v.cooldownSec, FAN_NOTE_RULE_RANGE.cooldownSec)) return { status: "INVALID", message: `대기 시간은 ${cMin}~${cMax}초로 정해 주세요.` };
+  if (!within(v.perBroadcast, FAN_NOTE_RULE_RANGE.perBroadcast)) return { status: "INVALID", message: `방송당 최대 개수는 ${pMin}~${pMax}개로 정해 주세요.` };
+  (mockCrew.fanNoteRules ??= {})[STUDIO_CHANNEL] = { cooldownSec: v.cooldownSec as number, perBroadcast: v.perBroadcast as number };
   return { status: "SAVED" };
 }
 
