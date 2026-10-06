@@ -1,5 +1,5 @@
 import type { Platform } from "@/types/platform";
-import { BATTLE_MULTIPLIER_MAX, BATTLE_PENALTY_MAX, GRADES_MAX, GRADE_MULTIPLIER_MAX, GRADE_NAME_MAX, PLATFORM_BATTLE_RULES, PLATFORM_STEAL_RULES, SUB_BOARD_MAX, isExcelUnit, type BattleRules, type CrewGrade, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow } from "./crewTypes";
+import { BATTLE_MULTIPLIER_MAX, BATTLE_PENALTY_MAX, FAN_NOTE_LIMITS, GRADES_MAX, GRADE_MULTIPLIER_MAX, GRADE_NAME_MAX, PLATFORM_BATTLE_RULES, PLATFORM_STEAL_RULES, SUB_BOARD_MAX, isExcelUnit, type BattleRules, type CrewGrade, type FanNotesView, type RoomFanNotes, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow } from "./crewTypes";
 import { mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 // ── 후원 리스트 (server-only) ──────────────────────────────────────────────────
@@ -250,4 +250,40 @@ export function memberRanking(channelId: string): MemberRankRow[] {
   const total = rows.reduce((s, r) => s + r.totalFn, 0);
   for (const r of rows) r.sharePercent = total ? Math.round((r.totalFn / total) * 1000) / 10 : 0;
   return rows.sort((a, b) => b.totalFn - a.totalFn || a.name.localeCompare(b.name));
+}
+
+// ── 팬 메시지 · 요청사항 (2026-10-06) ──
+
+const memberNames = (channelId: string) => new Map((mockCrew.crews[channelId] ?? []).map((m) => [m.id, m.name]));
+
+/** The operator's list: newest first (capped), member names from the channel's crew, counts over every note. */
+export function fanNotesView(b: MockBroadcast): FanNotesView {
+  const all = b.fanNotes ?? [];
+  const names = memberNames(b.channelId);
+  const counts = { NEW: 0, DONE: 0, HIDDEN: 0 };
+  for (const n of all) counts[n.status]++;
+  const notes = [...all]
+    .reverse()
+    .slice(0, FAN_NOTE_LIMITS.shown)
+    .map(({ id, at, kind, memberId, author, text, status }) => ({ id, at, kind, memberId, memberName: memberId ? (names.get(memberId) ?? "삭제된 멤버") : null, author, text, status }));
+  return { open: !b.fanNotesClosed, notes, counts };
+}
+
+/** The room card for one viewer (`userId` null = signed out): active members, cooldown and their own notes. */
+export function roomFanNotes(b: MockBroadcast, userId: string | null, now = Date.now()): RoomFanNotes {
+  const crew = mockCrew.crews[b.channelId] ?? [];
+  const names = memberNames(b.channelId);
+  const mine = userId ? (b.fanNotes ?? []).filter((n) => n.userId === userId) : [];
+  const last = mine.at(-1);
+  const cooldownLeft = last ? Math.max(0, Math.ceil((Date.parse(last.at) + FAN_NOTE_LIMITS.cooldownSec * 1000 - now) / 1000)) : 0;
+  return {
+    broadcastId: b.id,
+    title: b.title,
+    members: crew.filter((m) => m.active).map(({ id, name, color }) => ({ id, name, color })),
+    cooldownLeft,
+    mine: [...mine]
+      .reverse()
+      .slice(0, FAN_NOTE_LIMITS.mine)
+      .map((n) => ({ id: n.id, kind: n.kind, memberName: n.memberId ? (names.get(n.memberId) ?? "삭제된 멤버") : null, text: n.text, done: n.status === "DONE" }))
+  };
 }

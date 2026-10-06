@@ -1,0 +1,22 @@
+/* 팬 메시지 · 요청사항 — code-first, layout on top of crew.module.css. */
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* meta line above the note text */
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.text {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}

@@ -9,6 +9,7 @@ import { CHANNEL_POSTS_PAGE } from "@/services/creators/channelTypes";
 import { getPublicChannelVideos } from "@/services/creators/channelVideos";
 import { parseChannelView } from "@/features/creatorRoom/channelView";
 import { getCrewPublic } from "@/services/crew/crew";
+import { getRoomFanNotes } from "@/services/crew/crewFanNotes";
 import { isFavorite } from "@/services/favorites/favorites";
 import { getRoomVote } from "@/services/votes/votes";
 
@@ -28,7 +29,7 @@ export default async function Page({ params, searchParams }: { params: Params; s
   const { tab, view, show } = await searchParams;
   const postsShow = Math.min(Math.max(CHANNEL_POSTS_PAGE, Math.floor(Number(show)) || CHANNEL_POSTS_PAGE), 100);
   const channelView = tab === "donation" ? "home" : parseChannelView(view);
-  const [room, account, favorite, crew, creator, ranking, posts, videos, vote] = await Promise.all([
+  const [room, account, favorite, crew, creator, ranking, posts, videos, vote, fanNotes] = await Promise.all([
     getCreatorRoom(id),
     getMyAccount(),
     isFavorite(id),
@@ -37,7 +38,8 @@ export default async function Page({ params, searchParams }: { params: Params; s
     getChannelMonthlyRanking(id),
     getChannelPosts(id, postsShow),
     channelView === "videos" ? getPublicChannelVideos(id) : null,
-    getRoomVote(id)
+    getRoomVote(id),
+    getRoomFanNotes(id)
   ]);
   if (!room || !creator || !ranking || !posts) notFound();
 
@@ -55,6 +57,7 @@ export default async function Page({ params, searchParams }: { params: Params; s
       postsShow={postsShow}
       videos={videos}
       vote={vote}
+      fanNotes={fanNotes}
     />
   );
 }
