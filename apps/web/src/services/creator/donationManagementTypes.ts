@@ -99,10 +99,11 @@ export type ReceivedDonation = {
 };
 
 /**
- * 받은 후원 요약 (funnation 참고, 2026-10-06 결정) over the rows the filters match (every page). Quests that
- * failed or were cancelled were refunded in full (2026-10-04 결정), so they are not counted. 이번 주 starts on Monday.
+ * 받은 후원 요약 (funnation 참고, 2026-10-06 결정) over the rows the filters match (every page). A quest's FN is the
+ * creator's only once it succeeds: failed or cancelled quests are refunded in full (2026-10-04 결정), and quests
+ * still in progress are held — shown apart as `heldFn` / `heldCount`, not as received. 이번 주 starts on Monday.
  */
-export type ReceivedStats = { totalFn: number; count: number; todayFn: number; weekFn: number; averageFn: number };
+export type ReceivedStats = { totalFn: number; count: number; todayFn: number; weekFn: number; averageFn: number; heldFn: number; heldCount: number };
 
 export type ReceivedDonationPage = {
   kind: ListKind;
@@ -118,9 +119,10 @@ export type ReceivedDonationPage = {
   years: number[];
 };
 
-/** See ReceivedStats: refunded quests are left out; 이번 주 runs from Monday 00:00 (local). */
+/** See ReceivedStats: only non-quest rows and 성공 quests count; 이번 주 runs from Monday 00:00 (server time = KST). */
 export function receivedStats(rows: Pick<ReceivedDonation, "at" | "amount" | "status">[], now = new Date()): ReceivedStats {
-  const counted = rows.filter((d) => d.status !== "FAILED" && d.status !== "CANCELED");
+  const counted = rows.filter((d) => d.status === null || d.status === "SUCCESS");
+  const held = rows.filter((d) => d.status === "IN_PROGRESS");
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const weekStart = today - ((new Date(today).getDay() + 6) % 7) * 86_400_000;
   const sum = (list: typeof counted) => list.reduce((s, d) => s + d.amount, 0);
@@ -130,7 +132,9 @@ export function receivedStats(rows: Pick<ReceivedDonation, "at" | "amount" | "st
     count: counted.length,
     todayFn: sum(counted.filter((d) => Date.parse(d.at) >= today)),
     weekFn: sum(counted.filter((d) => Date.parse(d.at) >= weekStart)),
-    averageFn: counted.length ? Math.round(totalFn / counted.length) : 0
+    averageFn: counted.length ? Math.round(totalFn / counted.length) : 0,
+    heldFn: sum(held),
+    heldCount: held.length
   };
 }
 
