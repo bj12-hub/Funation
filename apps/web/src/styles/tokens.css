@@ -251,8 +251,9 @@
 
   /* ── Typography ───────────────────────────────────────── */
   /* --font-gothic / --font-inter come from next/font (app/layout.tsx) on <html>. */
-  --font-sans: var(--font-gothic), "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
-  --font-latin: var(--font-inter), var(--font-sans);
+  /* The fallbacks keep the stacks valid where those classes are missing (global-error renders its own <html>). */
+  --font-sans: var(--font-gothic, "Gothic A1"), "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-latin: var(--font-inter, "Inter"), var(--font-sans);
 
   --font-size-10: 10px;
   --font-size-11: 11px;

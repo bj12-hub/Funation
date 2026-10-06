@@ -28,6 +28,11 @@ export function ChatPanel({ signedIn, messages, onSend }: { signedIn: boolean; m
    * the end, so picks in a row continue from here; once the input is focused again its own selection is used.
    */
   const caretRef = useRef<{ start: number; end: number } | null>(null);
+  /**
+   * The viewer placed the caret since the box got focus (click, arrow keys, typing). Focusing by Tab selects the
+   * whole draft; that selection is the browser's, so an emoji then goes to the end instead of replacing the draft.
+   */
+  const caretPlaced = useRef(false);
 
   useEffect(() => {
     const list = listRef.current;
@@ -40,7 +45,8 @@ export function ChatPanel({ signedIn, messages, onSend }: { signedIn: boolean; m
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       setEmojiOpen(false);
-      emojiToggleRef.current?.focus();
+      // Back to 😊 only from inside the picker; focus in the message box stays there.
+      if (emojiRef.current?.contains(document.activeElement)) emojiToggleRef.current?.focus();
     };
     document.addEventListener("mousedown", onClick);
     document.addEventListener("keydown", onKey);
@@ -55,7 +61,8 @@ export function ChatPanel({ signedIn, messages, onSend }: { signedIn: boolean; m
   // The picker stays open so several emoji can be added; focus stays on it for keyboard users.
   const pickEmoji = (emoji: string) => {
     const input = inputRef.current;
-    const caret = caretRef.current ?? { start: input?.selectionStart ?? draft.length, end: input?.selectionEnd ?? draft.length };
+    const placed = caretPlaced.current && input;
+    const caret = caretRef.current ?? (placed ? { start: input.selectionStart ?? draft.length, end: input.selectionEnd ?? draft.length } : { start: draft.length, end: draft.length });
     const next = insertEmoji(draft, emoji, caret.start, caret.end, MAX_LENGTH);
     if (!next) return;
     setDraft(next.text);
@@ -116,8 +123,18 @@ export function ChatPanel({ signedIn, messages, onSend }: { signedIn: boolean; m
             maxLength={MAX_LENGTH}
             placeholder={signedIn ? "실시간 라이브 채팅에 참여하세요..." : "로그인 후 채팅에 참여할 수 있어요"}
             ref={inputRef}
-            onChange={(e) => setDraft(e.target.value)}
-            onFocus={() => (caretRef.current = null)}
+            onChange={(e) => {
+              caretPlaced.current = true;
+              setDraft(e.target.value);
+            }}
+            onFocus={() => {
+              caretRef.current = null;
+              caretPlaced.current = false;
+            }}
+            onMouseUp={() => (caretPlaced.current = true)}
+            onKeyUp={(e) => {
+              if (e.key !== "Tab" && e.key !== "Shift") caretPlaced.current = true;
+            }}
             readOnly={!signedIn}
           />
           <div className={styles.emojiWrap} ref={emojiRef}>
