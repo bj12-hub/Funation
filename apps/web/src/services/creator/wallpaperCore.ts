@@ -59,7 +59,8 @@ const amountOf = (a: AlertItem) => a.amountLabel ?? `${formatNumber(a.fnAmount)}
  */
 export function wallStickers(items: AlertItem[], settings: Pick<WallpaperSettings, "images"> & { preferDonationImage?: boolean }, clearedAt: string | null): WallSticker[] {
   const since = clearedAt ? Date.parse(clearedAt) : 0;
-  const all = items.filter((a) => Date.parse(a.createdAt) > since && a.status !== "SKIPPED" && a.status !== "FILTERED");
+  // A 다시 보내기 copy is the same donation: it does not add a second sticker.
+  const all = items.filter((a) => Date.parse(a.createdAt) > since && a.status !== "SKIPPED" && a.status !== "FILTERED" && !a.replayOf);
   const order = slotOrder(clearedAt ?? "wall");
   const start = Math.max(0, all.length - WALL_SLOTS);
   return all.slice(start).map((a, i) => {

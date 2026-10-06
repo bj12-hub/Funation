@@ -134,7 +134,7 @@ export async function replayAlert(id: unknown): Promise<RemoteResult> {
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const src = mockAlerts.items.find((a) => a.id === id);
   if (!src || src.status === "QUEUED" || src.status === "SHOWING") return { status: "INVALID", message: "다시 보낼 수 없는 알림이에요." };
-  const copy = { ...src, id: `al-${Date.now()}-${mockAlerts.items.length}`, createdAt: new Date().toISOString(), status: "QUEUED" as const };
+  const copy = { ...src, id: `al-${Date.now()}-${mockAlerts.items.length}`, createdAt: new Date().toISOString(), status: "QUEUED" as const, replayOf: src.replayOf ?? src.id };
   mockAlerts.items.push(copy);
   advance();
   return { status: "SAVED" };
