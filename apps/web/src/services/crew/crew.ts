@@ -91,7 +91,7 @@ export async function saveCrewGrades(input: unknown): Promise<CrewSaveResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const v = (typeof input === "object" && input !== null ? input : {}) as { grades?: unknown };
-  const grades = parseGrades(v.grades, MOCK_FORBIDDEN_WORDS);
+  const grades = parseGrades(v.grades, MOCK_FORBIDDEN_WORDS, gradesOf(STUDIO_CHANNEL).map((g) => g.id));
   if ("message" in grades) return { status: "INVALID", message: grades.message };
   await mockDelay(200);
   (mockCrew.grades ??= {})[STUDIO_CHANNEL] = grades;

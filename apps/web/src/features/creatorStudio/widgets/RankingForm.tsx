@@ -21,7 +21,7 @@ const fill = fillRank;
 /** 후원랭킹 위젯 설정 — Figma 315:650. 랭킹 종류 (크루 후원 순위 · 수단별 보드) is code-first (2026-10-06). */
 export function RankingForm({ value: v, onChange, live }: FormProps<"RANKING">) {
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
-  const source: { name: string; amount: number; amountLabel?: string }[] = v.board === "CREW" ? live.crewRanking : v.board === "SOURCE" ? live.sourceBoard : live.ranking;
+  const source: { name: string; amount: number; amountLabel?: string }[] = v.board === "CREW" ? live.crewRanking[v.period] : v.board === "SOURCE" ? live.sourceBoard : live.ranking;
   const rows = source.slice(0, v.ranks);
 
   return (
@@ -34,14 +34,14 @@ export function RankingForm({ value: v, onChange, live }: FormProps<"RANKING">) 
               const tier = i === 0 ? v.first : v.others;
               return (
                 <li key={r.name} style={fontStyle(tier.font)}>
-                  <span>{fill(v.format.rank, i + 1, r.name, r.amount)}</span>
-                  <span style={{ color: tier.accentColor }}>{fill(v.format.name, i + 1, r.name, r.amount)}</span>
+                  <span>{fill(v.format.rank, i + 1, r.name, r.amount, r.amountLabel)}</span>
+                  <span style={{ color: tier.accentColor }}>{fill(v.format.name, i + 1, r.name, r.amount, r.amountLabel)}</span>
                   {v.showAmount && <span style={{ color: tier.accentColor }}>{r.amountLabel ?? fill(v.format.amount, i + 1, r.name, r.amount)}</span>}
                 </li>
               );
             })}
           </ol>
-          {rows.length === 0 && <p className={styles.hint}>이번 달 크루 멤버에게 지정된 후원이 아직 없어요.</p>}
+          {rows.length === 0 && <p className={styles.hint}>이 기간에 크루 멤버에게 지정된 후원이 아직 없어요.</p>}
         </div>
       </Preview>
 

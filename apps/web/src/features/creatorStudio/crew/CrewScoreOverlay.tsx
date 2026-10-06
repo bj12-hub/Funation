@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { formatNumber } from "@/lib/format";
-import type { Battle, BroadcastLive, ScenarioLive, StealRecord, SubBoard } from "@/services/crew/crewTypes";
+import { OVERLAY_BOARD_ROWS, type Battle, type BroadcastLive, type ScenarioLive, type StealRecord, type SubBoard } from "@/services/crew/crewTypes";
 import { BattleBoard, useCountdown } from "./BattlePanel";
 import { partName, usePartElapsed } from "./ScenarioPanel";
 import { stealText } from "./StealPanel";
@@ -64,7 +64,7 @@ function MainBoard({ data }: { data: BroadcastLive }) {
         </div>
       )}
       <ol className={styles.rows}>
-        {data.rows.slice(0, 10).map((r, i) => (
+        {data.rows.slice(0, OVERLAY_BOARD_ROWS).map((r, i) => (
           <li key={r.memberId}>
             <span className={styles.rank}>{i + 1}</span>
             <span className={styles.name}>{r.name}</span>
@@ -152,7 +152,7 @@ export function SubBoardOverlay({ board, reloadSeq }: { board: SubBoard | null; 
         {board.closedAt && <span className={styles.closed}> · 마감</span>}
       </h1>
       <ol className={styles.rows}>
-        {board.rows.slice(0, 10).map((r, i) => (
+        {board.rows.slice(0, OVERLAY_BOARD_ROWS).map((r, i) => (
           <li key={r.memberId}>
             <span className={styles.rank}>{i + 1}</span>
             <span className={styles.name}>{r.name}</span>
