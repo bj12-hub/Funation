@@ -21,7 +21,7 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
   const raw = await searchParams;
   const tab = parseHofTab(one(raw.tab));
   const period = one(raw.period);
-  const selected = period && period in RANKING_PERIOD_LABEL ? (period as RankingPeriod) : DEFAULT_RANKING_PERIOD;
+  const selected = period && Object.hasOwn(RANKING_PERIOD_LABEL, period) ? (period as RankingPeriod) : DEFAULT_RANKING_PERIOD;
   const [ranking, live] = await Promise.all([
     tab === "leaderboard" ? getSupporterRanking(selected, Number(one(raw.show))) : Promise.resolve(null),
     tab === "live" ? getLiveSupporterRanking(parseLiveWindow(one(raw.window))) : Promise.resolve(null)

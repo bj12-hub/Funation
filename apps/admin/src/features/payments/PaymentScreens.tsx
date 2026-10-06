@@ -84,6 +84,8 @@ export function PaymentsScreen({ view, tab }: { view: PaymentsView; tab: "charge
                     <p className={styles.muted}>
                       {when(r.decision.at)} · {r.decision.by} · {r.decision.note}
                     </p>
+                  ) : r.memberWithdrawn ? (
+                    <p className={styles.muted}>탈퇴한 회원의 요청이에요. 탈퇴 후 환불 요청 처리 방법은 TBD라 아직 승인 · 거절할 수 없어요.</p>
                   ) : (
                     <RefundDecision chargeId={r.chargeId} />
                   )}

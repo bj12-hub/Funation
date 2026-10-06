@@ -31,11 +31,17 @@ export type ChargeRecord = {
   /** Transaction ID; `null` when no transaction was completed. */
   transactionId: string | null;
   /** 환불 요청 (code-first). Present once the member asked for a refund; an operator decides it. */
-  refund?: { status: "REQUESTED" | "APPROVED" | "REJECTED"; requestedAt: string; decidedAt?: string; note?: string } | null;
+  refund?: ChargeRefund | null;
 };
 
+export type RefundStatus = "REQUESTED" | "APPROVED" | "REJECTED";
+/** A charge's refund request as the member sees it; `note` is the operator's memo, shown for a rejection only. */
+export type ChargeRefund = { status: RefundStatus; requestedAt: string; decidedAt?: string; note?: string };
+export const REFUND_STATUS_LABEL: Record<RefundStatus, string> = { REQUESTED: "환불 요청", APPROVED: "환불 완료", REJECTED: "환불 거절" };
+
 export const REFUND_REASON_MAX = 200;
-export type RefundRequestResult = { status: "REQUESTED"; requestedAt: string } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
+/** A repeat request returns the existing one as it is now (also after an operator decided it). */
+export type RefundRequestResult = ChargeRefund | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
 
 import type { QuestView } from "@/services/donations/questTypes";
 

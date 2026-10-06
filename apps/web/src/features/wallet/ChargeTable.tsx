@@ -6,7 +6,7 @@ import { FileIcon } from "@/components/icons";
 import { Modal } from "@/components/ui/Modal";
 import { formatNumber } from "@/lib/format";
 import { requestChargeRefund } from "@/services/wallet/refund";
-import { CHARGE_STATUS_LABEL, REFUND_REASON_MAX, type ChargeRecord, type ChargeStatus } from "@/services/wallet/walletTypes";
+import { CHARGE_STATUS_LABEL, REFUND_REASON_MAX, REFUND_STATUS_LABEL, type ChargeRecord, type ChargeRefund, type ChargeStatus } from "@/services/wallet/walletTypes";
 import styles from "./wallet.module.css";
 
 const PILL: Record<ChargeStatus, string> = {
@@ -17,7 +17,9 @@ const PILL: Record<ChargeStatus, string> = {
 
 /** Figma 640:2 table (empty 639:2) with the 충전내역 상세정보 popup (643:4 · 644:6 · 644:185 · 644:364). */
 export function ChargeTable({ items }: { items: ChargeRecord[] }) {
-  const [selected, setSelected] = useState<ChargeRecord | null>(null);
+  // Keep the id, not the record: after a refresh the popup shows the server's current state of the charge.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = items.find((c) => c.id === selectedId) ?? null;
 
   return (
     <>
@@ -57,10 +59,10 @@ export function ChargeTable({ items }: { items: ChargeRecord[] }) {
                   </td>
                   <td className={styles.center}>
                     <span className={`${styles.pill} ${PILL[c.status]}`}>{CHARGE_STATUS_LABEL[c.status]}</span>
-                    {c.refund && <span className={styles.refundTag}>{c.refund.status === "APPROVED" ? "환불 완료" : c.refund.status === "REJECTED" ? "환불 거절" : "환불 요청"}</span>}
+                    {c.refund && <span className={styles.refundTag}>{REFUND_STATUS_LABEL[c.refund.status]}</span>}
                   </td>
                   <td className={styles.center}>
-                    <button type="button" className={styles.detailButton} onClick={() => setSelected(c)} aria-label={`${c.chargedAt} 충전 자세히`}>
+                    <button type="button" className={styles.detailButton} onClick={() => setSelectedId(c.id)} aria-label={`${c.chargedAt} 충전 자세히`}>
                       자세히
                     </button>
                   </td>
@@ -73,14 +75,14 @@ export function ChargeTable({ items }: { items: ChargeRecord[] }) {
 
       <Modal
         open={selected !== null}
-        onClose={() => setSelected(null)}
+        onClose={() => setSelectedId(null)}
         title="충전내역 상세정보"
         footer={
           <>
-            <button type="button" className={styles.modalSecondary} onClick={() => setSelected(null)}>
+            <button type="button" className={styles.modalSecondary} onClick={() => setSelectedId(null)}>
               닫기
             </button>
-            <button type="button" className={styles.modalPrimary} onClick={() => setSelected(null)}>
+            <button type="button" className={styles.modalPrimary} onClick={() => setSelectedId(null)}>
               확인
             </button>
           </>
@@ -100,28 +102,31 @@ function RefundSection({ charge }: { charge: ChargeRecord }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
-  const [requestedAt, setRequestedAt] = useState<string | null>(charge.refund?.requestedAt ?? null);
+  // The server's answer bridges the gap until the refreshed record arrives; a repeat request answers
+  // with the existing request as it is now, which may already be approved or rejected.
+  const [answered, setAnswered] = useState<ChargeRefund | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const refund = charge.refund ?? answered;
 
-  if (charge.refund?.status === "APPROVED") {
+  if (refund?.status === "APPROVED") {
     return (
       <p className={styles.refundDone} role="status">
-        환불이 승인됐어요 · FN이 회수됐어요 ({new Date(charge.refund.decidedAt ?? charge.refund.requestedAt).toLocaleDateString("ko-KR")}). 결제 취소 처리 시점은 결제 수단에 따라 달라요 (TBD).
+        환불이 승인됐어요 · FN이 회수됐어요 ({new Date(refund.decidedAt ?? refund.requestedAt).toLocaleDateString("ko-KR")}). 결제 취소 처리 시점은 결제 수단에 따라 달라요 (TBD).
       </p>
     );
   }
-  if (charge.refund?.status === "REJECTED") {
+  if (refund?.status === "REJECTED") {
     return (
       <p className={styles.refundDone} role="status">
-        환불 요청이 거절됐어요{charge.refund.note ? ` · 사유: ${charge.refund.note}` : ""}
+        환불 요청이 거절됐어요{refund.note ? ` · 사유: ${refund.note}` : ""}
       </p>
     );
   }
-  if (requestedAt) {
+  if (refund) {
     return (
       <p className={styles.refundDone} role="status">
-        환불 요청이 접수됐어요 · 심사 중 ({new Date(requestedAt).toLocaleDateString("ko-KR")})
+        환불 요청이 접수됐어요 · 심사 중 ({new Date(refund.requestedAt).toLocaleDateString("ko-KR")})
       </p>
     );
   }
@@ -131,11 +136,12 @@ function RefundSection({ charge }: { charge: ChargeRecord }) {
     setError(null);
     startTransition(async () => {
       const res = await requestChargeRefund({ chargeId: charge.id, reason });
-      if (res.status === "REQUESTED") {
-        setRequestedAt(res.requestedAt);
+      if (res.status === "INVALID") setError(res.message);
+      else if (res.status === "UNAUTHORIZED") router.push("/login?next=/wallet/charges");
+      else {
+        setAnswered(res);
         router.refresh();
-      } else if (res.status === "UNAUTHORIZED") router.push("/login?next=/wallet/charges");
-      else setError(res.message);
+      }
     });
   };
 

@@ -6,6 +6,8 @@ export type AdminRefund = {
   chargeId: string;
   memberId: string;
   memberName: string;
+  /** Filed by an account that has since withdrawn; the console cannot decide it (what a 탈퇴 does to it is TBD). */
+  memberWithdrawn: boolean;
   requestedAt: string;
   reason: string;
   status: "REQUESTED" | "APPROVED" | "REJECTED";
@@ -26,5 +28,8 @@ export type DonationsView = {
 };
 
 export const REFUND_NOTE = { min: 2, max: 200 } as const;
+
+/** Shown instead of the nickname for requests of a withdrawn account (the slot may belong to a new account now). */
+export const WITHDRAWN_MEMBER_NAME = "탈퇴한 회원";
 
 export type RefundDecisionResult = { status: "OK" } | { status: "INVALID"; message: string } | { status: "NOT_FOUND" | "UNAUTHORIZED" };

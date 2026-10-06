@@ -32,7 +32,7 @@ export function presetPeriod(preset: Exclude<StatsPreset, "range">, today = new 
 
 /** Validates `?period=&from=&to=`; falls back to 1주일 (the design's default). */
 export function parseStatsPeriod(raw: { period?: string; from?: string; to?: string }): StatsPeriod {
-  const preset = raw.period && raw.period in STATS_PRESET_LABEL ? (raw.period as StatsPreset) : "week";
+  const preset = raw.period && Object.hasOwn(STATS_PRESET_LABEL, raw.period) ? (raw.period as StatsPreset) : "week";
   if (preset !== "range") return presetPeriod(preset);
   if (!isIsoDate(raw.from) || !isIsoDate(raw.to) || raw.from! > raw.to! || eachDay(raw.from!, raw.to!).length > MAX_RANGE_DAYS) return presetPeriod("week");
   return { preset, from: raw.from!, to: raw.to! };

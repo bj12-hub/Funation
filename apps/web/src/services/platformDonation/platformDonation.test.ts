@@ -96,6 +96,10 @@ describe("플랫폼 후원", () => {
     const { requestPlatformDonation, account } = await load();
     expect(await requestPlatformDonation(soop({ productId: "balloon-7", idempotencyKey: key(6) }))).toEqual({ status: "FAILED", reason: "UNAVAILABLE" });
     expect((await requestPlatformDonation(soop({ message: "가".repeat(101), idempotencyKey: key(7) }))).status).toBe("INVALID");
+    // Inherited object keys are not platforms.
+    for (const [i, platform] of ["__proto__", "constructor", "toString"].entries()) {
+      expect(await requestPlatformDonation(soop({ platform, idempotencyKey: key(20 + i) }))).toEqual({ status: "INVALID" });
+    }
     signIn(null);
     expect((await requestPlatformDonation(soop({ idempotencyKey: key(8) }))).status).toBe("UNAUTHORIZED");
     expect(account.fnBalance).toBe(100_000);
