@@ -50,6 +50,14 @@ describe("signature management", () => {
     expect(m.matchSignatureByAmount(20_001)).toBeNull();
   });
 
+  it("creates one signature when the same request arrives twice at once", async () => {
+    const m = await load();
+    const before = (await m.listSignatures())!.length;
+    const [a, b] = await Promise.all([m.saveSignature({ ...draft, requestId: key(9) }), m.saveSignature({ ...draft, requestId: key(9) })]);
+    expect(a).toEqual(b);
+    expect((await m.listSignatures())!).toHaveLength(before + 1);
+  });
+
   it("validates input and requires the creator role", async () => {
     const m = await load();
     expect((await m.saveSignature({ ...draft, price: 99, requestId: key(4) })).status).toBe("INVALID");

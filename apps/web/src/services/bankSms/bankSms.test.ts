@@ -29,6 +29,9 @@ describe("SMS 계좌후원", () => {
     expect(parseDepositSms("[신한] 10/06 11:20 입금 25,000원 잔액 ******원 달빛고양이")).toEqual({ amount: 25_000, depositor: "달빛고양이" });
     expect(parseDepositSms("농협 입금5,000원 10/06 11:20 ***-****-****-** 새벽감성 잔액******원")).toEqual({ amount: 5_000, depositor: "새벽감성" });
     expect(parseDepositSms("[토스뱅크] 구름빵님이 3,000원을 입금했어요")).toEqual({ amount: 3_000, depositor: "구름빵" });
+    // A date or time right after 입금 is not the amount.
+    expect(parseDepositSms("[우체국] 입금 10/06 14:05 50,000원 새벽감성")).toEqual({ amount: 50_000, depositor: "새벽감성" });
+    expect(parseDepositSms("[우체국] 입금 10/06 14:05 잔액 70,000원 새벽감성")).toBeNull();
     for (const not of ["[신한] 10/06 출금 25,000원 잔액 ******원 편의점", "입금취소 10,000원 별빛소나타", "[국민] 10/06 입금 별빛소나타", "안녕하세요 입금 확인 부탁드려요", "입금 99,999,999원 큰손"]) {
       expect(parseDepositSms(not)).toBeNull();
     }
@@ -48,19 +51,22 @@ describe("SMS 계좌후원", () => {
 
     const first = await post(m, k, JSON.stringify({ text: SAMPLE_BANK_SMS, id: "msg-1" }));
     expect([first.status, await first.json()]).toEqual([200, { status: "OK", amount: 10_000 }]);
-    // The forwarder retries with the same id, then sends the same text without one: one alert in total.
-    expect(await (await post(m, k, JSON.stringify({ text: SAMPLE_BANK_SMS, id: "msg-1" }))).json()).toEqual({ status: "DUPLICATE" });
-    expect((await post(m, k, SAMPLE_BANK_SMS, "text/plain")).status).toBe(200);
+    // The forwarder retries with the same id, with a new id, and a second forwarder sends the text alone: one alert.
+    for (const body of [JSON.stringify({ text: SAMPLE_BANK_SMS, id: "msg-1" }), JSON.stringify({ text: SAMPLE_BANK_SMS, id: "msg-2" })]) {
+      expect(await (await post(m, k, body)).json()).toEqual({ status: "DUPLICATE" });
+    }
     expect(await (await post(m, k, SAMPLE_BANK_SMS, "text/plain")).json()).toEqual({ status: "DUPLICATE" });
+    // A different SMS (another deposit) is a new alert.
+    expect((await post(m, k, SAMPLE_BANK_SMS.replace("10,000", "20,000"), "text/plain")).status).toBe(200);
     expect(m.alerts.items.map((a) => [a.kind, a.donor, a.amountLabel, a.typeLabel, a.fnAmount])).toEqual([
       ["EXTERNAL", "별***타", "₩10,000", "계좌 후원", 0],
-      ["EXTERNAL", "별***타", "₩10,000", "계좌 후원", 0]
+      ["EXTERNAL", "별***타", "₩20,000", "계좌 후원", 0]
     ]);
     expect(m.account.fnBalance).toBe(fn);
 
     const feed = (await m.getBroadcastView())!.feed!;
     expect(feed.entries.filter((e) => e.source === "BANK").map((e) => [e.amount, e.unit, e.platform])).toEqual([
-      [10_000, "KRW", null],
+      [20_000, "KRW", null],
       [10_000, "KRW", null]
     ]);
 
@@ -68,9 +74,12 @@ describe("SMS 계좌후원", () => {
     expect((await post(m, k, "{not json")).status).toBe(400);
     expect((await post(m, "wrong-key", JSON.stringify({ text: SAMPLE_BANK_SMS }))).status).toBe(404);
     const view = (await m.getBankSms())!;
-    expect(view).toMatchObject({ enabled: true, maskNames: true, received: 2, duplicates: 2, unparsed: 1 });
+    expect(view).toMatchObject({ enabled: true, maskNames: true, received: 2, duplicates: 3, unparsed: 1 });
     expect(view.recent.map((d) => d.depositor)).toEqual(["별***타", "별***타"]);
+    // Nothing of the text is kept but keyed hashes, and those expire after a day.
     expect(JSON.stringify(m.bankSmsStore())).not.toContain("잔액");
+    expect(m.bankSmsStore().seen.every((e) => /^(txt:[0-9a-f]{64}|id:msg-\d)$/.test(e.key))).toBe(true);
+    expect(m.receiveBankSms(SAMPLE_BANK_SMS, null, Date.now() + 25 * 3600_000).status).toBe("OK");
 
     await m.setBankSms({ maskNames: false });
     expect((await m.getBankSms())!.recent[0].depositor).toBe("별빛소나타");

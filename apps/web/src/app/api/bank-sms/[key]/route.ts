@@ -20,8 +20,11 @@ const sameKey = (a: string, b: string) => {
 export async function POST(request: Request, { params }: { params: Promise<{ key: string }> }) {
   if (!USE_MOCK) return json(404, { status: "NOT_FOUND" });
   if (!sameKey((await params).key, bankSmsStore().key)) return json(404, { status: "NOT_FOUND" });
+  // Refuse a large body before reading it (a declared length), and again after (chunked bodies have none).
+  const limit = BANK_SMS_LIMITS.textMax * 4;
+  if (Number(request.headers.get("content-length") ?? 0) > limit * 4) return json(413, { status: "TOO_LARGE" });
   const raw = await request.text();
-  if (raw.length > BANK_SMS_LIMITS.textMax * 4) return json(413, { status: "TOO_LARGE" });
+  if (raw.length > limit) return json(413, { status: "TOO_LARGE" });
   let text = raw;
   let id: string | null = null;
   if ((request.headers.get("content-type") ?? "").includes("application/json")) {

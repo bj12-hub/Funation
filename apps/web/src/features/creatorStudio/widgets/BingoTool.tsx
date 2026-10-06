@@ -45,7 +45,7 @@ export function BingoPlay({ state, pending, run }: { state: BingoState; pending:
             aria-pressed={state.marked[i]}
             aria-label={c ? `${c}${state.marked[i] ? " (표시됨)" : ""}` : `빈 칸 ${i + 1}`}
             disabled={pending || !c}
-            onClick={() => run(() => markBingo({ index: i, marked: !state.marked[i] }))}
+            onClick={() => run(() => markBingo({ index: i, marked: !state.marked[i], size: state.size, cell: c }))}
           >
             {c || "—"}
           </button>

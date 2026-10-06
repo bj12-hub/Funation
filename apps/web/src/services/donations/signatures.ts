@@ -53,6 +53,8 @@ export async function saveSignature(input: unknown): Promise<SignatureResult> {
   const fields = readFields(v);
   if (typeof fields === "string") return { status: "INVALID", message: fields };
   const { name, price } = fields;
+  // Before the checks: a double submit must not pass them twice while the first one waits.
+  await mockDelay(150);
   if (v.match !== "SELECT" && v.match !== "AMOUNT") return { status: "INVALID", message: "매칭 규칙을 확인해 주세요." };
   if (typeof v.active !== "boolean") return { status: "INVALID", message: "사용 여부를 확인해 주세요." };
 
@@ -76,7 +78,6 @@ export async function saveSignature(input: unknown): Promise<SignatureResult> {
     return { status: "SAVED", id: existing.id };
   }
   if (items.length >= SIGNATURE_LIMITS.max) return { status: "INVALID", message: `시그니처는 ${SIGNATURE_LIMITS.max}개까지 만들 수 있어요.` };
-  await mockDelay(150);
   const newId = newSignatureId(items.length);
   items.push({ id: newId, ...next });
   mockSignatures.requests[v.requestId as string] = newId;
