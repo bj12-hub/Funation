@@ -98,21 +98,22 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 방송 · 위젯 | W01c | 뽑기 후원 팝업 (당첨 효과음 · 라이브러리) | `/creator/widgets` | `144:8944` |
 | 방송 · 위젯 | W01d | 투표 위젯 팝업 (무료 · 1인 1표, 프리셋) | `/creator/widgets` | `161:9654` |
 | 방송 · 위젯 | W01e | 룰렛 설정 팝업 (항목 · 확률, 크리에이터 상품) | `/creator/widgets` | `164:9319` |
-| 방송 · 위젯 | W02 | 방송 도구 | `/creator/widgets/tools` | `64:1471` |
-| 방송 · 위젯 | W03 | 오버레이 주소 (후원 위젯 11종 · 투표 · 룰렛 · 뽑기 포함 22개) | `/creator/widgets/overlays` | `160:4982` |
+| 방송 · 위젯 | W02 | 방송 도구 (빙고 · 1줄 완성 · 화면에 보이는 중) | `/creator/widgets/tools` | `212:5861` |
+| 방송 · 위젯 | W03 | 오버레이 주소 (빙고 포함 24개 · OBS 씬 파일 내려받기 · OBS에 한 번에 넣기) | `/creator/widgets/overlays` | `213:5870` |
 | 방송 · 위젯 | W04 | 리모컨 (기능 제어 · 볼륨 · 시그니처 소리 · 방송 도구 · 투표 · 룰렛 스위치 · 뽑기 수령 처리) | `/creator/remote` | `202:5483` |
 | 방송 · 위젯 | W05 | 이펙트 · 효과 | `/creator/widgets/effects` | `66:1840` |
 | 방송 · 위젯 | W06 | 시그니처 후원 (편집 열림) | `/creator/widgets/signatures` | `201:5481` |
 | 방송 · 위젯 | W06b | 시그니처 후원 (한 번에 만들기) | `/creator/widgets/signatures?bulk=1` | `209:5689` |
 | 방송 · 위젯 | W07 | 영상 후원 | `/creator/widgets/video` | `66:2322` |
 | 방송 · 위젯 | W08 | 그림후원 | `/creator/widgets/drawing` | `66:2498` |
-| 방송 · 위젯 | W09 | 이미지·사운드 | `/creator/widgets/assets` | `200:5619` |
+| 방송 · 위젯 | W09 | 이미지·사운드 (이름 찾기 · 이름순 · 짝 필터, 5개 중 1개) | `/creator/widgets/assets` | `213:6371` |
 | 방송 · 위젯 | W03b | 오버레이 미리보기 (OBS 크기 · 배경 · 테스트 후원) | `/creator/widgets/overlays/preview/[id]` | `200:5999` |
 | 방송 · 위젯 | W01f | 후원랭킹 위젯 팝업 (랭킹 종류 · 수단별 보드) | `/creator/widgets` | `205:15223` |
 | 방송 · 위젯 | W10 | 배너 (기능 제어 OFF 안내 · 배너 OFF 예시) | `/creator/widgets/banner` | `66:2782` |
-| 방송 · 위젯 | W11 | 후원 연동 | `/creator/widgets/link` | `67:2520` |
+| 방송 · 위젯 | W11 | 후원 연동 (SMS 계좌후원 목업 · 받은 입금 3건, 입금자명 가림) | `/creator/widgets/link` | `212:6116` |
 | 크루 방송 | Y03 | 크루 관리 | `/creator/crew` | `200:5757` |
 | 크루 방송 | Y04d | 크루 방송 운영 (방송 중 · 랭크업 · OBS 점수판에 표시) | `/creator/crew/broadcast` | `203:5480` |
+| 크루 방송 | Y04e | 크루 방송 운영 (방송 중 · 팬 메시지 · 요청사항, 다른 카드 생략) | `/creator/crew/broadcast` | `214:5877` |
 | 크루 방송 | Y04 | 크루 방송 운영 (방송 전 · 시나리오 편집) | `/creator/crew/broadcast` | `116:3886` |
 | 크루 방송 | Y04b | 크루 방송 운영 (방송 중 · 자동엑셀 · 배틀 · 기여도 강탈 · 시나리오, 예시 입력값) | `/creator/crew/broadcast` | `117:3911` |
 | 크루 방송 | Y04c | 크루 방송 운영 (배틀 배수 · 벌칙 기본값, 강탈 기준 · 쿨다운 — 시나리오 · 후원 리스트 카드 생략) | `/creator/crew/broadcast` | `185:5234` |
@@ -157,6 +158,7 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 고객센터 | S11 | 고객센터 | `/support` | `76:1941` |
 | 고객센터 | S12 | 공지 상세 | `/support/notices/brand` | `76:2163` |
 | 크리에이터 채널 | C01 | 채널 홈 + 투표 카드(투표한 상태) · 월간 랭킹 · 커뮤니티 | `/creators/c1` | `161:8946` |
+| 크리에이터 채널 | C08 | 채널 홈 + 팬 메시지 · 요청사항 카드 (크루 방송 중 · 내가 보낸 글 "전달됨") | `/creators/c4` | `215:9524` |
 | 크리에이터 채널 | C02 | 크루 탭 | `/creators/c4` | `76:2695` |
 | 크리에이터 채널 | C03 | 영상 탭 | `/creators/c1` | `77:2513` |
 | 크리에이터 채널 | C04 | 커뮤니티 탭 | `/creators/c1` | `77:2803` |
@@ -243,5 +245,6 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | OBS 오버레이 | O21b | 뽑기 (640×400, 당첨 공개) | `/overlay/widget/gacha/[key]` | `166:8992` |
 | OBS 오버레이 | O22 | 뽑기 당첨 리스트 (800×120, 전광판) | `/overlay/widget/gacha-board/[key]` | `166:9003` |
 | OBS 오버레이 | O23 | 벽지 (1920×1080, 자동 배치 스티커 벽 · 기본형, 이미지는 자리표시) | `/overlay/widget/wallpaper/[key]` | `175:8939` |
+| OBS 오버레이 | O24 | 빙고 (600×700, 3 × 3 · 1줄 완성 · 빙고!) | `/overlay/tool/bingo/[key]` | `215:9924` |
 
 OBS 오버레이는 투명 배경이라 회색 바탕 위에 그렸어요. 테스트 후원 · 테스트 그림 · 방송 도구 켜기 · 크루 방송 시작으로 띄운 상태를 읽었고, 이펙트(무작위 파티클)와 영상(외부 임베드)은 코드 구조대로 그린 예시 배치예요. 통합 채팅 오버레이는 9 페이지(O04 `49:504`)에 있어요. 아이콘은 회색 자리표시 사각형이에요.
