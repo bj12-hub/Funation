@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { key, mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
+import { key, mockSessionModule, resetMockStores, signIn, verifyMockIdentity } from "@/test/mockEnv";
 
 /** `during` runs inside the next mock delay, i.e. while the server is "busy" between its checks. */
 const delay = vi.hoisted(() => ({ during: null as null | (() => void) }));
@@ -246,6 +246,7 @@ describe("회원 탈퇴", () => {
   it("starts the new account without the withdrawn creator's settlement history or earnings", async () => {
     signIn(["SUPPORTER", "CREATOR"]);
     const m = await load();
+    await verifyMockIdentity(); // the withdrawn account had done 본인인증
     const earnings = (await m.getWithdrawalInfo())!.unsettledFn;
     const before = m.settlement.requests.length;
     expect(await m.withdrawAccount({ ...supporter(), unsettledFn: earnings, earningsForfeitAgreed: true })).toEqual({ status: "WITHDRAWN" });
@@ -268,6 +269,10 @@ describe("회원 탈퇴", () => {
       code: "F0L0E0X1",
       submittedAt: "2026-10-06"
     } as typeof m.settlement.registration;
+    // The new account starts without 본인인증 either, and 정산 신청 needs it (2026-10-06 결정).
+    expect(m.account.identity).toBeNull();
+    expect(await getSettlementApplyView()).toBe("IDENTITY_REQUIRED");
+    await verifyMockIdentity();
     expect(await getSettlementApplyView()).toMatchObject({ availableFn: 0, hasPending: false, recent: [] });
     expect(await getSettlementManageView({ period: "all" })).toMatchObject({ items: [] });
 

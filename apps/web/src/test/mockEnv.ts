@@ -37,3 +37,12 @@ export function resetMockStores() {
 
 /** A valid Idempotency-Key (16–64 of [A-Za-z0-9-]). */
 export const key = (n = 1) => `test-key-${String(n).padStart(8, "0")}`;
+
+/**
+ * Marks the mock account 본인인증 완료 with the Figma sample identity (no real data), as the 마이페이지
+ * verification does. 정산 신청 requires it (2026-10-06 결정). Call after resetMockStores().
+ */
+export async function verifyMockIdentity() {
+  const { mockAccount } = await import("@/services/account/mockStore");
+  mockAccount.identity = { name: "홍길동", birthDate: "1995-01-01", verifiedAt: new Date().toISOString() };
+}

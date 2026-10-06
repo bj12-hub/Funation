@@ -1,8 +1,9 @@
 /**
  * Client-safe settlement types and constants (정산설정, Figma 429:4 · 433:* · 437:* · 443:* · 452:*).
  *
- * Settlement policy — minimum amount, schedule, fees, tax treatment, identity verification and the
- * handling of overseas residents — is not approved yet (TBD). Nothing here encodes those rules.
+ * Settlement policy — minimum amount, schedule, fees, tax treatment, the identity verification
+ * provider and the handling of overseas residents — is not approved yet (TBD). Nothing here encodes
+ * those rules. Decided: 정산 신청 requires 본인인증 (2026-10-06, see SettlementGate).
  */
 
 export type ResidenceCountry = "KR" | "OTHER";
@@ -144,13 +145,19 @@ export type SettlementQuote = {
   netKrw: number;
 };
 
-export type QuoteResult = { status: "OK"; quote: SettlementQuote } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" | "NOT_REGISTERED" };
-export type SaveAutoResult = { status: "SAVED"; on: boolean } | { status: "INVALID" | "UNAUTHORIZED" | "NOT_REGISTERED" };
+/**
+ * Why 정산 신청 is closed, checked after the session: no 정산 자료 registration yet, then
+ * IDENTITY_REQUIRED = 본인인증 (마이페이지) not done — 2026-10-06 결정 "필수로 막기".
+ */
+export type SettlementGate = "NOT_REGISTERED" | "IDENTITY_REQUIRED";
+
+export type QuoteResult = { status: "OK"; quote: SettlementQuote } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" | SettlementGate };
+export type SaveAutoResult = { status: "SAVED"; on: boolean } | { status: "INVALID" | "UNAUTHORIZED" | SettlementGate };
 export type RequestResult =
   | { status: "REQUESTED"; quote: SettlementQuote; requestId: string }
   | { status: "INVALID"; message: string }
   /** CONFLICT: the Idempotency-Key was already used for a different amount. */
-  | { status: "UNAUTHORIZED" | "NOT_REGISTERED" | "CONFLICT" };
+  | { status: "UNAUTHORIZED" | SettlementGate | "CONFLICT" };
 
 // ── 정산 관리 (478:2 · 479:144 · 480:2) ────────────────────────────────────────────────
 

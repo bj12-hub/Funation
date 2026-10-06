@@ -50,12 +50,31 @@ const CARDS: Card[] = [
   }
 ];
 
+type Dialog = "needRegistration" | "needIdentity" | "alreadyRegistered";
+
+type Props = {
+  registered: boolean;
+  identityVerified: boolean;
+  justRegistered: boolean;
+  /** Open the 본인인증 notice on arrival (the apply page sends unverified creators here). */
+  identityGate: boolean;
+};
+
+/** The notice a card opens instead of its page, or null when the page is open to the creator. */
+function gateFor(key: CardKey, registered: boolean, identityVerified: boolean): Dialog | null {
+  if (key === "register") return registered ? "alreadyRegistered" : "needRegistration";
+  if (!registered) return "needRegistration";
+  return key === "apply" && !identityVerified ? "needIdentity" : null;
+}
+
 /**
  * 429:73 cards. 정산 등록 opens 433:4 (not registered) or 462:2 (already registered); 신청/관리
- * need a registration first, so they open 433:4 until one exists. The server re-checks on each page.
+ * need a registration first, so they open 433:4 until one exists. 정산 신청 also needs 본인인증
+ * (2026-10-06 결정), so after registering it opens the code-first 본인인증 notice until the 마이페이지
+ * verification is done. The server re-checks on each page and action.
  */
-export function SettlementStartCards({ registered, justRegistered }: { registered: boolean; justRegistered: boolean }) {
-  const [dialog, setDialog] = useState<"needRegistration" | "alreadyRegistered" | null>(null);
+export function SettlementStartCards({ registered, identityVerified, justRegistered, identityGate }: Props) {
+  const [dialog, setDialog] = useState<Dialog | null>(identityGate ? "needIdentity" : null);
   const [toast, setToast] = useState<string | null>(justRegistered ? "정산 자료 등록 신청이 완료되었습니다." : null);
   const clearToast = useCallback(() => setToast(null), []);
   const close = () => setDialog(null);
@@ -83,7 +102,7 @@ export function SettlementStartCards({ registered, justRegistered }: { registere
               </ol>
             </>
           );
-          const gate = card.key === "register" ? (registered ? "alreadyRegistered" : "needRegistration") : registered ? null : "needRegistration";
+          const gate = gateFor(card.key, registered, identityVerified);
           return (
             <li key={card.key}>
               {gate ? (
@@ -108,6 +127,18 @@ export function SettlementStartCards({ registered, justRegistered }: { registere
         action={
           <Link href="/creator/settlement/register" className={styles.btnBlue}>
             정산등록
+          </Link>
+        }
+      />
+      {/* Code-first (no Figma frame): 정산 신청 before 본인인증. */}
+      <SettlementNoticeModal
+        open={dialog === "needIdentity"}
+        onClose={close}
+        title="정산 신청 전에 본인인증이 필요해요"
+        lines={["본인인증이 아직 완료되지 않았어요.", "마이페이지에서 본인인증을 마치면 정산을 신청할 수 있어요."]}
+        action={
+          <Link href="/mypage" className={styles.btnBlue}>
+            본인인증 하기
           </Link>
         }
       />

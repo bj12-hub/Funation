@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { key, mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
+import { key, mockSessionModule, resetMockStores, signIn, verifyMockIdentity } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
@@ -72,6 +72,7 @@ describe("admin settlements", () => {
     const { requestSettlement } = await import("@/services/creator/settlementRequests");
     const { resetSettlementRegistration } = await import("@/services/creator/settlementManagement");
     signIn();
+    await verifyMockIdentity();
     m.mockSettlement.registration = { ...REG };
     const res = await requestSettlement({ amountFn: 50_000, idempotencyKey: key(1) });
     if (res.status !== "REQUESTED") throw new Error(res.status);

@@ -1,14 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { key, mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
+import { key, mockSessionModule, resetMockStores, signIn, verifyMockIdentity } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
 
 /** 정산 신청 (458:4 · 473:2): server-side fee math, balance checks and idempotency. */
-async function load() {
+async function load({ verified = true } = {}) {
   const store = await import("./mockSettlementStore");
   const actions = await import("./settlementRequests");
-  // Register the mock creator so settlement actions are allowed.
+  // Register the mock creator and, unless a test needs it missing, complete 본인인증 (2026-10-06 결정).
+  if (verified) await verifyMockIdentity();
   store.mockSettlement.registration = {
     memberType: "INDIVIDUAL",
     registrant: "홍길동",
@@ -137,5 +138,55 @@ describe("정산 신청", () => {
     store.registration = null;
     expect((await requestSettlement({ amountFn: 90_000, idempotencyKey: key(6) })).status).toBe("NOT_REGISTERED");
     expect(store.availableFn).toBe(127_500);
+  });
+});
+
+/** 2026-10-06 결정 "필수로 막기": no 정산 신청, quote or 자동 정산 before the 마이페이지 본인인증. */
+describe("정산 신청 — 본인인증 필수", () => {
+  beforeEach(() => resetMockStores());
+
+  it("refuses the apply view, quote, request and 자동 정산 with IDENTITY_REQUIRED and moves no FN", async () => {
+    const { getSettlementApplyView, quoteSettlement, requestSettlement, setAutoSettlement, store } = await load({ verified: false });
+    const before = { availableFn: store.availableFn, requests: store.requests.length };
+
+    expect(await getSettlementApplyView()).toBe("IDENTITY_REQUIRED");
+    expect(await quoteSettlement(90_000)).toEqual({ status: "IDENTITY_REQUIRED" });
+    expect(await requestSettlement({ amountFn: 90_000, idempotencyKey: key(20) })).toEqual({ status: "IDENTITY_REQUIRED" });
+    expect(await setAutoSettlement(true)).toEqual({ status: "IDENTITY_REQUIRED" });
+
+    expect(store.availableFn).toBe(before.availableFn);
+    expect(store.requests).toHaveLength(before.requests);
+    expect(store.requests.some((r) => r.status === "PENDING")).toBe(false);
+    expect(store.idempotency).toEqual({});
+    expect(store.autoSettlement).toBe(false);
+  });
+
+  it("checks the session, then the registration, then 본인인증", async () => {
+    const { quoteSettlement, requestSettlement, setAutoSettlement, getSettlementApplyView, store } = await load({ verified: false });
+    signIn(null);
+    expect(await getSettlementApplyView()).toBe("UNAUTHORIZED");
+    expect(await quoteSettlement(90_000)).toEqual({ status: "UNAUTHORIZED" });
+    signIn();
+    store.registration = null;
+    expect(await getSettlementApplyView()).toBe("NOT_REGISTERED");
+    expect(await quoteSettlement(90_000)).toEqual({ status: "NOT_REGISTERED" });
+    expect(await requestSettlement({ amountFn: 90_000, idempotencyKey: key(21) })).toEqual({ status: "NOT_REGISTERED" });
+    expect(await setAutoSettlement(true)).toEqual({ status: "NOT_REGISTERED" });
+    expect(store.availableFn).toBe(127_500);
+  });
+
+  it("opens 정산 신청 once the 마이페이지 본인인증 is done", async () => {
+    const { getSettlementApplyView, quoteSettlement, requestSettlement, setAutoSettlement, store } = await load({ verified: false });
+    expect(await quoteSettlement(90_000)).toEqual({ status: "IDENTITY_REQUIRED" });
+
+    const { verifyIdentity } = await import("@/services/account/linkingActions");
+    expect(await verifyIdentity("PHONE")).toMatchObject({ status: "VERIFIED" });
+
+    expect(await getSettlementApplyView()).toMatchObject({ availableFn: 127_500, code: "TESTCODE" });
+    expect((await quoteSettlement(90_000)).status).toBe("OK");
+    expect((await requestSettlement({ amountFn: 90_000, idempotencyKey: key(22) })).status).toBe("REQUESTED");
+    expect(store.availableFn).toBe(37_500);
+    expect(await setAutoSettlement(true)).toEqual({ status: "SAVED", on: true });
+    expect(store.autoSettlement).toBe(true);
   });
 });

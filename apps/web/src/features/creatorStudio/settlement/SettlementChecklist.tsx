@@ -52,7 +52,7 @@ export function SettlementChecklist({ checklist }: { checklist: Checklist }) {
         ))}
       </ol>
       <p className={styles.checklistNote}>
-        {checklist.ready ? "모든 준비가 끝났어요. 정산 신청을 할 수 있어요." : "모든 단계를 완료하면 정산 신청을 할 수 있어요."} 서류 심사 절차는 아직 정해지지 않아 제출하면 바로 승인으로 표시돼요(TBD).
+        {checklist.ready ? "모든 준비가 끝났어요. 정산 신청을 할 수 있어요." : "모든 단계를 완료해야 정산 신청을 할 수 있어요. 본인인증은 필수예요."} 서류 심사 절차는 아직 정해지지 않아 제출하면 바로 승인으로 표시돼요(TBD).
       </p>
     </section>
   );

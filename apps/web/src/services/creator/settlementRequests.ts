@@ -3,8 +3,9 @@
 import { randomUUID } from "node:crypto";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
+import { mockAccount } from "@/services/account/mockStore";
 import { MOCK_SETTLEMENT_POLICY, mockSettlement, toHistoryItem } from "./mockSettlementStore";
-import type { QuoteResult, RequestResult, SaveAutoResult, SettlementApplyView, SettlementQuote } from "./settlementTypes";
+import type { QuoteResult, RequestResult, SaveAutoResult, SettlementApplyView, SettlementGate, SettlementQuote } from "./settlementTypes";
 
 /**
  * 정산 신청 — Figma 458:4 · 466:2 · 469:195 · 469:2 · 475:2 · 473:2 · 477:2 · 463:2.
@@ -14,11 +15,19 @@ import type { QuoteResult, RequestResult, SaveAutoResult, SettlementApplyView, S
  * submit returns the first result instead of creating a second request. Policy numbers (minimum,
  * fee rates, FN→KRW) are Figma samples in MOCK_SETTLEMENT_POLICY and remain TBD, as do the request
  * window (매월 1일 10:00 ~ 10일 23:50 in 466:2), payout schedule, approval workflow and tax handling.
+ *
+ * Gate, after the session: a 정산 자료 registration (NOT_REGISTERED), then 본인인증 (IDENTITY_REQUIRED,
+ * 2026-10-06 결정 "필수로 막기" — the 마이페이지 verification). The checklist's 서류 심사 and 정산 계좌 steps
+ * are not separate checks: the mock approves documents on submit (review workflow TBD) and every
+ * registration carries the payout account.
  */
 
 const assertMock = () => {
   if (!USE_MOCK) throw new Error("Settlement API is not connected yet.");
 };
+
+/** 마이페이지 본인인증 done (mockAccount.identity, the same flag the 정산 준비 체크리스트 shows). */
+const identityVerified = () => mockAccount.identity !== null;
 
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
@@ -47,11 +56,12 @@ function checkAmount(amount: unknown): { ok: true; amountFn: number } | { ok: fa
   return { ok: true, amountFn: amount };
 }
 
-export async function getSettlementApplyView(): Promise<SettlementApplyView | "UNAUTHORIZED" | "NOT_REGISTERED"> {
+export async function getSettlementApplyView(): Promise<SettlementApplyView | "UNAUTHORIZED" | SettlementGate> {
   assertMock();
   if (!(await getCreatorSession())) return "UNAUTHORIZED";
   const reg = mockSettlement.registration;
   if (!reg) return "NOT_REGISTERED";
+  if (!identityVerified()) return "IDENTITY_REQUIRED";
   await mockDelay(250);
 
   const requests = mockSettlement.requests;
@@ -83,6 +93,7 @@ export async function quoteSettlement(amount: unknown): Promise<QuoteResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (!mockSettlement.registration) return { status: "NOT_REGISTERED" };
+  if (!identityVerified()) return { status: "IDENTITY_REQUIRED" };
   const check = checkAmount(amount);
   if (!check.ok) return { status: "INVALID", message: check.message };
   await mockDelay(250);
@@ -99,6 +110,8 @@ export async function requestSettlement(input: unknown): Promise<RequestResult> 
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const registration = mockSettlement.registration;
   if (!registration) return { status: "NOT_REGISTERED" };
+  // Before the key lookup too: a retried key gets no request back while 본인인증 is missing.
+  if (!identityVerified()) return { status: "IDENTITY_REQUIRED" };
   const v = (typeof input === "object" && input !== null ? input : {}) as { amountFn?: unknown; idempotencyKey?: unknown };
   const key = v.idempotencyKey;
   if (typeof key !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(key)) return { status: "INVALID", message: "잘못된 요청입니다. 다시 시도해 주세요." };
@@ -134,7 +147,7 @@ export async function requestSettlement(input: unknown): Promise<RequestResult> 
     feeFn: quote.totalFeeFn,
     netKrw: quote.netKrw,
     payoutDate: ymd(payout),
-    // Taken in the same synchronous step as the registration check above (no `await` in between).
+    // Taken in the same synchronous step as the registration and 본인인증 checks above (no `await` in between).
     registrationAtRequest: { ...registration }
   });
   await mockDelay(600);
@@ -142,13 +155,19 @@ export async function requestSettlement(input: unknown): Promise<RequestResult> 
   return { status: "REQUESTED", requestId: id, quote };
 }
 
-/** 자동 정산 신청 ON/OFF (458:85). Takes effect from next month per 466:2 copy (TBD). */
+/**
+ * 자동 정산 신청 ON/OFF (458:85). Takes effect from next month per 466:2 copy (TBD). Same gate as a
+ * request. No job creates automatic requests yet; when one exists it must re-check this gate (and the
+ * amount rules) for every request it makes, not trust the stored flag.
+ */
 export async function setAutoSettlement(on: unknown): Promise<SaveAutoResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
-  if (!mockSettlement.registration) return { status: "NOT_REGISTERED" };
-  if (typeof on !== "boolean") return { status: "INVALID" };
+  // Simulated latency first: from the gate below to the write there is no `await`.
   await mockDelay(300);
+  if (!mockSettlement.registration) return { status: "NOT_REGISTERED" };
+  if (!identityVerified()) return { status: "IDENTITY_REQUIRED" };
+  if (typeof on !== "boolean") return { status: "INVALID" };
   mockSettlement.autoSettlement = on;
   return { status: "SAVED", on };
 }
