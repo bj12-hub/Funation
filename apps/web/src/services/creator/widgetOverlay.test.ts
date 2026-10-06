@@ -5,6 +5,7 @@ import { key, mockSessionModule, resetMockStores } from "@/test/mockEnv";
 import type { AlertItem } from "./alertTypes";
 import { crewRankingRows, eventLines, goalProgress, rankAmountText, rankingRows, recentLines, sourceBoardRows, totalAmount } from "./widgetOverlayCore";
 import { DEFAULT_WIDGET_SETTINGS } from "./widgetSettingsTypes";
+import { wallStickers } from "./wallpaperCore";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
@@ -103,6 +104,21 @@ describe("후원 위젯 계산", () => {
     expect(goal).toEqual({ current: 1_000 + 10_000 + 5_000 + 50_000 + 10_000, percent: 76, daysLeft: 3 });
     expect(goalProgress(feed, { ...D.GOAL, startAmount: 0, goalAmount: 10_000, from: "2026-09-01", to: "2026-12-31" }).percent).toBe(100);
     expect(totalAmount(feed, { ...D.TOTAL, from: "2026-10-02T09:00", to: "2026-10-02T12:00" })).toBe(55_000);
+  });
+
+  it("never counts or lists a 다시 보내기 copy as another donation", () => {
+    const replays = [
+      alert("2026-10-03T10:00:00", "별빛", 5_000, { id: "rp-1", replayOf: "al-1" }),
+      alert("2026-10-03T10:05:00", "유튜버팬", 0, { id: "rp-2", kind: "EXTERNAL", platform: "YOUTUBE", native: { value: 5_000, currency: "KRW" }, replayOf: "al-2" })
+    ];
+    const all = [...feed, ...replays];
+    const range = { ...D.TOTAL, from: "2026-10-01T00:00", to: "2026-10-05T23:59" };
+    expect(totalAmount(all, range)).toBe(totalAmount(feed, range));
+    expect(rankingRows(all, { ...D.RANKING, period: "전체", ranks: 5 }, now)).toEqual(rankingRows(feed, { ...D.RANKING, period: "전체", ranks: 5 }, now));
+    expect(sourceBoardRows(all, { period: "전체", ranks: 5 }, now)).toEqual(sourceBoardRows(feed, { period: "전체", ranks: 5 }, now));
+    expect(recentLines(all, { ...D.RECENT, count: 3 })).toEqual(recentLines(feed, { ...D.RECENT, count: 3 }));
+    expect(eventLines(all, { ...D.EVENT, maxLines: 3 })).toEqual(eventLines(feed, { ...D.EVENT, maxLines: 3 }));
+    expect(wallStickers(all, { images: [] }, null).map((x) => x.id)).not.toContain("rp-1"); // no second 벽지 sticker
   });
 
   it("counts a 퀘스트 후원 only once it succeeded (held until then, refunded on 실패 · 취소)", () => {

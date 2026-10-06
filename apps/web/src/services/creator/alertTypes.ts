@@ -38,6 +38,8 @@ export type AlertItem = {
    */
   questId?: string;
   questSucceeded?: boolean;
+  /** 다시 보내기 copy: the id of the alert it repeats. Shown again on stream, never counted as another donation. */
+  replayOf?: string;
   createdAt: string;
   status: AlertStatus;
 };
