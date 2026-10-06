@@ -4,7 +4,7 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { isSignatureImage, isSignatureSound, mockSignatures } from "./signatureCore";
-import { SIGNATURE_LIMITS, type ManagedSignature, type SignatureBulkResult, type SignatureResult } from "./signatureTypes";
+import { SIGNATURE_IMAGE_PRESETS, SIGNATURE_LIMITS, type ManagedSignature, type SignatureBulkResult, type SignatureResult } from "./signatureTypes";
 
 /**
  * 시그니처 관리 Server Actions — code-first. Route `/creator/widgets/signatures`. Creator only; every
@@ -15,8 +15,12 @@ type Fields = Pick<ManagedSignature, "name" | "price" | "imageUrl" | "soundUrl">
 
 const isRequestId = (v: unknown): v is string => typeof v === "string" && /^[A-Za-z0-9-]{16,64}$/.test(v);
 
-/** Name, price, image and sound of one signature, or what is wrong with them. */
-function readFields(v: Record<string, unknown>): Fields | string {
+/**
+ * Name, price, image and sound of one signature, or what is wrong with them. `kept` is the signature being edited:
+ * its own image or sound that has since been deleted from the library falls back (first preset image / no sound,
+ * as the room and the alert already show it) instead of blocking every later save such as 숨기기.
+ */
+function readFields(v: Record<string, unknown>, kept?: ManagedSignature): Fields | string {
   const name = typeof v.name === "string" ? v.name.trim() : "";
   if (!name || name.length > SIGNATURE_LIMITS.nameMax) return `이름을 1~${SIGNATURE_LIMITS.nameMax}자로 입력해 주세요.`;
   if (MOCK_FORBIDDEN_WORDS.some((w) => name.toLowerCase().includes(w))) return "사용할 수 없는 단어가 포함되어 있어요.";
@@ -24,14 +28,17 @@ function readFields(v: Record<string, unknown>): Fields | string {
   if (typeof price !== "number" || !Number.isInteger(price) || price < SIGNATURE_LIMITS.priceMin || price > SIGNATURE_LIMITS.priceMax) {
     return `가격은 ${SIGNATURE_LIMITS.priceMin.toLocaleString()} ~ ${SIGNATURE_LIMITS.priceMax.toLocaleString()} FN이에요.`;
   }
-  if (typeof v.imageUrl !== "string" || !isSignatureImage(v.imageUrl)) return "이미지를 골라 주세요.";
+  if (typeof v.imageUrl !== "string") return "이미지를 골라 주세요.";
+  const imageUrl = isSignatureImage(v.imageUrl) ? v.imageUrl : kept && v.imageUrl === kept.imageUrl ? SIGNATURE_IMAGE_PRESETS[0] : null;
+  if (!imageUrl) return "이미지를 골라 주세요.";
   // Optional; older clients send nothing (= none).
   let soundUrl: string | null = null;
   if (v.soundUrl !== undefined && v.soundUrl !== null) {
-    if (typeof v.soundUrl !== "string" || !isSignatureSound(v.soundUrl)) return "소리는 라이브러리의 사운드만 고를 수 있어요.";
-    soundUrl = v.soundUrl;
+    if (typeof v.soundUrl !== "string") return "소리는 라이브러리의 사운드만 고를 수 있어요.";
+    if (isSignatureSound(v.soundUrl)) soundUrl = v.soundUrl;
+    else if (!kept || v.soundUrl !== kept.soundUrl) return "소리는 라이브러리의 사운드만 고를 수 있어요.";
   }
-  return { name, price, imageUrl: v.imageUrl, soundUrl };
+  return { name, price, imageUrl, soundUrl };
 }
 
 const newSignatureId = (n: number) => `sig-${Date.now().toString(36)}-${n}`;
@@ -50,7 +57,7 @@ export async function saveSignature(input: unknown): Promise<SignatureResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
-  const fields = readFields(v);
+  const fields = readFields(v, typeof v.id === "string" ? mockSignatures.items.find((s) => s.id === v.id) : undefined);
   if (typeof fields === "string") return { status: "INVALID", message: fields };
   const { name, price } = fields;
   // Before the checks: a double submit must not pass them twice while the first one waits.

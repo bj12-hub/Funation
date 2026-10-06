@@ -97,6 +97,24 @@ describe("시그니처 일괄 만들기", () => {
     expect((await m.listSignatures())!).toHaveLength(existing.length + 2);
   });
 
+  it("still saves a signature (e.g. 숨기기) after its library image or sound was deleted", async () => {
+    const m = await load();
+    const img = await upload(m, 1, "축하.png", PNG, "image/png");
+    const snd = await upload(m, 2, "축하.mp3", MP3, "audio/mpeg");
+    const res = await m.saveSignature({ name: "축하", price: 3_000, imageUrl: img.url, soundUrl: snd.url, match: "SELECT", active: true, requestId: key(70) });
+    if (res.status !== "SAVED") throw new Error(JSON.stringify(res));
+    await m.deleteAsset(img.id);
+    await m.deleteAsset(snd.id);
+    const sig = (await m.listSignatures())!.find((s) => s.id === res.id)!;
+    // The screen sends the stored values back unchanged: the deleted files fall back instead of failing.
+    expect(await m.saveSignature({ ...sig, active: false })).toEqual({ status: "SAVED", id: sig.id });
+    expect((await m.listSignatures())!.find((s) => s.id === res.id)).toMatchObject({ active: false, imageUrl: "/mock/room/signatures/sig-1.png", soundUrl: null });
+    // A deleted file is still refused when it is not the signature's own.
+    const other = (await m.listSignatures())![0];
+    expect((await m.saveSignature({ ...other, soundUrl: snd.url })).status).toBe("INVALID");
+    expect((await m.saveSignature({ ...other, imageUrl: img.url })).status).toBe("INVALID");
+  });
+
   it("keeps within the signature limit and is for creators only", async () => {
     const m = await load();
     const a = await upload(m, 1, "가.png", PNG, "image/png");
