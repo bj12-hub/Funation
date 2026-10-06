@@ -18,6 +18,14 @@ export function RoomFanNotesCard({ channelId, signedIn, initial }: { channelId: 
   const [kind, setKind] = useState<FanNoteKind>("MESSAGE");
   const [memberId, setMemberId] = useState("");
   const [text, setText] = useState("");
+  // The poll reads the draft without re-subscribing; a typed note keeps a closed card on screen.
+  const draft = useRef("");
+  const type = (value: string) => {
+    draft.current = value;
+    setText(value);
+  };
+  /** The broadcast stopped taking notes while this viewer had the card open (ended, or 받기 꺼짐). */
+  const [closed, setClosed] = useState(false);
   const [note, setNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
   const requestId = useRef<string | null>(null);
@@ -25,10 +33,12 @@ export function RoomFanNotesCard({ channelId, signedIn, initial }: { channelId: 
   const [until, setUntil] = useState(0);
   const [now, setNow] = useState<number | null>(null);
 
-  const apply = (next: RoomFanNotes | null) => {
+  const apply = (next: RoomFanNotes) => {
     setRoom(next);
-    setUntil(next ? Date.now() + next.cooldownLeft * 1000 : 0);
+    setClosed(false);
+    setUntil(Date.now() + next.cooldownLeft * 1000);
   };
+  const CLOSED_TEXT = "지금은 메시지를 받지 않아요. 방송이 끝났거나 크리에이터가 받기를 껐어요.";
 
   useEffect(() => {
     setUntil(Date.now() + (initial?.cooldownLeft ?? 0) * 1000);
@@ -37,8 +47,12 @@ export function RoomFanNotesCard({ channelId, signedIn, initial }: { channelId: 
     const poll = setInterval(() => {
       getRoomFanNotes(channelId)
         .then((next) => {
-          setRoom(next);
-          setUntil(next ? Date.now() + next.cooldownLeft * 1000 : 0);
+          if (next) {
+            setRoom(next);
+            setClosed(false);
+            setUntil(Date.now() + next.cooldownLeft * 1000);
+          } else if (draft.current.trim()) setClosed(true);
+          else setRoom(null);
         })
         .catch(() => undefined);
     }, 5000);
@@ -63,16 +77,17 @@ export function RoomFanNotesCard({ channelId, signedIn, initial }: { channelId: 
         const res = await sendFanNote({ channelId, broadcastId: room.broadcastId, kind, memberId: target || null, text, requestId: requestId.current });
         if (res.status === "SENT") {
           requestId.current = null;
-          setText("");
+          type("");
           apply(res.room);
           setNote({ tone: "ok", text: "전달했어요. 처리되면 아래에 완료로 표시돼요." });
         } else if (res.status === "COOLDOWN") {
           setUntil(Date.now() + res.seconds * 1000);
           setNote({ tone: "error", text: `${res.seconds}초 뒤에 다시 보낼 수 있어요.` });
         } else if (res.status === "CLOSED") {
+          // Keep the card (and the typed text) with the reason instead of letting it vanish.
           requestId.current = null;
-          apply(await getRoomFanNotes(channelId));
-          setNote({ tone: "error", text: "지금은 메시지를 받지 않아요." });
+          setClosed(true);
+          setNote({ tone: "error", text: CLOSED_TEXT });
         } else if (res.status === "INVALID") {
           requestId.current = null;
           setNote({ tone: "error", text: res.message });
@@ -121,14 +136,14 @@ export function RoomFanNotesCard({ channelId, signedIn, initial }: { channelId: 
             maxLength={FAN_NOTE_LIMITS.textMax}
             rows={2}
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => type(e.target.value)}
           />
           <div className={styles.fanRow}>
             <span className={styles.voteNote}>
               {text.length}/{FAN_NOTE_LIMITS.textMax}
               {room.cooldownSec > 0 && ` · ${room.cooldownSec}초에 한 번`}
             </span>
-            <button type="submit" className={`${styles.voteButton} ${styles.fanSend}`} disabled={pending || left > 0 || !text.trim()}>
+            <button type="submit" className={`${styles.voteButton} ${styles.fanSend}`} disabled={pending || closed || left > 0 || !text.trim()}>
               {pending ? "보내는 중…" : left > 0 ? `${left}초 뒤에 보내기` : "보내기 (무료)"}
             </button>
           </div>
@@ -136,6 +151,26 @@ export function RoomFanNotesCard({ channelId, signedIn, initial }: { channelId: 
             <p className={note.tone === "error" ? styles.voteError : styles.voteNote} role={note.tone === "error" ? "alert" : "status"}>
               {note.text}
             </p>
+          )}
+          {closed && (
+            <div className={styles.fanRow}>
+              {note?.text !== CLOSED_TEXT && (
+                <p className={styles.voteError} role="alert">
+                  {CLOSED_TEXT}
+                </p>
+              )}
+              <button
+                type="button"
+                className={styles.voteNote}
+                onClick={() => {
+                  type("");
+                  setNote(null);
+                  setRoom(null);
+                }}
+              >
+                닫기
+              </button>
+            </div>
           )}
         </form>
       )}

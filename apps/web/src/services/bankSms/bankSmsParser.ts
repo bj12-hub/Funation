@@ -15,9 +15,12 @@ const toAmount = (s: string) => {
 };
 
 function findAmount(text: string): number | null {
-  // "입금 10,000원" · "입금10,000" · "10,000원 입금" · "10,000원을 입금"
-  const inline = text.match(/입금\s*([\d,]+)\s*원?/) ?? text.match(/([\d,]+)\s*원(?:을|이)?\s*입금/);
+  // "입금 10,000원" · "입금10,000" · "10,000원 입금" · "10,000원을 입금" — a number followed by / : . is a date or time.
+  const inline = text.match(/입금\s*([\d,]+)(?![\d/:.])\s*원?/) ?? text.match(/([\d,]+)\s*원(?:을|이)?\s*입금/);
   if (inline) return toAmount(inline[1]);
+  // "입금 10/06 14:05 50,000원": the first 원 amount that is not the balance.
+  const won = [...text.matchAll(/(잔액\s*)?([\d,]+)\s*원/g)].find((m) => !m[1]);
+  if (won) return toAmount(won[2]);
   // Line layout: "입금" on its own line, the amount on the next.
   const lines = text.split(/\n/).map((l) => l.trim());
   const i = lines.findIndex((l) => l === "입금");

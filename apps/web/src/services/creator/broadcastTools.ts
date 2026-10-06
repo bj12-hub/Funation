@@ -18,7 +18,6 @@ import {
   TIMER_MAX_SEC,
   bingoLinesMax,
   isToolKey,
-  resizeBingo,
   type BingoSize,
   type BingoState,
   type OverlayTool,
@@ -187,7 +186,8 @@ export async function saveCredits(input: unknown): Promise<ToolResult> {
 
 /**
  * 빙고판 저장: title, size, cells (size², each up to BINGO_CELL_MAX; empty allowed while drafting) and goal
- * (1 … rows + columns + 2 diagonals). Marks stay; a new size keeps the marks of the cells that remain.
+ * (1 … rows + columns + 2 diagonals). A mark belongs to its mission: after 칸 섞기, a new size or edited text, a cell
+ * stays marked only if a marked cell had the same text (an edited or emptied cell starts unmarked).
  */
 export async function saveBingo(input: unknown): Promise<ToolResult> {
   assertMock();
@@ -205,20 +205,31 @@ export async function saveBingo(input: unknown): Promise<ToolResult> {
   if (typeof goal !== "number" || !Number.isInteger(goal) || goal < 1 || goal > bingoLinesMax(size)) return { status: "INVALID", message: `목표 줄 수는 1 ~ ${bingoLinesMax(size)}줄이에요.` };
   await mockDelay(150);
   const prev = tools.bingo;
-  // An emptied cell cannot stay marked.
-  const marked = resizeBingo(prev, size).marked.map((m, i) => m && cells[i] !== "");
+  // Marked missions by text, counted so two cells with the same text keep only as many marks as before.
+  const done = new Map<string, number>();
+  prev.cells.forEach((c, i) => prev.marked[i] && c && done.set(c, (done.get(c) ?? 0) + 1));
+  const marked = cells.map((c) => {
+    const left = c ? (done.get(c) ?? 0) : 0;
+    if (left > 0) done.set(c, left - 1);
+    return left > 0;
+  });
   tools.bingo = { title, size, cells, marked, goal, shown: prev.shown };
   return { status: "SAVED" };
 }
 
-/** Marks or unmarks one filled cell (an explicit value, so a retried click changes nothing). */
+/**
+ * Marks or unmarks one filled cell (an explicit value, so a retried click changes nothing). `size` and `cell` are the
+ * board the screen showed: a click from an outdated screen (the board was edited elsewhere) is refused, not applied
+ * to whatever mission sits at that index now.
+ */
 export async function markBingo(input: unknown): Promise<ToolResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
-  const v = (typeof input === "object" && input !== null ? input : {}) as { index?: unknown; marked?: unknown };
+  const v = (typeof input === "object" && input !== null ? input : {}) as { index?: unknown; marked?: unknown; size?: unknown; cell?: unknown };
   const b = tools.bingo;
   const i = v.index;
-  if (typeof i !== "number" || !Number.isInteger(i) || i < 0 || i >= b.cells.length || typeof v.marked !== "boolean") return { status: "INVALID", message: "칸을 확인해 주세요." };
+  if (typeof i !== "number" || !Number.isInteger(i) || i < 0 || typeof v.marked !== "boolean") return { status: "INVALID", message: "칸을 확인해 주세요." };
+  if (v.size !== b.size || i >= b.cells.length || v.cell !== b.cells[i]) return { status: "INVALID", message: "빙고판이 바뀌었어요. 화면을 새로고침한 뒤 다시 눌러 주세요." };
   if (!b.cells[i]) return { status: "INVALID", message: "빈 칸은 표시할 수 없어요." };
   b.marked[i] = v.marked;
   return { status: "SAVED" };

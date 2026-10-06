@@ -15,6 +15,13 @@ async function load() {
 
 const marks = (size: number, cells: number[]) => Array.from({ length: size * size }, (_, i) => cells.includes(i));
 
+/** A click as the screen sends it: the index plus the board it saw. */
+async function mark(m: Awaited<ReturnType<typeof load>>, index: number, marked = true) {
+  const b = (await m.getToolsView())!.states.bingo;
+  return m.markBingo({ index, marked, size: b.size, cell: b.cells[index] });
+}
+const markedOf = async (m: Awaited<ReturnType<typeof load>>) => (await m.getToolsView())!.states.bingo.marked.flatMap((x, i) => (x ? [i] : []));
+
 describe("빙고", () => {
   beforeEach(() => resetMockStores());
 
@@ -41,10 +48,10 @@ describe("빙고", () => {
     expect((await m.getToolsView())!.states.bingo).toMatchObject({ size: 3, goal: 1, shown: false });
     const cells = ["노래", "춤", "", "퀴즈", "게임", "사연", "애교", "물", "삼행시"];
     expect(await m.saveBingo({ title: " 미션 빙고 ", size: 3, cells, goal: 2 })).toEqual({ status: "SAVED" });
-    expect(await m.markBingo({ index: 0, marked: true })).toEqual({ status: "SAVED" });
-    expect(await m.markBingo({ index: 0, marked: true })).toEqual({ status: "SAVED" }); // retried click
-    expect((await m.markBingo({ index: 2, marked: true })).status).toBe("INVALID"); // empty cell
-    for (const i of [3, 6]) await m.markBingo({ index: i, marked: true });
+    expect(await mark(m, 0)).toEqual({ status: "SAVED" });
+    expect(await mark(m, 0)).toEqual({ status: "SAVED" }); // retried click
+    expect((await mark(m, 2)).status).toBe("INVALID"); // empty cell
+    for (const i of [3, 6]) await mark(m, i);
 
     let overlay = await m.getOverlayTool("bingo", m.key);
     if (overlay === "FORBIDDEN" || overlay.tool !== "bingo") throw new Error("no bingo overlay");
@@ -57,9 +64,9 @@ describe("빙고", () => {
 
     // A bigger board keeps the marks of the cells that remain; emptying a marked cell unmarks it.
     await m.saveBingo({ title: "미션 빙고", size: 4, cells: [...resizeBingo({ size: 3, cells, marked: [] }, 4).cells.slice(0, 15), "새 칸"], goal: 3 });
-    expect((await m.getToolsView())!.states.bingo.marked.flatMap((x, i) => (x ? [i] : []))).toEqual([0, 4, 8]);
+    expect(await markedOf(m)).toEqual([0, 4, 8]);
     await m.saveBingo({ title: "미션 빙고", size: 4, cells: ["", ...resizeBingo({ size: 3, cells, marked: [] }, 4).cells.slice(1)], goal: 3 });
-    expect((await m.getToolsView())!.states.bingo.marked.flatMap((x, i) => (x ? [i] : []))).toEqual([4, 8]);
+    expect(await markedOf(m)).toEqual([4, 8]);
     expect(await m.controlBingo("RESET")).toEqual({ status: "SAVED" });
     expect((await m.getToolsView())!.states.bingo.marked.every((x) => !x)).toBe(true);
 
@@ -67,6 +74,25 @@ describe("빙고", () => {
     expect(await m.setOverlaySwitch({ target: "bingo", on: false })).toEqual({ status: "SAVED" });
     expect(await m.getOverlayTool("bingo", m.key)).toMatchObject({ on: false });
     expect(await m.getOverlayTool("bingo", "wrong-key")).toBe("FORBIDDEN");
+  });
+
+  it("keeps each mark on its mission when cells move, and refuses a click from an outdated board", async () => {
+    const m = await load();
+    const cells = ["가", "나", "다", "라", "마", "바", "사", "아", "자"];
+    await m.saveBingo({ title: "빙고", size: 3, cells, goal: 1 });
+    await mark(m, 0); // 가
+    await mark(m, 4); // 마
+    // 칸 섞기: 가 and 마 move; their marks go with them, nothing else becomes marked.
+    const shuffled = ["마", "다", "가", "바", "나", "라", "자", "아", "사"];
+    await m.saveBingo({ title: "빙고", size: 3, cells: shuffled, goal: 1 });
+    expect(await markedOf(m)).toEqual([0, 2]);
+    // Rewording a marked mission starts it unmarked.
+    await m.saveBingo({ title: "빙고", size: 3, cells: ["마!", ...shuffled.slice(1)], goal: 1 });
+    expect(await markedOf(m)).toEqual([2]);
+    // A screen still showing the old board (index 0 was 마) cannot mark whatever is there now.
+    expect(await m.markBingo({ index: 0, marked: true, size: 3, cell: "마" })).toMatchObject({ status: "INVALID", message: "빙고판이 바뀌었어요. 화면을 새로고침한 뒤 다시 눌러 주세요." });
+    expect((await m.markBingo({ index: 0, marked: true, size: 4, cell: "마!" })).status).toBe("INVALID");
+    expect(await markedOf(m)).toEqual([2]);
   });
 
   it("validates the board and is for creators only", async () => {
@@ -89,7 +115,7 @@ describe("빙고", () => {
     expect((await m.controlBingo("SPIN")).status).toBe("INVALID");
     signIn(["SUPPORTER"]);
     expect(await m.saveBingo({ title: "빙고", size: 3, cells, goal: 1 })).toEqual({ status: "UNAUTHORIZED" });
-    expect(await m.markBingo({ index: 0, marked: true })).toEqual({ status: "UNAUTHORIZED" });
+    expect(await m.markBingo({ index: 0, marked: true, size: 3, cell: "칸0" })).toEqual({ status: "UNAUTHORIZED" });
     expect(await m.controlBingo("SHOW")).toEqual({ status: "UNAUTHORIZED" });
   });
 });

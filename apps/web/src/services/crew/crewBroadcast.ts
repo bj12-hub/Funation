@@ -315,5 +315,7 @@ export async function getOverlayScoreboard(overlayKey: unknown): Promise<Broadca
   const live = liveOf(STUDIO_CHANNEL);
   if (!live) return "IDLE";
   const view = liveView(live);
-  return { ...view, logs: [] };
+  // The overlay page is reachable with the key alone: operator logs and viewers' notes (with nicknames, hidden ones
+  // too) stay in the studio.
+  return { ...view, logs: [], fanNotes: { open: view.fanNotes.open, rules: view.fanNotes.rules, notes: [], counts: { NEW: 0, DONE: 0, HIDDEN: 0 } } };
 }

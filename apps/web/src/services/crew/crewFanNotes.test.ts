@@ -61,6 +61,12 @@ describe("팬 메시지 · 요청사항", () => {
       ["REQUEST", "하늘", "홍길동", "노래 한 곡 부탁해요"]
     ]);
     expect(view.notes[0]).not.toHaveProperty("userId");
+    // The OBS scoreboard (key only) carries no notes or nicknames.
+    const { mockCreator } = await import("@/services/creator/mockCreatorStore");
+    const overlay = await m.getOverlayScoreboard(mockCreator.integrationKey);
+    if (overlay === "IDLE" || overlay === "FORBIDDEN") throw new Error(String(overlay));
+    expect(overlay.fanNotes).toMatchObject({ notes: [], counts: { NEW: 0, DONE: 0, HIDDEN: 0 } });
+    expect(JSON.stringify(overlay)).not.toContain("홍길동");
 
     // 완료 shows to the sender; 숨기기 does not.
     const [msg, req] = view.notes;
