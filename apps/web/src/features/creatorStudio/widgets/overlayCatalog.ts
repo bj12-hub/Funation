@@ -110,6 +110,16 @@ export const OVERLAYS: OverlayEntry[] = [
     manage: "/creator/widgets/tools"
   },
   {
+    id: "bingo",
+    target: "bingo",
+    group: "기타",
+    title: "빙고",
+    description: "미션 빙고판과 완성한 줄 수를 보여 줘요. 방송 도구에서 칸을 표시하고 화면에 띄워요.",
+    size: "600 × 700",
+    path: (k) => `/overlay/tool/bingo/${k}`,
+    manage: "/creator/widgets/tools"
+  },
+  {
     id: "credits",
     target: "credits",
     group: "기타",

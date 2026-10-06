@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { formatNumber } from "@/lib/format";
-import type { OverlayTool } from "@/services/creator/broadcastToolTypes";
+import { bingoLines, type OverlayTool } from "@/services/creator/broadcastToolTypes";
 import styles from "./toolOverlay.module.css";
 import { useReloadSignal } from "../remote/useReloadSignal";
 import { clock, timerSeconds } from "./timerMath";
@@ -94,5 +94,26 @@ export function ToolOverlay({ data }: { data: OverlayTool }) {
           </div>
         </div>
       );
+    case "bingo": {
+      // Shown only while 화면에 보이기 is on (방송 도구 빙고 card).
+      if (!data.state.shown) return null;
+      const { title, size, cells, marked, goal } = data.state;
+      const lines = bingoLines(size, marked);
+      return (
+        <div className={styles.bingo}>
+          {title && <h1>{title}</h1>}
+          <div className={styles.bingoBoard} style={{ gridTemplateColumns: `repeat(${size}, 1fr)` }}>
+            {cells.map((c, i) => (
+              <span key={i} data-marked={marked[i] || undefined}>
+                {c}
+              </span>
+            ))}
+          </div>
+          <p className={styles.bingoStatus} data-done={lines >= goal || undefined}>
+            {lines >= goal ? `🎉 빙고! ${lines}줄 완성` : `${lines}줄 완성 · 목표 ${goal}줄`}
+          </p>
+        </div>
+      );
+    }
   }
 }
