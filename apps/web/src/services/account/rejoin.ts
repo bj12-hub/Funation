@@ -1,12 +1,13 @@
 import { toDateString } from "@/lib/period";
+import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { mockAccount, mockChangeHistory, mockCredentials, mockSessionState } from "./mockStore";
 import { withdrawalStore } from "./withdrawalCore";
 
 /**
  * 재가입 (2026-10-05 결정: 탈퇴 후 바로 재가입 가능) — server-only, called by the sign-up mock. The mock has one
  * account slot, so a sign-up after a withdrawal starts a new account in it: new nickname and password, no FN,
- * no links, supporter role only, and an empty wallet history (earlier charges and donations belong to the
- * withdrawn account and are not restored). The withdrawal record stays for audit. Mock limitation: the
+ * no links, supporter role only, an empty wallet history (earlier charges and donations belong to the
+ * withdrawn account and are not restored) and no consent to the FN charge terms (the new member agrees again). The withdrawal record stays for audit. Mock limitation: the
  * 썸네이션 ID and other per-account sample data (favorites, messages …) are shared with the old slot.
  */
 export function startNewAccount(input: { nickname: string; password: string; marketing: boolean }, now = new Date()) {
@@ -25,6 +26,7 @@ export function startNewAccount(input: { nickname: string; password: string; mar
   });
   Object.assign(mockCredentials, { password: input.password, recentPasswords: [input.password], changedAt: now.toISOString() });
   Object.assign(mockChangeHistory, { nicknameChangedAt: null, funationIdChangedAt: null });
+  Object.assign(mockWallet, { chargeTermsAgreedAt: null, marketingOptIn: false });
   mockSessionState.roles = ["SUPPORTER"];
   return true;
 }
