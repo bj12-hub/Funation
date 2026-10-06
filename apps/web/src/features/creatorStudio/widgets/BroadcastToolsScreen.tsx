@@ -169,7 +169,7 @@ export function BroadcastToolsScreen({ view, overlayKey, switches }: { view: Too
           }}
         >
           <textarea
-            className={styles.input}
+            className={`${styles.input} ${styles.textarea}`}
             aria-label="전광판 문구"
             rows={3}
             placeholder={`한 줄에 문구 하나 (최대 ${MARQUEE_LINES_MAX}줄)`}
@@ -264,7 +264,7 @@ export function BroadcastToolsScreen({ view, overlayKey, switches }: { view: Too
         >
           <input className={styles.input} aria-label="크레딧 제목" value={creditsTitle} onChange={(e) => setCreditsTitle(e.target.value)} />
           <textarea
-            className={styles.input}
+            className={`${styles.input} ${styles.textarea}`}
             aria-label="감사 문구"
             rows={3}
             placeholder={`한 줄에 문구 하나 (최대 ${CREDITS_LINES_MAX}줄)`}
