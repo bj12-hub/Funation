@@ -22,7 +22,9 @@ import {
  * A 퀘스트 후원 counts only once it succeeded (held until then, refunded on 실패 · 취소 — 2026-10-04 결정), at the
  * time its alert went out.
  */
-const counts = (a: AlertItem) => a.kind === "DONATION" && (a.questId === undefined || a.questSucceeded === true);
+const counts = (a: AlertItem) => a.kind === "DONATION" && !a.replayOf && (a.questId === undefined || a.questSucceeded === true);
+/** A 다시 보내기 copy repeats an alert on stream; lists and totals keep the original only. */
+const originals = (items: AlertItem[]) => items.filter((a) => !a.replayOf);
 export const countedDonations = (items: AlertItem[]) => items.filter(counts);
 
 function sumBetween(items: AlertItem[], from: number, to: number) {
@@ -117,7 +119,7 @@ const SOURCE_ORDER = ["SOMNATION", "YOUTUBE", "CHZZK", "SOOP", "FLEXTV"];
 export function sourceBoardRows(items: AlertItem[], s: Pick<RankingSettings, "period" | "ranks">, now = new Date()): WidgetRankRow[] {
   const since = rankingSince(s.period, now);
   const groups = new Map<string, { source: string; currency: string; value: number; count: number }>();
-  for (const a of items) {
+  for (const a of originals(items)) {
     if (Date.parse(a.createdAt) < since) continue;
     const g =
       a.kind === "DONATION"
@@ -174,7 +176,7 @@ function line(a: AlertItem, template: string): WidgetFeedLine {
  * item count is not mapped yet — TBD). 테스트 후원 shows so the remote can try it.
  */
 export function recentLines(items: AlertItem[], s: RecentSettings): WidgetFeedLine[] {
-  return items
+  return originals(items)
     .slice(-Math.max(1, s.count))
     .reverse()
     .map((a) => {
@@ -186,6 +188,8 @@ export function recentLines(items: AlertItem[], s: RecentSettings): WidgetFeedLi
 
 /** 이벤트: the latest `maxLines` donations in the chosen order. */
 export function eventLines(items: AlertItem[], s: EventSettings): WidgetFeedLine[] {
-  const latest = items.slice(-Math.max(1, s.maxLines)).map((a) => line(a, EVENT_LINE));
+  const latest = originals(items)
+    .slice(-Math.max(1, s.maxLines))
+    .map((a) => line(a, EVENT_LINE));
   return s.order === "최신순" ? latest.reverse() : latest;
 }
