@@ -111,7 +111,7 @@ Platform access goes through `PlatformAdapter` (`adapters.ts`, CLAUDE.md §9). T
 | `donationManagement.ts` | page settings, slug, one-line message, banned words, received donations, donor ranking, filters, block list, title tiers | all `SAVED`/`INVALID{message}`; deletes are idempotent |
 | `widgetSettings.ts` | 15 widget details/saves, custom sounds (≤ 20, mp3/wav/ogg ≤ 2 MB), wallpapers (≤ 10) | GACHA odds / legal review TBD |
 | `settlement.ts` | overview, `acceptSettlementTerms` (4 required), overseas answers, `registerSettlement` (multipart, per-type required fields/files) | ID numbers validated then discarded; masked account only |
-| `settlementRequests.ts` | apply view, `quoteSettlement`, `requestSettlement` (**idempotencyKey**), auto settlement | mock policy = Figma samples (min 40,000 FN, fee 6.6 %, 1 FN = 1원) — all TBD |
+| `settlementRequests.ts` | apply view, `quoteSettlement`, `requestSettlement` (**idempotencyKey**), auto settlement | all four need a registration (`NOT_REGISTERED`) then 본인인증 (`IDENTITY_REQUIRED`, 2026-10-06 결정); mock policy = Figma samples (min 40,000 FN, fee 6.6 %, 1 FN = 1원) — all TBD |
 | `settlementManagement.ts` | manage view (period filter), `resetSettlementRegistration` | archive old registration for audit (TODO) |
 
 ### Public reads (no auth)

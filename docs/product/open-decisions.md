@@ -20,7 +20,7 @@ Still TBD:
 - Chargeback policy
 - Settlement schedule
 - Settlement minimum
-- Identity verification
+- Identity verification (decided 2026-10-06: 정산 신청 requires the 마이페이지 본인인증 — see docs/domains/settlement.md; the provider still TBD)
 - Age restriction
 - Tax/accounting treatment
 - Exact external API capabilities

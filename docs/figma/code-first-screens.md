@@ -28,6 +28,7 @@ Since 2026-09-29 features without a Figma frame are built in code first and desi
 | `/overlay/crew/[key]` OBS scoreboard (`crew/CrewScoreOverlay.tsx`) | crew broadcast PR | Transparent browser source, top 10 + team gauge |
 
 | `/creator/settlement` 정산 준비 체크리스트 (`settlement/SettlementChecklist.tsx`) | settlement checklist PR | 4 steps (본인인증 · 정산 자료 등록 · 서류 심사 · 정산 계좌) with links; sits between the 429:4 banner and cards |
+| `/creator/settlement` "정산 신청 전에 본인인증이 필요해요" 알림 (`settlement/SettlementStartCards.tsx`, `?gate=identity`) | settlement-identity-required PR | 2026-10-06 결정("필수로 막기"). 433:4와 같은 알림 모달(경고 아이콘 · 제목 · 두 줄 "본인인증이 아직 완료되지 않았어요." / "마이페이지에서 본인인증을 마치면 정산을 신청할 수 있어요." · 취소 + "본인인증 하기" → `/mypage`). 정산 자료를 등록했지만 본인인증 전인 크리에이터가 정산 신청 카드를 누르거나, `/creator/settlement/apply`(사이드 메뉴 · 대시보드 · 수익 현황 · 정산 탭)로 들어오면 `/creator/settlement?gate=identity`로 보내져 바로 열림. 체크리스트 안내 문구: "모든 단계를 완료해야 정산 신청을 할 수 있어요. 본인인증은 필수예요." |
 
 | `/wallet/charges` 상세정보 popup "환불 요청" + list tag (`features/wallet/ChargeTable.tsx`) | refund request PR | Request form (사유), 접수·심사 중 state inside Figma 643:4; policy copy is TBD |
 

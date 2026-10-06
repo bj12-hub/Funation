@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { HelpCircleIcon, AlertCircleIcon } from "@/components/icons";
 import { Modal } from "@/components/ui/Modal";
 import { quoteSettlement, requestSettlement, setAutoSettlement } from "@/services/creator/settlementRequests";
-import type { SettlementApplyView, SettlementQuote } from "@/services/creator/settlementTypes";
+import type { SettlementApplyView, SettlementGate, SettlementQuote } from "@/services/creator/settlementTypes";
 import { FeeGuideModal, SettlementGuideModal } from "./SettlementInfoPopups";
 import styles from "./apply.module.css";
 
@@ -36,8 +36,10 @@ export function SettlementRequestFlow({ view }: { view: SettlementApplyView }) {
   const belowMin = view.minFn !== null && view.availableFn < view.minFn;
   const amount = mode === "all" ? view.availableFn : Number(input.replace(/,/g, ""));
 
-  const handleResult = (status: "UNAUTHORIZED" | "NOT_REGISTERED") => {
+  const handleResult = (status: "UNAUTHORIZED" | SettlementGate) => {
     if (status === "UNAUTHORIZED") router.push("/login?role=creator&next=/creator/settlement/apply");
+    // 본인인증 missing (e.g. reset after this page loaded): the settlement home opens the 본인인증 notice.
+    else if (status === "IDENTITY_REQUIRED") router.push("/creator/settlement?gate=identity");
     else router.push("/creator/settlement");
   };
 
