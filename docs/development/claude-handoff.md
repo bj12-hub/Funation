@@ -14,9 +14,17 @@ How screens have been built so far, so a new Claude session (or account) can con
 
 ## 1. Figma
 
-- File key: `PXOl6e2HQVWsu9qx9iagJV` (single page `0:1`, too large for `get_metadata` on the page — walk node ids).
+- **Original spec (read-only):** 펀페이 file `PXOl6e2HQVWsu9qx9iagJV` (single page `0:1`, too large for
+  `get_metadata` on the page — walk node ids). Never write to it.
+- **Writable since 2026-10:** "Somnation — 현재 구현 (2026-09)" `PMnjPwrD3nAiItJxjaZ0qj` (pages 1–6 are
+  screenshots of the built screens; page "9 스튜디오" and "10 사이트" hold editable auto-layout frames) and
+  "Somnation Admin" `Js5MCzkGmAZ9QY0w3nLUe8`. Frame ids per screen: `docs/figma/site-design-system.md`,
+  `docs/figma/route-map.md`. Write only to these two files.
+- Editable frames are drawn from the running app: a headless walk of the page produces a layout tree, and
+  the renderers stored in the file (`figma.root.getSharedPluginData("somnation", "renderer")` for studio,
+  `"siteRenderer"` for site) build the frame. Mask overlay / integration keys (`6138-····-····-····`) and
+  use fictional names before writing.
 - Tools: `get_screenshot`, `get_design_context` (skillNames `resource:figma-design-to-code`), `get_metadata` on frames.
-- Figma is **read-only** for this project: never call `use_figma`, uploads or other write tools.
 - Image asset URLs from `get_design_context` expire after ~7 days; download into `apps/web/public/mock/...`
   and shrink large ones (e.g. PowerShell `System.Drawing`, 256–480px).
 - Large extractions go to a subagent with a "read-only, report copy verbatim" prompt.
@@ -32,9 +40,10 @@ How screens have been built so far, so a new Claude session (or account) can con
 4. Commit with prefix `feat:` / `fix:` / `docs:` and the co-author trailer.
 5. Verify on the isolated test server (§4) — desktop 1440 and mobile 375, no horizontal scroll.
 6. Push the branch, open the PR (§3), then merge:
-   `bash scripts/merge-pr.sh <pr> <branch> "<title>"` (tsc + eslint + next build, push main, merge main → preview).
+   `bash scripts/merge-pr.sh <pr> <branch> "<title>"` (tsc + eslint + vitest + next build for apps/web and
+   apps/admin in a throwaway worktree, push main, merge main → preview).
 7. Return the checkout to preview:
-   `git fetch -q origin && git checkout -q preview && git merge --ff-only -q origin/preview && git branch -f main origin/main`
+   `git fetch -q origin && git switch -q preview && git merge -q --ff-only origin/preview`
 8. Report to the user in Korean: what was built, what differs from Figma, TBD items, next step.
 
 The user runs `npm run dev:sync` on port 3000 (tracks `origin/preview`). Do not start a second dev
@@ -49,22 +58,25 @@ server on that checkout; use the isolated worktree instead.
   in the built-in browser (the user is signed in to GitHub there — never type credentials; ask the user to sign in).
 - Fill `textarea[name="pull_request[body]"]` via the native value setter + `input` event, then click the
   visible "Create pull request" button.
-- Body sections (Korean): 요약 / 대상 (Figma · Route · Role · Domain) / 구성 / 보안 / 테스트 /
-  디자인과 다르게 처리 / 미해결 (TBD), ending with the Claude Code attribution line.
+- Body sections (Korean, CLAUDE.md §13): 목적 / Figma / 라우트 · 역할 · 도메인 / 변경 / 테스트 / 미결 (TBD),
+  ending with the Claude Code attribution line.
 
-## 4. Isolated test server
+## 4. Running the app for checks
+
+- `.claude/launch.json` has `web` (`npm run dev:web`, port 3100, next free port if taken) and `admin`
+  (`npm run dev:admin`, port 3200). Start them with the preview tools. The admin app reads the site through
+  `SITE_API_URL=http://localhost:3100` (`apps/admin/.env.local`), so keep the site on 3100 when checking admin.
+- Both run in the main checkout. Only use them while the user's `dev:sync` (port 3000) is not running —
+  two dev servers on one `apps/web/.next` break each other. Otherwise use the isolated worktree:
 
 ```bash
 bash scripts/test-worktree.sh up      # prints <TEMP>/funation-test/wt-dev/apps/web
-```
-
-Add a temporary `web-isolated` entry to `.claude/launch.json`
-(`npx next dev <printed path> -p 3200`), start it with the preview tools, test, then:
-
-```bash
+# temporary launch.json entry: npx next dev <printed path> -p <free port>
 git checkout -- .claude/launch.json
 bash scripts/test-worktree.sh down
 ```
+
+- Mock state lives in server memory (`globalThis.__funationMock*`): restarting a dev server resets it.
 
 Tips:
 - Mock login: id `hongGD123`, password `password` (project mock data, localhost only).
@@ -88,7 +100,14 @@ Tips:
   marked **TBD** in code comments and PRs — never invent fees, rates, limits, refunds or schedules.
 - Server actions that set cookies refresh the route; use `redirect()` for post-login screens.
 
-## 6. Status (as of PR #36)
+## 6. Status
+
+Current status lives in the docs, not here: routes and frames in `docs/figma/route-map.md`, code-first
+features and their TBDs in `docs/figma/code-first-screens.md`, the funnation comparison in
+`docs/research/funnation-reference.md`. The notes below are the original PR #36 snapshot, kept for the
+Figma conflicts they record.
+
+### Snapshot (PR #36)
 
 Done (see route-map for frame ids): home, auth, live, creators, favorites, hall of fame, support,
 my page, wallet (charge + history), attendance, creator room + all donation types,
