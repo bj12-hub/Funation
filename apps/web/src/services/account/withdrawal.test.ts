@@ -1,7 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { key, mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
 
-vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
+/** `during` runs inside the next mock delay, i.e. while the server is "busy" between its checks. */
+const delay = vi.hoisted(() => ({ during: null as null | (() => void) }));
+vi.mock("@/lib/mock", () => ({
+  USE_MOCK: true,
+  mockDelay: async () => {
+    const run = delay.during;
+    delay.during = null;
+    run?.();
+  }
+}));
 vi.mock("@/lib/session", () => mockSessionModule());
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 
@@ -108,6 +117,62 @@ describe("회원 탈퇴", () => {
     expect(review.counts).toMatchObject({ PENDING: 0, FORFEITED: 1, APPROVED: 5, REJECTED: 1 });
   });
 
+  it("re-reads the amounts after the password check, so a decision in between is not recorded as forfeited", async () => {
+    signIn(["SUPPORTER", "CREATOR"]);
+    const m = await load();
+    m.settlement.requests.push({ ...m.settlement.requests[0], id: "st-pending", status: "PENDING", amountFn: 20_000, review: undefined });
+    const base = { ...supporter(), unsettledFn: 147_500, earningsForfeitAgreed: true };
+    // An operator approves the waiting request while the password is being checked.
+    delay.during = () => Object.assign(m.settlement.requests.find((r) => r.id === "st-pending")!, { status: "APPROVED" });
+    expect(await m.withdrawAccount(base)).toEqual({ status: "INVALID", message: "정산 대기 수익이 바뀌었어요. 금액을 다시 확인해 주세요." });
+    expect(m.isWithdrawn()).toBe(false);
+    expect(m.settlement.requests.find((r) => r.id === "st-pending")!.status).toBe("APPROVED");
+    expect(await m.withdrawAccount({ ...base, requestId: key(2), unsettledFn: 127_500 })).toEqual({ status: "WITHDRAWN" });
+    expect(m.withdrawalOf()).toMatchObject({ forfeitedEarningsFn: 127_500 });
+  });
+
+  it("ends what acts for the channel and removes the payout account", async () => {
+    signIn(["SUPPORTER", "CREATOR"]);
+    const m = await load();
+    const { managerLinks } = await import("@/services/broadcast/chatCore");
+    const { channelsStore } = await import("@/services/broadcast/channelsCore");
+    const { youtubeStore } = await import("@/services/creator/youtubeCore");
+    const { bankSmsStore } = await import("@/services/bankSms/bankSmsCore");
+    const { mockCreator } = await import("@/services/creator/mockCreatorStore");
+    const { createManagerLink } = await import("@/services/broadcast/managerChat");
+    const { connectBroadcastChannel } = await import("@/services/broadcast/unifiedChat");
+    const { connectYouTube } = await import("@/services/creator/youtube");
+    await connectYouTube({ handle: "streamer", requestId: key(900) });
+    await connectBroadcastChannel({ platform: "SOOP", handle: "streamer" });
+    await createManagerLink({ requestId: key(901), name: "지민", permissions: ["SEND"] });
+    Object.assign(bankSmsStore(), { enabled: true });
+    m.settlement.terms = { memberType: "INDIVIDUAL", acceptedAt: "2026-09-01" };
+    m.settlement.registration = {
+      memberType: "INDIVIDUAL",
+      registrant: "홍길동",
+      holder: "홍길동",
+      bankName: "예시은행",
+      accountMasked: "********1234",
+      code: "F0L0E0X0",
+      submittedAt: "2026-09-01"
+    } as typeof m.settlement.registration;
+    m.settlement.autoSettlement = true;
+    const keys = { overlay: mockCreator.integrationKey, sms: bankSmsStore().key };
+    expect(managerLinks()).toHaveLength(1);
+    expect(Object.keys(channelsStore().channels).length).toBeGreaterThan(0);
+    expect(youtubeStore().channel).not.toBeNull();
+
+    const earnings = (await m.getWithdrawalInfo())!.unsettledFn;
+    expect(await m.withdrawAccount({ ...supporter(), unsettledFn: earnings, earningsForfeitAgreed: true })).toEqual({ status: "WITHDRAWN" });
+    expect(managerLinks()).toHaveLength(0);
+    expect(channelsStore().channels).toEqual({});
+    expect(youtubeStore()).toMatchObject({ channel: null, connectedAt: null });
+    expect(bankSmsStore().enabled).toBe(false);
+    expect(bankSmsStore().key).not.toBe(keys.sms);
+    expect(mockCreator.integrationKey).not.toBe(keys.overlay);
+    expect(m.settlement).toMatchObject({ terms: null, registration: null, autoSettlement: false });
+  });
+
   it("needs a signed-in member", async () => {
     signIn(null);
     const m = await load();
@@ -129,6 +194,8 @@ describe("회원 탈퇴", () => {
 
   it("lets the same person sign up again right away as a new account", async () => {
     const m = await load();
+    const { mockWallet } = await import("@/services/wallet/mockWalletStore");
+    Object.assign(mockWallet, { chargeTermsAgreedAt: "2026-10-01T00:00:00.000Z", marketingOptIn: true });
     await m.withdrawAccount(supporter());
     const signupRequest = {
       email: "again@funation.kr",
@@ -140,6 +207,8 @@ describe("회원 탈퇴", () => {
     expect(await m.signup(signupRequest)).toEqual({ status: "CREATED" });
     expect(m.isWithdrawn()).toBe(false);
     expect(m.account).toMatchObject({ nickname: "다시왔어요", fnBalance: 0, marketingConsent: true, avatarUrl: null });
+    // The withdrawn member's consent to the FN charge terms does not carry over.
+    expect(mockWallet).toMatchObject({ chargeTermsAgreedAt: null, marketingOptIn: false });
     expect(m.sessionState.roles).toEqual(["SUPPORTER"]);
 
     // Signs in with the new password only; nothing of the withdrawn account comes back.

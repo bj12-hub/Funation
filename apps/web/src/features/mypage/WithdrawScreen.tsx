@@ -120,7 +120,9 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
           {hasEarnings && <li>정산 대기 수익 {formatNumber(info.unsettledFn)} FN이 소멸되고, 진행 중인 정산 신청은 취소돼요.</li>}
           <li>네이버 · Google · 카카오 로그인 연결과 방송 플랫폼 연결이 모두 해제돼요.</li>
           <li>탈퇴한 계정으로는 다시 로그인할 수 없어요. 새 계정으로는 바로 다시 가입할 수 있지만, 이전 FN과 기록은 돌아오지 않아요.</li>
-          {info.creator && <li>크리에이터 스튜디오와 채널도 더 이상 이용할 수 없어요.</li>}
+          {info.creator && (
+            <li>크리에이터 스튜디오와 채널도 더 이상 이용할 수 없어요. 등록한 정산 정보와 매니저 채팅 링크는 삭제되고, OBS 오버레이 · SMS 계좌후원 주소도 멈춰요.</li>
+          )}
         </ul>
       </section>
 
