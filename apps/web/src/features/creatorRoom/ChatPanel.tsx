@@ -127,7 +127,7 @@ export function ChatPanel({ signedIn, messages, onSend }: { signedIn: boolean; m
               className={styles.emoji}
               aria-label="이모지"
               aria-expanded={emojiOpen}
-              aria-controls="chat-emoji"
+              aria-controls={emojiOpen ? "chat-emoji" : undefined}
               disabled={!signedIn}
               onClick={() => setEmojiOpen((v) => !v)}
             >
