@@ -19,7 +19,7 @@ const assertMock = () => {
 };
 
 const oneOf = <T extends string>(list: readonly { key: T }[], v: unknown, fallback: T): T => (list.some((x) => x.key === v) ? (v as T) : fallback);
-const isStatus = (v: unknown): v is HistoryStatus => typeof v === "string" && v in HISTORY_STATUS_LABEL;
+const isStatus = (v: unknown): v is HistoryStatus => typeof v === "string" && Object.hasOwn(HISTORY_STATUS_LABEL, v);
 
 function allItems(): HistoryItem[] {
   const platform: HistoryItem[] = mockPlatform.transactions.map((t) => ({

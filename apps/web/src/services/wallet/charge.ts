@@ -103,7 +103,7 @@ function parseRequest(input: unknown): { fnAmount: number; methodId: PaymentMeth
   if (typeof input !== "object" || input === null) return null;
   const { amount, methodId, idempotencyKey } = input as { amount?: ChargeAmountInput; methodId?: unknown; idempotencyKey?: unknown };
   if (typeof idempotencyKey !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(idempotencyKey)) return null;
-  if (typeof methodId !== "string" || !(methodId in PAYMENT_METHODS)) return null;
+  if (typeof methodId !== "string" || !Object.hasOwn(PAYMENT_METHODS, methodId)) return null;
   if (typeof amount !== "object" || amount === null) return null;
 
   let fnAmount: number | null = null;

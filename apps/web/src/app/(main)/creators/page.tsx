@@ -15,8 +15,8 @@ function parseParams(raw: Record<string, string | string[] | undefined>): Creato
   const sort = one(raw.sort);
   const page = Number(one(raw.page));
   return {
-    category: category && category in CREATOR_CATEGORY_LABEL ? (category as CreatorCategory) : undefined,
-    sort: sort && sort in CREATOR_SORT_LABEL ? (sort as CreatorSort) : undefined,
+    category: category && Object.hasOwn(CREATOR_CATEGORY_LABEL, category) ? (category as CreatorCategory) : undefined,
+    sort: sort && Object.hasOwn(CREATOR_SORT_LABEL, sort) ? (sort as CreatorSort) : undefined,
     query: one(raw.q)?.trim().slice(0, 50) || undefined,
     page: Number.isInteger(page) && page > 1 ? page : undefined
   };

@@ -101,7 +101,10 @@ export type AdminChargeRow = {
 export type AdminRefund = {
   chargeId: string;
   memberId: string;
+  /** "탈퇴한 회원" for a request of an account that has since withdrawn. */
   memberName: string;
+  /** Such a request cannot be decided in the console yet (what a 탈퇴 does to it is TBD). */
+  memberWithdrawn?: boolean;
   requestedAt: string;
   reason: string;
   status: RefundStatus;
