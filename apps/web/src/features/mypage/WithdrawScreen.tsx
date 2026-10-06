@@ -30,7 +30,8 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
   const passwordRef = useRef<HTMLInputElement>(null);
   const hasFn = info.fnBalance > 0;
   const hasEarnings = info.unsettledFn > 0;
-  const ready = confirmed && (!hasFn || forfeit) && (!hasEarnings || earningsForfeit) && password.length > 0;
+  const hasRefunds = info.pendingRefunds > 0;
+  const ready = !hasRefunds && confirmed && (!hasFn || forfeit) && (!hasEarnings || earningsForfeit) && password.length > 0;
 
   const submit = () => {
     if (!ready || pending) return;
@@ -50,6 +51,9 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
         else if (r.status === "WRONG_PASSWORD") {
           setPasswordError(true);
           passwordRef.current?.select();
+        } else if (r.status === "REFUND_PENDING") {
+          setError(`처리 중인 충전 환불 요청이 ${r.count}건 있어요. 환불 처리가 끝난 뒤에 탈퇴할 수 있어요.`);
+          router.refresh();
         } else {
           setError(r.message);
           // An amount changed: show the server's numbers again and ask for the consents again.
@@ -97,6 +101,19 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
         <strong className={styles.balance}>{formatNumber(info.fnBalance)} FN</strong>
         <p className={styles.note}>{hasFn ? "탈퇴하면 남은 FN은 모두 소멸되고, 탈퇴 후에는 되살릴 수 없어요." : "남은 FN이 없어요."}</p>
       </section>
+
+      {hasRefunds && (
+        <section className={styles.warnCard} aria-labelledby="withdraw-refunds">
+          <h2 className={styles.cardTitle} id="withdraw-refunds">
+            처리 중인 충전 환불
+          </h2>
+          <strong className={styles.balance}>{formatNumber(info.pendingRefunds)}건</strong>
+          <p className={styles.note}>FN 충전 환불 요청을 운영팀이 확인하고 있어요. 환불 처리가 끝난 뒤에 탈퇴할 수 있어요.</p>
+          <div className={styles.links}>
+            <Link href="/wallet/charges">충전 내역으로</Link>
+          </div>
+        </section>
+      )}
 
       {hasEarnings && (
         <section className={styles.warnCard} aria-labelledby="withdraw-earnings">

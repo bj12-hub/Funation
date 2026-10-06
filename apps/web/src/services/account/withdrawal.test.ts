@@ -61,7 +61,7 @@ describe("회원 탈퇴", () => {
 
   it("needs every consent for the amounts the member saw and the password, then forfeits and ends the account", async () => {
     const m = await load();
-    expect(await m.getWithdrawalInfo()).toEqual({ nickname: "홍길동", fnBalance: 5_000, creator: false, unsettledFn: 0 });
+    expect(await m.getWithdrawalInfo()).toEqual({ nickname: "홍길동", fnBalance: 5_000, creator: false, unsettledFn: 0, pendingRefunds: 0 });
 
     const base = supporter();
     expect(await m.withdrawAccount({ ...base, requestId: "short" })).toMatchObject({ status: "INVALID" });
@@ -190,6 +190,25 @@ describe("회원 탈퇴", () => {
       status: "INVALID",
       message: "탈퇴한 회원이에요."
     });
+  });
+
+  it("waits for FN 충전 환불 requests to be decided before the account can go (2026-10-06 결정)", async () => {
+    const m = await load();
+    const { requestChargeRefund } = await import("@/services/wallet/refund");
+    const { listChargeRecords } = await import("@/services/wallet/walletHistory");
+    const { decideRefund } = await import("@/services/admin/payments");
+    const [first, second] = listChargeRecords().filter((c) => c.status === "COMPLETED");
+    expect(await requestChargeRefund({ chargeId: first.id, reason: "잘못 충전했어요" })).toMatchObject({ status: "REQUESTED" });
+    expect(await m.getWithdrawalInfo()).toMatchObject({ pendingRefunds: 1 });
+    expect(await m.withdrawAccount(supporter())).toEqual({ status: "REFUND_PENDING", count: 1 });
+    expect(m.isWithdrawn()).toBe(false);
+
+    expect(await decideRefund(OP, { chargeId: first.id, decision: "REJECT", note: "사용한 FN이 있어요" })).toEqual({ status: "OK" });
+    expect(await m.getWithdrawalInfo()).toMatchObject({ pendingRefunds: 0 });
+    // A refund asked for while the password is being checked stops it too.
+    delay.during = () => void requestChargeRefund({ chargeId: second.id, reason: "다른 탭에서 요청" });
+    expect(await m.withdrawAccount({ ...supporter(), requestId: key(2) })).toEqual({ status: "REFUND_PENDING", count: 1 });
+    expect(m.isWithdrawn()).toBe(false);
   });
 
   it("lets the same person sign up again right away as a new account", async () => {
