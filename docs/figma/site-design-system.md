@@ -89,7 +89,7 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 대시보드 · 수익 · 소식 | T02b | 크리에이터 랭킹 (퀘스트 탭만) | `/creator/ranking` | `61:646` |
 | 대시보드 · 수익 · 소식 | T05 | 업데이트 소식 | `/creator/updates` | `61:968` |
 | 채널 | H01 | 채널 설정 (계정설정) | `/creator/settings` | `62:846` |
-| 채널 | H02 | 후원 페이지 설정 | `/creator/donations?tab=settings` | `62:1111` |
+| 채널 | H02 | 후원 페이지 설정 (빈 대체 메시지 안내 2026-10-06) | `/creator/donations?tab=settings` | `62:1111` |
 | 채널 | H03 | 칭호 관리 | `/creator/donations?tab=titles` | `62:1332` |
 | 채널 | Y01 | 유튜브 연동 | `/creator/youtube` | `62:1539` |
 | 채널 | Y02 | 영상 목록 | `/creator/videos` | `63:1255` |
@@ -119,7 +119,7 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 크루 방송 | Y04c | 크루 방송 운영 (배틀 배수 · 벌칙 기본값, 강탈 기준 · 쿨다운 — 시나리오 · 후원 리스트 카드 생략) | `/creator/crew/broadcast` | `185:5234` |
 | 후원 관리 | T03 | 받은 후원 (퀘스트 성공 · 실패 · 취소, 실패 · 취소 시 환불) | `/creator/donations?tab=list` | `204:5585` |
 | 후원 관리 | T03b | 후원 순위 | `/creator/donations?tab=ranking` | `68:2958` |
-| 후원 관리 | T03c | 후원 필터링 | `/creator/donations?tab=filtering` | `68:3293` |
+| 후원 관리 | T03c | 후원 필터링 (방송 알림 · TTS 대체 안내 2026-10-06) | `/creator/donations?tab=filtering` | `68:3293` |
 | 후원 관리 | T03d | 받은 후원 · 게임 후원 (룰렛 · 뽑기) | `/creator/donations?tab=list&kind=game` | `142:4530` |
 | 후원 관리 | T03e | 받은 후원 · 크루 후원 (멤버 지정) | `/creator/donations?tab=list&kind=crew` | `143:4635` |
 | 정산 | T04 | 정산 현황 + 체크리스트 | `/creator/settlement` | `68:3459` |
@@ -128,6 +128,7 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 정산 | T04f | 정산 현황 (등록 완료) | `/creator/settlement` | `93:3479` |
 | 정산 | T04d | 정산 신청 | `/creator/settlement/apply` | `93:3673` |
 | 정산 | T04g | 정산 신청 팝업 (금액 입력) | `/creator/settlement/apply` | `94:7168` |
+| 정산 | T04h | 정산 신청 전 본인인증 안내 (2026-10-06 결정, code-first) | `/creator/settlement?gate=identity` | `222:15931` |
 | 정산 | T04e | 정산 관리 (연별) | `/creator/settlement/manage` | `93:3899` |
 
 정산 신청 · 정산 관리는 정산 등록을 마친 상태에서만 열려요. 주민등록번호 · 계좌번호를 입력하지 않으려고, 로컬 mock에 표시용 등록 정보(예시은행 · 마스킹된 계좌 ********1234)만 넣고 읽었어요.

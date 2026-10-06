@@ -40,11 +40,12 @@ export type OverseasResult = { status: "RECEIVED" } | { status: "INVALID" | "UNA
 export const BANKS = ["신한은행", "우리은행", "KB국민은행", "하나은행", "NH농협은행", "IBK기업은행", "SC제일은행", "카카오뱅크", "토스뱅크", "케이뱅크"] as const;
 export const PHONE_PREFIXES = ["010", "011", "016", "017", "018", "019"] as const;
 export const EMAIL_DOMAINS = ["gmail.com", "naver.com", "daum.net", "kakao.com"] as const;
-/** Confirmed platforms only (CLAUDE.md). Figma 443:5 also lists 트위치 · 치지직, which are out of scope. */
+/** Confirmed platforms only (CLAUDE.md; 치지직 confirmed 2026-10-01). Figma 443:5 also lists 트위치, which is out of scope. */
 export const CHANNEL_PLATFORMS = [
   { key: "YOUTUBE", label: "유튜브" },
   { key: "FLEXTV", label: "FlexTV" },
-  { key: "SOOP", label: "SOOP" }
+  { key: "SOOP", label: "SOOP" },
+  { key: "CHZZK", label: "치지직" }
 ] as const;
 export const NATIONALITIES = ["미국", "중국", "일본", "베트남", "필리핀", "태국", "캐나다", "기타"] as const;
 export const VISA_TYPES = ["F-2 (거주)", "F-4 (재외동포)", "F-5 (영주)", "F-6 (결혼이민)", "E-7 (특정활동)", "D-2 (유학)", "기타"] as const;
