@@ -32,7 +32,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/mypage/nicknames` | ✅ code-first | 별명 관리; Figma M03 `81:4688` (현재 구현 레이아웃) |
 | `/favorites` | ✅ | funation-favorites-page 735:3856 — signed-in only, `?q=` `?page=` |
 | `/creators/[id]` | ✅ | 라이브 826:685 (채팅) · 610:138 (후원), 오프라인 710:195, 공유 826:387 · 후원 유형 851:4546 (일반) · 851:4665 (미니) · 851:4788 (영상) · 851:4929 + 875:1815 (시그니처) · 851:5054 (위시) · 867:2458 + 펀페이 1009:510 (룰렛) · 867:2545 (퀘스트) · 867:2647 (그림) · 뽑기 (code-first; 럭키박스 · 퀴즈는 2026-10-04 삭제) · 후원 확인 613:6 · 완료 613:122 · FN 부족 613:237 · 팬 메시지 · 요청사항 카드 C08 `215:9524` (현재 구현) |
-| `/wallet/charges` | ✅ | FN 충전내역 640:2 · 639:2 (empty) · 상세 643:4 · 644:6 · 644:185 · 644:364 — signed-in only, `?period=` `?from=` `?to=` `?page=` |
+| `/wallet/charges` | ✅ | FN 충전내역 640:2 · 639:2 (empty) · 상세 643:4 · 644:6 · 644:185 · 644:364 · 환불 요청 M05e `228:10118` · 심사 중 M05f `228:10726` · 승인 M05h `228:11336` (code-first) — signed-in only, `?period=` `?from=` `?to=` `?page=` |
 | `/wallet/donations` | ✅ | FN 후원내역 632:4 · 637:214 (empty) — signed-in only, `?type=` (basic · quest · game) + period params; 퀘스트 탭: 내가 보낸 진행 중 퀘스트에 성공 / 실패 · 환불 (실패 = 전액 환불, 2026-10-04) |
 | `/wallet` | ✅ | FN Wallet 817:7552 — 사용 가능 · 보류 중 (0, locking TBD) · 누적 사용 + 충전·사용·환불 list, `?kind=CHARGE|USE|REFUND` `?period=30|90|all` `?page=` (no running-balance column: needs a reconciled ledger, TBD) |
 | `/creator` | ✅ | creator-dashboard 245:14 · profile dropdown 758:41 / 296:500 — signed-in only, `?period=` `?from=` `?to=` — Creator role required (non-creators see 크리에이터 권한이 필요합니다; how the role is granted is TBD) |

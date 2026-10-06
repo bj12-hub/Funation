@@ -199,6 +199,10 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | FN 지갑 | M05b | FN 충전 (모달) | `/wallet` | `85:5369` |
 | FN 지갑 | M05c | 충전 내역 | `/wallet/charges` | `86:5536` |
 | FN 지갑 | M05d | 후원 내역 | `/wallet/donations` | `87:5705` |
+| FN 지갑 | M05e | 충전 내역 상세 · 환불 요청 입력 (code-first) | `/wallet/charges` | `228:10118` |
+| FN 지갑 | M05f | 충전 내역 상세 · 환불 요청 접수 (심사 중, 목록 "환불 요청" 태그) | `/wallet/charges` | `228:10726` |
+| FN 지갑 | M05h | 충전 내역 상세 · 환불 승인 (FN 회수, 목록 "환불 완료" 태그) | `/wallet/charges` | `228:11336` |
+| FN 지갑 | M05g | FN Wallet · 충전 환불 행 (승인 후 −FN) | `/wallet` | `228:17870` |
 | 인증 | A01 | 로그인 | `/login` | `88:5879` |
 | 인증 | A02 | 로그인 (크리에이터) | `/login?role=creator` | `89:6882` |
 | 인증 | A03 | 회원가입 | `/signup` | `88:5941` |
