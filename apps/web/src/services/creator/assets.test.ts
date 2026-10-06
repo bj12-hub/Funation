@@ -79,7 +79,12 @@ describe("asset library", () => {
     expect(m.activeSignatures()[0].imageUrl).toBe(a.url);
     await m.deleteAsset(a.id);
     expect(m.activeSignatures()[0].imageUrl).toBe("/mock/room/signatures/sig-1.png");
-    expect((await m.saveSignature({ ...zero, imageUrl: a.url })).status).toBe("INVALID");
+    // Its own deleted image no longer blocks a save (e.g. 숨기기): it is stored as the preset it already shows.
+    expect(await m.saveSignature({ ...zero, imageUrl: a.url })).toMatchObject({ status: "SAVED" });
+    expect((await m.listSignatures())![0].imageUrl).toBe("/mock/room/signatures/sig-1.png");
+    // Another signature cannot pick the deleted file.
+    const one = (await m.listSignatures())![1];
+    expect((await m.saveSignature({ ...one, imageUrl: a.url })).status).toBe("INVALID");
   });
 
   it("pairs an image and a sound with the same name and lets a signature carry only a library sound", async () => {

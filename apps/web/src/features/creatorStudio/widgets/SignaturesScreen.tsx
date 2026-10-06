@@ -150,7 +150,9 @@ export function SignaturesScreen({ items, library, startBulk = false }: { items:
                     className={styles.ghost}
                     disabled={pending}
                     onClick={() => {
-                      setAutoSound(false);
+                      // A sound that is still the image's 짝 keeps following the image (자동 매칭) while editing.
+                      const image = images.find((a) => a.url === s.imageUrl);
+                      setAutoSound(!!s.soundUrl && !!image && pairOf(image, library)?.url === s.soundUrl);
                       setBulk(false);
                       setDraft({ ...s, soundUrl: soundName(s.soundUrl) ? s.soundUrl : null });
                     }}
