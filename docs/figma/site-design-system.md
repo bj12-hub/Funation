@@ -193,6 +193,7 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 마이 | M11 | 회원 탈퇴 (크리에이터 · 남은 FN · 정산 대기 수익 소멸 동의, 비밀번호 확인) | `/mypage/withdraw` | `182:9521` |
 | 마이 | M11b | 회원 탈퇴 · 비밀번호 불일치 | `/mypage/withdraw` | `182:9765` |
 | 마이 | M11c | 회원 탈퇴 · 완료 | `/mypage/withdraw` | `182:10010` |
+| 마이 | M11d | 회원 탈퇴 · 처리 중인 충전 환불 (탈퇴 불가, 2026-10-06 결정) | `/mypage/withdraw` | `221:224` |
 | FN 지갑 | M05 | FN Wallet | `/wallet` | `84:5202` |
 | FN 지갑 | M05b | FN 충전 (모달) | `/wallet` | `85:5369` |
 | FN 지갑 | M05c | 충전 내역 | `/wallet/charges` | `86:5536` |

@@ -71,7 +71,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/overlay/widget/[widget]/[key]` | ✅ code-first | OBS 후원 위젯 — `widget` = goal · total · ranking · recent · event · qr · quest · vote · roulette · gacha · gacha-board · wallpaper; O12~O17 `146:8173`… · O18 `154:14403` · O19 `161:9339` (vote) · O20 `164:9017` / O20b `164:9032` (roulette) · O21 `166:8981` / O21b `166:8992` (gacha) · O22 `166:9003` (gacha-board) · O23 `175:8939` (wallpaper) · OFF O12-off `146:8241` |
 | `/notifications` | ✅ code-first | 알림 — S04 `74:444` (헤더 벨 팝오버 S03 `89:7290`) |
 | `/mypage/blocks` | ✅ code-first | 차단 관리 — M10 `151:8644` · 비어 있음 M10b `151:8861` |
-| `/mypage/withdraw` | ✅ code-first | 회원 탈퇴 — M11 `182:9521` (크리에이터 · 남은 FN · 정산 대기 수익 소멸 동의, 비밀번호 확인) · M11b `182:9765` (비밀번호 불일치) · M11c `182:10010` (완료) |
+| `/mypage/withdraw` | ✅ code-first | 회원 탈퇴 — M11 `182:9521` (크리에이터 · 남은 FN · 정산 대기 수익 소멸 동의, 비밀번호 확인) · M11b `182:9765` (비밀번호 불일치) · M11c `182:10010` (완료) · M11d `221:224` (처리 중인 충전 환불 → 탈퇴 불가) |
 | `/support/notices/[id]` | ✅ code-first | 공지 상세 — S12 `76:2163` |
 | `/terms/[slug]` | ✅ code-first (본문 TBD) | 722:3 (terms text pending) — slugs: service, privacy, youth, operation, marketing, creator. 2026-10-06 결정: 조항 목차만 자리표시(각 조항 "법무 검토 중 (TBD)", 시행일 · 버전 TBD), 문서 간 이동 탭 · 목차 앵커. 현재 구현 L01 `190:9523` · L02 `190:9788` (레이아웃), 캡처 `2:283` · `2:286` |
 

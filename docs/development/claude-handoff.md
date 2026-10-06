@@ -99,6 +99,16 @@ Tips:
 - Amounts come from the server as FN; the browser only formats them. Unknown business rules are
   marked **TBD** in code comments and PRs — never invent fees, rates, limits, refunds or schedules.
 - Server actions that set cookies refresh the route; use `redirect()` for post-login screens.
+- Money paths (2026-10-06 audit, #226–#233): ids that records are looked up by use `randomUUID()`, never a
+  timestamp; anything read before an `await` is read again after it, and the check and the write sit in one
+  synchronous block; secrets from a request (admin token, overlay key, manager token, bank-SMS key) go through
+  `lib/secret.ts` `sameSecret`; allow-list checks on input use `Object.hasOwn`, never `in`. A record shown to
+  the member is built from an explicit field list (no `{ ...r }` spreads of server records).
+- Account lifecycle: withdrawal ends everything that acts for the channel (manager links, chat / YouTube
+  connections, overlay and bank-SMS keys, settlement registration); a 재가입 starts without the old consents,
+  settlement history or earnings. New per-account state needs the same treatment in `withdrawal.ts` / `rejoin.ts`.
+- Parallel work in worktrees: link `node_modules` with a junction (`New-Item -ItemType Junction` when
+  `cmd /c mklink` is blocked) and remove only the junction before deleting the worktree.
 
 ## 6. Status
 
