@@ -25,8 +25,9 @@ export function SettlementReviewScreen({ view, status }: { view: AdminSettlement
       </header>
       <section className={styles.card} aria-labelledby="st-reg">
         <h2 id="st-reg" className={styles.cardTitle}>
-          정산 등록 정보
+          현재 정산 등록 정보
         </h2>
+        <p className={styles.muted}>심사 · 지급은 신청마다 신청 시점의 정산 정보로 진행돼요. 신청 후 정보를 변경해도 이미 신청한 건에는 반영되지 않아요.</p>
         {reg ? (
           <dl className={styles.facts}>
             {[
@@ -71,12 +72,22 @@ export function SettlementReviewScreen({ view, status }: { view: AdminSettlement
                 <p className={styles.muted}>
                   신청 {r.requestedAt} · 정산 기간 {r.periodFrom} ~ {r.periodTo} · 수수료 {formatNumber(r.feeFn)} FN · 실지급 {formatNumber(r.netKrw)}원 · 지급(예정) {r.payoutDate ?? "—"}
                 </p>
+                {r.registrationAtRequest ? (
+                  <p className={styles.muted}>
+                    신청 시점 정산 정보 · {r.registrationAtRequest.memberType} · 등록자 {r.registrationAtRequest.registrant} · 예금주 {r.registrationAtRequest.holder} · {r.registrationAtRequest.bankName}{" "}
+                    {r.registrationAtRequest.accountMasked} · 정산 코드 {r.registrationAtRequest.code}
+                  </p>
+                ) : r.status === "PENDING" ? (
+                  <p className={styles.error}>신청 시점의 정산 정보가 없어 승인할 수 없어요. 반려만 할 수 있어요.</p>
+                ) : (
+                  <p className={styles.muted}>신청 시점 정산 정보 없음</p>
+                )}
                 {r.review ? (
                   <p className={styles.muted}>
                     {r.review.at.slice(0, 16).replace("T", " ")} · {r.review.by} · {r.review.note}
                   </p>
                 ) : r.status === "PENDING" ? (
-                  <SettlementDecision id={r.id} />
+                  <SettlementDecision id={r.id} canApprove={r.registrationAtRequest !== null} />
                 ) : (
                   <p className={styles.muted}>기존 처리 건 (처리 기록 없음 · mock 시드)</p>
                 )}

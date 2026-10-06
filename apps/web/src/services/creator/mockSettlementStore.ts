@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import type { MemberType, SettlementStatus } from "./settlementTypes";
+import type { MemberType, SettlementHistoryItem, SettlementStatus } from "./settlementTypes";
 
 /**
  * Development-only settlement state for the mock creator. Server-side only, kept on `globalThis`
@@ -31,6 +31,12 @@ export type MockSettlementRequest = {
   netKrw: number;
   /** 지급(예정)일, yyyy-mm-dd; null when rejected. */
   payoutDate: string | null;
+  /**
+   * Copy of the (masked) registration at request time. 466:2: requests already made are paid and
+   * taxed with the 정산 정보 of that moment, so a later 정보 변경 never changes this request. Admin
+   * review and approval read this copy, never the current registration. Missing = cannot be approved.
+   */
+  registrationAtRequest?: MockSettlementRegistration;
   /** 정산 심사 (관리자 콘솔): who decided and the note shown to the creator. */
   review?: { at: string; by: string; note: string };
 };
@@ -68,6 +74,24 @@ export const newSettlementCode = () =>
 const fee = (fn: number) => Math.round(fn * MOCK_SETTLEMENT_POLICY.paymentFeeRate);
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
+/**
+ * The registration the seed requests were made with (display values from the docs: 예시은행, masked
+ * account, Figma sample code). Registered before the oldest seed request; since removed via 정보 변경,
+ * so the creator starts unregistered.
+ */
+function seedRegistration(): MockSettlementRegistration {
+  const now = new Date();
+  return {
+    memberType: "INDIVIDUAL",
+    registrant: "홍길동",
+    holder: "홍길동",
+    bankName: "예시은행",
+    accountMasked: "********1234",
+    code: "F0L0E0X0",
+    submittedAt: new Date(now.getFullYear(), now.getMonth() - 7, 1).toISOString()
+  };
+}
+
 /** A request made `monthsAgo` months back on the 11th (Figma rows use 신청일 = 11일, 정산 기간 = previous month). */
 function seed(monthsAgo: number, status: SettlementStatus, amountFn: number): MockSettlementRequest {
   const now = new Date();
@@ -82,14 +106,33 @@ function seed(monthsAgo: number, status: SettlementStatus, amountFn: number): Mo
     amountFn,
     feeFn: status === "REJECTED" ? 0 : fee(amountFn),
     netKrw: status === "REJECTED" ? 0 : amountFn - fee(amountFn),
-    payoutDate: status === "REJECTED" ? null : ymd(new Date(y, m + 1, 0))
+    payoutDate: status === "REJECTED" ? null : ymd(new Date(y, m + 1, 0)),
+    registrationAtRequest: seedRegistration()
   };
 }
 
-const globalForSettlement = globalThis as typeof globalThis & { __funationMockSettlementV3?: MockSettlement };
+/**
+ * What the creator's browser gets for a request: the admin review (operator, internal memo) and the
+ * registration copy stay on the server; only a 반려 사유 is shown, for rejected requests.
+ */
+export const toHistoryItem = (r: MockSettlementRequest): SettlementHistoryItem => ({
+  id: r.id,
+  status: r.status,
+  requestedAt: r.requestedAt,
+  periodFrom: r.periodFrom,
+  periodTo: r.periodTo,
+  amountFn: r.amountFn,
+  feeFn: r.feeFn,
+  netKrw: r.netKrw,
+  payoutDate: r.payoutDate,
+  reviewNote: r.status === "REJECTED" ? r.review?.note : undefined
+});
+
+// V4: requests carry `registrationAtRequest`; a new key re-seeds a running dev server with it.
+const globalForSettlement = globalThis as typeof globalThis & { __funationMockSettlementV4?: MockSettlement };
 
 /** Sample amounts from 478:2 (five 승인, one 거절), dated relative to today. */
-export const mockSettlement = (globalForSettlement.__funationMockSettlementV3 ??= {
+export const mockSettlement = (globalForSettlement.__funationMockSettlementV4 ??= {
   terms: null,
   registration: null,
   availableFn: 127_500,

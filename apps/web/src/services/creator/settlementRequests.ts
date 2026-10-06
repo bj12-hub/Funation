@@ -1,9 +1,10 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
-import { MOCK_SETTLEMENT_POLICY, mockSettlement, type MockSettlementRequest } from "./mockSettlementStore";
-import type { QuoteResult, RequestResult, SaveAutoResult, SettlementApplyView, SettlementHistoryItem, SettlementQuote } from "./settlementTypes";
+import { MOCK_SETTLEMENT_POLICY, mockSettlement, toHistoryItem } from "./mockSettlementStore";
+import type { QuoteResult, RequestResult, SaveAutoResult, SettlementApplyView, SettlementQuote } from "./settlementTypes";
 
 /**
  * 정산 신청 — Figma 458:4 · 466:2 · 469:195 · 469:2 · 475:2 · 473:2 · 477:2 · 463:2.
@@ -19,7 +20,6 @@ const assertMock = () => {
   if (!USE_MOCK) throw new Error("Settlement API is not connected yet.");
 };
 
-const toItem = (r: MockSettlementRequest): SettlementHistoryItem => ({ ...r });
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 function quoteFor(amountFn: number): SettlementQuote {
@@ -74,7 +74,7 @@ export async function getSettlementApplyView(): Promise<SettlementApplyView | "U
     autoSettlement: mockSettlement.autoSettlement,
     hasPending: requests.some((r) => r.status === "PENDING"),
     monthly,
-    recent: requests.slice(0, 5).map(toItem)
+    recent: requests.slice(0, 5).map(toHistoryItem)
   };
 }
 
@@ -91,12 +91,14 @@ export async function quoteSettlement(amount: unknown): Promise<QuoteResult> {
 
 /**
  * Creates a settlement request (473:2 확인). Recomputes the quote, deducts the balance and records a
- * PENDING request. The same Idempotency-Key always returns the original request.
+ * PENDING request with a copy of the current (masked) registration — 466:2: a request is paid with
+ * the 정산 정보 at request time. The same Idempotency-Key always returns the original request.
  */
 export async function requestSettlement(input: unknown): Promise<RequestResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
-  if (!mockSettlement.registration) return { status: "NOT_REGISTERED" };
+  const registration = mockSettlement.registration;
+  if (!registration) return { status: "NOT_REGISTERED" };
   const v = (typeof input === "object" && input !== null ? input : {}) as { amountFn?: unknown; idempotencyKey?: unknown };
   const key = v.idempotencyKey;
   if (typeof key !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(key)) return { status: "INVALID", message: "잘못된 요청입니다. 다시 시도해 주세요." };
@@ -112,8 +114,9 @@ export async function requestSettlement(input: unknown): Promise<RequestResult> 
   const check = checkAmount(v.amountFn);
   if (!check.ok) return { status: "INVALID", message: check.message };
   // Reserve the key before the (simulated) async work so a concurrent retry cannot slip through.
+  // Random id: two requests in the same millisecond must never share one (decisions look up by id).
   const now = new Date();
-  const id = `st-${now.getTime().toString(36)}`;
+  const id = `st-${randomUUID()}`;
   mockSettlement.idempotency[key] = id;
   const quote = quoteFor(check.amountFn);
   mockSettlement.availableFn -= check.amountFn;
@@ -130,7 +133,9 @@ export async function requestSettlement(input: unknown): Promise<RequestResult> 
     amountFn: quote.amountFn,
     feeFn: quote.totalFeeFn,
     netKrw: quote.netKrw,
-    payoutDate: ymd(payout)
+    payoutDate: ymd(payout),
+    // Taken in the same synchronous step as the registration check above (no `await` in between).
+    registrationAtRequest: { ...registration }
   });
   await mockDelay(600);
   // TODO: the backend writes the request, the balance hold and an audit record in one transaction.

@@ -6,8 +6,11 @@ import { decideSettlement } from "@/lib/actions";
 import { SETTLEMENT_NOTE } from "@/types/adminApi";
 import styles from "../admin.module.css";
 
-/** 정산 승인 / 반려 — memo required, final, audited. Rejecting returns the amount to the creator. */
-export function SettlementDecision({ id }: { id: string }) {
+/**
+ * 정산 승인 / 반려 — memo required, final, audited. Rejecting returns the amount to the creator.
+ * `canApprove` is false when the request has no 신청 시점 정산 정보; the site refuses approval anyway.
+ */
+export function SettlementDecision({ id, canApprove }: { id: string; canApprove: boolean }) {
   const router = useRouter();
   const [note, setNote] = useState("");
   const [msg, setMsg] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
@@ -34,7 +37,7 @@ export function SettlementDecision({ id }: { id: string }) {
     <div className={styles.form}>
       <textarea className={styles.textarea} rows={2} maxLength={SETTLEMENT_NOTE.max} placeholder="처리 메모 (필수, 반려 사유는 크리에이터에게 보여요)" aria-label="처리 메모" value={note} onChange={(e) => setNote(e.target.value)} />
       <div className={styles.filters}>
-        <button type="button" className={styles.button} disabled={!ready} onClick={() => decide("APPROVE")}>
+        <button type="button" className={styles.button} disabled={!ready || !canApprove} onClick={() => decide("APPROVE")}>
           승인
         </button>
         <button type="button" className={styles.danger} disabled={!ready} onClick={() => decide("REJECT")}>

@@ -128,6 +128,8 @@ export type DonationsView = {
 /** FORFEITED = 탈퇴 소멸: the creator withdrew and agreed to forfeit earnings waiting for settlement. */
 export type SettlementStatus = "PENDING" | "APPROVED" | "REJECTED" | "FORFEITED";
 export const SETTLEMENT_STATUSES: SettlementStatus[] = ["PENDING", "APPROVED", "REJECTED", "FORFEITED"];
+/** Member type label and masked account only. */
+export type AdminSettlementRegistration = { memberType: string; registrant: string; holder: string; bankName: string; accountMasked: string; code: string; submittedAt: string };
 export type AdminSettlementRow = {
   id: string;
   creatorName: string;
@@ -139,12 +141,15 @@ export type AdminSettlementRow = {
   feeFn: number;
   netKrw: number;
   payoutDate: string | null;
+  /** 정산 정보 at request time — what the request is reviewed and paid with. Null = the site refuses approval. */
+  registrationAtRequest: AdminSettlementRegistration | null;
   review: { at: string; by: string; note: string } | null;
 };
 export type AdminSettlementView = {
   rows: AdminSettlementRow[];
   counts: Record<SettlementStatus, number>;
-  registration: { memberType: string; registrant: string; holder: string; bankName: string; accountMasked: string; code: string; submittedAt: string } | null;
+  /** The creator's current registration (may differ from a request's `registrationAtRequest`). */
+  registration: AdminSettlementRegistration | null;
   availableFn: number;
 };
 export const SETTLEMENT_NOTE = { min: 2, max: 200 } as const;
