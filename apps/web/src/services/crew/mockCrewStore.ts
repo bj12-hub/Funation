@@ -29,6 +29,11 @@ export type MockBroadcast = {
   feed?: FeedEntry[];
   /** Active 한방 window. */
   oneshot?: { startedAt: string } | null;
+  /**
+   * 직급 배수 per member (≠ 1) when the broadcast started. Grade edits apply from the next broadcast, so points
+   * already moved (기여도 강탈) never rest on a 배수 that changed afterwards. Missing on broadcasts from before.
+   */
+  gradeMultipliers?: Record<string, number>;
   /** 랭크업 on the OBS scoreboard (2026-10-06). */
   showRankUp?: boolean;
   /** 시뮬 후원 request ids already accepted. */

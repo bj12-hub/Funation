@@ -129,8 +129,8 @@ function Ranking({ data }: { data: Extract<OverlayWidget, { widget: "ranking" }>
     const tier = r.rank === 1 ? s.first : s.others;
     return (
       <li key={copy + r.name} style={font(tier.font)} aria-hidden={copy ? true : undefined}>
-        <span>{fillRank(s.format.rank, r.rank, r.name, r.fnAmount)}</span>
-        <span style={{ color: tier.accentColor }}>{fillRank(s.format.name, r.rank, r.name, r.fnAmount)}</span>
+        <span>{fillRank(s.format.rank, r.rank, r.name, r.fnAmount, r.amountLabel)}</span>
+        <span style={{ color: tier.accentColor }}>{fillRank(s.format.name, r.rank, r.name, r.fnAmount, r.amountLabel)}</span>
         {s.showAmount && <span style={{ color: tier.accentColor }}>{rankAmountText(s.format.amount, r)}</span>}
       </li>
     );

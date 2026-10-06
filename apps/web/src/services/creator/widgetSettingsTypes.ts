@@ -479,7 +479,7 @@ export type WidgetLiveData = {
   /** Top donors for the RANKING preview. */
   ranking: { name: string; amount: number }[];
   /** 크루 후원 순위 / 수단별 보드 previews (amountLabel replaces the FN amount on 수단별 보드). */
-  crewRanking: { name: string; amount: number }[];
+  crewRanking: Record<(typeof RANKING_WIDGET_PERIODS)[number], { name: string; amount: number }[]>;
   sourceBoard: { name: string; amount: number; amountLabel: string }[];
   /** Lowest mini donation amount (MINI preview / guard). */
   miniMinAmount: number;

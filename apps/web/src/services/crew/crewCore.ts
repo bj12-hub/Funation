@@ -9,15 +9,23 @@ export const battleRulesOf = (channelId: string): BattleRules => mockCrew.battle
 export const stealRulesOf = (channelId: string) => mockCrew.stealRules?.[channelId] ?? PLATFORM_STEAL_RULES;
 
 /** Validates a 배수 (more than 0, up to BATTLE_MULTIPLIER_MAX, two decimals) and a 벌칙 (optional text). */
+/**
+ * A 배수 to two decimals, more than 0 and up to `max`, or null. The rounded value is what gets stored, so it is the
+ * one checked: 0.00000001 would otherwise pass "more than 0" and be saved as 0.
+ */
+export function parseMultiplier(m: unknown, max: number): number | null {
+  if (typeof m !== "number" || !Number.isFinite(m)) return null;
+  const r = Math.round(m * 100) / 100;
+  return r > 0 && r <= max && Math.abs(r - m) < 1e-9 ? r : null;
+}
+
 export function parseBattleRules(v: Record<string, unknown>, forbidden: string[]): BattleRules | { message: string } {
-  const m = v.multiplier;
-  if (typeof m !== "number" || !Number.isFinite(m) || m <= 0 || m > BATTLE_MULTIPLIER_MAX || Math.abs(Math.round(m * 100) - m * 100) > 1e-6) {
-    return { message: `배수는 0보다 크고 ${BATTLE_MULTIPLIER_MAX}배 이하, 소수 둘째 자리까지예요.` };
-  }
+  const m = parseMultiplier(v.multiplier, BATTLE_MULTIPLIER_MAX);
+  if (m === null) return { message: `배수는 0보다 크고 ${BATTLE_MULTIPLIER_MAX}배 이하, 소수 둘째 자리까지예요.` };
   const penalty = typeof v.penalty === "string" ? v.penalty.trim() : "";
   if (penalty.length > BATTLE_PENALTY_MAX) return { message: `벌칙은 ${BATTLE_PENALTY_MAX}자 이내로 입력해 주세요.` };
   if (forbidden.some((w) => penalty.toLowerCase().includes(w))) return { message: "사용할 수 없는 단어가 포함되어 있어요." };
-  return { multiplier: Math.round(m * 100) / 100, penalty };
+  return { multiplier: m, penalty };
 }
 
 export const liveBroadcastOf = (channelId: string) => (mockCrew.broadcasts ?? []).find((b) => b.channelId === channelId && !b.endedAt) ?? null;
@@ -134,8 +142,11 @@ export function windowScores(b: MockBroadcast, from: string, to: string | null):
 
 export const gradesOf = (channelId: string): CrewGrade[] => mockCrew.grades?.[channelId] ?? [];
 
-/** Validates a 직급 list (names unique, 배수 like 배틀: more than 0, up to the max, two decimals). Ids are kept or made. */
-export function parseGrades(input: unknown, forbidden: string[]): CrewGrade[] | { message: string } {
+/**
+ * Validates a 직급 list (names unique, 배수 like 배틀: more than 0, up to the max, two decimals). An id is kept only if it
+ * is one of the channel's grades (`known`) and not used twice; anything else gets a new id.
+ */
+export function parseGrades(input: unknown, forbidden: string[], known: string[] = []): CrewGrade[] | { message: string } {
   if (!Array.isArray(input) || input.length > GRADES_MAX) return { message: `직급은 ${GRADES_MAX}개까지 만들 수 있어요.` };
   const out: CrewGrade[] = [];
   for (const raw of input) {
@@ -144,29 +155,34 @@ export function parseGrades(input: unknown, forbidden: string[]): CrewGrade[] | 
     if (!name || name.length > GRADE_NAME_MAX) return { message: `직급 이름은 1~${GRADE_NAME_MAX}자로 입력해 주세요.` };
     if (forbidden.some((w) => name.toLowerCase().includes(w))) return { message: "사용할 수 없는 단어가 포함되어 있어요." };
     if (out.some((g) => g.name === name)) return { message: "같은 이름의 직급이 있어요." };
-    const m = v.multiplier;
-    if (typeof m !== "number" || !Number.isFinite(m) || m <= 0 || m > GRADE_MULTIPLIER_MAX || Math.abs(Math.round(m * 100) - m * 100) > 1e-6) {
-      return { message: `직급 배수는 0보다 크고 ${GRADE_MULTIPLIER_MAX}배 이하, 소수 둘째 자리까지예요.` };
-    }
-    const id = typeof v.id === "string" && /^gr-[a-z0-9-]{1,40}$/.test(v.id) ? v.id : `gr-${Date.now().toString(36)}-${out.length}`;
-    out.push({ id, name, multiplier: Math.round(m * 100) / 100 });
+    const m = parseMultiplier(v.multiplier, GRADE_MULTIPLIER_MAX);
+    if (m === null) return { message: `직급 배수는 0보다 크고 ${GRADE_MULTIPLIER_MAX}배 이하, 소수 둘째 자리까지예요.` };
+    const keep = typeof v.id === "string" && known.includes(v.id) && !out.some((g) => g.id === v.id);
+    const id = keep ? (v.id as string) : `gr-${Date.now().toString(36)}-${out.length}`;
+    out.push({ id, name, multiplier: m });
+  }
+  return out;
+}
+
+/** Each member's 직급 배수 (≠ 1) under the channel's current grades — copied onto a broadcast when it starts. */
+export function gradeMultipliersOf(channelId: string): Record<string, number> {
+  const grades = gradesOf(channelId);
+  const out: Record<string, number> = {};
+  for (const m of mockCrew.crews[channelId] ?? []) {
+    const x = grades.find((g) => g.id === m.gradeId)?.multiplier ?? 1;
+    if (x !== 1) out[m.id] = x;
   }
   return out;
 }
 
 /**
  * 직급 배수 on the scoreboard (2026-10-06 결정): what a member received in the broadcast — donations for them and
- * assigned 후원 리스트 entries, not 강탈 · 보정 · 배틀 — counts × their 직급 배수. Returns the extra points per member,
- * (배수 − 1) × those points. Members without a grade, or with 1배, add nothing.
+ * assigned 후원 리스트 entries, not 강탈 · 보정 · 배틀 — counts × their 직급 배수 as it was when the broadcast started.
+ * Returns the extra points per member, (배수 − 1) × those points, rounded once in whole points.
  */
 export function gradeBonus(b: MockBroadcast): Map<string, number> {
-  const grades = gradesOf(b.channelId);
   const bonus = new Map<string, number>();
-  const mult = new Map<string, number>();
-  for (const m of mockCrew.crews[b.channelId] ?? []) {
-    const x = grades.find((g) => g.id === m.gradeId)?.multiplier ?? 1;
-    if (x !== 1) mult.set(m.id, x);
-  }
+  const mult = new Map(Object.entries(b.gradeMultipliers ?? gradeMultipliersOf(b.channelId)));
   if (!mult.size) return bonus;
   const end = b.endedAt ?? new Date(Date.now() + 1000).toISOString();
   const s = excelOf(b.channelId);
@@ -174,7 +190,8 @@ export function gradeBonus(b: MockBroadcast): Map<string, number> {
   const add = (id: string, p: number) => mult.has(id) && received.set(id, (received.get(id) ?? 0) + p);
   for (const a of mockCrew.attributions) if (a.channelId === b.channelId && a.at >= b.startedAt && a.at <= end) add(a.memberId, scoreFn(a.fnAmount, s));
   for (const f of b.feed ?? []) if (f.status === "ASSIGNED" && f.memberId) add(f.memberId, scoreEntry(f, s).points);
-  for (const [id, points] of received) bonus.set(id, Math.round(points * (mult.get(id)! - 1)));
+  // In hundredths: 1.15 − 1 is 0.1499… in floating point, which would round some bonuses a point short.
+  for (const [id, points] of received) bonus.set(id, Math.round((points * (Math.round(mult.get(id)! * 100) - 100)) / 100));
   return bonus;
 }
 

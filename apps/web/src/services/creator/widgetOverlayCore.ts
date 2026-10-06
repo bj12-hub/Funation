@@ -145,9 +145,9 @@ export function sourceBoardRows(items: AlertItem[], s: Pick<RankingSettings, "pe
     });
 }
 
-/** `{rank}` · `{name}` · `{amount}` in a 후원랭킹 format part. */
-export const fillRank = (t: string, rank: number, name: string, amount: number) =>
-  t.replaceAll("{rank}", String(rank)).replaceAll("{name}", name).replaceAll("{amount}", formatNumber(amount));
+/** `{rank}` · `{name}` · `{amount}` in a 후원랭킹 format part; `amountLabel` (수단별 보드: each row's own unit) wins. */
+export const fillRank = (t: string, rank: number, name: string, amount: number, amountLabel?: string) =>
+  t.replaceAll("{rank}", String(rank)).replaceAll("{name}", name).replaceAll("{amount}", amountLabel ?? formatNumber(amount));
 
 /** The amount part of a row: the 금액 format, or the row's own label on 수단별 보드 (units differ, so no FN template). */
 export const rankAmountText = (t: string, r: { rank: number; name: string; fnAmount: number; amountLabel?: string }) =>

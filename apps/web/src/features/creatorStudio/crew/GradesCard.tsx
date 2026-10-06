@@ -35,7 +35,7 @@ export function GradesCard({ grades, pending, run }: { grades: CrewGrade[]; pend
         </span>
       </div>
       <p className={styles.note}>
-        방송 운영 점수판에서 멤버가 받은 후원 점수(후원 · 후원 리스트)에 직급 배수가 곱해져요. 기본 1배는 변화가 없어요. 강탈 · 보정 · 배틀 배수에는 곱하지 않아요.
+        방송 운영 점수판에서 멤버가 받은 후원 점수(후원 · 후원 리스트)에 직급 배수가 곱해져요. 기본 1배는 변화가 없어요. 강탈 · 보정 · 배틀 배수에는 곱하지 않아요. 진행 중인 방송은 시작할 때의 직급 · 배수로 계산하고, 바꾼 값은 다음 방송부터 적용돼요.
       </p>
       {list.length === 0 ? (
         <p className={styles.empty}>아직 직급이 없어요. 직급을 만들면 멤버마다 고를 수 있어요.</p>
