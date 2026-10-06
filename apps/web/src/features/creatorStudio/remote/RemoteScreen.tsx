@@ -39,6 +39,7 @@ import { CopyButton } from "../settings/SettingsCards";
 import remote from "./remote.module.css";
 import { GachaRemote } from "./GachaRemote";
 import { RouletteRemote } from "./RouletteRemote";
+import { BingoRemote } from "./BingoRemote";
 import { ToolsRemote } from "./ToolsRemote";
 import { VoteRemote } from "./VoteRemote";
 import { WallpaperRemote } from "./WallpaperRemote";
@@ -63,7 +64,7 @@ export function RemoteScreen({
 }: {
   view: RemoteView;
   overlayPath: string;
-  tools: Pick<ToolStates, "timer" | "credits">;
+  tools: Pick<ToolStates, "timer" | "credits" | "bingo">;
   vote: VoteRemoteView;
   roulette: RouletteRemoteView;
   gacha: GachaRemoteView;
@@ -286,6 +287,8 @@ export function RemoteScreen({
       </div>
 
       <ToolsRemote tools={tools} pending={pending} run={run} />
+
+      <BingoRemote bingo={tools.bingo} pending={pending} run={run} />
 
       <VoteRemote view={vote} pending={pending} run={run} />
 

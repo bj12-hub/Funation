@@ -23,5 +23,5 @@ export default async function Page() {
     getWallpaperRemote()
   ]);
   if (!view || !key || !tools || !vote || !roulette || !gacha || !wallpaper) redirect("/login?role=creator&next=/creator/remote");
-  return <RemoteScreen view={view} overlayPath={`/overlay/alert/${key}`} tools={{ timer: tools.states.timer, credits: tools.states.credits }} vote={vote} roulette={roulette} gacha={gacha} wallpaper={wallpaper} />;
+  return <RemoteScreen view={view} overlayPath={`/overlay/alert/${key}`} tools={{ timer: tools.states.timer, credits: tools.states.credits, bingo: tools.states.bingo }} vote={vote} roulette={roulette} gacha={gacha} wallpaper={wallpaper} />;
 }

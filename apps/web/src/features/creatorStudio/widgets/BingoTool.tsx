@@ -6,35 +6,17 @@ import { BINGO_CELL_MAX, BINGO_SIZES, BINGO_TITLE_MAX, bingoLines, bingoLinesMax
 import styles from "../crew/crew.module.css";
 import local from "./bingo.module.css";
 
+type Run = (action: () => Promise<ToolResult>, ok?: string) => void;
+
 /**
- * 빙고 — code-first (funnation 엑셀방송 빙고, 2026-10-06 결정), a card on `/creator/widgets/tools`. The board is the
- * remote: a click marks or unmarks a filled cell. "판 편집" changes the title, size, goal and missions (칸 섞기 is
- * local until 저장). The overlay shows the board only while "화면에 보이기" is on.
+ * The playing part of 빙고 — status, 표시 초기화, 화면에 보이기 and the board, where a click marks or unmarks a filled
+ * cell. Shared by the 방송 도구 card and the 리모컨 (2026-10-06 결정).
  */
-export function BingoTool({ state, pending, run }: { state: BingoState; pending: boolean; run: (action: () => Promise<ToolResult>, ok?: string) => void }) {
-  const [title, setTitle] = useState(state.title);
-  const [size, setSize] = useState<BingoSize>(state.size);
-  const [cells, setCells] = useState(state.cells);
-  const [goal, setGoal] = useState(state.goal);
+export function BingoPlay({ state, pending, run }: { state: BingoState; pending: boolean; run: Run }) {
   const lines = bingoLines(state.size, state.marked);
   const done = lines >= state.goal;
-
-  const resize = (next: BingoSize) => {
-    setCells(resizeBingo({ size, cells, marked: [] }, next).cells);
-    setSize(next);
-    setGoal((g) => Math.min(g, bingoLinesMax(next)));
-  };
-  const shuffle = () => {
-    const next = [...cells];
-    for (let i = next.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [next[i], next[j]] = [next[j], next[i]];
-    }
-    setCells(next);
-  };
-
   return (
-    <div className={styles.startForm}>
+    <>
       <div className={styles.cardHead}>
         <span className={local.status} role="status">
           <strong>{state.title || "빙고"}</strong> · 완성 {lines}줄 / 목표 {state.goal}줄{done && <span className={styles.chip}>🎉 빙고!</span>}
@@ -70,6 +52,37 @@ export function BingoTool({ state, pending, run }: { state: BingoState; pending:
         ))}
       </div>
       <p className={styles.note}>칸을 누르면 표시되고, 다시 누르면 지워져요. {state.shown ? "방송 화면에 보이는 중이에요." : "지금은 방송 화면에 보이지 않아요."}</p>
+    </>
+  );
+}
+
+/**
+ * 빙고 — code-first (funnation 엑셀방송 빙고, 2026-10-06 결정), a card on `/creator/widgets/tools`. The board is the
+ * remote: a click marks or unmarks a filled cell. "판 편집" changes the title, size, goal and missions (칸 섞기 is
+ * local until 저장). The overlay shows the board only while "화면에 보이기" is on.
+ */
+export function BingoTool({ state, pending, run }: { state: BingoState; pending: boolean; run: Run }) {
+  const [title, setTitle] = useState(state.title);
+  const [size, setSize] = useState<BingoSize>(state.size);
+  const [cells, setCells] = useState(state.cells);
+  const [goal, setGoal] = useState(state.goal);
+  const resize = (next: BingoSize) => {
+    setCells(resizeBingo({ size, cells, marked: [] }, next).cells);
+    setSize(next);
+    setGoal((g) => Math.min(g, bingoLinesMax(next)));
+  };
+  const shuffle = () => {
+    const next = [...cells];
+    for (let i = next.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [next[i], next[j]] = [next[j], next[i]];
+    }
+    setCells(next);
+  };
+
+  return (
+    <div className={styles.startForm}>
+      <BingoPlay state={state} pending={pending} run={run} />
 
       <details className={local.edit}>
         <summary>판 편집</summary>
