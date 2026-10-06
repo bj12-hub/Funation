@@ -3,7 +3,8 @@
  * Figma: 610:138 · 851:* (forms) · 613:6 (확인) · 613:122 (완료) · 613:237 (FN 부족)
  *
  * One Donation Core handles every type; only the details differ (CLAUDE.md §10).
- * Signature and wishlist prices are looked up on the server — the browser never sends an amount for them.
+ * Signature, wishlist and 뽑기 prices are looked up on the server — the browser never sets them. It sends the price the
+ * supporter confirmed (`expectedAmount`); if the creator changed it meanwhile, nothing is debited (PRICE_CHANGED).
  */
 
 export type DonationDetails =
@@ -17,8 +18,8 @@ export type DonationDetails =
       endSec: number;
       termsAgreed: boolean;
     }
-  | { type: "SIGNATURE"; signatureId: string; message: string }
-  | { type: "WISHLIST"; itemId: string; message: string; voiceId: string | null }
+  | { type: "SIGNATURE"; signatureId: string; message: string; expectedAmount: number }
+  | { type: "WISHLIST"; itemId: string; message: string; voiceId: string | null; expectedAmount: number }
   /** One spin per participation; the amount must reach the creator's 최소 참여 금액 (server settings). */
   | { type: "ROULETTE"; amount: number }
   | {
@@ -31,7 +32,7 @@ export type DonationDetails =
     }
   | { type: "DRAWING"; amount: number; title: string; image: string; showProcess: boolean; canvasMode: boolean; termsAgreed: boolean }
   /** The price comes from the creator's 뽑기 settings; the prize is drawn by the server. */
-  | { type: "GACHA"; gachaId: string; termsAgreed: boolean };
+  | { type: "GACHA"; gachaId: string; termsAgreed: boolean; expectedAmount: number };
 
 /** Max size of a drawing sent as a PNG data URL (TBD with the overlay/storage design). */
 export const MAX_DRAWING_CHARS = 400_000;
@@ -56,7 +57,11 @@ export type DonationResult =
       balance: number;
     }
   | { status: "INSUFFICIENT_FN"; balance: number; required: number }
-  | { status: "IN_PROGRESS" | "CONFLICT" | "INVALID" | "NOT_FOUND" | "UNAUTHORIZED" };
+  /** The creator changed the signature / wishlist / 뽑기 price after the supporter saw it; `amount` is the price now. */
+  | { status: "PRICE_CHANGED"; amount: number }
+  /** `message` when the text itself was refused (a forbidden word); without it the request was malformed. */
+  | { status: "INVALID"; message?: string }
+  | { status: "IN_PROGRESS" | "CONFLICT" | "NOT_FOUND" | "UNAUTHORIZED" };
 
 /** Accepts youtube.com/watch?v=… and youtu.be/… (other hosts are TBD). Returns the video id or null. */
 export function parseYouTubeId(url: string): string | null {

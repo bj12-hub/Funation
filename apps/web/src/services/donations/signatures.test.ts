@@ -41,7 +41,10 @@ describe("signature management", () => {
     const zero = (await m.listSignatures())![0];
     await m.saveSignature({ ...zero, price: 20_000, match: "AMOUNT" });
     const base = { creatorId: "c1", hideProfile: false };
-    expect(await m.requestDonation({ ...base, type: "SIGNATURE", signatureId: zero.id, message: "", amount: 1, idempotencyKey: key(2) })).toMatchObject({
+    // The panel sends the price it showed; a stale one is refused, the managed one is charged (never a client amount).
+    const sign = (n: number, expectedAmount: number) => ({ ...base, type: "SIGNATURE", signatureId: zero.id, message: "", amount: 1, expectedAmount, idempotencyKey: key(n) });
+    expect(await m.requestDonation(sign(1, zero.price))).toEqual({ status: "PRICE_CHANGED", amount: 20_000 });
+    expect(await m.requestDonation(sign(2, 20_000))).toMatchObject({
       status: "COMPLETED",
       fnAmount: 20_000
     });

@@ -68,6 +68,8 @@ describe("퀘스트 후원 결과", () => {
     const m = await load();
     const sent = await m.requestDonation(quest(1, "c1", true));
     if (sent.status !== "COMPLETED") throw new Error(sent.status);
+    // Held while it runs: 처리중 in the wallet, not yet given.
+    expect(m.walletStore.donations.find((d) => d.id === sent.donationId)!.status).toBe("PROCESSING");
     expect(await m.decideMyQuest({ id: sent.donationId, outcome: "SUCCESS" })).toEqual({ status: "OK", questStatus: "SUCCESS", refundedFn: 0 });
     expect(m.account.fnBalance).toBe(90_000);
     expect(m.walletStore.donations.find((d) => d.id === sent.donationId)!.status).toBe("COMPLETED");
@@ -82,6 +84,104 @@ describe("퀘스트 후원 결과", () => {
     const sent = await m.requestDonation(quest(2, "c1", true, { failAmount: 5_000, cancelAmount: 20_000 }));
     expect(sent.status).toBe("COMPLETED");
     expect(m.mockQuests.items[0]).toMatchObject({ title: "퀘스트 2", amount: 10_000, status: "IN_PROGRESS", creatorDecides: true });
+  });
+});
+
+/**
+ * A quest's FN becomes the creator's only once it succeeds (2026-10-04 결정): until then it is held, and a failed or
+ * cancelled quest leaves nothing behind — no crew points, member ranking, 후원 리스트 entry, widget total or
+ * supporter grade.
+ */
+describe("퀘스트 후원 보관 (성공 전에는 집계하지 않음)", () => {
+  beforeEach(() => resetMockStores());
+
+  async function studio() {
+    const m = await load();
+    const c1 = (await m.creators.getCreatorById("c1"))!;
+    vi.spyOn(m.creators, "getCreatorById").mockResolvedValue({ ...c1, id: "studio" });
+    const broadcast = await import("@/services/crew/crewBroadcast");
+    const crewCore = await import("@/services/crew/crewCore");
+    const { mockCrew } = await import("@/services/crew/mockCrewStore");
+    const { mockAlerts } = await import("@/services/creator/alertCore");
+    const { countedDonations } = await import("@/services/creator/widgetOverlayCore");
+    const { computeIdentity } = await import("@/services/supporter/identityCore");
+    const counted = () => countedDonations(mockAlerts.items).reduce((s, a) => s + a.fnAmount, 0);
+    const memberFn = (id: string) => crewCore.memberRanking("studio").find((r) => r.memberId === id)!.totalFn;
+    const boardFn = async (id: string) => (await broadcast.getBroadcastView())!.live!.rows.find((r) => r.memberId === id)!.donated;
+    const crewRow = async (id: string) => (await m.getReceivedDonations({ kind: "crew", period: range, status: "ALL", query: "", page: 1 }))!.items.find((d) => d.id === id);
+    return { ...m, ...broadcast, mockCrew, mockAlerts, counted, memberFn, boardFn, crewRow, lifetime: () => computeIdentity().global.lifetimeFn };
+  }
+
+  it("keeps a member quest out of crew points, ranking, widget totals and grades until it succeeds", async () => {
+    const m = await studio();
+    expect(await m.startBroadcast({ title: "엑셀 방송", teamMode: false })).toEqual({ status: "SAVED" });
+    const before = { counted: m.counted(), member: m.memberFn("cm-s2"), lifetime: m.lifetime() };
+    const same = async () => {
+      expect(m.counted()).toBe(before.counted);
+      expect(m.memberFn("cm-s2")).toBe(before.member);
+      expect(await m.boardFn("cm-s2")).toBe(0);
+      expect(m.lifetime()).toBe(before.lifetime);
+    };
+
+    // A big quest during the broadcast, then 실패: the supporter gets it all back and the member keeps nothing.
+    const failed = await m.requestDonation(quest(1, "studio", false, { memberId: "cm-s2", successReward: 50_000 }));
+    if (failed.status !== "COMPLETED") throw new Error(failed.status);
+    expect(m.mockAlerts.items.at(-1)).toMatchObject({ kind: "DONATION", questId: failed.donationId, message: "퀘스트: 퀘스트 1" }); // the arrival still shows
+    expect(m.walletStore.donations[0]).toMatchObject({ id: failed.donationId, status: "PROCESSING" });
+    expect(m.mockCrew.attributions.some((a) => a.donationId === failed.donationId)).toBe(false);
+    await same();
+    expect(await m.crewRow(failed.donationId)).toMatchObject({ status: "IN_PROGRESS", detail: "하늘", amount: 50_000 }); // listed as held
+    expect(await m.decideMyQuest({ id: failed.donationId, outcome: "FAILED" })).toMatchObject({ status: "OK", refundedFn: 50_000 });
+    expect(m.account.fnBalance).toBe(100_000);
+    await same();
+    expect(await m.crewRow(failed.donationId)).toMatchObject({ status: "FAILED" });
+
+    // 성공: the member gets it now, on the scoreboard, the ranking, the widgets and the supporter's grade.
+    const won = await m.requestDonation(quest(2, "studio", false, { memberId: "cm-s2", successReward: 30_000 }));
+    if (won.status !== "COMPLETED") throw new Error(won.status);
+    await same();
+    await m.decideMyQuest({ id: won.donationId, outcome: "SUCCESS" });
+    expect(m.walletStore.donations.find((d) => d.id === won.donationId)!.status).toBe("COMPLETED");
+    expect(m.counted()).toBe(before.counted + 30_000);
+    expect(m.memberFn("cm-s2")).toBe(before.member + 30_000);
+    expect(await m.boardFn("cm-s2")).toBe(30_000);
+    expect(m.lifetime()).toBe(before.lifetime + 30_000);
+    expect(await m.crewRow(won.donationId)).toMatchObject({ status: "SUCCESS", amount: 30_000 });
+    // Deciding again changes nothing.
+    await m.decideMyQuest({ id: won.donationId, outcome: "SUCCESS" });
+    expect(m.mockCrew.attributions.filter((a) => a.donationId === won.donationId)).toHaveLength(1);
+  });
+
+  it("lists a quest on the 후원 리스트 only while the broadcast it was sent in is still on", async () => {
+    const m = await studio();
+    await m.startBroadcast({ title: "1회차", teamMode: false });
+    const first = (await m.getBroadcastView())!.live!.id;
+    const a = await m.requestDonation(quest(1, "studio", false));
+    const b = await m.requestDonation(quest(2, "studio", false));
+    if (a.status !== "COMPLETED" || b.status !== "COMPLETED") throw new Error("not sent");
+    const feedOf = (id: string) => m.mockCrew.broadcasts!.find((x) => x.id === id)!.feed ?? [];
+    expect(feedOf(first)).toHaveLength(0); // held
+
+    await m.decideMyQuest({ id: a.donationId, outcome: "SUCCESS" });
+    expect(feedOf(first)).toMatchObject([{ amount: 10_000, message: "퀘스트: 퀘스트 1" }]);
+
+    // Decided after its broadcast ended: that board is final, and the next broadcast does not get it either.
+    await m.endBroadcast(first);
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(Date.now() + 1_000); // a different broadcast id
+    try {
+      await m.startBroadcast({ title: "2회차", teamMode: false });
+    } finally {
+      vi.useRealTimers();
+    }
+    const second = (await m.getBroadcastView())!.live!.id;
+    expect(second).not.toBe(first);
+    await m.decideMyQuest({ id: b.donationId, outcome: "SUCCESS" });
+    expect(feedOf(first)).toHaveLength(1);
+    expect(feedOf(second)).toHaveLength(0);
+    // Both count in the 후원 위젯 now.
+    const alerts = m.mockAlerts.items.filter((x) => x.questId === a.donationId || x.questId === b.donationId);
+    expect(alerts.map((x) => x.questSucceeded)).toEqual([true, true]);
   });
 });
 

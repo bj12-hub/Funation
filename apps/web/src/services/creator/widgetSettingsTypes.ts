@@ -384,7 +384,18 @@ export const GACHA_MAX = 10;
 export const GACHA_PRIZES_MAX = 20;
 export const GACHA_NAME_MAX = 20;
 
-export type GachaPrize = { id: string; name: string; kind: "PRIZE" | "BLANK"; /** % (PROBABILITY) or stock count (STOCK). */ value: number };
+export type GachaPrize = {
+  id: string;
+  name: string;
+  kind: "PRIZE" | "BLANK";
+  /** % (PROBABILITY) or stock left (STOCK). */
+  value: number;
+  /**
+   * 상품소진형 draws so far, counted by the server. The form sends back the value it loaded, so a save made while
+   * draws happened never restores drawn stock (gachaCore keepDrawnStock).
+   */
+  drawn?: number;
+};
 export type Gacha = {
   id: string;
   name: string;

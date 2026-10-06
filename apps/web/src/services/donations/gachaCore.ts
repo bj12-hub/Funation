@@ -136,14 +136,24 @@ export function advance(channelId: string, now = Date.now()) {
   if (next) next.startedAt = new Date(now).toISOString();
 }
 
-/** Called by the Donation Core after the debit: draws now (stock goes down), plays later. */
-export function enqueueDraw(input: { id: string; channelId: string; supporterUserId: string; donor: string; gachaId: string }, now = Date.now(), rand?: (n: number) => number) {
+/**
+ * Called by the Donation Core right after the debit (nothing awaits in between, so the stock check and this decrement
+ * see the same stock): draws now (stock goes down), plays later. `amount` is what was debited.
+ */
+export function enqueueDraw(
+  input: { id: string; channelId: string; supporterUserId: string; donor: string; gachaId: string; amount: number },
+  now = Date.now(),
+  rand?: (n: number) => number
+) {
   const x = findGacha(input.gachaId);
   if (!x) throw new Error("뽑기 not found");
   const weights = x.prizes.map((p) => p.value);
   const index = weightedIndex(weights, rand);
   const prize = x.prizes[index];
-  if (x.prizeMode === "STOCK") prize.value -= 1;
+  if (x.prizeMode === "STOCK") {
+    prize.value -= 1;
+    prize.drawn = (prize.drawn ?? 0) + 1;
+  }
   const blank = prize.kind === "BLANK";
   const draw: GachaDraw = {
     ...input,
@@ -152,8 +162,7 @@ export function enqueueDraw(input: { id: string; channelId: string; supporterUse
     mode: x.prizeMode,
     style: x.style,
     pointColor: x.pointColor,
-    message: fillGachaMessage(x.messageTemplate, input.donor, x.price),
-    amount: x.price,
+    message: fillGachaMessage(x.messageTemplate, input.donor, input.amount),
     createdAt: new Date(now).toISOString(),
     day: toDateString(new Date(now)),
     prize: prize.name,
@@ -167,6 +176,26 @@ export function enqueueDraw(input: { id: string; channelId: string; supporterUse
   mockGacha.draws.push(draw);
   advance(input.channelId, now);
   return draw;
+}
+
+/**
+ * A 뽑기 settings save never brings back stock drawn after the form loaded. The form sends each prize's `drawn` as it
+ * loaded it; for a 상품소진형 prize the saved count is what the creator entered minus the draws since then. `drawn`
+ * itself stays the server's. Called right before the save is written (synchronously, like the draw itself).
+ */
+export function keepDrawnStock(next: GachaSettings, current: GachaSettings): GachaSettings {
+  for (const g of next.gachas) {
+    const was = current.gachas.find((x) => x.id === g.id);
+    for (const p of g.prizes) {
+      const old = was?.prizes.find((x) => x.id === p.id);
+      const drawn = old?.drawn ?? 0;
+      const since = Math.max(0, drawn - (p.drawn ?? 0));
+      if (g.prizeMode === "STOCK" && was?.prizeMode === "STOCK") p.value = Math.max(0, p.value - since);
+      if (drawn) p.drawn = drawn;
+      else delete p.drawn;
+    }
+  }
+  return next;
 }
 
 const revealed = (d: GachaDraw, now: number) => {
