@@ -204,6 +204,9 @@ const maskAccount = (no: string) => `${"*".repeat(Math.max(0, no.length - 4))}${
 export async function registerSettlement(formData: FormData): Promise<RegistrationResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  // Simulated latency comes first: from the state checks below to the write there is no `await`, so
+  // two tabs submitting at once cannot both pass ALREADY_REGISTERED and overwrite each other.
+  await mockDelay(700);
   const type = formData.get("memberType");
   if (!isMemberType(type)) return { status: "INVALID", message: "회원 유형을 확인해 주세요." };
   if (mockSettlement.terms?.memberType !== type) return { status: "NO_TERMS" };
@@ -221,7 +224,6 @@ export async function registerSettlement(formData: FormData): Promise<Registrati
     if (file.size > SETTLEMENT_FILE_MAX_BYTES) return { status: "INVALID", message: "파일은 5MB 이하만 업로드할 수 있어요.", field: key };
   }
 
-  await mockDelay(700);
   const registrant = type === "SOLE_PROPRIETOR" ? v.ceoName : type === "CORPORATION" ? v.companyName : v.name;
   mockSettlement.registration = {
     memberType: type,

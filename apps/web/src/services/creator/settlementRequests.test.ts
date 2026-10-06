@@ -50,6 +50,51 @@ describe("정산 신청", () => {
     expect(store.availableFn).toBe(127_500 - 90_000);
     expect(store.requests).toHaveLength(before + 1);
     expect(store.requests[0]).toMatchObject({ status: "PENDING", amountFn: 90_000, feeFn: 5_940, netKrw: 84_060 });
+    expect(store.requests[0].id).toMatch(/^st-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+  });
+
+  it("keeps the registration of the request time on the request (466:2), whatever happens to it later", async () => {
+    const { requestSettlement, store } = await load();
+    const registered = { ...store.registration! };
+    await requestSettlement({ amountFn: 90_000, idempotencyKey: key(8) });
+    const request = store.requests[0];
+    expect(request.registrationAtRequest).toEqual(registered);
+
+    // 정보 변경: the old registration is removed and a new one (other bank, other code) takes its place.
+    store.registration!.accountMasked = "******0000";
+    store.registration = { ...registered, bankName: "우리은행", accountMasked: "******5678", code: "NEWCODE1" };
+    expect(request.registrationAtRequest).toEqual(registered);
+  });
+
+  it("gives two requests made in the same millisecond different ids", async () => {
+    const { requestSettlement, store } = await load();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date("2026-10-06T10:00:00.000Z"));
+      const a = await requestSettlement({ amountFn: 40_000, idempotencyKey: key(10) });
+      const b = await requestSettlement({ amountFn: 40_000, idempotencyKey: key(11) });
+      if (a.status !== "REQUESTED" || b.status !== "REQUESTED") throw new Error("not requested");
+      expect(a.requestId).not.toBe(b.requestId);
+      expect(store.requests.filter((r) => r.status === "PENDING").map((r) => r.id)).toEqual([b.requestId, a.requestId]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("never sends the admin review or the registration copy to the creator's page, only a 반려 사유", async () => {
+    const { getSettlementApplyView, store } = await load();
+    const at = new Date().toISOString();
+    Object.assign(store.requests[0], { review: { at, by: "운영자A", note: "내부 메모: 확인 완료" } });
+    Object.assign(store.requests[1], { status: "REJECTED", review: { at, by: "운영자B", note: "예금주 불일치" } });
+
+    const view = await getSettlementApplyView();
+    if (typeof view === "string") throw new Error(view);
+    expect(view.recent).toHaveLength(5);
+    expect(view.recent.some((r) => "review" in r || "registrationAtRequest" in r)).toBe(false);
+    expect(view.recent[0].reviewNote).toBeUndefined();
+    expect(view.recent[1].reviewNote).toBe("예금주 불일치");
+    const json = JSON.stringify(view);
+    for (const secret of ["운영자A", "운영자B", "내부 메모"]) expect(json).not.toContain(secret);
   });
 
   it("returns the first request for a retried Idempotency-Key without deducting again", async () => {
