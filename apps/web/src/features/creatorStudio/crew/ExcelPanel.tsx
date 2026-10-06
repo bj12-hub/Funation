@@ -22,7 +22,8 @@ const SOURCES: { key: FeedSourceKey; label: string }[] = [
   { key: "YOUTUBE", label: PLATFORM_LABEL.YOUTUBE },
   { key: "SOOP", label: PLATFORM_LABEL.SOOP },
   { key: "CHZZK", label: PLATFORM_LABEL.CHZZK },
-  { key: "FLEXTV", label: PLATFORM_LABEL.FLEXTV }
+  { key: "FLEXTV", label: PLATFORM_LABEL.FLEXTV },
+  { key: "BANK", label: "계좌" }
 ];
 /** 원 is the 원화 기준 itself; every other unit takes a value from the creator. */
 const RATE_UNITS = EXCEL_UNITS.filter((u) => u.key !== "KRW");

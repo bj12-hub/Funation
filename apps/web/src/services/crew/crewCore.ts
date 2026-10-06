@@ -64,6 +64,12 @@ export function recordBroadcastExternal(channelId: string, input: { platform: Pl
   addFeedEntry(live, { donor: input.donor, message: input.message, amount: input.value, unit: input.currency, platform: input.platform, source: "DONATION" });
 }
 
+/** Called by SMS 계좌후원 for each recognised deposit: a live crew broadcast lists it in 원 (source BANK). */
+export function recordBroadcastBank(channelId: string, input: { donor: string; value: number }) {
+  const live = liveBroadcastOf(channelId);
+  if (live) addFeedEntry(live, { donor: input.donor, message: "", amount: input.value, unit: "KRW", platform: null, source: "BANK" });
+}
+
 /**
  * Opens a 서브 점수판 (closing the open one). Shared by 새 판 and 콘텐츠 시나리오. Returns an error
  * message, or null when opened (or already opened for this request id).

@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { pollDonationLinks, setDonationLink, simulateExternalDonation } from "@/services/creator/donationLink";
 import { SIM_CURRENCIES, type DonationLinkResult, type DonationLinkView, type SimCurrency } from "@/services/creator/donationLinkTypes";
+import type { BankSmsView } from "@/services/bankSms/bankSmsTypes";
 import { PLATFORM_LABEL, type Platform } from "@/types/platform";
 import styles from "../crew/crew.module.css";
+import { BankSmsCard } from "./BankSmsCard";
 
 /** Platform-native units for the simulator (YouTube picks a currency). FlexTV's unit is TBD. */
 const UNIT: Record<Platform, string> = { YOUTUBE: "", CHZZK: "치즈", SOOP: "별풍선 개수", FLEXTV: "후원 단위 (TBD)" };
@@ -17,8 +19,9 @@ const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("ko-KR"
  * 후원 연동 — code-first (no Figma frame). Route `/creator/widgets/link`.
  * Broadcast-platform donations appear in 후원 알림 in their own currency; they are not Somnation payments.
  * Every platform feeds the same single queue (통합 후원 알림), so simulcast alerts never play on top of each other.
+ * SMS 계좌후원 (mock, 2026-10-06) feeds the same queue in 원.
  */
-export function DonationLinkScreen({ view }: { view: DonationLinkView }) {
+export function DonationLinkScreen({ view, bank }: { view: DonationLinkView; bank: BankSmsView }) {
   const router = useRouter();
   const [sim, setSim] = useState({ platform: "YOUTUBE" as Platform, donor: "시청자", message: "응원해요!", value: 5_000, currency: "KRW" as SimCurrency, redeliver: false });
   const [note, setNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
@@ -137,6 +140,8 @@ export function DonationLinkScreen({ view }: { view: DonationLinkView }) {
         </div>
         <p className={styles.note}>연결된 플랫폼에 후원(슈퍼챗 · 치즈 · 별풍선 등)이 들어온 것처럼 흉내 내요. &ldquo;알림에 표시&rdquo;가 켜져 있어야 리모컨 대기열에 들어가요.</p>
       </section>
+
+      <BankSmsCard view={bank} />
 
       <section className={styles.card} aria-labelledby="ln-recent">
         <div className={styles.cardHead}>

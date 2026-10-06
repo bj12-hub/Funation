@@ -236,6 +236,7 @@ function EntryRow({
           {e.donor} · {amountText(e.amount, e.unit)}
           {e.platform && <span className={styles.chipOff}>{PLATFORM_LABEL[e.platform]}</span>}
           {e.source === "SIM" && <span className={styles.chipOff}>시뮬</span>}
+          {e.source === "BANK" && <span className={styles.chipOff}>계좌</span>}
           {e.oneshot && <span className={styles.chip}>한방</span>}
         </span>
         <span className={styles.muted}>

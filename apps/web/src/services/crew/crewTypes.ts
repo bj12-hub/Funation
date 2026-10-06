@@ -66,7 +66,8 @@ export const SIM_TEXT_MAX = 60;
 export type AssignMode = "AUTO" | "CONFIRM";
 /** POT = collected by an active 한방 window; CANCELLED entries never score. */
 export type FeedStatus = "ASSIGNED" | "PENDING" | "UNMATCHED" | "POT" | "CANCELLED";
-export type FeedSource = "DONATION" | "SIM";
+/** BANK = SMS 계좌후원 (원, no platform; 2026-10-06). */
+export type FeedSource = "DONATION" | "SIM" | "BANK";
 
 export type FeedEntry = {
   id: string;
@@ -144,7 +145,7 @@ export const EXCEL_MULTIPLIER_MAX = 100;
 export type Contribution = { kind: "POINTS"; value: number } | { kind: "MULTIPLIER"; value: number };
 
 /** Source columns of 플랫폼 · BJ별 정리. */
-export type FeedSourceKey = "SOMNATION" | Platform;
+export type FeedSourceKey = "SOMNATION" | "BANK" | Platform;
 export type FeedSummaryRow = { memberId: string | null; name: string; color: string | null; points: Partial<Record<FeedSourceKey, number>>; total: number };
 export type ScoreLog = { id: string; at: string; memberName: string; points: number; reason: string };
 
