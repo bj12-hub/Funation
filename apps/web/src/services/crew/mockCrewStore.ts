@@ -1,4 +1,4 @@
-import type { AssignMode, BattleRules, CrewGrade, CrewMember, ExcelSettings, FeedEntry, ScenarioPart, StealRules, StealSlot } from "./crewTypes";
+import type { AssignMode, BattleRules, CrewGrade, FanNoteRules, CrewMember, ExcelSettings, FeedEntry, ScenarioPart, StealRules, StealSlot } from "./crewTypes";
 
 /**
  * Development-only crew state, keyed by channel id: the studio creator's own channel
@@ -74,6 +74,8 @@ type MockCrew = {
   stealSlots?: Record<string, StealSlot[]>;
   /** 강탈 기준 · 쿨다운 per channel (missing = platform defaults). */
   stealRules?: Record<string, StealRules>;
+  /** 팬 메시지 도배 기준 per channel (missing = platform defaults; 2026-10-06). */
+  fanNoteRules?: Record<string, FanNoteRules>;
   /** 배틀 배수 · 벌칙 defaults per channel (missing = platform defaults). */
   battleRules?: Record<string, BattleRules>;
   /** 콘텐츠 시나리오 plan per channel. */

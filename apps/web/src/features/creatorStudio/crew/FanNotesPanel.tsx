@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { setFanNotesOpen, setFanNoteStatus, simulateFanNote } from "@/services/crew/crewFanNotes";
-import { FAN_NOTE_KINDS, FAN_NOTE_LIMITS, type BroadcastResult, type CrewMember, type FanNoteKind, type FanNoteStatus, type FanNotesView } from "@/services/crew/crewTypes";
+import { formatNumber } from "@/lib/format";
+import { saveFanNoteRules, setFanNotesOpen, setFanNoteStatus, simulateFanNote } from "@/services/crew/crewFanNotes";
+import { FAN_NOTE_KINDS, FAN_NOTE_LIMITS, FAN_NOTE_RULE_RANGE, PLATFORM_FAN_NOTE_RULES, type BroadcastResult, type CrewMember, type FanNoteKind, type FanNoteStatus, type FanNotesView } from "@/services/crew/crewTypes";
 import styles from "./crew.module.css";
 import local from "./fanNotes.module.css";
 
@@ -17,7 +18,8 @@ const time = (iso: string) => new Date(iso).toLocaleTimeString("ko-KR", { hour: 
 /**
  * 팬 메시지 · 요청사항 — code-first (funnation 엑셀방송, 2026-10-06 결정), inside `/creator/crew/broadcast` while live.
  * Viewers send them from the channel room; the operator filters by 종류 · 멤버 and marks each 완료 or hides it
- * (hidden notes still read "전달됨" to the sender). The screen's 5-second refresh brings new notes in.
+ * (hidden notes still read "전달됨" to the sender). The screen's 5-second refresh brings new notes in. 도배 기준
+ * (대기 시간 · 방송당 최대 개수) is the creator's, starting from the platform defaults (2026-10-06 결정).
  */
 export function FanNotesPanel({
   broadcastId,
@@ -35,6 +37,10 @@ export function FanNotesPanel({
   const [status, setStatus] = useState<FanNoteStatus | "ALL">("NEW");
   const [kind, setKind] = useState<FanNoteKind | "ALL">("ALL");
   const [member, setMember] = useState("ALL");
+  const [cooldown, setCooldown] = useState(String(view.rules.cooldownSec));
+  const [cap, setCap] = useState(String(view.rules.perBroadcast));
+  // An empty box is not 0: the server rejects it with the allowed range.
+  const num = (s: string) => (s.trim() === "" ? Number.NaN : Number(s));
   const shown = view.notes.filter(
     (n) => (status === "ALL" || n.status === status) && (kind === "ALL" || n.kind === kind) && (member === "ALL" || (member === "CREW" ? n.memberId === null : n.memberId === member))
   );
@@ -53,8 +59,62 @@ export function FanNotesPanel({
         </label>
       </div>
       <p className={styles.note}>
-        시청자가 방송 방에서 무료로 보내요. 한 사람당 {FAN_NOTE_LIMITS.cooldownSec}초에 한 번, {FAN_NOTE_LIMITS.textMax}자까지예요. 완료하면 보낸 사람에게 &lsquo;완료&rsquo;로 보이고, 숨긴 글은
-        &lsquo;전달됨&rsquo;으로 남아요.
+        시청자가 방송 방에서 무료로 {FAN_NOTE_LIMITS.textMax}자까지 보내요. 완료하면 보낸 사람에게 &lsquo;완료&rsquo;로 보이고, 숨긴 글은 &lsquo;전달됨&rsquo;으로 남아요.
+      </p>
+      <form
+        className={local.rules}
+        onSubmit={(e) => {
+          e.preventDefault();
+          run(() => saveFanNoteRules({ cooldownSec: num(cooldown), perBroadcast: num(cap) }), "도배 기준을 저장했어요. 지금 방송부터 적용돼요.");
+        }}
+      >
+        <span className={styles.muted}>도배 기준</span>
+        <label className={local.rule}>
+          한 사람당
+          <input
+            className={styles.inputSmall}
+            type="number"
+            inputMode="numeric"
+            min={FAN_NOTE_RULE_RANGE.cooldownSec[0]}
+            max={FAN_NOTE_RULE_RANGE.cooldownSec[1]}
+            aria-label="대기 시간(초)"
+            value={cooldown}
+            onChange={(e) => setCooldown(e.target.value)}
+          />
+          초에 한 번
+        </label>
+        <label className={local.rule}>
+          방송당
+          <input
+            className={styles.inputSmall}
+            type="number"
+            inputMode="numeric"
+            min={FAN_NOTE_RULE_RANGE.perBroadcast[0]}
+            max={FAN_NOTE_RULE_RANGE.perBroadcast[1]}
+            aria-label="방송당 최대 개수"
+            value={cap}
+            onChange={(e) => setCap(e.target.value)}
+          />
+          개까지
+        </label>
+        <button type="submit" className={styles.ghost} disabled={pending}>
+          저장
+        </button>
+        <button
+          type="button"
+          className={styles.ghost}
+          disabled={pending}
+          onClick={() => {
+            setCooldown(String(PLATFORM_FAN_NOTE_RULES.cooldownSec));
+            setCap(String(PLATFORM_FAN_NOTE_RULES.perBroadcast));
+          }}
+        >
+          기본값({PLATFORM_FAN_NOTE_RULES.cooldownSec}초 · {formatNumber(PLATFORM_FAN_NOTE_RULES.perBroadcast)}개)
+        </button>
+      </form>
+      <p className={styles.note}>
+        지금 {view.rules.cooldownSec > 0 ? `${view.rules.cooldownSec}초에 한 번` : "대기 없이"} · 이번 방송 {formatNumber(total)}/{formatNumber(view.rules.perBroadcast)}개 받음. 0초로 두면 기다리지 않고
+        보낼 수 있어요.
       </p>
 
       <div className={styles.rowActions}>
