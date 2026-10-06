@@ -220,7 +220,10 @@ function mockGameDonations(): ReceivedDonation[] {
   });
 }
 
-/** 크루 후원 (code-first): donations sent for a crew member of the studio's crew (후원 패널 멤버 지정). */
+/**
+ * 크루 후원 (code-first): donations sent for a crew member of the studio's crew (후원 패널 멤버 지정). A member can be
+ * picked for a 퀘스트 too; such a row carries the quest's status, so a refunded quest leaves the summary here as well.
+ */
 function crewDonations(): ReceivedDonation[] {
   return crewDonationRows(STUDIO_CHANNEL).map((r) => ({
     id: r.id,
@@ -229,7 +232,7 @@ function crewDonations(): ReceivedDonation[] {
     donorId: r.donorId,
     amount: r.fnAmount,
     message: r.message,
-    status: null,
+    status: findQuest(r.id)?.status ?? null,
     detail: r.member
   }));
 }

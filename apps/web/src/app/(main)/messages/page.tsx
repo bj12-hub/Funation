@@ -17,7 +17,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
   const composeTo = typeof params.to === "string" && recipients.some((r) => r.id === params.to) ? params.to : null;
   return (
     <>
-      <MessagesScreen view={view} recipients={recipients} composeTo={composeTo} />
+      {/* A new box, page, size or search is a new list: selections from the old one must not carry over. */}
+      <MessagesScreen key={`${view.box}-${view.page}-${view.size}-${view.q}`} view={view} recipients={recipients} composeTo={composeTo} />
     </>
   );
 }
