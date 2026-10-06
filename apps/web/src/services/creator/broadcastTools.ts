@@ -6,6 +6,9 @@ import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { memberRanking } from "@/services/crew/crewCore";
 import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
 import {
+  BINGO_CELL_MAX,
+  BINGO_SIZES,
+  BINGO_TITLE_MAX,
   CREDITS_LINES_MAX,
   CREDITS_LINE_MAX,
   MARQUEE_LINES_MAX,
@@ -13,7 +16,11 @@ import {
   SUBTITLE_MAX,
   TIMER_ADJUST_STEPS,
   TIMER_MAX_SEC,
+  bingoLinesMax,
   isToolKey,
+  resizeBingo,
+  type BingoSize,
+  type BingoState,
   type OverlayTool,
   type TimerAction,
   type ToolResult,
@@ -39,8 +46,17 @@ const tools = (g.__funationMockToolsV2 ??= {
   subtitle: { text: "", size: "M" },
   marquee: { lines: ["오늘도 방송에 와 주셔서 감사합니다!"], speed: "NORMAL" },
   timer: { mode: "COUNTDOWN", durationSec: 600, startedAt: null, elapsedBeforeSec: 0 },
-  credits: { title: "오늘의 방송을 함께해 주신 분들", thanks: ["시청해 주신 모든 분들 감사합니다"], includeCrew: true, rollingSince: null }
+  credits: { title: "오늘의 방송을 함께해 주신 분들", thanks: ["시청해 주신 모든 분들 감사합니다"], includeCrew: true, rollingSince: null },
+  bingo: sampleBingo()
 });
+// 빙고 was added on 2026-10-06; dev stores from before start with the sample board.
+tools.bingo ??= sampleBingo();
+
+/** A sample 3 × 3 board (generic missions) so the card and overlay have something to show. */
+function sampleBingo(): BingoState {
+  const cells = ["노래 한 곡", "댄스 챌린지", "성대모사", "사연 읽기", "물 한 잔", "애교 한 번", "삼행시", "퀴즈 한 문제", "게임 한 판"];
+  return { title: "오늘의 미션 빙고", size: 3, cells, marked: cells.map(() => false), goal: 1, shown: false };
+}
 
 const bad = (s: string) => MOCK_FORBIDDEN_WORDS.some((w) => s.toLowerCase().includes(w));
 const crewTop = () => memberRanking(STUDIO_CHANNEL).map((r) => ({ name: r.name, score: r.totalFn }));
@@ -169,6 +185,56 @@ export async function saveCredits(input: unknown): Promise<ToolResult> {
   return { status: "SAVED" };
 }
 
+/**
+ * 빙고판 저장: title, size, cells (size², each up to BINGO_CELL_MAX; empty allowed while drafting) and goal
+ * (1 … rows + columns + 2 diagonals). Marks stay; a new size keeps the marks of the cells that remain.
+ */
+export async function saveBingo(input: unknown): Promise<ToolResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = (typeof input === "object" && input !== null ? input : {}) as { title?: unknown; size?: unknown; cells?: unknown; goal?: unknown };
+  const title = typeof v.title === "string" ? v.title.trim() : "";
+  if (title.length > BINGO_TITLE_MAX) return { status: "INVALID", message: `제목은 ${BINGO_TITLE_MAX}자 이내로 입력해 주세요.` };
+  if (!BINGO_SIZES.includes(v.size as BingoSize)) return { status: "INVALID", message: "판 크기를 확인해 주세요." };
+  const size = v.size as BingoSize;
+  const cells = Array.isArray(v.cells) && v.cells.length === size * size && v.cells.every((c) => typeof c === "string") ? (v.cells as string[]).map((c) => c.trim()) : null;
+  if (!cells || cells.some((c) => c.length > BINGO_CELL_MAX)) return { status: "INVALID", message: `칸 ${size * size}개를 칸마다 ${BINGO_CELL_MAX}자 이내로 입력해 주세요.` };
+  if (cells.every((c) => !c)) return { status: "INVALID", message: "칸을 하나 이상 채워 주세요." };
+  if (bad(title) || cells.some(bad)) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
+  const goal = v.goal;
+  if (typeof goal !== "number" || !Number.isInteger(goal) || goal < 1 || goal > bingoLinesMax(size)) return { status: "INVALID", message: `목표 줄 수는 1 ~ ${bingoLinesMax(size)}줄이에요.` };
+  await mockDelay(150);
+  const prev = tools.bingo;
+  // An emptied cell cannot stay marked.
+  const marked = resizeBingo(prev, size).marked.map((m, i) => m && cells[i] !== "");
+  tools.bingo = { title, size, cells, marked, goal, shown: prev.shown };
+  return { status: "SAVED" };
+}
+
+/** Marks or unmarks one filled cell (an explicit value, so a retried click changes nothing). */
+export async function markBingo(input: unknown): Promise<ToolResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = (typeof input === "object" && input !== null ? input : {}) as { index?: unknown; marked?: unknown };
+  const b = tools.bingo;
+  const i = v.index;
+  if (typeof i !== "number" || !Number.isInteger(i) || i < 0 || i >= b.cells.length || typeof v.marked !== "boolean") return { status: "INVALID", message: "칸을 확인해 주세요." };
+  if (!b.cells[i]) return { status: "INVALID", message: "빈 칸은 표시할 수 없어요." };
+  b.marked[i] = v.marked;
+  return { status: "SAVED" };
+}
+
+/** 빙고 표시 초기화 (RESET) and 화면에 보이기 / 숨기기 (SHOW · HIDE). */
+export async function controlBingo(action: unknown): Promise<ToolResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const b = tools.bingo;
+  if (action === "RESET") b.marked = b.cells.map(() => false);
+  else if (action === "SHOW" || action === "HIDE") b.shown = action === "SHOW";
+  else return { status: "INVALID", message: "알 수 없는 동작이에요." };
+  return { status: "SAVED" };
+}
+
 /** OBS overlay read — no login (OBS cannot sign in); the integration key is the secret. */
 export async function getOverlayTool(tool: unknown, key: unknown): Promise<OverlayTool | "FORBIDDEN"> {
   assertMock();
@@ -184,5 +250,7 @@ export async function getOverlayTool(tool: unknown, key: unknown): Promise<Overl
       return { tool, state: { ...tools.timer }, serverNow: new Date().toISOString(), ...signal };
     case "credits":
       return { tool, state: { ...tools.credits, thanks: [...tools.credits.thanks] }, crew: tools.credits.includeCrew ? crewTop() : [], ...signal };
+    case "bingo":
+      return { tool, state: structuredClone(tools.bingo), ...signal };
   }
 }
