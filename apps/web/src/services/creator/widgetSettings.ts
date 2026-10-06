@@ -9,7 +9,7 @@ import { findAsset, matchesContent } from "./assetCore";
 import { QR_SAMPLE_IMAGE, WIDGET_OVERLAYS, WIDGET_OVERLAY_SETTINGS, widgetOverlayPath } from "./widgetOverlayTypes";
 import { readWidget, widgetStore } from "./widgetStore";
 import { mockCreator } from "./mockCreatorStore";
-import { studioWins } from "@/services/donations/gachaCore";
+import { keepDrawnStock, studioWins } from "@/services/donations/gachaCore";
 import { STUDIO_CHANNEL, mockCrew } from "@/services/crew/mockCrewStore";
 import { crewRankingRows } from "./widgetOverlayCore";
 import { PARSERS } from "./widgetParsers";
@@ -117,8 +117,10 @@ export async function saveWidgetSettings(key: unknown, input: unknown): Promise<
     return { status: "INVALID", message: "라이브러리에 없는 효과음이 있어요. 다시 선택해 주세요." };
   }
   await mockDelay(400);
-  // Wallpaper images are uploaded/deleted on their own; keep the stored list.
-  (store as Record<string, unknown>)[key] = key === "WALLPAPER" ? { ...parsed, images: store.WALLPAPER.images } : parsed;
+  // Wallpaper images are uploaded/deleted on their own; keep the stored list. 뽑기: stock drawn while the form was open
+  // stays drawn (merged here, with no await before the write).
+  (store as Record<string, unknown>)[key] =
+    key === "WALLPAPER" ? { ...parsed, images: store.WALLPAPER.images } : key === "GACHA" ? keepDrawnStock(parsed as WidgetSettingsMap["GACHA"], store.GACHA) : parsed;
   return { status: "SAVED" };
 }
 

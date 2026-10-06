@@ -143,6 +143,7 @@ Add a row whenever a new code-first screen ships (see `docs/research/funnation-r
 
 | 팬 메시지 · 요청사항 (`crew/FanNotesPanel.tsx` 방송 운영 · `creatorRoom/RoomFanNotes.tsx` 채널 홈 플레이어 아래, `services/crew/crewFanNotes.ts`) | crew-fan-notes PR | 2026-10-06 결정(funnation 엑셀방송 팬 메시지 · 요청사항). 크루 방송이 진행 중인 채널 홈에서 로그인한 시청자가 무료로 보냄: 종류(💌 팬 메시지 / 🙋 요청사항) · 받는 멤버(크루 전체 또는 활동 멤버) · 100자, 도배 기준 = 한 사람당 대기 시간 · 방송당 최대 개수, 플랫폼 기본값 30초 · 500개를 크리에이터가 방송 운영에서 0~300초 · 10~500개로 바꿈(채널 설정, 지금 방송에 바로 적용, 2026-10-06 결정; 범위는 TBD), requestId로 중복 방지, 금칙어 검사, 내가 보낸 글 5개(전달됨 / 완료). 운영자는 처리 전 · 완료 · 숨김 · 전체와 종류 · 멤버로 걸러 보고 완료 · 숨기기 · 되돌리기, "방송 방에서 받기" 켜기/끄기, 테스트 팬 메시지 · 요청사항. 보낸 사람 계정 id는 서버에만. 목업: 스튜디오 채널은 공개 방이 없어 c4 방에 진행 중 데모 방송을 둠 |
 | 랭크업 (`crew/BroadcastScreen.tsx` 점수판 아래 · `CrewScoreOverlay.tsx`, `crewTypes.rankUpPair`, `setRankUpOverlay`) | crew-rank-up PR | 2026-10-06 결정(funnation 랭크업). 점수판에서 이웃한 두 멤버 중 점수 차가 가장 작은 쌍(같으면 위쪽 쌍, 0점 차 = 동점)을 "🔥 랭크업 아래 멤버(순위) → 위 멤버(순위) N점 차"로 표시, 위 멤버 점수가 0이면 표시 없음. "OBS 점수판에 표시"를 켜면 크루 점수판 오버레이 제목 아래에 띄움 |
+| 후원 확인 팝업 안내 (`creatorRoom/DonationForm.tsx`, `donation/submit.ts`) | donation-core-audit PR | 확인 팝업의 오류 줄에 새 안내: 크리에이터가 시그니처 · 위시 · 뽑기 가격을 바꾸면 "크리에이터가 가격을 바꿨어요. 지금 가격은 N FN이에요. 확인하고 다시 후원해 주세요."(차감 없음, 패널과 팝업 금액이 새 가격으로 바뀜), 메시지 · 미니 텍스트 · 퀘스트 / 그림 제목의 금지어는 "사용할 수 없는 단어가 포함되어 있어요.". 결과를 받지 못한 뒤 다시 누르면 먼저 그 후원의 결과를 확인(완료됐으면 완료 화면, 고친 내용은 보내지 않음). 후원 내역 › 퀘스트: 진행 중 퀘스트는 "처리중"(보관), 성공하면 "완료" |
 
 ## Figma
 

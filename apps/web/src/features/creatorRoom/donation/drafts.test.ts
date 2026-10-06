@@ -67,7 +67,7 @@ describe("후원 폼 → 요청", () => {
 
   it("시그니처 · 위시 prices come from the catalog, not the form", () => {
     const sig = catalog.signatures[0];
-    expect(buildDraft("SIGNATURE", states({ SIGNATURE: { signatureId: sig.id } }), catalog)).toMatchObject({ amount: sig.price, details: { signatureId: sig.id } });
+    expect(buildDraft("SIGNATURE", states({ SIGNATURE: { signatureId: sig.id } }), catalog)).toMatchObject({ amount: sig.price, details: { signatureId: sig.id, expectedAmount: sig.price } });
     expect(buildDraft("SIGNATURE", states({ SIGNATURE: { signatureId: "nope" } }), catalog).details).toBeNull();
     const out = { ...catalog, wishlist: [{ ...catalog.wishlist[0], inStock: false }] };
     const wish = buildDraft("WISHLIST", states({ WISHLIST: { itemId: out.wishlist[0].id } }), out);
@@ -84,7 +84,7 @@ describe("후원 폼 → 요청", () => {
   });
 
   it("뽑기: sold out or over the daily limit cannot be sent; the price is the offer's", () => {
-    expect(buildDraft("GACHA", states({ GACHA: { gachaId: "g-1", terms: true } }), catalog)).toMatchObject({ amount: 3_000, details: { type: "GACHA", gachaId: "g-1" } });
+    expect(buildDraft("GACHA", states({ GACHA: { gachaId: "g-1", terms: true } }), catalog)).toMatchObject({ amount: 3_000, details: { type: "GACHA", gachaId: "g-1", expectedAmount: 3_000 } });
     expect(buildDraft("GACHA", states({ GACHA: { gachaId: "g-out", terms: true } }), catalog).error).toBe("상품이 모두 소진됐어요.");
     expect(buildDraft("GACHA", states({ GACHA: { gachaId: "g-1", terms: true, limitReached: true } }), catalog).details).toBeNull();
     expect(buildDraft("GACHA", states({ GACHA: { gachaId: "g-1", terms: false } }), catalog).details).toBeNull();

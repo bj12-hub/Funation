@@ -5,7 +5,8 @@ import { parseYouTubeId, type DonationDetails } from "@/services/donations/donat
 /**
  * Form state per donation type and the pure step that turns it into a request.
  * The browser checks only what it needs for feedback; the server validates everything again and
- * owns prices (signature / wishlist amounts shown here are the server's catalog values).
+ * owns prices (signature / wishlist / 뽑기 amounts shown here are the server's catalog values, sent back as
+ * `expectedAmount` so a price changed meanwhile is refused instead of charged).
  */
 
 export type TextState = { amount: string; message: string; voiceId: string | null };
@@ -164,7 +165,7 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
       const s = states.SIGNATURE;
       const signature = catalog.signatures.find((x) => x.id === s.signatureId) ?? null;
       return {
-        details: signature ? { type: "SIGNATURE", signatureId: signature.id, message: s.message.trim() } : null,
+        details: signature ? { type: "SIGNATURE", signatureId: signature.id, message: s.message.trim(), expectedAmount: signature.price } : null,
         amount: signature?.price ?? null,
         error: null,
         summary: [
@@ -178,7 +179,7 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
       const s = states.WISHLIST;
       const item = catalog.wishlist.find((x) => x.id === s.itemId) ?? null;
       return {
-        details: item?.inStock ? { type: "WISHLIST", itemId: item.id, message: s.message.trim(), voiceId: s.voiceId } : null,
+        details: item?.inStock ? { type: "WISHLIST", itemId: item.id, message: s.message.trim(), voiceId: s.voiceId, expectedAmount: item.price } : null,
         amount: item?.price ?? null,
         error: item && !item.inStock ? "선택한 상품은 지금 후원할 수 없어요." : null,
         summary: [
@@ -218,7 +219,7 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
       const error = !offer ? null : offer.soldOut ? "상품이 모두 소진됐어요." : s.limitReached ? "오늘 이 뽑기의 참여 한도를 모두 사용했어요." : null;
       const ok = offer !== null && error === null && s.terms;
       return {
-        details: ok ? { type: "GACHA", gachaId: offer.id, termsAgreed: true } : null,
+        details: ok ? { type: "GACHA", gachaId: offer.id, termsAgreed: true, expectedAmount: offer.price } : null,
         amount: ok ? offer.price : null,
         error,
         summary: [

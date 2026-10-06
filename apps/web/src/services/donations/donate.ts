@@ -1,12 +1,13 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { toDateString } from "@/lib/period";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
-import { mockAccount } from "@/services/account/mockStore";
+import { MOCK_FORBIDDEN_WORDS, mockAccount } from "@/services/account/mockStore";
 import { enqueueDonationAlert } from "@/services/creator/alertCore";
 import { getCreatorById } from "@/services/creators/creators";
-import { attributeMemberDonation, isActiveMember, recordBroadcastDonation } from "@/services/crew/crewCore";
+import { attributeMemberDonation, isActiveMember, liveBroadcastOf, recordBroadcastDonation } from "@/services/crew/crewCore";
 import { attributeDonation, ownsNickname, resolveBadges } from "@/services/supporter/identityCore";
 import { alertBadgeLabels } from "@/services/supporter/identityTypes";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
@@ -24,7 +25,11 @@ import { MAX_DRAWING_CHARS, parseYouTubeId, type DonationResult } from "./donati
  * contributes validation and the amount — signature and wishlist prices come from the server catalog.
  *
  * Server Action: re-checks the session, validates input, checks the balance on the server and is
- * idempotent per `idempotencyKey` — a retried or double-submitted request returns the first result.
+ * idempotent per `idempotencyKey` — a retried or double-submitted request returns the first result, even when the
+ * catalog changed since (a new price, a sold-out 뽑기), so a client that lost the answer can always learn it.
+ * Supporter-written text (message, 미니 text, quest / drawing title) with a platform forbidden word is refused
+ * before anything is debited. Priced types (signature, wishlist, 뽑기) debit the price the supporter confirmed, and
+ * only while it is still the creator's price (PRICE_CHANGED otherwise).
  * TBD: creator revenue share, platform fee, refunds, delivery to the broadcast platform/overlay.
  */
 export async function requestDonation(input: unknown): Promise<DonationResult> {
@@ -32,29 +37,41 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
   const session = await getSession();
   if (!session) return { status: "UNAUTHORIZED" };
 
-  const catalog = getDonationCatalog();
-  const parsed = parse(input, catalog);
-  if (!parsed) return { status: "INVALID" };
-  const creator = await getCreatorById(parsed.creatorId);
-  if (!creator) return { status: "NOT_FOUND" };
+  const v = typeof input === "object" && input !== null ? (input as Record<string, unknown>) : null;
+  if (!v || typeof v.idempotencyKey !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(v.idempotencyKey) || typeof v.creatorId !== "string") return { status: "INVALID" };
+  const idempotencyKey = v.idempotencyKey;
+  const creator = await getCreatorById(v.creatorId);
 
-  const { idempotencyKey, ...request } = parsed;
-  const fingerprint = JSON.stringify(request);
+  // No await from the lookup to the registration: two copies of one request cannot both pass.
+  const fingerprint = fingerprintOf(v);
   const previous = mockWallet.donationIdempotency[idempotencyKey];
   if (previous) {
     if (previous.fingerprint !== fingerprint) return { status: "CONFLICT" };
     return previous.result ?? { status: "IN_PROGRESS" };
   }
+  if (!creator) return { status: "NOT_FOUND" };
+  const catalog = getDonationCatalog();
+  const request = parse(v, catalog);
+  if (!request) return { status: "INVALID" };
+  if ("refused" in request) return { status: "INVALID", message: request.refused };
   mockWallet.donationIdempotency[idempotencyKey] = { fingerprint, result: null };
 
   await mockDelay(600);
+  // From here to the debit nothing awaits: the checks and the write see the same state.
   let result: DonationResult;
+  const price = request.priced ? currentPrice(request.type, request.details) : request.amount;
   if (request.type === "ROULETTE" && !canParticipate(creator.id, session.userId, request.amount)) {
     // 룰렛 turned off or today's 참여 가능 횟수 used up since the panel loaded.
     result = { status: "INVALID" };
   } else if (request.type === "GACHA" && !canDraw(creator.id, session.userId, request.details.gachaId as string)) {
     // 뽑기 turned off, sold out (상품소진형) or 1인 횟수 한도 reached since the panel loaded.
     result = { status: "INVALID" };
+  } else if (price === null) {
+    // The signature / wishlist item was removed or went out of stock since the panel loaded.
+    result = { status: "INVALID" };
+  } else if (price !== request.amount) {
+    // The creator changed the price after the supporter confirmed it: nothing is debited.
+    result = { status: "PRICE_CHANGED", amount: price };
   } else if (mockAccount.fnBalance < request.amount) {
     result = { status: "INSUFFICIENT_FN", balance: mockAccount.fnBalance, required: request.amount };
   } else {
@@ -66,7 +83,10 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
     // Debit and record in one step (the backend must do this in a single transaction).
     mockAccount.fnBalance -= request.amount;
     const now = new Date();
-    const donationId = `dn-${now.getTime()}`;
+    // Unique even for requests finishing in the same millisecond (quest decisions and wallet rows look it up).
+    const donationId = `dn-${randomUUID()}`;
+    const quest = request.type === "QUEST";
+    const donorId = request.hideProfile ? "" : session.funationId;
     mockWallet.donations.unshift({
       id: donationId,
       donatedAt: `${toDateString(now)} ${now.toTimeString().slice(0, 8)}`,
@@ -76,30 +96,34 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
       fnAmount: request.amount,
       typeLabel: catalog.types.find((t) => t.key === request.type)!.title,
       category: HISTORY_CATEGORY[request.type] ?? "basic",
-      status: "COMPLETED"
+      // A running quest holds the FN (refunded on 실패 · 취소); it completes when the quest succeeds.
+      status: quest ? "PROCESSING" : "COMPLETED"
     });
     attributeDonation(donationId, request.nicknameId);
-    if (request.type === "QUEST") {
+    if (quest) {
       const d = request.details as { title: string; timeLimitSec: number; creatorDecides: boolean };
       recordQuest({
         id: donationId,
         channelId: creator.id,
         supporterUserId: session.userId,
         donor,
-        donorId: request.hideProfile ? "" : session.funationId,
+        donorId,
         title: d.title,
         amount: request.amount,
         timeLimitSec: d.timeLimitSec,
         creatorDecides: d.creatorDecides,
-        createdAt: now.toISOString()
+        createdAt: now.toISOString(),
+        // Crew points, member ranking and the 후원 리스트 wait for SUCCESS (questCore.ts).
+        crew: { memberId: request.memberId, broadcastId: liveBroadcastOf(creator.id)?.id ?? null, message: request.summary }
       });
+    } else {
+      attributeMemberDonation(donationId, creator.id, request.memberId, request.amount, { donor, donorId, message: request.summary });
+      if (!request.memberId) recordBroadcastDonation(creator.id, { donor, message: request.summary, fnAmount: request.amount });
     }
     // 룰렛: the result is drawn now and revealed when the wheel spins (no FN prize — 2026-10-04 결정).
     // 뽑기: the prize is drawn now (stock goes down) and played on the 뽑기 overlay (no FN prize).
-    if (request.type === "GACHA") enqueueDraw({ id: donationId, channelId: creator.id, supporterUserId: session.userId, donor, gachaId: request.details.gachaId as string });
+    if (request.type === "GACHA") enqueueDraw({ id: donationId, channelId: creator.id, supporterUserId: session.userId, donor, gachaId: request.details.gachaId as string, amount: request.amount });
     if (request.type === "ROULETTE") enqueueSpin({ id: donationId, channelId: creator.id, supporterUserId: session.userId, donor, amount: request.amount });
-    attributeMemberDonation(donationId, creator.id, request.memberId, request.amount, { donor, donorId: request.hideProfile ? "" : session.funationId, message: request.summary });
-    if (!request.memberId) recordBroadcastDonation(creator.id, { donor, message: request.summary, fnAmount: request.amount });
     enqueueDonationAlert(creator.id, {
       donor,
       badges,
@@ -108,7 +132,9 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
       // 금액 매칭 (시그니처 관리): a 일반 후원 whose amount equals an AMOUNT-match signature alerts as that signature.
       typeLabel: alertTypeLabel(catalog, request.type, request.amount),
       imageUrl: signatureImageFor(catalog, request.type, request.amount, request.details),
-      soundUrl: signatureSoundFor(request.type, request.amount, request.details)
+      soundUrl: signatureSoundFor(request.type, request.amount, request.details),
+      // The quest's arrival shows now; its FN counts in the 후원 위젯 once it succeeds.
+      ...(quest ? { questId: donationId } : {})
     });
     // 영상 · 그림후원 위젯: paid requests reach the creator's queue / gallery.
     const d = request.details as Record<string, unknown>;
@@ -128,18 +154,46 @@ function alertTypeLabel(catalog: DonationCatalog, type: string, amount: number) 
 
 // ── Validation ───────────────────────────────────────────────────────────────
 
+/**
+ * What the supporter sent (key order ignored, the key itself left out), including the price they confirmed — not what
+ * the server derived from it, so a retry still matches after the creator renames a signature or changes a price.
+ */
+const fingerprintOf = (v: Record<string, unknown>) =>
+  JSON.stringify(
+    Object.entries(v)
+      .filter(([k]) => k !== "idempotencyKey")
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+  );
+
 type Parsed = {
-  idempotencyKey: string;
   creatorId: string;
   hideProfile: boolean;
   nicknameId: string | null;
   memberId: string | null;
   type: string;
+  /** For a priced type: the price the supporter confirmed (checked against the current price before the debit). */
   amount: number;
+  /** Signature, wishlist and 뽑기: the price is the creator's, so it is checked again right before the debit. */
+  priced: boolean;
   /** Text recorded in the donation history. */
   summary: string;
   details: Record<string, unknown>;
 };
+
+/** Same wording as chat, test alerts and the other places that refuse platform forbidden words. */
+const FORBIDDEN_MESSAGE = "사용할 수 없는 단어가 포함되어 있어요.";
+const hasForbidden = (...texts: string[]) => texts.some((t) => MOCK_FORBIDDEN_WORDS.some((w) => t.toLowerCase().includes(w)));
+
+/** The creator's current price of a signature, wishlist item or 뽑기; null when it is gone (or out of stock). */
+function currentPrice(type: string, details: Record<string, unknown>): number | null {
+  const catalog = getDonationCatalog();
+  if (type === "SIGNATURE") return catalog.signatures.find((s) => s.id === details.signatureId)?.price ?? null;
+  if (type === "WISHLIST") {
+    const item = catalog.wishlist.find((w) => w.id === details.itemId);
+    return item?.inStock ? item.price : null;
+  }
+  return catalog.gacha.find((x) => x.id === details.gachaId)?.price ?? null;
+}
 
 const MAX_FN = 999_999_999;
 
@@ -155,10 +209,8 @@ const isFn = (value: unknown, min = 0): value is number => typeof value === "num
 const isDrawing = (value: unknown): value is string =>
   typeof value === "string" && value.startsWith("data:image/png;base64,") && value.length <= MAX_DRAWING_CHARS;
 
-function parse(input: unknown, catalog: DonationCatalog): Parsed | null {
-  if (typeof input !== "object" || input === null) return null;
-  const v = input as Record<string, unknown>;
-  if (typeof v.idempotencyKey !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(v.idempotencyKey)) return null;
+/** null = malformed; `refused` = well-formed but the text cannot go out (a platform forbidden word). */
+function parse(v: Record<string, unknown>, catalog: DonationCatalog): Parsed | { refused: string } | null {
   if (typeof v.creatorId !== "string" || typeof v.hideProfile !== "boolean") return null;
   const typeInfo = catalog.types.find((t) => t.key === v.type);
   if (!typeInfo?.available) return null;
@@ -169,22 +221,28 @@ function parse(input: unknown, catalog: DonationCatalog): Parsed | null {
   // Optional crew member (크루 멤버 지정): must be an active member of this creator's crew.
   if (v.memberId !== undefined && v.memberId !== null && !isActiveMember(v.creatorId as string, v.memberId)) return null;
   const memberId = typeof v.memberId === "string" ? v.memberId : null;
-  const common = { idempotencyKey: v.idempotencyKey, creatorId: v.creatorId, hideProfile: v.hideProfile, nicknameId, memberId, type: typeInfo.key };
+  const common = { creatorId: v.creatorId, hideProfile: v.hideProfile, nicknameId, memberId, type: typeInfo.key, priced: false };
   const amountOk = (min: number) => typeof v.amount === "number" && Number.isInteger(v.amount) && v.amount >= min && v.amount <= MAX_FN;
   const text = (value: unknown, max: number, required = false) =>
     typeof value === "string" && value.trim().length <= max && (!required || value.trim().length > 0) ? value.trim() : null;
   const game = catalog.game;
   const voiceOk = (id: unknown) => id === null || (typeof id === "string" && catalog.voices.some((voice) => voice.id === id));
+  // Priced types: the price the supporter confirmed (any FN amount; it must equal the creator's price at the debit).
+  const expected = isFn(v.expectedAmount, 1) ? v.expectedAmount : null;
+  const refused = { refused: FORBIDDEN_MESSAGE };
 
+  // Supporter-written text goes on stream (alert · TTS · quest widget · drawing gallery): checked before any debit.
   switch (typeInfo.key) {
     case "TEXT": {
       const message = text(v.message, catalog.maxLength.message);
       if (!amountOk(catalog.minAmount.TEXT) || message === null || !voiceOk(v.voiceId)) return null;
+      if (hasForbidden(message)) return refused;
       return { ...common, amount: v.amount as number, summary: message, details: { message, voiceId: v.voiceId } };
     }
     case "MINI": {
       const body = text(v.text, catalog.maxLength.mini, true);
       if (!amountOk(catalog.minAmount.MINI) || body === null || !catalog.miniColors.some((c) => c.id === v.colorId)) return null;
+      if (hasForbidden(body)) return refused;
       return { ...common, amount: v.amount as number, summary: body, details: { text: body, colorId: v.colorId } };
     }
     case "VIDEO": {
@@ -204,14 +262,16 @@ function parse(input: unknown, catalog: DonationCatalog): Parsed | null {
     case "SIGNATURE": {
       const signature = catalog.signatures.find((s) => s.id === v.signatureId);
       const message = text(v.message, catalog.maxLength.message);
-      if (!signature || message === null) return null;
-      return { ...common, amount: signature.price, summary: message || signature.name, details: { signatureId: signature.id, message } };
+      if (!signature || message === null || expected === null) return null;
+      if (hasForbidden(message)) return refused;
+      return { ...common, priced: true, amount: expected, summary: message || signature.name, details: { signatureId: signature.id, message } };
     }
     case "WISHLIST": {
       const item = catalog.wishlist.find((w) => w.id === v.itemId);
       const message = text(v.message, catalog.maxLength.message);
-      if (!item || !item.inStock || message === null || !voiceOk(v.voiceId)) return null;
-      return { ...common, amount: item.price, summary: message || item.name, details: { itemId: item.id, message, voiceId: v.voiceId } };
+      if (!item || !item.inStock || message === null || !voiceOk(v.voiceId) || expected === null) return null;
+      if (hasForbidden(message)) return refused;
+      return { ...common, priced: true, amount: expected, summary: message || item.name, details: { itemId: item.id, message, voiceId: v.voiceId } };
     }
     case "ROULETTE": {
       const roulette = catalog.roulette;
@@ -220,8 +280,8 @@ function parse(input: unknown, catalog: DonationCatalog): Parsed | null {
     }
     case "GACHA": {
       const offer = catalog.gacha.find((x) => x.id === v.gachaId);
-      if (!offer || offer.soldOut || v.termsAgreed !== true) return null;
-      return { ...common, amount: offer.price, summary: `${offer.name} 뽑기`, details: { gachaId: offer.id } };
+      if (!offer || offer.soldOut || v.termsAgreed !== true || expected === null) return null;
+      return { ...common, priced: true, amount: expected, summary: `${offer.name} 뽑기`, details: { gachaId: offer.id } };
     }
     case "QUEST": {
       const title = text(v.title, game.maxText, true);
@@ -229,6 +289,7 @@ function parse(input: unknown, catalog: DonationCatalog): Parsed | null {
       // A failed or cancelled quest refunds the whole amount (2026-10-04 결정): no 실패 · 취소 금액.
       const rewardsOk = isFn(successReward, game.minAmount);
       if (!title || !rewardsOk || !timeOk(v.timeLimitSec) || typeof v.creatorDecides !== "boolean" || v.termsAgreed !== true) return null;
+      if (hasForbidden(title)) return refused;
       return {
         ...common,
         amount: successReward,
@@ -240,6 +301,7 @@ function parse(input: unknown, catalog: DonationCatalog): Parsed | null {
       const title = text(v.title, game.maxText, true);
       if (!amountOk(game.minAmount) || !title || !isDrawing(v.image) || typeof v.showProcess !== "boolean" || typeof v.canvasMode !== "boolean" || v.termsAgreed !== true)
         return null;
+      if (hasForbidden(title)) return refused;
       return { ...common, amount: v.amount as number, summary: `그림: ${title}`, details: { title, image: v.image, showProcess: v.showProcess, canvasMode: v.canvasMode } };
     }
     default:

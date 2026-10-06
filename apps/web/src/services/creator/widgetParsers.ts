@@ -394,7 +394,9 @@ function parseGachaItem(raw: unknown): Gacha | string {
     if (typeof p.id !== "string" || !ID.test(p.id) || !oneOf(p.kind, ["PRIZE", "BLANK"] as const)) return "상품 정보를 확인해 주세요.";
     if (!text(p.name, GACHA_NAME_MAX, 1)) return `상품 이름은 1~${GACHA_NAME_MAX}자로 입력해 주세요.`;
     if (!int(p.value, 0, probability ? 100 : 100_000)) return probability ? "확률은 0~100%로 입력해 주세요." : "상품 수량을 확인해 주세요.";
-    out.push({ id: p.id, name: (p.name as string).trim(), kind: p.kind, value: p.value as number });
+    // `drawn` is the draw count the form loaded (the save subtracts draws made since — gachaCore keepDrawnStock).
+    if (p.drawn !== undefined && !int(p.drawn, 0, Number.MAX_SAFE_INTEGER)) return "상품 정보를 확인해 주세요.";
+    out.push({ id: p.id, name: (p.name as string).trim(), kind: p.kind, value: p.value as number, ...(p.drawn !== undefined ? { drawn: p.drawn as number } : {}) });
   }
   if (probability && out.reduce((sum, p) => sum + p.value, 0) !== 100) return "당첨확률형은 상품 확률의 합이 100%여야 해요.";
   if (new Set(out.map((p) => p.id)).size !== out.length) return "상품 정보를 확인해 주세요.";

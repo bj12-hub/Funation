@@ -28,7 +28,16 @@ async function load() {
 }
 type M = Awaited<ReturnType<typeof load>>;
 
-const draw = (n: number, gachaId = "gacha-1", termsAgreed = true) => ({ creatorId: "c1", hideProfile: false, type: "GACHA", gachaId, termsAgreed, idempotencyKey: key(n) });
+/** `expectedAmount`: the price the supporter confirmed (gacha-1 3,000 · gacha-2 5,000 in setGachas). */
+const draw = (n: number, gachaId = "gacha-1", termsAgreed = true, expectedAmount = gachaId === "gacha-2" ? 5_000 : 3_000) => ({
+  creatorId: "c1",
+  hideProfile: false,
+  type: "GACHA",
+  gachaId,
+  termsAgreed,
+  expectedAmount,
+  idempotencyKey: key(n)
+});
 
 /** Two 뽑기: 당첨확률형 (상품 30% · 꽝 70%) and 상품소진형 (2 + 1). */
 function setGachas(m: M, patch: Partial<M["widgetStore"]["GACHA"]["gachas"][number]> = {}) {
@@ -107,12 +116,64 @@ describe("뽑기 후원", () => {
     expect(m.account.fnBalance).toBe(100_000 - 3_000 - 3 * 5_000);
   });
 
+  it("charges the price the supporter confirmed, or nothing when the creator changed it (PRICE_CHANGED)", async () => {
+    const m = await load();
+    setGachas(m);
+    expect(await m.requestDonation({ ...draw(1), expectedAmount: undefined })).toEqual({ status: "INVALID" }); // a price must be confirmed
+    m.widgetStore.GACHA.gachas[0].price = 4_000; // changed after the panel loaded at 3,000
+    expect(await m.requestDonation(draw(2))).toEqual({ status: "PRICE_CHANGED", amount: 4_000 });
+    expect(await m.requestDonation(draw(2))).toEqual({ status: "PRICE_CHANGED", amount: 4_000 }); // retry: same answer
+    expect(m.account.fnBalance).toBe(100_000);
+    expect(m.mockGacha.draws.some((d) => d.channelId === "c1")).toBe(false);
+
+    const done = await m.requestDonation(draw(3, "gacha-1", true, 4_000));
+    expect(done).toMatchObject({ status: "COMPLETED", fnAmount: 4_000, balance: 96_000 });
+    // A retry of the completed request still gets its answer after the price moves again.
+    m.widgetStore.GACHA.gachas[0].price = 2_000;
+    expect(await m.requestDonation(draw(3, "gacha-1", true, 4_000))).toEqual(done);
+    expect(m.account.fnBalance).toBe(96_000);
+  });
+
+  it("records the debited amount on the draw, not a price read later", async () => {
+    const m = await load();
+    setGachas(m);
+    const d = m.enqueueDraw({ id: "d1", channelId: "c1", supporterUserId: "u-1", donor: "보라색원픽", gachaId: "gacha-1", amount: 2_500 }, Date.now(), () => 0);
+    expect(d).toMatchObject({ amount: 2_500, message: "보라색원픽님이 2,500FN 뽑기 후원을 하였습니다!" });
+  });
+
+  it("never brings back 상품소진형 stock drawn while the settings form was open", async () => {
+    const m = await load();
+    setGachas(m);
+    const loaded = (await m.getWidgetDetail("GACHA"))!.settings as M["widgetStore"]["GACHA"];
+    for (let i = 1; i <= 3; i++) expect((await m.requestDonation(draw(i, "gacha-2"))).status).toBe("COMPLETED");
+    expect(m.getDonationCatalog().gacha[1].soldOut).toBe(true);
+
+    // The creator renames the 뽑기 in the form loaded at 2 + 1 and saves: the stock stays used up.
+    const renamed = { ...loaded, gachas: loaded.gachas.map((g) => (g.id === "gacha-2" ? { ...g, name: "굿즈 뽑기 시즌2" } : g)) };
+    expect(await m.saveWidgetSettings("GACHA", renamed)).toEqual({ status: "SAVED" });
+    expect(m.widgetStore.GACHA.gachas[1]).toMatchObject({ name: "굿즈 뽑기 시즌2", prizes: [{ value: 0, drawn: 2 }, { value: 0, drawn: 1 }] });
+    expect(await m.requestDonation(draw(4, "gacha-2"))).toEqual({ status: "INVALID" }); // still sold out
+
+    // Restocking from a fresh form: the entered count is kept; a draw made after loading still comes off it.
+    const fresh = (await m.getWidgetDetail("GACHA"))!.settings as M["widgetStore"]["GACHA"];
+    const restocked = { ...fresh, gachas: fresh.gachas.map((g) => (g.id === "gacha-2" ? { ...g, prizes: g.prizes.map((p) => ({ ...p, value: 5 })) } : g)) };
+    expect(await m.saveWidgetSettings("GACHA", restocked)).toEqual({ status: "SAVED" });
+    expect(m.widgetStore.GACHA.gachas[1].prizes.map((p) => p.value)).toEqual([5, 5]);
+    await m.requestDonation(draw(5, "gacha-2"));
+    expect(await m.saveWidgetSettings("GACHA", restocked)).toEqual({ status: "SAVED" }); // the same form again
+    expect(m.widgetStore.GACHA.gachas[1].prizes.reduce((s, p) => s + p.value, 0)).toBe(9);
+    // `drawn` stays the server's count whatever the form sends.
+    const forged = { ...fresh, gachas: fresh.gachas.map((g) => (g.id === "gacha-2" ? { ...g, prizes: g.prizes.map((p) => ({ ...p, value: 1, drawn: 999 })) } : g)) };
+    await m.saveWidgetSettings("GACHA", forged);
+    expect(m.widgetStore.GACHA.gachas[1].prizes.reduce((s, p) => s + (p.drawn ?? 0), 0)).toBe(4);
+  });
+
   it("plays draws one at a time, then lists prizes on the board and the 당첨 내역", async () => {
     const m = await load();
     setGachas(m);
     const t0 = Date.parse("2026-10-04T12:00:00");
-    const first = m.enqueueDraw({ id: "d1", channelId: m.STUDIO_CHANNEL, supporterUserId: "u-1", donor: "오늘은된다", gachaId: "gacha-1" }, t0, () => 0); // 상품
-    const second = m.enqueueDraw({ id: "d2", channelId: m.STUDIO_CHANNEL, supporterUserId: "u-2", donor: "확률의신", gachaId: "gacha-1" }, t0 + 1, () => 99); // 꽝
+    const first = m.enqueueDraw({ id: "d1", channelId: m.STUDIO_CHANNEL, supporterUserId: "u-1", donor: "오늘은된다", gachaId: "gacha-1", amount: 3_000 }, t0, () => 0); // 상품
+    const second = m.enqueueDraw({ id: "d2", channelId: m.STUDIO_CHANNEL, supporterUserId: "u-2", donor: "확률의신", gachaId: "gacha-1", amount: 3_000 }, t0 + 1, () => 99); // 꽝
     expect(m.statusOf(first, t0)).toBe("SPINNING");
     expect(m.statusOf(second, t0 + 1)).toBe("QUEUED");
     expect(m.stageOf(m.STUDIO_CHANNEL, t0 + 1_000)).toMatchObject({ status: "SPINNING", prize: null, donor: "오늘은된다", message: "오늘은된다님이 3,000FN 뽑기 후원을 하였습니다!" });
@@ -147,7 +208,7 @@ describe("뽑기 후원", () => {
     expect(detail.overlayPath).toBe(`/overlay/widget/gacha/${m.overlayKey}`);
 
     setGachas(m);
-    const d = m.enqueueDraw({ id: "d9", channelId: m.STUDIO_CHANNEL, supporterUserId: "u-9", donor: "보라색원픽", gachaId: "gacha-1" }, Date.now(), () => 0);
+    const d = m.enqueueDraw({ id: "d9", channelId: m.STUDIO_CHANNEL, supporterUserId: "u-9", donor: "보라색원픽", gachaId: "gacha-1", amount: 3_000 }, Date.now(), () => 0);
     expect((await m.finishGachaDraw({ drawId: d.id })).status).toBe("INVALID"); // still drawing
     d.startedAt = new Date(Date.now() - d.spinMs - 500).toISOString();
     const o = await m.getOverlayWidget("gacha", m.overlayKey);
