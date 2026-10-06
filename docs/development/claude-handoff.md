@@ -128,7 +128,7 @@ Remaining:
 - 정산설정 — all designed screens done (`/creator/settlement`, `/register`, `/register/form`, `/apply`,
   `/manage`; frames in route-map). Not designed: 세금계산서/증빙 download (429:112 copy). Figma conflicts to keep TBD:
   minimum 10,000원 (429:4) vs 40,000 FN (466:2 · 469:195); fee 6.6% (473:2) vs per-method table (475:2);
-  terms name 주식회사 투스라이프; 443:5 lists 트위치 · 치지직 (out of scope). Nav-bars 482:244 · 482:420
+  terms name 주식회사 투스라이프; 443:5 lists 트위치 (out of scope) and 치지직 (confirmed 2026-10-01, in the 사용채널 list). Nav-bars 482:244 · 482:420
   belong to frames not yet located (top frame id = its workspace-wrapper id − 20).
 - SOOP / FlexTV money donation (817:7552–9848, grid at x 63835/65435/67035): donation flow done
   (`/donation/[platform]`, PlatformAdapter mocks in `services/platformDonation`). 후원 내역
