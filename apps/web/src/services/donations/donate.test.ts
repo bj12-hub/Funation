@@ -91,10 +91,11 @@ describe("Donation Core", () => {
     donationPageStore.replacement = { applyToNickname: true, applyToText: false, bannedWords: ["길동"], message: "응원 고마워요" };
     await send(3, "길동님 최고");
     expect(last()).toMatchObject({ donor: "응원 고마워요", message: "길동님 최고" });
-    // An empty 대체 메시지: no text, and the name falls back to 익명 (TBD).
+    // An empty 대체 메시지 (2026-10-06 결정): the default text, and the name shows 익명.
     donationPageStore.replacement = { applyToNickname: true, applyToText: true, bannedWords: ["길동"], message: "" };
     await send(4, "길동님 최고");
-    expect(last()).toMatchObject({ donor: "익명", message: "" });
+    expect(last()).toMatchObject({ donor: "익명", message: "(금지어가 포함된 메시지예요)" });
+    expect(wallet.donations.map((d) => d.message)).toContain("길동님 최고");
   });
 
   it("gives every donation its own id, even when two finish in the same millisecond", async () => {

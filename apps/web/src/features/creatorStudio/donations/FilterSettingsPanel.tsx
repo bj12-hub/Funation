@@ -52,6 +52,8 @@ export function FilterSettingsPanel({ initial }: { initial: FilterSettings }) {
           비속어 및 불건전 메시지 자동 차단
         </h2>
         <p className={styles.desc}>방송 통계와 시청자 채팅 창에서 부적절하거나 유해한 도네이션 내용을 사전에 차단하고 필터링합니다.</p>
+        {/* Code-first copy (2026-10-06 결정 "대체 메시지로 바꿔 표시"). */}
+        <p className={styles.helper}>걸러진 후원도 그대로 받아요. 방송 알림과 TTS에서만 메시지가 후원 페이지 설정의 대체 메시지로 바뀌어요.</p>
         <div className={`${styles.line} ${styles.lineWide}`}>
           <span className={styles.lineLabel}>비속어 필터 강도</span>
           <div role="radiogroup" aria-label="비속어 필터 강도" className={styles.radios}>

@@ -145,6 +145,8 @@ Add a row whenever a new code-first screen ships (see `docs/research/funnation-r
 | 랭크업 (`crew/BroadcastScreen.tsx` 점수판 아래 · `CrewScoreOverlay.tsx`, `crewTypes.rankUpPair`, `setRankUpOverlay`) | crew-rank-up PR | 2026-10-06 결정(funnation 랭크업). 점수판에서 이웃한 두 멤버 중 점수 차가 가장 작은 쌍(같으면 위쪽 쌍, 0점 차 = 동점)을 "🔥 랭크업 아래 멤버(순위) → 위 멤버(순위) N점 차"로 표시, 위 멤버 점수가 0이면 표시 없음. "OBS 점수판에 표시"를 켜면 크루 점수판 오버레이 제목 아래에 띄움 |
 | 후원 확인 팝업 안내 (`creatorRoom/DonationForm.tsx`, `donation/submit.ts`) | donation-core-audit PR | 확인 팝업의 오류 줄에 새 안내: 크리에이터가 시그니처 · 위시 · 뽑기 가격을 바꾸면 "크리에이터가 가격을 바꿨어요. 지금 가격은 N FN이에요. 확인하고 다시 후원해 주세요."(차감 없음, 패널과 팝업 금액이 새 가격으로 바뀜), 메시지 · 미니 텍스트 · 퀘스트 / 그림 제목의 금지어는 "사용할 수 없는 단어가 포함되어 있어요.". 결과를 받지 못한 뒤 다시 누르면 먼저 그 후원의 결과를 확인(완료됐으면 완료 화면, 고친 내용은 보내지 않음). 후원 내역 › 퀘스트: 진행 중 퀘스트는 "처리중"(보관), 성공하면 "완료" |
 
+| 후원관리+ 대체 메시지 · 후원 필터링 안내 문구 (`donations/PageSettingsTab.tsx` 대체 메시지 칸 · `donations/FilterSettingsPanel.tsx`; `/creator/donations?tab=settings` · `?tab=filtering`) | donation-filter-on-stream PR | 2026-10-06 결정. 후원 페이지 설정(539:7) 대체 메시지 입력칸 아래 회색 안내 "비워 두면 메시지는 "(금지어가 포함된 메시지예요)", 닉네임은 "익명"으로 보여요." · 후원 필터링(539:466) 카드 설명 아래 회색 안내 "걸러진 후원도 그대로 받아요. 방송 알림과 TTS에서만 메시지가 후원 페이지 설정의 대체 메시지로 바뀌어요." 동작: 필터링(블랙리스트 단어 · 특수 문자/도배 · 비속어 강도)에 걸린 메시지는 방송 알림 · TTS에서만 대체 메시지로 바뀜(`docs/domains/donation.md`) |
+
 ## Figma
 
 구현된 전체 화면 캡처는 [current-build.md](current-build.md)의 새 파일(Somnation — 현재 구현)에 있어요. 펀페이 파일에 잠시 두었던 "코드 우선 화면" 페이지는 2026-09-30에 삭제했어요.

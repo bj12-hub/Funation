@@ -102,7 +102,7 @@ export function enqueueAlert(
 /**
  * Called by the Donation Core after a completed donation. Only donations to the studio creator's own
  * channel reach this creator's overlay (TBD: per-creator queues once channels are real). The creator's
- * 대체 메시지 표시 설정 applies to the name and message shown (and spoken) on stream.
+ * 대체 메시지 표시 설정 and 후원 필터링 apply to the name and message shown (and spoken) on stream (shownOnStream).
  * A 퀘스트 후원 passes its `questId`: the alert shows when it is sent, but its FN counts in the 후원 위젯 only
  * once the quest succeeds (settleQuestAlerts).
  */

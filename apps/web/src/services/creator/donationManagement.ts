@@ -52,7 +52,7 @@ import { isQuestAction, type QuestAction, type QuestDecideResult } from "@/servi
 import { getDonationCatalog } from "@/services/donations/signatureCore";
 import { FIXTURE_AMOUNTS, FIXTURE_DONORS } from "./receivedFixtures";
 import { mockCreator } from "./mockCreatorStore";
-import { donationPageStore } from "./donationPageCore";
+import { donationFilterStore, donationPageStore } from "./donationPageCore";
 import { isIsoDate } from "@/lib/period";
 
 /**
@@ -371,7 +371,10 @@ export async function getDonorRanking(period: RankPeriod): Promise<DonorRanking 
 
 // ── 후원 필터링 ────────────────────────────────────────────────────────────────
 
-type MockFilters = { settings: FilterSettings; blocked: BlockedDonor[]; titles: TitleTier[] };
+// 필터링 settings live in donationPageCore.ts (the Donation Core applies them on stream).
+const filterSettings = donationFilterStore;
+
+type MockFilters = { blocked: BlockedDonor[]; titles: TitleTier[] };
 
 const BLOCK_SEED: [string, string, string, BlockPlatform, string][] = [
   ["2026-09-11T04:12:00", "bad_player", "악성유저1", "CHZZK", "부적절한 닉네임 사용 및 연속적인 도배 광고"],
@@ -382,7 +385,6 @@ const BLOCK_SEED: [string, string, string, BlockPlatform, string][] = [
 
 const globalForFilters = globalThis as typeof globalThis & { __funationMockDonationFilters?: MockFilters };
 const filters = (globalForFilters.__funationMockDonationFilters ??= {
-  settings: { strength: "NORMAL", blockSpam: true, words: ["광고", "어그로", "욕설"] },
   blocked: BLOCK_SEED.map(([at, donorId, nickname, platform, reason], i) => ({
     id: `b${i + 1}`,
     blockedAt: new Date(at).toISOString(),
@@ -398,7 +400,7 @@ export async function getFilterSettings(): Promise<FilterSettings | null> {
   assertMock();
   if (!(await getCreatorSession())) return null;
   await mockDelay(250);
-  return structuredClone(filters.settings);
+  return structuredClone(filterSettings);
 }
 
 export async function setFilterStrength(strength: unknown): Promise<ManagementSaveResult> {
@@ -406,7 +408,7 @@ export async function setFilterStrength(strength: unknown): Promise<ManagementSa
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (!FILTER_STRENGTHS.some((s) => s.key === strength)) return { status: "INVALID", message: "필터 강도를 선택해 주세요." };
   await mockDelay(250);
-  filters.settings.strength = strength as FilterStrength;
+  filterSettings.strength = strength as FilterStrength;
   return { status: "SAVED" };
 }
 
@@ -415,7 +417,7 @@ export async function setSpamBlock(on: unknown): Promise<ManagementSaveResult> {
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (typeof on !== "boolean") return { status: "INVALID", message: "설정 값을 확인해 주세요." };
   await mockDelay(250);
-  filters.settings.blockSpam = on;
+  filterSettings.blockSpam = on;
   return { status: "SAVED" };
 }
 
@@ -424,10 +426,10 @@ export async function addFilterWord(word: unknown): Promise<ManagementSaveResult
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const w = typeof word === "string" ? word.trim() : "";
   if (w.length < 1 || w.length > FILTER_WORD_MAX) return { status: "INVALID", message: `단어는 1~${FILTER_WORD_MAX}자로 입력해 주세요.` };
-  if (filters.settings.words.includes(w)) return { status: "INVALID", message: "이미 등록된 단어입니다." };
-  if (filters.settings.words.length >= FILTER_WORDS_MAX) return { status: "INVALID", message: `단어는 최대 ${FILTER_WORDS_MAX}개까지 등록할 수 있어요.` };
+  if (filterSettings.words.includes(w)) return { status: "INVALID", message: "이미 등록된 단어입니다." };
+  if (filterSettings.words.length >= FILTER_WORDS_MAX) return { status: "INVALID", message: `단어는 최대 ${FILTER_WORDS_MAX}개까지 등록할 수 있어요.` };
   await mockDelay(250);
-  filters.settings.words = [...filters.settings.words, w];
+  filterSettings.words = [...filterSettings.words, w];
   return { status: "SAVED" };
 }
 
@@ -436,7 +438,7 @@ export async function removeFilterWord(word: unknown): Promise<ManagementSaveRes
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   await mockDelay(200);
-  filters.settings.words = filters.settings.words.filter((w) => w !== word);
+  filterSettings.words = filterSettings.words.filter((w) => w !== word);
   return { status: "SAVED" };
 }
 
