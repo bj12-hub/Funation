@@ -74,7 +74,7 @@ export async function decideRefund(admin: AdminActor, input: unknown): Promise<R
     // Retrying the same decision is harmless; a different one is refused (decisions are final).
     return request.status === wanted ? { status: "OK" } : { status: "INVALID", message: "이미 처리된 환불 요청이에요." };
   }
-  if (!fromCurrentAccount(request)) return { status: "INVALID", message: "탈퇴한 회원의 환불 요청이에요. 처리 방법이 정해지지 않아(TBD) 승인 · 거절할 수 없어요." };
+  if (!fromCurrentAccount(request)) return { status: "INVALID", message: "탈퇴한 회원의 환불 요청이라 승인 · 거절할 수 없어요. (처리 중인 환불이 있으면 탈퇴할 수 없어서, 이전 기록에만 있어요.)" };
   const charge = listChargeRecords().find((c) => c.id === request.chargeId);
   if (!charge || charge.status !== "COMPLETED") return { status: "INVALID", message: "완료된 충전이 아니에요." };
   const now = new Date();

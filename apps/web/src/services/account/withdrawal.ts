@@ -9,8 +9,9 @@ import { channelsStore } from "@/services/broadcast/channelsCore";
 import { mockCreator, newIntegrationKey } from "@/services/creator/mockCreatorStore";
 import { mockSettlement } from "@/services/creator/mockSettlementStore";
 import { youtubeStore } from "@/services/creator/youtubeCore";
+import { mockRefunds } from "@/services/wallet/mockRefundStore";
 import { mockAccount, mockCredentials } from "./mockStore";
-import { isWithdrawn, withdrawalOf, withdrawalStore } from "./withdrawalCore";
+import { accountSince, isWithdrawn, withdrawalOf, withdrawalStore } from "./withdrawalCore";
 import type { WithdrawResult, WithdrawalInfo } from "./withdrawalTypes";
 
 /**
@@ -19,6 +20,8 @@ import type { WithdrawResult, WithdrawalInfo } from "./withdrawalTypes";
  * and the password, forfeits exactly the amounts the member saw, and ends the session. One request id per intended
  * withdrawal, so a retry after a lost response gets the same answer. Rate limiting of password attempts belongs to
  * the backend; accounts that only use social login re-confirm with that login (provider hand-off TBD).
+ * 2026-10-06 결정: while an FN 충전 환불 request of this account waits for an operator, withdrawal is refused (the
+ * member withdraws once it is decided).
  */
 
 const assertMock = () => {
@@ -30,13 +33,16 @@ const REQUEST_ID = /^[A-Za-z0-9-]{16,64}$/;
 /** Creator earnings not paid out yet: 정산 가능 FN + 정산 신청 중. */
 const unsettledFn = () => mockSettlement.availableFn + mockSettlement.requests.filter((r) => r.status === "PENDING").reduce((s, r) => s + r.amountFn, 0);
 
+/** This account's FN 충전 환불 requests still waiting for an operator. */
+const pendingRefunds = () => mockRefunds.requests.filter((r) => r.status === "REQUESTED" && r.accountSince === accountSince()).length;
+
 export async function getWithdrawalInfo(): Promise<WithdrawalInfo | null> {
   assertMock();
   const session = await getSession();
   if (!session) return null;
   await mockDelay(200);
   const creator = hasRole(session, "CREATOR");
-  return { nickname: mockAccount.nickname, fnBalance: mockAccount.fnBalance, creator, unsettledFn: creator ? unsettledFn() : 0 };
+  return { nickname: mockAccount.nickname, fnBalance: mockAccount.fnBalance, creator, unsettledFn: creator ? unsettledFn() : 0, pendingRefunds: pendingRefunds() };
 }
 
 /** The consents cover the amounts the member saw; amounts that changed since need a new look. */
@@ -59,6 +65,7 @@ export async function withdrawAccount(input: unknown): Promise<WithdrawResult> {
   const session = await getSession();
   if (!session) return { status: "UNAUTHORIZED" };
   if (v.confirmed !== true) return { status: "INVALID", message: "탈퇴 안내를 확인하고 동의해 주세요." };
+  if (pendingRefunds() > 0) return { status: "REFUND_PENDING", count: pendingRefunds() };
   const early = consentProblem(v, mockAccount.fnBalance, earningsOf(session));
   if (early) return early;
   await mockDelay(400);
@@ -67,6 +74,8 @@ export async function withdrawAccount(input: unknown): Promise<WithdrawResult> {
   // From here on nothing awaits: the amounts are read again, compared with the consents and forfeited in one
   // step, so an admin decision or a donation during the password check cannot leave the record out of date.
   if (isWithdrawn()) return withdrawalOf()?.requestId === v.requestId ? { status: "WITHDRAWN" } : { status: "UNAUTHORIZED" };
+  // A refund request made during the password check counts too.
+  if (pendingRefunds() > 0) return { status: "REFUND_PENDING", count: pendingRefunds() };
   const balance = mockAccount.fnBalance;
   const earnings = earningsOf(session);
   const changed = consentProblem(v, balance, earnings);
