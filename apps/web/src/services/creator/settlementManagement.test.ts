@@ -43,7 +43,7 @@ describe("정산 관리", () => {
     expect(year.items.length).toBeGreaterThan(0);
     expect(year.items.every((r) => r.requestedAt >= year.from && r.requestedAt <= year.to)).toBe(true);
     expect(year.items.filter((r) => r.status !== "REJECTED").every((r) => r.reviewNote === undefined)).toBe(true);
-    expect(year.items.some((r) => "review" in r)).toBe(false);
+    expect(year.items.some((r) => "review" in r || "registrationAtRequest" in r)).toBe(false);
 
     const custom = await m.getSettlementManageView({ period: "custom", from: "2099-01-01", to: "2000-01-01", page: 99 });
     if (typeof custom === "string") throw new Error(custom);
@@ -53,12 +53,15 @@ describe("정산 관리", () => {
     expect(typeof bad !== "string" && bad.from <= bad.to).toBe(true);
   });
 
-  it("정보 변경 removes the registration but keeps past requests", async () => {
+  it("정보 변경 removes the registration but keeps past requests with their request-time registration", async () => {
     const m = await load();
     const before = m.store.requests.length;
+    const copies = m.store.requests.map((r) => r.registrationAtRequest);
+    expect(copies.every(Boolean)).toBe(true);
     expect(await m.resetSettlementRegistration()).toEqual({ status: "RESET" });
     expect(m.store.registration).toBeNull();
     expect(m.store.requests).toHaveLength(before);
+    expect(m.store.requests.map((r) => r.registrationAtRequest)).toEqual(copies);
     expect(await m.getSettlementManageView({})).toBe("NOT_REGISTERED");
   });
 });

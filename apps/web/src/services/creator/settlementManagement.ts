@@ -2,7 +2,7 @@
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
-import { mockSettlement } from "./mockSettlementStore";
+import { mockSettlement, toHistoryItem } from "./mockSettlementStore";
 import { MANAGE_PAGE_SIZE, isManagePeriod, type ManagePeriod, type ResetResult, type SettlementManageView } from "./settlementTypes";
 import { isIsoDate } from "@/lib/period";
 
@@ -58,7 +58,7 @@ export async function getSettlementManageView(params: { period?: unknown; from?:
     period,
     from,
     to,
-    items: filtered.slice((page - 1) * MANAGE_PAGE_SIZE, page * MANAGE_PAGE_SIZE).map(({ review, ...r }) => ({ ...r, reviewNote: r.status === "REJECTED" ? review?.note : undefined })),
+    items: filtered.slice((page - 1) * MANAGE_PAGE_SIZE, page * MANAGE_PAGE_SIZE).map(toHistoryItem),
     page,
     totalPages
   };
@@ -66,7 +66,9 @@ export async function getSettlementManageView(params: { period?: unknown; from?:
 
 /**
  * 정산 정보 변경 → 변경하기 (480:2): "현재의 정보는 삭제되며, 정산 정보 재등록이 진행됩니다." Removes the
- * current registration so the 정산 등록 flow starts again. Existing requests are kept.
+ * current registration so the 정산 등록 flow starts again. Existing requests are kept and still carry
+ * the registration copied when they were made (466:2), so a pending one is reviewed and paid with that.
+ * Whether a reset is allowed while a request is pending stays TBD (allowed for now).
  */
 export async function resetSettlementRegistration(): Promise<ResetResult> {
   assertMock();

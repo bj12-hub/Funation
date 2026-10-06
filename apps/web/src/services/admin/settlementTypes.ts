@@ -5,6 +5,9 @@ import type { SettlementStatus } from "@/services/creator/settlementTypes";
  * settlement service (all policy numbers are TBD, CLAUDE.md §14); the console only shows them.
  */
 
+/** A settlement registration as the console shows it: member type label, masked account only. */
+export type AdminSettlementRegistration = { memberType: string; registrant: string; holder: string; bankName: string; accountMasked: string; code: string; submittedAt: string };
+
 export type AdminSettlementRow = {
   id: string;
   creatorName: string;
@@ -16,13 +19,16 @@ export type AdminSettlementRow = {
   feeFn: number;
   netKrw: number;
   payoutDate: string | null;
+  /** 정산 정보 at request time (466:2) — what this request is reviewed and paid with. Null = cannot be approved. */
+  registrationAtRequest: AdminSettlementRegistration | null;
   review: { at: string; by: string; note: string } | null;
 };
 
 export type AdminSettlementView = {
   rows: AdminSettlementRow[];
   counts: Record<SettlementStatus, number>;
-  registration: { memberType: string; registrant: string; holder: string; bankName: string; accountMasked: string; code: string; submittedAt: string } | null;
+  /** The creator's current registration (may differ from a request's `registrationAtRequest`). */
+  registration: AdminSettlementRegistration | null;
   availableFn: number;
 };
 

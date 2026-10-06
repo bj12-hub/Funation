@@ -26,7 +26,7 @@ Backend framework, database, payment provider and every business rule listed as 
 | 크리에이터 룸 후원 | `donations/donate.requestDonation` | debit FN | key + fingerprint | donation row |
 | SOOP · FlexTV 후원 | `platformDonation/platformDonation.requestPlatformDonation` | hold/debit FN → platform call → reverse on refusal; stays held on timeout (`PENDING`) | key + fingerprint | platform transaction + wallet mirror |
 | 출석 보상 | `attendance.checkIn` · `claimAttendanceReward` | credit FN | natural (once per day / reward) | credit ledger (`wallet/mockCreditStore`) |
-| 정산 신청 | `creator/settlementRequests.requestSettlement` | debit creator earnings (`availableFn`) | key + amount (`CONFLICT`) | PENDING settlement request |
+| 정산 신청 | `creator/settlementRequests.requestSettlement` | debit creator earnings (`availableFn`) | key + amount (`CONFLICT`) | PENDING settlement request (`st-<uuid>`) with a copy of the masked registration at request time |
 
 Not implemented anywhere yet (TBD): refunds, holds for quest/quiz outcomes, creator revenue credit from donations, platform fees, payouts, reconciliation of platform `PENDING` results.
 
