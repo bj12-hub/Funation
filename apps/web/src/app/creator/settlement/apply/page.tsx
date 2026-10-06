@@ -12,5 +12,7 @@ export default async function Page() {
   if (view === "UNAUTHORIZED") redirect("/login?role=creator&next=/creator/settlement/apply");
   // Requesting needs a registration first; the settlement home explains that (433:4).
   if (view === "NOT_REGISTERED") redirect("/creator/settlement");
+  // 2026-10-06 결정: requesting also needs 본인인증; the settlement home opens that notice.
+  if (view === "IDENTITY_REQUIRED") redirect("/creator/settlement?gate=identity");
   return <SettlementApplyScreen view={view} />;
 }
