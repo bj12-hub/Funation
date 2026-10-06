@@ -118,8 +118,18 @@ export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
             {formatNumber(stats.averageFn)} FN <span className={styles.listStatsCount}>· {formatNumber(stats.count)}건</span>
           </dd>
         </div>
+        {stats.heldCount > 0 && (
+          <div>
+            <dt>진행 중 퀘스트</dt>
+            <dd>
+              {formatNumber(stats.heldFn)} FN <span className={styles.listStatsCount}>· {formatNumber(stats.heldCount)}건</span>
+            </dd>
+          </div>
+        )}
       </dl>
-      {kind === "quest" && <p className={styles.listStatsNote}>실패 · 취소된 퀘스트는 전액 환불돼 요약에서 빠져요.</p>}
+      {(kind === "quest" || stats.heldCount > 0) && (
+        <p className={styles.listStatsNote}>퀘스트 후원은 성공해야 수령액에 들어가요. 진행 중인 퀘스트는 따로 보여 주고, 실패 · 취소된 퀘스트는 전액 환불돼 빠져요.</p>
+      )}
 
       <div className={styles.table}>
         <table>
