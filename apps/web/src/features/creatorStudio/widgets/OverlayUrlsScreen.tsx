@@ -7,6 +7,7 @@ import { setOverlaySwitch } from "@/services/creator/alertRemote";
 import type { OverlayTarget } from "@/services/creator/alertTypes";
 import styles from "../crew/crew.module.css";
 import { CopyButton } from "../settings/SettingsCards";
+import { obsFileName, obsSceneCollection, OBS_COLLECTION_NAME } from "./obsScenes";
 import { OVERLAYS } from "./overlayCatalog";
 import local from "./overlayUrls.module.css";
 
@@ -17,12 +18,14 @@ const mask = (key: string) => `${key.slice(0, 4)}-····-····-····`;
  * overlay with its recommended size; the key is masked on screen and only copied in full.
  * 후원 위젯 with an overlay (목표 · 누적 · 랭킹 · 최근알림 · 이벤트 · QR) are listed; the other widget popups
  * (미니후원, 커스텀 사운드 …) have no overlay of their own. Overlays switched OFF in
- * the 리모컨 기능 제어 are marked, with a one-click 켜기.
+ * the 리모컨 기능 제어 are marked, with a one-click 켜기. "OBS 씬 파일 내려받기" saves every overlay as an OBS scene
+ * collection (built in the browser; the file holds the key).
  */
 export function OverlayUrlsScreen({ overlayKey, switches }: { overlayKey: string; switches: Record<OverlayTarget, boolean> }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
   const off = OVERLAYS.filter((o) => !switches[o.target]);
   const turnOn = (target: OverlayTarget) =>
     startTransition(async () => {
@@ -35,6 +38,23 @@ export function OverlayUrlsScreen({ overlayKey, switches }: { overlayKey: string
   useEffect(() => setOrigin(window.location.origin), []);
   const groups = [...new Set(OVERLAYS.map((o) => o.group))];
   const all = OVERLAYS.map((o) => `${o.title}\t${origin}${o.path(overlayKey)}`).join("\n");
+  const downloadObs = () => {
+    setError(null);
+    try {
+      const json = JSON.stringify(obsSceneCollection(OVERLAYS, window.location.origin, overlayKey), null, 2);
+      const href = URL.createObjectURL(new Blob([json], { type: "application/json" }));
+      const a = document.createElement("a");
+      a.href = href;
+      a.download = obsFileName();
+      document.body.append(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(href), 1000);
+      setSaved(true);
+    } catch {
+      setError("파일을 만들지 못했어요. 잠시 후 다시 시도해 주세요.");
+    }
+  };
 
   return (
     <div className={styles.content}>
@@ -56,8 +76,29 @@ export function OverlayUrlsScreen({ overlayKey, switches }: { overlayKey: string
         </p>
       )}
       <div className={styles.actions}>
-        <CopyButton value={all} label={`목록 전체 복사 (${OVERLAYS.length})`} className={styles.primary} />
+        <CopyButton value={all} label={`목록 전체 복사 (${OVERLAYS.length})`} className={styles.ghost} />
+        <button type="button" className={styles.primary} onClick={downloadObs}>
+          OBS 씬 파일 내려받기
+        </button>
       </div>
+      <section className={styles.card} aria-labelledby="obs-import">
+        <h2 className={styles.cardTitle} id="obs-import">
+          🎬 OBS에 한 번에 넣기
+        </h2>
+        <ol className={local.steps}>
+          <li>위의 &lsquo;OBS 씬 파일 내려받기&rsquo;로 파일을 받아요.</li>
+          <li>OBS 메뉴 장면 모음(Scene Collection) → 가져오기(Import)에서 받은 파일을 골라 가져와요.</li>
+          <li>
+            장면 모음에서 &lsquo;{OBS_COLLECTION_NAME}&rsquo;를 고르면 분류별 장면 {groups.length}개와 브라우저 소스 {OVERLAYS.length}개가 권장 크기로 들어 있어요. 쓰던 장면 모음은 그대로예요.
+          </li>
+        </ol>
+        <p className={styles.note}>파일에 연동 키가 들어 있으니 다른 사람에게 보내지 마세요. 연동 키를 재발급하면 파일을 다시 받아야 해요.</p>
+        {saved && (
+          <p className={styles.ok} role="status">
+            파일을 내려받았어요. OBS에서 가져오기로 불러오세요.
+          </p>
+        )}
+      </section>
       {groups.map((g) => (
         <section key={g} className={styles.card} aria-label={g}>
           <h2 className={styles.cardTitle}>{g}</h2>
