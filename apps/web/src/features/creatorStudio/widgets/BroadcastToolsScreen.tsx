@@ -23,13 +23,14 @@ import styles from "../crew/crew.module.css";
 import { OverlayOffNotice } from "../remote/OverlayOffNotice";
 import { signedSec } from "../remote/ToolsRemote";
 import { CopyButton } from "../settings/SettingsCards";
+import { BingoTool } from "./BingoTool";
 import { clock, timerSeconds } from "./timerMath";
 
 const lines = (s: string) => s.split("\n").map((l) => l.trim()).filter(Boolean);
 
 /**
  * 방송 도구 — code-first (no Figma frame). Route `/creator/widgets/tools`. The remote for 자막 ·
- * 전광판 · 타이머 · 엔딩 크레딧; each card shows its OBS overlay URL. The server owns every state
+ * 전광판 · 타이머 · 엔딩 크레딧 · 빙고; each card shows its OBS overlay URL. The server owns every state
  * (the overlay polls it), so this screen only sends changes.
  */
 export function BroadcastToolsScreen({ view, overlayKey, switches }: { view: ToolsView; overlayKey: string; switches: Record<OverlayTarget, boolean> }) {
@@ -108,7 +109,7 @@ export function BroadcastToolsScreen({ view, overlayKey, switches }: { view: Too
           <Link href="/creator/widgets">← 후원위젯/알림설정</Link> · 오버레이 URL에는 연동 키가 들어 있어요. 외부에 공유하지 마세요.
         </p>
       </header>
-      <OverlayOffNotice targets={["subtitle", "marquee", "timer", "credits"]} switches={switches} />
+      <OverlayOffNotice targets={["subtitle", "marquee", "timer", "credits", "bingo"]} switches={switches} />
 
       {card(
         "subtitle",
@@ -297,6 +298,8 @@ export function BroadcastToolsScreen({ view, overlayKey, switches }: { view: Too
           </div>
         </form>
       )}
+
+      {card("bingo", <BingoTool state={states.bingo} pending={pending} run={(action, ok) => run("bingo", action, ok)} />)}
     </div>
   );
 }
