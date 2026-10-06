@@ -70,6 +70,28 @@ describe("팬 메시지 · 요청사항", () => {
     expect((await m.getBroadcastView())!.live!.fanNotes.counts).toEqual({ NEW: 0, DONE: 1, HIDDEN: 1 });
   });
 
+  it("uses the channel's 도배 기준, which the creator can change", async () => {
+    const m = await load();
+    const id = await live(m);
+    expect((await m.getRoomFanNotes(m.CH))!.cooldownSec).toBe(30);
+    expect((await m.getBroadcastView())!.live!.fanNotes.rules).toEqual({ cooldownSec: 30, perBroadcast: 500 });
+    for (const bad of [{ cooldownSec: -1, perBroadcast: 100 }, { cooldownSec: 301, perBroadcast: 100 }, { cooldownSec: 1.5, perBroadcast: 100 }, { cooldownSec: 10, perBroadcast: 9 }, { cooldownSec: 10, perBroadcast: 501 }, { cooldownSec: "10", perBroadcast: 100 }]) {
+      expect((await m.saveFanNoteRules(bad)).status).toBe("INVALID");
+    }
+    // No wait, and at most 10 notes this broadcast.
+    expect(await m.saveFanNoteRules({ cooldownSec: 0, perBroadcast: 10 })).toEqual({ status: "SAVED" });
+    expect((await m.getRoomFanNotes(m.CH))!.cooldownSec).toBe(0);
+    const note = (n: number) => ({ channelId: m.CH, broadcastId: id, kind: "MESSAGE", memberId: null, text: `응원 ${n}`, requestId: key(40 + n) });
+    for (let n = 0; n < 10; n++) expect((await m.sendFanNote(note(n))).status).toBe("SENT");
+    expect(await m.sendFanNote(note(10))).toMatchObject({ status: "INVALID", message: "이번 방송에 받을 수 있는 메시지가 모두 찼어요." });
+    expect((await m.simulateFanNote({ broadcastId: id, kind: "REQUEST", requestId: key(60) })).status).toBe("INVALID");
+    // A longer wait applies to the next note at once.
+    await m.saveFanNoteRules({ cooldownSec: 120, perBroadcast: 500 });
+    expect(await m.sendFanNote(note(11))).toEqual({ status: "COOLDOWN", seconds: 120 });
+    signIn(["SUPPORTER"]);
+    expect(await m.saveFanNoteRules({ cooldownSec: 0, perBroadcast: 500 })).toEqual({ status: "UNAUTHORIZED" });
+  });
+
   it("validates notes and keeps operator actions to the creator", async () => {
     const m = await load();
     const id = await live(m);

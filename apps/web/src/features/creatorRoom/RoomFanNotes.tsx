@@ -125,7 +125,8 @@ export function RoomFanNotesCard({ channelId, signedIn, initial }: { channelId: 
           />
           <div className={styles.fanRow}>
             <span className={styles.voteNote}>
-              {text.length}/{FAN_NOTE_LIMITS.textMax} · {FAN_NOTE_LIMITS.cooldownSec}초에 한 번
+              {text.length}/{FAN_NOTE_LIMITS.textMax}
+              {room.cooldownSec > 0 && ` · ${room.cooldownSec}초에 한 번`}
             </span>
             <button type="submit" className={`${styles.voteButton} ${styles.fanSend}`} disabled={pending || left > 0 || !text.trim()}>
               {pending ? "보내는 중…" : left > 0 ? `${left}초 뒤에 보내기` : "보내기 (무료)"}

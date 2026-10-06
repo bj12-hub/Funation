@@ -344,14 +344,22 @@ export type FanNoteKind = (typeof FAN_NOTE_KINDS)[number]["key"];
 /** NEW = not handled yet; DONE = 확인 · 완료; HIDDEN = the operator hid it (the sender still sees "전달됨"). */
 export type FanNoteStatus = "NEW" | "DONE" | "HIDDEN";
 
-/** `cooldownSec` · `perBroadcast` are placeholder anti-spam limits (TBD: 도배 정책). `mine` = notes the sender sees. */
-export const FAN_NOTE_LIMITS = { textMax: 100, cooldownSec: 30, perBroadcast: 500, mine: 5, shown: 200 } as const;
+/** `mine` = notes the sender sees; `shown` = notes in the operator list. */
+export const FAN_NOTE_LIMITS = { textMax: 100, mine: 5, shown: 200 } as const;
+
+/**
+ * 도배 기준 (2026-10-06 결정: 크리에이터가 조절): seconds between two notes from one viewer and the most notes one
+ * broadcast takes. Platform defaults below; the ranges are placeholders (TBD: 도배 정책).
+ */
+export type FanNoteRules = { cooldownSec: number; perBroadcast: number };
+export const PLATFORM_FAN_NOTE_RULES: FanNoteRules = { cooldownSec: 30, perBroadcast: 500 };
+export const FAN_NOTE_RULE_RANGE = { cooldownSec: [0, 300], perBroadcast: [10, 500] } as const;
 
 /** One note as the operator sees it (the sender's account id stays on the server). */
 export type FanNote = { id: string; at: string; kind: FanNoteKind; memberId: string | null; memberName: string | null; author: string; text: string; status: FanNoteStatus };
 
 /** `notes`: newest first, at most FAN_NOTE_LIMITS.shown; `counts` cover every note of the broadcast. */
-export type FanNotesView = { open: boolean; notes: FanNote[]; counts: Record<FanNoteStatus, number> };
+export type FanNotesView = { open: boolean; rules: FanNoteRules; notes: FanNote[]; counts: Record<FanNoteStatus, number> };
 
 /** The room card while the channel's crew broadcast takes notes (null otherwise). */
 export type RoomFanNotes = {
@@ -360,6 +368,8 @@ export type RoomFanNotes = {
   members: { id: string; name: string; color: string }[];
   /** Seconds until this viewer may send again (0 = now; always 0 when signed out). */
   cooldownLeft: number;
+  /** The channel's 도배 기준 (shown under the box). */
+  cooldownSec: number;
   /** This viewer's latest notes (newest first); `done` once the operator marks it 완료. */
   mine: { id: string; kind: FanNoteKind; memberName: string | null; text: string; done: boolean }[];
 };
