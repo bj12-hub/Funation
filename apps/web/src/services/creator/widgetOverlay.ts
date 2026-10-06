@@ -1,6 +1,7 @@
 "use server";
 
 import { USE_MOCK } from "@/lib/mock";
+import { sameSecret } from "@/lib/secret";
 import { mockAlerts, overlaySignal } from "./alertCore";
 import { mockCreator } from "./mockCreatorStore";
 import { mockQuests } from "@/services/donations/questCore";
@@ -19,7 +20,7 @@ import { clearedAtOf, wallStickers } from "./wallpaperCore";
  */
 export async function getOverlayWidget(widget: unknown, key: unknown): Promise<OverlayWidget | "FORBIDDEN"> {
   if (!USE_MOCK) throw new Error("Widget overlay API is not connected yet.");
-  if (typeof key !== "string" || key !== mockCreator.integrationKey || !isWidgetOverlay(widget)) return "FORBIDDEN";
+  if (!sameSecret(key, mockCreator.integrationKey) || !isWidgetOverlay(widget)) return "FORBIDDEN";
   // 리모컨 signals: 새로고침 (reloadSeq) and 기능 제어 ON/OFF (on), shared by every 후원 위젯.
   const common = { ...overlaySignal("widgets"), serverNow: new Date().toISOString() };
   const items = mockAlerts.items;

@@ -2,6 +2,7 @@
 
 import { USE_MOCK } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
+import { sameSecret } from "@/lib/secret";
 import { overlaySignal } from "./alertCore";
 import { findAsset } from "./assetCore";
 import { BANNER_LIMITS, type BannerResult, type BannerSettings, type OverlayBanner } from "./bannerTypes";
@@ -48,7 +49,7 @@ export async function saveBannerSettings(input: unknown): Promise<BannerResult> 
 /** OBS overlay read — no login; the integration key is the secret. */
 export async function getOverlayBanner(key: unknown): Promise<OverlayBanner | "FORBIDDEN"> {
   assertMock();
-  if (typeof key !== "string" || key !== mockCreator.integrationKey) return "FORBIDDEN";
+  if (!sameSecret(key, mockCreator.integrationKey)) return "FORBIDDEN";
   const s = store();
   const slides = liveSlides(s.slides).map((id) => ({ id, url: findAsset(id)!.url }));
   return { enabled: s.enabled && slides.length > 0, position: s.position, intervalSec: s.intervalSec, slides, ...overlaySignal("banner") };

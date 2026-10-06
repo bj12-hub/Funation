@@ -21,6 +21,16 @@ async function load() {
 const post = (m: Awaited<ReturnType<typeof load>>, k: string, body: string, type = "application/json") =>
   m.POST(new Request(`http://localhost/api/bank-sms/${k}`, { method: "POST", headers: { "content-type": type }, body }), { params: Promise.resolve({ key: k }) });
 
+const suspendCreator = async () => {
+  const { SAMPLE_MEMBER_ID, memberStore } = await import("@/services/admin/memberCore");
+  memberStore().suspensions[SAMPLE_MEMBER_ID] = { reason: "테스트 정지", at: new Date().toISOString(), until: null, by: "adm-1" };
+  return () => delete memberStore().suspensions[SAMPLE_MEMBER_ID];
+};
+const withdrawCreator = async () => {
+  const { withdrawalStore } = await import("@/services/account/withdrawalCore");
+  withdrawalStore().withdrawal = { at: new Date().toISOString(), requestId: key(99), forfeitedFn: 0, forfeitedEarningsFn: 0, nickname: "홍길동", funationId: "hongGD123" };
+};
+
 describe("SMS 계좌후원", () => {
   beforeEach(() => resetMockStores());
 
@@ -83,6 +93,19 @@ describe("SMS 계좌후원", () => {
 
     await m.setBankSms({ maskNames: false });
     expect((await m.getBankSms())!.recent[0].depositor).toBe("별빛소나타");
+  });
+
+  it("stops taking SMS while the creator is suspended or after they withdraw", async () => {
+    const m = await load();
+    const k = m.bankSmsStore().key;
+    await m.setBankSms({ enabled: true });
+    const restore = await suspendCreator();
+    expect((await post(m, k, JSON.stringify({ text: SAMPLE_BANK_SMS, id: "msg-s1" }))).status).toBe(403);
+    expect(m.alerts.items).toHaveLength(0);
+    restore();
+    expect((await post(m, k, JSON.stringify({ text: SAMPLE_BANK_SMS, id: "msg-s2" }))).status).toBe(200);
+    await withdrawCreator();
+    expect((await post(m, k, JSON.stringify({ text: SAMPLE_BANK_SMS, id: "msg-s3" }))).status).toBe(403);
   });
 
   it("runs 테스트 문자 once per click, reissues the address and is for creators only", async () => {

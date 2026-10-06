@@ -2,6 +2,7 @@
 
 import { USE_MOCK } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
+import { sameSecret } from "@/lib/secret";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { advance, enqueueAlert, isOverlayOn, mockAlerts, overlaySignal } from "./alertCore";
 import { mockMedia } from "./mediaCore";
@@ -166,7 +167,7 @@ export async function reloadOverlays(input?: unknown): Promise<RemoteResult> {
 /** Reload + ON/OFF signal for overlays whose data has no room for it (통합 채팅 · 크루 점수판). No login; the key is the secret. */
 export async function getOverlaySignal(key: unknown, target: unknown): Promise<OverlaySignal | "FORBIDDEN"> {
   assertMock();
-  if (typeof key !== "string" || key !== mockCreator.integrationKey || !isOverlayTarget(target)) return "FORBIDDEN";
+  if (!sameSecret(key, mockCreator.integrationKey) || !isOverlayTarget(target)) return "FORBIDDEN";
   return overlaySignal(target);
 }
 
@@ -213,7 +214,7 @@ export async function setVideoVolume(input: unknown): Promise<RemoteResult> {
 /** OBS overlay read — no login; the integration key is the secret. */
 export async function getOverlayAlert(key: unknown): Promise<OverlayAlert | "FORBIDDEN"> {
   assertMock();
-  if (typeof key !== "string" || key !== mockCreator.integrationKey) return "FORBIDDEN";
+  if (!sameSecret(key, mockCreator.integrationKey)) return "FORBIDDEN";
   advance();
   const { muted, alertVolume, ttsVolume, signatureVolume, displaySec } = mockAlerts.controls;
   const showing = mockAlerts.items.find((a) => a.status === "SHOWING");

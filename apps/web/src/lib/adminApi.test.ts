@@ -5,7 +5,7 @@ vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve(
 vi.mock("@/lib/session", () => mockSessionModule());
 
 /** Admin API (`/api/admin/*`): shared-secret + operator headers; no cookie can reach it. */
-const TOKEN = "test-admin-api-token-000000";
+const TOKEN = "test-admin-api-token-00000000000000";
 const headers = (extra: Record<string, string> = {}) => ({
   authorization: `Bearer ${TOKEN}`,
   "x-admin-operator-id": "adm-1",
@@ -39,6 +39,15 @@ describe("admin api", () => {
     vi.stubEnv("NODE_ENV", "production");
     const { authorizeAdminRequest } = await import("./adminApi");
     expect(authorizeAdminRequest(new Request("http://x", { headers: headers() }))).toEqual({ ok: false, status: 503 });
+  });
+
+  it("treats the .env.example placeholder or a short token as not configured", async () => {
+    const { authorizeAdminRequest } = await import("./adminApi");
+    for (const weak of ["replace-with-a-long-random-secret", "short-secret"]) {
+      vi.stubEnv("ADMIN_API_TOKEN", weak);
+      const req = new Request("http://x", { headers: headers({ authorization: `Bearer ${weak}` }) });
+      expect(authorizeAdminRequest(req)).toEqual({ ok: false, status: 503 });
+    }
   });
 
   it("serves routes as JSON, audits with the operator and returns 404 for unknown ids", async () => {

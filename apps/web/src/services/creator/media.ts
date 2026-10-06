@@ -2,6 +2,7 @@
 
 import { USE_MOCK } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
+import { sameSecret } from "@/lib/secret";
 import { parseYouTubeId } from "@/services/donations/donationTypes";
 import { overlaySignal } from "./alertCore";
 import { addDrawing, advanceVideos, currentDrawing, enqueueVideo, mockMedia, playingEndsAt, playingVideo, playSeconds, showDrawing, startVideo } from "./mediaCore";
@@ -98,7 +99,7 @@ export async function controlVideo(input: unknown): Promise<MediaResult> {
 /** OBS overlay read — no login; the integration key is the secret. */
 export async function getOverlayVideo(key: unknown): Promise<OverlayVideo | "FORBIDDEN"> {
   assertMock();
-  if (typeof key !== "string" || key !== mockCreator.integrationKey) return "FORBIDDEN";
+  if (!sameSecret(key, mockCreator.integrationKey)) return "FORBIDDEN";
   advanceVideos();
   const p = playingVideo();
   return {
@@ -169,7 +170,7 @@ export async function deleteDrawing(id: unknown): Promise<MediaResult> {
 
 export async function getOverlayDrawing(key: unknown): Promise<OverlayDrawing | "FORBIDDEN"> {
   assertMock();
-  if (typeof key !== "string" || key !== mockCreator.integrationKey) return "FORBIDDEN";
+  if (!sameSecret(key, mockCreator.integrationKey)) return "FORBIDDEN";
   const cur = currentDrawing();
   return {
     drawing: cur ? { id: cur.drawing.id, donor: cur.drawing.donor, title: cur.drawing.title, fnAmount: cur.drawing.fnAmount, image: cur.drawing.image, until: cur.until } : null,
