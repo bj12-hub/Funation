@@ -49,6 +49,11 @@ type MockSettlement = {
   availableFn: number;
   autoSettlement: boolean;
   requests: MockSettlementRequest[];
+  /**
+   * Requests of a withdrawn account, moved here when a 재가입 starts a new account in the mock slot: the admin
+   * console keeps listing them (as 탈퇴한 회원), the new account's creator screens never see them.
+   */
+  pastRequests?: MockSettlementRequest[];
   /** Idempotency-Key → created request id, so a retried submit never creates a second request. */
   idempotency: Record<string, string>;
 };

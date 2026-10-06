@@ -224,6 +224,40 @@ describe("회원 탈퇴", () => {
     expect((await m.getMemberDetail(m.SAMPLE_MEMBER_ID))!.member).toMatchObject({ status: "ACTIVE", nickname: "다시왔어요", withdrawal: null });
   });
 
+  it("starts the new account without the withdrawn creator's settlement history or earnings", async () => {
+    signIn(["SUPPORTER", "CREATOR"]);
+    const m = await load();
+    const earnings = (await m.getWithdrawalInfo())!.unsettledFn;
+    const before = m.settlement.requests.length;
+    expect(await m.withdrawAccount({ ...supporter(), unsettledFn: earnings, earningsForfeitAgreed: true })).toEqual({ status: "WITHDRAWN" });
+    expect(
+      await m.signup({ email: "again@funation.kr", password: "newpass12!", nickname: "다시왔어요", phoneVerificationToken: "t", agreements: { youth: true, service: true, privacy: true, marketing: false } })
+    ).toEqual({ status: "CREATED" });
+    expect(m.settlement).toMatchObject({ requests: [], idempotency: {}, availableFn: 0, registration: null });
+
+    // Once the new account opens a channel, its 정산 screens start empty.
+    signIn(["SUPPORTER", "CREATOR"]);
+    const { getSettlementApplyView } = await import("@/services/creator/settlementRequests");
+    const { getSettlementManageView } = await import("@/services/creator/settlementManagement");
+    expect(await getSettlementApplyView()).toBe("NOT_REGISTERED"); // the payout account went with the withdrawal
+    m.settlement.registration = {
+      memberType: "INDIVIDUAL",
+      registrant: "다시왔어요",
+      holder: "다시왔어요",
+      bankName: "예시은행",
+      accountMasked: "********5678",
+      code: "F0L0E0X1",
+      submittedAt: "2026-10-06"
+    } as typeof m.settlement.registration;
+    expect(await getSettlementApplyView()).toMatchObject({ availableFn: 0, hasPending: false, recent: [] });
+    expect(await getSettlementManageView({ period: "all" })).toMatchObject({ items: [] });
+
+    // The console keeps the withdrawn account's requests, under 탈퇴한 회원.
+    const review = (await m.getSettlementReview())!;
+    expect(review.rows).toHaveLength(before);
+    expect(new Set(review.rows.map((r) => r.creatorName))).toEqual(new Set(["탈퇴한 회원"]));
+  });
+
   it("does not touch accounts that never withdrew when someone signs up", async () => {
     const m = await load();
     expect(
