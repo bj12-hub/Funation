@@ -100,7 +100,7 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 방송 · 위젯 | W01e | 룰렛 설정 팝업 (항목 · 확률, 크리에이터 상품) | `/creator/widgets` | `164:9319` |
 | 방송 · 위젯 | W02 | 방송 도구 (빙고 · 1줄 완성 · 화면에 보이는 중) | `/creator/widgets/tools` | `212:5861` |
 | 방송 · 위젯 | W03 | 오버레이 주소 (빙고 포함 24개 · OBS 씬 파일 내려받기 · OBS에 한 번에 넣기) | `/creator/widgets/overlays` | `213:5870` |
-| 방송 · 위젯 | W04 | 리모컨 (기능 제어 · 볼륨 · 시그니처 소리 · 방송 도구 · 투표 · 룰렛 스위치 · 뽑기 수령 처리) | `/creator/remote` | `202:5483` |
+| 방송 · 위젯 | W04 | 리모컨 (기능 제어 · 볼륨 · 시그니처 소리 · 방송 도구 · 빙고 · 투표 · 룰렛 스위치 · 뽑기 수령 처리) | `/creator/remote` | `218:5994` |
 | 방송 · 위젯 | W05 | 이펙트 · 효과 | `/creator/widgets/effects` | `66:1840` |
 | 방송 · 위젯 | W06 | 시그니처 후원 (편집 열림) | `/creator/widgets/signatures` | `201:5481` |
 | 방송 · 위젯 | W06b | 시그니처 후원 (한 번에 만들기) | `/creator/widgets/signatures?bulk=1` | `209:5689` |
@@ -113,7 +113,7 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 방송 · 위젯 | W11 | 후원 연동 (SMS 계좌후원 목업 · 받은 입금 3건, 입금자명 가림) | `/creator/widgets/link` | `212:6116` |
 | 크루 방송 | Y03 | 크루 관리 | `/creator/crew` | `200:5757` |
 | 크루 방송 | Y04d | 크루 방송 운영 (방송 중 · 랭크업 · OBS 점수판에 표시) | `/creator/crew/broadcast` | `203:5480` |
-| 크루 방송 | Y04e | 크루 방송 운영 (방송 중 · 팬 메시지 · 요청사항, 다른 카드 생략) | `/creator/crew/broadcast` | `214:5877` |
+| 크루 방송 | Y04e | 크루 방송 운영 (방송 중 · 팬 메시지 · 요청사항 · 도배 기준, 다른 카드 생략) | `/creator/crew/broadcast` | `217:5990` |
 | 크루 방송 | Y04 | 크루 방송 운영 (방송 전 · 시나리오 편집) | `/creator/crew/broadcast` | `116:3886` |
 | 크루 방송 | Y04b | 크루 방송 운영 (방송 중 · 자동엑셀 · 배틀 · 기여도 강탈 · 시나리오, 예시 입력값) | `/creator/crew/broadcast` | `117:3911` |
 | 크루 방송 | Y04c | 크루 방송 운영 (배틀 배수 · 벌칙 기본값, 강탈 기준 · 쿨다운 — 시나리오 · 후원 리스트 카드 생략) | `/creator/crew/broadcast` | `185:5234` |
