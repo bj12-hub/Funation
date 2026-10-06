@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { OVERLAYS } from "./overlayCatalog";
-import { obsFileName, obsSceneCollection, overlaySize } from "./obsScenes";
+import { OBS_ALL_SCENE, obsFileName, obsSceneCollection, overlaySize } from "./obsScenes";
 
 /** OBS 씬 일괄 다운로드 (code-first, 2026-10-06): an OBS scene collection with every overlay. */
 describe("OBS 씬 컬렉션", () => {
@@ -18,12 +18,18 @@ describe("OBS 씬 컬렉션", () => {
     expect(new Set(c.sources.map((s) => s.uuid)).size).toBe(c.sources.length);
   });
 
-  it("groups them into one scene per 분류, each item pointing at an existing source", () => {
+  it("has a 전체 scene first and one scene per 분류, each item pointing at an existing source", () => {
     const groups = [...new Set(OVERLAYS.map((o) => o.group))];
-    expect(c.scene_order.map((s) => s.name)).toEqual(groups.map((g) => `Somnation 장면 · ${g}`));
-    expect(c.current_scene).toBe(c.scene_order[0].name);
-    const items = scenes.flatMap((s) => (s.settings as { items: { name: string; source_uuid: string; scale: object; pos: { x: number; y: number } }[] }).items);
+    expect(c.scene_order.map((s) => s.name)).toEqual([OBS_ALL_SCENE, ...groups.map((g) => `Somnation 장면 · ${g}`)]);
+    expect(c.current_scene).toBe(OBS_ALL_SCENE);
+    type Item = { name: string; source_uuid: string; id: number; scale: object; pos: { x: number; y: number } };
+    const itemsOf = (s: (typeof scenes)[number]) => (s.settings as { items: Item[] }).items;
+    // 전체 holds every overlay once; the 분류 scenes split the same sources between them.
+    expect(itemsOf(scenes[0]).map((i) => i.source_uuid)).toEqual(browser.map((s) => s.uuid));
+    expect(itemsOf(scenes[0]).map((i) => i.id)).toEqual(browser.map((_, i) => i + 1));
+    const items = scenes.slice(1).flatMap(itemsOf);
     expect(items).toHaveLength(OVERLAYS.length);
+    expect(new Set(items.map((i) => i.source_uuid)).size).toBe(OVERLAYS.length);
     for (const item of items) {
       expect(browser.find((s) => s.uuid === item.source_uuid)?.name).toBe(item.name);
       expect(item.scale).toEqual({ x: 1, y: 1 });

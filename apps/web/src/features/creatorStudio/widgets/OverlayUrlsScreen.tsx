@@ -89,7 +89,8 @@ export function OverlayUrlsScreen({ overlayKey, switches }: { overlayKey: string
           <li>위의 &lsquo;OBS 씬 파일 내려받기&rsquo;로 파일을 받아요.</li>
           <li>OBS 메뉴 장면 모음(Scene Collection) → 가져오기(Import)에서 받은 파일을 골라 가져와요.</li>
           <li>
-            장면 모음에서 &lsquo;{OBS_COLLECTION_NAME}&rsquo;를 고르면 분류별 장면 {groups.length}개와 브라우저 소스 {OVERLAYS.length}개가 권장 크기로 들어 있어요. 쓰던 장면 모음은 그대로예요.
+            장면 모음에서 &lsquo;{OBS_COLLECTION_NAME}&rsquo;를 고르면 오버레이 {OVERLAYS.length}개가 모두 들어 있는 &lsquo;전체&rsquo; 장면과 분류별 장면 {groups.length}개가 있어요. 브라우저 소스는 권장
+            크기로 한 번만 만들어져 여러 장면이 함께 써요. 쓰던 장면 모음은 그대로예요.
           </li>
         </ol>
         <p className={styles.note}>파일에 연동 키가 들어 있으니 다른 사람에게 보내지 마세요. 연동 키를 재발급하면 파일을 다시 받아야 해요.</p>

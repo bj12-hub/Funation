@@ -1,7 +1,8 @@
 /**
  * OBS 씬 일괄 다운로드 — code-first (funnation "OBS 씬 컬렉션 일괄 다운로드", 2026-10-06 결정). Builds an OBS
- * Studio scene collection (장면 모음 → 가져오기) with one scene per 오버레이 분류 and one browser source per overlay
- * at its recommended size, centred on a 1920 × 1080 canvas. The file holds the creator's overlay key, so it is
+ * Studio scene collection (장면 모음 → 가져오기) with a "전체" scene holding every overlay, one scene per 오버레이 분류
+ * (2026-10-06 결정) and one browser source per overlay at its recommended size, centred on a 1920 × 1080 canvas. The
+ * scenes share the sources, so a source set up once is the same in every scene. The file holds the creator's overlay key, so it is
  * built in the browser from the page's own data and never sent anywhere.
  */
 import type { OverlayEntry } from "./overlayCatalog";
@@ -11,6 +12,8 @@ const CANVAS = { x: 1920, y: 1080 };
 /** Sources and scenes share one name space in OBS (분류 "타이머" vs overlay "타이머"), so scenes get their own prefix. */
 const PREFIX = "Somnation · ";
 const SCENE_PREFIX = "Somnation 장면 · ";
+/** The scene with every overlay (no 분류 is called this). */
+export const OBS_ALL_SCENE = `${SCENE_PREFIX}전체`;
 
 /** "800 × 600" → [800, 600] (the catalog's recommended OBS size). */
 export function overlaySize(size: string): [number, number] {
@@ -32,10 +35,8 @@ export function obsSceneCollection(overlays: OverlayEntry[], origin: string, ove
     const settings = { url: `${origin}${o.path(overlayKey)}`, width, height };
     return { group: o.group, source: { ...sourceBase, id: "browser_source", versioned_id: "browser_source", name: `${PREFIX}${o.title}`, uuid: uuid(), settings } };
   });
-  const scenes = groups.map((g) => {
-    const items = browser
-      .filter((b) => b.group === g)
-      .map(({ source: s }, i) => ({
+  const scene = (name: string, members: typeof browser) => {
+    const items = members.map(({ source: s }, i) => ({
         name: s.name,
         source_uuid: s.uuid,
         id: i + 1,
@@ -58,8 +59,9 @@ export function obsSceneCollection(overlays: OverlayEntry[], origin: string, ove
         blend_type: "normal",
         private_settings: {}
       }));
-    return { ...sourceBase, mixers: 0, id: "scene", versioned_id: "scene", name: `${SCENE_PREFIX}${g}`, uuid: uuid(), settings: { id_counter: items.length, custom_size: false, items } };
-  });
+    return { ...sourceBase, mixers: 0, id: "scene", versioned_id: "scene", name, uuid: uuid(), settings: { id_counter: items.length, custom_size: false, items } };
+  };
+  const scenes = [scene(OBS_ALL_SCENE, browser), ...groups.map((g) => scene(`${SCENE_PREFIX}${g}`, browser.filter((b) => b.group === g)))];
   const first = scenes[0]?.name ?? "";
   return {
     name: OBS_COLLECTION_NAME,
