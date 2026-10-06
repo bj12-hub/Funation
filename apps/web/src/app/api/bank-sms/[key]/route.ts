@@ -1,5 +1,6 @@
-import { timingSafeEqual } from "node:crypto";
 import { USE_MOCK } from "@/lib/mock";
+import { sameSecret } from "@/lib/secret";
+import { creatorAccessOpen } from "@/services/account/creatorAccess";
 import { bankSmsStore, receiveBankSms } from "@/services/bankSms/bankSmsCore";
 import { BANK_SMS_LIMITS } from "@/services/bankSms/bankSmsTypes";
 
@@ -11,15 +12,11 @@ import { BANK_SMS_LIMITS } from "@/services/bankSms/bankSmsTypes";
 
 const json = (status: number, body: Record<string, unknown>) => Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
 
-const sameKey = (a: string, b: string) => {
-  const x = Buffer.from(a);
-  const y = Buffer.from(b);
-  return x.length === y.length && timingSafeEqual(x, y);
-};
-
 export async function POST(request: Request, { params }: { params: Promise<{ key: string }> }) {
   if (!USE_MOCK) return json(404, { status: "NOT_FOUND" });
-  if (!sameKey((await params).key, bankSmsStore().key)) return json(404, { status: "NOT_FOUND" });
+  if (!sameSecret((await params).key, bankSmsStore().key)) return json(404, { status: "NOT_FOUND" });
+  // A suspended or withdrawn creator's key stops working, like their session does.
+  if (!creatorAccessOpen()) return json(403, { status: "OFF" });
   // Refuse a large body before reading it (a declared length), and again after (chunked bodies have none).
   const limit = BANK_SMS_LIMITS.textMax * 4;
   if (Number(request.headers.get("content-length") ?? 0) > limit * 4) return json(413, { status: "TOO_LARGE" });

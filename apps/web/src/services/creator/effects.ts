@@ -2,6 +2,7 @@
 
 import { USE_MOCK } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
+import { sameSecret } from "@/lib/secret";
 import { advance, mockAlerts, overlaySignal } from "./alertCore";
 import {
   DEFAULT_EFFECTS,
@@ -72,7 +73,7 @@ function resolve(settings: EffectSettings, fnAmount: number): Pick<OverlayEffect
 /** OBS overlay read — no login; the integration key is the secret. */
 export async function getOverlayEffects(key: unknown): Promise<OverlayEffects | "FORBIDDEN"> {
   assertMock();
-  if (typeof key !== "string" || key !== mockCreator.integrationKey) return "FORBIDDEN";
+  if (!sameSecret(key, mockCreator.integrationKey)) return "FORBIDDEN";
   advance();
   const showing = mockAlerts.items.find((a) => a.status === "SHOWING");
   const signal = overlaySignal("effects");

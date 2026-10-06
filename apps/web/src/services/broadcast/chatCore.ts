@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { sameSecret } from "@/lib/secret";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { ADAPTERS, BROADCAST_PLATFORMS } from "@/services/platforms/adapters";
 import { PLATFORM_ERROR_LABEL, PlatformError, type ExternalChatMessage, type PlatformErrorCode } from "@/services/platforms/platformTypes";
@@ -297,7 +298,7 @@ export const managerLinks = () => (chatStore().managerLinks ??= []);
 /** 192-bit random token, URL-safe. */
 export const newManagerToken = () => randomBytes(24).toString("base64url");
 export const isManagerToken = (v: unknown): v is string => typeof v === "string" && /^[A-Za-z0-9_-]{32}$/.test(v);
-export const managerLinkByToken = (token: unknown) => (isManagerToken(token) ? (managerLinks().find((l) => l.token === token) ?? null) : null);
+export const managerLinkByToken = (token: unknown) => (isManagerToken(token) ? (managerLinks().find((l) => sameSecret(token, l.token)) ?? null) : null);
 
 export function managerLinksView(): ManagerLink[] {
   return managerLinks().map((l) => ({ id: l.id, name: l.name, path: managerChatPath(l.token), permissions: [...l.permissions], createdAt: l.createdAt, lastUsedAt: l.lastUsedAt }));

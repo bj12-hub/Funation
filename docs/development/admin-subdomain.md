@@ -27,8 +27,10 @@ ADMIN_HOST=admin.<site domain>
 SITE_API_URL=<internal site URL>
 NEXT_PUBLIC_SITE_URL=https://<site domain>
 ADMIN_API_TOKEN=<long random secret>
-ADMIN_USE_MOCK=false        # once operator auth exists
+ADMIN_USE_MOCK=            # production: mock sign-in stays off unless exactly `true` (demo deployments only)
 ```
+
+`ADMIN_API_TOKEN` must be at least 32 random characters; the site treats the `.env.example` placeholder or a shorter value as unset and answers 503. Admin sign-out deletes the `__Host-` cookie with the same Secure / Path attributes (browsers ignore a deletion without them).
 
 `apps/web/.env.local`: `ADMIN_API_TOKEN=<same secret>`.
 

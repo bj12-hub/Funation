@@ -3,6 +3,7 @@
 import { randomUUID } from "node:crypto";
 import { USE_MOCK } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
+import { creatorAccessOpen } from "@/services/account/creatorAccess";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { banAction, chatView, deleteAction, hideAction, ingestChat, managerLinkByToken, managerLinks, newManagerToken, sendAction, type StoredManagerLink } from "./chatCore";
 import {
@@ -79,6 +80,8 @@ export async function deleteManagerLink(input: unknown): Promise<ChatActionResul
 // ── Manager page (token, no login) ──────────────────────────────────────────────
 
 const linkWith = (token: unknown, permission?: ManagerPermission): StoredManagerLink | null => {
+  // A link acts as the channel, so it stops while the creator is suspended or after they withdraw.
+  if (!creatorAccessOpen()) return null;
   const link = managerLinkByToken(token);
   if (!link || (permission && !link.permissions.includes(permission))) return null;
   return link;
