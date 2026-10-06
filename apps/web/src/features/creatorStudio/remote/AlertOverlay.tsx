@@ -56,8 +56,10 @@ export function AlertOverlay({ data }: { data: OverlayAlert }) {
   useEffect(() => {
     if (!alert?.soundUrl || played.current === alert.id) return;
     played.current = alert.id;
-    if (!data.on || controls.muted || controls.signatureVolume === 0) return;
+    // The previous alert's sound stops first, also when this one stays silent (볼륨 0 · 음소거 · OFF).
     sound.current?.pause();
+    sound.current = null;
+    if (!data.on || controls.muted || controls.signatureVolume === 0) return;
     sound.current = new Audio(alert.soundUrl);
     sound.current.volume = controls.signatureVolume / 100;
     sound.current.play().catch(() => {}); // OBS allows autoplay; a normal browser tab may block it
