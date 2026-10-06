@@ -155,7 +155,7 @@ function feedSummary(b: MockBroadcast): FeedSummaryRow[] {
   const row = (memberId: string | null, name: string, color: string | null, list: typeof counted): FeedSummaryRow => {
     const points: Partial<Record<FeedSourceKey, number>> = {};
     for (const f of list) {
-      const k: FeedSourceKey = f.platform ?? "SOMNATION";
+      const k: FeedSourceKey = f.source === "BANK" ? "BANK" : (f.platform ?? "SOMNATION");
       points[k] = (points[k] ?? 0) + f.points;
     }
     return { memberId, name, color, points, total: list.reduce((s, f) => s + f.points, 0) };
