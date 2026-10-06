@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { deleteAsset, renameAsset, uploadAsset } from "@/services/creator/assets";
-import { ASSET_LIMITS, ASSET_TYPES, pairOf, type Asset, type AssetKind, type AssetResult } from "@/services/creator/assetTypes";
+import { ASSET_LIMITS, ASSET_SORTS, ASSET_TYPES, filterAssets, pairOf, type Asset, type AssetKind, type AssetResult, type AssetSort } from "@/services/creator/assetTypes";
 import styles from "../../crew/crew.module.css";
 import local from "./library.module.css";
 
@@ -14,11 +14,15 @@ const size = (bytes: number) => (bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024)
 /**
  * 이미지·사운드 라이브러리 — code-first (no Figma frame). Route `/creator/widgets/assets`.
  * Files here are used by 배너 (slides) and 시그니처 후원 (images, and sounds — an image and a sound with the same
- * name pair up, 자동 매칭 2026-10-06). Upload policy and review are TBD.
+ * name pair up, 자동 매칭 2026-10-06). Name search, 정렬 and a 짝 filter (funnation "정렬·필터") work on the loaded
+ * list. Upload policy and review are TBD.
  */
 export function AssetsScreen({ items }: { items: Asset[] }) {
   const router = useRouter();
   const [tab, setTab] = useState<AssetKind>("IMAGE");
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<AssetSort>("NEW");
+  const [pairedOnly, setPairedOnly] = useState(false);
   const [editing, setEditing] = useState<{ id: string; name: string } | null>(null);
   const [note, setNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
@@ -65,7 +69,8 @@ export function AssetsScreen({ items }: { items: Asset[] }) {
     });
   };
 
-  const shown = items.filter((a) => a.kind === tab);
+  const ofKind = items.filter((a) => a.kind === tab).length;
+  const shown = filterAssets(items, { kind: tab, query, sort, pairedOnly });
   const used = items.reduce((sum, a) => sum + a.size, 0);
 
   return (
@@ -122,8 +127,37 @@ export function AssetsScreen({ items }: { items: Asset[] }) {
             ))}
           </div>
         </div>
-        {shown.length === 0 ? (
+        {ofKind > 0 && (
+          <div className={local.filters}>
+            <input
+              className={styles.input}
+              type="search"
+              placeholder="이름으로 찾기"
+              aria-label="이름으로 찾기"
+              maxLength={ASSET_LIMITS.nameMax}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            <select className={styles.select} aria-label="정렬" value={sort} onChange={(e) => setSort(e.target.value as AssetSort)}>
+              {ASSET_SORTS.map((o) => (
+                <option key={o.key} value={o.key}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+            <label className={styles.checkRow}>
+              <input type="checkbox" checked={pairedOnly} onChange={(e) => setPairedOnly(e.target.checked)} />
+              짝 있는 파일만
+            </label>
+            <span className={styles.muted} role="status">
+              {shown.length === ofKind ? `${ofKind}개` : `${ofKind}개 중 ${shown.length}개`}
+            </span>
+          </div>
+        )}
+        {ofKind === 0 ? (
           <p className={styles.empty}>아직 올린 {KIND_LABEL[tab]}가 없어요.</p>
+        ) : shown.length === 0 ? (
+          <p className={styles.empty}>조건에 맞는 {KIND_LABEL[tab]}가 없어요. 검색어나 필터를 바꿔 보세요.</p>
         ) : (
           <ul className={tab === "IMAGE" ? local.grid : styles.list}>
             {shown.map((a) => (
