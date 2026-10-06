@@ -1,5 +1,5 @@
-import { timingSafeEqual } from "node:crypto";
 import { USE_MOCK } from "@/lib/mock";
+import { sameSecret } from "@/lib/secret";
 import type { AdminActor } from "@/services/admin/adminTypes";
 
 /**
@@ -14,17 +14,14 @@ import type { AdminActor } from "@/services/admin/adminTypes";
 
 /** Development-only fallback so the mock setup works without an env file (never used in production). */
 const DEV_TOKEN = "dev-only-admin-api-token";
+/** The `.env.example` placeholder, and anything this short, counts as "not configured" (the API answers 503). */
+const PLACEHOLDER_TOKEN = "replace-with-a-long-random-secret";
+export const ADMIN_TOKEN_MIN_LENGTH = 32;
 
 function expectedToken(): string | null {
   const fromEnv = process.env.ADMIN_API_TOKEN;
-  if (fromEnv) return fromEnv;
+  if (fromEnv) return fromEnv.length >= ADMIN_TOKEN_MIN_LENGTH && fromEnv !== PLACEHOLDER_TOKEN ? fromEnv : null;
   return USE_MOCK && process.env.NODE_ENV !== "production" ? DEV_TOKEN : null;
-}
-
-function sameSecret(a: string, b: string) {
-  const x = Buffer.from(a);
-  const y = Buffer.from(b);
-  return x.length === y.length && timingSafeEqual(x, y);
 }
 
 export type AdminAuth = { ok: true; admin: AdminActor } | { ok: false; status: 401 | 503 };

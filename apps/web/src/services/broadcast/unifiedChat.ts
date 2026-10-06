@@ -2,6 +2,7 @@
 
 import { USE_MOCK } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
+import { sameSecret } from "@/lib/secret";
 import { mockCreator } from "@/services/creator/mockCreatorStore";
 import { ADAPTERS, BROADCAST_PLATFORMS } from "@/services/platforms/adapters";
 import { mockViewerChat } from "@/services/platforms/mockBroadcastRemote";
@@ -120,7 +121,7 @@ export async function simulateChatReconnect(input: unknown): Promise<ChatActionR
 /** OBS overlay read — no login (OBS cannot sign in); the integration key is the secret. */
 export async function getChatOverlay(key: unknown): Promise<ChatOverlayLine[] | "FORBIDDEN"> {
   assertMock();
-  if (typeof key !== "string" || key !== mockCreator.integrationKey) return "FORBIDDEN";
+  if (!sameSecret(key, mockCreator.integrationKey)) return "FORBIDDEN";
   await ingestChat();
   return overlayLines();
 }

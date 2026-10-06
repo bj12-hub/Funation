@@ -17,6 +17,15 @@ async function load() {
 }
 
 const tokenOf = (path: string) => path.split("/").at(-1)!;
+const suspendCreator = async () => {
+  const { SAMPLE_MEMBER_ID, memberStore } = await import("@/services/admin/memberCore");
+  memberStore().suspensions[SAMPLE_MEMBER_ID] = { reason: "테스트 정지", at: new Date().toISOString(), until: null, by: "adm-1" };
+  return () => delete memberStore().suspensions[SAMPLE_MEMBER_ID];
+};
+const withdrawCreator = async () => {
+  const { withdrawalStore } = await import("@/services/account/withdrawalCore");
+  withdrawalStore().withdrawal = { at: new Date().toISOString(), requestId: key(99), forfeitedFn: 0, forfeitedEarningsFn: 0, nickname: "홍길동", funationId: "hongGD123" };
+};
 
 describe("매니저 채팅창 링크", () => {
   beforeEach(() => resetMockStores());
@@ -72,5 +81,22 @@ describe("매니저 채팅창 링크", () => {
     expect(await m.getManagerChat(token)).toBe("FORBIDDEN");
     expect(await m.managerHideMessage(token, { id: spam.id, hidden: false })).toEqual({ status: "UNAUTHORIZED" });
     expect(await m.getManagerChat("not-a-token")).toBe("FORBIDDEN");
+  });
+
+  it("stops every link while the creator is suspended and after they withdraw", async () => {
+    const m = await load();
+    await m.createManagerLink({ requestId: key(1), name: "지민", permissions: ["HIDE", "MODERATE", "SEND"] });
+    const token = tokenOf((await m.getUnifiedChat())!.managerLinks[0].path);
+    expect(await m.getManagerChat(token)).not.toBe("FORBIDDEN");
+
+    const restore = await suspendCreator();
+    expect(await m.getManagerChat(token)).toBe("FORBIDDEN");
+    expect(await m.managerSendChat(token, { requestId: key(30), text: "공지", platforms: ["YOUTUBE"] })).toEqual({ status: "UNAUTHORIZED" });
+    expect(await m.managerHideMessage(token, { id: "x", hidden: true })).toEqual({ status: "UNAUTHORIZED" });
+    restore();
+    expect(await m.getManagerChat(token)).not.toBe("FORBIDDEN");
+
+    await withdrawCreator();
+    expect(await m.getManagerChat(token)).toBe("FORBIDDEN");
   });
 });

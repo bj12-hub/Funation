@@ -17,7 +17,12 @@ const SESSION_SECONDS = 8 * 60 * 60;
 
 export type Operator = { id: string; name: string };
 
-export const isMock = () => process.env.ADMIN_USE_MOCK !== "false";
+/**
+ * Mock operator sign-in. Development: on unless `ADMIN_USE_MOCK=false`. Production: off unless explicitly
+ * `ADMIN_USE_MOCK=true` (a demo deployment only), so a missing or empty variable never opens the console.
+ */
+export const isMock = () =>
+  process.env.NODE_ENV === "production" ? process.env.ADMIN_USE_MOCK === "true" : process.env.ADMIN_USE_MOCK !== "false";
 
 export async function getOperator(): Promise<Operator | null> {
   const token = (await cookies()).get(OPERATOR_COOKIE)?.value;
@@ -32,5 +37,6 @@ export async function startMockOperatorSession(): Promise<Operator> {
 }
 
 export async function endOperatorSession() {
-  (await cookies()).delete(OPERATOR_COOKIE);
+  // Browsers ignore a `__Host-` Set-Cookie without Secure, so the deletion repeats the cookie's attributes.
+  (await cookies()).delete({ name: OPERATOR_COOKIE, path: "/", secure, httpOnly: true, sameSite: "strict" });
 }

@@ -2,6 +2,7 @@
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
+import { sameSecret } from "@/lib/secret";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { memberRanking } from "@/services/crew/crewCore";
 import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
@@ -249,7 +250,7 @@ export async function controlBingo(action: unknown): Promise<ToolResult> {
 /** OBS overlay read — no login (OBS cannot sign in); the integration key is the secret. */
 export async function getOverlayTool(tool: unknown, key: unknown): Promise<OverlayTool | "FORBIDDEN"> {
   assertMock();
-  if (typeof key !== "string" || key !== mockCreator.integrationKey || !isToolKey(tool)) return "FORBIDDEN";
+  if (!sameSecret(key, mockCreator.integrationKey) || !isToolKey(tool)) return "FORBIDDEN";
   // 리모컨 signals: 오버레이 새로고침 (reloadSeq) and 기능 제어 ON/OFF (on).
   const signal = overlaySignal(tool);
   switch (tool) {
