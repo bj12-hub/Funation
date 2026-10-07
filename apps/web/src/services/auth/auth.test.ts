@@ -42,11 +42,13 @@ describe("비밀번호 재설정 · 휴대폰 인증", () => {
     const { login } = await import("./login");
     const { mockCredentials } = await import("@/services/account/mockStore");
     const session = await import("@/lib/session");
+    vi.mocked(session.revokeSession).mockClear();
     const m = await import("./passwordReset");
     const signIn = (password: string) => login({ identifier: "hongGD123", password, keepSignedIn: false });
     for (let i = 0; i < 5; i++) await signIn("wrong");
     expect((await signIn("password")).status).toBe("LOCKED");
     const before = mockCredentials.changedAt;
+    expect(session.revokeSession).not.toHaveBeenCalled();
 
     expect(await m.resetPassword(await phoneToken("PASSWORD_RESET"), "Abcd1234!")).toEqual({ status: "RESET" });
     expect(mockCredentials.password).toBe("Abcd1234!");
