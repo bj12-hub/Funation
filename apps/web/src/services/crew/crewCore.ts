@@ -20,12 +20,14 @@ export function parseMultiplier(m: unknown, max: number): number | null {
 }
 
 /**
- * 배수 are stored to two decimals; points are multiplied and divided in whole hundredths so every board agrees:
- * 50 × 1.15 is 57.49999… in floating point (57) but 58 in hundredths.
+ * 배수 (자동엑셀 규칙 · 기여도 · 배틀 · 직급) are stored to two decimals; every board multiplies in whole hundredths so
+ * they agree: 50 × 1.15 is 57.49999… in floating point (57) but 58 in hundredths.
  */
 const hundredths = (m: number) => Math.round(m * 100);
 /** `points` × `m`, rounded once to whole points. */
 export const timesMultiplier = (points: number, m: number) => Math.round((points * hundredths(m)) / 100);
+/** What a ×`m` adds on top of `points`: (m − 1) × points, rounded once (1.15 − 1 is 0.1499… in floating point). */
+export const extraPoints = (points: number, m: number) => Math.round((points * (hundredths(m) - 100)) / 100);
 
 export function parseBattleRules(v: Record<string, unknown>, forbidden: string[]): BattleRules | { message: string } {
   const m = parseMultiplier(v.multiplier, BATTLE_MULTIPLIER_MAX);
@@ -126,7 +128,7 @@ export function scoreEntry(e: FeedEntry, s: ExcelSettings): FeedEntryView {
   const base = baseAmount(e.amount, e.unit, s);
   const c = e.contribution;
   const multiplier = c?.kind === "MULTIPLIER" ? c.value : ruleMultiplier(base, s);
-  const points = c?.kind === "POINTS" ? c.value : base === null ? 0 : Math.round(base * multiplier);
+  const points = c?.kind === "POINTS" ? c.value : base === null ? 0 : timesMultiplier(base, multiplier);
   return { ...e, base, multiplier, points };
 }
 
@@ -217,8 +219,7 @@ export function gradeBonus(b: MockBroadcast): Map<string, number> {
   const add = (id: string, p: number) => mult.has(id) && received.set(id, (received.get(id) ?? 0) + p);
   for (const a of mockCrew.attributions) if (a.channelId === b.channelId && a.at >= b.startedAt && a.at <= end) add(a.memberId, scoreFn(a.fnAmount, s));
   for (const f of b.feed ?? []) if (f.status === "ASSIGNED" && f.memberId) add(f.memberId, scoreEntry(f, s).points);
-  // In hundredths: 1.15 − 1 is 0.1499… in floating point, which would round some bonuses a point short.
-  for (const [id, points] of received) bonus.set(id, Math.round((points * (Math.round(mult.get(id)! * 100) - 100)) / 100));
+  for (const [id, points] of received) bonus.set(id, extraPoints(points, mult.get(id)!));
   return bonus;
 }
 
@@ -235,7 +236,7 @@ export function battleBonus(b: MockBroadcast, now = Date.now()): Map<string, num
     if (m === 1) continue;
     const endMs = Math.min(Date.parse(x.endsAt), x.stoppedAt ? Date.parse(x.stoppedAt) : Infinity);
     const received = windowReceived(b, x.startedAt, endMs > now ? null : new Date(endMs).toISOString());
-    for (const id of [...x.a, ...x.b]) bonus.set(id, (bonus.get(id) ?? 0) + Math.round((received.get(id) ?? 0) * (m - 1)));
+    for (const id of [...x.a, ...x.b]) bonus.set(id, (bonus.get(id) ?? 0) + extraPoints(received.get(id) ?? 0, m));
   }
   return bonus;
 }
@@ -249,7 +250,7 @@ export function stealRecordView(channelId: string, x: NonNullable<MockBroadcast[
 /** Points for a member-targeted FN donation (same conversion and 배수 규칙 as the list). */
 export function scoreFn(fnAmount: number, s: ExcelSettings) {
   const base = baseAmount(fnAmount, "FN", s);
-  return base === null ? 0 : Math.round(base * ruleMultiplier(base, s));
+  return base === null ? 0 : timesMultiplier(base, ruleMultiplier(base, s));
 }
 
 /**

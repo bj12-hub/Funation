@@ -47,6 +47,26 @@ describe("자동엑셀", () => {
     expect(v.feed!.entries[0]).toMatchObject({ base: 10_000, multiplier: 1, points: 10_000 });
   });
 
+  it("multiplies in whole hundredths, so ×1.15 on 50 is 58 on every board", async () => {
+    const { simulateDonation, setExcelSettings, attributeMemberDonation, view, id } = await startLive();
+    const battle = await import("./crewBattle");
+    // 50 × 1.15 is 57.49999… in floating point.
+    await setExcelSettings({ unit: "FN", rates: {}, rules: [{ min: 1, multiplier: 1.15 }] });
+    await simulateDonation({ broadcastId: id, requestId: key(1), amount: 50, unit: "FN", message: "길동" });
+    attributeMemberDonation("dn-r1", "studio", "cm-s3", 50); // a member-targeted donation (바다)
+    let v = await view();
+    expect(v.feed!.entries[0]).toMatchObject({ multiplier: 1.15, points: 58 });
+    expect(score(v, "cm-s1")).toBe(58);
+    expect(score(v, "cm-s3")).toBe(58);
+
+    await setExcelSettings({ unit: "FN", rates: {}, rules: [] });
+    await battle.startBattle({ broadcastId: id, requestId: key(2), mode: "MEMBERS", memberA: "cm-s1", memberB: "cm-s2", durationSec: 300, multiplier: 1.15 });
+    await simulateDonation({ broadcastId: id, requestId: key(3), amount: 50, unit: "FN", message: "하늘" });
+    v = await view();
+    expect(v.live!.battles[0].sides[1].score).toBe(58); // battle board
+    expect(score(v, "cm-s2")).toBe(58); // main scoreboard: 50 + 배틀 배수 8
+  });
+
   it("applies the highest matching 배수 규칙, and 수기 기여도 wins over it", async () => {
     const { simulateDonation, setExcelSettings, setEntryContribution, view, id } = await startLive();
     await setExcelSettings({ unit: "KRW", rates: { 별풍선: 100 }, rules: [{ min: 50_000, multiplier: 3 }, { min: 10_000, multiplier: 1.5 }] });

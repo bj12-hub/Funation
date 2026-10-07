@@ -24,7 +24,7 @@ import {
   type ScoreRow,
   type TeamKey
 } from "./crewTypes";
-import { battleBonus, battleRulesOf, fanNotesView, gradeBonus, gradeMultipliersOf, excelOf, liveBroadcastOf, scoreEntry, scoreFn, stealRecordView, stealRulesOf, windowReceived, windowScores, windowSteals } from "./crewCore";
+import { battleBonus, battleRulesOf, fanNotesView, gradeBonus, gradeMultipliersOf, excelOf, liveBroadcastOf, scoreEntry, scoreFn, stealRecordView, stealRulesOf, timesMultiplier, windowReceived, windowScores, windowSteals } from "./crewCore";
 import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 /**
@@ -125,7 +125,7 @@ function battleView(b: MockBroadcast, x: NonNullable<MockBroadcast["battles"]>[n
       color: one?.color ?? TEAM_COLOR[key],
       memberIds: [...ids],
       // 배틀 배수 multiplies what the side received; 기여도 강탈 moves points as they are (2026-10-07 결정).
-      score: Math.round(sum(received, ids) * multiplier) + sum(steals, ids)
+      score: timesMultiplier(sum(received, ids), multiplier) + sum(steals, ids)
     };
   };
   const sides: [Battle["sides"][0], Battle["sides"][1]] = [side("A", x.a), side("B", x.b)];
