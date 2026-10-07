@@ -11,6 +11,9 @@ export type AttendanceReward = {
   fnAmount: number;
   emoji: string;
   description: string;
+  /** Paid automatically the moment it is reached, never claimed on the screen (2026-10-08 결정: 15·30일). */
+  auto: boolean;
+  /** An automatic reward is CLAIMED once paid and LOCKED until then; it is never CLAIMABLE. */
   status: RewardStatus;
 };
 
@@ -34,7 +37,8 @@ export type AttendanceSummary = {
 };
 
 export type CheckInResult =
-  | { status: "CHECKED_IN"; reward: number; balance: number; claimable: AttendanceReward | null }
+  /** `autoPaid`: automatic rewards this check-in reached and paid (already in `balance`). */
+  | { status: "CHECKED_IN"; reward: number; balance: number; claimable: AttendanceReward | null; autoPaid: AttendanceReward[] }
   | { status: "ALREADY_CHECKED_IN" | "UNAUTHORIZED" };
 
 export type ClaimResult = { status: "CLAIMED"; fnAmount: number; balance: number } | { status: "NOT_CLAIMABLE" | "UNAUTHORIZED" };

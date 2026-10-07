@@ -25,7 +25,7 @@ Backend framework, database, payment provider and every business rule listed as 
 | FN 충전 | `wallet/charge.requestCharge` | credit FN | key + fingerprint (`CONFLICT`, `IN_PROGRESS`, failures cached) | charge row |
 | 크리에이터 룸 후원 | `donations/donate.requestDonation` | debit FN | key + fingerprint | donation row |
 | SOOP · FlexTV 후원 | `platformDonation/platformDonation.requestPlatformDonation` | hold/debit FN → platform call → reverse on refusal; stays held on timeout (`PENDING`) | key + fingerprint | platform transaction + wallet mirror |
-| 출석 보상 | `attendance.checkIn` · `claimAttendanceReward` | credit FN | natural (once per day / reward) | credit ledger (`wallet/mockCreditStore`) |
+| 출석 보상 | `attendance.checkIn` (daily + automatic 15·30-day rewards) · `claimAttendanceReward` (3·7-day) | credit FN | natural (once per day per person / reward per month) | credit ledger (`wallet/mockCreditStore`, tagged with the account marker) |
 | 정산 신청 | `creator/settlementRequests.requestSettlement` | debit creator earnings (`availableFn`) | key + amount (`CONFLICT`) | PENDING settlement request (`st-<uuid>`) with a copy of the masked registration at request time |
 
 Not implemented anywhere yet (TBD): refunds, holds for quest/quiz outcomes, creator revenue credit from donations, platform fees, payouts, reconciliation of platform `PENDING` results.
@@ -121,7 +121,7 @@ Platform access goes through `PlatformAdapter` (`adapters.ts`, CLAUDE.md §9). T
 ### favorites · attendance (S)
 
 - `getFavorites` · `addFavorite` (idempotent) · `removeFavorite` · `isFavorite`
-- `getAttendance` · `checkIn` · `claimAttendanceReward` — reward amounts, monthly reset and time zone TBD.
+- `getAttendance` · `checkIn` · `claimAttendanceReward` — 2026-10-08 결정: the 15·30-day rewards are paid automatically by the check-in that reaches them (`CHECKED_IN.autoPaid`, a REWARD wallet record each, once per month) and are never `CLAIMABLE`; only 3·7 are claimed. One check-in per day per person, keyed by the phone verified at sign-up (a same-day 재가입 with the same phone gets `ALREADY_CHECKED_IN`); a 재가입 account otherwise starts with no progress or rewards (state and credits carry the account marker). Reward amounts and time zone TBD.
 
 ## 4. Known gaps to close with the backend
 

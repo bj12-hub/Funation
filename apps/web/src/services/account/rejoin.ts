@@ -9,7 +9,10 @@ import { withdrawalStore } from "./withdrawalCore";
  * account slot, so a sign-up after a withdrawal starts a new account in it: new nickname and password, no FN,
  * no links, supporter role only, an empty wallet history (earlier charges and donations belong to the
  * withdrawn account and are not restored), no consent to the FN charge terms (the new member agrees again) and
- * no settlement history or earnings (the withdrawn account's requests stay with the admin console only). The withdrawal record stays for audit. Mock limitation: the
+ * no settlement history or earnings (the withdrawn account's requests stay with the admin console only). The new
+ * start marker (`accountSince`) also gives it its own 출석 month and reward credits (services/attendance), and a
+ * fresh login failure count; the phone verified at sign-up becomes its phone (today's check-in counts once per
+ * person, 2026-10-08 결정). The withdrawal record stays for audit. Mock limitation: the
  * 썸네이션 ID and other per-account sample data (favorites, messages …) are shared with the old slot.
  */
 export function startNewAccount(input: { nickname: string; password: string; marketing: boolean; phone: string }, now = new Date()) {
