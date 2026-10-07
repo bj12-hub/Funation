@@ -110,7 +110,7 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 방송 · 위젯 | W03b | 오버레이 미리보기 (OBS 크기 · 배경 · 테스트 후원) | `/creator/widgets/overlays/preview/[id]` | `200:5999` |
 | 방송 · 위젯 | W01f | 후원랭킹 위젯 팝업 (랭킹 종류 · 수단별 보드) | `/creator/widgets` | `205:15223` |
 | 방송 · 위젯 | W10 | 배너 (기능 제어 OFF 안내 · 배너 OFF 예시) | `/creator/widgets/banner` | `66:2782` |
-| 방송 · 위젯 | W11 | 후원 연동 (SMS 계좌후원 목업 · 받은 입금 3건, 입금자명 가림) | `/creator/widgets/link` | `212:6116` |
+| 방송 · 위젯 | W11 | 후원 연동 (치지직 · SOOP · FlexTV "API 확인 중", SMS 계좌후원 목업) | `/creator/widgets/link` | `229:6102` |
 | 크루 방송 | Y03 | 크루 관리 | `/creator/crew` | `200:5757` |
 | 크루 방송 | Y04d | 크루 방송 운영 (방송 중 · 랭크업 · OBS 점수판에 표시) | `/creator/crew/broadcast` | `203:5480` |
 | 크루 방송 | Y04e | 크루 방송 운영 (방송 중 · 팬 메시지 · 요청사항 · 도배 기준, 다른 카드 생략) | `/creator/crew/broadcast` | `217:5990` |
