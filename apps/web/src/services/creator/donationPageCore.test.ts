@@ -99,6 +99,31 @@ describe("방송에 보이는 후원 (shownOnStream)", () => {
     expect(last()).toMatchObject({ donor: "홍길동", message: DEFAULT_TEXT });
   });
 
+  it("covers the quest widget title and the drawing overlay on stream (2026-10-07 결정), never the records", async () => {
+    const m = await load();
+    m.donationPageStore.replacement = { applyToNickname: true, applyToText: true, bannedWords: ["클리어"], message: "" };
+    const { recordQuest, mockQuests } = await import("@/services/donations/questCore");
+    const { mockCreator } = await import("./mockCreatorStore");
+    const { getOverlayWidget } = await import("./widgetOverlay");
+    const { STUDIO_CHANNEL } = await import("@/services/crew/mockCrewStore");
+    recordQuest({ id: "q-title", channelId: STUDIO_CHANNEL, supporterUserId: "u-1", donor: "홍길동", donorId: "", title: "보스 클리어", amount: 5_000, timeLimitSec: 600, creatorDecides: false, createdAt: new Date().toISOString() });
+    const w = await getOverlayWidget("quest", mockCreator.integrationKey);
+    if (w === "FORBIDDEN" || !("quests" in w)) throw new Error("no quest widget");
+    expect(w.quests.find((q) => q.id === "q-title")!.title).toBe(DEFAULT_TEXT);
+    expect(mockQuests.items.find((q) => q.id === "q-title")!.title).toBe("보스 클리어");
+
+    const { addDonationDrawing, addDrawing, mockMedia } = await import("./mediaCore");
+    const { getOverlayDrawing } = await import("./media");
+    addDonationDrawing(STUDIO_CHANNEL, { donor: "클리어팬", title: "클리어 기념", fnAmount: 1_000, image: "data:image/png;base64,AAAA" });
+    expect(await getOverlayDrawing(mockCreator.integrationKey)).toMatchObject({ drawing: { donor: "익명", title: DEFAULT_TEXT } });
+    expect(mockMedia.drawings[0]).toMatchObject({ donor: "클리어팬", title: "클리어 기념" });
+    // 테스트 그림 are shown as they are.
+    mockMedia.showing = null;
+    mockMedia.drawingQueue = [];
+    addDrawing({ kind: "TEST", donor: "테스트", title: "클리어 테스트", fnAmount: 0, image: "data:image/png;base64,AAAA" });
+    expect(await getOverlayDrawing(mockCreator.integrationKey)).toMatchObject({ drawing: { title: "클리어 테스트" } });
+  });
+
   it("changes nothing while every filter is off", async () => {
     const { send, last, shownOnStream } = await load();
     for (const message of ["ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ", "운 영 자", "광고 아니에요"]) {
