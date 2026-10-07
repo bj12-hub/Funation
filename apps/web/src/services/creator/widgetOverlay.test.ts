@@ -151,6 +151,22 @@ describe("후원 위젯 계산", () => {
     expect(ranking("전체", 1)).toHaveLength(1);
   });
 
+  it("groups 후원랭킹 rows by donor key (latest name shown), never by a copyable name", () => {
+    const keyed = [
+      alert("2026-10-03T09:00:00", "별빛", 1_000, { donorKey: "dk-copycat" }), // copies the top donor's name
+      alert("2026-10-03T09:10:00", "새벽", 2_000, { donorKey: "dk-a" }),
+      alert("2026-10-03T09:20:00", "새벽별명", 3_000, { donorKey: "dk-a" }),
+      alert("2026-10-03T09:30:00", "응원 고마워요", 90_000, { donorKey: null }) // 프로필 숨기기, whatever name shows
+    ];
+    const rows = rankingRows([...feed, ...keyed], { ...D.RANKING, period: "전체", ranks: 5 }, now).map((r) => [r.name, r.fnAmount]);
+    expect(rows).toEqual([
+      ["별빛", 35_000],
+      ["치즈냥", 20_000],
+      ["새벽별명", 5_000],
+      ["별빛", 1_000]
+    ]);
+  });
+
   it("writes 최근알림 lines newest first with each platform's template", () => {
     const lines = recentLines(feed, { ...D.RECENT, count: 3 });
     expect(lines.map((l) => [l.nickname, l.platform, `${l.before}${l.nickname}${l.after}`])).toEqual([

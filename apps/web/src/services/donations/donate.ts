@@ -5,7 +5,7 @@ import { toDateString } from "@/lib/period";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS, mockAccount } from "@/services/account/mockStore";
-import { enqueueDonationAlert } from "@/services/creator/alertCore";
+import { donorKeyOf, enqueueDonationAlert } from "@/services/creator/alertCore";
 import { getCreatorById } from "@/services/creators/creators";
 import { attributeMemberDonation, isActiveMember, liveBroadcastOf, recordBroadcastDonation } from "@/services/crew/crewCore";
 import { attributeDonation, ownsNickname, resolveBadges } from "@/services/supporter/identityCore";
@@ -129,6 +129,8 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
     if (request.type === "ROULETTE") enqueueSpin({ id: donationId, channelId: creator.id, supporterUserId: session.userId, donor, amount: request.amount });
     enqueueDonationAlert(creator.id, {
       donor,
+      // 후원랭킹 groups by this opaque key, never by the (copyable) name; a hidden profile has none.
+      donorKey: request.hideProfile ? null : donorKeyOf(creator.id, session.userId),
       badges,
       message: request.summary,
       fnAmount: request.amount,

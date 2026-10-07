@@ -4,7 +4,7 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { computeIdentity, nicknameList, resolveBadges } from "./identityCore";
-import { MAX_NICKNAMES, NICKNAME_RULE, type AlertBadges, type EquipSettings, type GlobalTitleKey, type IdentitySaveResult, type SupporterIdentity } from "./identityTypes";
+import { MAX_NICKNAMES, NICKNAME_RULE, isReservedNickname, type AlertBadges, type EquipSettings, type GlobalTitleKey, type IdentitySaveResult, type SupporterIdentity } from "./identityTypes";
 import { mockIdentity } from "./mockIdentityStore";
 
 /**
@@ -30,7 +30,8 @@ export async function getSupporterIdentity(): Promise<SupporterIdentity | null> 
 function checkName(name: unknown, exceptId?: string): string | null {
   if (typeof name !== "string" || !NICKNAME_RULE.test(name.trim())) return "2~12자의 한글, 영문, 숫자, _만 사용할 수 있어요.";
   const n = name.trim();
-  if (MOCK_FORBIDDEN_WORDS.some((w) => n.toLowerCase().includes(w))) return "사용할 수 없는 단어가 포함되어 있어요.";
+  // 익명 is what a hidden profile shows: an 별명 cannot pose as it (TBD: uniqueness across members).
+  if (isReservedNickname(n) || MOCK_FORBIDDEN_WORDS.some((w) => n.toLowerCase().includes(w))) return "사용할 수 없는 단어가 포함되어 있어요.";
   if (nicknameList().some((x) => x.id !== exceptId && x.name.toLowerCase() === n.toLowerCase())) return "이미 등록한 별명이에요.";
   return null;
 }
