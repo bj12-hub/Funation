@@ -11,6 +11,7 @@ import {
   type SoopChatDto,
   type YtChatDto
 } from "./mockBroadcastRemote";
+import type { AmountUnit, UnitCode } from "@/types/donationUnit";
 import { PlatformError, type ChannelProfile, type ChannelVideo, type ChatAuthorRole, type ExternalChatMessage, type ExternalDonationEvent, type PlatformCapability } from "./platformTypes";
 
 /**
@@ -202,13 +203,16 @@ function chatMessage(platform: Platform, id: unknown, userId: unknown, nick: unk
   return { platform, externalMessageId, author: { platformUserId, displayName: clip(displayName, 40), roles }, text: clip(body, MAX_TEXT), sentAt };
 }
 
-/** A donation event after the shared checks, or null. */
-function donationEvent(platform: Platform, id: unknown, nick: unknown, message: unknown, time: unknown, value: number | null, currency: string | null, kindLabel: string): ExternalDonationEvent | null {
+/**
+ * A donation event after the shared checks, or null. `unit` is already the stable code (types/donationUnit): the
+ * platform's own unit name never leaves the adapter.
+ */
+function donationEvent(platform: Platform, id: unknown, nick: unknown, message: unknown, time: unknown, value: number | null, unit: AmountUnit | null, kindLabel: string): ExternalDonationEvent | null {
   const externalEventId = idOf(id);
   const donorName = str(nick);
   const occurredAt = toIsoTime(time);
-  if (!externalEventId || donorName === null || !occurredAt || value === null || !currency) return null;
-  return { platform, externalEventId, donorName: clip(donorName, 40), message: clip(str(message) ?? "", 200), amount: { value, currency }, kindLabel, occurredAt };
+  if (!externalEventId || donorName === null || !occurredAt || value === null || !unit) return null;
+  return { platform, externalEventId, donorName: clip(donorName, 40), message: clip(str(message) ?? "", 200), amount: { value, unit }, kindLabel, occurredAt };
 }
 /** Index cursor over an append-only remote list (the real APIs use page tokens / socket offsets). */
 const sliceFrom = <T>(list: T[], cursor: string | null) => ({ items: list.slice(cursor ? Number(cursor) || 0 : 0), cursor: String(list.length) });
@@ -241,12 +245,15 @@ function ytRoles(a: YtChatDto["authorDetails"]): ChatAuthorRole[] {
 export const mapYouTubeChat = (d: YtChatDto): ExternalChatMessage | null =>
   chatMessage("YOUTUBE", d.id, d.authorDetails.channelId, d.authorDetails.displayName, d.snippet.displayMessage, d.snippet.publishedAt, ytRoles(d.authorDetails));
 
-/** Super Chat → donation event. `amountMicros` is a whole number of millionths of `currency` (ISO 4217). */
+/**
+ * Super Chat → donation event. `amountMicros` is a whole number of millionths of `currency` (ISO 4217). An ISO code is
+ * its own unit code: KRW · USD · JPY are 자동엑셀 units, any other currency is shown only.
+ */
 export function mapYouTubeSuperChat(d: YtSuperChatDto): ExternalDonationEvent | null {
   const details = d.snippet.superChatDetails;
   const micros = toAmount(details.amountMicros, { integer: true, max: AMOUNT_MAX * 1_000_000 });
-  const currency = typeof details.currency === "string" && /^[A-Z]{3}$/.test(details.currency) ? details.currency : null;
-  return donationEvent("YOUTUBE", d.id, d.authorDetails.displayName, details.userComment, d.snippet.publishedAt, micros === null ? null : micros / 1_000_000, currency, "YouTube 슈퍼챗");
+  const unit = typeof details.currency === "string" && /^[A-Z]{3}$/.test(details.currency) ? details.currency : null;
+  return donationEvent("YOUTUBE", d.id, d.authorDetails.displayName, details.userComment, d.snippet.publishedAt, micros === null ? null : micros / 1_000_000, unit, "YouTube 슈퍼챗");
 }
 
 async function ytFetchSuperChats(channelId: string): Promise<YtSuperChatDto[]> {
@@ -309,7 +316,7 @@ export const mapChzzkChat = (d: ChzzkChatDto): ExternalChatMessage | null =>
   chatMessage("CHZZK", d.messageId, d.senderChannelId, d.profile.nickname, d.content, d.messageTime, chzzkRoles(d.profile));
 
 export const mapChzzkDonation = (d: ChzzkDonationDto): ExternalDonationEvent | null =>
-  donationEvent("CHZZK", d.donationId, d.donatorNickname, d.donationText, d.donatedAt, toAmount(d.payAmount, { integer: true }), "치즈", "치지직 치즈");
+  donationEvent("CHZZK", d.donationId, d.donatorNickname, d.donationText, d.donatedAt, toAmount(d.payAmount, { integer: true }), "CHZZK_CHEESE" satisfies UnitCode, "치지직 치즈");
 
 export const ChzzkAdapter: PlatformAdapter = {
   platform: "CHZZK",
@@ -349,7 +356,7 @@ export const mapSoopChat = (d: SoopChatDto): ExternalChatMessage | null =>
   chatMessage("SOOP", soopNo("soop", d.chatNo), d.userId, d.userNick, d.message, d.ts, rolesOf(SOOP_ROLE, d.userFlag));
 
 export const mapSoopBalloon = (d: SoopBalloonDto): ExternalDonationEvent | null =>
-  donationEvent("SOOP", soopNo("balloon", d.balloonNo), d.userNick, d.message, d.ts, toAmount(d.count, { integer: true }), "별풍선", "SOOP 별풍선");
+  donationEvent("SOOP", soopNo("balloon", d.balloonNo), d.userNick, d.message, d.ts, toAmount(d.count, { integer: true }), "SOOP_BALLOON" satisfies UnitCode, "SOOP 별풍선");
 
 export const SoopAdapter: PlatformAdapter = {
   platform: "SOOP",
@@ -382,9 +389,10 @@ const FLEX_ROLE: Record<FlexChatDto["user"]["grade"], ChatAuthorRole[]> = { OWNE
 export const mapFlexChat = (d: FlexChatDto): ExternalChatMessage | null =>
   chatMessage("FLEXTV", d.id, d.user.id, d.user.nick, d.text, d.createdAt, rolesOf(FLEX_ROLE, d.user.grade));
 
-// FlexTV's donation unit is unconfirmed (TBD): shown as delivered, never converted, and fractions are not rejected.
+// FlexTV's donation unit is unconfirmed (TBD): shown as delivered under a placeholder code (FLEXTV_UNIT), converted
+// only with a value the creator enters, and fractions are not rejected.
 export const mapFlexDonation = (d: FlexDonationDto): ExternalDonationEvent | null =>
-  donationEvent("FLEXTV", d.id, d.user.nick, d.text, d.createdAt, toAmount(d.amount, { integer: false }), "FlexTV 후원", "FlexTV 후원");
+  donationEvent("FLEXTV", d.id, d.user.nick, d.text, d.createdAt, toAmount(d.amount, { integer: false }), "FLEXTV_UNIT" satisfies UnitCode, "FlexTV 후원");
 
 export const FlexTvAdapter: PlatformAdapter = {
   platform: "FLEXTV",

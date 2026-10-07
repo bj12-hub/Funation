@@ -37,7 +37,7 @@ export const formatMoney = (value: number, currency: string) => {
   try {
     return new Intl.NumberFormat("ko-KR", { style: "currency", currency }).format(value);
   } catch {
-    // Platform units (치즈 · 별풍선 …) are not ISO currencies.
+    // Not an ISO currency. Platform units (unit codes) go through formatUnitAmount, which shows their label.
     return `${formatNumber(value)} ${currency}`;
   }
 };

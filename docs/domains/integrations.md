@@ -80,6 +80,20 @@ Authentication for every platform (OAuth / login) is TBD.
 - Each platform event is deduped by `${platform}:${externalEventId}`.
 - Amounts stay in the platform's own unit: KRW/USD 슈퍼챗, 치즈, 별풍선, FlexTV TBD. They are never
   converted to FN, and they create no wallet, earnings or settlement records.
+- **Unit codes** (`types/donationUnit.ts`, 2026-10-08): the adapter maps each platform's unit to a stable code, so the
+  core and the stores never key anything by a display label. Screens show the label; renaming a label orphans nothing.
+
+  | Code | Label | From |
+  | --- | --- | --- |
+  | `FN` | FN | Somnation donations |
+  | `KRW` · `USD` · `JPY` | 원 · USD · JPY | YouTube 슈퍼챗 (ISO 4217; KRW also 계좌 후원) |
+  | `SOOP_BALLOON` | 별풍선 | SOOP |
+  | `CHZZK_CHEESE` | 치즈 | CHZZK |
+  | `FLEXTV_UNIT` | FlexTV 후원 | FlexTV (unit name TBD, placeholder) |
+
+  A Super Chat in another ISO currency keeps its ISO code: shown and summed on 수단별 보드, but not a 자동엑셀 unit.
+  Data saved by label before the codes (자동엑셀 환산값, 후원 리스트 entries, alert `native.currency`) is mapped to the
+  code when read, and actions still accept a label from an older screen.
 - Events are pulled when 후원 연동 opens or polls, and by the alert overlay read (at most every 2 s —
   mock transport only; production receives them through the live connection, TBD).
 - Turning a platform on starts from "now". Platforms whose DONATION_EVENTS is unverified show

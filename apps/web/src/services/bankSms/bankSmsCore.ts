@@ -59,7 +59,7 @@ export function receiveBankSms(text: string, deliveryId: string | null, now = Da
   if (s.seen.length > SEEN_MAX) s.seen.splice(0, s.seen.length - SEEN_MAX);
   const deposit: BankDeposit = { id: `bank-${randomUUID()}`, depositor: parsed.depositor, amount: parsed.amount, receivedAt: new Date().toISOString() };
   const donor = shownName(s, parsed.depositor);
-  enqueueAlert({ kind: "EXTERNAL", donor, message: "", fnAmount: 0, amountLabel: formatMoney(parsed.amount, "KRW"), typeLabel: "계좌 후원", native: { value: parsed.amount, currency: "KRW" } });
+  enqueueAlert({ kind: "EXTERNAL", donor, message: "", fnAmount: 0, amountLabel: formatMoney(parsed.amount, "KRW"), typeLabel: "계좌 후원", native: { value: parsed.amount, unit: "KRW" } });
   recordBroadcastBank(STUDIO_CHANNEL, { donor, value: parsed.amount });
   s.recent.unshift(deposit);
   s.recent.length = Math.min(s.recent.length, BANK_SMS_LIMITS.recent);
