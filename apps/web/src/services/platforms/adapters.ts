@@ -4,7 +4,10 @@ import {
   consumeFailure,
   mockViewerChat,
   type ChzzkChatDto,
+  type ChzzkDonationDto,
   type FlexChatDto,
+  type FlexDonationDto,
+  type SoopBalloonDto,
   type SoopChatDto,
   type YtChatDto
 } from "./mockBroadcastRemote";
@@ -26,10 +29,13 @@ export interface PlatformAdapter {
   unverified: readonly PlatformCapability[];
   getChannel(handle: string): Promise<ChannelProfile>;
   listVideos(externalChannelId: string, opts?: { max?: number }): Promise<ChannelVideo[]>;
-  /** Events after `cursor` (opaque), oldest first. Only for adapters with DONATION_EVENTS. */
-  fetchDonationEvents(externalChannelId: string, cursor: string | null): Promise<{ events: ExternalDonationEvent[]; cursor: string | null }>;
-  /** Live chat after `cursor`, oldest first. CHAT_EVENTS only. */
-  fetchChatMessages(externalChannelId: string, cursor: string | null): Promise<{ messages: ExternalChatMessage[]; cursor: string | null }>;
+  /**
+   * Events after `cursor` (opaque), oldest first. Only for adapters with DONATION_EVENTS. Malformed items
+   * (missing id, bad time or amount) are dropped and counted in `skipped`; the cursor still moves past them.
+   */
+  fetchDonationEvents(externalChannelId: string, cursor: string | null): Promise<{ events: ExternalDonationEvent[]; cursor: string | null; skipped: number }>;
+  /** Live chat after `cursor`, oldest first. CHAT_EVENTS only. Malformed items are dropped and counted. */
+  fetchChatMessages(externalChannelId: string, cursor: string | null): Promise<{ messages: ExternalChatMessage[]; cursor: string | null; skipped: number }>;
   /** Posts as the channel owner. CHAT_SEND only. Returns the platform's message id. */
   sendChatMessage(externalChannelId: string, text: string): Promise<{ externalMessageId: string }>;
   /** CHAT_MODERATE only. */
@@ -40,8 +46,12 @@ export interface PlatformAdapter {
 
 const TIMEOUT_MS = 5_000;
 
-/** Bounded wait for a remote call; the backend would also retry idempotent reads with backoff. */
-async function withTimeout<T>(p: Promise<T>, ms = TIMEOUT_MS): Promise<T> {
+/**
+ * Bounded wait for a remote call (rejects with PlatformError TIMEOUT); the backend would also retry
+ * idempotent reads with backoff. Callers outside the adapters use it too, so one slow platform never
+ * holds up the others.
+ */
+export async function withTimeout<T>(p: Promise<T>, ms = TIMEOUT_MS): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([p, new Promise<never>((_, reject) => (timer = setTimeout(() => reject(new PlatformError("TIMEOUT", "timeout")), ms)))]);
@@ -130,10 +140,76 @@ export const mapYouTubeVideo = (v: YtVideoDto): ChannelVideo => {
     url: `https://www.youtube.com/watch?v=${encodeURIComponent(v.id.videoId)}`
   };
 };
-// ── Chat helpers ─────────────────────────────────────────────────────────────
+// ── Mapping helpers ──────────────────────────────────────────────────────────
+// Platform payloads are untrusted: every DTO is validated here, and one bad item is dropped and counted
+// instead of throwing (a throw would stop the whole batch and keep the cursor from moving past it).
 
 const MAX_TEXT = 200;
+/** Sanity bound for one donation in the platform's own unit (the simulator's limit) — not a business rule. */
+const AMOUNT_MAX = 10_000_000;
 const clip = (s: string, n: number) => s.slice(0, n);
+const str = (v: unknown) => (typeof v === "string" ? v : null);
+const idOf = (v: unknown) => (typeof v === "string" && v.trim() ? v : typeof v === "number" && Number.isSafeInteger(v) ? String(v) : null);
+
+/** ISO time from a platform timestamp (epoch ms or date string), or null when it is not a real time. */
+export function toIsoTime(v: unknown): string | null {
+  if ((typeof v !== "number" && typeof v !== "string") || v === "") return null;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+/**
+ * A donation amount in the platform's own unit, or null when it is not a positive number up to `max`
+ * (or not whole where the unit is). Numbers and plain decimal strings only: "1,000", "", NaN and
+ * negatives are rejected rather than guessed.
+ */
+export function toAmount(v: unknown, opts: { integer: boolean; max?: number }): number | null {
+  const n = typeof v === "number" ? v : typeof v === "string" && /^\d+(\.\d+)?$/.test(v) ? Number(v) : Number.NaN;
+  if (!Number.isFinite(n) || n <= 0 || n > (opts.max ?? AMOUNT_MAX)) return null;
+  if (opts.integer && !Number.isInteger(n)) return null;
+  return n;
+}
+
+/** Maps each DTO, dropping (and counting) the ones that fail validation or have the wrong shape. */
+function mapValid<D, T>(items: D[], map: (d: D) => T | null): { items: T[]; skipped: number } {
+  const out: T[] = [];
+  let skipped = 0;
+  for (const d of items) {
+    let mapped: T | null;
+    try {
+      mapped = map(d);
+    } catch {
+      mapped = null;
+    }
+    if (mapped) out.push(mapped);
+    else skipped++;
+  }
+  return { items: out, skipped };
+}
+
+/** Badge → roles; an unknown or new badge maps to no role instead of breaking the message. */
+const rolesOf = <K extends string>(table: Record<K, ChatAuthorRole[]>, key: unknown): ChatAuthorRole[] =>
+  typeof key === "string" && Object.hasOwn(table, key) ? [...table[key as K]] : [];
+
+/** A chat message after the shared checks, or null. */
+function chatMessage(platform: Platform, id: unknown, userId: unknown, nick: unknown, text: unknown, time: unknown, roles: ChatAuthorRole[]): ExternalChatMessage | null {
+  const externalMessageId = idOf(id);
+  const platformUserId = idOf(userId);
+  const displayName = str(nick);
+  const body = str(text);
+  const sentAt = toIsoTime(time);
+  if (!externalMessageId || !platformUserId || displayName === null || body === null || !sentAt) return null;
+  return { platform, externalMessageId, author: { platformUserId, displayName: clip(displayName, 40), roles }, text: clip(body, MAX_TEXT), sentAt };
+}
+
+/** A donation event after the shared checks, or null. */
+function donationEvent(platform: Platform, id: unknown, nick: unknown, message: unknown, time: unknown, value: number | null, currency: string | null, kindLabel: string): ExternalDonationEvent | null {
+  const externalEventId = idOf(id);
+  const donorName = str(nick);
+  const occurredAt = toIsoTime(time);
+  if (!externalEventId || donorName === null || !occurredAt || value === null || !currency) return null;
+  return { platform, externalEventId, donorName: clip(donorName, 40), message: clip(str(message) ?? "", 200), amount: { value, currency }, kindLabel, occurredAt };
+}
 /** Index cursor over an append-only remote list (the real APIs use page tokens / socket offsets). */
 const sliceFrom = <T>(list: T[], cursor: string | null) => ({ items: list.slice(cursor ? Number(cursor) || 0 : 0), cursor: String(list.length) });
 const unsupportedCall = async (): Promise<never> => {
@@ -162,13 +238,20 @@ function ytRoles(a: YtChatDto["authorDetails"]): ChatAuthorRole[] {
   return roles;
 }
 
-export const mapYouTubeChat = (d: YtChatDto): ExternalChatMessage => ({
-  platform: "YOUTUBE",
-  externalMessageId: d.id,
-  author: { platformUserId: d.authorDetails.channelId, displayName: clip(d.authorDetails.displayName, 40), roles: ytRoles(d.authorDetails) },
-  text: clip(d.snippet.displayMessage, MAX_TEXT),
-  sentAt: d.snippet.publishedAt
-});
+export const mapYouTubeChat = (d: YtChatDto): ExternalChatMessage | null =>
+  chatMessage("YOUTUBE", d.id, d.authorDetails.channelId, d.authorDetails.displayName, d.snippet.displayMessage, d.snippet.publishedAt, ytRoles(d.authorDetails));
+
+/** Super Chat → donation event. `amountMicros` is a whole number of millionths of `currency` (ISO 4217). */
+export function mapYouTubeSuperChat(d: YtSuperChatDto): ExternalDonationEvent | null {
+  const details = d.snippet.superChatDetails;
+  const micros = toAmount(details.amountMicros, { integer: true, max: AMOUNT_MAX * 1_000_000 });
+  const currency = typeof details.currency === "string" && /^[A-Z]{3}$/.test(details.currency) ? details.currency : null;
+  return donationEvent("YOUTUBE", d.id, d.authorDetails.displayName, details.userComment, d.snippet.publishedAt, micros === null ? null : micros / 1_000_000, currency, "YouTube 슈퍼챗");
+}
+
+async function ytFetchSuperChats(channelId: string): Promise<YtSuperChatDto[]> {
+  return [...(remote().chats[channelId] ?? [])];
+}
 
 /** YouTube Data API: liveChatMessages.list / insert / delete and liveChatBans.insert (OAuth — TBD). */
 export const YouTubeAdapter: PlatformAdapter = {
@@ -184,26 +267,19 @@ export const YouTubeAdapter: PlatformAdapter = {
     return dtos.map(mapYouTubeVideo);
   },
   async fetchDonationEvents(externalChannelId, cursor) {
-    const all = remote().chats[externalChannelId] ?? [];
-    const from = cursor ? Number(cursor) || 0 : 0;
-    const events = all.slice(from).map(
-      (d): ExternalDonationEvent => ({
-        platform: "YOUTUBE",
-        externalEventId: d.id,
-        donorName: d.authorDetails.displayName.slice(0, 40),
-        message: d.snippet.superChatDetails.userComment.slice(0, 200),
-        amount: { value: Number(d.snippet.superChatDetails.amountMicros) / 1_000_000, currency: d.snippet.superChatDetails.currency },
-        kindLabel: "YouTube 슈퍼챗",
-        occurredAt: d.snippet.publishedAt
-      })
-    );
-    return { events, cursor: String(all.length) };
+    const { items, cursor: next } = sliceFrom(await withTimeout(ytFetchSuperChats(externalChannelId)), cursor);
+    const { items: events, skipped } = mapValid(items, mapYouTubeSuperChat);
+    return { events, cursor: next, skipped };
   },
   async fetchChatMessages(channelId, cursor) {
     consumeFailure("YOUTUBE");
     const r = channelRemote(channelId);
     const { items, cursor: next } = sliceFrom(r.yt, cursor);
-    return { messages: items.filter((d) => !r.deleted[d.id]).map(mapYouTubeChat), cursor: next };
+    const { items: messages, skipped } = mapValid(
+      items.filter((d) => !r.deleted[d.id]),
+      mapYouTubeChat
+    );
+    return { messages, cursor: next, skipped };
   },
   async sendChatMessage(channelId, text) {
     consumeFailure("YOUTUBE");
@@ -229,13 +305,11 @@ function chzzkRoles(p: ChzzkChatDto["profile"]): ChatAuthorRole[] {
   return roles;
 }
 
-export const mapChzzkChat = (d: ChzzkChatDto): ExternalChatMessage => ({
-  platform: "CHZZK",
-  externalMessageId: d.messageId,
-  author: { platformUserId: d.senderChannelId, displayName: clip(d.profile.nickname, 40), roles: chzzkRoles(d.profile) },
-  text: clip(d.content, MAX_TEXT),
-  sentAt: new Date(d.messageTime).toISOString()
-});
+export const mapChzzkChat = (d: ChzzkChatDto): ExternalChatMessage | null =>
+  chatMessage("CHZZK", d.messageId, d.senderChannelId, d.profile.nickname, d.content, d.messageTime, chzzkRoles(d.profile));
+
+export const mapChzzkDonation = (d: ChzzkDonationDto): ExternalDonationEvent | null =>
+  donationEvent("CHZZK", d.donationId, d.donatorNickname, d.donationText, d.donatedAt, toAmount(d.payAmount, { integer: true }), "치즈", "치지직 치즈");
 
 export const ChzzkAdapter: PlatformAdapter = {
   platform: "CHZZK",
@@ -247,23 +321,14 @@ export const ChzzkAdapter: PlatformAdapter = {
   listVideos: unsupportedCall,
   async fetchDonationEvents(channelId, cursor) {
     const { items, cursor: next } = sliceFrom(channelRemote(channelId).chzzkDonations, cursor);
-    return {
-      events: items.map((d) => ({
-        platform: "CHZZK" as const,
-        externalEventId: d.donationId,
-        donorName: clip(d.donatorNickname, 40),
-        message: clip(d.donationText, 200),
-        amount: { value: Number(d.payAmount) || 0, currency: "치즈" },
-        kindLabel: "치지직 치즈",
-        occurredAt: new Date(d.donatedAt).toISOString()
-      })),
-      cursor: next
-    };
+    const { items: events, skipped } = mapValid(items, mapChzzkDonation);
+    return { events, cursor: next, skipped };
   },
   async fetchChatMessages(channelId, cursor) {
     consumeFailure("CHZZK");
     const { items, cursor: next } = sliceFrom(channelRemote(channelId).chzzk, cursor);
-    return { messages: items.map(mapChzzkChat), cursor: next };
+    const { items: messages, skipped } = mapValid(items, mapChzzkChat);
+    return { messages, cursor: next, skipped };
   },
   async sendChatMessage(channelId, text) {
     consumeFailure("CHZZK");
@@ -277,13 +342,14 @@ export const ChzzkAdapter: PlatformAdapter = {
 
 const SOOP_ROLE: Record<SoopChatDto["userFlag"], ChatAuthorRole[]> = { bj: ["OWNER"], manager: ["MODERATOR"], fan: ["MEMBER"], normal: [] };
 
-export const mapSoopChat = (d: SoopChatDto): ExternalChatMessage => ({
-  platform: "SOOP",
-  externalMessageId: `soop-${d.chatNo}`,
-  author: { platformUserId: d.userId, displayName: clip(d.userNick, 40), roles: SOOP_ROLE[d.userFlag] },
-  text: clip(d.message, MAX_TEXT),
-  sentAt: new Date(d.ts).toISOString()
-});
+/** SOOP numbers chats and balloons; only a whole number makes a usable id. */
+const soopNo = (prefix: string, n: unknown) => (typeof n === "number" && Number.isSafeInteger(n) ? `${prefix}-${n}` : null);
+
+export const mapSoopChat = (d: SoopChatDto): ExternalChatMessage | null =>
+  chatMessage("SOOP", soopNo("soop", d.chatNo), d.userId, d.userNick, d.message, d.ts, rolesOf(SOOP_ROLE, d.userFlag));
+
+export const mapSoopBalloon = (d: SoopBalloonDto): ExternalDonationEvent | null =>
+  donationEvent("SOOP", soopNo("balloon", d.balloonNo), d.userNick, d.message, d.ts, toAmount(d.count, { integer: true }), "별풍선", "SOOP 별풍선");
 
 export const SoopAdapter: PlatformAdapter = {
   platform: "SOOP",
@@ -295,23 +361,14 @@ export const SoopAdapter: PlatformAdapter = {
   listVideos: unsupportedCall,
   async fetchDonationEvents(channelId, cursor) {
     const { items, cursor: next } = sliceFrom(channelRemote(channelId).soopBalloons, cursor);
-    return {
-      events: items.map((d) => ({
-        platform: "SOOP" as const,
-        externalEventId: `balloon-${d.balloonNo}`,
-        donorName: clip(d.userNick, 40),
-        message: clip(d.message, 200),
-        amount: { value: d.count, currency: "별풍선" },
-        kindLabel: "SOOP 별풍선",
-        occurredAt: new Date(d.ts).toISOString()
-      })),
-      cursor: next
-    };
+    const { items: events, skipped } = mapValid(items, mapSoopBalloon);
+    return { events, cursor: next, skipped };
   },
   async fetchChatMessages(channelId, cursor) {
     consumeFailure("SOOP");
     const { items, cursor: next } = sliceFrom(channelRemote(channelId).soop, cursor);
-    return { messages: items.map(mapSoopChat), cursor: next };
+    const { items: messages, skipped } = mapValid(items, mapSoopChat);
+    return { messages, cursor: next, skipped };
   },
   sendChatMessage: unsupportedCall,
   deleteChatMessage: unsupportedCall,
@@ -322,13 +379,12 @@ export const SoopAdapter: PlatformAdapter = {
 
 const FLEX_ROLE: Record<FlexChatDto["user"]["grade"], ChatAuthorRole[]> = { OWNER: ["OWNER"], MANAGER: ["MODERATOR"], VIP: ["MEMBER"], NORMAL: [] };
 
-export const mapFlexChat = (d: FlexChatDto): ExternalChatMessage => ({
-  platform: "FLEXTV",
-  externalMessageId: d.id,
-  author: { platformUserId: d.user.id, displayName: clip(d.user.nick, 40), roles: FLEX_ROLE[d.user.grade] },
-  text: clip(d.text, MAX_TEXT),
-  sentAt: d.createdAt
-});
+export const mapFlexChat = (d: FlexChatDto): ExternalChatMessage | null =>
+  chatMessage("FLEXTV", d.id, d.user.id, d.user.nick, d.text, d.createdAt, rolesOf(FLEX_ROLE, d.user.grade));
+
+// FlexTV's donation unit is unconfirmed (TBD): shown as delivered, never converted, and fractions are not rejected.
+export const mapFlexDonation = (d: FlexDonationDto): ExternalDonationEvent | null =>
+  donationEvent("FLEXTV", d.id, d.user.nick, d.text, d.createdAt, toAmount(d.amount, { integer: false }), "FlexTV 후원", "FlexTV 후원");
 
 export const FlexTvAdapter: PlatformAdapter = {
   platform: "FLEXTV",
@@ -340,24 +396,14 @@ export const FlexTvAdapter: PlatformAdapter = {
   listVideos: unsupportedCall,
   async fetchDonationEvents(channelId, cursor) {
     const { items, cursor: next } = sliceFrom(channelRemote(channelId).flexDonations, cursor);
-    return {
-      events: items.map((d) => ({
-        platform: "FLEXTV" as const,
-        externalEventId: d.id,
-        donorName: clip(d.user.nick, 40),
-        message: clip(d.text, 200),
-        // FlexTV's donation unit is unconfirmed (TBD); shown as delivered, never converted.
-        amount: { value: d.amount, currency: "FlexTV 후원" },
-        kindLabel: "FlexTV 후원",
-        occurredAt: d.createdAt
-      })),
-      cursor: next
-    };
+    const { items: events, skipped } = mapValid(items, mapFlexDonation);
+    return { events, cursor: next, skipped };
   },
   async fetchChatMessages(channelId, cursor) {
     consumeFailure("FLEXTV");
     const { items, cursor: next } = sliceFrom(channelRemote(channelId).flex, cursor);
-    return { messages: items.map(mapFlexChat), cursor: next };
+    const { items: messages, skipped } = mapValid(items, mapFlexChat);
+    return { messages, cursor: next, skipped };
   },
   sendChatMessage: unsupportedCall,
   deleteChatMessage: unsupportedCall,
