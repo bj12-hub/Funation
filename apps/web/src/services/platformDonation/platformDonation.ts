@@ -46,7 +46,9 @@ export async function getPlatformHome(platform: PlatformKey): Promise<PlatformHo
   if (!(await getSession()) || !isPlatform(platform)) return null;
   const adapter = adapterFor(platform);
   await mockDelay(250);
-  const recentIds = [...new Set(mockPlatform.transactions.filter((t) => t.platform === platform).map((t) => t.creatorId))].slice(0, 4);
+  // This account's own donations only, as in 후원 내역 (the mock's 재가입 keeps the user id; services/account/rejoin.ts).
+  const since = accountSince();
+  const recentIds = [...new Set(mockPlatform.transactions.filter((t) => t.platform === platform && (t.account ?? null) === since).map((t) => t.creatorId))].slice(0, 4);
   const recent = (await Promise.all(recentIds.map((id) => adapter.getCreator(id)))).filter((c): c is PlatformCreator => c !== null);
   return { platform, balance: mockAccount.fnBalance, recent, popular: await adapter.popularCreators() };
 }
