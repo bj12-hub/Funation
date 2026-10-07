@@ -108,7 +108,7 @@ function SlugCard({ initial, notify, setToast }: { initial: DonationPageSettings
             <input
               aria-label="후원 페이지 주소"
               value={slug}
-              maxLength={20}
+              maxLength={30}
               spellCheck={false}
               onChange={(e) => {
                 setSlug(e.target.value.toLowerCase());
@@ -173,7 +173,7 @@ function SlugCard({ initial, notify, setToast }: { initial: DonationPageSettings
             )}
           </div>
         )}
-        <p className={styles.helper}>주소를 바꾸면 이전 주소로는 후원 페이지에 들어올 수 없어요.</p>
+        <p className={styles.helper}>영문 소문자, 숫자, 하이픈으로 3~30자. 주소를 바꾸면 이전 주소는 30일 동안 새 주소로 연결되고, 그동안 다른 채널이 쓸 수 없어요.</p>
       </Line>
     </Card>
   );

@@ -29,7 +29,6 @@ import {
   QUEST_STATUSES,
   RANK_PERIODS,
   REPLACEMENT_MESSAGE_MAX,
-  isValidSlug,
   type DonationPageSettings,
   type DonorRanking,
   type ListKind,
@@ -55,6 +54,8 @@ import { mockCreator } from "./mockCreatorStore";
 import { matchesContent } from "./assetCore";
 import { donationFilterStore, donationPageStore } from "./donationPageCore";
 import { isIsoDate } from "@/lib/period";
+import { CHANNEL_HANDLE_RULE_MESSAGE } from "@/services/channel/channelTypes";
+import { handleStatus, moveHandle } from "@/services/channel/handleCore";
 
 /**
  * 후원관리+ (route `/creator/donations`). Server Actions re-check the session and validate input.
@@ -66,8 +67,6 @@ import { isIsoDate } from "@/lib/period";
 // 후원 페이지 설정 (the Donation Core reads its 대체 메시지 표시 설정 — see donationPageCore.ts).
 const store = donationPageStore;
 
-/** Addresses already used by other creators (mock). */
-const TAKEN_SLUGS = ["taen", "boharium", "seran", "admin", "funation", "donate", "creator"];
 const DONATE_BASE = "https://somnation.com/donate/";
 
 const assertMock = () => {
@@ -83,23 +82,30 @@ export async function getDonationPageSettings(): Promise<DonationPageSettings | 
   return { donateUrlBase: DONATE_BASE, slug: mockCreator.handle, ...structuredClone(store) };
 }
 
+/** 후원 페이지 주소 = 채널 주소: the rule, reserved list and taken set of 채널 만들기 (services/channel/handleCore.ts). */
 export async function checkDonationSlug(slug: unknown): Promise<SlugCheckResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
-  if (typeof slug !== "string" || !isValidSlug(slug)) return { status: "INVALID", message: "3~20자의 영문 소문자, 숫자, _만 사용할 수 있어요." };
+  if (handleStatus(slug, true) === "INVALID") return { status: "INVALID", message: CHANNEL_HANDLE_RULE_MESSAGE };
   await mockDelay(300);
-  if (slug === mockCreator.handle) return { status: "SAME" };
-  return { status: TAKEN_SLUGS.includes(slug) ? "TAKEN" : "AVAILABLE" };
+  const status = handleStatus(slug, true);
+  return status === "INVALID" ? { status, message: CHANNEL_HANDLE_RULE_MESSAGE } : { status };
 }
 
-/** Re-checks availability; the old address stops working (redirect policy TBD). */
+/**
+ * Re-checks availability after the last await and writes in the same tick. The old address points to the new one for
+ * 30 days and nobody else can take it meanwhile (2026-10-08 결정).
+ */
 export async function changeDonationSlug(slug: unknown): Promise<ManagementSaveResult> {
   const check = await checkDonationSlug(slug);
   if (check.status === "UNAUTHORIZED") return check;
   if (check.status === "INVALID") return check;
   if (check.status === "TAKEN") return { status: "INVALID", message: "이미 사용 중인 주소입니다." };
   await mockDelay(300);
-  mockCreator.handle = slug as string;
+  const status = handleStatus(slug, true);
+  if (status === "SAME") return { status: "SAVED" };
+  if (status !== "AVAILABLE") return { status: "INVALID", message: status === "TAKEN" ? "이미 사용 중인 주소입니다." : CHANNEL_HANDLE_RULE_MESSAGE };
+  moveHandle(slug as string);
   return { status: "SAVED" };
 }
 

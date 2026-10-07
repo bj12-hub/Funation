@@ -33,8 +33,6 @@ export const BANNED_WORDS_MAX = 50;
 export const REPLACEMENT_MESSAGE_MAX = 50;
 /** Shown on stream instead of a replaced message while the creator's 대체 메시지 is empty (2026-10-06 결정); a replaced name shows 익명. */
 export const DEFAULT_REPLACEMENT_MESSAGE = "(금지어가 포함된 메시지예요)";
-/** Donation page address rule — assumption: 3–20 lowercase letters, digits or _ (TBD). */
-export const isValidSlug = (v: string) => /^[a-z0-9_]{3,20}$/.test(v);
 
 export type DonationPageSettings = {
   donateUrlBase: string;
