@@ -50,7 +50,8 @@ export function PostScreen({ post, signedIn }: { post: PostDetail; signedIn: boo
             {post.authorName} · {when(post.createdAt)}
             {post.updatedAt ? " (수정됨)" : ""} · 조회 {post.views}
           </span>
-          {!post.mine && <ModerationActions target={{ type: "POST", id: post.id }} signedIn={signedIn} />}
+          {/* A blocked author's post disappears for the member, so the block goes back to the board. */}
+          {!post.mine && <ModerationActions target={{ type: "POST", id: post.id }} signedIn={signedIn} leaveTo="/community" />}
         </header>
         <p className={styles.postBody}>{post.body}</p>
         {post.mine && (

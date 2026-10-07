@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BOARD_CATEGORIES, boardEmptyText, categoryLabel, type BoardView } from "@/services/community/communityTypes";
+import { CarriedToast } from "../moderation/CarriedToast";
 import styles from "./community.module.css";
 
 const date = (iso: string) => new Date(iso).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" });
@@ -25,6 +26,8 @@ export function BoardScreen({ view, signedIn }: { view: BoardView; signedIn: boo
           글쓰기
         </Link>
       </header>
+      {/* 차단 from a post's page comes back here with its toast. */}
+      <CarriedToast />
 
       <nav className={styles.tabs} aria-label="분류">
         {[{ key: "ALL", label: "전체" }, ...BOARD_CATEGORIES].map((c) => (

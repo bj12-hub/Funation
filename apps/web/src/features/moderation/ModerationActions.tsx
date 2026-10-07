@@ -7,14 +7,28 @@ import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
 import { blockAuthorOf, submitReport } from "@/services/moderation/moderation";
 import { REPORT_DETAIL_MAX, REPORT_REASONS, REPORT_TARGET_LABEL, type ReportReason, type ReportTarget } from "@/services/moderation/moderationTypes";
+import { carryToast } from "./CarriedToast";
 import styles from "./moderation.module.css";
 
 /**
  * 신고 · 차단 버튼 (code-first, no Figma frame). `target` points at the content; the server resolves its
  * author, so author ids never reach the browser. `block` adds "작성자 차단" (hidden for creator channels
- * where the room's own actions apply).
+ * where the room's own actions apply). `leaveTo`: where to go after a block when the page itself disappears for the
+ * member (a post's own page); the block toast shows there.
  */
-export function ModerationActions({ target, signedIn, block = true, className }: { target: ReportTarget; signedIn: boolean; block?: boolean; className?: string }) {
+export function ModerationActions({
+  target,
+  signedIn,
+  block = true,
+  leaveTo,
+  className
+}: {
+  target: ReportTarget;
+  signedIn: boolean;
+  block?: boolean;
+  leaveTo?: string;
+  className?: string;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -54,8 +68,14 @@ export function ModerationActions({ target, signedIn, block = true, className }:
       try {
         const res = await blockAuthorOf({ target });
         if (res.status === "OK") {
-          setToast(`${res.name}님을 차단했어요.`);
-          router.refresh();
+          const message = `${res.name}님을 차단했어요.`;
+          if (leaveTo) {
+            carryToast(message);
+            router.push(leaveTo);
+          } else {
+            setToast(message);
+            router.refresh();
+          }
         } else if (res.status === "UNAUTHORIZED") needLogin();
         else setToast(res.status === "INVALID" ? res.message : "이미 삭제된 내용이에요.");
       } catch {
