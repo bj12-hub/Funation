@@ -65,4 +65,18 @@ describe("site notifications", () => {
     expect(await m.getUnreadCount()).toBeNull();
     expect(await m.markAllNotificationsRead()).toEqual({ status: "UNAUTHORIZED" });
   });
+
+  it("keeps ids unique once the inbox is full, so reading one marks only that one", async () => {
+    const m = await load();
+    for (let i = 0; i < 100; i++) m.notify({ kind: "SYSTEM", title: `t${i}`, body: "", href: "/" });
+    // Two notifications in the same millisecond (e.g. two requests at once) on a full inbox.
+    const now = Date.now();
+    const a = m.notify({ kind: "SYSTEM", title: "a", body: "", href: "/" }, now)!;
+    const b = m.notify({ kind: "SYSTEM", title: "b", body: "", href: "/" }, now)!;
+    expect(a.id).not.toBe(b.id);
+    await m.markNotificationRead(a.id);
+    const unread = (await m.listNotifications({ filter: "UNREAD", show: 100 }))!.items.map((n) => n.title);
+    expect(unread).toContain("b");
+    expect(unread).not.toContain("a");
+  });
 });
