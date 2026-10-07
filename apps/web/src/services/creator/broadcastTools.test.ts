@@ -83,6 +83,10 @@ it("퀵 조정 moves the shown time in both modes, clamped at zero", async () =>
     await adjustTimer(-60);
     await adjustTimer(-60);
     expect(await shown()).toBe(0);
+    // Past the end the countdown shows 0: the first +30 gives 30 seconds (not "−70 → 0", nothing).
+    vi.setSystemTime(new Date("2026-09-30T12:02:00Z"));
+    await adjustTimer(30);
+    expect(await shown()).toBe(30);
     await configureTimer({ mode: "STOPWATCH", durationSec: 600 });
     await adjustTimer(30);
     expect(await shown()).toBe(30);
