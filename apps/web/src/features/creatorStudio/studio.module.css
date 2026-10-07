@@ -598,7 +598,10 @@ a.sideItemActive:hover {
   }
 
   .sidebar {
+    /* Stacked above the content here: it scrolls away with the page instead of staying on top of it. */
+    position: static;
     width: 100%;
+    height: auto;
     padding: 12px 16px;
     overflow-x: auto;
     border-right: 0;
