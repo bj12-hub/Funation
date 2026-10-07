@@ -20,8 +20,9 @@ import { mockCommunity, type MockPost } from "./mockCommunityStore";
 
 /**
  * 커뮤니티 Server Actions — code-first (no Figma frame). Reading is public; writing needs a session,
- * and only the author may edit or delete a post / comment (checked on the server). TBD: moderation,
- * reports, rate limits, images, notices.
+ * and only the author may edit or delete a post / comment (checked on the server). Writes look the post up
+ * after the mock delay and change it in the same tick, so a post deleted or hidden meanwhile is not written to.
+ * TBD: moderation, reports, rate limits, images, notices.
  */
 
 const assertMock = () => {
@@ -114,12 +115,12 @@ export async function updatePost(id: unknown, input: unknown): Promise<PostSaveR
   assertMock();
   const session = await getSession();
   if (!session) return { status: "UNAUTHORIZED" };
+  await mockDelay(250);
   const p = typeof id === "string" ? mockCommunity.posts.find((x) => x.id === id && live(x)) : undefined;
   if (!p) return { status: "NOT_FOUND" };
   if (p.authorId !== session.userId) return { status: "FORBIDDEN" };
   const c = checkPost((typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>);
   if (!c.ok) return { status: "INVALID", message: c.message };
-  await mockDelay(250);
   Object.assign(p, { category: c.category, title: c.title, body: c.body, updatedAt: new Date().toISOString() });
   return { status: "SAVED", id: p.id };
 }
@@ -128,10 +129,10 @@ export async function deletePost(id: unknown): Promise<PostSaveResult> {
   assertMock();
   const session = await getSession();
   if (!session) return { status: "UNAUTHORIZED" };
+  await mockDelay(200);
   const p = typeof id === "string" ? mockCommunity.posts.find((x) => x.id === id) : undefined;
   if (!p || p.deleted) return { status: "NOT_FOUND" };
   if (p.authorId !== session.userId) return { status: "FORBIDDEN" };
-  await mockDelay(200);
   p.deleted = true;
   return { status: "SAVED", id: p.id };
 }
@@ -140,12 +141,12 @@ export async function addComment(postId: unknown, body: unknown): Promise<Commen
   assertMock();
   const session = await getSession();
   if (!session) return { status: "UNAUTHORIZED" };
+  await mockDelay(200);
   const p = typeof postId === "string" ? mockCommunity.posts.find((x) => x.id === postId && live(x)) : undefined;
   if (!p) return { status: "NOT_FOUND" };
   const text = typeof body === "string" ? body.trim() : "";
   if (!text || text.length > COMMENT_MAX) return { status: "INVALID", message: `댓글을 1~${COMMENT_MAX}자로 입력해 주세요.` };
   if (forbidden(text)) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
-  await mockDelay(200);
   p.comments.push({ id: `cm-${Date.now().toString(36)}${p.comments.length}`, authorId: session.userId, authorName: session.nickname, body: text, createdAt: new Date().toISOString(), deleted: false });
   return { status: "SAVED" };
 }
@@ -154,11 +155,11 @@ export async function deleteComment(postId: unknown, commentId: unknown): Promis
   assertMock();
   const session = await getSession();
   if (!session) return { status: "UNAUTHORIZED" };
+  await mockDelay(150);
   const p = typeof postId === "string" ? mockCommunity.posts.find((x) => x.id === postId) : undefined;
   const c = p?.comments.find((x) => x.id === commentId && !x.deleted);
   if (!c) return { status: "NOT_FOUND" };
   if (c.authorId !== session.userId) return { status: "FORBIDDEN" };
-  await mockDelay(150);
   c.deleted = true;
   return { status: "SAVED" };
 }

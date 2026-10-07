@@ -46,4 +46,19 @@ describe("커뮤니티", () => {
     expect((await createPost({ category: "FREE", title: "제목", body: "내용" })).status).toBe("UNAUTHORIZED");
     expect((await addComment("p-2", "익명")).status).toBe("UNAUTHORIZED");
   });
+
+  it("does not edit or comment on a post deleted while the request was in flight", async () => {
+    const { createPost, updatePost, deletePost, addComment } = await load();
+    const { mockCommunity } = await import("./mockCommunityStore");
+    const res = await createPost({ category: "FREE", title: "지울 글", body: "내용" });
+    const id = res.status === "SAVED" ? res.id : "";
+    const post = () => mockCommunity.posts.find((p) => p.id === id)!;
+
+    // Deleted in another tab (or hidden by an operator) while the edit and the comment were being saved.
+    const [deleted, edit, comment] = await Promise.all([deletePost(id), updatePost(id, { category: "FREE", title: "고친 제목", body: "고친 내용" }), addComment(id, "늦은 댓글")]);
+    expect(deleted).toEqual({ status: "SAVED", id });
+    expect(edit).toEqual({ status: "NOT_FOUND" });
+    expect(comment).toEqual({ status: "NOT_FOUND" });
+    expect(post()).toMatchObject({ title: "지울 글", updatedAt: null, comments: [] });
+  });
 });
