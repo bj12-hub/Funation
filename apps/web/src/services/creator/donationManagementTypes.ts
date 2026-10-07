@@ -4,7 +4,7 @@
  * Client-safe types and option lists; the actions live in ./donationManagement.ts.
  */
 
-import { isIsoDate, toDateString } from "@/lib/period";
+import { isIsoDate, startOfMonths, startOfWeek, toDateString } from "@/lib/period";
 
 export const MANAGEMENT_TABS = [
   { key: "settings", label: "후원 페이지 설정" },
@@ -124,7 +124,7 @@ export function receivedStats(rows: Pick<ReceivedDonation, "at" | "amount" | "st
   const counted = rows.filter((d) => d.status === null || d.status === "SUCCESS");
   const held = rows.filter((d) => d.status === "IN_PROGRESS");
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const weekStart = today - ((new Date(today).getDay() + 6) % 7) * 86_400_000;
+  const weekStart = startOfWeek(now).getTime();
   const sum = (list: typeof counted) => list.reduce((s, d) => s + d.amount, 0);
   const totalFn = sum(counted);
   return {
@@ -138,26 +138,18 @@ export function receivedStats(rows: Pick<ReceivedDonation, "at" | "amount" | "st
   };
 }
 
-
-const shift = (d: Date, months: number, days = 0) => {
-  const x = new Date(d);
-  x.setMonth(x.getMonth() - months);
-  x.setDate(x.getDate() - days + (months || days ? 1 : 0));
-  return x;
-};
-
-/** Validates list URL params (default 1년 as in the design). */
+/** Validates list URL params (default 1년 as in the design). Presets are calendar periods (lib/period, 2026-10-08 결정). */
 export function parseListPeriod(raw: { period?: string; from?: string; to?: string; year?: string }, today = new Date()): ListPeriod {
   const to = toDateString(today);
   switch (raw.period) {
     case "today":
       return { preset: "today", from: to, to };
     case "1w":
-      return { preset: "1w", from: toDateString(shift(today, 0, 7)), to };
+      return { preset: "1w", from: toDateString(startOfWeek(today)), to };
     case "1m":
     case "3m":
     case "6m":
-      return { preset: raw.period, from: toDateString(shift(today, Number(raw.period[0]))), to };
+      return { preset: raw.period, from: toDateString(startOfMonths(Number(raw.period[0]), today)), to };
     case "year": {
       const y = Number(raw.year);
       if (Number.isInteger(y) && y >= 2000 && y <= today.getFullYear()) return { preset: "year", year: y, from: `${y}-01-01`, to: `${y}-12-31` };
@@ -168,7 +160,7 @@ export function parseListPeriod(raw: { period?: string; from?: string; to?: stri
       break;
     }
   }
-  return { preset: "1y", from: toDateString(shift(today, 12)), to };
+  return { preset: "1y", from: toDateString(startOfMonths(12, today)), to };
 }
 
 // ── 후원 순위 (539:303) ─────────────────────────────────────────────────────────

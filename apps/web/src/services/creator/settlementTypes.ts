@@ -162,7 +162,7 @@ export type RequestResult =
 
 // ── 정산 관리 (478:2 · 479:144 · 480:2) ────────────────────────────────────────────────
 
-/** 기간 presets (478:2): 일별 = 오늘, 주별 = 최근 7일, 월별 = 최근 1개월, 연별 = 최근 1년, 기간별 = 직접 입력. */
+/** 기간 presets (478:2), calendar (lib/period presetRange, 2026-10-08 결정): 일별 = 오늘, 주별 = 이번 주, 월별 = 이번 달, 연별 = 12개월, 기간별 = 직접 입력. */
 export const MANAGE_PERIODS = [
   { key: "day", label: "일별" },
   { key: "week", label: "주별" },

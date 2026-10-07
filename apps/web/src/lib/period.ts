@@ -18,21 +18,27 @@ export type Period = { preset: PeriodPreset; from: string; to: string };
 /** Max span of a custom range; keeps queries bounded. */
 const MAX_RANGE_DAYS = 366;
 
+/*
+ * Calendar periods (2026-10-08 결정 "달력 기준", server time = Asia/Seoul): a week starts on Monday 00:00 and a
+ * month on its 1st. Every preset (dashboard, 통계, 후원 리스트, 정산 관리, FN 내역) runs from such a start to today.
+ */
+
+/** Monday 00:00 of the week `today` is in. */
+export function startOfWeek(today = new Date()) {
+  return new Date(today.getFullYear(), today.getMonth(), today.getDate() - ((today.getDay() + 6) % 7));
+}
+
+/** The 1st of the month `months − 1` months back: 1 = this month, 3 = this month and the two before, 12 = 1년. */
+export function startOfMonths(months: number, today = new Date()) {
+  return new Date(today.getFullYear(), today.getMonth() - (months - 1), 1);
+}
+
 /**
- * Presets end today: 일별 = today, 주별 = last 7 days, 월별 = last month, 연별 = last year.
- * (Assumption — Figma only shows the control with 월별 selected.)
+ * Presets end today: 일별 = today, 주별 = this week from Monday, 월별 = this month from the 1st, 연별 = the 12 calendar
+ * months up to this one. (Figma only shows the control with 월별 selected.)
  */
 export function presetRange(preset: Exclude<PeriodPreset, "range">, today = new Date()) {
-  const from = new Date(today);
-  if (preset === "week") from.setDate(from.getDate() - 6);
-  if (preset === "month") {
-    from.setMonth(from.getMonth() - 1);
-    from.setDate(from.getDate() + 1);
-  }
-  if (preset === "year") {
-    from.setFullYear(from.getFullYear() - 1);
-    from.setDate(from.getDate() + 1);
-  }
+  const from = preset === "week" ? startOfWeek(today) : preset === "month" ? startOfMonths(1, today) : preset === "year" ? startOfMonths(12, today) : today;
   return { from: toDateString(from), to: toDateString(today) };
 }
 

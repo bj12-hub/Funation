@@ -39,6 +39,20 @@ describe("dashboard summary", () => {
     }
   });
 
+  it("counts 이번 주 from Monday and 이번 달 from the 1st (달력 기준)", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date(2026, 9, 8, 12)); // Thursday
+      const { getCreatorDashboard, getDashboardSummary } = await import("./creatorStudio");
+      const sum = async (from: string, to: string) => (await getCreatorDashboard({ preset: "range", from, to }))!.stats.revenue;
+      const { week, month } = (await getDashboardSummary())!.received;
+      expect(week.amount).toBe(await sum("2026-10-05", "2026-10-08"));
+      expect(month.amount).toBe(await sum("2026-10-01", "2026-10-08"));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("is creator-only", async () => {
     const { getDashboardSummary } = await import("./creatorStudio");
     signIn(["SUPPORTER"]);
