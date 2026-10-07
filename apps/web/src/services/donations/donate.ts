@@ -6,6 +6,7 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS, mockAccount } from "@/services/account/mockStore";
 import { donorKeyOf, enqueueDonationAlert } from "@/services/creator/alertCore";
+import { matchesContent } from "@/services/creator/assetCore";
 import { shownOnStream } from "@/services/creator/donationPageCore";
 import { getCreatorById } from "@/services/creators/creators";
 import { attributeMemberDonation, isActiveMember, liveBroadcastOf, recordBroadcastDonation } from "@/services/crew/crewCore";
@@ -214,8 +215,13 @@ const HISTORY_CATEGORY: Partial<Record<string, "basic" | "quest" | "game">> = {
 
 const isFn = (value: unknown, min = 0): value is number => typeof value === "number" && Number.isInteger(value) && value >= min && value <= MAX_FN;
 
-const isDrawing = (value: unknown): value is string =>
-  typeof value === "string" && value.startsWith("data:image/png;base64,") && value.length <= MAX_DRAWING_CHARS;
+const PNG_DATA_URL = "data:image/png;base64,";
+/** A PNG data URL within the size limit: plain base64 whose bytes start with the PNG signature (not just the prefix). */
+const isDrawing = (value: unknown): value is string => {
+  if (typeof value !== "string" || !value.startsWith(PNG_DATA_URL) || value.length > MAX_DRAWING_CHARS) return false;
+  const body = value.slice(PNG_DATA_URL.length);
+  return body.length % 4 === 0 && /^[A-Za-z0-9+/]+={0,2}$/.test(body) && matchesContent(Buffer.from(body.slice(0, 16), "base64"), "image/png");
+};
 
 /** null = malformed; `refused` = well-formed but the text cannot go out (a platform forbidden word). */
 function parse(v: Record<string, unknown>, catalog: DonationCatalog): Parsed | { refused: string } | null {

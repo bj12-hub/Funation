@@ -34,7 +34,10 @@ describe("정산 체크리스트", () => {
   });
 });
 
-/** A complete 개인사업자 form. Placeholder digits only (all zeros) — never real business or account numbers. */
+/**
+ * A complete 개인사업자 form. Placeholder digits only (all zeros) — never real business or account numbers. The documents
+ * are tiny synthetic PDFs (a header and nothing else).
+ */
 function soleProprietorForm(holder: string) {
   const fd = new FormData();
   const fields: Record<string, string> = {
@@ -60,7 +63,7 @@ function soleProprietorForm(holder: string) {
     channelUrl: "https://example.com/channel"
   };
   for (const [k, v] of Object.entries(fields)) fd.set(k, v);
-  for (const k of ["bizLicense", "bankCopy"]) fd.set(k, new File(["%PDF"], `${k}.pdf`, { type: "application/pdf" }));
+  for (const k of ["bizLicense", "bankCopy"]) fd.set(k, new File(["%PDF-1.7"], `${k}.pdf`, { type: "application/pdf" }));
   return fd;
 }
 
@@ -78,5 +81,18 @@ describe("정산 자료 등록", () => {
     expect(second.status).not.toBe("SUBMITTED");
     expect(mockSettlement.registration).toMatchObject({ memberType: "SOLE_PROPRIETOR", holder: "가나다", accountMasked: "******0000" });
     expect(await registerSettlement(soleProprietorForm("라마바"))).toEqual({ status: "NO_TERMS" });
+  });
+
+  it("checks each document's bytes, not just the declared type", async () => {
+    const { registerSettlement } = await import("./settlement");
+    const { mockSettlement } = await import("./mockSettlementStore");
+    mockSettlement.terms = { memberType: "SOLE_PROPRIETOR", acceptedAt: new Date().toISOString() };
+    const renamed = soleProprietorForm("가나다");
+    renamed.set("bankCopy", new File(["just text"], "bankCopy.pdf", { type: "application/pdf" }));
+    expect(await registerSettlement(renamed)).toEqual({ status: "INVALID", message: "JPG, PNG, PDF 파일만 업로드할 수 있어요.", field: "bankCopy" });
+    const png = soleProprietorForm("가나다");
+    png.set("bankCopy", new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0])], "bankCopy.png", { type: "image/png" }));
+    expect(await registerSettlement(png)).toEqual({ status: "SUBMITTED" });
+    expect(mockSettlement.registration).not.toBeNull();
   });
 });

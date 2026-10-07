@@ -17,6 +17,7 @@ import {
   type CreatorSettings,
   type SaveResult
 } from "./creatorSettingsTypes";
+import { matchesContent } from "./assetCore";
 import { mockCreator, newIntegrationKey } from "./mockCreatorStore";
 import { isIsoDate } from "@/lib/period";
 
@@ -192,8 +193,11 @@ export async function uploadCreatorImage(formData: FormData): Promise<ImageUploa
   if (!(PROFILE_PHOTO_TYPES as readonly string[]).includes(file.type)) return { status: "UNSUPPORTED" };
   if (file.size > PROFILE_PHOTO_MAX_BYTES) return { status: "TOO_LARGE" };
   await mockDelay(600);
+  const bytes = Buffer.from(await file.arrayBuffer());
+  // The bytes must really be the declared type: a renamed file cannot pass as an image.
+  if (!matchesContent(bytes, file.type)) return { status: "UNSUPPORTED" };
   // Mock storage: data URL in memory. The real backend stores the file and returns a URL.
-  const url = `data:${file.type};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}`;
+  const url = `data:${file.type};base64,${bytes.toString("base64")}`;
   mockCreator.images[slot] = url;
   return { status: "UPLOADED", url };
 }

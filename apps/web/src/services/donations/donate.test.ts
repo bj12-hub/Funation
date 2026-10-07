@@ -69,7 +69,7 @@ describe("Donation Core", () => {
     expect(await requestDonation({ ...base, type: "MINI", amount: 1_000, text: `hi ${MOCK_FORBIDDEN_WORDS[1].toUpperCase()}`, colorId: "pink", idempotencyKey: key(2) })).toEqual(refused);
     const quest = { ...base, type: "QUEST", title: bad, successReward: 10_000, timeLimitSec: 600, creatorDecides: true, termsAgreed: true, idempotencyKey: key(3) };
     expect(await requestDonation(quest)).toEqual(refused);
-    const drawing = { ...base, type: "DRAWING", amount: 1_000, title: bad, image: "data:image/png;base64,AAAA", showProcess: true, canvasMode: false, termsAgreed: true, idempotencyKey: key(4) };
+    const drawing = { ...base, type: "DRAWING", amount: 1_000, title: bad, image: "data:image/png;base64,iVBORw0KGgo=", showProcess: true, canvasMode: false, termsAgreed: true, idempotencyKey: key(4) };
     expect(await requestDonation(drawing)).toEqual(refused);
     expect(await requestDonation({ ...base, type: "SIGNATURE", signatureId: "sig-zero2", message: bad, expectedAmount: 10_002, idempotencyKey: key(5) })).toEqual(refused);
     expect(account.fnBalance).toBe(50_000);

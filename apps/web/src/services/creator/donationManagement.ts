@@ -52,6 +52,7 @@ import { isQuestAction, type QuestAction, type QuestDecideResult } from "@/servi
 import { getDonationCatalog } from "@/services/donations/signatureCore";
 import { FIXTURE_AMOUNTS, FIXTURE_DONORS } from "./receivedFixtures";
 import { mockCreator } from "./mockCreatorStore";
+import { matchesContent } from "./assetCore";
 import { donationFilterStore, donationPageStore } from "./donationPageCore";
 import { isIsoDate } from "@/lib/period";
 
@@ -503,8 +504,11 @@ export async function saveTitleTier(formData: FormData): Promise<TitleSaveResult
   if (icon instanceof File && icon.size > 0) {
     if (!(PROFILE_PHOTO_TYPES as readonly string[]).includes(icon.type)) return { status: "INVALID", message: "JPG, PNG, WEBP 이미지만 등록할 수 있어요." };
     if (icon.size > PROFILE_PHOTO_MAX_BYTES) return { status: "INVALID", message: "이미지는 5MB 이하만 등록할 수 있어요." };
+    const bytes = Buffer.from(await icon.arrayBuffer());
+    // A renamed file cannot pass as an image: the bytes must be the declared type.
+    if (!matchesContent(bytes, icon.type)) return { status: "INVALID", message: "JPG, PNG, WEBP 이미지만 등록할 수 있어요." };
     // Mock storage: data URL in memory.
-    iconUrl = `data:${icon.type};base64,${Buffer.from(await icon.arrayBuffer()).toString("base64")}`;
+    iconUrl = `data:${icon.type};base64,${bytes.toString("base64")}`;
   }
   await mockDelay(400);
   Object.assign(tier, { name, description, color: color.toUpperCase(), iconUrl });
