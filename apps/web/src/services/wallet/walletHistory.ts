@@ -309,12 +309,12 @@ const DONATION_ROWS: [number, string, string, string, string, number, string, Do
 ];
 
 /** All donation records of the signed-in mock member (server-side; used by supporter identity). */
-export function listDonationRecords(): (DonationRecord & { category: DonationCategory })[] {
+export function listDonationRecords(): (DonationRecord & { category: DonationCategory; hideProfile?: boolean })[] {
   return mockDonations();
 }
 
 /** Records of the current account only: after a 재가입 the withdrawn account's history is not shown. */
-function mockDonations(): (DonationRecord & { category: DonationCategory })[] {
+function mockDonations(): (DonationRecord & { category: DonationCategory; hideProfile?: boolean })[] {
   const since = accountSince();
   return since ? mockWallet.donations.filter((d) => d.donatedAt >= since) : [...mockWallet.donations, ...seedDonations()];
 }

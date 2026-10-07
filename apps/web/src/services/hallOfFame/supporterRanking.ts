@@ -63,10 +63,31 @@ export type SupporterRanking = {
 
 export type LiveRanking = { window: LiveWindow; supporters: RankedSupporter[] };
 
+/** One donation as the ranking aggregation reads it. `hideProfile`: sent with 프로필 숨기기 (shown as 익명). */
+export type RankingDonation = { supporterId: string; amountKrw: number; hideProfile: boolean };
+export type SupporterProfile = Pick<RankedSupporter, "supporterId" | "nickname" | "avatarUrl" | "tier">;
+
+/**
+ * Totals per supporter, highest first (ties keep the input order). A donation sent with 프로필 숨기기 went out as 익명,
+ * so it never counts toward a named row — 2026-10-08 결정 "명예의 전당·랭킹에서 익명 제외", the channel monthly ranking's
+ * rule; a supporter whose donations were all hidden is not ranked. The backend aggregates the same way.
+ */
+export function rankSupporters(donations: readonly RankingDonation[], profiles: ReadonlyMap<string, SupporterProfile>): RankedSupporter[] {
+  const totals = new Map<string, number>();
+  for (const d of donations) {
+    if (d.hideProfile || !profiles.has(d.supporterId)) continue;
+    totals.set(d.supporterId, (totals.get(d.supporterId) ?? 0) + d.amountKrw);
+  }
+  return [...totals.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([supporterId, donationAmountKrw], i) => ({ ...profiles.get(supporterId)!, rank: i + 1, donationAmountKrw }));
+}
+
 export async function getSupporterRanking(period: RankingPeriod, show: number = LEADERBOARD_STEP): Promise<SupporterRanking> {
   if (!USE_MOCK) throw new Error("Supporter ranking API is not connected yet.");
   await mockDelay(300);
-  const all = MOCK_FIELD.map((s) => ({ ...s, donationAmountKrw: Math.round((s.donationAmountKrw * PERIOD_SCALE[period]) / 1000) * 1000 }));
+  const scaled = MOCK_DONATIONS.map((d) => ({ ...d, amountKrw: Math.round((d.amountKrw * PERIOD_SCALE[period]) / 1000) * 1000 }));
+  const all = rankSupporters(scaled, MOCK_PROFILES);
   const count = Math.min(Math.max(LEADERBOARD_STEP, Math.floor(show) || LEADERBOARD_STEP), all.length);
   return { period, supporters: all.slice(0, count), total: all.length };
 }
@@ -76,12 +97,12 @@ export async function getLiveSupporterRanking(window: LiveWindow): Promise<LiveR
   if (!USE_MOCK) throw new Error("Supporter ranking API is not connected yet.");
   await mockDelay(200);
   const scale = LIVE_SCALE[window];
-  const rotated = [...MOCK_FIELD.slice(LIVE_OFFSET[window]), ...MOCK_FIELD.slice(0, LIVE_OFFSET[window])].slice(0, 10);
-  const supporters = rotated
-    .map((s, i) => ({ ...s, donationAmountKrw: Math.round((s.donationAmountKrw * scale * (1 - i * 0.04)) / 1000) * 1000 }))
-    .sort((a, b) => b.donationAmountKrw - a.donationAmountKrw)
-    .map((s, i) => ({ ...s, rank: i + 1 }));
-  return { window, supporters };
+  const rotated = [...MOCK_FIELD.slice(LIVE_OFFSET[window]), ...MOCK_FIELD.slice(0, LIVE_OFFSET[window])].slice(0, 10).map((s) => s.supporterId);
+  const recent = MOCK_DONATIONS.filter((d) => rotated.includes(d.supporterId)).map((d) => ({
+    ...d,
+    amountKrw: Math.round((d.amountKrw * scale * (1 - rotated.indexOf(d.supporterId) * 0.04)) / 1000) * 1000
+  }));
+  return { window, supporters: rankSupporters(recent, MOCK_PROFILES) };
 }
 
 // Mock aggregation factors (the backend computes real period and window totals).
@@ -113,4 +134,15 @@ const MOCK_FIELD: RankedSupporter[] = [
     const rank = i + 11;
     return { rank, supporterId: `s${rank}`, nickname: `서포터${String(rank).padStart(2, "0")}`, avatarUrl: A((rank % 10) + 1), donationAmountKrw: Math.round(1_500_000 * Math.pow(0.93, i)), tier: "BRONZE" };
   })
+];
+
+const MOCK_PROFILES: ReadonlyMap<string, SupporterProfile> = new Map(
+  MOCK_FIELD.map(({ supporterId, nickname, avatarUrl, tier }) => [supporterId, { supporterId, nickname, avatarUrl, tier }])
+);
+
+/** The field's named donations, plus a few sent as 익명 that the ranking must leave out. */
+const MOCK_DONATIONS: RankingDonation[] = [
+  ...MOCK_FIELD.map((s) => ({ supporterId: s.supporterId, amountKrw: s.donationAmountKrw, hideProfile: false })),
+  { supporterId: "s9", amountKrw: 20_000_000, hideProfile: true },
+  { supporterId: "s30", amountKrw: 5_000_000, hideProfile: true }
 ];
