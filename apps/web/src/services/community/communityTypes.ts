@@ -21,7 +21,8 @@ export const COMMENT_MAX = 300;
 export const POSTS_PAGE_SIZE = 15;
 
 export type PostSummary = { id: string; category: BoardCategory; title: string; authorName: string; createdAt: string; commentCount: number; views: number };
-export type Comment = { id: string; authorName: string; body: string; createdAt: string; mine: boolean };
+/** `byPostAuthor`: written by the post's author (blocking them hides the whole post, so the page is left). */
+export type Comment = { id: string; authorName: string; body: string; createdAt: string; mine: boolean; byPostAuthor: boolean };
 export type PostDetail = PostSummary & { body: string; mine: boolean; comments: Comment[]; updatedAt: string | null };
 
 export type BoardView = { category: BoardCategory | "ALL"; q: string; items: PostSummary[]; page: number; totalPages: number; total: number };

@@ -91,7 +91,7 @@ export function PostScreen({ post, signedIn }: { post: PostDetail; signedIn: boo
                 <span className={styles.meta}>
                   <strong>{c.authorName}</strong> · {when(c.createdAt)}
                 </span>
-                {!c.mine && <ModerationActions target={{ type: "COMMENT", id: c.id, parentId: post.id }} signedIn={signedIn} />}
+                {!c.mine && <ModerationActions target={{ type: "COMMENT", id: c.id, parentId: post.id }} signedIn={signedIn} leaveTo={c.byPostAuthor ? "/community" : undefined} />}
                 <p className={styles.commentBody}>{c.body}</p>
                 {c.mine && (
                   <button type="button" className={styles.link} disabled={pending} onClick={() => act(() => deleteComment(post.id, c.id))}>

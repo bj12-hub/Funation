@@ -77,7 +77,7 @@ export async function getPost(id: unknown): Promise<PostDetail | null> {
     body: p.body,
     updatedAt: p.updatedAt,
     mine: !!session && session.userId === p.authorId,
-    comments: shownComments(p, session?.userId).map((c) => ({ id: c.id, authorName: shownMemberName(c.authorId, c.authorName), body: c.body, createdAt: c.createdAt, mine: !!session && session.userId === c.authorId }))
+    comments: shownComments(p, session?.userId).map((c) => ({ id: c.id, authorName: shownMemberName(c.authorId, c.authorName), body: c.body, createdAt: c.createdAt, mine: !!session && session.userId === c.authorId, byPostAuthor: c.authorId === p.authorId }))
   };
 }
 

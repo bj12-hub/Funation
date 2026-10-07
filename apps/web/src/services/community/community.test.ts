@@ -23,6 +23,19 @@ describe("커뮤니티", () => {
     expect(post).toMatchObject({ title: "위젯 꿀팁", mine: true, views: 1 });
   });
 
+  it("marks the comments the post's author wrote, without sending member ids", async () => {
+    const { createPost, addComment, getPost } = await load();
+    const res = await createPost({ category: "FREE", title: "내 글", body: "본문", requestId: key(1) });
+    const id = res.status === "SAVED" ? res.id : "";
+    expect(await addComment(id, "글쓴이 댓글", key(2))).toEqual({ status: "SAVED" });
+    signInAs("u-other");
+    expect(await addComment(id, "다른 회원 댓글", key(3))).toEqual({ status: "SAVED" });
+    const comments = (await getPost(id))!.comments;
+    // Blocking the post's author from their comment hides the whole post, so the page leaves for the board.
+    expect(comments.map((c) => [c.body, c.byPostAuthor])).toEqual([["글쓴이 댓글", true], ["다른 회원 댓글", false]]);
+    expect(JSON.stringify(comments)).not.toMatch(/u-test|u-other/);
+  });
+
   it("only the author may edit or delete; others get FORBIDDEN", async () => {
     const { updatePost, deletePost, deleteComment, getPost } = await load();
     expect(await updatePost("p-1", { category: "FREE", title: "변경", body: "변경" })).toEqual({ status: "FORBIDDEN" });
