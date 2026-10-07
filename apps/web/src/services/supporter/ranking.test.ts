@@ -28,6 +28,22 @@ describe("내 랭킹", () => {
     expect((await getMyRanking("month"))!.myTotalFn).toBe(3_000_000);
   });
 
+  it("leaves donations sent as 익명 out of the member's named rows (2026-10-08 결정)", async () => {
+    const { mockAccount } = await import("@/services/account/mockStore");
+    const { mockWallet } = await import("@/services/wallet/mockWalletStore");
+    vi.spyOn(await import("@/services/wallet/walletHistory"), "listDonationRecords").mockImplementation(() => mockWallet.donations);
+    const { requestDonation } = await import("@/services/donations/donate");
+    const { getMyRanking } = await import("./ranking");
+    mockAccount.fnBalance = 10_000_000;
+
+    await requestDonation({ creatorId: "c4", hideProfile: true, type: "TEXT", amount: 3_000_000, message: "", voiceId: null, idempotencyKey: key(1) });
+    expect((await getMyRanking("all"))!).toMatchObject({ myTotalFn: 0, myRank: null, creators: [] });
+    await requestDonation({ creatorId: "c4", hideProfile: false, type: "TEXT", amount: 1_000, message: "", voiceId: null, idempotencyKey: key(2) });
+    const view = (await getMyRanking("all"))!;
+    expect(view.myTotalFn).toBe(1_000);
+    expect(view.creators).toEqual([expect.objectContaining({ creatorId: "c4", myTotalFn: 1_000 })]);
+  });
+
   it("requires a session", async () => {
     const { getMyRanking } = await import("./ranking");
     signIn(null);

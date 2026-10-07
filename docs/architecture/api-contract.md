@@ -25,7 +25,7 @@ Backend framework, database, payment provider and every business rule listed as 
 | FN 충전 | `wallet/charge.requestCharge` | credit FN | key + fingerprint (`CONFLICT`, `IN_PROGRESS`, failures cached) | charge row |
 | 크리에이터 룸 후원 | `donations/donate.requestDonation` | debit FN | key + fingerprint | donation row |
 | SOOP · FlexTV 후원 | `platformDonation/platformDonation.requestPlatformDonation` | hold/debit FN → platform call → reverse on refusal; stays held on timeout (`PENDING`) | key + fingerprint | platform transaction + wallet mirror |
-| 출석 보상 | `attendance.checkIn` · `claimAttendanceReward` | credit FN | natural (once per day / reward) | credit ledger (`wallet/mockCreditStore`) |
+| 출석 보상 | `attendance.checkIn` (daily + automatic 15·30-day rewards) · `claimAttendanceReward` (3·7-day) | credit FN | natural (once per day per person / reward per month) | credit ledger (`wallet/mockCreditStore`, tagged with the account marker) |
 | 정산 신청 | `creator/settlementRequests.requestSettlement` | debit creator earnings (`availableFn`) | key + amount (`CONFLICT`) | PENDING settlement request (`st-<uuid>`) with a copy of the masked registration at request time |
 
 Not implemented anywhere yet (TBD): refunds, holds for quest/quiz outcomes, creator revenue credit from donations, platform fees, payouts, reconciliation of platform `PENDING` results.
@@ -38,23 +38,23 @@ Legend: **R** read · **M** mutation · auth `—` none · `S` session · `C` Cr
 
 | Function | Input (enforced) | Result |
 |---|---|---|
-| `login` | identifier, password, keepSignedIn, next | `SUCCESS` · `UNKNOWN_ID` · `WRONG_PASSWORD` · `LOCKED` (5 failures) — sets the session; old passwords (>180 days, TBD) redirect to `/login/password-change` |
+| `login` | identifier, password, keepSignedIn, next | `SUCCESS` · `UNKNOWN_ID` · `WRONG_PASSWORD` · `LOCKED` (5 wrong passwords per account — the identifier is trimmed, lowercased and resolved to its account first; a successful login clears the count, a password reset lifts the lock; lock expiry TBD, per-IP counting is the backend's) — sets the session; old passwords (>180 days, TBD) redirect to `/login/password-change` |
 | `logout` | — | redirect `/` |
-| `checkEmailAvailability` · `checkNicknameAvailability` | email / nickname formats | `{ available }` (advisory) |
-| `signup` | email, password (8+ with letter·digit·special), nickname (2–12 한글/영문/숫자), phone token, required agreements | `CREATED` · `EMAIL_TAKEN` · `NICKNAME_TAKEN` · `INVALID` |
-| `sendPhoneCode` · `verifyPhoneCode` | phone `01X-XXXX-XXXX`, purpose `SIGNUP`/`PASSWORD_RESET`, 6-digit code (180 s) | `SENT` · `PHONE_NOT_FOUND` / `VERIFIED{verificationToken}` · `INVALID_OR_EXPIRED` |
-| `sendPasswordResetEmail` · `resetPassword` | email / token + password rule | `SENT` · `EMAIL_NOT_FOUND` / `RESET` · `INVALID` |
+| `checkEmailAvailability` · `checkNicknameAvailability` | email / nickname — the 마이페이지 nickname rules (`account/nicknameRules.ts`) | `{ available, reason? }` (`INVALID` · `FORBIDDEN` · `DUPLICATE`; advisory) |
+| `signup` | email, password (8–20 with letter·digit·special — one rule for sign-up, reset and change, 2026-10-08 결정), nickname (2–12 한글/영문/숫자), `SIGNUP` phone token (used up with the account write), the agreement state as left (required ones must be true) — a sign-up while the mock's one account is active is recorded so its e-mail and nickname are taken (it cannot sign in: mock limitation) | `CREATED` · `EMAIL_TAKEN` · `NICKNAME_TAKEN` · `VERIFICATION_EXPIRED` (token unknown / used / expired / other purpose) · `INVALID` |
+| `sendPhoneCode` · `verifyPhoneCode` | phone `01X-XXXX-XXXX`, purpose `SIGNUP`/`PASSWORD_RESET`, 6-digit code — accepted only if it was sent to that phone for that purpose < 180 s ago and fewer than 5 wrong codes were tried on it (limit TBD); a resend replaces the code | `SENT` · `PHONE_NOT_FOUND` / `VERIFIED{verificationToken}` (random, single-use, bound to phone + purpose; usable for 30 min — placeholder, TBD) · `INVALID_OR_EXPIRED` |
+| `sendPasswordResetEmail` · `resetPassword` | email / `PASSWORD_RESET` token of the account's phone (checked first, used up with the write) + password rule, not one of the last 3 (2026-10-08 결정) | `SENT` · `EMAIL_NOT_FOUND` / `RESET` (writes the password, lifts the login lock, revokes the session) · `INVALID` · `REUSED` · `VERIFICATION_EXPIRED` |
 
-TBD: SMS/email providers, rate and attempt limits, token validation, age rules.
+TBD: SMS/email providers, send rate limits, the code attempt limit and verified-token lifetime, age rules.
 
 ### account (`services/account`, S)
 
 | Function | R/M | Input | Result |
 |---|---|---|---|
 | `getMyAccount` | R | — | profile, identity, `fnBalance` (display only), ranking visibility, connected platforms, marketing consent |
-| `updateRankingVisibility` · `updateMarketingConsent` | M | key ∈ quest/luckyBox/play + boolean · boolean | `SAVED` · `FAILED` |
-| `checkNickname` (no auth) · `changeNickname` · `changeFunationId` | R/M | format, forbidden words, 30-day interval (TBD) | `AVAILABLE`/`CHANGED` · `INVALID` · `DUPLICATE` · `FORBIDDEN` · `LIMITED{availableFrom}` |
-| `changePassword` | M | current, next (8–20), confirm, not one of last 3 | `CHANGED` (revokes the session) · `WRONG_CURRENT` · `INVALID` · `MISMATCH` · `REUSED` |
+| `updateRankingVisibility` · `updateMarketingConsent` | M | key ∈ quest + boolean · boolean | `SAVED` · `FAILED` |
+| `checkNickname` (no auth) · `changeNickname` · `changeFunationId` | R/M | format, forbidden words, 30-day interval (TBD; checked with the write). Nickname (= the default 별명, shared with sign-up): not 익명, not another member's nickname or a channel name (2026-10-08 결정), not one of the member's other 별명 | `AVAILABLE`/`CHANGED` · `INVALID` · `DUPLICATE` · `FORBIDDEN` · `LIMITED{availableFrom}` · `RESERVED` (ID only: an ID given up by a change stays reserved for 30 days, then is released — 2026-10-08 결정, value changeable) |
+| `changePassword` | M | current, next (8–20, same rule as sign-up and reset), confirm, not one of last 3 | `CHANGED` (revokes the session) · `WRONG_CURRENT` · `INVALID` · `MISMATCH` · `REUSED` · `LOCKED` (wrong current passwords share the login's per-account count; at 5 the account locks and the session is revoked) |
 | `uploadProfilePhoto` | M | jpeg/png/webp ≤ 5 MB | `UPLOADED{avatarUrl}` · `UNSUPPORTED` · `TOO_LARGE` · `FAILED` |
 | `linkLoginProvider` · `unlinkLoginProvider` | M | NAVER / GOOGLE / KAKAO | `LINKED` · `UNLINKED` · `INVALID` |
 | `verifyIdentity` | M | PHONE / IPIN | `VERIFIED` · `ALREADY_VERIFIED` · `DUPLICATE` · `LOCKED` |
@@ -121,7 +121,7 @@ Platform access goes through `PlatformAdapter` (`adapters.ts`, CLAUDE.md §9). T
 ### favorites · attendance (S)
 
 - `getFavorites` · `addFavorite` (idempotent) · `removeFavorite` · `isFavorite`
-- `getAttendance` · `checkIn` · `claimAttendanceReward` — reward amounts, monthly reset and time zone TBD.
+- `getAttendance` · `checkIn` · `claimAttendanceReward` — 2026-10-08 결정: the 15·30-day rewards are paid automatically by the check-in that reaches them (`CHECKED_IN.autoPaid`, a REWARD wallet record each, once per month) and are never `CLAIMABLE`; only 3·7 are claimed. One check-in per day per person, keyed by the phone verified at sign-up (a same-day 재가입 with the same phone gets `ALREADY_CHECKED_IN`); a 재가입 account otherwise starts with no progress or rewards (state and credits carry the account marker). Reward amounts and time zone TBD.
 
 ## 4. Known gaps to close with the backend
 

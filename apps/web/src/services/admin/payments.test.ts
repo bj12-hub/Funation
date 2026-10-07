@@ -81,7 +81,7 @@ describe("admin payments", () => {
     expect(await m.decideRefund(OP, { chargeId: charge.id, decision: "REJECT", note: "탈퇴 회원" })).toMatchObject({ status: "INVALID" });
 
     // 재가입: a new account holds the slot; the old request still belongs to the withdrawn one.
-    m.startNewAccount({ nickname: "다시왔어요", password: "newpass12!", marketing: false });
+    m.startNewAccount({ nickname: "다시왔어요", password: "newpass12!", marketing: false, phone: "010-0000-0000" });
     m.mockAccount.fnBalance = charge.fnAmount;
     const view = (await m.getPaymentsView())!.refunds[0];
     expect(view).toMatchObject({ memberName: "탈퇴한 회원", memberWithdrawn: true, charge: { fnAmount: charge.fnAmount } });

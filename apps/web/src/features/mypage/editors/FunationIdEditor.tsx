@@ -19,13 +19,15 @@ import styles from "./editors.module.css";
 
 type State =
   | { kind: "IDLE" }
-  | { kind: "INVALID" | "DUPLICATE" | "FORBIDDEN" | "ERROR" }
+  | { kind: "INVALID" | "DUPLICATE" | "FORBIDDEN" | "RESERVED" | "ERROR" }
   | { kind: "LIMITED"; availableFrom: string }
   | { kind: "CHANGED"; value: string };
 
-const ERRORS: Record<"INVALID" | "DUPLICATE" | "FORBIDDEN" | "ERROR", string> = {
+const ERRORS: Record<"INVALID" | "DUPLICATE" | "FORBIDDEN" | "RESERVED" | "ERROR", string> = {
   INVALID: "영문 소문자와 숫자만 사용해 5~20자로 입력해 주세요.",
   DUPLICATE: "이미 사용 중인 ID입니다. 다른 ID를 입력해 주세요.",
+  // Code-first (2026-10-08 결정): an ID another member gave up stays protected for 30 days.
+  RESERVED: "최근 변경되어 보호 중인 ID입니다. 다른 ID를 입력해 주세요.",
   FORBIDDEN: "사용할 수 없는 표현이 포함되어 있습니다.",
   ERROR: GENERIC_ERROR
 };

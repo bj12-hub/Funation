@@ -1,6 +1,7 @@
 import { MOCK_TAKEN_NICKNAMES, mockAccount } from "@/services/account/mockStore";
 import { memberStore } from "@/services/admin/memberCore";
 import { donationPageStore } from "@/services/creator/donationPageCore";
+import { signedUpNicknames } from "@/services/auth/signupCore";
 import { getAllCreatorsForAdmin } from "@/services/creators/creators";
 import { listDonationRecords } from "@/services/wallet/walletHistory";
 import {
@@ -86,14 +87,15 @@ export function computeIdentity(): SupporterIdentity {
 
 /**
  * Names an 별명 may not take (2026-10-08 결정 "다른 회원 닉네임·채널명 금지"): other members' nicknames in the member
- * directory and every channel name the creator service knows, trimmed and lowercased. The member's own nickname is
+ * directory and of the sign-ups the mock recorded (services/auth/signupCore.ts), and every channel name the creator service knows, trimmed and lowercased. The member's own nickname is
  * not in it (it is already the default 별명). 별명 are otherwise unique only within the member's own list.
  */
 export async function namesTakenByOthers(): Promise<Set<string>> {
   const norm = (name: string) => name.trim().toLowerCase();
   const own = norm(mockAccount.nickname);
   const channels = (await getAllCreatorsForAdmin()).map((c) => c.name);
-  const names = [...MOCK_TAKEN_NICKNAMES, ...memberStore().supporters.map((m) => m.nickname), ...channels].map(norm);
+  const members = [...memberStore().supporters.map((m) => m.nickname), ...signedUpNicknames()];
+  const names = [...MOCK_TAKEN_NICKNAMES, ...members, ...channels].map(norm);
   return new Set(names.filter((n) => n !== own));
 }
 

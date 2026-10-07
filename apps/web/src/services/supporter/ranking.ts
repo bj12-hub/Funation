@@ -40,7 +40,9 @@ export async function getMyRanking(period: unknown): Promise<MyRankingView | nul
   await mockDelay(250);
 
   const since = periodStart(p);
-  const mine = listDonationRecords().filter((d) => d.status === "COMPLETED" && (!since || d.donatedAt.slice(0, 10) >= since));
+  // 2026-10-08 결정 "명예의 전당·랭킹에서 익명 제외": a donation sent with 프로필 숨기기 went out as 익명, so it never
+  // counts toward the member's named rows (board and per creator), as in the channel monthly ranking.
+  const mine = listDonationRecords().filter((d) => d.status === "COMPLETED" && !d.hideProfile && (!since || d.donatedAt.slice(0, 10) >= since));
   const myTotalFn = mine.reduce((s, d) => s + d.fnAmount, 0);
 
   const field = POOL.map((x) => ({ name: x.name, totalFn: Math.round(x.fn * SHARE[p]), me: false }));

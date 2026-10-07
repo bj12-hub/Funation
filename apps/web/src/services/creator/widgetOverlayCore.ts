@@ -73,7 +73,7 @@ export function rankingSince(period: RankingSettings["period"], now = new Date()
 /**
  * Top donors by FN in the period, ties broken by who donated first. Rows group by the alert's opaque `donorKey` and show
  * the donor's latest name, so a supporter who copies the #1's name as an 별명 gets a row of their own. A hidden
- * profile (익명) is left out (TBD: final rule). Alerts without a key (seed history) group by the name shown.
+ * profile (익명) is left out (2026-10-08 결정 "명예의 전당·랭킹에서 익명 제외"). Alerts without a key (seed history) group by the name shown.
  * 계정 / 후원시 설정한 이름 both use the name shown on the alert (TBD).
  */
 export function rankingRows(items: AlertItem[], s: RankingSettings, now = new Date()): WidgetRankRow[] {

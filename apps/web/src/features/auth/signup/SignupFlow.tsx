@@ -32,6 +32,8 @@ export function SignupFlow() {
   const [verified, setVerified] = useState<{ phone: string; token: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // The server refused the phone verification on submit (expired or already used): verify again.
+  const [verifyNotice, setVerifyNotice] = useState<string | null>(null);
 
   const verifiedCopy = { title: "휴대폰 인증 완료", description: "본인 확인이 완료되었습니다. 계정 설정을 계속해 주세요" };
   const copy = step === 2 && verified ? verifiedCopy : COPY[step];
@@ -44,12 +46,17 @@ export function SignupFlow() {
       const result = await signup({
         ...values,
         phoneVerificationToken: verified.token,
-        agreements: { youth: true, service: true, privacy: true, marketing: agreements.marketing }
+        // The real agreement state: the server checks the required ones itself.
+        agreements
       });
       if (result.status === "CREATED") setStep(4);
       else if (result.status === "EMAIL_TAKEN") setSubmitError("이미 사용 중인 이메일입니다. 다른 이메일을 사용해 주세요.");
       else if (result.status === "NICKNAME_TAKEN") setSubmitError("이미 사용 중인 닉네임입니다. 다른 닉네임을 사용해 주세요.");
-      else setSubmitError("입력한 정보를 다시 확인해 주세요.");
+      else if (result.status === "VERIFICATION_EXPIRED") {
+        setVerified(null);
+        setVerifyNotice("인증이 만료되었어요. 휴대폰 인증을 다시 진행해 주세요.");
+        setStep(2);
+      } else setSubmitError("입력한 정보를 다시 확인해 주세요.");
     } catch {
       setSubmitError("일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요");
     } finally {
@@ -69,7 +76,20 @@ export function SignupFlow() {
               <span>{verified.phone}</span>
             </div>
           ) : (
-            <PhoneVerification purpose="SIGNUP" onVerified={setVerified} />
+            <>
+              {verifyNotice && (
+                <p className={shared.formError} role="alert">
+                  {verifyNotice}
+                </p>
+              )}
+              <PhoneVerification
+                purpose="SIGNUP"
+                onVerified={(v) => {
+                  setVerifyNotice(null);
+                  setVerified(v);
+                }}
+              />
+            </>
           )}
           <Button block disabled={!verified} onClick={() => setStep(3)}>
             다음 단계

@@ -11,17 +11,20 @@ import type { MyAccount } from "./myAccount";
 
 type MockState = {
   account: MyAccount;
-  /** `changedAt`: ISO time of the last password change (drives 718:335). */
-  credentials: { password: string; recentPasswords: string[]; changedAt: string };
+  /**
+   * `changedAt`: ISO time of the last password change (drives 718:335). `phone`: the number verified at sign-up
+   * (password reset by phone; the person behind the account for once-a-day attendance) — never sent to the browser.
+   */
+  credentials: { password: string; recentPasswords: string[]; changedAt: string; phone: string };
   changeHistory: { nicknameChangedAt: Date | null; funationIdChangedAt: Date | null };
   /** Server-side revocation (e.g. after a password change); cleared on the next login. */
   session: { revoked: boolean; roles?: Role[] };
 };
 
 // Bump the key when the state shape changes so a running dev server starts from fresh data.
-const globalForMock = globalThis as typeof globalThis & { __funationMockStateV3?: MockState };
+const globalForMock = globalThis as typeof globalThis & { __funationMockStateV4?: MockState };
 
-const state = (globalForMock.__funationMockStateV3 ??= {
+const state = (globalForMock.__funationMockStateV4 ??= {
   account: {
     nickname: "홍길동",
     funationId: "hongGD123",
@@ -43,8 +46,13 @@ const state = (globalForMock.__funationMockStateV3 ??= {
     marketingConsent: false
   },
   // The login mock accepts this password; a password change updates it.
-  // Changed 7 months ago so the 비밀번호 변경 권유 screen (718:335) shows after login.
-  credentials: { password: "password", recentPasswords: ["password"], changedAt: new Date(Date.now() - 210 * 86_400_000).toISOString() },
+  // Changed 7 months ago so the 비밀번호 변경 권유 screen (718:335) shows after login. The phone is a mock number.
+  credentials: {
+    password: "password",
+    recentPasswords: ["password"],
+    changedAt: new Date(Date.now() - 210 * 86_400_000).toISOString(),
+    phone: "010-1234-5678"
+  },
   changeHistory: { nicknameChangedAt: null, funationIdChangedAt: null },
   session: { revoked: false, roles: ["SUPPORTER", "CREATOR"] }
 });
