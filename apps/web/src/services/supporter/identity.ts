@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
@@ -48,7 +49,9 @@ export async function addDonationNickname(name: unknown): Promise<IdentitySaveRe
   if (nicknameList().length >= MAX_NICKNAMES) return { status: "INVALID", message: `별명은 최대 ${MAX_NICKNAMES}개까지 등록할 수 있어요.` };
   const error = checkName(name, taken);
   if (error) return { status: "INVALID", message: error };
-  mockIdentity.nicknames.push({ id: `nk-${Date.now().toString(36)}${mockIdentity.nicknames.length}`, name: (name as string).trim() });
+  // Rename, remove, 대표 and donation attribution find a 별명 by id: never a timestamp (two in one millisecond after a
+  // removal shared one).
+  mockIdentity.nicknames.push({ id: `nk-${randomUUID()}`, name: (name as string).trim() });
   return { status: "SAVED" };
 }
 

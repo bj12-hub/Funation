@@ -130,6 +130,25 @@ describe("후원자 정체성", () => {
     expect((await requestDonation(text(1_000, 13))).status).toBe("COMPLETED");
   });
 
+  it("gives every 별명 its own id, also when several are added in one millisecond", async () => {
+    const { addDonationNickname, removeDonationNickname, renameDonationNickname, getSupporterIdentity } = await load();
+    const clock = vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-10-08T12:00:00Z"));
+    try {
+      await addDonationNickname("응원단장");
+      await addDonationNickname("별빛요정");
+      const first = (await getSupporterIdentity())!.nicknames;
+      await removeDonationNickname(first.find((n) => n.name === "응원단장")!.id);
+      await addDonationNickname("달빛요정");
+      const list = (await getSupporterIdentity())!.nicknames;
+      expect(new Set(list.map((n) => n.id)).size).toBe(list.length);
+      // Renaming the new one leaves the other alone.
+      expect(await renameDonationNickname(list.find((n) => n.name === "달빛요정")!.id, "햇빛요정")).toEqual({ status: "SAVED" });
+      expect((await getSupporterIdentity())!.nicknames.map((n) => n.name)).toEqual(["홍길동", "별빛요정", "햇빛요정"]);
+    } finally {
+      clock.mockRestore();
+    }
+  });
+
   it("only allows equipping a title that was earned", async () => {
     const { saveEquipSettings, requestDonation } = await load();
     await requestDonation(text(20_000, 4));
