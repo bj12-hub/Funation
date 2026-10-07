@@ -25,7 +25,7 @@ export function SettlementDecision({ id, canApprove }: { id: string; canApprove:
         if (res.status === "OK") {
           setMsg({ tone: "ok", text: decision === "APPROVE" ? "승인했어요." : "반려했어요." });
           router.refresh();
-        } else setMsg({ tone: "error", text: res.status === "INVALID" ? res.message : res.status === "NOT_FOUND" ? "신청을 찾을 수 없어요." : "관리자 로그인이 필요합니다." });
+        } else setMsg({ tone: "error", text: res.status === "INVALID" ? res.message : res.status === "NOT_FOUND" ? "신청을 찾을 수 없어요." : res.status === "UNAUTHORIZED" ? "관리자 로그인이 필요합니다." : "사이트에 연결할 수 없어요. 잠시 후 다시 시도해 주세요." });
       } catch {
         setMsg({ tone: "error", text: "처리하지 못했어요. 잠시 후 다시 시도해 주세요." });
       }
