@@ -46,12 +46,13 @@ export async function decideReport(admin: AdminActor, input: unknown): Promise<R
   if (v.action === "HIDE" && report.target.type === "CREATOR") return { status: "INVALID", message: "크리에이터 채널은 숨길 수 없어요. 회원 관리에서 이용 정지로 처리해 주세요." };
   if (v.action === "HIDE") hideTarget(report.target);
   const resolution = { at: new Date().toISOString(), by: admin.nickname, action: v.action, note } as const;
-  // Every open report on the same content is settled by one decision.
+  // Every open report on the same content is settled by one decision, and each one it closes is audited.
   const sameTarget = (r: Report) => r.target.type === report.target.type && r.target.id === report.target.id && r.target.parentId === report.target.parentId;
   for (const r of moderationStore().reports.filter((x) => x.status === "OPEN" && sameTarget(x))) {
     r.status = wanted;
     r.resolution = { ...resolution };
+    const reason = r.id === report.id ? note : `${note} (신고 ${report.id} 처리로 함께 종료)`;
+    recordAudit(admin, v.action === "HIDE" ? "REPORT_HIDE" : "REPORT_DISMISS", `report:${r.id}`, reason);
   }
-  recordAudit(admin, v.action === "HIDE" ? "REPORT_HIDE" : "REPORT_DISMISS", `report:${report.id}`, note);
   return { status: "OK" };
 }
