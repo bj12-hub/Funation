@@ -61,8 +61,9 @@ function seedPosts(creatorId: string) {
   s.seeded[creatorId] = true;
   const rand = seeded(`${creatorId}-posts`);
   const base = Date.now() - 6 * 86_400_000;
+  // Each channel's sample fans are their own members (a 차단 of one must not hide fans on other channels).
   SEED_POSTS.forEach((body, i) =>
-    s.posts.push({ id: `cp-seed-${creatorId}-${i}`, creatorId, authorId: `seed-${i}`, authorName: `팬${String(Math.floor(rand() * 900) + 100)}`, body, createdAt: new Date(base + i * 86_400_000).toISOString(), deleted: false })
+    s.posts.push({ id: `cp-seed-${creatorId}-${i}`, creatorId, authorId: `seed-${creatorId}-${i}`, authorName: `팬${String(Math.floor(rand() * 900) + 100)}`, body, createdAt: new Date(base + i * 86_400_000).toISOString(), deleted: false })
   );
 }
 

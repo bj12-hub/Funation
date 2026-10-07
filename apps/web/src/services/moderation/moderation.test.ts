@@ -143,6 +143,15 @@ describe("blocking", () => {
     expect(await m.listBlocks()).toBeNull();
   });
 
+  it("blocks one sample fan of a channel, not the fans in the same place on other channels", async () => {
+    const m = await load();
+    const c1 = (await m.getChannelPosts("c1"))!;
+    const c2 = (await m.getChannelPosts("c2"))!;
+    expect(await m.blockAuthorOf({ target: { type: "CHANNEL_POST", id: c1.items[0].id } })).toMatchObject({ status: "OK", name: c1.items[0].authorName });
+    expect((await m.getChannelPosts("c1"))!.total).toBe(c1.total - 1);
+    expect((await m.getChannelPosts("c2"))!.items).toEqual(c2.items);
+  });
+
   it("leaves a blocked commenter out of the board's comment count, as the post hides the comments", async () => {
     const m = await load();
     const count = async () => (await m.getBoard({})).items.find((p) => p.id === "p-1")!.commentCount;
