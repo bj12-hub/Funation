@@ -24,8 +24,10 @@ part of the Donation Core, Wallet or Settlement.
 
 ## 신고 · 차단
 
-- A report points at the content; the server resolves its author and keeps a snapshot of the text for the operator.
-  One open report per member and content.
+- A report points at the content; the server resolves its author and keeps a snapshot of the text for the operator
+  (clipped) and a SHA-256 hash of the whole text. One open report per member and content; a repeat is answered
+  "이미 신고한 내용이에요." 2026-10-08 결정: once an operator closed the member's report (기각 or 숨김), the same member
+  can report the content again only if it changed since that report (the hash differs); otherwise it stays a repeat.
 - 차단 hides the author's posts, comments, channel posts and mail from the blocker (board counts included). The
   author is not told. Block entries carry their own id; the blocked member's id never reaches the browser. A creator
   channel can be reported but not blocked.

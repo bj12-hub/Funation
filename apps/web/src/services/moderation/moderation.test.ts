@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
+import { key, mockSessionModule, resetMockStores, signIn, signInAs } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
@@ -11,11 +11,11 @@ async function load() {
   const mod = await import("./moderation");
   const { moderationStore } = await import("./moderationCore");
   const reports = await import("@/services/admin/reports");
-  const { getBoard, getPost } = await import("@/services/community/community");
+  const { getBoard, getPost, createPost, updatePost } = await import("@/services/community/community");
   const { getMailbox } = await import("@/services/messages/messages");
   const { getChannelPosts } = await import("@/services/creators/channelHome");
   const { auditEntries } = await import("@/services/admin/auditCore");
-  return { ...mod, ...reports, moderationStore, getBoard, getPost, getMailbox, getChannelPosts, auditEntries };
+  return { ...mod, ...reports, moderationStore, getBoard, getPost, createPost, updatePost, getMailbox, getChannelPosts, auditEntries };
 }
 
 describe("reports", () => {
@@ -72,6 +72,48 @@ describe("reports", () => {
     await m.submitReport({ target: { type: "CREATOR", id: "c2" }, reason: "IMPERSONATION" });
     const creatorReport = (await m.listReports()).rows[0];
     expect((await m.decideReport(OP, { id: creatorReport.id, action: "HIDE", note: "채널 숨김" })).status).toBe("INVALID");
+  });
+});
+
+describe("reporting again (2026-10-08 결정)", () => {
+  beforeEach(() => resetMockStores());
+
+  it("takes a member's new report on closed content only once the content changed", async () => {
+    const m = await load();
+    const target = { type: "POST", id: "p-2" };
+    expect(await m.submitReport({ target, reason: "SPAM" })).toEqual({ status: "REPORTED" });
+    expect(await m.submitReport({ target, reason: "ABUSE" })).toEqual({ status: "ALREADY_REPORTED" }); // still open
+    const first = m.moderationStore().reports[0];
+    expect(await m.decideReport(OP, { id: first.id, action: "DISMISS", note: "위반 아님" })).toEqual({ status: "OK" });
+    expect(await m.submitReport({ target, reason: "ABUSE" })).toEqual({ status: "ALREADY_REPORTED" }); // closed, unchanged
+
+    // The author edits the post after the decision: the same member may report it again, with the new text.
+    signInAs("u-sample-2");
+    expect(await m.updatePost("p-2", { category: "QNA", title: "룰렛 후원은 어떻게 당첨이 정해지나요?", body: "바뀐 내용" })).toMatchObject({ status: "SAVED" });
+    signInAs("u-test");
+    expect(await m.submitReport({ target, reason: "ABUSE" })).toEqual({ status: "REPORTED" });
+    const view = await m.listReports();
+    expect(view.counts).toMatchObject({ OPEN: 1, DISMISSED: 1 });
+    expect(view.rows[0].snapshot).toContain("바뀐 내용");
+    expect(await m.submitReport({ target, reason: "SPAM" })).toEqual({ status: "ALREADY_REPORTED" }); // open again
+  });
+
+  it("sees a change past the clipped snapshot through the content hash", async () => {
+    const m = await load();
+    signInAs("u-sample-2");
+    const long = "가".repeat(400);
+    const post = await m.createPost({ category: "FREE", title: "긴 글", body: long, requestId: key(1) });
+    const id = post.status === "SAVED" ? post.id : "";
+    signInAs("u-test");
+    expect(await m.submitReport({ target: { type: "POST", id }, reason: "SPAM" })).toEqual({ status: "REPORTED" });
+    const first = m.moderationStore().reports[0];
+    expect(await m.decideReport(OP, { id: first.id, action: "DISMISS", note: "위반 아님" })).toEqual({ status: "OK" });
+    signInAs("u-sample-2");
+    await m.updatePost(id, { category: "FREE", title: "긴 글", body: `${long.slice(0, 399)}나` });
+    signInAs("u-test");
+    expect(await m.submitReport({ target: { type: "POST", id }, reason: "SPAM" })).toEqual({ status: "REPORTED" });
+    const [again] = (await m.listReports()).rows;
+    expect(again.snapshot).toBe(first.snapshot); // the operator's clipped text looks the same
   });
 });
 
