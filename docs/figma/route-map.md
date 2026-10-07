@@ -62,7 +62,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/creator/widgets/drawing` | ✅ code-first | 그림후원 — W08 `66:2498` |
 | `/creator/widgets/assets` | ✅ code-first | 이미지·사운드 라이브러리 — W09 `213:6371` |
 | `/creator/widgets/banner` | ✅ code-first | 배너 (기능 제어 OFF 안내) — W10 `66:2782` |
-| `/creator/widgets/link` | ✅ code-first | 후원 연동 (플랫폼 후원 → 후원 알림) + SMS 계좌후원 목업 (`POST /api/bank-sms/[key]`) — W11 `212:6116` |
+| `/creator/widgets/link` | ✅ code-first | 후원 연동 (플랫폼 후원 → 후원 알림) + SMS 계좌후원 목업 (`POST /api/bank-sms/[key]`) — W11 `229:6102` |
 | `/overlay/effects/[key]` | ✅ code-first | OBS 이펙트 — O03 `92:6828` · OFF O03-off `133:34` |
 | `/overlay/video/[key]` | ✅ code-first | OBS 영상 후원 — O04 `92:6849` · OFF O04-off `133:56` |
 | `/overlay/drawing/[key]` | ✅ code-first | OBS 그림후원 — O05 `92:6856` · OFF O05-off `133:64` |
