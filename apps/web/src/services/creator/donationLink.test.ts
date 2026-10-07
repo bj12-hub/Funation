@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { key, mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
@@ -19,15 +19,17 @@ const chat = (n: number, extra: Record<string, unknown> = {}) => ({ platform: "Y
 
 describe("donation link", () => {
   beforeEach(() => resetMockStores());
+  afterEach(() => vi.restoreAllMocks());
 
   it("needs a connected, supported platform before it can be turned on", async () => {
     const m = await load();
     const view = (await m.getDonationLinks())!;
-    expect(view.links.map((l) => [l.platform, l.supported, l.connected])).toEqual([
-      ["YOUTUBE", true, false],
-      ["CHZZK", true, false],
-      ["SOOP", true, false],
-      ["FLEXTV", true, false]
+    // Only YouTube's donation events are confirmed against the real API; the others show 「API 확인 중」.
+    expect(view.links.map((l) => [l.platform, l.supported, l.unverified, l.connected])).toEqual([
+      ["YOUTUBE", true, false, false],
+      ["CHZZK", true, true, false],
+      ["SOOP", true, true, false],
+      ["FLEXTV", true, true, false]
     ]);
     expect((await m.setDonationLink({ platform: "YOUTUBE", enabled: true })).status).toBe("INVALID");
     expect((await m.setDonationLink({ platform: "SOOP", enabled: true })).status).toBe("INVALID");
@@ -79,6 +81,79 @@ describe("donation link", () => {
       ["CHZZK", "치지직 치즈", "1,000 치즈", "QUEUED"],
       ["YOUTUBE", "YouTube 슈퍼챗", "₩5,000", "QUEUED"]
     ]);
+  });
+
+  it("ties the read position to the channel: a new channel turns the link off and starts from now", async () => {
+    const m = await load();
+    const unified = await import("@/services/broadcast/unifiedChat");
+    const { broadcastChannelId } = await import("@/services/broadcast/channelsCore");
+    const remote = await import("@/services/platforms/mockBroadcastRemote");
+    await unified.connectBroadcastChannel({ platform: "CHZZK", handle: "alpha" });
+    await m.setDonationLink({ platform: "CHZZK", enabled: true });
+    for (let i = 0; i < 3; i++) await m.simulateExternalDonation(chat(30 + i, { platform: "CHZZK", value: 1000 }));
+    expect(m.alerts.items).toHaveLength(3);
+
+    // Switched to another channel (no disconnect first): off until the creator turns it on for that channel.
+    await unified.connectBroadcastChannel({ platform: "CHZZK", handle: "beta" });
+    expect((await m.getDonationLinks())!.links[1]).toMatchObject({ platform: "CHZZK", connected: true, enabled: false });
+    const beta = broadcastChannelId("CHZZK")!;
+    remote.mockPlatformDonation("CHZZK", beta, { userId: "v0", nick: "켜기 전", amount: 500, message: "" });
+    await m.setDonationLink({ platform: "CHZZK", enabled: true });
+    remote.mockPlatformDonation("CHZZK", beta, { userId: "v1", nick: "새 채널 1", amount: 500, message: "" });
+    remote.mockPlatformDonation("CHZZK", beta, { userId: "v2", nick: "새 채널 2", amount: 500, message: "" });
+    expect(await m.pollDonationLinks()).toEqual({ status: "OK", ingested: 2, duplicates: 0 });
+    expect(m.alerts.items.slice(3).map((a) => a.donor)).toEqual(["새 채널 1", "새 채널 2"]);
+
+    // Disconnecting YouTube switches its link off too.
+    await m.connectYouTube({ handle: "linked", requestId: key(40) });
+    await m.setDonationLink({ platform: "YOUTUBE", enabled: true });
+    await m.disconnectYouTube();
+    expect((await m.getDonationLinks())!.links[0]).toMatchObject({ connected: false, enabled: false });
+  });
+
+  it("keeps one platform's failure or malformed event from blocking the others", async () => {
+    const m = await load();
+    const unified = await import("@/services/broadcast/unifiedChat");
+    const { broadcastChannelId } = await import("@/services/broadcast/channelsCore");
+    const remote = await import("@/services/platforms/mockBroadcastRemote");
+    const { YouTubeAdapter } = await import("@/services/platforms/adapters");
+    const { PlatformError } = await import("@/services/platforms/platformTypes");
+    await m.connectYouTube({ handle: "linked", requestId: key(50) });
+    await unified.connectBroadcastChannel({ platform: "CHZZK", handle: "linked" });
+    await m.setDonationLink({ platform: "YOUTUBE", enabled: true });
+    await m.setDonationLink({ platform: "CHZZK", enabled: true });
+    const chz = broadcastChannelId("CHZZK")!;
+    vi.spyOn(YouTubeAdapter, "fetchDonationEvents").mockRejectedValue(new PlatformError("TIMEOUT", "timeout"));
+    remote.channelRemote(chz).chzzkDonations.push({ donationId: "bad-time", donatorChannelId: "x", donatorNickname: "x", payAmount: "1000", donationText: "", donatedAt: Number.NaN });
+    remote.channelRemote(chz).chzzkDonations.push({ donationId: "negative", donatorChannelId: "x", donatorNickname: "x", payAmount: "-5000", donationText: "", donatedAt: Date.now() });
+    remote.mockPlatformDonation("CHZZK", chz, { userId: "v", nick: "치즈 후원", amount: 1000, message: "" });
+
+    const view = (await m.getDonationLinks())!;
+    expect(m.alerts.items.map((a) => [a.donor, a.amountLabel])).toEqual([["치즈 후원", "1,000 치즈"]]);
+    expect(view.links[0]).toMatchObject({ platform: "YOUTUBE", lastError: "TIMEOUT" });
+    expect(view.links[1]).toMatchObject({ platform: "CHZZK", lastError: null, received: 1, skipped: 2 });
+    // The bad events are behind the cursor now: the next poll does not trip over them again.
+    expect(await m.pollDonationLinks()).toEqual({ status: "OK", ingested: 0, duplicates: 0 });
+  });
+
+  it("pulls platform donations from the alert overlay read, at most every few seconds", async () => {
+    const m = await load();
+    const { getOverlayAlert } = await import("./alertRemote");
+    const { mockCreator } = await import("./mockCreatorStore");
+    const { donationLinkStore } = await import("./donationLinkCore");
+    const { mockYouTubeSuperChat } = await import("@/services/platforms/adapters");
+    const { broadcastChannelId } = await import("@/services/broadcast/channelsCore");
+    await m.connectYouTube({ handle: "linked", requestId: key(60) });
+    await m.setDonationLink({ platform: "YOUTUBE", enabled: true });
+    const yt = broadcastChannelId("YOUTUBE")!;
+    mockYouTubeSuperChat(yt, { id: "sc-1", donor: "오버레이", message: "", value: 5000, currency: "KRW" });
+    donationLinkStore().lastIngestAt = 0;
+    await getOverlayAlert(mockCreator.integrationKey);
+    expect(m.alerts.items.map((a) => a.donor)).toEqual(["오버레이"]);
+    // Right after a read the overlay does not call the platforms again.
+    mockYouTubeSuperChat(yt, { id: "sc-2", donor: "다음", message: "", value: 5000, currency: "KRW" });
+    await getOverlayAlert(mockCreator.integrationKey);
+    expect(m.alerts.items).toHaveLength(1);
   });
 
   it("validates the simulator and requires the creator role", async () => {

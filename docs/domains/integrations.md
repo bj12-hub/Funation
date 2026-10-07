@@ -36,6 +36,25 @@ screens show them as 「확인 중」.
 YouTube rows follow the YouTube Data API (liveChatMessages list/insert/delete, liveChatBans insert).
 Authentication for every platform (OAuth / login) is TBD.
 
+## Reading platform feeds (chat and donation events)
+
+- **Cursor per channel**: the read position is stored with the channel id it belongs to. No cursor, or
+  one for another channel, means "start from now": that read only takes the current position, nothing is
+  replayed. This also covers a first read that failed and a poll that runs while a channel is connecting.
+- `onChannelChanged(platform)` (`chatCore.ts`) runs in the same tick as every channel change — YouTube
+  connect/disconnect, 채널 연결/해제, a switch to another channel, account withdrawal. It drops the chat
+  and 후원 연동 cursors and switches that platform's 후원 연동 off until the creator turns it on again.
+  Withdrawal also clears the chat feed. A read that returns after its channel changed is discarded.
+- **Failure isolation**: each platform is read separately with a timeout (5 s) and its own try/catch.
+  A failure or hang is recorded as that platform's `lastError` (shown on its row); the others, and the
+  rest of the screen (e.g. 계좌 후원 on 후원 연동), keep working.
+- **Validation in the adapter**: every DTO is checked (id, time, amount, text). A malformed item is
+  dropped and counted (`skipped`) and the cursor moves past it, so it can never block later items.
+  Unknown badges/grades map to no role.
+- **Amounts** (`toAmount`): a positive number or plain digit string up to 10,000,000 in the platform's
+  own unit (a sanity bound, not a business rule); whole numbers for 치즈 · 별풍선; YouTube amounts are
+  whole micros with an ISO currency. "1,000", negatives, NaN and other formats are rejected, not guessed.
+
 ## 통합 채팅 (unified chat)
 
 - `services/broadcast/chatCore.ts` merges every connected platform's chat into one feed.
@@ -45,7 +64,11 @@ Authentication for every platform (OAuth / login) is TBD.
 - **Hide** is Somnation-only and works for every platform (the overlay stops showing the message).
 - **Delete** and **ban** act on the platform, and only where CHAT_MODERATE is declared.
 - **Send** (통합 입력) posts to every chosen platform with CHAT_SEND and reports the result per platform.
-  `requestId` makes retries deterministic: a retry only re-attempts the platforms that failed.
+  `requestId` makes retries deterministic: a retry only re-attempts the platforms that definitely failed
+  (FAILED). Platforms are claimed (PENDING) before the platform call, so a concurrent call with the same
+  `requestId` never posts twice. A timeout may have posted the message: it is reported as UNCONFIRMED
+  (「확인 필요」) and not resent automatically — the creator checks the chat (looking the message up on
+  the platform is TBD).
 - Forbidden words are auto-hidden (`FILTER`).
 - Channel connections: `services/broadcast/channelsCore.ts`. YouTube reuses 유튜브 연동; the others
   connect by channel id in the mock.
@@ -57,6 +80,19 @@ Authentication for every platform (OAuth / login) is TBD.
 - Each platform event is deduped by `${platform}:${externalEventId}`.
 - Amounts stay in the platform's own unit: KRW/USD 슈퍼챗, 치즈, 별풍선, FlexTV TBD. They are never
   converted to FN, and they create no wallet, earnings or settlement records.
+- Events are pulled when 후원 연동 opens or polls, and by the alert overlay read (at most every 2 s —
+  mock transport only; production receives them through the live connection, TBD).
+- Turning a platform on starts from "now". Platforms whose DONATION_EVENTS is unverified show
+  「API 확인 중」 on 후원 연동.
+
+## 플랫폼 후원 (FN → SOOP · FlexTV, `services/platformDonation`)
+
+- The FN is held before the platform call. A refusal reverses the hold ("FN은 차감되지 않았습니다.").
+- A platform call that throws or does not answer in time (10 s, sample value) has an unknown outcome:
+  the FN stays held, the transaction stays PROCESSING and the Idempotency-Key answers **PENDING** with
+  its Transaction ID (the client shows 「처리 결과 확인 중」 and the ID). Reconciliation is TBD.
+- A failure before the hold finishes the key as FAILED (nothing debited), so a retry never sees
+  IN_PROGRESS forever.
 
 ## TBD
 

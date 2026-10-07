@@ -4,12 +4,25 @@ import { USE_MOCK } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { sameSecret } from "@/lib/secret";
 import { mockCreator } from "@/services/creator/mockCreatorStore";
-import { ADAPTERS, BROADCAST_PLATFORMS } from "@/services/platforms/adapters";
+import { ADAPTERS, BROADCAST_PLATFORMS, withTimeout } from "@/services/platforms/adapters";
 import { mockViewerChat } from "@/services/platforms/mockBroadcastRemote";
 import { PLATFORM_ERROR_LABEL, PlatformError } from "@/services/platforms/platformTypes";
 import type { Platform } from "@/types/platform";
 import { broadcastChannelId, channelsStore } from "./channelsCore";
-import { banAction, chatStore, chatView, deleteAction, hideAction, ingestChat, managerLinksView, mockChatReconnect, overlayLines, sendAction, startChatFrom } from "./chatCore";
+import {
+  banAction,
+  chatStore,
+  chatView,
+  deleteAction,
+  hideAction,
+  ingestChat,
+  managerLinksView,
+  mockChatReconnect,
+  onChannelChanged,
+  overlayLines,
+  sendAction,
+  startChatFrom
+} from "./chatCore";
 import { CHAT_TEXT_MAX, type ChatActionResult, type ChatOverlayLine, type ChatSendResult, type UnifiedChatView } from "./chatTypes";
 
 /**
@@ -42,8 +55,12 @@ export async function connectBroadcastChannel(input: unknown): Promise<ChatActio
   const handle = typeof v.handle === "string" ? v.handle.trim() : "";
   if (!/^@?[A-Za-z0-9가-힣_.-]{2,40}$/.test(handle)) return { status: "INVALID", message: "채널 아이디를 2~40자로 입력해 주세요." };
   try {
-    const ch = await ADAPTERS[v.platform].getChannel(handle);
-    channelsStore().channels[v.platform] = { platform: v.platform, externalChannelId: ch.externalChannelId, handle: ch.handle, title: ch.title, connectedAt: new Date().toISOString() };
+    const ch = await withTimeout(ADAPTERS[v.platform].getChannel(handle));
+    const channels = channelsStore().channels;
+    const changed = channels[v.platform]?.externalChannelId !== ch.externalChannelId;
+    channels[v.platform] = { platform: v.platform, externalChannelId: ch.externalChannelId, handle: ch.handle, title: ch.title, connectedAt: new Date().toISOString() };
+    // Same tick as the write: chat and 후원 연동 never read the new channel with the old one's cursor.
+    if (changed) onChannelChanged(v.platform);
   } catch (e) {
     return failure(e);
   }
@@ -57,7 +74,7 @@ export async function disconnectBroadcastChannel(input: unknown): Promise<ChatAc
   const v = obj(input);
   if (!isPlatform(v.platform) || v.platform === "YOUTUBE") return { status: "INVALID", message: "잘못된 요청입니다." };
   delete channelsStore().channels[v.platform];
-  delete chatStore().cursors[v.platform];
+  onChannelChanged(v.platform);
   return { status: "OK" };
 }
 

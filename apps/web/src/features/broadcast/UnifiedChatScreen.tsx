@@ -34,6 +34,7 @@ import {
   MANAGER_PERMISSIONS,
   ROLE_LABEL,
   SEND_OUTCOME_LABEL,
+  SEND_UNCONFIRMED_HINT,
   type ChatActionResult,
   type ChatPlatformState,
   type ChatSendOutcome,
@@ -419,7 +420,7 @@ function Composer({
               <li key={p} data-status={r.status}>
                 <PlatformMark platform={p} size="sm" />
                 {PLATFORM_LABEL[p]} · {SEND_OUTCOME_LABEL[r.status]}
-                {r.status === "FAILED" ? ` (${PLATFORM_ERROR_LABEL[r.code]})` : ""}
+                {r.status === "FAILED" ? ` (${PLATFORM_ERROR_LABEL[r.code]})` : r.status === "UNCONFIRMED" ? ` (${SEND_UNCONFIRMED_HINT})` : ""}
               </li>
             ))}
           </ul>
