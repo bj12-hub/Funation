@@ -3,6 +3,7 @@
 import { USE_MOCK } from "@/lib/mock";
 import { sameSecret } from "@/lib/secret";
 import { mockAlerts, overlaySignal } from "./alertCore";
+import { shownOnStream } from "./donationPageCore";
 import { mockCreator } from "./mockCreatorStore";
 import { mockQuests } from "@/services/donations/questCore";
 import { currentRun, voteBoard } from "@/services/votes/voteCore";
@@ -55,13 +56,14 @@ export async function getOverlayWidget(widget: unknown, key: unknown): Promise<O
       return { widget, settings: readWidget("QR"), imageUrl: QR_SAMPLE_IMAGE, ...common };
     case "quest": {
       // Running quests of this channel, oldest first, up to 최대 개수. Past its time limit a quest stays
-      // here until someone decides (2026-10-04 결정).
+      // here until someone decides (2026-10-04 결정). The title shows as the creator's 대체 메시지 settings say
+      // (2026-10-07 결정: 금지어 · 후원 필터링 also cover quest titles on stream); the record keeps the original.
       const settings = readWidget("QUEST");
       const quests = mockQuests.items
         .filter((q) => q.channelId === STUDIO_CHANNEL && q.status === "IN_PROGRESS")
         .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
         .slice(0, settings.maxCount)
-        .map((q) => ({ id: q.id, title: q.title, amount: q.amount, endsAt: new Date(Date.parse(q.createdAt) + q.timeLimitSec * 1000).toISOString() }));
+        .map((q) => ({ id: q.id, title: shownOnStream({ donor: q.donor, message: q.title }).message, amount: q.amount, endsAt: new Date(Date.parse(q.createdAt) + q.timeLimitSec * 1000).toISOString() }));
       return { widget, settings, quests, ...common };
     }
     case "vote": {
