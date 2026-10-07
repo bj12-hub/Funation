@@ -57,6 +57,26 @@ describe("이벤트", () => {
     }
   });
 
+  it("runs an event over whole Korean days on a server outside Korea, as its label says", async () => {
+    const zone = process.env.TZ;
+    process.env.TZ = "UTC"; // e.g. a container: local midnight is 09:00 KST
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-08T16:00:00Z")); // 10-09 01:00 KST, still 10-08 in UTC
+    try {
+      const { getEvent } = await import("./events");
+      const { eventPeriodLabel } = await import("./eventTypes");
+      // ev-first-donation started 5 days ago and runs 20 days: 10-04 00:00 KST to the end of 10-23 KST.
+      const e = (await getEvent("ev-first-donation"))!;
+      expect([e.startsAt, e.endsAt]).toEqual(["2026-10-03T15:00:00.000Z", "2026-10-23T14:59:59.999Z"]);
+      expect(eventPeriodLabel(e.startsAt, e.endsAt)).toBe("2026. 10. 4. ~ 2026. 10. 23.");
+      expect(e.phase).toBe("ongoing");
+    } finally {
+      vi.useRealTimers();
+      if (zone === undefined) delete process.env.TZ;
+      else process.env.TZ = zone;
+    }
+  });
+
   it("rejects joining upcoming / ended / unknown events and signed-out calls", async () => {
     const { getEvents, joinEvent } = await import("./events");
     const all = await getEvents("all");

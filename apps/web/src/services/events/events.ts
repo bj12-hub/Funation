@@ -1,6 +1,7 @@
 "use server";
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
+import { kstDateString } from "@/lib/period";
 import { getSession } from "@/lib/session";
 import { currentPersonKey } from "@/services/account/mockStore";
 import { isEventFilter, type EventDetail, type EventListView, type EventPhase, type EventSummary, type JoinResult } from "./eventTypes";
@@ -59,9 +60,9 @@ const g = globalThis as typeof globalThis & { __funationMockEventsV2?: { joined:
 const state = (g.__funationMockEventsV2 ??= { joined: new Map() });
 
 const DAY = 86_400_000;
+/** Whole Korean days (00:00 KST to the end of the last day), the days eventPeriodLabel shows, whatever the server's zone. */
 function dates(e: MockEvent) {
-  const start = new Date(Date.now() + e.startOffsetDays * DAY);
-  start.setHours(0, 0, 0, 0);
+  const start = new Date(`${kstDateString(new Date(Date.now() + e.startOffsetDays * DAY))}T00:00:00+09:00`);
   const end = new Date(start.getTime() + e.lengthDays * DAY - 1);
   return { startsAt: start.toISOString(), endsAt: end.toISOString() };
 }

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { key, mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
+import { key, mockSessionModule, rejoinWithPhone, resetMockStores, signIn } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
@@ -157,5 +157,19 @@ describe("플랫폼 후원", () => {
       sufficient: false,
       productLabel: "별풍선 30개"
     });
+  });
+
+  it("lists only this account's 최근 후원 creators after a 재가입", async () => {
+    const { requestPlatformDonation, getPlatformHome, account } = await load();
+    const recent = async () => (await getPlatformHome("SOOP"))!.recent.map((c) => c.id);
+    expect(await recent()).toEqual(["kim_stream", "gameking"]); // the sample history
+    expect((await requestPlatformDonation(soop())).status).toBe("COMPLETED");
+
+    // A second later the slot holds a new account (the mock's 재가입 keeps the user id).
+    await rejoinWithPhone("010-0000-0000", new Date(Date.now() + 1_000));
+    expect(await recent()).toEqual([]);
+    account.fnBalance = 100_000;
+    expect((await requestPlatformDonation(soop({ idempotencyKey: key(2) }))).status).toBe("COMPLETED");
+    expect(await recent()).toEqual(["kim_stream"]);
   });
 });
