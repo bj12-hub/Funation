@@ -6,13 +6,10 @@ import { getCreatorSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { broadcastChannelId } from "@/services/broadcast/channelsCore";
 import { ADAPTERS, BROADCAST_PLATFORMS, mockYouTubeSuperChat } from "@/services/platforms/adapters";
-import { mockPlatformDonation } from "@/services/platforms/mockBroadcastRemote";
+import { mockPlatformDonation, nextRemoteSeq } from "@/services/platforms/mockBroadcastRemote";
 import type { Platform } from "@/types/platform";
-import { recordBroadcastExternal } from "@/services/crew/crewCore";
-import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
-import { enqueueAlert } from "./alertCore";
-import { SIM_CURRENCIES, formatMoney, type DonationLinkResult, type DonationLinkView } from "./donationLinkTypes";
-import { donationLinkStore } from "./donationLinkCore";
+import { SIM_CURRENCIES, type DonationLinkResult, type DonationLinkView } from "./donationLinkTypes";
+import { donationEventsSupported, donationLinkStore, ingestDonationLinks } from "./donationLinkCore";
 
 /**
  * 후원 연동 Server Actions — code-first. Route `/creator/widgets/link`.
@@ -28,42 +25,11 @@ const store = donationLinkStore;
 const assertMock = () => {
   if (!USE_MOCK) throw new Error("Donation link API is not connected yet.");
 };
-const supported = (p: Platform) => ADAPTERS[p].capabilities.includes("DONATION_EVENTS");
+const supported = donationEventsSupported;
 /** The platform channel the events come from (유튜브 연동 or 통합 채팅 › 채널 연결). */
 const channelOf = broadcastChannelId;
 const isPlatform = (v: unknown): v is Platform => PLATFORMS.includes(v as Platform);
-
-/** Pulls new events for every enabled, connected platform. Re-delivered events are counted, not shown. */
-async function ingest() {
-  const s = store();
-  let ingested = 0;
-  let duplicates = 0;
-  for (const p of PLATFORMS) {
-    const channel = channelOf(p);
-    if (!s.enabled[p] || !supported(p) || !channel) continue;
-    const { events, cursor } = await ADAPTERS[p].fetchDonationEvents(channel, s.cursors[p] ?? null);
-    s.cursors[p] = cursor;
-    for (const e of events) {
-      const k = `${p}:${e.externalEventId}`;
-      if (s.seen[k]) {
-        duplicates++;
-        s.stats[p].duplicates++;
-        continue;
-      }
-      s.seen[k] = true;
-      const amountLabel = formatMoney(e.amount.value, e.amount.currency);
-      enqueueAlert({ kind: "EXTERNAL", donor: e.donorName, message: e.message, fnAmount: 0, amountLabel, typeLabel: e.kindLabel, platform: p, native: e.amount });
-      // 자동엑셀: a live crew broadcast also lists it in its own unit (scored after conversion).
-      recordBroadcastExternal(STUDIO_CHANNEL, { platform: p, donor: e.donorName, message: e.message, value: e.amount.value, currency: e.amount.currency });
-      s.recent.unshift({ key: k, platform: p, donor: e.donorName, message: e.message, amountLabel, kindLabel: e.kindLabel, receivedAt: new Date().toISOString() });
-      s.recent.length = Math.min(s.recent.length, 20);
-      s.stats[p].received++;
-      s.stats[p].lastEventAt = e.occurredAt;
-      ingested++;
-    }
-  }
-  return { ingested, duplicates };
-}
+const ingest = ingestDonationLinks;
 
 export async function getDonationLinks(): Promise<DonationLinkView | null> {
   assertMock();
@@ -71,7 +37,15 @@ export async function getDonationLinks(): Promise<DonationLinkView | null> {
   await ingest();
   const s = store();
   return structuredClone({
-    links: PLATFORMS.map((p) => ({ platform: p, supported: supported(p), connected: !!channelOf(p), enabled: s.enabled[p], ...s.stats[p] })),
+    links: PLATFORMS.map((p) => ({
+      platform: p,
+      supported: supported(p),
+      // Declared by the mock adapter, not yet confirmed against the platform's real API (shown as 「API 확인 중」).
+      unverified: ADAPTERS[p].unverified.includes("DONATION_EVENTS"),
+      connected: !!channelOf(p),
+      enabled: s.enabled[p],
+      ...s.stats[p]
+    })),
     recent: s.recent
   });
 }
@@ -84,9 +58,17 @@ export async function setDonationLink(input: unknown): Promise<DonationLinkResul
   if (v.enabled && !supported(v.platform)) return { status: "INVALID", message: "이 플랫폼의 후원 이벤트 연동은 아직 지원하지 않아요." };
   if (v.enabled && !channelOf(v.platform)) return { status: "INVALID", message: "먼저 플랫폼 채널을 연결해 주세요." };
   const s = store();
-  // Turning a link on starts from "now": events from before are not replayed as alerts.
-  if (v.enabled && !s.enabled[v.platform]) s.cursors[v.platform] = (await ADAPTERS[v.platform].fetchDonationEvents(channelOf(v.platform)!, s.cursors[v.platform] ?? null)).cursor;
-  s.enabled[v.platform] = v.enabled;
+  const p = v.platform;
+  if (!v.enabled || s.enabled[p]) {
+    s.enabled[p] = v.enabled;
+    return { status: "OK" };
+  }
+  // Turning a link on starts from "now": events from before are not replayed as alerts. Without a cursor
+  // the next read only takes the current position; a failure there (shown on the row) leaves it to the next poll.
+  delete s.cursors[p];
+  s.stats[p].lastError = null;
+  s.enabled[p] = true;
+  await ingest(p);
   return { status: "OK" };
 }
 
@@ -127,8 +109,9 @@ export async function simulateExternalDonation(input: unknown): Promise<Donation
     const event = { id: `yt-sc-${randomUUID()}`, donor, message, value: v.value, currency: v.currency as string };
     for (let i = 0; i < times; i++) mockYouTubeSuperChat(channel, event);
   } else {
-    // Numeric so SOOP balloon numbers stay exact; one id for both deliveries when `redeliver` is set.
-    const event = { id: `${platform.toLowerCase()}-${Date.now() % 1_000_000_000}${Math.floor(Math.random() * 1000)}`, userId: `sim:${donor}`, nick: donor, amount: v.value, message };
+    // From the mock remote's sequence: unique, and numeric so SOOP balloon numbers stay exact. One id for
+    // both deliveries when `redeliver` is set.
+    const event = { id: `${platform.toLowerCase()}-${nextRemoteSeq()}`, userId: `sim:${donor}`, nick: donor, amount: v.value, message };
     for (let i = 0; i < times; i++) mockPlatformDonation(platform, channel, event);
   }
   return { status: "OK", ...(await ingest()) };

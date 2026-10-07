@@ -1,13 +1,13 @@
 "use server";
 
-import { randomBytes } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { toDateString } from "@/lib/period";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
-import { adapterFor } from "./adapters";
-import { mockPlatform } from "./mockPlatformStore";
+import { adapterFor, type PlatformAdapter, type SendResult } from "./adapters";
+import { mockPlatform, type MockPlatformTransaction } from "./mockPlatformStore";
 import {
   MESSAGE_MAX,
   PLATFORMS,
@@ -26,7 +26,9 @@ import {
  * Donation Core rules: the FN price comes from the platform catalog on the server, the balance is
  * checked and debited on the server, and each confirmation carries an Idempotency-Key so a retry or
  * double click never debits twice. If the platform rejects the donation the debit is reversed
- * ("FN은 차감되지 않았습니다."). TBD: FN ↔ platform-currency rate, fees, platform API capability and
+ * ("FN은 차감되지 않았습니다."). If the platform call throws or times out the outcome is unknown: the FN
+ * stays held, the transaction stays PROCESSING and the key answers PENDING with its Transaction ID.
+ * TBD: FN ↔ platform-currency rate, fees, platform API capability and
  * auth, timeout/reconciliation of PENDING results, refunds, message moderation.
  */
 
@@ -77,6 +79,27 @@ async function priceFor(platform: PlatformKey, creatorId: string, productId: unk
   return { product, amountFn: customFn };
 }
 
+/** How long the platform gets to confirm a donation (sample value — the real limit is TBD). */
+const SEND_TIMEOUT_MS = 10_000;
+
+/**
+ * Bounded platform call. A throw (connection reset …) or no answer in time may still have reached the
+ * platform, so both map to TIMEOUT — the PENDING path — rather than a refusal that would refund.
+ */
+async function sendBounded(adapter: PlatformAdapter, req: Parameters<PlatformAdapter["sendDonation"]>[0]): Promise<SendResult> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      adapter.sendDonation(req),
+      new Promise<SendResult>((resolve) => (timer = setTimeout(() => resolve({ ok: false, reason: "TIMEOUT" }), SEND_TIMEOUT_MS)))
+    ]);
+  } catch {
+    return { ok: false, reason: "TIMEOUT" };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** Payment summary for the message step (817:9334 결제 정보). */
 export async function quotePlatformDonation(input: unknown): Promise<PlatformQuote> {
   assertMock();
@@ -116,50 +139,57 @@ export async function requestPlatformDonation(input: unknown): Promise<PlatformD
   };
 
   const adapter = adapterFor(platform);
-  const creator = await adapter.getCreator(v.creatorId);
+  let creator: PlatformCreator | null;
+  let price: Awaited<ReturnType<typeof priceFor>>;
+  try {
+    creator = await adapter.getCreator(v.creatorId);
+    price = creator ? await priceFor(platform, v.creatorId, v.productId, v.customFn) : "UNAVAILABLE";
+  } catch {
+    // Nothing is held yet: finish the key so a retry gets this answer instead of IN_PROGRESS forever.
+    return finish({ status: "FAILED", reason: "API_ERROR" });
+  }
   if (!creator) return finish({ status: "FAILED", reason: "NOT_FOUND" });
-  const price = await priceFor(platform, v.creatorId, v.productId, v.customFn);
   if (price === "INVALID") return finish({ status: "INVALID" });
   if (price === "UNAVAILABLE") return finish({ status: "FAILED", reason: "UNAVAILABLE" });
   if (mockAccount.fnBalance < price.amountFn) return finish({ status: "INSUFFICIENT_FN", balance: mockAccount.fnBalance, required: price.amountFn });
 
   // Hold the FN first, then ask the platform; reverse the hold if it refuses (one transaction in the backend).
   const now = new Date();
-  const transactionId = `TXN-${now.getTime().toString(36).toUpperCase()}-${randomBytes(2).toString("hex").toUpperCase()}`;
+  const transactionId = `TXN-${randomUUID().toUpperCase()}`;
   mockAccount.fnBalance -= price.amountFn;
-  const tx = {
+  const tx: MockPlatformTransaction = {
     transactionId,
-    externalTransactionId: null as string | null,
+    externalTransactionId: null,
     platform,
     creatorId: creator.id,
     creatorName: creator.nickname,
     productLabel: price.product.label,
     fnAmount: price.amountFn,
     message,
-    status: "PROCESSING" as const,
-    failureReason: null as string | null,
+    status: "PROCESSING",
+    failureReason: null,
     createdAt: `${toDateString(now)} ${now.toTimeString().slice(0, 5)}`,
-    completedAt: null as string | null
+    completedAt: null
   };
   mockPlatform.transactions.unshift(tx);
 
   await mockDelay(900);
-  const sent = await adapter.sendDonation({ creatorId: creator.id, productId: price.product.id, amountFn: price.amountFn, message, idempotencyKey: key });
-  const record = mockPlatform.transactions.find((t) => t.transactionId === transactionId)!;
+  const sent = await sendBounded(adapter, { creatorId: creator.id, productId: price.product.id, amountFn: price.amountFn, message, idempotencyKey: key });
 
   if (!sent.ok) {
     const reason = sent.reason;
+    // Unknown outcome: the FN stays held and the tx PROCESSING until reconciliation (TBD).
     if (reason === "TIMEOUT") return finish({ status: "PENDING", transactionId });
     mockAccount.fnBalance += price.amountFn;
-    record.status = "FAILED";
-    record.failureReason = reason === "API_ERROR" ? `${PLATFORMS[platform].name} 연결 오류` : "후원상품 사용 불가";
+    tx.status = "FAILED";
+    tx.failureReason = reason === "API_ERROR" ? `${PLATFORMS[platform].name} 연결 오류` : "후원상품 사용 불가";
     return finish({ status: "FAILED", reason });
   }
 
   const done = new Date();
-  record.status = "COMPLETED";
-  record.externalTransactionId = sent.externalTransactionId;
-  record.completedAt = `${toDateString(done)} ${done.toTimeString().slice(0, 5)}`;
+  tx.status = "COMPLETED";
+  tx.externalTransactionId = sent.externalTransactionId;
+  tx.completedAt = `${toDateString(done)} ${done.toTimeString().slice(0, 5)}`;
   // Also show it in FN 후원내역 (632:4) so the wallet history stays complete.
   mockWallet.donations.unshift({
     id: transactionId,

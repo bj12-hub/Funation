@@ -145,6 +145,13 @@ describe("회원 탈퇴", () => {
     await connectYouTube({ handle: "streamer", requestId: key(900) });
     await connectBroadcastChannel({ platform: "SOOP", handle: "streamer" });
     await createManagerLink({ requestId: key(901), name: "지민", permissions: ["SEND"] });
+    const { chatStore } = await import("@/services/broadcast/chatCore");
+    const { donationLinkStore } = await import("@/services/creator/donationLinkCore");
+    const { setDonationLink } = await import("@/services/creator/donationLink");
+    const { simulateViewerChat } = await import("@/services/broadcast/unifiedChat");
+    expect(await setDonationLink({ platform: "SOOP", enabled: true })).toEqual({ status: "OK" });
+    await simulateViewerChat({ requestId: key(902), platform: "SOOP", nick: "시청자", text: "안녕" });
+    expect(chatStore().messages).toHaveLength(1);
     Object.assign(bankSmsStore(), { enabled: true });
     m.settlement.terms = { memberType: "INDIVIDUAL", acceptedAt: "2026-09-01" };
     m.settlement.registration = {
@@ -167,6 +174,9 @@ describe("회원 탈퇴", () => {
     expect(managerLinks()).toHaveLength(0);
     expect(channelsStore().channels).toEqual({});
     expect(youtubeStore()).toMatchObject({ channel: null, connectedAt: null });
+    // The old channels' read positions, the 후원 연동 switches and the viewers' chat go with them.
+    expect(chatStore()).toMatchObject({ cursors: {}, messages: [] });
+    expect(donationLinkStore()).toMatchObject({ cursors: {}, enabled: { YOUTUBE: false, CHZZK: false, SOOP: false, FLEXTV: false } });
     expect(bankSmsStore().enabled).toBe(false);
     expect(bankSmsStore().key).not.toBe(keys.sms);
     expect(mockCreator.integrationKey).not.toBe(keys.overlay);

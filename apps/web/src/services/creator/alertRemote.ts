@@ -5,6 +5,7 @@ import { getCreatorSession } from "@/lib/session";
 import { sameSecret } from "@/lib/secret";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { advance, enqueueAlert, isOverlayOn, mockAlerts, overlaySignal } from "./alertCore";
+import { ingestDonationLinksThrottled } from "./donationLinkCore";
 import { mockMedia } from "./mediaCore";
 import {
   ALERT_DISPLAY_SEC,
@@ -215,6 +216,13 @@ export async function setVideoVolume(input: unknown): Promise<RemoteResult> {
 export async function getOverlayAlert(key: unknown): Promise<OverlayAlert | "FORBIDDEN"> {
   assertMock();
   if (!sameSecret(key, mockCreator.integrationKey)) return "FORBIDDEN";
+  // Platform donations (후원 연동) reach the queue even when the studio screen is closed — throttled, and a
+  // platform problem never stops the overlay (it shows on the 후원 연동 row instead).
+  try {
+    await ingestDonationLinksThrottled();
+  } catch {
+    // Ignored here on purpose.
+  }
   advance();
   const { muted, alertVolume, ttsVolume, signatureVolume, displaySec } = mockAlerts.controls;
   const showing = mockAlerts.items.find((a) => a.status === "SHOWING");

@@ -6,6 +6,7 @@ import { useRef, useState, useTransition } from "react";
 import { pollDonationLinks, setDonationLink, simulateExternalDonation } from "@/services/creator/donationLink";
 import { SIM_CURRENCIES, type DonationLinkResult, type DonationLinkView, type SimCurrency } from "@/services/creator/donationLinkTypes";
 import type { BankSmsView } from "@/services/bankSms/bankSmsTypes";
+import { PLATFORM_ERROR_LABEL } from "@/services/platforms/platformTypes";
 import { PLATFORM_LABEL, type Platform } from "@/types/platform";
 import styles from "../crew/crew.module.css";
 import { BankSmsCard } from "./BankSmsCard";
@@ -74,14 +75,17 @@ export function DonationLinkScreen({ view, bank }: { view: DonationLinkView; ban
           {view.links.map((l) => (
             <li key={l.platform} className={styles.row} data-inactive={l.supported ? undefined : ""}>
               <div className={styles.rowMain}>
-                <span className={styles.rowTitle}>{PLATFORM_LABEL[l.platform]}</span>
+                <span className={styles.rowTitle}>
+                  {PLATFORM_LABEL[l.platform]} {l.supported && l.unverified && <span className={styles.chipOff}>API 확인 중</span>}
+                </span>
                 <span className={styles.muted}>
                   {!l.supported
                     ? "후원 이벤트 연동 확인 중 (API 지원 TBD)"
                     : !l.connected
                       ? "채널 연결이 필요해요"
-                      : `받은 후원 ${l.received}건 · 중복 무시 ${l.duplicates}건 · 마지막 ${when(l.lastEventAt)}`}
+                      : `받은 후원 ${l.received}건 · 중복 무시 ${l.duplicates}건${l.skipped ? ` · 읽을 수 없어 건너뜀 ${l.skipped}건` : ""} · 마지막 ${when(l.lastEventAt)}`}
                 </span>
+                {l.enabled && l.lastError && <span className={styles.muted}>⚠ {PLATFORM_ERROR_LABEL[l.lastError]}</span>}
               </div>
               {l.supported && !l.connected && (
                 <Link href={l.platform === "YOUTUBE" ? "/creator/youtube" : "/creator/chat"} className={styles.ghost}>

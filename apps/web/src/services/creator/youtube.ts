@@ -2,6 +2,7 @@
 
 import { USE_MOCK } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
+import { onChannelChanged, startChatFrom } from "@/services/broadcast/chatCore";
 import { YouTubeAdapter } from "@/services/platforms/adapters";
 import { PlatformError, type ChannelVideo, type PlatformErrorCode } from "@/services/platforms/platformTypes";
 import { youtubeStore, type YouTubeStore } from "./youtubeCore";
@@ -59,16 +60,24 @@ export async function connectYouTube(input: unknown): Promise<YouTubeResult> {
   const handle = typeof v.handle === "string" ? v.handle.trim() : "";
   if (!HANDLE_PATTERN.test(handle)) return { status: "INVALID", message: "채널 핸들을 확인해 주세요 (예: @mychannel)." };
   if (s.channel) return { status: "INVALID", message: "이미 연결된 채널이 있어요. 연결을 해제한 뒤 다시 시도해 주세요." };
+  let added: number;
   try {
     const channel = await YouTubeAdapter.getChannel(handle.replace(/^@/, "").toLowerCase());
     const videos = await YouTubeAdapter.listVideos(channel.externalChannelId);
+    // Checked again after the platform calls: a concurrent connect may have finished in the meantime.
+    if (s.requests[v.requestId]) return { status: "OK" };
+    if (s.channel) return { status: "INVALID", message: "이미 연결된 채널이 있어요. 연결을 해제한 뒤 다시 시도해 주세요." };
     const now = new Date().toISOString();
     s.requests[v.requestId] = true;
     Object.assign(s, { channel, connectedAt: now, lastSyncedAt: now, lastError: null, videos: {} });
-    return { status: "OK", added: merge(s, videos, now) };
+    // Same tick as the write: 통합 채팅 and 후원 연동 start from "now" on the new channel.
+    onChannelChanged("YOUTUBE");
+    added = merge(s, videos, now);
   } catch (e) {
     return { status: "PLATFORM_ERROR", code: codeOf(e) };
   }
+  await startChatFrom("YOUTUBE");
+  return { status: "OK", added };
 }
 
 export async function syncYouTubeVideos(): Promise<YouTubeResult> {
@@ -94,6 +103,7 @@ export async function disconnectYouTube(): Promise<YouTubeResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   Object.assign(store(), { channel: null, connectedAt: null, lastSyncedAt: null, lastError: null, videos: {} });
+  onChannelChanged("YOUTUBE");
   return { status: "OK" };
 }
 

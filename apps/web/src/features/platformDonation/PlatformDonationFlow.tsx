@@ -38,6 +38,8 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
   const [sessionExpired, setSessionExpired] = useState(false);
   const [success, setSuccess] = useState<Success | null>(null);
   const [errorKind, setErrorKind] = useState<ErrorKind | null>(null);
+  /** Transaction ID of a PENDING donation (FN held until the platform result is known). */
+  const [pendingTxId, setPendingTxId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -116,6 +118,7 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
         setErrorKind(res.reason);
         setStep("error");
       } else if (res.status === "PENDING" || res.status === "IN_PROGRESS") {
+        if (res.status === "PENDING") setPendingTxId(res.transactionId);
         setErrorKind(res.status);
         setStep("error");
       } else {
@@ -209,6 +212,7 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
           <strong className={styles.stateTitle}>{info.title}</strong>
           <p className={styles.muted}>{info.text}</p>
           {info.notCharged && <p className={styles.notCharged}>FN은 차감되지 않았습니다.</p>}
+          {errorKind === "PENDING" && pendingTxId && <p className={styles.muted}>결과가 확인될 때까지 FN은 보류됩니다. 거래 ID {pendingTxId}</p>}
           <div className={styles.actions}>
             <Link href="/donation/history" className={styles.secondaryButton}>
               후원 내역

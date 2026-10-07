@@ -57,6 +57,12 @@ export type ExternalDonationEvent = {
   occurredAt: string;
 };
 
+/**
+ * Read position in a platform feed (chat, donation events), tied to the channel it was read from. None,
+ * or one for another channel, means "start from now"; `cursor: null` re-reads that channel from the start.
+ */
+export type ChannelCursor = { channelId: string; cursor: string | null };
+
 export type PlatformErrorCode = "TIMEOUT" | "NOT_FOUND" | "UNAUTHORIZED" | "UNSUPPORTED" | "UNAVAILABLE";
 
 export class PlatformError extends Error {
