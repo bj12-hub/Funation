@@ -47,6 +47,15 @@ describe("커뮤니티", () => {
     expect((await addComment("p-2", "익명")).status).toBe("UNAUTHORIZED");
   });
 
+  it("tells a search with no results apart from an empty board", async () => {
+    const { getBoard } = await load();
+    const { boardEmptyText } = await import("./communityTypes");
+    const none = await getBoard({ q: "없는 검색어" });
+    expect(none.items).toEqual([]);
+    expect(boardEmptyText(none.q)).toEqual({ title: "검색 결과가 없어요.", hint: "다른 검색어로 찾아보세요." });
+    expect(boardEmptyText("")).toEqual({ title: "아직 게시글이 없어요.", hint: "첫 번째 글을 작성해 보세요!" });
+  });
+
   it("does not edit or comment on a post deleted while the request was in flight", async () => {
     const { createPost, updatePost, deletePost, addComment } = await load();
     const { mockCommunity } = await import("./mockCommunityStore");

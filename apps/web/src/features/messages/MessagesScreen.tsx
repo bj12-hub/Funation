@@ -11,6 +11,7 @@ import {
   MESSAGE_PAGE_SIZE,
   MESSAGE_PAGE_SIZES,
   SEND_LIMIT_PER_HOUR,
+  mailboxEmptyText,
   type MailboxView,
   type MessageResult,
   type Recipient
@@ -122,7 +123,7 @@ export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxV
       )}
 
       {view.items.length === 0 ? (
-        <p className={styles.empty}>{MAILBOXES.find((b) => b.key === view.box)!.label}이 비어 있어요.</p>
+        <p className={styles.empty}>{mailboxEmptyText(view.box, view.q)}</p>
       ) : (
         <ul className={styles.list}>
           {view.items.map((m) => (

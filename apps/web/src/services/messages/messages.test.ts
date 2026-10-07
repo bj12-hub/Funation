@@ -69,6 +69,17 @@ describe("쪽지", () => {
     expect(inbox.counts.spam).toBe(0);
   });
 
+  it("says a search found nothing, and names an empty box with the right particle", async () => {
+    const { getMailbox } = await load();
+    const { mailboxEmptyText } = await import("./messageTypes");
+    const none = (await getMailbox({ box: "inbox", q: "없는 검색어" }))!;
+    expect(none.items).toEqual([]);
+    expect(mailboxEmptyText(none.box, none.q)).toBe("검색 결과가 없어요.");
+    expect(mailboxEmptyText("inbox", "")).toBe("받은 쪽지함이 비어 있어요.");
+    expect(mailboxEmptyText("sent", "")).toBe("보낸 쪽지가 비어 있어요.");
+    expect(mailboxEmptyText("archive", "")).toBe("보관함이 비어 있어요.");
+  });
+
   it("requires a session", async () => {
     const { getMailbox, sendMessage } = await load();
     signIn(null);

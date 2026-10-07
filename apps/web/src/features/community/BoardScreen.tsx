@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BOARD_CATEGORIES, categoryLabel, type BoardView } from "@/services/community/communityTypes";
+import { BOARD_CATEGORIES, boardEmptyText, categoryLabel, type BoardView } from "@/services/community/communityTypes";
 import styles from "./community.module.css";
 
 const date = (iso: string) => new Date(iso).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" });
@@ -12,6 +12,7 @@ export function BoardScreen({ view, signedIn }: { view: BoardView; signedIn: boo
     const s = p.toString();
     return `/community${s ? `?${s}` : ""}`;
   };
+  const empty = boardEmptyText(view.q);
 
   return (
     <div className={styles.content}>
@@ -43,8 +44,8 @@ export function BoardScreen({ view, signedIn }: { view: BoardView; signedIn: boo
 
       {view.items.length === 0 ? (
         <div className={styles.empty}>
-          <strong>아직 게시글이 없어요.</strong>
-          <span>첫 번째 글을 작성해 보세요!</span>
+          <strong>{empty.title}</strong>
+          <span>{empty.hint}</span>
         </div>
       ) : (
         <ul className={styles.list}>

@@ -26,5 +26,9 @@ export type PostDetail = PostSummary & { body: string; mine: boolean; comments: 
 
 export type BoardView = { category: BoardCategory | "ALL"; q: string; items: PostSummary[]; page: number; totalPages: number; total: number };
 
+/** What an empty list says: a search that found nothing is not an empty board. */
+export const boardEmptyText = (q: string) =>
+  q ? { title: "검색 결과가 없어요.", hint: "다른 검색어로 찾아보세요." } : { title: "아직 게시글이 없어요.", hint: "첫 번째 글을 작성해 보세요!" };
+
 export type PostSaveResult = { status: "SAVED"; id: string } | { status: "INVALID"; message: string } | { status: "NOT_FOUND" | "FORBIDDEN" | "UNAUTHORIZED" };
 export type CommentResult = { status: "SAVED" } | { status: "INVALID"; message: string } | { status: "NOT_FOUND" | "FORBIDDEN" | "UNAUTHORIZED" };
