@@ -19,4 +19,6 @@ export type WithdrawResult =
   | { status: "INVALID"; message: string }
   | { status: "REFUND_PENDING"; count: number }
   | { status: "WRONG_PASSWORD" }
+  /** 5 wrong passwords (shared with the login): the account is locked and the session ended — reset the password. */
+  | { status: "LOCKED" }
   | { status: "UNAUTHORIZED" };

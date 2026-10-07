@@ -183,6 +183,15 @@ describe("회원 탈퇴", () => {
     expect(m.settlement).toMatchObject({ terms: null, registration: null, autoSettlement: false });
   });
 
+  it("shares the login's wrong-password limit: the 5th wrong password locks the account instead of withdrawing", async () => {
+    const m = await load();
+    for (let i = 1; i <= 4; i++) expect(await m.withdrawAccount({ ...supporter(i), password: "wrong-pass1" })).toEqual({ status: "WRONG_PASSWORD" });
+    expect(await m.withdrawAccount({ ...supporter(5), password: "wrong-pass1" })).toEqual({ status: "LOCKED" });
+    expect(await m.withdrawAccount({ ...supporter(6) })).toEqual({ status: "LOCKED" }); // even with the right one now
+    expect(m.isWithdrawn()).toBe(false);
+    expect((await m.login({ identifier: "hongGD123", password: PASSWORD, keepSignedIn: false })).status).toBe("LOCKED");
+  });
+
   it("needs a signed-in member", async () => {
     signIn(null);
     const m = await load();
