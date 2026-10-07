@@ -40,8 +40,11 @@ export async function getChannelMonthlyRanking(creatorId: unknown): Promise<Chan
 
   const rand = seeded(creatorId);
   const field = Array.from({ length: 12 }, (_, i) => ({ name: `팬${String(Math.floor(rand() * 900) + 100)}`, fnAmount: Math.round((400_000 * Math.pow(0.72, i) * (0.8 + rand() * 0.4)) / 100) * 100, me: false }));
+  // A donation sent with 프로필 숨기기 went out as 익명: it never counts toward the row under the member's nickname.
   const mine = session
-    ? mockWallet.donations.filter((d) => d.creatorId === creatorId && d.status === "COMPLETED" && d.donatedAt.startsWith(month)).reduce((sum, d) => sum + d.fnAmount, 0)
+    ? mockWallet.donations
+        .filter((d) => d.creatorId === creatorId && d.status === "COMPLETED" && !d.hideProfile && d.donatedAt.startsWith(month))
+        .reduce((sum, d) => sum + d.fnAmount, 0)
     : 0;
   const rows = [...field, ...(mine > 0 ? [{ name: session!.nickname, fnAmount: mine, me: true }] : [])]
     .sort((a, b) => b.fnAmount - a.fnAmount || Number(b.me) - Number(a.me))

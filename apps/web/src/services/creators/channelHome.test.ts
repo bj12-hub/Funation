@@ -31,6 +31,14 @@ describe("channel home", () => {
     expect(await m.getChannelMonthlyRanking("nope")).toBeNull();
   });
 
+  it("never counts a hidden-profile donation under the member's nickname", async () => {
+    const m = await load();
+    await m.requestDonation({ creatorId: "c1", hideProfile: true, type: "TEXT", amount: 1_000_000, message: "", voiceId: null, idempotencyKey: key(1) });
+    expect((await m.getChannelMonthlyRanking("c1"))!.rows.some((r) => r.me)).toBe(false);
+    await m.requestDonation({ creatorId: "c1", hideProfile: false, type: "TEXT", amount: 500_000, message: "", voiceId: null, idempotencyKey: key(2) });
+    expect((await m.getChannelMonthlyRanking("c1"))!.rows.find((r) => r.me)).toMatchObject({ name: "홍길동", fnAmount: 500_000 });
+  });
+
   it("posts once per request id, pages, and lets only the author delete", async () => {
     const m = await load();
     const seeded = (await m.getChannelPosts("c1"))!;

@@ -98,7 +98,9 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
       typeLabel: catalog.types.find((t) => t.key === request.type)!.title,
       category: HISTORY_CATEGORY[request.type] ?? "basic",
       // A running quest holds the FN (refunded on 실패 · 취소); it completes when the quest succeeds.
-      status: quest ? "PROCESSING" : "COMPLETED"
+      status: quest ? "PROCESSING" : "COMPLETED",
+      // Public totals and rankings never count a hidden-profile donation under the member's name.
+      hideProfile: request.hideProfile
     });
     attributeDonation(donationId, request.nicknameId);
     if (quest) {
