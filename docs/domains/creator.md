@@ -12,6 +12,10 @@ Creator capabilities include:
 - settlement
 - platform connections
 
+Uploads (mock): profile images, 칭호 icons, 정산 서류 and the image · sound library are checked by their bytes, not the
+declared type (`matchesContent` in `assetCore.ts`; PDF by its `%PDF-` header). A renamed file is refused with the
+screen's existing type message.
+
 Supported:
 
 - YouTube
