@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { GENERIC_ERROR } from "@/features/mypage/editors/shared";
 import { formatNumber } from "@/lib/format";
 import { saveEquipSettings } from "@/services/supporter/identity";
 import {
@@ -43,12 +44,17 @@ export function TitlesScreen({ identity }: { identity: SupporterIdentity }) {
   const save = () => {
     setMessage(null);
     startTransition(async () => {
-      const res = await saveEquipSettings(equip);
-      if (res.status === "SAVED") {
-        setMessage({ tone: "ok", text: "표시 설정을 저장했어요." });
-        router.refresh();
-      } else if (res.status === "UNAUTHORIZED") router.push("/login?next=/mypage/titles");
-      else setMessage({ tone: "error", text: res.message });
+      try {
+        const res = await saveEquipSettings(equip);
+        if (res.status === "SAVED") {
+          setMessage({ tone: "ok", text: "표시 설정을 저장했어요." });
+          router.refresh();
+        } else if (res.status === "UNAUTHORIZED") router.push("/login?next=/mypage/titles");
+        else setMessage({ tone: "error", text: res.message });
+      } catch {
+        // The chosen settings stay selected, so 저장 can be pressed again.
+        setMessage({ tone: "error", text: GENERIC_ERROR });
+      }
     });
   };
 

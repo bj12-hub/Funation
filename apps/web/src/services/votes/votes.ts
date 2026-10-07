@@ -2,12 +2,15 @@
 
 import { USE_MOCK } from "@/lib/mock";
 import { getSession } from "@/lib/session";
+import { currentPersonKey } from "@/services/account/mockStore";
 import { castBallot, currentRun, roomVote } from "./voteCore";
 import type { CastVoteResult, RoomVote } from "./voteTypes";
 
 /**
  * 투표 in the creator room (code-first, 무료 투표 — 2026-10-04 결정). Reading is public; voting needs a
- * signed-in member and counts once per member. TBD: realtime push instead of polling, rate limiting.
+ * signed-in member and counts once per person (2026-10-08 결정: the phone verified at sign-up, like 출석, so a
+ * 재가입 account of the same person sees its earlier ballot and cannot vote again). TBD: realtime push instead of
+ * polling, rate limiting.
  */
 
 const assertMock = () => {
@@ -23,7 +26,7 @@ export async function getRoomVote(channelId: unknown): Promise<RoomVote | null> 
   const run = currentRun(channelId);
   if (!run) return null;
   const session = await getSession();
-  return roomVote(run, session?.userId ?? null);
+  return roomVote(run, session ? currentPersonKey() : null);
 }
 
 export async function castVote(input: unknown): Promise<CastVoteResult> {
@@ -35,7 +38,8 @@ export async function castVote(input: unknown): Promise<CastVoteResult> {
   const run = currentRun(v.channelId);
   // A vote that was replaced or taken off the screen is gone for the room.
   if (!run || run.id !== v.voteId) return { status: "NOT_FOUND" };
-  const outcome = castBallot(run, session.userId, v.item);
+  const person = currentPersonKey();
+  const outcome = castBallot(run, person, v.item);
   if (outcome === "INVALID") return { status: "INVALID", message: "투표 항목을 확인해 주세요." };
-  return { status: outcome, vote: roomVote(run, session.userId) };
+  return { status: outcome, vote: roomVote(run, person) };
 }

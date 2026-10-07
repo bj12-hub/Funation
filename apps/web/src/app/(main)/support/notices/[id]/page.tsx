@@ -30,8 +30,9 @@ export default async function Page({ params }: { params: Params }) {
       <h1 className={styles.noticeTitle}>{notice.title}</h1>
       <span className={styles.noticeMeta}>{notice.date.replace(/-/g, ". ")}.</span>
       <div className={styles.detailBody}>
-        {notice.body.map((p) => (
-          <p key={p}>{p}</p>
+        {/* By position: an operator may write the same paragraph twice, and text keys would collide. */}
+        {notice.body.map((p, i) => (
+          <p key={i}>{p}</p>
         ))}
       </div>
     </article>

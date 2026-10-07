@@ -15,6 +15,11 @@ export function InquiryForm() {
   const [note, setNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
   const requestId = useRef<string | null>(null);
+  // After a failed or lost submit, retrying the same text keeps its request id (the server answers with the inquiry it
+  // may already have), but an edit is a different inquiry: it gets a new id, so the edit is never dropped.
+  const edited = () => {
+    requestId.current = null;
+  };
 
   const submit = () => {
     requestId.current ??= crypto.randomUUID();
@@ -50,7 +55,15 @@ export function InquiryForm() {
       <h2 id="inquiry-title" className={styles.formTitle}>
         문의하기
       </h2>
-      <select className={styles.input} aria-label="문의 유형" value={category} onChange={(e) => setCategory(e.target.value as FaqCategory | "")}>
+      <select
+        className={styles.input}
+        aria-label="문의 유형"
+        value={category}
+        onChange={(e) => {
+          edited();
+          setCategory(e.target.value as FaqCategory | "");
+        }}
+      >
         <option value="">문의 유형 선택</option>
         {INQUIRY_CATEGORIES.map((c) => (
           <option key={c.key} value={c.key}>
@@ -58,8 +71,29 @@ export function InquiryForm() {
           </option>
         ))}
       </select>
-      <input className={styles.input} aria-label="제목" placeholder="제목" maxLength={INQUIRY_TITLE_MAX} value={title} onChange={(e) => setTitle(e.target.value)} />
-      <textarea className={styles.input} aria-label="내용" placeholder="문의 내용을 자세히 적어 주세요 (10자 이상)" rows={6} maxLength={INQUIRY_BODY_MAX} value={body} onChange={(e) => setBody(e.target.value)} />
+      <input
+        className={styles.input}
+        aria-label="제목"
+        placeholder="제목"
+        maxLength={INQUIRY_TITLE_MAX}
+        value={title}
+        onChange={(e) => {
+          edited();
+          setTitle(e.target.value);
+        }}
+      />
+      <textarea
+        className={styles.input}
+        aria-label="내용"
+        placeholder="문의 내용을 자세히 적어 주세요 (10자 이상)"
+        rows={6}
+        maxLength={INQUIRY_BODY_MAX}
+        value={body}
+        onChange={(e) => {
+          edited();
+          setBody(e.target.value);
+        }}
+      />
       <div className={styles.formFoot}>
         <span className={styles.note}>
           {body.length}/{INQUIRY_BODY_MAX}

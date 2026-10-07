@@ -3,7 +3,7 @@
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { toDateString } from "@/lib/period";
 import { getSession } from "@/lib/session";
-import { mockAccount, mockCredentials } from "@/services/account/mockStore";
+import { currentPersonKey, mockAccount } from "@/services/account/mockStore";
 import { accountSince } from "@/services/account/withdrawalCore";
 import { recordCredit } from "@/services/wallet/mockCreditStore";
 import type { AttendanceReward, AttendanceSummary, CheckInResult, ClaimResult } from "./attendanceTypes";
@@ -43,7 +43,7 @@ export async function checkIn(): Promise<CheckInResult> {
   if (s.checked.includes(today) || checkedInTodayByPerson(now)) return { status: "ALREADY_CHECKED_IN" };
   // Recorded before the delay so a concurrent call sees it.
   s.checked.push(today);
-  attendanceStore().lastCheckInByPerson.set(mockCredentials.phone, toDateString(now));
+  attendanceStore().lastCheckInByPerson.set(currentPersonKey(), toDateString(now));
   const autoPaid = REWARDS.filter((r) => r.auto && r.days <= s.checked.length && !s.claimed.includes(r.days));
   s.claimed.push(...autoPaid.map((r) => r.days));
   await mockDelay(500);
@@ -98,7 +98,7 @@ type AttendanceStore = { month: AttendanceState | null; lastCheckInByPerson: Map
 const globalForAttendance = globalThis as typeof globalThis & { __funationMockAttendanceV2?: AttendanceStore };
 const attendanceStore = () => (globalForAttendance.__funationMockAttendanceV2 ??= { month: null, lastCheckInByPerson: new Map() });
 
-const checkedInTodayByPerson = (now = new Date()) => attendanceStore().lastCheckInByPerson.get(mockCredentials.phone) === toDateString(now);
+const checkedInTodayByPerson = (now = new Date()) => attendanceStore().lastCheckInByPerson.get(currentPersonKey()) === toDateString(now);
 
 /**
  * This month of the current account. The sample account is seeded like Figma 583:4 (every earlier day this month

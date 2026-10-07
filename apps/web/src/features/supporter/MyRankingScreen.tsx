@@ -80,7 +80,7 @@ export function MyRankingScreen({ view }: { view: MyRankingView }) {
             </li>
           ))}
         </ol>
-        <p className={styles.note}>다른 후원자 정보는 목업 샘플이에요. 집계 기준(환불·익명 후원 포함 여부, 동점)은 확정 전이에요.</p>
+        <p className={styles.note}>다른 후원자 정보는 목업 샘플이에요. 익명(프로필 숨김) 후원은 집계하지 않아요. 환불 반영 여부와 동점 기준은 확정 전이에요.</p>
       </section>
     </div>
   );
