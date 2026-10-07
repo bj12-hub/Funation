@@ -142,4 +142,13 @@ describe("blocking", () => {
     signIn(null);
     expect(await m.listBlocks()).toBeNull();
   });
+
+  it("leaves a blocked commenter out of the board's comment count, as the post hides the comments", async () => {
+    const m = await load();
+    const count = async () => (await m.getBoard({})).items.find((p) => p.id === "p-1")!.commentCount;
+    expect(await count()).toBe(1);
+    expect(await m.blockAuthorOf({ target: { type: "COMMENT", id: "cm-1", parentId: "p-1" } })).toEqual({ status: "OK", name: "새벽라디오" });
+    expect(await count()).toBe(0);
+    expect(await m.getPost("p-1")).toMatchObject({ commentCount: 0, comments: [] });
+  });
 });

@@ -31,13 +31,15 @@ const assertMock = () => {
 
 const forbidden = (s: string) => MOCK_FORBIDDEN_WORDS.some((w) => s.toLowerCase().includes(w));
 const live = (p: MockPost) => !p.deleted;
-const summary = (p: MockPost) => ({
+/** Comments the viewer sees: not deleted, and not by an author the viewer blocked. */
+const shownComments = (p: MockPost, viewer: string | undefined) => p.comments.filter((c) => !c.deleted && !isBlockedBy(viewer, c.authorId));
+const summary = (p: MockPost, viewer: string | undefined) => ({
   id: p.id,
   category: p.category,
   title: p.title,
   authorName: p.authorName,
   createdAt: p.createdAt,
-  commentCount: p.comments.filter((c) => !c.deleted).length,
+  commentCount: shownComments(p, viewer).length,
   views: p.views
 });
 
@@ -47,7 +49,7 @@ export async function getBoard(params: { category?: unknown; q?: unknown; page?:
   const q = typeof params.q === "string" ? params.q.trim().slice(0, 40) : "";
   await mockDelay(200);
   const needle = q.toLowerCase();
-  // 차단: posts by authors the viewer blocked are left out.
+  // 차단: posts by authors the viewer blocked are left out, and so are their comments in the counts.
   const viewer = (await getSession())?.userId;
   const all = mockCommunity.posts
     .filter((p) => live(p) && !isBlockedBy(viewer, p.authorId) && (category === "ALL" || p.category === category) && (!needle || p.title.toLowerCase().includes(needle) || p.body.toLowerCase().includes(needle)))
@@ -55,7 +57,7 @@ export async function getBoard(params: { category?: unknown; q?: unknown; page?:
   const totalPages = Math.max(1, Math.ceil(all.length / POSTS_PAGE_SIZE));
   const n = Number(params.page);
   const page = Number.isInteger(n) && n >= 1 && n <= totalPages ? n : 1;
-  return { category, q, items: all.slice((page - 1) * POSTS_PAGE_SIZE, page * POSTS_PAGE_SIZE).map(summary), page, totalPages, total: all.length };
+  return { category, q, items: all.slice((page - 1) * POSTS_PAGE_SIZE, page * POSTS_PAGE_SIZE).map((p) => summary(p, viewer)), page, totalPages, total: all.length };
 }
 
 /** Post detail; counts a view (mock: every read). */
@@ -67,13 +69,11 @@ export async function getPost(id: unknown): Promise<PostDetail | null> {
   await mockDelay(150);
   p.views += 1;
   return {
-    ...summary(p),
+    ...summary(p, session?.userId),
     body: p.body,
     updatedAt: p.updatedAt,
     mine: !!session && session.userId === p.authorId,
-    comments: p.comments
-      .filter((c) => !c.deleted && !isBlockedBy(session?.userId, c.authorId))
-      .map((c) => ({ id: c.id, authorName: c.authorName, body: c.body, createdAt: c.createdAt, mine: !!session && session.userId === c.authorId }))
+    comments: shownComments(p, session?.userId).map((c) => ({ id: c.id, authorName: c.authorName, body: c.body, createdAt: c.createdAt, mine: !!session && session.userId === c.authorId }))
   };
 }
 
