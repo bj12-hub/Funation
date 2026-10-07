@@ -17,6 +17,7 @@ import {
   type Recipient
 } from "@/services/messages/messageTypes";
 import { ModerationActions } from "../moderation/ModerationActions";
+import { GENERIC_ERROR } from "../mypage/editors/shared";
 import styles from "./messages.module.css";
 
 const when = (iso: string) => new Date(iso).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
@@ -46,18 +47,27 @@ export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxV
   const run = (action: () => Promise<MessageResult>, ok: string, after?: () => void) => {
     setMessage(null);
     startTransition(async () => {
-      const res = await action();
-      if (res.status === "SAVED") {
-        setMessage({ tone: "ok", text: ok });
-        setSelected([]);
-        after?.();
-        router.refresh();
-      } else if (res.status === "UNAUTHORIZED") router.push("/login?next=/messages");
-      else if (res.status === "LIMITED") setMessage({ tone: "error", text: `한 시간에 ${SEND_LIMIT_PER_HOUR}통까지 보낼 수 있어요. 잠시 후 다시 시도해 주세요.` });
-      else setMessage({ tone: "error", text: res.message });
+      try {
+        const res = await action();
+        if (res.status === "SAVED") {
+          setMessage({ tone: "ok", text: ok });
+          setSelected([]);
+          after?.();
+          router.refresh();
+        } else if (res.status === "UNAUTHORIZED") router.push("/login?next=/messages");
+        else if (res.status === "LIMITED") setMessage({ tone: "error", text: `한 시간에 ${SEND_LIMIT_PER_HOUR}통까지 보낼 수 있어요. 잠시 후 다시 시도해 주세요.` });
+        else setMessage({ tone: "error", text: res.message });
+      } catch {
+        // The request failed (network / server): the selection and the draft stay for another try.
+        setMessage({ tone: "error", text: GENERIC_ERROR });
+      }
     });
   };
 
+  const openCompose = () => {
+    setMessage(null);
+    setCompose(true);
+  };
   const toggle = (id: string) => setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
   return (
@@ -67,7 +77,7 @@ export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxV
           <h1 className={styles.title}>쪽지</h1>
           <p className={styles.subtitle}>크리에이터와 주고받은 쪽지를 확인하고 답장할 수 있어요.</p>
         </div>
-        <button type="button" className={styles.primary} onClick={() => setCompose(true)}>
+        <button type="button" className={styles.primary} onClick={openCompose}>
           쪽지 보내기
         </button>
       </header>
@@ -118,7 +128,7 @@ export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxV
         )}
       </div>
 
-      {message && (
+      {message && !compose && (
         <p className={message.tone === "error" ? styles.error : styles.ok} role={message.tone === "error" ? "alert" : "status"}>
           {message.text}
         </p>
@@ -137,10 +147,16 @@ export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxV
                 aria-expanded={openId === m.id}
                 onClick={() => {
                   setOpenId(openId === m.id ? null : m.id);
-                  if (!m.read) startTransition(async () => {
-                    await markMessageRead(m.id);
-                    router.refresh();
-                  });
+                  if (!m.read)
+                    startTransition(async () => {
+                      try {
+                        await markMessageRead(m.id);
+                        router.refresh();
+                      } catch {
+                        // The message stays open; it is marked read on a later try.
+                        setMessage({ tone: "error", text: GENERIC_ERROR });
+                      }
+                    });
                 }}
               >
                 <span className={styles.peer}>
@@ -155,7 +171,7 @@ export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxV
                   className={styles.ghost}
                   onClick={() => {
                     setTo(m.peerId);
-                    setCompose(true);
+                    openCompose();
                   }}
                 >
                   답장
@@ -235,6 +251,12 @@ export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxV
             {body.length} / {MESSAGE_BODY_MAX}
           </span>
         </label>
+        {/* The page behind the open dialog is inert, so a failed send says so here. */}
+        {message?.tone === "error" && (
+          <p className={styles.error} role="alert">
+            {message.text}
+          </p>
+        )}
       </Modal>
     </div>
   );

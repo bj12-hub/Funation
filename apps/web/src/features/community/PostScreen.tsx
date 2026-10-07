@@ -6,6 +6,7 @@ import { useRef, useState, useTransition } from "react";
 import { addComment, deleteComment, deletePost } from "@/services/community/community";
 import { COMMENT_MAX, categoryLabel, type PostDetail } from "@/services/community/communityTypes";
 import { ModerationActions } from "../moderation/ModerationActions";
+import { GENERIC_ERROR } from "../mypage/editors/shared";
 import styles from "./community.module.css";
 
 const when = (iso: string) => new Date(iso).toLocaleString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
@@ -19,15 +20,20 @@ export function PostScreen({ post, signedIn }: { post: PostDetail; signedIn: boo
   // 댓글: the same text after a failed or lost submit keeps its request id (one comment); changed text gets a new one.
   const commentId = useRef<{ id: string; text: string } | null>(null);
 
-  const act =(fn: () => Promise<{ status: string; message?: string }>, after?: () => void) => {
+  const act = (fn: () => Promise<{ status: string; message?: string }>, after?: () => void) => {
     setError(null);
     startTransition(async () => {
-      const res = await fn();
-      if (res.status === "SAVED") {
-        after?.();
-        router.refresh();
-      } else if (res.status === "UNAUTHORIZED") router.push(`/login?next=/community/${post.id}`);
-      else setError(res.message ?? "처리하지 못했어요.");
+      try {
+        const res = await fn();
+        if (res.status === "SAVED") {
+          after?.();
+          router.refresh();
+        } else if (res.status === "UNAUTHORIZED") router.push(`/login?next=/community/${post.id}`);
+        else setError(res.message ?? "처리하지 못했어요.");
+      } catch {
+        // The request failed (network / server): the typed comment stays for another try.
+        setError(GENERIC_ERROR);
+      }
     });
   };
 
