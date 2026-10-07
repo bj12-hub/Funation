@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { USE_MOCK } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { getCreatorById } from "@/services/creators/creators";
@@ -76,18 +77,19 @@ export async function blockAuthorOf(input: unknown): Promise<BlockResult> {
   if (resolved.authorId === session.userId) return { status: "INVALID", message: "나 자신은 차단할 수 없어요." };
   const store = moderationStore();
   const mine = (store.blocks[session.userId] ??= {});
-  mine[resolved.authorId] ??= { id: resolved.authorId, name: resolved.authorName, since: new Date().toISOString() };
+  mine[resolved.authorId] ??= { id: randomUUID(), authorId: resolved.authorId, name: resolved.authorName, since: new Date().toISOString() };
   return { status: "OK", name: resolved.authorName };
 }
 
+/** `id`: the block entry's id from listBlocks (never a member id). */
 export async function unblock(id: unknown): Promise<BlockResult> {
   assertMock();
   const session = await getSession();
   if (!session) return { status: "UNAUTHORIZED" };
   const mine = moderationStore().blocks[session.userId] ?? {};
-  const entry = typeof id === "string" ? mine[id] : undefined;
+  const entry = typeof id === "string" ? Object.values(mine).find((e) => e.id === id) : undefined;
   if (!entry) return { status: "NOT_FOUND" };
-  delete mine[entry.id];
+  delete mine[entry.authorId];
   return { status: "OK", name: entry.name };
 }
 
@@ -95,5 +97,8 @@ export async function listBlocks(): Promise<BlockEntry[] | null> {
   assertMock();
   const session = await getSession();
   if (!session) return null;
-  return Object.values(blocksOf(session.userId)).sort((a, b) => b.since.localeCompare(a.since));
+  // Other members' ids never reach the browser: each entry carries its own id.
+  return Object.values(blocksOf(session.userId))
+    .sort((a, b) => b.since.localeCompare(a.since))
+    .map(({ id, name, since }) => ({ id, name, since }));
 }

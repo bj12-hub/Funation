@@ -10,9 +10,13 @@ import type { BlockEntry, Report, ReportTarget } from "./moderationTypes";
  * by callers (the creator service imports moderation-free modules only, avoiding cycles).
  */
 
-type Store = { reports: Report[]; requests: Record<string, string>; blocks: Record<string, Record<string, BlockEntry>> };
-const g = globalThis as typeof globalThis & { __funationMockModerationV1?: Store };
-export const moderationStore = (): Store => (g.__funationMockModerationV1 ??= { reports: [], requests: {}, blocks: {} });
+/** A block as stored: the blocked member's id stays on the server; the browser sees the entry's own opaque id. */
+export type StoredBlock = BlockEntry & { authorId: string };
+/** `blocks`: blocker member id → blocked member id → entry. */
+type Store = { reports: Report[]; requests: Record<string, string>; blocks: Record<string, Record<string, StoredBlock>> };
+// V2: block entries get their own id (V1 used the blocked member's id).
+const g = globalThis as typeof globalThis & { __funationMockModerationV2?: Store };
+export const moderationStore = (): Store => (g.__funationMockModerationV2 ??= { reports: [], requests: {}, blocks: {} });
 
 export type ResolvedTarget = { authorId: string; authorName: string; snapshot: string };
 export type CreatorLookup = (id: string) => Promise<{ id: string; name: string; description: string } | null>;

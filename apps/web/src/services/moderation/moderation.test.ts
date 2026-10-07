@@ -91,6 +91,17 @@ describe("message authors", () => {
     expect((await m.getChannelPosts("c1"))!.items.some((p) => p.id === "cp-c4")).toBe(false);
   });
 
+  it("lists blocks under their own ids, never the blocked member's id, and unblocks only by that id", async () => {
+    const m = await load();
+    await m.blockAuthorOf({ target: { type: "MESSAGE", id: "ms-1" } });
+    const list = (await m.listBlocks())!;
+    expect(list).toEqual([{ id: expect.stringMatching(/^[0-9a-f-]{36}$/), name: "불꽃크루", since: expect.any(String) }]);
+    expect(JSON.stringify(list)).not.toContain("c4");
+    expect(await m.unblock("m-c4")).toEqual({ status: "NOT_FOUND" });
+    expect(await m.unblock(list[0].id)).toEqual({ status: "OK", name: "불꽃크루" });
+    expect(await m.listBlocks()).toEqual([]);
+  });
+
   it("refuses to block a channel (the room only offers 신고 for it)", async () => {
     const m = await load();
     expect((await m.blockAuthorOf({ target: { type: "CREATOR", id: "c1" } })).status).toBe("INVALID");
