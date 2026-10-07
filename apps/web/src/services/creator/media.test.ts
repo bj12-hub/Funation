@@ -105,4 +105,42 @@ describe("drawing gallery", () => {
     signIn(["SUPPORTER"]);
     expect(await m.addTestDrawing({ requestId: key(2) })).toEqual({ status: "UNAUTHORIZED" });
   });
+
+  it("queues drawings one after another (2026-10-07 결정) instead of replacing the one on screen", async () => {
+    const m = await load();
+    const at = (s: number) => vi.setSystemTime(new Date(Date.parse("2026-09-30T12:00:00Z") + s * 1000));
+    await m.saveDrawingSettings({ displaySec: 10 });
+    for (let i = 1; i <= 3; i++) await m.addTestDrawing({ requestId: key(10 + i) });
+    const [third, second, first] = (await m.getDrawings())!.drawings.map((d) => d.id);
+    expect((await m.getDrawings())!).toMatchObject({ showing: { id: first }, queue: [second, third] });
+    expect(await m.getOverlayDrawing(m.overlayKey)).toMatchObject({ drawing: { id: first } });
+
+    at(9);
+    expect(await m.getOverlayDrawing(m.overlayKey)).toMatchObject({ drawing: { id: first } });
+    at(10);
+    expect(await m.getOverlayDrawing(m.overlayKey)).toMatchObject({ drawing: { id: second } });
+    expect((await m.getDrawings())!.queue).toEqual([third]);
+
+    // 내리기 puts the next one up; 전시 jumps the queue; a deleted drawing leaves it.
+    await m.setDrawingShowing({ id: null });
+    expect((await m.getDrawings())!).toMatchObject({ showing: { id: third }, queue: [] });
+    await m.addTestDrawing({ requestId: key(20) });
+    const fourth = (await m.getDrawings())!.drawings[0].id;
+    expect((await m.getDrawings())!.queue).toEqual([fourth]);
+    await m.setDrawingShowing({ id: first });
+    expect((await m.getDrawings())!).toMatchObject({ showing: { id: first }, queue: [fourth] });
+    await m.deleteDrawing(fourth);
+    at(25);
+    expect(await m.getOverlayDrawing(m.overlayKey)).toMatchObject({ drawing: null });
+  });
+
+  it("never drops a waiting drawing from the gallery when it is full", async () => {
+    const m = await load();
+    const { MEDIA_LIMITS } = await import("./mediaTypes");
+    await m.saveDrawingSettings({ displaySec: 120 });
+    for (let i = 0; i < MEDIA_LIMITS.drawingsMax + 5; i++) await m.addTestDrawing({ requestId: key(100 + i) });
+    const view = (await m.getDrawings())!;
+    expect(view.queue).toHaveLength(MEDIA_LIMITS.drawingsMax + 4);
+    expect(view.queue.every((id) => view.drawings.some((d) => d.id === id))).toBe(true);
+  });
 });

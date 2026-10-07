@@ -38,7 +38,8 @@ export type Drawing = { id: string; kind: "DONATION" | "TEST"; donor: string; ti
 
 export type DrawingSettings = { displaySec: number };
 
-export type DrawingView = { settings: DrawingSettings; showing: { id: string; until: string } | null; drawings: Drawing[] };
+/** `queue`: ids of drawings waiting for the overlay, next first. */
+export type DrawingView = { settings: DrawingSettings; showing: { id: string; until: string } | null; queue: string[]; drawings: Drawing[] };
 
 export type OverlayDrawing = { drawing: (Omit<Drawing, "kind" | "receivedAt"> & { until: string }) | null; reloadSeq: number; on: boolean };
 

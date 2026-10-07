@@ -5,7 +5,7 @@ import { getCreatorSession } from "@/lib/session";
 import { sameSecret } from "@/lib/secret";
 import { parseYouTubeId } from "@/services/donations/donationTypes";
 import { overlaySignal } from "./alertCore";
-import { addDrawing, advanceVideos, currentDrawing, enqueueVideo, mockMedia, playingEndsAt, playingVideo, playSeconds, showDrawing, startVideo } from "./mediaCore";
+import { addDrawing, advanceDrawings, advanceVideos, currentDrawing, enqueueVideo, mockMedia, playingEndsAt, playingVideo, playSeconds, showDrawing, startVideo } from "./mediaCore";
 import { mockCreator } from "./mockCreatorStore";
 import { MEDIA_LIMITS, type DrawingView, type MediaResult, type OverlayDrawing, type OverlayVideo, type VideoQueueView } from "./mediaTypes";
 
@@ -114,8 +114,9 @@ export async function getOverlayVideo(key: unknown): Promise<OverlayVideo | "FOR
 export async function getDrawings(): Promise<DrawingView | null> {
   assertMock();
   if (!(await getCreatorSession())) return null;
+  advanceDrawings();
   const cur = currentDrawing();
-  return structuredClone({ settings: mockMedia.drawingSettings, showing: cur ? { id: cur.drawing.id, until: cur.until } : null, drawings: mockMedia.drawings });
+  return structuredClone({ settings: mockMedia.drawingSettings, showing: cur ? { id: cur.drawing.id, until: cur.until } : null, queue: mockMedia.drawingQueue, drawings: mockMedia.drawings });
 }
 
 export async function saveDrawingSettings(input: unknown): Promise<MediaResult> {
@@ -148,13 +149,14 @@ export async function addTestDrawing(input: unknown): Promise<MediaResult> {
   return ok;
 }
 
-/** 전시 (show on the overlay again) or 내리기 (hide now). */
+/** 전시 (show on the overlay now) or 내리기 (take it down; the next waiting drawing goes up). */
 export async function setDrawingShowing(input: unknown): Promise<MediaResult> {
   assertMock();
   if (!(await getCreatorSession())) return unauthorized;
   const v = obj(input);
   if (v.id === null) {
     mockMedia.showing = null;
+    advanceDrawings();
     return ok;
   }
   return typeof v.id === "string" && showDrawing(v.id) ? ok : invalid("그림을 찾을 수 없어요.");
@@ -164,13 +166,18 @@ export async function deleteDrawing(id: unknown): Promise<MediaResult> {
   assertMock();
   if (!(await getCreatorSession())) return unauthorized;
   mockMedia.drawings = mockMedia.drawings.filter((d) => d.id !== id);
-  if (mockMedia.showing?.id === id) mockMedia.showing = null;
+  mockMedia.drawingQueue = mockMedia.drawingQueue.filter((x) => x !== id);
+  if (mockMedia.showing?.id === id) {
+    mockMedia.showing = null;
+    advanceDrawings();
+  }
   return ok;
 }
 
 export async function getOverlayDrawing(key: unknown): Promise<OverlayDrawing | "FORBIDDEN"> {
   assertMock();
   if (!sameSecret(key, mockCreator.integrationKey)) return "FORBIDDEN";
+  advanceDrawings();
   const cur = currentDrawing();
   return {
     drawing: cur ? { id: cur.drawing.id, donor: cur.drawing.donor, title: cur.drawing.title, fnAmount: cur.drawing.fnAmount, image: cur.drawing.image, until: cur.until } : null,
