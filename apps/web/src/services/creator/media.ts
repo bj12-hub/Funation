@@ -5,6 +5,7 @@ import { getCreatorSession } from "@/lib/session";
 import { sameSecret } from "@/lib/secret";
 import { parseYouTubeId } from "@/services/donations/donationTypes";
 import { overlaySignal } from "./alertCore";
+import { shownOnStream } from "./donationPageCore";
 import { addDrawing, advanceDrawings, advanceVideos, currentDrawing, enqueueVideo, mockMedia, playingEndsAt, playingVideo, playSeconds, showDrawing, startVideo } from "./mediaCore";
 import { mockCreator } from "./mockCreatorStore";
 import { MEDIA_LIMITS, type DrawingView, type MediaResult, type OverlayDrawing, type OverlayVideo, type VideoQueueView } from "./mediaTypes";
@@ -179,8 +180,12 @@ export async function getOverlayDrawing(key: unknown): Promise<OverlayDrawing | 
   if (!sameSecret(key, mockCreator.integrationKey)) return "FORBIDDEN";
   advanceDrawings();
   const cur = currentDrawing();
+  // A paid drawing's name and title show as the creator's 대체 메시지 settings say (2026-10-07 결정), like alerts;
+  // the gallery in the studio keeps the original.
+  const d = cur?.drawing;
+  const shown = d && d.kind === "DONATION" ? shownOnStream({ donor: d.donor, message: d.title }) : d ? { donor: d.donor, message: d.title } : null;
   return {
-    drawing: cur ? { id: cur.drawing.id, donor: cur.drawing.donor, title: cur.drawing.title, fnAmount: cur.drawing.fnAmount, image: cur.drawing.image, until: cur.until } : null,
+    drawing: cur && shown ? { id: cur.drawing.id, donor: shown.donor, title: shown.message, fnAmount: cur.drawing.fnAmount, image: cur.drawing.image, until: cur.until } : null,
     ...overlaySignal("drawing")
   };
 }
