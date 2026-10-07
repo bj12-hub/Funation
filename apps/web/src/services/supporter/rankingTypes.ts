@@ -1,7 +1,8 @@
 /**
  * 내 후원 랭킹 — code-first, no Figma frame. Reference: docs/research/funnation-reference.md §1.
- * Other supporters are mock sample data. Aggregation rules (refunds, anonymous donations, ties,
- * season resets) and the effect of 마이페이지 "랭킹 노출" on public boards are TBD.
+ * Other supporters are mock sample data. Donations sent as 익명 (프로필 숨기기) are not counted (2026-10-08 결정
+ * "명예의 전당·랭킹에서 익명 제외"). Still TBD: refunds, ties, season resets, and the effect of 마이페이지 "랭킹 노출"
+ * on public boards.
  */
 
 export const RANKING_PERIODS = [
