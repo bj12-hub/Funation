@@ -69,6 +69,20 @@ describe("계정", () => {
     expect(await m.changeNickname("게스트")).toEqual({ status: "UNAUTHORIZED" });
   });
 
+  it("keeps a given-up 썸네이션 ID reserved for 30 days, then releases it (2026-10-08 결정)", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-08T10:00:00"));
+    const m = await load();
+    expect(await m.changeFunationId("newid2026")).toEqual({ status: "CHANGED", value: "newid2026" });
+    // Another member (the mock has one slot: a member without a recent change) cannot take the old ID yet.
+    m.store.mockChangeHistory.funationIdChangedAt = null;
+    expect(await m.changeFunationId("honggd123")).toEqual({ status: "RESERVED" });
+    vi.setSystemTime(new Date("2026-11-07T09:59:00"));
+    expect(await m.changeFunationId("honggd123")).toEqual({ status: "RESERVED" });
+    vi.setSystemTime(new Date("2026-11-07T10:00:00"));
+    expect(await m.changeFunationId("honggd123")).toEqual({ status: "CHANGED", value: "honggd123" });
+  });
+
   it("lets only one of two simultaneous nickname changes through the 30-day limit", async () => {
     const m = await load();
     const results = await Promise.all([m.changeNickname("첫번째탭"), m.changeNickname("두번째탭")]);

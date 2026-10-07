@@ -26,6 +26,9 @@ export type NameChangeResult =
   | { status: "LIMITED"; availableFrom: string }
   | { status: "UNAUTHORIZED" };
 
+/** `RESERVED`: another member gave this 썸네이션 ID up less than ID_RESERVE_DAYS ago. */
+export type IdChangeResult = NameChangeResult | { status: "RESERVED" };
+
 export type PasswordChangeResult =
   | { status: "CHANGED" }
   | { status: "WRONG_CURRENT" }
@@ -47,6 +50,17 @@ export type PhotoUploadResult =
 const ID_CHANGE_INTERVAL_DAYS = 30;
 /** TBD: the nickname interval is not specified; the mock reuses the ID interval. */
 const NICKNAME_CHANGE_INTERVAL_DAYS = 30;
+/**
+ * A 썸네이션 ID given up by a change stays reserved this long, then anyone may take it (2026-10-08 결정 "일정 기간
+ * 보호 후 해제" — 30 days decided, can be changed). Checked on the server for every ID change; sign-up does not pick an
+ * ID yet, so when it does, it must check the same reservation.
+ */
+const ID_RESERVE_DAYS = 30;
+
+/** Given-up IDs (lowercase) → when they are released (epoch ms). Mock store, kept on globalThis like the others. */
+const globalForIds = globalThis as typeof globalThis & { __funationMockReservedIdsV1?: Map<string, number> };
+const reservedIds = () => (globalForIds.__funationMockReservedIdsV1 ??= new Map());
+const isReservedId = (id: string, now = Date.now()) => (reservedIds().get(id.toLowerCase()) ?? 0) > now;
 
 const containsForbidden = (value: string) => MOCK_FORBIDDEN_WORDS.some((w) => value.toLowerCase().includes(w));
 
@@ -82,7 +96,7 @@ export async function changeNickname(nickname: unknown): Promise<NameChangeResul
   return { status: "CHANGED", value: mockAccount.nickname };
 }
 
-export async function changeFunationId(funationId: unknown): Promise<NameChangeResult> {
+export async function changeFunationId(funationId: unknown): Promise<IdChangeResult> {
   assertMock();
   if (!(await getSession())) return { status: "UNAUTHORIZED" };
   await mockDelay(400);
@@ -94,8 +108,11 @@ export async function changeFunationId(funationId: unknown): Promise<NameChangeR
   if (MOCK_TAKEN_FUNATION_IDS.includes(funationId) || funationId === mockAccount.funationId.toLowerCase()) {
     return { status: "DUPLICATE" };
   }
+  if (isReservedId(funationId)) return { status: "RESERVED" };
+  const now = new Date();
+  reservedIds().set(mockAccount.funationId.toLowerCase(), now.getTime() + ID_RESERVE_DAYS * 86_400_000);
   mockAccount.funationId = funationId;
-  mockChangeHistory.funationIdChangedAt = new Date();
+  mockChangeHistory.funationIdChangedAt = now;
   return { status: "CHANGED", value: funationId };
 }
 
