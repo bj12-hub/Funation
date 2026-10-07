@@ -84,7 +84,13 @@ export type ListPeriod = { preset: ListPeriodPreset; from: string; to: string; y
 
 export type ReceivedDonation = {
   id: string;
+  /** 후원일시: when it was sent. */
   at: string;
+  /**
+   * When it counts in 수령액 and the 기간 filter: a 성공 quest on the day it succeeded (2026-10-08 결정 "퀘스트는 성공한 날
+   * 기준 집계"); every other row (held and refunded quests too) when it was sent.
+   */
+  receivedAt: string;
   donorNickname: string;
   donorId: string;
   /** FN, as recorded by the server. */
@@ -119,8 +125,11 @@ export type ReceivedDonationPage = {
   years: number[];
 };
 
-/** See ReceivedStats: only non-quest rows and 성공 quests count; 이번 주 runs from Monday 00:00 (server time = KST). */
-export function receivedStats(rows: Pick<ReceivedDonation, "at" | "amount" | "status">[], now = new Date()): ReceivedStats {
+/**
+ * See ReceivedStats: only non-quest rows and 성공 quests count, on their `receivedAt` (a quest on the day it succeeded);
+ * 이번 주 runs from Monday 00:00 (server time = KST).
+ */
+export function receivedStats(rows: Pick<ReceivedDonation, "receivedAt" | "amount" | "status">[], now = new Date()): ReceivedStats {
   const counted = rows.filter((d) => d.status === null || d.status === "SUCCESS");
   const held = rows.filter((d) => d.status === "IN_PROGRESS");
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
@@ -130,8 +139,8 @@ export function receivedStats(rows: Pick<ReceivedDonation, "at" | "amount" | "st
   return {
     totalFn,
     count: counted.length,
-    todayFn: sum(counted.filter((d) => Date.parse(d.at) >= today)),
-    weekFn: sum(counted.filter((d) => Date.parse(d.at) >= weekStart)),
+    todayFn: sum(counted.filter((d) => Date.parse(d.receivedAt) >= today)),
+    weekFn: sum(counted.filter((d) => Date.parse(d.receivedAt) >= weekStart)),
     averageFn: counted.length ? Math.round(totalFn / counted.length) : 0,
     heldFn: sum(held),
     heldCount: held.length

@@ -179,6 +179,7 @@ function questDonations(): ReceivedDonation[] {
     .map((q) => ({
       id: q.id,
       at: q.createdAt,
+      receivedAt: q.status === "SUCCESS" && q.decidedAt ? q.decidedAt : q.createdAt,
       donorNickname: q.donor,
       donorId: q.donorId,
       amount: q.amount,
@@ -218,15 +219,15 @@ function mockGameDonations(): ReceivedDonation[] {
   return Array.from({ length: 24 }, (_, i) => {
     const [nick, id] = FIXTURE_DONORS[(i + 3) % FIXTURE_DONORS.length];
     const at = new Date(now - Math.round(i * i * 0.5 * 86_400_000 + i * 5_100_000 + 1_800_000));
-    return { id: `g${i + 1}`, at: at.toISOString(), donorNickname: nick, donorId: id, amount: FIXTURE_AMOUNTS[(i + 2) % FIXTURE_AMOUNTS.length], message: GAME_MESSAGES[i % GAME_MESSAGES.length], status: null, detail: titles[i % titles.length] };
+    return { id: `g${i + 1}`, at: at.toISOString(), receivedAt: at.toISOString(), donorNickname: nick, donorId: id, amount: FIXTURE_AMOUNTS[(i + 2) % FIXTURE_AMOUNTS.length], message: GAME_MESSAGES[i % GAME_MESSAGES.length], status: null, detail: titles[i % titles.length] };
   });
 }
 
 /**
  * 크루 후원 (code-first): donations sent for a crew member of the studio's crew (후원 패널 멤버 지정). A member can be
  * picked for a 퀘스트 too; such a row carries the quest's status, so a refunded quest leaves the summary here as well.
- * A quest reaches the member (crew points · ranking) only when it succeeds; until then, or once refunded, its row
- * comes from the quest record (sent time), so the list still shows it as held or refunded.
+ * A quest reaches the member (crew points · ranking) only when it succeeds, as a row at its success time; until then,
+ * or once refunded, its row comes from the quest record (sent time), so the list still shows it as held or refunded.
  */
 function crewDonations(): ReceivedDonation[] {
   const names = new Map((mockCrew.crews[STUDIO_CHANNEL] ?? []).map((m) => [m.id, m.name]));
@@ -237,6 +238,7 @@ function crewDonations(): ReceivedDonation[] {
     .map((r) => ({
       id: r.id,
       at: r.at,
+      receivedAt: r.at,
       donorNickname: r.donor,
       donorId: r.donorId,
       amount: r.fnAmount,
@@ -256,13 +258,14 @@ function filterReceived(input: ListFilter) {
   const status: StatusFilter = kind === "quest" && QUEST_STATUSES.some((s) => s.key === input.status) ? input.status : "ALL";
   const query = input.query.trim().slice(0, LIST_QUERY_MAX).toLowerCase();
   const all = kind === "quest" ? questDonations() : kind === "game" ? mockGameDonations() : crewDonations();
-  const years = [...new Set(all.map((d) => new Date(d.at).getFullYear()))].sort((a, b) => b - a);
+  // 기간 and 연도 go by when a row counts (a 성공 quest: the day it succeeded — 2026-10-08 결정).
+  const years = [...new Set(all.map((d) => new Date(d.receivedAt).getFullYear()))].sort((a, b) => b - a);
   const localDate = (iso: string) => {
     const d = new Date(iso);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   };
   const matched = all.filter((d) => {
-    const day = localDate(d.at);
+    const day = localDate(d.receivedAt);
     if (day < input.period.from || day > input.period.to) return false;
     if (status !== "ALL" && d.status !== status) return false;
     return !query || d.donorNickname.toLowerCase().includes(query) || d.donorId.toLowerCase().includes(query);
@@ -320,9 +323,11 @@ export async function exportReceivedDonationsCsv(input: unknown): Promise<CsvExp
   const rows = matched.slice(0, CSV_EXPORT_MAX);
   const last = (d: ReceivedDonation) => (d.status ? QUEST_STATUSES.find((q) => q.key === d.status)!.label : (d.detail ?? ""));
   const column = kind === "quest" ? "상태" : LIST_KINDS.find((k) => k.key === kind)!.column;
+  // 퀘스트: 성공일시 too — the period filter and 수령액 go by it (2026-10-08 결정).
+  const succeeded = (d: ReceivedDonation) => (kind === "quest" ? [d.status === "SUCCESS" ? d.receivedAt : ""] : []);
   const lines = [
-    ["후원일시", "후원자 닉네임", "후원자 아이디", "금액(FN)", "메시지", column].map(csvCell).join(","),
-    ...rows.map((d) => [d.at, d.donorNickname, d.donorId, d.amount, d.message, last(d)].map(csvCell).join(","))
+    ["후원일시", "후원자 닉네임", "후원자 아이디", "금액(FN)", "메시지", ...(kind === "quest" ? ["성공일시"] : []), column].map(csvCell).join(","),
+    ...rows.map((d) => [d.at, d.donorNickname, d.donorId, d.amount, d.message, ...succeeded(d), last(d)].map(csvCell).join(","))
   ];
   return {
     status: "OK",
