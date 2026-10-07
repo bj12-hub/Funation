@@ -84,7 +84,8 @@ export function rankingRows(items: AlertItem[], s: RankingSettings, now = new Da
   for (const a of countedDonations(items)) {
     const t = countedAt(a);
     const key = a.donorKey === undefined ? (a.donor === HIDDEN_PROFILE_LABEL ? null : `name:${a.donor}`) : a.donorKey;
-    if (t < since || key === null) continue;
+    // A keyed alert can still show 익명 (프로필 숨김, or a name 후원 필터링 replaced): left out like the unkeyed ones.
+    if (t < since || key === null || a.donor === HIDDEN_PROFILE_LABEL) continue;
     const cur = totals.get(key) ?? { name: a.donor, fn: 0, first: t };
     cur.fn += a.fnAmount;
     cur.name = a.donor;
