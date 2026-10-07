@@ -1,4 +1,5 @@
 import { formatNumber } from "@/lib/format";
+import { toUnitCode, type AmountUnit } from "@/types/donationUnit";
 import type { Platform } from "@/types/platform";
 
 /**
@@ -7,6 +8,16 @@ import type { Platform } from "@/types/platform";
  * overlay only shows what the server says is on screen, so a reload never replays or skips alerts.
  * Test alerts are display-only — they never touch FN balances, ledgers or earnings.
  */
+
+export type NativeAmount = { value: number; unit: AmountUnit };
+
+/**
+ * An EXTERNAL alert's amount by unit code. Alerts stored before the codes (until 2026-10-08) carry `currency` — the
+ * label (별풍선 · 치즈 · FlexTV 후원) or an ISO code — which is mapped here, so old and new alerts group together.
+ */
+export function nativeAmount(n: NativeAmount | { value: number; currency: string }): NativeAmount {
+  return "unit" in n ? n : { value: n.value, unit: toUnitCode(n.currency) ?? n.currency };
+}
 
 /** EXTERNAL = a donation made on a broadcast platform (후원 연동); shown in its own currency, never converted to FN. */
 export type AlertKind = "DONATION" | "TEST" | "EXTERNAL";
@@ -34,8 +45,11 @@ export type AlertItem = {
   platform?: Platform;
   /** The signature's image for a 시그니처 후원 (or a 일반 후원 matched to a signature by amount); 벽지 "후원 이미지 우선" uses it. */
   imageUrl?: string;
-  /** EXTERNAL: the amount in the platform's own unit (KRW, 별풍선, 치즈 …), summed per platform on 수단별 보드. */
-  native?: { value: number; currency: string };
+  /**
+   * EXTERNAL: the amount in the platform's own unit, by unit code (KRW, SOOP_BALLOON, CHZZK_CHEESE …), summed per
+   * platform on 수단별 보드, which shows the unit's label. Read it through `nativeAmount` (older alerts carry a label).
+   */
+  native?: NativeAmount;
   /** The signature's sound (library), played by the overlay at 시그니처 볼륨 (code-first, 2026-10-06). */
   soundUrl?: string;
   /**

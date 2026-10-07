@@ -1,3 +1,4 @@
+import { UNIT_LABEL, toUnitCode, type UnitCode } from "@/types/donationUnit";
 import type { Platform } from "@/types/platform";
 
 /**
@@ -74,7 +75,10 @@ export type FeedEntry = {
   at: string;
   donor: string;
   message: string;
-  /** Amount in its own unit: FN (Somnation), 원 · USD · JPY (YouTube), 별풍선 (SOOP), 치즈 (CHZZK), FlexTV 후원. */
+  /**
+   * Amount in its own unit (code): FN (Somnation), KRW · USD · JPY (YouTube; KRW also 계좌 후원), SOOP_BALLOON (별풍선),
+   * CHZZK_CHEESE (치즈), FLEXTV_UNIT (FlexTV 후원). Entries listed before the codes carry the label until read (feedOf).
+   */
   amount: number;
   unit: ExcelUnit;
   /** Broadcast platform the donation came from; null = Somnation (FN). */
@@ -111,18 +115,27 @@ export type FeedView = {
 
 // ── 자동엑셀 (원화 환산 · 기여도) — code-first; conversion values are entered by the creator ─────────
 
-/** Units a 후원 리스트 entry can carry. 원 is the 원화 기준 itself; every other unit needs a value. */
+/**
+ * Units a 후원 리스트 entry can carry, by stable code (types/donationUnit) — 환산값 and entries are keyed by the code,
+ * screens show the label. 원 is the 원화 기준 itself; every other unit needs a value. `platform`: where a 시뮬 후원 in
+ * that unit comes from (원 is also 계좌 후원, which has none).
+ */
 export const EXCEL_UNITS = [
-  { key: "FN", label: "FN", platform: null },
-  { key: "KRW", label: "원", platform: "YOUTUBE" },
-  { key: "USD", label: "USD", platform: "YOUTUBE" },
-  { key: "JPY", label: "JPY", platform: "YOUTUBE" },
-  { key: "별풍선", label: "별풍선", platform: "SOOP" },
-  { key: "치즈", label: "치즈", platform: "CHZZK" },
-  { key: "FlexTV 후원", label: "FlexTV 후원", platform: "FLEXTV" }
-] as const satisfies readonly { key: string; label: string; platform: Platform | null }[];
+  { key: "FN", label: UNIT_LABEL.FN, platform: null },
+  { key: "KRW", label: UNIT_LABEL.KRW, platform: "YOUTUBE" },
+  { key: "USD", label: UNIT_LABEL.USD, platform: "YOUTUBE" },
+  { key: "JPY", label: UNIT_LABEL.JPY, platform: "YOUTUBE" },
+  { key: "SOOP_BALLOON", label: UNIT_LABEL.SOOP_BALLOON, platform: "SOOP" },
+  { key: "CHZZK_CHEESE", label: UNIT_LABEL.CHZZK_CHEESE, platform: "CHZZK" },
+  { key: "FLEXTV_UNIT", label: UNIT_LABEL.FLEXTV_UNIT, platform: "FLEXTV" }
+] as const satisfies readonly { key: UnitCode; label: string; platform: Platform | null }[];
 export type ExcelUnit = (typeof EXCEL_UNITS)[number]["key"];
 export const isExcelUnit = (v: unknown): v is ExcelUnit => EXCEL_UNITS.some((u) => u.key === v);
+/** The 자동엑셀 unit for a code, or for a label stored or sent before the codes (별풍선 → SOOP_BALLOON …); else null. */
+export function excelUnitOf(v: unknown): ExcelUnit | null {
+  const code = toUnitCode(v);
+  return isExcelUnit(code) ? code : null;
+}
 
 /** FN: 1 FN = 1점 (기존 점수판). KRW: every unit is converted to 원 with the creator's values. */
 export type ExcelScoreUnit = "FN" | "KRW";
@@ -132,7 +145,10 @@ export type MultiplierRule = { min: number; multiplier: number };
 
 export type ExcelSettings = {
   unit: ExcelScoreUnit;
-  /** 1 unit = N원, entered by the creator (TBD: platform rates are not decided). Missing = not set. */
+  /**
+   * 1 unit = N원 per unit code, entered by the creator (TBD: platform rates are not decided). Missing = not set. Values
+   * saved before the codes are keyed by label and moved to the code when read (excelOf).
+   */
   rates: Partial<Record<ExcelUnit, number>>;
   rules: MultiplierRule[];
 };

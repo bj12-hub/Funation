@@ -15,6 +15,7 @@ import {
   type FeedStatus,
   type FeedView
 } from "@/services/crew/crewTypes";
+import { unitLabel } from "@/types/donationUnit";
 import { PLATFORM_LABEL } from "@/types/platform";
 import { ExcelPanel, ExcelSummary } from "./ExcelPanel";
 import styles from "./crew.module.css";
@@ -29,7 +30,7 @@ const FILTERS = [
 ] as const;
 type Filter = (typeof FILTERS)[number]["key"];
 const time = (iso: string) => new Date(iso).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-const unitLabel = (u: ExcelUnit) => EXCEL_UNITS.find((x) => x.key === u)!.label;
+/** Entries carry a unit code; the label is what shows (5,000 원 · 100 별풍선). */
 const amountText = (amount: number, unit: ExcelUnit) => `${formatNumber(amount)} ${unitLabel(unit)}`;
 
 /**

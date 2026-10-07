@@ -25,7 +25,7 @@ import {
   type ScoreRow,
   type TeamKey
 } from "./crewTypes";
-import { battleBonus, battleRulesOf, fanNotesView, gradeBonus, gradeMultipliersOf, excelOf, liveBroadcastOf, scoreEntry, scoreFn, stealRecordView, stealRulesOf, timesMultiplier, windowReceived, windowScores, windowSteals } from "./crewCore";
+import { battleBonus, battleRulesOf, fanNotesView, gradeBonus, gradeMultipliersOf, excelOf, feedOf, liveBroadcastOf, scoreEntry, scoreFn, stealRecordView, stealRulesOf, timesMultiplier, windowReceived, windowScores, windowSteals } from "./crewCore";
 import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 /**
@@ -49,7 +49,7 @@ const liveOf = liveBroadcastOf;
 /** Every 후원 리스트 entry with its points under the channel's current 자동엑셀 settings. */
 const scoredFeed = (b: MockBroadcast) => {
   const s = excelOf(b.channelId);
-  return (b.feed ?? []).map((f) => scoreEntry(f, s));
+  return feedOf(b).map((f) => scoreEntry(f, s));
 };
 
 function scoreRows(b: MockBroadcast): ScoreRow[] {

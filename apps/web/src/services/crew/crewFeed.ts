@@ -15,7 +15,7 @@ import {
   MAX_ADJUST_POINTS,
   SIM_AMOUNT_MAX,
   SIM_TEXT_MAX,
-  isExcelUnit,
+  excelUnitOf,
   type BroadcastResult,
   type Contribution,
   type ExcelSettings,
@@ -88,8 +88,9 @@ export async function simulateDonation(input: unknown): Promise<BroadcastResult>
   if (typeof v.requestId !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
   const seen = (live.simRequests ??= []);
   if (seen.includes(v.requestId)) return { status: "SAVED" };
-  const unit = v.unit ?? "FN";
-  if (!isExcelUnit(unit)) return { status: "INVALID", message: "단위를 골라 주세요." };
+  // A unit code; a screen from before the codes may still send the label (별풍선 …).
+  const unit = excelUnitOf(v.unit ?? "FN");
+  if (!unit) return { status: "INVALID", message: "단위를 골라 주세요." };
   const amount = v.amount;
   // USD may carry cents; every other unit is counted in whole numbers.
   if (!isNum(amount) || amount <= 0 || amount > SIM_AMOUNT_MAX || !(unit === "USD" ? twoDecimals(amount) : Number.isInteger(amount))) return { status: "INVALID", message: "금액을 확인해 주세요." };
@@ -193,8 +194,10 @@ export async function setExcelSettings(input: unknown): Promise<BroadcastResult>
   if (v.unit !== "FN" && v.unit !== "KRW") return { status: "INVALID", message: "점수 기준을 골라 주세요." };
   const rawRates = rec(v.rates);
   const rates: ExcelSettings["rates"] = {};
-  for (const [unit, value] of Object.entries(rawRates)) {
-    if (!isExcelUnit(unit) || unit === "KRW") return { status: "INVALID", message: "환산 단위를 확인해 주세요." };
+  for (const [key, value] of Object.entries(rawRates)) {
+    // Keyed by unit code; a label from a screen opened before the codes is still accepted and stored under its code.
+    const unit = excelUnitOf(key);
+    if (!unit || unit === "KRW") return { status: "INVALID", message: "환산 단위를 확인해 주세요." };
     if (value === null) continue;
     if (!isNum(value) || value <= 0 || value > EXCEL_RATE_MAX || !twoDecimals(value)) return { status: "INVALID", message: `환산값은 0보다 크고 ${EXCEL_RATE_MAX.toLocaleString("ko-KR")}원 이하, 소수 둘째 자리까지예요.` };
     rates[unit] = value;

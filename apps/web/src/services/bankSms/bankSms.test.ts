@@ -72,6 +72,7 @@ describe("SMS 계좌후원", () => {
       ["EXTERNAL", "별***타", "₩10,000", "계좌 후원", 0],
       ["EXTERNAL", "별***타", "₩20,000", "계좌 후원", 0]
     ]);
+    expect(m.alerts.items.map((a) => a.native)).toEqual([{ value: 10_000, unit: "KRW" }, { value: 20_000, unit: "KRW" }]);
     expect(m.account.fnBalance).toBe(fn);
 
     const feed = (await m.getBroadcastView())!.feed!;

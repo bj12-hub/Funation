@@ -32,7 +32,7 @@ describe("platform adapters", () => {
       { donationId: "time", donatorChannelId: "d", donatorNickname: "d", payAmount: "1000", donationText: "", donatedAt: Number.NaN }
     );
     const first = await m.ChzzkAdapter.fetchDonationEvents("chz-test", null);
-    expect(first.events.map((e) => [e.externalEventId, e.amount])).toEqual([["ok", { value: 1000, currency: "치즈" }]]);
+    expect(first.events.map((e) => [e.externalEventId, e.amount])).toEqual([["ok", { value: 1000, unit: "CHZZK_CHEESE" }]]);
     expect(first.skipped).toBe(3);
     // The cursor moves past the bad items.
     expect(await m.ChzzkAdapter.fetchDonationEvents("chz-test", first.cursor)).toMatchObject({ events: [], skipped: 0 });
@@ -43,18 +43,23 @@ describe("platform adapters", () => {
       { balloonNo: 2, userId: "b", userNick: "b", count: 2.5, message: "", ts: Date.now() }
     );
     const balloons = await m.SoopAdapter.fetchDonationEvents("soop-test", null);
-    expect(balloons.events.map((e) => e.amount)).toEqual([{ value: 10, currency: "별풍선" }]);
+    expect(balloons.events.map((e) => e.amount)).toEqual([{ value: 10, unit: "SOOP_BALLOON" }]);
     expect(balloons.skipped).toBe(1);
 
     const flex = m.remote.channelRemote("flex-test");
-    flex.flexDonations.push({ id: "f1", user: { id: "u", nick: "u" }, amount: "많이" as unknown as number, text: "", createdAt: new Date().toISOString() });
-    expect(await m.FlexTvAdapter.fetchDonationEvents("flex-test", null)).toMatchObject({ events: [], skipped: 1 });
+    flex.flexDonations.push(
+      { id: "f1", user: { id: "u", nick: "u" }, amount: "많이" as unknown as number, text: "", createdAt: new Date().toISOString() },
+      { id: "f2", user: { id: "v", nick: "v" }, amount: 1.5, text: "", createdAt: new Date().toISOString() }
+    );
+    const flexEvents = await m.FlexTvAdapter.fetchDonationEvents("flex-test", null);
+    expect(flexEvents).toMatchObject({ skipped: 1 });
+    expect(flexEvents.events.map((e) => e.amount)).toEqual([{ value: 1.5, unit: "FLEXTV_UNIT" }]);
 
     m.mockYouTubeSuperChat("yt-test", { id: "sc-ok", donor: "a", message: "", value: 12.5, currency: "USD" });
     m.mockYouTubeSuperChat("yt-test", { id: "sc-nan", donor: "b", message: "", value: Number.NaN, currency: "USD" });
     m.mockYouTubeSuperChat("yt-test", { id: "sc-cur", donor: "c", message: "", value: 5, currency: "치즈" });
     const sc = await m.YouTubeAdapter.fetchDonationEvents("yt-test", null);
-    expect(sc.events.map((e) => [e.externalEventId, e.amount])).toEqual([["sc-ok", { value: 12.5, currency: "USD" }]]);
+    expect(sc.events.map((e) => [e.externalEventId, e.amount])).toEqual([["sc-ok", { value: 12.5, unit: "USD" }]]);
     expect(sc.skipped).toBe(2);
   });
 
