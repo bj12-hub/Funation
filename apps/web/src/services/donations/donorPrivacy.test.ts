@@ -6,13 +6,13 @@ vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve(
 vi.mock("@/lib/session", () => mockSessionModule());
 
 /** Who a donation shows and counts as on stream: 후원랭킹 keys, 별명, 대체 메시지 on the game overlays. */
-async function load() {
+async function load(studio = true) {
   const { mockAccount } = await import("@/services/account/mockStore");
   mockAccount.fnBalance = 1_000_000;
   const creators = await import("@/services/creators/creators");
   const c1 = (await creators.getCreatorById("c1"))!;
-  // Only the studio channel reaches the overlays in the mock.
-  vi.spyOn(creators, "getCreatorById").mockResolvedValue({ ...c1, id: "studio" });
+  // Only the studio channel reaches the alert overlays in the mock.
+  if (studio) vi.spyOn(creators, "getCreatorById").mockResolvedValue({ ...c1, id: "studio" });
   const { requestDonation } = await import("./donate");
   const identity = await import("@/services/supporter/identity");
   const { mockAlerts } = await import("@/services/creator/alertCore");
@@ -22,6 +22,35 @@ async function load() {
 }
 
 const text = (n: number, extra: Record<string, unknown> = {}) => ({ creatorId: "studio", hideProfile: false, type: "TEXT", amount: 1_000, message: "", voiceId: null, idempotencyKey: key(n), ...extra });
+
+describe("룰렛 · 뽑기 overlays", () => {
+  beforeEach(() => resetMockStores());
+
+  it("show the donor name after the creator's 대체 메시지 rules, while the records keep the original", async () => {
+    const m = await load(false);
+    const { donationPageStore } = await import("@/services/creator/donationPageCore");
+    const roulette = await import("./rouletteCore");
+    const gacha = await import("./gachaCore");
+    donationPageStore.replacement = { applyToNickname: true, applyToText: false, bannedWords: ["길동"], message: "응원 고마워요" };
+
+    const spin = { creatorId: "c1", hideProfile: false, type: "ROULETTE", amount: 10_000, idempotencyKey: key(1) };
+    expect((await m.requestDonation(spin)).status).toBe("COMPLETED");
+    const record = roulette.mockRoulette.spins.at(-1)!;
+    expect(record.donor).toBe("홍길동");
+    roulette.startSpin(record); // 자동 시작 is off by default
+    expect(roulette.stageOf("c1")).toMatchObject({ donor: "응원 고마워요" });
+
+    const draw = { creatorId: "c1", hideProfile: false, type: "GACHA", gachaId: "gacha-1", termsAgreed: true, expectedAmount: 3_000, idempotencyKey: key(2) };
+    expect((await m.requestDonation(draw)).status).toBe("COMPLETED");
+    const stage = gacha.stageOf("c1")!;
+    expect(stage.donor).toBe("응원 고마워요");
+    expect(stage.message).toContain("응원 고마워요");
+    expect(stage.message).not.toContain("길동");
+    expect(gacha.mockGacha.draws.at(-1)!.donor).toBe("홍길동");
+    const later = Date.now() + 60_000;
+    expect(gacha.boardOf("c1", later).rows.every((r) => !r.donor.includes("길동"))).toBe(true);
+  });
+});
 
 describe("후원랭킹 donor keys", () => {
   beforeEach(() => resetMockStores());

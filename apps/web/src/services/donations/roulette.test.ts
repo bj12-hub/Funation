@@ -104,7 +104,7 @@ describe("룰렛", () => {
   it("spins, reveals the result for a few seconds, then finishes (or 자동 시작 does it)", async () => {
     const m = await load();
     const t0 = Date.parse("2026-10-04T12:00:00");
-    const spin = m.enqueueSpin({ id: "s1", channelId: "c9", supporterUserId: "u-1", donor: "룰렛장인", amount: 10_000 }, t0, () => 80); // 80 → 시그니처
+    const spin = m.enqueueSpin({ id: "s1", channelId: "c9", supporterUserId: "u-1", donor: "룰렛장인", shownDonor: "룰렛장인", amount: 10_000 }, t0, () => 80); // 80 → 시그니처
     expect(m.statusOf(spin, t0)).toBe("QUEUED"); // 자동 시작 off by default
 
     m.startSpin(spin, t0);
@@ -117,9 +117,9 @@ describe("룰렛", () => {
     expect(m.statusOf(spin, t0 + spin.spinMs + ROULETTE_RESULT_SEC * 1000)).toBe("DONE");
 
     await saveRoulette(m, { autoStart: true });
-    const next = m.enqueueSpin({ id: "s2", channelId: "c9", supporterUserId: "u-2", donor: "오늘도행운", amount: 30_000 }, t0 + 60_000);
+    const next = m.enqueueSpin({ id: "s2", channelId: "c9", supporterUserId: "u-2", donor: "오늘도행운", shownDonor: "오늘도행운", amount: 30_000 }, t0 + 60_000);
     expect(m.statusOf(next, t0 + 60_000)).toBe("SPINNING"); // the wheel was free
-    const waiting = m.enqueueSpin({ id: "s3", channelId: "c9", supporterUserId: "u-3", donor: "미션마스터", amount: 20_000 }, t0 + 60_001);
+    const waiting = m.enqueueSpin({ id: "s3", channelId: "c9", supporterUserId: "u-3", donor: "미션마스터", shownDonor: "미션마스터", amount: 20_000 }, t0 + 60_001);
     expect(m.statusOf(waiting, t0 + 60_001)).toBe("QUEUED");
     m.mockRoulette.paused.c9 = true;
     m.advance("c9", t0 + 120_000);

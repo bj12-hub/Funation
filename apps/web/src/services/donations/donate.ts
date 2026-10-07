@@ -6,6 +6,7 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS, mockAccount } from "@/services/account/mockStore";
 import { donorKeyOf, enqueueDonationAlert } from "@/services/creator/alertCore";
+import { shownOnStream } from "@/services/creator/donationPageCore";
 import { getCreatorById } from "@/services/creators/creators";
 import { attributeMemberDonation, isActiveMember, liveBroadcastOf, recordBroadcastDonation } from "@/services/crew/crewCore";
 import { attributeDonation, ownsNickname, resolveBadges } from "@/services/supporter/identityCore";
@@ -125,8 +126,10 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
     }
     // 룰렛: the result is drawn now and revealed when the wheel spins (no FN prize — 2026-10-04 결정).
     // 뽑기: the prize is drawn now (stock goes down) and played on the 뽑기 overlay (no FN prize).
-    if (request.type === "GACHA") enqueueDraw({ id: donationId, channelId: creator.id, supporterUserId: session.userId, donor, gachaId: request.details.gachaId as string, amount: request.amount });
-    if (request.type === "ROULETTE") enqueueSpin({ id: donationId, channelId: creator.id, supporterUserId: session.userId, donor, amount: request.amount });
+    // Their overlays show the name as the alert does (대체 메시지 표시 설정); the records keep the original.
+    const shownDonor = shownOnStream({ donor, message: request.summary }).donor;
+    if (request.type === "GACHA") enqueueDraw({ id: donationId, channelId: creator.id, supporterUserId: session.userId, donor, shownDonor, gachaId: request.details.gachaId as string, amount: request.amount });
+    if (request.type === "ROULETTE") enqueueSpin({ id: donationId, channelId: creator.id, supporterUserId: session.userId, donor, shownDonor, amount: request.amount });
     enqueueDonationAlert(creator.id, {
       donor,
       // 후원랭킹 groups by this opaque key, never by the (copyable) name; a hidden profile has none.
