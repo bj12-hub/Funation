@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { key, mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
+import { key, mockSessionModule, resetMockStores, signIn, signInAs } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
@@ -33,5 +33,16 @@ describe("support", () => {
     signIn(null);
     expect(await submitInquiry({ ...input, requestId: key(4) })).toEqual({ status: "UNAUTHORIZED" });
     expect(await listMyInquiries()).toBeNull();
+  });
+
+  it("never answers another member's request id with their inquiry", async () => {
+    const { submitInquiry, listMyInquiries } = await import("./inquiry");
+    const input = { requestId: key(1), category: "DONATION", title: "후원이 안 보여요", body: "어제 보낸 후원이 내역에 보이지 않아요." };
+    const mine = await submitInquiry(input);
+    signInAs("u-other");
+    const theirs = await submitInquiry({ ...input, title: "다른 문의" });
+    expect(theirs.status).toBe("SUBMITTED");
+    expect(theirs).not.toEqual(mine);
+    expect((await listMyInquiries())!.map((q) => q.title)).toEqual(["다른 문의"]);
   });
 });

@@ -1,3 +1,4 @@
+import { creatorMemberId } from "@/services/admin/memberCore";
 import { mockCommunity } from "@/services/community/mockCommunityStore";
 import { channelCommunityStore } from "@/services/creators/channelCommunityCore";
 import { mockMessages } from "@/services/messages/mockMessageStore";
@@ -9,9 +10,13 @@ import type { BlockEntry, Report, ReportTarget } from "./moderationTypes";
  * by callers (the creator service imports moderation-free modules only, avoiding cycles).
  */
 
-type Store = { reports: Report[]; requests: Record<string, string>; blocks: Record<string, Record<string, BlockEntry>> };
-const g = globalThis as typeof globalThis & { __funationMockModerationV1?: Store };
-export const moderationStore = (): Store => (g.__funationMockModerationV1 ??= { reports: [], requests: {}, blocks: {} });
+/** A block as stored: the blocked member's id stays on the server; the browser sees the entry's own opaque id. */
+export type StoredBlock = BlockEntry & { authorId: string };
+/** `blocks`: blocker member id → blocked member id → entry. */
+type Store = { reports: Report[]; requests: Record<string, string>; blocks: Record<string, Record<string, StoredBlock>> };
+// V2: block entries get their own id (V1 used the blocked member's id).
+const g = globalThis as typeof globalThis & { __funationMockModerationV2?: Store };
+export const moderationStore = (): Store => (g.__funationMockModerationV2 ??= { reports: [], requests: {}, blocks: {} });
 
 export type ResolvedTarget = { authorId: string; authorName: string; snapshot: string };
 export type CreatorLookup = (id: string) => Promise<{ id: string; name: string; description: string } | null>;
@@ -35,13 +40,14 @@ export async function resolveTarget(t: ReportTarget, findCreator: CreatorLookup)
       return p ? { authorId: p.authorId, authorName: p.authorName, snapshot: clip(p.body) } : null;
     }
     case "MESSAGE": {
-      // Only received mail can be reported (the reporter is its recipient).
+      // Only received mail can be reported (the reporter is its recipient). Mail comes from a creator's channel: the
+      // author is that creator's member id, like everywhere else (admin member links, blocks on every content type).
       const m = mockMessages.messages.find((x) => x.id === t.id && x.direction === "IN" && !x.deleted);
-      return m ? { authorId: m.peerId, authorName: m.peerName, snapshot: clip(m.body) } : null;
+      return m ? { authorId: creatorMemberId(m.peerId), authorName: m.peerName, snapshot: clip(m.body) } : null;
     }
     case "CREATOR": {
       const c = await findCreator(t.id);
-      return c ? { authorId: `m-${c.id}`, authorName: c.name, snapshot: clip(`${c.name} — ${c.description}`) } : null;
+      return c ? { authorId: creatorMemberId(c.id), authorName: c.name, snapshot: clip(`${c.name} — ${c.description}`) } : null;
     }
   }
 }

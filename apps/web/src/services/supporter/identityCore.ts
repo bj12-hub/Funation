@@ -1,4 +1,7 @@
-import { mockAccount } from "@/services/account/mockStore";
+import { MOCK_TAKEN_NICKNAMES, mockAccount } from "@/services/account/mockStore";
+import { memberStore } from "@/services/admin/memberCore";
+import { donationPageStore } from "@/services/creator/donationPageCore";
+import { getAllCreatorsForAdmin } from "@/services/creators/creators";
 import { listDonationRecords } from "@/services/wallet/walletHistory";
 import {
   GLOBAL_TITLES,
@@ -29,9 +32,18 @@ function progress(tiers: readonly { label: string; minFn: number }[], currentFn:
   return { currentFn, nextLabel: next?.label ?? null, nextMinFn: next?.minFn ?? null, percent };
 }
 
+/** The member nickname: the 별명 entry that follows the account nickname. */
+export const MEMBER_NICKNAME_ID = "nk-default";
+
 export function nicknameList(): { id: string; name: string }[] {
-  return [{ id: "nk-default", name: mockAccount.nickname }, ...mockIdentity.nicknames];
+  return [{ id: MEMBER_NICKNAME_ID, name: mockAccount.nickname }, ...mockIdentity.nicknames];
 }
+
+/**
+ * 후원 닉네임 변경 (후원 페이지 설정, 539:7): when it is off, donations go out under the member nickname, whatever 별명
+ * was picked or set as default. The mock reads the studio's settings for every channel.
+ */
+export const nicknameChangeable = () => donationPageStore.options.nicknameChangeable;
 
 export function computeIdentity(): SupporterIdentity {
   const records = listDonationRecords().filter((d) => d.status === "COMPLETED");
@@ -70,6 +82,19 @@ export function computeIdentity(): SupporterIdentity {
     stores,
     equip: { ...mockIdentity.equip }
   };
+}
+
+/**
+ * Names an 별명 may not take (2026-10-08 결정 "다른 회원 닉네임·채널명 금지"): other members' nicknames in the member
+ * directory and every channel name the creator service knows, trimmed and lowercased. The member's own nickname is
+ * not in it (it is already the default 별명). 별명 are otherwise unique only within the member's own list.
+ */
+export async function namesTakenByOthers(): Promise<Set<string>> {
+  const norm = (name: string) => name.trim().toLowerCase();
+  const own = norm(mockAccount.nickname);
+  const channels = (await getAllCreatorsForAdmin()).map((c) => c.name);
+  const names = [...MOCK_TAKEN_NICKNAMES, ...memberStore().supporters.map((m) => m.nickname), ...channels].map(norm);
+  return new Set(names.filter((n) => n !== own));
 }
 
 /** Whether a nickname id belongs to the signed-in supporter. */

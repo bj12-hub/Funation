@@ -10,6 +10,9 @@
 
 export const MAX_NICKNAMES = 5;
 export const NICKNAME_RULE = /^[가-힣A-Za-z0-9_]{2,12}$/;
+/** What a donation sent with 프로필 숨기기 shows as its name; reserved, so no 별명 or nickname can pose as it. */
+export const HIDDEN_PROFILE_LABEL = "익명";
+export const isReservedNickname = (name: string) => name.trim() === HIDDEN_PROFILE_LABEL;
 
 /** 최근 30일 후원 FN으로 정하는 등급 (placeholder thresholds, TBD). */
 export const GRADES = [

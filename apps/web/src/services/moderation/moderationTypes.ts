@@ -40,6 +40,7 @@ export type Report = {
   resolution: { at: string; by: string; action: "DISMISS" | "HIDE"; note: string } | null;
 };
 
+/** `id` is the entry's own opaque id (unblock takes it), never the blocked member's id. */
 export type BlockEntry = { id: string; name: string; since: string };
 
 export type ReportResult = { status: "REPORTED" | "ALREADY_REPORTED" } | { status: "INVALID"; message: string } | { status: "NOT_FOUND" | "UNAUTHORIZED" };

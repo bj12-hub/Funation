@@ -3,6 +3,7 @@
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
+import { matchesContent } from "./assetCore";
 import { mockSettlement, newSettlementCode } from "./mockSettlementStore";
 import {
   BANKS,
@@ -204,13 +205,15 @@ const maskAccount = (no: string) => `${"*".repeat(Math.max(0, no.length - 4))}${
 export async function registerSettlement(formData: FormData): Promise<RegistrationResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
-  // Simulated latency comes first: from the state checks below to the write there is no `await`, so
-  // two tabs submitting at once cannot both pass ALREADY_REGISTERED and overwrite each other.
+  // Simulated latency comes first. Reading the files' first bytes awaits, so the state is checked again right before
+  // the write (nothing awaits from there): two tabs submitting at once cannot both pass ALREADY_REGISTERED.
   await mockDelay(700);
   const type = formData.get("memberType");
   if (!isMemberType(type)) return { status: "INVALID", message: "회원 유형을 확인해 주세요." };
-  if (mockSettlement.terms?.memberType !== type) return { status: "NO_TERMS" };
-  if (mockSettlement.registration) return { status: "ALREADY_REGISTERED" };
+  const stateError = (): RegistrationResult | null =>
+    mockSettlement.terms?.memberType !== type ? { status: "NO_TERMS" } : mockSettlement.registration ? { status: "ALREADY_REGISTERED" } : null;
+  const early = stateError();
+  if (early) return early;
 
   const v = readRegistration(formData);
   for (const key of REQUIRED_FIELDS[type] as (keyof Reg)[]) {
@@ -222,7 +225,11 @@ export async function registerSettlement(formData: FormData): Promise<Registrati
     if (!(file instanceof File) || file.size === 0) return { status: "INVALID", message: "필수 서류를 모두 업로드해 주세요.", field: key };
     if (!(SETTLEMENT_FILE_TYPES as readonly string[]).includes(file.type)) return { status: "INVALID", message: "JPG, PNG, PDF 파일만 업로드할 수 있어요.", field: key };
     if (file.size > SETTLEMENT_FILE_MAX_BYTES) return { status: "INVALID", message: "파일은 5MB 이하만 업로드할 수 있어요.", field: key };
+    // The bytes must really be the declared type (a renamed file cannot pass as a JPG, PNG or PDF).
+    if (!matchesContent(Buffer.from(await file.slice(0, 16).arrayBuffer()), file.type)) return { status: "INVALID", message: "JPG, PNG, PDF 파일만 업로드할 수 있어요.", field: key };
   }
+  const late = stateError();
+  if (late) return late;
 
   const registrant = type === "SOLE_PROPRIETOR" ? v.ceoName : type === "CORPORATION" ? v.companyName : v.name;
   mockSettlement.registration = {

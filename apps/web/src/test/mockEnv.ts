@@ -6,16 +6,21 @@ import type { Role } from "@/types/role";
  * so each test clears those keys and re-imports the modules to start from the seed data.
  */
 
-export const sessionState: { roles: Role[] | null } = { roles: ["SUPPORTER", "CREATOR"] };
+export const sessionState: { roles: Role[] | null; userId: string } = { roles: ["SUPPORTER", "CREATOR"], userId: "u-test" };
 
 /** Signed in with these roles, or signed out with `null`. */
 export const signIn = (roles: Role[] | null = ["SUPPORTER", "CREATOR"]) => {
   sessionState.roles = roles;
 };
 
+/** Signed in as another member (same roles and profile, different id); resetMockStores() goes back to "u-test". */
+export const signInAs = (userId: string) => {
+  sessionState.userId = userId;
+};
+
 export function mockSessionModule() {
   const session = () =>
-    sessionState.roles ? { userId: "u-test", nickname: "홍길동", funationId: "hongGD123", avatarUrl: null, roles: [...sessionState.roles] } : null;
+    sessionState.roles ? { userId: sessionState.userId, nickname: "홍길동", funationId: "hongGD123", avatarUrl: null, roles: [...sessionState.roles] } : null;
   return {
     SESSION_COOKIE: "funation_session",
     getSession: vi.fn(async () => session()),
@@ -33,6 +38,7 @@ export function resetMockStores() {
   }
   vi.resetModules();
   signIn();
+  signInAs("u-test");
 }
 
 /** A valid Idempotency-Key (16–64 of [A-Za-z0-9-]). */

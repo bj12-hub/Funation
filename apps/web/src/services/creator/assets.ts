@@ -26,10 +26,13 @@ export async function listAssets(kind?: AssetKind): Promise<Asset[] | null> {
 
 export async function uploadAsset(formData: FormData): Promise<AssetResult> {
   assertMock();
-  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const session = await getCreatorSession();
+  if (!session) return { status: "UNAUTHORIZED" };
   const requestId = String(formData.get("requestId") ?? "");
   if (!/^[A-Za-z0-9-]{16,64}$/.test(requestId)) return invalid("잘못된 요청입니다.");
-  const done = findAsset(mockAssets.requests[requestId]);
+  // Request ids belong to the creator: another account's id never returns their file.
+  const requestKey = `${session.userId}:${requestId}`;
+  const done = findAsset(mockAssets.requests[requestKey]);
   if (done) return { status: "SAVED", asset: publicAsset(done) };
 
   const file = formData.get("file");
@@ -49,10 +52,13 @@ export async function uploadAsset(formData: FormData): Promise<AssetResult> {
   const name = rawName.slice(0, ASSET_LIMITS.nameMax);
   if (!nameOk(name)) return invalid("사용할 수 없는 이름이에요.");
   await mockDelay(300);
+  // The checks above awaited: a copy of this request that finished meanwhile wins (nothing awaits from here).
+  const raced = findAsset(mockAssets.requests[requestKey]);
+  if (raced) return { status: "SAVED", asset: publicAsset(raced) };
   const id = randomUUID();
   const asset = { id, kind, name, mime: sniffed, size: file.size, url: assetUrl(id), uploadedAt: new Date().toISOString(), bytes };
   mockAssets.items.unshift(asset);
-  mockAssets.requests[requestId] = id;
+  mockAssets.requests[requestKey] = id;
   return { status: "SAVED", asset: publicAsset(asset) };
 }
 

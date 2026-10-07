@@ -37,5 +37,7 @@ export function sniffMime(b: Buffer): string | null {
   if (ascii(0, "RIFF") && ascii(8, "WAVE")) return "audio/wav";
   if (ascii(0, "OggS")) return "audio/ogg";
   if (ascii(0, "ID3") || (b[0] === 0xff && (b[1] & 0xe0) === 0xe0)) return "audio/mpeg";
+  // 정산 서류 (PDF): only that upload allows the type, the others refuse it before sniffing.
+  if (ascii(0, "%PDF-")) return "application/pdf";
   return null;
 }
