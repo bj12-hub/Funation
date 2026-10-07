@@ -3,6 +3,7 @@
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
+import { accountSince } from "@/services/account/withdrawalCore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { mockPlatform } from "./mockPlatformStore";
 import { HISTORY_LIST_MAX, HISTORY_PERIODS, HISTORY_SORTS, HISTORY_STATUS_LABEL, HISTORY_TABS, type HistoryItem, type HistoryPeriod, type HistoryStatus, type HistoryTab, type HistoryView } from "./platformTypes";
@@ -22,7 +23,10 @@ const oneOf = <T extends string>(list: readonly { key: T }[], v: unknown, fallba
 const isStatus = (v: unknown): v is HistoryStatus => typeof v === "string" && Object.hasOwn(HISTORY_STATUS_LABEL, v);
 
 function allItems(): HistoryItem[] {
-  const platform: HistoryItem[] = mockPlatform.transactions.map((t) => ({
+  // Only the current account's records: the mock's 재가입 keeps the user id, and the withdrawn account's donations
+  // are not restored (services/account/rejoin.ts) — the same rule as the wallet history.
+  const since = accountSince();
+  const platform: HistoryItem[] = mockPlatform.transactions.filter((t) => (t.account ?? null) === since).map((t) => ({
     transactionId: t.transactionId,
     externalTransactionId: t.externalTransactionId,
     source: t.platform,
@@ -37,7 +41,7 @@ function allItems(): HistoryItem[] {
   // Creator-room donations recorded in the wallet, minus the platform ones mirrored there
   // (platformDonation.ts writes those with a "soop:" / "flextv:" creator id).
   const direct: HistoryItem[] = mockWallet.donations
-    .filter((d) => !/^(soop|flextv):/.test(d.creatorId))
+    .filter((d) => !/^(soop|flextv):/.test(d.creatorId) && (!since || d.donatedAt >= since))
     .map((d) => ({
       transactionId: d.id,
       externalTransactionId: null,
