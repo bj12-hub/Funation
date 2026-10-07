@@ -3,6 +3,7 @@ import { mockSessionModule, phoneToken, resetMockStores } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
+vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 
 const SIGNUP = {
   email: "new@funation.kr",
@@ -16,14 +17,53 @@ describe("비밀번호 재설정 · 휴대폰 인증", () => {
   beforeEach(() => resetMockStores());
   afterEach(() => vi.useRealTimers());
 
-  it("sends a reset email only to a registered address and re-checks the new password", async () => {
+  it("sends a reset email only to a registered address", async () => {
     const m = await import("./passwordReset");
     expect(await m.sendPasswordResetEmail(" USER@funation.kr ")).toEqual({ status: "SENT" });
     expect(await m.sendPasswordResetEmail("nobody@example.com")).toEqual({ status: "EMAIL_NOT_FOUND" });
     expect(await m.sendPasswordResetEmail(42 as unknown as string)).toEqual({ status: "EMAIL_NOT_FOUND" });
-    expect(await m.resetPassword("token", "weak")).toEqual({ status: "INVALID" });
-    expect(await m.resetPassword("", "Abcd1234!")).toEqual({ status: "INVALID" });
-    expect(await m.resetPassword("token", "Abcd1234!")).toEqual({ status: "RESET" });
+  });
+
+  it("resets only with a PASSWORD_RESET verification, once, and re-checks the new password", async () => {
+    const m = await import("./passwordReset");
+    // A made-up or sign-up token is not a verification of the account's phone.
+    expect(await m.resetPassword("token", "Abcd1234!")).toEqual({ status: "VERIFICATION_EXPIRED" });
+    expect(await m.resetPassword("", "Abcd1234!")).toEqual({ status: "VERIFICATION_EXPIRED" });
+    expect(await m.resetPassword(await phoneToken("SIGNUP"), "Abcd1234!")).toEqual({ status: "VERIFICATION_EXPIRED" });
+    const token = await phoneToken("PASSWORD_RESET");
+    // 8–20 with a letter, a digit and a special character (2026-10-08 결정: one rule everywhere).
+    expect(await m.resetPassword(token, "weak")).toEqual({ status: "INVALID" });
+    expect(await m.resetPassword(token, "Abcd1234!Abcd1234!abc")).toEqual({ status: "INVALID" });
+    expect(await m.resetPassword(token, "Abcd1234!")).toEqual({ status: "RESET" });
+    expect(await m.resetPassword(token, "Efgh5678!")).toEqual({ status: "VERIFICATION_EXPIRED" });
+  });
+
+  it("writes the new password, lifts the login lock and ends the session", async () => {
+    const { login } = await import("./login");
+    const { mockCredentials } = await import("@/services/account/mockStore");
+    const session = await import("@/lib/session");
+    const m = await import("./passwordReset");
+    const signIn = (password: string) => login({ identifier: "hongGD123", password, keepSignedIn: false });
+    for (let i = 0; i < 5; i++) await signIn("wrong");
+    expect((await signIn("password")).status).toBe("LOCKED");
+    const before = mockCredentials.changedAt;
+
+    expect(await m.resetPassword(await phoneToken("PASSWORD_RESET"), "Abcd1234!")).toEqual({ status: "RESET" });
+    expect(mockCredentials.password).toBe("Abcd1234!");
+    expect(mockCredentials.changedAt > before).toBe(true);
+    expect(session.revokeSession).toHaveBeenCalled();
+    expect((await signIn("password")).status).toBe("WRONG_PASSWORD");
+    expect((await signIn("Abcd1234!")).status).toBe("SUCCESS");
+  });
+
+  it("refuses one of the last 3 passwords, keeping the verification", async () => {
+    const m = await import("./passwordReset");
+    expect(await m.resetPassword(await phoneToken("PASSWORD_RESET"), "Abcd1234!")).toEqual({ status: "RESET" });
+    // Without a verification the rule says nothing about the old passwords.
+    expect(await m.resetPassword("token", "Abcd1234!")).toEqual({ status: "VERIFICATION_EXPIRED" });
+    const token = await phoneToken("PASSWORD_RESET");
+    expect(await m.resetPassword(token, "Abcd1234!")).toEqual({ status: "REUSED" });
+    expect(await m.resetPassword(token, "Efgh5678!")).toEqual({ status: "RESET" });
   });
 
   it("checks phone shape and purpose, then the code", async () => {

@@ -30,6 +30,7 @@ describe("signup", () => {
     const bad = [
       { ...ok, email: "not-an-email" },
       { ...ok, password: "short" },
+      { ...ok, password: "Abcd1234!Abcd1234!abc" }, // 21 chars: 8–20 everywhere (2026-10-08 결정)
       { ...ok, nickname: "x" },
       { ...ok, phoneVerificationToken: "" },
       { ...ok, agreements: { ...valid.agreements, privacy: false } }

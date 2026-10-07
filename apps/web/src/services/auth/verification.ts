@@ -1,7 +1,9 @@
 "use server";
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
-import { MOCK_REGISTERED_PHONE, recordSentCode, verifySentCode } from "./verificationCore";
+import { mockCredentials } from "@/services/account/mockStore";
+import { isWithdrawn } from "@/services/account/withdrawalCore";
+import { recordSentCode, verifySentCode } from "./verificationCore";
 import type { SendCodeResult, VerificationPurpose, VerifyCodeResult } from "./verificationTypes";
 
 /**
@@ -18,8 +20,8 @@ export async function sendPhoneCode(phone: string, purpose: VerificationPurpose)
   if (!USE_MOCK) throw new Error("Verification API is not connected yet.");
   if (!isPhone(phone) || !isPurpose(purpose)) return { status: "PHONE_NOT_FOUND" };
   await mockDelay();
-  // Mock: for password reset, only the sample account's number is registered.
-  if (purpose === "PASSWORD_RESET" && phone !== MOCK_REGISTERED_PHONE) return { status: "PHONE_NOT_FOUND" };
+  // Mock: for password reset, only the number of the (not withdrawn) account slot is registered.
+  if (purpose === "PASSWORD_RESET" && (phone !== mockCredentials.phone || isWithdrawn())) return { status: "PHONE_NOT_FOUND" };
   // Mock SMS: the code is always 123456.
   recordSentCode(phone, purpose);
   return { status: "SENT" };

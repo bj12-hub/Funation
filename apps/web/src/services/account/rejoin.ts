@@ -12,7 +12,7 @@ import { withdrawalStore } from "./withdrawalCore";
  * no settlement history or earnings (the withdrawn account's requests stay with the admin console only). The withdrawal record stays for audit. Mock limitation: the
  * 썸네이션 ID and other per-account sample data (favorites, messages …) are shared with the old slot.
  */
-export function startNewAccount(input: { nickname: string; password: string; marketing: boolean }, now = new Date()) {
+export function startNewAccount(input: { nickname: string; password: string; marketing: boolean; phone: string }, now = new Date()) {
   const store = withdrawalStore();
   if (!store.withdrawal) return false;
   store.past.push(store.withdrawal);
@@ -26,7 +26,7 @@ export function startNewAccount(input: { nickname: string; password: string; mar
     rankingVisibility: { quest: true },
     marketingConsent: input.marketing
   });
-  Object.assign(mockCredentials, { password: input.password, recentPasswords: [input.password], changedAt: now.toISOString() });
+  Object.assign(mockCredentials, { password: input.password, recentPasswords: [input.password], changedAt: now.toISOString(), phone: input.phone });
   Object.assign(mockChangeHistory, { nicknameChangedAt: null, funationIdChangedAt: null });
   Object.assign(mockWallet, { chargeTermsAgreedAt: null, marketingOptIn: false });
   (mockSettlement.pastRequests ??= []).push(...mockSettlement.requests);

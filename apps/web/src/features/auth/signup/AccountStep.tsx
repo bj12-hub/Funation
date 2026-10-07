@@ -120,7 +120,7 @@ export function AccountStep({ submitting, submitError, onBack, onSubmit }: Accou
           name="new-password"
           type={showPassword ? "text" : "password"}
           autoComplete="new-password"
-          placeholder="8자 이상, 영문/숫자/특수문자 포함"
+          placeholder="8~20자, 영문/숫자/특수문자 포함"
           value={password}
           onChange={(e) => {
             setPassword(e.target.value);
@@ -128,7 +128,7 @@ export function AccountStep({ submitting, submitError, onBack, onSubmit }: Accou
           }}
           onBlur={() => password && !isValidPassword(password) && setError("password", MSG.PASSWORD_FORMAT)}
           error={errors.password}
-          hint={errors.password ? "8자 이상 · 영문, 숫자, 특수문자를 모두 포함해 주세요." : undefined}
+          hint={errors.password ? "8~20자 · 영문, 숫자, 특수문자를 모두 포함해 주세요." : undefined}
           trailing={eye}
         />
         <TextField

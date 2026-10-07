@@ -12,8 +12,6 @@ import { CODE_TTL_SECONDS, type VerificationPurpose } from "./verificationTypes"
  * usable (VERIFIED_TOKEN_TTL_MS).
  */
 
-/** Mock: the phone number of the registered sample account (password reset). */
-export const MOCK_REGISTERED_PHONE = "010-1234-5678";
 /** Mock SMS: every sent code is this one. */
 const MOCK_CODE = "123456";
 /** Wrong codes allowed per sent code before it stops working. TBD — the mock uses the login lock's 5. */
@@ -49,13 +47,21 @@ export function verifySentCode(phone: string, purpose: VerificationPurpose, code
   return token;
 }
 
+function usableToken(token: unknown, purpose: VerificationPurpose, now: number) {
+  const t = typeof token === "string" ? store().tokens.get(token) : undefined;
+  return t && !t.used && t.purpose === purpose && now < t.expiresAt ? t : null;
+}
+
+/** The phone a usable token (this purpose, not expired, not used) verified, without using it up; or null. */
+export const verifiedPhone = (token: unknown, purpose: VerificationPurpose, now = Date.now()) => usableToken(token, purpose, now)?.phone ?? null;
+
 /**
  * Uses up a verification token for this purpose and returns the verified phone, or null when the token is
  * unknown, for another purpose, expired or already used. Call it in the same synchronous step as the write.
  */
 export function consumeVerificationToken(token: unknown, purpose: VerificationPurpose, now = Date.now()): string | null {
-  const t = typeof token === "string" ? store().tokens.get(token) : undefined;
-  if (!t || t.used || t.purpose !== purpose || now >= t.expiresAt) return null;
+  const t = usableToken(token, purpose, now);
+  if (!t) return null;
   t.used = true;
   return t.phone;
 }

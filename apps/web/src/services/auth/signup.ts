@@ -72,8 +72,9 @@ export async function signup(request: SignupRequest): Promise<SignupResult> {
   if (TAKEN_EMAILS.has(r.email!.trim().toLowerCase())) return { status: "EMAIL_TAKEN" };
   if (TAKEN_NICKNAMES.has(r.nickname!.trim().toLowerCase())) return { status: "NICKNAME_TAKEN" };
   // Used up only together with the account write (nothing awaits in between), so a refused sign-up keeps it.
-  if (!consumeVerificationToken(r.phoneVerificationToken, "SIGNUP")) return { status: "VERIFICATION_EXPIRED" };
+  const phone = consumeVerificationToken(r.phoneVerificationToken, "SIGNUP");
+  if (!phone) return { status: "VERIFICATION_EXPIRED" };
   // The mock has one account slot: after a withdrawal it becomes the new account.
-  startNewAccount({ nickname: r.nickname!.trim(), password: r.password!, marketing: a!.marketing });
+  startNewAccount({ nickname: r.nickname!.trim(), password: r.password!, marketing: a!.marketing, phone });
   return { status: "CREATED" };
 }

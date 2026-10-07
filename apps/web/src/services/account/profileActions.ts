@@ -6,7 +6,7 @@ import {
   PROFILE_PHOTO_MAX_BYTES,
   PROFILE_PHOTO_TYPES,
   isValidFunationId,
-  isValidNewPassword,
+  isValidPassword,
   isValidNickname
 } from "@/lib/validation";
 import {
@@ -131,7 +131,7 @@ export async function changePassword(input: { current: unknown; next: unknown; c
     return { status: "LOCKED" };
   }
   clearPasswordFailures(account);
-  if (typeof next !== "string" || !isValidNewPassword(next)) return { status: "INVALID" };
+  if (typeof next !== "string" || !isValidPassword(next)) return { status: "INVALID" };
   if (next !== confirm) return { status: "MISMATCH" };
   // TBD: how many previous passwords count as "recent".
   if (mockCredentials.recentPasswords.includes(next)) return { status: "REUSED" };

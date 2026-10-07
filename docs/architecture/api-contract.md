@@ -41,9 +41,9 @@ Legend: **R** read · **M** mutation · auth `—` none · `S` session · `C` Cr
 | `login` | identifier, password, keepSignedIn, next | `SUCCESS` · `UNKNOWN_ID` · `WRONG_PASSWORD` · `LOCKED` (5 wrong passwords per account — the identifier is trimmed, lowercased and resolved to its account first; a successful login clears the count, a password reset lifts the lock; lock expiry TBD, per-IP counting is the backend's) — sets the session; old passwords (>180 days, TBD) redirect to `/login/password-change` |
 | `logout` | — | redirect `/` |
 | `checkEmailAvailability` · `checkNicknameAvailability` | email / nickname formats | `{ available }` (advisory) |
-| `signup` | email, password (8+ with letter·digit·special), nickname (2–12 한글/영문/숫자), `SIGNUP` phone token (used up with the account write), required agreements | `CREATED` · `EMAIL_TAKEN` · `NICKNAME_TAKEN` · `VERIFICATION_EXPIRED` (token unknown / used / expired / other purpose) · `INVALID` |
+| `signup` | email, password (8–20 with letter·digit·special — one rule for sign-up, reset and change, 2026-10-08 결정), nickname (2–12 한글/영문/숫자), `SIGNUP` phone token (used up with the account write), required agreements | `CREATED` · `EMAIL_TAKEN` · `NICKNAME_TAKEN` · `VERIFICATION_EXPIRED` (token unknown / used / expired / other purpose) · `INVALID` |
 | `sendPhoneCode` · `verifyPhoneCode` | phone `01X-XXXX-XXXX`, purpose `SIGNUP`/`PASSWORD_RESET`, 6-digit code — accepted only if it was sent to that phone for that purpose < 180 s ago and fewer than 5 wrong codes were tried on it (limit TBD); a resend replaces the code | `SENT` · `PHONE_NOT_FOUND` / `VERIFIED{verificationToken}` (random, single-use, bound to phone + purpose; usable for 30 min — placeholder, TBD) · `INVALID_OR_EXPIRED` |
-| `sendPasswordResetEmail` · `resetPassword` | email / token + password rule | `SENT` · `EMAIL_NOT_FOUND` / `RESET` · `INVALID` |
+| `sendPasswordResetEmail` · `resetPassword` | email / `PASSWORD_RESET` token of the account's phone (checked first, used up with the write) + password rule, not one of the last 3 (2026-10-08 결정) | `SENT` · `EMAIL_NOT_FOUND` / `RESET` (writes the password, lifts the login lock, revokes the session) · `INVALID` · `REUSED` · `VERIFICATION_EXPIRED` |
 
 TBD: SMS/email providers, send rate limits, the code attempt limit and verified-token lifetime, age rules.
 
@@ -54,7 +54,7 @@ TBD: SMS/email providers, send rate limits, the code attempt limit and verified-
 | `getMyAccount` | R | — | profile, identity, `fnBalance` (display only), ranking visibility, connected platforms, marketing consent |
 | `updateRankingVisibility` · `updateMarketingConsent` | M | key ∈ quest/luckyBox/play + boolean · boolean | `SAVED` · `FAILED` |
 | `checkNickname` (no auth) · `changeNickname` · `changeFunationId` | R/M | format, forbidden words, 30-day interval (TBD) | `AVAILABLE`/`CHANGED` · `INVALID` · `DUPLICATE` · `FORBIDDEN` · `LIMITED{availableFrom}` |
-| `changePassword` | M | current, next (8–20), confirm, not one of last 3 | `CHANGED` (revokes the session) · `WRONG_CURRENT` · `INVALID` · `MISMATCH` · `REUSED` · `LOCKED` (wrong current passwords share the login's per-account count; at 5 the account locks and the session is revoked) |
+| `changePassword` | M | current, next (8–20, same rule as sign-up and reset), confirm, not one of last 3 | `CHANGED` (revokes the session) · `WRONG_CURRENT` · `INVALID` · `MISMATCH` · `REUSED` · `LOCKED` (wrong current passwords share the login's per-account count; at 5 the account locks and the session is revoked) |
 | `uploadProfilePhoto` | M | jpeg/png/webp ≤ 5 MB | `UPLOADED{avatarUrl}` · `UNSUPPORTED` · `TOO_LARGE` · `FAILED` |
 | `linkLoginProvider` · `unlinkLoginProvider` | M | NAVER / GOOGLE / KAKAO | `LINKED` · `UNLINKED` · `INVALID` |
 | `verifyIdentity` | M | PHONE / IPIN | `VERIFIED` · `ALREADY_VERIFIED` · `DUPLICATE` · `LOCKED` |

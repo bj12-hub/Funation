@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
-import { isValidNewPassword } from "@/lib/validation";
+import { isValidPassword } from "@/lib/validation";
 import { changePassword } from "@/services/account/profileActions";
 import { Message } from "./Message";
 import { GENERIC_ERROR } from "./shared";
@@ -51,7 +51,7 @@ export function PasswordEditor({ triggerClassName }: { triggerClassName: string 
 
   async function submit() {
     if (!values.current) return setError("WRONG_CURRENT");
-    if (!isValidNewPassword(values.next)) return setError("INVALID");
+    if (!isValidPassword(values.next)) return setError("INVALID");
     if (values.next !== values.confirm) return setError("MISMATCH");
     setBusy(true);
     try {
@@ -160,7 +160,7 @@ export function PasswordEditor({ triggerClassName }: { triggerClassName: string 
           <div id="password-message" aria-live="polite" className={styles.content}>
             {error && <Message tone="error" text={ERRORS[error].text} />}
             {changed && <Message tone="success" text="비밀번호가 안전하게 변경되었습니다. 보안을 위해 다시 로그인해 주세요." />}
-            {!changed && <p className={styles.footnote}>영문, 숫자, 특수문자를 포함해 8자 이상 입력해 주세요.</p>}
+            {!changed && <p className={styles.footnote}>영문, 숫자, 특수문자를 포함해 8~20자로 입력해 주세요.</p>}
           </div>
         </form>
       </Modal>
