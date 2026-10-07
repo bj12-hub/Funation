@@ -22,6 +22,9 @@ const assertMock = () => {
 const obj = (input: unknown) => (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
 const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 const forbidden = (...texts: string[]) => texts.some((t) => MOCK_FORBIDDEN_WORDS.some((w) => t.toLowerCase().includes(w)));
+/** Whether `current` already holds every field of `next` (an edit that would change nothing). */
+const sameFields = (current: object, next: Record<string, unknown>) =>
+  Object.entries(next).every(([k, v]) => JSON.stringify((current as Record<string, unknown>)[k]) === JSON.stringify(v));
 /** A create request already applied: what it created and the draft it carried. */
 type ContentRequest = { kind: "notice" | "faq"; fingerprint: string; id: string };
 // V2: requests remember their kind and draft (V1 kept the created id only).
@@ -75,6 +78,8 @@ export async function saveNotice(admin: AdminActor, input: unknown): Promise<Con
   if (id) {
     const existing = items.find((n) => n.id === id);
     if (!existing) return { status: "NOT_FOUND" };
+    // Saving what is already there (a retry after a lost response, a double click) changes nothing and logs nothing.
+    if (sameFields(existing, next)) return { status: "OK", id };
     Object.assign(existing, next);
     recordAudit(admin, "CONTENT_UPDATE", `notice:${id}`, `공지 수정 · ${title}`);
     return { status: "OK", id };
@@ -129,6 +134,9 @@ export async function saveFaq(admin: AdminActor, input: unknown): Promise<Conten
   if (id) {
     const i = items.findIndex((f) => f.id === id);
     if (i < 0) return { status: "NOT_FOUND" };
+    const was = items[i];
+    const unchanged = sameFields(was, { category: next.category, question: next.question, answer: next.answer }) && was.link?.href === next.link?.href && was.link?.label === next.link?.label;
+    if (unchanged) return { status: "OK", id };
     items[i] = { id, ...next };
     recordAudit(admin, "CONTENT_UPDATE", `faq:${id}`, `FAQ 수정 · ${question}`);
     return { status: "OK", id };

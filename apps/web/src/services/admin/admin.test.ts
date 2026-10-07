@@ -35,6 +35,17 @@ describe("admin console", () => {
     expect(d.creators.total).toBeGreaterThan(0);
   });
 
+  it("counts every creator on the dashboard, also a suspended one (as 크리에이터 관리 lists them)", async () => {
+    const m = await load();
+    const { listAdminCreators, suspendMember } = await import("./members");
+    const { creatorMemberId } = await import("./memberCore");
+    signIn(["ADMIN"]);
+    const all = (await listAdminCreators())!;
+    expect((await m.getAdminDashboard())!.creators).toEqual({ total: all.length, live: all.filter((c) => c.isLive).length });
+    expect(await suspendMember(OP, { id: creatorMemberId("c1"), days: 7, reason: "운영 정책 위반 (테스트)", requestId: key(2) })).toEqual({ status: "OK" });
+    expect((await m.getAdminDashboard())!.creators).toEqual({ total: all.length, live: all.filter((c) => c.isLive).length });
+  });
+
   it("records the admin app's sign-in and sign-out in the audit log, newest first", async () => {
     const m = await load();
     expect(await m.recordSessionEvent(OP, "SIGN_IN")).toEqual({ status: "OK" });

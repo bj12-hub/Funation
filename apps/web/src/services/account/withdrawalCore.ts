@@ -19,17 +19,29 @@ export type Withdrawal = {
   funationId: string;
 };
 
+/** A withdrawn account a 재가입 moved aside, with the start marker it had while it held the slot (null = the first). */
+export type PastAccount = Withdrawal & { accountSince: string | null };
+
 type Store = {
   withdrawal: Withdrawal | null;
   /** Earlier withdrawals of the slot, before a 재가입 started a new account. */
-  past: Withdrawal[];
+  past: PastAccount[];
   /** Local "YYYY-MM-DD HH:MM:SS" when the current account started (재가입); earlier wallet records are not its own. */
   accountSince: string | null;
 };
-const g = globalThis as typeof globalThis & { __funationMockWithdrawalV2?: Store };
-export const withdrawalStore = (): Store => (g.__funationMockWithdrawalV2 ??= { withdrawal: null, past: [], accountSince: null });
+// V3: past accounts keep their start marker, so the admin console can attribute their wallet records to them.
+const g = globalThis as typeof globalThis & { __funationMockWithdrawalV3?: Store };
+export const withdrawalStore = (): Store => (g.__funationMockWithdrawalV3 ??= { withdrawal: null, past: [], accountSince: null });
 
 /** The sample account's withdrawal, or null while it is active. */
 export const withdrawalOf = () => withdrawalStore().withdrawal;
 export const isWithdrawn = () => withdrawalOf() !== null;
 export const accountSince = () => withdrawalStore().accountSince;
+
+/**
+ * The start marker of the slot account a wallet record stamped `stamp` (local "YYYY-MM-DD HH:MM:SS") belongs to: the
+ * latest account that had started by then. Like the members' own history (`stamp >= accountSince()`), so the console
+ * and the member agree on whose record it is.
+ */
+export const accountAt = (stamp: string) =>
+  [...withdrawalStore().past.map((p) => p.accountSince), accountSince()].reduce<string | null>((owner, m) => (m === null || m <= stamp ? m : owner), null);

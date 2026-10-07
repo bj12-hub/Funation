@@ -56,6 +56,28 @@ describe("admin content", () => {
     expect(await m.getFaqs({ query: "새 질문" })).toHaveLength(0);
   });
 
+  it("logs an edit once when the same save arrives again (retry, double click)", async () => {
+    const m = await load();
+    const created = await m.saveNotice(OP, { ...notice, requestId: key(7) });
+    if (created.status !== "OK") throw new Error("not saved");
+    const edit = { ...notice, id: created.id, title: "수정된 제목" };
+    expect(await m.saveNotice(OP, edit)).toEqual({ status: "OK", id: created.id });
+    expect(await m.saveNotice(OP, edit)).toEqual({ status: "OK", id: created.id });
+
+    const faq = { category: "DONATION", question: "재시도 질문인가요?", answer: "답변", linkHref: "/wallet", linkLabel: "지갑", requestId: key(8) };
+    const f = await m.saveFaq(OP, faq);
+    if (f.status !== "OK") throw new Error("not saved");
+    const faqEdit = { ...faq, id: f.id, answer: "고친 답변" };
+    expect(await m.saveFaq(OP, faqEdit)).toEqual({ status: "OK", id: f.id });
+    expect(await m.saveFaq(OP, faqEdit)).toEqual({ status: "OK", id: f.id });
+    expect(m.auditEntries().map((e) => e.reason?.split(" · ")[0])).toEqual(["FAQ 수정", "FAQ 등록", "공지 수정", "공지 등록"]);
+
+    // A real change after that is logged again.
+    await m.saveFaq(OP, { ...faqEdit, linkHref: "", linkLabel: "" });
+    expect((await m.getFaqs({ query: "재시도 질문" }))[0].link).toBeUndefined();
+    expect(m.auditEntries()).toHaveLength(5);
+  });
+
   it("answers a reused create id with CONFLICT unless it is the same draft of the same kind", async () => {
     const m = await load();
     const res = await m.saveNotice(OP, { ...notice, requestId: key(1) });

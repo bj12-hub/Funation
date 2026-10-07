@@ -70,4 +70,15 @@ describe("admin platforms and system", () => {
     expect((await m.getSystemView())!.runtime).toMatchObject({ mock: true, auditEntries: 2 });
   });
 
+  it("logs a banner change once when the same save arrives again", async () => {
+    const m = await load();
+    signIn(["ADMIN"]);
+    const banner = { enabled: true, level: "WARNING", message: "점검 안내", href: "/support" };
+    expect(await m.saveSiteBanner(OP, banner)).toEqual({ status: "OK" });
+    const { updatedAt } = (await m.getSystemView())!.banner;
+    expect(await m.saveSiteBanner({ userId: "adm-2", nickname: "다른 운영자" }, { ...banner, message: " 점검 안내 " })).toEqual({ status: "OK" });
+    expect((await m.getSystemView())!.banner).toMatchObject({ updatedAt, updatedBy: OP.nickname });
+    expect(m.auditEntries()).toHaveLength(1);
+  });
+
 });

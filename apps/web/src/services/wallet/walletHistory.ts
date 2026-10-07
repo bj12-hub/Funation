@@ -1,7 +1,7 @@
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
-import { accountSince } from "@/services/account/withdrawalCore";
+import { accountAt, accountSince } from "@/services/account/withdrawalCore";
 import { findQuest } from "@/services/donations/questCore";
 import { drawState } from "@/services/donations/gachaCore";
 import { spinState } from "@/services/donations/rouletteCore";
@@ -249,20 +249,33 @@ const CHARGE_ROWS: [number, string, MethodKey, number, ChargeStatus][] = [
   [330, "15:12:37", "KAKAO", 20_000, "COMPLETED"]
 ];
 
-function mockCharges(): ChargeRecord[] {
+/** Each charge with the member-facing view of its refund request. */
+function withRefunds<T extends ChargeRecord>(charges: T[]): T[] {
   const refunds = new Map(mockRefunds.requests.map((r) => [r.chargeId, r]));
-  // After a 재가입 the sample (seed) history belongs to the withdrawn account; only the new account's charges remain.
-  const since = accountSince();
-  const charges = since ? mockWallet.charges.filter((c) => c.chargedAt >= since) : [...mockWallet.charges, ...seedCharges()];
   return charges.map((c) => {
     const r = refunds.get(c.id);
     return r ? { ...c, refund: refundView(r) } : c;
   });
 }
 
+function mockCharges(): ChargeRecord[] {
+  // After a 재가입 the sample (seed) history belongs to the withdrawn account; only the new account's charges remain.
+  const since = accountSince();
+  return withRefunds(since ? mockWallet.charges.filter((c) => c.chargedAt >= since) : [...mockWallet.charges, ...seedCharges()]);
+}
+
 /** All charge records of the signed-in mock member (server-side; used by refund requests). */
 export function listChargeRecords(): ChargeRecord[] {
   return mockCharges();
+}
+
+/**
+ * Charges of every account the slot has had, withdrawn ones too, each with the start marker of the account it belongs to
+ * (`account`; seed rows: the first account's). Server-side, for the admin console's audit trail — a member only ever
+ * sees their own account's (`listChargeRecords`).
+ */
+export function listAccountChargeRecords(): (ChargeRecord & { account: string | null })[] {
+  return withRefunds([...mockWallet.charges.map((c) => ({ ...c, account: accountAt(c.chargedAt) })), ...seedCharges().map((c) => ({ ...c, account: null }))]);
 }
 
 /** A charge of any account, also one that withdrew (server-side; the admin console shows what a refund request was for). */
@@ -311,6 +324,11 @@ const DONATION_ROWS: [number, string, string, string, string, number, string, Do
 /** All donation records of the signed-in mock member (server-side; used by supporter identity). */
 export function listDonationRecords(): (DonationRecord & { category: DonationCategory; hideProfile?: boolean })[] {
   return mockDonations();
+}
+
+/** Donations of every account the slot has had, with their account's start marker, like `listAccountChargeRecords`. */
+export function listAccountDonationRecords(): (DonationRecord & { category: DonationCategory; hideProfile?: boolean; account: string | null })[] {
+  return [...mockWallet.donations.map((d) => ({ ...d, account: accountAt(d.donatedAt) })), ...seedDonations().map((d) => ({ ...d, account: null }))];
 }
 
 /** Records of the current account only: after a 재가입 the withdrawn account's history is not shown. */

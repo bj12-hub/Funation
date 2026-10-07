@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { key, mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
+import { key, mockSessionModule, rejoinWithPhone, resetMockStores, signIn } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
@@ -65,4 +65,55 @@ describe("admin members", () => {
     expect(await login({ identifier: "hongGD123", password: mockCredentials.password, keepSignedIn: false })).toEqual({ status: "SUSPENDED" });
   });
 
+  it("applies a suspend or restore arriving twice at once (double click, retry) once, with one audit entry", async () => {
+    const m = await load();
+    const id = m.creatorMemberId("c2");
+    const suspend = { id, days: 7, reason: "운영 정책 위반 (테스트)", requestId: key(5) };
+    expect(await Promise.all([m.suspendMember(OP, suspend), m.suspendMember(OP, suspend)])).toEqual([{ status: "OK" }, { status: "OK" }]);
+    expect(m.auditEntries().map((e) => e.action)).toEqual(["MEMBER_SUSPEND"]);
+
+    // Two operators at once: the first suspension stands, the second is told the member is already suspended.
+    const other = m.creatorMemberId("c3");
+    const [first, second] = await Promise.all([
+      m.suspendMember(OP, { id: other, days: 1, reason: "첫 번째 운영자 정지", requestId: key(6) }),
+      m.suspendMember({ userId: "adm-2", nickname: "다른 운영자" }, { id: other, days: null, reason: "두 번째 운영자 정지", requestId: key(7) })
+    ]);
+    expect([first.status, second]).toEqual(["OK", { status: "INVALID", message: "이미 정지된 회원이에요." }]);
+    expect(m.suspensionOf(other)).toMatchObject({ reason: "첫 번째 운영자 정지", by: OP.nickname });
+
+    const restore = { id, reason: "소명 확인 후 해제" };
+    expect(await Promise.all([m.restoreMember(OP, restore), m.restoreMember(OP, restore)])).toEqual([{ status: "OK" }, { status: "OK" }]);
+    expect(m.auditEntries().map((e) => e.action)).toEqual(["MEMBER_RESTORE", "MEMBER_SUSPEND", "MEMBER_SUSPEND"]);
+  });
+
+  it("does not suspend a member who withdrew while the request was being handled", async () => {
+    const m = await load();
+    const { withdrawalStore } = await import("@/services/account/withdrawalCore");
+    const pending = m.suspendMember(OP, { id: m.SAMPLE_MEMBER_ID, days: null, reason: "운영 정책 위반 (테스트)", requestId: key(8) });
+    withdrawalStore().withdrawal = { at: new Date().toISOString(), requestId: "w-test", forfeitedFn: 0, forfeitedEarningsFn: 0, nickname: "홍길동", funationId: "hongGD123" };
+    expect(await pending).toEqual({ status: "INVALID", message: "탈퇴한 회원이에요." });
+    expect(m.suspensionOf(m.SAMPLE_MEMBER_ID)).toBeNull();
+    expect(m.auditEntries()).toEqual([]);
+  });
+
+  it("keeps a withdrawn account's 처리 이력 with `…-w1` after a 재가입 hands the slot id to a new account", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      const m = await load();
+      vi.setSystemTime(new Date("2026-09-01T00:00:00Z"));
+      await m.suspendMember(OP, { id: m.SAMPLE_MEMBER_ID, days: 1, reason: "이전 계정 정지 사유", requestId: key(9) });
+      await m.restoreMember(OP, { id: m.SAMPLE_MEMBER_ID, reason: "이전 계정 정지 해제" });
+      await rejoinWithPhone("010-0000-0000", new Date("2026-09-02T00:00:00Z"));
+
+      vi.setSystemTime(new Date("2026-09-03T00:00:00Z"));
+      expect((await m.getMemberDetail(m.SAMPLE_MEMBER_ID))!.audit).toEqual([]);
+      expect((await m.getMemberDetail(m.withdrawnMemberId(1)))!.audit.map((e) => e.reason)).toEqual(["이전 계정 정지 해제", "1일 · 이전 계정 정지 사유"]);
+
+      await m.suspendMember(OP, { id: m.SAMPLE_MEMBER_ID, days: 7, reason: "새 계정 정지 사유", requestId: key(10) });
+      expect((await m.getMemberDetail(m.SAMPLE_MEMBER_ID))!.audit.map((e) => e.reason)).toEqual(["7일 · 새 계정 정지 사유"]);
+      expect((await m.getMemberDetail(m.withdrawnMemberId(1)))!.audit).toHaveLength(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

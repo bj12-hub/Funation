@@ -76,6 +76,8 @@ export async function saveSiteBanner(admin: AdminActor, input: unknown): Promise
   if ((v.enabled && !message) || message.length > BANNER_MESSAGE_MAX) return { status: "INVALID", message: `문구를 1~${BANNER_MESSAGE_MAX}자로 입력해 주세요.` };
   if (href && (!/^\/[A-Za-z0-9/_\-?=&.]*$/.test(href) || href.startsWith("//"))) return { status: "INVALID", message: "링크는 사이트 안의 주소(/로 시작)만 쓸 수 있어요." };
   const store = siteBannerStore();
+  // Saving the banner as it is (a retry after a lost response, a double click) changes nothing and logs nothing.
+  if (store.enabled === v.enabled && store.level === v.level && store.message === message && store.href === (href || null)) return { status: "OK" };
   Object.assign(store, { enabled: v.enabled, level: v.level, message, href: href || null, updatedAt: new Date().toISOString(), updatedBy: admin.nickname });
   recordAudit(admin, "SYSTEM_UPDATE", "site-banner", `${v.enabled ? "표시" : "숨김"} · ${message || "(문구 없음)"}`);
   return { status: "OK" };

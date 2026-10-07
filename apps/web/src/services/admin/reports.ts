@@ -8,7 +8,8 @@ import { memberIds } from "./members";
 /**
  * 신고 처리 API logic — code-first (called by `/api/admin/reports*`). Admin app screen `/reports`.
  * An operator dismisses a report or hides the reported content; both are final and audited. Other open
- * reports on the same content are closed with it. Sanctions on the author go through 회원 관리.
+ * reports on the same content are closed with it (a dismissal: those on the same version of it). Sanctions on the author
+ * go through 회원 관리.
  */
 
 const assertMock = () => {
@@ -17,7 +18,9 @@ const assertMock = () => {
 const STATUSES: ReportStatus[] = ["OPEN", "DISMISSED", "ACTIONED"];
 export const REPORT_NOTE = { min: 2, max: 200 } as const;
 
-export type AdminReportView = { rows: (Report & { authorIsMember: boolean })[]; counts: Record<ReportStatus, number> };
+/** A report as the console shows it: the reporter's member id and the content hash stay on the server. */
+export type AdminReportRow = Omit<Report, "reporterId" | "contentHash"> & { authorIsMember: boolean };
+export type AdminReportView = { rows: AdminReportRow[]; counts: Record<ReportStatus, number> };
 export type ReportDecisionResult = { status: "OK" } | { status: "INVALID"; message: string } | { status: "NOT_FOUND" };
 
 export async function listReports(input: { status?: unknown } = {}): Promise<AdminReportView> {
@@ -29,7 +32,22 @@ export async function listReports(input: { status?: unknown } = {}): Promise<Adm
   const rows = all
     .filter((r) => r.status === status)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    .map((r) => ({ ...structuredClone(r), authorIsMember: members.has(r.authorId) }));
+    .map(
+      (r): AdminReportRow => ({
+        id: r.id,
+        target: { ...r.target },
+        authorId: r.authorId,
+        authorName: r.authorName,
+        snapshot: r.snapshot,
+        reason: r.reason,
+        detail: r.detail,
+        reporterName: r.reporterName,
+        createdAt: r.createdAt,
+        status: r.status,
+        resolution: r.resolution ? { ...r.resolution } : null,
+        authorIsMember: members.has(r.authorId)
+      })
+    );
   return { rows, counts };
 }
 
@@ -46,9 +64,12 @@ export async function decideReport(admin: AdminActor, input: unknown): Promise<R
   if (v.action === "HIDE" && report.target.type === "CREATOR") return { status: "INVALID", message: "크리에이터 채널은 숨길 수 없어요. 회원 관리에서 이용 정지로 처리해 주세요." };
   if (v.action === "HIDE") hideTarget(report.target);
   const resolution = { at: new Date().toISOString(), by: admin.nickname, action: v.action, note } as const;
-  // Every open report on the same content is settled by one decision, and each one it closes is audited.
+  // Every open report on the same content is settled by one decision, and each one it closes is audited. Hiding removes
+  // the content, so it closes them all; a dismissal covers only what the operator saw — reports filed on another
+  // version of the content (it changed in between, contentHash) stay open for their own review.
   const sameTarget = (r: Report) => r.target.type === report.target.type && r.target.id === report.target.id && r.target.parentId === report.target.parentId;
-  for (const r of moderationStore().reports.filter((x) => x.status === "OPEN" && sameTarget(x))) {
+  const covered = (r: Report) => sameTarget(r) && (v.action === "HIDE" || r.contentHash === report.contentHash);
+  for (const r of moderationStore().reports.filter((x) => x.status === "OPEN" && covered(x))) {
     r.status = wanted;
     r.resolution = { ...resolution };
     const reason = r.id === report.id ? note : `${note} (신고 ${report.id} 처리로 함께 종료)`;

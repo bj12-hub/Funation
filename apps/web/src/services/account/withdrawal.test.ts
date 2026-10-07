@@ -370,15 +370,16 @@ describe("회원 탈퇴", () => {
     expect((await community.getBoard({})).items.some((p) => p.id === "p-3")).toBe(true);
     expect(await moderation.submitReport({ target: { type: "POST", id: "p-1" }, reason: "SPAM" })).toEqual({ status: "REPORTED" });
     expect(await moderation.submitReport({ target: { type: "POST", id: postId }, reason: "SPAM" })).toEqual({ status: "REPORTED" });
-    const reports = (await listReports()).rows;
-    expect(reports.map((r) => [r.target.id, r.reporterId, r.authorId]).sort()).toEqual(
+    // The reporter's member id stays on the server (the console lists reports without it), so read the store.
+    const { moderationStore } = await import("@/services/moderation/moderationCore");
+    expect(moderationStore().reports.map((r) => [r.target.id, r.reporterId, r.authorId]).sort()).toEqual(
       [
         ["p-1", old, "u-sample-1"],
         ["p-1", m.SAMPLE_MEMBER_ID, "u-sample-1"],
         [postId, m.SAMPLE_MEMBER_ID, old]
       ].sort()
     );
-    expect(reports.find((r) => r.target.id === postId)!.authorIsMember).toBe(true);
+    expect((await listReports()).rows.find((r) => r.target.id === postId)!.authorIsMember).toBe(true);
     expect((await notifications.listNotifications())!.total).toBe(0);
 
     // Request ids are the account's own: the withdrawn account's ids never answer the new account's requests.

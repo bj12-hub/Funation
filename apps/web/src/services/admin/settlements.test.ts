@@ -107,6 +107,18 @@ describe("admin settlements", () => {
     expect(m.auditEntries().map((e) => e.action)).toEqual(["SETTLEMENT_REJECT"]);
   });
 
+  it("cannot approve or reject a withdrawn creator's forfeited request", async () => {
+    const m = await load();
+    addPending(m, "st-w", 50_000);
+    // 탈퇴 (services/account/withdrawal.ts): the waiting request ends as 탈퇴 소멸.
+    Object.assign(m.mockSettlement.requests.find((r) => r.id === "st-w")!, { status: "FORFEITED", feeFn: 0, netKrw: 0, payoutDate: null, review: { at: new Date().toISOString(), by: "회원 탈퇴", note: "정산 대기 수익 소멸 (회원 동의)" } });
+    expect((await m.getSettlementReview())!.counts).toMatchObject({ PENDING: 0, FORFEITED: 1 });
+    for (const decision of ["APPROVE", "REJECT"]) {
+      expect(await m.decideSettlement(OP, { id: "st-w", decision, note: "탈퇴 후 처리 시도" })).toEqual({ status: "INVALID", message: "이미 처리된 정산 신청이에요." });
+    }
+    expect(m.auditEntries()).toEqual([]);
+  });
+
   it("gives every seed request a masked request-time registration", async () => {
     const m = await load();
     const v = (await m.getSettlementReview())!;
