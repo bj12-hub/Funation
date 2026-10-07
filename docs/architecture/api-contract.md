@@ -118,9 +118,10 @@ Platform access goes through `PlatformAdapter` (`adapters.ts`, CLAUDE.md §9). T
 
 `creators/creators` (`getCreators`, `getCreatorById`), `creators/creatorRoom.getCreatorRoom`, `home/homeFeed.getHomeFeed`, `live/liveChannels`, `hallOfFame/supporterRanking`, `support/faq.getFaqs` (answers null until policies exist), `favorites.getFavoritesPromotion`.
 
-### favorites · attendance (S)
+### favorites · attendance · events · votes (S)
 
 - `getFavorites` · `addFavorite` (idempotent) · `removeFavorite` · `isFavorite`
+- `events.getEvents` · `getEvent` · `joinEvent` (idempotent, only while running) and `votes.getRoomVote` · `castVote` — 2026-10-08 결정: once per event / per vote per person, keyed by the phone verified at sign-up like 출석 (a 재가입 with the same phone shows 참여함 / 내 투표 and cannot add another). Responses carry counts and the viewer's own state only.
 - `getAttendance` · `checkIn` · `claimAttendanceReward` — 2026-10-08 결정: the 15·30-day rewards are paid automatically by the check-in that reaches them (`CHECKED_IN.autoPaid`, a REWARD wallet record each, once per month) and are never `CLAIMABLE`; only 3·7 are claimed. One check-in per day per person, keyed by the phone verified at sign-up (a same-day 재가입 with the same phone gets `ALREADY_CHECKED_IN`); a 재가입 account otherwise starts with no progress or rewards (state and credits carry the account marker). Reward amounts and time zone TBD.
 
 ## 4. Known gaps to close with the backend
