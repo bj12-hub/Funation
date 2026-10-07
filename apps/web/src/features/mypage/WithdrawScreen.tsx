@@ -51,6 +51,8 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
         else if (r.status === "WRONG_PASSWORD") {
           setPasswordError(true);
           passwordRef.current?.select();
+        } else if (r.status === "LOCKED") {
+          setError("비밀번호를 5회 잘못 입력해 계정 보호를 위해 로그인이 제한되었습니다. 비밀번호를 재설정해 주세요.");
         } else if (r.status === "REFUND_PENDING") {
           setError(`처리 중인 충전 환불 요청이 ${r.count}건 있어요. 환불 처리가 끝난 뒤에 탈퇴할 수 있어요.`);
           router.refresh();

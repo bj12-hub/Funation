@@ -262,7 +262,8 @@ function Calendar({ summary }: { summary: AttendanceSummary }) {
         <div key={w} className={styles.weekRow} role="row">
           {cells.slice(w * 7, w * 7 + 7).map((day, i) => {
             if (day === null) return <span key={`blank-${w}-${i}`} role="gridcell" className={styles.blank} />;
-            const isChecked = checked.has(day);
+            // Today is done once this person checked in today, even on an account they withdrew (once a day per person).
+            const isChecked = checked.has(day) || (day === summary.today && summary.checkedInToday);
             const isToday = day === summary.today && !isChecked;
             return (
               <span
