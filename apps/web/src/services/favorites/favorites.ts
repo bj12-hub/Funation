@@ -2,12 +2,14 @@
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
+import { isCreatorSuspended } from "@/services/admin/memberCore";
 import { getCreatorById } from "@/services/creators/creators";
 
 /**
  * Favorite creators of the signed-in member.
  * Figma: funation-favorites-page 735:3856 (route `/favorites`, signed-in members only)
  * Reads return `null` without a session; the removal action re-checks the session.
+ * A suspended creator is hidden from the list while suspended and comes back after (2026-10-08 결정).
  */
 
 export type FavoriteCreator = {
@@ -42,7 +44,9 @@ export async function getFavorites({ query, page = 1 }: { query?: string; page?:
   if (!(await getSession())) return null;
   await mockDelay(300);
   const keyword = query?.trim().toLowerCase();
-  const filtered = favorites().filter((f) => !keyword || f.name.toLowerCase().includes(keyword));
+  // 2026-10-08 결정: a suspended creator is gone from the list while suspended (the public screens' rule, as in
+  // getCreatorById). The entry stays stored, so it is back once the suspension ends; counts and pages follow the list.
+  const filtered = favorites().filter((f) => !isCreatorSuspended(f.creatorId) && (!keyword || f.name.toLowerCase().includes(keyword)));
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const current = Math.min(Math.max(1, page), totalPages);
   return {
