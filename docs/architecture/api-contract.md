@@ -38,7 +38,7 @@ Legend: **R** read · **M** mutation · auth `—` none · `S` session · `C` Cr
 
 | Function | Input (enforced) | Result |
 |---|---|---|
-| `login` | identifier, password, keepSignedIn, next | `SUCCESS` · `UNKNOWN_ID` · `WRONG_PASSWORD` · `LOCKED` (5 failures) — sets the session; old passwords (>180 days, TBD) redirect to `/login/password-change` |
+| `login` | identifier, password, keepSignedIn, next | `SUCCESS` · `UNKNOWN_ID` · `WRONG_PASSWORD` · `LOCKED` (5 wrong passwords per account — the identifier is trimmed, lowercased and resolved to its account first; a successful login clears the count, a password reset lifts the lock; lock expiry TBD, per-IP counting is the backend's) — sets the session; old passwords (>180 days, TBD) redirect to `/login/password-change` |
 | `logout` | — | redirect `/` |
 | `checkEmailAvailability` · `checkNicknameAvailability` | email / nickname formats | `{ available }` (advisory) |
 | `signup` | email, password (8+ with letter·digit·special), nickname (2–12 한글/영문/숫자), phone token, required agreements | `CREATED` · `EMAIL_TAKEN` · `NICKNAME_TAKEN` · `INVALID` |

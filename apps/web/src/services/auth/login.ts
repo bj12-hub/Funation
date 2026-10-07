@@ -6,7 +6,7 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { safeRedirectPath } from "@/lib/safeRedirect";
 import { startSession } from "@/lib/session";
 import { mockCredentials } from "@/services/account/mockStore";
-import { isWithdrawn } from "@/services/account/withdrawalCore";
+import { clearPasswordFailures, isPasswordLocked, recordPasswordFailure, resolveAccount } from "./loginLockCore";
 
 /**
  * Login service contract.
@@ -51,9 +51,8 @@ export async function login(request: LoginRequest): Promise<LoginResult> {
 /* ── Development mock ───────────────────────────────────────
  * identifier "unknown"            → UNKNOWN_ID (also every identifier once the sample account withdrew)
  * password   mockCredentials.password (initially "password") → SUCCESS
- * any other password              → WRONG_PASSWORD, LOCKED after 5 failures
+ * any other password              → WRONG_PASSWORD, LOCKED after 5 failures of the account (./loginLockCore.ts)
  */
-const MAX_FAILURES = 5;
 
 /** Figma 718:335 copy says "6개월 이상"; the real rule is the backend's (TBD). */
 const PASSWORD_MAX_AGE_DAYS = 180;
@@ -61,21 +60,18 @@ const PASSWORD_MAX_AGE_DAYS = 180;
 function isPasswordOld() {
   return Date.now() - new Date(mockCredentials.changedAt).getTime() > PASSWORD_MAX_AGE_DAYS * 86_400_000;
 }
-const failures = new Map<string, number>();
-
 async function devMockLogin({ identifier, password }: LoginRequest): Promise<LoginResult> {
   await mockDelay();
 
-  if ((failures.get(identifier) ?? 0) >= MAX_FAILURES) return { status: "LOCKED" };
-  if (identifier === "unknown" || isWithdrawn()) return { status: "UNKNOWN_ID" };
-  if (password === mockCredentials.password) {
-    failures.delete(identifier);
+  // Counted per account, whatever spelling of the identifier was typed; nothing awaits from here on.
+  const account = resolveAccount(identifier);
+  if (!account) return { status: "UNKNOWN_ID" };
+  if (isPasswordLocked(account)) return { status: "LOCKED" };
+  if (typeof password === "string" && password === mockCredentials.password) {
+    clearPasswordFailures(account);
     // 이용 정지 (관리자 콘솔): the sample member cannot sign in while suspended.
     if (isMemberSuspended(SAMPLE_MEMBER_ID)) return { status: "SUSPENDED" };
     return { status: "SUCCESS" };
   }
-
-  const count = (failures.get(identifier) ?? 0) + 1;
-  failures.set(identifier, count);
-  return count >= MAX_FAILURES ? { status: "LOCKED" } : { status: "WRONG_PASSWORD" };
+  return recordPasswordFailure(account) ? { status: "LOCKED" } : { status: "WRONG_PASSWORD" };
 }
