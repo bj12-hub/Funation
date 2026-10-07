@@ -19,6 +19,16 @@ export function parseMultiplier(m: unknown, max: number): number | null {
   return r > 0 && r <= max && Math.abs(r - m) < 1e-9 ? r : null;
 }
 
+/**
+ * 배수 are stored to two decimals; points are multiplied and divided in whole hundredths so every board agrees:
+ * 50 × 1.15 is 57.49999… in floating point (57) but 58 in hundredths.
+ */
+const hundredths = (m: number) => Math.round(m * 100);
+/** `points` × `m`, rounded once to whole points. */
+export const timesMultiplier = (points: number, m: number) => Math.round((points * hundredths(m)) / 100);
+/** The most whole points that stay within `points` once multiplied by `m` (floor of points ÷ m). */
+export const divideByMultiplier = (points: number, m: number) => Math.floor((points * 100) / hundredths(m));
+
 export function parseBattleRules(v: Record<string, unknown>, forbidden: string[]): BattleRules | { message: string } {
   const m = parseMultiplier(v.multiplier, BATTLE_MULTIPLIER_MAX);
   if (m === null) return { message: `배수는 0보다 크고 ${BATTLE_MULTIPLIER_MAX}배 이하, 소수 둘째 자리까지예요.` };

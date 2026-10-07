@@ -4,7 +4,7 @@ import { randomInt, randomUUID } from "node:crypto";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
-import { battleBonus, gradeBonus, liveBroadcastOf, stealRecordView, stealRulesOf, windowScores } from "./crewCore";
+import { battleBonus, divideByMultiplier, gradeBonus, liveBroadcastOf, stealRecordView, stealRulesOf, windowScores } from "./crewCore";
 import {
   STEAL_BASES,
   STEAL_COOLDOWN_MAX,
@@ -113,9 +113,17 @@ export async function spinSteal(input: unknown): Promise<StealSpinResult> {
   let roll = randomInt(slots.reduce((s, x) => s + x.weight, 0));
   const slotIndex = slots.findIndex((x) => (roll -= x.weight) < 0);
   const slot = slots[slotIndex];
-  const has = Math.max(0, rules.basis === "BATTLE" && battle ? (windowScores(live, battle.startedAt, null).get(v.targetId as string) ?? 0) : currentScore(live, v.targetId as string));
-  const points = slot.kind === "PERCENT" ? Math.floor((has * slot.value) / 100) : slot.kind === "POINTS" ? Math.min(slot.value, has) : 0;
-  const record = { id: v.requestId, at: new Date(now).toISOString(), thief: v.thiefId as string, target: v.targetId as string, slotId: slot.id, slotLabel: slot.label, points };
+  const target = v.targetId as string;
+  const board = Math.max(0, currentScore(live, target));
+  const has = rules.basis === "BATTLE" && battle ? Math.max(0, windowScores(live, battle.startedAt, null).get(target) ?? 0) : board;
+  let points = slot.kind === "PERCENT" ? Math.floor((has * slot.value) / 100) : slot.kind === "POINTS" ? Math.min(slot.value, has) : 0;
+  // The record falls inside the running battle's window, so for a target in that battle the main scoreboard takes it
+  // × the battle 배수 as well (battleBonus). Whether battle ×n should apply to 강탈 at all is an open product decision
+  // (TBD); until it is made, a target in a ×n battle (n > 1) loses at most board / n points here, so their scoreboard
+  // score never drops below 0 after every multiplier.
+  const battleMult = battle && (battle.a.includes(target) || battle.b.includes(target)) ? (battle.multiplier ?? 1) : 1;
+  if (battleMult > 1) points = Math.min(points, divideByMultiplier(board, battleMult));
+  const record = { id: v.requestId, at: new Date(now).toISOString(), thief: v.thiefId as string, target, slotId: slot.id, slotLabel: slot.label, points };
   steals.push(record);
   await mockDelay(100);
   return { status: "SPUN", record: stealRecordView(live.channelId, record), slotIndex };
