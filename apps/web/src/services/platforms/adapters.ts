@@ -31,6 +31,11 @@ export interface PlatformAdapter {
   getChannel(handle: string): Promise<ChannelProfile>;
   listVideos(externalChannelId: string, opts?: { max?: number }): Promise<ChannelVideo[]>;
   /**
+   * Those of these video ids (at most VIDEO_LOOKUP_MAX per call) the platform still shows publicly; a deleted or
+   * private video is left out. VIDEO_LIST only (YouTube videos.list by id).
+   */
+  findVideos(externalChannelId: string, externalIds: string[]): Promise<ChannelVideo[]>;
+  /**
    * Events after `cursor` (opaque), oldest first. Only for adapters with DONATION_EVENTS. Malformed items
    * (missing id, bad time or amount) are dropped and counted in `skipped`; the cursor still moves past them.
    */
@@ -46,6 +51,9 @@ export interface PlatformAdapter {
 }
 
 const TIMEOUT_MS = 5_000;
+
+/** Ids per findVideos call (the YouTube Data API's videos.list limit). */
+export const VIDEO_LOOKUP_MAX = 50;
 
 /**
  * Bounded wait for a remote call (rejects with PlatformError TIMEOUT); the backend would also retry
@@ -69,8 +77,9 @@ type YtVideoDto = { id: { videoId: string }; snippet: { title: string; published
 
 type YtSuperChatDto = { id: string; snippet: { publishedAt: string; superChatDetails: { amountMicros: string; currency: string; userComment: string } }; authorDetails: { displayName: string } };
 
-const g = globalThis as typeof globalThis & { __funationMockYouTubeRemoteV2?: { uploads: Record<string, number>; chats: Record<string, YtSuperChatDto[]> } };
-const remote = () => (g.__funationMockYouTubeRemoteV2 ??= { uploads: {}, chats: {} });
+type YtRemote = { uploads: Record<string, number>; chats: Record<string, YtSuperChatDto[]>; removed: Record<string, string[]> };
+const g = globalThis as typeof globalThis & { __funationMockYouTubeRemoteV3?: YtRemote };
+const remote = () => (g.__funationMockYouTubeRemoteV3 ??= { uploads: {}, chats: {}, removed: {} });
 
 /** Mock only: a paid chat arrives on the channel (the developer simulator in 후원 연동 calls this). */
 export function mockYouTubeSuperChat(channelId: string, input: { id: string; donor: string; message: string; value: number; currency: string }) {
@@ -100,12 +109,14 @@ async function ytFetchChannel(handle: string): Promise<YtChannelDto> {
   return { id: `UC${h.toString(36).padStart(8, "0")}`, snippet: { title: `${handle} 채널`, customUrl: `@${handle}` }, statistics: { subscriberCount: String(1_000 + (h % 90_000)) } };
 }
 
-async function ytFetchVideos(channelId: string, max: number): Promise<YtVideoDto[]> {
+/** Every public upload of the mock channel, newest first (a removed one — deleted or made private — is left out). */
+function ytUploads(channelId: string): YtVideoDto[] {
   const base = 8 + (remote().uploads[channelId] ?? 0);
   const h = hash(channelId);
   const day = 86_400_000;
   const start = Date.UTC(2026, 8, 1);
-  return Array.from({ length: Math.min(base, max) }, (_, k) => {
+  const removed = new Set(Object.hasOwn(remote().removed, channelId) ? remote().removed[channelId] : []);
+  return Array.from({ length: base }, (_, k) => {
     const i = base - 1 - k; // newest first
     const shorts = i % 3 === 2;
     const sec = shorts ? 20 + ((h + i) % 40) : 600 + ((h + i * 97) % 5_400);
@@ -115,7 +126,22 @@ async function ytFetchVideos(channelId: string, max: number): Promise<YtVideoDto
       contentDetails: { duration: `PT${Math.floor(sec / 60)}M${sec % 60}S` },
       statistics: { viewCount: String(100 + ((h >>> (i % 16)) % 50_000)) }
     };
-  });
+  }).filter((v) => !removed.has(v.id.videoId));
+}
+
+async function ytFetchVideos(channelId: string, max: number): Promise<YtVideoDto[]> {
+  return ytUploads(channelId).slice(0, max);
+}
+
+async function ytFetchVideosById(channelId: string, ids: string[]): Promise<YtVideoDto[]> {
+  const wanted = new Set(ids.slice(0, VIDEO_LOOKUP_MAX));
+  return ytUploads(channelId).filter((v) => wanted.has(v.id.videoId));
+}
+
+/** Mock only: the creator deletes a video on YouTube or makes it private (`removed: false` brings it back). */
+export function mockYouTubeRemove(channelId: string, videoId: string, removed = true) {
+  const list = Object.hasOwn(remote().removed, channelId) ? remote().removed[channelId] : [];
+  remote().removed[channelId] = removed ? [...new Set([...list, videoId])] : list.filter((id) => id !== videoId);
 }
 
 /** Mock only: the next sync sees one more upload (to exercise incremental sync and dedupe). */
@@ -273,6 +299,10 @@ export const YouTubeAdapter: PlatformAdapter = {
     const dtos = await withTimeout(ytFetchVideos(externalChannelId, opts?.max ?? 50));
     return dtos.map(mapYouTubeVideo);
   },
+  async findVideos(externalChannelId, externalIds) {
+    const dtos = await withTimeout(ytFetchVideosById(externalChannelId, externalIds));
+    return dtos.map(mapYouTubeVideo);
+  },
   async fetchDonationEvents(externalChannelId, cursor) {
     const { items, cursor: next } = sliceFrom(await withTimeout(ytFetchSuperChats(externalChannelId)), cursor);
     const { items: events, skipped } = mapValid(items, mapYouTubeSuperChat);
@@ -326,6 +356,7 @@ export const ChzzkAdapter: PlatformAdapter = {
     return mockChannel("CHZZK", "chz_", handle);
   },
   listVideos: unsupportedCall,
+  findVideos: unsupportedCall,
   async fetchDonationEvents(channelId, cursor) {
     const { items, cursor: next } = sliceFrom(channelRemote(channelId).chzzkDonations, cursor);
     const { items: events, skipped } = mapValid(items, mapChzzkDonation);
@@ -366,6 +397,7 @@ export const SoopAdapter: PlatformAdapter = {
     return mockChannel("SOOP", "soop_", handle);
   },
   listVideos: unsupportedCall,
+  findVideos: unsupportedCall,
   async fetchDonationEvents(channelId, cursor) {
     const { items, cursor: next } = sliceFrom(channelRemote(channelId).soopBalloons, cursor);
     const { items: events, skipped } = mapValid(items, mapSoopBalloon);
@@ -402,6 +434,7 @@ export const FlexTvAdapter: PlatformAdapter = {
     return mockChannel("FLEXTV", "flex_", handle);
   },
   listVideos: unsupportedCall,
+  findVideos: unsupportedCall,
   async fetchDonationEvents(channelId, cursor) {
     const { items, cursor: next } = sliceFrom(channelRemote(channelId).flexDonations, cursor);
     const { items: events, skipped } = mapValid(items, mapFlexDonation);
