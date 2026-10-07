@@ -14,7 +14,8 @@ import local from "./media.module.css";
 
 /**
  * 그림후원 위젯 — code-first (no Figma frame). Route `/creator/widgets/drawing`.
- * A new 그림 후원 goes on the OBS drawing overlay for the 전시 시간; the creator can show any again.
+ * Drawings go on the OBS drawing overlay one after another for the 전시 시간 each (2026-10-07 결정: 대기열);
+ * the creator can show any drawing now, or take the current one down so the next goes up.
  */
 export function DrawingScreen({ view, overlayPath, switches }: { view: DrawingView; overlayPath: string; switches: Record<OverlayTarget, boolean> }) {
   const router = useRouter();
@@ -47,14 +48,14 @@ export function DrawingScreen({ view, overlayPath, switches }: { view: DrawingVi
   };
   const sendTest = () => {
     requestId.current ??= crypto.randomUUID();
-    run(() => addTestDrawing({ requestId: requestId.current }), "테스트 그림을 전시했어요.", () => (requestId.current = null));
+    run(() => addTestDrawing({ requestId: requestId.current }), view.showing ? "테스트 그림을 대기열에 넣었어요." : "테스트 그림을 전시했어요.", () => (requestId.current = null));
   };
 
   return (
     <div className={styles.content}>
       <header className={styles.header}>
         <h1 className={styles.title}>그림후원</h1>
-        <p className={styles.subtitle}>받은 그림 후원을 방송 화면에 전시해요. 새 그림은 전시 시간 동안 자동으로 뜨고, 지난 그림도 다시 띄울 수 있어요.</p>
+        <p className={styles.subtitle}>받은 그림 후원을 방송 화면에 전시해요. 새 그림은 받은 순서대로 하나씩 전시 시간 동안 뜨고, 지난 그림도 다시 띄울 수 있어요.</p>
         <p className={styles.note}>
           <Link href="/creator/widgets">← 위젯</Link>
         </p>
@@ -88,8 +89,13 @@ export function DrawingScreen({ view, overlayPath, switches }: { view: DrawingVi
             테스트 그림
           </button>
           {view.showing && (
-            <button type="button" className={styles.danger} disabled={pending} onClick={() => run(() => setDrawingShowing({ id: null }), "화면에서 내렸어요.")}>
-              화면에서 내리기
+            <button
+              type="button"
+              className={styles.danger}
+              disabled={pending}
+              onClick={() => run(() => setDrawingShowing({ id: null }), view.queue.length ? "화면에서 내리고 다음 그림을 전시했어요." : "화면에서 내렸어요.")}
+            >
+              {view.queue.length ? "내리고 다음 그림" : "화면에서 내리기"}
             </button>
           )}
         </div>
@@ -100,6 +106,7 @@ export function DrawingScreen({ view, overlayPath, switches }: { view: DrawingVi
           <h2 className={styles.cardTitle} id="drw-list">
             🎨 받은 그림 {view.drawings.length}
           </h2>
+          {view.queue.length > 0 && <span className={styles.muted}>대기 {view.queue.length}개</span>}
         </div>
         {view.drawings.length === 0 ? (
           <p className={styles.empty}>아직 받은 그림이 없어요. 테스트 그림으로 오버레이를 확인해 보세요.</p>
@@ -114,6 +121,7 @@ export function DrawingScreen({ view, overlayPath, switches }: { view: DrawingVi
                   <span className={styles.muted}>
                     {d.kind === "TEST" ? "테스트 요청" : `${d.donor} · ${formatNumber(d.fnAmount)} FN`}
                     {view.showing?.id === d.id ? " · 전시 중" : ""}
+                    {view.queue.includes(d.id) ? ` · 대기 ${view.queue.indexOf(d.id) + 1}번째` : ""}
                   </span>
                 </div>
                 <div className={styles.rowActions}>
