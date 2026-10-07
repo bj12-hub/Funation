@@ -54,7 +54,7 @@ TBD: SMS/email providers, rate and attempt limits, token validation, age rules.
 | `getMyAccount` | R | — | profile, identity, `fnBalance` (display only), ranking visibility, connected platforms, marketing consent |
 | `updateRankingVisibility` · `updateMarketingConsent` | M | key ∈ quest/luckyBox/play + boolean · boolean | `SAVED` · `FAILED` |
 | `checkNickname` (no auth) · `changeNickname` · `changeFunationId` | R/M | format, forbidden words, 30-day interval (TBD) | `AVAILABLE`/`CHANGED` · `INVALID` · `DUPLICATE` · `FORBIDDEN` · `LIMITED{availableFrom}` |
-| `changePassword` | M | current, next (8–20), confirm, not one of last 3 | `CHANGED` (revokes the session) · `WRONG_CURRENT` · `INVALID` · `MISMATCH` · `REUSED` |
+| `changePassword` | M | current, next (8–20), confirm, not one of last 3 | `CHANGED` (revokes the session) · `WRONG_CURRENT` · `INVALID` · `MISMATCH` · `REUSED` · `LOCKED` (wrong current passwords share the login's per-account count; at 5 the account locks and the session is revoked) |
 | `uploadProfilePhoto` | M | jpeg/png/webp ≤ 5 MB | `UPLOADED{avatarUrl}` · `UNSUPPORTED` · `TOO_LARGE` · `FAILED` |
 | `linkLoginProvider` · `unlinkLoginProvider` | M | NAVER / GOOGLE / KAKAO | `LINKED` · `UNLINKED` · `INVALID` |
 | `verifyIdentity` | M | PHONE / IPIN | `VERIFIED` · `ALREADY_VERIFIED` · `DUPLICATE` · `LOCKED` |

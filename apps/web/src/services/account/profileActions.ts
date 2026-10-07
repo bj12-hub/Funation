@@ -17,6 +17,7 @@ import {
   mockChangeHistory,
   mockCredentials
 } from "./mockStore";
+import { clearPasswordFailures, currentAccountKey, isPasswordLocked, recordPasswordFailure } from "@/services/auth/loginLockCore";
 import { matchesContent } from "@/services/creator/assetCore";
 import { isReservedNickname } from "@/services/supporter/identityTypes";
 
@@ -44,6 +45,8 @@ export type PasswordChangeResult =
   | { status: "INVALID" }
   | { status: "MISMATCH" }
   | { status: "REUSED" }
+  /** Too many wrong current passwords: the account is locked like after 5 failed logins and the session ends. */
+  | { status: "LOCKED" }
   | { status: "UNAUTHORIZED" };
 
 export type PhotoUploadResult =
@@ -115,7 +118,19 @@ export async function changePassword(input: { current: unknown; next: unknown; c
   if (!(await getSession())) return { status: "UNAUTHORIZED" };
   await mockDelay(400);
   const { current, next, confirm } = input ?? {};
-  if (typeof current !== "string" || current !== mockCredentials.password) return { status: "WRONG_CURRENT" };
+  // The current password shares the login's failure count (services/auth/loginLockCore.ts), so a session
+  // cannot be used to guess it: at the login's limit the account locks and the session ends.
+  const account = currentAccountKey();
+  if (isPasswordLocked(account)) {
+    await revokeSession();
+    return { status: "LOCKED" };
+  }
+  if (typeof current !== "string" || current !== mockCredentials.password) {
+    if (!recordPasswordFailure(account)) return { status: "WRONG_CURRENT" };
+    await revokeSession();
+    return { status: "LOCKED" };
+  }
+  clearPasswordFailures(account);
   if (typeof next !== "string" || !isValidNewPassword(next)) return { status: "INVALID" };
   if (next !== confirm) return { status: "MISMATCH" };
   // TBD: how many previous passwords count as "recent".

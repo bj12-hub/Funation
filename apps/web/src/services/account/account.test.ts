@@ -3,6 +3,7 @@ import { mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
+vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 
 /** 마이페이지 계정: every action re-checks the session and validates on the server. */
 async function load() {
@@ -72,6 +73,31 @@ describe("계정", () => {
     expect(await m.changePassword({ current, next: "Abcd1234!", confirm: "Abcd1234!" })).toEqual({ status: "CHANGED" });
     expect(m.session.revokeSession).toHaveBeenCalled();
     expect(await m.changePassword({ current: "Abcd1234!", next: "Abcd1234!", confirm: "Abcd1234!" })).toEqual({ status: "REUSED" });
+  });
+
+  it("counts wrong current passwords with the login's failures, then locks the account and ends the session", async () => {
+    const m = await load();
+    vi.mocked(m.session.revokeSession).mockClear();
+    const { login } = await import("@/services/auth/login");
+    const wrong = { current: "wrong", next: "Abcd1234!", confirm: "Abcd1234!" };
+    expect((await login({ identifier: "hongGD123", password: "wrong", keepSignedIn: false })).status).toBe("WRONG_PASSWORD");
+    for (let i = 0; i < 3; i++) expect(await m.changePassword(wrong)).toEqual({ status: "WRONG_CURRENT" });
+    expect(m.session.revokeSession).not.toHaveBeenCalled();
+    // The fifth wrong password (login + 마이페이지 together) locks the account and ends the session.
+    expect(await m.changePassword(wrong)).toEqual({ status: "LOCKED" });
+    expect(m.session.revokeSession).toHaveBeenCalled();
+    // No more guesses here or at the login, even with the right password.
+    expect(await m.changePassword({ ...wrong, current: m.store.mockCredentials.password })).toEqual({ status: "LOCKED" });
+    expect((await login({ identifier: "hongGD123", password: m.store.mockCredentials.password, keepSignedIn: false })).status).toBe("LOCKED");
+    expect(m.store.mockCredentials.password).toBe("password");
+  });
+
+  it("starts the count again after the right current password", async () => {
+    const m = await load();
+    const current = m.store.mockCredentials.password;
+    for (let i = 0; i < 4; i++) await m.changePassword({ current: "wrong", next: "x", confirm: "x" });
+    expect(await m.changePassword({ current, next: "short", confirm: "short" })).toEqual({ status: "INVALID" });
+    for (let i = 0; i < 4; i++) expect(await m.changePassword({ current: "wrong", next: "x", confirm: "x" })).toEqual({ status: "WRONG_CURRENT" });
   });
 
   it("accepts a profile photo only when the bytes match its type", async () => {
