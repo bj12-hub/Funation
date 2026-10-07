@@ -40,6 +40,12 @@ const seed: MockPost[] = [
   { id: "p-3", category: "FREE", title: "오늘 불꽃크루 엑셀방송 레전드였네요", body: "막판 순위 역전 3번 연속 터짐 ㅋㅋ", authorId: "u-sample-3", authorName: "콩트러버", createdAt: ago(2), updatedAt: null, views: 17, deleted: false, comments: [] }
 ];
 
-const g = globalThis as typeof globalThis & { __funationMockCommunityV1?: { posts: MockPost[] } };
+/**
+ * `postRequests` / `commentRequests`: `${memberId}:${requestId}` → the post / comment that request created, so a retry
+ * after a lost response creates one record (a 재가입 moves the withdrawn account's keys to its own id, account/rejoin.ts).
+ */
+type Store = { posts: MockPost[]; postRequests: Record<string, string>; commentRequests: Record<string, string> };
+// V2: request ids for 글쓰기 and 댓글.
+const g = globalThis as typeof globalThis & { __funationMockCommunityV2?: Store };
 
-export const mockCommunity = (g.__funationMockCommunityV1 ??= { posts: structuredClone(seed) });
+export const mockCommunity = (g.__funationMockCommunityV2 ??= { posts: structuredClone(seed), postRequests: {}, commentRequests: {} });

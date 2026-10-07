@@ -23,6 +23,15 @@ export const MAILBOXES = [
 export type Mailbox = (typeof MAILBOXES)[number]["key"];
 export const isMailbox = (v: unknown): v is Mailbox => MAILBOXES.some((m) => m.key === v);
 
+/** What an empty list says: a search that found nothing is not an empty mailbox. */
+export const mailboxEmptyText = (box: Mailbox, q: string) => {
+  if (q) return "검색 결과가 없어요.";
+  const label = MAILBOXES.find((b) => b.key === box)!.label;
+  // 이/가 by the last syllable: "보관함이", "보낸 쪽지가".
+  const last = label.charCodeAt(label.length - 1) - 0xac00;
+  return `${label}${last >= 0 && last <= 11171 && last % 28 !== 0 ? "이" : "가"} 비어 있어요.`;
+};
+
 export type MessageItem = {
   id: string;
   /** The other party (sender for received mail, recipient for sent mail). */

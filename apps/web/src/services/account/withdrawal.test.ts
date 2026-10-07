@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { key, mockSessionModule, phoneToken, resetMockStores, signIn, verifyMockIdentity } from "@/test/mockEnv";
+import { key, mockSessionModule, phoneToken, resetMockStores, signIn, signInAs, verifyMockIdentity } from "@/test/mockEnv";
 
 /** `during` runs inside the next mock delay, i.e. while the server is "busy" between its checks. */
 const delay = vi.hoisted(() => ({ during: null as null | (() => void) }));
@@ -323,6 +323,79 @@ describe("회원 탈퇴", () => {
     const review = (await m.getSettlementReview())!;
     expect(review.rows).toHaveLength(before);
     expect(new Set(review.rows.map((r) => r.creatorName))).toEqual(new Set(["탈퇴한 회원"]));
+  });
+
+  it("leaves the withdrawn account's posts, blocks, reports and notifications with it at a 재가입", async () => {
+    const m = await load();
+    const community = await import("@/services/community/community");
+    const channel = await import("@/services/creators/channelHome");
+    const moderation = await import("@/services/moderation/moderation");
+    const { listReports } = await import("@/services/admin/reports");
+    const notifications = await import("@/services/notifications/notifications");
+    const old = `${m.SAMPLE_MEMBER_ID}-w1`;
+    signInAs(m.SAMPLE_MEMBER_ID); // the slot's member id, as lib/session gives it
+
+    const post = await community.createPost({ category: "FREE", title: "탈퇴 전 글", body: "내용", requestId: key(51) });
+    const postId = post.status === "SAVED" ? post.id : "";
+    expect(await community.addComment("p-2", "탈퇴 전 댓글", key(52))).toEqual({ status: "SAVED" });
+    const messages = await import("@/services/messages/messages");
+    expect(await messages.sendMessage({ to: "c4", body: "탈퇴 전 쪽지", requestId: key(53) })).toEqual({ status: "SAVED" });
+    const channelPost = await channel.createChannelPost({ creatorId: "c1", body: "탈퇴 전 응원", requestId: key(50) });
+    const channelPostId = channelPost.status === "SAVED" ? channelPost.id : "";
+    expect(await moderation.blockAuthorOf({ target: { type: "POST", id: "p-3" } })).toMatchObject({ status: "OK" });
+    expect(await moderation.submitReport({ target: { type: "POST", id: "p-1" }, reason: "SPAM" })).toEqual({ status: "REPORTED" });
+    expect((await notifications.listNotifications())!.total).toBeGreaterThan(0);
+    // Another member blocked the withdrawn account.
+    signInAs("u-other");
+    expect(await moderation.blockAuthorOf({ target: { type: "POST", id: postId } })).toMatchObject({ status: "OK" });
+    signInAs(m.SAMPLE_MEMBER_ID);
+
+    await m.withdrawAccount(supporter());
+    expect(
+      await m.signup({ email: "again@funation.kr", password: "newpass12!", nickname: "다시왔어요", phoneVerificationToken: await phoneToken(), agreements: { youth: true, service: true, privacy: true, marketing: false } })
+    ).toEqual({ status: "CREATED" });
+
+    // The new account in the slot neither owns nor can change what the withdrawn one wrote (it stays up as 탈퇴한 회원).
+    expect(await community.getPost(postId)).toMatchObject({ authorName: "탈퇴한 회원", mine: false });
+    expect(await community.updatePost(postId, { category: "FREE", title: "남의 글", body: "수정" })).toEqual({ status: "FORBIDDEN" });
+    expect(await community.deletePost(postId)).toEqual({ status: "FORBIDDEN" });
+    const comment = (await community.getPost("p-2"))!.comments.find((c) => c.body === "탈퇴 전 댓글")!;
+    expect(comment.mine).toBe(false);
+    expect(await community.deleteComment("p-2", comment.id)).toEqual({ status: "FORBIDDEN" });
+    expect((await channel.getChannelPosts("c1"))!.items.find((p) => p.id === channelPostId)).toMatchObject({ mine: false });
+    expect(await channel.deleteChannelPost(channelPostId)).toEqual({ status: "FORBIDDEN" });
+
+    // It starts without the old blocks, report history and notifications; 신고 처리 links the old report to the withdrawn member.
+    expect(await moderation.listBlocks()).toEqual([]);
+    expect((await community.getBoard({})).items.some((p) => p.id === "p-3")).toBe(true);
+    expect(await moderation.submitReport({ target: { type: "POST", id: "p-1" }, reason: "SPAM" })).toEqual({ status: "REPORTED" });
+    expect(await moderation.submitReport({ target: { type: "POST", id: postId }, reason: "SPAM" })).toEqual({ status: "REPORTED" });
+    const reports = (await listReports()).rows;
+    expect(reports.map((r) => [r.target.id, r.reporterId, r.authorId]).sort()).toEqual(
+      [
+        ["p-1", old, "u-sample-1"],
+        ["p-1", m.SAMPLE_MEMBER_ID, "u-sample-1"],
+        [postId, m.SAMPLE_MEMBER_ID, old]
+      ].sort()
+    );
+    expect(reports.find((r) => r.target.id === postId)!.authorIsMember).toBe(true);
+    expect((await notifications.listNotifications())!.total).toBe(0);
+
+    // Request ids are the account's own: the withdrawn account's ids never answer the new account's requests.
+    const fresh = await community.createPost({ category: "FREE", title: "새 계정 글", body: "내용", requestId: key(51) });
+    expect(fresh.status === "SAVED" && fresh.id).not.toBe(postId);
+    expect(await community.addComment("p-2", "새 계정 댓글", key(52))).toEqual({ status: "SAVED" });
+    expect((await community.getPost("p-2"))!.comments.find((c) => c.body === "새 계정 댓글")).toMatchObject({ mine: true });
+    const again = await channel.createChannelPost({ creatorId: "c1", body: "새 계정 응원", requestId: key(50) });
+    expect(again.status === "SAVED" && again.id).not.toBe(channelPostId);
+    expect(await messages.sendMessage({ to: "c4", body: "새 계정 쪽지", requestId: key(53) })).toEqual({ status: "SAVED" });
+    expect((await messages.getMailbox({ box: "sent" }))!.items.some((x) => x.body === "새 계정 쪽지")).toBe(true);
+
+    // A block on the withdrawn account keeps hiding its posts, and does not hide the new account's.
+    signInAs("u-other");
+    const board = (await community.getBoard({})).items.map((p) => p.id);
+    expect(board).toContain(fresh.status === "SAVED" ? fresh.id : "");
+    expect(board).not.toContain(postId);
   });
 
   it("does not touch accounts that never withdrew when someone signs up", async () => {

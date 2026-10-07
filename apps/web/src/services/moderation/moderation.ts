@@ -3,13 +3,14 @@
 import { randomUUID } from "node:crypto";
 import { USE_MOCK } from "@/lib/mock";
 import { getSession } from "@/lib/session";
+import { shownMemberName } from "@/services/admin/memberCore";
 import { getCreatorById } from "@/services/creators/creators";
 import { blocksOf, moderationStore, resolveTarget } from "./moderationCore";
 import { REPORT_DETAIL_MAX, REPORT_REASONS, type BlockEntry, type BlockResult, type ReportReason, type ReportResult, type ReportTarget, type ReportTargetType } from "./moderationTypes";
 
 /**
- * 신고 · 차단 Server Actions — code-first. Members report content (one report per member and target)
- * and block authors; blocked authors' posts, comments and mail disappear for the blocker. Operators
+ * 신고 · 차단 Server Actions — code-first. Members report content (one open report per member and target; after an
+ * operator's decision, again only once the content changed) and block authors; blocked authors' posts, comments and mail disappear for the blocker. Operators
  * review reports in the admin app (`/api/admin/reports`).
  */
 
@@ -41,9 +42,12 @@ export async function submitReport(input: unknown): Promise<ReportResult> {
   if (!resolved) return { status: "NOT_FOUND" };
   if (resolved.authorId === session.userId) return { status: "INVALID", message: "내가 쓴 내용은 신고할 수 없어요." };
   const store = moderationStore();
-  // One open report per member and target: repeats are acknowledged without piling up.
+  // One open report per member and target: repeats are acknowledged without piling up. Once an operator closed it
+  // (기각 · 숨김), the same member may report again only if the content changed since (2026-10-08 결정).
   const dedupe = `${session.userId}|${keyOf(target)}`;
-  if (store.requests[dedupe]) return { status: "ALREADY_REPORTED" };
+  const previous = store.requests[dedupe];
+  const earlier = previous ? store.reports.find((r) => r.id === previous) : undefined;
+  if (previous && (!earlier || earlier.status === "OPEN" || earlier.contentHash === resolved.contentHash)) return { status: "ALREADY_REPORTED" };
   const now = new Date();
   const id = `rp-${now.getTime().toString(36)}-${store.reports.length}`;
   store.reports.push({
@@ -52,6 +56,7 @@ export async function submitReport(input: unknown): Promise<ReportResult> {
     authorId: resolved.authorId,
     authorName: resolved.authorName,
     snapshot: resolved.snapshot,
+    contentHash: resolved.contentHash,
     reason: v.reason as ReportReason,
     detail,
     reporterId: session.userId,
@@ -78,7 +83,7 @@ export async function blockAuthorOf(input: unknown): Promise<BlockResult> {
   const store = moderationStore();
   const mine = (store.blocks[session.userId] ??= {});
   mine[resolved.authorId] ??= { id: randomUUID(), authorId: resolved.authorId, name: resolved.authorName, since: new Date().toISOString() };
-  return { status: "OK", name: resolved.authorName };
+  return { status: "OK", name: shownMemberName(resolved.authorId, resolved.authorName) };
 }
 
 /** `id`: the block entry's id from listBlocks (never a member id). */
@@ -90,15 +95,15 @@ export async function unblock(id: unknown): Promise<BlockResult> {
   const entry = typeof id === "string" ? Object.values(mine).find((e) => e.id === id) : undefined;
   if (!entry) return { status: "NOT_FOUND" };
   delete mine[entry.authorId];
-  return { status: "OK", name: entry.name };
+  return { status: "OK", name: shownMemberName(entry.authorId, entry.name) };
 }
 
 export async function listBlocks(): Promise<BlockEntry[] | null> {
   assertMock();
   const session = await getSession();
   if (!session) return null;
-  // Other members' ids never reach the browser: each entry carries its own id.
+  // Other members' ids never reach the browser: each entry carries its own id. A withdrawn member is "탈퇴한 회원".
   return Object.values(blocksOf(session.userId))
     .sort((a, b) => b.since.localeCompare(a.since))
-    .map(({ id, name, since }) => ({ id, name, since }));
+    .map(({ id, authorId, name, since }) => ({ id, name: shownMemberName(authorId, name), since }));
 }

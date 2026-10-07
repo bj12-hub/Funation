@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { createPost, updatePost } from "@/services/community/community";
 import { BOARD_CATEGORIES, BODY_MAX, TITLE_MAX, type BoardCategory } from "@/services/community/communityTypes";
+import { GENERIC_ERROR } from "../mypage/editors/shared";
 import styles from "./community.module.css";
 
 type Initial = { id: string; category: BoardCategory; title: string; body: string } | null;
@@ -16,18 +17,29 @@ export function PostEditor({ initial }: { initial: Initial }) {
   const [body, setBody] = useState(initial?.body ?? "");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // 글쓰기: the same content after a failed or lost submit keeps its request id (one post); changed content gets a new one.
+  const requestId = useRef<{ id: string; text: string } | null>(null);
 
   const submit = () => {
     setError(null);
+    const input = { category, title, body };
+    const text = JSON.stringify([category, title.trim(), body.trim()]);
+    if (requestId.current?.text !== text) requestId.current = { id: crypto.randomUUID(), text };
+    const id = requestId.current.id;
     startTransition(async () => {
-      const input = { category, title, body };
-      const res = initial ? await updatePost(initial.id, input) : await createPost(input);
-      if (res.status === "SAVED") {
-        router.push(`/community/${res.id}`);
-        router.refresh();
-      } else if (res.status === "INVALID") setError(res.message);
-      else if (res.status === "UNAUTHORIZED") router.push("/login?next=/community/new");
-      else setError("이 글을 수정할 수 없어요.");
+      try {
+        const res = initial ? await updatePost(initial.id, input) : await createPost({ ...input, requestId: id });
+        if (res.status === "SAVED") {
+          router.push(`/community/${res.id}`);
+          router.refresh();
+        } else if (res.status === "INVALID") setError(res.message);
+        // Signed out meanwhile: back to this editor after signing in.
+        else if (res.status === "UNAUTHORIZED") router.push(`/login?next=${initial ? `/community/${initial.id}/edit` : "/community/new"}`);
+        else setError("이 글을 수정할 수 없어요.");
+      } catch {
+        // The request failed (network / server): what was typed stays for another try.
+        setError(GENERIC_ERROR);
+      }
     });
   };
 

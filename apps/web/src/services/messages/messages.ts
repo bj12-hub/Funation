@@ -11,7 +11,8 @@ import { mockMessages, type MockMessage } from "./mockMessageStore";
 
 /**
  * 쪽지 Server Actions — code-first (no Figma frame). Route `/messages`. Every action re-checks the
- * session; message ids are only looked up inside the member's own mailbox. TBD: moderation of
+ * session; message ids are only looked up inside the member's own mailbox. 쪽지 보내기 carries a request id, so a
+ * retry after a lost response sends once. TBD: moderation of
  * reported mail, blocking, attachments, retention, notifications.
  */
 
@@ -64,21 +65,29 @@ export async function getMessageRecipients(): Promise<Recipient[] | null> {
 
 export async function sendMessage(input: unknown): Promise<MessageResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
-  const v = (typeof input === "object" && input !== null ? input : {}) as { to?: unknown; body?: unknown };
+  const session = await getSession();
+  if (!session) return { status: "UNAUTHORIZED" };
+  const v = (typeof input === "object" && input !== null ? input : {}) as { to?: unknown; body?: unknown; requestId?: unknown };
+  if (typeof v.requestId !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
+  await mockDelay(300);
+  const creator = typeof v.to === "string" ? await getCreatorById(v.to) : null;
+  // Nothing awaits from here to the write: a retry of a sent request (the member's own ids only) sends nothing and
+  // does not count toward the hourly limit.
+  const requestKey = `${session.userId}:${v.requestId}`;
+  if (mockMessages.requests[requestKey]) return { status: "SAVED" };
   const body = typeof v.body === "string" ? v.body.trim() : "";
   if (!body || body.length > MESSAGE_BODY_MAX) return { status: "INVALID", message: `내용을 1~${MESSAGE_BODY_MAX}자로 입력해 주세요.` };
   if (MOCK_FORBIDDEN_WORDS.some((w) => body.toLowerCase().includes(w))) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
-  const creator = typeof v.to === "string" ? await getCreatorById(v.to) : null;
   if (!creator) return { status: "INVALID", message: "받는 사람을 선택해 주세요." };
   const hourAgo = Date.now() - 3_600_000;
   mockMessages.sentLog = mockMessages.sentLog.filter((t) => new Date(t).getTime() > hourAgo);
   if (mockMessages.sentLog.length >= SEND_LIMIT_PER_HOUR) return { status: "LIMITED" };
   const now = new Date().toISOString();
   mockMessages.sentLog.push(now);
-  await mockDelay(300);
+  const id = `ms-${Date.now().toString(36)}-${mockMessages.messages.length}`;
+  mockMessages.requests[requestKey] = id;
   mockMessages.messages.push({
-    id: `ms-${Date.now().toString(36)}-${mockMessages.messages.length}`,
+    id,
     direction: "OUT",
     peerId: creator.id,
     peerName: creator.name,

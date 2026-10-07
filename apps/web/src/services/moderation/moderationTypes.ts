@@ -31,6 +31,8 @@ export type Report = {
   authorId: string;
   authorName: string;
   snapshot: string;
+  /** SHA-256 of the whole reported text: a closed report may be filed again only once the content changed. */
+  contentHash: string;
   reason: ReportReason;
   detail: string;
   reporterId: string;

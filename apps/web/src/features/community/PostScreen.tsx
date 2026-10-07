@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { addComment, deleteComment, deletePost } from "@/services/community/community";
 import { COMMENT_MAX, categoryLabel, type PostDetail } from "@/services/community/communityTypes";
 import { ModerationActions } from "../moderation/ModerationActions";
+import { GENERIC_ERROR } from "../mypage/editors/shared";
 import styles from "./community.module.css";
 
 const when = (iso: string) => new Date(iso).toLocaleString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
@@ -16,16 +17,23 @@ export function PostScreen({ post, signedIn }: { post: PostDetail; signedIn: boo
   const [comment, setComment] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // 댓글: the same text after a failed or lost submit keeps its request id (one comment); changed text gets a new one.
+  const commentId = useRef<{ id: string; text: string } | null>(null);
 
   const act = (fn: () => Promise<{ status: string; message?: string }>, after?: () => void) => {
     setError(null);
     startTransition(async () => {
-      const res = await fn();
-      if (res.status === "SAVED") {
-        after?.();
-        router.refresh();
-      } else if (res.status === "UNAUTHORIZED") router.push(`/login?next=/community/${post.id}`);
-      else setError(res.message ?? "처리하지 못했어요.");
+      try {
+        const res = await fn();
+        if (res.status === "SAVED") {
+          after?.();
+          router.refresh();
+        } else if (res.status === "UNAUTHORIZED") router.push(`/login?next=/community/${post.id}`);
+        else setError(res.message ?? "처리하지 못했어요.");
+      } catch {
+        // The request failed (network / server): the typed comment stays for another try.
+        setError(GENERIC_ERROR);
+      }
     });
   };
 
@@ -42,7 +50,8 @@ export function PostScreen({ post, signedIn }: { post: PostDetail; signedIn: boo
             {post.authorName} · {when(post.createdAt)}
             {post.updatedAt ? " (수정됨)" : ""} · 조회 {post.views}
           </span>
-          {!post.mine && <ModerationActions target={{ type: "POST", id: post.id }} signedIn={signedIn} />}
+          {/* A blocked author's post disappears for the member, so the block goes back to the board. */}
+          {!post.mine && <ModerationActions target={{ type: "POST", id: post.id }} signedIn={signedIn} leaveTo="/community" />}
         </header>
         <p className={styles.postBody}>{post.body}</p>
         {post.mine && (
@@ -54,12 +63,14 @@ export function PostScreen({ post, signedIn }: { post: PostDetail; signedIn: boo
               type="button"
               className={styles.danger}
               disabled={pending}
-              onClick={() =>
+              onClick={() => {
+                // 2026-10-08 결정: asked first, as channel posts are (comments and 쪽지 are not).
+                if (!window.confirm("이 글을 삭제할까요?")) return;
                 act(
                   () => deletePost(post.id),
                   () => router.push("/community")
-                )
-              }
+                );
+              }}
             >
               삭제
             </button>
@@ -80,7 +91,7 @@ export function PostScreen({ post, signedIn }: { post: PostDetail; signedIn: boo
                 <span className={styles.meta}>
                   <strong>{c.authorName}</strong> · {when(c.createdAt)}
                 </span>
-                {!c.mine && <ModerationActions target={{ type: "COMMENT", id: c.id, parentId: post.id }} signedIn={signedIn} />}
+                {!c.mine && <ModerationActions target={{ type: "COMMENT", id: c.id, parentId: post.id }} signedIn={signedIn} leaveTo={c.byPostAuthor ? "/community" : undefined} />}
                 <p className={styles.commentBody}>{c.body}</p>
                 {c.mine && (
                   <button type="button" className={styles.link} disabled={pending} onClick={() => act(() => deleteComment(post.id, c.id))}>
@@ -96,9 +107,15 @@ export function PostScreen({ post, signedIn }: { post: PostDetail; signedIn: boo
             className={styles.commentForm}
             onSubmit={(e) => {
               e.preventDefault();
+              const text = comment.trim();
+              if (commentId.current?.text !== text) commentId.current = { id: crypto.randomUUID(), text };
+              const id = commentId.current.id;
               act(
-                () => addComment(post.id, comment),
-                () => setComment("")
+                () => addComment(post.id, comment, id),
+                () => {
+                  setComment("");
+                  commentId.current = null;
+                }
               );
             }}
           >

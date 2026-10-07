@@ -78,14 +78,17 @@ export function ChannelCommunity({ creatorId, name, view, signedIn, show }: { cr
   const [body, setBody] = useState("");
   const [note, setNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
-  const requestId = useRef<string | null>(null);
+  // The same text after a failed or lost submit keeps its request id (one post); changed text gets a new one.
+  const requestId = useRef<{ id: string; text: string } | null>(null);
 
   const submit = () => {
-    requestId.current ??= crypto.randomUUID();
+    const text = body.trim();
+    if (requestId.current?.text !== text) requestId.current = { id: crypto.randomUUID(), text };
+    const id = requestId.current.id;
     setNote(null);
     startTransition(async () => {
       try {
-        const res = await createChannelPost({ creatorId, body, requestId: requestId.current });
+        const res = await createChannelPost({ creatorId, body, requestId: id });
         if (res.status === "SAVED") {
           requestId.current = null;
           setBody("");
