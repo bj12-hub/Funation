@@ -4,7 +4,7 @@ import { randomInt, randomUUID } from "node:crypto";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
-import { battleBonus, divideByMultiplier, gradeBonus, liveBroadcastOf, stealRecordView, stealRulesOf, windowScores } from "./crewCore";
+import { battleBonus, gradeBonus, liveBroadcastOf, stealRecordView, stealRulesOf, windowScores } from "./crewCore";
 import {
   STEAL_BASES,
   STEAL_COOLDOWN_MAX,
@@ -22,7 +22,8 @@ import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
  * 기여도 강탈 룰렛 Server Actions — code-first (no Figma frame), part of `/creator/crew/broadcast`.
  * The creator sets the slots (빼앗는 비율 · 고정 점수 · 꽝) and their odds. 강탈 기준 · 쿨다운 (2026-10-05 결정): platform
  * defaults 방송 전체 점수 · 쿨다운 없음, changeable by the creator. A spin is drawn on the server: the thief takes the slot's points from the target's
- * current score (never more than the target has). Points are display scores only. The request id is
+ * current score (never more than the target has). 강탈엔 배틀 배수 미적용 (2026-10-07 결정): moved points count as they
+ * are on the main scoreboard and the battle board. Points are display scores only. The request id is
  * the record id, so a retried spin returns the same result instead of spinning again.
  * TBD: 후원 연동 (특정 금액 후원 시 자동 룰렛).
  */
@@ -116,13 +117,10 @@ export async function spinSteal(input: unknown): Promise<StealSpinResult> {
   const target = v.targetId as string;
   const board = Math.max(0, currentScore(live, target));
   const has = rules.basis === "BATTLE" && battle ? Math.max(0, windowScores(live, battle.startedAt, null).get(target) ?? 0) : board;
-  let points = slot.kind === "PERCENT" ? Math.floor((has * slot.value) / 100) : slot.kind === "POINTS" ? Math.min(slot.value, has) : 0;
-  // The record falls inside the running battle's window, so for a target in that battle the main scoreboard takes it
-  // × the battle 배수 as well (battleBonus). Whether battle ×n should apply to 강탈 at all is an open product decision
-  // (TBD); until it is made, a target in a ×n battle (n > 1) loses at most board / n points here, so their scoreboard
-  // score never drops below 0 after every multiplier.
-  const battleMult = battle && (battle.a.includes(target) || battle.b.includes(target)) ? (battle.multiplier ?? 1) : 1;
-  if (battleMult > 1) points = Math.min(points, divideByMultiplier(board, battleMult));
+  const drawn = slot.kind === "PERCENT" ? Math.floor((has * slot.value) / 100) : slot.kind === "POINTS" ? Math.min(slot.value, has) : 0;
+  // 강탈엔 배틀 배수 미적용 (2026-10-07 결정): the record moves board points as they are, even inside a ×n battle
+  // (battleBonus and the battle sides leave it out), so capping at the target's board score keeps them at 0 or more.
+  const points = Math.min(drawn, board);
   const record = { id: v.requestId, at: new Date(now).toISOString(), thief: v.thiefId as string, target, slotId: slot.id, slotLabel: slot.label, points };
   steals.push(record);
   await mockDelay(100);

@@ -26,8 +26,6 @@ export function parseMultiplier(m: unknown, max: number): number | null {
 const hundredths = (m: number) => Math.round(m * 100);
 /** `points` × `m`, rounded once to whole points. */
 export const timesMultiplier = (points: number, m: number) => Math.round((points * hundredths(m)) / 100);
-/** The most whole points that stay within `points` once multiplied by `m` (floor of points ÷ m). */
-export const divideByMultiplier = (points: number, m: number) => Math.floor((points * 100) / hundredths(m));
 
 export function parseBattleRules(v: Record<string, unknown>, forbidden: string[]): BattleRules | { message: string } {
   const m = parseMultiplier(v.multiplier, BATTLE_MULTIPLIER_MAX);
@@ -134,9 +132,9 @@ export function scoreEntry(e: FeedEntry, s: ExcelSettings): FeedEntryView {
 
 /**
  * Points each member received between `from` and `to` (targeted donations + assigned 후원 리스트
- * entries, 자동엑셀 points, ± 기여도 강탈). Used by 서브 점수판 and 실시간 배틀. `to` null = now.
+ * entries, 자동엑셀 points), without 기여도 강탈. `to` null = now.
  */
-export function windowScores(b: MockBroadcast, from: string, to: string | null): Map<string, number> {
+export function windowReceived(b: MockBroadcast, from: string, to: string | null): Map<string, number> {
   const end = to ?? new Date(Date.now() + 1000).toISOString();
   const inWindow = (at: string) => at >= from && at <= end;
   const s = excelOf(b.channelId);
@@ -144,11 +142,28 @@ export function windowScores(b: MockBroadcast, from: string, to: string | null):
   const add = (id: string, p: number) => scores.set(id, (scores.get(id) ?? 0) + p);
   for (const a of mockCrew.attributions) if (a.channelId === b.channelId && inWindow(a.at)) add(a.memberId, scoreFn(a.fnAmount, s));
   for (const f of b.feed ?? []) if (f.status === "ASSIGNED" && f.memberId && inWindow(f.at)) add(f.memberId, scoreEntry(f, s).points);
-  // 기여도 강탈 moves points between members inside the same window.
-  for (const x of b.steals ?? []) if (inWindow(x.at)) {
+  return scores;
+}
+
+/** ± 기여도 강탈 points per member between `from` and `to` (`to` null = now). */
+export function windowSteals(b: MockBroadcast, from: string, to: string | null): Map<string, number> {
+  const end = to ?? new Date(Date.now() + 1000).toISOString();
+  const scores = new Map<string, number>();
+  const add = (id: string, p: number) => scores.set(id, (scores.get(id) ?? 0) + p);
+  for (const x of b.steals ?? []) if (x.at >= from && x.at <= end) {
     add(x.thief, x.points);
     add(x.target, -x.points);
   }
+  return scores;
+}
+
+/**
+ * Points each member has from between `from` and `to`: what they received ± 기여도 강탈 (which moves points between
+ * members inside the same window). Used by 서브 점수판 and 실시간 배틀. `to` null = now.
+ */
+export function windowScores(b: MockBroadcast, from: string, to: string | null): Map<string, number> {
+  const scores = windowReceived(b, from, to);
+  for (const [id, p] of windowSteals(b, from, to)) scores.set(id, (scores.get(id) ?? 0) + p);
   return scores;
 }
 
@@ -209,8 +224,9 @@ export function gradeBonus(b: MockBroadcast): Map<string, number> {
 
 /**
  * 배틀 배수 on the main scoreboard (2026-10-05 결정): what a battle member received while a ×n battle ran counts n
- * times. Returns the extra points per member, (배수 − 1) × that member's points in the battle window (the same
+ * times. Returns the extra points per member, (배수 − 1) × what that member received in the battle window (the same
  * points the battle board multiplies). Battles at 1배 add nothing.
+ * 강탈엔 배틀 배수 미적용 (2026-10-07 결정): 기여도 강탈 inside the window moves board points as they are, never × n.
  */
 export function battleBonus(b: MockBroadcast, now = Date.now()): Map<string, number> {
   const bonus = new Map<string, number>();
@@ -218,8 +234,8 @@ export function battleBonus(b: MockBroadcast, now = Date.now()): Map<string, num
     const m = x.multiplier ?? 1;
     if (m === 1) continue;
     const endMs = Math.min(Date.parse(x.endsAt), x.stoppedAt ? Date.parse(x.stoppedAt) : Infinity);
-    const scores = windowScores(b, x.startedAt, endMs > now ? null : new Date(endMs).toISOString());
-    for (const id of [...x.a, ...x.b]) bonus.set(id, (bonus.get(id) ?? 0) + Math.round((scores.get(id) ?? 0) * (m - 1)));
+    const received = windowReceived(b, x.startedAt, endMs > now ? null : new Date(endMs).toISOString());
+    for (const id of [...x.a, ...x.b]) bonus.set(id, (bonus.get(id) ?? 0) + Math.round((received.get(id) ?? 0) * (m - 1)));
   }
   return bonus;
 }

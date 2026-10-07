@@ -82,7 +82,7 @@ describe("기여도 강탈 룰렛", () => {
     expect(await spinSteal({ broadcastId: id, requestId: key(5), thiefId: "cm-s1", targetId: "cm-s2" })).toEqual({ status: "UNAUTHORIZED" });
   });
 
-  it("never takes a target in a ×n battle below 0 on the scoreboard", async () => {
+  it("moves points as they are inside a ×n battle (강탈엔 배틀 배수 미적용, 2026-10-07)", async () => {
     const { setStealSlots, spinSteal, startBattle, donate, view, id } = await startLive();
     // weights 1 · 1 → roll 0 = 100%, roll 1 = 5,000점
     await setStealSlots({ slots: [{ label: "전부", kind: "PERCENT", value: 100, weight: 1 }, { label: "오천", kind: "POINTS", value: 5_000, weight: 1 }] });
@@ -92,18 +92,21 @@ describe("기여도 강탈 룰렛", () => {
 
     roll.next = 0;
     const all = await spinSteal({ broadcastId: id, requestId: key(2), thiefId: "cm-s1", targetId: "cm-s2" });
-    // The record counts × 2 inside the battle: taking 1,000 empties the target's 2,000 (not 2,000 → −2,000).
-    expect(all.status === "SPUN" && all.record.points).toBe(1_000);
+    expect(all.status === "SPUN" && all.record.points).toBe(2_000); // the target's whole board score
     let v = await view();
-    expect(row(v, "cm-s2").score).toBe(0);
-    expect(row(v, "cm-s1").score).toBe(2_000);
+    // Not × 2 again: the target ends at 0 (not −2,000), the thief gets exactly 2,000.
+    expect(row(v, "cm-s2")).toMatchObject({ score: 0, stolen: -2_000, battle: 1_000 });
+    expect(row(v, "cm-s1")).toMatchObject({ score: 2_000, stolen: 2_000, battle: 0 });
+    expect(v.live!.battles[0].sides.map((s) => s.score)).toEqual([2_000, 0]);
 
     await donate(300, "하늘"); // 600 on the scoreboard
     roll.next = 1;
     const fixed = await spinSteal({ broadcastId: id, requestId: key(3), thiefId: "cm-s1", targetId: "cm-s2" });
-    expect(fixed.status === "SPUN" && fixed.record.points).toBe(300);
+    expect(fixed.status === "SPUN" && fixed.record.points).toBe(600); // 5,000 capped at the 600 the target has
     v = await view();
     expect(row(v, "cm-s2").score).toBe(0);
+    expect(row(v, "cm-s1").score).toBe(2_600);
+    expect(v.live!.battles[0].sides.map((s) => s.score)).toEqual([2_600, 0]);
   });
 
   it("follows the 강탈 기준 and 쿨다운, starting from the platform defaults", async () => {

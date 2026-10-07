@@ -23,7 +23,7 @@ import {
   type ScoreRow,
   type TeamKey
 } from "./crewTypes";
-import { battleBonus, battleRulesOf, fanNotesView, gradeBonus, gradeMultipliersOf, excelOf, liveBroadcastOf, scoreEntry, scoreFn, stealRecordView, stealRulesOf, windowScores } from "./crewCore";
+import { battleBonus, battleRulesOf, fanNotesView, gradeBonus, gradeMultipliersOf, excelOf, liveBroadcastOf, scoreEntry, scoreFn, stealRecordView, stealRulesOf, windowReceived, windowScores, windowSteals } from "./crewCore";
 import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 /**
@@ -109,9 +109,12 @@ const TEAM_COLOR = { A: "#3b82f6", B: "#ec4899" } as const;
 function battleView(b: MockBroadcast, x: NonNullable<MockBroadcast["battles"]>[number], now = Date.now()): Battle {
   const endMs = Math.min(new Date(x.endsAt).getTime(), x.stoppedAt ? new Date(x.stoppedAt).getTime() : Infinity);
   const running = endMs > now;
-  const scores = windowScores(b, x.startedAt, running ? null : new Date(endMs).toISOString());
+  const to = running ? null : new Date(endMs).toISOString();
+  const received = windowReceived(b, x.startedAt, to);
+  const steals = windowSteals(b, x.startedAt, to);
   const byId = new Map(members().map((m) => [m.id, m]));
   const multiplier = x.multiplier ?? 1;
+  const sum = (scores: Map<string, number>, ids: string[]) => ids.reduce((s, id) => s + (scores.get(id) ?? 0), 0);
   const side = (key: "A" | "B", ids: string[]) => {
     const one = x.mode === "MEMBERS" ? byId.get(ids[0]) : undefined;
     return {
@@ -119,8 +122,8 @@ function battleView(b: MockBroadcast, x: NonNullable<MockBroadcast["battles"]>[n
       label: x.mode === "MEMBERS" ? (one?.name ?? "삭제된 멤버") : `${key}팀`,
       color: one?.color ?? TEAM_COLOR[key],
       memberIds: [...ids],
-      // 배틀 배수 applies to the battle score only (the main scoreboard keeps the plain points).
-      score: Math.round(ids.reduce((s, id) => s + (scores.get(id) ?? 0), 0) * multiplier)
+      // 배틀 배수 multiplies what the side received; 기여도 강탈 moves points as they are (2026-10-07 결정).
+      score: Math.round(sum(received, ids) * multiplier) + sum(steals, ids)
     };
   };
   const sides: [Battle["sides"][0], Battle["sides"][1]] = [side("A", x.a), side("B", x.b)];
