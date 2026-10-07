@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { deleteMessages, markMessageRead, moveMessages, sendMessage } from "@/services/messages/messages";
 import {
@@ -31,6 +31,8 @@ export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxV
   const [body, setBody] = useState("");
   const [message, setMessage] = useState<{ tone: "error" | "ok"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
+  // 쪽지 보내기: the same recipient and text after a failed or lost submit keeps its request id (sent once); a change gets a new one.
+  const sendId = useRef<{ id: string; text: string } | null>(null);
   const received = view.box !== "sent";
 
   const href = (patch: Record<string, string>) => {
@@ -199,12 +201,16 @@ export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxV
               type="button"
               className={styles.primaryWide}
               disabled={pending || !to || !body.trim()}
-              onClick={() =>
-                run(() => sendMessage({ to, body }), "쪽지를 보냈어요.", () => {
+              onClick={() => {
+                const text = `${to}\n${body.trim()}`;
+                if (sendId.current?.text !== text) sendId.current = { id: crypto.randomUUID(), text };
+                const id = sendId.current.id;
+                run(() => sendMessage({ to, body, requestId: id }), "쪽지를 보냈어요.", () => {
                   setCompose(false);
                   setBody("");
-                })
-              }
+                  sendId.current = null;
+                });
+              }}
             >
               보내기
             </button>

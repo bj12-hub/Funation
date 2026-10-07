@@ -3,6 +3,7 @@ import { SAMPLE_MEMBER_ID, withdrawnMemberId } from "@/services/admin/memberCore
 import { mockCommunity } from "@/services/community/mockCommunityStore";
 import { mockSettlement } from "@/services/creator/mockSettlementStore";
 import { channelCommunityStore } from "@/services/creators/channelCommunityCore";
+import { mockMessages } from "@/services/messages/mockMessageStore";
 import { moderationStore } from "@/services/moderation/moderationCore";
 import { notificationStore } from "@/services/notifications/notificationCore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
@@ -62,6 +63,9 @@ function retireSlotMember(to: string) {
     if (p.authorId === from) p.authorId = to;
     for (const c of p.comments) if (c.authorId === from) c.authorId = to;
   }
+  mockCommunity.postRequests = rekey(mockCommunity.postRequests, `${from}:`, `${to}:`);
+  mockCommunity.commentRequests = rekey(mockCommunity.commentRequests, `${from}:`, `${to}:`);
+  mockMessages.requests = rekey(mockMessages.requests, `${from}:`, `${to}:`);
   const channel = channelCommunityStore();
   for (const p of channel.posts) if (p.authorId === from) p.authorId = to;
   channel.requests = rekey(channel.requests, `${from}:`, `${to}:`);

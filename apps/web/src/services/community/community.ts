@@ -22,12 +22,14 @@ import { mockCommunity, type MockPost } from "./mockCommunityStore";
  * 커뮤니티 Server Actions — code-first (no Figma frame). Reading is public; writing needs a session,
  * and only the author may edit or delete a post / comment (checked on the server). Writes look the post up
  * after the mock delay and change it in the same tick, so a post deleted or hidden meanwhile is not written to.
- * TBD: moderation, reports, rate limits, images, notices.
+ * 글쓰기 and 댓글 carry a request id per form: a retry after a lost response returns the first result instead of
+ * writing twice. TBD: moderation, reports, rate limits, images, notices.
  */
 
 const assertMock = () => {
   if (!USE_MOCK) throw new Error("Community API is not connected yet.");
 };
+const REQUEST_ID = /^[A-Za-z0-9-]{16,64}$/;
 
 const forbidden = (s: string) => MOCK_FORBIDDEN_WORDS.some((w) => s.toLowerCase().includes(w));
 const live = (p: MockPost) => !p.deleted;
@@ -91,9 +93,15 @@ export async function createPost(input: unknown): Promise<PostSaveResult> {
   assertMock();
   const session = await getSession();
   if (!session) return { status: "UNAUTHORIZED" };
-  const c = checkPost((typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>);
-  if (!c.ok) return { status: "INVALID", message: c.message };
+  const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
+  if (typeof v.requestId !== "string" || !REQUEST_ID.test(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
   await mockDelay(300);
+  // Request ids belong to the member (another member's id never returns their post); nothing awaits from here to the write.
+  const requestKey = `${session.userId}:${v.requestId}`;
+  const done = mockCommunity.postRequests[requestKey];
+  if (done) return { status: "SAVED", id: done };
+  const c = checkPost(v);
+  if (!c.ok) return { status: "INVALID", message: c.message };
   const id = `p-${Date.now().toString(36)}${mockCommunity.posts.length}`;
   mockCommunity.posts.push({
     id,
@@ -108,6 +116,7 @@ export async function createPost(input: unknown): Promise<PostSaveResult> {
     deleted: false,
     comments: []
   });
+  mockCommunity.postRequests[requestKey] = id;
   return { status: "SAVED", id };
 }
 
@@ -137,17 +146,23 @@ export async function deletePost(id: unknown): Promise<PostSaveResult> {
   return { status: "SAVED", id: p.id };
 }
 
-export async function addComment(postId: unknown, body: unknown): Promise<CommentResult> {
+export async function addComment(postId: unknown, body: unknown, requestId: unknown): Promise<CommentResult> {
   assertMock();
   const session = await getSession();
   if (!session) return { status: "UNAUTHORIZED" };
+  if (typeof requestId !== "string" || !REQUEST_ID.test(requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
   await mockDelay(200);
+  // The comment this member's request already added (a retry after a lost response) is not added again.
+  const requestKey = `${session.userId}:${requestId}`;
+  if (mockCommunity.commentRequests[requestKey]) return { status: "SAVED" };
   const p = typeof postId === "string" ? mockCommunity.posts.find((x) => x.id === postId && live(x)) : undefined;
   if (!p) return { status: "NOT_FOUND" };
   const text = typeof body === "string" ? body.trim() : "";
   if (!text || text.length > COMMENT_MAX) return { status: "INVALID", message: `댓글을 1~${COMMENT_MAX}자로 입력해 주세요.` };
   if (forbidden(text)) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
-  p.comments.push({ id: `cm-${Date.now().toString(36)}${p.comments.length}`, authorId: session.userId, authorName: session.nickname, body: text, createdAt: new Date().toISOString(), deleted: false });
+  const id = `cm-${Date.now().toString(36)}${p.comments.length}`;
+  p.comments.push({ id, authorId: session.userId, authorName: session.nickname, body: text, createdAt: new Date().toISOString(), deleted: false });
+  mockCommunity.commentRequests[requestKey] = id;
   return { status: "SAVED" };
 }
 

@@ -311,9 +311,11 @@ describe("회원 탈퇴", () => {
     const old = `${m.SAMPLE_MEMBER_ID}-w1`;
     signInAs(m.SAMPLE_MEMBER_ID); // the slot's member id, as lib/session gives it
 
-    const post = await community.createPost({ category: "FREE", title: "탈퇴 전 글", body: "내용" });
+    const post = await community.createPost({ category: "FREE", title: "탈퇴 전 글", body: "내용", requestId: key(51) });
     const postId = post.status === "SAVED" ? post.id : "";
-    expect(await community.addComment("p-2", "탈퇴 전 댓글")).toEqual({ status: "SAVED" });
+    expect(await community.addComment("p-2", "탈퇴 전 댓글", key(52))).toEqual({ status: "SAVED" });
+    const messages = await import("@/services/messages/messages");
+    expect(await messages.sendMessage({ to: "c4", body: "탈퇴 전 쪽지", requestId: key(53) })).toEqual({ status: "SAVED" });
     const channelPost = await channel.createChannelPost({ creatorId: "c1", body: "탈퇴 전 응원", requestId: key(50) });
     const channelPostId = channelPost.status === "SAVED" ? channelPost.id : "";
     expect(await moderation.blockAuthorOf({ target: { type: "POST", id: "p-3" } })).toMatchObject({ status: "OK" });
@@ -355,8 +357,17 @@ describe("회원 탈퇴", () => {
     expect(reports.find((r) => r.target.id === postId)!.authorIsMember).toBe(true);
     expect((await notifications.listNotifications())!.total).toBe(0);
 
+    // Request ids are the account's own: the withdrawn account's ids never answer the new account's requests.
+    const fresh = await community.createPost({ category: "FREE", title: "새 계정 글", body: "내용", requestId: key(51) });
+    expect(fresh.status === "SAVED" && fresh.id).not.toBe(postId);
+    expect(await community.addComment("p-2", "새 계정 댓글", key(52))).toEqual({ status: "SAVED" });
+    expect((await community.getPost("p-2"))!.comments.find((c) => c.body === "새 계정 댓글")).toMatchObject({ mine: true });
+    const again = await channel.createChannelPost({ creatorId: "c1", body: "새 계정 응원", requestId: key(50) });
+    expect(again.status === "SAVED" && again.id).not.toBe(channelPostId);
+    expect(await messages.sendMessage({ to: "c4", body: "새 계정 쪽지", requestId: key(53) })).toEqual({ status: "SAVED" });
+    expect((await messages.getMailbox({ box: "sent" }))!.items.some((x) => x.body === "새 계정 쪽지")).toBe(true);
+
     // A block on the withdrawn account keeps hiding its posts, and does not hide the new account's.
-    const fresh = await community.createPost({ category: "FREE", title: "새 계정 글", body: "내용" });
     signInAs("u-other");
     const board = (await community.getBoard({})).items.map((p) => p.id);
     expect(board).toContain(fresh.status === "SAVED" ? fresh.id : "");

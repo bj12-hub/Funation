@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { createPost, updatePost } from "@/services/community/community";
 import { BOARD_CATEGORIES, BODY_MAX, TITLE_MAX, type BoardCategory } from "@/services/community/communityTypes";
 import styles from "./community.module.css";
@@ -16,12 +16,17 @@ export function PostEditor({ initial }: { initial: Initial }) {
   const [body, setBody] = useState(initial?.body ?? "");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // 글쓰기: the same content after a failed or lost submit keeps its request id (one post); changed content gets a new one.
+  const requestId = useRef<{ id: string; text: string } | null>(null);
 
   const submit = () => {
     setError(null);
+    const input = { category, title, body };
+    const text = JSON.stringify([category, title.trim(), body.trim()]);
+    if (requestId.current?.text !== text) requestId.current = { id: crypto.randomUUID(), text };
+    const id = requestId.current.id;
     startTransition(async () => {
-      const input = { category, title, body };
-      const res = initial ? await updatePost(initial.id, input) : await createPost(input);
+      const res = initial ? await updatePost(initial.id, input) : await createPost({ ...input, requestId: id });
       if (res.status === "SAVED") {
         router.push(`/community/${res.id}`);
         router.refresh();

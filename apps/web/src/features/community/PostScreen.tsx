@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { addComment, deleteComment, deletePost } from "@/services/community/community";
 import { COMMENT_MAX, categoryLabel, type PostDetail } from "@/services/community/communityTypes";
 import { ModerationActions } from "../moderation/ModerationActions";
@@ -16,8 +16,10 @@ export function PostScreen({ post, signedIn }: { post: PostDetail; signedIn: boo
   const [comment, setComment] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // 댓글: the same text after a failed or lost submit keeps its request id (one comment); changed text gets a new one.
+  const commentId = useRef<{ id: string; text: string } | null>(null);
 
-  const act = (fn: () => Promise<{ status: string; message?: string }>, after?: () => void) => {
+  const act =(fn: () => Promise<{ status: string; message?: string }>, after?: () => void) => {
     setError(null);
     startTransition(async () => {
       const res = await fn();
@@ -96,9 +98,15 @@ export function PostScreen({ post, signedIn }: { post: PostDetail; signedIn: boo
             className={styles.commentForm}
             onSubmit={(e) => {
               e.preventDefault();
+              const text = comment.trim();
+              if (commentId.current?.text !== text) commentId.current = { id: crypto.randomUUID(), text };
+              const id = commentId.current.id;
               act(
-                () => addComment(post.id, comment),
-                () => setComment("")
+                () => addComment(post.id, comment, id),
+                () => {
+                  setComment("");
+                  commentId.current = null;
+                }
               );
             }}
           >

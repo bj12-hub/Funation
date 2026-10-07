@@ -23,6 +23,12 @@ const seed: MockMessage[] = [
   { id: "ms-3", direction: "OUT", peerId: "c4", peerName: "불꽃크루", body: "어제 직급전 최고였어요!", sentAt: ago(26), read: true, folder: "sent", deleted: false }
 ];
 
-const g = globalThis as typeof globalThis & { __funationMockMessagesV1?: { messages: MockMessage[]; sentLog: string[] } };
+/**
+ * `requests`: `${memberId}:${requestId}` → the message that 쪽지 보내기 request sent, so a retry after a lost response
+ * sends once (a 재가입 moves the withdrawn account's keys to its own id, account/rejoin.ts).
+ */
+type Store = { messages: MockMessage[]; sentLog: string[]; requests: Record<string, string> };
+// V2: request ids for 쪽지 보내기.
+const g = globalThis as typeof globalThis & { __funationMockMessagesV2?: Store };
 
-export const mockMessages = (g.__funationMockMessagesV1 ??= { messages: seed.map((m) => ({ ...m })), sentLog: [] });
+export const mockMessages = (g.__funationMockMessagesV2 ??= { messages: seed.map((m) => ({ ...m })), sentLog: [], requests: {} });
