@@ -120,7 +120,7 @@ describe("뽑기 후원", () => {
     const m = await load();
     setGachas(m);
     const t0 = Date.parse("2026-10-04T12:00:00");
-    const enqueue = (id: string, at: number) => m.enqueueDraw({ id, channelId: "c1", supporterUserId: "u-1", donor: "보라색원픽", gachaId: "gacha-2", amount: 5_000 }, at, () => 0);
+    const enqueue = (id: string, at: number) => m.enqueueDraw({ id, channelId: "c1", supporterUserId: "u-1", donor: "보라색원픽", shownDonor: "보라색원픽", gachaId: "gacha-2", amount: 5_000 }, at, () => 0);
     const first = enqueue("d1", t0); // 아크릴 스탠드
     const second = enqueue("d2", t0 + 1); // 아크릴 스탠드 (queued behind the first)
     const left = (at: number) => m.gachaOffers(at)[1].prizes.map((p) => p.left);
