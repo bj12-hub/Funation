@@ -151,7 +151,7 @@ describe("unified chat", () => {
     expect(await m.connectBroadcastChannel({ platform: "CHZZK", handle: "gamma" })).toEqual({ status: "OK" });
     expect(await m.getChatOverlay(m.overlayKey)).toEqual([]);
     await m.simulateViewerChat(viewer(80, "CHZZK", "after"));
-    expect((await m.getChatOverlay(m.overlayKey)).map((l) => l.text)).toEqual(["after"]);
+    expect(await m.getChatOverlay(m.overlayKey)).toEqual([expect.objectContaining({ text: "after" })]);
 
     // A slow platform: the overlay reads while the connection is still taking its first position.
     const soop = (await SoopAdapter.getChannel("delta")).externalChannelId;
