@@ -51,6 +51,8 @@ export type AdminDashboard = {
 
 export type AuditPage = { items: AuditEntry[]; total: number; hasMore: boolean };
 export const AUDIT_PAGE = 30;
+/** The site lists at most this many of the newest entries (searching older ones is TBD). */
+export const AUDIT_MAX = 500;
 
 // ── Members · creators ────────────────────────────────────────────────────────
 
@@ -93,7 +95,7 @@ export type AdminChargeRow = {
   paidAmount: number;
   status: ChargeStatus;
   transactionId: string | null;
-  refund?: { status: RefundStatus; requestedAt: string } | null;
+  refund: { status: RefundStatus; requestedAt: string } | null;
   memberId: string;
   memberName: string;
 };
@@ -206,6 +208,7 @@ export type ReportReason = "SPAM" | "ABUSE" | "SEXUAL" | "PRIVACY" | "IMPERSONAT
 export const REPORT_REASON_LABEL: Record<ReportReason, string> = { SPAM: "스팸 · 광고", ABUSE: "욕설 · 비하 · 혐오", SEXUAL: "음란 · 선정적 내용", PRIVACY: "개인정보 노출", IMPERSONATION: "사칭", ETC: "기타" };
 export type ReportStatus = "OPEN" | "DISMISSED" | "ACTIONED";
 export const REPORT_STATUSES: ReportStatus[] = ["OPEN", "DISMISSED", "ACTIONED"];
+/** The reporter's member id and the content hash stay on the site. */
 export type Report = {
   id: string;
   target: { type: ReportTargetType; id: string; parentId?: string };
@@ -214,7 +217,6 @@ export type Report = {
   snapshot: string;
   reason: ReportReason;
   detail: string;
-  reporterId: string;
   reporterName: string;
   createdAt: string;
   status: ReportStatus;

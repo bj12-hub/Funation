@@ -27,39 +27,43 @@ export function PaymentsScreen({ view, tab }: { view: PaymentsView; tab: "charge
 
       {tab === "charges" ? (
         <section className={styles.card}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th scope="col">일시</th>
-                <th scope="col">회원</th>
-                <th scope="col">충전 FN</th>
-                <th scope="col">결제 금액</th>
-                <th scope="col">수단</th>
-                <th scope="col">상태</th>
-                <th scope="col">거래 번호</th>
-              </tr>
-            </thead>
-            <tbody>
-              {view.charges.map((c) => (
-                <tr key={c.id}>
-                  <td>{when(c.chargedAt)}</td>
-                  <td>
-                    <Link href={`/members/${c.memberId}`} className={styles.rowLink}>
-                      {c.memberName}
-                    </Link>
-                  </td>
-                  <td>{formatNumber(c.fnAmount)} FN</td>
-                  <td>{formatNumber(c.paidAmount)}원</td>
-                  <td>{c.methodLabel}</td>
-                  <td>
-                    {CHARGE_STATUS_LABEL[c.status]}
-                    {c.refund && <span className={styles.muted}> · 환불 {REFUND_LABEL[c.refund.status]}</span>}
-                  </td>
-                  <td>{c.transactionId ?? "—"}</td>
+          {view.charges.length === 0 ? (
+            <p className={styles.empty}>충전 내역이 없어요.</p>
+          ) : (
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th scope="col">일시</th>
+                  <th scope="col">회원</th>
+                  <th scope="col">충전 FN</th>
+                  <th scope="col">결제 금액</th>
+                  <th scope="col">수단</th>
+                  <th scope="col">상태</th>
+                  <th scope="col">거래 번호</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {view.charges.map((c) => (
+                  <tr key={c.id}>
+                    <td>{when(c.chargedAt)}</td>
+                    <td>
+                      <Link href={`/members/${c.memberId}`} className={styles.rowLink}>
+                        {c.memberName}
+                      </Link>
+                    </td>
+                    <td>{formatNumber(c.fnAmount)} FN</td>
+                    <td>{formatNumber(c.paidAmount)}원</td>
+                    <td>{c.methodLabel}</td>
+                    <td>
+                      {CHARGE_STATUS_LABEL[c.status]}
+                      {c.refund && <span className={styles.muted}> · 환불 {REFUND_LABEL[c.refund.status]}</span>}
+                    </td>
+                    <td>{c.transactionId ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </section>
       ) : (
         <section className={styles.card}>
@@ -123,44 +127,52 @@ export function DonationsAdminScreen({ view, status }: { view: DonationsView; st
           <h2 id="dn-types" className={styles.cardTitle}>
             유형별 (완료)
           </h2>
-          <ul className={styles.queue}>
-            {view.byType.map((t) => (
-              <li key={t.typeLabel}>
-                <span>{t.typeLabel}</span>
-                <strong>{formatNumber(t.fn)} FN</strong>
-                <span className={styles.muted}>{formatNumber(t.count)}건</span>
-              </li>
-            ))}
-          </ul>
+          {view.byType.length === 0 ? (
+            <p className={styles.empty}>완료된 후원이 없어요.</p>
+          ) : (
+            <ul className={styles.queue}>
+              {view.byType.map((t) => (
+                <li key={t.typeLabel}>
+                  <span>{t.typeLabel}</span>
+                  <strong>{formatNumber(t.fn)} FN</strong>
+                  <span className={styles.muted}>{formatNumber(t.count)}건</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
         <section className={styles.card} aria-labelledby="dn-list">
           <h2 id="dn-list" className={styles.cardTitle}>
             후원 내역 {status ? `· ${DONATION_STATUS_LABEL[status]}` : ""} ({formatNumber(view.rows.length)})
           </h2>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th scope="col">일시</th>
-                <th scope="col">후원자 → 크리에이터</th>
-                <th scope="col">유형</th>
-                <th scope="col">FN</th>
-                <th scope="col">상태</th>
-              </tr>
-            </thead>
-            <tbody>
-              {view.rows.map((d) => (
-                <tr key={d.id}>
-                  <td>{when(d.donatedAt)}</td>
-                  <td>
-                    {d.memberName} → {d.creatorName}
-                  </td>
-                  <td>{d.typeLabel}</td>
-                  <td>{formatNumber(d.fnAmount)}</td>
-                  <td>{DONATION_STATUS_LABEL[d.status]}</td>
+          {view.rows.length === 0 ? (
+            <p className={styles.empty}>{status ? "해당하는 후원이 없어요." : "후원 내역이 없어요."}</p>
+          ) : (
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th scope="col">일시</th>
+                  <th scope="col">후원자 → 크리에이터</th>
+                  <th scope="col">유형</th>
+                  <th scope="col">FN</th>
+                  <th scope="col">상태</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {view.rows.map((d) => (
+                  <tr key={d.id}>
+                    <td>{when(d.donatedAt)}</td>
+                    <td>
+                      {d.memberName} → {d.creatorName}
+                    </td>
+                    <td>{d.typeLabel}</td>
+                    <td>{formatNumber(d.fnAmount)}</td>
+                    <td>{DONATION_STATUS_LABEL[d.status]}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </section>
       </div>
     </div>
