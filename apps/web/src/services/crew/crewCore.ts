@@ -300,13 +300,21 @@ export function crewDonationRows(channelId: string) {
     .sort((a, b) => b.at.localeCompare(a.at));
 }
 
-/** This month's per-member totals for a channel (members without donations included, sorted by FN). */
-export function memberRanking(channelId: string): MemberRankRow[] {
+/**
+ * This month's per-member totals for a channel (members without donations included, sorted by FN). The month is the
+ * server's local one (Asia/Seoul): `at` is a UTC timestamp, so it is compared as a time, not by its "YYYY-MM" text
+ * (00:00–08:59 KST on the 1st is still the previous month in UTC).
+ */
+export function memberRanking(channelId: string, now = new Date()): MemberRankRow[] {
   const members = mockCrew.crews[channelId] ?? [];
-  const now = new Date();
-  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const from = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  const to = new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime();
+  const inMonth = (at: string) => {
+    const t = Date.parse(at);
+    return t >= from && t < to;
+  };
   const rows = members.map((mem) => {
-    const mine = mockCrew.attributions.filter((a) => a.channelId === channelId && a.memberId === mem.id && a.at.startsWith(month));
+    const mine = mockCrew.attributions.filter((a) => a.channelId === channelId && a.memberId === mem.id && inMonth(a.at));
     return { memberId: mem.id, name: mem.name, role: mem.role, totalFn: mine.reduce((s, a) => s + a.fnAmount, 0), count: mine.length, sharePercent: 0 };
   });
   const total = rows.reduce((s, r) => s + r.totalFn, 0);

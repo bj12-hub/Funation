@@ -46,6 +46,27 @@ describe("크루", () => {
     expect(account.fnBalance).toBe(100_000);
   });
 
+  it("ranks this month in server time (KST), not by the UTC date text", async () => {
+    const tz = process.env.TZ;
+    process.env.TZ = "Asia/Seoul"; // the server's zone (instrumentation.ts)
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      const { recordAttribution, memberRanking } = await load();
+      const shown = { donor: "익명", donorId: "", message: "" };
+      vi.setSystemTime(new Date("2026-09-30T23:30:00+09:00"));
+      recordAttribution("dn-sep", "c4", "cm-c4-1", 1_000, shown); // September in KST
+      vi.setSystemTime(new Date("2026-10-01T00:30:00+09:00"));
+      recordAttribution("dn-oct", "c4", "cm-c4-2", 2_000, shown); // stored as 2026-09-30T15:30Z, October in KST
+      const rows = memberRanking("c4");
+      expect(rows.find((r) => r.memberId === "cm-c4-2")).toMatchObject({ totalFn: 2_000, count: 1 });
+      expect(rows.find((r) => r.memberId === "cm-c4-1")).toMatchObject({ totalFn: 0, count: 0 });
+    } finally {
+      vi.useRealTimers();
+      if (tz === undefined) delete process.env.TZ;
+      else process.env.TZ = tz;
+    }
+  });
+
   it("donating without a member still works and is not attributed", async () => {
     const { requestDonation, store } = await load();
     const before = store.attributions.length;
