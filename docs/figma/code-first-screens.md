@@ -111,7 +111,7 @@ Add a row whenever a new code-first screen ships (see `docs/research/funnation-r
 
 | `/admin/settlements` 정산 심사 (`features/admin/settlements/*`) + 스튜디오 정산 관리 반려 사유 | admin settlements PR | 정산 등록 정보(마스킹), 상태 탭(전체 · 심사 대기 · 승인 · 반려), 신청별 금액 · 기간 · 수수료 · 실지급 · 지급 예정일, 승인 / 반려(처리 메모 필수 · 최종 · 감사 로그), 반려 시 실지급 0 · 지급일 해제 · 신청 금액을 신청 가능 금액으로 반환; 크리에이터 정산 관리 표에 반려 사유 표시. 2026-10-06: 상단 카드는 "현재 정산 등록 정보", 신청마다 "신청 시점 정산 정보"(마스킹 · 466:2) 한 줄, 그 정보가 없는 신청은 승인 버튼 비활성 + 안내. TBD: 서류 심사 · 실제 지급(이체) · 정책 수치 |
 
-| `/admin/content` 콘텐츠 관리 (공지사항 · 자주 묻는 질문 탭, `features/admin/content/ContentManager.tsx`) | admin content PR | 공지 등록 · 수정 · 삭제(분류 · 중요 고정 · 제목 · 요약 · 본문 문단), FAQ 등록 · 수정 · 삭제(분류 · 질문 · 답변 비우면 준비 중 · 사이트 내부 링크만), 고객센터가 같은 데이터를 읽어 즉시 반영, 새 공지는 사이트 알림 발송, 모든 변경 감사 로그. TBD: 예약 게시 · 게시 기간 · 이미지 첨부 · 승인 절차 |
+| `/admin/content` 콘텐츠 관리 (공지사항 · 자주 묻는 질문 탭, `features/admin/content/ContentManager.tsx`) | admin content PR | 공지 등록 · 수정 · 삭제(분류 · 중요 고정 · 제목 · 요약 · 본문 문단), FAQ 등록 · 수정 · 삭제(분류 · 질문 · 답변 비우면 준비 중 · 사이트 내부 링크만), 고객센터가 같은 데이터를 읽어 즉시 반영, 새 공지는 사이트 알림 발송, 모든 변경 감사 로그. 새 글은 작성 창마다 요청 ID 하나(같은 내용 재시도 = 한 번만 등록, 다른 내용 · 다른 종류로 같은 ID = "이미 다른 내용으로 저장됐어요"), 사이트 연결 실패는 "사이트에 연결할 수 없어요" 안내. TBD: 예약 게시 · 게시 기간 · 이미지 첨부 · 승인 절차 |
 
 | `/admin/platforms` 플랫폼 연동 · `/admin/system` 시스템 (`features/admin/system/SystemScreens.tsx`) + 사이트 공지 배너 (`components/layout/SiteBanner`) | admin platform-system PR | 플랫폼별 어댑터 지원 기능 · 스튜디오 연결 · 동기화 · 후원 연동 · 연결 확인(지연 시간 · 오류 코드); 사이트 공지 배너(안내 / 주의, 문구 120자, 내부 링크, 켜기 · 끄기, 감사 로그) — 사이트 모든 페이지 상단 표시; 실행 환경 정보. 운영자 세션은 회원 세션과 분리(사이트에서는 비로그인). TBD: 배너 예약 · 여러 배너, OAuth · 웹훅 · 할당량 모니터링 |
 

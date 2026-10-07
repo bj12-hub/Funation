@@ -56,4 +56,20 @@ describe("admin content", () => {
     expect(await m.getFaqs({ query: "새 질문" })).toHaveLength(0);
   });
 
+  it("answers a reused create id with CONFLICT unless it is the same draft of the same kind", async () => {
+    const m = await load();
+    const res = await m.saveNotice(OP, { ...notice, requestId: key(1) });
+    expect(res.status).toBe("OK");
+    // After a timeout the operator fixes the title and saves again: not the earlier OK for a draft that was not saved.
+    expect(await m.saveNotice(OP, { ...notice, title: "고친 제목", requestId: key(1) })).toEqual({ status: "CONFLICT" });
+    expect((await m.getNotices()).some((n) => n.title === "고친 제목")).toBe(false);
+    // A FAQ never borrows a notice's request id.
+    const faq = { category: "DONATION", question: "다른 종류인가요?", answer: "", linkHref: "", linkLabel: "" };
+    expect(await m.saveFaq(OP, { ...faq, requestId: key(1) })).toEqual({ status: "CONFLICT" });
+    expect(await m.getFaqs({ query: "다른 종류" })).toHaveLength(0);
+    // The same draft again (key order does not matter) is the retry it looks like.
+    const { title, ...rest } = notice;
+    expect(await m.saveNotice(OP, { requestId: key(1), ...rest, title })).toEqual(res);
+    expect((await m.getNotices()).filter((n) => n.title === notice.title)).toHaveLength(1);
+  });
 });

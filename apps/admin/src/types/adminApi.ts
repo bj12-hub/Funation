@@ -225,5 +225,8 @@ export const REPORT_NOTE = { min: 2, max: 200 } as const;
 
 // ── Mutation results ──────────────────────────────────────────────────────────
 
-/** Every write returns one of these (`id` for creates; NOT_FOUND / UNAUTHORIZED / UNAVAILABLE from the API). */
-export type ActionResult = { status: "OK"; id?: string } | { status: "INVALID"; message: string } | { status: "NOT_FOUND" | "UNAUTHORIZED" | "UNAVAILABLE" };
+/**
+ * Every write returns one of these (`id` for creates; NOT_FOUND / UNAUTHORIZED / UNAVAILABLE from the API; CONFLICT when
+ * a create's request id was already used for a different draft).
+ */
+export type ActionResult = { status: "OK"; id?: string } | { status: "INVALID"; message: string } | { status: "NOT_FOUND" | "UNAUTHORIZED" | "UNAVAILABLE" | "CONFLICT" };

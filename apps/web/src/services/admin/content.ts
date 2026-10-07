@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { USE_MOCK } from "@/lib/mock";
 import { toDateString } from "@/lib/period";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
@@ -20,8 +21,29 @@ const assertMock = () => {
 const obj = (input: unknown) => (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
 const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 const forbidden = (...texts: string[]) => texts.some((t) => MOCK_FORBIDDEN_WORDS.some((w) => t.toLowerCase().includes(w)));
-const g = globalThis as typeof globalThis & { __funationMockContentRequestsV1?: Record<string, string> };
-const requests = (g.__funationMockContentRequestsV1 ??= {});
+/** A create request already applied: what it created and the draft it carried. */
+type ContentRequest = { kind: "notice" | "faq"; fingerprint: string; id: string };
+// V2: requests remember their kind and draft (V1 kept the created id only).
+const g = globalThis as typeof globalThis & { __funationMockContentRequestsV2?: Record<string, ContentRequest> };
+const requests = (g.__funationMockContentRequestsV2 ??= {});
+
+/** What the admin sent (key order ignored, the request id left out), like the Donation Core's fingerprint. */
+const fingerprintOf = (v: Record<string, unknown>) =>
+  JSON.stringify(
+    Object.entries(v)
+      .filter(([k]) => k !== "requestId")
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+  );
+
+/**
+ * A create whose request id was already used: OK with the same id when it is the same draft of the same kind (a retry),
+ * CONFLICT otherwise — a corrected draft or another kind must never get the earlier OK without being saved.
+ */
+function replayed(kind: ContentRequest["kind"], v: Record<string, unknown>): ContentResult | null {
+  const r = requests[v.requestId as string];
+  if (!r) return null;
+  return r.kind === kind && r.fingerprint === fingerprintOf(v) ? { status: "OK", id: r.id } : { status: "CONFLICT" };
+}
 
 export async function listNoticesAdmin(): Promise<Notice[] | null> {
   assertMock();
@@ -34,7 +56,8 @@ export async function saveNotice(admin: AdminActor, input: unknown): Promise<Con
   const id = typeof v.id === "string" && v.id ? v.id : null;
   if (!id) {
     if (typeof v.requestId !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
-    if (requests[v.requestId]) return { status: "OK", id: requests[v.requestId] };
+    const previous = replayed("notice", v);
+    if (previous) return previous;
   }
   const title = str(v.title);
   const summary = str(v.summary);
@@ -55,9 +78,9 @@ export async function saveNotice(admin: AdminActor, input: unknown): Promise<Con
     recordAudit(admin, "CONTENT_UPDATE", `notice:${id}`, `공지 수정 · ${title}`);
     return { status: "OK", id };
   }
-  const newId = `n-${Date.now().toString(36)}`;
+  const newId = `n-${randomUUID()}`;
   items.push({ id: newId, ...next, date: toDateString(new Date()), views: 0 });
-  requests[v.requestId as string] = newId;
+  requests[v.requestId as string] = { kind: "notice", fingerprint: fingerprintOf(v), id: newId };
   recordAudit(admin, "CONTENT_UPDATE", `notice:${newId}`, `공지 등록 · ${title}`);
   // Members hear about new notices in 사이트 알림 (once per notice).
   notify({ kind: "NOTICE", title: "새 공지사항", body: title, href: `/support/notices/${newId}`, dedupeKey: `notice:${newId}` });
@@ -85,7 +108,8 @@ export async function saveFaq(admin: AdminActor, input: unknown): Promise<Conten
   const id = typeof v.id === "string" && v.id ? v.id : null;
   if (!id) {
     if (typeof v.requestId !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
-    if (requests[v.requestId]) return { status: "OK", id: requests[v.requestId] };
+    const previous = replayed("faq", v);
+    if (previous) return previous;
   }
   const question = str(v.question);
   const answer = str(v.answer);
@@ -108,9 +132,9 @@ export async function saveFaq(admin: AdminActor, input: unknown): Promise<Conten
     recordAudit(admin, "CONTENT_UPDATE", `faq:${id}`, `FAQ 수정 · ${question}`);
     return { status: "OK", id };
   }
-  const newId = `faq-${Date.now().toString(36)}`;
+  const newId = `faq-${randomUUID()}`;
   items.push({ id: newId, ...next });
-  requests[v.requestId as string] = newId;
+  requests[v.requestId as string] = { kind: "faq", fingerprint: fingerprintOf(v), id: newId };
   recordAudit(admin, "CONTENT_UPDATE", `faq:${newId}`, `FAQ 등록 · ${question}`);
   return { status: "OK", id: newId };
 }
