@@ -2,24 +2,11 @@
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession, revokeSession } from "@/lib/session";
-import {
-  PROFILE_PHOTO_MAX_BYTES,
-  PROFILE_PHOTO_TYPES,
-  isValidFunationId,
-  isValidPassword,
-  isValidNickname
-} from "@/lib/validation";
-import {
-  MOCK_FORBIDDEN_WORDS,
-  MOCK_TAKEN_FUNATION_IDS,
-  MOCK_TAKEN_NICKNAMES,
-  mockAccount,
-  mockChangeHistory,
-  mockCredentials
-} from "./mockStore";
+import { PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES, isValidFunationId, isValidPassword } from "@/lib/validation";
+import { MOCK_FORBIDDEN_WORDS, MOCK_TAKEN_FUNATION_IDS, mockAccount, mockChangeHistory, mockCredentials } from "./mockStore";
+import { judgeNickname, nicknamesTakenForMember } from "./nicknameRules";
 import { clearPasswordFailures, currentAccountKey, isPasswordLocked, recordPasswordFailure } from "@/services/auth/loginLockCore";
 import { matchesContent } from "@/services/creator/assetCore";
-import { isReservedNickname } from "@/services/supporter/identityTypes";
 
 /**
  * My page profile changes (Figma 743:1955 photo · 743:1997 nickname · 743:2040 ID · 743:2084 password).
@@ -73,24 +60,23 @@ function assertMock() {
   if (!USE_MOCK) throw new Error("Account API is not connected yet.");
 }
 
+/** Nickname rules shared with sign-up (./nicknameRules.ts): format, forbidden words, 익명, other members' and channel names. */
 export async function checkNickname(nickname: unknown): Promise<NicknameCheckResult> {
   assertMock();
   await mockDelay(300);
-  if (typeof nickname !== "string" || !isValidNickname(nickname)) return { status: "INVALID" };
-  // 익명 is what a hidden profile shows on stream: a nickname cannot pose as it.
-  if (containsForbidden(nickname) || isReservedNickname(nickname)) return { status: "FORBIDDEN" };
-  if (MOCK_TAKEN_NICKNAMES.includes(nickname.toLowerCase())) return { status: "DUPLICATE" };
-  return { status: "AVAILABLE" };
+  return { status: judgeNickname(nickname, await nicknamesTakenForMember()) };
 }
 
 export async function changeNickname(nickname: unknown): Promise<NameChangeResult> {
   assertMock();
   if (!(await getSession())) return { status: "UNAUTHORIZED" };
   await mockDelay(400);
+  const taken = await nicknamesTakenForMember();
+  // From here to the write nothing awaits: two tabs cannot both pass the 30-day limit.
   const until = limitedUntil(mockChangeHistory.nicknameChangedAt, NICKNAME_CHANGE_INTERVAL_DAYS);
   if (until) return { status: "LIMITED", availableFrom: until.toISOString() };
-  const check = await checkNickname(nickname);
-  if (check.status !== "AVAILABLE") return check;
+  const verdict = judgeNickname(nickname, taken);
+  if (verdict !== "AVAILABLE") return { status: verdict };
   mockAccount.nickname = nickname as string;
   mockChangeHistory.nicknameChangedAt = new Date();
   return { status: "CHANGED", value: mockAccount.nickname };

@@ -21,6 +21,8 @@ const MSG = {
   PASSWORD_MISMATCH: "비밀번호가 일치하지 않습니다.",
   NICKNAME_FORMAT: "올바른 닉네임 형식이 아닙니다.",
   NICKNAME_TAKEN: "이미 사용 중인 닉네임입니다. 다른 닉네임을 사용해 주세요.",
+  // Code-first: the 마이페이지 nickname change's FORBIDDEN copy (forbidden words and 익명).
+  NICKNAME_FORBIDDEN: "사용할 수 없는 표현이 포함되어 있습니다.",
   NICKNAME_UNCHECKED: "닉네임 중복 확인을 해 주세요."
 };
 
@@ -58,9 +60,12 @@ export function AccountStep({ submitting, submitError, onBack, onSubmit }: Accou
   async function checkNickname() {
     if (!isValidNickname(nickname)) return setError("nickname", MSG.NICKNAME_FORMAT);
     setNicknameCheck("checking");
-    const { available } = await checkNicknameAvailability(nickname);
+    const { available, reason } = await checkNicknameAvailability(nickname);
     setNicknameCheck(available ? "ok" : "idle");
-    setError("nickname", available ? undefined : MSG.NICKNAME_TAKEN);
+    setError(
+      "nickname",
+      available ? undefined : reason === "FORBIDDEN" ? MSG.NICKNAME_FORBIDDEN : reason === "INVALID" ? MSG.NICKNAME_FORMAT : MSG.NICKNAME_TAKEN
+    );
   }
 
   function handleSubmit(event: FormEvent) {

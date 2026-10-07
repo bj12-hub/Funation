@@ -23,6 +23,24 @@ describe("signup", () => {
     expect(await signup({ ...valid, phoneVerificationToken, nickname: "funation" })).toEqual({ status: "NICKNAME_TAKEN" });
   });
 
+  it("applies the member nickname rules: forbidden words, 익명, other members' nicknames and channel names", async () => {
+    const { signup, checkNicknameAvailability } = await import("./signup");
+    const phoneVerificationToken = await phoneToken();
+    const ok = { ...valid, phoneVerificationToken };
+    expect(await checkNicknameAvailability("익명")).toEqual({ available: false, reason: "FORBIDDEN" });
+    expect(await checkNicknameAvailability("운영자님")).toEqual({ available: false, reason: "FORBIDDEN" });
+    expect(await checkNicknameAvailability(" 별빛시청자 ")).toEqual({ available: false, reason: "DUPLICATE" }); // a member
+    expect(await checkNicknameAvailability("하루봄")).toEqual({ available: false, reason: "DUPLICATE" }); // a channel
+    expect(await checkNicknameAvailability("홍길동")).toEqual({ available: false, reason: "DUPLICATE" }); // the active account
+    expect(await checkNicknameAvailability("새회원")).toEqual({ available: true });
+    expect(await signup({ ...ok, nickname: "익명" })).toEqual({ status: "INVALID" });
+    expect(await signup({ ...ok, nickname: "admin1" })).toEqual({ status: "INVALID" });
+    expect(await signup({ ...ok, nickname: "별빛시청자" })).toEqual({ status: "NICKNAME_TAKEN" });
+    expect(await signup({ ...ok, nickname: "하루봄" })).toEqual({ status: "NICKNAME_TAKEN" });
+    expect(await signup({ ...ok, nickname: "홍길동" })).toEqual({ status: "NICKNAME_TAKEN" });
+    expect(await signup(ok)).toEqual({ status: "CREATED" });
+  });
+
   it("rejects bad formats and missing required agreements", async () => {
     const { signup } = await import("./signup");
     const phoneVerificationToken = await phoneToken();

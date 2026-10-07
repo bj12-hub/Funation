@@ -49,6 +49,11 @@ describe("계정", () => {
     expect(await m.checkNickname("운영자님")).toEqual({ status: "FORBIDDEN" });
     expect(await m.checkNickname("익명")).toEqual({ status: "FORBIDDEN" }); // the hidden-profile label
     expect(await m.checkNickname("FUNATION")).toEqual({ status: "DUPLICATE" });
+    // The nickname is the default 별명: no other member's nickname, no channel name (2026-10-08 결정).
+    expect(await m.checkNickname("별빛시청자")).toEqual({ status: "DUPLICATE" });
+    expect(await m.changeNickname("별빛시청자")).toEqual({ status: "DUPLICATE" });
+    expect(await m.changeNickname("하루봄")).toEqual({ status: "DUPLICATE" });
+    expect(await m.changeNickname("익명")).toEqual({ status: "FORBIDDEN" });
     expect(await m.changeNickname("새닉네임")).toEqual({ status: "CHANGED", value: "새닉네임" });
     const limited = await m.changeNickname("또바꿈");
     expect(limited).toMatchObject({ status: "LIMITED" });
@@ -62,6 +67,13 @@ describe("계정", () => {
     expect(await m.changeNickname("또바꿈")).toEqual({ status: "CHANGED", value: "또바꿈" });
     signIn(null);
     expect(await m.changeNickname("게스트")).toEqual({ status: "UNAUTHORIZED" });
+  });
+
+  it("lets only one of two simultaneous nickname changes through the 30-day limit", async () => {
+    const m = await load();
+    const results = await Promise.all([m.changeNickname("첫번째탭"), m.changeNickname("두번째탭")]);
+    expect(results.map((r) => r.status).sort()).toEqual(["CHANGED", "LIMITED"]);
+    expect(m.store.mockAccount.nickname).toBe("첫번째탭");
   });
 
   it("changes the password only with the current one, never reusing a recent one, and signs out", async () => {
