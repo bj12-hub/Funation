@@ -57,6 +57,16 @@ export function toDateString(d: Date) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+const KST_OFFSET_MS = 9 * 3_600_000; // UTC+9, no daylight saving
+
+/**
+ * The Korean calendar day (KST) of `d` as `YYYY-MM-DD`, whatever zone the code runs in — for the browser, where
+ * `toDateString` would use the viewer's zone and `toISOString` the UTC day (which turns over at 09:00 KST).
+ */
+export function kstDateString(d = new Date()) {
+  return new Date(d.getTime() + KST_OFFSET_MS).toISOString().slice(0, 10);
+}
+
 /**
  * A real calendar day as `YYYY-MM-DD`. The format check alone is not enough: `new Date("2026-02-30")` rolls
  * over to 3월 2일 instead of failing, so the parsed day must print back as the same string.

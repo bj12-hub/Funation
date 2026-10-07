@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { AlertTriangleIcon } from "@/components/icons";
 import { Modal } from "@/components/ui/Modal";
+import { kstDateString } from "@/lib/period";
 import type { HomeNotice } from "@/services/home/homeFeed";
 import styles from "./homeNotices.module.css";
 
@@ -11,7 +12,8 @@ import styles from "./homeNotices.module.css";
 const HIDE_KEY = "funation.homeNotices.hiddenOn";
 const CLOSED_KEY = "funation.homeNotices.closed";
 
-const today = () => new Date().toISOString().slice(0, 10);
+/** "오늘" is the Korean day: the notices come back at 00:00 KST (the UTC day would turn over at 09:00). */
+const today = () => kstDateString();
 
 function readHidden() {
   try {

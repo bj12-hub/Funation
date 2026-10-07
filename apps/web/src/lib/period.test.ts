@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseHistoryParams } from "@/features/wallet/historyParams";
-import { isIsoDate, isIsoDateTime, parsePeriod, presetRange } from "./period";
+import { isIsoDate, isIsoDateTime, kstDateString, parsePeriod, presetRange } from "./period";
 import { parseStatsPeriod, presetPeriod } from "@/services/creator/creatorStats";
 import { parseListPeriod } from "@/services/creator/donationManagementTypes";
 import { PARSERS } from "@/services/creator/widgetParsers";
@@ -67,5 +67,22 @@ describe("달력 기준 기간", () => {
     expect(presetPeriod("today", d)).toMatchObject({ from: today, to: today });
     expect([presetRange("day", d).from, presetRange("week", d).from, presetRange("month", d).from, presetRange("year", d).from]).toEqual([today, week, m1, y1]);
     expect(presetRange("month", d).to).toBe(today);
+  });
+});
+
+/**
+ * 홈 공지 "오늘 하루 열지 않음" counts the Korean day. The UTC day (`toISOString`) turns over at 09:00 KST, so a notice
+ * hidden in the morning came back the same day, and one hidden late at night stayed hidden until 09:00 the next day.
+ */
+describe("KST 날짜", () => {
+  it("names the Korean calendar day whatever the runtime's zone", () => {
+    const cases: [utc: string, kst: string][] = [
+      ["2026-10-08T14:59:59Z", "2026-10-08"], // 23:59:59 KST
+      ["2026-10-08T15:00:00Z", "2026-10-09"], // 00:00 KST — the UTC day is still 10-08
+      ["2026-10-08T23:59:59Z", "2026-10-09"], // 08:59:59 KST
+      ["2026-10-09T00:00:00Z", "2026-10-09"], // 09:00 KST
+      ["2026-12-31T15:30:00Z", "2027-01-01"]
+    ];
+    for (const [utc, kst] of cases) expect(kstDateString(new Date(utc))).toBe(kst);
   });
 });
