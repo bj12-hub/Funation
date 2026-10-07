@@ -52,6 +52,33 @@ describe("룰렛 · 뽑기 overlays", () => {
   });
 });
 
+describe("후원 닉네임 변경", () => {
+  beforeEach(() => resetMockStores());
+
+  it("sends every donation under the member nickname while the creator has it off", async () => {
+    const m = await load();
+    const { donationPageStore } = await import("@/services/creator/donationPageCore");
+    expect(await m.identity.addDonationNickname("응원단장")).toEqual({ status: "SAVED" });
+    const alias = (await m.identity.getDonationNicknameOptions())!.find((n) => n.name === "응원단장")!;
+    await m.identity.setDefaultDonationNickname(alias.id);
+    donationPageStore.options.nicknameChangeable = false;
+    const aliasTotal = async () => (await m.identity.getSupporterIdentity())!.nicknames.find((n) => n.id === alias.id)!.totalFn;
+    const before = await aliasTotal();
+
+    expect(await m.identity.getDonationNicknameOptions()).toEqual([{ id: "nk-default", name: "홍길동" }]);
+    expect((await m.identity.getAlertBadges(alias.id, "studio"))!.name).toBe("홍길동");
+    expect((await m.requestDonation(text(1, { nicknameId: alias.id }))).status).toBe("COMPLETED");
+    expect(m.mockAlerts.items.at(-1)!.donor).toBe("홍길동");
+    expect((await m.requestDonation(text(2))).status).toBe("COMPLETED"); // the 별명 set as default is not used either
+    expect(m.mockAlerts.items.at(-1)!.donor).toBe("홍길동");
+    expect(await aliasTotal()).toBe(before); // counted under the member nickname, not the 별명
+
+    donationPageStore.options.nicknameChangeable = true;
+    await m.requestDonation(text(3, { nicknameId: alias.id }));
+    expect(m.mockAlerts.items.at(-1)!.donor).toBe("응원단장");
+  });
+});
+
 describe("후원랭킹 donor keys", () => {
   beforeEach(() => resetMockStores());
 

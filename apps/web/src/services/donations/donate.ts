@@ -9,7 +9,7 @@ import { donorKeyOf, enqueueDonationAlert } from "@/services/creator/alertCore";
 import { shownOnStream } from "@/services/creator/donationPageCore";
 import { getCreatorById } from "@/services/creators/creators";
 import { attributeMemberDonation, isActiveMember, liveBroadcastOf, recordBroadcastDonation } from "@/services/crew/crewCore";
-import { attributeDonation, ownsNickname, resolveBadges } from "@/services/supporter/identityCore";
+import { MEMBER_NICKNAME_ID, attributeDonation, nicknameChangeable, ownsNickname, resolveBadges } from "@/services/supporter/identityCore";
 import { alertBadgeLabels } from "@/services/supporter/identityTypes";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import type { DonationCatalog } from "./donationCatalog";
@@ -223,9 +223,11 @@ function parse(v: Record<string, unknown>, catalog: DonationCatalog): Parsed | {
   const typeInfo = catalog.types.find((t) => t.key === v.type);
   if (!typeInfo?.available) return null;
 
-  // Optional donation nickname (별명): must belong to the supporter; null = the default nickname.
-  if (v.nicknameId !== undefined && v.nicknameId !== null && !ownsNickname(v.nicknameId)) return null;
-  const nicknameId = typeof v.nicknameId === "string" ? v.nicknameId : null;
+  // Optional donation nickname (별명): must belong to the supporter; null = the default nickname. With the creator's
+  // 후원 닉네임 변경 off, the pick is ignored and the donation goes out under the member nickname.
+  const changeable = nicknameChangeable();
+  if (changeable && v.nicknameId !== undefined && v.nicknameId !== null && !ownsNickname(v.nicknameId)) return null;
+  const nicknameId = !changeable ? MEMBER_NICKNAME_ID : typeof v.nicknameId === "string" ? v.nicknameId : null;
   // Optional crew member (크루 멤버 지정): must be an active member of this creator's crew.
   if (v.memberId !== undefined && v.memberId !== null && !isActiveMember(v.creatorId as string, v.memberId)) return null;
   const memberId = typeof v.memberId === "string" ? v.memberId : null;

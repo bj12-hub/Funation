@@ -1,5 +1,6 @@
 import { MOCK_TAKEN_NICKNAMES, mockAccount } from "@/services/account/mockStore";
 import { memberStore } from "@/services/admin/memberCore";
+import { donationPageStore } from "@/services/creator/donationPageCore";
 import { getAllCreatorsForAdmin } from "@/services/creators/creators";
 import { listDonationRecords } from "@/services/wallet/walletHistory";
 import {
@@ -31,9 +32,18 @@ function progress(tiers: readonly { label: string; minFn: number }[], currentFn:
   return { currentFn, nextLabel: next?.label ?? null, nextMinFn: next?.minFn ?? null, percent };
 }
 
+/** The member nickname: the 별명 entry that follows the account nickname. */
+export const MEMBER_NICKNAME_ID = "nk-default";
+
 export function nicknameList(): { id: string; name: string }[] {
-  return [{ id: "nk-default", name: mockAccount.nickname }, ...mockIdentity.nicknames];
+  return [{ id: MEMBER_NICKNAME_ID, name: mockAccount.nickname }, ...mockIdentity.nicknames];
 }
+
+/**
+ * 후원 닉네임 변경 (후원 페이지 설정, 539:7): when it is off, donations go out under the member nickname, whatever 별명
+ * was picked or set as default. The mock reads the studio's settings for every channel.
+ */
+export const nicknameChangeable = () => donationPageStore.options.nicknameChangeable;
 
 export function computeIdentity(): SupporterIdentity {
   const records = listDonationRecords().filter((d) => d.status === "COMPLETED");

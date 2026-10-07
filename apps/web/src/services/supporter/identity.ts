@@ -3,7 +3,7 @@
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
-import { computeIdentity, namesTakenByOthers, nicknameList, resolveBadges } from "./identityCore";
+import { MEMBER_NICKNAME_ID, computeIdentity, namesTakenByOthers, nicknameChangeable, nicknameList, resolveBadges } from "./identityCore";
 import { MAX_NICKNAMES, NICKNAME_RULE, isReservedNickname, type AlertBadges, type EquipSettings, type GlobalTitleKey, type IdentitySaveResult, type SupporterIdentity } from "./identityTypes";
 import { mockIdentity } from "./mockIdentityStore";
 
@@ -106,11 +106,12 @@ export async function saveEquipSettings(input: unknown): Promise<IdentitySaveRes
 
 // ── Donation panel ─────────────────────────────────────────────────────────────
 
-/** Nicknames selectable in the donation panel, default first. */
+/** Nicknames selectable in the donation panel, default first; only the member nickname when 후원 닉네임 변경 is off. */
 export async function getDonationNicknameOptions(): Promise<{ id: string; name: string }[] | null> {
   assertMock();
   if (!(await getSession())) return null;
   const list = nicknameList();
+  if (!nicknameChangeable()) return list.filter((n) => n.id === MEMBER_NICKNAME_ID);
   return [...list.filter((n) => n.id === mockIdentity.defaultId), ...list.filter((n) => n.id !== mockIdentity.defaultId)];
 }
 
@@ -118,5 +119,6 @@ export async function getDonationNicknameOptions(): Promise<{ id: string; name: 
 export async function getAlertBadges(nicknameId: unknown, creatorId: unknown): Promise<AlertBadges | null> {
   assertMock();
   if (!(await getSession())) return null;
-  return resolveBadges(nicknameId, creatorId);
+  // Same rule as the Donation Core: 후원 닉네임 변경 off shows the member nickname.
+  return resolveBadges(nicknameChangeable() ? nicknameId : MEMBER_NICKNAME_ID, creatorId);
 }
