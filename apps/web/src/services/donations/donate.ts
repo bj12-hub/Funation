@@ -5,10 +5,12 @@ import { toDateString } from "@/lib/period";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS, mockAccount } from "@/services/account/mockStore";
-import { enqueueDonationAlert } from "@/services/creator/alertCore";
+import { donorKeyOf, enqueueDonationAlert } from "@/services/creator/alertCore";
+import { matchesContent } from "@/services/creator/assetCore";
+import { shownOnStream } from "@/services/creator/donationPageCore";
 import { getCreatorById } from "@/services/creators/creators";
 import { attributeMemberDonation, isActiveMember, liveBroadcastOf, recordBroadcastDonation } from "@/services/crew/crewCore";
-import { attributeDonation, ownsNickname, resolveBadges } from "@/services/supporter/identityCore";
+import { MEMBER_NICKNAME_ID, attributeDonation, nicknameChangeable, ownsNickname, resolveBadges } from "@/services/supporter/identityCore";
 import { alertBadgeLabels } from "@/services/supporter/identityTypes";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import type { DonationCatalog } from "./donationCatalog";
@@ -43,9 +45,11 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
   const idempotencyKey = v.idempotencyKey;
   const creator = await getCreatorById(v.creatorId);
 
-  // No await from the lookup to the registration: two copies of one request cannot both pass.
+  // No await from the lookup to the registration: two copies of one request cannot both pass. Keys belong to the
+  // member: another member's key never returns (or blocks) their result.
   const fingerprint = fingerprintOf(v);
-  const previous = mockWallet.donationIdempotency[idempotencyKey];
+  const memberKey = `${session.userId}:${idempotencyKey}`;
+  const previous = mockWallet.donationIdempotency[memberKey];
   if (previous) {
     if (previous.fingerprint !== fingerprint) return { status: "CONFLICT" };
     return previous.result ?? { status: "IN_PROGRESS" };
@@ -55,7 +59,7 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
   const request = parse(v, catalog);
   if (!request) return { status: "INVALID" };
   if ("refused" in request) return { status: "INVALID", message: request.refused };
-  mockWallet.donationIdempotency[idempotencyKey] = { fingerprint, result: null };
+  mockWallet.donationIdempotency[memberKey] = { fingerprint, result: null };
 
   await mockDelay(600);
   // From here to the debit nothing awaits: the checks and the write see the same state.
@@ -98,7 +102,9 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
       typeLabel: catalog.types.find((t) => t.key === request.type)!.title,
       category: HISTORY_CATEGORY[request.type] ?? "basic",
       // A running quest holds the FN (refunded on 실패 · 취소); it completes when the quest succeeds.
-      status: quest ? "PROCESSING" : "COMPLETED"
+      status: quest ? "PROCESSING" : "COMPLETED",
+      // Public totals and rankings never count a hidden-profile donation under the member's name.
+      hideProfile: request.hideProfile
     });
     attributeDonation(donationId, request.nicknameId);
     if (quest) {
@@ -123,10 +129,14 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
     }
     // 룰렛: the result is drawn now and revealed when the wheel spins (no FN prize — 2026-10-04 결정).
     // 뽑기: the prize is drawn now (stock goes down) and played on the 뽑기 overlay (no FN prize).
-    if (request.type === "GACHA") enqueueDraw({ id: donationId, channelId: creator.id, supporterUserId: session.userId, donor, gachaId: request.details.gachaId as string, amount: request.amount });
-    if (request.type === "ROULETTE") enqueueSpin({ id: donationId, channelId: creator.id, supporterUserId: session.userId, donor, amount: request.amount });
+    // Their overlays show the name as the alert does (대체 메시지 표시 설정); the records keep the original.
+    const shownDonor = shownOnStream({ donor, message: request.summary }).donor;
+    if (request.type === "GACHA") enqueueDraw({ id: donationId, channelId: creator.id, supporterUserId: session.userId, donor, shownDonor, gachaId: request.details.gachaId as string, amount: request.amount });
+    if (request.type === "ROULETTE") enqueueSpin({ id: donationId, channelId: creator.id, supporterUserId: session.userId, donor, shownDonor, amount: request.amount });
     enqueueDonationAlert(creator.id, {
       donor,
+      // 후원랭킹 groups by this opaque key, never by the (copyable) name; a hidden profile has none.
+      donorKey: request.hideProfile ? null : donorKeyOf(creator.id, session.userId),
       badges,
       message: request.summary,
       fnAmount: request.amount,
@@ -144,7 +154,7 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
     notify({ kind: "DONATION_SENT", title: "후원을 보냈어요", body: `${creator.name}님께 ${request.amount.toLocaleString("ko-KR")} FN`, href: "/wallet/donations", dedupeKey: `donation:${idempotencyKey}` });
     result = { status: "COMPLETED", donationId, fnAmount: request.amount, balance: mockAccount.fnBalance };
   }
-  mockWallet.donationIdempotency[idempotencyKey].result = result;
+  mockWallet.donationIdempotency[memberKey].result = result;
   return result;
 }
 
@@ -207,8 +217,13 @@ const HISTORY_CATEGORY: Partial<Record<string, "basic" | "quest" | "game">> = {
 
 const isFn = (value: unknown, min = 0): value is number => typeof value === "number" && Number.isInteger(value) && value >= min && value <= MAX_FN;
 
-const isDrawing = (value: unknown): value is string =>
-  typeof value === "string" && value.startsWith("data:image/png;base64,") && value.length <= MAX_DRAWING_CHARS;
+const PNG_DATA_URL = "data:image/png;base64,";
+/** A PNG data URL within the size limit: plain base64 whose bytes start with the PNG signature (not just the prefix). */
+const isDrawing = (value: unknown): value is string => {
+  if (typeof value !== "string" || !value.startsWith(PNG_DATA_URL) || value.length > MAX_DRAWING_CHARS) return false;
+  const body = value.slice(PNG_DATA_URL.length);
+  return body.length % 4 === 0 && /^[A-Za-z0-9+/]+={0,2}$/.test(body) && matchesContent(Buffer.from(body.slice(0, 16), "base64"), "image/png");
+};
 
 /** null = malformed; `refused` = well-formed but the text cannot go out (a platform forbidden word). */
 function parse(v: Record<string, unknown>, catalog: DonationCatalog): Parsed | { refused: string } | null {
@@ -216,9 +231,11 @@ function parse(v: Record<string, unknown>, catalog: DonationCatalog): Parsed | {
   const typeInfo = catalog.types.find((t) => t.key === v.type);
   if (!typeInfo?.available) return null;
 
-  // Optional donation nickname (별명): must belong to the supporter; null = the default nickname.
-  if (v.nicknameId !== undefined && v.nicknameId !== null && !ownsNickname(v.nicknameId)) return null;
-  const nicknameId = typeof v.nicknameId === "string" ? v.nicknameId : null;
+  // Optional donation nickname (별명): must belong to the supporter; null = the default nickname. With the creator's
+  // 후원 닉네임 변경 off, the pick is ignored and the donation goes out under the member nickname.
+  const changeable = nicknameChangeable();
+  if (changeable && v.nicknameId !== undefined && v.nicknameId !== null && !ownsNickname(v.nicknameId)) return null;
+  const nicknameId = !changeable ? MEMBER_NICKNAME_ID : typeof v.nicknameId === "string" ? v.nicknameId : null;
   // Optional crew member (크루 멤버 지정): must be an active member of this creator's crew.
   if (v.memberId !== undefined && v.memberId !== null && !isActiveMember(v.creatorId as string, v.memberId)) return null;
   const memberId = typeof v.memberId === "string" ? v.memberId : null;

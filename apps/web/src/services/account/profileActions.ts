@@ -18,6 +18,7 @@ import {
   mockCredentials
 } from "./mockStore";
 import { matchesContent } from "@/services/creator/assetCore";
+import { isReservedNickname } from "@/services/supporter/identityTypes";
 
 /**
  * My page profile changes (Figma 743:1955 photo · 743:1997 nickname · 743:2040 ID · 743:2084 password).
@@ -73,7 +74,8 @@ export async function checkNickname(nickname: unknown): Promise<NicknameCheckRes
   assertMock();
   await mockDelay(300);
   if (typeof nickname !== "string" || !isValidNickname(nickname)) return { status: "INVALID" };
-  if (containsForbidden(nickname)) return { status: "FORBIDDEN" };
+  // 익명 is what a hidden profile shows on stream: a nickname cannot pose as it.
+  if (containsForbidden(nickname) || isReservedNickname(nickname)) return { status: "FORBIDDEN" };
   if (MOCK_TAKEN_NICKNAMES.includes(nickname.toLowerCase())) return { status: "DUPLICATE" };
   return { status: "AVAILABLE" };
 }

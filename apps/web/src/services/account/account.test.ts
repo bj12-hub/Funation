@@ -46,6 +46,7 @@ describe("계정", () => {
     const m = await load();
     expect(await m.checkNickname("a")).toEqual({ status: "INVALID" });
     expect(await m.checkNickname("운영자님")).toEqual({ status: "FORBIDDEN" });
+    expect(await m.checkNickname("익명")).toEqual({ status: "FORBIDDEN" }); // the hidden-profile label
     expect(await m.checkNickname("FUNATION")).toEqual({ status: "DUPLICATE" });
     expect(await m.changeNickname("새닉네임")).toEqual({ status: "CHANGED", value: "새닉네임" });
     const limited = await m.changeNickname("또바꿈");

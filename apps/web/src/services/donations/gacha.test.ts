@@ -120,7 +120,7 @@ describe("뽑기 후원", () => {
     const m = await load();
     setGachas(m);
     const t0 = Date.parse("2026-10-04T12:00:00");
-    const enqueue = (id: string, at: number) => m.enqueueDraw({ id, channelId: "c1", supporterUserId: "u-1", donor: "보라색원픽", gachaId: "gacha-2", amount: 5_000 }, at, () => 0);
+    const enqueue = (id: string, at: number) => m.enqueueDraw({ id, channelId: "c1", supporterUserId: "u-1", donor: "보라색원픽", shownDonor: "보라색원픽", gachaId: "gacha-2", amount: 5_000 }, at, () => 0);
     const first = enqueue("d1", t0); // 아크릴 스탠드
     const second = enqueue("d2", t0 + 1); // 아크릴 스탠드 (queued behind the first)
     const left = (at: number) => m.gachaOffers(at)[1].prizes.map((p) => p.left);
@@ -156,7 +156,7 @@ describe("뽑기 후원", () => {
   it("records the debited amount on the draw, not a price read later", async () => {
     const m = await load();
     setGachas(m);
-    const d = m.enqueueDraw({ id: "d1", channelId: "c1", supporterUserId: "u-1", donor: "보라색원픽", gachaId: "gacha-1", amount: 2_500 }, Date.now(), () => 0);
+    const d = m.enqueueDraw({ id: "d1", channelId: "c1", supporterUserId: "u-1", donor: "보라색원픽", shownDonor: "보라색원픽", gachaId: "gacha-1", amount: 2_500 }, Date.now(), () => 0);
     expect(d).toMatchObject({ amount: 2_500, message: "보라색원픽님이 2,500FN 뽑기 후원을 하였습니다!" });
   });
 
@@ -191,8 +191,8 @@ describe("뽑기 후원", () => {
     const m = await load();
     setGachas(m);
     const t0 = Date.parse("2026-10-04T12:00:00");
-    const first = m.enqueueDraw({ id: "d1", channelId: m.STUDIO_CHANNEL, supporterUserId: "u-1", donor: "오늘은된다", gachaId: "gacha-1", amount: 3_000 }, t0, () => 0); // 상품
-    const second = m.enqueueDraw({ id: "d2", channelId: m.STUDIO_CHANNEL, supporterUserId: "u-2", donor: "확률의신", gachaId: "gacha-1", amount: 3_000 }, t0 + 1, () => 99); // 꽝
+    const first = m.enqueueDraw({ id: "d1", channelId: m.STUDIO_CHANNEL, supporterUserId: "u-1", donor: "오늘은된다", shownDonor: "오늘은된다", gachaId: "gacha-1", amount: 3_000 }, t0, () => 0); // 상품
+    const second = m.enqueueDraw({ id: "d2", channelId: m.STUDIO_CHANNEL, supporterUserId: "u-2", donor: "확률의신", shownDonor: "확률의신", gachaId: "gacha-1", amount: 3_000 }, t0 + 1, () => 99); // 꽝
     expect(m.statusOf(first, t0)).toBe("SPINNING");
     expect(m.statusOf(second, t0 + 1)).toBe("QUEUED");
     expect(m.stageOf(m.STUDIO_CHANNEL, t0 + 1_000)).toMatchObject({ status: "SPINNING", prize: null, donor: "오늘은된다", message: "오늘은된다님이 3,000FN 뽑기 후원을 하였습니다!" });
@@ -227,7 +227,7 @@ describe("뽑기 후원", () => {
     expect(detail.overlayPath).toBe(`/overlay/widget/gacha/${m.overlayKey}`);
 
     setGachas(m);
-    const d = m.enqueueDraw({ id: "d9", channelId: m.STUDIO_CHANNEL, supporterUserId: "u-9", donor: "보라색원픽", gachaId: "gacha-1", amount: 3_000 }, Date.now(), () => 0);
+    const d = m.enqueueDraw({ id: "d9", channelId: m.STUDIO_CHANNEL, supporterUserId: "u-9", donor: "보라색원픽", shownDonor: "보라색원픽", gachaId: "gacha-1", amount: 3_000 }, Date.now(), () => 0);
     expect((await m.finishGachaDraw({ drawId: d.id })).status).toBe("INVALID"); // still drawing
     d.startedAt = new Date(Date.now() - d.spinMs - 500).toISOString();
     const o = await m.getOverlayWidget("gacha", m.overlayKey);

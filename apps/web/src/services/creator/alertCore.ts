@@ -1,3 +1,4 @@
+import { createHmac, randomBytes } from "node:crypto";
 import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
 import type { Platform } from "@/types/platform";
 import { notify } from "@/services/notifications/notificationCore";
@@ -52,9 +53,9 @@ function seedHistory(now = Date.now()): AlertItem[] {
   }));
 }
 
-// V3: seeded donation history (V2 added overlay signals).
-const g = globalThis as typeof globalThis & { __funationMockAlertsV3?: MockAlerts };
-export const mockAlerts = (g.__funationMockAlertsV3 ??= {
+// V4: donation alerts carry `donorKey` (V3 seeded the donation history, V2 added overlay signals).
+const g = globalThis as typeof globalThis & { __funationMockAlertsV4?: MockAlerts; __funationDonorKeySecret?: Buffer };
+export const mockAlerts = (g.__funationMockAlertsV4 ??= {
   items: seedHistory(),
   controls: { paused: false, muted: false, minFn: 0, alertVolume: 50, ttsVolume: 80, signatureVolume: 80, displaySec: 8 },
   shownAt: null,
@@ -64,6 +65,16 @@ export const mockAlerts = (g.__funationMockAlertsV3 ??= {
 });
 // Stores created before 시그니처 볼륨 (2026-10-06) start at the same default.
 mockAlerts.controls.signatureVolume ??= 80;
+
+// Not under __funationMock*: test resets keep it (the real backend keeps a server secret).
+const donorKeySecret = () => (g.__funationDonorKeySecret ??= randomBytes(32));
+
+/**
+ * The opaque key a donation alert carries for its donor: stable per member and channel, unlinkable across channels,
+ * and the member id cannot be read back from it (alert items reach the public overlays).
+ */
+export const donorKeyOf = (channelId: string, memberId: string) =>
+  `dk-${createHmac("sha256", donorKeySecret()).update(`${channelId}\n${memberId}`).digest("base64url").slice(0, 22)}`;
 
 /** The reload signal one overlay watches: 전체 새로고침 + its own 기능별 새로고침. */
 export const reloadSeqOf = (target: OverlayTarget) => mockAlerts.reloadSeq + (mockAlerts.reloadSeqs?.[target] ?? 0);
@@ -75,6 +86,7 @@ export function enqueueAlert(
   input: {
     kind: AlertKind;
     donor: string;
+    donorKey?: string | null;
     badges?: string[];
     message: string;
     fnAmount: number;
@@ -106,11 +118,12 @@ export function enqueueAlert(
  * channel reach this creator's overlay (TBD: per-creator queues once channels are real). The creator's
  * 대체 메시지 표시 설정 and 후원 필터링 apply to the name and message shown (and spoken) on stream (shownOnStream).
  * A 퀘스트 후원 passes its `questId`: the alert shows when it is sent, but its FN counts in the 후원 위젯 only
- * once the quest succeeds (settleQuestAlerts).
+ * once the quest succeeds (settleQuestAlerts). The Donation Core always passes `donorKey` (donorKeyOf, or null for a
+ * hidden profile).
  */
 export function enqueueDonationAlert(
   creatorId: string,
-  input: { donor: string; badges?: string[]; message: string; fnAmount: number; typeLabel: string; imageUrl?: string; soundUrl?: string; questId?: string }
+  input: { donor: string; donorKey?: string | null; badges?: string[]; message: string; fnAmount: number; typeLabel: string; imageUrl?: string; soundUrl?: string; questId?: string }
 ) {
   if (creatorId !== STUDIO_CHANNEL) return;
   const item = enqueueAlert({ kind: "DONATION", ...input, ...shownOnStream(input) });

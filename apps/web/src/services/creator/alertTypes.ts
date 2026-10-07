@@ -17,6 +17,12 @@ export type AlertItem = {
   id: string;
   kind: AlertKind;
   donor: string;
+  /**
+   * DONATION: who sent it, as an opaque per-channel key (never the member id — overlays are public); null = sent with
+   * 프로필 숨기기. 후원랭킹 groups by it, so a name copied from another supporter never joins their row. Absent on
+   * older and seed alerts (grouped by the name shown).
+   */
+  donorKey?: string | null;
   /** 등급·칭호 labels resolved on the server when the donation completed (DONATION only). */
   badges?: string[];
   message: string;

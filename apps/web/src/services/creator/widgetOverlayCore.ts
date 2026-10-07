@@ -1,5 +1,6 @@
 import { formatNumber } from "@/lib/format";
 import { PLATFORM_LABEL, type Platform } from "@/types/platform";
+import { HIDDEN_PROFILE_LABEL } from "@/services/supporter/identityTypes";
 import type { AlertItem } from "./alertTypes";
 import { formatMoney } from "./donationLinkTypes";
 import type { WidgetFeedLine, WidgetRankRow } from "./widgetOverlayTypes";
@@ -70,23 +71,27 @@ export function rankingSince(period: RankingSettings["period"], now = new Date()
 }
 
 /**
- * Top donors by FN in the period, ties broken by who donated first. A hidden profile (익명) is left out
- * (TBD: final rule). The feed keeps the name shown on the alert, so 계정 / 후원시 설정한 이름 both use it (TBD).
+ * Top donors by FN in the period, ties broken by who donated first. Rows group by the alert's opaque `donorKey` and show
+ * the donor's latest name, so a supporter who copies the #1's name as an 별명 gets a row of their own. A hidden
+ * profile (익명) is left out (TBD: final rule). Alerts without a key (seed history) group by the name shown.
+ * 계정 / 후원시 설정한 이름 both use the name shown on the alert (TBD).
  */
 export function rankingRows(items: AlertItem[], s: RankingSettings, now = new Date()): WidgetRankRow[] {
   const since = rankingSince(s.period, now);
-  const totals = new Map<string, { fn: number; first: number }>();
+  const totals = new Map<string, { name: string; fn: number; first: number }>();
   for (const a of countedDonations(items)) {
     const t = Date.parse(a.createdAt);
-    if (t < since || a.donor === "익명") continue;
-    const cur = totals.get(a.donor) ?? { fn: 0, first: t };
+    const key = a.donorKey === undefined ? (a.donor === HIDDEN_PROFILE_LABEL ? null : `name:${a.donor}`) : a.donorKey;
+    if (t < since || key === null) continue;
+    const cur = totals.get(key) ?? { name: a.donor, fn: 0, first: t };
     cur.fn += a.fnAmount;
-    totals.set(a.donor, cur);
+    cur.name = a.donor;
+    totals.set(key, cur);
   }
-  return [...totals]
-    .sort((x, y) => y[1].fn - x[1].fn || x[1].first - y[1].first)
+  return [...totals.values()]
+    .sort((x, y) => y.fn - x.fn || x.first - y.first)
     .slice(0, s.ranks)
-    .map(([name, v], i) => ({ rank: i + 1, name, fnAmount: v.fn }));
+    .map((v, i) => ({ rank: i + 1, name: v.name, fnAmount: v.fn }));
 }
 
 /** 크루 후원 순위: crew members by FN donated for them (멤버 지정) in the period; members with nothing are left out. */

@@ -25,7 +25,10 @@ export type RouletteSpin = {
   seq: number;
   channelId: string;
   supporterUserId: string;
+  /** The donor's name as sent (the 리모컨 and records). */
   donor: string;
+  /** The name the overlay shows: the creator's 대체 메시지 rules applied when it was paid (shownOnStream). */
+  shownDonor: string;
   amount: number;
   createdAt: string;
   /** Server date the participation counts toward (daily limit). */
@@ -69,6 +72,7 @@ function seed(now = Date.now()): Store {
     channelId: STUDIO_CHANNEL,
     supporterUserId: `seed-${donor}`,
     donor,
+    shownDonor: donor,
     amount,
     createdAt: at(min),
     day,
@@ -88,8 +92,9 @@ function seed(now = Date.now()): Store {
   };
 }
 
-const g = globalThis as typeof globalThis & { __funationMockRouletteV1?: Store };
-export const mockRoulette = (g.__funationMockRouletteV1 ??= seed());
+// V2: spins keep the name shown on stream (`shownDonor`).
+const g = globalThis as typeof globalThis & { __funationMockRouletteV2?: Store };
+export const mockRoulette = (g.__funationMockRouletteV2 ??= seed());
 mockRoulette.hidden ??= {};
 
 /** 위젯 화면 숨기기 per channel. */
@@ -139,8 +144,12 @@ export function canParticipate(channelId: string, userId: string, amount: number
   return st.enabled && amount >= st.minAmount && (st.dailyLimit === 0 || usedToday(channelId, userId, now) < st.dailyLimit);
 }
 
-/** Called by the Donation Core after the debit: draws now, spins later. */
-export function enqueueSpin(input: { id: string; channelId: string; supporterUserId: string; donor: string; amount: number }, now = Date.now(), rand?: (n: number) => number) {
+/** Called by the Donation Core after the debit: draws now, spins later. `shownDonor` is the name the overlay shows. */
+export function enqueueSpin(
+  input: { id: string; channelId: string; supporterUserId: string; donor: string; shownDonor: string; amount: number },
+  now = Date.now(),
+  rand?: (n: number) => number
+) {
   const st = settings();
   const items = st.items.map(({ name, percent }) => ({ name, percent }));
   const spin: RouletteSpin = {
@@ -173,7 +182,7 @@ export function stageOf(channelId: string, now = Date.now()): RouletteStage | nu
   const status = statusOf(s, now) as "SPINNING" | "WAITING" | "RESULT";
   const spinEnd = Date.parse(s.startedAt!) + s.spinMs;
   const endsAt = status === "RESULT" ? (shownFrom(s) as number) + ROULETTE_RESULT_SEC * 1000 : spinEnd;
-  return { id: s.id, no: rouletteNo(s.seq), status, donor: s.donor, amount: s.amount, items: s.items, nth: s.nth, limit: s.limit, result: revealed(s, now), endsAt: new Date(endsAt).toISOString() };
+  return { id: s.id, no: rouletteNo(s.seq), status, donor: s.shownDonor, amount: s.amount, items: s.items, nth: s.nth, limit: s.limit, result: revealed(s, now), endsAt: new Date(endsAt).toISOString() };
 }
 
 export function remoteRow(s: RouletteSpin, now = Date.now()): RouletteRemoteRow {

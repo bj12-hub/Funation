@@ -1,6 +1,7 @@
 "use server";
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
+import { creatorMemberId } from "@/services/admin/memberCore";
 import { isBlockedBy } from "@/services/moderation/moderationCore";
 import { getSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
@@ -29,8 +30,8 @@ export async function getMailbox(params: { box?: unknown; q?: unknown; page?: un
   const size = parseMessagePageSize(params.size);
   await mockDelay(200);
   const needle = q.toLowerCase();
-  // 차단: mail from blocked senders is not shown (sent mail stays).
-  const visible = mockMessages.messages.filter((m) => m.direction === "OUT" || !isBlockedBy(session.userId, m.peerId));
+  // 차단: mail from blocked senders is not shown (sent mail stays). Blocks hold member ids; a peer is a creator's channel.
+  const visible = mockMessages.messages.filter((m) => m.direction === "OUT" || !isBlockedBy(session.userId, creatorMemberId(m.peerId)));
   const all = visible
     .filter((m) => inBox(m, box) && (!needle || m.body.toLowerCase().includes(needle) || m.peerName.toLowerCase().includes(needle)))
     .sort((a, b) => b.sentAt.localeCompare(a.sentAt));

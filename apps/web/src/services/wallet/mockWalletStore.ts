@@ -20,16 +20,20 @@ type MockWalletState = {
   marketingOptIn: boolean;
   /** Charges made through the mock, newest first (seed history is in walletHistory.ts). */
   charges: ChargeRecord[];
-  /** Donations made through the mock, newest first. */
-  donations: (DonationRecord & { category: DonationCategory })[];
+  /**
+   * Donations made through the mock, newest first. `hideProfile`: sent with 프로필 숨기기 (shown as 익명), so public
+   * totals and rankings never put it under the member's name (absent = shown, e.g. platform donations).
+   */
+  donations: (DonationRecord & { category: DonationCategory; hideProfile?: boolean })[];
   idempotency: Record<string, IdempotencyEntry<ChargeResult>>;
   donationIdempotency: Record<string, IdempotencyEntry<DonationResult>>;
 };
 
 // Bump the key when the state shape changes so a running dev server starts from fresh data.
-const globalForWallet = globalThis as typeof globalThis & { __funationMockWalletV2?: MockWalletState };
+// V3: donation records keep `hideProfile`.
+const globalForWallet = globalThis as typeof globalThis & { __funationMockWalletV3?: MockWalletState };
 
-export const mockWallet = (globalForWallet.__funationMockWalletV2 ??= {
+export const mockWallet = (globalForWallet.__funationMockWalletV3 ??= {
   chargeTermsAgreedAt: null,
   marketingOptIn: false,
   charges: [],

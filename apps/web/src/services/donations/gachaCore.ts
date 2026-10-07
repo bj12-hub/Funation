@@ -17,7 +17,10 @@ export type GachaDraw = {
   seq: number;
   channelId: string;
   supporterUserId: string;
+  /** The donor's name as sent (the 리모컨 and records). */
   donor: string;
+  /** The name the overlay and 당첨 리스트 show: the creator's 대체 메시지 rules applied when it was paid (shownOnStream). */
+  shownDonor: string;
   gachaId: string;
   gachaName: string;
   mode: Gacha["prizeMode"];
@@ -61,6 +64,7 @@ function seed(now = Date.now()): Store {
     channelId: STUDIO_CHANNEL,
     supporterUserId: `seed-${donor}`,
     donor,
+    shownDonor: donor,
     gachaId: "gacha-1",
     gachaName: "뽑기 후원",
     mode: "PROBABILITY",
@@ -81,8 +85,9 @@ function seed(now = Date.now()): Store {
   return { draws: [draw(1041, "오늘은된다", "꽝 (다음 기회에)", true, 90, null), draw(1042, "보라색원픽", "문화상품권 5천원", false, 45, false)], seq: 1042 };
 }
 
-const g = globalThis as typeof globalThis & { __funationMockGachaV1?: Store };
-export const mockGacha = (g.__funationMockGachaV1 ??= seed());
+// V2: draws keep the name shown on stream (`shownDonor`).
+const g = globalThis as typeof globalThis & { __funationMockGachaV2?: Store };
+export const mockGacha = (g.__funationMockGachaV2 ??= seed());
 
 /** 화면 숨기기 per channel (펀페이 1009:6768): draws still play, the overlay shows nothing. */
 export const isHidden = (channelId: string) => mockGacha.hidden?.[channelId] === true;
@@ -156,7 +161,7 @@ export function advance(channelId: string, now = Date.now()) {
  * see the same stock): draws now (stock goes down), plays later. `amount` is what was debited.
  */
 export function enqueueDraw(
-  input: { id: string; channelId: string; supporterUserId: string; donor: string; gachaId: string; amount: number },
+  input: { id: string; channelId: string; supporterUserId: string; donor: string; shownDonor: string; gachaId: string; amount: number },
   now = Date.now(),
   rand?: (n: number) => number
 ) {
@@ -177,7 +182,7 @@ export function enqueueDraw(
     mode: x.prizeMode,
     style: x.style,
     pointColor: x.pointColor,
-    message: fillGachaMessage(x.messageTemplate, input.donor, input.amount),
+    message: fillGachaMessage(x.messageTemplate, input.shownDonor, input.amount),
     createdAt: new Date(now).toISOString(),
     day: toDateString(new Date(now)),
     prize: prize.name,
@@ -228,7 +233,7 @@ export function stageOf(channelId: string, now = Date.now()): GachaStage | null 
     gachaName: d.gachaName,
     style: d.style,
     pointColor: d.pointColor,
-    donor: d.donor,
+    donor: d.shownDonor,
     amount: d.amount,
     message: d.message,
     prize: show ? d.prize : null,
@@ -304,7 +309,7 @@ export function boardOf(channelId: string, now = Date.now()): GachaBoardView {
   const rows = ofChannel(channelId)
     .filter((d) => !d.blank && revealed(d, now) && Date.parse(d.createdAt) >= from.getTime() && (board.productType === "ALL" || board.productType === d.mode))
     .reverse()
-    .map((d) => ({ id: d.id, donor: d.donor, gachaName: d.gachaName, prize: d.prize, claimed: d.claimed === true }));
+    .map((d) => ({ id: d.id, donor: d.shownDonor, gachaName: d.gachaName, prize: d.prize, claimed: d.claimed === true }));
   return { title: board.title, speed: board.speed, rows };
 }
 
