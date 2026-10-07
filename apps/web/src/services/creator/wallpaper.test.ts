@@ -61,6 +61,28 @@ describe("벽지 스티커 배치", () => {
     expect(m.wallStickers(feed, { images }, at(0))).toEqual(stickers);
   });
 
+  it("keeps each sticker's image when a 벽지 image is uploaded or deleted (the same wall on every reload)", async () => {
+    const m = await load();
+    const feed = Array.from({ length: 4 }, (_, i) => item(i + 1));
+    const memory: Record<string, string> = {};
+    const ids = (list: { id: string }[], stickers: { image: number | null }[]) => stickers.map((s) => (s.image === null ? null : list[s.image].id));
+    expect(ids(images, m.wallStickers(feed, { images }, at(0), memory))).toEqual(["a", "b", "a", "b"]);
+    const more = [...images, { id: "c", url: "/c.png" }];
+    expect(ids(more, m.wallStickers(feed, { images: more }, at(0), memory))).toEqual(["a", "b", "a", "b"]);
+    // A new donation continues the rotation over the current images.
+    const next = [...feed, item(5)];
+    expect(ids(more, m.wallStickers(next, { images: more }, at(0), memory))).toEqual(["a", "b", "a", "b", "b"]);
+    // Deleting "a" moves only its stickers, and they keep their new image afterwards.
+    const left = more.filter((i) => i.id !== "a");
+    const after = ids(left, m.wallStickers(next, { images: left }, at(0), memory));
+    expect(after.filter((_, i) => i % 2 === 1 || i === 4)).toEqual(["b", "b", "b"]);
+    expect(after.every((x) => x === "b" || x === "c")).toBe(true);
+    expect(ids(left, m.wallStickers(next, { images: [...left, { id: "d", url: "/d.png" }] }, at(0), memory))).toEqual(after);
+    // Only stickers on the wall are remembered.
+    m.wallStickers(next, { images: left }, at(3), memory);
+    expect(Object.keys(memory).sort()).toEqual(["al-4", "al-5"]);
+  });
+
   it("keeps the latest stickers when the wall is full, and skips alerts that were never shown", async () => {
     const m = await load();
     const feed = Array.from({ length: m.WALL_SLOTS + 3 }, (_, i) => item(i + 1));

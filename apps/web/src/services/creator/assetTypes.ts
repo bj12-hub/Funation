@@ -33,8 +33,10 @@ export const assetUrl = (id: string) => `/api/media/${id}`;
 /**
  * 이미지·사운드 자동 매칭 (funnation 참고, 2026-10-06 결정): an image and a sound with the same name (uploads drop the
  * extension; case and surrounding spaces are ignored) belong together — picking the image for a 시그니처 brings the sound.
+ * Names compare in Unicode NFC: macOS gives decomposed (NFD) Korean file names, which look the same but differ.
  */
-const pairKey = (name: string) => name.trim().toLowerCase();
+export const nameKey = (name: string) => name.normalize("NFC").trim().toLowerCase();
+const pairKey = nameKey;
 
 /** The other half of `asset`'s pair in `library`, if any (the first match by upload order). */
 export function pairOf(asset: Pick<Asset, "kind" | "name">, library: Asset[]): Asset | null {
@@ -55,8 +57,8 @@ export type AssetFilter = { kind: AssetKind; query: string; sort: AssetSort; pai
 
 /** The files of one kind matching the name search (case and spaces ignored) and the 짝 filter, in the chosen order. */
 export function filterAssets(library: Asset[], f: AssetFilter): Asset[] {
-  const q = f.query.trim().toLowerCase();
-  const shown = library.filter((a) => a.kind === f.kind && (!q || a.name.toLowerCase().includes(q)) && (!f.pairedOnly || pairOf(a, library)));
+  const q = nameKey(f.query);
+  const shown = library.filter((a) => a.kind === f.kind && (!q || nameKey(a.name).includes(q)) && (!f.pairedOnly || pairOf(a, library)));
   const time = (a: Asset) => Date.parse(a.uploadedAt) || 0;
   // Uploads in the same millisecond fall back to the store's order (newest first).
   const at = new Map(library.map((a, i) => [a.id, i]));
@@ -64,7 +66,7 @@ export function filterAssets(library: Asset[], f: AssetFilter): Asset[] {
   const by: Record<AssetSort, (a: Asset, b: Asset) => number> = {
     NEW: (a, b) => time(b) - time(a) || pos(a) - pos(b),
     OLD: (a, b) => time(a) - time(b) || pos(b) - pos(a),
-    NAME: (a, b) => a.name.localeCompare(b.name, "ko") || pos(a) - pos(b),
+    NAME: (a, b) => a.name.normalize("NFC").localeCompare(b.name.normalize("NFC"), "ko") || pos(a) - pos(b),
     SIZE: (a, b) => b.size - a.size || pos(a) - pos(b)
   };
   return shown.sort(by[f.sort]);

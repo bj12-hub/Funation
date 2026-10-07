@@ -128,7 +128,7 @@ export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
         )}
       </dl>
       {(kind === "quest" || stats.heldCount > 0) && (
-        <p className={styles.listStatsNote}>퀘스트 후원은 성공해야 수령액에 들어가요. 진행 중인 퀘스트는 따로 보여 주고, 실패 · 취소된 퀘스트는 전액 환불돼 빠져요.</p>
+        <p className={styles.listStatsNote}>퀘스트 후원은 성공한 날 기준으로 수령액과 기간에 들어가요. 진행 중인 퀘스트는 따로 보여 주고, 실패 · 취소된 퀘스트는 전액 환불돼 빠져요.</p>
       )}
 
       <div className={styles.table}>
@@ -176,7 +176,10 @@ export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
                     {d.questActions?.length ? (
                       <QuestDecide id={d.id} decide={decideReceivedQuest} actions={d.questActions} />
                     ) : d.status ? (
-                      <span className={`${styles.badge} ${STATUS_CLASS[d.status]}`}>{QUEST_STATUSES.find((s) => s.key === d.status)?.label}</span>
+                      <>
+                        <span className={`${styles.badge} ${STATUS_CLASS[d.status]}`}>{QUEST_STATUSES.find((s) => s.key === d.status)?.label}</span>
+                        {d.status === "SUCCESS" && d.receivedAt !== d.at && <span className={`${styles.muted} ${styles.nowrap}`}> {formatAt(d.receivedAt)}</span>}
+                      </>
                     ) : (
                       <span className={styles.strong}>{d.detail}</span>
                     )}

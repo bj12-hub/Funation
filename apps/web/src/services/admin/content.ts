@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { USE_MOCK } from "@/lib/mock";
+import { ownEntry } from "@/lib/records";
 import { toDateString } from "@/lib/period";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { notify } from "@/services/notifications/notificationCore";
@@ -40,7 +41,7 @@ const fingerprintOf = (v: Record<string, unknown>) =>
  * CONFLICT otherwise — a corrected draft or another kind must never get the earlier OK without being saved.
  */
 function replayed(kind: ContentRequest["kind"], v: Record<string, unknown>): ContentResult | null {
-  const r = requests[v.requestId as string];
+  const r = ownEntry(requests, v.requestId as string);
   if (!r) return null;
   return r.kind === kind && r.fingerprint === fingerprintOf(v) ? { status: "OK", id: r.id } : { status: "CONFLICT" };
 }

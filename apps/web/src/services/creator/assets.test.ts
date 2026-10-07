@@ -96,6 +96,18 @@ describe("asset library", () => {
     expect((await m.saveSignature({ ...one, imageUrl: a.url })).status).toBe("INVALID");
   });
 
+  it("gives an amount-matched 일반 후원 the preset image once its library image is deleted, like a 시그니처 후원", async () => {
+    const m = await load();
+    const a = await uploadImage(m, 8);
+    const saved = await m.saveSignature({ name: "금액 시그", price: 7_777, imageUrl: a.url, match: "AMOUNT", active: true, requestId: key(17) });
+    if (saved.status !== "SAVED") throw new Error(saved.status);
+    expect(m.signatureImageFor(m.getDonationCatalog(), "TEXT", 7_777, null)).toBe(a.url);
+    await m.deleteAsset(a.id);
+    expect(m.signatureImageFor(m.getDonationCatalog(), "TEXT", 7_777, null)).toBe("/mock/room/signatures/sig-1.png");
+    expect(m.signatureImageFor(m.getDonationCatalog(), "SIGNATURE", 7_777, { signatureId: saved.id })).toBe("/mock/room/signatures/sig-1.png");
+    expect(m.signatureImageFor(m.getDonationCatalog(), "TEXT", 7_778, null)).toBeUndefined();
+  });
+
   it("pairs an image and a sound with the same name and lets a signature carry only a library sound", async () => {
     const m = await load();
     const { pairOf } = await import("./assetTypes");
@@ -145,6 +157,15 @@ describe("asset library", () => {
     const overlay = await alerts.getOverlayAlert(m.overlayKey);
     if (overlay === "FORBIDDEN") throw new Error("key");
     expect(overlay.controls.signatureVolume).toBe(35);
+  });
+
+  it("stores names in NFC on upload and rename", async () => {
+    const m = await load();
+    const nfd = "가을 배경".normalize("NFD");
+    const up = await m.uploadAsset(form(30, PNG, "image/png", `${nfd}.png`));
+    expect(up).toMatchObject({ status: "SAVED", asset: { name: "가을 배경" } });
+    if (up.status !== "SAVED") throw new Error(up.status);
+    expect(await m.renameAsset({ id: up.asset.id, name: "축하".normalize("NFD") })).toMatchObject({ status: "SAVED", asset: { name: "축하" } });
   });
 
   it("requires the creator role", async () => {

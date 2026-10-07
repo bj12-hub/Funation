@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterAssets, type Asset } from "./assetTypes";
+import { filterAssets, pairOf, type Asset } from "./assetTypes";
 
 /** 이미지·사운드 정렬 · 필터 (code-first, 2026-10-06). */
 const file = (id: string, kind: Asset["kind"], name: string, size: number, uploadedAt: string): Asset => ({
@@ -37,5 +37,17 @@ describe("이미지·사운드 정렬 · 필터", () => {
     expect(ids({ query: "없는 이름" })).toEqual([]);
     expect(ids({ pairedOnly: true })).toEqual(["d"]);
     expect(ids({ kind: "SOUND", pairedOnly: true })).toEqual(["s"]);
+  });
+});
+
+/** macOS file names arrive decomposed (NFD): "축하".normalize("NFD") looks the same but is a different string. */
+describe("이미지·사운드 이름 정규화", () => {
+  const nfd = "축하".normalize("NFD");
+  it("pairs, searches and sorts NFD and NFC names alike", () => {
+    const lib = [file("i", "IMAGE", nfd, 10, "2026-10-06T10:00:00.000Z"), file("s", "SOUND", "축하", 10, "2026-10-06T09:00:00.000Z")];
+    expect(nfd).not.toBe("축하");
+    expect(pairOf(lib[0], lib)?.id).toBe("s");
+    expect(pairOf(lib[1], lib)?.id).toBe("i");
+    expect(filterAssets(lib, { kind: "IMAGE", query: "축", sort: "NAME", pairedOnly: true }).map((a) => a.id)).toEqual(["i"]);
   });
 });

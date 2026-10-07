@@ -15,12 +15,35 @@ Creator capabilities include:
 Uploads (mock): profile images, 칭호 icons, 정산 서류 and the image · sound library are checked by their bytes, not the
 declared type (`matchesContent` in `assetCore.ts`; PDF by its `%PDF-` header). A renamed file is refused with the
 screen's existing type message.
+Library and signature names are stored and compared in Unicode NFC (macOS sends decomposed Korean file names), so
+짝 매칭, search, sorting and the same-name check treat them as typed.
+
+Saves that await (reading a file, the mock delay) check the store again after the last await and write in the same
+tick — 커스텀 사운드, 벽지 이미지, 라이브러리 업로드, 금지어 · 필터 단어 — so concurrent requests never lose each
+other's adds, bring a deleted item back or pass a cap or duplicate check together.
 
 Supported:
 
 - YouTube
 - FlexTV
 - SOOP
+
+## 채널 주소 = 후원 페이지 주소 (`services/channel/handleCore.ts`)
+
+- **규칙 통일 (2026-10-08 결정)**: 채널 만들기(`/channel/new`)와 후원 페이지 링크 설정(`/creator/donations`) 모두
+  영문 소문자 · 숫자 · 하이픈 3~30자(하이픈으로 시작 · 끝 · 연속 불가, `isValidChannelHandle`). 예약어 목록 하나
+  (브랜드 이름 + 사이트 경로: somnation, funation, wallet, api, login, …)와 같은 사용 중 목록(현재 주소 포함)을 쓰고,
+  마지막 await 뒤에 다시 확인한 다음 같은 틱에 쓴다.
+- **예전 채널 주소는 새 주소로 연결 (2026-10-08 결정)**: 주소를 바꾸면 이전 주소는 30일(정해진 예시 값, 바꿀 수 있음)
+  동안 새 주소로 연결되고(`/creators/<예전 주소>` → `/creators/<새 주소>`, 임시 리다이렉트), 그동안 다른 채널이 쓸 수
+  없다. 채널 자신은 예전 주소로 되돌아갈 수 있다. 목업의 스튜디오 채널은 공개 채널 페이지가 없고(채널별 연결 TBD)
+  `somnation.com/donate/<주소>`는 이 앱에 경로가 없어, 그 경로의 연결은 백엔드와 함께 정한다(TBD).
+
+## 벽지 위젯 (`services/creator/wallpaperCore.ts`)
+
+- A sticker keeps the 벽지 image it first got (`mockWallpaper.stickerImages`), so uploading or deleting an image never
+  re-maps the stickers already on the wall and every reload shows the same wall. A sticker whose image was deleted
+  takes the rotation's image from the current list and keeps it.
 
 ## 리모컨 알림 제어 (code-first, `services/creator/alertRemote`)
 

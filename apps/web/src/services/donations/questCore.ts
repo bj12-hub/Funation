@@ -113,7 +113,7 @@ export function decideQuest(q: QuestRecord, outcome: QuestAction, by: QuestDecid
 function succeed(q: QuestRecord) {
   const record = mockWallet.donations.find((d) => d.id === q.id);
   if (record?.status === "PROCESSING") record.status = "COMPLETED";
-  settleQuestAlerts(q.id);
+  settleQuestAlerts(q.id, q.decidedAt ?? new Date().toISOString());
   const crew = q.crew;
   if (!crew) return;
   const shown = { donor: q.donor, donorId: q.donorId, message: crew.message };

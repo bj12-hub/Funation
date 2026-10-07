@@ -131,8 +131,12 @@ export function enqueueDonationAlert(
 }
 
 /** A 퀘스트 후원 succeeded: its alerts (and 다시 보내기 copies) now count in 목표 · 누적 · 랭킹. Calling it again changes nothing. */
-export function settleQuestAlerts(questId: string) {
-  for (const a of mockAlerts.items) if (a.questId === questId) a.questSucceeded = true;
+export function settleQuestAlerts(questId: string, at: string) {
+  for (const a of mockAlerts.items) {
+    if (a.questId !== questId) continue;
+    a.questSucceeded = true;
+    a.questSucceededAt = at;
+  }
 }
 
 /** Moves the queue forward: finishes an expired alert and puts the next one on screen. */

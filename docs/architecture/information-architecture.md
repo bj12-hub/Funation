@@ -214,7 +214,13 @@ The top cards follow the funnation dashboard. They are laid out in two columns, 
 
 The Figma sections stay below the cards: 이벤트 / 크리애드 banners, 후원 통계 (period filter + chart), and 최근 후원 내역 + ranking tabs.
 
-The 누적 value now sums the whole period since the channel debut. Before, the stats day helper capped it at 366 days.
+The 누적 value sums every mock revenue record from a fixed records start. It never follows the editable 방송 데뷔일, which
+the profile accepts only from 1900-01-01 to today.
+
+Periods are on the calendar (2026-10-08 결정 "달력 기준", server time = Asia/Seoul): 이번 주 runs from Monday 00:00 and
+이번 달 from the 1st, as in the 후원 리스트 summary. The 후원 통계 filter, 후원 리스트, 정산 관리 and FN 내역 presets use the
+same starts (`lib/period.ts`): 1주일 / 주별 = this week, 1개월 / 월별 = this month, N개월 = from the 1st of the month
+N − 1 back, 1년 / 연별 = the 12 calendar months up to this one.
 
 ### 수익 현황 (`/creator/revenue`)
 
@@ -229,7 +235,6 @@ This follows the funnation 수익 대시보드. The server computes every value 
 
 TBD:
 
-- Whether 이번 주 means the calendar week or the last 7 days. The mock uses the last 7 days.
 - Whether 누적 수익 counts pending requests.
 - ₩ versus FN units on the dashboard. The FN exchange rate is TBD.
 - The dashboard stays the funnation 수익 현황 equivalent.

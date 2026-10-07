@@ -121,7 +121,7 @@ export function YouTubeConnectScreen({ integration }: { integration: YouTubeInte
               </p>
             )}
             <div className={styles.addRow}>
-              <button type="button" className={styles.primary} disabled={pending} onClick={() => run(syncYouTubeVideos, (r) => (r.added ? `새 영상 ${r.added}개를 가져왔어요.` : "새 영상이 없어요."))}>
+              <button type="button" className={styles.primary} disabled={pending} onClick={() => run(syncYouTubeVideos, syncNote)}>
                 {pending ? "처리 중…" : "지금 동기화"}
               </button>
               <Link href="/creator/videos" className={styles.ghost}>
@@ -162,6 +162,10 @@ const FILTERS: { key: VideoFilter; label: string }[] = [
   { key: "SHORTS", label: "쇼츠" },
   { key: "HIDDEN", label: "숨김" }
 ];
+
+/** Sync result line: new videos, and the ones YouTube no longer shows (deleted or private — 2026-10-08 결정). */
+const syncNote = (r: Extract<YouTubeResult, { status: "OK" }>) =>
+  [r.added ? `새 영상 ${r.added}개를 가져왔어요.` : "새 영상이 없어요.", r.missing ? `유튜브에서 찾을 수 없는 영상이 ${r.missing}개 있어요.` : ""].filter(Boolean).join(" ");
 
 /** 영상 목록 — code-first. Route `/creator/videos`. Choose what the channel's 영상 탭 shows and pin up to 3. */
 export function VideoListScreen({ integration, videos }: { integration: YouTubeIntegration; videos: ManagedVideo[] }) {
@@ -221,13 +225,19 @@ export function VideoListScreen({ integration, videos }: { integration: YouTubeI
                   <span className={styles.rowTitle}>
                     {v.pinned && "📌 "}
                     {v.title}
+                    {v.missing && (
+                      <>
+                        {" "}
+                        <span className={styles.chipOff}>찾을 수 없음</span>
+                      </>
+                    )}
                   </span>
                   <span className={styles.muted}>
                     {v.kind === "SHORTS" ? "쇼츠" : "다시보기"} · 조회 {formatCompactKo(v.viewCount)} · {v.publishedAt.slice(0, 10).replace(/-/g, ".")}
                   </span>
                 </div>
                 <div className={styles.rowActions}>
-                  <button type="button" className={styles.ghost} disabled={pending || !v.visible} onClick={() => run(() => updateVideo({ externalId: v.externalId, pinned: !v.pinned }), () => (v.pinned ? "고정을 풀었어요." : "맨 위에 고정했어요."))}>
+                  <button type="button" className={styles.ghost} disabled={pending || !v.visible || (v.missing && !v.pinned)} onClick={() => run(() => updateVideo({ externalId: v.externalId, pinned: !v.pinned }), () => (v.pinned ? "고정을 풀었어요." : "맨 위에 고정했어요."))}>
                     {v.pinned ? "고정 해제" : "고정"}
                   </button>
                   <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => updateVideo({ externalId: v.externalId, visible: !v.visible }), () => (v.visible ? "채널에서 숨겼어요." : "채널에 표시해요."))}>

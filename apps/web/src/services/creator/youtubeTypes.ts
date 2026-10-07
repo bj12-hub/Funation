@@ -16,15 +16,19 @@ export type YouTubeIntegration = {
   videoCount: number;
 };
 
-/** A synced video plus the creator's channel settings for it. */
-export type ManagedVideo = ChannelVideo & { visible: boolean; pinned: boolean; syncedAt: string };
+/**
+ * A synced video plus the creator's channel settings for it. `missing`: YouTube no longer shows it (deleted or made
+ * private, 2026-10-08 결정 "유튜브에서 지운 영상 표시") — listed as 찾을 수 없음 with its settings kept, and cleared
+ * when it comes back. `syncedAt` is when YouTube last confirmed the video.
+ */
+export type ManagedVideo = ChannelVideo & { visible: boolean; pinned: boolean; missing: boolean; syncedAt: string };
 
 export type VideoFilter = "ALL" | "VOD" | "SHORTS" | "HIDDEN";
 
 export const HANDLE_PATTERN = /^@?[A-Za-z0-9._-]{3,30}$/;
 
 export type YouTubeResult =
-  | { status: "OK"; added?: number }
+  | { status: "OK"; added?: number; missing?: number }
   | { status: "INVALID"; message: string }
   | { status: "PLATFORM_ERROR"; code: PlatformErrorCode }
   | { status: "UNAUTHORIZED" };

@@ -29,7 +29,6 @@ import {
   QUEST_STATUSES,
   RANK_PERIODS,
   REPLACEMENT_MESSAGE_MAX,
-  isValidSlug,
   type DonationPageSettings,
   type DonorRanking,
   type ListKind,
@@ -55,6 +54,8 @@ import { mockCreator } from "./mockCreatorStore";
 import { matchesContent } from "./assetCore";
 import { donationFilterStore, donationPageStore } from "./donationPageCore";
 import { isIsoDate } from "@/lib/period";
+import { CHANNEL_HANDLE_RULE_MESSAGE } from "@/services/channel/channelTypes";
+import { handleStatus, moveHandle } from "@/services/channel/handleCore";
 
 /**
  * 후원관리+ (route `/creator/donations`). Server Actions re-check the session and validate input.
@@ -66,8 +67,6 @@ import { isIsoDate } from "@/lib/period";
 // 후원 페이지 설정 (the Donation Core reads its 대체 메시지 표시 설정 — see donationPageCore.ts).
 const store = donationPageStore;
 
-/** Addresses already used by other creators (mock). */
-const TAKEN_SLUGS = ["taen", "boharium", "seran", "admin", "funation", "donate", "creator"];
 const DONATE_BASE = "https://somnation.com/donate/";
 
 const assertMock = () => {
@@ -83,23 +82,30 @@ export async function getDonationPageSettings(): Promise<DonationPageSettings | 
   return { donateUrlBase: DONATE_BASE, slug: mockCreator.handle, ...structuredClone(store) };
 }
 
+/** 후원 페이지 주소 = 채널 주소: the rule, reserved list and taken set of 채널 만들기 (services/channel/handleCore.ts). */
 export async function checkDonationSlug(slug: unknown): Promise<SlugCheckResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
-  if (typeof slug !== "string" || !isValidSlug(slug)) return { status: "INVALID", message: "3~20자의 영문 소문자, 숫자, _만 사용할 수 있어요." };
+  if (handleStatus(slug, true) === "INVALID") return { status: "INVALID", message: CHANNEL_HANDLE_RULE_MESSAGE };
   await mockDelay(300);
-  if (slug === mockCreator.handle) return { status: "SAME" };
-  return { status: TAKEN_SLUGS.includes(slug) ? "TAKEN" : "AVAILABLE" };
+  const status = handleStatus(slug, true);
+  return status === "INVALID" ? { status, message: CHANNEL_HANDLE_RULE_MESSAGE } : { status };
 }
 
-/** Re-checks availability; the old address stops working (redirect policy TBD). */
+/**
+ * Re-checks availability after the last await and writes in the same tick. The old address points to the new one for
+ * 30 days and nobody else can take it meanwhile (2026-10-08 결정).
+ */
 export async function changeDonationSlug(slug: unknown): Promise<ManagementSaveResult> {
   const check = await checkDonationSlug(slug);
   if (check.status === "UNAUTHORIZED") return check;
   if (check.status === "INVALID") return check;
   if (check.status === "TAKEN") return { status: "INVALID", message: "이미 사용 중인 주소입니다." };
   await mockDelay(300);
-  mockCreator.handle = slug as string;
+  const status = handleStatus(slug, true);
+  if (status === "SAME") return { status: "SAVED" };
+  if (status !== "AVAILABLE") return { status: "INVALID", message: status === "TAKEN" ? "이미 사용 중인 주소입니다." : CHANNEL_HANDLE_RULE_MESSAGE };
+  moveHandle(slug as string);
   return { status: "SAVED" };
 }
 
@@ -137,9 +143,10 @@ export async function addBannedWord(word: unknown): Promise<ManagementSaveResult
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const w = typeof word === "string" ? word.trim() : "";
   if (w.length < 1 || w.length > BANNED_WORD_MAX) return { status: "INVALID", message: `금지어는 1~${BANNED_WORD_MAX}자로 입력해 주세요.` };
+  await mockDelay(250);
+  // After the last await, in the same tick as the write: a double submit must not add the word twice or pass the cap.
   if (store.replacement.bannedWords.includes(w)) return { status: "INVALID", message: "이미 등록된 금지어입니다." };
   if (store.replacement.bannedWords.length >= BANNED_WORDS_MAX) return { status: "INVALID", message: `금지어는 최대 ${BANNED_WORDS_MAX}개까지 등록할 수 있어요.` };
-  await mockDelay(250);
   store.replacement.bannedWords = [...store.replacement.bannedWords, w];
   return { status: "SAVED" };
 }
@@ -173,6 +180,7 @@ function questDonations(): ReceivedDonation[] {
     .map((q) => ({
       id: q.id,
       at: q.createdAt,
+      receivedAt: q.status === "SUCCESS" && q.decidedAt ? q.decidedAt : q.createdAt,
       donorNickname: q.donor,
       donorId: q.donorId,
       amount: q.amount,
@@ -212,15 +220,15 @@ function mockGameDonations(): ReceivedDonation[] {
   return Array.from({ length: 24 }, (_, i) => {
     const [nick, id] = FIXTURE_DONORS[(i + 3) % FIXTURE_DONORS.length];
     const at = new Date(now - Math.round(i * i * 0.5 * 86_400_000 + i * 5_100_000 + 1_800_000));
-    return { id: `g${i + 1}`, at: at.toISOString(), donorNickname: nick, donorId: id, amount: FIXTURE_AMOUNTS[(i + 2) % FIXTURE_AMOUNTS.length], message: GAME_MESSAGES[i % GAME_MESSAGES.length], status: null, detail: titles[i % titles.length] };
+    return { id: `g${i + 1}`, at: at.toISOString(), receivedAt: at.toISOString(), donorNickname: nick, donorId: id, amount: FIXTURE_AMOUNTS[(i + 2) % FIXTURE_AMOUNTS.length], message: GAME_MESSAGES[i % GAME_MESSAGES.length], status: null, detail: titles[i % titles.length] };
   });
 }
 
 /**
  * 크루 후원 (code-first): donations sent for a crew member of the studio's crew (후원 패널 멤버 지정). A member can be
  * picked for a 퀘스트 too; such a row carries the quest's status, so a refunded quest leaves the summary here as well.
- * A quest reaches the member (crew points · ranking) only when it succeeds; until then, or once refunded, its row
- * comes from the quest record (sent time), so the list still shows it as held or refunded.
+ * A quest reaches the member (crew points · ranking) only when it succeeds, as a row at its success time; until then,
+ * or once refunded, its row comes from the quest record (sent time), so the list still shows it as held or refunded.
  */
 function crewDonations(): ReceivedDonation[] {
   const names = new Map((mockCrew.crews[STUDIO_CHANNEL] ?? []).map((m) => [m.id, m.name]));
@@ -231,6 +239,7 @@ function crewDonations(): ReceivedDonation[] {
     .map((r) => ({
       id: r.id,
       at: r.at,
+      receivedAt: r.at,
       donorNickname: r.donor,
       donorId: r.donorId,
       amount: r.fnAmount,
@@ -250,13 +259,14 @@ function filterReceived(input: ListFilter) {
   const status: StatusFilter = kind === "quest" && QUEST_STATUSES.some((s) => s.key === input.status) ? input.status : "ALL";
   const query = input.query.trim().slice(0, LIST_QUERY_MAX).toLowerCase();
   const all = kind === "quest" ? questDonations() : kind === "game" ? mockGameDonations() : crewDonations();
-  const years = [...new Set(all.map((d) => new Date(d.at).getFullYear()))].sort((a, b) => b - a);
+  // 기간 and 연도 go by when a row counts (a 성공 quest: the day it succeeded — 2026-10-08 결정).
+  const years = [...new Set(all.map((d) => new Date(d.receivedAt).getFullYear()))].sort((a, b) => b - a);
   const localDate = (iso: string) => {
     const d = new Date(iso);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   };
   const matched = all.filter((d) => {
-    const day = localDate(d.at);
+    const day = localDate(d.receivedAt);
     if (day < input.period.from || day > input.period.to) return false;
     if (status !== "ALL" && d.status !== status) return false;
     return !query || d.donorNickname.toLowerCase().includes(query) || d.donorId.toLowerCase().includes(query);
@@ -314,9 +324,11 @@ export async function exportReceivedDonationsCsv(input: unknown): Promise<CsvExp
   const rows = matched.slice(0, CSV_EXPORT_MAX);
   const last = (d: ReceivedDonation) => (d.status ? QUEST_STATUSES.find((q) => q.key === d.status)!.label : (d.detail ?? ""));
   const column = kind === "quest" ? "상태" : LIST_KINDS.find((k) => k.key === kind)!.column;
+  // 퀘스트: 성공일시 too — the period filter and 수령액 go by it (2026-10-08 결정).
+  const succeeded = (d: ReceivedDonation) => (kind === "quest" ? [d.status === "SUCCESS" ? d.receivedAt : ""] : []);
   const lines = [
-    ["후원일시", "후원자 닉네임", "후원자 아이디", "금액(FN)", "메시지", column].map(csvCell).join(","),
-    ...rows.map((d) => [d.at, d.donorNickname, d.donorId, d.amount, d.message, last(d)].map(csvCell).join(","))
+    ["후원일시", "후원자 닉네임", "후원자 아이디", "금액(FN)", "메시지", ...(kind === "quest" ? ["성공일시"] : []), column].map(csvCell).join(","),
+    ...rows.map((d) => [d.at, d.donorNickname, d.donorId, d.amount, d.message, ...succeeded(d), last(d)].map(csvCell).join(","))
   ];
   return {
     status: "OK",
@@ -427,9 +439,10 @@ export async function addFilterWord(word: unknown): Promise<ManagementSaveResult
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const w = typeof word === "string" ? word.trim() : "";
   if (w.length < 1 || w.length > FILTER_WORD_MAX) return { status: "INVALID", message: `단어는 1~${FILTER_WORD_MAX}자로 입력해 주세요.` };
+  await mockDelay(250);
+  // After the last await, in the same tick as the write (see addBannedWord).
   if (filterSettings.words.includes(w)) return { status: "INVALID", message: "이미 등록된 단어입니다." };
   if (filterSettings.words.length >= FILTER_WORDS_MAX) return { status: "INVALID", message: `단어는 최대 ${FILTER_WORDS_MAX}개까지 등록할 수 있어요.` };
-  await mockDelay(250);
   filterSettings.words = [...filterSettings.words, w];
   return { status: "SAVED" };
 }

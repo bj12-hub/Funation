@@ -1,6 +1,7 @@
 "use server";
 
 import { USE_MOCK } from "@/lib/mock";
+import { ownEntry } from "@/lib/records";
 import { getCreatorSession } from "@/lib/session";
 import { sameSecret } from "@/lib/secret";
 import { mockCreator } from "@/services/creator/mockCreatorStore";
@@ -110,7 +111,7 @@ export async function simulateViewerChat(input: unknown): Promise<ChatActionResu
   const v = obj(input);
   if (!isRequestId(v.requestId) || !isPlatform(v.platform)) return { status: "INVALID", message: "잘못된 요청입니다." };
   const s = chatStore();
-  if (s.requests[v.requestId]) return { status: "OK" };
+  if (ownEntry(s.requests, v.requestId)) return { status: "OK" };
   const channel = broadcastChannelId(v.platform);
   if (!channel) return { status: "INVALID", message: "먼저 플랫폼 채널을 연결해 주세요." };
   const nick = typeof v.nick === "string" ? v.nick.trim() : "";

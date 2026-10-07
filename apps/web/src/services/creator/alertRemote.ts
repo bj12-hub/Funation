@@ -1,6 +1,7 @@
 "use server";
 
 import { USE_MOCK } from "@/lib/mock";
+import { ownEntry } from "@/lib/records";
 import { getCreatorSession } from "@/lib/session";
 import { sameSecret } from "@/lib/secret";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
@@ -57,7 +58,7 @@ export async function sendTestAlert(input: unknown): Promise<RemoteResult> {
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   if (typeof v.requestId !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(v.requestId)) return { status: "INVALID", message: "요청을 확인해 주세요." };
-  if (mockAlerts.testRequests[v.requestId]) return { status: "SAVED" };
+  if (ownEntry(mockAlerts.testRequests, v.requestId)) return { status: "SAVED" };
   const amount = v.amount;
   if (typeof amount !== "number" || !Number.isInteger(amount) || amount < 1 || amount > TEST_AMOUNT_MAX) {
     return { status: "INVALID", message: "금액은 1 ~ 10,000,000 FN으로 입력해 주세요." };
@@ -158,7 +159,7 @@ export async function replayAlert(input: unknown): Promise<RemoteResult> {
   const v = rec(input);
   if (typeof v.requestId !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(v.requestId)) return { status: "INVALID", message: "요청을 확인해 주세요." };
   const requests = (mockAlerts.replayRequests ??= {});
-  if (requests[v.requestId]) return { status: "SAVED" };
+  if (ownEntry(requests, v.requestId)) return { status: "SAVED" };
   const src = mockAlerts.items.find((a) => a.id === v.id);
   if (!src || src.status === "QUEUED" || src.status === "SHOWING") return { status: "INVALID", message: "다시 보낼 수 없는 알림이에요." };
   const copy = { ...src, id: `al-${crypto.randomUUID()}`, createdAt: new Date().toISOString(), status: "QUEUED" as const, replayOf: src.replayOf ?? src.id };
