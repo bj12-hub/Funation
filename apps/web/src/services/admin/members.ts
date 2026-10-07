@@ -8,7 +8,7 @@ import type { AdminActor } from "./adminTypes";
 import { auditEntries, recordAudit } from "./auditCore";
 import { SAMPLE_MEMBER_ID, creatorMemberId, isMemberSuspended, isWithdrawnMember, memberStore, slotMemberAt, suspensionOf, withdrawnMemberId } from "./memberCore";
 import { accountSince, withdrawalOf, withdrawalStore, type Withdrawal } from "@/services/account/withdrawalCore";
-import { MEMBERS_PAGE, SUSPEND_DAYS, SUSPEND_REASON, type AdminCreatorRow, type AdminMember, type MemberActionResult, type MemberFilter, type MemberPage } from "./memberTypes";
+import { ADMIN_QUERY_MAX, MEMBERS_PAGE, SUSPEND_DAYS, SUSPEND_REASON, type AdminCreatorRow, type AdminMember, type MemberActionResult, type MemberFilter, type MemberPage } from "./memberTypes";
 
 /**
  * 회원 · 크리에이터 관리 API logic — code-first (called by `/api/admin/*`). Admin app screens `/admin/members`, `/admin/members/[id]`,
@@ -73,8 +73,11 @@ export async function memberIds(): Promise<Set<string>> {
   return new Set((await directory()).map((m) => m.id));
 }
 
+/** The search text of 회원 관리 and 크리에이터 관리: trimmed and capped at ADMIN_QUERY_MAX. */
+export const adminSearchQuery = (q: unknown) => (typeof q === "string" ? q.trim().slice(0, ADMIN_QUERY_MAX) : "");
+
 const parseFilter = (input: Record<string, unknown>): MemberFilter => ({
-  q: typeof input.q === "string" ? input.q.trim().slice(0, 40) : "",
+  q: adminSearchQuery(input.q),
   role: input.role === "SUPPORTER" || input.role === "CREATOR" ? input.role : "ALL",
   status: input.status === "ACTIVE" || input.status === "SUSPENDED" || input.status === "WITHDRAWN" ? input.status : "ALL",
   page: Math.max(1, Math.floor(Number(input.page)) || 1)
@@ -144,7 +147,7 @@ export async function restoreMember(admin: AdminActor, input: unknown): Promise<
 
 export async function listAdminCreators(input: { q?: unknown } = {}): Promise<AdminCreatorRow[] | null> {
   assertMock();
-  const q = typeof input.q === "string" ? input.q.trim().toLowerCase() : "";
+  const q = adminSearchQuery(input.q).toLowerCase();
   return (await getAllCreatorsForAdmin())
     .filter((c) => !q || c.name.toLowerCase().includes(q) || c.id === q)
     .map((c) => ({ creatorId: c.id, name: c.name, memberId: creatorMemberId(c.id), isLive: c.isLive, subscriberCount: c.subscriberCount, joinedAt: c.joinedAt, status: isMemberSuspended(creatorMemberId(c.id)) ? "SUSPENDED" : "ACTIVE" }));

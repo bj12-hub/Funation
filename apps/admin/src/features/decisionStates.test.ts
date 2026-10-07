@@ -19,4 +19,15 @@ describe("decision forms while processing", () => {
       expect(html.match(/<button[^>]*>/g)!.every((b) => b.includes("disabled"))).toBe(true);
     }
   });
+
+  it("disables 콘텐츠 관리 수정 while a save is processing (it would replace the draft being saved)", async () => {
+    const { ContentManager } = await import("./content/ContentManager");
+    const notices = [{ id: "n-1", category: "GENERAL" as const, important: false, title: "공지", summary: "요약", body: ["본문"], date: "2026-10-08", views: 0 }];
+    const faqs = [{ id: "faq-1", category: "GENERAL" as const, question: "질문인가요?", answer: null }];
+    for (const tab of ["notices", "faq"] as const) {
+      const edit = renderToStaticMarkup(createElement(ContentManager, { tab, notices, faqs })).match(/<button[^>]*>수정<\/button>/g)!;
+      expect(edit).toHaveLength(1);
+      expect(edit[0]).toContain("disabled");
+    }
+  });
 });

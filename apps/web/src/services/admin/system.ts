@@ -5,7 +5,7 @@ import { broadcastChannel } from "@/services/broadcast/channelsCore";
 import { chatStore } from "@/services/broadcast/chatCore";
 import { ADAPTERS, BROADCAST_PLATFORMS } from "@/services/platforms/adapters";
 import { PlatformError, type PlatformErrorCode } from "@/services/platforms/platformTypes";
-import { BANNER_MESSAGE_MAX, siteBannerStore } from "@/services/system/siteBanner";
+import { BANNER_HREF_MAX, BANNER_MESSAGE_MAX, siteBannerStore } from "@/services/system/siteBanner";
 import type { Platform } from "@/types/platform";
 import type { AdminActor } from "./adminTypes";
 import { auditStore, recordAudit } from "./auditCore";
@@ -74,7 +74,7 @@ export async function saveSiteBanner(admin: AdminActor, input: unknown): Promise
   if (typeof v.enabled !== "boolean") return { status: "INVALID", message: "표시 여부를 확인해 주세요." };
   if (v.level !== "INFO" && v.level !== "WARNING") return { status: "INVALID", message: "배너 종류를 골라 주세요." };
   if ((v.enabled && !message) || message.length > BANNER_MESSAGE_MAX) return { status: "INVALID", message: `문구를 1~${BANNER_MESSAGE_MAX}자로 입력해 주세요.` };
-  if (href && (!/^\/[A-Za-z0-9/_\-?=&.]*$/.test(href) || href.startsWith("//"))) return { status: "INVALID", message: "링크는 사이트 안의 주소(/로 시작)만 쓸 수 있어요." };
+  if (href && (href.length > BANNER_HREF_MAX || !/^\/[A-Za-z0-9/_\-?=&.]*$/.test(href) || href.startsWith("//"))) return { status: "INVALID", message: `링크는 사이트 안의 주소(/로 시작, ${BANNER_HREF_MAX}자 이하)만 쓸 수 있어요.` };
   const store = siteBannerStore();
   // Saving the banner as it is (a retry after a lost response, a double click) changes nothing and logs nothing.
   if (store.enabled === v.enabled && store.level === v.level && store.message === message && store.href === (href || null)) return { status: "OK" };

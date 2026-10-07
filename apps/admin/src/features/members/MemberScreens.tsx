@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatCompactKo, formatNumber } from "@/lib/format";
-import { AUDIT_ACTION_LABEL, type AuditEntry, type AdminCreatorRow, type AdminMember, type MemberPage } from "@/types/adminApi";
+import { ADMIN_QUERY_MAX, AUDIT_ACTION_LABEL, type AuditEntry, type AdminCreatorRow, type AdminMember, type MemberPage } from "@/types/adminApi";
 import { SITE_URL } from "@/lib/siteUrl";
 import styles from "../admin.module.css";
 import { MemberActions } from "./MemberActions";
@@ -29,7 +29,7 @@ export function MembersScreen({ page }: { page: MemberPage }) {
         <p className={styles.muted}>닉네임 · 썸네이션 ID · 회원 번호로 찾을 수 있어요. 개인정보(이메일 · 연락처)는 표시하지 않아요 (열람 권한 TBD).</p>
       </header>
       <form className={styles.filters} action="/members">
-        <input className={styles.input} name="q" defaultValue={f.q} placeholder="닉네임 · ID 검색" aria-label="검색어" />
+        <input className={styles.input} name="q" defaultValue={f.q} placeholder="닉네임 · ID 검색" aria-label="검색어" maxLength={ADMIN_QUERY_MAX} />
         <select className={styles.input} name="role" defaultValue={f.role} aria-label="역할">
           <option value="ALL">전체 역할</option>
           <option value="SUPPORTER">후원자</option>
@@ -178,7 +178,7 @@ export function CreatorsAdminScreen({ rows, q }: { rows: AdminCreatorRow[]; q: s
         <p className={styles.muted}>정지된 크리에이터의 채널은 공개 화면(크리에이터 찾기 · 채널)에서 숨겨져요. 채널 심사 · 플랫폼 인증은 TBD예요.</p>
       </header>
       <form className={styles.filters} action="/creators">
-        <input className={styles.input} name="q" defaultValue={q} placeholder="채널 이름 검색" aria-label="검색어" />
+        <input className={styles.input} name="q" defaultValue={q} placeholder="채널 이름 검색" aria-label="검색어" maxLength={ADMIN_QUERY_MAX} />
         <button type="submit" className={styles.button}>
           검색
         </button>

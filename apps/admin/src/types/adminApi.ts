@@ -78,6 +78,8 @@ export type MemberPage = { items: AdminMember[]; total: number; page: number; to
 export type MemberDetail = { member: AdminMember; audit: AuditEntry[] };
 export type AdminCreatorRow = { creatorId: string; name: string; memberId: string; isLive: boolean; subscriberCount: number; joinedAt: string; status: MemberStatus };
 
+/** 회원 · 크리에이터 검색어 길이 (the site cuts longer text). */
+export const ADMIN_QUERY_MAX = 40;
 export const SUSPEND_DAYS = [1, 7, 30, null] as const;
 export const SUSPEND_REASON = { min: 5, max: 200 } as const;
 
@@ -180,7 +182,7 @@ export type FaqCategory = (typeof FAQ_CATEGORIES)[number]["key"];
 export type FaqItem = { id: string; category: FaqCategory; question: string; answer: string | null; link?: { href: string; label: string } };
 
 export const NOTICE_LIMITS = { title: 80, summary: 200, body: 5_000 } as const;
-export const FAQ_LIMITS = { question: 120, answer: 1_000, linkLabel: 20 } as const;
+export const FAQ_LIMITS = { question: 120, answer: 1_000, linkLabel: 20, linkHref: 300 } as const;
 
 // ── Platforms · system ────────────────────────────────────────────────────────
 
@@ -199,6 +201,7 @@ export type SystemView = {
   runtime: { mock: boolean; nodeEnv: string; auditEntries: number };
 };
 export const BANNER_MESSAGE_MAX = 120;
+export const BANNER_HREF_MAX = 300;
 
 // ── Reports (신고) ─────────────────────────────────────────────────────────────
 

@@ -65,6 +65,17 @@ describe("admin members", () => {
     expect(await login({ identifier: "hongGD123", password: mockCredentials.password, keepSignedIn: false })).toEqual({ status: "SUSPENDED" });
   });
 
+  it("caps the 회원 · 크리에이터 search text at ADMIN_QUERY_MAX", async () => {
+    const m = await load();
+    const { ADMIN_QUERY_MAX } = await import("./memberTypes");
+    const long = ` ${"가".repeat(ADMIN_QUERY_MAX + 20)} `;
+    expect(m.adminSearchQuery(long)).toBe("가".repeat(ADMIN_QUERY_MAX));
+    expect(m.adminSearchQuery(["하루봄"])).toBe("");
+    expect((await m.listMembers({ q: long }))!.filter.q).toHaveLength(ADMIN_QUERY_MAX);
+    expect((await m.listAdminCreators({ q: " 하루봄 " }))!.map((c) => c.creatorId)).toEqual(["c1"]);
+    expect(await m.listAdminCreators({ q: long })).toEqual([]);
+  });
+
   it("applies a suspend or restore arriving twice at once (double click, retry) once, with one audit entry", async () => {
     const m = await load();
     const id = m.creatorMemberId("c2");
