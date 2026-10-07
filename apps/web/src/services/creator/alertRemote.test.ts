@@ -41,7 +41,7 @@ describe("리모컨 / 후원 알림 대기열", () => {
     vi.setSystemTime(new Date("2026-09-29T12:00:05Z"));
     expect(await getOverlayAlert(overlayKey)).toMatchObject({ alert: { donor: "B" } });
 
-    await skipCurrentAlert();
+    await skipCurrentAlert({ alertId: (await getRemoteView())!.showing!.id });
     expect(await getOverlayAlert(overlayKey)).toMatchObject({ alert: null });
 
     await setAlertControls({ paused: true });
@@ -64,10 +64,45 @@ describe("리모컨 / 후원 알림 대기열", () => {
     // Replay re-queues a finished alert (display only).
     await setAlertControls({ minFn: 0 });
     const a = view.recent.find((r) => r.donor === "A")!;
-    expect(await replayAlert(a.id)).toEqual({ status: "SAVED" });
+    expect(await replayAlert({ id: a.id, requestId: key(6) })).toEqual({ status: "SAVED" });
     expect(await getOverlayAlert(overlayKey)).toMatchObject({ alert: { donor: "A" } });
     expect((await setAlertControls({ displaySec: 1 })).status).toBe("INVALID");
     expect((await setAlertControls({ alertVolume: 101 })).status).toBe("INVALID");
+  });
+
+  it("skips, replays and cancels only what the remote saw", async () => {
+    vi.useFakeTimers({ now: new Date("2026-09-29T12:00:00Z"), toFake: ["Date"] });
+    const { sendTestAlert, setAlertControls, skipCurrentAlert, cancelAllAlerts, replayAlert, getRemoteView, getOverlayAlert, overlayKey } = await load();
+    await setAlertControls({ displaySec: 5 });
+    await sendTestAlert({ requestId: key(1), amount: 1_000, donor: "A" });
+    await sendTestAlert({ requestId: key(2), amount: 50_000, donor: "B" });
+    const seen = (await getRemoteView())!;
+    expect(seen.showing).toMatchObject({ donor: "A" });
+
+    // A ended while the operator reached for 건너뛰기: B (paid) is on screen now and stays there.
+    vi.setSystemTime(new Date("2026-09-29T12:00:05Z"));
+    expect(await getOverlayAlert(overlayKey)).toMatchObject({ alert: { donor: "B" } }); // the overlay moved on
+    expect(await skipCurrentAlert({ alertId: seen.showing!.id })).toEqual({ status: "SAVED" });
+    let view = (await getRemoteView())!;
+    expect(view.showing).toMatchObject({ donor: "B" });
+    expect(view.recent[0]).toMatchObject({ donor: "A", status: "DONE" });
+    expect((await skipCurrentAlert({})).status).toBe("INVALID");
+
+    // 전체 알림 취소 of what the remote listed: C arrived after the operator looked and is kept.
+    const listed = view.queued.at(-1)?.id ?? view.showing!.id;
+    await sendTestAlert({ requestId: key(3), amount: 3_000, donor: "C" });
+    expect(await cancelAllAlerts({ upToId: listed })).toEqual({ status: "SAVED" });
+    view = (await getRemoteView())!;
+    expect(view.showing).toMatchObject({ donor: "C" });
+    expect(view.recent[0]).toMatchObject({ donor: "B", status: "SKIPPED" });
+    expect((await cancelAllAlerts({ upToId: "al-unknown" })).status).toBe("INVALID");
+
+    // 다시 보내기 double click: one copy.
+    const a = view.recent.find((r) => r.donor === "A")!;
+    const twice = await Promise.all([replayAlert({ id: a.id, requestId: key(4) }), replayAlert({ id: a.id, requestId: key(4) })]);
+    expect(twice).toEqual([{ status: "SAVED" }, { status: "SAVED" }]);
+    expect((await getRemoteView())!.queued.map((q) => q.donor)).toEqual(["A"]);
+    expect((await replayAlert({ id: a.id })).status).toBe("INVALID");
   });
 
   it("queues donations to the studio channel only", async () => {

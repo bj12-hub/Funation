@@ -18,6 +18,14 @@ Supported:
 - FlexTV
 - SOOP
 
+## 리모컨 알림 제어 (code-first, `services/creator/alertRemote`)
+
+- 현재 알림 건너뛰기 names the alert the remote showed (`alertId`); if it already ended, nothing is skipped (never
+  the next, possibly paid, alert).
+- 전체 알림 취소 cancels the showing and queued alerts up to the newest one the remote listed (`upToId`); alerts that
+  arrived after the operator looked stay queued.
+- 다시 보내기 carries a request id: a double click or retry queues one copy.
+
 ## 크루 방송 점수 (code-first, `services/crew`)
 
 Points are display scores, not money.

@@ -115,6 +115,15 @@ export function RemoteScreen({
     });
   };
 
+  // One id per intended 다시 보내기 of an alert: a double click or retry queues one copy.
+  const replayIds = useRef<Record<string, string>>({});
+  const replay = (alertId: string) => {
+    const id = (replayIds.current[alertId] ??= crypto.randomUUID());
+    run(() => replayAlert({ id: alertId, requestId: id }), "알림을 다시 보냈어요.", () => {
+      delete replayIds.current[alertId];
+    });
+  };
+
   // A slider sends its value when released (pointer or keyboard); the label shows the server's value.
   const offOverlays = offOverlayTargets(view.overlays.on);
 
@@ -193,14 +202,23 @@ export function RemoteScreen({
           >
             {controls.muted ? "🔊 음소거 해제" : "🔇 전체 음소거"}
           </button>
-          <button type="button" className={styles.ghost} disabled={pending || !view.showing} onClick={() => run(skipCurrentAlert, "현재 알림을 건너뛰었어요.")}>
+          {/* Skip / cancel name what this screen shows: an alert that ended or arrived since is left alone. */}
+          <button
+            type="button"
+            className={styles.ghost}
+            disabled={pending || !view.showing}
+            onClick={() => view.showing && run(() => skipCurrentAlert({ alertId: view.showing!.id }), "현재 알림을 건너뛰었어요.")}
+          >
             ⏭ 현재 알림 건너뛰기
           </button>
           <button
             type="button"
             className={styles.danger}
             disabled={pending || (!view.showing && !view.queued.length)}
-            onClick={() => run(cancelAllAlerts, "모든 알림을 취소했어요.")}
+            onClick={() => {
+              const upToId = view.queued.at(-1)?.id ?? view.showing?.id;
+              if (upToId) run(() => cancelAllAlerts({ upToId }), "모든 알림을 취소했어요.");
+            }}
           >
             ✕ 전체 알림 취소
           </button>
@@ -381,7 +399,7 @@ export function RemoteScreen({
         ) : (
           <ul className={styles.list}>
             {[...(view.showing ? [view.showing] : []), ...view.queued, ...view.recent].map((a) => (
-              <AlertRow key={a.id} alert={a} disabled={pending} onReplay={() => run(() => replayAlert(a.id), "알림을 다시 보냈어요.")} />
+              <AlertRow key={a.id} alert={a} disabled={pending} onReplay={() => replay(a.id)} />
             ))}
           </ul>
         )}
