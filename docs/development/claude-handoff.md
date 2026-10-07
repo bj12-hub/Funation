@@ -86,6 +86,12 @@ Tips:
   `window.requestAnimationFrame = cb => setTimeout(() => cb(performance.now()), 16)`, call `$RV($RB)`
   if pending, then call `_reactRetry()` on comment nodes.
 - Edits made to the main checkout while testing must be copied into the worktree (or re-run `up`).
+- Known dev-only noise (2026-10-08): opening `/creator/settlement/register/form` without accepted terms redirects to
+  `/creator/settlement/register` from inside the `/creator` loading boundary, and `next dev` logs "Rendered more hooks
+  than during the previous render" with a stack that is entirely React / Next.js router code. The redirect is correct and
+  a production build is clean, so smoke runs list it as expected. (The same pattern broke `/channel/new` in production —
+  fixed in #225 by removing that route's loading boundary — so re-check with `next build && next start` if a new
+  redirect under a loading boundary shows it.)
 
 ## 5. Code conventions used so far
 
