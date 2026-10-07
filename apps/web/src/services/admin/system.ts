@@ -2,6 +2,7 @@ import { USE_MOCK } from "@/lib/mock";
 import { donationLinkStore } from "@/services/creator/donationLinkCore";
 import { youtubeStore } from "@/services/creator/youtubeCore";
 import { broadcastChannel } from "@/services/broadcast/channelsCore";
+import { chatStore } from "@/services/broadcast/chatCore";
 import { ADAPTERS, BROADCAST_PLATFORMS } from "@/services/platforms/adapters";
 import { PlatformError, type PlatformErrorCode } from "@/services/platforms/platformTypes";
 import { BANNER_MESSAGE_MAX, siteBannerStore } from "@/services/system/siteBanner";
@@ -29,6 +30,8 @@ export async function getPlatformStatus(): Promise<PlatformStatusRow[] | null> {
   assertMock();
   const yt = youtubeStore();
   const link = donationLinkStore();
+  // Platforms without a video sync report their 통합 채팅 read (the connection's only live traffic).
+  const chat = chatStore().status;
   return PLATFORMS.map((p) => ({
     platform: p,
     capabilities: [...ADAPTERS[p].capabilities],
@@ -36,8 +39,8 @@ export async function getPlatformStatus(): Promise<PlatformStatusRow[] | null> {
     connection:
       p === "YOUTUBE"
         ? { connected: !!yt.channel, channelTitle: yt.channel?.title ?? null, lastSyncedAt: yt.lastSyncedAt, lastError: yt.lastError, videoCount: Object.keys(yt.videos).length }
-        : { connected: !!broadcastChannel(p), channelTitle: broadcastChannel(p)?.title ?? null, lastSyncedAt: null, lastError: null, videoCount: 0 },
-    donationLink: { enabled: link.enabled[p], ...link.stats[p] },
+        : { connected: !!broadcastChannel(p), channelTitle: broadcastChannel(p)?.title ?? null, lastSyncedAt: chat[p].lastSyncAt, lastError: chat[p].lastError, videoCount: 0 },
+    donationLink: { enabled: link.enabled[p], received: link.stats[p].received, duplicates: link.stats[p].duplicates, lastEventAt: link.stats[p].lastEventAt },
     lastCheck: checks()[p] ?? null
   }));
 }

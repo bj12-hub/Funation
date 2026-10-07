@@ -41,6 +41,21 @@ describe("admin platforms and system", () => {
     expect((await m.checkPlatform("TWITCH")).status).toBe("INVALID");
   });
 
+  it("reports the live chat read of platforms without a video sync", async () => {
+    const m = await load();
+    const chat = await import("@/services/broadcast/unifiedChat");
+    const remote = await import("@/services/platforms/mockBroadcastRemote");
+    signIn(["CREATOR"]);
+    await chat.connectBroadcastChannel({ platform: "SOOP", handle: "adminview" });
+    signIn(["ADMIN"]);
+    expect((await m.getPlatformStatus())![2].connection).toMatchObject({ connected: true, lastSyncedAt: expect.any(String), lastError: null });
+    signIn(["CREATOR"]);
+    remote.mockFailNextChatCall("SOOP", "UNAVAILABLE");
+    await chat.simulateChatReconnect({ platform: "SOOP" });
+    signIn(["ADMIN"]);
+    expect((await m.getPlatformStatus())![2].connection).toMatchObject({ connected: true, lastError: "UNAVAILABLE" });
+  });
+
   it("shows the site banner only while enabled and audits changes", async () => {
     const m = await load();
     signIn(["ADMIN"]);

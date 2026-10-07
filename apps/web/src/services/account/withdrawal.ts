@@ -4,8 +4,9 @@ import { randomUUID } from "node:crypto";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession, hasRole, revokeSession, type Session } from "@/lib/session";
 import { bankSmsStore } from "@/services/bankSms/bankSmsCore";
-import { managerLinks } from "@/services/broadcast/chatCore";
+import { clearChatFeed, managerLinks, onChannelChanged } from "@/services/broadcast/chatCore";
 import { channelsStore } from "@/services/broadcast/channelsCore";
+import { BROADCAST_PLATFORMS } from "@/services/platforms/adapters";
 import { mockCreator, newIntegrationKey } from "@/services/creator/mockCreatorStore";
 import { mockSettlement } from "@/services/creator/mockSettlementStore";
 import { youtubeStore } from "@/services/creator/youtubeCore";
@@ -108,6 +109,9 @@ export async function withdrawAccount(input: unknown): Promise<WithdrawResult> {
   managerLinks().length = 0;
   channelsStore().channels = {};
   Object.assign(youtubeStore(), { channel: null, connectedAt: null, lastSyncedAt: null, lastError: null, videos: {} });
+  // Chat / 후원 연동 cursors and switches belonged to those channels, and the chat feed holds viewers' messages.
+  for (const p of BROADCAST_PLATFORMS) onChannelChanged(p);
+  clearChatFeed();
   Object.assign(bankSmsStore(), { enabled: false, key: randomUUID() });
   mockCreator.integrationKey = newIntegrationKey();
   // Revoke instead of deleting the cookie, so the page keeps showing the 탈퇴 완료 state.

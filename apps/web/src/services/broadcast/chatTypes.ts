@@ -40,6 +40,8 @@ export type ChatPlatformState = {
   lastError: PlatformErrorCode | null;
   received: number;
   duplicates: number;
+  /** Messages the platform delivered in a shape we could not read (dropped, not shown). */
+  skipped: number;
 };
 
 export type ModerationAction = "HIDE" | "UNHIDE" | "DELETE" | "BAN";
@@ -75,6 +77,11 @@ export type ChatSendOutcome =
   | { status: "SENT"; externalMessageId: string }
   | { status: "NOT_CONNECTED" }
   | { status: "UNSUPPORTED" }
+  /** Another call with the same requestId is sending it right now. */
+  | { status: "PENDING" }
+  /** The platform did not answer in time: it may have been posted, so it is not sent again automatically. */
+  | { status: "UNCONFIRMED" }
+  /** The platform refused it; a retry with the same requestId sends it again. */
   | { status: "FAILED"; code: PlatformErrorCode };
 
 export type ChatSendResult = { status: "OK"; results: Partial<Record<Platform, ChatSendOutcome>> } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
@@ -100,8 +107,13 @@ export const SEND_OUTCOME_LABEL: Record<ChatSendOutcome["status"], string> = {
   SENT: "보냄",
   NOT_CONNECTED: "채널 연결 안 됨",
   UNSUPPORTED: "보내기 미지원",
+  PENDING: "보내는 중",
+  UNCONFIRMED: "확인 필요",
   FAILED: "실패"
 };
+
+/** Shown next to UNCONFIRMED: the creator checks the platform chat instead of a blind resend. */
+export const SEND_UNCONFIRMED_HINT = "응답이 늦어 올라갔는지 알 수 없어요. 채팅에서 확인해 주세요.";
 
 export const HIDDEN_LABEL: Record<ChatHiddenReason, string> = { MANUAL: "숨김", FILTER: "금칙어", DELETED: "삭제됨", BANNED: "차단됨" };
 

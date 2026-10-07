@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { key, mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
@@ -22,6 +22,7 @@ const viewer = (n: number, platform: string, text: string, extra: Record<string,
 
 describe("unified chat", () => {
   beforeEach(() => resetMockStores());
+  afterEach(() => vi.restoreAllMocks());
 
   it("declares per-platform chat capabilities instead of assuming they are the same", async () => {
     const m = await load();
@@ -77,10 +78,10 @@ describe("unified chat", () => {
   it("sends to every chosen platform, reports unsupported ones and retries only the failed ones", async () => {
     const m = await load();
     await connectAll(m);
-    m.remote.mockFailNextChatCall("CHZZK", "TIMEOUT");
+    m.remote.mockFailNextChatCall("CHZZK", "UNAVAILABLE");
     const req = { requestId: key(20), text: "모두 안녕하세요", platforms: ["YOUTUBE", "CHZZK", "SOOP"] };
     const first = await m.sendUnifiedChat(req);
-    expect(first.status === "OK" && first.results).toMatchObject({ YOUTUBE: { status: "SENT" }, CHZZK: { status: "FAILED", code: "TIMEOUT" }, SOOP: { status: "UNSUPPORTED" } });
+    expect(first.status === "OK" && first.results).toMatchObject({ YOUTUBE: { status: "SENT" }, CHZZK: { status: "FAILED", code: "UNAVAILABLE" }, SOOP: { status: "UNSUPPORTED" } });
 
     const retry = await m.sendUnifiedChat(req);
     expect(retry.status === "OK" && retry.results).toMatchObject({ YOUTUBE: { status: "SENT" }, CHZZK: { status: "SENT" }, SOOP: { status: "UNSUPPORTED" } });
@@ -92,6 +93,98 @@ describe("unified chat", () => {
     expect((await m.sendUnifiedChat({ ...req, text: "다른 내용" })).status).toBe("INVALID");
     expect((await m.sendUnifiedChat({ requestId: key(21), text: "", platforms: ["YOUTUBE"] })).status).toBe("INVALID");
     expect((await m.sendUnifiedChat({ requestId: key(22), text: "안녕", platforms: [] })).status).toBe("INVALID");
+  });
+
+  it("posts once for concurrent sends with one requestId and never resends a timed-out platform blindly", async () => {
+    const m = await load();
+    await connectAll(m);
+    const { ChzzkAdapter, YouTubeAdapter } = await import("@/services/platforms/adapters");
+    const ytSend = vi.spyOn(YouTubeAdapter, "sendChatMessage");
+    const req = { requestId: key(60), text: "한 번만", platforms: ["YOUTUBE"] };
+    const both = await Promise.all([m.sendUnifiedChat(req), m.sendUnifiedChat(req)]);
+    expect(ytSend).toHaveBeenCalledTimes(1);
+    for (const r of both) expect(["SENT", "PENDING"]).toContain(r.status === "OK" && r.results.YOUTUBE?.status);
+    expect((await m.getUnifiedChat())!.messages.filter((x) => x.text === "한 번만")).toHaveLength(1);
+
+    // A timeout may have posted it: reported as 확인 필요 and not sent again with the same requestId.
+    m.remote.mockFailNextChatCall("CHZZK", "TIMEOUT");
+    const late = { requestId: key(61), text: "응답이 늦어요", platforms: ["CHZZK"] };
+    const first = await m.sendUnifiedChat(late);
+    expect(first.status === "OK" && first.results.CHZZK).toEqual({ status: "UNCONFIRMED" });
+    const chzSend = vi.spyOn(ChzzkAdapter, "sendChatMessage");
+    const retry = await m.sendUnifiedChat(late);
+    expect(retry.status === "OK" && retry.results.CHZZK).toEqual({ status: "UNCONFIRMED" });
+    expect(chzSend).not.toHaveBeenCalled();
+  });
+
+  it("reads each channel from its own position: a switched channel shows everything after the switch, never the backlog", async () => {
+    const m = await load();
+    const { broadcastChannelId } = await import("./channelsCore");
+    const { YouTubeAdapter } = await import("@/services/platforms/adapters");
+    await m.connectYouTube({ handle: "alpha", requestId: key(70) });
+    for (let i = 0; i < 3; i++) await m.simulateViewerChat(viewer(71 + i, "YOUTUBE", `old ${i}`));
+    await m.disconnectYouTube();
+    // The new channel already has chat from before the connection: not replayed.
+    const beta = (await YouTubeAdapter.getChannel("betachan")).externalChannelId;
+    m.remote.mockViewerChat("YOUTUBE", beta, { userId: "early", nick: "먼저", text: "연결 전" });
+    await m.connectYouTube({ handle: "betachan", requestId: key(75) });
+    await m.simulateViewerChat(viewer(76, "YOUTUBE", "new 1"));
+    await m.simulateViewerChat(viewer(77, "YOUTUBE", "new 2"));
+
+    // CHZZK switched to another channel without disconnecting first.
+    await m.connectBroadcastChannel({ platform: "CHZZK", handle: "alpha" });
+    for (let i = 0; i < 2; i++) await m.simulateViewerChat(viewer(78 + i, "CHZZK", `alpha ${i}`));
+    await m.connectBroadcastChannel({ platform: "CHZZK", handle: "gamma" });
+    expect(broadcastChannelId("CHZZK")).toContain("chz_");
+    await m.simulateViewerChat(viewer(80, "CHZZK", "gamma 1"));
+
+    const texts = (await m.getUnifiedChat())!.messages.map((x) => x.text);
+    expect(texts).toEqual(["old 0", "old 1", "old 2", "new 1", "new 2", "alpha 0", "alpha 1", "gamma 1"]);
+  });
+
+  it("starts from now even when the first read fails or the overlay polls during the connection", async () => {
+    const m = await load();
+    const { ChzzkAdapter, SoopAdapter } = await import("@/services/platforms/adapters");
+    const chz = (await ChzzkAdapter.getChannel("gamma")).externalChannelId;
+    for (let i = 0; i < 3; i++) m.remote.mockViewerChat("CHZZK", chz, { userId: `u${i}`, nick: `n${i}`, text: `backlog ${i}` });
+    m.remote.mockFailNextChatCall("CHZZK", "TIMEOUT");
+    expect(await m.connectBroadcastChannel({ platform: "CHZZK", handle: "gamma" })).toEqual({ status: "OK" });
+    expect(await m.getChatOverlay(m.overlayKey)).toEqual([]);
+    await m.simulateViewerChat(viewer(80, "CHZZK", "after"));
+    expect((await m.getChatOverlay(m.overlayKey)).map((l) => l.text)).toEqual(["after"]);
+
+    // A slow platform: the overlay reads while the connection is still taking its first position.
+    const soop = (await SoopAdapter.getChannel("delta")).externalChannelId;
+    for (let i = 0; i < 3; i++) m.remote.mockViewerChat("SOOP", soop, { userId: `s${i}`, nick: `s${i}`, text: `soop backlog ${i}` });
+    const read = SoopAdapter.fetchChatMessages.bind(SoopAdapter);
+    vi.spyOn(SoopAdapter, "fetchChatMessages").mockImplementation(async (c, cur) => {
+      await new Promise((r) => setTimeout(r, 30));
+      return read(c, cur);
+    });
+    const connecting = m.connectBroadcastChannel({ platform: "SOOP", handle: "delta" });
+    await new Promise((r) => setTimeout(r, 10));
+    const { ingestChat, overlayLines } = await import("./chatCore");
+    await ingestChat({ force: true });
+    await connecting;
+    expect(overlayLines().map((l) => l.text)).toEqual(["after"]);
+  });
+
+  it("drops malformed platform messages, counts them and keeps reading the rest", async () => {
+    const m = await load();
+    await connectAll(m);
+    const { broadcastChannelId } = await import("./channelsCore");
+    const soop = broadcastChannelId("SOOP")!;
+    const chz = broadcastChannelId("CHZZK")!;
+    m.remote.mockViewerChat("SOOP", soop, { userId: "a", nick: "a", text: "first" });
+    // A badge we do not know yet, and a message without a usable time.
+    m.remote.channelRemote(soop).soop.push({ chatNo: 9001, userId: "b", userNick: "b", userFlag: "subscriber" as never, message: "new badge", ts: Date.now() });
+    m.remote.channelRemote(chz).chzzk.push({ messageId: "bad", senderChannelId: "x", profile: { nickname: "x", userRoleCode: "common_user", subscription: false }, content: "x", messageTime: Number.NaN });
+    await m.simulateViewerChat(viewer(90, "SOOP", "after"));
+    await m.simulateViewerChat(viewer(91, "CHZZK", "good"));
+    const view = (await m.getUnifiedChat())!;
+    expect(view.messages.map((x) => x.text)).toEqual(["first", "new badge", "after", "good"]);
+    expect(view.messages[1].author.roles).toEqual([]);
+    expect(view.platforms.find((p) => p.platform === "CHZZK")).toMatchObject({ skipped: 1, lastError: null });
   });
 
   it("hides locally on any platform, but deletes and bans only where the platform supports it", async () => {

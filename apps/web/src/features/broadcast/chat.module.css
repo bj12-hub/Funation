@@ -261,6 +261,11 @@
   color: var(--color-error-text);
 }
 
+.results li[data-status="UNCONFIRMED"] {
+  background: var(--color-warning-tint);
+  color: var(--color-warning-text);
+}
+
 .channel {
   display: flex;
   flex-direction: column;
