@@ -25,7 +25,7 @@ export function MemberActions({ id, suspended }: { id: string; suspended: boolea
           setReason("");
           setNote({ tone: "ok", text: ok });
           router.refresh();
-        } else setNote({ tone: "error", text: res.status === "INVALID" ? res.message : res.status === "NOT_FOUND" ? "회원을 찾을 수 없어요." : "관리자 로그인이 필요합니다." });
+        } else setNote({ tone: "error", text: res.status === "INVALID" ? res.message : res.status === "NOT_FOUND" ? "회원을 찾을 수 없어요." : res.status === "UNAUTHORIZED" ? "관리자 로그인이 필요합니다." : "사이트에 연결할 수 없어요. 잠시 후 다시 시도해 주세요." });
       } catch {
         setNote({ tone: "error", text: "처리하지 못했어요. 잠시 후 다시 시도해 주세요." });
       }

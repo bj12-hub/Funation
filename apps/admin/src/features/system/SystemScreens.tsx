@@ -85,7 +85,7 @@ export function SystemScreen({ view }: { view: SystemView }) {
         if (res.status === "OK") {
           setMsg({ tone: "ok", text: b.enabled ? "사이트에 배너를 띄웠어요." : "배너를 내렸어요." });
           router.refresh();
-        } else setMsg({ tone: "error", text: res.status === "INVALID" ? res.message : "관리자 로그인이 필요합니다." });
+        } else setMsg({ tone: "error", text: res.status === "INVALID" ? res.message : res.status === "UNAUTHORIZED" ? "관리자 로그인이 필요합니다." : "사이트에 연결할 수 없어요. 잠시 후 다시 시도해 주세요." });
       } catch {
         setMsg({ tone: "error", text: "저장하지 못했어요. 잠시 후 다시 시도해 주세요." });
       }
