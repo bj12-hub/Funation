@@ -3,6 +3,7 @@
 import { randomUUID } from "node:crypto";
 import { USE_MOCK } from "@/lib/mock";
 import { getSession } from "@/lib/session";
+import { shownMemberName } from "@/services/admin/memberCore";
 import { getCreatorById } from "@/services/creators/creators";
 import { blocksOf, moderationStore, resolveTarget } from "./moderationCore";
 import { REPORT_DETAIL_MAX, REPORT_REASONS, type BlockEntry, type BlockResult, type ReportReason, type ReportResult, type ReportTarget, type ReportTargetType } from "./moderationTypes";
@@ -78,7 +79,7 @@ export async function blockAuthorOf(input: unknown): Promise<BlockResult> {
   const store = moderationStore();
   const mine = (store.blocks[session.userId] ??= {});
   mine[resolved.authorId] ??= { id: randomUUID(), authorId: resolved.authorId, name: resolved.authorName, since: new Date().toISOString() };
-  return { status: "OK", name: resolved.authorName };
+  return { status: "OK", name: shownMemberName(resolved.authorId, resolved.authorName) };
 }
 
 /** `id`: the block entry's id from listBlocks (never a member id). */
@@ -90,15 +91,15 @@ export async function unblock(id: unknown): Promise<BlockResult> {
   const entry = typeof id === "string" ? Object.values(mine).find((e) => e.id === id) : undefined;
   if (!entry) return { status: "NOT_FOUND" };
   delete mine[entry.authorId];
-  return { status: "OK", name: entry.name };
+  return { status: "OK", name: shownMemberName(entry.authorId, entry.name) };
 }
 
 export async function listBlocks(): Promise<BlockEntry[] | null> {
   assertMock();
   const session = await getSession();
   if (!session) return null;
-  // Other members' ids never reach the browser: each entry carries its own id.
+  // Other members' ids never reach the browser: each entry carries its own id. A withdrawn member is "탈퇴한 회원".
   return Object.values(blocksOf(session.userId))
     .sort((a, b) => b.since.localeCompare(a.since))
-    .map(({ id, name, since }) => ({ id, name, since }));
+    .map(({ id, authorId, name, since }) => ({ id, name: shownMemberName(authorId, name), since }));
 }

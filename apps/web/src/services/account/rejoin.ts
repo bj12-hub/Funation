@@ -52,8 +52,8 @@ const rekey = <T>(map: Record<string, T>, from: string, to: string): Record<stri
 
 /**
  * The slot's member id now belongs to the new account, so what the withdrawn account wrote and set moves to its own
- * id `to` (the admin directory's `…-wN`). Its community posts, comments and channel posts stay up (TBD: what a
- * withdrawn member's content shows) but are no longer the slot's to edit or delete; its block list, the blocks others
+ * id `to` (the admin directory's `…-wN`). Its community posts, comments and channel posts stay up under "탈퇴한 회원"
+ * (2026-10-08 결정, admin/memberCore `shownMemberName`) but are no longer the slot's to edit or delete; its block list, the blocks others
  * set on it, its reports (as author and as reporter, so 신고 처리 links the right member) and its request ids go with it.
  * Its notifications were about its own charges, donations and refunds, which the new account does not have.
  */

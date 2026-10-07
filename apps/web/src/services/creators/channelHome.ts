@@ -1,6 +1,7 @@
 "use server";
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
+import { shownMemberName } from "@/services/admin/memberCore";
 import { isBlockedBy } from "@/services/moderation/moderationCore";
 import { toDateString } from "@/lib/period";
 import { getSession } from "@/lib/session";
@@ -77,7 +78,8 @@ export async function getChannelPosts(creatorId: unknown, show: unknown = CHANNE
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const count = Math.min(Math.max(1, Math.floor(Number(show)) || CHANNEL_POSTS_PAGE), 100);
   return {
-    items: all.slice(0, count).map((p) => ({ id: p.id, authorName: p.authorName, body: p.body, createdAt: p.createdAt, mine: !!session && p.authorId === session.userId })),
+    // A withdrawn member's posts stay up under "탈퇴한 회원" (2026-10-08 결정).
+    items: all.slice(0, count).map((p) => ({ id: p.id, authorName: shownMemberName(p.authorId, p.authorName), body: p.body, createdAt: p.createdAt, mine: !!session && p.authorId === session.userId })),
     total: all.length,
     hasMore: all.length > count
   };

@@ -1,7 +1,9 @@
+import { isWithdrawn } from "@/services/account/withdrawalCore";
 import { isSuspendedNow, type Suspension } from "./memberTypes";
+import { WITHDRAWN_MEMBER_NAME } from "./paymentTypes";
 
 /**
- * Server-only member moderation state (not a "use server" module; no app imports, so the session and
+ * Server-only member moderation state (not a "use server" module; it imports leaf modules only, so the session and
  * creator services can read it without cycles). The directory itself is composed in admin/members.ts.
  */
 
@@ -9,6 +11,16 @@ export const SAMPLE_MEMBER_ID = "u-hongGD123";
 export const creatorMemberId = (creatorId: string) => `m-${creatorId}`;
 /** Member id of the slot's `n`-th withdrawn account (1 = the first) once a 재가입 started a new account in the slot. */
 export const withdrawnMemberId = (n: number) => `${SAMPLE_MEMBER_ID}-w${n}`;
+
+const WITHDRAWN_ID = new RegExp(`^${SAMPLE_MEMBER_ID}-w\\d+$`);
+/** A withdrawn account: an earlier account of the slot (`…-wN`), or the slot's own while it is withdrawn. */
+export const isWithdrawnMember = (memberId: string) => WITHDRAWN_ID.test(memberId) || (memberId === SAMPLE_MEMBER_ID && isWithdrawn());
+
+/**
+ * The author name shown on 커뮤니티 posts and comments, channel posts and block lists: "탈퇴한 회원" for a withdrawn
+ * member (2026-10-08 결정 — the content stays up), the stored nickname otherwise.
+ */
+export const shownMemberName = (memberId: string, name: string) => (isWithdrawnMember(memberId) ? WITHDRAWN_MEMBER_NAME : name);
 
 type GeneratedMember = { id: string; nickname: string; funationId: string; joinedAt: string; lastActiveAt: string; donationTotalFn: number; fnBalance: number };
 type Store = { suspensions: Record<string, Suspension>; requests: Record<string, true>; supporters: GeneratedMember[] };

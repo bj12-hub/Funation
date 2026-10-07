@@ -331,8 +331,8 @@ describe("회원 탈퇴", () => {
       await m.signup({ email: "again@funation.kr", password: "newpass12!", nickname: "다시왔어요", phoneVerificationToken: await phoneToken(), agreements: { youth: true, service: true, privacy: true, marketing: false } })
     ).toEqual({ status: "CREATED" });
 
-    // The new account in the slot neither owns nor can change what the withdrawn one wrote (it stays up).
-    expect(await community.getPost(postId)).toMatchObject({ authorName: "홍길동", mine: false });
+    // The new account in the slot neither owns nor can change what the withdrawn one wrote (it stays up as 탈퇴한 회원).
+    expect(await community.getPost(postId)).toMatchObject({ authorName: "탈퇴한 회원", mine: false });
     expect(await community.updatePost(postId, { category: "FREE", title: "남의 글", body: "수정" })).toEqual({ status: "FORBIDDEN" });
     expect(await community.deletePost(postId)).toEqual({ status: "FORBIDDEN" });
     const comment = (await community.getPost("p-2"))!.comments.find((c) => c.body === "탈퇴 전 댓글")!;

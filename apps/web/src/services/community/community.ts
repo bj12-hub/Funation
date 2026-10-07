@@ -1,6 +1,7 @@
 "use server";
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
+import { shownMemberName } from "@/services/admin/memberCore";
 import { isBlockedBy } from "@/services/moderation/moderationCore";
 import { getSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
@@ -23,7 +24,8 @@ import { mockCommunity, type MockPost } from "./mockCommunityStore";
  * and only the author may edit or delete a post / comment (checked on the server). Writes look the post up
  * after the mock delay and change it in the same tick, so a post deleted or hidden meanwhile is not written to.
  * 글쓰기 and 댓글 carry a request id per form: a retry after a lost response returns the first result instead of
- * writing twice. TBD: moderation, reports, rate limits, images, notices.
+ * writing twice. A withdrawn member's posts and comments stay up under "탈퇴한 회원" (2026-10-08 결정).
+ * TBD: moderation, reports, rate limits, images, notices.
  */
 
 const assertMock = () => {
@@ -39,7 +41,7 @@ const summary = (p: MockPost, viewer: string | undefined) => ({
   id: p.id,
   category: p.category,
   title: p.title,
-  authorName: p.authorName,
+  authorName: shownMemberName(p.authorId, p.authorName),
   createdAt: p.createdAt,
   commentCount: shownComments(p, viewer).length,
   views: p.views
@@ -75,7 +77,7 @@ export async function getPost(id: unknown): Promise<PostDetail | null> {
     body: p.body,
     updatedAt: p.updatedAt,
     mine: !!session && session.userId === p.authorId,
-    comments: shownComments(p, session?.userId).map((c) => ({ id: c.id, authorName: c.authorName, body: c.body, createdAt: c.createdAt, mine: !!session && session.userId === c.authorId }))
+    comments: shownComments(p, session?.userId).map((c) => ({ id: c.id, authorName: shownMemberName(c.authorId, c.authorName), body: c.body, createdAt: c.createdAt, mine: !!session && session.userId === c.authorId }))
   };
 }
 
