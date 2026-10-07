@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { toDateString } from "@/lib/period";
 import { mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
@@ -22,6 +23,20 @@ describe("dashboard summary", () => {
     const pending = mockSettlement.requests.filter((r) => r.status === "PENDING").reduce((a, r) => a + r.amountFn, 0);
     expect(s.settlement).toEqual({ availableFn: mockSettlement.availableFn, earnedFn: mockSettlement.availableFn + pending + approved, withdrawnFn: approved });
     expect(s.topDonors.map((d) => d.rank)).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("counts 누적 from the records, never from the editable 데뷔일", async () => {
+    const { getDashboardSummary, getRevenueOverview } = await import("./creatorStudio");
+    const { mockCreator } = await import("./mockCreatorStore");
+    const total = (await getDashboardSummary())!.received.total.amount;
+    const overall = (await getRevenueOverview())!.totalRevenue;
+    for (const debut of [toDateString(new Date()), "2099-01-01", "1000-01-01"]) {
+      mockCreator.debutDate = debut;
+      const s = (await getDashboardSummary())!.received;
+      expect(s.total.amount).toBe(total);
+      expect(s.total.amount).toBeGreaterThanOrEqual(s.week.amount);
+      expect((await getRevenueOverview())!.totalRevenue).toBe(overall);
+    }
   });
 
   it("is creator-only", async () => {

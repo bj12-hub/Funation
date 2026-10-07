@@ -178,11 +178,17 @@ export async function getDashboardSummary(): Promise<DashboardSummary | null> {
   const paid = sum("APPROVED");
   const pending = sum("PENDING");
   return {
-    received: { today: tally(iso(today)), week: tally(daysAgo(6)), month: tally(monthStart), total: tally(mockCreator.debutDate) },
+    received: { today: tally(iso(today)), week: tally(daysAgo(6)), month: tally(monthStart), total: tally(MOCK_REVENUE_START) },
     settlement: { availableFn: mockSettlement.availableFn, earnedFn: mockSettlement.availableFn + pending + paid, withdrawnFn: paid },
     topDonors: RANKINGS.month.slice(0, 5)
   };
 }
+
+/**
+ * First day of the mock revenue records: 누적 sums every record from here. Fixed — it never follows the editable 데뷔일
+ * (a 데뷔일 of today made 누적 smaller than 이번 주, and a very old one made every request loop over centuries).
+ */
+const MOCK_REVENUE_START = "2020-03-15";
 
 /** Mock revenue over any range (eachDay is capped at MAX_RANGE_DAYS for the stats filter). */
 function sumRevenue(from: string, to: string) {
@@ -265,7 +271,7 @@ export async function getRevenueOverview(): Promise<RevenueOverview | null> {
   });
   const todayAmount = mockDailyRevenue(today);
   return {
-    totalRevenue: sumRevenue(mockCreator.debutDate, today),
+    totalRevenue: sumRevenue(MOCK_REVENUE_START, today),
     today: { amount: todayAmount, count: Math.round(todayAmount / 19_140) },
     thisMonth: monthly[5].amount,
     unsettledFn: mockSettlement.availableFn,

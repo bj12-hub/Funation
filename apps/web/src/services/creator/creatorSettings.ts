@@ -19,7 +19,7 @@ import {
 } from "./creatorSettingsTypes";
 import { matchesContent } from "./assetCore";
 import { mockCreator, newIntegrationKey } from "./mockCreatorStore";
-import { isIsoDate } from "@/lib/period";
+import { isIsoDate, toDateString } from "@/lib/period";
 
 /**
  * Creator account settings — Figma 315:405 · 315:2 (route `/creator/settings`) and 326:496 (프로필 수정).
@@ -142,12 +142,17 @@ export async function changeChannelName(name: unknown): Promise<SaveResult> {
   return { status: "SAVED" };
 }
 
+/** Earliest date accepted in the profile (a sanity bound, not a business rule). */
+const DATE_MIN = "1900-01-01";
+
 export async function saveCreatorProfile(input: unknown): Promise<SaveResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (typeof input !== "object" || input === null) return { status: "INVALID" };
   const v = input as Record<string, unknown>;
   if (!isIsoDate(v.birthday) || !isIsoDate(v.debutDate)) return { status: "INVALID", message: "날짜를 확인해 주세요." };
+  // A real past day (validation bounds, not a business rule).
+  if (v.debutDate > toDateString(new Date()) || v.debutDate < DATE_MIN) return { status: "INVALID", message: "방송 데뷔일은 오늘이나 그 이전 날짜로 입력해 주세요." };
   if (typeof v.birthdayPublic !== "boolean" || typeof v.debutPublic !== "boolean") return { status: "INVALID" };
   const anniversaries = Array.isArray(v.anniversaries) ? v.anniversaries : null;
   if (
