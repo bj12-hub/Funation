@@ -4,6 +4,7 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { isEmail, isValidNickname, isValidPassword } from "@/lib/validation";
 import { judgeNickname, nicknamesTakenForSignup } from "@/services/account/nicknameRules";
 import { startNewAccount } from "@/services/account/rejoin";
+import { isEmailTaken, recordSignup } from "./signupCore";
 import { consumeVerificationToken } from "./verificationCore";
 
 /**
@@ -22,7 +23,8 @@ export type SignupRequest = {
   password: string;
   nickname: string;
   phoneVerificationToken: string;
-  agreements: { youth: true; service: true; privacy: true; marketing: boolean };
+  /** The agreement state as the member left it; the server requires the three required ones. */
+  agreements: { youth: boolean; service: boolean; privacy: boolean; marketing: boolean };
 };
 
 export type SignupResult =
@@ -33,14 +35,11 @@ export type SignupResult =
   | { status: "VERIFICATION_EXPIRED" }
   | { status: "INVALID" };
 
-// Values used in the Figma error frames (722:765, 722:1059) are treated as taken in the mock.
-const TAKEN_EMAILS = new Set(["hello@funation.kr"]);
-
 export async function checkEmailAvailability(email: string): Promise<AvailabilityResult> {
   if (!USE_MOCK) throw new Error("Sign-up API is not connected yet.");
   if (typeof email !== "string" || !isEmail(email)) return { available: false };
   await mockDelay(300);
-  return { available: !TAKEN_EMAILS.has(email.trim().toLowerCase()) };
+  return { available: !isEmailTaken(email) };
 }
 
 /** The member nickname rules of 마이페이지 (services/account/nicknameRules.ts). */
@@ -74,7 +73,7 @@ export async function signup(request: SignupRequest): Promise<SignupResult> {
   await mockDelay();
   const takenNicknames = await nicknamesTakenForSignup();
   // From here to the write nothing awaits.
-  if (TAKEN_EMAILS.has(r.email!.trim().toLowerCase())) return { status: "EMAIL_TAKEN" };
+  if (isEmailTaken(r.email!)) return { status: "EMAIL_TAKEN" };
   const nickname = judgeNickname(r.nickname!.trim(), takenNicknames);
   if (nickname === "DUPLICATE") return { status: "NICKNAME_TAKEN" };
   // A forbidden word or 익명: the form's availability check says why; the submit only refuses.
@@ -82,7 +81,9 @@ export async function signup(request: SignupRequest): Promise<SignupResult> {
   // The verification is used up only together with the account write, so a refused sign-up keeps it.
   const phone = consumeVerificationToken(r.phoneVerificationToken, "SIGNUP");
   if (!phone) return { status: "VERIFICATION_EXPIRED" };
-  // The mock has one account slot: after a withdrawal it becomes the new account.
-  startNewAccount({ nickname: r.nickname!.trim(), password: r.password!, marketing: a!.marketing, phone });
+  // The mock has one account slot: after a withdrawal it becomes the new account; otherwise the account is only
+  // recorded (./signupCore.ts), so its e-mail and nickname are taken from now on.
+  const inSlot = startNewAccount({ nickname: r.nickname!.trim(), password: r.password!, marketing: a!.marketing, phone });
+  recordSignup(r.email!, inSlot ? null : r.nickname!.trim());
   return { status: "CREATED" };
 }

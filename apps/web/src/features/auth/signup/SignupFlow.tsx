@@ -46,7 +46,8 @@ export function SignupFlow() {
       const result = await signup({
         ...values,
         phoneVerificationToken: verified.token,
-        agreements: { youth: true, service: true, privacy: true, marketing: agreements.marketing }
+        // The real agreement state: the server checks the required ones itself.
+        agreements
       });
       if (result.status === "CREATED") setStep(4);
       else if (result.status === "EMAIL_TAKEN") setSubmitError("이미 사용 중인 이메일입니다. 다른 이메일을 사용해 주세요.");

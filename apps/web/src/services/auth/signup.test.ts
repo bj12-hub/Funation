@@ -20,7 +20,7 @@ describe("signup", () => {
     const phoneVerificationToken = await phoneToken();
     expect(await signup({ ...valid, phoneVerificationToken })).toEqual({ status: "CREATED" });
     expect(await signup({ ...valid, phoneVerificationToken, email: "HELLO@funation.kr" })).toEqual({ status: "EMAIL_TAKEN" });
-    expect(await signup({ ...valid, phoneVerificationToken, nickname: "funation" })).toEqual({ status: "NICKNAME_TAKEN" });
+    expect(await signup({ ...valid, phoneVerificationToken, email: "another@funation.kr", nickname: "funation" })).toEqual({ status: "NICKNAME_TAKEN" });
   });
 
   it("applies the member nickname rules: forbidden words, 익명, other members' nicknames and channel names", async () => {
@@ -39,6 +39,19 @@ describe("signup", () => {
     expect(await signup({ ...ok, nickname: "하루봄" })).toEqual({ status: "NICKNAME_TAKEN" });
     expect(await signup({ ...ok, nickname: "홍길동" })).toEqual({ status: "NICKNAME_TAKEN" });
     expect(await signup(ok)).toEqual({ status: "CREATED" });
+  });
+
+  it("records a sign-up the one-slot mock cannot hold, so its e-mail and nickname are taken afterwards", async () => {
+    const { signup, checkEmailAvailability } = await import("./signup");
+    const { mockAccount } = await import("@/services/account/mockStore");
+    // The sample account's own e-mail is registered.
+    expect(await checkEmailAvailability("User@funation.kr")).toEqual({ available: false });
+    expect(await signup({ ...valid, email: "user@funation.kr", phoneVerificationToken: await phoneToken() })).toEqual({ status: "EMAIL_TAKEN" });
+    expect(await signup({ ...valid, phoneVerificationToken: await phoneToken() })).toEqual({ status: "CREATED" });
+    expect(mockAccount.nickname).toBe("홍길동"); // the active account is untouched
+    expect(await checkEmailAvailability(" NEW@funation.kr ")).toEqual({ available: false });
+    expect(await signup({ ...valid, nickname: "다른이름", phoneVerificationToken: await phoneToken() })).toEqual({ status: "EMAIL_TAKEN" });
+    expect(await signup({ ...valid, email: "other@funation.kr", phoneVerificationToken: await phoneToken() })).toEqual({ status: "NICKNAME_TAKEN" });
   });
 
   it("rejects bad formats and missing required agreements", async () => {
