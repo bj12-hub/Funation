@@ -100,7 +100,8 @@ function liveView(b: MockBroadcast): BroadcastLive {
       : null,
     rankUp,
     showRankUp: !!b.showRankUp,
-    fanNotes: fanNotesView(b)
+    fanNotes: fanNotesView(b),
+    serverNow: new Date().toISOString()
   };
 }
 

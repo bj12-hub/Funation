@@ -271,7 +271,7 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
         </section>
       )}
 
-      <ScenarioPanel plan={view.scenario} live={live ? { broadcastId: live.id, scenario: live.scenario } : null} overlayPath={view.overlayPath} pending={pending} run={run} />
+      <ScenarioPanel plan={view.scenario} live={live ? { broadcastId: live.id, scenario: live.scenario, serverNow: live.serverNow } : null} overlayPath={view.overlayPath} pending={pending} run={run} />
       {live && (
         <BattlePanel
           broadcastId={live.id}

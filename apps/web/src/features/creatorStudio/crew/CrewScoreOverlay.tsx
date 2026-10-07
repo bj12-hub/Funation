@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useServerClock } from "@/hooks/useServerClock";
 import { formatNumber } from "@/lib/format";
 import { OVERLAY_BOARD_ROWS, type Battle, type BroadcastLive, type ScenarioLive, type StealRecord, type SubBoard } from "@/services/crew/crewTypes";
 import { BattleBoard, useCountdown } from "./BattlePanel";
@@ -93,9 +94,9 @@ export function BattleOverlay({ battle, reloadSeq }: { battle: Battle | null; re
 }
 
 /** 콘텐츠 시나리오 overlay (`?scenario`): the running part, its time and what comes next. */
-export function ScenarioOverlay({ scenario, reloadSeq }: { scenario: ScenarioLive | null; reloadSeq: number }) {
+export function ScenarioOverlay({ scenario, serverNow, reloadSeq }: { scenario: ScenarioLive | null; serverNow: string | null; reloadSeq: number }) {
   useOverlayPage(reloadSeq);
-  const elapsed = usePartElapsed(scenario);
+  const elapsed = usePartElapsed(scenario, serverNow);
   if (!scenario || scenario.current === null) return null;
   const i = scenario.current;
   const part = scenario.parts[i];
@@ -119,15 +120,13 @@ export function ScenarioOverlay({ scenario, reloadSeq }: { scenario: ScenarioLiv
 
 const STEAL_SHOW_MS = 15_000;
 
-/** 기여도 강탈 overlay (`?steal`): the latest spin for 15 seconds, then nothing until the next one. */
-export function StealOverlay({ latest, reloadSeq }: { latest: StealRecord | null; reloadSeq: number }) {
+/**
+ * 기여도 강탈 overlay (`?steal`): the latest spin for 15 seconds, then nothing until the next one. Timed on the server
+ * clock (`at` is server time; the OBS PC's clock may be off).
+ */
+export function StealOverlay({ latest, serverNow, reloadSeq }: { latest: StealRecord | null; serverNow: string | null; reloadSeq: number }) {
   useOverlayPage(reloadSeq);
-  const [now, setNow] = useState<number | null>(null);
-  useEffect(() => {
-    setNow(Date.now());
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, []);
+  const now = useServerClock(serverNow);
   if (!latest || now === null || now - new Date(latest.at).getTime() > STEAL_SHOW_MS) return null;
   return (
     <div className={styles.overlay}>

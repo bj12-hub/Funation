@@ -100,8 +100,12 @@ describe("크루 방송", () => {
     expect(await getOverlayScoreboard("wrong")).toBe("FORBIDDEN");
     expect(await getOverlayScoreboard(overlayKey)).toBe("IDLE");
     await startBroadcast({ requestId: crypto.randomUUID(), title: "오버레이", teamMode: false });
+    vi.useFakeTimers({ now: new Date("2026-10-07T12:00:00Z"), toFake: ["Date"] });
     const live = await getOverlayScoreboard(overlayKey);
+    vi.useRealTimers();
     expect(typeof live === "object" && live.title).toBe("오버레이");
+    // The overlay times 강탈 · 시나리오 on the server clock, not the OBS PC's.
+    expect(typeof live === "object" && live.serverNow).toBe("2026-10-07T12:00:00.000Z");
     signIn(["SUPPORTER"]);
     expect((await startBroadcast({ requestId: crypto.randomUUID(), title: "침입", teamMode: false })).status).toBe("UNAUTHORIZED");
   });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useServerClock } from "@/hooks/useServerClock";
 import { finishScenario, setScenario, startScenarioPart } from "@/services/crew/crewScenario";
 import {
   SCENARIO_MEMO_MAX,
@@ -20,18 +21,11 @@ const toPart = (r: Row): ScenarioPart => ({ title: r.title.trim(), minutes: r.mi
 export const partName = (i: number, p: ScenarioPart | undefined) => `${i + 1}부${p?.title ? ` · ${p.title}` : ""}`;
 const mmss = (sec: number) => `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
 
-/** Seconds since the running part started (client clock; null before mount). */
-export function usePartElapsed(live: ScenarioLive | null) {
+/** Seconds since the running part started (server clock, corrected for the browser's skew; null before mount). */
+export function usePartElapsed(live: ScenarioLive | null, serverNow: string | null) {
+  const now = useServerClock(serverNow);
   const started = live && live.current !== null ? live.history.at(-1)?.startedAt : undefined;
-  const [sec, setSec] = useState<number | null>(null);
-  useEffect(() => {
-    if (!started) return setSec(null);
-    const tick = () => setSec(Math.max(0, Math.floor((Date.now() - new Date(started).getTime()) / 1000)));
-    tick();
-    const t = setInterval(tick, 1000);
-    return () => clearInterval(t);
-  }, [started]);
-  return sec;
+  return !started || now === null ? null : Math.max(0, Math.floor((now - new Date(started).getTime()) / 1000));
 }
 
 /**
@@ -46,8 +40,8 @@ export function ScenarioPanel({
   run
 }: {
   plan: ScenarioPart[];
-  /** Set while a broadcast is live. */
-  live: { broadcastId: string; scenario: ScenarioLive | null } | null;
+  /** Set while a broadcast is live (`serverNow`: the server clock when the view was read). */
+  live: { broadcastId: string; scenario: ScenarioLive | null; serverNow: string } | null;
   overlayPath: string;
   pending: boolean;
   run: (action: () => Promise<BroadcastResult>, ok?: string) => void;
@@ -63,7 +57,7 @@ export function ScenarioPanel({
   }, [plan]);
   const [origin, setOrigin] = useState("");
   useEffect(() => setOrigin(window.location.origin), []);
-  const elapsed = usePartElapsed(live?.scenario ?? null);
+  const elapsed = usePartElapsed(live?.scenario ?? null, live?.serverNow ?? null);
 
   const save = (next: Row[]) => {
     setRows(next);

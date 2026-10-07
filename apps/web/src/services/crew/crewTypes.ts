@@ -206,6 +206,8 @@ export type BroadcastLive = {
   showRankUp: boolean;
   /** 팬 메시지 · 요청사항 sent from the room during this broadcast. */
   fanNotes: FanNotesView;
+  /** Server clock when this view was read: timers (시나리오 경과, 강탈 card) correct the browser's clock with it. */
+  serverNow: string;
 };
 
 // ── 콘텐츠 시나리오 도우미 (1부 ~ 5부) — code-first ─────────────────────────────────────────────
