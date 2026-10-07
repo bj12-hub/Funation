@@ -112,7 +112,8 @@ Tips:
   the member is built from an explicit field list (no `{ ...r }` spreads of server records).
 - Account lifecycle: withdrawal ends everything that acts for the channel (manager links, chat / YouTube
   connections, overlay and bank-SMS keys, settlement registration); a 재가입 starts without the old consents,
-  settlement history or earnings. New per-account state needs the same treatment in `withdrawal.ts` / `rejoin.ts`.
+  settlement history, earnings or notifications, and the withdrawn account's posts, comments, blocks and reports move
+  to its own `…-wN` member id. New per-account state needs the same treatment in `withdrawal.ts` / `rejoin.ts`.
 - Parallel work in worktrees: link `node_modules` with a junction (`New-Item -ItemType Junction` when
   `cmd /c mklink` is blocked) and remove only the junction before deleting the worktree.
 

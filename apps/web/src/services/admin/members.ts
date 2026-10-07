@@ -6,7 +6,7 @@ import { listDonationRecords } from "@/services/wallet/walletHistory";
 import type { AuditEntry } from "./adminTypes";
 import type { AdminActor } from "./adminTypes";
 import { auditEntries, recordAudit } from "./auditCore";
-import { SAMPLE_MEMBER_ID, creatorMemberId, isMemberSuspended, memberStore, suspensionOf } from "./memberCore";
+import { SAMPLE_MEMBER_ID, creatorMemberId, isMemberSuspended, memberStore, suspensionOf, withdrawnMemberId } from "./memberCore";
 import { withdrawalOf, withdrawalStore, type Withdrawal } from "@/services/account/withdrawalCore";
 import { MEMBERS_PAGE, SUSPEND_DAYS, SUSPEND_REASON, type AdminCreatorRow, type AdminMember, type MemberActionResult, type MemberFilter, type MemberPage } from "./memberTypes";
 
@@ -47,7 +47,7 @@ async function directory(): Promise<AdminMember[]> {
   const withdrawn = withdrawalStore().past.map(
     (w, i): AdminMember => ({
       ...active,
-      id: `${SAMPLE_MEMBER_ID}-w${i + 1}`,
+      id: withdrawnMemberId(i + 1),
       nickname: w.nickname,
       funationId: w.funationId,
       lastActiveAt: w.at.slice(0, 10),

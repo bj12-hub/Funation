@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { NOTIFICATIONS_KEEP, type NotificationKind, type SiteNotification } from "./notificationTypes";
 
 /**
@@ -32,7 +33,8 @@ export function notify(input: { kind: NotificationKind; title: string; body: str
     if (s.keys[input.dedupeKey]) return null;
     s.keys[input.dedupeKey] = true;
   }
-  const item: SiteNotification = { id: `nt-${now.toString(36)}-${s.items.length}`, kind: input.kind, title: input.title, body: input.body, href: input.href, createdAt: new Date(now).toISOString(), read: false };
+  // A random id: the inbox is capped, so its length stops telling two notifications of the same millisecond apart.
+  const item: SiteNotification = { id: `nt-${randomUUID()}`, kind: input.kind, title: input.title, body: input.body, href: input.href, createdAt: new Date(now).toISOString(), read: false };
   s.items.unshift(item);
   s.items.length = Math.min(s.items.length, NOTIFICATIONS_KEEP);
   return item;

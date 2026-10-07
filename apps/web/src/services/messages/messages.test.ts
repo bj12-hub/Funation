@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
+import { key, mockSessionModule, resetMockStores, signIn, signInAs } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
@@ -14,17 +14,35 @@ describe("쪽지", () => {
 
   it("sends to a creator and shows it in 보낸 쪽지", async () => {
     const { sendMessage, getMailbox } = await load();
-    expect(await sendMessage({ to: "c4", body: "다음 방송 기대해요" })).toEqual({ status: "SAVED" });
+    expect(await sendMessage({ to: "c4", body: "다음 방송 기대해요", requestId: key(1) })).toEqual({ status: "SAVED" });
     const sent = (await getMailbox({ box: "sent" }))!;
     expect(sent.items[0]).toMatchObject({ peerId: "c4", body: "다음 방송 기대해요", direction: "OUT" });
   });
 
+  it("sends once per request id, keeping each member's ids apart, and a retry does not count toward the limit", async () => {
+    const { sendMessage, getMailbox } = await load();
+    const { mockMessages } = await import("./mockMessageStore");
+    const sent = async () => (await getMailbox({ box: "sent", size: "50" }))!.items.filter((m) => m.body === "한 번만 가요");
+    const msg = { to: "c4", body: "한 번만 가요", requestId: key(1) };
+    // A retry after a lost response, and a double submit that arrives at once.
+    expect(await sendMessage(msg)).toEqual({ status: "SAVED" });
+    expect(await sendMessage(msg)).toEqual({ status: "SAVED" });
+    expect(await Promise.all([sendMessage({ ...msg, requestId: key(2) }), sendMessage({ ...msg, requestId: key(2) })])).toEqual([{ status: "SAVED" }, { status: "SAVED" }]);
+    expect(await sent()).toHaveLength(2);
+    expect(mockMessages.sentLog).toHaveLength(2);
+    // Another member's request with the same id is their own (the mock has one mailbox, so it lands in the same list).
+    signInAs("u-other");
+    expect(await sendMessage(msg)).toEqual({ status: "SAVED" });
+    expect(await sent()).toHaveLength(3);
+    expect((await sendMessage({ ...msg, requestId: undefined })).status).toBe("INVALID");
+  });
+
   it("validates recipient and body", async () => {
     const { sendMessage } = await load();
-    expect((await sendMessage({ to: "nobody", body: "안녕" })).status).toBe("INVALID");
-    expect((await sendMessage({ to: "c4", body: "  " })).status).toBe("INVALID");
-    expect((await sendMessage({ to: "c4", body: "가".repeat(501) })).status).toBe("INVALID");
-    expect((await sendMessage({ to: "c4", body: "admin 입니다" })).status).toBe("INVALID");
+    expect((await sendMessage({ to: "nobody", body: "안녕", requestId: key(1) })).status).toBe("INVALID");
+    expect((await sendMessage({ to: "c4", body: "  ", requestId: key(2) })).status).toBe("INVALID");
+    expect((await sendMessage({ to: "c4", body: "가".repeat(501), requestId: key(3) })).status).toBe("INVALID");
+    expect((await sendMessage({ to: "c4", body: "admin 입니다", requestId: key(4) })).status).toBe("INVALID");
   });
 
   it("pages by the chosen size (15 · 30 · 50), falling back to 15", async () => {
@@ -45,8 +63,8 @@ describe("쪽지", () => {
 
   it("limits sends per hour (placeholder anti-spam)", async () => {
     const { sendMessage } = await load();
-    for (let i = 0; i < 20; i++) expect((await sendMessage({ to: "c1", body: `메시지 ${i}` })).status).toBe("SAVED");
-    expect((await sendMessage({ to: "c1", body: "21번째" })).status).toBe("LIMITED");
+    for (let i = 0; i < 20; i++) expect((await sendMessage({ to: "c1", body: `메시지 ${i}`, requestId: key(i + 1) })).status).toBe("SAVED");
+    expect((await sendMessage({ to: "c1", body: "21번째", requestId: key(100) })).status).toBe("LIMITED");
   });
 
   it("moves received mail, keeps sent mail in place, and soft-deletes idempotently", async () => {
@@ -69,10 +87,21 @@ describe("쪽지", () => {
     expect(inbox.counts.spam).toBe(0);
   });
 
+  it("says a search found nothing, and names an empty box with the right particle", async () => {
+    const { getMailbox } = await load();
+    const { mailboxEmptyText } = await import("./messageTypes");
+    const none = (await getMailbox({ box: "inbox", q: "없는 검색어" }))!;
+    expect(none.items).toEqual([]);
+    expect(mailboxEmptyText(none.box, none.q)).toBe("검색 결과가 없어요.");
+    expect(mailboxEmptyText("inbox", "")).toBe("받은 쪽지함이 비어 있어요.");
+    expect(mailboxEmptyText("sent", "")).toBe("보낸 쪽지가 비어 있어요.");
+    expect(mailboxEmptyText("archive", "")).toBe("보관함이 비어 있어요.");
+  });
+
   it("requires a session", async () => {
     const { getMailbox, sendMessage } = await load();
     signIn(null);
     expect(await getMailbox({})).toBeNull();
-    expect((await sendMessage({ to: "c4", body: "안녕" })).status).toBe("UNAUTHORIZED");
+    expect((await sendMessage({ to: "c4", body: "안녕", requestId: key(1) })).status).toBe("UNAUTHORIZED");
   });
 });
