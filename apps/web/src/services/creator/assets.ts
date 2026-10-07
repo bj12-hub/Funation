@@ -53,7 +53,8 @@ export async function uploadAsset(formData: FormData): Promise<AssetResult> {
   if (!matchesContent(bytes, file.type)) return invalid("파일 내용이 형식과 맞지 않아요.");
   const sniffed = sniffMime(bytes)!;
 
-  const rawName = String(formData.get("name") ?? "").trim() || file.name.replace(/\.[^.]+$/, "").trim();
+  // Stored in Unicode NFC: macOS sends decomposed (NFD) Korean file names, which would not pair, search or sort as typed.
+  const rawName = String(formData.get("name") ?? "").normalize("NFC").trim() || file.name.normalize("NFC").replace(/\.[^.]+$/, "").trim();
   const name = rawName.slice(0, ASSET_LIMITS.nameMax);
   if (!nameOk(name)) return invalid("사용할 수 없는 이름이에요.");
   await mockDelay(300);
@@ -76,7 +77,7 @@ export async function renameAsset(input: unknown): Promise<AssetResult> {
   const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   const asset = findAsset(v.id);
   if (!asset) return invalid("파일을 찾을 수 없어요.");
-  const name = typeof v.name === "string" ? v.name.trim() : "";
+  const name = typeof v.name === "string" ? v.name.normalize("NFC").trim() : "";
   if (!nameOk(name)) return invalid(`이름을 1~${ASSET_LIMITS.nameMax}자로 입력해 주세요.`);
   asset.name = name;
   return { status: "SAVED", asset: publicAsset(asset) };

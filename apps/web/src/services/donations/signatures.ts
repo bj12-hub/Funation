@@ -22,7 +22,8 @@ const isRequestId = (v: unknown): v is string => typeof v === "string" && /^[A-Z
  * as the room and the alert already show it) instead of blocking every later save such as 숨기기.
  */
 function readFields(v: Record<string, unknown>, kept?: ManagedSignature): Fields | string {
-  const name = typeof v.name === "string" ? v.name.trim() : "";
+  // NFC, like library names (일괄 만들기 names come from them): an NFD copy of a name is the same name.
+  const name = typeof v.name === "string" ? v.name.normalize("NFC").trim() : "";
   if (!name || name.length > SIGNATURE_LIMITS.nameMax) return `이름을 1~${SIGNATURE_LIMITS.nameMax}자로 입력해 주세요.`;
   if (MOCK_FORBIDDEN_WORDS.some((w) => name.toLowerCase().includes(w))) return "사용할 수 없는 단어가 포함되어 있어요.";
   const price = v.price;

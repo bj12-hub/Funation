@@ -36,6 +36,12 @@ describe("signature management", () => {
     expect((await m.listSignatures())!).toHaveLength(8);
   });
 
+  it("treats an NFD copy of a name as the same name", async () => {
+    const m = await load();
+    expect((await m.saveSignature({ ...draft, requestId: key(40) })).status).toBe("SAVED");
+    expect(await m.saveSignature({ ...draft, name: draft.name.normalize("NFD"), price: 23_456, requestId: key(41) })).toEqual({ status: "INVALID", message: "같은 이름의 시그니처가 있어요." });
+  });
+
   it("treats Object.prototype names as new request ids", async () => {
     const m = await load();
     const one = await m.saveSignature({ ...draft, requestId: "propertyIsEnumerable" });

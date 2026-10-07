@@ -159,6 +159,15 @@ describe("asset library", () => {
     expect(overlay.controls.signatureVolume).toBe(35);
   });
 
+  it("stores names in NFC on upload and rename", async () => {
+    const m = await load();
+    const nfd = "가을 배경".normalize("NFD");
+    const up = await m.uploadAsset(form(30, PNG, "image/png", `${nfd}.png`));
+    expect(up).toMatchObject({ status: "SAVED", asset: { name: "가을 배경" } });
+    if (up.status !== "SAVED") throw new Error(up.status);
+    expect(await m.renameAsset({ id: up.asset.id, name: "축하".normalize("NFD") })).toMatchObject({ status: "SAVED", asset: { name: "축하" } });
+  });
+
   it("requires the creator role", async () => {
     const m = await load();
     signIn(["SUPPORTER"]);

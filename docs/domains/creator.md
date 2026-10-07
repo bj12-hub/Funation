@@ -15,6 +15,8 @@ Creator capabilities include:
 Uploads (mock): profile images, 칭호 icons, 정산 서류 and the image · sound library are checked by their bytes, not the
 declared type (`matchesContent` in `assetCore.ts`; PDF by its `%PDF-` header). A renamed file is refused with the
 screen's existing type message.
+Library and signature names are stored and compared in Unicode NFC (macOS sends decomposed Korean file names), so
+짝 매칭, search, sorting and the same-name check treat them as typed.
 
 Saves that await (reading a file, the mock delay) check the store again after the last await and write in the same
 tick — 커스텀 사운드, 벽지 이미지, 라이브러리 업로드, 금지어 · 필터 단어 — so concurrent requests never lose each
