@@ -3,7 +3,7 @@
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
-import { computeIdentity, nicknameList, resolveBadges } from "./identityCore";
+import { computeIdentity, namesTakenByOthers, nicknameList, resolveBadges } from "./identityCore";
 import { MAX_NICKNAMES, NICKNAME_RULE, isReservedNickname, type AlertBadges, type EquipSettings, type GlobalTitleKey, type IdentitySaveResult, type SupporterIdentity } from "./identityTypes";
 import { mockIdentity } from "./mockIdentityStore";
 
@@ -27,22 +27,27 @@ export async function getSupporterIdentity(): Promise<SupporterIdentity | null> 
 
 // ── 별명 관리 ──────────────────────────────────────────────────────────────────
 
-function checkName(name: unknown, exceptId?: string): string | null {
+/** `taken`: namesTakenByOthers(), looked up before the check so the check and the write stay synchronous. */
+function checkName(name: unknown, taken: Set<string>, exceptId?: string): string | null {
   if (typeof name !== "string" || !NICKNAME_RULE.test(name.trim())) return "2~12자의 한글, 영문, 숫자, _만 사용할 수 있어요.";
   const n = name.trim();
-  // 익명 is what a hidden profile shows: an 별명 cannot pose as it (TBD: uniqueness across members).
+  // 익명 is what a hidden profile shows: an 별명 cannot pose as it.
   if (isReservedNickname(n) || MOCK_FORBIDDEN_WORDS.some((w) => n.toLowerCase().includes(w))) return "사용할 수 없는 단어가 포함되어 있어요.";
   if (nicknameList().some((x) => x.id !== exceptId && x.name.toLowerCase() === n.toLowerCase())) return "이미 등록한 별명이에요.";
+  // 2026-10-08 결정: no other member's nickname and no channel name (no global uniqueness among 별명 otherwise).
+  if (taken.has(n.toLowerCase())) return "다른 회원이나 채널이 쓰는 이름은 별명으로 쓸 수 없어요.";
   return null;
 }
 
 export async function addDonationNickname(name: unknown): Promise<IdentitySaveResult> {
   assertMock();
   if (!(await getSession())) return { status: "UNAUTHORIZED" };
-  if (nicknameList().length >= MAX_NICKNAMES) return { status: "INVALID", message: `별명은 최대 ${MAX_NICKNAMES}개까지 등록할 수 있어요.` };
-  const error = checkName(name);
-  if (error) return { status: "INVALID", message: error };
   await mockDelay(300);
+  const taken = await namesTakenByOthers();
+  // From here to the write nothing awaits: two adds at once cannot pass the limit or the duplicate check together.
+  if (nicknameList().length >= MAX_NICKNAMES) return { status: "INVALID", message: `별명은 최대 ${MAX_NICKNAMES}개까지 등록할 수 있어요.` };
+  const error = checkName(name, taken);
+  if (error) return { status: "INVALID", message: error };
   mockIdentity.nicknames.push({ id: `nk-${Date.now().toString(36)}${mockIdentity.nicknames.length}`, name: (name as string).trim() });
   return { status: "SAVED" };
 }
@@ -50,12 +55,13 @@ export async function addDonationNickname(name: unknown): Promise<IdentitySaveRe
 export async function renameDonationNickname(id: unknown, name: unknown): Promise<IdentitySaveResult> {
   assertMock();
   if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  await mockDelay(300);
+  const taken = await namesTakenByOthers();
   const target = mockIdentity.nicknames.find((n) => n.id === id);
   // The default "nk-default" nickname follows the account nickname (changed on my page).
   if (!target) return { status: "INVALID", message: "기본 별명은 마이페이지에서 닉네임으로 변경할 수 있어요." };
-  const error = checkName(name, target.id);
+  const error = checkName(name, taken, target.id);
   if (error) return { status: "INVALID", message: error };
-  await mockDelay(300);
   target.name = (name as string).trim();
   return { status: "SAVED" };
 }

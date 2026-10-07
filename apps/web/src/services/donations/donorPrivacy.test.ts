@@ -57,7 +57,8 @@ describe("후원랭킹 donor keys", () => {
 
   it("never merges a copied name into another supporter's row, and keeps the member id off the overlay", async () => {
     const m = await load();
-    // 별빛소나타 is #1 in the seeded history (70,000 FN); copying the name as an 별명 must not join that row.
+    // 별빛소나타 is #1 in the seeded history (70,000 FN) and no member's nickname, so another supporter can take it as
+    // an 별명 (별명 are not unique across members); their donation must not join that row.
     expect(await m.identity.addDonationNickname("별빛소나타")).toEqual({ status: "SAVED" });
     const alias = (await m.identity.getDonationNicknameOptions())!.find((n) => n.name === "별빛소나타")!;
     expect((await m.requestDonation(text(1, { nicknameId: alias.id }))).status).toBe("COMPLETED");

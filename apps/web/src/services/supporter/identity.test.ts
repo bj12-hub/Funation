@@ -60,6 +60,20 @@ describe("후원자 정체성", () => {
     expect(id.nicknames.find((n) => n.isDefault)?.id).toBe("nk-default");
   });
 
+  it("refuses an 별명 another member or a channel already uses (2026-10-08 결정), case-insensitively", async () => {
+    const { addDonationNickname, renameDonationNickname, getSupporterIdentity } = await load();
+    const taken = { status: "INVALID", message: "다른 회원이나 채널이 쓰는 이름은 별명으로 쓸 수 없어요." };
+    expect(await addDonationNickname("새벽라디오")).toEqual(taken); // another member's nickname
+    expect(await addDonationNickname(" 하루봄 ")).toEqual(taken); // a channel name
+    expect(await addDonationNickname("FUNATION")).toEqual(taken);
+    expect(await addDonationNickname("홍길동")).toEqual({ status: "INVALID", message: "이미 등록한 별명이에요." }); // own nickname
+    expect(await addDonationNickname("익명")).toEqual({ status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." });
+    expect(await addDonationNickname("응원단장")).toEqual({ status: "SAVED" });
+    const extra = (await getSupporterIdentity())!.nicknames.find((n) => n.name === "응원단장")!;
+    expect(await renameDonationNickname(extra.id, "불꽃크루")).toEqual(taken);
+    expect(await renameDonationNickname(extra.id, "응원대장")).toEqual({ status: "SAVED" });
+  });
+
   it("attributes a donation to the chosen nickname and rejects someone else's nickname", async () => {
     const { addDonationNickname, getSupporterIdentity, requestDonation } = await load();
     await addDonationNickname("응원단장");
