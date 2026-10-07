@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { key, mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
@@ -25,6 +25,7 @@ const soop = (over: Record<string, unknown> = {}) => ({
 
 describe("플랫폼 후원", () => {
   beforeEach(() => resetMockStores());
+  afterEach(() => vi.restoreAllMocks());
 
   it("charges the catalog price and records Transaction + External Transaction IDs", async () => {
     const { requestPlatformDonation, account, platform, wallet } = await load();
@@ -78,6 +79,47 @@ describe("플랫폼 후원", () => {
     expect(res).toEqual({ status: "FAILED", reason: "API_ERROR" });
     expect(account.fnBalance).toBe(100_000);
     expect(platform.transactions[0]).toMatchObject({ creatorId: "gameking", status: "FAILED" });
+  });
+
+  it("keeps the hold and answers PENDING when the platform call throws after the debit", async () => {
+    const { requestPlatformDonation, account, platform } = await load();
+    const { soopAdapter } = await import("./adapters");
+    const send = vi.spyOn(soopAdapter, "sendDonation").mockRejectedValueOnce(new Error("ECONNRESET"));
+    const res = await requestPlatformDonation(soop({ productId: "balloon-10" }));
+    expect(res.status).toBe("PENDING");
+    if (res.status !== "PENDING") return;
+    // The platform may have received it, so the FN stays held until reconciliation (TBD).
+    expect(account.fnBalance).toBe(90_000);
+    expect(platform.transactions[0]).toMatchObject({ transactionId: res.transactionId, status: "PROCESSING" });
+    // A retry with the same key gets the same answer and never re-sends.
+    expect(await requestPlatformDonation(soop({ productId: "balloon-10" }))).toEqual(res);
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(account.fnBalance).toBe(90_000);
+  });
+
+  it("answers PENDING when the platform does not answer in time", async () => {
+    const { requestPlatformDonation, account } = await load();
+    const { soopAdapter } = await import("./adapters");
+    vi.spyOn(soopAdapter, "sendDonation").mockReturnValueOnce(new Promise(() => {}));
+    vi.useFakeTimers();
+    try {
+      const pending = requestPlatformDonation(soop());
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect((await pending).status).toBe("PENDING");
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(account.fnBalance).toBe(70_000);
+  });
+
+  it("finishes the key without debiting when the platform fails before the hold", async () => {
+    const { requestPlatformDonation, account } = await load();
+    const { soopAdapter } = await import("./adapters");
+    vi.spyOn(soopAdapter, "getCreator").mockRejectedValueOnce(new Error("ECONNRESET"));
+    expect(await requestPlatformDonation(soop())).toEqual({ status: "FAILED", reason: "API_ERROR" });
+    expect(account.fnBalance).toBe(100_000);
+    // Not stuck IN_PROGRESS: the same key answers with the stored result.
+    expect(await requestPlatformDonation(soop())).toEqual({ status: "FAILED", reason: "API_ERROR" });
   });
 
   it("validates the FlexTV custom amount on the server", async () => {
