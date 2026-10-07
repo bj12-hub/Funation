@@ -61,7 +61,7 @@ export async function addTestVideo(input: unknown): Promise<MediaResult> {
   if (mockMedia.requests[v.requestId]) return ok;
   const videoId = typeof v.url === "string" ? parseYouTubeId(v.url) : null;
   if (!videoId) return invalid("유튜브 영상 주소를 입력해 주세요.");
-  if (!intIn(v.startSec, 0, 86_400) || !intIn(v.endSec, 1, 86_400) || v.endSec <= v.startSec) return invalid("재생 구간을 확인해 주세요.");
+  if (!intIn(v.startSec, 0, MEDIA_LIMITS.rangeSecMax) || !intIn(v.endSec, 1, MEDIA_LIMITS.rangeSecMax) || v.endSec <= v.startSec) return invalid("재생 구간을 확인해 주세요.");
   mockMedia.requests[v.requestId] = true;
   enqueueVideo({ kind: "TEST", donor: "테스트", fnAmount: 0, videoId, startSec: v.startSec, endSec: v.endSec });
   return ok;

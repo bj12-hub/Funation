@@ -51,6 +51,15 @@ describe("Donation Core", () => {
     expect(await requestDonation({ ...sent, expectedAmount: before + 5_000, idempotencyKey: key(2) })).toMatchObject({ status: "COMPLETED", fnAmount: before + 5_000 });
   });
 
+  it("bounds a 영상 후원 range like the 테스트 영상 (0 … 24 hours), without debiting", async () => {
+    const { requestDonation, account } = await load();
+    const video = (startSec: number, endSec: number, n: number) => ({ ...base, type: "VIDEO", amount: 1_000, videoUrl: "https://youtu.be/aaaaaaaaaaa", startSec, endSec, termsAgreed: true, idempotencyKey: key(n) });
+    expect(await requestDonation(video(0, 86_401, 1))).toEqual({ status: "INVALID" });
+    expect(await requestDonation(video(86_400, 9_007_199_254_740_991, 2))).toEqual({ status: "INVALID" });
+    expect(account.fnBalance).toBe(50_000);
+    expect(await requestDonation(video(86_399, 86_400, 3))).toMatchObject({ status: "COMPLETED", fnAmount: 1_000 });
+  });
+
   it("refuses supporter text with a platform forbidden word before any debit", async () => {
     const { requestDonation, account, wallet } = await load();
     const { MOCK_FORBIDDEN_WORDS } = await import("@/services/account/mockStore");

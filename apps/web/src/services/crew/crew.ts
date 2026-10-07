@@ -95,7 +95,8 @@ export async function updateCrewMember(id: unknown, input: unknown): Promise<Cre
 
 /**
  * 직급 (2026-10-06 결정): replaces the channel's grade list (names + 직급 배수). Members whose grade was removed go back
- * to none. A running broadcast's scoreboard follows the new 배수 at once (like 자동엑셀 settings).
+ * to none. A running broadcast keeps the 배수 copied when it started (`gradeMultipliers`); the new ones apply from the
+ * next broadcast.
  */
 export async function saveCrewGrades(input: unknown): Promise<CrewSaveResult> {
   assertMock();
