@@ -30,6 +30,18 @@ describe("채널 설정", () => {
     for (const ok of [toDateString(today), "1900-01-01"]) expect(await m.saveCreatorProfile({ ...base, debutDate: ok })).toEqual({ status: "SAVED" });
   });
 
+  it("saves exactly one SNS link per kind", async () => {
+    const m = await import("./creatorSettings");
+    const { mockCreator } = await import("./mockCreatorStore");
+    const before = structuredClone(mockCreator.sns);
+    const insta = { kind: "INSTAGRAM", url: "https://www.instagram.com/me" };
+    expect(await m.saveSnsLinks([insta, insta, insta, insta])).toEqual({ status: "INVALID" });
+    expect(await m.saveSnsLinks([insta, { kind: "TIKTOK", url: "" }, { kind: "TIKTOK", url: "" }, { kind: "ETC", url: "" }])).toEqual({ status: "INVALID" });
+    expect(mockCreator.sns).toEqual(before);
+    const all = [insta, { kind: "TIKTOK", url: "" }, { kind: "X", url: "" }, { kind: "ETC", url: "" }];
+    expect(await m.saveSnsLinks([...all].reverse())).toEqual({ status: "SAVED" });
+  });
+
   it("shows Somnation addresses", async () => {
     const s = (await (await import("./creatorSettings")).getCreatorSettings())!;
     expect([s.donateUrl, s.rtmpUrl, s.alertWidgetUrl].every((u) => u.includes("somnation.com") && !u.includes("funation"))).toBe(true);

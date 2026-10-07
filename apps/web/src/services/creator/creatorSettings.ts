@@ -100,7 +100,8 @@ export async function saveSnsLinks(links: unknown): Promise<SaveResult> {
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (!Array.isArray(links) || links.length !== SNS_KINDS.length) return { status: "INVALID" };
   const parsed = links.map((l) => (typeof l === "object" && l !== null ? (l as { kind?: unknown; url?: unknown }) : {}));
-  const kindsOk = parsed.every((l) => SNS_KINDS.some((k) => k.key === l.kind));
+  // Exactly one row per kind (the form has one field each), so four INSTAGRAM rows are refused.
+  const kindsOk = SNS_KINDS.every((k) => parsed.filter((l) => l.kind === k.key).length === 1);
   const bad = parsed.find((l) => typeof l.url !== "string" || (l.url.trim() !== "" && !isHttpUrl(l.url)));
   if (!kindsOk) return { status: "INVALID" };
   if (bad) return { status: "INVALID", message: "http:// 또는 https://로 시작하는 주소를 입력해 주세요." };
