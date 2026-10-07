@@ -23,6 +23,19 @@ describe("이벤트", () => {
     expect(mockAccount.fnBalance).toBe(before);
   });
 
+  it("labels the period with Korean days whatever zone renders it (the detail screen also renders in the browser)", async () => {
+    const { eventPeriodLabel } = await import("./eventTypes");
+    const zone = process.env.TZ;
+    process.env.TZ = "America/Los_Angeles"; // a viewer outside Korea
+    try {
+      // 00:00 KST on 10-03 is still 10-02 in UTC and in Los Angeles.
+      expect(eventPeriodLabel("2026-10-02T15:00:00.000Z", "2026-10-22T14:59:59.999Z")).toBe("2026. 10. 3. ~ 2026. 10. 22.");
+    } finally {
+      if (zone === undefined) delete process.env.TZ;
+      else process.env.TZ = zone;
+    }
+  });
+
   it("rejects joining upcoming / ended / unknown events and signed-out calls", async () => {
     const { getEvents, joinEvent } = await import("./events");
     const all = await getEvents("all");

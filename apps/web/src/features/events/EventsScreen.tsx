@@ -1,8 +1,6 @@
 import Link from "next/link";
-import { EVENT_FILTERS, PHASE_LABEL, type EventListView } from "@/services/events/eventTypes";
+import { EVENT_FILTERS, PHASE_LABEL, eventPeriodLabel, type EventListView } from "@/services/events/eventTypes";
 import styles from "./events.module.css";
-
-const period = (a: string, b: string) => `${new Date(a).toLocaleDateString("ko-KR")} ~ ${new Date(b).toLocaleDateString("ko-KR")}`;
 
 /** 이벤트 목록 — code-first (no Figma frame). Route `/events` (`?filter=`). */
 export function EventsScreen({ view }: { view: EventListView }) {
@@ -41,7 +39,7 @@ export function EventsScreen({ view }: { view: EventListView }) {
                 <strong className={styles.cardTitle}>{e.title}</strong>
                 <span className={styles.muted}>{e.summary}</span>
                 <span className={styles.meta}>
-                  {period(e.startsAt, e.endsAt)} · 참여 {e.participants.toLocaleString("ko-KR")}명
+                  {eventPeriodLabel(e.startsAt, e.endsAt)} · 참여 {e.participants.toLocaleString("ko-KR")}명
                 </span>
               </Link>
             </li>
