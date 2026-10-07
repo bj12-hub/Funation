@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { key, mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
+import { key, mockSessionModule, resetMockStores, signIn, signInAs } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
@@ -31,6 +31,15 @@ async function uploadImage(m: Awaited<ReturnType<typeof load>>, n: number) {
 
 describe("asset library", () => {
   beforeEach(() => resetMockStores());
+
+  it("never answers another account's request id with their file", async () => {
+    const m = await load();
+    const mine = await uploadImage(m, 1);
+    signInAs("u-other");
+    const theirs = await m.uploadAsset(form(1, PNG, "image/png", "other.png"));
+    expect(theirs).toMatchObject({ status: "SAVED", asset: { name: "other" } });
+    expect(theirs.status === "SAVED" && theirs.asset.id).not.toBe(mine.id);
+  });
 
   it("uploads once per request id, serves the bytes and rejects files whose content does not match", async () => {
     const m = await load();

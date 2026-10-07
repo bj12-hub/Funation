@@ -45,9 +45,11 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
   const idempotencyKey = v.idempotencyKey;
   const creator = await getCreatorById(v.creatorId);
 
-  // No await from the lookup to the registration: two copies of one request cannot both pass.
+  // No await from the lookup to the registration: two copies of one request cannot both pass. Keys belong to the
+  // member: another member's key never returns (or blocks) their result.
   const fingerprint = fingerprintOf(v);
-  const previous = mockWallet.donationIdempotency[idempotencyKey];
+  const memberKey = `${session.userId}:${idempotencyKey}`;
+  const previous = mockWallet.donationIdempotency[memberKey];
   if (previous) {
     if (previous.fingerprint !== fingerprint) return { status: "CONFLICT" };
     return previous.result ?? { status: "IN_PROGRESS" };
@@ -57,7 +59,7 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
   const request = parse(v, catalog);
   if (!request) return { status: "INVALID" };
   if ("refused" in request) return { status: "INVALID", message: request.refused };
-  mockWallet.donationIdempotency[idempotencyKey] = { fingerprint, result: null };
+  mockWallet.donationIdempotency[memberKey] = { fingerprint, result: null };
 
   await mockDelay(600);
   // From here to the debit nothing awaits: the checks and the write see the same state.
@@ -152,7 +154,7 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
     notify({ kind: "DONATION_SENT", title: "후원을 보냈어요", body: `${creator.name}님께 ${request.amount.toLocaleString("ko-KR")} FN`, href: "/wallet/donations", dedupeKey: `donation:${idempotencyKey}` });
     result = { status: "COMPLETED", donationId, fnAmount: request.amount, balance: mockAccount.fnBalance };
   }
-  mockWallet.donationIdempotency[idempotencyKey].result = result;
+  mockWallet.donationIdempotency[memberKey].result = result;
   return result;
 }
 

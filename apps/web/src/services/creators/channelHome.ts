@@ -89,17 +89,19 @@ export async function createChannelPost(input: unknown): Promise<ChannelPostResu
   const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   if (typeof v.creatorId !== "string" || !(await getCreatorById(v.creatorId))) return { status: "NOT_FOUND" };
   if (typeof v.requestId !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
+  await mockDelay(200);
+  // Request ids belong to the member (another member's id never returns their post); nothing awaits from here to the write.
+  const requestKey = `${session.userId}:${v.requestId}`;
   const s = store();
-  const done = s.requests[v.requestId];
+  const done = s.requests[requestKey];
   if (done) return { status: "SAVED", id: done };
   const body = typeof v.body === "string" ? v.body.trim() : "";
   if (!body || body.length > CHANNEL_POST_MAX) return { status: "INVALID", message: `내용을 1~${CHANNEL_POST_MAX}자로 입력해 주세요.` };
   if (MOCK_FORBIDDEN_WORDS.some((w) => body.toLowerCase().includes(w))) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
   seedPosts(v.creatorId);
-  await mockDelay(200);
   const id = `cp-${Date.now().toString(36)}-${s.posts.length}`;
   s.posts.push({ id, creatorId: v.creatorId, authorId: session.userId, authorName: session.nickname, body, createdAt: new Date().toISOString(), deleted: false });
-  s.requests[v.requestId] = id;
+  s.requests[requestKey] = id;
   return { status: "SAVED", id };
 }
 

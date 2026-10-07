@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { key, mockSessionModule, resetMockStores } from "@/test/mockEnv";
+import { key, mockSessionModule, resetMockStores, signInAs } from "@/test/mockEnv";
 import { DEFAULT_WIDGET_SETTINGS } from "@/services/creator/widgetSettingsTypes";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
@@ -49,6 +49,21 @@ describe("룰렛 · 뽑기 overlays", () => {
     expect(gacha.mockGacha.draws.at(-1)!.donor).toBe("홍길동");
     const later = Date.now() + 60_000;
     expect(gacha.boardOf("c1", later).rows.every((r) => !r.donor.includes("길동"))).toBe(true);
+  });
+});
+
+describe("idempotency keys", () => {
+  beforeEach(() => resetMockStores());
+
+  it("belong to the member: another member's key never returns their result", async () => {
+    const m = await load(false);
+    const sent = { creatorId: "c1", hideProfile: false, type: "TEXT", amount: 1_000, message: "", voiceId: null, idempotencyKey: key(1) };
+    const mine = await m.requestDonation(sent);
+    expect(await m.requestDonation(sent)).toEqual(mine);
+    signInAs("u-other");
+    const theirs = await m.requestDonation({ ...sent, amount: 2_000 }); // not a CONFLICT with the other member's request
+    expect(theirs).toMatchObject({ status: "COMPLETED", fnAmount: 2_000 });
+    expect(theirs.status === "COMPLETED" && mine.status === "COMPLETED" && theirs.donationId !== mine.donationId).toBe(true);
   });
 });
 

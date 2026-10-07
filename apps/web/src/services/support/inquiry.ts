@@ -31,16 +31,19 @@ export async function submitInquiry(input: unknown): Promise<InquiryResult> {
   if (!session) return { status: "UNAUTHORIZED" };
   const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   if (typeof v.requestId !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
-  const done = store.requests[v.requestId];
+  await mockDelay(300);
+  // Request ids belong to the member: another member's id never returns their inquiry. Nothing awaits from here to the
+  // write, so a double submit creates one inquiry.
+  const requestKey = `${session.userId}:${v.requestId}`;
+  const done = store.requests[requestKey];
   if (done) return { status: "SUBMITTED", id: done };
   if (!isFaqCategory(v.category)) return { status: "INVALID", message: "문의 유형을 골라 주세요." };
   const title = typeof v.title === "string" ? v.title.trim() : "";
   const body = typeof v.body === "string" ? v.body.trim() : "";
   if (!title || title.length > INQUIRY_TITLE_MAX) return { status: "INVALID", message: `제목을 1~${INQUIRY_TITLE_MAX}자로 입력해 주세요.` };
   if (body.length < 10 || body.length > INQUIRY_BODY_MAX) return { status: "INVALID", message: `내용을 10~${INQUIRY_BODY_MAX}자로 입력해 주세요.` };
-  await mockDelay(300);
   const id = `iq-${Date.now().toString(36)}-${Object.keys(store.requests).length}`;
   (store.byUser[session.userId] ??= []).push({ id, category: v.category, title, body, createdAt: new Date().toISOString(), status: "RECEIVED", answer: null });
-  store.requests[v.requestId] = id;
+  store.requests[requestKey] = id;
   return { status: "SUBMITTED", id };
 }

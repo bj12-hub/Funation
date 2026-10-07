@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { key, mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
+import { key, mockSessionModule, resetMockStores, signIn, signInAs } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
@@ -37,6 +37,16 @@ describe("channel home", () => {
     expect((await m.getChannelMonthlyRanking("c1"))!.rows.some((r) => r.me)).toBe(false);
     await m.requestDonation({ creatorId: "c1", hideProfile: false, type: "TEXT", amount: 500_000, message: "", voiceId: null, idempotencyKey: key(2) });
     expect((await m.getChannelMonthlyRanking("c1"))!.rows.find((r) => r.me)).toMatchObject({ name: "홍길동", fnAmount: 500_000 });
+  });
+
+  it("never answers another member's request id with their post", async () => {
+    const m = await load();
+    const mine = await m.createChannelPost({ creatorId: "c1", body: "첫 글", requestId: key(1) });
+    signInAs("u-other");
+    const theirs = await m.createChannelPost({ creatorId: "c1", body: "다른 회원 글", requestId: key(1) });
+    expect(theirs.status).toBe("SAVED");
+    expect(theirs).not.toEqual(mine);
+    expect((await m.getChannelPosts("c1"))!.items.filter((p) => p.mine).map((p) => p.body)).toEqual(["다른 회원 글"]);
   });
 
   it("posts once per request id, pages, and lets only the author delete", async () => {
