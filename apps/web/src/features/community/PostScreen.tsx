@@ -63,12 +63,14 @@ export function PostScreen({ post, signedIn }: { post: PostDetail; signedIn: boo
               type="button"
               className={styles.danger}
               disabled={pending}
-              onClick={() =>
+              onClick={() => {
+                // 2026-10-08 결정: asked first, as channel posts are (comments and 쪽지 are not).
+                if (!window.confirm("이 글을 삭제할까요?")) return;
                 act(
                   () => deletePost(post.id),
                   () => router.push("/community")
-                )
-              }
+                );
+              }}
             >
               삭제
             </button>

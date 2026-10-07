@@ -34,7 +34,7 @@ Since 2026-09-29 features without a Figma frame are built in code first and desi
 
 | `/messages` 쪽지 (`features/messages/MessagesScreen.tsx`) + side nav "쪽지" + room "✉️ 쪽지" action | messages PR | 4 mailboxes with counts, search, bulk 보관/스팸신고/삭제, expand-to-read, 답장, compose modal (`?to=`) · 2026-10-06: 한 페이지에 15 · 30 · 50개씩(`?size=`, 15개를 넘을 때 목록 아래 표시) |
 
-| `/community` · `/community/new` · `/community/[id]` · `/community/[id]/edit` (`features/community/*`) + side nav "커뮤니티" | community PR | Board list (분류 tabs, search, pages), editor (분류 chips), post detail with author actions and comments |
+| `/community` · `/community/new` · `/community/[id]` · `/community/[id]/edit` (`features/community/*`) + side nav "커뮤니티" | community PR | Board list (분류 tabs, search, pages), editor (분류 chips), post detail with author actions and comments · 2026-10-08: 글 삭제 전 "이 글을 삭제할까요?" 확인(댓글은 확인 없음), 탈퇴한 회원의 글 · 댓글은 작성자 "탈퇴한 회원" |
 
 | `/events` · `/events/[id]` (`features/events/*`); home + room promo "지금 참여하기" → `/events` | events PR | Filter tabs, event cards (phase / 참여함), detail with 참여하기 and reward TBD note |
 
