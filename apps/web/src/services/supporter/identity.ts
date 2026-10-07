@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
@@ -48,7 +49,9 @@ export async function addDonationNickname(name: unknown): Promise<IdentitySaveRe
   if (nicknameList().length >= MAX_NICKNAMES) return { status: "INVALID", message: `별명은 최대 ${MAX_NICKNAMES}개까지 등록할 수 있어요.` };
   const error = checkName(name, taken);
   if (error) return { status: "INVALID", message: error };
-  mockIdentity.nicknames.push({ id: `nk-${Date.now().toString(36)}${mockIdentity.nicknames.length}`, name: (name as string).trim() });
+  // Rename, remove, 대표 and donation attribution find a 별명 by id: never a timestamp (two in one millisecond after a
+  // removal shared one).
+  mockIdentity.nicknames.push({ id: `nk-${randomUUID()}`, name: (name as string).trim() });
   return { status: "SAVED" };
 }
 
@@ -66,7 +69,7 @@ export async function renameDonationNickname(id: unknown, name: unknown): Promis
   return { status: "SAVED" };
 }
 
-/** Past donations move back under the default nickname when a nickname is removed. Idempotent. */
+/** Past donations move back under the 기본 별명 (the member nickname) when a nickname is removed. Idempotent. */
 export async function removeDonationNickname(id: unknown): Promise<IdentitySaveResult> {
   assertMock();
   if (!(await getSession())) return { status: "UNAUTHORIZED" };
@@ -81,8 +84,10 @@ export async function removeDonationNickname(id: unknown): Promise<IdentitySaveR
 export async function setDefaultDonationNickname(id: unknown): Promise<IdentitySaveResult> {
   assertMock();
   if (!(await getSession())) return { status: "UNAUTHORIZED" };
-  if (!nicknameList().some((n) => n.id === id)) return { status: "INVALID", message: "별명을 찾을 수 없어요." };
   await mockDelay(200);
+  // Checked after the wait, in one step with the write: a 별명 removed meanwhile never becomes the 대표 (the alert and
+  // the 칭호 preview resolve the 대표 by id and would find nothing).
+  if (!nicknameList().some((n) => n.id === id)) return { status: "INVALID", message: "별명을 찾을 수 없어요." };
   mockIdentity.defaultId = id as string;
   return { status: "SAVED" };
 }

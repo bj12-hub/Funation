@@ -89,10 +89,11 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 대시보드 · 수익 · 소식 | T02b | 크리에이터 랭킹 (퀘스트 탭만) | `/creator/ranking` | `61:646` |
 | 대시보드 · 수익 · 소식 | T05 | 업데이트 소식 | `/creator/updates` | `61:968` |
 | 채널 | H01 | 채널 설정 (계정설정) | `/creator/settings` | `62:846` |
-| 채널 | H02 | 후원 페이지 설정 (빈 대체 메시지 안내 2026-10-06) | `/creator/donations?tab=settings` | `62:1111` |
+| 채널 | H02 | 후원 페이지 설정 (빈 대체 메시지 안내 2026-10-06, 주소 규칙 하이픈 3~30자 · 예전 주소 30일 연결 안내 2026-10-08) | `/creator/donations?tab=settings` | `62:1111` |
 | 채널 | H03 | 칭호 관리 | `/creator/donations?tab=titles` | `62:1332` |
 | 채널 | Y01 | 유튜브 연동 | `/creator/youtube` | `62:1539` |
 | 채널 | Y02 | 영상 목록 | `/creator/videos` | `63:1255` |
+| 채널 | Y02b | 영상 목록 · 유튜브에서 지운 · 비공개 영상 "찾을 수 없음" (고정 버튼 비활성, 채널에서 숨김 — 2026-10-08 결정, code-first) | `/creator/videos` | `236:6103` |
 | 방송 · 위젯 | W01 | 위젯 목록 (룰렛 포함, 럭키박스 · 플레이 없음) | `/creator/widgets` | `63:1485` |
 | 방송 · 위젯 | W01b | 커스텀 사운드 팝업 (라이브러리에서 고르기) | `/creator/widgets` | `144:8419` |
 | 방송 · 위젯 | W01c | 뽑기 후원 팝업 (당첨 효과음 · 라이브러리) | `/creator/widgets` | `144:8944` |
@@ -183,18 +184,21 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 플랫폼 후원 | P04 | 플랫폼 크리에이터 후원 | `/donation/soop/kim_stream` | `80:3859` |
 | 플랫폼 후원 | P05 | 플랫폼 후원 내역 | `/donation/history` | `199:9683` |
 | 마이 | M01 | 마이페이지 (랭킹 노출: 퀘스트) | `/mypage` | `81:4024` |
+| 마이 | M01b | 마이페이지 · 비밀번호 변경 5회 실패 잠금 (로그인과 같은 횟수, 닫기 · 비밀번호 재설정, code-first) | `/mypage` | `235:10701` |
+| 마이 | M01c | 마이페이지 · 썸네이션 ID 보호 중 (바꾼 ID 30일 보호 — 2026-10-08 결정, 스튜디오 프로필 수정 창도 같은 문구, code-first) | `/mypage` | `235:11086` |
 | 마이 | M02 | 칭호·등급 | `/mypage/titles` | `81:4359` |
 | 마이 | M03 | 별명 관리 | `/mypage/nicknames` | `81:4688` |
 | 마이 | M04 | 내 후원 랭킹 | `/mypage/ranking` | `82:4528` |
 | 마이 | M06 | 쪽지 | `/messages` | `199:9995` |
 | 마이 | M07 | 즐겨찾기 | `/favorites` | `82:5066` |
-| 마이 | M09 | 출석체크 | `/attendance` | `82:5322` |
+| 마이 | M09 | 출석체크 (15일 · 30일 보상 "달성 시 자동 지급" 2026-10-08) | `/attendance` | `82:5322` |
 | 마이 | M10 | 차단 관리 (차단한 사용자 2명) | `/mypage/blocks` | `151:8644` |
 | 마이 | M10b | 차단 관리 · 비어 있음 | `/mypage/blocks` | `151:8861` |
 | 마이 | M11 | 회원 탈퇴 (크리에이터 · 남은 FN · 정산 대기 수익 소멸 동의, 비밀번호 확인) | `/mypage/withdraw` | `182:9521` |
 | 마이 | M11b | 회원 탈퇴 · 비밀번호 불일치 | `/mypage/withdraw` | `182:9765` |
 | 마이 | M11c | 회원 탈퇴 · 완료 | `/mypage/withdraw` | `182:10010` |
 | 마이 | M11d | 회원 탈퇴 · 처리 중인 충전 환불 (탈퇴 불가, 2026-10-06 결정) | `/mypage/withdraw` | `221:224` |
+| 마이 | M11e | 회원 탈퇴 · 비밀번호 5회 실패 잠금 (로그인과 같은 횟수, 세션 종료, code-first) | `/mypage/withdraw` | `236:17427` |
 | FN 지갑 | M05 | FN Wallet | `/wallet` | `84:5202` |
 | FN 지갑 | M05b | FN 충전 (모달) | `/wallet` | `85:5369` |
 | FN 지갑 | M05c | 충전 내역 | `/wallet/charges` | `86:5536` |

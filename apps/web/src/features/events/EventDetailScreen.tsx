@@ -3,11 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { GENERIC_ERROR } from "@/features/mypage/editors/shared";
 import { joinEvent } from "@/services/events/events";
-import { PHASE_LABEL, type EventDetail } from "@/services/events/eventTypes";
+import { PHASE_LABEL, eventPeriodLabel, type EventDetail } from "@/services/events/eventTypes";
 import styles from "./events.module.css";
-
-const period = (a: string, b: string) => `${new Date(a).toLocaleDateString("ko-KR")} ~ ${new Date(b).toLocaleDateString("ko-KR")}`;
 
 /** 이벤트 상세 — code-first (no Figma frame). Route `/events/[id]`. */
 export function EventDetailScreen({ event, signedIn }: { event: EventDetail; signedIn: boolean }) {
@@ -19,10 +18,15 @@ export function EventDetailScreen({ event, signedIn }: { event: EventDetail; sig
     if (!signedIn) return router.push(`/login?next=/events/${event.id}`);
     setError(null);
     startTransition(async () => {
-      const res = await joinEvent(event.id);
-      if (res.status === "JOINED") router.refresh();
-      else if (res.status === "UNAUTHORIZED") router.push(`/login?next=/events/${event.id}`);
-      else setError(res.status === "NOT_OPEN" ? "지금은 참여할 수 없는 이벤트예요." : "이벤트를 찾을 수 없어요.");
+      try {
+        const res = await joinEvent(event.id);
+        if (res.status === "JOINED") router.refresh();
+        else if (res.status === "UNAUTHORIZED") router.push(`/login?next=/events/${event.id}`);
+        else setError(res.status === "NOT_OPEN" ? "지금은 참여할 수 없는 이벤트예요." : "이벤트를 찾을 수 없어요.");
+      } catch {
+        // A failed request stays on this screen (joining again is idempotent on the server).
+        setError(GENERIC_ERROR);
+      }
     });
   };
 
@@ -40,7 +44,7 @@ export function EventDetailScreen({ event, signedIn }: { event: EventDetail; sig
         </span>
         <h1 className={styles.title}>{event.title}</h1>
         <p className={styles.meta}>
-          {period(event.startsAt, event.endsAt)} · 참여 {event.participants.toLocaleString("ko-KR")}명
+          {eventPeriodLabel(event.startsAt, event.endsAt)} · 참여 {event.participants.toLocaleString("ko-KR")}명
         </p>
         <p className={styles.body}>{event.body}</p>
         <p className={styles.reward}>{event.rewardNote}</p>

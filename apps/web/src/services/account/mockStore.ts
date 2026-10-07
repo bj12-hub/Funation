@@ -13,7 +13,7 @@ type MockState = {
   account: MyAccount;
   /**
    * `changedAt`: ISO time of the last password change (drives 718:335). `phone`: the number verified at sign-up
-   * (password reset by phone; the person behind the account for once-a-day attendance) — never sent to the browser.
+   * (password reset by phone; the person behind the account, see `currentPersonKey`) — never sent to the browser.
    */
   credentials: { password: string; recentPasswords: string[]; changedAt: string; phone: string };
   changeHistory: { nicknameChangedAt: Date | null; funationIdChangedAt: Date | null };
@@ -61,6 +61,13 @@ export const mockAccount = state.account;
 export const mockCredentials = state.credentials;
 export const mockChangeHistory = state.changeHistory;
 export const mockSessionState = state.session;
+
+/**
+ * The person behind the signed-in mock account: the phone verified at sign-up. Today's 출석, 이벤트 참여 and 투표
+ * count once per person by it (2026-10-08 결정), so a 재가입 with the same phone is the same person and one with
+ * another phone is someone else. Server-only: it never goes into a response.
+ */
+export const currentPersonKey = () => state.credentials.phone;
 
 // Sample values from the Figma error states (747:74, 747:120, 747:349, 747:394).
 export const MOCK_TAKEN_NICKNAMES = ["funation"];

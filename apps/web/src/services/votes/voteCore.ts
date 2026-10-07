@@ -3,8 +3,9 @@ import type { RoomVote, VoteBoard } from "./voteTypes";
 
 /**
  * Server-only vote store (not a "use server" module): the 리모컨 actions start and end votes, the room
- * actions record ballots, and the 투표 overlay reads them. One ballot per member per vote, free
- * (2026-10-04 결정). The backend must enforce the one-ballot rule with a unique (vote, member) key.
+ * actions record ballots, and the 투표 overlay reads them. Free (2026-10-04 결정), one ballot per person per vote
+ * (2026-10-08 결정: keyed by the phone verified at sign-up, like 출석 — a 재가입 with the same phone has already
+ * voted). The backend must enforce the one-ballot rule with a unique (vote, person) key.
  */
 export type VoteRun = {
   id: string;
@@ -19,7 +20,7 @@ export type VoteRun = {
   endedAt: string | null;
   /** Taken off the screen (결과 내리기, or a new vote started). */
   closedAt: string | null;
-  /** member id → item index. */
+  /** person (`currentPersonKey`, server-only) → item index. Only counts leave the server. */
   ballots: Record<string, number>;
   /** The 리모컨 request that started it, so a retried start is a no-op. */
   startRequestId: string;
@@ -54,8 +55,9 @@ function seedVotes(now = Date.now()): VoteRun[] {
   ];
 }
 
-const g = globalThis as typeof globalThis & { __funationMockVotesV1?: { runs: VoteRun[] } };
-export const mockVotes = (g.__funationMockVotesV1 ??= { runs: seedVotes() });
+// V2: ballots are keyed by person (V1 by member id).
+const g = globalThis as typeof globalThis & { __funationMockVotesV2?: { runs: VoteRun[] } };
+export const mockVotes = (g.__funationMockVotesV2 ??= { runs: seedVotes() });
 
 export const isEnded = (r: VoteRun, now = Date.now()) => r.endedAt !== null || now >= Date.parse(r.endsAt);
 
@@ -80,9 +82,10 @@ export function voteBoard(r: VoteRun, now = Date.now()): VoteBoard {
   };
 }
 
-export const roomVote = (r: VoteRun, memberId: string | null, now = Date.now()): RoomVote => ({
+/** `person`: the viewer (`currentPersonKey`), or null for a guest. */
+export const roomVote = (r: VoteRun, person: string | null, now = Date.now()): RoomVote => ({
   ...voteBoard(r, now),
-  myChoice: memberId !== null && memberId in r.ballots ? r.ballots[memberId] : null
+  myChoice: person !== null && Object.hasOwn(r.ballots, person) ? r.ballots[person] : null
 });
 
 /** Filled items of a preset (blank rows are skipped); a preset needs two to start. */
@@ -91,13 +94,13 @@ export const presetReady = (p: VotePreset) => presetItems(p).length >= VOTE_ITEM
 export const presetLabel = (p: VotePreset, index: number) => p.name.trim() || `${index + 1}번 투표`;
 
 /**
- * One ballot per member. The same choice again answers VOTED (a retried request), another choice is
+ * One ballot per person. The same choice again answers VOTED (a retried request), another choice is
  * refused, and nothing is recorded once the vote has ended.
  */
-export function castBallot(r: VoteRun, memberId: string, item: unknown, now = Date.now()): "VOTED" | "ALREADY_VOTED" | "ENDED" | "INVALID" {
+export function castBallot(r: VoteRun, person: string, item: unknown, now = Date.now()): "VOTED" | "ALREADY_VOTED" | "ENDED" | "INVALID" {
   if (typeof item !== "number" || !Number.isInteger(item) || item < 0 || item >= r.items.length) return "INVALID";
-  if (memberId in r.ballots) return r.ballots[memberId] === item ? "VOTED" : "ALREADY_VOTED";
+  if (Object.hasOwn(r.ballots, person)) return r.ballots[person] === item ? "VOTED" : "ALREADY_VOTED";
   if (isEnded(r, now)) return "ENDED";
-  r.ballots[memberId] = item;
+  r.ballots[person] = item;
   return "VOTED";
 }

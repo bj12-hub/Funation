@@ -2,6 +2,7 @@
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
+import { accountSince } from "@/services/account/withdrawalCore";
 import { INQUIRY_BODY_MAX, INQUIRY_TITLE_MAX, isFaqCategory, type Inquiry, type InquiryResult } from "./supportTypes";
 
 /**
@@ -18,11 +19,23 @@ type Store = { byUser: Record<string, Inquiry[]>; requests: Record<string, strin
 const g = globalThis as typeof globalThis & { __funationMockInquiriesV1?: Store };
 const store = (g.__funationMockInquiriesV1 ??= { byUser: {}, requests: {} });
 
+/**
+ * Inquiries belong to the account that wrote them. The mock's 재가입 reuses the user id, so a new account is told
+ * apart by its start marker (`accountSince`): it never reads the withdrawn account's inquiries, which stay stored
+ * for the operators (retention TBD). The first account keeps the plain user id.
+ */
+const accountKey = (userId: string) => {
+  const since = accountSince();
+  return since ? `${userId}@${since}` : userId;
+};
+
 export async function listMyInquiries(): Promise<Inquiry[] | null> {
   assertMock();
   const session = await getSession();
   if (!session) return null;
-  return [...(store.byUser[session.userId] ?? [])].reverse();
+  return [...(store.byUser[accountKey(session.userId)] ?? [])]
+    .reverse()
+    .map((q) => ({ id: q.id, category: q.category, title: q.title, body: q.body, createdAt: q.createdAt, status: q.status, answer: q.answer }));
 }
 
 export async function submitInquiry(input: unknown): Promise<InquiryResult> {
@@ -34,7 +47,8 @@ export async function submitInquiry(input: unknown): Promise<InquiryResult> {
   await mockDelay(300);
   // Request ids belong to the member: another member's id never returns their inquiry. Nothing awaits from here to the
   // write, so a double submit creates one inquiry.
-  const requestKey = `${session.userId}:${v.requestId}`;
+  const account = accountKey(session.userId);
+  const requestKey = `${account}:${v.requestId}`;
   const done = store.requests[requestKey];
   if (done) return { status: "SUBMITTED", id: done };
   if (!isFaqCategory(v.category)) return { status: "INVALID", message: "문의 유형을 골라 주세요." };
@@ -43,7 +57,7 @@ export async function submitInquiry(input: unknown): Promise<InquiryResult> {
   if (!title || title.length > INQUIRY_TITLE_MAX) return { status: "INVALID", message: `제목을 1~${INQUIRY_TITLE_MAX}자로 입력해 주세요.` };
   if (body.length < 10 || body.length > INQUIRY_BODY_MAX) return { status: "INVALID", message: `내용을 10~${INQUIRY_BODY_MAX}자로 입력해 주세요.` };
   const id = `iq-${Date.now().toString(36)}-${Object.keys(store.requests).length}`;
-  (store.byUser[session.userId] ??= []).push({ id, category: v.category, title, body, createdAt: new Date().toISOString(), status: "RECEIVED", answer: null });
+  (store.byUser[account] ??= []).push({ id, category: v.category, title, body, createdAt: new Date().toISOString(), status: "RECEIVED", answer: null });
   store.requests[requestKey] = id;
   return { status: "SUBMITTED", id };
 }

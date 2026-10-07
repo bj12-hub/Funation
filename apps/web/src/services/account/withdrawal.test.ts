@@ -262,6 +262,30 @@ describe("회원 탈퇴", () => {
     expect((await m.getMemberDetail(m.SAMPLE_MEMBER_ID))!.member).toMatchObject({ status: "ACTIVE", nickname: "다시왔어요", withdrawal: null });
   });
 
+  it("starts the new account without the withdrawn member's 별명, 대표 별명 or 칭호 setting", async () => {
+    const m = await load();
+    const identity = await import("@/services/supporter/identity");
+    // The sample history earns 골드 서포터; the member shows it, adds a 별명 and makes it the 대표.
+    expect((await identity.getSupporterIdentity())!.global.earned).toContain("GOLD");
+    expect(await identity.saveEquipSettings({ showGrade: true, globalTitle: "GOLD", showStoreTitle: true })).toEqual({ status: "SAVED" });
+    expect(await identity.addDonationNickname("응원단장")).toEqual({ status: "SAVED" });
+    const nick = (await identity.getSupporterIdentity())!.nicknames.find((n) => n.name === "응원단장")!;
+    expect(await identity.setDefaultDonationNickname(nick.id)).toEqual({ status: "SAVED" });
+    expect(await identity.getAlertBadges(null, "c1")).toMatchObject({ name: "응원단장", globalTitle: "골드 서포터" });
+
+    expect(await m.withdrawAccount(supporter())).toEqual({ status: "WITHDRAWN" });
+    expect(
+      await m.signup({ email: "again@funation.kr", password: "newpass12!", nickname: "다시왔어요", phoneVerificationToken: await phoneToken(), agreements: { youth: true, service: true, privacy: true, marketing: false } })
+    ).toEqual({ status: "CREATED" });
+    signIn(["SUPPORTER"]);
+    const fresh = (await identity.getSupporterIdentity())!;
+    expect(fresh.nicknames.map((n) => [n.name, n.isDefault])).toEqual([["다시왔어요", true]]);
+    expect(fresh.equip).toEqual({ showGrade: true, globalTitle: "AUTO", showStoreTitle: true });
+    expect(fresh.global.earned).toEqual([]);
+    // Its alerts carry no title the withdrawn account earned.
+    expect(await identity.getAlertBadges(null, "c1")).toEqual({ name: "다시왔어요", grade: null, globalTitle: null, storeTitle: null });
+  });
+
   it("starts the new account without the withdrawn creator's settlement history or earnings", async () => {
     signIn(["SUPPORTER", "CREATOR"]);
     const m = await load();

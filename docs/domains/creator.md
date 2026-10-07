@@ -39,6 +39,13 @@ Supported:
   없다. 채널 자신은 예전 주소로 되돌아갈 수 있다. 목업의 스튜디오 채널은 공개 채널 페이지가 없고(채널별 연결 TBD)
   `somnation.com/donate/<주소>`는 이 앱에 경로가 없어, 그 경로의 연결은 백엔드와 함께 정한다(TBD).
 
+## 이용 정지된 크리에이터 (`services/admin/memberCore.ts` `isCreatorSuspended`)
+
+- 정지 기간 동안 채널은 공개 화면에서 사라진다: 크리에이터 찾기, 채널 페이지(`getCreatorById`가 없음으로 답함), 홈
+  "요즘 인기 많은 크리에이터" 줄.
+- **즐겨찾기 (2026-10-08 결정)**: 정지 기간 동안 `/favorites` 목록에서도 빠지고, 건수 · 페이지 · 빈 화면도 보이는 목록을
+  따른다. 저장된 즐겨찾기는 지우지 않으므로 정지가 풀리면 다시 보인다.
+
 ## 벽지 위젯 (`services/creator/wallpaperCore.ts`)
 
 - A sticker keeps the 벽지 image it first got (`mockWallpaper.stickerImages`), so uploading or deleting an image never

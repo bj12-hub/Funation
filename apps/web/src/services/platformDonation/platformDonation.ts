@@ -6,6 +6,7 @@ import { ownEntry } from "@/lib/records";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
+import { accountSince } from "@/services/account/withdrawalCore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { adapterFor, type PlatformAdapter, type SendResult } from "./adapters";
 import { mockPlatform, type MockPlatformTransaction } from "./mockPlatformStore";
@@ -170,7 +171,8 @@ export async function requestPlatformDonation(input: unknown): Promise<PlatformD
     status: "PROCESSING",
     failureReason: null,
     createdAt: `${toDateString(now)} ${now.toTimeString().slice(0, 5)}`,
-    completedAt: null
+    completedAt: null,
+    account: accountSince()
   };
   mockPlatform.transactions.unshift(tx);
 

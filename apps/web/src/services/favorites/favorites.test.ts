@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
+import { key, mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
@@ -25,6 +25,25 @@ describe("즐겨찾기", () => {
     expect(await m.getFavorites({})).toBeNull();
     expect(await m.addFavorite("c2")).toEqual({ status: "UNAUTHORIZED" });
     expect(await m.removeFavorite("c2")).toEqual({ status: "UNAUTHORIZED" });
+  });
+
+  it("hides a suspended creator while suspended and shows it again after (2026-10-08 결정)", async () => {
+    const m = await import("./favorites");
+    const { suspendMember, restoreMember } = await import("@/services/admin/members");
+    const { creatorMemberId } = await import("@/services/admin/memberCore");
+    const OP = { userId: "adm-test", nickname: "테스트 운영자" };
+    const before = (await m.getFavorites({}))!;
+    expect(before.items.map((f) => f.creatorId)).toContain("c4");
+
+    expect(await suspendMember(OP, { id: creatorMemberId("c4"), days: 7, reason: "운영 정책 위반 (테스트)", requestId: key(1) })).toEqual({ status: "OK" });
+    const hidden = (await m.getFavorites({}))!;
+    expect(hidden.items.map((f) => f.creatorId)).not.toContain("c4");
+    expect(hidden.totalCount).toBe(before.totalCount - 1);
+    // A search for it finds nothing, so the page shows its empty state.
+    expect((await m.getFavorites({ query: "불꽃크루" }))!).toMatchObject({ items: [], totalCount: 0, totalPages: 1 });
+
+    expect(await restoreMember(OP, { id: creatorMemberId("c4"), reason: "소명 확인 후 해제" })).toEqual({ status: "OK" });
+    expect((await m.getFavorites({}))!).toMatchObject({ totalCount: before.totalCount, items: before.items });
   });
 
   it("searches by name and clamps the page", async () => {
