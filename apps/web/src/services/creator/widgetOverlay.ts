@@ -13,7 +13,7 @@ import { STUDIO_CHANNEL, mockCrew } from "@/services/crew/mockCrewStore";
 import { crewRankingRows, eventLines, goalProgress, rankingRows, recentLines, sourceBoardRows, totalAmount } from "./widgetOverlayCore";
 import { QR_SAMPLE_IMAGE, isWidgetOverlay, type OverlayWidget } from "./widgetOverlayTypes";
 import { readWidget } from "./widgetStore";
-import { clearedAtOf, wallStickers } from "./wallpaperCore";
+import { clearedAtOf, mockWallpaper, wallStickers } from "./wallpaperCore";
 
 /**
  * 후원 위젯 OBS overlays (code-first): no login — the integration key in the URL is the credential, like
@@ -93,7 +93,7 @@ export async function getOverlayWidget(widget: unknown, key: unknown): Promise<O
     case "wallpaper": {
       // Stickers since the last 벽지 비우기 (리모컨). The images go once; each sticker points at one.
       const { images, ...settings } = readWidget("WALLPAPER");
-      const stickers = wallStickers(items, { images, preferDonationImage: settings.preferDonationImage }, clearedAtOf(STUDIO_CHANNEL));
+      const stickers = wallStickers(items, { images, preferDonationImage: settings.preferDonationImage }, clearedAtOf(STUDIO_CHANNEL), mockWallpaper.stickerImages);
       return { widget, settings, images: images.map((i) => i.url), stickers, ...common };
     }
   }

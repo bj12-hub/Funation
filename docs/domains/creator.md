@@ -37,6 +37,12 @@ Supported:
   없다. 채널 자신은 예전 주소로 되돌아갈 수 있다. 목업의 스튜디오 채널은 공개 채널 페이지가 없고(채널별 연결 TBD)
   `somnation.com/donate/<주소>`는 이 앱에 경로가 없어, 그 경로의 연결은 백엔드와 함께 정한다(TBD).
 
+## 벽지 위젯 (`services/creator/wallpaperCore.ts`)
+
+- A sticker keeps the 벽지 image it first got (`mockWallpaper.stickerImages`), so uploading or deleting an image never
+  re-maps the stickers already on the wall and every reload shows the same wall. A sticker whose image was deleted
+  takes the rotation's image from the current list and keeps it.
+
 ## 리모컨 알림 제어 (code-first, `services/creator/alertRemote`)
 
 - 현재 알림 건너뛰기 names the alert the remote showed (`alertId`); if it already ended, nothing is skipped (never
