@@ -56,11 +56,11 @@ describe("랭킹 종류", () => {
       item("DONATION"),
       item("DONATION"),
       item("TEST", { fnAmount: 50_000 }),
-      item("EXTERNAL", { platform: "SOOP", native: { value: 10, currency: "별풍선" } }),
-      item("EXTERNAL", { platform: "SOOP", native: { value: 30, currency: "별풍선" } }),
-      item("EXTERNAL", { platform: "SOOP", native: { value: 5, currency: "별풍선" } }),
-      item("EXTERNAL", { platform: "YOUTUBE", native: { value: 5_000, currency: "KRW" } }),
-      item("EXTERNAL", { platform: "YOUTUBE", native: { value: 3, currency: "USD" } }),
+      item("EXTERNAL", { platform: "SOOP", native: { value: 10, unit: "SOOP_BALLOON" } }),
+      item("EXTERNAL", { platform: "SOOP", native: { value: 30, unit: "SOOP_BALLOON" } }),
+      item("EXTERNAL", { platform: "SOOP", native: { value: 5, unit: "SOOP_BALLOON" } }),
+      item("EXTERNAL", { platform: "YOUTUBE", native: { value: 5_000, unit: "KRW" } }),
+      item("EXTERNAL", { platform: "YOUTUBE", native: { value: 3, unit: "USD" } }),
       item("EXTERNAL", { platform: "CHZZK" }) // no native amount (older alert): skipped
     ];
     const rows = sourceBoardRows(feed, { period: "월간", ranks: 10 }, now);
@@ -74,6 +74,30 @@ describe("랭킹 종류", () => {
     expect(rows[1]).toMatchObject({ fnAmount: 2_000, amountLabel: "2,000 FN" });
     expect(rankAmountText("{amount}FN", rows[0])).toBe("45 별풍선");
     expect(rankAmountText("{amount}FN", { rank: 1, name: "a", fnAmount: 1_500 })).toBe("1,500FN");
+  });
+
+  it("groups alerts stored before unit codes (label) with new ones, labelled the same", () => {
+    const item = (platform: AlertItem["platform"], native: unknown): AlertItem => alert("2026-10-03T09:00:00", "누군가", 0, { kind: "EXTERNAL", platform, native: native as AlertItem["native"] });
+    const rows = sourceBoardRows(
+      [
+        item("CHZZK", { value: 1_000, currency: "치즈" }), // stored before the codes
+        item("CHZZK", { value: 2_000, unit: "CHZZK_CHEESE" }),
+        item("FLEXTV", { value: 7, currency: "FlexTV 후원" }),
+        item("FLEXTV", { value: 3, unit: "FLEXTV_UNIT" }),
+        item("SOOP", { value: 4, currency: "별풍선" }),
+        item("YOUTUBE", { value: 5_000, currency: "KRW" }),
+        item("YOUTUBE", { value: 5, unit: "EUR" }) // a currency outside the list: its own line, shown as money
+      ],
+      { period: "월간", ranks: 10 },
+      now
+    );
+    expect(rows.map((r) => [r.name, r.amountLabel])).toEqual([
+      ["치지직 · 2건", "3,000 치즈"],
+      ["FlexTV · 2건", "10 FlexTV 후원"],
+      ["YouTube EUR · 1건", formatMoney(5, "EUR")],
+      ["YouTube KRW · 1건", formatMoney(5_000, "KRW")],
+      ["SOOP · 1건", "4 별풍선"]
+    ]);
   });
 
   it("reads settings saved before the boards as 후원자 랭킹 and rejects unknown boards", async () => {
@@ -109,7 +133,7 @@ describe("후원 위젯 계산", () => {
   it("never counts or lists a 다시 보내기 copy as another donation", () => {
     const replays = [
       alert("2026-10-03T10:00:00", "별빛", 5_000, { id: "rp-1", replayOf: "al-1" }),
-      alert("2026-10-03T10:05:00", "유튜버팬", 0, { id: "rp-2", kind: "EXTERNAL", platform: "YOUTUBE", native: { value: 5_000, currency: "KRW" }, replayOf: "al-2" })
+      alert("2026-10-03T10:05:00", "유튜버팬", 0, { id: "rp-2", kind: "EXTERNAL", platform: "YOUTUBE", native: { value: 5_000, unit: "KRW" }, replayOf: "al-2" })
     ];
     const all = [...feed, ...replays];
     const range = { ...D.TOTAL, from: "2026-10-01T00:00", to: "2026-10-05T23:59" };

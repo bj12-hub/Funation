@@ -28,10 +28,10 @@ describe("자동엑셀", () => {
   it("FN 기준 keeps the old scoreboard; 원화 환산 converts every unit with the creator's values", async () => {
     const { simulateDonation, setExcelSettings, view, id } = await startLive();
     await simulateDonation({ broadcastId: id, requestId: key(1), amount: 10_000, unit: "FN", message: "길동" });
-    await simulateDonation({ broadcastId: id, requestId: key(2), amount: 100, unit: "별풍선", message: "하늘" });
+    await simulateDonation({ broadcastId: id, requestId: key(2), amount: 100, unit: "SOOP_BALLOON", message: "하늘" });
     let v = await view();
     expect(v.feed!.excel).toEqual({ unit: "FN", rates: {}, rules: [] });
-    expect(v.feed!.entries[0]).toMatchObject({ unit: "별풍선", platform: "SOOP", base: null, points: 0 });
+    expect(v.feed!.entries[0]).toMatchObject({ unit: "SOOP_BALLOON", platform: "SOOP", base: null, points: 0 });
     expect(score(v, "cm-s1")).toBe(10_000);
 
     // 원화 기준 without values: only 원 counts, nothing is guessed.
@@ -40,7 +40,7 @@ describe("자동엑셀", () => {
     expect(score(v, "cm-s1")).toBe(0);
     expect(score(v, "cm-s2")).toBe(0);
 
-    await setExcelSettings({ unit: "KRW", rates: { FN: 1, 별풍선: 100 }, rules: [] });
+    await setExcelSettings({ unit: "KRW", rates: { FN: 1, SOOP_BALLOON: 100 }, rules: [] });
     v = await view();
     expect(score(v, "cm-s1")).toBe(10_000);
     expect(score(v, "cm-s2")).toBe(10_000);
@@ -69,8 +69,8 @@ describe("자동엑셀", () => {
 
   it("applies the highest matching 배수 규칙, and 수기 기여도 wins over it", async () => {
     const { simulateDonation, setExcelSettings, setEntryContribution, view, id } = await startLive();
-    await setExcelSettings({ unit: "KRW", rates: { 별풍선: 100 }, rules: [{ min: 50_000, multiplier: 3 }, { min: 10_000, multiplier: 1.5 }] });
-    await simulateDonation({ broadcastId: id, requestId: key(1), amount: 600, unit: "별풍선", message: "하늘" }); // 60,000원 → ×3
+    await setExcelSettings({ unit: "KRW", rates: { SOOP_BALLOON: 100 }, rules: [{ min: 50_000, multiplier: 3 }, { min: 10_000, multiplier: 1.5 }] });
+    await simulateDonation({ broadcastId: id, requestId: key(1), amount: 600, unit: "SOOP_BALLOON", message: "하늘" }); // 60,000원 → ×3
     await simulateDonation({ broadcastId: id, requestId: key(2), amount: 20_000, unit: "KRW", message: "하늘" }); // ×1.5
     let v = await view();
     expect(v.feed!.excel.rules.map((r) => r.min)).toEqual([10_000, 50_000]);
@@ -91,10 +91,10 @@ describe("자동엑셀", () => {
 
   it("sums 기여도 per platform and BJ, and lists platform donations from 후원 연동 in their own unit", async () => {
     const { simulateDonation, setExcelSettings, recordBroadcastExternal, recordBroadcastDonation, view, id } = await startLive();
-    await setExcelSettings({ unit: "KRW", rates: { FN: 1, 치즈: 1 }, rules: [] });
+    await setExcelSettings({ unit: "KRW", rates: { FN: 1, CHZZK_CHEESE: 1 }, rules: [] });
     await simulateDonation({ broadcastId: id, requestId: key(1), amount: 5_000, unit: "KRW", message: "길동" });
-    recordBroadcastExternal("studio", { platform: "CHZZK", donor: "치즈러버", message: "길동 화이팅", value: 3_000, currency: "치즈" });
-    recordBroadcastExternal("studio", { platform: "YOUTUBE", donor: "x", message: "길동", value: 5, currency: "EUR" }); // unknown unit: not listed
+    recordBroadcastExternal("studio", { platform: "CHZZK", donor: "치즈러버", message: "길동 화이팅", value: 3_000, unit: "CHZZK_CHEESE" });
+    recordBroadcastExternal("studio", { platform: "YOUTUBE", donor: "x", message: "길동", value: 5, unit: "EUR" }); // unknown unit: not listed
     recordBroadcastDonation("studio", { donor: "홍길동", message: "그냥", fnAmount: 2_000 });
     const v = await view();
     expect(v.feed!.entries).toHaveLength(3);
@@ -107,12 +107,12 @@ describe("자동엑셀", () => {
   it("validates settings and 기여도, and requires a creator session", async () => {
     const { setExcelSettings, setEntryContribution, simulateDonation, cancelFeedEntry, view, id } = await startLive();
     expect((await setExcelSettings({ unit: "KRW", rates: { KRW: 2 }, rules: [] })).status).toBe("INVALID");
-    expect((await setExcelSettings({ unit: "KRW", rates: { 별풍선: -1 }, rules: [] })).status).toBe("INVALID");
+    expect((await setExcelSettings({ unit: "KRW", rates: { SOOP_BALLOON: -1 }, rules: [] })).status).toBe("INVALID");
     expect((await setExcelSettings({ unit: "KRW", rates: {}, rules: [{ min: 1, multiplier: 101 }] })).status).toBe("INVALID");
     expect((await setExcelSettings({ unit: "KRW", rates: {}, rules: [{ min: 1, multiplier: 2 }, { min: 1, multiplier: 3 }] })).status).toBe("INVALID");
     const six = Array.from({ length: 6 }, (_, i) => ({ min: i + 1, multiplier: 2 }));
     expect((await setExcelSettings({ unit: "KRW", rates: {}, rules: six })).status).toBe("INVALID");
-    expect((await simulateDonation({ broadcastId: id, requestId: key(1), amount: 1.5, unit: "별풍선" })).status).toBe("INVALID");
+    expect((await simulateDonation({ broadcastId: id, requestId: key(1), amount: 1.5, unit: "SOOP_BALLOON" })).status).toBe("INVALID");
     expect((await simulateDonation({ broadcastId: id, requestId: key(2), amount: 1.25, unit: "USD" })).status).toBe("SAVED");
 
     const entry = (await view()).feed!.entries[0];
@@ -122,5 +122,68 @@ describe("자동엑셀", () => {
 
     signIn(["SUPPORTER"]);
     expect(await setExcelSettings({ unit: "FN", rates: {}, rules: [] })).toEqual({ status: "UNAUTHORIZED" });
+  });
+});
+
+/** Units are keyed by stable code (2026-10-08); data saved by label before that keeps working. */
+describe("자동엑셀 unit codes", () => {
+  beforeEach(() => resetMockStores());
+
+  it("moves 환산값 and 후원 리스트 entries saved by label to the code, and still takes labels from older screens", async () => {
+    const { simulateDonation, setExcelSettings, migrateRates, view, id } = await startLive();
+    const { mockCrew } = await import("./mockCrewStore");
+    await simulateDonation({ broadcastId: id, requestId: key(1), amount: 50, unit: "SOOP_BALLOON", message: "하늘" });
+    // A dev store from before the codes: the entry and the 환산값 carry the label.
+    mockCrew.broadcasts!.find((b) => b.id === id)!.feed![0].unit = "별풍선" as never;
+    mockCrew.excel = { studio: { unit: "KRW", rates: { 별풍선: 100, 치즈: 2, FN: 1 } as never, rules: [] } };
+
+    let v = await view();
+    expect(v.feed!.excel.rates).toEqual({ SOOP_BALLOON: 100, CHZZK_CHEESE: 2, FN: 1 });
+    expect(v.feed!.entries[0]).toMatchObject({ unit: "SOOP_BALLOON", platform: "SOOP", base: 5_000, points: 5_000 });
+    expect(score(v, "cm-s2")).toBe(5_000);
+
+    // An older screen may still send labels: accepted and stored under the code.
+    expect(await setExcelSettings({ unit: "KRW", rates: { 별풍선: 200, FN: 1 }, rules: [] })).toEqual({ status: "SAVED" });
+    expect(await simulateDonation({ broadcastId: id, requestId: key(2), amount: 10, unit: "치즈", message: "하늘" })).toEqual({ status: "SAVED" });
+    v = await view();
+    expect(v.feed!.excel.rates).toEqual({ SOOP_BALLOON: 200, FN: 1 });
+    expect(v.feed!.entries[0]).toMatchObject({ unit: "CHZZK_CHEESE", platform: "CHZZK", base: null, points: 0 });
+    expect(score(v, "cm-s2")).toBe(10_000);
+    expect((await setExcelSettings({ unit: "KRW", rates: { 하트: 1 }, rules: [] })).status).toBe("INVALID");
+
+    // A value already under the code wins over a leftover label; keys that are neither are dropped.
+    const rates: Record<string, number | undefined> = { 별풍선: 100, SOOP_BALLOON: 150, "FlexTV 후원": 3, 하트: 5 };
+    migrateRates(rates);
+    expect(rates).toEqual({ SOOP_BALLOON: 150, FLEXTV_UNIT: 3 });
+  });
+
+  it("lists a donation from every platform and 계좌 후원 under its unit code, converted with that code's value", async () => {
+    const { setExcelSettings, recordBroadcastBank, view } = await startLive();
+    const link = await import("@/services/creator/donationLink");
+    const { connectYouTube } = await import("@/services/creator/youtube");
+    const { connectBroadcastChannel } = await import("@/services/broadcast/unifiedChat");
+    await connectYouTube({ handle: "linked", requestId: key(10) });
+    for (const platform of ["CHZZK", "SOOP", "FLEXTV"]) expect(await connectBroadcastChannel({ platform, handle: "linked" })).toEqual({ status: "OK" });
+    for (const platform of ["YOUTUBE", "CHZZK", "SOOP", "FLEXTV"]) expect(await link.setDonationLink({ platform, enabled: true })).toEqual({ status: "OK" });
+    // Test inputs, not product rates (TBD).
+    await setExcelSettings({ unit: "KRW", rates: { USD: 1_000, JPY: 10, SOOP_BALLOON: 100, CHZZK_CHEESE: 1, FLEXTV_UNIT: 50 }, rules: [] });
+
+    const sims: [string, number, string?][] = [["YOUTUBE", 5_000, "KRW"], ["YOUTUBE", 2, "USD"], ["YOUTUBE", 300, "JPY"], ["CHZZK", 1_000], ["SOOP", 10], ["FLEXTV", 3]];
+    for (const [i, [platform, value, currency]] of sims.entries()) {
+      expect(await link.simulateExternalDonation({ platform, donor: "시청자", message: "길동", value, currency, requestId: key(20 + i) })).toMatchObject({ status: "OK", ingested: 1 });
+    }
+    recordBroadcastBank("studio", { donor: "입금자", value: 7_000 });
+
+    const v = await view();
+    expect(v.feed!.entries.map((e) => [e.source, e.platform, e.unit, e.amount, e.base]).reverse()).toEqual([
+      ["DONATION", "YOUTUBE", "KRW", 5_000, 5_000],
+      ["DONATION", "YOUTUBE", "USD", 2, 2_000],
+      ["DONATION", "YOUTUBE", "JPY", 300, 3_000],
+      ["DONATION", "CHZZK", "CHZZK_CHEESE", 1_000, 1_000],
+      ["DONATION", "SOOP", "SOOP_BALLOON", 10, 1_000],
+      ["DONATION", "FLEXTV", "FLEXTV_UNIT", 3, 150],
+      ["BANK", null, "KRW", 7_000, 7_000]
+    ]);
+    expect(score(v, "cm-s1")).toBe(12_150);
   });
 });

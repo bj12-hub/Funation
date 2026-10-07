@@ -1,5 +1,6 @@
+import type { AmountUnit } from "@/types/donationUnit";
 import type { Platform } from "@/types/platform";
-import { BATTLE_MULTIPLIER_MAX, BATTLE_PENALTY_MAX, FAN_NOTE_LIMITS, GRADES_MAX, PLATFORM_FAN_NOTE_RULES, GRADE_MULTIPLIER_MAX, GRADE_NAME_MAX, PLATFORM_BATTLE_RULES, PLATFORM_STEAL_RULES, SUB_BOARD_MAX, isExcelUnit, type BattleRules, type CrewGrade, type FanNoteRules, type FanNotesView, type RoomFanNotes, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow } from "./crewTypes";
+import { BATTLE_MULTIPLIER_MAX, BATTLE_PENALTY_MAX, FAN_NOTE_LIMITS, GRADES_MAX, PLATFORM_FAN_NOTE_RULES, GRADE_MULTIPLIER_MAX, GRADE_NAME_MAX, PLATFORM_BATTLE_RULES, PLATFORM_STEAL_RULES, SUB_BOARD_MAX, excelUnitOf, isExcelUnit, type BattleRules, type CrewGrade, type FanNoteRules, type FanNotesView, type RoomFanNotes, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow } from "./crewTypes";
 import { mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 // ── 후원 리스트 (server-only) ──────────────────────────────────────────────────
@@ -75,13 +76,14 @@ export function recordBroadcastDonation(channelId: string, input: { donor: strin
 }
 
 /**
- * Called by 후원 연동 for each new (deduped) platform donation. Units the 자동엑셀 does not know stay
- * out of the list (the alert is still shown).
+ * Called by 후원 연동 for each new (deduped) platform donation, with the unit code its adapter mapped. Units the
+ * 자동엑셀 does not know (a Super Chat in EUR …) stay out of the list (the alert is still shown).
  */
-export function recordBroadcastExternal(channelId: string, input: { platform: Platform; donor: string; message: string; value: number; currency: string }) {
+export function recordBroadcastExternal(channelId: string, input: { platform: Platform; donor: string; message: string; value: number; unit: AmountUnit }) {
   const live = liveBroadcastOf(channelId);
-  if (!live || !isExcelUnit(input.currency)) return;
-  addFeedEntry(live, { donor: input.donor, message: input.message, amount: input.value, unit: input.currency, platform: input.platform, source: "DONATION" });
+  const unit = excelUnitOf(input.unit);
+  if (!live || !unit) return;
+  addFeedEntry(live, { donor: input.donor, message: input.message, amount: input.value, unit, platform: input.platform, source: "DONATION" });
 }
 
 /** Called by SMS 계좌후원 for each recognised deposit: a live crew broadcast lists it in 원 (source BANK). */
@@ -106,7 +108,35 @@ export function openBoard(b: MockBroadcast, title: string, requestId: string, no
 // ── 자동엑셀 (server-only scoring) ─────────────────────────────────────────────
 
 export const DEFAULT_EXCEL: ExcelSettings = { unit: "FN", rates: {}, rules: [] };
-export const excelOf = (channelId: string): ExcelSettings => mockCrew.excel?.[channelId] ?? DEFAULT_EXCEL;
+
+/** The channel's 자동엑셀 settings; 환산값 saved before the unit codes (keyed by label) are moved to the code first. */
+export function excelOf(channelId: string): ExcelSettings {
+  const s = mockCrew.excel?.[channelId];
+  if (!s) return DEFAULT_EXCEL;
+  migrateRates(s.rates);
+  return s;
+}
+
+/**
+ * Re-keys 환산값 saved by label (별풍선 → SOOP_BALLOON …) in place, so the saved value keeps applying. A value already
+ * under the code wins; a key that is neither a code nor a known label is dropped (the settings screen sends every key
+ * back, and the server would refuse it).
+ */
+export function migrateRates(rates: Record<string, number | undefined>) {
+  for (const [key, value] of Object.entries(rates)) {
+    if (isExcelUnit(key)) continue;
+    const unit = excelUnitOf(key);
+    if (unit && rates[unit] === undefined) rates[unit] = value;
+    delete rates[key];
+  }
+}
+
+/** The 후원 리스트 of a broadcast; entries listed before the unit codes (unit = label) are moved to the code first. */
+export function feedOf(b: MockBroadcast): FeedEntry[] {
+  const feed = b.feed ?? [];
+  for (const f of feed) if (!isExcelUnit(f.unit)) f.unit = excelUnitOf(f.unit) ?? f.unit;
+  return feed;
+}
 
 /**
  * Amount in the score unit. FN 기준: only FN counts (1 FN = 1점, the original scoreboard). 원화 기준:
@@ -143,7 +173,7 @@ export function windowReceived(b: MockBroadcast, from: string, to: string | null
   const scores = new Map<string, number>();
   const add = (id: string, p: number) => scores.set(id, (scores.get(id) ?? 0) + p);
   for (const a of mockCrew.attributions) if (a.channelId === b.channelId && inWindow(a.at)) add(a.memberId, scoreFn(a.fnAmount, s));
-  for (const f of b.feed ?? []) if (f.status === "ASSIGNED" && f.memberId && inWindow(f.at)) add(f.memberId, scoreEntry(f, s).points);
+  for (const f of feedOf(b)) if (f.status === "ASSIGNED" && f.memberId && inWindow(f.at)) add(f.memberId, scoreEntry(f, s).points);
   return scores;
 }
 
@@ -218,7 +248,7 @@ export function gradeBonus(b: MockBroadcast): Map<string, number> {
   const received = new Map<string, number>();
   const add = (id: string, p: number) => mult.has(id) && received.set(id, (received.get(id) ?? 0) + p);
   for (const a of mockCrew.attributions) if (a.channelId === b.channelId && a.at >= b.startedAt && a.at <= end) add(a.memberId, scoreFn(a.fnAmount, s));
-  for (const f of b.feed ?? []) if (f.status === "ASSIGNED" && f.memberId) add(f.memberId, scoreEntry(f, s).points);
+  for (const f of feedOf(b)) if (f.status === "ASSIGNED" && f.memberId) add(f.memberId, scoreEntry(f, s).points);
   for (const [id, points] of received) bonus.set(id, extraPoints(points, mult.get(id)!));
   return bonus;
 }

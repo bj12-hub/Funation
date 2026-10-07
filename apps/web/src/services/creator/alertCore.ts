@@ -2,7 +2,7 @@ import { createHmac, randomBytes } from "node:crypto";
 import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
 import type { Platform } from "@/types/platform";
 import { notify } from "@/services/notifications/notificationCore";
-import type { AlertControls, AlertItem, AlertKind, OverlaySignal, OverlayTarget } from "./alertTypes";
+import type { AlertControls, AlertItem, AlertKind, NativeAmount, OverlaySignal, OverlayTarget } from "./alertTypes";
 import { shownOnStream } from "./donationPageCore";
 
 /**
@@ -95,7 +95,7 @@ export function enqueueAlert(
     platform?: Platform;
     imageUrl?: string;
     soundUrl?: string;
-    native?: { value: number; currency: string };
+    native?: NativeAmount;
     questId?: string;
   },
   now = Date.now()

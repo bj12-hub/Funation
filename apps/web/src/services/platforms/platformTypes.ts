@@ -1,3 +1,4 @@
+import type { AmountUnit } from "@/types/donationUnit";
 import type { Platform } from "@/types/platform";
 
 /**
@@ -52,7 +53,8 @@ export type ExternalDonationEvent = {
   externalEventId: string;
   donorName: string;
   message: string;
-  amount: { value: number; currency: string };
+  /** `unit`: the adapter maps the platform's unit to a stable code (치즈 → CHZZK_CHEESE …); currencies keep their ISO code. */
+  amount: { value: number; unit: AmountUnit };
   kindLabel: string;
   occurredAt: string;
 };

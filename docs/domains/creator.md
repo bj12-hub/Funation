@@ -40,6 +40,9 @@ Points are display scores, not money.
   takes more than the target's current scoreboard score, so nobody goes below 0.
 - Every 배수 (자동엑셀 규칙 · 기여도 · 배틀 · 직급, two decimals) multiplies in whole hundredths with one rounding, so
   all boards agree (×1.15 on 50 = 58).
+- 자동엑셀 환산값 and 후원 리스트 entries are keyed by unit code (`SOOP_BALLOON`, `CHZZK_CHEESE`, `FLEXTV_UNIT`, `KRW` …;
+  table in [integrations](./integrations.md)), never by label. Values saved by label before 2026-10-08 move to the code
+  when read (a value already under the code wins); 계좌 후원 is `KRW` with no platform. Rates stay creator-entered (TBD).
 - 이번 달 멤버 순위 counts by the server's local month (Asia/Seoul), so 00:00–08:59 on the 1st is the new month.
 - 방송 시작 · 멤버 추가 carry a request id (one per intended action): a double click or retry returns SAVED instead of
   a second broadcast or member. 방송 종료 is idempotent (a second call keeps the first 종료 시각 · 최종 순위). The

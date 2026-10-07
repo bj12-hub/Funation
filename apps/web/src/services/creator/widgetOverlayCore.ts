@@ -1,8 +1,8 @@
 import { formatNumber } from "@/lib/format";
+import { formatUnitAmount, isCurrencyUnit, unitLabel, type AmountUnit } from "@/types/donationUnit";
 import { PLATFORM_LABEL, type Platform } from "@/types/platform";
 import { HIDDEN_PROFILE_LABEL } from "@/services/supporter/identityTypes";
-import type { AlertItem } from "./alertTypes";
-import { formatMoney } from "./donationLinkTypes";
+import { nativeAmount, type AlertItem } from "./alertTypes";
 import type { WidgetFeedLine, WidgetRankRow } from "./widgetOverlayTypes";
 import {
   RECENT_PLATFORMS,
@@ -117,26 +117,30 @@ export function crewRankingRows(
 
 const SOURCE_ORDER = ["SOMNATION", "YOUTUBE", "CHZZK", "SOOP", "FLEXTV"];
 
+/** A unit's name in a 수단별 보드 row: a currency by its ISO code (YouTube KRW · USD), a platform unit by its label. */
+const boardUnitName = (u: AmountUnit) => (isCurrencyUnit(u) ? u : unitLabel(u));
+
 /**
  * 수단별 보드: Somnation FN donations and each platform's donations in their own unit (no FN rate — TBD), ordered by
- * 건수. A platform paying in two currencies gets a line per currency. 테스트 후원 never counts.
+ * 건수. A platform paying in two currencies gets a line per currency. 테스트 후원 never counts. Rows group by unit code;
+ * alerts stored before the codes (label) are read as their code, so they join the same row.
  */
 export function sourceBoardRows(items: AlertItem[], s: Pick<RankingSettings, "period" | "ranks">, now = new Date()): WidgetRankRow[] {
   const since = rankingSince(s.period, now);
-  const groups = new Map<string, { source: string; currency: string; value: number; count: number }>();
+  const groups = new Map<string, { source: string; unit: AmountUnit; value: number; count: number }>();
   for (const a of originals(items)) {
     if (Date.parse(a.createdAt) < since) continue;
     const g =
       a.kind === "DONATION"
         ? counts(a)
-          ? { source: "SOMNATION", currency: "FN", value: a.fnAmount }
+          ? { source: "SOMNATION", unit: "FN", value: a.fnAmount }
           : null
         : a.kind === "EXTERNAL" && a.platform && a.native
-          ? { source: a.platform, currency: a.native.currency, value: a.native.value }
+          ? { source: a.platform, ...nativeAmount(a.native) }
           : null;
     if (!g) continue;
-    const key = `${g.source}|${g.currency}`;
-    const cur = groups.get(key) ?? { source: g.source, currency: g.currency, value: 0, count: 0 };
+    const key = `${g.source}|${g.unit}`;
+    const cur = groups.get(key) ?? { source: g.source, unit: g.unit, value: 0, count: 0 };
     cur.value += g.value;
     cur.count += 1;
     groups.set(key, cur);
@@ -144,15 +148,15 @@ export function sourceBoardRows(items: AlertItem[], s: Pick<RankingSettings, "pe
   const list = [...groups.values()];
   const perSource = (src: string) => list.filter((x) => x.source === src).length;
   return list
-    .sort((x, y) => y.count - x.count || SOURCE_ORDER.indexOf(x.source) - SOURCE_ORDER.indexOf(y.source) || x.currency.localeCompare(y.currency))
+    .sort((x, y) => y.count - x.count || SOURCE_ORDER.indexOf(x.source) - SOURCE_ORDER.indexOf(y.source) || boardUnitName(x.unit).localeCompare(boardUnitName(y.unit)))
     .slice(0, s.ranks)
     .map((x, i) => {
       const label = x.source === "SOMNATION" ? "썸네이션 FN" : PLATFORM_LABEL[x.source as Platform];
       return {
         rank: i + 1,
-        name: `${perSource(x.source) > 1 ? `${label} ${x.currency}` : label} · ${formatNumber(x.count)}건`,
+        name: `${perSource(x.source) > 1 ? `${label} ${boardUnitName(x.unit)}` : label} · ${formatNumber(x.count)}건`,
         fnAmount: x.source === "SOMNATION" ? x.value : 0,
-        amountLabel: x.currency === "FN" ? `${formatNumber(x.value)} FN` : formatMoney(x.value, x.currency)
+        amountLabel: formatUnitAmount(x.value, x.unit)
       };
     });
 }
