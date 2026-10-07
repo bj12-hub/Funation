@@ -199,6 +199,9 @@ describe("후원 위젯 계산", () => {
       ["새벽별명", 5_000],
       ["별빛", 1_000]
     ]);
+    // A keyed alert shown as 익명 (후원 필터링 replaced the name) is left out too, not grouped under its key.
+    const filtered = alert("2026-10-03T09:40:00", "익명", 500_000, { donorKey: "dk-filtered" });
+    expect(rankingRows([...feed, ...keyed, filtered], { ...D.RANKING, period: "전체", ranks: 5 }, now).map((r) => r.name)).not.toContain("익명");
   });
 
   it("writes 최근알림 lines newest first with each platform's template", () => {
