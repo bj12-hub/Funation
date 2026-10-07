@@ -118,11 +118,12 @@ export function enqueueAlert(
  * channel reach this creator's overlay (TBD: per-creator queues once channels are real). The creator's
  * 대체 메시지 표시 설정 and 후원 필터링 apply to the name and message shown (and spoken) on stream (shownOnStream).
  * A 퀘스트 후원 passes its `questId`: the alert shows when it is sent, but its FN counts in the 후원 위젯 only
- * once the quest succeeds (settleQuestAlerts).
+ * once the quest succeeds (settleQuestAlerts). The Donation Core always passes `donorKey` (donorKeyOf, or null for a
+ * hidden profile).
  */
 export function enqueueDonationAlert(
   creatorId: string,
-  input: { donor: string; donorKey: string | null; badges?: string[]; message: string; fnAmount: number; typeLabel: string; imageUrl?: string; soundUrl?: string; questId?: string }
+  input: { donor: string; donorKey?: string | null; badges?: string[]; message: string; fnAmount: number; typeLabel: string; imageUrl?: string; soundUrl?: string; questId?: string }
 ) {
   if (creatorId !== STUDIO_CHANNEL) return;
   const item = enqueueAlert({ kind: "DONATION", ...input, ...shownOnStream(input) });
