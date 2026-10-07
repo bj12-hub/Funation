@@ -18,6 +18,9 @@ describe("출석체크", () => {
   afterEach(() => vi.useRealTimers());
 
   it("credits once per day and records the credit", async () => {
+    // A day with no 15/30-day reward: on the 15th or 30th the auto-paid reward is a second credit.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-10T10:00:00"));
     const { checkIn, account, credits } = await load();
     const first = await checkIn();
     expect(first.status).toBe("CHECKED_IN");

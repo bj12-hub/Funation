@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
 import { Toggle } from "@/components/ui/Toggle";
-import { changeFunationId } from "@/services/account/profileActions";
+import { changeFunationId, type IdChangeResult } from "@/services/account/profileActions";
 import { changeChannelName, saveCreatorProfile, uploadCreatorImage } from "@/services/creator/creatorSettings";
 import {
   BROADCAST_CATEGORIES,
@@ -24,10 +24,12 @@ const IMAGE_ERRORS: Record<string, string> = {
   FAILED: "이미지를 올리지 못했습니다. 다시 시도해 주세요."
 };
 
-const ID_ERRORS: Record<string, string> = {
+// Keyed by every failure the action can return (LIMITED and UNAUTHORIZED are handled on their own), so a new status fails tsc here.
+const ID_ERRORS: Record<Exclude<IdChangeResult["status"], "CHANGED" | "LIMITED" | "UNAUTHORIZED">, string> = {
   INVALID: "5~20자의 영문 소문자와 숫자만 사용할 수 있어요.",
   DUPLICATE: "이미 사용 중인 FUN ID예요.",
-  FORBIDDEN: "사용할 수 없는 단어가 포함되어 있어요."
+  FORBIDDEN: "사용할 수 없는 단어가 포함되어 있어요.",
+  RESERVED: "최근 변경되어 보호 중인 ID입니다. 다른 ID를 입력해 주세요."
 };
 
 /**
