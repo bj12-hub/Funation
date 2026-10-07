@@ -2,6 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
+import { clearPasswordFailures, currentAccountKey, isPasswordLocked, recordPasswordFailure } from "@/services/auth/loginLockCore";
 import { getSession, hasRole, revokeSession, type Session } from "@/lib/session";
 import { bankSmsStore } from "@/services/bankSms/bankSmsCore";
 import { clearChatFeed, managerLinks, onChannelChanged } from "@/services/broadcast/chatCore";
@@ -70,7 +71,19 @@ export async function withdrawAccount(input: unknown): Promise<WithdrawResult> {
   const early = consentProblem(v, mockAccount.fnBalance, earningsOf(session));
   if (early) return early;
   await mockDelay(400);
-  if (typeof v.password !== "string" || v.password !== mockCredentials.password) return { status: "WRONG_PASSWORD" };
+  // The password shares the login's failure count (services/auth/loginLockCore.ts), like the 마이페이지 password
+  // change: a session cannot be used to guess it here. At the login's limit the account locks and the session ends.
+  const account = currentAccountKey();
+  if (isPasswordLocked(account)) {
+    await revokeSession();
+    return { status: "LOCKED" };
+  }
+  if (typeof v.password !== "string" || v.password !== mockCredentials.password) {
+    if (!recordPasswordFailure(account)) return { status: "WRONG_PASSWORD" };
+    await revokeSession();
+    return { status: "LOCKED" };
+  }
+  clearPasswordFailures(account);
 
   // From here on nothing awaits: the amounts are read again, compared with the consents and forfeited in one
   // step, so an admin decision or a donation during the password check cannot leave the record out of date.

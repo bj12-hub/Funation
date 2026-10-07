@@ -96,7 +96,9 @@ describe("message authors", () => {
     await m.blockAuthorOf({ target: { type: "MESSAGE", id: "ms-1" } });
     const list = (await m.listBlocks())!;
     expect(list).toEqual([{ id: expect.stringMatching(/^[0-9a-f-]{36}$/), name: "불꽃크루", since: expect.any(String) }]);
-    expect(JSON.stringify(list)).not.toContain("c4");
+    // The entry id is a random UUID (it can contain "c4" by chance): no field may be the member id or the creator id.
+    expect(list.flatMap((e) => Object.values(e))).not.toEqual(expect.arrayContaining(["m-c4"]));
+    expect(list.flatMap((e) => Object.values(e))).not.toEqual(expect.arrayContaining(["c4"]));
     expect(await m.unblock("m-c4")).toEqual({ status: "NOT_FOUND" });
     expect(await m.unblock(list[0].id)).toEqual({ status: "OK", name: "불꽃크루" });
     expect(await m.listBlocks()).toEqual([]);
