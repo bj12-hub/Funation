@@ -7,6 +7,8 @@ import { isSuspendedNow, type Suspension } from "./memberTypes";
 
 export const SAMPLE_MEMBER_ID = "u-hongGD123";
 export const creatorMemberId = (creatorId: string) => `m-${creatorId}`;
+/** Member id of the slot's `n`-th withdrawn account (1 = the first) once a 재가입 started a new account in the slot. */
+export const withdrawnMemberId = (n: number) => `${SAMPLE_MEMBER_ID}-w${n}`;
 
 type GeneratedMember = { id: string; nickname: string; funationId: string; joinedAt: string; lastActiveAt: string; donationTotalFn: number; fnBalance: number };
 type Store = { suspensions: Record<string, Suspension>; requests: Record<string, true>; supporters: GeneratedMember[] };
