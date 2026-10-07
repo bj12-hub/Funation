@@ -1,7 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { key, mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
 
-vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
+/** `during` runs inside the next mock delay, i.e. while the server is "busy" between its checks. */
+const delay = vi.hoisted(() => ({ during: null as null | (() => void) }));
+vi.mock("@/lib/mock", () => ({
+  USE_MOCK: true,
+  mockDelay: async () => {
+    const run = delay.during;
+    delay.during = null;
+    run?.();
+  }
+}));
 vi.mock("@/lib/session", () => mockSessionModule());
 
 /** Supporter identity (code-first): nicknames, grade/titles from server records, donation attribution. */
@@ -82,6 +91,62 @@ describe("후원자 정체성", () => {
     expect((await requestDonation(text(1_000, 3, "nk-not-mine"))).status).toBe("INVALID");
     const id = (await getSupporterIdentity())!;
     expect(id.nicknames.find((n) => n.id === nick.id)).toMatchObject({ totalFn: 1_000, count: 1 });
+  });
+
+  it("keeps each donation under the 별명 it went out with; a removed 별명 merges into the 기본 별명", async () => {
+    const { addDonationNickname, setDefaultDonationNickname, removeDonationNickname, getSupporterIdentity, requestDonation } = await load();
+    await addDonationNickname("응원단장");
+    await addDonationNickname("별빛요정");
+    const named = async () => Object.fromEntries((await getSupporterIdentity())!.nicknames.map((n) => [n.name, n.totalFn]));
+    const ids = (await getSupporterIdentity())!.nicknames;
+    const cheer = ids.find((n) => n.name === "응원단장")!.id;
+    const star = ids.find((n) => n.name === "별빛요정")!.id;
+
+    await setDefaultDonationNickname(cheer);
+    expect((await requestDonation(text(1_000, 11))).status).toBe("COMPLETED"); // no pick: goes out as the 대표 (응원단장)
+    expect((await requestDonation(text(2_000, 12, star))).status).toBe("COMPLETED");
+    // Another 대표 later does not move what was already sent.
+    await setDefaultDonationNickname(star);
+    expect(await named()).toEqual({ 홍길동: 0, 응원단장: 1_000, 별빛요정: 2_000 });
+
+    // "삭제한 별명의 후원 기록은 기본 별명으로 합쳐져요" — not into whichever 별명 is the 대표 now.
+    await setDefaultDonationNickname(cheer);
+    await removeDonationNickname(star);
+    expect(await named()).toEqual({ 홍길동: 2_000, 응원단장: 1_000 });
+  });
+
+  it("re-checks the 별명 after the wait, so a 별명 removed meanwhile never becomes the 대표", async () => {
+    const { addDonationNickname, setDefaultDonationNickname, getSupporterIdentity, requestDonation } = await load();
+    const { mockIdentity } = await import("./mockIdentityStore");
+    await addDonationNickname("응원단장");
+    const nick = (await getSupporterIdentity())!.nicknames.find((n) => n.name === "응원단장")!;
+    // Another tab removes the 별명 while this request waits.
+    delay.during = () => {
+      mockIdentity.nicknames = mockIdentity.nicknames.filter((n) => n.id !== nick.id);
+    };
+    expect(await setDefaultDonationNickname(nick.id)).toEqual({ status: "INVALID", message: "별명을 찾을 수 없어요." });
+    expect((await getSupporterIdentity())!.nicknames.find((n) => n.isDefault)?.id).toBe("nk-default");
+    // The alert still resolves a name for a donation without a pick.
+    expect((await requestDonation(text(1_000, 13))).status).toBe("COMPLETED");
+  });
+
+  it("gives every 별명 its own id, also when several are added in one millisecond", async () => {
+    const { addDonationNickname, removeDonationNickname, renameDonationNickname, getSupporterIdentity } = await load();
+    const clock = vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-10-08T12:00:00Z"));
+    try {
+      await addDonationNickname("응원단장");
+      await addDonationNickname("별빛요정");
+      const first = (await getSupporterIdentity())!.nicknames;
+      await removeDonationNickname(first.find((n) => n.name === "응원단장")!.id);
+      await addDonationNickname("달빛요정");
+      const list = (await getSupporterIdentity())!.nicknames;
+      expect(new Set(list.map((n) => n.id)).size).toBe(list.length);
+      // Renaming the new one leaves the other alone.
+      expect(await renameDonationNickname(list.find((n) => n.name === "달빛요정")!.id, "햇빛요정")).toEqual({ status: "SAVED" });
+      expect((await getSupporterIdentity())!.nicknames.map((n) => n.name)).toEqual(["홍길동", "별빛요정", "햇빛요정"]);
+    } finally {
+      clock.mockRestore();
+    }
   });
 
   it("only allows equipping a title that was earned", async () => {

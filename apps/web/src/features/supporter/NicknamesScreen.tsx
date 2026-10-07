@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { GENERIC_ERROR } from "@/features/mypage/editors/shared";
 import { formatNumber } from "@/lib/format";
 import { addDonationNickname, removeDonationNickname, renameDonationNickname, setDefaultDonationNickname } from "@/services/supporter/identity";
 import { MAX_NICKNAMES, type DonationNickname, type IdentitySaveResult } from "@/services/supporter/identityTypes";
@@ -21,13 +22,18 @@ export function NicknamesScreen({ nicknames }: { nicknames: DonationNickname[] }
   const run = (action: () => Promise<IdentitySaveResult>, ok: string, after?: () => void) => {
     setMessage(null);
     startTransition(async () => {
-      const res = await action();
-      if (res.status === "SAVED") {
-        setMessage({ tone: "ok", text: ok });
-        after?.();
-        router.refresh();
-      } else if (res.status === "UNAUTHORIZED") router.push("/login?next=/mypage/nicknames");
-      else setMessage({ tone: "error", text: res.message });
+      try {
+        const res = await action();
+        if (res.status === "SAVED") {
+          setMessage({ tone: "ok", text: ok });
+          after?.();
+          router.refresh();
+        } else if (res.status === "UNAUTHORIZED") router.push("/login?next=/mypage/nicknames");
+        else setMessage({ tone: "error", text: res.message });
+      } catch {
+        // The typed name stays (`after` only runs on SAVED), so the member can try again.
+        setMessage({ tone: "error", text: GENERIC_ERROR });
+      }
     });
   };
 

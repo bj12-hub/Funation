@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
+import { mockSessionModule, rejoinWithPhone, resetMockStores, signIn } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
@@ -21,6 +21,40 @@ describe("이벤트", () => {
     expect(detail).toMatchObject({ joined: true, participants: ongoing.participants + 1 });
     expect((await getEvents("mine")).items.map((e) => e.id)).toEqual([ongoing.id]);
     expect(mockAccount.fnBalance).toBe(before);
+  });
+
+  it("counts one join per person: a 재가입 with the same phone has joined, another person can join (2026-10-08 결정)", async () => {
+    const { getEvents, joinEvent, getEvent } = await import("./events");
+    const ongoing = (await getEvents("all")).items.find((e) => e.phase === "ongoing")!;
+    expect(await joinEvent(ongoing.id)).toEqual({ status: "JOINED" });
+
+    await rejoinWithPhone("010-1234-5678"); // the same person (the sample account's verified phone)
+    expect(await getEvent(ongoing.id)).toMatchObject({ joined: true, participants: ongoing.participants + 1 });
+    expect((await getEvents("mine")).items.map((e) => e.id)).toEqual([ongoing.id]);
+    expect(await joinEvent(ongoing.id)).toEqual({ status: "JOINED" }); // already in: nothing is added
+    expect((await getEvent(ongoing.id))!.participants).toBe(ongoing.participants + 1);
+
+    await rejoinWithPhone("010-0000-0000"); // someone else
+    expect(await getEvent(ongoing.id)).toMatchObject({ joined: false, participants: ongoing.participants + 1 });
+    expect((await getEvents("mine")).items).toEqual([]);
+    expect(await joinEvent(ongoing.id)).toEqual({ status: "JOINED" });
+    expect(await getEvent(ongoing.id)).toMatchObject({ joined: true, participants: ongoing.participants + 2 });
+    // Who joined never leaves the server.
+    const body = JSON.stringify([await getEvents("all"), await getEvent(ongoing.id)]);
+    expect(body).not.toMatch(/010-|u-test/);
+  });
+
+  it("labels the period with Korean days whatever zone renders it (the detail screen also renders in the browser)", async () => {
+    const { eventPeriodLabel } = await import("./eventTypes");
+    const zone = process.env.TZ;
+    process.env.TZ = "America/Los_Angeles"; // a viewer outside Korea
+    try {
+      // 00:00 KST on 10-03 is still 10-02 in UTC and in Los Angeles.
+      expect(eventPeriodLabel("2026-10-02T15:00:00.000Z", "2026-10-22T14:59:59.999Z")).toBe("2026. 10. 3. ~ 2026. 10. 22.");
+    } finally {
+      if (zone === undefined) delete process.env.TZ;
+      else process.env.TZ = zone;
+    }
   });
 
   it("rejects joining upcoming / ended / unknown events and signed-out calls", async () => {

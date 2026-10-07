@@ -14,6 +14,14 @@ export const EVENT_FILTERS = [
 export type EventFilter = (typeof EVENT_FILTERS)[number]["key"];
 export const isEventFilter = (v: unknown): v is EventFilter => EVENT_FILTERS.some((f) => f.key === v);
 
+const kstDay = (iso: string) => new Date(iso).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" });
+
+/**
+ * "2026. 10. 3. ~ 2026. 10. 22." — event days are Korean days, so the label is formatted in KST: the server render and
+ * the browser (the detail screen is a client component) agree whatever zone the viewer is in.
+ */
+export const eventPeriodLabel = (startsAt: string, endsAt: string) => `${kstDay(startsAt)} ~ ${kstDay(endsAt)}`;
+
 export type EventPhase = "ongoing" | "upcoming" | "ended";
 export const PHASE_LABEL: Record<EventPhase, string> = { ongoing: "진행 중", upcoming: "예정", ended: "종료" };
 

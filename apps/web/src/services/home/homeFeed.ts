@@ -89,20 +89,23 @@ export async function getHomeFeed(): Promise<HomeFeed> {
   if (!USE_MOCK) throw new Error("Home feed API is not connected yet.");
   await mockDelay(300);
   const creators = await Promise.all(
-    MOCK_HOME_FEED.creators.map(async (c) => {
+    MOCK_HOME_FEED.creators.map(async (c): Promise<PopularCreator | null> => {
       const detail = await getCreatorById(c.id);
+      // A suspended creator's channel leaves the public screens (getCreatorById is null for it): the strip and its
+      // profile popup would otherwise link to a channel that no longer opens.
+      if (!detail) return null;
       return {
         ...c,
         profile: {
           verified: true,
-          status: detail?.description ?? "",
-          tags: (detail?.categories ?? []).map((k) => `#${CREATOR_CATEGORY_LABEL[k]}`),
+          status: detail.description,
+          tags: detail.categories.map((k) => `#${CREATOR_CATEGORY_LABEL[k]}`),
           channels: MOCK_CHANNELS
         }
       };
     })
   );
-  return { ...MOCK_HOME_FEED, creators, notices: MOCK_NOTICES };
+  return { ...MOCK_HOME_FEED, creators: creators.filter((c): c is PopularCreator => c !== null), notices: MOCK_NOTICES };
 }
 
 // ── Mock data ──────────────────────────────────────────────────────────────────

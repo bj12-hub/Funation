@@ -5,6 +5,7 @@ import { isBlockedBy } from "@/services/moderation/moderationCore";
 import { toDateString } from "@/lib/period";
 import { getSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
+import { accountSince } from "@/services/account/withdrawalCore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { channelCommunityStore } from "./channelCommunityCore";
 import { getCreatorById } from "./creators";
@@ -41,9 +42,11 @@ export async function getChannelMonthlyRanking(creatorId: unknown): Promise<Chan
   const rand = seeded(creatorId);
   const field = Array.from({ length: 12 }, (_, i) => ({ name: `팬${String(Math.floor(rand() * 900) + 100)}`, fnAmount: Math.round((400_000 * Math.pow(0.72, i) * (0.8 + rand() * 0.4)) / 100) * 100, me: false }));
   // A donation sent with 프로필 숨기기 went out as 익명: it never counts toward the row under the member's nickname.
+  // Only the current account's donations count: after a 재가입 the withdrawn account's are not the viewer's (as in the wallet).
+  const since = accountSince();
   const mine = session
     ? mockWallet.donations
-        .filter((d) => d.creatorId === creatorId && d.status === "COMPLETED" && !d.hideProfile && d.donatedAt.startsWith(month))
+        .filter((d) => d.creatorId === creatorId && d.status === "COMPLETED" && !d.hideProfile && d.donatedAt.startsWith(month) && (!since || d.donatedAt >= since))
         .reduce((sum, d) => sum + d.fnAmount, 0)
     : 0;
   const rows = [...field, ...(mine > 0 ? [{ name: session!.nickname, fnAmount: mine, me: true }] : [])]

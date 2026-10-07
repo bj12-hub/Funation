@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { key, mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
+import { key, mockSessionModule, rejoinWithPhone, resetMockStores, signIn } from "@/test/mockEnv";
 import { rankItems } from "./voteTypes";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
@@ -112,6 +112,26 @@ describe("무료 투표", () => {
       [1, "치킨"]
     ]);
     expect(m.account.fnBalance).toBe(balance);
+  });
+
+  it("takes one ballot per person: a 재가입 with the same phone has voted, another person can vote (2026-10-08 결정)", async () => {
+    const m = await load();
+    await savePresets(m);
+    await m.startVote({ presetId: "preset-1", requestId: key(1) });
+    const voteId = (await overlayVote(m))!.id;
+    expect((await m.castVote({ channelId: m.STUDIO_CHANNEL, voteId, item: 1 })).status).toBe("VOTED");
+
+    await rejoinWithPhone("010-1234-5678"); // the same person (the sample account's verified phone)
+    expect((await m.getRoomVote(m.STUDIO_CHANNEL))!.myChoice).toBe(1);
+    const again = await m.castVote({ channelId: m.STUDIO_CHANNEL, voteId, item: 0 });
+    expect(again.status === "ALREADY_VOTED" && again.vote).toMatchObject({ total: 1, myChoice: 1 });
+
+    await rejoinWithPhone("010-0000-0000"); // someone else
+    expect((await m.getRoomVote(m.STUDIO_CHANNEL))!.myChoice).toBeNull();
+    const other = await m.castVote({ channelId: m.STUDIO_CHANNEL, voteId, item: 0 });
+    expect(other.status === "VOTED" && other.vote).toMatchObject({ total: 2, myChoice: 0, items: [{ count: 1 }, { count: 1 }] });
+    // Who voted never leaves the server: not in the room card, not on the overlay.
+    expect(JSON.stringify([other, await m.getRoomVote(m.STUDIO_CHANNEL), await overlayVote(m)])).not.toMatch(/010-|u-test/);
   });
 
   it("ends early or at its time limit, then comes off the screen with 결과 내리기", async () => {

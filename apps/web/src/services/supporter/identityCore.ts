@@ -53,7 +53,8 @@ export function computeIdentity(): SupporterIdentity {
   const last30Fn = records.filter((d) => now - new Date(d.donatedAt.replace(" ", "T")).getTime() <= 30 * DAY).reduce((s, d) => s + d.fnAmount, 0);
 
   const nicknames: DonationNickname[] = nicknameList().map((n) => {
-    const mine = records.filter((d) => (mockIdentity.attribution[d.id] ?? mockIdentity.defaultId) === n.id);
+    // Not the current 대표: a donation stays with the name it went out under (see attributeDonation).
+    const mine = records.filter((d) => (mockIdentity.attribution[d.id] ?? MEMBER_NICKNAME_ID) === n.id);
     return { id: n.id, name: n.name, isDefault: n.id === mockIdentity.defaultId, totalFn: mine.reduce((s, d) => s + d.fnAmount, 0), count: mine.length };
   });
 
@@ -102,9 +103,14 @@ export async function namesTakenByOthers(): Promise<Set<string>> {
 /** Whether a nickname id belongs to the signed-in supporter. */
 export const ownsNickname = (nicknameId: unknown) => typeof nicknameId === "string" && nicknameList().some((n) => n.id === nicknameId);
 
-/** Records which nickname a completed donation was sent under (Donation Core only). */
+/**
+ * Records which nickname a completed donation was sent under (Donation Core only): the picked 별명, or the 대표 별명
+ * when none was picked — the name resolveBadges put on the alert. It is kept per donation, so changing the 대표 later
+ * does not move it; donations without an entry (the member nickname, seed history) count for the 기본 별명.
+ */
 export function attributeDonation(donationId: string, nicknameId: string | null) {
-  if (nicknameId && nicknameId !== mockIdentity.defaultId && ownsNickname(nicknameId)) mockIdentity.attribution[donationId] = nicknameId;
+  const used = nicknameId !== null && ownsNickname(nicknameId) ? nicknameId : mockIdentity.defaultId;
+  if (used !== MEMBER_NICKNAME_ID) mockIdentity.attribution[donationId] = used;
 }
 
 /** Badges a donation alert shows for this supporter and creator. */

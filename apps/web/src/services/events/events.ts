@@ -2,12 +2,16 @@
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
+import { currentPersonKey } from "@/services/account/mockStore";
 import { isEventFilter, type EventDetail, type EventListView, type EventPhase, type EventSummary, type JoinResult } from "./eventTypes";
 
 /**
  * 이벤트 Server Actions — code-first (no Figma frame). Routes `/events`, `/events/[id]`. Joining is
- * idempotent and only allowed while an event is running. TBD: rewards, winners, eligibility,
- * duplicate-account checks, 경품 고시 / 제세공과금.
+ * idempotent and only allowed while an event is running.
+ * 2026-10-08 결정: one join per event per person, keyed by the phone verified at sign-up (like 출석): a 재가입 with
+ * the same phone finds its join (참여함) and cannot join again; another person can. Responses carry only `joined`
+ * and the count, never who joined.
+ * TBD: rewards, winners, eligibility, other abuse checks, 경품 고시 / 제세공과금.
  */
 
 const assertMock = () => {
@@ -50,8 +54,9 @@ const EVENTS: MockEvent[] = [
   }
 ];
 
-const g = globalThis as typeof globalThis & { __funationMockEventsV1?: { joined: Record<string, string> } };
-const state = (g.__funationMockEventsV1 ??= { joined: {} });
+/** `joined`: event id → person (`currentPersonKey`) → when they joined. V2: per person (V1 kept one join per event). */
+const g = globalThis as typeof globalThis & { __funationMockEventsV2?: { joined: Map<string, Map<string, string>> } };
+const state = (g.__funationMockEventsV2 ??= { joined: new Map() });
 
 const DAY = 86_400_000;
 function dates(e: MockEvent) {
@@ -65,9 +70,11 @@ function phase(e: MockEvent): EventPhase {
   const now = new Date().toISOString();
   return now < startsAt ? "upcoming" : now > endsAt ? "ended" : "ongoing";
 }
-function summary(e: MockEvent): EventSummary {
-  const joined = !!state.joined[e.id];
-  return { id: e.id, title: e.title, summary: e.summary, emoji: e.emoji, ...dates(e), phase: phase(e), joined, participants: e.baseParticipants + (joined ? 1 : 0) };
+/** `person`: the viewer (`currentPersonKey`), or null for a guest. */
+function summary(e: MockEvent, person: string | null): EventSummary {
+  const people = state.joined.get(e.id);
+  const joined = person !== null && !!people?.has(person);
+  return { id: e.id, title: e.title, summary: e.summary, emoji: e.emoji, ...dates(e), phase: phase(e), joined, participants: e.baseParticipants + (people?.size ?? 0) };
 }
 
 export async function getEvents(filter: unknown): Promise<EventListView> {
@@ -75,10 +82,11 @@ export async function getEvents(filter: unknown): Promise<EventListView> {
   const session = await getSession();
   const f = isEventFilter(filter) ? filter : "all";
   await mockDelay(200);
-  const items = EVENTS.map(summary)
-    .filter((e) => (f === "all" ? true : f === "mine" ? !!session && e.joined : e.phase === f))
+  const person = session ? currentPersonKey() : null;
+  const items = EVENTS.map((e) => summary(e, person))
+    .filter((e) => (f === "all" ? true : f === "mine" ? e.joined : e.phase === f))
     .sort((a, b) => ["ongoing", "upcoming", "ended"].indexOf(a.phase) - ["ongoing", "upcoming", "ended"].indexOf(b.phase));
-  return { filter: f, items: session ? items : items.map((e) => ({ ...e, joined: false })), signedIn: !!session };
+  return { filter: f, items, signedIn: !!session };
 }
 
 export async function getEvent(id: unknown): Promise<EventDetail | null> {
@@ -86,21 +94,26 @@ export async function getEvent(id: unknown): Promise<EventDetail | null> {
   const session = await getSession();
   const e = EVENTS.find((x) => x.id === id);
   if (!e) return null;
-  const s = summary(e);
-  return { ...s, joined: !!session && s.joined, body: e.body, rewardNote: "보상 내용과 지급 방식은 정책이 확정되면 안내돼요 (TBD)." };
+  const s = summary(e, session ? currentPersonKey() : null);
+  return { ...s, body: e.body, rewardNote: "보상 내용과 지급 방식은 정책이 확정되면 안내돼요 (TBD)." };
 }
 
-/** Records participation once; joining again is a no-op. */
+/** Records participation once per person; joining again (also from a 재가입 account of the same person) is a no-op. */
 export async function joinEvent(id: unknown): Promise<JoinResult> {
   assertMock();
   if (!(await getSession())) return { status: "UNAUTHORIZED" };
   const e = EVENTS.find((x) => x.id === id);
   if (!e) return { status: "NOT_FOUND" };
   if (phase(e) !== "ongoing") return { status: "NOT_OPEN" };
-  if (!state.joined[e.id]) {
-    state.joined[e.id] = new Date().toISOString();
+  const person = currentPersonKey();
+  const people = state.joined.get(e.id) ?? new Map<string, string>();
+  if (!people.has(person)) {
+    // Recorded before the delay, so a concurrent click finds it.
+    people.set(person, new Date().toISOString());
+    state.joined.set(e.id, people);
     await mockDelay(300);
   }
-  // TODO: the backend records participation per member for audit and later reward processing.
+  // TODO: the backend records participation with a unique (event, person) key, and which account joined, for audit
+  // and later reward processing.
   return { status: "JOINED" };
 }

@@ -21,6 +21,8 @@ export type MockPlatformTransaction = {
   /** "YYYY-MM-DD HH:mm", server time. */
   createdAt: string;
   completedAt: string | null;
+  /** The start marker of the account that sent it (`accountSince()`); missing or null = the first account (seed). */
+  account?: string | null;
 };
 
 type MockPlatformState = {
