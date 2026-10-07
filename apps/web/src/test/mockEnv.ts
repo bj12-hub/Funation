@@ -52,3 +52,15 @@ export async function verifyMockIdentity() {
   const { mockAccount } = await import("@/services/account/mockStore");
   mockAccount.identity = { name: "홍길동", birthDate: "1995-01-01", verifiedAt: new Date().toISOString() };
 }
+
+/**
+ * A fresh single-use phone verification token, as the 휴대폰 인증 step gets it (mock code 123456). Mock numbers
+ * only: 010-0000-0000 for sign-up, the sample account's 010-1234-5678 for a password reset.
+ */
+export async function phoneToken(purpose: "SIGNUP" | "PASSWORD_RESET" = "SIGNUP", phone = purpose === "SIGNUP" ? "010-0000-0000" : "010-1234-5678") {
+  const { sendPhoneCode, verifyPhoneCode } = await import("@/services/auth/verification");
+  if ((await sendPhoneCode(phone, purpose)).status !== "SENT") throw new Error(`no code sent to ${phone}`);
+  const result = await verifyPhoneCode(phone, purpose, "123456");
+  if (result.status !== "VERIFIED") throw new Error("phone verification failed");
+  return result.verificationToken;
+}

@@ -2,23 +2,11 @@
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession, revokeSession } from "@/lib/session";
-import {
-  PROFILE_PHOTO_MAX_BYTES,
-  PROFILE_PHOTO_TYPES,
-  isValidFunationId,
-  isValidNewPassword,
-  isValidNickname
-} from "@/lib/validation";
-import {
-  MOCK_FORBIDDEN_WORDS,
-  MOCK_TAKEN_FUNATION_IDS,
-  MOCK_TAKEN_NICKNAMES,
-  mockAccount,
-  mockChangeHistory,
-  mockCredentials
-} from "./mockStore";
+import { PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES, isValidFunationId, isValidPassword } from "@/lib/validation";
+import { MOCK_FORBIDDEN_WORDS, MOCK_TAKEN_FUNATION_IDS, mockAccount, mockChangeHistory, mockCredentials } from "./mockStore";
+import { judgeNickname, nicknamesTakenForMember } from "./nicknameRules";
+import { clearPasswordFailures, currentAccountKey, isPasswordLocked, recordPasswordFailure } from "@/services/auth/loginLockCore";
 import { matchesContent } from "@/services/creator/assetCore";
-import { isReservedNickname } from "@/services/supporter/identityTypes";
 
 /**
  * My page profile changes (Figma 743:1955 photo · 743:1997 nickname · 743:2040 ID · 743:2084 password).
@@ -38,12 +26,17 @@ export type NameChangeResult =
   | { status: "LIMITED"; availableFrom: string }
   | { status: "UNAUTHORIZED" };
 
+/** `RESERVED`: another member gave this 썸네이션 ID up less than ID_RESERVE_DAYS ago. */
+export type IdChangeResult = NameChangeResult | { status: "RESERVED" };
+
 export type PasswordChangeResult =
   | { status: "CHANGED" }
   | { status: "WRONG_CURRENT" }
   | { status: "INVALID" }
   | { status: "MISMATCH" }
   | { status: "REUSED" }
+  /** Too many wrong current passwords: the account is locked like after 5 failed logins and the session ends. */
+  | { status: "LOCKED" }
   | { status: "UNAUTHORIZED" };
 
 export type PhotoUploadResult =
@@ -57,6 +50,17 @@ export type PhotoUploadResult =
 const ID_CHANGE_INTERVAL_DAYS = 30;
 /** TBD: the nickname interval is not specified; the mock reuses the ID interval. */
 const NICKNAME_CHANGE_INTERVAL_DAYS = 30;
+/**
+ * A 썸네이션 ID given up by a change stays reserved this long, then anyone may take it (2026-10-08 결정 "일정 기간
+ * 보호 후 해제" — 30 days decided, can be changed). Checked on the server for every ID change; sign-up does not pick an
+ * ID yet, so when it does, it must check the same reservation.
+ */
+const ID_RESERVE_DAYS = 30;
+
+/** Given-up IDs (lowercase) → when they are released (epoch ms). Mock store, kept on globalThis like the others. */
+const globalForIds = globalThis as typeof globalThis & { __funationMockReservedIdsV1?: Map<string, number> };
+const reservedIds = () => (globalForIds.__funationMockReservedIdsV1 ??= new Map());
+const isReservedId = (id: string, now = Date.now()) => (reservedIds().get(id.toLowerCase()) ?? 0) > now;
 
 const containsForbidden = (value: string) => MOCK_FORBIDDEN_WORDS.some((w) => value.toLowerCase().includes(w));
 
@@ -70,30 +74,29 @@ function assertMock() {
   if (!USE_MOCK) throw new Error("Account API is not connected yet.");
 }
 
+/** Nickname rules shared with sign-up (./nicknameRules.ts): format, forbidden words, 익명, other members' and channel names. */
 export async function checkNickname(nickname: unknown): Promise<NicknameCheckResult> {
   assertMock();
   await mockDelay(300);
-  if (typeof nickname !== "string" || !isValidNickname(nickname)) return { status: "INVALID" };
-  // 익명 is what a hidden profile shows on stream: a nickname cannot pose as it.
-  if (containsForbidden(nickname) || isReservedNickname(nickname)) return { status: "FORBIDDEN" };
-  if (MOCK_TAKEN_NICKNAMES.includes(nickname.toLowerCase())) return { status: "DUPLICATE" };
-  return { status: "AVAILABLE" };
+  return { status: judgeNickname(nickname, await nicknamesTakenForMember()) };
 }
 
 export async function changeNickname(nickname: unknown): Promise<NameChangeResult> {
   assertMock();
   if (!(await getSession())) return { status: "UNAUTHORIZED" };
   await mockDelay(400);
+  const taken = await nicknamesTakenForMember();
+  // From here to the write nothing awaits: two tabs cannot both pass the 30-day limit.
   const until = limitedUntil(mockChangeHistory.nicknameChangedAt, NICKNAME_CHANGE_INTERVAL_DAYS);
   if (until) return { status: "LIMITED", availableFrom: until.toISOString() };
-  const check = await checkNickname(nickname);
-  if (check.status !== "AVAILABLE") return check;
+  const verdict = judgeNickname(nickname, taken);
+  if (verdict !== "AVAILABLE") return { status: verdict };
   mockAccount.nickname = nickname as string;
   mockChangeHistory.nicknameChangedAt = new Date();
   return { status: "CHANGED", value: mockAccount.nickname };
 }
 
-export async function changeFunationId(funationId: unknown): Promise<NameChangeResult> {
+export async function changeFunationId(funationId: unknown): Promise<IdChangeResult> {
   assertMock();
   if (!(await getSession())) return { status: "UNAUTHORIZED" };
   await mockDelay(400);
@@ -105,8 +108,11 @@ export async function changeFunationId(funationId: unknown): Promise<NameChangeR
   if (MOCK_TAKEN_FUNATION_IDS.includes(funationId) || funationId === mockAccount.funationId.toLowerCase()) {
     return { status: "DUPLICATE" };
   }
+  if (isReservedId(funationId)) return { status: "RESERVED" };
+  const now = new Date();
+  reservedIds().set(mockAccount.funationId.toLowerCase(), now.getTime() + ID_RESERVE_DAYS * 86_400_000);
   mockAccount.funationId = funationId;
-  mockChangeHistory.funationIdChangedAt = new Date();
+  mockChangeHistory.funationIdChangedAt = now;
   return { status: "CHANGED", value: funationId };
 }
 
@@ -115,8 +121,20 @@ export async function changePassword(input: { current: unknown; next: unknown; c
   if (!(await getSession())) return { status: "UNAUTHORIZED" };
   await mockDelay(400);
   const { current, next, confirm } = input ?? {};
-  if (typeof current !== "string" || current !== mockCredentials.password) return { status: "WRONG_CURRENT" };
-  if (typeof next !== "string" || !isValidNewPassword(next)) return { status: "INVALID" };
+  // The current password shares the login's failure count (services/auth/loginLockCore.ts), so a session
+  // cannot be used to guess it: at the login's limit the account locks and the session ends.
+  const account = currentAccountKey();
+  if (isPasswordLocked(account)) {
+    await revokeSession();
+    return { status: "LOCKED" };
+  }
+  if (typeof current !== "string" || current !== mockCredentials.password) {
+    if (!recordPasswordFailure(account)) return { status: "WRONG_CURRENT" };
+    await revokeSession();
+    return { status: "LOCKED" };
+  }
+  clearPasswordFailures(account);
+  if (typeof next !== "string" || !isValidPassword(next)) return { status: "INVALID" };
   if (next !== confirm) return { status: "MISMATCH" };
   // TBD: how many previous passwords count as "recent".
   if (mockCredentials.recentPasswords.includes(next)) return { status: "REUSED" };

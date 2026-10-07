@@ -18,6 +18,15 @@ import shared from "../shared/form.module.css";
 
 type View = "EMAIL" | "EMAIL_SENT" | "PHONE" | "NEW_PASSWORD" | "DONE";
 
+const MSG = {
+  PASSWORD_FORMAT: "비밀번호가 형식에 맞지 않습니다. 다시 입력해 주세요.",
+  // Same copy as the password change (747:685); the reset applies the same last-3 rule (2026-10-08 결정).
+  PASSWORD_REUSED: "기존 비밀번호와 같거나 최근 사용한 비밀번호는 사용할 수 없습니다.",
+  // Code-first (no Figma frame): the verification expired or was already used.
+  VERIFICATION_EXPIRED: "인증이 만료되었어요. 휴대폰 인증을 다시 진행해 주세요.",
+  FAILED: "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요"
+};
+
 export function PasswordResetFlow() {
   const [view, setView] = useState<View>("EMAIL");
   const [email, setEmail] = useState("");
@@ -27,6 +36,9 @@ export function PasswordResetFlow() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [pwErrors, setPwErrors] = useState<{ password?: string; confirm?: string }>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  // Shown on the phone step when the server refused the verification (expired or already used).
+  const [phoneNotice, setPhoneNotice] = useState<string | null>(null);
 
   async function sendEmail(event?: FormEvent) {
     event?.preventDefault();
@@ -47,19 +59,33 @@ export function PasswordResetFlow() {
     }
   }
 
+  function verifyAgain() {
+    setToken(null);
+    setPwErrors({});
+    setFormError(null);
+    setPhoneNotice(MSG.VERIFICATION_EXPIRED);
+    setView("PHONE");
+  }
+
   async function submitNewPassword(event: FormEvent) {
     event.preventDefault();
     const next = {
-      password: isValidPassword(password) ? undefined : "비밀번호가 형식에 맞지 않습니다. 다시 입력해 주세요.",
+      password: isValidPassword(password) ? undefined : MSG.PASSWORD_FORMAT,
       confirm: confirm && confirm === password ? undefined : "비밀번호가 일치하지 않습니다."
     };
     setPwErrors(next);
-    if (next.password || next.confirm || !token) return;
+    setFormError(null);
+    if (next.password || next.confirm) return;
+    if (!token) return verifyAgain();
     setBusy(true);
     try {
       const result = await resetPassword(token, password);
       if (result.status === "RESET") setView("DONE");
-      else setPwErrors({ password: "비밀번호가 형식에 맞지 않습니다. 다시 입력해 주세요.", confirm: undefined });
+      else if (result.status === "VERIFICATION_EXPIRED") verifyAgain();
+      else if (result.status === "REUSED") setPwErrors({ password: MSG.PASSWORD_REUSED });
+      else setPwErrors({ password: MSG.PASSWORD_FORMAT });
+    } catch {
+      setFormError(MSG.FAILED);
     } finally {
       setBusy(false);
     }
@@ -102,7 +128,7 @@ export function PasswordResetFlow() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               error={pwErrors.password}
-              hint={pwErrors.password ? "8자 이상 · 영문, 숫자, 특수문자를 모두 포함해 주세요." : undefined}
+              hint={pwErrors.password === MSG.PASSWORD_FORMAT ? "8~20자 · 영문, 숫자, 특수문자를 모두 포함해 주세요." : undefined}
             />
             <TextField
               type="password"
@@ -114,6 +140,11 @@ export function PasswordResetFlow() {
               error={pwErrors.confirm}
             />
           </div>
+          {formError && (
+            <p className={shared.formError} role="alert">
+              {formError}
+            </p>
+          )}
           <Button type="submit" block disabled={busy} aria-busy={busy}>
             새 비밀번호 설정
           </Button>
@@ -154,10 +185,16 @@ export function PasswordResetFlow() {
     >
       {isPhone ? (
         <div className={shared.section}>
+          {phoneNotice && (
+            <p className={shared.formError} role="alert">
+              {phoneNotice}
+            </p>
+          )}
           <PhoneVerification
             purpose="PASSWORD_RESET"
             onVerified={({ token: t }) => {
               setToken(t);
+              setPhoneNotice(null);
               setView("NEW_PASSWORD");
             }}
           />

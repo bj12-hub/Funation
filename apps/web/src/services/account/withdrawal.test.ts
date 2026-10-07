@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { key, mockSessionModule, resetMockStores, signIn, verifyMockIdentity } from "@/test/mockEnv";
+import { key, mockSessionModule, phoneToken, resetMockStores, signIn, verifyMockIdentity } from "@/test/mockEnv";
 
 /** `during` runs inside the next mock delay, i.e. while the server is "busy" between its checks. */
 const delay = vi.hoisted(() => ({ during: null as null | (() => void) }));
@@ -230,7 +230,7 @@ describe("회원 탈퇴", () => {
       email: "again@funation.kr",
       password: "newpass12!",
       nickname: "다시왔어요",
-      phoneVerificationToken: "mock-010-1234-5678",
+      phoneVerificationToken: await phoneToken(),
       agreements: { youth: true, service: true, privacy: true, marketing: true }
     } as const;
     expect(await m.signup(signupRequest)).toEqual({ status: "CREATED" });
@@ -261,7 +261,7 @@ describe("회원 탈퇴", () => {
     const before = m.settlement.requests.length;
     expect(await m.withdrawAccount({ ...supporter(), unsettledFn: earnings, earningsForfeitAgreed: true })).toEqual({ status: "WITHDRAWN" });
     expect(
-      await m.signup({ email: "again@funation.kr", password: "newpass12!", nickname: "다시왔어요", phoneVerificationToken: "t", agreements: { youth: true, service: true, privacy: true, marketing: false } })
+      await m.signup({ email: "again@funation.kr", password: "newpass12!", nickname: "다시왔어요", phoneVerificationToken: await phoneToken(), agreements: { youth: true, service: true, privacy: true, marketing: false } })
     ).toEqual({ status: "CREATED" });
     expect(m.settlement).toMatchObject({ requests: [], idempotency: {}, availableFn: 0, registration: null });
 
@@ -295,7 +295,7 @@ describe("회원 탈퇴", () => {
   it("does not touch accounts that never withdrew when someone signs up", async () => {
     const m = await load();
     expect(
-      await m.signup({ email: "new@funation.kr", password: "abcd123!", nickname: "새회원", phoneVerificationToken: "t", agreements: { youth: true, service: true, privacy: true, marketing: false } })
+      await m.signup({ email: "new@funation.kr", password: "abcd123!", nickname: "새회원", phoneVerificationToken: await phoneToken(), agreements: { youth: true, service: true, privacy: true, marketing: false } })
     ).toEqual({ status: "CREATED" });
     expect(m.account.nickname).toBe("홍길동");
     expect(m.account.fnBalance).toBe(5_000);

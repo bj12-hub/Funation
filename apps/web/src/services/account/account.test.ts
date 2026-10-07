@@ -3,6 +3,7 @@ import { mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
+vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 
 /** 마이페이지 계정: every action re-checks the session and validates on the server. */
 async function load() {
@@ -48,6 +49,11 @@ describe("계정", () => {
     expect(await m.checkNickname("운영자님")).toEqual({ status: "FORBIDDEN" });
     expect(await m.checkNickname("익명")).toEqual({ status: "FORBIDDEN" }); // the hidden-profile label
     expect(await m.checkNickname("FUNATION")).toEqual({ status: "DUPLICATE" });
+    // The nickname is the default 별명: no other member's nickname, no channel name (2026-10-08 결정).
+    expect(await m.checkNickname("별빛시청자")).toEqual({ status: "DUPLICATE" });
+    expect(await m.changeNickname("별빛시청자")).toEqual({ status: "DUPLICATE" });
+    expect(await m.changeNickname("하루봄")).toEqual({ status: "DUPLICATE" });
+    expect(await m.changeNickname("익명")).toEqual({ status: "FORBIDDEN" });
     expect(await m.changeNickname("새닉네임")).toEqual({ status: "CHANGED", value: "새닉네임" });
     const limited = await m.changeNickname("또바꿈");
     expect(limited).toMatchObject({ status: "LIMITED" });
@@ -63,6 +69,27 @@ describe("계정", () => {
     expect(await m.changeNickname("게스트")).toEqual({ status: "UNAUTHORIZED" });
   });
 
+  it("keeps a given-up 썸네이션 ID reserved for 30 days, then releases it (2026-10-08 결정)", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-08T10:00:00"));
+    const m = await load();
+    expect(await m.changeFunationId("newid2026")).toEqual({ status: "CHANGED", value: "newid2026" });
+    // Another member (the mock has one slot: a member without a recent change) cannot take the old ID yet.
+    m.store.mockChangeHistory.funationIdChangedAt = null;
+    expect(await m.changeFunationId("honggd123")).toEqual({ status: "RESERVED" });
+    vi.setSystemTime(new Date("2026-11-07T09:59:00"));
+    expect(await m.changeFunationId("honggd123")).toEqual({ status: "RESERVED" });
+    vi.setSystemTime(new Date("2026-11-07T10:00:00"));
+    expect(await m.changeFunationId("honggd123")).toEqual({ status: "CHANGED", value: "honggd123" });
+  });
+
+  it("lets only one of two simultaneous nickname changes through the 30-day limit", async () => {
+    const m = await load();
+    const results = await Promise.all([m.changeNickname("첫번째탭"), m.changeNickname("두번째탭")]);
+    expect(results.map((r) => r.status).sort()).toEqual(["CHANGED", "LIMITED"]);
+    expect(m.store.mockAccount.nickname).toBe("첫번째탭");
+  });
+
   it("changes the password only with the current one, never reusing a recent one, and signs out", async () => {
     const m = await load();
     const current = m.store.mockCredentials.password;
@@ -72,6 +99,31 @@ describe("계정", () => {
     expect(await m.changePassword({ current, next: "Abcd1234!", confirm: "Abcd1234!" })).toEqual({ status: "CHANGED" });
     expect(m.session.revokeSession).toHaveBeenCalled();
     expect(await m.changePassword({ current: "Abcd1234!", next: "Abcd1234!", confirm: "Abcd1234!" })).toEqual({ status: "REUSED" });
+  });
+
+  it("counts wrong current passwords with the login's failures, then locks the account and ends the session", async () => {
+    const m = await load();
+    vi.mocked(m.session.revokeSession).mockClear();
+    const { login } = await import("@/services/auth/login");
+    const wrong = { current: "wrong", next: "Abcd1234!", confirm: "Abcd1234!" };
+    expect((await login({ identifier: "hongGD123", password: "wrong", keepSignedIn: false })).status).toBe("WRONG_PASSWORD");
+    for (let i = 0; i < 3; i++) expect(await m.changePassword(wrong)).toEqual({ status: "WRONG_CURRENT" });
+    expect(m.session.revokeSession).not.toHaveBeenCalled();
+    // The fifth wrong password (login + 마이페이지 together) locks the account and ends the session.
+    expect(await m.changePassword(wrong)).toEqual({ status: "LOCKED" });
+    expect(m.session.revokeSession).toHaveBeenCalled();
+    // No more guesses here or at the login, even with the right password.
+    expect(await m.changePassword({ ...wrong, current: m.store.mockCredentials.password })).toEqual({ status: "LOCKED" });
+    expect((await login({ identifier: "hongGD123", password: m.store.mockCredentials.password, keepSignedIn: false })).status).toBe("LOCKED");
+    expect(m.store.mockCredentials.password).toBe("password");
+  });
+
+  it("starts the count again after the right current password", async () => {
+    const m = await load();
+    const current = m.store.mockCredentials.password;
+    for (let i = 0; i < 4; i++) await m.changePassword({ current: "wrong", next: "x", confirm: "x" });
+    expect(await m.changePassword({ current, next: "short", confirm: "short" })).toEqual({ status: "INVALID" });
+    for (let i = 0; i < 4; i++) expect(await m.changePassword({ current: "wrong", next: "x", confirm: "x" })).toEqual({ status: "WRONG_CURRENT" });
   });
 
   it("accepts a profile photo only when the bytes match its type", async () => {

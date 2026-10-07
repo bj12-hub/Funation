@@ -1,30 +1,36 @@
 "use server";
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
-import type { SendCodeResult, VerifyCodeResult } from "./verificationTypes";
+import { mockCredentials } from "@/services/account/mockStore";
+import { isWithdrawn } from "@/services/account/withdrawalCore";
+import { recordSentCode, verifySentCode } from "./verificationCore";
+import type { SendCodeResult, VerificationPurpose, VerifyCodeResult } from "./verificationTypes";
 
 /**
  * Phone verification contract, shared by sign-up and password reset (Server Actions, so the mock
- * rules never ship to the browser). TBD: SMS provider, send rate limits, attempt limits.
+ * rules never ship to the browser). The sent codes and verified tokens live in ./verificationCore.ts:
+ * a code works only for the phone and purpose it was sent for, within 3 minutes and 5 wrong tries, and
+ * the token it gives is single-use. TBD: SMS provider, send rate limits.
  */
 
-type Purpose = "SIGNUP" | "PASSWORD_RESET";
-
 const isPhone = (v: unknown): v is string => typeof v === "string" && /^01[016789]-\d{3,4}-\d{4}$/.test(v);
+const isPurpose = (v: unknown): v is VerificationPurpose => v === "SIGNUP" || v === "PASSWORD_RESET";
 
-export async function sendPhoneCode(phone: string, purpose: Purpose): Promise<SendCodeResult> {
+export async function sendPhoneCode(phone: string, purpose: VerificationPurpose): Promise<SendCodeResult> {
   if (!USE_MOCK) throw new Error("Verification API is not connected yet.");
-  if (!isPhone(phone) || (purpose !== "SIGNUP" && purpose !== "PASSWORD_RESET")) return { status: "PHONE_NOT_FOUND" };
+  if (!isPhone(phone) || !isPurpose(purpose)) return { status: "PHONE_NOT_FOUND" };
   await mockDelay();
-  // Mock: for password reset, only 010-1234-5678 is a registered number.
-  if (purpose === "PASSWORD_RESET" && phone !== "010-1234-5678") return { status: "PHONE_NOT_FOUND" };
+  // Mock: for password reset, only the number of the (not withdrawn) account slot is registered.
+  if (purpose === "PASSWORD_RESET" && (phone !== mockCredentials.phone || isWithdrawn())) return { status: "PHONE_NOT_FOUND" };
+  // Mock SMS: the code is always 123456.
+  recordSentCode(phone, purpose);
   return { status: "SENT" };
 }
 
-export async function verifyPhoneCode(phone: string, code: string): Promise<VerifyCodeResult> {
+export async function verifyPhoneCode(phone: string, purpose: VerificationPurpose, code: string): Promise<VerifyCodeResult> {
   if (!USE_MOCK) throw new Error("Verification API is not connected yet.");
-  if (!isPhone(phone) || typeof code !== "string") return { status: "INVALID_OR_EXPIRED" };
+  if (!isPhone(phone) || !isPurpose(purpose) || typeof code !== "string") return { status: "INVALID_OR_EXPIRED" };
   await mockDelay();
-  // Mock: the correct code is always 123456.
-  return code === "123456" ? { status: "VERIFIED", verificationToken: `mock-${phone}` } : { status: "INVALID_OR_EXPIRED" };
+  const verificationToken = verifySentCode(phone, purpose, code);
+  return verificationToken ? { status: "VERIFIED", verificationToken } : { status: "INVALID_OR_EXPIRED" };
 }

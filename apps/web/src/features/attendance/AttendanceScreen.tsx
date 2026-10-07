@@ -11,7 +11,10 @@ import styles from "./attendance.module.css";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
-type Dialog = { kind: "NONE" } | { kind: "CHECKED_IN"; reward: number; next: AttendanceReward | null } | { kind: "CLAIM"; reward: AttendanceReward };
+type Dialog =
+  | { kind: "NONE" }
+  | { kind: "CHECKED_IN"; reward: number; next: AttendanceReward | null; autoPaid: AttendanceReward[] }
+  | { kind: "CLAIM"; reward: AttendanceReward };
 
 /**
  * 출석체크. Figma 583:4 (before check-in) · 585:452 (after) · 585:66 (완료 popup) · 585:830 (보상 popup).
@@ -43,7 +46,7 @@ export function AttendanceScreen({ summary }: { summary: AttendanceSummary }) {
     run(async () => {
       try {
         const result = await checkIn();
-        if (result.status === "CHECKED_IN") setDialog({ kind: "CHECKED_IN", reward: result.reward, next: result.claimable });
+        if (result.status === "CHECKED_IN") setDialog({ kind: "CHECKED_IN", reward: result.reward, next: result.claimable, autoPaid: result.autoPaid });
         else if (result.status === "UNAUTHORIZED") router.push("/login?next=/attendance");
         router.refresh();
       } catch {
@@ -191,6 +194,14 @@ export function AttendanceScreen({ summary }: { summary: AttendanceSummary }) {
         <p className={styles.popupBody}>
           스탬프를 성공적으로 획득했습니다!
           <br />+{formatNumber(dialog.kind === "CHECKED_IN" ? dialog.reward : summary.dailyReward)} FN이 보관함으로 적립되었습니다.
+          {/* Code-first (2026-10-08 결정): 15·30일 보상은 달성 즉시 자동 지급. */}
+          {dialog.kind === "CHECKED_IN" &&
+            dialog.autoPaid.map((r) => (
+              <span key={r.days}>
+                <br />
+                {r.days}일 누적 보상 <strong className={styles.accent}>+{formatNumber(r.fnAmount)} FN</strong>도 자동으로 지급되었습니다.
+              </span>
+            ))}
         </p>
         <button
           type="button"
@@ -293,8 +304,10 @@ function RewardCard({ reward, onClaim }: { reward: AttendanceReward; onClaim: ()
     <>
       <span className={styles.rewardHeader}>
         <strong>{reward.days}일 출석 보상</strong>
-        {reward.status === "CLAIMED" && <span className={`${styles.chip} ${styles.chipClaimed}`}>수령 완료</span>}
+        {reward.status === "CLAIMED" && <span className={`${styles.chip} ${styles.chipClaimed}`}>{reward.auto ? "지급 완료" : "수령 완료"}</span>}
         {reward.status === "CLAIMABLE" && <span className={`${styles.chip} ${styles.chipClaimable}`}>수령 대기</span>}
+        {/* Code-first (2026-10-08 결정): paid the moment it is reached, so there is nothing to claim. */}
+        {reward.status === "LOCKED" && reward.auto && <span className={`${styles.chip} ${styles.chipClaimable}`}>달성 시 자동 지급</span>}
       </span>
       <span className={styles.rewardBody}>
         <span className={styles.rewardEmoji} aria-hidden="true">

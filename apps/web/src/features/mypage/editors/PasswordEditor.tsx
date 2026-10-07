@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
-import { isValidNewPassword } from "@/lib/validation";
+import { isValidPassword } from "@/lib/validation";
 import { changePassword } from "@/services/account/profileActions";
 import { Message } from "./Message";
 import { GENERIC_ERROR } from "./shared";
@@ -15,10 +15,12 @@ import styles from "./editors.module.css";
  */
 
 type Field = "current" | "next" | "confirm";
-type ErrorKind = "WRONG_CURRENT" | "INVALID" | "MISMATCH" | "REUSED" | "ERROR";
+type ErrorKind = "WRONG_CURRENT" | "INVALID" | "MISMATCH" | "REUSED" | "LOCKED" | "ERROR";
 
 const ERRORS: Record<ErrorKind, { field: Field | null; text: string }> = {
   WRONG_CURRENT: { field: "current", text: "현재 비밀번호가 일치하지 않습니다. 다시 확인해 주세요." },
+  // Code-first (no Figma frame): the same 5-failure lock as the login (718:213); the server has ended the session.
+  LOCKED: { field: "current", text: "비밀번호를 5회 잘못 입력해 계정 보호를 위해 로그인이 제한되었습니다. 비밀번호를 재설정해 주세요." },
   INVALID: { field: "next", text: "영문, 숫자, 특수문자를 모두 포함해 8~20자로 입력해 주세요." },
   MISMATCH: { field: "confirm", text: "새 비밀번호가 서로 일치하지 않습니다." },
   REUSED: { field: "next", text: "기존 비밀번호와 같거나 최근 사용한 비밀번호는 사용할 수 없습니다." },
@@ -43,10 +45,13 @@ export function PasswordEditor({ triggerClassName }: { triggerClassName: string 
 
   // After a successful change the server has ended the session.
   const goToLogin = () => router.push("/login?next=/mypage");
+  // Locked after too many wrong current passwords: the session has ended and only a reset unlocks the account.
+  const locked = error === "LOCKED";
+  const goToReset = () => router.push("/password-reset");
 
   async function submit() {
     if (!values.current) return setError("WRONG_CURRENT");
-    if (!isValidNewPassword(values.next)) return setError("INVALID");
+    if (!isValidPassword(values.next)) return setError("INVALID");
     if (values.next !== values.confirm) return setError("MISMATCH");
     setBusy(true);
     try {
@@ -83,7 +88,7 @@ export function PasswordEditor({ triggerClassName }: { triggerClassName: string 
       </button>
       <Modal
         open={open}
-        onClose={changed ? goToLogin : () => setOpen(false)}
+        onClose={changed ? goToLogin : locked ? goToReset : () => setOpen(false)}
         title="비밀번호 변경"
         description="안전한 계정 이용을 위해 비밀번호를 변경합니다."
         footer={
@@ -94,6 +99,15 @@ export function PasswordEditor({ triggerClassName }: { triggerClassName: string 
               </button>
               <button type="button" className={styles.primary} onClick={goToLogin}>
                 다시 로그인
+              </button>
+            </>
+          ) : locked ? (
+            <>
+              <button type="button" className={styles.secondary} onClick={goToReset}>
+                닫기
+              </button>
+              <button type="button" className={styles.primary} onClick={goToReset}>
+                비밀번호 재설정
               </button>
             </>
           ) : (
@@ -131,7 +145,7 @@ export function PasswordEditor({ triggerClassName }: { triggerClassName: string 
                   autoComplete={f.autoComplete}
                   maxLength={f.key === "current" ? 64 : 20}
                   value={values[f.key]}
-                  disabled={changed}
+                  disabled={changed || locked}
                   aria-invalid={fieldInError === f.key || undefined}
                   aria-describedby="password-message"
                   onChange={(e) => {
@@ -146,7 +160,7 @@ export function PasswordEditor({ triggerClassName }: { triggerClassName: string 
           <div id="password-message" aria-live="polite" className={styles.content}>
             {error && <Message tone="error" text={ERRORS[error].text} />}
             {changed && <Message tone="success" text="비밀번호가 안전하게 변경되었습니다. 보안을 위해 다시 로그인해 주세요." />}
-            {!changed && <p className={styles.footnote}>영문, 숫자, 특수문자를 포함해 8자 이상 입력해 주세요.</p>}
+            {!changed && <p className={styles.footnote}>영문, 숫자, 특수문자를 포함해 8~20자로 입력해 주세요.</p>}
           </div>
         </form>
       </Modal>

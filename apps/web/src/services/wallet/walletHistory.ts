@@ -6,7 +6,7 @@ import { findQuest } from "@/services/donations/questCore";
 import { drawState } from "@/services/donations/gachaCore";
 import { spinState } from "@/services/donations/rouletteCore";
 import { isBlankPrize } from "@/services/donations/rouletteTypes";
-import { mockCredits } from "./mockCreditStore";
+import { currentAccountCredits } from "./mockCreditStore";
 import { mockRefunds, refundView } from "./mockRefundStore";
 import { mockWallet } from "./mockWalletStore";
 import { toDateString, type Period } from "@/lib/period";
@@ -170,7 +170,8 @@ export async function getWalletOverview(input: { kind?: unknown; period?: unknow
           at: (d.refundedAt ?? d.donatedAt).slice(0, 16)
         })
       ),
-    ...mockCredits.credits.filter((c) => !accountSince() || c.at >= accountSince()!.slice(0, 16)).map(
+    // Matched by the account marker, not by time: a credit from the same minute as a 재가입 is not the new account's.
+    ...currentAccountCredits().map(
       (c): LedgerEntry => ({ id: c.id, kind: "REWARD", description: c.reason, deltaFn: c.fnAmount, statusLabel: "완료", tone: "done", at: c.at })
     )
   ].sort((a, b) => b.at.localeCompare(a.at));
@@ -308,12 +309,12 @@ const DONATION_ROWS: [number, string, string, string, string, number, string, Do
 ];
 
 /** All donation records of the signed-in mock member (server-side; used by supporter identity). */
-export function listDonationRecords(): (DonationRecord & { category: DonationCategory })[] {
+export function listDonationRecords(): (DonationRecord & { category: DonationCategory; hideProfile?: boolean })[] {
   return mockDonations();
 }
 
 /** Records of the current account only: after a 재가입 the withdrawn account's history is not shown. */
-function mockDonations(): (DonationRecord & { category: DonationCategory })[] {
+function mockDonations(): (DonationRecord & { category: DonationCategory; hideProfile?: boolean })[] {
   const since = accountSince();
   return since ? mockWallet.donations.filter((d) => d.donatedAt >= since) : [...mockWallet.donations, ...seedDonations()];
 }

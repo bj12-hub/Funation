@@ -6,7 +6,7 @@ import { TextField } from "@/components/ui/TextField";
 import { useCountdown } from "@/hooks/useCountdown";
 import { formatPhone, isValidPhone } from "@/lib/validation";
 import { sendPhoneCode, verifyPhoneCode } from "@/services/auth/verification";
-import { CODE_LENGTH, CODE_TTL_SECONDS } from "@/services/auth/verificationTypes";
+import { CODE_LENGTH, CODE_TTL_SECONDS, type VerificationPurpose } from "@/services/auth/verificationTypes";
 import shared from "./form.module.css";
 
 /**
@@ -23,7 +23,7 @@ const MESSAGES = {
 };
 
 type PhoneVerificationProps = {
-  purpose: "SIGNUP" | "PASSWORD_RESET";
+  purpose: VerificationPurpose;
   onVerified: (result: { phone: string; token: string }) => void;
 };
 
@@ -58,7 +58,7 @@ export function PhoneVerification({ purpose, onVerified }: PhoneVerificationProp
     if (countdown.expired || code.length !== CODE_LENGTH) return setCodeError(MESSAGES.CODE_INVALID);
     setBusy("verify");
     try {
-      const result = await verifyPhoneCode(phone, code);
+      const result = await verifyPhoneCode(phone, purpose, code);
       if (result.status === "VERIFIED") {
         countdown.stop();
         onVerified({ phone, token: result.verificationToken });
