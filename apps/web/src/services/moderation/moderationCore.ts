@@ -1,3 +1,4 @@
+import { creatorMemberId } from "@/services/admin/memberCore";
 import { mockCommunity } from "@/services/community/mockCommunityStore";
 import { channelCommunityStore } from "@/services/creators/channelCommunityCore";
 import { mockMessages } from "@/services/messages/mockMessageStore";
@@ -35,13 +36,14 @@ export async function resolveTarget(t: ReportTarget, findCreator: CreatorLookup)
       return p ? { authorId: p.authorId, authorName: p.authorName, snapshot: clip(p.body) } : null;
     }
     case "MESSAGE": {
-      // Only received mail can be reported (the reporter is its recipient).
+      // Only received mail can be reported (the reporter is its recipient). Mail comes from a creator's channel: the
+      // author is that creator's member id, like everywhere else (admin member links, blocks on every content type).
       const m = mockMessages.messages.find((x) => x.id === t.id && x.direction === "IN" && !x.deleted);
-      return m ? { authorId: m.peerId, authorName: m.peerName, snapshot: clip(m.body) } : null;
+      return m ? { authorId: creatorMemberId(m.peerId), authorName: m.peerName, snapshot: clip(m.body) } : null;
     }
     case "CREATOR": {
       const c = await findCreator(t.id);
-      return c ? { authorId: `m-${c.id}`, authorName: c.name, snapshot: clip(`${c.name} — ${c.description}`) } : null;
+      return c ? { authorId: creatorMemberId(c.id), authorName: c.name, snapshot: clip(`${c.name} — ${c.description}`) } : null;
     }
   }
 }

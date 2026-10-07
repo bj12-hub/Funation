@@ -69,7 +69,8 @@ export async function blockAuthorOf(input: unknown): Promise<BlockResult> {
   const session = await getSession();
   if (!session) return { status: "UNAUTHORIZED" };
   const target = parseTarget(obj(obj(input).target));
-  if (!target) return { status: "INVALID", message: "차단할 대상을 확인해 주세요." };
+  // A channel is reported, not blocked (the room offers no 차단 for it).
+  if (!target || target.type === "CREATOR") return { status: "INVALID", message: "차단할 대상을 확인해 주세요." };
   const resolved = await resolveTarget(target, getCreatorById);
   if (!resolved) return { status: "NOT_FOUND" };
   if (resolved.authorId === session.userId) return { status: "INVALID", message: "나 자신은 차단할 수 없어요." };

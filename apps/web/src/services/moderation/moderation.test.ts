@@ -75,6 +75,29 @@ describe("reports", () => {
   });
 });
 
+describe("message authors", () => {
+  beforeEach(() => resetMockStores());
+
+  it("files mail under the sending creator's member id, so a report links the member and a block hides all their content", async () => {
+    const m = await load();
+    expect(await m.submitReport({ target: { type: "MESSAGE", id: "ms-1" }, reason: "SPAM" })).toEqual({ status: "REPORTED" });
+    expect((await m.listReports()).rows[0]).toMatchObject({ authorId: "m-c4", authorName: "불꽃크루", authorIsMember: true });
+
+    const { channelCommunityStore } = await import("@/services/creators/channelCommunityCore");
+    await m.getChannelPosts("c1");
+    channelCommunityStore().posts.push({ id: "cp-c4", creatorId: "c1", authorId: "m-c4", authorName: "불꽃크루", body: "합방 공지", createdAt: new Date().toISOString(), deleted: false });
+    expect(await m.blockAuthorOf({ target: { type: "MESSAGE", id: "ms-1" } })).toEqual({ status: "OK", name: "불꽃크루" });
+    expect((await m.getMailbox({ box: "inbox" }))!.items.some((x) => x.peerId === "c4")).toBe(false);
+    expect((await m.getChannelPosts("c1"))!.items.some((p) => p.id === "cp-c4")).toBe(false);
+  });
+
+  it("refuses to block a channel (the room only offers 신고 for it)", async () => {
+    const m = await load();
+    expect((await m.blockAuthorOf({ target: { type: "CREATOR", id: "c1" } })).status).toBe("INVALID");
+    expect(await m.listBlocks()).toEqual([]);
+  });
+});
+
 describe("blocking", () => {
   beforeEach(() => resetMockStores());
 
