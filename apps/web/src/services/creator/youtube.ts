@@ -2,6 +2,7 @@
 
 import { USE_MOCK } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
+import { ownEntry } from "@/lib/records";
 import { onChannelChanged, startChatFrom } from "@/services/broadcast/chatCore";
 import { YouTubeAdapter } from "@/services/platforms/adapters";
 import { PlatformError, type ChannelVideo, type PlatformErrorCode } from "@/services/platforms/platformTypes";
@@ -37,7 +38,7 @@ function view(s: Store): YouTubeIntegration {
 function merge(s: Store, videos: ChannelVideo[], now: string) {
   let added = 0;
   for (const v of videos) {
-    const prev = s.videos[v.externalId];
+    const prev = ownEntry(s.videos, v.externalId);
     if (!prev) added++;
     s.videos[v.externalId] = { ...v, visible: prev?.visible ?? true, pinned: prev?.pinned ?? false, syncedAt: now };
   }
@@ -56,7 +57,7 @@ export async function connectYouTube(input: unknown): Promise<YouTubeResult> {
   const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   if (typeof v.requestId !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
   const s = store();
-  if (s.requests[v.requestId]) return { status: "OK" };
+  if (ownEntry(s.requests, v.requestId)) return { status: "OK" };
   const handle = typeof v.handle === "string" ? v.handle.trim() : "";
   if (!HANDLE_PATTERN.test(handle)) return { status: "INVALID", message: "채널 핸들을 확인해 주세요 (예: @mychannel)." };
   if (s.channel) return { status: "INVALID", message: "이미 연결된 채널이 있어요. 연결을 해제한 뒤 다시 시도해 주세요." };
@@ -65,7 +66,7 @@ export async function connectYouTube(input: unknown): Promise<YouTubeResult> {
     const channel = await YouTubeAdapter.getChannel(handle.replace(/^@/, "").toLowerCase());
     const videos = await YouTubeAdapter.listVideos(channel.externalChannelId);
     // Checked again after the platform calls: a concurrent connect may have finished in the meantime.
-    if (s.requests[v.requestId]) return { status: "OK" };
+    if (ownEntry(s.requests, v.requestId)) return { status: "OK" };
     if (s.channel) return { status: "INVALID", message: "이미 연결된 채널이 있어요. 연결을 해제한 뒤 다시 시도해 주세요." };
     const now = new Date().toISOString();
     s.requests[v.requestId] = true;
@@ -121,7 +122,7 @@ export async function updateVideo(input: unknown): Promise<YouTubeResult> {
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   const s = store();
-  const video = typeof v.externalId === "string" ? s.videos[v.externalId] : undefined;
+  const video = typeof v.externalId === "string" ? ownEntry(s.videos, v.externalId) : undefined;
   if (!video) return { status: "INVALID", message: "영상을 찾을 수 없어요." };
   if (v.visible !== undefined && typeof v.visible !== "boolean") return { status: "INVALID", message: "표시 여부를 확인해 주세요." };
   if (v.pinned !== undefined && typeof v.pinned !== "boolean") return { status: "INVALID", message: "고정 여부를 확인해 주세요." };

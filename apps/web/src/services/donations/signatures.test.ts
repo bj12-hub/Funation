@@ -36,6 +36,15 @@ describe("signature management", () => {
     expect((await m.listSignatures())!).toHaveLength(8);
   });
 
+  it("treats Object.prototype names as new request ids", async () => {
+    const m = await load();
+    const one = await m.saveSignature({ ...draft, requestId: "propertyIsEnumerable" });
+    expect(one).toMatchObject({ status: "SAVED", id: expect.any(String) });
+    const bulk = await m.createSignatures({ requestId: "propertyIsEnumerable", match: "SELECT", active: true, rows: [{ ...draft, name: "일괄 시그" }] });
+    expect(bulk).toMatchObject({ status: "SAVED", ids: [expect.any(String)] });
+    expect((await m.listSignatures())!).toHaveLength(10);
+  });
+
   it("charges the managed price and matches a 일반 후원 amount to an AMOUNT signature", async () => {
     const m = await load();
     const zero = (await m.listSignatures())![0];

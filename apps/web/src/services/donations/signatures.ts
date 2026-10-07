@@ -2,6 +2,7 @@
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
+import { ownEntry } from "@/lib/records";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { isSignatureImage, isSignatureSound, mockSignatures } from "./signatureCore";
 import { SIGNATURE_IMAGE_PRESETS, SIGNATURE_LIMITS, type ManagedSignature, type SignatureBulkResult, type SignatureResult } from "./signatureTypes";
@@ -69,7 +70,7 @@ export async function saveSignature(input: unknown): Promise<SignatureResult> {
   const id = typeof v.id === "string" ? v.id : null;
   if (!id) {
     if (!isRequestId(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
-    const done = mockSignatures.requests[v.requestId];
+    const done = ownEntry(mockSignatures.requests, v.requestId);
     if (done) return { status: "SAVED", id: done };
   }
   const existing = id ? items.find((s) => s.id === id) : undefined;
@@ -104,7 +105,7 @@ export async function createSignatures(input: unknown): Promise<SignatureBulkRes
   if (!isRequestId(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
   await mockDelay(150);
   const bulk = (mockSignatures.bulk ??= {});
-  const done = bulk[v.requestId];
+  const done = ownEntry(bulk, v.requestId);
   if (done) return { status: "SAVED", ids: [...done] };
   if (v.match !== "SELECT" && v.match !== "AMOUNT") return { status: "INVALID", message: "매칭 규칙을 확인해 주세요." };
   if (typeof v.active !== "boolean") return { status: "INVALID", message: "사용 여부를 확인해 주세요." };

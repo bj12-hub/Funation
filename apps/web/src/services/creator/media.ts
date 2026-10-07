@@ -1,6 +1,7 @@
 "use server";
 
 import { USE_MOCK } from "@/lib/mock";
+import { ownEntry } from "@/lib/records";
 import { getCreatorSession } from "@/lib/session";
 import { sameSecret } from "@/lib/secret";
 import { parseYouTubeId } from "@/services/donations/donationTypes";
@@ -59,7 +60,7 @@ export async function addTestVideo(input: unknown): Promise<MediaResult> {
   if (!(await getCreatorSession())) return unauthorized;
   const v = obj(input);
   if (!requestIdOk(v.requestId)) return invalid("잘못된 요청입니다.");
-  if (mockMedia.requests[v.requestId]) return ok;
+  if (ownEntry(mockMedia.requests, v.requestId)) return ok;
   const videoId = typeof v.url === "string" ? parseYouTubeId(v.url) : null;
   if (!videoId) return invalid("유튜브 영상 주소를 입력해 주세요.");
   if (!intIn(v.startSec, 0, MEDIA_LIMITS.rangeSecMax) || !intIn(v.endSec, 1, MEDIA_LIMITS.rangeSecMax) || v.endSec <= v.startSec) return invalid("재생 구간을 확인해 주세요.");
@@ -143,7 +144,7 @@ export async function addTestDrawing(input: unknown): Promise<MediaResult> {
   if (!(await getCreatorSession())) return unauthorized;
   const v = obj(input);
   if (!requestIdOk(v.requestId)) return invalid("잘못된 요청입니다.");
-  if (mockMedia.requests[v.requestId]) return ok;
+  if (ownEntry(mockMedia.requests, v.requestId)) return ok;
   mockMedia.requests[v.requestId] = true;
   const n = mockMedia.drawings.length;
   addDrawing({ kind: "TEST", donor: "테스트", title: `테스트 그림 ${n + 1}`, fnAmount: 0, image: testDoodle(n) });

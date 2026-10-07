@@ -69,6 +69,22 @@ describe("youtube integration", () => {
     expect(await m.getYouTubeIntegration()).toMatchObject({ status: "DISCONNECTED", videoCount: 0 });
   });
 
+  it("never treats Object.prototype names as a video or a request id", async () => {
+    const m = await load();
+    await m.connectYouTube({ handle: "protochannel", requestId: key(8) });
+    try {
+      expect((await m.updateVideo({ externalId: "__proto__", visible: false, pinned: true })).status).toBe("INVALID");
+      expect("visible" in {}).toBe(false);
+      expect("pinned" in {}).toBe(false);
+    } finally {
+      delete (Object.prototype as Record<string, unknown>).visible;
+      delete (Object.prototype as Record<string, unknown>).pinned;
+    }
+    await m.disconnectYouTube();
+    // "propertyIsEnumerable" passes the request-id pattern; it is a new request, not an earlier one.
+    expect(await m.connectYouTube({ handle: "protochannel", requestId: "propertyIsEnumerable" })).toEqual({ status: "OK", added: 8 });
+  });
+
   it("declares capabilities per platform and lists public channel videos only where supported", async () => {
     const m = await load();
     expect(m.ADAPTERS.YOUTUBE.capabilities).toContain("VIDEO_LIST");
