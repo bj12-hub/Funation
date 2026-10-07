@@ -17,10 +17,11 @@ const ROWS = 3;
 export const WALL_SLOTS = COLS * ROWS;
 const CELL = { w: WALL_SIZE.w / COLS, h: WALL_SIZE.h / ROWS };
 
-type Store = { clearedAt: Record<string, string> };
-const g = globalThis as typeof globalThis & { __funationMockWallpaperV1?: Store };
+/** `stickerImages`: sticker (alert) id → the 벽지 image id it got, for the stickers on the wall (added in V2). */
+type Store = { clearedAt: Record<string, string>; stickerImages: Record<string, string> };
+const g = globalThis as typeof globalThis & { __funationMockWallpaperV2?: Store };
 /** A fresh wall starts when the mock starts (older feed items are not stuck on it). */
-export const mockWallpaper = (g.__funationMockWallpaperV1 ??= { clearedAt: { [STUDIO_CHANNEL]: new Date().toISOString() } });
+export const mockWallpaper = (g.__funationMockWallpaperV2 ??= { clearedAt: { [STUDIO_CHANNEL]: new Date().toISOString() }, stickerImages: {} });
 
 export const clearedAtOf = (channelId: string) => mockWallpaper.clearedAt[channelId] ?? null;
 
@@ -56,21 +57,36 @@ const amountOf = (a: AlertItem) => a.amountLabel ?? `${formatNumber(a.fnAmount)}
  * The k-th sticker since the wall was cleared takes the k-th slot of the wall's shuffled order, so the
  * visible ones never overlap. 벽지 images rotate in order; with 후원 이미지 우선 a 시그니처 후원 shows its signature
  * image instead (2026-10-05 결정).
+ *
+ * `memory` (sticker id → image id, updated in place and pruned to the stickers on the wall) keeps the image a sticker
+ * got, so uploading or deleting a 벽지 image never re-maps the stickers already there; one whose image was deleted
+ * takes the rotation's image from the current list and keeps that.
  */
-export function wallStickers(items: AlertItem[], settings: Pick<WallpaperSettings, "images"> & { preferDonationImage?: boolean }, clearedAt: string | null): WallSticker[] {
+export function wallStickers(
+  items: AlertItem[],
+  settings: Pick<WallpaperSettings, "images"> & { preferDonationImage?: boolean },
+  clearedAt: string | null,
+  memory?: Record<string, string>
+): WallSticker[] {
   const since = clearedAt ? Date.parse(clearedAt) : 0;
   // A 다시 보내기 copy is the same donation: it does not add a second sticker.
   const all = items.filter((a) => Date.parse(a.createdAt) > since && a.status !== "SKIPPED" && a.status !== "FILTERED" && !a.replayOf);
   const order = slotOrder(clearedAt ?? "wall");
   const start = Math.max(0, all.length - WALL_SLOTS);
-  return all.slice(start).map((a, i) => {
+  const imageFor = (id: string, k: number) => {
+    const kept = memory && Object.hasOwn(memory, id) ? settings.images.findIndex((img) => img.id === memory[id]) : -1;
+    const index = kept >= 0 ? kept : k % settings.images.length;
+    if (memory) memory[id] = settings.images[index].id;
+    return index;
+  };
+  const stickers = all.slice(start).map((a, i) => {
     const k = start + i;
     const slot = order[k % WALL_SLOTS];
     const h = hash(a.id);
     const jitterX = (h % 41) - 20;
     const jitterY = ((h >>> 8) % 41) - 20;
     const own = settings.preferDonationImage && a.imageUrl ? a.imageUrl : null;
-    const image = own || !settings.images.length ? null : k % settings.images.length;
+    const image = own || !settings.images.length ? null : imageFor(a.id, k);
     return {
       id: a.id,
       x: Math.round((slot % COLS) * CELL.w + 20 + jitterX),
@@ -83,4 +99,9 @@ export function wallStickers(items: AlertItem[], settings: Pick<WallpaperSetting
       test: a.kind === "TEST"
     };
   });
+  if (memory) {
+    const shown = new Set(stickers.map((s) => s.id));
+    for (const id of Object.keys(memory)) if (!shown.has(id)) delete memory[id];
+  }
+  return stickers;
 }

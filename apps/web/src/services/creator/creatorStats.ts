@@ -2,7 +2,7 @@
  * Creator dashboard period filter (Figma 245:14 · 287:16: 오늘 / 1주일 / 1개월 / 3개월 / 6개월 / 1년 + dates).
  * Client-safe: shared by the server (URL parsing) and the filter UI.
  */
-import { isIsoDate } from "@/lib/period";
+import { isIsoDate, startOfMonths, startOfWeek } from "@/lib/period";
 
 export type StatsPreset = "today" | "week" | "month" | "3months" | "6months" | "year" | "range";
 
@@ -21,12 +21,12 @@ export type StatsPeriod = { preset: StatsPreset; from: string; to: string };
 const pad = (n: number) => String(n).padStart(2, "0");
 export const toIsoDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
-const PRESET_DAYS: Record<Exclude<StatsPreset, "range">, number> = { today: 1, week: 7, month: 30, "3months": 90, "6months": 180, year: 365 };
+/** Calendar months per preset (2026-10-08 결정 "달력 기준"); 1주일 starts on Monday, 오늘 is today. */
+const PRESET_MONTHS = { month: 1, "3months": 3, "6months": 6, year: 12 } as const;
 export const MAX_RANGE_DAYS = 366;
 
 export function presetPeriod(preset: Exclude<StatsPreset, "range">, today = new Date()): StatsPeriod {
-  const from = new Date(today);
-  from.setDate(from.getDate() - (PRESET_DAYS[preset] - 1));
+  const from = preset === "today" ? today : preset === "week" ? startOfWeek(today) : startOfMonths(PRESET_MONTHS[preset], today);
   return { preset, from: toIsoDate(from), to: toIsoDate(today) };
 }
 

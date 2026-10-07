@@ -36,6 +36,18 @@ screens show them as 「확인 중」.
 YouTube rows follow the YouTube Data API (liveChatMessages list/insert/delete, liveChatBans insert).
 Authentication for every platform (OAuth / login) is TBD.
 
+## 유튜브 연동 · 영상 목록 (`services/creator/youtube.ts`)
+
+- Sync reads the latest page (50) and then re-checks, by id (`findVideos`, 50 ids per call, at most 200 per
+  sync — the ones confirmed longest ago first), the stored videos that are not on it.
+- **유튜브에서 지운 영상 표시 (2026-10-08 결정)**: a video YouTube no longer shows (deleted or private) is kept
+  with its 표시 / 고정 settings and listed as 「찾을 수 없음」 in `/creator/videos`; it cannot be newly pinned.
+  A video that comes back is unmarked. The channel page's 영상 탭 lists what YouTube returns, so it never
+  shows such a video. Pruning old entries is TBD.
+- A sync whose channel was disconnected, replaced or withdrawn during the platform calls writes nothing.
+- Lookups by a client-sent video or request id read own entries only (`lib/records.ts` `ownEntry`), so
+  `__proto__` or `propertyIsEnumerable` never reach Object.prototype.
+
 ## Reading platform feeds (chat and donation events)
 
 - **Cursor per channel**: the read position is stored with the channel id it belongs to. No cursor, or

@@ -11,5 +11,6 @@ export type YouTubeStore = {
   requests: Record<string, true>;
 };
 
-const g = globalThis as typeof globalThis & { __funationMockYouTubeV1?: YouTubeStore };
-export const youtubeStore = (): YouTubeStore => (g.__funationMockYouTubeV1 ??= { channel: null, connectedAt: null, lastSyncedAt: null, lastError: null, videos: {}, requests: {} });
+// V2 (2026-10-08): ManagedVideo gained `missing`.
+const g = globalThis as typeof globalThis & { __funationMockYouTubeV2?: YouTubeStore };
+export const youtubeStore = (): YouTubeStore => (g.__funationMockYouTubeV2 ??= { channel: null, connectedAt: null, lastSyncedAt: null, lastError: null, videos: {}, requests: {} });

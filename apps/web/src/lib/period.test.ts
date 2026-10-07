@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseHistoryParams } from "@/features/wallet/historyParams";
-import { isIsoDate, isIsoDateTime, parsePeriod } from "./period";
-import { parseStatsPeriod } from "@/services/creator/creatorStats";
+import { isIsoDate, isIsoDateTime, parsePeriod, presetRange } from "./period";
+import { parseStatsPeriod, presetPeriod } from "@/services/creator/creatorStats";
 import { parseListPeriod } from "@/services/creator/donationManagementTypes";
 import { PARSERS } from "@/services/creator/widgetParsers";
 import { DEFAULT_WIDGET_SETTINGS } from "@/services/creator/widgetSettingsTypes";
@@ -39,5 +39,33 @@ describe("날짜 검증", () => {
     expect(typeof PARSERS.GOAL({ ...goal, from: "2026-03-01", to: "2026-03-31" })).toBe("object");
     const total = DEFAULT_WIDGET_SETTINGS.TOTAL;
     expect(typeof PARSERS.TOTAL({ ...total, from: "2026-02-30T00:00", to: "2026-03-31T23:59" })).toBe("string");
+  });
+});
+
+/**
+ * Calendar periods (2026-10-08 결정 "달력 기준"): 이번 주 / 1주일 / 주별 from Monday, 1개월 / 월별 from the 1st, N개월 from
+ * the 1st of the month N − 1 back, 1년 / 연별 = 12 calendar months. Month ends no longer skip days (10-31 1개월 was 10-02).
+ */
+describe("달력 기준 기간", () => {
+  const day = (iso: string) => new Date(`${iso}T15:00:00`);
+  const table: [today: string, week: string, m1: string, m3: string, m6: string, y1: string][] = [
+    ["2026-10-31", "2026-10-26", "2026-10-01", "2026-08-01", "2026-05-01", "2025-11-01"],
+    ["2026-03-31", "2026-03-30", "2026-03-01", "2026-01-01", "2025-10-01", "2025-04-01"],
+    ["2026-01-01", "2025-12-29", "2026-01-01", "2025-11-01", "2025-08-01", "2025-02-01"],
+    ["2026-02-28", "2026-02-23", "2026-02-01", "2025-12-01", "2025-09-01", "2025-03-01"],
+    ["2026-10-26", "2026-10-26", "2026-10-01", "2026-08-01", "2026-05-01", "2025-11-01"],
+    ["2026-10-25", "2026-10-19", "2026-10-01", "2026-08-01", "2026-05-01", "2025-11-01"]
+  ];
+
+  it.each(table)("on %s", (today, week, m1, m3, m6, y1) => {
+    const d = day(today);
+    const list = (period?: string) => parseListPeriod({ period }, d).from;
+    expect([list("1w"), list("1m"), list("3m"), list("6m"), list()]).toEqual([week, m1, m3, m6, y1]);
+    expect(parseListPeriod({ period: "today" }, d)).toMatchObject({ from: today, to: today });
+    const stats = (p: "week" | "month" | "3months" | "6months" | "year") => presetPeriod(p, d).from;
+    expect([stats("week"), stats("month"), stats("3months"), stats("6months"), stats("year")]).toEqual([week, m1, m3, m6, y1]);
+    expect(presetPeriod("today", d)).toMatchObject({ from: today, to: today });
+    expect([presetRange("day", d).from, presetRange("week", d).from, presetRange("month", d).from, presetRange("year", d).from]).toEqual([today, week, m1, y1]);
+    expect(presetRange("month", d).to).toBe(today);
   });
 });

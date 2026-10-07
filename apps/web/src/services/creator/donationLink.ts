@@ -2,6 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 import { USE_MOCK } from "@/lib/mock";
+import { ownEntry } from "@/lib/records";
 import { getCreatorSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { broadcastChannelId } from "@/services/broadcast/channelsCore";
@@ -89,7 +90,7 @@ export async function simulateExternalDonation(input: unknown): Promise<Donation
   const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   if (typeof v.requestId !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
   const s = store();
-  if (s.requests[v.requestId]) return { status: "OK", ingested: 0, duplicates: 0 };
+  if (ownEntry(s.requests, v.requestId)) return { status: "OK", ingested: 0, duplicates: 0 };
   if (!isPlatform(v.platform) || !supported(v.platform)) return { status: "INVALID", message: "이 플랫폼의 후원 이벤트는 아직 지원하지 않아요." };
   const platform = v.platform;
   const channel = channelOf(platform);

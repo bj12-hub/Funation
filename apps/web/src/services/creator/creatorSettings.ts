@@ -19,7 +19,7 @@ import {
 } from "./creatorSettingsTypes";
 import { matchesContent } from "./assetCore";
 import { mockCreator, newIntegrationKey } from "./mockCreatorStore";
-import { isIsoDate } from "@/lib/period";
+import { isIsoDate, toDateString } from "@/lib/period";
 
 /**
  * Creator account settings — Figma 315:405 · 315:2 (route `/creator/settings`) and 326:496 (프로필 수정).
@@ -100,7 +100,8 @@ export async function saveSnsLinks(links: unknown): Promise<SaveResult> {
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (!Array.isArray(links) || links.length !== SNS_KINDS.length) return { status: "INVALID" };
   const parsed = links.map((l) => (typeof l === "object" && l !== null ? (l as { kind?: unknown; url?: unknown }) : {}));
-  const kindsOk = parsed.every((l) => SNS_KINDS.some((k) => k.key === l.kind));
+  // Exactly one row per kind (the form has one field each), so four INSTAGRAM rows are refused.
+  const kindsOk = SNS_KINDS.every((k) => parsed.filter((l) => l.kind === k.key).length === 1);
   const bad = parsed.find((l) => typeof l.url !== "string" || (l.url.trim() !== "" && !isHttpUrl(l.url)));
   if (!kindsOk) return { status: "INVALID" };
   if (bad) return { status: "INVALID", message: "http:// 또는 https://로 시작하는 주소를 입력해 주세요." };
@@ -142,12 +143,17 @@ export async function changeChannelName(name: unknown): Promise<SaveResult> {
   return { status: "SAVED" };
 }
 
+/** Earliest date accepted in the profile (a sanity bound, not a business rule). */
+const DATE_MIN = "1900-01-01";
+
 export async function saveCreatorProfile(input: unknown): Promise<SaveResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (typeof input !== "object" || input === null) return { status: "INVALID" };
   const v = input as Record<string, unknown>;
   if (!isIsoDate(v.birthday) || !isIsoDate(v.debutDate)) return { status: "INVALID", message: "날짜를 확인해 주세요." };
+  // A real past day (validation bounds, not a business rule).
+  if (v.debutDate > toDateString(new Date()) || v.debutDate < DATE_MIN) return { status: "INVALID", message: "방송 데뷔일은 오늘이나 그 이전 날짜로 입력해 주세요." };
   if (typeof v.birthdayPublic !== "boolean" || typeof v.debutPublic !== "boolean") return { status: "INVALID" };
   const anniversaries = Array.isArray(v.anniversaries) ? v.anniversaries : null;
   if (

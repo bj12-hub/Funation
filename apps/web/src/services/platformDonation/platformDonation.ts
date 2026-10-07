@@ -2,6 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 import { toDateString } from "@/lib/period";
+import { ownEntry } from "@/lib/records";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
@@ -127,7 +128,7 @@ export async function requestPlatformDonation(input: unknown): Promise<PlatformD
   const key = v.idempotencyKey;
 
   const fingerprint = JSON.stringify([platform, v.creatorId, v.productId, v.customFn ?? null, message]);
-  const previous = mockPlatform.idempotency[key];
+  const previous = ownEntry(mockPlatform.idempotency, key);
   if (previous) {
     if (previous.fingerprint !== fingerprint) return { status: "CONFLICT" };
     return previous.result ?? { status: "IN_PROGRESS" };

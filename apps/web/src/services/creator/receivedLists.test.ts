@@ -34,15 +34,38 @@ describe("받은 후원 요약", () => {
     const now = new Date(2026, 9, 7, 15, 0); // Wed 2026-10-07
     const at = (d: number, h = 12) => new Date(2026, 9, d, h).toISOString();
     const rows = [
-      { at: at(7), amount: 10_000, status: "SUCCESS" as const }, // today
-      { at: at(5), amount: 5_000, status: "SUCCESS" as const }, // Mon, this week
-      { at: at(7, 10), amount: 20_000, status: "IN_PROGRESS" as const }, // held, not received yet
-      { at: at(4), amount: 3_000, status: null }, // Sun, last week
-      { at: at(7, 9), amount: 50_000, status: "FAILED" as const }, // refunded
-      { at: at(6), amount: 70_000, status: "CANCELED" as const } // refunded
+      { receivedAt: at(7), amount: 10_000, status: "SUCCESS" as const }, // today
+      { receivedAt: at(5), amount: 5_000, status: "SUCCESS" as const }, // Mon, this week
+      { receivedAt: at(7, 10), amount: 20_000, status: "IN_PROGRESS" as const }, // held, not received yet
+      { receivedAt: at(4), amount: 3_000, status: null }, // Sun, last week
+      { receivedAt: at(7, 9), amount: 50_000, status: "FAILED" as const }, // refunded
+      { receivedAt: at(6), amount: 70_000, status: "CANCELED" as const } // refunded
     ];
     expect(receivedStats(rows, now)).toEqual({ totalFn: 18_000, count: 3, todayFn: 10_000, weekFn: 15_000, averageFn: 6_000, heldFn: 20_000, heldCount: 1 });
     expect(receivedStats([], now)).toEqual({ totalFn: 0, count: 0, todayFn: 0, weekFn: 0, averageFn: 0, heldFn: 0, heldCount: 0 });
+  });
+
+  it("counts a 성공 quest on the day it succeeded, in the period filter, 연도 and the CSV (2026-10-08 결정)", async () => {
+    resetMockStores();
+    const m = await load();
+    const { mockQuests, decideQuest } = await import("@/services/donations/questCore");
+    const q = mockQuests.items.find((x) => x.status === "IN_PROGRESS")!;
+    q.createdAt = new Date(2025, 11, 31, 22).toISOString(); // sent 2025-12-31
+    decideQuest(q, "SUCCESS", "CREATOR", new Date(2026, 0, 2, 10)); // succeeded 2026-01-02
+    const ids = async (from: string, to: string) =>
+      (await m.getReceivedDonations({ kind: "quest", period: { preset: "range", from, to }, status: "ALL", query: "", page: 1 }))!.items.map((d) => d.id);
+    expect(await ids("2026-01-02", "2026-01-02")).toContain(q.id);
+    expect(await ids("2025-12-31", "2025-12-31")).not.toContain(q.id);
+    const page = (await m.getReceivedDonations({ kind: "quest", period: { preset: "range", from: "2026-01-02", to: "2026-01-02" }, status: "SUCCESS", query: "", page: 1 }))!;
+    expect(page.items.find((d) => d.id === q.id)).toMatchObject({ at: q.createdAt, receivedAt: q.decidedAt });
+    expect(page.stats.totalFn).toBeGreaterThanOrEqual(q.amount);
+    expect(page.years).toContain(2026);
+
+    const csv = await m.exportReceivedDonationsCsv({ kind: "quest", period: { from: "2026-01-02", to: "2026-01-02" }, status: "ALL", query: "" });
+    if (csv.status !== "OK") throw new Error(csv.status);
+    const [header, ...lines] = csv.csv.replace(/^\uFEFF/, "").split("\r\n");
+    expect(header).toBe('"후원일시","후원자 닉네임","후원자 아이디","금액(FN)","메시지","성공일시","상태"');
+    expect(lines.find((l) => l.startsWith(`"${q.createdAt}"`))).toContain(`"${q.decidedAt}","성공"`);
   });
 
   it("is part of every list page and covers all pages", async () => {

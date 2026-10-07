@@ -58,10 +58,6 @@ export function matchSignatureByAmount(amount: number): ManagedSignature | null 
   return mockSignatures.items.find((s) => s.active && s.match === "AMOUNT" && s.price === amount) ?? null;
 }
 
-/**
- * The signature image a donation carries to the alert feed (벽지 "후원 이미지 우선", 2026-10-05 결정): the chosen
- * signature of a 시그니처 후원, or the amount-matched signature of a 일반 후원. Other donations have none.
- */
 /** The signature's library sound for a 시그니처 후원 (or an amount-matched 일반 후원); the alert overlay plays it. */
 export function signatureSoundFor(type: string, amount: number, details: unknown): string | undefined {
   const id = (details as { signatureId?: string } | null)?.signatureId;
@@ -69,7 +65,14 @@ export function signatureSoundFor(type: string, amount: number, details: unknown
   return sig?.soundUrl && isSignatureSound(sig.soundUrl) ? sig.soundUrl : undefined;
 }
 
+/**
+ * The signature image a donation carries to the alert feed (벽지 "후원 이미지 우선", 2026-10-05 결정): the chosen
+ * signature of a 시그니처 후원, or the amount-matched signature of a 일반 후원. Other donations have none. An image
+ * deleted from the library falls back to the first preset on both paths, as the donation panel shows it.
+ */
 export function signatureImageFor(catalog: DonationCatalog, type: string, amount: number, details: unknown): string | undefined {
   if (type === "SIGNATURE") return catalog.signatures.find((s) => s.id === (details as { signatureId?: string } | null)?.signatureId)?.imageUrl;
-  return type === "TEXT" ? (matchSignatureByAmount(amount)?.imageUrl ?? undefined) : undefined;
+  if (type !== "TEXT") return undefined;
+  const sig = matchSignatureByAmount(amount);
+  return sig ? (isSignatureImage(sig.imageUrl) ? sig.imageUrl : SIGNATURE_IMAGE_PRESETS[0]) : undefined;
 }

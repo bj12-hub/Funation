@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { CreatorRoomScreen } from "@/features/creatorRoom";
 import { getMyAccount } from "@/services/account/myAccount";
+import { getMovedChannelHandle } from "@/services/channel/channel";
 import { getCreatorById } from "@/services/creators/creators";
 import { getCreatorRoom } from "@/services/creators/creatorRoom";
 import { getChannelMonthlyRanking, getChannelPosts } from "@/services/creators/channelHome";
@@ -41,7 +42,12 @@ export default async function Page({ params, searchParams }: { params: Params; s
     getRoomVote(id),
     getRoomFanNotes(id)
   ]);
-  if (!room || !creator || !ranking || !posts) notFound();
+  if (!room || !creator || !ranking || !posts) {
+    // 예전 채널 주소는 새 주소로 연결 (2026-10-08 결정): an old address points to the new one for 30 days.
+    const moved = await getMovedChannelHandle(id);
+    if (moved) redirect(`/creators/${encodeURIComponent(moved)}`);
+    notFound();
+  }
 
   return (
     <CreatorRoomScreen

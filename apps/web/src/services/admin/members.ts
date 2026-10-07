@@ -1,4 +1,5 @@
 import { USE_MOCK } from "@/lib/mock";
+import { ownEntry } from "@/lib/records";
 import { mockAccount } from "@/services/account/mockStore";
 import { getAllCreatorsForAdmin } from "@/services/creators/creators";
 import { listDonationRecords } from "@/services/wallet/walletHistory";
@@ -103,7 +104,7 @@ export async function suspendMember(admin: AdminActor, input: unknown): Promise<
   const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   if (typeof v.requestId !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
   const store = memberStore();
-  if (store.requests[v.requestId]) return { status: "OK" };
+  if (ownEntry(store.requests, v.requestId)) return { status: "OK" };
   const member = (await directory()).find((m) => m.id === v.id);
   if (!member) return { status: "NOT_FOUND" };
   const reason = typeof v.reason === "string" ? v.reason.trim() : "";

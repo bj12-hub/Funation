@@ -21,9 +21,11 @@ import {
  * 목표 · 누적 · 랭킹 count completed Somnation donations only: 테스트 후원 never counts, and platform
  * donations (후원 연동) have no FN rate yet (TBD). An alert hidden by the 최소 금액 filter still counts.
  * A 퀘스트 후원 counts only once it succeeded (held until then, refunded on 실패 · 취소 — 2026-10-04 결정), at the
- * time its alert went out.
+ * time it succeeded (2026-10-08 결정 "퀘스트는 성공한 날 기준 집계").
  */
 const counts = (a: AlertItem) => a.kind === "DONATION" && !a.replayOf && (a.questId === undefined || a.questSucceeded === true);
+/** When an alert counts: a succeeded quest at its success time, everything else when it went out. */
+const countedAt = (a: AlertItem) => Date.parse(a.questSucceededAt ?? a.createdAt);
 /** A 다시 보내기 copy repeats an alert on stream; lists and totals keep the original only. */
 const originals = (items: AlertItem[]) => items.filter((a) => !a.replayOf);
 export const countedDonations = (items: AlertItem[]) => items.filter(counts);
@@ -31,7 +33,7 @@ export const countedDonations = (items: AlertItem[]) => items.filter(counts);
 function sumBetween(items: AlertItem[], from: number, to: number) {
   return countedDonations(items)
     .filter((a) => {
-      const t = Date.parse(a.createdAt);
+      const t = countedAt(a);
       return t >= from && t <= to;
     })
     .reduce((sum, a) => sum + a.fnAmount, 0);
@@ -80,7 +82,7 @@ export function rankingRows(items: AlertItem[], s: RankingSettings, now = new Da
   const since = rankingSince(s.period, now);
   const totals = new Map<string, { name: string; fn: number; first: number }>();
   for (const a of countedDonations(items)) {
-    const t = Date.parse(a.createdAt);
+    const t = countedAt(a);
     const key = a.donorKey === undefined ? (a.donor === HIDDEN_PROFILE_LABEL ? null : `name:${a.donor}`) : a.donorKey;
     if (t < since || key === null) continue;
     const cur = totals.get(key) ?? { name: a.donor, fn: 0, first: t };
@@ -129,7 +131,7 @@ export function sourceBoardRows(items: AlertItem[], s: Pick<RankingSettings, "pe
   const since = rankingSince(s.period, now);
   const groups = new Map<string, { source: string; unit: AmountUnit; value: number; count: number }>();
   for (const a of originals(items)) {
-    if (Date.parse(a.createdAt) < since) continue;
+    if (countedAt(a) < since) continue;
     const g =
       a.kind === "DONATION"
         ? counts(a)

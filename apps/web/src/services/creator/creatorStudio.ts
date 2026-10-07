@@ -5,6 +5,7 @@ import { mockCreator } from "./mockCreatorStore";
 import { mockSettlement } from "./mockSettlementStore";
 import type { Platform } from "@/types/platform";
 import { eachDay, type StatsPeriod } from "./creatorStats";
+import { startOfMonths, startOfWeek } from "@/lib/period";
 
 export * from "./creatorStats";
 
@@ -159,8 +160,8 @@ type Tally = { amount: number; count: number };
 
 /**
  * funnation 대시보드 cards: 받은 후원 (오늘 · 이번 주 · 이번 달 · 누적), 정산 (정산 가능 · 누적 수익 ·
- * 누적 출금) and 후원자 순위. Everything is computed on the server from the mock records.
- * TBD: whether 이번 주 is the calendar week or the last 7 days (the mock uses the last 7 days).
+ * 누적 출금) and 후원자 순위. Everything is computed on the server from the mock records. 이번 주 starts on Monday
+ * 00:00 and 이번 달 on the 1st, as in the 후원 리스트 summary (2026-10-08 결정 "달력 기준").
  */
 export async function getDashboardSummary(): Promise<DashboardSummary | null> {
   if (!USE_MOCK) throw new Error("Creator API is not connected yet.");
@@ -168,21 +169,25 @@ export async function getDashboardSummary(): Promise<DashboardSummary | null> {
   await mockDelay(150);
   const today = new Date();
   const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  const daysAgo = (n: number) => iso(new Date(today.getFullYear(), today.getMonth(), today.getDate() - n));
   const tally = (from: string): Tally => {
     const amount = sumRevenue(from, iso(today));
     return { amount, count: Math.round(amount / 19_140) };
   };
-  const monthStart = iso(new Date(today.getFullYear(), today.getMonth(), 1));
   const sum = (status: "APPROVED" | "PENDING") => mockSettlement.requests.filter((r) => r.status === status).reduce((s, r) => s + r.amountFn, 0);
   const paid = sum("APPROVED");
   const pending = sum("PENDING");
   return {
-    received: { today: tally(iso(today)), week: tally(daysAgo(6)), month: tally(monthStart), total: tally(mockCreator.debutDate) },
+    received: { today: tally(iso(today)), week: tally(iso(startOfWeek(today))), month: tally(iso(startOfMonths(1, today))), total: tally(MOCK_REVENUE_START) },
     settlement: { availableFn: mockSettlement.availableFn, earnedFn: mockSettlement.availableFn + pending + paid, withdrawnFn: paid },
     topDonors: RANKINGS.month.slice(0, 5)
   };
 }
+
+/**
+ * First day of the mock revenue records: 누적 sums every record from here. Fixed — it never follows the editable 데뷔일
+ * (a 데뷔일 of today made 누적 smaller than 이번 주, and a very old one made every request loop over centuries).
+ */
+const MOCK_REVENUE_START = "2020-03-15";
 
 /** Mock revenue over any range (eachDay is capped at MAX_RANGE_DAYS for the stats filter). */
 function sumRevenue(from: string, to: string) {
@@ -265,7 +270,7 @@ export async function getRevenueOverview(): Promise<RevenueOverview | null> {
   });
   const todayAmount = mockDailyRevenue(today);
   return {
-    totalRevenue: sumRevenue(mockCreator.debutDate, today),
+    totalRevenue: sumRevenue(MOCK_REVENUE_START, today),
     today: { amount: todayAmount, count: Math.round(todayAmount / 19_140) },
     thisMonth: monthly[5].amount,
     unsettledFn: mockSettlement.availableFn,

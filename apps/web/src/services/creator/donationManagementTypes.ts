@@ -4,7 +4,7 @@
  * Client-safe types and option lists; the actions live in ./donationManagement.ts.
  */
 
-import { isIsoDate, toDateString } from "@/lib/period";
+import { isIsoDate, startOfMonths, startOfWeek, toDateString } from "@/lib/period";
 
 export const MANAGEMENT_TABS = [
   { key: "settings", label: "후원 페이지 설정" },
@@ -33,8 +33,6 @@ export const BANNED_WORDS_MAX = 50;
 export const REPLACEMENT_MESSAGE_MAX = 50;
 /** Shown on stream instead of a replaced message while the creator's 대체 메시지 is empty (2026-10-06 결정); a replaced name shows 익명. */
 export const DEFAULT_REPLACEMENT_MESSAGE = "(금지어가 포함된 메시지예요)";
-/** Donation page address rule — assumption: 3–20 lowercase letters, digits or _ (TBD). */
-export const isValidSlug = (v: string) => /^[a-z0-9_]{3,20}$/.test(v);
 
 export type DonationPageSettings = {
   donateUrlBase: string;
@@ -86,7 +84,13 @@ export type ListPeriod = { preset: ListPeriodPreset; from: string; to: string; y
 
 export type ReceivedDonation = {
   id: string;
+  /** 후원일시: when it was sent. */
   at: string;
+  /**
+   * When it counts in 수령액 and the 기간 filter: a 성공 quest on the day it succeeded (2026-10-08 결정 "퀘스트는 성공한 날
+   * 기준 집계"); every other row (held and refunded quests too) when it was sent.
+   */
+  receivedAt: string;
   donorNickname: string;
   donorId: string;
   /** FN, as recorded by the server. */
@@ -121,45 +125,40 @@ export type ReceivedDonationPage = {
   years: number[];
 };
 
-/** See ReceivedStats: only non-quest rows and 성공 quests count; 이번 주 runs from Monday 00:00 (server time = KST). */
-export function receivedStats(rows: Pick<ReceivedDonation, "at" | "amount" | "status">[], now = new Date()): ReceivedStats {
+/**
+ * See ReceivedStats: only non-quest rows and 성공 quests count, on their `receivedAt` (a quest on the day it succeeded);
+ * 이번 주 runs from Monday 00:00 (server time = KST).
+ */
+export function receivedStats(rows: Pick<ReceivedDonation, "receivedAt" | "amount" | "status">[], now = new Date()): ReceivedStats {
   const counted = rows.filter((d) => d.status === null || d.status === "SUCCESS");
   const held = rows.filter((d) => d.status === "IN_PROGRESS");
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const weekStart = today - ((new Date(today).getDay() + 6) % 7) * 86_400_000;
+  const weekStart = startOfWeek(now).getTime();
   const sum = (list: typeof counted) => list.reduce((s, d) => s + d.amount, 0);
   const totalFn = sum(counted);
   return {
     totalFn,
     count: counted.length,
-    todayFn: sum(counted.filter((d) => Date.parse(d.at) >= today)),
-    weekFn: sum(counted.filter((d) => Date.parse(d.at) >= weekStart)),
+    todayFn: sum(counted.filter((d) => Date.parse(d.receivedAt) >= today)),
+    weekFn: sum(counted.filter((d) => Date.parse(d.receivedAt) >= weekStart)),
     averageFn: counted.length ? Math.round(totalFn / counted.length) : 0,
     heldFn: sum(held),
     heldCount: held.length
   };
 }
 
-
-const shift = (d: Date, months: number, days = 0) => {
-  const x = new Date(d);
-  x.setMonth(x.getMonth() - months);
-  x.setDate(x.getDate() - days + (months || days ? 1 : 0));
-  return x;
-};
-
-/** Validates list URL params (default 1년 as in the design). */
+/** Validates list URL params (default 1년 as in the design). Presets are calendar periods (lib/period, 2026-10-08 결정). */
 export function parseListPeriod(raw: { period?: string; from?: string; to?: string; year?: string }, today = new Date()): ListPeriod {
   const to = toDateString(today);
   switch (raw.period) {
     case "today":
       return { preset: "today", from: to, to };
     case "1w":
-      return { preset: "1w", from: toDateString(shift(today, 0, 7)), to };
+      return { preset: "1w", from: toDateString(startOfWeek(today)), to };
     case "1m":
     case "3m":
     case "6m":
-      return { preset: raw.period, from: toDateString(shift(today, Number(raw.period[0]))), to };
+      return { preset: raw.period, from: toDateString(startOfMonths(Number(raw.period[0]), today)), to };
     case "year": {
       const y = Number(raw.year);
       if (Number.isInteger(y) && y >= 2000 && y <= today.getFullYear()) return { preset: "year", year: y, from: `${y}-01-01`, to: `${y}-12-31` };
@@ -170,7 +169,7 @@ export function parseListPeriod(raw: { period?: string; from?: string; to?: stri
       break;
     }
   }
-  return { preset: "1y", from: toDateString(shift(today, 12)), to };
+  return { preset: "1y", from: toDateString(startOfMonths(12, today)), to };
 }
 
 // ── 후원 순위 (539:303) ─────────────────────────────────────────────────────────

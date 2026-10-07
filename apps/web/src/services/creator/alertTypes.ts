@@ -58,6 +58,8 @@ export type AlertItem = {
    */
   questId?: string;
   questSucceeded?: boolean;
+  /** When the quest succeeded: 목표 · 누적 · 랭킹 count it at this time (2026-10-08 결정; older alerts: `createdAt`). */
+  questSucceededAt?: string;
   /** 다시 보내기 copy: the id of the alert it repeats. Shown again on stream, never counted as another donation. */
   replayOf?: string;
   createdAt: string;

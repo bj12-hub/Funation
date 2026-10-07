@@ -1,6 +1,7 @@
 "use server";
 
 import { toDateString } from "@/lib/period";
+import { ownEntry } from "@/lib/records";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
@@ -79,7 +80,7 @@ export async function requestCharge(input: unknown): Promise<ChargeResult> {
 
   // Idempotency: one key ⇒ one outcome.
   const fingerprint = JSON.stringify({ fnAmount, methodId });
-  const previous = mockWallet.idempotency[idempotencyKey];
+  const previous = ownEntry(mockWallet.idempotency, idempotencyKey);
   if (previous) {
     if (previous.fingerprint !== fingerprint) return { status: "CONFLICT" };
     return previous.result ?? { status: "IN_PROGRESS" };

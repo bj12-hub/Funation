@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { sameSecret } from "@/lib/secret";
+import { ownEntry } from "@/lib/records";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { donationLinkStore } from "@/services/creator/donationLinkCore";
 import { ADAPTERS, BROADCAST_PLATFORMS, withTimeout } from "@/services/platforms/adapters";
@@ -210,7 +211,7 @@ export function overlayLines(limit = 30): ChatOverlayLine[] {
  */
 export async function sendChat(requestId: string, text: string, platforms: Platform[]) {
   const s = chatStore();
-  const record = (s.sends[requestId] ??= { text, platforms, results: {} });
+  const record = ownEntry(s.sends, requestId) ?? (s.sends[requestId] = { text, platforms, results: {} });
   if (record.text !== text) throw new Error("requestId reused with a different message");
   // Claim the platforms before the first await, so a concurrent call with this requestId sees PENDING.
   const claimed: [Platform, string][] = [];
@@ -327,7 +328,7 @@ export async function sendAction(input: unknown): Promise<ChatSendResult> {
   if (MOCK_FORBIDDEN_WORDS.some((w) => text.toLowerCase().includes(w))) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
   const platforms = Array.isArray(v.platforms) ? [...new Set(v.platforms.filter((p): p is Platform => BROADCAST_PLATFORMS.includes(p as Platform)))] : [];
   if (platforms.length === 0) return { status: "INVALID", message: "보낼 플랫폼을 골라 주세요." };
-  const existing = chatStore().sends[v.requestId];
+  const existing = ownEntry(chatStore().sends, v.requestId);
   if (existing && existing.text !== text) return { status: "INVALID", message: "잘못된 요청입니다." };
   return { status: "OK", results: await sendChat(v.requestId, text, existing?.platforms ?? platforms) };
 }

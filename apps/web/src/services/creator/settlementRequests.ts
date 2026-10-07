@@ -2,6 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
+import { ownEntry } from "@/lib/records";
 import { getCreatorSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
 import { MOCK_SETTLEMENT_POLICY, mockSettlement, toHistoryItem } from "./mockSettlementStore";
@@ -116,7 +117,7 @@ export async function requestSettlement(input: unknown): Promise<RequestResult> 
   const key = v.idempotencyKey;
   if (typeof key !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(key)) return { status: "INVALID", message: "잘못된 요청입니다. 다시 시도해 주세요." };
 
-  const existing = mockSettlement.idempotency[key];
+  const existing = ownEntry(mockSettlement.idempotency, key);
   if (existing) {
     const r = mockSettlement.requests.find((x) => x.id === existing);
     // Same key, different amount: a client bug or tampering — never reinterpret the first request.

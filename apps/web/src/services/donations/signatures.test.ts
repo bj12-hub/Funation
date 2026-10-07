@@ -36,6 +36,21 @@ describe("signature management", () => {
     expect((await m.listSignatures())!).toHaveLength(8);
   });
 
+  it("treats an NFD copy of a name as the same name", async () => {
+    const m = await load();
+    expect((await m.saveSignature({ ...draft, requestId: key(40) })).status).toBe("SAVED");
+    expect(await m.saveSignature({ ...draft, name: draft.name.normalize("NFD"), price: 23_456, requestId: key(41) })).toEqual({ status: "INVALID", message: "같은 이름의 시그니처가 있어요." });
+  });
+
+  it("treats Object.prototype names as new request ids", async () => {
+    const m = await load();
+    const one = await m.saveSignature({ ...draft, requestId: "propertyIsEnumerable" });
+    expect(one).toMatchObject({ status: "SAVED", id: expect.any(String) });
+    const bulk = await m.createSignatures({ requestId: "propertyIsEnumerable", match: "SELECT", active: true, rows: [{ ...draft, name: "일괄 시그" }] });
+    expect(bulk).toMatchObject({ status: "SAVED", ids: [expect.any(String)] });
+    expect((await m.listSignatures())!).toHaveLength(10);
+  });
+
   it("charges the managed price and matches a 일반 후원 amount to an AMOUNT signature", async () => {
     const m = await load();
     const zero = (await m.listSignatures())![0];
