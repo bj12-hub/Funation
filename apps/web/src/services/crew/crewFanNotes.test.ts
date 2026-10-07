@@ -23,7 +23,7 @@ describe("팬 메시지 · 요청사항", () => {
   afterEach(() => vi.useRealTimers());
 
   async function live(m: Awaited<ReturnType<typeof load>>) {
-    expect(await m.startBroadcast({ title: "팬 메시지 방송", teamMode: false, teams: {} })).toEqual({ status: "SAVED" });
+    expect(await m.startBroadcast({ requestId: crypto.randomUUID(), title: "팬 메시지 방송", teamMode: false, teams: {} })).toEqual({ status: "SAVED" });
     return (await m.getBroadcastView())!.live!.id;
   }
 

@@ -151,8 +151,8 @@ export async function adjustTimer(deltaSec: unknown): Promise<ToolResult> {
   const delta = deltaSec as number;
   const running = t.startedAt ? Math.floor((Date.now() - new Date(t.startedAt).getTime()) / 1000) : 0;
   const elapsed = t.elapsedBeforeSec + running;
-  // Shown time: countdown = duration - elapsed, stopwatch = elapsed.
-  const shown = t.mode === "COUNTDOWN" ? t.durationSec - elapsed : elapsed;
+  // Shown time: countdown = duration - elapsed (0 once it ran out, so +30 after the end gives 30 seconds), stopwatch = elapsed.
+  const shown = t.mode === "COUNTDOWN" ? Math.max(0, t.durationSec - elapsed) : elapsed;
   const target = Math.min(TIMER_MAX_SEC, Math.max(0, shown + delta));
   const targetElapsed = t.mode === "COUNTDOWN" ? t.durationSec - target : target;
   t.elapsedBeforeSec = targetElapsed - running;

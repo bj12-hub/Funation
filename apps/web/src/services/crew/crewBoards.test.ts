@@ -23,7 +23,7 @@ describe("서브 점수판", () => {
     vi.useFakeTimers({ now: new Date("2026-09-30T12:00:00Z"), toFake: ["Date"] });
     const m = await load();
     await m.setMemberKeywords({ memberId: "cm-s2", keywords: ["하늘"] });
-    await m.startBroadcast({ title: "테스트", teamMode: false });
+    await m.startBroadcast({ requestId: crypto.randomUUID(), title: "테스트", teamMode: false });
     const id = (await m.getBroadcastView())!.live!.id;
 
     vi.setSystemTime(new Date("2026-09-30T12:01:00Z"));
@@ -62,7 +62,7 @@ describe("서브 점수판", () => {
   it("limits boards per broadcast and requires a live broadcast and the creator role", async () => {
     const m = await load();
     expect((await m.openSubBoard({ broadcastId: "none", requestId: key(1) })).status).toBe("INVALID");
-    await m.startBroadcast({ title: "테스트", teamMode: false });
+    await m.startBroadcast({ requestId: crypto.randomUUID(), title: "테스트", teamMode: false });
     const id = (await m.getBroadcastView())!.live!.id;
     for (let i = 0; i < 5; i++) await m.openSubBoard({ broadcastId: id, requestId: key(20 + i) });
     expect((await m.openSubBoard({ broadcastId: id, requestId: key(30) })).status).toBe("INVALID");

@@ -17,6 +17,7 @@ import { canParticipate, enqueueSpin } from "./rouletteCore";
 import { canDraw, enqueueDraw } from "./gachaCore";
 import { getDonationCatalog, matchSignatureByAmount, signatureImageFor, signatureSoundFor } from "./signatureCore";
 import { addDonationDrawing, enqueueDonationVideo } from "@/services/creator/mediaCore";
+import { MEDIA_LIMITS } from "@/services/creator/mediaTypes";
 import { notify } from "@/services/notifications/notificationCore";
 import { MAX_DRAWING_CHARS, parseYouTubeId, type DonationResult } from "./donationTypes";
 
@@ -249,7 +250,8 @@ function parse(v: Record<string, unknown>, catalog: DonationCatalog): Parsed | {
       const videoId = typeof v.videoUrl === "string" ? parseYouTubeId(v.videoUrl) : null;
       const start = v.startSec;
       const end = v.endSec;
-      const rangeOk = Number.isInteger(start) && Number.isInteger(end) && (start as number) >= 0 && (end as number) > (start as number);
+      // Same bounds as the 테스트 영상 (0 … 24 hours).
+      const rangeOk = Number.isInteger(start) && Number.isInteger(end) && (start as number) >= 0 && (end as number) > (start as number) && (end as number) <= MEDIA_LIMITS.rangeSecMax;
       if (!amountOk(catalog.minAmount.VIDEO) || !videoId || !rangeOk || v.termsAgreed !== true) return null;
       return {
         ...common,

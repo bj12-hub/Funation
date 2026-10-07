@@ -19,9 +19,9 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   // ?board=번호 shows that 서브 점수판 instead of the main board (nothing until it exists).
   if (board !== undefined) return <SubBoardOverlay board={live?.subBoards.find((s) => String(s.no) === board) ?? null} reloadSeq={reloadSeq} />;
   // ?scenario shows the running 콘텐츠 시나리오 part.
-  if (scenario !== undefined) return <ScenarioOverlay scenario={live?.scenario ?? null} reloadSeq={reloadSeq} />;
+  if (scenario !== undefined) return <ScenarioOverlay scenario={live?.scenario ?? null} serverNow={live?.serverNow ?? null} reloadSeq={reloadSeq} />;
   // ?steal shows the latest 기여도 강탈 spin for a few seconds.
-  if (steal !== undefined) return <StealOverlay latest={live?.steals[0] ?? null} reloadSeq={reloadSeq} />;
+  if (steal !== undefined) return <StealOverlay latest={live?.steals[0] ?? null} serverNow={live?.serverNow ?? null} reloadSeq={reloadSeq} />;
   // ?battle shows the running 실시간 배틀 (or the last result) instead.
   if (battle !== undefined) return <BattleOverlay battle={live?.battles.find((b) => b.running) ?? live?.battles.at(-1) ?? null} reloadSeq={reloadSeq} />;
   return <CrewScoreOverlay data={live} reloadSeq={reloadSeq} />;

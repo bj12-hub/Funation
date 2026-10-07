@@ -22,7 +22,8 @@ import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
  * 기여도 강탈 룰렛 Server Actions — code-first (no Figma frame), part of `/creator/crew/broadcast`.
  * The creator sets the slots (빼앗는 비율 · 고정 점수 · 꽝) and their odds. 강탈 기준 · 쿨다운 (2026-10-05 결정): platform
  * defaults 방송 전체 점수 · 쿨다운 없음, changeable by the creator. A spin is drawn on the server: the thief takes the slot's points from the target's
- * current score (never more than the target has). Points are display scores only. The request id is
+ * current score (never more than the target has). 강탈엔 배틀 배수 미적용 (2026-10-07 결정): moved points count as they
+ * are on the main scoreboard and the battle board. Points are display scores only. The request id is
  * the record id, so a retried spin returns the same result instead of spinning again.
  * TBD: 후원 연동 (특정 금액 후원 시 자동 룰렛).
  */
@@ -113,9 +114,14 @@ export async function spinSteal(input: unknown): Promise<StealSpinResult> {
   let roll = randomInt(slots.reduce((s, x) => s + x.weight, 0));
   const slotIndex = slots.findIndex((x) => (roll -= x.weight) < 0);
   const slot = slots[slotIndex];
-  const has = Math.max(0, rules.basis === "BATTLE" && battle ? (windowScores(live, battle.startedAt, null).get(v.targetId as string) ?? 0) : currentScore(live, v.targetId as string));
-  const points = slot.kind === "PERCENT" ? Math.floor((has * slot.value) / 100) : slot.kind === "POINTS" ? Math.min(slot.value, has) : 0;
-  const record = { id: v.requestId, at: new Date(now).toISOString(), thief: v.thiefId as string, target: v.targetId as string, slotId: slot.id, slotLabel: slot.label, points };
+  const target = v.targetId as string;
+  const board = Math.max(0, currentScore(live, target));
+  const has = rules.basis === "BATTLE" && battle ? Math.max(0, windowScores(live, battle.startedAt, null).get(target) ?? 0) : board;
+  const drawn = slot.kind === "PERCENT" ? Math.floor((has * slot.value) / 100) : slot.kind === "POINTS" ? Math.min(slot.value, has) : 0;
+  // 강탈엔 배틀 배수 미적용 (2026-10-07 결정): the record moves board points as they are, even inside a ×n battle
+  // (battleBonus and the battle sides leave it out), so capping at the target's board score keeps them at 0 or more.
+  const points = Math.min(drawn, board);
+  const record = { id: v.requestId, at: new Date(now).toISOString(), thief: v.thiefId as string, target, slotId: slot.id, slotLabel: slot.label, points };
   steals.push(record);
   await mockDelay(100);
   return { status: "SPUN", record: stealRecordView(live.channelId, record), slotIndex };

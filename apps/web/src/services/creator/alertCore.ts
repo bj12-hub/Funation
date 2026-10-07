@@ -16,6 +16,8 @@ type MockAlerts = {
   shownAt: number | null;
   /** 테스트 후원 request ids already accepted (double-click / retry dedupe). */
   testRequests: Record<string, string>;
+  /** 다시 보내기 request ids already applied → the queued copy (double-click / retry dedupe). */
+  replayRequests?: Record<string, string>;
   /** Signals for open overlays: a changed value means "stop speaking" / "reload yourself". */
   ttsSkipSeq: number;
   reloadSeq: number;

@@ -57,7 +57,7 @@ describe("SMS 계좌후원", () => {
     const fn = m.account.fnBalance;
     expect((await post(m, k, JSON.stringify({ text: SAMPLE_BANK_SMS }))).status).toBe(403); // off
     expect(await m.setBankSms({ enabled: true })).toEqual({ status: "SAVED" });
-    await m.startBroadcast({ title: "계좌 후원 방송", teamMode: false, teams: {} });
+    await m.startBroadcast({ requestId: crypto.randomUUID(), title: "계좌 후원 방송", teamMode: false, teams: {} });
 
     const first = await post(m, k, JSON.stringify({ text: SAMPLE_BANK_SMS, id: "msg-1" }));
     expect([first.status, await first.json()]).toEqual([200, { status: "OK", amount: 10_000 }]);

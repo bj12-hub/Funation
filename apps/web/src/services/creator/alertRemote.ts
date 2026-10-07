@@ -107,36 +107,63 @@ export async function setAlertControls(input: unknown): Promise<RemoteResult> {
   return { status: "SAVED" };
 }
 
-/** 현재 알림 건너뛰기. Skipping when nothing is on screen is a no-op. */
-export async function skipCurrentAlert(): Promise<RemoteResult> {
+const rec = (input: unknown) => (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
+
+/**
+ * 현재 알림 건너뛰기 of the alert the remote showed (`alertId`). A no-op unless that alert is still on screen: when
+ * it already ended, the click must not skip the next (paid) alert.
+ */
+export async function skipCurrentAlert(input: unknown): Promise<RemoteResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const alertId = rec(input).alertId;
+  if (typeof alertId !== "string") return { status: "INVALID", message: "요청을 확인해 주세요." };
+  advance();
   const showing = mockAlerts.items.find((a) => a.status === "SHOWING");
-  if (showing) {
+  if (showing?.id === alertId) {
     showing.status = "SKIPPED";
     mockAlerts.shownAt = null;
+    advance();
   }
+  return { status: "SAVED" };
+}
+
+/**
+ * 전체 알림 취소: the one on screen and everything queued. With `upToId` (the newest alert the remote listed) only
+ * alerts up to it are cancelled — one that arrived after the operator looked keeps its place in the queue.
+ */
+export async function cancelAllAlerts(input?: unknown): Promise<RemoteResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const upToId = rec(input).upToId;
+  // Items are kept in arrival order (the queue order), so "seen" = at or before the remote's newest alert.
+  const last = upToId === undefined ? mockAlerts.items.length - 1 : mockAlerts.items.findIndex((a) => a.id === upToId);
+  if (last < 0 && upToId !== undefined) return { status: "INVALID", message: "알림 목록이 바뀌었어요. 새로고침 후 다시 시도해 주세요." };
+  mockAlerts.items.forEach((a, i) => {
+    if (i > last || (a.status !== "QUEUED" && a.status !== "SHOWING")) return;
+    if (a.status === "SHOWING") mockAlerts.shownAt = null;
+    a.status = "SKIPPED";
+  });
   advance();
   return { status: "SAVED" };
 }
 
-/** 전체 알림 취소: the one on screen and everything queued. */
-export async function cancelAllAlerts(): Promise<RemoteResult> {
+/**
+ * 다시 보내기: queues a copy of a finished alert (shown again, not charged again). `requestId` (one per intended
+ * replay) makes a double click or retry queue one copy.
+ */
+export async function replayAlert(input: unknown): Promise<RemoteResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
-  for (const a of mockAlerts.items) if (a.status === "QUEUED" || a.status === "SHOWING") a.status = "SKIPPED";
-  mockAlerts.shownAt = null;
-  return { status: "SAVED" };
-}
-
-/** 다시 보내기: queues a copy of a finished alert (shown again, not charged again). */
-export async function replayAlert(id: unknown): Promise<RemoteResult> {
-  assertMock();
-  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
-  const src = mockAlerts.items.find((a) => a.id === id);
+  const v = rec(input);
+  if (typeof v.requestId !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(v.requestId)) return { status: "INVALID", message: "요청을 확인해 주세요." };
+  const requests = (mockAlerts.replayRequests ??= {});
+  if (requests[v.requestId]) return { status: "SAVED" };
+  const src = mockAlerts.items.find((a) => a.id === v.id);
   if (!src || src.status === "QUEUED" || src.status === "SHOWING") return { status: "INVALID", message: "다시 보낼 수 없는 알림이에요." };
-  const copy = { ...src, id: `al-${Date.now()}-${mockAlerts.items.length}`, createdAt: new Date().toISOString(), status: "QUEUED" as const, replayOf: src.replayOf ?? src.id };
+  const copy = { ...src, id: `al-${crypto.randomUUID()}`, createdAt: new Date().toISOString(), status: "QUEUED" as const, replayOf: src.replayOf ?? src.id };
   mockAlerts.items.push(copy);
+  requests[v.requestId] = copy.id;
   advance();
   return { status: "SAVED" };
 }

@@ -43,6 +43,7 @@ export type DrawingView = { settings: DrawingSettings; showing: { id: string; un
 
 export type OverlayDrawing = { drawing: (Omit<Drawing, "kind" | "receivedAt"> & { until: string }) | null; reloadSeq: number; on: boolean };
 
-export const MEDIA_LIMITS = { maxSecMin: 10, maxSecMax: 600, displaySecMin: 5, displaySecMax: 120, historyMax: 30, drawingsMax: 30 } as const;
+/** `rangeSecMax`: the latest 시작 · 종료 second a 영상 후원 (or 테스트 영상) may name — 24 hours. */
+export const MEDIA_LIMITS = { maxSecMin: 10, maxSecMax: 600, displaySecMin: 5, displaySecMax: 120, historyMax: 30, drawingsMax: 30, rangeSecMax: 86_400 } as const;
 
 export type MediaResult = { status: "OK" } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };

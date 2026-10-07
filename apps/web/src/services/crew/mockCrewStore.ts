@@ -15,6 +15,8 @@ type Attribution = { donationId: string; channelId: string; memberId: string; fn
 
 export type MockBroadcast = {
   id: string;
+  /** The start request (a retried start returns SAVED instead of a second broadcast); missing on the seed. */
+  requestId?: string;
   channelId: string;
   title: string;
   startedAt: string;
@@ -87,6 +89,8 @@ type MockCrew = {
   scenario?: Record<string, ScenarioPart[]>;
   /** 직급 per channel (missing = none). */
   grades?: Record<string, CrewGrade[]>;
+  /** 멤버 추가 request ids already applied (a retried add is not a second member). */
+  memberRequests?: string[];
 };
 
 const m = (id: string, name: string, role: CrewMember["role"], color: string, active = true): CrewMember => ({ id, name, role, active, color });
