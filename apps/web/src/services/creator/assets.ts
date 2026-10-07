@@ -16,6 +16,12 @@ const assertMock = () => {
   if (!USE_MOCK) throw new Error("Asset API is not connected yet.");
 };
 const invalid = (message: string) => ({ status: "INVALID", message }) as const;
+/** Why the library has no room for `size` more bytes, or null. Checked before reading the file and again after the last await. */
+function noRoom(size: number) {
+  if (mockAssets.items.length >= ASSET_LIMITS.max) return `라이브러리에는 ${ASSET_LIMITS.max}개까지 보관할 수 있어요.`;
+  const used = mockAssets.items.reduce((sum, a) => sum + a.size, 0);
+  return used + size > ASSET_LIMITS.totalBytes ? "라이브러리 용량이 부족해요. 쓰지 않는 파일을 지워 주세요." : null;
+}
 const nameOk = (name: string) => name.length >= 1 && name.length <= ASSET_LIMITS.nameMax && !MOCK_FORBIDDEN_WORDS.some((w) => name.toLowerCase().includes(w));
 
 export async function listAssets(kind?: AssetKind): Promise<Asset[] | null> {
@@ -40,9 +46,8 @@ export async function uploadAsset(formData: FormData): Promise<AssetResult> {
   const kind: AssetKind | null = ASSET_TYPES.IMAGE.includes(file.type) ? "IMAGE" : ASSET_TYPES.SOUND.includes(file.type) ? "SOUND" : null;
   if (!kind) return invalid("PNG · JPG · GIF · WEBP 이미지나 MP3 · WAV · OGG 사운드만 올릴 수 있어요.");
   if (file.size > ASSET_LIMITS.bytes[kind]) return invalid(`${kind === "IMAGE" ? "이미지" : "사운드"}는 ${ASSET_LIMITS.bytes[kind] / 1024 / 1024}MB 이하만 올릴 수 있어요.`);
-  if (mockAssets.items.length >= ASSET_LIMITS.max) return invalid(`라이브러리에는 ${ASSET_LIMITS.max}개까지 보관할 수 있어요.`);
-  const used = mockAssets.items.reduce((sum, a) => sum + a.size, 0);
-  if (used + file.size > ASSET_LIMITS.totalBytes) return invalid("라이브러리 용량이 부족해요. 쓰지 않는 파일을 지워 주세요.");
+  const full = noRoom(file.size);
+  if (full) return invalid(full);
 
   const bytes = Buffer.from(await file.arrayBuffer());
   if (!matchesContent(bytes, file.type)) return invalid("파일 내용이 형식과 맞지 않아요.");
@@ -55,6 +60,9 @@ export async function uploadAsset(formData: FormData): Promise<AssetResult> {
   // The checks above awaited: a copy of this request that finished meanwhile wins (nothing awaits from here).
   const raced = findAsset(mockAssets.requests[requestKey]);
   if (raced) return { status: "SAVED", asset: publicAsset(raced) };
+  // The count and size limits too: concurrent uploads must not pass them together.
+  const late = noRoom(file.size);
+  if (late) return invalid(late);
   const id = randomUUID();
   const asset = { id, kind, name, mime: sniffed, size: file.size, url: assetUrl(id), uploadedAt: new Date().toISOString(), bytes };
   mockAssets.items.unshift(asset);

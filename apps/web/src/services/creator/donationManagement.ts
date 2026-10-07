@@ -143,9 +143,10 @@ export async function addBannedWord(word: unknown): Promise<ManagementSaveResult
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const w = typeof word === "string" ? word.trim() : "";
   if (w.length < 1 || w.length > BANNED_WORD_MAX) return { status: "INVALID", message: `금지어는 1~${BANNED_WORD_MAX}자로 입력해 주세요.` };
+  await mockDelay(250);
+  // After the last await, in the same tick as the write: a double submit must not add the word twice or pass the cap.
   if (store.replacement.bannedWords.includes(w)) return { status: "INVALID", message: "이미 등록된 금지어입니다." };
   if (store.replacement.bannedWords.length >= BANNED_WORDS_MAX) return { status: "INVALID", message: `금지어는 최대 ${BANNED_WORDS_MAX}개까지 등록할 수 있어요.` };
-  await mockDelay(250);
   store.replacement.bannedWords = [...store.replacement.bannedWords, w];
   return { status: "SAVED" };
 }
@@ -438,9 +439,10 @@ export async function addFilterWord(word: unknown): Promise<ManagementSaveResult
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const w = typeof word === "string" ? word.trim() : "";
   if (w.length < 1 || w.length > FILTER_WORD_MAX) return { status: "INVALID", message: `단어는 1~${FILTER_WORD_MAX}자로 입력해 주세요.` };
+  await mockDelay(250);
+  // After the last await, in the same tick as the write (see addBannedWord).
   if (filterSettings.words.includes(w)) return { status: "INVALID", message: "이미 등록된 단어입니다." };
   if (filterSettings.words.length >= FILTER_WORDS_MAX) return { status: "INVALID", message: `단어는 최대 ${FILTER_WORDS_MAX}개까지 등록할 수 있어요.` };
-  await mockDelay(250);
   filterSettings.words = [...filterSettings.words, w];
   return { status: "SAVED" };
 }

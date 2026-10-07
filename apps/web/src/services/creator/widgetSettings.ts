@@ -127,6 +127,19 @@ export async function saveWidgetSettings(key: unknown, input: unknown): Promise<
 // ── 커스텀 사운드 (373:1307) ───────────────────────────────────────────────────
 
 /**
+ * The sound being updated (or none for a new one), or why the current list refuses it: gone, full, or the word taken.
+ * Run before reading the file and again after the last await, against the list as it is then.
+ */
+function soundSlot(id: string, word: string): { existing: CustomSound | undefined } | { status: "INVALID"; message: string } {
+  const sounds = store.CUSTOM_SOUND.sounds;
+  const existing = id ? sounds.find((s) => s.id === id) : undefined;
+  if (id && !existing) return { status: "INVALID", message: "삭제되었거나 없는 사운드입니다." };
+  if (!existing && sounds.length >= CUSTOM_SOUND_MAX) return { status: "INVALID", message: `커스텀 사운드는 최대 ${CUSTOM_SOUND_MAX}개까지 등록할 수 있어요.` };
+  if (sounds.some((s) => s.id !== id && s.word === word)) return { status: "INVALID", message: "이미 등록된 단어입니다." };
+  return { existing };
+}
+
+/**
  * Adds or updates one sound. FormData: `id` (empty for new), `word`, `volume`, and either `file` or
  * `assetId` (a SOUND from the 이미지·사운드 library). A new sound needs one of them; an update without
  * either keeps the existing audio. A library sound is copied, so deleting it from the library later
@@ -140,14 +153,11 @@ export async function saveCustomSound(formData: FormData): Promise<CustomSoundRe
   const volume = Number(formData.get("volume"));
   const file = formData.get("file");
   const assetId = String(formData.get("assetId") ?? "");
-  const sounds = store.CUSTOM_SOUND.sounds;
-  const existing = id ? sounds.find((s) => s.id === id) : undefined;
-
-  if (id && !existing) return { status: "INVALID", message: "삭제되었거나 없는 사운드입니다." };
-  if (!existing && sounds.length >= CUSTOM_SOUND_MAX) return { status: "INVALID", message: `커스텀 사운드는 최대 ${CUSTOM_SOUND_MAX}개까지 등록할 수 있어요.` };
+  const slot = soundSlot(id, word);
+  if ("status" in slot) return slot;
+  const { existing } = slot;
   if (word.length < 1 || word.length > CUSTOM_SOUND_WORD_MAX) return { status: "INVALID", message: `교체할 단어는 1~${CUSTOM_SOUND_WORD_MAX}자로 입력해 주세요.` };
   if (MOCK_FORBIDDEN_WORDS.some((w) => word.toLowerCase().includes(w))) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
-  if (sounds.some((s) => s.id !== id && s.word === word)) return { status: "INVALID", message: "이미 등록된 단어입니다." };
   if (!Number.isInteger(volume) || volume < 0 || volume > 100) return { status: "INVALID", message: "볼륨을 확인해 주세요." };
 
   const hasFile = file instanceof File && file.size > 0;
@@ -170,10 +180,15 @@ export async function saveCustomSound(formData: FormData): Promise<CustomSoundRe
   }
   await mockDelay(400);
 
-  const sound: CustomSound = existing
-    ? { ...existing, word, volume, ...(audio ?? {}) }
+  // The list may have changed while the file was read: check it again as it is now and write in the same tick, so a
+  // concurrent add is kept, a deleted sound is not brought back and the cap and duplicate checks hold.
+  const now = soundSlot(id, word);
+  if ("status" in now) return now;
+  const sound: CustomSound = now.existing
+    ? { ...now.existing, word, volume, ...(audio ?? {}) }
     : { id: randomUUID(), word, volume, fileName: audio!.fileName, fileUrl: audio!.fileUrl };
-  store.CUSTOM_SOUND.sounds = existing ? sounds.map((s) => (s.id === id ? sound : s)) : [...sounds, sound];
+  const sounds = store.CUSTOM_SOUND.sounds;
+  store.CUSTOM_SOUND.sounds = now.existing ? sounds.map((s) => (s.id === id ? sound : s)) : [...sounds, sound];
   return { status: "SAVED", sound };
 }
 
@@ -200,6 +215,8 @@ export async function uploadWallpaperImage(formData: FormData): Promise<Wallpape
   const bytes = Buffer.from(await file.arrayBuffer());
   if (!matchesContent(bytes, file.type)) return { status: "UNSUPPORTED" };
   await mockDelay(500);
+  // Checked again after the last await, in the same tick as the write: concurrent uploads must not pass the cap together.
+  if (store.WALLPAPER.images.length >= WALLPAPER_IMAGES_MAX) return { status: "LIMIT" };
   // Mock storage: data URL in memory.
   const image = { id: randomUUID(), url: `data:${file.type};base64,${bytes.toString("base64")}` };
   store.WALLPAPER.images = [...store.WALLPAPER.images, image];
