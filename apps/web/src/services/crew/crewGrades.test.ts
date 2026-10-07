@@ -57,7 +57,7 @@ describe("직급 · 직급 배수", () => {
     await m.updateCrewMember("cm-s2", { gradeId: staff.id });
     await m.setMemberKeywords({ memberId: "cm-s1", keywords: ["길동"] });
     await m.setMemberKeywords({ memberId: "cm-s2", keywords: ["하늘"] });
-    expect(await m.startBroadcast({ title: "직급전", teamMode: false, teams: {} })).toEqual({ status: "SAVED" });
+    expect(await m.startBroadcast({ requestId: crypto.randomUUID(), title: "직급전", teamMode: false, teams: {} })).toEqual({ status: "SAVED" });
     const id = (await m.getBroadcastView())!.live!.id;
     await m.simulateDonation({ broadcastId: id, requestId: key(1), amount: 3_000, unit: "FN", message: "길동" });
     await m.simulateDonation({ broadcastId: id, requestId: key(2), amount: 5_000, unit: "FN", message: "하늘" });
@@ -71,7 +71,7 @@ describe("직급 · 직급 배수", () => {
     await m.saveCrewGrades({ grades: [{ id: boss.id, name: "부장", multiplier: 1.5 }, { id: staff.id, name: "사원", multiplier: 1 }] });
     expect((await m.getBroadcastView())!.live!.rows.find((r) => r.memberId === "cm-s1")).toMatchObject({ grade: 3_000, score: 6_000 });
     await m.endBroadcast(id);
-    await m.startBroadcast({ title: "직급전 2", teamMode: false, teams: {} });
+    await m.startBroadcast({ requestId: crypto.randomUUID(), title: "직급전 2", teamMode: false, teams: {} });
     const next = (await m.getBroadcastView())!.live!.id;
     await m.simulateDonation({ broadcastId: next, requestId: key(3), amount: 3_000, unit: "FN", message: "길동" });
     expect((await m.getBroadcastView())!.live!.rows.find((r) => r.memberId === "cm-s1")).toMatchObject({ feed: 3_000, grade: 1_500, score: 4_500 });
@@ -84,7 +84,7 @@ describe("직급 · 직급 배수", () => {
     const [boss] = (await m.getCrewStudio())!.grades;
     await m.updateCrewMember("cm-s1", { gradeId: boss.id });
     await m.setMemberKeywords({ memberId: "cm-s1", keywords: ["길동"] });
-    await m.startBroadcast({ title: "강탈전", teamMode: false, teams: {} });
+    await m.startBroadcast({ requestId: crypto.randomUUID(), title: "강탈전", teamMode: false, teams: {} });
     const id = (await m.getBroadcastView())!.live!.id;
     await m.simulateDonation({ broadcastId: id, requestId: key(1), amount: 1_000, unit: "FN", message: "길동" });
     const before = (await m.getBroadcastView())!.live!.rows;
@@ -123,7 +123,7 @@ describe("직급 · 직급 배수", () => {
     const [boss] = (await m.getCrewStudio())!.grades;
     await m.updateCrewMember("cm-s1", { gradeId: boss.id });
     await m.setMemberKeywords({ memberId: "cm-s1", keywords: ["길동"] });
-    await m.startBroadcast({ title: "반올림", teamMode: false, teams: {} });
+    await m.startBroadcast({ requestId: crypto.randomUUID(), title: "반올림", teamMode: false, teams: {} });
     const id = (await m.getBroadcastView())!.live!.id;
     await m.simulateDonation({ broadcastId: id, requestId: key(1), amount: 1_010, unit: "FN", message: "길동" });
     // 1,010 × 0.15 = 151.5 → 152 (floating point alone gives 151).

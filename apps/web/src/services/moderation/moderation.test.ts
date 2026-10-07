@@ -62,7 +62,12 @@ describe("reports", () => {
     const other = after.rows[0];
     expect(await m.decideReport(OP, { id: other.id, action: "DISMISS", note: "위반 아님" })).toEqual({ status: "OK" });
     expect(await m.getPost("p-3")).not.toBeNull();
-    expect(m.auditEntries().map((e) => e.action)).toEqual(["REPORT_DISMISS", "REPORT_HIDE"]);
+    // One audit entry per closed report: the HIDE closed both reports on p-2.
+    expect(m.auditEntries().map((e) => e.action)).toEqual(["REPORT_DISMISS", "REPORT_HIDE", "REPORT_HIDE"]);
+    const hides = m.auditEntries().filter((e) => e.action === "REPORT_HIDE");
+    expect(hides.map((e) => e.target).sort()).toEqual([`report:${first.id}`, "report:rp-other"].sort());
+    expect(hides.find((e) => e.target === `report:${first.id}`)!.reason).toBe("광고 게시글 숨김");
+    expect(hides.find((e) => e.target === "report:rp-other")!.reason).toBe(`광고 게시글 숨김 (신고 ${first.id} 처리로 함께 종료)`);
 
     await m.submitReport({ target: { type: "CREATOR", id: "c2" }, reason: "IMPERSONATION" });
     const creatorReport = (await m.listReports()).rows[0];

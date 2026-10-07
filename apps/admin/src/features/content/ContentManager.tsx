@@ -2,16 +2,27 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { deleteFaq, deleteNotice, saveFaq, saveNotice } from "@/lib/actions";
 import { FAQ_LIMITS, NOTICE_LIMITS, type ActionResult, FAQ_CATEGORIES, NOTICE_CATEGORY_LABEL, type FaqItem, type Notice, type NoticeCategory } from "@/types/adminApi";
 import { SITE_URL } from "@/lib/siteUrl";
 import styles from "../admin.module.css";
 
-type NoticeDraft = { id: string | null; category: NoticeCategory; important: boolean; title: string; summary: string; body: string };
-type FaqDraft = { id: string | null; category: FaqItem["category"]; question: string; answer: string; linkHref: string; linkLabel: string };
+/**
+ * `requestId`: one per opened new draft (null when editing), so a retry of that draft is created once and nothing else
+ * (another draft, the other tab) ever reuses it.
+ */
+type NoticeDraft = { id: string | null; requestId: string | null; category: NoticeCategory; important: boolean; title: string; summary: string; body: string };
+type FaqDraft = { id: string | null; requestId: string | null; category: FaqItem["category"]; question: string; answer: string; linkHref: string; linkLabel: string };
 
 const faqLabel = (k: FaqItem["category"]) => FAQ_CATEGORIES.find((c) => c.key === k)?.label ?? k;
+
+const ERROR_TEXT = {
+  NOT_FOUND: "항목을 찾을 수 없어요.",
+  UNAUTHORIZED: "관리자 로그인이 필요합니다.",
+  UNAVAILABLE: "사이트에 연결할 수 없어요. 잠시 후 다시 시도해 주세요.",
+  CONFLICT: "이 글은 이미 다른 내용으로 저장됐어요. 목록을 확인한 뒤 새로 작성해 주세요."
+} as const;
 
 /** 콘텐츠 관리 — code-first. Route `/content`. The 고객센터 shows changes immediately. */
 export function ContentManager({ tab, notices, faqs }: { tab: "notices" | "faq"; notices: Notice[]; faqs: FaqItem[] }) {
@@ -20,7 +31,6 @@ export function ContentManager({ tab, notices, faqs }: { tab: "notices" | "faq";
   const [faqDraft, setFaqDraft] = useState<FaqDraft | null>(null);
   const [msg, setMsg] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
-  const requestId = useRef<string | null>(null);
 
   const run = (action: () => Promise<ActionResult>, ok: string, after?: () => void) => {
     setMsg(null);
@@ -28,17 +38,15 @@ export function ContentManager({ tab, notices, faqs }: { tab: "notices" | "faq";
       try {
         const res = await action();
         if (res.status === "OK") {
-          requestId.current = null;
           setMsg({ tone: "ok", text: ok });
           after?.();
           router.refresh();
-        } else setMsg({ tone: "error", text: res.status === "INVALID" ? res.message : res.status === "NOT_FOUND" ? "항목을 찾을 수 없어요." : "관리자 로그인이 필요합니다." });
+        } else setMsg({ tone: "error", text: res.status === "INVALID" ? res.message : ERROR_TEXT[res.status] });
       } catch {
         setMsg({ tone: "error", text: "저장하지 못했어요. 잠시 후 다시 시도해 주세요." });
       }
     });
   };
-  const newId = () => (requestId.current ??= crypto.randomUUID());
 
   return (
     <div className={styles.content}>
@@ -86,7 +94,7 @@ export function ContentManager({ tab, notices, faqs }: { tab: "notices" | "faq";
                   type="button"
                   className={styles.button}
                   disabled={pending}
-                  onClick={() => run(() => saveNotice({ ...noticeDraft, requestId: noticeDraft.id ? undefined : newId() }), noticeDraft.id ? "공지를 수정했어요." : "공지를 등록했어요.", () => setNoticeDraft(null))}
+                  onClick={() => run(() => saveNotice(noticeDraft), noticeDraft.id ? "공지를 수정했어요." : "공지를 등록했어요.", () => setNoticeDraft(null))}
                 >
                   {pending ? "저장 중…" : "저장"}
                 </button>
@@ -94,7 +102,7 @@ export function ContentManager({ tab, notices, faqs }: { tab: "notices" | "faq";
             </section>
           ) : (
             <div>
-              <button type="button" className={styles.button} onClick={() => setNoticeDraft({ id: null, category: "GENERAL", important: false, title: "", summary: "", body: "" })}>
+              <button type="button" className={styles.button} onClick={() => setNoticeDraft({ id: null, requestId: crypto.randomUUID(), category: "GENERAL", important: false, title: "", summary: "", body: "" })}>
                 + 새 공지
               </button>
             </div>
@@ -125,7 +133,7 @@ export function ContentManager({ tab, notices, faqs }: { tab: "notices" | "faq";
                     <td>{n.date}</td>
                     <td>{n.views}</td>
                     <td className={styles.rowActions}>
-                      <button type="button" className={styles.button} onClick={() => setNoticeDraft({ id: n.id, category: n.category, important: n.important, title: n.title, summary: n.summary, body: n.body.join("\n\n") })}>
+                      <button type="button" className={styles.button} onClick={() => setNoticeDraft({ id: n.id, requestId: null, category: n.category, important: n.important, title: n.title, summary: n.summary, body: n.body.join("\n\n") })}>
                         수정
                       </button>
                       <button type="button" className={styles.danger} disabled={pending} onClick={() => window.confirm(`'${n.title}' 공지를 삭제할까요?`) && run(() => deleteNotice(n.id), "공지를 삭제했어요.")}>
@@ -166,7 +174,7 @@ export function ContentManager({ tab, notices, faqs }: { tab: "notices" | "faq";
                   type="button"
                   className={styles.button}
                   disabled={pending}
-                  onClick={() => run(() => saveFaq({ ...faqDraft, requestId: faqDraft.id ? undefined : newId() }), faqDraft.id ? "FAQ를 수정했어요." : "FAQ를 등록했어요.", () => setFaqDraft(null))}
+                  onClick={() => run(() => saveFaq(faqDraft), faqDraft.id ? "FAQ를 수정했어요." : "FAQ를 등록했어요.", () => setFaqDraft(null))}
                 >
                   {pending ? "저장 중…" : "저장"}
                 </button>
@@ -174,7 +182,7 @@ export function ContentManager({ tab, notices, faqs }: { tab: "notices" | "faq";
             </section>
           ) : (
             <div>
-              <button type="button" className={styles.button} onClick={() => setFaqDraft({ id: null, category: "GENERAL", question: "", answer: "", linkHref: "", linkLabel: "" })}>
+              <button type="button" className={styles.button} onClick={() => setFaqDraft({ id: null, requestId: crypto.randomUUID(), category: "GENERAL", question: "", answer: "", linkHref: "", linkLabel: "" })}>
                 + 새 FAQ
               </button>
             </div>
@@ -199,7 +207,7 @@ export function ContentManager({ tab, notices, faqs }: { tab: "notices" | "faq";
                       <button
                         type="button"
                         className={styles.button}
-                        onClick={() => setFaqDraft({ id: f.id, category: f.category, question: f.question, answer: f.answer ?? "", linkHref: f.link?.href ?? "", linkLabel: f.link?.label ?? "" })}
+                        onClick={() => setFaqDraft({ id: f.id, requestId: null, category: f.category, question: f.question, answer: f.answer ?? "", linkHref: f.link?.href ?? "", linkLabel: f.link?.label ?? "" })}
                       >
                         수정
                       </button>

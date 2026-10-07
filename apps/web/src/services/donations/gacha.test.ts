@@ -116,6 +116,25 @@ describe("뽑기 후원", () => {
     expect(m.account.fnBalance).toBe(100_000 - 3_000 - 3 * 5_000);
   });
 
+  it("shows 상품소진형 stock going down only when a draw is revealed", async () => {
+    const m = await load();
+    setGachas(m);
+    const t0 = Date.parse("2026-10-04T12:00:00");
+    const enqueue = (id: string, at: number) => m.enqueueDraw({ id, channelId: "c1", supporterUserId: "u-1", donor: "보라색원픽", gachaId: "gacha-2", amount: 5_000 }, at, () => 0);
+    const first = enqueue("d1", t0); // 아크릴 스탠드
+    const second = enqueue("d2", t0 + 1); // 아크릴 스탠드 (queued behind the first)
+    const left = (at: number) => m.gachaOffers(at)[1].prizes.map((p) => p.left);
+    expect(m.widgetStore.GACHA.gachas[1].prizes.map((p) => p.value)).toEqual([0, 1]); // taken at payment
+    expect(left(t0 + 1)).toEqual([2, 1]); // a reload while spinning tells nothing
+    // A prize at 0 is never drawn, whatever the room shows.
+    expect(enqueue("d3", t0 + 2).prize).toBe("엽서");
+    expect(m.gachaOffers(t0 + 2)[1].soldOut).toBe(true);
+    expect(left(t0 + first.spinMs)).toEqual([1, 1]); // the first is revealed
+    const secondShown = t0 + first.spinMs + first.showMs + second.spinMs;
+    m.advance("c1", t0 + first.spinMs + first.showMs);
+    expect(left(secondShown)).toEqual([0, 1]);
+  });
+
   it("charges the price the supporter confirmed, or nothing when the creator changed it (PRICE_CHANGED)", async () => {
     const m = await load();
     setGachas(m);

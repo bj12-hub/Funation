@@ -28,6 +28,8 @@ export type GachaDraw = {
   createdAt: string;
   day: string;
   prize: string;
+  /** The prize's id in the 뽑기 settings (missing on seed draws). */
+  prizeId?: string;
   blank: boolean;
   startedAt: string | null;
   spinMs: number;
@@ -90,8 +92,21 @@ const findGacha = (id: unknown) => settings().gachas.find((x) => x.id === id && 
 
 const stockLeft = (gacha: Gacha) => gacha.prizes.reduce((s, p) => s + p.value, 0);
 
+const revealed = (d: GachaDraw, now: number) => {
+  const s = statusOf(d, now);
+  return s === "RESULT" || s === "DONE";
+};
+
+/**
+ * 상품소진형 stock as the room shows it. A draw takes its prize from the stock at payment, but the room counts it only
+ * once the machine reveals it: otherwise reloading the room would tell which prize a queued or spinning draw won.
+ * Drawing still uses the real stock (a prize at 0 is never drawn, and `soldOut` follows the real total).
+ */
+const shownLeft = (gacha: Gacha, prize: Gacha["prizes"][number], now: number) =>
+  prize.value + mockGacha.draws.filter((d) => d.gachaId === gacha.id && d.prizeId === prize.id && d.mode === "STOCK" && !revealed(d, now)).length;
+
 /** What the donation panel shows (enabled 뽑기 only). */
-export function gachaOffers(): GachaOffer[] {
+export function gachaOffers(now = Date.now()): GachaOffer[] {
   return settings()
     .gachas.filter((x) => x.enabled)
     .map((x) => ({
@@ -99,7 +114,7 @@ export function gachaOffers(): GachaOffer[] {
       name: x.name,
       price: x.price,
       mode: x.prizeMode,
-      prizes: x.prizes.map((p) => ({ name: p.name, blank: p.kind === "BLANK", percent: x.prizeMode === "PROBABILITY" ? p.value : null, left: x.prizeMode === "STOCK" ? p.value : null })),
+      prizes: x.prizes.map((p) => ({ name: p.name, blank: p.kind === "BLANK", percent: x.prizeMode === "PROBABILITY" ? p.value : null, left: x.prizeMode === "STOCK" ? shownLeft(x, p, now) : null })),
       limit: x.limitEnabled ? x.limitCount : null,
       soldOut: x.prizeMode === "STOCK" && stockLeft(x) === 0
     }));
@@ -166,6 +181,7 @@ export function enqueueDraw(
     createdAt: new Date(now).toISOString(),
     day: toDateString(new Date(now)),
     prize: prize.name,
+    prizeId: prize.id,
     blank,
     startedAt: null,
     spinMs: x.spinSec * 1000,
@@ -197,11 +213,6 @@ export function keepDrawnStock(next: GachaSettings, current: GachaSettings): Gac
   }
   return next;
 }
-
-const revealed = (d: GachaDraw, now: number) => {
-  const s = statusOf(d, now);
-  return s === "RESULT" || s === "DONE";
-};
 
 export function stageOf(channelId: string, now = Date.now()): GachaStage | null {
   advance(channelId, now);

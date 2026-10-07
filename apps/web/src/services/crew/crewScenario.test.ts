@@ -35,7 +35,7 @@ describe("콘텐츠 시나리오 도우미", () => {
   it("moves part to part once per click, opens a part's 서브 점수판 and closes with 방송 종료", async () => {
     const { setScenario, startBroadcast, startScenarioPart, finishScenario, endBroadcast, getOverlayScoreboard, view } = await load();
     const { mockCreator } = await import("@/services/creator/mockCreatorStore");
-    await startBroadcast({ title: "시나리오 방송", teamMode: false });
+    await startBroadcast({ requestId: crypto.randomUUID(), title: "시나리오 방송", teamMode: false });
     const id = (await view()).live!.id;
     expect((await startScenarioPart({ broadcastId: id, index: 0, requestId: key(1) })).status).toBe("INVALID"); // no plan yet
     await setScenario({ parts: PLAN });
@@ -54,6 +54,14 @@ describe("콘텐츠 시나리오 도우미", () => {
     expect(live.scenario!.parts).toHaveLength(3);
     const overlay = await getOverlayScoreboard(mockCreator.integrationKey);
     expect(overlay !== "IDLE" && overlay !== "FORBIDDEN" && overlay.scenario).toMatchObject({ current: 1 });
+    // The key-only overlay gets what it shows (부 이름 · 예정 시간), not the operator's 메모.
+    expect(overlay !== "IDLE" && overlay !== "FORBIDDEN" && overlay.scenario!.parts).toEqual([
+      { title: "오프닝", minutes: 10 },
+      { title: "직급전", minutes: 60 },
+      { title: "", minutes: null }
+    ]);
+    expect(JSON.stringify(overlay)).not.toContain("인사 · 오늘 룰 소개");
+    expect(live.scenario!.parts[0].memo).toBe("인사 · 오늘 룰 소개"); // the studio keeps it
 
     await finishScenario({ broadcastId: id });
     await finishScenario({ broadcastId: id });

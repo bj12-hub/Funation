@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type CSSProperties } from "react";
+import { useServerClock } from "@/hooks/useServerClock";
 import { formatNumber } from "@/lib/format";
 import { fillRank, fillTotal, rankAmountText } from "@/services/creator/widgetOverlayCore";
 import { WALL_SIZE, type OverlayWidget, type WidgetFeedLine } from "@/services/creator/widgetOverlayTypes";
@@ -199,19 +200,6 @@ function EventList({ data }: { data: Extract<OverlayWidget, { widget: "event" }>
       ))}
     </ul>
   );
-}
-
-/** Server time each second (corrected for clock skew); null until mounted. */
-function useServerClock(serverNow: string) {
-  const [skew, setSkew] = useState(0);
-  const [now, setNow] = useState<number | null>(null);
-  useEffect(() => setSkew(new Date(serverNow).getTime() - Date.now()), [serverNow]);
-  useEffect(() => {
-    setNow(Date.now());
-    const tick = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(tick);
-  }, []);
-  return now === null ? null : now + skew;
 }
 
 /** 퀘스트: running quests with a live countdown; 시간 초과 · 결과 대기 when it ends. */

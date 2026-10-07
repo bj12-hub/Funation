@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { formatNumber } from "@/lib/format";
 import { addCrewMember, removeCrewMember, updateCrewMember } from "@/services/crew/crew";
 import { CREW_ROLES, MAX_CREW_MEMBERS, crewRoleLabel, type CrewRole, type CrewSaveResult, type CrewStudioView } from "@/services/crew/crewTypes";
@@ -20,6 +20,7 @@ export function CrewScreen({ view }: { view: CrewStudioView }) {
   const [editing, setEditing] = useState<{ id: string; name: string } | null>(null);
   const [message, setMessage] = useState<{ tone: "error" | "ok"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
+  const addId = useRef<string | null>(null);
 
   const run = (action: () => Promise<CrewSaveResult>, ok: string, after?: () => void) => {
     setMessage(null);
@@ -56,7 +57,13 @@ export function CrewScreen({ view }: { view: CrewStudioView }) {
           className={styles.addRow}
           onSubmit={(e) => {
             e.preventDefault();
-            run(() => addCrewMember({ name, role }), "멤버를 추가했어요.", () => setName(""));
+            // One request id per intended add: a double click or retry is not a second member.
+            addId.current ??= crypto.randomUUID();
+            const requestId = addId.current;
+            run(() => addCrewMember({ requestId, name, role }), "멤버를 추가했어요.", () => {
+              addId.current = null;
+              setName("");
+            });
           }}
         >
           <input className={styles.input} value={name} onChange={(e) => setName(e.target.value)} placeholder="멤버 이름 (1~12자)" maxLength={12} aria-label="멤버 이름" />

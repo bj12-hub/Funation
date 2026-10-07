@@ -206,6 +206,8 @@ export type BroadcastLive = {
   showRankUp: boolean;
   /** 팬 메시지 · 요청사항 sent from the room during this broadcast. */
   fanNotes: FanNotesView;
+  /** Server clock when this view was read: timers (시나리오 경과, 강탈 card) correct the browser's clock with it. */
+  serverNow: string;
 };
 
 // ── 콘텐츠 시나리오 도우미 (1부 ~ 5부) — code-first ─────────────────────────────────────────────
@@ -225,6 +227,12 @@ export type ScenarioLive = {
   current: number | null;
   history: { index: number; title: string; startedAt: string; endedAt: string | null }[];
 };
+
+/** 콘텐츠 시나리오 as the OBS overlay gets it: what it shows (부 이름 · 예정 시간), never the operator's 메모. */
+export type OverlayScenario = Omit<ScenarioLive, "parts"> & { parts: Pick<ScenarioPart, "title" | "minutes">[] };
+
+/** The crew scoreboard as the OBS overlay gets it (the URL key alone opens it; see getOverlayScoreboard). */
+export type OverlayScoreboard = Omit<BroadcastLive, "scenario"> & { scenario: OverlayScenario | null };
 
 // ── 기여도 강탈 룰렛 — code-first; slots and odds are set by the creator ────────────────────────
 

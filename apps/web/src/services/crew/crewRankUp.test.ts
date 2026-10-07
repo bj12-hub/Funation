@@ -34,7 +34,7 @@ describe("랭크업", () => {
     const feed = await import("./crewFeed");
     const { mockCreator } = await import("@/services/creator/mockCreatorStore");
     await feed.setMemberKeywords({ memberId: "cm-s1", keywords: ["길동"] });
-    await bc.startBroadcast({ title: "랭크업 방송", teamMode: false, teams: {} });
+    await bc.startBroadcast({ requestId: crypto.randomUUID(), title: "랭크업 방송", teamMode: false, teams: {} });
     const live = (await bc.getBroadcastView())!.live!;
     await feed.simulateDonation({ broadcastId: live.id, requestId: key(1), amount: 2_000, unit: "FN", message: "길동" });
     let overlay = await bc.getOverlayScoreboard(mockCreator.integrationKey);

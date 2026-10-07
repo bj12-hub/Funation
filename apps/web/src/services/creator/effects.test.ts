@@ -38,10 +38,10 @@ describe("effects", () => {
     if (fx === "FORBIDDEN") throw new Error("forbidden");
     expect(fx.alertId).not.toBeNull();
 
-    await m.skipCurrentAlert();
+    await m.skipCurrentAlert({ alertId: (await m.getRemoteView())!.showing!.id });
     await m.sendTestAlert({ requestId: key(2), amount: 3_000, donor: "B" });
     expect(await m.getOverlayEffects(m.overlayKey)).toMatchObject({ emoji: null, layer: null });
-    await m.skipCurrentAlert();
+    await m.skipCurrentAlert({ alertId: (await m.getRemoteView())!.showing!.id });
     await m.sendTestAlert({ requestId: key(3), amount: 200_000, donor: "C" });
     expect(await m.getOverlayEffects(m.overlayKey)).toMatchObject({ layer: "FIREWORKS" });
   });

@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { sameSecret } from "@/lib/secret";
 import { getCreatorSession } from "@/lib/session";
@@ -17,13 +18,14 @@ import {
   type Battle,
   type FeedView,
   type BroadcastLive,
+  type OverlayScoreboard,
   type BroadcastResult,
   type BroadcastSummary,
   type BroadcastView,
   type ScoreRow,
   type TeamKey
 } from "./crewTypes";
-import { battleBonus, battleRulesOf, fanNotesView, gradeBonus, gradeMultipliersOf, excelOf, liveBroadcastOf, scoreEntry, scoreFn, stealRecordView, stealRulesOf, windowScores } from "./crewCore";
+import { battleBonus, battleRulesOf, fanNotesView, gradeBonus, gradeMultipliersOf, excelOf, liveBroadcastOf, scoreEntry, scoreFn, stealRecordView, stealRulesOf, timesMultiplier, windowReceived, windowScores, windowSteals } from "./crewCore";
 import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 /**
@@ -99,7 +101,8 @@ function liveView(b: MockBroadcast): BroadcastLive {
       : null,
     rankUp,
     showRankUp: !!b.showRankUp,
-    fanNotes: fanNotesView(b)
+    fanNotes: fanNotesView(b),
+    serverNow: new Date().toISOString()
   };
 }
 
@@ -109,9 +112,12 @@ const TEAM_COLOR = { A: "#3b82f6", B: "#ec4899" } as const;
 function battleView(b: MockBroadcast, x: NonNullable<MockBroadcast["battles"]>[number], now = Date.now()): Battle {
   const endMs = Math.min(new Date(x.endsAt).getTime(), x.stoppedAt ? new Date(x.stoppedAt).getTime() : Infinity);
   const running = endMs > now;
-  const scores = windowScores(b, x.startedAt, running ? null : new Date(endMs).toISOString());
+  const to = running ? null : new Date(endMs).toISOString();
+  const received = windowReceived(b, x.startedAt, to);
+  const steals = windowSteals(b, x.startedAt, to);
   const byId = new Map(members().map((m) => [m.id, m]));
   const multiplier = x.multiplier ?? 1;
+  const sum = (scores: Map<string, number>, ids: string[]) => ids.reduce((s, id) => s + (scores.get(id) ?? 0), 0);
   const side = (key: "A" | "B", ids: string[]) => {
     const one = x.mode === "MEMBERS" ? byId.get(ids[0]) : undefined;
     return {
@@ -119,8 +125,8 @@ function battleView(b: MockBroadcast, x: NonNullable<MockBroadcast["battles"]>[n
       label: x.mode === "MEMBERS" ? (one?.name ?? "삭제된 멤버") : `${key}팀`,
       color: one?.color ?? TEAM_COLOR[key],
       memberIds: [...ids],
-      // 배틀 배수 applies to the battle score only (the main scoreboard keeps the plain points).
-      score: Math.round(ids.reduce((s, id) => s + (scores.get(id) ?? 0), 0) * multiplier)
+      // 배틀 배수 multiplies what the side received; 기여도 강탈 moves points as they are (2026-10-07 결정).
+      score: timesMultiplier(sum(received, ids), multiplier) + sum(steals, ids)
     };
   };
   const sides: [Battle["sides"][0], Battle["sides"][1]] = [side("A", x.a), side("B", x.b)];
@@ -208,10 +214,18 @@ export async function getBroadcastView(): Promise<BroadcastView | null> {
   };
 }
 
+/**
+ * Starts a broadcast. `requestId` (one per intended start) makes a retried or double-clicked start return SAVED
+ * instead of a second broadcast. The checks and the write run without an await in between.
+ */
 export async function startBroadcast(input: unknown): Promise<BroadcastResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
-  const v = (typeof input === "object" && input !== null ? input : {}) as { title?: unknown; teamMode?: unknown; teams?: unknown; project?: unknown };
+  await mockDelay(300);
+  const v = (typeof input === "object" && input !== null ? input : {}) as { requestId?: unknown; title?: unknown; teamMode?: unknown; teams?: unknown; project?: unknown };
+  if (typeof v.requestId !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
+  const requestId = v.requestId;
+  if (broadcasts().some((b) => b.requestId === requestId)) return { status: "SAVED" };
   const title = typeof v.title === "string" ? v.title.trim() : "";
   if (!title || title.length > BROADCAST_TITLE_MAX) return { status: "INVALID", message: `방송 제목을 1~${BROADCAST_TITLE_MAX}자로 입력해 주세요.` };
   if (MOCK_FORBIDDEN_WORDS.some((w) => title.toLowerCase().includes(w))) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
@@ -230,9 +244,9 @@ export async function startBroadcast(input: unknown): Promise<BroadcastResult> {
     if (!counts.includes("A") || !counts.includes("B")) return { status: "INVALID", message: "두 팀에 멤버를 한 명 이상씩 배정해 주세요." };
   }
   if (liveOf(STUDIO_CHANNEL)) return { status: "INVALID", message: "이미 진행 중인 방송이 있어요. 먼저 종료해 주세요." };
-  await mockDelay(300);
   broadcasts().push({
-    id: `bc-${Date.now().toString(36)}`,
+    id: `bc-${randomUUID()}`,
+    requestId,
     channelId: STUDIO_CHANNEL,
     title,
     // 회차 = this project's broadcast count + 1 (numbered automatically on start).
@@ -286,12 +300,16 @@ export async function adjustScore(input: unknown): Promise<BroadcastResult> {
   return { status: "SAVED" };
 }
 
+/**
+ * Ends the live broadcast and freezes its result. Idempotent: a second call (double click, retry) finds it ended and
+ * returns SAVED without touching the first call's 종료 시각 · 최종 순위 (no await between the check and the write).
+ */
 export async function endBroadcast(broadcastId: unknown): Promise<BroadcastResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  await mockDelay(300);
   const live = liveOf(STUDIO_CHANNEL);
   if (!live || live.id !== broadcastId) return { status: "SAVED" }; // already ended: idempotent
-  await mockDelay(300);
   // An open 한방 is closed without a winner: its pot goes back to 미지정 (never scored).
   if (live.oneshot) {
     for (const f of live.feed ?? []) if (f.status === "POT") Object.assign(f, { status: "UNMATCHED", oneshot: false });
@@ -312,17 +330,18 @@ export async function endBroadcast(broadcastId: unknown): Promise<BroadcastResul
  * OBS overlay read (no login: OBS browser sources cannot sign in). The integration key in the URL is
  * the secret — reissuing it on 계정설정 invalidates old overlay URLs. TBD: a dedicated overlay token.
  */
-export async function getOverlayScoreboard(overlayKey: unknown): Promise<BroadcastLive | "IDLE" | "FORBIDDEN"> {
+export async function getOverlayScoreboard(overlayKey: unknown): Promise<OverlayScoreboard | "IDLE" | "FORBIDDEN"> {
   assertMock();
   if (!sameSecret(overlayKey, mockCreator.integrationKey)) return "FORBIDDEN";
   const live = liveOf(STUDIO_CHANNEL);
   if (!live) return "IDLE";
   const view = liveView(live);
-  // The overlay page is reachable with the key alone: operator logs and viewers' notes (with nicknames, hidden ones
-  // too) stay in the studio.
+  // The overlay page is reachable with the key alone: operator logs, 시나리오 메모 and viewers' notes (with nicknames,
+  // hidden ones too) stay in the studio.
   return {
     ...view,
     logs: [],
+    scenario: view.scenario && { ...view.scenario, parts: view.scenario.parts.map(({ title, minutes }) => ({ title, minutes })) },
     fanNotes: { open: view.fanNotes.open, rules: view.fanNotes.rules, notes: [], counts: { NEW: 0, DONE: 0, HIDDEN: 0 } },
     // 랭크업 between members who are on the board; a closer pair further down would name people OBS does not show.
     rankUp: rankUpPair(view.rows.slice(0, OVERLAY_BOARD_ROWS))

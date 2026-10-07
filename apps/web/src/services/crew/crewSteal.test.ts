@@ -15,7 +15,7 @@ async function startLive() {
   const battle = await import("./crewBattle");
   await feed.setMemberKeywords({ memberId: "cm-s1", keywords: ["길동"] });
   await feed.setMemberKeywords({ memberId: "cm-s2", keywords: ["하늘"] });
-  expect(await bc.startBroadcast({ title: "강탈 방송", teamMode: false })).toEqual({ status: "SAVED" });
+  expect(await bc.startBroadcast({ requestId: crypto.randomUUID(), title: "강탈 방송", teamMode: false })).toEqual({ status: "SAVED" });
   const id = (await bc.getBroadcastView())!.live!.id;
   const view = async () => (await bc.getBroadcastView())!;
   let n = 100;
@@ -80,6 +80,33 @@ describe("기여도 강탈 룰렛", () => {
     expect((await spinSteal({ broadcastId: id, requestId: key(4), thiefId: "cm-s1", targetId: "cm-s4" })).status).toBe("INVALID"); // inactive
     signIn(["SUPPORTER"]);
     expect(await spinSteal({ broadcastId: id, requestId: key(5), thiefId: "cm-s1", targetId: "cm-s2" })).toEqual({ status: "UNAUTHORIZED" });
+  });
+
+  it("moves points as they are inside a ×n battle (강탈엔 배틀 배수 미적용, 2026-10-07)", async () => {
+    const { setStealSlots, spinSteal, startBattle, donate, view, id } = await startLive();
+    // weights 1 · 1 → roll 0 = 100%, roll 1 = 5,000점
+    await setStealSlots({ slots: [{ label: "전부", kind: "PERCENT", value: 100, weight: 1 }, { label: "오천", kind: "POINTS", value: 5_000, weight: 1 }] });
+    await startBattle({ broadcastId: id, requestId: key(1), mode: "MEMBERS", memberA: "cm-s1", memberB: "cm-s2", durationSec: 300, multiplier: 2 });
+    await donate(1_000, "하늘"); // 1,000 × 2 = 2,000 on the scoreboard
+    expect(row(await view(), "cm-s2").score).toBe(2_000);
+
+    roll.next = 0;
+    const all = await spinSteal({ broadcastId: id, requestId: key(2), thiefId: "cm-s1", targetId: "cm-s2" });
+    expect(all.status === "SPUN" && all.record.points).toBe(2_000); // the target's whole board score
+    let v = await view();
+    // Not × 2 again: the target ends at 0 (not −2,000), the thief gets exactly 2,000.
+    expect(row(v, "cm-s2")).toMatchObject({ score: 0, stolen: -2_000, battle: 1_000 });
+    expect(row(v, "cm-s1")).toMatchObject({ score: 2_000, stolen: 2_000, battle: 0 });
+    expect(v.live!.battles[0].sides.map((s) => s.score)).toEqual([2_000, 0]);
+
+    await donate(300, "하늘"); // 600 on the scoreboard
+    roll.next = 1;
+    const fixed = await spinSteal({ broadcastId: id, requestId: key(3), thiefId: "cm-s1", targetId: "cm-s2" });
+    expect(fixed.status === "SPUN" && fixed.record.points).toBe(600); // 5,000 capped at the 600 the target has
+    v = await view();
+    expect(row(v, "cm-s2").score).toBe(0);
+    expect(row(v, "cm-s1").score).toBe(2_600);
+    expect(v.live!.battles[0].sides.map((s) => s.score)).toEqual([2_600, 0]);
   });
 
   it("follows the 강탈 기준 and 쿨다운, starting from the platform defaults", async () => {
