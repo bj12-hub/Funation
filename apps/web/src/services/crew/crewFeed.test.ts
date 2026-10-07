@@ -16,7 +16,7 @@ async function startLive(project = "") {
   const m = await load();
   await m.setMemberKeywords({ memberId: "cm-s1", keywords: ["길동", "gd"] });
   await m.setMemberKeywords({ memberId: "cm-s2", keywords: ["하늘"] });
-  expect(await m.startBroadcast({ title: "테스트 방송", project, teamMode: false })).toEqual({ status: "SAVED" });
+  expect(await m.startBroadcast({ requestId: crypto.randomUUID(), title: "테스트 방송", project, teamMode: false })).toEqual({ status: "SAVED" });
   const view = (await m.getBroadcastView())!;
   return { ...m, id: view.live!.id };
 }
@@ -95,7 +95,7 @@ describe("후원 리스트", () => {
     expect(view.feed!.entries[0]).toMatchObject({ source: "DONATION", memberId: "cm-s2" });
 
     await endBroadcast(id);
-    await startBroadcast({ title: "2회", project: "시즌1", teamMode: false });
+    await startBroadcast({ requestId: crypto.randomUUID(), title: "2회", project: "시즌1", teamMode: false });
     view = (await getBroadcastView())!;
     expect(view.live).toMatchObject({ round: 2 });
     expect(view.projects).toEqual(["시즌1"]);

@@ -35,7 +35,7 @@ describe("콘텐츠 시나리오 도우미", () => {
   it("moves part to part once per click, opens a part's 서브 점수판 and closes with 방송 종료", async () => {
     const { setScenario, startBroadcast, startScenarioPart, finishScenario, endBroadcast, getOverlayScoreboard, view } = await load();
     const { mockCreator } = await import("@/services/creator/mockCreatorStore");
-    await startBroadcast({ title: "시나리오 방송", teamMode: false });
+    await startBroadcast({ requestId: crypto.randomUUID(), title: "시나리오 방송", teamMode: false });
     const id = (await view()).live!.id;
     expect((await startScenarioPart({ broadcastId: id, index: 0, requestId: key(1) })).status).toBe("INVALID"); // no plan yet
     await setScenario({ parts: PLAN });

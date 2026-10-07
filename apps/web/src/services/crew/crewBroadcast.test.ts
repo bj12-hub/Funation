@@ -17,7 +17,7 @@ describe("크루 방송", () => {
 
   it("scores donations made during the broadcast plus 보정, and freezes the result on end", async () => {
     const { startBroadcast, adjustScore, endBroadcast, getBroadcastView, attributeMemberDonation } = await load();
-    expect(await startBroadcast({ title: "시즌1 1회", teamMode: false })).toEqual({ status: "SAVED" });
+    expect(await startBroadcast({ requestId: crypto.randomUUID(), title: "시즌1 1회", teamMode: false })).toEqual({ status: "SAVED" });
     let view = (await getBroadcastView())!;
     const liveId = view.live!.id;
     // Seed attributions happened before the start and must not count.
@@ -40,16 +40,49 @@ describe("크루 방송", () => {
 
   it("allows only one live broadcast and validates team battles", async () => {
     const { startBroadcast } = await load();
-    expect((await startBroadcast({ title: "", teamMode: false })).status).toBe("INVALID");
-    expect((await startBroadcast({ title: "팀전", teamMode: true, teams: { "cm-s1": "A" } })).status).toBe("INVALID");
-    expect((await startBroadcast({ title: "팀전", teamMode: true, teams: { "cm-s1": "A", "cm-s4": "B" } })).status).toBe("INVALID"); // cm-s4 is 휴식
-    expect(await startBroadcast({ title: "팀전", teamMode: true, teams: { "cm-s1": "A", "cm-s2": "B" } })).toEqual({ status: "SAVED" });
-    expect((await startBroadcast({ title: "두 번째", teamMode: false })).status).toBe("INVALID");
+    expect((await startBroadcast({ requestId: crypto.randomUUID(), title: "", teamMode: false })).status).toBe("INVALID");
+    expect((await startBroadcast({ requestId: crypto.randomUUID(), title: "팀전", teamMode: true, teams: { "cm-s1": "A" } })).status).toBe("INVALID");
+    expect((await startBroadcast({ requestId: crypto.randomUUID(), title: "팀전", teamMode: true, teams: { "cm-s1": "A", "cm-s4": "B" } })).status).toBe("INVALID"); // cm-s4 is 휴식
+    expect(await startBroadcast({ requestId: crypto.randomUUID(), title: "팀전", teamMode: true, teams: { "cm-s1": "A", "cm-s2": "B" } })).toEqual({ status: "SAVED" });
+    expect((await startBroadcast({ requestId: crypto.randomUUID(), title: "두 번째", teamMode: false })).status).toBe("INVALID");
+  });
+
+  it("starts one broadcast per request and ends it once, even on a double click", async () => {
+    const { startBroadcast, endBroadcast, getBroadcastView } = await load();
+    const { mockCrew } = await import("./mockCrewStore");
+    const studio = () => (mockCrew.broadcasts ?? []).filter((b) => b.channelId === "studio");
+    const start = (requestId: string, title = "더블클릭") => startBroadcast({ requestId, title, teamMode: false });
+    expect((await startBroadcast({ title: "아이디없음", teamMode: false })).status).toBe("INVALID");
+
+    // Two different start requests at once: one live broadcast.
+    const both = await Promise.all([start(key(1)), start(key(2))]);
+    expect(both.map((r) => r.status).sort()).toEqual(["INVALID", "SAVED"]);
+    expect(studio()).toHaveLength(1);
+    const first = studio()[0];
+    // The start that won, retried: SAVED, still one broadcast — also after it ended.
+    const won = first.requestId!;
+    expect(await start(won)).toEqual({ status: "SAVED" });
+
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(Date.parse(first.startedAt) + 60_000);
+      expect(await Promise.all([endBroadcast(first.id), endBroadcast(first.id)])).toEqual([{ status: "SAVED" }, { status: "SAVED" }]);
+      const ended = { endedAt: first.endedAt, final: structuredClone(first.final) };
+      vi.setSystemTime(Date.parse(first.startedAt) + 120_000);
+      expect(await endBroadcast(first.id)).toEqual({ status: "SAVED" }); // a late retry changes nothing
+      expect({ endedAt: first.endedAt, final: first.final }).toEqual(ended);
+      expect(await start(won)).toEqual({ status: "SAVED" });
+      expect(studio()).toHaveLength(1);
+      expect((await getBroadcastView())!.live).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(first.id).toMatch(/^bc-[0-9a-f-]{36}$/);
   });
 
   it("rejects bad 보정 input", async () => {
     const { startBroadcast, adjustScore, getBroadcastView } = await load();
-    await startBroadcast({ title: "보정 테스트", teamMode: false });
+    await startBroadcast({ requestId: crypto.randomUUID(), title: "보정 테스트", teamMode: false });
     const id = (await getBroadcastView())!.live!.id;
     const bad = [
       { broadcastId: "other", memberId: "cm-s1", points: 1, adjustmentId: key(2) },
@@ -66,10 +99,10 @@ describe("크루 방송", () => {
     const { startBroadcast, getOverlayScoreboard, overlayKey } = await load();
     expect(await getOverlayScoreboard("wrong")).toBe("FORBIDDEN");
     expect(await getOverlayScoreboard(overlayKey)).toBe("IDLE");
-    await startBroadcast({ title: "오버레이", teamMode: false });
+    await startBroadcast({ requestId: crypto.randomUUID(), title: "오버레이", teamMode: false });
     const live = await getOverlayScoreboard(overlayKey);
     expect(typeof live === "object" && live.title).toBe("오버레이");
     signIn(["SUPPORTER"]);
-    expect((await startBroadcast({ title: "침입", teamMode: false })).status).toBe("UNAUTHORIZED");
+    expect((await startBroadcast({ requestId: crypto.randomUUID(), title: "침입", teamMode: false })).status).toBe("UNAUTHORIZED");
   });
 });

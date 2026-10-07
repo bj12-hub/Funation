@@ -12,7 +12,7 @@ async function startLive(teamMode = false) {
   await feed.setMemberKeywords({ memberId: "cm-s1", keywords: ["길동"] });
   await feed.setMemberKeywords({ memberId: "cm-s2", keywords: ["하늘"] });
   const teams = teamMode ? { "cm-s1": "A", "cm-s2": "B", "cm-s3": "B" } : {};
-  expect(await bc.startBroadcast({ title: "배틀 방송", teamMode, teams })).toEqual({ status: "SAVED" });
+  expect(await bc.startBroadcast({ requestId: crypto.randomUUID(), title: "배틀 방송", teamMode, teams })).toEqual({ status: "SAVED" });
   const id = (await bc.getBroadcastView())!.live!.id;
   const battles = async () => (await bc.getBroadcastView())!.live!.battles;
   let n = 100;

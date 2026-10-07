@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { sameSecret } from "@/lib/secret";
 import { getCreatorSession } from "@/lib/session";
@@ -211,10 +212,18 @@ export async function getBroadcastView(): Promise<BroadcastView | null> {
   };
 }
 
+/**
+ * Starts a broadcast. `requestId` (one per intended start) makes a retried or double-clicked start return SAVED
+ * instead of a second broadcast. The checks and the write run without an await in between.
+ */
 export async function startBroadcast(input: unknown): Promise<BroadcastResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
-  const v = (typeof input === "object" && input !== null ? input : {}) as { title?: unknown; teamMode?: unknown; teams?: unknown; project?: unknown };
+  await mockDelay(300);
+  const v = (typeof input === "object" && input !== null ? input : {}) as { requestId?: unknown; title?: unknown; teamMode?: unknown; teams?: unknown; project?: unknown };
+  if (typeof v.requestId !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
+  const requestId = v.requestId;
+  if (broadcasts().some((b) => b.requestId === requestId)) return { status: "SAVED" };
   const title = typeof v.title === "string" ? v.title.trim() : "";
   if (!title || title.length > BROADCAST_TITLE_MAX) return { status: "INVALID", message: `방송 제목을 1~${BROADCAST_TITLE_MAX}자로 입력해 주세요.` };
   if (MOCK_FORBIDDEN_WORDS.some((w) => title.toLowerCase().includes(w))) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
@@ -233,9 +242,9 @@ export async function startBroadcast(input: unknown): Promise<BroadcastResult> {
     if (!counts.includes("A") || !counts.includes("B")) return { status: "INVALID", message: "두 팀에 멤버를 한 명 이상씩 배정해 주세요." };
   }
   if (liveOf(STUDIO_CHANNEL)) return { status: "INVALID", message: "이미 진행 중인 방송이 있어요. 먼저 종료해 주세요." };
-  await mockDelay(300);
   broadcasts().push({
-    id: `bc-${Date.now().toString(36)}`,
+    id: `bc-${randomUUID()}`,
+    requestId,
     channelId: STUDIO_CHANNEL,
     title,
     // 회차 = this project's broadcast count + 1 (numbered automatically on start).
@@ -289,12 +298,16 @@ export async function adjustScore(input: unknown): Promise<BroadcastResult> {
   return { status: "SAVED" };
 }
 
+/**
+ * Ends the live broadcast and freezes its result. Idempotent: a second call (double click, retry) finds it ended and
+ * returns SAVED without touching the first call's 종료 시각 · 최종 순위 (no await between the check and the write).
+ */
 export async function endBroadcast(broadcastId: unknown): Promise<BroadcastResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  await mockDelay(300);
   const live = liveOf(STUDIO_CHANNEL);
   if (!live || live.id !== broadcastId) return { status: "SAVED" }; // already ended: idempotent
-  await mockDelay(300);
   // An open 한방 is closed without a winner: its pot goes back to 미지정 (never scored).
   if (live.oneshot) {
     for (const f of live.feed ?? []) if (f.status === "POT") Object.assign(f, { status: "UNMATCHED", oneshot: false });

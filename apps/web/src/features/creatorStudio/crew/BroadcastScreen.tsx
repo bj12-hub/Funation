@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { formatNumber } from "@/lib/format";
 import { adjustScore, endBroadcast, setRankUpOverlay, startBroadcast } from "@/services/crew/crewBroadcast";
 import { BROADCAST_TITLE_MAX, PROJECT_NAME_MAX, type BroadcastResult, type BroadcastView, type TeamKey } from "@/services/crew/crewTypes";
@@ -38,6 +38,7 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
   const [custom, setCustom] = useState("");
   const [message, setMessage] = useState<{ tone: "error" | "ok"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
+  const startId = useRef<string | null>(null);
   // null until mounted so the server and client render the same markup (the clock is client-only).
   const [now, setNow] = useState<number | null>(null);
   const live = view.live;
@@ -103,7 +104,14 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
             onSubmit={(e) => {
               e.preventDefault();
               const assigned = Object.fromEntries(Object.entries(teams).filter(([, t]) => t));
-              run(() => startBroadcast({ title, project, teamMode, teams: assigned }), "방송을 시작했어요.");
+              // One request id per intended start: a double click or retry never starts a second broadcast.
+              startId.current ??= crypto.randomUUID();
+              const requestId = startId.current;
+              run(async () => {
+                const res = await startBroadcast({ requestId, title, project, teamMode, teams: assigned });
+                if (res.status === "SAVED") startId.current = null;
+                return res;
+              }, "방송을 시작했어요.");
             }}
           >
             <input className={styles.input} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="방송 제목 (예: 시즌1 3회차)" maxLength={BROADCAST_TITLE_MAX} aria-label="방송 제목" />

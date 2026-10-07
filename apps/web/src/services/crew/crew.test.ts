@@ -55,16 +55,38 @@ describe("크루", () => {
 
   it("manages members with validation", async () => {
     const { addCrewMember, updateCrewMember, removeCrewMember, getCrewStudio } = await load();
-    expect(await addCrewMember({ name: "새멤버", role: "MEMBER" })).toEqual({ status: "SAVED" });
-    expect((await addCrewMember({ name: "새멤버", role: "MEMBER" })).status).toBe("INVALID");
-    expect((await addCrewMember({ name: "", role: "MEMBER" })).status).toBe("INVALID");
-    expect((await addCrewMember({ name: "역할없음", role: "BOSS" })).status).toBe("INVALID");
+    expect(await addCrewMember({ requestId: crypto.randomUUID(), name: "새멤버", role: "MEMBER" })).toEqual({ status: "SAVED" });
+    expect((await addCrewMember({ requestId: crypto.randomUUID(), name: "새멤버", role: "MEMBER" })).status).toBe("INVALID");
+    expect((await addCrewMember({ requestId: crypto.randomUUID(), name: "", role: "MEMBER" })).status).toBe("INVALID");
+    expect((await addCrewMember({ requestId: crypto.randomUUID(), name: "역할없음", role: "BOSS" })).status).toBe("INVALID");
     const added = (await getCrewStudio())!.members.find((m) => m.name === "새멤버")!;
     expect((await updateCrewMember(added.id, { active: "no" })).status).toBe("INVALID");
     expect(await updateCrewMember(added.id, { name: "바뀐멤버", role: "LEADER" })).toEqual({ status: "SAVED" });
     expect(await removeCrewMember(added.id)).toEqual({ status: "SAVED" });
     expect(await removeCrewMember(added.id)).toEqual({ status: "SAVED" }); // idempotent
     expect((await getCrewStudio())!.members.some((m) => m.id === added.id)).toBe(false);
+  });
+
+  it("adds a member once per request and never past the limit or to a taken name, even on a double click", async () => {
+    const { addCrewMember, updateCrewMember, getCrewStudio, store } = await load();
+    const add = (requestId: string, name: string) => addCrewMember({ requestId, name, role: "MEMBER" });
+    expect((await addCrewMember({ name: "아이디없음", role: "MEMBER" })).status).toBe("INVALID");
+    // The same request twice (retry / double click): one member.
+    expect(await Promise.all([add(key(1), "새멤버"), add(key(1), "새멤버")])).toEqual([{ status: "SAVED" }, { status: "SAVED" }]);
+    expect(await add(key(1), "새멤버")).toEqual({ status: "SAVED" });
+    expect((await getCrewStudio())!.members.filter((m) => m.name === "새멤버")).toHaveLength(1);
+
+    // Two adds racing for the last seat: one gets it.
+    const seats = 30 - store.crews.studio.length;
+    for (let i = 1; i < seats; i++) expect(await add(key(100 + i), `멤버${i}`)).toEqual({ status: "SAVED" });
+    const last = await Promise.all([add(key(200), "막차A"), add(key(201), "막차B")]);
+    expect(last.map((r) => r.status).sort()).toEqual(["INVALID", "SAVED"]);
+    expect(store.crews.studio).toHaveLength(30);
+    expect(new Set(store.crews.studio.map((m) => m.id)).size).toBe(30);
+
+    // Two renames racing for the same name: one gets it.
+    const renames = await Promise.all([updateCrewMember("cm-s1", { name: "같은이름" }), updateCrewMember("cm-s2", { name: "같은이름" })]);
+    expect(renames.map((r) => r.status).sort()).toEqual(["INVALID", "SAVED"]);
   });
 
   it("requires the Creator role for studio actions; the public crew hides inactive members", async () => {
@@ -74,6 +96,6 @@ describe("크루", () => {
     expect(pub.members.some((m) => m.id === "cm-s2")).toBe(false);
     signIn(["SUPPORTER"]);
     expect(await getCrewStudio()).toBeNull();
-    expect((await addCrewMember({ name: "침입", role: "MEMBER" })).status).toBe("UNAUTHORIZED");
+    expect((await addCrewMember({ requestId: crypto.randomUUID(), name: "침입", role: "MEMBER" })).status).toBe("UNAUTHORIZED");
   });
 });

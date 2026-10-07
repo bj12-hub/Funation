@@ -15,7 +15,7 @@ async function startLive() {
   const battle = await import("./crewBattle");
   await feed.setMemberKeywords({ memberId: "cm-s1", keywords: ["길동"] });
   await feed.setMemberKeywords({ memberId: "cm-s2", keywords: ["하늘"] });
-  expect(await bc.startBroadcast({ title: "강탈 방송", teamMode: false })).toEqual({ status: "SAVED" });
+  expect(await bc.startBroadcast({ requestId: crypto.randomUUID(), title: "강탈 방송", teamMode: false })).toEqual({ status: "SAVED" });
   const id = (await bc.getBroadcastView())!.live!.id;
   const view = async () => (await bc.getBroadcastView())!;
   let n = 100;

@@ -114,7 +114,7 @@ describe("퀘스트 후원 보관 (성공 전에는 집계하지 않음)", () =>
 
   it("keeps a member quest out of crew points, ranking, widget totals and grades until it succeeds", async () => {
     const m = await studio();
-    expect(await m.startBroadcast({ title: "엑셀 방송", teamMode: false })).toEqual({ status: "SAVED" });
+    expect(await m.startBroadcast({ requestId: crypto.randomUUID(), title: "엑셀 방송", teamMode: false })).toEqual({ status: "SAVED" });
     const before = { counted: m.counted(), member: m.memberFn("cm-s2"), lifetime: m.lifetime() };
     const same = async () => {
       expect(m.counted()).toBe(before.counted);
@@ -154,7 +154,7 @@ describe("퀘스트 후원 보관 (성공 전에는 집계하지 않음)", () =>
 
   it("lists a quest on the 후원 리스트 only while the broadcast it was sent in is still on", async () => {
     const m = await studio();
-    await m.startBroadcast({ title: "1회차", teamMode: false });
+    await m.startBroadcast({ requestId: crypto.randomUUID(), title: "1회차", teamMode: false });
     const first = (await m.getBroadcastView())!.live!.id;
     const a = await m.requestDonation(quest(1, "studio", false));
     const b = await m.requestDonation(quest(2, "studio", false));
@@ -170,7 +170,7 @@ describe("퀘스트 후원 보관 (성공 전에는 집계하지 않음)", () =>
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(Date.now() + 1_000); // a different broadcast id
     try {
-      await m.startBroadcast({ title: "2회차", teamMode: false });
+      await m.startBroadcast({ requestId: crypto.randomUUID(), title: "2회차", teamMode: false });
     } finally {
       vi.useRealTimers();
     }
