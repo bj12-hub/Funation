@@ -41,11 +41,11 @@ Legend: **R** read · **M** mutation · auth `—` none · `S` session · `C` Cr
 | `login` | identifier, password, keepSignedIn, next | `SUCCESS` · `UNKNOWN_ID` · `WRONG_PASSWORD` · `LOCKED` (5 wrong passwords per account — the identifier is trimmed, lowercased and resolved to its account first; a successful login clears the count, a password reset lifts the lock; lock expiry TBD, per-IP counting is the backend's) — sets the session; old passwords (>180 days, TBD) redirect to `/login/password-change` |
 | `logout` | — | redirect `/` |
 | `checkEmailAvailability` · `checkNicknameAvailability` | email / nickname formats | `{ available }` (advisory) |
-| `signup` | email, password (8+ with letter·digit·special), nickname (2–12 한글/영문/숫자), phone token, required agreements | `CREATED` · `EMAIL_TAKEN` · `NICKNAME_TAKEN` · `INVALID` |
-| `sendPhoneCode` · `verifyPhoneCode` | phone `01X-XXXX-XXXX`, purpose `SIGNUP`/`PASSWORD_RESET`, 6-digit code (180 s) | `SENT` · `PHONE_NOT_FOUND` / `VERIFIED{verificationToken}` · `INVALID_OR_EXPIRED` |
+| `signup` | email, password (8+ with letter·digit·special), nickname (2–12 한글/영문/숫자), `SIGNUP` phone token (used up with the account write), required agreements | `CREATED` · `EMAIL_TAKEN` · `NICKNAME_TAKEN` · `VERIFICATION_EXPIRED` (token unknown / used / expired / other purpose) · `INVALID` |
+| `sendPhoneCode` · `verifyPhoneCode` | phone `01X-XXXX-XXXX`, purpose `SIGNUP`/`PASSWORD_RESET`, 6-digit code — accepted only if it was sent to that phone for that purpose < 180 s ago and fewer than 5 wrong codes were tried on it (limit TBD); a resend replaces the code | `SENT` · `PHONE_NOT_FOUND` / `VERIFIED{verificationToken}` (random, single-use, bound to phone + purpose; usable for 30 min — placeholder, TBD) · `INVALID_OR_EXPIRED` |
 | `sendPasswordResetEmail` · `resetPassword` | email / token + password rule | `SENT` · `EMAIL_NOT_FOUND` / `RESET` · `INVALID` |
 
-TBD: SMS/email providers, rate and attempt limits, token validation, age rules.
+TBD: SMS/email providers, send rate limits, the code attempt limit and verified-token lifetime, age rules.
 
 ### account (`services/account`, S)
 
