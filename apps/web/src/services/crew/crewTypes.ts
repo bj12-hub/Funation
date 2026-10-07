@@ -228,6 +228,12 @@ export type ScenarioLive = {
   history: { index: number; title: string; startedAt: string; endedAt: string | null }[];
 };
 
+/** 콘텐츠 시나리오 as the OBS overlay gets it: what it shows (부 이름 · 예정 시간), never the operator's 메모. */
+export type OverlayScenario = Omit<ScenarioLive, "parts"> & { parts: Pick<ScenarioPart, "title" | "minutes">[] };
+
+/** The crew scoreboard as the OBS overlay gets it (the URL key alone opens it; see getOverlayScoreboard). */
+export type OverlayScoreboard = Omit<BroadcastLive, "scenario"> & { scenario: OverlayScenario | null };
+
 // ── 기여도 강탈 룰렛 — code-first; slots and odds are set by the creator ────────────────────────
 
 export const STEAL_SLOTS_MAX = 12;

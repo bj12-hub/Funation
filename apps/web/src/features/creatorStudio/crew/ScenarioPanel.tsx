@@ -18,11 +18,11 @@ import scen from "./scenario.module.css";
 type Row = { title: string; minutes: string; memo: string; openBoard: boolean };
 const toRow = (p: ScenarioPart): Row => ({ title: p.title, minutes: p.minutes === null ? "" : String(p.minutes), memo: p.memo, openBoard: p.openBoard });
 const toPart = (r: Row): ScenarioPart => ({ title: r.title.trim(), minutes: r.minutes ? Number(r.minutes) : null, memo: r.memo.trim(), openBoard: r.openBoard });
-export const partName = (i: number, p: ScenarioPart | undefined) => `${i + 1}부${p?.title ? ` · ${p.title}` : ""}`;
+export const partName = (i: number, p: Pick<ScenarioPart, "title"> | undefined) => `${i + 1}부${p?.title ? ` · ${p.title}` : ""}`;
 const mmss = (sec: number) => `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
 
 /** Seconds since the running part started (server clock, corrected for the browser's skew; null before mount). */
-export function usePartElapsed(live: ScenarioLive | null, serverNow: string | null) {
+export function usePartElapsed(live: Pick<ScenarioLive, "current" | "history"> | null, serverNow: string | null) {
   const now = useServerClock(serverNow);
   const started = live && live.current !== null ? live.history.at(-1)?.startedAt : undefined;
   return !started || now === null ? null : Math.max(0, Math.floor((now - new Date(started).getTime()) / 1000));

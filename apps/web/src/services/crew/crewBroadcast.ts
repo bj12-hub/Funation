@@ -18,6 +18,7 @@ import {
   type Battle,
   type FeedView,
   type BroadcastLive,
+  type OverlayScoreboard,
   type BroadcastResult,
   type BroadcastSummary,
   type BroadcastView,
@@ -329,17 +330,18 @@ export async function endBroadcast(broadcastId: unknown): Promise<BroadcastResul
  * OBS overlay read (no login: OBS browser sources cannot sign in). The integration key in the URL is
  * the secret — reissuing it on 계정설정 invalidates old overlay URLs. TBD: a dedicated overlay token.
  */
-export async function getOverlayScoreboard(overlayKey: unknown): Promise<BroadcastLive | "IDLE" | "FORBIDDEN"> {
+export async function getOverlayScoreboard(overlayKey: unknown): Promise<OverlayScoreboard | "IDLE" | "FORBIDDEN"> {
   assertMock();
   if (!sameSecret(overlayKey, mockCreator.integrationKey)) return "FORBIDDEN";
   const live = liveOf(STUDIO_CHANNEL);
   if (!live) return "IDLE";
   const view = liveView(live);
-  // The overlay page is reachable with the key alone: operator logs and viewers' notes (with nicknames, hidden ones
-  // too) stay in the studio.
+  // The overlay page is reachable with the key alone: operator logs, 시나리오 메모 and viewers' notes (with nicknames,
+  // hidden ones too) stay in the studio.
   return {
     ...view,
     logs: [],
+    scenario: view.scenario && { ...view.scenario, parts: view.scenario.parts.map(({ title, minutes }) => ({ title, minutes })) },
     fanNotes: { open: view.fanNotes.open, rules: view.fanNotes.rules, notes: [], counts: { NEW: 0, DONE: 0, HIDDEN: 0 } },
     // 랭크업 between members who are on the board; a closer pair further down would name people OBS does not show.
     rankUp: rankUpPair(view.rows.slice(0, OVERLAY_BOARD_ROWS))
