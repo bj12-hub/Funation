@@ -1,5 +1,7 @@
 import type { ChatAuthorRole, PlatformErrorCode } from "@/services/platforms/platformTypes";
 import type { Platform } from "@/types/platform";
+import type { ResolvedTheme } from "@/services/creator/overlayThemeTypes";
+import type { ChatSettings } from "@/services/creator/widgetSettingsTypes";
 
 /**
  * 통합 채팅 — code-first (no Figma frame; reference: weflab 채팅창). Client-safe types.
@@ -89,7 +91,11 @@ export type ChatSendResult = { status: "OK"; results: Partial<Record<Platform, C
 export type ChatActionResult = { status: "OK" } | { status: "INVALID"; message: string } | { status: "FAILED"; message: string } | { status: "UNAUTHORIZED" };
 
 /** One overlay line — only what the screen shows. */
-export type ChatOverlayLine = { id: string; platform: Platform; name: string; roles: ChatAuthorRole[]; text: string };
+/** `at` = when Ssumnation received it (자동으로 감추기 counts from here). */
+export type ChatOverlayLine = { id: string; platform: Platform; name: string; roles: ChatAuthorRole[]; text: string; at: string };
+
+/** What the OBS chat overlay reads: lines (필터링 닉네임 already left out) and how to draw them. */
+export type ChatOverlayView = { lines: ChatOverlayLine[]; settings: ChatSettings; theme: ResolvedTheme; serverNow: string };
 
 export const CHAT_TEXT_MAX = 200;
 

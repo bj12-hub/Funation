@@ -22,6 +22,10 @@ export function readWidget<K extends EditableWidgetKey>(key: K): WidgetSettingsM
     // 룰렛 settings saved before 결과 자동 노출 read with its default.
     return { ...DEFAULT_WIDGET_SETTINGS.ROULETTE, ...copy } as WidgetSettingsMap[K];
   }
+  if (key === "CHAT") {
+    // 채팅창 saved before 오버레이 테마 (2026-10-08) follows the 전체 테마.
+    (copy as WidgetSettingsMap["CHAT"]).theme ??= "INHERIT";
+  }
   if (key === "RANKING") {
     // Settings saved before 랭킹 종류 (2026-10-06) read as 후원자 랭킹, like the parser does.
     (copy as WidgetSettingsMap["RANKING"]).board ??= "DONOR";

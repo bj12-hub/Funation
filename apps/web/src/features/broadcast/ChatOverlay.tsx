@@ -1,25 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ROLE_LABEL, type ChatOverlayLine } from "@/services/broadcast/chatTypes";
+import { useServerClock } from "@/hooks/useServerClock";
+import type { ChatOverlayView } from "@/services/broadcast/chatTypes";
 import { getChatOverlay } from "@/services/broadcast/unifiedChat";
 import { getOverlaySignal } from "@/services/creator/alertRemote";
 import type { OverlaySignal } from "@/services/creator/alertTypes";
 import { useReloadSignal } from "../creatorStudio/remote/useReloadSignal";
+import { ChatLines } from "./ChatLines";
 import styles from "./chatOverlay.module.css";
-import { PlatformMark } from "./PlatformMark";
 
 const POLL_MS = 1_000;
-const SHOWN = 12;
 
 /**
  * 통합 채팅 OBS overlay (code-first). Transparent page that re-reads the merged feed every second and shows
- * the latest visible lines from every platform with the platform mark. Lines hidden in the studio
- * disappear on the next read; 리모컨 기능 제어 can switch it OFF or reload it. Push transport instead of polling is TBD.
+ * the latest visible lines from every platform, drawn as the 채팅창 widget settings say (ChatLines: 위젯 스타일,
+ * 오버레이 테마, 폰트, 최대 줄, 자동으로 감추기 on the server clock). Lines hidden in the studio and 필터링 닉네임
+ * never arrive; 리모컨 기능 제어 can switch it OFF or reload it. Push transport instead of polling is TBD.
  */
-export function ChatOverlay({ overlayKey, initial, initialSignal }: { overlayKey: string; initial: ChatOverlayLine[]; initialSignal: OverlaySignal }) {
-  const [lines, setLines] = useState(initial);
+export function ChatOverlay({ overlayKey, initial, initialSignal }: { overlayKey: string; initial: ChatOverlayView; initialSignal: OverlaySignal }) {
+  const [view, setView] = useState(initial);
   const [signal, setSignal] = useState(initialSignal);
+  const now = useServerClock(view.serverNow);
   useReloadSignal(signal.reloadSeq);
 
   useEffect(() => {
@@ -31,7 +33,7 @@ export function ChatOverlay({ overlayKey, initial, initialSignal }: { overlayKey
     let alive = true;
     const poll = setInterval(async () => {
       const next = await getChatOverlay(overlayKey).catch(() => null);
-      if (alive && next && next !== "FORBIDDEN") setLines(next);
+      if (alive && next && next !== "FORBIDDEN") setView(next);
       const next2 = await getOverlaySignal(overlayKey, "chat").catch(() => null);
       if (alive && next2 && next2 !== "FORBIDDEN") setSignal(next2);
     }, POLL_MS);
@@ -44,21 +46,9 @@ export function ChatOverlay({ overlayKey, initial, initialSignal }: { overlayKey
 
   if (!signal.on) return null;
   return (
-    <ol className={styles.stage} aria-live="polite" aria-label="통합 채팅">
-      {lines.slice(-SHOWN).map((l) => (
-        <li key={l.id} className={styles.line}>
-          <PlatformMark platform={l.platform} />
-          <span className={styles.name}>{l.name}</span>
-          {l.roles
-            .filter((r) => r !== "MEMBER")
-            .map((r) => (
-              <span key={r} className={styles.role}>
-                {ROLE_LABEL[r]}
-              </span>
-            ))}
-          <span className={styles.text}>{l.text}</span>
-        </li>
-      ))}
-    </ol>
+    <div className={styles.stage}>
+      {/* Before the clock mounts, nothing is hidden yet (server and client render the same lines). */}
+      <ChatLines lines={view.lines} settings={view.settings} theme={view.theme} now={now} />
+    </div>
   );
 }
