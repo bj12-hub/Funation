@@ -1,0 +1,128 @@
+/* 이미지·사운드 라이브러리에서 사운드 고르기 (커스텀 사운드 · 뽑기 효과음) — code-first */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.current {
+  max-width: 220px;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 220px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-8);
+}
+
+.item[data-selected] {
+  background: var(--color-primary-soft);
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.size {
+  flex-shrink: 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-12);
+}
+
+.listen,
+.pick {
+  flex-shrink: 0;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: var(--radius-8);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
+.listen {
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-primary);
+}
+
+.pick {
+  background: var(--gradient-primary-button);
+  color: var(--color-text-on-accent);
+}
+
+.pick:disabled {
+  background: none;
+  color: var(--color-primary-light);
+  cursor: default;
+}
+
+.manage,
+.link {
+  align-self: flex-start;
+  color: var(--color-primary-light);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+}
+
+.note,
+.error {
+  margin: 0;
+  font-size: var(--font-size-13);
+}
+
+.note {
+  color: var(--color-text-secondary);
+}
+
+.note a {
+  color: var(--color-primary-light);
+  font-weight: var(--font-weight-bold);
+}
+
+.error {
+  color: var(--color-error-text);
+}

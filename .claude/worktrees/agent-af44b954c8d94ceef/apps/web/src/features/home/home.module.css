@@ -1,0 +1,272 @@
+/* Home sections — Figma 727:2742 (1440px frame, 80px gutters) */
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  padding: 32px var(--layout-gutter);
+}
+
+/* ── Section header ───────────────────────────────── */
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.sectionTitle {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-bold);
+  line-height: normal;
+}
+
+.sectionAside {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-semibold);
+}
+
+.viewAll {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-14);
+  white-space: nowrap;
+}
+
+.viewAll:hover {
+  color: var(--color-text-primary);
+}
+
+.empty {
+  margin: 0;
+  padding: 40px 0;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-12);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-14);
+  text-align: center;
+}
+
+/* ── Video thumbnail (trending + live grid) ───────── */
+
+.thumb {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--radius-12);
+  background: var(--color-surface);
+}
+
+.thumbImage {
+  object-fit: cover;
+  transition: transform 0.2s ease;
+}
+
+.card:hover .thumbImage {
+  transform: scale(1.03);
+}
+
+.thumbShade {
+  position: absolute;
+  inset: 0;
+  background: var(--gradient-thumbnail-overlay);
+}
+
+.mediaBadge,
+.pillBadge {
+  position: absolute;
+  padding: 4px 8px;
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  line-height: normal;
+  white-space: nowrap;
+}
+
+.mediaBadge {
+  right: 8px;
+  bottom: 8px;
+  border-radius: var(--radius-4);
+  background: var(--color-overlay);
+}
+
+.pillBadge {
+  top: 8px;
+  border: 1px solid var(--color-media-badge-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-media-badge);
+}
+
+.pillStart {
+  left: 8px;
+}
+
+.pillEnd {
+  right: 8px;
+}
+
+/* ── Card text ────────────────────────────────────── */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.cardText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cardTitle {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-15);
+  font-weight: var(--font-weight-semibold);
+  line-height: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.cardMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.cardMetaSub {
+  font-size: var(--font-size-12);
+}
+
+/* ── Trending: 4 × 296px ──────────────────────────── */
+
+.trendingGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 32px;
+}
+
+/* ── Promo banner (180px) ─────────────────────────── */
+
+.promo {
+  position: relative;
+  width: 100%;
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.promoInner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 180px;
+  padding: 24px var(--layout-gutter);
+}
+
+.promoImage {
+  object-fit: cover;
+}
+
+.promoText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.promoLabel {
+  padding: 4px 8px;
+  border-radius: var(--radius-4);
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-11);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.promoTitle {
+  margin: 0;
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-extrabold);
+  line-height: normal;
+}
+
+.promoDescription {
+  margin: 0;
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-14);
+  opacity: 0.8;
+}
+
+.promoCta {
+  box-shadow: var(--shadow-button);
+}
+
+/* ── Responsive ───────────────────────────────────── */
+
+@media (max-width: 1200px) {
+  .trendingGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .section {
+    padding: 24px 16px;
+  }
+
+  .promoInner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 24px 16px;
+  }
+
+  .sectionTitle {
+    font-size: var(--font-size-20);
+  }
+
+  .sectionAside {
+    display: none;
+  }
+
+  .trendingGrid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+}

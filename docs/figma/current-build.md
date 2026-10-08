@@ -1,6 +1,6 @@
 # 현재 구현 Figma 파일 (2026-09-30)
 
-Figma: [Somnation — 현재 구현 (2026-09)](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj) · FLEX_ENM 팀
+Figma: [Ssumnation — 현재 구현 (2026-09)](https://www.figma.com/design/PMnjPwrD3nAiItJxjaZ0qj) · FLEX_ENM 팀
 
 코드로 구현된 사이트 전체 화면을 localhost mock 데이터로 1440px 전체 페이지 캡처해 정리한 파일이에요. 프레임은 **참고용 이미지**이고 편집 가능한 디자인 레이어가 아니에요. 원본 디자인 파일(펀페이, `PXOl6e2HQVWsu9qx9iagJV`)은 바꾸지 않았어요 (잠시 추가했던 "코드 우선 화면" 페이지는 삭제).
 
@@ -134,7 +134,7 @@ Figma: [Somnation — 현재 구현 (2026-09)](https://www.figma.com/design/PMnj
 ## 6 어드민 (별도 앱 apps/admin · admin 서브도메인)
 
 2026-10-01 추가. 라우트는 어드민 앱 기준(admin.<도메인>)이에요.
-어드민 디자인 원본은 별도 파일 **Somnation Admin**이에요 ([admin-design-system.md](admin-design-system.md)). 이 페이지의 캡처는 2026-10-01 어드민 전용 디자인 적용 후 다시 찍었어요 (노드 ID는 그대로).
+어드민 디자인 원본은 별도 파일 **Ssumnation Admin**이에요 ([admin-design-system.md](admin-design-system.md)). 이 페이지의 캡처는 2026-10-01 어드민 전용 디자인 적용 후 다시 찍었어요 (노드 ID는 그대로).
 
 | ID | 화면 | 라우트 | Figma |
 |---|---|---|---|

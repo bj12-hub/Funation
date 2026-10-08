@@ -1,0 +1,109 @@
+/* 명예의 전당 tabs (funnation structure, code-first) — existing tokens. */
+
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  padding: 24px 32px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tab {
+  padding: 12px 16px;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-15);
+  font-weight: var(--font-weight-semibold);
+}
+
+.tab[aria-current="page"] {
+  border-bottom-color: var(--color-gold);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 32px;
+}
+
+.gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.galleryTitle {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-20);
+  font-weight: var(--font-weight-extrabold);
+  text-align: center;
+}
+
+.caption {
+  margin: 0 0 8px;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-13);
+  text-align: center;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 22px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-16);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  text-align: center;
+}
+
+.card[data-top] {
+  border-color: var(--color-gold);
+  background: var(--color-gold-soft);
+}
+
+.medal {
+  font-size: 32px;
+}
+
+.range {
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
+  color: var(--color-text-secondary);
+  font-family: var(--font-latin);
+  font-size: var(--font-size-12);
+}
+
+.more {
+  display: block;
+  margin-top: 16px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  text-align: center;
+}
+
+.disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

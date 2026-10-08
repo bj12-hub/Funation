@@ -1,0 +1,119 @@
+/* 콘텐츠 시나리오 도우미 (code-first) */
+
+.clock {
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--color-neutral-soft);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-bold);
+}
+
+.clock[data-over] {
+  background: var(--color-live);
+  color: var(--color-text-on-accent);
+}
+
+.live {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-12);
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
+  text-align: left;
+  cursor: pointer;
+}
+
+.step:disabled {
+  cursor: default;
+}
+
+.steps li[data-state="current"] .step {
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+.steps li[data-state="done"] .step {
+  opacity: 0.6;
+}
+
+.now {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--radius-12);
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+}
+
+.memo {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-14);
+  white-space: pre-wrap;
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.editor li {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 64px minmax(0, 1.4fr) auto auto;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 900px) {
+  .editor li {
+    grid-template-columns: 36px minmax(0, 1fr) 64px;
+  }
+}
+
+.no {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+}
+
+.overlayPart {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.overlayPart strong {
+  font-size: var(--font-size-24);
+}
+
+.overlayNext {
+  opacity: 0.75;
+  font-size: var(--font-size-14);
+}

@@ -1,0 +1,122 @@
+/* 신고 · 차단 — code-first. */
+.actions {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 4px;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-12);
+}
+
+.link:hover {
+  color: var(--color-text-secondary);
+  text-decoration: underline;
+}
+
+.reasons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.reason {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+}
+
+.detail {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--font-size-13);
+  resize: vertical;
+}
+
+.error {
+  margin: 8px 0 0;
+  color: var(--color-error-text);
+  font-size: var(--font-size-13);
+}
+
+/* 차단 관리 */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 32px 16px 48px;
+}
+
+.back {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.title {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-20);
+  font-weight: var(--font-weight-bold);
+}
+
+.muted {
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-13);
+}
+
+.empty {
+  margin: 0;
+  padding: 48px 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-14);
+  text-align: center;
+}
+
+.blockList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.blockItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-12);
+  background: var(--color-surface);
+}
+
+.blockName {
+  flex: 1;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+}
+
+.unblock {
+  padding: 6px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}

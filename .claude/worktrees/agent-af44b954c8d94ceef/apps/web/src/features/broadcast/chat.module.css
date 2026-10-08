@@ -1,0 +1,439 @@
+/* 통합 채팅 — code-first (no Figma frame). Studio `/creator/chat` and the platform mark shared with the overlay. */
+
+.mark {
+  display: inline-grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--platform-color, var(--color-neutral-soft));
+  color: #fff;
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+}
+
+.mark[data-size="sm"] {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  font-size: 9px;
+}
+
+.mark[data-platform="YOUTUBE"] {
+  --platform-color: var(--color-danger);
+}
+
+.mark[data-platform="CHZZK"] {
+  --platform-color: var(--color-success);
+}
+
+.mark[data-platform="SOOP"] {
+  --platform-color: var(--color-info);
+}
+
+.mark[data-platform="FLEXTV"] {
+  --platform-color: var(--color-accent);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 20px;
+  align-items: start;
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.feedCard {
+  min-height: 640px;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.filterChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.filterChip:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.filterChip[aria-pressed="true"] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.search {
+  flex: 1;
+  min-width: 160px;
+}
+
+.feed {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  height: 460px;
+  margin: 0;
+  padding: 8px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-12);
+  background: var(--color-bg-subtle);
+  list-style: none;
+}
+
+.line {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  padding: 6px 8px;
+  border-radius: var(--radius-8);
+}
+
+.line:hover,
+.line:focus-within {
+  background: var(--color-surface-raised);
+}
+
+.line[data-hidden] .lineBody {
+  opacity: 0.45;
+}
+
+.lineBody {
+  min-width: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.nick {
+  margin-right: 6px;
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.role {
+  margin-right: 6px;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-chip-bg);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-11);
+  vertical-align: 1px;
+}
+
+.flag {
+  margin-left: 6px;
+  color: var(--color-warning-text);
+  font-size: var(--font-size-12);
+  white-space: nowrap;
+}
+
+.time {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-12);
+  white-space: nowrap;
+}
+
+/* Overlays the line on hover/focus so hidden controls never squeeze the message. */
+.lineActions {
+  position: absolute;
+  top: 2px;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+  box-shadow: 0 0 0 1px var(--color-border);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.line:hover .lineActions,
+.line:focus-within .lineActions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mini {
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-6);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-12);
+  white-space: nowrap;
+}
+
+.mini:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.miniDanger {
+  border-color: var(--color-danger-border);
+  color: var(--color-error-text);
+}
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.composerRow {
+  display: flex;
+  gap: 8px;
+}
+
+.targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: var(--font-size-13);
+}
+
+.target {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-secondary);
+}
+
+.target[data-off] {
+  opacity: 0.5;
+}
+
+.results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-size-12);
+}
+
+.results li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-chip-bg);
+  color: var(--color-text-secondary);
+}
+
+.results li[data-status="SENT"] {
+  background: var(--color-success-soft);
+  color: var(--color-success-text);
+}
+
+.results li[data-status="FAILED"] {
+  background: var(--color-danger-soft);
+  color: var(--color-error-text);
+}
+
+.results li[data-status="UNCONFIRMED"] {
+  background: var(--color-warning-tint);
+  color: var(--color-warning-text);
+}
+
+.channel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-12);
+  background: var(--color-surface-raised);
+}
+
+.channelHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.channelHead > :last-child {
+  margin-left: auto;
+}
+
+.caps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.cap {
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-chip-bg);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-11);
+}
+
+.cap[data-off] {
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+
+.status {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+}
+
+.status[data-on] {
+  color: var(--color-success-text);
+}
+
+.logList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-12);
+  list-style: none;
+}
+
+.banSelect {
+  height: 26px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-6);
+  background: var(--color-input-bg);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-12);
+}
+
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (hover: none) {
+  .lineActions {
+    position: static;
+    grid-column: 1 / -1;
+    justify-self: end;
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+/* 채팅창 링크 (/popout/chat): the chat fills the browser window or OBS dock. */
+.window {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100dvh;
+  padding: 10px;
+  background: var(--color-bg-page);
+}
+
+.windowHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 4px;
+}
+
+.windowHead h1 {
+  margin: 0;
+}
+
+.window .feedCard {
+  flex: 1;
+  min-height: 0;
+  padding: 14px;
+}
+
+.window .feed {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+
+.window > section:not(.feedCard) {
+  padding: 14px;
+}
+
+/* 매니저 채팅창 링크 (studio) */
+.managerList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.managerList li {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-12);
+  background: var(--color-surface-raised);
+}
+
+.managerHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text-primary);
+}
+
+.managerHead button {
+  margin-left: auto;
+}
+
+.permRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.managerForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.managerForm button {
+  align-self: flex-start;
+}

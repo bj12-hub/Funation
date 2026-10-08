@@ -1,0 +1,638 @@
+/* Figma nav-bar: 710:305 (guest), 710:978 (signed in) */
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: var(--header-height);
+  padding: 0 var(--layout-gutter);
+  background: var(--color-bg-page);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: var(--shadow-header);
+}
+
+/* Logo and nav keep their size; the profile name gives way on narrow screens. */
+.left {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 48px;
+}
+
+.menuButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-6);
+}
+
+.menuBar {
+  width: 20px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--color-text-primary);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logoText {
+  font-size: var(--font-size-28);
+  font-weight: var(--font-weight-black);
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  white-space: nowrap;
+}
+
+.logoBadge {
+  padding: 2px 6px;
+  border-radius: var(--radius-4);
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-10);
+  font-weight: var(--font-weight-extrabold);
+  line-height: normal;
+}
+
+/* ── Center: nav links ─────────────────────────────── */
+
+.nav {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 40px;
+  white-space: nowrap;
+}
+
+.liveTab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: var(--radius-20);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-15);
+  font-weight: var(--font-weight-bold);
+}
+
+.liveTabActive {
+  background: var(--color-live);
+  color: var(--color-text-inverse);
+}
+
+.liveDot {
+  font-family: var(--font-latin);
+  font-size: var(--font-size-10);
+}
+
+.navLink {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-15);
+  font-weight: var(--font-weight-medium);
+}
+
+.navLink:hover,
+.liveTab:hover {
+  color: var(--color-text-primary);
+}
+
+.liveTabActive:hover {
+  color: var(--color-text-inverse);
+}
+
+.navLinkActive {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+/* ── Right: account ────────────────────────────────── */
+
+.rightGuest,
+.rightSignedIn {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.rightGuest {
+  gap: 24px;
+}
+
+.rightSignedIn {
+  gap: 20px;
+}
+
+.myPage {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-15);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.loginButton {
+  padding: 10px 24px;
+  border-radius: var(--radius-20);
+  background: var(--gradient-cta);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.avatar,
+.avatarFallback {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-pill);
+  flex-shrink: 0;
+}
+
+.avatar {
+  object-fit: cover;
+}
+
+.avatarFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-raised);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+}
+
+.profileName {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.caret {
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+  font-size: 8px;
+  font-weight: var(--font-weight-bold);
+}
+
+/* ── Mobile menu (below 900px; not in Figma) ───────── */
+
+.mobileOnly {
+  display: none;
+}
+
+.mobileNav {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 16px 16px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-page);
+  box-shadow: var(--shadow-header);
+}
+
+.mobileNavLink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 4px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-15);
+  font-weight: var(--font-weight-medium);
+}
+
+.mobileNavLink:last-child {
+  border-bottom: 0;
+}
+
+.mobileNavLinkActive {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+/* ── Responsive ───────────────────────────────────── */
+
+@media (max-width: 1200px) {
+  .header {
+    padding: 0 24px;
+  }
+
+  .left {
+    gap: 24px;
+  }
+
+  .nav {
+    gap: 24px;
+  }
+}
+
+/* 901–1024px: 마이페이지 is also in the profile dropdown, so drop the duplicate link. */
+@media (min-width: 901px) and (max-width: 1024px) {
+  .myPage {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .header {
+    gap: 12px;
+    padding: 0 16px;
+    height: 64px;
+  }
+
+  .left {
+    gap: 12px;
+  }
+
+  .desktopOnly,
+  .nav {
+    display: none;
+  }
+
+  .mobileOnly {
+    display: flex;
+  }
+
+  .rightGuest,
+  .rightSignedIn {
+    gap: 16px;
+  }
+}
+
+/* Phones: the header must fit 375px without a horizontal scroll (검색 · 충전 are hidden at the end of this file). */
+@media (max-width: 480px) {
+  .header,
+  .left,
+  .rightGuest,
+  .rightSignedIn {
+    gap: 8px;
+  }
+
+  .logoText {
+    font-size: var(--font-size-20);
+  }
+
+  .logoBadge {
+    display: none;
+  }
+
+  .loginButton {
+    padding: 8px 16px;
+  }
+
+  .profileName,
+  .caret {
+    display: none;
+  }
+}
+
+/* ── Profile dropdown (not in Figma; matches the language menu) ── */
+
+.profileRoot {
+  position: relative;
+  min-width: 0;
+}
+
+.profileMenu {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+  padding: 4px 0;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-header);
+}
+
+.profileMenuItem {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-medium);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.profileMenuItem:hover {
+  background: var(--color-surface-strong);
+}
+
+/* Mobile menu logout is a form button styled like the links. */
+.mobileNav form .mobileNavLink {
+  width: 100%;
+  border-bottom: 0;
+  text-align: left;
+}
+
+/* ── Creator variant (Figma 245:14 · 758:41) ───────── */
+
+.profileOpen {
+  border-radius: var(--radius-8);
+  background: rgba(32, 32, 62, 0.6);
+}
+
+.creatorMenu {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 200px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-12);
+  background: var(--color-surface);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.creatorPlatforms {
+  display: flex;
+  gap: 12px;
+  margin: 0;
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--color-border);
+  list-style: none;
+}
+
+.creatorPlatforms img {
+  border-radius: var(--radius-12);
+}
+
+.platformOff {
+  opacity: 0.4;
+}
+
+.creatorMenuActions {
+  display: flex;
+  gap: 8px;
+}
+
+.creatorMenuActions form {
+  display: flex;
+  flex: 1;
+}
+
+.creatorMenuSettings,
+.creatorMenuLogout {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: var(--radius-8);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.creatorMenuSettings {
+  background: var(--color-surface-strong);
+  color: var(--color-text-secondary);
+}
+
+.creatorMenuLogout {
+  background: rgba(237, 74, 153, 0.15);
+  color: #ed4a99;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ── Site header (funnation structure) ───────────── */
+
+.iconButton {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+}
+
+.iconButton:hover {
+  color: var(--color-text-primary);
+}
+
+.iconButton[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.chargeChip {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px 0 4px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  font-family: var(--font-latin);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+}
+
+.chargeLabel {
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-charge);
+  color: var(--color-text-on-accent);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-12);
+}
+
+.studioBadge {
+  padding: 3px 8px;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-pill);
+  color: var(--color-primary-light);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+}
+
+/* ── 알림 bell (code-first; popover matches the profile dropdown) ── */
+
+.bellRoot {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.bellRoot .iconButton {
+  position: relative;
+}
+
+.bellBadge {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-10);
+  font-weight: var(--font-weight-bold);
+  line-height: 16px;
+  text-align: center;
+}
+
+.bellPanel {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: -60px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  width: min(360px, calc(100vw - 32px));
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-header);
+}
+
+.bellHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+}
+
+.bellLink {
+  color: var(--color-primary-light);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+}
+
+.bellLink:disabled {
+  color: var(--color-text-tertiary);
+  cursor: default;
+}
+
+.bellEmpty {
+  margin: 0;
+  padding: 28px 14px;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-13);
+  text-align: center;
+}
+
+.bellList {
+  max-height: 380px;
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.bellItem {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  text-align: left;
+}
+
+.bellItem:hover {
+  background: var(--color-surface-strong);
+}
+
+.bellItem[data-unread] {
+  background: var(--color-primary-soft);
+}
+
+.bellText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.bellText strong {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
+}
+
+.bellText span {
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-12);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bellText small {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-11);
+}
+
+.bellAll {
+  padding: 10px 14px;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+  text-align: center;
+}
+
+.bellAll:hover {
+  color: var(--color-text-primary);
+}
+
+/* Up to 680px the signed-in header has no room for 검색 and the FN 충전 chip; both are also in the side
+   menu (크리에이터 찾기 · 보유 FN · FN 충전). Kept last so it wins over the base rules above. */
+@media (max-width: 680px) {
+  .searchButton,
+  .chargeChip {
+    display: none;
+  }
+}

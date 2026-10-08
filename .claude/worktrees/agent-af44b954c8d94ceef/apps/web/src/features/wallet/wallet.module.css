@@ -1,0 +1,894 @@
+/* FN 내역 — Figma 640:2 · 639:2 · 632:4 (main column padding 48, gap 40) */
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  max-width: 1180px;
+  padding: 40px 48px 64px;
+}
+
+/* ── Tabs (639:2 / 632:4) ─────────────────────────── */
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tab {
+  margin-bottom: -1px;
+  padding: 12px 20px;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-15);
+  font-weight: var(--font-weight-medium);
+}
+
+.tab:hover {
+  color: var(--color-text-primary);
+}
+
+.tabActive,
+.tabActive:hover {
+  border-bottom-color: var(--color-accent);
+  color: var(--color-accent-text);
+  font-weight: var(--font-weight-bold);
+}
+
+/* ── Header ───────────────────────────────────────── */
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.breadcrumb {
+  color: var(--color-text-soft);
+  font-size: var(--font-size-13);
+}
+
+.breadcrumb a:hover {
+  color: var(--color-text-primary);
+}
+
+.breadcrumbCurrent {
+  color: var(--color-accent-text);
+}
+
+.title {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-32);
+  font-weight: var(--font-weight-extrabold);
+  line-height: normal;
+}
+
+.description {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-16);
+  line-height: 1.5;
+}
+
+/* ── Balance card ─────────────────────────────────── */
+
+.balanceCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-16);
+  background: var(--color-surface);
+}
+
+.balanceText {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.balanceLabel {
+  margin: 0;
+  color: var(--color-balance-label);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+}
+
+.balanceValue {
+  color: var(--color-text-primary);
+  font-family: var(--font-latin);
+  font-size: var(--font-size-40);
+  font-weight: var(--font-weight-extrabold);
+  line-height: 1.1;
+}
+
+.balanceMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 0;
+  font-size: var(--font-size-13);
+}
+
+.metaAvailable,
+.metaExpiring {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.metaAvailable {
+  color: var(--color-text-dim);
+}
+
+.metaExpiring {
+  color: var(--color-gold);
+}
+
+.metaAvailable::before,
+.metaExpiring::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-success);
+}
+
+.metaExpiring::before {
+  background: var(--color-gold);
+}
+
+.chargeButton {
+  flex-shrink: 0;
+  padding: 12px 24px;
+  border-radius: var(--radius-12);
+  background: var(--color-primary);
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-15);
+  font-weight: var(--font-weight-bold);
+}
+
+.chargeButton[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+/* ── History card ─────────────────────────────────── */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-16);
+  background: var(--color-surface);
+}
+
+.filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.segment {
+  display: flex;
+  padding: 3px;
+  border-radius: var(--radius-8);
+  background: var(--color-segment-bg);
+}
+
+.segmentItem {
+  padding: 6px 14px;
+  border-radius: var(--radius-6);
+  color: var(--color-segment-text);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
+}
+
+.segmentItem:hover {
+  color: var(--color-text-secondary);
+}
+
+.segmentActive,
+.segmentActive:hover {
+  background: var(--color-segment-active-bg);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.dates {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-12);
+}
+
+.dateInput {
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--color-date-input-border);
+  border-radius: var(--radius-8);
+  background: var(--color-date-input-bg);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--font-size-12);
+  color-scheme: dark;
+}
+
+.dateInput:focus {
+  border-color: var(--color-primary);
+  outline: none;
+}
+
+.searchButton {
+  height: 34px;
+  padding: 0 16px;
+  border-radius: var(--radius-8);
+  background: var(--color-info);
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+}
+
+.searchButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ── Tables ───────────────────────────────────────── */
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-13);
+}
+
+.chargeTable {
+  min-width: 760px;
+}
+
+.donationTable {
+  min-width: 880px;
+}
+
+.table th {
+  height: 40px;
+  padding: 0 14px;
+  background: var(--color-bg-subtle);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.table td {
+  height: 58px;
+  padding: 0 14px;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.table tbody tr:nth-child(even) td {
+  background: var(--color-bg-subtle);
+}
+
+.center {
+  text-align: center !important;
+}
+
+.right {
+  text-align: right !important;
+}
+
+.datetime {
+  font-family: var(--font-latin);
+  font-weight: var(--font-weight-semibold);
+}
+
+.datetimeMuted {
+  color: var(--color-text-secondary) !important;
+  font-family: var(--font-latin);
+  font-size: var(--font-size-14);
+}
+
+.method {
+  color: var(--color-text-soft) !important;
+}
+
+.fnChip {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: var(--radius-6);
+  background: var(--color-fn-chip-bg);
+  color: var(--color-primary);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+}
+
+.pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: var(--radius-20);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+}
+
+.pillProcessing {
+  background: var(--color-pill-processing-bg);
+  color: var(--color-warning-text);
+}
+
+.pillCompleted {
+  background: var(--color-pill-completed-bg);
+  color: var(--color-pill-completed-text);
+}
+
+.pillCancelled {
+  background: var(--color-pill-cancelled-bg);
+  color: var(--color-error-text);
+}
+
+.detailButton {
+  padding: 5px 10px;
+  border: 1px solid var(--color-border-emphasis);
+  border-radius: var(--radius-8);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+}
+
+.detailButton:hover {
+  border-color: var(--color-primary);
+}
+
+.creator {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+}
+
+.creator:hover {
+  color: var(--color-accent-text);
+}
+
+.message {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--font-size-14);
+}
+
+.usedFn {
+  color: var(--color-accent-text) !important;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+}
+
+.typeChip {
+  display: inline-block;
+  min-width: 100px;
+  padding: 3px 10px;
+  border: 1px solid var(--color-border-emphasis);
+  border-radius: var(--radius-4);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-12);
+}
+
+.statusCompleted {
+  color: var(--color-success) !important;
+  font-weight: var(--font-weight-bold);
+}
+
+.statusProcessing {
+  color: var(--color-warning-text) !important;
+  font-weight: var(--font-weight-bold);
+}
+
+.statusFailed {
+  color: var(--color-error-text) !important;
+  font-weight: var(--font-weight-bold);
+}
+
+.statusMuted {
+  color: var(--color-text-secondary) !important;
+  font-weight: var(--font-weight-bold);
+}
+
+.empty {
+  height: 160px !important;
+  color: var(--color-text-secondary) !important;
+  font-size: var(--font-size-14);
+  text-align: center;
+}
+
+/* ── Footer: pagination + CSV ─────────────────────── */
+
+.footer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+}
+
+.pagination {
+  display: flex;
+  gap: 8px;
+}
+
+.pageButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-border-emphasis);
+  border-radius: var(--radius-6);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
+}
+
+.pageButton:hover {
+  border-color: var(--color-primary);
+}
+
+.pageCurrent,
+.pageCurrent:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-text-on-accent);
+  font-weight: var(--font-weight-bold);
+}
+
+.pageDisabled,
+.pageDisabled:hover {
+  border-color: var(--color-border-emphasis);
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.csvButton {
+  position: absolute;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid var(--color-border-emphasis);
+  border-radius: var(--radius-8);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-semibold);
+}
+
+.csvButton:hover {
+  border-color: var(--color-primary);
+}
+
+.csvButton[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+/* ── Detail popup (643:4) ─────────────────────────── */
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.detailSummary {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  border-radius: var(--radius-12);
+  background: var(--color-surface-raised);
+}
+
+.detailRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-14);
+}
+
+.detailDivider {
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.detailFn {
+  color: var(--color-primary);
+  font-size: 22px;
+  font-weight: var(--font-weight-extrabold);
+}
+
+.detailList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0;
+}
+
+.detailList > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: var(--font-size-14);
+}
+
+.detailList dt {
+  color: var(--color-text-secondary);
+}
+
+.detailList dd {
+  margin: 0;
+  color: var(--color-text-primary);
+  text-align: right;
+}
+
+.detailPaid {
+  font-size: var(--font-size-15);
+  font-weight: var(--font-weight-bold);
+}
+
+.detailTid {
+  color: var(--color-balance-label) !important;
+  font-family: var(--font-latin);
+  font-size: var(--font-size-13);
+}
+
+.receipt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--radius-8);
+  background: var(--color-bg-subtle);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
+}
+
+.receipt > span {
+  flex: 1;
+}
+
+.receiptButton {
+  padding: 4px 10px;
+  border: 1px solid var(--color-border-emphasis);
+  border-radius: var(--radius-6);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-12);
+}
+
+.receiptButton[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+.modalSecondary,
+.modalPrimary {
+  flex: 1;
+  padding: 12px 0;
+  border-radius: var(--radius-8);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+}
+
+.modalSecondary {
+  border: 1px solid var(--color-border-emphasis);
+  color: var(--color-text-primary);
+}
+
+.modalPrimary {
+  background: var(--color-primary);
+  color: var(--color-text-on-accent);
+}
+
+/* ── Responsive ───────────────────────────────────── */
+
+@media (max-width: 1024px) {
+  .content {
+    padding: 32px 24px 48px;
+  }
+}
+
+@media (max-width: 768px) {
+  .content {
+    gap: 24px;
+    padding: 24px 16px 40px;
+  }
+
+  .title {
+    font-size: var(--font-size-24);
+  }
+
+  .description {
+    font-size: var(--font-size-14);
+  }
+
+  .balanceCard {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .balanceValue {
+    font-size: var(--font-size-32);
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .segment {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .footer {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .csvButton {
+    position: static;
+  }
+}
+
+/* ── 환불 요청 (code-first) ── */
+
+.refund {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.refundButton {
+  align-self: flex-start;
+  padding: 8px 14px;
+  border: 1px solid var(--color-danger-border);
+  border-radius: var(--radius-8);
+  color: var(--color-error-text);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+}
+
+.refundLabel {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+}
+
+.refundInput {
+  min-height: 72px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-8);
+  background: var(--color-input-bg);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
+  resize: vertical;
+}
+
+.refundNote {
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-12);
+}
+
+.refundError {
+  margin: 0;
+  color: var(--color-error-text);
+  font-size: var(--font-size-12);
+}
+
+.refundActions {
+  display: flex;
+  gap: 8px;
+}
+
+.refundActions > * {
+  flex: 1;
+}
+
+.refundDone {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-8);
+  background: var(--color-history-refunding-bg);
+  color: var(--color-live);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+}
+
+.refundStatus {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* 환불 결과 미리보기 (전액 취소 / 수수료 공제 후 환불 / 환불 불가) */
+.refundOutcome {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+}
+
+.refundOutcomeTitle {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+}
+
+.refundFacts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+
+.refundFacts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: var(--font-size-13);
+}
+
+.refundFacts dt {
+  color: var(--color-text-secondary);
+}
+
+.refundFacts dd {
+  margin: 0;
+  color: var(--color-text-primary);
+  text-align: right;
+}
+
+.refundFactsTotal {
+  font-weight: var(--font-weight-bold);
+}
+
+/* 환불 정책 요약 — 기본값 (일반적인 기준, 법무 검토 전) */
+.refundPolicy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: var(--radius-8);
+  background: var(--color-bg-subtle);
+}
+
+.refundPolicyTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+}
+
+.refundPolicyBadge {
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-warning-tint);
+  color: var(--color-warning-text);
+  font-size: var(--font-size-11);
+  font-weight: var(--font-weight-bold);
+}
+
+.refundPolicyList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding-left: 16px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-12);
+}
+
+.refundPolicyLink {
+  align-self: flex-start;
+  color: var(--color-accent-text);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  text-decoration: underline;
+}
+
+.refundTag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-history-refunding-bg);
+  color: var(--color-live);
+  font-size: var(--font-size-11);
+  font-weight: var(--font-weight-bold);
+}
+
+/* ── 후원 내역 search row (funnation structure) ─────── */
+
+.donationSearch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-tertiary);
+}
+
+.donationSearchInput,
+.donationAmount,
+.donationSort {
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  background: var(--color-input-bg);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--font-size-13);
+}
+
+.donationSearchInput {
+  flex: 1;
+  min-width: 200px;
+}
+
+.donationAmount {
+  width: 110px;
+}
+
+.donationSearchButton {
+  height: 38px;
+  padding: 0 18px;
+  border-radius: var(--radius-8);
+  background: var(--color-primary);
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+}
+
+.donationSummary {
+  margin: -8px 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+/* 퀘스트 후원 결과 (code-first) */
+.questDecide,
+.questState {
+  display: block;
+  margin-top: 6px;
+}
+
+.questState {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-12);
+}

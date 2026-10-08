@@ -164,4 +164,4 @@ Add a row whenever a new code-first screen ships (see `docs/research/funnation-r
 
 ## Figma
 
-구현된 전체 화면 캡처는 [current-build.md](current-build.md)의 새 파일(Somnation — 현재 구현)에 있어요. 펀페이 파일에 잠시 두었던 "코드 우선 화면" 페이지는 2026-09-30에 삭제했어요.
+구현된 전체 화면 캡처는 [current-build.md](current-build.md)의 새 파일(Ssumnation — 현재 구현)에 있어요. 펀페이 파일에 잠시 두었던 "코드 우선 화면" 페이지는 2026-09-30에 삭제했어요.
