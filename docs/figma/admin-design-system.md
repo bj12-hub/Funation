@@ -93,6 +93,8 @@ Display 24 Bold · Title 18 Bold · Subtitle 15 Medium · Body 14 · Body Strong
 | 거래 | AD07 | 결제 · 충전 내역 | `/payments` | `18:651` |
 | 거래 | AD08 | 환불 요청 | `/payments?tab=refunds` | `20:1301` |
 | 거래 | AD10 | 정산 심사 | `/settlements` | `18:1095` |
+| 거래 | AD10b | 정산 심사 · 승인 (이체 참조번호 입력 · "지급 완료 처리", 2026-10-08 결정, code-first — 카드 2개만) | `/settlements?status=APPROVED` | `27:976` |
+| 거래 | AD10d | 정산 심사 · 지급 완료 ("지급 완료 {일시} · {처리자} · 이체 참조 {번호}", 2026-10-08 결정, code-first) | `/settlements?status=PAID` | `27:1097` |
 | 운영 | AD11 | 신고 처리 | `/reports` | `20:1414` |
 | 운영 | AD12 | 콘텐츠 관리 · 공지 | `/content` | `18:1308` |
 | 운영 | AD13 | 콘텐츠 관리 · FAQ | `/content?tab=faq` | `19:699` |

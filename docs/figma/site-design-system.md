@@ -200,6 +200,8 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | 마이 | M11c | 회원 탈퇴 · 완료 | `/mypage/withdraw` | `182:10010` |
 | 마이 | M11d | 회원 탈퇴 · 처리 중인 충전 환불 (탈퇴 불가, 2026-10-06 결정) | `/mypage/withdraw` | `221:224` |
 | 마이 | M11e | 회원 탈퇴 · 비밀번호 5회 실패 잠금 (로그인과 같은 횟수, 세션 종료, code-first) | `/mypage/withdraw` | `236:17427` |
+| 마이 | M11f | 회원 탈퇴 · 내 채널의 진행 중인 퀘스트 (크리에이터, 탈퇴 버튼 비활성, 2026-10-08 결정, code-first) | `/mypage/withdraw` | `241:11483` |
+| 마이 | M11g | 회원 탈퇴 · 보낸 퀘스트 후원 진행 중 (후원자 카드 변형, code-first) | `/mypage/withdraw` | `241:17964` |
 | FN 지갑 | M05 | FN Wallet | `/wallet` | `84:5202` |
 | FN 지갑 | M05b | FN 충전 (모달) | `/wallet` | `85:5369` |
 | FN 지갑 | M05c | 충전 내역 | `/wallet/charges` | `86:5536` |
