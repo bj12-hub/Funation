@@ -87,7 +87,8 @@ describe("withdrawn members in the console", () => {
       resolution: { at: "2026-10-02T00:00:00.000Z", by: "운영자", action: "DISMISS", note: "위반 아님" },
       authorIsMember: true,
       authorWithdrawn: true,
-      reporterWithdrawn: false
+      reporterWithdrawn: false,
+      contentChanged: false
     };
     const html = renderToStaticMarkup(createElement(ReportsScreen, { view: { rows: [report], counts: { OPEN: 0, DISMISSED: 1, ACTIONED: 0 } }, status: "DISMISSED" }));
     expect(html).toMatch(after("작성자 홍길동"));

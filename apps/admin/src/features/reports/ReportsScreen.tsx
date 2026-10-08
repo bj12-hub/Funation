@@ -54,7 +54,14 @@ export function ReportsScreen({ view, status }: { view: AdminReportView; status:
                     <strong>
                       {REPORT_TARGET_LABEL[r.target.type]} · {REPORT_REASON_LABEL[r.reason]}
                     </strong>
-                    <span className={r.status === "OPEN" ? styles.chipWarn : r.status === "ACTIONED" ? styles.chipBad : styles.chipOk}>{TABS.find((t) => t.key === r.status)?.label}</span>
+                    <span>
+                      {r.contentChanged && (
+                        <>
+                          <span className={styles.chipWarn}>신고 후 내용 변경됨</span>{" "}
+                        </>
+                      )}
+                      <span className={r.status === "OPEN" ? styles.chipWarn : r.status === "ACTIONED" ? styles.chipBad : styles.chipOk}>{TABS.find((t) => t.key === r.status)?.label}</span>
+                    </span>
                   </div>
                   <p className={styles.muted}>
                     작성자 {r.authorName}
@@ -80,13 +87,14 @@ export function ReportsScreen({ view, status }: { view: AdminReportView; status:
                     )}
                   </p>
                   <p className={styles.quote}>신고 당시 내용: {r.snapshot}</p>
+                  {r.contentChanged && <p className={styles.muted}>신고 후 내용 변경됨 — 사이트의 지금 내용은 신고 당시와 달라요. 숨김은 지금 내용을 내려요. 사이트에서 확인한 뒤 처리해 주세요.</p>}
                   {r.detail && <p className={styles.quote}>신고 상세: {r.detail}</p>}
                   {r.resolution ? (
                     <p className={styles.muted}>
                       {at(r.resolution.at)} · {r.resolution.by} · {r.resolution.action === "HIDE" ? "숨김" : "기각"} · {r.resolution.note}
                     </p>
                   ) : (
-                    <ReportDecision id={r.id} canHide={r.target.type !== "CREATOR"} />
+                    <ReportDecision id={r.id} canHide={r.target.type !== "CREATOR"} contentChanged={r.contentChanged} />
                   )}
                 </li>
               );

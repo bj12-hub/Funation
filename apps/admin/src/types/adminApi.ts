@@ -241,8 +241,11 @@ export type Report = {
   status: ReportStatus;
   resolution: { at: string; by: string; action: "DISMISS" | "HIDE"; note: string } | null;
 };
-/** `authorWithdrawn` / `reporterWithdrawn`: the member withdrew since (탈퇴 badge after the name at report time). */
-export type AdminReportRow = Report & { authorIsMember: boolean; authorWithdrawn: boolean; reporterWithdrawn: boolean };
+/**
+ * `authorWithdrawn` / `reporterWithdrawn`: the member withdrew since (탈퇴 badge after the name at report time).
+ * `contentChanged`: 신고 후 내용 변경됨 — the content changed since the report (the site compares; no hash is sent).
+ */
+export type AdminReportRow = Report & { authorIsMember: boolean; authorWithdrawn: boolean; reporterWithdrawn: boolean; contentChanged: boolean };
 export type AdminReportView = { rows: AdminReportRow[]; counts: Record<ReportStatus, number> };
 export const REPORT_NOTE = { min: 2, max: 200 } as const;
 
