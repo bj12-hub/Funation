@@ -4,6 +4,7 @@
  * `/overlay/widget/[widget]/[integrationKey]`. Client-safe types only.
  */
 import type { Platform } from "@/types/platform";
+import type { ResolvedTheme } from "./overlayThemeTypes";
 import type { AlertKind, OverlaySignal } from "./alertTypes";
 import type { GachaBoardView, GachaStage } from "@/services/donations/gachaTypes";
 import type { RouletteStage } from "@/services/donations/rouletteTypes";
@@ -64,11 +65,13 @@ export type WidgetRankRow = { rank: number; name: string; fnAmount: number; amou
 /** A running quest on the 퀘스트 overlay; `endsAt` = sent time + 제한 시간. */
 export type WidgetQuest = { id: string; title: string; amount: number; endsAt: string };
 
-type Common = OverlaySignal & { serverNow: string };
+/** `theme`: the widget's 오버레이 테마 (its own choice, or the channel's 전체 테마). */
+type Common = OverlaySignal & { serverNow: string; theme: ResolvedTheme };
 
 export type OverlayWidget = Common &
   (
-    | { widget: "goal"; settings: GoalSettings; current: number; percent: number; daysLeft: number | null }
+    /** `second` = 두 번째 목표 progress (null when off), shown in turn with the first. */
+    | { widget: "goal"; settings: GoalSettings; current: number; percent: number; daysLeft: number | null; second: { current: number; percent: number } | null }
     | { widget: "total"; settings: TotalSettings; total: number }
     | { widget: "ranking"; settings: RankingSettings; rows: WidgetRankRow[] }
     | { widget: "recent"; settings: RecentSettings; lines: WidgetFeedLine[] }

@@ -43,12 +43,19 @@ const dayStart = (d: string) => new Date(`${d}T00:00:00`).getTime();
 const dayEnd = (d: string) => new Date(`${d}T23:59:59.999`).getTime();
 
 /** 후원목표: 시작 금액 + donations in the 산정 기간 (local days, inclusive). */
-export function goalProgress(items: AlertItem[], s: GoalSettings, now = Date.now()) {
+export function goalProgress(items: AlertItem[], s: Pick<GoalSettings, "startAmount" | "goalAmount" | "from" | "to">, now = Date.now()) {
   const current = s.startAmount + sumBetween(items, dayStart(s.from), dayEnd(s.to));
   const percent = s.goalAmount > 0 ? Math.min(100, (current / s.goalAmount) * 100) : 0;
   const end = dayEnd(s.to);
   const daysLeft = Number.isNaN(end) ? null : Math.max(0, Math.ceil((end - now) / 86_400_000));
   return { current, percent: Math.round(percent * 10) / 10, daysLeft };
+}
+
+/** 두 번째 목표: the same period and donations, its own start and target (null when off). */
+export function secondGoalProgress(items: AlertItem[], s: GoalSettings, now = Date.now()) {
+  if (!s.second.enabled) return null;
+  const { current, percent } = goalProgress(items, { ...s, startAmount: s.second.startAmount, goalAmount: s.second.goalAmount }, now);
+  return { current, percent };
 }
 
 /** 후원누적금액: donations between `from` and `to` (`YYYY-MM-DDTHH:mm`, local; the `to` minute is included). */

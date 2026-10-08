@@ -38,7 +38,9 @@ import {
   EVENT_STYLES,
   FONT_FAMILIES,
   FONT_SIZES,
+  GOAL_ALTERNATE_SEC,
   GOAL_AMOUNT_MAX,
+  GOAL_SHAPES,
   GOAL_STYLES,
   GOAL_TITLE_MAX,
   NICKNAME_BG,
@@ -108,6 +110,8 @@ function font(v: unknown, withColor: boolean) {
   if (!isHexColor(f.color)) return null;
   return { family: f.family, size: f.size as number, color: f.color.toUpperCase() };
 }
+
+const obj = (v: unknown) => (typeof v === "object" && v !== null ? v : {}) as Raw;
 
 const FONT_ERROR = "폰트 설정을 확인해 주세요.";
 const COLOR_ERROR = "색상은 #RRGGBB 형식으로 입력해 주세요.";
@@ -194,7 +198,34 @@ const parseGoal: Parser<GoalSettings> = (v) => {
   if (!isHexColor(v.barColor) || !isHexColor(v.barBackground)) return COLOR_ERROR;
   if (!int(v.barHeight, 8, 120)) return "바 세로 크기는 8~120px로 입력해 주세요.";
   if (!bool(v.showPercent) || !bool(v.textOutline)) return "설정 값을 확인해 주세요.";
+  // Fields added with 오버레이 테마 (2026-10-08); a payload saved before them reads with the defaults.
+  const theme = v.theme === undefined ? "INHERIT" : v.theme;
+  const shape = v.shape === undefined ? "BAR" : v.shape;
+  if (!isOverlayThemeChoice(theme)) return "테마를 골라 주세요.";
+  if (!keyOf(shape, GOAL_SHAPES)) return "목표 모양을 골라 주세요.";
+  const customColors = v.customColors === undefined ? true : v.customColors;
+  if (!bool(customColors)) return "설정 값을 확인해 주세요.";
+  const alternateSec = v.alternateSec === undefined ? 10 : v.alternateSec;
+  if (!int(alternateSec, GOAL_ALTERNATE_SEC.min, GOAL_ALTERNATE_SEC.max)) return `번갈아 보여 줄 간격은 ${GOAL_ALTERNATE_SEC.min}~${GOAL_ALTERNATE_SEC.max}초로 입력해 주세요.`;
+  const sg = obj(v.second);
+  const secondOn = sg.enabled === true;
+  if (v.second !== undefined && !bool(sg.enabled)) return "두 번째 목표 설정을 확인해 주세요.";
+  if (secondOn) {
+    if (!text(sg.title, GOAL_TITLE_MAX, 1)) return `두 번째 목표 제목은 1~${GOAL_TITLE_MAX}자로 입력해 주세요.`;
+    if (!int(sg.startAmount, 0, GOAL_AMOUNT_MAX) || !int(sg.goalAmount, 1, GOAL_AMOUNT_MAX)) return "두 번째 목표 금액을 확인해 주세요.";
+    if ((sg.startAmount as number) >= (sg.goalAmount as number)) return "두 번째 목표 금액은 시작 금액보다 커야 해요.";
+  }
+  const second = secondOn
+    ? { enabled: true, title: (sg.title as string).trim(), startAmount: sg.startAmount as number, goalAmount: sg.goalAmount as number }
+    : {
+        enabled: false,
+        title: typeof sg.title === "string" ? sg.title.trim().slice(0, GOAL_TITLE_MAX) : "",
+        startAmount: int(sg.startAmount, 0, GOAL_AMOUNT_MAX) ? (sg.startAmount as number) : 0,
+        goalAmount: int(sg.goalAmount, 1, GOAL_AMOUNT_MAX) ? (sg.goalAmount as number) : 300_000
+      };
   return {
+    theme,
+    shape,
     style: v.style,
     title: (v.title as string).trim(),
     startAmount: v.startAmount as number,
@@ -202,11 +233,14 @@ const parseGoal: Parser<GoalSettings> = (v) => {
     from: v.from,
     to: v.to,
     showPercent: v.showPercent,
+    customColors,
     barColor: v.barColor.toUpperCase(),
     barBackground: v.barBackground.toUpperCase(),
     barHeight: v.barHeight as number,
     textOutline: v.textOutline,
-    font: f
+    font: f,
+    second,
+    alternateSec
   };
 };
 
@@ -365,7 +399,6 @@ const parseVote: Parser<VoteSettings> = (v) => {
 
 // ── 퀘스트 · 뽑기 · 룰렛 ───────────────────────────────────────────────────────
 
-const obj = (v: unknown) => (typeof v === "object" && v !== null ? v : {}) as Raw;
 
 function colorFont(v: unknown): ColorFont | null {
   const f = obj(v);
