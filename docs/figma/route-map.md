@@ -73,7 +73,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/mypage/blocks` | ✅ code-first | 차단 관리 — M10 `151:8644` · 비어 있음 M10b `151:8861` |
 | `/mypage/withdraw` | ✅ code-first | 회원 탈퇴 — M11 `182:9521` (크리에이터 · 남은 FN · 정산 대기 수익 소멸 동의, 비밀번호 확인) · M11b `182:9765` (비밀번호 불일치) · M11c `182:10010` (완료) · M11d `221:224` (처리 중인 충전 환불 → 탈퇴 불가) |
 | `/support/notices/[id]` | ✅ code-first | 공지 상세 — S12 `76:2163` |
-| `/terms/[slug]` | ✅ code-first (본문 TBD) | 722:3 (terms text pending) — slugs: service, privacy, youth, operation, marketing, creator. 2026-10-06 결정: 조항 목차만 자리표시(각 조항 "법무 검토 중 (TBD)", 시행일 · 버전 TBD), 문서 간 이동 탭 · 목차 앵커. 현재 구현 L01 `190:9523` · L02 `190:9788` (레이아웃), 캡처 `2:283` · `2:286` |
+| `/terms/[slug]` | ✅ code-first (초안 본문) | 722:3 (terms text pending) — slugs: service, privacy, youth, operation, marketing, creator, refund. 2026-10-06 결정: 조항 목차만 자리표시 → 2026-10-08: 모든 조항에 초안 본문 · 초안 배너, 시행일 "정식 오픈일 (TBD)" · 버전 "초안 v0.1", FN 충전 · 환불 정책(refund) 추가. 문서 간 이동 탭 · 목차 앵커. 현재 구현 L01 `190:9523` · L02 `190:9788` (레이아웃), 캡처 `2:283` · `2:286` |
 
 ## Link wiring
 

@@ -1,110 +1,58 @@
+import { CREATOR_TERMS } from "./drafts/creator";
+import { MARKETING_CONSENT } from "./drafts/marketing";
+import { OPERATION_POLICY } from "./drafts/operation";
+import { PRIVACY_POLICY } from "./drafts/privacy";
+import { REFUND_POLICY } from "./drafts/refund";
+import { SERVICE_TERMS } from "./drafts/service";
+import { YOUTH_POLICY } from "./drafts/youth";
+
 /**
- * 약관·정책 문서의 조항 목차 (2026-10-06 결정: "조항 목차만 자리표시로").
+ * 약관·정책 문서 — 초안 본문 (2026-10-08 사용자 지시: "정책 부분은 일반적으로 사용하는 로직으로 시작").
  *
- * Only the clause headings are listed. Every clause body, the 시행일 and the version stay TBD until legal review —
- * do not write clause text here. Headings name what a clause covers, not the rule itself (e.g. "청약철회와 환불"
- * does not say what the refund policy is).
+ * Until 2026-10-08 only the clause headings existed (2026-10-06: "조항 목차만 자리표시로"). Every clause now has a
+ * draft body in Korean, written from scratch in the general shape of Korean platform terms (제n조 for 약관, numbered
+ * sections for 방침 · 정책). They are drafts, not reviewed by legal: each page shows the draft banner, the 시행일 is
+ * "정식 오픈일 (TBD)" and the version "초안 v0.1".
+ *
+ * Rules for the text (see ./drafts/*):
+ * - Rules already decided in the code and docs/ are written as they are; refund and retention defaults follow the
+ *   2026-10-08 instruction and are marked 기본값.
+ * - Company and business details stay placeholders (COMPANY_INFO_TBD); 사업자 정보 is not decided.
+ * - Undecided policy (FN 가격 · 환율, 수익 배분, 정산 수수료 · 주기 · 최소 금액, PG, 세금, 연령 기준 …) is written as
+ *   TBD in the body, never invented. Headings name what a clause covers and never carry a TBD.
  */
 
-export type TermsSlug = "service" | "privacy" | "youth" | "operation" | "marketing" | "creator";
+export type TermsSlug = "service" | "privacy" | "youth" | "operation" | "marketing" | "creator" | "refund";
+
+/**
+ * One block of a clause body: a paragraph (string), a numbered list (`ol`), a bulleted list (`ul`) or a table.
+ * Plain text only — the page renders it as text, never as HTML.
+ */
+export type TermsBlock = string | { ol: string[] } | { ul: string[] } | { table: { head: string[]; rows: string[][] } };
+
+export type TermsClause = { title: string; body: TermsBlock[] };
 
 export type TermsDoc = {
   title: string;
   /** ARTICLE = 제n조 (약관), SECTION = n. (방침·정책·동의서) */
   numbering: "ARTICLE" | "SECTION";
-  clauses: string[];
+  clauses: TermsClause[];
 };
 
-/** Order of the document tabs: footer documents first, then the ones linked from 회원가입 · 채널 만들기. */
+export { COMPANY_INFO_TBD, effectiveLine, TERMS_DRAFT } from "./drafts/common";
+
+/**
+ * Order of the document tabs: footer documents first, then the ones linked from 회원가입 · 채널 만들기, then the
+ * FN 충전 · 환불 정책 linked from the FN 충전 약관 (결제 서비스 이용약관 및 환불 정책 동의).
+ */
 export const TERMS_DOCS: Record<TermsSlug, TermsDoc> = {
-  service: {
-    title: "서비스 이용약관",
-    numbering: "ARTICLE",
-    clauses: [
-      "목적",
-      "용어의 정의",
-      "약관의 게시와 개정",
-      "회원가입과 이용계약",
-      "회원 정보의 관리",
-      "서비스의 제공과 변경",
-      "FN 충전과 사용",
-      "후원",
-      "청약철회와 환불",
-      "회원의 의무",
-      "서비스 이용 제한",
-      "회원 탈퇴와 이용계약 해지",
-      "책임의 한계",
-      "분쟁 해결과 관할"
-    ]
-  },
-  privacy: {
-    title: "개인정보 처리 방침",
-    numbering: "SECTION",
-    clauses: [
-      "처리하는 개인정보 항목",
-      "개인정보의 처리 목적",
-      "개인정보의 보유 및 이용 기간",
-      "개인정보의 제3자 제공",
-      "개인정보 처리의 위탁",
-      "개인정보의 국외 이전",
-      "개인정보의 파기 절차와 방법",
-      "정보주체의 권리와 행사 방법",
-      "쿠키의 설치·운영과 거부",
-      "개인정보의 안전성 확보 조치",
-      "개인정보 보호책임자",
-      "권익침해 구제 방법",
-      "처리 방침의 변경"
-    ]
-  },
-  youth: {
-    title: "청소년 보호정책",
-    numbering: "SECTION",
-    clauses: [
-      "목적",
-      "유해정보로부터의 청소년 보호 계획",
-      "유해정보에 대한 접근 제한과 관리 조치",
-      "유해정보로 인한 피해 상담과 고충 처리",
-      "청소년 보호 책임자와 담당자"
-    ]
-  },
-  operation: {
-    title: "운영정책",
-    numbering: "SECTION",
-    clauses: [
-      "목적",
-      "적용 범위",
-      "금지 행위",
-      "게시물과 채팅 관리",
-      "후원 메시지와 후원 콘텐츠 관리",
-      "신고와 처리 절차",
-      "이용 제한 기준",
-      "이의 신청",
-      "정책의 변경"
-    ]
-  },
-  marketing: {
-    title: "광고성 정보 수신 및 마케팅 활용 동의",
-    numbering: "SECTION",
-    clauses: ["수집·이용 목적", "수집 항목", "보유 및 이용 기간", "광고성 정보의 전송 방법", "동의 거부 권리와 철회 방법"]
-  },
-  creator: {
-    title: "크리에이터 이용약관",
-    numbering: "ARTICLE",
-    clauses: [
-      "목적",
-      "용어의 정의",
-      "크리에이터 채널 개설",
-      "방송 플랫폼 연동",
-      "후원 수익",
-      "정산 신청과 지급",
-      "세금과 증빙",
-      "크리에이터의 의무",
-      "이용 제한과 채널 해지",
-      "탈퇴 시 수익 처리",
-      "책임의 한계",
-      "분쟁 해결과 관할"
-    ]
-  }
+  service: SERVICE_TERMS,
+  privacy: PRIVACY_POLICY,
+  youth: YOUTH_POLICY,
+  operation: OPERATION_POLICY,
+  marketing: MARKETING_CONSENT,
+  creator: CREATOR_TERMS,
+  refund: REFUND_POLICY
 };
 
 export const TERMS_SLUGS = Object.keys(TERMS_DOCS) as TermsSlug[];
@@ -113,6 +61,6 @@ export const isTermsSlug = (slug: string): slug is TermsSlug => Object.hasOwn(TE
 
 /** "제3조 (약관의 게시와 개정)" or "3. 개인정보의 보유 및 이용 기간" */
 export function clauseHeading(doc: TermsDoc, index: number) {
-  const name = doc.clauses[index];
+  const name = doc.clauses[index].title;
   return doc.numbering === "ARTICLE" ? `제${index + 1}조 (${name})` : `${index + 1}. ${name}`;
 }
