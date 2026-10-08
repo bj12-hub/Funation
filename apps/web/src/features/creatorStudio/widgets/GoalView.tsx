@@ -71,18 +71,22 @@ export function GoalView({
   first,
   second,
   daysLeft,
-  theme
+  theme,
+  vertical = false
 }: {
   settings: GoalSettings;
   first: GoalProgressView;
   second: GoalProgressView | null;
   daysLeft: number | null;
   theme: ResolvedTheme;
+  /** 세로 방송 (?layout=vertical): 1080 wide, larger text, the shape above its text. */
+  vertical?: boolean;
 }) {
   const index = useAlternating(s.second.enabled && second !== null, s.alternateSec);
   const goal = index === 1 && second ? { title: s.second.title, target: s.second.goalAmount, ...second } : { title: s.title, target: s.goalAmount, ...first };
   const colors = (s.customColors ? { "--ov-accent": s.barColor, "--ov-track-bg": s.barBackground } : {}) as CSSProperties;
-  const text: CSSProperties = { fontFamily: `"${s.font.family}", var(--ov-body-font)`, fontSize: s.font.size, textShadow: s.textOutline ? OUTLINE : undefined };
+  const size = vertical ? Math.round(s.font.size * 2) : s.font.size;
+  const text: CSSProperties = { fontFamily: `"${s.font.family}", var(--ov-body-font)`, fontSize: size, textShadow: s.textOutline ? OUTLINE : undefined };
   const amount = `${formatNumber(goal.current)} FN`;
   const pct = `${goal.percent.toFixed(goal.percent % 1 === 0 ? 0 : 1)}%`;
   const dots = s.second.enabled && second !== null && (
@@ -94,7 +98,7 @@ export function GoalView({
 
   if (s.shape === "BAR") {
     return (
-      <OverlayThemeRoot theme={theme} className={g.root} data-shape="BAR" data-style={s.style} style={colors}>
+      <OverlayThemeRoot theme={theme} className={g.root} data-shape="BAR" data-style={s.style} data-vertical={vertical || undefined} style={colors}>
         <div key={index} className={`${ov.enter} ${g.bar}`} data-motion="FADE">
           <div className={`${ov.onStream} ${ov.label} ${g.head}`} style={text}>
             <span className={g.title}>
@@ -110,7 +114,7 @@ export function GoalView({
           </div>
           <div
             className={`${ov.track} ${g.track}`}
-            style={{ height: s.barHeight }}
+            style={{ height: vertical ? Math.round(s.barHeight * 1.6) : s.barHeight }}
             role="progressbar"
             aria-valuemin={0}
             aria-valuemax={100}
@@ -126,7 +130,7 @@ export function GoalView({
             </strong>
           )}
           {s.style === "BASIC" && (
-            <div className={`${ov.onStream} ${g.foot}`} style={{ ...text, fontSize: Math.max(12, Math.round(s.font.size * 0.85)) }}>
+            <div className={`${ov.onStream} ${g.foot}`} style={{ ...text, fontSize: Math.max(12, Math.round(size * 0.85)) }}>
               <span>목표 {formatNumber(goal.target)} FN</span>
               {daysLeft !== null && <span>남은 기간 {daysLeft}일</span>}
             </div>
@@ -137,7 +141,7 @@ export function GoalView({
   }
 
   return (
-    <OverlayThemeRoot theme={theme} className={g.root} data-shape={s.shape} style={colors}>
+    <OverlayThemeRoot theme={theme} className={g.root} data-shape={s.shape} data-vertical={vertical || undefined} style={colors}>
       <div key={index} className={`${ov.enter} ${g.shapeRow}`} data-motion="FADE">
         <span
           className={g.shapeBox}

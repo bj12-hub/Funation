@@ -14,7 +14,8 @@ export const CHAT_LEAVE_MS = 900;
  * 닉네임 컬러 · 배경, 최대 줄, 자동으로 감추기 and the In/Out effects. Drawn by the OBS overlay and, with sample
  * lines, by the 채팅창 settings preview. `now` (server time) null = nothing hides (the preview).
  */
-export function ChatLines({ lines, settings: s, theme, now }: { lines: ChatOverlayLine[]; settings: ChatSettings; theme: ResolvedTheme; now: number | null }) {
+/** `vertical` (세로 방송): the same lines at 1.6× for a 1080-wide portrait canvas. */
+export function ChatLines({ lines, settings: s, theme, now, vertical = false }: { lines: ChatOverlayLine[]; settings: ChatSettings; theme: ResolvedTheme; now: number | null; vertical?: boolean }) {
   const shown = lines
     .slice(-s.maxLines)
     .map((l) => ({ l, age: now === null || !s.autoHide ? 0 : now - Date.parse(l.at) }))
@@ -63,7 +64,7 @@ export function ChatLines({ lines, settings: s, theme, now }: { lines: ChatOverl
       data-style={s.style}
       aria-live="polite"
       aria-label="통합 채팅"
-      style={{ fontSize: s.font.size, fontFamily: `"${s.font.family}", var(--ov-body-font)`, "--chat-color": s.font.color } as CSSProperties}
+      style={{ fontSize: vertical ? Math.round(s.font.size * 1.6) : s.font.size, fontFamily: `"${s.font.family}", var(--ov-body-font)`, "--chat-color": s.font.color } as CSSProperties}
     >
       {items}
     </OverlayThemeRoot>
