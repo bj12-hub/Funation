@@ -6,6 +6,8 @@ vi.mock("@/lib/session", () => mockSessionModule());
 
 /** The operator the admin API acts for (the route layer authorises the admin app first). */
 const OP = { userId: "adm-test", nickname: "테스트 운영자" };
+/** A stored refund request's computed refund (환불 정책 기본값). */
+const QUOTE = { type: "FULL_CANCEL" as const, grossFn: 10_000, feeFn: 0, netFn: 10_000 };
 
 /** 관리자 콘솔: Admin role only, server-computed totals, append-only audit log. */
 async function load() {
@@ -26,7 +28,7 @@ describe("admin console", () => {
     signIn(["SUPPORTER"]);
     m.mockAccount.fnBalance = 100_000;
     await m.requestDonation({ creatorId: "c1", hideProfile: false, type: "TEXT", amount: 7_000, message: "", voiceId: null, idempotencyKey: key(1) });
-    m.mockRefunds.requests.push({ chargeId: "ch-x", memberId: "u-test", accountSince: null, requestedAt: "2026-09-30", reason: "", status: "REQUESTED" });
+    m.mockRefunds.requests.push({ chargeId: "ch-x", memberId: "u-test", accountSince: null, requestedAt: "2026-09-30", reason: "", status: "REQUESTED", quote: QUOTE });
     signIn(["ADMIN"]);
     const d = (await m.getAdminDashboard())!;
     expect(d.donations.monthFn).toBeGreaterThanOrEqual(7_000);
@@ -41,7 +43,7 @@ describe("admin console", () => {
     const { withdrawalStore } = await import("@/services/account/withdrawalCore");
     const { recordWithdrawal } = await import("@/services/account/withdrawalRecord");
     const request = (chargeId: string, accountSince: string | null, requestedAt: string) =>
-      m.mockRefunds.requests.push({ chargeId, memberId: "u-test", accountSince, requestedAt, reason: "", status: "REQUESTED" });
+      m.mockRefunds.requests.push({ chargeId, memberId: "u-test", accountSince, requestedAt, reason: "", status: "REQUESTED", quote: QUOTE });
     request("ch2", null, "2026-10-01T00:00:00.000Z");
     signIn(["ADMIN"]);
     expect((await m.getAdminDashboard())!.pending).toMatchObject({ refunds: 1, refundsBlocked: 0 });

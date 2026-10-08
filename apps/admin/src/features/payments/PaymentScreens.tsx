@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatNumber } from "@/lib/format";
-import { type AdminRefund, type DonationsView, type PaymentsView, CHARGE_STATUS_LABEL, DONATION_STATUS_LABEL, type DonationStatus } from "@/types/adminApi";
+import { type AdminRefund, type DonationsView, type PaymentsView, type RefundAmounts, CHARGE_STATUS_LABEL, DONATION_STATUS_LABEL, REFUND_TYPE_LABEL, type DonationStatus } from "@/types/adminApi";
 import styles from "../admin.module.css";
 import { WithdrawnBadge } from "../WithdrawnBadge";
 import { RefundDecision } from "./RefundDecision";
@@ -11,12 +11,54 @@ const when = (s: string) => s.slice(0, 16).replace("T", " ");
 /** A waiting request of an account that has since withdrawn: 처리 불가(탈퇴), outside 처리 대기 (2026-10-08 결정). */
 const isBlocked = (r: AdminRefund) => r.status === "REQUESTED" && r.memberWithdrawn;
 
+/** "전액 취소 · 회수 30,000 FN · 수수료 0 FN · 환불 30,000 FN" — amounts as the site computed them. */
+const refundText = (a: RefundAmounts) => `${REFUND_TYPE_LABEL[a.type]} · 회수 ${formatNumber(a.grossFn)} FN · 수수료 ${formatNumber(a.feeFn)} FN · 환불 ${formatNumber(a.netFn)} FN`;
+const same = (a: RefundAmounts, b: { type: string; grossFn: number; netFn: number }) => a.type === b.type && a.grossFn === b.grossFn && a.netFn === b.netFn;
+
+/** 환불 유형 · 수수료 · 환불 금액: at the request, now (what 승인 applies), and what approval refunded. */
+function RefundAmountsFacts({ r }: { r: AdminRefund }) {
+  const current = r.current;
+  return (
+    <dl className={styles.facts}>
+      <div>
+        <dt>요청 때 계산</dt>
+        <dd>{refundText(r.requested)}</dd>
+      </div>
+      {r.approved && (
+        <div>
+          <dt>승인 때 적용</dt>
+          <dd>
+            {refundText(r.approved)}
+            {!same(r.approved, r.requested) && <span className={styles.warn}> · 요청 후 FN 사용으로 바뀜</span>}
+          </dd>
+        </div>
+      )}
+      {current && (
+        <div>
+          <dt>지금 기준 (승인하면 적용)</dt>
+          <dd>
+            {current.type === "NOT_REFUNDABLE" ? (
+              <span className={styles.warn}>환불 불가 · 요청 후 이 충전의 FN을 모두 사용했어요</span>
+            ) : (
+              <>
+                {refundText({ type: current.type, grossFn: current.grossFn, feeFn: current.feeFn, netFn: current.netFn })}
+                {same(r.requested, current) ? <span className={styles.muted}> · 요청 때와 같아요</span> : <span className={styles.warn}> · 요청 후 FN 사용으로 바뀜</span>}
+              </>
+            )}
+          </dd>
+        </div>
+      )}
+    </dl>
+  );
+}
+
 function RefundItem({ r }: { r: AdminRefund }) {
   const chip = isBlocked(r) ? { className: styles.chipNeutral, label: "처리 불가(탈퇴)" } : { className: r.status === "REQUESTED" ? styles.chipWarn : r.status === "APPROVED" ? styles.chipOk : styles.chipBad, label: REFUND_LABEL[r.status] };
+  const type = r.approved?.type ?? r.requested.type;
   return (
     <li className={styles.refundItem}>
       <div className={styles.refundHead}>
-        <strong>{r.charge ? `${formatNumber(r.charge.fnAmount)} FN · ${formatNumber(r.charge.paidAmount)}원` : r.chargeId}</strong>
+        <strong>{`${r.charge ? `${formatNumber(r.charge.fnAmount)} FN · ${formatNumber(r.charge.paidAmount)}원` : r.chargeId} · ${REFUND_TYPE_LABEL[type]}`}</strong>
         <span className={chip.className}>{chip.label}</span>
       </div>
       <p className={styles.muted}>
@@ -24,12 +66,13 @@ function RefundItem({ r }: { r: AdminRefund }) {
         <WithdrawnBadge withdrawn={r.memberWithdrawn} /> · 충전 {r.charge ? when(r.charge.chargedAt) : "—"} · {r.charge?.methodLabel ?? "—"} · 요청 {when(r.requestedAt)}
       </p>
       <p className={styles.quote}>사유: {r.reason || "(없음)"}</p>
+      <RefundAmountsFacts r={r} />
       {r.decision ? (
         <p className={styles.muted}>
           {when(r.decision.at)} · {r.decision.by} · {r.decision.note}
         </p>
       ) : isBlocked(r) ? null : (
-        <RefundDecision chargeId={r.chargeId} />
+        <RefundDecision chargeId={r.chargeId} current={r.current} />
       )}
     </li>
   );
@@ -99,7 +142,8 @@ export function PaymentsScreen({ view, tab }: { view: PaymentsView; tab: "charge
         </section>
       ) : (
         <section className={styles.card}>
-          <p className={styles.muted}>회원 보유 FN: {formatNumber(view.balance)} FN · 승인하면 충전 FN이 보유 FN에서 회수돼요. 처리는 되돌릴 수 없어요.</p>
+          <p className={styles.muted}>회원 보유 FN: {formatNumber(view.balance)} FN · 승인하면 그 충전에서 아직 쓰지 않은 FN만 회수돼요. 처리는 되돌릴 수 없어요.</p>
+          <p className={styles.muted}>{`환불 정책 · ${view.refundPolicy.label}: ${view.refundPolicy.summary}`}</p>
           {view.refunds.length === 0 ? (
             <p className={styles.empty}>환불 요청이 없어요. 회원은 FN 충전내역의 상세에서 요청할 수 있어요.</p>
           ) : (

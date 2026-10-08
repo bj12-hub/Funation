@@ -27,10 +27,14 @@ const payments: PaymentsView = {
       reason: "실수",
       status: "REJECTED",
       decision: { at: "2026-10-02T00:00:00.000Z", by: "운영자", note: "거절" },
-      charge: { chargedAt: charge.chargedAt, fnAmount: 10_000, paidAmount: 11_000, methodLabel: "카드", transactionId: "TXN-1" }
+      charge: { chargedAt: charge.chargedAt, fnAmount: 10_000, paidAmount: 11_000, methodLabel: "카드", transactionId: "TXN-1" },
+      requested: { type: "FULL_CANCEL", grossFn: 10_000, feeFn: 0, netFn: 10_000 },
+      approved: null,
+      current: null
     }
   ],
-  balance: 0
+  balance: 0,
+  refundPolicy: { label: "기본값 (일반적인 기준, 법무 검토 전)", summary: "요약" }
 };
 
 describe("withdrawn members in the console", () => {

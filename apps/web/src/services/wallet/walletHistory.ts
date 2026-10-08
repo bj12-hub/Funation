@@ -172,7 +172,7 @@ export async function getWalletOverview(input: { kind?: unknown; period?: unknow
       ),
     // Matched by the account marker, not by time: a credit from the same minute as a 재가입 is not the new account's.
     ...currentAccountCredits().map(
-      (c): LedgerEntry => ({ id: c.id, kind: "REWARD", description: c.reason, deltaFn: c.fnAmount, statusLabel: "완료", tone: "done", at: c.at })
+      (c): LedgerEntry => ({ id: c.id, kind: "REWARD", description: c.reason, deltaFn: c.fnAmount, statusLabel: "완료", tone: "done", at: c.at.slice(0, 16) })
     )
   ].sort((a, b) => b.at.localeCompare(a.at));
 

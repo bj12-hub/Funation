@@ -4,6 +4,7 @@
  */
 
 import type { Period } from "@/lib/period";
+import type { RefundAmounts, RefundQuote } from "./refundPolicy";
 
 export type WalletSummary = {
   balance: number;
@@ -35,13 +36,41 @@ export type ChargeRecord = {
 };
 
 export type RefundStatus = "REQUESTED" | "APPROVED" | "REJECTED";
-/** A charge's refund request as the member sees it; `note` is the operator's memo, shown for a rejection only. */
-export type ChargeRefund = { status: RefundStatus; requestedAt: string; decidedAt?: string; note?: string };
+/**
+ * A charge's refund request as the member sees it; `note` is the operator's memo, shown for a rejection only.
+ * `amounts`: the refund computed when it was requested (환불 정책 기본값) — once approved, what approval refunded.
+ * `requestedAmounts`: only when approval used other amounts than the request (FN were used in the meantime).
+ */
+export type ChargeRefund = {
+  status: RefundStatus;
+  requestedAt: string;
+  decidedAt?: string;
+  note?: string;
+  amounts: RefundAmounts;
+  requestedAmounts?: RefundAmounts;
+};
 export const REFUND_STATUS_LABEL: Record<RefundStatus, string> = { REQUESTED: "환불 요청", APPROVED: "환불 완료", REJECTED: "환불 거절" };
 
+/** The list tag and the CSV 환불 상태: "환불 요청 · 전액 취소", "환불 완료 · 수수료 공제", "환불 거절". */
+export function refundStatusText(refund: Pick<ChargeRefund, "status" | "amounts">): string {
+  if (refund.status === "REJECTED") return REFUND_STATUS_LABEL.REJECTED;
+  return `${REFUND_STATUS_LABEL[refund.status]} · ${refund.amounts.type === "FULL_CANCEL" ? "전액 취소" : "수수료 공제"}`;
+}
+
 export const REFUND_REASON_MAX = 200;
-/** A repeat request returns the existing one as it is now (also after an operator decided it). */
-export type RefundRequestResult = ChargeRefund | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
+/**
+ * A repeat request returns the existing one as it is now (also after an operator decided it). NOT_REFUNDABLE: nothing
+ * of the charge is refundable now; CHANGED: the outcome is no longer the one the member saw (`expectedGrossFn` /
+ * `expectedNetFn`) — no request is filed, the member checks the new `quote` and asks again.
+ */
+export type RefundRequestResult =
+  | ChargeRefund
+  | { status: "NOT_REFUNDABLE"; quote: RefundQuote }
+  | { status: "CHANGED"; quote: RefundQuote }
+  | { status: "INVALID"; message: string }
+  | { status: "UNAUTHORIZED" };
+/** The outcome shown before the member asks; a charge that already has a request answers with that request. */
+export type RefundQuoteResult = { status: "QUOTE"; quote: RefundQuote } | ChargeRefund | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
 
 import type { QuestView } from "@/services/donations/questTypes";
 

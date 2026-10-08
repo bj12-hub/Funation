@@ -723,6 +723,105 @@
   font-weight: var(--font-weight-bold);
 }
 
+.refundStatus {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* 환불 결과 미리보기 (전액 취소 / 수수료 공제 후 환불 / 환불 불가) */
+.refundOutcome {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+}
+
+.refundOutcomeTitle {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+}
+
+.refundFacts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+
+.refundFacts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: var(--font-size-13);
+}
+
+.refundFacts dt {
+  color: var(--color-text-secondary);
+}
+
+.refundFacts dd {
+  margin: 0;
+  color: var(--color-text-primary);
+  text-align: right;
+}
+
+.refundFactsTotal {
+  font-weight: var(--font-weight-bold);
+}
+
+/* 환불 정책 요약 — 기본값 (일반적인 기준, 법무 검토 전) */
+.refundPolicy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: var(--radius-8);
+  background: var(--color-bg-subtle);
+}
+
+.refundPolicyTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+}
+
+.refundPolicyBadge {
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-warning-tint);
+  color: var(--color-warning-text);
+  font-size: var(--font-size-11);
+  font-weight: var(--font-weight-bold);
+}
+
+.refundPolicyList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding-left: 16px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-12);
+}
+
+.refundPolicyLink {
+  align-self: flex-start;
+  color: var(--color-accent-text);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  text-decoration: underline;
+}
+
 .refundTag {
   display: inline-block;
   margin-left: 6px;
