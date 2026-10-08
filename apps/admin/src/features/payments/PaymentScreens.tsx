@@ -2,6 +2,8 @@ import Link from "next/link";
 import { formatNumber } from "@/lib/format";
 import { type AdminRefund, type DonationsView, type PaymentsView, type RefundAmounts, CHARGE_STATUS_LABEL, DONATION_STATUS_LABEL, REFUND_TYPE_LABEL, type DonationStatus } from "@/types/adminApi";
 import styles from "../admin.module.css";
+import { HoldControl } from "../HoldControl";
+import { HoldChip, HoldInfo } from "../HoldInfo";
 import { WithdrawnBadge } from "../WithdrawnBadge";
 import { RefundDecision } from "./RefundDecision";
 
@@ -10,6 +12,8 @@ const when = (s: string) => s.slice(0, 16).replace("T", " ");
 
 /** A waiting request of an account that has since withdrawn: 처리 불가(탈퇴), outside 처리 대기 (2026-10-08 결정). */
 const isBlocked = (r: AdminRefund) => r.status === "REQUESTED" && r.memberWithdrawn;
+/** A waiting request on 보류 (2026-10-08 결정): outside 처리 대기, listed apart, decided only after 보류 해제. */
+const isHeld = (r: AdminRefund) => r.status === "REQUESTED" && !isBlocked(r) && r.hold !== null;
 
 /** "전액 취소 · 회수 30,000 FN · 수수료 0 FN · 환불 30,000 FN" — amounts as the site computed them. */
 const refundText = (a: RefundAmounts) => `${REFUND_TYPE_LABEL[a.type]} · 회수 ${formatNumber(a.grossFn)} FN · 수수료 ${formatNumber(a.feeFn)} FN · 환불 ${formatNumber(a.netFn)} FN`;
@@ -59,7 +63,9 @@ function RefundItem({ r }: { r: AdminRefund }) {
     <li className={styles.refundItem}>
       <div className={styles.refundHead}>
         <strong>{`${r.charge ? `${formatNumber(r.charge.fnAmount)} FN · ${formatNumber(r.charge.paidAmount)}원` : r.chargeId} · ${REFUND_TYPE_LABEL[type]}`}</strong>
-        <span className={chip.className}>{chip.label}</span>
+        <span>
+          <HoldChip hold={r.hold} /> <span className={chip.className}>{chip.label}</span>
+        </span>
       </div>
       <p className={styles.muted}>
         {r.memberName}
@@ -71,9 +77,12 @@ function RefundItem({ r }: { r: AdminRefund }) {
         <p className={styles.muted}>
           {when(r.decision.at)} · {r.decision.by} · {r.decision.note}
         </p>
-      ) : isBlocked(r) ? null : (
+      ) : isBlocked(r) || r.hold ? null : (
         <RefundDecision chargeId={r.chargeId} current={r.current} />
       )}
+      {r.hold && <HoldInfo hold={r.hold} stops="승인 · 거절을" />}
+      {/* 보류 for a waiting request of the current account; 보류 해제 whenever one is on, so it never stays stuck. */}
+      {r.status === "REQUESTED" && (r.hold || !isBlocked(r)) && <HoldControl target={{ kind: "refund", chargeId: r.chargeId }} held={r.hold !== null} />}
     </li>
   );
 }
@@ -81,8 +90,9 @@ function RefundItem({ r }: { r: AdminRefund }) {
 /** 결제 · 환불 — code-first. Route `/payments` (`?tab=charges|refunds`). */
 export function PaymentsScreen({ view, tab }: { view: PaymentsView; tab: "charges" | "refunds" }) {
   const blocked = view.refunds.filter(isBlocked);
-  const listed = view.refunds.filter((r) => !isBlocked(r));
-  // 처리 대기: what an operator can decide now.
+  const held = view.refunds.filter(isHeld);
+  const listed = view.refunds.filter((r) => !isBlocked(r) && !isHeld(r));
+  // 처리 대기: what an operator can decide now (not 보류, not 처리 불가(탈퇴)).
   const waiting = listed.filter((r) => r.status === "REQUESTED").length;
   return (
     <div className={styles.content}>
@@ -96,6 +106,7 @@ export function PaymentsScreen({ view, tab }: { view: PaymentsView; tab: "charge
         </Link>
         <Link href="/payments?tab=refunds" className={styles.tab} aria-current={tab === "refunds" ? "page" : undefined}>
           환불 요청 {waiting > 0 ? <span className={styles.warn}>{waiting}</span> : 0}
+          {held.length > 0 && ` · 보류 ${held.length}`}
         </Link>
       </nav>
 
@@ -144,6 +155,7 @@ export function PaymentsScreen({ view, tab }: { view: PaymentsView; tab: "charge
         <section className={styles.card}>
           <p className={styles.muted}>회원 보유 FN: {formatNumber(view.balance)} FN · 승인하면 그 충전에서 아직 쓰지 않은 FN만 회수돼요. 처리는 되돌릴 수 없어요.</p>
           <p className={styles.muted}>{`환불 정책 · ${view.refundPolicy.label}: ${view.refundPolicy.summary}`}</p>
+          <p className={styles.muted}>확인이 더 필요한 요청은 메모를 남겨 보류해요. 회원이 이용 정지 중이어도 환불 요청은 평소대로 처리해요.</p>
           {view.refunds.length === 0 ? (
             <p className={styles.empty}>환불 요청이 없어요. 회원은 FN 충전내역의 상세에서 요청할 수 있어요.</p>
           ) : (
@@ -154,6 +166,19 @@ export function PaymentsScreen({ view, tab }: { view: PaymentsView; tab: "charge
                     <RefundItem key={r.chargeId} r={r} />
                   ))}
                 </ul>
+              )}
+              {held.length > 0 && (
+                <section aria-labelledby="refunds-held">
+                  <h2 id="refunds-held" className={styles.subTitle}>
+                    보류 {held.length}
+                  </h2>
+                  <p className={styles.muted}>보류를 해제할 때까지 승인 · 거절할 수 없어서 처리 대기에 넣지 않아요. 회원 화면에는 그대로 심사 중으로 보여요.</p>
+                  <ul className={styles.refundList}>
+                    {held.map((r) => (
+                      <RefundItem key={r.chargeId} r={r} />
+                    ))}
+                  </ul>
+                </section>
               )}
               {blocked.length > 0 && (
                 <section aria-labelledby="refunds-blocked">

@@ -113,6 +113,16 @@ describe("비밀번호 재설정 · 휴대폰 인증", () => {
     expect(await m.verifyPhoneCode("010-0000-0000", "SIGNUP", "123456")).toMatchObject({ status: "VERIFIED" });
   });
 
+  it("keeps a verified phone usable for 30 minutes (2026-10-08 결정)", async () => {
+    const core = await import("./verificationCore");
+    const t0 = Date.parse("2026-10-08T10:00:00Z");
+    core.recordSentCode("010-0000-0000", "SIGNUP", t0);
+    const token = core.verifySentCode("010-0000-0000", "SIGNUP", "123456", t0);
+    expect(core.verifiedPhone(token, "SIGNUP", t0 + 30 * 60_000 - 1)).toBe("010-0000-0000");
+    expect(core.verifiedPhone(token, "SIGNUP", t0 + 30 * 60_000)).toBeNull();
+    expect(core.consumeVerificationToken(token, "SIGNUP", t0 + 30 * 60_000)).toBeNull();
+  });
+
   it("lets sign-up use a SIGNUP verification once, and nothing else", async () => {
     const { signup } = await import("./signup");
     const forged = { ...SIGNUP, phoneVerificationToken: "mock-010-0000-0000" };

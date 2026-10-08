@@ -14,14 +14,18 @@ export function AdminDashboardScreen({ data }: { data: AdminDashboard }) {
     { label: "이번 달 후원", value: `${formatNumber(data.donations.monthFn)} FN`, sub: `${formatNumber(data.donations.monthCount)}건` },
     { label: "처리 중 충전", value: `${formatNumber(data.charges.processing)}건`, sub: "결제 확인 대기" }
   ];
+  // 보류 and 처리 불가(탈퇴) requests are not 처리 대기; they are only mentioned after the note (2026-10-08 결정).
+  const apart = (note: string, parts: [string, number][]) => [note, ...parts.filter(([, n]) => n > 0).map(([label, n]) => `${label} ${formatNumber(n)}건`)].join(" · ");
   const queues = [
     {
       label: "환불 요청",
       count: data.pending.refunds,
-      // 처리 불가(탈퇴) requests are not 처리 대기; they are only mentioned (2026-10-08 결정).
-      note: data.pending.refundsBlocked > 0 ? `결제 · 환불 › 환불 요청에서 심사 · 처리 불가(탈퇴) ${formatNumber(data.pending.refundsBlocked)}건` : "결제 · 환불 › 환불 요청에서 심사"
+      note: apart("결제 · 환불 › 환불 요청에서 심사", [
+        ["보류", data.pending.refundsHeld],
+        ["처리 불가(탈퇴)", data.pending.refundsBlocked]
+      ])
     },
-    { label: "정산 신청", count: data.pending.settlements, note: "정산 심사에서 처리" },
+    { label: "정산 신청", count: data.pending.settlements, note: apart("정산 심사에서 처리", [["보류", data.pending.settlementsHeld]]) },
     { label: "신고", count: data.pending.reports, note: "신고 처리에서 확인" }
   ];
   return (

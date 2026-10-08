@@ -8,9 +8,9 @@ import { SAMPLE_MEMBER_ID } from "@/services/admin/memberCore";
  *
  * Failures are counted per account, not per typed identifier: the identifier is trimmed, lowercased and
  * resolved to its account first, so typing the same account differently does not start a new count.
- * After MAX_PASSWORD_FAILURES wrong passwords the account is locked until a password reset (718:213 copy)
- * or a successful login before that. TBD: whether a lock also expires after some time (policy), and
- * per-IP / per-device counting (backend).
+ * After MAX_PASSWORD_FAILURES wrong passwords the account is locked until a password reset (718:213 copy); a
+ * successful login before that clears the count. 2026-10-08 결정: a password reset is the only way out of the lock —
+ * it never expires by time, and there is no per-IP limit.
  */
 
 export const MAX_PASSWORD_FAILURES = 5;

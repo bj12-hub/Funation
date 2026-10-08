@@ -1,4 +1,5 @@
 import type { SettlementStatus } from "@/services/creator/settlementTypes";
+import type { AdminHold } from "./adminTypes";
 
 /**
  * 정산 심사 — code-first. Client-safe types. Fee and payout figures are the mock values computed by the
@@ -26,11 +27,21 @@ export type AdminSettlementRow = {
   review: { at: string; by: string; note: string } | null;
   /** 지급 완료: when, by whom, and the transfer reference the operator recorded (PAID only). */
   payment: { at: string; by: string; reference: string } | null;
+  /** 보류 in force (심사 대기 · 승인 only): 승인 · 반려 · 지급 완료 are refused until 보류 해제 (2026-10-08 결정). */
+  hold: AdminHold | null;
 };
+
+/** The console's 정산 심사 tabs: a status, or `HELD` = every request on 보류 (심사 대기 and 승인). */
+export type SettlementFilter = SettlementStatus | "HELD";
 
 export type AdminSettlementView = {
   rows: AdminSettlementRow[];
+  /**
+   * Requests per status, without those on 보류 — they are counted in `held` instead, so 심사 대기 and 승인 are what an
+   * operator can process now and every request is in exactly one tab.
+   */
   counts: Record<SettlementStatus, number>;
+  held: number;
   /** The creator's current registration (may differ from a request's `registrationAtRequest`). */
   registration: AdminSettlementRegistration | null;
   availableFn: number;

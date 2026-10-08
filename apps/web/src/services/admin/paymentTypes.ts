@@ -1,5 +1,6 @@
 import type { RefundAmounts, RefundQuote } from "@/services/wallet/refundPolicy";
 import type { ChargeRecord, DonationRecord, DonationStatus, RefundStatus } from "@/services/wallet/walletTypes";
+import type { AdminHold } from "./adminTypes";
 
 /** 후원 · 결제 운영 — code-first. Client-safe types. Refunds follow the 환불 정책 기본값 (법무 검토 전); KRW payout is TBD. */
 
@@ -24,6 +25,8 @@ export type AdminRefund = {
    * `requested` when the member used FN since, and NOT_REFUNDABLE when nothing of the charge is left.
    */
   current: RefundQuote | null;
+  /** 보류 in force (waiting requests only): 승인 · 거절 are refused until 보류 해제 (2026-10-08 결정). */
+  hold: AdminHold | null;
 };
 
 /**

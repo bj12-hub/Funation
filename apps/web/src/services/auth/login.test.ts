@@ -30,6 +30,19 @@ describe("로그인 실패 횟수", () => {
     for (let i = 0; i < 4; i++) expect(await attempt("hongGD123", "wrong")).toBe("WRONG_PASSWORD");
   });
 
+  it("keeps the lock however long it has been: only a password reset lifts it (2026-10-08 결정)", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date("2026-10-08T10:00:00"));
+      for (let i = 0; i < 4; i++) expect(await attempt("hongGD123", "wrong")).toBe("WRONG_PASSWORD");
+      expect(await attempt("hongGD123", "wrong")).toBe("LOCKED");
+      vi.setSystemTime(new Date("2027-10-08T10:00:00"));
+      expect(await attempt("hongGD123", PASSWORD)).toBe("LOCKED");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("does not count identifiers that belong to no account", async () => {
     for (let i = 0; i < 6; i++) expect(await attempt(" UNKNOWN ", "wrong")).toBe("UNKNOWN_ID");
     expect(await attempt("hongGD123", 42 as unknown as string)).toBe("WRONG_PASSWORD");

@@ -63,6 +63,18 @@ export async function paySettlement(input: unknown) {
   return send("POST", `/settlements/${seg(v.id)}/pay`, { reference: v.reference, requestId: v.requestId });
 }
 
+/** 보류 / 보류 해제 of a settlement request: `action` HOLD | RELEASE, a memo, one `requestId` per action. */
+export async function holdSettlement(input: unknown) {
+  const v = obj(input);
+  return send("POST", `/settlements/${seg(v.id)}/hold`, { action: v.action, note: v.note, requestId: v.requestId });
+}
+
+/** 보류 / 보류 해제 of a charge refund request: `action` HOLD | RELEASE, a memo, one `requestId` per action. */
+export async function holdRefund(input: unknown) {
+  const v = obj(input);
+  return send("POST", `/refunds/${seg(v.chargeId)}/hold`, { action: v.action, note: v.note, requestId: v.requestId });
+}
+
 export async function saveNotice(input: unknown) {
   return send("POST", "/content/notices", obj(input));
 }

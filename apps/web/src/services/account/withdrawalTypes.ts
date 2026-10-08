@@ -9,7 +9,7 @@ export type WithdrawalInfo = {
   /** Server balance that will be forfeited; the consent is for exactly this amount. */
   fnBalance: number;
   creator: boolean;
-  /** 정산 가능 + 정산 신청 중 (creators only); forfeited with its own consent. */
+  /** 정산 가능 + 심사 대기 정산 신청 (creators only); forfeited with its own consent. Approved requests are still paid. */
   unsettledFn: number;
   /** FN 충전 환불 requests still waiting for an operator (2026-10-06 결정: 처리가 끝나야 탈퇴할 수 있어요). */
   pendingRefunds: number;

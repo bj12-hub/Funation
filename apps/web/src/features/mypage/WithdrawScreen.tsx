@@ -13,6 +13,7 @@ import styles from "./withdraw.module.css";
 /**
  * 회원 탈퇴 — code-first (no Figma frame), route `/mypage/withdraw` (2026-10-04 결정: 남은 FN 소멸 동의 후 바로 탈퇴;
  * 2026-10-05: 크리에이터 정산 대기 수익도 소멸 동의, 탈퇴 직전 비밀번호 재입력, 탈퇴 후 바로 재가입 가능).
+ * 정산 대기 수익 is 정산 가능 + 심사 대기 requests only: approved settlements are still paid after the 탈퇴 (2026-10-08 결정).
  * Shows what withdrawal does, asks for a forfeit consent per amount (남은 FN · 정산 대기 수익, when there is one),
  * the final consent and the password, then ends the account on the server. Withdrawal waits while an FN 충전 환불
  * request is being handled (2026-10-06 결정) or a 퀘스트 후원 is in progress — sent by the member, or sent to the
@@ -168,7 +169,7 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
             정산 대기 수익
           </h2>
           <strong className={styles.balance}>{formatNumber(info.unsettledFn)} FN</strong>
-          <p className={styles.note}>정산 가능 금액과 정산 신청 중인 금액이에요. 탈퇴하면 함께 소멸되고, 진행 중인 정산 신청도 취소돼요. 먼저 정산을 받고 싶다면 탈퇴 전에 정산을 마쳐 주세요.</p>
+          <p className={styles.note}>정산 가능 금액과 심사 대기 중인 정산 신청 금액이에요. 탈퇴하면 함께 소멸되고, 심사 대기 중인 정산 신청도 취소돼요. 이미 승인된 정산은 소멸되지 않고 탈퇴 후에도 지급돼요. 먼저 정산을 받고 싶다면 정산 신청이 승인된 뒤에 탈퇴해 주세요.</p>
           <div className={styles.links}>
             <Link href="/creator/settlement">정산 화면으로</Link>
           </div>
@@ -181,7 +182,7 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
         </h2>
         <ul className={styles.effects}>
           {hasFn && <li>남은 FN {formatNumber(info.fnBalance)} FN이 소멸돼요.</li>}
-          {hasEarnings && <li>정산 대기 수익 {formatNumber(info.unsettledFn)} FN이 소멸되고, 진행 중인 정산 신청은 취소돼요.</li>}
+          {hasEarnings && <li>정산 대기 수익 {formatNumber(info.unsettledFn)} FN이 소멸되고, 심사 대기 중인 정산 신청은 취소돼요. 승인된 정산은 그대로 지급돼요.</li>}
           <li>네이버 · Google · 카카오 로그인 연결과 방송 플랫폼 연결이 모두 해제돼요.</li>
           <li>탈퇴한 계정으로는 다시 로그인할 수 없어요. 새 계정으로는 바로 다시 가입할 수 있지만, 이전 FN과 기록은 돌아오지 않아요.</li>
           {info.creator && (
@@ -223,7 +224,7 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
           <label className={styles.check}>
             <input type="checkbox" checked={earningsForfeit} disabled={pending} onChange={(e) => setEarningsForfeit(e.target.checked)} />
             <span>
-              <b>(필수)</b> 정산 대기 수익 {formatNumber(info.unsettledFn)} FN이 소멸되고 정산 신청이 취소되는 것에 동의합니다.
+              <b>(필수)</b> 정산 대기 수익 {formatNumber(info.unsettledFn)} FN이 소멸되고 심사 대기 중인 정산 신청이 취소되는 것에 동의합니다.
             </span>
           </label>
         )}
