@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { key, mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { key, mockSessionModule, rejoinWithPhone, resetMockStores, signIn } from "@/test/mockEnv";
 import { ROULETTE_RESULT_SEC } from "./rouletteTypes";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
@@ -27,6 +27,9 @@ async function load() {
 type M = Awaited<ReturnType<typeof load>>;
 
 const join = (n: number, amount = 10_000, creatorId = "c1") => ({ creatorId, hideProfile: false, type: "ROULETTE", amount, idempotencyKey: key(n) });
+/** Member `n` for the core calls: member id, account marker (null = the first account) and person key. */
+const member = (n: number) => ({ supporterUserId: `u-${n}`, account: null, person: `person-${n}` });
+const viewer = (n: number) => ({ userId: `u-${n}`, account: null, person: `person-${n}` });
 
 async function saveRoulette(m: M, patch: Record<string, unknown>) {
   const detail = (await m.getWidgetDetail("ROULETTE"))!;
@@ -104,7 +107,7 @@ describe("룰렛", () => {
   it("spins, reveals the result for a few seconds, then finishes (or 자동 시작 does it)", async () => {
     const m = await load();
     const t0 = Date.parse("2026-10-04T12:00:00");
-    const spin = m.enqueueSpin({ id: "s1", channelId: "c9", supporterUserId: "u-1", donor: "룰렛장인", shownDonor: "룰렛장인", amount: 10_000 }, t0, () => 80); // 80 → 시그니처
+    const spin = m.enqueueSpin({ id: "s1", channelId: "c9", ...member(1), donor: "룰렛장인", shownDonor: "룰렛장인", amount: 10_000 }, t0, () => 80); // 80 → 시그니처
     expect(m.statusOf(spin, t0)).toBe("QUEUED"); // 자동 시작 off by default
 
     m.startSpin(spin, t0);
@@ -112,14 +115,14 @@ describe("룰렛", () => {
     expect(spinning).toMatchObject({ status: "SPINNING", result: null, donor: "룰렛장인", nth: 1, limit: 3 });
     const shown = m.stageOf("c9", t0 + spin.spinMs + 1)!;
     expect(shown).toMatchObject({ status: "RESULT", result: "시그니처" });
-    expect(m.roomView("c9", "u-1", t0 + spin.spinMs + 1).mine[0]).toMatchObject({ status: "RESULT", result: "시그니처", position: null });
+    expect(m.roomView("c9", viewer(1), t0 + spin.spinMs + 1).mine[0]).toMatchObject({ status: "RESULT", result: "시그니처", position: null });
     expect(m.stageOf("c9", t0 + spin.spinMs + ROULETTE_RESULT_SEC * 1000)).toBeNull();
     expect(m.statusOf(spin, t0 + spin.spinMs + ROULETTE_RESULT_SEC * 1000)).toBe("DONE");
 
     await saveRoulette(m, { autoStart: true });
-    const next = m.enqueueSpin({ id: "s2", channelId: "c9", supporterUserId: "u-2", donor: "오늘도행운", shownDonor: "오늘도행운", amount: 30_000 }, t0 + 60_000);
+    const next = m.enqueueSpin({ id: "s2", channelId: "c9", ...member(2), donor: "오늘도행운", shownDonor: "오늘도행운", amount: 30_000 }, t0 + 60_000);
     expect(m.statusOf(next, t0 + 60_000)).toBe("SPINNING"); // the wheel was free
-    const waiting = m.enqueueSpin({ id: "s3", channelId: "c9", supporterUserId: "u-3", donor: "미션마스터", shownDonor: "미션마스터", amount: 20_000 }, t0 + 60_001);
+    const waiting = m.enqueueSpin({ id: "s3", channelId: "c9", ...member(3), donor: "미션마스터", shownDonor: "미션마스터", amount: 20_000 }, t0 + 60_001);
     expect(m.statusOf(waiting, t0 + 60_001)).toBe("QUEUED");
     m.mockRoulette.paused.c9 = true;
     m.advance("c9", t0 + 120_000);
@@ -184,7 +187,7 @@ describe("룰렛", () => {
     const waiting = (await stage(m))!;
     expect(waiting).toMatchObject({ status: "WAITING", result: null });
     expect((await m.startNextSpin()).status).toBe("INVALID"); // the stopped wheel still holds the screen
-    expect(m.roomView(m.STUDIO_CHANNEL, spin.supporterUserId).mine[0]).toMatchObject({ status: "WAITING", result: null });
+    expect(m.roomView(m.STUDIO_CHANNEL, { userId: spin.supporterUserId, account: spin.account, person: spin.person }).mine[0]).toMatchObject({ status: "WAITING", result: null });
     expect(await m.revealRouletteSpin({ spinId: spin.id })).toEqual({ status: "SAVED" });
     expect((await stage(m))!).toMatchObject({ status: "RESULT", result: spin.items[spin.resultIndex].name });
 
@@ -196,5 +199,49 @@ describe("룰렛", () => {
     expect(await m.setRouletteSwitch({ key: "enabled", on: false })).toEqual({ status: "SAVED" });
     expect(m.getDonationCatalog().roulette.enabled).toBe(false);
     expect((await m.getWidgetDetail("ROULETTE"))!.settings).toMatchObject({ enabled: false, autoReveal: false });
+  });
+});
+
+describe("룰렛 · 재가입 (2026-10-08 결정)", () => {
+  beforeEach(() => {
+    resetMockStores();
+    vi.useFakeTimers({ toFake: ["Date"] });
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it("keeps 내 룰렛 with the account and counts the daily limit per person and KST day", async () => {
+    vi.setSystemTime(new Date("2026-10-08T23:40:00+09:00"));
+    const m = await load();
+    await saveRoulette(m, { dailyLimit: 2 });
+    const room = async () => (await m.getRoomRoulette("c1"))!;
+    for (const n of [1, 2]) expect((await m.requestDonation(join(n))).status).toBe("COMPLETED");
+    expect(await m.requestDonation(join(3))).toEqual({ status: "INVALID" }); // 하루 2회
+    expect(await room()).toMatchObject({ usedToday: 2 });
+    expect((await room()).mine).toHaveLength(2);
+
+    // The same person (same verified phone) signs up again that day: the new account starts without the old 내 룰렛,
+    // and that day's limit is already used up.
+    vi.setSystemTime(new Date("2026-10-08T23:45:00+09:00"));
+    await rejoinWithPhone("010-1234-5678");
+    m.account.fnBalance = 100_000;
+    expect(await room()).toMatchObject({ usedToday: 2, mine: [] });
+    expect(await m.requestDonation(join(4))).toEqual({ status: "INVALID" });
+
+    // Someone else signs up in the slot: their own limit, their own list.
+    vi.setSystemTime(new Date("2026-10-08T23:50:00+09:00"));
+    await rejoinWithPhone("010-0000-0000");
+    m.account.fnBalance = 100_000;
+    expect(await room()).toMatchObject({ usedToday: 0, mine: [] });
+    expect((await m.requestDonation(join(5))).status).toBe("COMPLETED");
+    expect((await room()).mine).toHaveLength(1);
+    // The creator's side keeps every participation, whichever account sent it.
+    expect(m.channelRows("c1").queue).toHaveLength(3);
+    // The person key (verified phone) never leaves the server.
+    expect(JSON.stringify([await room(), m.channelRows("c1"), m.stageOf("c1")])).not.toMatch(/010-/);
+
+    // The day turns at 00:00 KST (it is still 2026-10-08 in UTC).
+    vi.setSystemTime(new Date("2026-10-09T00:05:00+09:00"));
+    expect(await room()).toMatchObject({ usedToday: 0 });
+    expect((await m.requestDonation(join(6))).status).toBe("COMPLETED");
   });
 });

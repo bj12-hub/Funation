@@ -64,8 +64,8 @@ export const mockSessionState = state.session;
 
 /**
  * The person behind the signed-in mock account: the phone verified at sign-up. Today's 출석, 이벤트 참여 and 투표
- * count once per person by it (2026-10-08 결정), so a 재가입 with the same phone is the same person and one with
- * another phone is someone else. Server-only: it never goes into a response.
+ * count once per person by it, and so do the 룰렛 · 뽑기 daily limits (2026-10-08 결정), so a 재가입 with the same
+ * phone is the same person and one with another phone is someone else. Server-only: it never goes into a response.
  */
 export const currentPersonKey = () => state.credentials.phone;
 

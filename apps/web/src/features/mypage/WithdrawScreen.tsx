@@ -13,7 +13,9 @@ import styles from "./withdraw.module.css";
  * 회원 탈퇴 — code-first (no Figma frame), route `/mypage/withdraw` (2026-10-04 결정: 남은 FN 소멸 동의 후 바로 탈퇴;
  * 2026-10-05: 크리에이터 정산 대기 수익도 소멸 동의, 탈퇴 직전 비밀번호 재입력, 탈퇴 후 바로 재가입 가능).
  * Shows what withdrawal does, asks for a forfeit consent per amount (남은 FN · 정산 대기 수익, when there is one),
- * the final consent and the password, then ends the account on the server.
+ * the final consent and the password, then ends the account on the server. Withdrawal waits while an FN 충전 환불
+ * request is being handled (2026-10-06 결정) or a 퀘스트 후원 is in progress — sent by the member, or sent to the
+ * creator's channel (2026-10-08 결정); a card says why and links to where it is resolved.
  */
 export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
   const router = useRouter();
@@ -31,7 +33,10 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
   const hasFn = info.fnBalance > 0;
   const hasEarnings = info.unsettledFn > 0;
   const hasRefunds = info.pendingRefunds > 0;
-  const ready = !hasRefunds && confirmed && (!hasFn || forfeit) && (!hasEarnings || earningsForfeit) && password.length > 0;
+  const questsSent = info.pendingQuests.sent;
+  const questsReceived = info.pendingQuests.received;
+  const blocked = hasRefunds || questsSent > 0 || questsReceived > 0;
+  const ready = !blocked && confirmed && (!hasFn || forfeit) && (!hasEarnings || earningsForfeit) && password.length > 0;
 
   const submit = () => {
     if (!ready || pending) return;
@@ -55,6 +60,13 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
           setError("비밀번호를 5회 잘못 입력해 계정 보호를 위해 로그인이 제한되었습니다. 비밀번호를 재설정해 주세요.");
         } else if (r.status === "REFUND_PENDING") {
           setError(`처리 중인 충전 환불 요청이 ${r.count}건 있어요. 환불 처리가 끝난 뒤에 탈퇴할 수 있어요.`);
+          router.refresh();
+        } else if (r.status === "QUEST_PENDING") {
+          setError(
+            r.sent > 0
+              ? `진행 중인 퀘스트 후원이 ${r.sent}건 있어요. 퀘스트 결과가 정해진 뒤에 탈퇴할 수 있어요.`
+              : `내 채널에 진행 중인 퀘스트 후원이 ${r.received}건 있어요. 퀘스트 결과를 정하거나 취소한 뒤에 탈퇴할 수 있어요.`
+          );
           router.refresh();
         } else {
           setError(r.message);
@@ -113,6 +125,36 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
           <p className={styles.note}>FN 충전 환불 요청을 운영팀이 확인하고 있어요. 환불 처리가 끝난 뒤에 탈퇴할 수 있어요.</p>
           <div className={styles.links}>
             <Link href="/wallet/charges">충전 내역으로</Link>
+          </div>
+        </section>
+      )}
+
+      {questsSent > 0 && (
+        <section className={styles.warnCard} aria-labelledby="withdraw-quests">
+          <h2 className={styles.cardTitle} id="withdraw-quests">
+            진행 중인 퀘스트 후원
+          </h2>
+          <strong className={styles.balance}>{formatNumber(questsSent)}건</strong>
+          <p className={styles.note}>
+            보낸 퀘스트 후원의 FN이 결과를 기다리며 보관되어 있어요. 퀘스트 결과가 정해진 뒤에 탈퇴할 수 있어요. 퀘스트 후원 내역에서 결과를 직접 정할 수도 있어요.
+          </p>
+          <div className={styles.links}>
+            <Link href="/wallet/donations?type=quest">퀘스트 후원 내역으로</Link>
+          </div>
+        </section>
+      )}
+
+      {questsReceived > 0 && (
+        <section className={styles.warnCard} aria-labelledby="withdraw-channel-quests">
+          <h2 className={styles.cardTitle} id="withdraw-channel-quests">
+            내 채널의 진행 중인 퀘스트
+          </h2>
+          <strong className={styles.balance}>{formatNumber(questsReceived)}건</strong>
+          <p className={styles.note}>
+            시청자가 보낸 퀘스트 후원의 FN이 결과를 기다리며 보관되어 있어요. 후원 리스트에서 퀘스트 결과를 정하거나 취소한 뒤에 탈퇴할 수 있어요. 취소하면 시청자에게 전액 환불돼요.
+          </p>
+          <div className={styles.links}>
+            <Link href="/creator/donations?tab=list&kind=quest&status=IN_PROGRESS">후원 리스트로</Link>
           </div>
         </section>
       )}
