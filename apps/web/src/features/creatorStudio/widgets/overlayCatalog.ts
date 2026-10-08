@@ -110,6 +110,16 @@ export const OVERLAYS: OverlayEntry[] = [
     manage: "/creator/widgets/tools"
   },
   {
+    id: "widget-clock",
+    target: "widgets",
+    group: "타이머",
+    title: "시계",
+    description: "한국 시간을 플립 · 디지털 · 아날로그 시계로 보여 줘요.",
+    size: "600 × 240",
+    path: (k) => widgetOverlayPath("clock", k),
+    manage: "/creator/widgets"
+  },
+  {
     id: "bingo",
     target: "bingo",
     group: "기타",

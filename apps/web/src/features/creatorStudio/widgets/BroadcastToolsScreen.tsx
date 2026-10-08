@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { formatNumber } from "@/lib/format";
-import { adjustTimer, configureTimer, controlCredits, controlTimer, saveCredits, saveMarquee, saveSubtitle } from "@/services/creator/broadcastTools";
+import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
+import { adjustTimer, configureTimer, controlCredits, controlTimer, saveCredits, saveMarquee, saveSubtitle, saveToolTheme } from "@/services/creator/broadcastTools";
+import type { OverlayThemeChoice } from "@/services/creator/overlayThemeTypes";
 import type { OverlayTarget } from "@/services/creator/alertTypes";
 import {
   CREDITS_LINES_MAX,
@@ -45,6 +47,8 @@ export function BroadcastToolsScreen({ view, overlayKey, switches }: { view: Too
   const [thanks, setThanks] = useState(states.credits.thanks.join("\n"));
   const [includeCrew, setIncludeCrew] = useState(states.credits.includeCrew);
   const [message, setMessage] = useState<{ tool: ToolKey; tone: "error" | "ok"; text: string } | null>(null);
+  const [toolTheme, setToolTheme] = useState<OverlayThemeChoice>(view.theme);
+  const [themeNote, setThemeNote] = useState<{ tone: "error" | "ok"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
   const [now, setNow] = useState(() => Date.now());
   const [origin, setOrigin] = useState("");
@@ -110,6 +114,37 @@ export function BroadcastToolsScreen({ view, overlayKey, switches }: { view: Too
         </p>
       </header>
       <OverlayOffNotice targets={["subtitle", "marquee", "timer", "credits", "bingo"]} switches={switches} />
+
+      <section className={styles.card} aria-label="방송 도구 테마">
+        <h2 className={styles.cardTitle}>🎨 방송 도구 테마</h2>
+        <p className={styles.note}>자막 · 전광판 · 타이머 · 엔딩 크레딧 · 빙고 오버레이가 이 테마로 보여요. 고르면 바로 저장돼요.</p>
+        <ThemeChoiceField
+          value={toolTheme}
+          appearance={view.appearance}
+          onChange={(t: OverlayThemeChoice) => {
+            setToolTheme(t);
+            setThemeNote(null);
+            startTransition(async () => {
+              try {
+                const res = await saveToolTheme(t);
+                if (res.status === "SAVED") {
+                  setThemeNote({ tone: "ok", text: "방송 도구 테마를 바꿨어요." });
+                  router.refresh();
+                } else if (res.status === "UNAUTHORIZED") router.push("/login?role=creator&next=/creator/widgets/tools");
+                else setThemeNote({ tone: "error", text: res.message });
+              } catch {
+                setToolTheme(view.theme);
+                setThemeNote({ tone: "error", text: "저장하지 못했어요. 잠시 후 다시 시도해 주세요." });
+              }
+            });
+          }}
+        />
+        {themeNote && (
+          <p className={themeNote.tone === "error" ? styles.error : styles.ok} role={themeNote.tone === "error" ? "alert" : "status"}>
+            {themeNote.text}
+          </p>
+        )}
+      </section>
 
       {card(
         "subtitle",

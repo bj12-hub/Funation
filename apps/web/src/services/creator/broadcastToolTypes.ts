@@ -1,3 +1,5 @@
+import type { OverlayAppearance, OverlayThemeChoice, ResolvedTheme } from "./overlayThemeTypes";
+
 /**
  * 방송 도구 (자막 · 전광판 · 타이머 · 엔딩 크레딧 · 빙고) — code-first, no Figma frame
  * (docs/figma/code-first-screens.md). Reference: docs/research/funnation-reference.md §3 위젯.
@@ -72,7 +74,11 @@ export function resizeBingo(from: Pick<BingoState, "size" | "cells" | "marked">,
 
 export type ToolStates = { subtitle: SubtitleState; marquee: MarqueeState; timer: TimerState; credits: CreditsState; bingo: BingoState };
 
-export type ToolsView = { states: ToolStates; overlayBase: string; crew: { name: string; score: number }[] };
+/**
+ * 방송 도구 테마 (2026-10-08 오버레이 테마): one choice for every tool overlay (전체 테마 따르기 by default); `appearance`
+ * is the channel's 전체 테마 so the screen can name what 따르기 means.
+ */
+export type ToolsView = { states: ToolStates; overlayBase: string; crew: { name: string; score: number }[]; theme: OverlayThemeChoice; appearance: OverlayAppearance };
 
 export type TimerAction = "START" | "PAUSE" | "RESET";
 /** 퀵 조정 (seconds added to the shown time; negative subtracts). */
@@ -81,10 +87,11 @@ export const TIMER_ADJUST_STEPS = [-60, -30, 30, 60] as const;
 export type ToolResult = { status: "SAVED" } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
 
 /** `on` = 리모컨 기능 제어 ON/OFF. */
+/** `theme`: the tools' 오버레이 테마 resolved against the 전체 테마. */
 export type OverlayTool = (
   | { tool: "subtitle"; state: SubtitleState }
   | { tool: "marquee"; state: MarqueeState }
   | { tool: "timer"; state: TimerState; serverNow: string }
   | { tool: "credits"; state: CreditsState; crew: { name: string; score: number }[] }
   | { tool: "bingo"; state: BingoState }
-) & { reloadSeq: number; on: boolean };
+) & { reloadSeq: number; on: boolean; theme: ResolvedTheme };
