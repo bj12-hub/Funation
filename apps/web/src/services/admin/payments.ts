@@ -3,12 +3,12 @@ import { USE_MOCK } from "@/lib/mock";
 import { mockAccount } from "@/services/account/mockStore";
 import { accountSince, isWithdrawn } from "@/services/account/withdrawalCore";
 import { mockRefunds, type MockRefundRequest } from "@/services/wallet/mockRefundStore";
-import { findChargeRecord, listChargeRecords, listDonationRecords } from "@/services/wallet/walletHistory";
+import { findChargeRecord, listAccountChargeRecords, listAccountDonationRecords, listChargeRecords } from "@/services/wallet/walletHistory";
 import type { DonationStatus } from "@/services/wallet/walletTypes";
 import type { AdminActor } from "./adminTypes";
 import { recordAudit } from "./auditCore";
-import { SAMPLE_MEMBER_ID } from "./memberCore";
-import { REFUND_NOTE, WITHDRAWN_MEMBER_NAME, type AdminRefund, type DonationsView, type PaymentsView, type RefundDecisionResult } from "./paymentTypes";
+import { SAMPLE_MEMBER_ID, slotAccountOf } from "./memberCore";
+import { REFUND_NOTE, WITHDRAWN_MEMBER_NAME, type AdminChargeRow, type AdminDonationRow, type AdminRefund, type DonationsView, type PaymentsView, type RefundDecisionResult } from "./paymentTypes";
 
 /**
  * 후원 · 결제 운영 API logic — code-first (called by `/api/admin/*`). Admin app screens `/admin/payments`, `/admin/donations`.
@@ -19,7 +19,15 @@ import { REFUND_NOTE, WITHDRAWN_MEMBER_NAME, type AdminRefund, type DonationsVie
 const assertMock = () => {
   if (!USE_MOCK) throw new Error("Admin payment API is not connected yet.");
 };
-const owner = () => ({ memberId: SAMPLE_MEMBER_ID, memberName: mockAccount.nickname });
+/**
+ * Whose a wallet record is, by the start marker of the account it belongs to: the account holding the slot now (its
+ * nickname, as before), or a withdrawn one a 재가입 moved aside (`…-wN`, with the nickname it had — the label its records
+ * showed until then; whether withdrawn members show their nickname or 탈퇴한 회원 here is a pending decision).
+ */
+const owner = (account: string | null) => {
+  const a = slotAccountOf(account);
+  return { memberId: a.memberId, memberName: a.past ? a.past.nickname : mockAccount.nickname };
+};
 
 /**
  * Whether a refund request was filed by the account that holds the mock slot now (and has not withdrawn).
@@ -35,7 +43,8 @@ function refunds(): AdminRefund[] {
       const current = fromCurrentAccount(r);
       return {
         chargeId: r.chargeId,
-        memberId: r.memberId,
+        // The slot's id belongs to a new account after a 재가입: a withdrawn account's request points to its `…-wN`.
+        memberId: r.memberId === SAMPLE_MEMBER_ID ? slotAccountOf(r.accountSince).memberId : r.memberId,
         memberName: current ? mockAccount.nickname : WITHDRAWN_MEMBER_NAME,
         memberWithdrawn: !current,
         requestedAt: r.requestedAt,
@@ -49,8 +58,21 @@ function refunds(): AdminRefund[] {
 
 export async function getPaymentsView(): Promise<PaymentsView | null> {
   assertMock();
-  const charges = listChargeRecords()
-    .map((c) => ({ ...c, ...owner() }))
+  // Every account's charges: a withdrawn account's stay in the console (audit trail) under its own `…-wN` member.
+  const charges = listAccountChargeRecords()
+    .map(
+      (c): AdminChargeRow => ({
+        id: c.id,
+        chargedAt: c.chargedAt,
+        methodLabel: c.methodLabel,
+        fnAmount: c.fnAmount,
+        paidAmount: c.paidAmount,
+        status: c.status,
+        transactionId: c.transactionId,
+        refund: c.refund ? { status: c.refund.status, requestedAt: c.refund.requestedAt } : null,
+        ...owner(c.account)
+      })
+    )
     .sort((a, b) => b.chargedAt.localeCompare(a.chargedAt));
   return { charges, refunds: refunds(), balance: mockAccount.fnBalance };
 }
@@ -93,8 +115,9 @@ export async function decideRefund(admin: AdminActor, input: unknown): Promise<R
 
 export async function getDonationsView(input: { status?: unknown } = {}): Promise<DonationsView | null> {
   assertMock();
-  const all = listDonationRecords()
-    .map((d) => ({ ...d, ...owner() }))
+  // Field by field: the supporter's message and profile settings are not the console's to show.
+  const all = listAccountDonationRecords()
+    .map((d): AdminDonationRow => ({ id: d.id, donatedAt: d.donatedAt, creatorName: d.creatorName, fnAmount: d.fnAmount, typeLabel: d.typeLabel, status: d.status, ...owner(d.account) }))
     .sort((a, b) => b.donatedAt.localeCompare(a.donatedAt));
   const statuses: DonationStatus[] = ["COMPLETED", "PROCESSING", "FAILED", "REFUNDING", "REFUNDED"];
   const byStatus = Object.fromEntries(statuses.map((s) => [s, { count: 0, fn: 0 }])) as DonationsView["byStatus"];

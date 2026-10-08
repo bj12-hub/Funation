@@ -44,6 +44,11 @@ export function SettlementDecision({ id, canApprove }: { id: string; canApprove:
           반려
         </button>
       </div>
+      {pending && (
+        <p className={styles.muted} role="status">
+          처리 중…
+        </p>
+      )}
       {msg && (
         <p className={msg.tone === "error" ? styles.error : styles.ok} role={msg.tone === "error" ? "alert" : "status"}>
           {msg.text}

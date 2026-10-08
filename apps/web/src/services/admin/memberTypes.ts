@@ -42,6 +42,8 @@ export type AdminCreatorRow = {
 };
 
 export const MEMBERS_PAGE = 20;
+/** 회원 · 크리에이터 검색어 길이 (the site's other searches use 40 too). */
+export const ADMIN_QUERY_MAX = 40;
 export const SUSPEND_DAYS = [1, 7, 30, null] as const;
 export const SUSPEND_REASON = { min: 5, max: 200 } as const;
 

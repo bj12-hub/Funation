@@ -1,4 +1,4 @@
-import type { ChargeRecord, DonationRecord, DonationStatus } from "@/services/wallet/walletTypes";
+import type { ChargeRecord, DonationRecord, DonationStatus, RefundStatus } from "@/services/wallet/walletTypes";
 
 /** 후원 · 결제 운영 — code-first. Client-safe types. Refund policy and KRW payout are TBD. */
 
@@ -15,9 +15,14 @@ export type AdminRefund = {
   charge: Pick<ChargeRecord, "chargedAt" | "fnAmount" | "paidAmount" | "methodLabel" | "transactionId"> | null;
 };
 
-export type AdminChargeRow = ChargeRecord & { memberId: string; memberName: string };
+/** The fields the console shows — built field by field, so a record's other fields (messages, preferences) stay on the server. */
+export type AdminChargeRow = Pick<ChargeRecord, "id" | "chargedAt" | "methodLabel" | "fnAmount" | "paidAmount" | "status" | "transactionId"> & {
+  refund: { status: RefundStatus; requestedAt: string } | null;
+  memberId: string;
+  memberName: string;
+};
 
-export type AdminDonationRow = DonationRecord & { memberId: string; memberName: string };
+export type AdminDonationRow = Pick<DonationRecord, "id" | "donatedAt" | "creatorName" | "fnAmount" | "typeLabel" | "status"> & { memberId: string; memberName: string };
 
 export type PaymentsView = { charges: AdminChargeRow[]; refunds: AdminRefund[]; balance: number };
 

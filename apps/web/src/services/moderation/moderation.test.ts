@@ -98,6 +98,42 @@ describe("reporting again (2026-10-08 결정)", () => {
     expect(await m.submitReport({ target, reason: "SPAM" })).toEqual({ status: "ALREADY_REPORTED" }); // open again
   });
 
+  it("dismisses only the reports on the version the operator saw; a report on the changed content stays open", async () => {
+    const m = await load();
+    const target = { type: "POST", id: "p-2" };
+    expect(await m.submitReport({ target, reason: "SPAM" })).toEqual({ status: "REPORTED" });
+    signInAs("u-other");
+    expect(await m.submitReport({ target, reason: "SPAM" })).toEqual({ status: "REPORTED" }); // same version
+    signInAs("u-sample-2");
+    await m.updatePost("p-2", { category: "QNA", title: "룰렛 후원은 어떻게 당첨이 정해지나요?", body: "바뀐 내용" });
+    signInAs("u-third");
+    expect(await m.submitReport({ target, reason: "ABUSE" })).toEqual({ status: "REPORTED" }); // the changed version
+    const [first, sameVersion, changed] = m.moderationStore().reports;
+
+    expect(await m.decideReport(OP, { id: first.id, action: "DISMISS", note: "위반 아님" })).toEqual({ status: "OK" });
+    const view = await m.listReports();
+    expect(view.counts).toMatchObject({ OPEN: 1, DISMISSED: 2 });
+    expect(view.rows.map((r) => r.id)).toEqual([changed.id]);
+    expect(view.rows[0].snapshot).toContain("바뀐 내용");
+    expect(m.auditEntries().map((e) => e.target).sort()).toEqual([`report:${first.id}`, `report:${sameVersion.id}`].sort());
+
+    // Hiding removes the content, so it closes every open report on it.
+    expect(await m.decideReport(OP, { id: changed.id, action: "HIDE", note: "욕설 확인" })).toEqual({ status: "OK" });
+    expect((await m.listReports()).counts).toMatchObject({ OPEN: 0, DISMISSED: 2, ACTIONED: 1 });
+  });
+
+  it("lists reports without the reporter's member id or the content hash", async () => {
+    const m = await load();
+    await m.submitReport({ target: { type: "COMMENT", id: "cm-1", parentId: "p-1" }, reason: "SPAM" });
+    await m.submitReport({ target: { type: "POST", id: "p-2" }, reason: "SPAM" });
+    const { rows } = await m.listReports();
+    expect(rows).toHaveLength(2);
+    for (const row of rows) {
+      expect(Object.keys(row).sort()).toEqual(["authorId", "authorIsMember", "authorName", "createdAt", "detail", "id", "reason", "reporterName", "resolution", "snapshot", "status", "target"]);
+    }
+    expect(rows.find((r) => r.target.type === "COMMENT")!.target).toEqual({ type: "COMMENT", id: "cm-1", parentId: "p-1" });
+  });
+
   it("sees a change past the clipped snapshot through the content hash", async () => {
     const m = await load();
     signInAs("u-sample-2");

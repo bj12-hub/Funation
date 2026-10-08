@@ -56,6 +56,50 @@ describe("admin content", () => {
     expect(await m.getFaqs({ query: "새 질문" })).toHaveLength(0);
   });
 
+  it("logs an edit once when the same save arrives again (retry, double click)", async () => {
+    const m = await load();
+    const created = await m.saveNotice(OP, { ...notice, requestId: key(7) });
+    if (created.status !== "OK") throw new Error("not saved");
+    const edit = { ...notice, id: created.id, title: "수정된 제목" };
+    expect(await m.saveNotice(OP, edit)).toEqual({ status: "OK", id: created.id });
+    expect(await m.saveNotice(OP, edit)).toEqual({ status: "OK", id: created.id });
+
+    const faq = { category: "DONATION", question: "재시도 질문인가요?", answer: "답변", linkHref: "/wallet", linkLabel: "지갑", requestId: key(8) };
+    const f = await m.saveFaq(OP, faq);
+    if (f.status !== "OK") throw new Error("not saved");
+    const faqEdit = { ...faq, id: f.id, answer: "고친 답변" };
+    expect(await m.saveFaq(OP, faqEdit)).toEqual({ status: "OK", id: f.id });
+    expect(await m.saveFaq(OP, faqEdit)).toEqual({ status: "OK", id: f.id });
+    expect(m.auditEntries().map((e) => e.reason?.split(" · ")[0])).toEqual(["FAQ 수정", "FAQ 등록", "공지 수정", "공지 등록"]);
+
+    // A real change after that is logged again.
+    await m.saveFaq(OP, { ...faqEdit, linkHref: "", linkLabel: "" });
+    expect((await m.getFaqs({ query: "재시도 질문" }))[0].link).toBeUndefined();
+    expect(m.auditEntries()).toHaveLength(5);
+  });
+
+  it("answers a retried delete with OK and logs the delete once", async () => {
+    const m = await load();
+    const n = await m.saveNotice(OP, { ...notice, requestId: key(11) });
+    const f = await m.saveFaq(OP, { category: "DONATION", question: "지울 질문인가요?", answer: "", linkHref: "", linkLabel: "", requestId: key(12) });
+    if (n.status !== "OK" || f.status !== "OK") throw new Error("not saved");
+    expect(await m.deleteNotice(OP, n.id)).toEqual({ status: "OK", id: n.id });
+    expect(await m.deleteNotice(OP, n.id)).toEqual({ status: "OK", id: n.id });
+    expect(await m.deleteFaq(OP, f.id)).toEqual({ status: "OK", id: f.id });
+    expect(await m.deleteFaq(OP, f.id)).toEqual({ status: "OK", id: f.id });
+    expect(m.auditEntries().map((e) => e.reason?.split(" · ")[0])).toEqual(["FAQ 삭제", "공지 삭제", "FAQ 등록", "공지 등록"]);
+  });
+
+  it("caps FAQ links at FAQ_LIMITS.linkHref, keeping the site-path check", async () => {
+    const m = await load();
+    const { FAQ_LIMITS } = await import("./contentTypes");
+    const faq = { category: "DONATION", question: "긴 링크인가요?", answer: "", linkLabel: "도움말" };
+    const path = (n: number) => `/support/${"a".repeat(n - "/support/".length)}`;
+    expect((await m.saveFaq(OP, { ...faq, linkHref: path(FAQ_LIMITS.linkHref + 1), requestId: key(13) })).status).toBe("INVALID");
+    expect((await m.saveFaq(OP, { ...faq, linkHref: "javascript:alert(1)", requestId: key(14) })).status).toBe("INVALID");
+    expect((await m.saveFaq(OP, { ...faq, linkHref: path(FAQ_LIMITS.linkHref), requestId: key(15) })).status).toBe("OK");
+  });
+
   it("answers a reused create id with CONFLICT unless it is the same draft of the same kind", async () => {
     const m = await load();
     const res = await m.saveNotice(OP, { ...notice, requestId: key(1) });

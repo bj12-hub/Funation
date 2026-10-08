@@ -70,4 +70,27 @@ describe("admin platforms and system", () => {
     expect((await m.getSystemView())!.runtime).toMatchObject({ mock: true, auditEntries: 2 });
   });
 
+  it("caps the banner link at BANNER_HREF_MAX, keeping the site-path check", async () => {
+    const m = await load();
+    const { BANNER_HREF_MAX } = await import("@/services/system/siteBanner");
+    signIn(["ADMIN"]);
+    const path = (n: number) => `/support/${"a".repeat(n - "/support/".length)}`;
+    const banner = { enabled: true, level: "INFO", message: "점검 안내" };
+    expect((await m.saveSiteBanner(OP, { ...banner, href: path(BANNER_HREF_MAX + 1) })).status).toBe("INVALID");
+    expect((await m.saveSiteBanner(OP, { ...banner, href: "//evil.example" })).status).toBe("INVALID");
+    expect(await m.saveSiteBanner(OP, { ...banner, href: path(BANNER_HREF_MAX) })).toEqual({ status: "OK" });
+    expect((await m.getSiteBanner())!.href).toHaveLength(BANNER_HREF_MAX);
+  });
+
+  it("logs a banner change once when the same save arrives again", async () => {
+    const m = await load();
+    signIn(["ADMIN"]);
+    const banner = { enabled: true, level: "WARNING", message: "점검 안내", href: "/support" };
+    expect(await m.saveSiteBanner(OP, banner)).toEqual({ status: "OK" });
+    const { updatedAt } = (await m.getSystemView())!.banner;
+    expect(await m.saveSiteBanner({ userId: "adm-2", nickname: "다른 운영자" }, { ...banner, message: " 점검 안내 " })).toEqual({ status: "OK" });
+    expect((await m.getSystemView())!.banner).toMatchObject({ updatedAt, updatedBy: OP.nickname });
+    expect(m.auditEntries()).toHaveLength(1);
+  });
+
 });

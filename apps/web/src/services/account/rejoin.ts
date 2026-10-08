@@ -28,7 +28,8 @@ import { withdrawalStore } from "./withdrawalCore";
 export function startNewAccount(input: { nickname: string; password: string; marketing: boolean; phone: string }, now = new Date()) {
   const store = withdrawalStore();
   if (!store.withdrawal) return false;
-  store.past.push(store.withdrawal);
+  // The withdrawn account keeps its start marker: the admin console finds its wallet records with it.
+  store.past.push({ ...store.withdrawal, accountSince: store.accountSince });
   store.withdrawal = null;
   retireSlotMember(withdrawnMemberId(store.past.length));
   store.accountSince = `${toDateString(now)} ${now.toTimeString().slice(0, 8)}`;
