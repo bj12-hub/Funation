@@ -65,6 +65,15 @@ describe("후원 폼 → 요청", () => {
     expect(buildDraft("VIDEO", states({ VIDEO: { ...base, terms: false } }), catalog)).toMatchObject({ details: null, error: null });
   });
 
+  it("음성 후원 uses the 영상 fields and sends its own type", () => {
+    const base = { amount: "1000", url: "https://youtu.be/dQw4w9WgXcQ", start: "00:10", end: "00:40", terms: true };
+    const draft = buildDraft("AUDIO", states({ AUDIO: base }), catalog);
+    expect(draft.details).toMatchObject({ type: "AUDIO", startSec: 10, endSec: 40, termsAgreed: true });
+    expect(draft.chatText).toBe("🎧 음성 후원");
+    expect(buildDraft("AUDIO", states({ AUDIO: { ...base, amount: "500" } }), catalog).error).toBe("최소 1,000 FN부터 후원할 수 있어요");
+    expect(isFormKey("AUDIO")).toBe(true);
+  });
+
   it("시그니처 · 위시 prices come from the catalog, not the form", () => {
     const sig = catalog.signatures[0];
     expect(buildDraft("SIGNATURE", states({ SIGNATURE: { signatureId: sig.id } }), catalog)).toMatchObject({ amount: sig.price, details: { signatureId: sig.id, expectedAmount: sig.price } });

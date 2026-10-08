@@ -11,7 +11,8 @@ export type DonationDetails =
   | { type: "TEXT"; amount: number; message: string; voiceId: string | null }
   | { type: "MINI"; amount: number; text: string; colorId: string }
   | {
-      type: "VIDEO";
+      /** AUDIO = 음성 후원: the same YouTube link and range, played as sound with a small player (2026-10-08). */
+      type: "VIDEO" | "AUDIO";
       amount: number;
       videoUrl: string;
       startSec: number;

@@ -14,6 +14,7 @@ export type DonationTypeKey =
   | "TEXT"
   | "MINI"
   | "VIDEO"
+  | "AUDIO"
   | "SIGNATURE"
   | "WISHLIST"
   | "ROULETTE"
@@ -50,7 +51,8 @@ export type MiniColor = { id: string; label: string; hex: string };
 export type DonationCatalog = {
   types: DonationTypeInfo[];
   /** Minimum FN per donation type. Design shows 1,000 (일반) and 100 (미니); others TBD. */
-  minAmount: Record<"TEXT" | "MINI" | "VIDEO", number>;
+  /** 음성 후원 (AUDIO) starts at the 영상 후원 minimum until its own is set (TBD). */
+  minAmount: Record<"TEXT" | "MINI" | "VIDEO" | "AUDIO", number>;
   /** Max characters for free text. TBD — 100 follows the existing message field; 30 for mini is an assumption. */
   maxLength: { message: number; mini: number };
   voices: Voice[];
@@ -87,6 +89,8 @@ const MOCK_CATALOG: DonationCatalog = {
     { key: "TEXT", emoji: "💬", label: "일반", title: "일반 후원", available: true },
     { key: "MINI", emoji: "⚡", label: "미니", title: "미니 후원", available: true },
     { key: "VIDEO", emoji: "🎬", label: "영상", title: "영상 후원", available: true },
+    // Code-first (2026-10-08 결정, from the legacy FlexTV 도우미 음성후원): a YouTube link whose sound plays on stream.
+    { key: "AUDIO", emoji: "🎧", label: "음성", title: "음성 후원", available: true },
     { key: "SIGNATURE", emoji: "✨", label: "시그니처", title: "시그니처 후원", available: true },
     { key: "WISHLIST", emoji: "🎁", label: "위시", title: "위시 후원", available: true },
     // Page 2 (867:*). ☷, ㄱ and ✎ are text glyphs in the design.
@@ -96,7 +100,7 @@ const MOCK_CATALOG: DonationCatalog = {
     // Code-first: the 뽑기 후원 widget (373:3675) as a donation type (2026-10-04 결정: 당첨은 크리에이터 상품).
     { key: "GACHA", emoji: "🧸", label: "뽑기", title: "뽑기 후원", available: true }
   ],
-  minAmount: { TEXT: 1_000, MINI: 100, VIDEO: 1_000 },
+  minAmount: { TEXT: 1_000, MINI: 100, VIDEO: 1_000, AUDIO: 1_000 },
   maxLength: { message: 100, mini: 30 },
   voices: [{ id: "mina", emoji: "👧", name: "미나", description: "명랑한 보이스" }],
   // 875:1863 cards; the design says 127 items but only these 8 exist in the file.

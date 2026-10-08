@@ -28,6 +28,8 @@ export type FormStates = {
   TEXT: TextState;
   MINI: MiniState;
   VIDEO: VideoState;
+  /** 음성 후원: the same fields as 영상 (link, range, terms). */
+  AUDIO: VideoState;
   SIGNATURE: SignatureState;
   WISHLIST: WishlistState;
   ROULETTE: RouletteState;
@@ -44,6 +46,7 @@ export function initialStates(catalog: DonationCatalog): FormStates {
     TEXT: { amount: "", message: "", voiceId },
     MINI: { amount: "", text: "", colorId: catalog.miniColors[1]?.id ?? catalog.miniColors[0]?.id ?? "", enterToSend: true },
     VIDEO: { amount: "", url: "", start: "00:00", end: "00:30", terms: false },
+    AUDIO: { amount: "", url: "", start: "00:00", end: "00:30", terms: false },
     SIGNATURE: { signatureId: null, message: "" },
     WISHLIST: { itemId: null, message: "", voiceId },
     // 펀페이 1009:510: the 참여 금액 starts at the minimum.
@@ -131,10 +134,12 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
         chatText: `⚡ ${text}`
       };
     }
-    case "VIDEO": {
-      const s = states.VIDEO;
+    case "VIDEO":
+    case "AUDIO": {
+      const audio = key === "AUDIO";
+      const s = states[key];
       const amount = digits(s.amount);
-      const min = catalog.minAmount.VIDEO;
+      const min = audio ? catalog.minAmount.AUDIO : catalog.minAmount.VIDEO;
       const tooSmall = amount !== null && amount < min;
       const videoId = s.url ? parseYouTubeId(s.url) : null;
       const start = parseClock(s.start);
@@ -150,15 +155,15 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
       const complete = amount !== null && !error && videoId && s.terms && start !== null && end !== null;
       return {
         details: complete
-          ? { type: "VIDEO", amount, videoUrl: s.url.trim(), startSec: start, endSec: end, termsAgreed: true }
+          ? { type: key, amount, videoUrl: s.url.trim(), startSec: start, endSec: end, termsAgreed: true }
           : null,
         amount,
         error,
         summary: [
-          { label: "영상", value: videoId ? `youtu.be/${videoId}` : "-" },
+          { label: audio ? "음성 (YouTube 소리)" : "영상", value: videoId ? `youtu.be/${videoId}` : "-" },
           { label: "재생 구간", value: `${s.start} ~ ${s.end}` }
         ],
-        chatText: "🎬 영상 후원"
+        chatText: audio ? "🎧 음성 후원" : "🎬 영상 후원"
       };
     }
     case "SIGNATURE": {
@@ -281,6 +286,7 @@ const FORM_KEYS: Record<FormKey, true> = {
   TEXT: true,
   MINI: true,
   VIDEO: true,
+  AUDIO: true,
   SIGNATURE: true,
   WISHLIST: true,
   ROULETTE: true,

@@ -69,3 +69,16 @@
     align-items: flex-start;
   }
 }
+
+/* 음성 후원 in the shared queue (2026-10-08). */
+.audioTag {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-light);
+  font-size: var(--font-size-11);
+  font-weight: var(--font-weight-bold);
+  vertical-align: 1px;
+}

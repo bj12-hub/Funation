@@ -10,6 +10,8 @@ export type VideoStatus = "WAITING" | "PLAYING" | "DONE" | "SKIPPED";
 export type VideoRequest = {
   id: string;
   kind: "DONATION" | "TEST";
+  /** AUDIO = 음성 후원 (sound with a small player); absent on requests from before it = VIDEO. */
+  mode?: "VIDEO" | "AUDIO";
   donor: string;
   fnAmount: number;
   videoId: string;
@@ -36,7 +38,7 @@ export type VideoQueueView = {
 
 /** `donor` shows as the creator's 대체 메시지 settings say (like alerts); `theme` = the 영상 후원 오버레이 테마. */
 export type OverlayVideo = {
-  playing: { id: string; videoId: string; startSec: number; endSec: number; endsAt: string; donor: string; fnAmount: number } | null;
+  playing: { id: string; videoId: string; startSec: number; endSec: number; endsAt: string; donor: string; fnAmount: number; mode: "VIDEO" | "AUDIO" } | null;
   volume: number;
   reloadSeq: number;
   on: boolean;
