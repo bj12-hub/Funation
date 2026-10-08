@@ -65,8 +65,10 @@ export async function addTestVideo(input: unknown): Promise<MediaResult> {
   const videoId = typeof v.url === "string" ? parseYouTubeId(v.url) : null;
   if (!videoId) return invalid("유튜브 영상 주소를 입력해 주세요.");
   if (!intIn(v.startSec, 0, MEDIA_LIMITS.rangeSecMax) || !intIn(v.endSec, 1, MEDIA_LIMITS.rangeSecMax) || v.endSec <= v.startSec) return invalid("재생 구간을 확인해 주세요.");
+  // 음성 후원 test (2026-10-08): the same request played as sound with the small player.
+  if (v.mode !== undefined && v.mode !== "VIDEO" && v.mode !== "AUDIO") return invalid("잘못된 요청입니다.");
   mockMedia.requests[v.requestId] = true;
-  enqueueVideo({ kind: "TEST", donor: "테스트", fnAmount: 0, videoId, startSec: v.startSec, endSec: v.endSec });
+  enqueueVideo({ kind: "TEST", donor: "테스트", fnAmount: 0, videoId, startSec: v.startSec, endSec: v.endSec, mode: v.mode === "AUDIO" ? "AUDIO" : "VIDEO" });
   return ok;
 }
 
@@ -115,7 +117,8 @@ export async function getOverlayVideo(key: unknown): Promise<OverlayVideo | "FOR
           endsAt: playingEndsAt(p),
           // The name on stream follows the 대체 메시지 settings, like alerts and drawings.
           donor: p.kind === "DONATION" ? shownOnStream({ donor: p.donor, message: "" }).donor : p.donor,
-          fnAmount: p.fnAmount
+          fnAmount: p.fnAmount,
+          mode: p.mode ?? "VIDEO"
         }
       : null,
     volume: mockMedia.videoSettings.volume,

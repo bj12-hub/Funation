@@ -32,7 +32,9 @@ function sendVolume(frame: HTMLIFrameElement | null, volume: number) {
 
 /**
  * OBS video overlay (code-first): embeds the clip the server has on screen. The server ends it after its
- * range, so the iframe simply disappears; a new id remounts the player. 볼륨 (리모컨 · 영상 후원 설정) is
+ * range, so the iframe simply disappears; a new id remounts the player. A 음성 후원 (AUDIO, 2026-10-08) plays in a small
+ * player card in the corner instead of the full frame: YouTube's API policies do not allow hiding the player to keep
+ * only the sound, so it stays visible (200 px or larger). 볼륨 (리모컨 · 영상 후원 설정) is
  * sent to the player through the YouTube IFrame API message channel (`enablejsapi=1`).
  */
 export function VideoOverlay({ data }: { data: OverlayVideo }) {
@@ -45,12 +47,13 @@ export function VideoOverlay({ data }: { data: OverlayVideo }) {
   // 리모컨 기능 제어 OFF: no player at all (so no sound either).
   if (!p || !data.on) return null;
   const src = `https://www.youtube-nocookie.com/embed/${p.videoId}?autoplay=1&controls=0&rel=0&enablejsapi=1&start=${p.startSec}&end=${p.endSec}`;
+  const audio = p.mode === "AUDIO";
   return (
-    <OverlayThemeRoot theme={data.theme} className={styles.video}>
+    <OverlayThemeRoot theme={data.theme} className={audio ? styles.audio : styles.video} data-mode={p.mode}>
       <iframe
         ref={frame}
         key={p.id}
-        className={styles.frame}
+        className={audio ? `${ov.card} ${styles.audioFrame}` : styles.frame}
         src={src}
         title="영상 후원"
         allow="autoplay; encrypted-media"
@@ -59,7 +62,14 @@ export function VideoOverlay({ data }: { data: OverlayVideo }) {
       />
       {/* Who sent it, in the 영상 후원 오버레이 테마, over the bottom-left corner. */}
       <p key={`cap-${p.id}`} className={`${ov.enter} ${ov.card} ${ov.pill} ${styles.caption}`} data-motion="SLIDE_UP">
-        <span className={`${ov.chip} ${ov.chipAccent}`}>영상 후원</span>
+        {audio && (
+          <span className={styles.eq} aria-hidden="true">
+            <i />
+            <i />
+            <i />
+          </span>
+        )}
+        <span className={`${ov.chip} ${ov.chipAccent}`}>{audio ? "음성 후원" : "영상 후원"}</span>
         <b className={ov.label}>{p.donor}</b>
         {p.fnAmount > 0 && <span className={ov.display}>{formatNumber(p.fnAmount)} FN</span>}
       </p>

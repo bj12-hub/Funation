@@ -6,6 +6,10 @@
   font-weight: var(--font-weight-regular);
 }
 
+.audioNote {
+  color: var(--color-text-secondary);
+}
+
 .inputError {
   border-color: var(--color-nickname-error) !important;
 }

@@ -24,7 +24,7 @@ const STATUS_LABEL = { DONE: "재생 완료", SKIPPED: "건너뜀" } as const;
 export function VideoScreen({ view, overlayPath, switches }: { view: VideoQueueView; overlayPath: string; switches: Record<OverlayTarget, boolean> }) {
   const router = useRouter();
   const [settings, setSettings] = useState<VideoSettings>(view.settings);
-  const [test, setTest] = useState({ url: "", startSec: 0, endSec: 30 });
+  const [test, setTest] = useState<{ url: string; startSec: number; endSec: number; mode: "VIDEO" | "AUDIO" }>({ url: "", startSec: 0, endSec: 30, mode: "VIDEO" });
   const [note, setNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
   const [origin, setOrigin] = useState("");
@@ -60,7 +60,7 @@ export function VideoScreen({ view, overlayPath, switches }: { view: VideoQueueV
   const control = (id: string, action: "PLAY" | "SKIP" | "REQUEUE", okText: string) => run(() => controlVideo({ id, action }), okText);
   const sendTest = () => {
     requestId.current ??= crypto.randomUUID();
-    run(() => addTestVideo({ ...test, requestId: requestId.current }), "테스트 영상을 대기열에 넣었어요.", () => (requestId.current = null));
+    run(() => addTestVideo({ ...test, requestId: requestId.current }), test.mode === "AUDIO" ? "테스트 음성 후원을 대기열에 넣었어요." : "테스트 영상을 대기열에 넣었어요.", () => (requestId.current = null));
   };
 
   const p = view.playing;
@@ -70,7 +70,7 @@ export function VideoScreen({ view, overlayPath, switches }: { view: VideoQueueV
     <div className={styles.content}>
       <header className={styles.header}>
         <h1 className={styles.title}>영상 후원</h1>
-        <p className={styles.subtitle}>시청자가 보낸 영상 후원 요청을 대기열에서 재생하거나 건너뛰어요. 재생 시간과 자동 재생은 채널에서 정해요.</p>
+        <p className={styles.subtitle}>시청자가 보낸 영상 · 음성 후원 요청을 한 대기열에서 재생하거나 건너뛰어요. 음성 후원은 같은 오버레이 구석의 작은 플레이어로 소리 위주로 나가요. 재생 시간과 자동 재생은 채널에서 정해요.</p>
         <p className={styles.note}>
           <Link href="/creator/widgets">← 위젯</Link>
         </p>
@@ -104,7 +104,9 @@ export function VideoScreen({ view, overlayPath, switches }: { view: VideoQueueV
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img className={local.videoThumb} src={videoThumbUrl(p.videoId)} alt="" />
             <div className={styles.rowMain}>
-              <span className={styles.rowTitle}>youtu.be/{p.videoId}</span>
+              <span className={styles.rowTitle}>
+                {p.mode === "AUDIO" && <span className={local.audioTag}>🎧 음성</span>}youtu.be/{p.videoId}
+              </span>
               <span className={styles.muted}>
                 {p.kind === "TEST" ? "테스트 요청" : `${p.donor} · ${formatNumber(p.fnAmount)} FN`} · 구간 {clock(p.startSec)}–{clock(p.endSec)}
               </span>
@@ -190,6 +192,9 @@ export function VideoScreen({ view, overlayPath, switches }: { view: VideoQueueV
           <span className={styles.muted}>~</span>
           <input className={styles.inputSmall} type="number" min={1} aria-label="끝(초)" value={test.endSec} onChange={(e) => setTest({ ...test, endSec: Math.floor(Number(e.target.value) || 0) })} />
           <span className={styles.muted}>초</span>
+          <label className={styles.muted}>
+            <input type="checkbox" checked={test.mode === "AUDIO"} onChange={(e) => setTest({ ...test, mode: e.target.checked ? "AUDIO" : "VIDEO" })} /> 음성 후원으로
+          </label>
           <button type="button" className={styles.primary} disabled={pending || !test.url.trim()} onClick={sendTest}>
             대기열에 넣기
           </button>
@@ -233,7 +238,9 @@ function VideoRow({ v, status, children }: { v: VideoRequest; status?: string; c
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img className={local.rowThumb} src={videoThumbUrl(v.videoId, "default")} alt="" />
       <div className={styles.rowMain}>
-        <span className={styles.rowTitle}>youtu.be/{v.videoId}</span>
+        <span className={styles.rowTitle}>
+          {v.mode === "AUDIO" && <span className={local.audioTag}>🎧 음성</span>}youtu.be/{v.videoId}
+        </span>
         <span className={styles.muted}>
           {v.kind === "TEST" ? "테스트 요청" : `${v.donor} · ${formatNumber(v.fnAmount)} FN`} · {clock(v.startSec)}–{clock(v.endSec)}
           {status ? ` · ${status}` : ""}
