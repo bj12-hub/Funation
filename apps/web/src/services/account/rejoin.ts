@@ -19,9 +19,9 @@ import { withdrawalStore } from "./withdrawalCore";
  * no settlement history or earnings (the withdrawn account's requests stay with the admin console only), and no
  * 별명, 대표 별명 or 칭호 표시 설정 (a title the old account picked must not show on the new one's alerts). The new
  * start marker (`accountSince`) also gives it its own 출석 month and reward credits (services/attendance), its own
- * 1:1 문의 list and its own row in the channel 월간 후원 랭킹, and a
- * fresh login failure count; the phone verified at sign-up becomes its phone (today's check-in counts once per
- * person, 2026-10-08 결정). The withdrawn account's posts, comments, blocks and reports stay with its own member id
+ * 1:1 문의 list, its own row in the channel 월간 후원 랭킹 and its own 내 룰렛 · 내 뽑기 in the room, and a
+ * fresh login failure count; the phone verified at sign-up becomes its phone (today's check-in and the 룰렛 · 뽑기
+ * daily limits count once per person, 2026-10-08 결정). The withdrawn account's posts, comments, blocks and reports stay with its own member id
  * (`retireSlotMember`), and its notifications are not the new account's. The withdrawal record stays for audit. Mock
  * limitation: the 썸네이션 ID and other per-account sample data (favorites, messages …) are shared with the old slot.
  */

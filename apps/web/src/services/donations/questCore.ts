@@ -17,6 +17,8 @@ import type { QuestAction, QuestDecideResult } from "./questTypes";
  *
  * While it runs, the supporter's 후원 내역 row is PROCESSING (held, not yet given) and nothing counts for the creator:
  * crew points · member ranking · the live broadcast's 후원 리스트 and the 후원 위젯 totals all wait for SUCCESS.
+ * Neither its sender nor the creator of its channel can withdraw while it runs (2026-10-08 결정, account/withdrawal.ts),
+ * so a refund always reaches the account that sent it, never a 재가입 account in the same slot.
  */
 
 export type QuestDecider = "CREATOR" | "DONOR";

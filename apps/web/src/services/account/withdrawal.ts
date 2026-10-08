@@ -11,10 +11,12 @@ import { BROADCAST_PLATFORMS } from "@/services/platforms/adapters";
 import { mockCreator, newIntegrationKey } from "@/services/creator/mockCreatorStore";
 import { mockSettlement } from "@/services/creator/mockSettlementStore";
 import { youtubeStore } from "@/services/creator/youtubeCore";
+import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
+import { mockQuests } from "@/services/donations/questCore";
 import { mockRefunds } from "@/services/wallet/mockRefundStore";
 import { mockAccount, mockCredentials } from "./mockStore";
 import { accountSince, isWithdrawn, withdrawalOf, withdrawalStore } from "./withdrawalCore";
-import type { WithdrawResult, WithdrawalInfo } from "./withdrawalTypes";
+import type { PendingQuests, WithdrawResult, WithdrawalInfo } from "./withdrawalTypes";
 
 /**
  * 회원 탈퇴 — code-first, route `/mypage/withdraw` (2026-10-04 결정: 남은 FN 소멸 동의 후 바로 탈퇴; 2026-10-05:
@@ -24,6 +26,10 @@ import type { WithdrawResult, WithdrawalInfo } from "./withdrawalTypes";
  * the backend; accounts that only use social login re-confirm with that login (provider hand-off TBD).
  * 2026-10-06 결정: while an FN 충전 환불 request of this account waits for an operator, withdrawal is refused (the
  * member withdraws once it is decided).
+ * 2026-10-08 결정: while a 퀘스트 후원 is in progress (FN held, no result yet), withdrawal is refused too — for quests the
+ * member sent (a failed or cancelled quest refunds the slot's balance, which after a 재가입 is a new account's) and, for
+ * a creator, quests sent to the channel (the supporters' FN waits for the channel's decision). The member withdraws
+ * once each has a result; nothing about the quests themselves changes here.
  */
 
 const assertMock = () => {
@@ -38,13 +44,34 @@ const unsettledFn = () => mockSettlement.availableFn + mockSettlement.requests.f
 /** This account's FN 충전 환불 requests still waiting for an operator. */
 const pendingRefunds = () => mockRefunds.requests.filter((r) => r.status === "REQUESTED" && r.accountSince === accountSince()).length;
 
+/** 퀘스트 후원 in progress: sent by this member, and (creators) sent to their channel — the studio's in the mock. */
+function pendingQuests(session: Session): PendingQuests {
+  const running = mockQuests.items.filter((q) => q.status === "IN_PROGRESS");
+  return {
+    sent: running.filter((q) => q.supporterUserId === session.userId).length,
+    received: hasRole(session, "CREATOR") ? running.filter((q) => q.channelId === STUDIO_CHANNEL).length : 0
+  };
+}
+
+const questProblem = (session: Session): WithdrawResult | null => {
+  const quests = pendingQuests(session);
+  return quests.sent + quests.received > 0 ? { status: "QUEST_PENDING", ...quests } : null;
+};
+
 export async function getWithdrawalInfo(): Promise<WithdrawalInfo | null> {
   assertMock();
   const session = await getSession();
   if (!session) return null;
   await mockDelay(200);
   const creator = hasRole(session, "CREATOR");
-  return { nickname: mockAccount.nickname, fnBalance: mockAccount.fnBalance, creator, unsettledFn: creator ? unsettledFn() : 0, pendingRefunds: pendingRefunds() };
+  return {
+    nickname: mockAccount.nickname,
+    fnBalance: mockAccount.fnBalance,
+    creator,
+    unsettledFn: creator ? unsettledFn() : 0,
+    pendingRefunds: pendingRefunds(),
+    pendingQuests: pendingQuests(session)
+  };
 }
 
 /** The consents cover the amounts the member saw; amounts that changed since need a new look. */
@@ -68,6 +95,8 @@ export async function withdrawAccount(input: unknown): Promise<WithdrawResult> {
   if (!session) return { status: "UNAUTHORIZED" };
   if (v.confirmed !== true) return { status: "INVALID", message: "탈퇴 안내를 확인하고 동의해 주세요." };
   if (pendingRefunds() > 0) return { status: "REFUND_PENDING", count: pendingRefunds() };
+  const questsEarly = questProblem(session);
+  if (questsEarly) return questsEarly;
   const early = consentProblem(v, mockAccount.fnBalance, earningsOf(session));
   if (early) return early;
   await mockDelay(400);
@@ -88,8 +117,10 @@ export async function withdrawAccount(input: unknown): Promise<WithdrawResult> {
   // From here on nothing awaits: the amounts are read again, compared with the consents and forfeited in one
   // step, so an admin decision or a donation during the password check cannot leave the record out of date.
   if (isWithdrawn()) return withdrawalOf()?.requestId === v.requestId ? { status: "WITHDRAWN" } : { status: "UNAUTHORIZED" };
-  // A refund request made during the password check counts too.
+  // A refund request made during the password check counts too, and so does a quest sent in the meantime.
   if (pendingRefunds() > 0) return { status: "REFUND_PENDING", count: pendingRefunds() };
+  const quests = questProblem(session);
+  if (quests) return quests;
   const balance = mockAccount.fnBalance;
   const earnings = earningsOf(session);
   const changed = consentProblem(v, balance, earnings);
