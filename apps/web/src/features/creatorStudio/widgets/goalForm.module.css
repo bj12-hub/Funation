@@ -1,0 +1,84 @@
+/* 후원목표 popup — 목표 모양 picker (code-first, 2026-10-08). */
+
+.shapes {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.shape {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 6px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-12);
+  background: var(--color-bg-page);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+  cursor: pointer;
+}
+
+.shape[data-checked] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-text-primary);
+}
+
+.shape:focus-within {
+  outline: 2px solid var(--color-primary-light);
+  outline-offset: 2px;
+}
+
+/* Tiny drawings of each shape (CSS only). */
+.icon {
+  position: relative;
+  display: block;
+  width: 40px;
+  height: 28px;
+}
+
+.icon[data-shape="BAR"] {
+  height: 10px;
+  margin: 9px 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-primary-light) 65%, var(--color-border-strong) 65%);
+}
+
+.icon[data-shape="CIRCLE"],
+.icon[data-shape="SEMI"] {
+  width: 28px;
+  border-radius: 50%;
+  background: conic-gradient(var(--color-primary-light) 0 65%, var(--color-border-strong) 65% 100%);
+  mask: radial-gradient(circle, transparent 52%, #000 53%);
+}
+
+.icon[data-shape="SEMI"] {
+  width: 36px;
+  height: 18px;
+  margin: 5px 0;
+  border-radius: 36px 36px 0 0;
+  background: conic-gradient(from -90deg at 50% 100%, var(--color-primary-light) 0 32%, var(--color-border-strong) 32% 50%, transparent 50%);
+  mask: radial-gradient(circle at 50% 100%, transparent 52%, #000 53%);
+}
+
+.icon[data-shape="HEART"],
+.icon[data-shape="STAR"] {
+  width: 28px;
+  background: linear-gradient(0deg, var(--color-primary-light) 60%, var(--color-border-strong) 60%);
+}
+
+.icon[data-shape="HEART"] {
+  clip-path: path("M14 26 C 6 20 1 15 1 9 C 1 4.5 4.5 1.5 8.5 1.5 C 11 1.5 13 3 14 5 C 15 3 17 1.5 19.5 1.5 C 23.5 1.5 27 4.5 27 9 C 27 15 22 20 14 26 Z");
+}
+
+.icon[data-shape="STAR"] {
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+
+@media (max-width: 640px) {
+  .shapes {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

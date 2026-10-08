@@ -169,10 +169,25 @@ export const GOAL_STYLES = [
   { key: "SIMPLE", label: "심플 레이아웃" }
 ] as const;
 export const GOAL_TITLE_MAX = 30;
+/** 목표 모양 (2026-10-08, from the legacy FlexTV 도우미 목표치): the bar, or a shape that fills up. */
+export const GOAL_SHAPES = [
+  { key: "BAR", label: "막대" },
+  { key: "CIRCLE", label: "원형" },
+  { key: "SEMI", label: "반원" },
+  { key: "HEART", label: "하트" },
+  { key: "STAR", label: "별" }
+] as const;
+export type GoalShape = (typeof GOAL_SHAPES)[number]["key"];
+/** 두 목표 번갈아 보기: seconds each goal stays before the other shows. */
+export const GOAL_ALTERNATE_SEC = { min: 5, max: 120 } as const;
+export type SecondGoal = { enabled: boolean; title: string; startAmount: number; goalAmount: number };
 /** Input guard only; the real ceiling is TBD. */
 export const GOAL_AMOUNT_MAX = 1_000_000_000;
 
 export type GoalSettings = {
+  theme: OverlayThemeChoice;
+  shape: GoalShape;
+  /** 막대 text layout (기본형 · 기본 한 줄 · 심플). */
   style: (typeof GOAL_STYLES)[number]["key"];
   title: string;
   startAmount: number;
@@ -180,11 +195,16 @@ export type GoalSettings = {
   from: string;
   to: string;
   showPercent: boolean;
+  /** Off = the theme's 포인트 색상 and track; on = 바 채우기 · 바 배경 색상 below. */
+  customColors: boolean;
   barColor: string;
   barBackground: string;
   barHeight: number;
   textOutline: boolean;
   font: { family: FontFamily; size: number };
+  /** A second goal over the same period, shown in turn with the first. */
+  second: SecondGoal;
+  alternateSec: number;
 };
 
 export const TOTAL_TITLE_MAX = 20;
@@ -593,6 +613,8 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     captionFont: { family: "Pretendard", size: 18 }
   },
   GOAL: {
+    theme: "INHERIT",
+    shape: "BAR",
     style: "BASIC",
     title: "캠방 장비 교체 가자!",
     startAmount: 0,
@@ -600,11 +622,14 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     from: "2026-09-01",
     to: "2026-09-30",
     showPercent: true,
+    customColors: false,
     barColor: "#519CFF",
     barBackground: "#FFFFFF",
     barHeight: 40,
     textOutline: true,
-    font: { family: "Pretendard", size: 14 }
+    font: { family: "Pretendard", size: 14 },
+    second: { enabled: false, title: "", startAmount: 0, goalAmount: 300_000 },
+    alternateSec: 10
   },
   TOTAL: {
     title: "총 후원 금액",

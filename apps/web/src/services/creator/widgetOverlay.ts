@@ -10,7 +10,9 @@ import { currentRun, voteBoard } from "@/services/votes/voteCore";
 import { isHidden, stageOf } from "@/services/donations/rouletteCore";
 import { boardOf, channelRows as gachaRows, isHidden as gachaHidden, stageOf as gachaStageOf } from "@/services/donations/gachaCore";
 import { STUDIO_CHANNEL, mockCrew } from "@/services/crew/mockCrewStore";
-import { crewRankingRows, eventLines, goalProgress, rankingRows, recentLines, sourceBoardRows, totalAmount } from "./widgetOverlayCore";
+import { crewRankingRows, eventLines, goalProgress, rankingRows, recentLines, secondGoalProgress, sourceBoardRows, totalAmount } from "./widgetOverlayCore";
+import { overlayTheme } from "./overlayThemeStore";
+import type { OverlayThemeChoice } from "./overlayThemeTypes";
 import { QR_SAMPLE_IMAGE, isWidgetOverlay, type OverlayWidget } from "./widgetOverlayTypes";
 import { readWidget } from "./widgetStore";
 import { clearedAtOf, mockWallpaper, wallStickers } from "./wallpaperCore";
@@ -22,13 +24,16 @@ import { clearedAtOf, mockWallpaper, wallStickers } from "./wallpaperCore";
 export async function getOverlayWidget(widget: unknown, key: unknown): Promise<OverlayWidget | "FORBIDDEN"> {
   if (!USE_MOCK) throw new Error("Widget overlay API is not connected yet.");
   if (!sameSecret(key, mockCreator.integrationKey) || !isWidgetOverlay(widget)) return "FORBIDDEN";
-  // 리모컨 signals: 새로고침 (reloadSeq) and 기능 제어 ON/OFF (on), shared by every 후원 위젯.
-  const common = { ...overlaySignal("widgets"), serverNow: new Date().toISOString() };
+  // 리모컨 signals: 새로고침 (reloadSeq) and 기능 제어 ON/OFF (on), shared by every 후원 위젯; the theme is the
+  // widget's own 오버레이 테마 choice when its settings have one (the rest follow the 전체 테마).
+  const base = { ...overlaySignal("widgets"), serverNow: new Date().toISOString() };
+  const themed = (settings: object) => ({ ...base, theme: overlayTheme((settings as { theme?: OverlayThemeChoice }).theme) });
+  const common = themed({});
   const items = mockAlerts.items;
   switch (widget) {
     case "goal": {
       const settings = readWidget("GOAL");
-      return { widget, settings, ...goalProgress(items, settings), ...common };
+      return { widget, settings, ...goalProgress(items, settings), second: secondGoalProgress(items, settings), ...themed(settings) };
     }
     case "total": {
       const settings = readWidget("TOTAL");

@@ -22,6 +22,16 @@ export function readWidget<K extends EditableWidgetKey>(key: K): WidgetSettingsM
     // 룰렛 settings saved before 결과 자동 노출 read with its default.
     return { ...DEFAULT_WIDGET_SETTINGS.ROULETTE, ...copy } as WidgetSettingsMap[K];
   }
+  if (key === "GOAL") {
+    // 후원목표 saved before 오버레이 테마 · 모양 · 두 번째 목표 (2026-10-08) reads with those defaults (its colors kept).
+    const d = DEFAULT_WIDGET_SETTINGS.GOAL;
+    const goal = copy as WidgetSettingsMap["GOAL"];
+    goal.theme ??= d.theme;
+    goal.shape ??= d.shape;
+    goal.customColors ??= true;
+    goal.second ??= structuredClone(d.second);
+    goal.alternateSec ??= d.alternateSec;
+  }
   if (key === "CHAT") {
     // 채팅창 saved before 오버레이 테마 (2026-10-08) follows the 전체 테마.
     (copy as WidgetSettingsMap["CHAT"]).theme ??= "INHERIT";
