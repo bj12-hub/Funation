@@ -84,7 +84,8 @@ export function SettlementManageScreen({ view }: { view: SettlementManageView })
                     <td>{fn(r.amountFn)} FN</td>
                     <td className={rejected ? undefined : styles.fee}>{rejected ? "-" : `-${fn(r.feeFn)}`}</td>
                     <td className={styles.net}>{rejected ? "-" : `${fn(r.netKrw)} 원`}</td>
-                    <td>{r.payoutDate ?? "-"}</td>
+                    {/* 지급 완료: the day the transfer was recorded; otherwise the scheduled payout. */}
+                    <td>{r.paidAt ?? r.payoutDate ?? "-"}</td>
                   </tr>
                 );
               })

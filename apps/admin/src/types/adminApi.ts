@@ -22,7 +22,7 @@ export const PLATFORM_ERROR_LABEL: Record<PlatformErrorCode, string> = {
 
 // ── Audit · dashboard ─────────────────────────────────────────────────────────
 
-export type AuditAction = "ADMIN_SIGN_IN" | "ADMIN_SIGN_OUT" | "MEMBER_SUSPEND" | "MEMBER_RESTORE" | "REFUND_APPROVE" | "REFUND_REJECT" | "SETTLEMENT_APPROVE" | "SETTLEMENT_REJECT" | "CONTENT_UPDATE" | "SYSTEM_UPDATE" | "REPORT_DISMISS" | "REPORT_HIDE";
+export type AuditAction = "ADMIN_SIGN_IN" | "ADMIN_SIGN_OUT" | "MEMBER_SUSPEND" | "MEMBER_RESTORE" | "REFUND_APPROVE" | "REFUND_REJECT" | "SETTLEMENT_APPROVE" | "SETTLEMENT_REJECT" | "SETTLEMENT_PAY" | "CONTENT_UPDATE" | "SYSTEM_UPDATE" | "REPORT_DISMISS" | "REPORT_HIDE";
 
 export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
   ADMIN_SIGN_IN: "관리자 로그인",
@@ -33,6 +33,7 @@ export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
   REFUND_REJECT: "환불 거절",
   SETTLEMENT_APPROVE: "정산 승인",
   SETTLEMENT_REJECT: "정산 반려",
+  SETTLEMENT_PAY: "정산 지급 완료",
   CONTENT_UPDATE: "콘텐츠 변경",
   SYSTEM_UPDATE: "시스템 설정 변경",
   REPORT_DISMISS: "신고 기각",
@@ -45,11 +46,15 @@ export type AdminDashboard = {
   creators: { total: number; live: number };
   charges: { monthCount: number; monthFn: number; monthPaidKrw: number; processing: number };
   donations: { monthCount: number; monthFn: number };
-  pending: { refunds: number; settlements: number; reports: number | null };
+  /** `refunds`: 처리 대기 only; `refundsBlocked`: waiting requests of withdrawn accounts, 처리 불가(탈퇴). */
+  pending: { refunds: number; refundsBlocked: number; settlements: number; reports: number | null };
   recentAudit: AuditEntry[];
 };
 
-export type AuditPage = { items: AuditEntry[]; total: number; hasMore: boolean };
+/** The member a `member:` target is about: linked by id, named, and marked when they withdrew (also after a 재가입). */
+export type AuditTargetMember = { id: string; name: string; withdrawn: boolean };
+export type AuditLogItem = AuditEntry & { targetMember: AuditTargetMember | null };
+export type AuditPage = { items: AuditLogItem[]; total: number; hasMore: boolean };
 export const AUDIT_PAGE = 30;
 /** The site lists at most this many of the newest entries (searching older ones is TBD). */
 export const AUDIT_MAX = 500;
@@ -100,15 +105,17 @@ export type AdminChargeRow = {
   refund: { status: RefundStatus; requestedAt: string } | null;
   memberId: string;
   memberName: string;
+  /** The member withdrew: the original nickname is shown with a 탈퇴 badge (2026-10-08 결정). */
+  memberWithdrawn: boolean;
 };
 
 export type AdminRefund = {
   chargeId: string;
   memberId: string;
-  /** "탈퇴한 회원" for a request of an account that has since withdrawn. */
+  /** The requester's original nickname, also for an account that has since withdrawn. */
   memberName: string;
-  /** Such a request cannot be decided in the console yet (what a 탈퇴 does to it is TBD). */
-  memberWithdrawn?: boolean;
+  /** Filed by an account that has since withdrawn: 탈퇴 badge, and the console cannot decide it. */
+  memberWithdrawn: boolean;
   requestedAt: string;
   reason: string;
   status: RefundStatus;
@@ -123,7 +130,7 @@ export type DonationStatus = "COMPLETED" | "PROCESSING" | "FAILED" | "REFUNDING"
 export const DONATION_STATUS_LABEL: Record<DonationStatus, string> = { COMPLETED: "완료", PROCESSING: "처리중", FAILED: "실패", REFUNDING: "환불중", REFUNDED: "환불완료" };
 export const DONATION_STATUSES: DonationStatus[] = ["COMPLETED", "PROCESSING", "FAILED", "REFUNDING", "REFUNDED"];
 
-export type AdminDonationRow = { id: string; donatedAt: string; creatorName: string; fnAmount: number; typeLabel: string; status: DonationStatus; memberId: string; memberName: string };
+export type AdminDonationRow = { id: string; donatedAt: string; creatorName: string; fnAmount: number; typeLabel: string; status: DonationStatus; memberId: string; memberName: string; memberWithdrawn: boolean };
 export type DonationsView = {
   rows: AdminDonationRow[];
   byStatus: Record<DonationStatus, { count: number; fn: number }>;
@@ -132,14 +139,19 @@ export type DonationsView = {
 
 // ── Settlements ───────────────────────────────────────────────────────────────
 
-/** FORFEITED = 탈퇴 소멸: the creator withdrew and agreed to forfeit earnings waiting for settlement. */
-export type SettlementStatus = "PENDING" | "APPROVED" | "REJECTED" | "FORFEITED";
-export const SETTLEMENT_STATUSES: SettlementStatus[] = ["PENDING", "APPROVED", "REJECTED", "FORFEITED"];
+/**
+ * FORFEITED = 탈퇴 소멸: the creator withdrew and agreed to forfeit earnings waiting for settlement.
+ * PAID = 지급 완료: the operator recorded the transfer of an APPROVED request (2026-10-08 결정).
+ */
+export type SettlementStatus = "PENDING" | "APPROVED" | "PAID" | "REJECTED" | "FORFEITED";
+export const SETTLEMENT_STATUSES: SettlementStatus[] = ["PENDING", "APPROVED", "PAID", "REJECTED", "FORFEITED"];
 /** Member type label and masked account only. */
 export type AdminSettlementRegistration = { memberType: string; registrant: string; holder: string; bankName: string; accountMasked: string; code: string; submittedAt: string };
 export type AdminSettlementRow = {
   id: string;
+  /** The studio channel's name, or a withdrawn creator's original nickname (`creatorWithdrawn`: 탈퇴 badge). */
   creatorName: string;
+  creatorWithdrawn: boolean;
   status: SettlementStatus;
   requestedAt: string;
   periodFrom: string;
@@ -151,6 +163,8 @@ export type AdminSettlementRow = {
   /** 정산 정보 at request time — what the request is reviewed and paid with. Null = the site refuses approval. */
   registrationAtRequest: AdminSettlementRegistration | null;
   review: { at: string; by: string; note: string } | null;
+  /** 지급 완료: when, by whom, and the transfer reference (PAID only). */
+  payment: { at: string; by: string; reference: string } | null;
 };
 export type AdminSettlementView = {
   rows: AdminSettlementRow[];
@@ -160,6 +174,8 @@ export type AdminSettlementView = {
   availableFn: number;
 };
 export const SETTLEMENT_NOTE = { min: 2, max: 200 } as const;
+/** 이체 참조번호: letters, digits and hyphens; the site refuses one shaped like an account number. */
+export const SETTLEMENT_REFERENCE = { min: 4, max: 40 } as const;
 
 // ── Content ───────────────────────────────────────────────────────────────────
 
@@ -225,7 +241,12 @@ export type Report = {
   status: ReportStatus;
   resolution: { at: string; by: string; action: "DISMISS" | "HIDE"; note: string } | null;
 };
-export type AdminReportView = { rows: (Report & { authorIsMember: boolean })[]; counts: Record<ReportStatus, number> };
+/**
+ * `authorWithdrawn` / `reporterWithdrawn`: the member withdrew since (탈퇴 badge after the name at report time).
+ * `contentChanged`: 신고 후 내용 변경됨 — the content changed since the report (the site compares; no hash is sent).
+ */
+export type AdminReportRow = Report & { authorIsMember: boolean; authorWithdrawn: boolean; reporterWithdrawn: boolean; contentChanged: boolean };
+export type AdminReportView = { rows: AdminReportRow[]; counts: Record<ReportStatus, number> };
 export const REPORT_NOTE = { min: 2, max: 200 } as const;
 
 // ── Mutation results ──────────────────────────────────────────────────────────

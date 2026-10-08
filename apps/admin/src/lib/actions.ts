@@ -56,6 +56,12 @@ export async function decideSettlement(input: unknown) {
   return send("POST", `/settlements/${seg(v.id)}`, { decision: v.decision, note: v.note });
 }
 
+/** 지급 완료: one `requestId` per intended payment, so a retry is recorded once. */
+export async function paySettlement(input: unknown) {
+  const v = obj(input);
+  return send("POST", `/settlements/${seg(v.id)}/pay`, { reference: v.reference, requestId: v.requestId });
+}
+
 export async function saveNotice(input: unknown) {
   return send("POST", "/content/notices", obj(input));
 }

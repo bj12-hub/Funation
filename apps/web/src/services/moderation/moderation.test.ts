@@ -129,9 +129,36 @@ describe("reporting again (2026-10-08 결정)", () => {
     const { rows } = await m.listReports();
     expect(rows).toHaveLength(2);
     for (const row of rows) {
-      expect(Object.keys(row).sort()).toEqual(["authorId", "authorIsMember", "authorName", "createdAt", "detail", "id", "reason", "reporterName", "resolution", "snapshot", "status", "target"]);
+      expect(Object.keys(row).sort()).toEqual(["authorId", "authorIsMember", "authorName", "authorWithdrawn", "contentChanged", "createdAt", "detail", "id", "reason", "reporterName", "reporterWithdrawn", "resolution", "snapshot", "status", "target"]);
     }
     expect(rows.find((r) => r.target.type === "COMMENT")!.target).toEqual({ type: "COMMENT", id: "cm-1", parentId: "p-1" });
+  });
+
+  it("flags 신고 후 내용 변경됨 when the content changed since the report, without sending a hash (2026-10-08 결정)", async () => {
+    const m = await load();
+    const target = { type: "POST", id: "p-2" };
+    expect(await m.submitReport({ target, reason: "SPAM" })).toEqual({ status: "REPORTED" });
+    expect(await m.submitReport({ target: { type: "CREATOR", id: "c1" }, reason: "IMPERSONATION" })).toEqual({ status: "REPORTED" });
+    const flags = async (status?: string) => Object.fromEntries((await m.listReports({ status })).rows.map((r) => [r.target.id, r.contentChanged]));
+    expect(await flags()).toEqual({ "p-2": false, c1: false });
+
+    signInAs("u-sample-2");
+    expect(await m.updatePost("p-2", { category: "QNA", title: "룰렛 후원은 어떻게 당첨이 정해지나요?", body: "신고 뒤에 바뀐 내용" })).toMatchObject({ status: "SAVED" });
+    signInAs("u-test");
+    expect(await flags()).toEqual({ "p-2": true, c1: false });
+    const json = JSON.stringify(await m.listReports());
+    expect(json).not.toMatch(/[0-9a-f]{64}/);
+    expect(json).not.toContain("contentHash");
+
+    // The flag stays on a dismissed report (the history shows the content moved on); hidden content is not flagged.
+    const report = m.moderationStore().reports.find((r) => r.target.id === "p-2")!;
+    expect(await m.decideReport(OP, { id: report.id, action: "DISMISS", note: "당시엔 위반 아님" })).toEqual({ status: "OK" });
+    expect(await flags("DISMISSED")).toEqual({ "p-2": true });
+    expect(await m.submitReport({ target, reason: "ABUSE" })).toEqual({ status: "REPORTED" }); // a new report, on the new text
+    const again = m.moderationStore().reports.find((r) => r.target.id === "p-2" && r.status === "OPEN")!;
+    expect(await flags()).toEqual({ "p-2": false, c1: false });
+    expect(await m.decideReport(OP, { id: again.id, action: "HIDE", note: "욕설 확인" })).toEqual({ status: "OK" });
+    expect(await flags("ACTIONED")).toEqual({ "p-2": false });
   });
 
   it("sees a change past the clipped snapshot through the content hash", async () => {

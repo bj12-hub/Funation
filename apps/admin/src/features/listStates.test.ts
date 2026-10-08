@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import type { AuditEntry, DonationsView } from "@/types/adminApi";
+import type { AuditLogItem, DonationsView } from "@/types/adminApi";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh() {} }) }));
 vi.mock("@/lib/actions", () => ({}));
@@ -41,7 +41,7 @@ describe("console list states", () => {
 
   it("stops offering 더 보기 at the newest 500 entries the site lists", async () => {
     const { AuditLogScreen } = await import("./AdminScreens");
-    const entry: AuditEntry = { id: "au-1", at: "2026-10-08T00:00:00.000Z", actorId: "adm-1", actorName: "운영자", action: "MEMBER_SUSPEND", target: "member:u-s001", reason: "7일 · 사유" };
+    const entry: AuditLogItem = { id: "au-1", at: "2026-10-08T00:00:00.000Z", actorId: "adm-1", actorName: "운영자", action: "MEMBER_SUSPEND", target: "member:u-s001", reason: "7일 · 사유", targetMember: null };
     const more = render(createElement(AuditLogScreen, { page: { items: [entry], total: 600, hasMore: true }, show: 480 }));
     expect(more).toContain('href="/audit?show=500"');
     const capped = render(createElement(AuditLogScreen, { page: { items: [entry], total: 600, hasMore: true }, show: 500 }));

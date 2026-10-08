@@ -3,10 +3,12 @@ import { toDateString } from "@/lib/period";
 import { mockSettlement } from "@/services/creator/mockSettlementStore";
 import { moderationStore } from "@/services/moderation/moderationCore";
 import { getAllCreatorsForAdmin } from "@/services/creators/creators";
-import { mockRefunds } from "@/services/wallet/mockRefundStore";
+import { refundQueue } from "./payments";
 import { listAccountChargeRecords, listAccountDonationRecords } from "@/services/wallet/walletHistory";
-import { AUDIT_MAX, AUDIT_PAGE, type AdminActor, type AdminDashboard, type AuditPage } from "./adminTypes";
+import { AUDIT_MAX, AUDIT_PAGE, type AdminActor, type AdminDashboard, type AuditEntry, type AuditPage, type AuditTargetMember } from "./adminTypes";
 import { auditEntries, recordAudit } from "./auditCore";
+import { SAMPLE_MEMBER_ID, slotMemberAt } from "./memberCore";
+import { memberLabels } from "./members";
 
 /**
  * 관리자 API logic — code-first. Server-only: called by the admin API routes (`/api/admin/*`), which
@@ -34,6 +36,7 @@ export async function getAdminDashboard(): Promise<AdminDashboard | null> {
   const charges = listAccountChargeRecords().filter((c) => c.chargedAt.startsWith(month));
   const completed = charges.filter((c) => c.status === "COMPLETED");
   const donations = listAccountDonationRecords().filter((d) => d.donatedAt.startsWith(month) && d.status === "COMPLETED");
+  const refunds = refundQueue();
   return {
     creators: { total: creators.length, live: creators.filter((c) => c.isLive).length },
     charges: {
@@ -44,7 +47,9 @@ export async function getAdminDashboard(): Promise<AdminDashboard | null> {
     },
     donations: { monthCount: donations.length, monthFn: donations.reduce((s, d) => s + d.fnAmount, 0) },
     pending: {
-      refunds: mockRefunds.requests.filter((r) => r.status === "REQUESTED").length,
+      // 처리 대기 only; a withdrawn account's waiting requests are counted apart as 처리 불가(탈퇴) (2026-10-08 결정).
+      refunds: refunds.waiting,
+      refundsBlocked: refunds.blocked,
       settlements: mockSettlement.requests.filter((r) => r.status === "PENDING").length,
       reports: moderationStore().reports.filter((r) => r.status === "OPEN").length
     },
@@ -56,5 +61,15 @@ export async function listAuditLog(input: { show?: unknown } = {}): Promise<Audi
   assertMock();
   const all = auditEntries();
   const count = Math.min(Math.max(1, Math.floor(Number(input.show)) || AUDIT_PAGE), AUDIT_MAX);
-  return { items: all.slice(0, count), total: all.length, hasMore: all.length > count };
+  const labels = await memberLabels();
+  // A `member:` target names the member it links to. Entries filed under the slot id before a 재가입 are the withdrawn
+  // account's (`…-wN`); the entries themselves are never rewritten.
+  const targetMember = (e: AuditEntry): AuditTargetMember | null => {
+    if (!e.target?.startsWith("member:")) return null;
+    const raw = e.target.slice("member:".length);
+    const id = raw === SAMPLE_MEMBER_ID ? slotMemberAt(e.at) : raw;
+    const label = labels.get(id);
+    return label ? { id, name: label.name, withdrawn: label.withdrawn } : null;
+  };
+  return { items: all.slice(0, count).map((e) => ({ ...e, targetMember: targetMember(e) })), total: all.length, hasMore: all.length > count };
 }
