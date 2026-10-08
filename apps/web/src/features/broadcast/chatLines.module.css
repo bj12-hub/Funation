@@ -1,0 +1,185 @@
+/*
+ * 통합 채팅 lines (code-first, 2026-10-08 오버레이 테마). 위젯 스타일 (data-style) × theme ([data-ov]); sizes in em
+ * off the 채팅창 font size. Recommended OBS source 400 × 600.
+ */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 12px;
+  line-height: 1.4;
+  list-style: none;
+}
+
+.line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35em;
+  min-width: 0;
+}
+
+/* Platform mark · nickname · role chips stay together on one line. */
+.head {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.35em;
+  max-width: 100%;
+}
+
+.name {
+  color: var(--name);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.name[data-bg] {
+  padding: 0 0.35em;
+  border-radius: 0.3em;
+  background: rgb(0 0 0 / 55%);
+}
+
+.role {
+  font-size: 0.6em;
+}
+
+.text {
+  overflow-wrap: anywhere;
+}
+
+/* 한 줄 테두리 없음: text straight on the stream, in the 채팅창 font color. */
+.list[data-style="LINE_PLAIN"] .line {
+  color: var(--chat-color);
+  text-shadow: var(--ov-on-stream-shadow);
+}
+
+/* 한 줄 상자 테두리: one card per line. */
+.list[data-style="LINE_BOX"] {
+  align-items: flex-start;
+}
+
+.list[data-style="LINE_BOX"] .line {
+  max-width: 100%;
+  padding: 0.3em 0.7em;
+  border-radius: min(var(--ov-card-radius), 16px);
+}
+
+/* 말풍선형: the name inside a bubble with a flat corner where a tail would be. */
+.list[data-style="BUBBLE"] {
+  align-items: flex-start;
+}
+
+.list[data-style="BUBBLE"] .line {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1em;
+  max-width: 100%;
+  padding: 0.45em 0.85em;
+  border-radius: 1em 1em 1em 0.25em;
+}
+
+/* 상자 테두리 (정렬) and 상자형 심플: one card for all lines; 정렬 keeps the names in a column. */
+.list[data-style="BOX_SIMPLE"],
+.list[data-style="BOX_ALIGNED"] {
+  gap: 0.35em;
+  padding: 0.7em 0.9em;
+}
+
+.list[data-style="BOX_ALIGNED"] .line {
+  flex-wrap: nowrap;
+}
+
+.list[data-style="BOX_ALIGNED"] .head {
+  flex: 0 0 7.5em;
+  overflow: hidden;
+}
+
+.list[data-style="BOX_ALIGNED"] .name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 볼드 플랫 on white cards: the nickname is a tag in its color with an ink outline. */
+[data-ov="BOLD"].list:not([data-style="LINE_PLAIN"]) .name {
+  padding: 0 0.35em;
+  border: 1.5px solid #111111;
+  border-radius: 6px;
+  background: var(--name);
+  color: var(--name-ink);
+}
+
+[data-ov="BOLD"].list[data-style="LINE_BOX"] .line,
+[data-ov="BOLD"].list[data-style="BUBBLE"] .line {
+  box-shadow: 3px 3px 0 #111111;
+}
+
+/* 소프트 글래스: the nickname reads best in white with its color as a soft dot. */
+[data-ov="GLASS"].list:not([data-style="LINE_PLAIN"]) .name {
+  color: #ffffff;
+}
+
+[data-ov="GLASS"].list:not([data-style="LINE_PLAIN"]) .name::before {
+  display: inline-block;
+  width: 0.45em;
+  height: 0.45em;
+  margin-right: 0.3em;
+  border-radius: 50%;
+  background: var(--name);
+  vertical-align: 0.12em;
+  content: "";
+}
+
+/* ── 사라지는 효과 (자동으로 감추기) ── */
+.list .line[data-leave] {
+  animation-duration: 900ms;
+  animation-timing-function: ease-in;
+  animation-fill-mode: forwards;
+}
+
+.list .line[data-leave="FADE"] {
+  animation-name: chat-fade-out;
+}
+
+.list .line[data-leave="SLIDE"] {
+  animation-name: chat-slide-out;
+}
+
+.list .line[data-leave="ZOOM"] {
+  animation-name: chat-zoom-out;
+}
+
+.list .line[data-leave="NONE"] {
+  visibility: hidden;
+  animation: none;
+}
+
+@keyframes chat-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes chat-slide-out {
+  to {
+    opacity: 0;
+    transform: translateX(-2em);
+  }
+}
+
+@keyframes chat-zoom-out {
+  to {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .list .line[data-leave] {
+    animation-name: chat-fade-out;
+    animation-duration: 200ms;
+  }
+}

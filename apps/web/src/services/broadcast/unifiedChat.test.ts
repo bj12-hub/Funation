@@ -13,6 +13,13 @@ async function load() {
   return { ...chat, ...yt, remote, overlayKey: mockCreator.integrationKey };
 }
 
+/** The overlay's lines (the view also carries the 채팅창 settings and theme). */
+async function lines(m: Awaited<ReturnType<typeof load>>) {
+  const view = await m.getChatOverlay(m.overlayKey);
+  if (view === "FORBIDDEN") throw new Error("forbidden");
+  return view.lines;
+}
+
 async function connectAll(m: Awaited<ReturnType<typeof load>>) {
   await m.connectYouTube({ handle: "streamer", requestId: key(900) });
   for (const platform of ["CHZZK", "SOOP", "FLEXTV"]) expect(await m.connectBroadcastChannel({ platform, handle: "streamer" })).toEqual({ status: "OK" });
@@ -23,6 +30,25 @@ const viewer = (n: number, platform: string, text: string, extra: Record<string,
 describe("unified chat", () => {
   beforeEach(() => resetMockStores());
   afterEach(() => vi.restoreAllMocks());
+
+  it("sends the 채팅창 look with the overlay and keeps 필터링 닉네임 off it", async () => {
+    const m = await load();
+    await connectAll(m);
+    const widgets = await import("@/services/creator/widgetSettings");
+    const settings = (await widgets.getWidgetDetail("CHAT"))!.settings as Record<string, unknown>;
+    expect(settings.theme).toBe("INHERIT");
+    expect(await widgets.saveWidgetSettings("CHAT", { ...settings, theme: "BOLD", style: "BUBBLE", filteredNicknames: ["채팅봇"] })).toEqual({ status: "SAVED" });
+    expect(await m.simulateViewerChat(viewer(1, "CHZZK", "안녕하세요"))).toEqual({ status: "OK" });
+    expect(await m.simulateViewerChat({ ...viewer(2, "SOOP", "광고입니다"), nick: " 채팅봇 " })).toEqual({ status: "OK" });
+    const view = await m.getChatOverlay(m.overlayKey);
+    if (view === "FORBIDDEN") throw new Error("forbidden");
+    expect(view.settings).toMatchObject({ theme: "BOLD", style: "BUBBLE" });
+    expect(view.theme.theme).toBe("BOLD");
+    expect(view.lines.map((l) => l.text)).toContain("안녕하세요");
+    expect(view.lines.map((l) => l.text)).not.toContain("광고입니다");
+    expect(view.lines.every((l) => !Number.isNaN(Date.parse(l.at)))).toBe(true);
+    expect(Date.parse(view.serverNow)).not.toBeNaN();
+  });
 
   it("declares per-platform chat capabilities instead of assuming they are the same", async () => {
     const m = await load();
@@ -59,7 +85,7 @@ describe("unified chat", () => {
     ]);
     expect(view.messages[1].author.roles).toEqual(["MEMBER"]);
     expect(new Set(view.messages.map((x) => x.id)).size).toBe(4);
-    expect(await m.getChatOverlay(m.overlayKey)).toHaveLength(4);
+    expect(await lines(m)).toHaveLength(4);
     expect(await m.getChatOverlay("wrong")).toBe("FORBIDDEN");
   });
 
@@ -149,9 +175,9 @@ describe("unified chat", () => {
     for (let i = 0; i < 3; i++) m.remote.mockViewerChat("CHZZK", chz, { userId: `u${i}`, nick: `n${i}`, text: `backlog ${i}` });
     m.remote.mockFailNextChatCall("CHZZK", "TIMEOUT");
     expect(await m.connectBroadcastChannel({ platform: "CHZZK", handle: "gamma" })).toEqual({ status: "OK" });
-    expect(await m.getChatOverlay(m.overlayKey)).toEqual([]);
+    expect(await lines(m)).toEqual([]);
     await m.simulateViewerChat(viewer(80, "CHZZK", "after"));
-    expect(await m.getChatOverlay(m.overlayKey)).toEqual([expect.objectContaining({ text: "after" })]);
+    expect(await lines(m)).toEqual([expect.objectContaining({ text: "after" })]);
 
     // A slow platform: the overlay reads while the connection is still taking its first position.
     const soop = (await SoopAdapter.getChannel("delta")).externalChannelId;
@@ -208,7 +234,7 @@ describe("unified chat", () => {
     view = (await m.getUnifiedChat())!;
     expect(view.messages.map((x) => x.hidden)).toEqual(["DELETED", "BANNED", "MANUAL"]);
     expect(view.log.map((l) => l.action)).toEqual(["BAN", "DELETE", "HIDE"]);
-    expect(await m.getChatOverlay(m.overlayKey)).toEqual([]);
+    expect(await lines(m)).toEqual([]);
   });
 
   it("keeps one failing platform from blocking the others and auto-hides forbidden words", async () => {
@@ -223,7 +249,7 @@ describe("unified chat", () => {
       ["CHZZK", null],
       ["FLEXTV", "FILTER"]
     ]);
-    expect(await m.getChatOverlay(m.overlayKey)).toHaveLength(1);
+    expect(await lines(m)).toHaveLength(1);
   });
 
   it("requires the creator role for every studio action", async () => {

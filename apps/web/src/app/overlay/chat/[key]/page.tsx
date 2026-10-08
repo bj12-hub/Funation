@@ -10,8 +10,8 @@ export const dynamic = "force-dynamic";
 
 export default async function Page({ params }: { params: Promise<{ key: string }> }) {
   const key = (await params).key;
-  const [lines, signal] = await Promise.all([getChatOverlay(key), getOverlaySignal(key, "chat")]);
+  const [view, signal] = await Promise.all([getChatOverlay(key), getOverlaySignal(key, "chat")]);
   // An invalid key looks like a missing page.
-  if (lines === "FORBIDDEN" || signal === "FORBIDDEN") notFound();
-  return <ChatOverlay overlayKey={key} initial={lines} initialSignal={signal} />;
+  if (view === "FORBIDDEN" || signal === "FORBIDDEN") notFound();
+  return <ChatOverlay overlayKey={key} initial={view} initialSignal={signal} />;
 }

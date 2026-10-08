@@ -5,6 +5,8 @@ import { ownEntry } from "@/lib/records";
 import { getCreatorSession } from "@/lib/session";
 import { sameSecret } from "@/lib/secret";
 import { mockCreator } from "@/services/creator/mockCreatorStore";
+import { overlayTheme } from "@/services/creator/overlayThemeStore";
+import { readWidget } from "@/services/creator/widgetStore";
 import { ADAPTERS, BROADCAST_PLATFORMS, withTimeout } from "@/services/platforms/adapters";
 import { mockViewerChat } from "@/services/platforms/mockBroadcastRemote";
 import { PLATFORM_ERROR_LABEL, PlatformError } from "@/services/platforms/platformTypes";
@@ -24,7 +26,7 @@ import {
   sendAction,
   startChatFrom
 } from "./chatCore";
-import { CHAT_TEXT_MAX, type ChatActionResult, type ChatOverlayLine, type ChatSendResult, type UnifiedChatView } from "./chatTypes";
+import { CHAT_TEXT_MAX, type ChatActionResult, type ChatOverlayView, type ChatSendResult, type UnifiedChatView } from "./chatTypes";
 
 /**
  * 통합 채팅 Server Actions — code-first. Routes `/creator/chat` (studio) and `/overlay/chat/[key]` (OBS).
@@ -136,10 +138,16 @@ export async function simulateChatReconnect(input: unknown): Promise<ChatActionR
   return { status: "OK" };
 }
 
-/** OBS overlay read — no login (OBS cannot sign in); the integration key is the secret. */
-export async function getChatOverlay(key: unknown): Promise<ChatOverlayLine[] | "FORBIDDEN"> {
+/**
+ * OBS overlay read — no login (OBS cannot sign in); the integration key is the secret. Lines from 필터링 닉네임
+ * (채팅창 위젯, e.g. chat bots) never leave the server; the rest of the 채팅창 settings are drawn by the overlay.
+ */
+export async function getChatOverlay(key: unknown): Promise<ChatOverlayView | "FORBIDDEN"> {
   assertMock();
   if (!sameSecret(key, mockCreator.integrationKey)) return "FORBIDDEN";
   await ingestChat();
-  return overlayLines();
+  const settings = readWidget("CHAT");
+  const blocked = new Set(settings.filteredNicknames.map((n) => n.trim().toLowerCase()));
+  const lines = overlayLines().filter((l) => !blocked.has(l.name.trim().toLowerCase()));
+  return { lines, settings, theme: overlayTheme(settings.theme), serverNow: new Date().toISOString() };
 }
