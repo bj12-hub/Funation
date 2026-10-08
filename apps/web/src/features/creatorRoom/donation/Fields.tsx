@@ -229,7 +229,8 @@ export function MiniFields({ value, onChange, catalog, error, onEnter }: Props<M
 
 // ── 영상 후원 (851:4788) ──────────────────────────────────────────────────────
 
-export function VideoFields({ value, onChange, balance, error }: Props<VideoState> & { error: string | null }) {
+/** 영상 후원, or 음성 후원 (`audio`): the same YouTube link and range; 음성 plays the sound with a small player. */
+export function VideoFields({ value, onChange, balance, error, audio = false }: Props<VideoState> & { error: string | null; audio?: boolean }) {
   const videoId = value.url ? parseYouTubeId(value.url) : null;
   const start = parseClock(value.start);
   const end = parseClock(value.end);
@@ -239,7 +240,7 @@ export function VideoFields({ value, onChange, balance, error }: Props<VideoStat
     <>
       <AmountField value={value.amount} onChange={(amount) => onChange({ ...value, amount })} hint={<Balance balance={balance} />} quick={{ balance }} />
       <label className={room.field}>
-        <span className={room.fieldLabel}>영상 URL</span>
+        <span className={room.fieldLabel}>{audio ? "YouTube 주소 (소리만 재생)" : "영상 URL"}</span>
         <span className={room.inputBox}>
           <input
             className={room.input}
@@ -254,7 +255,9 @@ export function VideoFields({ value, onChange, balance, error }: Props<VideoStat
         <span className={styles.previewPlay} aria-hidden="true">
           ▶
         </span>
-        <span className={styles.previewLabel}>{videoId ? `YouTube · ${videoId}` : "영상 URL을 입력하면 미리보기가 표시돼요"}</span>
+        <span className={styles.previewLabel}>
+          {videoId ? `YouTube · ${videoId}${audio ? " · 소리만" : ""}` : audio ? "노래나 목소리가 담긴 YouTube 주소를 넣어 주세요" : "영상 URL을 입력하면 미리보기가 표시돼요"}
+        </span>
       </div>
       <div className={styles.clockGrid}>
         <label className={room.field}>
@@ -274,7 +277,8 @@ export function VideoFields({ value, onChange, balance, error }: Props<VideoStat
           <span className={`${room.inputBox} ${styles.readonlyBox}`}>{length === null ? "-" : `${length}초`}</span>
         </div>
       </div>
-      <SwitchRow label="영상 후원 이용약관 동의 (필수)" checked={value.terms} onChange={(terms) => onChange({ ...value, terms })} />
+      {audio && <p className={`${room.validation} ${styles.audioNote}`}>방송 화면 구석의 작은 플레이어에서 소리 위주로 재생돼요. 공유할 권리가 있는 영상만 보내 주세요.</p>}
+      <SwitchRow label={audio ? "음성 후원 이용약관 동의 (필수)" : "영상 후원 이용약관 동의 (필수)"} checked={value.terms} onChange={(terms) => onChange({ ...value, terms })} />
       {error && (
         <p className={`${room.validation} ${room.validationError}`} role="alert">
           ! {error}

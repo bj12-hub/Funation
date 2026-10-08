@@ -84,6 +84,7 @@ One Donation Core for every type (CLAUDE.md §10). Common input: `idempotencyKey
 | Type | Enforced input | Amount charged |
 |---|---|---|
 | TEXT · MINI · VIDEO | ≥ 1,000 / ≥ 100 / ≥ 1,000; message ≤ 100 / text ≤ 30; YouTube URL + range | amount |
+| AUDIO (음성 후원, 2026-10-08) | same as VIDEO (≥ 1,000 — TBD, YouTube URL + range 0 … 24 h, terms); queued with the videos as `mode: AUDIO`, played as sound in a small visible player on `/overlay/video` | amount |
 | SIGNATURE · WISHLIST | catalog id (in stock) + message ≤ 100 | catalog price |
 | ROULETTE | 룰렛 on; amount ≥ 최소 참여 금액; 1인 하루 횟수 | amount (one spin; the result is drawn at payment) |
 | GACHA | enabled 뽑기, not sold out; 확률 안내 동의; 1인 횟수 한도 | 뽑기 price (the prize is drawn at payment) |

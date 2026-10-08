@@ -79,7 +79,7 @@ export function playingEndsAt(v: VideoRequest) {
   return stamp((mockMedia.playingSince ?? Date.now()) + playSeconds(v) * 1000);
 }
 
-export function enqueueVideo(input: Pick<VideoRequest, "kind" | "donor" | "fnAmount" | "videoId" | "startSec" | "endSec">, now = Date.now()) {
+export function enqueueVideo(input: Pick<VideoRequest, "kind" | "donor" | "fnAmount" | "videoId" | "startSec" | "endSec" | "mode">, now = Date.now()) {
   const item: VideoRequest = { id: newId("vid", now), ...input, requestedAt: stamp(now), status: "WAITING" };
   mockMedia.videos.push(item);
   advanceVideos(now);
@@ -87,7 +87,7 @@ export function enqueueVideo(input: Pick<VideoRequest, "kind" | "donor" | "fnAmo
 }
 
 /** Donation Core hook: only the studio channel has an overlay in the mock (TBD: per-creator queues). */
-export function enqueueDonationVideo(creatorId: string, input: { donor: string; fnAmount: number; videoId: string; startSec: number; endSec: number }) {
+export function enqueueDonationVideo(creatorId: string, input: { donor: string; fnAmount: number; videoId: string; startSec: number; endSec: number; mode?: "VIDEO" | "AUDIO" }) {
   if (creatorId !== STUDIO_CHANNEL) return;
   enqueueVideo({ kind: "DONATION", ...input });
 }

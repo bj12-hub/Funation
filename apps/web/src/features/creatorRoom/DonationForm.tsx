@@ -225,6 +225,7 @@ export function DonationForm({
           <MiniFields value={states.MINI} onChange={update("MINI")} catalog={donation} balance={fnBalance} error={draft?.error ?? null} onEnter={() => signedIn && open()} />
         )}
         {formKey === "VIDEO" && <VideoFields value={states.VIDEO} onChange={update("VIDEO")} catalog={donation} balance={fnBalance} error={draft?.error ?? null} />}
+        {formKey === "AUDIO" && <VideoFields audio value={states.AUDIO} onChange={update("AUDIO")} catalog={donation} balance={fnBalance} error={draft?.error ?? null} />}
         {formKey === "SIGNATURE" && (
           <SignatureFields
             value={states.SIGNATURE}

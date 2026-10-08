@@ -153,7 +153,9 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
     });
     // 영상 · 그림후원 위젯: paid requests reach the creator's queue / gallery.
     const d = request.details as Record<string, unknown>;
-    if (request.type === "VIDEO") enqueueDonationVideo(creator.id, { donor, fnAmount: request.amount, videoId: d.videoId as string, startSec: d.start as number, endSec: d.end as number });
+    if (request.type === "VIDEO" || request.type === "AUDIO") {
+      enqueueDonationVideo(creator.id, { donor, fnAmount: request.amount, videoId: d.videoId as string, startSec: d.start as number, endSec: d.end as number, mode: request.type });
+    }
     if (request.type === "DRAWING") addDonationDrawing(creator.id, { donor, title: d.title as string, fnAmount: request.amount, image: d.image as string });
     notify({ kind: "DONATION_SENT", title: "후원을 보냈어요", body: `${creator.name}님께 ${request.amount.toLocaleString("ko-KR")} FN`, href: "/wallet/donations", dedupeKey: `donation:${idempotencyKey}` });
     result = { status: "COMPLETED", donationId, fnAmount: request.amount, balance: mockAccount.fnBalance };
@@ -267,17 +269,20 @@ function parse(v: Record<string, unknown>, catalog: DonationCatalog): Parsed | {
       if (hasForbidden(body)) return refused;
       return { ...common, amount: v.amount as number, summary: body, details: { text: body, colorId: v.colorId } };
     }
-    case "VIDEO": {
+    case "VIDEO":
+    case "AUDIO": {
+      // 음성 후원 takes the same link and range as 영상 후원; only how it plays differs (sound, small player).
+      const audio = typeInfo.key === "AUDIO";
       const videoId = typeof v.videoUrl === "string" ? parseYouTubeId(v.videoUrl) : null;
       const start = v.startSec;
       const end = v.endSec;
       // Same bounds as the 테스트 영상 (0 … 24 hours).
       const rangeOk = Number.isInteger(start) && Number.isInteger(end) && (start as number) >= 0 && (end as number) > (start as number) && (end as number) <= MEDIA_LIMITS.rangeSecMax;
-      if (!amountOk(catalog.minAmount.VIDEO) || !videoId || !rangeOk || v.termsAgreed !== true) return null;
+      if (!amountOk(audio ? catalog.minAmount.AUDIO : catalog.minAmount.VIDEO) || !videoId || !rangeOk || v.termsAgreed !== true) return null;
       return {
         ...common,
         amount: v.amount as number,
-        summary: `영상 youtu.be/${videoId}`,
+        summary: `${audio ? "음성" : "영상"} youtu.be/${videoId}`,
         // 2026-10-04 결정: no video library (no 라이브러리 tab, no 내 라이브러리에 등록).
         details: { videoId, start, end }
       };
