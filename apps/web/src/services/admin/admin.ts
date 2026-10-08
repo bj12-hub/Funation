@@ -1,5 +1,6 @@
 import { USE_MOCK } from "@/lib/mock";
 import { toDateString } from "@/lib/period";
+import { purgeExpired } from "@/services/account/retentionPurge";
 import { mockSettlement } from "@/services/creator/mockSettlementStore";
 import { moderationStore } from "@/services/moderation/moderationCore";
 import { getAllCreatorsForAdmin } from "@/services/creators/creators";
@@ -29,6 +30,7 @@ export async function recordSessionEvent(admin: AdminActor, event: unknown): Pro
 
 export async function getAdminDashboard(): Promise<AdminDashboard | null> {
   assertMock();
+  purgeExpired(); // records past their retention date are not counted (account/retentionPolicy.ts)
   const month = toDateString(new Date()).slice(0, 7);
   // Every creator, as 크리에이터 관리 lists them: the public directory leaves suspended channels out.
   const creators = await getAllCreatorsForAdmin();

@@ -31,13 +31,13 @@ describe("후원 내역", () => {
 
   it("starts a 재가입 account without the withdrawn account's platform and Direct donations", async () => {
     const m = await load();
-    const { withdrawalStore } = await import("@/services/account/withdrawalCore");
+    const { recordWithdrawal } = await import("@/services/account/withdrawalRecord");
     const { startNewAccount } = await import("@/services/account/rejoin");
     await m.requestDonation({ creatorId: "c1", hideProfile: false, type: "TEXT", amount: 1_000, message: "응원해요", voiceId: null, idempotencyKey: key(1) });
     expect((await m.getDonationHistory({ period: "all" }))!.items.length).toBeGreaterThan(1);
 
     // The mock's 재가입 keeps the user id: the new account must not see the old one's history.
-    withdrawalStore().withdrawal = { at: new Date().toISOString(), requestId: "w-test", forfeitedFn: 0, forfeitedEarningsFn: 0, nickname: "홍길동", funationId: "hongGD123" };
+    recordWithdrawal({ at: new Date().toISOString(), requestId: "w-test", forfeitedFn: 0, forfeitedEarningsFn: 0 });
     startNewAccount({ nickname: "다시왔어요", password: "newpass12!", marketing: false, phone: "010-0000-0000" }, new Date(Date.now() + 1_000));
     const after = (await m.getDonationHistory({ period: "all" }))!;
     expect(after.items).toEqual([]);

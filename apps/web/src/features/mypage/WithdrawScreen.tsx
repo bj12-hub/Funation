@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import { formatNumber } from "@/lib/format";
+import { RETENTION_DEFAULTS_LABEL, RETENTION_RULES } from "@/services/account/retentionPolicy";
 import { withdrawAccount } from "@/services/account/withdrawal";
 import type { WithdrawalInfo } from "@/services/account/withdrawalTypes";
 import styles from "./withdraw.module.css";
@@ -16,6 +17,8 @@ import styles from "./withdraw.module.css";
  * the final consent and the password, then ends the account on the server. Withdrawal waits while an FN 충전 환불
  * request is being handled (2026-10-06 결정) or a 퀘스트 후원 is in progress — sent by the member, or sent to the
  * creator's channel (2026-10-08 결정); a card says why and links to where it is resolved.
+ * "탈퇴 후에도 보관하는 정보" lists what is kept and for how long from the shared retention list
+ * (services/account/retentionPolicy.ts — 기본값, 법무 검토 전); posts are never deleted, so the effects say so.
  */
 export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
   const router = useRouter();
@@ -184,7 +187,24 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
           {info.creator && (
             <li>크리에이터 스튜디오와 채널도 더 이상 이용할 수 없어요. 등록한 정산 정보와 매니저 채팅 링크는 삭제되고, OBS 오버레이 · SMS 계좌후원 주소도 멈춰요.</li>
           )}
+          <li>작성한 게시물은 탈퇴 후에도 삭제되지 않아요. 지우고 싶은 글은 탈퇴 전에 직접 삭제해 주세요.</li>
         </ul>
+      </section>
+
+      <section className={styles.card} aria-labelledby="withdraw-retention">
+        <h2 className={styles.cardTitle} id="withdraw-retention">
+          탈퇴 후에도 보관하는 정보
+        </h2>
+        <p className={styles.note}>아래 정보는 정해진 기간 동안 보관한 뒤 파기해요. 보관 기간은 {RETENTION_DEFAULTS_LABEL}이에요.</p>
+        <ul className={styles.effects}>
+          {RETENTION_RULES.map((r) => (
+            <li key={r.category}>
+              <strong className={styles.retentionLabel}>{r.label}</strong> · {r.period} · {r.basis}
+              <span className={styles.retentionCovers}>{r.covers}</span>
+            </li>
+          ))}
+        </ul>
+        <p className={styles.note}>그 밖의 정보(프로필 사진, 연락처, 본인인증 정보, 마케팅 수신 동의, 로그인 연결 등)는 탈퇴할 때 바로 삭제돼요.</p>
       </section>
 
       <section className={styles.card} aria-labelledby="withdraw-consent">

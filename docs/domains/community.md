@@ -16,6 +16,12 @@ part of the Donation Core, Wallet or Settlement.
   "탈퇴한 회원", also on block lists. (The admin console instead shows the original nickname with a "탈퇴" badge —
   2026-10-08 결정 — e.g. as author or reporter in 신고 처리.) Nobody can edit or delete them; after a 재가입 they
   belong to the withdrawn account's own member id (`…-wN`), not to the new account. Reporting and blocking them works.
+- Retention (2026-10-08, 기본값 — 일반적인 기준, 법무 검토 전; the list is in `docs/domains/wallet.md` and
+  `services/account/retentionPolicy.ts`): a withdrawn member's posts, comments and channel posts are never deleted.
+  The 회원 탈퇴 screen says so ("작성한 게시물은 탈퇴 후에도 삭제되지 않아요. 지우고 싶은 글은 탈퇴 전에 직접 삭제해
+  주세요."). When the 탈퇴 기록 retention ends (5년), the original nickname stored with that content, with block
+  entries and with reports about it becomes "탈퇴한 회원" too, so the console no longer shows it. Reports the member
+  filed keep their decision but lose the reporter's name and words after 3년 (분쟁 처리 기록).
 
 ## 쪽지
 
@@ -41,5 +47,5 @@ part of the Donation Core, Wallet or Settlement.
   the report (list item and detail; the 숨김 confirm then says it takes down the current content). The site compares
   the hashes; the console never receives one. Removed or hidden content is not marked.
 
-TBD: what each report reason means for sanctions, appeals, abuse limits on reports, retention of withdrawn members'
-content, images and notices on the board.
+TBD: what each report reason means for sanctions, appeals, abuse limits on reports, legal review of the retention
+defaults above, images and notices on the board.

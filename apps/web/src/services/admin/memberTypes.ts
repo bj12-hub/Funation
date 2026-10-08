@@ -1,3 +1,4 @@
+import type { RetentionCategory } from "@/services/account/retentionPolicy";
 import type { Role } from "@/types/role";
 
 /**
@@ -10,6 +11,20 @@ export type MemberStatus = "ACTIVE" | "SUSPENDED" | "WITHDRAWN";
 
 export type Suspension = { reason: string; at: string; until: string | null; by: string };
 
+/**
+ * 탈퇴 회원 정보 보관 (account/retentionPolicy.ts — 기본값, 법무 검토 전): one row of the shared list with this
+ * account's date. `until`: ISO time the category's data goes (null = 삭제하지 않음); `purged`: it has gone.
+ */
+export type MemberRetention = {
+  category: RetentionCategory;
+  label: string;
+  period: string;
+  basis: string;
+  covers: string;
+  until: string | null;
+  purged: boolean;
+};
+
 export type AdminMember = {
   id: string;
   nickname: string;
@@ -19,8 +34,11 @@ export type AdminMember = {
   lastActiveAt: string;
   status: MemberStatus;
   suspension: Suspension | null;
-  /** 회원 탈퇴: when, and the FN and creator earnings (정산 대기 수익) the member agreed to forfeit. */
-  withdrawal: { at: string; forfeitedFn: number; forfeitedEarningsFn: number } | null;
+  /**
+   * 회원 탈퇴: when, the FN and creator earnings (정산 대기 수익) the member agreed to forfeit, and until when each
+   * category of the account's data is kept (`retentionNote`: how the periods are labelled — 기본값).
+   */
+  withdrawal: { at: string; forfeitedFn: number; forfeitedEarningsFn: number; retentionNote: string; retention: MemberRetention[] } | null;
   /** Server-side values (mock: only the sample member has real wallet data). */
   fnBalance: number;
   donationTotalFn: number;

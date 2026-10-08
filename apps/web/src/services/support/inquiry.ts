@@ -2,7 +2,7 @@
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
-import { accountSince } from "@/services/account/withdrawalCore";
+import { inquiryAccountKey as accountKey, inquiryStore } from "./inquiryCore";
 import { INQUIRY_BODY_MAX, INQUIRY_TITLE_MAX, isFaqCategory, type Inquiry, type InquiryResult } from "./supportTypes";
 
 /**
@@ -15,25 +15,15 @@ const assertMock = () => {
   if (!USE_MOCK) throw new Error("Support API is not connected yet.");
 };
 
-type Store = { byUser: Record<string, Inquiry[]>; requests: Record<string, string> };
-const g = globalThis as typeof globalThis & { __funationMockInquiriesV1?: Store };
-const store = (g.__funationMockInquiriesV1 ??= { byUser: {}, requests: {} });
-
 /**
- * Inquiries belong to the account that wrote them. The mock's 재가입 reuses the user id, so a new account is told
- * apart by its start marker (`accountSince`): it never reads the withdrawn account's inquiries, which stay stored
- * for the operators (retention TBD). The first account keeps the plain user id.
+ * Inquiries belong to the account that wrote them (./inquiryCore.ts): a 재가입 account never reads the withdrawn
+ * account's, which stay stored for the operators for the 분쟁 처리 기록 period (account/retentionPolicy.ts, 기본값).
  */
-const accountKey = (userId: string) => {
-  const since = accountSince();
-  return since ? `${userId}@${since}` : userId;
-};
-
 export async function listMyInquiries(): Promise<Inquiry[] | null> {
   assertMock();
   const session = await getSession();
   if (!session) return null;
-  return [...(store.byUser[accountKey(session.userId)] ?? [])]
+  return [...(inquiryStore().byUser[accountKey(session.userId)] ?? [])]
     .reverse()
     .map((q) => ({ id: q.id, category: q.category, title: q.title, body: q.body, createdAt: q.createdAt, status: q.status, answer: q.answer }));
 }
@@ -48,6 +38,7 @@ export async function submitInquiry(input: unknown): Promise<InquiryResult> {
   // Request ids belong to the member: another member's id never returns their inquiry. Nothing awaits from here to the
   // write, so a double submit creates one inquiry.
   const account = accountKey(session.userId);
+  const store = inquiryStore();
   const requestKey = `${account}:${v.requestId}`;
   const done = store.requests[requestKey];
   if (done) return { status: "SUBMITTED", id: done };

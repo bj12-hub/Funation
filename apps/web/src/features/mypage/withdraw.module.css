@@ -80,6 +80,18 @@
   line-height: 1.6;
 }
 
+/* 탈퇴 후에도 보관하는 정보: category, period and basis on one line, what it covers below. */
+.retentionLabel {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.retentionCovers {
+  display: block;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-13);
+}
+
 .check {
   display: flex;
   align-items: flex-start;
