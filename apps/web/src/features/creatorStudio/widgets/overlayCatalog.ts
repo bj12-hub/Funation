@@ -3,6 +3,7 @@
  * Sizes are recommended OBS source sizes (placeholders until designs exist).
  */
 import type { OverlayTarget } from "@/services/creator/alertTypes";
+import { VERTICAL_QUERY } from "@/services/creator/overlayThemeTypes";
 import { widgetOverlayPath } from "@/services/creator/widgetOverlayTypes";
 
 /** `target` is the 리모컨 기능 제어 switch (the 후원 위젯 share one), so the page can show which overlays are OFF. */
@@ -258,5 +259,37 @@ export const OVERLAYS: OverlayEntry[] = [
     size: "1920 × 1080",
     path: (k) => widgetOverlayPath("wallpaper", k),
     manage: "/creator/remote"
+  },
+  // 세로 방송 (2026-10-08, from the legacy FlexTV 도우미 모바일 알림 · 목표치 · 채팅): the same overlays for a 1080-wide portrait
+  // canvas (mobile streaming apps), larger and stacked.
+  {
+    id: "alert-vertical",
+    target: "alert",
+    group: "세로 방송",
+    title: "후원 알림 (세로)",
+    description: "세로(휴대폰) 방송 화면 폭에 맞춰 크게 보여 줘요. 디자인은 후원 알림 설정 그대로예요.",
+    size: "1080 × 640",
+    path: (k) => `/overlay/alert/${k}?${VERTICAL_QUERY}`,
+    manage: "/creator/widgets"
+  },
+  {
+    id: "chat-vertical",
+    target: "chat",
+    group: "세로 방송",
+    title: "통합 채팅 (세로)",
+    description: "세로 방송에서 읽기 좋게 글자를 1.6배로 키운 통합 채팅이에요.",
+    size: "1080 × 900",
+    path: (k) => `/overlay/chat/${k}?${VERTICAL_QUERY}`,
+    manage: "/creator/chat"
+  },
+  {
+    id: "widget-goal-vertical",
+    target: "widgets",
+    group: "세로 방송",
+    title: "후원목표 (세로)",
+    description: "세로 방송 폭에 맞춘 후원목표예요. 모양을 고르면 그림이 글자 위로 올라가요.",
+    size: "1080 × 520",
+    path: (k) => `${widgetOverlayPath("goal", k)}?${VERTICAL_QUERY}`,
+    manage: "/creator/widgets"
   }
 ];

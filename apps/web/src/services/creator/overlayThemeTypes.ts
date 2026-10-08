@@ -12,6 +12,13 @@ export const OVERLAY_THEMES = [
 export type OverlayTheme = (typeof OVERLAY_THEMES)[number]["key"];
 export const isOverlayTheme = (v: unknown): v is OverlayTheme => OVERLAY_THEMES.some((t) => t.key === v);
 
+/**
+ * 세로 방송 (2026-10-08, from the legacy FlexTV 도우미 모바일 알림 · 목표치 · 채팅): the same overlay URL with
+ * `?layout=vertical` draws for a 1080-wide portrait canvas (mobile streaming apps), larger and stacked.
+ */
+export const VERTICAL_QUERY = "layout=vertical";
+export const isVertical = (layout: unknown) => layout === "vertical";
+
 /** A widget's own choice: one of the themes, or "INHERIT" = the channel's 전체 테마. */
 export type OverlayThemeChoice = OverlayTheme | "INHERIT";
 export const OVERLAY_THEME_CHOICES: readonly { key: OverlayThemeChoice; label: string }[] = [

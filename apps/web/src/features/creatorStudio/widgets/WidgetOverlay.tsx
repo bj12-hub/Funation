@@ -14,7 +14,8 @@ import { EventView, QrView, RankingView, RecentView, TotalView } from "./WidgetV
  * 후원 위젯 OBS overlay (code-first). Transparent page that re-reads its widget every 2 seconds; the
  * 리모컨 기능 제어 "후원 위젯" switch hides every widget and 새로고침 reloads it.
  */
-export function WidgetOverlay({ data }: { data: OverlayWidget }) {
+/** `vertical` (?layout=vertical, 세로 방송) — the 후원목표 draws for a 1080-wide portrait canvas; the rest ignore it. */
+export function WidgetOverlay({ data, vertical = false }: { data: OverlayWidget; vertical?: boolean }) {
   const router = useRouter();
   useReloadSignal(data.reloadSeq);
 
@@ -34,7 +35,7 @@ export function WidgetOverlay({ data }: { data: OverlayWidget }) {
   if (!data.on) return null;
   switch (data.widget) {
     case "goal":
-      return <GoalView settings={data.settings} first={data} second={data.second} daysLeft={data.daysLeft} theme={data.theme} />;
+      return <GoalView settings={data.settings} first={data} second={data.second} daysLeft={data.daysLeft} theme={data.theme} vertical={vertical} />;
     case "total":
       return <TotalView settings={data.settings} total={data.total} theme={data.theme} />;
     case "ranking":

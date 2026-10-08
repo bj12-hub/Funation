@@ -220,3 +220,34 @@
     transition: none;
   }
 }
+
+/* ── 세로 방송 (?layout=vertical, 1080 wide): the shape sits above its text, everything larger. ── */
+[data-vertical].root {
+  padding: 28px;
+}
+
+[data-vertical] .shapeRow {
+  flex-direction: column;
+  text-align: center;
+}
+
+[data-vertical] .shapeText {
+  align-items: center;
+}
+
+[data-vertical] .shapeBox {
+  width: 320px;
+  height: 320px;
+}
+
+[data-vertical][data-shape="SEMI"] .shapeBox {
+  height: 210px;
+}
+
+[data-vertical] .shapePct {
+  font-size: 50px;
+}
+
+[data-vertical][data-shape="STAR"] .shapePct {
+  font-size: 38px;
+}

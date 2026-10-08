@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useId, useState } from "react";
 import { PreviewStage } from "@/features/overlayTheme/PreviewStage";
 import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
 import { resolveTheme } from "@/services/creator/overlayThemeTypes";
@@ -31,17 +31,26 @@ export function GoalForm({ value: v, onChange, live }: FormProps<"GOAL">) {
   const setSecond = <P extends keyof typeof v.second>(k: P, x: (typeof v.second)[P]) => onChange({ ...v, second: { ...v.second, [k]: x } });
   const id = useId();
   const bar = v.shape === "BAR";
+  const [vertical, setVertical] = useState(false);
 
   return (
     <>
-      <Section title="미리보기">
-        <PreviewStage width={800} minHeight={bar ? 120 : 200} label="후원목표 미리보기">
+      <Section
+        title="미리보기"
+        aside={
+          <label className={styles.hint}>
+            <input type="checkbox" checked={vertical} onChange={(e) => setVertical(e.target.checked)} /> 세로 방송으로 보기
+          </label>
+        }
+      >
+        <PreviewStage width={vertical ? 1080 : 800} minHeight={bar ? 120 : 200} label="후원목표 미리보기">
           <GoalView
             settings={v}
             first={progress(v.startAmount, v.goalAmount, live.goalCurrent)}
             second={v.second.enabled ? progress(v.second.startAmount, v.second.goalAmount, live.goalCurrent) : null}
             daysLeft={daysLeft(v.to)}
             theme={resolveTheme(live.appearance, v.theme)}
+            vertical={vertical}
           />
         </PreviewStage>
         {v.second.enabled && <p className={styles.hint}>두 목표가 {v.alternateSec}초마다 번갈아 보여요.</p>}

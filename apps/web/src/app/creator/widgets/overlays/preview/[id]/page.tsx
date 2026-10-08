@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "오버레이 미리보기 | Ssumnati
 export const dynamic = "force-dynamic";
 
 /** Overlays that show a 테스트 후원 (the alert feed): 후원 알림, 이펙트, 벽지. */
-const TESTABLE = new Set(["alert", "effects", "widget-wallpaper"]);
+const TESTABLE = new Set(["alert", "effects", "widget-wallpaper", "alert-vertical"]);
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
