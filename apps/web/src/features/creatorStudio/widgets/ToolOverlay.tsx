@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { formatNumber } from "@/lib/format";
 import { bingoLines, type OverlayTool } from "@/services/creator/broadcastToolTypes";
+import { OverlayThemeRoot, ov } from "@/features/overlayTheme/OverlayThemeRoot";
 import styles from "./toolOverlay.module.css";
 import { useReloadSignal } from "../remote/useReloadSignal";
 import { clock, timerSeconds } from "./timerMath";
@@ -48,42 +49,62 @@ export function ToolOverlay({ data }: { data: OverlayTool }) {
 
   // 리모컨 기능 제어 OFF: show nothing.
   if (!data.on) return null;
+  return <ToolView data={data} now={now} skew={skew} />;
+}
+
+/**
+ * The 방송 도구 overlays in the 방송 도구 테마 (2026-10-08 오버레이 테마): 자막 · 전광판 as theme pills, 타이머 in display
+ * numbers, 엔딩 크레딧 rolling on the stream with the crew ranking in a card, 빙고 cards with stamped marks.
+ */
+function ToolView({ data, now, skew }: { data: OverlayTool; now: number | null; skew: number }) {
   switch (data.tool) {
     case "subtitle":
       if (!data.state.text) return null;
       return (
-        <p className={styles.subtitle} data-size={data.state.size}>
-          {data.state.text}
-        </p>
+        <OverlayThemeRoot theme={data.theme} className={styles.pad}>
+          <p key={data.state.text} className={`${ov.enter} ${data.theme.theme === "BOLD" ? ov.accentCard : ov.card} ${styles.subtitle}`} data-motion="SLIDE_UP" data-size={data.state.size}>
+            {data.state.text}
+          </p>
+        </OverlayThemeRoot>
       );
     case "marquee": {
       if (!data.state.lines.length) return null;
       const text = data.state.lines.join("   ✦   ");
       return (
-        <div className={styles.marquee}>
-          <span key={text} style={{ animationDuration: `${SPEED_SEC[data.state.speed]}s` }}>
-            {text}
-          </span>
-        </div>
+        <OverlayThemeRoot theme={data.theme} className={styles.pad}>
+          <div className={`${data.theme.theme === "BOLD" ? ov.accentCard : ov.card} ${ov.pill} ${styles.marquee}`}>
+            <span className={`${ov.chip} ${ov.chipAccent} ${styles.marqueeTag}`}>공지</span>
+            <div className={styles.marqueeTrack}>
+              <span key={text} style={{ animationDuration: `${SPEED_SEC[data.state.speed]}s` }}>
+                {text}
+              </span>
+            </div>
+          </div>
+        </OverlayThemeRoot>
       );
     }
     case "timer":
       // Rendered only after mount so the server and client markup match.
       if (now === null) return null;
-      return <p className={styles.timer}>{clock(timerSeconds(data.state, now, skew))}</p>;
+      return (
+        <OverlayThemeRoot theme={data.theme} className={styles.pad}>
+          <p className={`${data.theme.theme === "BOLD" ? ov.accentCard : ov.card} ${ov.display} ${styles.timer}`}>{clock(timerSeconds(data.state, now, skew))}</p>
+        </OverlayThemeRoot>
+      );
     case "credits":
       // Shown only while rolling (리모컨 / 방송 도구 "시작"); a new start restarts from the top.
       if (!data.state.rollingSince) return null;
       return (
-        <div className={styles.credits}>
-          <div key={data.state.rollingSince} className={styles.creditsRoll}>
-            <h1>{data.state.title}</h1>
+        <OverlayThemeRoot theme={data.theme} className={styles.credits}>
+          <div key={data.state.rollingSince} className={`${ov.onStream} ${styles.creditsRoll}`}>
+            <h1 className={ov.display}>{data.state.title}</h1>
             {data.crew.length > 0 && (
-              <ol>
-                {data.crew.map((c) => (
+              <ol className={`${ov.card} ${styles.creditsCrew}`}>
+                {data.crew.map((c, i) => (
                   <li key={c.name}>
-                    <span>{c.name}</span>
-                    <span>{formatNumber(c.score)} FN</span>
+                    <span className={`${ov.chip} ${i === 0 ? ov.chipAccent : ""}`}>{i + 1}</span>
+                    <span className={ov.label}>{c.name}</span>
+                    <span className={ov.display}>{formatNumber(c.score)} FN</span>
                   </li>
                 ))}
               </ol>
@@ -92,27 +113,30 @@ export function ToolOverlay({ data }: { data: OverlayTool }) {
               <p key={t}>{t}</p>
             ))}
           </div>
-        </div>
+        </OverlayThemeRoot>
       );
     case "bingo": {
       // Shown only while 화면에 보이기 is on (방송 도구 빙고 card).
       if (!data.state.shown) return null;
       const { title, size, cells, marked, goal } = data.state;
       const lines = bingoLines(size, marked);
+      const done = lines >= goal;
       return (
-        <div className={styles.bingo}>
-          {title && <h1>{title}</h1>}
-          <div className={styles.bingoBoard} style={{ gridTemplateColumns: `repeat(${size}, 1fr)` }}>
-            {cells.map((c, i) => (
-              <span key={i} data-marked={marked[i] || undefined}>
-                {c}
-              </span>
-            ))}
+        <OverlayThemeRoot theme={data.theme} className={styles.pad}>
+          <div className={`${ov.card} ${styles.bingo}`}>
+            {title && <h1 className={ov.label}>{title}</h1>}
+            <div className={styles.bingoBoard} style={{ gridTemplateColumns: `repeat(${size}, 1fr)` }}>
+              {cells.map((c, i) => (
+                <span key={i} data-marked={marked[i] || undefined}>
+                  {c}
+                </span>
+              ))}
+            </div>
+            <p key={String(done)} className={`${ov.enter} ${done ? `${ov.chip} ${ov.chipAccent}` : ov.chip} ${styles.bingoStatus}`} data-motion={done ? "ZOOM" : "NONE"} data-done={done || undefined}>
+              {done ? `빙고! ${lines}줄 완성` : `${lines}줄 완성 · 목표 ${goal}줄`}
+            </p>
           </div>
-          <p className={styles.bingoStatus} data-done={lines >= goal || undefined}>
-            {lines >= goal ? `🎉 빙고! ${lines}줄 완성` : `${lines}줄 완성 · 목표 ${goal}줄`}
-          </p>
-        </div>
+        </OverlayThemeRoot>
       );
     }
   }

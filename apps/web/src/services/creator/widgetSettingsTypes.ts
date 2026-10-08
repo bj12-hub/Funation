@@ -23,7 +23,8 @@ export type WidgetKey =
   | "DRAWING"
   | "GACHA"
   | "ROULETTE"
-  | "WALLPAPER";
+  | "WALLPAPER"
+  | "CLOCK";
 
 export type CatalogCard<K extends string> = { key: K; emoji: string; color: string; title: string; description: string };
 
@@ -44,7 +45,8 @@ export const WIDGET_CARDS: CatalogCard<WidgetKey>[] = [
   { key: "DRAWING", emoji: "🖼️", color: "#8b5cf6", title: "그림후원", description: "받은 그림 후원을 실시간으로 방송 화면에 전시합니다." },
   { key: "GACHA", emoji: "🧸", color: "#f97316", title: "뽑기 후원", description: "시청자와 함께 다양한 뽑기 이벤트를 진행합니다." },
   { key: "ROULETTE", emoji: "🎡", color: "#0ea5e9", title: "룰렛", description: "후원으로 참여하는 룰렛 항목과 확률을 정하고 방송 화면에 돌립니다." },
-  { key: "WALLPAPER", emoji: "🖼️", color: "#ef4444", title: "벽지", description: "후원 액션을 남길 수 있는 특수 배경 위젯입니다." }
+  { key: "WALLPAPER", emoji: "🖼️", color: "#ef4444", title: "벽지", description: "후원 액션을 남길 수 있는 특수 배경 위젯입니다." },
+  { key: "CLOCK", emoji: "🕐", color: "#0ea5e9", title: "시계", description: "방송 화면에 지금 시각을 띄웁니다. 플립 · 디지털 · 아날로그 중에서 골라요." }
 ];
 
 /** URL path segment per widget (the design mixes /widget/ and /widgets/; one pattern is used). */
@@ -64,7 +66,8 @@ export const WIDGET_PATHS: Record<WidgetKey, string> = {
   DRAWING: "drawing",
   GACHA: "gacha",
   ROULETTE: "roulette",
-  WALLPAPER: "wallpaper"
+  WALLPAPER: "wallpaper",
+  CLOCK: "clock"
 };
 
 // ── Shared field types ───────────────────────────────────────────────────────
@@ -542,6 +545,29 @@ export type WallpaperImageResult =
   | { status: "UPLOADED"; image: WallpaperImage }
   | { status: "UNSUPPORTED" | "TOO_LARGE" | "LIMIT" | "FAILED" | "UNAUTHORIZED" };
 
+// ── 시계 (code-first, 2026-10-08 — from the legacy FlexTV 도우미 시계) ────────────────────
+// Korean time (Asia/Seoul, like the day and week boundaries elsewhere), on the server clock corrected for skew.
+
+export const CLOCK_STYLES = [
+  { key: "FLIP", label: "플립", hint: "숫자마다 카드가 넘어가요" },
+  { key: "DIGITAL", label: "디지털", hint: "큰 숫자 한 줄" },
+  { key: "ANALOG", label: "아날로그", hint: "바늘 시계와 시각" }
+] as const;
+export type ClockStyle = (typeof CLOCK_STYLES)[number]["key"];
+export const CLOCK_LABEL_MAX = 20;
+
+export type ClockSettings = {
+  theme: OverlayThemeChoice;
+  style: ClockStyle;
+  /** 오전 · 오후 12시간제; off = 24시간제. */
+  hour12: boolean;
+  showSeconds: boolean;
+  /** 10월 8일 (수) under the time. */
+  showDate: boolean;
+  /** Optional caption above the time (e.g. 방송 시작 7시). */
+  label: string;
+};
+
 export type WidgetSettingsMap = {
   ALERT: AlertSettings;
   CHAT: ChatSettings;
@@ -558,9 +584,10 @@ export type WidgetSettingsMap = {
   GACHA: GachaSettings;
   ROULETTE: RouletteSettings;
   WALLPAPER: WallpaperSettings;
+  CLOCK: ClockSettings;
 };
 export type EditableWidgetKey = keyof WidgetSettingsMap;
-export const EDITABLE_WIDGETS: EditableWidgetKey[] = ["ALERT", "CHAT", "QR", "GOAL", "TOTAL", "RECENT", "EVENT", "MINI", "RANKING", "VOTE", "CUSTOM_SOUND", "QUEST", "GACHA", "ROULETTE", "WALLPAPER"];
+export const EDITABLE_WIDGETS: EditableWidgetKey[] = ["ALERT", "CHAT", "QR", "GOAL", "TOTAL", "RECENT", "EVENT", "MINI", "RANKING", "VOTE", "CUSTOM_SOUND", "QUEST", "GACHA", "ROULETTE", "WALLPAPER", "CLOCK"];
 export const isEditableWidget = (k: unknown): k is EditableWidgetKey => EDITABLE_WIDGETS.includes(k as EditableWidgetKey);
 
 /** Values the server reads for previews (not editable). */
@@ -798,5 +825,6 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     nicknameFont: { family: "제주 고딕", color: "#FFFFFF" },
     nicknameColor: "#519CFF",
     textBoxColor: "#000000"
-  }
+  },
+  CLOCK: { theme: "INHERIT", style: "FLIP", hour12: false, showSeconds: true, showDate: true, label: "" }
 };

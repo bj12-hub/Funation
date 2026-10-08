@@ -16,6 +16,7 @@ import { ThemeGallery } from "@/features/overlayTheme/ThemeGallery";
 import { OverlayOffNotice } from "../remote/OverlayOffNotice";
 import { CopyButton } from "../settings/SettingsCards";
 import { AlertForm } from "./AlertForm";
+import { ClockForm } from "./ClockForm";
 import { CustomSoundForm } from "./CustomSoundForm";
 import { ChatForm, QrForm, TotalForm, type FormProps } from "./forms";
 import { GoalForm } from "./GoalForm";
@@ -45,7 +46,8 @@ const FORMS: { [K in EditableWidgetKey]: ComponentType<FormProps<K>> } = {
   QUEST: QuestForm,
   GACHA: GachaForm,
   ROULETTE: RouletteForm,
-  WALLPAPER: WallpaperForm
+  WALLPAPER: WallpaperForm,
+  CLOCK: ClockForm
 };
 
 /** Popup titles; the URL label varies in the design (통합 채팅창 URL · 위젯 연동 URL …). */
@@ -65,7 +67,8 @@ const MODAL_COPY: Record<EditableWidgetKey, { title: string; urlLabel: string }>
   QUEST: { title: "퀘스트 위젯 설정", urlLabel: "퀘스트 위젯 URL" },
   GACHA: { title: "뽑기 후원 위젯 설정", urlLabel: "뽑기 후원 위젯 URL" },
   ROULETTE: { title: "룰렛 설정", urlLabel: "룰렛 위젯 URL" },
-  WALLPAPER: { title: "벽지 위젯 설정", urlLabel: "벽지 위젯 URL" }
+  WALLPAPER: { title: "벽지 위젯 설정", urlLabel: "벽지 위젯 URL" },
+  CLOCK: { title: "시계 위젯 설정", urlLabel: "시계 위젯 URL" }
 };
 
 /** Widgets whose popup saves item by item instead of through the footer. */

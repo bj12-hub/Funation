@@ -4,7 +4,10 @@ import {
   ALERT_HEADLINE_MAX,
   ALERT_LAYOUTS,
   ALERT_TOKENS,
+  CLOCK_LABEL_MAX,
+  CLOCK_STYLES,
   type AlertSettings,
+  type ClockSettings,
   GACHA_BOARD_PERIODS,
   GACHA_BOARD_SPEEDS,
   GACHA_BOARD_TYPES,
@@ -581,6 +584,16 @@ const parseWallpaper: Parser<Omit<WallpaperSettings, "images">> = (v) => {
   };
 };
 
+/** 시계 (code-first, 2026-10-08). */
+const parseClock: Parser<ClockSettings> = (v) => {
+  const look = themeAndCard(v);
+  if (typeof look === "string") return look;
+  if (!keyOf(v.style, CLOCK_STYLES)) return "시계 모양을 골라 주세요.";
+  if (![v.hour12, v.showSeconds, v.showDate].every(bool)) return "설정 값을 확인해 주세요.";
+  if (!text(v.label, CLOCK_LABEL_MAX)) return `위 문구는 ${CLOCK_LABEL_MAX}자 이내로 입력해 주세요.`;
+  return { theme: look.theme, style: v.style, hour12: v.hour12 as boolean, showSeconds: v.showSeconds as boolean, showDate: v.showDate as boolean, label: (v.label as string).trim() };
+};
+
 /** WALLPAPER images are managed separately, so its parser returns the settings without them. */
 export type ParsedSettings<K extends EditableWidgetKey> = K extends "WALLPAPER" ? Omit<WallpaperSettings, "images"> : WidgetSettingsMap[K];
 
@@ -598,5 +611,6 @@ export const PARSERS: { [K in Exclude<EditableWidgetKey, "CUSTOM_SOUND">]: Parse
   QUEST: parseQuest,
   GACHA: parseGacha,
   ROULETTE: parseRoulette,
-  WALLPAPER: parseWallpaper
+  WALLPAPER: parseWallpaper,
+  CLOCK: parseClock
 };

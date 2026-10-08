@@ -28,6 +28,8 @@ import {
   type ToolsView
 } from "./broadcastToolTypes";
 import { overlaySignal } from "./alertCore";
+import { overlayTheme, readAppearance } from "./overlayThemeStore";
+import { isOverlayThemeChoice, type OverlayThemeChoice } from "./overlayThemeTypes";
 import { mockCreator } from "./mockCreatorStore";
 
 /**
@@ -52,6 +54,10 @@ const tools = (g.__ssumnationMockToolsV2 ??= {
 // 빙고 was added on 2026-10-06; dev stores from before start with the sample board.
 tools.bingo ??= sampleBingo();
 
+/** 방송 도구 테마 (2026-10-08): one 오버레이 테마 choice for all tool overlays. */
+const gt = globalThis as typeof globalThis & { __ssumnationMockToolThemeV1?: { theme: OverlayThemeChoice } };
+const toolLook = () => (gt.__ssumnationMockToolThemeV1 ??= { theme: "INHERIT" });
+
 /** A sample 3 × 3 board (generic missions) so the card and overlay have something to show. */
 function sampleBingo(): BingoState {
   const cells = ["노래 한 곡", "댄스 챌린지", "성대모사", "사연 읽기", "물 한 잔", "애교 한 번", "삼행시", "퀴즈 한 문제", "게임 한 판"];
@@ -65,7 +71,16 @@ export async function getToolsView(): Promise<ToolsView | null> {
   assertMock();
   if (!(await getCreatorSession())) return null;
   await mockDelay(150);
-  return { states: structuredClone(tools), overlayBase: `/overlay/tool`, crew: crewTop() };
+  return { states: structuredClone(tools), overlayBase: `/overlay/tool`, crew: crewTop(), theme: toolLook().theme, appearance: readAppearance() };
+}
+
+/** 방송 도구 테마: applies to every tool overlay on its next read. */
+export async function saveToolTheme(theme: unknown): Promise<ToolResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  if (!isOverlayThemeChoice(theme)) return { status: "INVALID", message: "테마를 골라 주세요." };
+  toolLook().theme = theme;
+  return { status: "SAVED" };
 }
 
 /** The overlay key is only shown to the signed-in creator. */
@@ -251,8 +266,8 @@ export async function controlBingo(action: unknown): Promise<ToolResult> {
 export async function getOverlayTool(tool: unknown, key: unknown): Promise<OverlayTool | "FORBIDDEN"> {
   assertMock();
   if (!sameSecret(key, mockCreator.integrationKey) || !isToolKey(tool)) return "FORBIDDEN";
-  // 리모컨 signals: 오버레이 새로고침 (reloadSeq) and 기능 제어 ON/OFF (on).
-  const signal = overlaySignal(tool);
+  // 리모컨 signals: 오버레이 새로고침 (reloadSeq) and 기능 제어 ON/OFF (on); the look is the 방송 도구 테마.
+  const signal = { ...overlaySignal(tool), theme: overlayTheme(toolLook().theme) };
   switch (tool) {
     case "subtitle":
       return { tool, state: { ...tools.subtitle }, ...signal };
