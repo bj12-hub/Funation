@@ -1,0 +1,420 @@
+/* 정산 자료 등록 — Figma 443:5 · 429:219 · 433:210 · 437:4 (cards: padding 32, gap 24, radius 16) */
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1000px;
+  padding: 40px 40px 80px;
+}
+
+.breadcrumb {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.breadcrumb a:hover {
+  color: var(--color-text-primary);
+}
+
+.breadcrumb [aria-current] {
+  color: var(--color-text-primary);
+}
+
+.title {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-black);
+}
+
+.typeTabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.typeTab {
+  padding: 12px 20px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.typeTab[aria-current="page"] {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-text-on-accent);
+  font-weight: var(--font-weight-bold);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 32px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-16);
+  background: var(--color-surface);
+}
+
+.cardTitle {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.taxBar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0;
+  padding: 14px 20px;
+  border-radius: var(--radius-8);
+  background: var(--color-settlement-field-bar);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+}
+
+.taxLabel {
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+}
+
+.taxDivider {
+  flex-shrink: 0;
+  width: 1px;
+  height: 14px;
+  background: var(--color-border);
+}
+
+.taxValue {
+  color: var(--color-text-primary);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.fieldHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  padding: 0;
+}
+
+fieldset > .fieldHead {
+  margin-bottom: 10px;
+}
+
+.label {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+}
+
+.required {
+  color: var(--color-danger);
+}
+
+.helper {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.input,
+.select {
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  padding: 12px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
+}
+
+.input::placeholder {
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-regular);
+}
+
+.input:focus-visible,
+.select:focus-visible {
+  border-color: var(--color-primary);
+  outline: none;
+}
+
+.input:user-invalid {
+  border-color: var(--color-danger);
+}
+
+.selectWrap {
+  position: relative;
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+
+.select {
+  padding-right: 36px;
+  appearance: none;
+  cursor: pointer;
+}
+
+.select option {
+  background: var(--color-surface);
+}
+
+.selectChevron {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  width: 14px;
+  height: 14px;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.row > .input {
+  flex: 1;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dash {
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-14);
+}
+
+.phonePrefix {
+  flex: 0 0 110px;
+}
+
+.domainSelect {
+  flex: 0 0 140px;
+}
+
+.channelSelect {
+  flex: 0 0 160px;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.inlineButton {
+  flex-shrink: 0;
+  height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+}
+
+.fallback {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+.fallback input {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--color-info);
+  cursor: pointer;
+}
+
+/* Drop zone (443:5): 160 tall, dashed, centered */
+.drop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 160px;
+  padding: 24px;
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-8);
+  background: var(--color-settlement-field-bar);
+  text-align: center;
+  cursor: pointer;
+}
+
+.drop[data-drag],
+.drop:focus-within {
+  border-color: var(--color-primary);
+}
+
+.drop[data-filled] {
+  border-style: solid;
+  border-color: var(--color-info);
+}
+
+.dropIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-pill);
+  background: var(--color-border);
+}
+
+.dropText {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
+  word-break: keep-all;
+}
+
+.drop[data-filled] .dropText {
+  color: var(--color-text-primary);
+}
+
+/* Covers the zone (so native "required" bubbles point at it) but stays invisible. */
+.fileInput {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.guide {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-medium);
+  text-decoration: underline;
+}
+
+.error {
+  margin: 0;
+  color: var(--color-error-text);
+  font-size: var(--font-size-14);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  padding-top: 16px;
+}
+
+.back,
+.submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  padding: 14px 32px;
+  border-radius: var(--radius-8);
+  font-size: var(--font-size-15);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
+.back {
+  border: 1px solid var(--color-text-secondary);
+  color: var(--color-text-secondary);
+}
+
+.submit {
+  background: var(--color-info);
+  color: var(--color-text-on-accent);
+}
+
+.submit:disabled {
+  background: var(--color-button-disabled-bg);
+  color: var(--color-text-tertiary);
+  cursor: progress;
+}
+
+@media (max-width: 767px) {
+  .content {
+    padding: 24px 16px 60px;
+  }
+
+  .typeTabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .typeTab {
+    padding: 10px 8px;
+    font-size: var(--font-size-13);
+  }
+
+  .card {
+    gap: 20px;
+    padding: 20px;
+  }
+
+  .pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .row {
+    flex-wrap: wrap;
+  }
+
+  .phonePrefix {
+    flex-basis: 84px;
+  }
+
+  .domainSelect,
+  .channelSelect {
+    flex: 1 1 100%;
+  }
+
+  .actions > * {
+    flex: 1;
+  }
+}

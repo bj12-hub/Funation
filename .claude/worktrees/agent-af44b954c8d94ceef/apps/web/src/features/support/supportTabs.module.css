@@ -1,0 +1,266 @@
+/* 고객센터 tabs (funnation structure, code-first) — existing tokens. */
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tab {
+  padding: 12px 16px;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-15);
+  font-weight: var(--font-weight-semibold);
+}
+
+.tab[aria-current="page"] {
+  border-bottom-color: var(--color-primary);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 48px 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-14);
+  text-align: center;
+}
+
+.empty p {
+  margin: 0;
+}
+
+.note {
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-13);
+}
+
+/* 공지사항 */
+.notices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 20px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-12);
+  background: var(--color-surface);
+}
+
+a.notice:hover {
+  border-color: var(--color-border-emphasis);
+}
+
+.tags {
+  display: flex;
+  gap: 6px;
+}
+
+.tag {
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-neutral-soft);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+}
+
+.tagImportant {
+  background: var(--color-platform-live-bg);
+  color: var(--color-platform-live);
+}
+
+.tagDone {
+  background: var(--color-success-soft);
+  color: var(--color-success-text);
+}
+
+.noticeTitle {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-bold);
+}
+
+.noticeSummary {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-14);
+}
+
+.noticeMeta {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-12);
+}
+
+/* FAQ */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  padding: 7px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.chip[aria-current="page"] {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-text-on-accent);
+}
+
+.faqCategory {
+  margin-right: 8px;
+  color: var(--color-primary-light);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+}
+
+/* 1:1 문의 */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 20px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-16);
+  background: var(--color-surface);
+}
+
+.formTitle {
+  margin: 0 0 4px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.input {
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  background: var(--color-input-bg);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--font-size-14);
+}
+
+.formFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.submit {
+  padding: 10px 20px;
+  border-radius: var(--radius-8);
+  background: var(--color-primary);
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+}
+
+.submit:disabled {
+  background: var(--color-button-disabled-bg);
+  color: var(--color-text-tertiary);
+  cursor: not-allowed;
+}
+
+.ok,
+.error {
+  margin: 0;
+  font-size: var(--font-size-13);
+}
+
+.ok {
+  color: var(--color-success-text);
+}
+
+.error {
+  color: var(--color-error-text);
+}
+
+.inquirySummary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.inquiryBody {
+  margin: 8px 0 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+  white-space: pre-wrap;
+}
+
+/* Notice detail */
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px 32px 80px;
+}
+
+.detailBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-16);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-15);
+  line-height: 1.7;
+}
+
+.detailBody p {
+  margin: 0;
+}
+
+.back {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

@@ -1,0 +1,538 @@
+/* Figma 3:637 — funation-hall-of-fame (1440px, 80px gutters) */
+
+/* ── Hero (460px, padding 100 / 80 / 80) ───────────── */
+
+.hero {
+  position: relative;
+  min-height: 460px;
+  overflow: hidden;
+}
+
+.heroImage {
+  object-fit: cover;
+}
+
+.heroShade {
+  position: absolute;
+  inset: 0;
+  background: var(--gradient-hof-hero-overlay);
+}
+
+.heroInner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  padding: 100px var(--layout-gutter) 80px;
+}
+
+.heroLabels {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.heroBadge {
+  padding: 4px 12px;
+  border-radius: var(--radius-4);
+  background: var(--color-gold);
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+}
+
+.heroHighlight {
+  color: var(--color-highlight);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+}
+
+.heroCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.heroTitle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  color: var(--color-text-on-accent);
+  font-size: 44px;
+  font-weight: var(--font-weight-black);
+  line-height: normal;
+}
+
+.heroMark {
+  flex-shrink: 0;
+  color: var(--color-gold);
+}
+
+.heroDescription {
+  max-width: 800px;
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-18);
+  line-height: 28px;
+}
+
+/* ── Period tabs (pt 40, pb 16, gap 16) ───────────── */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  padding: 40px var(--layout-gutter) 16px;
+}
+
+.periodTitle {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-20);
+  font-weight: var(--font-weight-bold);
+}
+
+.periodTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.periodTab {
+  padding: 10px 24px;
+  border: 1px solid var(--color-border);
+  border-radius: 30px;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
+  line-height: normal;
+}
+
+.periodTab:hover {
+  color: var(--color-text-primary);
+}
+
+.periodTabActive,
+.periodTabActive:hover {
+  border-color: var(--color-gold);
+  background: var(--color-gold);
+  color: var(--color-text-on-accent);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.empty {
+  margin: 16px 0 48px;
+  padding: 60px 0;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-16);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-14);
+  text-align: center;
+}
+
+/* ── Podium (pt 32, pb 48; cards 360 wide, 1st 380 tall) ── */
+
+.podiumSection {
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  padding: 32px var(--layout-gutter) 48px;
+}
+
+.podium {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 32px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.podiumCard {
+  display: flex;
+  flex: 0 1 360px;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  min-width: 0;
+  min-height: 320px;
+  padding: 24px;
+  border: 1px solid;
+  border-radius: 20px;
+  background: var(--color-surface);
+}
+
+.first {
+  min-height: 380px;
+  border: 3px solid var(--color-gold);
+  box-shadow: 0 12px 12px var(--color-gold-soft);
+}
+
+.second {
+  border-color: var(--color-text-secondary);
+}
+
+.third {
+  border-color: var(--color-bronze);
+}
+
+.podiumLabel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 16px;
+  border-radius: var(--radius-12);
+  background: var(--color-surface-strong);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-black);
+  line-height: normal;
+}
+
+.first .podiumLabel {
+  background: var(--color-gold-soft);
+  color: var(--color-gold);
+}
+
+.second .podiumLabel {
+  color: var(--color-text-secondary);
+}
+
+.third .podiumLabel {
+  color: var(--color-bronze);
+}
+
+.podiumRing {
+  display: flex;
+  width: 100px;
+  height: 110px;
+  padding: 3px;
+  border-radius: 55px;
+}
+
+.first .podiumRing {
+  background: var(--gradient-rank-gold);
+}
+
+.second .podiumRing {
+  background: var(--gradient-rank-silver);
+}
+
+.third .podiumRing {
+  background: var(--gradient-rank-bronze);
+}
+
+.podiumAvatar {
+  width: 94px;
+  height: 104px;
+  border-radius: 52px;
+  object-fit: cover;
+}
+
+.podiumText {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  font-size: var(--font-size-18);
+  text-align: center;
+}
+
+.podiumName {
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.podiumAmount {
+  color: var(--color-text-on-accent);
+  font-weight: var(--font-weight-extrabold);
+}
+
+/* ── Tier badges ──────────────────────────────────── */
+
+.tier {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: var(--radius-20);
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-11);
+  font-weight: var(--font-weight-black);
+  line-height: normal;
+}
+
+.tierDiamond {
+  background: var(--color-highlight);
+}
+
+.tierGold {
+  background: var(--color-gold);
+}
+
+.tierSilver {
+  background: var(--color-tier-silver-bg);
+  color: var(--color-text-primary);
+}
+
+.tierBronze {
+  background: var(--color-tier-bronze-bg);
+  color: var(--color-tier-bronze-text);
+}
+
+/* ── Ranking 4–10 (pt 32, pb 48, gap 24) ───────────── */
+
+.rankingSection {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  padding: 32px var(--layout-gutter) 48px;
+}
+
+.rankingTitle {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-bold);
+  line-height: normal;
+}
+
+.rankingList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rankingRow {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 20px;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: var(--radius-12);
+  background: var(--color-surface);
+}
+
+.rankingRow:nth-child(even) {
+  background: var(--color-input-bg);
+}
+
+.rankNumber {
+  flex-shrink: 0;
+  width: 60px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-20);
+  font-weight: var(--font-weight-extrabold);
+  text-align: center;
+}
+
+.rowAvatar {
+  display: flex;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  padding: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-strong);
+}
+
+.avatarImage {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-pill);
+  object-fit: cover;
+}
+
+.rowName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-bold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowRight {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 24px;
+}
+
+.amount {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-11);
+  white-space: nowrap;
+}
+
+.amount strong {
+  color: var(--color-gold);
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-black);
+}
+
+/* ── Promo banner (180px) ─────────────────────────── */
+
+.promo {
+  position: relative;
+  overflow: hidden;
+}
+
+.promoImage {
+  object-fit: cover;
+}
+
+.promoInner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 180px;
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  padding: 24px var(--layout-gutter);
+}
+
+.promoText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: 800px;
+}
+
+.promoLabel {
+  padding: 4px 8px;
+  border-radius: var(--radius-4);
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-11);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.promoTitle {
+  margin: 0;
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-extrabold);
+  line-height: normal;
+}
+
+.promoDescription {
+  margin: 0;
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-14);
+  opacity: 0.8;
+}
+
+.promoCta {
+  box-shadow: var(--shadow-button);
+}
+
+/* ── Responsive ───────────────────────────────────── */
+
+@media (max-width: 1200px) {
+  .heroInner,
+  .section,
+  .podiumSection,
+  .rankingSection,
+  .promoInner {
+    padding-right: 24px;
+    padding-left: 24px;
+  }
+
+  .heroTitle {
+    font-size: var(--font-size-32);
+  }
+
+  .podium {
+    gap: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero {
+    min-height: 0;
+  }
+
+  .heroInner {
+    padding: 48px 16px 40px;
+  }
+
+  .heroTitle {
+    align-items: flex-start;
+    font-size: var(--font-size-24);
+  }
+
+  .heroDescription {
+    font-size: var(--font-size-15);
+    line-height: 24px;
+  }
+
+  .section,
+  .podiumSection,
+  .rankingSection {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  /* 1st on top, then 2nd and 3rd */
+  .podium {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .podiumCard {
+    flex-basis: auto;
+    min-height: 0;
+  }
+
+  .first {
+    order: -1;
+    min-height: 0;
+  }
+
+  .rankingRow {
+    gap: 12px;
+    padding: 14px 12px;
+  }
+
+  .rankNumber {
+    width: 28px;
+    font-size: var(--font-size-16);
+  }
+
+  .rowRight {
+    flex-direction: column-reverse;
+    align-items: flex-end;
+    gap: 6px;
+  }
+
+  .rankingTitle {
+    font-size: var(--font-size-20);
+  }
+
+  .promoInner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 24px 16px;
+  }
+}

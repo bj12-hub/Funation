@@ -1,9 +1,9 @@
-# Somnation Admin — 디자인 시스템 (별도 Figma 파일)
+# Ssumnation Admin — 디자인 시스템 (별도 Figma 파일)
 
 어드민 앱(`apps/admin`, admin 서브도메인)의 디자인 원본이에요. 사이트 디자인(펀페이 · 현재 구현 파일)과 분리된
 **운영 전용 디자인**이고, 레이어 · 컴포넌트를 직접 편집할 수 있어요.
 
-- 파일: [Somnation Admin](https://www.figma.com/design/Js5MCzkGmAZ9QY0w3nLUe8) (`Js5MCzkGmAZ9QY0w3nLUe8`, FLEX_ENM 팀)
+- 파일: [Ssumnation Admin](https://www.figma.com/design/Js5MCzkGmAZ9QY0w3nLUe8) (`Js5MCzkGmAZ9QY0w3nLUe8`, FLEX_ENM 팀)
 - 만든 날: 2026-10-01 · v1
 - 테마: Light 업무용 화면 + 어두운 사이드바, 포인트 색 인디고. 글꼴 Noto Sans KR(한글 UI) + Inter(숫자)
 - 코드 토큰: `apps/admin/src/styles/tokens.css` (`--adm-*`). 사이트 토큰(`apps/web/src/styles/tokens.css`)은 쓰지 않아요.
@@ -106,6 +106,6 @@ Display 24 Bold · Title 18 Bold · Subtitle 15 Medium · Body 14 · Body Strong
 
 ## 다른 파일과의 관계
 
-- `Somnation — 현재 구현 (2026-09)` 파일의 `6 어드민` 페이지([current-build.md](current-build.md))는 화면 캡처 기록이에요 (2026-10-01 어드민 전용 디자인으로 다시 캡처).
+- `Ssumnation — 현재 구현 (2026-09)` 파일의 `6 어드민` 페이지([current-build.md](current-build.md))는 화면 캡처 기록이에요 (2026-10-01 어드민 전용 디자인으로 다시 캡처).
   어드민 디자인 원본은 이 파일이에요.
 - 펀페이 파일은 읽기 전용이고 어드민 디자인을 포함하지 않아요.

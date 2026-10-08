@@ -1,0 +1,64 @@
+/* 통합 채팅 OBS overlay — code-first. Recommended OBS source: 400 × 600. */
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 6px;
+  box-sizing: border-box;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 12px;
+  overflow: hidden;
+  list-style: none;
+  font-family: var(--font-sans);
+}
+
+.line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(10, 12, 20, 0.62);
+  color: #fff;
+  font-size: 18px;
+  line-height: 1.4;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  animation: enter 0.25s ease-out;
+}
+
+.line > :first-child {
+  align-self: center;
+}
+
+.name {
+  color: #c7d2fe;
+  font-weight: 700;
+}
+
+.role {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 12px;
+}
+
+.text {
+  overflow-wrap: anywhere;
+}
+
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .line {
+    animation: none;
+  }
+}

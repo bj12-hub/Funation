@@ -8,7 +8,7 @@ import styles from "./admin.module.css";
 import shell from "./shell.module.css";
 
 /**
- * 관리자 콘솔 chrome — Figma "Somnation Admin" Sidebar (3:29) · Topbar (3:63) · SideNav Item (2:44).
+ * 관리자 콘솔 chrome — Figma "Ssumnation Admin" Sidebar (3:29) · Topbar (3:63) · SideNav Item (2:44).
  * Groups follow docs/figma/screen-inventory.md "Admin": 회원 · 크리에이터 · 후원 · 결제 · 정산 · 플랫폼 · 시스템.
  * Items without `href` are 준비 중.
  */

@@ -2,7 +2,7 @@
 
 Rebuilds site screens as **editable** Figma layouts (frames with auto layout, site color variables,
 text styles and the components on page 8) — not screenshots. Used for pages 9 (studio) and 10 (site) of the
-"Somnation — 현재 구현 (2026-09)" file; see docs/figma/site-design-system.md.
+"Ssumnation — 현재 구현 (2026-09)" file; see docs/figma/site-design-system.md.
 
 1. `outline-walker.js` runs inside a page (e.g. via Chrome DevTools Protocol `Runtime.evaluate`
    with a creator session on a local dev server). It walks the studio main column and returns a
@@ -29,7 +29,7 @@ Site screens (page 10) use the same format with three site-specific scripts:
   it adds the header instance, the side menu with `active` highlighted, absolute `overlays` (`{ x, y, tree }`) and an
   explicit Light mode when `theme` is `"light"`.
 
-Admin screens ("Somnation Admin" Figma file `Js5MCzkGmAZ9QY0w3nLUe8`, page "Layouts") use the same format:
+Admin screens ("Ssumnation Admin" Figma file `Js5MCzkGmAZ9QY0w3nLUe8`, page "Layouts") use the same format:
 
 - `admin-walker.js` runs inside an `apps/admin` page (mock operator session on localhost) and maps colours to the
   `--adm-color-*` tokens (`bg-page`, `status-success-bg`, …). It returns `{ chrome, active, crumb, tree, overlays }`.
@@ -43,7 +43,7 @@ Icons: the walkers add a sixth element to inline-SVG media, `["m", w, h, radius,
 (ids in shared plugin data `ssumnation` / `iconComponents`), and `ssumnation` / `iconReplace` swaps the placeholder rectangles of a
 screen for instances by aligning the rectangle sizes with the walker's media sequence.
 
-Names: the brand and code identifiers are `ssumnation` since 2026-10-08. Two things keep the old spelling on purpose:
-the Figma file names ("Somnation — 현재 구현 (2026-09)", "Somnation Admin" — the plugin API cannot rename a file, rename them
-in Figma and then update these docs) and the shared plugin-data namespace `somnation` (data stored inside both Figma files:
-the stored renderers, helper snippets and per-node width hints).
+Names: the brand and code identifiers are `ssumnation` since 2026-10-08, and the two Figma files were renamed to
+"Ssumnation — 현재 구현 (2026-09)" and "Ssumnation Admin" (by hand — the plugin API cannot rename a file). One thing keeps
+the old spelling on purpose: the shared plugin-data namespace `somnation` (data stored inside both Figma files: the stored
+renderers, helper snippets and per-node width hints).

@@ -1,0 +1,42 @@
+/* 팬 메시지 · 요청사항 — code-first, layout on top of crew.module.css. */
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* meta line above the note text */
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.text {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/* 도배 기준 (2026-10-06): one wrapping row of two number boxes. */
+.rules {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.rule {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.rule input {
+  width: 88px;
+}

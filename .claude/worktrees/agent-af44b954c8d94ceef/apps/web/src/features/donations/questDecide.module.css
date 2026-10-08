@@ -1,0 +1,43 @@
+/* 퀘스트 결과 버튼 — code-first */
+.wrap {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.buttons {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.success,
+.fail {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: var(--radius-8);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
+.success {
+  background: var(--gradient-primary-button);
+  color: var(--color-text-on-accent);
+}
+
+.fail {
+  border: 1px solid var(--color-danger-border);
+  color: var(--color-error-text);
+}
+
+.success:disabled,
+.fail:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.error {
+  color: var(--color-error-text);
+  font-size: var(--font-size-12);
+}

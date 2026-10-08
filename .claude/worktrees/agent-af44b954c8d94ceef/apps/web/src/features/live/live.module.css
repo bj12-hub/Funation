@@ -1,0 +1,245 @@
+/* Live pages — Figma 617:316 (전체라이브) · 617:5 (인기라이브) */
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  padding: 32px 40px 60px;
+  min-width: 0;
+}
+
+/* ── Page header (617:401) ────────────────────────── */
+
+.pageHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.title {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-32);
+  font-weight: var(--font-weight-extrabold);
+  line-height: normal;
+}
+
+.titleBadge {
+  padding: 4px 8px;
+  border-radius: var(--radius-6);
+  background: var(--color-danger);
+  color: var(--color-text-on-accent);
+  font-family: var(--font-latin);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.tabs {
+  display: flex;
+  gap: 24px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-medium);
+}
+
+.tab::after {
+  content: "";
+  height: 3px;
+  border-radius: 1.5px;
+}
+
+.tab:hover {
+  color: var(--color-text-primary);
+}
+
+.tabActive,
+.tabActive:hover {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+.tabActive::after {
+  background: var(--color-accent);
+}
+
+/* ── Filter bar (617:413) ─────────────────────────── */
+
+.control {
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  background: var(--color-bg-page);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
+  line-height: normal;
+}
+
+.control {
+  padding-right: 30px;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--color-text-secondary) 50%),
+    linear-gradient(135deg, var(--color-text-secondary) 50%, transparent 50%);
+  background-position: calc(100% - 17px) 50%, calc(100% - 12px) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+
+/* Figma 314px; shrinks first when the bar is narrower than 1100px. */
+
+/* ── Sections ─────────────────────────────────────── */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.sectionTitle {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-20);
+  font-weight: var(--font-weight-bold);
+  line-height: normal;
+}
+
+.sectionTitle a:hover {
+  color: var(--color-text-secondary);
+}
+
+.empty {
+  margin: 0;
+  padding: 48px 0;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-12);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-14);
+  text-align: center;
+}
+
+/* 3 × 350px, 24px gap (617:437) */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+
+/* ── Popular sections (617:102) ───────────────────── */
+
+.popularSection {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 4 × 263px, 16px gap (617:106) */
+.popularGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px 16px;
+}
+
+.more {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  align-self: center;
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-20);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-semibold);
+}
+
+.more:hover {
+  color: var(--color-text-primary);
+}
+
+/* ── Responsive ───────────────────────────────────── */
+
+@media (max-width: 1200px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .popularGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .content {
+    gap: 24px;
+    padding: 24px 16px 40px;
+  }
+
+  .title {
+    font-size: var(--font-size-24);
+  }
+
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ── 전체 방송 (funnation structure) ─────────────────── */
+
+.pageDescription {
+  margin: -6px 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-14);
+}
+
+.chipBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.platformSelect {
+  margin-left: auto;
+}
+
+.grid4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.section .more {
+  margin-top: 20px;
+}
+
+@media (max-width: 1200px) {
+  .grid4 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .grid4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .platformSelect {
+    margin-left: 0;
+  }
+}
