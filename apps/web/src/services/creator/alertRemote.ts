@@ -23,6 +23,8 @@ import {
   type RemoteView
 } from "./alertTypes";
 import { mockCreator } from "./mockCreatorStore";
+import { overlayTheme } from "./overlayThemeStore";
+import { readWidget } from "./widgetStore";
 
 /**
  * 리모컨 Server Actions — code-first (no Figma frame). Route `/creator/remote`, overlay
@@ -254,7 +256,10 @@ export async function getOverlayAlert(key: unknown): Promise<OverlayAlert | "FOR
   advance();
   const { muted, alertVolume, ttsVolume, signatureVolume, displaySec } = mockAlerts.controls;
   const showing = mockAlerts.items.find((a) => a.status === "SHOWING");
+  const design = readWidget("ALERT");
   return {
+    design,
+    theme: overlayTheme(design.theme),
     alert: showing && mockAlerts.shownAt !== null ? { ...showing, endsAt: new Date(mockAlerts.shownAt + displaySec * 1000).toISOString() } : null,
     controls: { muted, alertVolume, ttsVolume, signatureVolume },
     ttsSkipSeq: mockAlerts.ttsSkipSeq,

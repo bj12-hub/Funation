@@ -15,6 +15,7 @@ import {
 import { ThemeGallery } from "@/features/overlayTheme/ThemeGallery";
 import { OverlayOffNotice } from "../remote/OverlayOffNotice";
 import { CopyButton } from "../settings/SettingsCards";
+import { AlertForm } from "./AlertForm";
 import { CustomSoundForm } from "./CustomSoundForm";
 import { ChatForm, GoalForm, QrForm, TotalForm, type FormProps } from "./forms";
 import { GachaForm } from "./GachaForm";
@@ -29,6 +30,7 @@ import catalog from "./widgetCatalog.module.css";
 import styles from "./widgets.module.css";
 
 const FORMS: { [K in EditableWidgetKey]: ComponentType<FormProps<K>> } = {
+  ALERT: AlertForm,
   CHAT: ChatForm,
   QR: QrForm,
   GOAL: GoalForm,
@@ -47,6 +49,7 @@ const FORMS: { [K in EditableWidgetKey]: ComponentType<FormProps<K>> } = {
 
 /** Popup titles; the URL label varies in the design (통합 채팅창 URL · 위젯 연동 URL …). */
 const MODAL_COPY: Record<EditableWidgetKey, { title: string; urlLabel: string }> = {
+  ALERT: { title: "후원 알림 디자인", urlLabel: "후원 알림 URL" },
   CHAT: { title: "채팅창 위젯 설정", urlLabel: "통합 채팅창 URL" },
   QR: { title: "후원 QR코드 위젯 설정", urlLabel: "QR코드 위젯 URL" },
   GOAL: { title: "후원목표 위젯 설정", urlLabel: "후원목표 위젯 URL" },

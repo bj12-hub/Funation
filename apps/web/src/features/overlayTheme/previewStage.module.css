@@ -1,0 +1,19 @@
+/* Studio preview backdrop for themed overlays (code-first). Same scene colors as the 오버레이 테마 gallery. */
+
+.stage {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  background:
+    radial-gradient(circle at 80% 18%, rgb(255 214 130 / 45%) 0, transparent 26%),
+    radial-gradient(circle at 15% 85%, rgb(80 200 170 / 30%) 0, transparent 32%),
+    linear-gradient(160deg, #4a5a82 0%, #2b3352 55%, #1c2036 100%);
+}
+
+.inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}

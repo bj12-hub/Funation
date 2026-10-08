@@ -46,11 +46,13 @@ MERGE=$(git -C "$W" rev-parse HEAD)
 # Share the root node_modules through a junction instead of installing again.
 MSYS_NO_PATHCONV=1 cmd /c mklink /J "$(cygpath -w "$W/node_modules")" "$(cygpath -w "$REPO/node_modules")" >/dev/null
 LOG="$WORK/build-$PR.log"
-(cd "$W/apps/web" && npx tsc --noEmit && npx eslint . && npx vitest run && npx next build >"$LOG" 2>&1) \
+# next/font downloads go a few at a time (scripts/limit-sockets.cjs; the merged tree's copy, so it exists here).
+FONT_CAP="--require $(cygpath -m "$W/scripts/limit-sockets.cjs")"
+(cd "$W/apps/web" && npx tsc --noEmit && npx eslint . && npx vitest run && NODE_OPTIONS="$FONT_CAP" npx next build >"$LOG" 2>&1) \
   || { echo "CHECKS FAILED (see $LOG)"; tail -30 "$LOG" 2>/dev/null; exit 1; }
 # The separate admin console (apps/admin) gets the same checks when it exists on the merged tree.
 if [ -d "$W/apps/admin" ]; then
-  (cd "$W/apps/admin" && npx tsc --noEmit && npx eslint . && npx vitest run && npx next build >>"$LOG" 2>&1) \
+  (cd "$W/apps/admin" && npx tsc --noEmit && npx eslint . && npx vitest run && NODE_OPTIONS="$FONT_CAP" npx next build >>"$LOG" 2>&1) \
     || { echo "ADMIN CHECKS FAILED (see $LOG)"; tail -30 "$LOG" 2>/dev/null; exit 1; }
 fi
 echo "checks ok"
