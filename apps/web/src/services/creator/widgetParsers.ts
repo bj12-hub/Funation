@@ -1,5 +1,10 @@
+import { isOverlayMotion, isOverlayThemeChoice } from "./overlayThemeTypes";
 import {
   ALERT_EFFECTS_IN,
+  ALERT_HEADLINE_MAX,
+  ALERT_LAYOUTS,
+  ALERT_TOKENS,
+  type AlertSettings,
   GACHA_BOARD_PERIODS,
   GACHA_BOARD_SPEEDS,
   GACHA_BOARD_TYPES,
@@ -106,6 +111,28 @@ function font(v: unknown, withColor: boolean) {
 
 const FONT_ERROR = "폰트 설정을 확인해 주세요.";
 const COLOR_ERROR = "색상은 #RRGGBB 형식으로 입력해 주세요.";
+
+/** 후원 알림 디자인 (code-first): the headline needs {닉네임}; {금액} is optional. */
+const parseAlert: Parser<AlertSettings> = (v) => {
+  if (!isOverlayThemeChoice(v.theme)) return "테마를 골라 주세요.";
+  if (!keyOf(v.layout, ALERT_LAYOUTS)) return "알림 모양을 골라 주세요.";
+  if (!text(v.headline, ALERT_HEADLINE_MAX, 1) || !(v.headline as string).includes(ALERT_TOKENS.donor)) {
+    return `알림 문구는 ${ALERT_TOKENS.donor}을 넣어 ${ALERT_HEADLINE_MAX}자 이내로 입력해 주세요.`;
+  }
+  if (!isOverlayMotion(v.motion)) return "등장 효과를 골라 주세요.";
+  if (![v.showMessage, v.showBadges, v.showPlatform, v.showImage, v.countUp].every(bool)) return "설정 값을 확인해 주세요.";
+  return {
+    theme: v.theme,
+    layout: v.layout,
+    headline: (v.headline as string).trim(),
+    showMessage: v.showMessage as boolean,
+    showBadges: v.showBadges as boolean,
+    showPlatform: v.showPlatform as boolean,
+    showImage: v.showImage as boolean,
+    motion: v.motion,
+    countUp: v.countUp as boolean
+  };
+};
 
 const parseChat: Parser<ChatSettings> = (v) => {
   const f = font(v.font, true);
@@ -485,6 +512,7 @@ const parseWallpaper: Parser<Omit<WallpaperSettings, "images">> = (v) => {
 export type ParsedSettings<K extends EditableWidgetKey> = K extends "WALLPAPER" ? Omit<WallpaperSettings, "images"> : WidgetSettingsMap[K];
 
 export const PARSERS: { [K in Exclude<EditableWidgetKey, "CUSTOM_SOUND">]: Parser<ParsedSettings<K>> } = {
+  ALERT: parseAlert,
   CHAT: parseChat,
   QR: parseQr,
   GOAL: parseGoal,

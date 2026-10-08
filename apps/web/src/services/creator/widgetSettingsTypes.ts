@@ -5,7 +5,10 @@
  * Defaults follow the design's sample values. Font list, size range and URL format are TBD.
  */
 
+import type { OverlayAppearance, OverlayMotion, OverlayThemeChoice } from "./overlayThemeTypes";
+
 export type WidgetKey =
+  | "ALERT"
   | "CHAT"
   | "QR"
   | "GOAL"
@@ -26,6 +29,7 @@ export type CatalogCard<K extends string> = { key: K; emoji: string; color: stri
 
 /** 529:4 "후원 위젯 설정". */
 export const WIDGET_CARDS: CatalogCard<WidgetKey>[] = [
+  { key: "ALERT", emoji: "🔔", color: "#8b5cf6", title: "후원 알림", description: "후원이 들어오면 화면에 알림을 띄웁니다. 디자인은 여기서, 제어는 리모컨에서 해요." },
   { key: "CHAT", emoji: "💬", color: "#3b82f6", title: "채팅창", description: "방송화면에 채팅창을 띄워 소통하며 볼 수 있습니다." },
   { key: "QR", emoji: "🔲", color: "#0d9488", title: "후원 QR코드", description: "QR코드가 방송화면에 항상 노출되게 해보세요." },
   { key: "GOAL", emoji: "🎯", color: "#1e3a8a", title: "후원목표", description: "목표금액을 설정하여 시청자와 소통해 보세요." },
@@ -45,6 +49,7 @@ export const WIDGET_CARDS: CatalogCard<WidgetKey>[] = [
 
 /** URL path segment per widget (the design mixes /widget/ and /widgets/; one pattern is used). */
 export const WIDGET_PATHS: Record<WidgetKey, string> = {
+  ALERT: "alert",
   CHAT: "chat",
   QR: "qr",
   GOAL: "goal",
@@ -75,6 +80,36 @@ export const ALERT_EFFECTS_IN = ["Fade In", "Slide In", "Zoom In", "없음"] as 
 export const ALERT_EFFECTS_OUT = ["Fade Out", "Slide Out", "Zoom Out", "없음"] as const;
 
 export const isHexColor = (v: unknown): v is string => typeof v === "string" && /^#[0-9A-Fa-f]{6}$/.test(v);
+
+// ── 후원 알림 디자인 (code-first, 2026-10-08 오버레이 테마 개편) ──────────────────────
+// The queue, volumes, 표시 시간 and 최소 금액 stay on the 리모컨 (alertTypes AlertControls); this is how the card looks.
+
+export const ALERT_LAYOUTS = [
+  { key: "CARD", label: "카드형", hint: "금액을 크게, 문구와 메시지를 아래에" },
+  { key: "BANNER", label: "가로 띠형", hint: "한 줄로 길게, 화면 위나 아래에 두기 좋아요" },
+  { key: "IMAGE", label: "이미지 강조형", hint: "시그니처 이미지를 크게 보여 줘요" }
+] as const;
+export type AlertLayout = (typeof ALERT_LAYOUTS)[number]["key"];
+export const ALERT_HEADLINE_MAX = 40;
+/** Headline tokens (same words as the 뽑기 message template). */
+export const ALERT_TOKENS = { donor: "{닉네임}", amount: "{금액}" } as const;
+
+export type AlertSettings = {
+  theme: OverlayThemeChoice;
+  layout: AlertLayout;
+  /** One line beside the big amount, with {닉네임} and optionally {금액}. */
+  headline: string;
+  showMessage: boolean;
+  /** 등급 · 칭호 badges resolved on the server. */
+  showBadges: boolean;
+  /** 후원 종류 · platform mark (YouTube · 치지직 …) line. */
+  showPlatform: boolean;
+  /** 시그니처 image when the donation has one. */
+  showImage: boolean;
+  motion: OverlayMotion;
+  /** The amount counts up from 0 as the card arrives. */
+  countUp: boolean;
+};
 
 // ── Per-widget settings (PR 1: 채팅창 · QR · 후원목표 · 후원누적금액) ─────────────────
 
@@ -460,6 +495,7 @@ export type WallpaperImageResult =
   | { status: "UNSUPPORTED" | "TOO_LARGE" | "LIMIT" | "FAILED" | "UNAUTHORIZED" };
 
 export type WidgetSettingsMap = {
+  ALERT: AlertSettings;
   CHAT: ChatSettings;
   QR: QrSettings;
   GOAL: GoalSettings;
@@ -476,7 +512,7 @@ export type WidgetSettingsMap = {
   WALLPAPER: WallpaperSettings;
 };
 export type EditableWidgetKey = keyof WidgetSettingsMap;
-export const EDITABLE_WIDGETS: EditableWidgetKey[] = ["CHAT", "QR", "GOAL", "TOTAL", "RECENT", "EVENT", "MINI", "RANKING", "VOTE", "CUSTOM_SOUND", "QUEST", "GACHA", "ROULETTE", "WALLPAPER"];
+export const EDITABLE_WIDGETS: EditableWidgetKey[] = ["ALERT", "CHAT", "QR", "GOAL", "TOTAL", "RECENT", "EVENT", "MINI", "RANKING", "VOTE", "CUSTOM_SOUND", "QUEST", "GACHA", "ROULETTE", "WALLPAPER"];
 export const isEditableWidget = (k: unknown): k is EditableWidgetKey => EDITABLE_WIDGETS.includes(k as EditableWidgetKey);
 
 /** Values the server reads for previews (not editable). */
@@ -498,6 +534,8 @@ export type WidgetLiveData = {
   gachaBoardUrl: string;
   gachaWins: { gacha: string; prize: string; claimed: boolean | null }[];
   gachaUnclaimed: number;
+  /** The channel's 전체 테마, so a preview set to 전체 테마 따르기 draws in it. */
+  appearance: OverlayAppearance;
 };
 
 export type CustomSoundResult =
@@ -517,6 +555,18 @@ export type WidgetDetail<K extends EditableWidgetKey = EditableWidgetKey> = {
 export type WidgetSaveResult = { status: "SAVED" } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
 
 export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
+  ALERT: {
+    theme: "INHERIT",
+    layout: "CARD",
+    // The amount is always shown large; {금액} also puts it in the sentence.
+    headline: "{닉네임}님, 고마워요!",
+    showMessage: true,
+    showBadges: true,
+    showPlatform: true,
+    showImage: true,
+    motion: "POP",
+    countUp: true
+  },
   CHAT: {
     style: "LINE_BOX",
     effectIn: "Fade In",

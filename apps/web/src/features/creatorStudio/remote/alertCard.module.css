@@ -1,0 +1,240 @@
+/*
+ * 후원 알림 card (code-first, 2026-10-08 오버레이 테마). OBS source 800 × 600; the settings preview scales the
+ * same markup. Theme looks come from overlayTheme.module.css ([data-ov] on the stage).
+ */
+
+.stage {
+  display: flex;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 28px;
+  font-size: 20px;
+}
+
+.stage[data-layout="BANNER"] {
+  align-items: flex-start;
+}
+
+.motion {
+  display: flex;
+  justify-content: center;
+  max-width: 100%;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 18px;
+}
+
+.typeChip {
+  gap: 6px;
+}
+
+.headline {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.35;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.name,
+.inlineAmount {
+  font-weight: inherit;
+}
+
+.amount {
+  font-size: 60px;
+  white-space: nowrap;
+}
+
+.message {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+/* ── 카드형 ── */
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 360px;
+  max-width: 640px;
+  padding: 22px 30px 24px;
+  text-align: center;
+}
+
+.thumb {
+  width: 132px;
+  height: 132px;
+  border-radius: 16px;
+  object-fit: cover;
+}
+
+/* ── 가로 띠형 ── */
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: 100%;
+  padding: 10px 26px 10px 10px;
+}
+
+.bannerImage,
+.bannerAvatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  font-size: 28px;
+}
+
+.bannerText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.banner .headline {
+  font-size: 18px;
+}
+
+.banner .amount {
+  font-size: 34px;
+}
+
+.bannerMessage {
+  display: -webkit-box;
+  max-width: 260px;
+  overflow: hidden;
+  font-size: 17px;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.banner .meta {
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 15px;
+}
+
+/* ── 이미지 강조형 ── */
+.imageWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hero {
+  position: relative;
+  z-index: 1;
+  width: 240px;
+  height: 240px;
+  margin-bottom: -28px;
+  border-radius: 28px;
+  object-fit: cover;
+}
+
+.heroFallback {
+  position: relative;
+  z-index: 1;
+  margin-bottom: -22px;
+  padding: 14px 30px;
+  font-size: 64px;
+  white-space: nowrap;
+}
+
+.imageCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 340px;
+  max-width: 620px;
+  padding: 42px 30px 22px;
+  text-align: center;
+}
+
+/* ── Theme details ── */
+
+/* 볼드 플랫: the yellow block keeps ink text; the message sits in a white box; images get an ink frame. */
+[data-ov="BOLD"] .amount {
+  font-size: 68px;
+}
+
+[data-ov="BOLD"] .card .message,
+[data-ov="BOLD"] .imageCard .message {
+  padding: 8px 14px;
+  border: 2px solid #111111;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #111111;
+}
+
+[data-ov="BOLD"] .thumb,
+[data-ov="BOLD"] .hero,
+[data-ov="BOLD"] .bannerImage {
+  border: 2.5px solid #111111;
+  box-shadow: 4px 4px 0 #111111;
+}
+
+[data-ov="BOLD"] .imageCard .name {
+  background: var(--ov-accent);
+  color: var(--ov-accent-ink);
+  padding: 0 6px;
+  border-radius: 4px;
+}
+
+[data-ov="BOLD"] .heroFallback {
+  transform: rotate(-3deg);
+}
+
+/* 미니멀 필: white numbers, the accent marks the name. */
+[data-ov="PILL"] .name {
+  color: var(--ov-accent);
+  filter: brightness(1.25);
+}
+
+[data-ov="PILL"] .headline {
+  font-weight: 600;
+}
+
+[data-ov="PILL"] .message {
+  color: var(--ov-card-muted);
+}
+
+[data-ov="PILL"] .thumb,
+[data-ov="PILL"] .hero {
+  border-radius: 24px;
+}
+
+/* 소프트 글래스: soft round numbers, pastel name marker. */
+[data-ov="GLASS"] .name {
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--ov-accent);
+  color: var(--ov-accent-ink);
+}
+
+[data-ov="GLASS"] .amount {
+  text-shadow: 0 2px 10px rgb(40 20 80 / 35%);
+}
+
+[data-ov="GLASS"] .thumb,
+[data-ov="GLASS"] .hero,
+[data-ov="GLASS"] .bannerImage {
+  border: 3px solid rgb(255 255 255 / 70%);
+}
+
+[data-ov="GLASS"] .hero {
+  border-radius: 36px;
+}

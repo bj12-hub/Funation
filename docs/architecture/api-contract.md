@@ -111,7 +111,7 @@ Platform access goes through `PlatformAdapter` (`adapters.ts`, CLAUDE.md §9). T
 | `creatorRanking.ts` | `getCreatorRanking(type, period, query ≤ 20, page)` | scoring/season/tie rules TBD |
 | `creatorSettings.ts` | settings read, live-profile / languages / main platform / SNS, integration key reveal / reissue, channel name, profile, images | reissue must revoke old integrations + audit (TODO) |
 | `donationManagement.ts` | page settings, slug, one-line message, banned words, received donations, donor ranking, filters, block list, title tiers | all `SAVED`/`INVALID{message}`; deletes are idempotent |
-| `widgetSettings.ts` | 15 widget details/saves, custom sounds (≤ 20, mp3/wav/ogg ≤ 2 MB), wallpapers (≤ 10) | GACHA odds / legal review TBD |
+| `widgetSettings.ts` | 16 widget details/saves (incl. `ALERT` 후원 알림 디자인 — theme · layout · headline with {닉네임} · switches · motion · countUp; `getOverlayAlert` returns it with the resolved theme), custom sounds (≤ 20, mp3/wav/ogg ≤ 2 MB), wallpapers (≤ 10) | GACHA odds / legal review TBD |
 | `overlayTheme.ts` | 오버레이 테마: channel 전체 테마 (`BOLD` · `PILL` · `GLASS`) + 포인트 색상 (#RRGGBB or null = theme default), get/save; overlays read it with their widget's own choice (`INHERIT` = 전체 테마) | — |
 | `settlement.ts` | overview, `acceptSettlementTerms` (4 required), overseas answers, `registerSettlement` (multipart, per-type required fields/files) | ID numbers validated then discarded; masked account only |
 | `settlementRequests.ts` | apply view, `quoteSettlement`, `requestSettlement` (**idempotencyKey**), auto settlement | all four need a registration (`NOT_REGISTERED`) then 본인인증 (`IDENTITY_REQUIRED`, 2026-10-06 결정); mock policy = Figma samples (min 40,000 FN, fee 6.6 %, 1 FN = 1원) — all TBD |

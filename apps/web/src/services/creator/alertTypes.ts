@@ -1,6 +1,8 @@
 import { formatNumber } from "@/lib/format";
 import { toUnitCode, type AmountUnit } from "@/types/donationUnit";
 import type { Platform } from "@/types/platform";
+import type { ResolvedTheme } from "./overlayThemeTypes";
+import type { AlertSettings } from "./widgetSettingsTypes";
 
 /**
  * 후원 알림 대기열 + 리모컨 — code-first, no Figma frame (docs/figma/code-first-screens.md).
@@ -104,6 +106,9 @@ export type OverlayAlert = {
   reloadSeq: number;
   /** 기능 제어 ON/OFF: false = the overlay shows (and speaks) nothing. */
   on: boolean;
+  /** 후원 알림 디자인 (위젯 → 후원 알림) and the theme it resolves to. */
+  design: AlertSettings;
+  theme: ResolvedTheme;
 };
 
 export type RemoteResult = { status: "SAVED" } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };

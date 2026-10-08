@@ -15,7 +15,8 @@ const widget = (key: WidgetKey, overrides?: Partial<Pick<CatalogItem, "title" | 
 };
 const link = (id: string, emoji: string, title: string, description: string, href: string): CatalogItem => ({ id, emoji, title, description, action: { type: "link", href } });
 
-const ALERT = link("ALERT", "🔔", "후원 알림", "후원이 들어오면 화면에 알림을 표시합니다. 리모컨에서 제어해요.", "/creator/remote");
+// 후원 알림 opens its design popup (2026-10-08 오버레이 테마); the queue and volumes stay on the 리모컨.
+const ALERT = widget("ALERT");
 const SUBTITLE = link("SUBTITLE", "💬", "자막", "리모컨에서 입력하는 실시간 텍스트 자막을 표시합니다.", "/creator/widgets/tools");
 const MARQUEE = link("MARQUEE", "📢", "전광판", "공지 문구를 가로로 흘려 보여 줍니다.", "/creator/widgets/tools");
 const CREDITS = link("CREDITS", "🎬", "엔딩 크레딧", "방송 마무리에 순위와 감사 인사를 흘려 보여 줍니다.", "/creator/widgets/tools");
