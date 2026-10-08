@@ -28,7 +28,6 @@ export async function getOverlayWidget(widget: unknown, key: unknown): Promise<O
   // widget's own 오버레이 테마 choice when its settings have one (the rest follow the 전체 테마).
   const base = { ...overlaySignal("widgets"), serverNow: new Date().toISOString() };
   const themed = (settings: object) => ({ ...base, theme: overlayTheme((settings as { theme?: OverlayThemeChoice }).theme) });
-  const common = themed({});
   const items = mockAlerts.items;
   switch (widget) {
     case "goal": {
@@ -71,19 +70,21 @@ export async function getOverlayWidget(widget: unknown, key: unknown): Promise<O
         .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
         .slice(0, settings.maxCount)
         .map((q) => ({ id: q.id, title: shownOnStream({ donor: q.donor, message: q.title }).message, amount: q.amount, endsAt: new Date(Date.parse(q.createdAt) + q.timeLimitSec * 1000).toISOString() }));
-      return { widget, settings, quests, ...common };
+      return { widget, settings, quests, ...themed(settings) };
     }
     case "vote": {
       // The studio channel's vote from the 리모컨 (running, or ended until 결과 내리기).
       const run = currentRun(STUDIO_CHANNEL);
-      return { widget, settings: readWidget("VOTE"), vote: run ? voteBoard(run) : null, ...common };
+      const settings = readWidget("VOTE");
+      return { widget, settings, vote: run ? voteBoard(run) : null, ...themed(settings) };
     }
     case "roulette":
       // The studio channel's wheel: spinning, or the result for a few seconds (펀페이 1009:199 · 1009:181).
       // 위젯 화면 숨기기 hides the wheel; spins still advance.
       {
         const stage = stageOf(STUDIO_CHANNEL);
-        return { widget, settings: readWidget("ROULETTE"), stage: isHidden(STUDIO_CHANNEL) ? null : stage, ...common };
+        const settings = readWidget("ROULETTE");
+        return { widget, settings, stage: isHidden(STUDIO_CHANNEL) ? null : stage, ...themed(settings) };
       }
     case "gacha": {
       // The studio channel's draws, one at a time (기계 회전 시간, then the result for 화면 노출 시간).
@@ -93,15 +94,17 @@ export async function getOverlayWidget(widget: unknown, key: unknown): Promise<O
         .recent.filter((r) => r.prize !== null && !r.blank)
         .slice(0, settings.credit.historyCount)
         .map((r) => ({ donor: r.donor, prize: r.prize as string }));
-      return { widget, settings, stage: gachaHidden(STUDIO_CHANNEL) ? null : stage, history, ...common };
+      return { widget, settings, stage: gachaHidden(STUDIO_CHANNEL) ? null : stage, history, ...themed({ theme: settings.overlayTheme }) };
     }
-    case "gacha-board":
-      return { widget, settings: readWidget("GACHA"), board: boardOf(STUDIO_CHANNEL), ...common };
+    case "gacha-board": {
+      const settings = readWidget("GACHA");
+      return { widget, settings, board: boardOf(STUDIO_CHANNEL), ...themed({ theme: settings.overlayTheme }) };
+    }
     case "wallpaper": {
       // Stickers since the last 벽지 비우기 (리모컨). The images go once; each sticker points at one.
       const { images, ...settings } = readWidget("WALLPAPER");
       const stickers = wallStickers(items, { images, preferDonationImage: settings.preferDonationImage }, clearedAtOf(STUDIO_CHANNEL), mockWallpaper.stickerImages);
-      return { widget, settings, images: images.map((i) => i.url), stickers, ...common };
+      return { widget, settings, images: images.map((i) => i.url), stickers, ...themed(settings) };
     }
   }
 }

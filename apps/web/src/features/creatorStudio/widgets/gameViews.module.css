@@ -1,0 +1,463 @@
+/*
+ * 게임 · 이벤트 위젯 views (code-first, 2026-10-08 오버레이 테마): 퀘스트 · 투표 · 룰렛 · 뽑기 · 당첨 리스트 · 벽지.
+ * Theme tokens from overlayTheme.module.css ([data-ov] on each root).
+ */
+
+.pad {
+  box-sizing: border-box;
+  padding: 12px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 16px;
+}
+
+.meta {
+  font-size: 15px;
+}
+
+/* ── 퀘스트 ── */
+.quests {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 12px;
+  list-style: none;
+}
+
+.quest {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.quest[data-style="FANCY"] {
+  padding: 18px 22px;
+}
+
+.quest[data-style="SIMPLE"] {
+  gap: 6px;
+}
+
+.questChip {
+  align-self: flex-start;
+  background: var(--ov-accent);
+  color: var(--ov-accent-ink);
+  font-size: 14px;
+  letter-spacing: 0.08em;
+}
+
+[data-ov="BOLD"] .questChip {
+  background: #ffffff;
+  color: #111111;
+}
+
+.questMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.metaChip {
+  font-size: 1em;
+  padding: 3px 12px;
+}
+
+[data-ov="PILL"] .quest[data-style="FANCY"] {
+  border-left: 4px solid var(--ov-accent);
+}
+
+/* ── 투표 ── */
+.vote {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 560px;
+  padding: 20px 24px;
+}
+
+.voteTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dot {
+  width: 0.55em;
+  height: 0.55em;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--ov-accent);
+}
+
+.voteInfo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.voteList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.voteRow {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.2em 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+}
+
+.voteTrack {
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+}
+
+[data-ov="BOLD"] .voteTrack {
+  border-radius: 8px;
+}
+
+.voteRow > :not(.voteTrack) {
+  position: relative;
+}
+
+.voteRank {
+  opacity: 0.8;
+}
+
+/* ── 룰렛 · 뽑기 card ── */
+.game {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 600px;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 20px 24px;
+}
+
+.rouletteBody {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.wheelBox {
+  position: relative;
+  flex-shrink: 0;
+  width: 150px;
+  height: 150px;
+}
+
+.wheel {
+  position: absolute;
+  inset: 0;
+  border: 5px solid #ffffff;
+  border-radius: 50%;
+  animation: wheel-spin 0.8s linear infinite;
+}
+
+.wheel[data-stopped] {
+  animation: none;
+}
+
+[data-ov="BOLD"] .wheel {
+  border: 4px solid #111111;
+  box-shadow: 4px 4px 0 #111111;
+}
+
+[data-ov="GLASS"] .wheel {
+  border-color: rgb(255 255 255 / 70%);
+  box-shadow: 0 6px 20px rgb(40 20 80 / 30%);
+}
+
+.pointer {
+  position: absolute;
+  top: -8px;
+  left: calc(50% - 9px);
+  width: 0;
+  height: 0;
+  border-top: 18px solid var(--ov-accent);
+  border-right: 9px solid transparent;
+  border-left: 9px solid transparent;
+  filter: drop-shadow(0 2px 2px rgb(0 0 0 / 40%));
+}
+
+@keyframes wheel-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.rouletteText {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 18px;
+}
+
+.rouletteText strong {
+  font-size: 26px;
+}
+
+.items {
+  font-size: 15px;
+}
+
+.result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  text-align: center;
+}
+
+.prize {
+  padding: 6px 22px;
+  border-radius: 14px;
+  background: var(--ov-accent);
+  color: var(--ov-accent-ink);
+  font-size: 46px;
+}
+
+[data-ov="BOLD"] .prize {
+  border: 2.5px solid #111111;
+  box-shadow: 4px 4px 0 #111111;
+  transform: rotate(-2deg);
+}
+
+.prizeBlank {
+  background: var(--ov-chip-bg);
+  color: var(--ov-card-ink);
+}
+
+/* 뽑기 */
+.gacha {
+  align-items: center;
+  text-align: center;
+}
+
+.gacha .head {
+  align-self: stretch;
+}
+
+.machine {
+  font-size: 96px;
+  line-height: 1;
+}
+
+.machine[data-spin] {
+  animation: machine-shake 0.35s ease-in-out infinite alternate;
+}
+
+@keyframes machine-shake {
+  from {
+    transform: rotate(-12deg) scale(0.96);
+  }
+
+  to {
+    transform: rotate(12deg) scale(1.04);
+  }
+}
+
+.credit {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  font-size: 18px;
+  list-style: none;
+}
+
+.message {
+  margin: 0;
+  font-size: 20px;
+}
+
+.gachaPrize {
+  padding: 6px 20px;
+  border-radius: 12px;
+  background: var(--ov-accent);
+  color: var(--ov-accent-ink);
+  font-size: 32px;
+}
+
+[data-ov="BOLD"] .gachaPrize {
+  border: 2.5px solid #111111;
+  box-shadow: 4px 4px 0 #111111;
+}
+
+/* ── 당첨 리스트 (전광판) ── */
+.board {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 20px 10px 10px;
+  overflow: hidden;
+  font-size: 20px;
+  white-space: nowrap;
+}
+
+.boardTitle {
+  flex-shrink: 0;
+  font-size: 0.85em;
+  padding: 4px 14px;
+}
+
+.claimed {
+  margin-left: 6px;
+  font-size: 0.65em;
+}
+
+.scroll {
+  overflow: hidden;
+}
+
+.scroll ol {
+  display: flex;
+  gap: 32px;
+  width: max-content;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  animation: board-scroll linear infinite;
+}
+
+@keyframes board-scroll {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* ── 벽지 (자동 배치 스티커 벽) — 1920 × 1080; the server places each sticker. ── */
+.wall {
+  position: relative;
+  overflow: hidden;
+}
+
+.sticker {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 200px;
+  animation: sticker-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes sticker-in {
+  from {
+    scale: 0.2;
+    opacity: 0;
+  }
+}
+
+.stickerFrame {
+  position: relative;
+}
+
+.stickerTest {
+  position: absolute;
+  top: -8px;
+  right: -12px;
+  font-size: 13px;
+}
+
+.stickerImage {
+  display: block;
+  width: 140px;
+  height: 140px;
+  border-radius: 12px;
+  background: rgb(255 255 255 / 25%);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 35%);
+  object-fit: cover;
+}
+
+[data-ov="BOLD"] .stickerImage {
+  border: 3px solid #111111;
+  border-radius: 10px;
+  box-shadow: 5px 5px 0 #111111;
+}
+
+[data-ov="PILL"] .stickerImage {
+  border-radius: 28px;
+}
+
+[data-ov="GLASS"] .stickerImage {
+  border: 4px solid rgb(255 255 255 / 75%);
+  border-radius: 30px;
+  box-shadow: 0 8px 28px rgb(40 20 80 / 30%);
+}
+
+.stickerAmount,
+.stickerBoxAmount {
+  font-size: 28px;
+  white-space: nowrap;
+}
+
+.stickerBoxAmount {
+  padding: 2px 12px;
+  border-radius: 6px;
+  background: #111827;
+  font-size: 20px;
+}
+
+.stickerNick {
+  max-width: 200px;
+  overflow: hidden;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 17px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-ov="BOLD"] .stickerNick {
+  border: 2px solid #111111;
+}
+
+.sticker[data-layout="BOX"] .stickerNick {
+  border-radius: 6px;
+}
+
+.stickerBubble {
+  font-size: 18px;
+  padding: 4px 12px;
+  border-radius: 12px 12px 12px 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wheel {
+    animation-duration: 4s;
+  }
+
+  .machine[data-spin],
+  .sticker {
+    animation: none;
+  }
+
+  .scroll ol {
+    animation-duration: 60s !important;
+  }
+}

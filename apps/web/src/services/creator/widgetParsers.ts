@@ -417,7 +417,9 @@ const parseVote: Parser<VoteSettings> = (v) => {
     });
   }
   if (new Set(out.map((p) => p.id)).size !== out.length) return "프리셋 정보를 확인해 주세요.";
-  return { enabled: v.enabled, titleFont, infoFont, itemFont, presets: out };
+  const look = themeAndCard(v);
+  if (typeof look === "string") return look;
+  return { theme: look.theme, enabled: v.enabled, titleFont, infoFont, itemFont, presets: out };
 };
 
 // ── 퀘스트 · 뽑기 · 룰렛 ───────────────────────────────────────────────────────
@@ -439,7 +441,10 @@ const parseQuest: Parser<QuestWidgetSettings> = (v) => {
   if (!int(v.minAmount, 1, PRIZE_MAX)) return "후원 최소 FN을 확인해 주세요.";
   if (!int(v.maxCount, 1, 50)) return "최대 개수는 1~50개로 입력해 주세요.";
   if (!int(v.intervalSec, 0, 3600)) return "등록 간격시간은 0~3600초로 입력해 주세요.";
+  const look = themeAndCard(v);
+  if (typeof look === "string") return look;
   return {
+    theme: look.theme,
     enabled: v.enabled as boolean,
     style: v.style,
     titleFont,
@@ -522,7 +527,10 @@ const parseGacha: Parser<GachaSettings> = (v) => {
     return "당첨 리스트 위젯 설정을 확인해 주세요.";
   }
   if (!text(board.title, 20, 1)) return "위젯 타이틀은 1~20자로 입력해 주세요.";
+  const look = themeAndCard({ theme: v.overlayTheme });
+  if (typeof look === "string") return look;
   return {
+    overlayTheme: look.theme,
     gachas,
     credit: { historyCount: credit.historyCount as number, displaySec: credit.displaySec as number },
     board: { productType: board.productType, title: (board.title as string).trim(), period: board.period, speed: board.speed }
@@ -547,7 +555,9 @@ const parseRoulette: Parser<RouletteSettings> = (v) => {
   }
   if (out.reduce((sum, it) => sum + it.percent, 0) !== 100) return "항목 확률의 합이 100%가 되어야 해요.";
   if (new Set(out.map((it) => it.id)).size !== out.length) return "룰렛 항목 정보를 확인해 주세요.";
-  return { enabled: v.enabled, minAmount: v.minAmount, dailyLimit: v.dailyLimit, items: out, spinSec: v.spinSec, autoStart: v.autoStart, autoReveal: v.autoReveal };
+  const look = themeAndCard(v);
+  if (typeof look === "string") return look;
+  return { theme: look.theme, enabled: v.enabled, minAmount: v.minAmount, dailyLimit: v.dailyLimit, items: out, spinSec: v.spinSec, autoStart: v.autoStart, autoReveal: v.autoReveal };
 };
 
 const parseWallpaper: Parser<Omit<WallpaperSettings, "images">> = (v) => {
@@ -557,7 +567,10 @@ const parseWallpaper: Parser<Omit<WallpaperSettings, "images">> = (v) => {
   if (!keyOf(v.layout, WALLPAPER_LAYOUTS)) return "벽지 레이아웃을 선택해 주세요.";
   if (![v.fnOutline, v.nicknameColor, v.textBoxColor].every(isHexColor)) return COLOR_ERROR;
   if (!bool(v.preferDonationImage)) return "설정 값을 확인해 주세요.";
+  const look = themeAndCard(v);
+  if (typeof look === "string") return look;
   return {
+    theme: look.theme,
     layout: v.layout,
     fnFont,
     fnOutline: (v.fnOutline as string).toUpperCase(),

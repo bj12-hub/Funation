@@ -28,6 +28,12 @@ export function readWidget<K extends EditableWidgetKey>(key: K): WidgetSettingsM
     themed.theme ??= "INHERIT";
     if (key !== "QR" && key !== "EVENT") themed.card ??= false;
   }
+  if (key === "QUEST" || key === "VOTE" || key === "ROULETTE" || key === "WALLPAPER") {
+    (copy as { theme?: string }).theme ??= "INHERIT";
+  }
+  if (key === "GACHA") {
+    (copy as WidgetSettingsMap["GACHA"]).overlayTheme ??= "INHERIT";
+  }
   if (key === "GOAL") {
     // 후원목표 saved before 오버레이 테마 · 모양 · 두 번째 목표 (2026-10-08) reads with those defaults (its colors kept).
     const d = DEFAULT_WIDGET_SETTINGS.GOAL;

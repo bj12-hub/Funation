@@ -364,6 +364,8 @@ export type VotePreset = {
   items: string[];
 };
 export type VoteSettings = {
+  /** 오버레이 테마 (2026-10-08); settings saved before it read as 전체 테마 따르기. */
+  theme: OverlayThemeChoice;
   enabled: boolean;
   titleFont: FontSetting;
   infoFont: FontSetting;
@@ -394,6 +396,8 @@ export const QUEST_STYLES = [
 ] as const;
 
 export type QuestWidgetSettings = {
+  /** 오버레이 테마 (2026-10-08); settings saved before it read as 전체 테마 따르기. */
+  theme: OverlayThemeChoice;
   enabled: boolean;
   style: (typeof QUEST_STYLES)[number]["key"];
   titleFont: ColorFont;
@@ -417,6 +421,8 @@ export const ROULETTE_SPIN_SEC = { min: 3, max: 15 } as const;
 
 export type RouletteItem = { id: string; name: string; percent: number };
 export type RouletteSettings = {
+  /** 오버레이 테마 (2026-10-08); settings saved before it read as 전체 테마 따르기. */
+  theme: OverlayThemeChoice;
   /** 후원 받기: off shows "룰렛이 꺼져 있어요" in the room and refuses new participations. */
   enabled: boolean;
   /** 최소 참여 금액 (FN). One participation = one spin, whatever the amount. */
@@ -499,6 +505,8 @@ export const GACHA_BOARD_TYPES = [
 ] as const;
 
 export type GachaSettings = {
+  /** 오버레이 테마 for the 뽑기 and 당첨 리스트 overlays (each 뽑기's `theme` is its season look). */
+  overlayTheme: OverlayThemeChoice;
   gachas: Gacha[];
   credit: { historyCount: number; displaySec: number };
   board: {
@@ -517,6 +525,8 @@ export const WALLPAPER_LAYOUTS = [
 export const WALLPAPER_IMAGES_MAX = 10;
 export type WallpaperImage = { id: string; url: string };
 export type WallpaperSettings = {
+  /** 오버레이 테마 (2026-10-08); settings saved before it read as 전체 테마 따르기. */
+  theme: OverlayThemeChoice;
   layout: (typeof WALLPAPER_LAYOUTS)[number]["key"];
   fnFont: ColorFont;
   fnOutline: string;
@@ -718,6 +728,7 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     others: { font: { family: "제주 고딕", size: 24, color: "#FFFFFF" }, accentColor: "#FFFFFF" }
   },
   VOTE: {
+    theme: "INHERIT",
     enabled: true,
     titleFont: { family: "제주 고딕", size: 36, color: "#28BA93" },
     infoFont: { family: "제주 고딕", size: 24, color: "#000000" },
@@ -726,6 +737,7 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
   },
   CUSTOM_SOUND: { sounds: [] },
   QUEST: {
+    theme: "INHERIT",
     enabled: true,
     style: "FANCY",
     titleFont: { family: "제주 고딕", color: "#FFFFFF" },
@@ -738,6 +750,7 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     showSuccessAuthorityMenu: true
   },
   GACHA: {
+    overlayTheme: "INHERIT",
     gachas: [
       {
         id: "gacha-1",
@@ -761,6 +774,7 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
   },
   // 펀페이 1009:510 sample: 10,000 FN 이상 · 3회 · 꽝 50 / 스탬프 25 / 시그니처 15 / 미션 10.
   ROULETTE: {
+    theme: "INHERIT",
     enabled: true,
     minAmount: 10_000,
     dailyLimit: 3,
@@ -775,6 +789,7 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     autoReveal: true
   },
   WALLPAPER: {
+    theme: "INHERIT",
     layout: "BASIC",
     fnFont: { family: "제주 고딕", color: "#FFFFFF" },
     fnOutline: "#000000",

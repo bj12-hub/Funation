@@ -1,10 +1,14 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
+import { PreviewStage } from "@/features/overlayTheme/PreviewStage";
+import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
 import { PROFILE_PHOTO_TYPES } from "@/lib/validation";
+import { resolveTheme } from "@/services/creator/overlayThemeTypes";
 import { deleteWallpaperImage, uploadWallpaperImage } from "@/services/creator/widgetSettings";
 import { WALLPAPER_IMAGES_MAX, WALLPAPER_LAYOUTS, type WallpaperImage } from "@/services/creator/widgetSettingsTypes";
 import { ColorField, ColorFontFields, Radios, Row, SwitchText } from "./fields";
+import { WallpaperView } from "./GameViews";
 import type { FormProps } from "./forms";
 import styles from "./widgets.module.css";
 
@@ -29,7 +33,7 @@ function Fold({ title, children }: { title: string; children: ReactNode }) {
  * 벽지 위젯 설정 — Figma 395:145. Images upload and delete immediately; the footer saves the rest.
  * The design's OBS/XSplit screenshots are placeholders, so the setup steps are shown as text.
  */
-export function WallpaperForm({ value: v, onChange }: FormProps<"WALLPAPER">) {
+export function WallpaperForm({ value: v, onChange, live }: FormProps<"WALLPAPER">) {
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
   const [images, setImages] = useState<WallpaperImage[]>(v.images);
   const [index, setIndex] = useState(0);
@@ -76,9 +80,6 @@ export function WallpaperForm({ value: v, onChange }: FormProps<"WALLPAPER">) {
     }
   };
 
-  const fnStyle = { fontFamily: `"${v.fnFont.family}", var(--font-sans)`, color: v.fnFont.color, WebkitTextStroke: `1px ${v.fnOutline}` };
-  const nickStyle = { fontFamily: `"${v.nicknameFont.family}", var(--font-sans)`, color: v.nicknameFont.color, background: v.textBoxColor };
-
   return (
     <>
       <div className={styles.wallpaperPreview}>
@@ -89,32 +90,25 @@ export function WallpaperForm({ value: v, onChange }: FormProps<"WALLPAPER">) {
             </button>
           ))}
         </div>
-        <div className={styles.wpStage} aria-label="위젯 미리보기">
-          <span className={styles.wpStageLabel}>미리보기</span>
-          <div className={`${styles.wpItem} ${styles[`wp_${v.layout}`]}`}>
-            {v.layout === "BUBBLE" && <span className={styles.wpBubble}>1,000</span>}
-            {current ? (
-              // eslint-disable-next-line @next/next/no-img-element -- uploaded images are data URLs in the mock
-              <img src={current.url} alt="벽지 이미지" className={styles.wpImage} />
-            ) : (
-              <span className={styles.wpImageEmpty}>이미지 없음</span>
-            )}
-            {v.layout !== "BUBBLE" && v.layout !== "BOX" && (
-              <strong className={styles.wpAmount} style={fnStyle}>
-                1,000 FN
-              </strong>
-            )}
-            <span className={styles.wpNick} style={nickStyle}>
-              <b style={{ color: v.nicknameColor }}>김태훈</b> 님
-            </span>
-            {v.layout === "BOX" && (
-              <strong className={styles.wpBoxAmount} style={fnStyle}>
-                1,000 FN
-              </strong>
-            )}
-          </div>
-        </div>
+        <PreviewStage width={900} minHeight={340} label="벽지 미리보기">
+          <WallpaperView
+            settings={v}
+            images={current ? [current.url] : []}
+            stickers={[
+              { id: "s1", x: 60, y: 40, rotate: -6, image: current ? 0 : null, imageUrl: null, nickname: "하루봄", amount: "1,000 FN", test: false },
+              { id: "s2", x: 350, y: 70, rotate: 4, image: current ? 0 : null, imageUrl: null, nickname: "도도쭈", amount: "5,000 FN", test: false },
+              { id: "s3", x: 640, y: 30, rotate: -3, image: current ? 0 : null, imageUrl: null, nickname: "밤톨게임", amount: "10,000 FN", test: true }
+            ]}
+            theme={resolveTheme(live.appearance, v.theme)}
+            width={900}
+            height={340}
+          />
+        </PreviewStage>
       </div>
+
+      <Fold title="테마">
+        <ThemeChoiceField value={v.theme} onChange={(x) => set("theme", x)} appearance={live.appearance} />
+      </Fold>
 
       <Fold title="벽지 위젯 설정">
         <p className={styles.noticePink}>* [중요] 아래 이미지와 같이 오버레이를 전체화면으로 설정해야만 벽지 위젯을 정확히 화면에 남기실 수 있습니다.</p>
