@@ -71,7 +71,8 @@ export async function getSettlementApplyView(): Promise<SettlementApplyView | "U
   const monthly = Array.from({ length: 8 }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() - 7 + i, 1);
     const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    const krw = requests.filter((r) => r.status === "APPROVED" && r.requestedAt.startsWith(month)).reduce((sum, r) => sum + r.netKrw, 0);
+    // 승인 and 지급 완료 (2026-10-08) both count: a paid request was approved first.
+    const krw = requests.filter((r) => (r.status === "APPROVED" || r.status === "PAID") && r.requestedAt.startsWith(month)).reduce((sum, r) => sum + r.netKrw, 0);
     return { month, krw };
   });
 

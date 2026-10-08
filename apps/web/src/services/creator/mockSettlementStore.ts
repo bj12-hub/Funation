@@ -44,6 +44,11 @@ export type MockSettlementRequest = {
    * After a 재가입 the console attributes the request to that withdrawn account (`…-wN`).
    */
   account?: string | null;
+  /**
+   * 지급 완료 (관리자 콘솔, 2026-10-08 결정): when and by whom the transfer was recorded, its reference (never an account
+   * number) and the console request id that recorded it (a retry answers OK once).
+   */
+  payment?: { at: string; by: string; reference: string; requestId: string };
 };
 
 type MockSettlement = {
@@ -135,14 +140,16 @@ export const toHistoryItem = (r: MockSettlementRequest): SettlementHistoryItem =
   feeFn: r.feeFn,
   netKrw: r.netKrw,
   payoutDate: r.payoutDate,
-  reviewNote: r.status === "REJECTED" ? r.review?.note : undefined
+  reviewNote: r.status === "REJECTED" ? r.review?.note : undefined,
+  ...(r.status === "PAID" && r.payment ? { paidAt: ymd(new Date(r.payment.at)) } : {})
 });
 
-// V4: requests carry `registrationAtRequest`; V5: and the `account` that made them. A new key re-seeds a running dev server.
-const globalForSettlement = globalThis as typeof globalThis & { __funationMockSettlementV5?: MockSettlement };
+// V4: requests carry `registrationAtRequest`; V5: and the `account` that made them; V6: and their `payment`. A new key
+// re-seeds a running dev server.
+const globalForSettlement = globalThis as typeof globalThis & { __funationMockSettlementV6?: MockSettlement };
 
 /** Sample amounts from 478:2 (five 승인, one 거절), dated relative to today. */
-export const mockSettlement = (globalForSettlement.__funationMockSettlementV5 ??= {
+export const mockSettlement = (globalForSettlement.__funationMockSettlementV6 ??= {
   terms: null,
   registration: null,
   availableFn: 127_500,

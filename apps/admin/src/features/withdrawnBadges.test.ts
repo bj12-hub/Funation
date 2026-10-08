@@ -65,9 +65,10 @@ describe("withdrawn members in the console", () => {
       netKrw: 0,
       payoutDate: null,
       registrationAtRequest: null,
-      review: { at: "2026-10-01T00:00:00.000Z", by: "회원 탈퇴", note: "정산 대기 수익 소멸 (회원 동의)" }
+      review: { at: "2026-10-01T00:00:00.000Z", by: "회원 탈퇴", note: "정산 대기 수익 소멸 (회원 동의)" },
+      payment: null
     };
-    const counts = { PENDING: 0, APPROVED: 0, REJECTED: 0, FORFEITED: 1 };
+    const counts = { PENDING: 0, APPROVED: 0, PAID: 0, REJECTED: 0, FORFEITED: 1 };
     const settlements = renderToStaticMarkup(createElement(SettlementReviewScreen, { view: { rows: [row], counts, registration: null, availableFn: 0 }, status: null }));
     expect(settlements).toMatch(after("홍길동"));
 

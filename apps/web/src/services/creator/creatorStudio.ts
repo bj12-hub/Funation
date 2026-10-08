@@ -3,6 +3,7 @@ import { getCreatorSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
 import { mockCreator } from "./mockCreatorStore";
 import { mockSettlement } from "./mockSettlementStore";
+import type { SettlementStatus } from "./settlementTypes";
 import type { Platform } from "@/types/platform";
 import { eachDay, type StatsPeriod } from "./creatorStats";
 import { startOfMonths, startOfWeek } from "@/lib/period";
@@ -173,8 +174,9 @@ export async function getDashboardSummary(): Promise<DashboardSummary | null> {
     const amount = sumRevenue(from, iso(today));
     return { amount, count: Math.round(amount / 19_140) };
   };
-  const sum = (status: "APPROVED" | "PENDING") => mockSettlement.requests.filter((r) => r.status === status).reduce((s, r) => s + r.amountFn, 0);
-  const paid = sum("APPROVED");
+  const sum = (...statuses: SettlementStatus[]) => mockSettlement.requests.filter((r) => statuses.includes(r.status)).reduce((s, r) => s + r.amountFn, 0);
+  // 승인 and 지급 완료 both count as 출금, as 승인 did before the 지급 완료 step (2026-10-08) existed.
+  const paid = sum("APPROVED", "PAID");
   const pending = sum("PENDING");
   return {
     received: { today: tally(iso(today)), week: tally(iso(startOfWeek(today))), month: tally(iso(startOfMonths(1, today))), total: tally(MOCK_REVENUE_START) },

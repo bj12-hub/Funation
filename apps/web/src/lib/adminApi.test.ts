@@ -68,4 +68,14 @@ describe("admin api", () => {
     const detail = await import("@/app/api/admin/members/[id]/route");
     expect((await detail.GET(new Request("http://x", { headers: headers() }), ctx({ id: "nope" }))).status).toBe(404);
   });
+
+  it("records 지급 완료 through the pay route with the operator, and refuses it without the secret", async () => {
+    const pay = await import("@/app/api/admin/settlements/[id]/pay/route");
+    const body = JSON.stringify({ reference: "TRF-0001", requestId: key(7) });
+    const post = (h: Record<string, string>) => pay.POST(new Request("http://x", { method: "POST", headers: h, body }), ctx({ id: "st-seed-1" }));
+    expect((await post(headers({ authorization: "Bearer nope" }))).status).toBe(401);
+    expect(await (await post(headers())).json()).toEqual({ status: "OK" });
+    const { auditEntries } = await import("@/services/admin/auditCore");
+    expect(auditEntries()[0]).toMatchObject({ action: "SETTLEMENT_PAY", actorId: "adm-1", target: "settlement:st-seed-1" });
+  });
 });
