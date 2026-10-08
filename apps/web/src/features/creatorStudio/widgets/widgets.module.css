@@ -552,105 +552,6 @@
   font-size: 10px;
 }
 
-/* ── Previews ── */
-
-.nickBg {
-  padding: 0 6px;
-  border-radius: 4px;
-  background: rgba(0, 0, 0, 0.6);
-}
-
-.qrPreview {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-
-.qrCaption {
-  font-weight: var(--font-weight-bold);
-}
-
-.qrTile {
-  position: relative;
-  display: flex;
-  padding: 10px;
-  overflow: hidden;
-  border: 4px solid;
-  background: #ffffff;
-}
-
-.qrTile img {
-  display: block;
-}
-
-.qrLogo {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: 2px solid #ffffff;
-  border-radius: 8px;
-  background: var(--gradient-brand);
-  color: #ffffff;
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-extrabold);
-  transform: translate(-50%, -50%);
-}
-
-.goalPreview {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.goalOneLine {
-  flex-direction: row;
-  align-items: center;
-  gap: 12px;
-}
-
-.goalOneLine .goalBar {
-  flex: 1;
-}
-
-.goalHead,
-.goalFoot {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  font-weight: var(--font-weight-bold);
-}
-
-.goalBar {
-  overflow: hidden;
-  border-radius: var(--radius-pill);
-}
-
-.goalBar span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  transition: width 0.2s ease;
-}
-
-.totalPreview {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 8px;
-  margin: 0;
-  font-weight: var(--font-weight-bold);
-}
-
-.totalPreview strong {
-  font-weight: 900;
-}
-
 /* ── PR 2 widgets ── */
 
 .grid2 {
@@ -740,43 +641,6 @@
   opacity: 0.45;
 }
 
-.recentPreview {
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.eventPreview {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.eventPreview p {
-  margin: 0;
-}
-
-.eventBanner {
-  padding: 10px 14px;
-  border-radius: var(--radius-8);
-  background: linear-gradient(90deg, #7c3aed, #a855f7);
-  font-weight: var(--font-weight-bold);
-  text-align: center;
-}
-
-.event_BOX p:not(.eventBanner) {
-  padding: 6px 10px;
-  border-radius: var(--radius-6);
-  background: rgba(0, 0, 0, 0.45);
-}
-
-.event_LIST p:not(.eventBanner) {
-  padding-bottom: 6px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-}
-
 .miniPreview {
   overflow: hidden;
   padding: 10px 0;
@@ -825,59 +689,6 @@
   .marqueeLtr {
     animation: none;
   }
-}
-
-.rankPreview {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.rankPreview > strong {
-  font-weight: var(--font-weight-extrabold);
-}
-
-.rankPreview ol {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.rankPreview li {
-  display: flex;
-  gap: 8px;
-  font-weight: var(--font-weight-bold);
-}
-
-.rank_SIMPLE li,
-.rank_LINE_BOX li {
-  padding: 6px 14px;
-  border-radius: var(--radius-pill);
-  background: #1f2937;
-}
-
-.rank_LINE_BOX li {
-  border: 2px solid #111827;
-  border-radius: var(--radius-6);
-}
-
-.rank_TEXT li {
-  color: #111827;
-}
-
-.rankScroll {
-  flex-direction: row !important;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-.rank_TEXT li,
-.rank_SCROLL_TEXT li {
-  padding: 0;
-  text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
 }
 
 .thumbs {

@@ -22,6 +22,12 @@ export function readWidget<K extends EditableWidgetKey>(key: K): WidgetSettingsM
     // 룰렛 settings saved before 결과 자동 노출 read with its default.
     return { ...DEFAULT_WIDGET_SETTINGS.ROULETTE, ...copy } as WidgetSettingsMap[K];
   }
+  if (key === "QR" || key === "TOTAL" || key === "RECENT" || key === "EVENT" || key === "RANKING") {
+    // Saved before 오버레이 테마 (2026-10-08): 전체 테마 따르기, and no 배경 카드 so the look stays as it was.
+    const themed = copy as { theme?: string; card?: boolean };
+    themed.theme ??= "INHERIT";
+    if (key !== "QR" && key !== "EVENT") themed.card ??= false;
+  }
   if (key === "GOAL") {
     // 후원목표 saved before 오버레이 테마 · 모양 · 두 번째 목표 (2026-10-08) reads with those defaults (its colors kept).
     const d = DEFAULT_WIDGET_SETTINGS.GOAL;

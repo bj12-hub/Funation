@@ -1,10 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
 import { DownloadIcon } from "@/components/icons";
-import { formatNumber } from "@/lib/format";
 import { ChatLines } from "@/features/broadcast/ChatLines";
+import { QrView, TotalView } from "./WidgetViews";
 import { PreviewStage } from "@/features/overlayTheme/PreviewStage";
 import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
 import type { ChatOverlayLine } from "@/services/broadcast/chatTypes";
@@ -26,8 +25,7 @@ import {
   type WidgetLiveData,
   type WidgetSettingsMap
 } from "@/services/creator/widgetSettingsTypes";
-import { ColorField, FontFields, NumberField, Preview, Radios, Row, Section, Select, SwitchText } from "./fields";
-import { fontStyle } from "./previewStyle";
+import { ColorField, FontFields, NumberField, Radios, Row, Section, Select, SwitchText } from "./fields";
 import styles from "./widgets.module.css";
 
 export type FormProps<K extends EditableWidgetKey> = {
@@ -146,31 +144,18 @@ export function ChatForm({ value: v, onChange, live }: FormProps<"CHAT">) {
 
 // ── 후원 QR코드 (364:158) ───────────────────────────────────────────────────────
 
-const QR_RADIUS = { BASIC: 0, ROUND: 12, CIRCLE: 999, SOFT: 24 } as const;
-
 export function QrForm({ value: v, onChange, live }: FormProps<"QR">) {
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
-  const caption = v.captionEnabled && v.caption.trim() && (
-    <span className={styles.qrCaption} style={{ ...fontStyle(v.captionFont), color: v.borderColor }}>
-      {v.caption}
-    </span>
-  );
   return (
     <>
-      <Preview>
-        <div className={styles.qrPreview}>
-          {v.captionPosition === "TOP" && caption}
-          <span className={styles.qrTile} style={{ borderColor: v.borderColor, borderRadius: Math.min(QR_RADIUS[v.codeStyle], 70) }}>
-            <Image src={live.qrImageUrl} alt="후원 QR코드" width={120} height={120} />
-            {v.centerLogo && (
-              <span className={styles.qrLogo} aria-hidden="true">
-                S
-              </span>
-            )}
-          </span>
-          {v.captionPosition === "BOTTOM" && caption}
-        </div>
-      </Preview>
+      <Section title="미리보기">
+        <PreviewStage width={300} minHeight={300} label="후원 QR코드 미리보기">
+          <QrView settings={v} imageUrl={live.qrImageUrl} theme={resolveTheme(live.appearance, v.theme)} />
+        </PreviewStage>
+      </Section>
+      <Section title="테마">
+        <ThemeChoiceField value={v.theme} onChange={(x) => set("theme", x)} appearance={live.appearance} />
+      </Section>
       <Section title="기본 설정">
         <div className={styles.rows}>
           <Row label="코드 스타일">
@@ -247,12 +232,17 @@ export function TotalForm({ value: v, onChange, live }: FormProps<"TOTAL">) {
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
   return (
     <>
-      <Preview>
-        <p className={styles.totalPreview}>
-          <span style={fontStyle(v.titleFont, v.textOutline)}>{v.title} :</span>
-          <strong style={fontStyle(v.contentFont, v.textOutline)}>{v.template.split(TOTAL_TEMPLATE_TOKEN).join(formatNumber(live.totalAmount))}</strong>
-        </p>
-      </Preview>
+      <Section title="미리보기">
+        <PreviewStage width={600} minHeight={120} label="후원누적금액 미리보기">
+          <TotalView settings={v} total={live.totalAmount} theme={resolveTheme(live.appearance, v.theme)} />
+        </PreviewStage>
+      </Section>
+      <Section title="테마">
+        <div className={styles.rows}>
+          <ThemeChoiceField value={v.theme} onChange={(x) => set("theme", x)} appearance={live.appearance} />
+          <SwitchText label="배경 카드" checked={v.card} onChange={(x) => set("card", x)} text="테마 카드 위에 그려요. 끄면 글자만 방송 화면 위에 (아래 글자 색 · 외곽선 사용)" />
+        </div>
+      </Section>
       <Section title="기본 설정">
         <div className={styles.rows}>
           <Row stacked label="제목 입력" htmlFor="total-title">

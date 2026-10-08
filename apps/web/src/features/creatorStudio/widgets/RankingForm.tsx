@@ -1,7 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { fillRank } from "@/services/creator/widgetOverlayCore";
+import { PreviewStage } from "@/features/overlayTheme/PreviewStage";
+import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
+import { resolveTheme } from "@/services/creator/overlayThemeTypes";
 import {
   RANKING_BOARDS,
   RANKING_MAX_RANKS,
@@ -11,12 +13,10 @@ import {
   RANKING_WIDGET_PERIODS,
   type RankTierStyle
 } from "@/services/creator/widgetSettingsTypes";
-import { ColorField, FontFields, NumberField, Preview, Radios, Row, Section, Select, SwitchText } from "./fields";
+import { ColorField, FontFields, NumberField, Radios, Row, Section, Select, SwitchText } from "./fields";
 import type { FormProps } from "./forms";
-import { fontStyle } from "./previewStyle";
 import styles from "./widgets.module.css";
-
-const fill = fillRank;
+import { RankingView } from "./WidgetViews";
 
 /** 후원랭킹 위젯 설정 — Figma 315:650. 랭킹 종류 (크루 후원 순위 · 수단별 보드) is code-first (2026-10-06). */
 export function RankingForm({ value: v, onChange, live }: FormProps<"RANKING">) {
@@ -26,24 +26,22 @@ export function RankingForm({ value: v, onChange, live }: FormProps<"RANKING">) 
 
   return (
     <>
-      <Preview light>
-        <div className={`${styles.rankPreview} ${styles[`rank_${v.style}`]}`}>
-          <strong style={fontStyle(v.titleFont)}>{v.title}</strong>
-          <ol className={v.style === "SCROLL_TEXT" ? styles.rankScroll : undefined} style={{ gap: v.style === "SCROLL_TEXT" ? Math.min(v.scrollGap, 40) : undefined }}>
-            {rows.map((r, i) => {
-              const tier = i === 0 ? v.first : v.others;
-              return (
-                <li key={r.name} style={fontStyle(tier.font)}>
-                  <span>{fill(v.format.rank, i + 1, r.name, r.amount, r.amountLabel)}</span>
-                  <span style={{ color: tier.accentColor }}>{fill(v.format.name, i + 1, r.name, r.amount, r.amountLabel)}</span>
-                  {v.showAmount && <span style={{ color: tier.accentColor }}>{r.amountLabel ?? fill(v.format.amount, i + 1, r.name, r.amount)}</span>}
-                </li>
-              );
-            })}
-          </ol>
-          {rows.length === 0 && <p className={styles.hint}>이 기간에 크루 멤버에게 지정된 후원이 아직 없어요.</p>}
+      <Section title="미리보기">
+        <PreviewStage width={400} minHeight={200} label="후원랭킹 미리보기">
+          <RankingView
+            settings={v}
+            rows={rows.map((r, i) => ({ rank: i + 1, name: r.name, fnAmount: r.amount, amountLabel: r.amountLabel }))}
+            theme={resolveTheme(live.appearance, v.theme)}
+            empty="이 기간에 크루 멤버에게 지정된 후원이 아직 없어요."
+          />
+        </PreviewStage>
+      </Section>
+      <Section title="테마">
+        <div className={styles.rows}>
+          <ThemeChoiceField value={v.theme} onChange={(x) => set("theme", x)} appearance={live.appearance} />
+          <SwitchText label="배경 카드" checked={v.card} onChange={(x) => set("card", x)} text="테마 카드 위에 순위 배지와 함께 그려요. 끄면 글자만 (아래 1등 · 2등 이하 색 사용)" />
         </div>
-      </Preview>
+      </Section>
 
       <Section title="기본 설정">
         <div className={styles.rows}>
