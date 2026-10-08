@@ -16,9 +16,9 @@ How screens have been built so far, so a new Claude session (or account) can con
 
 - **Original spec (read-only):** 펀페이 file `PXOl6e2HQVWsu9qx9iagJV` (single page `0:1`, too large for
   `get_metadata` on the page — walk node ids). Never write to it.
-- **Writable since 2026-10:** "Somnation — 현재 구현 (2026-09)" `PMnjPwrD3nAiItJxjaZ0qj` (pages 1–6 are
+- **Writable since 2026-10:** "Ssumnation — 현재 구현 (2026-09)" `PMnjPwrD3nAiItJxjaZ0qj` (pages 1–6 are
   screenshots of the built screens; page "9 스튜디오" and "10 사이트" hold editable auto-layout frames) and
-  "Somnation Admin" `Js5MCzkGmAZ9QY0w3nLUe8`. Frame ids per screen: `docs/figma/site-design-system.md`,
+  "Ssumnation Admin" `Js5MCzkGmAZ9QY0w3nLUe8`. Frame ids per screen: `docs/figma/site-design-system.md`,
   `docs/figma/route-map.md`. Write only to these two files.
 - Editable frames are drawn from the running app: a headless walk of the page produces a layout tree, and
   the renderers stored in the file (`figma.root.getSharedPluginData("ssumnation", "renderer")` for studio,

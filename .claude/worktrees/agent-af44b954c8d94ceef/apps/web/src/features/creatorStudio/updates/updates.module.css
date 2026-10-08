@@ -1,0 +1,150 @@
+/* 업데이트 소식 — code-first, no Figma frame. */
+
+.posts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.new {
+  padding: 2px 6px;
+  border-radius: var(--radius-6);
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+  font-family: var(--font-latin);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.count,
+.kind {
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+}
+
+.count[data-kind="NEW"],
+.kind[data-kind="NEW"] {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-light);
+}
+
+.count[data-kind="IMPROVED"],
+.kind[data-kind="IMPROVED"] {
+  background: var(--color-success-soft);
+  color: var(--color-success-text);
+}
+
+.count[data-kind="FIX"],
+.kind[data-kind="FIX"] {
+  background: var(--color-gold-soft);
+  color: var(--color-live);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.kind {
+  display: inline-block;
+  margin: 0 0 6px;
+}
+
+.body ul {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+}
+
+.body a {
+  color: var(--color-primary-light);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ── Dashboard card ── */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px 24px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-16);
+  background: var(--color-surface);
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cardHead h2 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.cardHead a {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.cardList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cardList a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+}
+
+.cardList time {
+  margin-left: auto;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-12);
+  white-space: nowrap;
+}

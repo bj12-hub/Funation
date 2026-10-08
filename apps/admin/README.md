@@ -11,6 +11,6 @@ npm run dev:admin   # admin console (http://admin.localhost:3200 or http://local
 
 - Deployed on the admin subdomain (e.g. admin.<site domain>, domain TBD) — see docs/development/admin-subdomain.md.
 - Environment: see `.env.example` (defaults work for local mock development; `ADMIN_HOST` restricts the host).
-- Design: Figma "Somnation Admin" (`Js5MCzkGmAZ9QY0w3nLUe8`) — tokens in `src/styles/tokens.css` (`--adm-*`), component ↔ class map in docs/figma/admin-design-system.md. The admin does not use the site tokens.
+- Design: Figma "Ssumnation Admin" (`Js5MCzkGmAZ9QY0w3nLUe8`) — tokens in `src/styles/tokens.css` (`--adm-*`), component ↔ class map in docs/figma/admin-design-system.md. The admin does not use the site tokens.
 - Contract types: `src/types/adminApi.ts` (keep in step with `apps/web/src/services/admin/*Types.ts`).
 - Operator auth (SSO / 2FA / IP allowlist), per-operator tokens and admin roles are TBD.

@@ -4,7 +4,7 @@ import styles from "@/features/admin.module.css";
 import { signInMockOperator } from "@/lib/actions";
 import { getOperator, isMock } from "@/lib/session";
 
-// Operator sign-in — Figma "Somnation Admin" A-00 로그인. The real admin login (SSO / 2FA / IP allowlist) is TBD.
+// Operator sign-in — Figma "Ssumnation Admin" A-00 로그인. The real admin login (SSO / 2FA / IP allowlist) is TBD.
 export const metadata: Metadata = { title: "로그인 | Ssumnation 관리자" };
 export const dynamic = "force-dynamic";
 

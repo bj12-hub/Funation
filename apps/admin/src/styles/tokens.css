@@ -1,5 +1,5 @@
 /*
- * Ssumnation Admin design tokens — source of truth is the Figma file "Somnation Admin"
+ * Ssumnation Admin design tokens — source of truth is the Figma file "Ssumnation Admin"
  * (Js5MCzkGmAZ9QY0w3nLUe8, Foundations page). Variable names map 1:1 to the Figma variables'
  * WEB code syntax (`color/bg/page` → `--adm-color-bg-page`). The admin app does not use the
  * site's tokens: it is a separate light business theme with a dark sidebar.

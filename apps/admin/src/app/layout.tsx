@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false }
 };
 
-// Admin type (Figma "Somnation Admin" text styles): Noto Sans KR for Korean UI, Inter for numbers.
+// Admin type (Figma "Ssumnation Admin" text styles): Noto Sans KR for Korean UI, Inter for numbers.
 // Self-hosted by next/font like the site (2026-10-06 결정); the Korean unicode-range files load on demand.
 const noto = Noto_Sans_KR({ subsets: ["latin"], display: "swap", preload: false, variable: "--font-noto" });
 const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" });
