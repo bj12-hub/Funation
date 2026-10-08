@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { OverlayThemeRoot, ov } from "@/features/overlayTheme/OverlayThemeRoot";
 import { formatNumber } from "@/lib/format";
 import type { OverlayDrawing, OverlayVideo } from "@/services/creator/mediaTypes";
 import { useReloadSignal } from "../../remote/useReloadSignal";
@@ -45,7 +46,7 @@ export function VideoOverlay({ data }: { data: OverlayVideo }) {
   if (!p || !data.on) return null;
   const src = `https://www.youtube-nocookie.com/embed/${p.videoId}?autoplay=1&controls=0&rel=0&enablejsapi=1&start=${p.startSec}&end=${p.endSec}`;
   return (
-    <div className={styles.video}>
+    <OverlayThemeRoot theme={data.theme} className={styles.video}>
       <iframe
         ref={frame}
         key={p.id}
@@ -56,7 +57,13 @@ export function VideoOverlay({ data }: { data: OverlayVideo }) {
         referrerPolicy="strict-origin-when-cross-origin"
         onLoad={() => sendVolume(frame.current, volume)}
       />
-    </div>
+      {/* Who sent it, in the 영상 후원 오버레이 테마, over the bottom-left corner. */}
+      <p key={`cap-${p.id}`} className={`${ov.enter} ${ov.card} ${ov.pill} ${styles.caption}`} data-motion="SLIDE_UP">
+        <span className={`${ov.chip} ${ov.chipAccent}`}>영상 후원</span>
+        <b className={ov.label}>{p.donor}</b>
+        {p.fnAmount > 0 && <span className={ov.display}>{formatNumber(p.fnAmount)} FN</span>}
+      </p>
+    </OverlayThemeRoot>
   );
 }
 
@@ -66,16 +73,17 @@ export function DrawingOverlay({ data }: { data: OverlayDrawing }) {
   const d = data.drawing;
   if (!d || !data.on) return null;
   return (
-    <figure key={d.id} className={styles.drawing}>
+    <OverlayThemeRoot theme={data.theme} as="figure" key={d.id} className={`${ov.enter} ${styles.drawing}`} data-motion="POP">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={d.image} alt={d.title} />
-      <figcaption>
-        <strong>{d.title}</strong>
-        <span>
+      <img src={d.image} alt={d.title} className={styles.art} />
+      <figcaption className={`${data.theme.theme === "BOLD" ? ov.accentCard : ov.card} ${styles.plate}`}>
+        <span className={`${ov.chip} ${styles.plateChip}`}>그림후원</span>
+        <strong className={ov.label}>{d.title}</strong>
+        <span className={ov.muted}>
           {d.donor}
           {d.fnAmount > 0 ? ` · ${formatNumber(d.fnAmount)} FN` : ""}
         </span>
       </figcaption>
-    </figure>
+    </OverlayThemeRoot>
   );
 }

@@ -20,6 +20,18 @@ export const OVERLAY_THEME_CHOICES: readonly { key: OverlayThemeChoice; label: s
 ];
 export const isOverlayThemeChoice = (v: unknown): v is OverlayThemeChoice => v === "INHERIT" || isOverlayTheme(v);
 
+/**
+ * Overlays managed outside the 위젯 page, each with its own theme choice (2026-10-08): 크루 점수판 (all crew views),
+ * 영상 후원, 그림후원. 방송 도구 keep theirs in broadcastTools.
+ */
+export const LOOK_TARGETS = [
+  { key: "crew", label: "크루 점수판" },
+  { key: "video", label: "영상 후원" },
+  { key: "drawing", label: "그림후원" }
+] as const;
+export type LookTarget = (typeof LOOK_TARGETS)[number]["key"];
+export const isLookTarget = (v: unknown): v is LookTarget => LOOK_TARGETS.some((t) => t.key === v);
+
 /** The accent each theme uses until the creator picks a 포인트 색상. */
 export const THEME_DEFAULT_ACCENT: Record<OverlayTheme, string> = { BOLD: "#FFD23F", PILL: "#8B5CF6", GLASS: "#FFC6DD" };
 

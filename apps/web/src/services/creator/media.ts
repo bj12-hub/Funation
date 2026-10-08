@@ -9,6 +9,7 @@ import { overlaySignal } from "./alertCore";
 import { shownOnStream } from "./donationPageCore";
 import { addDrawing, advanceDrawings, advanceVideos, currentDrawing, enqueueVideo, mockMedia, playingEndsAt, playingVideo, playSeconds, showDrawing, startVideo } from "./mediaCore";
 import { mockCreator } from "./mockCreatorStore";
+import { overlayTheme, readLook } from "./overlayThemeStore";
 import { MEDIA_LIMITS, type DrawingView, type MediaResult, type OverlayDrawing, type OverlayVideo, type VideoQueueView } from "./mediaTypes";
 
 /**
@@ -105,8 +106,20 @@ export async function getOverlayVideo(key: unknown): Promise<OverlayVideo | "FOR
   advanceVideos();
   const p = playingVideo();
   return {
-    playing: p ? { id: p.id, videoId: p.videoId, startSec: p.startSec, endSec: p.startSec + playSeconds(p), endsAt: playingEndsAt(p) } : null,
+    playing: p
+      ? {
+          id: p.id,
+          videoId: p.videoId,
+          startSec: p.startSec,
+          endSec: p.startSec + playSeconds(p),
+          endsAt: playingEndsAt(p),
+          // The name on stream follows the 대체 메시지 settings, like alerts and drawings.
+          donor: p.kind === "DONATION" ? shownOnStream({ donor: p.donor, message: "" }).donor : p.donor,
+          fnAmount: p.fnAmount
+        }
+      : null,
     volume: mockMedia.videoSettings.volume,
+    theme: overlayTheme(readLook("video")),
     ...overlaySignal("video")
   };
 }
@@ -187,6 +200,7 @@ export async function getOverlayDrawing(key: unknown): Promise<OverlayDrawing | 
   const shown = d && d.kind === "DONATION" ? shownOnStream({ donor: d.donor, message: d.title }) : d ? { donor: d.donor, message: d.title } : null;
   return {
     drawing: cur && shown ? { id: cur.drawing.id, donor: shown.donor, title: shown.message, fnAmount: cur.drawing.fnAmount, image: cur.drawing.image, until: cur.until } : null,
+    theme: overlayTheme(readLook("drawing")),
     ...overlaySignal("drawing")
   };
 }

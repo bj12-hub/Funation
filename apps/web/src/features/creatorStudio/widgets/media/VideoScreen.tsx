@@ -1,5 +1,6 @@
 "use client";
 
+import { OverlayLookPicker } from "@/features/overlayTheme/OverlayLookPicker";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
@@ -84,6 +85,7 @@ export function VideoScreen({ view, overlayPath, switches }: { view: VideoQueueV
           <CopyButton value={`${origin}${overlayPath}`} label="오버레이 URL 복사" className={styles.ghost} />
         </div>
         <p className={styles.note}>OBS 브라우저 소스 권장 크기 1280 × 720. 소리를 내려면 OBS에서 &ldquo;브라우저 소스 오디오 제어&rdquo;를 켜 주세요. 주소에는 연동 키가 들어 있으니 공유하지 마세요.</p>
+        <OverlayLookPicker target="video" />
       </section>
 
       <section className={styles.card} aria-labelledby="vid-now">

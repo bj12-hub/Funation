@@ -1,48 +1,68 @@
-/* OBS crew scoreboard overlay (code-first). Readable on any stream background. */
+/* OBS crew overlays (code-first) in the 크루 점수판 오버레이 테마 (2026-10-08; tokens from overlayTheme.module.css). */
 
-.overlay {
+.pad {
+  box-sizing: border-box;
+  padding: 12px;
+}
+
+/* ── 점수판 · 서브 점수판 ── */
+.board {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  width: min(100%, 480px);
-  padding: 16px;
-  border-radius: var(--radius-16);
-  background: var(--color-overlay);
-  color: var(--color-text-on-accent);
-  font-family: var(--font-sans, inherit);
+  width: min(100%, 456px);
+  box-sizing: border-box;
+  padding: 16px 18px;
 }
 
 .title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0;
-  font-size: var(--font-size-18);
-  font-weight: var(--font-weight-extrabold);
+  font-size: 20px;
+}
+
+.closed {
+  font-size: 12px;
+}
+
+.banner {
+  align-self: flex-start;
+  margin: 0;
+  font-size: 14px;
+  padding: 4px 12px;
 }
 
 .teams {
   display: flex;
   gap: 6px;
-  font-weight: var(--font-weight-bold);
 }
 
 .teams span {
   flex: 1;
-  padding: 6px 10px;
-  border-radius: var(--radius-8);
+  padding: 6px 12px;
+  border-radius: 10px;
+  color: #ffffff;
 }
 
 .teams [data-team="A"] {
-  background: var(--color-info);
+  background: #3b82f6;
 }
 
 .teams [data-team="B"] {
-  background: var(--color-accent);
+  background: #ec4899;
   text-align: right;
+}
+
+[data-ov="BOLD"] .teams span {
+  border: 2px solid #111111;
 }
 
 .rows {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -50,64 +70,188 @@
 
 .rows li {
   display: grid;
-  grid-template-columns: 22px 90px minmax(0, 1fr) auto;
+  grid-template-columns: 26px 92px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
-  font-size: var(--font-size-14);
+  font-size: 15px;
 }
 
 .rank {
-  color: var(--color-live);
-  font-weight: var(--font-weight-extrabold);
-  text-align: center;
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--ov-chip-bg);
+  color: var(--ov-chip-ink);
+  font-size: 13px;
+}
+
+[data-rank="1"] .rank {
+  background: #f5bf0a;
+  color: #111111;
+}
+
+[data-rank="2"] .rank {
+  background: #cbd5e1;
+  color: #111111;
+}
+
+[data-rank="3"] .rank {
+  background: #d9905a;
+  color: #111111;
+}
+
+[data-ov="BOLD"] .rank {
+  border: 1.5px solid #111111;
 }
 
 .name {
   overflow: hidden;
-  font-weight: var(--font-weight-bold);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .bar {
   height: 10px;
-  overflow: hidden;
-  border-radius: var(--radius-pill);
-  background: var(--color-media-badge-border);
-}
-
-.bar span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  transition: width 0.4s ease;
 }
 
 .score {
-  font-family: var(--font-latin);
-  font-weight: var(--font-weight-extrabold);
+  font-size: 1.05em;
 }
 
-.oneshot {
+/* ── 실시간 배틀 ── */
+.battle {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(100%, 560px);
+  box-sizing: border-box;
+  padding: 18px 20px;
+}
+
+.battleHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 15px;
+}
+
+.timer {
+  font-size: 18px;
+  padding: 3px 14px;
+}
+
+.sides {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.side:last-child {
+  align-items: flex-end;
+}
+
+.sideScore {
+  font-size: 40px;
+}
+
+.side[data-win] .sideScore {
+  color: var(--ov-accent);
+}
+
+[data-ov="BOLD"] .side[data-win] .sideScore {
+  color: #111111;
+  text-decoration: underline 6px var(--ov-accent);
+  text-underline-offset: 6px;
+}
+
+.dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.tug {
+  display: flex;
+  height: 18px;
+}
+
+.tug span {
+  height: 100%;
+  transition: width 0.5s var(--ov-ease);
+}
+
+.penalty {
+  align-self: flex-start;
   margin: 0;
-  padding: 6px 10px;
-  border-radius: var(--radius-8);
-  background: var(--color-gold-soft);
-  color: var(--color-live);
-  font-weight: var(--font-weight-extrabold);
+  font-size: 14px;
 }
 
-.rankUp {
-  margin: 0;
-  padding: 6px 10px;
-  border-radius: var(--radius-8);
-  background: rgba(239, 68, 68, 0.2);
-  color: #ffffff;
-  font-weight: var(--font-weight-extrabold);
+/* ── 콘텐츠 시나리오 ── */
+.scenario {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 22px 10px 10px;
+  font-size: 18px;
 }
 
-.closed {
-  color: var(--color-media-text-muted);
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-bold);
+.partNo {
+  font-size: 0.85em;
+  padding: 4px 12px;
+}
+
+.elapsed {
+  font-size: 22px;
+}
+
+.elapsed small {
+  font-size: 0.6em;
+  opacity: 0.8;
+}
+
+.elapsed[data-over] {
+  color: #ef4444;
+}
+
+.next {
+  font-size: 15px;
+}
+
+/* ── 기여도 강탈 ── */
+.steal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 600px;
+  padding: 20px 26px;
+  text-align: center;
+}
+
+.stealMain {
+  padding: 6px 18px;
+  border-radius: 12px;
+  background: var(--ov-accent);
+  color: var(--ov-accent-ink);
+  font-size: 30px;
+}
+
+[data-ov="BOLD"] .stealMain {
+  border: 2.5px solid #111111;
+  box-shadow: 4px 4px 0 #111111;
+}
+
+.stealBlank {
+  background: var(--ov-chip-bg);
+  color: var(--ov-card-ink);
 }

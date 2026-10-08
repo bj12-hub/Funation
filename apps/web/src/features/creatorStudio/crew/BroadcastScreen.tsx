@@ -1,5 +1,6 @@
 "use client";
 
+import { OverlayLookPicker } from "@/features/overlayTheme/OverlayLookPicker";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { formatNumber } from "@/lib/format";
@@ -312,6 +313,7 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
             복사
           </button>
         </div>
+        <OverlayLookPicker target="crew" />
       </section>
 
       <section className={styles.card} aria-labelledby="bc-history">
