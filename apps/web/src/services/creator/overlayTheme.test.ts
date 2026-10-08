@@ -42,6 +42,27 @@ describe("overlay theme", () => {
     expect(await m.getOverlayAppearance()).toBeNull();
   });
 
+  it("keeps a theme choice per 크루 점수판 · 영상 후원 · 그림후원 and sends it to those overlays", async () => {
+    const m = await load();
+    const media = await import("./media");
+    const { mockCreator } = await import("./mockCreatorStore");
+    expect(await m.getOverlayLook("crew")).toEqual({ theme: "INHERIT", appearance: { theme: "PILL", accent: null } });
+    expect(await m.saveOverlayLook("video", "GLASS")).toEqual({ status: "SAVED" });
+    expect(await m.saveOverlayLook("drawing", "BOLD")).toEqual({ status: "SAVED" });
+    expect(m.readLook("video")).toBe("GLASS");
+    expect(m.readLook("crew")).toBe("INHERIT");
+    const video = await media.getOverlayVideo(mockCreator.integrationKey);
+    const drawing = await media.getOverlayDrawing(mockCreator.integrationKey);
+    if (video === "FORBIDDEN" || drawing === "FORBIDDEN") throw new Error("forbidden");
+    expect(video.theme.theme).toBe("GLASS");
+    expect(drawing.theme.theme).toBe("BOLD");
+    expect(await m.saveOverlayLook("banner", "BOLD")).toMatchObject({ status: "INVALID" });
+    expect(await m.saveOverlayLook("crew", "NEON")).toMatchObject({ status: "INVALID" });
+    signIn(["SUPPORTER"]);
+    expect(await m.saveOverlayLook("crew", "BOLD")).toEqual({ status: "UNAUTHORIZED" });
+    expect(await m.getOverlayLook("crew")).toBeNull();
+  });
+
   it("picks a readable text color for any accent and names effects in Korean", () => {
     expect(readableInk("#FFD23F")).toBe("#111111");
     expect(readableInk("#FFFFFF")).toBe("#111111");

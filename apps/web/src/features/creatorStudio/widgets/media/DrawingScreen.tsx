@@ -1,5 +1,6 @@
 "use client";
 
+import { OverlayLookPicker } from "@/features/overlayTheme/OverlayLookPicker";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
@@ -70,6 +71,7 @@ export function DrawingScreen({ view, overlayPath, switches }: { view: DrawingVi
           <CopyButton value={`${origin}${overlayPath}`} label="오버레이 URL 복사" className={styles.ghost} />
         </div>
         <p className={styles.note}>OBS 브라우저 소스 권장 크기 800 × 700. 주소에는 연동 키가 들어 있으니 공유하지 마세요.</p>
+        <OverlayLookPicker target="drawing" />
         <div className={styles.addRow}>
           <span className={styles.muted}>전시 시간</span>
           <input
