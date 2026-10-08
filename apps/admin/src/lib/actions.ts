@@ -46,9 +46,10 @@ export async function restoreMember(input: unknown) {
   return send("POST", `/members/${seg(v.id)}/restore`, { reason: v.reason });
 }
 
+/** 승인 sends the amount the operator saw (`expectedGrossFn` / `expectedNetFn`); the site refuses it if it changed. */
 export async function decideRefund(input: unknown) {
   const v = obj(input);
-  return send("POST", `/refunds/${seg(v.chargeId)}`, { decision: v.decision, note: v.note });
+  return send("POST", `/refunds/${seg(v.chargeId)}`, { decision: v.decision, note: v.note, expectedGrossFn: v.expectedGrossFn, expectedNetFn: v.expectedNetFn });
 }
 
 export async function decideSettlement(input: unknown) {

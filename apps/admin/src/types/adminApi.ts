@@ -127,9 +127,26 @@ export type AdminRefund = {
   status: RefundStatus;
   decision: { at: string; by: string; note: string } | null;
   charge: { chargedAt: string; fnAmount: number; paidAmount: number; methodLabel: string; transactionId: string | null } | null;
+  /** The refund the site computed when the member asked (what the member saw). */
+  requested: RefundAmounts;
+  /** What approval refunded (approved requests only). */
+  approved: RefundAmounts | null;
+  /** The refund recomputed now — what 승인 applies (waiting requests the console can decide only). */
+  current: RefundQuote | null;
 };
 
-export type PaymentsView = { charges: AdminChargeRow[]; refunds: AdminRefund[]; balance: number };
+/**
+ * 환불 정책 기본값 (일반적인 기준, 법무 검토 전) — the site computes every amount; the console only shows them.
+ * FULL_CANCEL: 청약철회 (전액 취소, no fee); PARTIAL: the charge's unused FN minus the fee; NOT_REFUNDABLE: all used.
+ * `grossFn`: FN taken back from the wallet; `feeFn` + `netFn` = `grossFn`.
+ */
+export type RefundType = "FULL_CANCEL" | "PARTIAL" | "NOT_REFUNDABLE";
+export const REFUND_TYPE_LABEL: Record<RefundType, string> = { FULL_CANCEL: "전액 취소", PARTIAL: "수수료 공제 후 환불", NOT_REFUNDABLE: "환불 불가" };
+export type RefundAmounts = { type: Exclude<RefundType, "NOT_REFUNDABLE">; grossFn: number; feeFn: number; netFn: number };
+export type RefundQuote = { type: RefundType; chargeFn: number; usedFn: number; withinPeriod: boolean; grossFn: number; feeFn: number; netFn: number };
+
+/** `refundPolicy`: the policy as the site states it (its numbers live on the site only). */
+export type PaymentsView = { charges: AdminChargeRow[]; refunds: AdminRefund[]; balance: number; refundPolicy: { label: string; summary: string } };
 export const REFUND_NOTE = { min: 2, max: 200 } as const;
 
 export type DonationStatus = "COMPLETED" | "PROCESSING" | "FAILED" | "REFUNDING" | "REFUNDED";
