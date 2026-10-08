@@ -8,6 +8,7 @@ import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { findAsset, matchesContent } from "./assetCore";
 import { QR_SAMPLE_IMAGE, WIDGET_OVERLAYS, WIDGET_OVERLAY_SETTINGS, widgetOverlayPath } from "./widgetOverlayTypes";
 import { readWidget, widgetStore } from "./widgetStore";
+import { readAppearance } from "./overlayThemeStore";
 import { mockCreator } from "./mockCreatorStore";
 import { keepDrawnStock, studioWins } from "@/services/donations/gachaCore";
 import { STUDIO_CHANNEL, mockCrew } from "@/services/crew/mockCrewStore";
@@ -45,6 +46,8 @@ const assertMock = () => {
 };
 
 const overlayPathFor = (key: string) => {
+  // 후원 알림 has its own overlay route (the queue lives in ./alertRemote.ts).
+  if (key === "ALERT") return `/overlay/alert/${mockCreator.integrationKey}`;
   const widget = WIDGET_OVERLAYS.find((w) => WIDGET_OVERLAY_SETTINGS[w] === key);
   return widget ? widgetOverlayPath(widget, mockCreator.integrationKey) : null;
 };
@@ -95,7 +98,8 @@ export async function getWidgetDetail(key: unknown): Promise<WidgetDetail | null
       miniMinAmount: 100,
       gachaBoardUrl: widgetOverlayPath("gacha-board", mockCreator.integrationKey),
       gachaWins: wins.wins,
-      gachaUnclaimed: wins.unclaimed
+      gachaUnclaimed: wins.unclaimed,
+      appearance: readAppearance()
     }
   } as WidgetDetail;
 }

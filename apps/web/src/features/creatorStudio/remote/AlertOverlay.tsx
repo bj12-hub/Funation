@@ -2,14 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { PlatformMark } from "@/features/broadcast/PlatformMark";
-import { alertAmount, type OverlayAlert } from "@/services/creator/alertTypes";
-import styles from "./alertOverlay.module.css";
+import type { OverlayAlert } from "@/services/creator/alertTypes";
+import { AlertCard } from "./AlertCard";
 import { useReloadSignal } from "./useReloadSignal";
 
 /**
  * OBS alert overlay (code-first). Transparent page that re-reads the server queue every second and
- * shows the alert the server has on screen. Reads the message aloud with the browser's speech
+ * shows the alert the server has on screen, drawn as the 후원 알림 design says (AlertCard, 오버레이 테마). Reads the message aloud with the browser's speech
  * synthesis when TTS volume > 0 and not muted (voices TBD), and plays a 시그니처's sound at 시그니처 볼륨.
  */
 export function AlertOverlay({ data }: { data: OverlayAlert }) {
@@ -79,26 +78,5 @@ export function AlertOverlay({ data }: { data: OverlayAlert }) {
 
   // 리모컨 기능 제어 OFF: nothing on screen and no TTS.
   if (!alert || !data.on) return null;
-  return (
-    <div className={styles.stage}>
-      <div key={alert.id} className={styles.card} role="status">
-        {alert.badges && alert.badges.length > 0 && (
-          <span className={styles.badges}>
-            {alert.badges.map((b) => (
-              <span key={b} className={styles.badge}>
-                {b}
-              </span>
-            ))}
-          </span>
-        )}
-        <p className={styles.headline}>
-          <strong>{alert.donor}</strong>님이 <strong className={styles.amount}>{alertAmount(alert)}</strong> 후원!
-        </p>
-        {alert.message && <p className={styles.message}>{alert.message}</p>}
-        <p className={styles.type}>
-          {alert.platform && <PlatformMark platform={alert.platform} size="sm" />} {alert.typeLabel}
-        </p>
-      </div>
-    </div>
-  );
+  return <AlertCard alert={alert} design={data.design} theme={data.theme} />;
 }
