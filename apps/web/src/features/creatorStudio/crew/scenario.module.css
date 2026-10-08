@@ -103,17 +103,3 @@
   font-weight: var(--font-weight-bold);
 }
 
-.overlayPart {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.overlayPart strong {
-  font-size: var(--font-size-24);
-}
-
-.overlayNext {
-  opacity: 0.75;
-  font-size: var(--font-size-14);
-}

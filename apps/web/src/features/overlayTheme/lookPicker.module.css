@@ -1,0 +1,42 @@
+/* 오버레이 테마 picker on the 크루 · 영상 · 그림 screens (code-first). */
+
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-medium);
+}
+
+.note,
+.ok,
+.error {
+  margin: 0;
+  font-size: var(--font-size-13);
+}
+
+.note {
+  color: var(--color-text-secondary);
+}
+
+.ok {
+  color: var(--color-success-text);
+}
+
+.error {
+  color: var(--color-nickname-error);
+}
+
+.retry {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-primary-light);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}

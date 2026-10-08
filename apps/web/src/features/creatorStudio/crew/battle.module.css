@@ -99,13 +99,6 @@
   }
 }
 
-.overlayTimer {
-  align-self: center;
-  font-size: var(--font-size-32);
-  font-variant-numeric: tabular-nums;
-  font-weight: var(--font-weight-extrabold);
-}
-
 /* 배수 · 벌칙 (2026-10-05) */
 .multiplier {
   margin-left: 8px;

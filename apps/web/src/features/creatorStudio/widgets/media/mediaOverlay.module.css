@@ -1,4 +1,4 @@
-/* OBS media overlays (code-first): video embed and drawing showcase. */
+/* OBS media overlays (code-first): video embed and drawing showcase in their 오버레이 테마 (2026-10-08). */
 
 .video {
   position: fixed;
@@ -11,6 +11,18 @@
   border: 0;
 }
 
+.caption {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 8px 18px 8px 8px;
+  font-size: 20px;
+}
+
 .drawing {
   position: fixed;
   inset: 24px;
@@ -18,45 +30,45 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 14px;
   margin: 0;
-  animation: pop 0.4s ease-out;
 }
 
-.drawing img {
+.art {
   max-width: 100%;
-  max-height: calc(100% - 72px);
-  border: 6px solid var(--color-surface-strong);
-  border-radius: var(--radius-12);
-  background: var(--color-text-primary);
+  max-height: calc(100% - 96px);
+  border: 6px solid #ffffff;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 12px 36px rgb(0 0 0 / 35%);
   object-fit: contain;
 }
 
-.drawing figcaption {
+[data-ov="BOLD"] .art {
+  border: 4px solid #111111;
+  border-radius: 12px;
+  box-shadow: 8px 8px 0 #111111;
+}
+
+[data-ov="GLASS"] .art {
+  border: 8px solid rgb(255 255 255 / 70%);
+  border-radius: 28px;
+}
+
+.plate {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 8px 16px;
-  border-radius: var(--radius-12);
-  background: var(--color-surface);
-  color: var(--color-text-primary);
-  font-size: 18px;
+  gap: 4px;
+  padding: 10px 22px 12px;
+  font-size: 20px;
+  text-align: center;
 }
 
-.drawing figcaption span {
-  color: var(--color-text-secondary);
-  font-size: 14px;
+.plate span:last-child {
+  font-size: 15px;
 }
 
-@keyframes pop {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .drawing {
-    animation: none;
-  }
+.plateChip {
+  font-size: 12px;
 }
