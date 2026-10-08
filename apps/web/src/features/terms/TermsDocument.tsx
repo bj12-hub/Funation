@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { clauseHeading, TERMS_DOCS, TERMS_SLUGS, type TermsSlug } from "./termsOutline";
+import { clauseHeading, effectiveLine, TERMS_DOCS, TERMS_DRAFT, TERMS_SLUGS, type TermsBlock, type TermsSlug } from "./termsOutline";
 import styles from "./terms.module.css";
 
 /**
- * 약관·정책 문서 — code-first (Figma 722:3 has no terms text). Shows the clause outline only; every clause body,
- * the 시행일 and the version are TBD until legal review (2026-10-06 결정: "조항 목차만 자리표시로").
+ * 약관·정책 문서 — code-first (Figma 722:3 has no terms text). Shows the 초안 bodies written on 2026-10-08 ("정책 부분은
+ * 일반적으로 사용하는 로직으로 시작") with the draft banner; the 시행일 and version are draft placeholders until legal review.
+ * Every body is plain text rendered as React text nodes (no HTML injection).
  */
 export function TermsDocument({ slug }: { slug: TermsSlug }) {
   const doc = TERMS_DOCS[slug];
@@ -20,24 +21,24 @@ export function TermsDocument({ slug }: { slug: TermsSlug }) {
       </nav>
 
       <header className={styles.head}>
-        <span className={styles.badge}>법무 검토 중</span>
+        <span className={styles.badge}>{TERMS_DRAFT.badge}</span>
         <h1 id="terms-title" className={styles.title}>
           {doc.title}
         </h1>
         <dl className={styles.meta}>
           <div>
             <dt>시행일</dt>
-            <dd>TBD</dd>
+            <dd>{TERMS_DRAFT.effectiveDate}</dd>
           </div>
           <div>
             <dt>버전</dt>
-            <dd>TBD</dd>
+            <dd>{TERMS_DRAFT.version}</dd>
           </div>
         </dl>
       </header>
 
-      <p className={styles.notice} role="note">
-        지금은 조항 목차만 공개하고 있어요. 각 조항의 내용은 법무 검토를 마친 뒤 게시돼요.
+      <p className={styles.banner} role="note">
+        {TERMS_DRAFT.banner}
       </p>
 
       <nav className={styles.toc} aria-labelledby="terms-toc">
@@ -56,12 +57,14 @@ export function TermsDocument({ slug }: { slug: TermsSlug }) {
       </nav>
 
       <div className={styles.clauses}>
-        {doc.clauses.map((_, i) => (
+        {doc.clauses.map((clause, i) => (
           <section key={i} id={`clause-${i + 1}`} className={styles.clause} aria-labelledby={`clause-${i + 1}-title`}>
             <h2 id={`clause-${i + 1}-title`} className={styles.clauseTitle}>
               {clauseHeading(doc, i)}
             </h2>
-            <p className={styles.clauseBody}>법무 검토 중 (TBD)</p>
+            {clause.body.map((block, j) => (
+              <ClauseBlock key={j} block={block} />
+            ))}
           </section>
         ))}
         {doc.numbering === "ARTICLE" && (
@@ -69,10 +72,51 @@ export function TermsDocument({ slug }: { slug: TermsSlug }) {
             <h2 id="clause-addenda-title" className={styles.clauseTitle}>
               부칙
             </h2>
-            <p className={styles.clauseBody}>시행일 TBD</p>
+            <p className={styles.clauseBody}>{effectiveLine("이 약관은")}</p>
           </section>
         )}
       </div>
     </article>
+  );
+}
+
+function ClauseBlock({ block }: { block: TermsBlock }) {
+  if (typeof block === "string") return <p className={styles.clauseBody}>{block}</p>;
+  if ("ol" in block || "ul" in block) {
+    const ordered = "ol" in block;
+    const items = ordered ? block.ol : block.ul;
+    const List = ordered ? "ol" : "ul";
+    return (
+      <List className={`${styles.clauseList} ${ordered ? styles.ordered : styles.bulleted}`}>
+        {items.map((item, k) => (
+          <li key={k}>{item}</li>
+        ))}
+      </List>
+    );
+  }
+  const { head, rows } = block.table;
+  return (
+    <div className={styles.tableWrap}>
+      <table className={styles.table}>
+        <thead>
+          <tr>
+            {head.map((h) => (
+              <th key={h} scope="col">
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, r) => (
+            <tr key={r}>
+              {row.map((cell, c) => (
+                <td key={c}>{cell}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
