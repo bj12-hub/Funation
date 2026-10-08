@@ -70,21 +70,21 @@ describe("admin payments", () => {
     expect(csv.split(/\r?\n/).find((line) => line.includes(charge.transactionId!))).toContain("환불 완료");
   });
 
-  it("labels a withdrawn member's request and does not decide it", async () => {
+  it("labels a withdrawn member's request with the original nickname and 탈퇴, and does not decide it", async () => {
     const m = await load();
     const charge = await fileRefund(m);
     expect((await m.getPaymentsView())!.refunds[0]).toMatchObject({ memberName: "홍길동", memberWithdrawn: false });
 
-    // 탈퇴: the request is no longer the slot's current member's.
+    // 탈퇴: the request is no longer the slot's current member's (2026-10-08 결정: original nickname + 탈퇴 badge).
     withdraw(m);
-    expect((await m.getPaymentsView())!.refunds[0]).toMatchObject({ chargeId: charge.id, memberName: "탈퇴한 회원", memberWithdrawn: true, status: "REQUESTED" });
+    expect((await m.getPaymentsView())!.refunds[0]).toMatchObject({ chargeId: charge.id, memberName: "홍길동", memberWithdrawn: true, status: "REQUESTED" });
     expect(await m.decideRefund(OP, { chargeId: charge.id, decision: "REJECT", note: "탈퇴 회원" })).toMatchObject({ status: "INVALID" });
 
     // 재가입: a new account holds the slot; the old request still belongs to the withdrawn one.
     m.startNewAccount({ nickname: "다시왔어요", password: "newpass12!", marketing: false, phone: "010-0000-0000" });
     m.mockAccount.fnBalance = charge.fnAmount;
     const view = (await m.getPaymentsView())!.refunds[0];
-    expect(view).toMatchObject({ memberName: "탈퇴한 회원", memberWithdrawn: true, charge: { fnAmount: charge.fnAmount } });
+    expect(view).toMatchObject({ memberName: "홍길동", memberWithdrawn: true, charge: { fnAmount: charge.fnAmount } });
     expect(await m.decideRefund(OP, { chargeId: charge.id, decision: "APPROVE", note: "환불 시도" })).toMatchObject({ status: "INVALID" });
     expect(m.mockAccount.fnBalance).toBe(charge.fnAmount);
     expect(m.auditEntries()).toEqual([]);
@@ -110,7 +110,7 @@ describe("admin payments", () => {
     withdraw(m);
     expect((await m.getPaymentsView())!.refunds[0].memberId).toBe(SAMPLE_MEMBER_ID); // still the slot's (withdrawn) account
     m.startNewAccount({ nickname: "다시왔어요", password: "newpass12!", marketing: false, phone: "010-0000-0000" });
-    expect((await m.getPaymentsView())!.refunds[0]).toMatchObject({ memberId: withdrawnMemberId(1), memberName: "탈퇴한 회원" });
+    expect((await m.getPaymentsView())!.refunds[0]).toMatchObject({ memberId: withdrawnMemberId(1), memberName: "홍길동", memberWithdrawn: true });
   });
 
   it("keeps a withdrawn account's charges and donations in the console under `…-w1` after a 재가입, labelled as before", async () => {
@@ -154,11 +154,11 @@ describe("admin payments", () => {
     await m.requestChargeRefund({ chargeId: charge.id, reason: "실수로 충전했어요" });
     signIn(["ADMIN"]);
     const { charges } = (await m.getPaymentsView())!;
-    expect(Object.keys(charges[0]).sort()).toEqual(["chargedAt", "fnAmount", "id", "memberId", "memberName", "methodLabel", "paidAmount", "refund", "status", "transactionId"]);
+    expect(Object.keys(charges[0]).sort()).toEqual(["chargedAt", "fnAmount", "id", "memberId", "memberName", "memberWithdrawn", "methodLabel", "paidAmount", "refund", "status", "transactionId"]);
     expect(charges.find((c) => c.id === charge.id)!.refund).toEqual({ status: "REQUESTED", requestedAt: expect.any(String) });
     const { rows } = (await m.getDonationsView())!;
     expect(rows.length).toBeGreaterThan(0);
-    for (const row of rows) expect(Object.keys(row).sort()).toEqual(["creatorName", "donatedAt", "fnAmount", "id", "memberId", "memberName", "status", "typeLabel"]);
+    for (const row of rows) expect(Object.keys(row).sort()).toEqual(["creatorName", "donatedAt", "fnAmount", "id", "memberId", "memberName", "memberWithdrawn", "status", "typeLabel"]);
   });
 
   it("summarises donations by status and type", async () => {

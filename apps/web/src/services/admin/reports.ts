@@ -1,8 +1,10 @@
 import { USE_MOCK } from "@/lib/mock";
-import { hideTarget, moderationStore } from "@/services/moderation/moderationCore";
+import { getAllCreatorsForAdmin } from "@/services/creators/creators";
+import { hideTarget, moderationStore, resolveTarget, type CreatorLookup } from "@/services/moderation/moderationCore";
 import type { Report, ReportStatus } from "@/services/moderation/moderationTypes";
 import type { AdminActor } from "./adminTypes";
 import { recordAudit } from "./auditCore";
+import { isWithdrawnMember } from "./memberCore";
 import { memberIds } from "./members";
 
 /**
@@ -18,8 +20,18 @@ const assertMock = () => {
 const STATUSES: ReportStatus[] = ["OPEN", "DISMISSED", "ACTIONED"];
 export const REPORT_NOTE = { min: 2, max: 200 } as const;
 
-/** A report as the console shows it: the reporter's member id and the content hash stay on the server. */
-export type AdminReportRow = Omit<Report, "reporterId" | "contentHash"> & { authorIsMember: boolean };
+/**
+ * A report as the console shows it: the reporter's member id and the content hash stay on the server. Names are the ones
+ * at report time; `authorWithdrawn` / `reporterWithdrawn` mark a member who withdrew since (shown with a 탈퇴 badge,
+ * 2026-10-08 결정 — also after a 재가입 moved the report to `…-wN`).
+ */
+export type AdminReportRow = Omit<Report, "reporterId" | "contentHash"> & {
+  authorIsMember: boolean;
+  authorWithdrawn: boolean;
+  reporterWithdrawn: boolean;
+  /** 신고 후 내용 변경됨: the reported content changed since the report (compared by hash on the server). */
+  contentChanged: boolean;
+};
 export type AdminReportView = { rows: AdminReportRow[]; counts: Record<ReportStatus, number> };
 export type ReportDecisionResult = { status: "OK" } | { status: "INVALID"; message: string } | { status: "NOT_FOUND" };
 
@@ -29,25 +41,36 @@ export async function listReports(input: { status?: unknown } = {}): Promise<Adm
   const counts = Object.fromEntries(STATUSES.map((s) => [s, all.filter((r) => r.status === s).length])) as AdminReportView["counts"];
   const status = STATUSES.includes(input.status as ReportStatus) ? (input.status as ReportStatus) : "OPEN";
   const members = await memberIds();
-  const rows = all
-    .filter((r) => r.status === status)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    .map(
-      (r): AdminReportRow => ({
-        id: r.id,
-        target: { ...r.target },
-        authorId: r.authorId,
-        authorName: r.authorName,
-        snapshot: r.snapshot,
-        reason: r.reason,
-        detail: r.detail,
-        reporterName: r.reporterName,
-        createdAt: r.createdAt,
-        status: r.status,
-        resolution: r.resolution ? { ...r.resolution } : null,
-        authorIsMember: members.has(r.authorId)
-      })
-    );
+  const listed = all.filter((r) => r.status === status).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  // 신고 후 내용 변경됨 (2026-10-08 결정 D4c): the content as it is now hashes differently from the report's `contentHash`.
+  // Only the flag reaches the console, never a hash; content that was removed or hidden is not flagged.
+  const creators = await getAllCreatorsForAdmin();
+  const findCreator: CreatorLookup = async (id) => creators.find((c) => c.id === id) ?? null;
+  const changed = await Promise.all(
+    listed.map(async (r) => {
+      const now = await resolveTarget(r.target, findCreator);
+      return now !== null && now.contentHash !== r.contentHash;
+    })
+  );
+  const rows = listed.map(
+    (r, i): AdminReportRow => ({
+      id: r.id,
+      target: { ...r.target },
+      authorId: r.authorId,
+      authorName: r.authorName,
+      snapshot: r.snapshot,
+      reason: r.reason,
+      detail: r.detail,
+      reporterName: r.reporterName,
+      createdAt: r.createdAt,
+      status: r.status,
+      resolution: r.resolution ? { ...r.resolution } : null,
+      authorIsMember: members.has(r.authorId),
+      authorWithdrawn: isWithdrawnMember(r.authorId),
+      reporterWithdrawn: isWithdrawnMember(r.reporterId),
+      contentChanged: changed[i]
+    })
+  );
   return { rows, counts };
 }
 

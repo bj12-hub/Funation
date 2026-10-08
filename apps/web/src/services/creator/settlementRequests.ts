@@ -5,6 +5,7 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { ownEntry } from "@/lib/records";
 import { getCreatorSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
+import { accountSince } from "@/services/account/withdrawalCore";
 import { MOCK_SETTLEMENT_POLICY, mockSettlement, toHistoryItem } from "./mockSettlementStore";
 import type { QuoteResult, RequestResult, SaveAutoResult, SettlementApplyView, SettlementGate, SettlementQuote } from "./settlementTypes";
 
@@ -70,7 +71,8 @@ export async function getSettlementApplyView(): Promise<SettlementApplyView | "U
   const monthly = Array.from({ length: 8 }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() - 7 + i, 1);
     const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    const krw = requests.filter((r) => r.status === "APPROVED" && r.requestedAt.startsWith(month)).reduce((sum, r) => sum + r.netKrw, 0);
+    // 승인 and 지급 완료 (2026-10-08) both count: a paid request was approved first.
+    const krw = requests.filter((r) => (r.status === "APPROVED" || r.status === "PAID") && r.requestedAt.startsWith(month)).reduce((sum, r) => sum + r.netKrw, 0);
     return { month, krw };
   });
 
@@ -149,7 +151,8 @@ export async function requestSettlement(input: unknown): Promise<RequestResult> 
     netKrw: quote.netKrw,
     payoutDate: ymd(payout),
     // Taken in the same synchronous step as the registration and 본인인증 checks above (no `await` in between).
-    registrationAtRequest: { ...registration }
+    registrationAtRequest: { ...registration },
+    account: accountSince()
   });
   await mockDelay(600);
   // TODO: the backend writes the request, the balance hold and an audit record in one transaction.

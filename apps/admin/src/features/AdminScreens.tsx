@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { formatNumber } from "@/lib/format";
-import { AUDIT_ACTION_LABEL, AUDIT_MAX, AUDIT_PAGE, type AdminDashboard, type AuditEntry, type AuditPage } from "@/types/adminApi";
+import { AUDIT_ACTION_LABEL, AUDIT_MAX, AUDIT_PAGE, type AdminDashboard, type AuditEntry, type AuditPage, type AuditTargetMember } from "@/types/adminApi";
 import styles from "./admin.module.css";
+import { WithdrawnBadge } from "./WithdrawnBadge";
 
 const at = (iso: string) => new Date(iso).toLocaleString("ko-KR", { dateStyle: "short", timeStyle: "medium" });
 
@@ -14,7 +15,12 @@ export function AdminDashboardScreen({ data }: { data: AdminDashboard }) {
     { label: "처리 중 충전", value: `${formatNumber(data.charges.processing)}건`, sub: "결제 확인 대기" }
   ];
   const queues = [
-    { label: "환불 요청", count: data.pending.refunds, note: "결제 · 환불 › 환불 요청에서 심사" },
+    {
+      label: "환불 요청",
+      count: data.pending.refunds,
+      // 처리 불가(탈퇴) requests are not 처리 대기; they are only mentioned (2026-10-08 결정).
+      note: data.pending.refundsBlocked > 0 ? `결제 · 환불 › 환불 요청에서 심사 · 처리 불가(탈퇴) ${formatNumber(data.pending.refundsBlocked)}건` : "결제 · 환불 › 환불 요청에서 심사"
+    },
     { label: "정산 신청", count: data.pending.settlements, note: "정산 심사에서 처리" },
     { label: "신고", count: data.pending.reports, note: "신고 처리에서 확인" }
   ];
@@ -89,7 +95,21 @@ export function AuditLogScreen({ page, show }: { page: AuditPage; show: number }
   );
 }
 
-function AuditList({ items, compact = false }: { items: AuditEntry[]; compact?: boolean }) {
+/** 대상: a member target links to 회원 상세 by name (탈퇴 badge when withdrawn); other targets show as recorded. */
+function AuditTarget({ entry }: { entry: AuditEntry & { targetMember?: AuditTargetMember | null } }) {
+  const m = entry.targetMember;
+  if (!m) return <>{entry.target ?? "—"}</>;
+  return (
+    <>
+      <Link href={`/members/${encodeURIComponent(m.id)}`} className={styles.link}>
+        {m.name}
+      </Link>
+      <WithdrawnBadge withdrawn={m.withdrawn} /> <span className={styles.muted}>{m.id}</span>
+    </>
+  );
+}
+
+function AuditList({ items, compact = false }: { items: (AuditEntry & { targetMember?: AuditTargetMember | null })[]; compact?: boolean }) {
   if (items.length === 0) return <p className={styles.empty}>아직 기록이 없어요.</p>;
   return (
     <table className={styles.table}>
@@ -107,7 +127,11 @@ function AuditList({ items, compact = false }: { items: AuditEntry[]; compact?: 
           <tr key={e.id}>
             <td>{at(e.at)}</td>
             <td>{AUDIT_ACTION_LABEL[e.action]}</td>
-            {!compact && <td>{e.target ?? "—"}</td>}
+            {!compact && (
+              <td>
+                <AuditTarget entry={e} />
+              </td>
+            )}
             {!compact && <td>{e.reason ?? "—"}</td>}
             <td>{e.actorName}</td>
           </tr>

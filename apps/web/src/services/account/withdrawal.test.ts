@@ -378,10 +378,10 @@ describe("회원 탈퇴", () => {
     expect(await getSettlementApplyView()).toMatchObject({ availableFn: 0, hasPending: false, recent: [] });
     expect(await getSettlementManageView({ period: "all" })).toMatchObject({ items: [] });
 
-    // The console keeps the withdrawn account's requests, under 탈퇴한 회원.
+    // The console keeps the withdrawn account's requests under its original nickname, marked 탈퇴 (2026-10-08 결정).
     const review = (await m.getSettlementReview())!;
     expect(review.rows).toHaveLength(before);
-    expect(new Set(review.rows.map((r) => r.creatorName))).toEqual(new Set(["탈퇴한 회원"]));
+    expect(new Set(review.rows.map((r) => `${r.creatorName} ${r.creatorWithdrawn}`))).toEqual(new Set(["홍길동 true"]));
   });
 
   it("leaves the withdrawn account's posts, blocks, reports and notifications with it at a 재가입", async () => {

@@ -13,7 +13,8 @@ part of the Donation Core, Wallet or Settlement.
 - 글쓰기, 댓글 and channel posts carry a request id per form, kept per member and per account: a retry after a lost
   response writes once, and the screen starts a new id when the text changes after a failed or lost submit.
 - 2026-10-08 결정: a withdrawn member's posts, comments and channel posts stay up with the author shown as
-  "탈퇴한 회원" (the same label as 정산 심사), also on block lists. Nobody can edit or delete them; after a 재가입 they
+  "탈퇴한 회원", also on block lists. (The admin console instead shows the original nickname with a "탈퇴" badge —
+  2026-10-08 결정 — e.g. as author or reporter in 신고 처리.) Nobody can edit or delete them; after a 재가입 they
   belong to the withdrawn account's own member id (`…-wN`), not to the new account. Reporting and blocking them works.
 
 ## 쪽지
@@ -33,8 +34,12 @@ part of the Donation Core, Wallet or Settlement.
 - 차단 hides the author's posts, comments, channel posts and mail from the blocker (board counts included). The
   author is not told. Block entries carry their own id; the blocked member's id never reaches the browser. A creator
   channel can be reported but not blocked.
-- Operators settle a report in the admin app (숨김 or 기각, note required, final, audited); one decision closes every
-  open report on the same content.
+- Operators settle a report in the admin app (숨김 or 기각, note required, final, audited). 숨김 closes every open report
+  on the same content; 기각 closes the open reports on the same version of it (same hash), so a report filed after the
+  content changed stays open for its own review.
+- 2026-10-08 결정: the console marks a report "신고 후 내용 변경됨" when the content as it is now hashes differently from
+  the report (list item and detail; the 숨김 confirm then says it takes down the current content). The site compares
+  the hashes; the console never receives one. Removed or hidden content is not marked.
 
 TBD: what each report reason means for sanctions, appeals, abuse limits on reports, retention of withdrawn members'
 content, images and notices on the board.

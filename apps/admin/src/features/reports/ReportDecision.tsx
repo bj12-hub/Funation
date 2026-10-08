@@ -7,15 +7,19 @@ import { runAction } from "@/lib/runAction";
 import { REPORT_NOTE } from "@/types/adminApi";
 import styles from "../admin.module.css";
 
-/** 숨김 / 기각 — memo required, final, audited on the site. */
-export function ReportDecision({ id, canHide }: { id: string; canHide: boolean }) {
+/**
+ * 숨김 / 기각 — memo required, final, audited on the site. `contentChanged` (신고 후 내용 변경됨): hiding takes down the content
+ * as it is now, not the reported version, so the confirm says so.
+ */
+export function ReportDecision({ id, canHide, contentChanged = false }: { id: string; canHide: boolean; contentChanged?: boolean }) {
   const router = useRouter();
   const [note, setNote] = useState("");
   const [msg, setMsg] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
 
   const decide = (action: "HIDE" | "DISMISS") => {
-    if (!window.confirm(action === "HIDE" ? "콘텐츠를 사이트에서 숨길까요? 같은 콘텐츠의 신고가 모두 닫혀요." : "신고를 기각할까요? 같은 내용에 대한 다른 신고도 함께 기각돼요. 내용이 바뀐 뒤 들어온 신고는 따로 처리해요.")) return;
+    const hide = contentChanged ? "신고 후 내용이 바뀌었어요. 지금 내용을 사이트에서 숨길까요? 같은 콘텐츠의 신고가 모두 닫혀요." : "콘텐츠를 사이트에서 숨길까요? 같은 콘텐츠의 신고가 모두 닫혀요.";
+    if (!window.confirm(action === "HIDE" ? hide :"신고를 기각할까요? 같은 내용에 대한 다른 신고도 함께 기각돼요. 내용이 바뀐 뒤 들어온 신고는 따로 처리해요.")) return;
     setMsg(null);
     startTransition(async () => {
       const res = await runAction(() => decideReport({ id, action, note }));

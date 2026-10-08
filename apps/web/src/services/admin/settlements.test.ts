@@ -127,3 +127,95 @@ describe("admin settlements", () => {
     expect(v.rows.every((r) => r.registrationAtRequest && /^\*+\d{4}$/.test(r.registrationAtRequest.accountMasked))).toBe(true);
   });
 });
+
+describe("지급 완료 (2026-10-08 결정)", () => {
+  beforeEach(() => {
+    resetMockStores();
+    signIn(["ADMIN"]);
+  });
+
+  async function approved(m: Awaited<ReturnType<typeof load>>, id = "st-p") {
+    addPending(m, id, 50_000);
+    expect(await m.decideSettlement(OP, { id, decision: "APPROVE", note: "서류 확인 완료" })).toEqual({ status: "OK" });
+    return id;
+  }
+
+  it("records the transfer of an approved request once, with one audit entry", async () => {
+    const m = await load();
+    const id = await approved(m);
+    const pay = { id, reference: "TRF-20261008-0001", requestId: key(1) };
+    expect(await m.paySettlement(OP, pay)).toEqual({ status: "OK" });
+    expect(await m.paySettlement(OP, pay)).toEqual({ status: "OK" });
+    expect(m.mockSettlement.requests.find((r) => r.id === id)).toMatchObject({ status: "PAID", payoutDate: "2026-10-31", payment: { by: OP.nickname, reference: "TRF-20261008-0001" } });
+    expect(m.auditEntries().map((e) => [e.action, e.target, e.reason])).toEqual([
+      ["SETTLEMENT_PAY", `settlement:${id}`, "이체 참조 TRF-20261008-0001"],
+      ["SETTLEMENT_APPROVE", `settlement:${id}`, "서류 확인 완료"]
+    ]);
+    // Another request id for the same payment, or the same id for another request, is refused.
+    expect(await m.paySettlement(OP, { ...pay, requestId: key(2) })).toEqual({ status: "INVALID", message: "이미 지급 완료된 정산이에요." });
+    expect(await m.paySettlement(OP, { ...pay, id: "st-seed-1" })).toMatchObject({ status: "INVALID" });
+    // A retried approval of a paid request is the approval it was.
+    expect(await m.decideSettlement(OP, { id, decision: "APPROVE", note: "서류 확인 완료" })).toEqual({ status: "OK" });
+    expect(await m.decideSettlement(OP, { id, decision: "REJECT", note: "뒤집기" })).toMatchObject({ status: "INVALID" });
+
+    const rows = (await m.getSettlementReview({ status: "PAID" }))!.rows;
+    expect(rows).toHaveLength(1);
+    expect(rows[0].payment).toEqual({ at: expect.any(String), by: OP.nickname, reference: "TRF-20261008-0001" });
+    expect((await m.getSettlementReview())!.counts.PAID).toBe(1);
+  });
+
+  it("refuses 지급 완료 from any state but 승인, and for a withdrawn creator", async () => {
+    const m = await load();
+    const ref = (n: number) => ({ reference: "TRF-0001", requestId: key(n) });
+    addPending(m, "st-pending", 40_000);
+    expect(await m.paySettlement(OP, { id: "st-pending", ...ref(1) })).toEqual({ status: "INVALID", message: "승인된 정산만 지급 완료로 처리할 수 있어요." });
+    await m.decideSettlement(OP, { id: "st-pending", decision: "REJECT", note: "계좌 불일치" });
+    expect(await m.paySettlement(OP, { id: "st-pending", ...ref(2) })).toEqual({ status: "INVALID", message: "승인된 정산만 지급 완료로 처리할 수 있어요." });
+    addPending(m, "st-forfeit", 40_000);
+    m.mockSettlement.requests.find((r) => r.id === "st-forfeit")!.status = "FORFEITED";
+    expect(await m.paySettlement(OP, { id: "st-forfeit", ...ref(3) })).toEqual({ status: "INVALID", message: "탈퇴로 소멸된 정산이라 지급할 수 없어요." });
+    expect(await m.paySettlement(OP, { id: "nope", ...ref(4) })).toEqual({ status: "NOT_FOUND" });
+
+    // Approved, then the creator withdrew: before a 재가입 and after it (the request moved to the withdrawn account).
+    const id = await approved(m);
+    const { withdrawalStore } = await import("@/services/account/withdrawalCore");
+    withdrawalStore().withdrawal = { at: new Date().toISOString(), requestId: "w-test", forfeitedFn: 0, forfeitedEarningsFn: 0, nickname: "홍길동", funationId: "hongGD123" };
+    const refused = { status: "INVALID", message: "탈퇴한 크리에이터의 정산이라 지급 완료로 처리할 수 없어요." };
+    expect(await m.paySettlement(OP, { id, ...ref(5) })).toEqual(refused);
+    const { startNewAccount } = await import("@/services/account/rejoin");
+    startNewAccount({ nickname: "다시왔어요", password: "newpass12!", marketing: false, phone: "010-0000-0000" });
+    expect(await m.paySettlement(OP, { id, ...ref(6) })).toEqual(refused);
+    expect(m.auditEntries().filter((e) => e.action === "SETTLEMENT_PAY")).toEqual([]);
+  });
+
+  it("validates the request id and the transfer reference, never an account number", async () => {
+    const m = await load();
+    const id = await approved(m);
+    const pay = (reference: unknown, requestId: unknown = key(9)) => m.paySettlement(OP, { id, reference, requestId });
+    expect(await pay("TRF-0001", "short")).toEqual({ status: "INVALID", message: "잘못된 요청입니다." });
+    for (const bad of ["", "abc", "x".repeat(41), "TRF 0001", "이체번호1234", 1234, "-TRF1"]) {
+      expect((await pay(bad)).status).toBe("INVALID");
+    }
+    for (const account of ["1234567890", "110-123-456789", "3333-01-1234567"]) {
+      expect(await pay(account)).toEqual({ status: "INVALID", message: "계좌번호처럼 보여요. 계좌번호 대신 이체 참조번호를 입력해 주세요." });
+    }
+    expect(m.mockSettlement.requests.find((r) => r.id === id)!.status).toBe("APPROVED");
+    // Fewer than 10 digits, or letters in it: a transfer reference.
+    expect(await pay("2026-1008-7")).toEqual({ status: "OK" });
+  });
+
+  it("shows the creator 지급 완료 with the paid date in 정산 관리, without the transfer reference", async () => {
+    const m = await load();
+    const id = await approved(m);
+    await m.paySettlement(OP, { id, reference: "TRF-0001", requestId: key(1) });
+    const { toHistoryItem } = await import("@/services/creator/mockSettlementStore");
+    const { SETTLEMENT_STATUS_LABEL } = await import("@/services/creator/settlementTypes");
+    const item = toHistoryItem(m.mockSettlement.requests.find((r) => r.id === id)!);
+    const today = new Date();
+    const ymd = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    expect(item).toMatchObject({ status: "PAID", paidAt: ymd });
+    expect(JSON.stringify(item)).not.toContain("TRF-0001");
+    expect(SETTLEMENT_STATUS_LABEL[item.status]).toBe("지급 완료");
+    expect(toHistoryItem(m.mockSettlement.requests.find((r) => r.status === "APPROVED")!).paidAt).toBeUndefined();
+  });
+});

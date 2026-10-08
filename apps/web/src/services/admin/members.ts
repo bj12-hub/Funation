@@ -68,6 +68,11 @@ async function directory(): Promise<AdminMember[]> {
   return [sample, ...withdrawn, ...creators, ...supporters];
 }
 
+/** Nickname and 탈퇴 state of every member in the directory, by id (감사 로그 names the members it links to). */
+export async function memberLabels(): Promise<Map<string, { name: string; withdrawn: boolean }>> {
+  return new Map((await directory()).map((m) => [m.id, { name: m.nickname, withdrawn: m.status === "WITHDRAWN" }]));
+}
+
 /** Ids present in the member directory (reports link to 회원 상세 only for these). */
 export async function memberIds(): Promise<Set<string>> {
   return new Set((await directory()).map((m) => m.id));

@@ -1,15 +1,46 @@
 import Link from "next/link";
 import { formatNumber } from "@/lib/format";
-import { type DonationsView, type PaymentsView, CHARGE_STATUS_LABEL, DONATION_STATUS_LABEL, type DonationStatus } from "@/types/adminApi";
+import { type AdminRefund, type DonationsView, type PaymentsView, CHARGE_STATUS_LABEL, DONATION_STATUS_LABEL, type DonationStatus } from "@/types/adminApi";
 import styles from "../admin.module.css";
+import { WithdrawnBadge } from "../WithdrawnBadge";
 import { RefundDecision } from "./RefundDecision";
 
 const REFUND_LABEL = { REQUESTED: "심사 대기", APPROVED: "승인", REJECTED: "거절" } as const;
 const when = (s: string) => s.slice(0, 16).replace("T", " ");
 
+/** A waiting request of an account that has since withdrawn: 처리 불가(탈퇴), outside 처리 대기 (2026-10-08 결정). */
+const isBlocked = (r: AdminRefund) => r.status === "REQUESTED" && r.memberWithdrawn;
+
+function RefundItem({ r }: { r: AdminRefund }) {
+  const chip = isBlocked(r) ? { className: styles.chipNeutral, label: "처리 불가(탈퇴)" } : { className: r.status === "REQUESTED" ? styles.chipWarn : r.status === "APPROVED" ? styles.chipOk : styles.chipBad, label: REFUND_LABEL[r.status] };
+  return (
+    <li className={styles.refundItem}>
+      <div className={styles.refundHead}>
+        <strong>{r.charge ? `${formatNumber(r.charge.fnAmount)} FN · ${formatNumber(r.charge.paidAmount)}원` : r.chargeId}</strong>
+        <span className={chip.className}>{chip.label}</span>
+      </div>
+      <p className={styles.muted}>
+        {r.memberName}
+        <WithdrawnBadge withdrawn={r.memberWithdrawn} /> · 충전 {r.charge ? when(r.charge.chargedAt) : "—"} · {r.charge?.methodLabel ?? "—"} · 요청 {when(r.requestedAt)}
+      </p>
+      <p className={styles.quote}>사유: {r.reason || "(없음)"}</p>
+      {r.decision ? (
+        <p className={styles.muted}>
+          {when(r.decision.at)} · {r.decision.by} · {r.decision.note}
+        </p>
+      ) : isBlocked(r) ? null : (
+        <RefundDecision chargeId={r.chargeId} />
+      )}
+    </li>
+  );
+}
+
 /** 결제 · 환불 — code-first. Route `/payments` (`?tab=charges|refunds`). */
 export function PaymentsScreen({ view, tab }: { view: PaymentsView; tab: "charges" | "refunds" }) {
-  const waiting = view.refunds.filter((r) => r.status === "REQUESTED").length;
+  const blocked = view.refunds.filter(isBlocked);
+  const listed = view.refunds.filter((r) => !isBlocked(r));
+  // 처리 대기: what an operator can decide now.
+  const waiting = listed.filter((r) => r.status === "REQUESTED").length;
   return (
     <div className={styles.content}>
       <header className={styles.pageHead}>
@@ -50,6 +81,7 @@ export function PaymentsScreen({ view, tab }: { view: PaymentsView; tab: "charge
                       <Link href={`/members/${c.memberId}`} className={styles.rowLink}>
                         {c.memberName}
                       </Link>
+                      <WithdrawnBadge withdrawn={c.memberWithdrawn} />
                     </td>
                     <td>{formatNumber(c.fnAmount)} FN</td>
                     <td>{formatNumber(c.paidAmount)}원</td>
@@ -71,31 +103,28 @@ export function PaymentsScreen({ view, tab }: { view: PaymentsView; tab: "charge
           {view.refunds.length === 0 ? (
             <p className={styles.empty}>환불 요청이 없어요. 회원은 FN 충전내역의 상세에서 요청할 수 있어요.</p>
           ) : (
-            <ul className={styles.refundList}>
-              {view.refunds.map((r) => (
-                <li key={r.chargeId} className={styles.refundItem}>
-                  <div className={styles.refundHead}>
-                    <strong>
-                      {r.charge ? `${formatNumber(r.charge.fnAmount)} FN · ${formatNumber(r.charge.paidAmount)}원` : r.chargeId}
-                    </strong>
-                    <span className={r.status === "REQUESTED" ? styles.chipWarn : r.status === "APPROVED" ? styles.chipOk : styles.chipBad}>{REFUND_LABEL[r.status]}</span>
-                  </div>
-                  <p className={styles.muted}>
-                    {r.memberName} · 충전 {r.charge ? when(r.charge.chargedAt) : "—"} · {r.charge?.methodLabel ?? "—"} · 요청 {when(r.requestedAt)}
-                  </p>
-                  <p className={styles.quote}>사유: {r.reason || "(없음)"}</p>
-                  {r.decision ? (
-                    <p className={styles.muted}>
-                      {when(r.decision.at)} · {r.decision.by} · {r.decision.note}
-                    </p>
-                  ) : r.memberWithdrawn ? (
-                    <p className={styles.muted}>탈퇴한 회원의 요청이라 승인 · 거절할 수 없어요. 처리 중인 환불이 있으면 탈퇴할 수 없으니(2026-10-06 결정) 이전 기록에만 남아 있어요.</p>
-                  ) : (
-                    <RefundDecision chargeId={r.chargeId} />
-                  )}
-                </li>
-              ))}
-            </ul>
+            <>
+              {listed.length > 0 && (
+                <ul className={styles.refundList}>
+                  {listed.map((r) => (
+                    <RefundItem key={r.chargeId} r={r} />
+                  ))}
+                </ul>
+              )}
+              {blocked.length > 0 && (
+                <section aria-labelledby="refunds-blocked">
+                  <h2 id="refunds-blocked" className={styles.subTitle}>
+                    처리 불가(탈퇴) {blocked.length}
+                  </h2>
+                  <p className={styles.muted}>탈퇴한 회원의 요청이라 승인 · 거절할 수 없어서 처리 대기에 넣지 않아요. 처리 중인 환불이 있으면 탈퇴할 수 없으니(2026-10-06 결정) 탈퇴와 거의 같은 때 들어온 요청만 여기에 남아요.</p>
+                  <ul className={styles.refundList}>
+                    {blocked.map((r) => (
+                      <RefundItem key={r.chargeId} r={r} />
+                    ))}
+                  </ul>
+                </section>
+              )}
+            </>
           )}
         </section>
       )}
@@ -163,7 +192,8 @@ export function DonationsAdminScreen({ view, status }: { view: DonationsView; st
                   <tr key={d.id}>
                     <td>{when(d.donatedAt)}</td>
                     <td>
-                      {d.memberName} → {d.creatorName}
+                      {d.memberName}
+                      <WithdrawnBadge withdrawn={d.memberWithdrawn} /> → {d.creatorName}
                     </td>
                     <td>{d.typeLabel}</td>
                     <td>{formatNumber(d.fnAmount)}</td>

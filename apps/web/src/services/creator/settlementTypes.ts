@@ -101,9 +101,12 @@ export type RegistrationResult =
 
 // ── 정산 신청 (458:4 · 469:* · 473:2 · 477:2 · 463:2) ─────────────────────────────────
 
-/** FORFEITED = the creator withdrew and agreed to forfeit earnings waiting for settlement (2026-10-05 결정). */
-export type SettlementStatus = "PENDING" | "APPROVED" | "REJECTED" | "FORFEITED";
-export const SETTLEMENT_STATUS_LABEL: Record<SettlementStatus, string> = { PENDING: "승인대기", APPROVED: "승인", REJECTED: "거절", FORFEITED: "탈퇴 소멸" };
+/**
+ * FORFEITED = the creator withdrew and agreed to forfeit earnings waiting for settlement (2026-10-05 결정).
+ * PAID = 지급 완료: an operator recorded the transfer of an APPROVED request (2026-10-08 결정; 지급 수단 · 일정 TBD).
+ */
+export type SettlementStatus = "PENDING" | "APPROVED" | "PAID" | "REJECTED" | "FORFEITED";
+export const SETTLEMENT_STATUS_LABEL: Record<SettlementStatus, string> = { PENDING: "승인대기", APPROVED: "승인", PAID: "지급 완료", REJECTED: "거절", FORFEITED: "탈퇴 소멸" };
 
 export type SettlementHistoryItem = {
   id: string;
@@ -117,6 +120,8 @@ export type SettlementHistoryItem = {
   payoutDate: string | null;
   /** 반려 사유 from the admin review (code-first). */
   reviewNote?: string;
+  /** 지급 완료일 (yyyy-mm-dd) once an operator recorded the transfer; the transfer reference stays with the operator. */
+  paidAt?: string;
 };
 
 export type SettlementApplyView = {

@@ -7,8 +7,8 @@ import { findChargeRecord, listAccountChargeRecords, listAccountDonationRecords,
 import type { DonationStatus } from "@/services/wallet/walletTypes";
 import type { AdminActor } from "./adminTypes";
 import { recordAudit } from "./auditCore";
-import { SAMPLE_MEMBER_ID, slotAccountOf } from "./memberCore";
-import { REFUND_NOTE, WITHDRAWN_MEMBER_NAME, type AdminChargeRow, type AdminDonationRow, type AdminRefund, type DonationsView, type PaymentsView, type RefundDecisionResult } from "./paymentTypes";
+import { SAMPLE_MEMBER_ID, slotAccountLabel } from "./memberCore";
+import { REFUND_NOTE, type AdminChargeRow, type AdminDonationRow, type AdminRefund, type DonationsView, type PaymentsView, type RefundDecisionResult } from "./paymentTypes";
 
 /**
  * 후원 · 결제 운영 API logic — code-first (called by `/api/admin/*`). Admin app screens `/admin/payments`, `/admin/donations`.
@@ -20,13 +20,13 @@ const assertMock = () => {
   if (!USE_MOCK) throw new Error("Admin payment API is not connected yet.");
 };
 /**
- * Whose a wallet record is, by the start marker of the account it belongs to: the account holding the slot now (its
- * nickname, as before), or a withdrawn one a 재가입 moved aside (`…-wN`, with the nickname it had — the label its records
- * showed until then; whether withdrawn members show their nickname or 탈퇴한 회원 here is a pending decision).
+ * Whose a wallet record is, by the start marker of the account it belongs to: the account holding the slot now, or a
+ * withdrawn one a 재가입 moved aside (`…-wN`). A withdrawn account shows its original nickname, marked withdrawn
+ * (2026-10-08 결정 — the console shows 탈퇴 with a badge, never "탈퇴한 회원").
  */
 const owner = (account: string | null) => {
-  const a = slotAccountOf(account);
-  return { memberId: a.memberId, memberName: a.past ? a.past.nickname : mockAccount.nickname };
+  const a = slotAccountLabel(account);
+  return { memberId: a.memberId, memberName: a.name, memberWithdrawn: a.withdrawn };
 };
 
 /**
@@ -35,18 +35,32 @@ const owner = (account: string | null) => {
  */
 const fromCurrentAccount = (r: MockRefundRequest) => r.accountSince === accountSince() && !isWithdrawn();
 
+/**
+ * 처리 대기 (2026-10-08 결정 D4b): requests an operator can decide now. A waiting request of an account that has since
+ * withdrawn is 처리 불가(탈퇴) — left out of the 처리 대기 counts, listed apart, and still refused by `decideRefund`.
+ */
+export function refundQueue(): { waiting: number; blocked: number } {
+  const open = mockRefunds.requests.filter((r) => r.status === "REQUESTED");
+  const waiting = open.filter(fromCurrentAccount).length;
+  return { waiting, blocked: open.length - waiting };
+}
+
+/** Order: 처리 대기, then 처리 불가(탈퇴), then decided requests; newest first within each. */
+const queueRank = (r: MockRefundRequest) => (r.status !== "REQUESTED" ? 2 : fromCurrentAccount(r) ? 0 : 1);
+
 function refunds(): AdminRefund[] {
   return [...mockRefunds.requests]
-    .sort((a, b) => Number(a.status !== "REQUESTED") - Number(b.status !== "REQUESTED") || b.requestedAt.localeCompare(a.requestedAt))
+    .sort((a, b) => queueRank(a) - queueRank(b) || b.requestedAt.localeCompare(a.requestedAt))
     .map((r) => {
       const c = findChargeRecord(r.chargeId);
-      const current = fromCurrentAccount(r);
+      const who = slotAccountLabel(r.accountSince);
       return {
         chargeId: r.chargeId,
         // The slot's id belongs to a new account after a 재가입: a withdrawn account's request points to its `…-wN`.
-        memberId: r.memberId === SAMPLE_MEMBER_ID ? slotAccountOf(r.accountSince).memberId : r.memberId,
-        memberName: current ? mockAccount.nickname : WITHDRAWN_MEMBER_NAME,
-        memberWithdrawn: !current,
+        memberId: r.memberId === SAMPLE_MEMBER_ID ? who.memberId : r.memberId,
+        memberName: who.name,
+        // Same account test as `fromCurrentAccount`: such a request is shown with a 탈퇴 badge and cannot be decided.
+        memberWithdrawn: !fromCurrentAccount(r),
         requestedAt: r.requestedAt,
         reason: r.reason,
         status: r.status,

@@ -2,18 +2,22 @@ import Link from "next/link";
 import { formatNumber } from "@/lib/format";
 import type { AdminSettlementView, SettlementStatus } from "@/types/adminApi";
 import styles from "../admin.module.css";
+import { WithdrawnBadge } from "../WithdrawnBadge";
 import { SettlementDecision } from "./SettlementDecision";
+import { SettlementPayment } from "./SettlementPayment";
 
-const LABEL: Record<SettlementStatus, string> = { PENDING: "심사 대기", APPROVED: "승인", REJECTED: "반려", FORFEITED: "탈퇴 소멸" };
-const CHIP: Record<SettlementStatus, string> = { PENDING: styles.chipWarn, APPROVED: styles.chipOk, REJECTED: styles.chipBad, FORFEITED: styles.chipNeutral };
+const LABEL: Record<SettlementStatus, string> = { PENDING: "심사 대기", APPROVED: "승인", PAID: "지급 완료", REJECTED: "반려", FORFEITED: "탈퇴 소멸" };
+const CHIP: Record<SettlementStatus, string> = { PENDING: styles.chipWarn, APPROVED: styles.chipOk, PAID: styles.chipOk, REJECTED: styles.chipBad, FORFEITED: styles.chipNeutral };
+const when = (iso: string) => iso.slice(0, 16).replace("T", " ");
 
-/** 정산 심사 — code-first. Route `/settlements` (`?status=`). */
+/** 정산 심사 — code-first. Route `/settlements` (`?status=`). 승인 → 지급 완료 (2026-10-08 결정). */
 export function SettlementReviewScreen({ view, status }: { view: AdminSettlementView; status: SettlementStatus | null }) {
   const reg = view.registration;
   const tabs: { key: SettlementStatus | null; label: string; count: number }[] = [
-    { key: null, label: "전체", count: view.counts.PENDING + view.counts.APPROVED + view.counts.REJECTED + view.counts.FORFEITED },
+    { key: null, label: "전체", count: view.counts.PENDING + view.counts.APPROVED + view.counts.PAID + view.counts.REJECTED + view.counts.FORFEITED },
     { key: "PENDING", label: "심사 대기", count: view.counts.PENDING },
     { key: "APPROVED", label: "승인", count: view.counts.APPROVED },
+    { key: "PAID", label: "지급 완료", count: view.counts.PAID },
     { key: "REJECTED", label: "반려", count: view.counts.REJECTED },
     { key: "FORFEITED", label: "탈퇴 소멸", count: view.counts.FORFEITED }
   ];
@@ -21,7 +25,7 @@ export function SettlementReviewScreen({ view, status }: { view: AdminSettlement
     <div className={styles.content}>
       <header className={styles.pageHead}>
         <h1 className={styles.title}>정산 심사</h1>
-        <p className={styles.muted}>수수료 · 실지급액은 정산 서비스가 계산한 mock 값이에요 (수수료율 · 환율 · 최소 금액 · 지급 일정은 TBD). 반려하면 신청 금액이 크리에이터의 신청 가능 금액으로 돌아가요.</p>
+        <p className={styles.muted}>수수료 · 실지급액은 정산 서비스가 계산한 mock 값이에요 (수수료율 · 환율 · 최소 금액 · 지급 일정은 TBD). 반려하면 신청 금액이 크리에이터의 신청 가능 금액으로 돌아가요. 승인한 신청은 이체 후 이체 참조번호로 지급 완료 처리해요 (지급 수단 · 이체 연동은 TBD).</p>
       </header>
       <section className={styles.card} aria-labelledby="st-reg">
         <h2 id="st-reg" className={styles.cardTitle}>
@@ -65,7 +69,8 @@ export function SettlementReviewScreen({ view, status }: { view: AdminSettlement
               <li key={r.id} className={styles.refundItem}>
                 <div className={styles.refundHead}>
                   <strong>
-                    {r.creatorName} · {formatNumber(r.amountFn)} FN
+                    {r.creatorName}
+                    <WithdrawnBadge withdrawn={r.creatorWithdrawn} /> · {formatNumber(r.amountFn)} FN
                   </strong>
                   <span className={CHIP[r.status]}>{LABEL[r.status]}</span>
                 </div>
@@ -84,13 +89,22 @@ export function SettlementReviewScreen({ view, status }: { view: AdminSettlement
                 )}
                 {r.review ? (
                   <p className={styles.muted}>
-                    {r.review.at.slice(0, 16).replace("T", " ")} · {r.review.by} · {r.review.note}
+                    {when(r.review.at)} · {r.review.by} · {r.review.note}
                   </p>
                 ) : r.status === "PENDING" ? (
                   <SettlementDecision id={r.id} canApprove={r.registrationAtRequest !== null} />
                 ) : (
                   <p className={styles.muted}>기존 처리 건 (처리 기록 없음 · mock 시드)</p>
                 )}
+                {r.payment ? (
+                  <p className={styles.muted}>
+                    지급 완료 {when(r.payment.at)} · {r.payment.by} · 이체 참조 {r.payment.reference}
+                  </p>
+                ) : r.status === "APPROVED" && r.creatorWithdrawn ? (
+                  <p className={styles.muted}>탈퇴한 크리에이터의 정산이라 지급 완료로 처리할 수 없어요.</p>
+                ) : r.status === "APPROVED" ? (
+                  <SettlementPayment id={r.id} />
+                ) : null}
               </li>
             ))}
           </ul>
