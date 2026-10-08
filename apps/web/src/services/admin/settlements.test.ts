@@ -178,8 +178,8 @@ describe("지급 완료 (2026-10-08 결정)", () => {
 
     // Approved, then the creator withdrew: before a 재가입 and after it (the request moved to the withdrawn account).
     const id = await approved(m);
-    const { withdrawalStore } = await import("@/services/account/withdrawalCore");
-    withdrawalStore().withdrawal = { at: new Date().toISOString(), requestId: "w-test", forfeitedFn: 0, forfeitedEarningsFn: 0, nickname: "홍길동", funationId: "hongGD123" };
+    const { recordWithdrawal } = await import("@/services/account/withdrawalRecord");
+    recordWithdrawal({ at: new Date().toISOString(), requestId: "w-test", forfeitedFn: 0, forfeitedEarningsFn: 0 });
     const refused = { status: "INVALID", message: "탈퇴한 크리에이터의 정산이라 지급 완료로 처리할 수 없어요." };
     expect(await m.paySettlement(OP, { id, ...ref(5) })).toEqual(refused);
     const { startNewAccount } = await import("@/services/account/rejoin");

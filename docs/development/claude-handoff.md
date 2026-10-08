@@ -114,6 +114,9 @@ Tips:
   connections, overlay and bank-SMS keys, settlement registration); a 재가입 starts without the old consents,
   settlement history, earnings or notifications, and the withdrawn account's posts, comments, blocks and reports move
   to its own `…-wN` member id. New per-account state needs the same treatment in `withdrawal.ts` / `rejoin.ts`.
+  Retention (2026-10-08, 기본값 — 법무 검토 전): periods live only in `account/retentionPolicy.ts`; a withdrawn
+  account's data goes at its date in `account/retentionPurge.ts` (lazy, on console reads and sign-up). New personal
+  data either goes at withdrawal or gets a category there.
 - Parallel work in worktrees: link `node_modules` with a junction (`New-Item -ItemType Junction` when
   `cmd /c mklink` is blocked) and remove only the junction before deleting the worktree.
 

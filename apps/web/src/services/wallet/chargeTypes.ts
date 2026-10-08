@@ -79,7 +79,7 @@ export type ChargeConsentKey = "guardian" | "privacy" | "payment" | "marketing";
 export const CHARGE_CONSENTS: { key: ChargeConsentKey; required: boolean; label: string; href?: string }[] = [
   { key: "guardian", required: true, label: "만 19세 미만 미성년자 법정대리인 동의" },
   { key: "privacy", required: true, label: "개인정보 제3자 제공 및 수집·이용 동의", href: "/terms/privacy" },
-  { key: "payment", required: true, label: "결제 서비스 이용약관 및 환불 정책 동의", href: "/terms/service" },
+  { key: "payment", required: true, label: "결제 서비스 이용약관 및 환불 정책 동의", href: "/terms/refund" },
   { key: "marketing", required: false, label: "이벤트 혜택 및 마케팅 알림 수신 동의", href: "/terms/marketing" }
 ];
 

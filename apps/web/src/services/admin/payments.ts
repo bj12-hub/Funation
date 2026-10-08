@@ -2,6 +2,7 @@ import { toDateString } from "@/lib/period";
 import { USE_MOCK } from "@/lib/mock";
 import { mockAccount } from "@/services/account/mockStore";
 import { accountSince, isWithdrawn } from "@/services/account/withdrawalCore";
+import { purgeExpired } from "@/services/account/retentionPurge";
 import { mockRefunds, type MockRefundRequest } from "@/services/wallet/mockRefundStore";
 import { chargeRefundQuote } from "@/services/wallet/refundCore";
 import { REFUND_POLICY_LABEL, REFUND_POLICY_SUMMARY, REFUND_TYPE_LABEL, refundAmounts, sameRefund, type RefundAmounts, type RefundQuote } from "@/services/wallet/refundPolicy";
@@ -92,6 +93,7 @@ const isAmount = (v: unknown): v is number => typeof v === "number" && Number.is
 
 export async function getPaymentsView(): Promise<PaymentsView | null> {
   assertMock();
+  purgeExpired(); // records past their retention date are not shown (account/retentionPolicy.ts)
   // Every account's charges: a withdrawn account's stay in the console (audit trail) under its own `…-wN` member.
   const charges = listAccountChargeRecords()
     .map(
@@ -159,6 +161,7 @@ export async function decideRefund(admin: AdminActor, input: unknown): Promise<R
 
 export async function getDonationsView(input: { status?: unknown } = {}): Promise<DonationsView | null> {
   assertMock();
+  purgeExpired();
   // Field by field: the supporter's message and profile settings are not the console's to show.
   const all = listAccountDonationRecords()
     .map((d): AdminDonationRow => ({ id: d.id, donatedAt: d.donatedAt, creatorName: d.creatorName, fnAmount: d.fnAmount, typeLabel: d.typeLabel, status: d.status, ...owner(d.account) }))

@@ -1,4 +1,5 @@
 import { USE_MOCK } from "@/lib/mock";
+import { purgeExpired } from "@/services/account/retentionPurge";
 import { mockCreator } from "@/services/creator/mockCreatorStore";
 import { mockSettlement, type MockSettlementRegistration, type MockSettlementRequest } from "@/services/creator/mockSettlementStore";
 import { memberTypeLabel, type SettlementStatus } from "@/services/creator/settlementTypes";
@@ -50,6 +51,7 @@ const requester = (r: MockSettlementRequest) => {
 
 export async function getSettlementReview(input: { status?: unknown } = {}): Promise<AdminSettlementView | null> {
   assertMock();
+  purgeExpired(); // a withdrawn account's requests go at the end of its 대금결제 기록 retention (account/retentionPolicy.ts)
   // Requests of a withdrawn account (moved at 재가입) stay listed for the record.
   const all = [...mockSettlement.requests, ...(mockSettlement.pastRequests ?? [])];
   const counts = Object.fromEntries(STATUSES.map((s) => [s, all.filter((r) => r.status === s).length])) as AdminSettlementView["counts"];

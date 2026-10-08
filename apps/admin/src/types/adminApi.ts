@@ -63,6 +63,12 @@ export const AUDIT_MAX = 500;
 
 export type MemberStatus = "ACTIVE" | "SUSPENDED" | "WITHDRAWN";
 export type Suspension = { reason: string; at: string; until: string | null; by: string };
+export type RetentionCategory = "CONTRACT" | "PAYMENT" | "DISPUTE" | "ACCESS_LOG" | "PERSON_KEY" | "POSTS";
+/**
+ * 탈퇴 회원 정보 보관: one row of the site's shared retention list (기본값, 법무 검토 전) with this account's date.
+ * `until`: when the category's data goes (null = 삭제하지 않음); `purged`: it has gone.
+ */
+export type MemberRetention = { category: RetentionCategory; label: string; period: string; basis: string; covers: string; until: string | null; purged: boolean };
 export type AdminMember = {
   id: string;
   nickname: string;
@@ -72,8 +78,8 @@ export type AdminMember = {
   lastActiveAt: string;
   status: MemberStatus;
   suspension: Suspension | null;
-  /** 회원 탈퇴: when, and the FN and creator earnings the member agreed to forfeit. */
-  withdrawal: { at: string; forfeitedFn: number; forfeitedEarningsFn: number } | null;
+  /** 회원 탈퇴: when, the FN and creator earnings the member agreed to forfeit, and until when each kind of data is kept. */
+  withdrawal: { at: string; forfeitedFn: number; forfeitedEarningsFn: number; retentionNote: string; retention: MemberRetention[] } | null;
   fnBalance: number;
   donationTotalFn: number;
   creatorId: string | null;

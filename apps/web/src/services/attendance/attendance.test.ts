@@ -51,9 +51,9 @@ describe("출석체크", () => {
   describe("재가입", () => {
     /** Withdraws the sample account and signs up again at the current (fake) time with this phone. */
     async function rejoin(phone: string) {
-      const { withdrawalStore } = await import("@/services/account/withdrawalCore");
+      const { recordWithdrawal } = await import("@/services/account/withdrawalRecord");
       const { startNewAccount } = await import("@/services/account/rejoin");
-      withdrawalStore().withdrawal = { at: new Date().toISOString(), requestId: "w-test", forfeitedFn: 0, forfeitedEarningsFn: 0, nickname: "홍길동", funationId: "hongGD123" };
+      recordWithdrawal({ at: new Date().toISOString(), requestId: "w-test", forfeitedFn: 0, forfeitedEarningsFn: 0 });
       expect(startNewAccount({ nickname: "다시왔어요", password: "newpass12!", marketing: false, phone })).toBe(true);
     }
 

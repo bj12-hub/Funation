@@ -8,7 +8,9 @@ import type { AdminActor } from "./adminTypes";
 import { auditEntries, recordAudit } from "./auditCore";
 import { SAMPLE_MEMBER_ID, creatorMemberId, isMemberSuspended, isWithdrawnMember, memberStore, slotMemberAt, suspensionOf, withdrawnMemberId } from "./memberCore";
 import { accountSince, withdrawalOf, withdrawalStore, type Withdrawal } from "@/services/account/withdrawalCore";
-import { ADMIN_QUERY_MAX, MEMBERS_PAGE, SUSPEND_DAYS, SUSPEND_REASON, type AdminCreatorRow, type AdminMember, type MemberActionResult, type MemberFilter, type MemberPage } from "./memberTypes";
+import { RETENTION_DEFAULTS_LABEL, retentionRule, retentionSchedule } from "@/services/account/retentionPolicy";
+import { purgeExpired } from "@/services/account/retentionPurge";
+import { ADMIN_QUERY_MAX, MEMBERS_PAGE, SUSPEND_DAYS, SUSPEND_REASON, type AdminCreatorRow, type AdminMember, type MemberActionResult, type MemberFilter, type MemberPage, type MemberRetention } from "./memberTypes";
 
 /**
  * 회원 · 크리에이터 관리 API logic — code-first (called by `/api/admin/*`). Admin app screens `/admin/members`, `/admin/members/[id]`,
@@ -19,7 +21,16 @@ const assertMock = () => {
   if (!USE_MOCK) throw new Error("Admin member API is not connected yet.");
 };
 
+/** 탈퇴 회원 정보 보관 (account/retentionPolicy.ts, 기본값): until when each category of the account's data is kept. */
+const retentionOf = (w: Withdrawal): MemberRetention[] =>
+  retentionSchedule(w.at).map(({ category, until }) => {
+    const rule = retentionRule(category);
+    return { category, label: rule.label, period: rule.period, basis: rule.basis, covers: rule.covers, until, purged: w.purged.includes(category) };
+  });
+
 async function directory(): Promise<AdminMember[]> {
+  // Data past its retention date goes before anything is shown (the purge runs lazily on reads).
+  purgeExpired();
   const now = Date.now();
   const status = (id: string) => (isMemberSuspended(id, now) ? "SUSPENDED" : "ACTIVE") as AdminMember["status"];
   const withStatus = (m: Omit<AdminMember, "status" | "suspension" | "withdrawal">): AdminMember => ({
@@ -43,29 +54,41 @@ async function directory(): Promise<AdminMember[]> {
     donationTotalFn: donatedBy(accountSince()),
     creatorId: null
   });
-  const record = (w: Withdrawal) => ({ at: w.at, forfeitedFn: w.forfeitedFn, forfeitedEarningsFn: w.forfeitedEarningsFn });
+  const record = (w: Withdrawal): AdminMember["withdrawal"] => ({
+    at: w.at,
+    forfeitedFn: w.forfeitedFn,
+    forfeitedEarningsFn: w.forfeitedEarningsFn,
+    retentionNote: RETENTION_DEFAULTS_LABEL,
+    retention: retentionOf(w)
+  });
+  // A withdrawn account is listed while its 탈퇴 기록 is kept (계약 기록, 5년 — 기본값); after that it is gone.
+  const listed = (w: Withdrawal) => !w.purged.includes("CONTRACT");
   // 회원 탈퇴: the sample member stays listed as 탈퇴 with what was forfeited.
-  const sample: AdminMember = withdrawal ? { ...active, status: "WITHDRAWN", suspension: null, withdrawal: record(withdrawal) } : active;
+  const sample: AdminMember | null = withdrawal ? (listed(withdrawal) ? { ...active, status: "WITHDRAWN", suspension: null, withdrawal: record(withdrawal) } : null) : active;
   // After a 재가입 the slot is a new account; the withdrawn ones stay in the directory (mock ids `…-w1`, `…-w2`).
-  const withdrawn = withdrawalStore().past.map(
-    (w, i): AdminMember => ({
-      ...active,
-      id: withdrawnMemberId(i + 1),
-      nickname: w.nickname,
-      funationId: w.funationId,
-      lastActiveAt: w.at.slice(0, 10),
-      fnBalance: 0,
-      donationTotalFn: donatedBy(w.accountSince),
-      status: "WITHDRAWN",
-      suspension: null,
-      withdrawal: record(w)
-    })
+  const withdrawn = withdrawalStore().past.flatMap((w, i): AdminMember[] =>
+    listed(w)
+      ? [
+          {
+            ...active,
+            id: withdrawnMemberId(i + 1),
+            nickname: w.nickname,
+            funationId: w.funationId,
+            lastActiveAt: w.at.slice(0, 10),
+            fnBalance: 0,
+            donationTotalFn: donatedBy(w.accountSince),
+            status: "WITHDRAWN",
+            suspension: null,
+            withdrawal: record(w)
+          }
+        ]
+      : []
   );
   const creators = (await getAllCreatorsForAdmin()).map((c) =>
     withStatus({ id: creatorMemberId(c.id), nickname: c.name, funationId: `creator-${c.id}`, roles: ["SUPPORTER", "CREATOR"], joinedAt: c.joinedAt, lastActiveAt: c.joinedAt, fnBalance: 0, donationTotalFn: 0, creatorId: c.id })
   );
   const supporters = memberStore().supporters.map((s) => withStatus({ ...s, roles: ["SUPPORTER"], creatorId: null }));
-  return [sample, ...withdrawn, ...creators, ...supporters];
+  return [...(sample ? [sample] : []), ...withdrawn, ...creators, ...supporters];
 }
 
 /** Nickname and 탈퇴 state of every member in the directory, by id (감사 로그 names the members it links to). */

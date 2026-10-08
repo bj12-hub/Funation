@@ -7,6 +7,8 @@ import { MemberActions } from "./MemberActions";
 
 const ROLE_LABEL = { SUPPORTER: "후원자", CREATOR: "크리에이터", ADMIN: "관리자" } as const;
 const day = (iso: string) => iso.slice(0, 10).replace(/-/g, ".");
+/** The Korean date of an ISO time ("2031.10.08"), whatever the server's zone: retention dates are Korean dates. */
+const koreanDay = (iso: string) => day(new Date(Date.parse(iso) + 9 * 3_600_000).toISOString());
 
 const STATUS_CHIP = {
   ACTIVE: { label: "정상", className: styles.chipOk },
@@ -165,7 +167,47 @@ export function MemberDetailScreen({ member, audit }: { member: AdminMember; aud
           )}
         </section>
       </div>
+      {member.withdrawal && <RetentionCard withdrawal={member.withdrawal} />}
     </div>
+  );
+}
+
+/**
+ * 탈퇴 회원 정보 보관 — code-first. Until when each kind of a withdrawn member's data is kept, from the site's shared
+ * list (기본값, 법무 검토 전); a date that has come shows as 파기됨. Records needed for audit stay until their date.
+ */
+function RetentionCard({ withdrawal }: { withdrawal: NonNullable<AdminMember["withdrawal"]> }) {
+  return (
+    <section className={styles.card} aria-labelledby="mem-retention">
+      <h2 id="mem-retention" className={styles.cardTitle}>
+        탈퇴 회원 정보 보관
+      </h2>
+      <p className={styles.muted}>
+        보관 기간: {withdrawal.retentionNote}. 탈퇴 시각부터 세고, 기한이 되면 파기하거나 알아볼 수 없게 바꿔요. 표에 없는 개인정보는 탈퇴할 때 삭제됐어요.
+      </p>
+      <table className={styles.table}>
+        <thead>
+          <tr>
+            <th scope="col">분류</th>
+            <th scope="col">보관 기한</th>
+            <th scope="col">기간</th>
+            <th scope="col">근거</th>
+            <th scope="col">포함되는 것</th>
+          </tr>
+        </thead>
+        <tbody>
+          {withdrawal.retention.map((r) => (
+            <tr key={r.category}>
+              <td>{r.label}</td>
+              <td>{r.until === null ? "삭제하지 않음" : r.purged ? `파기됨 (${koreanDay(r.until)})` : `${koreanDay(r.until)}까지`}</td>
+              <td>{r.period}</td>
+              <td>{r.basis}</td>
+              <td>{r.covers}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
   );
 }
 

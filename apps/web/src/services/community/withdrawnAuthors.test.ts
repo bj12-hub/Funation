@@ -12,10 +12,10 @@ async function load() {
   const community = await import("./community");
   const channel = await import("@/services/creators/channelHome");
   const moderation = await import("@/services/moderation/moderation");
-  const { withdrawalStore } = await import("@/services/account/withdrawalCore");
+  const { recordWithdrawal } = await import("@/services/account/withdrawalRecord");
   const { startNewAccount } = await import("@/services/account/rejoin");
   const { SAMPLE_MEMBER_ID } = await import("@/services/admin/memberCore");
-  return { ...community, ...channel, ...moderation, withdrawalStore, startNewAccount, SAMPLE_MEMBER_ID };
+  return { ...community, ...channel, ...moderation, recordWithdrawal, startNewAccount, SAMPLE_MEMBER_ID };
 }
 
 const WITHDRAWN = "탈퇴한 회원";
@@ -42,7 +42,7 @@ describe("withdrawn authors", () => {
     });
 
     // The account withdraws (withdrawAccount records this; the session mock does not look at it).
-    m.withdrawalStore().withdrawal = { at: new Date().toISOString(), requestId: key(90), forfeitedFn: 0, forfeitedEarningsFn: 0, nickname: "홍길동", funationId: "hongGD123" };
+    m.recordWithdrawal({ at: new Date().toISOString(), requestId: key(90), forfeitedFn: 0, forfeitedEarningsFn: 0 });
     signInAs("u-other");
     expect(await names()).toEqual({ board: WITHDRAWN, post: WITHDRAWN, comment: WITHDRAWN, channel: WITHDRAWN });
     expect(await m.getPost(postId)).toMatchObject({ mine: false });
