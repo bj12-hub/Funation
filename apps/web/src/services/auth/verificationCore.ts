@@ -8,15 +8,15 @@ import { CODE_TTL_SECONDS, type VerificationPurpose } from "./verificationTypes"
  * A code is accepted only if it was sent to that phone for that purpose less than CODE_TTL_SECONDS ago
  * (Figma 13:63 · 720:60: 3 minutes) and fewer than MAX_CODE_ATTEMPTS wrong codes were tried on it. A correct
  * code is used up and gives a random, single-use token bound to the phone and the purpose.
- * TBD with the backend: SMS provider, send rate limits, the attempt limit and how long a verified phone stays
- * usable (VERIFIED_TOKEN_TTL_MS).
+ * 2026-10-08 결정 (기본값): 5 wrong codes invalidate the code, a code lives 3 minutes (CODE_TTL_SECONDS = 180) and a
+ * verified phone must be used within 30 minutes. TBD with the backend: SMS provider, send rate limits.
  */
 
 /** Mock SMS: every sent code is this one. */
 const MOCK_CODE = "123456";
-/** Wrong codes allowed per sent code before it stops working. TBD — the mock uses the login lock's 5. */
+/** Wrong codes per sent code: the 5th wrong code invalidates it, also for the right code after it (2026-10-08 결정). */
 export const MAX_CODE_ATTEMPTS = 5;
-/** How long a verified phone can be used for the sign-up / reset that follows. TBD — placeholder. */
+/** How long a verified phone can be used for the sign-up / reset that follows: 30 minutes (2026-10-08 결정). */
 export const VERIFIED_TOKEN_TTL_MS = 30 * 60_000;
 
 type SentCode = { phone: string; purpose: VerificationPurpose; code: string; sentAt: number; attempts: number };

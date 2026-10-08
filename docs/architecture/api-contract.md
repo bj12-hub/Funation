@@ -38,14 +38,14 @@ Legend: **R** read · **M** mutation · auth `—` none · `S` session · `C` Cr
 
 | Function | Input (enforced) | Result |
 |---|---|---|
-| `login` | identifier, password, keepSignedIn, next | `SUCCESS` · `UNKNOWN_ID` · `WRONG_PASSWORD` · `LOCKED` (5 wrong passwords per account — the identifier is trimmed, lowercased and resolved to its account first; a successful login clears the count, a password reset lifts the lock; lock expiry TBD, per-IP counting is the backend's) — sets the session; old passwords (>180 days, TBD) redirect to `/login/password-change` |
+| `login` | identifier, password, keepSignedIn, next | `SUCCESS` · `UNKNOWN_ID` · `WRONG_PASSWORD` · `LOCKED` (5 wrong passwords per account — the identifier is trimmed, lowercased and resolved to its account first; a successful login clears the count; 2026-10-08 결정: only a password reset lifts the lock — no time-based unlock, no per-IP limit) — sets the session; old passwords (>180 days, TBD) redirect to `/login/password-change` |
 | `logout` | — | redirect `/` |
 | `checkEmailAvailability` · `checkNicknameAvailability` | email / nickname — the 마이페이지 nickname rules (`account/nicknameRules.ts`) | `{ available, reason? }` (`INVALID` · `FORBIDDEN` · `DUPLICATE`; advisory) |
 | `signup` | email, password (8–20 with letter·digit·special — one rule for sign-up, reset and change, 2026-10-08 결정), nickname (2–12 한글/영문/숫자), `SIGNUP` phone token (used up with the account write), the agreement state as left (required ones must be true) — a sign-up while the mock's one account is active is recorded so its e-mail and nickname are taken (it cannot sign in: mock limitation) | `CREATED` · `EMAIL_TAKEN` · `NICKNAME_TAKEN` · `VERIFICATION_EXPIRED` (token unknown / used / expired / other purpose) · `INVALID` |
-| `sendPhoneCode` · `verifyPhoneCode` | phone `01X-XXXX-XXXX`, purpose `SIGNUP`/`PASSWORD_RESET`, 6-digit code — accepted only if it was sent to that phone for that purpose < 180 s ago and fewer than 5 wrong codes were tried on it (limit TBD); a resend replaces the code | `SENT` · `PHONE_NOT_FOUND` / `VERIFIED{verificationToken}` (random, single-use, bound to phone + purpose; usable for 30 min — placeholder, TBD) · `INVALID_OR_EXPIRED` |
+| `sendPhoneCode` · `verifyPhoneCode` | phone `01X-XXXX-XXXX`, purpose `SIGNUP`/`PASSWORD_RESET`, 6-digit code — accepted only if it was sent to that phone for that purpose < 180 s ago and fewer than 5 wrong codes were tried on it (the 5th wrong code invalidates it — 2026-10-08 결정, like the 180 s); a resend replaces the code | `SENT` · `PHONE_NOT_FOUND` / `VERIFIED{verificationToken}` (random, single-use, bound to phone + purpose; usable for 30 min — 2026-10-08 결정) · `INVALID_OR_EXPIRED` |
 | `sendPasswordResetEmail` · `resetPassword` | email / `PASSWORD_RESET` token of the account's phone (checked first, used up with the write) + password rule, not one of the last 3 (2026-10-08 결정) | `SENT` · `EMAIL_NOT_FOUND` / `RESET` (writes the password, lifts the login lock, revokes the session) · `INVALID` · `REUSED` · `VERIFICATION_EXPIRED` |
 
-TBD: SMS/email providers, send rate limits, the code attempt limit and verified-token lifetime, age rules.
+TBD: SMS/email providers, send rate limits, age rules.
 
 ### account (`services/account`, S)
 
@@ -75,7 +75,7 @@ TBD: OAuth hand-off, identity provider, platform ownership verification, whether
 | `quoteChargeRefund` (`refund.ts`) | R | chargeId | `QUOTE{type FULL_CANCEL/PARTIAL/NOT_REFUNDABLE, chargeFn, usedFn, withinPeriod, grossFn, feeFn, netFn}` · the existing request · `INVALID` |
 | `requestChargeRefund` (`refund.ts`) | M | chargeId, reason ≤ 200, expectedGrossFn · expectedNetFn (what the member saw) | the request `{status, requestedAt, amounts, requestedAmounts?}` (one per charge) · `CHANGED{quote}` · `NOT_REFUNDABLE{quote}` · `INVALID` |
 
-Charge refunds follow the 환불 정책 기본값 (일반적인 기준, 법무 검토 전 — docs/domains/wallet.md); the admin approval (`POST /api/admin/refunds/[chargeId]`, `decision`, `note`, `expectedGrossFn` · `expectedNetFn` for APPROVE) recomputes it. TBD: payment provider, FN packages, FN/KRW rate (mock `×1.1`), limits, expiry, KRW refunds per payment method, a reconciled ledger with balance-after.
+Charge refunds follow the 환불 정책 기본값 (일반적인 기준, 법무 검토 전 — docs/domains/wallet.md); the admin approval (`POST /api/admin/refunds/[chargeId]`, `decision`, `note`, `expectedGrossFn` · `expectedNetFn` for APPROVE) recomputes it. `POST /api/admin/refunds/[chargeId]/hold` (`action` HOLD | RELEASE, `note`, `requestId`) puts a waiting request on 보류, which stops 승인 · 거절 until 보류 해제; a member's 이용 정지 does not stop either (2026-10-08 결정). TBD: payment provider, FN packages, FN/KRW rate (mock `×1.1`), limits, expiry, KRW refunds per payment method, a reconciled ledger with balance-after.
 
 ### donations (`services/donations/donate.requestDonation`, S)
 

@@ -20,7 +20,8 @@ import {
  * The mock reads the studio's 룰렛 settings for every channel (one widget store), like the signatures.
  * 2026-10-08 결정: the room's 내 룰렛 belongs to the account (a 재가입 starts without the withdrawn account's spins; the
  * 리모컨 and overlay keep every spin), and 1인 하루 참여 횟수 counts per person (the verified phone, like 출석 · 이벤트 ·
- * 투표) per Korean day, so a same-day 재가입 by the same person does not get a fresh limit.
+ * 투표) per Korean day, so a same-day 재가입 by the same person does not get a fresh limit. The period is one Korean day
+ * (KST 00:00–24:00, 2026-10-08 결정).
  * TBD: refund when a spin cannot run, 결과 자동 노출, audit of creator actions.
  */
 export type RouletteSpin = {
