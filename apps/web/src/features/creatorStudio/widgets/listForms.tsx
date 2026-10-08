@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { formatNumber } from "@/lib/format";
+import { effectLabel } from "@/services/creator/overlayThemeTypes";
 import {
   EVENT_ORDERS,
   EVENT_STYLES,
@@ -55,7 +56,7 @@ export function RecentForm({ value: v, onChange }: FormProps<"RECENT">) {
         <div className={styles.rows}>
           <div className={styles.grid2}>
             <Stacked label="알림 효과">
-              <Select label="알림 효과" value={v.effect} options={RECENT_EFFECTS} onChange={(x) => set("effect", x)} />
+              <Select label="알림 효과" value={v.effect} options={RECENT_EFFECTS} width={220} format={effectLabel} onChange={(x) => set("effect", x)} />
             </Stacked>
             <Stacked label="표시 개수">
               <NumberField label="표시 개수" value={v.count} max={10} width={120} suffix="개" onChange={(x) => set("count", x)} />
@@ -129,7 +130,7 @@ export function EventForm({ value: v, onChange }: FormProps<"EVENT">) {
               <Select label="표시 순서" value={v.order} options={EVENT_ORDERS} onChange={(x) => set("order", x)} />
             </Stacked>
             <Stacked label="알림 효과">
-              <Select label="알림 효과" value={v.effect} options={RECENT_EFFECTS} onChange={(x) => set("effect", x)} />
+              <Select label="알림 효과" value={v.effect} options={RECENT_EFFECTS} width={220} format={effectLabel} onChange={(x) => set("effect", x)} />
             </Stacked>
           </div>
           <Stacked label="폰트 설정">

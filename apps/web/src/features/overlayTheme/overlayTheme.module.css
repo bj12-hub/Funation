@@ -1,0 +1,279 @@
+/*
+ * 오버레이 테마 (code-first, 2026-10-08). Three looks for every OBS overlay:
+ *   BOLD  볼드 플랫     — thick ink outlines, flat color blocks, offset block shadow, Archivo Black numbers
+ *   PILL  미니멀 필     — dark pill cards (Dynamic Island), restrained tabular numbers
+ *   GLASS 소프트 글래스 — translucent cards, large radius, pastel accent, rounded Fredoka numbers
+ * The root sets the tokens; overlays and the studio previews build on the primitives below so a preview is the
+ * overlay itself. --ov-accent / --ov-accent-ink come from the settings (style attribute on the root).
+ * OBS browser sources are transparent, so backdrop blur has nothing to blur: GLASS reads as glass through a light
+ * tint, an inner highlight and a soft shadow instead.
+ */
+
+.root {
+  --ov-ink: #111111;
+  --ov-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ov-enter-ms: 420ms;
+
+  color: var(--ov-on-stream);
+  font-family: var(--ov-body-font);
+  font-variant-numeric: tabular-nums;
+}
+
+.root[data-ov="BOLD"] {
+  --ov-card-bg: #ffffff;
+  --ov-card-ink: #111111;
+  --ov-card-muted: #52525b;
+  --ov-card-border: 2.5px solid #111111;
+  --ov-card-radius: 14px;
+  --ov-card-shadow: 5px 5px 0 #111111;
+  --ov-chip-bg: #ff4f8b;
+  --ov-chip-ink: #ffffff;
+  --ov-chip-border: 2px solid #111111;
+  --ov-track-bg: #ffffff;
+  --ov-track-border: 2px solid #111111;
+  --ov-fill-edge: 2px solid #111111;
+  --ov-display-font: var(--font-ov-black), var(--font-gothic), var(--font-sans);
+  /* Archivo Black has one weight; 900 picks Gothic A1 Black for Korean (no synthesized bold, see .display). */
+  --ov-display-weight: 900;
+  --ov-display-tracking: 0;
+  --ov-body-font: var(--font-gothic), var(--font-sans);
+  --ov-label-weight: 800;
+  --ov-on-stream: #ffffff;
+  --ov-on-stream-shadow: 2px 2px 0 #111111, -1px -1px 0 #111111, 1px -1px 0 #111111, -1px 1px 0 #111111;
+  --ov-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.root[data-ov="PILL"] {
+  --ov-card-bg: rgb(12 12 18 / 88%);
+  --ov-card-ink: #ffffff;
+  --ov-card-muted: rgb(255 255 255 / 64%);
+  --ov-card-border: 1px solid rgb(255 255 255 / 8%);
+  --ov-card-radius: 22px;
+  --ov-card-shadow: 0 10px 30px rgb(0 0 0 / 35%);
+  --ov-chip-bg: rgb(255 255 255 / 14%);
+  --ov-chip-ink: #ffffff;
+  --ov-chip-border: 0 solid transparent;
+  --ov-track-bg: rgb(255 255 255 / 18%);
+  --ov-track-border: 0 solid transparent;
+  --ov-fill-edge: 0 solid transparent;
+  --ov-display-font: var(--font-inter), var(--font-gothic), var(--font-sans);
+  --ov-display-weight: 800;
+  --ov-display-tracking: -0.02em;
+  --ov-body-font: var(--font-gothic), var(--font-sans);
+  --ov-label-weight: 600;
+  --ov-on-stream: #ffffff;
+  --ov-on-stream-shadow: 0 1px 3px rgb(0 0 0 / 75%);
+}
+
+.root[data-ov="GLASS"] {
+  --ov-card-bg: linear-gradient(135deg, rgb(255 255 255 / 34%), rgb(255 255 255 / 12%)), rgb(70 60 120 / 32%);
+  --ov-card-ink: #ffffff;
+  --ov-card-muted: rgb(255 255 255 / 84%);
+  --ov-card-border: 1px solid rgb(255 255 255 / 55%);
+  --ov-card-radius: 24px;
+  --ov-card-shadow: 0 8px 32px rgb(40 20 80 / 28%), inset 0 1px 0 rgb(255 255 255 / 60%);
+  --ov-chip-bg: rgb(255 255 255 / 32%);
+  --ov-chip-ink: #ffffff;
+  --ov-chip-border: 1px solid rgb(255 255 255 / 55%);
+  --ov-track-bg: rgb(255 255 255 / 24%);
+  --ov-track-border: 1px solid rgb(255 255 255 / 55%);
+  --ov-fill-edge: 0 solid transparent;
+  --ov-display-font: var(--font-ov-round), var(--font-gothic), var(--font-sans);
+  --ov-display-weight: 700;
+  --ov-display-tracking: 0;
+  --ov-body-font: var(--font-gothic), var(--font-sans);
+  --ov-label-weight: 700;
+  --ov-on-stream: #ffffff;
+  --ov-on-stream-shadow: 0 1px 3px rgb(40 20 80 / 55%);
+  --ov-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── Primitives ── */
+
+.card {
+  border: var(--ov-card-border);
+  border-radius: var(--ov-card-radius);
+  background: var(--ov-card-bg);
+  box-shadow: var(--ov-card-shadow);
+  color: var(--ov-card-ink);
+}
+
+.root[data-ov="GLASS"] .card {
+  backdrop-filter: blur(14px) saturate(140%);
+}
+
+/* The highlighted block: the accent as the surface (BOLD's yellow card, a GLASS pastel badge …). */
+.accentCard {
+  border: var(--ov-card-border);
+  border-radius: var(--ov-card-radius);
+  background: var(--ov-accent);
+  box-shadow: var(--ov-card-shadow);
+  color: var(--ov-accent-ink);
+}
+
+.root[data-ov="PILL"] .accentCard,
+.root[data-ov="GLASS"] .accentCard {
+  border-color: transparent;
+}
+
+.pill {
+  border-radius: 999px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border: var(--ov-chip-border);
+  border-radius: 999px;
+  background: var(--ov-chip-bg);
+  color: var(--ov-chip-ink);
+  font-size: 0.72em;
+  font-weight: var(--ov-label-weight);
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.chipAccent {
+  background: var(--ov-accent);
+  color: var(--ov-accent-ink);
+}
+
+.display {
+  font-synthesis: none;
+  font-family: var(--ov-display-font);
+  font-weight: var(--ov-display-weight);
+  letter-spacing: var(--ov-display-tracking);
+  line-height: 1.1;
+}
+
+.label {
+  font-weight: var(--ov-label-weight);
+}
+
+.muted {
+  color: var(--ov-card-muted);
+}
+
+.accentText {
+  color: var(--ov-accent);
+}
+
+/* Text drawn straight on the stream (no card) stays readable on any scene. */
+.onStream {
+  color: var(--ov-on-stream);
+  text-shadow: var(--ov-on-stream-shadow);
+}
+
+.avatar {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2.2em;
+  height: 2.2em;
+  border: var(--ov-chip-border);
+  border-radius: 50%;
+  background: var(--ov-accent);
+  color: var(--ov-accent-ink);
+  font-weight: 800;
+}
+
+.root[data-ov="PILL"] .avatar {
+  border: 0;
+}
+
+.track {
+  position: relative;
+  overflow: hidden;
+  border: var(--ov-track-border);
+  border-radius: 999px;
+  background: var(--ov-track-bg);
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  border-right: var(--ov-fill-edge);
+  border-radius: inherit;
+  background: var(--ov-accent);
+  transition: width 0.6s var(--ov-ease);
+}
+
+.root[data-ov="BOLD"] .fill {
+  border-radius: 0;
+}
+
+/* ── 등장 효과 (data-motion on any element that enters) ── */
+
+.enter {
+  animation-duration: var(--ov-enter-ms);
+  animation-timing-function: var(--ov-ease);
+  animation-fill-mode: both;
+}
+
+.enter[data-motion="POP"] {
+  animation-name: ov-pop;
+}
+
+.enter[data-motion="SLIDE_UP"] {
+  animation-name: ov-slide-up;
+}
+
+.enter[data-motion="SLIDE_SIDE"] {
+  animation-name: ov-slide-side;
+}
+
+.enter[data-motion="FADE"] {
+  animation-name: ov-fade;
+}
+
+.enter[data-motion="ZOOM"] {
+  animation-name: ov-zoom;
+}
+
+@keyframes ov-pop {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.86);
+  }
+}
+
+@keyframes ov-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+}
+
+@keyframes ov-slide-side {
+  from {
+    opacity: 0;
+    transform: translateX(-48px);
+  }
+}
+
+@keyframes ov-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes ov-zoom {
+  from {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .enter {
+    animation-name: ov-fade !important;
+    animation-duration: 200ms;
+  }
+
+  .fill {
+    transition: none;
+  }
+}

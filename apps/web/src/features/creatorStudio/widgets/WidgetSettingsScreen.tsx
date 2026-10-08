@@ -5,12 +5,14 @@ import { useCallback, useEffect, useRef, useState, useTransition, type Component
 import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
 import type { OverlayTarget } from "@/services/creator/alertTypes";
+import type { OverlayAppearance } from "@/services/creator/overlayThemeTypes";
 import { getWidgetDetail, saveWidgetSettings } from "@/services/creator/widgetSettings";
 import {
   isEditableWidget,
   type EditableWidgetKey,
   type WidgetDetail
 } from "@/services/creator/widgetSettingsTypes";
+import { ThemeGallery } from "@/features/overlayTheme/ThemeGallery";
 import { OverlayOffNotice } from "../remote/OverlayOffNotice";
 import { CopyButton } from "../settings/SettingsCards";
 import { CustomSoundForm } from "./CustomSoundForm";
@@ -72,8 +74,9 @@ const SELF_SAVING: EditableWidgetKey[] = ["CUSTOM_SOUND"];
  * were removed (2026-10-04 결정).
  * Catalog layout follows the funnation 위젯 page (인기 · 전체 by group · 도구; see ./widgetCatalog.ts).
  * The Figma 후원 알림 설정 alert-type cards are no longer listed (they had no popups); 그림후원 links to its own page.
+ * 오버레이 테마 (code-first, 2026-10-08) sits above the catalog: the 전체 테마 every overlay is drawn in.
  */
-export function WidgetSettingsScreen({ alertWidgetUrl, switches }: { alertWidgetUrl: string; switches: Record<OverlayTarget, boolean> }) {
+export function WidgetSettingsScreen({ alertWidgetUrl, switches, appearance }: { alertWidgetUrl: string; switches: Record<OverlayTarget, boolean>; appearance: OverlayAppearance }) {
   const [openKey, setOpenKey] = useState<EditableWidgetKey | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const clearToast = useCallback(() => setToast(null), []);
@@ -85,6 +88,7 @@ export function WidgetSettingsScreen({ alertWidgetUrl, switches }: { alertWidget
         <p className={catalog.subtitle}>방송 화면에 띄울 위젯을 고르고 설정하세요. 오버레이 주소는 도구에서 한 번에 복사할 수 있어요.</p>
       </header>
       <OverlayOffNotice targets={["widgets"]} switches={switches} />
+      <ThemeGallery initial={appearance} />
       <CatalogGrid title="인기" count={POPULAR.length} items={POPULAR} onOpen={setOpenKey} />
       <section className={styles.group} aria-label="전체 위젯">
         <h2 className={styles.groupTitle}>
