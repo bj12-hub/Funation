@@ -54,3 +54,10 @@ mode. Two snippets live in shared plugin data `somnation`: `ovHelpers` (builders
 bound to the `ov/*` variables) and `ovBoard` (`(modeId, title, x)` → one theme section with the OBS frames; the 세로 방송 row was appended afterwards). Run them with
 `new Function("return " + figma.root.getSharedPluginData("somnation", "ovHelpers"))()`; set `figma.skipInvisibleInstanceChildren = false`
 first, because theme-specific layers are hidden by boolean variables and are skipped otherwise.
+
+Widget settings popups (9 페이지 section "방송 · 위젯 · 설정 팝업 (오버레이 테마)", 2026-10-08): `dialog-walker.js` walks an open
+`<dialog>` (theme previews, swatches and mini drawings become named placeholders). The stored renderer takes
+`{ id, name, group, url, base, popup: { name, tree } }`: it clones the screen `base`, adds a 60 % dim layer and places the popup
+120 px from the top. Shared plugin data `ovPopup` (`(screenId)`) then swaps the placeholders for Overlay Theme instances
+(previews scaled to the stage, never enlarged), `Overlay/Theme Swatch`, `Studio/Alert Layout Icon` and `Studio/Goal Shape Icon`,
+adds the modal header margin and sets switch knobs; `ovPopupKit` holds the tree builders used for the popups (SHELL, ROW, SWITCH …).

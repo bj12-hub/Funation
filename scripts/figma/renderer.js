@@ -1,5 +1,7 @@
 // Stored in figma.root pluginData "ssumnation.renderer"; called as new AsyncFunction('D', src)(D).
 // D = [{ id, name, group, url, active, tree }] — trees from capture/outline-walker.js.
+// Popups: { id, name, group, url, base, popup: { name, tree } } clones the screen `base` (a node id) and draws the popup tree
+// over a dim layer; media marked ["m", w, h, r, color, "preview:<width>:<label>" | "sample:<THEME>" | "swatch:<THEME>" | "layout:<KEY>" | "shape:<KEY>"] keep that name so theme previews can be swapped for Overlay Theme instances.
 const VAR = {"bg-page":"43:6","bg-subtle":"43:7","surface":"43:8","surface-raised":"43:9","surface-strong":"43:10","border":"43:11","border-strong":"43:12","text-primary":"43:13","text-secondary":"43:14","text-tertiary":"43:15","text-on-accent":"43:16","primary":"43:17","primary-light":"43:18","primary-soft":"43:19","nav-active-bg":"43:20","accent":"43:21","info":"43:22","success":"43:23","success-text":"43:24","success-soft":"43:25","danger":"43:26","danger-soft":"43:27","danger-border":"43:28","error-text":"43:29","warning-text":"43:30","chip-bg":"43:31","input-bg":"43:32","neutral-soft":"43:33"};
 const STYLE = {"24/900":"S:b306536ebd729e2c7a166c02c55dc4251d67e363,","18/800":"S:37815b49554e6eb31949895519ee75a9641fcea0,","15/500":"S:3036922b4772f1d899484399339bd4788225bedc,","14/400":"S:36ebdd0a63cf034b9ece3632b0670a371affefee,","14/600":"S:8975b71cc71b537584117ddf26d3127f48da4e6f,","13/400":"S:d4991e9160897d18110dcbbae9a0a2cc2d569ba9,","13/600":"S:ebdf288c77a1c05a0babb1688df9abe3a72dc161,","12/400":"S:2190a91a4cf09e8a37a8720221f8b543f59f0cfb,","11/700":"S:5b3b752d2a8dad827cf41d3d5d6bca9b329a5f12,","14/500":"S:1eb45490b3d794668a87cc3c77038d6c7c8c7f5a,","18/400":"S:af5d01dffac00fed6c35fbb282d5bd99a78eab56,","18/700":"S:3eecbba37fc597764092c6da4b72a5fa737b7fd3,"};
 const WEIGHT = { 100: 'Thin', 200: 'ExtraLight', 300: 'Light', 400: 'Regular', 500: 'Medium', 600: 'SemiBold', 700: 'Bold', 800: 'ExtraBold', 900: 'Black' };
@@ -47,9 +49,9 @@ function checkNode([_, checked, radio]) {
   if (checked) f.fills = [paintOf('primary')]; else { f.fills = [paintOf('input-bg')]; f.strokes = [paintOf('border-strong')]; f.strokeWeight = 1; }
   return f;
 }
-function mediaNode([_, w, h, r, color]) {
+function mediaNode([_, w, h, r, color, tag]) {
   const small = w <= 28 && h <= 28;
-  const m = figma.createRectangle(); m.name = small ? 'Icon' : 'Image'; m.resize(Math.max(w, 1), Math.max(h, 1)); m.cornerRadius = Math.min(r || (small ? 4 : 8), Math.min(w, h) / 2);
+  const m = figma.createRectangle(); m.name = typeof tag === 'string' && /^(preview|sample|swatch|layout|shape):/.test(tag) ? tag : small ? 'Icon' : 'Image'; m.resize(Math.max(w, 1), Math.max(h, 1)); m.cornerRadius = Math.min(r || (small ? 4 : 8), Math.min(w, h) / 2);
   m.fills = [small ? (paintOf(color || 'text-secondary')) : paintOf('surface-strong')]; if (small) m.opacity = 0.7;
   return m;
 }
@@ -106,13 +108,26 @@ async function sectionFor(page, name) {
 const page = await N('43:4'); await figma.setCurrentPageAsync(page);
 const out = [];
 for (const d of D) {
-  const screen = figma.createFrame(); screen.name = `${d.id} ${d.name} — ${d.url}`; screen.layoutMode = 'VERTICAL'; screen.counterAxisSizingMode = 'FIXED'; screen.resize(1440, 100); screen.primaryAxisSizingMode = 'AUTO'; screen.fills = [paintOf('bg-page')];
-  screen.appendChild(C.header.createInstance());
-  const body = figma.createFrame(); body.name = 'Body'; body.layoutMode = 'HORIZONTAL'; body.fills = []; screen.appendChild(body); body.layoutSizingHorizontal = 'FILL'; body.counterAxisSizingMode = 'AUTO';
-  const sb = C.sidebar.createInstance(); body.appendChild(sb);
-  for (const n of sb.findAll(n => n.type === 'INSTANCE' && n.name.startsWith('Nav/'))) n.setProperties({ State: n.name === 'Nav/' + d.active ? 'Active' : 'Default' });
-  const main = await render(d.tree); main.name = 'Main'; body.appendChild(main);
-  sb.layoutSizingVertical = 'FILL';
+  let screen;
+  if (d.base) {
+    screen = (await N(d.base)).clone(); screen.name = `${d.id} ${d.name} — ${d.url}`;
+    for (const n of screen.children.filter(n => n.name === 'Dim' || n.name.startsWith('Overlay · '))) n.remove();
+  } else {
+    screen = figma.createFrame(); screen.name = `${d.id} ${d.name} — ${d.url}`; screen.layoutMode = 'VERTICAL'; screen.counterAxisSizingMode = 'FIXED'; screen.resize(1440, 100); screen.primaryAxisSizingMode = 'AUTO'; screen.fills = [paintOf('bg-page')];
+    screen.appendChild(C.header.createInstance());
+    const body = figma.createFrame(); body.name = 'Body'; body.layoutMode = 'HORIZONTAL'; body.fills = []; screen.appendChild(body); body.layoutSizingHorizontal = 'FILL'; body.counterAxisSizingMode = 'AUTO';
+    const sb = C.sidebar.createInstance(); body.appendChild(sb);
+    for (const n of sb.findAll(n => n.type === 'INSTANCE' && n.name.startsWith('Nav/'))) n.setProperties({ State: n.name === 'Nav/' + d.active ? 'Active' : 'Default' });
+    const main = await render(d.tree); main.name = 'Main'; body.appendChild(main);
+    sb.layoutSizingVertical = 'FILL';
+  }
+  if (d.popup) {
+    const pop = await render(d.popup.tree); pop.name = 'Overlay · ' + d.popup.name;
+    screen.minHeight = Math.max(screen.height, 120 + pop.height + 120);
+    const dim = figma.createRectangle(); dim.name = 'Dim'; dim.fills = [{ type: 'SOLID', color: { r: 0, g: 0, b: 0 }, opacity: 0.6 }];
+    screen.appendChild(dim); dim.layoutPositioning = 'ABSOLUTE'; dim.x = 0; dim.y = 0; dim.resize(1440, screen.height); dim.constraints = { horizontal: 'STRETCH', vertical: 'STRETCH' };
+    screen.appendChild(pop); pop.layoutPositioning = 'ABSOLUTE'; pop.x = Math.round((1440 - pop.width) / 2); pop.y = 120;
+  }
   const sec = await sectionFor(page, d.group);
   const i = sec.children.filter(n => n.type === 'FRAME').length;
   const x = 120 + i * 1600;
