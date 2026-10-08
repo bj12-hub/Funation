@@ -1,13 +1,14 @@
 "use client";
 
-import type { CSSProperties } from "react";
-import { formatNumber } from "@/lib/format";
-import { PRIZE_MAX, QUEST_STYLES, type ColorFont } from "@/services/creator/widgetSettingsTypes";
-import { ColorFontFields, Help, NumberField, Preview, Radios, Row, Section, SwitchText } from "./fields";
+import { PreviewStage } from "@/features/overlayTheme/PreviewStage";
+import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
+import { resolveTheme } from "@/services/creator/overlayThemeTypes";
+import { PRIZE_MAX, QUEST_STYLES } from "@/services/creator/widgetSettingsTypes";
+import { ColorFontFields, Help, NumberField, Radios, Row, Section, SwitchText } from "./fields";
+import { QuestView } from "./GameViews";
 import type { FormProps } from "./forms";
 import styles from "./widgets.module.css";
 
-const cf = (f: ColorFont, size = 15): CSSProperties => ({ fontFamily: `"${f.family}", var(--font-sans)`, fontSize: size, color: f.color });
 // ── 퀘스트 (373:1598) ──────────────────────────────────────────────────────────
 
 const AUTHORITY_TABLE = [
@@ -16,22 +17,24 @@ const AUTHORITY_TABLE = [
   ["성공결정권한 메뉴노출 OFF", "-", "크리에이터/도네이터 둘다"]
 ];
 
-export function QuestForm({ value: v, onChange }: FormProps<"QUEST">) {
+export function QuestForm({ value: v, onChange, live }: FormProps<"QUEST">) {
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
   const prize = Math.max(3_000, v.minAmount);
 
   return (
     <>
-      <Preview>
-        <div className={v.style === "FANCY" ? styles.questFancy : styles.questSimple} style={{ opacity: v.enabled ? 1 : 0.4 }}>
-          {v.style === "FANCY" && <span className={styles.questBadge}>QUEST</span>}
-          <strong style={cf(v.titleFont, 18)}>노래 한 곡 불러주세요</strong>
-          <div className={styles.questMeta}>
-            <span style={cf(v.timeFont, 13)}>남은시간 04:59</span>
-            <span style={cf(v.prizeFont, 13)}>상금 {formatNumber(prize)}FN</span>
+      <Section title="미리보기">
+        <PreviewStage width={600} minHeight={160} label="퀘스트 미리보기">
+          <div style={{ opacity: v.enabled ? 1 : 0.4 }}>
+            {/* A sample quest 4:59 before its time limit (the clock is fixed so it does not tick here). */}
+            <QuestView settings={{ ...v, enabled: true }} quests={[{ id: "sample", title: "노래 한 곡 불러주세요", amount: prize, endsAt: new Date(299_000).toISOString() }]} theme={resolveTheme(live.appearance, v.theme)} now={0} />
           </div>
-        </div>
-      </Preview>
+        </PreviewStage>
+        <p className={styles.hint}>화려한 스타일은 테마 카드와 색을 쓰고, 심플한 스타일은 글자만 방송 위에 아래 글자 색으로 보여요.</p>
+      </Section>
+      <Section title="테마">
+        <ThemeChoiceField value={v.theme} onChange={(x) => set("theme", x)} appearance={live.appearance} />
+      </Section>
       <Section title="기본 설정">
         <div className={styles.rows}>
           <Row label="사용하기">

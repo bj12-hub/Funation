@@ -2,8 +2,12 @@
 
 import { formatNumber } from "@/lib/format";
 import { ROULETTE_DAILY_LIMIT_MAX, ROULETTE_ITEMS_MAX, ROULETTE_ITEMS_MIN, ROULETTE_ITEM_MAX_CHARS, ROULETTE_SPIN_SEC, PRIZE_MAX, type RouletteItem } from "@/services/creator/widgetSettingsTypes";
-import { rouletteColor, wheelGradient } from "@/services/donations/rouletteTypes";
-import { NumberField, Preview, Row, Section, SwitchText } from "./fields";
+import { rouletteColor } from "@/services/donations/rouletteTypes";
+import { PreviewStage } from "@/features/overlayTheme/PreviewStage";
+import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
+import { resolveTheme } from "@/services/creator/overlayThemeTypes";
+import { NumberField, Row, Section, SwitchText } from "./fields";
+import { RouletteView } from "./GameViews";
 import type { FormProps } from "./forms";
 import styles from "./widgets.module.css";
 
@@ -14,16 +18,23 @@ const uid = () => `rl-${Date.now().toString(36)}${Math.random().toString(36).sli
  * 없음). The server draws when a viewer pays; the wheel spins on the 룰렛 overlay and the 리모컨 starts it
  * when 자동 시작 is off.
  */
-export function RouletteForm({ value: v, onChange }: FormProps<"ROULETTE">) {
+export function RouletteForm({ value: v, onChange, live }: FormProps<"ROULETTE">) {
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
   const setItem = (id: string, patch: Partial<RouletteItem>) => set("items", v.items.map((it) => (it.id === id ? { ...it, ...patch } : it)));
   const total = v.items.reduce((sum, it) => sum + it.percent, 0);
 
   return (
     <>
-      <Preview>
-        <div className={styles.roulettePreview} style={{ opacity: v.enabled ? 1 : 0.4 }}>
-          <span className={styles.wheel} style={{ background: total === 100 ? wheelGradient(v.items) : "#334155" }} aria-hidden="true" />
+      <Section title="미리보기">
+        <PreviewStage width={640} minHeight={240} label="룰렛 미리보기">
+          <div style={{ opacity: v.enabled ? 1 : 0.4 }}>
+            <RouletteView
+              stage={{ id: "sample", no: "R-0001", status: "SPINNING", donor: "하루봄", amount: v.minAmount, items: total === 100 ? v.items : [{ name: "합계를 100%로", percent: 100 }], nth: 1, limit: v.dailyLimit, result: null, endsAt: "" }}
+              theme={resolveTheme(live.appearance, v.theme)}
+            />
+          </div>
+        </PreviewStage>
+        <div className={styles.roulettePreview}>
           <ul className={styles.wheelLegend}>
             {v.items.map((it, i) => (
               <li key={it.id}>
@@ -33,7 +44,10 @@ export function RouletteForm({ value: v, onChange }: FormProps<"ROULETTE">) {
             ))}
           </ul>
         </div>
-      </Preview>
+      </Section>
+      <Section title="테마">
+        <ThemeChoiceField value={v.theme} onChange={(x) => set("theme", x)} appearance={live.appearance} />
+      </Section>
 
       <Section title="기본 설정">
         <div className={styles.rows}>

@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { Toggle } from "@/components/ui/Toggle";
 import { formatNumber } from "@/lib/format";
+import { PreviewStage } from "@/features/overlayTheme/PreviewStage";
+import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
+import { resolveTheme } from "@/services/creator/overlayThemeTypes";
 import {
   GACHA_BOARD_PERIODS,
   GACHA_BOARD_SPEEDS,
@@ -20,7 +23,8 @@ import {
   type GachaStyle
 } from "@/services/creator/widgetSettingsTypes";
 import { CopyButton } from "../settings/SettingsCards";
-import { ColorField, NumberField, Preview, Radios, Row, Section, Select, SwitchText } from "./fields";
+import { ColorField, NumberField, Radios, Row, Section, Select, SwitchText } from "./fields";
+import { GachaView } from "./GameViews";
 import type { FormProps } from "./forms";
 import { LibrarySoundField } from "./library/LibrarySounds";
 import styles from "./widgets.module.css";
@@ -71,34 +75,29 @@ export function GachaForm({ value: v, onChange, live }: FormProps<"GACHA">) {
           </button>
         ))}
       </div>
-      <Preview>
-        <div className={styles.gachaPreview}>
-          <span className={styles.gachaLabel}>위젯 미리보기 (테스트화면)</span>
-          {previewStyle === "CAPSULE" && (
-            <div className={styles.capsuleMachine} aria-hidden="true">
-              <span className={styles.capsuleGlobe} />
-              <span className={styles.capsuleBody} />
-            </div>
-          )}
-          {previewStyle === "BOX" && (
-            <div className={styles.gachaBox} aria-hidden="true">
-              🎁
-            </div>
-          )}
-          {previewStyle === "CREDIT" && (
-            <ol className={styles.creditList}>
-              {live.gachaWins.slice(0, v.credit.historyCount).map((w, i) => (
-                <li key={i}>
-                  김태훈 · {w.prize}
-                </li>
-              ))}
-            </ol>
-          )}
-          <p>
-            <b>김태훈</b> 님의 <b style={{ color: sample?.pointColor }}>{formatNumber(sample?.price ?? 3_000)}FN</b> 뽑기 후원!
-          </p>
-        </div>
-      </Preview>
+      <PreviewStage width={640} minHeight={300} label="뽑기 미리보기">
+        <GachaView
+          stage={{
+            id: "sample",
+            no: "G-0001",
+            status: "RESULT",
+            gachaName: sample?.name ?? "뽑기 후원",
+            style: previewStyle,
+            pointColor: sample?.pointColor ?? "#519CFF",
+            donor: "하루봄",
+            amount: sample?.price ?? 3_000,
+            message: (sample?.messageTemplate ?? "{닉네임}님이 {금액} 뽑기 후원을 하였습니다!").replaceAll("{닉네임}", "하루봄").replaceAll("{금액}", `${formatNumber(sample?.price ?? 3_000)} FN`),
+            prize: sample?.prizes.find((p) => p.kind === "PRIZE")?.name ?? "상품",
+            blank: false,
+            endsAt: ""
+          }}
+          history={live.gachaWins.slice(0, v.credit.historyCount).map((w) => ({ donor: "하루봄", prize: w.prize }))}
+          theme={resolveTheme(live.appearance, v.overlayTheme)}
+        />
+      </PreviewStage>
+      <Section title="테마">
+        <ThemeChoiceField value={v.overlayTheme} onChange={(x) => set("overlayTheme", x)} appearance={live.appearance} />
+      </Section>
 
       <Section
         title="뽑기 후원 리스트"

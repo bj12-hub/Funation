@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { PreviewStage } from "@/features/overlayTheme/PreviewStage";
+import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
+import { resolveTheme } from "@/services/creator/overlayThemeTypes";
 import {
   VOTE_COLORS,
   VOTE_DURATION_MAX_SEC,
@@ -11,9 +14,9 @@ import {
   VOTE_PRESET_MAX,
   type VotePreset
 } from "@/services/creator/widgetSettingsTypes";
-import { FontFields, Preview, Row, Section, SwitchText } from "./fields";
+import { FontFields, Row, Section, SwitchText } from "./fields";
+import { VoteView } from "./GameViews";
 import type { FormProps } from "./forms";
-import { fontStyle } from "./previewStyle";
 import styles from "./widgets.module.css";
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -38,7 +41,7 @@ const newPreset = (index: number): VotePreset => ({
  * 투표 위젯 설정 — Figma 315:858. Presets are started and ended from the 리모컨; voting is free
  * (2026-10-04 결정: one vote per signed-in viewer, no FN price or 무료 투표권).
  */
-export function VoteForm({ value: v, onChange }: FormProps<"VOTE">) {
+export function VoteForm({ value: v, onChange, live }: FormProps<"VOTE">) {
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
   const [openId, setOpenId] = useState<string | null>(v.presets[0]?.id ?? null);
   const [checked, setChecked] = useState<string[]>([]);
@@ -50,24 +53,29 @@ export function VoteForm({ value: v, onChange }: FormProps<"VOTE">) {
 
   return (
     <>
-      <Preview light>
-        <div className={styles.votePreview}>
-          <strong style={fontStyle(v.titleFont)}>{preview?.name.trim() || "투표 예시"}</strong>
-          <div className={styles.voteInfo} style={fontStyle(v.infoFont)}>
-            <span>1인 1표 · 무료</span>
-            <span>투표 종료까지 {toHms(preview?.durationSec ?? 300)}</span>
-          </div>
-          <ol>
-            {items.map((item, i) => (
-              <li key={i} style={fontStyle(v.itemFont)}>
-                <span>{i + 1}등</span>
-                <span>{item.trim() || `항목 ${i + 1}`}</span>
-                <span>{SAMPLE_COUNTS[i] ?? 0}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </Preview>
+      <Section title="미리보기">
+        <PreviewStage width={600} minHeight={240} label="투표 미리보기">
+          <VoteView
+            settings={{ ...v, enabled: true }}
+            vote={{
+              id: "sample",
+              name: preview?.name.trim() || "투표 예시",
+              color: preview?.color ?? VOTE_COLORS[0],
+              items: items.map((item, i) => ({ label: item.trim() || `항목 ${i + 1}`, count: SAMPLE_COUNTS[i] ?? 0 })),
+              total: items.reduce((sum, _, i) => sum + (SAMPLE_COUNTS[i] ?? 0), 0),
+              startedAt: new Date(0).toISOString(),
+              endsAt: new Date((preview?.durationSec ?? 300) * 1000).toISOString(),
+              ended: false
+            }}
+            theme={resolveTheme(live.appearance, v.theme)}
+            now={0}
+          />
+        </PreviewStage>
+        <p className={styles.hint}>글자 색은 테마를 따르고, 막대와 점은 프리셋 색이에요.</p>
+      </Section>
+      <Section title="테마">
+        <ThemeChoiceField value={v.theme} onChange={(x) => set("theme", x)} appearance={live.appearance} />
+      </Section>
 
       <Section title="기본 설정">
         <div className={styles.rows}>
