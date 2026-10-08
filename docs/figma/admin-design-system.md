@@ -94,8 +94,10 @@ Display 24 Bold · Title 18 Bold · Subtitle 15 Medium · Body 14 · Body Strong
 | 거래 | AD07 | 결제 · 충전 내역 | `/payments` | `18:651` |
 | 거래 | AD08 | 환불 요청 | `/payments?tab=refunds` | `20:1301` |
 | 거래 | AD08b | 환불 요청 · 환불 정책 계산 (요청 때 계산 / 지금 기준 · 요청 때와 같아요, 정책 안내, 기본값, code-first) | `/payments?tab=refunds` | `31:1115` |
+| 거래 | AD08c | 환불 요청 · 보류 ("보류 N" 묶음, 보류 메모 · 보류 해제, 2026-10-08 결정, code-first) | `/payments?tab=refunds` | `32:1483` |
 | 거래 | AD10 | 정산 심사 | `/settlements` | `18:1095` |
-| 거래 | AD10b | 정산 심사 · 승인 (이체 참조번호 입력 · "지급 완료 처리", 2026-10-08 결정, code-first — 카드 2개만) | `/settlements?status=APPROVED` | `27:976` |
+| 거래 | AD10b | 정산 심사 · 승인 (이체 참조번호 · "지급 완료 처리" + 보류 메모 · "보류", 2026-10-08 결정, code-first — 카드 2개만) | `/settlements?status=APPROVED` | `32:1348` |
+| 거래 | AD10e | 정산 심사 · 보류 ("보류 N" 탭, 보류 · 원래 상태 칩, 보류 메모 · 보류 해제, 2026-10-08 결정, code-first) | `/settlements?status=HELD` | `32:1231` |
 | 거래 | AD10d | 정산 심사 · 지급 완료 ("지급 완료 {일시} · {처리자} · 이체 참조 {번호}", 2026-10-08 결정, code-first) | `/settlements?status=PAID` | `27:1097` |
 | 운영 | AD11 | 신고 처리 | `/reports` | `20:1414` |
 | 운영 | AD12 | 콘텐츠 관리 · 공지 | `/content` | `18:1308` |

@@ -1,1 +1,0 @@
-export { MyPageScreen } from "./MyPageScreen";
