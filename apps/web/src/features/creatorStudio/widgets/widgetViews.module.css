@@ -1,0 +1,330 @@
+/*
+ * 후원 위젯 views (code-first, 2026-10-08 오버레이 테마): 후원누적금액 · 후원랭킹 · 최근알림 · 이벤트 · 후원 QR코드.
+ * Theme tokens from overlayTheme.module.css ([data-ov] on each root).
+ */
+
+.pad {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 12px;
+}
+
+/* ── 후원누적금액 ── */
+.total {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 24px 16px;
+}
+
+.totalTitle {
+  opacity: 0.85;
+}
+
+.totalAmount {
+  white-space: nowrap;
+}
+
+.totalPlain {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-weight: 700;
+}
+
+[data-ov="PILL"] .total {
+  border-radius: 999px;
+  padding: 12px 32px 14px;
+}
+
+/* ── 후원랭킹 ── */
+.ranking {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ranking[data-card] {
+  min-width: 280px;
+  padding: 16px 18px;
+}
+
+.ranking[data-card][data-style="LINE_BOX"] {
+  padding: 12px;
+}
+
+.rankTitle {
+  align-self: flex-start;
+}
+
+.rankList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rankRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+[data-style="SIMPLE"] .rankRow .rankAmount,
+[data-style="SIMPLE"] .rankRow > :last-child {
+  margin-left: auto;
+}
+
+[data-style="LINE_BOX"]:not([data-card]) .rankRow {
+  padding: 6px 12px;
+  border: 2px solid currentColor;
+  border-radius: 8px;
+}
+
+[data-card] .rankRow {
+  padding: 4px 0;
+}
+
+[data-card][data-style="LINE_BOX"] .rankRow {
+  padding: 8px 14px;
+}
+
+[data-card][data-style="TEXT"] .rankRow + .rankRow,
+[data-card][data-style="SIMPLE"] .rankRow + .rankRow {
+  border-top: 1px solid rgb(127 127 127 / 25%);
+  padding-top: 8px;
+}
+
+.rankBadge {
+  display: inline-grid;
+  flex-shrink: 0;
+  place-items: center;
+  min-width: 2em;
+  height: 2em;
+  padding: 0 0.4em;
+  border-radius: 999px;
+  background: var(--ov-chip-bg);
+  color: var(--ov-chip-ink);
+  font-size: 0.75em;
+}
+
+[data-rank="1"] .rankBadge {
+  background: #f5bf0a;
+  color: #111111;
+}
+
+[data-rank="2"] .rankBadge {
+  background: #cbd5e1;
+  color: #111111;
+}
+
+[data-rank="3"] .rankBadge {
+  background: #d9905a;
+  color: #111111;
+}
+
+[data-ov="BOLD"] .rankBadge {
+  border: 1.5px solid #111111;
+}
+
+.rankName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rankAmount {
+  color: var(--ov-accent);
+}
+
+[data-ov="BOLD"] [data-card] .rankAmount,
+[data-ov="BOLD"].ranking[data-card] .rankAmount {
+  color: #111111;
+}
+
+.scroll {
+  overflow: hidden;
+}
+
+.scroll ol {
+  display: flex;
+  width: max-content;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  animation: rank-scroll linear infinite;
+}
+
+@keyframes rank-scroll {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* ── 최근알림 · 이벤트 ── */
+.feed {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  list-style: none;
+}
+
+.line {
+  font-weight: 500;
+}
+
+.line b {
+  font-weight: 800;
+}
+
+.line b[data-colored] {
+  color: var(--nick);
+}
+
+.lineCard {
+  padding: 0.45em 0.9em;
+  border-radius: min(var(--ov-card-radius), 18px);
+}
+
+[data-ov="PILL"] .lineCard {
+  border-radius: 999px;
+}
+
+.lineTag {
+  margin-right: 0.4em;
+  font-size: 0.7em;
+  vertical-align: 0.1em;
+}
+
+.nickBg {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgb(0 0 0 / 55%);
+}
+
+/* 볼드 플랫 on white: colored nicknames become tags. */
+[data-ov="BOLD"] .lineCard b[data-colored],
+[data-ov="BOLD"].list b[data-colored] {
+  padding: 0 0.3em;
+  border: 1.5px solid #111111;
+  border-radius: 6px;
+  background: var(--nick);
+  color: #111111;
+}
+
+.list {
+  align-items: stretch;
+  padding: 10px 16px;
+}
+
+.list .line {
+  padding: 6px 0;
+}
+
+.list .line + .line {
+  border-top: 1px solid rgb(127 127 127 / 25%);
+}
+
+.feed .line[data-leave] {
+  animation-duration: 600ms !important;
+  animation-timing-function: ease-in;
+  animation-fill-mode: forwards;
+}
+
+.feed .line[data-leave="FADE"] {
+  animation-name: feed-fade-out;
+}
+
+.feed .line[data-leave="SLIDE"] {
+  animation-name: feed-slide-out;
+}
+
+.feed .line[data-leave="ZOOM"],
+.feed .line[data-leave="NONE"] {
+  animation-name: feed-fade-out;
+}
+
+@keyframes feed-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes feed-slide-out {
+  to {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+}
+
+/* ── 후원 QR코드 ── */
+.qr {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.qrTile {
+  position: relative;
+  display: flex;
+  padding: 14px;
+  overflow: hidden;
+  border: 6px solid;
+  background: #ffffff;
+}
+
+.qrTile img {
+  display: block;
+}
+
+[data-ov="BOLD"] .qrTile {
+  outline: 2.5px solid #111111;
+  box-shadow: 6px 6px 0 #111111;
+}
+
+[data-ov="PILL"] .qrTile {
+  box-shadow: 0 10px 30px rgb(0 0 0 / 35%);
+}
+
+[data-ov="GLASS"] .qrTile {
+  box-shadow:
+    0 8px 32px rgb(40 20 80 / 28%),
+    0 0 0 6px rgb(255 255 255 / 35%);
+}
+
+.qrLogo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22%;
+  aspect-ratio: 1;
+  border: 3px solid #ffffff;
+  border-radius: 24%;
+  color: #ffffff;
+  font-size: 1.2em;
+  font-weight: 900;
+  transform: translate(-50%, -50%);
+}
+
+.qrCaption {
+  font-size: 1em;
+  padding: 4px 14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll ol {
+    animation-duration: 60s !important;
+  }
+}

@@ -1,4 +1,4 @@
-import { isOverlayMotion, isOverlayThemeChoice } from "./overlayThemeTypes";
+import { isOverlayMotion, isOverlayThemeChoice, type OverlayThemeChoice } from "./overlayThemeTypes";
 import {
   ALERT_EFFECTS_IN,
   ALERT_HEADLINE_MAX,
@@ -113,6 +113,15 @@ function font(v: unknown, withColor: boolean) {
 
 const obj = (v: unknown) => (typeof v === "object" && v !== null ? v : {}) as Raw;
 
+/** 오버레이 테마 and 배경 카드, added 2026-10-08: a payload from before reads as 전체 테마 따르기 without a card. */
+function themeAndCard(v: Raw): { theme: OverlayThemeChoice; card: boolean } | string {
+  const theme = v.theme === undefined ? "INHERIT" : v.theme;
+  if (!isOverlayThemeChoice(theme)) return "테마를 골라 주세요.";
+  const card = v.card === undefined ? false : v.card;
+  if (!bool(card)) return "설정 값을 확인해 주세요.";
+  return { theme, card };
+}
+
 const FONT_ERROR = "폰트 설정을 확인해 주세요.";
 const COLOR_ERROR = "색상은 #RRGGBB 형식으로 입력해 주세요.";
 
@@ -176,7 +185,10 @@ const parseQr: Parser<QrSettings> = (v) => {
   if (!isHexColor(v.borderColor)) return COLOR_ERROR;
   if (!bool(v.centerLogo) || !bool(v.captionEnabled)) return "설정 값을 확인해 주세요.";
   if (!text(v.caption, QR_CAPTION_MAX, v.captionEnabled ? 1 : 0)) return `문구는 1~${QR_CAPTION_MAX}자로 입력해 주세요.`;
+  const look = themeAndCard(v);
+  if (typeof look === "string") return look;
   return {
+    theme: look.theme,
     codeStyle: v.codeStyle,
     borderColor: v.borderColor.toUpperCase(),
     centerLogo: v.centerLogo,
@@ -254,7 +266,9 @@ const parseTotal: Parser<TotalSettings> = (v) => {
   }
   if (!isDateTime(v.from) || !isDateTime(v.to) || v.from > v.to) return "산정 기간을 확인해 주세요.";
   if (!bool(v.textOutline)) return "설정 값을 확인해 주세요.";
-  return { title: (v.title as string).trim(), template: (v.template as string).trim(), from: v.from, to: v.to, titleFont, contentFont, textOutline: v.textOutline };
+  const look = themeAndCard(v);
+  if (typeof look === "string") return look;
+  return { ...look, title: (v.title as string).trim(), template: (v.template as string).trim(), from: v.from, to: v.to, titleFont, contentFont, textOutline: v.textOutline };
 };
 
 
@@ -271,7 +285,10 @@ const parseRecent: Parser<RecentSettings> = (v) => {
   const t = (typeof v.templates === "object" && v.templates !== null ? v.templates : {}) as Raw;
   if (!RECENT_PLATFORMS.every((p) => templateOk(t[p.key]))) return `알림 템플릿은 {nickname}을 포함해 ${TEMPLATE_MAX}자 이내로 입력해 주세요.`;
   const templates = Object.fromEntries(RECENT_PLATFORMS.map((p) => [p.key, (t[p.key] as string).trim()])) as Record<RecentPlatform, string>;
+  const look = themeAndCard(v);
+  if (typeof look === "string") return look;
   return {
+    ...look,
     effect: v.effect,
     count: v.count as number,
     lineGap: v.lineGap as number,
@@ -290,7 +307,10 @@ const parseEvent: Parser<EventSettings> = (v) => {
   if (!int(v.maxLines, 1, 20)) return "최대 표시 줄은 1~20줄로 입력해 주세요.";
   if (!int(v.hideAfterSec, 1, 3600)) return "감추기 시간은 1~3600초로 입력해 주세요.";
   if (![v.nicknameColor, v.nicknameBackground, v.autoHide].every(bool)) return "설정 값을 확인해 주세요.";
+  const look = themeAndCard(v);
+  if (typeof look === "string") return look;
   return {
+    theme: look.theme,
     style: v.style,
     order: v.order,
     effect: v.effect,
@@ -349,7 +369,10 @@ const parseRanking: Parser<RankingSettings> = (v) => {
   if (!text(fm.rank, 20) || !text(fm.name, 20) || !text(fm.amount, 20) || !(fm.name as string).includes("{name}")) {
     return "표시 메시지는 각 20자 이내로, 이름 칸에 {name}을 포함해 주세요.";
   }
+  const look = themeAndCard(v);
+  if (typeof look === "string") return look;
   return {
+    ...look,
     style: v.style,
     board,
     title: (v.title as string).trim(),

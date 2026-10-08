@@ -154,6 +154,8 @@ export const QR_STYLES = [
 export const QR_CAPTION_MAX = 20;
 
 export type QrSettings = {
+  /** 오버레이 테마 (2026-10-08); settings saved before it read as 전체 테마 따르기. */
+  theme: OverlayThemeChoice;
   codeStyle: (typeof QR_STYLES)[number]["key"];
   borderColor: string;
   centerLogo: boolean;
@@ -212,6 +214,10 @@ export const TOTAL_TEMPLATE_MAX = 40;
 export const TOTAL_TEMPLATE_TOKEN = "{total_amount}";
 
 export type TotalSettings = {
+  /** 오버레이 테마 (2026-10-08); settings saved before it read as 전체 테마 따르기. */
+  theme: OverlayThemeChoice;
+  /** 배경 카드: draw on the theme's card (its colors) — off = text straight on the stream in the colors below. Saved before 2026-10-08: off. */
+  card: boolean;
   title: string;
   template: string;
   /** `YYYY-MM-DDTHH:mm` (local). */
@@ -238,6 +244,10 @@ export const RECENT_EFFECTS = ["Fade In / Out", "Slide In / Out", "없음"] as c
 export const RECENT_SCROLL_SPEEDS = [0.3, 0.5, 1, 2] as const;
 
 export type RecentSettings = {
+  /** 오버레이 테마 (2026-10-08); settings saved before it read as 전체 테마 따르기. */
+  theme: OverlayThemeChoice;
+  /** 배경 카드: draw on the theme's card (its colors) — off = text straight on the stream in the colors below. Saved before 2026-10-08: off. */
+  card: boolean;
   effect: (typeof RECENT_EFFECTS)[number];
   count: number;
   lineGap: number;
@@ -256,6 +266,8 @@ export const EVENT_STYLES = [
 export const EVENT_ORDERS = ["최신순", "오래된순"] as const;
 
 export type EventSettings = {
+  /** 오버레이 테마 (2026-10-08); settings saved before it read as 전체 테마 따르기. */
+  theme: OverlayThemeChoice;
   style: (typeof EVENT_STYLES)[number]["key"];
   order: (typeof EVENT_ORDERS)[number];
   effect: (typeof RECENT_EFFECTS)[number];
@@ -315,6 +327,10 @@ export type RankingBoard = (typeof RANKING_BOARDS)[number]["key"];
 
 export type RankTierStyle = { font: FontSetting; accentColor: string };
 export type RankingSettings = {
+  /** 오버레이 테마 (2026-10-08); settings saved before it read as 전체 테마 따르기. */
+  theme: OverlayThemeChoice;
+  /** 배경 카드: draw on the theme's card (its colors) — off = text straight on the stream in the colors below. Saved before 2026-10-08: off. */
+  card: boolean;
   board: RankingBoard;
   style: (typeof RANKING_STYLES)[number]["key"];
   title: string;
@@ -604,6 +620,7 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     filteredNicknames: ["Nightbot", "MooBot", "StreamElements"]
   },
   QR: {
+    theme: "INHERIT",
     codeStyle: "BASIC",
     borderColor: "#519CFF",
     centerLogo: true,
@@ -632,6 +649,8 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     alternateSec: 10
   },
   TOTAL: {
+    theme: "INHERIT",
+    card: true,
     title: "총 후원 금액",
     template: "{total_amount}FN",
     from: "2026-01-01T00:00",
@@ -641,6 +660,8 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     textOutline: true
   },
   RECENT: {
+    theme: "INHERIT",
+    card: true,
     effect: "Fade In / Out",
     count: 3,
     lineGap: 10,
@@ -656,6 +677,7 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     }
   },
   EVENT: {
+    theme: "INHERIT",
     style: "BOX",
     order: "최신순",
     effect: "Slide In / Out",
@@ -679,6 +701,8 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     textOutline: true
   },
   RANKING: {
+    theme: "INHERIT",
+    card: true,
     board: "DONOR",
     style: "SIMPLE",
     title: "후원랭킹",
