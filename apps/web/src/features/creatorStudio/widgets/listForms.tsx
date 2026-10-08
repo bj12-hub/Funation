@@ -2,7 +2,12 @@
 
 import type { ReactNode } from "react";
 import { formatNumber } from "@/lib/format";
-import { effectLabel } from "@/services/creator/overlayThemeTypes";
+import { PreviewStage } from "@/features/overlayTheme/PreviewStage";
+import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
+import { effectLabel, resolveTheme } from "@/services/creator/overlayThemeTypes";
+import { eventLines, recentLines } from "@/services/creator/widgetOverlayCore";
+import { EventView, RecentView } from "./WidgetViews";
+import { SAMPLE_ALERTS } from "./widgetSamples";
 import {
   EVENT_ORDERS,
   EVENT_STYLES,
@@ -16,8 +21,6 @@ import type { FormProps } from "./forms";
 import { fontStyle } from "./previewStyle";
 import styles from "./widgets.module.css";
 
-const SAMPLE = { nickname: "열혈팬B", amount: "5,000원", count: "100" };
-const fillTemplate = (t: string) => t.replaceAll("{nickname}", SAMPLE.nickname).replaceAll("{amount}", SAMPLE.amount).replaceAll("{count}", SAMPLE.count);
 
 function Stacked({ label, children, htmlFor }: { label: string; children: ReactNode; htmlFor?: string }) {
   return (
@@ -38,20 +41,21 @@ function SwitchLine({ label, checked, onChange }: { label: string; checked: bool
 
 // ── 최근알림 (531:1370) ────────────────────────────────────────────────────────
 
-export function RecentForm({ value: v, onChange }: FormProps<"RECENT">) {
+export function RecentForm({ value: v, onChange, live }: FormProps<"RECENT">) {
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
-  const lines = RECENT_PLATFORMS.slice(0, Math.max(1, Math.min(v.count, RECENT_PLATFORMS.length)));
   return (
     <>
-      <Preview>
-        <ul className={styles.recentPreview} style={{ gap: Math.min(v.lineGap, 24) }}>
-          {lines.map((p) => (
-            <li key={p.key} style={fontStyle(v.font, v.textOutline)}>
-              <b style={{ color: p.color }}>[{p.label}]</b> {fillTemplate(v.templates[p.key])}
-            </li>
-          ))}
-        </ul>
-      </Preview>
+      <Section title="미리보기">
+        <PreviewStage width={800} minHeight={120} label="최근알림 미리보기">
+          <RecentView settings={v} lines={recentLines(SAMPLE_ALERTS, v)} theme={resolveTheme(live.appearance, v.theme)} />
+        </PreviewStage>
+      </Section>
+      <Section title="테마">
+        <div className={styles.rows}>
+          <ThemeChoiceField value={v.theme} onChange={(x) => set("theme", x)} appearance={live.appearance} />
+          <SwitchText label="배경 카드" checked={v.card} onChange={(x) => set("card", x)} text="테마 카드 위에 그려요. 끄면 글자만 방송 화면 위에 (아래 글자 색 · 외곽선 사용)" />
+        </div>
+      </Section>
       <Section title="기본 설정">
         <div className={styles.rows}>
           <div className={styles.grid2}>
@@ -98,28 +102,18 @@ export function RecentForm({ value: v, onChange }: FormProps<"RECENT">) {
 
 // ── 이벤트 (531:1598) ──────────────────────────────────────────────────────────
 
-const EVENT_SAMPLE = [
-  { nick: "홍길동", color: "#a78bfa", text: "님이 10,000FN 후원!" },
-  { nick: "시청자A", color: "#34d399", text: "님이 퀘스트를 등록했습니다." }
-];
-
-export function EventForm({ value: v, onChange }: FormProps<"EVENT">) {
+export function EventForm({ value: v, onChange, live }: FormProps<"EVENT">) {
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
   return (
     <>
-      <Preview>
-        <div className={`${styles.eventPreview} ${styles[`event_${v.style}`]}`} style={fontStyle(v.font)}>
-          <p className={styles.eventBanner}>🎉 미션 달성! 시청자들과의 소통 100분 돌파 🎉</p>
-          {EVENT_SAMPLE.map((e) => (
-            <p key={e.nick}>
-              <b className={v.nicknameBackground ? styles.nickBg : undefined} style={{ color: v.nicknameColor ? e.color : undefined }}>
-                {e.nick}
-              </b>
-              {e.text}
-            </p>
-          ))}
-        </div>
-      </Preview>
+      <Section title="미리보기">
+        <PreviewStage width={500} minHeight={160} label="이벤트 미리보기">
+          <EventView settings={v} lines={eventLines(SAMPLE_ALERTS, v)} theme={resolveTheme(live.appearance, v.theme)} now={null} />
+        </PreviewStage>
+      </Section>
+      <Section title="테마">
+        <ThemeChoiceField value={v.theme} onChange={(x) => set("theme", x)} appearance={live.appearance} />
+      </Section>
       <Section title="기본 설정">
         <div className={styles.rows}>
           <Stacked label="위젯 스타일">

@@ -37,7 +37,7 @@ export async function getOverlayWidget(widget: unknown, key: unknown): Promise<O
     }
     case "total": {
       const settings = readWidget("TOTAL");
-      return { widget, settings, total: totalAmount(items, settings), ...common };
+      return { widget, settings, total: totalAmount(items, settings), ...themed(settings) };
     }
     case "ranking": {
       const settings = readWidget("RANKING");
@@ -47,18 +47,20 @@ export async function getOverlayWidget(widget: unknown, key: unknown): Promise<O
           : settings.board === "SOURCE"
             ? sourceBoardRows(items, settings)
             : rankingRows(items, settings);
-      return { widget, settings, rows, ...common };
+      return { widget, settings, rows, ...themed(settings) };
     }
     case "recent": {
       const settings = readWidget("RECENT");
-      return { widget, settings, lines: recentLines(items, settings), ...common };
+      return { widget, settings, lines: recentLines(items, settings), ...themed(settings) };
     }
     case "event": {
       const settings = readWidget("EVENT");
-      return { widget, settings, lines: eventLines(items, settings), ...common };
+      return { widget, settings, lines: eventLines(items, settings), ...themed(settings) };
     }
-    case "qr":
-      return { widget, settings: readWidget("QR"), imageUrl: QR_SAMPLE_IMAGE, ...common };
+    case "qr": {
+      const settings = readWidget("QR");
+      return { widget, settings, imageUrl: QR_SAMPLE_IMAGE, ...themed(settings) };
+    }
     case "quest": {
       // Running quests of this channel, oldest first, up to 최대 개수. Past its time limit a quest stays
       // here until someone decides (2026-10-04 결정). The title shows as the creator's 대체 메시지 settings say
