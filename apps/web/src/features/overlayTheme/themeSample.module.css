@@ -1,0 +1,142 @@
+/* 오버레이 테마 gallery scene (code-first). Sized in em off the card width, so it scales with the card. */
+
+.scene {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--radius-8);
+  background:
+    radial-gradient(circle at 78% 22%, rgb(255 214 130 / 55%) 0, transparent 22%),
+    radial-gradient(circle at 18% 80%, rgb(80 200 170 / 35%) 0, transparent 30%),
+    linear-gradient(160deg, #4a5a82 0%, #2b3352 55%, #1c2036 100%);
+  container-type: inline-size;
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  font-size: 3.1cqw;
+}
+
+.chat {
+  position: absolute;
+  top: 5%;
+  left: 4%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+  width: 34%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chatLine {
+  padding: 0.35em 0.7em;
+  font-size: 0.8em;
+  line-height: 1.35;
+}
+
+.chatLine b {
+  margin-right: 0.3em;
+}
+
+/* BOLD: yellow block with an ink outline and an offset block shadow. */
+.alert {
+  position: absolute;
+  top: 8%;
+  right: 6%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
+  min-width: 46%;
+  padding: 0.7em 1em;
+}
+
+.chip {
+  align-self: flex-start;
+}
+
+.amount {
+  font-size: 2.4em;
+}
+
+.amount small,
+.amountPill small {
+  font-size: 0.45em;
+}
+
+/* PILL: a dark island that grows sideways. */
+.alertPill {
+  position: absolute;
+  top: 8%;
+  right: 5%;
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.45em 1.1em 0.45em 0.45em;
+}
+
+.alertPillText {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  font-size: 0.85em;
+}
+
+.amountPill {
+  font-size: 1.45em;
+}
+
+.quote {
+  max-width: 8em;
+  font-size: 0.75em;
+}
+
+/* GLASS: a frosted card. */
+.alertGlass {
+  position: absolute;
+  top: 7%;
+  right: 5%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+  width: 50%;
+  padding: 0.8em 1em;
+  font-size: 0.85em;
+}
+
+.glassHead {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.glassChip {
+  margin-left: auto;
+}
+
+.amountGlass {
+  font-size: 2em;
+}
+
+.goal {
+  position: absolute;
+  right: 5%;
+  bottom: 8%;
+  left: 5%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35em;
+}
+
+.goalHead {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85em;
+}
+
+.track {
+  display: block;
+  height: 0.9em;
+}

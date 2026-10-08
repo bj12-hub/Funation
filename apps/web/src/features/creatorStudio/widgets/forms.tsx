@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { DownloadIcon } from "@/components/icons";
 import { formatNumber } from "@/lib/format";
+import { effectLabel } from "@/services/creator/overlayThemeTypes";
 import {
   ALERT_EFFECTS_IN,
   ALERT_EFFECTS_OUT,
@@ -77,8 +78,8 @@ export function ChatForm({ value: v, onChange }: FormProps<"CHAT">) {
           </Row>
           <Row label="알림 효과">
             <div className={styles.inline}>
-              <Select label="나타나는 효과" value={v.effectIn} options={ALERT_EFFECTS_IN} width={120} onChange={(x) => set("effectIn", x)} />
-              <Select label="사라지는 효과" value={v.effectOut} options={ALERT_EFFECTS_OUT} width={120} onChange={(x) => set("effectOut", x)} />
+              <Select label="나타나는 효과" value={v.effectIn} options={ALERT_EFFECTS_IN} width={170} format={effectLabel} onChange={(x) => set("effectIn", x)} />
+              <Select label="사라지는 효과" value={v.effectOut} options={ALERT_EFFECTS_OUT} width={170} format={effectLabel} onChange={(x) => set("effectOut", x)} />
             </div>
           </Row>
           <Row label="폰트 설정">
