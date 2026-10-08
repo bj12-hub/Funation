@@ -1,6 +1,7 @@
+import type { RefundAmounts, RefundQuote } from "@/services/wallet/refundPolicy";
 import type { ChargeRecord, DonationRecord, DonationStatus, RefundStatus } from "@/services/wallet/walletTypes";
 
-/** 후원 · 결제 운영 — code-first. Client-safe types. Refund policy and KRW payout are TBD. */
+/** 후원 · 결제 운영 — code-first. Client-safe types. Refunds follow the 환불 정책 기본값 (법무 검토 전); KRW payout is TBD. */
 
 export type AdminRefund = {
   chargeId: string;
@@ -14,6 +15,15 @@ export type AdminRefund = {
   status: "REQUESTED" | "APPROVED" | "REJECTED";
   decision: { at: string; by: string; note: string } | null;
   charge: Pick<ChargeRecord, "chargedAt" | "fnAmount" | "paidAmount" | "methodLabel" | "transactionId"> | null;
+  /** The refund computed when the member asked (what the member saw): type, FN taken back, fee, net. */
+  requested: RefundAmounts;
+  /** What approval refunded (approved requests only). */
+  approved: RefundAmounts | null;
+  /**
+   * The refund recomputed now — what approval applies (waiting requests an operator can decide only). It is lower than
+   * `requested` when the member used FN since, and NOT_REFUNDABLE when nothing of the charge is left.
+   */
+  current: RefundQuote | null;
 };
 
 /**
@@ -29,7 +39,8 @@ export type AdminChargeRow = Pick<ChargeRecord, "id" | "chargedAt" | "methodLabe
 
 export type AdminDonationRow = Pick<DonationRecord, "id" | "donatedAt" | "creatorName" | "fnAmount" | "typeLabel" | "status"> & { memberId: string; memberName: string; memberWithdrawn: boolean };
 
-export type PaymentsView = { charges: AdminChargeRow[]; refunds: AdminRefund[]; balance: number };
+/** `refundPolicy`: the 환불 정책 기본값 as the site states it (the console shows it; the numbers live on the site only). */
+export type PaymentsView = { charges: AdminChargeRow[]; refunds: AdminRefund[]; balance: number; refundPolicy: { label: string; summary: string } };
 
 export type DonationsView = {
   rows: AdminDonationRow[];

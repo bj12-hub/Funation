@@ -72,8 +72,10 @@ TBD: OAuth hand-off, identity provider, platform ownership verification, whether
 | `getWalletSummary` · `getChargeHistory` · `getDonationHistory` | R | period, category, page (10) | summary · paged records |
 | `getWalletOverview` | R | kind ∈ CHARGE/USE/REFUND/REWARD, period 30/90/all, page | available, locked (0, TBD), totalUsed, ledger entries |
 | `GET /api/wallet/charges` · `GET /api/wallet/donations` | R | period (+ category) | CSV download, 401 without a session |
+| `quoteChargeRefund` (`refund.ts`) | R | chargeId | `QUOTE{type FULL_CANCEL/PARTIAL/NOT_REFUNDABLE, chargeFn, usedFn, withinPeriod, grossFn, feeFn, netFn}` · the existing request · `INVALID` |
+| `requestChargeRefund` (`refund.ts`) | M | chargeId, reason ≤ 200, expectedGrossFn · expectedNetFn (what the member saw) | the request `{status, requestedAt, amounts, requestedAmounts?}` (one per charge) · `CHANGED{quote}` · `NOT_REFUNDABLE{quote}` · `INVALID` |
 
-TBD: payment provider, FN packages, FN/KRW rate (mock `×1.1`), limits, expiry, refunds, a reconciled ledger with balance-after.
+Charge refunds follow the 환불 정책 기본값 (일반적인 기준, 법무 검토 전 — docs/domains/wallet.md); the admin approval (`POST /api/admin/refunds/[chargeId]`, `decision`, `note`, `expectedGrossFn` · `expectedNetFn` for APPROVE) recomputes it. TBD: payment provider, FN packages, FN/KRW rate (mock `×1.1`), limits, expiry, KRW refunds per payment method, a reconciled ledger with balance-after.
 
 ### donations (`services/donations/donate.requestDonation`, S)
 

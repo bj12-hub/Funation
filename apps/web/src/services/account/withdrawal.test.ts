@@ -229,6 +229,9 @@ describe("회원 탈퇴", () => {
     const { listChargeRecords } = await import("@/services/wallet/walletHistory");
     const { decideRefund } = await import("@/services/admin/payments");
     const [first, second] = listChargeRecords().filter((c) => c.status === "COMPLETED");
+    // Both charges unused, so both can be refunded (환불 정책 기본값: the sample history spent the older ones).
+    const fnBalance = first.fnAmount + second.fnAmount;
+    m.account.fnBalance = fnBalance;
     expect(await requestChargeRefund({ chargeId: first.id, reason: "잘못 충전했어요" })).toMatchObject({ status: "REQUESTED" });
     expect(await m.getWithdrawalInfo()).toMatchObject({ pendingRefunds: 1 });
     expect(await m.withdrawAccount(supporter())).toEqual({ status: "REFUND_PENDING", count: 1 });
@@ -238,7 +241,7 @@ describe("회원 탈퇴", () => {
     expect(await m.getWithdrawalInfo()).toMatchObject({ pendingRefunds: 0 });
     // A refund asked for while the password is being checked stops it too.
     delay.during = () => void requestChargeRefund({ chargeId: second.id, reason: "다른 탭에서 요청" });
-    expect(await m.withdrawAccount({ ...supporter(), requestId: key(2) })).toEqual({ status: "REFUND_PENDING", count: 1 });
+    expect(await m.withdrawAccount({ ...supporter(), fnBalance, requestId: key(2) })).toEqual({ status: "REFUND_PENDING", count: 1 });
     expect(m.isWithdrawn()).toBe(false);
   });
 

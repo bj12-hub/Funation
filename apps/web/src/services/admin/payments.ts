@@ -3,6 +3,8 @@ import { USE_MOCK } from "@/lib/mock";
 import { mockAccount } from "@/services/account/mockStore";
 import { accountSince, isWithdrawn } from "@/services/account/withdrawalCore";
 import { mockRefunds, type MockRefundRequest } from "@/services/wallet/mockRefundStore";
+import { chargeRefundQuote } from "@/services/wallet/refundCore";
+import { REFUND_POLICY_LABEL, REFUND_POLICY_SUMMARY, REFUND_TYPE_LABEL, refundAmounts, sameRefund, type RefundAmounts, type RefundQuote } from "@/services/wallet/refundPolicy";
 import { findChargeRecord, listAccountChargeRecords, listAccountDonationRecords, listChargeRecords } from "@/services/wallet/walletHistory";
 import type { DonationStatus } from "@/services/wallet/walletTypes";
 import type { AdminActor } from "./adminTypes";
@@ -12,7 +14,8 @@ import { REFUND_NOTE, type AdminChargeRow, type AdminDonationRow, type AdminRefu
 
 /**
  * 후원 · 결제 운영 API logic — code-first (called by `/api/admin/*`). Admin app screens `/admin/payments`, `/admin/donations`.
- * Admin only. A refund decision is final and logged; approval takes the FN back on the server.
+ * Admin only. A refund decision is final and logged; approval takes back the charge's unused paid FN on the server
+ * (환불 정책 기본값 · 법무 검토 전, `services/wallet/refundPolicy.ts`).
  * The mock has one member with wallet data (the sample member); per-member ledgers are TBD.
  */
 
@@ -65,10 +68,27 @@ function refunds(): AdminRefund[] {
         reason: r.reason,
         status: r.status,
         decision: r.decision ?? null,
-        charge: c ? { chargedAt: c.chargedAt, fnAmount: c.fnAmount, paidAmount: c.paidAmount, methodLabel: c.methodLabel, transactionId: c.transactionId } : null
+        charge: c ? { chargedAt: c.chargedAt, fnAmount: c.fnAmount, paidAmount: c.paidAmount, methodLabel: c.methodLabel, transactionId: c.transactionId } : null,
+        requested: copy(r.quote),
+        approved: r.settled ? copy(r.settled) : null,
+        // What approval would refund now (FN used since the request lower it); only for requests an operator can decide.
+        current: r.status === "REQUESTED" && fromCurrentAccount(r) ? currentQuote(r) : null
       };
     });
 }
+
+const copy = (a: RefundAmounts): RefundAmounts => ({ type: a.type, grossFn: a.grossFn, feeFn: a.feeFn, netFn: a.netFn });
+
+/** The refund recomputed now for a waiting request of the current account; the 청약철회 period stays the request's. */
+function currentQuote(r: MockRefundRequest): RefundQuote | null {
+  const charge = listChargeRecords().find((c) => c.id === r.chargeId);
+  return charge && charge.status === "COMPLETED" ? chargeRefundQuote(charge, new Date(r.requestedAt)) : null;
+}
+
+const fnText = (n: number) => `${n.toLocaleString("ko-KR")} FN`;
+/** "수수료 공제 후 환불 · 회수 5,000 FN · 수수료 500 FN · 환불 4,500 FN" (audit log and approval answers). */
+const refundText = (a: RefundAmounts) => `${REFUND_TYPE_LABEL[a.type]} · 회수 ${fnText(a.grossFn)} · 수수료 ${fnText(a.feeFn)} · 환불 ${fnText(a.netFn)}`;
+const isAmount = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= 0;
 
 export async function getPaymentsView(): Promise<PaymentsView | null> {
   assertMock();
@@ -88,14 +108,15 @@ export async function getPaymentsView(): Promise<PaymentsView | null> {
       })
     )
     .sort((a, b) => b.chargedAt.localeCompare(a.chargedAt));
-  return { charges, refunds: refunds(), balance: mockAccount.fnBalance };
+  return { charges, refunds: refunds(), balance: mockAccount.fnBalance, refundPolicy: { label: REFUND_POLICY_LABEL, summary: REFUND_POLICY_SUMMARY } };
 }
 
 /**
- * 환불 승인: the charged FN must still be in the balance (spent FN cannot be taken back — the real
- * rule for partially used charges is TBD). The balance change, its wallet record and the decision
- * happen together. A withdrawn member's request is not decided here: what a 탈퇴 does to a pending
- * refund is TBD, and approving it would take the FN from whoever holds the account slot now.
+ * 환불 승인 (환불 정책 기본값): the refund is recomputed in the same synchronous step as the write — FN the member used
+ * since the request lower it — and only the charge's unused paid FN are taken back. The operator approves the amount
+ * the console showed (`expectedGrossFn` / `expectedNetFn`); when that is no longer the current one nothing is written
+ * and the answer says what it is now. The balance change, its wallet record and the decision happen together. A
+ * withdrawn member's request is not decided here: approving it would take the FN from whoever holds the slot now.
  */
 export async function decideRefund(admin: AdminActor, input: unknown): Promise<RefundDecisionResult> {
   assertMock();
@@ -114,16 +135,25 @@ export async function decideRefund(admin: AdminActor, input: unknown): Promise<R
   const charge = listChargeRecords().find((c) => c.id === request.chargeId);
   if (!charge || charge.status !== "COMPLETED") return { status: "INVALID", message: "완료된 충전이 아니에요." };
   const now = new Date();
-  const fn = `${charge.fnAmount.toLocaleString("ko-KR")} FN`;
+  let what = `충전 ${fnText(charge.fnAmount)} · 요청 ${refundText(request.quote)}`;
   if (wanted === "APPROVED") {
-    if (mockAccount.fnBalance < charge.fnAmount) return { status: "INVALID", message: `보유 FN(${mockAccount.fnBalance.toLocaleString("ko-KR")})이 충전 FN보다 적어 승인할 수 없어요. 부분 환불 정책은 TBD예요.` };
-    mockAccount.fnBalance -= charge.fnAmount;
+    if (!isAmount(v.expectedGrossFn) || !isAmount(v.expectedNetFn)) return { status: "INVALID", message: "승인할 환불 금액을 확인해 주세요. 화면을 새로 고친 뒤 다시 승인해 주세요." };
+    // Recomputed here; the checks and the write below run in one step (nothing awaits in between).
+    const settled = refundAmounts(chargeRefundQuote(charge, new Date(request.requestedAt)));
+    if (!settled) return { status: "INVALID", message: "요청 후 이 충전의 FN을 모두 사용해서 지금은 환불할 FN이 없어요. 거절로 처리해 주세요." };
+    if (v.expectedGrossFn !== settled.grossFn || v.expectedNetFn !== settled.netFn) {
+      return { status: "INVALID", message: `요청 후 FN 사용으로 환불 금액이 바뀌었어요. 지금 기준(${refundText(settled)})으로만 승인할 수 있어요. 확인한 뒤 다시 승인해 주세요.` };
+    }
+    if (mockAccount.fnBalance < settled.grossFn) return { status: "INVALID", message: "보유 FN이 회수할 FN보다 적어 승인할 수 없어요." };
+    mockAccount.fnBalance -= settled.grossFn;
+    request.settled = settled;
     // Every balance change leaves a wallet record: the member's FN Wallet lists it as 환불 (−).
-    request.debit = { fnAmount: charge.fnAmount, at: `${toDateString(now)} ${now.toTimeString().slice(0, 8)}`, by: admin.nickname };
+    request.debit = { fnAmount: settled.grossFn, at: `${toDateString(now)} ${now.toTimeString().slice(0, 8)}`, by: admin.nickname };
+    what = sameRefund(settled, request.quote) ? refundText(settled) : `${refundText(settled)} (요청 때 ${refundText(request.quote)})`;
   }
   request.status = wanted;
   request.decision = { at: now.toISOString(), by: admin.nickname, note };
-  recordAudit(admin, wanted === "APPROVED" ? "REFUND_APPROVE" : "REFUND_REJECT", `refund:${request.chargeId}`, `${wanted === "APPROVED" ? `${fn} 회수` : `충전 ${fn}`} · ${note}`);
+  recordAudit(admin, wanted === "APPROVED" ? "REFUND_APPROVE" : "REFUND_REJECT", `refund:${request.chargeId}`, `${what} · ${note}`);
   return { status: "OK" };
 }
 

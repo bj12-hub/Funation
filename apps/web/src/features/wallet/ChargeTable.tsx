@@ -1,12 +1,25 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { FileIcon } from "@/components/icons";
 import { Modal } from "@/components/ui/Modal";
 import { formatNumber } from "@/lib/format";
-import { requestChargeRefund } from "@/services/wallet/refund";
-import { CHARGE_STATUS_LABEL, REFUND_REASON_MAX, REFUND_STATUS_LABEL, type ChargeRecord, type ChargeRefund, type ChargeStatus } from "@/services/wallet/walletTypes";
+import { quoteChargeRefund, requestChargeRefund } from "@/services/wallet/refund";
+import {
+  REFUND_FEE_PERCENT,
+  REFUND_METHOD_NOTE,
+  REFUND_POLICY_HREF,
+  REFUND_POLICY_LABEL,
+  REFUND_POLICY_LINES,
+  REFUND_PROCESSING_TARGET,
+  REFUND_TYPE_LABEL,
+  REFUND_WITHDRAWAL_DAYS,
+  describeRefund,
+  type RefundQuote
+} from "@/services/wallet/refundPolicy";
+import { CHARGE_STATUS_LABEL, REFUND_REASON_MAX, refundStatusText, type ChargeRecord, type ChargeRefund, type ChargeStatus } from "@/services/wallet/walletTypes";
 import styles from "./wallet.module.css";
 
 const PILL: Record<ChargeStatus, string> = {
@@ -59,7 +72,7 @@ export function ChargeTable({ items }: { items: ChargeRecord[] }) {
                   </td>
                   <td className={styles.center}>
                     <span className={`${styles.pill} ${PILL[c.status]}`}>{CHARGE_STATUS_LABEL[c.status]}</span>
-                    {c.refund && <span className={styles.refundTag}>{REFUND_STATUS_LABEL[c.refund.status]}</span>}
+                    {c.refund && <span className={styles.refundTag}>{refundStatusText(c.refund)}</span>}
                   </td>
                   <td className={styles.center}>
                     <button type="button" className={styles.detailButton} onClick={() => setSelectedId(c.id)} aria-label={`${c.chargedAt} 충전 자세히`}>
@@ -94,14 +107,103 @@ export function ChargeTable({ items }: { items: ChargeRecord[] }) {
   );
 }
 
+const day = (iso: string) => new Date(iso).toLocaleDateString("ko-KR");
+
+/** 환불 정책 요약 — 기본값 (일반적인 기준, 법무 검토 전), with the policy document. */
+function RefundPolicy() {
+  return (
+    <section className={styles.refundPolicy} aria-label="환불 정책">
+      <p className={styles.refundPolicyTitle}>
+        환불 정책 <span className={styles.refundPolicyBadge}>{REFUND_POLICY_LABEL}</span>
+      </p>
+      <ul className={styles.refundPolicyList}>
+        {REFUND_POLICY_LINES.map((line) => (
+          <li key={line}>{line}</li>
+        ))}
+      </ul>
+      <Link href={REFUND_POLICY_HREF} className={styles.refundPolicyLink}>
+        환불 정책 전문 보기
+      </Link>
+    </section>
+  );
+}
+
+/** The server's outcome for this charge, before the member asks: 전액 취소 / 수수료 공제 후 환불 / 환불 불가 + 사유. */
+function RefundOutcome({ quote, paidAmount }: { quote: RefundQuote; paidAmount: number }) {
+  if (quote.type === "NOT_REFUNDABLE") {
+    return (
+      <div className={styles.refundOutcome}>
+        <strong className={styles.refundOutcomeTitle}>{REFUND_TYPE_LABEL.NOT_REFUNDABLE}</strong>
+        <p className={styles.refundNote}>이 충전의 {formatNumber(quote.chargeFn)} FN을 모두 사용했어요. 사용한 FN은 환불되지 않아요.</p>
+      </div>
+    );
+  }
+  const full = quote.type === "FULL_CANCEL";
+  return (
+    <div className={styles.refundOutcome}>
+      <strong className={styles.refundOutcomeTitle}>{REFUND_TYPE_LABEL[quote.type]}</strong>
+      <p className={styles.refundNote}>
+        {full
+          ? `결제일로부터 ${REFUND_WITHDRAWAL_DAYS}일 이내이고 이 충전의 FN을 쓰지 않아 수수료 없이 결제가 취소돼요.`
+          : quote.usedFn > 0
+            ? `이 충전에서 ${formatNumber(quote.usedFn)} FN을 사용해, 남은 FN에서 수수료를 빼고 환불해요.`
+            : `결제일로부터 ${REFUND_WITHDRAWAL_DAYS}일이 지나, 남은 FN에서 수수료를 빼고 환불해요.`}
+      </p>
+      <dl className={styles.refundFacts}>
+        <div>
+          <dt>{full ? "환불 FN" : "남은 충전 FN"}</dt>
+          <dd>{formatNumber(quote.grossFn)} FN</dd>
+        </div>
+        <div>
+          <dt>{full ? "환불 수수료" : `환불 수수료 (${REFUND_FEE_PERCENT})`}</dt>
+          <dd>{full ? "없음" : `−${formatNumber(quote.feeFn)} FN`}</dd>
+        </div>
+        <div>
+          <dt>{full ? "결제 취소 금액" : "환불 금액"}</dt>
+          <dd className={styles.refundFactsTotal}>{full ? `${formatNumber(paidAmount)} 원` : `${formatNumber(quote.netFn)} FN 상당`}</dd>
+        </div>
+      </dl>
+      {!full && <p className={styles.refundNote}>원화 환불 금액은 결제 대행사 연동 후 확정돼요 (TBD).</p>}
+    </div>
+  );
+}
+
+/** A filed request: 접수 · 심사 중 / 승인 / 거절, with the amounts the server stored. */
+function RefundStatus({ refund }: { refund: ChargeRefund }) {
+  if (refund.status === "REJECTED") {
+    return (
+      <p className={styles.refundDone} role="status">
+        환불 요청이 거절됐어요{refund.note ? ` · 사유: ${refund.note}` : ""}
+      </p>
+    );
+  }
+  const approved = refund.status === "APPROVED";
+  return (
+    <div className={styles.refundStatus} role="status">
+      <p className={styles.refundDone}>
+        {approved
+          ? `환불이 승인됐어요 · ${formatNumber(refund.amounts.grossFn)} FN이 회수됐어요 (${day(refund.decidedAt ?? refund.requestedAt)})`
+          : `환불 요청이 접수됐어요 · 심사 중 (${day(refund.requestedAt)})`}
+      </p>
+      <p className={styles.refundNote}>
+        {approved ? "환불" : "요청 내용"}: {describeRefund(refund.amounts)}
+      </p>
+      {refund.requestedAmounts && <p className={styles.refundNote}>요청 후 FN을 사용해 환불 금액이 바뀌었어요 (요청 때: {describeRefund(refund.requestedAmounts)}).</p>}
+      <p className={styles.refundNote}>{approved ? `원래 결제 수단으로 환불돼요. ${REFUND_METHOD_NOTE}돼요.` : `${REFUND_PROCESSING_TARGET}를 목표로 해요.`}</p>
+    </div>
+  );
+}
+
 /**
- * 환불 요청 (code-first, no Figma frame). Only records the request — the refund policy and review
- * are TBD, so the copy promises nothing about eligibility or timing.
+ * 환불 요청 (code-first, no Figma frame). Opening the form asks the server for this charge's outcome under the 환불 정책
+ * 기본값 (LOADING), shows it with the policy summary, then files the request with the outcome the member saw
+ * (PROCESSING → SUCCESS). If FN were used in between, the server answers with the new outcome instead (ERROR line).
  */
 function RefundSection({ charge }: { charge: ChargeRecord }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
+  const [quote, setQuote] = useState<RefundQuote | null>(null);
   // The server's answer bridges the gap until the refreshed record arrives; a repeat request answers
   // with the existing request as it is now, which may already be approved or rejected.
   const [answered, setAnswered] = useState<ChargeRefund | null>(null);
@@ -109,70 +211,101 @@ function RefundSection({ charge }: { charge: ChargeRecord }) {
   const [pending, startTransition] = useTransition();
   const refund = charge.refund ?? answered;
 
-  if (refund?.status === "APPROVED") {
-    return (
-      <p className={styles.refundDone} role="status">
-        환불이 승인됐어요 · FN이 회수됐어요 ({new Date(refund.decidedAt ?? refund.requestedAt).toLocaleDateString("ko-KR")}). 결제 취소 처리 시점은 결제 수단에 따라 달라요 (TBD).
-      </p>
-    );
-  }
-  if (refund?.status === "REJECTED") {
-    return (
-      <p className={styles.refundDone} role="status">
-        환불 요청이 거절됐어요{refund.note ? ` · 사유: ${refund.note}` : ""}
-      </p>
-    );
-  }
-  if (refund) {
-    return (
-      <p className={styles.refundDone} role="status">
-        환불 요청이 접수됐어요 · 심사 중 ({new Date(refund.requestedAt).toLocaleDateString("ko-KR")})
-      </p>
-    );
-  }
+  if (refund) return <RefundStatus refund={refund} />;
   if (charge.status !== "COMPLETED") return null;
 
-  const submit = () => {
+  const showRequest = (res: ChargeRefund) => {
+    setAnswered(res);
+    router.refresh();
+  };
+
+  const loadQuote = () => {
+    setOpen(true);
+    setQuote(null);
     setError(null);
     startTransition(async () => {
-      const res = await requestChargeRefund({ chargeId: charge.id, reason });
-      if (res.status === "INVALID") setError(res.message);
-      else if (res.status === "UNAUTHORIZED") router.push("/login?next=/wallet/charges");
-      else {
-        setAnswered(res);
-        router.refresh();
+      try {
+        const res = await quoteChargeRefund({ chargeId: charge.id });
+        if (res.status === "QUOTE") setQuote(res.quote);
+        else if (res.status === "INVALID") setError(res.message);
+        else if (res.status === "UNAUTHORIZED") router.push("/login?next=/wallet/charges");
+        else showRequest(res);
+      } catch {
+        setError("환불 금액을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.");
       }
     });
   };
 
-  return (
-    <div className={styles.refund}>
-      {!open ? (
-        <button type="button" className={styles.refundButton} onClick={() => setOpen(true)}>
+  const submit = () => {
+    if (!quote) return;
+    setError(null);
+    startTransition(async () => {
+      try {
+        const res = await requestChargeRefund({ chargeId: charge.id, reason, expectedGrossFn: quote.grossFn, expectedNetFn: quote.netFn });
+        if (res.status === "INVALID") setError(res.message);
+        else if (res.status === "UNAUTHORIZED") router.push("/login?next=/wallet/charges");
+        else if (res.status === "CHANGED" || res.status === "NOT_REFUNDABLE") {
+          setQuote(res.quote);
+          setError("그 사이 FN을 사용해 환불 내용이 바뀌었어요. 바뀐 내용을 확인해 주세요.");
+        } else showRequest(res);
+      } catch {
+        setError("요청하지 못했어요. 잠시 후 다시 시도해 주세요.");
+      }
+    });
+  };
+
+  if (!open) {
+    return (
+      <div className={styles.refund}>
+        <button type="button" className={styles.refundButton} onClick={loadQuote}>
           환불 요청
         </button>
+      </div>
+    );
+  }
+  const refundable = quote !== null && quote.type !== "NOT_REFUNDABLE";
+  return (
+    <div className={styles.refund}>
+      {quote ? (
+        <RefundOutcome quote={quote} paidAmount={charge.paidAmount} />
       ) : (
+        pending && (
+          <p className={styles.refundNote} role="status">
+            환불 금액을 계산하고 있어요…
+          </p>
+        )
+      )}
+      {refundable && (
         <>
           <label className={styles.refundLabel} htmlFor={`refund-${charge.id}`}>
             환불 사유 (선택)
           </label>
           <textarea id={`refund-${charge.id}`} className={styles.refundInput} value={reason} maxLength={REFUND_REASON_MAX} onChange={(e) => setReason(e.target.value)} />
-          <p className={styles.refundNote}>환불 가능 여부와 처리 기간은 정책이 확정된 뒤 안내돼요(TBD). 요청은 접수 후 검토돼요.</p>
-          {error && (
-            <p className={styles.refundError} role="alert">
-              {error}
-            </p>
-          )}
-          <div className={styles.refundActions}>
-            <button type="button" className={styles.modalSecondary} onClick={() => setOpen(false)} disabled={pending}>
-              취소
-            </button>
-            <button type="button" className={styles.modalPrimary} onClick={submit} disabled={pending} aria-busy={pending || undefined}>
-              {pending ? "접수 중..." : "환불 요청하기"}
-            </button>
-          </div>
         </>
       )}
+      <RefundPolicy />
+      {error && (
+        <p className={styles.refundError} role="alert">
+          {error}
+        </p>
+      )}
+      <div className={styles.refundActions}>
+        <button type="button" className={styles.modalSecondary} onClick={() => setOpen(false)} disabled={pending}>
+          {refundable ? "취소" : "닫기"}
+        </button>
+        {refundable ? (
+          <button type="button" className={styles.modalPrimary} onClick={submit} disabled={pending} aria-busy={pending || undefined}>
+            {pending ? "접수 중..." : "환불 요청하기"}
+          </button>
+        ) : (
+          quote === null &&
+          !pending && (
+            <button type="button" className={styles.modalPrimary} onClick={loadQuote}>
+              다시 시도
+            </button>
+          )
+        )}
+      </div>
     </div>
   );
 }

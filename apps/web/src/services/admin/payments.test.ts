@@ -25,12 +25,23 @@ const withdraw = (m: Awaited<ReturnType<typeof load>>) => {
   m.mockAccount.fnBalance = 0;
 };
 
-async function fileRefund(m: Awaited<ReturnType<typeof load>>) {
+/**
+ * The member asks for a refund of the newest completed charge. `balance`: the member's FN when asking — the sample
+ * history spent the older charges, so the newest charge is unused up to that balance (환불 정책 기본값, FIFO).
+ */
+async function fileRefund(m: Awaited<ReturnType<typeof load>>, balance?: (chargeFn: number) => number) {
   signIn(["SUPPORTER"]);
   const charge = m.listChargeRecords().find((c) => c.status === "COMPLETED")!;
+  if (balance) m.mockAccount.fnBalance = balance(charge.fnAmount);
   expect((await m.requestChargeRefund({ chargeId: charge.id, reason: "실수로 충전했어요" })).status).toBe("REQUESTED");
   signIn(["ADMIN"]);
   return charge;
+}
+
+/** Approves the amount the console shows now (as the admin app's 승인 does). */
+async function approve(m: Awaited<ReturnType<typeof load>>, chargeId: string, note = "정상 환불") {
+  const current = (await m.getPaymentsView())!.refunds.find((r) => r.chargeId === chargeId)?.current;
+  return m.decideRefund(OP, { chargeId, decision: "APPROVE", note, expectedGrossFn: current?.grossFn, expectedNetFn: current?.netFn });
 }
 
 describe("admin payments", () => {
@@ -38,24 +49,38 @@ describe("admin payments", () => {
 
   it("approves once, takes the FN back and shows the result to the member", async () => {
     const m = await load();
-    const charge = await fileRefund(m);
-    m.mockAccount.fnBalance = charge.fnAmount + 1_000;
-    expect((await m.getPaymentsView())!.refunds[0]).toMatchObject({ chargeId: charge.id, status: "REQUESTED" });
-    expect((await m.decideRefund(OP, { chargeId: charge.id, decision: "APPROVE", note: "" })).status).toBe("INVALID");
-    expect(await m.decideRefund(OP, { chargeId: charge.id, decision: "APPROVE", note: "정상 환불" })).toEqual({ status: "OK" });
+    const charge = await fileRefund(m, (fn) => fn + 1_000);
+    expect((await m.getPaymentsView())!.refunds[0]).toMatchObject({
+      chargeId: charge.id,
+      status: "REQUESTED",
+      requested: { type: "FULL_CANCEL", grossFn: charge.fnAmount, feeFn: 0, netFn: charge.fnAmount },
+      current: { type: "FULL_CANCEL", grossFn: charge.fnAmount, feeFn: 0, netFn: charge.fnAmount },
+      approved: null
+    });
+    expect((await approve(m, charge.id, "")).status).toBe("INVALID");
+    expect(await approve(m, charge.id)).toEqual({ status: "OK" });
     expect(m.mockAccount.fnBalance).toBe(1_000);
-    expect(await m.decideRefund(OP, { chargeId: charge.id, decision: "APPROVE", note: "정상 환불" })).toEqual({ status: "OK" });
+    expect(await m.decideRefund(OP, { chargeId: charge.id, decision: "APPROVE", note: "정상 환불" })).toEqual({ status: "OK" }); // a retry
     expect(m.mockAccount.fnBalance).toBe(1_000);
     expect((await m.decideRefund(OP, { chargeId: charge.id, decision: "REJECT", note: "뒤집기" })).status).toBe("INVALID");
     expect(m.listChargeRecords().find((c) => c.id === charge.id)!.refund).toMatchObject({ status: "APPROVED" });
-    expect(m.auditEntries().map((e) => [e.action, e.reason])).toEqual([["REFUND_APPROVE", `${charge.fnAmount.toLocaleString("ko-KR")} FN 회수 · 정상 환불`]]);
+    const fn = `${charge.fnAmount.toLocaleString("ko-KR")} FN`;
+    expect(m.auditEntries().map((e) => [e.action, e.reason])).toEqual([["REFUND_APPROVE", `전액 취소 · 회수 ${fn} · 수수료 0 FN · 환불 ${fn} · 정상 환불`]]);
+  });
+
+  it("states the refund policy for the console", async () => {
+    const m = await load();
+    signIn(["ADMIN"]);
+    const { refundPolicy } = (await m.getPaymentsView())!;
+    expect(refundPolicy.label).toBe("기본값 (일반적인 기준, 법무 검토 전)");
+    expect(refundPolicy.summary).toContain("7일 이내");
+    expect(refundPolicy.summary).toContain("수수료 10%");
   });
 
   it("leaves a wallet record of the FN taken back, also in the charges CSV", async () => {
     const m = await load();
-    const charge = await fileRefund(m);
-    m.mockAccount.fnBalance = charge.fnAmount;
-    expect((await m.decideRefund(OP, { chargeId: charge.id, decision: "APPROVE", note: "정상 환불" })).status).toBe("OK");
+    const charge = await fileRefund(m, (fn) => fn);
+    expect((await approve(m, charge.id)).status).toBe("OK");
     signIn(["SUPPORTER"]);
     const refunds = (await m.getWalletOverview({ kind: "REFUND", period: "all" }))!.entries;
     expect(refunds).toContainEqual(expect.objectContaining({ id: `${charge.id}-refund`, kind: "REFUND", deltaFn: -charge.fnAmount, statusLabel: "환불완료", tone: "refund" }));
@@ -90,12 +115,14 @@ describe("admin payments", () => {
     expect(m.auditEntries()).toEqual([]);
   });
 
-  it("refuses to approve when the FN was already spent, and rejects with a note", async () => {
+  it("refuses to approve when the FN were spent after the request, and rejects with a note", async () => {
     const m = await load();
-    const charge = await fileRefund(m);
-    m.mockAccount.fnBalance = charge.fnAmount - 1;
-    expect((await m.decideRefund(OP, { chargeId: charge.id, decision: "APPROVE", note: "환불 시도" })).status).toBe("INVALID");
-    expect(m.mockAccount.fnBalance).toBe(charge.fnAmount - 1);
+    const charge = await fileRefund(m); // the sample balance: 5,000 FN of the charge left
+    expect((await m.getPaymentsView())!.refunds[0].requested).toEqual({ type: "PARTIAL", grossFn: 5_000, feeFn: 500, netFn: 4_500 });
+    m.mockAccount.fnBalance = 0; // spent since
+    expect((await m.getPaymentsView())!.refunds[0].current).toMatchObject({ type: "NOT_REFUNDABLE" });
+    expect((await m.decideRefund(OP, { chargeId: charge.id, decision: "APPROVE", note: "환불 시도", expectedGrossFn: 5_000, expectedNetFn: 4_500 })).status).toBe("INVALID");
+    expect(m.mockAccount.fnBalance).toBe(0);
     expect(await m.decideRefund(OP, { chargeId: charge.id, decision: "REJECT", note: "이미 사용한 FN" })).toEqual({ status: "OK" });
     expect(m.listChargeRecords().find((c) => c.id === charge.id)!.refund).toMatchObject({ status: "REJECTED", note: "이미 사용한 FN" });
     expect(await m.decideRefund(OP, { chargeId: "nope", decision: "REJECT", note: "없음" })).toEqual({ status: "NOT_FOUND" });
