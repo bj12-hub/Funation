@@ -1,0 +1,182 @@
+/* 시계 (code-first, 2026-10-08). OBS source 600 × 240. */
+
+.root {
+  display: flex;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 16px;
+}
+
+.face {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 28px;
+}
+
+.label {
+  font-size: 16px;
+}
+
+.time {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 72px;
+  line-height: 1;
+}
+
+.half {
+  margin-right: 8px;
+  font-size: 0.32em;
+}
+
+.date {
+  font-size: 18px;
+}
+
+/* 플립: each digit on a card split by a hinge line; a new digit flips down. */
+.flipGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.colon {
+  padding: 0 2px;
+  opacity: 0.7;
+}
+
+.flip {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 0.78em;
+  height: 1.12em;
+  border-radius: 10px;
+  background: var(--ov-chip-bg);
+  color: var(--ov-card-ink);
+  animation: flip-in 0.45s var(--ov-ease);
+  transform-origin: 50% 50%;
+}
+
+.flip::after {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: 2px;
+  background: rgb(0 0 0 / 25%);
+  content: "";
+}
+
+[data-ov="BOLD"] .flip {
+  border: 2.5px solid #111111;
+  background: var(--ov-accent);
+  color: var(--ov-accent-ink);
+  box-shadow: 3px 3px 0 #111111;
+}
+
+[data-ov="PILL"] .flip {
+  background: rgb(255 255 255 / 10%);
+}
+
+[data-ov="GLASS"] .flip {
+  border: 1px solid rgb(255 255 255 / 55%);
+  background: rgb(255 255 255 / 22%);
+}
+
+@keyframes flip-in {
+  from {
+    transform: rotateX(80deg);
+    opacity: 0.4;
+  }
+}
+
+/* 디지털: one line; 필 makes it an island. */
+[data-style="DIGITAL"] .time {
+  font-size: 80px;
+}
+
+[data-ov="PILL"][data-style="DIGITAL"] .face {
+  border-radius: 999px;
+  padding: 14px 40px;
+}
+
+/* 아날로그 */
+.analogRow {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.dial {
+  width: 168px;
+  height: 168px;
+}
+
+.dialFace {
+  fill: var(--ov-chip-bg);
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+[data-ov="BOLD"] .dialFace {
+  fill: #ffffff;
+  stroke: #111111;
+  stroke-width: 4;
+}
+
+.tick {
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  opacity: 0.7;
+}
+
+.hourHand,
+.minuteHand,
+.secondHand {
+  stroke-linecap: round;
+}
+
+.hourHand {
+  stroke: currentColor;
+  stroke-width: 6;
+}
+
+.minuteHand {
+  stroke: currentColor;
+  stroke-width: 4;
+}
+
+.secondHand {
+  stroke: var(--ov-accent);
+  stroke-width: 2;
+}
+
+.pin {
+  fill: var(--ov-accent);
+}
+
+.analogText {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 18px;
+}
+
+.small {
+  font-size: 44px;
+}
+
+.small small {
+  font-size: 0.45em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flip {
+    animation: none;
+  }
+}

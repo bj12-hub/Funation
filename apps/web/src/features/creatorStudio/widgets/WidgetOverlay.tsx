@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { useServerClock } from "@/hooks/useServerClock";
 import type { OverlayWidget } from "@/services/creator/widgetOverlayTypes";
 import { useReloadSignal } from "../remote/useReloadSignal";
+import { ClockView } from "./ClockView";
 import { GoalView } from "./GoalView";
 import { GachaBoardView, GachaView, QuestView, RouletteView, VoteView, WallpaperView } from "./GameViews";
 import { EventView, QrView, RankingView, RecentView, TotalView } from "./WidgetViews";
@@ -54,6 +55,8 @@ export function WidgetOverlay({ data }: { data: OverlayWidget }) {
       return <GachaView stage={data.stage} history={data.history} theme={data.theme} />;
     case "gacha-board":
       return <GachaBoardView board={data.board} theme={data.theme} />;
+    case "clock":
+      return <Clock data={data} />;
     case "wallpaper":
       return <WallpaperView settings={data.settings} images={data.images} stickers={data.stickers} theme={data.theme} />;
   }
@@ -73,4 +76,10 @@ function Clocked({ data }: { data: Extract<OverlayWidget, { widget: "quest" | "v
   ) : (
     <VoteView settings={data.settings} vote={data.vote} theme={data.theme} now={now} />
   );
+}
+
+/** 시계: ticks every second on the server clock (corrected for skew). */
+function Clock({ data }: { data: Extract<OverlayWidget, { widget: "clock" }> }) {
+  const now = useServerClock(data.serverNow);
+  return <ClockView settings={data.settings} now={now} theme={data.theme} />;
 }

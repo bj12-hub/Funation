@@ -9,9 +9,9 @@ import type { AlertKind, OverlaySignal } from "./alertTypes";
 import type { GachaBoardView, GachaStage } from "@/services/donations/gachaTypes";
 import type { RouletteStage } from "@/services/donations/rouletteTypes";
 import type { VoteBoard } from "@/services/votes/voteTypes";
-import type { EventSettings, GachaSettings, GoalSettings, QrSettings, QuestWidgetSettings, RankingSettings, RecentSettings, RouletteSettings, TotalSettings, VoteSettings, WallpaperSettings, WidgetKey } from "./widgetSettingsTypes";
+import type { ClockSettings, EventSettings, GachaSettings, GoalSettings, QrSettings, QuestWidgetSettings, RankingSettings, RecentSettings, RouletteSettings, TotalSettings, VoteSettings, WallpaperSettings, WidgetKey } from "./widgetSettingsTypes";
 
-export const WIDGET_OVERLAYS = ["goal", "total", "ranking", "recent", "event", "qr", "quest", "vote", "roulette", "gacha", "gacha-board", "wallpaper"] as const;
+export const WIDGET_OVERLAYS = ["goal", "total", "ranking", "recent", "event", "qr", "quest", "vote", "roulette", "gacha", "gacha-board", "wallpaper", "clock"] as const;
 export type WidgetOverlayKind = (typeof WIDGET_OVERLAYS)[number];
 export const isWidgetOverlay = (v: unknown): v is WidgetOverlayKind => WIDGET_OVERLAYS.includes(v as WidgetOverlayKind);
 
@@ -28,7 +28,8 @@ export const WIDGET_OVERLAY_SETTINGS: Record<WidgetOverlayKind, WidgetKey> = {
   roulette: "ROULETTE",
   gacha: "GACHA",
   "gacha-board": "GACHA",
-  wallpaper: "WALLPAPER"
+  wallpaper: "WALLPAPER",
+  clock: "CLOCK"
 };
 
 /** Mock QR image (the popup preview uses the same one). TBD: a real QR for the creator's donation page. */
@@ -87,4 +88,6 @@ export type OverlayWidget = Common &
     | { widget: "gacha-board"; settings: GachaSettings; board: GachaBoardView }
     /** 벽지 (2026-10-04 결정: 자동 배치 스티커 벽): stickers placed by the server on the 1920 × 1080 screen. */
     | { widget: "wallpaper"; settings: Omit<WallpaperSettings, "images">; images: string[]; stickers: WallSticker[] }
+    /** 시계: the overlay counts on `serverNow` (Korean time). */
+    | { widget: "clock"; settings: ClockSettings }
   );

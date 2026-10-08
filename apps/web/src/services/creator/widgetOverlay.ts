@@ -100,6 +100,10 @@ export async function getOverlayWidget(widget: unknown, key: unknown): Promise<O
       const settings = readWidget("GACHA");
       return { widget, settings, board: boardOf(STUDIO_CHANNEL), ...themed({ theme: settings.overlayTheme }) };
     }
+    case "clock": {
+      const settings = readWidget("CLOCK");
+      return { widget, settings, ...themed(settings) };
+    }
     case "wallpaper": {
       // Stickers since the last 벽지 비우기 (리모컨). The images go once; each sticker points at one.
       const { images, ...settings } = readWidget("WALLPAPER");
