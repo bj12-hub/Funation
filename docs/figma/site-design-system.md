@@ -95,6 +95,8 @@ OBS 오버레이의 세 테마는 변수 컬렉션 **Overlay Theme**의 모드�
 | Overlay/Crew Score · Battle · Scenario · Steal | `257:600` · `257:636` · `257:661` · `257:669` | — | `crew/CrewScoreOverlay.tsx` |
 | Overlay/Video Caption · Audio Card · Drawing | `257:674` · `257:680` · `257:697` | — | `widgets/media/MediaOverlays.tsx` |
 | Overlay/Theme Sample | `260:13093` | Theme (Bold · Pill · Glass) — 변형마다 모드 고정 | `overlayTheme/ThemeSample.tsx` |
+| Overlay/Theme Swatch | `267:508` | Theme (Bold · Pill · Glass) — 테마 고르기 칩의 견본 30 × 22 | `overlayTheme/ThemeChoiceField.tsx` `.swatch` |
+| Studio/Alert Layout Icon · Studio/Goal Shape Icon | `267:516` · `267:540` | Layout (Card · Banner · Image) / Shape (Bar · Circle · Semi · Heart · Star) | `AlertForm` `.layoutIcon`, `GoalForm` `.icon` |
 
 ## 아이콘 (8 디자인 · Components → Icons 섹션)
 
@@ -136,9 +138,9 @@ OBS 오버레이의 세 테마는 변수 컬렉션 **Overlay Theme**의 모드�
 | 채널 | Y02b | 영상 목록 · 유튜브에서 지운 · 비공개 영상 "찾을 수 없음" (고정 버튼 비활성, 채널에서 숨김 — 2026-10-08 결정, code-first) | `/creator/videos` | `236:6103` |
 | 방송 · 위젯 | W01 | 위젯 목록 (룰렛 포함, 럭키박스 · 플레이 없음) | `/creator/widgets` | `63:1485` |
 | 방송 · 위젯 | W01b | 커스텀 사운드 팝업 (라이브러리에서 고르기) | `/creator/widgets` | `144:8419` |
-| 방송 · 위젯 | W01c | 뽑기 후원 팝업 (당첨 효과음 · 라이브러리) | `/creator/widgets` | `144:8944` |
-| 방송 · 위젯 | W01d | 투표 위젯 팝업 (무료 · 1인 1표, 프리셋) | `/creator/widgets` | `161:9654` |
-| 방송 · 위젯 | W01e | 룰렛 설정 팝업 (항목 · 확률, 크리에이터 상품) | `/creator/widgets` | `164:9319` |
+| 방송 · 위젯 | W01c | 뽑기 후원 팝업 (당첨 효과음 · 라이브러리, 테마 이전 → W12m) | `/creator/widgets` | `144:8944` |
+| 방송 · 위젯 | W01d | 투표 위젯 팝업 (무료 · 1인 1표, 프리셋, 테마 이전 → W12j) | `/creator/widgets` | `161:9654` |
+| 방송 · 위젯 | W01e | 룰렛 설정 팝업 (항목 · 확률, 크리에이터 상품, 테마 이전 → W12k) | `/creator/widgets` | `164:9319` |
 | 방송 · 위젯 | W02 | 방송 도구 (빙고 · 1줄 완성 · 화면에 보이는 중) | `/creator/widgets/tools` | `212:5861` |
 | 방송 · 위젯 | W03 | 오버레이 주소 (빙고 포함 24개 · OBS 씬 파일 내려받기 · OBS에 한 번에 넣기) | `/creator/widgets/overlays` | `213:5870` |
 | 방송 · 위젯 | W04 | 리모컨 (기능 제어 · 볼륨 · 시그니처 소리 · 방송 도구 · 빙고 · 투표 · 룰렛 스위치 · 뽑기 수령 처리) | `/creator/remote` | `218:5994` |
@@ -149,7 +151,22 @@ OBS 오버레이의 세 테마는 변수 컬렉션 **Overlay Theme**의 모드�
 | 방송 · 위젯 | W08 | 그림후원 | `/creator/widgets/drawing` | `66:2498` |
 | 방송 · 위젯 | W09 | 이미지·사운드 (이름 찾기 · 이름순 · 짝 필터, 5개 중 1개) | `/creator/widgets/assets` | `213:6371` |
 | 방송 · 위젯 | W03b | 오버레이 미리보기 (OBS 크기 · 배경 · 테스트 후원) | `/creator/widgets/overlays/preview/[id]` | `200:5999` |
-| 방송 · 위젯 | W01f | 후원랭킹 위젯 팝업 (랭킹 종류 · 수단별 보드) | `/creator/widgets` | `205:15223` |
+| 방송 · 위젯 | W01f | 후원랭킹 위젯 팝업 (랭킹 종류 · 수단별 보드, 테마 이전 → W12h) | `/creator/widgets` | `205:15223` |
+| 방송 · 위젯 · 설정 팝업 | W12 | 위젯 (오버레이 테마 카드 · 설정 팝업 배경) | `/creator/widgets` | `266:6219` |
+| 방송 · 위젯 · 설정 팝업 | W12a | 후원 알림 디자인 팝업 (미리보기 · 테마 · 알림 모양 · 문구 · 움직임) | `/creator/widgets` | `269:6384` |
+| 방송 · 위젯 · 설정 팝업 | W12b | 채팅창 위젯 설정 팝업 (스타일 5종 · 닉네임 컬러 · 자동 감추기) | `/creator/widgets` | `270:6582` |
+| 방송 · 위젯 · 설정 팝업 | W12c | 후원목표 위젯 설정 팝업 (목표 모양 5종 · 두 번째 목표 · 색상) | `/creator/widgets` | `271:6853` |
+| 방송 · 위젯 · 설정 팝업 | W12d | 후원누적금액 위젯 설정 팝업 (배경 카드) | `/creator/widgets` | `271:7487` |
+| 방송 · 위젯 · 설정 팝업 | W12e | 최근알림 위젯 설정 팝업 (배경 카드 · 플랫폼별 템플릿) | `/creator/widgets` | `271:8036` |
+| 방송 · 위젯 · 설정 팝업 | W12f | 이벤트 위젯 설정 팝업 | `/creator/widgets` | `272:7457` |
+| 방송 · 위젯 · 설정 팝업 | W12g | 후원 QR코드 위젯 설정 팝업 | `/creator/widgets` | `272:8044` |
+| 방송 · 위젯 · 설정 팝업 | W12h | 후원랭킹 위젯 설정 팝업 (배경 카드 · 스타일 썸네일) | `/creator/widgets` | `272:8909` |
+| 방송 · 위젯 · 설정 팝업 | W12i | 퀘스트 위젯 설정 팝업 | `/creator/widgets` | `273:8367` |
+| 방송 · 위젯 · 설정 팝업 | W12j | 투표 위젯 설정 팝업 (프리셋 색) | `/creator/widgets` | `273:9009` |
+| 방송 · 위젯 · 설정 팝업 | W12k | 룰렛 설정 팝업 | `/creator/widgets` | `274:8772` |
+| 방송 · 위젯 · 설정 팝업 | W12l | 시계 위젯 설정 팝업 (플립 · 디지털 · 아날로그) | `/creator/widgets` | `274:9376` |
+| 방송 · 위젯 · 설정 팝업 | W12m | 뽑기 후원 위젯 설정 팝업 (오버레이 테마는 시즌 테마와 별개 · 당첨 리스트) | `/creator/widgets` | `276:9170` |
+| 방송 · 위젯 · 설정 팝업 | W12n | 벽지 위젯 설정 팝업 (스티커 벽 미리보기) | `/creator/widgets` | `277:9366` |
 | 방송 · 위젯 | W10 | 배너 (기능 제어 OFF 안내 · 배너 OFF 예시) | `/creator/widgets/banner` | `66:2782` |
 | 방송 · 위젯 | W11 | 후원 연동 (치지직 · SOOP · FlexTV "API 확인 중", SMS 계좌후원 목업) | `/creator/widgets/link` | `229:6102` |
 | 크루 방송 | Y03 | 크루 관리 | `/creator/crew` | `200:5757` |
@@ -326,3 +343,12 @@ Overlay Theme 모드가 고정돼 있어요. 프레임 크기는 오버레이 �
 
 10 페이지의 OBS 오버레이 프레임(O02–O24)은 오버레이 테마 이전 모습이에요. 테마가 있는 오버레이의 지금 디자인은 이 페이지를 보세요.
 이펙트 · 배너 · 벽지는 이미지와 효과만 그려서 테마가 없어요.
+
+### 설정 팝업 (9 레이아웃 · 스튜디오 → "방송 · 위젯 · 설정 팝업 (오버레이 테마)" 섹션 `266:6596`)
+
+오버레이 테마가 들어간 위젯 설정 팝업 14개예요(2026-10-08). 배경은 W12(위젯 목록 + 오버레이 테마 카드)이고, 팝업마다 그 화면을 복제해
+어둡게(0.6) 깐 뒤 팝업을 얹었어요. 팝업 미리보기는 8 페이지 오버레이 컴포넌트 인스턴스(모드 = 미니멀 필, 채널 전체 테마)이고 코드처럼
+오버레이 폭에 맞춰 줄이기만 해요(확대 안 함). 테마 칩 견본 · 알림 모양 · 목표 모양 그림은 위 컴포넌트, 스위치는 켜짐이면 오른쪽 + 체크 아이콘.
+벽지 스티커 · 랭킹 스타일 썸네일은 `apps/web/public/mock/creator/widgets`의 목업 일러스트를 올렸어요. 미니후원 · 커스텀 사운드 팝업은 테마가
+없어 W01b 등 기존 프레임 그대로예요.
+
