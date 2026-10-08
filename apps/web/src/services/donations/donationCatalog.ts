@@ -51,7 +51,7 @@ export type MiniColor = { id: string; label: string; hex: string };
 export type DonationCatalog = {
   types: DonationTypeInfo[];
   /** Minimum FN per donation type. Design shows 1,000 (일반) and 100 (미니); others TBD. */
-  /** 음성 후원 (AUDIO) starts at the 영상 후원 minimum until its own is set (TBD). */
+  /** 음성 후원 (AUDIO): 1,000 FN, decided 2026-10-08 (same as 영상 후원). */
   minAmount: Record<"TEXT" | "MINI" | "VIDEO" | "AUDIO", number>;
   /** Max characters for free text. TBD — 100 follows the existing message field; 30 for mini is an assumption. */
   maxLength: { message: number; mini: number };

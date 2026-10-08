@@ -62,6 +62,7 @@ describe("음성 후원", () => {
     expect(await m.requestDonation(audio(1, { videoUrl: "https://example.com/song.mp3" }))).toEqual({ status: "INVALID" });
     expect(await m.requestDonation(audio(2, { startSec: 40, endSec: 10 }))).toEqual({ status: "INVALID" });
     expect(await m.requestDonation(audio(3, { endSec: 86_401 }))).toEqual({ status: "INVALID" });
+    // 최소 금액 1,000 FN (2026-10-08 확정): 999 is refused, 1,000 goes through (first test).
     expect(await m.requestDonation(audio(4, { amount: 999 }))).toEqual({ status: "INVALID" });
     expect(await m.requestDonation(audio(5, { termsAgreed: false }))).toEqual({ status: "INVALID" });
     expect(m.account.fnBalance).toBe(50_000);
