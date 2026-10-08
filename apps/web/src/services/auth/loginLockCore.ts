@@ -15,18 +15,46 @@ import { SAMPLE_MEMBER_ID } from "@/services/admin/memberCore";
 
 export const MAX_PASSWORD_FAILURES = 5;
 
-type Store = { failures: Map<string, number> };
-const g = globalThis as typeof globalThis & { __funationMockLoginLockV1?: Store };
-const store = (): Store => (g.__funationMockLoginLockV1 ??= { failures: new Map() });
+/**
+ * 접속 기록 (account/retentionPolicy.ts ACCESS_LOG, kept 3 months after a withdrawal — 기본값): successful logins, wrong
+ * passwords and locks, per account. The mock keeps the newest ACCESS_LOG_MAX; nothing shows them yet (backend: IP,
+ * device and the retention of active members' logs are TBD).
+ */
+export type AccessEvent = { account: string; at: string; event: "LOGIN" | "FAILURE" | "LOCKED" };
+const ACCESS_LOG_MAX = 500;
+
+type Store = { failures: Map<string, number>; accessLog: AccessEvent[] };
+// V2: the access log.
+const g = globalThis as typeof globalThis & { __funationMockLoginLockV2?: Store };
+const store = (): Store => (g.__funationMockLoginLockV2 ??= { failures: new Map(), accessLog: [] });
+
+/** The login key of the slot account with this start marker (null = the first account). */
+export const accountKeyOf = (since: string | null) => (since ? `${SAMPLE_MEMBER_ID}@${since}` : SAMPLE_MEMBER_ID);
 
 /**
  * The mock's one account slot. A 재가입 account gets its own key (its start marker), so it does not
  * inherit the withdrawn account's failures.
  */
-export const currentAccountKey = () => {
-  const since = accountSince();
-  return since ? `${SAMPLE_MEMBER_ID}@${since}` : SAMPLE_MEMBER_ID;
-};
+export const currentAccountKey = () => accountKeyOf(accountSince());
+
+function logAccess(account: string, event: AccessEvent["event"]) {
+  const log = store().accessLog;
+  log.push({ account, at: new Date().toISOString(), event });
+  if (log.length > ACCESS_LOG_MAX) log.splice(0, log.length - ACCESS_LOG_MAX);
+}
+
+/** A successful login of the account. */
+export const recordLogin = (account: string) => logAccess(account, "LOGIN");
+
+/** The account's 접속 기록 (oldest first). */
+export const accessLogOf = (account: string) => store().accessLog.filter((e) => e.account === account);
+
+/** Removes an account's 접속 기록 and failure count (retention purge). */
+export function forgetAccess(account: string) {
+  const s = store();
+  s.failures.delete(account);
+  s.accessLog = s.accessLog.filter((e) => e.account !== account);
+}
 
 /**
  * Mock directory: "unknown" (any case or spacing) is not registered; every other identifier is the sample
@@ -45,6 +73,7 @@ export const isPasswordLocked = (account: string) => (store().failures.get(accou
 export function recordPasswordFailure(account: string): boolean {
   const count = (store().failures.get(account) ?? 0) + 1;
   store().failures.set(account, count);
+  logAccess(account, count >= MAX_PASSWORD_FAILURES ? "LOCKED" : "FAILURE");
   return count >= MAX_PASSWORD_FAILURES;
 }
 

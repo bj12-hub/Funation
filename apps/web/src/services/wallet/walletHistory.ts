@@ -1,7 +1,7 @@
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
-import { accountAt, accountSince } from "@/services/account/withdrawalCore";
+import { accountAt, accountSince, isPurged } from "@/services/account/withdrawalCore";
 import { findQuest } from "@/services/donations/questCore";
 import { drawState } from "@/services/donations/gachaCore";
 import { spinState } from "@/services/donations/rouletteCore";
@@ -283,7 +283,14 @@ export function findChargeRecord(id: string): ChargeRecord | null {
   return [...mockWallet.charges, ...seedCharges()].find((c) => c.id === id) ?? null;
 }
 
+/**
+ * The first account's sample history: none once its 대금결제 기록 retention ended after a withdrawal
+ * (account/retentionPurge.ts).
+ */
+const seedPurged = () => isPurged(null, "PAYMENT");
+
 function seedCharges(): ChargeRecord[] {
+  if (seedPurged()) return [];
   return CHARGE_ROWS.map(([daysAgo, time, method, fnAmount, status], i) => {
     const chargedAt = stamp(daysAgo, time);
     const m = METHODS[method];
@@ -338,6 +345,7 @@ function mockDonations(): (DonationRecord & { category: DonationCategory; hidePr
 }
 
 function seedDonations(): (DonationRecord & { category: DonationCategory })[] {
+  if (seedPurged()) return [];
   return DONATION_ROWS.map(([daysAgo, time, creatorId, creatorName, message, fnAmount, typeLabel, category, status], i) => ({
     id: `dn${i + 1}`,
     donatedAt: stamp(daysAgo, time),
