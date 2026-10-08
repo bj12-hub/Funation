@@ -13,7 +13,7 @@ import type { RoomViewer } from "./rouletteCore";
  * The mock reads the studio's 뽑기 settings for every channel (one widget store), like the 룰렛.
  * 2026-10-08 결정 (as for the 룰렛): the room's 내 뽑기 belongs to the account (the 리모컨, 당첨 내역 and 당첨 리스트
  * keep every draw), and the 1인 횟수 한도 counts per person (the verified phone) per Korean day, across a 재가입.
- * TBD: odds disclosure / legal review for paid draws, delivery of prizes, refunds.
+ * TBD: odds disclosure / legal review for paid draws, delivery of prizes, refunds, the limit period (a Korean day today).
  */
 export type GachaDraw = {
   id: string;
