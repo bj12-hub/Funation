@@ -19,7 +19,7 @@ async function load() {
   const { SAMPLE_MEMBER_ID, withdrawnMemberId } = await import("./memberCore");
   const { mockSettlement } = await import("@/services/creator/mockSettlementStore");
   const { mockCreator } = await import("@/services/creator/mockCreatorStore");
-  const { withdrawalStore, accountSince } = await import("@/services/account/withdrawalCore");
+  const { recordWithdrawal, accountSince } = await import("@/services/account/withdrawalCore");
   const { requestChargeRefund } = await import("@/services/wallet/refund");
   const { listChargeRecords } = await import("@/services/wallet/walletHistory");
   const community = await import("@/services/community/community");
@@ -35,7 +35,7 @@ async function load() {
     withdrawnMemberId,
     mockSettlement,
     mockCreator,
-    withdrawalStore,
+    recordWithdrawal,
     accountSince,
     requestChargeRefund,
     listChargeRecords,
@@ -62,7 +62,7 @@ async function activity(m: M) {
 }
 
 const withdraw = (m: M) => {
-  m.withdrawalStore().withdrawal = { at: new Date().toISOString(), requestId: "w-test", forfeitedFn: 0, forfeitedEarningsFn: 0, nickname: "홍길동", funationId: "hongGD123" };
+  m.recordWithdrawal({ at: new Date().toISOString(), requestId: "w-test", forfeitedFn: 0, forfeitedEarningsFn: 0 });
 };
 
 /** What each console list says about the member's records: `name withdrawn` (ids where the console links them). */

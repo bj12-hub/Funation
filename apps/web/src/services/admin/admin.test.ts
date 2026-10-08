@@ -38,7 +38,7 @@ describe("admin console", () => {
   it("leaves a withdrawn account's waiting refund out of 처리 대기 and counts it as 처리 불가(탈퇴) (2026-10-08 결정)", async () => {
     const m = await load();
     const { decideRefund, getPaymentsView } = await import("./payments");
-    const { withdrawalStore } = await import("@/services/account/withdrawalCore");
+    const { recordWithdrawal, withdrawalStore } = await import("@/services/account/withdrawalCore");
     const request = (chargeId: string, accountSince: string | null, requestedAt: string) =>
       m.mockRefunds.requests.push({ chargeId, memberId: "u-test", accountSince, requestedAt, reason: "", status: "REQUESTED" });
     request("ch2", null, "2026-10-01T00:00:00.000Z");
@@ -46,7 +46,7 @@ describe("admin console", () => {
     expect((await m.getAdminDashboard())!.pending).toMatchObject({ refunds: 1, refundsBlocked: 0 });
 
     // The account withdrew (a request that slipped in during the 탈퇴), and a new account in the slot files its own.
-    withdrawalStore().withdrawal = { at: new Date().toISOString(), requestId: "w-test", forfeitedFn: 0, forfeitedEarningsFn: 0, nickname: "홍길동", funationId: "hongGD123" };
+    recordWithdrawal({ at: new Date().toISOString(), requestId: "w-test", forfeitedFn: 0, forfeitedEarningsFn: 0 });
     expect((await m.getAdminDashboard())!.pending).toMatchObject({ refunds: 0, refundsBlocked: 1 });
     const { startNewAccount } = await import("@/services/account/rejoin");
     startNewAccount({ nickname: "다시왔어요", password: "newpass12!", marketing: false, phone: "010-0000-0000" });

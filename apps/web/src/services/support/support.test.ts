@@ -37,14 +37,14 @@ describe("support", () => {
 
   it("starts a 재가입 account without the withdrawn account's inquiries", async () => {
     const { submitInquiry, listMyInquiries } = await import("./inquiry");
-    const { withdrawalStore } = await import("@/services/account/withdrawalCore");
+    const { recordWithdrawal } = await import("@/services/account/withdrawalCore");
     const { startNewAccount } = await import("@/services/account/rejoin");
     const input = { requestId: key(1), category: "ACCOUNT", title: "탈퇴 전 문의", body: "탈퇴하기 전에 남긴 개인적인 문의 내용이에요." };
     const old = await submitInquiry(input);
     expect((await listMyInquiries())!.map((q) => q.title)).toEqual(["탈퇴 전 문의"]);
 
     // The mock's 재가입 reuses the slot (and its user id) for a new account.
-    withdrawalStore().withdrawal = { at: new Date().toISOString(), requestId: "w-test", forfeitedFn: 0, forfeitedEarningsFn: 0, nickname: "홍길동", funationId: "hongGD123" };
+    recordWithdrawal({ at: new Date().toISOString(), requestId: "w-test", forfeitedFn: 0, forfeitedEarningsFn: 0 });
     expect(startNewAccount({ nickname: "다시왔어요", password: "newpass12!", marketing: false, phone: "010-0000-0000" })).toBe(true);
     expect(await listMyInquiries()).toEqual([]);
     // Its own request ids are its own: the same id is a new inquiry, not the withdrawn account's.

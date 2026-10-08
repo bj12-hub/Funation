@@ -14,8 +14,9 @@ import { youtubeStore } from "@/services/creator/youtubeCore";
 import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
 import { mockQuests } from "@/services/donations/questCore";
 import { mockRefunds } from "@/services/wallet/mockRefundStore";
+import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { mockAccount, mockCredentials } from "./mockStore";
-import { accountSince, isWithdrawn, withdrawalOf, withdrawalStore } from "./withdrawalCore";
+import { accountSince, isWithdrawn, recordWithdrawal, withdrawalOf } from "./withdrawalCore";
 import type { PendingQuests, WithdrawResult, WithdrawalInfo } from "./withdrawalTypes";
 
 /**
@@ -30,6 +31,9 @@ import type { PendingQuests, WithdrawResult, WithdrawalInfo } from "./withdrawal
  * member sent (a failed or cancelled quest refunds the slot's balance, which after a 재가입 is a new account's) and, for
  * a creator, quests sent to the channel (the supporters' FN waits for the channel's decision). The member withdraws
  * once each has a result; nothing about the quests themselves changes here.
+ * Retention (./retentionPolicy.ts — 기본값, 일반적인 기준, 법무 검토 전): the withdrawal record with the consents, the
+ * payment, dispute and access records and the 본인 확인 값 stay until their dates (./retentionPurge.ts), posts stay up
+ * under "탈퇴한 회원"; every other piece of personal data goes now.
  */
 
 const assertMock = () => {
@@ -127,15 +131,19 @@ export async function withdrawAccount(input: unknown): Promise<WithdrawResult> {
   if (changed) return changed;
 
   const now = new Date().toISOString();
-  withdrawalStore().withdrawal = {
+  // The record keeps the consents (약관 동의 기록) and takes the 본인 확인 값 out of the credentials (the phone itself
+  // goes, a keyed hash stays a year).
+  recordWithdrawal({
     at: now,
     requestId: v.requestId,
     forfeitedFn: balance,
     forfeitedEarningsFn: earnings,
-    nickname: mockAccount.nickname,
-    funationId: mockAccount.funationId
-  };
+    consents: { chargeTerms: mockWallet.chargeTermsAgreedAt, settlementTerms: mockSettlement.terms?.acceptedAt ?? null }
+  });
   mockAccount.fnBalance = 0;
+  // Personal data no retention rule keeps: profile image, 본인인증, marketing consent, login and platform links.
+  Object.assign(mockAccount, { avatarUrl: null, identity: null, marketingConsent: false });
+  mockWallet.marketingOptIn = false;
   mockAccount.linkedLoginProviders = { NAVER: null, GOOGLE: null, KAKAO: null };
   mockAccount.connectedPlatforms = mockAccount.connectedPlatforms.map((p) => ({ ...p, handle: null }));
   if (earnings > 0) {
@@ -145,8 +153,8 @@ export async function withdrawAccount(input: unknown): Promise<WithdrawResult> {
       Object.assign(r, { status: "FORFEITED", feeFn: 0, netKrw: 0, payoutDate: null, review: { at: now, by: "회원 탈퇴", note: "정산 대기 수익 소멸 (회원 동의)" } });
     }
   }
-  // The payout account is this member's personal data, and a 재가입 must not find it registered.
-  // TBD: how long withdrawn members' records are kept (legal review).
+  // The payout account is this member's personal data, and a 재가입 must not find it registered (the 정산 이용 동의
+  // stays in the withdrawal record, and each request keeps its own masked copy as a 정산 기록).
   Object.assign(mockSettlement, { terms: null, registration: null, autoSettlement: false });
   // Access that acts for the channel without a login ends with the account: manager links, platform chat
   // connections, the YouTube link, and the overlay / bank-SMS keys (reissued, so old URLs stop for good).

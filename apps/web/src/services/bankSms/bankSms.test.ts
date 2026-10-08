@@ -27,8 +27,8 @@ const suspendCreator = async () => {
   return () => delete memberStore().suspensions[SAMPLE_MEMBER_ID];
 };
 const withdrawCreator = async () => {
-  const { withdrawalStore } = await import("@/services/account/withdrawalCore");
-  withdrawalStore().withdrawal = { at: new Date().toISOString(), requestId: key(99), forfeitedFn: 0, forfeitedEarningsFn: 0, nickname: "홍길동", funationId: "hongGD123" };
+  const { recordWithdrawal } = await import("@/services/account/withdrawalCore");
+  recordWithdrawal({ at: new Date().toISOString(), requestId: key(99), forfeitedFn: 0, forfeitedEarningsFn: 0 });
 };
 
 describe("SMS 계좌후원", () => {

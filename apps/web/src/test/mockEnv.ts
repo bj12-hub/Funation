@@ -55,12 +55,13 @@ export async function verifyMockIdentity() {
 
 /**
  * 재가입 in the mock's one account slot: the account withdraws and someone signs up with `phone`, the number verified
- * at sign-up. The same phone is the same person (2026-10-08 결정: 출석 · 이벤트 · 투표 once per person); another is not.
+ * at sign-up. The same phone is the same person (2026-10-08 결정: 출석 · 이벤트 · 투표 once per person); another is not
+ * — nor is the same phone once the withdrawn account's 본인 확인 값 is gone (1 year, account/retentionPolicy.ts).
  */
 export async function rejoinWithPhone(phone: string, now = new Date()) {
-  const { withdrawalStore } = await import("@/services/account/withdrawalCore");
+  const { recordWithdrawal } = await import("@/services/account/withdrawalCore");
   const { startNewAccount } = await import("@/services/account/rejoin");
-  withdrawalStore().withdrawal = { at: now.toISOString(), requestId: "w-test", forfeitedFn: 0, forfeitedEarningsFn: 0, nickname: "홍길동", funationId: "hongGD123" };
+  recordWithdrawal({ at: now.toISOString(), requestId: "w-test", forfeitedFn: 0, forfeitedEarningsFn: 0 });
   if (!startNewAccount({ nickname: "다시왔어요", password: "newpass12!", marketing: false, phone }, now)) throw new Error("재가입 failed");
 }
 

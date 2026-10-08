@@ -41,13 +41,13 @@ describe("channel home", () => {
 
   it("does not put the withdrawn account's donations on a 재가입 account's row", async () => {
     const m = await load();
-    const { withdrawalStore } = await import("@/services/account/withdrawalCore");
+    const { recordWithdrawal } = await import("@/services/account/withdrawalCore");
     const { startNewAccount } = await import("@/services/account/rejoin");
     await m.requestDonation({ creatorId: "c1", hideProfile: false, type: "TEXT", amount: 1_000_000, message: "", voiceId: null, idempotencyKey: key(1) });
     expect((await m.getChannelMonthlyRanking("c1"))!.rows[0]).toMatchObject({ me: true, fnAmount: 1_000_000 });
 
     // A second later the slot holds a new account (the mock's 재가입 keeps the user id).
-    withdrawalStore().withdrawal = { at: new Date().toISOString(), requestId: "w-test", forfeitedFn: 0, forfeitedEarningsFn: 0, nickname: "홍길동", funationId: "hongGD123" };
+    recordWithdrawal({ at: new Date().toISOString(), requestId: "w-test", forfeitedFn: 0, forfeitedEarningsFn: 0 });
     startNewAccount({ nickname: "다시왔어요", password: "newpass12!", marketing: false, phone: "010-0000-0000" }, new Date(Date.now() + 1_000));
     expect((await m.getChannelMonthlyRanking("c1"))!.rows.some((r) => r.me)).toBe(false);
   });

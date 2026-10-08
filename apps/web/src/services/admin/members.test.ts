@@ -99,9 +99,9 @@ describe("admin members", () => {
 
   it("does not suspend a member who withdrew while the request was being handled", async () => {
     const m = await load();
-    const { withdrawalStore } = await import("@/services/account/withdrawalCore");
+    const { recordWithdrawal } = await import("@/services/account/withdrawalCore");
     const pending = m.suspendMember(OP, { id: m.SAMPLE_MEMBER_ID, days: null, reason: "운영 정책 위반 (테스트)", requestId: key(8) });
-    withdrawalStore().withdrawal = { at: new Date().toISOString(), requestId: "w-test", forfeitedFn: 0, forfeitedEarningsFn: 0, nickname: "홍길동", funationId: "hongGD123" };
+    recordWithdrawal({ at: new Date().toISOString(), requestId: "w-test", forfeitedFn: 0, forfeitedEarningsFn: 0 });
     expect(await pending).toEqual({ status: "INVALID", message: "탈퇴한 회원이에요." });
     expect(m.suspensionOf(m.SAMPLE_MEMBER_ID)).toBeNull();
     expect(m.auditEntries()).toEqual([]);

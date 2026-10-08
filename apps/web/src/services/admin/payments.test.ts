@@ -13,15 +13,15 @@ async function load() {
   const { requestChargeRefund } = await import("@/services/wallet/refund");
   const { listChargeRecords, getWalletOverview } = await import("@/services/wallet/walletHistory");
   const { mockAccount } = await import("@/services/account/mockStore");
-  const { withdrawalStore } = await import("@/services/account/withdrawalCore");
+  const { recordWithdrawal } = await import("@/services/account/withdrawalCore");
   const { startNewAccount } = await import("@/services/account/rejoin");
   const { auditEntries } = await import("./auditCore");
   const csvRoute = await import("@/app/api/wallet/charges/route");
-  return { ...payments, requestChargeRefund, listChargeRecords, getWalletOverview, mockAccount, withdrawalStore, startNewAccount, auditEntries, chargesCsv: csvRoute.GET };
+  return { ...payments, requestChargeRefund, listChargeRecords, getWalletOverview, mockAccount, recordWithdrawal, startNewAccount, auditEntries, chargesCsv: csvRoute.GET };
 }
 
 const withdraw = (m: Awaited<ReturnType<typeof load>>) => {
-  m.withdrawalStore().withdrawal = { at: new Date().toISOString(), requestId: "test-withdrawal-0001", forfeitedFn: m.mockAccount.fnBalance, forfeitedEarningsFn: 0, nickname: m.mockAccount.nickname, funationId: "hongGD123" };
+  m.recordWithdrawal({ at: new Date().toISOString(), requestId: "test-withdrawal-0001", forfeitedFn: m.mockAccount.fnBalance, forfeitedEarningsFn: 0 });
   m.mockAccount.fnBalance = 0;
 };
 

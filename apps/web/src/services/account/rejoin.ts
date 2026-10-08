@@ -9,7 +9,8 @@ import { notificationStore } from "@/services/notifications/notificationCore";
 import { resetMockIdentity } from "@/services/supporter/mockIdentityStore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { mockAccount, mockChangeHistory, mockCredentials, mockSessionState } from "./mockStore";
-import { withdrawalStore } from "./withdrawalCore";
+import { purgeExpired } from "./retentionPurge";
+import { personKeyFor, withdrawalStore } from "./withdrawalCore";
 
 /**
  * 재가입 (2026-10-05 결정: 탈퇴 후 바로 재가입 가능) — server-only, called by the sign-up mock. The mock has one
@@ -24,10 +25,14 @@ import { withdrawalStore } from "./withdrawalCore";
  * daily limits count once per person, 2026-10-08 결정). The withdrawn account's posts, comments, blocks and reports stay with its own member id
  * (`retireSlotMember`), and its notifications are not the new account's. The withdrawal record stays for audit. Mock
  * limitation: the 썸네이션 ID and other per-account sample data (favorites, messages …) are shared with the old slot.
+ * The same person means the same phone while a withdrawn account's 본인 확인 값 is kept (탈퇴 후 1년,
+ * retentionPolicy.ts — 기본값): expired data is purged first, so after that year the same phone is a new person.
  */
 export function startNewAccount(input: { nickname: string; password: string; marketing: boolean; phone: string }, now = new Date()) {
+  purgeExpired(now);
   const store = withdrawalStore();
   if (!store.withdrawal) return false;
+  const personKey = personKeyFor(input.phone, now);
   // The withdrawn account keeps its start marker: the admin console finds its wallet records with it.
   store.past.push({ ...store.withdrawal, accountSince: store.accountSince });
   store.withdrawal = null;
@@ -41,7 +46,7 @@ export function startNewAccount(input: { nickname: string; password: string; mar
     rankingVisibility: { quest: true },
     marketingConsent: input.marketing
   });
-  Object.assign(mockCredentials, { password: input.password, recentPasswords: [input.password], changedAt: now.toISOString(), phone: input.phone });
+  Object.assign(mockCredentials, { password: input.password, recentPasswords: [input.password], changedAt: now.toISOString(), phone: input.phone, personKey });
   Object.assign(mockChangeHistory, { nicknameChangedAt: null, funationIdChangedAt: null });
   Object.assign(mockWallet, { chargeTermsAgreedAt: null, marketingOptIn: false });
   (mockSettlement.pastRequests ??= []).push(...mockSettlement.requests);

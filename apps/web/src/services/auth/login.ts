@@ -6,7 +6,7 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { safeRedirectPath } from "@/lib/safeRedirect";
 import { startSession } from "@/lib/session";
 import { mockCredentials } from "@/services/account/mockStore";
-import { clearPasswordFailures, isPasswordLocked, recordPasswordFailure, resolveAccount } from "./loginLockCore";
+import { clearPasswordFailures, isPasswordLocked, recordLogin, recordPasswordFailure, resolveAccount } from "./loginLockCore";
 
 /**
  * Login service contract.
@@ -71,6 +71,7 @@ async function devMockLogin({ identifier, password }: LoginRequest): Promise<Log
     clearPasswordFailures(account);
     // 이용 정지 (관리자 콘솔): the sample member cannot sign in while suspended.
     if (isMemberSuspended(SAMPLE_MEMBER_ID)) return { status: "SUSPENDED" };
+    recordLogin(account);
     return { status: "SUCCESS" };
   }
   return recordPasswordFailure(account) ? { status: "LOCKED" } : { status: "WRONG_PASSWORD" };
