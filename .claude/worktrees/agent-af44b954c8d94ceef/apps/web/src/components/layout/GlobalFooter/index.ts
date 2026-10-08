@@ -1,1 +1,0 @@
-export { GlobalFooter } from "./GlobalFooter";
