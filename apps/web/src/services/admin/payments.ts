@@ -35,9 +35,22 @@ const owner = (account: string | null) => {
  */
 const fromCurrentAccount = (r: MockRefundRequest) => r.accountSince === accountSince() && !isWithdrawn();
 
+/**
+ * 처리 대기 (2026-10-08 결정 D4b): requests an operator can decide now. A waiting request of an account that has since
+ * withdrawn is 처리 불가(탈퇴) — left out of the 처리 대기 counts, listed apart, and still refused by `decideRefund`.
+ */
+export function refundQueue(): { waiting: number; blocked: number } {
+  const open = mockRefunds.requests.filter((r) => r.status === "REQUESTED");
+  const waiting = open.filter(fromCurrentAccount).length;
+  return { waiting, blocked: open.length - waiting };
+}
+
+/** Order: 처리 대기, then 처리 불가(탈퇴), then decided requests; newest first within each. */
+const queueRank = (r: MockRefundRequest) => (r.status !== "REQUESTED" ? 2 : fromCurrentAccount(r) ? 0 : 1);
+
 function refunds(): AdminRefund[] {
   return [...mockRefunds.requests]
-    .sort((a, b) => Number(a.status !== "REQUESTED") - Number(b.status !== "REQUESTED") || b.requestedAt.localeCompare(a.requestedAt))
+    .sort((a, b) => queueRank(a) - queueRank(b) || b.requestedAt.localeCompare(a.requestedAt))
     .map((r) => {
       const c = findChargeRecord(r.chargeId);
       const who = slotAccountLabel(r.accountSince);

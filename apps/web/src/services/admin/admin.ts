@@ -3,7 +3,7 @@ import { toDateString } from "@/lib/period";
 import { mockSettlement } from "@/services/creator/mockSettlementStore";
 import { moderationStore } from "@/services/moderation/moderationCore";
 import { getAllCreatorsForAdmin } from "@/services/creators/creators";
-import { mockRefunds } from "@/services/wallet/mockRefundStore";
+import { refundQueue } from "./payments";
 import { listAccountChargeRecords, listAccountDonationRecords } from "@/services/wallet/walletHistory";
 import { AUDIT_MAX, AUDIT_PAGE, type AdminActor, type AdminDashboard, type AuditEntry, type AuditPage, type AuditTargetMember } from "./adminTypes";
 import { auditEntries, recordAudit } from "./auditCore";
@@ -36,6 +36,7 @@ export async function getAdminDashboard(): Promise<AdminDashboard | null> {
   const charges = listAccountChargeRecords().filter((c) => c.chargedAt.startsWith(month));
   const completed = charges.filter((c) => c.status === "COMPLETED");
   const donations = listAccountDonationRecords().filter((d) => d.donatedAt.startsWith(month) && d.status === "COMPLETED");
+  const refunds = refundQueue();
   return {
     creators: { total: creators.length, live: creators.filter((c) => c.isLive).length },
     charges: {
@@ -46,7 +47,9 @@ export async function getAdminDashboard(): Promise<AdminDashboard | null> {
     },
     donations: { monthCount: donations.length, monthFn: donations.reduce((s, d) => s + d.fnAmount, 0) },
     pending: {
-      refunds: mockRefunds.requests.filter((r) => r.status === "REQUESTED").length,
+      // 처리 대기 only; a withdrawn account's waiting requests are counted apart as 처리 불가(탈퇴) (2026-10-08 결정).
+      refunds: refunds.waiting,
+      refundsBlocked: refunds.blocked,
       settlements: mockSettlement.requests.filter((r) => r.status === "PENDING").length,
       reports: moderationStore().reports.filter((r) => r.status === "OPEN").length
     },

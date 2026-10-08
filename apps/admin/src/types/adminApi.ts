@@ -46,7 +46,8 @@ export type AdminDashboard = {
   creators: { total: number; live: number };
   charges: { monthCount: number; monthFn: number; monthPaidKrw: number; processing: number };
   donations: { monthCount: number; monthFn: number };
-  pending: { refunds: number; settlements: number; reports: number | null };
+  /** `refunds`: 처리 대기 only; `refundsBlocked`: waiting requests of withdrawn accounts, 처리 불가(탈퇴). */
+  pending: { refunds: number; refundsBlocked: number; settlements: number; reports: number | null };
   recentAudit: AuditEntry[];
 };
 
