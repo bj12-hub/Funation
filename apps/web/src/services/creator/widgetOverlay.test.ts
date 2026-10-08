@@ -248,6 +248,7 @@ describe("후원 위젯 오버레이", () => {
     const detail = (await m.getWidgetDetail("TOTAL"))!;
     expect(detail.overlayPath).toBe(`/overlay/widget/total/${m.overlayKey}`);
     expect((await m.getWidgetDetail("VOTE"))!.overlayPath).toBe(`/overlay/widget/vote/${m.overlayKey}`);
+    expect((await m.getWidgetDetail("CHAT"))!.overlayPath).toBe(`/overlay/chat/${m.overlayKey}`);
     expect((await m.getWidgetDetail("MINI"))!.overlayPath).toBeNull();
     expect(await m.saveWidgetSettings("TOTAL", { ...detail.settings, title: "이번 달 후원" })).toEqual({ status: "SAVED" });
     const saved = await m.getOverlayWidget("total", m.overlayKey);
