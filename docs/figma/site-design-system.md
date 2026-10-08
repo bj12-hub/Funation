@@ -141,16 +141,21 @@ OBS 오버레이의 세 테마는 변수 컬렉션 **Overlay Theme**의 모드�
 | 방송 · 위젯 | W01c | 뽑기 후원 팝업 (당첨 효과음 · 라이브러리, 테마 이전 → W12m) | `/creator/widgets` | `144:8944` |
 | 방송 · 위젯 | W01d | 투표 위젯 팝업 (무료 · 1인 1표, 프리셋, 테마 이전 → W12j) | `/creator/widgets` | `161:9654` |
 | 방송 · 위젯 | W01e | 룰렛 설정 팝업 (항목 · 확률, 크리에이터 상품, 테마 이전 → W12k) | `/creator/widgets` | `164:9319` |
-| 방송 · 위젯 | W02 | 방송 도구 (빙고 · 1줄 완성 · 화면에 보이는 중) | `/creator/widgets/tools` | `212:5861` |
-| 방송 · 위젯 | W03 | 오버레이 주소 (빙고 포함 24개 · OBS 씬 파일 내려받기 · OBS에 한 번에 넣기) | `/creator/widgets/overlays` | `213:5870` |
+| 방송 · 위젯 | W02 | 방송 도구 (빙고 · 1줄 완성 · 화면에 보이는 중, 테마 이전 → W02b) | `/creator/widgets/tools` | `212:5861` |
+| 방송 · 위젯 | W03 | 오버레이 주소 (빙고 포함 24개 · OBS 씬 파일 내려받기 · OBS에 한 번에 넣기, 테마 이전 → W03c) | `/creator/widgets/overlays` | `213:5870` |
 | 방송 · 위젯 | W04 | 리모컨 (기능 제어 · 볼륨 · 시그니처 소리 · 방송 도구 · 빙고 · 투표 · 룰렛 스위치 · 뽑기 수령 처리) | `/creator/remote` | `218:5994` |
 | 방송 · 위젯 | W05 | 이펙트 · 효과 | `/creator/widgets/effects` | `66:1840` |
 | 방송 · 위젯 | W06 | 시그니처 후원 (편집 열림) | `/creator/widgets/signatures` | `201:5481` |
 | 방송 · 위젯 | W06b | 시그니처 후원 (한 번에 만들기) | `/creator/widgets/signatures?bulk=1` | `209:5689` |
-| 방송 · 위젯 | W07 | 영상 후원 | `/creator/widgets/video` | `66:2322` |
-| 방송 · 위젯 | W08 | 그림후원 | `/creator/widgets/drawing` | `66:2498` |
+| 방송 · 위젯 | W07 | 영상 후원 (테마 이전 → W07b) | `/creator/widgets/video` | `66:2322` |
+| 방송 · 위젯 | W08 | 그림후원 (테마 이전 → W08b) | `/creator/widgets/drawing` | `66:2498` |
 | 방송 · 위젯 | W09 | 이미지·사운드 (이름 찾기 · 이름순 · 짝 필터, 5개 중 1개) | `/creator/widgets/assets` | `213:6371` |
 | 방송 · 위젯 | W03b | 오버레이 미리보기 (OBS 크기 · 배경 · 테스트 후원) | `/creator/widgets/overlays/preview/[id]` | `200:5999` |
+| 방송 · 위젯 | W02b | 방송 도구 (🎨 방송 도구 테마 카드 — 자막 · 전광판 · 타이머 · 엔딩 크레딧 · 빙고가 이 테마) | `/creator/widgets/tools` | `278:9541` |
+| 방송 · 위젯 | W03c | 오버레이 주소 (오버레이 테마 줄 · 시계 · 세로 방송 분류, 28개) | `/creator/widgets/overlays` | `279:9681` |
+| 방송 · 위젯 | W03d | 오버레이 미리보기 · 후원 알림 (세로, 1080 × 640을 85%로 · 체크무늬) | `/creator/widgets/overlays/preview/alert-vertical` | `280:9867` |
+| 방송 · 위젯 | W07b | 영상 후원 (오버레이 테마 칩 · 재생 중 · 대기열 🎧 음성 · 테스트 "음성 후원으로") | `/creator/widgets/video` | `282:9986` |
+| 방송 · 위젯 | W08b | 그림후원 (오버레이 테마 칩 · 받은 그림 없음) | `/creator/widgets/drawing` | `283:10101` |
 | 방송 · 위젯 | W01f | 후원랭킹 위젯 팝업 (랭킹 종류 · 수단별 보드, 테마 이전 → W12h) | `/creator/widgets` | `205:15223` |
 | 방송 · 위젯 · 설정 팝업 | W12 | 위젯 (오버레이 테마 카드 · 설정 팝업 배경) | `/creator/widgets` | `266:6219` |
 | 방송 · 위젯 · 설정 팝업 | W12a | 후원 알림 디자인 팝업 (미리보기 · 테마 · 알림 모양 · 문구 · 움직임) | `/creator/widgets` | `269:6384` |
@@ -173,6 +178,7 @@ OBS 오버레이의 세 테마는 변수 컬렉션 **Overlay Theme**의 모드�
 | 크루 방송 | Y04d | 크루 방송 운영 (방송 중 · 랭크업 · OBS 점수판에 표시) | `/creator/crew/broadcast` | `203:5480` |
 | 크루 방송 | Y04e | 크루 방송 운영 (방송 중 · 팬 메시지 · 요청사항 · 도배 기준, 다른 카드 생략) | `/creator/crew/broadcast` | `217:5990` |
 | 크루 방송 | Y04 | 크루 방송 운영 (방송 전 · 시나리오 편집) | `/creator/crew/broadcast` | `116:3886` |
+| 크루 방송 | Y04f | 크루 방송 운영 (방송 전 · OBS 점수판 오버레이 테마 칩) | `/creator/crew/broadcast` | `283:10251` |
 | 크루 방송 | Y04b | 크루 방송 운영 (방송 중 · 자동엑셀 · 배틀 · 기여도 강탈 · 시나리오, 예시 입력값) | `/creator/crew/broadcast` | `117:3911` |
 | 크루 방송 | Y04c | 크루 방송 운영 (배틀 배수 · 벌칙 기본값, 강탈 기준 · 쿨다운 — 시나리오 · 후원 리스트 카드 생략) | `/creator/crew/broadcast` | `185:5234` |
 | 후원 관리 | T03 | 받은 후원 (퀘스트 성공 · 실패 · 취소, 실패 · 취소 시 환불) | `/creator/donations?tab=list` | `204:5585` |
@@ -228,6 +234,7 @@ OBS 오버레이의 세 테마는 변수 컬렉션 **Overlay Theme**의 모드�
 | 방송 방 후원 패널 | D-TEXT | 일반 | `/creators/c1?tab=donation` | `199:9524` |
 | 방송 방 후원 패널 | D-MINI | 미니 | `/creators/c1?tab=donation` | `78:3182` |
 | 방송 방 후원 패널 | D-VIDEO | 영상 (URL 입력만) | `/creators/c1?tab=donation` | `199:9597` |
+| 방송 방 후원 패널 | D-AUDIO | 음성 (YouTube 소리만 · 미리보기 · 시작/종료 · 약관 동의 전, 2026-10-08) | `/creators/c1?tab=donation` | `284:12262` |
 | 방송 방 후원 패널 | D-SIGNATURE | 시그니처 | `/creators/c1?tab=donation` | `78:3330` |
 | 방송 방 후원 패널 | D-WISHLIST | 위시 | `/creators/c1?tab=donation` | `78:3398` |
 | 방송 방 후원 패널 | D-ROULETTE | 룰렛 (크리에이터 항목 · 확률, 내 룰렛) | `/creators/c1?tab=donation` | `164:8940` |
