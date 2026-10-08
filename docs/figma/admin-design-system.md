@@ -88,10 +88,12 @@ Display 24 Bold · Title 18 Bold · Subtitle 15 Medium · Body 14 · Body Strong
 | 회원 | AD04 | 회원 관리 | `/members` | `17:134` |
 | 회원 | AD05 | 회원 상세 · 이용 정지 | `/members/m-c10` | `20:1193` |
 | 회원 | AD05b | 회원 상세 · 탈퇴 (소멸 FN · 정산 대기 수익 기록, 이용 제한 변경 불가) | `/members/u-hongGD123` | `22:2160` |
+| 회원 | AD05c | 회원 상세 · 탈퇴 회원 정보 보관 (분류 · 보관 기한 · 기간 · 근거 · 포함, 기본값 · 법무 검토 전, code-first) | `/members/u-hongGD123` | `31:1217` |
 | 회원 | AD06 | 크리에이터 관리 | `/creators` | `17:1627` |
 | 거래 | AD09 | 후원 운영 | `/donations` | `18:333` |
 | 거래 | AD07 | 결제 · 충전 내역 | `/payments` | `18:651` |
 | 거래 | AD08 | 환불 요청 | `/payments?tab=refunds` | `20:1301` |
+| 거래 | AD08b | 환불 요청 · 환불 정책 계산 (요청 때 계산 / 지금 기준 · 요청 때와 같아요, 정책 안내, 기본값, code-first) | `/payments?tab=refunds` | `31:1115` |
 | 거래 | AD10 | 정산 심사 | `/settlements` | `18:1095` |
 | 거래 | AD10b | 정산 심사 · 승인 (이체 참조번호 입력 · "지급 완료 처리", 2026-10-08 결정, code-first — 카드 2개만) | `/settlements?status=APPROVED` | `27:976` |
 | 거래 | AD10d | 정산 심사 · 지급 완료 ("지급 완료 {일시} · {처리자} · 이체 참조 {번호}", 2026-10-08 결정, code-first) | `/settlements?status=PAID` | `27:1097` |
