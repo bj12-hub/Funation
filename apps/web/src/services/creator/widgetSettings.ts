@@ -48,6 +48,8 @@ const assertMock = () => {
 const overlayPathFor = (key: string) => {
   // 후원 알림 has its own overlay route (the queue lives in ./alertRemote.ts).
   if (key === "ALERT") return `/overlay/alert/${mockCreator.integrationKey}`;
+  // 채팅창 draws the 통합 채팅 overlay (features/broadcast/ChatOverlay.tsx), same integration key.
+  if (key === "CHAT") return `/overlay/chat/${mockCreator.integrationKey}`;
   const widget = WIDGET_OVERLAYS.find((w) => WIDGET_OVERLAY_SETTINGS[w] === key);
   return widget ? widgetOverlayPath(widget, mockCreator.integrationKey) : null;
 };
