@@ -12,6 +12,7 @@ import { isBlankPrize, wheelGradient } from "@/services/donations/rouletteTypes"
 import { RECENT_PLATFORMS } from "@/services/creator/widgetSettingsTypes";
 import { PLATFORM_LABEL } from "@/types/platform";
 import { useReloadSignal } from "../remote/useReloadSignal";
+import { GoalView } from "./GoalView";
 import styles from "./widgetOverlay.module.css";
 
 const OUTLINE = "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000";
@@ -56,7 +57,7 @@ export function WidgetOverlay({ data }: { data: OverlayWidget }) {
   if (!data.on) return null;
   switch (data.widget) {
     case "goal":
-      return <Goal data={data} />;
+      return <GoalView settings={data.settings} first={data} second={data.second} daysLeft={data.daysLeft} theme={data.theme} />;
     case "total":
       return (
         <p className={styles.total}>
@@ -85,42 +86,6 @@ export function WidgetOverlay({ data }: { data: OverlayWidget }) {
     case "wallpaper":
       return <Wallpaper data={data} />;
   }
-}
-
-function Goal({ data }: { data: Extract<OverlayWidget, { widget: "goal" }> }) {
-  const s = data.settings;
-  const text = font({ ...s.font, color: "#FFFFFF" }, s.textOutline);
-  const amount = (
-    <strong style={{ ...text, color: s.barColor }}>
-      {formatNumber(data.current)} FN{s.showPercent && ` (${data.percent.toFixed(1)}%)`}
-    </strong>
-  );
-  return (
-    <div className={styles.goal} data-style={s.style}>
-      <div className={styles.goalHead}>
-        <span style={text}>{s.title}</span>
-        {s.style !== "ONE_LINE" && amount}
-      </div>
-      <div
-        className={styles.goalBar}
-        style={{ height: s.barHeight, background: s.barBackground }}
-        role="progressbar"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={Math.round(data.percent)}
-        aria-label="목표 달성률"
-      >
-        <span style={{ width: `${data.percent}%`, background: s.barColor }} />
-      </div>
-      {s.style === "ONE_LINE" && amount}
-      {s.style === "BASIC" && (
-        <div className={styles.goalFoot} style={{ ...text, fontSize: Math.max(12, Math.round(s.font.size * 0.85)) }}>
-          <span>목표: {formatNumber(s.goalAmount)} FN</span>
-          {data.daysLeft !== null && <span>남은 기간: {data.daysLeft}일</span>}
-        </div>
-      )}
-    </div>
-  );
 }
 
 function Ranking({ data }: { data: Extract<OverlayWidget, { widget: "ranking" }> }) {

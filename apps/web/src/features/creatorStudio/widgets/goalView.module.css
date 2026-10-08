@@ -1,0 +1,222 @@
+/*
+ * 후원목표 (code-first, 2026-10-08 오버레이 테마). OBS source 800 × 200: the bar fills the width; 원형 · 반원 · 하트 · 별
+ * draw the shape at the left with the title and amount beside it.
+ */
+
+.root {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 12px;
+}
+
+.head,
+.foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.amount {
+  font-size: 1.15em;
+  white-space: nowrap;
+}
+
+.amount small {
+  font-size: 0.75em;
+  opacity: 0.85;
+}
+
+/* ── 막대 ── */
+.bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+[data-style="ONE_LINE"] .bar {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+[data-style="ONE_LINE"] .head {
+  flex-shrink: 0;
+}
+
+.track {
+  flex: 1;
+  min-height: 8px;
+}
+
+.inBar {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  color: var(--ov-accent-ink);
+  font-size: 0.9em;
+  transform: translateY(-50%);
+}
+
+[data-ov="BOLD"] .track {
+  box-shadow: 4px 4px 0 #111111;
+}
+
+/* ── 원형 · 반원 · 하트 · 별 ── */
+.shapeRow {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.shapeBox {
+  position: relative;
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 168px;
+  height: 168px;
+}
+
+[data-shape="SEMI"] .shapeBox {
+  height: 112px;
+}
+
+.svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.shapePct {
+  position: absolute;
+  color: var(--ov-on-stream);
+  /* Fits "100%" inside the ring's 114px hole. */
+  font-size: 26px;
+  text-shadow: var(--ov-on-stream-shadow);
+}
+
+[data-shape="SEMI"] .shapePct {
+  bottom: 4px;
+}
+
+[data-shape="HEART"] .shapePct,
+[data-shape="STAR"] .shapePct {
+  top: 44%;
+  font-size: 24px;
+  transform: translateY(-50%);
+}
+
+[data-shape="STAR"] .shapePct {
+  top: 52%;
+  font-size: 20px;
+}
+
+.shapeText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.shapeText .amount {
+  font-size: 1.9em;
+}
+
+.sub {
+  font-size: 0.8em;
+  opacity: 0.9;
+}
+
+.ringTrack,
+.ringFill {
+  fill: none;
+  stroke-width: 12;
+}
+
+.ringTrack {
+  stroke: var(--ov-track-bg);
+}
+
+.ringFill {
+  stroke: var(--ov-accent);
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.8s var(--ov-ease);
+}
+
+.shapeTrack {
+  fill: var(--ov-track-bg);
+}
+
+.shapeFill {
+  fill: var(--ov-accent);
+  transition: transform 0.8s var(--ov-ease);
+}
+
+.shapeLine {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+
+/* 볼드 플랫: ink outlines and square ends. */
+[data-ov="BOLD"] .ringFill {
+  stroke-linecap: butt;
+}
+
+[data-ov="BOLD"] .ringTrack {
+  stroke: #ffffff;
+  filter: drop-shadow(3px 3px 0 #111111);
+}
+
+[data-ov="BOLD"] .shapeTrack {
+  fill: #ffffff;
+}
+
+[data-ov="BOLD"] .shapeLine {
+  stroke: #111111;
+  stroke-width: 4;
+}
+
+[data-ov="BOLD"] .svg {
+  filter: drop-shadow(4px 4px 0 #111111);
+}
+
+/* 소프트 글래스: a frosted outline. */
+[data-ov="GLASS"] .shapeLine {
+  stroke: rgb(255 255 255 / 70%);
+  stroke-width: 2;
+}
+
+/* Two goals in turn: which one shows. */
+.dots {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.dots i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.35;
+}
+
+.dots i[data-on] {
+  background: var(--ov-accent);
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ringFill,
+  .shapeFill {
+    transition: none;
+  }
+}

@@ -15,9 +15,6 @@ import {
   CHAT_MAX_FILTERS,
   CHAT_MAX_LINES,
   CHAT_STYLES,
-  GOAL_AMOUNT_MAX,
-  GOAL_STYLES,
-  GOAL_TITLE_MAX,
   NICKNAME_BG,
   NICKNAME_MAX,
   QR_CAPTION_MAX,
@@ -237,99 +234,6 @@ export function QrForm({ value: v, onChange, live }: FormProps<"QR">) {
               <DownloadIcon aria-hidden="true" />
               고화질 QR 이미지 다운로드 (.PNG)
             </a>
-          </Row>
-        </div>
-      </Section>
-    </>
-  );
-}
-
-// ── 후원목표 (364:265) ─────────────────────────────────────────────────────────
-
-function daysLeft(to: string) {
-  const end = new Date(`${to}T23:59:59`).getTime();
-  if (Number.isNaN(end)) return null;
-  return Math.max(0, Math.ceil((end - Date.now()) / 86_400_000));
-}
-
-export function GoalForm({ value: v, onChange, live }: FormProps<"GOAL">) {
-  const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
-  const current = v.startAmount + live.goalCurrent;
-  const pct = v.goalAmount > 0 ? Math.min(100, (current / v.goalAmount) * 100) : 0;
-  const left = daysLeft(v.to);
-  const text = fontStyle({ ...v.font, color: "#FFFFFF" }, v.textOutline);
-  const amount = (
-    <strong style={{ ...text, color: v.barColor }}>
-      {formatNumber(current)} FN{v.showPercent && ` (${pct.toFixed(1)}%)`}
-    </strong>
-  );
-
-  return (
-    <>
-      <Preview>
-        <div className={`${styles.goalPreview} ${v.style === "ONE_LINE" ? styles.goalOneLine : ""}`}>
-          <div className={styles.goalHead}>
-            <span style={text}>{v.title}</span>
-            {v.style !== "ONE_LINE" && amount}
-          </div>
-          <div
-            className={styles.goalBar}
-            style={{ height: Math.min(v.barHeight, 40), background: v.barBackground }}
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={Math.round(pct)}
-            aria-label="목표 달성률"
-          >
-            <span style={{ width: `${pct}%`, background: v.barColor }} />
-          </div>
-          {v.style === "ONE_LINE" && amount}
-          {v.style === "BASIC" && (
-            <div className={styles.goalFoot} style={{ ...text, fontSize: 12 }}>
-              <span>현재: {formatNumber(current)} FN</span>
-              {left !== null && <span>남은 기간: {left}일</span>}
-            </div>
-          )}
-        </div>
-      </Preview>
-      <Section title="기본 설정">
-        <div className={styles.rows}>
-          <Row label="위젯 스타일">
-            <Radios name="goal-style" label="위젯 스타일" options={GOAL_STYLES} value={v.style} onChange={(x) => set("style", x)} />
-          </Row>
-          <Row label="목표 제목" htmlFor="goal-title">
-            <input id="goal-title" className={styles.input} value={v.title} maxLength={GOAL_TITLE_MAX} onChange={(e) => set("title", e.target.value)} />
-          </Row>
-          <Row label="시작 금액">
-            <NumberField label="시작 금액" value={v.startAmount} max={GOAL_AMOUNT_MAX} grouped width={160} suffix="FN" onChange={(x) => set("startAmount", x)} />
-          </Row>
-          <Row label="목표 금액">
-            <NumberField label="목표 금액" value={v.goalAmount} max={GOAL_AMOUNT_MAX} grouped width={160} suffix="FN" onChange={(x) => set("goalAmount", x)} />
-          </Row>
-          <Row label="산정 기간">
-            <div className={styles.inline}>
-              <input type="date" aria-label="산정 시작일" className={styles.input} value={v.from} max={v.to} onChange={(e) => set("from", e.target.value)} />
-              <span className={styles.suffix}>~</span>
-              <input type="date" aria-label="산정 종료일" className={styles.input} value={v.to} min={v.from} onChange={(e) => set("to", e.target.value)} />
-            </div>
-          </Row>
-          <Row label="달성 비율 표시">
-            <SwitchText label="달성 비율 표시" checked={v.showPercent} onChange={(x) => set("showPercent", x)} text="퍼센트(%) 정보 실시간 표시" />
-          </Row>
-          <Row label="바 채우기 색상">
-            <ColorField label="바 채우기 색상" value={v.barColor} onChange={(x) => set("barColor", x)} />
-          </Row>
-          <Row label="바 배경 색상">
-            <ColorField label="바 배경 색상" value={v.barBackground} onChange={(x) => set("barBackground", x)} />
-          </Row>
-          <Row label="바 세로 크기">
-            <NumberField label="바 세로 크기" value={v.barHeight} max={120} suffix="px" onChange={(x) => set("barHeight", x)} />
-          </Row>
-          <Row label="텍스트 외곽선">
-            <SwitchText label="텍스트 외곽선" checked={v.textOutline} onChange={(x) => set("textOutline", x)} text="글꼴 가독성 향상 테두리" />
-          </Row>
-          <Row label="서체 및 크기">
-            <FontFields label="목표" value={v.font} onChange={(x) => set("font", x)} />
           </Row>
         </div>
       </Section>
