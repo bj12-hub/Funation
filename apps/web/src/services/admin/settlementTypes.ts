@@ -10,7 +10,9 @@ export type AdminSettlementRegistration = { memberType: string; registrant: stri
 
 export type AdminSettlementRow = {
   id: string;
+  /** The studio channel's name, or a withdrawn creator's original nickname (`creatorWithdrawn`, shown with a 탈퇴 badge). */
   creatorName: string;
+  creatorWithdrawn: boolean;
   status: SettlementStatus;
   requestedAt: string;
   periodFrom: string;

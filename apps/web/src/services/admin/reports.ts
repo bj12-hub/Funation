@@ -3,6 +3,7 @@ import { hideTarget, moderationStore } from "@/services/moderation/moderationCor
 import type { Report, ReportStatus } from "@/services/moderation/moderationTypes";
 import type { AdminActor } from "./adminTypes";
 import { recordAudit } from "./auditCore";
+import { isWithdrawnMember } from "./memberCore";
 import { memberIds } from "./members";
 
 /**
@@ -18,8 +19,12 @@ const assertMock = () => {
 const STATUSES: ReportStatus[] = ["OPEN", "DISMISSED", "ACTIONED"];
 export const REPORT_NOTE = { min: 2, max: 200 } as const;
 
-/** A report as the console shows it: the reporter's member id and the content hash stay on the server. */
-export type AdminReportRow = Omit<Report, "reporterId" | "contentHash"> & { authorIsMember: boolean };
+/**
+ * A report as the console shows it: the reporter's member id and the content hash stay on the server. Names are the ones
+ * at report time; `authorWithdrawn` / `reporterWithdrawn` mark a member who withdrew since (shown with a 탈퇴 badge,
+ * 2026-10-08 결정 — also after a 재가입 moved the report to `…-wN`).
+ */
+export type AdminReportRow = Omit<Report, "reporterId" | "contentHash"> & { authorIsMember: boolean; authorWithdrawn: boolean; reporterWithdrawn: boolean };
 export type AdminReportView = { rows: AdminReportRow[]; counts: Record<ReportStatus, number> };
 export type ReportDecisionResult = { status: "OK" } | { status: "INVALID"; message: string } | { status: "NOT_FOUND" };
 
@@ -45,7 +50,9 @@ export async function listReports(input: { status?: unknown } = {}): Promise<Adm
         createdAt: r.createdAt,
         status: r.status,
         resolution: r.resolution ? { ...r.resolution } : null,
-        authorIsMember: members.has(r.authorId)
+        authorIsMember: members.has(r.authorId),
+        authorWithdrawn: isWithdrawnMember(r.authorId),
+        reporterWithdrawn: isWithdrawnMember(r.reporterId)
       })
     );
   return { rows, counts };

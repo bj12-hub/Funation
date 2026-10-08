@@ -1,10 +1,10 @@
 import { USE_MOCK } from "@/lib/mock";
 import { mockCreator } from "@/services/creator/mockCreatorStore";
-import { mockSettlement, type MockSettlementRegistration } from "@/services/creator/mockSettlementStore";
+import { mockSettlement, type MockSettlementRegistration, type MockSettlementRequest } from "@/services/creator/mockSettlementStore";
 import { memberTypeLabel, type SettlementStatus } from "@/services/creator/settlementTypes";
 import type { AdminActor } from "./adminTypes";
 import { recordAudit } from "./auditCore";
-import { WITHDRAWN_MEMBER_NAME } from "./paymentTypes";
+import { slotAccountLabel } from "./memberCore";
 import { SETTLEMENT_NOTE, type AdminSettlementRegistration, type AdminSettlementView, type SettlementDecisionResult } from "./settlementTypes";
 
 /**
@@ -32,11 +32,20 @@ const toAdminRegistration = (reg: MockSettlementRegistration): AdminSettlementRe
   submittedAt: reg.submittedAt
 });
 
+/**
+ * Who made a request, as the console names them: the studio channel while its account is active; a withdrawn account
+ * (the slot's own while withdrawn, or `…-wN` after a 재가입 moved its requests to `pastRequests`) by its original
+ * nickname, marked withdrawn (2026-10-08 결정).
+ */
+const requester = (r: MockSettlementRequest) => {
+  const who = slotAccountLabel(r.account ?? null);
+  return who.withdrawn ? { creatorName: who.name, creatorWithdrawn: true } : { creatorName: mockCreator.channelName, creatorWithdrawn: false };
+};
+
 export async function getSettlementReview(input: { status?: unknown } = {}): Promise<AdminSettlementView | null> {
   assertMock();
-  // Requests of a withdrawn account (moved at 재가입) stay listed for the record, under 탈퇴한 회원.
-  const past = new Set(mockSettlement.pastRequests ?? []);
-  const all = [...mockSettlement.requests, ...past];
+  // Requests of a withdrawn account (moved at 재가입) stay listed for the record.
+  const all = [...mockSettlement.requests, ...(mockSettlement.pastRequests ?? [])];
   const counts = Object.fromEntries(STATUSES.map((s) => [s, all.filter((r) => r.status === s).length])) as AdminSettlementView["counts"];
   const filtered = STATUSES.includes(input.status as SettlementStatus) ? all.filter((r) => r.status === input.status) : all;
   const reg = mockSettlement.registration;
@@ -45,7 +54,7 @@ export async function getSettlementReview(input: { status?: unknown } = {}): Pro
       .sort((a, b) => Number(a.status !== "PENDING") - Number(b.status !== "PENDING") || b.requestedAt.localeCompare(a.requestedAt))
       .map((r) => ({
         id: r.id,
-        creatorName: past.has(r) ? WITHDRAWN_MEMBER_NAME : mockCreator.channelName,
+        ...requester(r),
         status: r.status,
         requestedAt: r.requestedAt,
         periodFrom: r.periodFrom,

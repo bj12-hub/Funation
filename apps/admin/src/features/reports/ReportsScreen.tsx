@@ -2,6 +2,7 @@ import Link from "next/link";
 import { SITE_URL } from "@/lib/siteUrl";
 import { REPORT_REASON_LABEL, REPORT_TARGET_LABEL, type AdminReportView, type Report, type ReportStatus } from "@/types/adminApi";
 import styles from "../admin.module.css";
+import { WithdrawnBadge } from "../WithdrawnBadge";
 import { ReportDecision } from "./ReportDecision";
 
 const TABS: { key: ReportStatus; label: string }[] = [
@@ -56,7 +57,9 @@ export function ReportsScreen({ view, status }: { view: AdminReportView; status:
                     <span className={r.status === "OPEN" ? styles.chipWarn : r.status === "ACTIONED" ? styles.chipBad : styles.chipOk}>{TABS.find((t) => t.key === r.status)?.label}</span>
                   </div>
                   <p className={styles.muted}>
-                    작성자 {r.authorName} · 신고자 {r.reporterName} · {at(r.createdAt)}
+                    작성자 {r.authorName}
+                    <WithdrawnBadge withdrawn={r.authorWithdrawn} /> · 신고자 {r.reporterName}
+                    <WithdrawnBadge withdrawn={r.reporterWithdrawn} /> · {at(r.createdAt)}
                     {r.authorIsMember ? (
                       <>
                         {" "}

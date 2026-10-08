@@ -13,7 +13,8 @@ part of the Donation Core, Wallet or Settlement.
 - 글쓰기, 댓글 and channel posts carry a request id per form, kept per member and per account: a retry after a lost
   response writes once, and the screen starts a new id when the text changes after a failed or lost submit.
 - 2026-10-08 결정: a withdrawn member's posts, comments and channel posts stay up with the author shown as
-  "탈퇴한 회원" (the same label as 정산 심사), also on block lists. Nobody can edit or delete them; after a 재가입 they
+  "탈퇴한 회원", also on block lists. (The admin console instead shows the original nickname with a "탈퇴" badge —
+  2026-10-08 결정 — e.g. as author or reporter in 신고 처리.) Nobody can edit or delete them; after a 재가입 they
   belong to the withdrawn account's own member id (`…-wN`), not to the new account. Reporting and blocking them works.
 
 ## 쪽지

@@ -129,7 +129,7 @@ describe("reporting again (2026-10-08 결정)", () => {
     const { rows } = await m.listReports();
     expect(rows).toHaveLength(2);
     for (const row of rows) {
-      expect(Object.keys(row).sort()).toEqual(["authorId", "authorIsMember", "authorName", "createdAt", "detail", "id", "reason", "reporterName", "resolution", "snapshot", "status", "target"]);
+      expect(Object.keys(row).sort()).toEqual(["authorId", "authorIsMember", "authorName", "authorWithdrawn", "createdAt", "detail", "id", "reason", "reporterName", "reporterWithdrawn", "resolution", "snapshot", "status", "target"]);
     }
     expect(rows.find((r) => r.target.type === "COMMENT")!.target).toEqual({ type: "COMMENT", id: "cm-1", parentId: "p-1" });
   });

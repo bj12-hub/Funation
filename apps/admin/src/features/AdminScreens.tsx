@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { formatNumber } from "@/lib/format";
-import { AUDIT_ACTION_LABEL, AUDIT_MAX, AUDIT_PAGE, type AdminDashboard, type AuditEntry, type AuditPage } from "@/types/adminApi";
+import { AUDIT_ACTION_LABEL, AUDIT_MAX, AUDIT_PAGE, type AdminDashboard, type AuditEntry, type AuditPage, type AuditTargetMember } from "@/types/adminApi";
 import styles from "./admin.module.css";
+import { WithdrawnBadge } from "./WithdrawnBadge";
 
 const at = (iso: string) => new Date(iso).toLocaleString("ko-KR", { dateStyle: "short", timeStyle: "medium" });
 
@@ -89,7 +90,21 @@ export function AuditLogScreen({ page, show }: { page: AuditPage; show: number }
   );
 }
 
-function AuditList({ items, compact = false }: { items: AuditEntry[]; compact?: boolean }) {
+/** 대상: a member target links to 회원 상세 by name (탈퇴 badge when withdrawn); other targets show as recorded. */
+function AuditTarget({ entry }: { entry: AuditEntry & { targetMember?: AuditTargetMember | null } }) {
+  const m = entry.targetMember;
+  if (!m) return <>{entry.target ?? "—"}</>;
+  return (
+    <>
+      <Link href={`/members/${encodeURIComponent(m.id)}`} className={styles.link}>
+        {m.name}
+      </Link>
+      <WithdrawnBadge withdrawn={m.withdrawn} /> <span className={styles.muted}>{m.id}</span>
+    </>
+  );
+}
+
+function AuditList({ items, compact = false }: { items: (AuditEntry & { targetMember?: AuditTargetMember | null })[]; compact?: boolean }) {
   if (items.length === 0) return <p className={styles.empty}>아직 기록이 없어요.</p>;
   return (
     <table className={styles.table}>
@@ -107,7 +122,11 @@ function AuditList({ items, compact = false }: { items: AuditEntry[]; compact?: 
           <tr key={e.id}>
             <td>{at(e.at)}</td>
             <td>{AUDIT_ACTION_LABEL[e.action]}</td>
-            {!compact && <td>{e.target ?? "—"}</td>}
+            {!compact && (
+              <td>
+                <AuditTarget entry={e} />
+              </td>
+            )}
             {!compact && <td>{e.reason ?? "—"}</td>}
             <td>{e.actorName}</td>
           </tr>

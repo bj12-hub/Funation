@@ -1,3 +1,4 @@
+import { mockAccount } from "@/services/account/mockStore";
 import { isWithdrawn, withdrawalStore, type PastAccount } from "@/services/account/withdrawalCore";
 import { isSuspendedNow, type Suspension } from "./memberTypes";
 import { WITHDRAWN_MEMBER_NAME } from "./paymentTypes";
@@ -34,6 +35,18 @@ export const slotAccountOf = (account: string | null): { memberId: string; past:
   const past = withdrawalStore().past;
   const n = past.findIndex((p) => p.accountSince === account);
   return n < 0 ? { memberId: SAMPLE_MEMBER_ID, past: null } : { memberId: withdrawnMemberId(n + 1), past: past[n] };
+};
+
+/**
+ * How the admin console names the slot account with this start marker (2026-10-08 결정): a withdrawn account keeps its
+ * original nickname and is marked withdrawn — before a 재가입 (the slot's own, while withdrawn) and after it (`…-wN`).
+ * The site's community screens say "탈퇴한 회원" instead (`shownMemberName`).
+ */
+export const slotAccountLabel = (account: string | null): { memberId: string; name: string; withdrawn: boolean } => {
+  const a = slotAccountOf(account);
+  if (a.past) return { memberId: a.memberId, name: a.past.nickname, withdrawn: true };
+  const w = withdrawalStore().withdrawal;
+  return { memberId: a.memberId, name: w ? w.nickname : mockAccount.nickname, withdrawn: !!w };
 };
 
 /**

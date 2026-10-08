@@ -27,7 +27,13 @@ export type AdminDashboard = {
   recentAudit: AuditEntry[];
 };
 
-export type AuditPage = { items: AuditEntry[]; total: number; hasMore: boolean };
+/**
+ * The member an audit entry is about (`member:…` targets), as 감사 로그 links it: the right account also after a 재가입
+ * (`…-wN`), with the nickname and whether the member withdrew (shown with a 탈퇴 badge).
+ */
+export type AuditTargetMember = { id: string; name: string; withdrawn: boolean };
+export type AuditLogItem = AuditEntry & { targetMember: AuditTargetMember | null };
+export type AuditPage = { items: AuditLogItem[]; total: number; hasMore: boolean };
 
 export const AUDIT_PAGE = 30;
 /** The console lists at most this many of the newest entries (searching older ones is TBD). */

@@ -49,7 +49,10 @@ export type AdminDashboard = {
   recentAudit: AuditEntry[];
 };
 
-export type AuditPage = { items: AuditEntry[]; total: number; hasMore: boolean };
+/** The member a `member:` target is about: linked by id, named, and marked when they withdrew (also after a 재가입). */
+export type AuditTargetMember = { id: string; name: string; withdrawn: boolean };
+export type AuditLogItem = AuditEntry & { targetMember: AuditTargetMember | null };
+export type AuditPage = { items: AuditLogItem[]; total: number; hasMore: boolean };
 export const AUDIT_PAGE = 30;
 /** The site lists at most this many of the newest entries (searching older ones is TBD). */
 export const AUDIT_MAX = 500;
@@ -100,15 +103,17 @@ export type AdminChargeRow = {
   refund: { status: RefundStatus; requestedAt: string } | null;
   memberId: string;
   memberName: string;
+  /** The member withdrew: the original nickname is shown with a 탈퇴 badge (2026-10-08 결정). */
+  memberWithdrawn: boolean;
 };
 
 export type AdminRefund = {
   chargeId: string;
   memberId: string;
-  /** "탈퇴한 회원" for a request of an account that has since withdrawn. */
+  /** The requester's original nickname, also for an account that has since withdrawn. */
   memberName: string;
-  /** Such a request cannot be decided in the console yet (what a 탈퇴 does to it is TBD). */
-  memberWithdrawn?: boolean;
+  /** Filed by an account that has since withdrawn: 탈퇴 badge, and the console cannot decide it. */
+  memberWithdrawn: boolean;
   requestedAt: string;
   reason: string;
   status: RefundStatus;
@@ -123,7 +128,7 @@ export type DonationStatus = "COMPLETED" | "PROCESSING" | "FAILED" | "REFUNDING"
 export const DONATION_STATUS_LABEL: Record<DonationStatus, string> = { COMPLETED: "완료", PROCESSING: "처리중", FAILED: "실패", REFUNDING: "환불중", REFUNDED: "환불완료" };
 export const DONATION_STATUSES: DonationStatus[] = ["COMPLETED", "PROCESSING", "FAILED", "REFUNDING", "REFUNDED"];
 
-export type AdminDonationRow = { id: string; donatedAt: string; creatorName: string; fnAmount: number; typeLabel: string; status: DonationStatus; memberId: string; memberName: string };
+export type AdminDonationRow = { id: string; donatedAt: string; creatorName: string; fnAmount: number; typeLabel: string; status: DonationStatus; memberId: string; memberName: string; memberWithdrawn: boolean };
 export type DonationsView = {
   rows: AdminDonationRow[];
   byStatus: Record<DonationStatus, { count: number; fn: number }>;
@@ -139,7 +144,9 @@ export const SETTLEMENT_STATUSES: SettlementStatus[] = ["PENDING", "APPROVED", "
 export type AdminSettlementRegistration = { memberType: string; registrant: string; holder: string; bankName: string; accountMasked: string; code: string; submittedAt: string };
 export type AdminSettlementRow = {
   id: string;
+  /** The studio channel's name, or a withdrawn creator's original nickname (`creatorWithdrawn`: 탈퇴 badge). */
   creatorName: string;
+  creatorWithdrawn: boolean;
   status: SettlementStatus;
   requestedAt: string;
   periodFrom: string;
@@ -225,7 +232,9 @@ export type Report = {
   status: ReportStatus;
   resolution: { at: string; by: string; action: "DISMISS" | "HIDE"; note: string } | null;
 };
-export type AdminReportView = { rows: (Report & { authorIsMember: boolean })[]; counts: Record<ReportStatus, number> };
+/** `authorWithdrawn` / `reporterWithdrawn`: the member withdrew since (탈퇴 badge after the name at report time). */
+export type AdminReportRow = Report & { authorIsMember: boolean; authorWithdrawn: boolean; reporterWithdrawn: boolean };
+export type AdminReportView = { rows: AdminReportRow[]; counts: Record<ReportStatus, number> };
 export const REPORT_NOTE = { min: 2, max: 200 } as const;
 
 // ── Mutation results ──────────────────────────────────────────────────────────

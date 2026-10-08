@@ -5,6 +5,7 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { ownEntry } from "@/lib/records";
 import { getCreatorSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
+import { accountSince } from "@/services/account/withdrawalCore";
 import { MOCK_SETTLEMENT_POLICY, mockSettlement, toHistoryItem } from "./mockSettlementStore";
 import type { QuoteResult, RequestResult, SaveAutoResult, SettlementApplyView, SettlementGate, SettlementQuote } from "./settlementTypes";
 
@@ -149,7 +150,8 @@ export async function requestSettlement(input: unknown): Promise<RequestResult> 
     netKrw: quote.netKrw,
     payoutDate: ymd(payout),
     // Taken in the same synchronous step as the registration and 본인인증 checks above (no `await` in between).
-    registrationAtRequest: { ...registration }
+    registrationAtRequest: { ...registration },
+    account: accountSince()
   });
   await mockDelay(600);
   // TODO: the backend writes the request, the balance hold and an audit record in one transaction.

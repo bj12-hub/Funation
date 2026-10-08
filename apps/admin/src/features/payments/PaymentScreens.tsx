@@ -2,6 +2,7 @@ import Link from "next/link";
 import { formatNumber } from "@/lib/format";
 import { type DonationsView, type PaymentsView, CHARGE_STATUS_LABEL, DONATION_STATUS_LABEL, type DonationStatus } from "@/types/adminApi";
 import styles from "../admin.module.css";
+import { WithdrawnBadge } from "../WithdrawnBadge";
 import { RefundDecision } from "./RefundDecision";
 
 const REFUND_LABEL = { REQUESTED: "심사 대기", APPROVED: "승인", REJECTED: "거절" } as const;
@@ -50,6 +51,7 @@ export function PaymentsScreen({ view, tab }: { view: PaymentsView; tab: "charge
                       <Link href={`/members/${c.memberId}`} className={styles.rowLink}>
                         {c.memberName}
                       </Link>
+                      <WithdrawnBadge withdrawn={c.memberWithdrawn} />
                     </td>
                     <td>{formatNumber(c.fnAmount)} FN</td>
                     <td>{formatNumber(c.paidAmount)}원</td>
@@ -81,7 +83,8 @@ export function PaymentsScreen({ view, tab }: { view: PaymentsView; tab: "charge
                     <span className={r.status === "REQUESTED" ? styles.chipWarn : r.status === "APPROVED" ? styles.chipOk : styles.chipBad}>{REFUND_LABEL[r.status]}</span>
                   </div>
                   <p className={styles.muted}>
-                    {r.memberName} · 충전 {r.charge ? when(r.charge.chargedAt) : "—"} · {r.charge?.methodLabel ?? "—"} · 요청 {when(r.requestedAt)}
+                    {r.memberName}
+                    <WithdrawnBadge withdrawn={r.memberWithdrawn} /> · 충전 {r.charge ? when(r.charge.chargedAt) : "—"} · {r.charge?.methodLabel ?? "—"} · 요청 {when(r.requestedAt)}
                   </p>
                   <p className={styles.quote}>사유: {r.reason || "(없음)"}</p>
                   {r.decision ? (
@@ -163,7 +166,8 @@ export function DonationsAdminScreen({ view, status }: { view: DonationsView; st
                   <tr key={d.id}>
                     <td>{when(d.donatedAt)}</td>
                     <td>
-                      {d.memberName} → {d.creatorName}
+                      {d.memberName}
+                      <WithdrawnBadge withdrawn={d.memberWithdrawn} /> → {d.creatorName}
                     </td>
                     <td>{d.typeLabel}</td>
                     <td>{formatNumber(d.fnAmount)}</td>

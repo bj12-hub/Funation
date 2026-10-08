@@ -2,6 +2,7 @@ import Link from "next/link";
 import { formatNumber } from "@/lib/format";
 import type { AdminSettlementView, SettlementStatus } from "@/types/adminApi";
 import styles from "../admin.module.css";
+import { WithdrawnBadge } from "../WithdrawnBadge";
 import { SettlementDecision } from "./SettlementDecision";
 
 const LABEL: Record<SettlementStatus, string> = { PENDING: "심사 대기", APPROVED: "승인", REJECTED: "반려", FORFEITED: "탈퇴 소멸" };
@@ -65,7 +66,8 @@ export function SettlementReviewScreen({ view, status }: { view: AdminSettlement
               <li key={r.id} className={styles.refundItem}>
                 <div className={styles.refundHead}>
                   <strong>
-                    {r.creatorName} · {formatNumber(r.amountFn)} FN
+                    {r.creatorName}
+                    <WithdrawnBadge withdrawn={r.creatorWithdrawn} /> · {formatNumber(r.amountFn)} FN
                   </strong>
                   <span className={CHIP[r.status]}>{LABEL[r.status]}</span>
                 </div>
