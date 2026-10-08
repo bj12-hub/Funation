@@ -12,7 +12,7 @@ async function load() {
   const community = await import("./community");
   const channel = await import("@/services/creators/channelHome");
   const moderation = await import("@/services/moderation/moderation");
-  const { recordWithdrawal } = await import("@/services/account/withdrawalCore");
+  const { recordWithdrawal } = await import("@/services/account/withdrawalRecord");
   const { startNewAccount } = await import("@/services/account/rejoin");
   const { SAMPLE_MEMBER_ID } = await import("@/services/admin/memberCore");
   return { ...community, ...channel, ...moderation, recordWithdrawal, startNewAccount, SAMPLE_MEMBER_ID };

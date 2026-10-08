@@ -16,7 +16,8 @@ import { mockQuests } from "@/services/donations/questCore";
 import { mockRefunds } from "@/services/wallet/mockRefundStore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { mockAccount, mockCredentials } from "./mockStore";
-import { accountSince, isWithdrawn, recordWithdrawal, withdrawalOf } from "./withdrawalCore";
+import { accountSince, isWithdrawn, withdrawalOf } from "./withdrawalCore";
+import { recordWithdrawal } from "./withdrawalRecord";
 import type { PendingQuests, WithdrawResult, WithdrawalInfo } from "./withdrawalTypes";
 
 /**

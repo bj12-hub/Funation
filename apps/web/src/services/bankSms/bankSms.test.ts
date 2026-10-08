@@ -27,7 +27,7 @@ const suspendCreator = async () => {
   return () => delete memberStore().suspensions[SAMPLE_MEMBER_ID];
 };
 const withdrawCreator = async () => {
-  const { recordWithdrawal } = await import("@/services/account/withdrawalCore");
+  const { recordWithdrawal } = await import("@/services/account/withdrawalRecord");
   recordWithdrawal({ at: new Date().toISOString(), requestId: key(99), forfeitedFn: 0, forfeitedEarningsFn: 0 });
 };
 

@@ -59,7 +59,7 @@ export async function verifyMockIdentity() {
  * — nor is the same phone once the withdrawn account's 본인 확인 값 is gone (1 year, account/retentionPolicy.ts).
  */
 export async function rejoinWithPhone(phone: string, now = new Date()) {
-  const { recordWithdrawal } = await import("@/services/account/withdrawalCore");
+  const { recordWithdrawal } = await import("@/services/account/withdrawalRecord");
   const { startNewAccount } = await import("@/services/account/rejoin");
   recordWithdrawal({ at: now.toISOString(), requestId: "w-test", forfeitedFn: 0, forfeitedEarningsFn: 0 });
   if (!startNewAccount({ nickname: "다시왔어요", password: "newpass12!", marketing: false, phone }, now)) throw new Error("재가입 failed");

@@ -19,7 +19,8 @@ async function load() {
   const { SAMPLE_MEMBER_ID, withdrawnMemberId } = await import("./memberCore");
   const { mockSettlement } = await import("@/services/creator/mockSettlementStore");
   const { mockCreator } = await import("@/services/creator/mockCreatorStore");
-  const { recordWithdrawal, accountSince } = await import("@/services/account/withdrawalCore");
+  const { accountSince } = await import("@/services/account/withdrawalCore");
+  const { recordWithdrawal } = await import("@/services/account/withdrawalRecord");
   const { requestChargeRefund } = await import("@/services/wallet/refund");
   const { listChargeRecords } = await import("@/services/wallet/walletHistory");
   const community = await import("@/services/community/community");

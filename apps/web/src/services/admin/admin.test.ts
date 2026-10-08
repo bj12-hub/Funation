@@ -38,7 +38,8 @@ describe("admin console", () => {
   it("leaves a withdrawn account's waiting refund out of 처리 대기 and counts it as 처리 불가(탈퇴) (2026-10-08 결정)", async () => {
     const m = await load();
     const { decideRefund, getPaymentsView } = await import("./payments");
-    const { recordWithdrawal, withdrawalStore } = await import("@/services/account/withdrawalCore");
+    const { withdrawalStore } = await import("@/services/account/withdrawalCore");
+    const { recordWithdrawal } = await import("@/services/account/withdrawalRecord");
     const request = (chargeId: string, accountSince: string | null, requestedAt: string) =>
       m.mockRefunds.requests.push({ chargeId, memberId: "u-test", accountSince, requestedAt, reason: "", status: "REQUESTED" });
     request("ch2", null, "2026-10-01T00:00:00.000Z");

@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import type { Role } from "@/types/role";
 import type { MyAccount } from "./myAccount";
 
@@ -56,7 +55,8 @@ const state = (globalForMock.__funationMockStateV5 ??= {
     recentPasswords: ["password"],
     changedAt: new Date(Date.now() - 210 * 86_400_000).toISOString(),
     phone: "010-1234-5678",
-    personKey: randomUUID()
+    // Web Crypto (not node:crypto): this module is also bundled for the browser through shared helpers.
+    personKey: globalThis.crypto.randomUUID()
   },
   changeHistory: { nicknameChangedAt: null, funationIdChangedAt: null },
   session: { revoked: false, roles: ["SUPPORTER", "CREATOR"] }

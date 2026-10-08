@@ -37,7 +37,7 @@ describe("support", () => {
 
   it("starts a 재가입 account without the withdrawn account's inquiries", async () => {
     const { submitInquiry, listMyInquiries } = await import("./inquiry");
-    const { recordWithdrawal } = await import("@/services/account/withdrawalCore");
+    const { recordWithdrawal } = await import("@/services/account/withdrawalRecord");
     const { startNewAccount } = await import("@/services/account/rejoin");
     const input = { requestId: key(1), category: "ACCOUNT", title: "탈퇴 전 문의", body: "탈퇴하기 전에 남긴 개인적인 문의 내용이에요." };
     const old = await submitInquiry(input);

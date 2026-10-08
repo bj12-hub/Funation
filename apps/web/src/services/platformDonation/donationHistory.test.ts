@@ -31,7 +31,7 @@ describe("후원 내역", () => {
 
   it("starts a 재가입 account without the withdrawn account's platform and Direct donations", async () => {
     const m = await load();
-    const { recordWithdrawal } = await import("@/services/account/withdrawalCore");
+    const { recordWithdrawal } = await import("@/services/account/withdrawalRecord");
     const { startNewAccount } = await import("@/services/account/rejoin");
     await m.requestDonation({ creatorId: "c1", hideProfile: false, type: "TEXT", amount: 1_000, message: "응원해요", voiceId: null, idempotencyKey: key(1) });
     expect((await m.getDonationHistory({ period: "all" }))!.items.length).toBeGreaterThan(1);

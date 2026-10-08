@@ -13,7 +13,7 @@ async function load() {
   const { requestChargeRefund } = await import("@/services/wallet/refund");
   const { listChargeRecords, getWalletOverview } = await import("@/services/wallet/walletHistory");
   const { mockAccount } = await import("@/services/account/mockStore");
-  const { recordWithdrawal } = await import("@/services/account/withdrawalCore");
+  const { recordWithdrawal } = await import("@/services/account/withdrawalRecord");
   const { startNewAccount } = await import("@/services/account/rejoin");
   const { auditEntries } = await import("./auditCore");
   const csvRoute = await import("@/app/api/wallet/charges/route");

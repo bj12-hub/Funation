@@ -10,7 +10,8 @@ import { resetMockIdentity } from "@/services/supporter/mockIdentityStore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { mockAccount, mockChangeHistory, mockCredentials, mockSessionState } from "./mockStore";
 import { purgeExpired } from "./retentionPurge";
-import { personKeyFor, withdrawalStore } from "./withdrawalCore";
+import { withdrawalStore } from "./withdrawalCore";
+import { personKeyFor } from "./withdrawalRecord";
 
 /**
  * 재가입 (2026-10-05 결정: 탈퇴 후 바로 재가입 가능) — server-only, called by the sign-up mock. The mock has one

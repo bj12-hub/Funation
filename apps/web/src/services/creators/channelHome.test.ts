@@ -41,7 +41,7 @@ describe("channel home", () => {
 
   it("does not put the withdrawn account's donations on a 재가입 account's row", async () => {
     const m = await load();
-    const { recordWithdrawal } = await import("@/services/account/withdrawalCore");
+    const { recordWithdrawal } = await import("@/services/account/withdrawalRecord");
     const { startNewAccount } = await import("@/services/account/rejoin");
     await m.requestDonation({ creatorId: "c1", hideProfile: false, type: "TEXT", amount: 1_000_000, message: "", voiceId: null, idempotencyKey: key(1) });
     expect((await m.getChannelMonthlyRanking("c1"))!.rows[0]).toMatchObject({ me: true, fnAmount: 1_000_000 });
