@@ -166,8 +166,10 @@
 
 /* ── Theme details ── */
 
-/* 볼드 플랫: the yellow block keeps ink text; the message sits in a white box; images get an ink frame. */
-[data-ov="BOLD"] .amount {
+/* 볼드 플랫: the yellow block keeps ink text; the message sits in a white box; images get an ink frame.
+   The bigger amount is for the card layouts only; the 가로 띠형 keeps its 34px. */
+[data-ov="BOLD"] .card .amount,
+[data-ov="BOLD"] .imageCard .amount {
   font-size: 68px;
 }
 
