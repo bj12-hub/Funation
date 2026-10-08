@@ -18,7 +18,7 @@ const POLL_MS = 1_000;
  * 오버레이 테마, 폰트, 최대 줄, 자동으로 감추기 on the server clock). Lines hidden in the studio and 필터링 닉네임
  * never arrive; 리모컨 기능 제어 can switch it OFF or reload it. Push transport instead of polling is TBD.
  */
-export function ChatOverlay({ overlayKey, initial, initialSignal }: { overlayKey: string; initial: ChatOverlayView; initialSignal: OverlaySignal }) {
+export function ChatOverlay({ overlayKey, initial, initialSignal, vertical = false }: { overlayKey: string; initial: ChatOverlayView; initialSignal: OverlaySignal; vertical?: boolean }) {
   const [view, setView] = useState(initial);
   const [signal, setSignal] = useState(initialSignal);
   const now = useServerClock(view.serverNow);
@@ -48,7 +48,7 @@ export function ChatOverlay({ overlayKey, initial, initialSignal }: { overlayKey
   return (
     <div className={styles.stage}>
       {/* Before the clock mounts, nothing is hidden yet (server and client render the same lines). */}
-      <ChatLines lines={view.lines} settings={view.settings} theme={view.theme} now={now} />
+      <ChatLines lines={view.lines} settings={view.settings} theme={view.theme} now={now} vertical={vertical} />
     </div>
   );
 }

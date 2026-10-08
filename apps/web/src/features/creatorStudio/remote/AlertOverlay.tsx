@@ -11,7 +11,7 @@ import { useReloadSignal } from "./useReloadSignal";
  * shows the alert the server has on screen, drawn as the 후원 알림 design says (AlertCard, 오버레이 테마). Reads the message aloud with the browser's speech
  * synthesis when TTS volume > 0 and not muted (voices TBD), and plays a 시그니처's sound at 시그니처 볼륨.
  */
-export function AlertOverlay({ data }: { data: OverlayAlert }) {
+export function AlertOverlay({ data, vertical = false }: { data: OverlayAlert; vertical?: boolean }) {
   const router = useRouter();
   const spoken = useRef<string | null>(null);
   const played = useRef<string | null>(null);
@@ -78,5 +78,5 @@ export function AlertOverlay({ data }: { data: OverlayAlert }) {
 
   // 리모컨 기능 제어 OFF: nothing on screen and no TTS.
   if (!alert || !data.on) return null;
-  return <AlertCard alert={alert} design={data.design} theme={data.theme} />;
+  return <AlertCard alert={alert} design={data.design} theme={data.theme} vertical={vertical} />;
 }

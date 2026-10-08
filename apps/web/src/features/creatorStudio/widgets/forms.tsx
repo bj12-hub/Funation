@@ -46,6 +46,7 @@ const CHAT_SAMPLE: ChatOverlayLine[] = [
 
 export function ChatForm({ value: v, onChange, live }: FormProps<"CHAT">) {
   const [nick, setNick] = useState("");
+  const [vertical, setVertical] = useState(false);
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
   const addFilter = () => {
     const n = nick.trim();
@@ -56,10 +57,17 @@ export function ChatForm({ value: v, onChange, live }: FormProps<"CHAT">) {
 
   return (
     <>
-      <Section title="미리보기">
-        {/* The overlay's own lines (ChatLines) at the 400px OBS width; nothing hides here. */}
-        <PreviewStage width={420} minHeight={200} label="채팅창 미리보기">
-          <ChatLines lines={CHAT_SAMPLE} settings={v} theme={resolveTheme(live.appearance, v.theme)} now={null} />
+      <Section
+        title="미리보기"
+        aside={
+          <label className={styles.hint}>
+            <input type="checkbox" checked={vertical} onChange={(e) => setVertical(e.target.checked)} /> 세로 방송으로 보기
+          </label>
+        }
+      >
+        {/* The overlay's own lines (ChatLines) at the 400px OBS width (세로 방송: 1080); nothing hides here. */}
+        <PreviewStage width={vertical ? 1080 : 420} minHeight={200} label="채팅창 미리보기">
+          <ChatLines lines={CHAT_SAMPLE} settings={v} theme={resolveTheme(live.appearance, v.theme)} now={null} vertical={vertical} />
         </PreviewStage>
       </Section>
       <Section title="테마">

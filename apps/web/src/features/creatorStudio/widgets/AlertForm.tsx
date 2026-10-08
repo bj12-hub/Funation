@@ -39,6 +39,7 @@ export function AlertForm({ value: v, onChange, live }: FormProps<"ALERT">) {
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
   const [sample, setSample] = useState(SAMPLES[0].key);
   const [replay, setReplay] = useState(0);
+  const [vertical, setVertical] = useState(false);
   const headlineRef = useRef<HTMLInputElement>(null);
   const id = useId();
   const theme = resolveTheme(live.appearance, v.theme);
@@ -62,9 +63,14 @@ export function AlertForm({ value: v, onChange, live }: FormProps<"ALERT">) {
       <Section
         title="미리보기"
         aside={
-          <button type="button" className={styles.smallButton} onClick={() => setReplay((n) => n + 1)}>
-            ↻ 다시 재생
-          </button>
+          <span className={styles.inline}>
+            <label className={styles.hint}>
+            <input type="checkbox" checked={vertical} onChange={(e) => setVertical(e.target.checked)} /> 세로 방송으로 보기
+          </label>
+            <button type="button" className={styles.smallButton} onClick={() => setReplay((n) => n + 1)}>
+              ↻ 다시 재생
+            </button>
+          </span>
         }
       >
         <div role="radiogroup" aria-label="미리보기 후원" className={a.samples}>
@@ -84,8 +90,8 @@ export function AlertForm({ value: v, onChange, live }: FormProps<"ALERT">) {
             </label>
           ))}
         </div>
-        <PreviewStage width={800} minHeight={v.layout === "BANNER" ? 180 : 360} label="후원 알림 미리보기">
-          <AlertCard alert={current.alert} design={headlineOk ? v : { ...v, headline: `${ALERT_TOKENS.donor}님` }} theme={theme} replay={replay} />
+        <PreviewStage width={vertical ? 1080 : 800} minHeight={v.layout === "BANNER" ? 180 : 360} label="후원 알림 미리보기">
+          <AlertCard alert={current.alert} design={headlineOk ? v : { ...v, headline: `${ALERT_TOKENS.donor}님` }} theme={theme} replay={replay} vertical={vertical} />
         </PreviewStage>
         <p className={styles.hint}>실제 방송에 나가는 알림과 같은 모양이에요. 미리보기는 저장하지 않아도 바로 바뀌어요.</p>
       </Section>

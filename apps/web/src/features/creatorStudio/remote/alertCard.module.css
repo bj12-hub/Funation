@@ -238,3 +238,64 @@
 [data-ov="GLASS"] .hero {
   border-radius: 36px;
 }
+
+/* ── 세로 방송 (?layout=vertical, 1080 wide): the card spans the width with phone-sized type. ── */
+.stage[data-vertical] {
+  padding: 36px 28px;
+}
+
+.stage[data-vertical] .motion,
+.stage[data-vertical] .card,
+.stage[data-vertical] .imageWrap,
+.stage[data-vertical] .imageCard,
+.stage[data-vertical] .banner {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+}
+
+.stage[data-vertical] .amount {
+  font-size: 104px;
+}
+
+.stage[data-vertical] .headline {
+  font-size: 42px;
+}
+
+.stage[data-vertical] .message {
+  font-size: 34px;
+}
+
+.stage[data-vertical] .meta {
+  font-size: 28px;
+}
+
+.stage[data-vertical] .thumb {
+  width: 220px;
+  height: 220px;
+}
+
+.stage[data-vertical] .hero {
+  width: 400px;
+  height: 400px;
+}
+
+.stage[data-vertical] .banner .amount {
+  font-size: 60px;
+}
+
+.stage[data-vertical] .banner .headline {
+  font-size: 30px;
+}
+
+.stage[data-vertical] .bannerImage,
+.stage[data-vertical] .bannerAvatar {
+  width: 104px;
+  height: 104px;
+  font-size: 44px;
+}
+
+.stage[data-vertical] .bannerMessage {
+  max-width: 380px;
+  font-size: 26px;
+}

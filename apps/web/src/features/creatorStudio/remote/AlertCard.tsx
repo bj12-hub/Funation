@@ -93,7 +93,7 @@ function Meta({ alert, design }: { alert: AlertCardData; design: AlertSettings }
  * 후원 알림 settings preview — one component, so the preview is what goes on stream. Layouts: 카드형 · 가로 띠형 ·
  * 이미지 강조형; every theme draws each of them.
  */
-export function AlertCard({ alert, design, theme, replay = 0 }: { alert: AlertCardData; design: AlertSettings; theme: ResolvedTheme; replay?: number }) {
+export function AlertCard({ alert, design, theme, replay = 0, vertical = false }: { alert: AlertCardData; design: AlertSettings; theme: ResolvedTheme; replay?: number; vertical?: boolean }) {
   const label = alertAmount(alert);
   const amount = useCountUp(label, design.countUp, `${alert.id}:${replay}`);
   const image = design.showImage ? alert.imageUrl : undefined;
@@ -161,7 +161,7 @@ export function AlertCard({ alert, design, theme, replay = 0 }: { alert: AlertCa
   }
 
   return (
-    <OverlayThemeRoot theme={theme} className={c.stage} data-layout={design.layout}>
+    <OverlayThemeRoot theme={theme} className={c.stage} data-layout={design.layout} data-vertical={vertical || undefined}>
       <div key={`${alert.id}:${replay}`} className={`${ov.enter} ${c.motion}`} data-motion={design.motion} role="status">
         {body}
       </div>
