@@ -18,7 +18,7 @@ import {
  * 후원 위젯 numbers from the creator's donation feed (the 후원 알림 history). Pure functions, shared by
  * the overlay service and its tests.
  *
- * 목표 · 누적 · 랭킹 count completed Somnation donations only: 테스트 후원 never counts, and platform
+ * 목표 · 누적 · 랭킹 count completed Ssumnation donations only: 테스트 후원 never counts, and platform
  * donations (후원 연동) have no FN rate yet (TBD). An alert hidden by the 최소 금액 filter still counts.
  * A 퀘스트 후원 counts only once it succeeded (held until then, refunded on 실패 · 취소 — 2026-10-04 결정), at the
  * time it succeeded (2026-10-08 결정 "퀘스트는 성공한 날 기준 집계").
@@ -118,13 +118,13 @@ export function crewRankingRows(
     .map(([id, fn], i) => ({ rank: i + 1, name: names.get(id)!, fnAmount: fn }));
 }
 
-const SOURCE_ORDER = ["SOMNATION", "YOUTUBE", "CHZZK", "SOOP", "FLEXTV"];
+const SOURCE_ORDER = ["SSUMNATION", "YOUTUBE", "CHZZK", "SOOP", "FLEXTV"];
 
 /** A unit's name in a 수단별 보드 row: a currency by its ISO code (YouTube KRW · USD), a platform unit by its label. */
 const boardUnitName = (u: AmountUnit) => (isCurrencyUnit(u) ? u : unitLabel(u));
 
 /**
- * 수단별 보드: Somnation FN donations and each platform's donations in their own unit (no FN rate — TBD), ordered by
+ * 수단별 보드: Ssumnation FN donations and each platform's donations in their own unit (no FN rate — TBD), ordered by
  * 건수. A platform paying in two currencies gets a line per currency. 테스트 후원 never counts. Rows group by unit code;
  * alerts stored before the codes (label) are read as their code, so they join the same row.
  */
@@ -136,7 +136,7 @@ export function sourceBoardRows(items: AlertItem[], s: Pick<RankingSettings, "pe
     const g =
       a.kind === "DONATION"
         ? counts(a)
-          ? { source: "SOMNATION", unit: "FN", value: a.fnAmount }
+          ? { source: "SSUMNATION", unit: "FN", value: a.fnAmount }
           : null
         : a.kind === "EXTERNAL" && a.platform && a.native
           ? { source: a.platform, ...nativeAmount(a.native) }
@@ -154,11 +154,11 @@ export function sourceBoardRows(items: AlertItem[], s: Pick<RankingSettings, "pe
     .sort((x, y) => y.count - x.count || SOURCE_ORDER.indexOf(x.source) - SOURCE_ORDER.indexOf(y.source) || boardUnitName(x.unit).localeCompare(boardUnitName(y.unit)))
     .slice(0, s.ranks)
     .map((x, i) => {
-      const label = x.source === "SOMNATION" ? "썸네이션 FN" : PLATFORM_LABEL[x.source as Platform];
+      const label = x.source === "SSUMNATION" ? "썸네이션 FN" : PLATFORM_LABEL[x.source as Platform];
       return {
         rank: i + 1,
         name: `${perSource(x.source) > 1 ? `${label} ${boardUnitName(x.unit)}` : label} · ${formatNumber(x.count)}건`,
-        fnAmount: x.source === "SOMNATION" ? x.value : 0,
+        fnAmount: x.source === "SSUMNATION" ? x.value : 0,
         amountLabel: formatUnitAmount(x.value, x.unit)
       };
     });
@@ -184,7 +184,7 @@ function line(a: AlertItem, template: string): WidgetFeedLine {
 
 /**
  * 최근알림: the latest `count` donations, newest first. Platform donations use that platform's template;
- * Somnation donations use the default line, and so does a template asking for `{count}` (the platform's
+ * Ssumnation donations use the default line, and so does a template asking for `{count}` (the platform's
  * item count is not mapped yet — TBD). 테스트 후원 shows so the remote can try it.
  */
 export function recentLines(items: AlertItem[], s: RecentSettings): WidgetFeedLine[] {

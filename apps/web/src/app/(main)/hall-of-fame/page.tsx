@@ -10,8 +10,8 @@ import {
   type RankingPeriod
 } from "@/services/hallOfFame/supporterRanking";
 
-// Figma: funation-hall-of-fame 3:637 (hero, podium); tabs follow funnation 명예의 전당.
-export const metadata: Metadata = { title: "명예의 전당 | Somnation" };
+// Figma: ssumnation-hall-of-fame 3:637 (hero, podium); tabs follow funnation 명예의 전당.
+export const metadata: Metadata = { title: "명예의 전당 | Ssumnation" };
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;

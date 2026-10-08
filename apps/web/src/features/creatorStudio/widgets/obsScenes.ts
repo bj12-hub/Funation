@@ -7,11 +7,11 @@
  */
 import type { OverlayEntry } from "./overlayCatalog";
 
-export const OBS_COLLECTION_NAME = "Somnation 오버레이";
+export const OBS_COLLECTION_NAME = "Ssumnation 오버레이";
 const CANVAS = { x: 1920, y: 1080 };
 /** Sources and scenes share one name space in OBS (분류 "타이머" vs overlay "타이머"), so scenes get their own prefix. */
-const PREFIX = "Somnation · ";
-const SCENE_PREFIX = "Somnation 장면 · ";
+const PREFIX = "Ssumnation · ";
+const SCENE_PREFIX = "Ssumnation 장면 · ";
 /** The scene with every overlay (no 분류 is called this). */
 export const OBS_ALL_SCENE = `${SCENE_PREFIX}전체`;
 
@@ -84,8 +84,8 @@ export function obsSceneCollection(overlays: OverlayEntry[], origin: string, ove
   };
 }
 
-/** `Somnation-오버레이-20261006.json` (local date). */
+/** `Ssumnation-오버레이-20261006.json` (local date). */
 export function obsFileName(now = new Date()) {
   const d = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
-  return `Somnation-오버레이-${d}.json`;
+  return `Ssumnation-오버레이-${d}.json`;
 }

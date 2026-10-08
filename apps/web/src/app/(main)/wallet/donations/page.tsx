@@ -4,7 +4,7 @@ import { DonationHistoryScreen, parseDonationFilter, parseHistoryParams, type Ra
 import { getDonationHistory } from "@/services/wallet/walletHistory";
 
 // Figma: 632:4 · 637:214
-export const metadata: Metadata = { title: "FN 후원내역 | Somnation" };
+export const metadata: Metadata = { title: "FN 후원내역 | Ssumnation" };
 export const dynamic = "force-dynamic";
 
 export default async function Page({ searchParams }: { searchParams: Promise<RawParams> }) {

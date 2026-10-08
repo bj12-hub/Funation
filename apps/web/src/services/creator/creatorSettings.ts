@@ -42,7 +42,7 @@ export async function getCreatorSettings(): Promise<CreatorSettings | null> {
   const c = mockCreator;
   return {
     channelName: c.channelName,
-    funationId: mockAccount.funationId,
+    ssumnationId: mockAccount.ssumnationId,
     images: [c.images[0] ?? mockAccount.avatarUrl, c.images[1], c.images[2]],
     debutDate: c.debutDate,
     debutPublic: c.debutPublic,
@@ -53,17 +53,17 @@ export async function getCreatorSettings(): Promise<CreatorSettings | null> {
     liveProfileVisible: c.liveProfileVisible,
     marketingConsent: mockAccount.marketingConsent,
     languages: [...c.languages],
-    donateUrl: `https://somnation.com/donate/${c.handle}`,
-    rtmpUrl: `rtmp://live.somnation.com/stream/${c.handle}`,
+    donateUrl: `https://ssumnation.com/donate/${c.handle}`,
+    rtmpUrl: `rtmp://live.ssumnation.com/stream/${c.handle}`,
     // The guide design shows the donate URL as the widget URL; the real overlay URL is TBD.
-    alertWidgetUrl: `https://somnation.com/donate/${c.handle}`,
+    alertWidgetUrl: `https://ssumnation.com/donate/${c.handle}`,
     integrationKeyMasked: mask(c.integrationKey),
     mainPlatform: c.mainPlatform,
     sns: structuredClone(c.sns)
   };
 }
 
-// ── Funation 설정 / 메인 방송 플랫폼 / SNS ─────────────────────────────────────
+// ── Ssumnation 설정 / 메인 방송 플랫폼 / SNS ─────────────────────────────────────
 
 export async function setLiveProfileVisible(visible: unknown): Promise<SaveResult> {
   assertMock();

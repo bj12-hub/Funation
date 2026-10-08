@@ -13,7 +13,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
     session && account
       ? {
           nickname: account.nickname,
-          funationId: account.funationId,
+          ssumnationId: account.ssumnationId,
           avatarUrl: account.avatarUrl,
           fnBalance: account.fnBalance,
           creator: hasRole(session, "CREATOR")

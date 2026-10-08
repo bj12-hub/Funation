@@ -208,7 +208,7 @@ describe("탈퇴 회원 정보 보관", () => {
     expect(await ownCharges()).toBe(0);
     expect((await m.getDonationsView())!.rows).toEqual([]);
     expect((await m.getSettlementReview())!.rows).toEqual([]);
-    expect(record).toMatchObject({ nickname: WITHDRAWN, funationId: "", requestId: "", forfeitedFn: 0, consents: null, purged: ["ACCESS_LOG", "PERSON_KEY", "DISPUTE", "CONTRACT", "PAYMENT"] });
+    expect(record).toMatchObject({ nickname: WITHDRAWN, ssumnationId: "", requestId: "", forfeitedFn: 0, consents: null, purged: ["ACCESS_LOG", "PERSON_KEY", "DISPUTE", "CONTRACT", "PAYMENT"] });
 
     // Each category goes once: a later run changes nothing.
     const snapshot = JSON.stringify(record);

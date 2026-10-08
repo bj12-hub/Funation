@@ -6,7 +6,7 @@ import { getOverlayKey } from "@/services/creator/broadcastTools";
 import { getVideoQueue } from "@/services/creator/media";
 
 // Code-first (no Figma frame): 영상 후원 관리 — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: "영상 후원 | Somnation 크리에이터" };
+export const metadata: Metadata = { title: "영상 후원 | Ssumnation 크리에이터" };
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

@@ -35,8 +35,8 @@ type ChannelRemote = {
 
 type Remote = { channels: Record<string, ChannelRemote>; seq: number; failNext: Partial<Record<Platform, PlatformErrorCode>> };
 
-const g = globalThis as typeof globalThis & { __funationMockBroadcastRemoteV1?: Remote };
-export const broadcastRemote = (): Remote => (g.__funationMockBroadcastRemoteV1 ??= { channels: {}, seq: 0, failNext: {} });
+const g = globalThis as typeof globalThis & { __ssumnationMockBroadcastRemoteV1?: Remote };
+export const broadcastRemote = (): Remote => (g.__ssumnationMockBroadcastRemoteV1 ??= { channels: {}, seq: 0, failNext: {} });
 
 export const channelRemote = (channelId: string): ChannelRemote =>
   (broadcastRemote().channels[channelId] ??= { yt: [], chzzk: [], chzzkDonations: [], soop: [], soopBalloons: [], flex: [], flexDonations: [], deleted: {}, bans: {} });

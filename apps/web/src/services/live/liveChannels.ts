@@ -3,7 +3,7 @@ import type { Platform } from "@/types/platform";
 
 /**
  * Live channel list contract.
- * Figma: funation-all-live-page 617:316 (전체라이브), funation-popular-live-page 617:5 (인기라이브)
+ * Figma: ssumnation-all-live-page 617:316 (전체라이브), ssumnation-popular-live-page 617:5 (인기라이브)
  * Platform DTOs are mapped to these types on the server (PlatformAdapter), never passed through.
  *
  * 2026-10-02 product decision: no topic categories (시사 · 금융 · 음악 …). Live lists are only split into

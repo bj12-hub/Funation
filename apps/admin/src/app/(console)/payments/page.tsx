@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { PaymentsScreen } from "@/features/payments/PaymentScreens";
 import { loadPayments } from "@/lib/queries";
 
-export const metadata: Metadata = { title: "결제 · 환불 | Somnation 관리자" };
+export const metadata: Metadata = { title: "결제 · 환불 | Ssumnation 관리자" };
 export const dynamic = "force-dynamic";
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {

@@ -31,7 +31,7 @@ import { STUDIO_CHANNEL, mockCrew } from "./mockCrewStore";
  * (AUTO) or after the operator confirms (CONFIRM). 한방 collects a window of donations and gives the
  * pot to one member. Scores are display points — no FN moves here.
  *
- * 자동엑셀: Somnation FN and platform donations (후원 연동) share one list. With 원화 기준 every unit is
+ * 자동엑셀: Ssumnation FN and platform donations (후원 연동) share one list. With 원화 기준 every unit is
  * converted with the value the creator entered (1 unit = N원; platform rates are TBD, so there is no
  * default), then the 배수 규칙 applies — or the operator types a 기여도 (points or ×배수) for one
  * entry. Changes apply at once (no save step). TBD: 직급 배수, prize mapping, 투네이션 · 계좌 (배틀 배수 is BattleRules, 2026-10-05 결정).

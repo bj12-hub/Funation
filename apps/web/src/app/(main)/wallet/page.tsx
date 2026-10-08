@@ -4,7 +4,7 @@ import { WalletOverviewScreen } from "@/features/wallet/WalletOverviewScreen";
 import { getWalletOverview } from "@/services/wallet/walletHistory";
 
 // Figma: FN Wallet 817:7552
-export const metadata: Metadata = { title: "FN Wallet | Somnation" };
+export const metadata: Metadata = { title: "FN Wallet | Ssumnation" };
 export const dynamic = "force-dynamic";
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ kind?: string; period?: string; page?: string }> }) {

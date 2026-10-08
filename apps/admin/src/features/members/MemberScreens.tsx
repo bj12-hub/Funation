@@ -69,7 +69,7 @@ export function MembersScreen({ page }: { page: MemberPage }) {
                     <Link href={`/members/${m.id}`} className={styles.rowLink}>
                       {m.nickname}
                     </Link>
-                    <span className={styles.muted}> @{m.funationId}</span>
+                    <span className={styles.muted}> @{m.ssumnationId}</span>
                   </td>
                   <td>{m.roles.map((r) => ROLE_LABEL[r]).join(" · ")}</td>
                   <td>{day(m.joinedAt)}</td>
@@ -100,7 +100,7 @@ export function MembersScreen({ page }: { page: MemberPage }) {
 export function MemberDetailScreen({ member, audit }: { member: AdminMember; audit: AuditEntry[] }) {
   const facts = [
     ["회원 번호", member.id],
-    ["썸네이션 ID", `@${member.funationId}`],
+    ["썸네이션 ID", `@${member.ssumnationId}`],
     ["역할", member.roles.map((r) => ROLE_LABEL[r]).join(" · ")],
     ["가입일", day(member.joinedAt)],
     ["최근 활동", day(member.lastActiveAt)],

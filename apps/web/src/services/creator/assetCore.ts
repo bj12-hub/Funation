@@ -8,8 +8,8 @@ import type { Asset, AssetKind } from "./assetTypes";
 type StoredAsset = Asset & { bytes: Buffer };
 type MockAssets = { items: StoredAsset[]; requests: Record<string, string> };
 
-const g = globalThis as typeof globalThis & { __funationMockAssetsV1?: MockAssets };
-export const mockAssets = (g.__funationMockAssetsV1 ??= { items: [], requests: {} });
+const g = globalThis as typeof globalThis & { __ssumnationMockAssetsV1?: MockAssets };
+export const mockAssets = (g.__ssumnationMockAssetsV1 ??= { items: [], requests: {} });
 
 export const publicAsset = (a: StoredAsset): Asset => ({ id: a.id, kind: a.kind, name: a.name, mime: a.mime, size: a.size, url: a.url, uploadedAt: a.uploadedAt });
 

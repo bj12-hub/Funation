@@ -27,7 +27,7 @@ const POSTS: UpdatePost[] = [
       { kind: "NEW", text: "크루 방송 후원 리스트(키워드 자동 배정) · 한방 · 프로젝트 회차", href: "/creator/crew/broadcast" },
       { kind: "NEW", text: "오버레이 주소 모음", href: "/creator/widgets/overlays" },
       { kind: "NEW", text: "후원 리스트 CSV 다운로드", href: "/creator/donations?tab=list" },
-      { kind: "IMPROVED", text: "서비스 이름이 썸네이션(Somnation)으로 바뀌었어요" },
+      { kind: "IMPROVED", text: "서비스 이름이 썸네이션(Ssumnation)으로 바뀌었어요" },
       { kind: "FIX", text: "크루 방송 진행 시계가 처음 열 때 잘못 표시되던 문제" },
       { kind: "FIX", text: "좁은 화면에서 상단 메뉴가 넘치던 문제" }
     ]
@@ -61,8 +61,8 @@ const POSTS: UpdatePost[] = [
   }
 ];
 
-const g = globalThis as typeof globalThis & { __funationMockUpdatesV1?: { readIds: string[] } };
-const store = (g.__funationMockUpdatesV1 ??= { readIds: [] });
+const g = globalThis as typeof globalThis & { __ssumnationMockUpdatesV1?: { readIds: string[] } };
+const store = (g.__ssumnationMockUpdatesV1 ??= { readIds: [] });
 
 function view(limit?: number): UpdatesView {
   const posts = POSTS.map((p) => ({ ...p, items: [...p.items], unread: !store.readIds.includes(p.id) }));

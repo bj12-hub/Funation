@@ -56,7 +56,7 @@ export async function getWidgetDetail(key: unknown): Promise<WidgetDetail | null
   const wins = studioWins();
   return {
     key,
-    url: `https://somnation.com/widget/${WIDGET_PATHS[key]}/${mockCreator.handle}`,
+    url: `https://ssumnation.com/widget/${WIDGET_PATHS[key]}/${mockCreator.handle}`,
     // 후원 위젯 with an OBS overlay show its real address (the popup adds the site origin and masks the key).
     overlayPath: overlayPathFor(key),
     settings: key === "GACHA" ? withLiveSounds(store.GACHA) : readWidget(key),

@@ -30,8 +30,8 @@ const gone = (id: unknown): ContentResult => (typeof id === "string" && id ? { s
 /** A create request already applied: what it created and the draft it carried. */
 type ContentRequest = { kind: "notice" | "faq"; fingerprint: string; id: string };
 // V2: requests remember their kind and draft (V1 kept the created id only).
-const g = globalThis as typeof globalThis & { __funationMockContentRequestsV2?: Record<string, ContentRequest> };
-const requests = (g.__funationMockContentRequestsV2 ??= {});
+const g = globalThis as typeof globalThis & { __ssumnationMockContentRequestsV2?: Record<string, ContentRequest> };
+const requests = (g.__ssumnationMockContentRequestsV2 ??= {});
 
 /** What the admin sent (key order ignored, the request id left out), like the Donation Core's fingerprint. */
 const fingerprintOf = (v: Record<string, unknown>) =>

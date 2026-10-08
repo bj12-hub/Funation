@@ -19,7 +19,7 @@ const pageHref = (page: number, query?: string) => {
 
 /**
  * Favorite creators.
- * Figma: funation-favorites-page 735:3856 (route `/favorites`, signed-in members)
+ * Figma: ssumnation-favorites-page 735:3856 (route `/favorites`, signed-in members)
  */
 export function FavoritesScreen({ data, query, promotion }: Props) {
   return (

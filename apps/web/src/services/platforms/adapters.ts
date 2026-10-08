@@ -78,8 +78,8 @@ type YtVideoDto = { id: { videoId: string }; snippet: { title: string; published
 type YtSuperChatDto = { id: string; snippet: { publishedAt: string; superChatDetails: { amountMicros: string; currency: string; userComment: string } }; authorDetails: { displayName: string } };
 
 type YtRemote = { uploads: Record<string, number>; chats: Record<string, YtSuperChatDto[]>; removed: Record<string, string[]> };
-const g = globalThis as typeof globalThis & { __funationMockYouTubeRemoteV3?: YtRemote };
-const remote = () => (g.__funationMockYouTubeRemoteV3 ??= { uploads: {}, chats: {}, removed: {} });
+const g = globalThis as typeof globalThis & { __ssumnationMockYouTubeRemoteV3?: YtRemote };
+const remote = () => (g.__ssumnationMockYouTubeRemoteV3 ??= { uploads: {}, chats: {}, removed: {} });
 
 /** Mock only: a paid chat arrives on the channel (the developer simulator in 후원 연동 calls this). */
 export function mockYouTubeSuperChat(channelId: string, input: { id: string; donor: string; message: string; value: number; currency: string }) {

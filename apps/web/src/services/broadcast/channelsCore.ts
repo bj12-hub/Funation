@@ -12,8 +12,8 @@ export type BroadcastChannel = { platform: Platform; externalChannelId: string; 
 
 type ChannelsStore = { channels: Partial<Record<Platform, BroadcastChannel>> };
 
-const g = globalThis as typeof globalThis & { __funationMockBroadcastChannelsV1?: ChannelsStore };
-export const channelsStore = (): ChannelsStore => (g.__funationMockBroadcastChannelsV1 ??= { channels: {} });
+const g = globalThis as typeof globalThis & { __ssumnationMockBroadcastChannelsV1?: ChannelsStore };
+export const channelsStore = (): ChannelsStore => (g.__ssumnationMockBroadcastChannelsV1 ??= { channels: {} });
 
 export function broadcastChannel(p: Platform): BroadcastChannel | null {
   if (p === "YOUTUBE") {

@@ -74,7 +74,7 @@ describe("후원자 정체성", () => {
     const taken = { status: "INVALID", message: "다른 회원이나 채널이 쓰는 이름은 별명으로 쓸 수 없어요." };
     expect(await addDonationNickname("새벽라디오")).toEqual(taken); // another member's nickname
     expect(await addDonationNickname(" 하루봄 ")).toEqual(taken); // a channel name
-    expect(await addDonationNickname("FUNATION")).toEqual(taken);
+    expect(await addDonationNickname("SSUMNATION")).toEqual(taken);
     expect(await addDonationNickname("홍길동")).toEqual({ status: "INVALID", message: "이미 등록한 별명이에요." }); // own nickname
     expect(await addDonationNickname("익명")).toEqual({ status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." });
     expect(await addDonationNickname("응원단장")).toEqual({ status: "SAVED" });

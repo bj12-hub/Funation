@@ -38,7 +38,7 @@ import styles from "./SideNav.module.css";
 
 export type SideNavUser = {
   nickname: string;
-  funationId: string;
+  ssumnationId: string;
   avatarUrl?: string | null;
   /** Server-provided balance. The client never calculates it. `null` while unknown. */
   fnBalance: number | null;
@@ -179,7 +179,7 @@ function ProfileCard({ user, onNavigate }: { user: SideNavUser; onNavigate?: () 
         <div className={styles.profileText}>
           <strong className={styles.nickname}>{user.nickname}</strong>
           <span className={styles.idLabel}>{t("side.idLabel")}</span>
-          <span className={styles.idValue}>@{user.funationId}</span>
+          <span className={styles.idValue}>@{user.ssumnationId}</span>
         </div>
       </div>
       <div className={styles.balance}>

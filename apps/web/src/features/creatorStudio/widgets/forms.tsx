@@ -230,7 +230,7 @@ export function QrForm({ value: v, onChange, live }: FormProps<"QR">) {
           </Row>
           <Row label="QR 다운로드">
             {/* Mock asset; the backend will render the QR for the creator's donate URL (TBD). */}
-            <a href={live.qrImageUrl} download="somnation-donate-qr.png" className={styles.outlineButton}>
+            <a href={live.qrImageUrl} download="ssumnation-donate-qr.png" className={styles.outlineButton}>
               <DownloadIcon aria-hidden="true" />
               고화질 QR 이미지 다운로드 (.PNG)
             </a>

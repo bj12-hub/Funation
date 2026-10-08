@@ -7,7 +7,7 @@ import { formatNumber } from "@/lib/format";
 import type { LoginProvider, MyAccount } from "@/services/account/myAccount";
 import { gradeLabel, type SupporterIdentity } from "@/services/supporter/identityTypes";
 import type { Platform } from "@/types/platform";
-import { FunationIdEditor, NicknameEditor, PasswordEditor, PhotoEditor } from "./editors";
+import { SsumnationIdEditor, NicknameEditor, PasswordEditor, PhotoEditor } from "./editors";
 import { IdentityVerification, PlatformConnect, PlatformDisconnect, ProviderLinkEditor } from "./linking";
 import { MarketingConsentSetting, RankingVisibilitySettings } from "./SettingToggles";
 import styles from "./mypage.module.css";
@@ -29,7 +29,7 @@ const PLATFORMS: Record<Platform, { label: string; icon: ReactNode }> = {
 
 /**
  * My page.
- * Figma: funation-my-page 735:4119 (622:4 is the same screen with Naver linked)
+ * Figma: ssumnation-my-page 735:4119 (622:4 is the same screen with Naver linked)
  */
 export function MyPageScreen({ account, grade, creator }: { account: MyAccount; grade: SupporterIdentity["grade"] | null; creator: boolean }) {
   return (
@@ -111,8 +111,8 @@ export function MyPageScreen({ account, grade, creator }: { account: MyAccount; 
             </div>
             <div className={styles.pair}>
               <Label text="썸네이션 ID" info />
-              <span className={styles.value}>@{account.funationId}</span>
-              <FunationIdEditor triggerClassName={styles.actionButton} />
+              <span className={styles.value}>@{account.ssumnationId}</span>
+              <SsumnationIdEditor triggerClassName={styles.actionButton} />
               <PasswordEditor triggerClassName={styles.actionButton} />
             </div>
           </div>

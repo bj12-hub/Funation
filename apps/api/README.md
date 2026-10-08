@@ -1,4 +1,4 @@
-# Funation API
+# Ssumnation API
 
 Backend application placeholder.
 

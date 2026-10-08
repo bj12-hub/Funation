@@ -3,7 +3,7 @@ import type { Platform } from "@/types/platform";
 
 /**
  * 통합 채팅 — code-first (no Figma frame; reference: weflab 채팅창). Client-safe types.
- * Chat arrives separately on every platform the creator streams to; Somnation merges it into one feed
+ * Chat arrives separately on every platform the creator streams to; Ssumnation merges it into one feed
  * for the studio (manage) and one OBS overlay (display). Hiding is ours only; deleting and banning act on
  * the platform and only where its adapter declares CHAT_MODERATE.
  */

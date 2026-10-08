@@ -12,7 +12,7 @@ import styles from "./linking.module.css";
  * Identity verification (본인인증).
  * Figma: method choice 743:2297 · already verified 750:153 · duplicate account 750:205
  * · attempts exceeded 750:257 · success 750:306
- * The provider hand-off itself (phone / i-PIN screens) is outside Funation and TBD.
+ * The provider hand-off itself (phone / i-PIN screens) is outside Ssumnation and TBD.
  */
 
 const METHODS: { value: VerificationMethod; glyph: string; title: string; sub: string }[] = [
@@ -237,7 +237,7 @@ function resultView(r: Result): View {
         detailTitle: "가입 계정",
         rows: (
           <>
-            <Row label="썸네이션 ID">{r.maskedFunationId}</Row>
+            <Row label="썸네이션 ID">{r.maskedSsumnationId}</Row>
             <Row label="가입일">{formatDotDate(r.joinedAt)}</Row>
             <Row>개인정보 보호를 위해 일부 정보만 표시됩니다.</Row>
           </>

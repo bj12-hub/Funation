@@ -23,8 +23,8 @@ type SentCode = { phone: string; purpose: VerificationPurpose; code: string; sen
 type VerifiedToken = { token: string; phone: string; purpose: VerificationPurpose; expiresAt: number; used: boolean };
 type Store = { sent: Map<string, SentCode>; tokens: Map<string, VerifiedToken> };
 
-const g = globalThis as typeof globalThis & { __funationMockVerificationV1?: Store };
-const store = (): Store => (g.__funationMockVerificationV1 ??= { sent: new Map(), tokens: new Map() });
+const g = globalThis as typeof globalThis & { __ssumnationMockVerificationV1?: Store };
+const store = (): Store => (g.__ssumnationMockVerificationV1 ??= { sent: new Map(), tokens: new Map() });
 const sentKey = (phone: string, purpose: VerificationPurpose) => `${purpose}:${phone}`;
 
 /** A new code replaces the previous one for this phone and purpose (and its wrong attempts). */

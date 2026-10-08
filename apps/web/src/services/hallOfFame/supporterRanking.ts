@@ -2,7 +2,7 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 
 /**
  * Supporter ranking contract.
- * Figma: funation-hall-of-fame 3:637 (route `/hall-of-fame`)
+ * Figma: ssumnation-hall-of-fame 3:637 (route `/hall-of-fame`)
  *
  * Amounts and tiers come from the server's aggregated donation records; the client only displays them.
  * Tier thresholds and the aggregation rules are TBD.

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { MemberDetailScreen } from "@/features/members/MemberScreens";
 import { loadMember } from "@/lib/queries";
 
-export const metadata: Metadata = { title: "회원 상세 | Somnation 관리자" };
+export const metadata: Metadata = { title: "회원 상세 | Ssumnation 관리자" };
 export const dynamic = "force-dynamic";
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {

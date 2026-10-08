@@ -3,7 +3,7 @@ import { isCreatorSuspended } from "@/services/admin/memberCore";
 
 /**
  * Creator directory contract.
- * Figma: funation-all-creators-page 690:5 (route `/creators`)
+ * Figma: ssumnation-all-creators-page 690:5 (route `/creators`)
  * Filtering, search, sorting and paging are server-side; the page passes URL params through.
  */
 

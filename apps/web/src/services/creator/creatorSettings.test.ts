@@ -5,7 +5,7 @@ import { mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
 
-/** 채널 설정: 주 방송 플랫폼 includes 치지직 (confirmed 2026-10-01); addresses shown on screen use the Somnation name. */
+/** 채널 설정: 주 방송 플랫폼 includes 치지직 (confirmed 2026-10-01); addresses shown on screen use the Ssumnation name. */
 describe("채널 설정", () => {
   beforeEach(() => resetMockStores());
 
@@ -42,8 +42,8 @@ describe("채널 설정", () => {
     expect(await m.saveSnsLinks([...all].reverse())).toEqual({ status: "SAVED" });
   });
 
-  it("shows Somnation addresses", async () => {
+  it("shows Ssumnation addresses, never the old brand names", async () => {
     const s = (await (await import("./creatorSettings")).getCreatorSettings())!;
-    expect([s.donateUrl, s.rtmpUrl, s.alertWidgetUrl].every((u) => u.includes("somnation.com") && !u.includes("funation"))).toBe(true);
+    expect([s.donateUrl, s.rtmpUrl, s.alertWidgetUrl].every((u) => u.includes("ssumnation.com") && !/funation|somnation/i.test(u))).toBe(true);
   });
 });

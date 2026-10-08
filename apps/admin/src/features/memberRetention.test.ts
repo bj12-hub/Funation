@@ -20,7 +20,7 @@ const row = (category: MemberRetention["category"], label: string, period: strin
 const member = (withdrawal: AdminMember["withdrawal"]): AdminMember => ({
   id: "u-hongGD123-w1",
   nickname: "홍길동",
-  funationId: "hongGD123",
+  ssumnationId: "hongGD123",
   roles: ["SUPPORTER"],
   joinedAt: "2025-11-02",
   lastActiveAt: "2026-10-08",

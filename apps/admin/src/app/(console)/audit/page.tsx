@@ -3,7 +3,7 @@ import { AuditLogScreen } from "@/features/AdminScreens";
 import { loadAudit } from "@/lib/queries";
 import { AUDIT_MAX, AUDIT_PAGE } from "@/types/adminApi";
 
-export const metadata: Metadata = { title: "감사 로그 | Somnation 관리자" };
+export const metadata: Metadata = { title: "감사 로그 | Ssumnation 관리자" };
 export const dynamic = "force-dynamic";
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ show?: string }> }) {

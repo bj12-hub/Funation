@@ -40,7 +40,7 @@ type Props = { tab: HofTab; ranking: SupporterRanking | null; live: LiveRanking 
 
 /**
  * Hall of fame. Tabs follow funnation 명예의 전당 (칭호 갤러리 · 리더보드 · 실시간 랭킹); the hero, podium and
- * promo keep Figma funation-hall-of-fame 3:637. Title names and thresholds are our placeholders (TBD).
+ * promo keep Figma ssumnation-hall-of-fame 3:637. Title names and thresholds are our placeholders (TBD).
  */
 export function HallOfFameScreen({ tab, ranking, live }: Props) {
   return (

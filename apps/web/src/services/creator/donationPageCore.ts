@@ -7,15 +7,15 @@ import { DEFAULT_REPLACEMENT_MESSAGE, type DonationPageSettings, type FilterSett
  */
 type MockManagement = Omit<DonationPageSettings, "donateUrlBase" | "slug">;
 
-const g = globalThis as typeof globalThis & { __funationMockDonationMgmt?: MockManagement; __funationMockDonationFilterSettings?: FilterSettings };
-export const donationPageStore = (g.__funationMockDonationMgmt ??= {
+const g = globalThis as typeof globalThis & { __ssumnationMockDonationMgmt?: MockManagement; __ssumnationMockDonationFilterSettings?: FilterSettings };
+export const donationPageStore = (g.__ssumnationMockDonationMgmt ??= {
   oneLineMessage: "제 방송을 시청해주셔서 감사합니다.",
   options: { rankPublic: false, historyPublic: true, nicknameChangeable: true, customSoundPublic: false },
   replacement: { applyToNickname: false, applyToText: true, bannedWords: ["클리어"], message: "" }
 });
 
 /** 후원 필터링 › 필터링 (539:466). */
-export const donationFilterStore = (g.__funationMockDonationFilterSettings ??= { strength: "NORMAL", blockSpam: true, words: ["광고", "어그로", "욕설"] });
+export const donationFilterStore = (g.__ssumnationMockDonationFilterSettings ??= { strength: "NORMAL", blockSpam: true, words: ["광고", "어그로", "욕설"] });
 
 /** Case-insensitive substring match (금지어 and 커스텀 블랙리스트 단어). */
 const hasWord = (text: string, words: readonly string[]) => words.some((w) => text.toLowerCase().includes(w.toLowerCase()));

@@ -26,7 +26,7 @@ export async function sendPasswordResetEmail(email: string): Promise<SendResetEm
   await mockDelay();
   // Mock: only this address is registered.
   if (typeof email !== "string") return { status: "EMAIL_NOT_FOUND" };
-  return email.trim().toLowerCase() === "user@funation.kr" ? { status: "SENT" } : { status: "EMAIL_NOT_FOUND" };
+  return email.trim().toLowerCase() === "user@ssumnation.kr" ? { status: "SENT" } : { status: "EMAIL_NOT_FOUND" };
 }
 
 /**

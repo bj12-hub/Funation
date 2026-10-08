@@ -3,7 +3,7 @@ import { DonationsAdminScreen } from "@/features/payments/PaymentScreens";
 import { loadDonations } from "@/lib/queries";
 import { DONATION_STATUSES, type DonationStatus } from "@/types/adminApi";
 
-export const metadata: Metadata = { title: "후원 운영 | Somnation 관리자" };
+export const metadata: Metadata = { title: "후원 운영 | Ssumnation 관리자" };
 export const dynamic = "force-dynamic";
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ status?: string }> }) {

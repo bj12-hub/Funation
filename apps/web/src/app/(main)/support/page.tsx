@@ -6,7 +6,7 @@ import { getNotices } from "@/services/support/notices";
 import { isFaqCategory, parseSupportTab, type FaqCategory } from "@/services/support/supportTypes";
 
 // Figma: 고객센터 4:7; tabs follow funnation 고객센터 (공지사항 · 자주 묻는 질문 · 1:1 문의).
-export const metadata: Metadata = { title: "고객센터 | Somnation" };
+export const metadata: Metadata = { title: "고객센터 | Ssumnation" };
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;

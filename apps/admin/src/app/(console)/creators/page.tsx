@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { CreatorsAdminScreen } from "@/features/members/MemberScreens";
 import { loadCreators } from "@/lib/queries";
 
-export const metadata: Metadata = { title: "크리에이터 관리 | Somnation 관리자" };
+export const metadata: Metadata = { title: "크리에이터 관리 | Ssumnation 관리자" };
 export const dynamic = "force-dynamic";
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ q?: string }> }) {

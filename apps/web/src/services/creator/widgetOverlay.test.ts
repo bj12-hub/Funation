@@ -50,7 +50,7 @@ describe("랭킹 종류", () => {
     expect(crewRankingRows(attributions, members, { period: "전체", ranks: 1 }, now).map((r) => r.name)).toEqual(["밤톨"]);
   });
 
-  it("boards Somnation FN and each platform in its own unit by 건수, never mixing units or counting tests", () => {
+  it("boards Ssumnation FN and each platform in its own unit by 건수, never mixing units or counting tests", () => {
     const item = (kind: AlertItem["kind"], extra: Partial<AlertItem> = {}): AlertItem => alert("2026-10-03T09:00:00", "누군가", kind === "DONATION" ? 1_000 : 0, { kind, ...extra });
     const feed = [
       item("DONATION"),
@@ -123,7 +123,7 @@ describe("후원 위젯 계산", () => {
   ];
   const now = new Date("2026-10-03T12:00:00");
 
-  it("sums Somnation donations only for 목표 · 누적 (test and platform donations never count)", () => {
+  it("sums Ssumnation donations only for 목표 · 누적 (test and platform donations never count)", () => {
     const goal = goalProgress(feed, { ...D.GOAL, startAmount: 1_000, goalAmount: 100_000, from: "2026-10-01", to: "2026-10-05" }, now.getTime());
     expect(goal).toEqual({ current: 1_000 + 10_000 + 5_000 + 50_000 + 10_000, percent: 76, daysLeft: 3 });
     expect(goalProgress(feed, { ...D.GOAL, startAmount: 0, goalAmount: 10_000, from: "2026-09-01", to: "2026-12-31" }).percent).toBe(100);

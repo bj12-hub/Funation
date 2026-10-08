@@ -135,7 +135,7 @@ export function UnifiedChatScreen({ initial, variant = "studio", switches }: { i
           <h2 className={crew.cardTitle} id="uc-window">
             🔗 채팅창 링크
           </h2>
-          <button type="button" className={crew.primary} onClick={() => window.open(CHAT_WINDOW_PATH, "somnation-chat", "width=440,height=780")}>
+          <button type="button" className={crew.primary} onClick={() => window.open(CHAT_WINDOW_PATH, "ssumnation-chat", "width=440,height=780")}>
             새 창으로 열기
           </button>
         </div>

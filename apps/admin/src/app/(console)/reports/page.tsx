@@ -3,7 +3,7 @@ import { ReportsScreen } from "@/features/reports/ReportsScreen";
 import { loadReports } from "@/lib/queries";
 import { REPORT_STATUSES, type ReportStatus } from "@/types/adminApi";
 
-export const metadata: Metadata = { title: "신고 처리 | Somnation 관리자" };
+export const metadata: Metadata = { title: "신고 처리 | Ssumnation 관리자" };
 export const dynamic = "force-dynamic";
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ status?: string }> }) {

@@ -17,9 +17,9 @@ type Store = {
   bulk?: Record<string, string[]>;
   favorites: Record<string, boolean>;
 };
-const g = globalThis as typeof globalThis & { __funationMockSignaturesV1?: Store };
+const g = globalThis as typeof globalThis & { __ssumnationMockSignaturesV1?: Store };
 
-export const mockSignatures = (g.__funationMockSignaturesV1 ??= ((): Store => {
+export const mockSignatures = (g.__ssumnationMockSignaturesV1 ??= ((): Store => {
   const seed = getMockDonationCatalog().signatures;
   return {
     items: seed.map((s): ManagedSignature => ({ id: s.id, name: s.name, price: s.price, imageUrl: s.imageUrl, soundUrl: null, match: "SELECT", active: true })),

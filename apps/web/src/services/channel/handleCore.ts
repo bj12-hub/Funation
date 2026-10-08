@@ -9,8 +9,8 @@ import { isValidChannelHandle } from "./channelTypes";
 
 /** Never a channel address: brand names and the site's own route segments. */
 export const RESERVED_HANDLES: ReadonlySet<string> = new Set([
-  "somnation",
-  "funation",
+  "ssumnation",
+  "ssumnation",
   "admin",
   "api",
   "attendance",
@@ -48,8 +48,8 @@ const OTHER_CHANNEL_HANDLES: ReadonlySet<string> = new Set(["taen", "boharium", 
 export const OLD_HANDLE_REDIRECT_DAYS = 30;
 
 type HeldHandle = { handle: string; until: string };
-const g = globalThis as typeof globalThis & { __funationMockHandlesV1?: { held: HeldHandle[] } };
-const store = () => (g.__funationMockHandlesV1 ??= { held: [] });
+const g = globalThis as typeof globalThis & { __ssumnationMockHandlesV1?: { held: HeldHandle[] } };
+const store = () => (g.__ssumnationMockHandlesV1 ??= { held: [] });
 const heldAt = (now: number) => store().held.filter((h) => Date.parse(h.until) > now);
 
 export type HandleStatus = "INVALID" | "SAME" | "TAKEN" | "AVAILABLE";

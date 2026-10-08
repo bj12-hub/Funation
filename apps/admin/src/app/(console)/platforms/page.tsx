@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { PlatformsScreen } from "@/features/system/SystemScreens";
 import { loadPlatforms } from "@/lib/queries";
 
-export const metadata: Metadata = { title: "플랫폼 연동 | Somnation 관리자" };
+export const metadata: Metadata = { title: "플랫폼 연동 | Ssumnation 관리자" };
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

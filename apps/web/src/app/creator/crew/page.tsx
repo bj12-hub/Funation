@@ -4,7 +4,7 @@ import { CrewScreen } from "@/features/creatorStudio/crew/CrewScreen";
 import { getCrewStudio } from "@/services/crew/crew";
 
 // Code-first (no Figma frame): 크루 관리 — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: "크루 관리 | Somnation 크리에이터" };
+export const metadata: Metadata = { title: "크루 관리 | Ssumnation 크리에이터" };
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

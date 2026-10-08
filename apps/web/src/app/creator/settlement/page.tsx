@@ -4,7 +4,7 @@ import { SettlementHomeScreen } from "@/features/creatorStudio/settlement/Settle
 import { getSettlementOverview } from "@/services/creator/settlement";
 
 // Figma: settlement-management 429:4 · 정산 자료 등록 필요 433:4 · 이미 등록 462:2 · 본인인증 필요 (code-first)
-export const metadata: Metadata = { title: "정산설정 | Somnation 크리에이터" };
+export const metadata: Metadata = { title: "정산설정 | Ssumnation 크리에이터" };
 export const dynamic = "force-dynamic";
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ registered?: string; gate?: string }> }) {

@@ -22,7 +22,7 @@
 
 ## 1. 후원자(Supporter) 영역
 
-| 기능 | funnation | 우리 (Funation) | 상태 |
+| 기능 | funnation | 우리 (Ssumnation) | 상태 |
 |---|---|---|---|
 | 지갑 | 보유 캐시 + 사용 / 충전 / 구매 / 환불 탭, 이용 안내 | `/wallet` FN Wallet(충전 · 사용 · 환불 · 적립), `/wallet/charges` 충전 건별 **환불 요청**(관리자 승인 · 거절), `/wallet/donations` | 🟡 **상품 구매 내역**이 없음(스토어 없음). 환불 정책은 TBD |
 | 후원 내역 | 검색, 필터, 최신/오래된순, **결과 건수와 합계** | `/wallet/donations` 결과 건수 · 합계, 최신/오래된순, 검색, 금액 범위, 분류, CSV · `/donation/history` 결과 건수 · 완료 합계 · 최신/오래된순 | ✅ |

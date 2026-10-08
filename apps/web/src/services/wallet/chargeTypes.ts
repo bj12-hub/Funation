@@ -10,7 +10,7 @@
 // the server returns the ids that are actually available.
 
 export type PaymentMethodId =
-  | "FUNATION_PAY"
+  | "SSUMNATION_PAY"
   | "NAVER_PAY"
   | "KAKAO_PAY"
   | "CARD"
@@ -29,7 +29,7 @@ export type PaymentMethodId =
 export type PaymentMethodInfo = { glyph: string; name: string; subtitle: string };
 
 export const PAYMENT_METHODS: Record<PaymentMethodId, PaymentMethodInfo> = {
-  FUNATION_PAY: { glyph: "", name: "썸네이션 Pay", subtitle: "펀페이" },
+  SSUMNATION_PAY: { glyph: "", name: "썸네이션 Pay", subtitle: "펀페이" },
   NAVER_PAY: { glyph: "N", name: "네이버페이", subtitle: "네이버페이" },
   KAKAO_PAY: { glyph: "K", name: "카카오페이", subtitle: "카카오페이" },
   CARD: { glyph: "💳", name: "신용카드", subtitle: "신용카드" },

@@ -12,7 +12,7 @@ type Params = Promise<{ id: string }>;
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const notice = await getNotice((await params).id);
-  return { title: notice ? `${notice.title} | 공지사항 | Somnation` : "공지사항 | Somnation" };
+  return { title: notice ? `${notice.title} | 공지사항 | Ssumnation` : "공지사항 | Ssumnation" };
 }
 
 export default async function Page({ params }: { params: Params }) {

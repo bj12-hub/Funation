@@ -2,8 +2,8 @@
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession, revokeSession } from "@/lib/session";
-import { PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES, isValidFunationId, isValidPassword } from "@/lib/validation";
-import { MOCK_FORBIDDEN_WORDS, MOCK_TAKEN_FUNATION_IDS, mockAccount, mockChangeHistory, mockCredentials } from "./mockStore";
+import { PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES, isValidSsumnationId, isValidPassword } from "@/lib/validation";
+import { MOCK_FORBIDDEN_WORDS, MOCK_TAKEN_SSUMNATION_IDS, mockAccount, mockChangeHistory, mockCredentials } from "./mockStore";
 import { judgeNickname, nicknamesTakenForMember } from "./nicknameRules";
 import { clearPasswordFailures, currentAccountKey, isPasswordLocked, recordPasswordFailure } from "@/services/auth/loginLockCore";
 import { matchesContent } from "@/services/creator/assetCore";
@@ -46,7 +46,7 @@ export type PhotoUploadResult =
   | { status: "FAILED" }
   | { status: "UNAUTHORIZED" };
 
-/** Funation ID: once every 30 days (Figma 743:2040 notice). */
+/** Ssumnation ID: once every 30 days (Figma 743:2040 notice). */
 const ID_CHANGE_INTERVAL_DAYS = 30;
 /** TBD: the nickname interval is not specified; the mock reuses the ID interval. */
 const NICKNAME_CHANGE_INTERVAL_DAYS = 30;
@@ -58,8 +58,8 @@ const NICKNAME_CHANGE_INTERVAL_DAYS = 30;
 const ID_RESERVE_DAYS = 30;
 
 /** Given-up IDs (lowercase) → when they are released (epoch ms). Mock store, kept on globalThis like the others. */
-const globalForIds = globalThis as typeof globalThis & { __funationMockReservedIdsV1?: Map<string, number> };
-const reservedIds = () => (globalForIds.__funationMockReservedIdsV1 ??= new Map());
+const globalForIds = globalThis as typeof globalThis & { __ssumnationMockReservedIdsV1?: Map<string, number> };
+const reservedIds = () => (globalForIds.__ssumnationMockReservedIdsV1 ??= new Map());
 const isReservedId = (id: string, now = Date.now()) => (reservedIds().get(id.toLowerCase()) ?? 0) > now;
 
 const containsForbidden = (value: string) => MOCK_FORBIDDEN_WORDS.some((w) => value.toLowerCase().includes(w));
@@ -96,24 +96,24 @@ export async function changeNickname(nickname: unknown): Promise<NameChangeResul
   return { status: "CHANGED", value: mockAccount.nickname };
 }
 
-export async function changeFunationId(funationId: unknown): Promise<IdChangeResult> {
+export async function changeSsumnationId(ssumnationId: unknown): Promise<IdChangeResult> {
   assertMock();
   if (!(await getSession())) return { status: "UNAUTHORIZED" };
   await mockDelay(400);
-  const until = limitedUntil(mockChangeHistory.funationIdChangedAt, ID_CHANGE_INTERVAL_DAYS);
+  const until = limitedUntil(mockChangeHistory.ssumnationIdChangedAt, ID_CHANGE_INTERVAL_DAYS);
   if (until) return { status: "LIMITED", availableFrom: until.toISOString() };
-  if (typeof funationId !== "string" || !isValidFunationId(funationId)) return { status: "INVALID" };
-  if (containsForbidden(funationId)) return { status: "FORBIDDEN" };
+  if (typeof ssumnationId !== "string" || !isValidSsumnationId(ssumnationId)) return { status: "INVALID" };
+  if (containsForbidden(ssumnationId)) return { status: "FORBIDDEN" };
   // The current ID counts as taken (Figma 747:349 uses the member's own ID as the example).
-  if (MOCK_TAKEN_FUNATION_IDS.includes(funationId) || funationId === mockAccount.funationId.toLowerCase()) {
+  if (MOCK_TAKEN_SSUMNATION_IDS.includes(ssumnationId) || ssumnationId === mockAccount.ssumnationId.toLowerCase()) {
     return { status: "DUPLICATE" };
   }
-  if (isReservedId(funationId)) return { status: "RESERVED" };
+  if (isReservedId(ssumnationId)) return { status: "RESERVED" };
   const now = new Date();
-  reservedIds().set(mockAccount.funationId.toLowerCase(), now.getTime() + ID_RESERVE_DAYS * 86_400_000);
-  mockAccount.funationId = funationId;
-  mockChangeHistory.funationIdChangedAt = now;
-  return { status: "CHANGED", value: funationId };
+  reservedIds().set(mockAccount.ssumnationId.toLowerCase(), now.getTime() + ID_RESERVE_DAYS * 86_400_000);
+  mockAccount.ssumnationId = ssumnationId;
+  mockChangeHistory.ssumnationIdChangedAt = now;
+  return { status: "CHANGED", value: ssumnationId };
 }
 
 export async function changePassword(input: { current: unknown; next: unknown; confirm: unknown }): Promise<PasswordChangeResult> {

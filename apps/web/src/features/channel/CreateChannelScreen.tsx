@@ -83,7 +83,7 @@ export function CreateChannelScreen() {
             채널 주소 <span className={styles.req}>*</span>
           </span>
           <span className={styles.prefixInput}>
-            <span className={styles.prefix}>somnation.com/c/</span>
+            <span className={styles.prefix}>ssumnation.com/c/</span>
             <input value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 30))} maxLength={30} aria-describedby="ch-slug-hint" />
           </span>
           <span id="ch-slug-hint" className={styles.hint} data-tone={slugState === "AVAILABLE" ? "ok" : slugState === "TAKEN" || slugState === "INVALID" ? "error" : undefined}>

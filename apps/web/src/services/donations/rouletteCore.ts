@@ -102,8 +102,8 @@ function seed(now = Date.now()): Store {
 }
 
 // V2: spins keep the name shown on stream (`shownDonor`). V3: spins keep the sender's account and person, `day` is KST.
-const g = globalThis as typeof globalThis & { __funationMockRouletteV3?: Store };
-export const mockRoulette = (g.__funationMockRouletteV3 ??= seed());
+const g = globalThis as typeof globalThis & { __ssumnationMockRouletteV3?: Store };
+export const mockRoulette = (g.__ssumnationMockRouletteV3 ??= seed());
 mockRoulette.hidden ??= {};
 
 /** 위젯 화면 숨기기 per channel. */

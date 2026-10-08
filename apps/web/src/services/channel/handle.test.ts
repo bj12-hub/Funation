@@ -43,7 +43,7 @@ describe("channel address", () => {
 
   it("shares one reserved list between both paths", async () => {
     const m = await load();
-    for (const name of ["somnation", "funation", "wallet", "api", "login", "signup", "support", "overlay", "channel", "donation", "creator", "admin", "donate"]) {
+    for (const name of ["ssumnation", "ssumnation", "wallet", "api", "login", "signup", "support", "overlay", "channel", "donation", "creator", "admin", "donate"]) {
       expect(await m.checkDonationSlug(name)).toEqual({ status: "TAKEN" });
       expect(await m.checkChannelSlug(name)).toEqual({ status: "TAKEN" });
     }
