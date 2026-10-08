@@ -1,5 +1,5 @@
 import { randomInt } from "node:crypto";
-import { toDateString } from "@/lib/period";
+import { kstDateString } from "@/lib/period";
 import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
 import { DEFAULT_WIDGET_SETTINGS, type RouletteSettings } from "@/services/creator/widgetSettingsTypes";
 import { readWidget } from "@/services/creator/widgetStore";
@@ -18,22 +18,29 @@ import {
  * debit with the result already drawn here (node:crypto); the broadcast reveals it when the wheel stops.
  * Spins advance lazily on every read: one at a time per channel, started by 자동 시작 or the 리모컨.
  * The mock reads the studio's 룰렛 settings for every channel (one widget store), like the signatures.
- * TBD: refund when a spin cannot run, 결과 자동 노출, the daily-limit period, audit of creator actions.
+ * 2026-10-08 결정: the room's 내 룰렛 belongs to the account (a 재가입 starts without the withdrawn account's spins; the
+ * 리모컨 and overlay keep every spin), and 1인 하루 참여 횟수 counts per person (the verified phone, like 출석 · 이벤트 ·
+ * 투표) per Korean day, so a same-day 재가입 by the same person does not get a fresh limit.
+ * TBD: refund when a spin cannot run, 결과 자동 노출, audit of creator actions.
  */
 export type RouletteSpin = {
   id: string;
   seq: number;
   channelId: string;
   supporterUserId: string;
+  /** The start marker of the sender's account (`accountSince()`, null = the slot's first): the room's 내 룰렛 is per account. */
+  account: string | null;
+  /** The person behind it (`currentPersonKey()`, the verified phone; server-only): the daily limit counts per person. */
+  person: string;
   /** The donor's name as sent (the 리모컨 and records). */
   donor: string;
   /** The name the overlay shows: the creator's 대체 메시지 rules applied when it was paid (shownOnStream). */
   shownDonor: string;
   amount: number;
   createdAt: string;
-  /** Server date the participation counts toward (daily limit). */
+  /** Korean date (KST) the participation counts toward (daily limit). */
   day: string;
-  /** The donor's participation count that day, and the limit at the time (0 = 제한 없음). */
+  /** The person's participation count that day, and the limit at the time (0 = 제한 없음). */
   nth: number;
   limit: number;
   /** Items as the viewer saw them when paying. */
@@ -64,13 +71,15 @@ export function drawIndex(items: { percent: number }[], rand: (n: number) => num
 /** Seed for the studio channel (펀페이 1009:355 sample rows): two waiting, two finished. */
 function seed(now = Date.now()): Store {
   const items = DEFAULT_WIDGET_SETTINGS.ROULETTE.items.map(({ name, percent }) => ({ name, percent }));
-  const day = toDateString(new Date(now));
+  const day = kstDateString(new Date(now));
   const at = (min: number) => new Date(now - min * 60_000).toISOString();
   const spin = (seq: number, donor: string, amount: number, min: number, done: number | null): RouletteSpin => ({
     id: `rl-seed-${seq}`,
     seq,
     channelId: STUDIO_CHANNEL,
     supporterUserId: `seed-${donor}`,
+    account: null,
+    person: `seed-${donor}`,
     donor,
     shownDonor: donor,
     amount,
@@ -92,9 +101,9 @@ function seed(now = Date.now()): Store {
   };
 }
 
-// V2: spins keep the name shown on stream (`shownDonor`).
-const g = globalThis as typeof globalThis & { __funationMockRouletteV2?: Store };
-export const mockRoulette = (g.__funationMockRouletteV2 ??= seed());
+// V2: spins keep the name shown on stream (`shownDonor`). V3: spins keep the sender's account and person, `day` is KST.
+const g = globalThis as typeof globalThis & { __funationMockRouletteV3?: Store };
+export const mockRoulette = (g.__funationMockRouletteV3 ??= seed());
 mockRoulette.hidden ??= {};
 
 /** 위젯 화면 숨기기 per channel. */
@@ -134,19 +143,25 @@ export function advance(channelId: string, now = Date.now()) {
   if (next) startSpin(next, now);
 }
 
-/** Participations of this member in the channel on `now`'s server date. */
-export const usedToday = (channelId: string, userId: string, now = Date.now()) =>
-  ofChannel(channelId).filter((s) => s.supporterUserId === userId && s.day === toDateString(new Date(now))).length;
+/**
+ * Participations of this person (`currentPersonKey()`) in the channel on `now`'s Korean day — across their accounts,
+ * so a same-day 재가입 does not reset it (2026-10-08 결정).
+ */
+export const usedToday = (channelId: string, person: string, now = Date.now()) =>
+  ofChannel(channelId).filter((s) => s.person === person && s.day === kstDateString(new Date(now))).length;
 
-/** Whether a new participation is allowed (on, amount, daily limit). */
-export function canParticipate(channelId: string, userId: string, amount: number, now = Date.now()) {
+/** Whether a new participation is allowed (on, amount, the person's daily limit). */
+export function canParticipate(channelId: string, person: string, amount: number, now = Date.now()) {
   const st = settings();
-  return st.enabled && amount >= st.minAmount && (st.dailyLimit === 0 || usedToday(channelId, userId, now) < st.dailyLimit);
+  return st.enabled && amount >= st.minAmount && (st.dailyLimit === 0 || usedToday(channelId, person, now) < st.dailyLimit);
 }
 
-/** Called by the Donation Core after the debit: draws now, spins later. `shownDonor` is the name the overlay shows. */
+/**
+ * Called by the Donation Core after the debit: draws now, spins later. `shownDonor` is the name the overlay shows;
+ * `account` and `person` are the sender's account marker and person key.
+ */
 export function enqueueSpin(
-  input: { id: string; channelId: string; supporterUserId: string; donor: string; shownDonor: string; amount: number },
+  input: { id: string; channelId: string; supporterUserId: string; account: string | null; person: string; donor: string; shownDonor: string; amount: number },
   now = Date.now(),
   rand?: (n: number) => number
 ) {
@@ -156,8 +171,8 @@ export function enqueueSpin(
     ...input,
     seq: ++mockRoulette.seq,
     createdAt: new Date(now).toISOString(),
-    day: toDateString(new Date(now)),
-    nth: usedToday(input.channelId, input.supporterUserId, now) + 1,
+    day: kstDateString(new Date(now)),
+    nth: usedToday(input.channelId, input.person, now) + 1,
     limit: st.dailyLimit,
     items,
     resultIndex: drawIndex(items, rand),
@@ -191,7 +206,7 @@ export function remoteRow(s: RouletteSpin, now = Date.now()): RouletteRemoteRow 
 
 export function channelRows(channelId: string, now = Date.now()) {
   advance(channelId, now);
-  const today = toDateString(new Date(now));
+  const today = kstDateString(new Date(now));
   const spins = ofChannel(channelId);
   return {
     queue: spins.filter((s) => !s.startedAt).map((s) => remoteRow(s, now)),
@@ -212,12 +227,16 @@ export function spinState(id: string, now = Date.now()) {
   return { status: statusOf(s, now), result: revealed(s, now) };
 }
 
-export function roomView(channelId: string, userId: string | null, now = Date.now()): RoomRoulette {
+/** The signed-in viewer: member id, their account's start marker (`accountSince()`) and person key (`currentPersonKey()`). */
+export type RoomViewer = { userId: string; account: string | null; person: string };
+
+/** 내 룰렛 lists the viewer's current account's spins only; 남은 참여 (`usedToday`) counts the person's day. */
+export function roomView(channelId: string, viewer: RoomViewer | null, now = Date.now()): RoomRoulette {
   const { queue, participantsToday } = channelRows(channelId, now);
   const ids = queue.map((r) => r.id);
-  const mine: MyRouletteSpin[] = userId
+  const mine: MyRouletteSpin[] = viewer
     ? ofChannel(channelId)
-        .filter((s) => s.supporterUserId === userId)
+        .filter((s) => s.supporterUserId === viewer.userId && s.account === viewer.account)
         .slice(-10)
         .reverse()
         .map((s) => ({
@@ -230,5 +249,5 @@ export function roomView(channelId: string, userId: string | null, now = Date.no
           result: revealed(s, now)
         }))
     : [];
-  return { waiting: queue.length, participantsToday, usedToday: userId ? usedToday(channelId, userId, now) : null, mine };
+  return { waiting: queue.length, participantsToday, usedToday: viewer ? usedToday(channelId, viewer.person, now) : null, mine };
 }

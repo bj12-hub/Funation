@@ -1,22 +1,29 @@
 import { randomInt } from "node:crypto";
-import { toDateString } from "@/lib/period";
+import { kstDateString } from "@/lib/period";
 import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
 import type { Gacha, GachaSettings } from "@/services/creator/widgetSettingsTypes";
 import { widgetStore } from "@/services/creator/widgetStore";
 import { fillGachaMessage, gachaNo, type GachaBoardView, type GachaDrawStatus, type GachaOffer, type GachaRow, type GachaStage, type MyGachaDraw, type RoomGacha } from "./gachaTypes";
+import type { RoomViewer } from "./rouletteCore";
 
 /**
  * Server-only 뽑기 store (not a "use server" module). The Donation Core records a draw after the debit
  * with the prize already drawn here (node:crypto); 상품소진형 stock goes down at that moment. Draws play
  * one at a time per channel on the 뽑기 overlay (기계 회전 시간, then the result for 화면 노출 시간).
  * The mock reads the studio's 뽑기 settings for every channel (one widget store), like the 룰렛.
- * TBD: odds disclosure / legal review for paid draws, delivery of prizes, refunds, the limit period.
+ * 2026-10-08 결정 (as for the 룰렛): the room's 내 뽑기 belongs to the account (the 리모컨, 당첨 내역 and 당첨 리스트
+ * keep every draw), and the 1인 횟수 한도 counts per person (the verified phone) per Korean day, across a 재가입.
+ * TBD: odds disclosure / legal review for paid draws, delivery of prizes, refunds.
  */
 export type GachaDraw = {
   id: string;
   seq: number;
   channelId: string;
   supporterUserId: string;
+  /** The start marker of the sender's account (`accountSince()`, null = the slot's first): the room's 내 뽑기 is per account. */
+  account: string | null;
+  /** The person behind it (`currentPersonKey()`, the verified phone; server-only): the 1인 횟수 한도 counts per person. */
+  person: string;
   /** The donor's name as sent (the 리모컨 and records). */
   donor: string;
   /** The name the overlay and 당첨 리스트 show: the creator's 대체 메시지 rules applied when it was paid (shownOnStream). */
@@ -29,6 +36,7 @@ export type GachaDraw = {
   message: string;
   amount: number;
   createdAt: string;
+  /** Korean date (KST) the draw counts toward (1인 횟수 한도). */
   day: string;
   prize: string;
   /** The prize's id in the 뽑기 settings (missing on seed draws). */
@@ -63,6 +71,8 @@ function seed(now = Date.now()): Store {
     seq,
     channelId: STUDIO_CHANNEL,
     supporterUserId: `seed-${donor}`,
+    account: null,
+    person: `seed-${donor}`,
     donor,
     shownDonor: donor,
     gachaId: "gacha-1",
@@ -73,7 +83,7 @@ function seed(now = Date.now()): Store {
     message: "",
     amount: 3_000,
     createdAt: at(min),
-    day: toDateString(new Date(now - min * 60_000)),
+    day: kstDateString(new Date(now - min * 60_000)),
     prize,
     blank,
     startedAt: at(min),
@@ -85,9 +95,9 @@ function seed(now = Date.now()): Store {
   return { draws: [draw(1041, "오늘은된다", "꽝 (다음 기회에)", true, 90, null), draw(1042, "보라색원픽", "문화상품권 5천원", false, 45, false)], seq: 1042 };
 }
 
-// V2: draws keep the name shown on stream (`shownDonor`).
-const g = globalThis as typeof globalThis & { __funationMockGachaV2?: Store };
-export const mockGacha = (g.__funationMockGachaV2 ??= seed());
+// V2: draws keep the name shown on stream (`shownDonor`). V3: draws keep the sender's account and person, `day` is KST.
+const g = globalThis as typeof globalThis & { __funationMockGachaV3?: Store };
+export const mockGacha = (g.__funationMockGachaV3 ??= seed());
 
 /** 화면 숨기기 per channel (펀페이 1009:6768): draws still play, the overlay shows nothing. */
 export const isHidden = (channelId: string) => mockGacha.hidden?.[channelId] === true;
@@ -125,15 +135,16 @@ export function gachaOffers(now = Date.now()): GachaOffer[] {
     }));
 }
 
-export const usedToday = (channelId: string, userId: string, gachaId: string, now = Date.now()) =>
-  mockGacha.draws.filter((d) => d.channelId === channelId && d.supporterUserId === userId && d.gachaId === gachaId && d.day === toDateString(new Date(now))).length;
+/** Draws of this person (`currentPersonKey()`) from this 뽑기 on `now`'s Korean day — across their accounts (2026-10-08 결정). */
+export const usedToday = (channelId: string, person: string, gachaId: string, now = Date.now()) =>
+  mockGacha.draws.filter((d) => d.channelId === channelId && d.person === person && d.gachaId === gachaId && d.day === kstDateString(new Date(now))).length;
 
-/** Whether this member may draw now (enabled, stock left, 1인 횟수 한도). */
-export function canDraw(channelId: string, userId: string, gachaId: string, now = Date.now()) {
+/** Whether this person may draw now (enabled, stock left, 1인 횟수 한도). */
+export function canDraw(channelId: string, person: string, gachaId: string, now = Date.now()) {
   const x = findGacha(gachaId);
   if (!x) return false;
   if (x.prizeMode === "STOCK" && stockLeft(x) === 0) return false;
-  return !x.limitEnabled || usedToday(channelId, userId, gachaId, now) < x.limitCount;
+  return !x.limitEnabled || usedToday(channelId, person, gachaId, now) < x.limitCount;
 }
 
 export function statusOf(d: GachaDraw, now = Date.now()): GachaDrawStatus {
@@ -158,10 +169,11 @@ export function advance(channelId: string, now = Date.now()) {
 
 /**
  * Called by the Donation Core right after the debit (nothing awaits in between, so the stock check and this decrement
- * see the same stock): draws now (stock goes down), plays later. `amount` is what was debited.
+ * see the same stock): draws now (stock goes down), plays later. `amount` is what was debited; `account` and `person`
+ * are the sender's account marker and person key.
  */
 export function enqueueDraw(
-  input: { id: string; channelId: string; supporterUserId: string; donor: string; shownDonor: string; gachaId: string; amount: number },
+  input: { id: string; channelId: string; supporterUserId: string; account: string | null; person: string; donor: string; shownDonor: string; gachaId: string; amount: number },
   now = Date.now(),
   rand?: (n: number) => number
 ) {
@@ -184,7 +196,7 @@ export function enqueueDraw(
     pointColor: x.pointColor,
     message: fillGachaMessage(x.messageTemplate, input.shownDonor, input.amount),
     createdAt: new Date(now).toISOString(),
-    day: toDateString(new Date(now)),
+    day: kstDateString(new Date(now)),
     prize: prize.name,
     prizeId: prize.id,
     blank,
@@ -281,13 +293,15 @@ export function drawState(id: string, now = Date.now()) {
   return { status: statusOf(d, now), prize: show ? d.prize : null, blank: show ? d.blank : null };
 }
 
-export function roomView(channelId: string, userId: string | null, now = Date.now()): RoomGacha {
+/** 내 뽑기 lists the viewer's current account's draws only; today's use per 뽑기 counts the person's day. */
+export function roomView(channelId: string, viewer: RoomViewer | null, now = Date.now()): RoomGacha {
   const { queue } = channelRows(channelId, now);
   const ids = queue.map((r) => r.id);
-  const today = toDateString(new Date(now));
-  const mineAll = userId ? ofChannel(channelId).filter((d) => d.supporterUserId === userId) : [];
+  const today = kstDateString(new Date(now));
+  const draws = ofChannel(channelId);
   const used: Record<string, number> = {};
-  for (const d of mineAll) if (d.day === today) used[d.gachaId] = (used[d.gachaId] ?? 0) + 1;
+  if (viewer) for (const d of draws) if (d.person === viewer.person && d.day === today) used[d.gachaId] = (used[d.gachaId] ?? 0) + 1;
+  const mineAll = viewer ? draws.filter((d) => d.supporterUserId === viewer.userId && d.account === viewer.account) : [];
   const mine: MyGachaDraw[] = mineAll
     .slice(-10)
     .reverse()
@@ -295,7 +309,7 @@ export function roomView(channelId: string, userId: string | null, now = Date.no
       const r = row(d, now);
       return { id: d.id, no: r.no, gachaId: d.gachaId, gachaName: d.gachaName, amount: d.amount, createdAt: d.createdAt, status: r.status, position: d.startedAt ? null : ids.indexOf(d.id) + 1, prize: r.prize, blank: r.blank };
     });
-  return { waiting: queue.length, usedToday: userId ? used : null, mine };
+  return { waiting: queue.length, usedToday: viewer ? used : null, mine };
 }
 
 const PERIOD_DAYS = { "오늘 기준": 0, "최근 7일 기준": 6, "최근 30일 기준": 29 } as const;

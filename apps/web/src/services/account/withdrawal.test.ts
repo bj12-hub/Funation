@@ -53,6 +53,15 @@ const OP = { userId: "admin-1", nickname: "운영자1" };
 const PASSWORD = "password"; // the mock account's initial password (services/account/mockStore.ts)
 const supporter = (n = 1) => ({ requestId: key(n), confirmed: true, forfeitAgreed: true, fnBalance: 5_000, unsettledFn: 0, password: PASSWORD });
 
+/**
+ * The studio's sample quests that are still running (q1 · q2) end first: a creator cannot withdraw while quests sent to
+ * the channel are in progress (2026-10-08 결정). Call it before setting `delay.during` (the decision waits a mock delay).
+ */
+async function endChannelQuests() {
+  const { decideReceivedQuest } = await import("@/services/creator/donationManagement");
+  for (const id of ["q1", "q2"]) expect(await decideReceivedQuest({ id, outcome: "CANCELED" })).toMatchObject({ status: "OK" });
+}
+
 describe("회원 탈퇴", () => {
   beforeEach(() => {
     resetMockStores();
@@ -61,7 +70,7 @@ describe("회원 탈퇴", () => {
 
   it("needs every consent for the amounts the member saw and the password, then forfeits and ends the account", async () => {
     const m = await load();
-    expect(await m.getWithdrawalInfo()).toEqual({ nickname: "홍길동", fnBalance: 5_000, creator: false, unsettledFn: 0, pendingRefunds: 0 });
+    expect(await m.getWithdrawalInfo()).toEqual({ nickname: "홍길동", fnBalance: 5_000, creator: false, unsettledFn: 0, pendingRefunds: 0, pendingQuests: { sent: 0, received: 0 } });
 
     const base = supporter();
     expect(await m.withdrawAccount({ ...base, requestId: "short" })).toMatchObject({ status: "INVALID" });
@@ -99,6 +108,7 @@ describe("회원 탈퇴", () => {
   it("lets a creator forfeit earnings waiting for settlement with its own consent", async () => {
     signIn(["SUPPORTER", "CREATOR"]);
     const m = await load();
+    await endChannelQuests();
     m.settlement.requests.push({ ...m.settlement.requests[0], id: "st-pending", status: "PENDING", amountFn: 20_000, review: undefined });
     expect(await m.getWithdrawalInfo()).toMatchObject({ creator: true, unsettledFn: 147_500 });
 
@@ -120,6 +130,7 @@ describe("회원 탈퇴", () => {
   it("re-reads the amounts after the password check, so a decision in between is not recorded as forfeited", async () => {
     signIn(["SUPPORTER", "CREATOR"]);
     const m = await load();
+    await endChannelQuests();
     m.settlement.requests.push({ ...m.settlement.requests[0], id: "st-pending", status: "PENDING", amountFn: 20_000, review: undefined });
     const base = { ...supporter(), unsettledFn: 147_500, earningsForfeitAgreed: true };
     // An operator approves the waiting request while the password is being checked.
@@ -134,6 +145,7 @@ describe("회원 탈퇴", () => {
   it("ends what acts for the channel and removes the payout account", async () => {
     signIn(["SUPPORTER", "CREATOR"]);
     const m = await load();
+    await endChannelQuests();
     const { managerLinks } = await import("@/services/broadcast/chatCore");
     const { channelsStore } = await import("@/services/broadcast/channelsCore");
     const { youtubeStore } = await import("@/services/creator/youtubeCore");
@@ -230,6 +242,52 @@ describe("회원 탈퇴", () => {
     expect(m.isWithdrawn()).toBe(false);
   });
 
+  it("waits for the member's quest donations in progress to be decided before the account can go (2026-10-08 결정)", async () => {
+    const m = await load();
+    const { requestDonation } = await import("@/services/donations/donate");
+    const { decideMyQuest } = await import("@/services/donations/quests");
+    const { recordQuest } = await import("@/services/donations/questCore");
+    const quest = { creatorId: "c1", hideProfile: false, type: "QUEST", title: "노래 한 곡", successReward: 1_000, timeLimitSec: 600, creatorDecides: false, termsAgreed: true };
+    const sent = await requestDonation({ ...quest, idempotencyKey: key(70) });
+    if (sent.status !== "COMPLETED") throw new Error(sent.status);
+    // The FN is held until the result is decided (a failed quest refunds it to the account that holds the slot then).
+    // The studio's sample quests running on another channel are not this supporter's.
+    expect(await m.getWithdrawalInfo()).toMatchObject({ fnBalance: 4_000, pendingQuests: { sent: 1, received: 0 } });
+    expect(await m.withdrawAccount({ ...supporter(), fnBalance: 4_000 })).toEqual({ status: "QUEST_PENDING", sent: 1, received: 0 });
+    expect(m.isWithdrawn()).toBe(false);
+
+    expect(await decideMyQuest({ id: sent.donationId, outcome: "FAILED" })).toMatchObject({ status: "OK", refundedFn: 1_000 });
+    expect(await m.getWithdrawalInfo()).toMatchObject({ fnBalance: 5_000, pendingQuests: { sent: 0, received: 0 } });
+    // A quest sent (from another tab) while the password is being checked stops it too.
+    const during = { id: "dn-during", channelId: "c1", supporterUserId: "u-test", donor: "홍길동", donorId: "hongGD123", title: "다른 탭", amount: 1_000, timeLimitSec: 600, creatorDecides: false };
+    delay.during = () => recordQuest({ ...during, createdAt: new Date().toISOString() });
+    expect(await m.withdrawAccount(supporter(2))).toEqual({ status: "QUEST_PENDING", sent: 1, received: 0 });
+    expect(m.isWithdrawn()).toBe(false);
+
+    // Once every quest has a result, the account can go.
+    expect(await decideMyQuest({ id: "dn-during", outcome: "SUCCESS" })).toMatchObject({ status: "OK", questStatus: "SUCCESS" });
+    expect(await m.withdrawAccount(supporter(3))).toEqual({ status: "WITHDRAWN" });
+  });
+
+  it("keeps a creator with quests in progress on the channel until each is decided or cancelled (2026-10-08 결정)", async () => {
+    signIn(["SUPPORTER", "CREATOR"]);
+    const m = await load();
+    const { decideReceivedQuest } = await import("@/services/creator/donationManagement");
+    const info = (await m.getWithdrawalInfo())!;
+    // The studio's sample quests q1 · q2 are still running: their supporters' FN is held for this channel.
+    expect(info.pendingQuests).toEqual({ sent: 0, received: 2 });
+    const base = { ...supporter(), unsettledFn: info.unsettledFn, earningsForfeitAgreed: true };
+    expect(await m.withdrawAccount(base)).toEqual({ status: "QUEST_PENDING", sent: 0, received: 2 });
+    expect(m.isWithdrawn()).toBe(false);
+
+    // 취소 (always the creator's) refunds the supporter; 성공 needs 크리에이터 성공 결정, which these quests have.
+    expect(await decideReceivedQuest({ id: "q1", outcome: "CANCELED" })).toMatchObject({ status: "OK", questStatus: "CANCELED" });
+    expect(await m.withdrawAccount({ ...base, requestId: key(2) })).toEqual({ status: "QUEST_PENDING", sent: 0, received: 1 });
+    expect(await decideReceivedQuest({ id: "q2", outcome: "SUCCESS" })).toMatchObject({ status: "OK", questStatus: "SUCCESS" });
+    expect((await m.getWithdrawalInfo())!.pendingQuests).toEqual({ sent: 0, received: 0 });
+    expect(await m.withdrawAccount({ ...base, requestId: key(3) })).toEqual({ status: "WITHDRAWN" });
+  });
+
   it("lets the same person sign up again right away as a new account", async () => {
     const m = await load();
     const { mockWallet } = await import("@/services/wallet/mockWalletStore");
@@ -289,6 +347,7 @@ describe("회원 탈퇴", () => {
   it("starts the new account without the withdrawn creator's settlement history or earnings", async () => {
     signIn(["SUPPORTER", "CREATOR"]);
     const m = await load();
+    await endChannelQuests();
     await verifyMockIdentity(); // the withdrawn account had done 본인인증
     const earnings = (await m.getWithdrawalInfo())!.unsettledFn;
     const before = m.settlement.requests.length;

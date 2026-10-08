@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { key, mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { key, mockSessionModule, rejoinWithPhone, resetMockStores, signIn } from "@/test/mockEnv";
 import { fillGachaMessage } from "./gachaTypes";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
@@ -38,6 +38,8 @@ const draw = (n: number, gachaId = "gacha-1", termsAgreed = true, expectedAmount
   expectedAmount,
   idempotencyKey: key(n)
 });
+/** Member `n` for the core calls: member id, account marker (null = the first account) and person key. */
+const member = (n: number) => ({ supporterUserId: `u-${n}`, account: null, person: `person-${n}` });
 
 /** Two 뽑기: 당첨확률형 (상품 30% · 꽝 70%) and 상품소진형 (2 + 1). */
 function setGachas(m: M, patch: Partial<M["widgetStore"]["GACHA"]["gachas"][number]> = {}) {
@@ -90,7 +92,7 @@ describe("뽑기 후원", () => {
     expect(view.usedToday).toEqual({ "gacha-1": 1 });
 
     const t = Date.parse(record.startedAt!) + record.spinMs + 1;
-    expect(m.roomView("c1", "u-test", t).mine[0]).toMatchObject({ status: "RESULT", prize: record.prize, blank: record.blank });
+    expect(m.roomView("c1", { userId: record.supporterUserId, account: record.account, person: record.person }, t).mine[0]).toMatchObject({ status: "RESULT", prize: record.prize, blank: record.blank });
 
     // 후원 내역 › 게임 후원: the draw state, then the prize once the machine stopped.
     const range = { preset: "range" as const, from: "2000-01-01", to: "2099-12-31" };
@@ -120,7 +122,7 @@ describe("뽑기 후원", () => {
     const m = await load();
     setGachas(m);
     const t0 = Date.parse("2026-10-04T12:00:00");
-    const enqueue = (id: string, at: number) => m.enqueueDraw({ id, channelId: "c1", supporterUserId: "u-1", donor: "보라색원픽", shownDonor: "보라색원픽", gachaId: "gacha-2", amount: 5_000 }, at, () => 0);
+    const enqueue = (id: string, at: number) => m.enqueueDraw({ id, channelId: "c1", ...member(1), donor: "보라색원픽", shownDonor: "보라색원픽", gachaId: "gacha-2", amount: 5_000 }, at, () => 0);
     const first = enqueue("d1", t0); // 아크릴 스탠드
     const second = enqueue("d2", t0 + 1); // 아크릴 스탠드 (queued behind the first)
     const left = (at: number) => m.gachaOffers(at)[1].prizes.map((p) => p.left);
@@ -156,7 +158,7 @@ describe("뽑기 후원", () => {
   it("records the debited amount on the draw, not a price read later", async () => {
     const m = await load();
     setGachas(m);
-    const d = m.enqueueDraw({ id: "d1", channelId: "c1", supporterUserId: "u-1", donor: "보라색원픽", shownDonor: "보라색원픽", gachaId: "gacha-1", amount: 2_500 }, Date.now(), () => 0);
+    const d = m.enqueueDraw({ id: "d1", channelId: "c1", ...member(1), donor: "보라색원픽", shownDonor: "보라색원픽", gachaId: "gacha-1", amount: 2_500 }, Date.now(), () => 0);
     expect(d).toMatchObject({ amount: 2_500, message: "보라색원픽님이 2,500FN 뽑기 후원을 하였습니다!" });
   });
 
@@ -191,8 +193,8 @@ describe("뽑기 후원", () => {
     const m = await load();
     setGachas(m);
     const t0 = Date.parse("2026-10-04T12:00:00");
-    const first = m.enqueueDraw({ id: "d1", channelId: m.STUDIO_CHANNEL, supporterUserId: "u-1", donor: "오늘은된다", shownDonor: "오늘은된다", gachaId: "gacha-1", amount: 3_000 }, t0, () => 0); // 상품
-    const second = m.enqueueDraw({ id: "d2", channelId: m.STUDIO_CHANNEL, supporterUserId: "u-2", donor: "확률의신", shownDonor: "확률의신", gachaId: "gacha-1", amount: 3_000 }, t0 + 1, () => 99); // 꽝
+    const first = m.enqueueDraw({ id: "d1", channelId: m.STUDIO_CHANNEL, ...member(1), donor: "오늘은된다", shownDonor: "오늘은된다", gachaId: "gacha-1", amount: 3_000 }, t0, () => 0); // 상품
+    const second = m.enqueueDraw({ id: "d2", channelId: m.STUDIO_CHANNEL, ...member(2), donor: "확률의신", shownDonor: "확률의신", gachaId: "gacha-1", amount: 3_000 }, t0 + 1, () => 99); // 꽝
     expect(m.statusOf(first, t0)).toBe("SPINNING");
     expect(m.statusOf(second, t0 + 1)).toBe("QUEUED");
     expect(m.stageOf(m.STUDIO_CHANNEL, t0 + 1_000)).toMatchObject({ status: "SPINNING", prize: null, donor: "오늘은된다", message: "오늘은된다님이 3,000FN 뽑기 후원을 하였습니다!" });
@@ -227,7 +229,7 @@ describe("뽑기 후원", () => {
     expect(detail.overlayPath).toBe(`/overlay/widget/gacha/${m.overlayKey}`);
 
     setGachas(m);
-    const d = m.enqueueDraw({ id: "d9", channelId: m.STUDIO_CHANNEL, supporterUserId: "u-9", donor: "보라색원픽", shownDonor: "보라색원픽", gachaId: "gacha-1", amount: 3_000 }, Date.now(), () => 0);
+    const d = m.enqueueDraw({ id: "d9", channelId: m.STUDIO_CHANNEL, ...member(9), donor: "보라색원픽", shownDonor: "보라색원픽", gachaId: "gacha-1", amount: 3_000 }, Date.now(), () => 0);
     expect((await m.finishGachaDraw({ drawId: d.id })).status).toBe("INVALID"); // still drawing
     d.startedAt = new Date(Date.now() - d.spinMs - 500).toISOString();
     const o = await m.getOverlayWidget("gacha", m.overlayKey);
@@ -242,5 +244,49 @@ describe("뽑기 후원", () => {
     expect(after !== "FORBIDDEN" && after.widget === "gacha" && after.stage).toBeNull();
     const board = await m.getOverlayWidget("gacha-board", m.overlayKey);
     expect(board !== "FORBIDDEN" && board.widget === "gacha-board" && board.board.title).toBe("뽑기 당첨 리스트");
+  });
+});
+
+describe("뽑기 · 재가입 (2026-10-08 결정)", () => {
+  beforeEach(() => {
+    resetMockStores();
+    vi.useFakeTimers({ toFake: ["Date"] });
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it("keeps 내 뽑기 with the account and counts the 1인 횟수 한도 per person and KST day", async () => {
+    vi.setSystemTime(new Date("2026-10-08T23:40:00+09:00"));
+    const m = await load();
+    setGachas(m, { limitEnabled: true, limitCount: 1 });
+    const room = async () => (await m.getRoomGacha("c1"))!;
+    expect((await m.requestDonation(draw(1))).status).toBe("COMPLETED");
+    expect(await m.requestDonation(draw(2))).toEqual({ status: "INVALID" }); // 하루 1회
+    expect(await room()).toMatchObject({ usedToday: { "gacha-1": 1 } });
+    expect((await room()).mine).toHaveLength(1);
+
+    // The same person (same verified phone) signs up again that day: no old 내 뽑기, and that day's limit stays used.
+    vi.setSystemTime(new Date("2026-10-08T23:45:00+09:00"));
+    await rejoinWithPhone("010-1234-5678");
+    m.account.fnBalance = 100_000;
+    expect(await room()).toMatchObject({ usedToday: { "gacha-1": 1 }, mine: [] });
+    expect(await m.requestDonation(draw(3))).toEqual({ status: "INVALID" });
+
+    // Someone else signs up in the slot: their own limit, their own list.
+    vi.setSystemTime(new Date("2026-10-08T23:50:00+09:00"));
+    await rejoinWithPhone("010-0000-0000");
+    m.account.fnBalance = 100_000;
+    expect(await room()).toMatchObject({ usedToday: {}, mine: [] });
+    expect((await m.requestDonation(draw(4))).status).toBe("COMPLETED");
+    expect((await room()).mine).toHaveLength(1);
+    // The creator's side keeps every draw, whichever account sent it.
+    vi.setSystemTime(new Date("2026-10-08T23:51:00+09:00"));
+    expect(m.channelRows("c1").recent).toHaveLength(2);
+    // The person key (verified phone) never leaves the server.
+    expect(JSON.stringify([await room(), m.channelRows("c1"), m.boardOf("c1")])).not.toMatch(/010-/);
+
+    // The day turns at 00:00 KST (it is still 2026-10-08 in UTC).
+    vi.setSystemTime(new Date("2026-10-09T00:05:00+09:00"));
+    expect(await room()).toMatchObject({ usedToday: {} });
+    expect((await m.requestDonation(draw(5))).status).toBe("COMPLETED");
   });
 });

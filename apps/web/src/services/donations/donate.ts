@@ -4,7 +4,8 @@ import { randomUUID } from "node:crypto";
 import { toDateString } from "@/lib/period";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
-import { MOCK_FORBIDDEN_WORDS, mockAccount } from "@/services/account/mockStore";
+import { MOCK_FORBIDDEN_WORDS, currentPersonKey, mockAccount } from "@/services/account/mockStore";
+import { accountSince } from "@/services/account/withdrawalCore";
 import { donorKeyOf, enqueueDonationAlert } from "@/services/creator/alertCore";
 import { matchesContent } from "@/services/creator/assetCore";
 import { shownOnStream } from "@/services/creator/donationPageCore";
@@ -65,10 +66,13 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
   // From here to the debit nothing awaits: the checks and the write see the same state.
   let result: DonationResult;
   const price = request.priced ? currentPrice(request.type, request.details) : request.amount;
-  if (request.type === "ROULETTE" && !canParticipate(creator.id, session.userId, request.amount)) {
+  // 룰렛 · 뽑기 limits count per person (the verified phone), so a 재가입 the same day does not reset them; the room's
+  // 내 룰렛 · 내 뽑기 list the account's own (2026-10-08 결정).
+  const player = { supporterUserId: session.userId, account: accountSince(), person: currentPersonKey() };
+  if (request.type === "ROULETTE" && !canParticipate(creator.id, player.person, request.amount)) {
     // 룰렛 turned off or today's 참여 가능 횟수 used up since the panel loaded.
     result = { status: "INVALID" };
-  } else if (request.type === "GACHA" && !canDraw(creator.id, session.userId, request.details.gachaId as string)) {
+  } else if (request.type === "GACHA" && !canDraw(creator.id, player.person, request.details.gachaId as string)) {
     // 뽑기 turned off, sold out (상품소진형) or 1인 횟수 한도 reached since the panel loaded.
     result = { status: "INVALID" };
   } else if (price === null) {
@@ -131,8 +135,8 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
     // 뽑기: the prize is drawn now (stock goes down) and played on the 뽑기 overlay (no FN prize).
     // Their overlays show the name as the alert does (대체 메시지 표시 설정); the records keep the original.
     const shownDonor = shownOnStream({ donor, message: request.summary }).donor;
-    if (request.type === "GACHA") enqueueDraw({ id: donationId, channelId: creator.id, supporterUserId: session.userId, donor, shownDonor, gachaId: request.details.gachaId as string, amount: request.amount });
-    if (request.type === "ROULETTE") enqueueSpin({ id: donationId, channelId: creator.id, supporterUserId: session.userId, donor, shownDonor, amount: request.amount });
+    if (request.type === "GACHA") enqueueDraw({ id: donationId, channelId: creator.id, ...player, donor, shownDonor, gachaId: request.details.gachaId as string, amount: request.amount });
+    if (request.type === "ROULETTE") enqueueSpin({ id: donationId, channelId: creator.id, ...player, donor, shownDonor, amount: request.amount });
     enqueueDonationAlert(creator.id, {
       donor,
       // 후원랭킹 groups by this opaque key, never by the (copyable) name; a hidden profile has none.
