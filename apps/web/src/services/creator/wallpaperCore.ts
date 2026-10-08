@@ -19,9 +19,9 @@ const CELL = { w: WALL_SIZE.w / COLS, h: WALL_SIZE.h / ROWS };
 
 /** `stickerImages`: sticker (alert) id → the 벽지 image id it got, for the stickers on the wall (added in V2). */
 type Store = { clearedAt: Record<string, string>; stickerImages: Record<string, string> };
-const g = globalThis as typeof globalThis & { __funationMockWallpaperV2?: Store };
+const g = globalThis as typeof globalThis & { __ssumnationMockWallpaperV2?: Store };
 /** A fresh wall starts when the mock starts (older feed items are not stuck on it). */
-export const mockWallpaper = (g.__funationMockWallpaperV2 ??= { clearedAt: { [STUDIO_CHANNEL]: new Date().toISOString() }, stickerImages: {} });
+export const mockWallpaper = (g.__ssumnationMockWallpaperV2 ??= { clearedAt: { [STUDIO_CHANNEL]: new Date().toISOString() }, stickerImages: {} });
 
 export const clearedAtOf = (channelId: string) => mockWallpaper.clearedAt[channelId] ?? null;
 

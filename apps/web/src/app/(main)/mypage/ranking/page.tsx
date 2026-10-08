@@ -5,7 +5,7 @@ import { getMyAccount } from "@/services/account/myAccount";
 import { getMyRanking } from "@/services/supporter/ranking";
 
 // Code-first (no Figma frame): 내 후원 랭킹 — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: "내 랭킹 | Somnation" };
+export const metadata: Metadata = { title: "내 랭킹 | Ssumnation" };
 export const dynamic = "force-dynamic";
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ period?: string }> }) {

@@ -48,7 +48,7 @@ export function startNewAccount(input: { nickname: string; password: string; mar
     marketingConsent: input.marketing
   });
   Object.assign(mockCredentials, { password: input.password, recentPasswords: [input.password], changedAt: now.toISOString(), phone: input.phone, personKey });
-  Object.assign(mockChangeHistory, { nicknameChangedAt: null, funationIdChangedAt: null });
+  Object.assign(mockChangeHistory, { nicknameChangedAt: null, ssumnationIdChangedAt: null });
   Object.assign(mockWallet, { chargeTermsAgreedAt: null, marketingOptIn: false });
   (mockSettlement.pastRequests ??= []).push(...mockSettlement.requests);
   Object.assign(mockSettlement, { requests: [], idempotency: {}, availableFn: 0 });

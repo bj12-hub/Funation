@@ -3,7 +3,7 @@ import type { Messages } from "./ko";
 /** English messages (code-first; wording to be reviewed with the product team). */
 export const en: Messages = {
   common: {
-    homeAria: "Somnation home",
+    homeAria: "Ssumnation home",
     mainMenu: "Main menu",
     openMenu: "Open menu",
     closeMenu: "Close menu",
@@ -39,7 +39,7 @@ export const en: Messages = {
   profile: {
     accountMenu: "{name} account menu",
     channelMenu: "{name} menu",
-    fun: "{name}'s FuN!",
+    fun: "{name}'s Ssum!",
     platforms: "Connected platforms",
     connected: "connected",
     notConnected: "not connected"
@@ -72,7 +72,7 @@ export const en: Messages = {
     attendance: "Daily check-in",
     settings: "Settings",
     myInfo: "My info",
-    idLabel: "Somnation ID",
+    idLabel: "Ssumnation ID",
     balance: "FN balance",
     fnHistory: "FN history",
     charge: "Charge FN",
@@ -82,7 +82,7 @@ export const en: Messages = {
   },
   footer: {
     menu: "Footer menu",
-    about: "Somnation is an all-in-one K-video entertainment platform that brings together Korea's trending variety, sports and gaming content in real time.",
+    about: "Ssumnation is an all-in-one K-video entertainment platform that brings together Korea's trending variety, sports and gaming content in real time.",
     company: "Company",
     service: "About the service",
     careers: "Careers",

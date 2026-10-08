@@ -17,7 +17,7 @@ import styles from "./widgetOverlay.module.css";
 const OUTLINE = "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000";
 const QR_RADIUS = { BASIC: 0, ROUND: 16, CIRCLE: 999, SOFT: 32 } as const;
 const SCROLL_SEC = { VERY_SLOW: 40, SLOW: 30, NORMAL: 20, FAST: 12, VERY_FAST: 7 } as const;
-/** Somnation's own donations. */
+/** Ssumnation's own donations. */
 const OWN_COLOR = "#a78bfa";
 
 /** Full-size text style for an overlay (the popup preview scales the same settings down). */

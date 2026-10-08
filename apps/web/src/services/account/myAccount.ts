@@ -7,7 +7,7 @@ import type { Platform } from "@/types/platform";
 
 /**
  * Signed-in member's own account (my page).
- * Figma: funation-my-page 622:4 · 735:4119 (route `/mypage`, signed-in members only)
+ * Figma: ssumnation-my-page 622:4 · 735:4119 (route `/mypage`, signed-in members only)
  *
  * The server owns every value here. In particular `fnBalance` is display-only and must never be
  * computed or adjusted in the browser. Updates must be authorized by the backend session.
@@ -23,7 +23,7 @@ export type RankingVisibilityKey = "quest";
 
 export type MyAccount = {
   nickname: string;
-  funationId: string;
+  ssumnationId: string;
   avatarUrl: string | null;
   /** Linked social login accounts; `null` when not linked. `linkedAt` is an ISO date string. */
   linkedLoginProviders: Record<LoginProvider, { identifier: string; linkedAt: string } | null>;

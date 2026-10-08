@@ -46,7 +46,7 @@ async function directory(): Promise<AdminMember[]> {
   const active = withStatus({
     id: SAMPLE_MEMBER_ID,
     nickname: mockAccount.nickname,
-    funationId: mockAccount.funationId,
+    ssumnationId: mockAccount.ssumnationId,
     roles: ["SUPPORTER", "CREATOR"],
     joinedAt: "2025-11-02",
     lastActiveAt: new Date(now).toISOString().slice(0, 10),
@@ -73,7 +73,7 @@ async function directory(): Promise<AdminMember[]> {
             ...active,
             id: withdrawnMemberId(i + 1),
             nickname: w.nickname,
-            funationId: w.funationId,
+            ssumnationId: w.ssumnationId,
             lastActiveAt: w.at.slice(0, 10),
             fnBalance: 0,
             donationTotalFn: donatedBy(w.accountSince),
@@ -85,7 +85,7 @@ async function directory(): Promise<AdminMember[]> {
       : []
   );
   const creators = (await getAllCreatorsForAdmin()).map((c) =>
-    withStatus({ id: creatorMemberId(c.id), nickname: c.name, funationId: `creator-${c.id}`, roles: ["SUPPORTER", "CREATOR"], joinedAt: c.joinedAt, lastActiveAt: c.joinedAt, fnBalance: 0, donationTotalFn: 0, creatorId: c.id })
+    withStatus({ id: creatorMemberId(c.id), nickname: c.name, ssumnationId: `creator-${c.id}`, roles: ["SUPPORTER", "CREATOR"], joinedAt: c.joinedAt, lastActiveAt: c.joinedAt, fnBalance: 0, donationTotalFn: 0, creatorId: c.id })
   );
   const supporters = memberStore().supporters.map((s) => withStatus({ ...s, roles: ["SUPPORTER"], creatorId: null }));
   return [...(sample ? [sample] : []), ...withdrawn, ...creators, ...supporters];
@@ -117,7 +117,7 @@ export async function listMembers(input: Record<string, unknown> = {}): Promise<
   const q = filter.q.toLowerCase();
   const all = (await directory()).filter(
     (m) =>
-      (!q || m.nickname.toLowerCase().includes(q) || m.funationId.toLowerCase().includes(q) || m.id === filter.q) &&
+      (!q || m.nickname.toLowerCase().includes(q) || m.ssumnationId.toLowerCase().includes(q) || m.id === filter.q) &&
       (filter.role === "ALL" || (filter.role === "CREATOR" ? m.roles.includes("CREATOR") : !m.roles.includes("CREATOR"))) &&
       (filter.status === "ALL" || m.status === filter.status)
   );

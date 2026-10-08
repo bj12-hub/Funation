@@ -27,9 +27,9 @@ export type DonationLinkStore = {
 const ALL: Platform[] = BROADCAST_PLATFORMS;
 const per = <T>(make: () => T) => Object.fromEntries(ALL.map((p) => [p, make()])) as Record<Platform, T>;
 
-const g = globalThis as typeof globalThis & { __funationMockDonationLinkV3?: DonationLinkStore };
+const g = globalThis as typeof globalThis & { __ssumnationMockDonationLinkV3?: DonationLinkStore };
 export const donationLinkStore = (): DonationLinkStore =>
-  (g.__funationMockDonationLinkV3 ??= {
+  (g.__ssumnationMockDonationLinkV3 ??= {
     enabled: per(() => false),
     cursors: {},
     seen: {},

@@ -1,8 +1,8 @@
-# Funation Claude Development Rules
+# Ssumnation Claude Development Rules
 
 ## 1. Project
 
-Funation is a broadcasting donation platform.
+Ssumnation is a broadcasting donation platform.
 
 Confirmed external broadcasting platforms:
 

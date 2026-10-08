@@ -41,8 +41,8 @@ const assertMock = () => {
 };
 
 // V2: credits gained rollingSince.
-const g = globalThis as typeof globalThis & { __funationMockToolsV2?: ToolStates };
-const tools = (g.__funationMockToolsV2 ??= {
+const g = globalThis as typeof globalThis & { __ssumnationMockToolsV2?: ToolStates };
+const tools = (g.__ssumnationMockToolsV2 ??= {
   subtitle: { text: "", size: "M" },
   marquee: { lines: ["오늘도 방송에 와 주셔서 감사합니다!"], speed: "NORMAL" },
   timer: { mode: "COUNTDOWN", durationSec: 600, startedAt: null, elapsedBeforeSec: 0 },

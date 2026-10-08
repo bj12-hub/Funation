@@ -6,7 +6,7 @@ vi.mock("@/lib/session", () => mockSessionModule());
 
 /** Sign-up (13:63 · 722:*): the Server Action re-checks formats and required agreements. */
 const valid = {
-  email: "new@funation.kr",
+  email: "new@ssumnation.kr",
   password: "abcd123!",
   nickname: "새회원",
   agreements: { youth: true, service: true, privacy: true, marketing: false }
@@ -19,8 +19,8 @@ describe("signup", () => {
     const { signup } = await import("./signup");
     const phoneVerificationToken = await phoneToken();
     expect(await signup({ ...valid, phoneVerificationToken })).toEqual({ status: "CREATED" });
-    expect(await signup({ ...valid, phoneVerificationToken, email: "HELLO@funation.kr" })).toEqual({ status: "EMAIL_TAKEN" });
-    expect(await signup({ ...valid, phoneVerificationToken, email: "another@funation.kr", nickname: "funation" })).toEqual({ status: "NICKNAME_TAKEN" });
+    expect(await signup({ ...valid, phoneVerificationToken, email: "HELLO@ssumnation.kr" })).toEqual({ status: "EMAIL_TAKEN" });
+    expect(await signup({ ...valid, phoneVerificationToken, email: "another@ssumnation.kr", nickname: "ssumnation" })).toEqual({ status: "NICKNAME_TAKEN" });
   });
 
   it("applies the member nickname rules: forbidden words, 익명, other members' nicknames and channel names", async () => {
@@ -45,13 +45,13 @@ describe("signup", () => {
     const { signup, checkEmailAvailability } = await import("./signup");
     const { mockAccount } = await import("@/services/account/mockStore");
     // The sample account's own e-mail is registered.
-    expect(await checkEmailAvailability("User@funation.kr")).toEqual({ available: false });
-    expect(await signup({ ...valid, email: "user@funation.kr", phoneVerificationToken: await phoneToken() })).toEqual({ status: "EMAIL_TAKEN" });
+    expect(await checkEmailAvailability("User@ssumnation.kr")).toEqual({ available: false });
+    expect(await signup({ ...valid, email: "user@ssumnation.kr", phoneVerificationToken: await phoneToken() })).toEqual({ status: "EMAIL_TAKEN" });
     expect(await signup({ ...valid, phoneVerificationToken: await phoneToken() })).toEqual({ status: "CREATED" });
     expect(mockAccount.nickname).toBe("홍길동"); // the active account is untouched
-    expect(await checkEmailAvailability(" NEW@funation.kr ")).toEqual({ available: false });
+    expect(await checkEmailAvailability(" NEW@ssumnation.kr ")).toEqual({ available: false });
     expect(await signup({ ...valid, nickname: "다른이름", phoneVerificationToken: await phoneToken() })).toEqual({ status: "EMAIL_TAKEN" });
-    expect(await signup({ ...valid, email: "other@funation.kr", phoneVerificationToken: await phoneToken() })).toEqual({ status: "NICKNAME_TAKEN" });
+    expect(await signup({ ...valid, email: "other@ssumnation.kr", phoneVerificationToken: await phoneToken() })).toEqual({ status: "NICKNAME_TAKEN" });
   });
 
   it("rejects bad formats and missing required agreements", async () => {

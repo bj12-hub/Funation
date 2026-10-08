@@ -6,7 +6,7 @@ import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Somnation",
+  title: "Ssumnation",
   description: "Broadcasting donation platform"
 };
 

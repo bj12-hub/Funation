@@ -15,7 +15,7 @@ const readEvent = cache(getEvent);
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const event = await readEvent((await params).id);
-  return { title: event ? `${event.title} | 이벤트 | Somnation` : "이벤트 | Somnation" };
+  return { title: event ? `${event.title} | 이벤트 | Ssumnation` : "이벤트 | Ssumnation" };
 }
 
 export default async function Page({ params }: { params: Params }) {

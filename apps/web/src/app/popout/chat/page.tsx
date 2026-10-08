@@ -5,7 +5,7 @@ import { CHAT_WINDOW_PATH } from "@/services/broadcast/chatTypes";
 import { getUnifiedChat } from "@/services/broadcast/unifiedChat";
 
 // Code-first (no Figma frame): 통합 채팅 as its own web page — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: "통합 채팅 | Somnation", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "통합 채팅 | Ssumnation", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

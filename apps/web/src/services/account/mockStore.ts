@@ -18,19 +18,19 @@ type MockState = {
    * browser; a withdrawal clears both (its record keeps the key with a hash of the phone, ./withdrawalCore.ts).
    */
   credentials: { password: string; recentPasswords: string[]; changedAt: string; phone: string; personKey: string };
-  changeHistory: { nicknameChangedAt: Date | null; funationIdChangedAt: Date | null };
+  changeHistory: { nicknameChangedAt: Date | null; ssumnationIdChangedAt: Date | null };
   /** Server-side revocation (e.g. after a password change); cleared on the next login. */
   session: { revoked: boolean; roles?: Role[] };
 };
 
 // Bump the key when the state shape changes so a running dev server starts from fresh data.
 // V5: credentials carry the person key (it was the phone itself).
-const globalForMock = globalThis as typeof globalThis & { __funationMockStateV5?: MockState };
+const globalForMock = globalThis as typeof globalThis & { __ssumnationMockStateV5?: MockState };
 
-const state = (globalForMock.__funationMockStateV5 ??= {
+const state = (globalForMock.__ssumnationMockStateV5 ??= {
   account: {
     nickname: "홍길동",
-    funationId: "hongGD123",
+    ssumnationId: "hongGD123",
     avatarUrl: "/mock/account/avatar.png",
     // Figma 743:2203 / 743:2250 sample accounts (connected 2026. 09. 12 14:32 KST).
     linkedLoginProviders: {
@@ -58,7 +58,7 @@ const state = (globalForMock.__funationMockStateV5 ??= {
     // Web Crypto (not node:crypto): this module is also bundled for the browser through shared helpers.
     personKey: globalThis.crypto.randomUUID()
   },
-  changeHistory: { nicknameChangedAt: null, funationIdChangedAt: null },
+  changeHistory: { nicknameChangedAt: null, ssumnationIdChangedAt: null },
   session: { revoked: false, roles: ["SUPPORTER", "CREATOR"] }
 });
 
@@ -77,6 +77,6 @@ export const mockSessionState = state.session;
 export const currentPersonKey = () => state.credentials.personKey;
 
 // Sample values from the Figma error states (747:74, 747:120, 747:349, 747:394).
-export const MOCK_TAKEN_NICKNAMES = ["funation"];
-export const MOCK_TAKEN_FUNATION_IDS = ["funation"];
+export const MOCK_TAKEN_NICKNAMES = ["ssumnation"];
+export const MOCK_TAKEN_SSUMNATION_IDS = ["ssumnation"];
 export const MOCK_FORBIDDEN_WORDS = ["운영자", "admin"];

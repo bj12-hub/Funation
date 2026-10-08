@@ -33,7 +33,7 @@ export type Withdrawal = {
   forfeitedEarningsFn: number;
   /** Who withdrew (the admin directory keeps listing them as 탈퇴). */
   nickname: string;
-  funationId: string;
+  ssumnationId: string;
   /** null once the 계약 기록 is purged. */
   consents: WithdrawalConsents | null;
   /** null once dropped, a year after the withdrawal. */
@@ -55,9 +55,9 @@ type Store = {
   phoneHashKey: string;
 };
 // V4: records keep their consents, the 본인 확인 값 and what was purged (V3: past accounts keep their start marker).
-const g = globalThis as typeof globalThis & { __funationMockWithdrawalV4?: Store };
+const g = globalThis as typeof globalThis & { __ssumnationMockWithdrawalV4?: Store };
 export const withdrawalStore = (): Store =>
-  (g.__funationMockWithdrawalV4 ??= { withdrawal: null, past: [], accountSince: null, phoneHashKey: "" });
+  (g.__ssumnationMockWithdrawalV4 ??= { withdrawal: null, past: [], accountSince: null, phoneHashKey: "" });
 
 /** The sample account's withdrawal, or null while it is active. */
 export const withdrawalOf = () => withdrawalStore().withdrawal;

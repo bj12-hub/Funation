@@ -29,7 +29,7 @@ describe("계정", () => {
   it("reads the account without credentials and saves simple toggles", async () => {
     const m = await load();
     const me = (await m.getMyAccount())!;
-    expect(me.funationId).toBe("hongGD123");
+    expect(me.ssumnationId).toBe("hongGD123");
     expect(JSON.stringify(me)).not.toMatch(/password|credentials/);
     expect(await m.updateRankingVisibility("quest", false)).toEqual({ status: "SAVED" });
     expect(await m.updateRankingVisibility("admin" as "quest", false)).toEqual({ status: "FAILED" });
@@ -48,7 +48,7 @@ describe("계정", () => {
     expect(await m.checkNickname("a")).toEqual({ status: "INVALID" });
     expect(await m.checkNickname("운영자님")).toEqual({ status: "FORBIDDEN" });
     expect(await m.checkNickname("익명")).toEqual({ status: "FORBIDDEN" }); // the hidden-profile label
-    expect(await m.checkNickname("FUNATION")).toEqual({ status: "DUPLICATE" });
+    expect(await m.checkNickname("SSUMNATION")).toEqual({ status: "DUPLICATE" });
     // The nickname is the default 별명: no other member's nickname, no channel name (2026-10-08 결정).
     expect(await m.checkNickname("별빛시청자")).toEqual({ status: "DUPLICATE" });
     expect(await m.changeNickname("별빛시청자")).toEqual({ status: "DUPLICATE" });
@@ -59,10 +59,10 @@ describe("계정", () => {
     expect(limited).toMatchObject({ status: "LIMITED" });
     expect(limited.status === "LIMITED" && limited.availableFrom.startsWith("2026-11-02")).toBe(true);
 
-    expect(await m.changeFunationId("Upper1")).toEqual({ status: "INVALID" });
-    expect(await m.changeFunationId("hongadmin1")).toEqual({ status: "FORBIDDEN" });
-    expect(await m.changeFunationId("honggd123")).toEqual({ status: "DUPLICATE" });
-    expect(await m.changeFunationId("newid2026")).toEqual({ status: "CHANGED", value: "newid2026" });
+    expect(await m.changeSsumnationId("Upper1")).toEqual({ status: "INVALID" });
+    expect(await m.changeSsumnationId("hongadmin1")).toEqual({ status: "FORBIDDEN" });
+    expect(await m.changeSsumnationId("honggd123")).toEqual({ status: "DUPLICATE" });
+    expect(await m.changeSsumnationId("newid2026")).toEqual({ status: "CHANGED", value: "newid2026" });
     vi.setSystemTime(new Date("2026-11-03T10:00:00"));
     expect(await m.changeNickname("또바꿈")).toEqual({ status: "CHANGED", value: "또바꿈" });
     signIn(null);
@@ -73,14 +73,14 @@ describe("계정", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-10-08T10:00:00"));
     const m = await load();
-    expect(await m.changeFunationId("newid2026")).toEqual({ status: "CHANGED", value: "newid2026" });
+    expect(await m.changeSsumnationId("newid2026")).toEqual({ status: "CHANGED", value: "newid2026" });
     // Another member (the mock has one slot: a member without a recent change) cannot take the old ID yet.
-    m.store.mockChangeHistory.funationIdChangedAt = null;
-    expect(await m.changeFunationId("honggd123")).toEqual({ status: "RESERVED" });
+    m.store.mockChangeHistory.ssumnationIdChangedAt = null;
+    expect(await m.changeSsumnationId("honggd123")).toEqual({ status: "RESERVED" });
     vi.setSystemTime(new Date("2026-11-07T09:59:00"));
-    expect(await m.changeFunationId("honggd123")).toEqual({ status: "RESERVED" });
+    expect(await m.changeSsumnationId("honggd123")).toEqual({ status: "RESERVED" });
     vi.setSystemTime(new Date("2026-11-07T10:00:00"));
-    expect(await m.changeFunationId("honggd123")).toEqual({ status: "CHANGED", value: "honggd123" });
+    expect(await m.changeSsumnationId("honggd123")).toEqual({ status: "CHANGED", value: "honggd123" });
   });
 
   it("lets only one of two simultaneous nickname changes through the 30-day limit", async () => {

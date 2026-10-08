@@ -10,7 +10,7 @@ import { HISTORY_LIST_MAX, HISTORY_PERIODS, HISTORY_SORTS, HISTORY_STATUS_LABEL,
 
 /**
  * 후원 내역 — Figma 817:8038 (table + 거래 상세) · 817:8223 (status badges + detail).
- * Merges platform transactions (SOOP · FlexTV) with Funation 직접 후원 (creator room, "Direct").
+ * Merges platform transactions (SOOP · FlexTV) with Ssumnation 직접 후원 (creator room, "Direct").
  * Filtering happens on the server. TBD: the meaning of Direct, refund workflow behind 환불중/환불완료,
  * retention period, pagination size.
  */

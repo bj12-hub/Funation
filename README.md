@@ -1,8 +1,8 @@
-# Funation
+# Ssumnation
 
-> **Service brand:** Somnation (썸네이션). User-facing text uses "Somnation" in English contexts and "썸네이션" in Korean sentences ("썸네이션 ID"). The repository, packages and code identifiers keep the name Funation.
+> **Service brand:** Ssumnation (썸네이션). User-facing text uses "Ssumnation" in English contexts and "썸네이션" in Korean sentences ("썸네이션 ID"). The repository, packages and code identifiers keep the name Ssumnation.
 
-Funation is a broadcasting donation platform connecting **Creators** and **Supporters**.
+Ssumnation is a broadcasting donation platform connecting **Creators** and **Supporters**.
 
 ## Confirmed Platform Scope
 
@@ -53,7 +53,7 @@ Settlement
 ## Repository
 
 ```text
-funation/
+ssumnation/
 ├── README.md
 ├── CLAUDE.md
 ├── .gitignore

@@ -14,7 +14,7 @@ import type { Role } from "@/types/role";
  * validate the session on every request, and frontend checks are for UX only.
  */
 
-export const SESSION_COOKIE = "funation_session";
+export const SESSION_COOKIE = "ssumnation_session";
 
 /** "로그인 유지" keeps the session for 30 days; otherwise it ends with the browser session. */
 const KEEP_SIGNED_IN_SECONDS = 60 * 60 * 24 * 30;
@@ -24,7 +24,7 @@ const MOCK_TOKEN = "mock-session-hongGD123";
 export type Session = {
   userId: string;
   nickname: string;
-  funationId: string;
+  ssumnationId: string;
   avatarUrl: string | null;
   /** Server-resolved roles. Never taken from the client. */
   roles: Role[];
@@ -40,8 +40,8 @@ export async function getSession(): Promise<Session | null> {
   // A suspended or withdrawn member is treated as signed out on every request (the backend must enforce this too).
   if (USE_MOCK && token === MOCK_TOKEN && !mockSessionState.revoked && !isMemberSuspended(MOCK_USER_ID) && !isWithdrawn()) {
     // Display fields follow the (editable) mock account.
-    const { nickname, funationId, avatarUrl } = mockAccount;
-    return { userId: MOCK_USER_ID, nickname, funationId, avatarUrl, roles: [...(mockSessionState.roles ?? DEFAULT_MOCK_ROLES)] };
+    const { nickname, ssumnationId, avatarUrl } = mockAccount;
+    return { userId: MOCK_USER_ID, nickname, ssumnationId, avatarUrl, roles: [...(mockSessionState.roles ?? DEFAULT_MOCK_ROLES)] };
   }
   return null;
 }

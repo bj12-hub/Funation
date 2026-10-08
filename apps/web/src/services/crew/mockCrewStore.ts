@@ -101,9 +101,9 @@ function monthStamp(dayOffset: number) {
   return d.toISOString();
 }
 
-const g = globalThis as typeof globalThis & { __funationMockCrewV1?: MockCrew };
+const g = globalThis as typeof globalThis & { __ssumnationMockCrewV1?: MockCrew };
 
-export const mockCrew = (g.__funationMockCrewV1 ??= {
+export const mockCrew = (g.__ssumnationMockCrewV1 ??= {
   crews: {
     [STUDIO_CHANNEL]: [m("cm-s1", "길동", "LEADER", "#8b5cf6"), m("cm-s2", "하늘", "MEMBER", "#ec4899"), m("cm-s3", "바다", "MEMBER", "#3b82f6"), m("cm-s4", "솔", "MEMBER", "#f59e0b", false)],
     c4: [m("cm-c4-1", "재형", "LEADER", "#8b5cf6"), m("cm-c4-2", "용주", "MEMBER", "#10b981"), m("cm-c4-3", "민수", "MEMBER", "#3b82f6")]

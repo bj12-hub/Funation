@@ -12,8 +12,8 @@ export const BANNER_MESSAGE_MAX = 120;
 /** The 자세히 보기 link: a site path, capped like the other stored URLs (정산 채널 주소 300자). */
 export const BANNER_HREF_MAX = 300;
 
-const g = globalThis as typeof globalThis & { __funationMockSiteBannerV1?: SiteBanner };
-export const siteBannerStore = (): SiteBanner => (g.__funationMockSiteBannerV1 ??= { enabled: false, level: "INFO", message: "", href: null, updatedAt: null, updatedBy: null });
+const g = globalThis as typeof globalThis & { __ssumnationMockSiteBannerV1?: SiteBanner };
+export const siteBannerStore = (): SiteBanner => (g.__ssumnationMockSiteBannerV1 ??= { enabled: false, level: "INFO", message: "", href: null, updatedAt: null, updatedBy: null });
 
 /** What visitors see: the banner only while enabled. */
 export async function getSiteBanner(): Promise<Pick<SiteBanner, "level" | "message" | "href"> | null> {

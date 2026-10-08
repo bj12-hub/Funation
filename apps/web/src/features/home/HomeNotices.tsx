@@ -9,8 +9,8 @@ import type { HomeNotice } from "@/services/home/homeFeed";
 import styles from "./homeNotices.module.css";
 
 // Per-viewer display preferences only (not account data).
-const HIDE_KEY = "funation.homeNotices.hiddenOn";
-const CLOSED_KEY = "funation.homeNotices.closed";
+const HIDE_KEY = "ssumnation.homeNotices.hiddenOn";
+const CLOSED_KEY = "ssumnation.homeNotices.closed";
 
 /** "오늘" is the Korean day: the notices come back at 00:00 KST (the UTC day would turn over at 09:00). */
 const today = () => kstDateString();

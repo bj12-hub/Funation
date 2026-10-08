@@ -5,7 +5,7 @@ import { getSettlementOverview } from "@/services/creator/settlement";
 import { isMemberType } from "@/services/creator/settlementTypes";
 
 // Figma: 이용동의 429:139 · 443:257 · 433:138 · 437:338 · 대한민국 이외 452:4 · 452:47
-export const metadata: Metadata = { title: "정산 등록 | Somnation 크리에이터" };
+export const metadata: Metadata = { title: "정산 등록 | Ssumnation 크리에이터" };
 export const dynamic = "force-dynamic";
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ type?: string }> }) {

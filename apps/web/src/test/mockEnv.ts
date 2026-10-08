@@ -2,7 +2,7 @@ import { vi } from "vitest";
 import type { Role } from "@/types/role";
 
 /**
- * Test helpers for the mock backend. Services keep their state on `globalThis.__funationMock*`,
+ * Test helpers for the mock backend. Services keep their state on `globalThis.__ssumnationMock*`,
  * so each test clears those keys and re-imports the modules to start from the seed data.
  */
 
@@ -20,9 +20,9 @@ export const signInAs = (userId: string) => {
 
 export function mockSessionModule() {
   const session = () =>
-    sessionState.roles ? { userId: sessionState.userId, nickname: "홍길동", funationId: "hongGD123", avatarUrl: null, roles: [...sessionState.roles] } : null;
+    sessionState.roles ? { userId: sessionState.userId, nickname: "홍길동", ssumnationId: "hongGD123", avatarUrl: null, roles: [...sessionState.roles] } : null;
   return {
-    SESSION_COOKIE: "funation_session",
+    SESSION_COOKIE: "ssumnation_session",
     getSession: vi.fn(async () => session()),
     getCreatorSession: vi.fn(async () => (sessionState.roles?.includes("CREATOR") ? session() : null)),
     hasRole: (s: { roles: Role[] } | null, role: Role) => !!s && s.roles.includes(role),
@@ -34,7 +34,7 @@ export function mockSessionModule() {
 
 export function resetMockStores() {
   for (const key of Object.keys(globalThis)) {
-    if (key.startsWith("__funationMock")) delete (globalThis as Record<string, unknown>)[key];
+    if (key.startsWith("__ssumnationMock")) delete (globalThis as Record<string, unknown>)[key];
   }
   vi.resetModules();
   signIn();

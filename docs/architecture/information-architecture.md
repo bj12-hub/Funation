@@ -187,7 +187,7 @@ The catalog follows the funnation 위젯 page (`features/creatorStudio/widgets/w
   - 시그니처 후원: signatures and matching rules, managed at `/creator/widgets/signatures` (feeds the room 시그니처 후원 panel); "한 번에 만들기" turns several library images into signatures at once
   - 영상 · 그림후원: the 영상 후원 queue (`/creator/widgets/video`) and the 그림후원 gallery (`/creator/widgets/drawing`), each with an OBS overlay
   - 이미지·사운드 (`/creator/widgets/assets`): the library used by 배너 (`/creator/widgets/banner`, OBS banner overlay) and 시그니처 images
-  - 후원 연동 (`/creator/widgets/link`): broadcast-platform donations shown in 후원 알림 in their own currency (not Somnation payments)
+  - 후원 연동 (`/creator/widgets/link`): broadcast-platform donations shown in 후원 알림 in their own currency (not Ssumnation payments)
   - 게임 · 이벤트: ours; funnation keeps these under 엑셀방송
   - 타이머
 - **도구:** 오버레이 주소, 리모컨, 이미지·사운드, 후원 연동.

@@ -25,8 +25,8 @@ const ACCESS_LOG_MAX = 500;
 
 type Store = { failures: Map<string, number>; accessLog: AccessEvent[] };
 // V2: the access log.
-const g = globalThis as typeof globalThis & { __funationMockLoginLockV2?: Store };
-const store = (): Store => (g.__funationMockLoginLockV2 ??= { failures: new Map(), accessLog: [] });
+const g = globalThis as typeof globalThis & { __ssumnationMockLoginLockV2?: Store };
+const store = (): Store => (g.__ssumnationMockLoginLockV2 ??= { failures: new Map(), accessLog: [] });
 
 /** The login key of the slot account with this start marker (null = the first account). */
 export const accountKeyOf = (since: string | null) => (since ? `${SAMPLE_MEMBER_ID}@${since}` : SAMPLE_MEMBER_ID);

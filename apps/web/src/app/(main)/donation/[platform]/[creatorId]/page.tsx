@@ -16,10 +16,10 @@ const readDetail = cache(getPlatformCreatorDetail);
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { platform: slug, creatorId } = await params;
   const platform = platformFromSlug(slug);
-  if (!platform) return { title: "Somnation" };
+  if (!platform) return { title: "Ssumnation" };
   const detail = await readDetail(platform, creatorId);
   const name = typeof detail === "object" ? `${detail.creator.nickname} · ` : "";
-  return { title: `${name}${PLATFORMS[platform].name} 후원 | Somnation` };
+  return { title: `${name}${PLATFORMS[platform].name} 후원 | Ssumnation` };
 }
 
 export default async function Page({ params }: Props) {

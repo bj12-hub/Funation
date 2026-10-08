@@ -35,7 +35,7 @@ export const QR_SAMPLE_IMAGE = "/mock/creator/widgets/qr-sample.png";
 
 export const widgetOverlayPath = (widget: WidgetOverlayKind, key: string) => `/overlay/widget/${widget}/${key}`;
 
-/** One donation in 최근알림 · 이벤트. `platform` null = a Somnation (FN) donation. */
+/** One donation in 최근알림 · 이벤트. `platform` null = a Ssumnation (FN) donation. */
 export type WidgetFeedLine = {
   id: string;
   kind: AlertKind;

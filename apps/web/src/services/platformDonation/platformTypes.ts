@@ -2,7 +2,7 @@
  * Platform donation (SOOP · FlexTV 머니 후원) — core types shared by the client and the server.
  * Figma 817:9017–9741 (SOOP) · 817:8317–8948 (FlexTV) · 817:7699 · 817:7872.
  *
- * These are Funation's own shapes. Platform DTOs never leave the adapters (CLAUDE.md §9), and the
+ * These are Ssumnation's own shapes. Platform DTOs never leave the adapters (CLAUDE.md §9), and the
  * two platforms are not assumed to have the same capabilities. The user always pays in FN; prices
  * per product are server-side mock data (Figma samples) — the FN ↔ platform-currency rate is TBD.
  */
@@ -84,7 +84,7 @@ export type PlatformDonationInput = {
 
 // ── 후원 내역 (817:8038 · 817:8223) ───────────────────────────────────────────────
 
-/** Direct = donations made inside Funation (creator room). Assumption — the Figma "Direct" tab is undefined (TBD). */
+/** Direct = donations made inside Ssumnation (creator room). Assumption — the Figma "Direct" tab is undefined (TBD). */
 export type HistorySource = PlatformKey | "DIRECT";
 export const HISTORY_TABS = [
   { key: "all", label: "전체" },
@@ -149,7 +149,7 @@ export type HistoryView = {
 export type PlatformDonationResult =
   | {
       status: "COMPLETED";
-      /** Funation Transaction ID. */
+      /** Ssumnation Transaction ID. */
       transactionId: string;
       /** The platform's transaction id (External Transaction ID). */
       externalTransactionId: string;

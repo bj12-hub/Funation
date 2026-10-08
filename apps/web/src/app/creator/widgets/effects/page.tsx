@@ -6,7 +6,7 @@ import { getOverlayKey } from "@/services/creator/broadcastTools";
 import { getEffectSettings } from "@/services/creator/effects";
 
 // Code-first (no Figma frame): 이모지 리액션 · 레이어 효과 — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: "이펙트 · 효과 | Somnation 크리에이터" };
+export const metadata: Metadata = { title: "이펙트 · 효과 | Ssumnation 크리에이터" };
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

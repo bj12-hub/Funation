@@ -4,7 +4,7 @@ import { WithdrawScreen } from "@/features/mypage/WithdrawScreen";
 import { getWithdrawalInfo } from "@/services/account/withdrawal";
 
 // Code-first (no Figma frame): 회원 탈퇴 — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: "회원 탈퇴 | Somnation" };
+export const metadata: Metadata = { title: "회원 탈퇴 | Ssumnation" };
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

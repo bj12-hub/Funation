@@ -7,8 +7,8 @@ import type { Inquiry } from "./supportTypes";
  */
 
 type Store = { byUser: Record<string, Inquiry[]>; requests: Record<string, string> };
-const g = globalThis as typeof globalThis & { __funationMockInquiriesV1?: Store };
-export const inquiryStore = (): Store => (g.__funationMockInquiriesV1 ??= { byUser: {}, requests: {} });
+const g = globalThis as typeof globalThis & { __ssumnationMockInquiriesV1?: Store };
+export const inquiryStore = (): Store => (g.__ssumnationMockInquiriesV1 ??= { byUser: {}, requests: {} });
 
 /**
  * Inquiries belong to the account that wrote them. The mock's 재가입 reuses the user id, so an account is told apart by

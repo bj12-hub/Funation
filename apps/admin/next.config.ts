@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 
-// Somnation admin console — a separate app on its own subdomain (e.g. admin.<site domain>; domain TBD).
+// Ssumnation admin console — a separate app on its own subdomain (e.g. admin.<site domain>; domain TBD).
 // It talks to the site only through the server-side admin API client (src/lib/siteApi.ts).
 const production = process.env.NODE_ENV === "production";
 

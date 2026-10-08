@@ -29,9 +29,9 @@ export type MockRefundRequest = {
 };
 
 // V3: requests keep the computed refund (`quote`) and the approved one (`settled`).
-const g = globalThis as typeof globalThis & { __funationMockRefundsV3?: { requests: MockRefundRequest[] } };
+const g = globalThis as typeof globalThis & { __ssumnationMockRefundsV3?: { requests: MockRefundRequest[] } };
 
-export const mockRefunds = (g.__funationMockRefundsV3 ??= { requests: [] });
+export const mockRefunds = (g.__ssumnationMockRefundsV3 ??= { requests: [] });
 
 const amounts = (a: RefundAmounts): RefundAmounts => ({ type: a.type, grossFn: a.grossFn, feeFn: a.feeFn, netFn: a.netFn });
 

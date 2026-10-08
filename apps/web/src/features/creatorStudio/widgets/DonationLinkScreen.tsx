@@ -18,7 +18,7 @@ const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("ko-KR"
 
 /**
  * 후원 연동 — code-first (no Figma frame). Route `/creator/widgets/link`.
- * Broadcast-platform donations appear in 후원 알림 in their own currency; they are not Somnation payments.
+ * Broadcast-platform donations appear in 후원 알림 in their own currency; they are not Ssumnation payments.
  * Every platform feeds the same single queue (통합 후원 알림), so simulcast alerts never play on top of each other.
  * SMS 계좌후원 (mock, 2026-10-06) feeds the same queue in 원.
  */

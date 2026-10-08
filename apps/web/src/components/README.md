@@ -2,4 +2,4 @@
 
 Reusable UI components.
 
-Components should follow the Funation Figma Design System.
+Components should follow the Ssumnation Figma Design System.

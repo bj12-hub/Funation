@@ -3,8 +3,8 @@ import { Inter, Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Somnation 관리자",
-  description: "Somnation admin console",
+  title: "Ssumnation 관리자",
+  description: "Ssumnation admin console",
   robots: { index: false, follow: false }
 };
 

@@ -46,6 +46,6 @@ const seed: MockPost[] = [
  */
 type Store = { posts: MockPost[]; postRequests: Record<string, string>; commentRequests: Record<string, string> };
 // V2: request ids for 글쓰기 and 댓글.
-const g = globalThis as typeof globalThis & { __funationMockCommunityV2?: Store };
+const g = globalThis as typeof globalThis & { __ssumnationMockCommunityV2?: Store };
 
-export const mockCommunity = (g.__funationMockCommunityV2 ??= { posts: structuredClone(seed), postRequests: {}, commentRequests: {} });
+export const mockCommunity = (g.__ssumnationMockCommunityV2 ??= { posts: structuredClone(seed), postRequests: {}, commentRequests: {} });

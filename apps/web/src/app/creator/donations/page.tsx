@@ -27,7 +27,7 @@ import {
 
 // Figma: donation-management 539:7 (후원 페이지 설정) · 539:156 (후원 리스트) · 539:303 (후원 순위) ·
 // 539:466 / 539:574 (후원 필터링 · 차단 리스트) · 539:690 (칭호 설정)
-export const metadata: Metadata = { title: "후원관리+ | Somnation 크리에이터" };
+export const metadata: Metadata = { title: "후원관리+ | Ssumnation 크리에이터" };
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;

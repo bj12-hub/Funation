@@ -4,7 +4,7 @@ import { SettlementApplyScreen } from "@/features/creatorStudio/settlement/Settl
 import { getSettlementApplyView } from "@/services/creator/settlementRequests";
 
 // Figma: 정산 신청 458:4 · 463:2 — popups 466:2 · 469:195 · 469:2 · 475:2 · 473:2 · 477:2
-export const metadata: Metadata = { title: "정산 신청 | Somnation 크리에이터" };
+export const metadata: Metadata = { title: "정산 신청 | Ssumnation 크리에이터" };
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

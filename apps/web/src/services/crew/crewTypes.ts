@@ -76,12 +76,12 @@ export type FeedEntry = {
   donor: string;
   message: string;
   /**
-   * Amount in its own unit (code): FN (Somnation), KRW · USD · JPY (YouTube; KRW also 계좌 후원), SOOP_BALLOON (별풍선),
+   * Amount in its own unit (code): FN (Ssumnation), KRW · USD · JPY (YouTube; KRW also 계좌 후원), SOOP_BALLOON (별풍선),
    * CHZZK_CHEESE (치즈), FLEXTV_UNIT (FlexTV 후원). Entries listed before the codes carry the label until read (feedOf).
    */
   amount: number;
   unit: ExcelUnit;
-  /** Broadcast platform the donation came from; null = Somnation (FN). */
+  /** Broadcast platform the donation came from; null = Ssumnation (FN). */
   platform: Platform | null;
   source: FeedSource;
   status: FeedStatus;
@@ -109,7 +109,7 @@ export type FeedView = {
   entries: FeedEntryView[];
   oneshot: { startedAt: string; potPoints: number; count: number } | null;
   excel: ExcelSettings;
-  /** 플랫폼 · BJ별 정리: points per source (Somnation + each platform) for every member, plus 미지정. */
+  /** 플랫폼 · BJ별 정리: points per source (Ssumnation + each platform) for every member, plus 미지정. */
   summary: FeedSummaryRow[];
 };
 
@@ -161,7 +161,7 @@ export const EXCEL_MULTIPLIER_MAX = 100;
 export type Contribution = { kind: "POINTS"; value: number } | { kind: "MULTIPLIER"; value: number };
 
 /** Source columns of 플랫폼 · BJ별 정리. */
-export type FeedSourceKey = "SOMNATION" | "BANK" | Platform;
+export type FeedSourceKey = "SSUMNATION" | "BANK" | Platform;
 export type FeedSummaryRow = { memberId: string | null; name: string; color: string | null; points: Partial<Record<FeedSourceKey, number>>; total: number };
 export type ScoreLog = { id: string; at: string; memberName: string; points: number; reason: string };
 

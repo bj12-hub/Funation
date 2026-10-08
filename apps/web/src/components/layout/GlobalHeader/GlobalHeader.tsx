@@ -20,8 +20,8 @@ import styles from "./GlobalHeader.module.css";
  * Global navigation bar.
  *
  * Figma:
- * - Guest:     710:305  (Funation creator donation page_with login / nav-bar)
- * - Signed in: 710:978  (Funation creator donation page / nav-bar)
+ * - Guest:     710:305  (Ssumnation creator donation page_with login / nav-bar)
+ * - Signed in: 710:978  (Ssumnation creator donation page / nav-bar)
  *
  * - Creator:   245:14 (📺 크리에이터 · 고객센터, channel profile dropdown 758:41)
  *
@@ -113,7 +113,7 @@ export function GlobalHeader({ user, showMenuButton = true, onMenuClick, creator
           <span className={styles.menuBar} />
         </button>
         <Link href="/" className={styles.logo} aria-label={t("common.homeAria")}>
-          <span className={styles.logoText}>Somnation</span>
+          <span className={styles.logoText}>Ssumnation</span>
           <span className={styles.logoBadge}>ON</span>
         </Link>
       </div>
@@ -216,7 +216,7 @@ function SiteHeader({ user, creatorRole, onMenuClick, menuExpanded }: { user: Gl
           <span className={styles.menuBar} />
         </button>
         <Link href="/" className={styles.logo} aria-label={t("common.homeAria")}>
-          <span className={styles.logoText}>Somnation</span>
+          <span className={styles.logoText}>Ssumnation</span>
           <span className={styles.logoBadge}>ON</span>
         </Link>
       </div>
@@ -250,7 +250,7 @@ function StudioHeader({ user, creator }: { user: GlobalHeaderUser; creator: Crea
     <header className={styles.header}>
       <div className={styles.left}>
         <Link href="/creator" className={styles.logo} aria-label={t("common.studioHome")}>
-          <span className={styles.logoText}>Somnation</span>
+          <span className={styles.logoText}>Ssumnation</span>
           <span className={styles.studioBadge}>{t("common.studio")}</span>
         </Link>
       </div>

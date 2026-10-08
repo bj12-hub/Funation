@@ -5,9 +5,9 @@ import type { Notice } from "./supportTypes";
  * 공지사항 (funnation 고객센터 공지 structure). Seeded with our own copy; operators edit it in the admin
  * console (`/admin/content`). Views are sample numbers.
  */
-const g = globalThis as typeof globalThis & { __funationMockNoticesV1?: { items: Notice[] } };
+const g = globalThis as typeof globalThis & { __ssumnationMockNoticesV1?: { items: Notice[] } };
 /** Server-only store shared with services/admin/content.ts. */
-export const noticeStore = () => (g.__funationMockNoticesV1 ??= { items: structuredClone(SEED_NOTICES) });
+export const noticeStore = () => (g.__ssumnationMockNoticesV1 ??= { items: structuredClone(SEED_NOTICES) });
 
 export async function getNotices(): Promise<Notice[]> {
   if (!USE_MOCK) throw new Error("Support API is not connected yet.");
@@ -26,9 +26,9 @@ const SEED_NOTICES: Notice[] = [
     id: "brand",
     category: "GENERAL",
     important: true,
-    title: "서비스 이름이 썸네이션(Somnation)으로 바뀌었어요",
+    title: "서비스 이름이 썸네이션(Ssumnation)으로 바뀌었어요",
     summary: "서비스 이름과 로고 표기가 썸네이션으로 바뀌었습니다. 계정과 후원 내역은 그대로 이용할 수 있어요.",
-    body: ["서비스 이름과 로고 표기가 썸네이션(Somnation)으로 바뀌었습니다.", "계정, FN, 후원 내역, 크리에이터 채널은 모두 그대로 이용할 수 있어요."],
+    body: ["서비스 이름과 로고 표기가 썸네이션(Ssumnation)으로 바뀌었습니다.", "계정, FN, 후원 내역, 크리에이터 채널은 모두 그대로 이용할 수 있어요."],
     date: "2026-09-29",
     views: 128
   },

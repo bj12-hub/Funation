@@ -80,8 +80,8 @@ function seedQuests(now = Date.now()): QuestRecord[] {
   });
 }
 
-const g = globalThis as typeof globalThis & { __funationMockQuestsV1?: { items: QuestRecord[] } };
-export const mockQuests = (g.__funationMockQuestsV1 ??= { items: seedQuests() });
+const g = globalThis as typeof globalThis & { __ssumnationMockQuestsV1?: { items: QuestRecord[] } };
+export const mockQuests = (g.__ssumnationMockQuestsV1 ??= { items: seedQuests() });
 
 export const findQuest = (id: unknown) => (typeof id === "string" ? (mockQuests.items.find((q) => q.id === id) ?? null) : null);
 

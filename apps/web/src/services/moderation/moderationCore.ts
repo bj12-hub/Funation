@@ -16,8 +16,8 @@ export type StoredBlock = BlockEntry & { authorId: string };
 /** `blocks`: blocker member id → blocked member id → entry. */
 type Store = { reports: Report[]; requests: Record<string, string>; blocks: Record<string, Record<string, StoredBlock>> };
 // V3: reports keep a hash of the reported text (V2: block entries got their own id).
-const g = globalThis as typeof globalThis & { __funationMockModerationV3?: Store };
-export const moderationStore = (): Store => (g.__funationMockModerationV3 ??= { reports: [], requests: {}, blocks: {} });
+const g = globalThis as typeof globalThis & { __ssumnationMockModerationV3?: Store };
+export const moderationStore = (): Store => (g.__ssumnationMockModerationV3 ??= { reports: [], requests: {}, blocks: {} });
 
 /** `snapshot`: the text clipped for the operator; `contentHash`: SHA-256 of the whole text, to tell whether it changed. */
 export type ResolvedTarget = { authorId: string; authorName: string; snapshot: string; contentHash: string };

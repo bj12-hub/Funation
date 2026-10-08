@@ -7,7 +7,7 @@ import { getCreatorById } from "@/services/creators/creators";
 
 /**
  * Favorite creators of the signed-in member.
- * Figma: funation-favorites-page 735:3856 (route `/favorites`, signed-in members only)
+ * Figma: ssumnation-favorites-page 735:3856 (route `/favorites`, signed-in members only)
  * Reads return `null` without a session; the removal action re-checks the session.
  * A suspended creator is hidden from the list while suspended and comes back after (2026-10-08 결정).
  */
@@ -99,7 +99,7 @@ export async function addFavorite(creatorId: unknown): Promise<{ status: "ADDED"
 
 export async function getFavoritesPromotion(): Promise<PromotionBanner | null> {
   if (!USE_MOCK) return null;
-  // Figma 735:3955 copy. The design says "투네이션", another company's brand; the mock uses Funation.
+  // Figma 735:3955 copy. The design says "투네이션", another company's brand; the mock uses Ssumnation.
   // TBD: the "1,000 FN" reward and title are promotion policy, and the CTA destination.
   return {
     label: "이벤트",
@@ -111,10 +111,10 @@ export async function getFavoritesPromotion(): Promise<PromotionBanner | null> {
 
 // ── Mock data: Figma 735:3856 rows (kept on globalThis; see services/account/mockStore.ts) ──
 
-const globalForFavorites = globalThis as typeof globalThis & { __funationMockFavorites?: FavoriteCreator[] };
+const globalForFavorites = globalThis as typeof globalThis & { __ssumnationMockFavorites?: FavoriteCreator[] };
 
 function favorites() {
-  return (globalForFavorites.__funationMockFavorites ??= [
+  return (globalForFavorites.__ssumnationMockFavorites ??= [
     { creatorId: "c4", name: "불꽃크루", avatarUrl: "/mock/favorites/creator-1.png", subscriberCount: 91_000, verified: true, isLive: true },
     { creatorId: "c3", name: "밤톨게임", avatarUrl: "/mock/favorites/creator-2.png", subscriberCount: 27_000, verified: true, isLive: false },
     { creatorId: "c1", name: "하루봄", avatarUrl: "/mock/favorites/creator-3.png", subscriberCount: 48_000, verified: true, isLive: true },

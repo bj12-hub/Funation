@@ -4,16 +4,16 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 
 | Route | Status | Figma frames |
 |---|---|---|
-| `/` | ✅ | funation-videos-page 727:2742 · popups 709:2 / 688:646 · 200:115 · 200:223 |
+| `/` | ✅ | ssumnation-videos-page 727:2742 · popups 709:2 / 688:646 · 200:115 · 200:223 |
 | `/login` | ✅ | 13:7 · 718:123 · 718:168 · 718:213 · `/login/password-change` 718:335 (비밀번호 변경 권유, the login action redirects here when the password is old) — `?role=` from 280:2 is passed through (TBD) |
 | `/signup` | ✅ | 280:56 · 13:63 · 722:473 · 722:536 · 722:599 · 45:39 · 722:692–722:1059 · 723:183 |
 | `/password-reset` | ✅ | 13:179 · 718:626 · 718:582 · 720:18 · 720:60 · 720:103 · 718:244 |
 | `/live` | ✅ | funnation-all-live-page 617:316 (전체라이브) — 인기 / 전체 두 구분만, 주제 카테고리 없음 |
 | `/live/popular` | ✅ | funnation-popular-live-page 617:5 (인기라이브) |
-| `/creators` | ✅ | funation-all-creators-page 690:5 — `?category=` `?q=` `?sort=` `?page=` |
-| `/hall-of-fame` | ✅ | funation-hall-of-fame 3:637 — `?period=all|week|day` (default 이번 달) |
+| `/creators` | ✅ | ssumnation-all-creators-page 690:5 — `?category=` `?q=` `?sort=` `?page=` |
+| `/hall-of-fame` | ✅ | ssumnation-hall-of-fame 3:637 — `?period=all|week|day` (default 이번 달) |
 | `/support` | ✅ | 고객센터 4:7 — `?q=` searches the FAQ |
-| `/mypage` | ✅ | funation-my-page 735:4119 · 622:4 — redirects to `/login` without a session |
+| `/mypage` | ✅ | ssumnation-my-page 735:4119 · 622:4 — redirects to `/login` without a session |
 | `/channel/new` | ✅ code-first | 내 채널 만들기 — signed-in non-creators; grants the Creator role (review/approval TBD); Figma C07 `151:8173` (현재 구현 레이아웃) |
 | `/creator/crew/broadcast` | ✅ code-first | 크루 방송 운영 — score = FN during the broadcast + 보정 (points are not money); Figma Y04 `116:3886` · Y04b 방송 중 `117:3911` · Y04c 배틀 배수 · 벌칙, 강탈 기준 `185:5234` · Y04e 팬 메시지 · 요청사항 `217:5990` (현재 구현 레이아웃) |
 | `/overlay/crew/[key]` | ✅ code-first | OBS scoreboard overlay; `key` = integration key (reissue invalidates it); Figma O06 `92:6866` · O06b 배틀 `119:8173` · O06c 강탈 `119:8191` · O06d 시나리오 `119:8199` · OFF `133:2` (현재 구현 레이아웃) |
@@ -30,7 +30,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/mypage/titles` | ✅ code-first | 칭호·등급 — grade / title thresholds are placeholders (TBD); Figma M02 `81:4359` (현재 구현 레이아웃) |
 | `/mypage/ranking` | ✅ code-first | 내 후원 랭킹 — `?period=all|year|month`; other donors are mock sample data; Figma M04 `82:4528` (현재 구현 레이아웃) |
 | `/mypage/nicknames` | ✅ code-first | 별명 관리; Figma M03 `81:4688` (현재 구현 레이아웃) |
-| `/favorites` | ✅ | funation-favorites-page 735:3856 — signed-in only, `?q=` `?page=` |
+| `/favorites` | ✅ | ssumnation-favorites-page 735:3856 — signed-in only, `?q=` `?page=` |
 | `/creators/[id]` | ✅ | 라이브 826:685 (채팅) · 610:138 (후원), 오프라인 710:195, 공유 826:387 · 후원 유형 851:4546 (일반) · 851:4665 (미니) · 851:4788 (영상) · 851:4929 + 875:1815 (시그니처) · 851:5054 (위시) · 867:2458 + 펀페이 1009:510 (룰렛) · 867:2545 (퀘스트) · 867:2647 (그림) · 뽑기 (code-first; 럭키박스 · 퀴즈는 2026-10-04 삭제) · 후원 확인 613:6 · 완료 613:122 · FN 부족 613:237 · 팬 메시지 · 요청사항 카드 C08 `215:9524` (현재 구현) |
 | `/wallet/charges` | ✅ | FN 충전내역 640:2 · 639:2 (empty) · 상세 643:4 · 644:6 · 644:185 · 644:364 · 환불 요청 M05e `228:10118` · 심사 중 M05f `228:10726` · 승인 M05h `228:11336` (code-first) — signed-in only, `?period=` `?from=` `?to=` `?page=` |
 | `/wallet/donations` | ✅ | FN 후원내역 632:4 · 637:214 (empty) — signed-in only, `?type=` (basic · quest · game) + period params; 퀘스트 탭: 내가 보낸 진행 중 퀘스트에 성공 / 실패 · 환불 (실패 = 전액 환불, 2026-10-04) |
@@ -46,10 +46,10 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/creator/settlement/manage` | ✅ | 정산 관리 478:2 · 479:144 (기간별) · 정산 정보 변경 480:2 — registered creators only, `?period=day|week|month|year|custom` `?from=` `?to=` `?page=` (filters by 신청일; default 연별) |
 | `/creator/settlement/register/form` | ✅ | 정산 자료 등록 429:219 (개인) · 443:5 (외국인) · 433:210 (개인사업자) · 437:4 (법인) — `?type=` required, reachable only after 이용동의 for that type |
 | `/donation/[platform]` | ✅ | SOOP 후원 817:9017 · FlexTV 후원 817:8317 — `soop` · `flextv`, signed-in only; 최근 후원 / 인기 lists (product panel moved to the detail step) |
-| `/donation/history` | ✅ | 후원 내역 817:8038 · 817:8223 — `?tab=all|soop|flextv|direct` `?period=30|90|all` `?status=` `?q=` `?sort=newest|oldest` `?tx=` (거래 상세); 결과 건수 · 완료 합계(완료 건만 합산, code-first 2026-10-06); Direct = Funation creator-room donations (assumption, TBD) |
+| `/donation/history` | ✅ | 후원 내역 817:8038 · 817:8223 — `?tab=all|soop|flextv|direct` `?period=30|90|all` `?status=` `?q=` `?sort=newest|oldest` `?tx=` (거래 상세); 결과 건수 · 완료 합계(완료 건만 합산, code-first 2026-10-06); Direct = Ssumnation creator-room donations (assumption, TBD) |
 | `/donation/[platform]/search` | ✅ | 817:9146 · 817:8449 — `?q=`; results + empty |
 | `/donation/[platform]/[creatorId]` | ✅ | 상세·상품 817:9242 / 817:8597 · 메시지·결제 817:9334 / 817:8684 · 확인 817:9411 / 817:8761 · 처리 중 817:9509 / 817:8843 · 완료 817:9553 / 817:8886 · 오류 817:9618 / 817:8948 · FN 부족 817:7699 · 세션 만료 817:7872 — prices from the server adapter catalog (FN ↔ 별풍선/하트 rate TBD) |
-| `/attendance` | ✅ | funation-attendance-page 583:4 · 585:452 (checked in) · 585:66 (완료 popup) · 585:830 (보상 popup) — signed-in only |
+| `/attendance` | ✅ | ssumnation-attendance-page 583:4 · 585:452 (checked in) · 585:66 (완료 popup) · 585:830 (보상 popup) — signed-in only |
 | `/creator/chat` | ✅ code-first | 통합 채팅 — 치지직 · SOOP · FlexTV · YouTube 채팅, 채팅창 링크, 매니저 링크 (C01 `49:2` · C01b `129:2`) |
 | `/popout/chat` | ✅ code-first | 통합 채팅창 (단독 웹페이지, 크리에이터 로그인) — C02 `120:8188` · C02b `127:3` |
 | `/popout/chat/m/[token]` | ✅ code-first | 매니저 채팅창 (링크별 권한, 계정 없이) — C03 `123:8244` · C03b `125:2` · C04 `123:8311` · C04b `124:110` |

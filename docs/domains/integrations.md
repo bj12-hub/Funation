@@ -73,7 +73,7 @@ Authentication for every platform (OAuth / login) is TBD.
 - Messages are deduped by `${platform}:${externalMessageId}` (reconnects re-deliver messages).
 - A newly connected channel starts from "now"; the backlog is not replayed.
 - One platform failing (timeout, outage) never blocks the others; its error shows on its row.
-- **Hide** is Somnation-only and works for every platform (the overlay stops showing the message).
+- **Hide** is Ssumnation-only and works for every platform (the overlay stops showing the message).
 - **Delete** and **ban** act on the platform, and only where CHAT_MODERATE is declared.
 - **Send** (통합 입력) posts to every chosen platform with CHAT_SEND and reports the result per platform.
   `requestId` makes retries deterministic: a retry only re-attempts the platforms that definitely failed
@@ -97,7 +97,7 @@ Authentication for every platform (OAuth / login) is TBD.
 
   | Code | Label | From |
   | --- | --- | --- |
-  | `FN` | FN | Somnation donations |
+  | `FN` | FN | Ssumnation donations |
   | `KRW` · `USD` · `JPY` | 원 · USD · JPY | YouTube 슈퍼챗 (ISO 4217; KRW also 계좌 후원) |
   | `SOOP_BALLOON` | 별풍선 | SOOP |
   | `CHZZK_CHEESE` | 치즈 | CHZZK |

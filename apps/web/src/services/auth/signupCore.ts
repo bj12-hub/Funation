@@ -10,13 +10,13 @@ import { accountSince, isWithdrawn } from "@/services/account/withdrawalCore";
  */
 
 type Store = { accounts: { email: string; nickname: string | null; createdAt: string }[] };
-const g = globalThis as typeof globalThis & { __funationMockSignupsV1?: Store };
-const store = (): Store => (g.__funationMockSignupsV1 ??= { accounts: [] });
+const g = globalThis as typeof globalThis & { __ssumnationMockSignupsV1?: Store };
+const store = (): Store => (g.__ssumnationMockSignupsV1 ??= { accounts: [] });
 
 /** The sample account's e-mail (also the one the e-mail password reset knows). */
-const SAMPLE_ACCOUNT_EMAIL = "user@funation.kr";
+const SAMPLE_ACCOUNT_EMAIL = "user@ssumnation.kr";
 // Values used in the Figma error frames (722:765, 722:1059) are treated as taken in the mock.
-const FIGMA_TAKEN_EMAILS = ["hello@funation.kr"];
+const FIGMA_TAKEN_EMAILS = ["hello@ssumnation.kr"];
 
 export function isEmailTaken(email: string) {
   const e = email.trim().toLowerCase();

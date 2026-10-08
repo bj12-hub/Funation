@@ -247,7 +247,7 @@ export const RANKING_SPEEDS = [
 export const RANKING_MAX_RANKS = 10;
 /**
  * Which board the 후원랭킹 widget shows (funnation 탭, 2026-10-06 결정): 후원자 랭킹 (default), 크루 후원 순위 (members of the
- * creator's crew by FN donated for them) and 수단별 보드 (Somnation FN and each platform in its own unit, by 건수).
+ * creator's crew by FN donated for them) and 수단별 보드 (Ssumnation FN and each platform in its own unit, by 건수).
  */
 export const RANKING_BOARDS = [
   { key: "DONOR", label: "후원자 랭킹" },

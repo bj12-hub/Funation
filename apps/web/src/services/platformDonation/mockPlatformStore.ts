@@ -72,6 +72,6 @@ function seed(): MockPlatformTransaction[] {
   ];
 }
 
-const globalForPlatform = globalThis as typeof globalThis & { __funationMockPlatformV2?: MockPlatformState };
+const globalForPlatform = globalThis as typeof globalThis & { __ssumnationMockPlatformV2?: MockPlatformState };
 
-export const mockPlatform = (globalForPlatform.__funationMockPlatformV2 ??= { transactions: seed(), idempotency: {} });
+export const mockPlatform = (globalForPlatform.__ssumnationMockPlatformV2 ??= { transactions: seed(), idempotency: {} });

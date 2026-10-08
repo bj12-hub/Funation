@@ -96,8 +96,8 @@ function seed(now = Date.now()): Store {
 }
 
 // V2: draws keep the name shown on stream (`shownDonor`). V3: draws keep the sender's account and person, `day` is KST.
-const g = globalThis as typeof globalThis & { __funationMockGachaV3?: Store };
-export const mockGacha = (g.__funationMockGachaV3 ??= seed());
+const g = globalThis as typeof globalThis & { __ssumnationMockGachaV3?: Store };
+export const mockGacha = (g.__ssumnationMockGachaV3 ??= seed());
 
 /** 화면 숨기기 per channel (펀페이 1009:6768): draws still play, the overlay shows nothing. */
 export const isHidden = (channelId: string) => mockGacha.hidden?.[channelId] === true;

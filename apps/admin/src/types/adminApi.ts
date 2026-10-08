@@ -72,7 +72,7 @@ export type MemberRetention = { category: RetentionCategory; label: string; peri
 export type AdminMember = {
   id: string;
   nickname: string;
-  funationId: string;
+  ssumnationId: string;
   roles: Role[];
   joinedAt: string;
   lastActiveAt: string;

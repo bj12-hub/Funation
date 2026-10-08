@@ -3,7 +3,7 @@ import { SettlementReviewScreen } from "@/features/settlements/SettlementReviewS
 import { loadSettlements } from "@/lib/queries";
 import { SETTLEMENT_STATUSES, type SettlementStatus } from "@/types/adminApi";
 
-export const metadata: Metadata = { title: "정산 심사 | Somnation 관리자" };
+export const metadata: Metadata = { title: "정산 심사 | Ssumnation 관리자" };
 export const dynamic = "force-dynamic";
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ status?: string }> }) {

@@ -12,7 +12,7 @@ import styles from "./home.module.css";
  * Home screen — section order follows funnation (docs/architecture/information-architecture.md):
  * 인기 크리에이터 strip → banner → 전체 방송 (인기 라이브 / 전체 라이브) →
  * 인기 라이브 영상 모음 → promotion. Card and banner visuals keep the Figma components
- * (funation-videos-page 727:2742). Popups: 크리에이터 프로필 688:646 · arrival notices 200:115 · 200:223.
+ * (ssumnation-videos-page 727:2742). Popups: 크리에이터 프로필 688:646 · arrival notices 200:115 · 200:223.
  */
 export function HomeScreen({ feed, liveChannels }: { feed: HomeFeed; liveChannels: LiveChannel[] }) {
   return (

@@ -5,7 +5,7 @@ import styles from "@/features/broadcast/chat.module.css";
 
 // Code-first (no Figma frame): 매니저 채팅창 링크 — see docs/figma/code-first-screens.md
 // The token in the URL is the secret: no indexing, and no Referer to other sites.
-export const metadata: Metadata = { title: "통합 채팅 (매니저) | Somnation", robots: { index: false, follow: false }, referrer: "no-referrer" };
+export const metadata: Metadata = { title: "통합 채팅 (매니저) | Ssumnation", robots: { index: false, follow: false }, referrer: "no-referrer" };
 export const dynamic = "force-dynamic";
 
 export default async function Page({ params }: { params: Promise<{ token: string }> }) {

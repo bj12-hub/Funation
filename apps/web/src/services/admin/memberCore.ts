@@ -55,14 +55,14 @@ export const slotAccountLabel = (account: string | null): { memberId: string; na
  */
 export const shownMemberName = (memberId: string, name: string) => (isWithdrawnMember(memberId) ? WITHDRAWN_MEMBER_NAME : name);
 
-type GeneratedMember = { id: string; nickname: string; funationId: string; joinedAt: string; lastActiveAt: string; donationTotalFn: number; fnBalance: number };
+type GeneratedMember = { id: string; nickname: string; ssumnationId: string; joinedAt: string; lastActiveAt: string; donationTotalFn: number; fnBalance: number };
 type Store = { suspensions: Record<string, Suspension>; requests: Record<string, true>; supporters: GeneratedMember[] };
 
 const NICKS = ["별빛시청자", "새벽라디오", "콩트러버", "여행가고파", "먹방요정", "댄스머신", "고양이집사", "퇴근후한잔", "삼국지덕후", "야식전문가", "리뷰장인", "산책러", "코딩하는곰", "라떼는말이야", "주말농부", "음악다락방", "게임은밤에", "책벌레", "사진찍는날", "바다보러가자"];
 
-const g = globalThis as typeof globalThis & { __funationMockMembersV1?: Store };
+const g = globalThis as typeof globalThis & { __ssumnationMockMembersV1?: Store };
 export const memberStore = (): Store =>
-  (g.__funationMockMembersV1 ??= {
+  (g.__ssumnationMockMembersV1 ??= {
     suspensions: {},
     requests: {},
     supporters: NICKS.map((nickname, i) => {
@@ -70,7 +70,7 @@ export const memberStore = (): Store =>
       return {
         id: `u-s${String(i + 1).padStart(3, "0")}`,
         nickname,
-        funationId: `member${String(i + 1).padStart(3, "0")}`,
+        ssumnationId: `member${String(i + 1).padStart(3, "0")}`,
         joinedAt: day(i * 11),
         lastActiveAt: day(250 + (i % 20)),
         donationTotalFn: ((i * 37) % 20) * 5_000,

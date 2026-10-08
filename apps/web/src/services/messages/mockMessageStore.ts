@@ -29,6 +29,6 @@ const seed: MockMessage[] = [
  */
 type Store = { messages: MockMessage[]; sentLog: string[]; requests: Record<string, string> };
 // V2: request ids for 쪽지 보내기.
-const g = globalThis as typeof globalThis & { __funationMockMessagesV2?: Store };
+const g = globalThis as typeof globalThis & { __ssumnationMockMessagesV2?: Store };
 
-export const mockMessages = (g.__funationMockMessagesV2 ??= { messages: seed.map((m) => ({ ...m })), sentLog: [], requests: {} });
+export const mockMessages = (g.__ssumnationMockMessagesV2 ??= { messages: seed.map((m) => ({ ...m })), sentLog: [], requests: {} });

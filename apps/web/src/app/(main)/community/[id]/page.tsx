@@ -15,7 +15,7 @@ const readPost = cache(getPost);
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const post = await readPost((await params).id);
-  return { title: post ? `${post.title} | 커뮤니티 | Somnation` : "커뮤니티 | Somnation" };
+  return { title: post ? `${post.title} | 커뮤니티 | Ssumnation` : "커뮤니티 | Ssumnation" };
 }
 
 export default async function Page({ params }: { params: Params }) {

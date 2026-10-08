@@ -95,8 +95,8 @@ type AttendanceState = { account: string | null; year: number; month: number; ch
 /** `lastCheckInByPerson`: verified phone → "YYYY-MM-DD" of that person's last check-in, across accounts. */
 type AttendanceStore = { month: AttendanceState | null; lastCheckInByPerson: Map<string, string> };
 
-const globalForAttendance = globalThis as typeof globalThis & { __funationMockAttendanceV2?: AttendanceStore };
-const attendanceStore = () => (globalForAttendance.__funationMockAttendanceV2 ??= { month: null, lastCheckInByPerson: new Map() });
+const globalForAttendance = globalThis as typeof globalThis & { __ssumnationMockAttendanceV2?: AttendanceStore };
+const attendanceStore = () => (globalForAttendance.__ssumnationMockAttendanceV2 ??= { month: null, lastCheckInByPerson: new Map() });
 
 const checkedInTodayByPerson = (now = new Date()) => attendanceStore().lastCheckInByPerson.get(currentPersonKey()) === toDateString(now);
 

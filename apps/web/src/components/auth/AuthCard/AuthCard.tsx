@@ -18,7 +18,7 @@ export function AuthCard({ title, description, progress, size = "md", children }
   return (
     <section className={`${styles.card} ${styles[size]}`} aria-labelledby={title ? "auth-card-title" : undefined}>
       <header className={styles.header}>
-        <span className={styles.brand}>Somnation</span>
+        <span className={styles.brand}>Ssumnation</span>
         {progress}
         {title && (
           <div className={styles.titleGroup}>

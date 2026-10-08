@@ -23,14 +23,14 @@ type MockCreator = {
   integrationKey: string;
 };
 
-const globalForCreator = globalThis as typeof globalThis & { __funationMockCreator?: MockCreator };
+const globalForCreator = globalThis as typeof globalThis & { __ssumnationMockCreator?: MockCreator };
 
 export function newIntegrationKey() {
   const hex = randomBytes(8).toString("hex");
   return `${hex.slice(0, 4)}-${hex.slice(4, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}`;
 }
 
-export const mockCreator = (globalForCreator.__funationMockCreator ??= {
+export const mockCreator = (globalForCreator.__ssumnationMockCreator ??= {
   channelName: "홍길동의 방송",
   handle: "honggildong",
   images: [null, null, null],

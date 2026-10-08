@@ -30,8 +30,8 @@ export const isValidPhone = (value: string) => /^01[016789]-\d{3,4}-\d{4}$/.test
  * My page edit rules (Figma 747:28 · 747:304; the password rule is isValidPassword above). The server applies the same checks.
  */
 
-/** Funation ID: 5–20 lowercase English letters or digits (Figma 747:304 copy). */
-export const isValidFunationId = (value: string) => /^[a-z0-9]{5,20}$/.test(value);
+/** Ssumnation ID: 5–20 lowercase English letters or digits (Figma 747:304 copy). */
+export const isValidSsumnationId = (value: string) => /^[a-z0-9]{5,20}$/.test(value);
 
 /** Profile photo types and size (Figma 745:52 · 745:98). */
 export const PROFILE_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;

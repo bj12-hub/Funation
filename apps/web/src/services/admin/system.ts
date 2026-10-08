@@ -23,8 +23,8 @@ const assertMock = () => {
 const PLATFORMS: Platform[] = BROADCAST_PLATFORMS;
 
 type Checks = Partial<Record<Platform, PlatformStatusRow["lastCheck"]>>;
-const g = globalThis as typeof globalThis & { __funationMockPlatformChecksV1?: Checks };
-const checks = (): Checks => (g.__funationMockPlatformChecksV1 ??= {});
+const g = globalThis as typeof globalThis & { __ssumnationMockPlatformChecksV1?: Checks };
+const checks = (): Checks => (g.__ssumnationMockPlatformChecksV1 ??= {});
 
 export async function getPlatformStatus(): Promise<PlatformStatusRow[] | null> {
   assertMock();

@@ -6,8 +6,8 @@ import type { AdminActor, AuditAction, AuditEntry } from "./adminTypes";
  */
 
 type Store = { entries: AuditEntry[] };
-const g = globalThis as typeof globalThis & { __funationMockAuditV1?: Store };
-export const auditStore = (): Store => (g.__funationMockAuditV1 ??= { entries: [] });
+const g = globalThis as typeof globalThis & { __ssumnationMockAuditV1?: Store };
+export const auditStore = (): Store => (g.__ssumnationMockAuditV1 ??= { entries: [] });
 
 export function recordAudit(actor: AdminActor, action: AuditAction, target: string | null = null, reason: string | null = null, now = Date.now()) {
   const s = auditStore();

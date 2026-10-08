@@ -8,16 +8,16 @@ import { NOTIFICATIONS_KEEP, type NotificationKind, type SiteNotification } from
  */
 
 type Store = { items: SiteNotification[]; keys: Record<string, true> };
-const g = globalThis as typeof globalThis & { __funationMockNotificationsV1?: Store };
+const g = globalThis as typeof globalThis & { __ssumnationMockNotificationsV1?: Store };
 
 export const notificationStore = (): Store =>
-  (g.__funationMockNotificationsV1 ??= {
+  (g.__ssumnationMockNotificationsV1 ??= {
     items: [
       {
         id: "nt-seed-notice",
         kind: "NOTICE",
         title: "새 공지사항",
-        body: "서비스 이름이 썸네이션(Somnation)으로 바뀌었어요",
+        body: "서비스 이름이 썸네이션(Ssumnation)으로 바뀌었어요",
         href: "/support/notices/brand",
         createdAt: "2026-09-29T09:00:00.000Z",
         read: false

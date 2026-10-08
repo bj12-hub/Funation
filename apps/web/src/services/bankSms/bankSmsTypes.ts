@@ -1,7 +1,7 @@
 /**
  * SMS 계좌후원 — code-first mock (funnation "SMS 계좌후원 연결", 2026-10-06 결정). A text-forwarding app on the
  * creator's phone posts bank deposit SMS to a secret address; the deposit (amount + depositor name only) becomes a
- * "계좌 후원" alert and, during a crew broadcast, a 원 entry in the 후원 리스트. It is not a Somnation payment: no FN,
+ * "계좌 후원" alert and, during a crew broadcast, a 원 entry in the 후원 리스트. It is not a Ssumnation payment: no FN,
  * wallet, earnings or settlement records. The SMS text, account number and balance are never stored.
  * TBD: real bank formats, forwarder apps, privacy notice and retention, abuse limits.
  */

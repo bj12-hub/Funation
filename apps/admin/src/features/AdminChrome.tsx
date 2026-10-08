@@ -100,12 +100,12 @@ export function AdminSideNav() {
   const active = adminActiveHref(usePathname() ?? "/");
   return (
     <aside className={shell.sidebar}>
-      <Link href="/" className={shell.brand} aria-label="Somnation 관리자 콘솔 대시보드">
+      <Link href="/" className={shell.brand} aria-label="Ssumnation 관리자 콘솔 대시보드">
         <span className={shell.brandMark} aria-hidden="true">
           S
         </span>
         <span className={shell.brandName}>
-          Somnation
+          Ssumnation
           <span className={shell.brandSub}>Admin Console</span>
         </span>
       </Link>

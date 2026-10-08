@@ -14,9 +14,9 @@ import { accountSince } from "@/services/account/withdrawalCore";
  */
 export type MockCredit = { id: string; at: string; fnAmount: number; reason: string; account: string | null };
 
-const g = globalThis as typeof globalThis & { __funationMockCreditsV2?: { credits: MockCredit[] } };
+const g = globalThis as typeof globalThis & { __ssumnationMockCreditsV2?: { credits: MockCredit[] } };
 
-export const mockCredits = (g.__funationMockCreditsV2 ??= { credits: [] });
+export const mockCredits = (g.__ssumnationMockCreditsV2 ??= { credits: [] });
 
 export function recordCredit(fnAmount: number, reason: string) {
   const now = new Date();

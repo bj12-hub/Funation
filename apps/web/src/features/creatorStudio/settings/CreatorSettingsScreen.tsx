@@ -1,7 +1,7 @@
 import type { CreatorSettings } from "@/services/creator/creatorSettingsTypes";
 import { ProfileEditModal } from "./ProfileEditModal";
 import { SetupGuides } from "./SetupGuides";
-import { CopyButton, FunationSettingsCard, IntegrationKey, MainPlatformCard, SnsCard } from "./SettingsCards";
+import { CopyButton, SsumnationSettingsCard, IntegrationKey, MainPlatformCard, SnsCard } from "./SettingsCards";
 import styles from "./settings.module.css";
 
 const dotted = (iso: string) => iso.replaceAll("-", ".");
@@ -43,8 +43,8 @@ export function CreatorSettingsScreen({ settings }: { settings: CreatorSettings 
                   <dd>{settings.channelName}</dd>
                 </div>
                 <div>
-                  <dt>FUN ID</dt>
-                  <dd>@{settings.funationId}</dd>
+                  <dt>썸네이션 ID</dt>
+                  <dd>@{settings.ssumnationId}</dd>
                 </div>
                 <div>
                   <dt>방송 데뷔일</dt>
@@ -54,7 +54,7 @@ export function CreatorSettingsScreen({ settings }: { settings: CreatorSettings 
             </div>
           </section>
 
-          <FunationSettingsCard live={settings.liveProfileVisible} marketing={settings.marketingConsent} languages={settings.languages} />
+          <SsumnationSettingsCard live={settings.liveProfileVisible} marketing={settings.marketingConsent} languages={settings.languages} />
 
           <section className={`${styles.card} ${styles.donateCard}`} aria-labelledby="set-donate">
             <h3 id="set-donate" className={styles.cardTitle}>

@@ -5,7 +5,7 @@ import { getMyAccount } from "@/services/account/myAccount";
 import { getSupporterIdentity } from "@/services/supporter/identity";
 
 // Code-first (no Figma frame): 별명 관리 — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: "별명 관리 | Somnation" };
+export const metadata: Metadata = { title: "별명 관리 | Ssumnation" };
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

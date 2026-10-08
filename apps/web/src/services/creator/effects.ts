@@ -25,8 +25,8 @@ const assertMock = () => {
   if (!USE_MOCK) throw new Error("Effects API is not connected yet.");
 };
 
-const g = globalThis as typeof globalThis & { __funationMockEffectsV1?: EffectSettings };
-const store = () => (g.__funationMockEffectsV1 ??= structuredClone(DEFAULT_EFFECTS));
+const g = globalThis as typeof globalThis & { __ssumnationMockEffectsV1?: EffectSettings };
+const store = () => (g.__ssumnationMockEffectsV1 ??= structuredClone(DEFAULT_EFFECTS));
 
 export async function getEffectSettings(): Promise<EffectSettings | null> {
   assertMock();
@@ -56,7 +56,7 @@ export async function saveEffectSettings(input: unknown): Promise<EffectsResult>
   if (l.tiers.some((t) => !t || !fnOk(t.minFn) || !keys.includes(t.effect))) return { status: "INVALID", message: "레이어 효과 구간을 확인해 주세요." };
   const mins = l.tiers.map((t) => t.minFn);
   if (new Set(mins).size !== mins.length) return { status: "INVALID", message: "구간 금액이 겹쳐요. 금액을 다르게 입력해 주세요." };
-  g.__funationMockEffectsV1 = {
+  g.__ssumnationMockEffectsV1 = {
     emoji: { enabled: e.enabled, minFn: e.minFn, emojis: [...new Set(e.emojis)], count: e.count },
     layer: { enabled: l.enabled, tiers: [...l.tiers].sort((a, b) => a.minFn - b.minFn).map((t) => ({ minFn: t.minFn, effect: t.effect as LayerEffect })) }
   };

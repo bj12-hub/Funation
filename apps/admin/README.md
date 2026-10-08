@@ -1,4 +1,4 @@
-# Somnation Admin
+# Ssumnation Admin
 
 Separate admin console for operators (Next.js, port 3200). It has no data of its own: every read and
 write goes to the site's admin API (`apps/web` → `/api/admin/*`) from the server, with a shared secret

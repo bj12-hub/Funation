@@ -20,7 +20,7 @@ describe("후원 리스트 CSV", () => {
     expect(lines).toHaveLength(list.total + 1);
     expect(res.rows).toBe(list.total);
     expect(lines.slice(1).every((l) => l.endsWith('"성공"'))).toBe(true);
-    expect(res.filename).toBe("somnation-donations-quest-2000-01-01_2099-12-31.csv");
+    expect(res.filename).toBe("ssumnation-donations-quest-2000-01-01_2099-12-31.csv");
   });
 
   it("filters by donor search and rejects bad periods and non-creators", async () => {
