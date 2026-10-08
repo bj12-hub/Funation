@@ -19,7 +19,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/overlay/crew/[key]` | ✅ code-first | OBS scoreboard overlay; `key` = integration key (reissue invalidates it); Figma O06 `92:6866` · O06b 배틀 `119:8173` · O06c 강탈 `119:8191` · O06d 시나리오 `119:8199` · OFF `133:2` (현재 구현 레이아웃) |
 | `/creator/updates` | ✅ code-first | 업데이트 소식 — release notes, unread tracked on the server; Figma T05 `61:968` (현재 구현 레이아웃) |
 | `/creator/remote` | ✅ code-first | 리모컨 — server-owned alert queue; 테스트 후원 is display only (no FN); 방송 도구; 투표 시작 · 종료 · 결과 내리기 (무료 투표); 룰렛 ▶ 시작 · 일시정지 · ✓ 완료; 뽑기 ✓ 완료 · 수령 처리 — W04 `218:5994` |
-| `/overlay/alert/[key]` | ✅ code-first | OBS donation alert overlay; `key` = integration key; Figma O02 `92:6819` · O02b 등급 · 칭호 `112:8207` · OFF `133:25` (현재 구현 레이아웃) |
+| `/overlay/alert/[key]` | ✅ code-first | OBS donation alert overlay; `key` = integration key; drawn as 위젯 → 후원 알림 디자인 in the 오버레이 테마 (2026-10-08), `?layout=vertical` = 세로 방송; Figma O02 `92:6819` · O02b 등급 · 칭호 `112:8207` · OFF `133:25` (현재 구현 레이아웃) |
 | `/creator/widgets/overlays` | ✅ code-first | 오버레이 주소 — every OBS overlay URL (key masked on screen) + OBS 씬 파일; Figma W03 `213:5870` (현재 구현 레이아웃) |
 | `/creator/widgets/tools` | ✅ code-first | 방송 도구 remote — 자막 · 전광판 · 타이머 · 엔딩 크레딧 · 빙고 (server-owned state); Figma W02 `212:5861` (현재 구현 레이아웃) |
 | `/overlay/tool/[tool]/[key]` | ✅ code-first | OBS overlays for the tools; `tool` = subtitle / marquee / timer / credits / bingo, `key` = integration key; Figma O08 자막 `92:6894` · O09 전광판 `92:6900` · O10 타이머 `92:6906` · O11 엔딩 크레딧 `92:6912` · OFF `133:82` · `133:89` · `133:96` · `133:103` (현재 구현 레이아웃) · O24 빙고 `215:9924` |
@@ -67,8 +67,8 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/overlay/video/[key]` | ✅ code-first | OBS 영상 후원 — O04 `92:6849` · OFF O04-off `133:56` |
 | `/overlay/drawing/[key]` | ✅ code-first | OBS 그림후원 — O05 `92:6856` · OFF O05-off `133:64` |
 | `/overlay/banner/[key]` | ✅ code-first | OBS 배너 — O07 `92:6888` · OFF O07-off `133:75` |
-| `/overlay/chat/[key]` | ✅ code-first | OBS 통합 채팅 — O04 `49:504` · O04b `130:51` · OFF O04c `132:2` |
-| `/overlay/widget/[widget]/[key]` | ✅ code-first | OBS 후원 위젯 — `widget` = goal · total · ranking · recent · event · qr · quest · vote · roulette · gacha · gacha-board · wallpaper; O12~O17 `146:8173`… · O18 `154:14403` · O19 `161:9339` (vote) · O20 `164:9017` / O20b `164:9032` (roulette) · O21 `166:8981` / O21b `166:8992` (gacha) · O22 `166:9003` (gacha-board) · O23 `175:8939` (wallpaper) · OFF O12-off `146:8241` |
+| `/overlay/chat/[key]` | ✅ code-first | OBS 통합 채팅 (채팅창 위젯 설정 + 오버레이 테마, `?layout=vertical` = 세로 방송, 2026-10-08) — O04 `49:504` · O04b `130:51` · OFF O04c `132:2` |
+| `/overlay/widget/[widget]/[key]` | ✅ code-first | OBS 후원 위젯 — `widget` = goal · total · ranking · recent · event · qr · quest · vote · roulette · gacha · gacha-board · wallpaper · clock (시계, 2026-10-08); every widget in its 오버레이 테마, goal also `?layout=vertical`; O12~O17 `146:8173`… · O18 `154:14403` · O19 `161:9339` (vote) · O20 `164:9017` / O20b `164:9032` (roulette) · O21 `166:8981` / O21b `166:8992` (gacha) · O22 `166:9003` (gacha-board) · O23 `175:8939` (wallpaper) · OFF O12-off `146:8241` |
 | `/notifications` | ✅ code-first | 알림 — S04 `74:444` (헤더 벨 팝오버 S03 `89:7290`) |
 | `/mypage/blocks` | ✅ code-first | 차단 관리 — M10 `151:8644` · 비어 있음 M10b `151:8861` |
 | `/mypage/withdraw` | ✅ code-first | 회원 탈퇴 — M11 `182:9521` (크리에이터 · 남은 FN · 정산 대기 수익 소멸 동의, 비밀번호 확인) · M11b `182:9765` (비밀번호 불일치) · M11c `182:10010` (완료) · M11d `221:224` (처리 중인 충전 환불 → 탈퇴 불가) |

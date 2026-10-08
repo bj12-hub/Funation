@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { setOverlaySwitch } from "@/services/creator/alertRemote";
 import type { OverlayTarget } from "@/services/creator/alertTypes";
+import { OVERLAY_THEMES, THEME_DEFAULT_ACCENT, type OverlayAppearance } from "@/services/creator/overlayThemeTypes";
 import styles from "../crew/crew.module.css";
 import { CopyButton } from "../settings/SettingsCards";
 import { obsFileName, obsSceneCollection, OBS_COLLECTION_NAME } from "./obsScenes";
@@ -19,9 +20,10 @@ const mask = (key: string) => `${key.slice(0, 4)}-····-····-····`;
  * 후원 위젯 with an overlay (목표 · 누적 · 랭킹 · 최근알림 · 이벤트 · QR) are listed; the other widget popups
  * (미니후원, 커스텀 사운드 …) have no overlay of their own. Overlays switched OFF in
  * the 리모컨 기능 제어 are marked, with a one-click 켜기. "OBS 씬 파일 내려받기" saves every overlay as an OBS scene
- * collection (built in the browser; the file holds the key).
+ * collection (built in the browser; the file holds the key). The 오버레이 테마 line (2026-10-08) names the 전체 테마 every
+ * overlay draws in unless its own settings picked another, and links to where it is chosen.
  */
-export function OverlayUrlsScreen({ overlayKey, switches }: { overlayKey: string; switches: Record<OverlayTarget, boolean> }) {
+export function OverlayUrlsScreen({ overlayKey, switches, appearance }: { overlayKey: string; switches: Record<OverlayTarget, boolean>; appearance: OverlayAppearance }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +67,11 @@ export function OverlayUrlsScreen({ overlayKey, switches }: { overlayKey: string
           <Link href="/creator/widgets">← 후원위젯/알림설정</Link> · 주소가 노출됐다면 계정설정에서 연동 키를 재발급하세요. 모든 주소가 바뀌어요.
         </p>
       </header>
+      <p className={local.themeLine}>
+        <span className={local.themeDot} style={{ background: appearance.accent ?? THEME_DEFAULT_ACCENT[appearance.theme] }} aria-hidden="true" />
+        오버레이 테마 · <b>{OVERLAY_THEMES.find((t) => t.key === appearance.theme)?.label}</b> — 위젯 · 방송 도구 · 크루 점수판 · 영상 · 그림마다 다른 테마를 고를 수도 있어요.{" "}
+        <Link href="/creator/widgets">테마 바꾸기</Link> · 세로(휴대폰) 방송용 주소는 맨 아래 &lsquo;세로 방송&rsquo;에 있어요.
+      </p>
       {off.length > 0 && (
         <p className={local.offSummary} role="status">
           꺼진 오버레이 {off.length}개 · {off.map((o) => o.title).join(", ")} — 방송 화면에 나오지 않아요. <Link href="/creator/remote">리모컨 기능 제어</Link>에서 켜고 끌 수 있어요.
