@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Black_Han_Sans, Gothic_A1, Inter, Jua } from "next/font/google";
+import { Archivo_Black, Fredoka, Gothic_A1, Inter } from "next/font/google";
 import { I18nProvider } from "@/lib/i18n/I18nProvider";
 import { getLocale } from "@/lib/i18n/server";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
@@ -22,10 +22,12 @@ const gothic = Gothic_A1({
   variable: "--font-gothic"
 });
 const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" });
-// 오버레이 테마 display faces (OFL): Black Han Sans for 볼드 플랫 numbers and titles, Jua for 소프트 글래스. Only the
-// overlays and the studio's theme previews use them, so nothing is preloaded.
-const overlayBlack = Black_Han_Sans({ weight: "400", subsets: ["latin"], display: "swap", preload: false, variable: "--font-ov-black" });
-const overlayRound = Jua({ weight: "400", subsets: ["latin"], display: "swap", preload: false, variable: "--font-ov-round" });
+// 오버레이 테마 number faces (OFL, Latin only): Archivo Black for 볼드 플랫, Fredoka for 소프트 글래스; Korean in those
+// lines falls back to Gothic A1's heavy weights. Korean display fonts were tried first, but each is ~120 unicode-range
+// files that `next build` fetches at once next to Gothic A1's, and the build timed out on Google Fonts. Only the
+// overlays and the studio's theme previews use these, so nothing is preloaded.
+const overlayBlack = Archivo_Black({ weight: "400", subsets: ["latin"], display: "swap", preload: false, variable: "--font-ov-black" });
+const overlayRound = Fredoka({ subsets: ["latin"], display: "swap", preload: false, variable: "--font-ov-round" });
 
 export default async function RootLayout({
   children

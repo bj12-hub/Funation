@@ -47,9 +47,9 @@
 
 | 키 | 이름 | 모양 |
 |---|---|---|
-| `BOLD` | 볼드 플랫 | 굵은 외곽선, 원색 블록, 블록 그림자, Black Han Sans 숫자 |
+| `BOLD` | 볼드 플랫 | 굵은 외곽선, 원색 블록, 블록 그림자, Archivo Black 숫자 |
 | `PILL` | 미니멀 필 (기본) | 다이내믹 아일랜드식 어두운 알약, 절제된 숫자 |
-| `GLASS` | 소프트 글래스 | 반투명 카드, 큰 라운드, 파스텔, Jua 제목 |
+| `GLASS` | 소프트 글래스 | 반투명 카드, 큰 라운드, 파스텔, Fredoka 숫자 |
 
 - 토큰과 공통 요소: `apps/web/src/features/overlayTheme/overlayTheme.module.css` (`data-ov` 루트, `card` · `accentCard` · `chip` · `display` · `track`/`fill` · `enter[data-motion]`)
 - 설정: `services/creator/overlayTheme*.ts` — 전체 테마 + 포인트 색상(없으면 테마 기본 색), 오버레이는 `overlayTheme(choice)`로 읽음

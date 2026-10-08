@@ -1,8 +1,8 @@
 /*
  * 오버레이 테마 (code-first, 2026-10-08). Three looks for every OBS overlay:
- *   BOLD  볼드 플랫     — thick ink outlines, flat color blocks, offset block shadow, Black Han Sans numbers
+ *   BOLD  볼드 플랫     — thick ink outlines, flat color blocks, offset block shadow, Archivo Black numbers
  *   PILL  미니멀 필     — dark pill cards (Dynamic Island), restrained tabular numbers
- *   GLASS 소프트 글래스 — translucent cards, large radius, pastel accent, Jua headlines
+ *   GLASS 소프트 글래스 — translucent cards, large radius, pastel accent, rounded Fredoka numbers
  * The root sets the tokens; overlays and the studio previews build on the primitives below so a preview is the
  * overlay itself. --ov-accent / --ov-accent-ink come from the settings (style attribute on the root).
  * OBS browser sources are transparent, so backdrop blur has nothing to blur: GLASS reads as glass through a light
@@ -33,7 +33,8 @@
   --ov-track-border: 2px solid #111111;
   --ov-fill-edge: 2px solid #111111;
   --ov-display-font: var(--font-ov-black), var(--font-gothic), var(--font-sans);
-  --ov-display-weight: 400;
+  /* Archivo Black has one weight; 900 picks Gothic A1 Black for Korean (no synthesized bold, see .display). */
+  --ov-display-weight: 900;
   --ov-display-tracking: 0;
   --ov-body-font: var(--font-gothic), var(--font-sans);
   --ov-label-weight: 800;
@@ -78,7 +79,7 @@
   --ov-track-border: 1px solid rgb(255 255 255 / 55%);
   --ov-fill-edge: 0 solid transparent;
   --ov-display-font: var(--font-ov-round), var(--font-gothic), var(--font-sans);
-  --ov-display-weight: 400;
+  --ov-display-weight: 700;
   --ov-display-tracking: 0;
   --ov-body-font: var(--font-gothic), var(--font-sans);
   --ov-label-weight: 700;
@@ -140,6 +141,7 @@
 }
 
 .display {
+  font-synthesis: none;
   font-family: var(--ov-display-font);
   font-weight: var(--ov-display-weight);
   letter-spacing: var(--ov-display-tracking);
