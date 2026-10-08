@@ -200,7 +200,7 @@ export function overlayLines(limit = 30): ChatOverlayLine[] {
   return chatStore()
     .messages.filter((m) => !m.hidden)
     .slice(-limit)
-    .map((m) => ({ id: m.id, platform: m.platform, name: m.author.displayName, roles: [...m.author.roles], text: m.text }));
+    .map((m) => ({ id: m.id, platform: m.platform, name: m.author.displayName, roles: [...m.author.roles], text: m.text, at: m.receivedAt }));
 }
 
 /**

@@ -130,6 +130,8 @@ export const CHAT_MAX_FILTERS = 30;
 export const NICKNAME_MAX = 20;
 
 export type ChatSettings = {
+  /** 오버레이 테마 (2026-10-08); settings saved before it read as 전체 테마 따르기. */
+  theme: OverlayThemeChoice;
   style: (typeof CHAT_STYLES)[number]["key"];
   effectIn: (typeof ALERT_EFFECTS_IN)[number];
   effectOut: (typeof ALERT_EFFECTS_OUT)[number];
@@ -568,6 +570,7 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     countUp: true
   },
   CHAT: {
+    theme: "INHERIT",
     style: "LINE_BOX",
     effectIn: "Fade In",
     effectOut: "Fade Out",

@@ -4,7 +4,11 @@ import Image from "next/image";
 import { useState } from "react";
 import { DownloadIcon } from "@/components/icons";
 import { formatNumber } from "@/lib/format";
-import { effectLabel } from "@/services/creator/overlayThemeTypes";
+import { ChatLines } from "@/features/broadcast/ChatLines";
+import { PreviewStage } from "@/features/overlayTheme/PreviewStage";
+import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
+import type { ChatOverlayLine } from "@/services/broadcast/chatTypes";
+import { effectLabel, resolveTheme } from "@/services/creator/overlayThemeTypes";
 import {
   ALERT_EFFECTS_IN,
   ALERT_EFFECTS_OUT,
@@ -37,13 +41,15 @@ export type FormProps<K extends EditableWidgetKey> = {
 
 // ── 채팅창 (364:6) ─────────────────────────────────────────────────────────────
 
-const CHAT_SAMPLE = [
-  { flag: "🇰🇷", nick: "홍길동", color: "#a78bfa", text: "안녕하세요! 반갑습니다." },
-  { flag: "🇺🇸", nick: "James", color: "#60a5fa", text: "Awesome stream!" },
-  { flag: "🇰🇷", nick: "시청자A", color: "#34d399", text: "오늘 방송 콘텐츠 대박이네요 ㅋㅋㅋ" }
+/** Sample lines for the preview (fictional names, one per platform). */
+const CHAT_SAMPLE: ChatOverlayLine[] = [
+  { id: "s1", platform: "YOUTUBE", name: "도도쭈", roles: [], text: "안녕하세요! 오늘도 왔어요", at: "" },
+  { id: "s2", platform: "CHZZK", name: "밤톨게임", roles: ["MODERATOR"], text: "배틀 가자!", at: "" },
+  { id: "s3", platform: "SOOP", name: "새벽감성", roles: [], text: "오늘 방송 콘텐츠 대박이네요 ㅋㅋㅋ", at: "" },
+  { id: "s4", platform: "FLEXTV", name: "하루봄", roles: ["OWNER"], text: "다들 반가워요~", at: "" }
 ];
 
-export function ChatForm({ value: v, onChange }: FormProps<"CHAT">) {
+export function ChatForm({ value: v, onChange, live }: FormProps<"CHAT">) {
   const [nick, setNick] = useState("");
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
   const addFilter = () => {
@@ -55,22 +61,15 @@ export function ChatForm({ value: v, onChange }: FormProps<"CHAT">) {
 
   return (
     <>
-      <Preview>
-        <ul className={`${styles.chatPreview} ${styles[`chat_${v.style}`]}`}>
-          {CHAT_SAMPLE.map((m) => (
-            <li key={m.nick} style={fontStyle(v.font)}>
-              {!v.hidePlatformIcon && <span aria-hidden="true">{m.flag}</span>}
-              <b
-                className={v.nicknameBackground === "ALWAYS" ? styles.nickBg : undefined}
-                style={{ color: v.creatorNicknameColor ? m.color : v.font.color }}
-              >
-                {m.nick}
-              </b>
-              <span>{m.text}</span>
-            </li>
-          ))}
-        </ul>
-      </Preview>
+      <Section title="미리보기">
+        {/* The overlay's own lines (ChatLines) at the 400px OBS width; nothing hides here. */}
+        <PreviewStage width={420} minHeight={200} label="채팅창 미리보기">
+          <ChatLines lines={CHAT_SAMPLE} settings={v} theme={resolveTheme(live.appearance, v.theme)} now={null} />
+        </PreviewStage>
+      </Section>
+      <Section title="테마">
+        <ThemeChoiceField value={v.theme} onChange={(x) => set("theme", x)} appearance={live.appearance} />
+      </Section>
       <Section title="기본 설정">
         <div className={styles.rows}>
           <Row label="위젯 스타일">
@@ -83,7 +82,10 @@ export function ChatForm({ value: v, onChange }: FormProps<"CHAT">) {
             </div>
           </Row>
           <Row label="폰트 설정">
-            <FontFields label="채팅" value={v.font} onChange={(x) => set("font", x)} />
+            <div className={styles.inline}>
+              <FontFields label="채팅" value={v.font} onChange={(x) => set("font", x)} />
+              <span className={styles.hint}>글자 색은 “한 줄 테두리 없음”에 쓰이고, 상자 스타일은 테마 색을 써요.</span>
+            </div>
           </Row>
           <Row label="닉네임 컬러">
             <SwitchText label="닉네임 컬러" checked={v.creatorNicknameColor} onChange={(x) => set("creatorNicknameColor", x)} text="크리에이터 지정 고유 컬러 사용" />

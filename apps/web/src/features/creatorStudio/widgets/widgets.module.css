@@ -554,47 +554,6 @@
 
 /* ── Previews ── */
 
-.chatPreview {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.chatPreview li {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  line-height: 1.4;
-}
-
-.chat_LINE_BOX li,
-.chat_BOX_ALIGNED li {
-  padding: 6px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: var(--radius-6);
-}
-
-.chat_BOX_ALIGNED li {
-  display: grid;
-  grid-template-columns: auto 90px 1fr;
-}
-
-.chat_BUBBLE li span:last-child {
-  padding: 4px 10px;
-  border-radius: 12px 12px 12px 2px;
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.chat_BOX_SIMPLE li {
-  padding: 6px 10px;
-  border-radius: var(--radius-6);
-  background: rgba(0, 0, 0, 0.45);
-}
-
 .nickBg {
   padding: 0 6px;
   border-radius: 4px;

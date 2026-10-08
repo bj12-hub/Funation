@@ -142,11 +142,15 @@ const parseChat: Parser<ChatSettings> = (v) => {
   if (!int(v.maxLines, 1, CHAT_MAX_LINES)) return `채팅 최대 줄은 1~${CHAT_MAX_LINES}줄로 입력해 주세요.`;
   if (!int(v.hideAfterSec, 1, 3600)) return "감추기 시간은 1~3600초로 입력해 주세요.";
   if (![v.creatorNicknameColor, v.autoHide, v.hidePlatformIcon].every(bool)) return "설정 값을 확인해 주세요.";
+  // Settings saved before 오버레이 테마 have no theme: 전체 테마 따르기.
+  const theme = v.theme === undefined ? "INHERIT" : v.theme;
+  if (!isOverlayThemeChoice(theme)) return "테마를 골라 주세요.";
   const filters = Array.isArray(v.filteredNicknames) ? v.filteredNicknames : null;
   if (!filters || filters.length > CHAT_MAX_FILTERS || !filters.every((n) => text(n, NICKNAME_MAX, 1))) {
     return `필터링 닉네임은 ${NICKNAME_MAX}자 이내로 최대 ${CHAT_MAX_FILTERS}개까지 추가할 수 있어요.`;
   }
   return {
+    theme,
     style: v.style,
     effectIn: v.effectIn,
     effectOut: v.effectOut,

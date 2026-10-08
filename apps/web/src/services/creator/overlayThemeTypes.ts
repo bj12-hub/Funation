@@ -83,3 +83,18 @@ export const EFFECT_LABELS: Record<string, string> = {
   없음: "효과 없음"
 };
 export const effectLabel = (v: string) => EFFECT_LABELS[v] ?? v;
+
+/** The older In/Out effect values drawn with the theme motions: Fade → 스르륵, Slide → 옆에서, Zoom → 톡 (grows in). */
+export const motionForEffect = (effect: string): OverlayMotion =>
+  effect.startsWith("Fade") ? "FADE" : effect.startsWith("Slide") ? "SLIDE_SIDE" : effect.startsWith("Zoom") ? "POP" : "NONE";
+export type LeaveMotion = "FADE" | "SLIDE" | "ZOOM" | "NONE";
+export const leaveForEffect = (effect: string): LeaveMotion =>
+  effect.startsWith("Fade") ? "FADE" : effect.startsWith("Slide") ? "SLIDE" : effect.startsWith("Zoom") ? "ZOOM" : "NONE";
+
+/** Nickname colors for 크리에이터 지정 고유 컬러 (one per name, readable on dark and glass cards). */
+export const NAME_PALETTE = ["#A78BFA", "#60A5FA", "#34D399", "#FBBF24", "#F472B6", "#22D3EE", "#FB923C", "#C4B5FD"] as const;
+export function nameColor(name: string): string {
+  let h = 0;
+  for (const ch of name) h = (h * 31 + (ch.codePointAt(0) ?? 0)) >>> 0;
+  return NAME_PALETTE[h % NAME_PALETTE.length];
+}
