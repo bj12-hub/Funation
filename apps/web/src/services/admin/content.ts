@@ -22,6 +22,11 @@ const assertMock = () => {
 const obj = (input: unknown) => (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
 const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 const forbidden = (...texts: string[]) => texts.some((t) => MOCK_FORBIDDEN_WORDS.some((w) => t.toLowerCase().includes(w)));
+/** Whether `current` already holds every field of `next` (an edit that would change nothing). */
+const sameFields = (current: object, next: Record<string, unknown>) =>
+  Object.entries(next).every(([k, v]) => JSON.stringify((current as Record<string, unknown>)[k]) === JSON.stringify(v));
+/** A delete of an item that is not there (any more): OK without a change or a log entry, so a retry gets the same answer. */
+const gone = (id: unknown): ContentResult => (typeof id === "string" && id ? { status: "OK", id } : { status: "NOT_FOUND" });
 /** A create request already applied: what it created and the draft it carried. */
 type ContentRequest = { kind: "notice" | "faq"; fingerprint: string; id: string };
 // V2: requests remember their kind and draft (V1 kept the created id only).
@@ -75,6 +80,8 @@ export async function saveNotice(admin: AdminActor, input: unknown): Promise<Con
   if (id) {
     const existing = items.find((n) => n.id === id);
     if (!existing) return { status: "NOT_FOUND" };
+    // Saving what is already there (a retry after a lost response, a double click) changes nothing and logs nothing.
+    if (sameFields(existing, next)) return { status: "OK", id };
     Object.assign(existing, next);
     recordAudit(admin, "CONTENT_UPDATE", `notice:${id}`, `공지 수정 · ${title}`);
     return { status: "OK", id };
@@ -92,7 +99,8 @@ export async function deleteNotice(admin: AdminActor, id: unknown): Promise<Cont
   assertMock();
   const store = noticeStore();
   const n = store.items.find((x) => x.id === id);
-  if (!n) return { status: "NOT_FOUND" };
+  // Idempotent: a retried delete (the first response was lost) finds nothing left and changes or logs nothing.
+  if (!n) return gone(id);
   store.items = store.items.filter((x) => x.id !== id);
   recordAudit(admin, "CONTENT_UPDATE", `notice:${n.id}`, `공지 삭제 · ${n.title}`);
   return { status: "OK", id: n.id };
@@ -120,8 +128,8 @@ export async function saveFaq(admin: AdminActor, input: unknown): Promise<Conten
   if (!question || question.length > FAQ_LIMITS.question) return { status: "INVALID", message: `질문을 1~${FAQ_LIMITS.question}자로 입력해 주세요.` };
   if (answer.length > FAQ_LIMITS.answer) return { status: "INVALID", message: `답변은 ${FAQ_LIMITS.answer}자까지예요.` };
   // Links stay inside the site (no external or script URLs).
-  if (linkHref && (!/^\/[A-Za-z0-9/_\-?=&.]*$/.test(linkHref) || linkHref.startsWith("//") || !linkLabel || linkLabel.length > FAQ_LIMITS.linkLabel)) {
-    return { status: "INVALID", message: "링크는 사이트 안의 주소(/로 시작)와 20자 이하 이름으로 입력해 주세요." };
+  if (linkHref && (linkHref.length > FAQ_LIMITS.linkHref || !/^\/[A-Za-z0-9/_\-?=&.]*$/.test(linkHref) || linkHref.startsWith("//") || !linkLabel || linkLabel.length > FAQ_LIMITS.linkLabel)) {
+    return { status: "INVALID", message: `링크는 사이트 안의 주소(/로 시작, ${FAQ_LIMITS.linkHref}자 이하)와 ${FAQ_LIMITS.linkLabel}자 이하 이름으로 입력해 주세요.` };
   }
   if (forbidden(question, answer, linkLabel)) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
   const next: Omit<FaqItem, "id"> = { category: v.category as FaqItem["category"], question, answer: answer || null, ...(linkHref ? { link: { href: linkHref, label: linkLabel } } : {}) };
@@ -129,6 +137,9 @@ export async function saveFaq(admin: AdminActor, input: unknown): Promise<Conten
   if (id) {
     const i = items.findIndex((f) => f.id === id);
     if (i < 0) return { status: "NOT_FOUND" };
+    const was = items[i];
+    const unchanged = sameFields(was, { category: next.category, question: next.question, answer: next.answer }) && was.link?.href === next.link?.href && was.link?.label === next.link?.label;
+    if (unchanged) return { status: "OK", id };
     items[i] = { id, ...next };
     recordAudit(admin, "CONTENT_UPDATE", `faq:${id}`, `FAQ 수정 · ${question}`);
     return { status: "OK", id };
@@ -144,7 +155,7 @@ export async function deleteFaq(admin: AdminActor, id: unknown): Promise<Content
   assertMock();
   const store = faqStore();
   const f = store.items.find((x) => x.id === id);
-  if (!f) return { status: "NOT_FOUND" };
+  if (!f) return gone(id);
   store.items = store.items.filter((x) => x.id !== id);
   recordAudit(admin, "CONTENT_UPDATE", `faq:${f.id}`, `FAQ 삭제 · ${f.question}`);
   return { status: "OK", id: f.id };

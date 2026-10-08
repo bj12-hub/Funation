@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatNumber } from "@/lib/format";
-import { AUDIT_ACTION_LABEL, AUDIT_PAGE, type AdminDashboard, type AuditEntry, type AuditPage } from "@/types/adminApi";
+import { AUDIT_ACTION_LABEL, AUDIT_MAX, AUDIT_PAGE, type AdminDashboard, type AuditEntry, type AuditPage } from "@/types/adminApi";
 import styles from "./admin.module.css";
 
 const at = (iso: string) => new Date(iso).toLocaleString("ko-KR", { dateStyle: "short", timeStyle: "medium" });
@@ -74,11 +74,16 @@ export function AuditLogScreen({ page, show }: { page: AuditPage; show: number }
       </header>
       <section className={styles.card}>
         <AuditList items={page.items} />
-        {page.hasMore && (
-          <Link href={`/audit?show=${show + AUDIT_PAGE}`} className={styles.link} scroll={false}>
-            더 보기 ({page.items.length}/{page.total})
-          </Link>
-        )}
+        {page.hasMore &&
+          (show < AUDIT_MAX ? (
+            <Link href={`/audit?show=${Math.min(show + AUDIT_PAGE, AUDIT_MAX)}`} className={styles.link} scroll={false}>
+              더 보기 ({page.items.length}/{page.total})
+            </Link>
+          ) : (
+            <p className={styles.muted}>
+              최근 {formatNumber(AUDIT_MAX)}건까지 볼 수 있어요 (전체 {formatNumber(page.total)}건). 이전 기록 검색은 TBD예요.
+            </p>
+          ))}
       </section>
     </div>
   );

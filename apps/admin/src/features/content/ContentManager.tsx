@@ -108,42 +108,46 @@ export function ContentManager({ tab, notices, faqs }: { tab: "notices" | "faq";
             </div>
           )}
           <section className={styles.card}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th scope="col">분류</th>
-                  <th scope="col">제목</th>
-                  <th scope="col">날짜</th>
-                  <th scope="col">조회</th>
-                  <th scope="col">관리</th>
-                </tr>
-              </thead>
-              <tbody>
-                {notices.map((n) => (
-                  <tr key={n.id}>
-                    <td>
-                      {NOTICE_CATEGORY_LABEL[n.category]}
-                      {n.important && <span className={styles.chipWarn}> 중요</span>}
-                    </td>
-                    <td>
-                      <a href={`${SITE_URL}/support/notices/${n.id}`} className={styles.rowLink} target="_blank" rel="noreferrer">
-                        {n.title}
-                      </a>
-                    </td>
-                    <td>{n.date}</td>
-                    <td>{n.views}</td>
-                    <td className={styles.rowActions}>
-                      <button type="button" className={styles.button} onClick={() => setNoticeDraft({ id: n.id, requestId: null, category: n.category, important: n.important, title: n.title, summary: n.summary, body: n.body.join("\n\n") })}>
-                        수정
-                      </button>
-                      <button type="button" className={styles.danger} disabled={pending} onClick={() => window.confirm(`'${n.title}' 공지를 삭제할까요?`) && run(() => deleteNotice(n.id), "공지를 삭제했어요.")}>
-                        삭제
-                      </button>
-                    </td>
+            {notices.length === 0 ? (
+              <p className={styles.empty}>등록된 공지사항이 없어요.</p>
+            ) : (
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th scope="col">분류</th>
+                    <th scope="col">제목</th>
+                    <th scope="col">날짜</th>
+                    <th scope="col">조회</th>
+                    <th scope="col">관리</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {notices.map((n) => (
+                    <tr key={n.id}>
+                      <td>
+                        {NOTICE_CATEGORY_LABEL[n.category]}
+                        {n.important && <span className={styles.chipWarn}> 중요</span>}
+                      </td>
+                      <td>
+                        <a href={`${SITE_URL}/support/notices/${n.id}`} className={styles.rowLink} target="_blank" rel="noreferrer">
+                          {n.title}
+                        </a>
+                      </td>
+                      <td>{n.date}</td>
+                      <td>{n.views}</td>
+                      <td className={styles.rowActions}>
+                        <button type="button" className={styles.button} disabled={pending} onClick={() => setNoticeDraft({ id: n.id, requestId: null, category: n.category, important: n.important, title: n.title, summary: n.summary, body: n.body.join("\n\n") })}>
+                          수정
+                        </button>
+                        <button type="button" className={styles.danger} disabled={pending} onClick={() => window.confirm(`'${n.title}' 공지를 삭제할까요?`) && run(() => deleteNotice(n.id), "공지를 삭제했어요.")}>
+                          삭제
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </section>
         </>
       ) : (
@@ -163,7 +167,7 @@ export function ContentManager({ tab, notices, faqs }: { tab: "notices" | "faq";
               <input className={styles.input} aria-label="질문" placeholder="질문" maxLength={FAQ_LIMITS.question} value={faqDraft.question} onChange={(e) => setFaqDraft({ ...faqDraft, question: e.target.value })} />
               <textarea className={styles.textarea} rows={5} aria-label="답변" placeholder="답변 (비워 두면 '답변 준비 중'으로 보여요 — 정책 미정 항목)" maxLength={FAQ_LIMITS.answer} value={faqDraft.answer} onChange={(e) => setFaqDraft({ ...faqDraft, answer: e.target.value })} />
               <div className={styles.filters}>
-                <input className={styles.input} aria-label="링크 주소" placeholder="링크 주소 (선택, /로 시작)" value={faqDraft.linkHref} onChange={(e) => setFaqDraft({ ...faqDraft, linkHref: e.target.value })} />
+                <input className={styles.input} aria-label="링크 주소" placeholder="링크 주소 (선택, /로 시작)" maxLength={FAQ_LIMITS.linkHref} value={faqDraft.linkHref} onChange={(e) => setFaqDraft({ ...faqDraft, linkHref: e.target.value })} />
                 <input className={styles.input} aria-label="링크 이름" placeholder="링크 이름" maxLength={FAQ_LIMITS.linkLabel} value={faqDraft.linkLabel} onChange={(e) => setFaqDraft({ ...faqDraft, linkLabel: e.target.value })} />
               </div>
               <div className={styles.filters}>
@@ -188,37 +192,42 @@ export function ContentManager({ tab, notices, faqs }: { tab: "notices" | "faq";
             </div>
           )}
           <section className={styles.card}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th scope="col">분류</th>
-                  <th scope="col">질문</th>
-                  <th scope="col">답변</th>
-                  <th scope="col">관리</th>
-                </tr>
-              </thead>
-              <tbody>
-                {faqs.map((f) => (
-                  <tr key={f.id}>
-                    <td>{faqLabel(f.category)}</td>
-                    <td>{f.question}</td>
-                    <td>{f.answer ? "작성됨" : <span className={styles.warn}>준비 중</span>}</td>
-                    <td className={styles.rowActions}>
-                      <button
-                        type="button"
-                        className={styles.button}
-                        onClick={() => setFaqDraft({ id: f.id, requestId: null, category: f.category, question: f.question, answer: f.answer ?? "", linkHref: f.link?.href ?? "", linkLabel: f.link?.label ?? "" })}
-                      >
-                        수정
-                      </button>
-                      <button type="button" className={styles.danger} disabled={pending} onClick={() => window.confirm(`'${f.question}' FAQ를 삭제할까요?`) && run(() => deleteFaq(f.id), "FAQ를 삭제했어요.")}>
-                        삭제
-                      </button>
-                    </td>
+            {faqs.length === 0 ? (
+              <p className={styles.empty}>등록된 자주 묻는 질문이 없어요.</p>
+            ) : (
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th scope="col">분류</th>
+                    <th scope="col">질문</th>
+                    <th scope="col">답변</th>
+                    <th scope="col">관리</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {faqs.map((f) => (
+                    <tr key={f.id}>
+                      <td>{faqLabel(f.category)}</td>
+                      <td>{f.question}</td>
+                      <td>{f.answer ? "작성됨" : <span className={styles.warn}>준비 중</span>}</td>
+                      <td className={styles.rowActions}>
+                        <button
+                          type="button"
+                          className={styles.button}
+                          disabled={pending}
+                          onClick={() => setFaqDraft({ id: f.id, requestId: null, category: f.category, question: f.question, answer: f.answer ?? "", linkHref: f.link?.href ?? "", linkLabel: f.link?.label ?? "" })}
+                        >
+                          수정
+                        </button>
+                        <button type="button" className={styles.danger} disabled={pending} onClick={() => window.confirm(`'${f.question}' FAQ를 삭제할까요?`) && run(() => deleteFaq(f.id), "FAQ를 삭제했어요.")}>
+                          삭제
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </section>
         </>
       )}

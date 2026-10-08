@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { checkPlatform, saveSiteBanner } from "@/lib/actions";
-import { type PlatformStatusRow, type SystemView, PLATFORM_ERROR_LABEL, BANNER_MESSAGE_MAX, PLATFORM_LABEL } from "@/types/adminApi";
+import { type PlatformStatusRow, type SystemView, PLATFORM_ERROR_LABEL, BANNER_HREF_MAX, BANNER_MESSAGE_MAX, PLATFORM_LABEL } from "@/types/adminApi";
 import styles from "../admin.module.css";
 
 const CAP_LABEL: Record<string, string> = { CHANNEL_PROFILE: "채널 정보", VIDEO_LIST: "영상 목록", LIVE_STATUS: "방송 상태", CHAT_EVENTS: "채팅 읽기", CHAT_SEND: "채팅 보내기", CHAT_MODERATE: "채팅 관리", DONATION_EVENTS: "후원 이벤트" };
@@ -13,11 +13,15 @@ const at = (iso: string | null) => (iso ? new Date(iso).toLocaleString("ko-KR", 
 export function PlatformsScreen({ rows }: { rows: PlatformStatusRow[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const check = (p: PlatformStatusRow["platform"]) =>
+  /** The platform being checked: its button says 확인 중… while the check and the refresh run. */
+  const [checking, setChecking] = useState<PlatformStatusRow["platform"] | null>(null);
+  const check = (p: PlatformStatusRow["platform"]) => {
+    setChecking(p);
     startTransition(async () => {
       await checkPlatform(p).catch(() => undefined);
       router.refresh();
     });
+  };
   return (
     <div className={styles.content}>
       <header className={styles.pageHead}>
@@ -29,8 +33,8 @@ export function PlatformsScreen({ rows }: { rows: PlatformStatusRow[] }) {
           <section key={r.platform} className={styles.card} aria-label={PLATFORM_LABEL[r.platform]}>
             <div className={styles.cardHead}>
               <h2 className={styles.cardTitle}>{PLATFORM_LABEL[r.platform]}</h2>
-              <button type="button" className={styles.button} disabled={pending} onClick={() => check(r.platform)}>
-                연결 확인
+              <button type="button" className={styles.button} disabled={pending} aria-busy={pending && checking === r.platform} onClick={() => check(r.platform)}>
+                {pending && checking === r.platform ? "확인 중…" : "연결 확인"}
               </button>
             </div>
             <p className={styles.muted}>지원 기능: {r.capabilities.map((c) => `${CAP_LABEL[c] ?? c}${r.unverified.includes(c) ? "(확인 중)" : ""}`).join(" · ")}</p>
@@ -115,7 +119,7 @@ export function SystemScreen({ view }: { view: SystemView }) {
           ))}
         </div>
         <input className={styles.input} aria-label="배너 문구" placeholder="예: 10월 3일 02:00~04:00 정기 점검이 있어요" maxLength={BANNER_MESSAGE_MAX} value={b.message} onChange={(e) => setB({ ...b, message: e.target.value })} />
-        <input className={styles.input} aria-label="배너 링크" placeholder="자세히 보기 링크 (선택, 예: /support/notices/…)" value={b.href} onChange={(e) => setB({ ...b, href: e.target.value })} />
+        <input className={styles.input} aria-label="배너 링크" placeholder="자세히 보기 링크 (선택, 예: /support/notices/…)" maxLength={BANNER_HREF_MAX} value={b.href} onChange={(e) => setB({ ...b, href: e.target.value })} />
         <div className={styles.filters}>
           <button type="button" className={styles.button} disabled={pending} onClick={save}>
             {pending ? "저장 중…" : "저장"}

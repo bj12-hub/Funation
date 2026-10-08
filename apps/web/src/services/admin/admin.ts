@@ -2,10 +2,10 @@ import { USE_MOCK } from "@/lib/mock";
 import { toDateString } from "@/lib/period";
 import { mockSettlement } from "@/services/creator/mockSettlementStore";
 import { moderationStore } from "@/services/moderation/moderationCore";
-import { getCreators } from "@/services/creators/creators";
+import { getAllCreatorsForAdmin } from "@/services/creators/creators";
 import { mockRefunds } from "@/services/wallet/mockRefundStore";
-import { listChargeRecords, listDonationRecords } from "@/services/wallet/walletHistory";
-import { AUDIT_PAGE, type AdminActor, type AdminDashboard, type AuditPage } from "./adminTypes";
+import { listAccountChargeRecords, listAccountDonationRecords } from "@/services/wallet/walletHistory";
+import { AUDIT_MAX, AUDIT_PAGE, type AdminActor, type AdminDashboard, type AuditPage } from "./adminTypes";
 import { auditEntries, recordAudit } from "./auditCore";
 
 /**
@@ -28,12 +28,14 @@ export async function recordSessionEvent(admin: AdminActor, event: unknown): Pro
 export async function getAdminDashboard(): Promise<AdminDashboard | null> {
   assertMock();
   const month = toDateString(new Date()).slice(0, 7);
-  const creators = await getCreators({ page: 1 });
-  const charges = listChargeRecords().filter((c) => c.chargedAt.startsWith(month));
+  // Every creator, as 크리에이터 관리 lists them: the public directory leaves suspended channels out.
+  const creators = await getAllCreatorsForAdmin();
+  // Platform totals: every account's records, also those of an account that withdrew and was replaced by a 재가입.
+  const charges = listAccountChargeRecords().filter((c) => c.chargedAt.startsWith(month));
   const completed = charges.filter((c) => c.status === "COMPLETED");
-  const donations = listDonationRecords().filter((d) => d.donatedAt.startsWith(month) && d.status === "COMPLETED");
+  const donations = listAccountDonationRecords().filter((d) => d.donatedAt.startsWith(month) && d.status === "COMPLETED");
   return {
-    creators: { total: creators.totalCount, live: creators.liveCount },
+    creators: { total: creators.length, live: creators.filter((c) => c.isLive).length },
     charges: {
       monthCount: completed.length,
       monthFn: completed.reduce((s, c) => s + c.fnAmount, 0),
@@ -53,6 +55,6 @@ export async function getAdminDashboard(): Promise<AdminDashboard | null> {
 export async function listAuditLog(input: { show?: unknown } = {}): Promise<AuditPage | null> {
   assertMock();
   const all = auditEntries();
-  const count = Math.min(Math.max(1, Math.floor(Number(input.show)) || AUDIT_PAGE), 500);
+  const count = Math.min(Math.max(1, Math.floor(Number(input.show)) || AUDIT_PAGE), AUDIT_MAX);
   return { items: all.slice(0, count), total: all.length, hasMore: all.length > count };
 }

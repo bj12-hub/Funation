@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
+import { mockSessionModule, resetMockStores, signIn, signInAs } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
@@ -99,6 +99,66 @@ describe("admin payments", () => {
     expect(await m.decideRefund(OP, { chargeId: charge.id, decision: "REJECT", note: "이미 사용한 FN" })).toEqual({ status: "OK" });
     expect(m.listChargeRecords().find((c) => c.id === charge.id)!.refund).toMatchObject({ status: "REJECTED", note: "이미 사용한 FN" });
     expect(await m.decideRefund(OP, { chargeId: "nope", decision: "REJECT", note: "없음" })).toEqual({ status: "NOT_FOUND" });
+  });
+
+  it("points a withdrawn account's request to its `…-wN` member, not the new account in the slot", async () => {
+    const m = await load();
+    const { SAMPLE_MEMBER_ID, withdrawnMemberId } = await import("./memberCore");
+    signInAs(SAMPLE_MEMBER_ID);
+    await fileRefund(m);
+    expect((await m.getPaymentsView())!.refunds[0].memberId).toBe(SAMPLE_MEMBER_ID);
+    withdraw(m);
+    expect((await m.getPaymentsView())!.refunds[0].memberId).toBe(SAMPLE_MEMBER_ID); // still the slot's (withdrawn) account
+    m.startNewAccount({ nickname: "다시왔어요", password: "newpass12!", marketing: false, phone: "010-0000-0000" });
+    expect((await m.getPaymentsView())!.refunds[0]).toMatchObject({ memberId: withdrawnMemberId(1), memberName: "탈퇴한 회원" });
+  });
+
+  it("keeps a withdrawn account's charges and donations in the console under `…-w1` after a 재가입, labelled as before", async () => {
+    const m = await load();
+    const { getAdminDashboard } = await import("./admin");
+    const { getMemberDetail } = await import("./members");
+    const { SAMPLE_MEMBER_ID, withdrawnMemberId } = await import("./memberCore");
+    const { mockWallet } = await import("@/services/wallet/mockWalletStore");
+    signIn(["ADMIN"]);
+    const name = m.mockAccount.nickname;
+    const charges = (await m.getPaymentsView())!.charges;
+    const donations = (await m.getDonationsView())!.rows;
+    const dashboard = (await getAdminDashboard())!;
+    const donated = (await getMemberDetail(SAMPLE_MEMBER_ID))!.member.donationTotalFn;
+    expect(charges.length).toBeGreaterThan(0);
+    expect(donated).toBeGreaterThan(0);
+    expect(new Set([...charges, ...donations].map((r) => `${r.memberId} ${r.memberName}`))).toEqual(new Set([`${SAMPLE_MEMBER_ID} ${name}`]));
+
+    withdraw(m);
+    m.startNewAccount({ nickname: "다시왔어요", password: "newpass12!", marketing: false, phone: "010-0000-0000" });
+    const old = `${withdrawnMemberId(1)} ${name}`;
+    expect((await m.getPaymentsView())!.charges.map((c) => `${c.memberId} ${c.memberName}`)).toEqual(charges.map(() => old));
+    expect((await m.getDonationsView())!.rows.map((d) => `${d.memberId} ${d.memberName}`)).toEqual(donations.map(() => old));
+    expect((await getAdminDashboard())!).toMatchObject({ charges: dashboard.charges, donations: dashboard.donations });
+    expect((await getMemberDetail(withdrawnMemberId(1)))!.member.donationTotalFn).toBe(donated);
+    expect((await getMemberDetail(SAMPLE_MEMBER_ID))!.member.donationTotalFn).toBe(0);
+
+    // The new account's first charge is its own, in the console and in its wallet (which never shows the old ones).
+    const { accountSince } = await import("@/services/account/withdrawalCore");
+    mockWallet.charges.unshift({ id: "ch-new", chargedAt: accountSince()!, methodEmoji: "💳", methodLabel: "신용카드", methodDetail: null, fnAmount: 5_000, paidAmount: 5_500, status: "COMPLETED", transactionId: "TXN-NEW" });
+    const after = (await m.getPaymentsView())!.charges;
+    expect(after).toHaveLength(charges.length + 1);
+    expect(after.find((c) => c.id === "ch-new")).toMatchObject({ memberId: SAMPLE_MEMBER_ID, memberName: "다시왔어요" });
+    expect(m.listChargeRecords().map((c) => c.id)).toEqual(["ch-new"]);
+  });
+
+  it("builds charge and donation rows from the console's fields only (no messages or profile settings)", async () => {
+    const m = await load();
+    signIn(["SUPPORTER"]);
+    const charge = m.listChargeRecords().find((c) => c.status === "COMPLETED")!;
+    await m.requestChargeRefund({ chargeId: charge.id, reason: "실수로 충전했어요" });
+    signIn(["ADMIN"]);
+    const { charges } = (await m.getPaymentsView())!;
+    expect(Object.keys(charges[0]).sort()).toEqual(["chargedAt", "fnAmount", "id", "memberId", "memberName", "methodLabel", "paidAmount", "refund", "status", "transactionId"]);
+    expect(charges.find((c) => c.id === charge.id)!.refund).toEqual({ status: "REQUESTED", requestedAt: expect.any(String) });
+    const { rows } = (await m.getDonationsView())!;
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) expect(Object.keys(row).sort()).toEqual(["creatorName", "donatedAt", "fnAmount", "id", "memberId", "memberName", "status", "typeLabel"]);
   });
 
   it("summarises donations by status and type", async () => {

@@ -1,4 +1,4 @@
-import { isWithdrawn } from "@/services/account/withdrawalCore";
+import { isWithdrawn, withdrawalStore, type PastAccount } from "@/services/account/withdrawalCore";
 import { isSuspendedNow, type Suspension } from "./memberTypes";
 import { WITHDRAWN_MEMBER_NAME } from "./paymentTypes";
 
@@ -15,6 +15,26 @@ export const withdrawnMemberId = (n: number) => `${SAMPLE_MEMBER_ID}-w${n}`;
 const WITHDRAWN_ID = new RegExp(`^${SAMPLE_MEMBER_ID}-w\\d+$`);
 /** A withdrawn account: an earlier account of the slot (`…-wN`), or the slot's own while it is withdrawn. */
 export const isWithdrawnMember = (memberId: string) => WITHDRAWN_ID.test(memberId) || (memberId === SAMPLE_MEMBER_ID && isWithdrawn());
+
+/**
+ * The member id that held the slot at `iso` (an ISO time): the N-th withdrawn account (`…-wN`) up to its withdrawal,
+ * the slot's current account after the last one. Audit entries filed under the slot id are attributed with it, because
+ * a 재가입 hands that id to a new account (the entries themselves are never rewritten).
+ */
+export const slotMemberAt = (iso: string) => {
+  const n = withdrawalStore().past.findIndex((w) => iso <= w.at);
+  return n < 0 ? SAMPLE_MEMBER_ID : withdrawnMemberId(n + 1);
+};
+
+/**
+ * The slot account with this start marker (`accountSince`, as wallet records and refund requests are attributed): its
+ * member id, and its withdrawal record when a 재가입 moved it aside (`…-wN`); otherwise the account holding the slot now.
+ */
+export const slotAccountOf = (account: string | null): { memberId: string; past: PastAccount | null } => {
+  const past = withdrawalStore().past;
+  const n = past.findIndex((p) => p.accountSince === account);
+  return n < 0 ? { memberId: SAMPLE_MEMBER_ID, past: null } : { memberId: withdrawnMemberId(n + 1), past: past[n] };
+};
 
 /**
  * The author name shown on 커뮤니티 posts and comments, channel posts and block lists: "탈퇴한 회원" for a withdrawn

@@ -30,3 +30,5 @@ export type AdminDashboard = {
 export type AuditPage = { items: AuditEntry[]; total: number; hasMore: boolean };
 
 export const AUDIT_PAGE = 30;
+/** The console lists at most this many of the newest entries (searching older ones is TBD). */
+export const AUDIT_MAX = 500;
