@@ -21,7 +21,7 @@ How screens have been built so far, so a new Claude session (or account) can con
   "Somnation Admin" `Js5MCzkGmAZ9QY0w3nLUe8`. Frame ids per screen: `docs/figma/site-design-system.md`,
   `docs/figma/route-map.md`. Write only to these two files.
 - Editable frames are drawn from the running app: a headless walk of the page produces a layout tree, and
-  the renderers stored in the file (`figma.root.getSharedPluginData("somnation", "renderer")` for studio,
+  the renderers stored in the file (`figma.root.getSharedPluginData("ssumnation", "renderer")` for studio,
   `"siteRenderer"` for site) build the frame. Mask overlay / integration keys (`6138-····-····-····`) and
   use fictional names before writing.
 - Tools: `get_screenshot`, `get_design_context` (skillNames `resource:figma-design-to-code`), `get_metadata` on frames.
@@ -54,7 +54,7 @@ server on that checkout; use the isolated worktree instead.
 - Since 2026-09-29 the GitHub CLI is installed and signed in (`gh auth status`). Claude's shell may not have
   it on PATH — call `"C:\Program Files\GitHub CLI\gh.exe"`. Prefer `gh pr create --base main --head <branch>
   --title ... --body-file ...`.
-- Fallback without `gh`: open `https://github.com/<owner>/Funation/compare/main...<branch>?expand=1&title=<url-encoded title>`
+- Fallback without `gh`: open `https://github.com/<owner>/Ssumnation/compare/main...<branch>?expand=1&title=<url-encoded title>`
   in the built-in browser (the user is signed in to GitHub there — never type credentials; ask the user to sign in).
 - Fill `textarea[name="pull_request[body]"]` via the native value setter + `input` event, then click the
   visible "Create pull request" button.
@@ -70,13 +70,13 @@ server on that checkout; use the isolated worktree instead.
   two dev servers on one `apps/web/.next` break each other. Otherwise use the isolated worktree:
 
 ```bash
-bash scripts/test-worktree.sh up      # prints <TEMP>/funation-test/wt-dev/apps/web
+bash scripts/test-worktree.sh up      # prints <TEMP>/ssumnation-test/wt-dev/apps/web
 # temporary launch.json entry: npx next dev <printed path> -p <free port>
 git checkout -- .claude/launch.json
 bash scripts/test-worktree.sh down
 ```
 
-- Mock state lives in server memory (`globalThis.__funationMock*`): restarting a dev server resets it.
+- Mock state lives in server memory (`globalThis.__ssumnationMock*`): restarting a dev server resets it.
 
 Tips:
 - Mock login: id `hongGD123`, password `password` (project mock data, localhost only).
@@ -96,7 +96,7 @@ Tips:
 ## 5. Code conventions used so far
 
 - Next.js 15 App Router, CSS Modules + tokens in `src/styles/tokens.css`, Gothic A1. No Tailwind.
-- Mock backend behind `USE_MOCK` (`src/lib/mock.ts`); mock state on `globalThis.__funationMock*`.
+- Mock backend behind `USE_MOCK` (`src/lib/mock.ts`); mock state on `globalThis.__ssumnationMock*`.
   Bump the key suffix (V2 → V3) when the stored shape changes, so a running dev server does not crash.
 - `"use server"` files export only async functions (and types). Client-safe types/constants live in
   sibling `*Types.ts` files; client components use `import type` from server modules.

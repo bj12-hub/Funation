@@ -67,7 +67,7 @@ import { handleStatus, moveHandle } from "@/services/channel/handleCore";
 // 후원 페이지 설정 (the Donation Core reads its 대체 메시지 표시 설정 — see donationPageCore.ts).
 const store = donationPageStore;
 
-const DONATE_BASE = "https://somnation.com/donate/";
+const DONATE_BASE = "https://ssumnation.com/donate/";
 
 const assertMock = () => {
   if (!USE_MOCK) throw new Error("Donation management API is not connected yet.");
@@ -332,7 +332,7 @@ export async function exportReceivedDonationsCsv(input: unknown): Promise<CsvExp
   ];
   return {
     status: "OK",
-    filename: `somnation-donations-${kind}-${p.from}_${p.to}.csv`,
+    filename: `ssumnation-donations-${kind}-${p.from}_${p.to}.csv`,
     csv: "﻿" + lines.join("\r\n"),
     rows: rows.length,
     truncated: matched.length > rows.length
@@ -396,8 +396,8 @@ const BLOCK_SEED: [string, string, string, BlockPlatform, string][] = [
   ["2026-09-08T22:10:00", "spoiler_king", "스포일러", "FLEXTV", "게임 중요 스토리 무단 스포일러 도배"]
 ];
 
-const globalForFilters = globalThis as typeof globalThis & { __funationMockDonationFilters?: MockFilters };
-const filters = (globalForFilters.__funationMockDonationFilters ??= {
+const globalForFilters = globalThis as typeof globalThis & { __ssumnationMockDonationFilters?: MockFilters };
+const filters = (globalForFilters.__ssumnationMockDonationFilters ??= {
   blocked: BLOCK_SEED.map(([at, donorId, nickname, platform, reason], i) => ({
     id: `b${i + 1}`,
     blockedAt: new Date(at).toISOString(),

@@ -3,7 +3,7 @@ import type { PlatformCreator, PlatformKey, PlatformProduct } from "./platformTy
 
 /**
  * PlatformAdapter (CLAUDE.md §9): one adapter per external platform, each mapping its own DTOs to
- * Funation's core types. These are development mocks — neither SOOP nor FlexTV API access, auth,
+ * Ssumnation's core types. These are development mocks — neither SOOP nor FlexTV API access, auth,
  * rate limits nor the ability to send 별풍선/하트 on a user's behalf is confirmed (TBD). The mock
  * DTO shapes below are deliberately different per platform so the mapping stays explicit.
  */

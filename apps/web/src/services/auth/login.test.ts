@@ -21,7 +21,7 @@ describe("로그인 실패 횟수", () => {
     expect(await attempt(spellings[4], "wrong")).toBe("LOCKED");
     // Locked for every spelling, also with the right password, until a reset.
     expect(await attempt("hongGD123", PASSWORD)).toBe("LOCKED");
-    expect(await attempt("user@funation.kr", PASSWORD)).toBe("LOCKED");
+    expect(await attempt("user@ssumnation.kr", PASSWORD)).toBe("LOCKED");
   });
 
   it("starts the count again after a successful login", async () => {

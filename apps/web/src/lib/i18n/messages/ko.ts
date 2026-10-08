@@ -1,7 +1,7 @@
 /** Korean (source) messages. Keys are grouped by area; every other locale must match this shape. */
 export const ko = {
   common: {
-    homeAria: "Somnation 홈",
+    homeAria: "Ssumnation 홈",
     mainMenu: "주요 메뉴",
     openMenu: "메뉴 열기",
     closeMenu: "메뉴 닫기",
@@ -37,7 +37,7 @@ export const ko = {
   profile: {
     accountMenu: "{name} 계정 메뉴",
     channelMenu: "{name} 메뉴",
-    fun: "{name}의 FuN!",
+    fun: "{name}의 Ssum!",
     platforms: "연결된 방송 플랫폼",
     connected: "연결됨",
     notConnected: "연결 안 됨"

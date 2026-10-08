@@ -5,7 +5,7 @@ import { safeRedirectPath } from "@/lib/safeRedirect";
 import { getSession } from "@/lib/session";
 
 export const metadata: Metadata = {
-  title: "로그인 | Somnation"
+  title: "로그인 | Ssumnation"
 };
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string | string[] }> }) {

@@ -32,12 +32,12 @@ Supported:
 
 - **규칙 통일 (2026-10-08 결정)**: 채널 만들기(`/channel/new`)와 후원 페이지 링크 설정(`/creator/donations`) 모두
   영문 소문자 · 숫자 · 하이픈 3~30자(하이픈으로 시작 · 끝 · 연속 불가, `isValidChannelHandle`). 예약어 목록 하나
-  (브랜드 이름 + 사이트 경로: somnation, funation, wallet, api, login, …)와 같은 사용 중 목록(현재 주소 포함)을 쓰고,
+  (브랜드 이름 + 사이트 경로: ssumnation, ssumnation, wallet, api, login, …)와 같은 사용 중 목록(현재 주소 포함)을 쓰고,
   마지막 await 뒤에 다시 확인한 다음 같은 틱에 쓴다.
 - **예전 채널 주소는 새 주소로 연결 (2026-10-08 결정)**: 주소를 바꾸면 이전 주소는 30일(정해진 예시 값, 바꿀 수 있음)
   동안 새 주소로 연결되고(`/creators/<예전 주소>` → `/creators/<새 주소>`, 임시 리다이렉트), 그동안 다른 채널이 쓸 수
   없다. 채널 자신은 예전 주소로 되돌아갈 수 있다. 목업의 스튜디오 채널은 공개 채널 페이지가 없고(채널별 연결 TBD)
-  `somnation.com/donate/<주소>`는 이 앱에 경로가 없어, 그 경로의 연결은 백엔드와 함께 정한다(TBD).
+  `ssumnation.com/donate/<주소>`는 이 앱에 경로가 없어, 그 경로의 연결은 백엔드와 함께 정한다(TBD).
 
 ## 이용 정지된 크리에이터 (`services/admin/memberCore.ts` `isCreatorSuspended`)
 

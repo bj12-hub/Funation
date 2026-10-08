@@ -5,7 +5,7 @@ import { getUnifiedChat } from "@/services/broadcast/unifiedChat";
 import { getOverlaySwitches } from "@/services/creator/alertRemote";
 
 // Code-first (no Figma frame): 통합 채팅 — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: "통합 채팅 | Somnation 크리에이터" };
+export const metadata: Metadata = { title: "통합 채팅 | Ssumnation 크리에이터" };
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

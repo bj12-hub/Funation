@@ -152,7 +152,7 @@
   flex: 1 0 auto;
 }
 
-/* Figma right-aligns the second label (Funation ID). */
+/* Figma right-aligns the second label (Ssumnation ID). */
 .pair + .pair .label {
   justify-content: flex-end;
 }

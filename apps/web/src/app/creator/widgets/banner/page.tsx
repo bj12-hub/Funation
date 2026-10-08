@@ -7,7 +7,7 @@ import { getBannerSettings } from "@/services/creator/banner";
 import { getOverlayKey } from "@/services/creator/broadcastTools";
 
 // Code-first (no Figma frame): 배너 위젯 — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: "배너 | Somnation 크리에이터" };
+export const metadata: Metadata = { title: "배너 | Ssumnation 크리에이터" };
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

@@ -56,8 +56,8 @@ function seedVotes(now = Date.now()): VoteRun[] {
 }
 
 // V2: ballots are keyed by person (V1 by member id).
-const g = globalThis as typeof globalThis & { __funationMockVotesV2?: { runs: VoteRun[] } };
-export const mockVotes = (g.__funationMockVotesV2 ??= { runs: seedVotes() });
+const g = globalThis as typeof globalThis & { __ssumnationMockVotesV2?: { runs: VoteRun[] } };
+export const mockVotes = (g.__ssumnationMockVotesV2 ??= { runs: seedVotes() });
 
 export const isEnded = (r: VoteRun, now = Date.now()) => r.endedAt !== null || now >= Date.parse(r.endsAt);
 

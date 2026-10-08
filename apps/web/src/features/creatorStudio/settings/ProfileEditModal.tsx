@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
 import { Toggle } from "@/components/ui/Toggle";
-import { changeFunationId, type IdChangeResult } from "@/services/account/profileActions";
+import { changeSsumnationId, type IdChangeResult } from "@/services/account/profileActions";
 import { changeChannelName, saveCreatorProfile, uploadCreatorImage } from "@/services/creator/creatorSettings";
 import {
   BROADCAST_CATEGORIES,
@@ -27,13 +27,13 @@ const IMAGE_ERRORS: Record<string, string> = {
 // Keyed by every failure the action can return (LIMITED and UNAUTHORIZED are handled on their own), so a new status fails tsc here.
 const ID_ERRORS: Record<Exclude<IdChangeResult["status"], "CHANGED" | "LIMITED" | "UNAUTHORIZED">, string> = {
   INVALID: "5~20자의 영문 소문자와 숫자만 사용할 수 있어요.",
-  DUPLICATE: "이미 사용 중인 FUN ID예요.",
+  DUPLICATE: "이미 사용 중인 썸네이션 ID예요.",
   FORBIDDEN: "사용할 수 없는 단어가 포함되어 있어요.",
   RESERVED: "최근 변경되어 보호 중인 ID입니다. 다른 ID를 입력해 주세요."
 };
 
 /**
- * Figma 326:496 프로필 수정. Nickname (channel name), FUN ID and images save on their own actions
+ * Figma 326:496 프로필 수정. Nickname (channel name), 썸네이션 ID and images save on their own actions
  * ("수정" / picking a file, like the design); dates, visibility, anniversaries and categories save with 저장.
  */
 export function ProfileEditModal({ settings }: Props) {
@@ -74,7 +74,7 @@ function ProfileEditBody({
   const [imageError, setImageError] = useState<string | null>(null);
   const [channelName, setChannelName] = useState(settings.channelName);
   const [nameError, setNameError] = useState<string | null>(null);
-  const [funId, setFunId] = useState(settings.funationId);
+  const [ssumId, setSsumId] = useState(settings.ssumnationId);
   const [idError, setIdError] = useState<string | null>(null);
   const [form, setForm] = useState({
     birthday: settings.birthday,
@@ -126,8 +126,8 @@ function ProfileEditBody({
     startTransition(async () => {
       setIdError(null);
       try {
-        const r = await changeFunationId(funId.trim());
-        if (r.status === "CHANGED") onSaved("FUN ID를 변경했습니다.", false);
+        const r = await changeSsumnationId(ssumId.trim());
+        if (r.status === "CHANGED") onSaved("썸네이션 ID를 변경했습니다.", false);
         else if (r.status === "UNAUTHORIZED") onUnauthorized();
         else if (r.status === "LIMITED") setIdError(`${new Date(r.availableFrom).toLocaleDateString("ko-KR")}부터 다시 변경할 수 있어요.`);
         else setIdError(ID_ERRORS[r.status]);
@@ -219,15 +219,15 @@ function ProfileEditBody({
       </section>
 
       <section className={styles.modalSection}>
-        <label className={styles.modalLabel} htmlFor="creator-funid">
-          FUN ID
+        <label className={styles.modalLabel} htmlFor="creator-ssumid">
+          썸네이션 ID
         </label>
         <div className={styles.fieldRow}>
           <span className={`${styles.input} ${styles.prefixed}`}>
             @
-            <input id="creator-funid" value={funId} maxLength={20} onChange={(e) => setFunId(e.target.value.toLowerCase())} />
+            <input id="creator-ssumid" value={ssumId} maxLength={20} onChange={(e) => setSsumId(e.target.value.toLowerCase())} />
           </span>
-          <button type="button" className={styles.secondaryButton} disabled={pending || funId.trim() === settings.funationId} onClick={saveId}>
+          <button type="button" className={styles.secondaryButton} disabled={pending || ssumId.trim() === settings.ssumnationId} onClick={saveId}>
             수정
           </button>
         </div>

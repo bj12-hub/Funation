@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { AdminDashboardScreen } from "@/features/AdminScreens";
 import { loadDashboard } from "@/lib/queries";
 
-export const metadata: Metadata = { title: "대시보드 | Somnation 관리자" };
+export const metadata: Metadata = { title: "대시보드 | Ssumnation 관리자" };
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

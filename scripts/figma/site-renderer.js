@@ -1,4 +1,4 @@
-// Stored in the file shared plugin data somnation/siteRenderer; run as new Function("return " + src)()(D).
+// Stored in the file shared plugin data ssumnation/siteRenderer; run as new Function("return " + src)()(D).
 // D = [{ id, name, group, url, active, headerKind, sideOpen, width, theme?, overlays?, tree }] — trees from site-walker.js.
 async function SITE(D) {
 const VAR = {"bg-page":"43:6","bg-subtle":"43:7","surface":"43:8","surface-raised":"43:9","surface-strong":"43:10","border":"43:11","border-strong":"43:12","text-primary":"43:13","text-secondary":"43:14","text-tertiary":"43:15","text-on-accent":"43:16","primary":"43:17","primary-light":"43:18","primary-soft":"43:19","nav-active-bg":"43:20","accent":"43:21","info":"43:22","success":"43:23","success-text":"43:24","success-soft":"43:25","danger":"43:26","danger-soft":"43:27","danger-border":"43:28","error-text":"43:29","warning-text":"43:30","chip-bg":"43:31","input-bg":"43:32","neutral-soft":"43:33"};
@@ -106,7 +106,7 @@ async function sectionFor(page, name) {
 }
 const colorCol = (await figma.variables.getLocalVariableCollectionsAsync()).find(c => c.name === 'Site Color');
 const LOGO = { type: 'GRADIENT_LINEAR', gradientTransform: [[1, 0, 0], [0, 1, 0]], gradientStops: [{ position: 0, color: { r: 0.545, g: 0.361, b: 0.965, a: 1 } }, { position: 1, color: { r: 0.925, g: 0.282, b: 0.6, a: 1 } }] };
-function fixLogo(root) { for (const t of root.findAll(n => n.type === 'TEXT' && n.characters === 'Somnation')) { const p = t.parent; if (p && p.fills && p.fills[0] && p.fills[0].type === 'GRADIENT_LINEAR') { p.fills = []; t.fills = [LOGO]; } } }
+function fixLogo(root) { for (const t of root.findAll(n => n.type === 'TEXT' && n.characters === 'Ssumnation')) { const p = t.parent; if (p && p.fills && p.fills[0] && p.fills[0].type === 'GRADIENT_LINEAR') { p.fills = []; t.fills = [LOGO]; } } }
 function setNavActive(side, label, on) {
   const t = side.findOne(n => n.type === 'TEXT' && n.characters === label && n.parent && n.parent.paddingLeft === 24); if (!t) return false;
   const item = t.parent; item.fills = on ? [paintOf('nav-active-bg')] : [];

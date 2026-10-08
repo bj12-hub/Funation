@@ -44,7 +44,7 @@ describe("operator session", () => {
     vi.stubEnv("NODE_ENV", "production");
     const { endOperatorSession, OPERATOR_COOKIE } = await load();
     await endOperatorSession();
-    expect(OPERATOR_COOKIE).toBe("__Host-somnation_admin");
-    expect(jar.delete).toHaveBeenCalledWith({ name: "__Host-somnation_admin", path: "/", secure: true, httpOnly: true, sameSite: "strict" });
+    expect(OPERATOR_COOKIE).toBe("__Host-ssumnation_admin");
+    expect(jar.delete).toHaveBeenCalledWith({ name: "__Host-ssumnation_admin", path: "/", secure: true, httpOnly: true, sameSite: "strict" });
   });
 });

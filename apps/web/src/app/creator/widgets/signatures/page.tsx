@@ -5,7 +5,7 @@ import { listAssets } from "@/services/creator/assets";
 import { listSignatures } from "@/services/donations/signatures";
 
 // Code-first (no Figma frame): 시그니처 후원 관리 — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: "시그니처 후원 | Somnation 크리에이터" };
+export const metadata: Metadata = { title: "시그니처 후원 | Ssumnation 크리에이터" };
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;

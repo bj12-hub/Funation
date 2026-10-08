@@ -56,9 +56,9 @@ export type ChatStore = {
 
 export type StoredManagerLink = { id: string; name: string; token: string; permissions: ManagerPermission[]; createdAt: string; lastUsedAt: string | null; requestId: string };
 
-const g = globalThis as typeof globalThis & { __funationMockUnifiedChatV2?: ChatStore };
+const g = globalThis as typeof globalThis & { __ssumnationMockUnifiedChatV2?: ChatStore };
 export const chatStore = (): ChatStore =>
-  (g.__funationMockUnifiedChatV2 ??= {
+  (g.__ssumnationMockUnifiedChatV2 ??= {
     messages: [],
     seen: {},
     seenOrder: [],

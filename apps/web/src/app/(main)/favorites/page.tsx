@@ -4,8 +4,8 @@ import { FavoritesScreen } from "@/features/favorites";
 import { getMyAccount } from "@/services/account/myAccount";
 import { getFavorites, getFavoritesPromotion } from "@/services/favorites/favorites";
 
-// Figma: funation-favorites-page 735:3856
-export const metadata: Metadata = { title: "즐겨찾기 | Somnation" };
+// Figma: ssumnation-favorites-page 735:3856
+export const metadata: Metadata = { title: "즐겨찾기 | Ssumnation" };
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<{ q?: string | string[]; page?: string | string[] }>;

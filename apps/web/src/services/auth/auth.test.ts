@@ -6,7 +6,7 @@ vi.mock("@/lib/session", () => mockSessionModule());
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 
 const SIGNUP = {
-  email: "new@funation.kr",
+  email: "new@ssumnation.kr",
   password: "abcd123!",
   nickname: "새회원",
   agreements: { youth: true, service: true, privacy: true, marketing: false }
@@ -19,7 +19,7 @@ describe("비밀번호 재설정 · 휴대폰 인증", () => {
 
   it("sends a reset email only to a registered address", async () => {
     const m = await import("./passwordReset");
-    expect(await m.sendPasswordResetEmail(" USER@funation.kr ")).toEqual({ status: "SENT" });
+    expect(await m.sendPasswordResetEmail(" USER@ssumnation.kr ")).toEqual({ status: "SENT" });
     expect(await m.sendPasswordResetEmail("nobody@example.com")).toEqual({ status: "EMAIL_NOT_FOUND" });
     expect(await m.sendPasswordResetEmail(42 as unknown as string)).toEqual({ status: "EMAIL_NOT_FOUND" });
   });
@@ -121,9 +121,9 @@ describe("비밀번호 재설정 · 휴대폰 인증", () => {
     expect(await signup(reset)).toEqual({ status: "VERIFICATION_EXPIRED" });
     const token = await phoneToken();
     // A refused sign-up does not use the verification up.
-    expect(await signup({ ...SIGNUP, email: "hello@funation.kr", phoneVerificationToken: token })).toEqual({ status: "EMAIL_TAKEN" });
+    expect(await signup({ ...SIGNUP, email: "hello@ssumnation.kr", phoneVerificationToken: token })).toEqual({ status: "EMAIL_TAKEN" });
     expect(await signup({ ...SIGNUP, phoneVerificationToken: token })).toEqual({ status: "CREATED" });
-    expect(await signup({ ...SIGNUP, email: "other@funation.kr", nickname: "다른회원", phoneVerificationToken: token })).toEqual({ status: "VERIFICATION_EXPIRED" });
+    expect(await signup({ ...SIGNUP, email: "other@ssumnation.kr", nickname: "다른회원", phoneVerificationToken: token })).toEqual({ status: "VERIFICATION_EXPIRED" });
   });
 
   it("logout ends the session and goes home", async () => {

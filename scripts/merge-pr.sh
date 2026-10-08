@@ -11,7 +11,7 @@ set -euo pipefail
 PR="$1"; BRANCH="$2"; TITLE="$3"
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-WORK="$(cygpath -u "${TEMP:-/tmp}")/funation-merge"
+WORK="$(cygpath -u "${TEMP:-/tmp}")/ssumnation-merge"
 W="$WORK/wt-merge"
 P="$WORK/wt-prev"
 mkdir -p "$WORK"

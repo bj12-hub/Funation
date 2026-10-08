@@ -4,7 +4,7 @@ import { YouTubeConnectScreen } from "@/features/creatorStudio/youtube/YouTubeSc
 import { getYouTubeIntegration } from "@/services/creator/youtube";
 
 // Code-first (no Figma frame): 유튜브 연동 — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: "유튜브 연동 | Somnation 크리에이터" };
+export const metadata: Metadata = { title: "유튜브 연동 | Ssumnation 크리에이터" };
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

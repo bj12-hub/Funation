@@ -29,9 +29,9 @@ function useFeedback() {
   return { toast: <Toast message={toast} tone="neutral" onDone={clear} />, handle, setToast };
 }
 
-// ── Funation 설정 (315:490) ────────────────────────────────────────────────────
+// ── Ssumnation 설정 (315:490) ────────────────────────────────────────────────────
 
-export function FunationSettingsCard({ live, marketing, languages }: { live: boolean; marketing: boolean; languages: CreatorLanguage[] }) {
+export function SsumnationSettingsCard({ live, marketing, languages }: { live: boolean; marketing: boolean; languages: CreatorLanguage[] }) {
   const [state, setState] = useState({ live, marketing, languages });
   const [pending, startTransition] = useTransition();
   const { toast, handle } = useFeedback();
@@ -52,8 +52,8 @@ export function FunationSettingsCard({ live, marketing, languages }: { live: boo
   };
 
   return (
-    <section className={`${styles.card} ${styles.funation}`} aria-labelledby="set-funation">
-      <h3 id="set-funation" className={styles.cardTitle}>
+    <section className={`${styles.card} ${styles.ssumnation}`} aria-labelledby="set-ssumnation">
+      <h3 id="set-ssumnation" className={styles.cardTitle}>
         썸네이션 설정
       </h3>
       <div className={styles.toggleRow}>

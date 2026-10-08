@@ -6,7 +6,7 @@
 export type ThemePreference = "dark" | "light" | "system";
 export type Theme = "dark" | "light";
 
-export const THEME_STORAGE_KEY = "somnation-theme";
+export const THEME_STORAGE_KEY = "ssumnation-theme";
 
 export function resolveTheme(pref: string | null, prefersLight: boolean): Theme {
   if (pref === "light" || pref === "dark") return pref;

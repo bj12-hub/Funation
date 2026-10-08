@@ -4,8 +4,8 @@ import { DEFAULT_WIDGET_SETTINGS, type EditableWidgetKey, type WidgetSettingsMap
  * Server-only widget settings store (not a "use server" module): the settings actions write it and the
  * 후원 위젯 OBS overlays read it.
  */
-const g = globalThis as typeof globalThis & { __funationMockWidgetsV4?: WidgetSettingsMap };
-export const widgetStore = (g.__funationMockWidgetsV4 ??= structuredClone(DEFAULT_WIDGET_SETTINGS));
+const g = globalThis as typeof globalThis & { __ssumnationMockWidgetsV4?: WidgetSettingsMap };
+export const widgetStore = (g.__ssumnationMockWidgetsV4 ??= structuredClone(DEFAULT_WIDGET_SETTINGS));
 // A store created before a widget existed (e.g. 룰렛) starts that widget from its defaults.
 for (const key of Object.keys(DEFAULT_WIDGET_SETTINGS) as (keyof WidgetSettingsMap)[]) {
   (widgetStore as Record<string, unknown>)[key] ??= structuredClone(DEFAULT_WIDGET_SETTINGS[key]);

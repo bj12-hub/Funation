@@ -1,5 +1,5 @@
 <#
-  Funation dev server with auto-sync (Windows PowerShell)
+  Ssumnation dev server with auto-sync (Windows PowerShell)
 
   - Starts the Next.js dev server (http://localhost:3000)
   - Every few seconds, checks GitHub for new commits on the preview branch

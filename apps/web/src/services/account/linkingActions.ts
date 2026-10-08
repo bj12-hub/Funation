@@ -27,7 +27,7 @@ export type VerificationResult =
   | { status: "VERIFIED"; name: string; verifiedAt: string }
   | { status: "ALREADY_VERIFIED"; name: string; birthDate: string; verifiedAt: string }
   /** Another account already uses this identity; only masked details are returned. */
-  | { status: "DUPLICATE"; maskedFunationId: string; joinedAt: string }
+  | { status: "DUPLICATE"; maskedSsumnationId: string; joinedAt: string }
   | { status: "LOCKED"; retryAt: string }
   | { status: "INVALID" }
   | { status: "UNAUTHORIZED" };

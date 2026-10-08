@@ -100,7 +100,7 @@ describe("자동엑셀", () => {
     expect(v.feed!.entries).toHaveLength(3);
     const gil = v.feed!.summary.find((r) => r.memberId === "cm-s1")!;
     expect(gil).toMatchObject({ points: { YOUTUBE: 5_000, CHZZK: 3_000 }, total: 8_000 });
-    expect(v.feed!.summary.at(-1)).toMatchObject({ memberId: null, points: { SOMNATION: 2_000 }, total: 2_000 });
+    expect(v.feed!.summary.at(-1)).toMatchObject({ memberId: null, points: { SSUMNATION: 2_000 }, total: 2_000 });
     expect(score(v, "cm-s1")).toBe(8_000);
   });
 

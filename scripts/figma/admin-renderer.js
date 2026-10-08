@@ -1,4 +1,4 @@
-// Stored in the Somnation Admin file shared plugin data somnation/adminRenderer; run as new Function("return " + src)()(D).
+// Stored in the Somnation Admin file shared plugin data ssumnation/adminRenderer; run as new Function("return " + src)()(D).
 // D = [{ id, name, group, url, chrome, active, crumb, tree, overlays? }] — trees from admin-walker.js.
 async function ADMIN(D) {
 const FONT = 'Noto Sans KR';

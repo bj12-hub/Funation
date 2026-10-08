@@ -13,8 +13,8 @@ import { mockCreator } from "./mockCreatorStore";
  * Slides must be library images; a slide whose file was deleted is skipped.
  */
 
-const g = globalThis as typeof globalThis & { __funationMockBannerV1?: BannerSettings };
-const store = () => (g.__funationMockBannerV1 ??= { enabled: false, position: "BOTTOM", intervalSec: 8, slides: [] });
+const g = globalThis as typeof globalThis & { __ssumnationMockBannerV1?: BannerSettings };
+const store = () => (g.__ssumnationMockBannerV1 ??= { enabled: false, position: "BOTTOM", intervalSec: 8, slides: [] });
 
 const assertMock = () => {
   if (!USE_MOCK) throw new Error("Banner API is not connected yet.");
@@ -42,7 +42,7 @@ export async function saveBannerSettings(input: unknown): Promise<BannerResult> 
   if (!slides || slides.length > BANNER_LIMITS.slidesMax || new Set(slides).size !== slides.length) return { status: "INVALID", message: `슬라이드는 ${BANNER_LIMITS.slidesMax}장까지, 중복 없이 골라 주세요.` };
   if (!slides.every((id) => findAsset(id, "IMAGE"))) return { status: "INVALID", message: "라이브러리에 없는 이미지가 있어요." };
   if (v.enabled && slides.length === 0) return { status: "INVALID", message: "배너를 켜려면 이미지를 1장 이상 골라 주세요." };
-  g.__funationMockBannerV1 = { enabled: v.enabled, position: v.position, intervalSec: iv as number, slides: slides as string[] };
+  g.__ssumnationMockBannerV1 = { enabled: v.enabled, position: v.position, intervalSec: iv as number, slides: slides as string[] };
   return { status: "SAVED" };
 }
 

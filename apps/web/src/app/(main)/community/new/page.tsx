@@ -4,7 +4,7 @@ import { PostEditor } from "@/features/community/PostEditor";
 import { getSession } from "@/lib/session";
 
 // Code-first (no Figma frame): 커뮤니티 글쓰기
-export const metadata: Metadata = { title: "글쓰기 | Somnation 커뮤니티" };
+export const metadata: Metadata = { title: "글쓰기 | Ssumnation 커뮤니티" };
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

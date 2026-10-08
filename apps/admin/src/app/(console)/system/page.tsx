@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { SystemScreen } from "@/features/system/SystemScreens";
 import { loadSystem } from "@/lib/queries";
 
-export const metadata: Metadata = { title: "시스템 | Somnation 관리자" };
+export const metadata: Metadata = { title: "시스템 | Ssumnation 관리자" };
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

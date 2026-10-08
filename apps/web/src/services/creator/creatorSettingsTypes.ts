@@ -65,7 +65,7 @@ export type Anniversary = { name: string; date: string };
 
 export type CreatorSettings = {
   channelName: string;
-  funationId: string;
+  ssumnationId: string;
   /** Profile images; index 0 is 대표. `null` for an empty slot. */
   images: (string | null)[];
   debutDate: string;

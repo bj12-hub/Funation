@@ -4,7 +4,7 @@ import { DonationHistoryScreen } from "@/features/platformDonation/DonationHisto
 import { getDonationHistory } from "@/services/platformDonation/donationHistory";
 
 // Figma: 후원 내역 817:8038 · 817:8223
-export const metadata: Metadata = { title: "후원 내역 | Somnation" };
+export const metadata: Metadata = { title: "후원 내역 | Ssumnation" };
 export const dynamic = "force-dynamic";
 
 type Search = { tab?: string; period?: string; status?: string; q?: string; sort?: string; tx?: string };

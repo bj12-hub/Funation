@@ -7,7 +7,7 @@ import styles from "./GlobalFooter.module.css";
 
 /**
  * Global footer.
- * Figma: 727:3183 (funation-videos-page / footer)
+ * Figma: 727:3183 (ssumnation-videos-page / footer)
  */
 
 type FooterLink = { label: MessageKey; href?: string };
@@ -60,7 +60,7 @@ export async function GlobalFooter() {
       <div className={styles.inner}>
         <div className={styles.top}>
           <div className={styles.brand}>
-            <span className={styles.logo}>Somnation</span>
+            <span className={styles.logo}>Ssumnation</span>
             <p className={styles.about}>{t("footer.about")}</p>
           </div>
           <nav className={styles.columns} aria-label={t("footer.menu")}>
@@ -92,7 +92,7 @@ export async function GlobalFooter() {
             {COMPANY_LINES.map((line) => (
               <p key={line}>{line}</p>
             ))}
-            <p className={styles.copyright}>Copyright © 2026 Somnation Inc. All rights reserved.</p>
+            <p className={styles.copyright}>Copyright © 2026 Ssumnation Inc. All rights reserved.</p>
           </div>
           <ul className={styles.socials}>
             {SOCIALS.map(({ label, Icon }) => (

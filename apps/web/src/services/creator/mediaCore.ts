@@ -22,8 +22,8 @@ type MockMedia = {
 };
 
 // V2: drawings queue (`drawingQueue`); a new key starts a running dev server with the new shape.
-const g = globalThis as typeof globalThis & { __funationMockMediaV2?: MockMedia };
-export const mockMedia = (g.__funationMockMediaV2 ??= {
+const g = globalThis as typeof globalThis & { __ssumnationMockMediaV2?: MockMedia };
+export const mockMedia = (g.__ssumnationMockMediaV2 ??= {
   videos: [],
   playingSince: null,
   videoSettings: { autoPlay: true, maxSec: 180, volume: 70 },

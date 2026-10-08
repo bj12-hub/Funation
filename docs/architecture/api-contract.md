@@ -9,14 +9,14 @@ Backend framework, database, payment provider and every business rule listed as 
 | Rule | Current mock | Backend requirement |
 |---|---|---|
 | Mock switch | `USE_MOCK` (`lib/mock.ts`, on in `next dev` or with `NEXT_PUBLIC_AUTH_MOCK=true`). Off → services throw "… API is not connected yet." | Replace each service body with an API call; keep the signatures and result unions. |
-| Session | httpOnly cookie `funation_session` → `getSession()` (`lib/session.ts`) | Validate the token on every request; revoke on logout / password change. |
+| Session | httpOnly cookie `ssumnation_session` → `getSession()` (`lib/session.ts`) | Validate the token on every request; revoke on logout / password change. |
 | Roles | `Session.roles` (`SUPPORTER` · `CREATOR` · `ADMIN`); `getCreatorSession()` guards every `services/creator/*` call | Enforce roles server-side on every endpoint (CLAUDE.md §6). How the Creator role is granted is TBD. |
 | Result shape | Discriminated unions with a `status` string (e.g. `SAVED` · `INVALID` · `UNAUTHORIZED`) | Map HTTP errors onto the same statuses. `UNAUTHORIZED` = no session **or** missing role. |
 | Validation | Every Server Action re-validates its input (allow-lists, ranges, lengths, formats) | Same rules on the backend; the client checks are UX only. |
 | Idempotency | Money mutations take `idempotencyKey` matching `/^[A-Za-z0-9-]{16,64}$/`; same key + same request → first result, same key + different request → `CONFLICT`, still running → `IN_PROGRESS` | Persist keys with a request fingerprint; one transaction per mutation (CLAUDE.md §8). |
 | Money | The browser never sends prices or computes balances, fees or net amounts; the server returns them | Balance, holds, fees, FX and payouts are authoritative on the server and every change writes an auditable ledger entry. |
-| Transaction IDs | `Transaction ID` (Funation) and `External Transaction ID` (payment provider / platform) are stored separately | Formats TBD. |
-| Mock state | Kept on `globalThis.__funationMock*`; the key suffix is bumped when a shape changes | n/a |
+| Transaction IDs | `Transaction ID` (Ssumnation) and `External Transaction ID` (payment provider / platform) are stored separately | Formats TBD. |
+| Mock state | Kept on `globalThis.__ssumnationMock*`; the key suffix is bumped when a shape changes | n/a |
 
 ## 2. Money paths
 
@@ -53,7 +53,7 @@ TBD: SMS/email providers, send rate limits, the code attempt limit and verified-
 |---|---|---|---|
 | `getMyAccount` | R | — | profile, identity, `fnBalance` (display only), ranking visibility, connected platforms, marketing consent |
 | `updateRankingVisibility` · `updateMarketingConsent` | M | key ∈ quest + boolean · boolean | `SAVED` · `FAILED` |
-| `checkNickname` (no auth) · `changeNickname` · `changeFunationId` | R/M | format, forbidden words, 30-day interval (TBD; checked with the write). Nickname (= the default 별명, shared with sign-up): not 익명, not another member's nickname or a channel name (2026-10-08 결정), not one of the member's other 별명 | `AVAILABLE`/`CHANGED` · `INVALID` · `DUPLICATE` · `FORBIDDEN` · `LIMITED{availableFrom}` · `RESERVED` (ID only: an ID given up by a change stays reserved for 30 days, then is released — 2026-10-08 결정, value changeable) |
+| `checkNickname` (no auth) · `changeNickname` · `changeSsumnationId` | R/M | format, forbidden words, 30-day interval (TBD; checked with the write). Nickname (= the default 별명, shared with sign-up): not 익명, not another member's nickname or a channel name (2026-10-08 결정), not one of the member's other 별명 | `AVAILABLE`/`CHANGED` · `INVALID` · `DUPLICATE` · `FORBIDDEN` · `LIMITED{availableFrom}` · `RESERVED` (ID only: an ID given up by a change stays reserved for 30 days, then is released — 2026-10-08 결정, value changeable) |
 | `changePassword` | M | current, next (8–20, same rule as sign-up and reset), confirm, not one of last 3 | `CHANGED` (revokes the session) · `WRONG_CURRENT` · `INVALID` · `MISMATCH` · `REUSED` · `LOCKED` (wrong current passwords share the login's per-account count; at 5 the account locks and the session is revoked) |
 | `uploadProfilePhoto` | M | jpeg/png/webp ≤ 5 MB | `UPLOADED{avatarUrl}` · `UNSUPPORTED` · `TOO_LARGE` · `FAILED` |
 | `linkLoginProvider` · `unlinkLoginProvider` | M | NAVER / GOOGLE / KAKAO | `LINKED` · `UNLINKED` · `INVALID` |
@@ -101,7 +101,7 @@ Result: `COMPLETED{donationId, fnAmount, balance}` · `INSUFFICIENT_FN{balance, 
 | `requestPlatformDonation` | M | + message ≤ 100, **idempotencyKey** | `COMPLETED{transactionId, externalTransactionId, …}` · `PENDING` · `FAILED{reason}` · `INSUFFICIENT_FN` · `IN_PROGRESS` · `CONFLICT` · `INVALID` |
 | `getDonationHistory` (`donationHistory.ts`) | R | tab all/soop/flextv/direct, period, status, q, tx | merged history + selected detail |
 
-Platform access goes through `PlatformAdapter` (`adapters.ts`, CLAUDE.md §9). TBD: FN ↔ platform-currency rate, fees, whether each platform lets Funation send 별풍선/하트 on a user's behalf, auth, reconciliation, refunds.
+Platform access goes through `PlatformAdapter` (`adapters.ts`, CLAUDE.md §9). TBD: FN ↔ platform-currency rate, fees, whether each platform lets Ssumnation send 별풍선/하트 on a user's behalf, auth, reconciliation, refunds.
 
 ### creator studio (`services/creator`, C)
 

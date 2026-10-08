@@ -10,8 +10,8 @@ export function NotFoundView({ standalone = false }: { standalone?: boolean }) {
   return (
     <section className={`${styles.root} ${standalone ? styles.standalone : ""}`} aria-labelledby="not-found-title">
       {standalone && (
-        <Link href="/" className={styles.logo} aria-label="Somnation 홈">
-          Somnation
+        <Link href="/" className={styles.logo} aria-label="Ssumnation 홈">
+          Ssumnation
         </Link>
       )}
       <p className={styles.code} aria-hidden="true">

@@ -18,7 +18,7 @@ import styles from "./crew.module.css";
 import feed from "./feed.module.css";
 
 const SOURCES: { key: FeedSourceKey; label: string }[] = [
-  { key: "SOMNATION", label: "썸네이션" },
+  { key: "SSUMNATION", label: "썸네이션" },
   { key: "YOUTUBE", label: PLATFORM_LABEL.YOUTUBE },
   { key: "SOOP", label: PLATFORM_LABEL.SOOP },
   { key: "CHZZK", label: PLATFORM_LABEL.CHZZK },

@@ -5,7 +5,7 @@ import { signInMockOperator } from "@/lib/actions";
 import { getOperator, isMock } from "@/lib/session";
 
 // Operator sign-in — Figma "Somnation Admin" A-00 로그인. The real admin login (SSO / 2FA / IP allowlist) is TBD.
-export const metadata: Metadata = { title: "로그인 | Somnation 관리자" };
+export const metadata: Metadata = { title: "로그인 | Ssumnation 관리자" };
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
@@ -17,7 +17,7 @@ export default async function Page() {
           <span className={styles.loginMark} aria-hidden="true">
             S
           </span>
-          Somnation Admin
+          Ssumnation Admin
         </span>
         <h1 className={styles.title}>관리자 콘솔 로그인</h1>
         <p className={styles.muted}>사이트와 분리된 운영 전용 앱이에요. 운영자 인증 방식(SSO · 2단계 인증 · 접속 IP 제한)은 정해지지 않았어요 (TBD).</p>

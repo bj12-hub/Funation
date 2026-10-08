@@ -3,14 +3,14 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
-import { isValidFunationId } from "@/lib/validation";
-import { changeFunationId } from "@/services/account/profileActions";
+import { isValidSsumnationId } from "@/lib/validation";
+import { changeSsumnationId } from "@/services/account/profileActions";
 import { Message } from "./Message";
 import { GENERIC_ERROR, formatKoreanDate } from "./shared";
 import styles from "./editors.module.css";
 
 /**
- * Funation ID change. Figma: base 743:2063 · invalid 747:304 · duplicate 747:349 · forbidden 747:394
+ * Ssumnation ID change. Figma: base 743:2063 · invalid 747:304 · duplicate 747:349 · forbidden 747:394
  * · 30-day limit 747:439 · success 747:483
  *
  * Figma conflict: the base placeholder reads "8자 이상, 영문/숫자/특수문자 포함" while the error copy
@@ -34,7 +34,7 @@ const ERRORS: Record<"INVALID" | "DUPLICATE" | "FORBIDDEN" | "RESERVED" | "ERROR
 
 const NOTICE = "ID는 30일에 한 번 변경할 수 있으며 프로필 주소도 함께 변경됩니다.";
 
-export function FunationIdEditor({ triggerClassName }: { triggerClassName: string }) {
+export function SsumnationIdEditor({ triggerClassName }: { triggerClassName: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
@@ -42,10 +42,10 @@ export function FunationIdEditor({ triggerClassName }: { triggerClassName: strin
   const [busy, setBusy] = useState(false);
 
   async function submit() {
-    if (!isValidFunationId(value)) return setState({ kind: "INVALID" });
+    if (!isValidSsumnationId(value)) return setState({ kind: "INVALID" });
     setBusy(true);
     try {
-      const result = await changeFunationId(value);
+      const result = await changeSsumnationId(value);
       if (result.status === "UNAUTHORIZED") return router.push("/login?next=/mypage");
       if (result.status === "CHANGED") {
         setState({ kind: "CHANGED", value: result.value });
@@ -102,7 +102,7 @@ export function FunationIdEditor({ triggerClassName }: { triggerClassName: strin
       >
         <div className={styles.content}>
           <div className={styles.field}>
-            <label htmlFor="funation-id-input" className={styles.label}>
+            <label htmlFor="ssumnation-id-input" className={styles.label}>
               썸네이션 ID
             </label>
             <div className={`${styles.inputBox} ${error ? styles.inputError : ""}`}>
@@ -110,7 +110,7 @@ export function FunationIdEditor({ triggerClassName }: { triggerClassName: strin
                 @
               </span>
               <input
-                id="funation-id-input"
+                id="ssumnation-id-input"
                 className={styles.input}
                 placeholder="영문 소문자, 숫자 5~20자"
                 maxLength={20}
@@ -120,7 +120,7 @@ export function FunationIdEditor({ triggerClassName }: { triggerClassName: strin
                 value={shownValue}
                 disabled={changed || limited}
                 aria-invalid={Boolean(error) || undefined}
-                aria-describedby="funation-id-message"
+                aria-describedby="ssumnation-id-message"
                 onChange={(e) => {
                   setValue(e.target.value.trim());
                   setState({ kind: "IDLE" });
@@ -136,7 +136,7 @@ export function FunationIdEditor({ triggerClassName }: { triggerClassName: strin
             </div>
           </div>
 
-          <div id="funation-id-message" aria-live="polite" className={styles.content}>
+          <div id="ssumnation-id-message" aria-live="polite" className={styles.content}>
             {error && <Message tone="error" text={error} />}
             {limited && (
               <Message tone="error" text={`최근 ID를 변경하여 지금은 수정할 수 없습니다. ${formatKoreanDate(state.availableFrom)}부터 변경할 수 있어요.`} />

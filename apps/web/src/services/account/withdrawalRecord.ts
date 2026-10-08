@@ -22,7 +22,7 @@ export function recordWithdrawal(r: { at: string; requestId: string; forfeitedFn
     forfeitedFn: r.forfeitedFn,
     forfeitedEarningsFn: r.forfeitedEarningsFn,
     nickname: mockAccount.nickname,
-    funationId: mockAccount.funationId,
+    ssumnationId: mockAccount.ssumnationId,
     consents: r.consents ?? { chargeTerms: null, settlementTerms: null },
     person: mockCredentials.personKey ? { key: mockCredentials.personKey, phoneHash: phoneHash(mockCredentials.phone) } : null,
     purged: []

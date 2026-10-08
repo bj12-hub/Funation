@@ -31,7 +31,7 @@ describe("admin api", () => {
     expect(authorizeAdminRequest(req(headers({ "x-admin-operator-id": "bad id!" })))).toEqual({ ok: false, status: 401 });
     expect(authorizeAdminRequest(req(headers({ "x-admin-operator-name": "" })))).toEqual({ ok: false, status: 401 });
     // A member's session cookie is irrelevant: without the secret the API refuses.
-    expect(authorizeAdminRequest(req({ cookie: "funation_session=mock-session-hongGD123" }))).toEqual({ ok: false, status: 401 });
+    expect(authorizeAdminRequest(req({ cookie: "ssumnation_session=mock-session-hongGD123" }))).toEqual({ ok: false, status: 401 });
   });
 
   it("refuses to run in production without a configured token", async () => {

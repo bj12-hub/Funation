@@ -46,7 +46,7 @@ export function MethodDrawer({
 
 function DrawerBody({ methods, initial, onSelect }: { methods: PaymentMethodId[]; initial: PaymentMethodId | null; onSelect: (id: PaymentMethodId) => void }) {
   const [choice, setChoice] = useState<PaymentMethodId | null>(initial);
-  const [featured, ...rest] = methods.includes("FUNATION_PAY") ? ["FUNATION_PAY" as const, ...methods.filter((m) => m !== "FUNATION_PAY")] : [null, ...methods];
+  const [featured, ...rest] = methods.includes("SSUMNATION_PAY") ? ["SSUMNATION_PAY" as const, ...methods.filter((m) => m !== "SSUMNATION_PAY")] : [null, ...methods];
 
   const tile = (id: PaymentMethodId, wide = false) => {
     const info = PAYMENT_METHODS[id];

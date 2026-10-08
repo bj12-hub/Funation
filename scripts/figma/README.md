@@ -10,7 +10,7 @@ text styles and the components on page 8) — not screenshots. Used for pages 9 
    names such as `surface`, `r` radius, `w` width), texts `["t", text, "size/weight", color, width]`,
    inputs `["i", …]`, checkboxes `["c", …]` and images `["m", …]`.
 2. `renderer.js` is the body of `async function RENDER(D)` stored in the Figma file's shared plugin
-   data (`somnation` / `renderer`). Each `use_figma` call sends `D = [{ id, name, group, url, active, tree }]`
+   data (`ssumnation` / `renderer`). Each `use_figma` call sends `D = [{ id, name, group, url, active, tree }]`
    and runs it with `new Function("return " + figma.root.getSharedPluginData("somnation", "renderer"))()`.
    Screens land in a section per `group` with the studio header and sidebar instances.
 
@@ -21,24 +21,29 @@ Site screens (page 10) use the same format with three site-specific scripts:
 
 - `chrome-walker.js` returns the site header, side menu and footer trees; `site-renderer.js` called with
   `D = { chrome: { signed, guest, side, footer } }` turns them into the page 8 components and stores their ids in
-  shared plugin data `somnation` / `siteComponents`.
+  shared plugin data `ssumnation` / `siteComponents`.
 - `site-walker.js` walks the main column (or the donation panel with `?tab=donation`), keeps fixed overlays
   and header popovers, trims repeated lists to six items and replaces the site footer with `["footer"]`.
-- `site-renderer.js` is stored as `somnation` / `siteRenderer`. Each screen is
+- `site-renderer.js` is stored as `ssumnation` / `siteRenderer`. Each screen is
   `{ id, name, group, url, active, headerKind: "signed" | "guest" | null, sideOpen, width, theme?, overlays?, tree }`:
   it adds the header instance, the side menu with `active` highlighted, absolute `overlays` (`{ x, y, tree }`) and an
   explicit Light mode when `theme` is `"light"`.
 
-Admin screens (Somnation Admin file `Js5MCzkGmAZ9QY0w3nLUe8`, page "Layouts") use the same format:
+Admin screens ("Somnation Admin" Figma file `Js5MCzkGmAZ9QY0w3nLUe8`, page "Layouts") use the same format:
 
 - `admin-walker.js` runs inside an `apps/admin` page (mock operator session on localhost) and maps colours to the
   `--adm-color-*` tokens (`bg-page`, `status-success-bg`, …). It returns `{ chrome, active, crumb, tree, overlays }`.
-- `admin-renderer.js` is stored as `somnation` / `adminRenderer` in that file. Tokens map to the `color/*` variables
+- `admin-renderer.js` is stored as `ssumnation` / `adminRenderer` in that file. Tokens map to the `color/*` variables
   (`bg-page` → `color/bg/page`), font keys to the `Admin/*` text styles, and it places the Sidebar (active item) and
-  Topbar (breadcrumb) instances plus Button · Badge · Input · Tab instances. `somnation` / `adminHelpers` holds small
+  Topbar (breadcrumb) instances plus Button · Badge · Input · Tab instances. `ssumnation` / `adminHelpers` holds small
   builders (table, card, tabs, …) used to keep each `use_figma` call short.
 
 Icons: the walkers add a sixth element to inline-SVG media, `["m", w, h, radius, color, "<width>:<first path d, 40 chars>"]`.
 `svg-collect.js` returns every visible inline SVG of a page keyed by that signature. The SVGs became `Icon/<Name>` components on page 8
-(ids in shared plugin data `somnation` / `iconComponents`), and `somnation` / `iconReplace` swaps the placeholder rectangles of a
+(ids in shared plugin data `ssumnation` / `iconComponents`), and `ssumnation` / `iconReplace` swaps the placeholder rectangles of a
 screen for instances by aligning the rectangle sizes with the walker's media sequence.
+
+Names: the brand and code identifiers are `ssumnation` since 2026-10-08. Two things keep the old spelling on purpose:
+the Figma file names ("Somnation — 현재 구현 (2026-09)", "Somnation Admin" — the plugin API cannot rename a file, rename them
+in Figma and then update these docs) and the shared plugin-data namespace `somnation` (data stored inside both Figma files:
+the stored renderers, helper snippets and per-node width hints).

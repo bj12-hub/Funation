@@ -1,8 +1,8 @@
 {
-  "name": "funation",
+  "name": "ssumnation",
   "private": true,
   "version": "0.1.0",
-  "description": "Funation broadcasting donation platform",
+  "description": "Ssumnation broadcasting donation platform",
   "workspaces": [
     "apps/*",
     "packages/*"

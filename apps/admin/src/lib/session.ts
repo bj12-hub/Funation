@@ -9,7 +9,7 @@ import { cookies } from "next/headers";
  */
 
 const secure = process.env.NODE_ENV === "production";
-export const OPERATOR_COOKIE = secure ? "__Host-somnation_admin" : "somnation_admin_session";
+export const OPERATOR_COOKIE = secure ? "__Host-ssumnation_admin" : "ssumnation_admin_session";
 const MOCK_OPERATOR_TOKEN = "mock-operator";
 const MOCK_OPERATOR = { id: "adm-operator", name: "운영자" } as const;
 /** Operators are signed out after 8 hours (the real session lifetime / idle timeout is TBD). */

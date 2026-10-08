@@ -14,7 +14,7 @@ type MockIdentity = {
   attribution: Record<string, string>;
 };
 
-const g = globalThis as typeof globalThis & { __funationMockIdentityV1?: MockIdentity };
+const g = globalThis as typeof globalThis & { __ssumnationMockIdentityV1?: MockIdentity };
 
 const initial = (): MockIdentity => ({
   nicknames: [],
@@ -23,7 +23,7 @@ const initial = (): MockIdentity => ({
   attribution: {}
 });
 
-export const mockIdentity = (g.__funationMockIdentityV1 ??= initial());
+export const mockIdentity = (g.__ssumnationMockIdentityV1 ??= initial());
 
 /** 재가입 (services/account/rejoin.ts): the new account starts without the withdrawn one's 별명, 대표 and 칭호 settings. */
 export const resetMockIdentity = () => Object.assign(mockIdentity, initial());

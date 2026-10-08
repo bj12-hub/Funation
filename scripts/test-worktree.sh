@@ -8,7 +8,7 @@
 # `web-isolated` entry in .claude/launch.json, reverted afterwards with `git checkout -- .claude/launch.json`).
 set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-W="$(cygpath -u "${TEMP:-/tmp}")/funation-test/wt-dev"
+W="$(cygpath -u "${TEMP:-/tmp}")/ssumnation-test/wt-dev"
 
 case "${1:-}" in
   up)

@@ -107,7 +107,7 @@ function ShareModal({ open, name, onClose, onDone }: { open: boolean; name: stri
               type="button"
               className={styles.shareTarget}
               onClick={() => {
-                window.open(t.url(encodeURIComponent(link), encodeURIComponent(`${name} | Somnation`)), "_blank", "noopener,noreferrer");
+                window.open(t.url(encodeURIComponent(link), encodeURIComponent(`${name} | Ssumnation`)), "_blank", "noopener,noreferrer");
                 onDone("공유가 완료되었습니다.");
               }}
             >

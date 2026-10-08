@@ -27,11 +27,11 @@ type Store = {
 const SEEN_MAX = 5_000;
 const SEEN_MS = 24 * 60 * 60 * 1000;
 // V2: `seen` holds keyed entries with a time (V1 kept bare SHA-256 hashes of the text).
-const g = globalThis as typeof globalThis & { __funationMockBankSmsV2?: Store; __funationBankSmsSecret?: Buffer };
+const g = globalThis as typeof globalThis & { __ssumnationMockBankSmsV2?: Store; __ssumnationBankSmsSecret?: Buffer };
 export const bankSmsStore = (): Store =>
-  (g.__funationMockBankSmsV2 ??= { enabled: false, maskNames: true, key: randomUUID(), seen: [], stats: { received: 0, duplicates: 0, unparsed: 0 }, recent: [] });
-// Not under __funationMock*: test resets keep it, and it never sits next to the hashes it protects.
-const secret = () => (g.__funationBankSmsSecret ??= randomBytes(32));
+  (g.__ssumnationMockBankSmsV2 ??= { enabled: false, maskNames: true, key: randomUUID(), seen: [], stats: { received: 0, duplicates: 0, unparsed: 0 }, recent: [] });
+// Not under __ssumnationMock*: test resets keep it, and it never sits next to the hashes it protects.
+const secret = () => (g.__ssumnationBankSmsSecret ??= randomBytes(32));
 const textKey = (text: string) => `txt:${createHmac("sha256", secret()).update(text.replace(/\s+/g, " ").trim()).digest("hex")}`;
 
 export const shownName = (s: Store, name: string) => (s.maskNames ? maskName(name) : name);

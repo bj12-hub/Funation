@@ -63,7 +63,7 @@ const PURGE: Record<Exclude<RetentionCategory, "POSTS">, (t: Target) => void> = 
    * the nickname stored with its kept posts, comments, channel posts, block entries and the reports about them goes.
    */
   CONTRACT: (t) => {
-    Object.assign(t.record, { requestId: "", forfeitedFn: 0, forfeitedEarningsFn: 0, nickname: WITHDRAWN_MEMBER_NAME, funationId: "", consents: null });
+    Object.assign(t.record, { requestId: "", forfeitedFn: 0, forfeitedEarningsFn: 0, nickname: WITHDRAWN_MEMBER_NAME, ssumnationId: "", consents: null });
     for (const p of mockCommunity.posts) {
       if (p.authorId === t.memberId) p.authorName = WITHDRAWN_MEMBER_NAME;
       for (const c of p.comments) if (c.authorId === t.memberId) c.authorName = WITHDRAWN_MEMBER_NAME;

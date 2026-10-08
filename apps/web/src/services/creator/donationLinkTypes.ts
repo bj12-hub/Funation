@@ -5,7 +5,7 @@ import type { Platform } from "@/types/platform";
 /**
  * 후원 연동 — code-first (funnation 위젯 도구 "후원 연동: 외부 후원 플랫폼을 연결"). Client-safe types.
  * Donations made on a broadcast platform show up in our 후원 알림 in their own currency. They are not
- * Somnation payments: no FN, wallet, earnings or settlement records are created (TBD: reporting).
+ * Ssumnation payments: no FN, wallet, earnings or settlement records are created (TBD: reporting).
  */
 
 export type DonationLinkState = {

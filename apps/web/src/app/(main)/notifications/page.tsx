@@ -5,7 +5,7 @@ import { listNotifications } from "@/services/notifications/notifications";
 import { NOTIFICATIONS_PAGE } from "@/services/notifications/notificationTypes";
 
 // Code-first (no Figma frame): 사이트 알림 — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: "알림 | Somnation" };
+export const metadata: Metadata = { title: "알림 | Ssumnation" };
 export const dynamic = "force-dynamic";
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ filter?: string; show?: string }> }) {

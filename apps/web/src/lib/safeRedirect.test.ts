@@ -37,7 +37,7 @@ describe("safeRedirectPath (?next=)", () => {
   it("never returns a path a browser would read as another host", () => {
     for (const input of ["/%09/evil.com", "/ /evil.com", "/.//evil.com", "/..//evil.com"]) {
       const out = safeRedirectPath(input);
-      expect(new URL(out, "https://somnation.example/").host).toBe("somnation.example");
+      expect(new URL(out, "https://ssumnation.example/").host).toBe("ssumnation.example");
     }
   });
 });

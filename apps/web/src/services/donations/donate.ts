@@ -95,7 +95,7 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
     // Unique even for requests finishing in the same millisecond (quest decisions and wallet rows look it up).
     const donationId = `dn-${randomUUID()}`;
     const quest = request.type === "QUEST";
-    const donorId = request.hideProfile ? "" : session.funationId;
+    const donorId = request.hideProfile ? "" : session.ssumnationId;
     mockWallet.donations.unshift({
       id: donationId,
       donatedAt: `${toDateString(now)} ${now.toTimeString().slice(0, 8)}`,

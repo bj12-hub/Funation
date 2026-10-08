@@ -5,7 +5,7 @@ import { getSettlementOverview, hasAcceptedSettlementTerms } from "@/services/cr
 import { isMemberType } from "@/services/creator/settlementTypes";
 
 // Figma: 정산 자료 등록 429:219 (개인) · 443:5 (외국인) · 433:210 (개인사업자) · 437:4 (법인)
-export const metadata: Metadata = { title: "정산 자료 등록 | Somnation 크리에이터" };
+export const metadata: Metadata = { title: "정산 자료 등록 | Ssumnation 크리에이터" };
 export const dynamic = "force-dynamic";
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ type?: string }> }) {

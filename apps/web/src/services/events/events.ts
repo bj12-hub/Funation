@@ -56,8 +56,8 @@ const EVENTS: MockEvent[] = [
 ];
 
 /** `joined`: event id → person (`currentPersonKey`) → when they joined. V2: per person (V1 kept one join per event). */
-const g = globalThis as typeof globalThis & { __funationMockEventsV2?: { joined: Map<string, Map<string, string>> } };
-const state = (g.__funationMockEventsV2 ??= { joined: new Map() });
+const g = globalThis as typeof globalThis & { __ssumnationMockEventsV2?: { joined: Map<string, Map<string, string>> } };
+const state = (g.__ssumnationMockEventsV2 ??= { joined: new Map() });
 
 const DAY = 86_400_000;
 /** Whole Korean days (00:00 KST to the end of the last day), the days eventPeriodLabel shows, whatever the server's zone. */

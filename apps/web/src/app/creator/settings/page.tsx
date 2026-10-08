@@ -4,7 +4,7 @@ import { CreatorSettingsScreen } from "@/features/creatorStudio/settings/Creator
 import { getCreatorSettings } from "@/services/creator/creatorSettings";
 
 // Figma: creator-account-settings-page 315:405 · 315:2 · 프로필 수정 326:496
-export const metadata: Metadata = { title: "계정설정 | Somnation 크리에이터" };
+export const metadata: Metadata = { title: "계정설정 | Ssumnation 크리에이터" };
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

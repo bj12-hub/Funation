@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { MembersScreen } from "@/features/members/MemberScreens";
 import { loadMembers } from "@/lib/queries";
 
-export const metadata: Metadata = { title: "회원 관리 | Somnation 관리자" };
+export const metadata: Metadata = { title: "회원 관리 | Ssumnation 관리자" };
 export const dynamic = "force-dynamic";
 
 export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {

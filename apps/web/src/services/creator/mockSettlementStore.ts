@@ -146,10 +146,10 @@ export const toHistoryItem = (r: MockSettlementRequest): SettlementHistoryItem =
 
 // V4: requests carry `registrationAtRequest`; V5: and the `account` that made them; V6: and their `payment`. A new key
 // re-seeds a running dev server.
-const globalForSettlement = globalThis as typeof globalThis & { __funationMockSettlementV6?: MockSettlement };
+const globalForSettlement = globalThis as typeof globalThis & { __ssumnationMockSettlementV6?: MockSettlement };
 
 /** Sample amounts from 478:2 (five 승인, one 거절), dated relative to today. */
-export const mockSettlement = (globalForSettlement.__funationMockSettlementV6 ??= {
+export const mockSettlement = (globalForSettlement.__ssumnationMockSettlementV6 ??= {
   terms: null,
   registration: null,
   availableFn: 127_500,

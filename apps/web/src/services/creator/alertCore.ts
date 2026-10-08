@@ -54,8 +54,8 @@ function seedHistory(now = Date.now()): AlertItem[] {
 }
 
 // V4: donation alerts carry `donorKey` (V3 seeded the donation history, V2 added overlay signals).
-const g = globalThis as typeof globalThis & { __funationMockAlertsV4?: MockAlerts; __funationDonorKeySecret?: Buffer };
-export const mockAlerts = (g.__funationMockAlertsV4 ??= {
+const g = globalThis as typeof globalThis & { __ssumnationMockAlertsV4?: MockAlerts; __ssumnationDonorKeySecret?: Buffer };
+export const mockAlerts = (g.__ssumnationMockAlertsV4 ??= {
   items: seedHistory(),
   controls: { paused: false, muted: false, minFn: 0, alertVolume: 50, ttsVolume: 80, signatureVolume: 80, displaySec: 8 },
   shownAt: null,
@@ -66,8 +66,8 @@ export const mockAlerts = (g.__funationMockAlertsV4 ??= {
 // Stores created before 시그니처 볼륨 (2026-10-06) start at the same default.
 mockAlerts.controls.signatureVolume ??= 80;
 
-// Not under __funationMock*: test resets keep it (the real backend keeps a server secret).
-const donorKeySecret = () => (g.__funationDonorKeySecret ??= randomBytes(32));
+// Not under __ssumnationMock*: test resets keep it (the real backend keeps a server secret).
+const donorKeySecret = () => (g.__ssumnationDonorKeySecret ??= randomBytes(32));
 
 /**
  * The opaque key a donation alert carries for its donor: stable per member and channel, unlinkable across channels,
