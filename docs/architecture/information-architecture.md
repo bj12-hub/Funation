@@ -111,7 +111,7 @@ The page follows the funnation channel page (`/store/{slug}`). From top to botto
 - **커뮤니티 (`/community`):** already matches funnation. It has 전체 게시글 N개, 게시글 검색, 글쓰기, and the tabs 전체 · 자유 · 팁/공략 · 질문 · 버그 · 자랑.
 - **이벤트 (`/events`):** already matches funnation (전체 · 진행 중 · 예정 · 내 참여), plus our 종료 tab.
 - **명예의 전당 (`/hall-of-fame`):** the Figma hero, podium and promo stay. The funnation tabs (`?tab=`) were added:
-  - **칭호 갤러리:** our global title and grade ladders with FN ranges. Names and thresholds are placeholders (TBD); funnation's tiers and XP values are not copied.
+  - **칭호 갤러리:** our 누적 등급 (블랙 · 다이아) and 활동 등급 ladders with FN ranges (2026-10-08 structure, [supporter.md](../domains/supporter.md)). Thresholds are placeholders (TBD); funnation's tiers and XP values are not copied.
   - **리더보드:** 누적 · 이번 달 · 이번 주, with 과거 기록 as TBD. It shows the podium and the list, and "더 보기 (shown/total)" loads 20 more each time.
   - **실시간 랭킹:** 최근 30분 · 1시간 · 3시간 · 6시간.
 
@@ -134,8 +134,8 @@ The tabs follow the funnation 고객센터 (`?tab=`). The Figma 4:7 hero, search
 
 ### 마이 (My area)
 
-- **내 정보 (`/mypage`):** funnation 내 프로필. A 내 등급 card sits on top:
-  - current grade and 최근 30일 후원
+- **내 정보 (`/mypage`):** funnation 내 프로필. A 활동 등급 card sits on top:
+  - current 활동 등급 and 최근 6개월 후원 (· 이번 달 말까지 유지 when the grade is kept from the 1st)
   - progress to the next grade
   - 다음 등급 미리보기 (→ `/mypage/titles`)
   - 크리에이터 스튜디오로, or 내 채널 만들기 for members without the Creator role

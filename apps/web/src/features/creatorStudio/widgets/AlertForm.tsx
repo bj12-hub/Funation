@@ -17,7 +17,7 @@ const SAMPLES: { key: string; label: string; alert: AlertCardData }[] = [
   {
     key: "fn",
     label: "썸네이션 후원",
-    alert: { id: "sample-fn", donor: "하루봄", message: "오늘 방송도 너무 재밌어요! 끝까지 달려요 🔥", fnAmount: 10_000, typeLabel: "텍스트 후원", badges: ["VIP", "열혈 서포터"] }
+    alert: { id: "sample-fn", donor: "하루봄", message: "오늘 방송도 너무 재밌어요! 끝까지 달려요 🔥", fnAmount: 10_000, typeLabel: "텍스트 후원", badges: ["플래티넘", "다이아", "열혈 팬"] }
   },
   {
     key: "signature",

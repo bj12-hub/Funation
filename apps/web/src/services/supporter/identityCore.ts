@@ -4,12 +4,15 @@ import { donationPageStore } from "@/services/creator/donationPageCore";
 import { signedUpNicknames } from "@/services/auth/signupCore";
 import { getAllCreatorsForAdmin } from "@/services/creators/creators";
 import { listDonationRecords } from "@/services/wallet/walletHistory";
+import { startOfMonths, toDateString } from "@/lib/period";
 import {
   GLOBAL_TITLES,
   GRADES,
+  GRADE_MONTHS,
   STORE_TITLES,
   globalTitleLabel,
   gradeLabel,
+  hasGrade,
   storeTitleLabel,
   type AlertBadges,
   type DonationNickname,
@@ -23,8 +26,6 @@ import { mockIdentity } from "./mockIdentityStore";
  * Core. Deliberately NOT a "use server" module: nothing here may be callable from the browser
  * (e.g. attributing a donation to a nickname happens only inside a completed donation).
  */
-
-const DAY = 86_400_000;
 
 function progress(tiers: readonly { label: string; minFn: number }[], currentFn: number): Progress {
   const next = tiers.find((t) => t.minFn > currentFn) ?? null;
@@ -46,11 +47,37 @@ export function nicknameList(): { id: string; name: string }[] {
  */
 export const nicknameChangeable = () => donationPageStore.options.nicknameChangeable;
 
+const gradeFor = (fn: number) => [...GRADES].reverse().find((g) => fn >= g.minFn)!;
+
+/**
+ * 활동 등급 (2026-10-08 구조): the higher of the grade the six full months before this month give (fixed on the 1st,
+ * so it holds until the month ends) and the grade of this month plus the five before (so a donation raises it at once).
+ * Months are calendar months in server time (Asia/Seoul); `donatedAt` is a server-time `YYYY-MM-DD HH:mm:ss`.
+ */
+function activityGrade(records: { donatedAt: string; fnAmount: number }[], now: Date): SupporterIdentity["grade"] {
+  const thisMonth = toDateString(startOfMonths(1, now));
+  const recentFrom = toDateString(startOfMonths(GRADE_MONTHS, now));
+  const lastFrom = toDateString(startOfMonths(GRADE_MONTHS + 1, now));
+  const sum = (from: string, before?: string) =>
+    records.filter((d) => d.donatedAt.slice(0, 10) >= from && (before === undefined || d.donatedAt.slice(0, 10) < before)).reduce((s, d) => s + d.fnAmount, 0);
+  const recentFn = sum(recentFrom);
+  const live = gradeFor(recentFn);
+  const held = gradeFor(sum(lastFrom, thisMonth));
+  const grade = held.minFn > live.minFn ? held : live;
+  // Progress counts from the grade shown: below it (a kept grade) the bar is empty, not negative.
+  const next = GRADES.find((g) => g.minFn > grade.minFn) ?? null;
+  const percent = next ? Math.max(0, Math.min(100, Math.floor(((recentFn - grade.minFn) / (next.minFn - grade.minFn)) * 100))) : 100;
+  return {
+    key: grade.key,
+    recentFn,
+    kept: grade !== live,
+    progress: { currentFn: recentFn, nextLabel: next?.label ?? null, nextMinFn: next?.minFn ?? null, percent }
+  };
+}
+
 export function computeIdentity(): SupporterIdentity {
   const records = listDonationRecords().filter((d) => d.status === "COMPLETED");
-  const now = Date.now();
   const lifetimeFn = records.reduce((s, d) => s + d.fnAmount, 0);
-  const last30Fn = records.filter((d) => now - new Date(d.donatedAt.replace(" ", "T")).getTime() <= 30 * DAY).reduce((s, d) => s + d.fnAmount, 0);
 
   const nicknames: DonationNickname[] = nicknameList().map((n) => {
     // Not the current 대표: a donation stays with the name it went out under (see attributeDonation).
@@ -58,7 +85,6 @@ export function computeIdentity(): SupporterIdentity {
     return { id: n.id, name: n.name, isDefault: n.id === mockIdentity.defaultId, totalFn: mine.reduce((s, d) => s + d.fnAmount, 0), count: mine.length };
   });
 
-  const grade = [...GRADES].reverse().find((g) => last30Fn >= g.minFn)!;
   const earned = GLOBAL_TITLES.filter((t) => lifetimeFn >= t.minFn).map((t) => t.key);
 
   const byCreator = new Map<string, { name: string; total: number }>();
@@ -79,7 +105,7 @@ export function computeIdentity(): SupporterIdentity {
 
   return {
     nicknames,
-    grade: { key: grade.key, last30Fn, progress: progress(GRADES.slice(1), last30Fn) },
+    grade: activityGrade(records, new Date()),
     global: { lifetimeFn, earned, best: earned.at(-1) ?? null, progress: progress(GLOBAL_TITLES, lifetimeFn) },
     stores,
     equip: { ...mockIdentity.equip }
@@ -123,7 +149,7 @@ export function resolveBadges(nicknameId: unknown, creatorId: unknown): AlertBad
   const store = e.showStoreTitle ? (id.stores.find((s) => s.creatorId === creatorId)?.title ?? null) : null;
   return {
     name,
-    grade: e.showGrade && id.grade.key !== "FRIEND" ? gradeLabel(id.grade.key) : null,
+    grade: e.showGrade && hasGrade(id.grade.key) ? gradeLabel(id.grade.key) : null,
     globalTitle: global ? globalTitleLabel(global) : null,
     storeTitle: store ? storeTitleLabel(store) : null
   };

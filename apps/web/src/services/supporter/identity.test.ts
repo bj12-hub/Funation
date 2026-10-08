@@ -39,15 +39,53 @@ const text = (amount: number, n: number, nicknameId?: string | null) => ({
 describe("후원자 정체성", () => {
   beforeEach(() => resetMockStores());
 
-  it("computes grade, global title and creator title from completed donations", async () => {
+  it("computes the 활동 등급, 누적 등급 and creator title from completed donations", async () => {
     const { getSupporterIdentity, requestDonation } = await load();
     await requestDonation(text(120_000, 1));
-    const id = (await getSupporterIdentity())!;
-    expect(id.grade).toMatchObject({ key: "VIP", last30Fn: 120_000 });
-    expect(id.global.lifetimeFn).toBe(120_000);
-    expect(id.global.earned).toEqual(["BRONZE", "SILVER", "GOLD"]);
-    expect(id.global.best).toBe("GOLD");
+    let id = (await getSupporterIdentity())!;
+    expect(id.grade).toMatchObject({ key: "PLATINUM", recentFn: 120_000, kept: false });
+    expect(id.grade.progress).toMatchObject({ nextLabel: "마스터", nextMinFn: 200_000, percent: 20 });
+    // 누적 등급 starts at 다이아: below it there is none yet.
+    expect(id.global).toMatchObject({ lifetimeFn: 120_000, earned: [], best: null });
+    expect(id.global.progress).toMatchObject({ nextLabel: "다이아", nextMinFn: 500_000 });
     expect(id.stores[0]).toMatchObject({ creatorId: "c1", totalFn: 120_000, title: "TRUE" });
+
+    await requestDonation(text(380_000, 2));
+    id = (await getSupporterIdentity())!;
+    expect(id.grade.key).toBe("LEGEND");
+    expect(id.global).toMatchObject({ lifetimeFn: 500_000, earned: ["DIAMOND"], best: "DIAMOND" });
+    expect(id.global.progress).toMatchObject({ nextLabel: "블루 다이아", nextMinFn: 700_000, percent: 0 });
+  });
+
+  it("raises the 활동 등급 at once and lets it fall only when a month starts (지난 6개월 기준)", async () => {
+    const { getSupporterIdentity, requestDonation } = await load();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      const at = async (time: string) => {
+        vi.setSystemTime(new Date(time));
+        return (await getSupporterIdentity())!.grade;
+      };
+      vi.setSystemTime(new Date("2026-04-20T12:00:00"));
+      expect((await requestDonation(text(60_000, 21))).status).toBe("COMPLETED");
+      expect(await at("2026-09-30T23:59:00")).toMatchObject({ key: "GOLD", recentFn: 60_000, kept: false });
+      // 10월 1일: 4월 has left this month and the five before, but 4월–9월 (the six full months before 10월) keep 골드.
+      expect(await at("2026-10-01T00:00:00")).toMatchObject({ key: "GOLD", recentFn: 0, kept: true });
+
+      expect((await requestDonation(text(20_000, 22))).status).toBe("COMPLETED");
+      const kept = await at("2026-10-01T00:00:00");
+      expect(kept).toMatchObject({ key: "GOLD", recentFn: 20_000, kept: true });
+      // Progress counts from the kept 골드: still below it, so the bar is empty.
+      expect(kept.progress).toMatchObject({ nextLabel: "플래티넘", nextMinFn: 100_000, percent: 0 });
+      // Reaching a higher grade raises it in the same month.
+      expect((await requestDonation(text(80_000, 23))).status).toBe("COMPLETED");
+      expect(await at("2026-10-31T23:59:00")).toMatchObject({ key: "PLATINUM", recentFn: 100_000, kept: false });
+
+      expect(await at("2027-03-31T23:59:00")).toMatchObject({ key: "PLATINUM", recentFn: 100_000, kept: false });
+      expect(await at("2027-04-01T00:00:00")).toMatchObject({ key: "PLATINUM", recentFn: 0, kept: true });
+      expect(await at("2027-05-01T00:00:00")).toMatchObject({ key: "BASIC", recentFn: 0, kept: false });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("manages nicknames: add, duplicate, limit, rename, default, remove", async () => {
@@ -151,9 +189,11 @@ describe("후원자 정체성", () => {
 
   it("only allows equipping a title that was earned", async () => {
     const { saveEquipSettings, requestDonation } = await load();
-    await requestDonation(text(20_000, 4));
-    expect(await saveEquipSettings({ showGrade: true, globalTitle: "BRONZE", showStoreTitle: true })).toEqual({ status: "SAVED" });
-    expect((await saveEquipSettings({ showGrade: true, globalTitle: "LEGEND", showStoreTitle: true })).status).toBe("INVALID");
+    await requestDonation(text(500_000, 4));
+    expect(await saveEquipSettings({ showGrade: true, globalTitle: "DIAMOND", showStoreTitle: true })).toEqual({ status: "SAVED" });
+    expect((await saveEquipSettings({ showGrade: true, globalTitle: "BLUE_DIAMOND", showStoreTitle: true })).status).toBe("INVALID");
+    // A key of the old ladder is not a title any more.
+    expect((await saveEquipSettings({ showGrade: true, globalTitle: "GOLD", showStoreTitle: true })).status).toBe("INVALID");
     expect((await saveEquipSettings({ showGrade: "yes", globalTitle: "AUTO", showStoreTitle: true })).status).toBe("INVALID");
   });
 
@@ -161,10 +201,10 @@ describe("후원자 정체성", () => {
     const { addDonationNickname, getAlertBadges, getSupporterIdentity, requestDonation } = await load();
     const { mockAlerts } = await import("@/services/creator/alertCore");
     const creators = await import("@/services/creators/creators");
-    await requestDonation(text(120_000, 5));
+    await requestDonation(text(500_000, 5));
     await addDonationNickname("응원단장");
     const nick = (await getSupporterIdentity())!.nicknames.find((n) => n.name === "응원단장")!;
-    expect(await getAlertBadges(nick.id, "c1")).toEqual({ name: "응원단장", grade: "VIP", globalTitle: "골드 서포터", storeTitle: "찐팬" });
+    expect(await getAlertBadges(nick.id, "c1")).toEqual({ name: "응원단장", grade: "레전드", globalTitle: "다이아", storeTitle: "왕관 팬" });
     expect((await getAlertBadges(nick.id, "c2"))?.storeTitle).toBeNull();
     expect((await getAlertBadges("nk-not-mine", "c1"))?.name).not.toBe("nk-not-mine");
 
@@ -173,8 +213,8 @@ describe("후원자 정체성", () => {
     vi.spyOn(creators, "getCreatorById").mockResolvedValue({ ...c1, id: "studio" });
     const preview = (await getAlertBadges(nick.id, "studio"))!;
     expect((await requestDonation({ ...text(1_000, 6, nick.id), creatorId: "studio" })).status).toBe("COMPLETED");
-    expect(mockAlerts.items.at(-1)).toMatchObject({ kind: "DONATION", donor: "응원단장", badges: ["VIP", "골드 서포터"] });
-    expect(preview).toMatchObject({ name: "응원단장", grade: "VIP", globalTitle: "골드 서포터", storeTitle: null });
+    expect(mockAlerts.items.at(-1)).toMatchObject({ kind: "DONATION", donor: "응원단장", badges: ["레전드", "다이아"] });
+    expect(preview).toMatchObject({ name: "응원단장", grade: "레전드", globalTitle: "다이아", storeTitle: null });
     await requestDonation({ ...text(1_000, 7, nick.id), creatorId: "studio", hideProfile: true });
     expect(mockAlerts.items.at(-1)).toMatchObject({ donor: "익명", badges: [] });
   });

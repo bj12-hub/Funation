@@ -326,13 +326,14 @@ describe("회원 탈퇴", () => {
   it("starts the new account without the withdrawn member's 별명, 대표 별명 or 칭호 setting", async () => {
     const m = await load();
     const identity = await import("@/services/supporter/identity");
-    // The sample history earns 골드 서포터; the member shows it, adds a 별명 and makes it the 대표.
-    expect((await identity.getSupporterIdentity())!.global.earned).toContain("GOLD");
-    expect(await identity.saveEquipSettings({ showGrade: true, globalTitle: "GOLD", showStoreTitle: true })).toEqual({ status: "SAVED" });
+    // The sample history gives the 활동 등급 플래티넘 (no 누적 등급 yet); the member hides the creator title, adds a 별명
+    // and makes it the 대표.
+    expect((await identity.getSupporterIdentity())!.grade.key).toBe("PLATINUM");
+    expect(await identity.saveEquipSettings({ showGrade: true, globalTitle: "OFF", showStoreTitle: false })).toEqual({ status: "SAVED" });
     expect(await identity.addDonationNickname("응원단장")).toEqual({ status: "SAVED" });
     const nick = (await identity.getSupporterIdentity())!.nicknames.find((n) => n.name === "응원단장")!;
     expect(await identity.setDefaultDonationNickname(nick.id)).toEqual({ status: "SAVED" });
-    expect(await identity.getAlertBadges(null, "c1")).toMatchObject({ name: "응원단장", globalTitle: "골드 서포터" });
+    expect(await identity.getAlertBadges(null, "c1")).toEqual({ name: "응원단장", grade: "플래티넘", globalTitle: null, storeTitle: null });
 
     expect(await m.withdrawAccount(supporter())).toEqual({ status: "WITHDRAWN" });
     expect(
@@ -343,7 +344,7 @@ describe("회원 탈퇴", () => {
     expect(fresh.nicknames.map((n) => [n.name, n.isDefault])).toEqual([["다시왔어요", true]]);
     expect(fresh.equip).toEqual({ showGrade: true, globalTitle: "AUTO", showStoreTitle: true });
     expect(fresh.global.earned).toEqual([]);
-    // Its alerts carry no title the withdrawn account earned.
+    // Its alerts carry no grade or title the withdrawn account earned.
     expect(await identity.getAlertBadges(null, "c1")).toEqual({ name: "다시왔어요", grade: null, globalTitle: null, storeTitle: null });
   });
 
