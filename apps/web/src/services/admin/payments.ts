@@ -10,6 +10,7 @@ import { findChargeRecord, listAccountChargeRecords, listAccountDonationRecords,
 import type { DonationStatus } from "@/services/wallet/walletTypes";
 import type { AdminActor } from "./adminTypes";
 import { recordAudit } from "./auditCore";
+import { activeHold, holdRequestId, pushHold, readHoldInput, recordedHold } from "./holdCore";
 import { SAMPLE_MEMBER_ID, slotAccountLabel } from "./memberCore";
 import { REFUND_NOTE, type AdminChargeRow, type AdminDonationRow, type AdminRefund, type DonationsView, type PaymentsView, type RefundDecisionResult } from "./paymentTypes";
 
@@ -18,6 +19,9 @@ import { REFUND_NOTE, type AdminChargeRow, type AdminDonationRow, type AdminRefu
  * Admin only. A refund decision is final and logged; approval takes back the charge's unused paid FN on the server
  * (환불 정책 기본값 · 법무 검토 전, `services/wallet/refundPolicy.ts`).
  * The mock has one member with wallet data (the sample member); per-member ledgers are TBD.
+ *
+ * 2026-10-08 결정: a member's 이용 정지 does not stop their refund requests (nothing here reads it); an operator puts a
+ * request that needs a closer look on 보류 instead, which stops 승인 · 거절 until 보류 해제.
  */
 
 const assertMock = () => {
@@ -39,18 +43,28 @@ const owner = (account: string | null) => {
  */
 const fromCurrentAccount = (r: MockRefundRequest) => r.accountSince === accountSince() && !isWithdrawn();
 
+/** The 보류 in force on a waiting request (2026-10-08 결정); a decided request has none. */
+const holdOf = (r: MockRefundRequest) => (r.status === "REQUESTED" ? activeHold(r.holds) : null);
+
 /**
- * 처리 대기 (2026-10-08 결정 D4b): requests an operator can decide now. A waiting request of an account that has since
- * withdrawn is 처리 불가(탈퇴) — left out of the 처리 대기 counts, listed apart, and still refused by `decideRefund`.
+ * Each waiting request is in one place (2026-10-08 결정): 처리 불가(탈퇴) — filed by an account that has since withdrawn
+ * (D4b), never decidable; else 보류 — an operator put it on hold; else 처리 대기 — what an operator can decide now.
  */
-export function refundQueue(): { waiting: number; blocked: number } {
-  const open = mockRefunds.requests.filter((r) => r.status === "REQUESTED");
-  const waiting = open.filter(fromCurrentAccount).length;
-  return { waiting, blocked: open.length - waiting };
+type Queue = "WAITING" | "HELD" | "BLOCKED";
+const queueOf = (r: MockRefundRequest): Queue => (!fromCurrentAccount(r) ? "BLOCKED" : holdOf(r) ? "HELD" : "WAITING");
+
+/**
+ * 처리 대기 (2026-10-08 결정): requests an operator can decide now. 처리 불가(탈퇴) and 보류 requests are left out of the
+ * 처리 대기 counts and listed apart; `decideRefund` still refuses both.
+ */
+export function refundQueue(): { waiting: number; blocked: number; held: number } {
+  const open = mockRefunds.requests.filter((r) => r.status === "REQUESTED").map(queueOf);
+  return { waiting: open.filter((q) => q === "WAITING").length, blocked: open.filter((q) => q === "BLOCKED").length, held: open.filter((q) => q === "HELD").length };
 }
 
-/** Order: 처리 대기, then 처리 불가(탈퇴), then decided requests; newest first within each. */
-const queueRank = (r: MockRefundRequest) => (r.status !== "REQUESTED" ? 2 : fromCurrentAccount(r) ? 0 : 1);
+/** Order: 처리 대기, then 보류, then 처리 불가(탈퇴), then decided requests; newest first within each. */
+const RANK: Record<Queue, number> = { WAITING: 0, HELD: 1, BLOCKED: 2 };
+const queueRank = (r: MockRefundRequest) => (r.status !== "REQUESTED" ? 3 : RANK[queueOf(r)]);
 
 function refunds(): AdminRefund[] {
   return [...mockRefunds.requests]
@@ -73,7 +87,8 @@ function refunds(): AdminRefund[] {
         requested: copy(r.quote),
         approved: r.settled ? copy(r.settled) : null,
         // What approval would refund now (FN used since the request lower it); only for requests an operator can decide.
-        current: r.status === "REQUESTED" && fromCurrentAccount(r) ? currentQuote(r) : null
+        current: r.status === "REQUESTED" && fromCurrentAccount(r) ? currentQuote(r) : null,
+        hold: holdOf(r)
       };
     });
 }
@@ -118,7 +133,8 @@ export async function getPaymentsView(): Promise<PaymentsView | null> {
  * since the request lower it — and only the charge's unused paid FN are taken back. The operator approves the amount
  * the console showed (`expectedGrossFn` / `expectedNetFn`); when that is no longer the current one nothing is written
  * and the answer says what it is now. The balance change, its wallet record and the decision happen together. A
- * withdrawn member's request is not decided here: approving it would take the FN from whoever holds the slot now.
+ * withdrawn member's request is not decided here: approving it would take the FN from whoever holds the slot now. A
+ * request on 보류 is not decided until 보류 해제.
  */
 export async function decideRefund(admin: AdminActor, input: unknown): Promise<RefundDecisionResult> {
   assertMock();
@@ -134,6 +150,7 @@ export async function decideRefund(admin: AdminActor, input: unknown): Promise<R
     return request.status === wanted ? { status: "OK" } : { status: "INVALID", message: "이미 처리된 환불 요청이에요." };
   }
   if (!fromCurrentAccount(request)) return { status: "INVALID", message: "탈퇴한 회원의 환불 요청이라 승인 · 거절할 수 없어요. (처리 중인 환불이 있으면 탈퇴할 수 없어서, 이전 기록에만 있어요.)" };
+  if (holdOf(request)) return { status: "INVALID", message: "보류 중인 환불 요청이라 승인 · 거절할 수 없어요. 보류를 해제한 뒤 처리해 주세요." };
   const charge = listChargeRecords().find((c) => c.id === request.chargeId);
   if (!charge || charge.status !== "COMPLETED") return { status: "INVALID", message: "완료된 충전이 아니에요." };
   const now = new Date();
@@ -156,6 +173,34 @@ export async function decideRefund(admin: AdminActor, input: unknown): Promise<R
   request.status = wanted;
   request.decision = { at: now.toISOString(), by: admin.nickname, note };
   recordAudit(admin, wanted === "APPROVED" ? "REFUND_APPROVE" : "REFUND_REJECT", `refund:${request.chargeId}`, `${what} · ${note}`);
+  return { status: "OK" };
+}
+
+/**
+ * 보류 / 보류 해제 (2026-10-08 결정): `{ action: "HOLD" | "RELEASE", note, requestId }` for a waiting refund request of the
+ * current account. The memo is required and stays with the operators; the request stays REQUESTED (the member keeps
+ * seeing 심사 중), so 보류 해제 leaves it as it was and nothing moves in the wallet. One console request id per action: the
+ * same id again answers OK without a second change or log entry (`REFUND_HOLD` / `REFUND_RELEASE`).
+ */
+export async function holdRefund(admin: AdminActor, input: unknown): Promise<RefundDecisionResult> {
+  assertMock();
+  const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
+  const requestId = holdRequestId(v);
+  if (!requestId) return { status: "INVALID", message: "잘못된 요청입니다." };
+  const done = recordedHold(mockRefunds.requests, requestId);
+  if (done) return done.item.chargeId === v.chargeId && done.event.action === v.action ? { status: "OK" } : { status: "INVALID", message: "잘못된 요청입니다." };
+  const request = mockRefunds.requests.find((r) => r.chargeId === v.chargeId);
+  if (!request) return { status: "NOT_FOUND" };
+  const read = readHoldInput(v);
+  if ("message" in read) return { status: "INVALID", message: read.message };
+  const held = holdOf(request);
+  if (read.action === "HOLD") {
+    if (request.status !== "REQUESTED") return { status: "INVALID", message: "심사 대기 중인 환불 요청만 보류할 수 있어요." };
+    if (!fromCurrentAccount(request)) return { status: "INVALID", message: "탈퇴한 회원의 환불 요청이라 보류할 수 없어요." };
+    if (held) return { status: "INVALID", message: "이미 보류 중인 환불 요청이에요." };
+  } else if (!held) return { status: "INVALID", message: "보류 중인 환불 요청이 아니에요." };
+  pushHold(request, admin, read.action, read.note, requestId);
+  recordAudit(admin, read.action === "HOLD" ? "REFUND_HOLD" : "REFUND_RELEASE", `refund:${request.chargeId}`, read.note);
   return { status: "OK" };
 }
 

@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import type { HoldEvent } from "@/services/admin/holdCore";
 import type { MemberType, SettlementHistoryItem, SettlementStatus } from "./settlementTypes";
 
 /**
@@ -49,6 +50,11 @@ export type MockSettlementRequest = {
    * number) and the console request id that recorded it (a retry answers OK once).
    */
   payment?: { at: string; by: string; reference: string; requestId: string };
+  /**
+   * 보류 / 보류 해제 (관리자 콘솔, 2026-10-08 결정), oldest first: an operator flag on a 심사 대기 or 승인 request that stops
+   * 승인 · 반려 · 지급 완료 while the last event is a 보류. The status never changes with it, and the creator never sees it.
+   */
+  holds?: HoldEvent[];
 };
 
 type MockSettlement = {
@@ -144,12 +150,12 @@ export const toHistoryItem = (r: MockSettlementRequest): SettlementHistoryItem =
   ...(r.status === "PAID" && r.payment ? { paidAt: ymd(new Date(r.payment.at)) } : {})
 });
 
-// V4: requests carry `registrationAtRequest`; V5: and the `account` that made them; V6: and their `payment`. A new key
-// re-seeds a running dev server.
-const globalForSettlement = globalThis as typeof globalThis & { __ssumnationMockSettlementV6?: MockSettlement };
+// V4: requests carry `registrationAtRequest`; V5: and the `account` that made them; V6: and their `payment`; V7: and
+// their `holds`. A new key re-seeds a running dev server.
+const globalForSettlement = globalThis as typeof globalThis & { __ssumnationMockSettlementV7?: MockSettlement };
 
 /** Sample amounts from 478:2 (five 승인, one 거절), dated relative to today. */
-export const mockSettlement = (globalForSettlement.__ssumnationMockSettlementV6 ??= {
+export const mockSettlement = (globalForSettlement.__ssumnationMockSettlementV7 ??= {
   terms: null,
   registration: null,
   availableFn: 127_500,

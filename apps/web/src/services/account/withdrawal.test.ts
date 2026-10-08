@@ -127,6 +127,31 @@ describe("회원 탈퇴", () => {
     expect(review.counts).toMatchObject({ PENDING: 0, FORFEITED: 1, APPROVED: 5, REJECTED: 1 });
   });
 
+  it("forfeits only what was not approved: approved requests stay and are paid after the 탈퇴 (2026-10-08 결정)", async () => {
+    signIn(["SUPPORTER", "CREATOR"]);
+    const m = await load();
+    await endChannelQuests();
+    const { holdSettlement, paySettlement } = await import("@/services/admin/settlements");
+    m.settlement.requests.push({ ...m.settlement.requests[0], id: "st-pending", status: "PENDING", amountFn: 20_000, review: undefined });
+    // An operator had put the waiting request on 보류; it is still 심사 대기, so it is forfeited like the others.
+    expect(await holdSettlement(OP, { id: "st-pending", action: "HOLD", note: "확인 필요", requestId: key(8) })).toEqual({ status: "OK" });
+    const approved = m.settlement.requests.filter((r) => r.status === "APPROVED").map((r) => ({ id: r.id, payoutDate: r.payoutDate, netKrw: r.netKrw }));
+    expect(approved).toHaveLength(5);
+    // 정산 대기 수익 = 정산 가능 + 심사 대기 only; the approved amounts are not part of it.
+    expect(await m.getWithdrawalInfo()).toMatchObject({ unsettledFn: 147_500 });
+    expect(await m.withdrawAccount({ ...supporter(), unsettledFn: 147_500, earningsForfeitAgreed: true })).toEqual({ status: "WITHDRAWN" });
+
+    expect(m.settlement.requests.find((r) => r.id === "st-pending")).toMatchObject({ status: "FORFEITED" });
+    for (const a of approved) expect(m.settlement.requests.find((r) => r.id === a.id)).toMatchObject({ status: "APPROVED", payoutDate: a.payoutDate, netKrw: a.netKrw });
+    const review = (await m.getSettlementReview())!;
+    expect(review).toMatchObject({ held: 0, counts: { PENDING: 0, APPROVED: 5, FORFEITED: 1 } }); // the hold ended with the request
+    expect(review.rows.find((r) => r.id === "st-pending")!.hold).toBeNull();
+
+    expect(await paySettlement(OP, { id: approved[0].id, reference: "TRF-0001", requestId: key(9) })).toEqual({ status: "OK" });
+    expect(await paySettlement(OP, { id: "st-pending", reference: "TRF-0002", requestId: key(10) })).toEqual({ status: "INVALID", message: "탈퇴로 소멸된 정산이라 지급할 수 없어요." });
+    expect((await m.getSettlementReview({ status: "PAID" }))!.rows).toEqual([expect.objectContaining({ id: approved[0].id, creatorName: "홍길동", creatorWithdrawn: true })]);
+  });
+
   it("re-reads the amounts after the password check, so a decision in between is not recorded as forfeited", async () => {
     signIn(["SUPPORTER", "CREATOR"]);
     const m = await load();

@@ -21,13 +21,14 @@ const base: AdminSettlementRow = {
   payoutDate: "2026-09-30",
   registrationAtRequest: { memberType: "개인", registrant: "홍길동", holder: "홍길동", bankName: "예시은행", accountMasked: "********1234", code: "F0L0E0X0", submittedAt: "2026-09-01T00:00:00.000Z" },
   review: { at: "2026-09-12T00:00:00.000Z", by: "운영자", note: "서류 확인" },
-  payment: null
+  payment: null,
+  hold: null
 };
 const counts = { PENDING: 0, APPROVED: 1, PAID: 1, REJECTED: 0, FORFEITED: 0 };
 
 async function render(rows: AdminSettlementRow[]) {
   const { SettlementReviewScreen } = await import("./settlements/SettlementReviewScreen");
-  return renderToStaticMarkup(createElement(SettlementReviewScreen, { view: { rows, counts, registration: null, availableFn: 0 }, status: null }));
+  return renderToStaticMarkup(createElement(SettlementReviewScreen, { view: { rows, counts, held: 0, registration: null, availableFn: 0 }, status: null }));
 }
 
 describe("정산 심사 · 지급 완료", () => {
@@ -45,9 +46,10 @@ describe("정산 심사 · 지급 완료", () => {
     expect(html).not.toContain(">지급 완료 처리</button>");
   });
 
-  it("does not offer 지급 완료 for a withdrawn creator's approved request", async () => {
+  it("offers 지급 완료 for a withdrawn creator's approved request, under the original nickname and 탈퇴 (2026-10-08 결정)", async () => {
     const html = await render([{ ...base, creatorName: "홍길동", creatorWithdrawn: true }]);
-    expect(html).toContain("탈퇴한 크리에이터의 정산이라 지급 완료로 처리할 수 없어요.");
-    expect(html).not.toContain(">지급 완료 처리</button>");
+    expect(html).toMatch(/홍길동 <span class="[^"]*chipNeutral[^"]*">탈퇴<\/span>/);
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>지급 완료 처리<\/button>/);
+    expect(html).not.toContain("지급 완료로 처리할 수 없어요");
   });
 });

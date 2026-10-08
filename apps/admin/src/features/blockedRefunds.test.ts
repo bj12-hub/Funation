@@ -23,7 +23,8 @@ const refund = (chargeId: string, memberWithdrawn: boolean): AdminRefund => ({
   charge: { chargedAt: "2026-09-30 10:00:00", fnAmount: 10_000, paidAmount: 11_000, methodLabel: "카드", transactionId: "TXN-1" },
   requested: FULL,
   approved: null,
-  current: memberWithdrawn ? null : { ...FULL, chargeFn: 10_000, usedFn: 0, withinPeriod: true }
+  current: memberWithdrawn ? null : { ...FULL, chargeFn: 10_000, usedFn: 0, withinPeriod: true },
+  hold: null
 });
 
 describe("처리 불가(탈퇴) refunds", () => {
@@ -47,7 +48,7 @@ describe("처리 불가(탈퇴) refunds", () => {
       creators: { total: 10, live: 3 },
       charges: { monthCount: 0, monthFn: 0, monthPaidKrw: 0, processing: 0 },
       donations: { monthCount: 0, monthFn: 0 },
-      pending: { refunds: 0, refundsBlocked: 2, settlements: 0, reports: 0 },
+      pending: { refunds: 0, refundsBlocked: 2, refundsHeld: 0, settlements: 0, settlementsHeld: 0, reports: 0 },
       recentAudit: []
     };
     const html = renderToStaticMarkup(createElement(AdminDashboardScreen, { data }));

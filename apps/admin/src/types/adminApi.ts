@@ -22,7 +22,24 @@ export const PLATFORM_ERROR_LABEL: Record<PlatformErrorCode, string> = {
 
 // ── Audit · dashboard ─────────────────────────────────────────────────────────
 
-export type AuditAction = "ADMIN_SIGN_IN" | "ADMIN_SIGN_OUT" | "MEMBER_SUSPEND" | "MEMBER_RESTORE" | "REFUND_APPROVE" | "REFUND_REJECT" | "SETTLEMENT_APPROVE" | "SETTLEMENT_REJECT" | "SETTLEMENT_PAY" | "CONTENT_UPDATE" | "SYSTEM_UPDATE" | "REPORT_DISMISS" | "REPORT_HIDE";
+export type AuditAction =
+  | "ADMIN_SIGN_IN"
+  | "ADMIN_SIGN_OUT"
+  | "MEMBER_SUSPEND"
+  | "MEMBER_RESTORE"
+  | "REFUND_APPROVE"
+  | "REFUND_REJECT"
+  | "REFUND_HOLD"
+  | "REFUND_RELEASE"
+  | "SETTLEMENT_APPROVE"
+  | "SETTLEMENT_REJECT"
+  | "SETTLEMENT_PAY"
+  | "SETTLEMENT_HOLD"
+  | "SETTLEMENT_RELEASE"
+  | "CONTENT_UPDATE"
+  | "SYSTEM_UPDATE"
+  | "REPORT_DISMISS"
+  | "REPORT_HIDE";
 
 export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
   ADMIN_SIGN_IN: "관리자 로그인",
@@ -31,9 +48,13 @@ export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
   MEMBER_RESTORE: "회원 정지 해제",
   REFUND_APPROVE: "환불 승인",
   REFUND_REJECT: "환불 거절",
+  REFUND_HOLD: "환불 요청 보류",
+  REFUND_RELEASE: "환불 요청 보류 해제",
   SETTLEMENT_APPROVE: "정산 승인",
   SETTLEMENT_REJECT: "정산 반려",
   SETTLEMENT_PAY: "정산 지급 완료",
+  SETTLEMENT_HOLD: "정산 보류",
+  SETTLEMENT_RELEASE: "정산 보류 해제",
   CONTENT_UPDATE: "콘텐츠 변경",
   SYSTEM_UPDATE: "시스템 설정 변경",
   REPORT_DISMISS: "신고 기각",
@@ -46,8 +67,11 @@ export type AdminDashboard = {
   creators: { total: number; live: number };
   charges: { monthCount: number; monthFn: number; monthPaidKrw: number; processing: number };
   donations: { monthCount: number; monthFn: number };
-  /** `refunds`: 처리 대기 only; `refundsBlocked`: waiting requests of withdrawn accounts, 처리 불가(탈퇴). */
-  pending: { refunds: number; refundsBlocked: number; settlements: number; reports: number | null };
+  /**
+   * `refunds` / `settlements`: 처리 대기 only. `refundsBlocked`: waiting requests of withdrawn accounts, 처리 불가(탈퇴);
+   * `refundsHeld` / `settlementsHeld`: requests on 보류 — neither is 처리 대기.
+   */
+  pending: { refunds: number; refundsBlocked: number; refundsHeld: number; settlements: number; settlementsHeld: number; reports: number | null };
   recentAudit: AuditEntry[];
 };
 
@@ -58,6 +82,15 @@ export type AuditPage = { items: AuditLogItem[]; total: number; hasMore: boolean
 export const AUDIT_PAGE = 30;
 /** The site lists at most this many of the newest entries (searching older ones is TBD). */
 export const AUDIT_MAX = 500;
+
+/**
+ * 보류 (2026-10-08 결정): an operator flag on a settlement request (심사 대기 · 승인) or a charge refund request (심사 대기).
+ * While it is on, the site refuses 승인 · 반려 · 거절 · 지급 완료; 보류 해제 puts the request back as it was. Members and
+ * creators keep seeing 심사 중 / 승인, and the memo stays with the operators.
+ */
+export type HoldAction = "HOLD" | "RELEASE";
+export type AdminHold = { at: string; by: string; note: string };
+export const HOLD_NOTE = { min: 2, max: 200 } as const;
 
 // ── Members · creators ────────────────────────────────────────────────────────
 
@@ -133,6 +166,8 @@ export type AdminRefund = {
   approved: RefundAmounts | null;
   /** The refund recomputed now — what 승인 applies (waiting requests the console can decide only). */
   current: RefundQuote | null;
+  /** 보류 in force (waiting requests only): the site refuses 승인 · 거절 until 보류 해제. */
+  hold: AdminHold | null;
 };
 
 /**
@@ -188,10 +223,16 @@ export type AdminSettlementRow = {
   review: { at: string; by: string; note: string } | null;
   /** 지급 완료: when, by whom, and the transfer reference (PAID only). */
   payment: { at: string; by: string; reference: string } | null;
+  /** 보류 in force (심사 대기 · 승인 only): the site refuses 승인 · 반려 · 지급 완료 until 보류 해제. */
+  hold: AdminHold | null;
 };
+/** 정산 심사 tabs: a status (requests on 보류 left out), or `HELD` = every request on 보류. */
+export type SettlementFilter = SettlementStatus | "HELD";
 export type AdminSettlementView = {
   rows: AdminSettlementRow[];
+  /** Per status without the requests on 보류, which are counted in `held` (every request is in one tab). */
   counts: Record<SettlementStatus, number>;
+  held: number;
   /** The creator's current registration (may differ from a request's `registrationAtRequest`). */
   registration: AdminSettlementRegistration | null;
   availableFn: number;
