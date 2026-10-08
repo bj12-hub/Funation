@@ -16,7 +16,7 @@ import {
   type SupporterRanking,
   type SupporterTier
 } from "@/services/hallOfFame/supporterRanking";
-import { GLOBAL_TITLES, GRADES } from "@/services/supporter/identityTypes";
+import { GLOBAL_TITLES, GRADES, GRADE_MONTHS, TITLE_LINE_LABEL, hasGrade, type GlobalTitleKey } from "@/services/supporter/identityTypes";
 import styles from "./hallOfFame.module.css";
 import local from "./hofTabs.module.css";
 
@@ -100,40 +100,49 @@ export function HallOfFameScreen({ tab, ranking, live }: Props) {
   );
 }
 
-/** 칭호 갤러리 — our grade and global title ladders (names and thresholds are placeholders, TBD). */
+/** 칭호 갤러리 — our 누적 등급 (다이아 · 블랙) and 활동 등급 ladders (2026-10-08 structure; thresholds are placeholders, TBD). */
 function TitleGallery() {
-  const titles = [...GLOBAL_TITLES].reverse();
-  const grades = [...GRADES].reverse();
+  const grades = GRADES.filter((g) => hasGrade(g.key)).reverse();
   const range = (min: number, next: number | undefined) => (next ? `${formatNumber(min)} ~ ${formatNumber(next)} FN` : `${formatNumber(min)} FN 이상`);
+  const nextTitle = (key: GlobalTitleKey) => GLOBAL_TITLES[GLOBAL_TITLES.findIndex((t) => t.key === key) + 1]?.minFn;
   return (
     <div className={local.panel}>
-      <section className={local.gallery} aria-labelledby="hof-titles">
-        <h2 id="hof-titles" className={local.galleryTitle}>
-          글로벌 칭호
-        </h2>
-        <p className={local.caption}>누적 후원 FN으로 얻는 칭호예요. 칭호 이름과 기준은 확정 전 임시 값이에요.</p>
-        <ul className={local.cards}>
-          {titles.map((t, i) => (
-            <li key={t.key} className={local.card} data-top={i === 0 || undefined}>
-              <span className={local.medal} aria-hidden="true">
-                🏅
-              </span>
-              <strong>{t.label}</strong>
-              <span className={local.range}>{range(t.minFn, titles[i - 1]?.minFn)}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {(["BLACK", "DIAMOND"] as const).map((line) => {
+        const titles = GLOBAL_TITLES.filter((t) => t.line === line).reverse();
+        return (
+          <section key={line} className={local.gallery} aria-labelledby={`hof-titles-${line}`}>
+            <h2 id={`hof-titles-${line}`} className={local.galleryTitle}>
+              누적 {TITLE_LINE_LABEL[line]}
+            </h2>
+            <p className={local.caption}>
+              {line === "BLACK" ? "다이아 등급 위의 최상위 누적 등급이에요. 누적 등급은 한 번 오르면 내려가지 않아요." : "누적 후원 FN으로 오르고, 한 번 오르면 내려가지 않아요."} 기준은 확정 전 임시 값이에요.
+            </p>
+            <ul className={local.cards}>
+              {titles.map((t, i) => (
+                <li key={t.key} className={local.card} data-top={(line === "BLACK" && i === 0) || undefined}>
+                  <span className={local.medal} aria-hidden="true">
+                    {line === "BLACK" ? "👑" : "💎"}
+                  </span>
+                  <strong>{t.label}</strong>
+                  <span className={local.range}>{range(t.minFn, nextTitle(t.key))}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })}
       <section className={local.gallery} aria-labelledby="hof-grades">
         <h2 id="hof-grades" className={local.galleryTitle}>
-          후원자 등급
+          활동 등급
         </h2>
-        <p className={local.caption}>최근 30일 후원 FN으로 정해지는 등급이에요. 기준은 확정 전 임시 값이에요.</p>
+        <p className={local.caption}>
+          이번 달을 포함한 최근 {GRADE_MONTHS}개월 후원 FN으로 정해져요. 기준을 넘으면 바로 오르고, 매월 1일에 다시 정해져요. 기준은 확정 전 임시 값이에요.
+        </p>
         <ul className={local.cards}>
           {grades.map((g, i) => (
             <li key={g.key} className={local.card} data-top={i === 0 || undefined}>
               <span className={local.medal} aria-hidden="true">
-                💎
+                🏅
               </span>
               <strong>{g.label}</strong>
               <span className={local.range}>{range(g.minFn, grades[i - 1]?.minFn)}</span>

@@ -5,7 +5,7 @@ import { PlayOutlineIcon, VideoIcon, YoutubeLogoIcon } from "@/components/icons"
 import { ChargeTrigger } from "@/features/walletCharge";
 import { formatNumber } from "@/lib/format";
 import type { LoginProvider, MyAccount } from "@/services/account/myAccount";
-import { gradeLabel, type SupporterIdentity } from "@/services/supporter/identityTypes";
+import { GRADE_MONTHS, gradeLabel, type SupporterIdentity } from "@/services/supporter/identityTypes";
 import type { Platform } from "@/types/platform";
 import { SsumnationIdEditor, NicknameEditor, PasswordEditor, PhotoEditor } from "./editors";
 import { IdentityVerification, PlatformConnect, PlatformDisconnect, ProviderLinkEditor } from "./linking";
@@ -44,10 +44,12 @@ export function MyPageScreen({ account, grade, creator }: { account: MyAccount; 
         <section className={styles.gradeCard} aria-labelledby="mypage-grade">
           <div className={styles.gradeMain}>
             <span className={styles.gradeLabel} id="mypage-grade">
-              내 등급
+              활동 등급
             </span>
             <strong className={styles.gradeName}>{gradeLabel(grade.key)}</strong>
-            <span className={styles.gradeMeta}>최근 30일 후원 {formatNumber(grade.last30Fn)} FN</span>
+            <span className={styles.gradeMeta}>
+              최근 {GRADE_MONTHS}개월 후원 {formatNumber(grade.recentFn)} FN{grade.kept ? " · 이번 달 말까지 유지" : ""}
+            </span>
           </div>
           <div className={styles.gradeProgress}>
             {grade.progress.nextLabel ? (

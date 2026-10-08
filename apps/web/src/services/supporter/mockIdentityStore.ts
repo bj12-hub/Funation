@@ -14,7 +14,9 @@ type MockIdentity = {
   attribution: Record<string, string>;
 };
 
-const g = globalThis as typeof globalThis & { __ssumnationMockIdentityV1?: MockIdentity };
+// V2 (2026-10-08 누적 등급): an equipped title from the old ladder ("GOLD" …) no longer exists, so a running dev
+// server starts from fresh settings instead of resolving a missing title.
+const g = globalThis as typeof globalThis & { __ssumnationMockIdentityV2?: MockIdentity };
 
 const initial = (): MockIdentity => ({
   nicknames: [],
@@ -23,7 +25,7 @@ const initial = (): MockIdentity => ({
   attribution: {}
 });
 
-export const mockIdentity = (g.__ssumnationMockIdentityV1 ??= initial());
+export const mockIdentity = (g.__ssumnationMockIdentityV2 ??= initial());
 
 /** 재가입 (services/account/rejoin.ts): the new account starts without the withdrawn one's 별명, 대표 and 칭호 settings. */
 export const resetMockIdentity = () => Object.assign(mockIdentity, initial());

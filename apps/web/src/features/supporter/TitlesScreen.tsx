@@ -9,10 +9,14 @@ import { saveEquipSettings } from "@/services/supporter/identity";
 import {
   GLOBAL_TITLES,
   GRADES,
+  GRADE_MONTHS,
   STORE_TITLES,
+  TITLE_LINE_LABEL,
   globalTitleLabel,
   gradeLabel,
+  hasGrade,
   storeTitleLabel,
+  type TitleLine,
   type EquipSettings,
   type Progress,
   type SupporterIdentity
@@ -22,7 +26,7 @@ import styles from "./supporter.module.css";
 /**
  * 칭호·등급 — code-first (no Figma frame). Route `/mypage/titles`. Grade, titles and progress are
  * server values; the preview only combines the labels the server returned with the chosen slots.
- * Thresholds are placeholders (TBD).
+ * 활동 등급 (최근 6개월) · 누적 등급 (다이아 · 블랙) follow the 2026-10-08 structure; thresholds are placeholders (TBD).
  */
 export function TitlesScreen({ identity }: { identity: SupporterIdentity }) {
   const router = useRouter();
@@ -36,7 +40,7 @@ export function TitlesScreen({ identity }: { identity: SupporterIdentity }) {
 
   const globalShown = equip.globalTitle === "OFF" ? null : equip.globalTitle === "AUTO" ? identity.global.best : equip.globalTitle;
   const badges = [
-    equip.showGrade && identity.grade.key !== "FRIEND" ? gradeLabel(identity.grade.key) : null,
+    equip.showGrade && hasGrade(identity.grade.key) ? gradeLabel(identity.grade.key) : null,
     globalShown ? globalTitleLabel(globalShown) : null,
     equip.showStoreTitle && topStore?.title ? storeTitleLabel(topStore.title) : null
   ].filter(Boolean) as string[];
@@ -100,13 +104,13 @@ export function TitlesScreen({ identity }: { identity: SupporterIdentity }) {
           표시 설정
         </h2>
         <label className={styles.switchRow}>
-          <span>등급 배지 표시</span>
+          <span>활동 등급 배지 표시</span>
           <input type="checkbox" checked={equip.showGrade} onChange={(e) => setEquip({ ...equip, showGrade: e.target.checked })} />
         </label>
         <label className={styles.switchRow}>
-          <span>글로벌 칭호</span>
+          <span>누적 등급</span>
           <select className={styles.select} value={equip.globalTitle} onChange={(e) => setEquip({ ...equip, globalTitle: e.target.value as EquipSettings["globalTitle"] })}>
-            <option value="AUTO">자동 — 항상 최고 칭호</option>
+            <option value="AUTO">자동 — 항상 가장 높은 등급</option>
             <option value="OFF">표시 안 함</option>
             {identity.global.earned.map((k) => (
               <option key={k} value={k}>
@@ -133,9 +137,12 @@ export function TitlesScreen({ identity }: { identity: SupporterIdentity }) {
 
       <section className={styles.card} aria-labelledby="st-grade">
         <h2 id="st-grade" className={styles.cardTitle}>
-          내 등급 · {gradeLabel(identity.grade.key)}
+          활동 등급 · {gradeLabel(identity.grade.key)}
         </h2>
-        <p className={styles.muted}>최근 30일 후원 {formatNumber(identity.grade.last30Fn)} FN 기준으로 자동 계산돼요. 누적이 아니라서 후원이 줄면 등급이 내려갈 수 있어요.</p>
+        <p className={styles.muted}>
+          이번 달을 포함한 최근 {GRADE_MONTHS}개월 후원 {formatNumber(identity.grade.recentFn)} FN 기준이에요. 기준을 넘으면 바로 오르고, 매월 1일에 지난 {GRADE_MONTHS}개월 후원으로 다시 정해져요.
+        </p>
+        {identity.grade.kept && <p className={styles.note}>지난 {GRADE_MONTHS}개월 후원으로 정해진 {gradeLabel(identity.grade.key)} 등급이 이번 달 말까지 유지돼요.</p>}
         <ProgressBar progress={identity.grade.progress} />
         <ol className={styles.ladder}>
           {GRADES.map((g) => (
@@ -149,18 +156,23 @@ export function TitlesScreen({ identity }: { identity: SupporterIdentity }) {
 
       <section className={styles.card} aria-labelledby="st-global">
         <h2 id="st-global" className={styles.cardTitle}>
-          글로벌 칭호 · {identity.global.earned.length} / {GLOBAL_TITLES.length}
+          누적 등급 · {identity.global.best ? globalTitleLabel(identity.global.best) : "없음"}
         </h2>
-        <p className={styles.muted}>썸네이션 전체 누적 후원 {formatNumber(identity.global.lifetimeFn)} FN 기준이에요. 어느 크리에이터에게 후원해도 붙어요.</p>
+        <p className={styles.muted}>썸네이션 전체 누적 후원 {formatNumber(identity.global.lifetimeFn)} FN 기준이에요. 어느 크리에이터에게 후원해도 쌓이고, 한 번 오르면 내려가지 않아요.</p>
         <ProgressBar progress={identity.global.progress} />
-        <ol className={styles.ladder}>
-          {GLOBAL_TITLES.map((t) => (
-            <li key={t.key} data-on={identity.global.earned.includes(t.key) || undefined}>
-              <strong>{t.label}</strong>
-              <span>{formatNumber(t.minFn)} FN~</span>
-            </li>
-          ))}
-        </ol>
+        {(Object.keys(TITLE_LINE_LABEL) as TitleLine[]).map((line) => (
+          <div key={line} className={styles.ladderGroup}>
+            <h3 className={styles.ladderTitle}>{TITLE_LINE_LABEL[line]}</h3>
+            <ol className={styles.ladder}>
+              {GLOBAL_TITLES.filter((t) => t.line === line).map((t) => (
+                <li key={t.key} data-on={identity.global.earned.includes(t.key) || undefined}>
+                  <strong>{t.label}</strong>
+                  <span>{formatNumber(t.minFn)} FN~</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        ))}
       </section>
 
       <section className={styles.card} aria-labelledby="st-store">
