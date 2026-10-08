@@ -1,4 +1,4 @@
-# Ssumnation 사이트 — 편집 가능한 디자인 (현재 구현 파일 7–10 페이지)
+# Ssumnation 사이트 — 편집 가능한 디자인 (현재 구현 파일 7–11 페이지)
 
 사이트 화면을 **레이어 · 컴포넌트로 직접 편집할 수 있게** 다시 그리는 작업이에요. 1–6 페이지의 화면 캡처(이미지)는
 참고용으로 두고, 새 디자인은 여기서 만들어요. 2026-10-02 시작, 통합 채팅부터 단계적으로 넓혀요.
@@ -15,6 +15,7 @@
 | 8 디자인 · Components | `43:3` | 기본 · 조합 컴포넌트 |
 | 9 레이아웃 · 스튜디오 | `43:4` | 컴포넌트로 조합한 스튜디오 화면 |
 | 10 레이아웃 · 사이트 | `74:2` | 컴포넌트로 조합한 사이트 화면 (헤더 · 사이드 메뉴 · 푸터 인스턴스) |
+| 11 레이아웃 · 오버레이 테마 | `258:333` | OBS 오버레이를 테마별(볼드 플랫 · 미니멀 필 · 소프트 글래스)로 그린 프레임 + 스튜디오 오버레이 테마 카드 |
 
 ## 토큰
 
@@ -41,6 +42,35 @@ Light 모드 값은 코드의 라이트 테마 대비 정리(WCAG AA, #172 · #1
 텍스트 스타일 `Site/*`: Page Title 24 Black · Card Title 18 ExtraBold · Subtitle 15 · Body 14 · Body Strong 14 SemiBold ·
 Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Medium · Overlay 18 · Overlay Name 18 Bold.
 
+### 오버레이 테마 (Overlay Theme 컬렉션, 2026-10-08)
+
+OBS 오버레이의 세 테마는 변수 컬렉션 **Overlay Theme**의 모드예요: **미니멀 필**(기본) · **볼드 플랫** · **소프트 글래스** — 코드
+`[data-ov="PILL" | "BOLD" | "GLASS"]`(`features/overlayTheme/overlayTheme.module.css`)와 같아요. 프레임이나 인스턴스의 변수 모드만 바꾸면
+같은 레이아웃이 다른 테마로 바뀌어요.
+
+| 변수 | 볼드 플랫 · 미니멀 필 · 소프트 글래스 | CSS |
+|---|---|---|
+| `ov/accent · ov/accent-ink` | `#FFD23F`/`#111` · `#8B5CF6`/`#fff` · `#FFC6DD`/`#111` (테마 기본 포인트 색, `readableInk`) | `--ov-accent · --ov-accent-ink` |
+| `ov/card/bg · ink · muted · border` | 흰 카드 + 검은 선 · 어두운 알약 카드 · 반투명 흰 카드 | `--ov-card-*` |
+| `ov/card/radius · border-width` | 14 · 22 · 24 / 2.5 · 1 · 1 | `--ov-card-radius · --ov-card-border` |
+| `ov/chip/* · ov/track/* · ov/fill/*` | 칩 · 진행 막대 바탕 · 막대 채움(볼드는 오른쪽 검은 선, 각진 끝) | `--ov-chip-* · --ov-track-* · --ov-fill-edge` |
+| `ov/on-stream · ov/on-stream/*` | 방송 위 글자 색과 그림자(볼드는 검은 외곽선) | `--ov-on-stream · --ov-on-stream-shadow` |
+| `ov/font/display · display-style` | Archivo Black · Inter Extra Bold · Fredoka Bold | `--ov-display-font · --ov-display-weight` |
+| `ov/font/display-ko-style` | 한글이 들어간 큰 글자: Gothic A1 Black · ExtraBold · Bold (세 숫자 글꼴에 한글이 없어 코드에서도 Gothic A1로 그려져요) | — |
+| `ov/font/label-style` | Gothic A1 ExtraBold · SemiBold · Bold | `--ov-label-weight` |
+
+역할 변수: `ov/feature/*`(볼드는 강조 카드가 포인트 색 블록 — 후원 알림 · 누적 · 자막 · 타이머 · 시나리오 …), `ov/name/*`(후원 알림 닉네임:
+필은 포인트 색 글자, 글래스는 파스텔 배지), `ov/message/*`(볼드 흰 메시지 상자), `ov/capsule/radius`(필에서만 알약), `ov/flip/*` · `ov/dial/*`
+(시계), `ov/bingo/*`, `ov/art/*`(그림 액자), `ov/quest/*`, `ov/rank/*`, `ov/shape/*`(하트 · 별 외곽선), `ov/alert/amount-size`(볼드 68 · 나머지 60),
+테마별 요소를 켜고 끄는 불리언 `ov/is-bold · is-pill · is-glass · not-bold · not-pill`(채팅 닉네임 색 태그 · 색 점 등).
+
+효과 스타일: `Overlay/Card`(볼드 5px 블록 그림자 · 필 부드러운 그림자 · 글래스 그림자 + 안쪽 하이라이트 + 배경 흐림 14),
+`Overlay/On Stream`(방송 위 글자 그림자 · 볼드 외곽선), `Overlay/Block Shadow`(볼드만 4px 블록 그림자: 막대 · 이미지 · 룰렛 · 결과 블록).
+모두 변수에 묶여 있어 모드를 따라 바뀌어요.
+
+피그마로 옮기며 단순화한 것: 글래스 카드의 그라데이션(`linear-gradient(135deg, …)` + 보라 틴트)은 반투명 색 하나 + 배경 흐림으로,
+등장 · 퇴장 효과와 금액 올라가기는 그리지 않았어요(정지 화면). 볼드 이미지 강조형 금액 블록의 -3° 기울기도 빠져 있어요.
+
 ## 컴포넌트 ↔ 코드
 
 | 컴포넌트 | 노드 | 속성 | 코드 |
@@ -54,7 +84,17 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | Studio Header · Studio Sidebar | `46:8` · `46:20` | Channel · 메뉴는 `CreatorSideNav.tsx`와 같음 | 스튜디오 레이아웃 |
 | Chat Line | `46:149` | State (Default · Hover · Hidden), Platform, Nick, Message, Time, Show role, Show flag | `UnifiedChatScreen.tsx` Line |
 | Channel Card | `46:206` | Status (Connected · Disconnected · YouTube link), Platform, Name, Info | `UnifiedChatScreen.tsx` Channels |
-| Overlay Chat Line | `46:208` | Platform, Name, Message, Show role | `chatOverlay.module.css` |
+| Overlay Chat Line | `46:208` | Platform, Name, Message, Show role | `chatOverlay.module.css` (테마 이전) |
+| Overlay/Alert | `249:215` | Layout (Card · Banner · Image) × Size (Default · Vertical), Nick, Headline, Amount, Message, Type, Show message · meta · badge | `remote/AlertCard.tsx` |
+| Overlay/Chat Line · Overlay/Chat | `250:310` · `250:557` | 줄: Style (Plain · Box · Bubble · Row · Aligned), Nick, Message, Role / 오버레이: Style 5종 × Size | `broadcast/ChatLines.tsx` |
+| Overlay/Goal | `251:1057` | Shape (Bar · Circle · Semi · Heart · Star) × Size, Title, Amount, Percent, Two goals | `widgets/GoalView.tsx` |
+| Overlay/Total · Ranking · Recent · Event · QR | `252:496` · `252:499` · `252:528` · `252:553` · `252:578` | 배경 카드 켬 상태 | `widgets/WidgetViews.tsx` |
+| Overlay/Quest · Vote · Roulette · Gacha · Gacha Board | `253:1455` · `253:1464` · `253:1491` · `253:1515` · `253:1526` | 화려한 퀘스트 · 진행 중 투표 · 돌아가는 룰렛 · 뽑기 당첨 · 당첨 리스트 | `widgets/GameViews.tsx` |
+| Overlay/Clock | `254:600` | Style (Flip · Digital · Analog), Show label · date | `widgets/ClockView.tsx` |
+| Overlay/Subtitle · Marquee · Timer · Credits · Bingo | `254:601` · `254:603` · `254:607` · `254:609` · `254:631` | — | `widgets/ToolOverlay.tsx` |
+| Overlay/Crew Score · Battle · Scenario · Steal | `257:600` · `257:636` · `257:661` · `257:669` | — | `crew/CrewScoreOverlay.tsx` |
+| Overlay/Video Caption · Audio Card · Drawing | `257:674` · `257:680` · `257:697` | — | `widgets/media/MediaOverlays.tsx` |
+| Overlay/Theme Sample | `260:13093` | Theme (Bold · Pill · Glass) — 변형마다 모드 고정 | `overlayTheme/ThemeSample.tsx` |
 
 ## 아이콘 (8 디자인 · Components → Icons 섹션)
 
@@ -261,3 +301,26 @@ Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Me
 | OBS 오버레이 | O24 | 빙고 (600×700, 3 × 3 · 1줄 완성 · 빙고!) | `/overlay/tool/bingo/[key]` | `215:9924` |
 
 OBS 오버레이는 투명 배경이라 회색 바탕 위에 그렸어요. 테스트 후원 · 테스트 그림 · 방송 도구 켜기 · 크루 방송 시작으로 띄운 상태를 읽었고, 이펙트(무작위 파티클)와 영상(외부 임베드)은 코드 구조대로 그린 예시 배치예요. 통합 채팅 오버레이는 9 페이지(O04 `49:504`)에 있어요. 아이콘은 회색 자리표시 사각형이에요.
+
+## 레이아웃 (11 레이아웃 · 오버레이 테마)
+
+오버레이 테마(2026-10-08, `docs/research/flextv-livehelper.md`)를 테마별로 그린 페이지예요. 세 섹션이 같은 프레임 구성을 보여 주고, 섹션마다
+Overlay Theme 모드가 고정돼 있어요. 프레임 크기는 오버레이 주소 목록의 OBS 권장 크기이고, 오버레이는 모두 8 페이지 Overlay Theme 섹션
+(`249:165`)의 인스턴스예요. 프레임 배경 그라데이션은 방송 화면 예시(OBS 소스는 투명), 닉네임 · 금액은 가상 예시예요.
+
+| 섹션 | 노드 | 프레임 |
+|---|---|---|
+| 볼드 플랫 | `258:334` | 45개 — 아래 목록 |
+| 미니멀 필 (기본) | `258:1668` | 45개 |
+| 소프트 글래스 | `258:2775` | 45개 |
+| 스튜디오 · 오버레이 테마 | `261:3616` | W00 위젯 페이지 위 "오버레이 테마" 카드 `261:3617`(Site 변수 · Dark, 미니멀 필 선택 · 사용 중, 테마 저장 비활성) + 상태 메모 + 이 페이지 쓰는 법 |
+
+섹션마다 들어 있는 프레임: 후원 알림 카드형 · 가로 띠형 · 이미지 강조형(800 × 600), 통합 채팅 5종(400 × 600), 후원목표 막대 · 원형 · 반원 · 하트 · 별
+(800 × 200, 글자 기본 14px), 후원누적금액(600 × 120), 후원랭킹(400 × 500), 최근알림(800 × 200), 이벤트 리스트형(500 × 600), 후원 QR코드(300 × 360),
+퀘스트(600 × 400), 투표(600 × 500), 룰렛(640 × 360), 뽑기(640 × 400), 뽑기 당첨 리스트(800 × 120), 시계 플립 · 디지털 · 아날로그(600 × 240),
+자막(1920 × 200), 전광판(1920 × 100), 타이머(600 × 200), 빙고(600 × 700), 엔딩 크레딧(1920 × 1080), 크루 점수판 · 실시간 배틀 · 콘텐츠 시나리오 ·
+기여도 강탈(480 × 600), 영상 후원 · 음성 후원(1280 × 720), 그림 후원(800 × 700), 세로 방송: 후원 알림 3종(1080 × 640) · 통합 채팅(1080 × 900) ·
+후원목표 막대 · 원형 · 하트(1080 × 520).
+
+10 페이지의 OBS 오버레이 프레임(O02–O24)은 오버레이 테마 이전 모습이에요. 테마가 있는 오버레이의 지금 디자인은 이 페이지를 보세요.
+이펙트 · 배너 · 벽지는 이미지와 효과만 그려서 테마가 없어요.

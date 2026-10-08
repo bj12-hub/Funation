@@ -47,3 +47,10 @@ Names: the brand and code identifiers are `ssumnation` since 2026-10-08, and the
 "Ssumnation — 현재 구현 (2026-09)" and "Ssumnation Admin" (by hand — the plugin API cannot rename a file). One thing keeps
 the old spelling on purpose: the shared plugin-data namespace `somnation` (data stored inside both Figma files: the stored
 renderers, helper snippets and per-node width hints).
+
+Overlay themes (page 11 "11 레이아웃 · 오버레이 테마", 2026-10-08) are built differently: the overlays are components on page 8
+(Overlay Theme section) bound to the "Overlay Theme" variable collection, so one layout serves all three themes through the variable
+mode. Two snippets live in shared plugin data `somnation`: `ovHelpers` (builders for theme cards, chips, tracks, avatars and display text
+bound to the `ov/*` variables) and `ovBoard` (`(modeId, title, x)` → one theme section with the OBS frames; the 세로 방송 row was appended afterwards). Run them with
+`new Function("return " + figma.root.getSharedPluginData("somnation", "ovHelpers"))()`; set `figma.skipInvisibleInstanceChildren = false`
+first, because theme-specific layers are hidden by boolean variables and are skipped otherwise.
