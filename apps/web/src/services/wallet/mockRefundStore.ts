@@ -4,6 +4,7 @@
  * 법무 검토 전 — `refundPolicy.ts`); KRW payout via the payment provider is TBD.
  */
 
+import type { HoldEvent } from "@/services/admin/holdCore";
 import { sameRefund, type RefundAmounts } from "./refundPolicy";
 import type { ChargeRefund, RefundStatus } from "./walletTypes";
 
@@ -26,12 +27,17 @@ export type MockRefundRequest = {
    * `at` is local "YYYY-MM-DD HH:mm:ss" like the other wallet records.
    */
   debit?: { fnAmount: number; at: string; by: string };
+  /**
+   * 보류 / 보류 해제 (관리자 콘솔, 2026-10-08 결정), oldest first: an operator flag on a waiting request that stops 승인 ·
+   * 거절 while the last event is a 보류. The status stays REQUESTED and the member keeps seeing 심사 중.
+   */
+  holds?: HoldEvent[];
 };
 
-// V3: requests keep the computed refund (`quote`) and the approved one (`settled`).
-const g = globalThis as typeof globalThis & { __ssumnationMockRefundsV3?: { requests: MockRefundRequest[] } };
+// V3: requests keep the computed refund (`quote`) and the approved one (`settled`); V4: and their `holds`.
+const g = globalThis as typeof globalThis & { __ssumnationMockRefundsV4?: { requests: MockRefundRequest[] } };
 
-export const mockRefunds = (g.__ssumnationMockRefundsV3 ??= { requests: [] });
+export const mockRefunds = (g.__ssumnationMockRefundsV4 ??= { requests: [] });
 
 const amounts = (a: RefundAmounts): RefundAmounts => ({ type: a.type, grossFn: a.grossFn, feeFn: a.feeFn, netFn: a.netFn });
 

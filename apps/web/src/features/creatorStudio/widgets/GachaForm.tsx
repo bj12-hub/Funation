@@ -291,7 +291,7 @@ function GachaDetail({ gacha: g, onChange }: { gacha: Gacha; onChange: (patch: P
             <div className={styles.inline}>
               <SwitchText label="후원 횟수 한도 제한" checked={g.limitEnabled} onChange={(x) => onChange({ limitEnabled: x })} />
               {g.limitEnabled && (
-                <NumberField label="1인당 최대 횟수" value={g.limitCount} max={1000} suffix="회 (1인당, 기준 기간 TBD)" onChange={(x) => onChange({ limitCount: Math.max(1, x) })} />
+                <NumberField label="1인당 최대 횟수" value={g.limitCount} max={1000} suffix="회 (1인 하루, 한국 시간 기준)" onChange={(x) => onChange({ limitCount: Math.max(1, x) })} />
               )}
             </div>
           </Row>

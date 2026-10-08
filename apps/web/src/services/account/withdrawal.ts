@@ -43,7 +43,10 @@ const assertMock = () => {
 
 const REQUEST_ID = /^[A-Za-z0-9-]{16,64}$/;
 
-/** Creator earnings not paid out yet: 정산 가능 FN + 정산 신청 중. */
+/**
+ * Creator earnings a 탈퇴 forfeits: 정산 가능 FN + 심사 대기 requests. Approved requests are not part of it — they are
+ * still paid after the 탈퇴 (2026-10-08 결정).
+ */
 const unsettledFn = () => mockSettlement.availableFn + mockSettlement.requests.filter((r) => r.status === "PENDING").reduce((s, r) => s + r.amountFn, 0);
 
 /** This account's FN 충전 환불 requests still waiting for an operator. */

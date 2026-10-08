@@ -78,4 +78,26 @@ describe("admin api", () => {
     const { auditEntries } = await import("@/services/admin/auditCore");
     expect(auditEntries()[0]).toMatchObject({ action: "SETTLEMENT_PAY", actorId: "adm-1", target: "settlement:st-seed-1" });
   });
+
+  it("puts a settlement and a refund request on 보류 and back through the hold routes (2026-10-08 결정)", async () => {
+    const settlement = await import("@/app/api/admin/settlements/[id]/hold/route");
+    const refund = await import("@/app/api/admin/refunds/[chargeId]/hold/route");
+    const { mockRefunds } = await import("@/services/wallet/mockRefundStore");
+    mockRefunds.requests.push({ chargeId: "ch-x", memberId: "u-test", accountSince: null, requestedAt: "2026-10-01T00:00:00.000Z", reason: "", status: "REQUESTED", quote: { type: "FULL_CANCEL", grossFn: 10_000, feeFn: 0, netFn: 10_000 } });
+    const post = <P,>(route: { POST: (r: Request, c: { params: Promise<P> }) => Promise<Response> }, params: P, body: unknown, h = headers()) =>
+      route.POST(new Request("http://x", { method: "POST", headers: h, body: JSON.stringify(body) }), ctx(params));
+
+    const hold = { action: "HOLD", note: "확인 필요", requestId: key(1) };
+    expect((await post(settlement, { id: "st-seed-1" }, hold, headers({ authorization: "Bearer nope" }))).status).toBe(401);
+    expect(await (await post(settlement, { id: "st-seed-1" }, hold)).json()).toEqual({ status: "OK" });
+    expect(await (await post(settlement, { id: "st-seed-1" }, { ...hold, action: "RELEASE", requestId: key(2) })).json()).toEqual({ status: "OK" });
+    expect(await (await post(refund, { chargeId: "ch-x" }, { ...hold, requestId: key(3) })).json()).toEqual({ status: "OK" });
+    expect(await (await post(refund, { chargeId: "nope" }, { ...hold, requestId: key(4) })).json()).toEqual({ status: "NOT_FOUND" });
+    const { auditEntries } = await import("@/services/admin/auditCore");
+    expect(auditEntries().map((e) => [e.action, e.actorId, e.target])).toEqual([
+      ["REFUND_HOLD", "adm-1", "refund:ch-x"],
+      ["SETTLEMENT_RELEASE", "adm-1", "settlement:st-seed-1"],
+      ["SETTLEMENT_HOLD", "adm-1", "settlement:st-seed-1"]
+    ]);
+  });
 });

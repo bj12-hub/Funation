@@ -1,10 +1,10 @@
 import { USE_MOCK } from "@/lib/mock";
 import { toDateString } from "@/lib/period";
 import { purgeExpired } from "@/services/account/retentionPurge";
-import { mockSettlement } from "@/services/creator/mockSettlementStore";
 import { moderationStore } from "@/services/moderation/moderationCore";
 import { getAllCreatorsForAdmin } from "@/services/creators/creators";
 import { refundQueue } from "./payments";
+import { settlementQueue } from "./settlements";
 import { listAccountChargeRecords, listAccountDonationRecords } from "@/services/wallet/walletHistory";
 import { AUDIT_MAX, AUDIT_PAGE, type AdminActor, type AdminDashboard, type AuditEntry, type AuditPage, type AuditTargetMember } from "./adminTypes";
 import { auditEntries, recordAudit } from "./auditCore";
@@ -39,6 +39,7 @@ export async function getAdminDashboard(): Promise<AdminDashboard | null> {
   const completed = charges.filter((c) => c.status === "COMPLETED");
   const donations = listAccountDonationRecords().filter((d) => d.donatedAt.startsWith(month) && d.status === "COMPLETED");
   const refunds = refundQueue();
+  const settlements = settlementQueue();
   return {
     creators: { total: creators.length, live: creators.filter((c) => c.isLive).length },
     charges: {
@@ -49,10 +50,13 @@ export async function getAdminDashboard(): Promise<AdminDashboard | null> {
     },
     donations: { monthCount: donations.length, monthFn: donations.reduce((s, d) => s + d.fnAmount, 0) },
     pending: {
-      // 처리 대기 only; a withdrawn account's waiting requests are counted apart as 처리 불가(탈퇴) (2026-10-08 결정).
+      // 처리 대기 only; a withdrawn account's waiting requests are counted apart as 처리 불가(탈퇴), and requests on 보류
+      // as 보류 (2026-10-08 결정).
       refunds: refunds.waiting,
       refundsBlocked: refunds.blocked,
-      settlements: mockSettlement.requests.filter((r) => r.status === "PENDING").length,
+      refundsHeld: refunds.held,
+      settlements: settlements.waiting,
+      settlementsHeld: settlements.held,
       reports: moderationStore().reports.filter((r) => r.status === "OPEN").length
     },
     recentAudit: auditEntries().slice(0, 8)

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { mockSessionModule, resetMockStores, signIn, signInAs } from "@/test/mockEnv";
+import { key, mockSessionModule, resetMockStores, signIn, signInAs } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
@@ -196,5 +196,108 @@ describe("admin payments", () => {
     expect(total).toBe(v.rows.length);
     expect(v.byType.reduce((s, t) => s + t.count, 0)).toBe(v.byStatus.COMPLETED.count);
     expect((await m.getDonationsView({ status: "REFUNDED" }))!.rows.every((d) => d.status === "REFUNDED")).toBe(true);
+  });
+});
+
+describe("환불 요청 보류 · 보류 해제 (2026-10-08 결정)", () => {
+  beforeEach(() => resetMockStores());
+
+  const hold = (m: Awaited<ReturnType<typeof load>>, chargeId: string, n: number, note = "결제 도용 의심 확인") => m.holdRefund(OP, { chargeId, action: "HOLD", note, requestId: key(n) });
+  const release = (m: Awaited<ReturnType<typeof load>>, chargeId: string, n: number, note = "본인 결제 확인") =>
+    m.holdRefund(OP, { chargeId, action: "RELEASE", note, requestId: key(n) });
+  const BLOCKED = { status: "INVALID", message: "보류 중인 환불 요청이라 승인 · 거절할 수 없어요. 보류를 해제한 뒤 처리해 주세요." };
+
+  it("stops 승인 and 거절 while held, takes no FN, and 보류 해제 puts the request back as it was", async () => {
+    const m = await load();
+    const charge = await fileRefund(m, (fn) => fn + 1_000);
+    const balance = m.mockAccount.fnBalance;
+    expect(await hold(m, charge.id, 1)).toEqual({ status: "OK" });
+    expect(await approve(m, charge.id)).toEqual(BLOCKED);
+    expect(await m.decideRefund(OP, { chargeId: charge.id, decision: "REJECT", note: "거절 시도" })).toEqual(BLOCKED);
+    expect(m.mockAccount.fnBalance).toBe(balance);
+    const held = (await m.getPaymentsView())!.refunds[0];
+    expect(held).toMatchObject({ chargeId: charge.id, status: "REQUESTED", hold: { by: OP.nickname, note: "결제 도용 의심 확인" }, current: { type: "FULL_CANCEL" } });
+
+    expect(await release(m, charge.id, 2)).toEqual({ status: "OK" });
+    expect((await m.getPaymentsView())!.refunds[0]).toMatchObject({ status: "REQUESTED", hold: null, requested: held.requested });
+    expect(await approve(m, charge.id)).toEqual({ status: "OK" });
+    expect(m.mockAccount.fnBalance).toBe(1_000);
+    expect(m.auditEntries().map((e) => e.action)).toEqual(["REFUND_APPROVE", "REFUND_RELEASE", "REFUND_HOLD"]);
+  });
+
+  it("is idempotent by request id, needs a memo and is audited", async () => {
+    const m = await load();
+    const charge = await fileRefund(m);
+    expect(await hold(m, charge.id, 1, " ")).toEqual({ status: "INVALID", message: "보류 메모를 2~200자로 입력해 주세요." });
+    expect(await m.holdRefund(OP, { chargeId: charge.id, action: "HOLD", note: "확인 필요" })).toEqual({ status: "INVALID", message: "잘못된 요청입니다." });
+    expect(await hold(m, "nope", 1)).toEqual({ status: "NOT_FOUND" });
+    expect(await hold(m, charge.id, 1)).toEqual({ status: "OK" });
+    expect(await hold(m, charge.id, 1)).toEqual({ status: "OK" }); // a retry
+    expect(await hold(m, charge.id, 2)).toEqual({ status: "INVALID", message: "이미 보류 중인 환불 요청이에요." });
+    expect(await release(m, charge.id, 1)).toEqual({ status: "INVALID", message: "잘못된 요청입니다." });
+    expect(await release(m, charge.id, 3)).toEqual({ status: "OK" });
+    expect(await release(m, charge.id, 3)).toEqual({ status: "OK" }); // a retry
+    expect(await release(m, charge.id, 4)).toEqual({ status: "INVALID", message: "보류 중인 환불 요청이 아니에요." });
+    expect(m.auditEntries().map((e) => [e.action, e.target, e.reason])).toEqual([
+      ["REFUND_RELEASE", `refund:${charge.id}`, "본인 결제 확인"],
+      ["REFUND_HOLD", `refund:${charge.id}`, "결제 도용 의심 확인"]
+    ]);
+
+    // Decided requests and a withdrawn account's request (처리 불가) are not held.
+    expect(await m.decideRefund(OP, { chargeId: charge.id, decision: "REJECT", note: "이미 사용한 FN" })).toEqual({ status: "OK" });
+    expect(await hold(m, charge.id, 5)).toEqual({ status: "INVALID", message: "심사 대기 중인 환불 요청만 보류할 수 있어요." });
+  });
+
+  it("does not hold a withdrawn account's request", async () => {
+    const m = await load();
+    const charge = await fileRefund(m);
+    withdraw(m);
+    expect(await hold(m, charge.id, 1)).toEqual({ status: "INVALID", message: "탈퇴한 회원의 환불 요청이라 보류할 수 없어요." });
+    expect(m.auditEntries()).toEqual([]);
+  });
+
+  it("leaves held requests out of 처리 대기 and counts them as 보류, on the dashboard too", async () => {
+    const m = await load();
+    const { getAdminDashboard } = await import("./admin");
+    const charge = await fileRefund(m);
+    expect(m.refundQueue()).toEqual({ waiting: 1, blocked: 0, held: 0 });
+    await hold(m, charge.id, 1);
+    expect(m.refundQueue()).toEqual({ waiting: 0, blocked: 0, held: 1 });
+    expect((await getAdminDashboard())!.pending).toMatchObject({ refunds: 0, refundsBlocked: 0, refundsHeld: 1 });
+    await release(m, charge.id, 2);
+    expect((await getAdminDashboard())!.pending).toMatchObject({ refunds: 1, refundsHeld: 0 });
+  });
+
+  it("keeps showing the member 심사 중 without the memo, and still keeps the account from withdrawing", async () => {
+    const m = await load();
+    const charge = await fileRefund(m);
+    await hold(m, charge.id, 1, "운영자만 보는 보류 메모");
+    signIn(["SUPPORTER"]);
+    const refund = m.listChargeRecords().find((c) => c.id === charge.id)!.refund!;
+    expect(refund).toMatchObject({ status: "REQUESTED" });
+    expect(JSON.stringify(refund)).not.toContain("운영자만 보는 보류 메모");
+    const overview = await m.getWalletOverview({ kind: "CHARGE", period: "all" });
+    expect(JSON.stringify(overview)).not.toContain("운영자만 보는 보류 메모");
+    const { getWithdrawalInfo } = await import("@/services/account/withdrawal");
+    expect(await getWithdrawalInfo()).toMatchObject({ pendingRefunds: 1 });
+  });
+});
+
+describe("이용 정지 중인 회원의 충전 환불 (2026-10-08 결정)", () => {
+  beforeEach(() => resetMockStores());
+
+  it("decides a suspended member's refund requests as usual", async () => {
+    const m = await load();
+    const { SAMPLE_MEMBER_ID, isMemberSuspended } = await import("./memberCore");
+    const { suspendMember } = await import("./members");
+    const charge = await fileRefund(m, (fn) => fn + 1_000);
+    expect(await suspendMember(OP, { id: SAMPLE_MEMBER_ID, days: null, reason: "결제 관련 운영정책 위반", requestId: key(1) })).toEqual({ status: "OK" });
+    expect(isMemberSuspended(SAMPLE_MEMBER_ID)).toBe(true);
+    expect(m.refundQueue()).toEqual({ waiting: 1, blocked: 0, held: 0 });
+    expect((await m.getPaymentsView())!.refunds[0]).toMatchObject({ memberWithdrawn: false, current: { type: "FULL_CANCEL" } });
+    expect(await approve(m, charge.id)).toEqual({ status: "OK" });
+    expect(m.mockAccount.fnBalance).toBe(1_000);
+    expect(m.listChargeRecords().find((c) => c.id === charge.id)!.refund).toMatchObject({ status: "APPROVED" });
+    expect(m.auditEntries().map((e) => e.action)).toEqual(["REFUND_APPROVE", "MEMBER_SUSPEND"]);
   });
 });

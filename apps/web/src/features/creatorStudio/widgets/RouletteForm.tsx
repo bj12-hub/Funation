@@ -63,7 +63,7 @@ export function RouletteForm({ value: v, onChange, live }: FormProps<"ROULETTE">
               label="1인 하루 참여 가능 횟수"
               value={v.dailyLimit}
               max={ROULETTE_DAILY_LIMIT_MAX}
-              suffix={v.dailyLimit === 0 ? "회 (0 = 제한 없음)" : "회 (1인 하루, 기준 기간 TBD)"}
+              suffix={v.dailyLimit === 0 ? "회 (0 = 제한 없음)" : "회 (1인 하루, 한국 시간 기준)"}
               onChange={(x) => set("dailyLimit", x)}
             />
           </Row>

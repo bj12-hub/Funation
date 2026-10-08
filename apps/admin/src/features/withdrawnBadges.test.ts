@@ -30,7 +30,8 @@ const payments: PaymentsView = {
       charge: { chargedAt: charge.chargedAt, fnAmount: 10_000, paidAmount: 11_000, methodLabel: "카드", transactionId: "TXN-1" },
       requested: { type: "FULL_CANCEL", grossFn: 10_000, feeFn: 0, netFn: 10_000 },
       approved: null,
-      current: null
+      current: null,
+      hold: null
     }
   ],
   balance: 0,
@@ -70,10 +71,11 @@ describe("withdrawn members in the console", () => {
       payoutDate: null,
       registrationAtRequest: null,
       review: { at: "2026-10-01T00:00:00.000Z", by: "회원 탈퇴", note: "정산 대기 수익 소멸 (회원 동의)" },
-      payment: null
+      payment: null,
+      hold: null
     };
     const counts = { PENDING: 0, APPROVED: 0, PAID: 0, REJECTED: 0, FORFEITED: 1 };
-    const settlements = renderToStaticMarkup(createElement(SettlementReviewScreen, { view: { rows: [row], counts, registration: null, availableFn: 0 }, status: null }));
+    const settlements = renderToStaticMarkup(createElement(SettlementReviewScreen, { view: { rows: [row], counts, held: 0, registration: null, availableFn: 0 }, status: null }));
     expect(settlements).toMatch(after("홍길동"));
 
     const { ReportsScreen } = await import("./reports/ReportsScreen");
