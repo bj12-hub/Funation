@@ -81,6 +81,45 @@ describe("플랫폼 후원", () => {
     expect(platform.transactions[0]).toMatchObject({ creatorId: "gameking", status: "FAILED" });
   });
 
+  it("dates the wallet record at the hold, not at completion: FN credited while the platform answers stay free", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      const at = (h: number, m: number, s: number) => new Date(2026, 9, 9, h, m, s);
+      // A fresh account (재가입), so its ledger is only what happens here: a 30,000 FN charge at 11:00.
+      vi.setSystemTime(at(11, 0, 0));
+      await rejoinWithPhone("010-0000-0000", new Date());
+      const { requestPlatformDonation, account, platform, wallet } = await load(0);
+      const { agreeChargeTerms, requestCharge } = await import("@/services/wallet/charge");
+      const { recordCredit } = await import("@/services/wallet/mockCreditStore");
+      const { unusedPaidFnByCharge } = await import("@/services/wallet/refundCore");
+      const { soopAdapter } = await import("./adapters");
+      expect((await agreeChargeTerms({ guardian: true, privacy: true, payment: true })).status).toBe("AGREED");
+      const charged = await requestCharge({ amount: { customAmount: 30_000 }, methodId: "KAKAO_PAY", idempotencyKey: key(90) });
+      if (charged.status !== "COMPLETED") throw new Error(charged.status);
+
+      // The platform answers 5 s after the hold; 1,000 free FN (출석 보상) come in meanwhile.
+      vi.spyOn(soopAdapter, "sendDonation").mockImplementationOnce(async () => {
+        vi.setSystemTime(at(12, 1, 0));
+        account.fnBalance += 1_000;
+        recordCredit(1_000, "출석체크");
+        vi.setSystemTime(at(12, 1, 3));
+        return { ok: true, externalTransactionId: "SP-TEST-000001" };
+      });
+      vi.setSystemTime(at(12, 0, 58));
+      const res = await requestPlatformDonation(soop({ productId: "balloon-10" }));
+      if (res.status !== "COMPLETED") throw new Error(res.status);
+
+      // 후원 내역 keeps the 완료 time; the FN 후원내역 row is dated when the FN were debited.
+      expect(platform.transactions[0]).toMatchObject({ transactionId: res.transactionId, createdAt: "2026-10-09 12:00", completedAt: "2026-10-09 12:01" });
+      expect(wallet.donations.find((d) => d.id === res.transactionId)).toMatchObject({ donatedAt: "2026-10-09 12:00:58", status: "COMPLETED", fnAmount: 10_000 });
+      // The 10,000 FN left the charge before the free FN came: 20,000 of it unused, the 1,000 free FN still free.
+      expect(account.fnBalance).toBe(21_000);
+      expect([...unusedPaidFnByCharge()]).toEqual([[`ch-${charged.transactionId}`, 20_000]]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("keeps the hold and answers PENDING when the platform call throws after the debit", async () => {
     const { requestPlatformDonation, account, platform } = await load();
     const { soopAdapter } = await import("./adapters");

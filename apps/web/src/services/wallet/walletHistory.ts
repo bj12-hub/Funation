@@ -9,7 +9,7 @@ import { isBlankPrize } from "@/services/donations/rouletteTypes";
 import { currentAccountCredits } from "./mockCreditStore";
 import { currentAccountFnSettlements, mockFnSettlements } from "./mockFnSettlementStore";
 import { mockRefunds, refundView } from "./mockRefundStore";
-import { mockWallet } from "./mockWalletStore";
+import { mockWallet, sampleStamp, sampleTimes } from "./mockWalletStore";
 import { toDateString, type Period } from "@/lib/period";
 import {
   CHARGE_STATUS_LABEL,
@@ -233,13 +233,16 @@ function paginate<T>(rows: T[], { period, page = 1, all = false }: { period: Per
 }
 
 // ── Mock data ────────────────────────────────────────────────────────────────
-// Rows follow Figma 640:2 / 643:4 / 632:4, re-dated relative to today so the default 월별 view has data.
+// Rows follow Figma 640:2 / 643:4 / 632:4, dated relative to the day the mock wallet store was created so the default
+// 월별 view has data. The dates are fixed then (`sampleTimes`): every reader — wallet history, refunds, supporter identity
+// and 랭킹, the admin console — sees the same ones for as long as the server runs.
 // KRW amounts copy the Figma samples (e.g. 10,000 FN → 11,000원); the real FN/KRW rate is TBD.
 
-function stamp(daysAgo: number, time: string) {
-  const d = new Date();
-  d.setDate(d.getDate() - daysAgo);
-  return `${toDateString(d)} ${time}`;
+/** The sample rows' "YYYY-MM-DD HH:mm:ss", charges and donations in their table order (dated together, `sampleTimes`). */
+function sampleDates(): { charges: string[]; donations: string[] } {
+  const rows = [...CHARGE_ROWS, ...DONATION_ROWS].map(([daysAgo, time]) => ({ daysAgo, time }));
+  const stamps = sampleTimes(rows).map(sampleStamp);
+  return { charges: stamps.slice(0, CHARGE_ROWS.length), donations: stamps.slice(CHARGE_ROWS.length) };
 }
 
 type MethodKey = "CARD" | "CHECK" | "KAKAO" | "NAVER" | "TOSS" | "BANK" | "DEPOSIT";
@@ -330,8 +333,9 @@ const seedPurged = () => isPurged(null, "PAYMENT");
 
 function seedCharges(): ChargeRecord[] {
   if (seedPurged()) return [];
-  return CHARGE_ROWS.map(([daysAgo, time, method, fnAmount, status], i) => {
-    const chargedAt = stamp(daysAgo, time);
+  const dates = sampleDates().charges;
+  return CHARGE_ROWS.map(([, , method, fnAmount, status], i) => {
+    const chargedAt = dates[i];
     const m = METHODS[method];
     return {
       id: `ch${i + 1}`,
@@ -385,9 +389,10 @@ function mockDonations(): (DonationRecord & { category: DonationCategory; hidePr
 
 function seedDonations(): (DonationRecord & { category: DonationCategory })[] {
   if (seedPurged()) return [];
-  return DONATION_ROWS.map(([daysAgo, time, creatorId, creatorName, message, fnAmount, typeLabel, category, status], i) => ({
+  const dates = sampleDates().donations;
+  return DONATION_ROWS.map(([, , creatorId, creatorName, message, fnAmount, typeLabel, category, status], i) => ({
     id: `dn${i + 1}`,
-    donatedAt: stamp(daysAgo, time),
+    donatedAt: dates[i],
     creatorId,
     creatorName,
     message,

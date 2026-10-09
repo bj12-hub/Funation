@@ -55,7 +55,9 @@ const minuteStamp = (d: Date) => `${toDateString(d)} ${d.toTimeString().slice(0,
 
 /**
  * The transaction's row in FN 후원내역 (632:4), dated at the request (when the FN was held, so the refund FIFO and the
- * account it belongs to are right); created when missing (seed rows, PENDING rows from before the hold was mirrored).
+ * account it belongs to are right) — also for a direct success and a result that comes later, whose 완료 time stays on
+ * the transaction. Created by a direct success, by a PENDING hold, and when missing (seed rows, PENDING rows from before
+ * the hold was mirrored).
  */
 export function walletMirror(t: Tx): DonationRecord & { category: DonationCategory } {
   const found = mockWallet.donations.find((d) => d.id === t.transactionId);
