@@ -123,7 +123,7 @@ export function enqueueAlert(
  */
 export function enqueueDonationAlert(
   creatorId: string,
-  input: { donor: string; donorKey?: string | null; badges?: string[]; message: string; fnAmount: number; typeLabel: string; imageUrl?: string; soundUrl?: string; questId?: string }
+  input: { donor: string; donorKey?: string | null; badges?: string[]; message: string; fnAmount: number; typeLabel: string; donationType?: string; imageUrl?: string; soundUrl?: string; questId?: string }
 ) {
   if (creatorId !== STUDIO_CHANNEL) return;
   const item = enqueueAlert({ kind: "DONATION", ...input, ...shownOnStream(input) });

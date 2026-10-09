@@ -239,7 +239,7 @@ describe("후원 위젯 오버레이", () => {
   it("needs the integration key and a known widget, and reads the saved settings", async () => {
     const m = await load();
     expect(await m.getOverlayWidget("goal", "wrong-key")).toBe("FORBIDDEN");
-    expect(await m.getOverlayWidget("mini", m.overlayKey)).toBe("FORBIDDEN");
+    expect(await m.getOverlayWidget("nope", m.overlayKey)).toBe("FORBIDDEN");
     const total = await m.getOverlayWidget("total", m.overlayKey);
     if (total === "FORBIDDEN" || total.widget !== "total") throw new Error("total");
     expect(total.on).toBe(true);
@@ -249,7 +249,8 @@ describe("후원 위젯 오버레이", () => {
     expect(detail.overlayPath).toBe(`/overlay/widget/total/${m.overlayKey}`);
     expect((await m.getWidgetDetail("VOTE"))!.overlayPath).toBe(`/overlay/widget/vote/${m.overlayKey}`);
     expect((await m.getWidgetDetail("CHAT"))!.overlayPath).toBe(`/overlay/chat/${m.overlayKey}`);
-    expect((await m.getWidgetDetail("MINI"))!.overlayPath).toBeNull();
+    expect((await m.getWidgetDetail("MINI"))!.overlayPath).toBe(`/overlay/widget/mini/${m.overlayKey}`);
+    expect((await m.getWidgetDetail("CUSTOM_SOUND"))!.overlayPath).toBeNull();
     expect(await m.saveWidgetSettings("TOTAL", { ...detail.settings, title: "이번 달 후원" })).toEqual({ status: "SAVED" });
     const saved = await m.getOverlayWidget("total", m.overlayKey);
     expect(saved !== "FORBIDDEN" && saved.widget === "total" && saved.settings.title).toBe("이번 달 후원");

@@ -334,7 +334,10 @@ const parseMini: Parser<MiniSettings> = (v) => {
   if (!int(v.startPercent, 0, 100)) return "텍스트 시작 위치는 0~100%로 입력해 주세요.";
   if (!int(v.minAmount, 0, 1_000_000)) return "최소 표시 금액을 확인해 주세요.";
   if (![v.showAmount, v.showNickname, v.textOutline].every(bool)) return "설정 값을 확인해 주세요.";
+  const look = themeAndCard(v);
+  if (typeof look === "string") return look;
   return {
+    ...look,
     style: v.style,
     direction: v.direction,
     speed: v.speed as number,

@@ -54,6 +54,8 @@ export type AlertItem = {
   native?: NativeAmount;
   /** The signature's sound (library), played by the overlay at 시그니처 볼륨 (code-first, 2026-10-06). */
   soundUrl?: string;
+  /** DONATION: the 썸네이션 donation type it came from (TEXT · MINI · VIDEO …); the 미니후원 overlay reads MINI. Absent on older alerts. */
+  donationType?: string;
   /**
    * 퀘스트 후원: the quest (= donation) id. The FN is held until the quest succeeds and refunded if it fails or is
    * cancelled (2026-10-04 결정), so 목표 · 누적 · 랭킹 count the alert only once `questSucceeded`.

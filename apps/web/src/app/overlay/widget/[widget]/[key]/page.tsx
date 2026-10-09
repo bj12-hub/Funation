@@ -4,7 +4,7 @@ import { WidgetOverlay } from "@/features/creatorStudio/widgets/WidgetOverlay";
 import { getOverlayWidget } from "@/services/creator/widgetOverlay";
 import { isVertical } from "@/services/creator/overlayThemeTypes";
 
-// Code-first (no Figma frame): OBS browser-source overlays for 후원 위젯 (목표 · 누적 · 랭킹 · 최근알림 · 이벤트 · QR).
+// Code-first (no Figma frame): OBS browser-source overlays for 후원 위젯 (목표 · 누적 · 랭킹 · 최근알림 · 이벤트 · QR · 게임 · 벽지 · 시계 · 미니후원).
 export const metadata: Metadata = { title: "후원 위젯 오버레이", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 

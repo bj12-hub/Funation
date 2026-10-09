@@ -152,7 +152,7 @@ OBS 오버레이의 세 테마는 변수 컬렉션 **Overlay Theme**의 모드�
 | 방송 · 위젯 | W09 | 이미지·사운드 (이름 찾기 · 이름순 · 짝 필터, 5개 중 1개) | `/creator/widgets/assets` | `213:6371` |
 | 방송 · 위젯 | W03b | 오버레이 미리보기 (OBS 크기 · 배경 · 테스트 후원) | `/creator/widgets/overlays/preview/[id]` | `200:5999` |
 | 방송 · 위젯 | W02b | 방송 도구 (🎨 방송 도구 테마 카드 — 자막 · 전광판 · 타이머 · 엔딩 크레딧 · 빙고가 이 테마) | `/creator/widgets/tools` | `278:9541` |
-| 방송 · 위젯 | W03c | 오버레이 주소 (오버레이 테마 줄 · 시계 · 세로 방송 분류, 28개) | `/creator/widgets/overlays` | `279:9681` |
+| 방송 · 위젯 | W03c | 오버레이 주소 (오버레이 테마 줄 · 시계 · 세로 방송 분류, 28개 — 코드는 미니후원 추가로 29개, Figma 반영 전) | `/creator/widgets/overlays` | `279:9681` |
 | 방송 · 위젯 | W03d | 오버레이 미리보기 · 후원 알림 (세로, 1080 × 640을 85%로 · 체크무늬) | `/creator/widgets/overlays/preview/alert-vertical` | `280:9867` |
 | 방송 · 위젯 | W07b | 영상 후원 (오버레이 테마 칩 · 재생 중 · 대기열 🎧 음성 · 테스트 "음성 후원으로") | `/creator/widgets/video` | `282:9986` |
 | 방송 · 위젯 | W08b | 그림후원 (오버레이 테마 칩 · 받은 그림 없음) | `/creator/widgets/drawing` | `283:10101` |

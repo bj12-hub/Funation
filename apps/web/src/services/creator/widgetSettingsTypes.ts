@@ -283,6 +283,10 @@ export type EventSettings = {
 };
 
 export type MiniSettings = {
+  /** 오버레이 테마 (2026-10-08, with the 미니후원 overlay); settings saved before it read as 전체 테마 따르기. */
+  theme: OverlayThemeChoice;
+  /** 배경 카드: a theme band (스크롤형) or bubble (말풍선형) — off = text straight on the stream in the font color below. Saved before: off. */
+  card: boolean;
   style: "SCROLL" | "BUBBLE";
   direction: "RTL" | "LTR";
   /** 1 (slow) – 100 (fast). */
@@ -726,6 +730,8 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     hideAfterSec: 15
   },
   MINI: {
+    theme: "INHERIT",
+    card: true,
     style: "SCROLL",
     direction: "RTL",
     speed: 30,

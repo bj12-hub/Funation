@@ -328,3 +328,89 @@
     animation-duration: 60s !important;
   }
 }
+
+/* ── 미니후원 (2026-10-08) ── */
+.miniBand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 20px 8px 8px;
+  overflow: hidden;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.miniBand:not([data-card]) {
+  padding: 0;
+}
+
+.miniTag {
+  flex-shrink: 0;
+  font-size: 0.7em;
+  padding: 3px 12px;
+}
+
+.miniTrack {
+  position: relative;
+  flex: 1;
+  height: 1.5em;
+  overflow: hidden;
+}
+
+/* --mini-start: 텍스트 시작 위치, measured from the side the text comes in from. */
+.miniTrack span {
+  position: absolute;
+  top: 0;
+  line-height: 1.5em;
+  white-space: nowrap;
+  animation: mini-rtl linear infinite;
+}
+
+.miniTrack span[data-direction="LTR"] {
+  animation-name: mini-ltr;
+}
+
+@keyframes mini-rtl {
+  from {
+    left: calc(100% - var(--mini-start, 0%));
+    transform: translateX(0);
+  }
+
+  to {
+    left: 0;
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes mini-ltr {
+  from {
+    left: var(--mini-start, 0%);
+    transform: translateX(-100%);
+  }
+
+  to {
+    left: 100%;
+    transform: translateX(0);
+  }
+}
+
+.miniBubble {
+  display: inline-block;
+  max-width: 100%;
+  margin: 0;
+  padding: 0.55em 1.1em;
+  font-weight: 700;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.miniBubble[data-card] {
+  border-radius: 1.1em 1.1em 1.1em 0.3em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .miniTrack span {
+    position: static;
+    animation: none;
+  }
+}
