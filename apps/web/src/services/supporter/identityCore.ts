@@ -89,6 +89,9 @@ export function computeIdentity(): SupporterIdentity {
 
   const byCreator = new Map<string, { name: string; total: number }>();
   for (const d of records) {
+    // 2026-10-09 결정: a donation sent with 프로필 숨기기 went out as 익명, so it never counts toward the 크리에이터 칭호
+    // (it still counts toward the 누적 · 활동 등급 above).
+    if (d.hideProfile) continue;
     const e = byCreator.get(d.creatorId) ?? { name: d.creatorName, total: 0 };
     e.total += d.fnAmount;
     byCreator.set(d.creatorId, e);

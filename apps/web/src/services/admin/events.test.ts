@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { key, mockSessionModule, rejoinWithPhone, resetMockStores, signIn } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
@@ -227,5 +227,58 @@ describe("당첨자 추첨 (공정성)", () => {
     for (const file of ["../events/eventTypes.ts", "../events/eventsCore.ts", "../events/eventRewardCore.ts"]) {
       expect(readFileSync(new URL(file, import.meta.url), "utf8")).not.toMatch(/from "node:/);
     }
+  });
+});
+
+/** 2026-10-09 결정: 보상 지급 and 당첨자 추첨 notify each participant's current account once (header bell). */
+describe("이벤트 결과 사이트 알림", () => {
+  beforeEach(() => resetMockStores());
+  afterEach(() => vi.restoreAllMocks());
+
+  const eventNotices = async () => {
+    const { listNotifications } = await import("@/services/notifications/notifications");
+    return (await listNotifications({ show: 100 }))!.items.filter((n) => n.kind === "EVENT").map((n) => ({ title: n.title, body: n.body, href: n.href }));
+  };
+
+  it("tells the paid account 이벤트 보상 n FN을 받았어요, once", async () => {
+    const m = await load();
+    await m.saveEventReward(OP, { id: ENDED, kind: "FREE_FN", amountFn: 1_500 });
+    expect(await eventNotices()).toEqual([]);
+    expect(await m.payEventReward(OP, { id: ENDED, requestId: key(60) })).toEqual({ status: "OK" });
+    expect(await m.payEventReward(OP, { id: ENDED, requestId: key(60) })).toEqual({ status: "OK" }); // a retry
+    expect(await eventNotices()).toEqual([{ title: "이벤트 보상 1,500 FN을 받았어요", body: "출석체크 챌린지", href: `/events/${ENDED}` }]);
+  });
+
+  it("tells a winner 이벤트에 당첨됐어요 and the rest of the pool 당첨자를 발표했어요, once", async () => {
+    const m = await load();
+    await m.saveEventReward(OP, { id: ENDED, kind: "DRAW", winners: 1, prize: "굿즈 세트" });
+    expect(await m.drawEventWinners(OP, { id: ENDED, requestId: key(61) })).toEqual({ status: "OK" });
+    expect(await m.drawEventWinners(OP, { id: ENDED, requestId: key(61) })).toEqual({ status: "OK" });
+    expect(await eventNotices()).toEqual([{ title: "이벤트에 당첨됐어요", body: "출석체크 챌린지 · 경품 굿즈 세트", href: `/events/${ENDED}` }]);
+
+    // Not drawn (the mock has one account, so the draw is made to pick nobody).
+    resetMockStores();
+    const again = await load();
+    vi.spyOn(await import("@/services/events/eventDraw"), "drawWinners").mockReturnValue([]);
+    await again.saveEventReward(OP, { id: ENDED, kind: "DRAW", winners: 1, prize: "굿즈 세트" });
+    expect(await again.drawEventWinners(OP, { id: ENDED, requestId: key(62) })).toEqual({ status: "OK" });
+    expect(await again.getEvent(ENDED)).toMatchObject({ myResult: { kind: "NOT_WON" } });
+    expect(await eventNotices()).toEqual([{ title: "당첨자를 발표했어요", body: "출석체크 챌린지", href: `/events/${ENDED}` }]);
+  });
+
+  it("never notifies a withdrawn account, nor the person's later account", async () => {
+    const m = await load();
+    const { recordWithdrawal } = await import("@/services/account/withdrawalRecord");
+    recordWithdrawal({ at: new Date().toISOString(), requestId: "w-test", forfeitedFn: 0, forfeitedEarningsFn: 0 });
+    await m.saveEventReward(OP, { id: ENDED, kind: "FREE_FN", amountFn: 500 });
+    expect(await m.payEventReward(OP, { id: ENDED, requestId: key(63) })).toEqual({ status: "OK" });
+    expect(await eventNotices()).toEqual([]);
+    const { startNewAccount } = await import("@/services/account/rejoin");
+    startNewAccount({ nickname: "다시왔어요", password: "newpass12!", marketing: false, phone: "010-1234-5678" }, new Date(Date.now() + 1_000));
+    expect(await eventNotices()).toEqual([]);
+  });
+
+  it("keeps Node built-ins out of the notification types (the header bell loads them)", () => {
+    expect(readFileSync(new URL("../notifications/notificationTypes.ts", import.meta.url), "utf8")).not.toMatch(/from "node:/);
   });
 });

@@ -2,6 +2,7 @@ import { toDateString } from "@/lib/period";
 import { ownEntry } from "@/lib/records";
 import { mockAccount } from "@/services/account/mockStore";
 import { accountSince, isWithdrawn } from "@/services/account/withdrawalCore";
+import { notify } from "@/services/notifications/notificationCore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import type { DonationCategory, DonationRecord } from "@/services/wallet/walletTypes";
 import { adapterFor, type LookupResult } from "./adapters";
@@ -15,8 +16,10 @@ import { PLATFORMS } from "./platformTypes";
  * - For 24 hours after the request the server re-checks the result with the platform adapter (`lookupDonation`), lazily:
  *   on reads of 후원 내역, on a retry with the same Idempotency-Key (결과 다시 확인) and on the console list.
  * - A result settles it: COMPLETED completes the donation as a direct success does; FAILED returns the held FN with a
- *   wallet record (the FN 내역 shows the hold as 환불완료 and a 환불 row) — unless the account that sent it has
- *   withdrawn since: then nothing is credited (a 재가입 account never gets it) and the return is recorded as forfeited.
+ *   wallet record (the FN 내역 shows the hold as FN 반환 and an FN 반환 row, 2026-10-09 결정) — unless the account that
+ *   sent it has withdrawn since: then nothing is credited (a 재가입 account never gets it) and the return is recorded as
+ *   forfeited.
+ * - Either result notifies the member once (사이트 알림, 2026-10-09 결정) — only the account that sent it, while active.
  * - After 24 hours with no result the console lists it (확인 중 후원): an operator re-checks (다시 확인) or decides
  *   성공 / 실패 with a memo (admin/pendingDonations.ts), which settles it the same way.
  */
@@ -123,6 +126,24 @@ export async function checkNow(t: Tx): Promise<LookupResult["status"] | "SETTLED
   return answer.status;
 }
 
+/**
+ * 사이트 알림 for a settled PENDING donation (2026-10-09 결정), whoever settled it (a re-check or an operator): once per
+ * transaction (`dedupeKey`), and only while the account that sent it is the slot's active account — never to a withdrawn
+ * one (its FN were forfeited with it, and a 재가입 account's inbox is not its own).
+ */
+function notifyResolved(t: Tx, fnReturn: PlatformResolution["fnReturn"]) {
+  if (!sentByCurrentAccount(t) || fnReturn === "FORFEITED") return;
+  const sent = `${PLATFORMS[t.platform].name} · ${t.creatorName}님께 ${t.fnAmount.toLocaleString("ko-KR")} FN`;
+  const completed = t.status === "COMPLETED";
+  notify({
+    kind: "DONATION_SENT",
+    title: completed ? "확인 중이던 후원이 완료됐어요" : "확인 중이던 후원이 실패했어요",
+    body: completed ? sent : `${sent} · FN 반환`,
+    href: `/donation/history?period=all&tx=${encodeURIComponent(t.transactionId)}`,
+    dedupeKey: `platform-pending:${t.transactionId}`
+  });
+}
+
 type Decision =
   | { outcome: "COMPLETED"; by: "PLATFORM"; externalTransactionId: string }
   | { outcome: "FAILED"; by: "PLATFORM" }
@@ -149,6 +170,8 @@ export function settle(t: Tx, d: Decision, now = new Date()): PlatformResolution
     mockAccount.fnBalance += t.fnAmount;
     mirror.status = "REFUNDED";
     mirror.refundedAt = localStamp(now);
+    // Not a refund (2026-10-09 결정): the FN 내역 and its CSV say "FN 반환", as 후원 내역 says 실패 · FN 반환.
+    mirror.fnReturned = true;
     fnReturn = "RETURNED";
   } else {
     // The withdrawn account's FN were forfeited with it (회원 탈퇴): nothing is credited, also not after a 재가입.
@@ -167,6 +190,7 @@ export function settle(t: Tx, d: Decision, now = new Date()): PlatformResolution
     fnReturn
   };
   t.resolution = resolution;
+  notifyResolved(t, fnReturn);
   const entry = t.idempotencyKey ? ownEntry(mockPlatform.idempotency, t.idempotencyKey) : undefined;
   if (entry) {
     entry.result =

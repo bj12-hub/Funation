@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import type { OverlayAlert } from "@/services/creator/alertTypes";
-import { speechParts } from "@/services/creator/customSoundSpeech";
+import { alertSpeech } from "@/services/creator/customSoundSpeech";
 import { AlertCard } from "./AlertCard";
 import { useReloadSignal } from "./useReloadSignal";
 import { useSpeechQueue } from "./useSpeechQueue";
@@ -11,8 +11,8 @@ import { useSpeechQueue } from "./useSpeechQueue";
 /**
  * OBS alert overlay (code-first). Transparent page that re-reads the server queue every second and
  * shows the alert the server has on screen, drawn as the 후원 알림 design says (AlertCard, 오버레이 테마). Reads the message aloud with the browser's speech
- * synthesis when TTS volume > 0 and not muted (voices TBD), playing each 커스텀 사운드 in place of its word, and plays a
- * 시그니처's sound at 시그니처 볼륨.
+ * synthesis when TTS volume > 0, not muted and 후원 메시지 표시 is on (voices TBD), playing each 커스텀 사운드 in place of its
+ * word, and plays a 시그니처's sound at 시그니처 볼륨.
  */
 export function AlertOverlay({ data, vertical = false }: { data: OverlayAlert; vertical?: boolean }) {
   const router = useRouter();
@@ -49,12 +49,14 @@ export function AlertOverlay({ data, vertical = false }: { data: OverlayAlert; v
     if (controls.muted || !data.on) stop();
   }, [controls.muted, data.on, stop]);
 
+  const showMessage = data.design.showMessage;
   useEffect(() => {
     if (!alert || spoken.current === alert.id) return;
     spoken.current = alert.id;
-    if (!data.on || controls.muted || controls.ttsVolume === 0 || !alert.message) return;
-    speak(speechParts(alert.message, data.customSounds), controls.ttsVolume);
-  }, [alert, controls.muted, controls.ttsVolume, data.on, data.customSounds, speak]);
+    // 후원 메시지 표시 off: the message is not read either (2026-10-09 결정, alertSpeech).
+    const parts = alertSpeech({ message: alert.message, showMessage, on: data.on, muted: controls.muted, ttsVolume: controls.ttsVolume, sounds: data.customSounds });
+    if (parts.length > 0) speak(parts, controls.ttsVolume);
+  }, [alert, controls.muted, controls.ttsVolume, data.on, data.customSounds, showMessage, speak]);
 
   // 시그니처 소리: played once per alert at 시그니처 볼륨.
   useEffect(() => {

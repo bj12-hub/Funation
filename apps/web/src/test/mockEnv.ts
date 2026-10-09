@@ -66,6 +66,19 @@ export async function rejoinWithPhone(phone: string, now = new Date()) {
 }
 
 /**
+ * The sample PENDING 플랫폼 후원 (TXN-SEED-B12, the first account's) gets its result — 완료, as an operator decides it in
+ * 확인 중 후원 — so the sample member can withdraw (2026-10-09 결정: not while a 플랫폼 후원 is PENDING). Call after
+ * resetMockStores().
+ */
+export async function settleSamplePlatformDonations() {
+  const { mockPlatform } = await import("@/services/platformDonation/mockPlatformStore");
+  const { isPending, settle } = await import("@/services/platformDonation/pendingCore");
+  mockPlatform.transactions.filter(isPending).forEach((t, i) => {
+    settle(t, { outcome: "COMPLETED", by: "OPERATOR", operator: "테스트 운영자", note: "테스트 정리", requestId: key(9_000 + i) });
+  });
+}
+
+/**
  * A fresh single-use phone verification token, as the 휴대폰 인증 step gets it (mock code 123456). Mock numbers
  * only: 010-0000-0000 for sign-up, the sample account's 010-1234-5678 for a password reset.
  */

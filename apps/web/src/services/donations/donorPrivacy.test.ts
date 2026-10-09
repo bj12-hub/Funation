@@ -121,11 +121,76 @@ describe("후원랭킹 donor keys", () => {
     expect(m.ranking()[0].fnAmount).toBe(70_000);
   });
 
+  it("keeps the key of a name 후원 필터링 turned into 익명 off the ranking", async () => {
+    const m = await load();
+    const { donationPageStore } = await import("@/services/creator/donationPageCore");
+    donationPageStore.replacement = { applyToNickname: true, applyToText: false, bannedWords: ["길동"], message: "" };
+    await m.requestDonation(text(1, { amount: 500_000 }));
+    expect(m.mockAlerts.items.at(-1)).toMatchObject({ donor: "익명", donorKey: expect.stringMatching(/^dk-/) });
+    expect(m.ranking()[0].fnAmount).toBe(70_000);
+  });
+
   it("reserves 익명 (the hidden-profile label) as an 별명", async () => {
     const m = await load();
     expect((await m.identity.addDonationNickname("익명")).status).toBe("INVALID");
     expect((await m.identity.addDonationNickname("응원단")).status).toBe("SAVED");
     const id = (await m.identity.getDonationNicknameOptions())!.find((n) => n.name === "응원단")!.id;
     expect((await m.identity.renameDonationNickname(id, "익명")).status).toBe("INVALID");
+  });
+});
+
+describe("익명 후원과 크리에이터 칭호 (2026-10-09 결정)", () => {
+  beforeEach(() => resetMockStores());
+
+  it("counts a donation sent as 익명 toward the 누적 · 활동 등급 but not toward the 크리에이터 칭호", async () => {
+    const m = await load();
+    (await import("@/services/account/mockStore")).mockAccount.fnBalance = 2_000_000;
+    const studio = (id: { stores: { creatorId: string; totalFn: number }[] }) => id.stores.find((s) => s.creatorId === "studio")?.totalFn ?? 0;
+    const before = (await m.identity.getSupporterIdentity())!;
+    expect((await m.requestDonation(text(1, { hideProfile: true, amount: 500_000 }))).status).toBe("COMPLETED");
+    const after = (await m.identity.getSupporterIdentity())!;
+    expect(after.global.lifetimeFn).toBe(before.global.lifetimeFn + 500_000);
+    expect(after.grade.recentFn).toBe(before.grade.recentFn + 500_000);
+    expect(studio(after)).toBe(studio(before));
+    // The next donation's alert and preview: no 왕관 팬 from the hidden one.
+    expect((await m.identity.getAlertBadges(null, "studio"))!.storeTitle).toBeNull();
+    await m.requestDonation(text(2));
+    expect(m.mockAlerts.items.at(-1)!.badges).not.toContain("왕관 팬");
+    // The same amount sent with the profile shown earns it.
+    await m.requestDonation(text(3, { amount: 500_000 }));
+    expect((await m.identity.getSupporterIdentity())!.stores.find((s) => s.creatorId === "studio")).toMatchObject({ totalFn: 501_000, title: "CROWN" });
+  });
+});
+
+describe("대체된 닉네임의 배지 (2026-10-09 결정)", () => {
+  beforeEach(() => resetMockStores());
+
+  it("sends a name the 대체 메시지 rules hide without its 등급 · 칭호 badges, on the OBS overlay too", async () => {
+    const m = await load();
+    const { donationPageStore } = await import("@/services/creator/donationPageCore");
+    const { getOverlayAlert } = await import("@/services/creator/alertRemote");
+    const { mockCreator } = await import("@/services/creator/mockCreatorStore");
+    // Badges earned with the name shown as it is (활동 등급, 크리에이터 칭호 왕관 팬).
+    await m.requestDonation(text(1, { amount: 500_000 }));
+    await m.requestDonation(text(2));
+    expect(m.mockAlerts.items.at(-1)).toMatchObject({ donor: "홍길동", badges: expect.arrayContaining(["왕관 팬"]) });
+
+    // 닉네임 금지어 with an empty 대체 메시지: 익명, without badges; the opaque key stays.
+    for (const a of m.mockAlerts.items) a.status = "DONE";
+    m.mockAlerts.shownAt = null;
+    donationPageStore.replacement = { applyToNickname: true, applyToText: false, bannedWords: ["길동"], message: "" };
+    await m.requestDonation(text(3));
+    expect(m.mockAlerts.items.at(-1)).toMatchObject({ donor: "익명", badges: [], donorKey: expect.stringMatching(/^dk-/) });
+    const overlay = await getOverlayAlert(mockCreator.integrationKey);
+    expect(overlay !== "FORBIDDEN" && overlay.alert).toMatchObject({ donor: "익명", badges: [] });
+
+    // Replaced by the 대체 메시지: still no badges.
+    donationPageStore.replacement.message = "응원 고마워요";
+    await m.requestDonation(text(4));
+    expect(m.mockAlerts.items.at(-1)).toMatchObject({ donor: "응원 고마워요", badges: [] });
+    // A name the rules leave alone keeps them.
+    donationPageStore.replacement.bannedWords = ["클리어"];
+    await m.requestDonation(text(5));
+    expect(m.mockAlerts.items.at(-1)).toMatchObject({ donor: "홍길동", badges: expect.arrayContaining(["왕관 팬"]) });
   });
 });

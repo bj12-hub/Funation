@@ -225,3 +225,98 @@ describe("확인 중 플랫폼 후원 (PENDING)", () => {
     expect(m.account.fnBalance).toBe(0);
   });
 });
+
+/** 2026-10-09 결정: a settled PENDING donation notifies its member once, and a failure's FN 반환 is not shown as a refund. */
+describe("확인 중 플랫폼 후원 · 사이트 알림과 FN 반환 표시 (2026-10-09 결정)", () => {
+  beforeEach(() => {
+    resetMockStores();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(T0);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  /** The 후원 notifications in the member's inbox (the header bell), newest first. */
+  const donationNotices = async () => {
+    const { listNotifications } = await import("@/services/notifications/notifications");
+    return (await listNotifications({ show: 100 }))!.items.filter((n) => n.kind === "DONATION_SENT").map((n) => ({ title: n.title, body: n.body, href: n.href }));
+  };
+
+  it("notifies once when a re-check completes or fails it", async () => {
+    const m = await load();
+    const done = await pending(m);
+    const failed = await pending(m, { creatorId: "gameking", idempotencyKey: key(2) });
+    expect(await donationNotices()).toEqual([]);
+    at(HOUR);
+    await history(m); // the mock platform: kim_stream's went through, 게임왕's failed
+    expect(await donationNotices()).toEqual(
+      expect.arrayContaining([
+        { title: "확인 중이던 후원이 완료됐어요", body: "SOOP · 김스트리머님께 10,000 FN", href: `/donation/history?period=all&tx=${done}` },
+        { title: "확인 중이던 후원이 실패했어요", body: "SOOP · 게임왕님께 10,000 FN · FN 반환", href: `/donation/history?period=all&tx=${failed}` }
+      ])
+    );
+    // Later reads, the same key again (결과 다시 확인) and the console change nothing.
+    at(3 * HOUR);
+    await history(m);
+    await m.requestPlatformDonation(soop());
+    await m.getPendingDonations();
+    expect(await donationNotices()).toHaveLength(2);
+  });
+
+  it("notifies once for an operator's decision, not again for a retry of it", async () => {
+    const m = await load();
+    const id = await pending(m);
+    vi.spyOn(m.soopAdapter, "lookupDonation").mockResolvedValue({ status: "UNKNOWN" });
+    at(25 * HOUR);
+    const decide = () => m.resolvePendingDonation(OP, { transactionId: id, outcome: "FAILED", note: "미전송 확인", requestId: key(80) });
+    expect(await decide()).toEqual({ status: "OK" });
+    expect(await decide()).toEqual({ status: "OK" });
+    expect(await donationNotices()).toEqual([{ title: "확인 중이던 후원이 실패했어요", body: "SOOP · 김스트리머님께 10,000 FN · FN 반환", href: `/donation/history?period=all&tx=${id}` }]);
+  });
+
+  it("never notifies an account that has withdrawn, whatever the result", async () => {
+    const m = await load();
+    const done = await pending(m);
+    const failed = await pending(m, { creatorId: "gameking", idempotencyKey: key(2) });
+    const { recordWithdrawal } = await import("@/services/account/withdrawalRecord");
+    recordWithdrawal({ at: new Date().toISOString(), requestId: "w-test", forfeitedFn: 80_000, forfeitedEarningsFn: 0 });
+    at(HOUR);
+    await m.getPendingDonations(); // the console read re-checks both
+    expect(txOf(m, done).status).toBe("COMPLETED");
+    expect(txOf(m, failed).resolution).toMatchObject({ fnReturn: "FORFEITED" });
+    expect(await donationNotices()).toEqual([]);
+  });
+
+  it("shows a failure's returned FN as FN 반환 in the FN 내역 and its CSV, and keeps real refunds as 환불완료", async () => {
+    const m = await load();
+    const id = await pending(m, { creatorId: "gameking" });
+    at(HOUR);
+    await history(m);
+    expect(m.wallet.donations.find((d) => d.id === id)).toMatchObject({ status: "REFUNDED", fnReturned: true });
+
+    // FN 후원내역 (/wallet/donations) and its CSV.
+    const wallet = await import("@/services/wallet/walletHistory");
+    const { parseHistoryParams } = await import("@/features/wallet/historyParams");
+    const { period } = parseHistoryParams({ period: "year" });
+    const rows = (await wallet.getDonationHistory({ period, category: "basic", all: true }))!.items;
+    const row = rows.find((d) => d.id === id)!;
+    expect(wallet.donationStatusLabel(row)).toBe("FN 반환");
+    // The sample 시그니처 후원 refund (dn9) is a real refund.
+    expect(wallet.donationStatusLabel(rows.find((d) => d.id === "dn9")!)).toBe("환불완료");
+    const { GET } = await import("@/app/api/wallet/donations/route");
+    const csv = await (await GET({ nextUrl: new URL("http://localhost/api/wallet/donations?period=year") } as never)).text();
+    const lines = csv.split("\r\n");
+    expect(lines.find((l) => l.includes("SOOP 별풍선 10개"))).toMatch(/,FN 반환$/);
+    expect(lines.find((l) => l.includes("그림 방송 너무 힐링돼요"))).toMatch(/,환불완료$/);
+
+    // FN Wallet list (every page): the 사용 row and the row that brings the FN back.
+    const first = (await m.getWalletOverview({ kind: "all", period: "all" }))!;
+    const entries = first.entries;
+    for (let page = 2; page <= first.totalPages; page++) entries.push(...(await m.getWalletOverview({ kind: "all", period: "all", page }))!.entries);
+    expect(entries.find((e) => e.id === id)).toMatchObject({ kind: "USE", statusLabel: "FN 반환" });
+    expect(entries.find((e) => e.id === `${id}-refund`)).toMatchObject({ kind: "REFUND", description: "FN 반환 · SOOP 별풍선 10개", deltaFn: 10_000, statusLabel: "FN 반환" });
+    expect(entries.find((e) => e.id === "dn9-refund")).toMatchObject({ description: "환불 · 시그니처 후원", statusLabel: "환불완료" });
+  });
+});
