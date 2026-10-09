@@ -15,6 +15,8 @@ import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
 import { mockQuests } from "@/services/donations/questCore";
 import { mockPlatform } from "@/services/platformDonation/mockPlatformStore";
 import { awaitsResult, recheckAccountPending } from "@/services/platformDonation/pendingCore";
+import { pendingCharges } from "@/services/wallet/chargeCore";
+import { inFlightCount, settleInFlight } from "@/services/wallet/inFlightCore";
 import { mockRefunds } from "@/services/wallet/mockRefundStore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { mockAccount, mockCredentials } from "./mockStore";
@@ -38,6 +40,11 @@ import type { PendingQuests, WithdrawResult, WithdrawalInfo } from "./withdrawal
  * FN to the slot's balance, which after a 재가입 is a new account's), withdrawal is refused too, until the re-check or an
  * operator settles it (platformDonation/pendingCore.ts) — and so while its platform call is still running (another tab),
  * whose refusal would return the FN the same way. Opening the screen and pressing 탈퇴 both re-check first.
+ * 2026-10-10 결정: while an FN 충전 of this account is in progress — its payment provider call still running, or 처리중
+ * waiting for the payment to be confirmed (wallet/chargeCore.ts) — withdrawal is refused too, until it completes or
+ * fails, and so while an 출석 보상 is on its way to the balance (wallet/inFlightCore.ts). Opening the screen and pressing
+ * 탈퇴 first wait a moment for those on their way to land, so both show the state after them. A credit that completes
+ * after a withdrawal anyway lands on nobody (the charge is kept for the console, the 출석 보상 is not paid).
  * Retention (./retentionPolicy.ts — 기본값, 일반적인 기준, 법무 검토 전): the withdrawal record with the consents, the
  * payment, dispute and access records and the 본인 확인 값 stay until their dates (./retentionPurge.ts), posts stay up
  * under "탈퇴한 회원"; every other piece of personal data goes now.
@@ -78,6 +85,20 @@ const questProblem = (session: Session): WithdrawResult | null => {
   return quests.sent + quests.received > 0 ? { status: "QUEST_PENDING", ...quests } : null;
 };
 
+/** This account's 출석 보상 on their way to the balance (2026-10-10 결정). */
+const pendingAttendanceRewards = () => inFlightCount("ATTENDANCE");
+
+/**
+ * FN on its way to this account (2026-10-10 결정): a charge in progress (provider call or 처리중) or an 출석 보상 not paid
+ * yet. Synchronous — the final check runs it in the step that writes the withdrawal.
+ */
+function creditProblem(): WithdrawResult | null {
+  const charges = pendingCharges();
+  if (charges > 0) return { status: "CHARGE_PENDING", count: charges };
+  const rewards = pendingAttendanceRewards();
+  return rewards > 0 ? { status: "ATTENDANCE_PENDING", count: rewards } : null;
+}
+
 export async function getWithdrawalInfo(): Promise<WithdrawalInfo | null> {
   assertMock();
   const session = await getSession();
@@ -85,6 +106,9 @@ export async function getWithdrawalInfo(): Promise<WithdrawalInfo | null> {
   // Opening the screen re-checks this account's PENDING 플랫폼 후원 as 후원 내역 does (inside their 24 h, at most once a
   // minute each): a result that has come in settles it, so it no longer blocks the withdrawal.
   await recheckAccountPending();
+  // A charge or an 출석 보상 on its way gets a moment to land (2026-10-10 결정), so the screen shows the balance after it
+  // and a card only for what is still in progress.
+  await settleInFlight();
   await mockDelay(200);
   const creator = hasRole(session, "CREATOR");
   return {
@@ -94,7 +118,9 @@ export async function getWithdrawalInfo(): Promise<WithdrawalInfo | null> {
     unsettledFn: creator ? unsettledFn() : 0,
     pendingRefunds: pendingRefunds(),
     pendingQuests: pendingQuests(session),
-    pendingPlatformDonations: pendingPlatformDonations()
+    pendingPlatformDonations: pendingPlatformDonations(),
+    pendingCharges: pendingCharges(),
+    pendingAttendanceRewards: pendingAttendanceRewards()
   };
 }
 
@@ -125,7 +151,12 @@ export async function withdrawAccount(input: unknown): Promise<WithdrawResult> {
   // once a minute each — 2026-10-09 결정): a result that has come in since the screen opened settles it, and the
   // withdrawal goes on in this request (a failure's returned FN is then checked against the consent like any amount).
   await recheckAccountPending();
+  // A charge or an 출석 보상 on its way gets the same moment as on the screen (2026-10-10 결정): one that lands goes into
+  // the balance, which the consent is then checked against like any amount.
+  await settleInFlight();
   if (pendingPlatformDonations() > 0) return { status: "PLATFORM_PENDING", count: pendingPlatformDonations() };
+  const creditsEarly = creditProblem();
+  if (creditsEarly) return creditsEarly;
   const early = consentProblem(v, mockAccount.fnBalance, earningsOf(session));
   if (early) return early;
   await mockDelay(400);
@@ -152,6 +183,11 @@ export async function withdrawAccount(input: unknown): Promise<WithdrawResult> {
   if (quests) return quests;
   // A 플랫폼 후원 that went PENDING during the password check counts too.
   if (pendingPlatformDonations() > 0) return { status: "PLATFORM_PENDING", count: pendingPlatformDonations() };
+  // So does a charge or an 출석 보상 started meanwhile (another tab), checked in the step that writes the withdrawal
+  // (2026-10-10 결정): one that landed is in the balance compared below, and one started after this step finds the
+  // account withdrawn and is refused (wallet/inFlightCore.ts `beginCredit`).
+  const credits = creditProblem();
+  if (credits) return credits;
   const balance = mockAccount.fnBalance;
   const earnings = earningsOf(session);
   const changed = consentProblem(v, balance, earnings);

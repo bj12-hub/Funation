@@ -114,12 +114,18 @@ Authentication for every platform (OAuth / login) is TBD.
 ## 플랫폼 후원 (FN → SOOP · FlexTV, `services/platformDonation`)
 
 - The FN is held before the platform call. A refusal reverses the hold ("FN은 차감되지 않았습니다.").
+- **Keys (2026-10-10)**: the member's Idempotency-Key is kept per member (`memberKeyOf`: another member's same key is a
+  donation of their own, the same member's retry gets the first result; a 재가입 moves the withdrawn account's keys to its
+  `…-wN` id). The adapter never gets the member's key: `sendDonation` and `lookupDonation` get Ssumnation's own key for
+  the donation, `pk-` + an HMAC of the member id and the member's key with a server secret (`platformKey.ts`,
+  server-only — node:crypto stays out of client bundles). It is the same for the same member and key, so a retry reaches
+  the platform under the same key, and it is stored on the transaction (`platformKey`) for the status lookups.
 - A platform call that throws or does not answer in time (10 s, sample value) has an unknown outcome:
   the FN stays held, the transaction stays PROCESSING and the Idempotency-Key answers **PENDING** with
   its Transaction ID (the client shows 「처리 결과 확인 중」 and the ID). The hold gets its wallet record at once
   (FN 후원내역 처리중).
 - **결과 확인 (2026-10-08 결정, `pendingCore.ts`)**: for 24 hours after the request the server asks the platform for the
-  result (`PlatformAdapter.lookupDonation`, by Idempotency-Key and Transaction ID; 5 s timeout and at most once a minute
+  result (`PlatformAdapter.lookupDonation`, by the platform's Idempotency-Key (`platformKey`) and Transaction ID; 5 s timeout and at most once a minute
   per transaction — sample values). It asks lazily: when 후원 내역 is read and when the 회원 탈퇴 screen opens or 탈퇴 is
   pressed (that account's donations, `recheckAccountPending`), when the same key is sent again (「결과 다시 확인」) and
   when the console list is read. A lookup that fails or times out is "no result yet".

@@ -2,7 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 import { toDateString } from "@/lib/period";
-import { ownEntry } from "@/lib/records";
+import { memberKeyOf, ownEntry } from "@/lib/records";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
@@ -10,6 +10,7 @@ import { accountSince } from "@/services/account/withdrawalCore";
 import { adapterFor, type PlatformAdapter, type SendResult } from "./adapters";
 import { mockPlatform, type MockPlatformTransaction } from "./mockPlatformStore";
 import { recheckPending, walletMirror } from "./pendingCore";
+import { platformKeyFor } from "./platformKey";
 import {
   MESSAGE_MAX,
   PLATFORMS,
@@ -27,7 +28,9 @@ import {
  *
  * Donation Core rules: the FN price comes from the platform catalog on the server, the balance is
  * checked and debited on the server, and each confirmation carries an Idempotency-Key so a retry or
- * double click never debits twice. If the platform rejects the donation the debit is reversed
+ * double click never debits twice. The key is the member's own (kept per member: another member sending the same key
+ * gets a donation of their own), and the platform gets a key derived from it (./platformKey.ts), never the member's raw
+ * key. If the platform rejects the donation the debit is reversed
  * ("FN은 차감되지 않았습니다."). If the platform call throws or times out the outcome is unknown: the FN
  * stays held, the transaction stays PROCESSING and the key answers PENDING with its Transaction ID. The server then
  * re-checks it for 24 hours and an operator decides it after that (2026-10-08 결정, ./pendingCore.ts).
@@ -120,7 +123,8 @@ export async function quotePlatformDonation(input: unknown): Promise<PlatformQuo
 
 export async function requestPlatformDonation(input: unknown): Promise<PlatformDonationResult> {
   assertMock();
-  if (!(await getSession())) return { status: "UNAUTHORIZED" };
+  const session = await getSession();
+  if (!session) return { status: "UNAUTHORIZED" };
   const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   if (!isPlatform(v.platform) || !isId(v.creatorId) || typeof v.idempotencyKey !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(v.idempotencyKey)) {
     return { status: "INVALID" };
@@ -129,9 +133,11 @@ export async function requestPlatformDonation(input: unknown): Promise<PlatformD
   if (message === null || message.length > MESSAGE_MAX) return { status: "INVALID" };
   const platform = v.platform;
   const key = v.idempotencyKey;
+  // The member's key, kept under the member: another member's key never answers or blocks this request.
+  const requestKey = memberKeyOf(session.userId, key);
 
   const fingerprint = JSON.stringify([platform, v.creatorId, v.productId, v.customFn ?? null, message]);
-  const previous = ownEntry(mockPlatform.idempotency, key);
+  const previous = ownEntry(mockPlatform.idempotency, requestKey);
   if (previous) {
     if (previous.fingerprint !== fingerprint) return { status: "CONFLICT" };
     // 결과 다시 확인: a PENDING key asks the platform first (lazy re-check, ./pendingCore.ts); a result it brings is
@@ -140,9 +146,10 @@ export async function requestPlatformDonation(input: unknown): Promise<PlatformD
     if (waiting) await recheckPending((t) => t.transactionId === waiting);
     return previous.result ?? { status: "IN_PROGRESS" };
   }
-  mockPlatform.idempotency[key] = { fingerprint, result: null };
+  // Held by reference: a 재가입 during an await moves the entry to the withdrawn account's own id (account/rejoin.ts).
+  const entry: { fingerprint: string; result: PlatformDonationResult | null } = (mockPlatform.idempotency[requestKey] = { fingerprint, result: null });
   const finish = (result: PlatformDonationResult) => {
-    mockPlatform.idempotency[key].result = result;
+    entry.result = result;
     return result;
   };
 
@@ -164,6 +171,8 @@ export async function requestPlatformDonation(input: unknown): Promise<PlatformD
   // Hold the FN first, then ask the platform; reverse the hold if it refuses (one transaction in the backend).
   const now = new Date();
   const transactionId = `TXN-${randomUUID().toUpperCase()}`;
+  // The platform's own key for this donation, never the member's: a retry of the member's key reaches it under the same one.
+  const platformKey = platformKeyFor(session.userId, key);
   mockAccount.fnBalance -= price.amountFn;
   const tx: MockPlatformTransaction = {
     transactionId,
@@ -180,12 +189,13 @@ export async function requestPlatformDonation(input: unknown): Promise<PlatformD
     completedAt: null,
     account: accountSince(),
     requestedAt: now.toISOString(),
-    idempotencyKey: key
+    requestKey,
+    platformKey
   };
   mockPlatform.transactions.unshift(tx);
 
   await mockDelay(900);
-  const sent = await sendBounded(adapter, { creatorId: creator.id, productId: price.product.id, amountFn: price.amountFn, message, idempotencyKey: key });
+  const sent = await sendBounded(adapter, { creatorId: creator.id, productId: price.product.id, amountFn: price.amountFn, message, idempotencyKey: platformKey });
 
   if (!sent.ok) {
     const reason = sent.reason;

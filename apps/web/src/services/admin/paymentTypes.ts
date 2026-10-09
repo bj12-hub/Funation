@@ -35,12 +35,15 @@ export type AdminRefund = {
 /**
  * The fields the console shows — built field by field, so a record's other fields (messages, preferences) stay on the
  * server. `memberWithdrawn`: the member withdrew (the console adds a 탈퇴 badge to the original nickname).
+ * `fnNotCredited` (2026-10-10 결정): the payment completed after the member withdrew, so its FN were credited to nobody
+ * (완료 · FN 미지급 (탈퇴)); what happens to the KRW paid (PG 취소 · 환불) is TBD.
  */
 export type AdminChargeRow = Pick<ChargeRecord, "id" | "chargedAt" | "methodLabel" | "fnAmount" | "paidAmount" | "status" | "transactionId"> & {
   refund: { status: RefundStatus; requestedAt: string } | null;
   memberId: string;
   memberName: string;
   memberWithdrawn: boolean;
+  fnNotCredited: boolean;
 };
 
 /**

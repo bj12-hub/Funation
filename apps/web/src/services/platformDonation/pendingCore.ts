@@ -88,7 +88,8 @@ async function lookupBounded(t: Tx): Promise<LookupResult> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
-      adapterFor(t.platform).lookupDonation({ creatorId: t.creatorId, idempotencyKey: t.idempotencyKey, transactionId: t.transactionId }),
+      // By the key the platform was given (./platformKey.ts), never the member's own.
+      adapterFor(t.platform).lookupDonation({ creatorId: t.creatorId, idempotencyKey: t.platformKey, transactionId: t.transactionId }),
       new Promise<LookupResult>((resolve) => (timer = setTimeout(() => resolve({ status: "UNKNOWN" }), LOOKUP_TIMEOUT_MS)))
     ]);
   } catch {
@@ -207,7 +208,7 @@ export function settle(t: Tx, d: Decision, now = new Date()): PlatformResolution
   };
   t.resolution = resolution;
   notifyResolved(t, fnReturn);
-  const entry = t.idempotencyKey ? ownEntry(mockPlatform.idempotency, t.idempotencyKey) : undefined;
+  const entry = t.requestKey ? ownEntry(mockPlatform.idempotency, t.requestKey) : undefined;
   if (entry) {
     // A failure here came after the FN were held: the answer says so (FN 반환), never "nothing was debited".
     entry.result =

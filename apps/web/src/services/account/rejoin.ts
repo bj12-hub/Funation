@@ -6,6 +6,7 @@ import { channelCommunityStore } from "@/services/creators/channelCommunityCore"
 import { mockMessages } from "@/services/messages/mockMessageStore";
 import { moderationStore } from "@/services/moderation/moderationCore";
 import { notificationStore } from "@/services/notifications/notificationCore";
+import { mockPlatform } from "@/services/platformDonation/mockPlatformStore";
 import { resetMockIdentity } from "@/services/supporter/mockIdentityStore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { mockAccount, mockChangeHistory, mockCredentials, mockSessionState } from "./mockStore";
@@ -65,7 +66,8 @@ const rekey = <T>(map: Record<string, T>, from: string, to: string): Record<stri
  * The slot's member id now belongs to the new account, so what the withdrawn account wrote and set moves to its own
  * id `to` (the admin directory's `…-wN`). Its community posts, comments and channel posts stay up under "탈퇴한 회원"
  * (2026-10-08 결정, admin/memberCore `shownMemberName`) but are no longer the slot's to edit or delete; its block list, the blocks others
- * set on it, its reports (as author and as reporter, so 신고 처리 links the right member) and its request ids go with it.
+ * set on it, its reports (as author and as reporter, so 신고 처리 links the right member), its request ids and its retry
+ * keys (charges, donations, 플랫폼 후원) go with it.
  * Its notifications were about its own charges, donations and refunds, which the new account does not have.
  */
 function retireSlotMember(to: string) {
@@ -97,5 +99,12 @@ function retireSlotMember(to: string) {
     moderation.blocks[to] = own;
     delete moderation.blocks[from];
   }
+  // Retry keys of charges, donations and 플랫폼 후원 are kept per member (lib/records.ts `memberKeyOf`): the withdrawn
+  // account's go with it, so they never answer (or block) the new account's requests. A transaction keeps where its
+  // entry is; the key the platform was given does not change.
+  mockWallet.idempotency = rekey(mockWallet.idempotency, `${from}:`, `${to}:`);
+  mockWallet.donationIdempotency = rekey(mockWallet.donationIdempotency, `${from}:`, `${to}:`);
+  mockPlatform.idempotency = rekey(mockPlatform.idempotency, `${from}:`, `${to}:`);
+  for (const t of mockPlatform.transactions) if (t.requestKey?.startsWith(`${from}:`)) t.requestKey = `${to}:${t.requestKey.slice(from.length + 1)}`;
   notificationStore().items.length = 0;
 }

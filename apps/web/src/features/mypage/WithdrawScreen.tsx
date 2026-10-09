@@ -17,8 +17,11 @@ import styles from "./withdraw.module.css";
  * Shows what withdrawal does, asks for a forfeit consent per amount (남은 FN · 정산 대기 수익, when there is one),
  * the final consent and the password, then ends the account on the server. Withdrawal waits while an FN 충전 환불
  * request is being handled (2026-10-06 결정), a 퀘스트 후원 is in progress — sent by the member, or sent to the
- * creator's channel (2026-10-08 결정) — or a 플랫폼 후원 is waiting for its result (PENDING, 2026-10-09 결정); a card says
- * why and links to where it is resolved.
+ * creator's channel (2026-10-08 결정) — or a 플랫폼 후원 is waiting for its result (PENDING, 2026-10-09 결정), or an FN 충전
+ * is in progress (provider call or 처리중) or an 출석 보상 is on its way (2026-10-10 결정); a card says why and links to
+ * where it is resolved, and the 탈퇴하기 button stays disabled. The server waits a moment for a charge or reward on its
+ * way before it answers, and a refusal refreshes the screen, so both show the state after it. Consents are for the
+ * amounts shown: when a refresh brings other amounts, the member agrees again.
  * "탈퇴 후에도 보관하는 정보" lists what is kept and for how long from the shared retention list
  * (services/account/retentionPolicy.ts — 기본값, 법무 검토 전); posts are never deleted, so the effects say so.
  */
@@ -41,8 +44,20 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
   const questsSent = info.pendingQuests.sent;
   const questsReceived = info.pendingQuests.received;
   const platformPending = info.pendingPlatformDonations;
-  const blocked = hasRefunds || questsSent > 0 || questsReceived > 0 || platformPending > 0;
+  const chargesPending = info.pendingCharges;
+  const rewardsPending = info.pendingAttendanceRewards;
+  const blocked = hasRefunds || questsSent > 0 || questsReceived > 0 || platformPending > 0 || chargesPending > 0 || rewardsPending > 0;
   const ready = !blocked && confirmed && (!hasFn || forfeit) && (!hasEarnings || earningsForfeit) && password.length > 0;
+
+  // The forfeit consents are for the amounts shown. A refresh that brings other amounts (a charge landed meanwhile, a
+  // platform donation's FN came back) clears them, so the member agrees to the new amounts.
+  const amounts = `${info.fnBalance}:${info.unsettledFn}`;
+  const [consentedAmounts, setConsentedAmounts] = useState(amounts);
+  if (consentedAmounts !== amounts) {
+    setConsentedAmounts(amounts);
+    setForfeit(false);
+    setEarningsForfeit(false);
+  }
 
   const submit = () => {
     if (!ready || pending) return;
@@ -76,6 +91,12 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
           router.refresh();
         } else if (r.status === "PLATFORM_PENDING") {
           setError(`처리 결과를 확인 중인 플랫폼 후원이 ${r.count}건 있어요. 후원 결과가 정해진 뒤에 탈퇴할 수 있어요.`);
+          router.refresh();
+        } else if (r.status === "CHARGE_PENDING") {
+          setError(`처리 중인 충전이 ${r.count}건 있어요. 충전이 끝난 뒤에 탈퇴할 수 있어요.`);
+          router.refresh();
+        } else if (r.status === "ATTENDANCE_PENDING") {
+          setError(`지급 중인 출석 보상이 ${r.count}건 있어요. 지급이 끝난 뒤에 탈퇴할 수 있어요.`);
           router.refresh();
         } else {
           setError(r.message);
@@ -179,6 +200,32 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
           </p>
           <div className={styles.links}>
             <Link href="/donation/history?period=all&status=PROCESSING">후원 내역으로</Link>
+          </div>
+        </section>
+      )}
+
+      {chargesPending > 0 && (
+        <section className={styles.warnCard} aria-labelledby="withdraw-charges">
+          <h2 className={styles.cardTitle} id="withdraw-charges">
+            처리 중인 충전
+          </h2>
+          <strong className={styles.balance}>{formatNumber(chargesPending)}건</strong>
+          <p className={styles.note}>결제 확인이 끝나면 충전한 FN이 남은 FN에 더해져요. 충전이 끝난 뒤에 탈퇴할 수 있어요.</p>
+          <div className={styles.links}>
+            <Link href="/wallet/charges">충전 내역으로</Link>
+          </div>
+        </section>
+      )}
+
+      {rewardsPending > 0 && (
+        <section className={styles.warnCard} aria-labelledby="withdraw-rewards">
+          <h2 className={styles.cardTitle} id="withdraw-rewards">
+            지급 중인 출석 보상
+          </h2>
+          <strong className={styles.balance}>{formatNumber(rewardsPending)}건</strong>
+          <p className={styles.note}>출석체크 보상 FN을 지급하고 있어요. 지급이 끝나면 남은 FN에 더해져요. 지급이 끝난 뒤에 탈퇴할 수 있어요.</p>
+          <div className={styles.links}>
+            <Link href="/attendance">출석체크로</Link>
           </div>
         </section>
       )}

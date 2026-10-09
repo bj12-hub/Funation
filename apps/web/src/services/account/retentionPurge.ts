@@ -51,6 +51,8 @@ const PURGE: Record<Exclude<RetentionCategory, "POSTS">, (t: Target) => void> = 
   PAYMENT: (t) => {
     const own = (stamp: string) => accountAt(stamp) === t.account;
     mockWallet.charges = mockWallet.charges.filter((c) => !own(c.chargedAt));
+    // Charges paid after the account withdrew (never credited, 2026-10-10 결정) are its payment records too.
+    mockWallet.uncreditedCharges = mockWallet.uncreditedCharges.filter((u) => u.account !== t.account);
     mockWallet.donations = mockWallet.donations.filter((d) => !own(d.donatedAt));
     mockCredits.credits = mockCredits.credits.filter((c) => c.account !== t.account);
     mockRefunds.requests = mockRefunds.requests.filter((r) => r.accountSince !== t.account);

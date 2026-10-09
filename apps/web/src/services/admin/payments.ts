@@ -3,7 +3,9 @@ import { USE_MOCK } from "@/lib/mock";
 import { mockAccount } from "@/services/account/mockStore";
 import { accountSince, isWithdrawn } from "@/services/account/withdrawalCore";
 import { purgeExpired } from "@/services/account/retentionPurge";
+import { isUncredited } from "@/services/wallet/chargeCore";
 import { mockRefunds, type MockRefundRequest } from "@/services/wallet/mockRefundStore";
+import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { chargeRefundQuote } from "@/services/wallet/refundCore";
 import { REFUND_POLICY_LABEL, REFUND_POLICY_SUMMARY, REFUND_TYPE_LABEL, refundAmounts, refundDirection, sameRefund, type RefundAmounts, type RefundQuote } from "@/services/wallet/refundPolicy";
 import { findChargeRecord, listAccountChargeRecords, listAccountDonationRecords, listChargeRecords } from "@/services/wallet/walletHistory";
@@ -121,9 +123,10 @@ const isAmount = (v: unknown): v is number => typeof v === "number" && Number.is
 export async function getPaymentsView(): Promise<PaymentsView | null> {
   assertMock();
   purgeExpired(); // records past their retention date are not shown (account/retentionPolicy.ts)
-  // Every account's charges: a withdrawn account's stay in the console (audit trail) under its own `…-wN` member.
-  const charges = listAccountChargeRecords()
-    .map(
+  // Every account's charges: a withdrawn account's stay in the console (audit trail) under its own `…-wN` member, with
+  // the payments that completed after their account withdrew (완료 · FN 미지급, 2026-10-10 결정).
+  const charges = [
+    ...listAccountChargeRecords().map(
       (c): AdminChargeRow => ({
         id: c.id,
         chargedAt: c.chargedAt,
@@ -133,10 +136,25 @@ export async function getPaymentsView(): Promise<PaymentsView | null> {
         status: c.status,
         transactionId: c.transactionId,
         refund: c.refund ? { status: c.refund.status, requestedAt: c.refund.requestedAt } : null,
-        ...owner(c.account)
+        ...owner(c.account),
+        fnNotCredited: isUncredited(c.id)
+      })
+    ),
+    ...mockWallet.uncreditedCharges.map(
+      (u): AdminChargeRow => ({
+        id: u.id,
+        chargedAt: u.chargedAt,
+        methodLabel: u.methodLabel,
+        fnAmount: u.fnAmount,
+        paidAmount: u.paidAmount,
+        status: "COMPLETED",
+        transactionId: u.transactionId,
+        refund: null,
+        ...owner(u.account),
+        fnNotCredited: true
       })
     )
-    .sort((a, b) => b.chargedAt.localeCompare(a.chargedAt));
+  ].sort((a, b) => b.chargedAt.localeCompare(a.chargedAt));
   return { charges, refunds: refunds(), balance: mockAccount.fnBalance, refundPolicy: { label: REFUND_POLICY_LABEL, summary: REFUND_POLICY_SUMMARY } };
 }
 
