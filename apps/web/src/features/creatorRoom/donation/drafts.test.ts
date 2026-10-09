@@ -57,6 +57,13 @@ describe("후원 폼 → 요청", () => {
     expect(buildDraft("MINI", states({ MINI: { amount: "100", text: "안녕" } }), catalog).details).toMatchObject({ type: "MINI", text: "안녕" });
   });
 
+  it("미니 후원 stays under 1,000 FN and points larger amounts to 일반 후원", () => {
+    const high = buildDraft("MINI", states({ MINI: { amount: "1000", text: "안녕" } }), catalog);
+    expect(high.details).toBeNull();
+    expect(high.error).toBe("미니 후원은 999 FN까지예요. 1,000 FN부터는 일반 후원으로 보내 주세요");
+    expect(buildDraft("MINI", states({ MINI: { amount: "999", text: "안녕" } }), catalog)).toMatchObject({ details: { type: "MINI", amount: 999 }, error: null });
+  });
+
   it("영상 후원 checks the address, the range and the terms", () => {
     const base = { amount: "1000", url: "https://youtu.be/dQw4w9WgXcQ", start: "00:10", end: "00:40", terms: true };
     expect(buildDraft("VIDEO", states({ VIDEO: base }), catalog).details).toMatchObject({ type: "VIDEO", startSec: 10, endSec: 40, termsAgreed: true });

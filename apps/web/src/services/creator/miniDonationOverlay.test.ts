@@ -63,6 +63,8 @@ describe("미니후원 오버레이", () => {
     read = await miniOverlay(m);
     // 100 … 700 FN sent; only 600 and 700 reach 최소 표시 금액 600.
     expect(read.lines.map((l) => l.text)).toEqual(["미니 7", "미니 6"]);
+    // Mini donations are under 1,000 FN, so 최소 표시 금액 is 0 … 999.
+    expect(await m.saveWidgetSettings("MINI", { ...m.readWidget("MINI"), minAmount: 1_000 })).toEqual({ status: "INVALID", message: "최소 표시 금액은 0 ~ 999 FN으로 입력해 주세요." });
   });
 
   it("starts on the theme card, sends its own theme, and reads older settings as 전체 테마 without a card", async () => {
