@@ -6,7 +6,7 @@ import { mockAccount } from "@/services/account/mockStore";
 import { accountSince } from "@/services/account/withdrawalCore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { mockPlatform } from "./mockPlatformStore";
-import { recheckPending } from "./pendingCore";
+import { recheckAccountPending } from "./pendingCore";
 import { HISTORY_LIST_MAX, HISTORY_PERIODS, HISTORY_SORTS, HISTORY_STATUS_LABEL, HISTORY_TABS, type HistoryItem, type HistoryPeriod, type HistoryStatus, type HistoryTab, type HistoryView } from "./platformTypes";
 
 /**
@@ -68,8 +68,7 @@ export async function getDonationHistory(params: { tab?: unknown; period?: unkno
   const q = typeof params.q === "string" ? params.q.trim().slice(0, 40) : "";
   const sort = oneOf(HISTORY_SORTS, params.sort, "newest");
 
-  const own = accountSince();
-  await recheckPending((t) => (t.account ?? null) === own);
+  await recheckAccountPending();
   await mockDelay(250);
   const since = period === "all" ? "" : (() => {
     const d = new Date();

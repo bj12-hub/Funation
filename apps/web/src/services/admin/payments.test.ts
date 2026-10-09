@@ -189,7 +189,7 @@ describe("admin payments", () => {
     expect(charges.find((c) => c.id === charge.id)!.refund).toEqual({ status: "REQUESTED", requestedAt: expect.any(String) });
     const { rows } = (await m.getDonationsView())!;
     expect(rows.length).toBeGreaterThan(0);
-    for (const row of rows) expect(Object.keys(row).sort()).toEqual(["creatorName", "donatedAt", "fnAmount", "id", "memberId", "memberName", "memberWithdrawn", "status", "typeLabel"]);
+    for (const row of rows) expect(Object.keys(row).sort()).toEqual(["creatorName", "donatedAt", "fnAmount", "fnReturned", "id", "memberId", "memberName", "memberWithdrawn", "status", "typeLabel"]);
   });
 
   it("summarises donations by status and type", async () => {

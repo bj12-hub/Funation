@@ -14,6 +14,7 @@ both at once, e.g. `레드 다이아 · 플래티넘`, plus the per-creator titl
 | 누적 등급 (global title) | 다이아 · 블루 · 그린 · 레드 · 퍼플 · 레인보우 다이아, 블랙 1성 ~ 6성 (12) | every completed donation, 익명 included | only up |
 | 활동 등급 (grade) | 일반 (base, never a badge) · 실버 · 골드 · 플래티넘 · 마스터 · 레전드 | this month and the five before, 익명 included | up at once, down only on the 1st |
 | 크리에이터 칭호 (per creator) | 새싹 팬 · 열혈 팬 · 찐팬 · 왕관 팬 (placeholder template) | completed donations to that creator, **not** those sent as 익명 | with that total |
+| 별명 누적 (별명 관리, not a badge) | per 별명: FN and count | completed donations sent under that 별명, **not** those sent as 익명 | with that total |
 
 **Thresholds are placeholders (TBD).** The FN numbers are the plan's 렉스 numbers as they are (user choice
 2026-10-08: "렉스 숫자 그대로"), because the FN exchange rate is still TBD: 실버 30,000 · 골드 60,000 · 플래티넘
@@ -38,11 +39,17 @@ was sent, as before). A 재가입 account starts without the withdrawn account's
 - A donation sent with 프로필 숨기기 (shown as 익명) still counts toward the 누적 등급 and the 활동 등급, but **not** toward
   the 크리에이터 칭호 of that creator (`identityCore.computeIdentity`). Rankings already leave it out (2026-10-08 결정).
   `/mypage/titles` says so under 크리에이터 칭호: "프로필 숨기기(익명)로 보낸 후원은 크리에이터 칭호에 들어가지 않아요."
+- Nor does it count toward any 별명's totals in 별명 관리 (`/mypage/nicknames`) — not the 별명 picked for it, not the
+  대표 or 기본 별명 an unattributed donation would go to: the Donation Core does not attribute a hidden donation
+  (`donate.ts`), and `computeIdentity` leaves hidden donations out of the 별명 totals (also older ones). The screen's
+  누적 후원 · 총 후원 횟수 are those 별명 totals. Its note says: "프로필 숨기기(익명)로 보낸 후원은 어느 별명의 누적에도
+  들어가지 않아요. 누적 등급 · 활동 등급에는 들어가요."
 - A hidden-profile alert never had badges. Neither does an alert whose name the creator's 대체 메시지 표시 설정 (닉네임)
   replaced — to 익명 (empty 대체 메시지) or to the 대체 메시지 itself: the badges belong to the donor the replacement hides
   (`alertCore.enqueueDonationAlert`). Every surface that draws the badges (OBS 후원 알림, its settings preview with sample
   data) reads them from the alert, so none shows them; the 리모컨 and the alert lists show no badges. The alert keeps its
-  opaque `donorKey` (the 후원랭킹 widget still leaves an alert shown as 익명 out).
+  opaque `donorKey`, but the 후원랭킹 widget leaves any replaced-name alert out (2026-10-09 결정, `nameReplaced` fixed
+  when the alert is queued — see `docs/domains/donation.md`).
 - The donation confirm preview (`getAlertBadges`) shows the supporter's own name and badges before the creator's
   대체 메시지 rules, as it always did: those rules (the creator's 금지어) are not shown to supporters.
 

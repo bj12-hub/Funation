@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { AUDIT_ACTION_LABEL, type AdminEventRow, type PendingDonationRow } from "@/types/adminApi";
+import { AUDIT_ACTION_LABEL, type AdminDonationRow, type AdminEventRow, type DonationsView, type PendingDonationRow } from "@/types/adminApi";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh() {} }), usePathname: () => "/" }));
 vi.mock("@/lib/actions", () => ({}));
@@ -95,6 +95,51 @@ describe("확인 중 후원", () => {
     const html = render(createElement(PendingDonationsScreen, { view: { waiting: [], resolved: [], checking: 0 } }));
     expect(html).toContain("확인이 필요한 후원이 없어요.");
     expect(html).not.toContain("처리 완료");
+  });
+
+  it("says the re-check also runs when the member opens 회원 탈퇴", async () => {
+    const { PendingDonationsScreen } = await import("./payments/PendingDonationsScreen");
+    const html = render(createElement(PendingDonationsScreen, { view: { waiting: [], resolved: [], checking: 1 } }));
+    expect(html).toContain("자동 확인 중 1건 · 요청 후 24시간 안에는 회원의 후원 내역 · 회원 탈퇴 화면과 이 화면을 열 때마다 플랫폼 결과를 다시 확인해요.");
+  });
+});
+
+/** 2026-10-09 결정: a failed 플랫폼 후원 whose held FN went back is FN 반환 in 후원 운영, never 환불완료 (real refunds keep it). */
+describe("후원 운영 · FN 반환", () => {
+  const empty = { count: 0, fn: 0 };
+  const row = (over: Partial<AdminDonationRow>): AdminDonationRow => ({
+    id: "dn-1",
+    donatedAt: "2026-10-08 12:00:00",
+    creatorName: "게임왕",
+    fnAmount: 10_000,
+    typeLabel: "SOOP 별풍선 10개",
+    status: "REFUNDED",
+    fnReturned: false,
+    memberId: "u-hongGD123",
+    memberName: "홍길동",
+    memberWithdrawn: false,
+    ...over
+  });
+  const returned = row({ id: "TXN-1", fnReturned: true });
+  const refunded = row({ id: "dn9", creatorName: "하루봄", fnAmount: 5_000, typeLabel: "시그니처 후원" });
+  const view = (rows: AdminDonationRow[]): DonationsView => ({
+    rows,
+    byStatus: { COMPLETED: empty, PROCESSING: empty, FAILED: empty, REFUNDING: empty, REFUNDED: { count: 1, fn: 5_000 }, FN_RETURNED: { count: 1, fn: 10_000 } },
+    byType: []
+  });
+
+  it("labels the returned FN FN 반환 in the list and in its own tile, and keeps 환불완료 for a real refund", async () => {
+    const { DonationsAdminScreen } = await import("./payments/PaymentScreens");
+    const html = render(createElement(DonationsAdminScreen, { view: view([returned, refunded]), status: null }));
+    expect(html).toMatch(/<td>SOOP 별풍선 10개<\/td><td>10,000<\/td><td>FN 반환<\/td>/);
+    expect(html).toMatch(/<td>시그니처 후원<\/td><td>5,000<\/td><td>환불완료<\/td>/);
+    expect(html.match(/<td>환불완료<\/td>/g)).toHaveLength(1);
+    expect(html).toMatch(/href="\/donations\?status=FN_RETURNED"[^>]*><span[^>]*>FN 반환<\/span><strong[^>]*>1건<\/strong><span[^>]*>10,000 FN<\/span>/);
+    expect(html).toMatch(/href="\/donations\?status=REFUNDED"[^>]*><span[^>]*>환불완료<\/span><strong[^>]*>1건<\/strong><span[^>]*>5,000 FN<\/span>/);
+
+    const filtered = render(createElement(DonationsAdminScreen, { view: view([returned]), status: "FN_RETURNED" }));
+    expect(filtered).toContain("후원 내역 · FN 반환 (1)");
+    expect(filtered).not.toContain("<td>환불완료</td>");
   });
 });
 

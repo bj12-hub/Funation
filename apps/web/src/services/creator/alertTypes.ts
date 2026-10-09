@@ -36,6 +36,12 @@ export type AlertItem = {
    * older and seed alerts (grouped by the name shown).
    */
   donorKey?: string | null;
+  /**
+   * DONATION: the creator's 대체 메시지 표시 설정 (닉네임) replaced the donor's name when the alert was queued — it shows
+   * 익명 (empty 대체 메시지) or the 대체 메시지. Fixed then, so a later change of 금지어 neither re-includes nor re-excludes
+   * it: 후원랭킹 leaves it out (2026-10-09 결정) and it has no badges. Absent on older alerts (not replaced).
+   */
+  nameReplaced?: boolean;
   /** 등급·칭호 labels resolved on the server when the donation completed (DONATION only). */
   badges?: string[];
   message: string;

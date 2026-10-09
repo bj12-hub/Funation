@@ -1,6 +1,17 @@
 import Link from "next/link";
 import { formatNumber } from "@/lib/format";
-import { type AdminRefund, type DonationsView, type PaymentsView, type RefundAmounts, CHARGE_STATUS_LABEL, DONATION_STATUS_LABEL, REFUND_TYPE_LABEL, type DonationStatus } from "@/types/adminApi";
+import {
+  type AdminRefund,
+  type DonationFilter,
+  type DonationsView,
+  type PaymentsView,
+  type RefundAmounts,
+  CHARGE_STATUS_LABEL,
+  DONATION_FILTERS,
+  DONATION_FILTER_LABEL,
+  REFUND_TYPE_LABEL,
+  donationRowLabel
+} from "@/types/adminApi";
 import styles from "../admin.module.css";
 import { HoldControl } from "../HoldControl";
 import { HoldChip, HoldInfo } from "../HoldInfo";
@@ -204,10 +215,11 @@ export function PaymentsScreen({ view, tab }: { view: PaymentsView; tab: "charge
   );
 }
 
-const STATUSES: DonationStatus[] = ["COMPLETED", "PROCESSING", "FAILED", "REFUNDING", "REFUNDED"];
-
-/** 후원 운영 — code-first. Route `/donations` (`?status=`). Read-only; donation refunds are TBD. */
-export function DonationsAdminScreen({ view, status }: { view: DonationsView; status: DonationStatus | null }) {
+/**
+ * 후원 운영 — code-first. Route `/donations` (`?status=`). Read-only; donation refunds are TBD. A failed 플랫폼 후원 whose
+ * held FN went back reads FN 반환 (its own tile), not 환불완료 (2026-10-09 결정).
+ */
+export function DonationsAdminScreen({ view, status }: { view: DonationsView; status: DonationFilter | null }) {
   return (
     <div className={styles.content}>
       <header className={styles.pageHead}>
@@ -215,9 +227,9 @@ export function DonationsAdminScreen({ view, status }: { view: DonationsView; st
         <p className={styles.muted}>후원 주문을 상태 · 유형별로 봐요. 후원 취소 · 환불 처리 규칙은 TBD라 조회만 돼요.</p>
       </header>
       <section className={styles.tiles} aria-label="상태별 합계">
-        {STATUSES.map((s) => (
+        {DONATION_FILTERS.map((s) => (
           <Link key={s} href={status === s ? "/donations" : `/donations?status=${s}`} className={styles.tile} aria-current={status === s ? "true" : undefined}>
-            <span className={styles.muted}>{DONATION_STATUS_LABEL[s]}</span>
+            <span className={styles.muted}>{DONATION_FILTER_LABEL[s]}</span>
             <strong className={styles.tileValue}>{formatNumber(view.byStatus[s].count)}건</strong>
             <span className={styles.muted}>{formatNumber(view.byStatus[s].fn)} FN</span>
           </Link>
@@ -244,7 +256,7 @@ export function DonationsAdminScreen({ view, status }: { view: DonationsView; st
         </section>
         <section className={styles.card} aria-labelledby="dn-list">
           <h2 id="dn-list" className={styles.cardTitle}>
-            후원 내역 {status ? `· ${DONATION_STATUS_LABEL[status]}` : ""} ({formatNumber(view.rows.length)})
+            후원 내역 {status ? `· ${DONATION_FILTER_LABEL[status]}` : ""} ({formatNumber(view.rows.length)})
           </h2>
           {view.rows.length === 0 ? (
             <p className={styles.empty}>{status ? "해당하는 후원이 없어요." : "후원 내역이 없어요."}</p>
@@ -269,7 +281,7 @@ export function DonationsAdminScreen({ view, status }: { view: DonationsView; st
                     </td>
                     <td>{d.typeLabel}</td>
                     <td>{formatNumber(d.fnAmount)}</td>
-                    <td>{DONATION_STATUS_LABEL[d.status]}</td>
+                    <td>{donationRowLabel(d)}</td>
                   </tr>
                 ))}
               </tbody>

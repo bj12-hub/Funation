@@ -48,8 +48,8 @@ describe("withdrawn members in the console", () => {
 
     const empty = { count: 0, fn: 0 };
     const donations: DonationsView = {
-      rows: [{ id: "dn-1", donatedAt: "2026-10-01 10:00:00", creatorName: "하루봄", fnAmount: 1_000, typeLabel: "일반 후원", status: "COMPLETED", memberId: "u-hongGD123-w1", memberName: "홍길동", memberWithdrawn: true }],
-      byStatus: { COMPLETED: { count: 1, fn: 1_000 }, PROCESSING: empty, FAILED: empty, REFUNDING: empty, REFUNDED: empty },
+      rows: [{ id: "dn-1", donatedAt: "2026-10-01 10:00:00", creatorName: "하루봄", fnAmount: 1_000, typeLabel: "일반 후원", status: "COMPLETED", fnReturned: false, memberId: "u-hongGD123-w1", memberName: "홍길동", memberWithdrawn: true }],
+      byStatus: { COMPLETED: { count: 1, fn: 1_000 }, PROCESSING: empty, FAILED: empty, REFUNDING: empty, REFUNDED: empty, FN_RETURNED: empty },
       byType: [{ typeLabel: "일반 후원", count: 1, fn: 1_000 }]
     };
     expect(renderToStaticMarkup(createElement(DonationsAdminScreen, { view: donations, status: null }))).toMatch(after("홍길동"));
