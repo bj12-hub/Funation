@@ -203,10 +203,11 @@ export function settle(t: Tx, d: Decision, now = new Date()): PlatformResolution
   notifyResolved(t, fnReturn);
   const entry = t.idempotencyKey ? ownEntry(mockPlatform.idempotency, t.idempotencyKey) : undefined;
   if (entry) {
+    // A failure here came after the FN were held: the answer says so (FN 반환), never "nothing was debited".
     entry.result =
       d.outcome === "COMPLETED"
         ? { status: "COMPLETED", transactionId: t.transactionId, externalTransactionId: t.externalTransactionId, creatorName: t.creatorName, productLabel: t.productLabel, fnAmount: t.fnAmount, balance: mockAccount.fnBalance }
-        : { status: "FAILED", reason: "API_ERROR" };
+        : { status: "FAILED", reason: "RESULT_FAILED", transactionId: t.transactionId, fnReturned: fnReturn === "RETURNED" };
   }
   return resolution;
 }

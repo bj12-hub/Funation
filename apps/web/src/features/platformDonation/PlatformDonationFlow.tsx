@@ -8,13 +8,13 @@ import { ChargeModal, ChargeTrigger } from "@/features/walletCharge";
 import { formatNumber } from "@/lib/format";
 import { quotePlatformDonation, requestPlatformDonation } from "@/services/platformDonation/platformDonation";
 import { MESSAGE_MAX, PLATFORMS, type PlatformCreatorDetail, type PlatformDonationResult, type PlatformQuote } from "@/services/platformDonation/platformTypes";
+import { platformErrorCopy, type PlatformErrorKind as ErrorKind } from "./errorCopy";
 import { Avatar, LivePill, PlatformHeader } from "./parts";
 import styles from "./platformDonation.module.css";
 
 type Step = "product" | "message" | "processing" | "success" | "error";
 type Quote = Extract<PlatformQuote, { status: "OK" }>;
 type Success = Extract<PlatformDonationResult, { status: "COMPLETED" }>;
-type ErrorKind = "API_ERROR" | "UNAVAILABLE" | "NOT_FOUND" | "PENDING" | "IN_PROGRESS" | "NETWORK" | "INVALID";
 
 const fn = (n: number) => `${formatNumber(n)} FN`;
 
@@ -40,6 +40,8 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
   const [errorKind, setErrorKind] = useState<ErrorKind | null>(null);
   /** Transaction ID of a PENDING donation (FN held until the platform result is known). */
   const [pendingTxId, setPendingTxId] = useState<string | null>(null);
+  /** RESULT_FAILED: whether the held FN went back (FN 반환). */
+  const [fnReturned, setFnReturned] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -115,6 +117,8 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
         setStep("message");
         setSessionExpired(true);
       } else if (res.status === "FAILED") {
+        // 결과 다시 확인 of a PENDING donation that failed: its held FN went back (not "차감되지 않았습니다").
+        setFnReturned(res.reason === "RESULT_FAILED" && res.fnReturned);
         setErrorKind(res.reason);
         setStep("error");
       } else if (res.status === "PENDING" || res.status === "IN_PROGRESS") {
@@ -201,7 +205,7 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
   }
 
   if (step === "error" && errorKind) {
-    const info = ERRORS[errorKind](p.name);
+    const info = platformErrorCopy(errorKind, p.name, fnReturned);
     return (
       <div className={styles.content}>
         <PlatformHeader platform={detail.platform} subtitle="후원 중 발생한 문제를 확인하고 다시 진행해주세요." balance={detail.balance} />
@@ -211,7 +215,7 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
           </span>
           <strong className={styles.stateTitle}>{info.title}</strong>
           <p className={styles.muted}>{info.text}</p>
-          {info.notCharged && <p className={styles.notCharged}>FN은 차감되지 않았습니다.</p>}
+          {info.fnLine && <p className={styles.notCharged}>{info.fnLine}</p>}
           {errorKind === "PENDING" && pendingTxId && <p className={styles.muted}>결과가 확인될 때까지 FN은 보류됩니다. 거래 ID {pendingTxId}</p>}
           <div className={styles.actions}>
             <Link href="/donation/history" className={styles.secondaryButton}>
@@ -497,14 +501,3 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
     </div>
   );
 }
-
-/** Error copy from 817:9618 · 817:8948. */
-const ERRORS: Record<ErrorKind, (platform: string) => { title: string; text: string; notCharged?: boolean; pending?: boolean; searchAgain?: boolean }> = {
-  API_ERROR: (name) => ({ title: "후원에 실패했습니다.", text: `${name} 연결이 원활하지 않습니다. 잠시 후 다시 시도해주세요.`, notCharged: true }),
-  UNAVAILABLE: () => ({ title: "후원상품을 사용할 수 없음", text: "현재 선택한 상품의 판매가 중지되었습니다.", notCharged: true }),
-  NOT_FOUND: () => ({ title: "스트리머를 찾을 수 없음", text: "닉네임 또는 ID를 다시 확인해주세요.", notCharged: true, searchAgain: true }),
-  NETWORK: () => ({ title: "네트워크 오류", text: "인터넷 연결을 확인하고 다시 시도해주세요." }),
-  PENDING: (name) => ({ title: "처리 결과 확인 중", text: `${name}에서 후원 결과를 확인하고 있습니다.`, pending: true }),
-  IN_PROGRESS: () => ({ title: "중복 요청", text: "이미 동일한 후원이 처리 중입니다.", pending: true }),
-  INVALID: () => ({ title: "후원에 실패했습니다.", text: "후원 처리 중 문제가 발생했습니다.", notCharged: true })
-};
