@@ -83,7 +83,7 @@ describe("admin api", () => {
     const settlement = await import("@/app/api/admin/settlements/[id]/hold/route");
     const refund = await import("@/app/api/admin/refunds/[chargeId]/hold/route");
     const { mockRefunds } = await import("@/services/wallet/mockRefundStore");
-    mockRefunds.requests.push({ chargeId: "ch-x", memberId: "u-test", accountSince: null, requestedAt: "2026-10-01T00:00:00.000Z", reason: "", status: "REQUESTED", quote: { type: "FULL_CANCEL", grossFn: 10_000, feeFn: 0, netFn: 10_000 } });
+    mockRefunds.requests.push({ chargeId: "ch-x", memberId: "u-test", accountSince: null, requestedAt: "2026-10-01T00:00:00.000Z", reason: "", status: "REQUESTED", quote: { type: "FULL_CANCEL", grossFn: 10_000, feeFn: 0, netFn: 10_000, refundKrw: 11_000 } });
     const post = <P,>(route: { POST: (r: Request, c: { params: Promise<P> }) => Promise<Response> }, params: P, body: unknown, h = headers()) =>
       route.POST(new Request("http://x", { method: "POST", headers: h, body: JSON.stringify(body) }), ctx(params));
 

@@ -9,6 +9,7 @@ import { formatNumber } from "@/lib/format";
 import { quoteChargeRefund, requestChargeRefund } from "@/services/wallet/refund";
 import {
   REFUND_FEE_PERCENT,
+  REFUND_KRW_RULE,
   REFUND_METHOD_NOTE,
   REFUND_POLICY_HREF,
   REFUND_POLICY_LABEL,
@@ -128,8 +129,11 @@ function RefundPolicy() {
   );
 }
 
-/** The server's outcome for this charge, before the member asks: 전액 취소 / 수수료 공제 후 환불 / 환불 불가 + 사유. */
-function RefundOutcome({ quote, paidAmount }: { quote: RefundQuote; paidAmount: number }) {
+/**
+ * The server's outcome for this charge, before the member asks: 전액 취소 / 수수료 공제 후 환불 / 환불 불가 + 사유. The
+ * KRW amount is the server's too (`refundKrw`: 전액 취소 the whole payment, otherwise its share for the net FN).
+ */
+function RefundOutcome({ quote }: { quote: RefundQuote }) {
   if (quote.type === "NOT_REFUNDABLE") {
     return (
       <div className={styles.refundOutcome}>
@@ -158,12 +162,22 @@ function RefundOutcome({ quote, paidAmount }: { quote: RefundQuote; paidAmount: 
           <dt>{full ? "환불 수수료" : `환불 수수료 (${REFUND_FEE_PERCENT})`}</dt>
           <dd>{full ? "없음" : `−${formatNumber(quote.feeFn)} FN`}</dd>
         </div>
+        {!full && (
+          <div>
+            <dt>환불 FN</dt>
+            <dd>{formatNumber(quote.netFn)} FN</dd>
+          </div>
+        )}
         <div>
           <dt>{full ? "결제 취소 금액" : "환불 금액"}</dt>
-          <dd className={styles.refundFactsTotal}>{full ? `${formatNumber(paidAmount)} 원` : `${formatNumber(quote.netFn)} FN 상당`}</dd>
+          <dd className={styles.refundFactsTotal}>{formatNumber(quote.refundKrw)} 원</dd>
         </div>
       </dl>
-      {!full && <p className={styles.refundNote}>원화 환불 금액은 결제 대행사 연동 후 확정돼요 (TBD).</p>}
+      {!full && (
+        <p className={styles.refundNote}>
+          결제 금액 {formatNumber(quote.paidKrw)}원 중 환불 FN만큼 돌려드려요 ({REFUND_KRW_RULE}). {REFUND_METHOD_NOTE}돼요.
+        </p>
+      )}
     </div>
   );
 }
@@ -267,7 +281,7 @@ function RefundSection({ charge }: { charge: ChargeRecord }) {
   return (
     <div className={styles.refund}>
       {quote ? (
-        <RefundOutcome quote={quote} paidAmount={charge.paidAmount} />
+        <RefundOutcome quote={quote} />
       ) : (
         pending && (
           <p className={styles.refundNote} role="status">

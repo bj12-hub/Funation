@@ -22,7 +22,7 @@ export function RefundDecision({ chargeId, current }: { chargeId: string; curren
   const decide = (decision: "APPROVE" | "REJECT") => {
     const question =
       decision === "APPROVE" && current
-        ? `환불을 승인할까요? ${formatNumber(current.grossFn)} FN을 회수하고 ${formatNumber(current.netFn)} FN을 환불해요(수수료 ${formatNumber(current.feeFn)} FN). 되돌릴 수 없어요.`
+        ? `환불을 승인할까요? ${formatNumber(current.grossFn)} FN을 회수하고 ${formatNumber(current.netFn)} FN(${formatNumber(current.refundKrw)}원)을 환불해요(수수료 ${formatNumber(current.feeFn)} FN). 되돌릴 수 없어요.`
         : "환불 요청을 거절할까요?";
     if (!window.confirm(question)) return;
     setMsg(null);

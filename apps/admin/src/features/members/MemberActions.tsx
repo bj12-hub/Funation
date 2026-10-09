@@ -32,7 +32,7 @@ export function MemberActions({ id, suspended }: { id: string; suspended: boolea
     });
   };
   const suspend = () => {
-    if (!window.confirm(`이 회원을 ${days === null ? "무기한" : `${days}일`} 정지할까요?`)) return;
+    if (!window.confirm(days === null ? "이 회원을 영구 정지할까요? 영구 정지된 회원의 남은 FN은 회원 요청에 따라 운영자가 정리해요." : `이 회원을 ${days}일 정지할까요?`)) return;
     requestId.current ??= crypto.randomUUID();
     run(() => suspendMember({ id, days, reason, requestId: requestId.current }), "이용을 정지했어요.");
   };
@@ -43,7 +43,7 @@ export function MemberActions({ id, suspended }: { id: string; suspended: boolea
         <div className={styles.segment} role="radiogroup" aria-label="정지 기간">
           {SUSPEND_DAYS.map((d) => (
             <button key={String(d)} type="button" role="radio" aria-checked={days === d} className={styles.segmentItem} onClick={() => setDays(d)}>
-              {d === null ? "무기한" : `${d}일`}
+              {d === null ? "영구" : `${d}일`}
             </button>
           ))}
         </div>

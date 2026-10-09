@@ -85,6 +85,22 @@ describe("약관 · 정책 문서 (초안 본문, 2026-10-08)", () => {
     }
   });
 
+  it("states the KRW amount of a 수수료 공제 후 환불 in the refund policy (2026-10-08 결정)", () => {
+    const remaining = TERMS_DOCS.refund.clauses.find((c) => c.title === "남은 유상 FN의 환불")!.body.flatMap(blockTexts).join("\n");
+    expect(remaining).toContain("환불 FN ÷ 충전 FN × 결제 금액");
+    expect(remaining).toContain("원 미만은 버립니다");
+    expect(remaining).not.toContain("TBD");
+  });
+
+  it("states what happens to a suspended member's FN in the service terms and the operation policy (2026-10-08 결정)", () => {
+    const limits = (slug: "service" | "operation", title: string) => TERMS_DOCS[slug].clauses.find((c) => c.title === title)!.body.flatMap(blockTexts).join("\n");
+    for (const text of [limits("service", "서비스 이용 제한"), limits("operation", "이용 제한 기준")]) {
+      expect(text).toContain("정지가 풀리면 다시 쓸 수 있습니다");
+      expect(text).toContain("무상 FN은 소멸");
+      expect(text).not.toMatch(/남은 FN.{0,30}\(TBD\)/);
+    }
+  });
+
   // These periods must match services/account/retentionPolicy.ts (added on another branch with the same values).
   it("states the retention defaults in the privacy policy", () => {
     const retention = TERMS_DOCS.privacy.clauses[2].body.flatMap(blockTexts).join("\n");

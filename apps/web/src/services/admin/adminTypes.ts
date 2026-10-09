@@ -11,6 +11,7 @@ export type AuditAction =
   | "ADMIN_SIGN_OUT"
   | "MEMBER_SUSPEND"
   | "MEMBER_RESTORE"
+  | "MEMBER_FN_SETTLE"
   | "REFUND_APPROVE"
   | "REFUND_REJECT"
   | "REFUND_HOLD"

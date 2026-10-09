@@ -1,7 +1,7 @@
 /**
  * Development-only FN charge refund requests (code-first). The member files a request; an operator approves (FN is
  * taken back on the server) or rejects it in the admin console. The amounts follow the 환불 정책 기본값 (일반적인 기준,
- * 법무 검토 전 — `refundPolicy.ts`); KRW payout via the payment provider is TBD.
+ * 법무 검토 전 — `refundPolicy.ts`), the KRW amount with them; how the payment provider pays it out is TBD.
  */
 
 import type { HoldEvent } from "@/services/admin/holdCore";
@@ -17,7 +17,7 @@ export type MockRefundRequest = {
   requestedAt: string;
   reason: string;
   status: RefundStatus;
-  /** The refund computed when the member asked (type, FN taken back, fee, net) — what the member saw. */
+  /** The refund computed when the member asked (type, FN taken back, fee, net, KRW) — what the member saw. */
   quote: RefundAmounts;
   /** What approval refunded: recomputed in the approval step, so it differs from `quote` when FN were used meanwhile. */
   settled?: RefundAmounts;
@@ -34,12 +34,13 @@ export type MockRefundRequest = {
   holds?: HoldEvent[];
 };
 
-// V3: requests keep the computed refund (`quote`) and the approved one (`settled`); V4: and their `holds`.
-const g = globalThis as typeof globalThis & { __ssumnationMockRefundsV4?: { requests: MockRefundRequest[] } };
+// V3: requests keep the computed refund (`quote`) and the approved one (`settled`); V4: and their `holds`; V5: both
+// amounts carry the KRW refund (`refundKrw`, 2026-10-08 결정).
+const g = globalThis as typeof globalThis & { __ssumnationMockRefundsV5?: { requests: MockRefundRequest[] } };
 
-export const mockRefunds = (g.__ssumnationMockRefundsV4 ??= { requests: [] });
+export const mockRefunds = (g.__ssumnationMockRefundsV5 ??= { requests: [] });
 
-const amounts = (a: RefundAmounts): RefundAmounts => ({ type: a.type, grossFn: a.grossFn, feeFn: a.feeFn, netFn: a.netFn });
+const amounts = (a: RefundAmounts): RefundAmounts => ({ type: a.type, grossFn: a.grossFn, feeFn: a.feeFn, netFn: a.netFn, refundKrw: a.refundKrw });
 
 /** What the member sees of a request (the decision memo only when it was rejected). */
 export function refundView(r: MockRefundRequest): ChargeRefund {

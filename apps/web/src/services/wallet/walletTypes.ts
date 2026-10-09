@@ -111,9 +111,12 @@ export type DonationRecord = {
 
 // ── FN Wallet (Figma 817:7552) ─────────────────────────────────────────────────
 
-export type LedgerKind = "CHARGE" | "USE" | "REFUND" | "REWARD";
-/** REWARD: FN credited without a payment (출석 보상 등). */
-export const LEDGER_KIND_LABEL: Record<LedgerKind, string> = { CHARGE: "충전", USE: "사용", REFUND: "환불", REWARD: "적립" };
+/**
+ * REWARD: FN credited without a payment (출석 보상 등). FORFEIT: free FN written off by 남은 FN 정리 of a 영구 정지
+ * member (2026-10-08 결정) — listed under 전체 유형 only (no filter chip).
+ */
+export type LedgerKind = "CHARGE" | "USE" | "REFUND" | "REWARD" | "FORFEIT";
+export const LEDGER_KIND_LABEL: Record<LedgerKind, string> = { CHARGE: "충전", USE: "사용", REFUND: "환불", REWARD: "적립", FORFEIT: "소멸" };
 export const LEDGER_PERIODS = [
   { key: "30", label: "최근 30일" },
   { key: "90", label: "최근 90일" },

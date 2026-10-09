@@ -4,8 +4,9 @@ import { effectiveLine } from "./common";
 /**
  * 운영정책 — 초안 (2026-10-08). 신고 · 차단 and 탈퇴한 회원 표시 follow docs/domains/community.md, 금지어 · 후원 필터링
  * docs/domains/donation.md, 닉네임 rules services/account/nicknameRules.ts, 채널 주소 docs/domains/creator.md and the
- * 이용 정지 durations services/admin/memberTypes.ts (SUSPEND_DAYS). What each report reason means for sanctions and
- * the appeal channel are TBD (community.md).
+ * 이용 정지 durations services/admin/memberTypes.ts (SUSPEND_DAYS), and the remaining FN during and after a suspension
+ * (2026-10-08 결정, docs/domains/wallet.md "이용 정지와 남은 FN"). What each report reason means for sanctions and the
+ * appeal channel are TBD (community.md).
  */
 export const OPERATION_POLICY: TermsDoc = {
   title: "운영정책",
@@ -90,7 +91,9 @@ export const OPERATION_POLICY: TermsDoc = {
         },
         "② 조치는 위반의 내용과 정도, 반복 여부, 고의성, 다른 회원이 입은 피해를 고려해 정합니다. 결제 도용이나 서비스 해킹처럼 피해가 크고 고의가 분명한 위반은 바로 영구 이용 정지할 수 있습니다. 신고 사유별 세부 기준은 정식 오픈 전에 공개합니다 (TBD).",
         "③ 이용 정지 기간에는 로그인할 수 없고, 크리에이터의 채널은 공개 화면과 즐겨찾기 목록에서 보이지 않으며, 오버레이 주소 · 매니저 채팅 링크 · SMS 계좌후원 주소로 하는 접근도 막힙니다. 즐겨찾기는 지우지 않으므로 정지가 풀리면 다시 보입니다.",
-        "④ 이용 정지 중에도 이미 요청한 충전 환불과 정산은 평소와 같이 처리합니다. 이용 정지 중인 회원의 남은 FN 처리는 정식 오픈 전에 정합니다 (TBD)."
+        "④ 이용 정지 중에도 이미 요청한 충전 환불과 정산은 평소와 같이 처리합니다.",
+        "⑤ 이용 정지 중에도 회원의 남은 FN은 그대로 보관합니다. 정지 기간에는 FN을 쓸 수 없고, 정지가 풀리면 다시 쓸 수 있습니다.",
+        "⑥ 영구 이용 정지된 회원은 로그인할 수 없으므로, 회원이 요청하면 회사가 남은 FN을 정리합니다. 남은 유상 FN은 FN 충전 · 환불 정책에 따라 충전 건별로 환불하고(청약철회 기간 안에 전혀 쓰지 않은 충전은 결제 금액 전액, 그 밖에는 환불 수수료를 뺀 금액), 무상 FN은 소멸합니다. 처리 중인 환불 요청이 있으면 그 요청을 먼저 처리합니다. 요청 창구는 정식 오픈 전에 정합니다 (TBD)."
       ]
     },
     {

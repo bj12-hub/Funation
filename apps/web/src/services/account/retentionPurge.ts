@@ -7,6 +7,7 @@ import { channelCommunityStore } from "@/services/creators/channelCommunityCore"
 import { moderationStore } from "@/services/moderation/moderationCore";
 import { forgetInquiries, inquiryAccountKey } from "@/services/support/inquiryCore";
 import { mockCredits } from "@/services/wallet/mockCreditStore";
+import { mockFnSettlements } from "@/services/wallet/mockFnSettlementStore";
 import { mockRefunds } from "@/services/wallet/mockRefundStore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { isRetentionExpired, retentionSchedule, type RetentionCategory } from "./retentionPolicy";
@@ -46,13 +47,14 @@ const PURGE: Record<Exclude<RetentionCategory, "POSTS">, (t: Target) => void> = 
     dropKeys(moderation.requests, `${t.memberId}|`);
   },
 
-  /** 대금결제 기록: the account's charges, donations, credits, refund requests and settlement requests. */
+  /** 대금결제 기록: the account's charges, donations, credits, refund requests, 남은 FN 정리 and settlement requests. */
   PAYMENT: (t) => {
     const own = (stamp: string) => accountAt(stamp) === t.account;
     mockWallet.charges = mockWallet.charges.filter((c) => !own(c.chargedAt));
     mockWallet.donations = mockWallet.donations.filter((d) => !own(d.donatedAt));
     mockCredits.credits = mockCredits.credits.filter((c) => c.account !== t.account);
     mockRefunds.requests = mockRefunds.requests.filter((r) => r.accountSince !== t.account);
+    mockFnSettlements.settlements = mockFnSettlements.settlements.filter((s) => s.accountSince !== t.account);
     mockSettlement.requests = mockSettlement.requests.filter((r) => (r.account ?? null) !== t.account);
     if (mockSettlement.pastRequests) mockSettlement.pastRequests = mockSettlement.pastRequests.filter((r) => (r.account ?? null) !== t.account);
     // The first account's sample (seed) history is generated: walletHistory.ts leaves it out once this is recorded.

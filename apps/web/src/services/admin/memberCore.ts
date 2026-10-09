@@ -87,4 +87,10 @@ export const isMemberSuspended = (memberId: string, now = Date.now()) => {
   return !!s && isSuspendedNow({ status: "SUSPENDED", suspension: s }, now);
 };
 
+/**
+ * 영구 정지 (SUSPEND_DAYS `null`): a suspension with no end. Only such a member's remaining FN are settled by an operator
+ * (남은 FN 정리, 2026-10-08 결정); a member suspended for a period keeps them for after the suspension.
+ */
+export const isPermanentlySuspended = (memberId: string, now = Date.now()) => isMemberSuspended(memberId, now) && suspensionOf(memberId)?.until === null;
+
 export const isCreatorSuspended = (creatorId: string) => isMemberSuspended(creatorMemberId(creatorId));

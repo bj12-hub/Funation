@@ -15,8 +15,9 @@ const isBlocked = (r: AdminRefund) => r.status === "REQUESTED" && r.memberWithdr
 /** A waiting request on 보류 (2026-10-08 결정): outside 처리 대기, listed apart, decided only after 보류 해제. */
 const isHeld = (r: AdminRefund) => r.status === "REQUESTED" && !isBlocked(r) && r.hold !== null;
 
-/** "전액 취소 · 회수 30,000 FN · 수수료 0 FN · 환불 30,000 FN" — amounts as the site computed them. */
-const refundText = (a: RefundAmounts) => `${REFUND_TYPE_LABEL[a.type]} · 회수 ${formatNumber(a.grossFn)} FN · 수수료 ${formatNumber(a.feeFn)} FN · 환불 ${formatNumber(a.netFn)} FN`;
+/** "수수료 공제 후 환불 · 회수 5,000 FN · 수수료 500 FN · 환불 4,500 FN · 4,950원" — amounts as the site computed them. */
+const refundText = (a: RefundAmounts) =>
+  `${REFUND_TYPE_LABEL[a.type]} · 회수 ${formatNumber(a.grossFn)} FN · 수수료 ${formatNumber(a.feeFn)} FN · 환불 ${formatNumber(a.netFn)} FN · ${formatNumber(a.refundKrw)}원`;
 const same = (a: RefundAmounts, b: { type: string; grossFn: number; netFn: number }) => a.type === b.type && a.grossFn === b.grossFn && a.netFn === b.netFn;
 
 /** 환불 유형 · 수수료 · 환불 금액: at the request, now (what 승인 applies), and what approval refunded. */
@@ -45,7 +46,7 @@ function RefundAmountsFacts({ r }: { r: AdminRefund }) {
               <span className={styles.warn}>환불 불가 · 요청 후 이 충전의 FN을 모두 사용했어요</span>
             ) : (
               <>
-                {refundText({ type: current.type, grossFn: current.grossFn, feeFn: current.feeFn, netFn: current.netFn })}
+                {refundText({ type: current.type, grossFn: current.grossFn, feeFn: current.feeFn, netFn: current.netFn, refundKrw: current.refundKrw })}
                 {same(r.requested, current) ? <span className={styles.muted}> · 요청 때와 같아요</span> : <span className={styles.warn}> · 요청 후 FN 사용으로 바뀜</span>}
               </>
             )}
@@ -98,7 +99,9 @@ export function PaymentsScreen({ view, tab }: { view: PaymentsView; tab: "charge
     <div className={styles.content}>
       <header className={styles.pageHead}>
         <h1 className={styles.title}>결제 · 환불</h1>
-        <p className={styles.muted}>충전 거래와 환불 요청을 봐요. 결제대행사 연동 · 결제 취소(원화 환불) 처리는 TBD라, 승인 시 FN 회수만 반영돼요.</p>
+        <p className={styles.muted}>
+          충전 거래와 환불 요청을 봐요. 승인하면 FN을 회수하고 원화 환불 금액을 함께 기록해요. 결제 수단별 환불 방식은 결제 대행사 연동 후 확정이라 실제 결제 취소 · 송금은 아직 하지 않아요 (TBD).
+        </p>
       </header>
       <nav className={styles.tabs} aria-label="결제 운영">
         <Link href="/payments" className={styles.tab} aria-current={tab === "charges" ? "page" : undefined}>

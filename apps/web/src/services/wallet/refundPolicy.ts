@@ -5,7 +5,7 @@ import { toDateString } from "@/lib/period";
  * FN 충전 환불 정책 — 기본값 (일반적인 기준, 법무 검토 전). On 2026-10-08 the user asked to start with commonly used
  * rules; each number is one constant here so it can change after the legal review (docs/domains/wallet.md "환불 정책").
  * Client-safe (no server-only imports): the screens format these values, the server decides with them
- * (`refundCore.ts`). Amounts are in FN, like the charge and wallet records.
+ * (`refundCore.ts`). Amounts are in FN, like the charge and wallet records; the KRW refund follows from them (5).
  *
  * 1. 청약철회: requested within REFUND_WITHDRAWAL_DAYS of the payment date and none of the charge's FN used —
  *    the whole charge is cancelled, no fee.
@@ -13,8 +13,10 @@ import { toDateString } from "@/lib/period";
  * 3. Never refunded: FN already used, and free FN (출석 보상, events — `mockCreditStore` credits). A quest refund just
  *    returns FN to the balance; it is not a charge.
  * 4. Which paid FN are still unused: free FN count as spent first, then paid FN oldest charge first (FIFO).
+ * 5. KRW (2026-10-08 결정): a 전액 취소 returns the whole paid amount; a 수수료 공제 후 환불 returns the net FN's share of
+ *    what that charge was paid — net FN ÷ the charge's FN × the charge's paid KRW, rounded down to the won (`refundKrw`).
  *
- * TBD: the payment provider and how each method returns KRW, the FN/KRW rate (a partial refund is stated in FN).
+ * TBD: the payment provider and how each method returns the KRW (결제 취소 · 계좌 환불), the FN price itself.
  */
 
 export const REFUND_POLICY_LABEL = "기본값 (일반적인 기준, 법무 검토 전)";
@@ -31,29 +33,43 @@ export const REFUND_PROCESSING_TARGET = "접수 후 3영업일 이내 처리";
 export const REFUND_METHOD_NOTE = "결제 수단별 환불 방식은 결제 대행사 연동 후 확정";
 /** 환불 정책 문서 (the page itself comes from another branch). */
 export const REFUND_POLICY_HREF = "/terms/refund";
+/**
+ * 원화 환불 금액 of a 수수료 공제 후 환불 (2026-10-08 결정), as the copy states it (`refundKrw` computes it). A 전액
+ * 취소 returns the whole paid amount.
+ */
+export const REFUND_KRW_RULE = "환불 FN ÷ 충전 FN × 결제 금액, 원 미만 버림";
 
 export type RefundType = "FULL_CANCEL" | "PARTIAL" | "NOT_REFUNDABLE";
 export const REFUND_TYPE_LABEL: Record<RefundType, string> = { FULL_CANCEL: "전액 취소", PARTIAL: "수수료 공제 후 환불", NOT_REFUNDABLE: "환불 불가" };
 
 /**
  * A refund as the server stores it with a request (and with its approval). `grossFn`: the paid FN taken back from the
- * wallet; `feeFn` + `netFn` = `grossFn`; `netFn` is what the member gets back (KRW per method: TBD).
+ * wallet; `feeFn` + `netFn` = `grossFn`; `netFn` is what the member gets back and `refundKrw` the won it comes to
+ * (`refundKrw()`; how each payment method returns it: TBD).
  */
-export type RefundAmounts = { type: Exclude<RefundType, "NOT_REFUNDABLE">; grossFn: number; feeFn: number; netFn: number };
+export type RefundAmounts = { type: Exclude<RefundType, "NOT_REFUNDABLE">; grossFn: number; feeFn: number; netFn: number; refundKrw: number };
 
 /**
  * The server's refund outcome for one charge. `usedFn`: the charge's FN counted as used (FIFO); `withinPeriod`: the
- * request falls in the 청약철회 period. NOT_REFUNDABLE has 0 for the three amounts.
+ * request falls in the 청약철회 period; `paidKrw`: what the charge was paid. NOT_REFUNDABLE has 0 for the amounts.
  */
 export type RefundQuote = {
   type: RefundType;
   chargeFn: number;
+  paidKrw: number;
   usedFn: number;
   withinPeriod: boolean;
   grossFn: number;
   feeFn: number;
   netFn: number;
+  refundKrw: number;
 };
+
+/**
+ * One charge in 남은 FN 정리 (영구 정지, 2026-10-08 결정): its refund under this policy and the charge it is for.
+ * `chargedAt`: local "YYYY-MM-DD HH:mm:ss"; `chargeFn` / `paidKrw`: the charge's FN and paid KRW.
+ */
+export type ChargeRefundLine = RefundAmounts & { chargeId: string; chargedAt: string; methodLabel: string; chargeFn: number; paidKrw: number };
 
 /** "10%" */
 export const REFUND_FEE_PERCENT = `${Math.round(REFUND_FEE_RATE * 1000) / 10}%`;
@@ -63,26 +79,44 @@ export function refundFee(grossFn: number): number {
   return Math.floor(Math.round(grossFn * REFUND_FEE_RATE * 1e6) / 1e6);
 }
 
+/**
+ * 원화 환불 금액 (2026-10-08 결정): FULL_CANCEL returns the whole paid amount; PARTIAL the net FN's share of it —
+ * `netFn` ÷ `chargeFn` × `paidKrw`, rounded down to the won (30,000 FN paid 33,000원, 4,500 FN refunded → 4,950원).
+ * Exact integer arithmetic (BigInt): a float share like 0.29 × 100 = 28.999… never loses a won, and large charges
+ * (products past 2^53) stay exact. Amounts are whole FN and won.
+ */
+export function refundKrw(type: RefundAmounts["type"], input: { netFn: number; chargeFn: number; paidKrw: number }): number {
+  const { netFn, chargeFn, paidKrw } = input;
+  if (paidKrw <= 0 || chargeFn <= 0 || netFn <= 0) return 0;
+  if (type === "FULL_CANCEL") return paidKrw;
+  // BigInt division truncates, which is rounding down for these positive amounts.
+  const whole = (n: number) => BigInt(Math.floor(n));
+  return Number((whole(Math.min(netFn, chargeFn)) * whole(paidKrw)) / whole(chargeFn));
+}
+
 /** Whether a request made at `requestedAt` is within the 청약철회 period of a charge paid at `chargedAt` (local "YYYY-MM-DD …"). */
 export function withinWithdrawalPeriod(chargedAt: string, requestedAt: Date): boolean {
   const [y, m, d] = chargedAt.slice(0, 10).split("-").map(Number);
   return toDateString(requestedAt) <= toDateString(new Date(y, m - 1, d + REFUND_WITHDRAWAL_DAYS));
 }
 
-/** Policy 1–3 for one charge, given how many of its paid FN are still unused. */
-export function quoteRefund(input: { chargeFn: number; unusedFn: number; withinPeriod: boolean }): RefundQuote {
-  const { chargeFn, withinPeriod } = input;
+/** Policy 1–3 and 5 for one charge, given how many of its paid FN are still unused and what it was paid (KRW). */
+export function quoteRefund(input: { chargeFn: number; paidKrw: number; unusedFn: number; withinPeriod: boolean }): RefundQuote {
+  const { chargeFn, paidKrw, withinPeriod } = input;
   const grossFn = Math.max(0, Math.min(chargeFn, Math.floor(input.unusedFn)));
-  const base = { chargeFn, usedFn: chargeFn - grossFn, withinPeriod };
-  if (grossFn === 0) return { ...base, type: "NOT_REFUNDABLE", grossFn: 0, feeFn: 0, netFn: 0 };
-  if (withinPeriod && grossFn === chargeFn) return { ...base, type: "FULL_CANCEL", grossFn, feeFn: 0, netFn: grossFn };
+  const base = { chargeFn, paidKrw, usedFn: chargeFn - grossFn, withinPeriod };
+  if (grossFn === 0) return { ...base, type: "NOT_REFUNDABLE", grossFn: 0, feeFn: 0, netFn: 0, refundKrw: 0 };
+  if (withinPeriod && grossFn === chargeFn) {
+    return { ...base, type: "FULL_CANCEL", grossFn, feeFn: 0, netFn: grossFn, refundKrw: refundKrw("FULL_CANCEL", { netFn: grossFn, chargeFn, paidKrw }) };
+  }
   const feeFn = refundFee(grossFn);
-  return { ...base, type: "PARTIAL", grossFn, feeFn, netFn: grossFn - feeFn };
+  const netFn = grossFn - feeFn;
+  return { ...base, type: "PARTIAL", grossFn, feeFn, netFn, refundKrw: refundKrw("PARTIAL", { netFn, chargeFn, paidKrw }) };
 }
 
 /** The stored part of a refundable quote (explicit fields). */
 export function refundAmounts(q: RefundQuote): RefundAmounts | null {
-  return q.type === "NOT_REFUNDABLE" ? null : { type: q.type, grossFn: q.grossFn, feeFn: q.feeFn, netFn: q.netFn };
+  return q.type === "NOT_REFUNDABLE" ? null : { type: q.type, grossFn: q.grossFn, feeFn: q.feeFn, netFn: q.netFn, refundKrw: q.refundKrw };
 }
 
 export const sameRefund = (a: Pick<RefundAmounts, "type" | "grossFn" | "netFn">, b: Pick<RefundAmounts, "type" | "grossFn" | "netFn">) =>
@@ -92,13 +126,15 @@ export const sameRefund = (a: Pick<RefundAmounts, "type" | "grossFn" | "netFn">,
 
 /**
  * One balance change of an account. PAID: a completed charge; FREE: FN credited without a payment; SPEND: FN spent or
- * held (a donation); RECLAIM: an approved charge refund taking FN back from that charge. `at`: local "YYYY-MM-DD HH:mm[:ss]".
+ * held (a donation); RECLAIM: a charge refund (an approved request, or 남은 FN 정리) taking FN back from that charge;
+ * FORFEIT: free FN written off by 남은 FN 정리 (영구 정지) — never paid FN. `at`: local "YYYY-MM-DD HH:mm[:ss]".
  */
 export type FnLedgerEvent =
   | { kind: "PAID"; chargeId: string; at: string; fn: number }
   | { kind: "FREE"; at: string; fn: number }
   | { kind: "SPEND"; at: string; fn: number }
-  | { kind: "RECLAIM"; chargeId: string; at: string; fn: number };
+  | { kind: "RECLAIM"; chargeId: string; at: string; fn: number }
+  | { kind: "FORFEIT"; at: string; fn: number };
 
 const stamp = (at: string) => (at.length === 16 ? `${at}:00` : at);
 
@@ -128,6 +164,7 @@ export function unusedPaidFn(events: FnLedgerEvent[], balance: number): Map<stri
     if (e.kind === "PAID") lots.push({ chargeId: e.chargeId, left: e.fn });
     else if (e.kind === "FREE") free += e.fn;
     else if (e.kind === "SPEND") spend(e.fn);
+    else if (e.kind === "FORFEIT") free -= Math.min(free, e.fn);
     else {
       const lot = lots.find((l) => l.chargeId === e.chargeId);
       if (lot) lot.left -= Math.min(lot.left, e.fn);
@@ -144,16 +181,18 @@ export function unusedPaidFn(events: FnLedgerEvent[], balance: number): Map<stri
 export const REFUND_POLICY_LINES: string[] = [
   `결제일로부터 ${REFUND_WITHDRAWAL_DAYS}일 이내에 요청하고 충전한 FN을 하나도 쓰지 않았다면 전액 취소돼요 (수수료 없음).`,
   `그 밖에는 이 충전에서 남은 FN에서 환불 수수료 ${REFUND_FEE_PERCENT}를 빼고 환불해요. 수수료의 1 FN 미만은 버려요.`,
+  `수수료를 뺀 FN은 이 충전의 결제 금액에 비례해 원화로 환불해요 (${REFUND_KRW_RULE}).`,
   "이미 사용한 FN과 출석 보상 · 이벤트로 받은 무료 FN은 환불되지 않아요. 무료 FN을 먼저, 그다음 먼저 충전한 FN부터 쓴 것으로 계산해요.",
   `${REFUND_PROCESSING_TARGET}를 목표로 해요. 원래 결제 수단으로 환불하며, ${REFUND_METHOD_NOTE}돼요.`
 ];
 
 /** One-line summary for the admin console. */
-export const REFUND_POLICY_SUMMARY = `청약철회(결제일로부터 ${REFUND_WITHDRAWAL_DAYS}일 이내 · 미사용) 전액 취소 · 그 밖에는 남은 충전 FN에서 수수료 ${REFUND_FEE_PERCENT}(1 FN 미만 버림) 공제 · 사용한 FN과 무료 FN은 환불 불가 · 무료 FN 먼저, 그다음 오래된 충전부터 사용으로 계산 · ${REFUND_PROCESSING_TARGET} 목표`;
+export const REFUND_POLICY_SUMMARY = `청약철회(결제일로부터 ${REFUND_WITHDRAWAL_DAYS}일 이내 · 미사용) 전액 취소 · 그 밖에는 남은 충전 FN에서 수수료 ${REFUND_FEE_PERCENT}(1 FN 미만 버림) 공제, 원화 환불 금액은 ${REFUND_KRW_RULE} · 사용한 FN과 무료 FN은 환불 불가 · 무료 FN 먼저, 그다음 오래된 충전부터 사용으로 계산 · ${REFUND_PROCESSING_TARGET} 목표`;
 
-/** "전액 취소 · 30,000 FN" / "수수료 공제 후 환불 · 4,500 FN (남은 5,000 FN − 수수료 500 FN)" */
+/** "전액 취소 · 30,000 FN · 33,000원" / "수수료 공제 후 환불 · 4,500 FN · 4,950원 (남은 5,000 FN − 수수료 500 FN)" */
 export function describeRefund(a: RefundAmounts): string {
+  const won = `${formatNumber(a.refundKrw)}원`;
   return a.type === "FULL_CANCEL"
-    ? `${REFUND_TYPE_LABEL.FULL_CANCEL} · ${formatNumber(a.netFn)} FN`
-    : `${REFUND_TYPE_LABEL.PARTIAL} · ${formatNumber(a.netFn)} FN (남은 ${formatNumber(a.grossFn)} FN − 수수료 ${formatNumber(a.feeFn)} FN)`;
+    ? `${REFUND_TYPE_LABEL.FULL_CANCEL} · ${formatNumber(a.netFn)} FN · ${won}`
+    : `${REFUND_TYPE_LABEL.PARTIAL} · ${formatNumber(a.netFn)} FN · ${won} (남은 ${formatNumber(a.grossFn)} FN − 수수료 ${formatNumber(a.feeFn)} FN)`;
 }
