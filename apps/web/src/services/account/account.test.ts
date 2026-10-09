@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { kstDateString } from "@/lib/period";
 import { mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
@@ -41,9 +42,11 @@ describe("계정", () => {
     expect(await m.updateMarketingConsent(false)).toEqual({ status: "FAILED" });
   });
 
+  // Times are KST instants (+09:00), not the test machine's local time: the 30-day limits are 30 × 24 hours from the
+  // change, and the screens show the date in KST (features/mypage/editors/shared.ts formatKoreanDate).
   it("changes the nickname and ID with server checks and a 30-day limit", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-10-03T10:00:00"));
+    vi.setSystemTime(new Date("2026-10-03T10:00:00+09:00"));
     const m = await load();
     expect(await m.checkNickname("a")).toEqual({ status: "INVALID" });
     expect(await m.checkNickname("운영자님")).toEqual({ status: "FORBIDDEN" });
@@ -56,14 +59,17 @@ describe("계정", () => {
     expect(await m.changeNickname("익명")).toEqual({ status: "FORBIDDEN" });
     expect(await m.changeNickname("새닉네임")).toEqual({ status: "CHANGED", value: "새닉네임" });
     const limited = await m.changeNickname("또바꿈");
-    expect(limited).toMatchObject({ status: "LIMITED" });
-    expect(limited.status === "LIMITED" && limited.availableFrom.startsWith("2026-11-02")).toBe(true);
+    // 30 × 24 hours after the change: 2026-11-02 10:00 KST, the day the screen shows (11월 2일 in KST).
+    expect(limited).toEqual({ status: "LIMITED", availableFrom: "2026-11-02T01:00:00.000Z" });
+    expect(limited.status === "LIMITED" && kstDateString(new Date(limited.availableFrom))).toBe("2026-11-02");
 
     expect(await m.changeSsumnationId("Upper1")).toEqual({ status: "INVALID" });
     expect(await m.changeSsumnationId("hongadmin1")).toEqual({ status: "FORBIDDEN" });
     expect(await m.changeSsumnationId("honggd123")).toEqual({ status: "DUPLICATE" });
     expect(await m.changeSsumnationId("newid2026")).toEqual({ status: "CHANGED", value: "newid2026" });
-    vi.setSystemTime(new Date("2026-11-03T10:00:00"));
+    vi.setSystemTime(new Date("2026-11-02T09:59:00+09:00"));
+    expect(await m.changeNickname("또바꿈")).toMatchObject({ status: "LIMITED" });
+    vi.setSystemTime(new Date("2026-11-02T10:00:00+09:00"));
     expect(await m.changeNickname("또바꿈")).toEqual({ status: "CHANGED", value: "또바꿈" });
     signIn(null);
     expect(await m.changeNickname("게스트")).toEqual({ status: "UNAUTHORIZED" });
@@ -71,15 +77,16 @@ describe("계정", () => {
 
   it("keeps a given-up 썸네이션 ID reserved for 30 days, then releases it (2026-10-08 결정)", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-10-08T10:00:00"));
+    vi.setSystemTime(new Date("2026-10-08T10:00:00+09:00"));
     const m = await load();
     expect(await m.changeSsumnationId("newid2026")).toEqual({ status: "CHANGED", value: "newid2026" });
     // Another member (the mock has one slot: a member without a recent change) cannot take the old ID yet.
     m.store.mockChangeHistory.ssumnationIdChangedAt = null;
     expect(await m.changeSsumnationId("honggd123")).toEqual({ status: "RESERVED" });
-    vi.setSystemTime(new Date("2026-11-07T09:59:00"));
+    // 30 × 24 hours later (KST has no daylight saving; a local-time literal here moved by an hour in DST zones).
+    vi.setSystemTime(new Date("2026-11-07T09:59:00+09:00"));
     expect(await m.changeSsumnationId("honggd123")).toEqual({ status: "RESERVED" });
-    vi.setSystemTime(new Date("2026-11-07T10:00:00"));
+    vi.setSystemTime(new Date("2026-11-07T10:00:00+09:00"));
     expect(await m.changeSsumnationId("honggd123")).toEqual({ status: "CHANGED", value: "honggd123" });
   });
 

@@ -146,6 +146,9 @@ describe("지급 완료 (2026-10-08 결정)", () => {
     const pay = { id, reference: "TRF-20261008-0001", requestId: key(1) };
     expect(await m.paySettlement(OP, pay)).toEqual({ status: "OK" });
     expect(await m.paySettlement(OP, pay)).toEqual({ status: "OK" });
+    expect(await m.paySettlement(OP, { ...pay, reference: ` ${pay.reference} ` })).toEqual({ status: "OK" }); // the reference as stored (trimmed)
+    // The same request id with another reference is not that payment: refused, the recorded reference stays.
+    expect(await m.paySettlement(OP, { ...pay, reference: "TRF-20261008-0002" })).toEqual({ status: "INVALID", message: "잘못된 요청입니다." });
     expect(m.mockSettlement.requests.find((r) => r.id === id)).toMatchObject({ status: "PAID", payoutDate: "2026-10-31", payment: { by: OP.nickname, reference: "TRF-20261008-0001" } });
     expect(m.auditEntries().map((e) => [e.action, e.target, e.reason])).toEqual([
       ["SETTLEMENT_PAY", `settlement:${id}`, "이체 참조 TRF-20261008-0001"],
@@ -285,6 +288,8 @@ describe("보류 · 보류 해제 (2026-10-08 결정)", () => {
 
     expect(await hold(m, "st-h", 1)).toEqual({ status: "OK" });
     expect(await hold(m, "st-h", 1)).toEqual({ status: "OK" }); // a retry
+    // The same request id with another memo is not that 보류: refused, the recorded memo stays.
+    expect(await hold(m, "st-h", 1, "다른 사유로 보류")).toEqual({ status: "INVALID", message: "잘못된 요청입니다." });
     expect(await hold(m, "st-h", 2)).toEqual({ status: "INVALID", message: "이미 보류 중인 정산이에요." });
     // The same request id for another request or the other action is not a retry.
     expect(await hold(m, "st-seed-1", 1)).toEqual({ status: "INVALID", message: "잘못된 요청입니다." });

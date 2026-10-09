@@ -78,19 +78,24 @@ export async function checkPendingDonation(admin: AdminActor, input: unknown): P
 
 /**
  * 성공 / 실패 결정: `{ transactionId, outcome: "COMPLETED" | "FAILED", note, requestId }`. Only for a donation still pending
- * after its 24 h; refused once it is settled. The same console request id again answers OK without a second change or log
- * entry. The checks and the write run in one synchronous step.
+ * after its 24 h; refused once it is settled. The same console request id with the same donation, outcome and memo answers
+ * OK without a second change or log entry; anything else under that id is refused. The checks and the write run in one
+ * synchronous step.
  */
 export async function resolvePendingDonation(admin: AdminActor, input: unknown): Promise<PendingResolveResult> {
   assertMock();
   const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   if (typeof v.requestId !== "string" || !REQUEST_ID.test(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
+  const note = typeof v.note === "string" ? v.note.trim() : "";
   const done = mockPlatform.transactions.find((t) => t.resolution?.requestId === v.requestId);
-  if (done) return done.transactionId === v.transactionId && done.resolution?.outcome === v.outcome ? { status: "OK" } : { status: "INVALID", message: "잘못된 요청입니다." };
+  // A retry is the same donation, outcome and memo; anything else under that id was never decided.
+  if (done) {
+    const same = done.transactionId === v.transactionId && done.resolution?.outcome === v.outcome && done.resolution?.note === note;
+    return same ? { status: "OK" } : { status: "INVALID", message: "잘못된 요청입니다." };
+  }
   const t = find(v.transactionId);
   if (!t || !t.pending) return { status: "NOT_FOUND" };
   if (v.outcome !== "COMPLETED" && v.outcome !== "FAILED") return { status: "INVALID", message: "성공 또는 실패를 골라 주세요." };
-  const note = typeof v.note === "string" ? v.note.trim() : "";
   if (note.length < RESOLVE_NOTE.min || note.length > RESOLVE_NOTE.max) return { status: "INVALID", message: `처리 메모를 ${RESOLVE_NOTE.min}~${RESOLVE_NOTE.max}자로 입력해 주세요.` };
   if (!isPending(t)) return { status: "INVALID", message: `이미 결과가 정해진 후원이에요 (${t.status === "COMPLETED" ? "완료" : "실패"}).` };
   if (inRecheckWindow(t)) return { status: "INVALID", message: "요청 후 24시간이 지나지 않아 아직 플랫폼 결과를 자동으로 확인하고 있어요." };

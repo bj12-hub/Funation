@@ -295,8 +295,12 @@ describe("뽑기 · 재가입 (2026-10-08 결정)", () => {
     // The creator's side keeps every draw, whichever account sent it.
     vi.setSystemTime(new Date("2026-10-08T23:51:00+09:00"));
     expect(m.channelRows("c1").recent).toHaveLength(2);
-    // The person key (verified phone) never leaves the server.
-    expect(JSON.stringify([await room(), m.channelRows("c1"), m.boardOf("c1")])).not.toMatch(/010-/);
+    // The person key and the verified phone never leave the server. (Looked for as exact values: a pattern like /010-/
+    // also matches random draw ids such as "dn-…-0010-…".)
+    const shown = JSON.stringify([await room(), m.channelRows("c1"), m.boardOf("c1")]);
+    const persons = m.mockGacha.draws.map((d) => d.person).filter((p) => p !== "" && !p.startsWith("seed-"));
+    expect(persons.length).toBeGreaterThan(0);
+    for (const secret of ["010-1234-5678", "01012345678", "010-0000-0000", "01000000000", ...persons]) expect(shown).not.toContain(secret);
 
     // The day turns at 00:00 KST (it is still 2026-10-08 in UTC).
     vi.setSystemTime(new Date("2026-10-09T00:05:00+09:00"));

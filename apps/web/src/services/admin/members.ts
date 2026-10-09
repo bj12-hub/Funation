@@ -261,22 +261,29 @@ function fnSettlementOf(member: AdminMember, now: Date): MemberFnSettlement | nu
  * Each charge's unused paid FN are refunded under the 환불 정책 기본값 (its refund recorded in the wallet history), the
  * free FN are forfeited, the balance goes to 0 and the audit log gets `MEMBER_FN_SETTLE`. The operator confirms the
  * amounts the console showed; when they changed (a charge's 청약철회 period ended, FN came back) nothing is written.
- * One console request id per 정리: the same id again answers OK without a second change or log entry. Refused for a
- * member who is not 영구 정지, has nothing to settle, or has a refund request waiting or on 보류. KRW payout per payment
- * method is TBD (payment provider).
+ * One console request id per 정리: the same id with the same member, memo and amounts answers OK without a second change
+ * or log entry; anything else under that id is refused. Refused for a member who is not 영구 정지, has nothing to settle,
+ * or has a refund request waiting or on 보류. KRW payout per payment method is TBD (payment provider).
  */
 export async function settleMemberFn(admin: AdminActor, input: unknown): Promise<MemberActionResult> {
   assertMock();
   const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   if (typeof v.requestId !== "string" || !REQUEST_ID.test(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
   const requestId = v.requestId;
-  const retry = (s: MockFnSettlement): MemberActionResult => (s.memberId === v.id ? { status: "OK" } : { status: "INVALID", message: "잘못된 요청입니다." });
+  const note = typeof v.note === "string" ? v.note.trim() : "";
+  const expected = [v.expectedGrossFn, v.expectedNetFn, v.expectedRefundKrw, v.expectedForfeitFn];
+  // A retry is the same member, memo and confirmed amounts (what the 정리 recorded); anything else under that id was
+  // never processed, so it is refused rather than answered OK.
+  const retry = (s: MockFnSettlement): MemberActionResult => {
+    const t = totalOf(s.lines);
+    const recordedAmounts = [t.grossFn, t.netFn, t.refundKrw, s.forfeitFn];
+    const same = s.memberId === v.id && s.note === note && expected.every((n, i) => n === recordedAmounts[i]);
+    return same ? { status: "OK" } : { status: "INVALID", message: "잘못된 요청입니다." };
+  };
   const recorded = () => mockFnSettlements.settlements.find((s) => s.requestId === requestId);
   const done = recorded();
   if (done) return retry(done);
-  const note = typeof v.note === "string" ? v.note.trim() : "";
   if (note.length < FN_SETTLE_NOTE.min || note.length > FN_SETTLE_NOTE.max) return { status: "INVALID", message: `처리 메모를 ${FN_SETTLE_NOTE.min}~${FN_SETTLE_NOTE.max}자로 입력해 주세요.` };
-  const expected = [v.expectedGrossFn, v.expectedNetFn, v.expectedRefundKrw, v.expectedForfeitFn];
   if (!expected.every(isAmount)) return { status: "INVALID", message: "정리할 금액을 확인해 주세요. 화면을 새로 고친 뒤 다시 처리해 주세요." };
   const member = (await directory()).find((m) => m.id === v.id);
   if (!member) return { status: "NOT_FOUND" };
