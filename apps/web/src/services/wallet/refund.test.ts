@@ -121,7 +121,10 @@ describe("충전 환불 정책 기본값", () => {
   }
 
   beforeEach(() => resetMockStores());
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
 
   it("cancels the whole charge without a fee within 7 days when none of its FN was used", async () => {
     const m = await setup();
@@ -161,6 +164,30 @@ describe("충전 환불 정책 기본값", () => {
     expect(await m.quote(a, on(4))).toMatchObject({ type: "NOT_REFUNDABLE", usedFn: 10_000, grossFn: 0, netFn: 0 });
     expect(await m.requestChargeRefund({ chargeId: a, expectedGrossFn: 0, expectedNetFn: 0 })).toMatchObject({ status: "NOT_REFUNDABLE", quote: { type: "NOT_REFUNDABLE" } });
     expect(m.mockRefunds.requests).toEqual([]);
+  });
+
+  it("gives a failed platform donation's held FN back as they were: the free FN stay free, later free FN too", async () => {
+    const m = await setup();
+    const { requestPlatformDonation } = await import("@/services/platformDonation/platformDonation");
+    const { soopAdapter } = await import("@/services/platformDonation/adapters");
+    const { remainingFnPlan } = await import("./refundCore");
+    const a = await m.charge(20_000, on(1, 15));
+    m.reward(1_000, on(2, 9));
+    // 10/3 10:00 a SOOP donation whose result is unknown (PENDING): 10,000 FN held — the 1,000 free FN, then 9,000 of A.
+    vi.setSystemTime(on(3, 10));
+    vi.spyOn(soopAdapter, "sendDonation").mockRejectedValueOnce(new Error("ECONNRESET"));
+    const sent = { platform: "SOOP", creatorId: "gameking", productId: "balloon-10", message: "", idempotencyKey: key(++n) };
+    expect(await requestPlatformDonation(sent)).toMatchObject({ status: "PENDING" });
+    await m.donate(2_000, on(3, 11)); // while they are held: 2,000 of A
+    // 12:00 the re-check finds the platform failed it (게임왕's sends fail on the mock platform): the 10,000 FN come back.
+    vi.setSystemTime(on(3, 12));
+    expect(await requestPlatformDonation(sent)).toEqual({ status: "FAILED", reason: "API_ERROR" });
+    m.reward(500, on(4, 9));
+    expect(m.account.fnBalance).toBe(19_500);
+
+    // A 18,000 (20,000 − 2,000 used) + 1,500 free FN. KRW: 16,200 ÷ 20,000 × 22,000 = 17,820.
+    expect(await m.quote(a, on(5))).toMatchObject({ type: "PARTIAL", usedFn: 2_000, grossFn: 18_000, feeFn: 1_800, netFn: 16_200, refundKrw: 17_820 });
+    expect(remainingFnPlan(on(5))).toMatchObject({ balanceFn: 19_500, lines: [{ chargeId: a, grossFn: 18_000, refundKrw: 17_820 }], forfeitFn: 1_500 });
   });
 
   it("counts paid FN as used oldest charge first (FIFO)", async () => {

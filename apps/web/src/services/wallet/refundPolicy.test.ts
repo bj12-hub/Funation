@@ -127,7 +127,7 @@ describe("환불 정책 기본값", () => {
         free("2026-10-01 11:00", 1_000),
         { kind: "RECLAIM", chargeId: "a", at: "2026-10-05 10:00:00", fn: 5_000 },
         { kind: "FORFEIT", at: "2026-10-05 10:00:00", fn: 1_000 },
-        // Later a quest refund gives 2,000 FN back: they were never spent, so nothing of the charge is unused again.
+        // Later 2,000 free FN arrive (출석 보상): nothing of the charge is unused again.
         free("2026-10-06 10:00", 2_000)
       ];
       expect([...unusedPaidFn(events, 2_000)]).toEqual([["a", 0]]);
@@ -135,9 +135,17 @@ describe("환불 정책 기본값", () => {
       expect([...unusedPaidFn([paid("a", "2026-10-01 10:00:00", 5_000), { kind: "FORFEIT", at: "2026-10-02 10:00:00", fn: 800 }], 5_000)]).toEqual([["a", 5_000]]);
     });
 
-    it("keeps the balance authoritative: FN missing from it count as used earlier (free first, oldest charge first)", () => {
+    it("keeps the balance authoritative: FN missing from it count as used earlier, oldest received first", () => {
       const events = [paid("a", "2026-10-01 10:00:00", 5_000), free("2026-10-01 11:00", 1_000), paid("b", "2026-10-02 10:00:00", 5_000)];
+      // 4,000 FN are missing and no spend explains them: they come out of what was received first — a's 5,000 (10:00)
+      // before the 1,000 free FN (11:00). Left: a 1,000 + free 1,000 + b 5,000 = 7,000. (Spending them free FN first
+      // would have made the 1,000 free FN received after a pay for them, leaving a 2,000 refundable instead.)
       expect([...unusedPaidFn(events, 7_000)]).toEqual([
+        ["a", 1_000],
+        ["b", 5_000]
+      ]);
+      // Received before the charges, free FN go first here too.
+      expect([...unusedPaidFn([free("2026-09-30 09:00", 1_000), ...events.filter((e) => e.kind === "PAID")], 7_000)]).toEqual([
         ["a", 2_000],
         ["b", 5_000]
       ]);
@@ -150,6 +158,65 @@ describe("환불 정책 기본값", () => {
         ["a", 0],
         ["b", 0]
       ]);
+    });
+
+    it("never lets a shortfall from before consume free FN received later: the free credit stays free", () => {
+      // a 10,000 · 3,000 spent · b 5,000; the balance is 4,000 short of that (spends the records do not show). Then an
+      // event pays 1,000 free FN, so the balance is 9,000.
+      const events = [paid("a", "2026-10-01 10:00:00", 10_000), spend("2026-10-02 10:00:00", 3_000), paid("b", "2026-10-03 10:00:00", 5_000), free("2026-10-05 10:00:00", 1_000)];
+      const left = unusedPaidFn(events, 9_000);
+      // The 4,000 missing come out of a (received first); the 1,000 free FN are still free — 8,000 paid, not 9,000.
+      expect([...left]).toEqual([
+        ["a", 3_000],
+        ["b", 5_000]
+      ]);
+      expect(9_000 - [...left.values()].reduce((sum, n) => sum + n, 0)).toBe(1_000);
+    });
+
+    it("reads the ledger as of now: a record dated later explains nothing yet", () => {
+      // A sample row dated later today (the mock dates its samples relative to today): it cannot have used the free FN
+      // received at noon, and the balance does not show it.
+      const events = [paid("a", "2026-10-01 10:00:00", 10_000), free("2026-10-09 12:00:00", 1_000), spend("2026-10-09 20:00:00", 5_000)];
+      expect([...unusedPaidFn(events, 11_000, new Date(2026, 9, 9, 12, 30))]).toEqual([["a", 10_000]]);
+      // Once its time has come it is history like any other spend: free FN first.
+      expect([...unusedPaidFn(events, 6_000, new Date(2026, 9, 9, 21, 0))]).toEqual([["a", 6_000]]);
+    });
+
+    describe("a returned spend (퀘스트 실패 · 취소, a platform donation that failed)", () => {
+      const held = (id: string, at: string, fn: number): FnLedgerEvent => ({ kind: "SPEND", id, at, fn });
+      const back = (spendId: string, at: string, fn: number): FnLedgerEvent => ({ kind: "RETURN", spendId, at, fn });
+
+      it("gives back the FN it took, to the same lots: free FN stay free", () => {
+        const events = [
+          paid("a", "2026-10-01 10:00:00", 20_000),
+          free("2026-10-02 09:00:00", 1_000),
+          held("p", "2026-10-03 10:00:00", 10_000), // the 1,000 free FN, then 9,000 of a
+          spend("2026-10-03 11:00:00", 2_000), // while they are held: 2,000 of a
+          back("p", "2026-10-03 12:00:00", 10_000) // failed: 1,000 free FN and 9,000 of a come back
+        ];
+        // 19,000 FN: a 18,000 + 1,000 free. (Treating the donation as never sent would have let the 11:00 spend use the
+        // free FN that were held at the time, turning them into 1,000 refundable FN of a.)
+        expect([...unusedPaidFn(events, 19_000)]).toEqual([["a", 18_000]]);
+      });
+
+      it("returns to the charge the FN came from, and is ordered after its own spend", () => {
+        const charges = [paid("a", "2026-10-01 10:00:00", 5_000), paid("b", "2026-10-02 10:00:00", 5_000)];
+        const q = held("q", "2026-10-03 10:00:00", 6_000); // a 5,000 + b 1,000
+        // While q holds them, 4,000 are spent: the rest of b. q's 6,000 then go back to a and b.
+        expect([...unusedPaidFn([...charges, q, spend("2026-10-04 10:00:00", 4_000), back("q", "2026-10-05 10:00:00", 6_000)], 6_000)]).toEqual([
+          ["a", 5_000],
+          ["b", 1_000]
+        ]);
+        // Returned in the same second as the spend, or with an earlier time: still after it.
+        for (const at of ["2026-10-03 10:00:00", "2026-10-03 09:00:00"]) {
+          expect([...unusedPaidFn([...charges, back("q", at, 6_000), q], 10_000)]).toEqual([
+            ["a", 5_000],
+            ["b", 5_000]
+          ]);
+        }
+        // A return whose spend is not in the records: FN no charge explains, never refundable.
+        expect([...unusedPaidFn([paid("a", "2026-10-01 10:00:00", 5_000), spend("2026-10-02 10:00:00", 5_000), back("x", "2026-10-03 10:00:00", 2_000)], 2_000)]).toEqual([["a", 0]]);
+      });
     });
   });
 });
