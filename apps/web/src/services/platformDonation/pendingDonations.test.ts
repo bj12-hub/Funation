@@ -114,8 +114,9 @@ describe("확인 중 플랫폼 후원 (PENDING)", () => {
     // 게임왕's sends fail on the mock platform, so its lookup answers FAILED.
     const id = await pending(m, { creatorId: "gameking" });
     expect(m.account.fnBalance).toBe(90_000);
-    // The member's 결과 다시 확인 (same key) re-checks too.
-    expect(await m.requestPlatformDonation(soop({ creatorId: "gameking" }))).toEqual({ status: "FAILED", reason: "API_ERROR" });
+    // The member's 결과 다시 확인 (same key) re-checks too. The answer says the held FN went back (FN 반환) — not a
+    // refusal before the hold ("FN은 차감되지 않았습니다"): the FN 내역 shows the hold and its return.
+    expect(await m.requestPlatformDonation(soop({ creatorId: "gameking" }))).toEqual({ status: "FAILED", reason: "RESULT_FAILED", transactionId: id, fnReturned: true });
     expect(m.account.fnBalance).toBe(100_000);
     expect(txOf(m, id)).toMatchObject({ status: "FAILED", failureReason: "SOOP 확인 결과 실패 · FN 반환", resolution: { outcome: "FAILED", by: "PLATFORM", fnReturn: "RETURNED" } });
     const mirror = m.wallet.donations.find((d) => d.id === id)!;
@@ -169,6 +170,8 @@ describe("확인 중 플랫폼 후원 (PENDING)", () => {
     expect(await decide()).toEqual({ status: "OK" });
     expect(m.account.fnBalance).toBe(100_000);
     expect(txOf(m, id)).toMatchObject({ status: "FAILED", failureReason: "운영자 확인 결과 실패 · FN 반환" });
+    // The member's 결과 다시 확인 now gets the result: failed after the hold, the FN went back.
+    expect(await m.requestPlatformDonation(soop())).toEqual({ status: "FAILED", reason: "RESULT_FAILED", transactionId: id, fnReturned: true });
     // A retry of the same request: OK, nothing more. Another decision: refused.
     expect(await decide()).toEqual({ status: "OK" });
     expect(await decide({ outcome: "COMPLETED" })).toEqual({ status: "INVALID", message: "잘못된 요청입니다." });

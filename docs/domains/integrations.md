@@ -130,7 +130,10 @@ Authentication for every platform (OAuth / login) is TBD.
     `fnReturned`). Real refunds (퀘스트 실패 · 취소, 충전 환불) keep 환불완료. The console's 후원 운영 (`/donations`,
     `GET /api/admin/donations`) shows it as 「FN 반환」 too (row `fnReturned`), with its own 「FN 반환」 tile and
     `?status=FN_RETURNED` filter; the 환불완료 tile and filter count real refunds only (2026-10-09 결정).
-  - The same key then answers COMPLETED / FAILED instead of PENDING.
+  - The same key then answers COMPLETED / FAILED instead of PENDING. A FAILED here came after the hold, so it answers
+    `FAILED{reason: RESULT_FAILED, transactionId, fnReturned}` — never the "nothing was debited" reasons: the donation
+    flow's 「결과 다시 확인」 shows 「후원에 실패했습니다.」 · 「후원 결과가 실패로 확인되었습니다.」 · 「보류된 FN은
+    반환되었습니다.」 (no FN line when it was forfeited), not 「FN은 차감되지 않았습니다.」.
   - Check and write: the answers are applied in one synchronous step after the last await, only to a transaction still
     pending.
 - **확인 중 후원 (console, after 24 hours)**: still no result → listed in the admin console (`/donations/pending`, 대시보드
@@ -141,7 +144,9 @@ Authentication for every platform (OAuth / login) is TBD.
   credits nothing — the return is recorded as forfeited (반환 불가(탈퇴), 「확인 결과 실패 · 탈퇴한 계정이라 FN 반환 불가(소멸)」),
   like the rest of a withdrawn account's FN, and the console says so before and after the decision.
 - **Withdrawal waits (2026-10-09 결정)**: while a 플랫폼 후원 of the account is PENDING, 회원 탈퇴 is refused
-  (`PLATFORM_PENDING`, checked again with the write after the password check), like 충전 환불 · 퀘스트. The 탈퇴 screen shows
+  (`PLATFORM_PENDING`, checked again with the write after the password check), like 충전 환불 · 퀘스트. A donation whose
+  platform call is still running (FN held, another tab) counts too (`pendingCore.awaitsResult`): a refusal would put its
+  FN back into the slot after the 탈퇴. The 탈퇴 screen shows
   a card with the count and a link to 후원 내역. Opening the screen re-checks the account's PENDING donations first, as
   후원 내역 does (inside the 24 h, at most once a minute each), so a result that has come in unblocks it. Pressing 탈퇴
   (`withdrawAccount`) re-checks the same way before its PENDING check (2026-10-09 결정): a result that came in after the

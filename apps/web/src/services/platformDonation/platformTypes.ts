@@ -168,6 +168,12 @@ export type PlatformDonationResult =
   | { status: "PENDING"; transactionId: string }
   /** Nothing was debited. */
   | { status: "FAILED"; reason: "API_ERROR" | "UNAVAILABLE" | "NOT_FOUND" }
+  /**
+   * A PENDING donation whose result turned out 실패 (a re-check or an operator, 2026-10-08 결정): the FN were held and
+   * `fnReturned` says they went back (FN 반환, 2026-10-09 결정) — false when the account that sent it has withdrawn since
+   * and they were forfeited. Not "nothing was debited": the FN 내역 shows the hold and its FN 반환.
+   */
+  | { status: "FAILED"; reason: "RESULT_FAILED"; transactionId: string; fnReturned: boolean }
   | { status: "INSUFFICIENT_FN"; balance: number; required: number }
   /** The same key is still being processed (중복 요청). */
   | { status: "IN_PROGRESS" }

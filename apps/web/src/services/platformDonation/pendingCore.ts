@@ -36,6 +36,12 @@ type Tx = MockPlatformTransaction;
 
 /** Still waiting for its result (FN held). */
 export const isPending = (t: Tx) => t.status === "PROCESSING" && !!t.pending;
+/**
+ * FN held with no result yet: PENDING, or a request whose platform call is still running (the hold is written before the
+ * call, up to the send timeout). Either may still give the FN back to the slot's balance — 회원 탈퇴 waits for both
+ * (2026-10-09 결정).
+ */
+export const awaitsResult = (t: Tx) => t.status === "PROCESSING";
 /** Inside the 24 h the server re-checks by itself. */
 export const inRecheckWindow = (t: Tx, now = Date.now()) => now - Date.parse(t.requestedAt) < RECHECK_WINDOW_MS;
 /** In 확인 중 후원: no result 24 h after the request — an operator re-checks or decides it. */
@@ -203,10 +209,11 @@ export function settle(t: Tx, d: Decision, now = new Date()): PlatformResolution
   notifyResolved(t, fnReturn);
   const entry = t.idempotencyKey ? ownEntry(mockPlatform.idempotency, t.idempotencyKey) : undefined;
   if (entry) {
+    // A failure here came after the FN were held: the answer says so (FN 반환), never "nothing was debited".
     entry.result =
       d.outcome === "COMPLETED"
         ? { status: "COMPLETED", transactionId: t.transactionId, externalTransactionId: t.externalTransactionId, creatorName: t.creatorName, productLabel: t.productLabel, fnAmount: t.fnAmount, balance: mockAccount.fnBalance }
-        : { status: "FAILED", reason: "API_ERROR" };
+        : { status: "FAILED", reason: "RESULT_FAILED", transactionId: t.transactionId, fnReturned: fnReturn === "RETURNED" };
   }
   return resolution;
 }

@@ -101,6 +101,16 @@ describe("약관 · 정책 문서 (초안 본문, 2026-10-08)", () => {
     }
   });
 
+  it("lists every case that holds a 탈퇴 in the service terms and the refund policy (2026-10-06 · 10-08 · 10-09 결정)", () => {
+    const clause = (slug: "service" | "refund", title: string) => TERMS_DOCS[slug].clauses.find((c) => c.title === title)!.body.flatMap(blockTexts).join("\n");
+    // services/account/withdrawal.ts refuses REFUND_PENDING, QUEST_PENDING and PLATFORM_PENDING.
+    for (const text of [clause("service", "회원 탈퇴와 이용계약 해지"), clause("refund", "회원 탈퇴와 남은 FN")]) {
+      expect(text).toContain("환불 요청");
+      expect(text).toContain("퀘스트 후원");
+      expect(text).toContain("처리 결과를 확인 중인 SOOP · FlexTV 플랫폼 후원");
+    }
+  });
+
   // These periods must match services/account/retentionPolicy.ts (added on another branch with the same values).
   it("states the retention defaults in the privacy policy", () => {
     const retention = TERMS_DOCS.privacy.clauses[2].body.flatMap(blockTexts).join("\n");
