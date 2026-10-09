@@ -197,7 +197,25 @@ describe("남은 FN 정리 (영구 정지)", () => {
     const seen = await m.card(on(8, 13));
     expect(await Promise.all([m.settle(on(8, 13), key(902), seen), m.settle(on(8, 13), key(902), seen)])).toEqual([{ status: "OK" }, { status: "OK" }]);
     expect(await m.settle(on(8, 14), key(902), seen)).toEqual({ status: "OK" }); // a later retry
+    // The same request id with another memo or other amounts is not that 정리: refused, nothing more is written.
+    const replay = (over: Record<string, unknown>) =>
+      m.settleMemberFn(OP, {
+        id: m.SAMPLE_MEMBER_ID,
+        note: NOTE,
+        requestId: key(902),
+        expectedGrossFn: seen!.total.grossFn,
+        expectedNetFn: seen!.total.netFn,
+        expectedRefundKrw: seen!.total.refundKrw,
+        expectedForfeitFn: seen!.forfeitFn,
+        ...over
+      });
+    expect(await replay({ note: ` ${NOTE} ` })).toEqual({ status: "OK" }); // the memo as stored (trimmed)
+    expect(await replay({ note: "다른 메모로 다시 정리" })).toEqual({ status: "INVALID", message: "잘못된 요청입니다." });
+    expect(await replay({ expectedGrossFn: 0 })).toEqual({ status: "INVALID", message: "잘못된 요청입니다." });
+    expect(await replay({ expectedRefundKrw: seen!.total.refundKrw + 1 })).toEqual({ status: "INVALID", message: "잘못된 요청입니다." });
+    expect(await replay({ expectedForfeitFn: undefined })).toEqual({ status: "INVALID", message: "잘못된 요청입니다." });
     expect(m.mockFnSettlements.settlements).toHaveLength(1);
+    expect(m.mockFnSettlements.settlements[0].note).toBe(NOTE);
     expect(settledTotals(m)).toHaveLength(1);
     expect(m.account.fnBalance).toBe(0);
     // A new request finds nothing left; the same id for another member is not this 정리.

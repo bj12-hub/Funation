@@ -236,8 +236,12 @@ describe("룰렛 · 재가입 (2026-10-08 결정)", () => {
     expect((await room()).mine).toHaveLength(1);
     // The creator's side keeps every participation, whichever account sent it.
     expect(m.channelRows("c1").queue).toHaveLength(3);
-    // The person key (verified phone) never leaves the server.
-    expect(JSON.stringify([await room(), m.channelRows("c1"), m.stageOf("c1")])).not.toMatch(/010-/);
+    // The person key and the verified phone never leave the server. (Looked for as exact values: a pattern like /010-/
+    // also matches random spin ids such as "dn-…-0010-…".)
+    const shown = JSON.stringify([await room(), m.channelRows("c1"), m.stageOf("c1")]);
+    const persons = m.mockRoulette.spins.map((s) => s.person).filter((p) => p !== "" && !p.startsWith("seed-"));
+    expect(persons.length).toBeGreaterThan(0);
+    for (const secret of ["010-1234-5678", "01012345678", "010-0000-0000", "01000000000", ...persons]) expect(shown).not.toContain(secret);
 
     // The day turns at 00:00 KST (it is still 2026-10-08 in UTC).
     vi.setSystemTime(new Date("2026-10-09T00:05:00+09:00"));

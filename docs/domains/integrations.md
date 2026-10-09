@@ -139,7 +139,8 @@ Authentication for every platform (OAuth / login) is TBD.
     pending.
 - **확인 중 후원 (console, after 24 hours)**: still no result → listed in the admin console (`/donations/pending`, 대시보드
   처리 대기). The operator presses 다시 확인 (asks the platform now, audited `PLATFORM_DONATION_CHECK`) or decides 성공 /
-  실패 with a required memo (2–200자): once per console request id, refused once settled or inside the 24 hours, audited
+  실패 with a required memo (2–200자): once per console request id (a retry is the same donation, outcome and memo; the
+  same id with anything else is refused), refused once settled or inside the 24 hours, audited
   `PLATFORM_DONATION_RESOLVE`. 성공 keeps the FN spent (no external id); 실패 returns it (「운영자 확인 결과 실패 · FN 반환」).
 - **Withdrawn sender**: when the account that sent it has withdrawn since (also after a 재가입 in the same slot), a 실패
   credits nothing — the return is recorded as forfeited (반환 불가(탈퇴), 「확인 결과 실패 · 탈퇴한 계정이라 FN 반환 불가(소멸)」),

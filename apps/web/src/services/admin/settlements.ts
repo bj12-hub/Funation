@@ -5,7 +5,7 @@ import { mockSettlement, type MockSettlementRegistration, type MockSettlementReq
 import { memberTypeLabel, type SettlementStatus } from "@/services/creator/settlementTypes";
 import type { AdminActor } from "./adminTypes";
 import { recordAudit } from "./auditCore";
-import { activeHold, holdRequestId, pushHold, readHoldInput, recordedHold } from "./holdCore";
+import { activeHold, holdRequestId, pushHold, readHoldInput, recordedHold, sameHoldCall } from "./holdCore";
 import { slotAccountLabel } from "./memberCore";
 import { SETTLEMENT_NOTE, SETTLEMENT_REFERENCE, type AdminSettlementRegistration, type AdminSettlementView, type SettlementDecisionResult } from "./settlementTypes";
 
@@ -141,19 +141,21 @@ export async function decideSettlement(admin: AdminActor, input: unknown): Promi
  * from 승인 and never while it is on 보류. A creator who withdrew is paid what was approved before the 탈퇴 (2026-10-08 결정:
  * a 탈퇴 forfeits only 정산 가능 and 심사 대기 requests, which end as 탈퇴 소멸 and stay unpayable); the request keeps the
  * masked 정산 정보 of its request time, which is what it is paid with. One console request id per intended payment: the
- * same id again answers OK without a second change or log entry. 지급 수단 · 일정 · 이체 연동 are TBD; nothing is sent
- * from here. The reference is the transfer's own id, never an account number, and the answer echoes neither.
+ * same id with the same request and reference answers OK without a second change or log entry; anything else under that
+ * id is refused. 지급 수단 · 일정 · 이체 연동 are TBD; nothing is sent from here. The reference is the transfer's own id,
+ * never an account number, and the answer echoes neither.
  */
 export async function paySettlement(admin: AdminActor, input: unknown): Promise<SettlementDecisionResult> {
   assertMock();
   const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   if (typeof v.requestId !== "string" || !REQUEST_ID.test(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
+  const reference = typeof v.reference === "string" ? v.reference.trim() : "";
   const all = allRequests();
   const done = all.find((r) => r.payment?.requestId === v.requestId);
-  if (done) return done.id === v.id ? { status: "OK" } : { status: "INVALID", message: "잘못된 요청입니다." };
+  // A retry is the same request with the same reference; another reference under that id was never recorded.
+  if (done) return done.id === v.id && done.payment?.reference === reference ? { status: "OK" } : { status: "INVALID", message: "잘못된 요청입니다." };
   const request = all.find((r) => r.id === v.id);
   if (!request) return { status: "NOT_FOUND" };
-  const reference = typeof v.reference === "string" ? v.reference.trim() : "";
   if (reference.length < SETTLEMENT_REFERENCE.min || reference.length > SETTLEMENT_REFERENCE.max || !REFERENCE.test(reference)) {
     return { status: "INVALID", message: `이체 참조번호를 영문 · 숫자 · - ${SETTLEMENT_REFERENCE.min}~${SETTLEMENT_REFERENCE.max}자로 입력해 주세요.` };
   }
@@ -171,8 +173,9 @@ export async function paySettlement(admin: AdminActor, input: unknown): Promise<
 /**
  * 보류 / 보류 해제 (2026-10-08 결정): `{ action: "HOLD" | "RELEASE", note, requestId }` for a 심사 대기 or 승인 request,
  * also one of a creator who withdrew. The memo is required and stays with the operators; the status does not change, so
- * 보류 해제 leaves the request as it was before the 보류. One console request id per action: the same id again answers
- * OK without a second change or log entry (`SETTLEMENT_HOLD` / `SETTLEMENT_RELEASE`).
+ * 보류 해제 leaves the request as it was before the 보류. One console request id per action: the same id with the same
+ * request, action and memo answers OK without a second change or log entry (`SETTLEMENT_HOLD` / `SETTLEMENT_RELEASE`);
+ * anything else under that id is refused.
  */
 export async function holdSettlement(admin: AdminActor, input: unknown): Promise<SettlementDecisionResult> {
   assertMock();
@@ -181,7 +184,7 @@ export async function holdSettlement(admin: AdminActor, input: unknown): Promise
   if (!requestId) return { status: "INVALID", message: "잘못된 요청입니다." };
   const all = allRequests();
   const done = recordedHold(all, requestId);
-  if (done) return done.item.id === v.id && done.event.action === v.action ? { status: "OK" } : { status: "INVALID", message: "잘못된 요청입니다." };
+  if (done) return done.item.id === v.id && sameHoldCall(done.event, v) ? { status: "OK" } : { status: "INVALID", message: "잘못된 요청입니다." };
   const request = all.find((r) => r.id === v.id);
   if (!request) return { status: "NOT_FOUND" };
   const read = readHoldInput(v);

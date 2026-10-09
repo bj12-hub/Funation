@@ -66,7 +66,11 @@ export function FnSettlementAction({ id, plan }: { id: string; plan: MemberFnSet
         aria-label="남은 FN 정리 메모"
         value={note}
         disabled={!ready}
-        onChange={(e) => setNote(e.target.value)}
+        onChange={(e) => {
+          setNote(e.target.value);
+          // Another memo is another request (the site refuses a reused id with a different memo), as in HoldControl.
+          requestId.current = null;
+        }}
       />
       <button type="button" className={styles.danger} disabled={!ready || pending || note.trim().length < FN_SETTLE_NOTE.min} onClick={settle}>
         {pending ? "처리 중…" : "환불 처리 및 FN 정리"}

@@ -237,10 +237,13 @@ describe("환불 요청 보류 · 보류 해제 (2026-10-08 결정)", () => {
     expect(await hold(m, "nope", 1)).toEqual({ status: "NOT_FOUND" });
     expect(await hold(m, charge.id, 1)).toEqual({ status: "OK" });
     expect(await hold(m, charge.id, 1)).toEqual({ status: "OK" }); // a retry
+    // The same request id with another memo is not that 보류: refused, the recorded memo stays.
+    expect(await hold(m, charge.id, 1, "다른 사유로 보류")).toEqual({ status: "INVALID", message: "잘못된 요청입니다." });
     expect(await hold(m, charge.id, 2)).toEqual({ status: "INVALID", message: "이미 보류 중인 환불 요청이에요." });
     expect(await release(m, charge.id, 1)).toEqual({ status: "INVALID", message: "잘못된 요청입니다." });
     expect(await release(m, charge.id, 3)).toEqual({ status: "OK" });
     expect(await release(m, charge.id, 3)).toEqual({ status: "OK" }); // a retry
+    expect(await release(m, charge.id, 3, "다른 메모")).toEqual({ status: "INVALID", message: "잘못된 요청입니다." });
     expect(await release(m, charge.id, 4)).toEqual({ status: "INVALID", message: "보류 중인 환불 요청이 아니에요." });
     expect(m.auditEntries().map((e) => [e.action, e.target, e.reason])).toEqual([
       ["REFUND_RELEASE", `refund:${charge.id}`, "본인 결제 확인"],

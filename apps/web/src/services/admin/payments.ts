@@ -9,7 +9,7 @@ import { REFUND_POLICY_LABEL, REFUND_POLICY_SUMMARY, REFUND_TYPE_LABEL, refundAm
 import { findChargeRecord, listAccountChargeRecords, listAccountDonationRecords, listChargeRecords } from "@/services/wallet/walletHistory";
 import type { AdminActor } from "./adminTypes";
 import { recordAudit } from "./auditCore";
-import { activeHold, holdRequestId, pushHold, readHoldInput, recordedHold } from "./holdCore";
+import { activeHold, holdRequestId, pushHold, readHoldInput, recordedHold, sameHoldCall } from "./holdCore";
 import { SAMPLE_MEMBER_ID, slotAccountLabel } from "./memberCore";
 import {
   ADMIN_DONATION_FILTERS,
@@ -194,7 +194,8 @@ export async function decideRefund(admin: AdminActor, input: unknown): Promise<R
  * 보류 / 보류 해제 (2026-10-08 결정): `{ action: "HOLD" | "RELEASE", note, requestId }` for a waiting refund request of the
  * current account. The memo is required and stays with the operators; the request stays REQUESTED (the member keeps
  * seeing 심사 중), so 보류 해제 leaves it as it was and nothing moves in the wallet. One console request id per action: the
- * same id again answers OK without a second change or log entry (`REFUND_HOLD` / `REFUND_RELEASE`).
+ * same id with the same request, action and memo answers OK without a second change or log entry (`REFUND_HOLD` /
+ * `REFUND_RELEASE`); anything else under that id is refused.
  */
 export async function holdRefund(admin: AdminActor, input: unknown): Promise<RefundDecisionResult> {
   assertMock();
@@ -202,7 +203,7 @@ export async function holdRefund(admin: AdminActor, input: unknown): Promise<Ref
   const requestId = holdRequestId(v);
   if (!requestId) return { status: "INVALID", message: "잘못된 요청입니다." };
   const done = recordedHold(mockRefunds.requests, requestId);
-  if (done) return done.item.chargeId === v.chargeId && done.event.action === v.action ? { status: "OK" } : { status: "INVALID", message: "잘못된 요청입니다." };
+  if (done) return done.item.chargeId === v.chargeId && sameHoldCall(done.event, v) ? { status: "OK" } : { status: "INVALID", message: "잘못된 요청입니다." };
   const request = mockRefunds.requests.find((r) => r.chargeId === v.chargeId);
   if (!request) return { status: "NOT_FOUND" };
   const read = readHoldInput(v);

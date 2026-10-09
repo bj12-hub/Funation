@@ -33,6 +33,13 @@ export function recordedHold<T extends Holdable>(items: T[], requestId: string):
   return null;
 }
 
+/**
+ * Whether a call that reuses a recorded console request id asks for what that id recorded: the same action and memo (as
+ * stored, trimmed). The caller also checks that it is for the same request. A different payload under the same id is
+ * refused, never answered OK for something that was not done.
+ */
+export const sameHoldCall = (event: HoldEvent, v: Record<string, unknown>) => event.action === v.action && event.note === (typeof v.note === "string" ? v.note.trim() : "");
+
 /** The action and memo of a hold call, or the message the console shows. */
 export function readHoldInput(v: Record<string, unknown>): { action: HoldAction; note: string } | { message: string } {
   if (v.action !== "HOLD" && v.action !== "RELEASE") return { message: "보류 또는 보류 해제를 골라 주세요." };
