@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { getMockDonationCatalog } from "@/services/donations/donationCatalog";
 import { CHARGE_CONSENTS } from "@/services/wallet/chargeTypes";
 import { clauseHeading, isTermsSlug, TERMS_DOCS, TERMS_DRAFT, TERMS_SLUGS, type TermsBlock } from "./termsOutline";
 
@@ -88,6 +89,13 @@ describe("약관 · 정책 문서 (초안 본문, 2026-10-08)", () => {
   it("states the retention defaults in the privacy policy", () => {
     const retention = TERMS_DOCS.privacy.clauses[2].body.flatMap(blockTexts).join("\n");
     for (const period of ["5년", "3년", "3개월", "탈퇴 후 1년", "탈퇴 즉시 파기", "탈퇴한 회원"]) expect(retention).toContain(period);
+  });
+
+  it("names every donation type of the 후원 screen in the service terms' 후원 definition", () => {
+    const definition = TERMS_DOCS.service.clauses[1].body.flatMap(blockTexts).find((t) => t.startsWith("\"후원\""))!;
+    // The terms call the 일반 후원 텍스트 (CLAUDE.md §10 "Text"); every other type goes by its tab label.
+    const term = (label: string) => (label === "일반" ? "텍스트" : label);
+    for (const t of getMockDonationCatalog().types) expect(definition, t.key).toContain(term(t.label));
   });
 
   it("does not invent undecided money or policy numbers", () => {
