@@ -157,3 +157,22 @@ describe("admin members", () => {
     }
   });
 });
+
+describe("admin members · Korean days", () => {
+  beforeEach(() => {
+    resetMockStores();
+    signIn(["ADMIN"]);
+  });
+
+  it("shows the last active day in KST, not the UTC day, between 00:00 and 09:00 KST", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date("2026-10-10T00:30:00+09:00")); // 2026-10-09 15:30 UTC
+      const m = await load();
+      const sample = (await m.getMemberDetail(m.SAMPLE_MEMBER_ID))!;
+      expect(sample.member.lastActiveAt).toBe("2026-10-10");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
