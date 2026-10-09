@@ -513,10 +513,10 @@ describe("회원 탈퇴 · 결과를 확인 중인 플랫폼 후원 (2026-10-09 
     const { flexTvAdapter } = await import("@/services/platformDonation/adapters");
     const lookup = vi.spyOn(flexTvAdapter, "lookupDonation");
     // The seed's FlexTV 박수 (TXN-SEED-B12) is still waiting for its platform result, past its 24 h: opening the screen
-    // does not ask the platform about it any more (the console decides it).
+    // and pressing 탈퇴 do not ask the platform about it any more (the console decides it).
     expect(await m.getWithdrawalInfo()).toMatchObject({ pendingPlatformDonations: 1 });
-    expect(lookup).not.toHaveBeenCalled();
     expect(await m.withdrawAccount(supporter())).toEqual({ status: "PLATFORM_PENDING", count: 1 });
+    expect(lookup).not.toHaveBeenCalled();
     expect(m.isWithdrawn()).toBe(false);
     const { resolvePendingDonation } = await import("@/services/admin/pendingDonations");
     expect(await resolvePendingDonation(OP, { transactionId: "TXN-SEED-B12", outcome: "COMPLETED", note: "플랫폼 확인: 전송됨", requestId: key(80) })).toMatchObject({ status: "OK" });
@@ -583,6 +583,80 @@ describe("회원 탈퇴 · 결과를 확인 중인 플랫폼 후원 (2026-10-09 
       expect(await m.getWithdrawalInfo()).toMatchObject({ fnBalance: 30_000, pendingPlatformDonations: 0 });
       expect(lookup).toHaveBeenCalledTimes(2);
       expect(await m.withdrawAccount({ ...supporter(), fnBalance: 30_000 })).toEqual({ status: "WITHDRAWN" });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("re-checks when 탈퇴 is pressed too (2026-10-09 결정): a result that came in after the screen opened lets it through, at most once a minute", async () => {
+    const m = await load();
+    await settleSamplePlatformDonations();
+    const { soopAdapter } = await import("@/services/platformDonation/adapters");
+    const { requestPlatformDonation } = await import("@/services/platformDonation/platformDonation");
+    const { mockPlatform } = await import("@/services/platformDonation/mockPlatformStore");
+    m.account.fnBalance = 30_000;
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      const t0 = Date.now();
+      vi.spyOn(soopAdapter, "sendDonation").mockRejectedValueOnce(new Error("ECONNRESET"));
+      const lookup = vi.spyOn(soopAdapter, "lookupDonation").mockResolvedValue({ status: "UNKNOWN" });
+      const held = await requestPlatformDonation(soop(72));
+      if (held.status !== "PENDING") throw new Error(held.status);
+
+      // The screen opens and asks the platform: no result yet.
+      expect(await m.getWithdrawalInfo()).toMatchObject({ fnBalance: 20_000, pendingPlatformDonations: 1 });
+      expect(lookup).toHaveBeenCalledTimes(1);
+
+      // The platform has a result now, but pressing 탈퇴 within the minute does not ask again: it still waits.
+      lookup.mockResolvedValue({ status: "COMPLETED", externalTransactionId: "SP-LK-BUTTON" });
+      vi.setSystemTime(t0 + 30_000);
+      expect(await m.withdrawAccount({ ...supporter(), fnBalance: 20_000 })).toEqual({ status: "PLATFORM_PENDING", count: 1 });
+      expect(lookup).toHaveBeenCalledTimes(1);
+      expect(m.isWithdrawn()).toBe(false);
+
+      // More than a minute after the last check the button asks the platform: the result settles the donation and the
+      // withdrawal goes through in the same request.
+      vi.setSystemTime(t0 + 61_000);
+      expect(await m.withdrawAccount({ ...supporter(2), fnBalance: 20_000 })).toEqual({ status: "WITHDRAWN" });
+      expect(lookup).toHaveBeenCalledTimes(2);
+      expect(mockPlatform.transactions.find((t) => t.transactionId === held.transactionId)).toMatchObject({ status: "COMPLETED", externalTransactionId: "SP-LK-BUTTON" });
+      expect(m.withdrawalOf()).toMatchObject({ requestId: key(2), forfeitedFn: 20_000 });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("lets 탈퇴 through when a 플랫폼 후원 sent after the screen opened has failed since: its FN came back to the amount the member saw", async () => {
+    const m = await load();
+    await settleSamplePlatformDonations();
+    const { soopAdapter } = await import("@/services/platformDonation/adapters");
+    const { requestPlatformDonation } = await import("@/services/platformDonation/platformDonation");
+    const { getDonationHistory } = await import("@/services/platformDonation/donationHistory");
+    const { mockPlatform } = await import("@/services/platformDonation/mockPlatformStore");
+    m.account.fnBalance = 30_000;
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      const t0 = Date.now();
+      // The screen opens with nothing waiting, so the button is enabled for the 30,000 FN the member saw.
+      expect(await m.getWithdrawalInfo()).toMatchObject({ fnBalance: 30_000, pendingPlatformDonations: 0 });
+
+      // Another tab sends a 플랫폼 후원 that goes PENDING; its 후원 내역 asks the platform once — no result yet.
+      vi.spyOn(soopAdapter, "sendDonation").mockRejectedValueOnce(new Error("ECONNRESET"));
+      const lookup = vi.spyOn(soopAdapter, "lookupDonation").mockResolvedValue({ status: "UNKNOWN" });
+      const held = await requestPlatformDonation(soop(73));
+      if (held.status !== "PENDING") throw new Error(held.status);
+      await getDonationHistory({ period: "all" });
+      expect(lookup).toHaveBeenCalledTimes(1);
+
+      // The platform reports a failure. A minute on, the member presses 탈퇴 on the screen opened before: the re-check
+      // returns the held FN, the balance is the 30,000 FN the member agreed to forfeit, and the account goes.
+      lookup.mockResolvedValue({ status: "FAILED", reason: "API_ERROR" });
+      vi.setSystemTime(t0 + 61_000);
+      expect(await m.withdrawAccount({ ...supporter(), fnBalance: 30_000 })).toEqual({ status: "WITHDRAWN" });
+      expect(lookup).toHaveBeenCalledTimes(2);
+      expect(mockPlatform.transactions.find((t) => t.transactionId === held.transactionId)).toMatchObject({ status: "FAILED", resolution: { fnReturn: "RETURNED" } });
+      expect(m.withdrawalOf()).toMatchObject({ forfeitedFn: 30_000 });
+      expect(m.account.fnBalance).toBe(0);
     } finally {
       vi.useRealTimers();
     }
