@@ -26,8 +26,16 @@ export type MockPlatformTransaction = {
   account?: string | null;
   /** ISO time of the request (`createdAt` is its local minute); the 24 h re-check window counts from it. */
   requestedAt: string;
-  /** The request's Idempotency-Key (null for the seed rows): the platform status lookup asks by it. */
-  idempotencyKey: string | null;
+  /**
+   * Where the request's Idempotency-Key entry is in `idempotency` — the member's key under the member (`memberKeyOf`,
+   * lib/records.ts; a 재가입 moves it to the withdrawn account's id). Null for the seed rows.
+   */
+  requestKey: string | null;
+  /**
+   * The key the platform adapter was given for it — derived from the member and the member's key, never the member's
+   * own (./platformKey.ts) — so a status lookup asks by it. Null for the seed rows.
+   */
+  platformKey: string | null;
   /**
    * Set when the platform did not answer (PENDING, FN held). `lastCheckAt`: the last status lookup (lazy re-check or
    * the console's 다시 확인). Kept after the result is known, so the console still lists what it decided.
@@ -54,7 +62,10 @@ export type PlatformResolution = {
 
 type MockPlatformState = {
   transactions: MockPlatformTransaction[];
-  /** Idempotency-Key → first request fingerprint and result (`null` while running). */
+  /**
+   * The member's Idempotency-Key, per member (`memberKeyOf`) → first request fingerprint and result (`null` while
+   * running). Another member sending the same key gets a donation of their own.
+   */
   idempotency: Record<string, { fingerprint: string; result: PlatformDonationResult | null }>;
 };
 
@@ -94,7 +105,8 @@ function seed(): MockPlatformTransaction[] {
     createdAt: stamp(daysAgo, time),
     completedAt: status === "PROCESSING" ? null : stamp(daysAgo, time),
     requestedAt: dayAt(daysAgo, time).toISOString(),
-    idempotencyKey: null,
+    requestKey: null,
+    platformKey: null,
     ...(status === "PROCESSING" ? { pending: { lastCheckAt: null } } : {})
   });
   return [
@@ -105,7 +117,8 @@ function seed(): MockPlatformTransaction[] {
   ];
 }
 
-// V3: transactions keep their request time, Idempotency-Key, PENDING re-check state and resolution.
-const globalForPlatform = globalThis as typeof globalThis & { __ssumnationMockPlatformV3?: MockPlatformState };
+// V4: keys are per member, and a transaction keeps its entry's key and the key the platform was given (V3: transactions
+// keep their request time, Idempotency-Key, PENDING re-check state and resolution).
+const globalForPlatform = globalThis as typeof globalThis & { __ssumnationMockPlatformV4?: MockPlatformState };
 
-export const mockPlatform = (globalForPlatform.__ssumnationMockPlatformV3 ??= { transactions: seed(), idempotency: {} });
+export const mockPlatform = (globalForPlatform.__ssumnationMockPlatformV4 ??= { transactions: seed(), idempotency: {} });

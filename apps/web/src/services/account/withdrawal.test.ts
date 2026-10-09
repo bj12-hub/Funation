@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { key, mockSessionModule, phoneToken, resetMockStores, settleSamplePlatformDonations, signIn, signInAs, verifyMockIdentity } from "@/test/mockEnv";
+import { key, mockSessionModule, phoneToken, resetMockStores, settleSampleCharges, settleSamplePlatformDonations, signIn, signInAs, verifyMockIdentity } from "@/test/mockEnv";
 
 /** `during` runs inside the next mock delay, i.e. while the server is "busy" between its checks. */
 const delay = vi.hoisted(() => ({ during: null as null | (() => void) }));
@@ -66,13 +66,25 @@ describe("회원 탈퇴", () => {
   beforeEach(async () => {
     resetMockStores();
     signIn(["SUPPORTER"]);
-    // The sample PENDING 플랫폼 후원 gets its result first (the block itself is tested below).
+    // The sample PENDING 플랫폼 후원 gets its result first, and the sample 처리중 충전 its 결제 확인 (the blocks themselves
+    // are tested below and in withdrawalCredits.test.ts).
     await settleSamplePlatformDonations();
+    await settleSampleCharges();
   });
 
   it("needs every consent for the amounts the member saw and the password, then forfeits and ends the account", async () => {
     const m = await load();
-    expect(await m.getWithdrawalInfo()).toEqual({ nickname: "홍길동", fnBalance: 5_000, creator: false, unsettledFn: 0, pendingRefunds: 0, pendingQuests: { sent: 0, received: 0 }, pendingPlatformDonations: 0 });
+    expect(await m.getWithdrawalInfo()).toEqual({
+      nickname: "홍길동",
+      fnBalance: 5_000,
+      creator: false,
+      unsettledFn: 0,
+      pendingRefunds: 0,
+      pendingQuests: { sent: 0, received: 0 },
+      pendingPlatformDonations: 0,
+      pendingCharges: 0,
+      pendingAttendanceRewards: 0
+    });
 
     const base = supporter();
     expect(await m.withdrawAccount({ ...base, requestId: "short" })).toMatchObject({ status: "INVALID" });
@@ -502,9 +514,10 @@ describe("회원 탈퇴", () => {
 describe("회원 탈퇴 · 결과를 확인 중인 플랫폼 후원 (2026-10-09 결정)", () => {
   const soop = (n: number) => ({ platform: "SOOP", creatorId: "kim_stream", productId: "balloon-10", message: "응원해요", idempotencyKey: key(n) });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     resetMockStores();
     signIn(["SUPPORTER"]);
+    await settleSampleCharges(); // the sample 처리중 충전 would hold the withdrawal too (2026-10-10 결정)
   });
   afterEach(() => vi.restoreAllMocks());
 
@@ -565,7 +578,7 @@ describe("회원 탈퇴 · 결과를 확인 중인 플랫폼 후원 (2026-10-09 
     let answer: (r: { ok: false; reason: "API_ERROR" }) => void = () => {};
     vi.spyOn(soopAdapter, "sendDonation").mockImplementationOnce(() => new Promise((resolve) => (answer = resolve)));
     const sending = requestPlatformDonation(soop(74));
-    await vi.waitFor(() => expect(mockPlatform.transactions.some((t) => t.idempotencyKey === key(74))).toBe(true));
+    await vi.waitFor(() => expect(mockPlatform.transactions.some((t) => t.requestKey === `u-test:${key(74)}`)).toBe(true));
     expect(m.account.fnBalance).toBe(20_000);
 
     expect(await m.getWithdrawalInfo()).toMatchObject({ fnBalance: 20_000, pendingPlatformDonations: 1 });

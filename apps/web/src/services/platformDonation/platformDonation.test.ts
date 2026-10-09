@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { key, mockSessionModule, rejoinWithPhone, resetMockStores, signIn } from "@/test/mockEnv";
+import { key, mockSessionModule, rejoinWithPhone, resetMockStores, signIn, signInAs } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
@@ -197,6 +197,47 @@ describe("플랫폼 후원", () => {
       sufficient: false,
       productLabel: "별풍선 30개"
     });
+  });
+
+  it("keeps retry keys per member: another member's same key is a donation of their own, the same member's a retry", async () => {
+    const { requestPlatformDonation, account, platform } = await load();
+    signInAs("u-a");
+    const first = await requestPlatformDonation(soop());
+    if (first.status !== "COMPLETED") throw new Error(first.status);
+    // Another member, same key: with another request it is no conflict, with the same one not the first member's result.
+    signInAs("u-b");
+    expect(await requestPlatformDonation(soop({ productId: "balloon-10" }))).toMatchObject({ status: "COMPLETED", fnAmount: 10_000 });
+    signInAs("u-c");
+    const same = await requestPlatformDonation(soop());
+    expect(same).toMatchObject({ status: "COMPLETED", fnAmount: 30_000 });
+    expect(same.status === "COMPLETED" && same.transactionId).not.toBe(first.transactionId);
+    // The first member's retry gets the first result; another request under the key still conflicts.
+    signInAs("u-a");
+    expect(await requestPlatformDonation(soop())).toEqual(first);
+    expect(await requestPlatformDonation(soop({ productId: "balloon-10" }))).toEqual({ status: "CONFLICT" });
+    expect(platform.transactions.filter((t) => t.status === "COMPLETED" && t.requestKey)).toHaveLength(3);
+    expect(account.fnBalance).toBe(100_000 - 30_000 - 10_000 - 30_000);
+  });
+
+  it("gives the platform a key of its own, derived from the member and the member's key", async () => {
+    const { requestPlatformDonation, platform } = await load();
+    const { soopAdapter } = await import("./adapters");
+    const { platformKeyFor } = await import("./platformKey");
+    const send = vi.spyOn(soopAdapter, "sendDonation");
+    signInAs("u-a");
+    await requestPlatformDonation(soop());
+    signInAs("u-b");
+    await requestPlatformDonation(soop());
+    const [a, b] = send.mock.calls.map(([req]) => req.idempotencyKey);
+    // Never the member's own key; the same for the same member and key; another for another member.
+    expect(a).not.toBe(key(1));
+    expect(a).toMatch(/^pk-[0-9a-f]{40}$/);
+    expect(a).toBe(platformKeyFor("u-a", key(1)));
+    expect(b).toBe(platformKeyFor("u-b", key(1)));
+    expect(a).not.toBe(b);
+    expect(a).not.toContain("u-a");
+    // Stored with the transaction, so a status lookup asks by the key the platform was given.
+    expect(platform.transactions.slice(0, 2).map((t) => t.platformKey)).toEqual([b, a]);
   });
 
   it("lists only this account's 최근 후원 creators after a 재가입", async () => {

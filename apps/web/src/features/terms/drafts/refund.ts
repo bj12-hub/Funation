@@ -5,9 +5,8 @@ import { DEFAULTS_NOTE, effectiveLine } from "./common";
  * FN 충전 · 환불 정책 — 초안 (2026-10-08). Linked from the FN 충전 약관 ("결제 서비스 이용약관 및 환불 정책 동의",
  * services/wallet/chargeTypes.ts). The 청약철회 · 수수료 · 처리 기한 numbers are the 2026-10-08 defaults (the same as
  * 서비스 이용약관 제9조). Decided elsewhere: 퀘스트 실패 · 취소 = 전액 환불 (donation.md), 처리 중 환불 · 진행 중
- * 퀘스트 · 결과 확인 중인 플랫폼 후원 (2026-10-09) = 탈퇴 불가 and 탈퇴 시 FN 소멸 (wallet.md), the 환불 요청 → 운영자 승인
- * flow (wallet.md 충전 환불), the KRW amount of
- * a 수수료 공제 후 환불 (2026-10-08: net FN ÷ the charge's FN × its paid KRW, 원 미만 버림 — services/wallet/refundPolicy.ts).
+ * 퀘스트 · 결과 확인 중인 플랫폼 후원 (2026-10-09) · 처리 중인 충전 · 지급 중인 출석 보상 (2026-10-10) = 탈퇴 불가 and 탈퇴 시
+ * FN 소멸 (wallet.md), the 환불 요청 → 운영자 승인 flow (wallet.md 충전 환불), the KRW amount of a 수수료 공제 후 환불 (2026-10-08: net FN ÷ the charge's FN × its paid KRW, 원 미만 버림 — services/wallet/refundPolicy.ts).
  * FN 가격, PG and the refund method per payment method stay TBD.
  */
 export const REFUND_POLICY: TermsDoc = {
@@ -110,7 +109,7 @@ export const REFUND_POLICY: TermsDoc = {
       body: [
         "① 회원이 탈퇴하면 남은 FN(유상 FN과 무상 FN 모두)은 사라지며 복구되지 않습니다. 탈퇴할 때 사라지는 금액을 보여 주고 동의를 받습니다.",
         "② 환불받을 수 있는 유상 FN이 있다면 탈퇴 전에 환불을 요청해 주세요. 처리 중인 환불 요청이 있으면 처리가 끝날 때까지 탈퇴할 수 없습니다.",
-        "③ 진행 중인 퀘스트 후원이나 처리 결과를 확인 중인 SOOP · FlexTV 플랫폼 후원이 있어도 결과가 정해질 때까지 탈퇴할 수 없습니다.",
+        "③ 진행 중인 퀘스트 후원이나 처리 결과를 확인 중인 SOOP · FlexTV 플랫폼 후원이 있으면 결과가 정해질 때까지, 처리 중인 FN 충전(결제 확인을 기다리는 충전 포함)이나 지급 중인 출석 보상이 있으면 충전 · 지급이 끝날 때까지 탈퇴할 수 없습니다.",
         "④ 탈퇴 후 다시 가입하면 새 계정으로 시작하며, 이전 계정의 FN과 기록은 이어지지 않습니다."
       ]
     },

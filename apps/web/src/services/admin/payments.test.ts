@@ -185,7 +185,7 @@ describe("admin payments", () => {
     await m.requestChargeRefund({ chargeId: charge.id, reason: "실수로 충전했어요" });
     signIn(["ADMIN"]);
     const { charges } = (await m.getPaymentsView())!;
-    expect(Object.keys(charges[0]).sort()).toEqual(["chargedAt", "fnAmount", "id", "memberId", "memberName", "memberWithdrawn", "methodLabel", "paidAmount", "refund", "status", "transactionId"]);
+    expect(Object.keys(charges[0]).sort()).toEqual(["chargedAt", "fnAmount", "fnNotCredited", "id", "memberId", "memberName", "memberWithdrawn", "methodLabel", "paidAmount", "refund", "status", "transactionId"]);
     expect(charges.find((c) => c.id === charge.id)!.refund).toEqual({ status: "REQUESTED", requestedAt: expect.any(String) });
     const { rows } = (await m.getDonationsView())!;
     expect(rows.length).toBeGreaterThan(0);

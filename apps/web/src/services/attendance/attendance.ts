@@ -5,6 +5,7 @@ import { toDateString } from "@/lib/period";
 import { getSession } from "@/lib/session";
 import { currentPersonKey, mockAccount } from "@/services/account/mockStore";
 import { accountSince } from "@/services/account/withdrawalCore";
+import { beginCredit } from "@/services/wallet/inFlightCore";
 import { recordCredit } from "@/services/wallet/mockCreditStore";
 import type { AttendanceReward, AttendanceSummary, CheckInResult, ClaimResult } from "./attendanceTypes";
 
@@ -22,6 +23,10 @@ import type { AttendanceReward, AttendanceSummary, CheckInResult, ClaimResult } 
  * - One check-in per day per person: today's check-in is keyed by the phone verified at sign-up, so a withdrawal
  *   and a same-day 재가입 with the same phone finds today already done. Otherwise a 재가입 account starts with no
  *   progress and none of the withdrawn account's rewards.
+ *
+ * 2026-10-10 결정: a reward on its way (the delay between the check-in or claim and the credit) keeps the account from
+ * withdrawing until it lands (services/wallet/inFlightCore.ts), and it lands only on the account it is for, still active
+ * — never on a withdrawn account or a 재가입 account (free FN, simply not paid).
  *
  * TBD: reward amounts, time zone, non-FN items (sticker, profile border), other abuse prevention. The mock
  * follows the Figma copy.
@@ -41,17 +46,28 @@ export async function checkIn(): Promise<CheckInResult> {
   const now = new Date();
   const today = now.getDate();
   if (s.checked.includes(today) || checkedInTodayByPerson(now)) return { status: "ALREADY_CHECKED_IN" };
+  // The reward is on its way until the delay ends: 회원 탈퇴 waits for it (2026-10-10 결정). An account that withdrew
+  // after its session was read does not check in.
+  const flight = beginCredit("ATTENDANCE");
+  if (!flight) return { status: "UNAUTHORIZED" };
   // Recorded before the delay so a concurrent call sees it.
   s.checked.push(today);
   attendanceStore().lastCheckInByPerson.set(currentPersonKey(), toDateString(now));
   const autoPaid = REWARDS.filter((r) => r.auto && r.days <= s.checked.length && !s.claimed.includes(r.days));
   s.claimed.push(...autoPaid.map((r) => r.days));
-  await mockDelay(500);
-  mockAccount.fnBalance += DAILY_REWARD;
-  recordCredit(DAILY_REWARD, "출석체크");
-  for (const r of autoPaid) {
-    mockAccount.fnBalance += r.fnAmount;
-    recordCredit(r.fnAmount, `출석 ${r.days}일 보상`);
+  try {
+    await mockDelay(500);
+    // Free FN land only on the account that checked in, while it is still there: a withdrawn account's are simply not
+    // paid (never to a 재가입 account either). Checked with the credit, in one step.
+    if (!flight.landsHere()) return { status: "UNAUTHORIZED" };
+    mockAccount.fnBalance += DAILY_REWARD;
+    recordCredit(DAILY_REWARD, "출석체크");
+    for (const r of autoPaid) {
+      mockAccount.fnBalance += r.fnAmount;
+      recordCredit(r.fnAmount, `출석 ${r.days}일 보상`);
+    }
+  } finally {
+    flight.end();
   }
   const summary = summarize(s, true);
   const claimable = summary.rewards.find((r) => r.status === "CLAIMABLE" && r.days === s.checked.length) ?? null;
@@ -71,11 +87,20 @@ export async function claimAttendanceReward(days: unknown): Promise<ClaimResult>
   // Automatic rewards are never CLAIMABLE, so they cannot be claimed (or paid) a second time here.
   const reward = summarize(s, checkedInTodayByPerson()).rewards.find((r) => r.days === days);
   if (!reward || reward.status !== "CLAIMABLE") return { status: "NOT_CLAIMABLE" };
+  // On its way until the delay ends: 회원 탈퇴 waits for it (2026-10-10 결정).
+  const flight = beginCredit("ATTENDANCE");
+  if (!flight) return { status: "UNAUTHORIZED" };
   s.claimed.push(reward.days); // before the delay: a second click finds it claimed
-  await mockDelay(400);
-  mockAccount.fnBalance += reward.fnAmount;
-  recordCredit(reward.fnAmount, `출석 ${reward.days}일 보상`);
-  return { status: "CLAIMED", fnAmount: reward.fnAmount, balance: mockAccount.fnBalance };
+  try {
+    await mockDelay(400);
+    // Only to the account that claimed it, while it is still there (free FN: a withdrawn account's are not paid).
+    if (!flight.landsHere()) return { status: "UNAUTHORIZED" };
+    mockAccount.fnBalance += reward.fnAmount;
+    recordCredit(reward.fnAmount, `출석 ${reward.days}일 보상`);
+    return { status: "CLAIMED", fnAmount: reward.fnAmount, balance: mockAccount.fnBalance };
+  } finally {
+    flight.end();
+  }
 }
 
 // ── Mock data ────────────────────────────────────────────────────────────────

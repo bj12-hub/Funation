@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { key, mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
+import { key, mockSessionModule, rejoinWithPhone, resetMockStores, signIn, signInAs } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
+
+const SAMPLE_MEMBER_ID = "u-hongGD123"; // services/admin/memberCore.ts
 
 /** FN 충전: server-owned amounts, terms first, one outcome per Idempotency-Key, no balance change on failure. */
 async function load() {
@@ -74,6 +76,43 @@ describe("FN 충전", () => {
     expect(await m.requestCharge(custom(1, 5_000, "PHONE"))).toEqual({ status: "FAILED", code: "SYSTEM-TEMP-500" });
     expect(m.account.fnBalance).toBe(5_000);
     expect(m.wallet.charges).toHaveLength(0);
+  });
+
+  it("keeps retry keys per member: another member's same key is a charge of their own, the same member's a retry", async () => {
+    const m = await load();
+    await m.agreeChargeTerms(ALL_AGREED);
+    signInAs("u-a");
+    const first = await m.requestCharge(custom(1, 5_000));
+    if (first.status !== "COMPLETED") throw new Error(first.status);
+    // Other members send the same key — one with another request, one with the same: neither gets a conflict or the
+    // first member's result.
+    signInAs("u-b");
+    expect(await m.requestCharge(custom(1, 3_000))).toMatchObject({ status: "COMPLETED", fnAmount: 3_000 });
+    signInAs("u-c");
+    const same = await m.requestCharge(custom(1, 5_000));
+    expect(same).toMatchObject({ status: "COMPLETED", fnAmount: 5_000 });
+    expect(same.status === "COMPLETED" && same.transactionId).not.toBe(first.transactionId);
+    // The first member's retry still gets the first result, and changing the request under it still conflicts.
+    signInAs("u-a");
+    expect(await m.requestCharge(custom(1, 5_000))).toEqual(first);
+    expect(await m.requestCharge(custom(1, 3_000))).toEqual({ status: "CONFLICT" });
+    expect(m.wallet.charges).toHaveLength(3);
+  });
+
+  it("starts a 재가입 account without the withdrawn account's retry keys", async () => {
+    const m = await load();
+    await m.agreeChargeTerms(ALL_AGREED);
+    signInAs(SAMPLE_MEMBER_ID); // the slot's member id, as lib/session gives it
+    const before = await m.requestCharge(custom(1, 5_000));
+    if (before.status !== "COMPLETED") throw new Error(before.status);
+    await rejoinWithPhone("010-0000-0000", new Date(Date.now() + 1_000));
+    await m.agreeChargeTerms(ALL_AGREED); // the new account agrees again
+    // The same key is the new account's own: a new charge, not the withdrawn account's result.
+    const after = await m.requestCharge(custom(1, 5_000));
+    expect(after).toMatchObject({ status: "COMPLETED", fnAmount: 5_000, balance: 5_000 });
+    expect(after.status === "COMPLETED" && after.transactionId).not.toBe(before.transactionId);
+    // The withdrawn account's key went with it, to its own id.
+    expect(Object.keys(m.wallet.idempotency).sort()).toEqual([`${SAMPLE_MEMBER_ID}-w1:${key(1)}`, `${SAMPLE_MEMBER_ID}:${key(1)}`].sort());
   });
 
   it("gives every charge its own transaction id, even 100 seconds apart", async () => {
