@@ -144,7 +144,9 @@ Authentication for every platform (OAuth / login) is TBD.
   credits nothing — the return is recorded as forfeited (반환 불가(탈퇴), 「확인 결과 실패 · 탈퇴한 계정이라 FN 반환 불가(소멸)」),
   like the rest of a withdrawn account's FN, and the console says so before and after the decision.
 - **Withdrawal waits (2026-10-09 결정)**: while a 플랫폼 후원 of the account is PENDING, 회원 탈퇴 is refused
-  (`PLATFORM_PENDING`, checked again with the write after the password check), like 충전 환불 · 퀘스트. The 탈퇴 screen shows
+  (`PLATFORM_PENDING`, checked again with the write after the password check), like 충전 환불 · 퀘스트. A donation whose
+  platform call is still running (FN held, another tab) counts too (`pendingCore.awaitsResult`): a refusal would put its
+  FN back into the slot after the 탈퇴. The 탈퇴 screen shows
   a card with the count and a link to 후원 내역. Opening the screen re-checks the account's PENDING donations first, as
   후원 내역 does (inside the 24 h, at most once a minute each), so a result that has come in unblocks it. Pressing 탈퇴
   (`withdrawAccount`) re-checks the same way before its PENDING check (2026-10-09 결정): a result that came in after the

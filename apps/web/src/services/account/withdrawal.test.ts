@@ -554,6 +554,33 @@ describe("회원 탈퇴 · 결과를 확인 중인 플랫폼 후원 (2026-10-09 
     expect(m.isWithdrawn()).toBe(false);
   });
 
+  it("waits while a 플랫폼 후원's platform call is still running (another tab): a refusal returns its held FN to the slot", async () => {
+    const m = await load();
+    await settleSamplePlatformDonations();
+    const { soopAdapter } = await import("@/services/platformDonation/adapters");
+    const { requestPlatformDonation } = await import("@/services/platformDonation/platformDonation");
+    const { mockPlatform } = await import("@/services/platformDonation/mockPlatformStore");
+    m.account.fnBalance = 30_000;
+    // The platform has not answered yet: the 10,000 FN are held and the transaction is PROCESSING (not PENDING).
+    let answer: (r: { ok: false; reason: "API_ERROR" }) => void = () => {};
+    vi.spyOn(soopAdapter, "sendDonation").mockImplementationOnce(() => new Promise((resolve) => (answer = resolve)));
+    const sending = requestPlatformDonation(soop(74));
+    await vi.waitFor(() => expect(mockPlatform.transactions.some((t) => t.idempotencyKey === key(74))).toBe(true));
+    expect(m.account.fnBalance).toBe(20_000);
+
+    expect(await m.getWithdrawalInfo()).toMatchObject({ fnBalance: 20_000, pendingPlatformDonations: 1 });
+    expect(await m.withdrawAccount({ ...supporter(), fnBalance: 20_000 })).toEqual({ status: "PLATFORM_PENDING", count: 1 });
+    expect(m.isWithdrawn()).toBe(false);
+
+    // The platform refuses: the hold is reversed into the account that is still there, which can then go.
+    answer({ ok: false, reason: "API_ERROR" });
+    expect(await sending).toEqual({ status: "FAILED", reason: "API_ERROR" });
+    expect(await m.getWithdrawalInfo()).toMatchObject({ fnBalance: 30_000, pendingPlatformDonations: 0 });
+    expect(await m.withdrawAccount({ ...supporter(2), fnBalance: 30_000 })).toEqual({ status: "WITHDRAWN" });
+    expect(m.withdrawalOf()).toMatchObject({ forfeitedFn: 30_000 });
+    expect(m.account.fnBalance).toBe(0);
+  });
+
   it("re-checks the member's PENDING 플랫폼 후원 when the screen opens, so a result that came in unblocks it", async () => {
     const m = await load();
     await settleSamplePlatformDonations();
