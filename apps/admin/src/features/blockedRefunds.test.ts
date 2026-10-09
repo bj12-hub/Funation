@@ -66,7 +66,7 @@ describe("refund amounts on the request card", () => {
     expect(html).toContain("10,000 FN · 11,000원 · 전액 취소");
     expect(html).toContain("<dt>요청 때 계산</dt><dd>전액 취소 · 회수 10,000 FN · 수수료 0 FN · 환불 10,000 FN · 11,000원</dd>");
     expect(html).toContain("<dt>지금 기준 (승인하면 적용)</dt><dd>수수료 공제 후 환불 · 회수 6,000 FN · 수수료 600 FN · 환불 5,400 FN · 5,940원");
-    expect(html).toContain("요청 후 FN 사용으로 바뀜");
+    expect(html).toContain(" · 요청 후 FN 사용으로 줄어듦</span>");
     expect(html).toContain(`환불 정책 · ${POLICY.label}: ${POLICY.summary}`);
     // 원화 환불 금액 (2026-10-08 결정) is the site's and recorded; only the payout per payment method is TBD.
     expect(html).toContain("승인하면 FN을 회수하고 원화 환불 금액을 함께 기록해요. 결제 수단별 환불 방식은 결제 대행사 연동 후 확정이라 실제 결제 취소 · 송금은 아직 하지 않아요 (TBD).");
@@ -86,6 +86,46 @@ describe("refund amounts on the request card", () => {
     const approved = renderToStaticMarkup(createElement(PaymentsScreen, { view: view([done]), tab: "refunds" }));
     expect(approved).toContain("10,000 FN · 11,000원 · 수수료 공제 후 환불");
     expect(approved).toContain("<dt>승인 때 적용</dt><dd>수수료 공제 후 환불 · 회수 6,000 FN · 수수료 600 FN · 환불 5,400 FN · 5,940원");
+    expect(approved).toContain(" · 요청 후 FN 사용으로 줄어듦</span>");
     expect(approved).not.toContain("<textarea");
+  });
+
+  /**
+   * 2026-10-09 결정: the note after a changed refund says which way it went. FN came back since the request (퀘스트 실패 ·
+   * 취소, a failed 플랫폼 후원's FN 반환) → 늘어남, not "FN 사용으로".
+   */
+  it("says the refund grew when FN came back since the request, shrank when FN were used, and 요청 때와 같아요 when equal", async () => {
+    const { PaymentsScreen } = await import("./payments/PaymentScreens");
+    const render = (r: AdminRefund) => renderToStaticMarkup(createElement(PaymentsScreen, { view: view([r]), tab: "refunds" }));
+    // Requested while 4,000 FN of the charge were held by a quest; the quest failed and gave them back.
+    const PART = { type: "PARTIAL" as const, grossFn: 6_000, feeFn: 600, netFn: 5_400, refundKrw: 5_940 };
+    const quote = (a: { type: "FULL_CANCEL" | "PARTIAL"; grossFn: number; feeFn: number; netFn: number; refundKrw: number }) => ({ ...a, chargeFn: 10_000, paidKrw: 11_000, usedFn: 10_000 - a.grossFn, withinPeriod: false });
+    const back = { type: "PARTIAL" as const, grossFn: 10_000, feeFn: 1_000, netFn: 9_000, refundKrw: 9_900 };
+    const grew = render({ ...refund("ch-new", false), requested: PART, current: quote(back) });
+    expect(grew).toContain("<dt>지금 기준 (승인하면 적용)</dt><dd>수수료 공제 후 환불 · 회수 10,000 FN · 수수료 1,000 FN · 환불 9,000 FN · 9,900원");
+    expect(grew).toContain(" · 요청 후 FN이 돌아와 늘어남</span>");
+    expect(grew).not.toContain("FN 사용으로");
+
+    // Within the 청약철회 period and all of it back: the type turns 전액 취소 — still 늘어남.
+    const whole = render({ ...refund("ch-new", false), requested: PART, current: { ...quote(FULL), withinPeriod: true } });
+    expect(whole).toContain(" · 요청 후 FN이 돌아와 늘어남</span>");
+
+    // Approved after the FN came back: the 승인 때 적용 line says the same.
+    const done = render({ ...refund("ch-new", false), requested: PART, status: "APPROVED", decision: { at: "2026-10-05T00:00:00.000Z", by: "운영자", note: "정상 환불" }, approved: back, current: null });
+    expect(done).toContain("<dt>승인 때 적용</dt><dd>수수료 공제 후 환불 · 회수 10,000 FN · 수수료 1,000 FN · 환불 9,000 FN · 9,900원<span");
+    expect(done).toContain(" · 요청 후 FN이 돌아와 늘어남</span>");
+
+    // Used further since the request: 줄어듦.
+    const less = { type: "PARTIAL" as const, grossFn: 2_000, feeFn: 200, netFn: 1_800, refundKrw: 1_980 };
+    const shrank = render({ ...refund("ch-new", false), requested: PART, current: quote(less) });
+    expect(shrank).toContain(" · 요청 후 FN 사용으로 줄어듦</span>");
+    expect(shrank).not.toContain("늘어남");
+
+    // Unchanged: 요청 때와 같아요 on the current line, nothing after an approval that matched.
+    const unchanged = render({ ...refund("ch-new", false), requested: PART, current: quote(PART) });
+    expect(unchanged).toContain(" · 요청 때와 같아요</span>");
+    expect(unchanged).not.toMatch(/줄어듦|늘어남|바뀜/);
+    const matched = render({ ...refund("ch-new", false), requested: PART, status: "APPROVED", decision: { at: "2026-10-05T00:00:00.000Z", by: "운영자", note: "정상 환불" }, approved: PART, current: null });
+    expect(matched).toContain("<dt>승인 때 적용</dt><dd>수수료 공제 후 환불 · 회수 6,000 FN · 수수료 600 FN · 환불 5,400 FN · 5,940원</dd>");
   });
 });

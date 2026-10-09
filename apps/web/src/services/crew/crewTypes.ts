@@ -73,7 +73,14 @@ export type FeedSource = "DONATION" | "SIM" | "BANK";
 export type FeedEntry = {
   id: string;
   at: string;
+  /** The name as sent — what the operator's 후원 리스트 (방송 운영) shows. */
   donor: string;
+  /**
+   * The name for anything on stream (2026-10-09 결정): a Ssumnation donation's name after the creator's 대체 메시지 rules
+   * (익명 or the 대체 문구), fixed when it was sent so a later 금지어 change does not rewrite it. Platform · 계좌 후원 and
+   * 시뮬 후원 entries are not replaced (their alerts show the name as sent), so it equals `donor` there.
+   */
+  shownDonor: string;
   message: string;
   /**
    * Amount in its own unit (code): FN (Ssumnation), KRW · USD · JPY (YouTube; KRW also 계좌 후원), SOOP_BALLOON (별풍선),

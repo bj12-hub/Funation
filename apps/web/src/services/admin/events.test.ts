@@ -177,7 +177,8 @@ describe("이벤트 보상 지급 · 추첨", () => {
     expect(JSON.stringify(await m.getEvent(ENDED))).not.toContain("홍길동");
   });
 
-  it("leaves a withdrawn participant out of the draw: back with the same phone they see 아쉽지만 당첨되지 않았어요", async () => {
+  /** 2026-10-09 결정: someone skipped as 지급 불가 sees a neutral line from their 재가입 account, not 당첨되지 않았어요. */
+  it("leaves a withdrawn participant out of the draw: back with the same phone they see 탈퇴한 계정으로 참여해 보상 대상에서 빠졌어요", async () => {
     const m = await load();
     const { recordWithdrawal } = await import("@/services/account/withdrawalRecord");
     recordWithdrawal({ at: new Date().toISOString(), requestId: "w-test", forfeitedFn: 0, forfeitedEarningsFn: 0 });
@@ -186,7 +187,37 @@ describe("이벤트 보상 지급 · 추첨", () => {
     expect((await row(m, ENDED)).result).toMatchObject({ pool: 0, winners: [], unpaid: [{ name: "홍길동", withdrawn: true }] });
     const { startNewAccount } = await import("@/services/account/rejoin");
     startNewAccount({ nickname: "다시왔어요", password: "newpass12!", marketing: false, phone: "010-1234-5678" }, new Date(Date.now() + 1_000));
-    expect(await m.getEvent(ENDED)).toMatchObject({ joined: true, outcome: { kind: "DRAW", winners: [] }, myResult: { kind: "NOT_WON" } });
+    const detail = (await m.getEvent(ENDED))!;
+    expect(detail).toMatchObject({ joined: true, outcome: { kind: "DRAW", winners: [] }, myResult: { kind: "UNPAID" } });
+    const { myEventResultText } = await import("@/services/events/eventTypes");
+    expect(myEventResultText(detail.myResult!)).toBe("탈퇴한 계정으로 참여해 보상 대상에서 빠졌어요");
+  });
+
+  it("shows the same line after a 무상 FN payout that skipped the withdrawn participant (they saw nothing before)", async () => {
+    const m = await load();
+    const { recordWithdrawal } = await import("@/services/account/withdrawalRecord");
+    recordWithdrawal({ at: new Date().toISOString(), requestId: "w-test", forfeitedFn: 0, forfeitedEarningsFn: 0 });
+    await m.saveEventReward(OP, { id: ENDED, kind: "FREE_FN", amountFn: 400 });
+    expect(await m.payEventReward(OP, { id: ENDED, requestId: key(51) })).toEqual({ status: "OK" });
+    expect((await row(m, ENDED)).result).toMatchObject({ kind: "FREE_FN", paid: [], unpaid: [{ name: "홍길동", withdrawn: true }] });
+    const { startNewAccount } = await import("@/services/account/rejoin");
+    startNewAccount({ nickname: "다시왔어요", password: "newpass12!", marketing: false, phone: "010-1234-5678" }, new Date(Date.now() + 1_000));
+    m.account.fnBalance = 0;
+    expect(await m.getEvent(ENDED)).toMatchObject({ joined: true, outcome: { kind: "FREE_FN" }, myResult: { kind: "UNPAID" } });
+    expect(m.account.fnBalance).toBe(0); // still nothing paid to the new account
+
+    // Someone else in the slot (another phone) did not take part: no result line at all.
+    await rejoinWithPhone("010-9999-0000", new Date(Date.now() + 2_000));
+    expect(await m.getEvent(ENDED)).toMatchObject({ joined: false, myResult: null });
+  });
+
+  it("keeps the other result lines as they were", async () => {
+    const { myEventResultText } = await import("@/services/events/eventTypes");
+    expect([myEventResultText({ kind: "PAID", amountFn: 1_500 }), myEventResultText({ kind: "WON" }), myEventResultText({ kind: "NOT_WON" })]).toEqual([
+      "보상 1,500 FN을 받았어요",
+      "당첨됐어요",
+      "아쉽지만 당첨되지 않았어요"
+    ]);
   });
 });
 
@@ -275,6 +306,8 @@ describe("이벤트 결과 사이트 알림", () => {
     expect(await eventNotices()).toEqual([]);
     const { startNewAccount } = await import("@/services/account/rejoin");
     startNewAccount({ nickname: "다시왔어요", password: "newpass12!", marketing: false, phone: "010-1234-5678" }, new Date(Date.now() + 1_000));
+    // The event page tells them they were left out (2026-10-09 결정) — still without a notification.
+    expect(await m.getEvent(ENDED)).toMatchObject({ myResult: { kind: "UNPAID" } });
     expect(await eventNotices()).toEqual([]);
   });
 

@@ -204,7 +204,9 @@
   color: var(--color-charge);
 }
 
-.kind[data-kind="REFUND"] {
+/* FN 반환 (2026-10-09 결정): FN coming back like a refund, so the same colours until Figma gives it its own. */
+.kind[data-kind="REFUND"],
+.kind[data-kind="RETURN"] {
   background: var(--color-history-refunded-bg);
   color: var(--color-primary-light);
 }

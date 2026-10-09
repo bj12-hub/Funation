@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { ChargeTrigger } from "@/features/walletCharge";
 import { formatNumber } from "@/lib/format";
-import { LEDGER_KIND_LABEL, LEDGER_PERIODS, type LedgerKind, type WalletOverview } from "@/services/wallet/walletTypes";
+import { LEDGER_FILTER_KINDS, LEDGER_KIND_LABEL, LEDGER_PERIODS, type LedgerKind, type WalletOverview } from "@/services/wallet/walletTypes";
 import styles from "./walletOverview.module.css";
 
-const KINDS: (LedgerKind | "all")[] = ["all", "CHARGE", "USE", "REFUND", "REWARD"];
+/** 유형 chips: 전체 유형 · 충전 · 사용 · 환불 · FN 반환 (2026-10-09 결정) · 적립. */
+const KINDS: (LedgerKind | "all")[] = ["all", ...LEDGER_FILTER_KINDS];
 const dotted = (s: string) => s.replace(/-/g, ".");
 const signed = (n: number) => `${n > 0 ? "+" : "-"}${formatNumber(Math.abs(n))} FN`;
 
