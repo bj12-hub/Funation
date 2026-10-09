@@ -89,11 +89,14 @@ Display 24 Bold · Title 18 Bold · Subtitle 15 Medium · Body 14 · Body Strong
 | 회원 | AD05 | 회원 상세 · 이용 정지 | `/members/m-c10` | `20:1193` |
 | 회원 | AD05b | 회원 상세 · 탈퇴 (소멸 FN · 정산 대기 수익 기록, 이용 제한 변경 불가) | `/members/u-hongGD123` | `22:2160` |
 | 회원 | AD05c | 회원 상세 · 탈퇴 회원 정보 보관 (분류 · 보관 기한 · 기간 · 근거 · 포함, 기본값 · 법무 검토 전, code-first) | `/members/u-hongGD123` | `31:1217` |
+| 회원 | AD05d | 회원 상세 · 영구 정지 · 남은 FN 정리 (충전 건별 환불 표 · 소멸 무상 FN · 처리 메모, 2026-10-08 결정, code-first) | `/members/u-hongGD123` | `34:1610` |
 | 회원 | AD06 | 크리에이터 관리 | `/creators` | `17:1627` |
 | 거래 | AD09 | 후원 운영 | `/donations` | `18:333` |
+| 거래 | AD16 | 확인 중 후원 · 확인 필요 (다시 확인 · 처리 메모 · 성공 / 실패, 2026-10-08 결정, code-first) | `/donations/pending` | `33:1371` |
+| 거래 | AD16b | 확인 중 후원 · 처리 완료 (실패 · FN 반환, 처리 메모, EMPTY "확인이 필요한 후원이 없어요.", code-first) | `/donations/pending` | `33:1458` |
 | 거래 | AD07 | 결제 · 충전 내역 | `/payments` | `18:651` |
 | 거래 | AD08 | 환불 요청 | `/payments?tab=refunds` | `20:1301` |
-| 거래 | AD08b | 환불 요청 · 환불 정책 계산 (요청 때 계산 / 지금 기준 · 요청 때와 같아요, 정책 안내, 기본값, code-first) | `/payments?tab=refunds` | `31:1115` |
+| 거래 | AD08b | 환불 요청 · 환불 정책 계산 (요청 때 계산 / 지금 기준 · 환불 금액(원) · 요청 때와 같아요, 정책 안내, 기본값, code-first) | `/payments?tab=refunds` | `34:1771` |
 | 거래 | AD08c | 환불 요청 · 보류 ("보류 N" 묶음, 보류 메모 · 보류 해제, 2026-10-08 결정, code-first) | `/payments?tab=refunds` | `32:1483` |
 | 거래 | AD10 | 정산 심사 | `/settlements` | `18:1095` |
 | 거래 | AD10b | 정산 심사 · 승인 (이체 참조번호 · "지급 완료 처리" + 보류 메모 · "보류", 2026-10-08 결정, code-first — 카드 2개만) | `/settlements?status=APPROVED` | `32:1348` |
@@ -104,6 +107,8 @@ Display 24 Bold · Title 18 Bold · Subtitle 15 Medium · Body 14 · Body Strong
 | 운영 | AD13 | 콘텐츠 관리 · FAQ | `/content?tab=faq` | `19:699` |
 | 운영 | AD14 | 플랫폼 연동 | `/platforms` | `19:987` |
 | 운영 | AD15 | 시스템 · 공지 배너 | `/system` | `19:1133` |
+| 운영 | AD17 | 이벤트 · 보상 설정 (진행 중 설정 · 설정 전 · 보상 지급 완료, 2026-10-08 결정, code-first) | `/events` | `33:1541` |
+| 운영 | AD17b | 이벤트 · 당첨자 추첨 완료 ("홍길동 · 사이트 표시 홍*동", code-first) | `/events` | `33:1677` |
 
 목록이 찬 상태는 사이트에서 예시 환불 요청 3건 · 신고 4건을 만들고, 어드민에서 환불 승인 · 거절, 신고 숨김 · 기각, 회원(STAR BEATS) 7일 정지를 처리한 mock 상태예요.
 화면 속 사유 · 메모는 모두 "(예시)" 문구예요. 서버를 다시 시작하면 mock이 초기화돼요.
