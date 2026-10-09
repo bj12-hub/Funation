@@ -1,38 +1,14 @@
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { isCreatorSuspended } from "@/services/admin/memberCore";
+import type { CreatorCategory, CreatorSort } from "./creatorTypes";
+
+export { CREATOR_CATEGORY_LABEL, CREATOR_SORT_LABEL, type CreatorCategory, type CreatorSort } from "./creatorTypes";
 
 /**
  * Creator directory contract.
  * Figma: ssumnation-all-creators-page 690:5 (route `/creators`)
  * Filtering, search, sorting and paging are server-side; the page passes URL params through.
  */
-
-export type CreatorCategory = "VARIETY" | "TRAVEL" | "DRAMA" | "SPORTS" | "MUSIC" | "GAME" | "MUKBANG" | "DAILY";
-
-/** Tab order and labels from Figma 690:5 category tabs. */
-export const CREATOR_CATEGORY_LABEL: Record<CreatorCategory, string> = {
-  VARIETY: "예능",
-  TRAVEL: "여행",
-  DRAMA: "드라마",
-  SPORTS: "스포츠",
-  MUSIC: "뮤직",
-  GAME: "게임",
-  MUKBANG: "먹방",
-  DAILY: "일상"
-};
-
-/**
- * Sort options follow funnation 크리에이터 찾기 (인기순 · 라이브 · 최신순).
- * 인기순 = subscribers (TBD: a site follower count once follows exist); 라이브 = only live creators by
- * viewers; 최신순 = most recently joined.
- */
-export type CreatorSort = "popular" | "live" | "recent";
-
-export const CREATOR_SORT_LABEL: Record<CreatorSort, string> = {
-  popular: "인기순",
-  live: "라이브",
-  recent: "최신순"
-};
 
 export type CreatorSummary = {
   id: string;

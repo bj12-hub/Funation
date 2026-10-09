@@ -8,7 +8,7 @@ import { mockCreator } from "./mockCreatorStore";
 import { mockQuests } from "@/services/donations/questCore";
 import { currentRun, voteBoard } from "@/services/votes/voteCore";
 import { isHidden, stageOf } from "@/services/donations/rouletteCore";
-import { boardOf, channelRows as gachaRows, isHidden as gachaHidden, stageOf as gachaStageOf } from "@/services/donations/gachaCore";
+import { boardOf, channelRows as gachaRows, isHidden as gachaHidden, mockGacha, stageOf as gachaStageOf } from "@/services/donations/gachaCore";
 import { STUDIO_CHANNEL, mockCrew } from "@/services/crew/mockCrewStore";
 import { crewRankingRows, eventLines, goalProgress, miniLines, rankingRows, recentLines, secondGoalProgress, sourceBoardRows, totalAmount } from "./widgetOverlayCore";
 import { overlayTheme } from "./overlayThemeStore";
@@ -90,10 +90,13 @@ export async function getOverlayWidget(widget: unknown, key: unknown): Promise<O
       // The studio channel's draws, one at a time (기계 회전 시간, then the result for 화면 노출 시간).
       const settings = readWidget("GACHA");
       const stage = gachaStageOf(STUDIO_CHANNEL);
+      // The credit list is on stream: the name after the 대체 메시지 rules (`shownDonor`), like the stage and the board.
+      // `channelRows` keeps the name as sent, for the 리모컨.
+      const shown = new Map(mockGacha.draws.map((d) => [d.id, d.shownDonor]));
       const history = gachaRows(STUDIO_CHANNEL)
         .recent.filter((r) => r.prize !== null && !r.blank)
         .slice(0, settings.credit.historyCount)
-        .map((r) => ({ donor: r.donor, prize: r.prize as string }));
+        .map((r) => ({ donor: shown.get(r.id)!, prize: r.prize as string }));
       return { widget, settings, stage: gachaHidden(STUDIO_CHANNEL) ? null : stage, history, ...themed({ theme: settings.overlayTheme }) };
     }
     case "gacha-board": {

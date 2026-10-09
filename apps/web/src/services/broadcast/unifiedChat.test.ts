@@ -46,8 +46,23 @@ describe("unified chat", () => {
     expect(view.theme.theme).toBe("BOLD");
     expect(view.lines.map((l) => l.text)).toContain("안녕하세요");
     expect(view.lines.map((l) => l.text)).not.toContain("광고입니다");
+    // The list itself is the creator's moderation setting: it stays on the server too (anyone with the URL reads this).
+    expect(view.settings.filteredNicknames).toEqual([]);
+    expect(JSON.stringify(view)).not.toContain("채팅봇");
     expect(view.lines.every((l) => !Number.isNaN(Date.parse(l.at)))).toBe(true);
     expect(Date.parse(view.serverNow)).not.toBeNaN();
+  });
+
+  it("filters 필터링 닉네임 before taking the overlay's last 30 lines, so a chatty bot cannot push viewers out", async () => {
+    const m = await load();
+    await connectAll(m);
+    const widgets = await import("@/services/creator/widgetSettings");
+    const settings = (await widgets.getWidgetDetail("CHAT"))!.settings as Record<string, unknown>;
+    expect(await widgets.saveWidgetSettings("CHAT", { ...settings, filteredNicknames: ["채팅봇"] })).toEqual({ status: "SAVED" });
+    expect(await m.simulateViewerChat(viewer(1, "CHZZK", "첫 인사"))).toEqual({ status: "OK" });
+    for (let i = 0; i < 35; i++) expect(await m.simulateViewerChat({ ...viewer(100 + i, "SOOP", `광고 ${i}`), nick: "채팅봇" })).toEqual({ status: "OK" });
+    // The viewer line is older than the bot's last 30 lines, but it is the newest line the overlay may show.
+    expect((await lines(m)).map((l) => l.text)).toEqual(["첫 인사"]);
   });
 
   it("declares per-platform chat capabilities instead of assuming they are the same", async () => {

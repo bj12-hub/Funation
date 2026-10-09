@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { formatCompactKo, formatNumber } from "@/lib/format";
-import { CREATOR_CATEGORY_LABEL, type CreatorCategory } from "@/services/creators/creators";
+import { CREATOR_CATEGORY_LABEL, type CreatorCategory } from "@/services/creators/creatorTypes";
 import { crewRoleLabel, type CrewPublic } from "@/services/crew/crewTypes";
 import type { PublicChannelVideos } from "@/services/creators/channelVideos";
 import type { Signature } from "@/services/donations/donationCatalog";

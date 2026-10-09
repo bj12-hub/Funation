@@ -55,8 +55,10 @@ const state = (globalForMock.__ssumnationMockStateV5 ??= {
     recentPasswords: ["password"],
     changedAt: new Date(Date.now() - 210 * 86_400_000).toISOString(),
     phone: "010-1234-5678",
-    // Web Crypto (not node:crypto): this module is also bundled for the browser through shared helpers.
-    personKey: globalThis.crypto.randomUUID()
+    // Web Crypto (not node:crypto): this module is also bundled for the browser through shared helpers. The browser
+    // copy never uses the key, and outside a secure context (http on another host, e.g. the dev server at a LAN IP)
+    // it has no crypto.randomUUID — calling it there would break the page that loads this module.
+    personKey: typeof window === "undefined" ? globalThis.crypto.randomUUID() : ""
   },
   changeHistory: { nicknameChangedAt: null, ssumnationIdChangedAt: null },
   session: { revoked: false, roles: ["SUPPORTER", "CREATOR"] }
