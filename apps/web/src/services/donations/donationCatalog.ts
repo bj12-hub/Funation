@@ -10,6 +10,9 @@
 import { DEFAULT_WIDGET_SETTINGS, type RouletteSettings } from "@/services/creator/widgetSettingsTypes";
 import type { GachaOffer } from "./gachaTypes";
 
+/** 미니 후원 is under 1,000 FN: 100 … 999 FN (decided 2026-10-09). The widget's 최소 표시 금액 stays within it too. */
+export const MINI_MAX_FN = 999;
+
 export type DonationTypeKey =
   | "TEXT"
   | "MINI"
@@ -53,6 +56,8 @@ export type DonationCatalog = {
   /** Minimum FN per donation type. Design shows 1,000 (일반) and 100 (미니); others TBD. */
   /** 음성 후원 (AUDIO): 1,000 FN, decided 2026-10-08 (same as 영상 후원). */
   minAmount: Record<"TEXT" | "MINI" | "VIDEO" | "AUDIO", number>;
+  /** Maximum FN for the types that have one: 미니 후원 is under 1,000 FN (decided 2026-10-09). */
+  maxAmount: Record<"MINI", number>;
   /** Max characters for free text. TBD — 100 follows the existing message field; 30 for mini is an assumption. */
   maxLength: { message: number; mini: number };
   voices: Voice[];
@@ -101,6 +106,7 @@ const MOCK_CATALOG: DonationCatalog = {
     { key: "GACHA", emoji: "🧸", label: "뽑기", title: "뽑기 후원", available: true }
   ],
   minAmount: { TEXT: 1_000, MINI: 100, VIDEO: 1_000, AUDIO: 1_000 },
+  maxAmount: { MINI: MINI_MAX_FN },
   maxLength: { message: 100, mini: 30 },
   voices: [{ id: "mina", emoji: "👧", name: "미나", description: "명랑한 보이스" }],
   // 875:1863 cards; the design says 127 items but only these 8 exist in the file.

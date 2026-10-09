@@ -124,12 +124,18 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
       const s = states.MINI;
       const amount = digits(s.amount);
       const min = catalog.minAmount.MINI;
+      const max = catalog.maxAmount.MINI;
       const tooSmall = amount !== null && amount < min;
+      const tooLarge = amount !== null && amount > max;
       const text = s.text.trim();
       return {
-        details: amount !== null && !tooSmall && text ? { type: "MINI", amount, text, colorId: s.colorId } : null,
+        details: amount !== null && !tooSmall && !tooLarge && text ? { type: "MINI", amount, text, colorId: s.colorId } : null,
         amount,
-        error: tooSmall ? `최소 ${formatNumber(min)} FN부터 후원할 수 있어요` : null,
+        error: tooSmall
+          ? `최소 ${formatNumber(min)} FN부터 후원할 수 있어요`
+          : tooLarge
+            ? `미니 후원은 ${formatNumber(max)} FN까지예요. ${formatNumber(max + 1)} FN부터는 일반 후원으로 보내 주세요`
+            : null,
         summary: [{ label: "텍스트 내용", value: text }],
         chatText: `⚡ ${text}`
       };

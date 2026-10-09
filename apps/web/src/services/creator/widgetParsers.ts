@@ -87,6 +87,7 @@ import {
   type WidgetSettingsMap
 } from "./widgetSettingsTypes";
 import { isIsoDate, isIsoDateTime } from "@/lib/period";
+import { MINI_MAX_FN } from "@/services/donations/donationCatalog";
 
 /**
  * Server-side validation for widget settings (used by ./widgetSettings.ts). Each parser rebuilds the
@@ -332,7 +333,7 @@ const parseMini: Parser<MiniSettings> = (v) => {
   if (!oneOf(v.style, ["SCROLL", "BUBBLE"] as const) || !oneOf(v.direction, ["RTL", "LTR"] as const)) return "선택 항목을 확인해 주세요.";
   if (!int(v.speed, 1, 100)) return "속도는 1~100으로 입력해 주세요.";
   if (!int(v.startPercent, 0, 100)) return "텍스트 시작 위치는 0~100%로 입력해 주세요.";
-  if (!int(v.minAmount, 0, 1_000_000)) return "최소 표시 금액을 확인해 주세요.";
+  if (!int(v.minAmount, 0, MINI_MAX_FN)) return `최소 표시 금액은 0 ~ ${MINI_MAX_FN} FN으로 입력해 주세요.`;
   if (![v.showAmount, v.showNickname, v.textOutline].every(bool)) return "설정 값을 확인해 주세요.";
   const look = themeAndCard(v);
   if (typeof look === "string") return look;
