@@ -22,11 +22,11 @@ Backend framework, database, payment provider and every business rule listed as 
 
 | Operation | Service | Effect | Idempotency | Record |
 |---|---|---|---|---|
-| FN 충전 | `wallet/charge.requestCharge` | credit FN | key + fingerprint (`CONFLICT`, `IN_PROGRESS`, failures cached) | charge row |
+| FN 충전 | `wallet/charge.requestCharge` | credit FN — only to the account that made it while still active; in progress (회원 탈퇴 refused) until the provider answers or a 처리중 charge is confirmed (2026-10-10 결정, `wallet/chargeCore.ts`) | key per member + fingerprint (`CONFLICT`, `IN_PROGRESS`, failures cached) | charge row; a payment completed after its account withdrew credits nobody and is kept for the console (`uncreditedCharges`, 완료 · FN 미지급) |
 | 크리에이터 룸 후원 | `donations/donate.requestDonation` | debit FN | key + fingerprint | donation row |
-| SOOP · FlexTV 후원 | `platformDonation/platformDonation.requestPlatformDonation` | hold/debit FN → platform call → reverse on refusal; stays held on timeout (`PENDING`) → re-checked for 24 h, then decided in the console; 실패 returns the FN (not to a withdrawn sender) | key + fingerprint; console decision by request id | platform transaction + wallet mirror (처리중 → 완료 / REFUNDED with `fnReturned`, shown as FN 반환) |
+| SOOP · FlexTV 후원 | `platformDonation/platformDonation.requestPlatformDonation` | hold/debit FN → platform call → reverse on refusal; stays held on timeout (`PENDING`) → re-checked for 24 h, then decided in the console; 실패 returns the FN (not to a withdrawn sender) | key per member + fingerprint (the adapter gets a derived key, `platformKey.ts`); console decision by request id | platform transaction + wallet mirror (처리중 → 완료 / REFUNDED with `fnReturned`, shown as FN 반환) |
 | 이벤트 보상 | `admin/events.payEventReward` (참여자 전원 무상 FN) | credit free FN to each participant's current account | once per event (console request id), per person | credit ledger (`wallet/mockCreditStore`, "이벤트 보상 · …") + `EVENT_REWARD_PAY` audit |
-| 출석 보상 | `attendance.checkIn` (daily + automatic 15·30-day rewards) · `claimAttendanceReward` (3·7-day) | credit FN | natural (once per day per person / reward per month) | credit ledger (`wallet/mockCreditStore`, tagged with the account marker) |
+| 출석 보상 | `attendance.checkIn` (daily + automatic 15·30-day rewards) · `claimAttendanceReward` (3·7-day) | credit FN — on its way until paid (회원 탈퇴 refused meanwhile), then only to the account it is for while still active; otherwise not paid (2026-10-10 결정, `wallet/inFlightCore.ts`) | natural (once per day per person / reward per month) | credit ledger (`wallet/mockCreditStore`, tagged with the account marker) |
 | 정산 신청 | `creator/settlementRequests.requestSettlement` | debit creator earnings (`availableFn`) | key + amount (`CONFLICT`) | PENDING settlement request (`st-<uuid>`) with a copy of the masked registration at request time |
 
 Not implemented anywhere yet (TBD): refunds, holds for quest/quiz outcomes, creator revenue credit from donations, platform fees, payouts.
@@ -69,7 +69,7 @@ TBD: OAuth hand-off, identity provider, platform ownership verification, whether
 |---|---|---|---|
 | `getChargeOptions` · `quoteCharge` | R | amount 1,000–999,999,999 | packages, methods, balance · `OK{fnAmount, price}` / `INVALID{minAmount}` |
 | `agreeChargeTerms` | M | guardian, privacy, payment = true | `AGREED` · `INVALID` |
-| `requestCharge` | M | package or custom amount, method, **idempotencyKey** | `COMPLETED{transactionId, fnAmount, price, balance}` · `FAILED{code}` · `IN_PROGRESS` · `CONFLICT` · `INVALID` · `TERMS_REQUIRED` |
+| `requestCharge` | M | package or custom amount, method, **idempotencyKey** (per member) | `COMPLETED{transactionId, fnAmount, price, balance}` · `FAILED{code}` · `IN_PROGRESS` · `CONFLICT` · `INVALID` · `TERMS_REQUIRED` · `UNAUTHORIZED` (also: the account withdrew before the provider call, or before the payment completed — then nothing is credited) |
 | `getWalletSummary` · `getChargeHistory` · `getDonationHistory` | R | period, category, page (10) | summary · paged records |
 | `getWalletOverview` | R | kind ∈ CHARGE/USE/REFUND/REWARD, period 30/90/all, page | available, locked (0, TBD), totalUsed, ledger entries (also FORFEIT rows of 남은 FN 정리, under 전체 only) |
 | `GET /api/wallet/charges` · `GET /api/wallet/donations` | R | period (+ category) | CSV download, 401 without a session |

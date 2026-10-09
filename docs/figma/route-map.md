@@ -71,7 +71,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/overlay/widget/[widget]/[key]` | ✅ code-first | OBS 후원 위젯 — `widget` = goal · total · ranking · recent · event · qr · quest · vote · roulette · gacha · gacha-board · wallpaper · clock (시계, 2026-10-08) · mini (미니후원, 2026-10-08); every widget in its 오버레이 테마, goal also `?layout=vertical`; O12~O17 `146:8173`… · O18 `154:14403` · O19 `161:9339` (vote) · O20 `164:9017` / O20b `164:9032` (roulette) · O21 `166:8981` / O21b `166:8992` (gacha) · O22 `166:9003` (gacha-board) · O23 `175:8939` (wallpaper) · OFF O12-off `146:8241` · 테마별 Figma: 11 레이아웃 · 오버레이 테마 `258:333` |
 | `/notifications` | ✅ code-first | 알림 — S04 `74:444` (헤더 벨 팝오버 S03 `89:7290`) |
 | `/mypage/blocks` | ✅ code-first | 차단 관리 — M10 `151:8644` · 비어 있음 M10b `151:8861` |
-| `/mypage/withdraw` | ✅ code-first | 회원 탈퇴 — M11 `182:9521` (크리에이터 · 남은 FN · 정산 대기 수익 소멸 동의, 비밀번호 확인) · M11b `182:9765` (비밀번호 불일치) · M11c `182:10010` (완료) · M11d `221:224` (처리 중인 충전 환불 → 탈퇴 불가) |
+| `/mypage/withdraw` | ✅ code-first | 회원 탈퇴 — M11 `182:9521` (크리에이터 · 남은 FN · 정산 대기 수익 소멸 동의, 비밀번호 확인) · M11b `182:9765` (비밀번호 불일치) · M11c `182:10010` (완료) · M11d `221:224` (처리 중인 충전 환불 → 탈퇴 불가) · 처리 중인 충전 · 지급 중인 출석 보상 → 탈퇴 불가 (2026-10-10 결정, 프레임 없음 — code-first-screens.md) |
 | `/support/notices/[id]` | ✅ code-first | 공지 상세 — S12 `76:2163` |
 | `/terms/[slug]` | ✅ code-first (초안 본문) | 722:3 (terms text pending) — slugs: service, privacy, youth, operation, marketing, creator, refund. 2026-10-06 결정: 조항 목차만 자리표시 → 2026-10-08: 모든 조항에 초안 본문 · 초안 배너, 시행일 "정식 오픈일 (TBD)" · 버전 "초안 v0.1", FN 충전 · 환불 정책(refund) 추가. 문서 간 이동 탭 · 목차 앵커. 현재 구현 L01 `190:9523` · L02 `190:9788` (레이아웃), 캡처 `2:283` · `2:286` |
 

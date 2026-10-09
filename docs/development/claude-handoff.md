@@ -122,6 +122,9 @@ Tips:
   connections, overlay and bank-SMS keys, settlement registration); a 재가입 starts without the old consents,
   settlement history, earnings or notifications, and the withdrawn account's posts, comments, blocks and reports move
   to its own `…-wN` member id. New per-account state needs the same treatment in `withdrawal.ts` / `rejoin.ts`.
+  An FN credit that lands after an await (charge, 출석 보상) registers in `wallet/inFlightCore.ts` (`beginCredit`) before
+  the await and credits only if `landsHere()` after it — withdrawal waits for those (2026-10-10). Retry keys of money
+  actions are per member (`lib/records.ts` `memberKeyOf`), and `rejoin.ts` moves the withdrawn account's keys with it.
   Retention (2026-10-08, 기본값 — 법무 검토 전): periods live only in `account/retentionPolicy.ts`; a withdrawn
   account's data goes at its date in `account/retentionPurge.ts` (lazy, on console reads and sign-up). New personal
   data either goes at withdrawal or gets a category there.
