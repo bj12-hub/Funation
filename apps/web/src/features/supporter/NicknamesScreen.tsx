@@ -9,7 +9,11 @@ import { addDonationNickname, removeDonationNickname, renameDonationNickname, se
 import { MAX_NICKNAMES, type DonationNickname, type IdentitySaveResult } from "@/services/supporter/identityTypes";
 import styles from "./supporter.module.css";
 
-/** 별명 관리 — code-first (no Figma frame). Route `/mypage/nicknames`. Stats come from the server. */
+/**
+ * 별명 관리 — code-first (no Figma frame). Route `/mypage/nicknames`. Stats come from the server. 별명 누적 후원 · 별명 후원
+ * 횟수 are the 별명 totals, which leave 익명 donations out (2026-10-09 결정), so they can be below the wallet's or the
+ * 누적 등급's totals — the labels say "별명" for that.
+ */
 export function NicknamesScreen({ nicknames }: { nicknames: DonationNickname[] }) {
   const router = useRouter();
   const [newName, setNewName] = useState("");
@@ -49,11 +53,11 @@ export function NicknamesScreen({ nicknames }: { nicknames: DonationNickname[] }
 
       <dl className={styles.stats}>
         <div>
-          <dt>누적 후원</dt>
+          <dt>별명 누적 후원</dt>
           <dd>{formatNumber(totalFn)} FN</dd>
         </div>
         <div>
-          <dt>총 후원 횟수</dt>
+          <dt>별명 후원 횟수</dt>
           <dd>{formatNumber(totalCount)}회</dd>
         </div>
         <div>

@@ -120,9 +120,9 @@ Authentication for every platform (OAuth / login) is TBD.
   (FN 후원내역 처리중).
 - **결과 확인 (2026-10-08 결정, `pendingCore.ts`)**: for 24 hours after the request the server asks the platform for the
   result (`PlatformAdapter.lookupDonation`, by Idempotency-Key and Transaction ID; 5 s timeout and at most once a minute
-  per transaction — sample values). It asks lazily: when 후원 내역 is read and when the 회원 탈퇴 screen opens (that
-  account's donations, `recheckAccountPending`), when the same key is sent again (「결과 다시 확인」) and when the console
-  list is read. A lookup that fails or times out is "no result yet".
+  per transaction — sample values). It asks lazily: when 후원 내역 is read and when the 회원 탈퇴 screen opens or 탈퇴 is
+  pressed (that account's donations, `recheckAccountPending`), when the same key is sent again (「결과 다시 확인」) and
+  when the console list is read. A lookup that fails or times out is "no result yet".
   - COMPLETED: the donation completes as a direct success (External Transaction ID from the platform).
   - FAILED: the held FN goes back with a wallet record; 후원 내역 shows 실패 with 「SOOP 확인 결과 실패 · FN 반환」. FN 내역
     (2026-10-09 결정 — it is not a refund): the hold reads 「FN 반환」 (not 환불완료) in FN 후원내역, its CSV and the FN Wallet
@@ -143,8 +143,12 @@ Authentication for every platform (OAuth / login) is TBD.
 - **Withdrawal waits (2026-10-09 결정)**: while a 플랫폼 후원 of the account is PENDING, 회원 탈퇴 is refused
   (`PLATFORM_PENDING`, checked again with the write after the password check), like 충전 환불 · 퀘스트. The 탈퇴 screen shows
   a card with the count and a link to 후원 내역. Opening the screen re-checks the account's PENDING donations first, as
-  후원 내역 does (inside the 24 h, at most once a minute each), so a result that has come in unblocks it. (A withdrawn
-  sender can still exist: an account that withdrew before this rule, or the console settling one after it.)
+  후원 내역 does (inside the 24 h, at most once a minute each), so a result that has come in unblocks it. Pressing 탈퇴
+  (`withdrawAccount`) re-checks the same way before its PENDING check (2026-10-09 결정): a result that came in after the
+  screen opened lets the withdrawal go through in that request (a failure's returned FN is checked against the FN
+  consent like any changed amount). The final PENDING check and the write stay one synchronous step after the last
+  await. (A withdrawn sender can still exist: an account that withdrew before this rule, or the console settling one
+  after it.)
 - **사이트 알림 (2026-10-09 결정)**: a settled PENDING donation — by a re-check or an operator — notifies the member once
   (dedupe key `platform-pending:<Transaction ID>`), only while the account that sent it is active (never a withdrawn one):
   「확인 중이던 후원이 완료됐어요」 · 「SOOP · 김스트리머님께 10,000 FN」, or 「확인 중이던 후원이 실패했어요」 ·

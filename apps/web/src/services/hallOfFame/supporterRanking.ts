@@ -73,7 +73,9 @@ export type SupporterProfile = Pick<RankedSupporter, "supporterId" | "nickname" 
 /**
  * Totals per supporter, highest first (ties keep the input order). A donation sent with 프로필 숨기기 went out as 익명,
  * so it never counts toward a named row — 2026-10-08 결정 "명예의 전당·랭킹에서 익명 제외", the channel monthly ranking's
- * rule; a supporter whose donations were all hidden is not ranked. The backend aggregates the same way.
+ * rule; a supporter whose donations were all hidden is not ranked. The backend aggregates the same way. Rows show the
+ * member nickname (checked at sign-up), so the creator's 대체 메시지 / 금지어 rules do not apply here — as for 내 후원 랭킹
+ * and the channel monthly ranking (2026-10-09 결정, docs/domains/donation.md).
  */
 export function rankSupporters(donations: readonly RankingDonation[], profiles: ReadonlyMap<string, SupporterProfile>): RankedSupporter[] {
   const totals = new Map<string, number>();
