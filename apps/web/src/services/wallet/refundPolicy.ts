@@ -164,9 +164,9 @@ function take(lots: Lot[], fn: number): { lot: Lot; fn: number }[] {
  * free FN), and events run in time order — credits before spends of the same second, a RETURN after them (its own spend
  * is always before it). Server-side only.
  *
- * - Only events up to `now` are history: a record dated later has not happened yet as far as the ledger can tell (the
- *   mock's sample rows are dated relative to today, some later today), so it explains nothing about the balance now —
- *   whatever it changed is left to the reconcile below.
+ * - Only events up to `now` are history: a record dated later has not happened yet as far as the ledger can tell, so it
+ *   explains nothing about the balance now — whatever it changed is left to the reconcile below. (The mock's sample rows
+ *   are dated once, before the wallet store was created — `sampleTimes` — so none is dated later than a live record.)
  * - SPEND (policy 4): free FN first, then paid FN oldest charge first — only FN the member had at that time.
  * - RETURN: gives back exactly the FN its spend took, to the same lots — free FN stay free, a charge's FN go back to
  *   that charge. A held donation that failed is not rewritten as never spent: spends made while it held FN used the
