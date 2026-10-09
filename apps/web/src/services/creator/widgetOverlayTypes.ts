@@ -1,5 +1,5 @@
 /**
- * 후원 위젯 OBS overlays (code-first): 후원목표 · 후원누적금액 · 후원랭킹 · 최근알림 · 이벤트 · 후원 QR코드 · 퀘스트 · 투표 · 룰렛 · 뽑기 · 뽑기 당첨 리스트 · 벽지.
+ * 후원 위젯 OBS overlays (code-first): 후원목표 · 후원누적금액 · 후원랭킹 · 최근알림 · 이벤트 · 후원 QR코드 · 퀘스트 · 투표 · 룰렛 · 뽑기 · 뽑기 당첨 리스트 · 벽지 · 시계 · 미니후원.
  * Each reads its saved widget settings plus the creator's donation feed at
  * `/overlay/widget/[widget]/[integrationKey]`. Client-safe types only.
  */
@@ -9,9 +9,9 @@ import type { AlertKind, OverlaySignal } from "./alertTypes";
 import type { GachaBoardView, GachaStage } from "@/services/donations/gachaTypes";
 import type { RouletteStage } from "@/services/donations/rouletteTypes";
 import type { VoteBoard } from "@/services/votes/voteTypes";
-import type { ClockSettings, EventSettings, GachaSettings, GoalSettings, QrSettings, QuestWidgetSettings, RankingSettings, RecentSettings, RouletteSettings, TotalSettings, VoteSettings, WallpaperSettings, WidgetKey } from "./widgetSettingsTypes";
+import type { ClockSettings, EventSettings, GachaSettings, GoalSettings, MiniSettings, QrSettings, QuestWidgetSettings, RankingSettings, RecentSettings, RouletteSettings, TotalSettings, VoteSettings, WallpaperSettings, WidgetKey } from "./widgetSettingsTypes";
 
-export const WIDGET_OVERLAYS = ["goal", "total", "ranking", "recent", "event", "qr", "quest", "vote", "roulette", "gacha", "gacha-board", "wallpaper", "clock"] as const;
+export const WIDGET_OVERLAYS = ["goal", "total", "ranking", "recent", "event", "qr", "quest", "vote", "roulette", "gacha", "gacha-board", "wallpaper", "clock", "mini"] as const;
 export type WidgetOverlayKind = (typeof WIDGET_OVERLAYS)[number];
 export const isWidgetOverlay = (v: unknown): v is WidgetOverlayKind => WIDGET_OVERLAYS.includes(v as WidgetOverlayKind);
 
@@ -29,7 +29,8 @@ export const WIDGET_OVERLAY_SETTINGS: Record<WidgetOverlayKind, WidgetKey> = {
   gacha: "GACHA",
   "gacha-board": "GACHA",
   wallpaper: "WALLPAPER",
-  clock: "CLOCK"
+  clock: "CLOCK",
+  mini: "MINI"
 };
 
 /** Mock QR image (the popup preview uses the same one). TBD: a real QR for the creator's donation page. */
@@ -50,6 +51,9 @@ export type WidgetFeedLine = {
   before: string;
   after: string;
 };
+
+/** One 미니후원 on the 미니후원 overlay: name and text as the alert shows them (대체 메시지 already applied). */
+export type MiniLine = { id: string; nickname: string; amount: string; text: string };
 
 /** 벽지: the full-screen OBS source the stickers are placed on. */
 export const WALL_SIZE = { w: 1920, h: 1080 } as const;
@@ -90,4 +94,6 @@ export type OverlayWidget = Common &
     | { widget: "wallpaper"; settings: Omit<WallpaperSettings, "images">; images: string[]; stickers: WallSticker[] }
     /** 시계: the overlay counts on `serverNow` (Korean time). */
     | { widget: "clock"; settings: ClockSettings }
+    /** 미니후원 (2026-10-08): the latest mini donations at or above 최소 표시 금액, newest first. */
+    | { widget: "mini"; settings: MiniSettings; lines: MiniLine[] }
   );

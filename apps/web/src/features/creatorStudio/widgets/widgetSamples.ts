@@ -13,3 +13,10 @@ export const SAMPLE_ALERTS: AlertItem[] = [
   { id: "sample-4", kind: "DONATION", donor: "도도쭈", message: "", fnAmount: 10_000, typeLabel: "텍스트 후원", createdAt: at(2), status: "DONE" },
   { id: "sample-5", kind: "DONATION", donor: "하루봄", message: "", fnAmount: 50_000, typeLabel: "시그니처 후원", createdAt: at(1), status: "DONE" }
 ];
+
+/** 미니후원 popup preview: mini donations, oldest first. */
+export const SAMPLE_MINI_ALERTS: AlertItem[] = [
+  { id: "mini-1", kind: "DONATION", donationType: "MINI", donor: "밤톨게임", message: "ㅋㅋㅋ 오늘 텐션 최고", fnAmount: 100, typeLabel: "미니 후원", createdAt: at(6), status: "DONE" },
+  { id: "mini-2", kind: "DONATION", donationType: "MINI", donor: "새벽감성", message: "노래 한 곡 더 불러 주세요", fnAmount: 300, typeLabel: "미니 후원", createdAt: at(3), status: "DONE" },
+  { id: "mini-3", kind: "DONATION", donationType: "MINI", donor: "도도쭈", message: "항상 응원해요!", fnAmount: 500, typeLabel: "미니 후원", createdAt: at(1), status: "DONE" }
+];

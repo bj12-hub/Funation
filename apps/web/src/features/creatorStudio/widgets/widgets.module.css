@@ -641,56 +641,6 @@
   opacity: 0.45;
 }
 
-.miniPreview {
-  overflow: hidden;
-  padding: 10px 0;
-  border-radius: var(--radius-8);
-  background: #064e3b;
-}
-
-.miniPreview p {
-  margin: 0;
-  font-weight: var(--font-weight-bold);
-  white-space: nowrap;
-}
-
-.miniBubble {
-  padding: 12px 16px;
-  border-radius: 16px 16px 16px 4px;
-  background: #065f46;
-}
-
-.miniBubble p {
-  white-space: normal;
-}
-
-.marqueeRtl,
-.marqueeLtr {
-  display: inline-block;
-  animation: marquee linear infinite;
-}
-
-.marqueeLtr {
-  animation-direction: reverse;
-}
-
-@keyframes marquee {
-  from {
-    transform: translateX(100%);
-  }
-
-  to {
-    transform: translateX(-100%);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .marqueeRtl,
-  .marqueeLtr {
-    animation: none;
-  }
-}
-
 .thumbs {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

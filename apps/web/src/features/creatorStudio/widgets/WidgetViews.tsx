@@ -5,13 +5,13 @@ import type { CSSProperties } from "react";
 import { OverlayThemeRoot, ov } from "@/features/overlayTheme/OverlayThemeRoot";
 import { leaveForEffect, motionForEffect, type ResolvedTheme } from "@/services/creator/overlayThemeTypes";
 import { fillRank, fillTotal, rankAmountText } from "@/services/creator/widgetOverlayCore";
-import type { WidgetFeedLine, WidgetRankRow } from "@/services/creator/widgetOverlayTypes";
-import { RECENT_PLATFORMS, type EventSettings, type QrSettings, type RankingSettings, type RecentSettings, type TotalSettings } from "@/services/creator/widgetSettingsTypes";
+import type { MiniLine, WidgetFeedLine, WidgetRankRow } from "@/services/creator/widgetOverlayTypes";
+import { RECENT_PLATFORMS, type EventSettings, type MiniSettings, type QrSettings, type RankingSettings, type RecentSettings, type TotalSettings } from "@/services/creator/widgetSettingsTypes";
 import { PLATFORM_LABEL } from "@/types/platform";
 import v from "./widgetViews.module.css";
 
 /**
- * 후원 위젯 views (code-first, 2026-10-08 오버레이 테마) — 후원누적금액 · 후원랭킹 · 최근알림 · 이벤트 · 후원 QR코드.
+ * 후원 위젯 views (code-first, 2026-10-08 오버레이 테마) — 후원누적금액 · 후원랭킹 · 최근알림 · 이벤트 · 후원 QR코드 · 미니후원.
  * Drawn by the OBS overlays and, with sample data, by the settings popups, so each preview is its overlay.
  * With 배경 카드 the theme draws the card and its colors; without it the text sits on the stream in the widget's
  * own font colors (and outline), as before the redesign.
@@ -165,6 +165,52 @@ export function EventView({ settings: s, lines, theme, now }: { settings: EventS
           durationSec={0.5}
         />
       ))}
+    </OverlayThemeRoot>
+  );
+}
+
+// ── 미니후원 ─────────────────────────────────────────────────────────────────
+
+const miniText = (s: MiniSettings, l: MiniLine) =>
+  `💸 ${s.showNickname ? `${l.nickname}님 ` : ""}${s.showAmount ? `${l.amount} ` : ""}후원!${l.text ? ` “${l.text}”` : ""}`;
+
+/** Seconds for one pass across the band: longer text and a lower 속도 (1–100) take longer. */
+const miniSeconds = (chars: number, size: number, speed: number) => Math.min(120, Math.max(4, Math.round((chars * size * 0.6 + 1200) / (20 + speed * 4))));
+
+/**
+ * 미니후원 (2026-10-08): 스크롤형 = the latest mini donations flowing along one band (방향 · 속도 · 텍스트 시작 위치),
+ * 말풍선형 = the newest one in a bubble. With 배경 카드 the theme draws the band (볼드 = accent block, 필 = pill) or the
+ * bubble; without it the text sits on the stream in the widget's font color and outline.
+ */
+export function MiniView({ settings: s, lines, theme }: { settings: MiniSettings; lines: MiniLine[]; theme: ResolvedTheme }) {
+  if (lines.length === 0) return null;
+  const text = font(s.font, { color: !s.card, outline: !s.card && s.textOutline });
+  const surface = theme.theme === "BOLD" ? ov.accentCard : ov.card;
+  if (s.style === "BUBBLE") {
+    const l = lines[0];
+    return (
+      <OverlayThemeRoot theme={theme} className={v.pad}>
+        <p key={l.id} className={`${ov.enter} ${v.miniBubble} ${s.card ? surface : ov.onStream}`} data-motion="POP" data-card={s.card || undefined} style={text}>
+          {miniText(s, l)}
+        </p>
+      </OverlayThemeRoot>
+    );
+  }
+  const joined = lines.map((l) => miniText(s, l)).join("     ·     ");
+  return (
+    <OverlayThemeRoot theme={theme} className={v.pad}>
+      <div className={`${v.miniBand} ${s.card ? `${surface} ${ov.pill}` : ov.onStream}`} data-card={s.card || undefined} style={text}>
+        {s.card && <span className={`${ov.chip} ${ov.chipAccent} ${v.miniTag}`}>미니</span>}
+        <div className={v.miniTrack}>
+          <span
+            key={joined}
+            data-direction={s.direction}
+            style={{ ["--mini-start" as string]: `${s.startPercent}%`, animationDuration: `${miniSeconds(joined.length, s.font.size, s.speed)}s` } as CSSProperties}
+          >
+            {joined}
+          </span>
+        </div>
+      </div>
     </OverlayThemeRoot>
   );
 }

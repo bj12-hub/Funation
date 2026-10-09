@@ -3,12 +3,13 @@ import { formatUnitAmount, isCurrencyUnit, unitLabel, type AmountUnit } from "@/
 import { PLATFORM_LABEL, type Platform } from "@/types/platform";
 import { HIDDEN_PROFILE_LABEL } from "@/services/supporter/identityTypes";
 import { nativeAmount, type AlertItem } from "./alertTypes";
-import type { WidgetFeedLine, WidgetRankRow } from "./widgetOverlayTypes";
+import type { MiniLine, WidgetFeedLine, WidgetRankRow } from "./widgetOverlayTypes";
 import {
   RECENT_PLATFORMS,
   TOTAL_TEMPLATE_TOKEN,
   type EventSettings,
   type GoalSettings,
+  type MiniSettings,
   type RankingSettings,
   type RecentSettings,
   type TotalSettings
@@ -203,6 +204,21 @@ export function recentLines(items: AlertItem[], s: RecentSettings): WidgetFeedLi
       const template = a.kind === "EXTERNAL" && own && !s.templates[own.key].includes("{count}") ? s.templates[own.key] : DEFAULT_LINE;
       return line(a, template);
     });
+}
+
+/** 미니후원 overlay: how many of the latest mini donations it keeps on the band (code-first assumption). */
+export const MINI_LINES = 5;
+
+/**
+ * 미니후원 (2026-10-08): the latest mini donations at or above 최소 표시 금액, newest first. Names and texts come as
+ * the alert stored them (대체 메시지 applied when it was queued); 다시 보내기 copies are left out.
+ */
+export function miniLines(items: AlertItem[], s: MiniSettings): MiniLine[] {
+  return originals(items)
+    .filter((a) => a.kind === "DONATION" && a.donationType === "MINI" && a.fnAmount >= s.minAmount)
+    .slice(-MINI_LINES)
+    .reverse()
+    .map((a) => ({ id: a.id, nickname: a.donor, amount: `${formatNumber(a.fnAmount)} FN`, text: a.message }));
 }
 
 /** 이벤트: the latest `maxLines` donations in the chosen order. */

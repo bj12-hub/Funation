@@ -8,7 +8,7 @@ import { useReloadSignal } from "../remote/useReloadSignal";
 import { ClockView } from "./ClockView";
 import { GoalView } from "./GoalView";
 import { GachaBoardView, GachaView, QuestView, RouletteView, VoteView, WallpaperView } from "./GameViews";
-import { EventView, QrView, RankingView, RecentView, TotalView } from "./WidgetViews";
+import { EventView, MiniView, QrView, RankingView, RecentView, TotalView } from "./WidgetViews";
 
 /**
  * 후원 위젯 OBS overlay (code-first). Transparent page that re-reads its widget every 2 seconds; the
@@ -60,6 +60,8 @@ export function WidgetOverlay({ data, vertical = false }: { data: OverlayWidget;
       return <Clock data={data} />;
     case "wallpaper":
       return <WallpaperView settings={data.settings} images={data.images} stickers={data.stickers} theme={data.theme} />;
+    case "mini":
+      return <MiniView settings={data.settings} lines={data.lines} theme={data.theme} />;
   }
 }
 
