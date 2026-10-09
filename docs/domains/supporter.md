@@ -42,14 +42,18 @@ was sent, as before). A 재가입 account starts without the withdrawn account's
 - Nor does it count toward any 별명's totals in 별명 관리 (`/mypage/nicknames`) — not the 별명 picked for it, not the
   대표 or 기본 별명 an unattributed donation would go to: the Donation Core does not attribute a hidden donation
   (`donate.ts`), and `computeIdentity` leaves hidden donations out of the 별명 totals (also older ones). The screen's
-  누적 후원 · 총 후원 횟수 are those 별명 totals. Its note says: "프로필 숨기기(익명)로 보낸 후원은 어느 별명의 누적에도
-  들어가지 않아요. 누적 등급 · 활동 등급에는 들어가요."
+  summary shows those 별명 totals as "별명 누적 후원" and "별명 후원 횟수" (2026-10-09 결정 — renamed from 누적 후원 ·
+  총 후원 횟수, because they can be smaller than the wallet's or the 누적 등급's totals). Its note says: "프로필
+  숨기기(익명)로 보낸 후원은 어느 별명의 누적에도 들어가지 않아요. 누적 등급 · 활동 등급에는 들어가요."
 - A hidden-profile alert never had badges. Neither does an alert whose name the creator's 대체 메시지 표시 설정 (닉네임)
   replaced — to 익명 (empty 대체 메시지) or to the 대체 메시지 itself: the badges belong to the donor the replacement hides
   (`alertCore.enqueueDonationAlert`). Every surface that draws the badges (OBS 후원 알림, its settings preview with sample
   data) reads them from the alert, so none shows them; the 리모컨 and the alert lists show no badges. The alert keeps its
   opaque `donorKey`, but the 후원랭킹 widget leaves any replaced-name alert out (2026-10-09 결정, `nameReplaced` fixed
   when the alert is queued — see `docs/domains/donation.md`).
+- Off-stream rankings — 채널 월간 순위, 내 후원 랭킹 (`/mypage/ranking`) and 명예의 전당 — do **not** apply the creator's
+  대체 메시지 / 금지어 rules (2026-10-09 결정, no behaviour change): they rank by member nickname, which is checked at
+  sign-up, and leave 익명 donations out already.
 - The donation confirm preview (`getAlertBadges`) shows the supporter's own name and badges before the creator's
   대체 메시지 rules, as it always did: those rules (the creator's 금지어) are not shown to supporters.
 

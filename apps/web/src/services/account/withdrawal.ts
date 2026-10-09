@@ -36,7 +36,7 @@ import type { PendingQuests, WithdrawResult, WithdrawalInfo } from "./withdrawal
  * once each has a result; nothing about the quests themselves changes here.
  * 2026-10-09 결정: while a 플랫폼 후원 of this account is PENDING (no platform result yet, FN held — a failure returns the
  * FN to the slot's balance, which after a 재가입 is a new account's), withdrawal is refused too, until the re-check or an
- * operator settles it (platformDonation/pendingCore.ts).
+ * operator settles it (platformDonation/pendingCore.ts). Opening the screen and pressing 탈퇴 both re-check first.
  * Retention (./retentionPolicy.ts — 기본값, 일반적인 기준, 법무 검토 전): the withdrawal record with the consents, the
  * payment, dispute and access records and the 본인 확인 값 stay until their dates (./retentionPurge.ts), posts stay up
  * under "탈퇴한 회원"; every other piece of personal data goes now.
@@ -117,6 +117,10 @@ export async function withdrawAccount(input: unknown): Promise<WithdrawResult> {
   if (pendingRefunds() > 0) return { status: "REFUND_PENDING", count: pendingRefunds() };
   const questsEarly = questProblem(session);
   if (questsEarly) return questsEarly;
+  // Pressing 탈퇴 re-checks this account's PENDING 플랫폼 후원 too, under the screen's rules (inside their 24 h, at most
+  // once a minute each — 2026-10-09 결정): a result that has come in since the screen opened settles it, and the
+  // withdrawal goes on in this request (a failure's returned FN is then checked against the consent like any amount).
+  await recheckAccountPending();
   if (pendingPlatformDonations() > 0) return { status: "PLATFORM_PENDING", count: pendingPlatformDonations() };
   const early = consentProblem(v, mockAccount.fnBalance, earningsOf(session));
   if (early) return early;
