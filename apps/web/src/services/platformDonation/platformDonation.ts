@@ -7,7 +7,6 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
 import { accountSince } from "@/services/account/withdrawalCore";
-import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { adapterFor, type PlatformAdapter, type SendResult } from "./adapters";
 import { mockPlatform, type MockPlatformTransaction } from "./mockPlatformStore";
 import { recheckPending, walletMirror } from "./pendingCore";
@@ -207,18 +206,10 @@ export async function requestPlatformDonation(input: unknown): Promise<PlatformD
   tx.status = "COMPLETED";
   tx.externalTransactionId = sent.externalTransactionId;
   tx.completedAt = `${toDateString(done)} ${done.toTimeString().slice(0, 5)}`;
-  // Also show it in FN 후원내역 (632:4) so the wallet history stays complete.
-  mockWallet.donations.unshift({
-    id: transactionId,
-    donatedAt: `${toDateString(done)} ${done.toTimeString().slice(0, 8)}`,
-    creatorId: `${platform.toLowerCase()}:${creator.id}`,
-    creatorName: creator.nickname,
-    message: message || price.product.label,
-    fnAmount: price.amountFn,
-    typeLabel: `${PLATFORMS[platform].name} ${price.product.label}`,
-    category: "basic",
-    status: "COMPLETED"
-  });
+  // Also show it in FN 후원내역 (632:4) so the wallet history stays complete. Dated at the hold (the request, when the FN
+  // were debited) as a PENDING hold is, not at completion: the refund FIFO must see the FN leave when they did, before
+  // anything credited while the platform answered. The 완료 time stays on the transaction (후원 내역).
+  walletMirror(tx).status = "COMPLETED";
   return finish({
     status: "COMPLETED",
     transactionId,

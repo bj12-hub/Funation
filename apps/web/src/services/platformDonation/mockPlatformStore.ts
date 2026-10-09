@@ -1,3 +1,4 @@
+import { sampleStamp, sampleTimes } from "@/services/wallet/mockWalletStore";
 import type { PlatformDonationResult, PlatformKey } from "./platformTypes";
 
 /**
@@ -57,21 +58,15 @@ type MockPlatformState = {
   idempotency: Record<string, { fingerprint: string; result: PlatformDonationResult | null }>;
 };
 
-const dayAt = (daysAgo: number, time: string) => {
-  const d = new Date();
-  d.setDate(d.getDate() - daysAgo);
-  const [h, m] = time.split(":").map(Number);
-  d.setHours(h, m, 0, 0);
-  return d;
-};
-const stamp = (daysAgo: number, time: string) => {
-  const d = dayAt(daysAgo, time);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${time}`;
-};
+/** A sample row's time, on the wallet's fixed sample dates (`sampleTimes`: never after the wallet store was created). */
+const dayAt = (daysAgo: number, time: string) => sampleTimes([{ daysAgo, time }])[0];
+/** "YYYY-MM-DD HH:mm". */
+const stamp = (daysAgo: number, time: string) => sampleStamp(dayAt(daysAgo, time)).slice(0, 16);
 
 /**
- * Sample rows from 817:8038 (history), dated relative to today. No FN was debited for these (the sample balance is a
- * sample too). The PROCESSING row is a platform result still unknown after 24 h, so 확인 중 후원 has an item.
+ * Sample rows from 817:8038 (history), dated relative to the day the mock wallet store was created, like the wallet's
+ * sample history. No FN was debited for these (the sample balance is a sample too). The PROCESSING row is a platform
+ * result still unknown after 24 h, so 확인 중 후원 has an item.
  */
 function seed(): MockPlatformTransaction[] {
   const row = (

@@ -68,6 +68,33 @@ describe("확인 중 플랫폼 후원 (PENDING)", () => {
     expect(m.account.fnBalance).toBe(90_000);
   });
 
+  it("dates the hold's wallet row when the FN were held, and keeps it there once the result is known", async () => {
+    const m = await load();
+    const local = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${d.toTimeString().slice(0, 8)}`;
+    const held = new Date(T0);
+    // Each platform call fails 5 s after its hold (PENDING).
+    const send = vi.spyOn(m.soopAdapter, "sendDonation").mockImplementation(async () => {
+      vi.setSystemTime(Date.now() + 5_000);
+      throw new Error("ECONNRESET");
+    });
+    const done = await m.requestPlatformDonation(soop());
+    at(60_000);
+    const failed = await m.requestPlatformDonation(soop({ creatorId: "gameking", idempotencyKey: key(2) }));
+    send.mockRestore();
+    if (done.status !== "PENDING" || failed.status !== "PENDING") throw new Error("expected PENDING");
+    const row = (id: string) => m.wallet.donations.find((d) => d.id === id)!;
+    expect(row(done.transactionId)).toMatchObject({ donatedAt: local(held), status: "PROCESSING" });
+    expect(row(failed.transactionId)).toMatchObject({ donatedAt: local(new Date(T0.getTime() + 60_000)), status: "PROCESSING" });
+
+    // An hour later a re-check settles both (the mock platform: kim_stream's went through, 게임왕's failed).
+    at(HOUR);
+    await history(m);
+    expect(row(done.transactionId)).toMatchObject({ donatedAt: local(held), status: "COMPLETED" });
+    expect(txOf(m, done.transactionId).completedAt).toBe(local(new Date(T0.getTime() + HOUR)).slice(0, 16));
+    // 실패 · FN 반환: the hold stays at the hold; the FN came back at the result.
+    expect(row(failed.transactionId)).toMatchObject({ donatedAt: local(new Date(T0.getTime() + 60_000)), status: "REFUNDED", refundedAt: local(new Date(T0.getTime() + HOUR)) });
+  });
+
   it("completes the donation when a re-check finds the platform completed it", async () => {
     const m = await load();
     const id = await pending(m);

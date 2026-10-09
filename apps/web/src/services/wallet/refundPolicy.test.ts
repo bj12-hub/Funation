@@ -174,8 +174,7 @@ describe("환불 정책 기본값", () => {
     });
 
     it("reads the ledger as of now: a record dated later explains nothing yet", () => {
-      // A sample row dated later today (the mock dates its samples relative to today): it cannot have used the free FN
-      // received at noon, and the balance does not show it.
+      // A record dated later today: it cannot have used the free FN received at noon, and the balance does not show it.
       const events = [paid("a", "2026-10-01 10:00:00", 10_000), free("2026-10-09 12:00:00", 1_000), spend("2026-10-09 20:00:00", 5_000)];
       expect([...unusedPaidFn(events, 11_000, new Date(2026, 9, 9, 12, 30))]).toEqual([["a", 10_000]]);
       // Once its time has come it is history like any other spend: free FN first.
