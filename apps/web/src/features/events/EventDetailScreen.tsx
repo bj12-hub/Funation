@@ -5,11 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { GENERIC_ERROR } from "@/features/mypage/editors/shared";
 import { joinEvent } from "@/services/events/events";
-import { PHASE_LABEL, eventPeriodLabel, eventRewardText, type EventDetail, type MyEventResult } from "@/services/events/eventTypes";
+import { PHASE_LABEL, eventPeriodLabel, eventRewardText, myEventResultText, type EventDetail } from "@/services/events/eventTypes";
 import styles from "./events.module.css";
-
-/** The viewer's own result line (2026-10-08 결정). */
-const MY_RESULT = (r: MyEventResult) => (r.kind === "PAID" ? `보상 ${r.amountFn.toLocaleString("ko-KR")} FN을 받았어요` : r.kind === "WON" ? "당첨됐어요" : "아쉽지만 당첨되지 않았어요");
 
 /**
  * 이벤트 상세 — code-first (no Figma frame). Route `/events/[id]`. The reward box shows the reward an operator set
@@ -87,8 +84,8 @@ export function EventDetailScreen({ event, signedIn }: { event: EventDetail; sig
               ✓ 참여했어요
             </p>
             {event.myResult && (
-              <p className={styles.myResult} data-tone={event.myResult.kind === "NOT_WON" ? "muted" : "good"}>
-                {MY_RESULT(event.myResult)}
+              <p className={styles.myResult} data-tone={event.myResult.kind === "NOT_WON" || event.myResult.kind === "UNPAID" ? "muted" : "good"}>
+                {myEventResultText(event.myResult)}
               </p>
             )}
           </>

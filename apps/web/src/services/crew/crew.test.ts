@@ -52,7 +52,7 @@ describe("크루", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     try {
       const { recordAttribution, memberRanking } = await load();
-      const shown = { donor: "익명", donorId: "", message: "" };
+      const shown = { donor: "익명", donorId: "", message: "", shownDonor: "익명" };
       vi.setSystemTime(new Date("2026-09-30T23:30:00+09:00"));
       recordAttribution("dn-sep", "c4", "cm-c4-1", 1_000, shown); // September in KST
       vi.setSystemTime(new Date("2026-10-01T00:30:00+09:00"));

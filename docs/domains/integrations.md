@@ -126,7 +126,8 @@ Authentication for every platform (OAuth / login) is TBD.
   - COMPLETED: the donation completes as a direct success (External Transaction ID from the platform).
   - FAILED: the held FN goes back with a wallet record; 후원 내역 shows 실패 with 「SOOP 확인 결과 실패 · FN 반환」. FN 내역
     (2026-10-09 결정 — it is not a refund): the hold reads 「FN 반환」 (not 환불완료) in FN 후원내역, its CSV and the FN Wallet
-    list, plus an 「FN 반환 · SOOP 별풍선 10개」 (+) row under the 환불 filter (`walletTypes.donationStatusLabel`, record flag
+    list, plus an 「FN 반환 · SOOP 별풍선 10개」 (+) row of its own type 「FN 반환」 (chip and filter `?kind=RETURN`, not under
+    환불; `walletTypes.donationStatusLabel` · `LEDGER_KIND_LABEL.RETURN`, record flag
     `fnReturned`). Real refunds (퀘스트 실패 · 취소, 충전 환불) keep 환불완료. The console's 후원 운영 (`/donations`,
     `GET /api/admin/donations`) shows it as 「FN 반환」 too (row `fnReturned`), with its own 「FN 반환」 tile and
     `?status=FN_RETURNED` filter; the 환불완료 tile and filter count real refunds only (2026-10-09 결정).

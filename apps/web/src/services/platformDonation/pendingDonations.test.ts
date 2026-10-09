@@ -122,8 +122,8 @@ describe("확인 중 플랫폼 후원 (PENDING)", () => {
     const mirror = m.wallet.donations.find((d) => d.id === id)!;
     expect(mirror.status).toBe("REFUNDED");
     expect(mirror.refundedAt).toBeTruthy();
-    const ledger = (await m.getWalletOverview({ kind: "REFUND", period: "all" }))!.entries;
-    expect(ledger).toContainEqual(expect.objectContaining({ id: `${id}-refund`, kind: "REFUND", deltaFn: 10_000 }));
+    const ledger = (await m.getWalletOverview({ kind: "RETURN", period: "all" }))!.entries;
+    expect(ledger).toContainEqual(expect.objectContaining({ id: `${id}-refund`, kind: "RETURN", deltaFn: 10_000 }));
     // Settled once: later reads change nothing.
     await history(m);
     expect(m.account.fnBalance).toBe(100_000);
@@ -237,7 +237,8 @@ describe("확인 중 플랫폼 후원 (PENDING)", () => {
     expect(m.auditEntries().find((e) => e.action === "PLATFORM_DONATION_RESOLVE")?.reason).toContain("반환 불가(탈퇴) · FN 소멸");
     expect((await m.getPendingDonations()).resolved.find((r) => r.transactionId === id)).toMatchObject({ memberWithdrawn: true, resolution: { fnReturn: "FORFEITED" } });
     // Nothing in the new account's wallet either.
-    expect((await m.getWalletOverview({ kind: "REFUND", period: "all" }))!.entries.some((e) => e.id.startsWith(id))).toBe(false);
+    expect((await m.getWalletOverview({ kind: "all", period: "all" }))!.entries.some((e) => e.id.startsWith(id))).toBe(false);
+    expect((await m.getWalletOverview({ kind: "RETURN", period: "all" }))!.entries.some((e) => e.id.startsWith(id))).toBe(false);
   });
 
   it("does not credit the slot while the sender is withdrawn, also when the platform answers FAILED", async () => {
@@ -346,8 +347,32 @@ describe("확인 중 플랫폼 후원 · 사이트 알림과 FN 반환 표시 (2
     const entries = first.entries;
     for (let page = 2; page <= first.totalPages; page++) entries.push(...(await m.getWalletOverview({ kind: "all", period: "all", page }))!.entries);
     expect(entries.find((e) => e.id === id)).toMatchObject({ kind: "USE", statusLabel: "FN 반환" });
-    expect(entries.find((e) => e.id === `${id}-refund`)).toMatchObject({ kind: "REFUND", description: "FN 반환 · SOOP 별풍선 10개", deltaFn: 10_000, statusLabel: "FN 반환" });
-    expect(entries.find((e) => e.id === "dn9-refund")).toMatchObject({ description: "환불 · 시그니처 후원", statusLabel: "환불완료" });
+    expect(entries.find((e) => e.id === `${id}-refund`)).toMatchObject({ kind: "RETURN", description: "FN 반환 · SOOP 별풍선 10개", deltaFn: 10_000, statusLabel: "FN 반환" });
+    expect(entries.find((e) => e.id === "dn9-refund")).toMatchObject({ kind: "REFUND", description: "환불 · 시그니처 후원", statusLabel: "환불완료" });
+  });
+
+  it("gives the FN Wallet's FN 반환 row its own type chip and filter, apart from 환불 (2026-10-09 결정)", async () => {
+    const m = await load();
+    const id = await pending(m, { creatorId: "gameking" });
+    at(HOUR);
+    await history(m);
+    const { LEDGER_FILTER_KINDS, LEDGER_KIND_LABEL } = await import("@/services/wallet/walletTypes");
+    // The chips: 전체 유형 · 충전 · 사용 · 환불 · FN 반환 · 적립 (소멸 has none).
+    expect(LEDGER_FILTER_KINDS.map((k) => LEDGER_KIND_LABEL[k])).toEqual(["충전", "사용", "환불", "FN 반환", "적립"]);
+    const all = async (kind: string) => {
+      const first = (await m.getWalletOverview({ kind, period: "all" }))!;
+      const entries = [...first.entries];
+      for (let page = 2; page <= first.totalPages; page++) entries.push(...(await m.getWalletOverview({ kind, period: "all", page }))!.entries);
+      return { kind: first.kind, entries };
+    };
+    const returned = await all("RETURN");
+    expect(returned.kind).toBe("RETURN");
+    expect(returned.entries.map((e) => [e.id, LEDGER_KIND_LABEL[e.kind], e.deltaFn])).toEqual([[`${id}-refund`, "FN 반환", 10_000]]);
+    // 환불 keeps real refunds only (the sample 시그니처 후원 refund), not the FN 반환.
+    const refunds = await all("REFUND");
+    expect(refunds.entries.some((e) => e.id.startsWith(id))).toBe(false);
+    expect(refunds.entries.map((e) => e.id)).toContain("dn9-refund");
+    expect(refunds.entries.every((e) => e.kind === "REFUND")).toBe(true);
   });
 
   it("gives the console's 후원 운영 the FN 반환 apart from 환불완료 (/api/admin/donations)", async () => {

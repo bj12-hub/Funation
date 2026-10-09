@@ -49,13 +49,22 @@ export function matchMember(channelId: string, message: string): string | null {
   return hits.length === 1 ? hits[0].id : null;
 }
 
-type FeedInput = { donor: string; message: string; amount: number; unit: ExcelUnit; platform: Platform | null; source: FeedSource };
+/** `shownDonor`: the name on stream when it differs from `donor` (a Ssumnation donation's 대체 메시지 rules). */
+type FeedInput = { donor: string; shownDonor?: string; message: string; amount: number; unit: ExcelUnit; platform: Platform | null; source: FeedSource };
 
 /** Adds a donation to the live broadcast's 후원 리스트, applying 한방 and the assign mode. */
 export function addFeedEntry(b: MockBroadcast, input: FeedInput, now = Date.now()): FeedEntry {
   const feed = (b.feed ??= []);
   const suggested = matchMember(b.channelId, input.message);
-  const base = { id: `fd-${now.toString(36)}-${feed.length}`, at: new Date(now).toISOString(), ...input, suggestedMemberId: suggested, oneshot: false, contribution: null };
+  const base = {
+    id: `fd-${now.toString(36)}-${feed.length}`,
+    at: new Date(now).toISOString(),
+    ...input,
+    shownDonor: input.shownDonor ?? input.donor,
+    suggestedMemberId: suggested,
+    oneshot: false,
+    contribution: null
+  };
   let entry: FeedEntry;
   if (b.oneshot) entry = { ...base, status: "POT", memberId: null, oneshot: true };
   else if (suggested && (b.assignMode ?? "AUTO") === "AUTO") entry = { ...base, status: "ASSIGNED", memberId: suggested };
@@ -68,11 +77,13 @@ export function addFeedEntry(b: MockBroadcast, input: FeedInput, now = Date.now(
  * Called by the Donation Core for a completed donation without a member target. Only a live crew
  * broadcast on that channel collects it (member-targeted donations are already scored directly).
  * `broadcastId`: only that broadcast may collect it (a 퀘스트 settled after its broadcast ended is not listed).
+ * `donor`: the name as sent (the operator's list); `shownDonor`: the name on stream, after the creator's 대체 메시지 rules
+ * when the donation was sent (2026-10-09 결정, like the alert's `nameReplaced`).
  */
-export function recordBroadcastDonation(channelId: string, input: { donor: string; message: string; fnAmount: number }, broadcastId?: string | null) {
+export function recordBroadcastDonation(channelId: string, input: { donor: string; shownDonor: string; message: string; fnAmount: number }, broadcastId?: string | null) {
   const live = liveBroadcastOf(channelId);
   if (!live || (broadcastId !== undefined && live.id !== broadcastId)) return;
-  addFeedEntry(live, { donor: input.donor, message: input.message, amount: input.fnAmount, unit: "FN", platform: null, source: "DONATION" });
+  addFeedEntry(live, { donor: input.donor, shownDonor: input.shownDonor, message: input.message, amount: input.fnAmount, unit: "FN", platform: null, source: "DONATION" });
 }
 
 /**
@@ -292,12 +303,15 @@ export function scoreFn(fnAmount: number, s: ExcelSettings) {
 export const isActiveMember = (channelId: string, memberId: unknown) =>
   typeof memberId === "string" && (mockCrew.crews[channelId] ?? []).some((x) => x.id === memberId && x.active);
 
+/** What a crew record keeps of who sent it: the name as sent (studio lists) and `shownDonor`, the name on stream. */
+export type CrewDonorShown = { donor: string; donorId: string; message: string; shownDonor: string };
+
 export function attributeMemberDonation(
   donationId: string,
   channelId: string,
   memberId: string | null,
   fnAmount: number,
-  shown: { donor: string; donorId: string; message: string } = { donor: "익명", donorId: "", message: "" }
+  shown: CrewDonorShown = { donor: "익명", donorId: "", message: "", shownDonor: "익명" }
 ) {
   if (!memberId || !isActiveMember(channelId, memberId)) return;
   recordAttribution(donationId, channelId, memberId, fnAmount, shown);
@@ -306,9 +320,10 @@ export function attributeMemberDonation(
 /**
  * Records the member a donation was sent for, now (scoreboards and rankings count it from this moment). A settled
  * 퀘스트 calls this directly: the member was checked when the quest was sent, and a member set inactive or removed
- * since still gets it (a removed one shows as 삭제된 멤버, like any older donation).
+ * since still gets it (a removed one shows as 삭제된 멤버, like any older donation). `shown.shownDonor` is fixed by the
+ * caller when the donation was sent (2026-10-09 결정): on-stream views use it, the studio's 크루 후원 list `donor`.
  */
-export function recordAttribution(donationId: string, channelId: string, memberId: string, fnAmount: number, shown: { donor: string; donorId: string; message: string }) {
+export function recordAttribution(donationId: string, channelId: string, memberId: string, fnAmount: number, shown: CrewDonorShown) {
   if (mockCrew.attributions.some((a) => a.donationId === donationId)) return;
   mockCrew.attributions.push({ donationId, channelId, memberId, fnAmount, at: new Date().toISOString(), ...shown });
 }

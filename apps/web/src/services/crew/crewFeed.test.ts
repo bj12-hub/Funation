@@ -87,8 +87,8 @@ describe("후원 리스트", () => {
 
   it("records real donations without a member target, numbers 회차 per project, and validates keywords", async () => {
     const { recordBroadcastDonation, getBroadcastView, endBroadcast, startBroadcast, setMemberKeywords, id } = await startLive("시즌1");
-    recordBroadcastDonation("studio", { donor: "홍길동", message: "하늘 응원", fnAmount: 1_000 });
-    recordBroadcastDonation("c1", { donor: "x", message: "하늘", fnAmount: 1_000 }); // other channel: ignored
+    recordBroadcastDonation("studio", { donor: "홍길동", shownDonor: "홍길동", message: "하늘 응원", fnAmount: 1_000 });
+    recordBroadcastDonation("c1", { donor: "x", shownDonor: "x", message: "하늘", fnAmount: 1_000 }); // other channel: ignored
     let view = (await getBroadcastView())!;
     expect(view.live).toMatchObject({ project: "시즌1", round: 1 });
     expect(view.feed!.entries).toHaveLength(1);

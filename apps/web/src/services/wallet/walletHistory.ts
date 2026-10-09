@@ -15,6 +15,7 @@ import {
   CHARGE_STATUS_LABEL,
   DONATION_STATUS_LABEL,
   FN_RETURNED_LABEL,
+  LEDGER_FILTER_KINDS,
   LEDGER_PERIODS,
   donationStatusLabel,
   type ChargeRecord,
@@ -116,17 +117,18 @@ function gameResultOf(id: string): string | null {
 }
 
 /**
- * FN Wallet (Figma 817:7552): summary + one 충전·사용·환불 list built from the charge and donation
+ * FN Wallet (Figma 817:7552): summary + one 충전·사용·환불·FN 반환·적립 list built from the charge and donation
  * records on the server. A running balance column is not shown — the mock history is not a
  * reconciled ledger; the backend ledger must provide balance-after values (TBD).
  * An approved charge refund shows like a refunded donation: the charge row turns 환불완료 and a
  * separate 환불 row records the FN taken back (−), so `?kind=REFUND` lists it too. 남은 FN 정리 of a 영구 정지
- * member (2026-10-08 결정) leaves the same 환불 row per charge and one 소멸 row for the free FN written off.
+ * member (2026-10-08 결정) leaves the same 환불 row per charge and one 소멸 row for the free FN written off. The held FN
+ * of a failed 플랫폼 후원 coming back is an FN 반환 row (`?kind=RETURN`, 2026-10-09 결정), not 환불.
  */
 export async function getWalletOverview(input: { kind?: unknown; period?: unknown; page?: unknown }): Promise<WalletOverview | null> {
   if (!USE_MOCK) throw new Error("Wallet API is not connected yet.");
   if (!(await getSession())) return null;
-  const kind = input.kind === "CHARGE" || input.kind === "USE" || input.kind === "REFUND" || input.kind === "REWARD" ? input.kind : "all";
+  const kind = LEDGER_FILTER_KINDS.find((k) => k === input.kind) ?? "all";
   const period: LedgerPeriod = LEDGER_PERIODS.some((p) => p.key === input.period) ? (input.period as LedgerPeriod) : "30";
   await mockDelay(300);
 
@@ -187,8 +189,8 @@ export async function getWalletOverview(input: { kind?: unknown; period?: unknow
       .map(
         (d): LedgerEntry => ({
           id: `${d.id}-refund`,
-          // A failed 플랫폼 후원's FN going back is listed with the 환불 rows (the FN came back) but named FN 반환.
-          kind: "REFUND",
+          // A failed 플랫폼 후원's FN going back is its own type, FN 반환 (2026-10-09 결정): it was never a refund.
+          kind: d.fnReturned ? "RETURN" : "REFUND",
           description: `${d.fnReturned ? FN_RETURNED_LABEL : "환불"} · ${d.typeLabel}`,
           deltaFn: d.fnAmount,
           statusLabel: donationStatusLabel(d),

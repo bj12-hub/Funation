@@ -36,6 +36,10 @@ second payout or draw; a second action is refused), with the checks and writes i
   their 본인 확인 값 is gone.
 - The site shows 「보상이 지급됐어요」 or 「당첨자를 발표했어요」 (+ masked winners), and to a participant: 「보상 n FN을
   받았어요」 (only on the account that was credited), 「당첨됐어요」 or 「아쉽지만 당첨되지 않았어요」.
+- **지급 불가 and back (2026-10-09 결정)**: a person who joined, withdrew and was skipped as 지급 불가, then signed up again
+  with the same phone (a new account, the same person), sees the neutral 「탈퇴한 계정으로 참여해 보상 대상에서
+  빠졌어요」 (muted) — instead of 「아쉽지만 당첨되지 않았어요」 after a draw, and where they saw no line after a 무상 FN
+  payout (`eventRewardCore.myResultOf` → `UNPAID`). No notification; everyone else's line is unchanged.
 - **사이트 알림 (2026-10-09 결정)**, header bell, kind 이벤트 (🎉), linking to `/events/<id>`, once per result and account
   (dedupe key `event-reward:` / `event-draw:<event>:<account>`), only to the participant's current account — a person with
   none (지급 불가) gets nothing, and a later account of the same person gets nothing either:

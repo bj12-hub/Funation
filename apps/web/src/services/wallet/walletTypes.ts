@@ -123,11 +123,14 @@ export type DonationRecord = {
 // ── FN Wallet (Figma 817:7552) ─────────────────────────────────────────────────
 
 /**
- * REWARD: FN credited without a payment (출석 보상 등). FORFEIT: free FN written off by 남은 FN 정리 of a 영구 정지
- * member (2026-10-08 결정) — listed under 전체 유형 only (no filter chip).
+ * REWARD: FN credited without a payment (출석 보상 등). RETURN: the held FN of a failed 플랫폼 후원 going back (+) — its own
+ * type "FN 반환", not 환불 (2026-10-09 결정); real refunds (퀘스트 실패 · 취소, 충전 환불) stay REFUND. FORFEIT: free FN
+ * written off by 남은 FN 정리 of a 영구 정지 member (2026-10-08 결정) — listed under 전체 유형 only (no filter chip).
  */
-export type LedgerKind = "CHARGE" | "USE" | "REFUND" | "REWARD" | "FORFEIT";
-export const LEDGER_KIND_LABEL: Record<LedgerKind, string> = { CHARGE: "충전", USE: "사용", REFUND: "환불", REWARD: "적립", FORFEIT: "소멸" };
+export type LedgerKind = "CHARGE" | "USE" | "REFUND" | "RETURN" | "REWARD" | "FORFEIT";
+export const LEDGER_KIND_LABEL: Record<LedgerKind, string> = { CHARGE: "충전", USE: "사용", REFUND: "환불", RETURN: FN_RETURNED_LABEL, REWARD: "적립", FORFEIT: "소멸" };
+/** The FN Wallet's 유형 filter chips, in order (FORFEIT has none). */
+export const LEDGER_FILTER_KINDS = ["CHARGE", "USE", "REFUND", "RETURN", "REWARD"] as const satisfies readonly LedgerKind[];
 export const LEDGER_PERIODS = [
   { key: "30", label: "최근 30일" },
   { key: "90", label: "최근 90일" },
@@ -139,7 +142,7 @@ export type LedgerEntry = {
   id: string;
   kind: LedgerKind;
   description: string;
-  /** Signed FN change: + for 충전/환불, − for 사용. */
+  /** Signed FN change: + for 충전 · 환불 · FN 반환 · 적립, − for 사용 · 충전 환불 · 소멸. */
   deltaFn: number;
   statusLabel: string;
   tone: "done" | "pending" | "failed" | "refund";

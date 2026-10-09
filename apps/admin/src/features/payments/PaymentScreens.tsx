@@ -31,6 +31,21 @@ const refundText = (a: RefundAmounts) =>
   `${REFUND_TYPE_LABEL[a.type]} · 회수 ${formatNumber(a.grossFn)} FN · 수수료 ${formatNumber(a.feeFn)} FN · 환불 ${formatNumber(a.netFn)} FN · ${formatNumber(a.refundKrw)}원`;
 const same = (a: RefundAmounts, b: { type: string; grossFn: number; netFn: number }) => a.type === b.type && a.grossFn === b.grossFn && a.netFn === b.netFn;
 
+/**
+ * How a refund compares with the request's (2026-10-09 결정): the charge's unused FN (회수 FN, then 환불 FN) went down —
+ * FN used since — or up, when FN came back since (퀘스트 실패 · 취소, a failed 플랫폼 후원's FN 반환).
+ */
+function refundChange(requested: RefundAmounts, now: { type: string; grossFn: number; netFn: number }): "SAME" | "DOWN" | "UP" {
+  if (same(requested, now)) return "SAME";
+  return now.grossFn > requested.grossFn || (now.grossFn === requested.grossFn && now.netFn > requested.netFn) ? "UP" : "DOWN";
+}
+/** The note after a refund that differs from the request's, by direction. */
+const CHANGED_NOTE = { DOWN: "요청 후 FN 사용으로 줄어듦", UP: "요청 후 FN이 돌아와 늘어남" } as const;
+const ChangeNote = ({ requested, now }: { requested: RefundAmounts; now: { type: string; grossFn: number; netFn: number } }) => {
+  const change = refundChange(requested, now);
+  return change === "SAME" ? null : <span className={styles.warn}> · {CHANGED_NOTE[change]}</span>;
+};
+
 /** 환불 유형 · 수수료 · 환불 금액: at the request, now (what 승인 applies), and what approval refunded. */
 function RefundAmountsFacts({ r }: { r: AdminRefund }) {
   const current = r.current;
@@ -45,7 +60,7 @@ function RefundAmountsFacts({ r }: { r: AdminRefund }) {
           <dt>승인 때 적용</dt>
           <dd>
             {refundText(r.approved)}
-            {!same(r.approved, r.requested) && <span className={styles.warn}> · 요청 후 FN 사용으로 바뀜</span>}
+            <ChangeNote requested={r.requested} now={r.approved} />
           </dd>
         </div>
       )}
@@ -58,7 +73,7 @@ function RefundAmountsFacts({ r }: { r: AdminRefund }) {
             ) : (
               <>
                 {refundText({ type: current.type, grossFn: current.grossFn, feeFn: current.feeFn, netFn: current.netFn, refundKrw: current.refundKrw })}
-                {same(r.requested, current) ? <span className={styles.muted}> · 요청 때와 같아요</span> : <span className={styles.warn}> · 요청 후 FN 사용으로 바뀜</span>}
+                {same(r.requested, current) ? <span className={styles.muted}> · 요청 때와 같아요</span> : <ChangeNote requested={r.requested} now={current} />}
               </>
             )}
           </dd>

@@ -10,8 +10,12 @@ import type { AssignMode, BattleRules, CrewGrade, FanNoteRules, CrewMember, Exce
 
 export const STUDIO_CHANNEL = "studio";
 
-/** `donor` · `donorId` · `message`: what the 크루 후원 list shows (donorId is empty for a hidden profile). */
-type Attribution = { donationId: string; channelId: string; memberId: string; fnAmount: number; at: string; donor?: string; donorId?: string; message?: string };
+/**
+ * `donor` · `donorId` · `message`: what the 크루 후원 list shows (donorId is empty for a hidden profile) — the name as
+ * sent. `shownDonor`: the name for anything on stream (2026-10-09 결정) — after the creator's 대체 메시지 rules (익명 or
+ * the 대체 문구), fixed when the donation was sent, so a later 금지어 change does not rewrite it.
+ */
+type Attribution = { donationId: string; channelId: string; memberId: string; fnAmount: number; at: string; donor?: string; donorId?: string; message?: string; shownDonor: string };
 
 export type MockBroadcast = {
   id: string;
@@ -101,9 +105,10 @@ function monthStamp(dayOffset: number) {
   return d.toISOString();
 }
 
-const g = globalThis as typeof globalThis & { __ssumnationMockCrewV1?: MockCrew };
+// V2: attributions and 후원 리스트 entries carry `shownDonor`, the name on stream (2026-10-09 결정).
+const g = globalThis as typeof globalThis & { __ssumnationMockCrewV2?: MockCrew };
 
-export const mockCrew = (g.__ssumnationMockCrewV1 ??= {
+export const mockCrew = (g.__ssumnationMockCrewV2 ??= {
   crews: {
     [STUDIO_CHANNEL]: [m("cm-s1", "길동", "LEADER", "#8b5cf6"), m("cm-s2", "하늘", "MEMBER", "#ec4899"), m("cm-s3", "바다", "MEMBER", "#3b82f6"), m("cm-s4", "솔", "MEMBER", "#f59e0b", false)],
     c4: [m("cm-c4-1", "재형", "LEADER", "#8b5cf6"), m("cm-c4-2", "용주", "MEMBER", "#10b981"), m("cm-c4-3", "민수", "MEMBER", "#3b82f6")]
@@ -112,9 +117,9 @@ export const mockCrew = (g.__ssumnationMockCrewV1 ??= {
     { id: "bc-seed-c4", channelId: "c4", title: "크루 엑셀 방송", startedAt: new Date(Date.now() - 40 * 60_000).toISOString(), endedAt: null, teamMode: false, teams: {}, adjustments: [], final: null }
   ],
   attributions: [
-    { donationId: "seed-1", channelId: STUDIO_CHANNEL, memberId: "cm-s2", fnAmount: 50_000, at: monthStamp(2), donor: "별빛소나타", donorId: "star_sonata", message: "하늘님 오늘 노래 최고였어요!" },
-    { donationId: "seed-2", channelId: STUDIO_CHANNEL, memberId: "cm-s1", fnAmount: 30_000, at: monthStamp(3), donor: "우주비행사", donorId: "space_runner", message: "길동 리더 화이팅" },
-    { donationId: "seed-3", channelId: STUDIO_CHANNEL, memberId: "cm-s3", fnAmount: 12_000, at: monthStamp(1), donor: "치즈냥", donorId: "cheese_cat", message: "바다님 리액션 귀여워요 ㅋㅋ" },
-    { donationId: "seed-4", channelId: STUDIO_CHANNEL, memberId: "cm-s2", fnAmount: 8_000, at: monthStamp(0), donor: "익명", donorId: "", message: "응원합니다" }
+    { donationId: "seed-1", channelId: STUDIO_CHANNEL, memberId: "cm-s2", fnAmount: 50_000, at: monthStamp(2), donor: "별빛소나타", donorId: "star_sonata", message: "하늘님 오늘 노래 최고였어요!", shownDonor: "별빛소나타" },
+    { donationId: "seed-2", channelId: STUDIO_CHANNEL, memberId: "cm-s1", fnAmount: 30_000, at: monthStamp(3), donor: "우주비행사", donorId: "space_runner", message: "길동 리더 화이팅", shownDonor: "우주비행사" },
+    { donationId: "seed-3", channelId: STUDIO_CHANNEL, memberId: "cm-s3", fnAmount: 12_000, at: monthStamp(1), donor: "치즈냥", donorId: "cheese_cat", message: "바다님 리액션 귀여워요 ㅋㅋ", shownDonor: "치즈냥" },
+    { donationId: "seed-4", channelId: STUDIO_CHANNEL, memberId: "cm-s2", fnAmount: 8_000, at: monthStamp(0), donor: "익명", donorId: "", message: "응원합니다", shownDonor: "익명" }
   ]
 });

@@ -89,6 +89,9 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
     const shown = request.hideProfile ? null : resolveBadges(request.nicknameId, creator.id);
     const donor = shown?.name ?? "익명";
     const badges = shown ? alertBadgeLabels(shown) : [];
+    // The name on stream: the creator's 대체 메시지 rules as they are now (the alert below applies the same). Overlays
+    // that show the donor from the 룰렛 · 뽑기 and crew records use it; the records keep the original as well.
+    const shownDonor = shownOnStream({ donor, message: request.summary }).donor;
     // Debit and record in one step (the backend must do this in a single transaction).
     mockAccount.fnBalance -= request.amount;
     const now = new Date();
@@ -125,17 +128,18 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
         timeLimitSec: d.timeLimitSec,
         creatorDecides: d.creatorDecides,
         createdAt: now.toISOString(),
-        // Crew points, member ranking and the 후원 리스트 wait for SUCCESS (questCore.ts).
-        crew: { memberId: request.memberId, broadcastId: liveBroadcastOf(creator.id)?.id ?? null, message: request.summary }
+        // Crew points, member ranking and the 후원 리스트 wait for SUCCESS (questCore.ts); the name on stream is the one
+        // its 퀘스트 도착 alert showed (2026-10-09 결정).
+        crew: { memberId: request.memberId, broadcastId: liveBroadcastOf(creator.id)?.id ?? null, message: request.summary, shownDonor }
       });
     } else {
-      attributeMemberDonation(donationId, creator.id, request.memberId, request.amount, { donor, donorId, message: request.summary });
-      if (!request.memberId) recordBroadcastDonation(creator.id, { donor, message: request.summary, fnAmount: request.amount });
+      // Crew records keep the name as sent (방송 운영 후원 리스트, 크루 후원) and the name on stream (2026-10-09 결정).
+      attributeMemberDonation(donationId, creator.id, request.memberId, request.amount, { donor, donorId, message: request.summary, shownDonor });
+      if (!request.memberId) recordBroadcastDonation(creator.id, { donor, shownDonor, message: request.summary, fnAmount: request.amount });
     }
     // 룰렛: the result is drawn now and revealed when the wheel spins (no FN prize — 2026-10-04 결정).
     // 뽑기: the prize is drawn now (stock goes down) and played on the 뽑기 overlay (no FN prize).
     // Their overlays show the name as the alert does (대체 메시지 표시 설정); the records keep the original.
-    const shownDonor = shownOnStream({ donor, message: request.summary }).donor;
     if (request.type === "GACHA") enqueueDraw({ id: donationId, channelId: creator.id, ...player, donor, shownDonor, gachaId: request.details.gachaId as string, amount: request.amount });
     if (request.type === "ROULETTE") enqueueSpin({ id: donationId, channelId: creator.id, ...player, donor, shownDonor, amount: request.amount });
     enqueueDonationAlert(creator.id, {

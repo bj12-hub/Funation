@@ -123,6 +123,36 @@ export function refundAmounts(q: RefundQuote): RefundAmounts | null {
 export const sameRefund = (a: Pick<RefundAmounts, "type" | "grossFn" | "netFn">, b: Pick<RefundAmounts, "type" | "grossFn" | "netFn">) =>
   a.type === b.type && a.grossFn === b.grossFn && a.netFn === b.netFn;
 
+/**
+ * Which way a refund moved from an earlier one (2026-10-09 결정): DOWN — FN of the charge were used since; UP — FN came
+ * back since (퀘스트 실패 · 취소, a failed 플랫폼 후원's FN 반환). Compared by 회수 FN, then 환불 FN; SAME when both match.
+ */
+export function refundDirection(before: Pick<RefundAmounts, "grossFn" | "netFn">, after: Pick<RefundAmounts, "grossFn" | "netFn">): "SAME" | "DOWN" | "UP" {
+  if (after.grossFn !== before.grossFn) return after.grossFn > before.grossFn ? "UP" : "DOWN";
+  if (after.netFn !== before.netFn) return after.netFn > before.netFn ? "UP" : "DOWN";
+  return "SAME";
+}
+
+/**
+ * The member's note when approval used other amounts than the request (null when they match): "요청 후 FN을 사용해 환불
+ * 금액이 바뀌었어요 (요청 때: …)." or, when FN came back since, "요청 후 FN이 돌아와 환불 금액이 바뀌었어요 (요청 때: …)."
+ */
+export function refundChangedNote(requested: RefundAmounts, approved: RefundAmounts): string | null {
+  if (sameRefund(requested, approved)) return null;
+  const cause = refundDirection(requested, approved) === "UP" ? "요청 후 FN이 돌아와" : "요청 후 FN을 사용해";
+  return `${cause} 환불 금액이 바뀌었어요 (요청 때: ${describeRefund(requested)}).`;
+}
+
+/**
+ * The member's error when the outcome changed between the quote they saw and their request (the server answered CHANGED
+ * or NOT_REFUNDABLE with the new quote), by direction (2026-10-09 결정): "그 사이 FN을 사용해 …" or, when FN came back
+ * in between, "그 사이 FN이 돌아와 환불 내용이 바뀌었어요. 바뀐 내용을 확인해 주세요."
+ */
+export function refundQuoteChangedText(seen: Pick<RefundQuote, "grossFn" | "netFn">, now: Pick<RefundQuote, "grossFn" | "netFn">): string {
+  const cause = refundDirection(seen, now) === "UP" ? "그 사이 FN이 돌아와" : "그 사이 FN을 사용해";
+  return `${cause} 환불 내용이 바뀌었어요. 바뀐 내용을 확인해 주세요.`;
+}
+
 // ── FIFO (policy 4) ──────────────────────────────────────────────────────────
 
 /**

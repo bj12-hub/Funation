@@ -46,6 +46,18 @@ Confirmed:
 - 회원 탈퇴 and 플랫폼 후원 (2026-10-09): refused while a 플랫폼 후원 of the account still waits for its result (FN held);
   a failed one's returned FN reads "FN 반환", not 환불완료, in the FN 내역, its CSV, the FN Wallet and the console's 후원
   운영. See docs/domains/integrations.md and wallet.md
+- FN Wallet type "FN 반환" (2026-10-09): the (+) row of a failed 플랫폼 후원's returned FN has its own type chip and filter
+  (`?kind=RETURN`), not 환불; real refunds stay 환불. See docs/domains/wallet.md "FN Wallet 목록 유형"
+- Console refund card (2026-10-09): a refund that differs from the request's says which way — "요청 후 FN 사용으로
+  줄어듦" or "요청 후 FN이 돌아와 늘어남"; equal stays "요청 때와 같아요". The same direction applies to the member's
+  approved-refund note ("요청 후 FN을 사용해 / FN이 돌아와 환불 금액이 바뀌었어요 (요청 때: …).") and the console's
+  approval error ("요청 후 FN 사용으로 / FN이 돌아와 환불 금액이 바뀌었어요. …"), and the member's request-time error
+  ("그 사이 FN을 사용해 / FN이 돌아와 환불 내용이 바뀌었어요. 바뀐 내용을 확인해 주세요."). See docs/domains/wallet.md
+- Event result after 탈퇴 (2026-10-09): a participant skipped as 지급 불가 who is back with a 재가입 account sees "탈퇴한
+  계정으로 참여해 보상 대상에서 빠졌어요" (draw and 무상 FN alike), with no notification. See docs/domains/events.md
+- Crew broadcast donor names (2026-10-09): on-stream views use the name after the creator's 대체 메시지 rules (익명 or the
+  대체 문구), fixed when the donation was sent; the creator's own 방송 운영 후원 리스트 keeps the name as sent. See
+  docs/domains/donation.md
 
 Still TBD:
 
