@@ -41,7 +41,11 @@ How screens have been built so far, so a new Claude session (or account) can con
 5. Verify on the isolated test server (§4) — desktop 1440 and mobile 375, no horizontal scroll.
 6. Push the branch, open the PR (§3), then merge:
    `bash scripts/merge-pr.sh <pr> <branch> "<title>"` (tsc + eslint + vitest + next build for apps/web and
-   apps/admin in a throwaway worktree, push main, merge main → preview).
+   apps/admin in a throwaway worktree, push main, merge main → preview). Every session shares that
+   worktree, so the script takes a lock (`%TEMP%\ssumnation-merge\merge.lock`): a second run waits for the
+   first (`MERGE_WAIT`, default 1800 s) and exits 3 if it is still running; a lock older than an hour is
+   removed as stale. Check the result (`gh pr view <pr> --json state` → MERGED) before deleting the branch —
+   a merge conflict stops the script and the PR stays open.
 7. Return the checkout to preview:
    `git fetch -q origin && git switch -q preview && git merge -q --ff-only origin/preview`
 8. Report to the user in Korean: what was built, what differs from Figma, TBD items, next step.
