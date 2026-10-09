@@ -3,13 +3,16 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import type { OverlayAlert } from "@/services/creator/alertTypes";
+import { speechParts } from "@/services/creator/customSoundSpeech";
 import { AlertCard } from "./AlertCard";
 import { useReloadSignal } from "./useReloadSignal";
+import { useSpeechQueue } from "./useSpeechQueue";
 
 /**
  * OBS alert overlay (code-first). Transparent page that re-reads the server queue every second and
  * shows the alert the server has on screen, drawn as the 후원 알림 design says (AlertCard, 오버레이 테마). Reads the message aloud with the browser's speech
- * synthesis when TTS volume > 0 and not muted (voices TBD), and plays a 시그니처's sound at 시그니처 볼륨.
+ * synthesis when TTS volume > 0 and not muted (voices TBD), playing each 커스텀 사운드 in place of its word, and plays a
+ * 시그니처's sound at 시그니처 볼륨.
  */
 export function AlertOverlay({ data, vertical = false }: { data: OverlayAlert; vertical?: boolean }) {
   const router = useRouter();
@@ -32,24 +35,26 @@ export function AlertOverlay({ data, vertical = false }: { data: OverlayAlert; v
 
   const { alert, controls } = data;
   useReloadSignal(data.reloadSeq);
+  const { speak, stop } = useSpeechQueue();
 
   // TTS 스킵 from the remote: stop speaking (the card stays until its time is up).
   const skipSeq = useRef(data.ttsSkipSeq);
   useEffect(() => {
     if (data.ttsSkipSeq === skipSeq.current) return;
     skipSeq.current = data.ttsSkipSeq;
-    if (typeof speechSynthesis !== "undefined") speechSynthesis.cancel();
-  }, [data.ttsSkipSeq]);
+    stop();
+  }, [data.ttsSkipSeq, stop]);
+  // 음소거 or OFF also stops the reading (and the 커스텀 사운드 in it), like the 시그니처 sound below.
+  useEffect(() => {
+    if (controls.muted || !data.on) stop();
+  }, [controls.muted, data.on, stop]);
 
   useEffect(() => {
     if (!alert || spoken.current === alert.id) return;
     spoken.current = alert.id;
-    if (!data.on || controls.muted || controls.ttsVolume === 0 || !alert.message || typeof speechSynthesis === "undefined") return;
-    const u = new SpeechSynthesisUtterance(alert.message);
-    u.lang = "ko-KR";
-    u.volume = controls.ttsVolume / 100;
-    speechSynthesis.speak(u);
-  }, [alert, controls.muted, controls.ttsVolume, data.on]);
+    if (!data.on || controls.muted || controls.ttsVolume === 0 || !alert.message) return;
+    speak(speechParts(alert.message, data.customSounds), controls.ttsVolume);
+  }, [alert, controls.muted, controls.ttsVolume, data.on, data.customSounds, speak]);
 
   // 시그니처 소리: played once per alert at 시그니처 볼륨.
   useEffect(() => {

@@ -101,10 +101,15 @@ export type RemoteView = {
   overlays: { on: Record<OverlayTarget, boolean>; videoVolume: number };
 };
 
+/** 커스텀 사운드 for the 후원 알림 overlay: TTS plays `url` in place of `word` (`volume` 0–100, the sound's own). */
+export type OverlayCustomSound = { word: string; url: string; volume: number };
+
 export type OverlayAlert = {
   alert: (AlertItem & { endsAt: string }) | null;
   controls: Pick<AlertControls, "muted" | "alertVolume" | "ttsVolume" | "signatureVolume">;
   ttsSkipSeq: number;
+  /** 커스텀 사운드 (위젯 → 커스텀 사운드), played while TTS reads the message. */
+  customSounds: OverlayCustomSound[];
   reloadSeq: number;
   /** 기능 제어 ON/OFF: false = the overlay shows (and speaks) nothing. */
   on: boolean;
