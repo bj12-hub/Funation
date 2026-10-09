@@ -17,9 +17,18 @@ describe("hall of fame", () => {
     expect(amounts).toEqual([...amounts].sort((a, b) => b - a));
   });
 
+  it("tags each row with the supporter's 누적 등급 from the 2026-10-08 ladder, or none below 다이아", async () => {
+    const { getSupporterRanking } = await import("./supporterRanking");
+    const { GLOBAL_TITLES } = await import("@/services/supporter/identityTypes");
+    const board = await getSupporterRanking("all", 40);
+    expect(board.supporters.every((s) => s.tier === null || GLOBAL_TITLES.some((t) => t.key === s.tier))).toBe(true);
+    expect(board.supporters.slice(0, 2).map((s) => s.tier)).toEqual(["BLACK_3", "BLACK_1"]);
+    expect(board.supporters.some((s) => s.tier === null)).toBe(true);
+  });
+
   it("leaves donations sent as 익명 out of every ranking (2026-10-08 결정)", async () => {
     const { rankSupporters, getSupporterRanking, getLiveSupporterRanking } = await import("./supporterRanking");
-    const profile = (id: string) => ({ supporterId: id, nickname: id, avatarUrl: "", tier: "BRONZE" as const });
+    const profile = (id: string) => ({ supporterId: id, nickname: id, avatarUrl: "", tier: null });
     const profiles = new Map(["a", "b", "c"].map((id) => [id, profile(id)]));
     const ranked = rankSupporters(
       [

@@ -71,9 +71,6 @@
   --color-gold: #f59e0b;
   --color-gold-soft: rgba(245, 158, 11, 0.13);
   --color-bronze: #d97706;
-  --color-tier-silver-bg: #4b5563;
-  --color-tier-bronze-bg: #78350f;
-  --color-tier-bronze-text: #fdba74;
   --gradient-rank-gold: linear-gradient(90deg, #fbbf24 0%, #d97706 100%);
   --gradient-rank-silver: linear-gradient(90deg, #f3f4f6 0%, #9ca3af 100%);
   --gradient-rank-bronze: linear-gradient(90deg, #fdba74 0%, #b45309 100%);
