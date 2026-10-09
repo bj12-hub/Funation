@@ -46,8 +46,8 @@ second payout or draw; a second action is refused), with the checks and writes i
 
 ## TBD
 
-Eligibility rules, 경품 고시 · 제세공과금, how a prize is delivered (contacting winners), notifications, closing an
-event early.
+Eligibility rules, 경품 고시 · 제세공과금, how a prize is delivered (contacting winners), push · e-mail notifications
+(the header-bell 사이트 알림 above is decided), closing an event early.
 
 Mock: the account slot is the only account, so only its person can be paid; the ended sample event (출석체크 챌린지)
 has the sample member's join so a payout or draw can be tried. Each sample event's `baseParticipants` is a display count

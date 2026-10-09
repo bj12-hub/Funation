@@ -181,7 +181,7 @@ describe("충전 환불 정책 기본값", () => {
     await m.donate(2_000, on(3, 11)); // while they are held: 2,000 of A
     // 12:00 the re-check finds the platform failed it (게임왕's sends fail on the mock platform): the 10,000 FN come back.
     vi.setSystemTime(on(3, 12));
-    expect(await requestPlatformDonation(sent)).toEqual({ status: "FAILED", reason: "API_ERROR" });
+    expect(await requestPlatformDonation(sent)).toMatchObject({ status: "FAILED", reason: "RESULT_FAILED", fnReturned: true });
     m.reward(500, on(4, 9));
     expect(m.account.fnBalance).toBe(19_500);
 

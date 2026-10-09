@@ -16,8 +16,8 @@ export type WithdrawalInfo = {
   /** 퀘스트 후원 still in progress (2026-10-08 결정: 결과가 정해져야 탈퇴할 수 있어요). */
   pendingQuests: PendingQuests;
   /**
-   * 플랫폼 후원 (SOOP · FlexTV) of this account whose result is still unknown — PENDING, FN held (2026-10-09 결정: 결과가
-   * 정해져야 탈퇴할 수 있어요).
+   * 플랫폼 후원 (SOOP · FlexTV) of this account whose result is still unknown, FN held — PENDING, or its platform call
+   * still running (2026-10-09 결정: 결과가 정해져야 탈퇴할 수 있어요).
    */
   pendingPlatformDonations: number;
 };

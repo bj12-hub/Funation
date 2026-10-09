@@ -14,7 +14,7 @@ import { youtubeStore } from "@/services/creator/youtubeCore";
 import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
 import { mockQuests } from "@/services/donations/questCore";
 import { mockPlatform } from "@/services/platformDonation/mockPlatformStore";
-import { isPending, recheckAccountPending } from "@/services/platformDonation/pendingCore";
+import { awaitsResult, recheckAccountPending } from "@/services/platformDonation/pendingCore";
 import { mockRefunds } from "@/services/wallet/mockRefundStore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { mockAccount, mockCredentials } from "./mockStore";
@@ -36,7 +36,8 @@ import type { PendingQuests, WithdrawResult, WithdrawalInfo } from "./withdrawal
  * once each has a result; nothing about the quests themselves changes here.
  * 2026-10-09 결정: while a 플랫폼 후원 of this account is PENDING (no platform result yet, FN held — a failure returns the
  * FN to the slot's balance, which after a 재가입 is a new account's), withdrawal is refused too, until the re-check or an
- * operator settles it (platformDonation/pendingCore.ts). Opening the screen and pressing 탈퇴 both re-check first.
+ * operator settles it (platformDonation/pendingCore.ts) — and so while its platform call is still running (another tab),
+ * whose refusal would return the FN the same way. Opening the screen and pressing 탈퇴 both re-check first.
  * Retention (./retentionPolicy.ts — 기본값, 일반적인 기준, 법무 검토 전): the withdrawal record with the consents, the
  * payment, dispute and access records and the 본인 확인 값 stay until their dates (./retentionPurge.ts), posts stay up
  * under "탈퇴한 회원"; every other piece of personal data goes now.
@@ -66,8 +67,11 @@ function pendingQuests(session: Session): PendingQuests {
   };
 }
 
-/** This account's 플랫폼 후원 still waiting for their result (PENDING, FN held). */
-const pendingPlatformDonations = () => mockPlatform.transactions.filter((t) => isPending(t) && (t.account ?? null) === accountSince()).length;
+/**
+ * This account's 플랫폼 후원 still waiting for their result, FN held: PENDING, and also one whose platform call is still
+ * running (another tab) — a refusal would put its FN back into the slot after the 탈퇴.
+ */
+const pendingPlatformDonations = () => mockPlatform.transactions.filter((t) => awaitsResult(t) && (t.account ?? null) === accountSince()).length;
 
 const questProblem = (session: Session): WithdrawResult | null => {
   const quests = pendingQuests(session);
