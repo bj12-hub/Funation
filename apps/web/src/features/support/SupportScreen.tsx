@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ChevronDownIcon, MailIcon, MessageSquareIcon, PhoneIcon, SearchMediumIcon } from "@/components/icons";
-import { formatNumber } from "@/lib/format";
+import { formatKst, formatNumber } from "@/lib/format";
 import {
   FAQ_CATEGORIES,
   INQUIRY_STATUS_LABEL,
@@ -191,7 +191,7 @@ function InquiryPanel({ inquiries }: { inquiries: Inquiry[] | null }) {
                           <span className={`${local.tag} ${q.status === "ANSWERED" ? local.tagDone : ""}`}>{INQUIRY_STATUS_LABEL[q.status]}</span>
                         </span>
                         <strong className={local.noticeTitle}>{q.title}</strong>
-                        <span className={local.noticeMeta}>{new Date(q.createdAt).toLocaleString("ko-KR")}</span>
+                        <span className={local.noticeMeta}>{formatKst(q.createdAt)}</span>
                       </summary>
                       <p className={local.inquiryBody}>{q.body}</p>
                       <p className={local.noticeSummary}>{q.answer ?? "답변을 기다리고 있어요."}</p>

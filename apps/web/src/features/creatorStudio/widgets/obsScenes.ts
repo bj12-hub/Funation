@@ -5,6 +5,7 @@
  * scenes share the sources, so a source set up once is the same in every scene. The file holds the creator's overlay key, so it is
  * built in the browser from the page's own data and never sent anywhere.
  */
+import { kstDateString } from "@/lib/period";
 import type { OverlayEntry } from "./overlayCatalog";
 
 export const OBS_COLLECTION_NAME = "Ssumnation 오버레이";
@@ -84,8 +85,7 @@ export function obsSceneCollection(overlays: OverlayEntry[], origin: string, ove
   };
 }
 
-/** `Ssumnation-오버레이-20261006.json` (local date). */
+/** `Ssumnation-오버레이-20261006.json` (the Korean date, whatever the browser's zone). */
 export function obsFileName(now = new Date()) {
-  const d = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
-  return `Ssumnation-오버레이-${d}.json`;
+  return `Ssumnation-오버레이-${kstDateString(now).replaceAll("-", "")}.json`;
 }

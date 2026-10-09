@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { formatNumber } from "@/lib/format";
+import { formatKstTime, formatNumber } from "@/lib/format";
 import type { DonationCatalog } from "@/services/donations/donationCatalog";
 import { MAX_DRAWING_CHARS } from "@/services/donations/donationTypes";
 import { getRoomGacha } from "@/services/donations/gacha";
@@ -77,7 +77,7 @@ const ErrorLine = ({ error }: { error: string | null }) =>
 
 // ── 룰렛 (펀페이 1009:510 참여 · 1009:323 OFF · 1009:222 대기 · 1009:473 결과) ────────────────
 
-const time = (iso: string) => new Date(iso).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+const time = (iso: string) => formatKstTime(iso, { hour: "2-digit", minute: "2-digit" });
 
 /**
  * 룰렛: items and percents from the creator's settings (shown before paying), 참여 조건 · 참여 가능 횟수,

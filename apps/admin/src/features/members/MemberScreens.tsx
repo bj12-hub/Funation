@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatCompactKo, formatNumber } from "@/lib/format";
+import { formatCompactKo, formatKst, formatNumber, kstIsoString } from "@/lib/format";
 import {
   ADMIN_QUERY_MAX,
   AUDIT_ACTION_LABEL,
@@ -17,9 +17,8 @@ import { FnSettlementAction } from "./FnSettlementAction";
 import { MemberActions } from "./MemberActions";
 
 const ROLE_LABEL = { SUPPORTER: "후원자", CREATOR: "크리에이터", ADMIN: "관리자" } as const;
-const day = (iso: string) => iso.slice(0, 10).replace(/-/g, ".");
-/** The Korean date of an ISO time ("2031.10.08"), whatever the server's zone: retention dates are Korean dates. */
-const koreanDay = (iso: string) => day(new Date(Date.parse(iso) + 9 * 3_600_000).toISOString());
+/** The Korean date of an ISO time or a site date ("2031.10.08"), whatever the zone: 정지 종료일 and retention dates are Korean dates. */
+const day = (iso: string) => kstIsoString(iso).slice(0, 10).replace(/-/g, ".");
 
 const STATUS_CHIP = {
   ACTIVE: { label: "정상", className: styles.chipOk },
@@ -165,7 +164,7 @@ export function MemberDetailScreen({ member, audit, fnSettlement = null }: { mem
           )}
           {member.withdrawal ? (
             <p className={styles.muted}>
-              {new Date(member.withdrawal.at).toLocaleString("ko-KR")} 회원 탈퇴 · 소멸 FN {formatNumber(member.withdrawal.forfeitedFn)} FN
+              {formatKst(member.withdrawal.at)} 회원 탈퇴 · 소멸 FN {formatNumber(member.withdrawal.forfeitedFn)} FN
               {member.withdrawal.forfeitedEarningsFn > 0 && ` · 소멸 정산 대기 수익 ${formatNumber(member.withdrawal.forfeitedEarningsFn)} FN`} (회원 동의) · 탈퇴한 회원은 이용 제한을 바꿀 수 없어요.
             </p>
           ) : (
@@ -178,7 +177,7 @@ export function MemberDetailScreen({ member, audit, fnSettlement = null }: { mem
             <ul className={styles.history}>
               {audit.map((e) => (
                 <li key={e.id}>
-                  <strong>{AUDIT_ACTION_LABEL[e.action]}</strong> · {e.reason ?? "—"} · {e.actorName} · {new Date(e.at).toLocaleString("ko-KR")}
+                  <strong>{AUDIT_ACTION_LABEL[e.action]}</strong> · {e.reason ?? "—"} · {e.actorName} · {formatKst(e.at)}
                 </li>
               ))}
             </ul>
@@ -193,7 +192,8 @@ export function MemberDetailScreen({ member, audit, fnSettlement = null }: { mem
 
 const fn = (n: number) => `${formatNumber(n)} FN`;
 const won = (n: number) => `${formatNumber(n)}원`;
-const when = (s: string) => s.slice(0, 16).replace("T", " ");
+/** "2026-10-08 15:04" in Korea time. */
+const when = (s: string) => kstIsoString(s).slice(0, 16).replace("T", " ");
 /** "환불 2건 · 12,500 FN 회수 · 11,750 FN 환불 · 12,925원 · 무상 FN 소멸 300 FN" */
 const settledText = (lines: FnSettlementLine[], forfeitFn: number) => {
   const t = lines.reduce((s, l) => ({ grossFn: s.grossFn + l.grossFn, netFn: s.netFn + l.netFn, refundKrw: s.refundKrw + l.refundKrw }), { grossFn: 0, netFn: 0, refundKrw: 0 });
@@ -284,7 +284,7 @@ function FnSettlementCard({ id, plan }: { id: string; plan: MemberFnSettlement }
           <ul className={styles.history}>
             {plan.history.map((h) => (
               <li key={h.at}>
-                <strong>{settledText(h.lines, h.forfeitFn)}</strong> · {h.note} · {h.by} · {new Date(h.at).toLocaleString("ko-KR")}
+                <strong>{settledText(h.lines, h.forfeitFn)}</strong> · {h.note} · {h.by} · {formatKst(h.at)}
               </li>
             ))}
           </ul>
@@ -321,7 +321,7 @@ function RetentionCard({ withdrawal }: { withdrawal: NonNullable<AdminMember["wi
           {withdrawal.retention.map((r) => (
             <tr key={r.category}>
               <td>{r.label}</td>
-              <td>{r.until === null ? "삭제하지 않음" : r.purged ? `파기됨 (${koreanDay(r.until)})` : `${koreanDay(r.until)}까지`}</td>
+              <td>{r.until === null ? "삭제하지 않음" : r.purged ? `파기됨 (${day(r.until)})` : `${day(r.until)}까지`}</td>
               <td>{r.period}</td>
               <td>{r.basis}</td>
               <td>{r.covers}</td>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatNumber } from "@/lib/format";
+import { formatNumber, kstIsoString } from "@/lib/format";
 import {
   BLOCK_PAGE_SIZE,
   BLOCK_PLATFORM_LABEL,
@@ -13,11 +13,8 @@ import { FilterSettingsPanel } from "./FilterSettingsPanel";
 import { UnblockButton } from "./UnblockButton";
 import styles from "./donations.module.css";
 
-function formatAt(iso: string) {
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
+/** "2026.10.08 15:04" in Korea time. */
+const formatAt = (iso: string) => kstIsoString(iso).slice(0, 16).replaceAll("-", ".").replace("T", " ");
 
 const blockHref = (q: string, page?: number) => {
   const sp = new URLSearchParams({ tab: "filtering", sub: "block" });

@@ -43,6 +43,8 @@ describe("OBS 씬 컬렉션", () => {
   it("reads sizes and names the file by date", () => {
     expect(overlaySize("1920 × 200")).toEqual([1920, 200]);
     expect(overlaySize("가변")).toEqual([1920, 1080]);
-    expect(obsFileName(new Date(2026, 9, 6, 23, 59))).toBe("Ssumnation-오버레이-20261006.json");
+    expect(obsFileName(new Date("2026-10-06T23:59:00+09:00"))).toBe("Ssumnation-오버레이-20261006.json");
+    // The Korean date: 00:00 KST on 10-07 is still 10-06 in UTC and in the Americas.
+    expect(obsFileName(new Date("2026-10-06T15:00:00Z"))).toBe("Ssumnation-오버레이-20261007.json");
   });
 });

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { FileIcon } from "@/components/icons";
 import { Modal } from "@/components/ui/Modal";
-import { formatNumber } from "@/lib/format";
+import { formatKstDate, formatNumber } from "@/lib/format";
 import { quoteChargeRefund, requestChargeRefund } from "@/services/wallet/refund";
 import {
   REFUND_FEE_PERCENT,
@@ -110,7 +110,7 @@ export function ChargeTable({ items }: { items: ChargeRecord[] }) {
   );
 }
 
-const day = (iso: string) => new Date(iso).toLocaleDateString("ko-KR");
+const day = (iso: string) => formatKstDate(iso);
 
 /** 환불 정책 요약 — 기본값 (일반적인 기준, 법무 검토 전), with the policy document. */
 function RefundPolicy() {

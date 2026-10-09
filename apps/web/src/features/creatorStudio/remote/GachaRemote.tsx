@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { formatNumber } from "@/lib/format";
+import { formatKstTime, formatNumber } from "@/lib/format";
 import { finishGachaDraw, setGachaClaimed, setGachaHidden } from "@/services/creator/gachaRemote";
 import { GACHA_STATUS_LABEL, type GachaControlResult, type GachaRemoteView, type GachaRow } from "@/services/donations/gachaTypes";
 import styles from "../crew/crew.module.css";
 import remote from "./remote.module.css";
 
-const time = (iso: string) => new Date(iso).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+const time = (iso: string) => formatKstTime(iso, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
 /**
  * 리모컨 "뽑기" card — code-first (펀페이 1009:6549 실행 대기 · 1009:6768 결과 확인). Draws play in order on

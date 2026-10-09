@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { kstIsoString } from "@/lib/format";
 import { SITE_URL } from "@/lib/siteUrl";
 import { REPORT_REASON_LABEL, REPORT_TARGET_LABEL, type AdminReportView, type Report, type ReportStatus } from "@/types/adminApi";
 import styles from "../admin.module.css";
@@ -10,7 +11,8 @@ const TABS: { key: ReportStatus; label: string }[] = [
   { key: "ACTIONED", label: "숨김 처리" },
   { key: "DISMISSED", label: "기각" }
 ];
-const at = (iso: string) => iso.slice(0, 16).replace("T", " ");
+/** "2026-10-08 15:04" in Korea time. */
+const at = (iso: string) => kstIsoString(iso).slice(0, 16).replace("T", " ");
 
 /** Where the reported content lives on the site (hidden content may no longer open). */
 function siteHref(r: Pick<Report, "target">) {

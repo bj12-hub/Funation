@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
+import { formatKst } from "@/lib/format";
 import { pollDonationLinks, setDonationLink, simulateExternalDonation } from "@/services/creator/donationLink";
 import { SIM_CURRENCIES, type DonationLinkResult, type DonationLinkView, type SimCurrency } from "@/services/creator/donationLinkTypes";
 import type { BankSmsView } from "@/services/bankSms/bankSmsTypes";
@@ -14,7 +15,7 @@ import { BankSmsCard } from "./BankSmsCard";
 /** Platform-native units for the simulator (YouTube picks a currency). FlexTV's unit is TBD. */
 const UNIT: Record<Platform, string> = { YOUTUBE: "", CHZZK: "치즈", SOOP: "별풍선 개수", FLEXTV: "후원 단위 (TBD)" };
 
-const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("ko-KR", { dateStyle: "short", timeStyle: "short" }) : "—");
+const when = (iso: string | null) => (iso ? formatKst(iso, { dateStyle: "short", timeStyle: "short" }) : "—");
 
 /**
  * 후원 연동 — code-first (no Figma frame). Route `/creator/widgets/link`.

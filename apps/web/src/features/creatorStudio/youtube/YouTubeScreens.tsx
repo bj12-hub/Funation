@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
-import { formatCompactKo, formatNumber } from "@/lib/format";
+import { formatCompactKo, formatKst, formatNumber, kstIsoString } from "@/lib/format";
 import { connectYouTube, disconnectYouTube, syncYouTubeVideos, updateVideo } from "@/services/creator/youtube";
 import type { ManagedVideo, VideoFilter, YouTubeIntegration, YouTubeResult } from "@/services/creator/youtubeTypes";
 import { PLATFORM_ERROR_LABEL } from "@/services/platforms/platformTypes";
@@ -18,7 +18,7 @@ export const duration = (sec: number) => {
   const s = String(sec % 60).padStart(2, "0");
   return h ? `${h}:${String(m).padStart(2, "0")}:${s}` : `${m}:${s}`;
 };
-const stamp = (iso: string | null) => (iso ? new Date(iso).toLocaleString("ko-KR", { dateStyle: "medium", timeStyle: "short" }) : "—");
+const stamp = (iso: string | null) => (iso ? formatKst(iso, { dateStyle: "medium", timeStyle: "short" }) : "—");
 
 function useRunner() {
   const router = useRouter();
@@ -233,7 +233,7 @@ export function VideoListScreen({ integration, videos }: { integration: YouTubeI
                     )}
                   </span>
                   <span className={styles.muted}>
-                    {v.kind === "SHORTS" ? "쇼츠" : "다시보기"} · 조회 {formatCompactKo(v.viewCount)} · {v.publishedAt.slice(0, 10).replace(/-/g, ".")}
+                    {v.kind === "SHORTS" ? "쇼츠" : "다시보기"} · 조회 {formatCompactKo(v.viewCount)} · {kstIsoString(v.publishedAt).slice(0, 10).replace(/-/g, ".")}
                   </span>
                 </div>
                 <div className={styles.rowActions}>

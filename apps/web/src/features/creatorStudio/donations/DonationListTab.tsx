@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatNumber } from "@/lib/format";
+import { formatNumber, kstIsoString } from "@/lib/format";
 import {
   LIST_KINDS,
   LIST_PAGE_SIZE,
@@ -17,11 +17,8 @@ import styles from "./donations.module.css";
 const STATUS_CLASS = { SUCCESS: styles.badgeSuccess, IN_PROGRESS: styles.badgeProgress, FAILED: styles.badgeFailed, CANCELED: styles.badgeFailed } as const;
 const WINDOW = 5;
 
-function formatAt(iso: string) {
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
+/** "2026.10.08 15:04" in Korea time. */
+const formatAt = (iso: string) => kstIsoString(iso).slice(0, 16).replaceAll("-", ".").replace("T", " ");
 
 type Params = Record<string, string | number | undefined>;
 function href(params: Params) {

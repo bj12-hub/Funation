@@ -42,7 +42,7 @@ describe("정산 심사 · 지급 완료", () => {
 
   it("shows the payment record of a paid request, and no form", async () => {
     const html = await render([{ ...base, status: "PAID", payment: { at: "2026-10-08T01:02:00.000Z", by: "운영자", reference: "TRF-0001" } }]);
-    expect(html).toContain("지급 완료 2026-10-08 01:02 · 운영자 · 이체 참조 TRF-0001");
+    expect(html).toContain("지급 완료 2026-10-08 10:02 · 운영자 · 이체 참조 TRF-0001"); // 01:02 UTC = 10:02 KST
     expect(html).not.toContain(">지급 완료 처리</button>");
   });
 

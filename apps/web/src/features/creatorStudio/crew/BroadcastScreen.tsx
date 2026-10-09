@@ -3,7 +3,7 @@
 import { OverlayLookPicker } from "@/features/overlayTheme/OverlayLookPicker";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { formatNumber } from "@/lib/format";
+import { formatKst, formatNumber } from "@/lib/format";
 import { adjustScore, endBroadcast, setRankUpOverlay, startBroadcast } from "@/services/crew/crewBroadcast";
 import { BROADCAST_TITLE_MAX, PROJECT_NAME_MAX, type BroadcastResult, type BroadcastView, type TeamKey } from "@/services/crew/crewTypes";
 import type { OverlayTarget } from "@/services/creator/alertTypes";
@@ -21,7 +21,7 @@ const elapsed = (from: string, now: number) => {
   const s = Math.max(0, Math.floor((now - new Date(from).getTime()) / 1000));
   return `${String(Math.floor(s / 3600)).padStart(2, "0")}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 };
-const time = (iso: string) => new Date(iso).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+const time = (iso: string) => formatKst(iso, { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 const signed = (n: number) => `${n > 0 ? "+" : ""}${formatNumber(n)}`;
 
 /**

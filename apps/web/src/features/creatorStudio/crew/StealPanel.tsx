@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { formatNumber } from "@/lib/format";
+import { formatKstTime, formatNumber } from "@/lib/format";
 import { setStealRules, setStealSlots, spinSteal } from "@/services/crew/crewSteal";
 import {
   PLATFORM_STEAL_RULES,
@@ -272,7 +272,7 @@ export function StealPanel({
           <ul>
             {records.map((r) => (
               <li key={r.id}>
-                <span className={styles.muted}>{new Date(r.at).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}</span> [{r.slotLabel}] {stealText(r)}
+                <span className={styles.muted}>{formatKstTime(r.at, { hour: "2-digit", minute: "2-digit" })}</span> [{r.slotLabel}] {stealText(r)}
               </li>
             ))}
           </ul>

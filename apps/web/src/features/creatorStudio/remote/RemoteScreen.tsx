@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { formatNumber } from "@/lib/format";
+import { formatKstTime, formatNumber } from "@/lib/format";
 import {
   cancelAllAlerts,
   reloadOverlays,
@@ -45,7 +45,7 @@ import { VoteRemote } from "./VoteRemote";
 import { WallpaperRemote } from "./WallpaperRemote";
 
 const STATUS_LABEL: Record<AlertStatus, string> = { QUEUED: "대기", SHOWING: "표시 중", DONE: "완료", SKIPPED: "건너뜀", FILTERED: "최소 금액 미만" };
-const time = (iso: string) => new Date(iso).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+const time = (iso: string) => formatKstTime(iso, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
 /**
  * 리모컨 — code-first (no Figma frame). Route `/creator/remote`. Controls the server-side alert

@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { formatNumber } from "@/lib/format";
+import { formatKstTime, formatNumber } from "@/lib/format";
 import { closeSubBoard, openSubBoard } from "@/services/crew/crewBoards";
 import { SUB_BOARD_MAX, SUB_BOARD_TITLE_MAX, type BroadcastResult, type SubBoard } from "@/services/crew/crewTypes";
 import { CopyButton } from "../settings/SettingsCards";
 import styles from "./crew.module.css";
 import feed from "./feed.module.css";
 
-const time = (iso: string) => new Date(iso).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+const time = (iso: string) => formatKstTime(iso, { hour: "2-digit", minute: "2-digit" });
 
 /**
  * 서브 점수판 — code-first (no Figma frame), inside `/creator/crew/broadcast` while live. "새 판" opens

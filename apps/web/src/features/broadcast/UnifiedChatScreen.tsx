@@ -45,6 +45,7 @@ import {
   type UnifiedChatMessage,
   type UnifiedChatView
 } from "@/services/broadcast/chatTypes";
+import { formatKstTime } from "@/lib/format";
 import { PLATFORM_ERROR_LABEL } from "@/services/platforms/platformTypes";
 import { PLATFORM_LABEL, type Platform } from "@/types/platform";
 import type { OverlayTarget } from "@/services/creator/alertTypes";
@@ -55,7 +56,7 @@ import styles from "./chat.module.css";
 import { PlatformMark } from "./PlatformMark";
 
 const POLL_MS = 1_500;
-const time = (iso: string) => new Date(iso).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+const time = (iso: string) => formatKstTime(iso, { hour: "2-digit", minute: "2-digit" });
 const UNSUPPORTED_TITLE = "이 플랫폼은 지원하지 않거나 API 확인 중이에요 (TBD)";
 type Note = { tone: "ok" | "error"; text: string } | null;
 type Filter = Platform | "ALL";
