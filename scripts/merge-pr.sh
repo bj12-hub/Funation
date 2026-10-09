@@ -7,6 +7,11 @@
 # and pushes it so `npm run dev:sync` picks it up.
 #
 # Optional env: GIT_NAME, GIT_EMAIL (commit identity), CO_AUTHOR (trailer line).
+# MERGE_WAIT: seconds to wait for another session's merge to finish (default 1800); LOCK_STALE_SECONDS: a lock older than
+# this is taken as left behind by a crashed run and removed (default 3600).
+#
+# Every session shares one work path (wt-merge), so only one merge may run at a time: the lock below makes a second run
+# wait instead of wiping the first one's tree mid-build (it broke #278's next build with ENOENT).
 set -euo pipefail
 PR="$1"; BRANCH="$2"; TITLE="$3"
 
@@ -30,7 +35,26 @@ cleanup() {
   fi
   git -C "$REPO" worktree prune || true
 }
-trap cleanup EXIT
+# One merge at a time across sessions: mkdir is atomic, so only one run gets the lock.
+LOCK="$WORK/merge.lock"
+waited=0
+until mkdir "$LOCK" 2>/dev/null; do
+  age=$(( $(date +%s) - $(stat -c %Y "$LOCK" 2>/dev/null || date +%s) ))
+  if [ "$age" -ge "${LOCK_STALE_SECONDS:-3600}" ]; then
+    echo "removing a stale merge lock (${age}s old: $(cat "$LOCK/info" 2>/dev/null || echo unknown))"
+    rm -rf "$LOCK"
+    continue
+  fi
+  if [ "$waited" -ge "${MERGE_WAIT:-1800}" ]; then
+    echo "another merge is still running ($(cat "$LOCK/info" 2>/dev/null || echo unknown)); gave up after ${waited}s" >&2
+    exit 3
+  fi
+  [ "$waited" -eq 0 ] && echo "waiting for another merge to finish ($(cat "$LOCK/info" 2>/dev/null || echo unknown))"
+  sleep 20
+  waited=$((waited + 20))
+done
+echo "PR #$PR $BRANCH, started $(date '+%Y-%m-%d %H:%M:%S')" > "$LOCK/info"
+trap 'cleanup; rm -rf "$LOCK"' EXIT
 
 cd "$REPO"
 git fetch -q origin
