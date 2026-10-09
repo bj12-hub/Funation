@@ -46,6 +46,9 @@ describe("unified chat", () => {
     expect(view.theme.theme).toBe("BOLD");
     expect(view.lines.map((l) => l.text)).toContain("안녕하세요");
     expect(view.lines.map((l) => l.text)).not.toContain("광고입니다");
+    // The list itself is the creator's moderation setting: it stays on the server too (anyone with the URL reads this).
+    expect(view.settings.filteredNicknames).toEqual([]);
+    expect(JSON.stringify(view)).not.toContain("채팅봇");
     expect(view.lines.every((l) => !Number.isNaN(Date.parse(l.at)))).toBe(true);
     expect(Date.parse(view.serverNow)).not.toBeNaN();
   });

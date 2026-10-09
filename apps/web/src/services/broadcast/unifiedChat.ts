@@ -139,8 +139,9 @@ export async function simulateChatReconnect(input: unknown): Promise<ChatActionR
 }
 
 /**
- * OBS overlay read — no login (OBS cannot sign in); the integration key is the secret. Lines from 필터링 닉네임
- * (채팅창 위젯, e.g. chat bots) never leave the server; the rest of the 채팅창 settings are drawn by the overlay.
+ * OBS overlay read — no login (OBS cannot sign in); the integration key is the secret. 필터링 닉네임 (채팅창 위젯,
+ * e.g. chat bots) never leave the server — neither their lines nor the list; the rest of the 채팅창 settings are drawn
+ * by the overlay.
  */
 export async function getChatOverlay(key: unknown): Promise<ChatOverlayView | "FORBIDDEN"> {
   assertMock();
@@ -149,5 +150,5 @@ export async function getChatOverlay(key: unknown): Promise<ChatOverlayView | "F
   const settings = readWidget("CHAT");
   const blocked = new Set(settings.filteredNicknames.map((n) => n.trim().toLowerCase()));
   const lines = overlayLines().filter((l) => !blocked.has(l.name.trim().toLowerCase()));
-  return { lines, settings, theme: overlayTheme(settings.theme), serverNow: new Date().toISOString() };
+  return { lines, settings: { ...settings, filteredNicknames: [] }, theme: overlayTheme(settings.theme), serverNow: new Date().toISOString() };
 }
