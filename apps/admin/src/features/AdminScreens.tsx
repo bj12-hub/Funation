@@ -26,6 +26,7 @@ export function AdminDashboardScreen({ data }: { data: AdminDashboard }) {
       ])
     },
     { label: "정산 신청", count: data.pending.settlements, note: apart("정산 심사에서 처리", [["보류", data.pending.settlementsHeld]]) },
+    { label: "확인 중 후원", count: data.pending.platformDonations, note: "24시간 동안 플랫폼 결과를 확인하지 못한 후원 · 확인 중 후원에서 결정" },
     { label: "신고", count: data.pending.reports, note: "신고 처리에서 확인" }
   ];
   return (
