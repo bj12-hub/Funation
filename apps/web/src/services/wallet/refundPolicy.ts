@@ -10,9 +10,10 @@ import { toDateString } from "@/lib/period";
  * 1. 청약철회: requested within REFUND_WITHDRAWAL_DAYS of the payment date and none of the charge's FN used —
  *    the whole charge is cancelled, no fee.
  * 2. Otherwise the charge's paid FN still unused are refunded minus REFUND_FEE_RATE (fee rounded down to a whole FN).
- * 3. Never refunded: FN already used, and free FN (출석 보상, events — `mockCreditStore` credits). A quest refund just
- *    returns FN to the balance; it is not a charge.
- * 4. Which paid FN are still unused: free FN count as spent first, then paid FN oldest charge first (FIFO).
+ * 3. Never refunded: FN already used, and free FN (출석 보상, events — `mockCreditStore` credits). A refunded donation
+ *    (퀘스트 실패 · 취소, a platform donation that failed) gives back the FN it took — free stays free; it is not a charge.
+ * 4. Which paid FN are still unused: free FN count as spent first, then paid FN oldest charge first (FIFO). FN the
+ *    records do not explain are settled oldest-received first (`unusedPaidFn`).
  * 5. KRW (2026-10-08 결정): a 전액 취소 returns the whole paid amount; a 수수료 공제 후 환불 returns the net FN's share of
  *    what that charge was paid — net FN ÷ the charge's FN × the charge's paid KRW, rounded down to the won (`refundKrw`).
  *
@@ -126,53 +127,96 @@ export const sameRefund = (a: Pick<RefundAmounts, "type" | "grossFn" | "netFn">,
 
 /**
  * One balance change of an account. PAID: a completed charge; FREE: FN credited without a payment; SPEND: FN spent or
- * held (a donation); RECLAIM: a charge refund (an approved request, or 남은 FN 정리) taking FN back from that charge;
- * FORFEIT: free FN written off by 남은 FN 정리 (영구 정지) — never paid FN. `at`: local "YYYY-MM-DD HH:mm[:ss]".
+ * held (a donation; `id` names it for a RETURN); RETURN: a spend's FN given back (퀘스트 실패 · 취소, a platform
+ * donation that failed); RECLAIM: a charge refund (an approved request, or 남은 FN 정리) taking FN back from that
+ * charge; FORFEIT: free FN written off by 남은 FN 정리 (영구 정지) — never paid FN. `at`: local "YYYY-MM-DD HH:mm[:ss]".
  */
 export type FnLedgerEvent =
   | { kind: "PAID"; chargeId: string; at: string; fn: number }
   | { kind: "FREE"; at: string; fn: number }
-  | { kind: "SPEND"; at: string; fn: number }
+  | { kind: "SPEND"; at: string; fn: number; id?: string }
+  | { kind: "RETURN"; spendId: string; at: string; fn: number }
   | { kind: "RECLAIM"; chargeId: string; at: string; fn: number }
   | { kind: "FORFEIT"; at: string; fn: number };
 
 const stamp = (at: string) => (at.length === 16 ? `${at}:00` : at);
 
+/** FN received at one time: a charge's paid FN (`chargeId`) or free FN (`null`). */
+type Lot = { chargeId: string | null; left: number };
+
+/** Takes up to `fn` from `lots` in their order; returns what came from which lot. */
+function take(lots: Lot[], fn: number): { lot: Lot; fn: number }[] {
+  const parts: { lot: Lot; fn: number }[] = [];
+  let rest = fn;
+  for (const lot of lots) {
+    if (rest <= 0) break;
+    const n = Math.min(lot.left, rest);
+    if (n <= 0) continue;
+    lot.left -= n;
+    rest -= n;
+    parts.push({ lot, fn: n });
+  }
+  return parts;
+}
+
 /**
- * How many paid FN of each charge are still unused. Events run in time order (credits before spends of the same
- * second); every spend uses free FN first, then paid FN oldest charge first. The balance stays authoritative: FN the
- * events do not explain as spent but that are no longer in the balance count as used earlier, in the same order; FN in
- * the balance that no charge explains are not a charge's (never refundable). Server-side only.
+ * How many paid FN of each charge are still unused, as of `now`. Every credit is a dated lot (a charge's paid FN, or
+ * free FN), and events run in time order — credits before spends of the same second, a RETURN after them (its own spend
+ * is always before it). Server-side only.
+ *
+ * - Only events up to `now` are history: a record dated later has not happened yet as far as the ledger can tell (the
+ *   mock's sample rows are dated relative to today, some later today), so it explains nothing about the balance now —
+ *   whatever it changed is left to the reconcile below.
+ * - SPEND (policy 4): free FN first, then paid FN oldest charge first — only FN the member had at that time.
+ * - RETURN: gives back exactly the FN its spend took, to the same lots — free FN stay free, a charge's FN go back to
+ *   that charge. A held donation that failed is not rewritten as never spent: spends made while it held FN used the
+ *   FN that were really there. A RETURN whose spend is not in the events changes nothing.
+ * - Reconcile: the balance stays authoritative. FN in the balance that no record explains are not a charge's (never
+ *   refundable). FN the records explain but that are no longer in the balance (a shortfall) left through spends the
+ *   records do not show. Every balance change leaves a record (docs/domains/wallet.md), so those spends belong to the
+ *   history before the records add up — in the mock, the sample history, whose balance never matched its charges and
+ *   donations — not to FN received since. The shortfall is therefore settled from the oldest lots still held, by when
+ *   they were received, paid and free alike (FIFO by acquisition): later FN are touched only once everything older is
+ *   gone. Free-first is the rule for a recorded spend at a known time; applied to the shortfall it would let FN received
+ *   now (an event reward) pay for spending that happened before them, leaving older paid FN refundable in their place.
  */
-export function unusedPaidFn(events: FnLedgerEvent[], balance: number): Map<string, number> {
-  const rank = (e: FnLedgerEvent) => (e.kind === "PAID" || e.kind === "FREE" ? 0 : 1);
-  const ordered = [...events].sort((a, b) => stamp(a.at).localeCompare(stamp(b.at)) || rank(a) - rank(b));
-  let free = 0;
-  const lots: { chargeId: string; left: number }[] = []; // oldest charge first
-  const spend = (fn: number) => {
-    const fromFree = Math.min(free, fn);
-    free -= fromFree;
-    let rest = fn - fromFree;
-    for (const lot of lots) {
-      if (rest <= 0) break;
-      const take = Math.min(lot.left, rest);
-      lot.left -= take;
-      rest -= take;
-    }
+export function unusedPaidFn(events: FnLedgerEvent[], balance: number, now?: Date): Map<string, number> {
+  const spentAt = new Map(events.flatMap((e) => (e.kind === "SPEND" && e.id ? [[e.id, stamp(e.at)] as const] : [])));
+  const at = (e: FnLedgerEvent) => {
+    const own = e.kind === "RETURN" ? spentAt.get(e.spendId) : undefined;
+    return own && own > stamp(e.at) ? own : stamp(e.at);
   };
+  const asOf = now ? `${toDateString(now)} ${now.toTimeString().slice(0, 8)}` : null;
+  const rank = (e: FnLedgerEvent) => (e.kind === "PAID" || e.kind === "FREE" ? 0 : e.kind === "RETURN" ? 2 : 1);
+  const ordered = events.filter((e) => asOf === null || at(e) <= asOf).sort((a, b) => at(a).localeCompare(at(b)) || rank(a) - rank(b));
+  const lots: Lot[] = []; // in the order received
+  const free = () => lots.filter((l) => l.chargeId === null);
+  const paid = () => lots.filter((l) => l.chargeId !== null);
+  const taken = new Map<string, { lot: Lot; fn: number }[]>();
   for (const e of ordered) {
     if (e.kind === "PAID") lots.push({ chargeId: e.chargeId, left: e.fn });
-    else if (e.kind === "FREE") free += e.fn;
-    else if (e.kind === "SPEND") spend(e.fn);
-    else if (e.kind === "FORFEIT") free -= Math.min(free, e.fn);
+    else if (e.kind === "FREE") lots.push({ chargeId: null, left: e.fn });
+    else if (e.kind === "SPEND") {
+      const fromFree = take(free(), e.fn);
+      const parts = [...fromFree, ...take(paid(), e.fn - fromFree.reduce((sum, p) => sum + p.fn, 0))];
+      if (e.id) taken.set(e.id, parts);
+    } else if (e.kind === "RETURN") {
+      let rest = e.fn;
+      for (const part of taken.get(e.spendId) ?? []) {
+        const back = Math.min(part.fn, rest);
+        part.lot.left += back;
+        part.fn -= back;
+        rest -= back;
+      }
+    } else if (e.kind === "FORFEIT") take(free(), e.fn);
     else {
       const lot = lots.find((l) => l.chargeId === e.chargeId);
       if (lot) lot.left -= Math.min(lot.left, e.fn);
     }
   }
-  const tracked = free + lots.reduce((sum, l) => sum + l.left, 0);
-  if (tracked > Math.max(0, balance)) spend(tracked - Math.max(0, balance));
-  return new Map(lots.map((l) => [l.chargeId, l.left]));
+  const tracked = lots.reduce((sum, l) => sum + l.left, 0);
+  if (tracked > Math.max(0, balance)) take(lots, tracked - Math.max(0, balance));
+  return new Map(lots.flatMap((l) => (l.chargeId === null ? [] : [[l.chargeId, l.left] as const])));
 }
 
 // ── Copy ─────────────────────────────────────────────────────────────────────
