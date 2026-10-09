@@ -123,8 +123,10 @@ Authentication for every platform (OAuth / login) is TBD.
   per transaction — sample values). It asks lazily: when 후원 내역 is read (that account's donations), when the same key
   is sent again (「결과 다시 확인」) and when the console list is read. A lookup that fails or times out is "no result yet".
   - COMPLETED: the donation completes as a direct success (External Transaction ID from the platform).
-  - FAILED: the held FN goes back with a wallet record (FN 내역: the hold turns 환불완료 plus a 환불 row); 후원 내역 shows
-    실패 with 「SOOP 확인 결과 실패 · FN 반환」.
+  - FAILED: the held FN goes back with a wallet record; 후원 내역 shows 실패 with 「SOOP 확인 결과 실패 · FN 반환」. FN 내역
+    (2026-10-09 결정 — it is not a refund): the hold reads 「FN 반환」 (not 환불완료) in FN 후원내역, its CSV and the FN Wallet
+    list, plus an 「FN 반환 · SOOP 별풍선 10개」 (+) row under the 환불 filter (`walletTypes.donationStatusLabel`, record flag
+    `fnReturned`). Real refunds (퀘스트 실패 · 취소, 충전 환불) keep 환불완료.
   - The same key then answers COMPLETED / FAILED instead of PENDING.
   - Check and write: the answers are applied in one synchronous step after the last await, only to a transaction still
     pending.
@@ -134,10 +136,17 @@ Authentication for every platform (OAuth / login) is TBD.
   `PLATFORM_DONATION_RESOLVE`. 성공 keeps the FN spent (no external id); 실패 returns it (「운영자 확인 결과 실패 · FN 반환」).
 - **Withdrawn sender**: when the account that sent it has withdrawn since (also after a 재가입 in the same slot), a 실패
   credits nothing — the return is recorded as forfeited (반환 불가(탈퇴), 「확인 결과 실패 · 탈퇴한 계정이라 FN 반환 불가(소멸)」),
-  like the rest of a withdrawn account's FN, and the console says so before and after the decision. Withdrawal itself is
-  not blocked by a PENDING donation.
+  like the rest of a withdrawn account's FN, and the console says so before and after the decision.
+- **Withdrawal waits (2026-10-09 결정)**: while a 플랫폼 후원 of the account is PENDING, 회원 탈퇴 is refused
+  (`PLATFORM_PENDING`, checked again with the write after the password check), like 충전 환불 · 퀘스트. The 탈퇴 screen shows
+  a card with the count and a link to 후원 내역. (A withdrawn sender can still exist: an account that withdrew before this
+  rule, or the console settling one after it.)
+- **사이트 알림 (2026-10-09 결정)**: a settled PENDING donation — by a re-check or an operator — notifies the member once
+  (dedupe key `platform-pending:<Transaction ID>`), only while the account that sent it is active (never a withdrawn one):
+  「확인 중이던 후원이 완료됐어요」 · 「SOOP · 김스트리머님께 10,000 FN」, or 「확인 중이던 후원이 실패했어요」 ·
+  「… · FN 반환」, linking to `/donation/history?period=all&tx=<Transaction ID>`.
 - The member keeps seeing 처리중 and 「처리 결과 확인 중」 in 후원 내역 until a result, then 완료 or 실패 · FN 반환.
-- TBD: whether each real platform has a status lookup, its rate limits, notifying the member of the result.
+- TBD: whether each real platform has a status lookup, its rate limits; push · e-mail for the result.
 - A failure before the hold finishes the key as FAILED (nothing debited), so a retry never sees
   IN_PROGRESS forever.
 

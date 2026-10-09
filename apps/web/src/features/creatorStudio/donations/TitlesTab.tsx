@@ -28,6 +28,8 @@ export function TitlesTab({ initial }: { initial: TitleTier[] }) {
       <div>
         <h2 className={styles.sectionHeading}>크리에이터 칭호 목록</h2>
         <p className={styles.desc}>도네이터가 누적 후원 금액을 충족하면 획득하는 칭호 목록입니다. 우측의 &apos;설정&apos; 버튼으로 설정할 수 있습니다.</p>
+        {/* 2026-10-09 결정: 익명 donations do not count toward the 크리에이터 칭호 (code-first line under the Figma copy). */}
+        <p className={styles.desc}>프로필 숨기기(익명)로 받은 후원은 누적 후원 금액에 들어가지 않습니다.</p>
       </div>
       <ul className={styles.tierList}>
         {tiers.map((t) => (

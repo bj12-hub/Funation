@@ -3,7 +3,7 @@ import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
 import type { Platform } from "@/types/platform";
 import { notify } from "@/services/notifications/notificationCore";
 import type { AlertControls, AlertItem, AlertKind, NativeAmount, OverlaySignal, OverlayTarget } from "./alertTypes";
-import { shownOnStream } from "./donationPageCore";
+import { replacesName, shownOnStream } from "./donationPageCore";
 
 /**
  * Server-only alert queue internals (not a "use server" module): only the Donation Core and the
@@ -119,14 +119,16 @@ export function enqueueAlert(
  * 대체 메시지 표시 설정 and 후원 필터링 apply to the name and message shown (and spoken) on stream (shownOnStream).
  * A 퀘스트 후원 passes its `questId`: the alert shows when it is sent, but its FN counts in the 후원 위젯 only
  * once the quest succeeds (settleQuestAlerts). The Donation Core always passes `donorKey` (donorKeyOf, or null for a
- * hidden profile).
+ * hidden profile). A name the 대체 메시지 rules replace (익명 or the 대체 메시지) goes out without its 등급 · 칭호 badges
+ * (2026-10-09 결정) — every overlay draws the badges stored here, so none can show them; the key stays (opaque).
  */
 export function enqueueDonationAlert(
   creatorId: string,
   input: { donor: string; donorKey?: string | null; badges?: string[]; message: string; fnAmount: number; typeLabel: string; donationType?: string; imageUrl?: string; soundUrl?: string; questId?: string }
 ) {
   if (creatorId !== STUDIO_CHANNEL) return;
-  const item = enqueueAlert({ kind: "DONATION", ...input, ...shownOnStream(input) });
+  const badges = replacesName(input.donor) ? [] : input.badges;
+  const item = enqueueAlert({ kind: "DONATION", ...input, badges, ...shownOnStream(input) });
   notify({ kind: "DONATION_RECEIVED", title: "새 후원이 들어왔어요", body: `${input.donor}님 · ${input.fnAmount.toLocaleString("ko-KR")} FN`, href: "/creator/donations?tab=list", dedupeKey: `alert:${item.id}` });
 }
 

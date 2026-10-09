@@ -13,6 +13,8 @@ import { mockSettlement } from "@/services/creator/mockSettlementStore";
 import { youtubeStore } from "@/services/creator/youtubeCore";
 import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
 import { mockQuests } from "@/services/donations/questCore";
+import { mockPlatform } from "@/services/platformDonation/mockPlatformStore";
+import { isPending } from "@/services/platformDonation/pendingCore";
 import { mockRefunds } from "@/services/wallet/mockRefundStore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { mockAccount, mockCredentials } from "./mockStore";
@@ -32,6 +34,9 @@ import type { PendingQuests, WithdrawResult, WithdrawalInfo } from "./withdrawal
  * member sent (a failed or cancelled quest refunds the slot's balance, which after a 재가입 is a new account's) and, for
  * a creator, quests sent to the channel (the supporters' FN waits for the channel's decision). The member withdraws
  * once each has a result; nothing about the quests themselves changes here.
+ * 2026-10-09 결정: while a 플랫폼 후원 of this account is PENDING (no platform result yet, FN held — a failure returns the
+ * FN to the slot's balance, which after a 재가입 is a new account's), withdrawal is refused too, until the re-check or an
+ * operator settles it (platformDonation/pendingCore.ts).
  * Retention (./retentionPolicy.ts — 기본값, 일반적인 기준, 법무 검토 전): the withdrawal record with the consents, the
  * payment, dispute and access records and the 본인 확인 값 stay until their dates (./retentionPurge.ts), posts stay up
  * under "탈퇴한 회원"; every other piece of personal data goes now.
@@ -61,6 +66,9 @@ function pendingQuests(session: Session): PendingQuests {
   };
 }
 
+/** This account's 플랫폼 후원 still waiting for their result (PENDING, FN held). */
+const pendingPlatformDonations = () => mockPlatform.transactions.filter((t) => isPending(t) && (t.account ?? null) === accountSince()).length;
+
 const questProblem = (session: Session): WithdrawResult | null => {
   const quests = pendingQuests(session);
   return quests.sent + quests.received > 0 ? { status: "QUEST_PENDING", ...quests } : null;
@@ -78,7 +86,8 @@ export async function getWithdrawalInfo(): Promise<WithdrawalInfo | null> {
     creator,
     unsettledFn: creator ? unsettledFn() : 0,
     pendingRefunds: pendingRefunds(),
-    pendingQuests: pendingQuests(session)
+    pendingQuests: pendingQuests(session),
+    pendingPlatformDonations: pendingPlatformDonations()
   };
 }
 
@@ -105,6 +114,7 @@ export async function withdrawAccount(input: unknown): Promise<WithdrawResult> {
   if (pendingRefunds() > 0) return { status: "REFUND_PENDING", count: pendingRefunds() };
   const questsEarly = questProblem(session);
   if (questsEarly) return questsEarly;
+  if (pendingPlatformDonations() > 0) return { status: "PLATFORM_PENDING", count: pendingPlatformDonations() };
   const early = consentProblem(v, mockAccount.fnBalance, earningsOf(session));
   if (early) return early;
   await mockDelay(400);
@@ -129,6 +139,8 @@ export async function withdrawAccount(input: unknown): Promise<WithdrawResult> {
   if (pendingRefunds() > 0) return { status: "REFUND_PENDING", count: pendingRefunds() };
   const quests = questProblem(session);
   if (quests) return quests;
+  // A 플랫폼 후원 that went PENDING during the password check counts too.
+  if (pendingPlatformDonations() > 0) return { status: "PLATFORM_PENDING", count: pendingPlatformDonations() };
   const balance = mockAccount.fnBalance;
   const earnings = earningsOf(session);
   const changed = consentProblem(v, balance, earnings);

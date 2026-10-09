@@ -1,7 +1,7 @@
 /**
  * 회원 탈퇴 — client-safe types (2026-10-04 결정: 남은 FN 소멸 동의 후 바로 탈퇴; 2026-10-05: 크리에이터 정산 대기
  * 수익도 소멸 동의 후 탈퇴, 탈퇴 직전 비밀번호 재입력; 2026-10-06: 처리 중인 충전 환불이 있으면 탈퇴 불가; 2026-10-08:
- * 진행 중인 퀘스트 후원이 있으면 탈퇴 불가).
+ * 진행 중인 퀘스트 후원이 있으면 탈퇴 불가; 2026-10-09: 결과를 확인 중인 플랫폼 후원이 있으면 탈퇴 불가).
  */
 
 export type WithdrawalInfo = {
@@ -15,6 +15,11 @@ export type WithdrawalInfo = {
   pendingRefunds: number;
   /** 퀘스트 후원 still in progress (2026-10-08 결정: 결과가 정해져야 탈퇴할 수 있어요). */
   pendingQuests: PendingQuests;
+  /**
+   * 플랫폼 후원 (SOOP · FlexTV) of this account whose result is still unknown — PENDING, FN held (2026-10-09 결정: 결과가
+   * 정해져야 탈퇴할 수 있어요).
+   */
+  pendingPlatformDonations: number;
 };
 
 /**
@@ -28,6 +33,7 @@ export type WithdrawResult =
   | { status: "INVALID"; message: string }
   | { status: "REFUND_PENDING"; count: number }
   | ({ status: "QUEST_PENDING" } & PendingQuests)
+  | { status: "PLATFORM_PENDING"; count: number }
   | { status: "WRONG_PASSWORD" }
   /** 5 wrong passwords (shared with the login): the account is locked and the session ended — reset the password. */
   | { status: "LOCKED" }

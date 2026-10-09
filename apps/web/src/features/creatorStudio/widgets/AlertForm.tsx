@@ -143,7 +143,7 @@ export function AlertForm({ value: v, onChange, live }: FormProps<"ALERT">) {
             </div>
           </Row>
           <Row label="후원 메시지">
-            <SwitchText label="후원 메시지 표시" checked={v.showMessage} onChange={(x) => set("showMessage", x)} text="시청자가 쓴 메시지를 함께 보여 줘요" />
+            <SwitchText label="후원 메시지 표시" checked={v.showMessage} onChange={(x) => set("showMessage", x)} text="시청자가 쓴 메시지를 함께 보여 주고 TTS로 읽어 줘요. 끄면 읽지도 않아요" />
           </Row>
           <Row label="등급 · 칭호">
             <SwitchText label="등급 · 칭호 배지 표시" checked={v.showBadges} onChange={(x) => set("showBadges", x)} text="후원자의 등급 · 칭호 배지" />

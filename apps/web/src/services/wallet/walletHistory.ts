@@ -14,7 +14,9 @@ import { toDateString, type Period } from "@/lib/period";
 import {
   CHARGE_STATUS_LABEL,
   DONATION_STATUS_LABEL,
+  FN_RETURNED_LABEL,
   LEDGER_PERIODS,
+  donationStatusLabel,
   type ChargeRecord,
   type ChargeRefund,
   type ChargeStatus,
@@ -175,7 +177,7 @@ export async function getWalletOverview(input: { kind?: unknown; period?: unknow
         kind: "USE",
         description: `${d.typeLabel} · ${d.creatorName}`,
         deltaFn: -d.fnAmount,
-        statusLabel: DONATION_STATUS_LABEL[d.status],
+        statusLabel: donationStatusLabel(d),
         tone: d.status === "COMPLETED" ? "done" : d.status === "FAILED" ? "failed" : d.status === "REFUNDED" || d.status === "REFUNDING" ? "refund" : "pending",
         at: d.donatedAt.slice(0, 16)
       })
@@ -185,10 +187,11 @@ export async function getWalletOverview(input: { kind?: unknown; period?: unknow
       .map(
         (d): LedgerEntry => ({
           id: `${d.id}-refund`,
+          // A failed 플랫폼 후원's FN going back is listed with the 환불 rows (the FN came back) but named FN 반환.
           kind: "REFUND",
-          description: `환불 · ${d.typeLabel}`,
+          description: `${d.fnReturned ? FN_RETURNED_LABEL : "환불"} · ${d.typeLabel}`,
           deltaFn: d.fnAmount,
-          statusLabel: DONATION_STATUS_LABEL.REFUNDED,
+          statusLabel: donationStatusLabel(d),
           tone: "refund",
           at: (d.refundedAt ?? d.donatedAt).slice(0, 16)
         })

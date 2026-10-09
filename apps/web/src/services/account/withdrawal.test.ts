@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { key, mockSessionModule, phoneToken, resetMockStores, signIn, signInAs, verifyMockIdentity } from "@/test/mockEnv";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { key, mockSessionModule, phoneToken, resetMockStores, settleSamplePlatformDonations, signIn, signInAs, verifyMockIdentity } from "@/test/mockEnv";
 
 /** `during` runs inside the next mock delay, i.e. while the server is "busy" between its checks. */
 const delay = vi.hoisted(() => ({ during: null as null | (() => void) }));
@@ -63,14 +63,16 @@ async function endChannelQuests() {
 }
 
 describe("회원 탈퇴", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     resetMockStores();
     signIn(["SUPPORTER"]);
+    // The sample PENDING 플랫폼 후원 gets its result first (the block itself is tested below).
+    await settleSamplePlatformDonations();
   });
 
   it("needs every consent for the amounts the member saw and the password, then forfeits and ends the account", async () => {
     const m = await load();
-    expect(await m.getWithdrawalInfo()).toEqual({ nickname: "홍길동", fnBalance: 5_000, creator: false, unsettledFn: 0, pendingRefunds: 0, pendingQuests: { sent: 0, received: 0 } });
+    expect(await m.getWithdrawalInfo()).toEqual({ nickname: "홍길동", fnBalance: 5_000, creator: false, unsettledFn: 0, pendingRefunds: 0, pendingQuests: { sent: 0, received: 0 }, pendingPlatformDonations: 0 });
 
     const base = supporter();
     expect(await m.withdrawAccount({ ...base, requestId: "short" })).toMatchObject({ status: "INVALID" });
@@ -494,5 +496,57 @@ describe("회원 탈퇴", () => {
     ).toEqual({ status: "CREATED" });
     expect(m.account.nickname).toBe("홍길동");
     expect(m.account.fnBalance).toBe(5_000);
+  });
+});
+
+describe("회원 탈퇴 · 결과를 확인 중인 플랫폼 후원 (2026-10-09 결정)", () => {
+  const soop = (n: number) => ({ platform: "SOOP", creatorId: "kim_stream", productId: "balloon-10", message: "응원해요", idempotencyKey: key(n) });
+
+  beforeEach(() => {
+    resetMockStores();
+    signIn(["SUPPORTER"]);
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("waits while the sample member's PENDING 플랫폼 후원 has no result", async () => {
+    const m = await load();
+    // The seed's FlexTV 박수 (TXN-SEED-B12) is still waiting for its platform result, past its 24 h.
+    expect(await m.getWithdrawalInfo()).toMatchObject({ pendingPlatformDonations: 1 });
+    expect(await m.withdrawAccount(supporter())).toEqual({ status: "PLATFORM_PENDING", count: 1 });
+    expect(m.isWithdrawn()).toBe(false);
+    const { resolvePendingDonation } = await import("@/services/admin/pendingDonations");
+    expect(await resolvePendingDonation(OP, { transactionId: "TXN-SEED-B12", outcome: "COMPLETED", note: "플랫폼 확인: 전송됨", requestId: key(80) })).toMatchObject({ status: "OK" });
+    expect(await m.getWithdrawalInfo()).toMatchObject({ pendingPlatformDonations: 0 });
+    expect(await m.withdrawAccount({ ...supporter(), requestId: key(2) })).toEqual({ status: "WITHDRAWN" });
+  });
+
+  it("counts a 플랫폼 후원 that went PENDING, also one that does while the password is checked", async () => {
+    const m = await load();
+    await settleSamplePlatformDonations();
+    const { soopAdapter } = await import("@/services/platformDonation/adapters");
+    const { requestPlatformDonation } = await import("@/services/platformDonation/platformDonation");
+    const { checkNow } = await import("@/services/platformDonation/pendingCore");
+    const { mockPlatform } = await import("@/services/platformDonation/mockPlatformStore");
+    m.account.fnBalance = 30_000;
+    vi.spyOn(soopAdapter, "sendDonation").mockRejectedValueOnce(new Error("ECONNRESET"));
+    const lookup = vi.spyOn(soopAdapter, "lookupDonation").mockResolvedValue({ status: "UNKNOWN" });
+    const held = await requestPlatformDonation(soop(70));
+    if (held.status !== "PENDING") throw new Error(held.status);
+    expect(await m.getWithdrawalInfo()).toMatchObject({ fnBalance: 20_000, pendingPlatformDonations: 1 });
+    expect(await m.withdrawAccount({ ...supporter(), fnBalance: 20_000 })).toEqual({ status: "PLATFORM_PENDING", count: 1 });
+    expect(m.isWithdrawn()).toBe(false);
+
+    // The platform answers: the hold is settled and nothing waits any more.
+    const tx = mockPlatform.transactions.find((t) => t.transactionId === held.transactionId)!;
+    lookup.mockResolvedValue({ status: "COMPLETED", externalTransactionId: "SP-LK-TEST" });
+    expect(await checkNow(tx)).toBe("COMPLETED");
+    expect(await m.getWithdrawalInfo()).toMatchObject({ pendingPlatformDonations: 0 });
+
+    // One that goes PENDING while the password is being checked (another tab) stops it too: checked with the write.
+    delay.during = () => {
+      mockPlatform.transactions.unshift({ ...tx, transactionId: "TXN-DURING", status: "PROCESSING", resolution: undefined, pending: { lastCheckAt: null } });
+    };
+    expect(await m.withdrawAccount({ ...supporter(3), fnBalance: 20_000 })).toEqual({ status: "PLATFORM_PENDING", count: 1 });
+    expect(m.isWithdrawn()).toBe(false);
   });
 });
