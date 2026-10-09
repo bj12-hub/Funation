@@ -108,6 +108,10 @@ Tips:
   deletes/unblocks are idempotent. Financial mutations use idempotency keys (charge, donate).
 - Amounts come from the server as FN; the browser only formats them. Unknown business rules are
   marked **TBD** in code comments and PRs — never invent fees, rates, limits, refunds or schedules.
+- Dates on screens are Korea time (service time = Asia/Seoul), whatever the viewer's zone: format them with
+  `lib/format.ts` `formatKst` · `formatKstDate` · `formatKstTime` · `kstParts` · `kstIsoString` (the same helpers in
+  `apps/admin`), never a bare `toLocale…String` or `getHours()`. `lib/dateFormatGuard.test.ts` in each app checks the
+  screen code (app, components, features, hooks).
 - Server actions that set cookies refresh the route; use `redirect()` for post-login screens.
 - Money paths (2026-10-06 audit, #226–#233): ids that records are looked up by use `randomUUID()`, never a
   timestamp; anything read before an `await` is read again after it, and the check and the write sit in one

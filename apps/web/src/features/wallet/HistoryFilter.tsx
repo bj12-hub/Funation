@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { PERIOD_LABEL, presetRange, type Period, type PeriodPreset } from "@/lib/period";
+import { kstToday, PERIOD_LABEL, presetRange, type Period, type PeriodPreset } from "@/lib/period";
 import styles from "./wallet.module.css";
 
 const PRESETS = Object.keys(PERIOD_LABEL) as PeriodPreset[];
@@ -45,7 +45,8 @@ export function HistoryFilter({
   const pickPreset = (p: PeriodPreset) => {
     setPreset(p);
     if (p !== "range") {
-      const range = presetRange(p);
+      // The dates the server uses for this preset: Korean days (server time), not the viewer's.
+      const range = presetRange(p, kstToday());
       setFrom(range.from);
       setTo(range.to);
     }

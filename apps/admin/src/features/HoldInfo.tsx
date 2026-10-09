@@ -1,7 +1,9 @@
+import { kstIsoString } from "@/lib/format";
 import type { AdminHold } from "@/types/adminApi";
 import styles from "./admin.module.css";
 
-const when = (iso: string) => iso.slice(0, 16).replace("T", " ");
+/** "2026-10-08 15:04" in Korea time. */
+const when = (iso: string) => kstIsoString(iso).slice(0, 16).replace("T", " ");
 
 /** The "보류" chip in a card head, next to the status chip (the status itself does not change while held). */
 export function HoldChip({ hold }: { hold: AdminHold | null }) {

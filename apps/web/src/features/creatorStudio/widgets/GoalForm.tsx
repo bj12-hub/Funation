@@ -11,8 +11,9 @@ import { GoalView } from "./GoalView";
 import gf from "./goalForm.module.css";
 import styles from "./widgets.module.css";
 
+/** Whole days left until the end of `to` in Korea time, as the overlay counts them (widgetOverlayCore.ts, server time). */
 function daysLeft(to: string) {
-  const end = new Date(`${to}T23:59:59`).getTime();
+  const end = new Date(`${to}T23:59:59.999+09:00`).getTime();
   if (Number.isNaN(end)) return null;
   return Math.max(0, Math.ceil((end - Date.now()) / 86_400_000));
 }

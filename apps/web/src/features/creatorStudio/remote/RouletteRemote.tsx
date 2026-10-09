@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { formatNumber } from "@/lib/format";
+import { formatKstTime, formatNumber } from "@/lib/format";
 import { finishRouletteSpin, revealRouletteSpin, setRouletteHidden, setRoulettePaused, setRouletteSwitch, startNextSpin } from "@/services/creator/rouletteRemote";
 import { ROULETTE_STATUS_LABEL, isBlankPrize, type RouletteControlResult, type RouletteRemoteRow, type RouletteRemoteView } from "@/services/donations/rouletteTypes";
 import styles from "../crew/crew.module.css";
 import remote from "./remote.module.css";
 
-const time = (iso: string) => new Date(iso).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+const time = (iso: string) => formatKstTime(iso, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 const resultText = (name: string) => (isBlankPrize(name) ? "꽝" : `${name} 당첨`);
 
 /**

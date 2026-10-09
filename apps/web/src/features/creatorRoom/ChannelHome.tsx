@@ -3,15 +3,15 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
-import { formatNumber } from "@/lib/format";
+import { formatNumber, kstParts } from "@/lib/format";
 import { createChannelPost, deleteChannelPost } from "@/services/creators/channelHome";
 import { CHANNEL_POST_MAX, CHANNEL_POSTS_PAGE, type ChannelPost, type ChannelPostsView, type ChannelRanking } from "@/services/creators/channelTypes";
 import { ModerationActions } from "../moderation/ModerationActions";
 import styles from "./channel.module.css";
 
 const when = (iso: string) => {
-  const d = new Date(iso);
-  return `${d.getMonth() + 1}.${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  const d = kstParts(iso);
+  return `${d.month}.${d.day} ${String(d.hour).padStart(2, "0")}:${String(d.minute).padStart(2, "0")}`;
 };
 
 /** 채널 홈 아래: 월간 후원 랭킹 + 커뮤니티 최근 글 (funnation channel home, code-first). */

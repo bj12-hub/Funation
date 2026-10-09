@@ -42,7 +42,18 @@ export function MemberActions({ id, suspended }: { id: string; suspended: boolea
       {!suspended && (
         <div className={styles.segment} role="radiogroup" aria-label="정지 기간">
           {SUSPEND_DAYS.map((d) => (
-            <button key={String(d)} type="button" role="radio" aria-checked={days === d} className={styles.segmentItem} onClick={() => setDays(d)}>
+            <button
+              key={String(d)}
+              type="button"
+              role="radio"
+              aria-checked={days === d}
+              className={styles.segmentItem}
+              onClick={() => {
+                setDays(d);
+                // Another period is another request (the site refuses a reused id with a different period or reason).
+                if (d !== days) requestId.current = null;
+              }}
+            >
               {d === null ? "영구" : `${d}일`}
             </button>
           ))}
@@ -55,7 +66,11 @@ export function MemberActions({ id, suspended }: { id: string; suspended: boolea
         placeholder={suspended ? "해제 사유 (필수)" : "정지 사유 (필수, 회원에게 안내될 수 있어요)"}
         aria-label={suspended ? "해제 사유" : "정지 사유"}
         value={reason}
-        onChange={(e) => setReason(e.target.value)}
+        onChange={(e) => {
+          setReason(e.target.value);
+          // Another reason is another request, as in FnSettlementAction and HoldControl.
+          requestId.current = null;
+        }}
       />
       {suspended ? (
         <button type="button" className={styles.button} disabled={pending || reason.trim().length < SUSPEND_REASON.min} onClick={() => run(() => restoreMember({ id, reason }), "정지를 해제했어요.")}>

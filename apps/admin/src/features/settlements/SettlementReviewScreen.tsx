@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatNumber } from "@/lib/format";
+import { formatNumber, kstIsoString } from "@/lib/format";
 import type { AdminSettlementView, SettlementFilter, SettlementStatus } from "@/types/adminApi";
 import styles from "../admin.module.css";
 import { HoldControl } from "../HoldControl";
@@ -10,7 +10,8 @@ import { SettlementPayment } from "./SettlementPayment";
 
 const LABEL: Record<SettlementStatus, string> = { PENDING: "심사 대기", APPROVED: "승인", PAID: "지급 완료", REJECTED: "반려", FORFEITED: "탈퇴 소멸" };
 const CHIP: Record<SettlementStatus, string> = { PENDING: styles.chipWarn, APPROVED: styles.chipOk, PAID: styles.chipOk, REJECTED: styles.chipBad, FORFEITED: styles.chipNeutral };
-const when = (iso: string) => iso.slice(0, 16).replace("T", " ");
+/** "2026-10-08 15:04" in Korea time. */
+const when = (iso: string) => kstIsoString(iso).slice(0, 16).replace("T", " ");
 
 /**
  * 정산 심사 — code-first. Route `/settlements` (`?status=`, `HELD` = 보류). 승인 → 지급 완료 (2026-10-08 결정), also for a
@@ -49,7 +50,7 @@ export function SettlementReviewScreen({ view, status }: { view: AdminSettlement
               ["예금주", reg.holder],
               ["계좌", `${reg.bankName} ${reg.accountMasked}`],
               ["정산 코드", reg.code],
-              ["등록일", reg.submittedAt.slice(0, 10)]
+              ["등록일", kstIsoString(reg.submittedAt).slice(0, 10)]
             ].map(([k, v]) => (
               <div key={k}>
                 <dt>{k}</dt>

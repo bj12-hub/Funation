@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
+import { formatKst } from "@/lib/format";
 import { addComment, deleteComment, deletePost } from "@/services/community/community";
 import { COMMENT_MAX, categoryLabel, type PostDetail } from "@/services/community/communityTypes";
 import { ModerationActions } from "../moderation/ModerationActions";
 import { GENERIC_ERROR } from "../mypage/editors/shared";
 import styles from "./community.module.css";
 
-const when = (iso: string) => new Date(iso).toLocaleString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+const when = (iso: string) => formatKst(iso, { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 
 /** 게시글 상세 + 댓글 — code-first (no Figma frame). Route `/community/[id]`. */
 export function PostScreen({ post, signedIn }: { post: PostDetail; signedIn: boolean }) {
