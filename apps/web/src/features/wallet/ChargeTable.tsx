@@ -18,6 +18,8 @@ import {
   REFUND_TYPE_LABEL,
   REFUND_WITHDRAWAL_DAYS,
   describeRefund,
+  refundChangedNote,
+  refundQuoteChangedText,
   type RefundQuote
 } from "@/services/wallet/refundPolicy";
 import { CHARGE_STATUS_LABEL, REFUND_REASON_MAX, refundStatusText, type ChargeRecord, type ChargeRefund, type ChargeStatus } from "@/services/wallet/walletTypes";
@@ -192,6 +194,7 @@ function RefundStatus({ refund }: { refund: ChargeRefund }) {
     );
   }
   const approved = refund.status === "APPROVED";
+  const changedNote = refund.requestedAmounts ? refundChangedNote(refund.requestedAmounts, refund.amounts) : null;
   return (
     <div className={styles.refundStatus} role="status">
       <p className={styles.refundDone}>
@@ -202,7 +205,8 @@ function RefundStatus({ refund }: { refund: ChargeRefund }) {
       <p className={styles.refundNote}>
         {approved ? "환불" : "요청 내용"}: {describeRefund(refund.amounts)}
       </p>
-      {refund.requestedAmounts && <p className={styles.refundNote}>요청 후 FN을 사용해 환불 금액이 바뀌었어요 (요청 때: {describeRefund(refund.requestedAmounts)}).</p>}
+      {/* Approval used other amounts than the request: which way, by direction (2026-10-09 결정). */}
+      {changedNote && <p className={styles.refundNote}>{changedNote}</p>}
       <p className={styles.refundNote}>{approved ? `원래 결제 수단으로 환불돼요. ${REFUND_METHOD_NOTE}돼요.` : `${REFUND_PROCESSING_TARGET}를 목표로 해요.`}</p>
     </div>
   );
@@ -211,7 +215,8 @@ function RefundStatus({ refund }: { refund: ChargeRefund }) {
 /**
  * 환불 요청 (code-first, no Figma frame). Opening the form asks the server for this charge's outcome under the 환불 정책
  * 기본값 (LOADING), shows it with the policy summary, then files the request with the outcome the member saw
- * (PROCESSING → SUCCESS). If FN were used in between, the server answers with the new outcome instead (ERROR line).
+ * (PROCESSING → SUCCESS). If FN were used (or came back) in between, the server answers with the new outcome instead
+ * (ERROR line, worded by direction).
  */
 function RefundSection({ charge }: { charge: ChargeRecord }) {
   const router = useRouter();
@@ -260,7 +265,8 @@ function RefundSection({ charge }: { charge: ChargeRecord }) {
         else if (res.status === "UNAUTHORIZED") router.push("/login?next=/wallet/charges");
         else if (res.status === "CHANGED" || res.status === "NOT_REFUNDABLE") {
           setQuote(res.quote);
-          setError("그 사이 FN을 사용해 환불 내용이 바뀌었어요. 바뀐 내용을 확인해 주세요.");
+          // Which way it moved from the quote the member saw (2026-10-09 결정): FN used, or FN that came back.
+          setError(refundQuoteChangedText(quote, res.quote));
         } else showRequest(res);
       } catch {
         setError("요청하지 못했어요. 잠시 후 다시 시도해 주세요.");

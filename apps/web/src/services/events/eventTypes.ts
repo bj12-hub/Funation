@@ -36,8 +36,21 @@ export type EventReward = { kind: "FREE_FN"; amountFn: number } | { kind: "DRAW"
 export const EVENT_REWARD_LIMITS = { amountMaxFn: 10_000_000, winnersMax: 1_000, prizeMin: 2, prizeMax: 100 } as const;
 /** After the event: 보상 지급 (FREE_FN) or 당첨자 발표 with the winners' masked nicknames (DRAW). */
 export type EventOutcome = { kind: "FREE_FN"; at: string } | { kind: "DRAW"; at: string; winners: string[] };
-/** The signed-in viewer's own result once the outcome is out (they joined). */
-export type MyEventResult = { kind: "PAID"; amountFn: number } | { kind: "WON" } | { kind: "NOT_WON" };
+/**
+ * The signed-in viewer's own result once the outcome is out (they joined). UNPAID (2026-10-09 결정): the person had
+ * withdrawn when the operator paid or drew, so they were skipped as 지급 불가 — seen from their 재가입 account.
+ */
+export type MyEventResult = { kind: "PAID"; amountFn: number } | { kind: "WON" } | { kind: "NOT_WON" } | { kind: "UNPAID" };
+
+/** The viewer's own result line on `/events/[id]` (2026-10-08 · 2026-10-09 결정). */
+export const myEventResultText = (r: MyEventResult) =>
+  r.kind === "PAID"
+    ? `보상 ${r.amountFn.toLocaleString("ko-KR")} FN을 받았어요`
+    : r.kind === "WON"
+      ? "당첨됐어요"
+      : r.kind === "UNPAID"
+        ? "탈퇴한 계정으로 참여해 보상 대상에서 빠졌어요"
+        : "아쉽지만 당첨되지 않았어요";
 
 /** "참여자 전원에게 무상 FN 1,000 FN을 드려요." / "참여자 중 3명을 추첨해 경품을 드려요." */
 export const eventRewardText = (r: EventReward) =>

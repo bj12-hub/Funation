@@ -95,7 +95,7 @@ describe("자동엑셀", () => {
     await simulateDonation({ broadcastId: id, requestId: key(1), amount: 5_000, unit: "KRW", message: "길동" });
     recordBroadcastExternal("studio", { platform: "CHZZK", donor: "치즈러버", message: "길동 화이팅", value: 3_000, unit: "CHZZK_CHEESE" });
     recordBroadcastExternal("studio", { platform: "YOUTUBE", donor: "x", message: "길동", value: 5, unit: "EUR" }); // unknown unit: not listed
-    recordBroadcastDonation("studio", { donor: "홍길동", message: "그냥", fnAmount: 2_000 });
+    recordBroadcastDonation("studio", { donor: "홍길동", shownDonor: "홍길동", message: "그냥", fnAmount: 2_000 });
     const v = await view();
     expect(v.feed!.entries).toHaveLength(3);
     const gil = v.feed!.summary.find((r) => r.memberId === "cm-s1")!;

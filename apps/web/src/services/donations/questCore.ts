@@ -46,9 +46,11 @@ export type QuestRecord = {
   refundedFn: number;
   /**
    * What SUCCESS hands to the crew side (missing on the studio's sample quests): the member it was sent for (크루 멤버
-   * 지정), the crew broadcast live when it was sent, and the text for the 크루 후원 list / 후원 리스트.
+   * 지정), the crew broadcast live when it was sent, the text for the 크루 후원 list / 후원 리스트, and `shownDonor` —
+   * the name on stream, as the creator's 대체 메시지 rules made it when the quest was sent (its 퀘스트 도착 alert;
+   * 2026-10-09 결정), so a 금지어 changed before the result does not change it.
    */
-  crew?: { memberId: string | null; broadcastId: string | null; message: string };
+  crew?: { memberId: string | null; broadcastId: string | null; message: string; shownDonor: string };
 };
 
 const STATUS_CYCLE: QuestStatus[] = ["SUCCESS", "SUCCESS", "FAILED"];
@@ -80,8 +82,9 @@ function seedQuests(now = Date.now()): QuestRecord[] {
   });
 }
 
-const g = globalThis as typeof globalThis & { __ssumnationMockQuestsV1?: { items: QuestRecord[] } };
-export const mockQuests = (g.__ssumnationMockQuestsV1 ??= { items: seedQuests() });
+// V2: a quest's crew hand-off carries `shownDonor` (2026-10-09 결정).
+const g = globalThis as typeof globalThis & { __ssumnationMockQuestsV2?: { items: QuestRecord[] } };
+export const mockQuests = (g.__ssumnationMockQuestsV2 ??= { items: seedQuests() });
 
 export const findQuest = (id: unknown) => (typeof id === "string" ? (mockQuests.items.find((q) => q.id === id) ?? null) : null);
 
@@ -118,9 +121,9 @@ function succeed(q: QuestRecord) {
   settleQuestAlerts(q.id, q.decidedAt ?? new Date().toISOString());
   const crew = q.crew;
   if (!crew) return;
-  const shown = { donor: q.donor, donorId: q.donorId, message: crew.message };
+  const shown = { donor: q.donor, donorId: q.donorId, message: crew.message, shownDonor: crew.shownDonor };
   if (crew.memberId) recordAttribution(q.id, q.channelId, crew.memberId, q.amount, shown);
-  else if (crew.broadcastId) recordBroadcastDonation(q.channelId, { donor: q.donor, message: crew.message, fnAmount: q.amount }, crew.broadcastId);
+  else if (crew.broadcastId) recordBroadcastDonation(q.channelId, { donor: q.donor, shownDonor: crew.shownDonor, message: crew.message, fnAmount: q.amount }, crew.broadcastId);
 }
 
 /**

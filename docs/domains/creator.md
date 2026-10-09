@@ -77,6 +77,11 @@ Points are display scores, not money.
 - 방송 시작 · 멤버 추가 carry a request id (one per intended action): a double click or retry returns SAVED instead of
   a second broadcast or member. 방송 종료 is idempotent (a second call keeps the first 종료 시각 · 최종 순위). The
   "one live broadcast" and member limit / unique name checks run in the same step as the write.
+- Donor names (2026-10-09 결정): 후원 리스트 entries and member attributions keep the name as sent (`donor`, for the
+  creator's 방송 운영 후원 리스트 and 받은 후원 › 크루 후원) and the name for the stream (`shownDonor`: a Ssumnation
+  donation's name after the creator's 대체 메시지 rules — 익명 or the 대체 문구 — fixed when it was sent, so a later 금지어
+  change does not rewrite it; see [donation](./donation.md)). Anything on stream that names a donor from these records
+  uses `shownDonor`; today none does — the OBS crew views and the 크루 순위 widget show member names only.
 - The OBS crew overlay (`/overlay/crew/[key]`, key only) gets the 콘텐츠 시나리오 부 이름 · 예정 시간, never the
   operator's 메모 (nor 보정 logs or 팬 메시지). It carries `serverNow`: the 강탈 card and 시나리오 경과 time run on the
   server clock, not the OBS PC's.

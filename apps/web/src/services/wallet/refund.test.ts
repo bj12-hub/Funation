@@ -206,11 +206,42 @@ describe("충전 환불 정책 기본값", () => {
     const seen = await m.quote(id, on(2));
     await m.donate(1_000, on(2, 13)); // another tab
     vi.setSystemTime(on(2, 14));
-    expect(await m.requestChargeRefund({ chargeId: id, expectedGrossFn: seen.grossFn, expectedNetFn: seen.netFn })).toEqual({
+    const res = await m.requestChargeRefund({ chargeId: id, expectedGrossFn: seen.grossFn, expectedNetFn: seen.netFn });
+    expect(res).toEqual({
       status: "CHANGED",
       quote: { type: "PARTIAL", chargeFn: 10_000, paidKrw: 11_000, usedFn: 1_000, withinPeriod: true, grossFn: 9_000, feeFn: 900, netFn: 8_100, refundKrw: 8_910 }
     });
     expect(m.mockRefunds.requests).toEqual([]);
+    // The member's error line (환불 요청 form): FN were used in between.
+    const { refundQuoteChangedText } = await import("./refundPolicy");
+    if (res.status !== "CHANGED") throw new Error(res.status);
+    expect(refundQuoteChangedText(seen, res.quote)).toBe("그 사이 FN을 사용해 환불 내용이 바뀌었어요. 바뀐 내용을 확인해 주세요.");
+  });
+
+  /** 2026-10-09 결정: FN that came back between the quote and the request say so, not "FN을 사용해". */
+  it("words the request-time change by direction: FN that came back in between raise the refund", async () => {
+    const m = await setup();
+    const { decideMyQuest } = await import("@/services/donations/quests");
+    const { requestDonation } = await import("@/services/donations/donate");
+    const { refundQuoteChangedText } = await import("./refundPolicy");
+    const id = await m.charge(10_000, on(1, 15));
+    vi.setSystemTime(on(2, 10));
+    const sent = await requestDonation({ creatorId: "c1", hideProfile: false, type: "QUEST", title: "노래 한 곡", successReward: 4_000, timeLimitSec: 600, creatorDecides: false, termsAgreed: true, idempotencyKey: key(++n) });
+    if (sent.status !== "COMPLETED") throw new Error(sent.status);
+    // The member opens the form while the quest holds 4,000 FN of the charge …
+    const seen = await m.quote(id, on(2, 11));
+    expect(seen).toMatchObject({ type: "PARTIAL", grossFn: 6_000, netFn: 5_400 });
+    // … the quest fails in another tab and its FN go back, then the member presses 환불 요청.
+    vi.setSystemTime(on(2, 12));
+    expect(await decideMyQuest({ id: sent.donationId, outcome: "FAILED" })).toMatchObject({ status: "OK", refundedFn: 4_000 });
+    vi.setSystemTime(on(2, 13));
+    const res = await m.requestChargeRefund({ chargeId: id, expectedGrossFn: seen.grossFn, expectedNetFn: seen.netFn });
+    if (res.status !== "CHANGED") throw new Error(res.status);
+    expect(res.quote).toMatchObject({ type: "FULL_CANCEL", grossFn: 10_000, netFn: 10_000 });
+    expect(m.mockRefunds.requests).toEqual([]);
+    expect(refundQuoteChangedText(seen, res.quote)).toBe("그 사이 FN이 돌아와 환불 내용이 바뀌었어요. 바뀐 내용을 확인해 주세요.");
+    // Nothing left to refund is always the way down.
+    expect(refundQuoteChangedText(seen, { grossFn: 0, netFn: 0 })).toBe("그 사이 FN을 사용해 환불 내용이 바뀌었어요. 바뀐 내용을 확인해 주세요.");
   });
 
   it("recomputes at approval: FN used since the request lower the refund, the console's old amount is refused, only the unused FN are taken back", async () => {
@@ -230,8 +261,10 @@ describe("충전 환불 정책 기본값", () => {
 
     // Approving the amount of the request is refused and says what it is now; nothing moves.
     const stale = await m.decideRefund(OP, { chargeId: id, decision: "APPROVE", note: "정상 환불", expectedGrossFn: 10_000, expectedNetFn: 10_000 });
-    expect(stale).toEqual({ status: "INVALID", message: expect.stringContaining("환불 금액이 바뀌었어요") });
-    expect(stale.status === "INVALID" && stale.message).toContain("회수 6,000 FN · 수수료 600 FN · 환불 5,400 FN · 5,940원");
+    expect(stale).toEqual({
+      status: "INVALID",
+      message: "요청 후 FN 사용으로 환불 금액이 바뀌었어요. 지금 기준(수수료 공제 후 환불 · 회수 6,000 FN · 수수료 600 FN · 환불 5,400 FN · 5,940원)으로만 승인할 수 있어요. 확인한 뒤 다시 승인해 주세요."
+    });
     expect(await m.decideRefund(OP, { chargeId: id, decision: "APPROVE", note: "정상 환불" })).toMatchObject({ status: "INVALID" }); // no amount confirmed
     expect(m.account.fnBalance).toBe(6_000);
 
@@ -245,12 +278,58 @@ describe("충전 환불 정책 기본값", () => {
     ]);
 
     signIn(["SUPPORTER"]);
-    expect(m.listChargeRecords().find((c) => c.id === id)!.refund).toMatchObject({
+    const refund = m.listChargeRecords().find((c) => c.id === id)!.refund!;
+    expect(refund).toMatchObject({
       status: "APPROVED",
       amounts: { type: "PARTIAL", grossFn: 6_000, feeFn: 600, netFn: 5_400, refundKrw: 5_940 },
       requestedAmounts: { type: "FULL_CANCEL", grossFn: 10_000, feeFn: 0, netFn: 10_000, refundKrw: 11_000 }
     });
+    // The member's note (FN 충전내역 상세): it went down because FN were used.
+    const { refundChangedNote } = await import("./refundPolicy");
+    expect(refundChangedNote(refund.requestedAmounts!, refund.amounts)).toBe("요청 후 FN을 사용해 환불 금액이 바뀌었어요 (요청 때: 전액 취소 · 10,000 FN · 11,000원).");
     expect((await m.getWalletOverview({ kind: "REFUND", period: "all" }))!.entries).toContainEqual(expect.objectContaining({ id: `${id}-refund`, deltaFn: -6_000 }));
+  });
+
+  /** 2026-10-09 결정: FN that came back after the request (퀘스트 실패 · 취소, 플랫폼 FN 반환) raise the refund — said so. */
+  it("says the refund grew when FN came back after the request: the console's approval error and the member's note", async () => {
+    const m = await setup();
+    const { decideMyQuest } = await import("@/services/donations/quests");
+    const { requestDonation } = await import("@/services/donations/donate");
+    const id = await m.charge(10_000, on(1, 15));
+    // 10/2 10:00 a 퀘스트 후원 holds 4,000 FN of the charge; the member asks for a refund of the 6,000 left.
+    vi.setSystemTime(on(2, 10));
+    const sent = await requestDonation({ creatorId: "c1", hideProfile: false, type: "QUEST", title: "노래 한 곡", successReward: 4_000, timeLimitSec: 600, creatorDecides: false, termsAgreed: true, idempotencyKey: key(++n) });
+    if (sent.status !== "COMPLETED") throw new Error(sent.status);
+    vi.setSystemTime(on(2, 12));
+    expect(await m.requestChargeRefund({ chargeId: id, expectedGrossFn: 6_000, expectedNetFn: 5_400 })).toMatchObject({ amounts: { type: "PARTIAL", grossFn: 6_000, netFn: 5_400 } });
+    // 10/3 the quest fails: its 4,000 FN go back to the charge, so all 10,000 are unused again (청약철회 by the request date).
+    vi.setSystemTime(on(3));
+    expect(await decideMyQuest({ id: sent.donationId, outcome: "FAILED" })).toMatchObject({ status: "OK", refundedFn: 4_000 });
+
+    signIn(["ADMIN"]);
+    vi.setSystemTime(on(4));
+    expect((await m.getPaymentsView())!.refunds[0]).toMatchObject({
+      requested: { type: "PARTIAL", grossFn: 6_000, feeFn: 600, netFn: 5_400, refundKrw: 5_940 },
+      current: { type: "FULL_CANCEL", grossFn: 10_000, feeFn: 0, netFn: 10_000, refundKrw: 11_000 }
+    });
+    // A console still showing the request's amount: the error names FN coming back, not FN used.
+    expect(await m.decideRefund(OP, { chargeId: id, decision: "APPROVE", note: "정상 환불", expectedGrossFn: 6_000, expectedNetFn: 5_400 })).toEqual({
+      status: "INVALID",
+      message: "요청 후 FN이 돌아와 환불 금액이 바뀌었어요. 지금 기준(전액 취소 · 회수 10,000 FN · 수수료 0 FN · 환불 10,000 FN · 11,000원)으로만 승인할 수 있어요. 확인한 뒤 다시 승인해 주세요."
+    });
+    expect(m.account.fnBalance).toBe(10_000);
+    expect(await m.decideRefund(OP, { chargeId: id, decision: "APPROVE", note: "정상 환불", expectedGrossFn: 10_000, expectedNetFn: 10_000 })).toEqual({ status: "OK" });
+    expect(m.account.fnBalance).toBe(0);
+
+    signIn(["SUPPORTER"]);
+    const refund = m.listChargeRecords().find((c) => c.id === id)!.refund!;
+    expect(refund).toMatchObject({ amounts: { type: "FULL_CANCEL", netFn: 10_000 }, requestedAmounts: { type: "PARTIAL", netFn: 5_400 } });
+    const { refundChangedNote } = await import("./refundPolicy");
+    expect(refundChangedNote(refund.requestedAmounts!, refund.amounts)).toBe(
+      "요청 후 FN이 돌아와 환불 금액이 바뀌었어요 (요청 때: 수수료 공제 후 환불 · 5,400 FN · 5,940원 (남은 6,000 FN − 수수료 600 FN))."
+    );
+    // Equal amounts: no note, as before.
+    expect(refundChangedNote(refund.amounts, { ...refund.amounts })).toBeNull();
   });
 
   it("keeps the 청약철회 period of the request while it waits for an operator", async () => {

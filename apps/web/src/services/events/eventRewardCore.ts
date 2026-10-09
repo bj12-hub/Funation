@@ -92,11 +92,14 @@ export function siteOutcomeOf(eventId: string): EventOutcome | null {
 
 /**
  * The viewer's own result: 보상 n FN을 받았어요 only on the account that was credited (a 재가입 account did not get it);
- * 당첨됐어요 / 아쉽지만 당첨되지 않았어요 for the person who joined.
+ * 당첨됐어요 / 아쉽지만 당첨되지 않았어요 for the person who joined. A person skipped as 지급 불가 (withdrawn when the
+ * operator paid or drew) who is back with a 재가입 account sees UNPAID instead (2026-10-09 결정) — after a draw as well
+ * as after a 무상 FN payout, where they saw nothing before. No notification goes with it.
  */
 export function myResultOf(eventId: string, person: string | null, joined: boolean): MyEventResult | null {
   const r = resultOf(eventId);
   if (!r || !person || !joined) return null;
+  if (r.unpaid.some((u) => u.person === person)) return { kind: "UNPAID" };
   if (r.kind === "DRAW") return r.winners.some((w) => w.person === person) ? { kind: "WON" } : { kind: "NOT_WON" };
   const paid = !isWithdrawn() ? r.paid.find((p) => p.person === person && p.account === accountSince()) : undefined;
   return paid ? { kind: "PAID", amountFn: paid.amountFn } : null;
