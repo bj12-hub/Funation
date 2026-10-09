@@ -99,6 +99,8 @@ Display 24 Bold · Title 18 Bold · Subtitle 15 Medium · Body 14 · Body Strong
 | 거래 | AD08 | 환불 요청 | `/payments?tab=refunds` | `20:1301` |
 | 거래 | AD08b | 환불 요청 · 환불 정책 계산 (요청 때 계산 / 지금 기준 · 환불 금액(원) · 요청 때와 같아요, 정책 안내, 기본값, code-first) | `/payments?tab=refunds` | `34:1771` |
 | 거래 | AD08c | 환불 요청 · 보류 ("보류 N" 묶음, 보류 메모 · 보류 해제, 2026-10-08 결정, code-first) | `/payments?tab=refunds` | `32:1483` |
+| 거래 | AD08d | 환불 요청 · 지금 기준 " · 요청 후 FN이 돌아와 늘어남" (퀘스트 실패 · 취소, 플랫폼 FN 반환, 2026-10-09 결정, code-first) | `/payments?tab=refunds` | `37:1889` |
+| 거래 | AD08e | 환불 요청 · 지금 기준 " · 요청 후 FN 사용으로 줄어듦" (2026-10-09 결정, code-first) | `/payments?tab=refunds` | `37:2005` |
 | 거래 | AD10 | 정산 심사 | `/settlements` | `18:1095` |
 | 거래 | AD10b | 정산 심사 · 승인 (이체 참조번호 · "지급 완료 처리" + 보류 메모 · "보류", 2026-10-08 결정, code-first — 카드 2개만) | `/settlements?status=APPROVED` | `32:1348` |
 | 거래 | AD10e | 정산 심사 · 보류 ("보류 N" 탭, 보류 · 원래 상태 칩, 보류 메모 · 보류 해제, 2026-10-08 결정, code-first) | `/settlements?status=HELD` | `32:1231` |
