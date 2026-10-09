@@ -101,13 +101,17 @@ describe("약관 · 정책 문서 (초안 본문, 2026-10-08)", () => {
     }
   });
 
-  it("lists every case that holds a 탈퇴 in the service terms and the refund policy (2026-10-06 · 10-08 · 10-09 결정)", () => {
+  it("lists every case that holds a 탈퇴 in the service terms and the refund policy (2026-10-06 · 10-08 · 10-09 · 10-10 결정)", () => {
     const clause = (slug: "service" | "refund", title: string) => TERMS_DOCS[slug].clauses.find((c) => c.title === title)!.body.flatMap(blockTexts).join("\n");
-    // services/account/withdrawal.ts refuses REFUND_PENDING, QUEST_PENDING and PLATFORM_PENDING.
+    // services/account/withdrawal.ts refuses REFUND_PENDING, QUEST_PENDING, PLATFORM_PENDING, CHARGE_PENDING and
+    // ATTENDANCE_PENDING.
     for (const text of [clause("service", "회원 탈퇴와 이용계약 해지"), clause("refund", "회원 탈퇴와 남은 FN")]) {
       expect(text).toContain("환불 요청");
       expect(text).toContain("퀘스트 후원");
       expect(text).toContain("처리 결과를 확인 중인 SOOP · FlexTV 플랫폼 후원");
+      expect(text).toContain("처리 중인 FN 충전");
+      expect(text).toContain("결제 확인을 기다리는 충전 포함");
+      expect(text).toContain("지급 중인 출석 보상");
     }
   });
 

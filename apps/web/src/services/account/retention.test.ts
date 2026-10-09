@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { key, mockSessionModule, resetMockStores, settleSamplePlatformDonations, signIn, signInAs } from "@/test/mockEnv";
+import { key, mockSessionModule, resetMockStores, settleSampleCharges, settleSamplePlatformDonations, signIn, signInAs } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
@@ -77,6 +77,7 @@ type M = Awaited<ReturnType<typeof load>>;
 /** The sample supporter withdraws at the current (fake) time with the right consents and password. */
 async function withdraw(m: M, n = 1, password = PASSWORD) {
   await settleSamplePlatformDonations(); // withdrawal waits while a 플랫폼 후원 is PENDING (2026-10-09 결정)
+  await settleSampleCharges(); // and while a charge is in progress (2026-10-10 결정)
   const r = await m.withdrawAccount({ requestId: key(900 + n), confirmed: true, forfeitAgreed: true, fnBalance: m.account.fnBalance, unsettledFn: 0, password });
   expect(r).toEqual({ status: "WITHDRAWN" });
 }

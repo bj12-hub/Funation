@@ -15,6 +15,10 @@ export type SendResult = { ok: true; externalTransactionId: string } | { ok: fal
  * server re-checks for 24 hours). UNKNOWN = the platform has no final result for it yet.
  */
 export type LookupResult = { status: "COMPLETED"; externalTransactionId: string } | { status: "FAILED"; reason: "API_ERROR" | "UNAVAILABLE" } | { status: "UNKNOWN" };
+/**
+ * `idempotencyKey`: the key the platform was given with the send — derived from the member and the member's key on the
+ * server (./platformKey.ts), never the member's own. Null for sample rows.
+ */
 export type LookupRequest = { creatorId: string; idempotencyKey: string | null; transactionId: string };
 
 export interface PlatformAdapter {
@@ -23,6 +27,7 @@ export interface PlatformAdapter {
   getCreator(id: string): Promise<PlatformCreator | null>;
   listProducts(creatorId: string): Promise<PlatformProduct[]>;
   popularCreators(): Promise<PlatformCreator[]>;
+  /** `idempotencyKey`: Ssumnation's key for this donation at the platform (./platformKey.ts), not the member's own. */
   sendDonation(req: { creatorId: string; productId: string; amountFn: number; message: string; idempotencyKey: string }): Promise<SendResult>;
   /** Status of an earlier send, by its Idempotency-Key and Ssumnation Transaction ID (whether each platform has one: TBD). */
   lookupDonation(req: LookupRequest): Promise<LookupResult>;

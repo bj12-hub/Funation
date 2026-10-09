@@ -180,6 +180,11 @@ export type AdminChargeRow = {
   memberName: string;
   /** The member withdrew: the original nickname is shown with a 탈퇴 badge (2026-10-08 결정). */
   memberWithdrawn: boolean;
+  /**
+   * 2026-10-10 결정: the payment completed after the member withdrew, so its FN were credited to nobody (완료 · FN 미지급
+   * (탈퇴)). What happens to the KRW paid (PG 취소 · 환불) is TBD. Absent from a site older than this field: credited.
+   */
+  fnNotCredited?: boolean;
 };
 
 export type AdminRefund = {

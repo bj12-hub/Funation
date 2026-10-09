@@ -2,6 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 import { toDateString } from "@/lib/period";
+import { memberKeyOf } from "@/lib/records";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS, currentPersonKey, mockAccount } from "@/services/account/mockStore";
@@ -49,7 +50,7 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
   // No await from the lookup to the registration: two copies of one request cannot both pass. Keys belong to the
   // member: another member's key never returns (or blocks) their result.
   const fingerprint = fingerprintOf(v);
-  const memberKey = `${session.userId}:${idempotencyKey}`;
+  const memberKey = memberKeyOf(session.userId, idempotencyKey);
   const previous = mockWallet.donationIdempotency[memberKey];
   if (previous) {
     if (previous.fingerprint !== fingerprint) return { status: "CONFLICT" };
@@ -60,7 +61,8 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
   const request = parse(v, catalog);
   if (!request) return { status: "INVALID" };
   if ("refused" in request) return { status: "INVALID", message: request.refused };
-  mockWallet.donationIdempotency[memberKey] = { fingerprint, result: null };
+  // Held by reference: a 재가입 during the await moves the entry to the withdrawn account's own id (account/rejoin.ts).
+  const entry: { fingerprint: string; result: DonationResult | null } = (mockWallet.donationIdempotency[memberKey] = { fingerprint, result: null });
 
   await mockDelay(600);
   // From here to the debit nothing awaits: the checks and the write see the same state.
@@ -166,7 +168,7 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
     notify({ kind: "DONATION_SENT", title: "후원을 보냈어요", body: `${creator.name}님께 ${request.amount.toLocaleString("ko-KR")} FN`, href: "/wallet/donations", dedupeKey: `donation:${idempotencyKey}` });
     result = { status: "COMPLETED", donationId, fnAmount: request.amount, balance: mockAccount.fnBalance };
   }
-  mockWallet.donationIdempotency[memberKey].result = result;
+  entry.result = result;
   return result;
 }
 

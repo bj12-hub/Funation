@@ -259,6 +259,11 @@ const METHODS: Record<MethodKey, { emoji: string; label: string; detail: string 
   DEPOSIT: { emoji: "🏦", label: "무통장입금", detail: null }
 };
 
+/**
+ * The first row (ch1, 신용카드 10,000 FN) is 처리중: its payment waits for confirmation, which the mock never gives
+ * (chargeCore.ts), so it keeps the sample member from withdrawing (2026-10-10 결정) — tests confirm it first
+ * (test/mockEnv.ts `settleSampleCharges`).
+ */
 const CHARGE_ROWS: [number, string, MethodKey, number, ChargeStatus][] = [
   [1, "14:23:05", "CARD", 10_000, "PROCESSING"],
   [4, "09:11:42", "KAKAO", 30_000, "COMPLETED"],
@@ -336,11 +341,14 @@ const seedPurged = () => isPurged(null, "PAYMENT");
 function seedCharges(): ChargeRecord[] {
   if (seedPurged()) return [];
   const dates = sampleDates().charges;
-  return CHARGE_ROWS.map(([, , method, fnAmount, status], i) => {
+  return CHARGE_ROWS.map(([, , method, fnAmount, sampleStatus], i) => {
     const chargedAt = dates[i];
     const m = METHODS[method];
+    const id = `ch${i + 1}`;
+    // A 처리중 sample charge shows its 결제 확인 result once it has one (chargeCore.confirmChargePayment).
+    const status = sampleStatus === "PROCESSING" && Object.hasOwn(mockWallet.seedChargeResults, id) ? mockWallet.seedChargeResults[id].status : sampleStatus;
     return {
-      id: `ch${i + 1}`,
+      id,
       chargedAt,
       methodEmoji: m.emoji,
       methodLabel: m.label,

@@ -16,6 +16,25 @@ type IdempotencyEntry<R> = {
   result: R | null;
 };
 
+/**
+ * 결제 확인 result of a sample (seed) charge that was 처리중 (./chargeCore.ts `confirmChargePayment`): the sample rows are
+ * generated, so their result is kept here. `fnCredited`: false when the payment completed after the account withdrew —
+ * nothing was credited (2026-10-10 결정). `at`: local "YYYY-MM-DD HH:mm:ss".
+ */
+export type SeedChargeResult = { status: "COMPLETED" | "CANCELLED"; at: string; fnCredited: boolean };
+
+/**
+ * A charge whose payment completed after the account that made it withdrew (2026-10-10 결정): paid, but its FN were never
+ * credited — not to the withdrawn account, not to a 재가입 account. Kept apart from `charges` (no member's history, refund
+ * or balance ever reads it) with the account it was for, for the console's 결제 · 환불 (완료 · FN 미지급). What happens to
+ * the KRW paid (PG 취소 · 환불) is TBD. `chargedAt`: when it was requested; `completedAt`: when the payment completed
+ * (local "YYYY-MM-DD HH:mm:ss").
+ */
+export type UncreditedCharge = Pick<ChargeRecord, "id" | "chargedAt" | "methodLabel" | "fnAmount" | "paidAmount" | "transactionId"> & {
+  completedAt: string;
+  account: string | null;
+};
+
 type MockWalletState = {
   /**
    * ISO time this store was created. The sample (seed) history — walletHistory.ts and the sample 플랫폼 후원 — is dated
@@ -27,24 +46,35 @@ type MockWalletState = {
   marketingOptIn: boolean;
   /** Charges made through the mock, newest first (seed history is in walletHistory.ts). */
   charges: ChargeRecord[];
+  /** 결제 확인 results of the sample's 처리중 charges, by charge id. */
+  seedChargeResults: Record<string, SeedChargeResult>;
+  /** Charges paid after their account withdrew, never credited (newest first). */
+  uncreditedCharges: UncreditedCharge[];
   /**
    * Donations made through the mock, newest first. `hideProfile`: sent with 프로필 숨기기 (shown as 익명), so public
    * totals and rankings never put it under the member's name (absent = shown, e.g. platform donations).
    */
   donations: (DonationRecord & { category: DonationCategory; hideProfile?: boolean })[];
+  /**
+   * Retry keys of charges and donations, per member (`memberKeyOf`, lib/records.ts): another member's key never answers
+   * or blocks this member's request; a 재가입 moves the withdrawn account's keys to its own `…-wN` id (account/rejoin.ts).
+   */
   idempotency: Record<string, IdempotencyEntry<ChargeResult>>;
   donationIdempotency: Record<string, IdempotencyEntry<DonationResult>>;
 };
 
 // Bump the key when the state shape changes so a running dev server starts from fresh data.
-// V5: the sample history is dated from `sampleAt` (V4: a failed 플랫폼 후원's record keeps `fnReturned`).
-const globalForWallet = globalThis as typeof globalThis & { __ssumnationMockWalletV5?: MockWalletState };
+// V6: 결제 확인 results of the sample's 처리중 charges and charges paid after a withdrawal (V5: the sample history is
+// dated from `sampleAt`; V4: a failed 플랫폼 후원's record keeps `fnReturned`).
+const globalForWallet = globalThis as typeof globalThis & { __ssumnationMockWalletV6?: MockWalletState };
 
-export const mockWallet = (globalForWallet.__ssumnationMockWalletV5 ??= {
+export const mockWallet = (globalForWallet.__ssumnationMockWalletV6 ??= {
   sampleAt: new Date().toISOString(),
   chargeTermsAgreedAt: null,
   marketingOptIn: false,
   charges: [],
+  seedChargeResults: {},
+  uncreditedCharges: [],
   donations: [],
   idempotency: {},
   donationIdempotency: {}

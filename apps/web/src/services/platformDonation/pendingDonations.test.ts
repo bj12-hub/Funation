@@ -58,7 +58,10 @@ describe("확인 중 플랫폼 후원 (PENDING)", () => {
     expect(m.wallet.donations.find((d) => d.id === id)).toMatchObject({ status: "PROCESSING", fnAmount: 10_000, typeLabel: "SOOP 별풍선 10개" });
     const lookup = vi.spyOn(m.soopAdapter, "lookupDonation").mockResolvedValue({ status: "UNKNOWN" });
     expect((await history(m))!.items.find((i) => i.transactionId === id)?.status).toBe("PROCESSING");
-    expect(lookup).toHaveBeenCalledWith({ creatorId: "kim_stream", idempotencyKey: key(1), transactionId: id });
+    // By the key the platform was given with the send (derived on the server), never the member's own.
+    const { platformKey } = txOf(m, id);
+    expect(platformKey).toMatch(/^pk-[0-9a-f]{40}$/);
+    expect(lookup).toHaveBeenCalledWith({ creatorId: "kim_stream", idempotencyKey: platformKey, transactionId: id });
     // A lazy read asks at most once a minute.
     await history(m);
     expect(lookup).toHaveBeenCalledTimes(1);
@@ -99,14 +102,16 @@ describe("확인 중 플랫폼 후원 (PENDING)", () => {
     const m = await load();
     const id = await pending(m);
     at(HOUR);
-    // The mock platform answers deterministically: kim_stream's send went through, only its response was lost.
+    // The mock platform answers deterministically: kim_stream's send went through, only its response was lost (its
+    // external id ends like the key the platform was given).
+    const external = `SP-LK-${txOf(m, id).platformKey!.slice(-6).toUpperCase()}`;
     const item = (await history(m))!.items.find((i) => i.transactionId === id)!;
-    expect(item).toMatchObject({ status: "COMPLETED", externalTransactionId: "SP-LK-000001", failureReason: null });
+    expect(item).toMatchObject({ status: "COMPLETED", externalTransactionId: external, failureReason: null });
     expect(txOf(m, id).resolution).toMatchObject({ outcome: "COMPLETED", by: "PLATFORM", fnReturn: null });
     expect(m.account.fnBalance).toBe(90_000);
     expect(m.wallet.donations.find((d) => d.id === id)?.status).toBe("COMPLETED");
     // The same key now answers with the result (결과 다시 확인 in the donation flow).
-    expect(await m.requestPlatformDonation(soop())).toMatchObject({ status: "COMPLETED", transactionId: id, externalTransactionId: "SP-LK-000001" });
+    expect(await m.requestPlatformDonation(soop())).toMatchObject({ status: "COMPLETED", transactionId: id, externalTransactionId: external });
   });
 
   it("returns the held FN with a wallet record when a re-check finds the platform failed it", async () => {

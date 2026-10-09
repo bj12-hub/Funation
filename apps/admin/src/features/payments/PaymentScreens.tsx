@@ -142,6 +142,11 @@ export function PaymentsScreen({ view, tab }: { view: PaymentsView; tab: "charge
 
       {tab === "charges" ? (
         <section className={styles.card}>
+          {view.charges.some((c) => c.fnNotCredited) && (
+            <p className={styles.muted}>
+              FN 미지급 (탈퇴): 결제가 끝나기 전에 회원이 탈퇴해 FN을 지급하지 않은 충전이에요. 결제 금액의 처리(결제 취소 · 환불)는 정해지지 않았어요 (TBD).
+            </p>
+          )}
           {view.charges.length === 0 ? (
             <p className={styles.empty}>충전 내역이 없어요.</p>
           ) : (
@@ -172,6 +177,7 @@ export function PaymentsScreen({ view, tab }: { view: PaymentsView; tab: "charge
                     <td>{c.methodLabel}</td>
                     <td>
                       {CHARGE_STATUS_LABEL[c.status]}
+                      {c.fnNotCredited && <span className={styles.warn}> · FN 미지급 (탈퇴)</span>}
                       {c.refund && <span className={styles.muted}> · 환불 {REFUND_LABEL[c.refund.status]}</span>}
                     </td>
                     <td>{c.transactionId ?? "—"}</td>

@@ -79,6 +79,18 @@ export async function settleSamplePlatformDonations() {
 }
 
 /**
+ * The sample's 처리중 FN 충전 (ch1, 신용카드 10,000 FN, the first account's) gets its 결제 확인 — 결제 취소, so nothing is
+ * credited and the sample balance stays as it is — and the sample member can withdraw (2026-10-10 결정: not while a
+ * charge is in progress). The mock has no other way to finish it (services/wallet/chargeCore.ts). Call after
+ * resetMockStores().
+ */
+export async function settleSampleCharges() {
+  const { listAccountChargeRecords } = await import("@/services/wallet/walletHistory");
+  const { confirmChargePayment } = await import("@/services/wallet/chargeCore");
+  for (const c of listAccountChargeRecords().filter((c) => c.status === "PROCESSING" && c.account === null)) confirmChargePayment(c.id, "CANCELLED");
+}
+
+/**
  * A fresh single-use phone verification token, as the 휴대폰 인증 step gets it (mock code 123456). Mock numbers
  * only: 010-0000-0000 for sign-up, the sample account's 010-1234-5678 for a password reset.
  */
