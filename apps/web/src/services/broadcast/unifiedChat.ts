@@ -149,6 +149,6 @@ export async function getChatOverlay(key: unknown): Promise<ChatOverlayView | "F
   await ingestChat();
   const settings = readWidget("CHAT");
   const blocked = new Set(settings.filteredNicknames.map((n) => n.trim().toLowerCase()));
-  const lines = overlayLines().filter((l) => !blocked.has(l.name.trim().toLowerCase()));
+  const lines = overlayLines(30, (name) => !blocked.has(name.trim().toLowerCase()));
   return { lines, settings: { ...settings, filteredNicknames: [] }, theme: overlayTheme(settings.theme), serverNow: new Date().toISOString() };
 }

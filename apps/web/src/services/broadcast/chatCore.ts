@@ -195,10 +195,13 @@ export function chatView(limit = 200) {
   return structuredClone({ platforms: platformStates(), messages: s.messages.slice(-limit), log: s.log.slice(0, 20) });
 }
 
-/** What the overlay shows: the latest visible lines, oldest first (a snapshot, so later hides disappear). */
-export function overlayLines(limit = 30): ChatOverlayLine[] {
+/**
+ * What the overlay shows: the latest visible lines, oldest first (a snapshot, so later hides disappear). `shown`
+ * filters before the limit is taken (e.g. 필터링 닉네임), so a chatty filtered bot cannot push the other lines out.
+ */
+export function overlayLines(limit = 30, shown: (name: string) => boolean = () => true): ChatOverlayLine[] {
   return chatStore()
-    .messages.filter((m) => !m.hidden)
+    .messages.filter((m) => !m.hidden && shown(m.author.displayName))
     .slice(-limit)
     .map((m) => ({ id: m.id, platform: m.platform, name: m.author.displayName, roles: [...m.author.roles], text: m.text, at: m.receivedAt }));
 }
