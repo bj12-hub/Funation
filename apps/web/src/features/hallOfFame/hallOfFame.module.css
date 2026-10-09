@@ -268,22 +268,14 @@
   line-height: normal;
 }
 
+.tierBlack {
+  border: 1px solid var(--color-gold);
+  background: var(--color-bg-page);
+  color: var(--color-gold);
+}
+
 .tierDiamond {
   background: var(--color-highlight);
-}
-
-.tierGold {
-  background: var(--color-gold);
-}
-
-.tierSilver {
-  background: var(--color-tier-silver-bg);
-  color: var(--color-text-primary);
-}
-
-.tierBronze {
-  background: var(--color-tier-bronze-bg);
-  color: var(--color-tier-bronze-text);
 }
 
 /* ── Ranking 4–10 (pt 32, pb 48, gap 24) ───────────── */
