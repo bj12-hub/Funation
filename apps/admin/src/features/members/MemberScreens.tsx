@@ -1,8 +1,19 @@
 import Link from "next/link";
 import { formatCompactKo, formatNumber } from "@/lib/format";
-import { ADMIN_QUERY_MAX, AUDIT_ACTION_LABEL, type AuditEntry, type AdminCreatorRow, type AdminMember, type MemberPage } from "@/types/adminApi";
+import {
+  ADMIN_QUERY_MAX,
+  AUDIT_ACTION_LABEL,
+  REFUND_TYPE_LABEL,
+  type AuditEntry,
+  type AdminCreatorRow,
+  type AdminMember,
+  type FnSettlementLine,
+  type MemberFnSettlement,
+  type MemberPage
+} from "@/types/adminApi";
 import { SITE_URL } from "@/lib/siteUrl";
 import styles from "../admin.module.css";
+import { FnSettlementAction } from "./FnSettlementAction";
 import { MemberActions } from "./MemberActions";
 
 const ROLE_LABEL = { SUPPORTER: "후원자", CREATOR: "크리에이터", ADMIN: "관리자" } as const;
@@ -96,8 +107,8 @@ export function MembersScreen({ page }: { page: MemberPage }) {
   );
 }
 
-/** 회원 상세 — code-first. Route `/members/[id]`. */
-export function MemberDetailScreen({ member, audit }: { member: AdminMember; audit: AuditEntry[] }) {
+/** 회원 상세 — code-first. Route `/members/[id]`. `fnSettlement`: 남은 FN 정리 of a 영구 정지 member (null otherwise). */
+export function MemberDetailScreen({ member, audit, fnSettlement = null }: { member: AdminMember; audit: AuditEntry[]; fnSettlement?: MemberFnSettlement | null }) {
   const facts = [
     ["회원 번호", member.id],
     ["썸네이션 ID", `@${member.ssumnationId}`],
@@ -141,9 +152,16 @@ export function MemberDetailScreen({ member, audit }: { member: AdminMember; aud
             이용 제한
           </h2>
           {member.suspension && (
-            <p className={styles.muted}>
-              {member.suspension.until ? `${day(member.suspension.until)}까지` : "무기한"} 정지 · 사유: {member.suspension.reason} · 처리: {member.suspension.by}
-            </p>
+            <>
+              <p className={styles.muted}>
+                {member.suspension.until ? `${day(member.suspension.until)}까지 정지` : "영구 정지"} · 사유: {member.suspension.reason} · 처리: {member.suspension.by}
+              </p>
+              <p className={styles.muted}>
+                {member.suspension.until
+                  ? "정지 중에도 보유 FN은 그대로 남아요. 정지 중에는 쓸 수 없고, 정지가 풀리면 다시 쓸 수 있어요."
+                  : "영구 정지된 회원은 로그인할 수 없어요. 회원이 요청하면 아래 '남은 FN 정리'에서 남은 FN을 처리해요."}
+              </p>
+            </>
           )}
           {member.withdrawal ? (
             <p className={styles.muted}>
@@ -167,8 +185,112 @@ export function MemberDetailScreen({ member, audit }: { member: AdminMember; aud
           )}
         </section>
       </div>
+      {fnSettlement && <FnSettlementCard id={member.id} plan={fnSettlement} />}
       {member.withdrawal && <RetentionCard withdrawal={member.withdrawal} />}
     </div>
+  );
+}
+
+const fn = (n: number) => `${formatNumber(n)} FN`;
+const won = (n: number) => `${formatNumber(n)}원`;
+const when = (s: string) => s.slice(0, 16).replace("T", " ");
+/** "환불 2건 · 12,500 FN 회수 · 11,750 FN 환불 · 12,925원 · 무상 FN 소멸 300 FN" */
+const settledText = (lines: FnSettlementLine[], forfeitFn: number) => {
+  const t = lines.reduce((s, l) => ({ grossFn: s.grossFn + l.grossFn, netFn: s.netFn + l.netFn, refundKrw: s.refundKrw + l.refundKrw }), { grossFn: 0, netFn: 0, refundKrw: 0 });
+  const refund = lines.length > 0 ? `환불 ${lines.length}건 · ${fn(t.grossFn)} 회수 · ${fn(t.netFn)} 환불 · ${won(t.refundKrw)}` : "환불한 유상 FN 없음";
+  return `${refund} · 무상 FN 소멸 ${fn(forfeitFn)}`;
+};
+
+/**
+ * 남은 FN 정리 — code-first (2026-10-08 결정). On a 영구 정지 member's detail: the paid FN still unused per charge and
+ * what each refunds under the site's refund policy (type · 회수 · 수수료 · 환불 FN · 환불 금액), the free FN that would be
+ * forfeited, and one action. States: READY (form), EMPTY ("정리할 FN이 없어요."), BLOCKED (the site's reason, form
+ * DISABLED), NO_LEDGER (mock: no wallet ledger for this member). Earlier 정리 of the member are listed under 정리 이력.
+ */
+function FnSettlementCard({ id, plan }: { id: string; plan: MemberFnSettlement }) {
+  return (
+    <section className={styles.card} aria-labelledby="mem-fn-settle">
+      <h2 id="mem-fn-settle" className={styles.cardTitle}>
+        남은 FN 정리
+      </h2>
+      <p className={styles.muted}>
+        영구 정지된 회원은 로그인할 수 없어, 회원이 요청하면 운영자가 남은 FN을 정리해요. 유상 FN은 충전 건별로 환불 정책 기본값대로 환불하고(청약철회 기간 안의 미사용 충전은 전액 취소, 그 밖에는 수수료 공제 후 환불), 무상 FN은 소멸돼요. 처리하면 보유 FN이 0이 되고 되돌릴 수 없어요.
+      </p>
+      {plan.status === "NO_LEDGER" ? (
+        <p className={styles.empty}>이 회원의 지갑 기록이 없어 남은 FN을 계산할 수 없어요. (목업은 샘플 회원만 지갑 기록이 있어요 — 회원별 지갑 원장은 백엔드 연동 후.)</p>
+      ) : plan.status === "EMPTY" ? (
+        <p className={styles.empty}>정리할 FN이 없어요.</p>
+      ) : (
+        <>
+          <p className={styles.muted}>보유 FN: {fn(plan.balanceFn)}</p>
+          {plan.lines.length === 0 ? (
+            <p className={styles.muted}>환불할 유상 FN이 없어요.</p>
+          ) : (
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th scope="col">충전</th>
+                  <th scope="col">충전 FN · 결제 금액</th>
+                  <th scope="col">유형</th>
+                  <th scope="col">회수 FN</th>
+                  <th scope="col">수수료</th>
+                  <th scope="col">환불 FN</th>
+                  <th scope="col">환불 금액</th>
+                </tr>
+              </thead>
+              <tbody>
+                {plan.lines.map((l) => (
+                  <tr key={l.chargeId}>
+                    <td>
+                      {when(l.chargedAt)} · {l.methodLabel}
+                    </td>
+                    <td>
+                      {fn(l.chargeFn)} · {won(l.paidKrw)}
+                    </td>
+                    <td>{REFUND_TYPE_LABEL[l.type]}</td>
+                    <td>{fn(l.grossFn)}</td>
+                    <td>{fn(l.feeFn)}</td>
+                    <td>{fn(l.netFn)}</td>
+                    <td>{won(l.refundKrw)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th scope="row" colSpan={3}>
+                    합계
+                  </th>
+                  <td>{fn(plan.total.grossFn)}</td>
+                  <td>{fn(plan.total.feeFn)}</td>
+                  <td>{fn(plan.total.netFn)}</td>
+                  <td>{won(plan.total.refundKrw)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          )}
+          <p className={styles.muted}>소멸되는 무상 FN: {fn(plan.forfeitFn)}</p>
+          <p className={styles.muted}>원화 환불 금액은 전액 취소면 결제 금액 전액, 그 밖에는 환불 FN ÷ 충전 FN × 결제 금액(원 미만 버림)이에요. 결제 수단별 환불 방식은 결제 대행사 연동 후 확정이라 실제 결제 취소 · 송금은 아직 하지 않아요 (TBD).</p>
+          {plan.blocked && (
+            <p className={styles.warn} role="status">
+              {plan.blocked}
+            </p>
+          )}
+          <FnSettlementAction id={id} plan={plan} />
+        </>
+      )}
+      {plan.history.length > 0 && (
+        <>
+          <h3 className={styles.subTitle}>정리 이력</h3>
+          <ul className={styles.history}>
+            {plan.history.map((h) => (
+              <li key={h.at}>
+                <strong>{settledText(h.lines, h.forfeitFn)}</strong> · {h.note} · {h.by} · {new Date(h.at).toLocaleString("ko-KR")}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </section>
   );
 }
 

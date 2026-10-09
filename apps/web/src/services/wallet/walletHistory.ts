@@ -7,6 +7,7 @@ import { drawState } from "@/services/donations/gachaCore";
 import { spinState } from "@/services/donations/rouletteCore";
 import { isBlankPrize } from "@/services/donations/rouletteTypes";
 import { currentAccountCredits } from "./mockCreditStore";
+import { currentAccountFnSettlements, mockFnSettlements } from "./mockFnSettlementStore";
 import { mockRefunds, refundView } from "./mockRefundStore";
 import { mockWallet } from "./mockWalletStore";
 import { toDateString, type Period } from "@/lib/period";
@@ -15,6 +16,7 @@ import {
   DONATION_STATUS_LABEL,
   LEDGER_PERIODS,
   type ChargeRecord,
+  type ChargeRefund,
   type ChargeStatus,
   type DonationCategory,
   type DonationFilter,
@@ -116,7 +118,8 @@ function gameResultOf(id: string): string | null {
  * records on the server. A running balance column is not shown — the mock history is not a
  * reconciled ledger; the backend ledger must provide balance-after values (TBD).
  * An approved charge refund shows like a refunded donation: the charge row turns 환불완료 and a
- * separate 환불 row records the FN taken back (−), so `?kind=REFUND` lists it too.
+ * separate 환불 row records the FN taken back (−), so `?kind=REFUND` lists it too. 남은 FN 정리 of a 영구 정지
+ * member (2026-10-08 결정) leaves the same 환불 row per charge and one 소멸 row for the free FN written off.
  */
 export async function getWalletOverview(input: { kind?: unknown; period?: unknown; page?: unknown }): Promise<WalletOverview | null> {
   if (!USE_MOCK) throw new Error("Wallet API is not connected yet.");
@@ -128,6 +131,9 @@ export async function getWalletOverview(input: { kind?: unknown; period?: unknow
   const donations = mockDonations();
   const charges = mockCharges();
   const debits = new Map(mockRefunds.requests.flatMap((r) => (r.debit ? [[r.chargeId, r.debit] as const] : [])));
+  const settlements = currentAccountFnSettlements();
+  const settled = new Set(settlements.flatMap((s) => s.lines.map((l) => l.chargeId)));
+  const refunded = (id: string) => debits.has(id) || settled.has(id);
   const entries: LedgerEntry[] = [
     ...charges.map(
       (c): LedgerEntry => ({
@@ -135,8 +141,8 @@ export async function getWalletOverview(input: { kind?: unknown; period?: unknow
         kind: "CHARGE",
         description: `FN 충전 · ${c.methodLabel}`,
         deltaFn: c.fnAmount,
-        statusLabel: debits.has(c.id) ? DONATION_STATUS_LABEL.REFUNDED : CHARGE_STATUS_LABEL[c.status],
-        tone: debits.has(c.id) ? "refund" : c.status === "COMPLETED" ? "done" : c.status === "PROCESSING" ? "pending" : "failed",
+        statusLabel: refunded(c.id) ? DONATION_STATUS_LABEL.REFUNDED : CHARGE_STATUS_LABEL[c.status],
+        tone: refunded(c.id) ? "refund" : c.status === "COMPLETED" ? "done" : c.status === "PROCESSING" ? "pending" : "failed",
         at: c.chargedAt.slice(0, 16)
       })
     ),
@@ -146,6 +152,23 @@ export async function getWalletOverview(input: { kind?: unknown; period?: unknow
         ? [{ id: `${c.id}-refund`, kind: "REFUND", description: `충전 환불 · ${c.methodLabel}`, deltaFn: -debit.fnAmount, statusLabel: DONATION_STATUS_LABEL.REFUNDED, tone: "refund", at: debit.at.slice(0, 16) }]
         : [];
     }),
+    // 남은 FN 정리 (영구 정지): the paid FN taken back per charge, and the free FN written off.
+    ...settlements.flatMap((s): LedgerEntry[] => [
+      ...s.lines.map(
+        (l): LedgerEntry => ({
+          id: `${s.id}-${l.chargeId}`,
+          kind: "REFUND",
+          description: `충전 환불 · ${l.methodLabel} · 남은 FN 정리`,
+          deltaFn: -l.grossFn,
+          statusLabel: DONATION_STATUS_LABEL.REFUNDED,
+          tone: "refund",
+          at: s.ledgerAt.slice(0, 16)
+        })
+      ),
+      ...(s.forfeitFn > 0
+        ? [{ id: `${s.id}-forfeit`, kind: "FORFEIT" as const, description: "무상 FN 소멸 · 남은 FN 정리", deltaFn: -s.forfeitFn, statusLabel: "소멸", tone: "failed" as const, at: s.ledgerAt.slice(0, 16) }]
+        : [])
+    ]),
     ...donations.map(
       (d): LedgerEntry => ({
         id: d.id,
@@ -249,12 +272,25 @@ const CHARGE_ROWS: [number, string, MethodKey, number, ChargeStatus][] = [
   [330, "15:12:37", "KAKAO", 20_000, "COMPLETED"]
 ];
 
-/** Each charge with the member-facing view of its refund request. */
+/**
+ * Each charge with the member-facing view of its refund request. A charge refunded by 남은 FN 정리 (영구 정지) shows that
+ * refund as 환불 완료 — unless a request of its own is shown (one waiting, or approved; a rejected one gives way).
+ */
 function withRefunds<T extends ChargeRecord>(charges: T[]): T[] {
   const refunds = new Map(mockRefunds.requests.map((r) => [r.chargeId, r]));
+  const settled = new Map(
+    mockFnSettlements.settlements.flatMap((s) =>
+      s.lines.map((l): [string, ChargeRefund] => [
+        l.chargeId,
+        { status: "APPROVED", requestedAt: s.at, decidedAt: s.at, amounts: { type: l.type, grossFn: l.grossFn, feeFn: l.feeFn, netFn: l.netFn, refundKrw: l.refundKrw } }
+      ])
+    )
+  );
   return charges.map((c) => {
     const r = refunds.get(c.id);
-    return r ? { ...c, refund: refundView(r) } : c;
+    const s = settled.get(c.id);
+    const refund = r && (r.status !== "REJECTED" || !s) ? refundView(r) : s;
+    return refund ? { ...c, refund } : c;
   });
 }
 

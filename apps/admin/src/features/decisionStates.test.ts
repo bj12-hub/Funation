@@ -13,7 +13,7 @@ describe("decision forms while processing", () => {
     const { RefundDecision } = await import("./payments/RefundDecision");
     const { SettlementDecision } = await import("./settlements/SettlementDecision");
     const { ReportDecision } = await import("./reports/ReportDecision");
-    for (const el of [createElement(RefundDecision, { chargeId: "ch1", current: { type: "FULL_CANCEL", chargeFn: 10_000, usedFn: 0, withinPeriod: true, grossFn: 10_000, feeFn: 0, netFn: 10_000 } }), createElement(SettlementDecision, { id: "st-1", canApprove: true }), createElement(ReportDecision, { id: "rp-1", canHide: true })]) {
+    for (const el of [createElement(RefundDecision, { chargeId: "ch1", current: { type: "FULL_CANCEL", chargeFn: 10_000, paidKrw: 11_000, usedFn: 0, withinPeriod: true, grossFn: 10_000, feeFn: 0, netFn: 10_000, refundKrw: 11_000 } }), createElement(SettlementDecision, { id: "st-1", canApprove: true }), createElement(ReportDecision, { id: "rp-1", canHide: true })]) {
       const html = renderToStaticMarkup(el);
       expect(html).toContain('role="status">처리 중…');
       expect(html.match(/<button[^>]*>/g)!.every((b) => b.includes("disabled"))).toBe(true);

@@ -46,6 +46,22 @@ export async function restoreMember(input: unknown) {
   return send("POST", `/members/${seg(v.id)}/restore`, { reason: v.reason });
 }
 
+/**
+ * 남은 FN 정리 of a 영구 정지 member: a memo, one `requestId` per intended 정리, and the totals the operator saw (the site
+ * refuses them if they changed).
+ */
+export async function settleMemberFn(input: unknown) {
+  const v = obj(input);
+  return send("POST", `/members/${seg(v.id)}/fn-settlement`, {
+    note: v.note,
+    requestId: v.requestId,
+    expectedGrossFn: v.expectedGrossFn,
+    expectedNetFn: v.expectedNetFn,
+    expectedRefundKrw: v.expectedRefundKrw,
+    expectedForfeitFn: v.expectedForfeitFn
+  });
+}
+
 /** 승인 sends the amount the operator saw (`expectedGrossFn` / `expectedNetFn`); the site refuses it if it changed. */
 export async function decideRefund(input: unknown) {
   const v = obj(input);

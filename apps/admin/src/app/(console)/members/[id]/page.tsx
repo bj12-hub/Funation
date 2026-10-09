@@ -9,5 +9,5 @@ export const dynamic = "force-dynamic";
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const data = await loadMember((await params).id);
   if (!data) notFound();
-  return <MemberDetailScreen member={data.member} audit={data.audit} />;
+  return <MemberDetailScreen member={data.member} audit={data.audit} fnSettlement={data.fnSettlement ?? null} />;
 }

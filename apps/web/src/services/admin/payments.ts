@@ -17,8 +17,9 @@ import { REFUND_NOTE, type AdminChargeRow, type AdminDonationRow, type AdminRefu
 /**
  * 후원 · 결제 운영 API logic — code-first (called by `/api/admin/*`). Admin app screens `/admin/payments`, `/admin/donations`.
  * Admin only. A refund decision is final and logged; approval takes back the charge's unused paid FN on the server
- * (환불 정책 기본값 · 법무 검토 전, `services/wallet/refundPolicy.ts`).
- * The mock has one member with wallet data (the sample member); per-member ledgers are TBD.
+ * (환불 정책 기본값 · 법무 검토 전, `services/wallet/refundPolicy.ts`) and records the KRW refund with it; paying the
+ * KRW out through the payment provider is TBD. The mock has one member with wallet data (the sample member); per-member
+ * ledgers are TBD.
  *
  * 2026-10-08 결정: a member's 이용 정지 does not stop their refund requests (nothing here reads it); an operator puts a
  * request that needs a closer look on 보류 instead, which stops 승인 · 거절 until 보류 해제.
@@ -93,7 +94,7 @@ function refunds(): AdminRefund[] {
     });
 }
 
-const copy = (a: RefundAmounts): RefundAmounts => ({ type: a.type, grossFn: a.grossFn, feeFn: a.feeFn, netFn: a.netFn });
+const copy = (a: RefundAmounts): RefundAmounts => ({ type: a.type, grossFn: a.grossFn, feeFn: a.feeFn, netFn: a.netFn, refundKrw: a.refundKrw });
 
 /** The refund recomputed now for a waiting request of the current account; the 청약철회 period stays the request's. */
 function currentQuote(r: MockRefundRequest): RefundQuote | null {
@@ -102,8 +103,9 @@ function currentQuote(r: MockRefundRequest): RefundQuote | null {
 }
 
 const fnText = (n: number) => `${n.toLocaleString("ko-KR")} FN`;
-/** "수수료 공제 후 환불 · 회수 5,000 FN · 수수료 500 FN · 환불 4,500 FN" (audit log and approval answers). */
-const refundText = (a: RefundAmounts) => `${REFUND_TYPE_LABEL[a.type]} · 회수 ${fnText(a.grossFn)} · 수수료 ${fnText(a.feeFn)} · 환불 ${fnText(a.netFn)}`;
+/** "수수료 공제 후 환불 · 회수 5,000 FN · 수수료 500 FN · 환불 4,500 FN · 4,950원" (audit log and approval answers). */
+const refundText = (a: RefundAmounts) =>
+  `${REFUND_TYPE_LABEL[a.type]} · 회수 ${fnText(a.grossFn)} · 수수료 ${fnText(a.feeFn)} · 환불 ${fnText(a.netFn)} · ${a.refundKrw.toLocaleString("ko-KR")}원`;
 const isAmount = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= 0;
 
 export async function getPaymentsView(): Promise<PaymentsView | null> {

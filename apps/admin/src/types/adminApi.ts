@@ -27,6 +27,7 @@ export type AuditAction =
   | "ADMIN_SIGN_OUT"
   | "MEMBER_SUSPEND"
   | "MEMBER_RESTORE"
+  | "MEMBER_FN_SETTLE"
   | "REFUND_APPROVE"
   | "REFUND_REJECT"
   | "REFUND_HOLD"
@@ -46,6 +47,7 @@ export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
   ADMIN_SIGN_OUT: "관리자 로그아웃",
   MEMBER_SUSPEND: "회원 이용 정지",
   MEMBER_RESTORE: "회원 정지 해제",
+  MEMBER_FN_SETTLE: "남은 FN 정리",
   REFUND_APPROVE: "환불 승인",
   REFUND_REJECT: "환불 거절",
   REFUND_HOLD: "환불 요청 보류",
@@ -119,13 +121,34 @@ export type AdminMember = {
 };
 export type MemberFilter = { q: string; role: "ALL" | "SUPPORTER" | "CREATOR"; status: "ALL" | MemberStatus; page: number };
 export type MemberPage = { items: AdminMember[]; total: number; page: number; totalPages: number; filter: MemberFilter };
-export type MemberDetail = { member: AdminMember; audit: AuditEntry[] };
+/** `fnSettlement`: 남은 FN 정리, for a 영구 정지 member only (null otherwise). */
+export type MemberDetail = { member: AdminMember; audit: AuditEntry[]; fnSettlement: MemberFnSettlement | null };
 export type AdminCreatorRow = { creatorId: string; name: string; memberId: string; isLive: boolean; subscriberCount: number; joinedAt: string; status: MemberStatus };
 
 /** 회원 · 크리에이터 검색어 길이 (the site cuts longer text). */
 export const ADMIN_QUERY_MAX = 40;
+/** 이용 정지 기간: days, or `null` = 영구 정지. */
 export const SUSPEND_DAYS = [1, 7, 30, null] as const;
 export const SUSPEND_REASON = { min: 5, max: 200 } as const;
+
+/**
+ * 남은 FN 정리 (2026-10-08 결정): a 영구 정지 member cannot sign in, so on request an operator refunds the remaining paid
+ * FN per charge under the site's refund policy and the free FN are forfeited (the balance goes to 0). Every amount is the
+ * site's. `status`: READY — can be processed; EMPTY — no FN left; BLOCKED — a refund request waits or is on 보류
+ * (`blocked`: the site's message); NO_LEDGER — the site has no wallet ledger for this member (mock: the sample member
+ * only). `lines`: per charge, oldest first; `total`: their sums; `forfeitFn`: free FN written off.
+ */
+export type FnSettlementLine = RefundAmounts & { chargeId: string; chargedAt: string; methodLabel: string; chargeFn: number; paidKrw: number };
+export type MemberFnSettlement = {
+  status: "READY" | "EMPTY" | "BLOCKED" | "NO_LEDGER";
+  blocked: string | null;
+  balanceFn: number;
+  lines: FnSettlementLine[];
+  total: { grossFn: number; feeFn: number; netFn: number; refundKrw: number };
+  forfeitFn: number;
+  history: { at: string; by: string; note: string; lines: FnSettlementLine[]; forfeitFn: number }[];
+};
+export const FN_SETTLE_NOTE = { min: 2, max: 200 } as const;
 
 // ── Payments · donations ──────────────────────────────────────────────────────
 
@@ -173,12 +196,13 @@ export type AdminRefund = {
 /**
  * 환불 정책 기본값 (일반적인 기준, 법무 검토 전) — the site computes every amount; the console only shows them.
  * FULL_CANCEL: 청약철회 (전액 취소, no fee); PARTIAL: the charge's unused FN minus the fee; NOT_REFUNDABLE: all used.
- * `grossFn`: FN taken back from the wallet; `feeFn` + `netFn` = `grossFn`.
+ * `grossFn`: FN taken back from the wallet; `feeFn` + `netFn` = `grossFn`. `refundKrw` (2026-10-08 결정): FULL_CANCEL the
+ * whole paid amount, PARTIAL net FN ÷ the charge's FN × its paid KRW, rounded down to the won (payout per method: TBD).
  */
 export type RefundType = "FULL_CANCEL" | "PARTIAL" | "NOT_REFUNDABLE";
 export const REFUND_TYPE_LABEL: Record<RefundType, string> = { FULL_CANCEL: "전액 취소", PARTIAL: "수수료 공제 후 환불", NOT_REFUNDABLE: "환불 불가" };
-export type RefundAmounts = { type: Exclude<RefundType, "NOT_REFUNDABLE">; grossFn: number; feeFn: number; netFn: number };
-export type RefundQuote = { type: RefundType; chargeFn: number; usedFn: number; withinPeriod: boolean; grossFn: number; feeFn: number; netFn: number };
+export type RefundAmounts = { type: Exclude<RefundType, "NOT_REFUNDABLE">; grossFn: number; feeFn: number; netFn: number; refundKrw: number };
+export type RefundQuote = { type: RefundType; chargeFn: number; paidKrw: number; usedFn: number; withinPeriod: boolean; grossFn: number; feeFn: number; netFn: number; refundKrw: number };
 
 /** `refundPolicy`: the policy as the site states it (its numbers live on the site only). */
 export type PaymentsView = { charges: AdminChargeRow[]; refunds: AdminRefund[]; balance: number; refundPolicy: { label: string; summary: string } };

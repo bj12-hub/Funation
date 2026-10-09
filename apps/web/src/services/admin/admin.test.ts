@@ -7,7 +7,7 @@ vi.mock("@/lib/session", () => mockSessionModule());
 /** The operator the admin API acts for (the route layer authorises the admin app first). */
 const OP = { userId: "adm-test", nickname: "테스트 운영자" };
 /** A stored refund request's computed refund (환불 정책 기본값). */
-const QUOTE = { type: "FULL_CANCEL" as const, grossFn: 10_000, feeFn: 0, netFn: 10_000 };
+const QUOTE = { type: "FULL_CANCEL" as const, grossFn: 10_000, feeFn: 0, netFn: 10_000, refundKrw: 11_000 };
 
 /** 관리자 콘솔: Admin role only, server-computed totals, append-only audit log. */
 async function load() {

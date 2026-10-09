@@ -53,8 +53,8 @@ describe("admin payments", () => {
     expect((await m.getPaymentsView())!.refunds[0]).toMatchObject({
       chargeId: charge.id,
       status: "REQUESTED",
-      requested: { type: "FULL_CANCEL", grossFn: charge.fnAmount, feeFn: 0, netFn: charge.fnAmount },
-      current: { type: "FULL_CANCEL", grossFn: charge.fnAmount, feeFn: 0, netFn: charge.fnAmount },
+      requested: { type: "FULL_CANCEL", grossFn: charge.fnAmount, feeFn: 0, netFn: charge.fnAmount, refundKrw: charge.paidAmount },
+      current: { type: "FULL_CANCEL", grossFn: charge.fnAmount, feeFn: 0, netFn: charge.fnAmount, paidKrw: charge.paidAmount, refundKrw: charge.paidAmount },
       approved: null
     });
     expect((await approve(m, charge.id, "")).status).toBe("INVALID");
@@ -65,7 +65,8 @@ describe("admin payments", () => {
     expect((await m.decideRefund(OP, { chargeId: charge.id, decision: "REJECT", note: "뒤집기" })).status).toBe("INVALID");
     expect(m.listChargeRecords().find((c) => c.id === charge.id)!.refund).toMatchObject({ status: "APPROVED" });
     const fn = `${charge.fnAmount.toLocaleString("ko-KR")} FN`;
-    expect(m.auditEntries().map((e) => [e.action, e.reason])).toEqual([["REFUND_APPROVE", `전액 취소 · 회수 ${fn} · 수수료 0 FN · 환불 ${fn} · 정상 환불`]]);
+    const krw = `${charge.paidAmount.toLocaleString("ko-KR")}원`;
+    expect(m.auditEntries().map((e) => [e.action, e.reason])).toEqual([["REFUND_APPROVE", `전액 취소 · 회수 ${fn} · 수수료 0 FN · 환불 ${fn} · ${krw} · 정상 환불`]]);
   });
 
   it("states the refund policy for the console", async () => {
@@ -75,6 +76,7 @@ describe("admin payments", () => {
     expect(refundPolicy.label).toBe("기본값 (일반적인 기준, 법무 검토 전)");
     expect(refundPolicy.summary).toContain("7일 이내");
     expect(refundPolicy.summary).toContain("수수료 10%");
+    expect(refundPolicy.summary).toContain("원화 환불 금액은 환불 FN ÷ 충전 FN × 결제 금액, 원 미만 버림");
   });
 
   it("leaves a wallet record of the FN taken back, also in the charges CSV", async () => {
@@ -118,7 +120,9 @@ describe("admin payments", () => {
   it("refuses to approve when the FN were spent after the request, and rejects with a note", async () => {
     const m = await load();
     const charge = await fileRefund(m); // the sample balance: 5,000 FN of the charge left
-    expect((await m.getPaymentsView())!.refunds[0].requested).toEqual({ type: "PARTIAL", grossFn: 5_000, feeFn: 500, netFn: 4_500 });
+    // The 2026-10-08 example: 30,000 FN bought for 33,000원, 4,500 FN refunded → 4,950원.
+    expect([charge.fnAmount, charge.paidAmount]).toEqual([30_000, 33_000]);
+    expect((await m.getPaymentsView())!.refunds[0].requested).toEqual({ type: "PARTIAL", grossFn: 5_000, feeFn: 500, netFn: 4_500, refundKrw: 4_950 });
     m.mockAccount.fnBalance = 0; // spent since
     expect((await m.getPaymentsView())!.refunds[0].current).toMatchObject({ type: "NOT_REFUNDABLE" });
     expect((await m.decideRefund(OP, { chargeId: charge.id, decision: "APPROVE", note: "환불 시도", expectedGrossFn: 5_000, expectedNetFn: 4_500 })).status).toBe("INVALID");

@@ -28,7 +28,7 @@ const payments: PaymentsView = {
       status: "REJECTED",
       decision: { at: "2026-10-02T00:00:00.000Z", by: "운영자", note: "거절" },
       charge: { chargedAt: charge.chargedAt, fnAmount: 10_000, paidAmount: 11_000, methodLabel: "카드", transactionId: "TXN-1" },
-      requested: { type: "FULL_CANCEL", grossFn: 10_000, feeFn: 0, netFn: 10_000 },
+      requested: { type: "FULL_CANCEL", grossFn: 10_000, feeFn: 0, netFn: 10_000, refundKrw: 11_000 },
       approved: null,
       current: null,
       hold: null

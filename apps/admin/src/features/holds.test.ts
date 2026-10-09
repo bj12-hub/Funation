@@ -73,7 +73,7 @@ describe("정산 심사 · 보류", () => {
   });
 });
 
-const FULL = { type: "FULL_CANCEL" as const, grossFn: 10_000, feeFn: 0, netFn: 10_000 };
+const FULL = { type: "FULL_CANCEL" as const, grossFn: 10_000, feeFn: 0, netFn: 10_000, refundKrw: 11_000 };
 const refund = (chargeId: string, hold: AdminRefund["hold"], memberWithdrawn = false): AdminRefund => ({
   chargeId,
   memberId: "u-hongGD123",
@@ -86,7 +86,7 @@ const refund = (chargeId: string, hold: AdminRefund["hold"], memberWithdrawn = f
   charge: { chargedAt: "2026-09-30 10:00:00", fnAmount: 10_000, paidAmount: 11_000, methodLabel: "카드", transactionId: `TXN-${chargeId}` },
   requested: FULL,
   approved: null,
-  current: memberWithdrawn ? null : { ...FULL, chargeFn: 10_000, usedFn: 0, withinPeriod: true },
+  current: memberWithdrawn ? null : { ...FULL, chargeFn: 10_000, paidKrw: 11_000, usedFn: 0, withinPeriod: true },
   hold
 });
 
