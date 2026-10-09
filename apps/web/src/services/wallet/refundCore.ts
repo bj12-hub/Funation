@@ -12,19 +12,26 @@ import type { ChargeRecord, DonationStatus } from "./walletTypes";
  * write in one synchronous step. Covers the signed-in account (the mock's one slot; the backend reads the member's ledger).
  */
 
-/** Donations whose FN are spent or held: a failed one never took FN, a refunded one (e.g. a failed quest) gave them back. */
+/** Donations whose FN are spent or held. A failed one never took FN; a refunded one took them and gave them back. */
 const SPENT: ReadonlySet<DonationStatus> = new Set<DonationStatus>(["COMPLETED", "PROCESSING", "REFUNDING"]);
 
-/** FIFO: the paid FN of each charge of the current account still unused (free FN spent first, then oldest charge first). */
-export function unusedPaidFnByCharge(): Map<string, number> {
+/**
+ * FIFO: the paid FN of each charge of the current account still unused at `now` (free FN spent first, then oldest charge
+ * first; FN the records do not explain settled oldest-received first — `unusedPaidFn`).
+ */
+export function unusedPaidFnByCharge(now = new Date()): Map<string, number> {
   const charges = listChargeRecords();
   const own = new Set(charges.map((c) => c.id));
   const events: FnLedgerEvent[] = [
     ...charges.filter((c) => c.status === "COMPLETED").map((c): FnLedgerEvent => ({ kind: "PAID", chargeId: c.id, at: c.chargedAt, fn: c.fnAmount })),
     ...currentAccountCredits().map((c): FnLedgerEvent => ({ kind: "FREE", at: c.at, fn: c.fnAmount })),
-    ...listDonationRecords()
-      .filter((d) => SPENT.has(d.status))
-      .map((d): FnLedgerEvent => ({ kind: "SPEND", at: d.donatedAt, fn: d.fnAmount })),
+    // A refunded donation (퀘스트 실패 · 취소, a platform donation that failed) spent or held its FN when it was sent and
+    // gave the same FN back at the refund — dated like its FN Wallet 환불 row (sample rows without a time: at the donation).
+    ...listDonationRecords().flatMap((d): FnLedgerEvent[] => {
+      const spend: FnLedgerEvent = { kind: "SPEND", id: d.id, at: d.donatedAt, fn: d.fnAmount };
+      if (SPENT.has(d.status)) return [spend];
+      return d.status === "REFUNDED" ? [spend, { kind: "RETURN", spendId: d.id, at: d.refundedAt ?? d.donatedAt, fn: d.fnAmount }] : [];
+    }),
     ...mockRefunds.requests.flatMap((r): FnLedgerEvent[] => (r.debit && own.has(r.chargeId) ? [{ kind: "RECLAIM", chargeId: r.chargeId, at: r.debit.at, fn: r.debit.fnAmount }] : [])),
     // 남은 FN 정리 (영구 정지): each charge's refund takes its paid FN back; the free FN it wrote off are gone too.
     ...currentAccountFnSettlements().flatMap((s): FnLedgerEvent[] => {
@@ -33,7 +40,7 @@ export function unusedPaidFnByCharge(): Map<string, number> {
       return s.forfeitFn > 0 ? [...reclaims, forfeit] : reclaims;
     })
   ];
-  return unusedPaidFn(events, mockAccount.fnBalance);
+  return unusedPaidFn(events, mockAccount.fnBalance, now);
 }
 
 /** The policy outcome of a charge, given its unused paid FN (KRW from what the charge was paid). */
@@ -55,7 +62,7 @@ export function chargeRefundQuote(charge: ChargeRecord, requestedAt: Date): Refu
  * oldest charge first; `forfeitFn` is the rest of the balance (free FN, and FN no charge explains), which is written off.
  */
 export function remainingFnPlan(now: Date): { balanceFn: number; lines: ChargeRefundLine[]; forfeitFn: number } {
-  const unused = unusedPaidFnByCharge();
+  const unused = unusedPaidFnByCharge(now);
   const balanceFn = Math.max(0, mockAccount.fnBalance);
   const lines = listChargeRecords()
     .filter((c) => c.status === "COMPLETED" && (unused.get(c.id) ?? 0) > 0)

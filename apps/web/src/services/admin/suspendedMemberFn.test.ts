@@ -81,4 +81,39 @@ describe("이용 정지 중인 회원의 FN", () => {
     expect(await m.restore()).toEqual({ status: "OK" });
     expect(await m.donate(1_000)).toMatchObject({ status: "COMPLETED", balance: 4_000 });
   });
+
+  /**
+   * The sample history does not add up to the sample balance: its charges and donations leave 521,500 FN, the balance is
+   * 5,000. Those 516,500 FN left through spends no record shows, before anything happened in the running mock — they
+   * must never use FN the member receives now.
+   */
+  it("keeps free FN received after the sample history's unexplained shortfall free: forfeited, never refunded as paid FN", async () => {
+    const m = await load();
+    const { quoteChargeRefund } = await import("@/services/wallet/refund");
+    const { resolvePendingDonation } = await import("./pendingDonations");
+    const events = await import("./events");
+    const ch2 = { type: "PARTIAL", chargeFn: 30_000, paidKrw: 33_000, grossFn: 15_000, feeFn: 1_500, netFn: 13_500, refundKrw: 14_850 };
+
+    // The sample FlexTV donation still 확인 중 is decided 실패: its 10,000 held FN come back (to where they came from).
+    expect(await resolvePendingDonation(OP, { transactionId: "TXN-SEED-B12", outcome: "FAILED", note: "플랫폼 확인 결과 실패", requestId: key(++n) })).toEqual({ status: "OK" });
+    expect(m.account.fnBalance).toBe(15_000);
+    expect(await quoteChargeRefund({ chargeId: "ch2" })).toMatchObject({ status: "QUOTE", quote: ch2 });
+
+    // An ended event pays every participant 1,000 free FN.
+    expect(await events.saveEventReward(OP, { id: "ev-attendance", kind: "FREE_FN", amountFn: 1_000 })).toEqual({ status: "OK" });
+    expect(await events.payEventReward(OP, { id: "ev-attendance", requestId: key(++n) })).toEqual({ status: "OK" });
+    expect(m.account.fnBalance).toBe(16_000);
+    // The refund popup: still 15,000 FN of the newest charge — the 1,000 free FN are not a charge's.
+    expect(await quoteChargeRefund({ chargeId: "ch2" })).toMatchObject({ status: "QUOTE", quote: ch2 });
+
+    // 남은 FN 정리: the same refund, and the 1,000 free FN forfeited.
+    expect(await m.suspend(null)).toEqual({ status: "OK" });
+    expect((await m.members.getMemberDetail(m.SAMPLE_MEMBER_ID))!.fnSettlement).toMatchObject({
+      status: "READY",
+      balanceFn: 16_000,
+      lines: [{ chargeId: "ch2", ...ch2 }],
+      total: { grossFn: 15_000, feeFn: 1_500, netFn: 13_500, refundKrw: 14_850 },
+      forfeitFn: 1_000
+    });
+  });
 });
