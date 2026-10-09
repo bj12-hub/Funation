@@ -194,3 +194,78 @@ describe("대체된 닉네임의 배지 (2026-10-09 결정)", () => {
     expect(m.mockAlerts.items.at(-1)).toMatchObject({ donor: "홍길동", badges: expect.arrayContaining(["왕관 팬"]) });
   });
 });
+
+describe("대체된 닉네임과 후원랭킹 (2026-10-09 결정)", () => {
+  beforeEach(() => resetMockStores());
+
+  it("leaves every alert whose name the 대체 메시지 rules replaced out of the 후원랭킹, as decided when it was sent", async () => {
+    const m = await load();
+    const { donationPageStore } = await import("@/services/creator/donationPageCore");
+    const { getOverlayWidget } = await import("@/services/creator/widgetOverlay");
+    const { mockCreator } = await import("@/services/creator/mockCreatorStore");
+    const names = () => m.ranking().map((r) => [r.name, r.fnAmount]);
+    // The seeded history: 별빛소나타 70,000 · 우주비행사 30,000 · 치즈냥 10,000 · 초코쿠키 3,000 (익명 left out).
+    const seeded = names();
+
+    // Before any 금지어 matches the name: the donor's own row.
+    await m.requestDonation(text(1, { amount: 2_000 }));
+    expect(m.mockAlerts.items.at(-1)).not.toHaveProperty("nameReplaced");
+    expect(names()).toEqual([...seeded, ["홍길동", 2_000]]);
+
+    // Replaced by the 대체 메시지: it neither joins nor renames that row (same donor key), nor gets a row of its own.
+    donationPageStore.replacement = { applyToNickname: true, applyToText: false, bannedWords: ["길동"], message: "응원 고마워요" };
+    await m.requestDonation(text(2, { amount: 500_000 }));
+    const replaced = m.mockAlerts.items.at(-1)!;
+    expect(replaced).toMatchObject({ donor: "응원 고마워요", nameReplaced: true, donorKey: m.mockAlerts.items.at(-2)!.donorKey });
+    expect(names()).toEqual([...seeded, ["홍길동", 2_000]]);
+
+    // Replaced by 익명 (empty 대체 메시지): out as well.
+    donationPageStore.replacement.message = "";
+    await m.requestDonation(text(3, { amount: 300_000 }));
+    expect(m.mockAlerts.items.at(-1)).toMatchObject({ donor: "익명", nameReplaced: true });
+    expect(names()).toEqual([...seeded, ["홍길동", 2_000]]);
+
+    // The OBS 후원랭킹 overlay reads the same rows.
+    const overlay = await getOverlayWidget("ranking", mockCreator.integrationKey);
+    if (overlay === "FORBIDDEN" || overlay.widget !== "ranking") throw new Error("ranking overlay");
+    expect(overlay.rows.map((r) => r.name)).not.toContain("응원 고마워요");
+    expect(overlay.rows.map((r) => r.fnAmount)).not.toContain(502_000);
+
+    // Lifting the 금지어 later does not bring the replaced alerts back; the next donation counts as usual.
+    donationPageStore.replacement.bannedWords = ["클리어"];
+    expect(names()).toEqual([...seeded, ["홍길동", 2_000]]);
+    await m.requestDonation(text(4, { amount: 1_000 }));
+    expect(names()).toEqual([...seeded, ["홍길동", 3_000]]);
+  });
+});
+
+describe("익명 후원과 별명 누적 (2026-10-09 결정)", () => {
+  beforeEach(() => resetMockStores());
+
+  it("keeps a donation sent as 익명 out of every 별명's totals, while the 누적 · 활동 등급 still count it", async () => {
+    const m = await load();
+    expect(await m.identity.addDonationNickname("응원단장")).toEqual({ status: "SAVED" });
+    const alias = (await m.identity.getDonationNicknameOptions())!.find((n) => n.name === "응원단장")!;
+    const identity = async () => (await m.identity.getSupporterIdentity())!;
+    const totals = async () => Object.fromEntries((await identity()).nicknames.map((n) => [n.id, [n.totalFn, n.count]]));
+    const before = await identity();
+    const beforeTotals = await totals();
+
+    // Hidden under a picked 별명, and hidden with none picked (the 기본 별명 would get an unattributed one).
+    expect((await m.requestDonation(text(1, { hideProfile: true, nicknameId: alias.id, amount: 5_000 }))).status).toBe("COMPLETED");
+    expect((await m.requestDonation(text(2, { hideProfile: true, amount: 7_000 }))).status).toBe("COMPLETED");
+    expect(await totals()).toEqual(beforeTotals);
+    const after = await identity();
+    expect(after.global.lifetimeFn).toBe(before.global.lifetimeFn + 12_000);
+    expect(after.grade.recentFn).toBe(before.grade.recentFn + 12_000);
+
+    // Shown: it counts for the 별명 it went out under.
+    await m.requestDonation(text(3, { nicknameId: alias.id, amount: 1_000 }));
+    expect((await totals())[alias.id]).toEqual([1_000, 1]);
+    // With that 별명 as 대표, a hidden donation still counts for none of them.
+    expect(await m.identity.setDefaultDonationNickname(alias.id)).toEqual({ status: "SAVED" });
+    await m.requestDonation(text(4, { hideProfile: true, amount: 2_000 }));
+    expect((await totals())[alias.id]).toEqual([1_000, 1]);
+    expect((await totals())["nk-default"]).toEqual(beforeTotals["nk-default"]);
+  });
+});

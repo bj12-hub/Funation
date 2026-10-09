@@ -221,12 +221,33 @@ export const REFUND_NOTE = { min: 2, max: 200 } as const;
 
 export type DonationStatus = "COMPLETED" | "PROCESSING" | "FAILED" | "REFUNDING" | "REFUNDED";
 export const DONATION_STATUS_LABEL: Record<DonationStatus, string> = { COMPLETED: "완료", PROCESSING: "처리중", FAILED: "실패", REFUNDING: "환불중", REFUNDED: "환불완료" };
-export const DONATION_STATUSES: DonationStatus[] = ["COMPLETED", "PROCESSING", "FAILED", "REFUNDING", "REFUNDED"];
 
-export type AdminDonationRow = { id: string; donatedAt: string; creatorName: string; fnAmount: number; typeLabel: string; status: DonationStatus; memberId: string; memberName: string; memberWithdrawn: boolean };
+/**
+ * 후원 운영 tiles and `?status=`: each status, with FN 반환 apart from 환불완료 — a failed 플랫폼 후원 whose held FN went back
+ * is stored REFUNDED with `fnReturned`, but it was never a refund (2026-10-09 결정); REFUNDED counts real refunds only.
+ */
+export type DonationFilter = DonationStatus | "FN_RETURNED";
+export const DONATION_FILTERS: DonationFilter[] = ["COMPLETED", "PROCESSING", "FAILED", "REFUNDING", "REFUNDED", "FN_RETURNED"];
+export const DONATION_FILTER_LABEL: Record<DonationFilter, string> = { ...DONATION_STATUS_LABEL, FN_RETURNED: "FN 반환" };
+
+/** `fnReturned`: a failed 플랫폼 후원's held FN that went back (status REFUNDED) — shown as FN 반환, not 환불완료. */
+export type AdminDonationRow = {
+  id: string;
+  donatedAt: string;
+  creatorName: string;
+  fnAmount: number;
+  typeLabel: string;
+  status: DonationStatus;
+  fnReturned: boolean;
+  memberId: string;
+  memberName: string;
+  memberWithdrawn: boolean;
+};
+/** The 상태 a 후원 운영 row shows. */
+export const donationRowLabel = (d: Pick<AdminDonationRow, "status" | "fnReturned">) => DONATION_FILTER_LABEL[d.fnReturned && d.status === "REFUNDED" ? "FN_RETURNED" : d.status];
 export type DonationsView = {
   rows: AdminDonationRow[];
-  byStatus: Record<DonationStatus, { count: number; fn: number }>;
+  byStatus: Record<DonationFilter, { count: number; fn: number }>;
   byType: { typeLabel: string; count: number; fn: number }[];
 };
 

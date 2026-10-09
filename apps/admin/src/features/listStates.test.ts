@@ -12,7 +12,7 @@ const POLICY = { label: "기본값 (일반적인 기준, 법무 검토 전)", su
 
 const noDonations: DonationsView = {
   rows: [],
-  byStatus: { COMPLETED: { count: 0, fn: 0 }, PROCESSING: { count: 0, fn: 0 }, FAILED: { count: 0, fn: 0 }, REFUNDING: { count: 0, fn: 0 }, REFUNDED: { count: 0, fn: 0 } },
+  byStatus: { COMPLETED: { count: 0, fn: 0 }, PROCESSING: { count: 0, fn: 0 }, FAILED: { count: 0, fn: 0 }, REFUNDING: { count: 0, fn: 0 }, REFUNDED: { count: 0, fn: 0 }, FN_RETURNED: { count: 0, fn: 0 } },
   byType: []
 };
 

@@ -110,7 +110,8 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
       // Public totals and rankings never count a hidden-profile donation under the member's name.
       hideProfile: request.hideProfile
     });
-    attributeDonation(donationId, request.nicknameId);
+    // A hidden profile went out as 익명: no 별명 gets it (2026-10-09 결정; it still counts toward the 누적 · 활동 등급).
+    if (!request.hideProfile) attributeDonation(donationId, request.nicknameId);
     if (quest) {
       const d = request.details as { title: string; timeLimitSec: number; creatorDecides: boolean };
       recordQuest({

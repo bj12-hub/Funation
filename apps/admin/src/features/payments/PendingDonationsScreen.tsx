@@ -73,7 +73,7 @@ export function PendingDonationsScreen({ view }: { view: PendingDonationsView })
           확인 필요 {view.waiting.length > 0 ? <span className={styles.warn}>{formatNumber(view.waiting.length)}</span> : 0}
         </h2>
         <p className={styles.muted}>
-          자동 확인 중 {formatNumber(view.checking)}건 · 요청 후 24시간 안에는 회원의 후원 내역과 이 화면을 열 때마다 플랫폼 결과를 다시 확인해요.
+          자동 확인 중 {formatNumber(view.checking)}건 · 요청 후 24시간 안에는 회원의 후원 내역 · 회원 탈퇴 화면과 이 화면을 열 때마다 플랫폼 결과를 다시 확인해요.
         </p>
         {view.waiting.length === 0 ? (
           <p className={styles.empty}>확인이 필요한 후원이 없어요.</p>

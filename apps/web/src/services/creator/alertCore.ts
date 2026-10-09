@@ -53,9 +53,9 @@ function seedHistory(now = Date.now()): AlertItem[] {
   }));
 }
 
-// V4: donation alerts carry `donorKey` (V3 seeded the donation history, V2 added overlay signals).
-const g = globalThis as typeof globalThis & { __ssumnationMockAlertsV4?: MockAlerts; __ssumnationDonorKeySecret?: Buffer };
-export const mockAlerts = (g.__ssumnationMockAlertsV4 ??= {
+// V5: donation alerts carry `nameReplaced` (V4 `donorKey`, V3 seeded the donation history, V2 added overlay signals).
+const g = globalThis as typeof globalThis & { __ssumnationMockAlertsV5?: MockAlerts; __ssumnationDonorKeySecret?: Buffer };
+export const mockAlerts = (g.__ssumnationMockAlertsV5 ??= {
   items: seedHistory(),
   controls: { paused: false, muted: false, minFn: 0, alertVolume: 50, ttsVolume: 80, signatureVolume: 80, displaySec: 8 },
   shownAt: null,
@@ -87,6 +87,7 @@ export function enqueueAlert(
     kind: AlertKind;
     donor: string;
     donorKey?: string | null;
+    nameReplaced?: boolean;
     badges?: string[];
     message: string;
     fnAmount: number;
@@ -120,15 +121,18 @@ export function enqueueAlert(
  * A 퀘스트 후원 passes its `questId`: the alert shows when it is sent, but its FN counts in the 후원 위젯 only
  * once the quest succeeds (settleQuestAlerts). The Donation Core always passes `donorKey` (donorKeyOf, or null for a
  * hidden profile). A name the 대체 메시지 rules replace (익명 or the 대체 메시지) goes out without its 등급 · 칭호 badges
- * (2026-10-09 결정) — every overlay draws the badges stored here, so none can show them; the key stays (opaque).
+ * (2026-10-09 결정) — every overlay draws the badges stored here, so none can show them; the key stays (opaque). Such an
+ * alert is marked `nameReplaced` now, with the 금지어 of this moment: 후원랭킹 leaves it out (2026-10-09 결정), and a
+ * later change of 금지어 does not move it in or out.
  */
 export function enqueueDonationAlert(
   creatorId: string,
   input: { donor: string; donorKey?: string | null; badges?: string[]; message: string; fnAmount: number; typeLabel: string; donationType?: string; imageUrl?: string; soundUrl?: string; questId?: string }
 ) {
   if (creatorId !== STUDIO_CHANNEL) return;
-  const badges = replacesName(input.donor) ? [] : input.badges;
-  const item = enqueueAlert({ kind: "DONATION", ...input, badges, ...shownOnStream(input) });
+  const nameReplaced = replacesName(input.donor);
+  const badges = nameReplaced ? [] : input.badges;
+  const item = enqueueAlert({ kind: "DONATION", ...input, badges, ...shownOnStream(input), ...(nameReplaced ? { nameReplaced } : {}) });
   notify({ kind: "DONATION_RECEIVED", title: "새 후원이 들어왔어요", body: `${input.donor}님 · ${input.fnAmount.toLocaleString("ko-KR")} FN`, href: "/creator/donations?tab=list", dedupeKey: `alert:${item.id}` });
 }
 

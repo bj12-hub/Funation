@@ -319,4 +319,25 @@ describe("확인 중 플랫폼 후원 · 사이트 알림과 FN 반환 표시 (2
     expect(entries.find((e) => e.id === `${id}-refund`)).toMatchObject({ kind: "REFUND", description: "FN 반환 · SOOP 별풍선 10개", deltaFn: 10_000, statusLabel: "FN 반환" });
     expect(entries.find((e) => e.id === "dn9-refund")).toMatchObject({ description: "환불 · 시그니처 후원", statusLabel: "환불완료" });
   });
+
+  it("gives the console's 후원 운영 the FN 반환 apart from 환불완료 (/api/admin/donations)", async () => {
+    const m = await load();
+    const id = await pending(m, { creatorId: "gameking" });
+    at(HOUR);
+    await history(m);
+    const { getDonationsView } = await import("@/services/admin/payments");
+    const v = (await getDonationsView())!;
+    expect(v.rows.find((d) => d.id === id)).toMatchObject({ status: "REFUNDED", fnReturned: true, typeLabel: "SOOP 별풍선 10개" });
+    // The sample 시그니처 후원 refund (dn9) is a real refund.
+    expect(v.rows.find((d) => d.id === "dn9")).toMatchObject({ status: "REFUNDED", fnReturned: false });
+    const realRefunds = v.rows.filter((d) => d.status === "REFUNDED" && !d.fnReturned);
+    expect(v.byStatus.FN_RETURNED).toEqual({ count: 1, fn: 10_000 });
+    expect(v.byStatus.REFUNDED).toEqual({ count: realRefunds.length, fn: realRefunds.reduce((s, d) => s + d.fnAmount, 0) });
+    expect(Object.values(v.byStatus).reduce((s, x) => s + x.count, 0)).toBe(v.rows.length);
+
+    expect((await getDonationsView({ status: "FN_RETURNED" }))!.rows.map((d) => d.id)).toEqual([id]);
+    const refunds = (await getDonationsView({ status: "REFUNDED" }))!.rows.map((d) => d.id);
+    expect(refunds).toContain("dn9");
+    expect(refunds).not.toContain(id);
+  });
 });

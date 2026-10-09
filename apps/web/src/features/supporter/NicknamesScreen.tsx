@@ -146,6 +146,7 @@ export function NicknamesScreen({ nicknames }: { nicknames: DonationNickname[] }
         ))}
       </ul>
       <p className={styles.note}>기본 별명은 계정 닉네임과 같아요. 마이페이지에서 닉네임을 바꾸면 함께 바뀌어요. 삭제한 별명의 후원 기록은 기본 별명으로 합쳐져요.</p>
+      <p className={styles.note}>프로필 숨기기(익명)로 보낸 후원은 어느 별명의 누적에도 들어가지 않아요. 누적 등급 · 활동 등급에는 들어가요.</p>
     </div>
   );
 }

@@ -43,14 +43,29 @@ export type AdminChargeRow = Pick<ChargeRecord, "id" | "chargedAt" | "methodLabe
   memberWithdrawn: boolean;
 };
 
-export type AdminDonationRow = Pick<DonationRecord, "id" | "donatedAt" | "creatorName" | "fnAmount" | "typeLabel" | "status"> & { memberId: string; memberName: string; memberWithdrawn: boolean };
+/**
+ * `fnReturned`: a failed 플랫폼 후원 whose held FN went back to the member — stored as REFUNDED, but the console shows it as
+ * FN 반환, not 환불완료 (2026-10-09 결정: it was never a refund). Real refunds (퀘스트 실패 · 취소) keep 환불완료.
+ */
+export type AdminDonationRow = Pick<DonationRecord, "id" | "donatedAt" | "creatorName" | "fnAmount" | "typeLabel" | "status"> & {
+  fnReturned: boolean;
+  memberId: string;
+  memberName: string;
+  memberWithdrawn: boolean;
+};
+
+/** 후원 운영 tiles and `?status=`: each status, with FN 반환 (`FN_RETURNED`) apart from REFUNDED, which counts real refunds only. */
+export type AdminDonationFilter = DonationStatus | "FN_RETURNED";
+export const ADMIN_DONATION_FILTERS: AdminDonationFilter[] = ["COMPLETED", "PROCESSING", "FAILED", "REFUNDING", "REFUNDED", "FN_RETURNED"];
+/** The tile a row counts under. */
+export const donationFilterOf = (d: Pick<AdminDonationRow, "status" | "fnReturned">): AdminDonationFilter => (d.fnReturned && d.status === "REFUNDED" ? "FN_RETURNED" : d.status);
 
 /** `refundPolicy`: the 환불 정책 기본값 as the site states it (the console shows it; the numbers live on the site only). */
 export type PaymentsView = { charges: AdminChargeRow[]; refunds: AdminRefund[]; balance: number; refundPolicy: { label: string; summary: string } };
 
 export type DonationsView = {
   rows: AdminDonationRow[];
-  byStatus: Record<DonationStatus, { count: number; fn: number }>;
+  byStatus: Record<AdminDonationFilter, { count: number; fn: number }>;
   byType: { typeLabel: string; count: number; fn: number }[];
 };
 
