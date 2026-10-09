@@ -206,11 +206,42 @@ describe("충전 환불 정책 기본값", () => {
     const seen = await m.quote(id, on(2));
     await m.donate(1_000, on(2, 13)); // another tab
     vi.setSystemTime(on(2, 14));
-    expect(await m.requestChargeRefund({ chargeId: id, expectedGrossFn: seen.grossFn, expectedNetFn: seen.netFn })).toEqual({
+    const res = await m.requestChargeRefund({ chargeId: id, expectedGrossFn: seen.grossFn, expectedNetFn: seen.netFn });
+    expect(res).toEqual({
       status: "CHANGED",
       quote: { type: "PARTIAL", chargeFn: 10_000, paidKrw: 11_000, usedFn: 1_000, withinPeriod: true, grossFn: 9_000, feeFn: 900, netFn: 8_100, refundKrw: 8_910 }
     });
     expect(m.mockRefunds.requests).toEqual([]);
+    // The member's error line (환불 요청 form): FN were used in between.
+    const { refundQuoteChangedText } = await import("./refundPolicy");
+    if (res.status !== "CHANGED") throw new Error(res.status);
+    expect(refundQuoteChangedText(seen, res.quote)).toBe("그 사이 FN을 사용해 환불 내용이 바뀌었어요. 바뀐 내용을 확인해 주세요.");
+  });
+
+  /** 2026-10-09 결정: FN that came back between the quote and the request say so, not "FN을 사용해". */
+  it("words the request-time change by direction: FN that came back in between raise the refund", async () => {
+    const m = await setup();
+    const { decideMyQuest } = await import("@/services/donations/quests");
+    const { requestDonation } = await import("@/services/donations/donate");
+    const { refundQuoteChangedText } = await import("./refundPolicy");
+    const id = await m.charge(10_000, on(1, 15));
+    vi.setSystemTime(on(2, 10));
+    const sent = await requestDonation({ creatorId: "c1", hideProfile: false, type: "QUEST", title: "노래 한 곡", successReward: 4_000, timeLimitSec: 600, creatorDecides: false, termsAgreed: true, idempotencyKey: key(++n) });
+    if (sent.status !== "COMPLETED") throw new Error(sent.status);
+    // The member opens the form while the quest holds 4,000 FN of the charge …
+    const seen = await m.quote(id, on(2, 11));
+    expect(seen).toMatchObject({ type: "PARTIAL", grossFn: 6_000, netFn: 5_400 });
+    // … the quest fails in another tab and its FN go back, then the member presses 환불 요청.
+    vi.setSystemTime(on(2, 12));
+    expect(await decideMyQuest({ id: sent.donationId, outcome: "FAILED" })).toMatchObject({ status: "OK", refundedFn: 4_000 });
+    vi.setSystemTime(on(2, 13));
+    const res = await m.requestChargeRefund({ chargeId: id, expectedGrossFn: seen.grossFn, expectedNetFn: seen.netFn });
+    if (res.status !== "CHANGED") throw new Error(res.status);
+    expect(res.quote).toMatchObject({ type: "FULL_CANCEL", grossFn: 10_000, netFn: 10_000 });
+    expect(m.mockRefunds.requests).toEqual([]);
+    expect(refundQuoteChangedText(seen, res.quote)).toBe("그 사이 FN이 돌아와 환불 내용이 바뀌었어요. 바뀐 내용을 확인해 주세요.");
+    // Nothing left to refund is always the way down.
+    expect(refundQuoteChangedText(seen, { grossFn: 0, netFn: 0 })).toBe("그 사이 FN을 사용해 환불 내용이 바뀌었어요. 바뀐 내용을 확인해 주세요.");
   });
 
   it("recomputes at approval: FN used since the request lower the refund, the console's old amount is refused, only the unused FN are taken back", async () => {

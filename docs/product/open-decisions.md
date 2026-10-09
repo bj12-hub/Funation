@@ -51,7 +51,8 @@ Confirmed:
 - Console refund card (2026-10-09): a refund that differs from the request's says which way — "요청 후 FN 사용으로
   줄어듦" or "요청 후 FN이 돌아와 늘어남"; equal stays "요청 때와 같아요". The same direction applies to the member's
   approved-refund note ("요청 후 FN을 사용해 / FN이 돌아와 환불 금액이 바뀌었어요 (요청 때: …).") and the console's
-  approval error ("요청 후 FN 사용으로 / FN이 돌아와 환불 금액이 바뀌었어요. …"). See docs/domains/wallet.md
+  approval error ("요청 후 FN 사용으로 / FN이 돌아와 환불 금액이 바뀌었어요. …"), and the member's request-time error
+  ("그 사이 FN을 사용해 / FN이 돌아와 환불 내용이 바뀌었어요. 바뀐 내용을 확인해 주세요."). See docs/domains/wallet.md
 - Event result after 탈퇴 (2026-10-09): a participant skipped as 지급 불가 who is back with a 재가입 account sees "탈퇴한
   계정으로 참여해 보상 대상에서 빠졌어요" (draw and 무상 FN alike), with no notification. See docs/domains/events.md
 - Crew broadcast donor names (2026-10-09): on-stream views use the name after the creator's 대체 메시지 rules (익명 or the

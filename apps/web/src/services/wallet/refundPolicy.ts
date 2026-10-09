@@ -143,6 +143,16 @@ export function refundChangedNote(requested: RefundAmounts, approved: RefundAmou
   return `${cause} 환불 금액이 바뀌었어요 (요청 때: ${describeRefund(requested)}).`;
 }
 
+/**
+ * The member's error when the outcome changed between the quote they saw and their request (the server answered CHANGED
+ * or NOT_REFUNDABLE with the new quote), by direction (2026-10-09 결정): "그 사이 FN을 사용해 …" or, when FN came back
+ * in between, "그 사이 FN이 돌아와 환불 내용이 바뀌었어요. 바뀐 내용을 확인해 주세요."
+ */
+export function refundQuoteChangedText(seen: Pick<RefundQuote, "grossFn" | "netFn">, now: Pick<RefundQuote, "grossFn" | "netFn">): string {
+  const cause = refundDirection(seen, now) === "UP" ? "그 사이 FN이 돌아와" : "그 사이 FN을 사용해";
+  return `${cause} 환불 내용이 바뀌었어요. 바뀐 내용을 확인해 주세요.`;
+}
+
 // ── FIFO (policy 4) ──────────────────────────────────────────────────────────
 
 /**
