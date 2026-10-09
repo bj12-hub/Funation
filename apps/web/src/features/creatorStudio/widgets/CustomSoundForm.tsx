@@ -13,7 +13,8 @@ type Library = ReturnType<typeof useLibrarySounds>;
 
 /**
  * 커스텀 사운드 설정 — Figma 373:1307. Each card saves on its own (the popup footer has no save here).
- * 라이브러리 picks a sound from 이미지·사운드 (code-first; the sound is copied into the card).
+ * 라이브러리 picks a sound from 이미지·사운드 (code-first; the sound is copied into the card). The sounds play in the
+ * 후원 알림 overlay while TTS reads a message (`remote/useSpeechQueue.ts`), so this popup has no address of its own.
  * TBD: file size/format policy, content review of uploads.
  */
 export function CustomSoundForm({ value }: FormProps<"CUSTOM_SOUND">) {
@@ -45,10 +46,13 @@ export function CustomSoundForm({ value }: FormProps<"CUSTOM_SOUND">) {
         >
           라이브러리
         </button>
-        <span className={styles.help} title={`음성 후원 메시지에 '교체할 단어'가 나오면 등록한 효과음이 대신 재생됩니다. 최대 ${CUSTOM_SOUND_MAX}개.`}>
+        <span className={styles.help} title={`TTS가 후원 메시지를 읽다가 '교체할 단어'가 나오면 그 단어 대신 등록한 효과음이 재생됩니다. 최대 ${CUSTOM_SOUND_MAX}개.`}>
           ?
         </span>
       </div>
+      <p className={styles.hint}>
+        후원 알림 오버레이에서 재생돼요. 따로 띄울 주소는 없어요. 소리 크기는 효과음 볼륨 × 리모컨의 후원 TTS 볼륨이고, TTS 스킵 · 음소거면 함께 멈춰요.
+      </p>
       {count === 0 && <p className={styles.hint}>등록된 커스텀 사운드가 없습니다.</p>}
       {cards.map((c) => (
         <SoundCard key={c.key} card={c} library={library} onSaved={(s) => replace(c.key, { key: c.key, saved: s })} onRemoved={() => replace(c.key, null)} />
