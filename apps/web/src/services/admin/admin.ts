@@ -10,6 +10,7 @@ import { AUDIT_MAX, AUDIT_PAGE, type AdminActor, type AdminDashboard, type Audit
 import { auditEntries, recordAudit } from "./auditCore";
 import { SAMPLE_MEMBER_ID, slotMemberAt } from "./memberCore";
 import { memberLabels } from "./members";
+import { pendingDonationCount } from "./pendingDonations";
 
 /**
  * 관리자 API logic — code-first. Server-only: called by the admin API routes (`/api/admin/*`), which
@@ -57,7 +58,8 @@ export async function getAdminDashboard(): Promise<AdminDashboard | null> {
       refundsHeld: refunds.held,
       settlements: settlements.waiting,
       settlementsHeld: settlements.held,
-      reports: moderationStore().reports.filter((r) => r.status === "OPEN").length
+      reports: moderationStore().reports.filter((r) => r.status === "OPEN").length,
+      platformDonations: pendingDonationCount()
     },
     recentAudit: auditEntries().slice(0, 8)
   };

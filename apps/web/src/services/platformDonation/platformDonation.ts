@@ -10,6 +10,7 @@ import { accountSince } from "@/services/account/withdrawalCore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { adapterFor, type PlatformAdapter, type SendResult } from "./adapters";
 import { mockPlatform, type MockPlatformTransaction } from "./mockPlatformStore";
+import { recheckPending, walletMirror } from "./pendingCore";
 import {
   MESSAGE_MAX,
   PLATFORMS,
@@ -29,9 +30,9 @@ import {
  * checked and debited on the server, and each confirmation carries an Idempotency-Key so a retry or
  * double click never debits twice. If the platform rejects the donation the debit is reversed
  * ("FN은 차감되지 않았습니다."). If the platform call throws or times out the outcome is unknown: the FN
- * stays held, the transaction stays PROCESSING and the key answers PENDING with its Transaction ID.
- * TBD: FN ↔ platform-currency rate, fees, platform API capability and
- * auth, timeout/reconciliation of PENDING results, refunds, message moderation.
+ * stays held, the transaction stays PROCESSING and the key answers PENDING with its Transaction ID. The server then
+ * re-checks it for 24 hours and an operator decides it after that (2026-10-08 결정, ./pendingCore.ts).
+ * TBD: FN ↔ platform-currency rate, fees, platform API capability and auth, refunds, message moderation.
  */
 
 const assertMock = () => {
@@ -134,6 +135,10 @@ export async function requestPlatformDonation(input: unknown): Promise<PlatformD
   const previous = ownEntry(mockPlatform.idempotency, key);
   if (previous) {
     if (previous.fingerprint !== fingerprint) return { status: "CONFLICT" };
+    // 결과 다시 확인: a PENDING key asks the platform first (lazy re-check, ./pendingCore.ts); a result it brings is
+    // written to this entry, so the answer below is read after the await.
+    const waiting = previous.result?.status === "PENDING" ? previous.result.transactionId : null;
+    if (waiting) await recheckPending((t) => t.transactionId === waiting);
     return previous.result ?? { status: "IN_PROGRESS" };
   }
   mockPlatform.idempotency[key] = { fingerprint, result: null };
@@ -174,7 +179,9 @@ export async function requestPlatformDonation(input: unknown): Promise<PlatformD
     failureReason: null,
     createdAt: `${toDateString(now)} ${now.toTimeString().slice(0, 5)}`,
     completedAt: null,
-    account: accountSince()
+    account: accountSince(),
+    requestedAt: now.toISOString(),
+    idempotencyKey: key
   };
   mockPlatform.transactions.unshift(tx);
 
@@ -183,8 +190,13 @@ export async function requestPlatformDonation(input: unknown): Promise<PlatformD
 
   if (!sent.ok) {
     const reason = sent.reason;
-    // Unknown outcome: the FN stays held and the tx PROCESSING until reconciliation (TBD).
-    if (reason === "TIMEOUT") return finish({ status: "PENDING", transactionId });
+    // Unknown outcome: the FN stays held and the tx PROCESSING until the result is known (./pendingCore.ts). The hold
+    // gets its wallet record now (FN 후원내역 처리중).
+    if (reason === "TIMEOUT") {
+      tx.pending = { lastCheckAt: null };
+      walletMirror(tx);
+      return finish({ status: "PENDING", transactionId });
+    }
     mockAccount.fnBalance += price.amountFn;
     tx.status = "FAILED";
     tx.failureReason = reason === "API_ERROR" ? `${PLATFORMS[platform].name} 연결 오류` : "후원상품 사용 불가";

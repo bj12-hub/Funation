@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import type {
   AdminCreatorRow,
   AdminDashboard,
+  AdminEventsView,
   AdminReportView,
   AdminSettlementView,
   AuditPage,
@@ -11,6 +12,7 @@ import type {
   MemberPage,
   Notice,
   PaymentsView,
+  PendingDonationsView,
   PlatformStatusRow,
   SystemView
 } from "@/types/adminApi";
@@ -37,9 +39,11 @@ export const loadMember = (id: string) => get<MemberDetail>(`/members/${encodeUR
 export const loadCreators = (q: string) => get<AdminCreatorRow[]>(`/creators${qs({ q })}`);
 export const loadPayments = () => get<PaymentsView>("/payments");
 export const loadDonations = (status: string | null) => get<DonationsView>(`/donations${qs({ status })}`);
+export const loadPendingDonations = () => get<PendingDonationsView>("/platform-donations");
 export const loadSettlements = (status: string | null) => get<AdminSettlementView>(`/settlements${qs({ status })}`);
 export const loadNotices = () => get<Notice[]>("/content/notices");
 export const loadFaqs = () => get<FaqItem[]>("/content/faqs");
 export const loadReports = (status: string | null) => get<AdminReportView>(`/reports${qs({ status })}`);
+export const loadEvents = () => get<AdminEventsView>("/events");
 export const loadPlatforms = () => get<PlatformStatusRow[]>("/platforms");
 export const loadSystem = () => get<SystemView>("/system");

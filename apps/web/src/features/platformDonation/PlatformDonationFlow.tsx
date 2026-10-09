@@ -184,7 +184,7 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
             </div>
             <div>
               <dt>{p.name} 거래번호</dt>
-              <dd>{success.externalTransactionId}</dd>
+              <dd>{success.externalTransactionId ?? "-"}</dd>
             </div>
           </dl>
           <div className={styles.actions}>

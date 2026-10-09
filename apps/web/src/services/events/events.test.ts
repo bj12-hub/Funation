@@ -19,7 +19,8 @@ describe("이벤트", () => {
     expect(await joinEvent(ongoing.id)).toEqual({ status: "JOINED" });
     const detail = (await getEvent(ongoing.id))!;
     expect(detail).toMatchObject({ joined: true, participants: ongoing.participants + 1 });
-    expect((await getEvents("mine")).items.map((e) => e.id)).toEqual([ongoing.id]);
+    // The ended sample event has the sample member's join (so its reward can be tried in the mock).
+    expect((await getEvents("mine")).items.map((e) => e.id)).toEqual([ongoing.id, "ev-attendance"]);
     expect(mockAccount.fnBalance).toBe(before);
   });
 
@@ -30,7 +31,7 @@ describe("이벤트", () => {
 
     await rejoinWithPhone("010-1234-5678"); // the same person (the sample account's verified phone)
     expect(await getEvent(ongoing.id)).toMatchObject({ joined: true, participants: ongoing.participants + 1 });
-    expect((await getEvents("mine")).items.map((e) => e.id)).toEqual([ongoing.id]);
+    expect((await getEvents("mine")).items.map((e) => e.id)).toEqual([ongoing.id, "ev-attendance"]);
     expect(await joinEvent(ongoing.id)).toEqual({ status: "JOINED" }); // already in: nothing is added
     expect((await getEvent(ongoing.id))!.participants).toBe(ongoing.participants + 1);
 

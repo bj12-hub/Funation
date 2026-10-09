@@ -127,6 +127,12 @@ function Detail({ item }: { item: HistoryItem }) {
   return (
     <>
       <StatusBadge item={item} />
+      {/* 2026-10-08 결정: a platform donation whose result is unknown stays 처리중 while the server re-checks it. */}
+      {item.status === "PROCESSING" && item.source !== "DIRECT" && (
+        <p className={styles.detailEmpty} role="status">
+          처리 결과 확인 중 · 플랫폼에서 후원 결과를 확인하고 있어요. 결과가 나올 때까지 FN은 보류돼요.
+        </p>
+      )}
       <dl className={styles.detailList}>
         {rows.map(([k, v]) => (
           <div key={k}>
