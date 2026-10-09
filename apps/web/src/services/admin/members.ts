@@ -1,4 +1,4 @@
-import { toDateString } from "@/lib/period";
+import { kstDateString, toDateString } from "@/lib/period";
 import { USE_MOCK } from "@/lib/mock";
 import { ownEntry } from "@/lib/records";
 import { mockAccount } from "@/services/account/mockStore";
@@ -72,7 +72,8 @@ async function directory(): Promise<AdminMember[]> {
     ssumnationId: mockAccount.ssumnationId,
     roles: ["SUPPORTER", "CREATOR"],
     joinedAt: "2025-11-02",
-    lastActiveAt: new Date(now).toISOString().slice(0, 10),
+    // The Korean day (the UTC day turns over at 09:00 KST).
+    lastActiveAt: kstDateString(new Date(now)),
     fnBalance: mockAccount.fnBalance,
     donationTotalFn: donatedBy(accountSince()),
     creatorId: null
@@ -97,7 +98,7 @@ async function directory(): Promise<AdminMember[]> {
             id: withdrawnMemberId(i + 1),
             nickname: w.nickname,
             ssumnationId: w.ssumnationId,
-            lastActiveAt: w.at.slice(0, 10),
+            lastActiveAt: kstDateString(new Date(w.at)),
             fnBalance: 0,
             donationTotalFn: donatedBy(w.accountSince),
             status: "WITHDRAWN",
