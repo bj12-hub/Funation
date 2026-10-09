@@ -5,7 +5,7 @@ import { accountSince, isWithdrawn } from "@/services/account/withdrawalCore";
 import { purgeExpired } from "@/services/account/retentionPurge";
 import { mockRefunds, type MockRefundRequest } from "@/services/wallet/mockRefundStore";
 import { chargeRefundQuote } from "@/services/wallet/refundCore";
-import { REFUND_POLICY_LABEL, REFUND_POLICY_SUMMARY, REFUND_TYPE_LABEL, refundAmounts, sameRefund, type RefundAmounts, type RefundQuote } from "@/services/wallet/refundPolicy";
+import { REFUND_POLICY_LABEL, REFUND_POLICY_SUMMARY, REFUND_TYPE_LABEL, refundAmounts, refundDirection, sameRefund, type RefundAmounts, type RefundQuote } from "@/services/wallet/refundPolicy";
 import { findChargeRecord, listAccountChargeRecords, listAccountDonationRecords, listChargeRecords } from "@/services/wallet/walletHistory";
 import type { AdminActor } from "./adminTypes";
 import { recordAudit } from "./auditCore";
@@ -173,7 +173,9 @@ export async function decideRefund(admin: AdminActor, input: unknown): Promise<R
     const settled = refundAmounts(chargeRefundQuote(charge, new Date(request.requestedAt)));
     if (!settled) return { status: "INVALID", message: "요청 후 이 충전의 FN을 모두 사용해서 지금은 환불할 FN이 없어요. 거절로 처리해 주세요." };
     if (v.expectedGrossFn !== settled.grossFn || v.expectedNetFn !== settled.netFn) {
-      return { status: "INVALID", message: `요청 후 FN 사용으로 환불 금액이 바뀌었어요. 지금 기준(${refundText(settled)})으로만 승인할 수 있어요. 확인한 뒤 다시 승인해 주세요.` };
+      // Which way it moved from the amount the console showed (2026-10-09 결정): FN used, or FN that came back since.
+      const cause = refundDirection({ grossFn: v.expectedGrossFn, netFn: v.expectedNetFn }, settled) === "UP" ? "요청 후 FN이 돌아와" : "요청 후 FN 사용으로";
+      return { status: "INVALID", message: `${cause} 환불 금액이 바뀌었어요. 지금 기준(${refundText(settled)})으로만 승인할 수 있어요. 확인한 뒤 다시 승인해 주세요.` };
     }
     if (mockAccount.fnBalance < settled.grossFn) return { status: "INVALID", message: "보유 FN이 회수할 FN보다 적어 승인할 수 없어요." };
     mockAccount.fnBalance -= settled.grossFn;

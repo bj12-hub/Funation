@@ -18,6 +18,7 @@ import {
   REFUND_TYPE_LABEL,
   REFUND_WITHDRAWAL_DAYS,
   describeRefund,
+  refundChangedNote,
   type RefundQuote
 } from "@/services/wallet/refundPolicy";
 import { CHARGE_STATUS_LABEL, REFUND_REASON_MAX, refundStatusText, type ChargeRecord, type ChargeRefund, type ChargeStatus } from "@/services/wallet/walletTypes";
@@ -192,6 +193,7 @@ function RefundStatus({ refund }: { refund: ChargeRefund }) {
     );
   }
   const approved = refund.status === "APPROVED";
+  const changedNote = refund.requestedAmounts ? refundChangedNote(refund.requestedAmounts, refund.amounts) : null;
   return (
     <div className={styles.refundStatus} role="status">
       <p className={styles.refundDone}>
@@ -202,7 +204,8 @@ function RefundStatus({ refund }: { refund: ChargeRefund }) {
       <p className={styles.refundNote}>
         {approved ? "환불" : "요청 내용"}: {describeRefund(refund.amounts)}
       </p>
-      {refund.requestedAmounts && <p className={styles.refundNote}>요청 후 FN을 사용해 환불 금액이 바뀌었어요 (요청 때: {describeRefund(refund.requestedAmounts)}).</p>}
+      {/* Approval used other amounts than the request: which way, by direction (2026-10-09 결정). */}
+      {changedNote && <p className={styles.refundNote}>{changedNote}</p>}
       <p className={styles.refundNote}>{approved ? `원래 결제 수단으로 환불돼요. ${REFUND_METHOD_NOTE}돼요.` : `${REFUND_PROCESSING_TARGET}를 목표로 해요.`}</p>
     </div>
   );
