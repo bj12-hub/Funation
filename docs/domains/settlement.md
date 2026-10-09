@@ -20,7 +20,8 @@ Settlement rules remain subject to product, financial and legal approval.
 - **지급 완료 (decided 2026-10-08).** States: PENDING → APPROVED → PAID (or PENDING → REJECTED; PENDING → FORFEITED at a
   탈퇴). After the transfer, the operator records 지급 완료 for an APPROVED request with the 이체 참조번호 (4–40 letters, digits
   or hyphens; a digits-only value with 10 or more digits looks like an account number and is refused) and confirms. One
-  console request id per payment: a retry answers OK once, with one `SETTLEMENT_PAY` audit entry. Refused for any other
+  console request id per payment: a retry (same request, same reference) answers OK once, with one `SETTLEMENT_PAY` audit
+  entry; the same id with another request or reference is refused ("잘못된 요청입니다."). Refused for any other
   state, for 탈퇴 소멸 requests and while the request is on 보류. The creator's 정산 신청 · 정산 관리 show "지급 완료" and
   the 지급일 instead of the scheduled date; the reference stays with the operator. 승인 and 지급 완료 both count as 출금 in
   the studio dashboard. 지급 수단 · 일정 · 이체 연동 are TBD.
@@ -36,8 +37,8 @@ Settlement rules remain subject to product, financial and legal approval.
 - **보류 / 보류 해제 (decided 2026-10-08).** An operator can put a request 심사 대기 or 승인 on 보류 when it needs a closer
   look (`POST /api/admin/settlements/[id]/hold`, `{ action: "HOLD" | "RELEASE", note, requestId }`). The memo (2–200 자) is
   required and stays with the operators; each action is audited (`SETTLEMENT_HOLD` / `SETTLEMENT_RELEASE`) and one console
-  request id makes it once (a retry answers OK without a second entry; another id on a held request: "이미 보류 중인
-  정산이에요."). While held, 승인 · 반려 ("보류 중인 정산이라 승인 · 반려할 수 없어요. 보류를 해제한 뒤 처리해 주세요.") and
+  request id makes it once (a retry — same request, action and memo — answers OK without a second entry; the same id with
+  anything else is refused, "잘못된 요청입니다."; another id on a held request: "이미 보류 중인 정산이에요."). While held, 승인 · 반려 ("보류 중인 정산이라 승인 · 반려할 수 없어요. 보류를 해제한 뒤 처리해 주세요.") and
   지급 완료 ("보류 중인 정산이라 지급 완료로 처리할 수 없어요. …") are refused. The status never changes, so 보류 해제 puts
   the request back as it was. It is an operator flag, not a creator-facing state: 정산 신청 · 정산 관리 keep showing 승인대기 /
   승인. The console counts held requests in their own "보류" tab only (not in 심사 대기 · 승인 or the dashboard's 처리 대기,

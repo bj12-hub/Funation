@@ -175,6 +175,9 @@ describe("확인 중 플랫폼 후원 (PENDING)", () => {
     // A retry of the same request: OK, nothing more. Another decision: refused.
     expect(await decide()).toEqual({ status: "OK" });
     expect(await decide({ outcome: "COMPLETED" })).toEqual({ status: "INVALID", message: "잘못된 요청입니다." });
+    // The same request id with another memo is not that decision either: refused, the recorded memo stays.
+    expect(await decide({ note: "다른 메모로 다시 결정" })).toEqual({ status: "INVALID", message: "잘못된 요청입니다." });
+    expect(txOf(m, id).resolution?.note).toBe("플랫폼 고객센터 확인: 미전송");
     expect(await decide({ requestId: key(51) })).toEqual({ status: "INVALID", message: "이미 결과가 정해진 후원이에요 (실패)." });
     expect(m.account.fnBalance).toBe(100_000);
 
