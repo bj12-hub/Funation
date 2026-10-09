@@ -5,7 +5,8 @@ import { DEFAULTS_NOTE, effectiveLine } from "./common";
  * FN 충전 · 환불 정책 — 초안 (2026-10-08). Linked from the FN 충전 약관 ("결제 서비스 이용약관 및 환불 정책 동의",
  * services/wallet/chargeTypes.ts). The 청약철회 · 수수료 · 처리 기한 numbers are the 2026-10-08 defaults (the same as
  * 서비스 이용약관 제9조). Decided elsewhere: 퀘스트 실패 · 취소 = 전액 환불 (donation.md), 처리 중 환불 · 진행 중
- * 퀘스트 = 탈퇴 불가 and 탈퇴 시 FN 소멸 (wallet.md), the 환불 요청 → 운영자 승인 flow (wallet.md 충전 환불).
+ * 퀘스트 = 탈퇴 불가 and 탈퇴 시 FN 소멸 (wallet.md), the 환불 요청 → 운영자 승인 flow (wallet.md 충전 환불), the KRW amount of
+ * a 수수료 공제 후 환불 (2026-10-08: net FN ÷ the charge's FN × its paid KRW, 원 미만 버림 — services/wallet/refundPolicy.ts).
  * FN 가격, PG and the refund method per payment method stay TBD.
  */
 export const REFUND_POLICY: TermsDoc = {
@@ -60,7 +61,7 @@ export const REFUND_POLICY: TermsDoc = {
       title: "남은 유상 FN의 환불",
       body: [
         "① 청약철회에 해당하지 않는 남은 유상 FN은 환불 수수료 10%를 뺀 금액으로 환불받을 수 있습니다 (기본값).",
-        "② 환불 금액은 남은 유상 FN을 충전할 때 실제로 결제한 금액을 기준으로 계산합니다. FN 가격과 계산 방식의 세부 기준은 FN 가격이 정해진 뒤 확정합니다 (TBD)."
+        "② 환불 금액은 그 충전에서 실제로 결제한 금액을 기준으로, 수수료를 뺀 환불 FN이 그 충전으로 받은 FN에서 차지하는 비율만큼 계산하며 원 미만은 버립니다(환불 FN ÷ 충전 FN × 결제 금액) (기본값). 청약철회는 결제 금액 전액을 돌려드립니다."
       ]
     },
     {

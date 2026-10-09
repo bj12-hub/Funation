@@ -2,7 +2,10 @@ import type { RefundAmounts, RefundQuote } from "@/services/wallet/refundPolicy"
 import type { ChargeRecord, DonationRecord, DonationStatus, RefundStatus } from "@/services/wallet/walletTypes";
 import type { AdminHold } from "./adminTypes";
 
-/** 후원 · 결제 운영 — code-first. Client-safe types. Refunds follow the 환불 정책 기본값 (법무 검토 전); KRW payout is TBD. */
+/**
+ * 후원 · 결제 운영 — code-first. Client-safe types. Refunds follow the 환불 정책 기본값 (법무 검토 전) with their KRW
+ * amount; how the payment provider pays it out is TBD.
+ */
 
 export type AdminRefund = {
   chargeId: string;
