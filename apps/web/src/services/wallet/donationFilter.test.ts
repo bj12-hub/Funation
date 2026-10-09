@@ -37,3 +37,17 @@ describe("donation history filters", () => {
     expect(parseDonationFilter({ sort: "oldest", min: "1.5" })).toEqual({ q: undefined, min: undefined, max: undefined, sort: "oldest" });
   });
 });
+
+/** The sample donations use the same type names as live ones (the catalog titles), so the console's 유형별 rows don't split. */
+describe("sample donation type names", () => {
+  beforeEach(() => resetMockStores());
+
+  it("names every game donation by its catalog title", async () => {
+    const { listDonationRecords } = await import("./walletHistory");
+    const { getMockDonationCatalog } = await import("@/services/donations/donationCatalog");
+    const titles = new Set(getMockDonationCatalog().types.map((t) => t.title));
+    const games = listDonationRecords().filter((d) => d.category === "game");
+    expect(games.length).toBeGreaterThan(0);
+    for (const d of games) expect(titles).toContain(d.typeLabel);
+  });
+});
