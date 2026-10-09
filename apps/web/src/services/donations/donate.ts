@@ -146,6 +146,7 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
       fnAmount: request.amount,
       // 금액 매칭 (시그니처 관리): a 일반 후원 whose amount equals an AMOUNT-match signature alerts as that signature.
       typeLabel: alertTypeLabel(catalog, request.type, request.amount),
+      donationType: request.type,
       imageUrl: signatureImageFor(catalog, request.type, request.amount, request.details),
       soundUrl: signatureSoundFor(request.type, request.amount, request.details),
       // The quest's arrival shows now; its FN counts in the 후원 위젯 once it succeeds.

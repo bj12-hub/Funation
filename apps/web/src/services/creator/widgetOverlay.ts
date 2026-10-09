@@ -10,7 +10,7 @@ import { currentRun, voteBoard } from "@/services/votes/voteCore";
 import { isHidden, stageOf } from "@/services/donations/rouletteCore";
 import { boardOf, channelRows as gachaRows, isHidden as gachaHidden, stageOf as gachaStageOf } from "@/services/donations/gachaCore";
 import { STUDIO_CHANNEL, mockCrew } from "@/services/crew/mockCrewStore";
-import { crewRankingRows, eventLines, goalProgress, rankingRows, recentLines, secondGoalProgress, sourceBoardRows, totalAmount } from "./widgetOverlayCore";
+import { crewRankingRows, eventLines, goalProgress, miniLines, rankingRows, recentLines, secondGoalProgress, sourceBoardRows, totalAmount } from "./widgetOverlayCore";
 import { overlayTheme } from "./overlayThemeStore";
 import type { OverlayThemeChoice } from "./overlayThemeTypes";
 import { QR_SAMPLE_IMAGE, isWidgetOverlay, type OverlayWidget } from "./widgetOverlayTypes";
@@ -103,6 +103,11 @@ export async function getOverlayWidget(widget: unknown, key: unknown): Promise<O
     case "clock": {
       const settings = readWidget("CLOCK");
       return { widget, settings, ...themed(settings) };
+    }
+    case "mini": {
+      // 미니후원: the mini donations also arrive as 후원 알림 as before (whether to take them out of the alerts — TBD).
+      const settings = readWidget("MINI");
+      return { widget, settings, lines: miniLines(items, settings), ...themed(settings) };
     }
     case "wallpaper": {
       // Stickers since the last 벽지 비우기 (리모컨). The images go once; each sticker points at one.

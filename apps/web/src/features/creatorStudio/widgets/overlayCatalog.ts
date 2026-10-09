@@ -181,6 +181,16 @@ export const OVERLAYS: OverlayEntry[] = [
     manage: "/creator/widgets"
   },
   {
+    id: "widget-mini",
+    target: "widgets",
+    group: "알림",
+    title: "미니후원",
+    description: "최근 미니후원을 흐르는 띠나 말풍선으로 보여 줘요.",
+    size: "800 × 120",
+    path: (k) => widgetOverlayPath("mini", k),
+    manage: "/creator/widgets"
+  },
+  {
     id: "widget-event",
     target: "widgets",
     group: "알림",

@@ -1,13 +1,12 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { formatNumber } from "@/lib/format";
 import { PreviewStage } from "@/features/overlayTheme/PreviewStage";
 import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
 import { effectLabel, resolveTheme } from "@/services/creator/overlayThemeTypes";
-import { eventLines, recentLines } from "@/services/creator/widgetOverlayCore";
-import { EventView, RecentView } from "./WidgetViews";
-import { SAMPLE_ALERTS } from "./widgetSamples";
+import { MINI_LINES, eventLines, miniLines, recentLines } from "@/services/creator/widgetOverlayCore";
+import { EventView, MiniView, RecentView } from "./WidgetViews";
+import { SAMPLE_ALERTS, SAMPLE_MINI_ALERTS } from "./widgetSamples";
 import {
   EVENT_ORDERS,
   EVENT_STYLES,
@@ -16,9 +15,8 @@ import {
   RECENT_SCROLL_SPEEDS,
   TEMPLATE_MAX
 } from "@/services/creator/widgetSettingsTypes";
-import { FontFields, NumberField, Preview, Radios, Row, Section, Select, SwitchText } from "./fields";
+import { FontFields, NumberField, Radios, Row, Section, Select, SwitchText } from "./fields";
 import type { FormProps } from "./forms";
-import { fontStyle } from "./previewStyle";
 import styles from "./widgets.module.css";
 
 
@@ -162,25 +160,25 @@ export function EventForm({ value: v, onChange, live }: FormProps<"EVENT">) {
 
 export function MiniForm({ value: v, onChange, live }: FormProps<"MINI">) {
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
-  const sampleAmount = Math.max(500, live.miniMinAmount);
-  const shown = sampleAmount >= v.minAmount;
+  const lines = miniLines(SAMPLE_MINI_ALERTS, v);
   return (
     <>
-      <Preview>
-        <div className={`${styles.miniPreview} ${v.style === "BUBBLE" ? styles.miniBubble : ""}`}>
-          {shown ? (
-            <p
-              className={v.style === "SCROLL" ? (v.direction === "RTL" ? styles.marqueeRtl : styles.marqueeLtr) : undefined}
-              style={{ ...fontStyle(v.font, v.textOutline), animationDuration: `${Math.round(22 - v.speed / 5)}s`, paddingLeft: `${v.startPercent}%` }}
-            >
-              💸 {v.showNickname && "홍길동님 "}
-              {v.showAmount && `${formatNumber(sampleAmount)} FN `}후원! &quot;항상 응원합니다 화이팅!&quot;
-            </p>
-          ) : (
-            <p className={styles.hint}>최소 표시 금액보다 작은 후원은 표시되지 않아요.</p>
-          )}
+      <Section title="미리보기">
+        {lines.length > 0 ? (
+          <PreviewStage width={800} minHeight={120} label="미니후원 미리보기">
+            <MiniView settings={v} lines={lines} theme={resolveTheme(live.appearance, v.theme)} />
+          </PreviewStage>
+        ) : (
+          <p className={styles.hint}>최소 표시 금액보다 작은 후원은 표시되지 않아요.</p>
+        )}
+        <p className={styles.hint}>미니후원은 지금처럼 후원 알림에도 함께 떠요. 이 위젯은 최근 미니후원 {MINI_LINES}개를 흘려 보여 줘요.</p>
+      </Section>
+      <Section title="테마">
+        <div className={styles.rows}>
+          <ThemeChoiceField value={v.theme} onChange={(x) => set("theme", x)} appearance={live.appearance} />
+          <SwitchText label="배경 카드" checked={v.card} onChange={(x) => set("card", x)} text="테마 띠(말풍선) 위에 그려요. 끄면 글자만 방송 화면 위에 (아래 글자 색 · 외곽선 사용)" />
         </div>
-      </Preview>
+      </Section>
       <Section title="기본 설정">
         <div className={styles.rows}>
           <div className={styles.grid2}>
