@@ -153,3 +153,23 @@ describe("계정", () => {
     expect(await m.connectPlatform({ platform: "SOOP", accountId: "my_soop", code: "FN-2026-0920" })).toEqual({ status: "UNAUTHORIZED" });
   });
 });
+
+describe("mock account store in the browser bundle", () => {
+  beforeEach(() => resetMockStores());
+  afterEach(() => vi.unstubAllGlobals());
+
+  // A client component reaches this module through shared helpers (creatorRoom/ChannelViews → creators → admin/memberCore),
+  // and a page opened over plain http on another host (e.g. the dev server at http://<LAN IP>:3000 on a phone) has no
+  // crypto.randomUUID: loading the module must not throw there. The browser copy never uses the person key.
+  it("loads without crypto.randomUUID outside a secure context", async () => {
+    vi.stubGlobal("window", {});
+    vi.stubGlobal("crypto", { getRandomValues: globalThis.crypto.getRandomValues.bind(globalThis.crypto) });
+    const store = await import("./mockStore");
+    expect(store.mockCredentials.personKey).toBe("");
+  });
+
+  it("gives the server copy a person key", async () => {
+    const store = await import("./mockStore");
+    expect(store.currentPersonKey()).toMatch(/^[0-9a-f-]{36}$/);
+  });
+});
