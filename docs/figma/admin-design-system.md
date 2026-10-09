@@ -91,7 +91,8 @@ Display 24 Bold · Title 18 Bold · Subtitle 15 Medium · Body 14 · Body Strong
 | 회원 | AD05c | 회원 상세 · 탈퇴 회원 정보 보관 (분류 · 보관 기한 · 기간 · 근거 · 포함, 기본값 · 법무 검토 전, code-first) | `/members/u-hongGD123` | `31:1217` |
 | 회원 | AD05d | 회원 상세 · 영구 정지 · 남은 FN 정리 (충전 건별 환불 표 · 소멸 무상 FN · 처리 메모, 2026-10-08 결정, code-first) | `/members/u-hongGD123` | `34:1610` |
 | 회원 | AD06 | 크리에이터 관리 | `/creators` | `17:1627` |
-| 거래 | AD09 | 후원 운영 | `/donations` | `18:333` |
+| 거래 | AD09 | 후원 운영 (상태 타일 6개 · FN 반환 포함, 2026-10-09) | `/donations` | `36:1829` |
+| 거래 | AD09b | 후원 운영 · FN 반환 (실패한 플랫폼 후원, `?status=FN_RETURNED`, 2026-10-09 결정, code-first) | `/donations?status=FN_RETURNED` | `36:2163` |
 | 거래 | AD16 | 확인 중 후원 · 확인 필요 (다시 확인 · 처리 메모 · 성공 / 실패, 2026-10-08 결정, code-first) | `/donations/pending` | `33:1371` |
 | 거래 | AD16b | 확인 중 후원 · 처리 완료 (실패 · FN 반환, 처리 메모, EMPTY "확인이 필요한 후원이 없어요.", code-first) | `/donations/pending` | `33:1458` |
 | 거래 | AD07 | 결제 · 충전 내역 | `/payments` | `18:651` |
