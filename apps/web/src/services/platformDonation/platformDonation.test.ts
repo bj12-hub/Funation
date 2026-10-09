@@ -88,10 +88,11 @@ describe("플랫폼 후원", () => {
     const res = await requestPlatformDonation(soop({ productId: "balloon-10" }));
     expect(res.status).toBe("PENDING");
     if (res.status !== "PENDING") return;
-    // The platform may have received it, so the FN stays held until reconciliation (TBD).
+    // The platform may have received it, so the FN stays held until the result is known (pendingCore.ts).
     expect(account.fnBalance).toBe(90_000);
     expect(platform.transactions[0]).toMatchObject({ transactionId: res.transactionId, status: "PROCESSING" });
-    // A retry with the same key gets the same answer and never re-sends.
+    // A retry with the same key re-checks the platform; with no result yet it gets the same answer and never re-sends.
+    vi.spyOn(soopAdapter, "lookupDonation").mockResolvedValue({ status: "UNKNOWN" });
     expect(await requestPlatformDonation(soop({ productId: "balloon-10" }))).toEqual(res);
     expect(send).toHaveBeenCalledTimes(1);
     expect(account.fnBalance).toBe(90_000);

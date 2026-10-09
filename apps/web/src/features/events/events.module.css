@@ -165,12 +165,59 @@
 }
 
 .reward {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   margin: 0;
   padding: 10px 12px;
   border-radius: var(--radius-8);
   background: var(--color-surface-raised);
   color: var(--color-text-secondary);
   font-size: var(--font-size-13);
+}
+
+.rewardTitle {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-15);
+}
+
+/* 이벤트 결과 (2026-10-08 결정): 보상 지급 / 당첨자 발표 */
+.outcome {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+}
+
+.winners {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.winners li {
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
+  font-size: var(--font-size-13);
+}
+
+.myResult {
+  margin: 0;
+  font-size: var(--font-size-15);
+  font-weight: var(--font-weight-bold);
+}
+
+.myResult[data-tone="good"] {
+  color: var(--color-platform-success);
+}
+
+.myResult[data-tone="muted"] {
+  color: var(--color-text-secondary);
 }
 
 .primary {

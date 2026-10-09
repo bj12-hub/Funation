@@ -151,14 +151,20 @@ export type PlatformDonationResult =
       status: "COMPLETED";
       /** Ssumnation Transaction ID. */
       transactionId: string;
-      /** The platform's transaction id (External Transaction ID). */
-      externalTransactionId: string;
+      /**
+       * The platform's transaction id (External Transaction ID); null when an operator decided a PENDING donation 성공
+       * in 확인 중 후원 without the platform returning one.
+       */
+      externalTransactionId: string | null;
       creatorName: string;
       productLabel: string;
       fnAmount: number;
       balance: number;
     }
-  /** The platform did not confirm in time; FN stays held until the result is known (TBD). */
+  /**
+   * The platform did not confirm in time; FN stays held until the result is known: the server re-checks it for 24 hours
+   * (the same key re-checks too), then an operator decides it (2026-10-08 결정). The same key then answers with the result.
+   */
   | { status: "PENDING"; transactionId: string }
   /** Nothing was debited. */
   | { status: "FAILED"; reason: "API_ERROR" | "UNAVAILABLE" | "NOT_FOUND" }

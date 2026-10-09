@@ -116,7 +116,28 @@ Authentication for every platform (OAuth / login) is TBD.
 - The FN is held before the platform call. A refusal reverses the hold ("FN은 차감되지 않았습니다.").
 - A platform call that throws or does not answer in time (10 s, sample value) has an unknown outcome:
   the FN stays held, the transaction stays PROCESSING and the Idempotency-Key answers **PENDING** with
-  its Transaction ID (the client shows 「처리 결과 확인 중」 and the ID). Reconciliation is TBD.
+  its Transaction ID (the client shows 「처리 결과 확인 중」 and the ID). The hold gets its wallet record at once
+  (FN 후원내역 처리중).
+- **결과 확인 (2026-10-08 결정, `pendingCore.ts`)**: for 24 hours after the request the server asks the platform for the
+  result (`PlatformAdapter.lookupDonation`, by Idempotency-Key and Transaction ID; 5 s timeout and at most once a minute
+  per transaction — sample values). It asks lazily: when 후원 내역 is read (that account's donations), when the same key
+  is sent again (「결과 다시 확인」) and when the console list is read. A lookup that fails or times out is "no result yet".
+  - COMPLETED: the donation completes as a direct success (External Transaction ID from the platform).
+  - FAILED: the held FN goes back with a wallet record (FN 내역: the hold turns 환불완료 plus a 환불 row); 후원 내역 shows
+    실패 with 「SOOP 확인 결과 실패 · FN 반환」.
+  - The same key then answers COMPLETED / FAILED instead of PENDING.
+  - Check and write: the answers are applied in one synchronous step after the last await, only to a transaction still
+    pending.
+- **확인 중 후원 (console, after 24 hours)**: still no result → listed in the admin console (`/donations/pending`, 대시보드
+  처리 대기). The operator presses 다시 확인 (asks the platform now, audited `PLATFORM_DONATION_CHECK`) or decides 성공 /
+  실패 with a required memo (2–200자): once per console request id, refused once settled or inside the 24 hours, audited
+  `PLATFORM_DONATION_RESOLVE`. 성공 keeps the FN spent (no external id); 실패 returns it (「운영자 확인 결과 실패 · FN 반환」).
+- **Withdrawn sender**: when the account that sent it has withdrawn since (also after a 재가입 in the same slot), a 실패
+  credits nothing — the return is recorded as forfeited (반환 불가(탈퇴), 「확인 결과 실패 · 탈퇴한 계정이라 FN 반환 불가(소멸)」),
+  like the rest of a withdrawn account's FN, and the console says so before and after the decision. Withdrawal itself is
+  not blocked by a PENDING donation.
+- The member keeps seeing 처리중 and 「처리 결과 확인 중」 in 후원 내역 until a result, then 완료 or 실패 · FN 반환.
+- TBD: whether each real platform has a status lookup, its rate limits, notifying the member of the result.
 - A failure before the hold finishes the key as FAILED (nothing debited), so a retry never sees
   IN_PROGRESS forever.
 

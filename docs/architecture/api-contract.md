@@ -24,11 +24,12 @@ Backend framework, database, payment provider and every business rule listed as 
 |---|---|---|---|---|
 | FN 충전 | `wallet/charge.requestCharge` | credit FN | key + fingerprint (`CONFLICT`, `IN_PROGRESS`, failures cached) | charge row |
 | 크리에이터 룸 후원 | `donations/donate.requestDonation` | debit FN | key + fingerprint | donation row |
-| SOOP · FlexTV 후원 | `platformDonation/platformDonation.requestPlatformDonation` | hold/debit FN → platform call → reverse on refusal; stays held on timeout (`PENDING`) | key + fingerprint | platform transaction + wallet mirror |
+| SOOP · FlexTV 후원 | `platformDonation/platformDonation.requestPlatformDonation` | hold/debit FN → platform call → reverse on refusal; stays held on timeout (`PENDING`) → re-checked for 24 h, then decided in the console; 실패 returns the FN (not to a withdrawn sender) | key + fingerprint; console decision by request id | platform transaction + wallet mirror (처리중 → 완료 / 환불완료) |
+| 이벤트 보상 | `admin/events.payEventReward` (참여자 전원 무상 FN) | credit free FN to each participant's current account | once per event (console request id), per person | credit ledger (`wallet/mockCreditStore`, "이벤트 보상 · …") + `EVENT_REWARD_PAY` audit |
 | 출석 보상 | `attendance.checkIn` (daily + automatic 15·30-day rewards) · `claimAttendanceReward` (3·7-day) | credit FN | natural (once per day per person / reward per month) | credit ledger (`wallet/mockCreditStore`, tagged with the account marker) |
 | 정산 신청 | `creator/settlementRequests.requestSettlement` | debit creator earnings (`availableFn`) | key + amount (`CONFLICT`) | PENDING settlement request (`st-<uuid>`) with a copy of the masked registration at request time |
 
-Not implemented anywhere yet (TBD): refunds, holds for quest/quiz outcomes, creator revenue credit from donations, platform fees, payouts, reconciliation of platform `PENDING` results.
+Not implemented anywhere yet (TBD): refunds, holds for quest/quiz outcomes, creator revenue credit from donations, platform fees, payouts.
 
 ## 3. Endpoints by domain
 
@@ -99,10 +100,10 @@ Result: `COMPLETED{donationId, fnAmount, balance}` · `INSUFFICIENT_FN{balance, 
 |---|---|---|---|
 | `getPlatformHome` · `searchPlatformCreators` · `getPlatformCreatorDetail` | R | platform SOOP/FLEXTV, query ≤ 40, creatorId | balance, creators, products (server prices) |
 | `quotePlatformDonation` | R | platform, creatorId, productId, customFn (bounds) | `OK{priceFn, balance, afterFn, sufficient}` · `INVALID` · `NOT_FOUND` · `UNAVAILABLE` |
-| `requestPlatformDonation` | M | + message ≤ 100, **idempotencyKey** | `COMPLETED{transactionId, externalTransactionId, …}` · `PENDING` · `FAILED{reason}` · `INSUFFICIENT_FN` · `IN_PROGRESS` · `CONFLICT` · `INVALID` |
-| `getDonationHistory` (`donationHistory.ts`) | R | tab all/soop/flextv/direct, period, status, q, tx | merged history + selected detail |
+| `requestPlatformDonation` | M | + message ≤ 100, **idempotencyKey** | `COMPLETED{transactionId, externalTransactionId (null when an operator decided 성공), …}` · `PENDING` · `FAILED{reason}` · `INSUFFICIENT_FN` · `IN_PROGRESS` · `CONFLICT` · `INVALID` — a PENDING key sent again re-checks the platform first and answers the result once known |
+| `getDonationHistory` (`donationHistory.ts`) | R | tab all/soop/flextv/direct, period, status, q, tx | merged history + selected detail; re-checks this account's PENDING donations inside their 24 h first |
 
-Platform access goes through `PlatformAdapter` (`adapters.ts`, CLAUDE.md §9). TBD: FN ↔ platform-currency rate, fees, whether each platform lets Ssumnation send 별풍선/하트 on a user's behalf, auth, reconciliation, refunds.
+Platform access goes through `PlatformAdapter` (`adapters.ts`, CLAUDE.md §9; `lookupDonation` asks for the result of an earlier send). PENDING results (2026-10-08 결정, docs/domains/integrations.md): the console reads `GET /api/admin/platform-donations` (`waiting` 확인 필요 · `resolved` · `checking`; re-checks those inside 24 h), `POST /api/admin/platform-donations/[transactionId]/check` (다시 확인 → `{ status: "OK", outcome: COMPLETED | FAILED | UNKNOWN }`) and `POST …/resolve` (`outcome` COMPLETED | FAILED, `note` 2–200, `requestId`; refused inside 24 h or once settled). TBD: FN ↔ platform-currency rate, fees, whether each platform lets Ssumnation send 별풍선/하트 on a user's behalf, auth, real status lookups, refunds.
 
 ### creator studio (`services/creator`, C)
 
@@ -127,6 +128,7 @@ Platform access goes through `PlatformAdapter` (`adapters.ts`, CLAUDE.md §9). T
 
 - `getFavorites` · `addFavorite` (idempotent) · `removeFavorite` · `isFavorite` — 2026-10-08 결정: a suspended creator is left out of `getFavorites` (items, `totalCount`, pages) while suspended, by the same check that hides it from the public screens; the stored entry stays, so it is listed again once the suspension ends. `addFavorite` answers `NOT_FOUND` for it meanwhile.
 - `events.getEvents` · `getEvent` · `joinEvent` (idempotent, only while running) and `votes.getRoomVote` · `castVote` — 2026-10-08 결정: once per event / per vote per person, keyed by the phone verified at sign-up like 출석 (a 재가입 with the same phone shows 참여함 / 내 투표 and cannot add another). Responses carry counts and the viewer's own state only.
+- 이벤트 보상 (2026-10-08 결정, docs/domains/events.md): `getEvent` adds `reward` (`FREE_FN{amountFn}` · `DRAW{winners, prize}` or null → the TBD `rewardNote`), `outcome` (`FREE_FN{at}` · `DRAW{at, winners: masked nicknames}`) and `myResult` (`PAID{amountFn}` on the credited account · `WON` · `NOT_WON`). Console: `GET /api/admin/events`, `POST /api/admin/events/[id]/reward` (`kind`, `amountFn` 1–10,000,000 or `winners` 1–1,000 + `prize` 2–100자 — sanity bounds; same reward again = no change), `POST …/pay` · `POST …/draw` (`requestId`; only after the event ended, once per event; audited `EVENT_REWARD_SET` · `EVENT_REWARD_PAY` · `EVENT_DRAW`).
 - `getAttendance` · `checkIn` · `claimAttendanceReward` — 2026-10-08 결정: the 15·30-day rewards are paid automatically by the check-in that reaches them (`CHECKED_IN.autoPaid`, a REWARD wallet record each, once per month) and are never `CLAIMABLE`; only 3·7 are claimed. One check-in per day per person, keyed by the phone verified at sign-up (a same-day 재가입 with the same phone gets `ALREADY_CHECKED_IN`); a 재가입 account otherwise starts with no progress or rewards (state and credits carry the account marker). Reward amounts and time zone TBD.
 
 ## 4. Known gaps to close with the backend

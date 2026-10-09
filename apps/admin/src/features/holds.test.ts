@@ -120,7 +120,7 @@ describe("대시보드 · 보류", () => {
       creators: { total: 10, live: 3 },
       charges: { monthCount: 0, monthFn: 0, monthPaidKrw: 0, processing: 0 },
       donations: { monthCount: 0, monthFn: 0 },
-      pending: { refunds: 1, refundsBlocked: 1, refundsHeld: 1, settlements: 0, settlementsHeld: 2, reports: 0 },
+      pending: { refunds: 1, refundsBlocked: 1, refundsHeld: 1, settlements: 0, settlementsHeld: 2, reports: 0, platformDonations: 0 },
       recentAudit: []
     };
     const html = renderToStaticMarkup(createElement(AdminDashboardScreen, { data }));

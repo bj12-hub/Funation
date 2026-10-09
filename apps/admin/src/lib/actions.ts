@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import type { ActionResult } from "@/types/adminApi";
+import type { ActionResult, PendingCheckResult } from "@/types/adminApi";
 import { endOperatorSession, getOperator, startMockOperatorSession } from "./session";
 import { SiteApiError, siteSend } from "./siteApi";
 
@@ -10,11 +10,11 @@ import { SiteApiError, siteSend } from "./siteApi";
  * which validates, applies and audits the change. Inputs are passed through as-is (the site validates).
  */
 
-async function send(method: "POST" | "PUT" | "DELETE", path: string, body?: unknown): Promise<ActionResult> {
+async function send<R extends { status: string } = ActionResult>(method: "POST" | "PUT" | "DELETE", path: string, body?: unknown): Promise<R | Exclude<ActionResult, { status: "OK" }>> {
   const operator = await getOperator();
   if (!operator) return { status: "UNAUTHORIZED" };
   try {
-    return await siteSend<ActionResult>(operator, method, path, body);
+    return await siteSend<R>(operator, method, path, body);
   } catch (e) {
     return e instanceof SiteApiError ? { status: e.code } : { status: "UNAVAILABLE" };
   }
@@ -110,6 +110,29 @@ export async function deleteFaq(id: unknown) {
 export async function decideReport(input: unknown) {
   const v = obj(input);
   return send("POST", `/reports/${seg(v.id)}`, { action: v.action, note: v.note });
+}
+
+/** 확인 중 후원 › 다시 확인: the site asks the platform now and answers what it said (`outcome`). */
+export async function checkPendingDonation(transactionId: unknown): Promise<PendingCheckResult> {
+  return send<PendingCheckResult>("POST", `/platform-donations/${seg(transactionId)}/check`);
+}
+
+/** 확인 중 후원 › 성공 / 실패: `outcome` COMPLETED | FAILED, a memo, one `requestId` per intended decision. */
+export async function resolvePendingDonation(input: unknown) {
+  const v = obj(input);
+  return send("POST", `/platform-donations/${seg(v.transactionId)}/resolve`, { outcome: v.outcome, note: v.note, requestId: v.requestId });
+}
+
+/** 이벤트 › 보상 설정: `{ kind: "FREE_FN", amountFn }` or `{ kind: "DRAW", winners, prize }`. */
+export async function saveEventReward(input: unknown) {
+  const v = obj(input);
+  return send("POST", `/events/${seg(v.id)}/reward`, { kind: v.kind, amountFn: v.amountFn, winners: v.winners, prize: v.prize });
+}
+
+/** 이벤트 › 보상 지급 or 당첨자 추첨 (by the reward's kind), once per event: one `requestId` per intended action. */
+export async function settleEventReward(input: unknown) {
+  const v = obj(input);
+  return send("POST", `/events/${seg(v.id)}/${v.kind === "DRAW" ? "draw" : "pay"}`, { requestId: v.requestId });
 }
 
 export async function checkPlatform(platform: unknown) {

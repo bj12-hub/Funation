@@ -34,6 +34,7 @@ export const ADMIN_GROUPS: Group[] = [
     title: "거래",
     items: [
       { label: "후원 운영", href: "/donations" },
+      { label: "확인 중 후원", href: "/donations/pending" },
       { label: "결제 · 환불", href: "/payments" },
       { label: "정산 심사", href: "/settlements" }
     ]
@@ -43,6 +44,7 @@ export const ADMIN_GROUPS: Group[] = [
     items: [
       { label: "신고 처리", href: "/reports" },
       { label: "콘텐츠 관리", href: "/content" },
+      { label: "이벤트", href: "/events" },
       { label: "플랫폼 연동", href: "/platforms" },
       { label: "시스템", href: "/system" }
     ]

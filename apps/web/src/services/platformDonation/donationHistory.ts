@@ -6,13 +6,15 @@ import { mockAccount } from "@/services/account/mockStore";
 import { accountSince } from "@/services/account/withdrawalCore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { mockPlatform } from "./mockPlatformStore";
+import { recheckPending } from "./pendingCore";
 import { HISTORY_LIST_MAX, HISTORY_PERIODS, HISTORY_SORTS, HISTORY_STATUS_LABEL, HISTORY_TABS, type HistoryItem, type HistoryPeriod, type HistoryStatus, type HistoryTab, type HistoryView } from "./platformTypes";
 
 /**
  * 후원 내역 — Figma 817:8038 (table + 거래 상세) · 817:8223 (status badges + detail).
  * Merges platform transactions (SOOP · FlexTV) with Ssumnation 직접 후원 (creator room, "Direct").
- * Filtering happens on the server. TBD: the meaning of Direct, refund workflow behind 환불중/환불완료,
- * retention period, pagination size.
+ * Filtering happens on the server. A read first re-checks this account's PENDING platform donations that are still
+ * inside their 24 h (2026-10-08 결정, ./pendingCore.ts). TBD: the meaning of Direct, refund workflow behind
+ * 환불중/환불완료, retention period, pagination size.
  */
 
 const assertMock = () => {
@@ -66,6 +68,8 @@ export async function getDonationHistory(params: { tab?: unknown; period?: unkno
   const q = typeof params.q === "string" ? params.q.trim().slice(0, 40) : "";
   const sort = oneOf(HISTORY_SORTS, params.sort, "newest");
 
+  const own = accountSince();
+  await recheckPending((t) => (t.account ?? null) === own);
   await mockDelay(250);
   const since = period === "all" ? "" : (() => {
     const d = new Date();

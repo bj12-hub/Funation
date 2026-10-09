@@ -40,7 +40,12 @@ export type AuditAction =
   | "CONTENT_UPDATE"
   | "SYSTEM_UPDATE"
   | "REPORT_DISMISS"
-  | "REPORT_HIDE";
+  | "REPORT_HIDE"
+  | "PLATFORM_DONATION_CHECK"
+  | "PLATFORM_DONATION_RESOLVE"
+  | "EVENT_REWARD_SET"
+  | "EVENT_REWARD_PAY"
+  | "EVENT_DRAW";
 
 export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
   ADMIN_SIGN_IN: "관리자 로그인",
@@ -60,7 +65,12 @@ export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
   CONTENT_UPDATE: "콘텐츠 변경",
   SYSTEM_UPDATE: "시스템 설정 변경",
   REPORT_DISMISS: "신고 기각",
-  REPORT_HIDE: "신고 콘텐츠 숨김"
+  REPORT_HIDE: "신고 콘텐츠 숨김",
+  PLATFORM_DONATION_CHECK: "확인 중 후원 다시 확인",
+  PLATFORM_DONATION_RESOLVE: "확인 중 후원 결과 결정",
+  EVENT_REWARD_SET: "이벤트 보상 설정",
+  EVENT_REWARD_PAY: "이벤트 보상 지급",
+  EVENT_DRAW: "이벤트 당첨자 추첨"
 };
 
 export type AuditEntry = { id: string; at: string; actorId: string; actorName: string; action: AuditAction; target: string | null; reason: string | null };
@@ -72,8 +82,9 @@ export type AdminDashboard = {
   /**
    * `refunds` / `settlements`: 처리 대기 only. `refundsBlocked`: waiting requests of withdrawn accounts, 처리 불가(탈퇴);
    * `refundsHeld` / `settlementsHeld`: requests on 보류 — neither is 처리 대기.
+   * `platformDonations`: 확인 중 후원 — SOOP · FlexTV donations with no platform result 24 h after the request.
    */
-  pending: { refunds: number; refundsBlocked: number; refundsHeld: number; settlements: number; settlementsHeld: number; reports: number | null };
+  pending: { refunds: number; refundsBlocked: number; refundsHeld: number; settlements: number; settlementsHeld: number; reports: number | null; platformDonations: number };
   recentAudit: AuditEntry[];
 };
 
@@ -219,6 +230,42 @@ export type DonationsView = {
   byType: { typeLabel: string; count: number; fn: number }[];
 };
 
+// ── 확인 중 후원 (2026-10-08 결정) ────────────────────────────────────────────────
+
+/**
+ * A SOOP · FlexTV donation whose platform result was unknown (PENDING, FN held). The site re-checks it for 24 hours; after
+ * that it is listed here (`waiting`) until 다시 확인 finds the result or an operator decides 성공 / 실패 (`resolved`).
+ * 실패 returns the held FN — unless the sender's account has withdrawn since: then nothing is credited (`FORFEITED`).
+ */
+export type PendingDonationOutcome = "COMPLETED" | "FAILED";
+export type PendingDonationRow = {
+  transactionId: string;
+  platform: "SOOP" | "FLEXTV";
+  platformLabel: string;
+  creatorName: string;
+  productLabel: string;
+  fnAmount: number;
+  requestedAt: string;
+  memberId: string;
+  memberName: string;
+  memberWithdrawn: boolean;
+  lastCheckAt: string | null;
+  resolution: {
+    outcome: PendingDonationOutcome;
+    at: string;
+    by: "PLATFORM" | "OPERATOR";
+    operator: string | null;
+    note: string | null;
+    fnReturn: "RETURNED" | "FORFEITED" | null;
+    externalTransactionId: string | null;
+  } | null;
+};
+/** `checking`: donations still inside their 24 h (the site re-checks them; not listed). */
+export type PendingDonationsView = { waiting: PendingDonationRow[]; resolved: PendingDonationRow[]; checking: number };
+/** 다시 확인 answers what the platform said (UNKNOWN = still no result). */
+export type PendingCheckResult = { status: "OK"; outcome: PendingDonationOutcome | "UNKNOWN" } | Exclude<ActionResult, { status: "OK" }>;
+export const RESOLVE_NOTE = { min: 2, max: 200 } as const;
+
 // ── Settlements ───────────────────────────────────────────────────────────────
 
 /**
@@ -336,6 +383,38 @@ export type Report = {
 export type AdminReportRow = Report & { authorIsMember: boolean; authorWithdrawn: boolean; reporterWithdrawn: boolean; contentChanged: boolean };
 export type AdminReportView = { rows: AdminReportRow[]; counts: Record<ReportStatus, number> };
 export const REPORT_NOTE = { min: 2, max: 200 } as const;
+
+// ── Events (운영 › 이벤트, 2026-10-08 결정) ─────────────────────────────────────────
+
+/**
+ * One reward per event: FREE_FN = 참여자 전원 무상 FN (the amount the operator enters — no default), DRAW = 추첨 N명 경품
+ * (the winner count and prize text the operator enters). After the event the site pays it (each participant's current
+ * account, once, free FN) or draws the winners; people with no account are 지급 불가. 경품 고시 · 제세공과금 · 전달: TBD.
+ */
+export type EventPhase = "ongoing" | "upcoming" | "ended";
+export const EVENT_PHASE_LABEL: Record<EventPhase, string> = { ongoing: "진행 중", upcoming: "예정", ended: "종료" };
+export type EventReward = { kind: "FREE_FN"; amountFn: number } | { kind: "DRAW"; winners: number; prize: string };
+/** Form bounds — the site's sanity limits, not business rules. */
+export const EVENT_REWARD_LIMITS = { amountMaxFn: 10_000_000, winnersMax: 1_000, prizeMin: 2, prizeMax: 100 } as const;
+export type AdminEventPerson = { memberId: string | null; name: string; withdrawn: boolean };
+export type AdminEventResult =
+  | { kind: "FREE_FN"; at: string; by: string; amountFn: number; totalFn: number; paid: AdminEventPerson[]; unpaid: AdminEventPerson[] }
+  | { kind: "DRAW"; at: string; by: string; winnersWanted: number; prize: string; pool: number; winners: (AdminEventPerson & { masked: string })[]; unpaid: AdminEventPerson[] };
+export type AdminEventRow = {
+  id: string;
+  title: string;
+  emoji: string;
+  startsAt: string;
+  endsAt: string;
+  phase: EventPhase;
+  /** Recorded participants (people). */
+  participants: number;
+  /** The mock's sample count the site adds to its participant number — not people, never paid or drawn. */
+  sampleParticipants: number;
+  reward: (EventReward & { updatedAt: string; updatedBy: string }) | null;
+  result: AdminEventResult | null;
+};
+export type AdminEventsView = { events: AdminEventRow[] };
 
 // ── Mutation results ──────────────────────────────────────────────────────────
 
