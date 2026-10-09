@@ -16,8 +16,9 @@ import styles from "./withdraw.module.css";
  * 정산 대기 수익 is 정산 가능 + 심사 대기 requests only: approved settlements are still paid after the 탈퇴 (2026-10-08 결정).
  * Shows what withdrawal does, asks for a forfeit consent per amount (남은 FN · 정산 대기 수익, when there is one),
  * the final consent and the password, then ends the account on the server. Withdrawal waits while an FN 충전 환불
- * request is being handled (2026-10-06 결정) or a 퀘스트 후원 is in progress — sent by the member, or sent to the
- * creator's channel (2026-10-08 결정); a card says why and links to where it is resolved.
+ * request is being handled (2026-10-06 결정), a 퀘스트 후원 is in progress — sent by the member, or sent to the
+ * creator's channel (2026-10-08 결정) — or a 플랫폼 후원 is waiting for its result (PENDING, 2026-10-09 결정); a card says
+ * why and links to where it is resolved.
  * "탈퇴 후에도 보관하는 정보" lists what is kept and for how long from the shared retention list
  * (services/account/retentionPolicy.ts — 기본값, 법무 검토 전); posts are never deleted, so the effects say so.
  */
@@ -39,7 +40,8 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
   const hasRefunds = info.pendingRefunds > 0;
   const questsSent = info.pendingQuests.sent;
   const questsReceived = info.pendingQuests.received;
-  const blocked = hasRefunds || questsSent > 0 || questsReceived > 0;
+  const platformPending = info.pendingPlatformDonations;
+  const blocked = hasRefunds || questsSent > 0 || questsReceived > 0 || platformPending > 0;
   const ready = !blocked && confirmed && (!hasFn || forfeit) && (!hasEarnings || earningsForfeit) && password.length > 0;
 
   const submit = () => {
@@ -71,6 +73,9 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
               ? `진행 중인 퀘스트 후원이 ${r.sent}건 있어요. 퀘스트 결과가 정해진 뒤에 탈퇴할 수 있어요.`
               : `내 채널에 진행 중인 퀘스트 후원이 ${r.received}건 있어요. 퀘스트 결과를 정하거나 취소한 뒤에 탈퇴할 수 있어요.`
           );
+          router.refresh();
+        } else if (r.status === "PLATFORM_PENDING") {
+          setError(`처리 결과를 확인 중인 플랫폼 후원이 ${r.count}건 있어요. 후원 결과가 정해진 뒤에 탈퇴할 수 있어요.`);
           router.refresh();
         } else {
           setError(r.message);
@@ -159,6 +164,21 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
           </p>
           <div className={styles.links}>
             <Link href="/creator/donations?tab=list&kind=quest&status=IN_PROGRESS">후원 리스트로</Link>
+          </div>
+        </section>
+      )}
+
+      {platformPending > 0 && (
+        <section className={styles.warnCard} aria-labelledby="withdraw-platform">
+          <h2 className={styles.cardTitle} id="withdraw-platform">
+            처리 결과 확인 중인 플랫폼 후원
+          </h2>
+          <strong className={styles.balance}>{formatNumber(platformPending)}건</strong>
+          <p className={styles.note}>
+            플랫폼에서 후원 결과를 확인하고 있어요. 결과가 나올 때까지 FN은 보류되고, 실패하면 FN이 반환돼요. 후원 결과가 정해진 뒤에 탈퇴할 수 있어요.
+          </p>
+          <div className={styles.links}>
+            <Link href="/donation/history?period=all&status=PROCESSING">후원 내역으로</Link>
           </div>
         </section>
       )}

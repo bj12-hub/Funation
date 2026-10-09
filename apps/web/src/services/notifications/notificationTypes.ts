@@ -3,13 +3,15 @@
  * Which events notify, retention, and push / e-mail delivery are TBD.
  */
 
-export type NotificationKind = "DONATION_SENT" | "DONATION_RECEIVED" | "CHARGE" | "REFUND" | "NOTICE" | "SYSTEM";
+export type NotificationKind = "DONATION_SENT" | "DONATION_RECEIVED" | "CHARGE" | "REFUND" | "EVENT" | "NOTICE" | "SYSTEM";
 
 export const NOTIFICATION_KIND_LABEL: Record<NotificationKind, { emoji: string; label: string }> = {
   DONATION_SENT: { emoji: "💝", label: "후원" },
   DONATION_RECEIVED: { emoji: "💰", label: "받은 후원" },
   CHARGE: { emoji: "💳", label: "충전" },
   REFUND: { emoji: "↩️", label: "환불" },
+  /** 이벤트 보상 지급 · 당첨자 발표 (2026-10-09 결정). */
+  EVENT: { emoji: "🎉", label: "이벤트" },
   NOTICE: { emoji: "📢", label: "공지" },
   SYSTEM: { emoji: "✨", label: "안내" }
 };

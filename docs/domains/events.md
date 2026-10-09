@@ -36,6 +36,13 @@ second payout or draw; a second action is refused), with the checks and writes i
   their 본인 확인 값 is gone.
 - The site shows 「보상이 지급됐어요」 or 「당첨자를 발표했어요」 (+ masked winners), and to a participant: 「보상 n FN을
   받았어요」 (only on the account that was credited), 「당첨됐어요」 or 「아쉽지만 당첨되지 않았어요」.
+- **사이트 알림 (2026-10-09 결정)**, header bell, kind 이벤트 (🎉), linking to `/events/<id>`, once per result and account
+  (dedupe key `event-reward:` / `event-draw:<event>:<account>`), only to the participant's current account — a person with
+  none (지급 불가) gets nothing, and a later account of the same person gets nothing either:
+  - 보상 지급: 「이벤트 보상 1,500 FN을 받았어요」 · 이벤트 이름.
+  - 당첨자 추첨: winners 「이벤트에 당첨됐어요」 · 「이벤트 이름 · 경품 굿즈 세트」; the rest of the pool 「당첨자를
+    발표했어요」 · 이벤트 이름 (the same words as the event page's outcome line, so it reads as an announcement, not a
+    result).
 
 ## TBD
 

@@ -30,10 +30,10 @@ type MockWalletState = {
 };
 
 // Bump the key when the state shape changes so a running dev server starts from fresh data.
-// V3: donation records keep `hideProfile`.
-const globalForWallet = globalThis as typeof globalThis & { __ssumnationMockWalletV3?: MockWalletState };
+// V4: a failed 플랫폼 후원's record keeps `fnReturned` (V3: donation records keep `hideProfile`).
+const globalForWallet = globalThis as typeof globalThis & { __ssumnationMockWalletV4?: MockWalletState };
 
-export const mockWallet = (globalForWallet.__ssumnationMockWalletV3 ??= {
+export const mockWallet = (globalForWallet.__ssumnationMockWalletV4 ??= {
   chargeTermsAgreedAt: null,
   marketingOptIn: false,
   charges: [],

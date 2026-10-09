@@ -68,10 +68,19 @@ const filteredOut = (message: string, f: FilterSettings) =>
  * shows 익명, the label a hidden profile already uses.
  */
 export function shownOnStream(shown: { donor: string; message: string }): { donor: string; message: string } {
-  const { applyToNickname, applyToText, bannedWords, message } = donationPageStore.replacement;
+  const { applyToText, bannedWords, message } = donationPageStore.replacement;
   const replaceText = (applyToText && hasWord(shown.message, bannedWords)) || filteredOut(shown.message, donationFilterStore);
   return {
-    donor: applyToNickname && hasWord(shown.donor, bannedWords) ? message || "익명" : shown.donor,
+    donor: replacesName(shown.donor) ? message || "익명" : shown.donor,
     message: replaceText ? message || DEFAULT_REPLACEMENT_MESSAGE : shown.message
   };
+}
+
+/**
+ * Whether 대체 메시지 표시 설정 (닉네임) hides this name on stream (shown as the 대체 메시지, or 익명 when it is empty).
+ * Such an alert carries no 등급 · 칭호 badges (2026-10-09 결정): they belong to the donor the replacement hides.
+ */
+export function replacesName(donor: string): boolean {
+  const { applyToNickname, bannedWords } = donationPageStore.replacement;
+  return applyToNickname && hasWord(donor, bannedWords);
 }

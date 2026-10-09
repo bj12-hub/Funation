@@ -1,5 +1,6 @@
 import { USE_MOCK } from "@/lib/mock";
 import { mockAccount } from "@/services/account/mockStore";
+import { notify } from "@/services/notifications/notificationCore";
 import { recordCredit } from "@/services/wallet/mockCreditStore";
 import { drawWinners } from "@/services/events/eventDraw";
 import {
@@ -33,6 +34,8 @@ import { slotAccountLabel } from "./memberCore";
  * - Participants are people (person key); each is paid through the account that belongs to them now, once, as free FN
  *   with a wallet record (무상 FN, refund-excluded, like 출석 보상). Someone with no account now is skipped: 지급 불가
  *   (a draw leaves them out of the pool).
+ * - 사이트 알림 (2026-10-09 결정), once per result and account, only to the current account that was paid or drawn:
+ *   "이벤트 보상 n FN을 받았어요"; "이벤트에 당첨됐어요" for winners and "당첨자를 발표했어요" for the rest of the pool.
  * TBD: eligibility, 경품 고시 · 제세공과금, how a prize is delivered.
  */
 
@@ -53,6 +56,8 @@ const unpaidOf = (person: string): UnpaidEntry => {
   const last = lastAccountOf(person);
   return { person, last: last ? { account: last.account } : null };
 };
+/** One 사이트 알림 per event result and account (the first account's start marker is null). */
+const eventNoticeKey = (result: "reward" | "draw", eventId: string, account: string | null) => `event-${result}:${eventId}:${account ?? "first"}`;
 
 function resultRow(eventId: string): AdminEventResult | null {
   const r = resultOf(eventId);
@@ -152,6 +157,8 @@ export async function payEventReward(admin: AdminActor, input: unknown): Promise
     mockAccount.fnBalance += reward.amountFn;
     recordCredit(reward.amountFn, `이벤트 보상 · ${e.title}`);
     paid.push({ person, account: now.account, amountFn: reward.amountFn });
+    // 사이트 알림 (2026-10-09 결정) to the account that was credited — the person's current one; nobody without one.
+    notify({ kind: "EVENT", title: `이벤트 보상 ${fn(reward.amountFn)} FN을 받았어요`, body: e.title, href: `/events/${e.id}`, dedupeKey: eventNoticeKey("reward", e.id, now.account) });
   }
   rewardStore().results[e.id] = { kind: "FREE_FN", at: new Date().toISOString(), by: admin.nickname, requestId: v.requestId, amountFn: reward.amountFn, paid, unpaid };
   recordAudit(
@@ -188,6 +195,18 @@ export async function drawEventWinners(admin: AdminActor, input: unknown): Promi
   }
   const winners = drawWinners(pool, reward.winners).map((w) => ({ person: w.person, account: w.account, masked: maskNickname(w.nickname) }));
   rewardStore().results[e.id] = { kind: "DRAW", at: new Date().toISOString(), by: admin.nickname, requestId: v.requestId, winnersWanted: reward.winners, prize: reward.prize, pool: pool.length, winners, unpaid };
+  // 사이트 알림 (2026-10-09 결정) to each drawn participant's current account: 당첨됐어요, or 당첨자 발표 for the others in
+  // the pool. People without an account now (지급 불가) get none.
+  for (const p of pool) {
+    const won = winners.some((w) => w.person === p.person);
+    notify({
+      kind: "EVENT",
+      title: won ? "이벤트에 당첨됐어요" : "당첨자를 발표했어요",
+      body: won ? `${e.title} · 경품 ${reward.prize}` : e.title,
+      href: `/events/${e.id}`,
+      dedupeKey: eventNoticeKey("draw", e.id, p.account)
+    });
+  }
   recordAudit(admin, "EVENT_DRAW", `event:${e.id}`, `${e.title} · 경품 ${reward.prize} · 추첨 대상 ${fn(pool.length)}명 중 ${fn(winners.length)}명 당첨 · 지급 불가 ${fn(unpaid.length)}명`);
   return { status: "OK" };
 }

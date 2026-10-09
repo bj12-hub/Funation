@@ -32,3 +32,21 @@ export function speechParts(message: string, sounds: OverlayCustomSound[]): Spee
   text(message.slice(at));
   return parts;
 }
+
+/**
+ * What the OBS 후원 알림 reads aloud for an alert (empty = nothing). TTS reads the message only — there is no setting that
+ * reads the name — so it follows 후원 메시지 표시 (2026-10-09 결정): with the message hidden it stays silent, 커스텀 사운드
+ * included (they play inside the message). 음소거, TTS 볼륨 0, 기능 제어 OFF and an empty message are silent too. The
+ * 시그니처 소리 is not TTS and plays as before.
+ */
+export function alertSpeech(input: {
+  message: string;
+  showMessage: boolean;
+  on: boolean;
+  muted: boolean;
+  ttsVolume: number;
+  sounds: OverlayCustomSound[];
+}): SpeechPart[] {
+  if (!input.on || input.muted || input.ttsVolume === 0 || !input.showMessage || !input.message) return [];
+  return speechParts(input.message, input.sounds);
+}

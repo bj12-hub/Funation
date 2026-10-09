@@ -88,6 +88,12 @@ export const DONATION_STATUS_LABEL: Record<DonationStatus, string> = {
   REFUNDED: "환불완료"
 };
 
+/** A failed 플랫폼 후원's held FN that went back (후원 내역: "실패 · FN 반환"). */
+export const FN_RETURNED_LABEL = "FN 반환";
+
+/** The 처리 상태 a donation row shows (FN 후원내역, its CSV and the FN Wallet list). */
+export const donationStatusLabel = (d: Pick<DonationRecord, "status" | "fnReturned">) => (d.fnReturned && d.status === "REFUNDED" ? FN_RETURNED_LABEL : DONATION_STATUS_LABEL[d.status]);
+
 /** funnation 내 후원 내역 filters (validated by the page before reaching the service). */
 export type DonationFilter = { q?: string; min?: number; max?: number; sort?: "latest" | "oldest" };
 export const DONATION_QUERY_MAX = 40;
@@ -101,8 +107,13 @@ export type DonationRecord = {
   fnAmount: number;
   typeLabel: string;
   status: DonationStatus;
-  /** When a refund completed (e.g. a failed 퀘스트 후원). */
+  /** When a refund completed (e.g. a failed 퀘스트 후원), or when the FN of a failed 플랫폼 후원 went back. */
   refundedAt?: string;
+  /**
+   * A 플랫폼 후원 (SOOP · FlexTV) whose platform result was 실패 and whose held FN went back (`REFUNDED` status): shown as
+   * "FN 반환", not 환불완료 (2026-10-09 결정) — it was never a refund.
+   */
+  fnReturned?: boolean;
   /** 퀘스트 후원 rows: the quest's result and whether the member can decide it now. */
   quest?: QuestView;
   /** 룰렛 · 뽑기 rows: where the spin/draw is, or its result once revealed (e.g. "룰렛 결과 · 스탬프 당첨"). */

@@ -179,9 +179,9 @@ export function TitlesScreen({ identity }: { identity: SupporterIdentity }) {
         <h2 id="st-store" className={styles.cardTitle}>
           크리에이터 칭호
         </h2>
-        <p className={styles.muted}>크리에이터마다 따로 쌓여요. 후원한 적이 있는 크리에이터만 보여요.</p>
+        <p className={styles.muted}>크리에이터마다 따로 쌓여요. 프로필 숨기기(익명)로 보낸 후원은 크리에이터 칭호에 들어가지 않아요.</p>
         {identity.stores.length === 0 ? (
-          <p className={styles.empty}>아직 후원한 크리에이터가 없어요.</p>
+          <p className={styles.empty}>아직 크리에이터 칭호에 쌓인 후원이 없어요.</p>
         ) : (
           <ul className={styles.list}>
             {identity.stores.map((s) => (
