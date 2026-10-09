@@ -16,15 +16,14 @@ import {
   type SupporterRanking,
   type SupporterTier
 } from "@/services/hallOfFame/supporterRanking";
-import { GLOBAL_TITLES, GRADES, GRADE_MONTHS, TITLE_LINE_LABEL, hasGrade, type GlobalTitleKey } from "@/services/supporter/identityTypes";
+import { GLOBAL_TITLES, GRADES, GRADE_MONTHS, TITLE_LINE_LABEL, globalTitleLabel, hasGrade, type GlobalTitleKey, type TitleLine } from "@/services/supporter/identityTypes";
 import styles from "./hallOfFame.module.css";
 import local from "./hofTabs.module.css";
 
-const TIER_CLASS: Record<SupporterTier, string> = {
-  DIAMOND: styles.tierDiamond,
-  GOLD: styles.tierGold,
-  SILVER: styles.tierSilver,
-  BRONZE: styles.tierBronze
+/** Row chips show the supporter's 누적 등급, coloured by its line (Figma 3:637's tier chip, 2026-10-08 등급 구조). */
+const TIER_CLASS: Record<TitleLine, string> = {
+  BLACK: styles.tierBlack,
+  DIAMOND: styles.tierDiamond
 };
 
 const formatKrw = (amount: number) => `₩${formatNumber(amount)}`;
@@ -281,5 +280,7 @@ function PodiumCard({ supporter }: { supporter: RankedSupporter }) {
 }
 
 function TierBadge({ tier }: { tier: SupporterTier }) {
-  return <span className={`${styles.tier} ${TIER_CLASS[tier]}`}>{tier}</span>;
+  if (!tier) return null;
+  const line = GLOBAL_TITLES.find((t) => t.key === tier)!.line;
+  return <span className={`${styles.tier} ${TIER_CLASS[line]}`}>{globalTitleLabel(tier)}</span>;
 }
