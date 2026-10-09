@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { PreviewStage } from "@/features/overlayTheme/PreviewStage";
+import { MINI_MAX_FN } from "@/services/donations/donationCatalog";
 import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
 import { effectLabel, resolveTheme } from "@/services/creator/overlayThemeTypes";
 import { MINI_LINES, eventLines, miniLines, recentLines } from "@/services/creator/widgetOverlayCore";
@@ -216,7 +217,7 @@ export function MiniForm({ value: v, onChange, live }: FormProps<"MINI">) {
           <SwitchLine label="금액 표시하기" checked={v.showAmount} onChange={(x) => set("showAmount", x)} />
           <SwitchLine label="닉네임 표시하기" checked={v.showNickname} onChange={(x) => set("showNickname", x)} />
           <Stacked label="최소 표시 금액">
-            <NumberField label="최소 표시 금액" value={v.minAmount} max={1_000_000} grouped width={160} suffix="FN" onChange={(x) => set("minAmount", x)} />
+            <NumberField label="최소 표시 금액" value={v.minAmount} max={MINI_MAX_FN} grouped width={160} suffix="FN" onChange={(x) => set("minAmount", x)} />
           </Stacked>
           <Stacked label="폰트 설정">
             <FontFields label="미니후원" value={v.font} onChange={(x) => set("font", x)} />

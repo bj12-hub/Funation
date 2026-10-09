@@ -169,7 +169,11 @@ export function MiniFields({ value, onChange, catalog, error, onEnter }: Props<M
       <AmountField
         value={value.amount}
         onChange={(amount) => onChange({ ...value, amount })}
-        hint={<span className={styles.hintAccent}>최소 {formatNumber(catalog.minAmount.MINI)} FN</span>}
+        hint={
+          <span className={styles.hintAccent}>
+            {formatNumber(catalog.minAmount.MINI)} ~ {formatNumber(catalog.maxAmount.MINI)} FN
+          </span>
+        }
         error={!!error}
       />
       <label className={room.field}>

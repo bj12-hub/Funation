@@ -51,6 +51,17 @@ describe("Donation Core", () => {
     expect(await requestDonation({ ...sent, expectedAmount: before + 5_000, idempotencyKey: key(2) })).toMatchObject({ status: "COMPLETED", fnAmount: before + 5_000 });
   });
 
+  it("takes a 미니 후원 from 100 up to 999 FN only (under 1,000 FN, 2026-10-09 결정), without debiting otherwise", async () => {
+    const { requestDonation, account, wallet } = await load();
+    const mini = (amount: number, n: number) => ({ ...base, type: "MINI", amount, text: "안녕", colorId: "pink", idempotencyKey: key(n) });
+    expect(await requestDonation(mini(1_000, 1))).toEqual({ status: "INVALID" });
+    expect(await requestDonation(mini(99, 2))).toEqual({ status: "INVALID" });
+    expect(account.fnBalance).toBe(50_000);
+    expect(wallet.donations).toHaveLength(0);
+    expect(await requestDonation(mini(999, 3))).toMatchObject({ status: "COMPLETED", fnAmount: 999 });
+    expect(await requestDonation(mini(100, 4))).toMatchObject({ status: "COMPLETED", fnAmount: 100 });
+  });
+
   it("bounds a 영상 후원 range like the 테스트 영상 (0 … 24 hours), without debiting", async () => {
     const { requestDonation, account } = await load();
     const video = (startSec: number, endSec: number, n: number) => ({ ...base, type: "VIDEO", amount: 1_000, videoUrl: "https://youtu.be/aaaaaaaaaaa", startSec, endSec, termsAgreed: true, idempotencyKey: key(n) });
@@ -66,7 +77,7 @@ describe("Donation Core", () => {
     const bad = `나는 ${MOCK_FORBIDDEN_WORDS[0]}`;
     const refused = { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
     expect(await requestDonation({ ...text(1_000, 1), message: bad })).toEqual(refused);
-    expect(await requestDonation({ ...base, type: "MINI", amount: 1_000, text: `hi ${MOCK_FORBIDDEN_WORDS[1].toUpperCase()}`, colorId: "pink", idempotencyKey: key(2) })).toEqual(refused);
+    expect(await requestDonation({ ...base, type: "MINI", amount: 500, text: `hi ${MOCK_FORBIDDEN_WORDS[1].toUpperCase()}`, colorId: "pink", idempotencyKey: key(2) })).toEqual(refused);
     const quest = { ...base, type: "QUEST", title: bad, successReward: 10_000, timeLimitSec: 600, creatorDecides: true, termsAgreed: true, idempotencyKey: key(3) };
     expect(await requestDonation(quest)).toEqual(refused);
     const drawing = { ...base, type: "DRAWING", amount: 1_000, title: bad, image: "data:image/png;base64,iVBORw0KGgo=", showProcess: true, canvasMode: false, termsAgreed: true, idempotencyKey: key(4) };

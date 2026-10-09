@@ -738,7 +738,7 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     startPercent: 0,
     showAmount: true,
     showNickname: true,
-    // The design shows 1,000, which would hide every mini donation (they are under 1,000 FN); TBD.
+    // The design shows 1,000, which would hide every mini donation (they are under 1,000 FN, 2026-10-09 결정): 100.
     minAmount: 100,
     font: { family: "맑은 고딕", size: 15, color: "#FFFFFF" },
     textOutline: true

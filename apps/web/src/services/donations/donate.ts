@@ -247,7 +247,7 @@ function parse(v: Record<string, unknown>, catalog: DonationCatalog): Parsed | {
   if (v.memberId !== undefined && v.memberId !== null && !isActiveMember(v.creatorId as string, v.memberId)) return null;
   const memberId = typeof v.memberId === "string" ? v.memberId : null;
   const common = { creatorId: v.creatorId, hideProfile: v.hideProfile, nicknameId, memberId, type: typeInfo.key, priced: false };
-  const amountOk = (min: number) => typeof v.amount === "number" && Number.isInteger(v.amount) && v.amount >= min && v.amount <= MAX_FN;
+  const amountOk = (min: number, max = MAX_FN) => typeof v.amount === "number" && Number.isInteger(v.amount) && v.amount >= min && v.amount <= max;
   const text = (value: unknown, max: number, required = false) =>
     typeof value === "string" && value.trim().length <= max && (!required || value.trim().length > 0) ? value.trim() : null;
   const game = catalog.game;
@@ -266,7 +266,8 @@ function parse(v: Record<string, unknown>, catalog: DonationCatalog): Parsed | {
     }
     case "MINI": {
       const body = text(v.text, catalog.maxLength.mini, true);
-      if (!amountOk(catalog.minAmount.MINI) || body === null || !catalog.miniColors.some((c) => c.id === v.colorId)) return null;
+      // 미니 후원 is under 1,000 FN (2026-10-09 결정); larger amounts go as 일반 후원.
+      if (!amountOk(catalog.minAmount.MINI, catalog.maxAmount.MINI) || body === null || !catalog.miniColors.some((c) => c.id === v.colorId)) return null;
       if (hasForbidden(body)) return refused;
       return { ...common, amount: v.amount as number, summary: body, details: { text: body, colorId: v.colorId } };
     }
