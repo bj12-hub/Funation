@@ -6,6 +6,7 @@ import { getCreatorSession } from "@/lib/session";
 import { sameSecret } from "@/lib/secret";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { advance, enqueueAlert, isOverlayOn, mockAlerts, overlaySignal } from "./alertCore";
+import { overlayCustomSounds } from "./customSoundCore";
 import { ingestDonationLinksThrottled } from "./donationLinkCore";
 import { mockMedia } from "./mediaCore";
 import {
@@ -263,6 +264,7 @@ export async function getOverlayAlert(key: unknown): Promise<OverlayAlert | "FOR
     alert: showing && mockAlerts.shownAt !== null ? { ...showing, endsAt: new Date(mockAlerts.shownAt + displaySec * 1000).toISOString() } : null,
     controls: { muted, alertVolume, ttsVolume, signatureVolume },
     ttsSkipSeq: mockAlerts.ttsSkipSeq,
+    customSounds: overlayCustomSounds(),
     ...overlaySignal("alert")
   };
 }
