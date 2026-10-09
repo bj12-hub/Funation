@@ -207,6 +207,20 @@ describe("뽑기 후원", () => {
     expect(board.rows.every((r) => r.prize !== "꽝 (다음 기회에)")).toBe(true);
   });
 
+  it("lists past prizes on the overlay's credit list under the name shown on stream, not the name sent", async () => {
+    const m = await load();
+    setGachas(m);
+    // 대체 메시지 replaced the sender's name when the draw was paid (shownOnStream in the Donation Core).
+    const d = m.enqueueDraw({ id: "d-credit", channelId: m.STUDIO_CHANNEL, ...member(3), donor: "클리어왕", shownDonor: "익명", gachaId: "gacha-1", amount: 3_000 }, Date.now(), () => 0); // 상품
+    d.startedAt = new Date(Date.now() - d.spinMs - d.showMs - 1_000).toISOString(); // played and done
+    const o = await m.getOverlayWidget("gacha", m.overlayKey);
+    if (o === "FORBIDDEN" || o.widget !== "gacha") throw new Error("no gacha overlay");
+    expect(o.history[0]).toEqual({ donor: "익명", prize: "문화상품권 5천원" });
+    expect(JSON.stringify(o)).not.toContain("클리어왕");
+    // The 리모컨 (the creator's own view) keeps the name as sent.
+    expect((await m.getGachaRemote())!.recent[0]).toMatchObject({ donor: "클리어왕" });
+  });
+
   it("lets the creator finish a shown result and mark prizes as handed over", async () => {
     const m = await load();
     signIn(["SUPPORTER"]);
