@@ -204,6 +204,26 @@ describe("후원 위젯 계산", () => {
     expect(rankingRows([...feed, ...keyed, filtered], { ...D.RANKING, period: "전체", ranks: 5 }, now).map((r) => r.name)).not.toContain("익명");
   });
 
+  it("leaves an alert whose name the 대체 메시지 rules replaced out of the 후원자 랭킹 only (2026-10-09 결정)", () => {
+    const own = alert("2026-10-03T09:00:00", "새벽", 2_000, { donorKey: "dk-a" });
+    // The same donor, later, under a 금지어 name the creator's 대체 메시지 replaced (stored with the alert when it was queued).
+    const replaced = alert("2026-10-03T09:10:00", "응원 고마워요", 500_000, { donorKey: "dk-a", nameReplaced: true });
+    const rows = rankingRows([...feed, own, replaced], { ...D.RANKING, period: "전체", ranks: 5 }, now);
+    // Neither joins the donor's row (no 502,000) nor renames it, nor gets a row of its own.
+    expect(rows.map((r) => [r.name, r.fnAmount])).toEqual([
+      ["별빛", 35_000],
+      ["치즈냥", 20_000],
+      ["새벽", 2_000]
+    ]);
+    // An unkeyed (older) alert marked replaced is left out too, whatever name it shows.
+    expect(rankingRows([alert("2026-10-03T09:20:00", "치즈냥", 90_000, { nameReplaced: true })], { ...D.RANKING, period: "전체", ranks: 5 }, now)).toEqual([]);
+    // 수단별 보드 has no donor rows: the FN still counts in 썸네이션 FN, as for 익명.
+    const day = { period: "일간" as const, ranks: 5 };
+    expect(sourceBoardRows([own, replaced], day, now)).toEqual([expect.objectContaining({ name: "썸네이션 FN · 2건", fnAmount: 502_000 })]);
+    // 목표 · 누적 are totals, not donor rows: unchanged.
+    expect(totalAmount([own, replaced], { ...D.TOTAL, from: "2026-10-03T00:00", to: "2026-10-03T23:59" })).toBe(502_000);
+  });
+
   it("writes 최근알림 lines newest first with each platform's template", () => {
     const lines = recentLines(feed, { ...D.RECENT, count: 3 });
     expect(lines.map((l) => [l.nickname, l.platform, `${l.before}${l.nickname}${l.after}`])).toEqual([

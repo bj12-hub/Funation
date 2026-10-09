@@ -14,7 +14,7 @@ import { youtubeStore } from "@/services/creator/youtubeCore";
 import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
 import { mockQuests } from "@/services/donations/questCore";
 import { mockPlatform } from "@/services/platformDonation/mockPlatformStore";
-import { isPending } from "@/services/platformDonation/pendingCore";
+import { isPending, recheckAccountPending } from "@/services/platformDonation/pendingCore";
 import { mockRefunds } from "@/services/wallet/mockRefundStore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { mockAccount, mockCredentials } from "./mockStore";
@@ -78,6 +78,9 @@ export async function getWithdrawalInfo(): Promise<WithdrawalInfo | null> {
   assertMock();
   const session = await getSession();
   if (!session) return null;
+  // Opening the screen re-checks this account's PENDING 플랫폼 후원 as 후원 내역 does (inside their 24 h, at most once a
+  // minute each): a result that has come in settles it, so it no longer blocks the withdrawal.
+  await recheckAccountPending();
   await mockDelay(200);
   const creator = hasRole(session, "CREATOR");
   return {

@@ -79,9 +79,12 @@ export function computeIdentity(): SupporterIdentity {
   const records = listDonationRecords().filter((d) => d.status === "COMPLETED");
   const lifetimeFn = records.reduce((s, d) => s + d.fnAmount, 0);
 
+  // 2026-10-09 결정: a donation sent with 프로필 숨기기 went out as 익명, under no 별명 — it is in no 별명's totals (also not
+  // the 기본 별명's, where unattributed donations go), while it still counts toward the 누적 · 활동 등급 below.
+  const named = records.filter((d) => !d.hideProfile);
   const nicknames: DonationNickname[] = nicknameList().map((n) => {
     // Not the current 대표: a donation stays with the name it went out under (see attributeDonation).
-    const mine = records.filter((d) => (mockIdentity.attribution[d.id] ?? MEMBER_NICKNAME_ID) === n.id);
+    const mine = named.filter((d) => (mockIdentity.attribution[d.id] ?? MEMBER_NICKNAME_ID) === n.id);
     return { id: n.id, name: n.name, isDefault: n.id === mockIdentity.defaultId, totalFn: mine.reduce((s, d) => s + d.fnAmount, 0), count: mine.length };
   });
 
@@ -135,7 +138,8 @@ export const ownsNickname = (nicknameId: unknown) => typeof nicknameId === "stri
 /**
  * Records which nickname a completed donation was sent under (Donation Core only): the picked 별명, or the 대표 별명
  * when none was picked — the name resolveBadges put on the alert. It is kept per donation, so changing the 대표 later
- * does not move it; donations without an entry (the member nickname, seed history) count for the 기본 별명.
+ * does not move it; donations without an entry (the member nickname, seed history) count for the 기본 별명. Not called
+ * for a donation sent with 프로필 숨기기 (2026-10-09 결정: it counts for no 별명).
  */
 export function attributeDonation(donationId: string, nicknameId: string | null) {
   const used = nicknameId !== null && ownsNickname(nicknameId) ? nicknameId : mockIdentity.defaultId;

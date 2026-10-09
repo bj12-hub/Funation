@@ -510,8 +510,12 @@ describe("회원 탈퇴 · 결과를 확인 중인 플랫폼 후원 (2026-10-09 
 
   it("waits while the sample member's PENDING 플랫폼 후원 has no result", async () => {
     const m = await load();
-    // The seed's FlexTV 박수 (TXN-SEED-B12) is still waiting for its platform result, past its 24 h.
+    const { flexTvAdapter } = await import("@/services/platformDonation/adapters");
+    const lookup = vi.spyOn(flexTvAdapter, "lookupDonation");
+    // The seed's FlexTV 박수 (TXN-SEED-B12) is still waiting for its platform result, past its 24 h: opening the screen
+    // does not ask the platform about it any more (the console decides it).
     expect(await m.getWithdrawalInfo()).toMatchObject({ pendingPlatformDonations: 1 });
+    expect(lookup).not.toHaveBeenCalled();
     expect(await m.withdrawAccount(supporter())).toEqual({ status: "PLATFORM_PENDING", count: 1 });
     expect(m.isWithdrawn()).toBe(false);
     const { resolvePendingDonation } = await import("@/services/admin/pendingDonations");
@@ -548,5 +552,39 @@ describe("회원 탈퇴 · 결과를 확인 중인 플랫폼 후원 (2026-10-09 
     };
     expect(await m.withdrawAccount({ ...supporter(3), fnBalance: 20_000 })).toEqual({ status: "PLATFORM_PENDING", count: 1 });
     expect(m.isWithdrawn()).toBe(false);
+  });
+
+  it("re-checks the member's PENDING 플랫폼 후원 when the screen opens, so a result that came in unblocks it", async () => {
+    const m = await load();
+    await settleSamplePlatformDonations();
+    const { soopAdapter } = await import("@/services/platformDonation/adapters");
+    const { requestPlatformDonation } = await import("@/services/platformDonation/platformDonation");
+    m.account.fnBalance = 30_000;
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      const t0 = Date.now();
+      vi.spyOn(soopAdapter, "sendDonation").mockRejectedValueOnce(new Error("ECONNRESET"));
+      const lookup = vi.spyOn(soopAdapter, "lookupDonation").mockResolvedValue({ status: "UNKNOWN" });
+      const held = await requestPlatformDonation(soop(71));
+      if (held.status !== "PENDING") throw new Error(held.status);
+
+      // Opening the screen asks the platform (inside the 24 h): no result yet, so it still waits.
+      expect(await m.getWithdrawalInfo()).toMatchObject({ fnBalance: 20_000, pendingPlatformDonations: 1 });
+      expect(lookup).toHaveBeenCalledTimes(1);
+
+      // The platform has a result now, but one transaction is asked at most once a minute.
+      lookup.mockResolvedValue({ status: "FAILED", reason: "API_ERROR" });
+      vi.setSystemTime(t0 + 30_000);
+      expect(await m.getWithdrawalInfo()).toMatchObject({ fnBalance: 20_000, pendingPlatformDonations: 1 });
+      expect(lookup).toHaveBeenCalledTimes(1);
+
+      // A minute on, opening it again brings the result: the held FN comes back and nothing blocks the withdrawal.
+      vi.setSystemTime(t0 + 61_000);
+      expect(await m.getWithdrawalInfo()).toMatchObject({ fnBalance: 30_000, pendingPlatformDonations: 0 });
+      expect(lookup).toHaveBeenCalledTimes(2);
+      expect(await m.withdrawAccount({ ...supporter(), fnBalance: 30_000 })).toEqual({ status: "WITHDRAWN" });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

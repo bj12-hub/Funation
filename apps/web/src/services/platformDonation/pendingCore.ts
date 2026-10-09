@@ -14,7 +14,8 @@ import { PLATFORMS } from "./platformTypes";
  * 후원 내역 and retries (platformDonation/*) and the console's 확인 중 후원 (admin/pendingDonations.ts) share it.
  *
  * - For 24 hours after the request the server re-checks the result with the platform adapter (`lookupDonation`), lazily:
- *   on reads of 후원 내역, on a retry with the same Idempotency-Key (결과 다시 확인) and on the console list.
+ *   on reads of 후원 내역, when the 회원 탈퇴 screen opens, on a retry with the same Idempotency-Key (결과 다시 확인) and on the
+ *   console list.
  * - A result settles it: COMPLETED completes the donation as a direct success does; FAILED returns the held FN with a
  *   wallet record (the FN 내역 shows the hold as FN 반환 and an FN 반환 row, 2026-10-09 결정) — unless the account that
  *   sent it has withdrawn since: then nothing is credited (a 재가입 account never gets it) and the return is recorded as
@@ -113,6 +114,12 @@ export async function recheckPending(which: (t: Tx) => boolean, now = Date.now()
   const answers = await Promise.all(due.map(lookupBounded));
   due.forEach((t, i) => applyLookup(t, answers[i]));
 }
+
+/**
+ * The lazy re-check for the signed-in account's own pending donations (the account holding the slot now, not a withdrawn
+ * one): on reads of 후원 내역 and when the 회원 탈퇴 screen opens, so a result that has come in no longer blocks it.
+ */
+export const recheckAccountPending = (now = Date.now()) => recheckPending((t) => (t.account ?? null) === accountSince(), now);
 
 /**
  * 다시 확인 (console): asks the platform now, whatever the age or the last check. Answers what the platform said, or

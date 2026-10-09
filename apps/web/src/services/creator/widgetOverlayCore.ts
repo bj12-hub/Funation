@@ -83,8 +83,10 @@ export function rankingSince(period: RankingSettings["period"], now = new Date()
 /**
  * Top donors by FN in the period, ties broken by who donated first. Rows group by the alert's opaque `donorKey` and show
  * the donor's latest name, so a supporter who copies the #1's name as an 별명 gets a row of their own. A hidden
- * profile (익명) is left out (2026-10-08 결정 "명예의 전당·랭킹에서 익명 제외"). Alerts without a key (seed history) group by the name shown.
- * 계정 / 후원시 설정한 이름 both use the name shown on the alert (TBD).
+ * profile (익명) is left out (2026-10-08 결정 "명예의 전당·랭킹에서 익명 제외"), and so is an alert whose name the 대체 메시지
+ * rules replaced (`nameReplaced`, 익명 or the 대체 메시지 — 2026-10-09 결정): it neither joins nor renames the donor's row.
+ * Alerts without a key (seed history) group by the name shown. 계정 / 후원시 설정한 이름 both use the name shown on the
+ * alert (TBD).
  */
 export function rankingRows(items: AlertItem[], s: RankingSettings, now = new Date()): WidgetRankRow[] {
   const since = rankingSince(s.period, now);
@@ -92,8 +94,8 @@ export function rankingRows(items: AlertItem[], s: RankingSettings, now = new Da
   for (const a of countedDonations(items)) {
     const t = countedAt(a);
     const key = a.donorKey === undefined ? (a.donor === HIDDEN_PROFILE_LABEL ? null : `name:${a.donor}`) : a.donorKey;
-    // A keyed alert can still show 익명 (프로필 숨김, or a name 후원 필터링 replaced): left out like the unkeyed ones.
-    if (t < since || key === null || a.donor === HIDDEN_PROFILE_LABEL) continue;
+    // A replaced name is out whatever it shows; the 익명 check also covers keyed alerts stored before `nameReplaced`.
+    if (t < since || key === null || a.nameReplaced || a.donor === HIDDEN_PROFILE_LABEL) continue;
     const cur = totals.get(key) ?? { name: a.donor, fn: 0, first: t };
     cur.fn += a.fnAmount;
     cur.name = a.donor;
@@ -105,7 +107,10 @@ export function rankingRows(items: AlertItem[], s: RankingSettings, now = new Da
     .map((v, i) => ({ rank: i + 1, name: v.name, fnAmount: v.fn }));
 }
 
-/** 크루 후원 순위: crew members by FN donated for them (멤버 지정) in the period; members with nothing are left out. */
+/**
+ * 크루 후원 순위: crew members by FN donated for them (멤버 지정) in the period; members with nothing are left out. Rows are
+ * the members (names from the crew), never donors, so a donor's name — hidden or replaced — cannot join or rename one.
+ */
 export function crewRankingRows(
   attributions: { memberId: string; fnAmount: number; at: string }[],
   members: { id: string; name: string }[],
@@ -134,7 +139,8 @@ const boardUnitName = (u: AmountUnit) => (isCurrencyUnit(u) ? u : unitLabel(u));
 /**
  * 수단별 보드: Ssumnation FN donations and each platform's donations in their own unit (no FN rate — TBD), ordered by
  * 건수. A platform paying in two currencies gets a line per currency. 테스트 후원 never counts. Rows group by unit code;
- * alerts stored before the codes (label) are read as their code, so they join the same row.
+ * alerts stored before the codes (label) are read as their code, so they join the same row. Rows are payment means, never
+ * donors: a donation sent as 익명 or under a replaced name counts in 썸네이션 FN like any other.
  */
 export function sourceBoardRows(items: AlertItem[], s: Pick<RankingSettings, "period" | "ranks">, now = new Date()): WidgetRankRow[] {
   const since = rankingSince(s.period, now);

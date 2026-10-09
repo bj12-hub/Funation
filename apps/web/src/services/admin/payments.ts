@@ -7,12 +7,22 @@ import { mockRefunds, type MockRefundRequest } from "@/services/wallet/mockRefun
 import { chargeRefundQuote } from "@/services/wallet/refundCore";
 import { REFUND_POLICY_LABEL, REFUND_POLICY_SUMMARY, REFUND_TYPE_LABEL, refundAmounts, sameRefund, type RefundAmounts, type RefundQuote } from "@/services/wallet/refundPolicy";
 import { findChargeRecord, listAccountChargeRecords, listAccountDonationRecords, listChargeRecords } from "@/services/wallet/walletHistory";
-import type { DonationStatus } from "@/services/wallet/walletTypes";
 import type { AdminActor } from "./adminTypes";
 import { recordAudit } from "./auditCore";
 import { activeHold, holdRequestId, pushHold, readHoldInput, recordedHold } from "./holdCore";
 import { SAMPLE_MEMBER_ID, slotAccountLabel } from "./memberCore";
-import { REFUND_NOTE, type AdminChargeRow, type AdminDonationRow, type AdminRefund, type DonationsView, type PaymentsView, type RefundDecisionResult } from "./paymentTypes";
+import {
+  ADMIN_DONATION_FILTERS,
+  REFUND_NOTE,
+  donationFilterOf,
+  type AdminChargeRow,
+  type AdminDonationFilter,
+  type AdminDonationRow,
+  type AdminRefund,
+  type DonationsView,
+  type PaymentsView,
+  type RefundDecisionResult
+} from "./paymentTypes";
 
 /**
  * 후원 · 결제 운영 API logic — code-first (called by `/api/admin/*`). Admin app screens `/admin/payments`, `/admin/donations`.
@@ -211,14 +221,26 @@ export async function getDonationsView(input: { status?: unknown } = {}): Promis
   purgeExpired();
   // Field by field: the supporter's message and profile settings are not the console's to show.
   const all = listAccountDonationRecords()
-    .map((d): AdminDonationRow => ({ id: d.id, donatedAt: d.donatedAt, creatorName: d.creatorName, fnAmount: d.fnAmount, typeLabel: d.typeLabel, status: d.status, ...owner(d.account) }))
+    .map(
+      (d): AdminDonationRow => ({
+        id: d.id,
+        donatedAt: d.donatedAt,
+        creatorName: d.creatorName,
+        fnAmount: d.fnAmount,
+        typeLabel: d.typeLabel,
+        status: d.status,
+        // A failed 플랫폼 후원's FN that went back: FN 반환, not 환불완료 (2026-10-09 결정).
+        fnReturned: d.status === "REFUNDED" && d.fnReturned === true,
+        ...owner(d.account)
+      })
+    )
     .sort((a, b) => b.donatedAt.localeCompare(a.donatedAt));
-  const statuses: DonationStatus[] = ["COMPLETED", "PROCESSING", "FAILED", "REFUNDING", "REFUNDED"];
-  const byStatus = Object.fromEntries(statuses.map((s) => [s, { count: 0, fn: 0 }])) as DonationsView["byStatus"];
+  const byStatus = Object.fromEntries(ADMIN_DONATION_FILTERS.map((s) => [s, { count: 0, fn: 0 }])) as DonationsView["byStatus"];
   const types = new Map<string, { count: number; fn: number }>();
   for (const d of all) {
-    byStatus[d.status].count++;
-    byStatus[d.status].fn += d.fnAmount;
+    const tile = byStatus[donationFilterOf(d)];
+    tile.count++;
+    tile.fn += d.fnAmount;
     if (d.status === "COMPLETED") {
       const t = types.get(d.typeLabel) ?? { count: 0, fn: 0 };
       t.count++;
@@ -226,6 +248,6 @@ export async function getDonationsView(input: { status?: unknown } = {}): Promis
       types.set(d.typeLabel, t);
     }
   }
-  const rows = statuses.includes(input.status as DonationStatus) ? all.filter((d) => d.status === input.status) : all;
+  const rows = ADMIN_DONATION_FILTERS.includes(input.status as AdminDonationFilter) ? all.filter((d) => donationFilterOf(d) === input.status) : all;
   return { rows, byStatus, byType: [...types].map(([typeLabel, t]) => ({ typeLabel, ...t })).sort((a, b) => b.fn - a.fn) };
 }
