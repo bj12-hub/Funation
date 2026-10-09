@@ -23,6 +23,32 @@ export type MockPlatformTransaction = {
   completedAt: string | null;
   /** The start marker of the account that sent it (`accountSince()`); missing or null = the first account (seed). */
   account?: string | null;
+  /** ISO time of the request (`createdAt` is its local minute); the 24 h re-check window counts from it. */
+  requestedAt: string;
+  /** The request's Idempotency-Key (null for the seed rows): the platform status lookup asks by it. */
+  idempotencyKey: string | null;
+  /**
+   * Set when the platform did not answer (PENDING, FN held). `lastCheckAt`: the last status lookup (lazy re-check or
+   * the console's 다시 확인). Kept after the result is known, so the console still lists what it decided.
+   */
+  pending?: { lastCheckAt: string | null };
+  /** How a PENDING transaction was settled (2026-10-08 결정): by a platform re-check or by an operator in 확인 중 후원. */
+  resolution?: PlatformResolution;
+};
+
+/**
+ * `fnReturn` (FAILED only): RETURNED = the held FN went back to the account that sent it; FORFEITED = that account has
+ * withdrawn since, so nothing was credited (a 재가입 account never gets it) and the FN is gone like the rest of the
+ * withdrawn account's FN. `requestId`: the console request that decided it (operator only).
+ */
+export type PlatformResolution = {
+  outcome: "COMPLETED" | "FAILED";
+  at: string;
+  by: "PLATFORM" | "OPERATOR";
+  operator: string | null;
+  note: string | null;
+  requestId: string | null;
+  fnReturn: "RETURNED" | "FORFEITED" | null;
 };
 
 type MockPlatformState = {
@@ -31,13 +57,22 @@ type MockPlatformState = {
   idempotency: Record<string, { fingerprint: string; result: PlatformDonationResult | null }>;
 };
 
-const stamp = (daysAgo: number, time: string) => {
+const dayAt = (daysAgo: number, time: string) => {
   const d = new Date();
   d.setDate(d.getDate() - daysAgo);
+  const [h, m] = time.split(":").map(Number);
+  d.setHours(h, m, 0, 0);
+  return d;
+};
+const stamp = (daysAgo: number, time: string) => {
+  const d = dayAt(daysAgo, time);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${time}`;
 };
 
-/** Sample rows from 817:8038 (history), dated relative to today. No FN was debited for these. */
+/**
+ * Sample rows from 817:8038 (history), dated relative to today. No FN was debited for these (the sample balance is a
+ * sample too). The PROCESSING row is a platform result still unknown after 24 h, so 확인 중 후원 has an item.
+ */
 function seed(): MockPlatformTransaction[] {
   const row = (
     id: string,
@@ -62,7 +97,10 @@ function seed(): MockPlatformTransaction[] {
     status,
     failureReason: null,
     createdAt: stamp(daysAgo, time),
-    completedAt: status === "PROCESSING" ? null : stamp(daysAgo, time)
+    completedAt: status === "PROCESSING" ? null : stamp(daysAgo, time),
+    requestedAt: dayAt(daysAgo, time).toISOString(),
+    idempotencyKey: null,
+    ...(status === "PROCESSING" ? { pending: { lastCheckAt: null } } : {})
   });
   return [
     row("TXN-SEED-A81", "SOOP", "kim_stream", "김스트리머", "별풍선 30개", 30_000, "COMPLETED", 7, "14:31", "SP-SEED-8F2A91"),
@@ -72,6 +110,7 @@ function seed(): MockPlatformTransaction[] {
   ];
 }
 
-const globalForPlatform = globalThis as typeof globalThis & { __ssumnationMockPlatformV2?: MockPlatformState };
+// V3: transactions keep their request time, Idempotency-Key, PENDING re-check state and resolution.
+const globalForPlatform = globalThis as typeof globalThis & { __ssumnationMockPlatformV3?: MockPlatformState };
 
-export const mockPlatform = (globalForPlatform.__ssumnationMockPlatformV2 ??= { transactions: seed(), idempotency: {} });
+export const mockPlatform = (globalForPlatform.__ssumnationMockPlatformV3 ??= { transactions: seed(), idempotency: {} });

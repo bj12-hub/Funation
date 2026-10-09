@@ -10,6 +10,13 @@ import type { PlatformCreator, PlatformKey, PlatformProduct } from "./platformTy
 
 export type SendResult = { ok: true; externalTransactionId: string } | { ok: false; reason: "API_ERROR" | "UNAVAILABLE" | "TIMEOUT" };
 
+/**
+ * The platform's answer to a status lookup of an earlier send whose result was unknown (PENDING; 2026-10-08 결정: the
+ * server re-checks for 24 hours). UNKNOWN = the platform has no final result for it yet.
+ */
+export type LookupResult = { status: "COMPLETED"; externalTransactionId: string } | { status: "FAILED"; reason: "API_ERROR" | "UNAVAILABLE" } | { status: "UNKNOWN" };
+export type LookupRequest = { creatorId: string; idempotencyKey: string | null; transactionId: string };
+
 export interface PlatformAdapter {
   readonly platform: PlatformKey;
   searchCreators(query: string): Promise<PlatformCreator[]>;
@@ -17,6 +24,8 @@ export interface PlatformAdapter {
   listProducts(creatorId: string): Promise<PlatformProduct[]>;
   popularCreators(): Promise<PlatformCreator[]>;
   sendDonation(req: { creatorId: string; productId: string; amountFn: number; message: string; idempotencyKey: string }): Promise<SendResult>;
+  /** Status of an earlier send, by its Idempotency-Key and Ssumnation Transaction ID (whether each platform has one: TBD). */
+  lookupDonation(req: LookupRequest): Promise<LookupResult>;
 }
 
 const hex = (n: number) => randomBytes(n).toString("hex").toUpperCase();
@@ -25,6 +34,18 @@ const yymmdd = () => {
   return `${String(d.getFullYear()).slice(2)}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
 };
 const matches = (q: string, ...fields: string[]) => fields.some((f) => f.toLowerCase().includes(q.toLowerCase()));
+
+/**
+ * The mocks' status lookup, deterministic for tests: an unknown creator or one whose sends fail (dev mock outcome)
+ * answers FAILED; anyone else COMPLETED, as if the send went through and only its response was lost, with an external
+ * id derived from the request. UNKNOWN (no result yet) comes only from a test double.
+ */
+const mockLookup = (prefix: string, found: boolean, failing: boolean, req: LookupRequest): LookupResult =>
+  !found
+    ? { status: "FAILED", reason: "UNAVAILABLE" }
+    : failing
+      ? { status: "FAILED", reason: "API_ERROR" }
+      : { status: "COMPLETED", externalTransactionId: `${prefix}-LK-${(req.idempotencyKey ?? req.transactionId).replace(/[^A-Za-z0-9]/g, "").slice(-6).toUpperCase()}` };
 
 // ── SOOP (mock DTOs: bj_id / bj_nick / broad_no …) ─────────────────────────────
 
@@ -81,6 +102,10 @@ export const soopAdapter: PlatformAdapter = {
     if (!b) return { ok: false, reason: "UNAVAILABLE" };
     if (b.mock_outcome) return { ok: false, reason: b.mock_outcome };
     return { ok: true, externalTransactionId: `SP-${yymmdd()}-${hex(3)}` };
+  },
+  async lookupDonation(req) {
+    const b = SOOP_BJS.find((x) => x.bj_id === req.creatorId);
+    return mockLookup("SP", !!b, !!b?.mock_outcome, req);
   }
 };
 
@@ -145,6 +170,10 @@ export const flexTvAdapter: PlatformAdapter = {
     if (!h) return { ok: false, reason: "UNAVAILABLE" };
     if (h.mockOutcome) return { ok: false, reason: h.mockOutcome };
     return { ok: true, externalTransactionId: `FT-${yymmdd()}-${hex(3)}` };
+  },
+  async lookupDonation(req) {
+    const h = FLEX_HOSTS.find((x) => x.hostId === req.creatorId);
+    return mockLookup("FT", !!h, !!h?.mockOutcome, req);
   }
 };
 

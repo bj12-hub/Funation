@@ -23,7 +23,12 @@ export type AuditAction =
   | "CONTENT_UPDATE"
   | "SYSTEM_UPDATE"
   | "REPORT_DISMISS"
-  | "REPORT_HIDE";
+  | "REPORT_HIDE"
+  | "PLATFORM_DONATION_CHECK"
+  | "PLATFORM_DONATION_RESOLVE"
+  | "EVENT_REWARD_SET"
+  | "EVENT_REWARD_PAY"
+  | "EVENT_DRAW";
 
 export type AuditEntry = {
   id: string;
@@ -43,8 +48,9 @@ export type AdminDashboard = {
   /**
    * `refunds` / `settlements`: 처리 대기 only. `refundsBlocked`: waiting requests of withdrawn accounts, 처리 불가(탈퇴);
    * `refundsHeld` / `settlementsHeld`: requests an operator put on 보류 (2026-10-08 결정) — neither is 처리 대기.
+   * `platformDonations`: 확인 중 후원 — SOOP · FlexTV donations with no platform result 24 h after the request (2026-10-08 결정).
    */
-  pending: { refunds: number; refundsBlocked: number; refundsHeld: number; settlements: number; settlementsHeld: number; reports: number | null };
+  pending: { refunds: number; refundsBlocked: number; refundsHeld: number; settlements: number; settlementsHeld: number; reports: number | null; platformDonations: number };
   recentAudit: AuditEntry[];
 };
 
