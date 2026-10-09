@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { formatKstDate } from "@/lib/format";
 import { unblock } from "@/services/moderation/moderation";
 import type { BlockEntry } from "@/services/moderation/moderationTypes";
 import styles from "./moderation.module.css";
@@ -37,7 +38,7 @@ export function BlocksScreen({ blocks }: { blocks: BlockEntry[] }) {
           {blocks.map((b) => (
             <li key={b.id} className={styles.blockItem}>
               <span className={styles.blockName}>{b.name}</span>
-              <span className={styles.muted}>{new Date(b.since).toLocaleDateString("ko-KR")} 차단</span>
+              <span className={styles.muted}>{formatKstDate(b.since)} 차단</span>
               <button type="button" className={styles.unblock} disabled={pending} onClick={() => release(b)}>
                 차단 해제
               </button>

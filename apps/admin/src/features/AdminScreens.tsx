@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { formatNumber } from "@/lib/format";
+import { formatKst, formatNumber } from "@/lib/format";
 import { AUDIT_ACTION_LABEL, AUDIT_MAX, AUDIT_PAGE, type AdminDashboard, type AuditEntry, type AuditPage, type AuditTargetMember } from "@/types/adminApi";
 import styles from "./admin.module.css";
 import { WithdrawnBadge } from "./WithdrawnBadge";
 
-const at = (iso: string) => new Date(iso).toLocaleString("ko-KR", { dateStyle: "short", timeStyle: "medium" });
+const at = (iso: string) => formatKst(iso, { dateStyle: "short", timeStyle: "medium" });
 
 /** 관리자 대시보드 — code-first. Route `/`. Numbers come from the server (mock data). */
 export function AdminDashboardScreen({ data }: { data: AdminDashboard }) {

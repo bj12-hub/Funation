@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { Modal } from "@/components/ui/Modal";
+import { formatKst } from "@/lib/format";
 import { deleteMessages, markMessageRead, moveMessages, sendMessage } from "@/services/messages/messages";
 import {
   MAILBOXES,
@@ -20,7 +21,7 @@ import { ModerationActions } from "../moderation/ModerationActions";
 import { GENERIC_ERROR } from "../mypage/editors/shared";
 import styles from "./messages.module.css";
 
-const when = (iso: string) => new Date(iso).toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+const when = (iso: string) => formatKst(iso, { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 
 /** 쪽지 — code-first (no Figma frame). Route `/messages` (`?box=` `?q=` `?page=` `?size=` `?to=` opens compose). */
 export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxView; recipients: Recipient[]; composeTo: string | null }) {

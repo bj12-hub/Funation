@@ -97,6 +97,35 @@ describe("admin members", () => {
     expect(m.auditEntries().map((e) => e.action)).toEqual(["MEMBER_RESTORE", "MEMBER_SUSPEND", "MEMBER_SUSPEND"]);
   });
 
+  it("refuses a reused request id that carries another member, period or reason (like the money actions, #311)", async () => {
+    const m = await load();
+    const id = m.creatorMemberId("c4");
+    const other = m.creatorMemberId("c5");
+    const request = { id, days: 7, reason: "운영 정책 위반 (테스트)", requestId: key(11) };
+    const refused = { status: "INVALID", message: "잘못된 요청입니다." };
+    expect(await m.suspendMember(OP, request)).toEqual({ status: "OK" });
+    expect(await m.suspendMember(OP, request)).toEqual({ status: "OK" }); // a retry
+    expect(await m.suspendMember(OP, { ...request, reason: ` ${request.reason} ` })).toEqual({ status: "OK" }); // the reason as stored (trimmed)
+    // The same request id with anything else is not that 정지: refused, nothing more is written.
+    expect(await m.suspendMember(OP, { ...request, id: other })).toEqual(refused);
+    expect(await m.suspendMember(OP, { ...request, days: 30 })).toEqual(refused);
+    expect(await m.suspendMember(OP, { ...request, days: null })).toEqual(refused);
+    expect(await m.suspendMember(OP, { ...request, days: undefined })).toEqual(refused);
+    expect(await m.suspendMember(OP, { ...request, reason: "다른 사유로 정지" })).toEqual(refused);
+    // Concurrent: two calls under one id that ask for different things — one 정지, the other refused.
+    const twin = { id: other, days: 1, reason: "동시에 보낸 정지", requestId: key(12) };
+    expect(await Promise.all([m.suspendMember(OP, twin), m.suspendMember(OP, { ...twin, days: null })])).toEqual([{ status: "OK" }, refused]);
+
+    expect(m.suspensionOf(id)).toMatchObject({ reason: request.reason, by: OP.nickname });
+    expect(m.suspensionOf(id)!.until).not.toBeNull();
+    expect(m.suspensionOf(other)).toMatchObject({ reason: twin.reason });
+    expect(m.isPermanentlySuspended(other)).toBe(false);
+    expect(m.auditEntries().map((e) => [e.action, e.target, e.reason])).toEqual([
+      ["MEMBER_SUSPEND", `member:${other}`, "1일 · 동시에 보낸 정지"],
+      ["MEMBER_SUSPEND", `member:${id}`, "7일 · 운영 정책 위반 (테스트)"]
+    ]);
+  });
+
   it("does not suspend a member who withdrew while the request was being handled", async () => {
     const m = await load();
     const { recordWithdrawal } = await import("@/services/account/withdrawalRecord");

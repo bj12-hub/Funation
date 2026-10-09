@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { formatKstTime } from "@/lib/format";
 import type { RemoteResult } from "@/services/creator/alertTypes";
 import { clearWallpaper, type WallpaperRemoteView } from "@/services/creator/wallpaperRemote";
 import styles from "../crew/crew.module.css";
 import remote from "./remote.module.css";
 
-const time = (iso: string) => new Date(iso).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+const time = (iso: string) => formatKstTime(iso, { hour: "2-digit", minute: "2-digit" });
 
 /**
  * 리모컨 "벽지" card — code-first (2026-10-04 결정: 자동 배치 스티커 벽). Every donation sticks a sticker on

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { formatCompactKo, formatNumber } from "@/lib/format";
+import { formatCompactKo, formatNumber, kstIsoString } from "@/lib/format";
 import { CREATOR_CATEGORY_LABEL, type CreatorCategory } from "@/services/creators/creatorTypes";
 import { crewRoleLabel, type CrewPublic } from "@/services/crew/crewTypes";
 import type { PublicChannelVideos } from "@/services/creators/channelVideos";
@@ -78,7 +78,7 @@ export function VideosView({ name, data }: { name: string; data: PublicChannelVi
                 </span>
                 <strong className={styles.videoTitle}>{v.title}</strong>
                 <span className={styles.muted}>
-                  {PLATFORM_LABEL[v.platform]} · 조회 {formatCompactKo(v.viewCount)} · {v.publishedAt.slice(0, 10).replace(/-/g, ".")}
+                  {PLATFORM_LABEL[v.platform]} · 조회 {formatCompactKo(v.viewCount)} · {kstIsoString(v.publishedAt).slice(0, 10).replace(/-/g, ".")}
                 </span>
               </a>
             </li>

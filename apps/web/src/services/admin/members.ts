@@ -12,7 +12,7 @@ import type { AuditEntry } from "./adminTypes";
 import type { AdminActor } from "./adminTypes";
 import { auditEntries, recordAudit } from "./auditCore";
 import { activeHold } from "./holdCore";
-import { SAMPLE_MEMBER_ID, creatorMemberId, isMemberSuspended, isPermanentlySuspended, isWithdrawnMember, memberStore, slotMemberAt, suspensionOf, withdrawnMemberId } from "./memberCore";
+import { SAMPLE_MEMBER_ID, creatorMemberId, isMemberSuspended, isPermanentlySuspended, isWithdrawnMember, memberStore, slotMemberAt, suspensionOf, withdrawnMemberId, type SuspendRequest } from "./memberCore";
 import { accountSince, withdrawalOf, withdrawalStore, type Withdrawal } from "@/services/account/withdrawalCore";
 import { RETENTION_DEFAULTS_LABEL, retentionRule, retentionSchedule } from "@/services/account/retentionPolicy";
 import { purgeExpired } from "@/services/account/retentionPurge";
@@ -158,26 +158,39 @@ export async function getMemberDetail(id: unknown): Promise<{ member: AdminMembe
   return { member, audit: auditEntries().filter((e) => about(e) === `member:${member.id}`), fnSettlement: fnSettlementOf(member, new Date()) };
 }
 
+/**
+ * 이용 정지: `{ days, reason, requestId }` for a member who is neither suspended nor withdrawn. One console request id per
+ * 정지: the same id with the same member, period and reason (as stored, trimmed) answers OK without a second change or log
+ * entry; anything else under that id is refused, never answered OK for a suspension that was not made.
+ */
 export async function suspendMember(admin: AdminActor, input: unknown): Promise<MemberActionResult> {
   assertMock();
   const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   if (typeof v.requestId !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
+  const requestId = v.requestId;
   const store = memberStore();
-  if (ownEntry(store.requests, v.requestId)) return { status: "OK" };
+  const reason = typeof v.reason === "string" ? v.reason.trim() : "";
+  // A retry is the same member, period and reason (what the request recorded); anything else under that id was never
+  // processed, so it is refused rather than answered OK.
+  const retry = (r: SuspendRequest): MemberActionResult =>
+    r.memberId === v.id && r.days === v.days && r.reason === reason ? { status: "OK" } : { status: "INVALID", message: "잘못된 요청입니다." };
+  const done = ownEntry(store.requests, requestId);
+  if (done) return retry(done);
   const member = (await directory()).find((m) => m.id === v.id);
   if (!member) return { status: "NOT_FOUND" };
-  const reason = typeof v.reason === "string" ? v.reason.trim() : "";
   if (reason.length < SUSPEND_REASON.min || reason.length > SUSPEND_REASON.max) return { status: "INVALID", message: `사유를 ${SUSPEND_REASON.min}~${SUSPEND_REASON.max}자로 입력해 주세요.` };
   if (!SUSPEND_DAYS.includes(v.days as never)) return { status: "INVALID", message: "정지 기간을 골라 주세요." };
+  const days = v.days as (typeof SUSPEND_DAYS)[number];
   // Read again after the directory's await, in one synchronous step with the write: the same request arriving twice
   // (double click, retry), another operator's suspension or a 탈퇴 meanwhile must not be overwritten or logged twice.
-  if (ownEntry(store.requests, v.requestId)) return { status: "OK" };
+  const raced = ownEntry(store.requests, requestId);
+  if (raced) return retry(raced);
   if (isMemberSuspended(member.id)) return { status: "INVALID", message: "이미 정지된 회원이에요." };
   if (isWithdrawnMember(member.id)) return { status: "INVALID", message: "탈퇴한 회원이에요." };
   const now = Date.now();
-  store.suspensions[member.id] = { reason, at: new Date(now).toISOString(), until: v.days === null ? null : new Date(now + (v.days as number) * 86_400_000).toISOString(), by: admin.nickname };
-  store.requests[v.requestId] = true;
-  recordAudit(admin, "MEMBER_SUSPEND", `member:${member.id}`, `${v.days === null ? "영구" : `${v.days}일`} · ${reason}`);
+  store.suspensions[member.id] = { reason, at: new Date(now).toISOString(), until: days === null ? null : new Date(now + days * 86_400_000).toISOString(), by: admin.nickname };
+  store.requests[requestId] = { memberId: member.id, days, reason };
+  recordAudit(admin, "MEMBER_SUSPEND", `member:${member.id}`, `${days === null ? "영구" : `${days}일`} · ${reason}`);
   return { status: "OK" };
 }
 

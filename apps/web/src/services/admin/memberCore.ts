@@ -56,13 +56,16 @@ export const slotAccountLabel = (account: string | null): { memberId: string; na
 export const shownMemberName = (memberId: string, name: string) => (isWithdrawnMember(memberId) ? WITHDRAWN_MEMBER_NAME : name);
 
 type GeneratedMember = { id: string; nickname: string; ssumnationId: string; joinedAt: string; lastActiveAt: string; donationTotalFn: number; fnBalance: number };
-type Store = { suspensions: Record<string, Suspension>; requests: Record<string, true>; supporters: GeneratedMember[] };
+/** What a console 이용 정지 request id recorded: a retry under that id must ask for the same. */
+export type SuspendRequest = { memberId: string; days: number | null; reason: string };
+type Store = { suspensions: Record<string, Suspension>; requests: Record<string, SuspendRequest>; supporters: GeneratedMember[] };
 
 const NICKS = ["별빛시청자", "새벽라디오", "콩트러버", "여행가고파", "먹방요정", "댄스머신", "고양이집사", "퇴근후한잔", "삼국지덕후", "야식전문가", "리뷰장인", "산책러", "코딩하는곰", "라떼는말이야", "주말농부", "음악다락방", "게임은밤에", "책벌레", "사진찍는날", "바다보러가자"];
 
-const g = globalThis as typeof globalThis & { __ssumnationMockMembersV1?: Store };
+// V2: `requests` keeps each 이용 정지 request (member, period, reason) instead of `true`.
+const g = globalThis as typeof globalThis & { __ssumnationMockMembersV2?: Store };
 export const memberStore = (): Store =>
-  (g.__ssumnationMockMembersV1 ??= {
+  (g.__ssumnationMockMembersV2 ??= {
     suspensions: {},
     requests: {},
     supporters: NICKS.map((nickname, i) => {

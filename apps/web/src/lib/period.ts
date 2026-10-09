@@ -68,6 +68,15 @@ export function kstDateString(d = new Date()) {
 }
 
 /**
+ * Local midnight of the Korean day of `now`: the `today` for calendar math that reads local fields (presetRange) in the
+ * browser, where the viewer's own day can be another one.
+ */
+export function kstToday(now = new Date()) {
+  const [y, m, d] = kstDateString(now).split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/**
  * A real calendar day as `YYYY-MM-DD`. The format check alone is not enough: `new Date("2026-02-30")` rolls
  * over to 3월 2일 instead of failing, so the parsed day must print back as the same string.
  */

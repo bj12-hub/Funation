@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { formatKstDate } from "@/lib/format";
 import { BOARD_CATEGORIES, boardEmptyText, categoryLabel, type BoardView } from "@/services/community/communityTypes";
 import { CarriedToast } from "../moderation/CarriedToast";
 import styles from "./community.module.css";
 
-const date = (iso: string) => new Date(iso).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" });
+const date = (iso: string) => formatKstDate(iso, { month: "2-digit", day: "2-digit" });
 
 /** 커뮤니티 목록 — code-first (no Figma frame). Route `/community` (`?category=` `?q=` `?page=`). */
 export function BoardScreen({ view, signedIn }: { view: BoardView; signedIn: boolean }) {

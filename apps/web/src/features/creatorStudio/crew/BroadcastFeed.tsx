@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { formatNumber } from "@/lib/format";
+import { formatKstTime, formatNumber } from "@/lib/format";
 import { assignFeedEntry, cancelFeedEntry, setAssignMode, setEntryContribution, setMemberKeywords, simulateDonation, startOneshot, stopOneshot } from "@/services/crew/crewFeed";
 import {
   EXCEL_UNITS,
@@ -29,7 +29,7 @@ const FILTERS = [
   { key: "CANCELLED", label: "취소 건" }
 ] as const;
 type Filter = (typeof FILTERS)[number]["key"];
-const time = (iso: string) => new Date(iso).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+const time = (iso: string) => formatKstTime(iso, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 /** Entries carry a unit code; the label is what shows (5,000 원 · 100 별풍선). */
 const amountText = (amount: number, unit: ExcelUnit) => `${formatNumber(amount)} ${unitLabel(unit)}`;
 

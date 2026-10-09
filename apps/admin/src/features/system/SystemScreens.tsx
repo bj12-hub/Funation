@@ -3,11 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { checkPlatform, saveSiteBanner } from "@/lib/actions";
+import { formatKst } from "@/lib/format";
 import { type PlatformStatusRow, type SystemView, PLATFORM_ERROR_LABEL, BANNER_HREF_MAX, BANNER_MESSAGE_MAX, PLATFORM_LABEL } from "@/types/adminApi";
 import styles from "../admin.module.css";
 
 const CAP_LABEL: Record<string, string> = { CHANNEL_PROFILE: "채널 정보", VIDEO_LIST: "영상 목록", LIVE_STATUS: "방송 상태", CHAT_EVENTS: "채팅 읽기", CHAT_SEND: "채팅 보내기", CHAT_MODERATE: "채팅 관리", DONATION_EVENTS: "후원 이벤트" };
-const at = (iso: string | null) => (iso ? new Date(iso).toLocaleString("ko-KR", { dateStyle: "short", timeStyle: "short" }) : "—");
+const at = (iso: string | null) => (iso ? formatKst(iso, { dateStyle: "short", timeStyle: "short" }) : "—");
 
 /** 플랫폼 연동 — code-first. Route `/platforms`. Adapter capabilities, connections and a check. */
 export function PlatformsScreen({ rows }: { rows: PlatformStatusRow[] }) {

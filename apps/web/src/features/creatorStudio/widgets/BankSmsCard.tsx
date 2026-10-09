@@ -2,13 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { formatNumber } from "@/lib/format";
+import { formatKst, formatNumber } from "@/lib/format";
 import { reissueBankSmsKey, setBankSms, simulateBankSms } from "@/services/bankSms/bankSms";
 import { SAMPLE_BANK_SMS, type BankSmsResult, type BankSmsView } from "@/services/bankSms/bankSmsTypes";
 import styles from "../crew/crew.module.css";
 import { CopyButton } from "../settings/SettingsCards";
 
-const time = (iso: string) => new Date(iso).toLocaleString("ko-KR", { dateStyle: "short", timeStyle: "short" });
+const time = (iso: string) => formatKst(iso, { dateStyle: "short", timeStyle: "short" });
 /** The secret part of the address, as on 오버레이 주소. */
 const masked = (path: string) => path.replace(/[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/, (k) => `${k.slice(0, 4)}-····-····-····`);
 

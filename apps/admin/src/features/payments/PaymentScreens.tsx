@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatNumber } from "@/lib/format";
+import { formatNumber, kstIsoString } from "@/lib/format";
 import {
   type AdminRefund,
   type DonationFilter,
@@ -19,7 +19,8 @@ import { WithdrawnBadge } from "../WithdrawnBadge";
 import { RefundDecision } from "./RefundDecision";
 
 const REFUND_LABEL = { REQUESTED: "심사 대기", APPROVED: "승인", REJECTED: "거절" } as const;
-const when = (s: string) => s.slice(0, 16).replace("T", " ");
+/** "2026-10-08 15:04" in Korea time. */
+const when = (s: string) => kstIsoString(s).slice(0, 16).replace("T", " ");
 
 /** A waiting request of an account that has since withdrawn: 처리 불가(탈퇴), outside 처리 대기 (2026-10-08 결정). */
 const isBlocked = (r: AdminRefund) => r.status === "REQUESTED" && r.memberWithdrawn;

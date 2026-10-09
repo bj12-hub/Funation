@@ -40,7 +40,8 @@ describe("정산 심사 · 보류", () => {
     expect(html).toMatch(HOLD_CHIP);
     expect(html).toContain("심사 대기</span>");
     expect(html).toContain("보류 메모: 입금 경로 확인 필요");
-    expect(html).toContain("보류 2026-10-08 01:02 · 운영자 · 보류를 해제할 때까지 승인 · 반려를 할 수 없어요.");
+    // Korea time: 01:02 UTC is 10:02 KST (the console used to print the UTC clock of the ISO time).
+    expect(html).toContain("보류 2026-10-08 10:02 · 운영자 · 보류를 해제할 때까지 승인 · 반려를 할 수 없어요.");
     expect(html).not.toContain('aria-label="처리 메모"');
     expect(html).not.toContain(">승인</button>");
     expect(html).toMatch(/<input[^>]*aria-label="보류 해제 메모"/);

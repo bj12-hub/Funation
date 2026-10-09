@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatNumber } from "@/lib/format";
+import { formatKstTime, formatNumber } from "@/lib/format";
 import { saveFanNoteRules, setFanNotesOpen, setFanNoteStatus, simulateFanNote } from "@/services/crew/crewFanNotes";
 import { FAN_NOTE_KINDS, FAN_NOTE_LIMITS, FAN_NOTE_RULE_RANGE, PLATFORM_FAN_NOTE_RULES, type BroadcastResult, type CrewMember, type FanNoteKind, type FanNoteStatus, type FanNotesView } from "@/services/crew/crewTypes";
 import styles from "./crew.module.css";
@@ -13,7 +13,7 @@ const STATUS_TABS: { key: FanNoteStatus | "ALL"; label: string }[] = [
   { key: "HIDDEN", label: "숨김" },
   { key: "ALL", label: "전체" }
 ];
-const time = (iso: string) => new Date(iso).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+const time = (iso: string) => formatKstTime(iso, { hour: "2-digit", minute: "2-digit" });
 
 /**
  * 팬 메시지 · 요청사항 — code-first (funnation 엑셀방송, 2026-10-06 결정), inside `/creator/crew/broadcast` while live.

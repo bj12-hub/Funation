@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
 import { Toggle } from "@/components/ui/Toggle";
+import { formatKstDate } from "@/lib/format";
 import { changeSsumnationId, type IdChangeResult } from "@/services/account/profileActions";
 import { changeChannelName, saveCreatorProfile, uploadCreatorImage } from "@/services/creator/creatorSettings";
 import {
@@ -129,7 +130,7 @@ function ProfileEditBody({
         const r = await changeSsumnationId(ssumId.trim());
         if (r.status === "CHANGED") onSaved("썸네이션 ID를 변경했습니다.", false);
         else if (r.status === "UNAUTHORIZED") onUnauthorized();
-        else if (r.status === "LIMITED") setIdError(`${new Date(r.availableFrom).toLocaleDateString("ko-KR")}부터 다시 변경할 수 있어요.`);
+        else if (r.status === "LIMITED") setIdError(`${formatKstDate(r.availableFrom)}부터 다시 변경할 수 있어요.`);
         else setIdError(ID_ERRORS[r.status]);
       } catch {
         setIdError("저장하지 못했습니다. 다시 시도해 주세요.");
