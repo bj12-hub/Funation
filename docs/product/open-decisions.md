@@ -23,7 +23,8 @@ Confirmed:
   still within 7 days and unused, otherwise the 10% fee), the free FN forfeited, the balance zeroed, audited as
   `MEMBER_FN_SETTLE`; a refund request waiting or on 보류 is decided first. See docs/domains/wallet.md "이용 정지와 남은 FN"
 - SOOP · FlexTV donations with an unknown result (2026-10-08): the FN stays held (PENDING) and the server re-checks the
-  result with the platform for 24 hours (lazily — 후원 내역, the same-key retry, the console list). A result completes the
+  result with the platform for 24 hours (lazily — 후원 내역, the 회원 탈퇴 screen and button, the same-key retry, the console
+  list). A result completes the
   donation or returns the FN with a wallet record; after 24 hours an operator decides 성공 / 실패 in 확인 중 후원 with a
   required memo (`PLATFORM_DONATION_RESOLVE`). A 실패 for an account that has withdrawn since is not credited (forfeited).
   See docs/domains/integrations.md
@@ -31,6 +32,20 @@ Confirmed:
   or 추첨 N명 경품 (count and prize text the operator enters). After the event, 보상 지급 credits each participant (per person)
   once as free FN to the account that is theirs now, or 당첨자 추첨 draws the winners on the server (masked on the site);
   people with no account are 지급 불가. See docs/domains/events.md
+- 미니 후원 amount (2026-10-09): 100 ~ 999 FN (under 1,000 FN), enforced by the Donation Core (`MINI_MAX_FN`); the
+  미니후원 widget's 최소 표시 금액 is 0 ~ 999 FN. See docs/domains/donation.md
+- 익명 donations (2026-10-09): a donation sent with 프로필 숨기기 counts toward the 누적 · 활동 등급, but not toward the
+  크리에이터 칭호 or any 별명's totals (별명 관리 shows "별명 누적 후원" · "별명 후원 횟수"). See docs/domains/supporter.md
+- Replaced names on stream (2026-10-09): an alert whose name the creator's 대체 메시지 rules replaced shows no 등급 · 칭호
+  badges and is left out of the 후원랭킹 widget (`nameReplaced`, fixed when queued); the off-stream rankings (채널 월간
+  순위, 내 후원 랭킹, 명예의 전당) do not apply those rules. See docs/domains/donation.md
+- TTS (2026-10-09): with 후원 메시지 표시 off the alert overlay reads nothing (커스텀 사운드 included); the 시그니처 sound
+  still plays
+- 사이트 알림 (2026-10-09): a settled 확인 중 플랫폼 후원 (완료 / 실패 · FN 반환) and 이벤트 보상 지급 · 당첨 · 발표 notify
+  once per result, the current account only. Push · e-mail and other triggers stay TBD
+- 회원 탈퇴 and 플랫폼 후원 (2026-10-09): refused while a 플랫폼 후원 of the account still waits for its result (FN held);
+  a failed one's returned FN reads "FN 반환", not 환불완료, in the FN 내역, its CSV, the FN Wallet and the console's 후원
+  운영. See docs/domains/integrations.md and wallet.md
 
 Still TBD:
 

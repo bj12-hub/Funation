@@ -241,7 +241,8 @@ TBD:
 
 ## Open decisions (TBD)
 
-- Notifications: what triggers them and how they are stored.
+- Notifications: which other events trigger them, per-user inboxes and storage, push · e-mail (decided 2026-10-09: the
+  result of a 확인 중 플랫폼 후원 and 이벤트 보상 지급 · 당첨 · 발표 notify the current account once — docs/product/open-decisions.md).
 - A 서비스 소개 page.
 - Donation-history migration from other services.
 - A settings page (what it holds).
@@ -255,7 +256,9 @@ The admin console is a **separate Next.js app** (`apps/admin`, port 3200), deplo
 |---|---|
 | 대시보드 `/` · 감사 로그 `/audit` | `GET /dashboard`, `GET /audit`, `POST /audit/session` |
 | 회원 관리 `/members`, `/members/[id]` · 크리에이터 관리 `/creators` | `GET /members`, `GET /members/[id]`, `POST /members/[id]/suspend`, `POST /members/[id]/restore`, `POST /members/[id]/fn-settlement` (남은 FN 정리, 영구 정지 회원), `GET /creators` |
-| 결제 · 환불 `/payments` · 후원 운영 `/donations` | `GET /payments`, `POST /refunds/[chargeId]`, `POST /refunds/[chargeId]/hold` (보류 / 보류 해제), `GET /donations` |
+| 결제 · 환불 `/payments` · 후원 운영 `/donations` | `GET /payments`, `POST /refunds/[chargeId]`, `POST /refunds/[chargeId]/hold` (보류 / 보류 해제), `GET /donations` (`?status=`, `FN_RETURNED` = FN 반환) |
+| 확인 중 후원 `/donations/pending` | `GET /platform-donations`, `POST /platform-donations/[transactionId]/check` (다시 확인), `POST /platform-donations/[transactionId]/resolve` (성공 / 실패) |
+| 이벤트 `/events` | `GET /events`, `POST /events/[id]/reward` (보상 설정), `POST /events/[id]/pay` (보상 지급), `POST /events/[id]/draw` (당첨자 추첨) |
 | 정산 심사 `/settlements` (`?status=`, `HELD` = 보류) | `GET /settlements`, `POST /settlements/[id]`, `POST /settlements/[id]/pay` (지급 완료), `POST /settlements/[id]/hold` (보류 / 보류 해제) |
 | 콘텐츠 관리 `/content` | `GET|POST /content/notices`, `DELETE /content/notices/[id]`, same for `/content/faqs` |
 | 플랫폼 연동 `/platforms` · 시스템 `/system` | `GET /platforms`, `POST /platforms/[platform]/check`, `GET /system`, `PUT /system/banner` |
