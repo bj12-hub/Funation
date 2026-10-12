@@ -316,7 +316,7 @@ describe("처리 중 충전 · 기본값 (2026-10-13)", () => {
     const { GET } = await import("@/app/api/wallet/charges/route");
     const csv = await (await GET(new NextRequest("http://localhost/api/wallet/charges?period=year"))).text();
     const row = csv.split(/\r?\n/).find((line) => line.startsWith(chargedAt))!;
-    expect(row.split(",")).toEqual([chargedAt, "신용카드", "10000", "0", "결제 취소", "'-", "'-"]);
+    expect(row.split(",")).toEqual([chargedAt, "'-", "신용카드", "10000", "0", "결제 취소", "'-", "'-"]);
     expect(csv).not.toMatch(/,취소,/);
   });
 
@@ -366,6 +366,83 @@ describe("처리 중 충전 · 기본값 (2026-10-13)", () => {
     expect(await counts()).toEqual([1, 1]);
     expect(await decide(m)).toEqual({ status: "OK", result: "CREDITED" });
     expect(await counts()).toEqual([0, 0]);
+  });
+});
+
+/**
+ * 결제 확인 일시 (code-first, 2026-10-13): a 처리중 charge confirmed later carries when (`confirmedAt`, server time like
+ * 충전 일시), for the member's 충전내역 상세정보 and CSV — its 청약철회 period counts from it. A charge paid with its
+ * request, a 처리중 one and a 결제 취소 have none.
+ */
+describe("충전 내역 · 결제 확인 일시", () => {
+  beforeEach(() => {
+    resetMockStores();
+    signIn(["SUPPORTER"]);
+  });
+  afterEach(() => vi.useRealTimers());
+
+  const on = (day: number, h = 12, min = 0, s = 0) => new Date(2026, 9, day, h, min, s);
+  const history = async () => {
+    const { getChargeHistory } = await import("@/services/wallet/walletHistory");
+    const { parsePeriod } = await import("@/lib/period");
+    return (await getChargeHistory({ period: parsePeriod({ period: "year" }), all: true }))!.items;
+  };
+  const csvRows = async () => {
+    const { NextRequest } = await import("next/server");
+    const { GET } = await import("@/app/api/wallet/charges/route");
+    const csv = await (await GET(new NextRequest("http://localhost/api/wallet/charges?period=year"))).text();
+    const [header, ...rows] = csv.split(/\r?\n/).map((line) => line.split(","));
+    return { header, rows };
+  };
+
+  it("gives a charge confirmed later its 결제 확인 일시, in the record and the CSV", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(on(12, 10));
+    const m = await load();
+    const { chargedAt, transactionId } = ch1(m)!;
+    // ch1 was requested on 10/11 and stayed 처리중; 10/14 09:30:05 the console confirms its payment.
+    vi.setSystemTime(on(14, 9, 30, 5));
+    expect(await decide(m)).toEqual({ status: "OK", result: "CREDITED" });
+
+    // Only ch1 has one: its request time stays 충전 일시, the confirmation is the 결제 확인 일시.
+    const items = await history();
+    expect(items.filter((c) => c.confirmedAt !== undefined).map((c) => [c.id, c.chargedAt, c.confirmedAt])).toEqual([["ch1", chargedAt, "2026-10-14 09:30:05"]]);
+    expect(m.listChargeRecords().find((c) => c.id === "ch1")?.confirmedAt).toBe("2026-10-14 09:30:05");
+
+    // The CSV: right after 날짜와 시간, as in the popup.
+    const { header, rows } = await csvRows();
+    expect(header.slice(1, 3)).toEqual(["결제 확인 일시", "결제수단"]);
+    expect(rows.find((r) => r[0] === chargedAt)).toEqual([chargedAt, "2026-10-14 09:30:05", "신용카드", "10000", "11000", "완료", "'-", transactionId]);
+  });
+
+  it("has none for a charge paid with its request, nor for one still 처리중", async () => {
+    const m = await load();
+    const { agreeChargeTerms, requestCharge } = await import("@/services/wallet/charge");
+    expect((await agreeChargeTerms({ guardian: true, privacy: true, payment: true })).status).toBe("AGREED");
+    const live = await requestCharge({ amount: { customAmount: 5_000 }, methodId: "KAKAO_PAY", idempotencyKey: key(1) });
+    if (live.status !== "COMPLETED") throw new Error(live.status);
+
+    const items = await history();
+    expect(items.find((c) => c.id === `ch-${live.transactionId}`)).toMatchObject({ status: "COMPLETED" });
+    expect(ch1(m)).toMatchObject({ status: "PROCESSING" });
+    expect(items.filter((c) => "confirmedAt" in c)).toEqual([]);
+    const { rows } = await csvRows();
+    expect(rows).toHaveLength(items.length);
+    expect(rows.map((r) => r[1])).toEqual(items.map(() => "'-"));
+  });
+
+  it("has none for a 결제 취소", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(on(12, 10));
+    const m = await load();
+    vi.setSystemTime(on(14, 9, 30, 5));
+    expect(await decide(m, { outcome: "CANCELLED", note: "결제 대행사 확인: 미결제" })).toEqual({ status: "OK", result: "CANCELLED" });
+
+    const items = await history();
+    expect(items.find((c) => c.id === "ch1")).toMatchObject({ status: "CANCELLED" });
+    expect(items.filter((c) => "confirmedAt" in c)).toEqual([]);
+    const { rows } = await csvRows();
+    expect(rows.every((r) => r[1] === "'-")).toBe(true);
   });
 });
 

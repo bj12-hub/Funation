@@ -24,8 +24,14 @@ export const CHARGE_STATUS_LABEL: Record<ChargeStatus, string> = { PROCESSING: "
 
 export type ChargeRecord = {
   id: string;
-  /** "YYYY-MM-DD HH:mm:ss", server time. */
+  /** "YYYY-MM-DD HH:mm:ss", server time: when the charge was requested (충전 일시). */
   chargedAt: string;
+  /**
+   * 결제 확인 일시, same format: only for a 처리중 charge whose payment was confirmed later (the console's 처리 중 충전, or
+   * the payment provider's later confirmation) — its 7-day 청약철회 period counts from here, not from `chargedAt`
+   * (2026-10-13, refundCore.ts `paidAt`). Absent when the payment completed with the request, and for 결제 취소.
+   */
+  confirmedAt?: string;
   methodEmoji: string;
   methodLabel: string;
   /** Extra method detail shown in the detail popup, e.g. "일시불". */

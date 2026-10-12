@@ -346,11 +346,14 @@ function seedCharges(): ChargeRecord[] {
     const chargedAt = dates[i];
     const m = METHODS[method];
     const id = `ch${i + 1}`;
-    // A 처리중 sample charge shows its 결제 확인 result once it has one (chargeCore.confirmChargePayment).
-    const status = sampleStatus === "PROCESSING" && Object.hasOwn(mockWallet.seedChargeResults, id) ? mockWallet.seedChargeResults[id].status : sampleStatus;
+    // A 처리중 sample charge shows its 결제 확인 result once it has one (chargeCore.confirmChargePayment); a completed one
+    // also shows when its payment was confirmed (결제 확인 일시), which its 청약철회 period counts from.
+    const result = sampleStatus === "PROCESSING" && Object.hasOwn(mockWallet.seedChargeResults, id) ? mockWallet.seedChargeResults[id] : null;
+    const status = result?.status ?? sampleStatus;
     return {
       id,
       chargedAt,
+      ...(result?.status === "COMPLETED" && result.at !== chargedAt ? { confirmedAt: result.at } : {}),
       methodEmoji: m.emoji,
       methodLabel: m.label,
       methodDetail: m.detail,
