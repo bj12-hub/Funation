@@ -23,8 +23,13 @@ Client-side payment completion is never authoritative by itself.
   before anything goes to the payment provider.
 - Server-only cores: `services/wallet/inFlightCore.ts` (credits on their way, per account) and
   `services/wallet/chargeCore.ts` (`pendingCharges`, `confirmChargePayment` for a 처리중 charge's confirmation,
-  `recordUncreditedCharge`). The mock has no confirmation path for a 처리중 charge (no provider webhook or status
-  lookup, no console action); only the sample's ch1 is 처리중 — see wallet.md "충전 진행 중".
+  `recordUncreditedCharge`). The mock has no provider webhook or status lookup; only the sample's ch1 is 처리중.
+- 처리 중 충전 (2026-10-12 결정): until the provider's confirmation is connected (TBD), an operator decides a 처리중
+  charge in the admin console (`/payments/pending`; site `GET /api/admin/pending-charges`,
+  `POST /api/admin/pending-charges/[chargeId]/resolve`): 결제 확인 (FN 지급) or 결제 취소 (미지급), with a required memo,
+  once per charge and per console request id, audited `PENDING_CHARGE_RESOLVE`, through `confirmChargePayment`. 결제 확인
+  for an account that has withdrawn credits nobody (완료 · FN 미지급 (탈퇴); the KRW stays TBD). See wallet.md
+  "충전 진행 중".
 
 ## Retry keys
 

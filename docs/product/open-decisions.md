@@ -64,6 +64,11 @@ Confirmed:
   in the step that writes the withdrawal; the screen and the button first wait a moment (sample 3 s) for credits on their
   way. A charge or reward that completes after the account withdrew anyway lands on nobody: the charge is listed in the
   console as 완료 · FN 미지급 (탈퇴), the free 출석 FN are simply not paid. See docs/domains/wallet.md and payment.md
+- 처리 중 충전 (2026-10-12): a charge still 처리중 (no payment provider confirmation) is listed in the console's 처리 중
+  충전 (`/payments/pending`, dashboard 처리 대기); an operator checks with the provider and decides 결제 확인 (FN 지급) or
+  결제 취소 (미지급) with a required memo (2~200자, operators only) — once, by console request id, audited
+  (`PENDING_CHARGE_RESOLVE`). 결제 확인 for an account that has withdrawn credits nobody (완료 · FN 미지급 (탈퇴)). This is
+  also what lets the sample member withdraw on a dev server once ch1 is decided. See docs/domains/wallet.md "충전 진행 중"
 
 Still TBD:
 
@@ -80,9 +85,9 @@ Still TBD:
 - Refund policy (decided 2026-10-04: a failed or creator-canceled 퀘스트 후원 refunds the whole amount, and a quest past its time limit waits for a decision — see docs/domains/donation.md. 2026-10-08: FN charge refunds have **defaults — 기본값 (일반적인 기준, 법무 검토 전)**: 7일 이내 · 미사용 = 전액 취소, otherwise the unused paid FN minus a 10% fee (rounded down), used and free FN not refundable, free FN then oldest charge spent first, target 접수 후 3영업일 이내 처리 — see docs/domains/wallet.md "환불 정책". 2026-10-08: the KRW amount of a partial refund is decided (see Confirmed). Still TBD: legal review, KRW refund per payment method / payment provider, donation refunds other than quests. The 초안 `/terms/refund` (FN 충전 · 환불 정책) and 서비스 이용약관 제9조 state the same defaults.)
 - Terms and policies (2026-10-06: clause headings only. 2026-10-08: full 초안 bodies for the 7 documents — service, privacy, youth, operation, marketing, creator, refund — under the draft banner, 시행일 "정식 오픈일 (TBD)", 버전 "초안 v0.1"; see `apps/web/src/features/terms/drafts`. Still TBD: legal review, 사업자 정보 (상호 · 대표자 · 사업자등록번호 · 주소 · 연락처), 개인정보 보호책임자 · 청소년 보호 책임자, 처리 위탁 · 제3자 제공 업체 (PG · SMS · 본인인증 · TTS · cloud), 국외 이전, sanctions per report reason and the appeal channel. Privacy retention defaults: 계약 · 청약철회 · 결제 · 정산 기록 5년, 문의 · 신고 3년, 접속 기록 3개월, 본인 확인 값 탈퇴 후 1년, 그 밖 탈퇴 즉시 파기 — to match `services/account/retentionPolicy.ts`)
 - Charges in progress (since 2026-10-10): how the payment provider confirms a 처리중 charge (webhook · status lookup) and
-  when 처리중 ends; whether operators need a screen for 처리중 charges; what happens to the KRW of a charge whose payment
-  completed after its account withdrew (PG 취소 · 환불 — the console only lists it); how the mock should clear the sample's
-  처리중 charge (ch1), which keeps the sample member from withdrawing on a dev server (tests use `settleSampleCharges()`)
+  when 처리중 ends (until then operators decide it in 처리 중 충전, 2026-10-12); what happens to the KRW of a charge whose
+  payment completed after its account withdrew (PG 취소 · 환불 — the console only lists it); whether the 청약철회 period of a
+  charge confirmed later counts from the request (as now) or from the confirmation
 - Chargeback policy
 - Settlement schedule
 - Settlement minimum
