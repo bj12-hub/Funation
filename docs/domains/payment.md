@@ -30,6 +30,9 @@ Client-side payment completion is never authoritative by itself.
   once per charge and per console request id, audited `PENDING_CHARGE_RESOLVE`, through `confirmChargePayment`. 결제 확인
   for an account that has withdrawn credits nobody (완료 · FN 미지급 (탈퇴); the KRW stays TBD). See wallet.md
   "충전 진행 중".
+- 2026-10-13 (기본값 — 일반적인 기준, 법무 검토 전): a charge confirmed later counts its 청약철회 period from that
+  confirmation (`refundCore.ts` `paidAt`), not from the request. A 결제 취소 shows to members as "결제 취소" and notifies the
+  account once ("FN 충전이 취소됐어요") while it is still active — never a withdrawn or 재가입 account.
 
 ## Retry keys
 
