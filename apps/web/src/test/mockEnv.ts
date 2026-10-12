@@ -81,7 +81,8 @@ export async function settleSamplePlatformDonations() {
 /**
  * The sample's 처리중 FN 충전 (ch1, 신용카드 10,000 FN, the first account's) gets its 결제 확인 — 결제 취소, so nothing is
  * credited and the sample balance stays as it is — and the sample member can withdraw (2026-10-10 결정: not while a
- * charge is in progress). The mock has no other way to finish it (services/wallet/chargeCore.ts). Call after
+ * charge is in progress). On a dev server an operator does this in the console's 처리 중 충전 (2026-10-12 결정,
+ * services/admin/pendingCharges.ts); this skips the console (no decision record, no audit entry). Call after
  * resetMockStores().
  */
 export async function settleSampleCharges() {

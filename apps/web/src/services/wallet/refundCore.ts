@@ -2,6 +2,7 @@ import { mockAccount } from "@/services/account/mockStore";
 import { currentAccountCredits } from "./mockCreditStore";
 import { currentAccountFnSettlements } from "./mockFnSettlementStore";
 import { mockRefunds } from "./mockRefundStore";
+import { mockWallet } from "./mockWalletStore";
 import { quoteRefund, refundAmounts, unusedPaidFn, withinWithdrawalPeriod, type ChargeRefundLine, type FnLedgerEvent, type RefundQuote } from "./refundPolicy";
 import { listChargeRecords, listDonationRecords } from "./walletHistory";
 import type { ChargeRecord, DonationStatus } from "./walletTypes";
@@ -16,6 +17,18 @@ import type { ChargeRecord, DonationStatus } from "./walletTypes";
 const SPENT: ReadonlySet<DonationStatus> = new Set<DonationStatus>(["COMPLETED", "PROCESSING", "REFUNDING"]);
 
 /**
+ * When a charge's paid FN landed in the balance, or null when they never did. A 처리중 charge confirmed later (결제 확인 —
+ * the console's 처리 중 충전, 2026-10-12 결정, `chargeCore.confirmChargePayment`) got them at its confirmation, not when
+ * it was requested; one confirmed after its account withdrew got none (FN 미지급), nor did a 처리중 or 결제 취소 charge.
+ */
+function creditedAt(c: ChargeRecord): string | null {
+  if (c.status !== "COMPLETED") return null;
+  if (!Object.hasOwn(mockWallet.seedChargeResults, c.id)) return c.chargedAt;
+  const confirmed = mockWallet.seedChargeResults[c.id];
+  return confirmed.fnCredited ? confirmed.at : null;
+}
+
+/**
  * FIFO: the paid FN of each charge of the current account still unused at `now` (free FN spent first, then oldest charge
  * first; FN the records do not explain settled oldest-received first — `unusedPaidFn`).
  */
@@ -23,7 +36,11 @@ export function unusedPaidFnByCharge(now = new Date()): Map<string, number> {
   const charges = listChargeRecords();
   const own = new Set(charges.map((c) => c.id));
   const events: FnLedgerEvent[] = [
-    ...charges.filter((c) => c.status === "COMPLETED").map((c): FnLedgerEvent => ({ kind: "PAID", chargeId: c.id, at: c.chargedAt, fn: c.fnAmount })),
+    // A charge's paid FN are received when they landed; a 결제 취소 or still 처리중 charge brought none.
+    ...charges.flatMap((c): FnLedgerEvent[] => {
+      const at = creditedAt(c);
+      return at ? [{ kind: "PAID", chargeId: c.id, at, fn: c.fnAmount }] : [];
+    }),
     ...currentAccountCredits().map((c): FnLedgerEvent => ({ kind: "FREE", at: c.at, fn: c.fnAmount })),
     // A refunded donation (퀘스트 실패 · 취소, a platform donation that failed) spent or held its FN when it was sent and
     // gave the same FN back at the refund — dated like its FN Wallet 환불 row (sample rows without a time: at the donation).

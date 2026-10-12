@@ -43,6 +43,7 @@ export type AuditAction =
   | "REPORT_HIDE"
   | "PLATFORM_DONATION_CHECK"
   | "PLATFORM_DONATION_RESOLVE"
+  | "PENDING_CHARGE_RESOLVE"
   | "EVENT_REWARD_SET"
   | "EVENT_REWARD_PAY"
   | "EVENT_DRAW";
@@ -68,6 +69,7 @@ export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
   REPORT_HIDE: "신고 콘텐츠 숨김",
   PLATFORM_DONATION_CHECK: "확인 중 후원 다시 확인",
   PLATFORM_DONATION_RESOLVE: "확인 중 후원 결과 결정",
+  PENDING_CHARGE_RESOLVE: "처리 중 충전 결과 결정",
   EVENT_REWARD_SET: "이벤트 보상 설정",
   EVENT_REWARD_PAY: "이벤트 보상 지급",
   EVENT_DRAW: "이벤트 당첨자 추첨"
@@ -83,8 +85,18 @@ export type AdminDashboard = {
    * `refunds` / `settlements`: 처리 대기 only. `refundsBlocked`: waiting requests of withdrawn accounts, 처리 불가(탈퇴);
    * `refundsHeld` / `settlementsHeld`: requests on 보류 — neither is 처리 대기.
    * `platformDonations`: 확인 중 후원 — SOOP · FlexTV donations with no platform result 24 h after the request.
+   * `processingCharges`: 처리 중 충전 — FN 충전 still 처리중, waiting for the payment provider's confirmation (2026-10-12 결정).
    */
-  pending: { refunds: number; refundsBlocked: number; refundsHeld: number; settlements: number; settlementsHeld: number; reports: number | null; platformDonations: number };
+  pending: {
+    refunds: number;
+    refundsBlocked: number;
+    refundsHeld: number;
+    settlements: number;
+    settlementsHeld: number;
+    reports: number | null;
+    platformDonations: number;
+    processingCharges: number;
+  };
   recentAudit: AuditEntry[];
 };
 
@@ -291,6 +303,34 @@ export type PendingDonationsView = { waiting: PendingDonationRow[]; resolved: Pe
 /** 다시 확인 answers what the platform said (UNKNOWN = still no result). */
 export type PendingCheckResult = { status: "OK"; outcome: PendingDonationOutcome | "UNKNOWN" } | Exclude<ActionResult, { status: "OK" }>;
 export const RESOLVE_NOTE = { min: 2, max: 200 } as const;
+
+// ── 처리 중 충전 (2026-10-12 결정) ────────────────────────────────────────────────
+
+/**
+ * An FN 충전 still 처리중: the payment provider's confirmation has not come (how it comes — webhook · status lookup — is
+ * TBD until a provider is connected). Listed here (`waiting`) until an operator decides 결제 확인 (COMPLETED, the FN are
+ * credited) or 결제 취소 (CANCELLED, nothing is credited) — `resolved`. `result` NOT_CREDITED: 결제 확인 for an account
+ * that had withdrawn, so nothing was credited (완료 · FN 미지급 (탈퇴); what happens to the KRW is TBD).
+ * `chargedAt` is the site's zone-less Korea-time stamp; `paidAmount` / `transactionId` are the charge's while it waited.
+ */
+export type PendingChargeOutcome = "COMPLETED" | "CANCELLED";
+export type PendingChargeResult = "CREDITED" | "NOT_CREDITED" | "CANCELLED";
+export type PendingChargeRow = {
+  chargeId: string;
+  chargedAt: string;
+  methodLabel: string;
+  fnAmount: number;
+  paidAmount: number;
+  transactionId: string | null;
+  memberId: string;
+  memberName: string;
+  memberWithdrawn: boolean;
+  resolution: { outcome: PendingChargeOutcome; result: PendingChargeResult; at: string; operator: string; note: string } | null;
+};
+export type PendingChargesView = { waiting: PendingChargeRow[]; resolved: PendingChargeRow[] };
+/** 결제 확인 / 결제 취소 answers what the decision did (also for a retry of it). */
+export type PendingChargeResolveResult = { status: "OK"; result: PendingChargeResult } | Exclude<ActionResult, { status: "OK" }>;
+export const CHARGE_RESOLVE_NOTE = { min: 2, max: 200 } as const;
 
 // ── Settlements ───────────────────────────────────────────────────────────────
 

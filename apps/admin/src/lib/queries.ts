@@ -12,6 +12,7 @@ import type {
   MemberPage,
   Notice,
   PaymentsView,
+  PendingChargesView,
   PendingDonationsView,
   PlatformStatusRow,
   SystemView
@@ -38,6 +39,7 @@ export const loadMembers = (params: Record<string, string | undefined>) => get<M
 export const loadMember = (id: string) => get<MemberDetail>(`/members/${encodeURIComponent(id)}`);
 export const loadCreators = (q: string) => get<AdminCreatorRow[]>(`/creators${qs({ q })}`);
 export const loadPayments = () => get<PaymentsView>("/payments");
+export const loadPendingCharges = () => get<PendingChargesView>("/pending-charges");
 export const loadDonations = (status: string | null) => get<DonationsView>(`/donations${qs({ status })}`);
 export const loadPendingDonations = () => get<PendingDonationsView>("/platform-donations");
 export const loadSettlements = (status: string | null) => get<AdminSettlementView>(`/settlements${qs({ status })}`);

@@ -244,7 +244,7 @@ describe("운영 › 이벤트", () => {
           creators: { total: 1, live: 0 },
           charges: { monthCount: 0, monthFn: 0, monthPaidKrw: 0, processing: 0 },
           donations: { monthCount: 0, monthFn: 0 },
-          pending: { refunds: 0, refundsBlocked: 0, refundsHeld: 0, settlements: 0, settlementsHeld: 0, reports: 0, platformDonations: 2 },
+          pending: { refunds: 0, refundsBlocked: 0, refundsHeld: 0, settlements: 0, settlementsHeld: 0, reports: 0, platformDonations: 2, processingCharges: 0 },
           recentAudit: []
         }
       })

@@ -36,6 +36,7 @@ export const ADMIN_GROUPS: Group[] = [
       { label: "후원 운영", href: "/donations" },
       { label: "확인 중 후원", href: "/donations/pending" },
       { label: "결제 · 환불", href: "/payments" },
+      { label: "처리 중 충전", href: "/payments/pending" },
       { label: "정산 심사", href: "/settlements" }
     ]
   },
