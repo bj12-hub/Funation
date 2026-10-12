@@ -12,7 +12,8 @@ export function AdminDashboardScreen({ data }: { data: AdminDashboard }) {
     { label: "크리에이터", value: `${formatNumber(data.creators.total)}명`, sub: `방송 중 ${formatNumber(data.creators.live)}명` },
     { label: "이번 달 충전", value: `${formatNumber(data.charges.monthFn)} FN`, sub: `${formatNumber(data.charges.monthCount)}건 · 결제 ${formatNumber(data.charges.monthPaidKrw)}원` },
     { label: "이번 달 후원", value: `${formatNumber(data.donations.monthFn)} FN`, sub: `${formatNumber(data.donations.monthCount)}건` },
-    { label: "처리 중 충전", value: `${formatNumber(data.charges.processing)}건`, sub: "결제 확인 대기" }
+    // Every 처리중 charge, not this month's like the two tiles before it: the same number as 처리 대기 below (2026-10-13).
+    { label: "처리 중 충전", value: `${formatNumber(data.charges.processing)}건`, sub: "결제 확인 대기 · 전체 기간" }
   ];
   // 보류 and 처리 불가(탈퇴) requests are not 처리 대기; they are only mentioned after the note (2026-10-08 결정).
   const apart = (note: string, parts: [string, number][]) => [note, ...parts.filter(([, n]) => n > 0).map(([label, n]) => `${label} ${formatNumber(n)}건`)].join(" · ");

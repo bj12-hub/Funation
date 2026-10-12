@@ -8,7 +8,8 @@ import { toDateString } from "@/lib/period";
  * (`refundCore.ts`). Amounts are in FN, like the charge and wallet records; the KRW refund follows from them (5).
  *
  * 1. 청약철회: requested within REFUND_WITHDRAWAL_DAYS of the payment date and none of the charge's FN used —
- *    the whole charge is cancelled, no fee.
+ *    the whole charge is cancelled, no fee. The payment date is when the payment completed and the FN were supplied: for
+ *    a charge that stayed 처리중 and was confirmed later, the day of that confirmation, not of the request (2026-10-13).
  * 2. Otherwise the charge's paid FN still unused are refunded minus REFUND_FEE_RATE (fee rounded down to a whole FN).
  * 3. Never refunded: FN already used, and free FN (출석 보상, events — `mockCreditStore` credits). A refunded donation
  *    (퀘스트 실패 · 취소, a platform donation that failed) gives back the FN it took — free stays free; it is not a charge.
@@ -95,9 +96,12 @@ export function refundKrw(type: RefundAmounts["type"], input: { netFn: number; c
   return Number((whole(Math.min(netFn, chargeFn)) * whole(paidKrw)) / whole(chargeFn));
 }
 
-/** Whether a request made at `requestedAt` is within the 청약철회 period of a charge paid at `chargedAt` (local "YYYY-MM-DD …"). */
-export function withinWithdrawalPeriod(chargedAt: string, requestedAt: Date): boolean {
-  const [y, m, d] = chargedAt.slice(0, 10).split("-").map(Number);
+/**
+ * Whether a request made at `requestedAt` is within the 청약철회 period of a charge whose payment completed at `paidAt`
+ * (local "YYYY-MM-DD …"; a charge confirmed later: its confirmation, `refundCore.ts`).
+ */
+export function withinWithdrawalPeriod(paidAt: string, requestedAt: Date): boolean {
+  const [y, m, d] = paidAt.slice(0, 10).split("-").map(Number);
   return toDateString(requestedAt) <= toDateString(new Date(y, m - 1, d + REFUND_WITHDRAWAL_DAYS));
 }
 
@@ -251,9 +255,16 @@ export function unusedPaidFn(events: FnLedgerEvent[], balance: number, now?: Dat
 
 // ── Copy ─────────────────────────────────────────────────────────────────────
 
-/** The member's policy summary (refund popup). */
+/**
+ * The 결제일 of a charge that stayed 처리중 and was confirmed later (기본값 — 법무 검토 전, 2026-10-13): the day its payment
+ * was confirmed and the FN were supplied, not the day it was requested (`refundCore.ts` `paidAt`).
+ */
+export const REFUND_LATE_CONFIRM_LINE = `처리중이던 충전은 충전을 요청한 날이 아니라 결제가 확인된 날부터 ${REFUND_WITHDRAWAL_DAYS}일을 계산해요.`;
+
+/** The member's policy summary (refund popup), under the 기본값 badge (`REFUND_POLICY_LABEL`). */
 export const REFUND_POLICY_LINES: string[] = [
   `결제일로부터 ${REFUND_WITHDRAWAL_DAYS}일 이내에 요청하고 충전한 FN을 하나도 쓰지 않았다면 전액 취소돼요 (수수료 없음).`,
+  REFUND_LATE_CONFIRM_LINE,
   `그 밖에는 이 충전에서 남은 FN에서 환불 수수료 ${REFUND_FEE_PERCENT}를 빼고 환불해요. 수수료의 1 FN 미만은 버려요.`,
   `수수료를 뺀 FN은 이 충전의 결제 금액에 비례해 원화로 환불해요 (${REFUND_KRW_RULE}).`,
   "이미 사용한 FN과 출석 보상 · 이벤트로 받은 무료 FN은 환불되지 않아요. 무료 FN을 먼저, 그다음 먼저 충전한 FN부터 쓴 것으로 계산해요.",
@@ -261,7 +272,7 @@ export const REFUND_POLICY_LINES: string[] = [
 ];
 
 /** One-line summary for the admin console. */
-export const REFUND_POLICY_SUMMARY = `청약철회(결제일로부터 ${REFUND_WITHDRAWAL_DAYS}일 이내 · 미사용) 전액 취소 · 그 밖에는 남은 충전 FN에서 수수료 ${REFUND_FEE_PERCENT}(1 FN 미만 버림) 공제, 원화 환불 금액은 ${REFUND_KRW_RULE} · 사용한 FN과 무료 FN은 환불 불가 · 무료 FN 먼저, 그다음 오래된 충전부터 사용으로 계산 · ${REFUND_PROCESSING_TARGET} 목표`;
+export const REFUND_POLICY_SUMMARY = `청약철회(결제일로부터 ${REFUND_WITHDRAWAL_DAYS}일 이내 · 미사용, 처리중이던 충전은 결제 확인일부터) 전액 취소 · 그 밖에는 남은 충전 FN에서 수수료 ${REFUND_FEE_PERCENT}(1 FN 미만 버림) 공제, 원화 환불 금액은 ${REFUND_KRW_RULE} · 사용한 FN과 무료 FN은 환불 불가 · 무료 FN 먼저, 그다음 오래된 충전부터 사용으로 계산 · ${REFUND_PROCESSING_TARGET} 목표`;
 
 /** "전액 취소 · 30,000 FN · 33,000원" / "수수료 공제 후 환불 · 4,500 FN · 4,950원 (남은 5,000 FN − 수수료 500 FN)" */
 export function describeRefund(a: RefundAmounts): string {

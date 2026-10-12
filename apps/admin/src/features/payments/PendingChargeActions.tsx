@@ -19,8 +19,9 @@ const DONE: Record<PendingChargeResult, (amount: string) => string> = {
 
 /**
  * 처리 중 충전 (2026-10-12 결정): 결제 확인 (FN 지급) / 결제 취소 (미지급) need a memo (operators only) and are final. 결제
- * 확인 of a member who has withdrawn credits nothing (`withdrawn`, 완료 · FN 미지급). One request id per intended decision,
- * so a retry after a lost response is recorded once; a new one when the memo changes.
+ * 확인 of a member who has withdrawn credits nothing (`withdrawn`, 완료 · FN 미지급): its button says so, "결제 확인 (미지급 ·
+ * 탈퇴)" (2026-10-13). One request id per intended decision, so a retry after a lost response is recorded once; a new one
+ * when the memo changes.
  */
 export function PendingChargeActions({ chargeId, fnAmount, withdrawn }: { chargeId: string; fnAmount: number; withdrawn: boolean }) {
   const router = useRouter();
@@ -33,7 +34,7 @@ export function PendingChargeActions({ chargeId, fnAmount, withdrawn }: { charge
     const amount = `${formatNumber(fnAmount)} FN`;
     const question =
       outcome === "CANCELLED"
-        ? "결제 취소로 정할까요? FN을 지급하지 않고 충전은 취소로 끝나요. 되돌릴 수 없어요."
+        ? "결제 취소로 정할까요? FN을 지급하지 않고 충전은 결제 취소로 끝나요. 되돌릴 수 없어요."
         : withdrawn
           ? `결제 확인으로 정할까요? 탈퇴한 회원의 충전이라 ${amount}을 지급하지 않아요 (완료 · FN 미지급). 되돌릴 수 없어요.`
           : `결제 확인으로 정할까요? 회원에게 ${amount}을 지급해요. 되돌릴 수 없어요.`;
@@ -77,7 +78,7 @@ export function PendingChargeActions({ chargeId, fnAmount, withdrawn }: { charge
       />
       <div className={styles.filters}>
         <button type="button" className={styles.button} disabled={!ready} onClick={() => decide("COMPLETED")}>
-          결제 확인 (FN 지급)
+          {withdrawn ? "결제 확인 (미지급 · 탈퇴)" : "결제 확인 (FN 지급)"}
         </button>
         <button type="button" className={styles.danger} disabled={!ready} onClick={() => decide("CANCELLED")}>
           결제 취소 (미지급)
