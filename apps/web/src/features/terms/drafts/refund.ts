@@ -4,8 +4,9 @@ import { DEFAULTS_NOTE, effectiveLine } from "./common";
 /**
  * FN 충전 · 환불 정책 — 초안 (2026-10-08). Linked from the FN 충전 약관 ("결제 서비스 이용약관 및 환불 정책 동의",
  * services/wallet/chargeTypes.ts). The 청약철회 · 수수료 · 처리 기한 numbers are the 2026-10-08 defaults (the same as
- * 서비스 이용약관 제9조). Decided elsewhere: 퀘스트 실패 · 취소 = 전액 환불 (donation.md), 처리 중 환불 · 진행 중
- * 퀘스트 · 결과 확인 중인 플랫폼 후원 (2026-10-09) · 처리 중인 충전 · 지급 중인 출석 보상 (2026-10-10) = 탈퇴 불가 and 탈퇴 시
+ * 서비스 이용약관 제9조); 2026-10-13 기본값: a charge that stayed 처리중 counts its 청약철회 period from its 결제 확인
+ * (services/wallet/refundCore.ts `paidAt`, 5. 청약철회 ③). Decided elsewhere: 퀘스트 실패 · 취소 = 전액 환불 (donation.md),
+ * 처리 중 환불 · 진행 중 퀘스트 · 결과 확인 중인 플랫폼 후원 (2026-10-09) · 처리 중인 충전 · 지급 중인 출석 보상 (2026-10-10) = 탈퇴 불가 and 탈퇴 시
  * FN 소멸 (wallet.md), the 환불 요청 → 운영자 승인 flow (wallet.md 충전 환불), the KRW amount of a 수수료 공제 후 환불 (2026-10-08: net FN ÷ the charge's FN × its paid KRW, 원 미만 버림 — services/wallet/refundPolicy.ts).
  * FN 가격, PG and the refund method per payment method stay TBD.
  */
@@ -54,7 +55,8 @@ export const REFUND_POLICY: TermsDoc = {
       title: "청약철회",
       body: [
         "① 결제한 날부터 7일 이내이고 그 충전으로 받은 FN을 전혀 쓰지 않았다면, 회원은 수수료 없이 청약을 철회하고 결제 금액 전액을 돌려받을 수 있습니다 (기본값).",
-        "② 충전한 FN을 일부라도 썼다면 그 충전은 청약철회 대상이 아니며, 남은 유상 FN은 \"6. 남은 유상 FN의 환불\"을 따릅니다."
+        "② 충전한 FN을 일부라도 썼다면 그 충전은 청약철회 대상이 아니며, 남은 유상 FN은 \"6. 남은 유상 FN의 환불\"을 따릅니다.",
+        "③ 결제 확인을 기다리느라 처리중이던 충전은 충전을 요청한 날이 아니라 결제가 확인되어 FN을 지급한 날을 결제한 날로 봅니다 (기본값)."
       ]
     },
     {

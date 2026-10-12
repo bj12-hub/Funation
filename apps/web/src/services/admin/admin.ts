@@ -37,8 +37,9 @@ export async function getAdminDashboard(): Promise<AdminDashboard | null> {
   // Every creator, as 크리에이터 관리 lists them: the public directory leaves suspended channels out.
   const creators = await getAllCreatorsForAdmin();
   // Platform totals: every account's records, also those of an account that withdrew and was replaced by a 재가입.
-  const charges = listAccountChargeRecords().filter((c) => c.chargedAt.startsWith(month));
-  const completed = charges.filter((c) => c.status === "COMPLETED");
+  const completed = listAccountChargeRecords().filter((c) => c.chargedAt.startsWith(month) && c.status === "COMPLETED");
+  // 처리 중 충전: every 처리중 charge whenever it was requested — the same count as 처리 대기 (2026-10-13), not this month's.
+  const processingCharges = pendingChargeCount();
   const donations = listAccountDonationRecords().filter((d) => d.donatedAt.startsWith(month) && d.status === "COMPLETED");
   const refunds = refundQueue();
   const settlements = settlementQueue();
@@ -48,7 +49,7 @@ export async function getAdminDashboard(): Promise<AdminDashboard | null> {
       monthCount: completed.length,
       monthFn: completed.reduce((s, c) => s + c.fnAmount, 0),
       monthPaidKrw: completed.reduce((s, c) => s + c.paidAmount, 0),
-      processing: charges.filter((c) => c.status === "PROCESSING").length
+      processing: processingCharges
     },
     donations: { monthCount: donations.length, monthFn: donations.reduce((s, d) => s + d.fnAmount, 0) },
     pending: {
@@ -62,7 +63,7 @@ export async function getAdminDashboard(): Promise<AdminDashboard | null> {
       reports: moderationStore().reports.filter((r) => r.status === "OPEN").length,
       platformDonations: pendingDonationCount(),
       // 처리 중 충전 (2026-10-12 결정): every account's 처리중 charges, decided in the console.
-      processingCharges: pendingChargeCount()
+      processingCharges
     },
     recentAudit: auditEntries().slice(0, 8)
   };

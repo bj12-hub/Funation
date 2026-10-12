@@ -79,6 +79,7 @@ export type AuditEntry = { id: string; at: string; actorId: string; actorName: s
 
 export type AdminDashboard = {
   creators: { total: number; live: number };
+  /** `month*`: this month's completed charges. `processing`: every 처리중 charge (전체 기간), as `pending.processingCharges`. */
   charges: { monthCount: number; monthFn: number; monthPaidKrw: number; processing: number };
   donations: { monthCount: number; monthFn: number };
   /**
@@ -176,7 +177,8 @@ export const FN_SETTLE_NOTE = { min: 2, max: 200 } as const;
 // ── Payments · donations ──────────────────────────────────────────────────────
 
 export type ChargeStatus = "PROCESSING" | "COMPLETED" | "CANCELLED";
-export const CHARGE_STATUS_LABEL: Record<ChargeStatus, string> = { PROCESSING: "처리중", COMPLETED: "완료", CANCELLED: "취소" };
+/** CANCELLED: a payment that did not go through (nothing paid) — "결제 취소", as members see it (2026-10-13). */
+export const CHARGE_STATUS_LABEL: Record<ChargeStatus, string> = { PROCESSING: "처리중", COMPLETED: "완료", CANCELLED: "결제 취소" };
 export type RefundStatus = "REQUESTED" | "APPROVED" | "REJECTED";
 
 export type AdminChargeRow = {

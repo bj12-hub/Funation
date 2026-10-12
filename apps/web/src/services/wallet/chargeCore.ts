@@ -48,25 +48,28 @@ export type ChargeConfirmation = "CREDITED" | "NOT_CREDITED" | "CANCELLED" | "NO
  * backend, and what the console's 처리 중 충전 decision does in the mock (2026-10-12 결정). COMPLETED credits the
  * charge's FN to the account that made it while that account still holds the slot, active (CREDITED); otherwise
  * nothing is credited and the console shows it as 완료 · FN 미지급 (탈퇴) (NOT_CREDITED). CANCELLED (결제 실패 · 취소)
- * credits nothing. Synchronous, so the check and the write are one step. The mock's only
- * 처리중 charges are the sample's (generated rows, so the result is kept in `mockWallet.seedChargeResults`).
+ * credits nothing; the member hears of it — "FN 충전이 취소됐어요" (2026-10-13), once per charge — only while the
+ * account that made it still holds the slot, active, like the 충전 완료 notification: a withdrawn account's inbox (or a
+ * 재가입 account's) never gets it. Synchronous, so the check and the write are one step. The mock's only 처리중 charges
+ * are the sample's (generated rows, so the result is kept in `mockWallet.seedChargeResults`).
  */
 export function confirmChargePayment(chargeId: string, outcome: "COMPLETED" | "CANCELLED", now = new Date()): ChargeConfirmation {
   const charge = mockWallet.charges.some((c) => c.id === chargeId) ? null : findChargeRecord(chargeId);
   if (!charge) return "NOT_FOUND";
   if (charge.status !== "PROCESSING") return "NOT_PROCESSING";
-  // The sample rows are the first account's (`accountSince()` null).
-  const credited = outcome === "COMPLETED" && accountSince() === null && !isWithdrawn();
+  // The sample rows are the first account's (`accountSince()` null): is it still the slot's, active?
+  const active = accountSince() === null && !isWithdrawn();
+  const credited = outcome === "COMPLETED" && active;
   mockWallet.seedChargeResults[chargeId] = { status: outcome, at: localStamp(now), fnCredited: credited };
-  if (outcome === "CANCELLED") return "CANCELLED";
+  const what = `${charge.fnAmount.toLocaleString("ko-KR")} FN · ${charge.methodLabel}`;
+  if (outcome === "CANCELLED") {
+    if (active) {
+      notify({ kind: "CHARGE", title: "FN 충전이 취소됐어요", body: `${what} · 결제가 확인되지 않아 취소됐어요`, href: "/wallet/charges", dedupeKey: `charge-cancelled:${charge.id}` });
+    }
+    return "CANCELLED";
+  }
   if (!credited) return "NOT_CREDITED";
   mockAccount.fnBalance += charge.fnAmount;
-  notify({
-    kind: "CHARGE",
-    title: "FN 충전이 완료됐어요",
-    body: `${charge.fnAmount.toLocaleString("ko-KR")} FN · ${charge.methodLabel}`,
-    href: "/wallet/charges",
-    dedupeKey: `charge:${charge.transactionId ?? charge.id}`
-  });
+  notify({ kind: "CHARGE", title: "FN 충전이 완료됐어요", body: what, href: "/wallet/charges", dedupeKey: `charge:${charge.transactionId ?? charge.id}` });
   return "CREDITED";
 }

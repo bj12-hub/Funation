@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   REFUND_FEE_RATE,
   REFUND_KRW_RULE,
+  REFUND_POLICY_LABEL,
   REFUND_POLICY_LINES,
+  REFUND_POLICY_SUMMARY,
   REFUND_WITHDRAWAL_DAYS,
   describeRefund,
   quoteRefund,
@@ -89,6 +91,16 @@ describe("환불 정책 기본값", () => {
     expect(withinWithdrawalPeriod(paid, new Date(2026, 9, 9, 0, 0, 0))).toBe(false);
     expect(withinWithdrawalPeriod("2026-09-28 10:00:00", new Date(2026, 9, 5, 12))).toBe(true); // across a month end
     expect(withinWithdrawalPeriod("2026-09-28 10:00:00", new Date(2026, 9, 6, 0))).toBe(false);
+  });
+
+  it("tells the member and the console that a charge confirmed later counts from its 결제 확인 (기본값, 2026-10-13)", () => {
+    // The member's summary sits under the 기본값 badge; the line follows the 청약철회 line.
+    expect(REFUND_POLICY_LABEL).toBe("기본값 (일반적인 기준, 법무 검토 전)");
+    expect(REFUND_POLICY_LINES.slice(0, 2)).toEqual([
+      "결제일로부터 7일 이내에 요청하고 충전한 FN을 하나도 쓰지 않았다면 전액 취소돼요 (수수료 없음).",
+      "처리중이던 충전은 충전을 요청한 날이 아니라 결제가 확인된 날부터 7일을 계산해요."
+    ]);
+    expect(REFUND_POLICY_SUMMARY.startsWith("청약철회(결제일로부터 7일 이내 · 미사용, 처리중이던 충전은 결제 확인일부터) 전액 취소 · ")).toBe(true);
   });
 
   describe("FIFO: free FN first, then paid FN oldest charge first", () => {
