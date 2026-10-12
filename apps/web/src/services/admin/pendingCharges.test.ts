@@ -109,18 +109,18 @@ describe("처리 중 충전 (2026-10-12 결정)", () => {
     expect(await m.quoteChargeRefund({ chargeId: "ch1" })).toMatchObject({ status: "QUOTE", quote: { type: "FULL_CANCEL", grossFn: 10_000, netFn: 10_000, refundKrw: 11_000 } });
   });
 
-  it("결제 취소 credits nothing; the member sees 취소, the charge cannot be refunded and the refund ledger is unchanged", async () => {
+  it("결제 취소 credits nothing; the member sees 결제 취소, the charge cannot be refunded and the refund ledger is unchanged", async () => {
     const m = await load();
     const tx = ch1(m)!.transactionId;
     const ledger = [...m.unusedPaidFnByCharge()];
     expect(await decide(m, { outcome: "CANCELLED", note: "결제 대행사 확인: 미결제" })).toEqual({ status: "OK", result: "CANCELLED" });
     expect(m.account.fnBalance).toBe(5_000);
 
-    // The member: 취소 — nothing was paid, there is no transaction, and there is nothing to refund.
+    // The member: 결제 취소 — nothing was paid, there is no transaction, and there is nothing to refund.
     const charge = ch1(m)!;
     expect(charge).toMatchObject({ status: "CANCELLED", paidAmount: 0, transactionId: null });
-    expect(m.CHARGE_STATUS_LABEL[charge.status]).toBe("취소");
-    expect((await m.getWalletOverview(all))!.entries.find((e) => e.id === "ch1")).toMatchObject({ statusLabel: "취소", tone: "failed" });
+    expect(m.CHARGE_STATUS_LABEL[charge.status]).toBe("결제 취소");
+    expect((await m.getWalletOverview(all))!.entries.find((e) => e.id === "ch1")).toMatchObject({ statusLabel: "결제 취소", tone: "failed" });
     const refused = { status: "INVALID", message: "완료된 충전만 환불을 요청할 수 있어요." };
     expect(await m.quoteChargeRefund({ chargeId: "ch1" })).toEqual(refused);
     expect(await m.requestChargeRefund({ chargeId: "ch1", expectedGrossFn: 10_000, expectedNetFn: 10_000 })).toEqual(refused);
@@ -144,7 +144,7 @@ describe("처리 중 충전 (2026-10-12 결정)", () => {
     expect(await decide(m, { outcome: "MAYBE" })).toEqual({ status: "INVALID", message: "결제 확인 또는 결제 취소를 골라 주세요." });
     expect(await decide(m, { chargeId: "nope" })).toEqual({ status: "NOT_FOUND" });
     expect(await decide(m, { chargeId: "ch2" })).toEqual({ status: "INVALID", message: "이미 처리된 충전이에요 (완료)." });
-    expect(await decide(m, { chargeId: "ch6" })).toEqual({ status: "INVALID", message: "이미 처리된 충전이에요 (취소)." });
+    expect(await decide(m, { chargeId: "ch6" })).toEqual({ status: "INVALID", message: "이미 처리된 충전이에요 (결제 취소)." });
     expect(m.account.fnBalance).toBe(5_000);
     expect(m.auditEntries()).toEqual([]);
 
@@ -246,6 +246,126 @@ describe("처리 중 충전 (2026-10-12 결정)", () => {
     vi.setSystemTime(at(4));
     expect(await m.quoteChargeRefund({ chargeId: "ch1" })).toMatchObject({ status: "QUOTE", quote: { type: "PARTIAL", usedFn: 2_000, grossFn: 8_000, feeFn: 800, netFn: 7_200, refundKrw: 7_920 } });
     expect(await m.quoteChargeRefund({ chargeId: `ch-${live.transactionId}` })).toMatchObject({ status: "QUOTE", quote: { type: "NOT_REFUNDABLE", usedFn: 5_000 } });
+  });
+});
+
+/**
+ * 2026-10-13 follow-ups, 기본값 (일반적인 기준, 법무 검토 전): the 청약철회 period of a charge confirmed later counts from
+ * its 결제 확인; members see a cancelled payment as "결제 취소"; a 결제 취소 notifies an active account once; the
+ * dashboard's 처리 중 충전 tile and 처리 대기 count the same charges.
+ */
+describe("처리 중 충전 · 기본값 (2026-10-13)", () => {
+  beforeEach(() => {
+    resetMockStores();
+    signIn(["SUPPORTER"]);
+  });
+  afterEach(() => vi.useRealTimers());
+
+  const chargeNotes = async () => {
+    const { notificationStore } = await import("@/services/notifications/notificationCore");
+    return notificationStore().items.filter((n) => n.kind === "CHARGE").map(({ title, body, href }) => ({ title, body, href }));
+  };
+  const CANCEL_NOTE = { title: "FN 충전이 취소됐어요", body: "10,000 FN · 신용카드 · 결제가 확인되지 않아 취소됐어요", href: "/wallet/charges" };
+
+  it("counts the 청약철회 period of a charge confirmed later from its 결제 확인, not from the request", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const on = (day: number, h = 12, min = 0, s = 0) => new Date(2026, 9, day, h, min, s);
+    vi.setSystemTime(on(12, 10));
+    const m = await load();
+    const { remainingFnPlan } = await import("@/services/wallet/refundCore");
+    // ch1 was requested on 10/11 and stays 처리중; 10/14 the console confirms it — the payment completes and its FN land.
+    expect(ch1(m)!.chargedAt.slice(0, 10)).toBe("2026-10-11");
+    vi.setSystemTime(on(14));
+    expect(await decide(m)).toEqual({ status: "OK", result: "CREDITED" });
+
+    // 10/21 is 10 days after the request but within 7 days of the payment: still a 청약철회 (전액 취소, no fee).
+    vi.setSystemTime(on(21, 23, 59, 59));
+    const full = { type: "FULL_CANCEL", withinPeriod: true, usedFn: 0, grossFn: 10_000, feeFn: 0, netFn: 10_000, refundKrw: 11_000 };
+    expect(await m.quoteChargeRefund({ chargeId: "ch1" })).toMatchObject({ status: "QUOTE", quote: full });
+    // 남은 FN 정리 (영구 정지) follows the same date.
+    expect(remainingFnPlan(on(21, 23, 59, 59)).lines.find((l) => l.chargeId === "ch1")).toMatchObject({ type: "FULL_CANCEL", grossFn: 10_000, feeFn: 0, refundKrw: 11_000 });
+
+    // 10/22: 7 days after the 결제 확인 have passed — 수수료 공제 후 환불.
+    vi.setSystemTime(on(22, 0));
+    expect(await m.quoteChargeRefund({ chargeId: "ch1" })).toMatchObject({ status: "QUOTE", quote: { type: "PARTIAL", withinPeriod: false, grossFn: 10_000, feeFn: 1_000, netFn: 9_000, refundKrw: 9_900 } });
+  });
+
+  it("shows a cancelled payment as 결제 취소 in the member's 충전 내역, its CSV and the FN Wallet", async () => {
+    const m = await load();
+    const chargedAt = ch1(m)!.chargedAt;
+    expect(await decide(m, { outcome: "CANCELLED", note: "결제 대행사 확인: 미결제" })).toEqual({ status: "OK", result: "CANCELLED" });
+
+    const { getChargeHistory } = await import("@/services/wallet/walletHistory");
+    const { parsePeriod } = await import("@/lib/period");
+    const items = (await getChargeHistory({ period: parsePeriod({ period: "year" }), all: true }))!.items;
+    // The console's 결제 취소 (ch1) and the sample's cancelled payments (ch6, ch14) are the only CANCELLED rows.
+    expect(items.filter((c) => c.status === "CANCELLED").map((c) => [c.id, m.CHARGE_STATUS_LABEL[c.status]])).toEqual([
+      ["ch1", "결제 취소"],
+      ["ch6", "결제 취소"],
+      ["ch14", "결제 취소"]
+    ]);
+    // FN Wallet › 충전 (newest first, 10 a page): ch1 and ch6 on the first page, ch14 on the second.
+    const wallet = [...(await m.getWalletOverview(all))!.entries, ...(await m.getWalletOverview({ ...all, page: 2 }))!.entries];
+    expect(wallet.filter((e) => ["ch1", "ch6", "ch14"].includes(e.id)).map((e) => [e.id, e.statusLabel])).toEqual([
+      ["ch1", "결제 취소"],
+      ["ch6", "결제 취소"],
+      ["ch14", "결제 취소"]
+    ]);
+
+    const { NextRequest } = await import("next/server");
+    const { GET } = await import("@/app/api/wallet/charges/route");
+    const csv = await (await GET(new NextRequest("http://localhost/api/wallet/charges?period=year"))).text();
+    const row = csv.split(/\r?\n/).find((line) => line.startsWith(chargedAt))!;
+    expect(row.split(",")).toEqual([chargedAt, "신용카드", "10000", "0", "결제 취소", "'-", "'-"]);
+    expect(csv).not.toMatch(/,취소,/);
+  });
+
+  it("notifies an active account of a 결제 취소 once, like the 충전 완료 notification", async () => {
+    const m = await load();
+    expect(await chargeNotes()).toEqual([]);
+    expect(await decide(m, { outcome: "CANCELLED", note: "결제 대행사 확인: 미결제" })).toEqual({ status: "OK", result: "CANCELLED" });
+    expect(await chargeNotes()).toEqual([CANCEL_NOTE]);
+    // A retry of the console request, or the charge's result arriving again, adds nothing.
+    expect(await decide(m, { outcome: "CANCELLED", note: "결제 대행사 확인: 미결제" })).toEqual({ status: "OK", result: "CANCELLED" });
+    const { confirmChargePayment } = await import("@/services/wallet/chargeCore");
+    expect(confirmChargePayment("ch1", "CANCELLED")).toBe("NOT_PROCESSING");
+    expect(await chargeNotes()).toEqual([CANCEL_NOTE]);
+  });
+
+  it("keeps the 충전 완료 notification of a 결제 확인 in the same form", async () => {
+    const m = await load();
+    expect(await decide(m)).toEqual({ status: "OK", result: "CREDITED" });
+    expect(await chargeNotes()).toEqual([{ title: "FN 충전이 완료됐어요", body: "10,000 FN · 신용카드", href: "/wallet/charges" }]);
+  });
+
+  it("never notifies a withdrawn account of a 결제 취소", async () => {
+    const m = await load();
+    const { recordWithdrawal } = await import("@/services/account/withdrawalRecord");
+    recordWithdrawal({ at: new Date().toISOString(), requestId: "w-test", forfeitedFn: 5_000, forfeitedEarningsFn: 0 });
+    expect(await decide(m, { outcome: "CANCELLED", note: "결제 대행사 확인: 미결제" })).toEqual({ status: "OK", result: "CANCELLED" });
+    expect(await chargeNotes()).toEqual([]);
+  });
+
+  it("does not notify the 재가입 account of the withdrawn account's 결제 취소", async () => {
+    const m = await load();
+    await rejoinWithPhone("010-0000-0000");
+    expect(await decide(m, { outcome: "CANCELLED", note: "결제 대행사 확인: 미결제" })).toEqual({ status: "OK", result: "CANCELLED" });
+    expect(await chargeNotes()).toEqual([]);
+  });
+
+  it("counts every 처리중 charge in the dashboard tile, the same as 처리 대기, also one requested last month", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    // The 1st of a month: the sample's ch1 was requested yesterday, in the month before.
+    vi.setSystemTime(new Date(2026, 10, 1, 10, 0, 0));
+    const m = await load();
+    expect(ch1(m)!.chargedAt.slice(0, 7)).toBe("2026-10");
+    const counts = async () => {
+      const d = (await m.getAdminDashboard())!;
+      return [d.charges.processing, d.pending.processingCharges];
+    };
+    expect(await counts()).toEqual([1, 1]);
+    expect(await decide(m)).toEqual({ status: "OK", result: "CREDITED" });
+    expect(await counts()).toEqual([0, 0]);
   });
 });
 

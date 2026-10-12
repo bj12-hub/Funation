@@ -15,7 +15,12 @@ export type WalletSummary = {
 
 export type ChargeStatus = "PROCESSING" | "COMPLETED" | "CANCELLED";
 
-export const CHARGE_STATUS_LABEL: Record<ChargeStatus, string> = { PROCESSING: "처리중", COMPLETED: "완료", CANCELLED: "취소" };
+/**
+ * CANCELLED is only ever a payment that did not go through — the sample's cancelled rows, and a 처리중 charge decided
+ * 결제 취소 (the console's 처리 중 충전, or the payment provider) — with nothing paid and no transaction. Members see it as
+ * "결제 취소" (2026-10-13): a bare "취소" read like a refund's 전액 취소 on the same row.
+ */
+export const CHARGE_STATUS_LABEL: Record<ChargeStatus, string> = { PROCESSING: "처리중", COMPLETED: "완료", CANCELLED: "결제 취소" };
 
 export type ChargeRecord = {
   id: string;

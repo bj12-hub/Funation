@@ -54,17 +54,22 @@ describe("처리 중 충전 screen", () => {
     // Both outcomes wait for the memo.
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*>결제 확인 \(FN 지급\)<\/button>/);
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*>결제 취소 \(미지급\)<\/button>/);
+    expect(html).not.toContain("미지급 · 탈퇴");
     expect(html).not.toContain("탈퇴한 회원의 충전이에요");
     expect(html).not.toContain("처리 완료");
   });
 
-  it("warns that 결제 확인 credits nothing for a withdrawn member", async () => {
+  it("warns that 결제 확인 credits nothing for a withdrawn member, on the card and on its button (2026-10-13)", async () => {
     const { PendingChargesScreen } = await import("./payments/PendingChargesScreen");
     const html = render(createElement(PendingChargesScreen, { view: { waiting: [pc({ memberId: "u-hongGD123-w1", memberWithdrawn: true })], resolved: [] } }));
     expect(html).toMatch(/>홍길동<\/a> <span class="[^"]*chipNeutral[^"]*">탈퇴<\/span>/);
     expect(html).toContain(
       "탈퇴한 회원의 충전이에요. 결제 확인으로 정해도 FN을 지급하지 않아요(탈퇴한 계정 규칙). 재가입한 새 계정에도 지급하지 않아요. 결제 금액의 처리(결제 취소 · 환불)는 정해지지 않았어요 (TBD)."
     );
+    // The button does not promise FN: "결제 확인 (미지급 · 탈퇴)"; 결제 취소 is unchanged.
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>결제 확인 \(미지급 · 탈퇴\)<\/button>/);
+    expect(html).not.toContain("결제 확인 (FN 지급)");
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>결제 취소 \(미지급\)<\/button>/);
   });
 
   it("shows how each was decided under 처리 완료, without the form", async () => {
@@ -94,6 +99,18 @@ describe("처리 중 충전 screen", () => {
     expect(html.match(/신용카드 · 10,000 FN · 11,000원/g)).toHaveLength(3);
     expect(html).not.toContain("<textarea");
     expect(html).not.toContain("결제 확인 (FN 지급)</button>");
+  });
+
+  it("calls a cancelled payment 결제 취소 in 결제 · 환불 › 충전 내역 too, as members see it (2026-10-13)", async () => {
+    const { PaymentsScreen } = await import("./payments/PaymentScreens");
+    const charge = { id: "ch1", chargedAt: "2026-10-11 14:23:05", methodLabel: "신용카드", fnAmount: 10_000, paidAmount: 0, status: "CANCELLED" as const, transactionId: null, refund: null };
+    const html = render(
+      createElement(PaymentsScreen, {
+        view: { charges: [{ ...charge, memberId: "u-hongGD123", memberName: "홍길동", memberWithdrawn: false }], refunds: [], balance: 0, refundPolicy: { label: "기본값", summary: "요약" } },
+        tab: "charges"
+      })
+    );
+    expect(html).toContain("<td>결제 취소</td>");
   });
 
   it("shows the empty state", async () => {
@@ -128,6 +145,8 @@ describe("처리 중 충전 in the console", () => {
     };
     const html = render(createElement(AdminDashboardScreen, { data }));
     expect(html).toMatch(/<span>처리 중 충전<\/span><strong class="[^"]*warn[^"]*">1건<\/strong><span[^>]*>결제 대행사의 결제 확인이 오지 않은 충전 · 처리 중 충전에서 결정<\/span>/);
+    // The tile beside the two 이번 달 tiles counts every 처리중 charge too, and says so (2026-10-13).
+    expect(html).toMatch(/<span[^>]*>처리 중 충전<\/span><strong class="[^"]*tileValue[^"]*">1건<\/strong><span[^>]*>결제 확인 대기 · 전체 기간<\/span>/);
   });
 
   it("sends 결제 확인 / 결제 취소 to the site's resolve route with the memo and request id, and passes its answer on", async () => {

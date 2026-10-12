@@ -18,7 +18,8 @@ import { CHARGE_RESOLVE_NOTE, type PendingChargeResolveResult, type PendingCharg
  * - 결제 확인 credits the charge's FN to the account that made it while that account still holds the slot, active; for an
  *   account that has withdrawn nothing is credited and 결제 · 환불 lists it as 완료 · FN 미지급 (탈퇴) — what happens to
  *   the KRW paid is TBD (no refund rule here).
- * - 결제 취소 credits nothing; the member's 충전 내역 shows the charge as 취소 (not refundable).
+ * - 결제 취소 credits nothing; the member's 충전 내역 and FN Wallet show the charge as 결제 취소 (not refundable), and an
+ *   account still active gets one "FN 충전이 취소됐어요" notification (2026-10-13).
  *
  * Both go through `wallet/chargeCore.ts` `confirmChargePayment`, run once per charge and once per console request id
  * (a retry must carry the same charge, outcome and memo), are audited (`PENDING_CHARGE_RESOLVE`), and check and write in
@@ -73,7 +74,7 @@ export async function getPendingCharges(): Promise<PendingChargesView> {
   return { waiting: waiting.map(waitingRow), resolved: resolved.map(resolvedRow) };
 }
 
-/** For the dashboard's 처리 대기: charges waiting for an operator. */
+/** For the dashboard (the 처리 중 충전 tile and 처리 대기): every charge waiting for an operator, whenever requested. */
 export const pendingChargeCount = () => processing().length;
 
 /**

@@ -17,15 +17,24 @@ import type { ChargeRecord, DonationStatus } from "./walletTypes";
 const SPENT: ReadonlySet<DonationStatus> = new Set<DonationStatus>(["COMPLETED", "PROCESSING", "REFUNDING"]);
 
 /**
- * When a charge's paid FN landed in the balance, or null when they never did. A 처리중 charge confirmed later (결제 확인 —
- * the console's 처리 중 충전, 2026-10-12 결정, `chargeCore.confirmChargePayment`) got them at its confirmation, not when
- * it was requested; one confirmed after its account withdrew got none (FN 미지급), nor did a 처리중 or 결제 취소 charge.
+ * When a charge's payment completed (local "YYYY-MM-DD HH:mm:ss"): when it was requested, or — for a 처리중 charge
+ * confirmed later (결제 확인: the console's 처리 중 충전, 2026-10-12 결정, or the payment provider's later confirmation,
+ * `chargeCore.confirmChargePayment`) — at that confirmation, when the payment completed and the FN were supplied.
+ */
+function paidAt(c: ChargeRecord): string {
+  const confirmed = Object.hasOwn(mockWallet.seedChargeResults, c.id) ? mockWallet.seedChargeResults[c.id] : null;
+  return confirmed?.status === "COMPLETED" ? confirmed.at : c.chargedAt;
+}
+
+/**
+ * When a charge's paid FN landed in the balance, or null when they never did: when its payment completed (`paidAt` — a
+ * charge confirmed later got them at its confirmation, not when it was requested). One confirmed after its account
+ * withdrew got none (FN 미지급), nor did a 처리중 or 결제 취소 charge.
  */
 function creditedAt(c: ChargeRecord): string | null {
   if (c.status !== "COMPLETED") return null;
-  if (!Object.hasOwn(mockWallet.seedChargeResults, c.id)) return c.chargedAt;
-  const confirmed = mockWallet.seedChargeResults[c.id];
-  return confirmed.fnCredited ? confirmed.at : null;
+  const confirmed = Object.hasOwn(mockWallet.seedChargeResults, c.id) ? mockWallet.seedChargeResults[c.id] : null;
+  return confirmed && !confirmed.fnCredited ? null : paidAt(c);
 }
 
 /**
@@ -60,9 +69,13 @@ export function unusedPaidFnByCharge(now = new Date()): Map<string, number> {
   return unusedPaidFn(events, mockAccount.fnBalance, now);
 }
 
-/** The policy outcome of a charge, given its unused paid FN (KRW from what the charge was paid). */
+/**
+ * The policy outcome of a charge, given its unused paid FN (KRW from what the charge was paid). The 청약철회 period runs
+ * from when its payment completed (`paidAt`, 기본값 — 법무 검토 전): for a charge confirmed later, from that
+ * confirmation, not from the request.
+ */
 const quoteOf = (charge: ChargeRecord, unusedFn: number, requestedAt: Date): RefundQuote =>
-  quoteRefund({ chargeFn: charge.fnAmount, paidKrw: charge.paidAmount, unusedFn, withinPeriod: withinWithdrawalPeriod(charge.chargedAt, requestedAt) });
+  quoteRefund({ chargeFn: charge.fnAmount, paidKrw: charge.paidAmount, unusedFn, withinPeriod: withinWithdrawalPeriod(paidAt(charge), requestedAt) });
 
 /**
  * The refund outcome of a completed charge of the current account, now. `requestedAt` anchors the 청약철회 period: a

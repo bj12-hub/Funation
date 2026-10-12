@@ -45,6 +45,10 @@ export type AuditEntry = {
 
 export type AdminDashboard = {
   creators: { total: number; live: number };
+  /**
+   * `month*`: this month's completed charges. `processing`: every 처리중 charge, whenever it was requested — the same
+   * number as `pending.processingCharges` (2026-10-13).
+   */
   charges: { monthCount: number; monthFn: number; monthPaidKrw: number; processing: number };
   donations: { monthCount: number; monthFn: number };
   /**
