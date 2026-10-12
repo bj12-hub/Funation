@@ -95,6 +95,9 @@ Display 24 Bold · Title 18 Bold · Subtitle 15 Medium · Body 14 · Body Strong
 | 거래 | AD09b | 후원 운영 · FN 반환 (실패한 플랫폼 후원, `?status=FN_RETURNED`, 2026-10-09 결정, code-first) | `/donations?status=FN_RETURNED` | `36:2163` |
 | 거래 | AD16 | 확인 중 후원 · 확인 필요 (다시 확인 · 처리 메모 · 성공 / 실패, 2026-10-08 결정, code-first) | `/donations/pending` | `33:1371` |
 | 거래 | AD16b | 확인 중 후원 · 처리 완료 (실패 · FN 반환, 처리 메모, EMPTY "확인이 필요한 후원이 없어요.", code-first) | `/donations/pending` | `33:1458` |
+| 거래 | AD16c | 확인 중 후원 · 탈퇴한 회원의 후원 (탈퇴 배지 · 실패 시 FN 소멸 경고, code-first) | `/donations/pending` | `38:2027` |
+| 거래 | AD18 | 처리 중 충전 · 확인 필요 (결제 확인 (FN 지급) / 결제 취소 (미지급), 2026-10-12, code-first) | `/payments/pending` | `47:2185` |
+| 거래 | AD18b | 처리 중 충전 · 처리 완료 (결제 취소, 처리 메모) + EMPTY (code-first) | `/payments/pending` | `47:2281` |
 | 거래 | AD07 | 결제 · 충전 내역 | `/payments` | `18:651` |
 | 거래 | AD08 | 환불 요청 | `/payments?tab=refunds` | `20:1301` |
 | 거래 | AD08b | 환불 요청 · 환불 정책 계산 (요청 때 계산 / 지금 기준 · 환불 금액(원) · 요청 때와 같아요, 정책 안내, 기본값, code-first) | `/payments?tab=refunds` | `34:1771` |
