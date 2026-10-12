@@ -19,11 +19,11 @@ const SPENT: ReadonlySet<DonationStatus> = new Set<DonationStatus>(["COMPLETED",
 /**
  * When a charge's payment completed (local "YYYY-MM-DD HH:mm:ss"): when it was requested, or — for a 처리중 charge
  * confirmed later (결제 확인: the console's 처리 중 충전, 2026-10-12 결정, or the payment provider's later confirmation,
- * `chargeCore.confirmChargePayment`) — at that confirmation, when the payment completed and the FN were supplied.
+ * `chargeCore.confirmChargePayment`) — at that confirmation, when the payment completed and the FN were supplied. That is
+ * the record's `confirmedAt`, the 결제 확인 일시 the member's 충전 내역 shows, so the screen and the rule read one value.
  */
 function paidAt(c: ChargeRecord): string {
-  const confirmed = Object.hasOwn(mockWallet.seedChargeResults, c.id) ? mockWallet.seedChargeResults[c.id] : null;
-  return confirmed?.status === "COMPLETED" ? confirmed.at : c.chargedAt;
+  return c.confirmedAt ?? c.chargedAt;
 }
 
 /**

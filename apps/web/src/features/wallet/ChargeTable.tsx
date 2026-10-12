@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { FileIcon } from "@/components/icons";
 import { Modal } from "@/components/ui/Modal";
-import { formatKstDate, formatNumber } from "@/lib/format";
+import { formatKstDate, formatNumber, kstIsoString } from "@/lib/format";
 import { quoteChargeRefund, requestChargeRefund } from "@/services/wallet/refund";
 import {
   REFUND_FEE_PERCENT,
@@ -111,6 +111,8 @@ export function ChargeTable({ items }: { items: ChargeRecord[] }) {
 }
 
 const day = (iso: string) => formatKstDate(iso);
+/** 충전 일시's format, "YYYY-MM-DD HH:mm:ss", in Korea time. */
+const dateTime = (at: string) => kstIsoString(at).replace("T", " ");
 
 /** 환불 정책 요약 — 기본값 (일반적인 기준, 법무 검토 전), with the policy document. */
 function RefundPolicy() {
@@ -330,7 +332,11 @@ function RefundSection({ charge }: { charge: ChargeRecord }) {
   );
 }
 
-function ChargeDetail({ charge }: { charge: ChargeRecord }) {
+/**
+ * The 상세정보 popup's body. 결제 확인 일시 (code-first, 2026-10-13): only a 처리중 charge confirmed later has one
+ * (`confirmedAt`, from the server) — its 7-day 청약철회 period counts from there, not from 충전 일시.
+ */
+export function ChargeDetail({ charge }: { charge: ChargeRecord }) {
   return (
     <div className={styles.detail}>
       <div className={styles.detailSummary}>
@@ -350,6 +356,12 @@ function ChargeDetail({ charge }: { charge: ChargeRecord }) {
           <dt>충전 일시</dt>
           <dd>{charge.chargedAt}</dd>
         </div>
+        {charge.confirmedAt && (
+          <div>
+            <dt>결제 확인 일시</dt>
+            <dd>{dateTime(charge.confirmedAt)}</dd>
+          </div>
+        )}
         <div>
           <dt>결제 수단</dt>
           <dd>
