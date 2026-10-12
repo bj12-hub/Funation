@@ -19,7 +19,8 @@ type IdempotencyEntry<R> = {
 /**
  * 결제 확인 result of a sample (seed) charge that was 처리중 (./chargeCore.ts `confirmChargePayment`): the sample rows are
  * generated, so their result is kept here. `fnCredited`: false when the payment completed after the account withdrew —
- * nothing was credited (2026-10-10 결정). `at`: local "YYYY-MM-DD HH:mm:ss".
+ * nothing was credited (2026-10-10 결정) — and for a 결제 취소 (nothing to credit; not FN 미지급). `at`: local
+ * "YYYY-MM-DD HH:mm:ss" — for a completed one, when its FN landed.
  */
 export type SeedChargeResult = { status: "COMPLETED" | "CANCELLED"; at: string; fnCredited: boolean };
 

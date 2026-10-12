@@ -7,13 +7,19 @@ vi.mock("react", async (importOriginal) => ({ ...(await importOriginal<typeof im
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh() {} }) }));
 vi.mock("@/lib/actions", () => ({}));
 
-/** 환불 · 정산 · 신고 decisions: while a decision is processing the form says so and both buttons are disabled. */
+/** 환불 · 정산 · 신고 · 처리 중 충전 decisions: while a decision is processing the form says so and both buttons are disabled. */
 describe("decision forms while processing", () => {
   it("shows 처리 중 and disables the buttons", async () => {
     const { RefundDecision } = await import("./payments/RefundDecision");
     const { SettlementDecision } = await import("./settlements/SettlementDecision");
     const { ReportDecision } = await import("./reports/ReportDecision");
-    for (const el of [createElement(RefundDecision, { chargeId: "ch1", current: { type: "FULL_CANCEL", chargeFn: 10_000, paidKrw: 11_000, usedFn: 0, withinPeriod: true, grossFn: 10_000, feeFn: 0, netFn: 10_000, refundKrw: 11_000 } }), createElement(SettlementDecision, { id: "st-1", canApprove: true }), createElement(ReportDecision, { id: "rp-1", canHide: true })]) {
+    const { PendingChargeActions } = await import("./payments/PendingChargeActions");
+    for (const el of [
+      createElement(RefundDecision, { chargeId: "ch1", current: { type: "FULL_CANCEL", chargeFn: 10_000, paidKrw: 11_000, usedFn: 0, withinPeriod: true, grossFn: 10_000, feeFn: 0, netFn: 10_000, refundKrw: 11_000 } }),
+      createElement(SettlementDecision, { id: "st-1", canApprove: true }),
+      createElement(ReportDecision, { id: "rp-1", canHide: true }),
+      createElement(PendingChargeActions, { chargeId: "ch1", fnAmount: 10_000, withdrawn: false })
+    ]) {
       const html = renderToStaticMarkup(el);
       expect(html).toContain('role="status">처리 중…');
       expect(html.match(/<button[^>]*>/g)!.every((b) => b.includes("disabled"))).toBe(true);

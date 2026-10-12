@@ -1,5 +1,6 @@
 import { SAMPLE_MEMBER_ID, withdrawnMemberId } from "@/services/admin/memberCore";
 import { WITHDRAWN_MEMBER_NAME } from "@/services/admin/paymentTypes";
+import { chargeDecisions } from "@/services/admin/pendingChargeCore";
 import { accountKeyOf, forgetAccess } from "@/services/auth/loginLockCore";
 import { mockCommunity } from "@/services/community/mockCommunityStore";
 import { mockSettlement } from "@/services/creator/mockSettlementStore";
@@ -47,12 +48,18 @@ const PURGE: Record<Exclude<RetentionCategory, "POSTS">, (t: Target) => void> = 
     dropKeys(moderation.requests, `${t.memberId}|`);
   },
 
-  /** 대금결제 기록: the account's charges, donations, credits, refund requests, 남은 FN 정리 and settlement requests. */
+  /**
+   * 대금결제 기록: the account's charges (with the console's 처리 중 충전 decisions), donations, credits, refund requests,
+   * 남은 FN 정리 and settlement requests.
+   */
   PAYMENT: (t) => {
     const own = (stamp: string) => accountAt(stamp) === t.account;
     mockWallet.charges = mockWallet.charges.filter((c) => !own(c.chargedAt));
     // Charges paid after the account withdrew (never credited, 2026-10-10 결정) are its payment records too.
     mockWallet.uncreditedCharges = mockWallet.uncreditedCharges.filter((u) => u.account !== t.account);
+    // The console's 결제 확인 / 결제 취소 of its 처리중 charges (처리 중 충전, 2026-10-12 결정) keep their amounts too.
+    const decisions = chargeDecisions();
+    decisions.decisions = decisions.decisions.filter((d) => d.account !== t.account);
     mockWallet.donations = mockWallet.donations.filter((d) => !own(d.donatedAt));
     mockCredits.credits = mockCredits.credits.filter((c) => c.account !== t.account);
     mockRefunds.requests = mockRefunds.requests.filter((r) => r.accountSince !== t.account);

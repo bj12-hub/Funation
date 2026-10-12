@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import type { ActionResult, PendingCheckResult } from "@/types/adminApi";
+import type { ActionResult, PendingChargeResolveResult, PendingCheckResult } from "@/types/adminApi";
 import { endOperatorSession, getOperator, startMockOperatorSession } from "./session";
 import { SiteApiError, siteSend } from "./siteApi";
 
@@ -123,7 +123,16 @@ export async function resolvePendingDonation(input: unknown) {
   return send("POST", `/platform-donations/${seg(v.transactionId)}/resolve`, { outcome: v.outcome, note: v.note, requestId: v.requestId });
 }
 
-/** 이벤트 › 보상 설정: `{ kind: "FREE_FN", amountFn }` or `{ kind: "DRAW", winners, prize }`. */
+/**
+ * 처리 중 충전 › 결제 확인 / 결제 취소: `outcome` COMPLETED | CANCELLED, a memo, one `requestId` per intended decision. The
+ * site answers what it did (`result`: CREDITED · NOT_CREDITED · CANCELLED).
+ */
+export async function resolvePendingCharge(input: unknown): Promise<PendingChargeResolveResult> {
+  const v = obj(input);
+  return send<PendingChargeResolveResult>("POST", `/pending-charges/${seg(v.chargeId)}/resolve`, { outcome: v.outcome, note: v.note, requestId: v.requestId });
+}
+
+/** 이벤트 › 보상 설정:`{ kind: "FREE_FN", amountFn }` or `{ kind: "DRAW", winners, prize }`. */
 export async function saveEventReward(input: unknown) {
   const v = obj(input);
   return send("POST", `/events/${seg(v.id)}/reward`, { kind: v.kind, amountFn: v.amountFn, winners: v.winners, prize: v.prize });
