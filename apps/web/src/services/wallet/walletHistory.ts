@@ -260,8 +260,9 @@ const METHODS: Record<MethodKey, { emoji: string; label: string; detail: string 
 };
 
 /**
- * The first row (ch1, 신용카드 10,000 FN) is 처리중: its payment waits for confirmation, which the mock never gives
- * (chargeCore.ts), so it keeps the sample member from withdrawing (2026-10-10 결정) — tests confirm it first
+ * The first row (ch1, 신용카드 10,000 FN) is 처리중: its payment waits for confirmation, which the mock never gives by
+ * itself (chargeCore.ts), so it keeps the sample member from withdrawing (2026-10-10 결정) until an operator decides it
+ * in the console's 처리 중 충전 (결제 확인 / 결제 취소, 2026-10-12 결정) — tests confirm it directly
  * (test/mockEnv.ts `settleSampleCharges`).
  */
 const CHARGE_ROWS: [number, string, MethodKey, number, ChargeStatus][] = [

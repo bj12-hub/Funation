@@ -10,6 +10,7 @@ import { AUDIT_MAX, AUDIT_PAGE, type AdminActor, type AdminDashboard, type Audit
 import { auditEntries, recordAudit } from "./auditCore";
 import { SAMPLE_MEMBER_ID, slotMemberAt } from "./memberCore";
 import { memberLabels } from "./members";
+import { pendingChargeCount } from "./pendingCharges";
 import { pendingDonationCount } from "./pendingDonations";
 
 /**
@@ -59,7 +60,9 @@ export async function getAdminDashboard(): Promise<AdminDashboard | null> {
       settlements: settlements.waiting,
       settlementsHeld: settlements.held,
       reports: moderationStore().reports.filter((r) => r.status === "OPEN").length,
-      platformDonations: pendingDonationCount()
+      platformDonations: pendingDonationCount(),
+      // 처리 중 충전 (2026-10-12 결정): every account's 처리중 charges, decided in the console.
+      processingCharges: pendingChargeCount()
     },
     recentAudit: auditEntries().slice(0, 8)
   };
