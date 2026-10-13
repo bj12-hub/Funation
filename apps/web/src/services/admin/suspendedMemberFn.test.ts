@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { key, resetMockStores } from "@/test/mockEnv";
+import { key, resetMockStores, settleSampleCharges } from "@/test/mockEnv";
 
 /**
  * 이용 정지 중인 회원의 FN (2026-10-08 결정), through the real session: a suspended member keeps their FN, cannot use them
@@ -67,6 +67,9 @@ describe("이용 정지 중인 회원의 FN", () => {
     expect(await m.getSession()).toBeNull();
     expect(await m.donate(1_000)).toEqual({ status: "UNAUTHORIZED" });
     expect(m.account.fnBalance).toBe(5_000);
+    // The sample's 처리중 charge (ch1) holds the 정리 back, as it holds 탈퇴 back (2026-10-10 결정), until it is decided.
+    expect((await m.members.getMemberDetail(m.SAMPLE_MEMBER_ID))!.fnSettlement).toMatchObject({ status: "BLOCKED", blockedBy: "CHARGE", balanceFn: 5_000 });
+    await settleSampleCharges(); // 결제 취소: nothing credited
     // The sample history: 5,000 FN of the newest charge (30,000 FN paid 33,000원) are left — 4,500 FN → 4,950원.
     const plan = (await m.members.getMemberDetail(m.SAMPLE_MEMBER_ID))!.fnSettlement!;
     expect(plan).toMatchObject({
@@ -106,7 +109,8 @@ describe("이용 정지 중인 회원의 FN", () => {
     // The refund popup: still 15,000 FN of the newest charge — the 1,000 free FN are not a charge's.
     expect(await quoteChargeRefund({ chargeId: "ch2" })).toMatchObject({ status: "QUOTE", quote: ch2 });
 
-    // 남은 FN 정리: the same refund, and the 1,000 free FN forfeited.
+    // 남은 FN 정리: the same refund, and the 1,000 free FN forfeited (once the sample's 처리중 ch1 is decided — 결제 취소).
+    await settleSampleCharges();
     expect(await m.suspend(null)).toEqual({ status: "OK" });
     expect((await m.members.getMemberDetail(m.SAMPLE_MEMBER_ID))!.fnSettlement).toMatchObject({
       status: "READY",

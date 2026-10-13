@@ -6,7 +6,7 @@ import { memberKeyOf } from "@/lib/records";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS, currentPersonKey, mockAccount } from "@/services/account/mockStore";
-import { accountSince } from "@/services/account/withdrawalCore";
+import { sessionAccount } from "@/services/account/withdrawalCore";
 import { donorKeyOf, enqueueDonationAlert } from "@/services/creator/alertCore";
 import { matchesContent } from "@/services/creator/assetCore";
 import { shownOnStream } from "@/services/creator/donationPageCore";
@@ -34,13 +34,18 @@ import { MAX_DRAWING_CHARS, parseYouTubeId, type DonationResult } from "./donati
  * catalog changed since (a new price, a sold-out 뽑기), so a client that lost the answer can always learn it.
  * Supporter-written text (message, 미니 text, quest / drawing title) with a platform forbidden word is refused
  * before anything is debited. Priced types (signature, wishlist, 뽑기) debit the price the supporter confirmed, and
- * only while it is still the creator's price (PRICE_CHANGED otherwise).
+ * only while it is still the creator's price (PRICE_CHANGED otherwise). The debit is for the account whose session the
+ * request read, only while it still holds the slot, active (UNAUTHORIZED otherwise, nothing debited) — every type, 룰렛 ·
+ * 뽑기 · 퀘스트 · 미니 · 크루 멤버 지정 included, debits here.
  * TBD: creator revenue share, platform fee, refunds, delivery to the broadcast platform/overlay.
  */
 export async function requestDonation(input: unknown): Promise<DonationResult> {
   if (!USE_MOCK) throw new Error("Donation API is not connected yet.");
   const session = await getSession();
   if (!session) return { status: "UNAUTHORIZED" };
+  // The account this request acts for. It debits only while that account still holds the slot, active: a 탈퇴 and a
+  // 재가입 during an await below must not spend the new account's FN (the debit side of the 2026-10-10 credit rule).
+  const holder = sessionAccount();
 
   const v = typeof input === "object" && input !== null ? (input as Record<string, unknown>) : null;
   if (!v || typeof v.idempotencyKey !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(v.idempotencyKey) || typeof v.creatorId !== "string") return { status: "INVALID" };
@@ -48,7 +53,8 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
   const creator = await getCreatorById(v.creatorId);
 
   // No await from the lookup to the registration: two copies of one request cannot both pass. Keys belong to the
-  // member: another member's key never returns (or blocks) their result.
+  // member: another member's key never returns (or blocks) their result — nor does another account's in the slot.
+  if (!holder.stillHere()) return { status: "UNAUTHORIZED" };
   const fingerprint = fingerprintOf(v);
   const memberKey = memberKeyOf(session.userId, idempotencyKey);
   const previous = mockWallet.donationIdempotency[memberKey];
@@ -70,8 +76,11 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
   const price = request.priced ? currentPrice(request.type, request.details) : request.amount;
   // 룰렛 · 뽑기 limits count per person (the verified phone), so a 재가입 the same day does not reset them; the room's
   // 내 룰렛 · 내 뽑기 list the account's own (2026-10-08 결정).
-  const player = { supporterUserId: session.userId, account: accountSince(), person: currentPersonKey() };
-  if (request.type === "ROULETTE" && !canParticipate(creator.id, player.person, request.amount)) {
+  const player = { supporterUserId: session.userId, account: holder.account, person: currentPersonKey() };
+  if (!holder.stillHere()) {
+    // The account withdrew during the wait (and someone may have signed up in the slot since): nothing is debited.
+    result = { status: "UNAUTHORIZED" };
+  } else if (request.type === "ROULETTE" && !canParticipate(creator.id, player.person, request.amount)) {
     // 룰렛 turned off or today's 참여 가능 횟수 used up since the panel loaded.
     result = { status: "INVALID" };
   } else if (request.type === "GACHA" && !canDraw(creator.id, player.person, request.details.gachaId as string)) {

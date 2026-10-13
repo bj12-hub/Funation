@@ -18,7 +18,11 @@ export type AdminRefund = {
   reason: string;
   status: "REQUESTED" | "APPROVED" | "REJECTED";
   decision: { at: string; by: string; note: string } | null;
-  charge: Pick<ChargeRecord, "chargedAt" | "fnAmount" | "paidAmount" | "methodLabel" | "transactionId"> | null;
+  /**
+   * The charge refunded. `confirmedAt`: 결제 확인 일시 (same server stamp as `chargedAt`) of a 처리중 charge whose payment
+   * was confirmed later — its 청약철회 period counts from there (2026-10-13, wallet/refundCore.ts `paidAt`); null otherwise.
+   */
+  charge: (Pick<ChargeRecord, "chargedAt" | "fnAmount" | "paidAmount" | "methodLabel" | "transactionId"> & { confirmedAt: string | null }) | null;
   /** The refund computed when the member asked (what the member saw): type, FN taken back, fee, net. */
   requested: RefundAmounts;
   /** What approval refunded (approved requests only). */

@@ -74,6 +74,23 @@ describe("회원 상세 — 남은 FN 정리", () => {
     expect(noLedger).not.toContain("환불 처리 및 FN 정리");
   });
 
+  it("waits for FN on their way, as 회원 탈퇴 does: a charge in progress links to 처리 중 충전, and the action is disabled", async () => {
+    const charging = "처리 중인 충전이 1건 있어 남은 FN을 정리할 수 없어요. 결제 확인이 끝나면 충전한 FN이 남은 FN에 더해져요. 충전이 끝난 뒤에 정리해 주세요.";
+    const html = await detail(null, plan({ status: "BLOCKED", blocked: charging, blockedBy: "CHARGE" }));
+    expect(html).toMatch(new RegExp(`<p class="[^"]*warn[^"]*" role="status">${charging} <a [^>]*href="/payments/pending"[^>]*>처리 중 충전 ›</a></p>`));
+    expect(html).toMatch(/<textarea[^>]*disabled=""/);
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>환불 처리 및 FN 정리<\/button>/);
+
+    // An 출석 보상 on its way and a refund request say why without a link to 처리 중 충전 (nor does a site without the field).
+    const rewarding = "지급 중인 출석 보상이 1건 있어 남은 FN을 정리할 수 없어요. 지급이 끝나면 남은 FN에 더해져요. 지급이 끝난 뒤에 정리해 주세요.";
+    const reward = await detail(null, plan({ status: "BLOCKED", blocked: rewarding, blockedBy: "ATTENDANCE" }));
+    expect(reward).toContain(rewarding);
+    expect(reward).not.toContain('href="/payments/pending"');
+    expect(reward).toMatch(/<button[^>]*disabled=""[^>]*>환불 처리 및 FN 정리<\/button>/);
+    const refund = await detail(null, plan({ status: "BLOCKED", blocked: "심사 대기 중인 환불 요청이 있어 남은 FN을 정리할 수 없어요.", blockedBy: "REFUND" }));
+    expect(refund).not.toContain('href="/payments/pending"');
+  });
+
   it("shows no 정리 for a suspension with an end, and says the FN stay for after it", async () => {
     const html = await detail("2026-10-15T03:00:00.000Z", null);
     expect(html).not.toContain("남은 FN 정리</h2>");
