@@ -185,9 +185,11 @@ OBS 오버레이의 세 테마는 변수 컬렉션 **Overlay Theme**의 모드�
 | 크루 방송 | Y04f | 크루 방송 운영 (방송 전 · OBS 점수판 오버레이 테마 칩) | `/creator/crew/broadcast` | `283:10251` |
 | 크루 방송 | Y04b | 크루 방송 운영 (방송 중 · 자동엑셀 · 배틀 · 기여도 강탈 · 시나리오, 예시 입력값) | `/creator/crew/broadcast` | `117:3911` |
 | 크루 방송 | Y04c | 크루 방송 운영 (배틀 배수 · 벌칙 기본값, 강탈 기준 · 쿨다운 — 시나리오 · 후원 리스트 카드 생략) | `/creator/crew/broadcast` | `185:5234` |
+| 크루 방송 | Y04g | 크루 방송 운영 · 서브 점수판 (방송 중 · 진행 중 판 + 마감 판 구간 TOP 3 · OBS 주소, 다른 카드 생략) | `/creator/crew/broadcast` | `322:10878` |
 | 후원 관리 | T03 | 받은 후원 (퀘스트 성공 · 실패 · 취소, 실패 · 취소 시 환불) | `/creator/donations?tab=list` | `204:5585` |
 | 후원 관리 | T03b | 후원 순위 | `/creator/donations?tab=ranking` | `68:2958` |
 | 후원 관리 | T03c | 후원 필터링 (방송 알림 · TTS 대체 안내 2026-10-06) | `/creator/donations?tab=filtering` | `68:3293` |
+| 후원 관리 | T03f | 후원 필터링 · 차단 리스트 (차단한 후원자 4명 · 검색 · 해제) | `/creator/donations?tab=filtering&sub=block` | `322:10679` |
 | 후원 관리 | T03d | 받은 후원 · 게임 후원 (룰렛 · 뽑기) | `/creator/donations?tab=list&kind=game` | `142:4530` |
 | 후원 관리 | T03e | 받은 후원 · 크루 후원 (멤버 지정) | `/creator/donations?tab=list&kind=crew` | `143:4635` |
 | 정산 | T04 | 정산 현황 + 체크리스트 | `/creator/settlement` | `68:3459` |
@@ -372,6 +374,8 @@ OBS 오버레이의 세 테마는 변수 컬렉션 **Overlay Theme**의 모드�
 | OBS 오버레이 | O06b | 실시간 배틀 (480×600) | `/overlay/crew/[key]?battle` | `119:8173` |
 | OBS 오버레이 | O06c | 기여도 강탈 (480×600) | `/overlay/crew/[key]?steal` | `119:8191` |
 | OBS 오버레이 | O06d | 콘텐츠 시나리오 (480×600) | `/overlay/crew/[key]?scenario` | `119:8199` |
+| OBS 오버레이 | O06e | 서브 점수판 (480×600, 진행 중 판 · 오버레이 테마 미니멀 필) | `/overlay/crew/[key]?board=2` | `322:33170` |
+| OBS 오버레이 | O06f | 서브 점수판 · 마감 (480×600, 마감 표시 · 구간 TOP 3) | `/overlay/crew/[key]?board=1` | `322:33195` |
 | OBS 오버레이 | O06-off | 크루 점수판 · 배틀 · 강탈 · 시나리오 · 기능 제어 OFF (480×600) | `/overlay/crew/[key]` | `133:2` |
 | OBS 오버레이 | O07 | 배너 (1920×1080) | `/overlay/banner/[key]` | `92:6888` |
 | OBS 오버레이 | O07-off | 배너 · 기능 제어 OFF (1920×1080) | `/overlay/banner/[key]` | `133:75` |
