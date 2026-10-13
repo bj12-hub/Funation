@@ -99,16 +99,21 @@ Display 24 Bold · Title 18 Bold · Subtitle 15 Medium · Body 14 · Body Strong
 | 거래 | AD16c | 확인 중 후원 · 탈퇴한 회원의 후원 (탈퇴 배지 · 실패 시 FN 소멸 경고, code-first) | `/donations/pending` | `38:2027` |
 | 거래 | AD18 | 처리 중 충전 · 확인 필요 (결제 확인 (FN 지급) / 결제 취소 (미지급), 2026-10-12, code-first) | `/payments/pending` | `47:2185` |
 | 거래 | AD18b | 처리 중 충전 · 처리 완료 (결제 취소, 처리 메모) + EMPTY (code-first) | `/payments/pending` | `47:2281` |
-| 거래 | AD07 | 결제 · 충전 내역 | `/payments` | `18:651` |
+| 거래 | AD18c | 처리 중 충전 · 탈퇴한 회원의 충전 (경고 · "결제 확인 (미지급 · 탈퇴)", code-first) | `/payments/pending` | `54:2` |
+| 거래 | AD07 | 결제 · 충전 내역 (처리중 · 결제 취소, 2026-10-13) | `/payments` | `55:2518` |
+| 거래 | AD07b | 결제 · 충전 내역 · 완료 · FN 미지급 (탈퇴) (code-first) | `/payments` | `55:2890` |
 | 거래 | AD08 | 환불 요청 | `/payments?tab=refunds` | `20:1301` |
 | 거래 | AD08b | 환불 요청 · 환불 정책 계산 (요청 때 계산 / 지금 기준 · 환불 금액(원) · 요청 때와 같아요, 정책 안내, 기본값, code-first) | `/payments?tab=refunds` | `34:1771` |
 | 거래 | AD08c | 환불 요청 · 보류 ("보류 N" 묶음, 보류 메모 · 보류 해제, 2026-10-08 결정, code-first) | `/payments?tab=refunds` | `32:1483` |
 | 거래 | AD08d | 환불 요청 · 지금 기준 " · 요청 후 FN이 돌아와 늘어남" (퀘스트 실패 · 취소, 플랫폼 FN 반환, 2026-10-09 결정, code-first) | `/payments?tab=refunds` | `37:1889` |
 | 거래 | AD08e | 환불 요청 · 지금 기준 " · 요청 후 FN 사용으로 줄어듦" (2026-10-09 결정, code-first) | `/payments?tab=refunds` | `37:2005` |
+| 거래 | AD08f | 환불 요청 · 나중에 결제 확인된 충전 (회색 줄 "결제 확인 …", code-first) | `/payments?tab=refunds` | `54:122` |
 | 거래 | AD10 | 정산 심사 | `/settlements` | `18:1095` |
 | 거래 | AD10b | 정산 심사 · 승인 (이체 참조번호 · "지급 완료 처리" + 보류 메모 · "보류", 2026-10-08 결정, code-first — 카드 2개만) | `/settlements?status=APPROVED` | `32:1348` |
 | 거래 | AD10e | 정산 심사 · 보류 ("보류 N" 탭, 보류 · 원래 상태 칩, 보류 메모 · 보류 해제, 2026-10-08 결정, code-first) | `/settlements?status=HELD` | `32:1231` |
 | 거래 | AD10d | 정산 심사 · 지급 완료 ("지급 완료 {일시} · {처리자} · 이체 참조 {번호}", 2026-10-08 결정, code-first) | `/settlements?status=PAID` | `27:1097` |
+| 거래 | AD10f | 정산 심사 · 반려 ("반려" 탭 · 반려 칩 · 신청 시점 정산 정보) | `/settlements?status=REJECTED` | `64:2585` |
+| 거래 | AD10g | 정산 심사 · 탈퇴 소멸 ("탈퇴 소멸" 탭 · 탈퇴 배지 · 처리 기록 "회원 탈퇴 · 정산 대기 수익 소멸 (회원 동의)", 예시 — AD10f 복제 후 수정, code-first) | `/settlements?status=FORFEITED` | `64:2697` |
 | 운영 | AD11 | 신고 처리 | `/reports` | `20:1414` |
 | 운영 | AD12 | 콘텐츠 관리 · 공지 | `/content` | `18:1308` |
 | 운영 | AD13 | 콘텐츠 관리 · FAQ | `/content?tab=faq` | `19:699` |
