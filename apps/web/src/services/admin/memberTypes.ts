@@ -76,19 +76,27 @@ export const SUSPEND_REASON = { min: 5, max: 200 } as const;
  * the free FN are forfeited; the balance goes to 0. Every amount is the site's, computed now.
  *
  * `status`: READY — can be processed; EMPTY — no FN left; BLOCKED — a refund request of the member waits or is on
- * 보류 (`blocked`: the message); NO_LEDGER — the mock has no wallet ledger for this member (only the sample member has
- * one; per-member ledgers come with the backend). `lines`: charges with refundable paid FN, oldest first; `total`: their
- * sums; `forfeitFn`: free FN (and FN no charge explains) written off. `history`: this account's earlier 정리, newest first.
+ * 보류, or FN are on their way to the member (a charge in progress or an 출석 보상 not paid yet — the same rule as 회원
+ * 탈퇴, 2026-10-10 결정) (`blocked`: the message; `blockedBy`: which, so the console can link where it is resolved);
+ * NO_LEDGER — the mock has no wallet ledger for this member (only the sample member has one; per-member ledgers come
+ * with the backend). `lines`: charges with refundable paid FN, oldest first; `total`: their sums; `forfeitFn`: free FN
+ * (and FN no charge explains) written off. `history`: this account's earlier 정리, newest first.
  */
 export type MemberFnSettlement = {
   status: "READY" | "EMPTY" | "BLOCKED" | "NO_LEDGER";
   blocked: string | null;
+  blockedBy: FnSettlementBlock | null;
   balanceFn: number;
   lines: ChargeRefundLine[];
   total: { grossFn: number; feeFn: number; netFn: number; refundKrw: number };
   forfeitFn: number;
   history: { at: string; by: string; note: string; lines: ChargeRefundLine[]; forfeitFn: number }[];
 };
+/**
+ * Why 남은 FN 정리 is BLOCKED: REFUND — a refund request waits or is on 보류 (결제 · 환불); CHARGE — a charge is in
+ * progress (처리 중 충전, or its payment provider call is still running); ATTENDANCE — an 출석 보상 is on its way.
+ */
+export type FnSettlementBlock = "REFUND" | "CHARGE" | "ATTENDANCE";
 /** 남은 FN 정리 처리 메모 (required). */
 export const FN_SETTLE_NOTE = { min: 2, max: 200 } as const;
 

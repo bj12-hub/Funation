@@ -3,6 +3,8 @@ import { USE_MOCK } from "@/lib/mock";
 import { ownEntry } from "@/lib/records";
 import { mockAccount } from "@/services/account/mockStore";
 import { getAllCreatorsForAdmin } from "@/services/creators/creators";
+import { pendingCharges } from "@/services/wallet/chargeCore";
+import { inFlightCount } from "@/services/wallet/inFlightCore";
 import { mockFnSettlements, type MockFnSettlement } from "@/services/wallet/mockFnSettlementStore";
 import { mockRefunds } from "@/services/wallet/mockRefundStore";
 import { remainingFnPlan } from "@/services/wallet/refundCore";
@@ -24,6 +26,7 @@ import {
   SUSPEND_REASON,
   type AdminCreatorRow,
   type AdminMember,
+  type FnSettlementBlock,
   type MemberActionResult,
   type MemberFilter,
   type MemberFnSettlement,
@@ -238,13 +241,24 @@ const settlementText = (lines: ChargeRefundLine[], forfeitFn: number) => {
 };
 
 /**
- * Why 남은 FN 정리 waits (2026-10-08 결정, consistent with 보류 #287): a refund request of the account still on 보류 or
- * waiting for 승인 · 거절 would be decided against FN the settlement already took back, so it is decided first.
+ * Why 남은 FN 정리 waits. A refund request of the account still on 보류 or waiting for 승인 · 거절 (2026-10-08 결정,
+ * consistent with 보류 #287) would be decided against FN the settlement already took back, so it is decided first. FN on
+ * their way to the account (the same rule as 회원 탈퇴, 2026-10-10 결정) — a charge in progress (its payment provider call
+ * still running, or 처리중 waiting for 결제 확인 in 처리 중 충전) or an 출석 보상 not paid yet — would land after the
+ * balance was settled, so they land (or fail) first. Synchronous: `settleMemberFn` runs it in the step that writes.
  */
-function settlementBlock(): string | null {
+function settlementBlock(): { by: FnSettlementBlock; message: string } | null {
   const open = mockRefunds.requests.filter((r) => r.status === "REQUESTED" && r.accountSince === accountSince());
-  if (open.some((r) => activeHold(r.holds))) return "보류 중인 환불 요청이 있어 남은 FN을 정리할 수 없어요. 결제 · 환불에서 보류를 해제하고 그 요청을 먼저 처리해 주세요.";
-  if (open.length > 0) return "심사 대기 중인 환불 요청이 있어 남은 FN을 정리할 수 없어요. 결제 · 환불에서 그 요청을 먼저 승인 · 거절해 주세요.";
+  if (open.some((r) => activeHold(r.holds))) return { by: "REFUND", message: "보류 중인 환불 요청이 있어 남은 FN을 정리할 수 없어요. 결제 · 환불에서 보류를 해제하고 그 요청을 먼저 처리해 주세요." };
+  if (open.length > 0) return { by: "REFUND", message: "심사 대기 중인 환불 요청이 있어 남은 FN을 정리할 수 없어요. 결제 · 환불에서 그 요청을 먼저 승인 · 거절해 주세요." };
+  const charges = pendingCharges();
+  if (charges > 0) {
+    return { by: "CHARGE", message: `처리 중인 충전이 ${charges}건 있어 남은 FN을 정리할 수 없어요. 결제 확인이 끝나면 충전한 FN이 남은 FN에 더해져요. 충전이 끝난 뒤에 정리해 주세요.` };
+  }
+  const rewards = inFlightCount("ATTENDANCE");
+  if (rewards > 0) {
+    return { by: "ATTENDANCE", message: `지급 중인 출석 보상이 ${rewards}건 있어 남은 FN을 정리할 수 없어요. 지급이 끝나면 남은 FN에 더해져요. 지급이 끝난 뒤에 정리해 주세요.` };
+  }
   return null;
 }
 
@@ -260,13 +274,13 @@ function fnSettlementOf(member: AdminMember, now: Date): MemberFnSettlement | nu
     .reverse()
     .map((s) => ({ at: s.at, by: s.by, note: s.note, lines: s.lines.map(line), forfeitFn: s.forfeitFn }));
   if (member.id !== SAMPLE_MEMBER_ID) {
-    return { status: "NO_LEDGER", blocked: null, balanceFn: member.fnBalance, lines: [], total: totalOf([]), forfeitFn: 0, history };
+    return { status: "NO_LEDGER", blocked: null, blockedBy: null, balanceFn: member.fnBalance, lines: [], total: totalOf([]), forfeitFn: 0, history };
   }
   const plan = remainingFnPlan(now);
   const lines = plan.lines.map(line);
-  const blocked = plan.balanceFn > 0 ? settlementBlock() : null;
-  const status = plan.balanceFn <= 0 ? "EMPTY" : blocked ? "BLOCKED" : "READY";
-  return { status, blocked, balanceFn: plan.balanceFn, lines, total: totalOf(lines), forfeitFn: plan.forfeitFn, history };
+  const block = plan.balanceFn > 0 ? settlementBlock() : null;
+  const status = plan.balanceFn <= 0 ? "EMPTY" : block ? "BLOCKED" : "READY";
+  return { status, blocked: block?.message ?? null, blockedBy: block?.by ?? null, balanceFn: plan.balanceFn, lines, total: totalOf(lines), forfeitFn: plan.forfeitFn, history };
 }
 
 /**
@@ -277,7 +291,9 @@ function fnSettlementOf(member: AdminMember, now: Date): MemberFnSettlement | nu
  * amounts the console showed; when they changed (a charge's 청약철회 period ended, FN came back) nothing is written.
  * One console request id per 정리: the same id with the same member, memo and amounts answers OK without a second change
  * or log entry; anything else under that id is refused. Refused for a member who is not 영구 정지, has nothing to settle,
- * or has a refund request waiting or on 보류. KRW payout per payment method is TBD (payment provider).
+ * has a refund request waiting or on 보류, or has FN on their way — a charge in progress (provider call or 처리중) or an
+ * 출석 보상 not paid yet (`settlementBlock`, checked in the step that writes). KRW payout per payment method is TBD
+ * (payment provider).
  */
 export async function settleMemberFn(admin: AdminActor, input: unknown): Promise<MemberActionResult> {
   assertMock();

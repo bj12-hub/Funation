@@ -6,7 +6,7 @@ import { memberKeyOf, ownEntry } from "@/lib/records";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
-import { accountSince } from "@/services/account/withdrawalCore";
+import { accountSince, sessionAccount } from "@/services/account/withdrawalCore";
 import { adapterFor, type PlatformAdapter, type SendResult } from "./adapters";
 import { mockPlatform, type MockPlatformTransaction } from "./mockPlatformStore";
 import { recheckPending, walletMirror } from "./pendingCore";
@@ -34,6 +34,8 @@ import {
  * ("FN은 차감되지 않았습니다."). If the platform call throws or times out the outcome is unknown: the FN
  * stays held, the transaction stays PROCESSING and the key answers PENDING with its Transaction ID. The server then
  * re-checks it for 24 hours and an operator decides it after that (2026-10-08 결정, ./pendingCore.ts).
+ * The FN are held only for the account whose session the request read, while it still holds the slot, active
+ * (UNAUTHORIZED otherwise, nothing held): a 탈퇴 and a 재가입 during the catalog lookup never spend the new account's FN.
  * TBD: FN ↔ platform-currency rate, fees, platform API capability and auth, refunds, message moderation.
  */
 
@@ -125,6 +127,9 @@ export async function requestPlatformDonation(input: unknown): Promise<PlatformD
   assertMock();
   const session = await getSession();
   if (!session) return { status: "UNAUTHORIZED" };
+  // The account this request acts for. It debits only while that account still holds the slot, active: a 탈퇴 and a
+  // 재가입 during the catalog lookup must not spend the new account's FN (the debit side of the 2026-10-10 credit rule).
+  const holder = sessionAccount();
   const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   if (!isPlatform(v.platform) || !isId(v.creatorId) || typeof v.idempotencyKey !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(v.idempotencyKey)) {
     return { status: "INVALID" };
@@ -133,7 +138,9 @@ export async function requestPlatformDonation(input: unknown): Promise<PlatformD
   if (message === null || message.length > MESSAGE_MAX) return { status: "INVALID" };
   const platform = v.platform;
   const key = v.idempotencyKey;
-  // The member's key, kept under the member: another member's key never answers or blocks this request.
+  // The member's key, kept under the member: another member's key never answers or blocks this request — nor does
+  // another account's in the slot.
+  if (!holder.stillHere()) return { status: "UNAUTHORIZED" };
   const requestKey = memberKeyOf(session.userId, key);
 
   const fingerprint = JSON.stringify([platform, v.creatorId, v.productId, v.customFn ?? null, message]);
@@ -163,6 +170,9 @@ export async function requestPlatformDonation(input: unknown): Promise<PlatformD
     // Nothing is held yet: finish the key so a retry gets this answer instead of IN_PROGRESS forever.
     return finish({ status: "FAILED", reason: "API_ERROR" });
   }
+  // From here to the hold nothing awaits. The account withdrew during the lookup (and someone may have signed up in the
+  // slot since): nothing is debited, and the balance read below would be another account's.
+  if (!holder.stillHere()) return finish({ status: "UNAUTHORIZED" });
   if (!creator) return finish({ status: "FAILED", reason: "NOT_FOUND" });
   if (price === "INVALID") return finish({ status: "INVALID" });
   if (price === "UNAVAILABLE") return finish({ status: "FAILED", reason: "UNAVAILABLE" });
@@ -173,7 +183,7 @@ export async function requestPlatformDonation(input: unknown): Promise<PlatformD
   const transactionId = `TXN-${randomUUID().toUpperCase()}`;
   // The platform's own key for this donation, never the member's: a retry of the member's key reaches it under the same one.
   // It names the account too: after a 재가입 the slot's member id is the new account's (./platformKey.ts).
-  const account = accountSince();
+  const account = holder.account;
   const platformKey = platformKeyFor(session.userId, key, account);
   mockAccount.fnBalance -= price.amountFn;
   const tx: MockPlatformTransaction = {

@@ -65,6 +65,17 @@ export const isWithdrawn = () => withdrawalOf() !== null;
 export const accountSince = () => withdrawalStore().accountSince;
 
 /**
+ * The account a request acts for: the slot's account when its session was read (call it right after `getSession`).
+ * `stillHere` answers whether that account still holds the slot, active — a request that awaits before it debits FN
+ * (후원, 플랫폼 후원) checks it in the step that debits, so FN of the account that took the slot since (탈퇴, then 재가입)
+ * are never spent for it. The debit-side counterpart of the credit check (wallet/inFlightCore.ts `landsHere`).
+ */
+export function sessionAccount(): { account: string | null; stillHere: () => boolean } {
+  const account = accountSince();
+  return { account, stillHere: () => !isWithdrawn() && accountSince() === account };
+}
+
+/**
  * The start marker of the slot account a wallet record stamped `stamp` (local "YYYY-MM-DD HH:MM:SS") belongs to: the
  * latest account that had started by then. Like the members' own history (`stamp >= accountSince()`), so the console
  * and the member agree on whose record it is.

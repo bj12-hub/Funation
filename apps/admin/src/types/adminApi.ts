@@ -158,14 +158,20 @@ export const SUSPEND_REASON = { min: 5, max: 200 } as const;
 /**
  * 남은 FN 정리 (2026-10-08 결정): a 영구 정지 member cannot sign in, so on request an operator refunds the remaining paid
  * FN per charge under the site's refund policy and the free FN are forfeited (the balance goes to 0). Every amount is the
- * site's. `status`: READY — can be processed; EMPTY — no FN left; BLOCKED — a refund request waits or is on 보류
- * (`blocked`: the site's message); NO_LEDGER — the site has no wallet ledger for this member (mock: the sample member
- * only). `lines`: per charge, oldest first; `total`: their sums; `forfeitFn`: free FN written off.
+ * site's. `status`: READY — can be processed; EMPTY — no FN left; BLOCKED — a refund request waits or is on 보류, or FN
+ * are on their way to the member — a charge in progress or an 출석 보상 not paid yet, the same rule as 회원 탈퇴
+ * (2026-10-10 결정) (`blocked`: the site's message; `blockedBy`: which — CHARGE links to 처리 중 충전); NO_LEDGER — the
+ * site has no wallet ledger for this member (mock: the sample member only). `lines`: per charge, oldest first; `total`:
+ * their sums; `forfeitFn`: free FN written off.
  */
 export type FnSettlementLine = RefundAmounts & { chargeId: string; chargedAt: string; methodLabel: string; chargeFn: number; paidKrw: number };
+/** REFUND: a refund request waits or is on 보류; CHARGE: a charge is in progress; ATTENDANCE: an 출석 보상 is on its way. */
+export type FnSettlementBlock = "REFUND" | "CHARGE" | "ATTENDANCE";
 export type MemberFnSettlement = {
   status: "READY" | "EMPTY" | "BLOCKED" | "NO_LEDGER";
   blocked: string | null;
+  /** Absent from a site older than this field. */
+  blockedBy?: FnSettlementBlock | null;
   balanceFn: number;
   lines: FnSettlementLine[];
   total: { grossFn: number; feeFn: number; netFn: number; refundKrw: number };
@@ -212,7 +218,11 @@ export type AdminRefund = {
   reason: string;
   status: RefundStatus;
   decision: { at: string; by: string; note: string } | null;
-  charge: { chargedAt: string; fnAmount: number; paidAmount: number; methodLabel: string; transactionId: string | null } | null;
+  /**
+   * `confirmedAt`: 결제 확인 일시 (a site stamp like `chargedAt`) of a 처리중 charge whose payment was confirmed later — its
+   * 청약철회 period counts from there (2026-10-13); null otherwise, absent from a site older than this field.
+   */
+  charge: { chargedAt: string; confirmedAt?: string | null; fnAmount: number; paidAmount: number; methodLabel: string; transactionId: string | null } | null;
   /** The refund the site computed when the member asked (what the member saw). */
   requested: RefundAmounts;
   /** What approval refunded (approved requests only). */

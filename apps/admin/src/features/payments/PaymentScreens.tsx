@@ -95,9 +95,11 @@ function RefundItem({ r }: { r: AdminRefund }) {
           <HoldChip hold={r.hold} /> <span className={chip.className}>{chip.label}</span>
         </span>
       </div>
+      {/* 결제 확인 (2026-10-13): only for a 처리중 charge confirmed later — its 청약철회 period counts from there. */}
       <p className={styles.muted}>
         {r.memberName}
-        <WithdrawnBadge withdrawn={r.memberWithdrawn} /> · 충전 {r.charge ? when(r.charge.chargedAt) : "—"} · {r.charge?.methodLabel ?? "—"} · 요청 {when(r.requestedAt)}
+        <WithdrawnBadge withdrawn={r.memberWithdrawn} /> · 충전 {r.charge ? when(r.charge.chargedAt) : "—"}
+        {r.charge?.confirmedAt && <> · 결제 확인 {when(r.charge.confirmedAt)}</>} · {r.charge?.methodLabel ?? "—"} · 요청 {when(r.requestedAt)}
       </p>
       <p className={styles.quote}>사유: {r.reason || "(없음)"}</p>
       <RefundAmountsFacts r={r} />

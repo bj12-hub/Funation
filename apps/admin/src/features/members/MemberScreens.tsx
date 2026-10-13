@@ -205,7 +205,8 @@ const settledText = (lines: FnSettlementLine[], forfeitFn: number) => {
  * 남은 FN 정리 — code-first (2026-10-08 결정). On a 영구 정지 member's detail: the paid FN still unused per charge and
  * what each refunds under the site's refund policy (type · 회수 · 수수료 · 환불 FN · 환불 금액), the free FN that would be
  * forfeited, and one action. States: READY (form), EMPTY ("정리할 FN이 없어요."), BLOCKED (the site's reason, form
- * DISABLED), NO_LEDGER (mock: no wallet ledger for this member). Earlier 정리 of the member are listed under 정리 이력.
+ * DISABLED — a charge in progress links to 처리 중 충전, where it is decided), NO_LEDGER (mock: no wallet ledger for this
+ * member). Earlier 정리 of the member are listed under 정리 이력.
  */
 function FnSettlementCard({ id, plan }: { id: string; plan: MemberFnSettlement }) {
   return (
@@ -273,6 +274,14 @@ function FnSettlementCard({ id, plan }: { id: string; plan: MemberFnSettlement }
           {plan.blocked && (
             <p className={styles.warn} role="status">
               {plan.blocked}
+              {plan.blockedBy === "CHARGE" && (
+                <>
+                  {" "}
+                  <Link href="/payments/pending" className={styles.link}>
+                    처리 중 충전 ›
+                  </Link>
+                </>
+              )}
             </p>
           )}
           <FnSettlementAction id={id} plan={plan} />

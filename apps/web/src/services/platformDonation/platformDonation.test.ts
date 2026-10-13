@@ -162,6 +162,36 @@ describe("플랫폼 후원", () => {
     expect(await requestPlatformDonation(soop())).toEqual({ status: "FAILED", reason: "API_ERROR" });
   });
 
+  it("never debits the account that took the slot during the catalog lookup (탈퇴, 재가입, a new charge)", async () => {
+    const { requestPlatformDonation, account, platform, wallet } = await load(30_000);
+    const { soopAdapter } = await import("./adapters");
+    const { agreeChargeTerms, requestCharge } = await import("@/services/wallet/charge");
+    const send = vi.spyOn(soopAdapter, "sendDonation");
+    const lookup = soopAdapter.getCreator.bind(soopAdapter);
+    // While the platform answers the lookup, the account withdraws, someone signs up in the slot and charges 30,000 FN.
+    vi.spyOn(soopAdapter, "getCreator").mockImplementationOnce(async (id) => {
+      await rejoinWithPhone("010-0000-0000", new Date(Date.now() + 1_000));
+      expect((await agreeChargeTerms({ guardian: true, privacy: true, payment: true })).status).toBe("AGREED");
+      expect(await requestCharge({ amount: { customAmount: 30_000 }, methodId: "KAKAO_PAY", idempotencyKey: key(90) })).toMatchObject({ status: "COMPLETED", balance: 30_000 });
+      return lookup(id);
+    });
+    expect(await requestPlatformDonation(soop())).toEqual({ status: "UNAUTHORIZED" });
+    // The new account keeps its charge; nothing was held, sent to the platform or recorded in its name.
+    expect(account.fnBalance).toBe(30_000);
+    expect(send).not.toHaveBeenCalled();
+    expect(platform.transactions.filter((t) => !t.transactionId.startsWith("TXN-SEED"))).toEqual([]);
+    expect(wallet.donations).toEqual([]);
+  });
+
+  it("debits nothing for an account that withdrew after its session was read", async () => {
+    const { requestPlatformDonation, account, platform } = await load(30_000);
+    const { recordWithdrawal } = await import("@/services/account/withdrawalRecord");
+    recordWithdrawal({ at: new Date().toISOString(), requestId: "w-test", forfeitedFn: 30_000, forfeitedEarningsFn: 0 });
+    expect(await requestPlatformDonation(soop())).toEqual({ status: "UNAUTHORIZED" });
+    expect(account.fnBalance).toBe(30_000);
+    expect(platform.transactions.filter((t) => !t.transactionId.startsWith("TXN-SEED"))).toEqual([]);
+  });
+
   it("validates the FlexTV custom amount on the server", async () => {
     const { requestPlatformDonation, account } = await load();
     const flex = (customFn: unknown, n: number) =>

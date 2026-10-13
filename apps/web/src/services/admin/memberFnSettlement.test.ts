@@ -2,14 +2,38 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { key, mockSessionModule, rejoinWithPhone, resetMockStores, signIn } from "@/test/mockEnv";
 import type { MemberFnSettlement } from "./memberTypes";
 
-vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
+/** A held delay (`hold(ms)`) waits until released — e.g. a charge's payment provider round trip — so a credit stays on its way. */
+const delay = vi.hoisted(() => ({ gates: new Map<number, Promise<void>>() }));
+vi.mock("@/lib/mock", () => ({
+  USE_MOCK: true,
+  mockDelay: async (ms?: number) => {
+    const gate = ms === undefined ? undefined : delay.gates.get(ms);
+    if (gate) await gate;
+  }
+}));
 vi.mock("@/lib/session", () => mockSessionModule());
+
+const CHARGE_CALL = 900; // wallet/charge.ts: the payment provider round trip
+const CHECK_IN_WAIT = 500; // attendance/attendance.ts: check-in → reward paid
+
+/** Holds every mock delay of `ms` until the returned function is called. */
+function hold(ms: number) {
+  let release: () => void = () => {};
+  delay.gates.set(ms, new Promise<void>((resolve) => (release = resolve)));
+  return () => {
+    delay.gates.delete(ms);
+    release();
+  };
+}
 
 /** The operator the admin API acts for (the route layer authorises the admin app first). */
 const OP = { userId: "adm-test", nickname: "테스트 운영자" };
 const NOTE = "회원 요청 (1:1 문의)";
 const HELD = "보류 중인 환불 요청이 있어 남은 FN을 정리할 수 없어요. 결제 · 환불에서 보류를 해제하고 그 요청을 먼저 처리해 주세요.";
 const WAITING = "심사 대기 중인 환불 요청이 있어 남은 FN을 정리할 수 없어요. 결제 · 환불에서 그 요청을 먼저 승인 · 거절해 주세요.";
+/** FN on their way to the member (the same rule as 회원 탈퇴, 2026-10-10 결정). */
+const CHARGING = (n: number) => `처리 중인 충전이 ${n}건 있어 남은 FN을 정리할 수 없어요. 결제 확인이 끝나면 충전한 FN이 남은 FN에 더해져요. 충전이 끝난 뒤에 정리해 주세요.`;
+const REWARDING = (n: number) => `지급 중인 출석 보상이 ${n}건 있어 남은 FN을 정리할 수 없어요. 지급이 끝나면 남은 FN에 더해져요. 지급이 끝난 뒤에 정리해 주세요.`;
 
 /**
  * 남은 FN 정리 (2026-10-08 결정): a 영구 정지 member cannot sign in, so on request an operator refunds the remaining paid FN
@@ -38,6 +62,7 @@ describe("남은 FN 정리 (영구 정지)", () => {
     const payments = await import("./payments");
     const core = await import("./memberCore");
     const { auditEntries } = await import("./auditCore");
+    const { checkIn } = await import("@/services/attendance/attendance");
     expect((await agreeChargeTerms({ guardian: true, privacy: true, payment: true })).status).toBe("AGREED");
 
     const card = async (when: Date) => {
@@ -46,6 +71,8 @@ describe("남은 FN 정리 (영구 정지)", () => {
     };
     return {
       ...members,
+      requestCharge,
+      checkIn,
       ...payments,
       ...core,
       account: mockAccount,
@@ -116,7 +143,10 @@ describe("남은 FN 정리 (영구 정지)", () => {
   const settledTotals = (m: Awaited<ReturnType<typeof setup>>) => m.auditEntries().filter((e) => e.action === "MEMBER_FN_SETTLE");
 
   beforeEach(() => resetMockStores());
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    delay.gates.clear();
+  });
 
   it("keeps the FN of a member suspended for a period: no 정리 is offered or processed", async () => {
     const { m } = await history();
@@ -124,7 +154,7 @@ describe("남은 FN 정리 (영구 정지)", () => {
     expect(m.account.fnBalance).toBe(12_800);
     expect(await m.card(on(8))).toBeNull();
     // Even with the amounts a 영구 정지 card would show, a member suspended for a period is not settled.
-    const shown: MemberFnSettlement = { status: "READY", blocked: null, balanceFn: 12_800, lines: [], total: { grossFn: 12_500, feeFn: 750, netFn: 11_750, refundKrw: 12_925 }, forfeitFn: 300, history: [] };
+    const shown: MemberFnSettlement = { status: "READY", blocked: null, blockedBy: null, balanceFn: 12_800, lines: [], total: { grossFn: 12_500, feeFn: 750, netFn: 11_750, refundKrw: 12_925 }, forfeitFn: 300, history: [] };
     expect(await m.settle(on(8), key(900), shown)).toEqual({ status: "INVALID", message: "영구 정지된 회원만 남은 FN을 정리할 수 있어요." });
     expect(m.account.fnBalance).toBe(12_800);
     expect(settledTotals(m)).toEqual([]);
@@ -137,6 +167,7 @@ describe("남은 FN 정리 (영구 정지)", () => {
     expect(await m.card(on(8))).toEqual({
       status: "READY",
       blocked: null,
+      blockedBy: null,
       balanceFn: 12_800,
       lines: [
         // A: 2,500 of it were used, so 수수료 공제 후 환불 — 6,750 ÷ 10,000 × 11,000원 = 7,425원.
@@ -269,6 +300,52 @@ describe("남은 FN 정리 (영구 정지)", () => {
     expect(m.account.fnBalance).toBe(0);
   });
 
+  it("waits for a charge in progress, as 회원 탈퇴 does: blocked while its payment provider call runs, then settles what landed", async () => {
+    const { m } = await history();
+    // The member charges (another tab) just before the 영구 정지; the provider has not answered yet.
+    signIn(["SUPPORTER"]);
+    vi.setSystemTime(on(7, 15));
+    const release = hold(CHARGE_CALL);
+    const charging = m.requestCharge({ amount: { customAmount: 2_000 }, methodId: "KAKAO_PAY", idempotencyKey: key(920) });
+    signIn(["ADMIN"]);
+    await m.suspend(null, on(8));
+
+    // The card says why and the server refuses it — also with the totals the card shows, which are still current.
+    const seen = await m.card(on(8));
+    expect(seen).toMatchObject({ status: "BLOCKED", blocked: CHARGING(1), blockedBy: "CHARGE", balanceFn: 12_800, total: { grossFn: 12_500 } });
+    expect(await m.settle(on(8), key(921), seen)).toEqual({ status: "INVALID", message: CHARGING(1) });
+    expect(m.account.fnBalance).toBe(12_800);
+    expect(settledTotals(m)).toEqual([]);
+
+    // The provider answers: the FN land (a 이용 정지 keeps the member's FN), and the 정리 then takes them as well.
+    release();
+    expect(await charging).toMatchObject({ status: "COMPLETED", fnAmount: 2_000, balance: 14_800 });
+    expect(await m.card(on(8))).toMatchObject({ status: "READY", blocked: null, blockedBy: null, balanceFn: 14_800, total: { grossFn: 14_500 } });
+    expect(await m.settle(on(8), key(922))).toEqual({ status: "OK" });
+    expect(m.account.fnBalance).toBe(0);
+  });
+
+  it("waits for an 출석 보상 on its way, then forfeits it with the other free FN", async () => {
+    const { m } = await history();
+    signIn(["SUPPORTER"]);
+    vi.setSystemTime(on(7, 9));
+    const release = hold(CHECK_IN_WAIT);
+    const checking = m.checkIn();
+    signIn(["ADMIN"]);
+    await m.suspend(null, on(8));
+
+    const seen = await m.card(on(8));
+    expect(seen).toMatchObject({ status: "BLOCKED", blocked: REWARDING(1), blockedBy: "ATTENDANCE", forfeitFn: 300 });
+    expect(await m.settle(on(8), key(923), seen)).toEqual({ status: "INVALID", message: REWARDING(1) });
+    expect(m.account.fnBalance).toBe(12_800);
+
+    release();
+    expect(await checking).toMatchObject({ status: "CHECKED_IN", reward: 50, balance: 12_850 });
+    expect(await m.card(on(8))).toMatchObject({ status: "READY", blockedBy: null, balanceFn: 12_850, forfeitFn: 350 });
+    expect(await m.settle(on(8), key(924))).toEqual({ status: "OK" });
+    expect(m.account.fnBalance).toBe(0);
+  });
+
   it("refuses a member who is not 영구 정지, a bad request id, memo or amounts, a member without a wallet ledger and an unknown one", async () => {
     const { m } = await history();
     const ok = { id: m.SAMPLE_MEMBER_ID, note: NOTE, requestId: key(911), expectedGrossFn: 12_500, expectedNetFn: 11_750, expectedRefundKrw: 12_925, expectedForfeitFn: 300 };
@@ -309,5 +386,56 @@ describe("남은 FN 정리 (영구 정지)", () => {
     expect(m.mockFnSettlements.settlements).toHaveLength(1); // 5 years (기본값) are not over yet
     m.purgeExpired(new Date(2031, 9, 10));
     expect(m.mockFnSettlements.settlements).toEqual([]);
+  });
+});
+
+/**
+ * The sample account (no 재가입) has a 처리중 charge, ch1 (신용카드 10,000 FN), which waits for 결제 확인 in the console's
+ * 처리 중 충전. Settled before it, a later 결제 확인 would credit FN to a balance already settled.
+ */
+describe("남은 FN 정리 · 처리중 충전", () => {
+  beforeEach(() => resetMockStores());
+
+  it("is refused while a charge is 처리중; once 결제 확인 lands it, the 정리 takes it too", async () => {
+    const members = await import("./members");
+    const { SAMPLE_MEMBER_ID } = await import("./memberCore");
+    const { resolvePendingCharge } = await import("./pendingCharges");
+    const { mockAccount } = await import("@/services/account/mockStore");
+    signIn(["ADMIN"]);
+    expect(await members.suspendMember(OP, { id: SAMPLE_MEMBER_ID, days: null, reason: "결제 도용 확인 (테스트)", requestId: key(930) })).toEqual({ status: "OK" });
+    const card = async () => (await members.getMemberDetail(SAMPLE_MEMBER_ID))!.fnSettlement!;
+    const settle = (requestId: string, plan: MemberFnSettlement) =>
+      members.settleMemberFn(OP, {
+        id: SAMPLE_MEMBER_ID,
+        note: NOTE,
+        requestId,
+        expectedGrossFn: plan.total.grossFn,
+        expectedNetFn: plan.total.netFn,
+        expectedRefundKrw: plan.total.refundKrw,
+        expectedForfeitFn: plan.forfeitFn
+      });
+
+    const seen = await card();
+    expect(seen).toMatchObject({ status: "BLOCKED", blocked: CHARGING(1), blockedBy: "CHARGE", balanceFn: 5_000 });
+    expect(await settle(key(931), seen)).toEqual({ status: "INVALID", message: CHARGING(1) });
+    expect(mockAccount.fnBalance).toBe(5_000);
+
+    // 결제 확인 in 처리 중 충전: the FN land on the member (a 이용 정지 keeps the member's FN).
+    expect(await resolvePendingCharge(OP, { chargeId: "ch1", outcome: "COMPLETED", note: "결제 대행사 확인", requestId: key(932) })).toEqual({ status: "OK", result: "CREDITED" });
+    expect(mockAccount.fnBalance).toBe(15_000);
+    const after = await card();
+    expect(after).toMatchObject({ status: "READY", blocked: null, blockedBy: null, balanceFn: 15_000 });
+    expect(await settle(key(933), after)).toEqual({ status: "OK" });
+    expect(mockAccount.fnBalance).toBe(0);
+  });
+
+  it("is not blocked once the 처리중 charge was cancelled (nothing to land)", async () => {
+    const members = await import("./members");
+    const { SAMPLE_MEMBER_ID } = await import("./memberCore");
+    const { resolvePendingCharge } = await import("./pendingCharges");
+    signIn(["ADMIN"]);
+    expect(await members.suspendMember(OP, { id: SAMPLE_MEMBER_ID, days: null, reason: "결제 도용 확인 (테스트)", requestId: key(934) })).toEqual({ status: "OK" });
+    expect(await resolvePendingCharge(OP, { chargeId: "ch1", outcome: "CANCELLED", note: "결제 대행사 확인", requestId: key(935) })).toEqual({ status: "OK", result: "CANCELLED" });
+    expect((await members.getMemberDetail(SAMPLE_MEMBER_ID))!.fnSettlement).toMatchObject({ status: "READY", blocked: null, blockedBy: null, balanceFn: 5_000 });
   });
 });
