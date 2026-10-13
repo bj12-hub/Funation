@@ -218,6 +218,70 @@ describe("탈퇴 회원 정보 보관", () => {
     expect(JSON.stringify(record)).toBe(snapshot);
   });
 
+  it("drops the withdrawn account's retry keys and 플랫폼 후원 with its payment records, and keeps the new account's", async () => {
+    const T0 = ms(WITHDRAWN_AT);
+    const minute = 60_000;
+    vi.setSystemTime(new Date(T0));
+    const m = await load();
+    const { mockPlatform } = await import("@/services/platformDonation/mockPlatformStore");
+    const { requestPlatformDonation } = await import("@/services/platformDonation/platformDonation");
+    const { requestDonation } = await import("@/services/donations/donate");
+    const { agreeChargeTerms, requestCharge } = await import("@/services/wallet/charge");
+    const { getPendingDonations } = await import("@/services/admin/pendingDonations");
+    const AGREED = { guardian: true, privacy: true, payment: true };
+    const charge = (n: number) => requestCharge({ amount: { customAmount: 30_000 }, methodId: "KAKAO_PAY", idempotencyKey: key(n) });
+    const balloons = (n: number) => requestPlatformDonation({ platform: "SOOP", creatorId: "kim_stream", productId: "balloon-10", message: "", idempotencyKey: key(n) });
+
+    // The first account charges, donates and sends a 플랫폼 후원 — each under its own retry key (per member, #314).
+    signInAs(m.SAMPLE_MEMBER_ID); // the slot's member id, as lib/session gives it
+    expect((await agreeChargeTerms(AGREED)).status).toBe("AGREED");
+    expect((await charge(1)).status).toBe("COMPLETED");
+    expect((await requestDonation({ creatorId: "c1", hideProfile: false, type: "TEXT", amount: 1_000, message: "", voiceId: null, idempotencyKey: key(2) })).status).toBe("COMPLETED");
+    const sent = await balloons(3);
+    if (sent.status !== "COMPLETED") throw new Error(sent.status);
+    // Another member's key is not the account's.
+    signInAs("u-other");
+    expect((await charge(4)).status).toBe("COMPLETED");
+    signInAs(m.SAMPLE_MEMBER_ID);
+
+    // It withdraws; a minute later someone signs up in the slot and does the same under the same keys.
+    vi.setSystemTime(new Date(T0 + minute));
+    await withdraw(m);
+    const due = Object.fromEntries(m.retentionSchedule(m.withdrawalOf()!.at).map((d) => [d.category, d.until])) as Record<string, string>;
+    vi.setSystemTime(new Date(T0 + 2 * minute));
+    signUp(m, "010-0000-0000");
+    vi.setSystemTime(new Date(T0 + 3 * minute));
+    expect((await agreeChargeTerms(AGREED)).status).toBe("AGREED");
+    expect((await charge(1)).status).toBe("COMPLETED");
+    const again = await balloons(3);
+    if (again.status !== "COMPLETED") throw new Error(again.status);
+
+    const W1 = `${m.SAMPLE_MEMBER_ID}-w1:`;
+    const keysOf = (map: Record<string, unknown>) => Object.keys(map).sort();
+    const own = (map: Record<string, unknown>) => keysOf(map).filter((k) => k.startsWith(W1));
+    const firstAccountTx = () => mockPlatform.transactions.filter((t) => (t.account ?? null) === null).map((t) => t.transactionId);
+    const operatorList = async () => (await getPendingDonations()).resolved.map((r) => r.transactionId);
+
+    // Until the 대금결제 기록 date the withdrawn account's keys and 플랫폼 후원 stay (its own `…-w1` id).
+    vi.setSystemTime(new Date(ms(due.PAYMENT) - 1));
+    await m.getPaymentsView();
+    expect(own(m.mockWallet.idempotency)).toEqual([`${W1}${key(1)}`]);
+    expect(own(m.mockWallet.donationIdempotency)).toEqual([`${W1}${key(2)}`]);
+    expect(own(mockPlatform.idempotency)).toEqual([`${W1}${key(3)}`]);
+    expect(firstAccountTx()).toContain(sent.transactionId);
+    expect(firstAccountTx()).toContain("TXN-SEED-B12");
+    expect(await operatorList()).toContain("TXN-SEED-B12"); // decided in 확인 중 후원 before the 탈퇴
+
+    // From that date they go with its charges and donations; the new account's and another member's stay.
+    vi.setSystemTime(new Date(ms(due.PAYMENT)));
+    expect(await operatorList()).toEqual([]);
+    expect(firstAccountTx()).toEqual([]);
+    expect(keysOf(m.mockWallet.idempotency)).toEqual([`${m.SAMPLE_MEMBER_ID}:${key(1)}`, `u-other:${key(4)}`]);
+    expect(keysOf(m.mockWallet.donationIdempotency)).toEqual([]);
+    expect(keysOf(mockPlatform.idempotency)).toEqual([`${m.SAMPLE_MEMBER_ID}:${key(3)}`]);
+    expect(mockPlatform.transactions.map((t) => t.transactionId)).toEqual([again.transactionId]);
+  });
+
   it("keeps posts, comments and channel posts under 탈퇴한 회원, and drops the stored nickname with the 탈퇴 기록", async () => {
     vi.setSystemTime(new Date(WITHDRAWN_AT));
     const m = await load();

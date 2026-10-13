@@ -3,9 +3,9 @@ import { toDateString } from "@/lib/period";
 import { purgeExpired } from "@/services/account/retentionPurge";
 import { moderationStore } from "@/services/moderation/moderationCore";
 import { getAllCreatorsForAdmin } from "@/services/creators/creators";
-import { refundQueue } from "./payments";
+import { consoleChargeRows, refundQueue } from "./payments";
 import { settlementQueue } from "./settlements";
-import { listAccountChargeRecords, listAccountDonationRecords } from "@/services/wallet/walletHistory";
+import { listAccountDonationRecords } from "@/services/wallet/walletHistory";
 import { AUDIT_MAX, AUDIT_PAGE, type AdminActor, type AdminDashboard, type AuditEntry, type AuditPage, type AuditTargetMember } from "./adminTypes";
 import { auditEntries, recordAudit } from "./auditCore";
 import { SAMPLE_MEMBER_ID, slotMemberAt } from "./memberCore";
@@ -36,8 +36,9 @@ export async function getAdminDashboard(): Promise<AdminDashboard | null> {
   const month = toDateString(new Date()).slice(0, 7);
   // Every creator, as 크리에이터 관리 lists them: the public directory leaves suspended channels out.
   const creators = await getAllCreatorsForAdmin();
-  // Platform totals: every account's records, also those of an account that withdrew and was replaced by a 재가입.
-  const completed = listAccountChargeRecords().filter((c) => c.chargedAt.startsWith(month) && c.status === "COMPLETED");
+  // Platform totals: every account's records, also those of an account that withdrew and was replaced by a 재가입. 이번 달
+  // 충전 = the 완료 rows 결제 · 환불 › 충전 내역 lists for this month, 완료 · FN 미지급 (탈퇴) ones included however they came.
+  const completed = consoleChargeRows().filter((c) => c.chargedAt.startsWith(month) && c.status === "COMPLETED");
   // 처리 중 충전: every 처리중 charge whenever it was requested — the same count as 처리 대기 (2026-10-13), not this month's.
   const processingCharges = pendingChargeCount();
   const donations = listAccountDonationRecords().filter((d) => d.donatedAt.startsWith(month) && d.status === "COMPLETED");

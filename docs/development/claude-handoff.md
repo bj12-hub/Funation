@@ -124,7 +124,9 @@ Tips:
   to its own `…-wN` member id. New per-account state needs the same treatment in `withdrawal.ts` / `rejoin.ts`.
   An FN credit that lands after an await (charge, 출석 보상) registers in `wallet/inFlightCore.ts` (`beginCredit`) before
   the await and credits only if `landsHere()` after it — withdrawal waits for those (2026-10-10). Retry keys of money
-  actions are per member (`lib/records.ts` `memberKeyOf`), and `rejoin.ts` moves the withdrawn account's keys with it.
+  actions are per member (`lib/records.ts` `memberKeyOf`), and `rejoin.ts` moves the withdrawn account's keys with it;
+  anything derived from the member id for an outside party (the platform key) also names the account, since the mock's
+  재가입 reuses the id, and `retentionPurge.ts` drops the account's keys with its 대금결제 기록.
   Retention (2026-10-08, 기본값 — 법무 검토 전): periods live only in `account/retentionPolicy.ts`; a withdrawn
   account's data goes at its date in `account/retentionPurge.ts` (lazy, on console reads and sign-up). New personal
   data either goes at withdrawal or gets a category there.

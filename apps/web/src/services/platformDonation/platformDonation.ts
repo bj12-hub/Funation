@@ -172,7 +172,9 @@ export async function requestPlatformDonation(input: unknown): Promise<PlatformD
   const now = new Date();
   const transactionId = `TXN-${randomUUID().toUpperCase()}`;
   // The platform's own key for this donation, never the member's: a retry of the member's key reaches it under the same one.
-  const platformKey = platformKeyFor(session.userId, key);
+  // It names the account too: after a 재가입 the slot's member id is the new account's (./platformKey.ts).
+  const account = accountSince();
+  const platformKey = platformKeyFor(session.userId, key, account);
   mockAccount.fnBalance -= price.amountFn;
   const tx: MockPlatformTransaction = {
     transactionId,
@@ -187,7 +189,7 @@ export async function requestPlatformDonation(input: unknown): Promise<PlatformD
     failureReason: null,
     createdAt: `${toDateString(now)} ${now.toTimeString().slice(0, 5)}`,
     completedAt: null,
-    account: accountSince(),
+    account,
     requestedAt: now.toISOString(),
     requestKey,
     platformKey
