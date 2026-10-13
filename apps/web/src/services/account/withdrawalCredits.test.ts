@@ -209,6 +209,32 @@ describe("회원 탈퇴 · 처리 중인 충전 (2026-10-10 결정)", () => {
     expect(rows.find((c) => c.id === "ch1")).toMatchObject({ status: "COMPLETED", fnNotCredited: true, memberWithdrawn: true });
     expect(rows.filter((c) => c.fnNotCredited)).toHaveLength(1);
   });
+
+  it("counts both kinds of 완료 · FN 미지급 (탈퇴) charge alike in the dashboard's 이번 달 충전, as 결제 · 환불 lists them", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 9, 13, 12, 0, 0));
+    const m = await load();
+    const { getAdminDashboard } = await import("@/services/admin/admin");
+    // A payment that completes after the account went around the 탈퇴 block (kept apart, `uncreditedCharges`) …
+    const release = hold(CHARGE_CALL);
+    const charging = charge(m, 10);
+    await Promise.resolve();
+    m.recordWithdrawal({ at: new Date().toISOString(), requestId: "w-test", forfeitedFn: 5_000, forfeitedEarningsFn: 0 });
+    release();
+    expect(await charging).toEqual({ status: "UNAUTHORIZED" });
+    // … and the sample's 처리중 charge confirmed after the 탈퇴 (a sample row with its result).
+    expect(m.confirmChargePayment("ch1", "COMPLETED")).toBe("NOT_CREDITED");
+
+    signIn(["ADMIN"]);
+    const month = "2026-10";
+    const listed = (await m.getPaymentsView())!.charges.filter((c) => c.status === "COMPLETED" && c.chargedAt.startsWith(month));
+    expect(listed.filter((c) => c.fnNotCredited).map((c) => c.id)).toEqual(expect.arrayContaining(["ch1", m.wallet.uncreditedCharges[0].id]));
+    expect((await getAdminDashboard())!.charges).toMatchObject({
+      monthCount: listed.length,
+      monthFn: listed.reduce((s, c) => s + c.fnAmount, 0),
+      monthPaidKrw: listed.reduce((s, c) => s + c.paidAmount, 0)
+    });
+  });
 });
 
 describe("회원 탈퇴 · 지급 중인 출석 보상 (2026-10-10 결정)", () => {

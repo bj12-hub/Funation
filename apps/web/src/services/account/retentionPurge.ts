@@ -6,6 +6,7 @@ import { mockCommunity } from "@/services/community/mockCommunityStore";
 import { mockSettlement } from "@/services/creator/mockSettlementStore";
 import { channelCommunityStore } from "@/services/creators/channelCommunityCore";
 import { moderationStore } from "@/services/moderation/moderationCore";
+import { mockPlatform } from "@/services/platformDonation/mockPlatformStore";
 import { forgetInquiries, inquiryAccountKey } from "@/services/support/inquiryCore";
 import { mockCredits } from "@/services/wallet/mockCreditStore";
 import { mockFnSettlements } from "@/services/wallet/mockFnSettlementStore";
@@ -17,8 +18,9 @@ import { accountAt, withdrawnAccounts, type Withdrawal } from "./withdrawalCore"
 /**
  * Mock retention purge (./retentionPolicy.ts, 기본값 — 법무 검토 전): once a category's date has come, the withdrawn
  * account's data of that category is removed or anonymised in the mock stores, once. It runs lazily — when the admin
- * console reads (members, payments, settlements, dashboard) and at sign-up, before a 재가입 looks for the person key —
- * so a page never shows data past its date. The backend runs the same rules as a scheduled job over every table.
+ * console reads (members, payments, settlements, dashboard, 처리 중 충전, 확인 중 후원) and at sign-up, before a 재가입
+ * looks for the person key — so a page never shows data past its date. The backend runs the same rules as a scheduled
+ * job over every table.
  *
  * Posts are never purged: they stay up under "탈퇴한 회원" (2026-10-08 결정); once the 탈퇴 기록 goes, so does the
  * original nickname stored on them. Server-only.
@@ -26,8 +28,8 @@ import { accountAt, withdrawnAccounts, type Withdrawal } from "./withdrawalCore"
 
 type Target = { record: Withdrawal; account: string | null; memberId: string };
 
-/** Object keys starting with `prefix` removed (request ids of a member). */
-const dropKeys = (map: Record<string, string>, prefix: string) => {
+/** Object keys starting with `prefix` removed (request ids and retry keys of a member). */
+const dropKeys = (map: Record<string, unknown>, prefix: string) => {
   for (const k of Object.keys(map)) if (k.startsWith(prefix)) delete map[k];
 };
 
@@ -49,11 +51,19 @@ const PURGE: Record<Exclude<RetentionCategory, "POSTS">, (t: Target) => void> = 
   },
 
   /**
-   * 대금결제 기록: the account's charges (with the console's 처리 중 충전 decisions), donations, credits, refund requests,
-   * 남은 FN 정리 and settlement requests.
+   * 대금결제 기록: the account's charges (with the console's 처리 중 충전 decisions), donations, 플랫폼 후원, credits, refund
+   * requests, 남은 FN 정리 and settlement requests, and the retry keys of its charges, donations and 플랫폼 후원 (kept per
+   * member — lib/records.ts `memberKeyOf` — under the slot's id until a 재가입 moves them to the account's `…-wN`; each
+   * holds what the request did).
    */
   PAYMENT: (t) => {
     const own = (stamp: string) => accountAt(stamp) === t.account;
+    const keys = `${t.memberId}:`;
+    dropKeys(mockWallet.idempotency, keys);
+    dropKeys(mockWallet.donationIdempotency, keys);
+    dropKeys(mockPlatform.idempotency, keys);
+    // Its 플랫폼 후원 (the sample rows are the first account's): also off the console's 확인 중 후원.
+    mockPlatform.transactions = mockPlatform.transactions.filter((tx) => (tx.account ?? null) !== t.account);
     mockWallet.charges = mockWallet.charges.filter((c) => !own(c.chargedAt));
     // Charges paid after the account withdrew (never credited, 2026-10-10 결정) are its payment records too.
     mockWallet.uncreditedCharges = mockWallet.uncreditedCharges.filter((u) => u.account !== t.account);

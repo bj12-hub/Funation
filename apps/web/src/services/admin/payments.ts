@@ -120,12 +120,15 @@ const refundText = (a: RefundAmounts) =>
   `${REFUND_TYPE_LABEL[a.type]} · 회수 ${fnText(a.grossFn)} · 수수료 ${fnText(a.feeFn)} · 환불 ${fnText(a.netFn)} · ${a.refundKrw.toLocaleString("ko-KR")}원`;
 const isAmount = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= 0;
 
-export async function getPaymentsView(): Promise<PaymentsView | null> {
-  assertMock();
-  purgeExpired(); // records past their retention date are not shown (account/retentionPolicy.ts)
-  // Every account's charges: a withdrawn account's stay in the console (audit trail) under its own `…-wN` member, with
-  // the payments that completed after their account withdrew (완료 · FN 미지급, 2026-10-10 결정).
-  const charges = [
+/**
+ * 결제 · 환불 › 충전 내역, newest first: every account's charges — a withdrawn account's stay in the console (audit trail)
+ * under its own `…-wN` member — with the payments that completed after their account withdrew (완료 · FN 미지급,
+ * 2026-10-10 결정). The dashboard's 이번 달 충전 counts the 완료 rows of this same list, so a 완료 · FN 미지급 (탈퇴) charge
+ * counts there whichever way it came (a payment kept apart, or a 처리중 charge confirmed after the 탈퇴). Call
+ * `purgeExpired` first.
+ */
+export function consoleChargeRows(): AdminChargeRow[] {
+  return [
     ...listAccountChargeRecords().map(
       (c): AdminChargeRow => ({
         id: c.id,
@@ -155,7 +158,12 @@ export async function getPaymentsView(): Promise<PaymentsView | null> {
       })
     )
   ].sort((a, b) => b.chargedAt.localeCompare(a.chargedAt));
-  return { charges, refunds: refunds(), balance: mockAccount.fnBalance, refundPolicy: { label: REFUND_POLICY_LABEL, summary: REFUND_POLICY_SUMMARY } };
+}
+
+export async function getPaymentsView(): Promise<PaymentsView | null> {
+  assertMock();
+  purgeExpired(); // records past their retention date are not shown (account/retentionPolicy.ts)
+  return { charges: consoleChargeRows(), refunds: refunds(), balance: mockAccount.fnBalance, refundPolicy: { label: REFUND_POLICY_LABEL, summary: REFUND_POLICY_SUMMARY } };
 }
 
 /**

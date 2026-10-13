@@ -240,6 +240,30 @@ describe("플랫폼 후원", () => {
     expect(platform.transactions.slice(0, 2).map((t) => t.platformKey)).toEqual([b, a]);
   });
 
+  it("gives a 재가입 account a platform key of its own, also for the withdrawn account's member key (the mock keeps the user id)", async () => {
+    const { requestPlatformDonation, account, platform } = await load();
+    const { soopAdapter } = await import("./adapters");
+    const send = vi.spyOn(soopAdapter, "sendDonation");
+    signInAs("u-hongGD123"); // the slot's member id, as lib/session gives it
+    const before = await requestPlatformDonation(soop());
+    if (before.status !== "COMPLETED") throw new Error(before.status);
+
+    // A second later the slot holds a new account, which happens to send the same member key.
+    await rejoinWithPhone("010-0000-0000", new Date(Date.now() + 1_000));
+    account.fnBalance = 100_000;
+    const after = await requestPlatformDonation(soop());
+    if (after.status !== "COMPLETED") throw new Error(after.status);
+    expect(after.transactionId).not.toBe(before.transactionId); // Ssumnation: the new account's own donation (#314)
+    // The platform too gets another key: under the withdrawn account's it would be a retry of that donation there.
+    const [a, b] = send.mock.calls.map(([req]) => req.idempotencyKey);
+    expect(b).toMatch(/^pk-[0-9a-f]{40}$/);
+    expect(b).not.toBe(a);
+    expect(platform.transactions.slice(0, 2).map((t) => t.platformKey)).toEqual([b, a]);
+    // The new account's own retry is still one request at the platform.
+    expect(await requestPlatformDonation(soop())).toEqual(after);
+    expect(send).toHaveBeenCalledTimes(2);
+  });
+
   it("lists only this account's 최근 후원 creators after a 재가입", async () => {
     const { requestPlatformDonation, getPlatformHome, account } = await load();
     const recent = async () => (await getPlatformHome("SOOP"))!.recent.map((c) => c.id);
