@@ -115,6 +115,8 @@ Display 24 Bold · Title 18 Bold · Subtitle 15 Medium · Body 14 · Body Strong
 | 거래 | AD10f | 정산 심사 · 반려 ("반려" 탭 · 반려 칩 · 신청 시점 정산 정보) | `/settlements?status=REJECTED` | `64:2585` |
 | 거래 | AD10g | 정산 심사 · 탈퇴 소멸 ("탈퇴 소멸" 탭 · 탈퇴 배지 · 처리 기록 "회원 탈퇴 · 정산 대기 수익 소멸 (회원 동의)", 예시 — AD10f 복제 후 수정, code-first) | `/settlements?status=FORFEITED` | `64:2697` |
 | 운영 | AD11 | 신고 처리 | `/reports` | `20:1414` |
+| 운영 | AD11b | 신고 처리 · 기각 ("기각" 탭 · 처리 기록 · 메모, 예시 신고) | `/reports?status=DISMISSED` | `65:2738` |
+| 운영 | AD11c | 신고 처리 · 숨김 처리 ("숨김 처리" 탭 · 댓글 숨김 · 처리 기록, 예시 신고) | `/reports?status=ACTIONED` | `65:2838` |
 | 운영 | AD12 | 콘텐츠 관리 · 공지 | `/content` | `18:1308` |
 | 운영 | AD13 | 콘텐츠 관리 · FAQ | `/content?tab=faq` | `19:699` |
 | 운영 | AD14 | 플랫폼 연동 | `/platforms` | `19:987` |
