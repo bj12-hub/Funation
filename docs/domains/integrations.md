@@ -119,7 +119,11 @@ Authentication for every platform (OAuth / login) is TBD.
   `…-wN` id). The adapter never gets the member's key: `sendDonation` and `lookupDonation` get Ssumnation's own key for
   the donation, `pk-` + an HMAC of the member id and the member's key with a server secret (`platformKey.ts`,
   server-only — node:crypto stays out of client bundles). It is the same for the same member and key, so a retry reaches
-  the platform under the same key, and it is stored on the transaction (`platformKey`) for the status lookups.
+  the platform under the same key, and it is stored on the transaction (`platformKey`) for the status lookups. It also
+  names the account (2026-10-13 fix): the mock's 재가입 account reuses the slot's member id, so its key includes the
+  account's start marker — a new account sending the withdrawn account's member key is not a retry of that donation at
+  the platform either. A withdrawn account's 플랫폼 후원 and retry keys go with its 대금결제 기록 at their retention date
+  (also off 확인 중 후원).
 - A platform call that throws or does not answer in time (10 s, sample value) has an unknown outcome:
   the FN stays held, the transaction stays PROCESSING and the Idempotency-Key answers **PENDING** with
   its Transaction ID (the client shows 「처리 결과 확인 중」 and the ID). The hold gets its wallet record at once

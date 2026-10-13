@@ -1,4 +1,5 @@
 import { USE_MOCK } from "@/lib/mock";
+import { purgeExpired } from "@/services/account/retentionPurge";
 import { mockPlatform, type MockPlatformTransaction } from "@/services/platformDonation/mockPlatformStore";
 import { checkNow, inRecheckWindow, isPending, listedForOperator, needsOperator, recheckPending, sentByCurrentAccount, settle } from "@/services/platformDonation/pendingCore";
 import { PLATFORMS } from "@/services/platformDonation/platformTypes";
@@ -44,9 +45,13 @@ function row(t: MockPlatformTransaction): PendingDonationRow {
   };
 }
 
-/** The list. Reading it first re-checks every pending donation still inside its 24 h (lazy, like 후원 내역). */
+/**
+ * The list. Reading it first re-checks every pending donation still inside its 24 h (lazy, like 후원 내역). A withdrawn
+ * account's donations past their 대금결제 기록 date are not listed (account/retentionPolicy.ts), like 처리 중 충전.
+ */
 export async function getPendingDonations(): Promise<PendingDonationsView> {
   assertMock();
+  purgeExpired();
   await recheckPending(() => true);
   const now = Date.now();
   const all = mockPlatform.transactions;
