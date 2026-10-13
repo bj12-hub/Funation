@@ -379,7 +379,10 @@ describe("충전 내역 · 결제 확인 일시", () => {
     resetMockStores();
     signIn(["SUPPORTER"]);
   });
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
+  });
 
   const on = (day: number, h = 12, min = 0, s = 0) => new Date(2026, 9, day, h, min, s);
   const history = async () => {
@@ -443,6 +446,31 @@ describe("충전 내역 · 결제 확인 일시", () => {
     expect(items.filter((c) => "confirmedAt" in c)).toEqual([]);
     const { rows } = await csvRows();
     expect(rows.every((r) => r[1] === "'-")).toBe(true);
+  });
+
+  it("gives the console's 환불 요청 the 결제 확인 일시 through /api/admin/payments, null for a charge paid with its request", async () => {
+    const TOKEN = "test-admin-api-token-00000000000000";
+    vi.stubEnv("ADMIN_API_TOKEN", TOKEN);
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(on(12, 10));
+    const m = await load();
+    vi.setSystemTime(on(14, 9, 30, 5));
+    expect(await decide(m)).toEqual({ status: "OK", result: "CREDITED" });
+    // The member asks for both refunds: ch1 (confirmed later) and a charge paid with its request.
+    vi.setSystemTime(on(15, 10));
+    const { agreeChargeTerms, requestCharge } = await import("@/services/wallet/charge");
+    expect((await agreeChargeTerms({ guardian: true, privacy: true, payment: true })).status).toBe("AGREED");
+    const live = await requestCharge({ amount: { customAmount: 5_000 }, methodId: "KAKAO_PAY", idempotencyKey: key(1) });
+    if (live.status !== "COMPLETED") throw new Error(live.status);
+    expect(await m.requestChargeRefund({ chargeId: "ch1", reason: "실수로 충전" })).toMatchObject({ status: "REQUESTED" });
+    expect(await m.requestChargeRefund({ chargeId: `ch-${live.transactionId}`, reason: "실수로 충전" })).toMatchObject({ status: "REQUESTED" });
+
+    const { GET } = await import("@/app/api/admin/payments/route");
+    const headers = { authorization: `Bearer ${TOKEN}`, "x-admin-operator-id": "adm-1", "x-admin-operator-name": encodeURIComponent("테스트 운영자") };
+    const res = await GET(new Request("http://x/api/admin/payments", { headers }), { params: Promise.resolve({}) });
+    const refunds: { chargeId: string; charge: { chargedAt: string; confirmedAt: string | null } | null }[] = (await res.json()).refunds;
+    expect(refunds.find((r) => r.chargeId === "ch1")!.charge).toMatchObject({ chargedAt: ch1(m)!.chargedAt, confirmedAt: "2026-10-14 09:30:05" });
+    expect(refunds.find((r) => r.chargeId === `ch-${live.transactionId}`)!.charge).toMatchObject({ confirmedAt: null });
   });
 });
 

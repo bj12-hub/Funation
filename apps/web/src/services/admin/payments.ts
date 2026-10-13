@@ -96,7 +96,9 @@ function refunds(): AdminRefund[] {
         reason: r.reason,
         status: r.status,
         decision: r.decision ?? null,
-        charge: c ? { chargedAt: c.chargedAt, fnAmount: c.fnAmount, paidAmount: c.paidAmount, methodLabel: c.methodLabel, transactionId: c.transactionId } : null,
+        charge: c
+          ? { chargedAt: c.chargedAt, confirmedAt: c.confirmedAt ?? null, fnAmount: c.fnAmount, paidAmount: c.paidAmount, methodLabel: c.methodLabel, transactionId: c.transactionId }
+          : null,
         requested: copy(r.quote),
         approved: r.settled ? copy(r.settled) : null,
         // What approval would refund now (FN used since the request lower it); only for requests an operator can decide.

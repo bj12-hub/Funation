@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { AUDIT_ACTION_LABEL, type AdminDashboard, type PendingChargeRow } from "@/types/adminApi";
+import { AUDIT_ACTION_LABEL, type AdminDashboard, type AdminRefund, type PaymentsView, type PendingChargeRow } from "@/types/adminApi";
 
 const site = vi.hoisted(() => ({ send: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh() {} }), usePathname: () => "/", redirect: vi.fn() }));
@@ -155,5 +155,45 @@ describe("처리 중 충전 in the console", () => {
     const input = { chargeId: "ch/1", outcome: "COMPLETED", note: "메모", requestId: "req-0000000000000001", extra: "dropped" };
     expect(await resolvePendingCharge(input)).toEqual({ status: "OK", result: "NOT_CREDITED" });
     expect(site.send).toHaveBeenCalledWith({ id: "adm-1", name: "운영자" }, "POST", "/pending-charges/ch%2F1/resolve", { outcome: "COMPLETED", note: "메모", requestId: "req-0000000000000001" });
+  });
+});
+
+/**
+ * 결제 확인 일시 (2026-10-13): a 처리중 charge confirmed later counts its 청약철회 period from the confirmation, so the 환불
+ * 요청 card shows when that was, next to 충전 (the request), in Korea time.
+ */
+describe("환불 요청 · 결제 확인 일시", () => {
+  const FULL = { type: "FULL_CANCEL" as const, grossFn: 10_000, feeFn: 0, netFn: 10_000, refundKrw: 11_000 };
+  const refund = (chargeId: string, charge: AdminRefund["charge"]): AdminRefund => ({
+    chargeId,
+    memberId: "u-hongGD123",
+    memberName: "홍길동",
+    memberWithdrawn: false,
+    // 2026-10-15 10:00 KST.
+    requestedAt: "2026-10-15T01:00:00.000Z",
+    reason: "실수로 충전",
+    status: "REQUESTED",
+    decision: null,
+    charge,
+    requested: FULL,
+    approved: null,
+    current: { ...FULL, chargeFn: 10_000, paidKrw: 11_000, usedFn: 0, withinPeriod: true },
+    hold: null
+  });
+  // The site's zone-less Korea-time stamps, whatever the zone the test runs in.
+  const charge = { chargedAt: "2026-10-11 14:23:05", fnAmount: 10_000, paidAmount: 11_000, methodLabel: "신용카드", transactionId: "TXN-1" };
+
+  it("shows 결제 확인 after 충전 for a charge confirmed later, and nothing for one paid with its request (or from an older site)", async () => {
+    const { PaymentsScreen } = await import("./payments/PaymentScreens");
+    const view = (refunds: AdminRefund[]): PaymentsView => ({ charges: [], refunds, balance: 0, refundPolicy: { label: "기본값", summary: "요약" } });
+    const html = render(
+      createElement(PaymentsScreen, {
+        view: view([refund("ch1", { ...charge, confirmedAt: "2026-10-14 09:30:05" }), refund("ch2", { ...charge, confirmedAt: null }), refund("ch3", charge)]),
+        tab: "refunds"
+      })
+    );
+    expect(html).toContain("충전 2026-10-11 14:23 · 결제 확인 2026-10-14 09:30 · 신용카드 · 요청 2026-10-15 10:00");
+    expect(html.match(/결제 확인 2026/g)).toHaveLength(1);
+    expect(html.match(/충전 2026-10-11 14:23 · 신용카드 · 요청 2026-10-15 10:00/g)).toHaveLength(2);
   });
 });

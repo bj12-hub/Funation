@@ -123,7 +123,9 @@ Tips:
   settlement history, earnings or notifications, and the withdrawn account's posts, comments, blocks and reports move
   to its own `…-wN` member id. New per-account state needs the same treatment in `withdrawal.ts` / `rejoin.ts`.
   An FN credit that lands after an await (charge, 출석 보상) registers in `wallet/inFlightCore.ts` (`beginCredit`) before
-  the await and credits only if `landsHere()` after it — withdrawal waits for those (2026-10-10). Retry keys of money
+  the await and credits only if `landsHere()` after it — withdrawal and 남은 FN 정리 wait for those (2026-10-10). The
+  debit side: an FN debit after an await (후원, 플랫폼 후원) reads `account/withdrawalCore.ts` `sessionAccount()` right
+  after `getSession` and debits only if `stillHere()` in the step that debits (UNAUTHORIZED otherwise). Retry keys of money
   actions are per member (`lib/records.ts` `memberKeyOf`), and `rejoin.ts` moves the withdrawn account's keys with it;
   anything derived from the member id for an outside party (the platform key) also names the account, since the mock's
   재가입 reuses the id, and `retentionPurge.ts` drops the account's keys with its 대금결제 기록.
