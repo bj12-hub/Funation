@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { OverlayTarget } from "@/services/creator/alertTypes";
 import { OverlayOffNotice } from "@/features/creatorStudio/remote/OverlayOffNotice";
-import { HELPER_NAV, HELPER_REMOTE, HELPER_TITLE } from "./helperNav";
+import { HELPER_NAV, HELPER_REMOTE_GUIDE, HELPER_TITLE } from "./helperNav";
 import styles from "./helper.module.css";
 
 const STEPS = [
@@ -12,7 +12,7 @@ const STEPS = [
     href: "/overlays",
     link: "오버레이 주소"
   },
-  { title: "리모컨으로 확인", text: "리모컨에서 테스트 후원을 보내 방송 화면에 잘 나오는지 확인하고, 방송 중에는 알림 대기열을 제어해요.", href: HELPER_REMOTE.href, link: HELPER_REMOTE.label }
+  { title: "리모컨으로 확인", text: "리모컨에서 테스트 후원을 보내 방송 화면에 잘 나오는지 확인하고, 방송 중에는 작은 창 · OBS 독 · 휴대폰으로 알림 대기열을 제어해요.", href: HELPER_REMOTE_GUIDE, link: "리모컨 가이드" }
 ];
 
 /** 시작하기 — the helper home, code-first (no Figma frame). OBS connection steps and every helper feature. */
