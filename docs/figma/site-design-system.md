@@ -16,6 +16,7 @@
 | 9 레이아웃 · 스튜디오 | `43:4` | 컴포넌트로 조합한 스튜디오 화면 |
 | 10 레이아웃 · 사이트 | `74:2` | 컴포넌트로 조합한 사이트 화면 (헤더 · 사이드 메뉴 · 푸터 인스턴스) |
 | 11 레이아웃 · 오버레이 테마 | `258:333` | OBS 오버레이를 테마별(볼드 플랫 · 미니멀 필 · 소프트 글래스)로 그린 프레임 + 스튜디오 오버레이 테마 카드 |
+| 12 레이아웃 · 도우미 | `326:655` | Ssumnation 도우미(새 도메인, 2026-10-14) — 도우미 틀 · 위젯 기능 페이지 · 리모컨 · 모바일 (아래 "레이아웃 (12 레이아웃 · 도우미)") |
 
 ## 토큰
 
@@ -98,6 +99,10 @@ OBS 오버레이의 세 테마는 변수 컬렉션 **Overlay Theme**의 모드�
 | Overlay/Theme Sample | `260:13093` | Theme (Bold · Pill · Glass) — 변형마다 모드 고정 | `overlayTheme/ThemeSample.tsx` |
 | Overlay/Theme Swatch | `267:508` | Theme (Bold · Pill · Glass) — 테마 고르기 칩의 견본 30 × 22 | `overlayTheme/ThemeChoiceField.tsx` `.swatch` |
 | Studio/Alert Layout Icon · Studio/Goal Shape Icon | `267:516` · `267:540` | Layout (Card · Banner · Image) / Shape (Bar · Circle · Semi · Heart · Star) | `AlertForm` `.layoutIcon`, `GoalForm` `.icon` |
+| Helper Sidebar | `326:529` | 메뉴 항목은 Studio Nav Item 인스턴스(`Nav/<이름>`, State로 현재 메뉴) — 로고 · 프로필 카드(플랫폼 로고 · 로그아웃) · 그룹 6개 · Spacer · 리모컨 버튼 + "이 창에서 열기 · 리모컨 가이드" | `features/helper/HelperShell.tsx`, `helperNav.ts` |
+| Helper Top Bar · Helper Mobile Bar | `326:516` · `326:522` | 1440 × 80 (로고 · 도우미 홈) / 375 × 56 (로고 · ☰) | `HelperLanding.tsx` HelperFrame, `HelperShell.tsx` `.topBar` |
+| Helper Tab · Helper Save Bar | `326:506` · `326:515` | State (Default · Active), Label / State (Clean · Dirty) — 662 폭 | `WidgetFeaturePage.tsx` `.tab` · `.saveBar` |
+| Helper Feature Card · Helper Step Card | `331:557` · `331:563` | Emoji, Title, Description / Number, Title, Text, Link label, Has link | `HelperHome.tsx` · `RemoteGuide.tsx` `.card` · `.step` |
 
 ## 아이콘 (8 디자인 · Components → Icons 섹션)
 
@@ -438,3 +443,44 @@ Overlay Theme 모드가 고정돼 있어요. 프레임 크기는 오버레이 �
 벽지 스티커 · 랭킹 스타일 썸네일은 `apps/web/public/mock/creator/widgets`의 목업 일러스트를 올렸어요. 미니후원(W12o, 2026-10-09)은 테마 · 배경 카드가 생겨 여기에 추가했고, 커스텀 사운드(W12p)는 테마는 없지만 재생 위치 안내를
 담아 같은 섹션에 다시 그렸어요(예전 W01b는 라이브러리 고르기 상태).
 
+## 레이아웃 (12 레이아웃 · 도우미)
+
+Ssumnation 도우미(2026-10-14, `docs/development/helper-domain.md`) 화면이에요. 레거시 FlexTV 도우미처럼 왼쪽 메뉴(Helper Sidebar) + 맨 아래 리모컨 버튼이고,
+컴포넌트는 8 페이지 "Helper (도우미)" 섹션(`326:501`)에 있어요. 위젯 기능 페이지의 설정 카드는 9 페이지 설정 팝업(W12a–W12p) 본문을 복제해서
+미리보기가 Overlay Theme 인스턴스(미니멀 필)이고, 스튜디오와 같은 화면은 9 페이지 화면의 Main을 복제한 뒤 Helper Sidebar를 붙였어요.
+오버레이 주소는 `https://{도우미 도메인}/…`(실제 도메인 TBD), 이름 · 숫자는 예시 값이에요. 페이지 맨 위 메모 `333:7039`.
+다시 그릴 때는 shared plugin data `somnation/helperKit`(shell · pageHeader · tabsRow · saveBar · place · relayout)과 `somnation/helperRender`
+(`scripts/figma/renderer.js`의 트리 렌더러)를 써요.
+
+| 섹션 | ID | 화면 | 라우트 (도우미 도메인) | 노드 |
+|---|---|---|---|---|
+| 진입 · 계정 | HP00 | 랜딩 (로그인 전) | `/` | `332:5771` |
+| 진입 · 계정 | HP01 | 채널 필요 (로그인 · 채널 없음, 다른 계정으로 로그인) | `/` | `332:5800` |
+| 진입 · 계정 | HP02 | 로그인 (A01 + Helper Top Bar) | `/login` | `332:5818` |
+| 진입 · 계정 | HP02b | 회원가입 완료 (간편 로그인 연동 버튼 없음) | `/signup` | `332:5883` |
+| 진입 · 계정 | HP02c | 내 채널 만들기 (C07 + Helper Top Bar) | `/channel/new` | `332:6214` |
+| 진입 · 계정 | HP04 | 도우미 404 (사이트 주소 · 없는 주소) | `/wallet` 등 | `332:6555` |
+| 시작하기 | HP03 | 시작하기 (OBS 연결 순서 3단계 + 기능 카드) | `/` | `332:6223` |
+| 방송 화면 | HP10 | 후원 알림 · 알림 디자인 (탭 3, 저장 바 Clean) | `/alert` | `327:13` |
+| 방송 화면 | HP10b | 후원 알림 · 저장하지 않은 변경 (저장 바 Dirty) | `/alert` | `327:335` |
+| 방송 화면 | HP10c | 후원 알림 · 커스텀 사운드 (항목마다 저장, 저장 바 없음) | `/alert?tab=sound` | `327:613` |
+| 방송 화면 | HP10d | 후원 알림 · 미니 후원 | `/alert?tab=mini` | `327:803` |
+| 방송 화면 | HP11 | 채팅창 | `/chat` | `327:1064` |
+| 방송 화면 | HP12 | 통합 채팅 (C01 Main) | `/chat/manage` | `328:9522` |
+| 방송 화면 | HP13 | 목표치 | `/goal` | `327:1346` |
+| 방송 화면 | HP14 · HP14b · HP14c · HP14d | 후원 자막 · 후원 랭킹 · 누적 금액 · 최근 후원 · 이벤트 목록 (탭 4) | `/subtitles` (`?tab=total` · `recent` · `event`) | `327:1628` · `327:1969` · `327:2204` · `327:2455` |
+| 방송 화면 | HP15 · HP16 | 시계 · QR 코드 | `/clock` · `/qr` | `327:2708` · `327:2931` |
+| 방송 화면 | HP17 | 방송 도구 (W02b Main) | `/tools` | `328:9811` |
+| 후원 콘텐츠 | HP20 · HP21 · HP22 · HP23 | 시그니처 · 영상 · 음성 후원 · 그림 후원 · 이펙트 (W06 · W07b · W08b · W05 Main) | `/signatures` · `/video` · `/drawing` · `/effects` | `328:10104` · `328:10319` · `328:10491` · `328:10685` |
+| 후원 콘텐츠 | HP24 | 배너 (기능 제어 OFF 예시, W10 Main) | `/banner` | `328:10849` |
+| 후원 콘텐츠 | HP25 | 벽지 | `/wallpaper` | `327:3181` |
+| 게임센터 | HP30 · HP31 · HP32 · HP33 | 퀘스트 · 투표 · 룰렛 · 뽑기 | `/quest` · `/vote` · `/roulette` · `/gacha` | `327:3479` · `327:3795` · `327:4054` · `327:4315` |
+| 크루 방송 | HP40 · HP41 | 크루 관리 · 방송 운영 (방송 전) (Y03 · Y04f Main) | `/crew` · `/crew/broadcast` | `328:11089` · `328:11277` |
+| 연결 · 설정 | HP50 | 전체 테마 (11 페이지 오버레이 테마 카드) | `/theme` | `332:6691` |
+| 연결 · 설정 | HP51 · HP51b | 오버레이 주소 · 미리보기 (W03c · W03b Main) | `/overlays` · `/overlays/preview/[id]` | `328:11801` · `328:11955` |
+| 연결 · 설정 | HP52 · HP53 · HP54 | 이미지 · 사운드 · 후원 연동 · 유튜브 연동 (W09 · W11 · Y01 Main) | `/assets` · `/link` · `/youtube` | `328:12123` · `328:12354` · `328:12516` |
+| 연결 · 설정 | HP55 | 후원 필터링 (T03c Main, 후원관리+ 탭 줄 없음 · 제목 "후원 필터링") | `/filtering` | `328:12707` |
+| 리모컨 | HP60 | 리모컨 (W04 Main + "↗ 작은 창으로 열기") | `/remote` | `328:13227` |
+| 리모컨 | HP61 | 리모컨 가이드 (할 수 있는 것 · 리모컨 주소 · 여는 방법 3단계 · 알아 두기) | `/remote/guide` | `332:6875` |
+| 리모컨 | HP62 | 리모컨 작은 창 (1000 폭, 메뉴 · 작은 창 버튼 없음) | `/popout/remote` | `332:7615` |
+| 모바일 | HP70 · HP71 | 시작하기 · 375 / 메뉴 서랍 열림 · 375 (Helper Mobile Bar, 서랍 300 폭) | `/` | `332:7618` · `332:7828` |
