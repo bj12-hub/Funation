@@ -26,7 +26,8 @@ const COPY: Record<Step, { title?: string; description?: string }> = {
   4: {}
 };
 
-export function SignupFlow() {
+/** `socialLink`: offer 간편 로그인 연동 (마이페이지) after sign-up — not on the 도우미 domain, which has no 마이페이지. */
+export function SignupFlow({ socialLink = true }: { socialLink?: boolean }) {
   const [step, setStep] = useState<Step>(1);
   const [agreements, setAgreements] = useState<Agreements>({ youth: false, service: false, privacy: false, marketing: false });
   const [verified, setVerified] = useState<{ phone: string; token: string } | null>(null);
@@ -119,11 +120,13 @@ export function SignupFlow() {
             로그인 페이지로 이동
           </Button>
           {/* 간편 로그인 연동은 로그인 후 마이페이지 > 계정 연결(Figma 743:2180, 743:2227)에서 진행 */}
-          <Button href="/mypage" variant="accent" block>
-            <Image src="/images/social/kakao.png" alt="" width={30} height={30} style={{ borderRadius: 10 }} />
-            <Image src="/images/social/google.png" alt="" width={30} height={30} style={{ borderRadius: 10 }} />
-            간편 로그인 연동하러 가기
-          </Button>
+          {socialLink && (
+            <Button href="/mypage" variant="accent" block>
+              <Image src="/images/social/kakao.png" alt="" width={30} height={30} style={{ borderRadius: 10 }} />
+              <Image src="/images/social/google.png" alt="" width={30} height={30} style={{ borderRadius: 10 }} />
+              간편 로그인 연동하러 가기
+            </Button>
+          )}
         </div>
       )}
 
