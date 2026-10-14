@@ -6,7 +6,7 @@ import { HELPER_TITLE } from "./helperNav";
 import styles from "./helper.module.css";
 
 const FEATURES = [
-  { emoji: "🔔", title: "후원 알림 · 위젯", text: "후원 알림, 목표, 랭킹, 시계, 채팅창을 세 가지 테마로 꾸며 OBS에 띄워요." },
+  { emoji: "🔔", title: "후원 알림 · 위젯", text: "후원 알림, 채팅창, 목표치, 후원 자막, 시계를 세 가지 테마로 꾸며 OBS에 띄워요." },
   { emoji: "🎛️", title: "라이브 방송 리모컨", text: "방송 중에 알림 대기열 · 볼륨 · 테스트 후원 · 투표 · 룰렛을 작은 창에서 제어해요." },
   { emoji: "👥", title: "크루 방송", text: "점수판, 배틀, 강탈, 시나리오까지 크루 방송에 필요한 화면을 한 번에 운영해요." }
 ];

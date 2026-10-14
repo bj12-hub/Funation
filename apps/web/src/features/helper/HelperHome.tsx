@@ -5,7 +5,7 @@ import { HELPER_NAV, HELPER_REMOTE, HELPER_TITLE } from "./helperNav";
 import styles from "./helper.module.css";
 
 const STEPS = [
-  { title: "위젯 꾸미기", text: "후원 알림 · 목표 · 랭킹 같은 위젯을 고르고 테마와 문구를 정해요.", href: "/widgets", link: "위젯 설정" },
+  { title: "위젯 꾸미기", text: "전체 테마를 고르고, 후원 알림 · 목표치 · 후원 자막 같은 위젯을 메뉴에서 하나씩 꾸며요.", href: "/alert", link: "후원 알림 꾸미기" },
   {
     title: "OBS에 넣기",
     text: "오버레이 주소를 복사해 OBS의 ‘브라우저’ 소스에 붙여 넣어요. 장면 파일을 받아 한 번에 넣을 수도 있어요.",

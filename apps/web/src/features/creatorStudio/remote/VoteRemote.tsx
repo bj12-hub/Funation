@@ -53,7 +53,7 @@ export function VoteRemote({
         <h2 className={styles.cardTitle} id="vote-remote">
           📊 투표
         </h2>
-        <Link href="/creator/widgets" className={styles.ghost}>
+        <Link href="/creator/widgets?open=VOTE" className={styles.ghost}>
           프리셋 설정
         </Link>
       </div>
