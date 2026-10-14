@@ -33,7 +33,7 @@ export function RouletteRemote({
         <h2 className={styles.cardTitle} id="roulette-remote">
           🎡 룰렛
         </h2>
-        <Link href="/creator/widgets" className={styles.ghost}>
+        <Link href="/creator/widgets?open=ROULETTE" className={styles.ghost}>
           항목 · 확률 설정
         </Link>
       </div>

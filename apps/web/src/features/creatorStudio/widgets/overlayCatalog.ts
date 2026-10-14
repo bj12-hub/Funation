@@ -121,7 +121,7 @@ export const OVERLAYS: OverlayEntry[] = [
     description: "한국 시간을 플립 · 디지털 · 아날로그 시계로 보여 줘요.",
     size: "600 × 240",
     path: (k) => widgetOverlayPath("clock", k),
-    manage: "/creator/widgets"
+    manage: "/creator/widgets?open=CLOCK"
   },
   {
     id: "bingo",
@@ -151,7 +151,7 @@ export const OVERLAYS: OverlayEntry[] = [
     description: "목표 금액까지 모인 후원을 진행 바로 보여 줘요.",
     size: "800 × 200",
     path: (k) => widgetOverlayPath("goal", k),
-    manage: "/creator/widgets"
+    manage: "/creator/widgets?open=GOAL"
   },
   {
     id: "widget-total",
@@ -161,7 +161,7 @@ export const OVERLAYS: OverlayEntry[] = [
     description: "정한 기간 동안 모인 후원 금액을 보여 줘요.",
     size: "600 × 120",
     path: (k) => widgetOverlayPath("total", k),
-    manage: "/creator/widgets"
+    manage: "/creator/widgets?open=TOTAL"
   },
   {
     id: "widget-ranking",
@@ -171,7 +171,7 @@ export const OVERLAYS: OverlayEntry[] = [
     description: "기간별 후원자 순위를 보여 줘요.",
     size: "400 × 500",
     path: (k) => widgetOverlayPath("ranking", k),
-    manage: "/creator/widgets"
+    manage: "/creator/widgets?open=RANKING"
   },
   {
     id: "widget-recent",
@@ -181,7 +181,7 @@ export const OVERLAYS: OverlayEntry[] = [
     description: "최근 후원을 한 줄씩 보여 줘요.",
     size: "800 × 200",
     path: (k) => widgetOverlayPath("recent", k),
-    manage: "/creator/widgets"
+    manage: "/creator/widgets?open=RECENT"
   },
   {
     id: "widget-mini",
@@ -191,7 +191,7 @@ export const OVERLAYS: OverlayEntry[] = [
     description: "최근 미니후원을 흐르는 띠나 말풍선으로 보여 줘요.",
     size: "800 × 120",
     path: (k) => widgetOverlayPath("mini", k),
-    manage: "/creator/widgets"
+    manage: "/creator/widgets?open=MINI"
   },
   {
     id: "widget-event",
@@ -201,7 +201,7 @@ export const OVERLAYS: OverlayEntry[] = [
     description: "후원 내역을 목록으로 쌓아 보여 줘요.",
     size: "500 × 600",
     path: (k) => widgetOverlayPath("event", k),
-    manage: "/creator/widgets"
+    manage: "/creator/widgets?open=EVENT"
   },
   {
     id: "widget-qr",
@@ -211,7 +211,7 @@ export const OVERLAYS: OverlayEntry[] = [
     description: "후원 페이지로 가는 QR코드를 항상 띄워요.",
     size: "300 × 360",
     path: (k) => widgetOverlayPath("qr", k),
-    manage: "/creator/widgets"
+    manage: "/creator/widgets?open=QR"
   },
   {
     id: "widget-quest",
@@ -221,7 +221,7 @@ export const OVERLAYS: OverlayEntry[] = [
     description: "진행 중인 퀘스트 후원과 남은 시간 · 상금을 보여 줘요.",
     size: "600 × 400",
     path: (k) => widgetOverlayPath("quest", k),
-    manage: "/creator/widgets"
+    manage: "/creator/widgets?open=QUEST"
   },
   {
     id: "widget-vote",
@@ -251,7 +251,7 @@ export const OVERLAYS: OverlayEntry[] = [
     description: "뽑기 후원이 들어오면 뽑기 기계가 돌아가고 당첨 상품을 보여 줘요. 당첨은 크리에이터 상품이에요.",
     size: "640 × 400",
     path: (k) => widgetOverlayPath("gacha", k),
-    manage: "/creator/widgets"
+    manage: "/creator/widgets?open=GACHA"
   },
   {
     id: "widget-gacha-board",
@@ -261,7 +261,7 @@ export const OVERLAYS: OverlayEntry[] = [
     description: "산정 기간 동안 당첨된 상품을 전광판처럼 흘려 보여 줘요.",
     size: "800 × 120",
     path: (k) => widgetOverlayPath("gacha-board", k),
-    manage: "/creator/widgets"
+    manage: "/creator/widgets?open=GACHA"
   },
   {
     id: "widget-wallpaper",
@@ -283,7 +283,7 @@ export const OVERLAYS: OverlayEntry[] = [
     description: "세로(휴대폰) 방송 화면 폭에 맞춰 크게 보여 줘요. 디자인은 후원 알림 설정 그대로예요.",
     size: "1080 × 640",
     path: (k) => `/overlay/alert/${k}?${VERTICAL_QUERY}`,
-    manage: "/creator/widgets"
+    manage: "/creator/widgets?open=ALERT"
   },
   {
     id: "chat-vertical",
@@ -303,6 +303,6 @@ export const OVERLAYS: OverlayEntry[] = [
     description: "세로 방송 폭에 맞춘 후원목표예요. 모양을 고르면 그림이 글자 위로 올라가요.",
     size: "1080 × 520",
     path: (k) => `${widgetOverlayPath("goal", k)}?${VERTICAL_QUERY}`,
-    manage: "/creator/widgets"
+    manage: "/creator/widgets?open=GOAL"
   }
 ];

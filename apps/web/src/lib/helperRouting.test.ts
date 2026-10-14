@@ -70,9 +70,16 @@ describe("helperPathForStudio", () => {
     expect(helperPathForStudio("/creator/widgets/signatures", "?bulk=1")).toBe("/signatures?bulk=1");
     expect(helperPathForStudio("/creator/crew/broadcast", "")).toBe("/crew/broadcast");
     expect(helperPathForStudio("/creator/crew", "")).toBe("/crew");
-    expect(helperPathForStudio("/creator/chat", "")).toBe("/chat");
+    expect(helperPathForStudio("/creator/chat", "")).toBe("/chat/manage");
     expect(helperPathForStudio("/creator/youtube", "")).toBe("/youtube");
-    expect(helperPathForStudio("/creator/widgets", "")).toBe("/widgets");
+  });
+
+  it("sends the 위젯 catalog to the widget's own page (`?open=`), or home", () => {
+    expect(helperPathForStudio("/creator/widgets", "")).toBe("/");
+    expect(helperPathForStudio("/creator/widgets", "?open=GOAL")).toBe("/goal");
+    expect(helperPathForStudio("/creator/widgets", "?open=TOTAL")).toBe("/subtitles?tab=total");
+    expect(helperPathForStudio("/creator/widgets", "?open=CUSTOM_SOUND")).toBe("/alert?tab=sound");
+    expect(helperPathForStudio("/creator/widgets", "?open=toString")).toBe("/");
   });
 
   it("maps 후원 필터링 only, without the tab", () => {

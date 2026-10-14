@@ -35,7 +35,7 @@ On the helper host:
 |---|---|
 | `/`, `/chat`, `/tools` … | rewritten to `/helper/…` (`app/helper/*`); unknown paths → the helper's 404 |
 | `/overlay/*`, `/popout/*`, `/login`, `/signup`, `/password-reset`, `/channel/new`, `/terms/*`, `/api/media/*`, `/api/custom-sound/*`, files | served as on the site |
-| `/creator/*` (links inside the reused studio screens) | 307 to the helper page: `/creator/widgets/tools` → `/tools`, `/creator/donations?tab=filtering&sub=…` → `/filtering?sub=…`, studio pages the helper does not have → `/` |
+| `/creator/*` (links inside the reused studio screens) | 307 to the helper page: `/creator/widgets/tools` → `/tools`, `/creator/widgets?open=TOTAL` → `/subtitles?tab=total`, `/creator/chat` → `/chat/manage`, `/creator/donations?tab=filtering&sub=…` → `/filtering?sub=…`, studio pages the helper does not have → `/` |
 | `/helper/*` | 307 to the same path without `/helper` |
 | other `/api/*` (admin, wallet, bank SMS webhook) | 404 |
 
@@ -52,17 +52,22 @@ It is chrome only — never an authorization input; every page and server action
 without a channel → 채널 만들기; creators → the shell (`features/helper/HelperShell.tsx`): brand, profile (channel,
 nickname, linked platforms, 로그아웃), the menu (`helperNav.ts`) and the 리모컨 button. Below 900px the menu is a drawer.
 
-| Helper path | Screen (reused) |
+| Helper path | Screen |
 |---|---|
 | `/` | 시작하기 — OBS 연결 순서, OFF overlays, every feature (`HelperHome.tsx`) |
-| `/widgets` | 위젯 catalog + popups (`WidgetSettingsScreen`) |
-| `/chat` | 통합 채팅 (`UnifiedChatScreen`) |
+| `/alert` (`?tab=sound` · `mini`) · `/chat` · `/goal` · `/subtitles` (`?tab=total` · `recent` · `event`) · `/clock` · `/qr` · `/wallpaper` · `/quest` · `/vote` · `/roulette` · `/gacha` | 위젯 기능 페이지 (`app/helper/[feature]`, `features/helper/widgetPages.ts` + `WidgetFeaturePage.tsx`): title, tabs, OBS address, the studio popup's form and preview inline (`WidgetEditor.tsx`), save bar with unsaved-change state |
+| `/theme` | 전체 테마 (`ThemeGallery`) |
+| `/chat/manage` | 통합 채팅 (`UnifiedChatScreen`) |
 | `/tools` | 방송 도구 (`BroadcastToolsScreen`) |
 | `/signatures` · `/video` · `/drawing` · `/effects` · `/banner` | 시그니처 · 영상 · 음성 후원 · 그림 후원 · 이펙트 · 배너 |
 | `/crew` · `/crew/broadcast` | 크루 관리 · 크루 방송 운영 |
 | `/overlays` · `/overlays/preview/[id]` | 오버레이 주소 · 미리보기 |
 | `/assets` · `/link` · `/youtube` · `/filtering` | 이미지 · 사운드 · 후원 연동 · 유튜브 연동 · 후원 필터링 |
 | `/remote` | 리모컨 (`RemoteScreen`) |
+| `/widgets` | redirects to `/` (the first build's 위젯 catalog) |
+
+The studio's 위젯 page takes `?open=GOAL` (opens that popup); 오버레이 주소 · 리모컨 · 대시보드 link with it, and on the helper
+host `/creator/widgets?open=KEY` goes to that widget's page (`WIDGET_HELPER_PATH`).
 
 ## Environment
 
