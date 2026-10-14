@@ -9,6 +9,9 @@ import { widgetOverlayPath } from "@/services/creator/widgetOverlayTypes";
 /** `target` is the 리모컨 기능 제어 switch (the 후원 위젯 share one), so the page can show which overlays are OFF. */
 export type OverlayEntry = { id: string; target: OverlayTarget; group: string; title: string; description: string; size: string; path: (key: string) => string; manage: string };
 
+/** Overlays whose 미리보기 can send a 테스트 후원 (they show the alert feed): 후원 알림, 이펙트, 벽지. */
+export const PREVIEW_TESTABLE = new Set(["alert", "effects", "widget-wallpaper", "alert-vertical"]);
+
 export const OVERLAYS: OverlayEntry[] = [
   {
     id: "chat",
