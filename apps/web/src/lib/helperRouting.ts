@@ -1,3 +1,5 @@
+import { WIDGET_HELPER_PATH } from "@/features/helper/widgetPages";
+
 /**
  * Ssumnation 도우미 (helper domain, 2026-10-14 결정): the OBS broadcast tools and the 리모컨 are served on their own
  * domain before the full site opens. Same app and data as the site; this module decides, per request, what the helper
@@ -66,12 +68,16 @@ const STUDIO_PREFIXES: [string, string][] = [
   ["/creator/crew", "/crew"],
   ["/creator/remote", "/remote"],
   ["/creator/youtube", "/youtube"],
-  ["/creator/chat", "/chat"]
+  ["/creator/chat", "/chat/manage"]
 ];
 
 /** Where a studio address goes on the helper host. Studio pages the helper does not have go to the helper home. */
 export function helperPathForStudio(pathname: string, search: string): string {
-  if (pathname === "/creator/widgets") return `/widgets${search}`;
+  // The 위젯 catalog's `?open=GOAL` (opens that popup) is the widget's own page here.
+  if (pathname === "/creator/widgets") {
+    const open = new URLSearchParams(search).get("open") ?? "";
+    return Object.hasOwn(WIDGET_HELPER_PATH, open) ? WIDGET_HELPER_PATH[open as keyof typeof WIDGET_HELPER_PATH] : "/";
+  }
   if (pathname === "/creator/donations") {
     const params = new URLSearchParams(search);
     if (params.get("tab") !== "filtering") return "/";

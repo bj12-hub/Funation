@@ -31,7 +31,7 @@ export function WallpaperRemote({
         <h2 className={styles.cardTitle} id="wallpaper-remote">
           🖼️ 벽지
         </h2>
-        <Link href="/creator/widgets" className={styles.ghost}>
+        <Link href="/creator/widgets?open=WALLPAPER" className={styles.ghost}>
           벽지 디자인 설정
         </Link>
       </div>

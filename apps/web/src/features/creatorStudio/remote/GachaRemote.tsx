@@ -30,7 +30,7 @@ export function GachaRemote({
         <h2 className={styles.cardTitle} id="gacha-remote">
           🧸 뽑기
         </h2>
-        <Link href="/creator/widgets" className={styles.ghost}>
+        <Link href="/creator/widgets?open=GACHA" className={styles.ghost}>
           상품 · 확률 설정
         </Link>
       </div>

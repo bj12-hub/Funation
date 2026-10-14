@@ -71,7 +71,7 @@ export function SettlementCard({ settlement }: { settlement: DashboardSummary["s
 /** 후원자 순위 — this month's top supporters; links to the ranking widget like funnation. */
 export function TopDonorsCard({ donors }: { donors: DashboardSummary["topDonors"] }) {
   return (
-    <SummaryCard title="후원자 순위" href="/creator/widgets" linkLabel="랭킹 위젯">
+    <SummaryCard title="후원자 순위" href="/creator/widgets?open=RANKING" linkLabel="랭킹 위젯">
       {donors.length === 0 ? (
         <p className={styles.empty}>아직 후원 받은 내역이 없습니다</p>
       ) : (

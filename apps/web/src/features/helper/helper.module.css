@@ -576,6 +576,84 @@
   word-break: keep-all;
 }
 
+/* ── Feature pages (WidgetFeaturePage) ── */
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tab {
+  padding: 8px 16px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
+}
+
+.tab:hover {
+  color: var(--color-text-primary);
+}
+
+.tabOn,
+.tabOn:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-text-on-accent);
+  font-weight: var(--font-weight-bold);
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 760px;
+  padding: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-16);
+  background: var(--color-surface);
+}
+
+.saveBar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 760px;
+  margin-top: -16px;
+  padding: 14px 20px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-12);
+  background: var(--color-bg-subtle);
+}
+
+.saveState {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.saveButton {
+  padding: 10px 20px;
+  border: 0;
+  border-radius: var(--radius-8);
+  background: var(--color-primary);
+  color: var(--color-text-on-accent);
+  font-family: inherit;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+}
+
+.saveButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 /* ── Narrow screens ── */
 
 @media (max-width: 900px) {
@@ -627,6 +705,10 @@
 
   .content {
     padding: 24px 16px 48px;
+  }
+
+  .editor {
+    padding: 16px;
   }
 
   .steps,

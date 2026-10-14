@@ -15,10 +15,16 @@ export const HELPER_HOME: HelperNavItem = { label: "시작하기", emoji: "🏠"
 export const HELPER_NAV: HelperNavGroup[] = [
   { title: null, items: [HELPER_HOME] },
   {
+    // Legacy FlexTV 도우미 order: 채팅창 · 알림 · 목표치 · 후원자막 · 시계.
     title: "방송 화면",
     items: [
-      { label: "위젯", emoji: "🔔", href: "/widgets", description: "후원 알림 · 목표 · 랭킹 · 시계 같은 방송 화면 위젯을 고르고 꾸며요." },
-      { label: "채팅창", emoji: "💬", href: "/chat", description: "유튜브 · FlexTV · SOOP · 치지직 채팅을 한 창에 모아 방송 화면에 띄워요." },
+      { label: "후원 알림", emoji: "🔔", href: "/alert", description: "후원 알림의 모양 · 문구 · 소리와 미니 후원 알림을 꾸며요." },
+      { label: "채팅창", emoji: "💬", href: "/chat", description: "방송 화면에 띄우는 채팅창의 스타일을 정해요." },
+      { label: "통합 채팅", emoji: "🗨️", href: "/chat/manage", description: "유튜브 · FlexTV · SOOP · 치지직 채팅을 한곳에서 보고 답하고 관리해요." },
+      { label: "목표치", emoji: "🎯", href: "/goal", description: "후원 목표 금액과 진행 모양을 정해요." },
+      { label: "후원 자막", emoji: "🏆", href: "/subtitles", description: "후원 랭킹 · 누적 금액 · 최근 후원 · 이벤트 목록을 띄워요." },
+      { label: "시계", emoji: "🕐", href: "/clock", description: "플립 · 디지털 · 아날로그 시계를 띄워요." },
+      { label: "QR 코드", emoji: "🔲", href: "/qr", description: "후원 QR 코드를 방송 화면에 항상 띄워 둬요." },
       { label: "방송 도구", emoji: "🛠️", href: "/tools", description: "자막 · 전광판 · 타이머 · 엔딩 크레딧 · 빙고를 띄우고 제어해요." }
     ]
   },
@@ -29,7 +35,18 @@ export const HELPER_NAV: HelperNavGroup[] = [
       { label: "영상 · 음성 후원", emoji: "📹", href: "/video", description: "영상 · 음성 후원 대기열을 관리하고 방송 화면에서 재생해요." },
       { label: "그림 후원", emoji: "🖌️", href: "/drawing", description: "받은 그림 후원을 방송 화면에 전시해요." },
       { label: "이펙트", emoji: "✨", href: "/effects", description: "후원에 맞춰 이모지 리액션과 화면 효과를 띄워요." },
-      { label: "배너", emoji: "🖼️", href: "/banner", description: "이미지 슬라이드 배너를 화면 위 · 아래 · 가운데에 띄워요." }
+      { label: "배너", emoji: "🖼️", href: "/banner", description: "이미지 슬라이드 배너를 화면 위 · 아래 · 가운데에 띄워요." },
+      { label: "벽지", emoji: "🧱", href: "/wallpaper", description: "시청자가 후원으로 흔적을 남기는 배경 위젯이에요." }
+    ]
+  },
+  {
+    // Legacy "게임센터".
+    title: "게임센터",
+    items: [
+      { label: "퀘스트", emoji: "⚔️", href: "/quest", description: "진행 중인 후원 미션 · 퀘스트 목록을 띄워요." },
+      { label: "투표", emoji: "📊", href: "/vote", description: "투표 항목과 방송 화면 모양을 정해요." },
+      { label: "룰렛", emoji: "🎡", href: "/roulette", description: "후원으로 참여하는 룰렛 항목과 확률을 정해요." },
+      { label: "뽑기", emoji: "🧸", href: "/gacha", description: "뽑기 후원 상품과 확률을 정해요." }
     ]
   },
   {
@@ -43,6 +60,7 @@ export const HELPER_NAV: HelperNavGroup[] = [
   {
     title: "연결 · 설정",
     items: [
+      { label: "전체 테마", emoji: "🎨", href: "/theme", description: "모든 위젯이 기본으로 쓰는 테마와 포인트 색을 골라요." },
       { label: "오버레이 주소", emoji: "🔗", href: "/overlays", description: "OBS에 넣을 오버레이 주소를 한곳에서 복사하고 미리 봐요." },
       { label: "이미지 · 사운드", emoji: "🎵", href: "/assets", description: "위젯이 쓰는 이미지와 사운드를 올리고 관리해요." },
       { label: "후원 연동", emoji: "🔌", href: "/link", description: "방송 플랫폼에서 받은 후원을 후원 알림에 함께 띄워요." },

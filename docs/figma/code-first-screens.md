@@ -177,6 +177,8 @@ Add a row whenever a new code-first screen ships (see `docs/research/funnation-r
 
 | Ssumnation 도우미 shell (`features/helper/HelperShell.tsx` · `HelperLanding.tsx` · `HelperHome.tsx` · `HelperNotFound.tsx`, `app/helper/*`) | helper-domain PR | 2026-10-14 결정: OBS 기능 + 리모컨만 새 도메인으로 먼저. 레거시 FlexTV 도우미 구성 — 왼쪽: 로고("Ssumnation" + 도우미 배지) · 프로필 카드(채널명 · 닉네임 · 연결 플랫폼 로고 · 로그아웃) · 메뉴(시작하기 / 방송 화면 / 후원 콘텐츠 / 크루 방송 / 연결 · 설정) · 맨 아래 "🎛️ 리모컨 열기 · 라이브 방송 리모컨" 버튼. 900px 아래는 상단 바 + 서랍 메뉴. 화면: 비로그인 랜딩(로그인 · 회원가입 + 기능 카드 3개), 채널 없음(내 채널 만들기 · 다른 계정으로 로그인), 시작하기(OBS 연결 순서 3단계 + 기능 카드), 도우미 404, 로그인 · 가입 · 채널 만들기 · 약관의 도우미 상단 바. Figma: 새 페이지 필요(현재 구현 파일) |
 
+| 도우미 위젯 기능 페이지 (`features/helper/WidgetFeaturePage.tsx` · `widgetPages.ts`, `app/helper/[feature]`; 공유 편집기 `creatorStudio/widgets/WidgetEditor.tsx`) + 스튜디오 위젯 `?open=KEY` | helper-widget-pages PR | 2026-10-14: 레거시 FlexTV 도우미처럼 메뉴마다 한 페이지 — 제목 · 한 줄 설명 → 탭(후원 알림: 알림 디자인 · 커스텀 사운드 · 미니 후원 / 후원 자막: 후원 랭킹 · 누적 금액 · 최근 후원 · 이벤트 목록) → 기능 제어 OFF 안내 → 카드(OBS 주소 + 팝업과 같은 설정 · 미리보기) → 아래 고정 저장 바("저장하지 않은 변경이 있어요." / "방송 화면에 보이는 설정이에요." + 설정 저장, 변경 없으면 비활성). 커스텀 사운드는 항목마다 저장이라 저장 바 없음. 메뉴: 방송 화면(후원 알림 · 채팅창 · 통합 채팅 · 목표치 · 후원 자막 · 시계 · QR 코드 · 방송 도구) · 후원 콘텐츠(… · 벽지) · 게임센터(퀘스트 · 투표 · 룰렛 · 뽑기) · 크루 방송 · 연결 · 설정(전체 테마 …). 스튜디오: 위젯 페이지 `?open=GOAL`이면 그 팝업을 바로 열고, 오버레이 주소 "관리" · 리모컨 투표/룰렛/뽑기/벽지 "설정" · 대시보드 "랭킹 위젯"이 해당 팝업으로 연결. Figma: 기능 페이지 한 장(탭 있음 · 없음) + 저장 바 두 상태 |
+
 ## Figma
 
 구현된 전체 화면 캡처는 [current-build.md](current-build.md)의 새 파일(Ssumnation — 현재 구현)에 있어요. 펀페이 파일에 잠시 두었던 "코드 우선 화면" 페이지는 2026-09-30에 삭제했어요.

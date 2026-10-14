@@ -1,78 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, useTransition, type ComponentType } from "react";
+import { useCallback, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
 import type { OverlayTarget } from "@/services/creator/alertTypes";
 import type { OverlayAppearance } from "@/services/creator/overlayThemeTypes";
-import { getWidgetDetail, saveWidgetSettings } from "@/services/creator/widgetSettings";
-import {
-  isEditableWidget,
-  type EditableWidgetKey,
-  type WidgetDetail
-} from "@/services/creator/widgetSettingsTypes";
+import { isEditableWidget, type EditableWidgetKey } from "@/services/creator/widgetSettingsTypes";
 import { ThemeGallery } from "@/features/overlayTheme/ThemeGallery";
 import { OverlayOffNotice } from "../remote/OverlayOffNotice";
 import { CopyButton } from "../settings/SettingsCards";
-import { AlertForm } from "./AlertForm";
-import { ClockForm } from "./ClockForm";
-import { CustomSoundForm } from "./CustomSoundForm";
-import { ChatForm, QrForm, TotalForm, type FormProps } from "./forms";
-import { GoalForm } from "./GoalForm";
-import { GachaForm } from "./GachaForm";
-import { QuestForm } from "./gameForms";
-import { EventForm, MiniForm, RecentForm } from "./listForms";
-import { RankingForm } from "./RankingForm";
-import { RouletteForm } from "./RouletteForm";
-import { VoteForm } from "./VoteForm";
-import { WallpaperForm } from "./WallpaperForm";
 import { ALL_COUNT, GROUPS, POPULAR, TOOLS, type CatalogItem } from "./widgetCatalog";
+import { WIDGET_EDITOR_COPY, WidgetEditorBody, useWidgetEditor } from "./WidgetEditor";
 import catalog from "./widgetCatalog.module.css";
 import styles from "./widgets.module.css";
-
-const FORMS: { [K in EditableWidgetKey]: ComponentType<FormProps<K>> } = {
-  ALERT: AlertForm,
-  CHAT: ChatForm,
-  QR: QrForm,
-  GOAL: GoalForm,
-  TOTAL: TotalForm,
-  RECENT: RecentForm,
-  EVENT: EventForm,
-  MINI: MiniForm,
-  RANKING: RankingForm,
-  VOTE: VoteForm,
-  CUSTOM_SOUND: CustomSoundForm,
-  QUEST: QuestForm,
-  GACHA: GachaForm,
-  ROULETTE: RouletteForm,
-  WALLPAPER: WallpaperForm,
-  CLOCK: ClockForm
-};
-
-/** Popup titles; the URL label varies in the design (통합 채팅창 URL · 위젯 연동 URL …). */
-const MODAL_COPY: Record<EditableWidgetKey, { title: string; urlLabel: string }> = {
-  ALERT: { title: "후원 알림 디자인", urlLabel: "후원 알림 URL" },
-  CHAT: { title: "채팅창 위젯 설정", urlLabel: "통합 채팅창 URL" },
-  QR: { title: "후원 QR코드 위젯 설정", urlLabel: "QR코드 위젯 URL" },
-  GOAL: { title: "후원목표 위젯 설정", urlLabel: "후원목표 위젯 URL" },
-  TOTAL: { title: "후원누적금액 위젯 설정", urlLabel: "위젯 연동 URL" },
-  RECENT: { title: "최근알림 위젯 설정", urlLabel: "최근알림 위젯 URL" },
-  EVENT: { title: "이벤트 위젯 설정", urlLabel: "이벤트 위젯 URL" },
-  MINI: { title: "미니후원 위젯 설정", urlLabel: "미니후원 위젯 URL" },
-  RANKING: { title: "후원랭킹 위젯 설정", urlLabel: "후원랭킹 위젯 URL" },
-  VOTE: { title: "투표 위젯 설정", urlLabel: "투표 위젯 URL" },
-  // 373:1307 has no URL box: sounds play through the alert widget.
-  CUSTOM_SOUND: { title: "커스텀 사운드 설정", urlLabel: "" },
-  QUEST: { title: "퀘스트 위젯 설정", urlLabel: "퀘스트 위젯 URL" },
-  GACHA: { title: "뽑기 후원 위젯 설정", urlLabel: "뽑기 후원 위젯 URL" },
-  ROULETTE: { title: "룰렛 설정", urlLabel: "룰렛 위젯 URL" },
-  WALLPAPER: { title: "벽지 위젯 설정", urlLabel: "벽지 위젯 URL" },
-  CLOCK: { title: "시계 위젯 설정", urlLabel: "시계 위젯 URL" }
-};
-
-/** Widgets whose popup saves item by item instead of through the footer. */
-const SELF_SAVING: EditableWidgetKey[] = ["CUSTOM_SOUND"];
 
 /**
  * 후원위젯/알림설정. Figma 529:4 (route `/creator/widgets`); popups 364:6 · 364:158 · 364:265 · 372:7 ·
@@ -83,8 +24,19 @@ const SELF_SAVING: EditableWidgetKey[] = ["CUSTOM_SOUND"];
  * The Figma 후원 알림 설정 alert-type cards are no longer listed (they had no popups); 그림후원 links to its own page.
  * 오버레이 테마 (code-first, 2026-10-08) sits above the catalog: the 전체 테마 every overlay is drawn in.
  */
-export function WidgetSettingsScreen({ alertWidgetUrl, switches, appearance }: { alertWidgetUrl: string; switches: Record<OverlayTarget, boolean>; appearance: OverlayAppearance }) {
-  const [openKey, setOpenKey] = useState<EditableWidgetKey | null>(null);
+export function WidgetSettingsScreen({
+  alertWidgetUrl,
+  switches,
+  appearance,
+  initialOpen = null
+}: {
+  alertWidgetUrl: string;
+  switches: Record<OverlayTarget, boolean>;
+  appearance: OverlayAppearance;
+  /** `?open=` — the popup to show first. */
+  initialOpen?: EditableWidgetKey | null;
+}) {
+  const [openKey, setOpenKey] = useState<EditableWidgetKey | null>(initialOpen);
   const [toast, setToast] = useState<string | null>(null);
   const clearToast = useCallback(() => setToast(null), []);
 
@@ -171,30 +123,7 @@ function CatalogGrid({ title, count, items, onOpen, sub = false }: { title: stri
   );
 }
 
-const maskKey = (path: string) => path.replace(/[^/]+$/, (k) => `${k.slice(0, 4)}-····-····-····`);
-
-/**
- * The widget's address. A 후원 위젯 with an OBS overlay (code-first) shows its real overlay URL with the
- * key masked (copy · 열기 use the full URL); the others keep the design's placeholder URL (TBD).
- */
-function WidgetUrl({ detail }: { detail: WidgetDetail }) {
-  const [origin, setOrigin] = useState("");
-  useEffect(() => setOrigin(window.location.origin), []);
-  const url = detail.overlayPath ? `${origin}${detail.overlayPath}` : detail.url;
-  const shown = detail.overlayPath ? `${origin}${maskKey(detail.overlayPath)}` : detail.url;
-  return (
-    <div className={styles.urlRow}>
-      <span className={styles.urlField}>{shown}</span>
-      <CopyButton value={url} label="URL 복사" className={styles.copyButton} />
-      <a href={url} target="_blank" rel="noopener noreferrer" className={styles.openButton}>
-        열기
-      </a>
-    </div>
-  );
-}
-
-type LoadState = { status: "LOADING" } | { status: "ERROR" } | { status: "READY"; detail: WidgetDetail };
-
+/** The studio popup around the shared editor (`WidgetEditor.tsx`, also used by the 도우미 feature pages). */
 function WidgetModal({
   widgetKey,
   alertWidgetUrl,
@@ -206,48 +135,9 @@ function WidgetModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [state, setState] = useState<LoadState>({ status: "LOADING" });
-  const [draft, setDraft] = useState<WidgetDetail["settings"] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [saving, startSaving] = useTransition();
-  const [attempt, setAttempt] = useState(0);
-  const busy = useRef(false);
-  const copy = MODAL_COPY[widgetKey];
-  const selfSaving = SELF_SAVING.includes(widgetKey);
-
-  useEffect(() => {
-    let alive = true;
-    getWidgetDetail(widgetKey)
-      .then((detail) => {
-        if (!alive) return;
-        if (!detail) return setState({ status: "ERROR" });
-        setState({ status: "READY", detail });
-        setDraft(detail.settings);
-      })
-      .catch(() => alive && setState({ status: "ERROR" }));
-    return () => {
-      alive = false;
-    };
-  }, [widgetKey, attempt]);
-
-  const save = () => {
-    if (!draft || busy.current) return;
-    busy.current = true;
-    setError(null);
-    startSaving(async () => {
-      try {
-        const result = await saveWidgetSettings(widgetKey, draft);
-        if (result.status === "SAVED") onSaved();
-        else setError(result.status === "INVALID" ? result.message : "로그인이 필요합니다. 다시 로그인해 주세요.");
-      } catch {
-        setError("저장하지 못했습니다. 잠시 후 다시 시도해 주세요.");
-      } finally {
-        busy.current = false;
-      }
-    });
-  };
-
-  const Form = FORMS[widgetKey] as ComponentType<FormProps<EditableWidgetKey>>;
+  const editor = useWidgetEditor(widgetKey, { onSaved });
+  const { state, saving, save, selfSaving } = editor;
+  const copy = WIDGET_EDITOR_COPY[widgetKey];
 
   return (
     <Modal
@@ -266,38 +156,7 @@ function WidgetModal({
       }
     >
       <div className={styles.modalBody} aria-busy={state.status === "LOADING" || saving}>
-        {state.status === "LOADING" && <p className={styles.state}>설정을 불러오는 중입니다…</p>}
-        {state.status === "ERROR" && (
-          <div className={styles.state}>
-            <p>설정을 불러오지 못했습니다.</p>
-            <button
-              type="button"
-              className={styles.smallButton}
-              onClick={() => {
-                setState({ status: "LOADING" });
-                setAttempt((n) => n + 1);
-              }}
-            >
-              다시 시도
-            </button>
-          </div>
-        )}
-        {state.status === "READY" && draft && (
-          <>
-            {copy.urlLabel && (
-              <div className={styles.urlBox}>
-                <span className={styles.urlLabel}>{copy.urlLabel}</span>
-                <WidgetUrl detail={state.detail} />
-              </div>
-            )}
-            <Form value={draft} onChange={setDraft} live={state.detail.live} />
-          </>
-        )}
-        {error && (
-          <p className={styles.error} role="alert">
-            {error}
-          </p>
-        )}
+        <WidgetEditorBody editor={editor} />
       </div>
       <footer className={styles.modalFooter}>
         {/* The design leaves this button's action undefined; it copies the 통합 알림창 URL (TBD). */}
