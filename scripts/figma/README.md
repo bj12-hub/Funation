@@ -61,3 +61,9 @@ Widget settings popups (9 페이지 section "방송 · 위젯 · 설정 팝업 (
 120 px from the top. Shared plugin data `ovPopup` (`(screenId)`) then swaps the placeholders for Overlay Theme instances
 (previews scaled to the stage, never enlarged), `Overlay/Theme Swatch`, `Studio/Alert Layout Icon` and `Studio/Goal Shape Icon`,
 adds the modal header margin and sets switch knobs; `ovPopupKit` holds the tree builders used for the popups (SHELL, ROW, SWITCH …).
+
+Ssumnation 도우미 (page 12 "12 레이아웃 · 도우미", 2026-10-14): two snippets in shared plugin data `somnation`, run with
+`await new Function("return " + figma.root.getSharedPluginData("somnation", KEY))()()`. `helperKit` returns layout helpers bound to the
+page 8 Helper components — `shell(activeMenu)` (Helper Sidebar + Main), `pageHeader`, `tabsRow`, `saveBar(dirty)`, `place(section, frame, id,
+name, url)` and `relayout()`. `helperRender` is the tree renderer of `renderer.js` (no placement), returning `{ render, paintOf }` for walker
+trees. Widget feature pages clone the body of the page 9 settings popups (W12a–W12p); studio screens clone the page 9 screen's Main.

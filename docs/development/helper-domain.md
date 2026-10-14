@@ -72,6 +72,11 @@ a drawer.
 The studio's 위젯 page takes `?open=GOAL` (opens that popup); 오버레이 주소 · 리모컨 · 대시보드 link with it, and on the helper
 host `/creator/widgets?open=KEY` goes to that widget's page (`WIDGET_HELPER_PATH`).
 
+## Figma
+
+"Ssumnation — 현재 구현 (2026-09)" page **12 레이아웃 · 도우미** (`326:655`): every screen above as editable frames (HP00–HP71),
+components in page 8's "Helper (도우미)" section. Node ids: `docs/figma/site-design-system.md` → "레이아웃 (12 레이아웃 · 도우미)".
+
 ## Environment
 
 `apps/web/.env.local` (production values in the host's secret store):
