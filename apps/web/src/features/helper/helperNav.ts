@@ -71,9 +71,10 @@ export const HELPER_NAV: HelperNavGroup[] = [
 ];
 
 /** The 리모컨 sits below the menu (legacy "도우미 웹 버전 열기 · 라이브 방송 리모컨"). */
-export const HELPER_REMOTE = { href: "/remote", label: "리모컨 열기", sub: "라이브 방송 리모컨" } as const;
+export const HELPER_REMOTE = { href: "/remote", label: "리모컨 열기", sub: "라이브 방송 리모컨 · 작은 창" } as const;
+export const HELPER_REMOTE_GUIDE = "/remote/guide";
 
-const PATHS = [...HELPER_NAV.flatMap((g) => g.items.map((i) => i.href)), HELPER_REMOTE.href];
+const PATHS = HELPER_NAV.flatMap((g) => g.items.map((i) => i.href));
 
 /** The menu entry for `pathname`: the most specific path that contains it ("/" only on itself). */
 export function helperActiveHref(pathname: string): string | null {

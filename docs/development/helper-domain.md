@@ -50,7 +50,9 @@ It is chrome only — never an authorization input; every page and server action
 
 `app/helper/layout.tsx`: signed out → landing (로그인 · 회원가입, `?next=` keeps the address that was opened); signed in
 without a channel → 채널 만들기; creators → the shell (`features/helper/HelperShell.tsx`): brand, profile (channel,
-nickname, linked platforms, 로그아웃), the menu (`helperNav.ts`) and the 리모컨 button. Below 900px the menu is a drawer.
+nickname, linked platforms, 로그아웃), the menu (`helperNav.ts`) and, at the bottom, the 리모컨 button (opens the 리모컨
+window; if the browser blocks popups it shows `/remote` instead) with "이 창에서 열기 · 리모컨 가이드". Below 900px the menu is
+a drawer.
 
 | Helper path | Screen |
 |---|---|
@@ -63,7 +65,8 @@ nickname, linked platforms, 로그아웃), the menu (`helperNav.ts`) and the 리
 | `/crew` · `/crew/broadcast` | 크루 관리 · 크루 방송 운영 |
 | `/overlays` · `/overlays/preview/[id]` | 오버레이 주소 · 미리보기 |
 | `/assets` · `/link` · `/youtube` · `/filtering` | 이미지 · 사운드 · 후원 연동 · 유튜브 연동 · 후원 필터링 |
-| `/remote` | 리모컨 (`RemoteScreen`) |
+| `/remote` · `/remote/guide` | 리모컨 in the shell (`RemoteScreen`) · 라이브 방송 리모컨 가이드 (`RemoteGuide.tsx`: what it does, the three ways to open it, notes) |
+| `/popout/remote` (shared with the site) | 리모컨 on its own — the menu's "리모컨 열기" opens it at 1000 × 800 (`remoteWindow.ts`, legacy size); the same address works as an OBS custom browser dock or on a phone. Signed out → `/login?next=/popout/remote` |
 | `/widgets` | redirects to `/` (the first build's 위젯 catalog) |
 
 The studio's 위젯 page takes `?open=GOAL` (opens that popup); 오버레이 주소 · 리모컨 · 대시보드 link with it, and on the helper
