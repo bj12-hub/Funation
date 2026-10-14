@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { logout } from "@/services/auth/logout";
 import { PLATFORM_LABEL, type Platform } from "@/types/platform";
-import { HELPER_BRAND, HELPER_NAV, HELPER_REMOTE, helperActiveHref } from "./helperNav";
+import { openRemoteWindow } from "@/features/creatorStudio/remote/remoteWindow";
+import { HELPER_BRAND, HELPER_NAV, HELPER_REMOTE, HELPER_REMOTE_GUIDE, helperActiveHref } from "./helperNav";
 import styles from "./helper.module.css";
 
 export type HelperShellUser = {
@@ -30,6 +31,7 @@ export function HelperBrand() {
  */
 export function HelperShell({ user, children }: { user: HelperShellUser; children: ReactNode }) {
   const pathname = usePathname() ?? "/";
+  const router = useRouter();
   const active = helperActiveHref(pathname);
   const [open, setOpen] = useState(false);
 
@@ -78,7 +80,8 @@ export function HelperShell({ user, children }: { user: HelperShellUser; childre
             ))}
           </nav>
           <div className={styles.remoteArea}>
-            <Link href={HELPER_REMOTE.href} className={styles.remoteButton} aria-current={active === HELPER_REMOTE.href ? "page" : undefined}>
+            {/* Legacy "도우미 웹 버전 열기 · 라이브 방송 리모컨": a 1000 × 800 window; shown here when popups are blocked. */}
+            <button type="button" className={styles.remoteButton} onClick={() => openRemoteWindow() || router.push(HELPER_REMOTE.href)}>
               <span className={styles.remoteIcon} aria-hidden="true">
                 🎛️
               </span>
@@ -86,7 +89,15 @@ export function HelperShell({ user, children }: { user: HelperShellUser; childre
                 <strong>{HELPER_REMOTE.label}</strong>
                 <span>{HELPER_REMOTE.sub}</span>
               </span>
-            </Link>
+            </button>
+            <div className={styles.remoteLinks}>
+              <Link href={HELPER_REMOTE.href} aria-current={pathname === HELPER_REMOTE.href ? "page" : undefined}>
+                이 창에서 열기
+              </Link>
+              <Link href={HELPER_REMOTE_GUIDE} aria-current={pathname === HELPER_REMOTE_GUIDE ? "page" : undefined}>
+                리모컨 가이드
+              </Link>
+            </div>
           </div>
         </aside>
         <main className={styles.main}>{children}</main>

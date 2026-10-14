@@ -43,6 +43,7 @@ import { BingoRemote } from "./BingoRemote";
 import { ToolsRemote } from "./ToolsRemote";
 import { VoteRemote } from "./VoteRemote";
 import { WallpaperRemote } from "./WallpaperRemote";
+import { openRemoteWindow } from "./remoteWindow";
 
 const STATUS_LABEL: Record<AlertStatus, string> = { QUEUED: "대기", SHOWING: "표시 중", DONE: "완료", SKIPPED: "건너뜀", FILTERED: "최소 금액 미만" };
 const time = (iso: string) => formatKstTime(iso, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -60,7 +61,8 @@ export function RemoteScreen({
   vote,
   roulette,
   gacha,
-  wallpaper
+  wallpaper,
+  variant = "page"
 }: {
   view: RemoteView;
   overlayPath: string;
@@ -69,6 +71,8 @@ export function RemoteScreen({
   roulette: RouletteRemoteView;
   gacha: GachaRemoteView;
   wallpaper: WallpaperRemoteView;
+  /** "window": the 리모컨 on its own (`/popout/remote`), without the button that opens that window. */
+  variant?: "page" | "window";
 }) {
   const router = useRouter();
   const { controls } = view;
@@ -147,9 +151,23 @@ export function RemoteScreen({
 
   return (
     <div className={styles.content}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>리모컨</h1>
-        <p className={styles.subtitle}>방송 중 후원 알림을 한 화면에서 제어하세요. 알림 오버레이는 이 대기열을 그대로 보여 줘요.</p>
+      <header className={remote.head}>
+        <div className={styles.header}>
+          <h1 className={styles.title}>리모컨</h1>
+          <p className={styles.subtitle}>방송 중 후원 알림을 한 화면에서 제어하세요. 알림 오버레이는 이 대기열을 그대로 보여 줘요.</p>
+        </div>
+        {variant === "page" && (
+          <button
+            type="button"
+            className={styles.ghost}
+            title="방송 중 옆에 띄워 두는 작은 창 (1000 × 800)"
+            onClick={() => {
+              if (!openRemoteWindow()) setNotice({ tone: "error", text: "브라우저가 새 창을 막았어요. 팝업을 허용한 뒤 다시 눌러 주세요." });
+            }}
+          >
+            ↗ 작은 창으로 열기
+          </button>
+        )}
       </header>
 
       {offOverlays.length > 0 && (
