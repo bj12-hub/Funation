@@ -80,6 +80,8 @@ git checkout -- .claude/launch.json
 bash scripts/test-worktree.sh down
 ```
 
+- The Ssumnation 도우미 (helper domain, 2026-10-14) is the same app on another host: open `http://helper.localhost:<port>`
+  (see `docs/development/helper-domain.md`); sign in there separately (host-only cookies).
 - Mock state lives in server memory (`globalThis.__ssumnationMock*`): restarting a dev server resets it.
 
 Tips:

@@ -175,6 +175,8 @@ Add a row whenever a new code-first screen ships (see `docs/research/funnation-r
 
 | 후원관리+ 대체 메시지 · 후원 필터링 안내 문구 (`donations/PageSettingsTab.tsx` 대체 메시지 칸 · `donations/FilterSettingsPanel.tsx`; `/creator/donations?tab=settings` · `?tab=filtering`) | donation-filter-on-stream PR | 2026-10-06 결정. 후원 페이지 설정(539:7) 대체 메시지 입력칸 아래 회색 안내 "비워 두면 메시지는 "(금지어가 포함된 메시지예요)", 닉네임은 "익명"으로 보여요." · 후원 필터링(539:466) 카드 설명 아래 회색 안내 "걸러진 후원도 그대로 받아요. 방송 알림과 TTS에서만 메시지가 후원 페이지 설정의 대체 메시지로 바뀌어요." 동작: 필터링(블랙리스트 단어 · 특수 문자/도배 · 비속어 강도)에 걸린 메시지는 방송 알림 · TTS에서만 대체 메시지로 바뀜(`docs/domains/donation.md`) |
 
+| Ssumnation 도우미 shell (`features/helper/HelperShell.tsx` · `HelperLanding.tsx` · `HelperHome.tsx` · `HelperNotFound.tsx`, `app/helper/*`) | helper-domain PR | 2026-10-14 결정: OBS 기능 + 리모컨만 새 도메인으로 먼저. 레거시 FlexTV 도우미 구성 — 왼쪽: 로고("Ssumnation" + 도우미 배지) · 프로필 카드(채널명 · 닉네임 · 연결 플랫폼 로고 · 로그아웃) · 메뉴(시작하기 / 방송 화면 / 후원 콘텐츠 / 크루 방송 / 연결 · 설정) · 맨 아래 "🎛️ 리모컨 열기 · 라이브 방송 리모컨" 버튼. 900px 아래는 상단 바 + 서랍 메뉴. 화면: 비로그인 랜딩(로그인 · 회원가입 + 기능 카드 3개), 채널 없음(내 채널 만들기 · 다른 계정으로 로그인), 시작하기(OBS 연결 순서 3단계 + 기능 카드), 도우미 404, 로그인 · 가입 · 채널 만들기 · 약관의 도우미 상단 바. Figma: 새 페이지 필요(현재 구현 파일) |
+
 ## Figma
 
 구현된 전체 화면 캡처는 [current-build.md](current-build.md)의 새 파일(Ssumnation — 현재 구현)에 있어요. 펀페이 파일에 잠시 두었던 "코드 우선 화면" 페이지는 2026-09-30에 삭제했어요.
