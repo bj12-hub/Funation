@@ -21,14 +21,17 @@
 
 .primary {
   background: var(--gradient-primary-button);
+  color: var(--color-text-on-accent);
 }
 
 .accent {
   background: var(--gradient-accent-button);
+  color: var(--color-text-on-accent);
 }
 
 .cta {
   background: var(--gradient-cta);
+  color: var(--color-text-on-accent);
 }
 
 .pink {

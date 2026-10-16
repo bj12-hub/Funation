@@ -43,12 +43,18 @@
   --color-primary: #8b5cf6;
   --color-primary-soft: rgba(139, 92, 246, 0.15);
   --color-primary-light: #a78bfa;
+  /* The brand purple as small text on a purple tint (chips, badges); light theme: a darker purple that keeps 4.5:1. */
+  --color-primary-text: var(--color-primary-light);
   --color-accent: #ec4899;
   /* The accent pink as text (light theme: a darker pink that keeps 4.5:1 on white). */
   --color-accent-text: var(--color-accent);
   --color-info: #3b82f6;
   --color-live: #f5bf0a;
+  /* The live gold as small text on a surface or its tint (light theme: darker, 4.5:1). --color-live stays the fill. */
+  --color-live-text: var(--color-live);
   --color-highlight: #06b6d4;
+  /* The highlight cyan as text on a surface (light theme: darker, 4.5:1). Text over media keeps --color-highlight. */
+  --color-highlight-text: var(--color-highlight);
   --color-accent-soft: rgba(236, 72, 153, 0.1);
   --color-neutral-soft: rgba(156, 163, 175, 0.1);
   --color-charge: #4a90e2;
@@ -343,6 +349,12 @@
   --color-primary-soft: rgba(139, 92, 246, 0.12);
   --color-primary-light: #7c3aed;
   --color-live: #b98100;
+
+  /* Text-only shades (2026-10-17 contrast pass, light only; the dark theme uses the tokens they point to). The fills
+     stay as they are; these keep 4.5:1 as small text on white and on the matching 12–20% tints. */
+  --color-primary-text: #6d28d9;
+  --color-live-text: #8a6100;
+  --color-highlight-text: #0e7490;
   --color-neutral-soft: rgba(107, 114, 128, 0.12);
   --color-nav-active-bg: #efe9ff;
 
@@ -411,7 +423,8 @@
   --color-notice-body: #55556e;
   --color-notice-check-border: #c4c4d4;
   --color-notice-check-label: #6e6e88;
-  --color-platform-offline: #7b7b8c;
+  /* OFFLINE pill text on its 13% tint (#7b7b8c was 3.5:1; 2026-10-17). */
+  --color-platform-offline: #5f5f6e;
 
   --color-input-bg: #ffffff;
   --color-button-disabled-bg: #e4e4ec;

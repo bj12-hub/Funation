@@ -207,7 +207,7 @@
 
 .badge[data-status="REFUNDING"] {
   background: var(--color-history-refunding-bg);
-  color: var(--color-live);
+  color: var(--color-live-text);
 }
 
 .badge[data-status="REFUNDED"] {

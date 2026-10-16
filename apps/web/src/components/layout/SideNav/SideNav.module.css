@@ -126,7 +126,7 @@
   padding: 10px 0;
   border-radius: var(--radius-8);
   background: var(--gradient-cta);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-accent);
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-bold);
 }

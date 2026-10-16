@@ -255,7 +255,8 @@ export function VideoFields({ value, onChange, balance, error, audio = false }: 
           />
         </span>
       </label>
-      <div className={styles.preview} aria-hidden={!videoId}>
+      {/* A dark video screen in both themes, so its text keeps the dark theme's colours. */}
+      <div className={styles.preview} aria-hidden={!videoId} data-theme="dark">
         <span className={styles.previewPlay} aria-hidden="true">
           ▶
         </span>
