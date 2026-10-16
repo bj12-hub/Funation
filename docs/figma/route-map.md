@@ -106,7 +106,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | Creator settings | OBS · Xsplit · 동시 송출 세팅 | setup guide popups 328:581 · 328:927 · 328:1266 (download links: official OBS / XSplit pages) |
 | Header | 언어 선택 | dropdown (265:242) — i18n pending |
 | Login | 비밀번호 찾기 · 회원가입 | `/password-reset` · `/signup` |
-| Login lockout | 비밀번호 재설정으로 이동 · 고객센터 | `/password-reset` · `/support` |
+| Login lockout | 비밀번호 재설정으로 이동 · 고객센터 | `/password-reset` · `/support` (도우미 domain: 고객센터 is plain text "썸네이션 사이트의 고객센터에 문의해 주세요", no link) |
 | Signup | 약관 `>` | `/terms/{youth,service,privacy,marketing}` (new tab) |
 | Signup | 로그인 | `/login` |
 | Signup complete | 로그인 페이지로 이동 · 간편 로그인 연동하러 가기 | `/login` · `/mypage` |
