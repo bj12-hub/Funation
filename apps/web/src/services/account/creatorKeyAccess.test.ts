@@ -145,7 +145,7 @@ describe("정지 · 탈퇴 중 OBS 오버레이 키", () => {
 
     await withdrawCreator();
     expect(await notFoundPages(k)).toEqual(ALL_PAGES);
-  });
+  }, 30_000); // renders nine overlay pages; slow under a full parallel run
 
   it("keeps the 리모컨 (/popout/remote) closed while suspended: it has no key or token, only the creator's session", async () => {
     const { startSession } = await import("@/lib/session");

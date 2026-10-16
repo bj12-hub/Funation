@@ -11,8 +11,19 @@ import {
   type SoopChatDto,
   type YtChatDto
 } from "./mockBroadcastRemote";
+import { consumeHistoryFailure, flexFetchGiftHistory, type FlexGiftHistoryDto } from "./mockHistoryRemote";
 import type { AmountUnit, UnitCode } from "@/types/donationUnit";
-import { PlatformError, type ChannelProfile, type ChannelVideo, type ChatAuthorRole, type ExternalChatMessage, type ExternalDonationEvent, type PlatformCapability } from "./platformTypes";
+import {
+  PlatformError,
+  type ChannelProfile,
+  type ChannelVideo,
+  type ChatAuthorRole,
+  type ExternalChatMessage,
+  type ExternalDonationEvent,
+  type ExternalReceivedDonation,
+  type PlatformCapability,
+  type ReceivedDonationPage
+} from "./platformTypes";
 
 /**
  * PlatformAdapter (CLAUDE.md §9) — server-only. Each platform declares what it can do; callers check
@@ -48,6 +59,11 @@ export interface PlatformAdapter {
   deleteChatMessage(externalChannelId: string, externalMessageId: string): Promise<void>;
   /** `durationSec` null = permanent. CHAT_MODERATE only. */
   banChatUser(externalChannelId: string, platformUserId: string, durationSec: number | null): Promise<void>;
+  /**
+   * Donations the channel received, oldest first, one page after `cursor` (opaque; null = from the start, or from
+   * `since` when given). DONATION_HISTORY only (내역 이관). Malformed items are dropped and counted in `skipped`.
+   */
+  fetchReceivedDonations(externalChannelId: string, opts: { cursor: string | null; since: string | null }): Promise<ReceivedDonationPage>;
 }
 
 const TIMEOUT_MS = 5_000;
@@ -329,7 +345,8 @@ export const YouTubeAdapter: PlatformAdapter = {
   async banChatUser(channelId, userId, durationSec) {
     consumeFailure("YOUTUBE");
     channelRemote(channelId).bans[userId] = { untilMs: durationSec === null ? null : Date.now() + durationSec * 1000 };
-  }
+  },
+  fetchReceivedDonations: unsupportedCall
 };
 
 // ── CHZZK (치지직) — Open API scope unconfirmed (TBD) ─────────────────────────
@@ -373,7 +390,8 @@ export const ChzzkAdapter: PlatformAdapter = {
     return { externalMessageId: echoOwner("CHZZK", channelId, clip(text, MAX_TEXT)) };
   },
   deleteChatMessage: unsupportedCall,
-  banChatUser: unsupportedCall
+  banChatUser: unsupportedCall,
+  fetchReceivedDonations: unsupportedCall
 };
 
 // ── SOOP — chat / 별풍선 APIs unconfirmed (TBD) ───────────────────────────────
@@ -411,7 +429,8 @@ export const SoopAdapter: PlatformAdapter = {
   },
   sendChatMessage: unsupportedCall,
   deleteChatMessage: unsupportedCall,
-  banChatUser: unsupportedCall
+  banChatUser: unsupportedCall,
+  fetchReceivedDonations: unsupportedCall
 };
 
 // ── FlexTV — chat / donation APIs unconfirmed (TBD) ──────────────────────────
@@ -426,10 +445,25 @@ export const mapFlexChat = (d: FlexChatDto): ExternalChatMessage | null =>
 export const mapFlexDonation = (d: FlexDonationDto): ExternalDonationEvent | null =>
   donationEvent("FLEXTV", d.id, d.user.nick, d.text, d.createdAt, toAmount(d.amount, { integer: false }), "FLEXTV_UNIT" satisfies UnitCode, "FlexTV 후원");
 
+/**
+ * A received-donation history item (내역 이관). Amounts in 원 when FlexTV says KRW; anything else keeps FlexTV's
+ * placeholder unit (FlexTV's unit is TBD). An item without an id, donor name, real time or positive amount is dropped.
+ */
+export function mapFlexGiftHistory(d: FlexGiftHistoryDto): ExternalReceivedDonation | null {
+  const externalTransactionId = idOf(d.giftNo);
+  const donorName = str(d.sender?.nick)?.trim() ?? "";
+  const occurredAt = toIsoTime(d.giftedAt);
+  const krw = d.currency === "KRW";
+  const value = toAmount(d.price, { integer: krw });
+  if (!externalTransactionId || !donorName || !occurredAt || value === null) return null;
+  const unit: UnitCode = krw ? "KRW" : "FLEXTV_UNIT";
+  return { platform: "FLEXTV", externalTransactionId, donorName: clip(donorName, 40), message: clip(str(d.memo) ?? "", MAX_TEXT), amount: { value, unit }, occurredAt };
+}
+
 export const FlexTvAdapter: PlatformAdapter = {
   platform: "FLEXTV",
-  capabilities: ["CHANNEL_PROFILE", "LIVE_STATUS", "DONATION_EVENTS", "CHAT_EVENTS"],
-  unverified: ["CHANNEL_PROFILE", "DONATION_EVENTS", "CHAT_EVENTS"],
+  capabilities: ["CHANNEL_PROFILE", "LIVE_STATUS", "DONATION_EVENTS", "CHAT_EVENTS", "DONATION_HISTORY"],
+  unverified: ["CHANNEL_PROFILE", "DONATION_EVENTS", "CHAT_EVENTS", "DONATION_HISTORY"],
   async getChannel(handle) {
     return mockChannel("FLEXTV", "flex_", handle);
   },
@@ -448,7 +482,13 @@ export const FlexTvAdapter: PlatformAdapter = {
   },
   sendChatMessage: unsupportedCall,
   deleteChatMessage: unsupportedCall,
-  banChatUser: unsupportedCall
+  banChatUser: unsupportedCall,
+  async fetchReceivedDonations(channelId, { cursor, since }) {
+    const page = await (consumeHistoryFailure("FLEXTV") ?? flexFetchGiftHistory(channelId, cursor, since));
+    const { items: donations, skipped } = mapValid(Array.isArray(page.list) ? page.list : [], mapFlexGiftHistory);
+    // The cursor stays where it was when FlexTV gives none, so a page is never read twice nor skipped.
+    return { donations, cursor: page.nextToken ?? cursor, hasMore: page.more === true, skipped };
+  }
 };
 
 export const ADAPTERS: Record<Platform, PlatformAdapter> = { YOUTUBE: YouTubeAdapter, CHZZK: ChzzkAdapter, SOOP: SoopAdapter, FLEXTV: FlexTvAdapter };

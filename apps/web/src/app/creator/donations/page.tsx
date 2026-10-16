@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { DonationListTab } from "@/features/creatorStudio/donations/DonationListTab";
 import { DonorRankingTab } from "@/features/creatorStudio/donations/DonorRankingTab";
 import { FilteringTab } from "@/features/creatorStudio/donations/FilteringTab";
+import { ImportTab } from "@/features/creatorStudio/donations/ImportTab";
 import { ManagementShell } from "@/features/creatorStudio/donations/ManagementShell";
 import { PageSettingsTab } from "@/features/creatorStudio/donations/PageSettingsTab";
 import { TitlesTab } from "@/features/creatorStudio/donations/TitlesTab";
@@ -14,6 +15,7 @@ import {
   getReceivedDonations,
   getTitleTiers
 } from "@/services/creator/donationManagement";
+import { getDonationImportOverview, getImportedDonations } from "@/services/creator/donationImport";
 import {
   LIST_KINDS,
   QUEST_STATUSES,
@@ -48,6 +50,26 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
     return (
       <ManagementShell tab="filtering">
         <FilteringTab sub={sub} settings={settings} blocked={blocked} />
+      </ManagementShell>
+    );
+  }
+
+  if (tab === "import") {
+    // Code-first (2026-10-16): 내역 이관 — 가져오기 (default) · 가져온 내역 (`?sub=records&source=&from=&to=&q=&page=`).
+    if (one(raw.sub) === "records") {
+      const records = await getImportedDonations({ source: one(raw.source), from: one(raw.from), to: one(raw.to), q: one(raw.q), page: Number(one(raw.page) ?? 1) });
+      if (!records) redirect(LOGIN);
+      return (
+        <ManagementShell tab="import">
+          <ImportTab sub="records" overview={null} records={records} />
+        </ManagementShell>
+      );
+    }
+    const overview = await getDonationImportOverview();
+    if (!overview) redirect(LOGIN);
+    return (
+      <ManagementShell tab="import">
+        <ImportTab sub="upload" overview={overview} records={null} />
       </ManagementShell>
     );
   }

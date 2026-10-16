@@ -39,7 +39,7 @@ Changes from before:
   - 시청 기록: this was disabled before.
 - **Not built yet:**
   - 서비스 소개 (`/about`)
-  - 투네이션 내역 이관: needs a product decision.
+  - 투네이션 내역 이관: built code-first in the studio instead (후원관리+ › 내역 이관, 2026-10-16 기본값 — TBD, docs/domains/donation-import.md); the public side menu has no entry, the studio sidebar has 수익 › 내역 이관.
   - 알림 (notifications)
 
 ### Home (`/`)
@@ -168,7 +168,7 @@ The studio header follows the funnation studio: logo + **스튜디오** badge on
 | 채널 | 채널 설정 `/creator/settings` · 후원 페이지 설정 `?tab=settings` · 칭호 관리 `?tab=titles` · 유튜브 연동 `/creator/youtube` · 영상 목록 `/creator/videos` | 채널 설정 · 유튜브 연동 · 영상 목록 · 칭호 관리 |
 | 방송 | 위젯 · 방송 도구 · 오버레이 주소 · 이미지·사운드 (TBD) · 리모컨 | 위젯 · 오버레이 주소 · 이미지·사운드 · 리모컨 |
 | 크루 방송 | 크루 관리 · 방송 운영 | 엑셀방송 · 엑셀콘 |
-| 수익 | 수익 현황 `/creator/revenue` · 받은 후원 `?tab=list` · 후원 순위 `?tab=ranking` · 후원 필터링 `?tab=filtering` · 크리에이터 랭킹 | 현황 · 받은 후원 |
+| 수익 | 수익 현황 `/creator/revenue` · 받은 후원 `?tab=list` · 후원 순위 `?tab=ranking` · 후원 필터링 `?tab=filtering` · 내역 이관 `?tab=import` (2026-10-16) · 크리에이터 랭킹 | 현황 · 받은 후원 · (투네이션 후원 내역 이관하기) |
 | 정산 | 정산 현황 · 정산 인증·등록 · 정산 신청 · 정산 관리 | 정산 인증 · 정산 신청 |
 | (소식) | 소식 `/creator/updates` | 소식 |
 
@@ -244,7 +244,7 @@ TBD:
 - Notifications: which other events trigger them, per-user inboxes and storage, push · e-mail (decided 2026-10-09: the
   result of a 확인 중 플랫폼 후원 and 이벤트 보상 지급 · 당첨 · 발표 notify the current account once — docs/product/open-decisions.md).
 - A 서비스 소개 page.
-- Donation-history migration from other services.
+- Donation-history migration from other services — built 2026-10-16 with defaults pending the user's confirmation (who imports what, where it counts; docs/product/open-decisions.md).
 - A settings page (what it holds).
 - Whether the header search should become a full search page (live + creators + community) instead of linking to 크리에이터 찾기.
 

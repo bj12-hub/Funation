@@ -4,6 +4,7 @@ import { USE_MOCK } from "@/lib/mock";
 import { overlayKeyOpen } from "@/services/account/creatorAccess";
 import { mockAlerts, overlaySignal } from "./alertCore";
 import { shownOnStream } from "./donationPageCore";
+import { importedBoardEntries } from "./donationImportCore";
 import { mockQuests } from "@/services/donations/questCore";
 import { currentRun, voteBoard } from "@/services/votes/voteCore";
 import { isHidden, stageOf } from "@/services/donations/rouletteCore";
@@ -43,7 +44,8 @@ export async function getOverlayWidget(widget: unknown, key: unknown): Promise<O
         settings.board === "CREW"
           ? crewRankingRows(mockCrew.attributions.filter((a) => a.channelId === STUDIO_CHANNEL), mockCrew.crews[STUDIO_CHANNEL] ?? [], settings)
           : settings.board === "SOURCE"
-            ? sourceBoardRows(items, settings)
+            ? // 내역 이관: imported records add their own rows (sums only — no names reach the overlay).
+              sourceBoardRows(items, settings, new Date(), importedBoardEntries())
             : rankingRows(items, settings);
       return { widget, settings, rows, ...themed(settings) };
     }

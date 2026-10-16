@@ -11,7 +11,9 @@ export const MANAGEMENT_TABS = [
   { key: "list", label: "후원 리스트" },
   { key: "ranking", label: "후원 순위" },
   { key: "filtering", label: "후원 필터링" },
-  { key: "titles", label: "칭호 설정" }
+  { key: "titles", label: "칭호 설정" },
+  // Code-first (2026-10-16): 투네이션 CSV · FlexTV 후원 내역 이관 (./donationImportTypes.ts).
+  { key: "import", label: "내역 이관" }
 ] as const;
 export type ManagementTab = (typeof MANAGEMENT_TABS)[number]["key"];
 export const parseManagementTab = (v: string | undefined): ManagementTab =>

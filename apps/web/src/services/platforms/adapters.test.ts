@@ -73,4 +73,45 @@ describe("platform adapters", () => {
     expect((await m.SoopAdapter.fetchChatMessages("soop-chat", null)).messages.map((x) => x.author.roles)).toEqual([[], []]);
     expect((await m.FlexTvAdapter.fetchChatMessages("flex-chat", null)).messages.map((x) => x.author.roles)).toEqual([[]]);
   });
+
+  it("pages FlexTV's received-donation history (내역 이관) through core types; the others do not declare it", async () => {
+    const m = await load();
+    const history = await import("./mockHistoryRemote");
+    expect(m.FlexTvAdapter.capabilities).toContain("DONATION_HISTORY");
+    expect(m.FlexTvAdapter.unverified).toContain("DONATION_HISTORY");
+    for (const a of [m.YouTubeAdapter, m.ChzzkAdapter, m.SoopAdapter]) {
+      expect(a.capabilities).not.toContain("DONATION_HISTORY");
+      await expect(a.fetchReceivedDonations("x", { cursor: null, since: null })).rejects.toMatchObject({ code: "UNSUPPORTED" });
+    }
+
+    const first = await m.FlexTvAdapter.fetchReceivedDonations("flex-hist", { cursor: null, since: null });
+    expect(first).toMatchObject({ hasMore: true, skipped: 0 });
+    expect(first.donations).toHaveLength(history.FLEX_HISTORY_PAGE);
+    expect(Object.keys(first.donations[0]).sort()).toEqual(["amount", "donorName", "externalTransactionId", "message", "occurredAt", "platform"]);
+    expect(first.donations[0]).toMatchObject({ platform: "FLEXTV", amount: { unit: "KRW" } });
+    const rest = [];
+    let cursor = first.cursor;
+    for (;;) {
+      const page = await m.FlexTvAdapter.fetchReceivedDonations("flex-hist", { cursor, since: null });
+      rest.push(...page.donations);
+      cursor = page.cursor;
+      if (!page.hasMore) break;
+    }
+    expect(first.donations.length + rest.length).toBe(45);
+    // Nothing new yet: the cursor stays at the end and the next read is empty.
+    expect(await m.FlexTvAdapter.fetchReceivedDonations("flex-hist", { cursor, since: null })).toMatchObject({ donations: [], hasMore: false, cursor });
+    // `since` limits a read without a cursor.
+    const last = rest[rest.length - 1];
+    expect((await m.FlexTvAdapter.fetchReceivedDonations("flex-hist", { cursor: null, since: last.occurredAt })).donations.map((d) => d.externalTransactionId)).toEqual([last.externalTransactionId]);
+  });
+
+  it("drops a FlexTV history item without an id, donor name, real time or positive amount", async () => {
+    const m = await load();
+    const base = { giftNo: 1, sender: { id: "a", nick: "별빛" }, price: 1_000, currency: "KRW", memo: "안녕", giftedAt: "2026-10-01T10:00:00+09:00" };
+    expect(m.mapFlexGiftHistory(base)).toEqual({ platform: "FLEXTV", externalTransactionId: "1", donorName: "별빛", message: "안녕", amount: { value: 1_000, unit: "KRW" }, occurredAt: "2026-10-01T01:00:00.000Z" });
+    expect(m.mapFlexGiftHistory({ ...base, currency: "HEART", price: 2.5 })).toMatchObject({ amount: { value: 2.5, unit: "FLEXTV_UNIT" } });
+    for (const bad of [{ giftNo: "" }, { sender: { id: "a", nick: " " } }, { price: "1,000" }, { price: 1.5 }, { price: -1 }, { giftedAt: "어제" }, { sender: null as never }]) {
+      expect(m.mapFlexGiftHistory({ ...base, ...bad }), JSON.stringify(bad)).toBeNull();
+    }
+  });
 });
