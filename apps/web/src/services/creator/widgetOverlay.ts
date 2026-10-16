@@ -1,10 +1,9 @@
 "use server";
 
 import { USE_MOCK } from "@/lib/mock";
-import { sameSecret } from "@/lib/secret";
+import { overlayKeyOpen } from "@/services/account/creatorAccess";
 import { mockAlerts, overlaySignal } from "./alertCore";
 import { shownOnStream } from "./donationPageCore";
-import { mockCreator } from "./mockCreatorStore";
 import { mockQuests } from "@/services/donations/questCore";
 import { currentRun, voteBoard } from "@/services/votes/voteCore";
 import { isHidden, stageOf } from "@/services/donations/rouletteCore";
@@ -23,7 +22,7 @@ import { clearedAtOf, mockWallpaper, wallStickers } from "./wallpaperCore";
  */
 export async function getOverlayWidget(widget: unknown, key: unknown): Promise<OverlayWidget | "FORBIDDEN"> {
   if (!USE_MOCK) throw new Error("Widget overlay API is not connected yet.");
-  if (!sameSecret(key, mockCreator.integrationKey) || !isWidgetOverlay(widget)) return "FORBIDDEN";
+  if (!overlayKeyOpen(key) || !isWidgetOverlay(widget)) return "FORBIDDEN";
   // 리모컨 signals: 새로고침 (reloadSeq) and 기능 제어 ON/OFF (on), shared by every 후원 위젯; the theme is the
   // widget's own 오버레이 테마 choice when its settings have one (the rest follow the 전체 테마).
   const base = { ...overlaySignal("widgets"), serverNow: new Date().toISOString() };

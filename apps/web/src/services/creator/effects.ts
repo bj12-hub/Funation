@@ -2,7 +2,7 @@
 
 import { USE_MOCK } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
-import { sameSecret } from "@/lib/secret";
+import { overlayKeyOpen } from "@/services/account/creatorAccess";
 import { advance, mockAlerts, overlaySignal } from "./alertCore";
 import {
   DEFAULT_EFFECTS,
@@ -14,7 +14,6 @@ import {
   type LayerEffect,
   type OverlayEffects
 } from "./effectsTypes";
-import { mockCreator } from "./mockCreatorStore";
 
 /**
  * 이펙트 설정 Server Actions — code-first. Route `/creator/widgets/effects`, overlay
@@ -73,7 +72,7 @@ function resolve(settings: EffectSettings, fnAmount: number): Pick<OverlayEffect
 /** OBS overlay read — no login; the integration key is the secret. */
 export async function getOverlayEffects(key: unknown): Promise<OverlayEffects | "FORBIDDEN"> {
   assertMock();
-  if (!sameSecret(key, mockCreator.integrationKey)) return "FORBIDDEN";
+  if (!overlayKeyOpen(key)) return "FORBIDDEN";
   advance();
   const showing = mockAlerts.items.find((a) => a.status === "SHOWING");
   const signal = overlaySignal("effects");

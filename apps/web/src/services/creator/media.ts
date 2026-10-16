@@ -3,12 +3,11 @@
 import { USE_MOCK } from "@/lib/mock";
 import { ownEntry } from "@/lib/records";
 import { getCreatorSession } from "@/lib/session";
-import { sameSecret } from "@/lib/secret";
+import { overlayKeyOpen } from "@/services/account/creatorAccess";
 import { parseYouTubeId } from "@/services/donations/donationTypes";
 import { overlaySignal } from "./alertCore";
 import { shownOnStream } from "./donationPageCore";
 import { addDrawing, advanceDrawings, advanceVideos, currentDrawing, enqueueVideo, mockMedia, playingEndsAt, playingVideo, playSeconds, showDrawing, startVideo } from "./mediaCore";
-import { mockCreator } from "./mockCreatorStore";
 import { overlayTheme, readLook } from "./overlayThemeStore";
 import { MEDIA_LIMITS, type DrawingView, type MediaResult, type OverlayDrawing, type OverlayVideo, type VideoQueueView } from "./mediaTypes";
 
@@ -104,7 +103,7 @@ export async function controlVideo(input: unknown): Promise<MediaResult> {
 /** OBS overlay read — no login; the integration key is the secret. */
 export async function getOverlayVideo(key: unknown): Promise<OverlayVideo | "FORBIDDEN"> {
   assertMock();
-  if (!sameSecret(key, mockCreator.integrationKey)) return "FORBIDDEN";
+  if (!overlayKeyOpen(key)) return "FORBIDDEN";
   advanceVideos();
   const p = playingVideo();
   return {
@@ -194,7 +193,7 @@ export async function deleteDrawing(id: unknown): Promise<MediaResult> {
 
 export async function getOverlayDrawing(key: unknown): Promise<OverlayDrawing | "FORBIDDEN"> {
   assertMock();
-  if (!sameSecret(key, mockCreator.integrationKey)) return "FORBIDDEN";
+  if (!overlayKeyOpen(key)) return "FORBIDDEN";
   advanceDrawings();
   const cur = currentDrawing();
   // A paid drawing's name and title show as the creator's 대체 메시지 settings say (2026-10-07 결정), like alerts;

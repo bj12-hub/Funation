@@ -49,6 +49,10 @@ On the site's host `/helper/*` is a 404 (or, with `HELPER_HOST` set, a redirect 
 Every page request carries `x-ssumnation-surface: site | helper` (a client-sent value is overwritten). Layouts read it
 with `lib/surface.ts` `getSurface()` to pick their chrome: the auth pages and `(main)` (채널 만들기, terms) get the helper's
 top bar, the 404s point back to the helper, and sign-up does not offer 간편 로그인 연동 (마이페이지 is not on the helper).
+고객센터 (`/support`) is not on the helper either, and the site's domain is TBD: the sign-in page's 로그인 제한 안내 says
+"도움이 필요하신가요? 썸네이션 사이트의 고객센터에 문의해 주세요" and the 정지 계정 message "…썸네이션 사이트의 고객센터로 문의해
+주세요", both plain text (no link). The auth screens link only to helper-served pages (sign-in, sign-up, 비밀번호 재설정,
+채널 만들기, terms).
 It is chrome only — never an authorization input; every page and server action still checks the session and role.
 
 ## Screens

@@ -107,7 +107,8 @@ Authentication for every platform (OAuth / login) is TBD.
   Data saved by label before the codes (자동엑셀 환산값, 후원 리스트 entries, alert `native.currency`) is mapped to the
   code when read, and actions still accept a label from an older screen.
 - Events are pulled when 후원 연동 opens or polls, and by the alert overlay read (at most every 2 s —
-  mock transport only; production receives them through the live connection, TBD).
+  mock transport only; production receives them through the live connection, TBD). While the creator is suspended or
+  withdrawn the overlay key is refused, so the overlay pulls nothing ([creator](./creator.md) "키 · 링크 접근").
 - Turning a platform on starts from "now". Platforms whose DONATION_EVENTS is unverified show
   「API 확인 중」 on 후원 연동.
 

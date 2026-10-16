@@ -46,6 +46,25 @@ Supported:
 - **즐겨찾기 (2026-10-08 결정)**: 정지 기간 동안 `/favorites` 목록에서도 빠지고, 건수 · 페이지 · 빈 화면도 보이는 목록을
   따른다. 저장된 즐겨찾기는 지우지 않으므로 정지가 풀리면 다시 보인다.
 
+### 키 · 링크 접근 (`services/account/creatorAccess.ts`)
+
+[wallet](./wallet.md) "정지 · 탈퇴 중에는 키 · 링크로 하는 접근도 막힙니다"의 목록. 로그인 없이 키 · 링크만으로 채널 대신
+동작하는 주소는 정지 기간(기간 정지 · 영구 정지)과 탈퇴 뒤에 모두 막힌다(`creatorAccessOpen`). 도우미 호스트에서도 같다.
+
+| 주소 | 막혔을 때 |
+|---|---|
+| OBS 오버레이 `/overlay/<종류>/<연동 키>` — 후원 알림 · 통합 채팅 · 후원 위젯 14종(`/overlay/widget/*`) · 방송 도구 5종(`/overlay/tool/*`) · 배너 · 이펙트 · 영상 후원 · 그림 후원 · 크루 점수판, 그리고 오버레이가 주기적으로 읽는 데이터(리모컨 신호 포함, `overlayKeyOpen`) | 잘못된 키와 같음: 페이지는 오버레이 404(투명, 아무것도 그리지 않음), 읽기는 `FORBIDDEN`. 방송 화면에 오류 문구는 없다. 이미 열려 있던 오버레이는 다음 읽기에서 비워진다 |
+| 매니저 채팅 링크 `/popout/chat/m/<토큰>` (보기 · 숨김 · 삭제 · 차단 · 통합 입력) | 지운 링크와 같은 거부 화면 · `UNAUTHORIZED` |
+| SMS 계좌후원 주소 `/api/bank-sms/<키>` | 403 `{ "status": "OFF" }`, 문자는 기록되지 않음 |
+
+- 정지가 풀리면(기간 만료 또는 운영자의 정지 해제) 같은 키 · 링크로 다시 동작한다(재발급 없음). 열려 있던 통합 채팅
+  오버레이는 계속 확인하다가 스스로 돌아오고, 다른 오버레이는 OBS 브라우저 소스를 새로 고치면 돌아온다.
+- 탈퇴는 이전처럼 오버레이 키 · SMS 주소를 재발급하고 매니저 링크를 지운다([wallet](./wallet.md) 회원 탈퇴).
+- 키 · 링크가 아니라 따로 막지 않는 것: 리모컨(`/popout/remote` · `/creator/remote`), 통합 채팅 창(`/popout/chat`), 스튜디오와
+  도우미 화면은 크리에이터 세션으로만 열리고, 정지 · 탈퇴 중에는 세션이 없다(로그인 · 기존 세션 모두 막힘).
+- 이번 목록에 넣지 않은 것(TBD): `/api/media/<id>` · `/api/custom-sound/<id>`는 채널 대신 동작하지 않는 파일 주소(라이브러리
+  이미지 · 사운드, 추측할 수 없는 id)라 정지 중에도 그대로 응답한다.
+
 ## 벽지 위젯 (`services/creator/wallpaperCore.ts`)
 
 - A sticker keeps the 벽지 image it first got (`mockWallpaper.stickerImages`), so uploading or deleting an image never
