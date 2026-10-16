@@ -100,6 +100,26 @@ describe("랭킹 종류", () => {
     ]);
   });
 
+  it("adds imported 투네이션 · FlexTV records (내역 이관) as rows of their own, in 원, by when they were donated", () => {
+    const live = [
+      alert("2026-10-03T09:00:00", "누군가", 1_000),
+      alert("2026-10-03T09:00:00", "누군가", 0, { kind: "EXTERNAL", platform: "FLEXTV", native: { value: 3, unit: "FLEXTV_UNIT" } })
+    ];
+    const imported = [
+      { source: "TOONATION" as const, unit: "KRW", value: 10_000, at: at("2026-10-02T10:00:00") },
+      { source: "TOONATION" as const, unit: "KRW", value: 5_000, at: at("2026-10-03T08:00:00") },
+      { source: "FLEXTV" as const, unit: "KRW", value: 2_000, at: at("2026-08-01T10:00:00") } // before this month
+    ];
+    expect(sourceBoardRows(live, { period: "월간", ranks: 10 }, now, imported).map((r) => [r.name, r.fnAmount, r.amountLabel])).toEqual([
+      ["투네이션 이관 · 2건", 0, formatMoney(15_000, "KRW")],
+      ["썸네이션 FN · 1건", 1_000, "1,000 FN"],
+      ["FlexTV · 1건", 0, "3 FlexTV 후원"]
+    ]);
+    expect(sourceBoardRows(live, { period: "전체", ranks: 10 }, now, imported).map((r) => r.name)).toContain("FlexTV 이관 · 1건");
+    // Nothing imported: the board is what it was.
+    expect(sourceBoardRows(live, { period: "전체", ranks: 10 }, now, [])).toEqual(sourceBoardRows(live, { period: "전체", ranks: 10 }, now));
+  });
+
   it("reads settings saved before the boards as 후원자 랭킹 and rejects unknown boards", async () => {
     const { PARSERS } = await import("./widgetParsers");
     const { board: _drop, ...old } = D.RANKING;

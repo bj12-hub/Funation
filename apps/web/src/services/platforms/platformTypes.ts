@@ -8,9 +8,10 @@ import type { Platform } from "@/types/platform";
 
 /**
  * CHAT_EVENTS = read live chat · CHAT_SEND = post as the channel · CHAT_MODERATE = delete messages and
- * ban/timeout users on the platform itself.
+ * ban/timeout users on the platform itself · DONATION_HISTORY = page through the donations the channel received in the
+ * past (내역 이관, 2026-10-16 — FlexTV only, mock; the real API is TBD).
  */
-export type PlatformCapability = "CHANNEL_PROFILE" | "VIDEO_LIST" | "LIVE_STATUS" | "CHAT_EVENTS" | "CHAT_SEND" | "CHAT_MODERATE" | "DONATION_EVENTS";
+export type PlatformCapability = "CHANNEL_PROFILE" | "VIDEO_LIST" | "LIVE_STATUS" | "CHAT_EVENTS" | "CHAT_SEND" | "CHAT_MODERATE" | "DONATION_EVENTS" | "DONATION_HISTORY";
 
 /** A live-chat message as the core domain sees it. Platform DTOs are mapped inside the adapter. */
 export type ExternalChatMessage = {
@@ -58,6 +59,26 @@ export type ExternalDonationEvent = {
   kindLabel: string;
   occurredAt: string;
 };
+
+/**
+ * A donation the channel received in the past (DONATION_HISTORY), as the core sees it. Amount in the platform's own unit
+ * code; no FN rate.
+ */
+export type ExternalReceivedDonation = {
+  platform: Platform;
+  /** The platform's transaction id — the dedupe key of 내역 이관 (External Transaction ID). */
+  externalTransactionId: string;
+  donorName: string;
+  message: string;
+  amount: { value: number; unit: AmountUnit };
+  occurredAt: string;
+};
+
+/**
+ * One page of received-donation history, oldest first. `cursor` (opaque) continues after this page — also when the
+ * platform has nothing more yet, so the next sync only gets what is new. Malformed items are dropped and counted.
+ */
+export type ReceivedDonationPage = { donations: ExternalReceivedDonation[]; cursor: string | null; hasMore: boolean; skipped: number };
 
 /**
  * Read position in a platform feed (chat, donation events), tied to the channel it was read from. None,

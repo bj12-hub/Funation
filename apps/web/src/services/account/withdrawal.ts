@@ -8,6 +8,7 @@ import { bankSmsStore } from "@/services/bankSms/bankSmsCore";
 import { clearChatFeed, managerLinks, onChannelChanged } from "@/services/broadcast/chatCore";
 import { channelsStore } from "@/services/broadcast/channelsCore";
 import { BROADCAST_PLATFORMS } from "@/services/platforms/adapters";
+import { clearDonationImports } from "@/services/creator/donationImportCore";
 import { mockCreator, newIntegrationKey } from "@/services/creator/mockCreatorStore";
 import { mockSettlement } from "@/services/creator/mockSettlementStore";
 import { youtubeStore } from "@/services/creator/youtubeCore";
@@ -229,6 +230,9 @@ export async function withdrawAccount(input: unknown): Promise<WithdrawResult> {
   clearChatFeed();
   Object.assign(bankSmsStore(), { enabled: false, key: randomUUID() });
   mockCreator.integrationKey = newIntegrationKey();
+  // 내역 이관: donations imported from 투네이션 / FlexTV hold other people's nicknames and messages; they go with the
+  // account, with the batches, files waiting in a preview and the FlexTV read position.
+  clearDonationImports();
   // Revoke instead of deleting the cookie, so the page keeps showing the 탈퇴 완료 state.
   await revokeSession();
   return { status: "WITHDRAWN" };

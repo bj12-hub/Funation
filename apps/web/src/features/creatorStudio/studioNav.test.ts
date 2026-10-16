@@ -6,6 +6,7 @@ describe("studio sidebar active item", () => {
     expect(studioActiveHref("/creator", null)).toBe("/creator");
     expect(studioActiveHref("/creator/donations", null)).toBe("/creator/donations?tab=settings");
     expect(studioActiveHref("/creator/donations", "list")).toBe("/creator/donations?tab=list");
+    expect(studioActiveHref("/creator/donations", "import")).toBe("/creator/donations?tab=import");
     expect(studioActiveHref("/creator/widgets", null)).toBe("/creator/widgets");
     expect(studioActiveHref("/creator/widgets/tools", null)).toBe("/creator/widgets/tools");
     expect(studioActiveHref("/creator/settlement/register/form", null)).toBe("/creator/settlement/register");

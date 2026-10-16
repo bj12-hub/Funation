@@ -104,3 +104,11 @@ Still TBD:
 - Age restriction
 - Tax/accounting treatment
 - Exact external API capabilities
+- 후원 내역 이관 (2026-10-16 request, built with **기본값 (TBD) — pending the user's confirmation**, docs/domains/donation-import.md):
+  the creator imports donations they received on 투네이션 (CSV upload) or FlexTV (linked account); imported records show with
+  their source only in 후원관리+ › 내역 이관 (creator-only) and add their own rows, in 원, to the 수단별 보드; they never count
+  toward 회원 누적 / 활동 등급, 크리에이터 칭호, FN 후원자 랭킹, 수익 or 정산 and never move FN, wallets or earnings; unlinking
+  FlexTV keeps them (되돌리기 per sync batch). Still TBD: matching donor nicknames to Ssumnation members, a KRW ↔ FN rate, the real
+  투네이션 export format (columns, encoding, whether 취소 / 환불 rows appear), the CSV limits (sample 5 MB · 20,000 rows), FlexTV's
+  history API (paging, how far back, unit, rate limits, auth) and overlap with 후원 연동 events, re-importing after 되돌리기 of a
+  FlexTV batch, retention of imported records while the account is active (deleted at 탈퇴), whether 내역 이관 belongs on the 도우미
