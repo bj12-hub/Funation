@@ -2,8 +2,8 @@
 
 import { randomUUID } from "node:crypto";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
-import { sameSecret } from "@/lib/secret";
 import { getCreatorSession } from "@/lib/session";
+import { overlayKeyOpen } from "@/services/account/creatorAccess";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { mockCreator } from "@/services/creator/mockCreatorStore";
 import {
@@ -332,7 +332,7 @@ export async function endBroadcast(broadcastId: unknown): Promise<BroadcastResul
  */
 export async function getOverlayScoreboard(overlayKey: unknown): Promise<OverlayScoreboard | "IDLE" | "FORBIDDEN"> {
   assertMock();
-  if (!sameSecret(overlayKey, mockCreator.integrationKey)) return "FORBIDDEN";
+  if (!overlayKeyOpen(overlayKey)) return "FORBIDDEN";
   const live = liveOf(STUDIO_CHANNEL);
   if (!live) return "IDLE";
   const view = liveView(live);

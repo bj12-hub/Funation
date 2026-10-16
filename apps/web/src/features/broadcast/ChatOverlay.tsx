@@ -21,6 +21,9 @@ const POLL_MS = 1_000;
 export function ChatOverlay({ overlayKey, initial, initialSignal, vertical = false }: { overlayKey: string; initial: ChatOverlayView; initialSignal: OverlaySignal; vertical?: boolean }) {
   const [view, setView] = useState(initial);
   const [signal, setSignal] = useState(initialSignal);
+  // The key stopped working while the page was open (재발급, or the creator was suspended): show nothing, as an unknown
+  // key does, and keep polling so the same key brings the chat back once the suspension is lifted.
+  const [refused, setRefused] = useState(false);
   const now = useServerClock(view.serverNow);
   useReloadSignal(signal.reloadSeq);
 
@@ -36,6 +39,8 @@ export function ChatOverlay({ overlayKey, initial, initialSignal, vertical = fal
       if (alive && next && next !== "FORBIDDEN") setView(next);
       const next2 = await getOverlaySignal(overlayKey, "chat").catch(() => null);
       if (alive && next2 && next2 !== "FORBIDDEN") setSignal(next2);
+      // A network error (null) keeps the last state; only the server's refusal clears the overlay.
+      if (alive && (next || next2)) setRefused(next === "FORBIDDEN" || next2 === "FORBIDDEN");
     }, POLL_MS);
     return () => {
       alive = false;
@@ -44,7 +49,7 @@ export function ChatOverlay({ overlayKey, initial, initialSignal, vertical = fal
     };
   }, [overlayKey]);
 
-  if (!signal.on) return null;
+  if (refused || !signal.on) return null;
   return (
     <div className={styles.stage}>
       {/* Before the clock mounts, nothing is hidden yet (server and client render the same lines). */}

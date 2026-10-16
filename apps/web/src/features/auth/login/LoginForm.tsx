@@ -22,11 +22,16 @@ const MESSAGES = {
   WRONG_PASSWORD: "비밀번호가 일치하지 않습니다. 다시 입력해 주세요",
   // Code-first (no Figma frame): the account is suspended by an operator (appeal flow TBD).
   SUSPENDED: "운영 정책에 따라 이용이 정지된 계정입니다. 고객센터로 문의해 주세요",
+  // The 도우미 domain has no 고객센터 of its own (and the site's domain is TBD): name the site's, without a link.
+  SUSPENDED_HELPER: "운영 정책에 따라 이용이 정지된 계정입니다. 썸네이션 사이트의 고객센터로 문의해 주세요",
   ERROR: "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요"
 } as const;
 
-/** `next`: where to go after signing in (already validated as a same-site path). */
-export function LoginForm({ next = "/" }: { next?: string }) {
+/**
+ * `next`: where to go after signing in (already validated as a same-site path). `supportLink`: 고객센터 (`/support`) is on
+ * this host — false on the 도우미 domain, where the help lines name the site's 고객센터 in plain text.
+ */
+export function LoginForm({ next = "/", supportLink = true }: { next?: string; supportLink?: boolean }) {
   const router = useRouter();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -36,7 +41,7 @@ export function LoginForm({ next = "/" }: { next?: string }) {
   const identifierRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
 
-  if (state === "LOCKED") return <LoginLocked />;
+  if (state === "LOCKED") return <LoginLocked supportLink={supportLink} />;
 
   const processing = state === "PROCESSING";
 
@@ -124,7 +129,7 @@ export function LoginForm({ next = "/" }: { next?: string }) {
 
         {(state === "ERROR" || state === "SUSPENDED") && (
           <p className={styles.formError} role="alert">
-            {MESSAGES[state]}
+            {state === "SUSPENDED" && !supportLink ? MESSAGES.SUSPENDED_HELPER : MESSAGES[state]}
           </p>
         )}
 
