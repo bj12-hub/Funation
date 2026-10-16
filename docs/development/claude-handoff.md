@@ -124,6 +124,9 @@ Tips:
   connections, overlay and bank-SMS keys, settlement registration); a 재가입 starts without the old consents,
   settlement history, earnings or notifications, and the withdrawn account's posts, comments, blocks and reports move
   to its own `…-wN` member id. New per-account state needs the same treatment in `withdrawal.ts` / `rejoin.ts`.
+  Anything opened by a key or link without a login (overlay key, manager links, bank-SMS key) also stops while the
+  creator is suspended or withdrawn: check `account/creatorAccess.ts` (`overlayKeyOpen` for the overlay key; list in
+  `docs/domains/creator.md` "키 · 링크 접근").
   An FN credit that lands after an await (charge, 출석 보상) registers in `wallet/inFlightCore.ts` (`beginCredit`) before
   the await and credits only if `landsHere()` after it — withdrawal and 남은 FN 정리 wait for those (2026-10-10). The
   debit side: an FN debit after an await (후원, 플랫폼 후원) reads `account/withdrawalCore.ts` `sessionAccount()` right

@@ -3,7 +3,7 @@
 import { USE_MOCK } from "@/lib/mock";
 import { ownEntry } from "@/lib/records";
 import { getCreatorSession } from "@/lib/session";
-import { sameSecret } from "@/lib/secret";
+import { overlayKeyOpen } from "@/services/account/creatorAccess";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { advance, enqueueAlert, isOverlayOn, mockAlerts, overlaySignal } from "./alertCore";
 import { overlayCustomSounds } from "./customSoundCore";
@@ -23,7 +23,6 @@ import {
   type RemoteResult,
   type RemoteView
 } from "./alertTypes";
-import { mockCreator } from "./mockCreatorStore";
 import { overlayTheme } from "./overlayThemeStore";
 import { readWidget } from "./widgetStore";
 
@@ -199,7 +198,7 @@ export async function reloadOverlays(input?: unknown): Promise<RemoteResult> {
 /** Reload + ON/OFF signal for overlays whose data has no room for it (통합 채팅 · 크루 점수판). No login; the key is the secret. */
 export async function getOverlaySignal(key: unknown, target: unknown): Promise<OverlaySignal | "FORBIDDEN"> {
   assertMock();
-  if (!sameSecret(key, mockCreator.integrationKey) || !isOverlayTarget(target)) return "FORBIDDEN";
+  if (!overlayKeyOpen(key) || !isOverlayTarget(target)) return "FORBIDDEN";
   return overlaySignal(target);
 }
 
@@ -246,7 +245,7 @@ export async function setVideoVolume(input: unknown): Promise<RemoteResult> {
 /** OBS overlay read — no login; the integration key is the secret. */
 export async function getOverlayAlert(key: unknown): Promise<OverlayAlert | "FORBIDDEN"> {
   assertMock();
-  if (!sameSecret(key, mockCreator.integrationKey)) return "FORBIDDEN";
+  if (!overlayKeyOpen(key)) return "FORBIDDEN";
   // Platform donations (후원 연동) reach the queue even when the studio screen is closed — throttled, and a
   // platform problem never stops the overlay (it shows on the 후원 연동 row instead).
   try {

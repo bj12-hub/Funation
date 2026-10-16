@@ -3,8 +3,7 @@
 import { USE_MOCK } from "@/lib/mock";
 import { ownEntry } from "@/lib/records";
 import { getCreatorSession } from "@/lib/session";
-import { sameSecret } from "@/lib/secret";
-import { mockCreator } from "@/services/creator/mockCreatorStore";
+import { overlayKeyOpen } from "@/services/account/creatorAccess";
 import { overlayTheme } from "@/services/creator/overlayThemeStore";
 import { readWidget } from "@/services/creator/widgetStore";
 import { ADAPTERS, BROADCAST_PLATFORMS, withTimeout } from "@/services/platforms/adapters";
@@ -145,7 +144,7 @@ export async function simulateChatReconnect(input: unknown): Promise<ChatActionR
  */
 export async function getChatOverlay(key: unknown): Promise<ChatOverlayView | "FORBIDDEN"> {
   assertMock();
-  if (!sameSecret(key, mockCreator.integrationKey)) return "FORBIDDEN";
+  if (!overlayKeyOpen(key)) return "FORBIDDEN";
   await ingestChat();
   const settings = readWidget("CHAT");
   const blocked = new Set(settings.filteredNicknames.map((n) => n.trim().toLowerCase()));

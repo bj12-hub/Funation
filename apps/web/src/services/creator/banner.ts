@@ -2,11 +2,10 @@
 
 import { USE_MOCK } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
-import { sameSecret } from "@/lib/secret";
+import { overlayKeyOpen } from "@/services/account/creatorAccess";
 import { overlaySignal } from "./alertCore";
 import { findAsset } from "./assetCore";
 import { BANNER_LIMITS, type BannerResult, type BannerSettings, type OverlayBanner } from "./bannerTypes";
-import { mockCreator } from "./mockCreatorStore";
 
 /**
  * 배너 위젯 Server Actions — code-first. Route `/creator/widgets/banner`, overlay `/overlay/banner/[key]`.
@@ -49,7 +48,7 @@ export async function saveBannerSettings(input: unknown): Promise<BannerResult> 
 /** OBS overlay read — no login; the integration key is the secret. */
 export async function getOverlayBanner(key: unknown): Promise<OverlayBanner | "FORBIDDEN"> {
   assertMock();
-  if (!sameSecret(key, mockCreator.integrationKey)) return "FORBIDDEN";
+  if (!overlayKeyOpen(key)) return "FORBIDDEN";
   const s = store();
   const slides = liveSlides(s.slides).map((id) => ({ id, url: findAsset(id)!.url }));
   return { enabled: s.enabled && slides.length > 0, position: s.position, intervalSec: s.intervalSec, slides, ...overlaySignal("banner") };
