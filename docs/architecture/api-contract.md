@@ -114,12 +114,35 @@ Platform access goes through `PlatformAdapter` (`adapters.ts`, CLAUDE.md §9; `l
 | `creatorRanking.ts` | `getCreatorRanking(type, period, query ≤ 20, page)` | scoring/season/tie rules TBD |
 | `creatorSettings.ts` | settings read, live-profile / languages / main platform / SNS, integration key reveal / reissue, channel name, profile, images | reissue must revoke old integrations + audit (TODO) |
 | `donationManagement.ts` | page settings, slug, one-line message, banned words, received donations, donor ranking, filters, block list, title tiers | all `SAVED`/`INVALID{message}`; deletes are idempotent |
+| `donationImport.ts` (내역 이관, 2026-10-16 기본값 — TBD) | see "donation import" below | imported records live in their own store; no FN, wallet, earnings, settlement, 등급 · 칭호 or FN ranking effect |
 | `widgetSettings.ts` | 16 widget details/saves (incl. `ALERT` 후원 알림 디자인 — theme · layout · headline with {닉네임} · switches · motion · countUp; `getOverlayAlert` returns it with the resolved theme), custom sounds (≤ 20, mp3/wav/ogg ≤ 2 MB; `getOverlayAlert` sends `customSounds` {word, url, volume} and the audio comes from `GET /api/custom-sound/[id]`, mock CDN), wallpapers (≤ 10) | GACHA odds / legal review TBD |
 | `widgetOverlay.ts` | `getOverlayWidget(widget, integrationKey)` — no login, the key is the credential (`FORBIDDEN` otherwise); widgets: goal · total · ranking · recent · event · qr · quest · vote · roulette · gacha · gacha-board · wallpaper · clock · mini | mini = latest 미니후원 (`donationType` `MINI` on the alert feed) ≥ 최소 표시 금액, newest first, at most 5 (code-first) |
 | `overlayTheme.ts` | 오버레이 테마: channel 전체 테마 (`BOLD` · `PILL` · `GLASS`) + 포인트 색상 (#RRGGBB or null = theme default), get/save; overlays read it with their widget's own choice (`INHERIT` = 전체 테마) | — |
 | `settlement.ts` | overview, `acceptSettlementTerms` (4 required), overseas answers, `registerSettlement` (multipart, per-type required fields/files) | ID numbers validated then discarded; masked account only |
 | `settlementRequests.ts` | apply view, `quoteSettlement`, `requestSettlement` (**idempotencyKey**), auto settlement | all four need a registration (`NOT_REGISTERED`) then 본인인증 (`IDENTITY_REQUIRED`, 2026-10-06 결정); mock policy = Figma samples (min 40,000 FN, fee 6.6 %, 1 FN = 1원) — all TBD |
 | `settlementManagement.ts` | manage view (period filter), `resetSettlementRegistration` | archive old registration for audit (TODO) |
+
+### donation import (`services/creator/donationImport.ts`, C — docs/domains/donation-import.md)
+
+Every action needs the Creator role (`UNAUTHORIZED` / `null` otherwise — also for a suspended or withdrawn creator) and writes in
+one synchronous step after its last await, for the account it started with. Limits are sample values (TBD).
+
+| Function | R/M | Input (enforced) | Result |
+|---|---|---|---|
+| `getDonationImportOverview` | R | — | `batches` (newest first, `ImportBatchView`: source, createdAt, fileName / channelHandle, rows, imported, invalid, duplicates, totals per unit, `ACTIVE` / `UNDONE`), `totals` per source, `flextv` (`supported`, `unverified`, `linked`, `lastSyncAt`, `lastResult`, `lastError`) |
+| `previewToonationCsv` | M | FormData `file`: `.csv` / `.txt` / `.tsv`, ≤ 5 MB, UTF-8 · UTF-16 (BOM) · CP949, ≤ 20,000 data rows, ≤ 50 columns | `OK{preview}` (previewId, fileName, encoding, headers, mapping, missing, detected, sample, totals, first 20 rows, ≤ 100 problem rows, expiresAt — kept 30 min) · `INVALID{code, message}` (`NO_FILE` · `NOT_CSV` · `SPREADSHEET` · `TOO_LARGE` · `EMPTY` · `NO_DATA` · `TOO_MANY_ROWS` · `TOO_MANY_COLUMNS` · `ENCODING` · `MALFORMED`) |
+| `remapToonationCsv` | M | `previewId` (own, this account, in time), `mapping` (column index or null per field; distinct, in range) | `OK{preview}` · `INVALID{EXPIRED | BAD_MAPPING}` |
+| `importToonationCsv` | M | `previewId`, `mapping` (required fields set), **`requestId`** `/^[A-Za-z0-9-]{16,64}$/` (per member) | `IMPORTED{batch}` · `NOTHING_TO_IMPORT{invalid, duplicates}` · `IN_PROGRESS` · `CONFLICT` (same id, other preview or mapping) · `INVALID{BAD_REQUEST | BAD_MAPPING | EXPIRED}`; a retry gets the first result |
+| `undoDonationImport` | M | `batchId` | `UNDONE{removed}` (records removed for good; again → `removed: 0`) · `NOT_FOUND` |
+| `syncFlexTvDonations` | M | — (the linked FlexTV account) | `OK{imported, duplicates, skipped, hasMore, syncedAt}` · `FAILED{code TIMEOUT | UNAVAILABLE | UNAUTHORIZED | NOT_FOUND | CHANNEL_CHANGED, message, counts kept before the failure}` · `NOT_LINKED` · `UNSUPPORTED` · `IN_PROGRESS` (one sync at a time) |
+| `getImportedDonations` | R | `source` all/toonation/flextv, `from` / `to` (KST days, optional), `q` ≤ 20, `page` (20) | page of records (at, source, donorName, message, kind, amount, unit), totals per unit, `hasAny` |
+| `exportImportedDonationsCsv` | R | same filters | `OK{filename, csv, rows, truncated}` (≤ 20,000 rows, UTF-8 BOM, formula-looking cells prefixed with `'`) |
+
+Dedupe: 투네이션 rows by a fingerprint (SHA-256 of source · time · nickname · amount · message hash), FlexTV by External
+Transaction ID. `PlatformAdapter.fetchReceivedDonations(channel, { cursor, since })` (capability `DONATION_HISTORY`, FlexTV only,
+unverified). The 수단별 보드 (`getOverlayWidget("ranking")` with board SOURCE) adds "투네이션 이관" / "FlexTV 이관" rows from
+source · unit · amount · time only. 회원 탈퇴 deletes the records, batches, previews and the FlexTV position (the count-only trail
+stays). TBD: the real 투네이션 export format, FlexTV's history API, retention while active, the backend audit store.
 
 ### Public reads (no auth)
 

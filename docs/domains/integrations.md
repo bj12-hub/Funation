@@ -32,6 +32,7 @@ screens show them as 「확인 중」.
 | CHAT_EVENTS (읽기) | ✓ | 확인 중 | 확인 중 | 확인 중 |
 | CHAT_SEND (보내기) | ✓ | 확인 중 | — | — |
 | CHAT_MODERATE (삭제 · 차단) | ✓ | — | — | — |
+| DONATION_HISTORY (받은 후원 내역, 2026-10-16) | — | — | — | 확인 중 |
 
 YouTube rows follow the YouTube Data API (liveChatMessages list/insert/delete, liveChatBans insert).
 Authentication for every platform (OAuth / login) is TBD.
@@ -111,6 +112,22 @@ Authentication for every platform (OAuth / login) is TBD.
   withdrawn the overlay key is refused, so the overlay pulls nothing ([creator](./creator.md) "키 · 링크 접근").
 - Turning a platform on starts from "now". Platforms whose DONATION_EVENTS is unverified show
   「API 확인 중」 on 후원 연동.
+
+## 후원 내역 이관 · FlexTV (DONATION_HISTORY, 2026-10-16 — 기본값 TBD)
+
+Details: [donation-import.md](donation-import.md).
+
+- `fetchReceivedDonations(channel, { cursor, since })` pages the linked channel's **received** donations (oldest first, opaque
+  cursor) as `ExternalReceivedDonation` (`platformTypes.ts`). Only FlexTV declares it, as unverified; the others throw UNSUPPORTED.
+  The mock FlexTV DTO lives in `mockHistoryRemote.ts` and is mapped in the adapter (`mapFlexGiftHistory`); malformed items are
+  dropped and counted. KRW amounts are 원; any other unit stays `FLEXTV_UNIT`.
+- The account is the 통합 채팅 · 후원 연동 link (`channelsCore`); the read position is stored with its channel id (another channel
+  starts from the beginning of its own history). Dedupe by External Transaction ID. Timeouts (5 s) and failures keep the pages read
+  before them; a read whose link changed meanwhile writes nothing.
+- Imported records are not alerts: they never enter the alert queue, the 후원 리스트 or FN; the 수단별 보드 adds them as "FlexTV
+  이관" rows. Unlinking keeps them (기본값 · TBD).
+- TBD: the real API, how far back it goes, rate limits, and whether its ids equal the 후원 연동 event ids (overlap between live
+  events and imported history is not deduplicated yet).
 
 ## 플랫폼 후원 (FN → SOOP · FlexTV, `services/platformDonation`)
 

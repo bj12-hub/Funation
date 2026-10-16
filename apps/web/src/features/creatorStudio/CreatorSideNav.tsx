@@ -50,6 +50,7 @@ const GROUPS: Group[] = [
       { label: "받은 후원", emoji: "💰", href: "/creator/donations?tab=list" },
       { label: "후원 순위", emoji: "🏆", href: "/creator/donations?tab=ranking" },
       { label: "후원 필터링", emoji: "🛡️", href: "/creator/donations?tab=filtering" },
+      { label: "내역 이관", emoji: "📥", href: "/creator/donations?tab=import" },
       { label: "크리에이터 랭킹", emoji: "📈", href: "/creator/ranking" }
     ]
   },

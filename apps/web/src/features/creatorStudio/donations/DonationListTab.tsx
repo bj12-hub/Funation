@@ -127,6 +127,10 @@ export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
       {(kind === "quest" || stats.heldCount > 0) && (
         <p className={styles.listStatsNote}>퀘스트 후원은 성공한 날 기준으로 수령액과 기간에 들어가요. 진행 중인 퀘스트는 따로 보여 주고, 실패 · 취소된 퀘스트는 전액 환불돼 빠져요.</p>
       )}
+      {/* Code-first (2026-10-16): imported records stay out of these FN totals; they have their own view. */}
+      <p className={styles.listStatsNote}>
+        투네이션 · FlexTV에서 가져온 후원은 이 목록과 합계에 들어가지 않아요. <Link href="/creator/donations?tab=import&sub=records">내역 이관 › 가져온 내역</Link>에서 볼 수 있어요.
+      </p>
 
       <div className={styles.table}>
         <table>

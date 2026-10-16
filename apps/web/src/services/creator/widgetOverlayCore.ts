@@ -3,6 +3,7 @@ import { formatUnitAmount, isCurrencyUnit, unitLabel, type AmountUnit } from "@/
 import { PLATFORM_LABEL, type Platform } from "@/types/platform";
 import { HIDDEN_PROFILE_LABEL } from "@/services/supporter/identityTypes";
 import { nativeAmount, type AlertItem } from "./alertTypes";
+import { IMPORT_SOURCE_LABEL, type ImportSource } from "./donationImportTypes";
 import type { MiniLine, WidgetFeedLine, WidgetRankRow } from "./widgetOverlayTypes";
 import {
   RECENT_PLATFORMS,
@@ -131,20 +132,35 @@ export function crewRankingRows(
     .map(([id, fn], i) => ({ rank: i + 1, name: names.get(id)!, fnAmount: fn }));
 }
 
-const SOURCE_ORDER = ["SSUMNATION", "YOUTUBE", "CHZZK", "SOOP", "FLEXTV"];
+const SOURCE_ORDER = ["SSUMNATION", "YOUTUBE", "CHZZK", "SOOP", "FLEXTV", "IMPORT:TOONATION", "IMPORT:FLEXTV"];
 
 /** A unit's name in a 수단별 보드 row: a currency by its ISO code (YouTube KRW · USD), a platform unit by its label. */
 const boardUnitName = (u: AmountUnit) => (isCurrencyUnit(u) ? u : unitLabel(u));
+
+/** A record imported from another platform (내역 이관): what the board may see of it — no name, no message. */
+export type ImportedBoardEntry = { source: ImportSource; unit: AmountUnit; value: number; at: string };
+
+const boardSourceLabel = (source: string) =>
+  source === "SSUMNATION" ? "썸네이션 FN" : source.startsWith("IMPORT:") ? `${IMPORT_SOURCE_LABEL[source.slice(7) as ImportSource]} 이관` : PLATFORM_LABEL[source as Platform];
 
 /**
  * 수단별 보드: Ssumnation FN donations and each platform's donations in their own unit (no FN rate — TBD), ordered by
  * 건수. A platform paying in two currencies gets a line per currency. 테스트 후원 never counts. Rows group by unit code;
  * alerts stored before the codes (label) are read as their code, so they join the same row. Rows are payment means, never
  * donors: a donation sent as 익명 or under a replaced name counts in 썸네이션 FN like any other.
+ * `imported` (내역 이관, 2026-10-16 기본값 — TBD): records imported from 투네이션 / FlexTV add rows of their own
+ * ("투네이션 이관 · 3건", in 원), apart from the live FlexTV row, by the time they were donated.
  */
-export function sourceBoardRows(items: AlertItem[], s: Pick<RankingSettings, "period" | "ranks">, now = new Date()): WidgetRankRow[] {
+export function sourceBoardRows(items: AlertItem[], s: Pick<RankingSettings, "period" | "ranks">, now = new Date(), imported: ImportedBoardEntry[] = []): WidgetRankRow[] {
   const since = rankingSince(s.period, now);
   const groups = new Map<string, { source: string; unit: AmountUnit; value: number; count: number }>();
+  const add = (g: { source: string; unit: AmountUnit; value: number }) => {
+    const key = `${g.source}|${g.unit}`;
+    const cur = groups.get(key) ?? { source: g.source, unit: g.unit, value: 0, count: 0 };
+    cur.value += g.value;
+    cur.count += 1;
+    groups.set(key, cur);
+  };
   for (const a of originals(items)) {
     if (countedAt(a) < since) continue;
     const g =
@@ -155,20 +171,16 @@ export function sourceBoardRows(items: AlertItem[], s: Pick<RankingSettings, "pe
         : a.kind === "EXTERNAL" && a.platform && a.native
           ? { source: a.platform, ...nativeAmount(a.native) }
           : null;
-    if (!g) continue;
-    const key = `${g.source}|${g.unit}`;
-    const cur = groups.get(key) ?? { source: g.source, unit: g.unit, value: 0, count: 0 };
-    cur.value += g.value;
-    cur.count += 1;
-    groups.set(key, cur);
+    if (g) add(g);
   }
+  for (const r of imported) if (Date.parse(r.at) >= since) add({ source: `IMPORT:${r.source}`, unit: r.unit, value: r.value });
   const list = [...groups.values()];
   const perSource = (src: string) => list.filter((x) => x.source === src).length;
   return list
     .sort((x, y) => y.count - x.count || SOURCE_ORDER.indexOf(x.source) - SOURCE_ORDER.indexOf(y.source) || boardUnitName(x.unit).localeCompare(boardUnitName(y.unit)))
     .slice(0, s.ranks)
     .map((x, i) => {
-      const label = x.source === "SSUMNATION" ? "썸네이션 FN" : PLATFORM_LABEL[x.source as Platform];
+      const label = boardSourceLabel(x.source);
       return {
         rank: i + 1,
         name: `${perSource(x.source) > 1 ? `${label} ${boardUnitName(x.unit)}` : label} · ${formatNumber(x.count)}건`,

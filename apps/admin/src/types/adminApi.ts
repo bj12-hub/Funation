@@ -10,7 +10,7 @@ export type Role = "SUPPORTER" | "CREATOR" | "ADMIN";
 export type Platform = "YOUTUBE" | "FLEXTV" | "SOOP" | "CHZZK";
 export const PLATFORM_LABEL: Record<Platform, string> = { YOUTUBE: "YouTube", FLEXTV: "FlexTV", SOOP: "SOOP", CHZZK: "치지직" };
 
-export type PlatformCapability = "CHANNEL_PROFILE" | "VIDEO_LIST" | "LIVE_STATUS" | "CHAT_EVENTS" | "CHAT_SEND" | "CHAT_MODERATE" | "DONATION_EVENTS";
+export type PlatformCapability = "CHANNEL_PROFILE" | "VIDEO_LIST" | "LIVE_STATUS" | "CHAT_EVENTS" | "CHAT_SEND" | "CHAT_MODERATE" | "DONATION_EVENTS" | "DONATION_HISTORY";
 export type PlatformErrorCode = "TIMEOUT" | "NOT_FOUND" | "UNAUTHORIZED" | "UNSUPPORTED" | "UNAVAILABLE";
 export const PLATFORM_ERROR_LABEL: Record<PlatformErrorCode, string> = {
   TIMEOUT: "플랫폼 응답이 늦어요. 잠시 후 다시 시도해 주세요.",
