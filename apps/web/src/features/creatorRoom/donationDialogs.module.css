@@ -61,7 +61,7 @@
 }
 
 .remaining {
-  color: var(--color-live) !important;
+  color: var(--color-live-text) !important;
   font-weight: var(--font-weight-bold);
 }
 

@@ -226,7 +226,7 @@
   padding: 2px 8px;
   border-radius: var(--radius-pill);
   background: var(--color-primary-soft);
-  color: var(--color-primary-light);
+  color: var(--color-primary-text);
   font-size: var(--font-size-11);
   font-weight: var(--font-weight-bold);
 }
