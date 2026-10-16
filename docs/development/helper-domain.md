@@ -23,23 +23,28 @@ https://admin.<site domain> apps/admin console (docs/development/admin-subdomain
 
 ## How a request is routed
 
-`apps/web/src/middleware.ts` + `src/lib/helperRouting.ts` (pure, tested in `helperRouting.test.ts`).
+`apps/web/src/middleware.ts` + `src/lib/helperRouting.ts` (pure, tested in `helperRouting.test.ts`; the middleware itself
+in `helperMiddleware.test.ts`).
 
-A request is for the helper when its `Host` — or the first `X-Forwarded-Host` — is a helper host: one listed in
+A request is for the helper when its `Host` — or any `X-Forwarded-Host` value — is a helper host: one listed in
 `HELPER_HOST`, or, with `HELPER_HOST` unset, any `helper.` host. (Next renders a server action's redirect target through
-an internal request to `localhost` that carries the public host only in `X-Forwarded-Host`.)
+an internal request to `localhost` that carries the public host only in `X-Forwarded-Host`.) Any value, not only the
+first: a proxy that appends to `X-Forwarded-Host` puts the client's own value first, and reading only that one would let
+a client on the helper domain present itself as the site. Hosts compare case-insensitively and without a trailing dot
+(`helper.example.com.` is the helper too); a `HELPER_HOST` entry without a port matches any port. All of this errs
+towards the helper, which shows less: a forged header can turn a site request into a helper one, never the reverse.
 
 On the helper host:
 
 | Request | Result |
 |---|---|
 | `/`, `/chat`, `/tools` … | rewritten to `/helper/…` (`app/helper/*`); unknown paths → the helper's 404 |
-| `/overlay/*`, `/popout/*`, `/login`, `/signup`, `/password-reset`, `/channel/new`, `/terms/*`, `/api/media/*`, `/api/custom-sound/*`, files | served as on the site |
+| `/overlay/*`, `/popout/*`, `/login`, `/signup`, `/password-reset`, `/channel/new`, `/terms/*`, `/api/media/*`, `/api/custom-sound/*`, `/api/bank-sms/*`, `/_next/*`, files in `public/` (`/images/*`, `/mock/*` — `PUBLIC_FOLDERS`) | served as on the site. `/api/bank-sms/[key]` is the SMS 계좌후원 webhook: the helper's 후원 연동 page (`/link`) shows its address on the helper domain, and the key in it is its only credential, as on the site |
 | `/creator/*` (links inside the reused studio screens) | 307 to the helper page: `/creator/widgets/tools` → `/tools`, `/creator/widgets?open=TOTAL` → `/subtitles?tab=total`, `/creator/chat` → `/chat/manage`, `/creator/donations?tab=filtering&sub=…` → `/filtering?sub=…`, studio pages the helper does not have → `/` |
-| `/helper/*` | 307 to the same path without `/helper` |
-| other `/api/*` (admin, wallet, bank SMS webhook) | 404 |
+| `/helper/*` | 307 to the same path without `/helper` (always on the same host: `/helper//x` → `/x`) |
+| other `/api/*` (admin, wallet) | 404 — also with a dot in the last segment (`/api/admin/members/a.b`): only `/_next/*` and the `public/` folders count as files |
 
-On the site's host `/helper/*` is a 404 (or, with `HELPER_HOST` set, a redirect to the helper domain).
+On the site's host `/helper/*` is a 404 (or, with `HELPER_HOST` set, a redirect to the same path on the helper domain).
 
 Every page request carries `x-ssumnation-surface: site | helper` (a client-sent value is overwritten). Layouts read it
 with `lib/surface.ts` `getSurface()` to pick their chrome: the auth pages and `(main)` (채널 만들기, terms) get the helper's
@@ -66,7 +71,7 @@ a drawer.
 | `/overlays` · `/overlays/preview/[id]` | 오버레이 주소 · 미리보기 |
 | `/assets` · `/link` · `/youtube` · `/filtering` | 이미지 · 사운드 · 후원 연동 · 유튜브 연동 · 후원 필터링 |
 | `/remote` · `/remote/guide` | 리모컨 in the shell (`RemoteScreen`) · 라이브 방송 리모컨 가이드 (`RemoteGuide.tsx`: what it does, the three ways to open it, notes) |
-| `/popout/remote` (shared with the site) | 리모컨 on its own — the menu's "리모컨 열기" opens it at 1000 × 800 (`remoteWindow.ts`, legacy size); the same address works as an OBS custom browser dock or on a phone. Signed out → `/login?next=/popout/remote` |
+| `/popout/remote` (shared with the site) | 리모컨 on its own — the menu's "리모컨 열기" opens it at 1000 × 800 (`remoteWindow.ts`, legacy size); the same address works as an OBS custom browser dock or on a phone. Signed out → `/login?next=/popout/remote`; signed in without a channel → `/channel/new` (sign-in would send a signed-in member straight back: `lib/creatorGate.ts`, also for `/popout/chat`) |
 | `/widgets` | redirects to `/` (the first build's 위젯 catalog) |
 
 The studio's 위젯 page takes `?open=GOAL` (opens that popup); 오버레이 주소 · 리모컨 · 대시보드 link with it, and on the helper
@@ -82,7 +87,7 @@ components in page 8's "Helper (도우미)" section. Node ids: `docs/figma/site-
 `apps/web/.env.local` (production values in the host's secret store):
 
 ```
-HELPER_HOST=helper.<domain>     # comma-separated host[:port]; unset = any "helper." host
+HELPER_HOST=helper.<domain>     # comma-separated host[:port] (no port = any port); unset = any "helper." host
 ```
 
 ## Local development
@@ -94,6 +99,11 @@ host-only, so the helper domain has its own sign-in.
 ## Deployment notes
 
 - The reverse proxy must pass the public host (`Host`, or `X-Forwarded-Host`), or every request looks like the site.
+  It should set `X-Forwarded-Host` itself (overwrite, not append a client's value): the routing reads every value, so a
+  client can still turn a site request into a helper one. That shows the client less, but a shared cache in front of the
+  app must then key on the host and never store a response the client's header chose — the middleware's own 404 says
+  `Cache-Control: no-store`, and the pages are dynamic. Next's server-action Origin check reads the first
+  `X-Forwarded-Host` value, so an appending proxy also weakens that check.
 - Cookies stay host-only (no `Domain`), like the admin console: signing in on the helper does not sign in on the site.
 - TBD: the domain itself; social sign-in (Google · Kakao) redirect URIs must list the helper domain once OAuth is real;
   the 후원 QR코드 widget must point at the donation page on the **site's** domain when the real QR is generated (today it
