@@ -18,26 +18,43 @@ export const HELPER_SEGMENT = "/helper";
 
 export type Surface = "site" | "helper";
 
+/**
+ * A host as the routing compares it: lower case, without the trailing dot of a fully qualified name — a browser opening
+ * `https://helper.example.com./` sends `Host: helper.example.com.`, and that is still the helper domain.
+ */
+const normalizeHost = (host: string) =>
+  host
+    .trim()
+    .toLowerCase()
+    .replace(/\.(?=(:\d+)?$)/, "");
+const PORT = /:\d+$/;
+
 export const parseHostList = (value: string | undefined) =>
   (value ?? "")
     .split(",")
-    .map((h) => h.trim().toLowerCase())
+    .map(normalizeHost)
     .filter(Boolean);
 
+/**
+ * Whether `host` names the helper. A `HELPER_HOST` entry without a port names that host on any port (a proxy may pass
+ * `helper.example.com:443`); an entry with a port names that port only.
+ */
 export function isHelperHost(host: string | null | undefined, configured: string[]): boolean {
-  const h = (host ?? "").trim().toLowerCase();
+  const h = normalizeHost(host ?? "");
   if (!h) return false;
-  if (configured.length > 0) return configured.includes(h);
+  if (configured.length > 0) return configured.some((c) => c === h || (!PORT.test(c) && c === h.replace(PORT, "")));
   return h.startsWith("helper.");
 }
 
 /**
- * Whether a request is for the helper: its Host, or the first `X-Forwarded-Host` (a reverse proxy's public host, and the
+ * Whether a request is for the helper: its Host, or any `X-Forwarded-Host` value (a reverse proxy's public host, and the
  * host Next forwards when it renders a server action's redirect target through an internal request to itself).
- * A forged X-Forwarded-Host can only turn a site request into a helper one, which shows less, never more.
+ * Any value, not only the first: a proxy that appends to the header puts the client's own value first, so a client on
+ * the helper domain could otherwise present itself as the site (and reach the wallet, the admin API … there). Matching
+ * more is the safe side: a forged header can only turn a site request into a helper one, which shows less, never more.
  */
 export function isHelperRequest(host: string | null, forwardedHost: string | null, configured: string[]): boolean {
-  return isHelperHost(host, configured) || isHelperHost(forwardedHost?.split(",")[0], configured);
+  return isHelperHost(host, configured) || (forwardedHost ?? "").split(",").some((h) => isHelperHost(h, configured));
 }
 
 /** `path` is `prefix` itself or below it (segment-aware: "/login" matches "/login/x", not "/loginx"). */
@@ -45,10 +62,11 @@ const under = (path: string, prefix: string) => path === prefix || path.startsWi
 
 /**
  * Site routes the helper host serves as they are: OBS overlays, pop-out windows, sign-in · sign-up · password reset,
- * 채널 만들기, the terms that sign-up links to, and the media the overlays load. Everything else of the site (wallet,
- * settlement, community …) stays on the site's domain.
+ * 채널 만들기, the terms that sign-up links to, the media the overlays load, and the SMS 계좌후원 webhook — the helper's
+ * 후원 연동 page hands out its address on the helper domain, and the key in it is the webhook's only credential, as on
+ * the site. Everything else of the site (wallet, settlement, community, the admin API …) stays on the site's domain.
  */
-const SHARED_PREFIXES = ["/overlay", "/popout", "/login", "/signup", "/password-reset", "/channel/new", "/terms", "/api/custom-sound", "/api/media"];
+const SHARED_PREFIXES = ["/overlay", "/popout", "/login", "/signup", "/password-reset", "/channel/new", "/terms", "/api/custom-sound", "/api/media", "/api/bank-sms"];
 
 /**
  * Studio addresses that the reused studio screens link to, mapped to their helper page. Longest prefix first; the
@@ -97,14 +115,27 @@ export type HelperRoute =
   | { action: "redirect"; path: string }
   | { action: "notFound" };
 
-/** Files from `public/` (images, sounds …) and Next's own assets are served on both hosts. */
-const isAsset = (pathname: string) => pathname.startsWith("/_next/") || /\/[^/]+\.[a-z0-9]+$/i.test(pathname);
+/** The top-level folders of `public/` (helperRouting.test.ts checks this list against the folder). */
+export const PUBLIC_FOLDERS = ["images", "mock"];
+
+/**
+ * Next's own assets and the files from `public/` are served on both hosts — only those: a dot in the last segment does
+ * not make an address a file (`/api/admin/members/a.b` is still the admin API, `/donation/youtube/a.b` a site page).
+ */
+const isAsset = (pathname: string) => under(pathname, "/_next") || PUBLIC_FOLDERS.some((f) => under(pathname, `/${f}`));
+
+/**
+ * `/helper/x` → `/x`, an address on the same host: leading slashes collapse into one, so `/helper//evil.com` cannot turn
+ * into `//evil.com` (another host, to a browser). Next already answers `//` in a path with a 308 before the middleware
+ * runs; this does not rely on it.
+ */
+const withoutHelperSegment = (pathname: string, search: string) => `/${pathname.slice(HELPER_SEGMENT.length).replace(/^[/\\]+/, "")}${search}`;
 
 /** Routing on the helper host. `pathname` is the request path, `search` its query string ("" or "?…"). */
 export function routeHelperRequest(pathname: string, search: string): HelperRoute {
   if (isAsset(pathname)) return { action: "pass" };
   // One address per page: `/helper/x` is shown as `/x`.
-  if (under(pathname, HELPER_SEGMENT)) return { action: "redirect", path: `${pathname.slice(HELPER_SEGMENT.length) || "/"}${search}` };
+  if (under(pathname, HELPER_SEGMENT)) return { action: "redirect", path: withoutHelperSegment(pathname, search) };
   if (under(pathname, "/creator")) return { action: "redirect", path: helperPathForStudio(pathname, search) };
   if (SHARED_PREFIXES.some((p) => under(pathname, p))) return { action: "pass" };
   // The site's other API routes (admin, wallet, bank SMS webhook) are not part of the helper.
@@ -115,6 +146,6 @@ export function routeHelperRequest(pathname: string, search: string): HelperRout
 /** Routing on the site's own host: the helper pages are not served there (one domain per product). */
 export function routeSiteRequest(pathname: string, search: string, helperHosts: string[]): { action: "pass" } | { action: "notFound" } | { action: "redirectHost"; host: string; path: string } {
   if (!under(pathname, HELPER_SEGMENT)) return { action: "pass" };
-  const path = `${pathname.slice(HELPER_SEGMENT.length) || "/"}${search}`;
+  const path = withoutHelperSegment(pathname, search);
   return helperHosts.length > 0 ? { action: "redirectHost", host: helperHosts[0], path } : { action: "notFound" };
 }

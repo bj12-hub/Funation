@@ -39,7 +39,9 @@ export function middleware(request: NextRequest) {
     case "redirect":
       return NextResponse.redirect(new URL(route.path, request.url));
     case "notFound":
-      return new NextResponse("Not Found", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8" } });
+      // no-store: whether this answers depends on headers a client can send (X-Forwarded-Host), so no shared cache may
+      // keep it for the site's address.
+      return new NextResponse("Not Found", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" } });
     case "rewrite":
       headers.set(HELPER_PATH_HEADER, `${pathname}${search}`);
       return NextResponse.rewrite(new URL(route.path, request.url), { request: { headers } });
