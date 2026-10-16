@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { RemoteScreen } from "@/features/creatorStudio/remote/RemoteScreen";
 import { REMOTE_WINDOW_PATH } from "@/features/creatorStudio/remote/remoteWindow";
+import { creatorOnlyRedirect } from "@/lib/creatorGate";
 import { getRemoteView } from "@/services/creator/alertRemote";
 import { getOverlayKey, getToolsView } from "@/services/creator/broadcastTools";
 import { getGachaRemote } from "@/services/creator/gachaRemote";
@@ -25,7 +26,8 @@ export default async function Page() {
     getGachaRemote(),
     getWallpaperRemote()
   ]);
-  if (!view || !key || !tools || !vote || !roulette || !gacha || !wallpaper) redirect(`/login?role=creator&next=${REMOTE_WINDOW_PATH}`);
+  // Signed out → sign-in; signed in without a channel → 채널 만들기 (sign-in would send them straight back here).
+  if (!view || !key || !tools || !vote || !roulette || !gacha || !wallpaper) redirect(await creatorOnlyRedirect(REMOTE_WINDOW_PATH));
   // The remote's styles are dark-only, like the studio.
   return (
     <div data-theme="dark" className={studio.themeScope}>

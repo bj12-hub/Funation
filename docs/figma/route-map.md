@@ -51,7 +51,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/donation/[platform]/[creatorId]` | ✅ | 상세·상품 817:9242 / 817:8597 · 메시지·결제 817:9334 / 817:8684 · 확인 817:9411 / 817:8761 · 처리 중 817:9509 / 817:8843 · 완료 817:9553 / 817:8886 · 오류 817:9618 / 817:8948 · FN 부족 817:7699 · 세션 만료 817:7872 — prices from the server adapter catalog (FN ↔ 별풍선/하트 rate TBD) |
 | `/attendance` | ✅ | ssumnation-attendance-page 583:4 · 585:452 (checked in) · 585:66 (완료 popup) · 585:830 (보상 popup) — signed-in only |
 | `/creator/chat` | ✅ code-first | 통합 채팅 — 치지직 · SOOP · FlexTV · YouTube 채팅, 채팅창 링크, 매니저 링크 (C01 `49:2` · C01b `129:2`) |
-| `/popout/chat` | ✅ code-first | 통합 채팅창 (단독 웹페이지, 크리에이터 로그인) — C02 `120:8188` · C02b `127:3` |
+| `/popout/chat` | ✅ code-first | 통합 채팅창 (단독 웹페이지, 크리에이터 로그인; 채널 없는 회원은 채널 만들기로) — C02 `120:8188` · C02b `127:3` |
 | `/popout/chat/m/[token]` | ✅ code-first | 매니저 채팅창 (링크별 권한, 계정 없이) — C03 `123:8244` · C03b `125:2` · C04 `123:8311` · C04b `124:110` |
 | `/creator/revenue` | ✅ code-first | 수익 현황 — T02 `200:5365` |
 | `/creator/youtube` | ✅ code-first | 유튜브 연동 — Y01 `62:1539` |
@@ -77,7 +77,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | 도우미 `/` (helper domain) | ✅ code-first | Ssumnation 도우미 (2026-10-14) — same app, served on its own domain (`HELPER_HOST`, TBD); signed out = landing, no channel = 채널 만들기, creators = 시작하기 (OBS 연결 순서 + every feature). Paths below are the helper domain's (`app/helper/*`), see `docs/development/helper-domain.md`; Figma page 12 레이아웃 · 도우미 `326:655`: HP00 랜딩 `332:5771` · HP01 `332:5800` · HP02 로그인 `332:5818` · HP03 시작하기 `332:6223` · HP04 404 `332:6555` · 모바일 HP70 `332:7618` |
 | 도우미 `/alert` · `/chat` · `/goal` · `/subtitles` · `/clock` · `/qr` · `/wallpaper` · `/quest` · `/vote` · `/roulette` · `/gacha` | ✅ code-first | 위젯 기능 페이지 (2026-10-14) — one menu page per feature with tabs (`?tab=`), OBS address, the 위젯 popup's form + preview inline and a save bar; same forms as Figma 529:4 popups (364:6 · 364:158 · 364:265 · 372:7 · 531:* · 315:650 · 315:858 · 373:1307 · 373:1598 · 373:3675 · 395:145); 도우미 frames HP10–HP16 · HP25 · HP30–HP33 on page 12 (`326:655`, ids in site-design-system.md) |
 | 도우미 `/theme` · `/chat/manage` · `/tools` · `/signatures` · `/video` · `/drawing` · `/effects` · `/banner` · `/crew` · `/crew/broadcast` · `/overlays` · `/overlays/preview/[id]` · `/assets` · `/link` · `/youtube` · `/filtering` · `/remote` · `/remote/guide` | ✅ code-first | The studio OBS screens in the helper shell (same components and frames as their `/creator/...` routes above); `/filtering` = 후원관리+ 후원 필터링 tab as a page, `/theme` = 전체 테마 gallery. On the helper domain `/creator/*` links redirect here (`/creator/widgets?open=KEY` → that widget's page); `/widgets` → `/`. Figma page 12: HP12 · HP17 · HP20–HP24 · HP40 · HP41 · HP50–HP55 · HP60 · HP61 (ids in site-design-system.md) |
-| `/popout/remote` | ✅ code-first | 리모컨 on its own (no menu, dark): the 도우미 "리모컨 열기" window (1000 × 800) · 스튜디오 리모컨 "작은 창으로 열기" · OBS 사용자 지정 브라우저 독 · 휴대폰; creator session (signed out → login). Same controls as `/creator/remote` (W04 `218:5994`); Figma HP62 `332:7615` |
+| `/popout/remote` | ✅ code-first | 리모컨 on its own (no menu, dark): the 도우미 "리모컨 열기" window (1000 × 800) · 스튜디오 리모컨 "작은 창으로 열기" · OBS 사용자 지정 브라우저 독 · 휴대폰; creator session (signed out → login, signed in without a channel → 채널 만들기). Same controls as `/creator/remote` (W04 `218:5994`); Figma HP62 `332:7615` |
 
 ## Link wiring
 
