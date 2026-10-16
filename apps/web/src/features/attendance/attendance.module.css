@@ -147,7 +147,7 @@
 }
 
 .dday {
-  color: var(--color-highlight);
+  color: var(--color-highlight-text);
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-bold);
 }
@@ -277,7 +277,7 @@
 }
 
 .sat {
-  color: var(--color-highlight);
+  color: var(--color-highlight-text);
 }
 
 .cell {
@@ -316,8 +316,9 @@
   font-weight: var(--font-weight-bold);
 }
 
+/* Sits on the cell's surface (not an accent fill), so it takes the surface text colour. */
 .todayLabel {
-  color: var(--color-text-on-accent);
+  color: var(--color-text-primary);
   font-size: var(--font-size-12);
   font-weight: var(--font-weight-extrabold);
 }
@@ -412,6 +413,11 @@
   border-color: var(--color-primary);
   background: rgba(139, 92, 246, 0.2);
   color: var(--color-primary);
+}
+
+/* Light theme: the purple fill as 11px text on its 20% tint is 4.4:1; the text shade keeps 4.5:1 (dark unchanged). */
+:global([data-theme="light"]) .chipClaimable {
+  color: var(--color-primary-text);
 }
 
 .rewardBody {

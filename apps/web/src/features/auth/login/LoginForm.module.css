@@ -78,7 +78,7 @@
   height: 48px;
   border-radius: var(--radius-8);
   background: var(--gradient-primary-button);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-accent);
   font-size: var(--font-size-16);
   font-weight: var(--font-weight-bold);
 }
