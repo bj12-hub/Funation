@@ -40,6 +40,13 @@ Light 모드 값은 코드의 라이트 테마 대비 정리(WCAG AA, #172 · #1
 `status/danger` `#c81e1e`, `status/error-text` `#b91c1c`. Dark 모드(Figma 원본)는 그대로예요. S02 라이트 홈의 변수에 연결되지 않은
 다크 전용 값(헤더 메뉴 선, 충전 파랑, 연회색 글자, 검은 푸터)도 라이트 값으로 바꿨어요.
 
+2026-10-17 라이트 대비 2차(#332): 글자 전용 변수 3개를 더했어요. Dark는 원래 색 그대로, Light만 진한 값이에요 —
+`primary/text` (Dark `#a78bfa` · Light `#6d28d9`, `--color-primary-text`), `status/live-text` (`#f5bf0a` · `#8a6100`,
+`--color-live-text`), `status/highlight-text` (`#06b6d4` · `#0e7490`, `--color-highlight-text`). 그라데이션 버튼 글자 27곳
+(로그인 · 회원가입 · 비밀번호 · 닉네임 중복 확인 · 신고 · 확인 등)은 `text/primary` 대신 `text/on-accent`에 연결했어요.
+같은 날 로그인 · 가입 · 비밀번호 · 404 · 도우미 로그인 카드의 로고(22곳)가 그라데이션 상자로 그려져 있던 것을
+글자 그라데이션으로 고쳤어요. `--color-platform-offline`은 Figma 변수가 없어 그대로예요.
+
 텍스트 스타일 `Site/*`: Page Title 24 Black · Card Title 18 ExtraBold · Subtitle 15 · Body 14 · Body Strong 14 SemiBold ·
 Small 13 · Small Strong 13 SemiBold · Caption 12 · Label 11 Bold · Nav 14 Medium · Overlay 18 · Overlay Name 18 Bold.
 
@@ -82,7 +89,7 @@ OBS 오버레이의 세 테마는 변수 컬렉션 **Overlay Theme**의 모드�
 | Filter Chip | `45:71` | State, Label, Show mark, Mark | `chat.module.css .filterChip` |
 | Role Chip · Capability Chip · Send Result | `45:72` · `45:80` · `45:93` | Label, State/Status, Mark | `chat.module.css .role/.cap/.results` |
 | Studio Nav Item | `45:100` | State (Default · Active), Emoji, Label | `studio.module.css .sideItem` |
-| Studio Header · Studio Sidebar | `46:8` · `46:20` | Channel · 메뉴는 `CreatorSideNav.tsx`와 같음 | 스튜디오 레이아웃 |
+| Studio Header · Studio Sidebar | `46:8` · `46:20` | Channel · 메뉴는 `CreatorSideNav.tsx`와 같음 (수익 › 📥 내역 이관 `352:10884`, 2026-10-17) | 스튜디오 레이아웃 |
 | Chat Line | `46:149` | State (Default · Hover · Hidden), Platform, Nick, Message, Time, Show role, Show flag | `UnifiedChatScreen.tsx` Line |
 | Channel Card | `46:206` | Status (Connected · Disconnected · YouTube link), Platform, Name, Info | `UnifiedChatScreen.tsx` Channels |
 | Overlay Chat Line | `46:208` | Platform, Name, Message, Show role | `chatOverlay.module.css` (테마 이전) |
@@ -195,6 +202,18 @@ OBS 오버레이의 세 테마는 변수 컬렉션 **Overlay Theme**의 모드�
 | 후원 관리 | T03b | 후원 순위 | `/creator/donations?tab=ranking` | `68:2958` |
 | 후원 관리 | T03c | 후원 필터링 (방송 알림 · TTS 대체 안내 2026-10-06) | `/creator/donations?tab=filtering` | `68:3293` |
 | 후원 관리 | T03f | 후원 필터링 · 차단 리스트 (차단한 후원자 4명 · 검색 · 해제) | `/creator/donations?tab=filtering&sub=block` | `322:10679` |
+| 후원 관리 | T03g | 내역 이관 · 가져오기 (DEFAULT · FlexTV 연동 안 됨 · 가져온 기록 EMPTY, 2026-10-17) | `/creator/donations?tab=import` | `353:11108` |
+| 후원 관리 | T03h | 내역 이관 · 투네이션 CSV 미리보기 (열 찾음 · 가져올 3건 · 오류 1 · 중복 1) | `/creator/donations?tab=import` | `353:11299` |
+| 후원 관리 | T03i | 내역 이관 · CSV 미리보기 (열을 못 찾음 · 직접 고르기 · 파일 앞부분) | `/creator/donations?tab=import` | `354:11326` |
+| 후원 관리 | T03j | 내역 이관 · CSV 오류 (엑셀 파일 안내 줄) | `/creator/donations?tab=import` | `354:11584` |
+| 후원 관리 | T03k | 내역 이관 · 가져오는 중 (PROCESSING) | `/creator/donations?tab=import` | `355:11544` |
+| 후원 관리 | T03l | 내역 이관 · 가져오기 완료 (SUCCESS · 타일 합계 · 가져온 기록 1줄) | `/creator/donations?tab=import` | `355:11903` |
+| 후원 관리 | T03m | 내역 이관 · FlexTV 계정 연동됨 (아직 가져온 적 없음) | `/creator/donations?tab=import` | `356:11762` |
+| 후원 관리 | T03n | 내역 이관 · FlexTV 내역 가져옴 (45건 새로 가져옴 · 기록 2줄) | `/creator/donations?tab=import` | `356:11967` |
+| 후원 관리 | T03o | 내역 이관 · FlexTV 가져오기 실패 (연결 실패 · 다시 시도) | `/creator/donations?tab=import` | `356:12190` |
+| 후원 관리 | T03p | 내역 이관 · 되돌리기 확인 팝업 (FlexTV 45건) | `/creator/donations?tab=import` | `357:12071` |
+| 후원 관리 | T03q | 내역 이관 · 가져온 내역 (출처 · 기간 · 검색 · CSV 다운로드, 48건) | `/creator/donations?tab=import&sub=records` | `357:12306` |
+| 후원 관리 | T03r | 내역 이관 · 가져온 내역 (EMPTY) | `/creator/donations?tab=import&sub=records` | `358:12280` |
 | 후원 관리 | T03d | 받은 후원 · 게임 후원 (룰렛 · 뽑기) | `/creator/donations?tab=list&kind=game` | `142:4530` |
 | 후원 관리 | T03e | 받은 후원 · 크루 후원 (멤버 지정) | `/creator/donations?tab=list&kind=crew` | `143:4635` |
 | 정산 | T04 | 정산 현황 + 체크리스트 | `/creator/settlement` | `68:3459` |
