@@ -15,6 +15,7 @@ import { ScenarioPanel } from "./ScenarioPanel";
 import { StealPanel } from "./StealPanel";
 import { CrewTabs } from "./CrewTabs";
 import { SubBoards } from "./SubBoards";
+import { shownOverlayAddress } from "./overlayAddress";
 import styles from "./crew.module.css";
 
 const elapsed = (from: string, now: number) => {
@@ -308,7 +309,7 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
         </h2>
         <p className={styles.muted}>OBS 브라우저 소스에 아래 주소를 넣으면 진행 중인 방송의 점수판이 표시돼요. 주소에 연동키가 들어 있으니 공유하지 마세요 — 계정설정에서 연동키를 재발급하면 이전 주소는 막혀요.</p>
         <div className={styles.addRow}>
-          <input className={styles.input} value={overlayUrl} readOnly aria-label="오버레이 주소" onFocus={(e) => e.target.select()} />
+          <input className={styles.input} value={shownOverlayAddress(origin, view.overlayPath)} readOnly aria-label="오버레이 주소" onFocus={(e) => e.target.select()} />
           <button type="button" className={styles.ghost} onClick={() => navigator.clipboard?.writeText(overlayUrl).then(() => setMessage({ tone: "ok", text: "주소를 복사했어요." }))}>
             복사
           </button>

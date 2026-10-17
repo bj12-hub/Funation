@@ -60,7 +60,7 @@ Since 2026-09-29 features without a Figma frame are built in code first and desi
 | 위젯 "후원 알림" → 후원 알림 디자인 팝업 (`widgets/AlertForm.tsx`) | overlay-theme PR 2 | 2026-10-08. 위젯 카탈로그 "후원 알림"이 리모컨 링크 대신 팝업을 염(인기 · 후원 알림 그룹). 후원 알림 URL(키 가림) · 미리보기(실제 알림 카드, 방송 화면 배경, 썸네이션 후원 / 시그니처 후원 / 치지직 후원 예시, ↻ 다시 재생) · 테마 칩(전체 테마 따르기 + 현재 전체 테마 이름, 각 테마 미니 그림) · 알림 모양 카드 3개(그림 + 설명) · 문구(알림 문구 40자, {닉네임} 필수, + 닉네임 / + 금액 버튼, 기본 "{닉네임}님, 고마워요!", 후원 메시지 · 등급 · 칭호 · 후원 종류 · 시그니처 이미지 스위치; 후원 메시지 설명 2026-10-09 "시청자가 쓴 메시지를 함께 보여 주고 TTS로 읽어 줘요. 끄면 읽지도 않아요") · 움직임(등장 효과: 톡 튀어오르기 · 아래에서 올라오기 · 옆에서 밀려오기 · 스르륵 나타나기 · 쿵 내려앉기 · 효과 없음, 금액 올라가기) · 안내 "알림 표시 시간 · 볼륨 · 최소 금액 · 대기열은 리모컨에서 바꿔요." Figma(2026-10-08): 오버레이는 11 페이지, 팝업은 9 페이지 W12a. |
 | `/overlay/tool/[tool]/[key]` OBS overlays (`widgets/ToolOverlay.tsx`) | broadcast tools PR | Transparent sources for subtitle · marquee · timer · credits; styles/fonts TBD; 이모지·레이어 효과 still planned |
 
-| 후원관리+ 후원 리스트 "CSV 다운로드" (`donations/CsvExportButton.tsx`) | donations csv PR | Button beside 검색; exports the current filters (all pages, max 5,000 rows), UTF-8 BOM, result note |
+| 후원관리+ 후원 리스트 "CSV 다운로드" (`donations/CsvExportButton.tsx`) | donations csv PR | Button beside 검색; exports the current filters (all pages, max 5,000 rows), UTF-8 BOM, result note; 후원일시 · 성공일시 in Korea time ("2026-10-18 00:19:16", as the list shows them) |
 
 | `/creator/updates` 업데이트 소식 (`features/creatorStudio/updates/*`) + 대시보드 "업데이트 소식" card + sidebar "📰 업데이트 소식" | creator updates PR | Posts (NEW mark, 신규 · 개선 · 버그 수정 counts, date), expandable item lists with links; read state on the server |
 

@@ -1,7 +1,7 @@
 import { readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { PUBLIC_FOLDERS, helperPathForStudio, isHelperHost, isHelperRequest, parseHostList, routeHelperRequest, routeSiteRequest } from "./helperRouting";
+import { HELPER_PAGE_FOLDERS, PUBLIC_FOLDERS, helperPathForStudio, isHelperHost, isHelperPagePath, isHelperRequest, parseHostList, routeHelperRequest, routeSiteRequest } from "./helperRouting";
 
 describe("isHelperHost", () => {
   it("uses HELPER_HOST when it is set (host and port, case-insensitive)", () => {
@@ -183,5 +183,26 @@ describe("routeSiteRequest", () => {
     const route = routeSiteRequest("/helper//evil.com", "", ["helper.example.com"]);
     expect(route).toEqual({ action: "redirectHost", host: "helper.example.com", path: "/evil.com" });
     expect(new URL((route as { path: string }).path, "https://helper.example.com").host).toBe("helper.example.com");
+  });
+});
+
+describe("isHelperPagePath", () => {
+  it("knows the helper's own pages (with their query and below them)", () => {
+    for (const path of ["/", "/?from=obs", "/overlays", "/overlays/preview/alert", "/remote", "/remote/guide", "/chat", "/chat/manage", "/crew/broadcast", "/goal", "/subtitles?tab=total", "/youtube"]) {
+      expect(isHelperPagePath(path), path).toBe(true);
+    }
+  });
+
+  it("treats the site's pages and anything else as not the helper's (its 404)", () => {
+    for (const path of ["/wallet", "/wallet/charges", "/mypage", "/community", "/support", "/donation/youtube", "/events", "/creators", "/import", "/goalx", "/constructor", "/__proto__"]) {
+      expect(isHelperPagePath(path), path).toBe(false);
+    }
+  });
+
+  it("keeps the page folders in sync with app/helper", () => {
+    const entries = readdirSync(fileURLToPath(new URL("../app/helper", import.meta.url)), { withFileTypes: true });
+    // A new helper page folder needs adding to HELPER_PAGE_FOLDERS, or signed-out visitors get the 404 there.
+    const folders = entries.filter((e) => e.isDirectory() && !e.name.startsWith("[")).map((e) => e.name);
+    expect(folders.sort()).toEqual([...HELPER_PAGE_FOLDERS].sort());
   });
 });

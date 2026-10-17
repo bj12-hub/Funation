@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { HelperLanding, HelperNeedsChannel } from "@/features/helper/HelperLanding";
 import { HelperShell } from "@/features/helper/HelperShell";
 import { HELPER_TITLE } from "@/features/helper/helperNav";
+import { isHelperPagePath } from "@/lib/helperRouting";
 import { getSession, hasRole } from "@/lib/session";
 import { getHelperPath } from "@/lib/surface";
 import { getCreatorProfile } from "@/services/creator/creatorStudio";
@@ -19,8 +21,13 @@ export default async function HelperLayout({ children }: { children: ReactNode }
   // Navigation only: every page and server action re-checks the Creator role on the server (getCreatorSession),
   // and the real backend must enforce it on every request.
   const session = await getSession();
-  if (!session) return <HelperLanding next={await getHelperPath()} />;
-  if (!hasRole(session, "CREATOR")) return <HelperNeedsChannel nickname={session.nickname} />;
+  if (!session || !hasRole(session, "CREATOR")) {
+    const path = await getHelperPath();
+    // The landing and 채널 만들기 stand in for the helper's own pages only: any other address is its 404 for everyone
+    // (app/not-found.tsx draws it in the helper's frame).
+    if (!isHelperPagePath(path)) notFound();
+    return session ? <HelperNeedsChannel nickname={session.nickname} /> : <HelperLanding next={path} />;
+  }
 
   const profile = await getCreatorProfile();
   if (!profile) return <HelperLanding next={await getHelperPath()} />;
