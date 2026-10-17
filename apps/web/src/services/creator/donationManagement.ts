@@ -1,5 +1,6 @@
 "use server";
 
+import { toCsv } from "@/lib/csv";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES } from "@/lib/validation";
@@ -295,17 +296,10 @@ export async function getReceivedDonations(input: ListFilter & { page: number })
   };
 }
 
-/** Spreadsheet-safe CSV cell: always quoted; formula-looking text (= + - @ tab CR) gets a leading '. */
-function csvCell(value: string | number) {
-  let text = String(value);
-  if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
-  return `"${text.replace(/"/g, '""')}"`;
-}
-
-
 /**
  * 후원 리스트 CSV — code-first (funnation reference: 받은 후원 엑셀 다운로드). Same filters as the list,
- * every page, capped at CSV_EXPORT_MAX rows. UTF-8 with BOM so Excel opens Korean text correctly.
+ * every page, capped at CSV_EXPORT_MAX rows. UTF-8 with BOM so Excel opens Korean text correctly; every cell
+ * quoted, formula-looking text (= + - @ tab CR) with a leading ' (lib/csv.ts).
  * TBD: an audited export log, and whether donor ids may be exported (privacy review).
  */
 export async function exportReceivedDonationsCsv(input: unknown): Promise<CsvExportResult> {
@@ -326,14 +320,15 @@ export async function exportReceivedDonationsCsv(input: unknown): Promise<CsvExp
   const column = kind === "quest" ? "상태" : LIST_KINDS.find((k) => k.key === kind)!.column;
   // 퀘스트: 성공일시 too — the period filter and 수령액 go by it (2026-10-08 결정).
   const succeeded = (d: ReceivedDonation) => (kind === "quest" ? [d.status === "SUCCESS" ? d.receivedAt : ""] : []);
-  const lines = [
-    ["후원일시", "후원자 닉네임", "후원자 아이디", "금액(FN)", "메시지", ...(kind === "quest" ? ["성공일시"] : []), column].map(csvCell).join(","),
-    ...rows.map((d) => [d.at, d.donorNickname, d.donorId, d.amount, d.message, ...succeeded(d), last(d)].map(csvCell).join(","))
-  ];
+  const csv = toCsv(
+    ["후원일시", "후원자 닉네임", "후원자 아이디", "금액(FN)", "메시지", ...(kind === "quest" ? ["성공일시"] : []), column],
+    rows.map((d) => [d.at, d.donorNickname, d.donorId, d.amount, d.message, ...succeeded(d), last(d)]),
+    { quoteAll: true }
+  );
   return {
     status: "OK",
     filename: `ssumnation-donations-${kind}-${p.from}_${p.to}.csv`,
-    csv: "﻿" + lines.join("\r\n"),
+    csv,
     rows: rows.length,
     truncated: matched.length > rows.length
   };

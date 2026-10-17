@@ -14,10 +14,12 @@ import {
   commitCsvImport,
   commitFlexTvSync,
   findPreview,
+  flexCursorOf,
   importStore,
   importedCsv,
   importedPage,
   mappingKeyOf,
+  prunePreviews,
   requestEntry,
   sourceTotals,
   splitRecords,
@@ -74,10 +76,11 @@ export async function getDonationImportOverview(): Promise<ImportOverview | null
   assertMock();
   if (!(await getCreatorSession())) return null;
   await mockDelay(200);
+  prunePreviews();
   const flex = importStore().flextv;
   const channel = broadcastChannel("FLEXTV");
   const adapter = ADAPTERS.FLEXTV;
-  // The last sync shown belongs to the linked channel; another channel starts over.
+  // The last sync shown belongs to the linked channel (each channel keeps its own read position).
   const sameChannel = !!channel && flex.channelId === channel.externalChannelId;
   return {
     batches: batchViews(),
@@ -243,7 +246,7 @@ export async function syncFlexTvDonations(): Promise<FlexTvSyncResult> {
   if (flex.running) return { status: "IN_PROGRESS" };
   flex.running = true;
   try {
-    let cursor = flex.channelId === channel.externalChannelId ? flex.cursor : null;
+    let cursor = flexCursorOf(channel.externalChannelId);
     const donations: ExternalReceivedDonation[] = [];
     let skipped = 0;
     let hasMore = false;
@@ -267,8 +270,8 @@ export async function syncFlexTvDonations(): Promise<FlexTvSyncResult> {
     if (broadcastChannelId("FLEXTV") !== channel.externalChannelId) return { status: "FAILED", code: "CHANNEL_CHANGED", message: FLEXTV_SYNC_ERROR.CHANNEL_CHANGED, imported: 0, duplicates: 0, skipped: 0 };
     const current = importStore().flextv;
     if (error && donations.length === 0 && skipped === 0) {
-      // Nothing read: the position stays. A first read of another channel already belongs to that channel.
-      if (current.channelId !== channel.externalChannelId) Object.assign(current, { channelId: channel.externalChannelId, cursor: null, lastSyncAt: null, lastResult: null });
+      // Nothing read: the position stays. The card shows this channel's failure, not another channel's last sync.
+      if (current.channelId !== channel.externalChannelId) Object.assign(current, { channelId: channel.externalChannelId, lastSyncAt: null, lastResult: null });
       current.lastError = error;
       return error === "UNSUPPORTED" ? { status: "UNSUPPORTED" } : { status: "FAILED", code: error, message: FLEXTV_SYNC_ERROR[error], imported: 0, duplicates: 0, skipped: 0 };
     }
