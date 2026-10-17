@@ -143,9 +143,23 @@ export function routeHelperRequest(pathname: string, search: string): HelperRout
   return { action: "rewrite", path: `${HELPER_SEGMENT}${pathname === "/" ? "" : pathname}${search}` };
 }
 
+/**
+ * The request path percent-decoded once, as Next also tries it when it looks for a page: `/%68elper/link` and
+ * `/helper%2Flink` are served as `/helper/link`, while the middleware is handed the path as it was sent.
+ */
+const decodedPath = (pathname: string) => {
+  try {
+    return decodeURIComponent(pathname);
+  } catch {
+    return pathname;
+  }
+};
+
 /** Routing on the site's own host: the helper pages are not served there (one domain per product). */
 export function routeSiteRequest(pathname: string, search: string, helperHosts: string[]): { action: "pass" } | { action: "notFound" } | { action: "redirectHost"; host: string; path: string } {
-  if (!under(pathname, HELPER_SEGMENT)) return { action: "pass" };
+  // An encoded spelling of `/helper` (no link produces one) is a 404, never a redirect: a decoded path can hold
+  // characters a browser drops from a Location (`%09`), so it is not handed on.
+  if (!under(pathname, HELPER_SEGMENT)) return under(decodedPath(pathname), HELPER_SEGMENT) ? { action: "notFound" } : { action: "pass" };
   const path = withoutHelperSegment(pathname, search);
   return helperHosts.length > 0 ? { action: "redirectHost", host: helperHosts[0], path } : { action: "notFound" };
 }

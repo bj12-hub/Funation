@@ -166,6 +166,19 @@ describe("routeSiteRequest", () => {
     expect(routeSiteRequest("/helper", "?a=1", ["helper.example.com"])).toEqual({ action: "redirectHost", host: "helper.example.com", path: "/?a=1" });
   });
 
+  it("does not serve the helper pages under an encoded spelling either (Next finds pages by the decoded path)", () => {
+    for (const path of ["/%68elper/link", "/%68%65%6C%70%65%72", "/helper%2Flink", "/helper%2flink"]) {
+      expect(routeSiteRequest(path, "", []), path).toEqual({ action: "notFound" });
+      // A 404 with HELPER_HOST set too: the decoded path is never put in a redirect.
+      expect(routeSiteRequest(path, "", ["helper.example.com"]), path).toEqual({ action: "notFound" });
+    }
+    expect(routeSiteRequest("/%68elper%2F%09%2Fevil.com", "", ["helper.example.com"])).toEqual({ action: "notFound" });
+    // Site pages with encoded characters, and paths that do not decode, are served as before.
+    for (const path of ["/creators/%ED%95%9C%EA%B8%80", "/community/%25", "/helperx%2Fy", "/%E0%A4%A"]) {
+      expect(routeSiteRequest(path, "", []), path).toEqual({ action: "pass" });
+    }
+  });
+
   it("sends /helper/x to the same path on the helper domain, never to another host", () => {
     const route = routeSiteRequest("/helper//evil.com", "", ["helper.example.com"]);
     expect(route).toEqual({ action: "redirectHost", host: "helper.example.com", path: "/evil.com" });
