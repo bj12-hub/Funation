@@ -25,3 +25,24 @@ export type QuestDecideResult =
 
 /** What the supporter's 후원 내역 shows for one of their quests. */
 export type QuestView = { status: QuestStatus; canDecide: boolean };
+
+/**
+ * A running quest on the 리모컨 퀘스트 card (code-first). Donor and title as 받은 후원 shows them — the original text;
+ * the 대체 메시지 rules apply only to what goes on stream. `actions` are the ones 받은 후원 offers for the same quest.
+ */
+export type QuestRemoteRow = {
+  id: string;
+  donor: string;
+  /** Empty for a hidden profile. */
+  donorId: string;
+  title: string;
+  /** FN held (= 성공 보상). */
+  amount: number;
+  createdAt: string;
+  /** Sent time + time limit; past it the quest still runs until someone decides (2026-10-04 결정). */
+  endsAt: string;
+  actions: QuestAction[];
+};
+
+/** The studio's running quests, oldest first (the order of the 퀘스트 위젯), and the server's clock for 남은 시간. */
+export type QuestRemoteView = { quests: QuestRemoteRow[]; serverNow: string };

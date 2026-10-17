@@ -88,6 +88,12 @@ export const mockQuests = (g.__ssumnationMockQuestsV2 ??= { items: seedQuests() 
 
 export const findQuest = (id: unknown) => (typeof id === "string" ? (mockQuests.items.find((q) => q.id === id) ?? null) : null);
 
+/**
+ * What the creator can do with a quest, wherever they decide it (후원관리+ › 받은 후원 › 퀘스트 and the 리모컨 퀘스트 card):
+ * 성공 · 실패 only when the supporter turned on 크리에이터 성공 결정, 취소 always; nothing once it is decided.
+ */
+export const creatorQuestActions = (q: QuestRecord): QuestAction[] => (q.status !== "IN_PROGRESS" ? [] : q.creatorDecides ? ["SUCCESS", "FAILED", "CANCELED"] : ["CANCELED"]);
+
 /** Called by the Donation Core right after the debit of a 퀘스트 후원 (the FN is held from here). */
 export function recordQuest(input: Omit<QuestRecord, "status" | "decidedAt" | "decidedBy" | "refundedFn">) {
   mockQuests.items.unshift({ ...input, status: "IN_PROGRESS", decidedAt: null, decidedBy: null, refundedFn: 0 });

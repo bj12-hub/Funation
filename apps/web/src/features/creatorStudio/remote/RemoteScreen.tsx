@@ -31,6 +31,7 @@ import {
   type RemoteView
 } from "@/services/creator/alertTypes";
 import type { GachaRemoteView } from "@/services/donations/gachaTypes";
+import type { QuestRemoteView } from "@/services/donations/questTypes";
 import type { RouletteRemoteView } from "@/services/donations/rouletteTypes";
 import type { VoteRemoteView } from "@/services/votes/voteTypes";
 import type { WallpaperRemoteView } from "@/services/creator/wallpaperRemote";
@@ -38,6 +39,7 @@ import styles from "../crew/crew.module.css";
 import { CopyButton } from "../settings/SettingsCards";
 import remote from "./remote.module.css";
 import { GachaRemote } from "./GachaRemote";
+import { QuestRemote } from "./QuestRemote";
 import { RouletteRemote } from "./RouletteRemote";
 import { BingoRemote } from "./BingoRemote";
 import { ToolsRemote } from "./ToolsRemote";
@@ -51,13 +53,14 @@ const time = (iso: string) => formatKstTime(iso, { hour: "2-digit", minute: "2-d
 /**
  * 리모컨 — code-first (no Figma frame). Route `/creator/remote`. Controls the server-side alert
  * queue that the OBS alert overlay shows: pause, mute, skip, cancel, volumes, minimum amount and
- * 테스트 후원 (display only — no FN moves), plus 방송 도구, 투표, 룰렛, 뽑기 and 벽지. Refreshes from the server every few
- * seconds.
+ * 테스트 후원 (display only — no FN moves), plus 방송 도구, 퀘스트, 투표, 룰렛, 뽑기 and 벽지. Refreshes from the server every
+ * few seconds.
  */
 export function RemoteScreen({
   view,
   overlayPath,
   tools,
+  quest,
   vote,
   roulette,
   gacha,
@@ -67,6 +70,7 @@ export function RemoteScreen({
   view: RemoteView;
   overlayPath: string;
   tools: Pick<ToolStates, "timer" | "credits" | "bingo">;
+  quest: QuestRemoteView;
   vote: VoteRemoteView;
   roulette: RouletteRemoteView;
   gacha: GachaRemoteView;
@@ -325,6 +329,9 @@ export function RemoteScreen({
       <ToolsRemote tools={tools} pending={pending} run={run} />
 
       <BingoRemote bingo={tools.bingo} pending={pending} run={run} />
+
+      {/* Its own notices next to the quests: a decision is final and may refund, so the answer shows by the row. */}
+      <QuestRemote view={quest} />
 
       <VoteRemote view={vote} pending={pending} run={run} />
 
