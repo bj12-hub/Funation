@@ -4,13 +4,14 @@ import { SettlementStartCards } from "./SettlementStartCards";
 import { SettlementStepper } from "./SettlementStepper";
 import styles from "./settlement.module.css";
 
-type Props = { registered: boolean; justRegistered: boolean; checklist: Checklist; identityGate: boolean };
+type Props = { registered: boolean; justRegistered: boolean; checklist: Checklist; minFn: number | null; identityGate: boolean };
 
 /**
  * Figma 429:4 settlement-management — 정산설정 home (route `/creator/settlement`) + code-first checklist.
- * `identityGate` (`?gate=identity`, from the apply page) opens the 본인인증 notice on arrival.
+ * `identityGate` (`?gate=identity`, from the apply page) opens the 본인인증 notice on arrival. `minFn`: the minimum the
+ * server enforces for 정산 신청, stated on its card.
  */
-export function SettlementHomeScreen({ registered, justRegistered, checklist, identityGate }: Props) {
+export function SettlementHomeScreen({ registered, justRegistered, checklist, minFn, identityGate }: Props) {
   return (
     <div className={styles.content}>
       <h1 className={styles.pageTitle}>썸네이션 정산 현황</h1>
@@ -23,7 +24,13 @@ export function SettlementHomeScreen({ registered, justRegistered, checklist, id
         <h2 id="settle-start" className={styles.startTitle}>
           정산을 시작할까요?
         </h2>
-        <SettlementStartCards registered={registered} identityVerified={checklist.identityVerified} justRegistered={justRegistered} identityGate={identityGate} />
+        <SettlementStartCards
+          registered={registered}
+          identityVerified={checklist.identityVerified}
+          justRegistered={justRegistered}
+          minFn={minFn}
+          identityGate={identityGate}
+        />
       </section>
     </div>
   );

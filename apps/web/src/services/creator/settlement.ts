@@ -4,7 +4,7 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
 import { matchesContent } from "./assetCore";
-import { mockSettlement, newSettlementCode } from "./mockSettlementStore";
+import { MOCK_SETTLEMENT_POLICY, mockSettlement, newSettlementCode } from "./mockSettlementStore";
 import {
   BANKS,
   CHANNEL_PLATFORMS,
@@ -51,6 +51,8 @@ export async function getSettlementOverview(): Promise<SettlementOverview | null
     memberType: r?.memberType ?? null,
     bankName: r?.bankName ?? null,
     accountMasked: r?.accountMasked ?? null,
+    // The minimum 정산 신청 enforces (settlementRequests.ts `checkAmount`), so the card cannot state another one.
+    minFn: MOCK_SETTLEMENT_POLICY.minFn,
     checklist: {
       identityVerified,
       documentsSubmitted: r !== null,

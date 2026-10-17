@@ -399,3 +399,76 @@ describe("이용 정지 중인 크리에이터의 정산 (2026-10-08 결정)", (
     expect(m.auditEntries().map((e) => e.action)).toEqual(["SETTLEMENT_HOLD", "SETTLEMENT_PAY", "SETTLEMENT_REJECT", "SETTLEMENT_APPROVE", "MEMBER_SUSPEND"]);
   });
 });
+
+/**
+ * 사이트 알림 for 정산 결정 — 기본값 (일반적인 기준, 2026-10-18): 승인 · 거절 · 지급 완료 each notify the creator once (🧾 정산
+ * → 정산 관리), a retried decision never twice; 보류 / 보류 해제 do not; a withdrawn creator's inbox is not theirs anymore.
+ */
+describe("정산 결정 알림 · 기본값 (2026-10-18)", () => {
+  beforeEach(() => {
+    resetMockStores();
+    signIn(["ADMIN"]);
+  });
+
+  const notes = async () => {
+    const { notificationStore } = await import("@/services/notifications/notificationCore");
+    return notificationStore()
+      .items.filter((n) => n.kind === "SETTLEMENT")
+      .map(({ title, body, href }) => ({ title, body, href }));
+  };
+  const MANAGE = "/creator/settlement/manage";
+  const APPROVED = { title: "정산 신청이 승인됐어요", body: "50,000 FN · 지급 예정일 2026-10-31", href: MANAGE };
+
+  it("notifies 승인 once, also when the approval is retried, and 지급 완료 once with the 정산 금액", async () => {
+    const m = await load();
+    addPending(m, "st-n", 50_000);
+    expect(await notes()).toEqual([]);
+    expect(await m.decideSettlement(OP, { id: "st-n", decision: "APPROVE", note: "서류 확인 완료" })).toEqual({ status: "OK" });
+    expect(await m.decideSettlement(OP, { id: "st-n", decision: "APPROVE", note: "서류 확인 완료" })).toEqual({ status: "OK" });
+    expect(await notes()).toEqual([APPROVED]);
+
+    const pay = { id: "st-n", reference: "TRF-0001", requestId: key(1) };
+    expect(await m.paySettlement(OP, pay)).toEqual({ status: "OK" });
+    expect(await m.paySettlement(OP, pay)).toEqual({ status: "OK" });
+    expect(await m.decideSettlement(OP, { id: "st-n", decision: "APPROVE", note: "서류 확인 완료" })).toEqual({ status: "OK" });
+    expect(await notes()).toEqual([{ title: "정산금이 지급됐어요", body: "50,000 FN · 정산 금액 46,700원", href: MANAGE }, APPROVED]);
+  });
+
+  it("notifies 거절 once, saying the FN can be requested again and where the 사유 is", async () => {
+    const m = await load();
+    addPending(m, "st-r", 45_000);
+    expect(await m.decideSettlement(OP, { id: "st-r", decision: "REJECT", note: "계좌 불일치" })).toEqual({ status: "OK" });
+    expect(await m.decideSettlement(OP, { id: "st-r", decision: "REJECT", note: "계좌 불일치" })).toEqual({ status: "OK" });
+    expect(await notes()).toEqual([{ title: "정산 신청이 거절됐어요", body: "45,000 FN은 다시 신청할 수 있어요 · 사유를 확인해 주세요", href: MANAGE }]);
+  });
+
+  it("does not notify 보류, 보류 해제 or a refused decision", async () => {
+    const m = await load();
+    addPending(m, "st-h", 50_000);
+    expect(await m.holdSettlement(OP, { id: "st-h", action: "HOLD", note: "입금 경로 확인 필요", requestId: key(1) })).toEqual({ status: "OK" });
+    expect((await m.decideSettlement(OP, { id: "st-h", decision: "APPROVE", note: "서류 확인 완료" })).status).toBe("INVALID");
+    expect(await m.holdSettlement(OP, { id: "st-h", action: "RELEASE", note: "확인 완료", requestId: key(2) })).toEqual({ status: "OK" });
+    expect((await m.paySettlement(OP, { id: "st-h", reference: "TRF-0001", requestId: key(3) })).status).toBe("INVALID");
+    expect(await notes()).toEqual([]);
+  });
+
+  it("does not notify the 지급 완료 of a withdrawn creator's approved request, before or after a 재가입", async () => {
+    const m = await load();
+    addPending(m, "st-w1", 50_000);
+    addPending(m, "st-w2", 50_000);
+    await m.decideSettlement(OP, { id: "st-w1", decision: "APPROVE", note: "서류 확인 완료" });
+    await m.decideSettlement(OP, { id: "st-w2", decision: "APPROVE", note: "서류 확인 완료" });
+    const approvals = await notes();
+    expect(approvals).toHaveLength(2);
+
+    const { recordWithdrawal } = await import("@/services/account/withdrawalRecord");
+    recordWithdrawal({ at: new Date().toISOString(), requestId: "w-test", forfeitedFn: 0, forfeitedEarningsFn: 0 });
+    expect(await m.paySettlement(OP, { id: "st-w1", reference: "TRF-0001", requestId: key(1) })).toEqual({ status: "OK" });
+    expect(await notes()).toEqual(approvals);
+    // The 재가입 account starts with an empty inbox (account/rejoin.ts); the old account's payout does not land there.
+    const { startNewAccount } = await import("@/services/account/rejoin");
+    startNewAccount({ nickname: "다시왔어요", password: "newpass12!", marketing: false, phone: "010-0000-0000" });
+    expect(await m.paySettlement(OP, { id: "st-w2", reference: "TRF-0002", requestId: key(2) })).toEqual({ status: "OK" });
+    expect(await notes()).toEqual([]);
+  });
+});

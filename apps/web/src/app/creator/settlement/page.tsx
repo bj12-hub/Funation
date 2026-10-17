@@ -17,6 +17,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ r
       registered={overview.registered}
       justRegistered={overview.registered && registered === "1"}
       checklist={overview.checklist}
+      minFn={overview.minFn}
       identityGate={identityGate}
     />
   );

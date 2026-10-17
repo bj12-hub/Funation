@@ -201,6 +201,11 @@ export type SettlementOverview = {
   memberType: MemberType | null;
   bankName: string | null;
   accountMasked: string | null;
+  /**
+   * Minimum request from the server's policy, the same value 정산 신청 enforces (TBD — Figma sample), for the 정산 신청
+   * card's note. Null when no minimum applies.
+   */
+  minFn: number | null;
   /** 정산 준비 체크리스트 (code-first, no Figma frame). */
   checklist: SettlementChecklist;
 };
