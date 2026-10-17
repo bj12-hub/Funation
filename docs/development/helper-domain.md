@@ -45,6 +45,8 @@ On the helper host:
 | other `/api/*` (admin, wallet) | 404 — also with a dot in the last segment (`/api/admin/members/a.b`): only `/_next/*` and the `public/` folders count as files |
 
 On the site's host `/helper/*` is a 404 (or, with `HELPER_HOST` set, a redirect to the same path on the helper domain).
+An encoded spelling (`/%68elper/link`, `/helper%2Flink`) is always a 404: Next also looks pages up by the percent-decoded
+path while the middleware gets the path as sent, so the routing checks the decoded path too, and never puts it in a redirect.
 
 Every page request carries `x-ssumnation-surface: site | helper` (a client-sent value is overwritten). Layouts read it
 with `lib/surface.ts` `getSurface()` to pick their chrome: the auth pages and `(main)` (채널 만들기, terms) get the helper's

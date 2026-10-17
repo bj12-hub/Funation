@@ -83,6 +83,17 @@ describe("middleware · redirects", () => {
     expect(new URL(res.headers.get("location") ?? "").pathname).toBe("/goal");
   });
 
+  it("answers an encoded /helper on the site with the site's 404, with or without HELPER_HOST", () => {
+    for (const helperHost of ["", "helper.example.com"]) {
+      vi.stubEnv("HELPER_HOST", helperHost);
+      for (const path of ["/%68elper/link", "/helper%2Flink"]) {
+        const res = middleware(request(`https://example.com${path}`, { host: "example.com" }));
+        expect(res.headers.get("x-middleware-rewrite"), path).toBe("https://example.com/__helper-not-served");
+        expect(res.headers.get("location"), path).toBeNull();
+      }
+    }
+  });
+
   it("sends /helper/x on the site to the helper domain, never to another host", () => {
     vi.stubEnv("HELPER_HOST", "helper.example.com");
     const res = middleware(request("https://example.com/helper//evil.com", { host: "example.com" }));
