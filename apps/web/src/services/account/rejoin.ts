@@ -78,6 +78,8 @@ function retireSlotMember(to: string) {
   }
   mockCommunity.postRequests = rekey(mockCommunity.postRequests, `${from}:`, `${to}:`);
   mockCommunity.commentRequests = rekey(mockCommunity.commentRequests, `${from}:`, `${to}:`);
+  // Today's 조회 records too: the new account's first read of a post today is a view of its own.
+  mockCommunity.viewLog.seen = rekey(mockCommunity.viewLog.seen, `${from}:`, `${to}:`);
   mockMessages.requests = rekey(mockMessages.requests, `${from}:`, `${to}:`);
   const channel = channelCommunityStore();
   for (const p of channel.posts) if (p.authorId === from) p.authorId = to;
