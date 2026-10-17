@@ -48,8 +48,8 @@ import {
 } from "./donationManagementTypes";
 import { crewDonationRows } from "@/services/crew/crewCore";
 import { STUDIO_CHANNEL, mockCrew } from "@/services/crew/mockCrewStore";
-import { decideQuest, findQuest, mockQuests } from "@/services/donations/questCore";
-import { isQuestAction, type QuestAction, type QuestDecideResult } from "@/services/donations/questTypes";
+import { creatorQuestActions, decideQuest, findQuest, mockQuests } from "@/services/donations/questCore";
+import { isQuestAction, type QuestDecideResult } from "@/services/donations/questTypes";
 import { getDonationCatalog } from "@/services/donations/signatureCore";
 import { FIXTURE_AMOUNTS, FIXTURE_DONORS } from "./receivedFixtures";
 import { mockCreator } from "./mockCreatorStore";
@@ -189,7 +189,7 @@ function questDonations(): ReceivedDonation[] {
       message: q.title,
       status: q.status,
       detail: null,
-      questActions: (q.status !== "IN_PROGRESS" ? [] : q.creatorDecides ? ["SUCCESS", "FAILED", "CANCELED"] : ["CANCELED"]) as QuestAction[]
+      questActions: creatorQuestActions(q)
     }))
     .sort((x, y) => y.at.localeCompare(x.at));
 }
