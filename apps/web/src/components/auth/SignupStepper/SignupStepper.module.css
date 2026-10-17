@@ -68,7 +68,19 @@
   font-size: var(--font-size-14);
 }
 
+.labels li {
+  /* Korean breaks between any two syllables; keep "1. 약관 동의" on one line. */
+  white-space: nowrap;
+}
+
 .labelActive {
   color: var(--color-text-primary);
   font-weight: var(--font-weight-bold);
+}
+
+@media (max-width: 480px) {
+  .labels {
+    gap: 8px;
+    font-size: var(--font-size-12);
+  }
 }
