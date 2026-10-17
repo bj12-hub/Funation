@@ -10,6 +10,9 @@ export default defineConfig({
   esbuild: { jsx: "automatic" },
   test: {
     environment: "node",
-    include: ["src/**/*.test.ts"]
+    include: ["src/**/*.test.ts"],
+    // A file's first test pays for importing the mock services; under the merge script's full parallel run that alone
+    // passed vitest's 5 s default (retention, payments, quests, helperMiddleware …). 30 s matches the per-test overrides.
+    testTimeout: 30_000
   }
 });
