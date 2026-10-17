@@ -1,6 +1,7 @@
 "use server";
 
 import { USE_MOCK, mockDelay } from "@/lib/mock";
+import { kstDateString } from "@/lib/period";
 import { shownMemberName } from "@/services/admin/memberCore";
 import { isBlockedBy } from "@/services/moderation/moderationCore";
 import { getSession } from "@/lib/session";
@@ -25,7 +26,7 @@ import { mockCommunity, type MockPost } from "./mockCommunityStore";
  * after the mock delay and change it in the same tick, so a post deleted or hidden meanwhile is not written to.
  * 글쓰기 and 댓글 carry a request id per form: a retry after a lost response returns the first result instead of
  * writing twice. A withdrawn member's posts and comments stay up under "탈퇴한 회원" (2026-10-08 결정).
- * TBD: moderation, reports, rate limits, images, notices.
+ * 조회수 counts once per member and post a day (`countView`). TBD: moderation, reports, rate limits, images, notices.
  */
 
 const assertMock = () => {
@@ -47,6 +48,32 @@ const summary = (p: MockPost, viewer: string | undefined) => ({
   views: p.views
 });
 
+/**
+ * 조회수 — 기본값 (일반적인 기준): a signed-in member counts at most one view per post per Korean calendar day (KST), and
+ * the author's own reads never count — so refreshing, re-opening a post and the page's re-render after a comment add
+ * nothing. Guests (TBD): there is no anonymous visitor key (cookie) yet, so each guest page load counts once (the page
+ * reads the post once per request).
+ */
+function countView(p: MockPost, viewer: string | undefined) {
+  if (viewer === p.authorId) return;
+  if (viewer && !firstViewToday(p.id, viewer)) return;
+  p.views += 1;
+}
+
+/**
+ * Records that `member` has seen the post today (KST); false when they already had. Only today's records are kept: the
+ * first record of a new day drops the previous day's, so the log stays at most one entry per member and post.
+ */
+function firstViewToday(postId: string, member: string) {
+  const log = mockCommunity.viewLog;
+  const day = kstDateString();
+  if (log.day !== day) Object.assign(log, { day, seen: {} });
+  const key = `${member}:${postId}`;
+  if (log.seen[key]) return false;
+  log.seen[key] = true;
+  return true;
+}
+
 export async function getBoard(params: { category?: unknown; q?: unknown; page?: unknown }): Promise<BoardView> {
   assertMock();
   const category = isBoardCategory(params.category) ? params.category : "ALL";
@@ -64,14 +91,14 @@ export async function getBoard(params: { category?: unknown; q?: unknown; page?:
   return { category, q, items: all.slice((page - 1) * POSTS_PAGE_SIZE, page * POSTS_PAGE_SIZE).map((p) => summary(p, viewer)), page, totalPages, total: all.length };
 }
 
-/** Post detail; counts a view (mock: every read). */
+/** Post detail; counts a view (`countView`: once per member and day, never the author's). */
 export async function getPost(id: unknown): Promise<PostDetail | null> {
   assertMock();
   const session = await getSession();
   const p = typeof id === "string" ? mockCommunity.posts.find((x) => x.id === id && live(x)) : undefined;
   if (!p || isBlockedBy(session?.userId, p.authorId)) return null;
   await mockDelay(150);
-  p.views += 1;
+  countView(p, session?.userId);
   return {
     ...summary(p, session?.userId),
     body: p.body,
@@ -165,6 +192,8 @@ export async function addComment(postId: unknown, body: unknown, requestId: unkn
   const id = `cm-${Date.now().toString(36)}${p.comments.length}`;
   p.comments.push({ id, authorId: session.userId, authorName: session.nickname, body: text, createdAt: new Date().toISOString(), deleted: false });
   mockCommunity.commentRequests[requestKey] = id;
+  // The commenter is on the post: the page's re-render after the comment is not a new view (not even past midnight).
+  firstViewToday(p.id, session.userId);
   return { status: "SAVED" };
 }
 
@@ -178,5 +207,7 @@ export async function deleteComment(postId: unknown, commentId: unknown): Promis
   if (!c) return { status: "NOT_FOUND" };
   if (c.authorId !== session.userId) return { status: "FORBIDDEN" };
   c.deleted = true;
+  // As after a comment: the re-render is the same visit.
+  firstViewToday(p!.id, session.userId);
   return { status: "SAVED" };
 }

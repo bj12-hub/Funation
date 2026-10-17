@@ -12,6 +12,12 @@ part of the Donation Core, Wallet or Settlement.
   comment or 쪽지 does not ask.
 - 글쓰기, 댓글 and channel posts carry a request id per form, kept per member and per account: a retry after a lost
   response writes once, and the screen starts a new id when the text changes after a failed or lost submit.
+- 조회수 (기본값 — 일반적인 기준, `services/community/community.ts` `countView`): a signed-in member adds at most one
+  view per post per Korean calendar day (KST; the day turns at 00:00 KST), so refreshing or re-opening a post adds
+  nothing; the author's own reads never count; the page's re-render after writing or deleting a comment is not a new
+  view. The server keeps only today's records (one per member and post); after a 재가입 the new account's reads count
+  as its own. Guests: TBD — there is no anonymous visitor key (cookie) yet, so each guest page load counts once.
+  Channel posts (채널 글) have no view counter.
 - 2026-10-08 결정: a withdrawn member's posts, comments and channel posts stay up with the author shown as
   "탈퇴한 회원", also on block lists. (The admin console instead shows the original nickname with a "탈퇴" badge —
   2026-10-08 결정 — e.g. as author or reporter in 신고 처리.) Nobody can edit or delete them; after a 재가입 they
