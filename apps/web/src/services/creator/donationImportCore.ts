@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { toCsv } from "@/lib/csv";
+import { kstIsoString } from "@/lib/format";
 import { kstDateString } from "@/lib/period";
 import type { ExternalReceivedDonation, PlatformErrorCode } from "@/services/platforms/platformTypes";
 import { unitLabel, type AmountUnit } from "@/types/donationUnit";
@@ -75,9 +76,13 @@ type RequestEntry = { state: "PENDING"; previewId: string; mappingKey: string } 
 export type TrailEntry = { at: string; actorId: string; action: "CSV_IMPORT" | "FLEXTV_SYNC" | "UNDO"; source: ImportSource; batchId: string | null; count: number };
 
 type FlexState = {
-  /** The channel the cursor belongs to: another channel starts from the beginning of its history. */
+  /** The channel the last sync read: its time, result and error are the ones the card shows. */
   channelId: string | null;
-  cursor: string | null;
+  /**
+   * Read position per channel id: another channel starts from the beginning of its own history, and a channel linked
+   * again later continues where it stopped (so records removed with 되돌리기 are not taken again).
+   */
+  cursors: Record<string, string | null>;
   lastSyncAt: string | null;
   lastResult: (FlexTvSyncCounts & { hasMore: boolean }) | null;
   lastError: PlatformErrorCode | null;
@@ -91,7 +96,7 @@ const fresh = (trail: TrailEntry[] = []): Store => ({
   batches: [],
   previews: {},
   requests: {},
-  flextv: { channelId: null, cursor: null, lastSyncAt: null, lastResult: null, lastError: null, running: false },
+  flextv: { channelId: null, cursors: {}, lastSyncAt: null, lastResult: null, lastError: null, running: false },
   trail
 });
 
@@ -119,6 +124,10 @@ const activeFingerprints = (source: ImportSource) => new Set(importStore().recor
 /** Previews kept per creator: older ones go (with their rows) when a new file is read. */
 const PREVIEWS_PER_OWNER = 3;
 
+/**
+ * Expired previews go with their rows (other people's nicknames and messages): on every upload, lookup and visit of the
+ * tab, so a file is not kept past PREVIEW_TTL_MS just because nobody uploaded since. The backend would use a TTL.
+ */
 export function prunePreviews(now = Date.now()) {
   const previews = importStore().previews;
   for (const [id, p] of Object.entries(previews)) if (p.expiresAt <= now) delete previews[id];
@@ -138,6 +147,7 @@ export function storePreview(p: Omit<StoredPreview, "id" | "createdAt" | "expire
 
 /** The creator's own preview of this account, still in time — or null. */
 export function findPreview(id: unknown, owner: string, account: string | null, now = Date.now()): StoredPreview | null {
+  prunePreviews(now);
   if (typeof id !== "string") return null;
   const previews = importStore().previews;
   const p = Object.hasOwn(previews, id) ? previews[id] : null;
@@ -309,6 +319,12 @@ export function undoBatch(batchId: unknown, actorId: string, now = Date.now()): 
 
 // ── FlexTV ──────────────────────────────────────────────────────────────────────────────────────────────────
 
+/** Where the next sync of this channel starts reading (null: the beginning of its history). */
+export const flexCursorOf = (channelId: string) => {
+  const cursors = importStore().flextv.cursors;
+  return Object.hasOwn(cursors, channelId) ? cursors[channelId] : null;
+};
+
 /**
  * Writes what a sync read — synchronous (dedupe and write in one step). Each donation is new or already here by its
  * External Transaction ID; a batch is made only when something is new. The read position moves to `cursor`.
@@ -367,9 +383,9 @@ export function commitFlexTvSync(
   }
   s.trail.push({ at, actorId, action: "FLEXTV_SYNC", source: "FLEXTV", batchId: added.length > 0 ? batchId : null, count: added.length });
   const counts = { imported: added.length, duplicates, skipped: input.skipped };
+  s.flextv.cursors[input.channel.externalChannelId] = input.cursor;
   Object.assign(s.flextv, {
     channelId: input.channel.externalChannelId,
-    cursor: input.cursor,
     lastSyncAt: at,
     lastResult: { ...counts, hasMore: input.hasMore },
     lastError: input.error
@@ -439,7 +455,7 @@ export function importedCsv(f: ImportedFilter) {
   const kept = rows.slice(0, IMPORTED_EXPORT_MAX);
   const csv = toCsv(
     ["후원 일시 (한국 시간)", "출처", "후원자 닉네임", "금액", "단위", "메시지", "유형"],
-    kept.map((r) => [new Date(Date.parse(r.at) + 9 * 3_600_000).toISOString().slice(0, 19).replace("T", " "), IMPORT_SOURCE_LABEL[r.source], r.donorName, r.amount, unitLabel(r.unit), r.message, r.kind ?? ""])
+    kept.map((r) => [kstIsoString(r.at).replace("T", " "), IMPORT_SOURCE_LABEL[r.source], r.donorName, r.amount, unitLabel(r.unit), r.message, r.kind ?? ""])
   );
   return { csv, rows: kept.length, truncated: rows.length > kept.length };
 }

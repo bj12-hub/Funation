@@ -96,6 +96,9 @@ describe("CSV records", () => {
 
   it("stops on too many columns or rows", () => {
     expect(parseCsvText(Array.from({ length: CSV_MAX_COLUMNS + 1 }, (_, i) => `c${i}`).join(","))).toEqual({ ok: false, code: "TOO_MANY_COLUMNS" });
+    expect(parseCsvText(Array.from({ length: CSV_MAX_COLUMNS }, (_, i) => `c${i}`).join(",")).ok).toBe(true);
+    // The read stops at the delimiter past the limit, not at the end of the row (an unclosed quote after it is never read).
+    expect(parseCsvText(`${",".repeat(CSV_MAX_COLUMNS)}"never closed`)).toEqual({ ok: false, code: "TOO_MANY_COLUMNS" });
     expect(parseCsvText("a\n1\n2\n3\n4", 3)).toEqual({ ok: false, code: "TOO_MANY_ROWS" });
     expect(parseCsvText("a\n1\n2", 3).ok).toBe(true);
   });

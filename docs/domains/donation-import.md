@@ -62,8 +62,8 @@ Windows' CP949 for all 11,172 syllables). Anything else is refused ("글자를 �
 |---|---|
 | File | 5 MB, `.csv` (also `.txt` · `.tsv`); an `.xlsx` / `.xls` (or one renamed `.csv`) is refused with "CSV로 저장한 뒤" |
 | Rows | 20,000 data rows per file |
-| Columns | 50 per row |
-| Preview | the first 20 rows, up to 100 rows it will skip; kept on the server 30 minutes, 3 per creator |
+| Columns | 50 per row (the read stops at the separator past the 50th, not at the end of that row) |
+| Preview | the first 20 rows, up to 100 rows it will skip; kept on the server 30 minutes, 3 per creator. An expired preview's rows go on the next upload, lookup or visit of the tab (the backend: a TTL) |
 
 ### Flow
 
@@ -88,7 +88,7 @@ Windows' CP949 for all 11,172 syllables). Anything else is refused ("글자를 �
   sender · price · currency · memo · giftedAt`) is mapped in the adapter; malformed items are dropped and counted (`skipped`).
   Amounts with `currency: "KRW"` are 원; anything else keeps FlexTV's placeholder unit `FLEXTV_UNIT` (unit TBD).
 - **FlexTV 내역 가져오기** (`syncFlexTvDonations`): reads after the stored cursor (per channel — another channel starts from the
-  beginning of its own history), up to 10 pages (sample value; "남은 내역이 있어요" and the next press continues), and imports what
+  beginning of its own history, and a channel linked again after another one continues where it stopped), up to 10 pages (sample value; "남은 내역이 있어요" and the next press continues), and imports what
   is new by **External Transaction ID**. Result: "n건 새로 가져옴 · n건 이미 있음 (· 읽을 수 없는 n건 건너뜀)". One sync at a time.
 - Failures: not linked (NOT_LINKED), API failure / timeout (5 s) → FAILED with the reason and 다시 시도 — pages read before the
   failure are kept with their position; unsupported capability (UNSUPPORTED); the link changed during the read (CHANNEL_CHANGED,
@@ -104,7 +104,9 @@ Windows' CP949 for all 11,172 syllables). Anything else is refused ("글자를 �
 - The file is parsed on the server; its content is data, never executed. Screens render it as text (React escapes it).
 - Every action needs the Creator role: a supporter, a signed-out visitor, a suspended or a withdrawn creator gets UNAUTHORIZED /
   nothing (`getCreatorSession` is null for them). Lookups by client-sent ids use own-property checks.
-- 가져온 내역 CSV 다운로드 escapes cells a spreadsheet would run as a formula (`= + - @` tab CR → leading `'`, `lib/csv.ts`).
+- 가져온 내역 CSV 다운로드 escapes cells a spreadsheet would run as a formula (`= + - @` tab CR → leading `'`) and quotes cells
+  with a separator (`,` `;` tab), so no part of a name or message starts a cell of its own (`lib/csv.ts`, the helper of every
+  CSV download; `lib/csv.test.ts` guards that).
 - Donor nicknames and messages are third-party personal data: kept only for this creator, shown only on the creator's 내역 이관
   screens. They never reach public pages, the hall of fame, OBS overlays or the 수단별 보드 (which gets source · unit · amount · time).
   On-screen notice: "가져온 내역에는 후원자 닉네임 · 메시지가 들어 있어요. 스튜디오에서 나만 볼 수 있고, 채널 페이지 · 명예의 전당 ·

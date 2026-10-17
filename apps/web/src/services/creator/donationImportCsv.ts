@@ -172,12 +172,10 @@ export function parseCsvText(text: string, maxRecords = Number.POSITIVE_INFINITY
   let field = "";
   let quoted = false;
   let quoteRow = 0;
-  let tooWide = false;
 
   const endRecord = () => {
     cells.push(field);
     field = "";
-    if (cells.length > CSV_MAX_COLUMNS) tooWide = true;
     if (cells.some((c) => c.trim() !== "")) records.push({ row, cells });
     cells = [];
     row++;
@@ -211,12 +209,14 @@ export function parseCsvText(text: string, maxRecords = Number.POSITIVE_INFINITY
     if (ch === delimiter) {
       cells.push(field);
       field = "";
+      // A row past the column limit stops the read at that delimiter: a long line of separators (a 5 MB file can
+      // hold millions) is never split into cells first.
+      if (cells.length >= CSV_MAX_COLUMNS) return { ok: false, code: "TOO_MANY_COLUMNS" };
       i++;
       continue;
     }
     if (ch === "\r" || ch === "\n") {
       endRecord();
-      if (tooWide) return { ok: false, code: "TOO_MANY_COLUMNS" };
       if (records.length > maxRecords) return { ok: false, code: "TOO_MANY_ROWS" };
       i += ch === "\r" && text[i + 1] === "\n" ? 2 : 1;
       continue;
@@ -226,7 +226,6 @@ export function parseCsvText(text: string, maxRecords = Number.POSITIVE_INFINITY
   }
   if (quoted) return { ok: false, code: "MALFORMED", row: quoteRow };
   if (field !== "" || cells.length > 0) endRecord();
-  if (tooWide) return { ok: false, code: "TOO_MANY_COLUMNS" };
   if (records.length > maxRecords) return { ok: false, code: "TOO_MANY_ROWS" };
   return { ok: true, records };
 }
