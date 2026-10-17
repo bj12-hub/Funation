@@ -37,6 +37,9 @@ describe("admin content", () => {
     expect((await m.getNotice(res.id))!.title).toBe("수정된 제목");
     await m.deleteNotice(OP, res.id);
     expect(await m.getNotice(res.id)).toBeNull();
+    // The 새 공지사항 alert goes with it: the bell must not lead to a deleted notice's 404.
+    expect(m.notificationStore().items.some((n) => n.href === `/support/notices/${res.id}`)).toBe(false);
+    expect(m.notificationStore().items.some((n) => n.href === "/support/notices/brand")).toBe(true);
     expect(m.auditEntries().map((e) => e.reason?.split(" · ")[0])).toEqual(["공지 삭제", "공지 수정", "공지 등록"]);
   });
 

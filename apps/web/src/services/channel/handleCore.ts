@@ -10,7 +10,9 @@ import { isValidChannelHandle } from "./channelTypes";
 /** Never a channel address: brand names and the site's own route segments. */
 export const RESERVED_HANDLES: ReadonlySet<string> = new Set([
   "ssumnation",
-  "ssumnation",
+  // Earlier working names of the service (renamed 2026-10-08), so nobody can take them as a channel address.
+  "somnation",
+  "funation",
   "admin",
   "api",
   "attendance",

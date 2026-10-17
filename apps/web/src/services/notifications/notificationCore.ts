@@ -39,3 +39,9 @@ export function notify(input: { kind: NotificationKind; title: string; body: str
   s.items.length = Math.min(s.items.length, NOTIFICATIONS_KEEP);
   return item;
 }
+
+/** Drops the alerts that point at content which no longer exists (a deleted notice), so the bell never leads to a 404. */
+export function removeNotificationsTo(href: string) {
+  const s = notificationStore();
+  s.items = s.items.filter((n) => n.href !== href);
+}
