@@ -7,13 +7,23 @@ import { Toast } from "@/components/ui/Toast";
 import { SettlementNoticeModal } from "./SettlementNoticeModal";
 import styles from "./settlement.module.css";
 
+/** Stands for the 정산 신청 card's minimum line in its notes (`minimumNote`). */
+const MINIMUM = Symbol("minimum");
+
 type CardKey = "register" | "apply" | "manage";
-type Card = { key: CardKey; title: string; lead: string; icon: ReactNode; href: string; notes: string[] };
+type Card = { key: CardKey; title: string; lead: string; icon: ReactNode; href: string; notes: (string | typeof MINIMUM)[] };
 
 /**
- * Card notes are Figma copy (429:84 · 429:98 · 429:112). The settlement date, minimum amount and
- * payout schedule they mention are product policy that is not approved yet (TBD) — they are shown
- * as written and are not enforced from these strings.
+ * The 정산 신청 card's minimum line. Figma 429:98 wrote "10,000원", which is not what 정산 신청 enforces: the line states
+ * the server's minimum (`minFn`, the value its amount check uses — a Figma sample, TBD) in FN like the other settlement
+ * screens, marked as a sample value. Null (no minimum) = no line.
+ */
+const minimumNote = (minFn: number | null) => (minFn === null ? null : `최소 정산 신청 가능 금액은 ${minFn.toLocaleString("ko-KR")} FN 이상입니다 (예시 값 · TBD).`);
+
+/**
+ * Card notes are Figma copy (429:84 · 429:98 · 429:112), except the minimum line (`minimumNote`). The settlement date
+ * and payout schedule they mention are product policy that is not approved yet (TBD) — they are shown as written and
+ * are not enforced from these strings.
  */
 const CARDS: Card[] = [
   {
@@ -30,11 +40,7 @@ const CARDS: Card[] = [
     lead: "정산 신청을 할 수 있어요",
     icon: <FileTextIcon />,
     href: "/creator/settlement/apply",
-    notes: [
-      "정산가능금액은 매 달 1일 정산되며, 바로 신청 가능합니다.",
-      "최소 정산 신청 가능 금액은 10,000원 이상입니다.",
-      "정산 신청은 매월 지정된 정산일(평일 기준)에 일괄 지급됩니다."
-    ]
+    notes: ["정산가능금액은 매 달 1일 정산되며, 바로 신청 가능합니다.", MINIMUM, "정산 신청은 매월 지정된 정산일(평일 기준)에 일괄 지급됩니다."]
   },
   {
     key: "manage",
@@ -56,6 +62,8 @@ type Props = {
   registered: boolean;
   identityVerified: boolean;
   justRegistered: boolean;
+  /** The minimum 정산 신청 enforces, from the server (null = none). */
+  minFn: number | null;
   /** Open the 본인인증 notice on arrival (the apply page sends unverified creators here). */
   identityGate: boolean;
 };
@@ -73,7 +81,7 @@ function gateFor(key: CardKey, registered: boolean, identityVerified: boolean): 
  * (2026-10-06 결정), so after registering it opens the code-first 본인인증 notice until the 마이페이지
  * verification is done. The server re-checks on each page and action.
  */
-export function SettlementStartCards({ registered, identityVerified, justRegistered, identityGate }: Props) {
+export function SettlementStartCards({ registered, identityVerified, justRegistered, minFn, identityGate }: Props) {
   const [dialog, setDialog] = useState<Dialog | null>(identityGate ? "needIdentity" : null);
   const [toast, setToast] = useState<string | null>(justRegistered ? "정산 자료 등록 신청이 완료되었습니다." : null);
   const clearToast = useCallback(() => setToast(null), []);
@@ -96,7 +104,7 @@ export function SettlementStartCards({ registered, identityVerified, justRegiste
                 <ChevronRightSmallIcon className={styles.cardChevron} />
               </span>
               <ol className={styles.cardNotes}>
-                {card.notes.map((note) => (
+                {card.notes.flatMap((n) => (n === MINIMUM ? (minimumNote(minFn) ?? []) : [n])).map((note) => (
                   <li key={note}>{note}</li>
                 ))}
               </ol>

@@ -43,6 +43,18 @@ Settlement rules remain subject to product, financial and legal approval.
   the request back as it was. It is an operator flag, not a creator-facing state: 정산 신청 · 정산 관리 keep showing 승인대기 /
   승인. The console counts held requests in their own "보류" tab only (not in 심사 대기 · 승인 or the dashboard's 처리 대기,
   which says "보류 N건" apart). A held 심사 대기 request still ends as 탈퇴 소멸 at a 탈퇴, and its hold no longer counts.
+- **사이트 알림 for decisions — 기본값 (일반적인 기준, 2026-10-18).** After the change succeeded, 승인 · 반려 · 지급 완료 each
+  send the creator one notification (🧾 정산, kind `SETTLEMENT`, link `/creator/settlement/manage` — 정산 관리, 연별 by
+  default): "정산 신청이 승인됐어요" · "50,000 FN · 지급 예정일 2026-10-31"; "정산 신청이 거절됐어요" · "45,000 FN은 다시 신청할
+  수 있어요 · 사유를 확인해 주세요" (정산 관리 labels a 반려 "거절" with its 사유); "정산금이 지급됐어요" · "50,000 FN · 정산 금액
+  46,700원". Once per request and outcome (`settlement-approved|rejected|paid:{id}`), so a retried decision never notifies
+  twice. 보류 / 보류 해제 notify nothing (an operator flag). Only while the account that made the request holds the slot,
+  active: the 지급 완료 of a withdrawn creator's approved request sends none (the inbox is nobody's, or a 재가입 account's).
+  `services/admin/settlements.ts` `notifySettlement`.
+- **Minimum on the 정산 신청 card (2026-10-18).** The card (Figma 429:98 "최소 정산 신청 가능 금액은 10,000원 이상입니다.")
+  states the minimum the server enforces instead — `MOCK_SETTLEMENT_POLICY.minFn` through `getSettlementOverview().minFn`, in
+  FN like the other settlement screens: "최소 정산 신청 가능 금액은 40,000 FN 이상입니다 (예시 값 · TBD)." The minimum itself
+  stays TBD (Figma sample); a test renders the page and checks the card's number is where 정산 신청 starts accepting.
 - **Request ids** are random (`st-<uuid>`), so two requests in the same millisecond never share an id.
 - **정산 자료 등록** checks each document's first bytes (JPG · PNG · PDF must match the declared type, "JPG, PNG, PDF 파일만 업로드할 수 있어요."), then checks "already registered" again and writes in one synchronous step, so two tabs cannot both register.
 - **본인인증 before 정산 신청 (decided 2026-10-06: "필수로 막기").** Until the creator's 마이페이지 본인인증 is done, the server refuses the 정산 신청 view, the fee quote, the request and 자동 정산 ON/OFF with `IDENTITY_REQUIRED` — no FN moves and no Idempotency-Key is reserved. Check order: session → 정산 자료 registration (`NOT_REGISTERED`) → 본인인증, in the same synchronous step as the write. The studio shows "정산 신청 전에 본인인증이 필요해요" with a link to `/mypage` (정산 신청 card, and `/creator/settlement/apply` sends unverified creators to `/creator/settlement?gate=identity`). 서류 심사 and 정산 계좌 are not separate gates: the mock approves documents on submit and every registration carries the payout account. No job makes automatic requests yet; when one exists it must re-check this gate for each request. 정산 관리 (history, 정보 변경) stays open without 본인인증. A 재가입 account starts unverified.

@@ -1,8 +1,10 @@
 import { USE_MOCK } from "@/lib/mock";
 import { purgeExpired } from "@/services/account/retentionPurge";
+import { accountSince, isWithdrawn } from "@/services/account/withdrawalCore";
 import { mockCreator } from "@/services/creator/mockCreatorStore";
 import { mockSettlement, type MockSettlementRegistration, type MockSettlementRequest } from "@/services/creator/mockSettlementStore";
 import { memberTypeLabel, type SettlementStatus } from "@/services/creator/settlementTypes";
+import { notify } from "@/services/notifications/notificationCore";
 import type { AdminActor } from "./adminTypes";
 import { recordAudit } from "./auditCore";
 import { activeHold, holdRequestId, pushHold, readHoldInput, recordedHold, sameHoldCall } from "./holdCore";
@@ -20,6 +22,9 @@ import { SETTLEMENT_NOTE, SETTLEMENT_REFERENCE, type AdminSettlementRegistration
  *
  * 2026-10-08 결정: a creator's 이용 정지 does not stop the review or the payout (nothing here reads it); an operator puts a
  * request that needs a closer look on 보류 instead, which stops 승인 · 반려 · 지급 완료 until 보류 해제.
+ *
+ * 사이트 알림 — 기본값 (일반적인 기준, 2026-10-18): 승인 · 반려 · 지급 완료 each tell the creator once (`notifySettlement`);
+ * 보류 / 보류 해제 do not (an operator flag the creator never sees).
  */
 
 const assertMock = () => {
@@ -66,6 +71,26 @@ const requester = (r: MockSettlementRequest) => {
   const who = slotAccountLabel(r.account ?? null);
   return who.withdrawn ? { creatorName: who.name, creatorWithdrawn: true } : { creatorName: mockCreator.channelName, creatorWithdrawn: false };
 };
+
+const fn = (n: number) => n.toLocaleString("ko-KR");
+
+/**
+ * 사이트 알림 for a decided request — 기본값 (일반적인 기준, 2026-10-18), after the change succeeded: 🧾 정산, linking to
+ * 정산 관리 (`/creator/settlement/manage`, 연별 by default), where the creator sees the status, the 지급(예정)일 and a
+ * 거절 사유. Once per request and outcome (`dedupeKey`), and only while the account that made the request holds the slot,
+ * active: a withdrawn creator's approved request is still paid (2026-10-08 결정), but the inbox is no longer theirs (it
+ * is nobody's, or a 재가입 account's). The copy matches what 정산 관리 shows (거절, 신청 금액, 지급(예정)일, 정산 금액).
+ */
+function notifySettlement(r: MockSettlementRequest, outcome: "APPROVED" | "REJECTED" | "PAID") {
+  if ((r.account ?? null) !== accountSince() || isWithdrawn()) return;
+  const amount = `${fn(r.amountFn)} FN`;
+  const note = {
+    APPROVED: { title: "정산 신청이 승인됐어요", body: r.payoutDate ? `${amount} · 지급 예정일 ${r.payoutDate}` : amount },
+    REJECTED: { title: "정산 신청이 거절됐어요", body: `${amount}은 다시 신청할 수 있어요 · 사유를 확인해 주세요` },
+    PAID: { title: "정산금이 지급됐어요", body: `${amount} · 정산 금액 ${fn(r.netKrw)}원` }
+  }[outcome];
+  notify({ kind: "SETTLEMENT", ...note, href: "/creator/settlement/manage", dedupeKey: `settlement-${outcome.toLowerCase()}:${r.id}` });
+}
 
 /** Order: 심사 대기, then 보류, then the rest; newest first within each. */
 const queueRank = (r: MockSettlementRequest) => (holdOf(r) ? 1 : r.status === "PENDING" ? 0 : 2);
@@ -116,7 +141,7 @@ export async function decideSettlement(admin: AdminActor, input: unknown): Promi
   if (v.decision !== "APPROVE" && v.decision !== "REJECT") return { status: "INVALID", message: "처리 방법을 골라 주세요." };
   const note = typeof v.note === "string" ? v.note.trim() : "";
   if (note.length < SETTLEMENT_NOTE.min || note.length > SETTLEMENT_NOTE.max) return { status: "INVALID", message: `처리 메모를 ${SETTLEMENT_NOTE.min}~${SETTLEMENT_NOTE.max}자로 입력해 주세요.` };
-  const wanted: SettlementStatus = v.decision === "APPROVE" ? "APPROVED" : "REJECTED";
+  const wanted = v.decision === "APPROVE" ? "APPROVED" : "REJECTED";
   // Retrying the same decision is harmless (an approved request that was paid since was approved too).
   const same = request.status === wanted || (wanted === "APPROVED" && request.status === "PAID");
   if (request.status !== "PENDING") return same ? { status: "OK" } : { status: "INVALID", message: "이미 처리된 정산 신청이에요." };
@@ -133,6 +158,7 @@ export async function decideSettlement(admin: AdminActor, input: unknown): Promi
   request.status = wanted;
   request.review = { at: new Date().toISOString(), by: admin.nickname, note };
   recordAudit(admin, wanted === "APPROVED" ? "SETTLEMENT_APPROVE" : "SETTLEMENT_REJECT", `settlement:${request.id}`, note);
+  notifySettlement(request, wanted);
   return { status: "OK" };
 }
 
@@ -167,6 +193,7 @@ export async function paySettlement(admin: AdminActor, input: unknown): Promise<
   request.status = "PAID";
   request.payment = { at: new Date().toISOString(), by: admin.nickname, reference, requestId: v.requestId };
   recordAudit(admin, "SETTLEMENT_PAY", `settlement:${request.id}`, `이체 참조 ${reference}`);
+  notifySettlement(request, "PAID");
   return { status: "OK" };
 }
 

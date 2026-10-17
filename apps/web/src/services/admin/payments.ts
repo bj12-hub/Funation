@@ -3,12 +3,14 @@ import { USE_MOCK } from "@/lib/mock";
 import { mockAccount } from "@/services/account/mockStore";
 import { accountSince, isWithdrawn } from "@/services/account/withdrawalCore";
 import { purgeExpired } from "@/services/account/retentionPurge";
+import { notify } from "@/services/notifications/notificationCore";
 import { isUncredited } from "@/services/wallet/chargeCore";
 import { mockRefunds, type MockRefundRequest } from "@/services/wallet/mockRefundStore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { chargeRefundQuote } from "@/services/wallet/refundCore";
 import { REFUND_POLICY_LABEL, REFUND_POLICY_SUMMARY, REFUND_TYPE_LABEL, refundAmounts, refundDirection, sameRefund, type RefundAmounts, type RefundQuote } from "@/services/wallet/refundPolicy";
 import { findChargeRecord, listAccountChargeRecords, listAccountDonationRecords, listChargeRecords } from "@/services/wallet/walletHistory";
+import type { ChargeRecord } from "@/services/wallet/walletTypes";
 import type { AdminActor } from "./adminTypes";
 import { recordAudit } from "./auditCore";
 import { activeHold, holdRequestId, pushHold, readHoldInput, recordedHold, sameHoldCall } from "./holdCore";
@@ -35,6 +37,9 @@ import {
  *
  * 2026-10-08 결정: a member's 이용 정지 does not stop their refund requests (nothing here reads it); an operator puts a
  * request that needs a closer look on 보류 instead, which stops 승인 · 거절 until 보류 해제.
+ *
+ * 사이트 알림 — 기본값 (일반적인 기준, 2026-10-18): 승인 · 거절 each tell the member once (`notifyRefund`); 보류 / 보류 해제
+ * do not (an operator flag; the member keeps seeing 심사 중).
  */
 
 const assertMock = () => {
@@ -121,6 +126,26 @@ const fnText = (n: number) => `${n.toLocaleString("ko-KR")} FN`;
 const refundText = (a: RefundAmounts) =>
   `${REFUND_TYPE_LABEL[a.type]} · 회수 ${fnText(a.grossFn)} · 수수료 ${fnText(a.feeFn)} · 환불 ${fnText(a.netFn)} · ${a.refundKrw.toLocaleString("ko-KR")}원`;
 const isAmount = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= 0;
+
+/**
+ * 사이트 알림 for a decided refund request — 기본값 (일반적인 기준, 2026-10-18), after the change succeeded: ↩️ 환불, once
+ * per request and outcome (`dedupeKey`; one request per charge). Only the account that filed it can be decided
+ * (`fromCurrentAccount`), so the inbox is theirs. The link opens 충전 내역 on the charge's day (기간별), where the charge
+ * shows its 환불 태그 and its detail the amounts or the 거절 사유 — the default 월별 would leave out an older charge. The
+ * titles match that screen ("환불이 승인됐어요" / "환불 요청이 거절됐어요").
+ */
+function notifyRefund(r: MockRefundRequest, charge: ChargeRecord) {
+  const day = charge.chargedAt.slice(0, 10);
+  const what = `충전 ${fnText(charge.fnAmount)} · ${charge.methodLabel}`;
+  const approved = r.status === "APPROVED" ? r.settled : undefined;
+  notify({
+    kind: "REFUND",
+    title: approved ? "환불이 승인됐어요" : "환불 요청이 거절됐어요",
+    body: approved ? `${what} · ${REFUND_TYPE_LABEL[approved.type]} ${approved.refundKrw.toLocaleString("ko-KR")}원` : `${what} · 사유를 확인해 주세요`,
+    href: `/wallet/charges?${new URLSearchParams({ period: "range", from: day, to: day })}`,
+    dedupeKey: `refund-${approved ? "approved" : "rejected"}:${r.chargeId}`
+  });
+}
 
 /**
  * 결제 · 환불 › 충전 내역, newest first: every account's charges — a withdrawn account's stay in the console (audit trail)
@@ -215,6 +240,7 @@ export async function decideRefund(admin: AdminActor, input: unknown): Promise<R
   request.status = wanted;
   request.decision = { at: now.toISOString(), by: admin.nickname, note };
   recordAudit(admin, wanted === "APPROVED" ? "REFUND_APPROVE" : "REFUND_REJECT", `refund:${request.chargeId}`, `${what} · ${note}`);
+  notifyRefund(request, charge);
   return { status: "OK" };
 }
 

@@ -308,3 +308,64 @@ describe("이용 정지 중인 회원의 충전 환불 (2026-10-08 결정)", () 
     expect(m.auditEntries().map((e) => e.action)).toEqual(["REFUND_APPROVE", "MEMBER_SUSPEND"]);
   });
 });
+
+/**
+ * 사이트 알림 for 환불 결정 — 기본값 (일반적인 기준, 2026-10-18): 승인 · 거절 each notify the member once (↩️ 환불), a retried
+ * decision never twice, 보류 / 보류 해제 never; the link opens 충전 내역 on the charge's day, where its 환불 shows.
+ */
+describe("환불 결정 알림 · 기본값 (2026-10-18)", () => {
+  beforeEach(() => resetMockStores());
+
+  const notes = async () => {
+    const { notificationStore } = await import("@/services/notifications/notificationCore");
+    return notificationStore()
+      .items.filter((n) => n.kind === "REFUND")
+      .map(({ title, body, href }) => ({ title, body, href }));
+  };
+  const num = (n: number) => n.toLocaleString("ko-KR");
+  const what = (c: { fnAmount: number; methodLabel: string }) => `충전 ${num(c.fnAmount)} FN · ${c.methodLabel}`;
+  const dayLink = (c: { chargedAt: string }) => `/wallet/charges?period=range&from=${c.chargedAt.slice(0, 10)}&to=${c.chargedAt.slice(0, 10)}`;
+
+  /** What the member's 충전 내역 lists at a notification's link (the page parses its params the same way). */
+  async function listedAt(href: string) {
+    const { parseHistoryParams } = await import("@/features/wallet/historyParams");
+    const { getChargeHistory } = await import("@/services/wallet/walletHistory");
+    const url = new URL(href, "http://localhost");
+    expect(url.pathname).toBe("/wallet/charges");
+    signIn(["SUPPORTER"]);
+    return (await getChargeHistory({ period: parseHistoryParams(Object.fromEntries(url.searchParams)).period, all: true }))!.items;
+  }
+
+  it("notifies 승인 once with the refund, also when the approval is retried, linking to the charge with its 환불", async () => {
+    const m = await load();
+    const charge = await fileRefund(m, (fn) => fn + 1_000);
+    expect(await notes()).toEqual([]);
+    expect(await approve(m, charge.id)).toEqual({ status: "OK" });
+    expect(await m.decideRefund(OP, { chargeId: charge.id, decision: "APPROVE", note: "정상 환불" })).toEqual({ status: "OK" }); // a retry
+    const sent = await notes();
+    expect(sent).toEqual([{ title: "환불이 승인됐어요", body: `${what(charge)} · 전액 취소 ${num(charge.paidAmount)}원`, href: dayLink(charge) }]);
+    expect((await listedAt(sent[0].href)).find((c) => c.id === charge.id)?.refund).toMatchObject({ status: "APPROVED" });
+  });
+
+  it("states a 수수료 공제 후 환불 with its KRW amount", async () => {
+    const m = await load();
+    const charge = await fileRefund(m); // 30,000 FN for 33,000원, 5,000 FN unused → 4,500 FN, 4,950원
+    expect(await approve(m, charge.id)).toEqual({ status: "OK" });
+    expect(await notes()).toEqual([{ title: "환불이 승인됐어요", body: `${what(charge)} · 수수료 공제 후 환불 4,950원`, href: dayLink(charge) }]);
+  });
+
+  it("notifies 거절 once, also when retried, linking to the charge with its 사유; 보류 and 보류 해제 notify nothing", async () => {
+    const m = await load();
+    const charge = await fileRefund(m);
+    expect(await m.holdRefund(OP, { chargeId: charge.id, action: "HOLD", note: "결제 도용 의심 확인", requestId: key(1) })).toEqual({ status: "OK" });
+    expect((await m.decideRefund(OP, { chargeId: charge.id, decision: "REJECT", note: "이미 사용한 FN" })).status).toBe("INVALID");
+    expect(await m.holdRefund(OP, { chargeId: charge.id, action: "RELEASE", note: "본인 결제 확인", requestId: key(2) })).toEqual({ status: "OK" });
+    expect(await notes()).toEqual([]);
+
+    expect(await m.decideRefund(OP, { chargeId: charge.id, decision: "REJECT", note: "이미 사용한 FN" })).toEqual({ status: "OK" });
+    expect(await m.decideRefund(OP, { chargeId: charge.id, decision: "REJECT", note: "이미 사용한 FN" })).toEqual({ status: "OK" }); // a retry
+    const sent = await notes();
+    expect(sent).toEqual([{ title: "환불 요청이 거절됐어요", body: `${what(charge)} · 사유를 확인해 주세요`, href: dayLink(charge) }]);
+    expect((await listedAt(sent[0].href)).find((c) => c.id === charge.id)?.refund).toMatchObject({ status: "REJECTED", note: "이미 사용한 FN" });
+  });
+});

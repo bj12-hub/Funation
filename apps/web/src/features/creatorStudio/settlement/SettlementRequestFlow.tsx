@@ -218,7 +218,7 @@ export function SettlementRequestFlow({ view }: { view: SettlementApplyView }) {
             <span className={styles.amountSuffix}>FN</span>
           </span>
           <p id="settle-amount-help" className={styles.amountHelp} role={error ? "alert" : undefined}>
-            {error ?? (view.minFn !== null && !input && mode === "part" ? `* ${view.minFn} FN 이상 정산신청 가능합니다.` : "")}
+            {error ?? (view.minFn !== null && !input && mode === "part" ? `* ${fn(view.minFn)} FN 이상 정산신청 가능합니다.` : "")}
           </p>
         </div>
       </Modal>
