@@ -23,6 +23,31 @@ describe("후원 리스트 CSV", () => {
     expect(res.filename).toBe("ssumnation-donations-quest-2000-01-01_2099-12-31.csv");
   });
 
+  it("writes the times in Korea time, as the list shows them (not the stored UTC instant)", async () => {
+    const { exportReceivedDonationsCsv } = await import("./donationManagement");
+    const { mockQuests } = await import("@/services/donations/questCore");
+    // Sent 2026-10-18 00:19:16 KST and succeeded 00:27:00 KST — both still 10월 17일 in UTC.
+    mockQuests.items.unshift({
+      id: "q-kst",
+      channelId: "studio",
+      supporterUserId: null,
+      donor: "자정후원",
+      donorId: "midnight_fan",
+      title: "자정 퀘스트",
+      amount: 7_000,
+      timeLimitSec: 600,
+      creatorDecides: true,
+      createdAt: "2026-10-17T15:19:16.000Z",
+      status: "SUCCESS",
+      decidedAt: "2026-10-17T15:27:00.000Z",
+      decidedBy: "CREATOR",
+      refundedFn: 0
+    });
+    const res = await exportReceivedDonationsCsv({ kind: "quest", period: wide, status: "ALL", query: "midnight_fan" });
+    if (res.status !== "OK") throw new Error(res.status);
+    expect(res.csv.split("\r\n")[1]).toBe('"2026-10-18 00:19:16","자정후원","midnight_fan","7000","자정 퀘스트","2026-10-18 00:27:00","성공"');
+  });
+
   it("filters by donor search and rejects bad periods and non-creators", async () => {
     const { exportReceivedDonationsCsv } = await import("./donationManagement");
     const res = await exportReceivedDonationsCsv({ kind: "quest", period: wide, status: "ALL", query: "choco" });

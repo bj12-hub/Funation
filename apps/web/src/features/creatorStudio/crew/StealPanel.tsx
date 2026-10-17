@@ -19,6 +19,7 @@ import {
   type StealSlot
 } from "@/services/crew/crewTypes";
 import { CopyButton } from "../settings/SettingsCards";
+import { shownOverlayAddress } from "./overlayAddress";
 import styles from "./crew.module.css";
 import steal from "./steal.module.css";
 
@@ -280,7 +281,7 @@ export function StealPanel({
       )}
 
       <div className={styles.addRow}>
-        <input className={styles.input} value={`${origin}${overlayPath}?steal`} readOnly aria-label="강탈 오버레이 주소" onFocus={(e) => e.target.select()} />
+        <input className={styles.input} value={shownOverlayAddress(origin, overlayPath, "?steal")} readOnly aria-label="강탈 오버레이 주소" onFocus={(e) => e.target.select()} />
         <CopyButton value={`${origin}${overlayPath}?steal`} label="복사" className={styles.ghost} />
       </div>
     </section>

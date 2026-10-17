@@ -14,6 +14,7 @@ import {
   type CrewMember
 } from "@/services/crew/crewTypes";
 import { CopyButton } from "../settings/SettingsCards";
+import { shownOverlayAddress } from "./overlayAddress";
 import styles from "./crew.module.css";
 import battle from "./battle.module.css";
 
@@ -222,7 +223,7 @@ export function BattlePanel({
       )}
 
       <div className={styles.addRow}>
-        <input className={styles.input} value={overlayUrl} readOnly aria-label="배틀 오버레이 주소" onFocus={(e) => e.target.select()} />
+        <input className={styles.input} value={shownOverlayAddress(origin, overlayPath, "?battle")} readOnly aria-label="배틀 오버레이 주소" onFocus={(e) => e.target.select()} />
         <CopyButton value={overlayUrl} label="복사" className={styles.ghost} />
       </div>
     </section>
