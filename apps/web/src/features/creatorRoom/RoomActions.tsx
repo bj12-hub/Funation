@@ -26,7 +26,14 @@ export function RoomActions({ creatorId, name, initialFavorite, signedIn }: { cr
       return;
     }
     startTransition(async () => {
-      const result = favorite ? await removeFavorite(creatorId) : await addFavorite(creatorId);
+      let result: Awaited<ReturnType<typeof addFavorite | typeof removeFavorite>>;
+      try {
+        result = favorite ? await removeFavorite(creatorId) : await addFavorite(creatorId);
+      } catch {
+        // The request failed (network / server): the button stays as it was, and the room with it.
+        setToast({ message: "즐겨찾기를 바꾸지 못했어요. 잠시 후 다시 시도해 주세요.", tone: "neutral" });
+        return;
+      }
       if (result.status === "UNAUTHORIZED") {
         router.push(`/login?next=${encodeURIComponent(pathname)}`);
         return;

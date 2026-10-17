@@ -312,6 +312,7 @@ export function ChargeModal({ onClose }: { onClose: () => void }) {
           <ChargeFailure
             code={step.code}
             onClose={() => setStep({ kind: "FORM" })}
+            onLeave={onClose}
             onChangeMethod={() => {
               setStep({ kind: "FORM" });
               setDrawerOpen(true);
@@ -377,15 +378,20 @@ function ChargeSuccess({ result, onClose }: { result: Completed; onClose: () => 
   );
 }
 
-/** Figma 739:28 · 739:132 · 739:236 · 739:340 · 739:444 */
+/**
+ * Figma 739:28 · 739:132 · 739:236 · 739:340 · 739:444. `onLeave` closes the modal when 고객센터 is followed: opened from
+ * the side menu, the modal lives in the layout and would stay open over the 고객센터 page.
+ */
 function ChargeFailure({
   code,
   onClose,
+  onLeave,
   onChangeMethod,
   onRetry
 }: {
   code: ChargeErrorCode;
   onClose: () => void;
+  onLeave: () => void;
   onChangeMethod: () => void;
   onRetry: () => void;
 }) {
@@ -401,7 +407,7 @@ function ChargeFailure({
       </div>
       <div className={styles.actions}>
         {copy.secondary === "SUPPORT" ? (
-          <Link href="/support" className={styles.secondaryButton}>
+          <Link href="/support" className={styles.secondaryButton} onClick={onLeave}>
             고객센터
           </Link>
         ) : (

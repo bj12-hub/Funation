@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { EyeIcon, EyeOffIcon } from "@/components/icons";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
@@ -23,7 +23,9 @@ const MSG = {
   NICKNAME_TAKEN: "이미 사용 중인 닉네임입니다. 다른 닉네임을 사용해 주세요.",
   // Code-first: the 마이페이지 nickname change's FORBIDDEN copy (forbidden words and 익명).
   NICKNAME_FORBIDDEN: "사용할 수 없는 표현이 포함되어 있습니다.",
-  NICKNAME_UNCHECKED: "닉네임 중복 확인을 해 주세요."
+  NICKNAME_UNCHECKED: "닉네임 중복 확인을 해 주세요.",
+  // The 중복 확인 request failed (network / server): the same copy as the sign-up submit's.
+  CHECK_FAILED: "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요"
 };
 
 export type AccountValues = { email: string; password: string; nickname: string };
@@ -46,26 +48,46 @@ export function AccountStep({ submitting, submitError, onBack, onSubmit }: Accou
   const [emailCheck, setEmailCheck] = useState<Check>("idle");
   const [nicknameCheck, setNicknameCheck] = useState<Check>("idle");
   const [errors, setErrors] = useState<Partial<Record<"email" | "password" | "confirm" | "nickname", string>>>({});
+  // Bumped on every edit of the field: a 중복 확인 answer counts only while the field still holds the value it was asked
+  // about (an edit during the check already reset the check; the new value needs its own).
+  const emailEdits = useRef(0);
+  const nicknameEdits = useRef(0);
 
   const setError = (field: keyof typeof errors, message?: string) => setErrors((e) => ({ ...e, [field]: message }));
 
   async function checkEmail() {
     if (!isEmail(email)) return setError("email", MSG.EMAIL_FORMAT);
+    const asked = emailEdits.current;
     setEmailCheck("checking");
-    const { available } = await checkEmailAvailability(email);
-    setEmailCheck(available ? "ok" : "idle");
-    setError("email", available ? undefined : MSG.EMAIL_TAKEN);
+    try {
+      const { available } = await checkEmailAvailability(email);
+      if (asked !== emailEdits.current) return;
+      setEmailCheck(available ? "ok" : "idle");
+      setError("email", available ? undefined : MSG.EMAIL_TAKEN);
+    } catch {
+      if (asked !== emailEdits.current) return;
+      setEmailCheck("idle");
+      setError("email", MSG.CHECK_FAILED);
+    }
   }
 
   async function checkNickname() {
     if (!isValidNickname(nickname)) return setError("nickname", MSG.NICKNAME_FORMAT);
+    const asked = nicknameEdits.current;
     setNicknameCheck("checking");
-    const { available, reason } = await checkNicknameAvailability(nickname);
-    setNicknameCheck(available ? "ok" : "idle");
-    setError(
-      "nickname",
-      available ? undefined : reason === "FORBIDDEN" ? MSG.NICKNAME_FORBIDDEN : reason === "INVALID" ? MSG.NICKNAME_FORMAT : MSG.NICKNAME_TAKEN
-    );
+    try {
+      const { available, reason } = await checkNicknameAvailability(nickname);
+      if (asked !== nicknameEdits.current) return;
+      setNicknameCheck(available ? "ok" : "idle");
+      setError(
+        "nickname",
+        available ? undefined : reason === "FORBIDDEN" ? MSG.NICKNAME_FORBIDDEN : reason === "INVALID" ? MSG.NICKNAME_FORMAT : MSG.NICKNAME_TAKEN
+      );
+    } catch {
+      if (asked !== nicknameEdits.current) return;
+      setNicknameCheck("idle");
+      setError("nickname", MSG.CHECK_FAILED);
+    }
   }
 
   function handleSubmit(event: FormEvent) {
@@ -108,6 +130,7 @@ export function AccountStep({ submitting, submitError, onBack, onSubmit }: Accou
           placeholder="example@email.com"
           value={email}
           onChange={(e) => {
+            emailEdits.current += 1;
             setEmail(e.target.value);
             setEmailCheck("idle");
             setError("email");
@@ -157,6 +180,7 @@ export function AccountStep({ submitting, submitError, onBack, onSubmit }: Accou
           maxLength={12}
           value={nickname}
           onChange={(e) => {
+            nicknameEdits.current += 1;
             setNickname(e.target.value);
             setNicknameCheck("idle");
             setError("nickname");
