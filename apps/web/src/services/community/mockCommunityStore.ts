@@ -43,9 +43,16 @@ const seed: MockPost[] = [
 /**
  * `postRequests` / `commentRequests`: `${memberId}:${requestId}` → the post / comment that request created, so a retry
  * after a lost response creates one record (a 재가입 moves the withdrawn account's keys to its own id, account/rejoin.ts).
+ * `viewLog`: the members who were counted a view today (`${memberId}:${postId}`, today = `day`, a KST calendar day) —
+ * only today's, so it never grows past one entry per member and post (community.ts `countView`).
  */
-type Store = { posts: MockPost[]; postRequests: Record<string, string>; commentRequests: Record<string, string> };
-// V2: request ids for 글쓰기 and 댓글.
-const g = globalThis as typeof globalThis & { __ssumnationMockCommunityV2?: Store };
+type Store = {
+  posts: MockPost[];
+  postRequests: Record<string, string>;
+  commentRequests: Record<string, string>;
+  viewLog: { day: string; seen: Record<string, true> };
+};
+// V2: request ids for 글쓰기 and 댓글. V3: 조회수 once per member and post a day (viewLog).
+const g = globalThis as typeof globalThis & { __ssumnationMockCommunityV3?: Store };
 
-export const mockCommunity = (g.__ssumnationMockCommunityV2 ??= { posts: structuredClone(seed), postRequests: {}, commentRequests: {} });
+export const mockCommunity = (g.__ssumnationMockCommunityV3 ??= { posts: structuredClone(seed), postRequests: {}, commentRequests: {}, viewLog: { day: "", seen: {} } });

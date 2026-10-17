@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { key, mockSessionModule, resetMockStores, signIn, signInAs } from "@/test/mockEnv";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { key, mockSessionModule, rejoinWithPhone, resetMockStores, signIn, signInAs } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
@@ -20,7 +20,8 @@ describe("커뮤니티", () => {
     expect((await getBoard({ category: "TIP" })).items.map((p) => p.id)).toContain(id);
     expect((await getBoard({ q: "꿀팁" })).items[0].id).toBe(id);
     const post = (await getPost(id))!;
-    expect(post).toMatchObject({ title: "위젯 꿀팁", mine: true, views: 1 });
+    // The author's own read is not a view (조회수 below).
+    expect(post).toMatchObject({ title: "위젯 꿀팁", mine: true, views: 0 });
   });
 
   it("marks the comments the post's author wrote, without sending member ids", async () => {
@@ -111,5 +112,106 @@ describe("커뮤니티", () => {
     expect(edit).toEqual({ status: "NOT_FOUND" });
     expect(comment).toEqual({ status: "NOT_FOUND" });
     expect(post()).toMatchObject({ title: "지울 글", updatedAt: null, comments: [] });
+  });
+});
+
+/**
+ * 조회수 — 기본값 (일반적인 기준): one view per member and post a Korean calendar day (KST), never the author's own, and
+ * not the page's re-render after a comment. Guests have no anonymous key yet (TBD): each guest page load counts.
+ */
+describe("커뮤니티 · 조회수", () => {
+  // 2026-10-18 23:00 KST; the Korean day turns at 15:00 UTC.
+  const at = (iso: string) => vi.setSystemTime(new Date(iso));
+  beforeEach(() => {
+    resetMockStores();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    at("2026-10-18T14:00:00Z");
+  });
+  afterEach(() => vi.useRealTimers());
+
+  const views = async (id: string) => (await import("./mockCommunityStore")).mockCommunity.posts.find((p) => p.id === id)!.views;
+
+  it("counts a member once per post a Korean day: refreshing and re-opening add nothing, the next day counts again", async () => {
+    const { getPost } = await load();
+    const start = await views("p-2");
+    expect((await getPost("p-2"))!.views).toBe(start + 1);
+    await getPost("p-2");
+    await getPost("p-2");
+    expect(await views("p-2")).toBe(start + 1);
+    // Another post is its own view; another member is their own viewer.
+    const other = await views("p-1");
+    await getPost("p-1");
+    expect(await views("p-1")).toBe(other + 1);
+    signInAs("u-other");
+    await getPost("p-2");
+    expect(await views("p-2")).toBe(start + 2);
+
+    // 23:59:59 KST is still the same day; 00:00 KST (not 09:00, the UTC day) is the next one.
+    signInAs("u-test");
+    at("2026-10-18T14:59:59Z");
+    await getPost("p-2");
+    expect(await views("p-2")).toBe(start + 2);
+    at("2026-10-18T15:00:00Z");
+    await getPost("p-2");
+    await getPost("p-2");
+    expect(await views("p-2")).toBe(start + 3);
+  });
+
+  it("never counts the author's own reads", async () => {
+    const { createPost, getPost } = await load();
+    const res = await createPost({ category: "FREE", title: "내 글", body: "본문", requestId: key(1) });
+    const id = res.status === "SAVED" ? res.id : "";
+    await getPost(id);
+    at("2026-10-19T15:00:00Z");
+    await getPost(id);
+    expect(await views(id)).toBe(0);
+    signInAs("u-other");
+    expect((await getPost(id))!.views).toBe(1);
+  });
+
+  it("does not count the page's re-render after a comment, not even past midnight", async () => {
+    const { addComment, deleteComment, getPost } = await load();
+    const start = await views("p-2");
+    await getPost("p-2");
+    // The member opened the post at 23:00 and comments after midnight; the page then reads the post again.
+    at("2026-10-18T15:01:00Z");
+    expect(await addComment("p-2", "자정 넘어 단 댓글", key(1))).toEqual({ status: "SAVED" });
+    const after = (await getPost("p-2"))!;
+    expect(after.views).toBe(start + 1);
+    // Deleting it re-renders the page too.
+    at("2026-10-19T15:02:00Z");
+    expect(await deleteComment("p-2", after.comments.find((c) => c.mine)!.id)).toEqual({ status: "SAVED" });
+    await getPost("p-2");
+    expect(await views("p-2")).toBe(start + 1);
+  });
+
+  it("counts every guest page load (no anonymous visitor key yet, TBD)", async () => {
+    const { getPost } = await load();
+    const start = await views("p-3");
+    signIn(null);
+    await getPost("p-3");
+    await getPost("p-3");
+    expect(await views("p-3")).toBe(start + 2);
+  });
+
+  it("keeps only today's records, and a 재가입 does not inherit the withdrawn account's", async () => {
+    const { getPost } = await load();
+    const { mockCommunity } = await import("./mockCommunityStore");
+    const { SAMPLE_MEMBER_ID } = await import("@/services/admin/memberCore");
+    signInAs(SAMPLE_MEMBER_ID); // the slot's member id, as lib/session gives it
+    await getPost("p-1");
+    await getPost("p-2");
+    expect(Object.keys(mockCommunity.viewLog.seen).sort()).toEqual([`${SAMPLE_MEMBER_ID}:p-1`, `${SAMPLE_MEMBER_ID}:p-2`]);
+
+    // The account withdraws and someone signs up in the slot the same day: their first read is a view of its own.
+    const start = await views("p-2");
+    await rejoinWithPhone("010-1234-5678");
+    await getPost("p-2");
+    expect(await views("p-2")).toBe(start + 1);
+
+    // The next day starts a new log.
+    at("2026-10-19T15:00:00Z");
+    await getPost("p-3");
+    expect(mockCommunity.viewLog).toEqual({ day: "2026-10-20", seen: { [`${SAMPLE_MEMBER_ID}:p-3`]: true } });
   });
 });

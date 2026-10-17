@@ -98,6 +98,12 @@ a.sideItemActive:hover {
   font-family: var(--font-latin);
 }
 
+/* Phone bar and its dimmed page: phones only (≤ 767px, Responsive below). */
+.sideToggle,
+.sideScrim {
+  display: none;
+}
+
 /* ── Content ── */
 
 .content {
@@ -630,6 +636,110 @@ a.sideItemActive:hover {
 
   .date {
     width: 150px;
+  }
+}
+
+/*
+ * Phones — 기본값 (일반적인 기준), code-first: the menu folds behind one bar naming the current page, and the bar opens
+ * the same grouped menu as a dropdown over the dimmed page (CreatorSideNav). Keep the breakpoint in sync there.
+ */
+@media (max-width: 767px) {
+  .sidebar {
+    /* The anchor of the dropdown; `top` is the wide screens' sticky offset, not one for here. */
+    position: relative;
+    top: auto;
+    padding: 8px 16px;
+    overflow: visible;
+  }
+
+  /* Above the page content, below the sticky header (z-index 50). */
+  .sidebar[data-open] {
+    z-index: 30;
+  }
+
+  .sideToggle {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: var(--color-surface-raised);
+    color: var(--color-text-primary);
+    font: inherit;
+    font-size: var(--font-size-14);
+    font-weight: var(--font-weight-bold);
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .sideToggleCurrent {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .sideToggleLabel {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sideToggleMore {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 4px;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-13);
+    font-weight: var(--font-weight-medium);
+  }
+
+  .sideChevron {
+    transition: transform 0.15s ease;
+  }
+
+  .sideToggle[aria-expanded="true"] .sideChevron {
+    transform: rotate(180deg);
+  }
+
+  .sideMenu {
+    display: none;
+  }
+
+  .sidebar[data-open] .sideMenu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    z-index: 2;
+    display: block;
+    max-height: calc(100vh - var(--header-height) - 72px);
+    max-height: calc(100dvh - var(--header-height) - 72px);
+    padding: 4px 16px 12px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-bg-page);
+    box-shadow: var(--shadow-popup);
+  }
+
+  /* One column, as on wide screens (the 900px rule above lays the groups out in rows). */
+  .sidebar ul {
+    flex-direction: column;
+  }
+
+  .sidebar[data-open] .sideScrim {
+    position: fixed;
+    inset: var(--header-height) 0 0;
+    display: block;
+    background: var(--color-modal-backdrop);
   }
 }
 
