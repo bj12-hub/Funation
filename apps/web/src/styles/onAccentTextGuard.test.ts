@@ -10,7 +10,8 @@ import { describe, expect, it } from "vitest";
  * background and a theme-flipping text colour.
  *
  * Not caught: a fill rule whose text colour comes from another rule (a base class, an ancestor). Those surface in the
- * light-theme contrast check; give the fill rule its own `color` when you add one.
+ * light-theme contrast check; give the fill rule its own `color` when you add one. The shared Button, whose variants
+ * inherit `.button`'s colour, is checked on its own.
  */
 
 const SRC = join(__dirname, "..");
@@ -81,13 +82,11 @@ function parseRules(css: string): Rule[] {
   return rules;
 }
 
+const hasFill = (r: Rule) => isFill(["background", "background-color", "background-image"].map((p) => r.decls.get(p) ?? "").join(" "));
+
 /** Rules that set a filled background and a theme-flipping text colour. */
 function flippingTextOnFill(css: string): Rule[] {
-  return parseRules(css).filter((r) => {
-    const bg = ["background", "background-color", "background-image"].map((p) => r.decls.get(p) ?? "").join(" ");
-    const color = r.decls.get("color") ?? "";
-    return isFill(bg) && FLIPPING_TEXT.test(color);
-  });
+  return parseRules(css).filter((r) => hasFill(r) && FLIPPING_TEXT.test(r.decls.get("color") ?? ""));
 }
 
 function cssModules(dir: string): string[] {
@@ -129,6 +128,16 @@ describe("text on accent and gradient fills", () => {
       .ok4 { background: var(--color-surface); color: var(--color-text-primary); }
     `;
     expect(flippingTextOnFill(css).map((r) => r.selector)).toEqual([".a", ".b:hover", ".c"]);
+  });
+
+  it("gives the shared Button's filled variants a light text colour of their own", () => {
+    // `.button` sets the theme-flipping --color-text-primary and every variant inherits it unless it sets its own: a
+    // variant without `color` is the near-black-on-gradient 로그인 button again, and the rule-by-rule check above cannot
+    // see an inherited colour.
+    const rules = parseRules(readFileSync(join(SRC, "components", "ui", "Button", "Button.module.css"), "utf8"));
+    const fills = rules.filter((r) => /^\.[\w-]+$/.test(r.selector) && hasFill(r));
+    expect(fills.map((r) => r.selector)).toEqual(expect.arrayContaining([".primary", ".accent", ".cta", ".pink"]));
+    expect(fills.filter((r) => !/^var\(--color-text-on-accent\)$/.test(r.decls.get("color") ?? "")).map((r) => `${r.selector} → color: ${r.decls.get("color") ?? "(inherited)"}`)).toEqual([]);
   });
 
   it("keeps --color-text-on-accent light in the light theme", () => {

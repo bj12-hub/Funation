@@ -105,7 +105,7 @@ describe("정지 · 탈퇴 중 OBS 오버레이 키", () => {
     expect(m.reads.length).toBeGreaterThan(20);
     expect(await m.refused(m.mockCreator.integrationKey)).toEqual([]);
     expect(await m.refused("0000-0000-0000-0000")).toEqual(m.reads.map(([name]) => name));
-  });
+  }, 30_000); // the first test imports every overlay service (1–4 s under a full parallel run, against the default 5 s)
 
   it("refuses every overlay read while the creator is suspended, and opens them again with the same key once lifted", async () => {
     const m = await load();
