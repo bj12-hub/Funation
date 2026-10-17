@@ -21,6 +21,8 @@
 
 .main {
   display: flex;
+  /* A 240 px basis lets 설정 · 미리보기 · 복사 wrap below on a phone instead of squeezing the title to one letter a line. */
+  flex: 1 1 240px;
   flex-direction: column;
   gap: 4px;
   min-width: 0;
