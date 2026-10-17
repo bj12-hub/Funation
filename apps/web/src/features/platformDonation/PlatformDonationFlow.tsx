@@ -8,6 +8,7 @@ import { ChargeModal, ChargeTrigger } from "@/features/walletCharge";
 import { formatNumber } from "@/lib/format";
 import { quotePlatformDonation, requestPlatformDonation } from "@/services/platformDonation/platformDonation";
 import { MESSAGE_MAX, PLATFORMS, type PlatformCreatorDetail, type PlatformDonationResult, type PlatformQuote } from "@/services/platformDonation/platformTypes";
+import { GENERIC_ERROR } from "../mypage/editors/shared";
 import { platformErrorCopy, type PlatformErrorKind as ErrorKind } from "./errorCopy";
 import { Avatar, LivePill, PlatformHeader } from "./parts";
 import styles from "./platformDonation.module.css";
@@ -66,7 +67,14 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
     if (!product) return;
     setFormError(null);
     startTransition(async () => {
-      const res = await quotePlatformDonation({ platform: detail.platform, creatorId: creator.id, productId: product.id, customFn });
+      let res: PlatformQuote;
+      try {
+        res = await quotePlatformDonation({ platform: detail.platform, creatorId: creator.id, productId: product.id, customFn });
+      } catch {
+        // Nothing was sent to the platform: the choice stays and 후원하기 can be pressed again.
+        setFormError(GENERIC_ERROR);
+        return;
+      }
       if (res.status === "OK") {
         setQuote(res);
         setStep("message");
@@ -376,6 +384,12 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
               </section>
             </div>
 
+            {/* After a charge the quote is read again (ChargeModal onClose); when that fails, this step keeps the last one. */}
+            {formError && (
+              <p className={styles.error} role="alert">
+                {formError}
+              </p>
+            )}
             <div className={styles.actionsRight}>
               <button type="button" className={styles.secondaryButton} onClick={() => setStep("product")}>
                 이전

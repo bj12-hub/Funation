@@ -36,8 +36,12 @@ export function LanguageMenu() {
     setOpen(false);
     if (code === locale) return;
     startTransition(async () => {
-      const res = await setLocale(code);
-      if (res.status === "SAVED") router.refresh();
+      try {
+        const res = await setLocale(code);
+        if (res.status === "SAVED") router.refresh();
+      } catch {
+        // The request failed (network / server): the page stays in the current language; choosing again retries.
+      }
     });
   };
 
