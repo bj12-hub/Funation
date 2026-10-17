@@ -155,7 +155,8 @@ describe("정지 · 탈퇴 중 OBS 오버레이 키", () => {
     const { getRouletteRemote } = await import("@/services/creator/rouletteRemote");
     const { getGachaRemote } = await import("@/services/creator/gachaRemote");
     const { getWallpaperRemote } = await import("@/services/creator/wallpaperRemote");
-    const remote = () => Promise.all([getRemoteView(), getOverlayKey(), getToolsView(), getVoteRemote(), getRouletteRemote(), getGachaRemote(), getWallpaperRemote()]);
+    const { getQuestRemote } = await import("@/services/creator/questRemote");
+    const remote = () => Promise.all([getRemoteView(), getOverlayKey(), getToolsView(), getQuestRemote(), getVoteRemote(), getRouletteRemote(), getGachaRemote(), getWallpaperRemote()]);
     await startSession({ keepSignedIn: false });
     expect((await remote()).every((v) => v !== null)).toBe(true);
 

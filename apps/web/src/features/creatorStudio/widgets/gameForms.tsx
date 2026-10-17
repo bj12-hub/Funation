@@ -60,10 +60,13 @@ export function QuestForm({ value: v, onChange, live }: FormProps<"QUEST">) {
               </div>
             </div>
           </Row>
+          {/* Code-first copy (2026-10-18): quests run as soon as they arrive; the 리모컨 퀘스트 card and 받은 후원 › 퀘스트 settle them. */}
           <Row label="미션 확인 및 수락">
             <span className={styles.inline}>
               <span className={styles.remoteChip}>🟢 리모컨</span>
-              <span className={styles.noticePink}>리모컨에서만 제어 할 수 있습니다.</span>
+              <span className={styles.noticePink}>
+                받은 퀘스트는 바로 진행돼요 (따로 수락하지 않아요). 리모컨의 퀘스트 카드나 후원관리+ › 받은 후원 › 퀘스트에서 미션을 확인하고 결과를 정해요 — 성공 · 실패는 아래 결정 권한대로, 취소는 언제든 할 수 있어요.
+              </span>
             </span>
           </Row>
           <Row label="제목 폰트 설정">
