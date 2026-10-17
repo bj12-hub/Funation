@@ -114,5 +114,5 @@ describe("CSV downloads guard", () => {
     expect(Object.keys(BUILT_ELSEWHERE).filter((name) => !offers.some((f) => f.name === name))).toEqual([]);
     const ownChecks = files.filter((f) => f.name !== "web/src/lib/csv.ts" && FORMULA_CHECK.test(f.text)).map((f) => f.name);
     expect(ownChecks, "formula checks outside lib/csv.ts").toEqual([]);
-  });
+  }, 30_000); // reads every source file in both apps: give a busy machine room
 });
