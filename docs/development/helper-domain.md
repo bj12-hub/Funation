@@ -60,7 +60,8 @@ It is chrome only — never an authorization input; every page and server action
 ## Screens
 
 `app/helper/layout.tsx`: signed out → landing (로그인 · 회원가입, `?next=` keeps the address that was opened); signed in
-without a channel → 채널 만들기; creators → the shell (`features/helper/HelperShell.tsx`): brand, profile (channel,
+without a channel → 채널 만들기 — both only on the helper's own pages (`isHelperPagePath`: the `app/helper` folders and
+the 위젯 기능 pages); any other address (`/wallet`, `/donation/youtube` …) is the helper's 404 for them too; creators → the shell (`features/helper/HelperShell.tsx`): brand, profile (channel,
 nickname, linked platforms, 로그아웃), the menu (`helperNav.ts`) and, at the bottom, the 리모컨 button (opens the 리모컨
 window; if the browser blocks popups it shows `/remote` instead) with "이 창에서 열기 · 리모컨 가이드". Below 900px the menu is
 a drawer.

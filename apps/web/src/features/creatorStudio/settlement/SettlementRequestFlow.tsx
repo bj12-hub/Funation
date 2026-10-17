@@ -7,6 +7,7 @@ import { Modal } from "@/components/ui/Modal";
 import { quoteSettlement, requestSettlement, setAutoSettlement } from "@/services/creator/settlementRequests";
 import type { SettlementApplyView, SettlementGate, SettlementQuote } from "@/services/creator/settlementTypes";
 import { FeeGuideModal, SettlementGuideModal } from "./SettlementInfoPopups";
+import { afterSubmit, askServer } from "./settlementSubmit";
 import styles from "./apply.module.css";
 
 const fn = (n: number) => n.toLocaleString("ko-KR");
@@ -53,27 +54,30 @@ export function SettlementRequestFlow({ view }: { view: SettlementApplyView }) {
   const toConfirm = () => {
     setError(null);
     startTransition(async () => {
-      const res = await quoteSettlement(amount);
-      if (res.status === "OK") {
-        setQuote(res.quote);
-        setIdempotencyKey(crypto.randomUUID());
-        setStep("confirm");
-      } else if (res.status === "INVALID") setError(res.message);
-      else handleResult(res.status);
+      try {
+        const res = await quoteSettlement(amount);
+        if (res.status === "OK") {
+          setQuote(res.quote);
+          setIdempotencyKey(crypto.randomUUID());
+          setStep("confirm");
+        } else if (res.status === "INVALID") setError(res.message);
+        else handleResult(res.status);
+      } catch {
+        setError("수수료를 계산하지 못했어요. 잠시 후 다시 시도해 주세요.");
+      }
     });
   };
 
   const submit = () => {
     if (!quote || !idempotencyKey) return;
+    setError(null);
     startTransition(async () => {
-      const res = await requestSettlement({ amountFn: quote.amountFn, idempotencyKey });
-      if (res.status === "REQUESTED") {
-        setQuote(res.quote);
-        setStep("complete");
-      } else if (res.status === "INVALID" || res.status === "CONFLICT") {
-        setError(res.status === "INVALID" ? res.message : "요청이 중복되었어요. 금액을 확인하고 다시 신청해 주세요.");
-        setStep("request");
-      } else handleResult(res.status);
+      // A lost answer keeps the quote and the key (settlementSubmit.ts): 확인 again cannot make a second request.
+      const next = afterSubmit(await askServer(() => requestSettlement({ amountFn: quote.amountFn, idempotencyKey })));
+      if ("leave" in next) return handleResult(next.leave);
+      if (next.step === "complete") setQuote(next.quote);
+      else setError(next.error);
+      setStep(next.step);
     });
   };
 
@@ -89,7 +93,7 @@ export function SettlementRequestFlow({ view }: { view: SettlementApplyView }) {
     setAutoError(null);
     setAuto(on);
     startTransition(async () => {
-      const res = await setAutoSettlement(on);
+      const res = await setAutoSettlement(on).catch(() => ({ status: "INVALID" }) as const);
       if (res.status !== "SAVED") {
         setAuto(!on);
         if (res.status === "INVALID") setAutoError("저장하지 못했어요. 다시 시도해 주세요.");
@@ -269,6 +273,11 @@ export function SettlementRequestFlow({ view }: { view: SettlementApplyView }) {
               <strong>{fn(quote.netKrw)} 원</strong>
             </p>
             <p className={styles.confirmAsk}>위 금액으로 정산을 신청하시겠습니까?</p>
+            {error && (
+              <p className={styles.cashError} role="alert">
+                {error}
+              </p>
+            )}
           </div>
         )}
       </Modal>

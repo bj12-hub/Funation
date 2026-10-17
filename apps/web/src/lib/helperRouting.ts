@@ -1,4 +1,4 @@
-import { WIDGET_HELPER_PATH } from "@/features/helper/widgetPages";
+import { WIDGET_HELPER_PATH, widgetPageOf } from "@/features/helper/widgetPages";
 
 /**
  * Ssumnation 도우미 (helper domain, 2026-10-14 결정): the OBS broadcast tools and the 리모컨 are served on their own
@@ -117,6 +117,22 @@ export type HelperRoute =
 
 /** The top-level folders of `public/` (helperRouting.test.ts checks this list against the folder). */
 export const PUBLIC_FOLDERS = ["images", "mock"];
+
+/**
+ * The helper's own pages by their first segment: the folders of `app/helper` (helperRouting.test.ts checks this list
+ * against the folder) and the 위젯 기능 pages of `app/helper/[feature]` (WIDGET_PAGES).
+ */
+export const HELPER_PAGE_FOLDERS = ["assets", "banner", "chat", "crew", "drawing", "effects", "filtering", "link", "overlays", "remote", "signatures", "theme", "tools", "video", "widgets", "youtube"];
+
+/**
+ * Whether a helper address (`/x?y`, as `getHelperPath` gives it) is one of the helper's pages. The layout shows a
+ * signed-out visitor the landing only there; any other address — the site's wallet, community … — is the helper's 404
+ * for everyone, as it is once signed in (otherwise the landing would offer to sign in and then land on the 404).
+ */
+export function isHelperPagePath(path: string): boolean {
+  const first = path.split(/[?#]/, 1)[0].split("/")[1] ?? "";
+  return first === "" || HELPER_PAGE_FOLDERS.includes(first) || widgetPageOf(first) !== null;
+}
 
 /**
  * Next's own assets and the files from `public/` are served on both hosts — only those: a dot in the last segment does

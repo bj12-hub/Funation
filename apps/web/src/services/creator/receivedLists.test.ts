@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { kstIsoString } from "@/lib/format";
 import { key, mockSessionModule, resetMockStores } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
@@ -65,7 +66,9 @@ describe("받은 후원 요약", () => {
     if (csv.status !== "OK") throw new Error(csv.status);
     const [header, ...lines] = csv.csv.replace(/^\uFEFF/, "").split("\r\n");
     expect(header).toBe('"후원일시","후원자 닉네임","후원자 아이디","금액(FN)","메시지","성공일시","상태"');
-    expect(lines.find((l) => l.startsWith(`"${q.createdAt}"`))).toContain(`"${q.decidedAt}","성공"`);
+    // Korea time, as the list shows it ("2025-12-31 22:00:00").
+    const kst = (iso: string) => kstIsoString(iso).replace("T", " ");
+    expect(lines.find((l) => l.startsWith(`"${kst(q.createdAt)}"`))).toContain(`"${kst(q.decidedAt!)}","성공"`);
   });
 
   it("is part of every list page and covers all pages", async () => {

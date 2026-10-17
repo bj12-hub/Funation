@@ -23,6 +23,7 @@ import {
   type ManagementSaveResult,
   type PageOptionKey
 } from "@/services/creator/donationManagementTypes";
+import { slugCheckView, type SlugCheckView } from "./slugCheck";
 import styles from "./donations.module.css";
 
 const messageOf = (r: ManagementSaveResult) => (r.status === "INVALID" ? r.message : r.status === "UNAUTHORIZED" ? "로그인이 필요합니다." : null);
@@ -80,8 +81,10 @@ type Notify = (r: ManagementSaveResult, ok?: string) => void;
 
 function SlugCard({ initial, notify, setToast }: { initial: DonationPageSettings; notify: Notify; setToast: (m: string) => void }) {
   const [slug, setSlug] = useState(initial.slug);
+  // The address in the field right now, for answers that arrive after it was edited.
+  const slugRef = useRef(initial.slug);
   const [saved, setSaved] = useState(initial.slug);
-  const [check, setCheck] = useState<{ tone: "ok" | "error"; text: string; available?: boolean } | null>(null);
+  const [check, setCheck] = useState<SlugCheckView | null>(null);
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
 
@@ -111,7 +114,8 @@ function SlugCard({ initial, notify, setToast }: { initial: DonationPageSettings
               maxLength={30}
               spellCheck={false}
               onChange={(e) => {
-                setSlug(e.target.value.toLowerCase());
+                slugRef.current = e.target.value.toLowerCase();
+                setSlug(slugRef.current);
                 setCheck(null);
               }}
             />
@@ -136,11 +140,8 @@ function SlugCard({ initial, notify, setToast }: { initial: DonationPageSettings
             disabled={busy}
             onClick={() =>
               run(async () => {
-                const r = await checkDonationSlug(slug);
-                if (r.status === "AVAILABLE") setCheck({ tone: "ok", text: "사용할 수 있는 주소입니다.", available: true });
-                else if (r.status === "SAME") setCheck({ tone: "ok", text: "현재 사용 중인 주소입니다." });
-                else if (r.status === "TAKEN") setCheck({ tone: "error", text: "이미 사용 중인 주소입니다." });
-                else setCheck({ tone: "error", text: r.status === "INVALID" ? r.message : "로그인이 필요합니다." });
+                const checked = slug;
+                setCheck(slugCheckView(checked, slugRef.current, await checkDonationSlug(checked)));
               })
             }
           >

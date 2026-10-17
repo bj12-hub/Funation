@@ -1,6 +1,7 @@
 "use server";
 
 import { toCsv } from "@/lib/csv";
+import { kstIsoString } from "@/lib/format";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES } from "@/lib/validation";
@@ -318,11 +319,14 @@ export async function exportReceivedDonationsCsv(input: unknown): Promise<CsvExp
   const rows = matched.slice(0, CSV_EXPORT_MAX);
   const last = (d: ReceivedDonation) => (d.status ? QUEST_STATUSES.find((q) => q.key === d.status)!.label : (d.detail ?? ""));
   const column = kind === "quest" ? "상태" : LIST_KINDS.find((k) => k.key === kind)!.column;
+  // Times in Korea time, as the list shows them and the period filter reads them ("2026-10-18 00:19:16"), not the stored
+  // UTC instant — a 00:19 donation of 10월 18일 must not read as 10월 17일 in the file.
+  const kst = (iso: string) => kstIsoString(iso).replace("T", " ");
   // 퀘스트: 성공일시 too — the period filter and 수령액 go by it (2026-10-08 결정).
-  const succeeded = (d: ReceivedDonation) => (kind === "quest" ? [d.status === "SUCCESS" ? d.receivedAt : ""] : []);
+  const succeeded = (d: ReceivedDonation) => (kind === "quest" ? [d.status === "SUCCESS" ? kst(d.receivedAt) : ""] : []);
   const csv = toCsv(
     ["후원일시", "후원자 닉네임", "후원자 아이디", "금액(FN)", "메시지", ...(kind === "quest" ? ["성공일시"] : []), column],
-    rows.map((d) => [d.at, d.donorNickname, d.donorId, d.amount, d.message, ...succeeded(d), last(d)]),
+    rows.map((d) => [kst(d.at), d.donorNickname, d.donorId, d.amount, d.message, ...succeeded(d), last(d)]),
     { quoteAll: true }
   );
   return {
