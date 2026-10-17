@@ -35,6 +35,13 @@
   }
 }
 
+@media (max-width: 520px) {
+  /* Two 24 px amounts per row were cut to "₩843,1…" on a phone. */
+  .tiles {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .tile {
   display: flex;
   flex-direction: column;

@@ -59,6 +59,13 @@
   gap: 10px;
 }
 
+@media (max-width: 520px) {
+  /* Three amounts side by side were cut to "₩35…" on a phone. */
+  .tiles {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .tile {
   display: flex;
   flex-direction: column;
