@@ -3,7 +3,7 @@ import { USE_MOCK } from "@/lib/mock";
 import { ownEntry } from "@/lib/records";
 import { toDateString } from "@/lib/period";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
-import { notify } from "@/services/notifications/notificationCore";
+import { notify, removeNotificationsTo } from "@/services/notifications/notificationCore";
 import { faqStore } from "@/services/support/faq";
 import { noticeStore } from "@/services/support/notices";
 import { FAQ_CATEGORIES, NOTICE_CATEGORY_LABEL, type FaqItem, type Notice } from "@/services/support/supportTypes";
@@ -102,6 +102,7 @@ export async function deleteNotice(admin: AdminActor, id: unknown): Promise<Cont
   // Idempotent: a retried delete (the first response was lost) finds nothing left and changes or logs nothing.
   if (!n) return gone(id);
   store.items = store.items.filter((x) => x.id !== id);
+  removeNotificationsTo(`/support/notices/${n.id}`);
   recordAudit(admin, "CONTENT_UPDATE", `notice:${n.id}`, `공지 삭제 · ${n.title}`);
   return { status: "OK", id: n.id };
 }
