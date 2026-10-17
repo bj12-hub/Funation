@@ -147,6 +147,12 @@ describe("투네이션 CSV 미리보기", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(Date.now() + 31 * 60_000);
     expect(await m.importToonationCsv({ previewId: p.previewId, mapping: p.mapping, requestId: key(2) })).toMatchObject({ status: "INVALID", code: "EXPIRED" });
+    // An expired file is not kept: its rows go on the next lookup or visit of the tab, not only on the next upload.
+    expect(m.core.importStore().previews).toEqual({});
+    await preview(m);
+    vi.setSystemTime(Date.now() + 31 * 60_000);
+    await m.getDonationImportOverview();
+    expect(m.core.importStore().previews).toEqual({});
   });
 });
 
@@ -277,6 +283,21 @@ describe("가져온 내역", () => {
     expect(lines).toContain(`2026-09-01 10:00:00,투네이션,"'=HYPERLINK(""http://x"",""y"")",1000,원,'=1+1,`);
     // No cell starts a formula.
     expect(lines.slice(1).flatMap((l) => l.split(",")).some((c) => /^"?[=+\-@]/.test(c))).toBe(false);
+  });
+
+  it("quotes exported text with a semicolon or tab, so a spreadsheet splitting on it cannot start a formula", async () => {
+    const m = await load();
+    await importCsv(m, ["일시,닉네임,금액,메시지", "2026-09-01 10:00,별빛;=1+1,1000,좋아요;@SUM(1)"].join("\n"), 1);
+    await m.chat.connectBroadcastChannel({ platform: "FLEXTV", handle: "flexman" });
+    const channel = m.channelsStore().channels.FLEXTV!.externalChannelId;
+    m.remote.mockFlexHistoryAppend(channel, { giftNo: 1, sender: { id: "t", nick: "탭" }, price: 2_000, currency: "KRW", memo: "a\t=1+1", giftedAt: "2026-09-02T10:00:00+09:00" });
+    await m.syncFlexTvDonations();
+    const out = await m.exportImportedDonationsCsv({ q: "1+1" });
+    if (out.status !== "OK") throw new Error(out.status);
+    expect(out.csv.replace(/^﻿/, "").split("\r\n").slice(1)).toEqual([
+      '2026-09-02 10:00:00,FlexTV,탭,2000,원,"a\t=1+1",',
+      '2026-09-01 10:00:00,투네이션,"별빛;=1+1",1000,원,"좋아요;@SUM(1)",'
+    ]);
   });
 });
 
@@ -416,6 +437,21 @@ describe("FlexTV 후원 내역", () => {
     await link(m);
     expect(await m.syncFlexTvDonations()).toMatchObject({ status: "OK", imported: 0 });
   });
+
+  it("keeps each channel's read position: a channel linked again after another one does not take undone records again", async () => {
+    const m = await load();
+    await link(m);
+    await m.syncFlexTvDonations();
+    const undone = (await m.getDonationImportOverview())!.batches[0];
+    expect(await m.undoDonationImport({ batchId: undone.id })).toEqual({ status: "UNDONE", removed: 45 });
+    // Another channel starts from the beginning of its own history …
+    await link(m, "another_channel");
+    expect(await m.syncFlexTvDonations()).toMatchObject({ status: "OK", imported: 45 });
+    // … and the first one, linked again, continues where it stopped.
+    await link(m);
+    expect(await m.syncFlexTvDonations()).toMatchObject({ status: "OK", imported: 0, duplicates: 0 });
+    expect((await records(m, { source: "flextv" })).total).toBe(45);
+  });
 });
 
 describe("내역 이관 · 권한", () => {
@@ -523,6 +559,7 @@ describe("회원 탈퇴", () => {
     await m.chat.connectBroadcastChannel({ platform: "FLEXTV", handle: "flexman" });
     await m.syncFlexTvDonations();
     expect(m.core.importStore().records).toHaveLength(48);
+    expect(Object.keys(m.core.importStore().flextv.cursors)).toHaveLength(1);
 
     const { decideReceivedQuest } = await import("./donationManagement");
     for (const id of ["q1", "q2"]) expect(await decideReceivedQuest({ id, outcome: "CANCELED" })).toMatchObject({ status: "OK" });
@@ -537,7 +574,7 @@ describe("회원 탈퇴", () => {
     expect(s.batches).toEqual([]);
     expect(s.previews).toEqual({});
     expect(s.requests).toEqual({});
-    expect(s.flextv).toMatchObject({ channelId: null, cursor: null, lastSyncAt: null });
+    expect(s.flextv).toMatchObject({ channelId: null, cursors: {}, lastSyncAt: null });
     expect(s.trail.map((t) => t.action)).toEqual(["CSV_IMPORT", "FLEXTV_SYNC"]);
   });
 });
