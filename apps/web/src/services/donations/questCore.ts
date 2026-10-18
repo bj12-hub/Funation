@@ -1,3 +1,4 @@
+import { kstIsoString } from "@/lib/format";
 import { toDateString } from "@/lib/period";
 import { mockAccount } from "@/services/account/mockStore";
 import type { QuestStatus } from "@/services/creator/donationManagementTypes";
@@ -138,6 +139,17 @@ export function extendQuest(q: QuestRecord, minutes: number, requestId: string, 
   const restarted = deadline <= now.getTime();
   const endsAt = new Date(Math.max(deadline, now.getTime()) + minutes * 60_000).toISOString();
   q.extensions.push({ requestId, minutes, at: now.toISOString(), endsAt, restarted });
+  // The supporter hears about it (2026-10-18 결정) — once per extension, and only when the quest is the signed-in member's
+  // own (its 후원 내역 row is in this wallet; the studio's sample donors have no inbox).
+  if (mockWallet.donations.some((d) => d.id === q.id)) {
+    notify({
+      kind: "DONATION_SENT",
+      title: "퀘스트 제한 시간이 늘었어요",
+      body: `${q.title} · ${minutes}분 연장 · 새 마감 ${kstIsoString(endsAt).slice(0, 16).replaceAll("-", ".").replace("T", " ")}`,
+      href: "/wallet/donations?type=quest",
+      dedupeKey: `quest-extend:${q.id}:${requestId}`
+    });
+  }
   return { status: "OK", minutes, endsAt, restarted };
 }
 
