@@ -56,6 +56,11 @@ Settlement rules remain subject to product, financial and legal approval.
   FN like the other settlement screens: "최소 정산 신청 가능 금액은 40,000 FN 이상입니다 (예시 값 · TBD)." The minimum itself
   stays TBD (Figma sample); a test renders the page and checks the card's number is where 정산 신청 starts accepting.
 - **Request ids** are random (`st-<uuid>`), so two requests in the same millisecond never share an id.
+- **정산 신청 확인 → 확인 whose answer was lost** (connection dropped, server restarted): the flow stays on 정산 신청 확인
+  with "신청 결과를 확인하지 못했어요. 다시 확인을 누르면 같은 신청으로 확인돼요 (두 번 신청되지 않아요)." and keeps the
+  Idempotency-Key — also through 취소 or closing the window and 정산 신청 again for the same amount, so the server answers
+  with the first request instead of making a second one. Another amount, or an answer that settled the request (완료,
+  INVALID · CONFLICT back to the amount), starts a new key (`features/creatorStudio/settlement/settlementSubmit.ts`).
 - **정산 자료 등록** checks each document's first bytes (JPG · PNG · PDF must match the declared type, "JPG, PNG, PDF 파일만 업로드할 수 있어요."), then checks "already registered" again and writes in one synchronous step, so two tabs cannot both register.
 - **본인인증 before 정산 신청 (decided 2026-10-06: "필수로 막기").** Until the creator's 마이페이지 본인인증 is done, the server refuses the 정산 신청 view, the fee quote, the request and 자동 정산 ON/OFF with `IDENTITY_REQUIRED` — no FN moves and no Idempotency-Key is reserved. Check order: session → 정산 자료 registration (`NOT_REGISTERED`) → 본인인증, in the same synchronous step as the write. The studio shows "정산 신청 전에 본인인증이 필요해요" with a link to `/mypage` (정산 신청 card, and `/creator/settlement/apply` sends unverified creators to `/creator/settlement?gate=identity`). 서류 심사 and 정산 계좌 are not separate gates: the mock approves documents on submit and every registration carries the payout account. No job makes automatic requests yet; when one exists it must re-check this gate for each request. 정산 관리 (history, 정보 변경) stays open without 본인인증. A 재가입 account starts unverified.
 
