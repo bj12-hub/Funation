@@ -88,6 +88,23 @@ describe("퀘스트 제한 시간 연장", () => {
     expect(await m.history(id)).toEqual({ status: "IN_PROGRESS", canDecide: true, endsAt: at(40), extendedMin: 30 });
   }, 30_000);
 
+  it("tells the supporter once per extension (2026-10-18 결정), never for the sample donors' quests", async () => {
+    const m = await load();
+    const { notificationStore } = await import("@/services/notifications/notificationCore");
+    const extended = () => notificationStore().items.filter((n) => n.title === "퀘스트 제한 시간이 늘었어요");
+    const id = await m.sendToStudio(2);
+    expect(await m.extendQuestTime({ id, minutes: 30, requestId: key(60) })).toMatchObject({ status: "OK", endsAt: at(40) });
+    expect(await m.extendQuestTime({ id, minutes: 30, requestId: key(60) })).toMatchObject({ status: "OK", endsAt: at(40) });
+    expect(extended()).toEqual([
+      expect.objectContaining({ kind: "DONATION_SENT", body: "연장 퀘스트 2 · 30분 연장 · 새 마감 2026.10.18 12:40", href: "/wallet/donations?type=quest", read: false })
+    ]);
+    expect(await m.extendQuestTime({ id, minutes: 5, requestId: key(61) })).toMatchObject({ status: "OK", endsAt: at(45) });
+    expect(extended().map((n) => n.body)).toEqual(["연장 퀘스트 2 · 5분 연장 · 새 마감 2026.10.18 12:45", "연장 퀘스트 2 · 30분 연장 · 새 마감 2026.10.18 12:40"]);
+    // A sample donor's quest (no wallet row here): extended, but nobody's inbox gets it.
+    expect(await m.extendQuestTime({ id: "q1", minutes: 10, requestId: key(62) })).toMatchObject({ status: "OK" });
+    expect(extended()).toHaveLength(2);
+  }, 30_000);
+
   it("takes whole minutes from 1 to 60 — the cap of the time limit a supporter sets", async () => {
     const m = await load();
     expect(m.getMockDonationCatalog().game.maxTimeSec).toBe(60 * 60);
