@@ -163,6 +163,8 @@ OBS 오버레이의 세 테마는 변수 컬렉션 **Overlay Theme**의 모드�
 | 방송 · 위젯 | W04s | 리모컨 · 퀘스트 카드 요청 실패 (카드 안 오류 문구) | `/creator/remote` | `367:12685` |
 | 방송 · 위젯 | W04t | 리모컨 · 퀘스트 카드 완료 (취소 · 전액 환불 문구) | `/creator/remote` | `367:12835` |
 | 방송 · 위젯 | W04u | 리모컨 · 퀘스트 카드 EMPTY | `/creator/remote` | `367:12971` |
+| 방송 · 위젯 | W04v | 리모컨 · 퀘스트 시간 연장 입력 ("연장할 시간 [5] 분 · 연장하기 · 닫기", 마감 전 안내 — 2026-10-18) | `/creator/remote` | `369:13035` |
+| 방송 · 위젯 | W04w | 리모컨 · 퀘스트 시간 연장 완료 (새 마감 문구 · "연장됨 +10분" 태그) | `/creator/remote` | `369:13199` |
 | 휴대폰 · 스튜디오 메뉴 | SM1 | 스튜디오 메뉴 · 휴대폰 닫힘 (현재 페이지 바 "🎛️ 리모컨 · 메뉴 ▾", 375 — 2026-10-18) | `/creator/remote` | `368:40223` |
 | 휴대폰 · 스튜디오 메뉴 | SM2 | 스튜디오 메뉴 · 휴대폰 열림 (그룹 메뉴 드롭다운, 375) | `/creator/remote` | `368:40266` |
 | 방송 · 위젯 | W05 | 이펙트 · 효과 | `/creator/widgets/effects` | `66:1840` |
@@ -221,6 +223,7 @@ OBS 오버레이의 세 테마는 변수 컬렉션 **Overlay Theme**의 모드�
 | 후원 관리 | T03p | 내역 이관 · 되돌리기 확인 팝업 (FlexTV 45건) | `/creator/donations?tab=import` | `357:12071` |
 | 후원 관리 | T03q | 내역 이관 · 가져온 내역 (출처 · 기간 · 검색 · CSV 다운로드, 48건) | `/creator/donations?tab=import&sub=records` | `357:12306` |
 | 후원 관리 | T03r | 내역 이관 · 가져온 내역 (EMPTY) | `/creator/donations?tab=import&sub=records` | `358:12280` |
+| 후원 관리 | T03s | 받은 후원 · 퀘스트 후원 (진행 중 줄의 마감 · "연장됨 +10분", 앞 4줄 — 2026-10-18) | `/creator/donations?tab=list` | `370:13262` |
 | 후원 관리 | T03d | 받은 후원 · 게임 후원 (룰렛 · 뽑기) | `/creator/donations?tab=list&kind=game` | `142:4530` |
 | 후원 관리 | T03e | 받은 후원 · 크루 후원 (멤버 지정) | `/creator/donations?tab=list&kind=crew` | `143:4635` |
 | 정산 | T04 | 정산 현황 + 체크리스트 | `/creator/settlement` | `68:3459` |
