@@ -155,14 +155,24 @@ describe("정지 · 탈퇴 중 OBS 오버레이 키", () => {
     const { getRouletteRemote } = await import("@/services/creator/rouletteRemote");
     const { getGachaRemote } = await import("@/services/creator/gachaRemote");
     const { getWallpaperRemote } = await import("@/services/creator/wallpaperRemote");
-    const { getQuestRemote } = await import("@/services/creator/questRemote");
+    const { extendQuestTime, getQuestRemote } = await import("@/services/creator/questRemote");
+    const { findQuest } = await import("@/services/donations/questCore");
     const remote = () => Promise.all([getRemoteView(), getOverlayKey(), getToolsView(), getQuestRemote(), getVoteRemote(), getRouletteRemote(), getGachaRemote(), getWallpaperRemote()]);
     await startSession({ keepSignedIn: false });
     expect((await remote()).every((v) => v !== null)).toBe(true);
 
     const lift = await suspendCreator();
     expect((await remote()).every((v) => v === null)).toBe(true);
+    // The 퀘스트 card's 시간 연장 (2026-10-18 결정) is refused the same way, and adds nothing.
+    expect(await extendQuestTime({ id: "q1", minutes: 10, requestId: key(1) })).toEqual({ status: "UNAUTHORIZED" });
+    expect(findQuest("q1")!.extensions).toEqual([]);
     lift();
     expect((await remote()).every((v) => v !== null)).toBe(true);
+    expect(await extendQuestTime({ id: "q1", minutes: 10, requestId: key(1) })).toMatchObject({ status: "OK" });
+
+    await withdrawCreator();
+    expect((await remote()).every((v) => v === null)).toBe(true);
+    expect(await extendQuestTime({ id: "q1", minutes: 10, requestId: key(2) })).toEqual({ status: "UNAUTHORIZED" });
+    expect(findQuest("q1")!.extensions).toHaveLength(1);
   });
 });

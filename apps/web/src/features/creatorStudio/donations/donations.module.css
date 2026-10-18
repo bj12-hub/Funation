@@ -498,6 +498,15 @@ a.tab:hover {
   white-space: nowrap;
 }
 
+/* 퀘스트: "마감 2026.10.18 15:04 · 연장됨 +10분" under the result buttons of a running quest. */
+.questDeadline {
+  display: block;
+  margin-top: 4px;
+  color: #9ca3af;
+  font-size: var(--font-size-12);
+  white-space: nowrap;
+}
+
 .strong {
   font-weight: var(--font-weight-bold);
 }

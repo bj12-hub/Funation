@@ -4,6 +4,7 @@ import type { CSSProperties } from "react";
 import { OverlayThemeRoot, ov } from "@/features/overlayTheme/OverlayThemeRoot";
 import { formatNumber } from "@/lib/format";
 import type { GachaBoardView as GachaBoardData, GachaStage } from "@/services/donations/gachaTypes";
+import { questExtendedLabel } from "@/services/donations/questTypes";
 import { isBlankPrize, wheelGradient, type RouletteStage } from "@/services/donations/rouletteTypes";
 import { readableInk, type ResolvedTheme } from "@/services/creator/overlayThemeTypes";
 import { WALL_SIZE, type WallSticker, type WidgetQuest } from "@/services/creator/widgetOverlayTypes";
@@ -43,8 +44,16 @@ export function QuestView({ settings: s, quests, theme, now }: { settings: Quest
             {q.title}
           </strong>
           <span className={g.questMeta}>
-            <span className={fancy ? `${ov.chip} ${g.metaChip}` : undefined} style={fancy ? face(s.timeFont, 16) : colored(s.timeFont, 18)}>
-              {questTimeLeft(q.endsAt, now)}
+            {/* The time left counts to the extended deadline; "연장됨 +N분" says the creator added time (2026-10-18 결정). */}
+            <span className={g.questTime}>
+              <span className={fancy ? `${ov.chip} ${g.metaChip}` : undefined} style={fancy ? face(s.timeFont, 16) : colored(s.timeFont, 18)}>
+                {questTimeLeft(q.endsAt, now)}
+              </span>
+              {q.extendedMin > 0 && (
+                <span className={fancy ? `${ov.chip} ${g.metaChip}` : undefined} style={fancy ? face(s.timeFont, 16) : colored(s.timeFont, 18)}>
+                  {questExtendedLabel(q.extendedMin)}
+                </span>
+              )}
             </span>
             <span className={ov.display} style={fancy ? face(s.prizeFont, 22) : colored(s.prizeFont, 20)}>
               상금 {formatNumber(q.amount)} FN

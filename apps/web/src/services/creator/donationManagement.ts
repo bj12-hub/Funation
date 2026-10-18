@@ -48,7 +48,7 @@ import {
 } from "./donationManagementTypes";
 import { crewDonationRows } from "@/services/crew/crewCore";
 import { STUDIO_CHANNEL, mockCrew } from "@/services/crew/mockCrewStore";
-import { creatorQuestActions, decideQuest, findQuest, mockQuests } from "@/services/donations/questCore";
+import { creatorQuestActions, decideQuest, findQuest, mockQuests, questEndsAt, questExtendedMin } from "@/services/donations/questCore";
 import { isQuestAction, type QuestDecideResult } from "@/services/donations/questTypes";
 import { getDonationCatalog } from "@/services/donations/signatureCore";
 import { FIXTURE_AMOUNTS, FIXTURE_DONORS } from "./receivedFixtures";
@@ -175,7 +175,10 @@ export async function saveReplacementMessage(message: unknown): Promise<Manageme
 
 // ── 후원 리스트 ────────────────────────────────────────────────────────────────
 
-/** 퀘스트 후원: the studio's quest records, newest first. 결정 buttons show while the creator may decide. */
+/**
+ * 퀘스트 후원: the studio's quest records, newest first. 결정 buttons show while the creator may decide; the deadline is the
+ * extended one after a 시간 연장 from the 리모컨 (2026-10-18 결정).
+ */
 function questDonations(): ReceivedDonation[] {
   return mockQuests.items
     .filter((q) => q.channelId === STUDIO_CHANNEL)
@@ -189,7 +192,9 @@ function questDonations(): ReceivedDonation[] {
       message: q.title,
       status: q.status,
       detail: null,
-      questActions: creatorQuestActions(q)
+      questActions: creatorQuestActions(q),
+      questEndsAt: questEndsAt(q),
+      questExtendedMin: questExtendedMin(q)
     }))
     .sort((x, y) => y.at.localeCompare(x.at));
 }

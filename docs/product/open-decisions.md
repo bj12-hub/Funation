@@ -42,7 +42,7 @@ Confirmed:
 - TTS (2026-10-09): with 후원 메시지 표시 off the alert overlay reads nothing (커스텀 사운드 included); the 시그니처 sound
   still plays
 - 사이트 알림 (2026-10-09): a settled 확인 중 플랫폼 후원 (완료 / 실패 · FN 반환) and 이벤트 보상 지급 · 당첨 · 발표 notify
-  once per result, the current account only. Push · e-mail and other triggers stay TBD
+  once per result, the current account only. No push · e-mail (site only, 2026-10-18 결정); other triggers stay TBD
 - 회원 탈퇴 and 플랫폼 후원 (2026-10-09): refused while a 플랫폼 후원 of the account still waits for its result (FN held);
   a failed one's returned FN reads "FN 반환", not 환불완료, in the FN 내역, its CSV, the FN Wallet and the console's 후원
   운영. See docs/domains/integrations.md and wallet.md
@@ -80,22 +80,32 @@ Confirmed:
   승인 · 거절은 결정이 끝난 뒤 회원에게 사이트 알림 하나를 보냅니다(결과마다 한 번, 같은 결정을 다시 보내도 한 번).
   정산은 새 종류 🧾 정산 → 정산 관리(`/creator/settlement/manage`), 환불은 ↩️ 환불 → 그 충전 날짜의 충전 내역.
   보류 / 보류 해제는 운영자 표시라 알리지 않고, 탈퇴한 크리에이터의 승인 건 지급 완료도 알리지 않습니다(수신함이
-  그 계정 것이 아님). 처리 중 충전의 결제 확인 · 결제 취소는 이미 알림이 있습니다(2026-10-13). 푸시 · 이메일, 알림 종류
-  설정, 사용자별 수신함은 TBD. See docs/domains/settlement.md and wallet.md
+  그 계정 것이 아님). 처리 중 충전의 결제 확인 · 결제 취소는 이미 알림이 있습니다(2026-10-13). 푸시 · 이메일은 보내지
+  않습니다(2026-10-18 결정). 알림 종류 설정, 사용자별 수신함은 TBD. See docs/domains/settlement.md and wallet.md
 - 정산 신청 카드의 최소 금액 (2026-10-18): 카드 문구가 Figma "10,000원" 대신 서버가 적용하는 최소 금액을 FN으로 읽어
   "최소 정산 신청 가능 금액은 40,000 FN 이상입니다 (예시 값 · TBD)."로 보여 줍니다(값 하나, 테스트로 고정). 최소 금액
   자체는 여전히 TBD(Figma 예시 값)
 - 리모컨 퀘스트 카드 (2026-10-18, 기본값 — 일반적인 기준, funnation식): 진행 중 퀘스트를 리모컨(`/creator/remote` ·
   작은 창 · 도우미 리모컨)에서도 확인하고, 받은 후원 › 퀘스트와 같은 버튼(성공 / 실패 · 환불 / 취소 · 환불) · 같은
   확인창 · 같은 서버 동작으로 결과를 정합니다. 받은 후원 › 퀘스트도 그대로. 퀘스트 위젯 설정의 "미션 확인 및 수락"
-  문구를 실제 동작(받는 즉시 진행, 리모컨 또는 받은 후원에서 결과 결정)에 맞춤. TBD: 미션 수락 · 거절 단계, 리모컨에서
-  제한 시간 연장, 감사 기록에 결정한 곳 남기기. See docs/domains/donation.md
+  문구를 실제 동작(받는 즉시 진행, 리모컨 또는 받은 후원에서 결과 결정)에 맞춤. 수락 · 거절 단계와 제한 시간 연장은
+  2026-10-18 결정(아래). TBD: 감사 기록에 결정한 곳 남기기. See docs/domains/donation.md
 - 스튜디오 메뉴 · 휴대폰 (2026-10-18, 기본값 — 일반적인 기준): 767px 이하에서는 스튜디오 사이드 메뉴를 현재 페이지 이름
   바("🎛️ 리모컨 · 메뉴 ▾") 하나로 접고, 누르면 같은 그룹 메뉴가 드롭다운으로 열립니다(이동 · Escape · 바깥 탭 · 포커스
   이탈 시 닫힘). 768px 이상은 기존 그대로. Figma 반영 전
 - 커뮤니티 조회수 (2026-10-18, 기본값 — 일반적인 기준): 로그인 회원은 글당 한국 날짜 하루 1회만 집계하고, 작성자 본인
-  조회는 세지 않으며, 댓글 작성 · 삭제 뒤 화면 갱신은 조회가 아닙니다. TBD: 비회원 집계(익명 방문자 쿠키가 없어 지금은
-  열 때마다 1회), 조회수 어뷰징 제한. See docs/domains/community.md
+  조회는 세지 않으며, 댓글 작성 · 삭제 뒤 화면 갱신은 조회가 아닙니다. 비회원은 2026-10-18 결정(아래). TBD: 조회수
+  어뷰징 제한. See docs/domains/community.md
+- 퀘스트 제한 시간 연장 (2026-10-18 결정): 퀘스트 위젯 "제한시간 연장 사용"이 켜져 있으면 리모컨 퀘스트 카드의 "시간
+  연장"으로 진행 중 퀘스트에 분을 더합니다(한 번에 1~60분, 후원자 제한 시간 상한과 같은 단위). 마감이 지난 퀘스트는
+  지금부터 다시 셉니다. 요청 id로 한 번만 더하고, 연장 기록(분 · 시각 · 새 마감)은 퀘스트에 남깁니다. 리모컨 · 받은
+  후원 › 퀘스트 · 후원자의 후원 내역 · OBS 퀘스트 위젯이 새 마감과 "연장됨 +N분"을 보여 줍니다. 꺼져 있으면 버튼이
+  없고 서버도 거절합니다. TBD: 연장 횟수 · 총 연장 상한, 후원자에게 연장 알림. See docs/domains/donation.md
+- 퀘스트 수락 단계 (2026-10-18 결정): 받은 퀘스트는 지금처럼 바로 진행됩니다 — 수락 · 거절 단계는 두지 않습니다
+- 커뮤니티 비회원 조회수 (2026-10-18 결정): 비회원은 지금처럼 글을 열 때마다 1회 집계합니다(익명 방문자 쿠키 · 하루
+  1회 제한 없음). 로그인 회원 규칙은 그대로. See docs/domains/community.md
+- 알림 채널 (2026-10-18 결정): 알림은 사이트 알림(헤더 벨 · `/notifications`)만 보냅니다 — 이메일 · 푸시는 보내지
+  않습니다
 
 Still TBD:
 

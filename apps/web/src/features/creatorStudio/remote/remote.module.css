@@ -90,6 +90,28 @@
   color: var(--color-success-text);
 }
 
+/* 퀘스트 시간 연장 (2026-10-18): the minutes form takes the row's full width, under its buttons. */
+.extendForm {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.extendField {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.extendField input {
+  flex: none;
+  width: 84px;
+}
+
 .toolBox {
   display: flex;
   flex-direction: column;

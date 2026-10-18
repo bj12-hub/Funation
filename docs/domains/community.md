@@ -16,7 +16,8 @@ part of the Donation Core, Wallet or Settlement.
   view per post per Korean calendar day (KST; the day turns at 00:00 KST), so refreshing or re-opening a post adds
   nothing; the author's own reads never count; the page's re-render after writing or deleting a comment is not a new
   view. The server keeps only today's records (one per member and post); after a 재가입 the new account's reads count
-  as its own. Guests: TBD — there is no anonymous visitor key (cookie) yet, so each guest page load counts once.
+  as its own. Guests (2026-10-18 결정): each guest page load counts once, as now — no anonymous visitor key (cookie),
+  no once-a-day limit.
   Channel posts (채널 글) have no view counter.
 - 2026-10-08 결정: a withdrawn member's posts, comments and channel posts stay up with the author shown as
   "탈퇴한 회원", also on block lists. (The admin console instead shows the original nickname with a "탈퇴" badge —
