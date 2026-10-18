@@ -10,6 +10,7 @@ import {
 } from "@/services/creator/donationManagementTypes";
 import { QuestDecide } from "@/features/donations/QuestDecide";
 import { decideReceivedQuest } from "@/services/creator/donationManagement";
+import { questExtendedLabel } from "@/services/donations/questTypes";
 import { CsvExportButton } from "./CsvExportButton";
 import { YearSelect } from "./YearSelect";
 import styles from "./donations.module.css";
@@ -175,7 +176,16 @@ export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
                   </td>
                   <td className={styles.right}>
                     {d.questActions?.length ? (
-                      <QuestDecide id={d.id} decide={decideReceivedQuest} actions={d.questActions} />
+                      <>
+                        <QuestDecide id={d.id} decide={decideReceivedQuest} actions={d.questActions} />
+                        {/* A running quest's deadline (the extended one after a 리모컨 시간 연장, 2026-10-18 결정). */}
+                        {d.questEndsAt && (
+                          <span className={styles.questDeadline}>
+                            마감 {formatAt(d.questEndsAt)}
+                            {d.questExtendedMin ? ` · ${questExtendedLabel(d.questExtendedMin)}` : ""}
+                          </span>
+                        )}
+                      </>
                     ) : d.status ? (
                       <>
                         <span className={`${styles.badge} ${STATUS_CLASS[d.status]}`}>{QUEST_STATUSES.find((s) => s.key === d.status)?.label}</span>

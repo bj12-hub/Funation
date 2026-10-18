@@ -45,7 +45,9 @@ describe("퀘스트 후원 결과", () => {
     if (sent.status !== "COMPLETED") throw new Error(sent.status);
     expect(m.account.fnBalance).toBe(90_000);
     const row = (await m.getDonationHistory({ period: range, category: "quest" }))!.items.find((d) => d.id === sent.donationId)!;
-    expect(row.quest).toEqual({ status: "IN_PROGRESS", canDecide: true });
+    // Its deadline: sent time + 제한 시간 (not extended).
+    const endsAt = new Date(Date.parse(m.findQuest(sent.donationId)!.createdAt) + 600_000).toISOString();
+    expect(row.quest).toEqual({ status: "IN_PROGRESS", canDecide: true, endsAt, extendedMin: 0 });
 
     expect(await m.decideMyQuest({ id: sent.donationId, outcome: "MAYBE" })).toEqual({ status: "INVALID" });
     expect(await m.decideMyQuest({ id: sent.donationId, outcome: "FAILED" })).toEqual({ status: "OK", questStatus: "FAILED", refundedFn: 10_000 });
@@ -61,7 +63,7 @@ describe("퀘스트 후원 결과", () => {
     const ledger = (await m.getWalletOverview({ period: "all" }))!;
     expect(ledger.entries.filter((e) => e.id === `${sent.donationId}-refund`)).toEqual([expect.objectContaining({ kind: "REFUND", deltaFn: 10_000 })]);
     const after = (await m.getDonationHistory({ period: range, category: "quest" }))!.items.find((d) => d.id === sent.donationId)!;
-    expect(after.quest).toEqual({ status: "FAILED", canDecide: false });
+    expect(after.quest).toEqual({ status: "FAILED", canDecide: false, endsAt, extendedMin: 0 });
   });
 
   it("keeps the FN with the creator on SUCCESS, and only the sender can decide their quest", async () => {

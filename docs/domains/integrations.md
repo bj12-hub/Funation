@@ -189,7 +189,8 @@ Details: [donation-import.md](donation-import.md).
   「확인 중이던 후원이 완료됐어요」 · 「SOOP · 김스트리머님께 10,000 FN」, or 「확인 중이던 후원이 실패했어요」 ·
   「… · FN 반환」, linking to `/donation/history?period=all&tx=<Transaction ID>`.
 - The member keeps seeing 처리중 and 「처리 결과 확인 중」 in 후원 내역 until a result, then 완료 or 실패 · FN 반환.
-- TBD: whether each real platform has a status lookup, its rate limits; push · e-mail for the result.
+- TBD: whether each real platform has a status lookup, its rate limits. (No push · e-mail for the result — site
+  notifications only, 2026-10-18 결정.)
 - A failure before the hold finishes the key as FAILED (nothing debited), so a retry never sees
   IN_PROGRESS forever.
 

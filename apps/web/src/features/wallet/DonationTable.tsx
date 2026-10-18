@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { formatNumber } from "@/lib/format";
+import { formatNumber, kstIsoString } from "@/lib/format";
 import { QuestDecide } from "@/features/donations/QuestDecide";
 import { QUEST_STATUSES } from "@/services/creator/donationManagementTypes";
 import { decideMyQuest } from "@/services/donations/quests";
+import { questExtendedLabel } from "@/services/donations/questTypes";
 import { donationStatusLabel, type DonationRecord, type DonationStatus } from "@/services/wallet/walletTypes";
 import styles from "./wallet.module.css";
 
@@ -70,6 +71,13 @@ export function DonationTable({ items }: { items: DonationRecord[] }) {
                     ) : (
                       <span className={styles.questState}>퀘스트 {QUEST_STATUSES.find((s) => s.key === d.quest!.status)?.label}</span>
                     ))}
+                  {/* A running quest's deadline in Korea time — later when the creator extended it (2026-10-18 결정). */}
+                  {d.quest?.status === "IN_PROGRESS" && (
+                    <span className={styles.questState}>
+                      마감 {kstIsoString(d.quest.endsAt).slice(0, 16).replace("T", " ")}
+                      {d.quest.extendedMin > 0 && ` · ${questExtendedLabel(d.quest.extendedMin)}`}
+                    </span>
+                  )}
                   {/* 룰렛 · 뽑기: the spin/draw state or its result (prizes are the creator's, no FN). */}
                   {d.gameResult && <span className={styles.questState}>{d.gameResult}</span>}
                 </td>

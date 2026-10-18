@@ -4,6 +4,7 @@ import { PreviewStage } from "@/features/overlayTheme/PreviewStage";
 import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
 import { resolveTheme } from "@/services/creator/overlayThemeTypes";
 import { PRIZE_MAX, QUEST_STYLES } from "@/services/creator/widgetSettingsTypes";
+import { QUEST_EXTEND_MINUTES } from "@/services/donations/questTypes";
 import { ColorFontFields, Help, NumberField, Radios, Row, Section, SwitchText } from "./fields";
 import { QuestView } from "./GameViews";
 import type { FormProps } from "./forms";
@@ -27,7 +28,7 @@ export function QuestForm({ value: v, onChange, live }: FormProps<"QUEST">) {
         <PreviewStage width={600} minHeight={160} label="퀘스트 미리보기">
           <div style={{ opacity: v.enabled ? 1 : 0.4 }}>
             {/* A sample quest 4:59 before its time limit (the clock is fixed so it does not tick here). */}
-            <QuestView settings={{ ...v, enabled: true }} quests={[{ id: "sample", title: "노래 한 곡 불러주세요", amount: prize, endsAt: new Date(299_000).toISOString() }]} theme={resolveTheme(live.appearance, v.theme)} now={0} />
+            <QuestView settings={{ ...v, enabled: true }} quests={[{ id: "sample", title: "노래 한 곡 불러주세요", amount: prize, endsAt: new Date(299_000).toISOString(), extendedMin: 0 }]} theme={resolveTheme(live.appearance, v.theme)} now={0} />
           </div>
         </PreviewStage>
         <p className={styles.hint}>화려한 스타일은 테마 카드와 색을 쓰고, 심플한 스타일은 글자만 방송 위에 아래 글자 색으로 보여요.</p>
@@ -116,8 +117,20 @@ export function QuestForm({ value: v, onChange, live }: FormProps<"QUEST">) {
           >
             <NumberField label="등록 간격시간" value={v.intervalSec} max={3600} suffix="초" onChange={(x) => set("intervalSec", x)} />
           </Row>
-          <Row label="제한시간 연장 사용">
-            <SwitchText label="제한시간 연장 사용" checked={v.allowExtension} onChange={(x) => set("allowExtension", x)} />
+          {/* 2026-10-18 결정: on = the 리모컨 퀘스트 card offers 시간 연장 on each running quest (questTypes QUEST_EXTEND_MINUTES). */}
+          <Row
+            label={
+              <>
+                제한시간 연장 사용 <Help text="진행 중인 퀘스트의 제한 시간을 리모컨에서 늘릴 수 있게 합니다." />
+              </>
+            }
+          >
+            <SwitchText
+              label="제한시간 연장 사용"
+              checked={v.allowExtension}
+              onChange={(x) => set("allowExtension", x)}
+              text={`켜면 리모컨의 퀘스트 카드에서 진행 중인 퀘스트에 시간을 더할 수 있어요 (한 번에 ${QUEST_EXTEND_MINUTES.min}~${QUEST_EXTEND_MINUTES.max}분). 제한 시간이 지난 퀘스트는 지금부터 다시 계산해요.`}
+            />
           </Row>
           <Row label="크리에이터 성공 결정 권한 메뉴 노출">
             <SwitchText label="크리에이터 성공 결정 권한 메뉴 노출" checked={v.showSuccessAuthorityMenu} onChange={(x) => set("showSuccessAuthorityMenu", x)} />

@@ -7,7 +7,7 @@ import { recordAttribution, recordBroadcastDonation } from "@/services/crew/crew
 import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
 import { notify } from "@/services/notifications/notificationCore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
-import type { QuestAction, QuestDecideResult } from "./questTypes";
+import type { QuestAction, QuestDecideResult, QuestExtendResult } from "./questTypes";
 
 /**
  * Server-only quest records (not a "use server" module). A 퀘스트 후원 holds the full amount from the
@@ -19,9 +19,19 @@ import type { QuestAction, QuestDecideResult } from "./questTypes";
  * crew points · member ranking · the live broadcast's 후원 리스트 and the 후원 위젯 totals all wait for SUCCESS.
  * Neither its sender nor the creator of its channel can withdraw while it runs (2026-10-08 결정, account/withdrawal.ts),
  * so a refund always reaches the account that sent it, never a 재가입 account in the same slot.
+ *
+ * 제한 시간 연장 (2026-10-18 결정): with the 퀘스트 위젯's 제한시간 연장 사용 on, the creator adds minutes from the 리모컨. Each
+ * extension stays on the record (minutes, when, the deadline it set, the request id it came with), and the deadline every
+ * screen shows is the last one (`questEndsAt`).
  */
 
 export type QuestDecider = "CREATOR" | "DONOR";
+
+/**
+ * One 시간 연장 by the creator. `endsAt`: the deadline it set — the previous deadline + `minutes`, or now + `minutes` when
+ * the quest was already past it (`restarted`). `requestId`: the card's request id; a retry with it gets this result again.
+ */
+export type QuestExtension = { requestId: string; minutes: number; at: string; endsAt: string; restarted: boolean };
 
 export type QuestRecord = {
   /** The donation id (same as the supporter's 후원 내역 row). */
@@ -51,6 +61,8 @@ export type QuestRecord = {
    * 2026-10-09 결정), so a 금지어 changed before the result does not change it.
    */
   crew?: { memberId: string | null; broadcastId: string | null; message: string; shownDonor: string };
+  /** 시간 연장 by the creator, oldest first (empty = never extended). */
+  extensions: QuestExtension[];
 };
 
 const STATUS_CYCLE: QuestStatus[] = ["SUCCESS", "SUCCESS", "FAILED"];
@@ -77,16 +89,32 @@ function seedQuests(now = Date.now()): QuestRecord[] {
       status,
       decidedAt: running ? null : new Date(created + 300_000).toISOString(),
       decidedBy: running ? null : "CREATOR",
-      refundedFn: status === "FAILED" ? amount : 0
+      refundedFn: status === "FAILED" ? amount : 0,
+      extensions: []
     };
   });
 }
 
-// V2: a quest's crew hand-off carries `shownDonor` (2026-10-09 결정).
-const g = globalThis as typeof globalThis & { __ssumnationMockQuestsV2?: { items: QuestRecord[] } };
-export const mockQuests = (g.__ssumnationMockQuestsV2 ??= { items: seedQuests() });
+// V2: a quest's crew hand-off carries `shownDonor` (2026-10-09 결정). V3: `extensions` (제한 시간 연장, 2026-10-18 결정).
+const g = globalThis as typeof globalThis & { __ssumnationMockQuestsV3?: { items: QuestRecord[] } };
+export const mockQuests = (g.__ssumnationMockQuestsV3 ??= { items: seedQuests() });
 
 export const findQuest = (id: unknown) => (typeof id === "string" ? (mockQuests.items.find((q) => q.id === id) ?? null) : null);
+
+/** The deadline every screen shows: sent time + time limit, or the one the last 시간 연장 set. */
+export const questEndsAt = (q: QuestRecord) => q.extensions.at(-1)?.endsAt ?? new Date(Date.parse(q.createdAt) + q.timeLimitSec * 1000).toISOString();
+
+/** Minutes the creator added with 시간 연장 ("연장됨 +N분"; 0 = never extended). */
+export const questExtendedMin = (q: QuestRecord) => q.extensions.reduce((sum, x) => sum + x.minutes, 0);
+
+/** The 시간 연장 a request id already made, on whichever quest. */
+export function findQuestExtension(requestId: string) {
+  for (const quest of mockQuests.items) {
+    const extension = quest.extensions.find((x) => x.requestId === requestId);
+    if (extension) return { quest, extension };
+  }
+  return null;
+}
 
 /**
  * What the creator can do with a quest, wherever they decide it (후원관리+ › 받은 후원 › 퀘스트 and the 리모컨 퀘스트 card):
@@ -95,8 +123,22 @@ export const findQuest = (id: unknown) => (typeof id === "string" ? (mockQuests.
 export const creatorQuestActions = (q: QuestRecord): QuestAction[] => (q.status !== "IN_PROGRESS" ? [] : q.creatorDecides ? ["SUCCESS", "FAILED", "CANCELED"] : ["CANCELED"]);
 
 /** Called by the Donation Core right after the debit of a 퀘스트 후원 (the FN is held from here). */
-export function recordQuest(input: Omit<QuestRecord, "status" | "decidedAt" | "decidedBy" | "refundedFn">) {
-  mockQuests.items.unshift({ ...input, status: "IN_PROGRESS", decidedAt: null, decidedBy: null, refundedFn: 0 });
+export function recordQuest(input: Omit<QuestRecord, "status" | "decidedAt" | "decidedBy" | "refundedFn" | "extensions">) {
+  mockQuests.items.unshift({ ...input, status: "IN_PROGRESS", decidedAt: null, decidedBy: null, refundedFn: 0, extensions: [] });
+}
+
+/**
+ * Adds `minutes` to a running quest's deadline — counted from `now` instead when the deadline already passed (the quest
+ * still runs then, 2026-10-04 결정; the 리모컨 says so before asking). The caller has checked the session, the channel, the
+ * setting, the bounds and the request id, in the same synchronous step as this write.
+ */
+export function extendQuest(q: QuestRecord, minutes: number, requestId: string, now = new Date()): QuestExtendResult {
+  if (q.status !== "IN_PROGRESS") return { status: "ALREADY_DECIDED", questStatus: q.status };
+  const deadline = Date.parse(questEndsAt(q));
+  const restarted = deadline <= now.getTime();
+  const endsAt = new Date(Math.max(deadline, now.getTime()) + minutes * 60_000).toISOString();
+  q.extensions.push({ requestId, minutes, at: now.toISOString(), endsAt, restarted });
+  return { status: "OK", minutes, endsAt, restarted };
 }
 
 /**

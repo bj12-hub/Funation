@@ -64,6 +64,14 @@
   gap: 16px;
 }
 
+/* 남은시간 and, after a 시간 연장, "연장됨 +N분" side by side (left of the 상금). */
+.questTime {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
 .metaChip {
   font-size: 1em;
   padding: 3px 12px;
