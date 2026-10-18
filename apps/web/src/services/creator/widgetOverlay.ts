@@ -5,7 +5,7 @@ import { overlayKeyOpen } from "@/services/account/creatorAccess";
 import { mockAlerts, overlaySignal } from "./alertCore";
 import { shownOnStream } from "./donationPageCore";
 import { importedBoardEntries } from "./donationImportCore";
-import { mockQuests } from "@/services/donations/questCore";
+import { mockQuests, questEndsAt, questExtendedMin } from "@/services/donations/questCore";
 import { currentRun, voteBoard } from "@/services/votes/voteCore";
 import { isHidden, stageOf } from "@/services/donations/rouletteCore";
 import { boardOf, channelRows as gachaRows, isHidden as gachaHidden, mockGacha, stageOf as gachaStageOf } from "@/services/donations/gachaCore";
@@ -64,13 +64,14 @@ export async function getOverlayWidget(widget: unknown, key: unknown): Promise<O
     case "quest": {
       // Running quests of this channel, oldest first, up to 최대 개수. Past its time limit a quest stays
       // here until someone decides (2026-10-04 결정). The title shows as the creator's 대체 메시지 settings say
-      // (2026-10-07 결정: 금지어 · 후원 필터링 also cover quest titles on stream); the record keeps the original.
+      // (2026-10-07 결정: 금지어 · 후원 필터링 also cover quest titles on stream); the record keeps the original. The time
+      // left counts to the deadline of the last 시간 연장 when the creator extended it (2026-10-18 결정).
       const settings = readWidget("QUEST");
       const quests = mockQuests.items
         .filter((q) => q.channelId === STUDIO_CHANNEL && q.status === "IN_PROGRESS")
         .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
         .slice(0, settings.maxCount)
-        .map((q) => ({ id: q.id, title: shownOnStream({ donor: q.donor, message: q.title }).message, amount: q.amount, endsAt: new Date(Date.parse(q.createdAt) + q.timeLimitSec * 1000).toISOString() }));
+        .map((q) => ({ id: q.id, title: shownOnStream({ donor: q.donor, message: q.title }).message, amount: q.amount, endsAt: questEndsAt(q), extendedMin: questExtendedMin(q) }));
       return { widget, settings, quests, ...themed(settings) };
     }
     case "vote": {

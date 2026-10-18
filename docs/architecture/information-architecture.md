@@ -241,8 +241,9 @@ TBD:
 
 ## Open decisions (TBD)
 
-- Notifications: which other events trigger them, per-user inboxes and storage, push · e-mail (decided 2026-10-09: the
-  result of a 확인 중 플랫폼 후원 and 이벤트 보상 지급 · 당첨 · 발표 notify the current account once — docs/product/open-decisions.md).
+- Notifications: which other events trigger them, per-user inboxes and storage (decided 2026-10-09: the
+  result of a 확인 중 플랫폼 후원 and 이벤트 보상 지급 · 당첨 · 발표 notify the current account once; 2026-10-18: site
+  notifications only, no push · e-mail — docs/product/open-decisions.md).
 - A 서비스 소개 page.
 - Donation-history migration from other services — built 2026-10-16 with defaults pending the user's confirmation (who imports what, where it counts; docs/product/open-decisions.md).
 - A settings page (what it holds).

@@ -2,7 +2,7 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
 import { accountAt, accountSince, isPurged } from "@/services/account/withdrawalCore";
-import { findQuest } from "@/services/donations/questCore";
+import { findQuest, questEndsAt, questExtendedMin } from "@/services/donations/questCore";
 import { drawState } from "@/services/donations/gachaCore";
 import { spinState } from "@/services/donations/rouletteCore";
 import { isBlankPrize } from "@/services/donations/rouletteTypes";
@@ -91,11 +91,15 @@ export async function getDonationHistory(input: {
     )
     .sort((a, b) => (f.sort === "oldest" ? a.donatedAt.localeCompare(b.donatedAt) : b.donatedAt.localeCompare(a.donatedAt)));
   const page = paginate(rows, input);
-  // 퀘스트 후원: the quest's result; the member who sent it can always decide while it runs.
+  // 퀘스트 후원: the quest's result; the member who sent it can always decide while it runs. The deadline is the one the
+  // creator's last 시간 연장 set, if any (2026-10-18 결정).
   // 룰렛 · 뽑기: where the spin/draw is, or its result once the broadcast revealed it.
   const items = page.items.map((d) => {
     const q = d.category === "quest" ? findQuest(d.id) : null;
-    if (q) return { ...d, quest: { status: q.status, canDecide: q.status === "IN_PROGRESS" && q.supporterUserId === session.userId } };
+    if (q) {
+      const canDecide = q.status === "IN_PROGRESS" && q.supporterUserId === session.userId;
+      return { ...d, quest: { status: q.status, canDecide, endsAt: questEndsAt(q), extendedMin: questExtendedMin(q) } };
+    }
     const gameResult = d.category === "game" ? gameResultOf(d.id) : null;
     return gameResult ? { ...d, gameResult } : d;
   });

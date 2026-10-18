@@ -33,6 +33,7 @@ const row = (over: Partial<QuestRemoteRow>): QuestRemoteRow => ({
   amount: 10_000,
   createdAt: at(-301),
   endsAt: at(299),
+  extendedMin: 0,
   actions: ["SUCCESS", "FAILED", "CANCELED"],
   ...over
 });
@@ -62,6 +63,7 @@ describe("리모컨 퀘스트 카드", () => {
   it("lists each running quest with donor, mission, amount, time left and the 받은 후원 buttons", async () => {
     const html = await render({
       serverNow: new Date(NOW).toISOString(),
+      allowExtension: false,
       quests: [row({ id: "q-a", endsAt: at(-60) }), row({ id: "q-b", donor: "익명", donorId: "", title: "스쿼트 50개", amount: 5_000, endsAt: at(299), actions: ["CANCELED"] })]
     });
     expect(html).toContain("🎯 퀘스트");
@@ -82,7 +84,7 @@ describe("리모컨 퀘스트 카드", () => {
   }, 30_000);
 
   it("shows EMPTY without running quests", async () => {
-    const html = await render({ serverNow: new Date(NOW).toISOString(), quests: [] });
+    const html = await render({ serverNow: new Date(NOW).toISOString(), allowExtension: true, quests: [] });
     expect(html).toContain("진행 중인 퀘스트가 없어요.");
     expect(html).toContain("진행 중 0건");
     expect(html).not.toContain("<button");

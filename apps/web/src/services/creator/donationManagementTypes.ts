@@ -104,6 +104,10 @@ export type ReceivedDonation = {
   detail: string | null;
   /** 퀘스트 후원: what the creator can do with this running quest now (성공 · 실패 only with 크리에이터 성공 결정; 취소 always). */
   questActions?: QuestAction[];
+  /** 퀘스트 후원: the deadline — sent time + time limit, or the one the creator's last 시간 연장 set (2026-10-18 결정). */
+  questEndsAt?: string;
+  /** 퀘스트 후원: minutes the creator added with 시간 연장 (0 = never extended). */
+  questExtendedMin?: number;
 };
 
 /**

@@ -67,8 +67,11 @@ export type WallSticker = { id: string; x: number; y: number; rotate: number; im
 /** `amountLabel` replaces the FN amount (수단별 보드: each platform in its own unit). */
 export type WidgetRankRow = { rank: number; name: string; fnAmount: number; amountLabel?: string };
 
-/** A running quest on the 퀘스트 overlay; `endsAt` = sent time + 제한 시간. */
-export type WidgetQuest = { id: string; title: string; amount: number; endsAt: string };
+/**
+ * A running quest on the 퀘스트 overlay; `endsAt` = sent time + 제한 시간, or the deadline of the creator's last 시간 연장.
+ * `extendedMin`: the minutes added ("연장됨 +N분"; 0 = never extended).
+ */
+export type WidgetQuest = { id: string; title: string; amount: number; endsAt: string; extendedMin: number };
 
 /** `theme`: the widget's 오버레이 테마 (its own choice, or the channel's 전체 테마). */
 type Common = OverlaySignal & { serverNow: string; theme: ResolvedTheme };

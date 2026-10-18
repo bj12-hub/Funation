@@ -41,7 +41,8 @@ describe("후원 리스트 CSV", () => {
       status: "SUCCESS",
       decidedAt: "2026-10-17T15:27:00.000Z",
       decidedBy: "CREATOR",
-      refundedFn: 0
+      refundedFn: 0,
+      extensions: []
     });
     const res = await exportReceivedDonationsCsv({ kind: "quest", period: wide, status: "ALL", query: "midnight_fan" });
     if (res.status !== "OK") throw new Error(res.status);
