@@ -27,6 +27,16 @@ export type SubmitNext =
   | { step: "request"; error: string }
   | { leave: "UNAUTHORIZED" | SettlementGate };
 
+/**
+ * The Idempotency-Key for the confirm step: the key of the last quote while it is for the same amount, a new one
+ * otherwise. The flow drops its key once an answer settles the request (완료, or back to the amount on INVALID · CONFLICT),
+ * so a kept key is one whose request was never sent or whose answer was lost — after a lost answer, 취소 (or closing the
+ * window) → 정산 신청 → 확인 for the same amount asks about that request instead of making a second one, as the confirm
+ * step promised. Another amount is another request.
+ */
+export const keyForQuote = (last: { key: string | null; amountFn: number | null }, amountFn: number, fresh: () => string) =>
+  last.key !== null && last.amountFn === amountFn ? last.key : fresh();
+
 export function afterSubmit(answer: SubmitAnswer): SubmitNext {
   switch (answer.status) {
     case "REQUESTED":
