@@ -7,7 +7,7 @@ import { Modal } from "@/components/ui/Modal";
 import { quoteSettlement, requestSettlement, setAutoSettlement } from "@/services/creator/settlementRequests";
 import type { SettlementApplyView, SettlementGate, SettlementQuote } from "@/services/creator/settlementTypes";
 import { FeeGuideModal, SettlementGuideModal } from "./SettlementInfoPopups";
-import { afterSubmit, askServer } from "./settlementSubmit";
+import { afterSubmit, askServer, keyForQuote } from "./settlementSubmit";
 import styles from "./apply.module.css";
 
 const fn = (n: number) => n.toLocaleString("ko-KR");
@@ -57,8 +57,9 @@ export function SettlementRequestFlow({ view }: { view: SettlementApplyView }) {
       try {
         const res = await quoteSettlement(amount);
         if (res.status === "OK") {
+          // The same amount keeps the key of a 확인 whose answer was lost (settlementSubmit.ts `keyForQuote`).
+          setIdempotencyKey(keyForQuote({ key: idempotencyKey, amountFn: quote?.amountFn ?? null }, res.quote.amountFn, () => crypto.randomUUID()));
           setQuote(res.quote);
-          setIdempotencyKey(crypto.randomUUID());
           setStep("confirm");
         } else if (res.status === "INVALID") setError(res.message);
         else handleResult(res.status);
@@ -77,6 +78,8 @@ export function SettlementRequestFlow({ view }: { view: SettlementApplyView }) {
       if ("leave" in next) return handleResult(next.leave);
       if (next.step === "complete") setQuote(next.quote);
       else setError(next.error);
+      // Back to the amount: this request is settled, the next quote is a new one.
+      if (next.step === "request") setIdempotencyKey(null);
       setStep(next.step);
     });
   };
