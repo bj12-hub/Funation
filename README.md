@@ -69,13 +69,52 @@ ssumnation/
 ├── apps/
 │   ├── web/                 # Next.js + TypeScript (site, studio, OBS overlays, admin API)
 │   ├── admin/               # Next.js admin console (separate app, port 3200)
-│   └── api/                 # Backend - TBD
+│   └── api/                 # Backend - TBD (placeholder README only)
 │
-└── packages/
+└── packages/                # placeholders (README only) until code is shared between apps
     ├── shared/
     ├── ui/
     └── config/
 ```
+
+## Apps and hosts
+
+| What | App | Local address | Notes |
+|---|---|---|---|
+| Site + creator studio (`/creator/*`) + OBS overlays (`/overlay/*`) | `apps/web` | http://localhost:3000 | also serves the admin API `/api/admin/*` |
+| Ssumnation 도우미 (OBS 송출 · 리모컨 only) | `apps/web`, routed by host | http://helper.localhost:3000 | `HELPER_HOST` picks the production host; see `docs/development/helper-domain.md` |
+| Admin console | `apps/admin` | http://localhost:3200 | no data of its own; talks to `/api/admin/*` with `ADMIN_API_TOKEN` (`apps/admin/README.md`) |
+
+## Running locally
+
+```bash
+npm install
+npm run dev:web      # site + studio + overlays + admin API, port 3000
+npm run dev:admin    # admin console, port 3200
+npm run dev:sync     # Windows: dev server that keeps pulling origin/preview (scripts/dev-sync.ps1)
+npm run test:web     # Vitest (also test:admin)
+npm run lint:web     # ESLint (also lint:admin)
+npm run build:web    # production build (also build:admin)
+```
+
+Copy `apps/web/.env.example` and `apps/admin/.env.example` to `.env.local` when you need real keys; never commit
+`.env` files or secrets.
+
+## Mock backend
+
+There is no backend yet. Everything under `apps/web/src/services` runs against an in-memory mock (`lib/mock.ts`
+`USE_MOCK`, on outside production builds) kept on `globalThis.__ssumnationMock*`, so the state resets whenever the dev
+server restarts. Each service states the server-side rules the real backend must keep (session checks, idempotency
+keys, audit records, KST day boundaries); `docs/architecture/api-contract.md` lists them per domain.
+
+## Documentation map
+
+- `docs/product/open-decisions.md` — confirmed decisions, 기본값 (일반적인 기준) defaults and what is still TBD
+- `docs/domains/*.md` — rules per domain (wallet, donation, settlement, payment, community, events, donation import …)
+- `docs/architecture/api-contract.md` — mock → backend contract; `information-architecture.md` — menus and routes
+- `docs/figma/*` — Figma files, frames per screen (`site-design-system.md`) and screens built code-first
+  (`code-first-screens.md`)
+- `docs/development/*` — workflow, helper and admin hosts, i18n, handoff notes
 
 ## Frontend
 
