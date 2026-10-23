@@ -227,7 +227,13 @@ export function RunList({ name, runs, now }: { name: string; runs: GameRunView[]
           <li key={r.id}>
             <span className={styles.muted}>{time(r.at)}</span>
             <span className={styles.chip}>
-              {r.trigger.kind === "SIGNATURE" ? `자동 · ${r.trigger.signatureName}` : r.trigger.kind === "AMOUNT" ? `자동 · ${formatNumber(r.trigger.amount)} FN 발동` : "수동"}
+              {r.trigger.kind === "SIGNATURE"
+                ? `자동 · ${r.trigger.signatureName}`
+                : r.trigger.kind === "AMOUNT"
+                  ? `자동 · ${formatNumber(r.trigger.amount)} FN 발동`
+                  : r.trigger.kind === "DONATION"
+                    ? `자동 · ${formatNumber(r.trigger.amount)} FN 후원`
+                    : "수동"}
             </span>
             <span className={styles.boardName}>
               {r.memberColor && <span className={styles.dot} style={{ background: r.memberColor }} aria-hidden="true" />}
@@ -236,7 +242,7 @@ export function RunList({ name, runs, now }: { name: string; runs: GameRunView[]
             {shown ? (
               <span className={games.result}>
                 <strong>{r.label}</strong>
-                {effect && <span className={styles.muted}>{effect}</span>}
+                {effect && effect !== r.label && <span className={styles.muted}>{effect}</span>}
               </span>
             ) : (
               <span className={styles.muted}>{waitSec > 0 ? `OBS 대기 ${waitSec}초` : "진행 중…"}</span>

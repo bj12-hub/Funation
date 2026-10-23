@@ -243,6 +243,8 @@ export type BroadcastLive = {
   jupjup: JupjupLive;
   medley: MedleyLive;
   sigBingo: SigBingoLive;
+  /** Closed cells come without their prize here, and the settings without the prize list (OBS); the studio's GamesView has them. */
+  gridDraw: GridDrawLive;
   /** Server clock when this view was read: timers (시나리오 경과, 강탈 card) correct the browser's clock with it. */
   serverNow: string;
 };
@@ -364,7 +366,7 @@ export type SigCountLive = {
 // A game draws its result on the server; the result is display points only (FN · 지갑 · 수익 · 정산 never move).
 
 /** Games on the shared engine (crewGameCore). `param`: the OBS view (`?spin`). */
-export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL" | "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO";
+export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL" | "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW";
 export const GAMES: { key: GameKey; label: string; param: string }[] = [
   { key: "SPIN", label: "스핀머신", param: "spin" },
   { key: "DICE", label: "주사위 게임", param: "dice" },
@@ -373,7 +375,8 @@ export const GAMES: { key: GameKey; label: string; param: string }[] = [
   { key: "RELAY", label: "기여도 릴레이", param: "relay" },
   { key: "JUPJUP", label: "줍줍", param: "jupjup" },
   { key: "MEDLEY", label: "시그니처 메들리", param: "medley" },
-  { key: "SIG_BINGO", label: "시그 빙고", param: "sigbingo" }
+  { key: "SIG_BINGO", label: "시그 빙고", param: "sigbingo" },
+  { key: "GRID_DRAW", label: "복불복 뽑기판", param: "griddraw" }
 ];
 
 /**
@@ -389,7 +392,8 @@ export const GAME_TIMING: Record<GameKey, { playSec: number; resultSec: number }
   RELAY: { playSec: 2, resultSec: 4 },
   JUPJUP: { playSec: 2, resultSec: 4 },
   MEDLEY: { playSec: 2, resultSec: 4 },
-  SIG_BINGO: { playSec: 1, resultSec: 5 }
+  SIG_BINGO: { playSec: 1, resultSec: 5 },
+  GRID_DRAW: { playSec: 1, resultSec: 4 }
 };
 /** Runs a game lists (studio) and queues (OBS), newest first. */
 export const GAME_RUNS_SHOWN = 30;
@@ -621,8 +625,53 @@ export type SigBingoBoard = {
   lastOpened: number | null;
 };
 
+// 복불복 뽑기판 — StreamDonate 복불복 뽑기판: a grid of hidden cells (당첨 or 꽝); a donation opens one at random, the operator
+// can open any. The board resets when every cell is open (모든 칸 오픈 시 자동 리셋).
+export const GRID_DRAW_TITLE_DEFAULT = "복불복 뽑기판";
+export const GRID_DRAW_SIZES = [3, 4, 5, 6] as const;
+export type GridDrawSize = (typeof GRID_DRAW_SIZES)[number];
+export const GRID_DRAW_PRIZES_MAX = 20;
+export const GRID_DRAW_LABEL_MAX = 20;
+export const GRID_DRAW_POINTS_MAX = 10_000_000;
+
+/** TEXT (문구 — 벌칙 · 미션 · 상품), SIGNATURE (시그니처, shown with its image — not played), POINTS (점수 for the opener's member). */
+export type GridPrizeKind = "TEXT" | "SIGNATURE" | "POINTS";
+export const GRID_PRIZE_KINDS: { key: GridPrizeKind; label: string }[] = [
+  { key: "TEXT", label: "문구" },
+  { key: "SIGNATURE", label: "시그니처" },
+  { key: "POINTS", label: "점수" }
+];
+/** A 당첨 항목 taking `count` cells. `label`: the 문구 (a signature's name for SIGNATURE); `points` for POINTS (else 0). */
+export type GridPrize = { id: string; kind: GridPrizeKind; label: string; signatureId: string | null; points: number; count: number };
+/** Which donations open a cell automatically: SIGNATURE (시그니처 후원만) or ANY (모든 후원), from `minAmount` FN. */
+export type GridDrawTrigger = "SIGNATURE" | "ANY";
+export const GRID_DRAW_TRIGGERS: { key: GridDrawTrigger; label: string }[] = [
+  { key: "SIGNATURE", label: "시그니처 후원만" },
+  { key: "ANY", label: "모든 후원" }
+];
+
+/** `auto` = 후원 시 자동 랜덤 오픈; `autoReset` = 모든 칸 오픈 시 자동 리셋; `excluded`: signatures that open nothing. */
+export type GridDrawSettings = GameCommon & { size: GridDrawSize; trigger: GridDrawTrigger; minAmount: number; autoReset: boolean; prizes: GridPrize[] };
+export const DEFAULT_GRID_DRAW: GridDrawSettings = { title: "", auto: false, excluded: [], showIdle: true, size: 5, trigger: "SIGNATURE", minAmount: 0, autoReset: true, prizes: [] };
+
+/**
+ * A cell as shown. Closed cells keep their prize hidden (`kind` "HIDDEN") on OBS — the overlay is reachable with the key
+ * alone; the studio sees them. "MISS" = 꽝.
+ */
+export type GridDrawCell = {
+  kind: GridPrizeKind | "MISS" | "HIDDEN";
+  label: string;
+  imageUrl: string | null;
+  points: number;
+  /** `revealAt`: when OBS shows the prize (the opening run's result). */
+  opened: { memberName: string | null; memberColor: string | null; at: string; revealAt: string; manual: boolean } | null;
+};
+/** `round`: boards since 뽑기판 시작; `resetAt`: a full board's 자동 리셋 (after the last result), else null. */
+export type GridDrawBoard = { size: GridDrawSize; round: number; startedAt: string; cells: GridDrawCell[]; lastOpened: number | null; resetAt: string | null };
+
 /** What started a run: a 시그니처 후원 to the member (자동), a 랜덤시그 · 메들리 발동 금액 (자동), or the operator (수동). */
-export type GameTrigger = { kind: "SIGNATURE"; signatureName: string } | { kind: "AMOUNT"; amount: number } | { kind: "MANUAL" };
+/** `DONATION`: a donation that is no signature (복불복 뽑기판 on 모든 후원). */
+export type GameTrigger = { kind: "SIGNATURE"; signatureName: string } | { kind: "AMOUNT"; amount: number } | { kind: "DONATION"; amount: number } | { kind: "MANUAL" };
 
 export type GameRunView = {
   id: string;
@@ -660,6 +709,8 @@ export type SpinLive = { settings: SpinSettings; runs: GameRunView[]; tally: Spi
 export type DiceLive = { settings: DiceSettings; runs: GameRunView[] };
 export type TwoWheelLive = { settings: TwoWheelSettings; runs: GameRunView[] };
 /** `pool`: the signatures a 랜덤시그 can draw (active, not excluded) — the OBS rolling images. */
+/** `board`: null until 뽑기판 시작 (or after 판 비우기). */
+export type GridDrawLive = { settings: GridDrawSettings; runs: GameRunView[]; board: GridDrawBoard | null };
 /** `board`: null until 빙고 시작 (or after 판 비우기); `eligible`: how many signatures a new board would draw from. */
 export type SigBingoLive = { settings: SigBingoSettings; runs: GameRunView[]; board: SigBingoBoard | null; eligible: number };
 /** `pool`: the registered signatures that can be drawn (active) — the OBS rolling images. */
@@ -687,6 +738,7 @@ export type GamesView = {
     jupjup: JupjupLive;
     medley: MedleyLive;
     sigBingo: SigBingoLive;
+    gridDraw: GridDrawLive;
     sources: Record<GameKey, Record<string, GameSource[]>>;
     serverNow: string;
   } | null;
@@ -698,6 +750,7 @@ export type GamesView = {
   jupjupSettings: JupjupSettings;
   medleySettings: MedleySettings;
   sigBingoSettings: SigBingoSettings;
+  gridDrawSettings: GridDrawSettings;
   signatures: { id: string; name: string; group: string; active: boolean; price: number; match: "SELECT" | "AMOUNT"; rangeMin: number | null }[];
   overlayPath: string;
 };

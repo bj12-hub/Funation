@@ -38,6 +38,16 @@ export function drawIndex(weights: number[]): number {
   return weights.findIndex((w) => (roll -= w) < 0);
 }
 
+/** A copy in random order (server randomness). */
+export function shuffled<T>(items: T[]): T[] {
+  const out = [...items];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = randomInt(i + 1);
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
 /** Points a result adds for a 기준 후원 worth `base` points (배수: (배수 − 1) × base, rounded once). */
 export const effectPoints = (kind: GameEffect, value: number, base: number) => (kind === "MULTIPLY" ? extraPoints(base, value) : kind === "ADD" ? value : 0);
 

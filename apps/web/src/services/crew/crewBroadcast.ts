@@ -33,6 +33,7 @@ import { diceLive } from "./crewDiceCore";
 import { jupjupLive } from "./crewJupjupCore";
 import { medleyLive } from "./crewMedleyCore";
 import { sigBingoLive } from "./crewSigBingoCore";
+import { gridDrawLive } from "./crewGridDrawCore";
 import { randomSigLive } from "./crewRandomSigCore";
 import { relayLive } from "./crewRelayCore";
 import { spinLive } from "./crewSpinCore";
@@ -97,6 +98,8 @@ function liveView(b: MockBroadcast): BroadcastLive {
     jupjup: jupjupLive(b),
     medley: medleyLive(b),
     sigBingo: sigBingoLive(b),
+    // Closed cells' prizes stay off this view (the OBS overlay reads it with the key alone).
+    gridDraw: gridDrawLive(b, false),
     serverNow: new Date().toISOString()
   };
 }

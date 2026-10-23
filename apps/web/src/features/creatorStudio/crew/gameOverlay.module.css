@@ -369,3 +369,45 @@
     transform: none;
   }
 }
+
+/* ── 복불복 뽑기판: numbered tiles on the 빙고 grid; a tile being opened shakes until its result ── */
+.drawTile[data-opening] {
+  animation: tileShake 0.45s ease-in-out infinite;
+  background: color-mix(in srgb, var(--ov-accent) 45%, var(--ov-chip-bg));
+}
+
+.drawTile[data-miss] {
+  opacity: 0.45;
+}
+
+.drawTile .bingoName b {
+  display: block;
+  color: var(--ov-accent);
+  font-size: 11px;
+}
+
+.drawNo {
+  font-size: 18px;
+  opacity: 0.75;
+}
+
+@keyframes tileShake {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+
+  25% {
+    transform: rotate(-6deg) scale(1.05);
+  }
+
+  75% {
+    transform: rotate(6deg) scale(1.05);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawTile[data-opening] {
+    animation: none;
+  }
+}
