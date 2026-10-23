@@ -43,6 +43,16 @@ export const WIDGET_PAGES = {
     ],
     target: "widgets"
   },
+  monitor: {
+    title: "알림 모니터",
+    description: "최고 후원 · 지금 나오는 후원 · 시그니처 대기열을 방송 화면 한쪽에 띄워요.",
+    tabs: [
+      { key: "TOP_DONATION", slug: "top", label: "최고 후원" },
+      { key: "DONATION_MONITOR", slug: "now", label: "후원 모니터링" },
+      { key: "SIG_QUEUE", slug: "queue", label: "시그 큐 모니터" }
+    ],
+    target: "widgets"
+  },
   clock: {
     title: "시계",
     description: "방송 화면에 지금 시각(한국 시간)을 띄워요. 플립 · 디지털 · 아날로그 중에서 골라요.",

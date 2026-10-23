@@ -174,6 +174,36 @@ export const OVERLAYS: OverlayEntry[] = [
     manage: "/creator/widgets?open=RANKING"
   },
   {
+    id: "widget-top-donation",
+    target: "widgets",
+    group: "알림",
+    title: "최고 후원",
+    description: "기간 안 가장 큰 후원 한 건과 상금 문구를 걸어 둬요.",
+    size: "560 × 200",
+    path: (k) => widgetOverlayPath("top-donation", k),
+    manage: "/creator/widgets?open=TOP_DONATION"
+  },
+  {
+    id: "widget-donation-monitor",
+    target: "widgets",
+    group: "알림",
+    title: "후원 모니터링",
+    description: "지금 나오는 후원 알림을 다음 알림까지 계속 보여 줘요.",
+    size: "600 × 180",
+    path: (k) => widgetOverlayPath("donation-monitor", k),
+    manage: "/creator/widgets?open=DONATION_MONITOR"
+  },
+  {
+    id: "widget-sig-queue",
+    target: "widgets",
+    group: "알림",
+    title: "시그 큐 모니터",
+    description: "재생 중인 시그니처와 다음 차례 시그니처를 카드로 보여 줘요.",
+    size: "420 × 400 (가로형 1200 × 260)",
+    path: (k) => widgetOverlayPath("sig-queue", k),
+    manage: "/creator/widgets?open=SIG_QUEUE"
+  },
+  {
     id: "widget-recent",
     target: "widgets",
     group: "알림",

@@ -2,11 +2,14 @@ import { formatNumber } from "@/lib/format";
 import { formatUnitAmount, isCurrencyUnit, unitLabel, type AmountUnit } from "@/types/donationUnit";
 import { PLATFORM_LABEL, type Platform } from "@/types/platform";
 import { HIDDEN_PROFILE_LABEL } from "@/services/supporter/identityTypes";
-import { nativeAmount, type AlertItem } from "./alertTypes";
+import { alertAmount, nativeAmount, type AlertItem } from "./alertTypes";
 import { IMPORT_SOURCE_LABEL, type ImportSource } from "./donationImportTypes";
-import type { MiniLine, WidgetFeedLine, WidgetRankRow } from "./widgetOverlayTypes";
+import type { MiniLine, MonitorLine, SigCard, TopDonation, WidgetFeedLine, WidgetRankRow } from "./widgetOverlayTypes";
 import {
   RECENT_PLATFORMS,
+  type DonationMonitorSettings,
+  type SigQueueSettings,
+  type TopDonationSettings,
   TOTAL_TEMPLATE_TOKEN,
   type EventSettings,
   type GoalSettings,
@@ -252,4 +255,63 @@ export function eventLines(items: AlertItem[], s: EventSettings): WidgetFeedLine
     .slice(-Math.max(1, s.maxLines))
     .map((a) => line(a, EVENT_LINE));
   return s.order === "최신순" ? latest.reverse() : latest;
+}
+
+// ── 알림 모니터 (code-first, 2026-10-23 — StreamDonate 최고 후원 · 후원 모니터링 · 시그 큐 모니터 참고) ──
+
+/** Shown on stream: the alert's status says it reached the screen. */
+const played = (a: AlertItem) => a.status === "SHOWING" || a.status === "DONE";
+
+/**
+ * 최고 후원: the biggest counted donation (FN, the 목표 · 누적 · 랭킹 rules: no tests or 다시 보내기, quests once they
+ * succeeded) in the period. 알림이 나올 때 only takes donations whose alert reached the screen. Same amount: 나중 후원자
+ * takes the later one, 먼저 후원자 keeps the earlier one. One donation, so the name is the one its alert showed (익명 or
+ * the 대체 메시지 included).
+ */
+export function topDonation(items: AlertItem[], s: Pick<TopDonationSettings, "period" | "timing" | "tie">, now = new Date()): TopDonation | null {
+  const since = rankingSince(s.period, now);
+  let best: { a: AlertItem; t: number } | null = null;
+  for (const a of countedDonations(items)) {
+    const t = countedAt(a);
+    if (t < since || (s.timing === "PLAYED" && !played(a))) continue;
+    const better = !best || a.fnAmount > best.a.fnAmount || (a.fnAmount === best.a.fnAmount && (s.tie === "LATEST" ? t >= best.t : t < best.t));
+    if (better) best = { a, t };
+  }
+  return best && { donor: best.a.donor, amount: alertAmount(best.a), message: best.a.message, at: new Date(best.t).toISOString() };
+}
+
+/** 후원 모니터링: the alert on screen now, else the last one that was shown (any kind the 후원 알림 plays). */
+export function monitorLine(items: AlertItem[], s: Pick<DonationMonitorSettings, "showMessage">): MonitorLine | null {
+  const playing = items.find((a) => a.status === "SHOWING");
+  const a = playing ?? [...items].reverse().find((x) => x.status === "DONE");
+  if (!a) return null;
+  return {
+    id: a.id,
+    donor: a.donor,
+    amount: alertAmount(a),
+    message: s.showMessage ? a.message : "",
+    typeLabel: a.typeLabel,
+    platform: a.platform ?? null,
+    at: a.createdAt,
+    playing: a === playing,
+    test: a.kind === "TEST"
+  };
+}
+
+/** A signature alert carries the signature's image (시그니처 후원, or a 후원 matched to a signature by amount). */
+const isSignature = (a: AlertItem) => !!a.imageUrl;
+
+/** 시그 큐 모니터: the signature on screen (if the alert playing is one), then the next `next` signature alerts queued. */
+export function sigQueueCards(items: AlertItem[], s: Pick<SigQueueSettings, "next" | "showMessage">): SigCard[] {
+  const playing = items.find((a) => a.status === "SHOWING" && isSignature(a));
+  const queued = items.filter((a) => a.status === "QUEUED" && isSignature(a)).slice(0, s.next);
+  return [...(playing ? [playing] : []), ...queued].map((a, i) => ({
+    id: a.id,
+    order: i + 1,
+    playing: a === playing,
+    donor: a.donor,
+    amount: alertAmount(a),
+    message: s.showMessage ? a.message : "",
+    imageUrl: a.imageUrl!
+  }));
 }
