@@ -194,3 +194,57 @@
   font-size: 64px;
   font-weight: 800;
 }
+
+/* ── 기여도 릴레이: the waiting 배수 badge; it passes on when a relay plays ── */
+.relayStage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.relayBadge {
+  padding: 10px 26px;
+  border-radius: 18px;
+  background: var(--ov-chip-bg);
+  color: var(--ov-chip-ink);
+  font-size: 56px;
+  line-height: 1;
+}
+
+.relayStage[data-pending] .relayBadge,
+.relayStage[data-hit] .relayBadge {
+  background: var(--ov-accent);
+  color: #ffffff;
+}
+
+.relayStage[data-pending] .relayBadge {
+  animation: relayWait 1.2s ease-in-out infinite alternate;
+}
+
+.relayPass {
+  animation: relayPass 0.6s cubic-bezier(0.2, 0.8, 0.3, 1.2) both;
+}
+
+@keyframes relayWait {
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(1.06);
+  }
+}
+
+@keyframes relayPass {
+  from {
+    transform: translateX(-60px) scale(0.6);
+    opacity: 0;
+  }
+
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
