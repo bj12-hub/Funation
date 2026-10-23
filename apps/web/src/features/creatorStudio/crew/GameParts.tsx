@@ -3,7 +3,17 @@
 import { useEffect, useRef, useState } from "react";
 import { formatKstTime, formatNumber } from "@/lib/format";
 import { playGame } from "@/services/crew/crewGames";
-import { GAME_TITLE_MAX, type BroadcastResult, type CrewMember, type GameKey, type GameRunView, type GamesView } from "@/services/crew/crewTypes";
+import {
+  AMOUNT_TIERS_MAX,
+  AMOUNT_TIER_MULTIPLIER_MAX,
+  GAME_TITLE_MAX,
+  type AmountTier,
+  type BroadcastResult,
+  type CrewMember,
+  type GameKey,
+  type GameRunView,
+  type GamesView
+} from "@/services/crew/crewTypes";
 import { CopyButton } from "../settings/SettingsCards";
 import { gameEffect } from "./GameOverlayParts";
 import { shownOverlayAddress } from "./overlayAddress";
@@ -240,6 +250,101 @@ export function OverlayAddress({ overlayPath, param, label }: { overlayPath: str
     <div className={styles.addRow}>
       <input className={styles.input} value={shownOverlayAddress(origin, overlayPath, `?${param}`)} readOnly aria-label={`${label} 오버레이 주소`} onFocus={(e) => e.target.select()} />
       <CopyButton value={`${origin}${overlayPath}?${param}`} label="복사" className={styles.ghost} />
+    </div>
+  );
+}
+
+/** The editor keeps 금액 구간 numbers as typed; a blank 최대 = 이상 (no upper end). */
+export type EditAmountTier = { id: string; min: string; max: string; multiplier: string };
+export const toEditTiers = (tiers: AmountTier[]): EditAmountTier[] =>
+  tiers.map((t) => ({ id: t.id, min: String(t.min), max: t.max === null ? "" : String(t.max), multiplier: String(t.multiplier) }));
+export const fromEditTiers = (tiers: EditAmountTier[]) => tiers.map((t) => ({ id: t.id, min: Number(t.min), max: t.max.trim() === "" ? null : Number(t.max), multiplier: Number(t.multiplier) }));
+const newTierId = () => `new-${crypto.randomUUID().slice(0, 8)}`;
+
+/**
+ * 금액 구간 editor (기여도 릴레이 · 줍줍 배수 모드): [최소] FN 이상 ~ [최대 — 비우면 이상] FN → [배수] 배, matched top-down.
+ * `example`: offered while empty (예시로 채우기).
+ */
+export function AmountTiersField({
+  name,
+  tiers,
+  onChange,
+  example,
+  note
+}: {
+  name: string;
+  tiers: EditAmountTier[];
+  onChange: (tiers: EditAmountTier[]) => void;
+  example?: Omit<AmountTier, "id">[];
+  note: string;
+}) {
+  const setTier = (i: number, patch: Partial<EditAmountTier>) => onChange(tiers.map((t, j) => (j === i ? { ...t, ...patch } : t)));
+  return (
+    <div className={prize.field}>
+      <span className={styles.muted}>
+        금액 구간 ({tiers.length}/{AMOUNT_TIERS_MAX})
+      </span>
+      {tiers.length > 0 && (
+        <ul className={games.tiers}>
+          {tiers.map((t, i) => (
+            <li key={t.id}>
+              <span className={games.tierRow}>
+                <input
+                  className={styles.inputSmall}
+                  type="number"
+                  inputMode="numeric"
+                  aria-label={`${name} 구간 ${i + 1} 최소 금액`}
+                  placeholder="최소"
+                  value={t.min}
+                  onChange={(e) => setTier(i, { min: e.target.value })}
+                />
+                <span className={styles.muted}>FN 이상 ~</span>
+                <input
+                  className={styles.inputSmall}
+                  type="number"
+                  inputMode="numeric"
+                  aria-label={`${name} 구간 ${i + 1} 최대 금액`}
+                  placeholder="비우면 이상"
+                  value={t.max}
+                  onChange={(e) => setTier(i, { max: e.target.value })}
+                />
+                <span className={styles.muted}>FN →</span>
+                <input
+                  className={styles.inputSmall}
+                  type="number"
+                  inputMode="decimal"
+                  aria-label={`${name} 구간 ${i + 1} 배수`}
+                  step={0.01}
+                  min={1.01}
+                  max={AMOUNT_TIER_MULTIPLIER_MAX}
+                  value={t.multiplier}
+                  onChange={(e) => setTier(i, { multiplier: e.target.value })}
+                />
+                <span className={styles.muted}>배</span>
+                <button type="button" className={styles.ghost} onClick={() => onChange(tiers.filter((_, j) => j !== i))}>
+                  삭제
+                </button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <span className={prize.inline}>
+        <button
+          type="button"
+          className={styles.ghost}
+          disabled={tiers.length >= AMOUNT_TIERS_MAX}
+          onClick={() => onChange([...tiers, { id: newTierId(), min: "", max: "", multiplier: "2" }])}
+        >
+          + 구간 추가
+        </button>
+        {example && tiers.length === 0 && (
+          <button type="button" className={styles.ghost} onClick={() => onChange(toEditTiers(example.map((t) => ({ ...t, id: newTierId() }))))}>
+            예시로 채우기
+          </button>
+        )}
+      </span>
+      <span className={styles.note}>{note}</span>
     </div>
   );
 }

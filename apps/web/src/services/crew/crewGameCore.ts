@@ -1,7 +1,22 @@
-import { randomInt } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import { mockSignatures } from "@/services/donations/signatureCore";
-import { excelOf, extraPoints, feedOf, isActiveMember, liveBroadcastOf, scoreEntry, scoreFn } from "./crewCore";
-import { GAMES, GAME_LEAD_SEC, GAME_RUNS_SHOWN, GAME_TIMING, GAME_TITLE_MAX, type GameCommon, type GameEffect, type GameKey, type GameRunView, type GameSource } from "./crewTypes";
+import { SIGNATURE_LIMITS } from "@/services/donations/signatureTypes";
+import { excelOf, extraPoints, feedOf, isActiveMember, liveBroadcastOf, parseMultiplier, scoreEntry, scoreFn } from "./crewCore";
+import {
+  AMOUNT_TIERS_MAX,
+  AMOUNT_TIER_MULTIPLIER_MAX,
+  GAMES,
+  GAME_LEAD_SEC,
+  GAME_RUNS_SHOWN,
+  GAME_TIMING,
+  GAME_TITLE_MAX,
+  type AmountTier,
+  type GameCommon,
+  type GameEffect,
+  type GameKey,
+  type GameRunView,
+  type GameSource
+} from "./crewTypes";
 import { mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 /**
@@ -38,6 +53,27 @@ export function parseGameCommon(input: unknown, forbidden: string[], signatureId
   if (!Array.isArray(v.excluded) || v.excluded.some((id) => typeof id !== "string" || !signatureIds.includes(id))) return { message: "제외할 시그니처를 확인해 주세요." };
   if (typeof v.auto !== "boolean" || typeof v.showIdle !== "boolean") return { message: "설정을 확인해 주세요." };
   return { title, auto: v.auto, excluded: [...new Set(v.excluded as string[])], showIdle: v.showIdle };
+}
+
+const isInt = (v: unknown, min: number, max: number): v is number => typeof v === "number" && Number.isInteger(v) && v >= min && v <= max;
+
+/**
+ * Validates 금액 구간 (기여도 릴레이 · 줍줍 배수 모드): `min` FN or more up to `max` (null = 이상), × a 배수 above 1. Order is
+ * kept (the first matching 구간 wins). `knownIds`: the saved ids (kept); any other id gets one with `prefix`.
+ */
+export function parseAmountTiers(raw: unknown, knownIds: string[], prefix: string): AmountTier[] | { message: string } {
+  const { priceMax } = SIGNATURE_LIMITS;
+  if (!Array.isArray(raw) || raw.length > AMOUNT_TIERS_MAX) return { message: `금액 구간은 ${AMOUNT_TIERS_MAX}개까지 만들 수 있어요.` };
+  const tiers: AmountTier[] = [];
+  for (const item of raw) {
+    const t = rec(item);
+    if (!isInt(t.min, 0, priceMax) || (t.max !== null && !isInt(t.max, t.min, priceMax))) return { message: "금액 구간을 확인해 주세요. 최대는 최소 이상이고, 비우면 '이상'이에요." };
+    const multiplier = parseMultiplier(t.multiplier, AMOUNT_TIER_MULTIPLIER_MAX);
+    if (multiplier === null || multiplier <= 1) return { message: `배수는 1보다 크고 ${AMOUNT_TIER_MULTIPLIER_MAX}배 이하, 소수 둘째 자리까지예요.` };
+    const keep = typeof t.id === "string" && knownIds.includes(t.id) && !tiers.some((x) => x.id === t.id);
+    tiers.push({ id: keep ? (t.id as string) : `${prefix}-${randomUUID().slice(0, 8)}`, min: t.min, max: t.max as number | null, multiplier });
+  }
+  return tiers;
 }
 
 /** Donations already used as the 기준 후원 of a run of `game`: each donation starts at most one run per game. */

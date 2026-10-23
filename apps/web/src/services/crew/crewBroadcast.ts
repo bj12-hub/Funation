@@ -30,6 +30,7 @@ import { battleGroups, battleRulesOf, fanNotesView, gradeMultipliersOf, excelOf,
 import { prizeBoardLive, prizeSettingsOf } from "./crewPrizeCore";
 import { sigCountLive, sigCountSettingsOf, sigCountSignatures } from "./crewSigCountCore";
 import { diceLive } from "./crewDiceCore";
+import { jupjupLive } from "./crewJupjupCore";
 import { randomSigLive } from "./crewRandomSigCore";
 import { relayLive } from "./crewRelayCore";
 import { spinLive } from "./crewSpinCore";
@@ -91,6 +92,7 @@ function liveView(b: MockBroadcast): BroadcastLive {
     twoWheel: twoWheelLive(b),
     randomSig: randomSigLive(b),
     relay: relayLive(b),
+    jupjup: jupjupLive(b),
     serverNow: new Date().toISOString()
   };
 }
