@@ -15,9 +15,37 @@ export type ManagedSignature = {
   soundUrl: string | null;
   match: SignatureMatch;
   active: boolean;
+  /**
+   * 금액범위 (2026-10-23, StreamDonate 시그니처 금액범위 참고): with 금액 일치, a 일반 후원 from `rangeMin` up to the price
+   * also alerts as this signature. null = the price only. Two active 금액 일치 signatures never share an amount.
+   */
+  rangeMin: number | null;
+  /** 그룹 (2026-10-23): a label to filter signatures and to show or hide a whole group at once. */
+  group: string;
 };
 
-export const SIGNATURE_LIMITS = { max: 50, nameMax: 20, priceMin: 100, priceMax: 10_000_000 } as const;
+export const SIGNATURE_LIMITS = { max: 50, nameMax: 20, priceMin: 100, priceMax: 10_000_000, groupMax: 10 } as const;
+export const DEFAULT_SIGNATURE_GROUP = "기본";
+
+/** The 일반 후원 amounts a 금액 일치 signature takes: from `rangeMin` (or the price) to the price. */
+export const amountSpan = (s: Pick<ManagedSignature, "price" | "rangeMin">) => ({ from: s.rangeMin ?? s.price, to: s.price });
+
+/** Two active 금액 일치 signatures that would both take some amount (a price in another's range, or overlapping ranges). */
+export function amountConflict(list: ManagedSignature[]): [ManagedSignature, ManagedSignature] | null {
+  const matched = list.filter((s) => s.active && s.match === "AMOUNT");
+  for (let i = 0; i < matched.length; i++) {
+    for (let j = i + 1; j < matched.length; j++) {
+      const a = amountSpan(matched[i]);
+      const b = amountSpan(matched[j]);
+      if (a.from <= b.to && b.from <= a.to) return [matched[i], matched[j]];
+    }
+  }
+  return null;
+}
+
+/** "10,000 FN" or "9,000 ~ 10,000 FN". */
+export const spanText = (s: Pick<ManagedSignature, "price" | "rangeMin">) =>
+  s.rangeMin === null ? `${s.price.toLocaleString("ko-KR")} FN` : `${s.rangeMin.toLocaleString("ko-KR")} ~ ${s.price.toLocaleString("ko-KR")} FN`;
 
 /** Preset images; creators can also pick a library image (`/api/media/[id]`). */
 export const SIGNATURE_IMAGE_PRESETS = Array.from({ length: 8 }, (_, i) => `/mock/room/signatures/sig-${i + 1}.png`);

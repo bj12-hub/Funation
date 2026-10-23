@@ -28,6 +28,7 @@ import {
 } from "./crewTypes";
 import { battleGroups, battleRulesOf, fanNotesView, gradeMultipliersOf, excelOf, liveBroadcastOf, scoreboardRows, scoredFeed, stealRecordView, stealRulesOf, timesMultiplier, windowReceived, windowScores, windowSteals } from "./crewCore";
 import { prizeBoardLive, prizeSettingsOf } from "./crewPrizeCore";
+import { sigCountLive, sigCountSettingsOf, sigCountSignatures } from "./crewSigCountCore";
 import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 /**
@@ -79,6 +80,7 @@ function liveView(b: MockBroadcast): BroadcastLive {
     showRankUp: !!b.showRankUp,
     fanNotes: fanNotesView(b),
     prizeBoard: prizeBoardLive(b, rows),
+    sigCount: sigCountLive(b),
     serverNow: new Date().toISOString()
   };
 }
@@ -184,6 +186,8 @@ export async function getBroadcastView(): Promise<BroadcastView | null> {
     battleRules: { ...battleRulesOf(STUDIO_CHANNEL) },
     scenario: structuredClone(mockCrew.scenario?.[STUDIO_CHANNEL] ?? []),
     prizeSettings: structuredClone(prizeSettingsOf(STUDIO_CHANNEL)),
+    sigCountSettings: structuredClone(sigCountSettingsOf(STUDIO_CHANNEL)),
+    signatures: sigCountSignatures(),
     projects: [...new Set(broadcasts().filter((b) => b.channelId === STUDIO_CHANNEL && b.project).map((b) => b.project as string))],
     history: broadcasts()
       .filter((b) => b.channelId === STUDIO_CHANNEL && b.endedAt)

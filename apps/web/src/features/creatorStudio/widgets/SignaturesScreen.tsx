@@ -4,9 +4,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { formatNumber } from "@/lib/format";
-import { deleteSignature, moveSignature, saveSignature } from "@/services/donations/signatures";
+import { deleteSignature, moveSignature, saveSignature, setSignatureGroupActive } from "@/services/donations/signatures";
 import { pairOf, type Asset } from "@/services/creator/assetTypes";
-import { SIGNATURE_IMAGE_PRESETS, SIGNATURE_LIMITS, type ManagedSignature, type SignatureMatch, type SignatureResult } from "@/services/donations/signatureTypes";
+import {
+  DEFAULT_SIGNATURE_GROUP,
+  SIGNATURE_IMAGE_PRESETS,
+  SIGNATURE_LIMITS,
+  spanText,
+  type ManagedSignature,
+  type SignatureMatch,
+  type SignatureResult
+} from "@/services/donations/signatureTypes";
 import styles from "../crew/crew.module.css";
 import { BulkSignatures } from "./BulkSignatures";
 import local from "./signatures.module.css";
@@ -14,7 +22,7 @@ import local from "./signatures.module.css";
 type Draft = Omit<ManagedSignature, "id"> & { id: string | null };
 
 const MATCH_LABEL: Record<SignatureMatch, string> = { SELECT: "선택 시에만", AMOUNT: "선택 + 금액 일치" };
-const blank = (): Draft => ({ id: null, name: "", price: 10_000, imageUrl: SIGNATURE_IMAGE_PRESETS[0], soundUrl: null, match: "SELECT", active: true });
+const blank = (group: string): Draft => ({ id: null, name: "", price: 10_000, imageUrl: SIGNATURE_IMAGE_PRESETS[0], soundUrl: null, match: "SELECT", active: true, rangeMin: null, group });
 
 /**
  * 시그니처 후원 관리 — code-first (no Figma frame). Route `/creator/widgets/signatures`.
@@ -34,6 +42,11 @@ export function SignaturesScreen({ items, library, startBulk = false }: { items:
   const [note, setNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
   const requestId = useRef<string | null>(null);
+  /** 그룹 필터 (2026-10-23): null = 전체. */
+  const [groupFilter, setGroupFilter] = useState<string | null>(null);
+  const groups = [...new Set(items.map((s) => s.group))];
+  const filter = groupFilter !== null && groups.includes(groupFilter) ? groupFilter : null;
+  const shown = filter === null ? items : items.filter((s) => s.group === filter);
 
   const run = (action: () => Promise<SignatureResult>, ok: string, after?: () => void) => {
     setNote(null);
@@ -55,7 +68,7 @@ export function SignaturesScreen({ items, library, startBulk = false }: { items:
     requestId.current = null;
     setAutoSound(false);
     setBulk(false);
-    setDraft(blank());
+    setDraft(blank(filter ?? DEFAULT_SIGNATURE_GROUP));
   };
   const openBulk = () => {
     setDraft(null);
@@ -111,21 +124,48 @@ export function SignaturesScreen({ items, library, startBulk = false }: { items:
           </div>
         </div>
         <p className={styles.note}>
-          <strong>금액 일치</strong>로 두면 일반 후원 금액이 시그니처 가격과 같을 때도 그 시그니처로 알림이 떠요. 위에서부터 방송 방에 보이는 순서예요.
+          <strong>금액 일치</strong>로 두면 일반 후원 금액이 시그니처 가격과 같을 때(금액범위를 정하면 그 범위 안일 때)도 그 시그니처로 알림이 떠요. 위에서부터 방송 방에 보이는 순서예요.
         </p>
+        {groups.length > 0 && (
+          <div className={local.groups} role="group" aria-label="그룹">
+            <span className={styles.segment}>
+              <button type="button" aria-pressed={filter === null} onClick={() => setGroupFilter(null)}>
+                전체 {items.length}
+              </button>
+              {groups.map((g) => (
+                <button key={g} type="button" aria-pressed={filter === g} onClick={() => setGroupFilter(g)}>
+                  {g} {items.filter((s) => s.group === g).length}
+                </button>
+              ))}
+            </span>
+            {filter !== null && (
+              <span className={styles.rowActions}>
+                <button type="button" className={styles.ghost} disabled={pending || shown.every((s) => s.active)} onClick={() => run(() => setSignatureGroupActive({ group: filter, active: true }), `'${filter}' 그룹을 모두 보이게 했어요.`)}>
+                  그룹 모두 사용
+                </button>
+                <button type="button" className={styles.ghost} disabled={pending || shown.every((s) => !s.active)} onClick={() => run(() => setSignatureGroupActive({ group: filter, active: false }), `'${filter}' 그룹을 모두 숨겼어요.`)}>
+                  그룹 모두 숨기기
+                </button>
+              </span>
+            )}
+          </div>
+        )}
         {items.length === 0 ? (
           <p className={styles.empty}>아직 시그니처가 없어요. 첫 시그니처를 추가해 보세요.</p>
         ) : (
           <ul className={styles.list}>
-            {items.map((s, i) => (
+            {shown.map((s) => {
+              const i = items.indexOf(s);
+              return (
               <li key={s.id} className={styles.row} data-inactive={s.active ? undefined : ""}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img className={local.thumb} src={s.imageUrl} alt="" />
                 <div className={styles.rowMain}>
                   <span className={styles.rowTitle}>{s.name}</span>
                   <span className={styles.muted}>
-                    {formatNumber(s.price)} FN · {MATCH_LABEL[s.match]}
+                    {s.match === "AMOUNT" ? spanText(s) : `${formatNumber(s.price)} FN`} · {MATCH_LABEL[s.match]}
                     {soundName(s.soundUrl) && ` · 🔊 ${soundName(s.soundUrl)}`}
+                    {groups.length > 1 && ` · ${s.group}`}
                   </span>
                 </div>
                 <span className={s.active ? styles.chip : styles.chipOff}>{s.active ? "사용" : "숨김"}</span>
@@ -164,7 +204,8 @@ export function SignaturesScreen({ items, library, startBulk = false }: { items:
                   </button>
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
       </section>
@@ -216,11 +257,39 @@ export function SignaturesScreen({ items, library, startBulk = false }: { items:
                 ))}
               </select>
             </label>
+            {draft.match === "AMOUNT" && (
+              <label className={local.field}>
+                <span>금액범위 시작 (선택)</span>
+                <input
+                  className={styles.input}
+                  type="number"
+                  min={SIGNATURE_LIMITS.priceMin}
+                  max={Math.max(SIGNATURE_LIMITS.priceMin, draft.price - 1)}
+                  placeholder="비우면 가격과 같은 금액만"
+                  value={draft.rangeMin ?? ""}
+                  onChange={(e) => setDraft({ ...draft, rangeMin: e.target.value === "" ? null : Math.floor(Number(e.target.value) || 0) })}
+                />
+              </label>
+            )}
+            <label className={local.field}>
+              <span>그룹</span>
+              <input className={styles.input} list="sig-groups" maxLength={SIGNATURE_LIMITS.groupMax} placeholder={DEFAULT_SIGNATURE_GROUP} value={draft.group} onChange={(e) => setDraft({ ...draft, group: e.target.value })} />
+              <datalist id="sig-groups">
+                {groups.map((g) => (
+                  <option key={g} value={g} />
+                ))}
+              </datalist>
+            </label>
             <label className={styles.checkRow}>
               <input type="checkbox" checked={draft.active} onChange={(e) => setDraft({ ...draft, active: e.target.checked })} />
               방송 방에 표시
             </label>
           </div>
+          {draft.match === "AMOUNT" && draft.rangeMin !== null && draft.rangeMin < draft.price && (
+            <p className={styles.note}>
+              {formatNumber(draft.rangeMin)} ~ {formatNumber(draft.price)} FN 일반 후원이 이 시그니처로 떠요. 가격과 정확히 같은 다른 시그니처가 있거나 범위가 겹치면 저장되지 않아요.
+            </p>
+          )}
           <div className={local.images} role="radiogroup" aria-label="이미지">
             {[...SIGNATURE_IMAGE_PRESETS, ...images.map((a) => a.url)].map((src, i) => (
               <button key={src} type="button" role="radio" aria-checked={draft.imageUrl === src} aria-label={`이미지 ${i + 1}`} className={local.image} onClick={() => pickImage(src)}>
