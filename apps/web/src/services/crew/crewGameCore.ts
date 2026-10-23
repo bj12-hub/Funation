@@ -146,7 +146,7 @@ export function gameRunView(b: MockBroadcast, r: StoredRun): GameRunView {
     showAt: r.showAt,
     revealAt: r.revealAt,
     memberId: r.memberId,
-    memberName: m?.name ?? "삭제된 멤버",
+    memberName: r.memberId ? (m?.name ?? "삭제된 멤버") : "",
     memberColor: m?.color ?? null,
     // The signature id stays on the server.
     trigger: r.trigger.kind === "SIGNATURE" ? { kind: "SIGNATURE", signatureName: r.trigger.signatureName } : r.trigger,

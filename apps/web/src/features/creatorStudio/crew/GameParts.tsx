@@ -59,11 +59,15 @@ export function TitleField({ name, placeholder, value, onChange }: { name: strin
   );
 }
 
-/** 자동 (+ the signatures it skips — pressed = 제외) and whether OBS shows the game between runs. `copy`: a game's own wording. */
+/**
+ * 자동 (+ the signatures it skips — pressed = 제외) and whether OBS shows the game between runs. `copy`: a game's own wording;
+ * `withExcluded` false hides 제외 (a game with its own signature list).
+ */
 export function AutoFields({
   name,
   verb,
   copy,
+  withExcluded = true,
   auto,
   excluded,
   showIdle,
@@ -74,6 +78,7 @@ export function AutoFields({
   /** "돌리기" · "굴리기" */
   verb: string;
   copy?: { auto: string; excluded: string; note: string };
+  withExcluded?: boolean;
   auto: boolean;
   excluded: string[];
   showIdle: boolean;
@@ -87,7 +92,7 @@ export function AutoFields({
           <input type="checkbox" checked={auto} onChange={(e) => onChange({ auto: e.target.checked })} />
           {copy?.auto ?? `멤버에게 시그니처 후원이 들어오면 자동으로 ${verb}`}
         </label>
-        {auto && (
+        {auto && withExcluded && (
           <>
             <span className={styles.muted}>{copy?.excluded ?? "자동으로 하지 않을 시그니처 (누르면 제외)"}</span>
             <span className={prize.chips}>
@@ -226,7 +231,7 @@ export function RunList({ name, runs, now }: { name: string; runs: GameRunView[]
             </span>
             <span className={styles.boardName}>
               {r.memberColor && <span className={styles.dot} style={{ background: r.memberColor }} aria-hidden="true" />}
-              {r.memberName}
+              {r.memberName || <span className={styles.muted}>멤버 없음</span>}
             </span>
             {shown ? (
               <span className={games.result}>

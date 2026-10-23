@@ -102,7 +102,12 @@ export function GameCard({
               <span className={`${ov.label} ${styles.who}`}>
                 {run.memberColor && <i className={board.dot} style={{ background: run.memberColor }} aria-hidden="true" />} {run.memberName}
                 {run.trigger.kind === "SIGNATURE" && <span className={ov.muted}> · {run.trigger.signatureName}</span>}
-                {run.trigger.kind === "AMOUNT" && <span className={ov.muted}> · {formatNumber(run.trigger.amount)} FN 랜덤시그</span>}
+                {run.trigger.kind === "AMOUNT" && (
+                  <span className={ov.muted}>
+                    {run.memberName ? " · " : ""}
+                    {formatNumber(run.trigger.amount)} FN {run.game === "MEDLEY" ? "메들리" : "랜덤시그"}
+                  </span>
+                )}
               </span>
               {shown ? (
                 <>

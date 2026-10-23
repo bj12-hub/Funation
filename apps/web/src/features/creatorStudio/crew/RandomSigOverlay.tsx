@@ -16,8 +16,11 @@ export function randomSigLine(r: GameRunView) {
   return r.value > 1 ? `×${r.value} · ${signedPoints(r.points)}` : "×1 · 발동 금액보다 낮은 시그";
 }
 
-/** While rolling, flips through the tier's signature images (looks only — the server drew the signature); then the drawn one. */
-function SigStage({ pool, run, rolling }: { pool: Pool; run: GameRunView; rolling: boolean }) {
+/**
+ * While rolling, flips through the signature images in the run's range (all of `pool` without one) — looks only, the server
+ * drew the signature; then the drawn one. Shared by 랜덤시그 and 메들리.
+ */
+export function SigStage({ pool, run, rolling }: { pool: Pool; run: GameRunView; rolling: boolean }) {
   const [i, setI] = useState(0);
   const [min, max] = run.range ?? [0, Infinity];
   const inRange = pool.filter((s) => s.price >= min && s.price <= max);
