@@ -4,14 +4,22 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { overlayKeyOpen } from "@/services/account/creatorAccess";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
-import { memberRanking } from "@/services/crew/crewCore";
-import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
+import { liveBroadcastOf, scoreboardRows } from "@/services/crew/crewCore";
+import { STUDIO_CHANNEL, mockCrew } from "@/services/crew/mockCrewStore";
 import {
   BINGO_CELL_MAX,
   BINGO_SIZES,
   BINGO_TITLE_MAX,
+  CREDITS_DURATION_MAX,
+  CREDITS_DURATION_MIN,
   CREDITS_LINES_MAX,
   CREDITS_LINE_MAX,
+  CREDITS_LIST_MAX,
+  CREDITS_PERIODS,
+  CREDITS_SECTIONS,
+  CREDITS_SECTION_TITLE_MAX,
+  CREDITS_STYLES,
+  DEFAULT_CREDITS,
   MARQUEE_LINES_MAX,
   MARQUEE_LINE_MAX,
   SUBTITLE_MAX,
@@ -21,13 +29,16 @@ import {
   isToolKey,
   type BingoSize,
   type BingoState,
+  type CreditsData,
+  type CreditsState,
   type OverlayTool,
   type TimerAction,
   type ToolResult,
   type ToolStates,
   type ToolsView
 } from "./broadcastToolTypes";
-import { overlaySignal } from "./alertCore";
+import { mockAlerts, overlaySignal } from "./alertCore";
+import { donorRanking, rankingSince, totalBetween } from "./widgetOverlayCore";
 import { overlayTheme, readAppearance } from "./overlayThemeStore";
 import { isOverlayThemeChoice, type OverlayThemeChoice } from "./overlayThemeTypes";
 import { mockCreator } from "./mockCreatorStore";
@@ -48,11 +59,17 @@ const tools = (g.__ssumnationMockToolsV2 ??= {
   subtitle: { text: "", size: "M" },
   marquee: { lines: ["오늘도 방송에 와 주셔서 감사합니다!"], speed: "NORMAL" },
   timer: { mode: "COUNTDOWN", durationSec: 600, startedAt: null, elapsedBeforeSec: 0 },
-  credits: { title: "오늘의 방송을 함께해 주신 분들", thanks: ["시청해 주신 모든 분들 감사합니다"], includeCrew: true, rollingSince: null },
+  credits: { ...structuredClone(DEFAULT_CREDITS), rollingSince: null },
   bingo: sampleBingo()
 });
 // 빙고 was added on 2026-10-06; dev stores from before start with the sample board.
 tools.bingo ??= sampleBingo();
+// Credits saved before the sections (2026-10-23) keep their title, thanks and roll; 크루 순위 포함 becomes 멤버별.
+if (!("sections" in tools.credits)) {
+  const old = tools.credits as { title: string; thanks: string[]; includeCrew?: boolean; rollingSince: string | null };
+  tools.credits = { ...structuredClone(DEFAULT_CREDITS), title: old.title, thanks: old.thanks, rollingSince: old.rollingSince };
+  tools.credits.sections.members.on = old.includeCrew !== false;
+}
 
 /** 방송 도구 테마 (2026-10-08): one 오버레이 테마 choice for all tool overlays. */
 const gt = globalThis as typeof globalThis & { __ssumnationMockToolThemeV1?: { theme: OverlayThemeChoice } };
@@ -65,13 +82,59 @@ function sampleBingo(): BingoState {
 }
 
 const bad = (s: string) => MOCK_FORBIDDEN_WORDS.some((w) => s.toLowerCase().includes(w));
-const crewTop = () => memberRanking(STUDIO_CHANNEL).map((r) => ({ name: r.name, score: r.totalFn }));
+
+/**
+ * The credits' numbers for its period (see CreditsData). Lists are cut to what the sections show: donors to TOP 3 + 후원
+ * 순위, members to 멤버별 (MVP is the first member either way).
+ */
+function creditsData(s: CreditsState, now = new Date()): CreditsData {
+  const items = mockAlerts.items;
+  const crew = mockCrew.crews[STUDIO_CHANNEL] ?? [];
+  let from: number;
+  let to = now.getTime();
+  let periodLabel = "오늘";
+  let members: { name: string; score: number }[];
+  if (s.period === "CREW") {
+    const ofChannel = (mockCrew.broadcasts ?? []).filter((b) => b.channelId === STUDIO_CHANNEL);
+    const b = liveBroadcastOf(STUDIO_CHANNEL) ?? [...ofChannel].filter((x) => x.endedAt).sort((x, y) => y.startedAt.localeCompare(x.startedAt))[0];
+    if (!b) return { periodLabel: "크루 방송 없음", empty: true, total: 0, donors: [], members: [], memberUnit: "점", mvp: null };
+    from = Date.parse(b.startedAt);
+    if (b.endedAt) to = Date.parse(b.endedAt);
+    periodLabel = b.project ? `${b.title} · ${b.project} ${b.round}회차` : b.title;
+    // An ended broadcast keeps the ranking frozen at its end (members may be renamed or removed since).
+    members = (b.final ?? scoreboardRows(b)).map((r) => ({ name: r.name, score: r.score }));
+  } else {
+    // Today in the service's time (Asia/Seoul), as the 후원랭킹 widget's 일간.
+    from = rankingSince("일간", now);
+    const sent = new Map<string, number>();
+    for (const a of mockCrew.attributions) {
+      const t = Date.parse(a.at);
+      if (a.channelId === STUDIO_CHANNEL && t >= from && t <= to) sent.set(a.memberId, (sent.get(a.memberId) ?? 0) + a.fnAmount);
+    }
+    members = crew
+      .filter((m) => m.active || sent.has(m.id))
+      .map((m) => ({ name: m.name, score: sent.get(m.id) ?? 0 }))
+      .sort((x, y) => y.score - x.score || x.name.localeCompare(y.name));
+  }
+  const { top3, donors, members: memberSection } = s.sections;
+  const donorRows = donorRanking(items, from, to).slice(0, (top3.on ? 3 : 0) + (donors.on ? donors.max : 0));
+  const first = members[0];
+  return {
+    periodLabel,
+    empty: false,
+    total: totalBetween(items, from, to),
+    donors: donorRows,
+    members: members.slice(0, memberSection.max).map((m, i) => ({ rank: i + 1, ...m })),
+    memberUnit: s.period === "CREW" ? "점" : "FN",
+    mvp: first && first.score > 0 ? { ...first } : null
+  };
+}
 
 export async function getToolsView(): Promise<ToolsView | null> {
   assertMock();
   if (!(await getCreatorSession())) return null;
   await mockDelay(150);
-  return { states: structuredClone(tools), overlayBase: `/overlay/tool`, crew: crewTop(), theme: toolLook().theme, appearance: readAppearance() };
+  return { states: structuredClone(tools), overlayBase: `/overlay/tool`, credits: creditsData(tools.credits), theme: toolLook().theme, appearance: readAppearance() };
 }
 
 /** 방송 도구 테마: applies to every tool overlay on its next read. */
@@ -183,20 +246,43 @@ export async function controlCredits(action: unknown): Promise<ToolResult> {
   return { status: "SAVED" };
 }
 
+/**
+ * 엔딩 크레딧 저장: 제목 · 감사 문구, 연출 방식 · 스크롤 시간 · 집계 기간 and each section's on/off · title (blank = the
+ * default) · rows. A roll in progress keeps going with the new settings.
+ */
 export async function saveCredits(input: unknown): Promise<ToolResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
-  const v = (typeof input === "object" && input !== null ? input : {}) as { title?: unknown; thanks?: unknown; includeCrew?: unknown };
+  const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   const title = typeof v.title === "string" ? v.title.trim() : "";
   const thanks = Array.isArray(v.thanks) ? v.thanks.map((l) => (typeof l === "string" ? l.trim() : "")).filter(Boolean) : null;
   if (!title || title.length > CREDITS_LINE_MAX) return { status: "INVALID", message: `제목을 1~${CREDITS_LINE_MAX}자로 입력해 주세요.` };
   if (!thanks || thanks.length > CREDITS_LINES_MAX || thanks.some((l) => l.length > CREDITS_LINE_MAX)) {
     return { status: "INVALID", message: `감사 문구는 ${CREDITS_LINES_MAX}줄, 줄마다 ${CREDITS_LINE_MAX}자까지예요.` };
   }
-  if (bad(title) || thanks.some(bad)) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
-  if (typeof v.includeCrew !== "boolean") return { status: "INVALID", message: "설정을 확인해 주세요." };
+  const style = CREDITS_STYLES.find((x) => x.key === v.style)?.key;
+  if (!style) return { status: "INVALID", message: "연출 방식을 골라 주세요." };
+  const d = v.durationSec;
+  if (typeof d !== "number" || !Number.isInteger(d) || d < CREDITS_DURATION_MIN || d > CREDITS_DURATION_MAX) {
+    return { status: "INVALID", message: `스크롤 시간은 ${CREDITS_DURATION_MIN}~${CREDITS_DURATION_MAX}초예요.` };
+  }
+  const period = CREDITS_PERIODS.find((x) => x.key === v.period)?.key;
+  if (!period) return { status: "INVALID", message: "집계 기간을 골라 주세요." };
+  const raw = (typeof v.sections === "object" && v.sections !== null ? v.sections : {}) as Record<string, unknown>;
+  const sections = {} as CreditsState["sections"];
+  for (const meta of CREDITS_SECTIONS) {
+    const x = (typeof raw[meta.key] === "object" && raw[meta.key] !== null ? raw[meta.key] : {}) as Record<string, unknown>;
+    const name = typeof x.title === "string" ? x.title.trim() : "";
+    if (typeof x.on !== "boolean") return { status: "INVALID", message: "섹션 설정을 확인해 주세요." };
+    if (name.length > CREDITS_SECTION_TITLE_MAX) return { status: "INVALID", message: `섹션 제목은 ${CREDITS_SECTION_TITLE_MAX}자 이내로 입력해 주세요.` };
+    const max = meta.list ? x.max : DEFAULT_CREDITS.sections[meta.key].max;
+    if (typeof max !== "number" || !Number.isInteger(max) || max < 1 || max > CREDITS_LIST_MAX) return { status: "INVALID", message: `표시 인원은 1~${CREDITS_LIST_MAX}명이에요.` };
+    sections[meta.key] = { on: x.on, title: name, max };
+  }
+  const shown = [title, ...thanks, ...Object.values(sections).map((x) => x.title)];
+  if (shown.some(bad)) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
   await mockDelay(150);
-  tools.credits = { title, thanks, includeCrew: v.includeCrew, rollingSince: tools.credits.rollingSince };
+  tools.credits = { title, thanks, style, durationSec: d, period, sections, rollingSince: tools.credits.rollingSince };
   return { status: "SAVED" };
 }
 
@@ -276,7 +362,7 @@ export async function getOverlayTool(tool: unknown, key: unknown): Promise<Overl
     case "timer":
       return { tool, state: { ...tools.timer }, serverNow: new Date().toISOString(), ...signal };
     case "credits":
-      return { tool, state: { ...tools.credits, thanks: [...tools.credits.thanks] }, crew: tools.credits.includeCrew ? crewTop() : [], ...signal };
+      return { tool, state: structuredClone(tools.credits), data: creditsData(tools.credits), ...signal };
     case "bingo":
       return { tool, state: structuredClone(tools.bingo), ...signal };
   }

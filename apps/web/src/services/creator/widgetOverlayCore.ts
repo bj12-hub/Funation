@@ -90,23 +90,30 @@ export function rankingSince(period: RankingSettings["period"], now = new Date()
  * alert (TBD).
  */
 export function rankingRows(items: AlertItem[], s: RankingSettings, now = new Date()): WidgetRankRow[] {
-  const since = rankingSince(s.period, now);
+  return donorRanking(items, rankingSince(s.period, now), Infinity).slice(0, s.ranks);
+}
+
+/**
+ * Every donor between `from` and `to` (ms, inclusive) by FN, best first — the 후원랭킹 rules above (익명 and names the
+ * 대체 메시지 rules replaced are left out). The 엔딩 크레딧 reads its 후원자 TOP 3 · 후원 순위 from it (2026-10-23).
+ */
+export function donorRanking(items: AlertItem[], from: number, to: number): WidgetRankRow[] {
   const totals = new Map<string, { name: string; fn: number; first: number }>();
   for (const a of countedDonations(items)) {
     const t = countedAt(a);
     const key = a.donorKey === undefined ? (a.donor === HIDDEN_PROFILE_LABEL ? null : `name:${a.donor}`) : a.donorKey;
     // A replaced name is out whatever it shows; the 익명 check also covers keyed alerts stored before `nameReplaced`.
-    if (t < since || key === null || a.nameReplaced || a.donor === HIDDEN_PROFILE_LABEL) continue;
+    if (t < from || t > to || key === null || a.nameReplaced || a.donor === HIDDEN_PROFILE_LABEL) continue;
     const cur = totals.get(key) ?? { name: a.donor, fn: 0, first: t };
     cur.fn += a.fnAmount;
     cur.name = a.donor;
     totals.set(key, cur);
   }
-  return [...totals.values()]
-    .sort((x, y) => y.fn - x.fn || x.first - y.first)
-    .slice(0, s.ranks)
-    .map((v, i) => ({ rank: i + 1, name: v.name, fnAmount: v.fn }));
+  return [...totals.values()].sort((x, y) => y.fn - x.fn || x.first - y.first).map((v, i) => ({ rank: i + 1, name: v.name, fnAmount: v.fn }));
 }
+
+/** Completed Ssumnation donations between `from` and `to` (ms, inclusive), in FN — 익명 included (no name is shown). */
+export const totalBetween = (items: AlertItem[], from: number, to: number) => sumBetween(items, from, to);
 
 /**
  * 크루 후원 순위: crew members by FN donated for them (멤버 지정) in the period; members with nothing are left out. Rows are
