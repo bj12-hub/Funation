@@ -240,6 +240,7 @@ export type BroadcastLive = {
   twoWheel: TwoWheelLive;
   randomSig: RandomSigLive;
   relay: RelayLive;
+  jupjup: JupjupLive;
   /** Server clock when this view was read: timers (시나리오 경과, 강탈 card) correct the browser's clock with it. */
   serverNow: string;
 };
@@ -360,14 +361,15 @@ export type SigCountLive = {
 // ── 점수 게임 (P2) — code-first, StreamDonate 참고 (docs/research/streamdonate-reference.md) ─────────────────────
 // A game draws its result on the server; the result is display points only (FN · 지갑 · 수익 · 정산 never move).
 
-/** Games on the shared engine (crewGameCore). 줍줍 … comes later. `param`: the OBS view (`?spin`). */
-export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL" | "RANDOM_SIG" | "RELAY";
+/** Games on the shared engine (crewGameCore). `param`: the OBS view (`?spin`). */
+export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL" | "RANDOM_SIG" | "RELAY" | "JUPJUP";
 export const GAMES: { key: GameKey; label: string; param: string }[] = [
   { key: "SPIN", label: "스핀머신", param: "spin" },
   { key: "DICE", label: "주사위 게임", param: "dice" },
   { key: "TWO_WHEEL", label: "투휠 게임", param: "twowheel" },
   { key: "RANDOM_SIG", label: "랜덤시그", param: "randomsig" },
-  { key: "RELAY", label: "기여도 릴레이", param: "relay" }
+  { key: "RELAY", label: "기여도 릴레이", param: "relay" },
+  { key: "JUPJUP", label: "줍줍", param: "jupjup" }
 ];
 
 /**
@@ -380,7 +382,8 @@ export const GAME_TIMING: Record<GameKey, { playSec: number; resultSec: number }
   DICE: { playSec: 3, resultSec: 4 },
   TWO_WHEEL: { playSec: 4, resultSec: 4 },
   RANDOM_SIG: { playSec: 2, resultSec: 4 },
-  RELAY: { playSec: 2, resultSec: 4 }
+  RELAY: { playSec: 2, resultSec: 4 },
+  JUPJUP: { playSec: 2, resultSec: 4 }
 };
 /** Runs a game lists (studio) and queues (OBS), newest first. */
 export const GAME_RUNS_SHOWN = 30;
@@ -503,21 +506,50 @@ export const DEFAULT_RANDOM_SIG: RandomSigSettings = { title: "", auto: false, e
 // 기여도 릴레이 — StreamDonate 기여도 릴레이: a 시그니처 후원 the 트리거 BJ receives sets a 배수 by its amount; the next
 // 시그니처 후원 another member receives takes it.
 export const RELAY_TITLE_DEFAULT = "기여도 릴레이";
-export const RELAY_TIERS_MAX = 10;
-export const RELAY_MULTIPLIER_MAX = 10;
+export const AMOUNT_TIERS_MAX = 10;
+export const AMOUNT_TIER_MULTIPLIER_MAX = 10;
+export const RELAY_TIERS_MAX = AMOUNT_TIERS_MAX;
+export const RELAY_MULTIPLIER_MAX = AMOUNT_TIER_MULTIPLIER_MAX;
 
-/** A 금액 구간: a 트리거 후원 of `min` FN or more (up to `max`, null = no upper end) sets ×`multiplier`. */
-export type RelayTier = { id: string; min: number; max: number | null; multiplier: number };
+/** A 금액 구간 (기여도 릴레이 · 줍줍 배수 모드): a 시그니처 후원 of `min` FN or more (up to `max`, null = no upper end) → ×`multiplier`. */
+export type AmountTier = { id: string; min: number; max: number | null; multiplier: number };
+export type RelayTier = AmountTier;
 
 /** `auto` = 릴레이 켜짐; `memberId` = 트리거 BJ; `tiers` are matched top-down (the first wins, none = no effect). */
 export type RelaySettings = GameCommon & { memberId: string | null; tiers: RelayTier[] };
 export const DEFAULT_RELAY: RelaySettings = { title: "", auto: false, excluded: [], showIdle: true, memberId: null, tiers: [] };
 
-/** 예시 구간 — StreamDonate 기본값 as it is (its amounts are 원; set FN ranges that fit the channel's signatures). */
-export const RELAY_EXAMPLE_TIERS: Omit<RelayTier, "id">[] = Array.from({ length: 9 }, (_, i) => ({ min: i * 50_000, max: i * 50_000 + 49_999, multiplier: i + 2 }));
+/** 예시 구간 — StreamDonate 기여도 릴레이 기본값 as it is (its amounts are 원; set FN ranges that fit the channel's signatures). */
+export const RELAY_EXAMPLE_TIERS: Omit<AmountTier, "id">[] = Array.from({ length: 9 }, (_, i) => ({ min: i * 50_000, max: i * 50_000 + 49_999, multiplier: i + 2 }));
 
 /** The first 구간 an amount falls in, if any. */
-export const relayTierFor = (tiers: RelayTier[], amount: number) => tiers.find((t) => amount >= t.min && (t.max === null || amount <= t.max)) ?? null;
+export const amountTierFor = (tiers: AmountTier[], amount: number) => tiers.find((t) => amount >= t.min && (t.max === null || amount <= t.max)) ?? null;
+export const relayTierFor = amountTierFor;
+
+// 줍줍 — StreamDonate 줍줍: the 지정 BJ's 시그니처 후원 pile up on a stack; another member who receives one of the same
+// amount takes the oldest and gets points once more.
+export const JUPJUP_TITLE_DEFAULT = "줍줍";
+/** Stack items listed (studio · OBS), oldest first. */
+export const JUPJUP_STACK_SHOWN = 30;
+
+/**
+ * ADD (더하기 모드): the taker gets the donation's points once more. MULTIPLY (배수 모드): × the 금액 구간's 배수
+ * ((배수 − 1) × the points; no 구간 = 1배). SPIN (스핀머신 연계): × the 스핀머신 배수 the same donation drew, else 1 — a spin
+ * ×3 makes 1 (후원) + 2 (스핀) + 3 (줍줍) = 6배.
+ */
+export type JupjupMode = "ADD" | "MULTIPLY" | "SPIN";
+export const JUPJUP_MODES: { key: JupjupMode; label: string; note: string }[] = [
+  { key: "ADD", label: "더하기 모드", note: "가져간 멤버에게 그 후원 점수만큼 한 번 더 줘요." },
+  { key: "MULTIPLY", label: "배수 모드", note: "금액 구간의 배수를 적용해요 — 가져간 멤버에게 (배수 − 1)배를 더해요." },
+  { key: "SPIN", label: "스핀머신 연계", note: "같은 후원에 스핀머신 배수가 나오면 그 배수만큼, 아니면 1배만큼 더해요 (스핀 ×3 → 후원 1 + 스핀 2 + 줍줍 3 = 6배)." }
+];
+
+/** `auto` = 줍줍 켜짐; `memberIds` = 지정 BJ (their 시그니처 후원 pile up; they never take from the stack). */
+export type JupjupSettings = GameCommon & { memberIds: string[]; mode: JupjupMode; tiers: AmountTier[] };
+export const DEFAULT_JUPJUP: JupjupSettings = { title: "", auto: false, excluded: [], showIdle: true, memberIds: [], mode: "ADD", tiers: [] };
+
+/** A stacked 시그니처 후원 waiting for another member's one of the same amount. `manual`: added by the operator (수동 추가). */
+export type JupjupStackItem = { id: string; at: string; memberName: string; memberColor: string | null; signatureName: string; amount: number; manual: boolean };
 
 /** What started a run: a 시그니처 후원 to the member (자동), a 랜덤시그 발동 금액 (자동), or the operator (수동). */
 export type GameTrigger = { kind: "SIGNATURE"; signatureName: string } | { kind: "AMOUNT"; amount: number } | { kind: "MANUAL" };
@@ -546,7 +578,7 @@ export type GameRunView = {
   dice: [number, number] | null;
   wheel: { op: "ADD" | "MULTIPLY"; n: number } | null;
   range: [number, number] | null;
-  /** 기여도 릴레이: the 트리거 후원 the 배수 came from. */
+  /** 기여도 릴레이: the 트리거 후원 the 배수 came from. 줍줍: the stacked 후원 that was taken. */
   from: { memberName: string; amount: number } | null;
 };
 
@@ -557,6 +589,8 @@ export type SpinLive = { settings: SpinSettings; runs: GameRunView[]; tally: Spi
 export type DiceLive = { settings: DiceSettings; runs: GameRunView[] };
 export type TwoWheelLive = { settings: TwoWheelSettings; runs: GameRunView[] };
 /** `pool`: the signatures a 랜덤시그 can draw (active, not excluded) — the OBS rolling images. */
+/** `stack`: oldest first (up to JUPJUP_STACK_SHOWN of `stackCount`); `ownerNames`: the 지정 BJ. */
+export type JupjupLive = { settings: JupjupSettings; runs: GameRunView[]; stack: JupjupStackItem[]; stackCount: number; ownerNames: string[] };
 /** `pending`: the 배수 waiting for the next 시그니처 후원 (from the 트리거 BJ's last one); `triggerName`: the 트리거 BJ. */
 export type RelayLive = { settings: RelaySettings; runs: GameRunView[]; pending: { multiplier: number; amount: number; at: string } | null; triggerName: string | null };
 export type RandomSigLive = { settings: RandomSigSettings; runs: GameRunView[]; pool: { id: string; name: string; price: number; imageUrl: string }[] };
@@ -575,6 +609,7 @@ export type GamesView = {
     twoWheel: TwoWheelLive;
     randomSig: RandomSigLive;
     relay: RelayLive;
+    jupjup: JupjupLive;
     sources: Record<GameKey, Record<string, GameSource[]>>;
     serverNow: string;
   } | null;
@@ -583,6 +618,7 @@ export type GamesView = {
   twoWheelSettings: TwoWheelSettings;
   randomSigSettings: RandomSigSettings;
   relaySettings: RelaySettings;
+  jupjupSettings: JupjupSettings;
   signatures: { id: string; name: string; group: string; active: boolean; price: number; match: "SELECT" | "AMOUNT"; rangeMin: number | null }[];
   overlayPath: string;
 };

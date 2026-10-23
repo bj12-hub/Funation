@@ -37,8 +37,9 @@ describe("후원목표 자동 증량", () => {
     expect(raisedGoal(100_000, 100_000, 50_000)).toBe(150_000);
     expect(raisedGoal(100_000, 260_000, 50_000)).toBe(300_000);
     expect(raisedGoal(100_000, 260_000, 0)).toBe(100_000); // off
-    const day = new Date().toISOString().slice(0, 10);
-    const items: AlertItem[] = [{ id: "g1", kind: "DONATION", donor: "달빛", message: "", fnAmount: 120_000, typeLabel: "텍스트 후원", createdAt: new Date().toISOString(), status: "DONE" }];
+    // A fixed instant: the goal period is in Korea days (15:00 KST = 06:00 UTC, the same date in both).
+    const day = "2026-10-23";
+    const items: AlertItem[] = [{ id: "g1", kind: "DONATION", donor: "달빛", message: "", fnAmount: 120_000, typeLabel: "텍스트 후원", createdAt: "2026-10-23T06:00:00.000Z", status: "DONE" }];
     const s = { startAmount: 0, goalAmount: 100_000, from: day, to: day };
     expect(goalProgress(items, { ...s, autoRaise: 30_000 })).toMatchObject({ current: 120_000, target: 130_000, percent: 92.3 });
     expect(goalProgress(items, s)).toMatchObject({ target: 100_000, percent: 100 });
