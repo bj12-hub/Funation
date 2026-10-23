@@ -15,7 +15,7 @@ export const TOOL_CARDS: { key: ToolKey; emoji: string; title: string; descripti
   { key: "subtitle", emoji: "💬", title: "자막", description: "리모컨에서 입력한 문구를 방송 화면에 실시간으로 띄워요." },
   { key: "marquee", emoji: "📢", title: "전광판", description: "공지 문구를 화면 가로로 흘려 보여 줘요." },
   { key: "timer", emoji: "⏱️", title: "타이머", description: "카운트다운 또는 스톱워치를 화면에 표시해요." },
-  { key: "credits", emoji: "🎬", title: "엔딩 크레딧", description: "방송 마무리에 크루 순위와 감사 인사를 흘려 보여 줘요." },
+  { key: "credits", emoji: "🎬", title: "엔딩 크레딧", description: "방송 마무리에 총 후원 · MVP · 후원자 순위 · 멤버별 순위와 감사 인사를 영화 크레딧이나 스타워즈 크롤로 흘려 보여 줘요." },
   { key: "bingo", emoji: "🎯", title: "빙고", description: "칸마다 미션을 적은 빙고판을 띄우고, 해낸 칸을 눌러 표시해요. 완성한 줄 수를 함께 보여 줘요." }
 ];
 
@@ -30,8 +30,79 @@ export type SubtitleState = { text: string; size: "S" | "M" | "L" };
 export type MarqueeState = { lines: string[]; speed: "SLOW" | "NORMAL" | "FAST" };
 /** Countdown runs from `durationSec`; the stopwatch counts up. `startedAt` null = stopped/paused. */
 export type TimerState = { mode: "COUNTDOWN" | "STOPWATCH"; durationSec: number; startedAt: string | null; elapsedBeforeSec: number };
-/** `rollingSince` null = not rolling (overlay hidden); a new value restarts the roll. */
-export type CreditsState = { title: string; thanks: string[]; includeCrew: boolean; rollingSince: string | null };
+/**
+ * 엔딩 크레딧 (2026-10-23 섹션 확장, StreamDonate 엔딩 크레딧 참고 — docs/research/streamdonate-reference.md P1-3):
+ * FILM rolls the page up like a film's credits, CRAWL is the 스타워즈 크롤 (yellow text sliding away into the screen).
+ */
+export type CreditsStyle = "FILM" | "CRAWL";
+export const CREDITS_STYLES: { key: CreditsStyle; label: string }[] = [
+  { key: "FILM", label: "영화 크레딧" },
+  { key: "CRAWL", label: "스타워즈 크롤" }
+];
+/** TODAY: today (Korea time) until now. CREW: the crew broadcast on now, or the last one that ended (its start ~ end). */
+export type CreditsPeriod = "TODAY" | "CREW";
+export const CREDITS_PERIODS: { key: CreditsPeriod; label: string }[] = [
+  { key: "TODAY", label: "오늘" },
+  { key: "CREW", label: "크루 방송" }
+];
+export const CREDITS_DURATION_MIN = 15;
+export const CREDITS_DURATION_MAX = 180;
+export const CREDITS_SECTION_TITLE_MAX = 20;
+export const CREDITS_LIST_MAX = 30;
+
+/** Sections in the order they roll; `max` = how many rows a list shows. Titles left blank use the default. */
+export const CREDITS_SECTIONS = [
+  { key: "total", label: "총 후원", title: "총 후원", list: false },
+  { key: "mvp", label: "MVP", title: "MVP", list: false },
+  { key: "top3", label: "후원자 TOP 3", title: "후원자 TOP 3", list: false },
+  { key: "donors", label: "후원 순위", title: "후원 순위", list: true },
+  { key: "members", label: "멤버별", title: "멤버별 순위", list: true }
+] as const;
+export type CreditsSectionKey = (typeof CREDITS_SECTIONS)[number]["key"];
+export type CreditsSection = { on: boolean; title: string; max: number };
+
+/** `rollingSince` null = not rolling (overlay hidden); a new value restarts the roll. `thanks` roll last. */
+export type CreditsState = {
+  title: string;
+  thanks: string[];
+  style: CreditsStyle;
+  durationSec: number;
+  period: CreditsPeriod;
+  sections: Record<CreditsSectionKey, CreditsSection>;
+  rollingSince: string | null;
+};
+
+export const DEFAULT_CREDITS: Omit<CreditsState, "rollingSince"> = {
+  title: "오늘의 방송을 함께해 주신 분들",
+  thanks: ["시청해 주신 모든 분들 감사합니다"],
+  style: "FILM",
+  durationSec: 40,
+  period: "TODAY",
+  sections: {
+    total: { on: true, title: "", max: 1 },
+    mvp: { on: true, title: "", max: 1 },
+    top3: { on: true, title: "", max: 3 },
+    donors: { on: true, title: "", max: 10 },
+    members: { on: true, title: "", max: 10 }
+  }
+};
+
+/**
+ * What the credits show, computed on the server for the period. Donor names follow the 후원랭킹 rules (익명 and names
+ * the 대체 메시지 rules replaced are left out); `total` counts every completed Ssumnation donation (FN). `members`: the
+ * crew — FN sent for each member today, or the crew scoreboard's points (`unit` 점) on the CREW period. `mvp` = the
+ * first member with more than 0. `periodLabel` names the period ("오늘" · the broadcast's title); `empty` = no crew
+ * broadcast to read on the CREW period.
+ */
+export type CreditsData = {
+  periodLabel: string;
+  empty: boolean;
+  total: number;
+  donors: { rank: number; name: string; fnAmount: number }[];
+  members: { rank: number; name: string; score: number }[];
+  memberUnit: "FN" | "점";
+  mvp: { name: string; score: number } | null;
+};
 
 /**
  * 빙고 (funnation 엑셀방송 빙고, 2026-10-06 결정): a size × size board of missions the creator marks by hand.
@@ -78,7 +149,7 @@ export type ToolStates = { subtitle: SubtitleState; marquee: MarqueeState; timer
  * 방송 도구 테마 (2026-10-08 오버레이 테마): one choice for every tool overlay (전체 테마 따르기 by default); `appearance`
  * is the channel's 전체 테마 so the screen can name what 따르기 means.
  */
-export type ToolsView = { states: ToolStates; overlayBase: string; crew: { name: string; score: number }[]; theme: OverlayThemeChoice; appearance: OverlayAppearance };
+export type ToolsView = { states: ToolStates; overlayBase: string; credits: CreditsData; theme: OverlayThemeChoice; appearance: OverlayAppearance };
 
 export type TimerAction = "START" | "PAUSE" | "RESET";
 /** 퀵 조정 (seconds added to the shown time; negative subtracts). */
@@ -92,6 +163,6 @@ export type OverlayTool = (
   | { tool: "subtitle"; state: SubtitleState }
   | { tool: "marquee"; state: MarqueeState }
   | { tool: "timer"; state: TimerState; serverNow: string }
-  | { tool: "credits"; state: CreditsState; crew: { name: string; score: number }[] }
+  | { tool: "credits"; state: CreditsState; data: CreditsData }
   | { tool: "bingo"; state: BingoState }
 ) & { reloadSeq: number; on: boolean; theme: ResolvedTheme };

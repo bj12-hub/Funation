@@ -6,6 +6,22 @@ vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve(
 vi.mock("@/lib/session", () => mockSessionModule());
 
 /** 방송 도구 (code-first): creator-only remote, key-guarded overlays, server-owned timer. */
+/** A full 엔딩 크레딧 save (2026-10-23 sections) with `patch` on top. */
+const credits = (patch: Record<string, unknown> = {}) => ({
+  title: "감사합니다",
+  thanks: ["모두 고마워요"],
+  style: "FILM",
+  durationSec: 40,
+  period: "TODAY",
+  sections: {
+    total: { on: true, title: "", max: 1 },
+    mvp: { on: true, title: "", max: 1 },
+    top3: { on: true, title: "", max: 3 },
+    donors: { on: true, title: "", max: 10 },
+    members: { on: true, title: "", max: 10 }
+  },
+  ...patch
+});
 async function load() {
   const tools = await import("./broadcastTools");
   const { mockCreator } = await import("./mockCreatorStore");
@@ -54,15 +70,113 @@ describe("방송 도구", () => {
     expect((await controlTimer("REWIND")).status).toBe("INVALID");
   });
 
-  it("includes the crew ranking in the credits only when enabled", async () => {
+  it("computes the credits for today: total, donors by the 후원랭킹 rules, crew members and MVP", async () => {
+    vi.useFakeTimers({ now: new Date("2026-10-23T03:00:00Z"), toFake: ["Date"] });
+    const { saveCredits, getOverlayTool, getToolsView, overlayKey } = await load();
+    const { mockAlerts } = await import("./alertCore");
+    const now = Date.now();
+    const donation = (id: string, donor: string, fnAmount: number, extra: Record<string, unknown> = {}, at = now) =>
+      mockAlerts.items.push({ id, kind: "DONATION", donor, message: "", fnAmount, typeLabel: "일반 후원", createdAt: new Date(at).toISOString(), status: "DONE", ...extra });
+    donation("c1", "달빛", 30_000, { donorKey: "k1" });
+    donation("c2", "달빛", 5_000, { donorKey: "k1" });
+    donation("c3", "익명", 50_000, { donorKey: null }); // 프로필 숨기기: counted, never named
+    donation("c4", "대체 문구", 40_000, { donorKey: "k3", nameReplaced: true }); // 대체 메시지 rules: counted, never named
+    donation("c5", "초코", 20_000, { donorKey: "k4" });
+    donation("c6", "어제손님", 90_000, { donorKey: "k5" }, now - 86_400_000); // yesterday
+    expect(await saveCredits(credits())).toEqual({ status: "SAVED" });
+    const view = await getOverlayTool("credits", overlayKey);
+    if (view === "FORBIDDEN" || view.tool !== "credits") throw new Error("expected credits");
+    expect(view.data).toEqual({
+      periodLabel: "오늘",
+      empty: false,
+      total: 145_000,
+      donors: [
+        { rank: 1, name: "달빛", fnAmount: 35_000 },
+        { rank: 2, name: "초코", fnAmount: 20_000 }
+      ],
+      // The seed donation for 하늘 is stamped now; active members with nothing today still roll.
+      members: [
+        { rank: 1, name: "하늘", score: 8_000 },
+        { rank: 2, name: "길동", score: 0 },
+        { rank: 3, name: "바다", score: 0 }
+      ],
+      memberUnit: "FN",
+      mvp: { name: "하늘", score: 8_000 }
+    });
+    expect((await getToolsView())!.credits).toEqual(view.data);
+
+    // Lists are cut to what the sections show: TOP 3 + 후원 순위 for donors, 멤버별 for members.
+    await saveCredits(credits({ sections: { ...credits().sections, top3: { on: false, title: "", max: 3 }, donors: { on: true, title: "", max: 1 }, members: { on: true, title: "", max: 2 } } }));
+    const cut = await getOverlayTool("credits", overlayKey);
+    if (cut === "FORBIDDEN" || cut.tool !== "credits") throw new Error("expected credits");
+    expect([cut.data.donors.length, cut.data.members.length]).toEqual([1, 2]);
+  });
+
+  it("reads the crew broadcast on the 크루 방송 period: its scoreboard while live, its frozen result once ended", async () => {
+    vi.useFakeTimers({ now: new Date("2026-10-23T03:00:00Z"), toFake: ["Date"] });
     const { saveCredits, getOverlayTool, overlayKey } = await load();
-    expect(await saveCredits({ title: "감사합니다", thanks: ["모두 고마워요"], includeCrew: true })).toEqual({ status: "SAVED" });
-    const withCrew = await getOverlayTool("credits", overlayKey);
-    if (withCrew === "FORBIDDEN" || withCrew.tool !== "credits") throw new Error("expected credits");
-    expect(withCrew.crew.length).toBeGreaterThan(0);
-    await saveCredits({ title: "감사합니다", thanks: [], includeCrew: false });
-    expect(await getOverlayTool("credits", overlayKey)).toMatchObject({ crew: [] });
-    expect((await saveCredits({ title: "", thanks: [], includeCrew: false })).status).toBe("INVALID");
+    const { mockAlerts } = await import("./alertCore");
+    const bc = await import("@/services/crew/crewBroadcast");
+    const data = async () => {
+      const v = await getOverlayTool("credits", overlayKey);
+      if (v === "FORBIDDEN" || v.tool !== "credits") throw new Error("expected credits");
+      return v.data;
+    };
+    const donation = (id: string, fnAmount: number) =>
+      mockAlerts.items.push({ id, kind: "DONATION", donor: "달빛", donorKey: "k1", message: "", fnAmount, typeLabel: "일반 후원", createdAt: new Date().toISOString(), status: "DONE" });
+    expect(await saveCredits(credits({ period: "CREW" }))).toEqual({ status: "SAVED" });
+    expect(await data()).toMatchObject({ periodLabel: "크루 방송 없음", empty: true, donors: [], members: [], mvp: null });
+
+    donation("before", 70_000); // before the broadcast: not counted
+    vi.setSystemTime(new Date("2026-10-23T03:10:00Z"));
+    await bc.startBroadcast({ requestId: crypto.randomUUID(), title: "엔딩 테스트", project: "시즌1", teamMode: false });
+    const id = (await bc.getBroadcastView())!.live!.id;
+    vi.setSystemTime(new Date("2026-10-23T03:20:00Z"));
+    donation("during", 12_000);
+    await bc.adjustScore({ broadcastId: id, memberId: "cm-s3", points: 5_000, adjustmentId: crypto.randomUUID() });
+    expect(await data()).toMatchObject({
+      periodLabel: "엔딩 테스트 · 시즌1 1회차",
+      empty: false,
+      total: 12_000,
+      memberUnit: "점",
+      mvp: { name: "바다", score: 5_000 },
+      members: [
+        { rank: 1, name: "바다", score: 5_000 },
+        { rank: 2, name: "길동", score: 0 },
+        { rank: 3, name: "하늘", score: 0 }
+      ]
+    });
+
+    vi.setSystemTime(new Date("2026-10-23T03:30:00Z"));
+    await bc.endBroadcast(id);
+    vi.setSystemTime(new Date("2026-10-23T03:40:00Z"));
+    donation("after", 9_000); // after the end: not counted
+    expect(await data()).toMatchObject({ total: 12_000, mvp: { name: "바다", score: 5_000 } });
+  });
+
+  it("validates the credits settings and keeps blank section titles for the defaults", async () => {
+    const { saveCredits, getToolsView } = await load();
+    const bad: [Record<string, unknown>, string][] = [
+      [{ title: "" }, "제목"],
+      [{ style: "SLIDE" }, "연출 방식"],
+      [{ durationSec: 10 }, "스크롤 시간"],
+      [{ durationSec: 181 }, "스크롤 시간"],
+      [{ durationSec: 30.5 }, "스크롤 시간"],
+      [{ period: "WEEK" }, "집계 기간"],
+      [{ sections: { ...credits().sections, mvp: { on: "yes", title: "", max: 1 } } }, "섹션 설정"],
+      [{ sections: { ...credits().sections, total: { on: true, title: "가".repeat(21), max: 1 } } }, "20자"],
+      [{ sections: { ...credits().sections, donors: { on: true, title: "", max: 0 } } }, "1~30명"],
+      [{ sections: { ...credits().sections, members: { on: true, title: "", max: 31 } } }, "1~30명"],
+      [{ sections: { ...credits().sections, top3: { on: true, title: "운영자 픽", max: 3 } } }, "사용할 수 없는"]
+    ];
+    for (const [patch, message] of bad) {
+      const res = await saveCredits(credits(patch));
+      expect(res.status === "INVALID" && res.message, message).toContain(message);
+    }
+    expect(await saveCredits(credits({ style: "CRAWL", durationSec: 90, sections: { ...credits().sections, mvp: { on: false, title: " 오늘의 주인공 ", max: 1 } } }))).toEqual({ status: "SAVED" });
+    expect((await getToolsView())!.states.credits).toMatchObject({ style: "CRAWL", durationSec: 90, sections: { mvp: { on: false, title: "오늘의 주인공", max: 1 }, total: { title: "" } } });
+    signIn(["SUPPORTER"]);
+    expect(await saveCredits(credits())).toEqual({ status: "UNAUTHORIZED" });
   });
 
 it("퀵 조정 moves the shown time in both modes, clamped at zero", async () => {
@@ -97,7 +211,7 @@ it("퀵 조정 moves the shown time in both modes, clamped at zero", async () =>
     const { controlCredits, saveCredits, getOverlayTool, overlayKey } = await load();
     expect(await getOverlayTool("credits", overlayKey)).toMatchObject({ state: { rollingSince: null } });
     await controlCredits("START");
-    await saveCredits({ title: "감사합니다", thanks: ["또 만나요"], includeCrew: false });
+    await saveCredits(credits({ title: "감사합니다", thanks: ["또 만나요"] }));
     const rolling = await getOverlayTool("credits", overlayKey);
     if (rolling === "FORBIDDEN" || rolling.tool !== "credits") throw new Error("expected credits");
     expect(rolling.state.rollingSince).not.toBeNull();

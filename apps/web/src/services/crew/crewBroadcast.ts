@@ -24,10 +24,9 @@ import {
   type BroadcastResult,
   type BroadcastSummary,
   type BroadcastView,
-  type ScoreRow,
   type TeamKey
 } from "./crewTypes";
-import { battleBonus, battleGroups, battleRulesOf, fanNotesView, gradeBonus, gradeMultipliersOf, excelOf, feedOf, liveBroadcastOf, scoreEntry, scoreFn, stealRecordView, stealRulesOf, timesMultiplier, windowReceived, windowScores, windowSteals } from "./crewCore";
+import { battleGroups, battleRulesOf, fanNotesView, gradeMultipliersOf, excelOf, liveBroadcastOf, scoreboardRows, scoredFeed, stealRecordView, stealRulesOf, timesMultiplier, windowReceived, windowScores, windowSteals } from "./crewCore";
 import { prizeBoardLive, prizeSettingsOf } from "./crewPrizeCore";
 import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
 
@@ -49,33 +48,7 @@ const broadcasts = () => (mockCrew.broadcasts ??= []);
 const members = () => mockCrew.crews[STUDIO_CHANNEL] ?? [];
 const liveOf = liveBroadcastOf;
 
-/** Every 후원 리스트 entry with its points under the channel's current 자동엑셀 settings. */
-const scoredFeed = (b: MockBroadcast) => {
-  const s = excelOf(b.channelId);
-  return feedOf(b).map((f) => scoreEntry(f, s));
-};
-
-function scoreRows(b: MockBroadcast): ScoreRow[] {
-  const end = b.endedAt ?? new Date(Date.now() + 1000).toISOString();
-  const s = excelOf(b.channelId);
-  const feed = scoredFeed(b);
-  const bonus = battleBonus(b);
-  const graded = gradeBonus(b);
-  const rows = members()
-    .filter((m) => m.active || b.teams[m.id] !== undefined || b.adjustments.some((a) => a.memberId === m.id) || (b.feed ?? []).some((f) => f.memberId === m.id) || (b.steals ?? []).some((x) => x.thief === m.id || x.target === m.id))
-    .map((m) => {
-      const donated = mockCrew.attributions
-        .filter((a) => a.channelId === b.channelId && a.memberId === m.id && a.at >= b.startedAt && a.at <= end)
-        .reduce((sum, a) => sum + scoreFn(a.fnAmount, s), 0);
-      const adjust = b.adjustments.filter((a) => a.memberId === m.id).reduce((sum, a) => sum + a.points, 0);
-      const fromFeed = feed.filter((f) => f.status === "ASSIGNED" && f.memberId === m.id).reduce((sum, f) => sum + f.points, 0);
-      const stolen = (b.steals ?? []).reduce((sum, x) => sum + (x.thief === m.id ? x.points : 0) - (x.target === m.id ? x.points : 0), 0);
-      const battle = bonus.get(m.id) ?? 0;
-      const grade = graded.get(m.id) ?? 0;
-      return { memberId: m.id, name: m.name, color: m.color, team: b.teams[m.id] ?? null, donated, feed: fromFeed, adjust, stolen, battle, grade, score: donated + fromFeed + adjust + stolen + battle + grade };
-    });
-  return rows.sort((x, y) => y.score - x.score || x.name.localeCompare(y.name));
-}
+const scoreRows = scoreboardRows;
 
 function liveView(b: MockBroadcast): BroadcastLive {
   const rows = scoreRows(b);

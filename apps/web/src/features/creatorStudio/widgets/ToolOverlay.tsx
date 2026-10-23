@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { formatNumber } from "@/lib/format";
-import { bingoLines, type OverlayTool } from "@/services/creator/broadcastToolTypes";
+import { CREDITS_SECTIONS, bingoLines, type CreditsData, type CreditsSectionKey, type CreditsState, type OverlayTool } from "@/services/creator/broadcastToolTypes";
 import { OverlayThemeRoot, ov } from "@/features/overlayTheme/OverlayThemeRoot";
 import styles from "./toolOverlay.module.css";
 import { useReloadSignal } from "../remote/useReloadSignal";
@@ -52,6 +52,88 @@ export function ToolOverlay({ data }: { data: OverlayTool }) {
   return <ToolView data={data} now={now} skew={skew} />;
 }
 
+const sectionTitle = (s: CreditsState, key: CreditsSectionKey) => s.sections[key].title || CREDITS_SECTIONS.find((x) => x.key === key)!.title;
+
+/**
+ * The 엔딩 크레딧 in roll order (2026-10-23): title · period, 총 후원, MVP, 후원자 TOP 3, 후원 순위 (after the TOP 3 when both
+ * are on), 멤버별, then the thanks. A section with nothing to show is skipped. The film roll draws lists in theme cards;
+ * the 스타워즈 크롤 keeps plain lines (its own yellow text).
+ */
+function CreditsBody({ state: s, data: d, crawl }: { state: CreditsState; data: CreditsData; crawl: boolean }) {
+  const top3 = s.sections.top3.on ? d.donors.slice(0, 3) : [];
+  const rest = s.sections.donors.on ? d.donors.slice(top3.length ? 3 : 0) : [];
+  const list = crawl ? styles.crawlList : `${ov.card} ${styles.creditsCrew}`;
+  const rank = (i: number) => (crawl ? <span>{i}.</span> : <span className={`${ov.chip} ${i === 1 ? ov.chipAccent : ""}`}>{i}</span>);
+  return (
+    <>
+      <h1 className={crawl ? undefined : ov.display}>{s.title}</h1>
+      <p className={styles.creditsPeriod}>{d.periodLabel}</p>
+      {s.sections.total.on && !d.empty && (
+        <section className={styles.creditsSection}>
+          <h2>{sectionTitle(s, "total")}</h2>
+          <p className={`${crawl ? "" : ov.display} ${styles.creditsBig}`}>{formatNumber(d.total)} FN</p>
+        </section>
+      )}
+      {s.sections.mvp.on && d.mvp && (
+        <section className={styles.creditsSection}>
+          <h2>{sectionTitle(s, "mvp")}</h2>
+          <p className={`${crawl ? "" : ov.display} ${styles.creditsBig}`}>{d.mvp.name}</p>
+          <p>
+            {formatNumber(d.mvp.score)} {d.memberUnit}
+          </p>
+        </section>
+      )}
+      {top3.length > 0 && (
+        <section className={styles.creditsSection}>
+          <h2>{sectionTitle(s, "top3")}</h2>
+          <ol className={crawl ? styles.crawlList : styles.podium}>
+            {top3.map((r) => (
+              <li key={r.rank} className={crawl ? undefined : ov.card} data-rank={r.rank}>
+                {rank(r.rank)}
+                <strong className={crawl ? undefined : ov.label}>{r.name}</strong>
+                <span>{formatNumber(r.fnAmount)} FN</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+      {rest.length > 0 && (
+        <section className={styles.creditsSection}>
+          <h2>{sectionTitle(s, "donors")}</h2>
+          <ol className={list}>
+            {rest.map((r) => (
+              <li key={r.rank}>
+                {rank(r.rank)}
+                <span className={crawl ? undefined : ov.label}>{r.name}</span>
+                <span className={crawl ? undefined : ov.display}>{formatNumber(r.fnAmount)} FN</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+      {s.sections.members.on && d.members.length > 0 && (
+        <section className={styles.creditsSection}>
+          <h2>{sectionTitle(s, "members")}</h2>
+          <ol className={list}>
+            {d.members.map((m) => (
+              <li key={m.rank}>
+                {rank(m.rank)}
+                <span className={crawl ? undefined : ov.label}>{m.name}</span>
+                <span className={crawl ? undefined : ov.display}>
+                  {formatNumber(m.score)} {d.memberUnit}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+      {s.thanks.map((t) => (
+        <p key={t}>{t}</p>
+      ))}
+    </>
+  );
+}
+
 /**
  * The 방송 도구 overlays in the 방송 도구 테마 (2026-10-08 오버레이 테마): 자막 · 전광판 as theme pills, 타이머 in display
  * numbers, 엔딩 크레딧 rolling on the stream with the crew ranking in a card, 빙고 cards with stamped marks.
@@ -91,30 +173,26 @@ function ToolView({ data, now, skew }: { data: OverlayTool; now: number | null; 
           <p className={`${data.theme.theme === "BOLD" ? ov.accentCard : ov.card} ${ov.display} ${styles.timer}`}>{clock(timerSeconds(data.state, now, skew))}</p>
         </OverlayThemeRoot>
       );
-    case "credits":
+    case "credits": {
       // Shown only while rolling (리모컨 / 방송 도구 "시작"); a new start restarts from the top.
       if (!data.state.rollingSince) return null;
+      const crawl = data.state.style === "CRAWL";
       return (
-        <OverlayThemeRoot theme={data.theme} className={styles.credits}>
-          <div key={data.state.rollingSince} className={`${ov.onStream} ${styles.creditsRoll}`}>
-            <h1 className={ov.display}>{data.state.title}</h1>
-            {data.crew.length > 0 && (
-              <ol className={`${ov.card} ${styles.creditsCrew}`}>
-                {data.crew.map((c, i) => (
-                  <li key={c.name}>
-                    <span className={`${ov.chip} ${i === 0 ? ov.chipAccent : ""}`}>{i + 1}</span>
-                    <span className={ov.label}>{c.name}</span>
-                    <span className={ov.display}>{formatNumber(c.score)} FN</span>
-                  </li>
-                ))}
-              </ol>
-            )}
-            {data.state.thanks.map((t) => (
-              <p key={t}>{t}</p>
-            ))}
-          </div>
+        <OverlayThemeRoot theme={data.theme} className={crawl ? styles.crawl : styles.credits}>
+          {crawl ? (
+            <div className={styles.crawlTilt}>
+              <div key={data.state.rollingSince} className={styles.crawlText} style={{ animationDuration: `${data.state.durationSec}s` }}>
+                <CreditsBody state={data.state} data={data.data} crawl />
+              </div>
+            </div>
+          ) : (
+            <div key={data.state.rollingSince} className={`${ov.onStream} ${styles.creditsRoll}`} style={{ animationDuration: `${data.state.durationSec}s` }}>
+              <CreditsBody state={data.state} data={data.data} crawl={false} />
+            </div>
+          )}
         </OverlayThemeRoot>
       );
+    }
     case "bingo": {
       // Shown only while 화면에 보이기 is on (방송 도구 빙고 card).
       if (!data.state.shown) return null;

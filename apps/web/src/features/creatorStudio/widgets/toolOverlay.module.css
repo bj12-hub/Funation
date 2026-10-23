@@ -120,6 +120,126 @@
   text-align: left;
 }
 
+/* 엔딩 크레딧 섹션 (2026-10-23) */
+.creditsPeriod {
+  margin: -6px 0 18px;
+  font-size: 18px;
+  opacity: 0.8;
+}
+
+.creditsSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.creditsSection h2 {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+  opacity: 0.85;
+}
+
+.creditsBig {
+  margin: 0;
+  font-size: 40px;
+}
+
+.podium {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  text-shadow: none;
+}
+
+.podium li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 150px;
+  padding: 14px 18px;
+}
+
+/* 1등 in the middle and highest, 2등 left, 3등 right. */
+.podium li[data-rank="1"] {
+  order: 2;
+  padding-top: 26px;
+  font-size: 1.15em;
+}
+
+.podium li[data-rank="2"] {
+  order: 1;
+}
+
+.podium li[data-rank="3"] {
+  order: 3;
+}
+
+/* 스타워즈 크롤: yellow text tilted away from the viewer, fading out at the top. */
+.crawl {
+  display: flex;
+  justify-content: center;
+  height: 100vh;
+  overflow: hidden;
+  perspective: 340px;
+  perspective-origin: 50% 0;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 35%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 35%);
+}
+
+.crawlTilt {
+  width: min(92vw, 860px);
+  height: 100%;
+  transform: rotateX(26deg);
+  transform-origin: 50% 100%;
+}
+
+.crawlText {
+  padding-top: 100vh;
+  color: #ffd54a;
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.45;
+  text-align: center;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+  animation: roll 40s linear infinite;
+}
+
+.crawlText h1 {
+  margin: 0 0 12px;
+  font-size: 1.6em;
+  letter-spacing: 0.04em;
+}
+
+.crawlText p {
+  margin: 0 0 10px;
+}
+
+.crawlText .creditsBig {
+  font-size: 1.4em;
+}
+
+.crawlList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.crawlList li {
+  display: flex;
+  justify-content: center;
+  gap: 0.5em;
+}
+
 @keyframes roll {
   to {
     transform: translateY(-100%);
@@ -201,7 +321,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .marqueeTrack span,
-  .creditsRoll {
+  .creditsRoll,
+  .crawlText {
     padding: 0;
     animation: none;
   }
