@@ -1,4 +1,4 @@
-import type { AssignMode, BattleRules, CrewGrade, FanNoteRules, CrewMember, ExcelSettings, FeedEntry, ScenarioPart, StealRules, StealSlot } from "./crewTypes";
+import type { AssignMode, BattleRules, CrewGrade, FanNoteRules, CrewMember, ExcelSettings, FeedEntry, PrizeBoardSettings, ScenarioPart, StealRules, StealSlot } from "./crewTypes";
 
 /**
  * Development-only crew state, keyed by channel id: the studio creator's own channel
@@ -69,6 +69,8 @@ export type MockBroadcast = {
   fanNotes?: { id: string; at: string; userId: string; author: string; kind: "MESSAGE" | "REQUEST"; memberId: string | null; text: string; status: "NEW" | "DONE" | "HIDDEN"; requestId: string }[];
   /** 팬 메시지 받기 꺼짐 (open by default). */
   fanNotesClosed?: boolean;
+  /** 상품 순위표: shown on OBS (`?prize`) and its 구간 (시작 ~ 정지; a new 시작 restarts it). `starts`: 시작 request ids applied. */
+  prizeBoard?: { visible: boolean; window: { startedAt: string; stoppedAt: string | null } | null; starts: string[] };
   /** Final ranking frozen at the end (members may be renamed or removed later). */
   final: { memberId: string; name: string; score: number }[] | null;
 };
@@ -93,6 +95,8 @@ type MockCrew = {
   scenario?: Record<string, ScenarioPart[]>;
   /** 직급 per channel (missing = none). */
   grades?: Record<string, CrewGrade[]>;
+  /** 상품 순위표 settings per channel (missing = DEFAULT_PRIZE_BOARD). */
+  prizeBoards?: Record<string, PrizeBoardSettings>;
   /** 멤버 추가 request ids already applied (a retried add is not a second member). */
   memberRequests?: string[];
 };

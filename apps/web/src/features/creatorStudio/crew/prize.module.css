@@ -1,0 +1,145 @@
+/* 상품 순위표 (code-first) — studio card in 방송 운영. */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
+}
+
+/* Pressed = left out of the ranking. */
+.chip[aria-pressed="true"] {
+  border-style: dashed;
+  color: var(--color-text-tertiary);
+  text-decoration: line-through;
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lines li {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 40px auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.rankLabel {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+  text-align: right;
+}
+
+.color {
+  width: 40px;
+  height: 36px;
+  padding: 2px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-8);
+  background: var(--color-input-bg);
+  cursor: pointer;
+}
+
+/* No color of its own: the overlay theme's text color. */
+.color[data-default] {
+  border-style: dashed;
+  opacity: 0.6;
+}
+
+.window {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.window > span {
+  flex: 1;
+  min-width: 200px;
+}
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.preview li {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 140px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+  font-size: var(--font-size-14);
+}
+
+.preview li[data-pinned] {
+  outline: 1px dashed var(--color-border-strong);
+}
+
+.previewPrize {
+  overflow-wrap: anywhere;
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 600px) {
+  .lines li {
+    grid-template-columns: 36px minmax(0, 1fr) 40px;
+  }
+
+  .lines li button {
+    grid-column: 2 / -1;
+    justify-self: start;
+  }
+
+  .preview li {
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+  }
+
+  .previewPrize {
+    grid-column: 2 / -1;
+    grid-row: 2;
+  }
+}

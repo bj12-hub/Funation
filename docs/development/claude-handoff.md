@@ -144,7 +144,8 @@ Tips:
 
 Current status lives in the docs, not here: routes and frames in `docs/figma/route-map.md`, code-first
 features and their TBDs in `docs/figma/code-first-screens.md`, the funnation comparison in
-`docs/research/funnation-reference.md`. The notes below are the original PR #36 snapshot, kept for the
+`docs/research/funnation-reference.md`, the StreamDonate (StreamEngineer PRO) comparison and its adoption
+order in `docs/research/streamdonate-reference.md` (2026-10-23). The notes below are the original PR #36 snapshot, kept for the
 Figma conflicts they record.
 
 ### Snapshot (PR #36)
