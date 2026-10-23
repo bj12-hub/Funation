@@ -8,6 +8,7 @@ import { isActiveMember, liveBroadcastOf } from "./crewCore";
 import { diceLive, diceSettingsOf, parseDiceSettings, runDice } from "./crewDiceCore";
 import { gameRunView, memberSources, usedSources, type RunStart, type StoredRun } from "./crewGameCore";
 import { addJupjupItem, jupjupLive, jupjupSettingsOf, parseJupjupSettings, removeJupjupItems } from "./crewJupjupCore";
+import { medleyLive, medleySettingsOf, parseMedleySettings, playMedleyRun } from "./crewMedleyCore";
 import { parseRandomSigSettings, randomSigLive, randomSigSettingsOf } from "./crewRandomSigCore";
 import { clearRelayPending, parseRelaySettings, relayLive, relaySettingsOf } from "./crewRelayCore";
 import { sigCountSignatures } from "./crewSigCountCore";
@@ -18,7 +19,7 @@ import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 /**
  * 점수 게임 Server Actions — code-first (no Figma frame; StreamDonate 참고, P2), route `/creator/crew/games`: 스핀머신 · 주사위
- * 게임 · 투휠 게임 · 랜덤시그 · 기여도 릴레이 · 줍줍. Settings are kept per channel; runs belong to the live broadcast. Results are display points only.
+ * 게임 · 투휠 게임 · 랜덤시그 · 기여도 릴레이 · 줍줍 · 시그니처 메들리. Settings are kept per channel; runs belong to the live broadcast. Results are display points only.
  */
 
 const assertMock = () => {
@@ -31,8 +32,11 @@ const signatureIds = () => sigCountSignatures().map((s) => s.id);
 /** 기준 후원 choices per member and game in the studio (the newest ones that game has not used). */
 const SOURCES_SHOWN = 10;
 
-/** How each game plays one run by hand (the caller checks the game can play). 랜덤시그 · 기여도 릴레이 · 줍줍 play only from donations. */
-const PLAY: Record<Exclude<GameKey, "RANDOM_SIG" | "RELAY" | "JUPJUP">, (b: MockBroadcast, start: RunStart) => StoredRun> = { SPIN: runSpin, DICE: runDice, TWO_WHEEL: runTwoWheel };
+/**
+ * How each game plays one run by hand for a member (the caller checks the game can play). 랜덤시그 · 기여도 릴레이 · 줍줍 play only
+ * from donations; 메들리 rolls by hand without a member (playMedley).
+ */
+const PLAY: Record<Exclude<GameKey, "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY">, (b: MockBroadcast, start: RunStart) => StoredRun> = { SPIN: runSpin, DICE: runDice, TWO_WHEEL: runTwoWheel };
 
 function sourcesOf(b: MockBroadcast): Record<GameKey, Record<string, GameSource[]>> {
   const active = (mockCrew.crews[STUDIO_CHANNEL] ?? []).filter((m) => m.active);
@@ -49,7 +53,7 @@ function sourcesOf(b: MockBroadcast): Record<GameKey, Record<string, GameSource[
       ])
     );
   };
-  return { SPIN: forGame("SPIN"), DICE: forGame("DICE"), TWO_WHEEL: forGame("TWO_WHEEL"), RANDOM_SIG: {}, RELAY: {}, JUPJUP: {} };
+  return { SPIN: forGame("SPIN"), DICE: forGame("DICE"), TWO_WHEEL: forGame("TWO_WHEEL"), RANDOM_SIG: {}, RELAY: {}, JUPJUP: {}, MEDLEY: {} };
 }
 
 export async function getGamesView(): Promise<GamesView | null> {
@@ -69,6 +73,7 @@ export async function getGamesView(): Promise<GamesView | null> {
           randomSig: randomSigLive(live),
           relay: relayLive(live),
           jupjup: jupjupLive(live),
+          medley: medleyLive(live),
           sources: sourcesOf(live),
           serverNow: new Date().toISOString()
         }
@@ -79,6 +84,7 @@ export async function getGamesView(): Promise<GamesView | null> {
     randomSigSettings: structuredClone(randomSigSettingsOf(STUDIO_CHANNEL)),
     relaySettings: structuredClone(relaySettingsOf(STUDIO_CHANNEL)),
     jupjupSettings: structuredClone(jupjupSettingsOf(STUDIO_CHANNEL)),
+    medleySettings: structuredClone(medleySettingsOf(STUDIO_CHANNEL)),
     signatures: sigCountSignatures(),
     overlayPath: `/overlay/crew/${mockCreator.integrationKey}`
   };
@@ -122,6 +128,9 @@ export async function saveRandomSig(input: unknown): Promise<BroadcastResult> {
   const known = randomSigSettingsOf(STUDIO_CHANNEL).tiers.map((t) => t.id);
   const parsed = parseRandomSigSettings(input, MOCK_FORBIDDEN_WORDS, signatureIds(), known);
   if ("message" in parsed) return { status: "INVALID", message: parsed.message };
+  const medley = medleySettingsOf(STUDIO_CHANNEL);
+  const shared = parsed.auto && medley.auto ? parsed.tiers.find((t) => t.trigger === medley.trigger) : undefined;
+  if (shared) return { status: "INVALID", message: `발동 금액 ${shared.trigger.toLocaleString("ko-KR")} FN은 시그니처 메들리가 쓰고 있어요.` };
   (mockCrew.randomSigs ??= {})[STUDIO_CHANNEL] = parsed;
   return { status: "SAVED" };
 }
@@ -184,6 +193,30 @@ export async function removeJupjup(input: unknown): Promise<BroadcastResult> {
   return { status: "SAVED" };
 }
 
+/** Replaces the 메들리 settings (켜기 · 발동 금액 · 등록 시그니처 · 대기 화면). */
+export async function saveMedley(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const random = randomSigSettingsOf(STUDIO_CHANNEL);
+  const takenBy = (amount: number) => (random.auto && random.tiers.some((t) => t.trigger === amount) ? "랜덤시그 발동 구간" : null);
+  const parsed = parseMedleySettings(input, MOCK_FORBIDDEN_WORDS, signatureIds(), takenBy);
+  if ("message" in parsed) return { status: "INVALID", message: parsed.message };
+  (mockCrew.medleys ??= {})[STUDIO_CHANNEL] = parsed;
+  return { status: "SAVED" };
+}
+
+/** 수동 메들리: rolls a registered signature on OBS (no alert, no points). `requestId` is the run id (a retry is the same run). */
+export async function playMedley(input: unknown): Promise<GamePlayResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = rec(input);
+  const live = liveBroadcastOf(STUDIO_CHANNEL);
+  if (!live || live.id !== v.broadcastId) return notLive;
+  if (!validId(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
+  const run = playMedleyRun(live, v.requestId);
+  return typeof run === "string" ? { status: "INVALID", message: run } : { status: "PLAYED", run: gameRunView(live, run) };
+}
+
 /**
  * 수동: plays `game` once for an active member, optionally on one of their donations in the broadcast (기준 후원: a 배수
  * result multiplies its points; a donation plays each game at most once). `requestId` is the run id, so a retry returns
@@ -198,6 +231,7 @@ export async function playGame(input: unknown): Promise<GamePlayResult> {
   if (game === "RANDOM_SIG") return { status: "INVALID", message: "랜덤시그는 발동 금액 후원이 들어올 때만 돌아가요." };
   if (game === "RELAY") return { status: "INVALID", message: "기여도 릴레이는 시그니처 후원으로만 이어져요." };
   if (game === "JUPJUP") return { status: "INVALID", message: "줍줍은 같은 금액의 시그니처 후원으로만 가져가요." };
+  if (game === "MEDLEY") return { status: "INVALID", message: "메들리는 'OBS에서 한 번 돌리기'로 돌려요." };
   const live = liveBroadcastOf(STUDIO_CHANNEL);
   if (!live || live.id !== v.broadcastId) return notLive;
   if (!validId(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };

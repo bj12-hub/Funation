@@ -10,6 +10,7 @@ import type {
   GameEffect,
   GameKey,
   JupjupSettings,
+  MedleySettings,
   PrizeBoardSettings,
   RandomSigSettings,
   RelaySettings,
@@ -170,6 +171,8 @@ type MockCrew = {
   relays?: Record<string, RelaySettings>;
   /** 줍줍 settings per channel (missing = DEFAULT_JUPJUP). */
   jupjups?: Record<string, JupjupSettings>;
+  /** 시그니처 메들리 settings per channel (missing = DEFAULT_MEDLEY). */
+  medleys?: Record<string, MedleySettings>;
   /** 멤버 추가 request ids already applied (a retried add is not a second member). */
   memberRequests?: string[];
 };

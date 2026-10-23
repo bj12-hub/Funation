@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { BattleOverlay, CrewScoreOverlay, PrizeBoardOverlay, ScenarioOverlay, SigCountOverlay, StealOverlay, SubBoardOverlay } from "@/features/creatorStudio/crew/CrewScoreOverlay";
 import { DiceOverlay } from "@/features/creatorStudio/crew/DiceOverlay";
 import { JupjupOverlay } from "@/features/creatorStudio/crew/JupjupOverlay";
+import { MedleyOverlay } from "@/features/creatorStudio/crew/MedleyOverlay";
 import { RandomSigOverlay } from "@/features/creatorStudio/crew/RandomSigOverlay";
 import { RelayOverlay } from "@/features/creatorStudio/crew/RelayOverlay";
 import { SpinMachineOverlay, SpinTallyOverlay } from "@/features/creatorStudio/crew/SpinOverlay";
@@ -15,10 +16,10 @@ import { getOverlayScoreboard } from "@/services/crew/crewBroadcast";
 export const metadata: Metadata = { title: "크루 점수판", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
-type Views = { board?: string; battle?: string; steal?: string; scenario?: string; prize?: string; sigcount?: string; spin?: string; spintally?: string; dice?: string; twowheel?: string; randomsig?: string; relay?: string; jupjup?: string };
+type Views = { board?: string; battle?: string; steal?: string; scenario?: string; prize?: string; sigcount?: string; spin?: string; spintally?: string; dice?: string; twowheel?: string; randomsig?: string; relay?: string; jupjup?: string; medley?: string };
 
 export default async function Page({ params, searchParams }: { params: Promise<{ key: string }>; searchParams: Promise<Views> }) {
-  const [{ key }, { board, battle, steal, scenario, prize, sigcount, spin, spintally, dice, twowheel, randomsig, relay, jupjup }] = await Promise.all([params, searchParams]);
+  const [{ key }, { board, battle, steal, scenario, prize, sigcount, spin, spintally, dice, twowheel, randomsig, relay, jupjup, medley }] = await Promise.all([params, searchParams]);
   const [data, signal] = await Promise.all([getOverlayScoreboard(key), getOverlaySignal(key, "crew")]);
   // An invalid key looks like a missing page (no hint that the URL format is right).
   if (data === "FORBIDDEN" || signal === "FORBIDDEN") notFound();
@@ -33,13 +34,14 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   if (prize !== undefined) return <PrizeBoardOverlay board={live?.prizeBoard ?? null} reloadSeq={reloadSeq} theme={theme} />;
   // ?sigcount shows the 시그 카운트 table while 방송 운영 has it on.
   if (sigcount !== undefined) return <SigCountOverlay table={live?.sigCount ?? null} reloadSeq={reloadSeq} theme={theme} />;
-  // 점수 게임 (2026-10-23): ?spin · ?dice · ?twowheel · ?randomsig · ?relay · ?jupjup play their runs in turn; ?spintally shows the 스핀머신 BJ별 집계.
+  // 점수 게임 (2026-10-23): ?spin · ?dice · ?twowheel · ?randomsig · ?relay · ?jupjup · ?medley play their runs in turn; ?spintally shows the 스핀머신 BJ별 집계.
   if (spin !== undefined) return <SpinMachineOverlay spin={live?.spin ?? null} serverNow={live?.serverNow ?? null} reloadSeq={reloadSeq} theme={theme} />;
   if (spintally !== undefined) return <SpinTallyOverlay spin={live?.spin ?? null} reloadSeq={reloadSeq} theme={theme} />;
   if (dice !== undefined) return <DiceOverlay dice={live?.dice ?? null} serverNow={live?.serverNow ?? null} reloadSeq={reloadSeq} theme={theme} />;
   if (randomsig !== undefined) return <RandomSigOverlay randomSig={live?.randomSig ?? null} serverNow={live?.serverNow ?? null} reloadSeq={reloadSeq} theme={theme} />;
   if (relay !== undefined) return <RelayOverlay relay={live?.relay ?? null} serverNow={live?.serverNow ?? null} reloadSeq={reloadSeq} theme={theme} />;
   if (jupjup !== undefined) return <JupjupOverlay jupjup={live?.jupjup ?? null} serverNow={live?.serverNow ?? null} reloadSeq={reloadSeq} theme={theme} />;
+  if (medley !== undefined) return <MedleyOverlay medley={live?.medley ?? null} serverNow={live?.serverNow ?? null} reloadSeq={reloadSeq} theme={theme} />;
   if (twowheel !== undefined) return <TwoWheelOverlay wheel={live?.twoWheel ?? null} serverNow={live?.serverNow ?? null} reloadSeq={reloadSeq} theme={theme} />;
   // ?scenario shows the running 콘텐츠 시나리오 part.
   if (scenario !== undefined) return <ScenarioOverlay scenario={live?.scenario ?? null} serverNow={live?.serverNow ?? null} reloadSeq={reloadSeq} theme={theme} />;
