@@ -10,13 +10,14 @@ import {
   OVERLAY_BOARD_ROWS,
   PRIZE_TITLE_DEFAULT,
   type Battle,
+  type BattleMatch,
   type OverlayScenario,
   type OverlayScoreboard,
   type PrizeBoardLive,
   type StealRecord,
   type SubBoard
 } from "@/services/crew/crewTypes";
-import { penaltyText, resultText, useCountdown } from "./BattlePanel";
+import { penaltyText, ranked, resultText, useCountdown } from "./BattlePanel";
 import { partName, usePartElapsed } from "./ScenarioPanel";
 import { stealText } from "./StealPanel";
 import { useReloadSignal } from "../remote/useReloadSignal";
@@ -99,18 +100,19 @@ function MainBoard({ data, theme }: { data: OverlayScoreboard; theme: ResolvedTh
 
 const mmss = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
-/** 실시간 배틀 overlay (`?battle`): the running battle (or the last result) with its timer, as a tug of war. */
+/**
+ * 실시간 배틀 overlay (`?battle`): the running battle (or the last result) with its timer — a tug of war for two sides,
+ * ranked bars for 다수 팀, a grid of small tugs for 1:1 여러 쌍 (as many columns as the source is wide).
+ */
 export function BattleOverlay({ battle: x, reloadSeq, theme }: { battle: Battle | null; reloadSeq: number; theme: ResolvedTheme }) {
   useOverlayPage(reloadSeq);
   const left = useCountdown(x ?? undefined);
   if (!x) return null;
-  const [a, b] = x.sides;
-  const total = Math.max(0, a.score) + Math.max(0, b.score);
-  const share = total ? (Math.max(0, a.score) / total) * 100 : 50;
   const penalty = penaltyText(x);
+  const many = x.matches[0].sides.length > 2;
   return (
     <OverlayThemeRoot theme={theme} className={styles.pad}>
-      <div className={`${ov.card} ${styles.battle}`}>
+      <div className={`${ov.card} ${styles.battle}`} data-wide={x.mode === "PAIRS" && x.matches.length > 1 ? "" : undefined}>
         <div className={styles.battleHead}>
           <span className={`${ov.chip} ${ov.chipAccent}`}>
             {x.title}
@@ -118,24 +120,72 @@ export function BattleOverlay({ battle: x, reloadSeq, theme }: { battle: Battle 
           </span>
           {x.running ? <span className={`${ov.chip} ${ov.display} ${styles.timer}`}>{mmss(left)}</span> : <span className={ov.chip}>{resultText(x)}</span>}
         </div>
-        <div className={styles.sides}>
-          {x.sides.map((s) => (
-            <span key={s.key} className={styles.side} data-win={!x.running && x.leader === s.key ? "" : undefined}>
-              <span className={ov.label}>
-                <i className={styles.dot} style={{ background: s.color }} aria-hidden="true" /> {s.label}
-              </span>
-              <strong className={`${ov.display} ${styles.sideScore}`}>{formatNumber(s.score)}</strong>
-            </span>
-          ))}
-        </div>
-        <span className={`${ov.track} ${styles.tug}`} role="img" aria-label={`${a.label} ${Math.round(share)}% · ${b.label} ${100 - Math.round(share)}%`}>
-          <span style={{ width: `${share}%`, background: a.color }} />
-          <span style={{ width: `${100 - share}%`, background: b.color }} />
-        </span>
-        {x.running && <span className={ov.muted}>{resultText(x)}</span>}
+        {x.mode === "PAIRS" ? (
+          <ol className={styles.pairGrid}>
+            {x.matches.map((m, i) => (
+              <li key={i}>
+                <Tug match={m} running={x.running} small />
+              </li>
+            ))}
+          </ol>
+        ) : many ? (
+          <TeamBars match={x.matches[0]} running={x.running} />
+        ) : (
+          <Tug match={x.matches[0]} running={x.running} />
+        )}
+        {x.running && x.mode !== "PAIRS" && <span className={ov.muted}>{resultText(x)}</span>}
         {penalty && <p className={`${ov.chip} ${styles.penalty}`}>{penalty}</p>}
       </div>
     </OverlayThemeRoot>
+  );
+}
+
+/** Two sides and the tug-of-war bar between them. */
+function Tug({ match: m, running, small = false }: { match: BattleMatch; running: boolean; small?: boolean }) {
+  const [a, b] = m.sides;
+  const total = Math.max(0, a.score) + Math.max(0, b.score);
+  const share = total ? (Math.max(0, a.score) / total) * 100 : 50;
+  return (
+    <div className={styles.tugBox} data-small={small ? "" : undefined}>
+      <div className={styles.sides}>
+        {m.sides.map((s) => (
+          <span key={s.key} className={styles.side} data-win={!running && m.leader === s.key ? "" : undefined}>
+            <span className={ov.label}>
+              <i className={styles.dot} style={{ background: s.color }} aria-hidden="true" /> {s.label}
+            </span>
+            <strong className={`${ov.display} ${styles.sideScore}`}>{formatNumber(s.score)}</strong>
+          </span>
+        ))}
+      </div>
+      <span className={`${ov.track} ${styles.tug}`} role="img" aria-label={`${a.label} ${Math.round(share)}% · ${b.label} ${100 - Math.round(share)}%`}>
+        <span style={{ width: `${share}%`, background: a.color }} />
+        <span style={{ width: `${100 - share}%`, background: b.color }} />
+      </span>
+    </div>
+  );
+}
+
+/** 다수 팀: every team best first, its bar against the leader, and its members under the name. */
+function TeamBars({ match: m, running }: { match: BattleMatch; running: boolean }) {
+  const max = Math.max(1, ...m.sides.map((s) => Math.max(0, s.score)));
+  return (
+    <ol className={styles.teamBars}>
+      {ranked(m).map((s, i) => (
+        <li key={s.key} data-win={!running && m.leader === s.key ? "" : undefined}>
+          <span className={`${ov.display} ${styles.rank}`}>{i + 1}</span>
+          <span className={styles.teamLabel}>
+            <span className={`${ov.label} ${styles.name}`}>
+              <i className={styles.dot} style={{ background: s.color }} aria-hidden="true" /> {s.label}
+            </span>
+            <span className={`${ov.muted} ${styles.teamMembers}`}>{s.memberNames.join(" · ")}</span>
+          </span>
+          <span className={`${ov.track} ${styles.bar}`}>
+            <span className={ov.fill} style={{ width: `${(Math.max(0, s.score) / max) * 100}%`, "--ov-accent": s.color } as CSSProperties} />
+          </span>
+          <span className={`${ov.display} ${styles.score}`}>{formatNumber(s.score)}</span>
+        </li>
+      ))}
+    </ol>
   );
 }
 

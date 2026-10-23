@@ -377,15 +377,51 @@ export type BattleRules = { multiplier: number; penalty: string };
 /** Platform defaults: 배수 1배, 벌칙 없음. */
 export const PLATFORM_BATTLE_RULES: BattleRules = { multiplier: 1, penalty: "" };
 
-/** MEMBERS: one BJ against another. TEAMS: the broadcast's A팀 vs B팀 (team mode only). */
-export type BattleMode = "MEMBERS" | "TEAMS";
-export type BattleSide = { key: TeamKey; label: string; color: string; memberIds: string[]; score: number };
+/**
+ * MEMBERS: one BJ against another. TEAMS: the broadcast's A팀 vs B팀 (team mode only). MULTI_TEAMS (다수 팀, 2026-10-23):
+ * 2 ~ 8 teams made for this battle. PAIRS (1:1 여러 쌍, 2026-10-23): up to 12 BJ 1:1 matches at once. StreamDonate 다수 팀
+ * VS 참고 (docs/research/streamdonate-reference.md P1-2).
+ */
+export type BattleMode = "MEMBERS" | "TEAMS" | "MULTI_TEAMS" | "PAIRS";
+export const BATTLE_MODES: { key: BattleMode; label: string }[] = [
+  { key: "MEMBERS", label: "BJ 1:1" },
+  { key: "TEAMS", label: "A팀 vs B팀" },
+  { key: "MULTI_TEAMS", label: "다수 팀" },
+  { key: "PAIRS", label: "1:1 여러 쌍" }
+];
+export const MULTI_TEAMS_MIN = 2;
+export const MULTI_TEAMS_MAX = 8;
+export const BATTLE_TEAM_NAME_MAX = 10;
+export const BATTLE_PAIRS_MAX = 12;
+/** 다수 팀 keys and colors in team order (blank names become "A팀", "B팀" …). */
+export const MULTI_TEAM_KEYS = ["A", "B", "C", "D", "E", "F", "G", "H"] as const;
+export const MULTI_TEAM_COLORS = ["#3b82f6", "#ec4899", "#10b981", "#f59e0b", "#8b5cf6", "#ef4444", "#06b6d4", "#84cc16"] as const;
+
+/** `key`: A, B … in the order the sides were set up. `memberNames` follows `memberIds` (removed members: 삭제된 멤버). */
+export type BattleSide = { key: string; label: string; color: string; memberIds: string[]; memberNames: string[]; score: number };
+
+/**
+ * One match of a battle, sides in set-up order. `leader`: the side with the most points (DRAW when the top is shared, null
+ * while nobody has points). `loser`: the side with the fewest — the one that does the 벌칙 — or null when that is shared or
+ * every side has the same score.
+ */
+export type BattleMatch = { sides: BattleSide[]; leader: string | "DRAW" | null; loser: string | null };
+
+/** A match's `leader` and `loser` from its sides' scores (see BattleMatch). */
+export function battleStanding(sides: Pick<BattleSide, "key" | "score">[]): Pick<BattleMatch, "leader" | "loser"> {
+  const scores = sides.map((s) => s.score);
+  if (scores.every((s) => s === 0)) return { leader: null, loser: null };
+  const max = Math.max(...scores);
+  const min = Math.min(...scores);
+  const only = (v: number) => (scores.filter((s) => s === v).length === 1 ? sides[scores.indexOf(v)].key : null);
+  return { leader: only(max) ?? "DRAW", loser: max === min ? null : only(min) };
+}
 
 /**
  * Score of a side = points its members received while the battle runs (same 자동엑셀 points as the
  * scoreboard, 보정 excluded) × the battle's 배수. The main scoreboard counts those points × 배수 too (2026-10-05 결정;
- * see ScoreRow.battle). The battle ends when
- * time runs out or the operator stops it; the losing side does the 벌칙 (empty = 벌칙 없음).
+ * see ScoreRow.battle). The battle ends when time runs out or the operator stops it; the losing side of each match does
+ * the 벌칙 (empty = 벌칙 없음) — in 다수 팀 the last team, in 1:1 여러 쌍 the loser of every pair.
  */
 export type Battle = {
   no: number;
@@ -398,11 +434,10 @@ export type Battle = {
   running: boolean;
   /** Seconds left when the view was built (0 once ended). */
   remainingSec: number;
-  sides: [BattleSide, BattleSide];
+  /** One match, except 1:1 여러 쌍 (one per pair). */
+  matches: BattleMatch[];
   multiplier: number;
   penalty: string;
-  /** Leading side while running; the result once ended. null = no points yet. */
-  leader: TeamKey | "DRAW" | null;
 };
 
 export const SUB_BOARD_MAX = 5;

@@ -63,7 +63,7 @@ describe("자동엑셀", () => {
     await battle.startBattle({ broadcastId: id, requestId: key(2), mode: "MEMBERS", memberA: "cm-s1", memberB: "cm-s2", durationSec: 300, multiplier: 1.15 });
     await simulateDonation({ broadcastId: id, requestId: key(3), amount: 50, unit: "FN", message: "하늘" });
     v = await view();
-    expect(v.live!.battles[0].sides[1].score).toBe(58); // battle board
+    expect(v.live!.battles[0].matches[0].sides[1].score).toBe(58); // battle board
     expect(score(v, "cm-s2")).toBe(58); // main scoreboard: 50 + 배틀 배수 8
   });
 
