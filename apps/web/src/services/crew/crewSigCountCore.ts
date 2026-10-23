@@ -16,7 +16,7 @@ const rec = (input: unknown) => (typeof input === "object" && input !== null ? i
 export const sigCountSettingsOf = (channelId: string): SigCountSettings => mockCrew.sigCounts?.[channelId] ?? DEFAULT_SIG_COUNT;
 
 /** The signatures the settings can pick from, in the creator's order (숨긴 시그니처 too: it may have been sent before it was hidden). */
-export const sigCountSignatures = () => mockSignatures.items.map((s) => ({ id: s.id, name: s.name, group: s.group, active: s.active }));
+export const sigCountSignatures = () => mockSignatures.items.map((s) => ({ id: s.id, name: s.name, group: s.group, active: s.active, price: s.price, match: s.match, rangeMin: s.rangeMin }));
 
 /** Validates the settings. `signatureIds`: the signatures that exist now (the columns must be among them). */
 export function parseSigCount(input: unknown, forbidden: string[], signatureIds: string[]): SigCountSettings | { message: string } {

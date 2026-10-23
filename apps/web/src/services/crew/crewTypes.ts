@@ -238,6 +238,7 @@ export type BroadcastLive = {
   spin: SpinLive;
   dice: DiceLive;
   twoWheel: TwoWheelLive;
+  randomSig: RandomSigLive;
   /** Server clock when this view was read: timers (시나리오 경과, 강탈 card) correct the browser's clock with it. */
   serverNow: string;
 };
@@ -358,12 +359,13 @@ export type SigCountLive = {
 // ── 점수 게임 (P2) — code-first, StreamDonate 참고 (docs/research/streamdonate-reference.md) ─────────────────────
 // A game draws its result on the server; the result is display points only (FN · 지갑 · 수익 · 정산 never move).
 
-/** Games on the shared engine (crewGameCore). 랜덤시그 · 기여도 릴레이 · 줍줍 … come later. `param`: the OBS view (`?spin`). */
-export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL";
+/** Games on the shared engine (crewGameCore). 기여도 릴레이 · 줍줍 … come later. `param`: the OBS view (`?spin`). */
+export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL" | "RANDOM_SIG";
 export const GAMES: { key: GameKey; label: string; param: string }[] = [
   { key: "SPIN", label: "스핀머신", param: "spin" },
   { key: "DICE", label: "주사위 게임", param: "dice" },
-  { key: "TWO_WHEEL", label: "투휠 게임", param: "twowheel" }
+  { key: "TWO_WHEEL", label: "투휠 게임", param: "twowheel" },
+  { key: "RANDOM_SIG", label: "랜덤시그", param: "randomsig" }
 ];
 
 /**
@@ -374,7 +376,8 @@ export const GAME_LEAD_SEC = 3;
 export const GAME_TIMING: Record<GameKey, { playSec: number; resultSec: number }> = {
   SPIN: { playSec: 4, resultSec: 4 },
   DICE: { playSec: 3, resultSec: 4 },
-  TWO_WHEEL: { playSec: 4, resultSec: 4 }
+  TWO_WHEEL: { playSec: 4, resultSec: 4 },
+  RANDOM_SIG: { playSec: 2, resultSec: 4 }
 };
 /** Runs a game lists (studio) and queues (OBS), newest first. */
 export const GAME_RUNS_SHOWN = 30;
@@ -470,8 +473,32 @@ export const DEFAULT_TWO_WHEEL: TwoWheelSettings = {
   plusUnit: 1_000
 };
 
-/** What started a run: a 시그니처 후원 to the member (자동), or the operator (수동). */
-export type GameTrigger = { kind: "SIGNATURE"; signatureName: string } | { kind: "MANUAL" };
+// 랜덤시그 — StreamDonate 랜덤시그: a 일반 후원 of exactly a 발동 금액 plays a random signature from that tier's price range.
+export const RANDOM_SIG_TITLE_DEFAULT = "랜덤시그";
+export const RANDOM_SIG_TIERS_MAX = 10;
+export const RANDOM_SIG_MULTIPLIER_MAX = 10;
+
+/** A 발동 구간: a 일반 후원 of exactly `trigger` FN draws among the active signatures priced `min` ~ `max` FN. */
+export type RandomSigTier = { id: string; trigger: number; min: number; max: number };
+
+/**
+ * BONUS (기본 모드): the donation counts as it is, and a drawn signature priced at or above the 발동 금액 adds
+ * (`multiplier` − 1) × its points. REPLACE (랜덤 결과 모드): the drawn signature's price counts instead of the donation
+ * (the run adds the difference, which can be negative).
+ */
+export type RandomSigMode = "BONUS" | "REPLACE";
+export const RANDOM_SIG_MODES: { key: RandomSigMode; label: string; note: string }[] = [
+  { key: "BONUS", label: "기본 모드", note: "발동 후원 점수는 그대로, 뽑힌 시그 가격이 발동 금액 이상이면 기본 배수만큼 더해요." },
+  { key: "REPLACE", label: "랜덤 결과 모드", note: "배수 없이, 발동 후원 대신 뽑힌 시그 가격 기준 점수로 바꿔요." }
+];
+
+/** `auto` = 랜덤시그 켜짐 (the alert plays the drawn signature even without a crew broadcast); `excluded` = 제외 시그. */
+export type RandomSigSettings = GameCommon & { tiers: RandomSigTier[]; mode: RandomSigMode; multiplier: number };
+/** 기본값 (StreamDonate 기본): 기본 모드, 2배. */
+export const DEFAULT_RANDOM_SIG: RandomSigSettings = { title: "", auto: false, excluded: [], showIdle: true, tiers: [], mode: "BONUS", multiplier: 2 };
+
+/** What started a run: a 시그니처 후원 to the member (자동), a 랜덤시그 발동 금액 (자동), or the operator (수동). */
+export type GameTrigger = { kind: "SIGNATURE"; signatureName: string } | { kind: "AMOUNT"; amount: number } | { kind: "MANUAL" };
 
 export type GameRunView = {
   id: string;
@@ -492,10 +519,11 @@ export type GameRunView = {
   value: number;
   /** Points the result adds (MULTIPLY · ADD); 0 for TEXT · MISS. */
   points: number;
-  /** 스핀머신: the drawn item. 주사위: the two dice. 투휠: the operator and the number. */
+  /** 스핀머신: the drawn item. 주사위: the two dice. 투휠: the operator and the number. 랜덤시그: the signature and its 발동 구간 range. */
   itemId: string | null;
   dice: [number, number] | null;
   wheel: { op: "ADD" | "MULTIPLY"; n: number } | null;
+  range: [number, number] | null;
 };
 
 /** 스핀머신 BJ별 집계: how many times each member got each 문구 (TEXT) result, columns in first-seen order. */
@@ -504,6 +532,8 @@ export type SpinTally = { columns: string[]; rows: { memberId: string; name: str
 export type SpinLive = { settings: SpinSettings; runs: GameRunView[]; tally: SpinTally };
 export type DiceLive = { settings: DiceSettings; runs: GameRunView[] };
 export type TwoWheelLive = { settings: TwoWheelSettings; runs: GameRunView[] };
+/** `pool`: the signatures a 랜덤시그 can draw (active, not excluded) — the OBS rolling images. */
+export type RandomSigLive = { settings: RandomSigSettings; runs: GameRunView[]; pool: { id: string; name: string; price: number; imageUrl: string }[] };
 
 /** A donation a member received in the broadcast, offered as the 기준 후원 of a 수동 run (studio only: names as sent). */
 export type GameSource = { id: string; at: string; label: string; points: number };
@@ -517,13 +547,15 @@ export type GamesView = {
     spin: SpinLive;
     dice: DiceLive;
     twoWheel: TwoWheelLive;
+    randomSig: RandomSigLive;
     sources: Record<GameKey, Record<string, GameSource[]>>;
     serverNow: string;
   } | null;
   spinSettings: SpinSettings;
   diceSettings: DiceSettings;
   twoWheelSettings: TwoWheelSettings;
-  signatures: { id: string; name: string; group: string; active: boolean }[];
+  randomSigSettings: RandomSigSettings;
+  signatures: { id: string; name: string; group: string; active: boolean; price: number; match: "SELECT" | "AMOUNT"; rangeMin: number | null }[];
   overlayPath: string;
 };
 
@@ -691,7 +723,7 @@ export type BroadcastView = {
   prizeSettings: PrizeBoardSettings;
   /** 시그 카운트 settings (kept across broadcasts) and the signatures it can count (숨긴 시그니처 too, marked). */
   sigCountSettings: SigCountSettings;
-  signatures: { id: string; name: string; group: string; active: boolean }[];
+  signatures: { id: string; name: string; group: string; active: boolean; price: number; match: "SELECT" | "AMOUNT"; rangeMin: number | null }[];
   keywords: Record<string, string[]>;
   /** Existing project names (for the start form). */
   projects: string[];

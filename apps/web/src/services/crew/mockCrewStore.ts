@@ -10,6 +10,7 @@ import type {
   GameEffect,
   GameKey,
   PrizeBoardSettings,
+  RandomSigSettings,
   ScenarioPart,
   SigCountSettings,
   SpinSettings,
@@ -89,7 +90,7 @@ export type MockBroadcast = {
   /**
    * 점수 게임 runs (oldest first): the result and its points, fixed when drawn; `showAt` · `revealAt` queue them on OBS.
    * `sourceId`: the 기준 후원 (attribution donation id or 후원 리스트 entry id) — one run per donation and game.
-   * `itemId` (스핀머신) · `dice` (주사위) · `wheel` (투휠): what was drawn.
+   * `itemId` (스핀머신 item · 랜덤시그 signature) · `dice` (주사위) · `wheel` (투휠) · `range` (랜덤시그 발동 구간): what was drawn.
    */
   gameRuns?: {
     id: string;
@@ -98,12 +99,13 @@ export type MockBroadcast = {
     showAt: string;
     revealAt: string;
     memberId: string;
-    trigger: { kind: "SIGNATURE"; signatureId: string; signatureName: string } | { kind: "MANUAL" };
+    trigger: { kind: "SIGNATURE"; signatureId: string; signatureName: string } | { kind: "AMOUNT"; amount: number } | { kind: "MANUAL" };
     sourceId: string | null;
     basePoints: number;
     itemId: string | null;
     dice?: [number, number];
     wheel?: { op: "ADD" | "MULTIPLY"; n: number };
+    range?: [number, number];
     label: string;
     kind: GameEffect;
     value: number;
@@ -152,6 +154,8 @@ type MockCrew = {
   /** 주사위 게임 · 투휠 게임 settings per channel (missing = DEFAULT_DICE · DEFAULT_TWO_WHEEL). */
   diceGames?: Record<string, DiceSettings>;
   twoWheels?: Record<string, TwoWheelSettings>;
+  /** 랜덤시그 settings per channel (missing = DEFAULT_RANDOM_SIG). */
+  randomSigs?: Record<string, RandomSigSettings>;
   /** 멤버 추가 request ids already applied (a retried add is not a second member). */
   memberRequests?: string[];
 };

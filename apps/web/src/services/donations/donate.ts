@@ -13,6 +13,7 @@ import { shownOnStream } from "@/services/creator/donationPageCore";
 import { getCreatorById } from "@/services/creators/creators";
 import { attributeMemberDonation, isActiveMember, liveBroadcastOf, recordBroadcastDonation } from "@/services/crew/crewCore";
 import { gamesForSignature } from "@/services/crew/crewGameTriggers";
+import { drawRandomSig, randomSigRun } from "@/services/crew/crewRandomSigCore";
 import { MEMBER_NICKNAME_ID, attributeDonation, nicknameChangeable, ownsNickname, resolveBadges } from "@/services/supporter/identityCore";
 import { alertBadgeLabels } from "@/services/supporter/identityTypes";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
@@ -20,7 +21,7 @@ import type { DonationCatalog } from "./donationCatalog";
 import { recordQuest } from "./questCore";
 import { canParticipate, enqueueSpin } from "./rouletteCore";
 import { canDraw, enqueueDraw } from "./gachaCore";
-import { getDonationCatalog, matchSignatureByAmount, signatureIdFor, signatureImageFor, signatureSoundFor } from "./signatureCore";
+import { getDonationCatalog, matchSignatureByAmount, signatureIdFor, signatureImageFor, signatureImageOf, signatureSoundFor, signatureSoundOf } from "./signatureCore";
 import { addDonationDrawing, enqueueDonationVideo } from "@/services/creator/mediaCore";
 import { MEDIA_LIMITS } from "@/services/creator/mediaTypes";
 import { notify } from "@/services/notifications/notificationCore";
@@ -127,6 +128,9 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
     });
     // A hidden profile went out as 익명: no 별명 gets it (2026-10-09 결정; it still counts toward the 누적 · 활동 등급).
     if (!request.hideProfile) attributeDonation(donationId, request.nicknameId);
+    // 랜덤시그 (점수 게임, 2026-10-23): a 일반 후원 of exactly a 발동 금액 plays a signature drawn from that tier.
+    const randomSig = request.type === "TEXT" ? drawRandomSig(creator.id, request.amount) : null;
+    const signatureId = randomSig?.signature.id ?? signatureIdFor(request.type, request.amount, request.details);
     if (quest) {
       const d = request.details as { title: string; timeLimitSec: number; creatorDecides: boolean };
       recordQuest({
@@ -148,8 +152,10 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
       // Crew records keep the name as sent (방송 운영 후원 리스트, 크루 후원) and the name on stream (2026-10-09 결정).
       attributeMemberDonation(donationId, creator.id, request.memberId, request.amount, { donor, donorId, message: request.summary, shownDonor });
       if (!request.memberId) recordBroadcastDonation(creator.id, { donor, shownDonor, message: request.summary, fnAmount: request.amount });
-      // 점수 게임 자동 (2026-10-23): a 시그니처 후원 to a member plays each game with 자동 on while a crew broadcast is live.
-      gamesForSignature(creator.id, { donationId, memberId: request.memberId, signatureId: signatureIdFor(request.type, request.amount, request.details), fnAmount: request.amount });
+      // 점수 게임 (2026-10-23): a 랜덤시그 records its run; a 시그니처 후원 to a member plays each game with 자동 on while a
+      // crew broadcast is live (a 랜덤시그 counts as the signature it drew).
+      randomSigRun(creator.id, { donationId, memberId: request.memberId, fnAmount: request.amount, drawn: randomSig });
+      gamesForSignature(creator.id, { donationId, memberId: request.memberId, signatureId, fnAmount: request.amount });
     }
     // 룰렛: the result is drawn now and revealed when the wheel spins (no FN prize — 2026-10-04 결정).
     // 뽑기: the prize is drawn now (stock goes down) and played on the 뽑기 overlay (no FN prize).
@@ -164,12 +170,12 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
       message: request.summary,
       fnAmount: request.amount,
       // 금액 매칭 (시그니처 관리): a 일반 후원 whose amount equals an AMOUNT-match signature alerts as that signature.
-      typeLabel: alertTypeLabel(catalog, request.type, request.amount),
+      typeLabel: randomSig ? `랜덤시그 · ${randomSig.signature.name}` : alertTypeLabel(catalog, request.type, request.amount),
       donationType: request.type,
-      imageUrl: signatureImageFor(catalog, request.type, request.amount, request.details),
-      soundUrl: signatureSoundFor(request.type, request.amount, request.details),
+      imageUrl: randomSig ? signatureImageOf(randomSig.signature) : signatureImageFor(catalog, request.type, request.amount, request.details),
+      soundUrl: randomSig ? signatureSoundOf(randomSig.signature) : signatureSoundFor(request.type, request.amount, request.details),
       // 시그 카운트 (2026-10-23): which signature, and the member the supporter picked.
-      signatureId: signatureIdFor(request.type, request.amount, request.details),
+      signatureId,
       ...(request.memberId ? { memberId: request.memberId } : {}),
       // The quest's arrival shows now; its FN counts in the 후원 위젯 once it succeeds.
       ...(quest ? { questId: donationId } : {})

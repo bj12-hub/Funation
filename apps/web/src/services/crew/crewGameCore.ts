@@ -112,7 +112,8 @@ export function gameRunView(b: MockBroadcast, r: StoredRun): GameRunView {
     memberId: r.memberId,
     memberName: m?.name ?? "삭제된 멤버",
     memberColor: m?.color ?? null,
-    trigger: r.trigger.kind === "SIGNATURE" ? { kind: "SIGNATURE", signatureName: r.trigger.signatureName } : { kind: "MANUAL" },
+    // The signature id stays on the server.
+    trigger: r.trigger.kind === "SIGNATURE" ? { kind: "SIGNATURE", signatureName: r.trigger.signatureName } : r.trigger,
     basePoints: r.basePoints,
     label: r.label,
     kind: r.kind,
@@ -120,7 +121,8 @@ export function gameRunView(b: MockBroadcast, r: StoredRun): GameRunView {
     points: r.points,
     itemId: r.itemId,
     dice: r.dice ?? null,
-    wheel: r.wheel ?? null
+    wheel: r.wheel ?? null,
+    range: r.range ?? null
   };
 }
 
