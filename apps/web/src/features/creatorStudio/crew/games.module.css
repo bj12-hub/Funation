@@ -183,3 +183,30 @@
   width: 100%;
   text-align: center;
 }
+
+/* 랜덤시그 발동 구간: one row per tier (발동 → 시그 범위 · 후보 수), a warning under it when needed. */
+.tiers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tiers li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tierRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.tierRow input {
+  width: 110px;
+}

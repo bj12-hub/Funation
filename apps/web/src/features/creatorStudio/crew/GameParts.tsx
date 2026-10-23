@@ -49,10 +49,11 @@ export function TitleField({ name, placeholder, value, onChange }: { name: strin
   );
 }
 
-/** 자동 (+ the signatures it skips — pressed = 제외) and whether OBS shows the game between runs. */
+/** 자동 (+ the signatures it skips — pressed = 제외) and whether OBS shows the game between runs. `copy`: a game's own wording. */
 export function AutoFields({
   name,
   verb,
+  copy,
   auto,
   excluded,
   showIdle,
@@ -62,6 +63,7 @@ export function AutoFields({
   name: string;
   /** "돌리기" · "굴리기" */
   verb: string;
+  copy?: { auto: string; excluded: string; note: string };
   auto: boolean;
   excluded: string[];
   showIdle: boolean;
@@ -73,11 +75,11 @@ export function AutoFields({
       <div className={prize.field} role="group" aria-label={`${name} 자동`}>
         <label className={styles.checkRow}>
           <input type="checkbox" checked={auto} onChange={(e) => onChange({ auto: e.target.checked })} />
-          멤버에게 시그니처 후원이 들어오면 자동으로 {verb}
+          {copy?.auto ?? `멤버에게 시그니처 후원이 들어오면 자동으로 ${verb}`}
         </label>
         {auto && (
           <>
-            <span className={styles.muted}>자동으로 하지 않을 시그니처 (누르면 제외)</span>
+            <span className={styles.muted}>{copy?.excluded ?? "자동으로 하지 않을 시그니처 (누르면 제외)"}</span>
             <span className={prize.chips}>
               {signatures.length === 0 && <span className={styles.note}>만든 시그니처가 없어요.</span>}
               {signatures.map((s) => (
@@ -94,7 +96,8 @@ export function AutoFields({
               ))}
             </span>
             <span className={styles.note}>
-              후원자가 멤버를 고른 시그니처 후원(금액 일치 · 금액범위 포함)마다 한 번 하고, 그 후원이 기준 후원이 돼요. 멤버를 고르지 않은 후원은 수동으로 해 주세요.
+              {copy?.note ??
+                "후원자가 멤버를 고른 시그니처 후원(금액 일치 · 금액범위 · 랜덤시그 포함)마다 한 번 하고, 그 후원이 기준 후원이 돼요. 멤버를 고르지 않은 후원은 수동으로 해 주세요."}
             </span>
           </>
         )}
@@ -208,7 +211,9 @@ export function RunList({ name, runs, now }: { name: string; runs: GameRunView[]
         return (
           <li key={r.id}>
             <span className={styles.muted}>{time(r.at)}</span>
-            <span className={styles.chip}>{r.trigger.kind === "SIGNATURE" ? `자동 · ${r.trigger.signatureName}` : "수동"}</span>
+            <span className={styles.chip}>
+              {r.trigger.kind === "SIGNATURE" ? `자동 · ${r.trigger.signatureName}` : r.trigger.kind === "AMOUNT" ? `자동 · ${formatNumber(r.trigger.amount)} FN 발동` : "수동"}
+            </span>
             <span className={styles.boardName}>
               {r.memberColor && <span className={styles.dot} style={{ background: r.memberColor }} aria-hidden="true" />}
               {r.memberName}

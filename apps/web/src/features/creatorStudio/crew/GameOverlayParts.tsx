@@ -11,10 +11,13 @@ import styles from "./gameOverlay.module.css";
 /** Reel rows: copies of the items a strip runs through before it lands on the result. */
 const LOOPS = 5;
 
-/** The result line of a run: "×2 · +3,000점", "×2 · 기준 후원 없음", "+1,000점", "" for a 문구, "꽝" for a miss. */
+/** Points with their sign: "+3,000점", "−2,000점". */
+export const signedPoints = (n: number) => `${n < 0 ? "−" : "+"}${formatNumber(Math.abs(n))}점`;
+
+/** The result line of a run: "×2 · +3,000점", "×2 · 기준 후원 없음", "+1,000점" / "−2,000점", "" for a 문구, "꽝" for a miss. */
 export function gameEffect(r: Pick<GameRunView, "kind" | "value" | "points" | "basePoints">) {
-  if (r.kind === "MULTIPLY") return r.basePoints ? `×${r.value} · +${formatNumber(r.points)}점` : `×${r.value} · 기준 후원 없음`;
-  if (r.kind === "ADD") return `+${formatNumber(r.points)}점`;
+  if (r.kind === "MULTIPLY") return r.basePoints ? `×${r.value} · ${signedPoints(r.points)}` : `×${r.value} · 기준 후원 없음`;
+  if (r.kind === "ADD") return signedPoints(r.points);
   return r.kind === "MISS" ? "꽝" : "";
 }
 
@@ -99,6 +102,7 @@ export function GameCard({
               <span className={`${ov.label} ${styles.who}`}>
                 {run.memberColor && <i className={board.dot} style={{ background: run.memberColor }} aria-hidden="true" />} {run.memberName}
                 {run.trigger.kind === "SIGNATURE" && <span className={ov.muted}> · {run.trigger.signatureName}</span>}
+                {run.trigger.kind === "AMOUNT" && <span className={ov.muted}> · {formatNumber(run.trigger.amount)} FN 랜덤시그</span>}
               </span>
               {shown ? (
                 <>

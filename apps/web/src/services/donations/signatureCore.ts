@@ -47,6 +47,11 @@ export function isSignatureSound(url: string) {
   return !!id && !!findAsset(id, "SOUND") && assetUrl(id) === url;
 }
 
+/** A signature's image as alerts show it: a library image deleted since falls back to the first preset. */
+export const signatureImageOf = (s: ManagedSignature) => (isSignatureImage(s.imageUrl) ? s.imageUrl : SIGNATURE_IMAGE_PRESETS[0]);
+/** A signature's sound, while it is still in the library. */
+export const signatureSoundOf = (s: ManagedSignature) => (s.soundUrl && isSignatureSound(s.soundUrl) ? s.soundUrl : undefined);
+
 /** Active signatures in the creator's order, shaped for the donation panel. */
 export function activeSignatures(): Signature[] {
   return mockSignatures.items

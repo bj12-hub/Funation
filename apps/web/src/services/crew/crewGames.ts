@@ -7,6 +7,7 @@ import { mockCreator } from "@/services/creator/mockCreatorStore";
 import { isActiveMember, liveBroadcastOf } from "./crewCore";
 import { diceLive, diceSettingsOf, parseDiceSettings, runDice } from "./crewDiceCore";
 import { gameRunView, memberSources, usedSources, type RunStart, type StoredRun } from "./crewGameCore";
+import { parseRandomSigSettings, randomSigLive, randomSigSettingsOf } from "./crewRandomSigCore";
 import { sigCountSignatures } from "./crewSigCountCore";
 import { parseSpinSettings, runSpin, spinLive, spinSettingsOf } from "./crewSpinCore";
 import { parseTwoWheelSettings, runTwoWheel, twoWheelLive, twoWheelSettingsOf } from "./crewTwoWheelCore";
@@ -15,7 +16,7 @@ import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 /**
  * 점수 게임 Server Actions — code-first (no Figma frame; StreamDonate 참고, P2), route `/creator/crew/games`: 스핀머신 · 주사위
- * 게임 · 투휠 게임. Settings are kept per channel; runs belong to the live broadcast. Results are display points only.
+ * 게임 · 투휠 게임 · 랜덤시그. Settings are kept per channel; runs belong to the live broadcast. Results are display points only.
  */
 
 const assertMock = () => {
@@ -28,8 +29,8 @@ const signatureIds = () => sigCountSignatures().map((s) => s.id);
 /** 기준 후원 choices per member and game in the studio (the newest ones that game has not used). */
 const SOURCES_SHOWN = 10;
 
-/** How each game plays one run (the caller checks the game can play). */
-const PLAY: Record<GameKey, (b: MockBroadcast, start: RunStart) => StoredRun> = { SPIN: runSpin, DICE: runDice, TWO_WHEEL: runTwoWheel };
+/** How each game plays one run by hand (the caller checks the game can play). 랜덤시그 plays only for its 발동 금액. */
+const PLAY: Record<Exclude<GameKey, "RANDOM_SIG">, (b: MockBroadcast, start: RunStart) => StoredRun> = { SPIN: runSpin, DICE: runDice, TWO_WHEEL: runTwoWheel };
 
 function sourcesOf(b: MockBroadcast): Record<GameKey, Record<string, GameSource[]>> {
   const active = (mockCrew.crews[STUDIO_CHANNEL] ?? []).filter((m) => m.active);
@@ -46,7 +47,7 @@ function sourcesOf(b: MockBroadcast): Record<GameKey, Record<string, GameSource[
       ])
     );
   };
-  return { SPIN: forGame("SPIN"), DICE: forGame("DICE"), TWO_WHEEL: forGame("TWO_WHEEL") };
+  return { SPIN: forGame("SPIN"), DICE: forGame("DICE"), TWO_WHEEL: forGame("TWO_WHEEL"), RANDOM_SIG: {} };
 }
 
 export async function getGamesView(): Promise<GamesView | null> {
@@ -57,11 +58,21 @@ export async function getGamesView(): Promise<GamesView | null> {
   return {
     members: structuredClone(mockCrew.crews[STUDIO_CHANNEL] ?? []),
     live: live
-      ? { id: live.id, title: live.title, spin: spinLive(live), dice: diceLive(live), twoWheel: twoWheelLive(live), sources: sourcesOf(live), serverNow: new Date().toISOString() }
+      ? {
+          id: live.id,
+          title: live.title,
+          spin: spinLive(live),
+          dice: diceLive(live),
+          twoWheel: twoWheelLive(live),
+          randomSig: randomSigLive(live),
+          sources: sourcesOf(live),
+          serverNow: new Date().toISOString()
+        }
       : null,
     spinSettings: structuredClone(spinSettingsOf(STUDIO_CHANNEL)),
     diceSettings: structuredClone(diceSettingsOf(STUDIO_CHANNEL)),
     twoWheelSettings: structuredClone(twoWheelSettingsOf(STUDIO_CHANNEL)),
+    randomSigSettings: structuredClone(randomSigSettingsOf(STUDIO_CHANNEL)),
     signatures: sigCountSignatures(),
     overlayPath: `/overlay/crew/${mockCreator.integrationKey}`
   };
@@ -98,6 +109,17 @@ export async function saveTwoWheel(input: unknown): Promise<BroadcastResult> {
   return { status: "SAVED" };
 }
 
+/** Replaces the 랜덤시그 settings (켜기 · 발동 구간 · 기여도 방식 · 기본 배수 · 제외 시그 · 대기 화면). */
+export async function saveRandomSig(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const known = randomSigSettingsOf(STUDIO_CHANNEL).tiers.map((t) => t.id);
+  const parsed = parseRandomSigSettings(input, MOCK_FORBIDDEN_WORDS, signatureIds(), known);
+  if ("message" in parsed) return { status: "INVALID", message: parsed.message };
+  (mockCrew.randomSigs ??= {})[STUDIO_CHANNEL] = parsed;
+  return { status: "SAVED" };
+}
+
 /**
  * 수동: plays `game` once for an active member, optionally on one of their donations in the broadcast (기준 후원: a 배수
  * result multiplies its points; a donation plays each game at most once). `requestId` is the run id, so a retry returns
@@ -109,6 +131,7 @@ export async function playGame(input: unknown): Promise<GamePlayResult> {
   const v = rec(input);
   const game = GAMES.find((g) => g.key === v.game)?.key;
   if (!game) return { status: "INVALID", message: "게임을 골라 주세요." };
+  if (game === "RANDOM_SIG") return { status: "INVALID", message: "랜덤시그는 발동 금액 후원이 들어올 때만 돌아가요." };
   const live = liveBroadcastOf(STUDIO_CHANNEL);
   if (!live || live.id !== v.broadcastId) return notLive;
   if (!validId(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
