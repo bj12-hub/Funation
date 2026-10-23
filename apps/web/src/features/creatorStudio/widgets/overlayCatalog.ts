@@ -104,6 +104,16 @@ export const OVERLAYS: OverlayEntry[] = [
     manage: "/creator/widgets/tools"
   },
   {
+    id: "text-slot",
+    target: "subtitle",
+    group: "표시·자막",
+    title: "텍스트 슬롯",
+    description: "슬롯 20개에 저장한 문구를 띄워요. 주소 끝의 ?slot=1 을 2 · 3 …으로 바꾸면 다른 슬롯이에요.",
+    size: "800 × 200",
+    path: (k) => `/overlay/tool/text/${k}?slot=1`,
+    manage: "/creator/widgets/tools"
+  },
+  {
     id: "timer",
     target: "timer",
     group: "타이머",

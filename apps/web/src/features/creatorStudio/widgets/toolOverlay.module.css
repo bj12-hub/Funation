@@ -319,8 +319,29 @@
   font-size: 30px;
 }
 
+/* ── 텍스트 슬롯 (2026-10-23) ── */
+.textSlot {
+  margin: 0;
+  padding: 10px 18px;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* 세로 스크롤: the text runs up from below the source and starts again. */
+.textScroll {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.textScrollTrack {
+  padding-top: 100vh;
+  animation: roll 20s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .marqueeTrack span,
+  .textScrollTrack,
   .creditsRoll,
   .crawlText {
     padding: 0;

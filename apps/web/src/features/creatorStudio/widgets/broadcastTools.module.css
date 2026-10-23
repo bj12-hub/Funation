@@ -35,3 +35,61 @@
     grid-column: 1 / -1;
   }
 }
+
+/* 방송 도구 › 텍스트 슬롯 (2026-10-23). */
+.slotChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.slotChip {
+  max-width: 160px;
+  height: 30px;
+  padding: 0 10px;
+  overflow: hidden;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-12);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.slotChip[data-filled] {
+  color: var(--color-text-primary);
+}
+
+.slotChip[aria-selected="true"] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-text-primary);
+}
+
+.textLook {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+
+.field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.color {
+  width: 40px;
+  height: 34px;
+  padding: 2px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-8);
+  background: var(--color-input-bg);
+  cursor: pointer;
+}
+
+.color:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
