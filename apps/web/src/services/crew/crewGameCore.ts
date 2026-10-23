@@ -122,7 +122,8 @@ export function gameRunView(b: MockBroadcast, r: StoredRun): GameRunView {
     itemId: r.itemId,
     dice: r.dice ?? null,
     wheel: r.wheel ?? null,
-    range: r.range ?? null
+    range: r.range ?? null,
+    from: r.from ? { memberName: (mockCrew.crews[b.channelId] ?? []).find((x) => x.id === r.from!.memberId)?.name ?? "삭제된 멤버", amount: r.from.amount } : null
   };
 }
 
