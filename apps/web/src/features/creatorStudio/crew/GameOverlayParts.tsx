@@ -111,6 +111,12 @@ export function GameCard({
                     {formatNumber(run.trigger.amount)} FN {run.game === "MEDLEY" ? "메들리" : "랜덤시그"}
                   </span>
                 )}
+                {run.trigger.kind === "DONATION" && (
+                  <span className={ov.muted}>
+                    {run.memberName ? " · " : ""}
+                    {formatNumber(run.trigger.amount)} FN 후원
+                  </span>
+                )}
               </span>
               {shown ? (
                 <>

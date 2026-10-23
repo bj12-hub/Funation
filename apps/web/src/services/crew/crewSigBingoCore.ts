@@ -1,8 +1,7 @@
-import { randomInt } from "node:crypto";
 import { mockSignatures, signatureImageOf } from "@/services/donations/signatureCore";
 import { SIGNATURE_LIMITS } from "@/services/donations/signatureTypes";
 import { isActiveMember, liveBroadcastOf } from "./crewCore";
-import { gameRunsView, parseGameCommon, recordRun } from "./crewGameCore";
+import { gameRunsView, parseGameCommon, recordRun, shuffled } from "./crewGameCore";
 import {
   DEFAULT_SIG_BINGO,
   SIG_BINGO_BONUS_MAX,
@@ -52,16 +51,6 @@ export function parseSigBingoSettings(input: unknown, forbidden: string[], signa
 /** The signatures a new board draws from: active, not excluded (빙고 제외 시그), within the 금액 범위. */
 const eligibleOf = (s: SigBingoSettings) =>
   mockSignatures.items.filter((x) => x.active && !s.excluded.includes(x.id) && (s.priceMin === null || x.price >= s.priceMin) && (s.priceMax === null || x.price <= s.priceMax));
-
-/** A copy in random order (server randomness). */
-function shuffled<T>(items: T[]): T[] {
-  const out = [...items];
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = randomInt(i + 1);
-    [out[i], out[j]] = [out[j], out[i]];
-  }
-  return out;
-}
 
 /**
  * 빙고 시작: a new board from the current settings — size² cells of eligible signatures in random places (each used in turn
