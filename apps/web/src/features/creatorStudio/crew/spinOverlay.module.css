@@ -1,0 +1,102 @@
+/* 스핀머신 OBS overlay (code-first) in the 크루 점수판 오버레이 테마 (tokens from overlayTheme.module.css). */
+
+.machine {
+  --spin-row: 56px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(100%, 360px);
+  box-sizing: border-box;
+  padding: 16px 18px;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  font-size: 20px;
+}
+
+.queue {
+  font-size: 12px;
+}
+
+/* Three rows; the middle one is the pay line. */
+.window {
+  position: relative;
+  height: calc(var(--spin-row) * 3);
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--ov-chip-bg);
+  -webkit-mask-image: linear-gradient(transparent, #000 28%, #000 72%, transparent);
+  mask-image: linear-gradient(transparent, #000 28%, #000 72%, transparent);
+}
+
+.window::after {
+  position: absolute;
+  top: var(--spin-row);
+  right: 0;
+  left: 0;
+  height: var(--spin-row);
+  box-sizing: border-box;
+  border-top: 2px solid var(--ov-accent);
+  border-bottom: 2px solid var(--ov-accent);
+  content: "";
+  pointer-events: none;
+}
+
+.window[data-hit]::after {
+  background: color-mix(in srgb, var(--ov-accent) 18%, transparent);
+}
+
+.strip {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.strip li {
+  display: grid;
+  place-items: center;
+  height: var(--spin-row);
+  overflow: hidden;
+  padding: 0 12px;
+  color: var(--ov-chip-ink);
+  font-size: 24px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.spinning {
+  animation: reel var(--reel-sec) cubic-bezier(0.12, 0.6, 0.18, 1) both;
+}
+
+@keyframes reel {
+  from {
+    transform: translateY(0);
+  }
+
+  to {
+    transform: translateY(var(--reel-end));
+  }
+}
+
+.result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-height: 56px;
+  margin: 0;
+  text-align: center;
+}
+
+.who {
+  font-size: 16px;
+}
+
+.effect {
+  font-size: 24px;
+}

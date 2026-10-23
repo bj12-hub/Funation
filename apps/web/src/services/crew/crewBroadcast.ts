@@ -26,9 +26,10 @@ import {
   type BroadcastView,
   type TeamKey
 } from "./crewTypes";
-import { battleGroups, battleRulesOf, fanNotesView, gradeMultipliersOf, excelOf, liveBroadcastOf, scoreboardRows, scoredFeed, stealRecordView, stealRulesOf, timesMultiplier, windowReceived, windowScores, windowSteals } from "./crewCore";
+import { battleGroups, battleRulesOf, fanNotesView, gradeMultipliersOf, excelOf, liveBroadcastOf, scoreboardRows, scoredFeed, stealRecordView, stealRulesOf, timesMultiplier, windowGames, windowReceived, windowScores, windowSteals } from "./crewCore";
 import { prizeBoardLive, prizeSettingsOf } from "./crewPrizeCore";
 import { sigCountLive, sigCountSettingsOf, sigCountSignatures } from "./crewSigCountCore";
+import { spinLive } from "./crewSpinCore";
 import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 /**
@@ -81,6 +82,7 @@ function liveView(b: MockBroadcast): BroadcastLive {
     fanNotes: fanNotesView(b),
     prizeBoard: prizeBoardLive(b, rows),
     sigCount: sigCountLive(b),
+    spin: spinLive(b),
     serverNow: new Date().toISOString()
   };
 }
@@ -94,6 +96,7 @@ function battleView(b: MockBroadcast, x: NonNullable<MockBroadcast["battles"]>[n
   const to = running ? null : new Date(endMs).toISOString();
   const received = windowReceived(b, x.startedAt, to);
   const steals = windowSteals(b, x.startedAt, to);
+  const games = windowGames(b, x.startedAt, to);
   const byId = new Map(members().map((m) => [m.id, m]));
   const multiplier = x.multiplier ?? 1;
   const sum = (scores: Map<string, number>, ids: string[]) => ids.reduce((s, id) => s + (scores.get(id) ?? 0), 0);
@@ -107,8 +110,8 @@ function battleView(b: MockBroadcast, x: NonNullable<MockBroadcast["battles"]>[n
         color: one?.color ?? (x.mode === "MULTI_TEAMS" ? MULTI_TEAM_COLORS[i] : TEAM_COLOR[key as TeamKey]),
         memberIds: [...memberIds],
         memberNames: memberIds.map((id) => byId.get(id)?.name ?? "삭제된 멤버"),
-        // 배틀 배수 multiplies what the side received; 기여도 강탈 moves points as they are (2026-10-07 결정).
-        score: timesMultiplier(sum(received, memberIds), multiplier) + sum(steals, memberIds)
+        // 배틀 배수 multiplies what the side received; 기여도 강탈 (2026-10-07 결정) and 점수 게임 count as they are.
+        score: timesMultiplier(sum(received, memberIds), multiplier) + sum(steals, memberIds) + sum(games, memberIds)
       };
     });
     return { sides, ...battleStanding(sides) };

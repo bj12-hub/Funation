@@ -1,4 +1,20 @@
-import type { AssignMode, BattleRules, CrewGrade, FanNoteRules, CrewMember, ExcelSettings, FeedEntry, PrizeBoardSettings, ScenarioPart, SigCountSettings, StealRules, StealSlot } from "./crewTypes";
+import type {
+  AssignMode,
+  BattleRules,
+  CrewGrade,
+  FanNoteRules,
+  CrewMember,
+  ExcelSettings,
+  FeedEntry,
+  GameKey,
+  PrizeBoardSettings,
+  ScenarioPart,
+  SigCountSettings,
+  SpinKind,
+  SpinSettings,
+  StealRules,
+  StealSlot
+} from "./crewTypes";
 
 /**
  * Development-only crew state, keyed by channel id: the studio creator's own channel
@@ -68,6 +84,26 @@ export type MockBroadcast = {
   }[];
   /** 기여도 강탈: points moved from `target` to `thief` (request id = record id, so a retry returns the same spin). */
   steals?: { id: string; at: string; thief: string; target: string; slotId: string; slotLabel: string; points: number }[];
+  /**
+   * 점수 게임 runs (oldest first): the drawn item and its points, fixed when drawn; `showAt` · `revealAt` queue them on OBS.
+   * `sourceId`: the 기준 후원 (attribution donation id or 후원 리스트 entry id) — one run per donation and game.
+   */
+  gameRuns?: {
+    id: string;
+    game: GameKey;
+    at: string;
+    showAt: string;
+    revealAt: string;
+    memberId: string;
+    trigger: { kind: "SIGNATURE"; signatureId: string; signatureName: string } | { kind: "MANUAL" };
+    sourceId: string | null;
+    basePoints: number;
+    itemId: string;
+    label: string;
+    kind: SpinKind;
+    value: number;
+    points: number;
+  }[];
   /** 콘텐츠 시나리오 progress: plan snapshot, running part and part history (request ids dedupe 다음 부로). */
   scenario?: { parts: ScenarioPart[]; current: number | null; history: { index: number; startedAt: string; endedAt: string | null }[]; requests: string[] };
   /** 팬 메시지 · 요청사항 from the room (newest last); `userId` never leaves the server. */
@@ -106,6 +142,8 @@ type MockCrew = {
   prizeBoards?: Record<string, PrizeBoardSettings>;
   /** 시그 카운트 settings per channel (missing = DEFAULT_SIG_COUNT). */
   sigCounts?: Record<string, SigCountSettings>;
+  /** 스핀머신 settings per channel (missing = DEFAULT_SPIN). */
+  spinMachines?: Record<string, SpinSettings>;
   /** 멤버 추가 request ids already applied (a retried add is not a second member). */
   memberRequests?: string[];
 };

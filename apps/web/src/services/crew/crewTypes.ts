@@ -53,7 +53,8 @@ export const BROADCAST_TITLE_MAX = 40;
  * the member; `stolen` = net 기여도 강탈 (taken minus lost).
  */
 /** `battle` = extra points from 배틀 배수 (what the member received in a ×n battle counts n times; 2026-10-05 결정). */
-export type ScoreRow = { memberId: string; name: string; color: string; team: TeamKey | null; donated: number; feed: number; adjust: number; stolen: number; battle: number; grade: number; score: number };
+/** `game`: points from 점수 게임 results (스핀머신 …), counted once the result shows on OBS. */
+export type ScoreRow = { memberId: string; name: string; color: string; team: TeamKey | null; donated: number; feed: number; adjust: number; stolen: number; battle: number; grade: number; game: number; score: number };
 
 // ── 후원 리스트 (키워드 배정 · 한방) — reference: funnation 엑셀콘 v3 ────────────────────
 
@@ -233,6 +234,8 @@ export type BroadcastLive = {
   prizeBoard: PrizeBoardLive;
   /** 시그 카운트: signatures each member received during this broadcast (OBS `?sigcount`). */
   sigCount: SigCountLive;
+  /** 스핀머신: settings, recent runs (with their OBS timing) and the 문구 tally (OBS `?spin` · `?spintally`). */
+  spin: SpinLive;
   /** Server clock when this view was read: timers (시나리오 경과, 강탈 card) correct the browser's clock with it. */
   serverNow: string;
 };
@@ -349,6 +352,114 @@ export type SigCountLive = {
   /** Per column, over every row (하단 합계). */
   totals: number[];
 };
+
+// ── 점수 게임 (P2) — code-first, StreamDonate 참고 (docs/research/streamdonate-reference.md) ─────────────────────
+// A game draws its result on the server; the result is display points only (FN · 지갑 · 수익 · 정산 never move).
+
+/** Games on the shared engine (crewGameCore). 주사위 · 투휠 · 랜덤시그 … come later. */
+export type GameKey = "SPIN";
+
+/**
+ * A queued OBS run starts SPIN_LEAD_SEC after it is drawn (the overlay polls every 3 seconds, so it starts from the top),
+ * spins for SPIN_REEL_SEC, then keeps the result for SPIN_RESULT_SEC before the next run.
+ */
+export const SPIN_LEAD_SEC = 3;
+export const SPIN_REEL_SEC = 4;
+export const SPIN_RESULT_SEC = 4;
+
+export const SPIN_TITLE_MAX = 20;
+export const SPIN_TITLE_DEFAULT = "스핀머신";
+export const SPIN_ITEMS_MAX = 12;
+export const SPIN_LABEL_MAX = 12;
+export const SPIN_WEIGHT_MAX = 100;
+export const SPIN_MULTIPLIER_MAX = 10;
+export const SPIN_POINTS_MAX = 10_000_000;
+
+/**
+ * MULTIPLY: the triggering donation's points × value (adds (value − 1) × those points). ADD: + value points. TEXT: a 문구
+ * only (벌칙 · 미션 — counted in BJ별 집계). MISS: 꽝.
+ */
+export type SpinKind = "MULTIPLY" | "ADD" | "TEXT" | "MISS";
+export const SPIN_KINDS: { key: SpinKind; label: string }[] = [
+  { key: "MULTIPLY", label: "배수" },
+  { key: "ADD", label: "점수 더하기" },
+  { key: "TEXT", label: "문구 (벌칙 · 미션)" },
+  { key: "MISS", label: "꽝" }
+];
+
+/** A reel item. `value`: the 배수 (MULTIPLY, two decimals) or the points (ADD); 0 for TEXT · MISS. */
+export type SpinItem = { id: string; label: string; kind: SpinKind; value: number; weight: number };
+
+/** Kept per channel across broadcasts, editable before going live. */
+export type SpinSettings = {
+  title: string;
+  items: SpinItem[];
+  /** 자동 스핀: each 시그니처 후원 sent to a member (금액 일치 · 금액범위 included) spins once — `excluded` signatures do not. */
+  auto: boolean;
+  excluded: string[];
+  /** The OBS machine stays on screen between spins (otherwise it shows only while a run plays). */
+  showIdle: boolean;
+};
+
+export const DEFAULT_SPIN: SpinSettings = { title: "", items: [], auto: false, excluded: [], showIdle: true };
+
+/** 예시 칸 (일반적인 기준) the editor offers as a start; the creator sets their own odds and values. */
+export const SPIN_EXAMPLE_ITEMS: Omit<SpinItem, "id">[] = [
+  { label: "×2", kind: "MULTIPLY", value: 2, weight: 10 },
+  { label: "×3", kind: "MULTIPLY", value: 3, weight: 4 },
+  { label: "+1,000", kind: "ADD", value: 1_000, weight: 10 },
+  { label: "애교 한 번", kind: "TEXT", value: 0, weight: 8 },
+  { label: "꽝", kind: "MISS", value: 0, weight: 18 }
+];
+
+/** What started a run: a 시그니처 후원 to the member (자동), or the operator (수동). */
+export type GameTrigger = { kind: "SIGNATURE"; signatureName: string } | { kind: "MANUAL" };
+
+export type GameRunView = {
+  id: string;
+  game: GameKey;
+  at: string;
+  /** When the OBS reel starts, and when the result shows — the points count from then (`at` stays their time). */
+  showAt: string;
+  revealAt: string;
+  memberId: string;
+  memberName: string;
+  memberColor: string | null;
+  trigger: GameTrigger;
+  /** The 기준 후원's points when the run was drawn (0 = none). */
+  basePoints: number;
+  itemId: string;
+  label: string;
+  kind: SpinKind;
+  value: number;
+  /** Points the result adds (MULTIPLY · ADD); 0 for TEXT · MISS. */
+  points: number;
+};
+
+/** 스핀머신 BJ별 집계: how many times each member got each 문구 (TEXT) result, columns in first-seen order. */
+export type SpinTally = { columns: string[]; rows: { memberId: string; name: string; color: string | null; counts: number[]; total: number }[] };
+
+export type SpinLive = {
+  settings: SpinSettings;
+  /** Newest first (up to SPIN_RUNS_SHOWN). */
+  runs: GameRunView[];
+  tally: SpinTally;
+};
+export const SPIN_RUNS_SHOWN = 30;
+
+/** A donation a member received in the broadcast, offered as the 기준 후원 of a 수동 스핀 (studio only: names as sent). */
+export type GameSource = { id: string; at: string; label: string; points: number };
+
+/** `/creator/crew/games` (점수 게임). */
+export type GamesView = {
+  members: CrewMember[];
+  live: { id: string; title: string; spin: SpinLive; sources: Record<string, GameSource[]>; serverNow: string } | null;
+  spinSettings: SpinSettings;
+  signatures: { id: string; name: string; group: string; active: boolean }[];
+  overlayPath: string;
+};
+
+export type GameSpinResult = { status: "SPUN"; run: GameRunView } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
 
 // ── 콘텐츠 시나리오 도우미 (1부 ~ 5부) — code-first ─────────────────────────────────────────────
 
