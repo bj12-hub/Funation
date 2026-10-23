@@ -4,31 +4,32 @@ import { formatKstTime, formatNumber } from "@/lib/format";
 import { clearRelay, saveRelay } from "@/services/crew/crewGames";
 import {
   RELAY_EXAMPLE_TIERS,
-  RELAY_MULTIPLIER_MAX,
-  RELAY_TIERS_MAX,
   RELAY_TITLE_DEFAULT,
   type CrewMember,
   type GamesView,
   type RelaySettings
 } from "@/services/crew/crewTypes";
-import { AutoFields, FormActions, OverlayAddress, RunList, TitleField, useSettingsDraft, type LiveGames, type RunAction } from "./GameParts";
+import {
+  AmountTiersField,
+  AutoFields,
+  FormActions,
+  OverlayAddress,
+  RunList,
+  TitleField,
+  fromEditTiers,
+  toEditTiers,
+  useSettingsDraft,
+  type EditAmountTier,
+  type LiveGames,
+  type RunAction
+} from "./GameParts";
 import styles from "./crew.module.css";
-import games from "./games.module.css";
 import prize from "./prize.module.css";
 
-/** The editor keeps the numbers as typed; a blank 최대 = 이상 (no upper end). */
-type EditTier = { id: string; min: string; max: string; multiplier: string };
-type Draft = Omit<RelaySettings, "tiers"> & { tiers: EditTier[] };
+type Draft = Omit<RelaySettings, "tiers"> & { tiers: EditAmountTier[] };
 
-const toDraft = (s: RelaySettings): Draft => ({
-  ...s,
-  tiers: s.tiers.map((t) => ({ id: t.id, min: String(t.min), max: t.max === null ? "" : String(t.max), multiplier: String(t.multiplier) }))
-});
-const fromDraft = (d: Draft) => ({
-  ...d,
-  tiers: d.tiers.map((t) => ({ id: t.id, min: Number(t.min), max: t.max.trim() === "" ? null : Number(t.max), multiplier: Number(t.multiplier) }))
-});
-const newId = () => `new-${crypto.randomUUID().slice(0, 8)}`;
+const toDraft = (s: RelaySettings): Draft => ({ ...s, tiers: toEditTiers(s.tiers) });
+const fromDraft = (d: Draft) => ({ ...d, tiers: fromEditTiers(d.tiers) });
 
 /**
  * 기여도 릴레이 — code-first (no Figma frame; StreamDonate 기여도 릴레이 참고), inside `/creator/crew/games`. 트리거 BJ and
@@ -57,7 +58,6 @@ export function RelayPanel({
   const { draft, edit, dirty, reset } = useSettingsDraft(settings, toDraft, fromDraft);
   const known = new Set(signatures.map((s) => s.id));
   const active = members.filter((m) => m.active);
-  const setTier = (i: number, patch: Partial<EditTier>) => edit({ tiers: draft.tiers.map((t, j) => (j === i ? { ...t, ...patch } : t)) });
   const relay = live?.relay;
 
   return (
@@ -93,78 +93,13 @@ export function RelayPanel({
           </select>
         </div>
 
-        <div className={prize.field}>
-          <span className={styles.muted}>
-            금액 구간 ({draft.tiers.length}/{RELAY_TIERS_MAX})
-          </span>
-          {draft.tiers.length > 0 && (
-            <ul className={games.tiers}>
-              {draft.tiers.map((t, i) => (
-                <li key={t.id}>
-                  <span className={games.tierRow}>
-                    <input
-                      className={styles.inputSmall}
-                      type="number"
-                      inputMode="numeric"
-                      aria-label={`구간 ${i + 1} 최소 금액`}
-                      placeholder="최소"
-                      value={t.min}
-                      onChange={(e) => setTier(i, { min: e.target.value })}
-                    />
-                    <span className={styles.muted}>FN 이상 ~</span>
-                    <input
-                      className={styles.inputSmall}
-                      type="number"
-                      inputMode="numeric"
-                      aria-label={`구간 ${i + 1} 최대 금액`}
-                      placeholder="비우면 이상"
-                      value={t.max}
-                      onChange={(e) => setTier(i, { max: e.target.value })}
-                    />
-                    <span className={styles.muted}>FN →</span>
-                    <input
-                      className={styles.inputSmall}
-                      type="number"
-                      inputMode="decimal"
-                      aria-label={`구간 ${i + 1} 배수`}
-                      step={0.01}
-                      min={1.01}
-                      max={RELAY_MULTIPLIER_MAX}
-                      value={t.multiplier}
-                      onChange={(e) => setTier(i, { multiplier: e.target.value })}
-                    />
-                    <span className={styles.muted}>배</span>
-                    <button type="button" className={styles.ghost} onClick={() => edit({ tiers: draft.tiers.filter((_, j) => j !== i) })}>
-                      삭제
-                    </button>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-          <span className={prize.inline}>
-            <button
-              type="button"
-              className={styles.ghost}
-              disabled={draft.tiers.length >= RELAY_TIERS_MAX}
-              onClick={() => edit({ tiers: [...draft.tiers, { id: newId(), min: "", max: "", multiplier: "2" }] })}
-            >
-              + 구간 추가
-            </button>
-            {draft.tiers.length === 0 && (
-              <button
-                type="button"
-                className={styles.ghost}
-                onClick={() => edit({ tiers: RELAY_EXAMPLE_TIERS.map((t) => ({ id: newId(), min: String(t.min), max: t.max === null ? "" : String(t.max), multiplier: String(t.multiplier) })) })}
-              >
-                예시로 채우기
-              </button>
-            )}
-          </span>
-          <span className={styles.note}>
-            위에서부터 맞는 첫 구간의 배수가 적용돼요. 어느 구간에도 안 맞으면 효과가 없어요(1배). 예시는 StreamDonate 기본값(원 단위)이라 채널 시그니처 가격에 맞게 바꿔 주세요.
-          </span>
-        </div>
+        <AmountTiersField
+          name="릴레이"
+          tiers={draft.tiers}
+          onChange={(tiers) => edit({ tiers })}
+          example={RELAY_EXAMPLE_TIERS}
+          note="위에서부터 맞는 첫 구간의 배수가 적용돼요. 어느 구간에도 안 맞으면 효과가 없어요(1배). 예시는 StreamDonate 기본값(원 단위)이라 채널 시그니처 가격에 맞게 바꿔 주세요."
+        />
 
         <AutoFields
           name="기여도 릴레이"

@@ -248,3 +248,53 @@
     opacity: 1;
   }
 }
+
+/* ── 줍줍: the waiting stack, and a take ── */
+.jjStack {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+  padding: 6px 0;
+  list-style: none;
+}
+
+.jjStack li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.jjTake {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.jjBurst {
+  font-size: 48px;
+  line-height: 1;
+  animation: jjPop 0.5s cubic-bezier(0.2, 0.8, 0.3, 1.4) both;
+}
+
+.jjEmpty {
+  width: 96px;
+  height: 96px;
+  font-size: 48px;
+}
+
+@keyframes jjPop {
+  from {
+    transform: translateY(24px) scale(0.5);
+    opacity: 0;
+  }
+
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}

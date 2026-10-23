@@ -9,6 +9,7 @@ import type {
   DiceSettings,
   GameEffect,
   GameKey,
+  JupjupSettings,
   PrizeBoardSettings,
   RandomSigSettings,
   RelaySettings,
@@ -121,6 +122,11 @@ export type MockBroadcast = {
   fanNotesClosed?: boolean;
   /** 기여도 릴레이: the 배수 waiting for the next 시그니처 후원 (set by the 트리거 BJ's last one, taken once). */
   relay?: { pending: { multiplier: number; amount: number; at: string; donationId: string } | null };
+  /**
+   * 줍줍 stack (oldest first): the 지정 BJ's 시그니처 후원 waiting to be taken. `donationId` null = 수동 추가 (its request id
+   * is the item id, so a retried add is not a second item).
+   */
+  jupjup?: { stack: { id: string; at: string; memberId: string; signatureId: string; signatureName: string; amount: number; donationId: string | null }[] };
   /** 상품 순위표: shown on OBS (`?prize`) and its 구간 (시작 ~ 정지; a new 시작 restarts it). `starts`: 시작 request ids applied. */
   prizeBoard?: { visible: boolean; window: { startedAt: string; stoppedAt: string | null } | null; starts: string[] };
   /** 시그 카운트: shown on OBS (`?sigcount`) and counted from `since` (null = the broadcast start; 다시 세기 sets it). */
@@ -162,6 +168,8 @@ type MockCrew = {
   randomSigs?: Record<string, RandomSigSettings>;
   /** 기여도 릴레이 settings per channel (missing = DEFAULT_RELAY). */
   relays?: Record<string, RelaySettings>;
+  /** 줍줍 settings per channel (missing = DEFAULT_JUPJUP). */
+  jupjups?: Record<string, JupjupSettings>;
   /** 멤버 추가 request ids already applied (a retried add is not a second member). */
   memberRequests?: string[];
 };
