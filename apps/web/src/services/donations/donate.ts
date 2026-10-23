@@ -12,7 +12,7 @@ import { matchesContent } from "@/services/creator/assetCore";
 import { shownOnStream } from "@/services/creator/donationPageCore";
 import { getCreatorById } from "@/services/creators/creators";
 import { attributeMemberDonation, isActiveMember, liveBroadcastOf, recordBroadcastDonation } from "@/services/crew/crewCore";
-import { spinForSignature } from "@/services/crew/crewSpinCore";
+import { gamesForSignature } from "@/services/crew/crewGameTriggers";
 import { MEMBER_NICKNAME_ID, attributeDonation, nicknameChangeable, ownsNickname, resolveBadges } from "@/services/supporter/identityCore";
 import { alertBadgeLabels } from "@/services/supporter/identityTypes";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
@@ -148,8 +148,8 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
       // Crew records keep the name as sent (방송 운영 후원 리스트, 크루 후원) and the name on stream (2026-10-09 결정).
       attributeMemberDonation(donationId, creator.id, request.memberId, request.amount, { donor, donorId, message: request.summary, shownDonor });
       if (!request.memberId) recordBroadcastDonation(creator.id, { donor, shownDonor, message: request.summary, fnAmount: request.amount });
-      // 스핀머신 자동 스핀 (점수 게임, 2026-10-23): a 시그니처 후원 to a member spins once while a crew broadcast is live.
-      spinForSignature(creator.id, { donationId, memberId: request.memberId, signatureId: signatureIdFor(request.type, request.amount, request.details), fnAmount: request.amount });
+      // 점수 게임 자동 (2026-10-23): a 시그니처 후원 to a member plays each game with 자동 on while a crew broadcast is live.
+      gamesForSignature(creator.id, { donationId, memberId: request.memberId, signatureId: signatureIdFor(request.type, request.amount, request.details), fnAmount: request.amount });
     }
     // 룰렛: the result is drawn now and revealed when the wheel spins (no FN prize — 2026-10-04 결정).
     // 뽑기: the prize is drawn now (stock goes down) and played on the 뽑기 overlay (no FN prize).

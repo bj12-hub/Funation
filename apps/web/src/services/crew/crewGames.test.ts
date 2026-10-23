@@ -156,23 +156,23 @@ describe("스핀머신", () => {
     const id = await m.start();
     await m.saveSpinMachine(settings({ items: [item({ kind: "ADD", label: "+500", value: 500 })] }));
     await m.sign(m.a.id, m.a.price, "cm-s2");
-    const sources = (await m.getGamesView())!.live!.sources["cm-s2"];
+    const sources = (await m.getGamesView())!.live!.sources.SPIN["cm-s2"];
     expect(sources).toEqual([{ id: expect.any(String), at: at(1).toISOString(), label: "홍길동", points: m.a.price }]);
 
-    const spin = (requestId: string, extra: Record<string, unknown> = {}) => m.spinMachine({ broadcastId: id, requestId, memberId: "cm-s2", sourceId: sources[0].id, ...extra });
+    const spin = (requestId: string, extra: Record<string, unknown> = {}) => m.playGame({ game: "SPIN", broadcastId: id, requestId, memberId: "cm-s2", sourceId: sources[0].id, ...extra });
     const res = await spin(key(1));
-    expect(res).toMatchObject({ status: "SPUN", run: { memberName: "하늘", label: "+500", points: 500, basePoints: m.a.price, trigger: { kind: "MANUAL" } } });
+    expect(res).toMatchObject({ status: "PLAYED", run: { memberName: "하늘", label: "+500", points: 500, basePoints: m.a.price, trigger: { kind: "MANUAL" } } });
     expect(await spin(key(1))).toEqual(res); // retried: the same run
-    expect(await spin(key(2))).toEqual({ status: "INVALID", message: "이미 스핀을 돌린 후원이에요." });
-    expect((await m.getGamesView())!.live!.sources["cm-s2"]).toEqual([]);
+    expect(await spin(key(2))).toEqual({ status: "INVALID", message: "이 게임을 이미 돌린 후원이에요." });
+    expect((await m.getGamesView())!.live!.sources.SPIN["cm-s2"]).toEqual([]);
     expect(await spin(key(3), { sourceId: "dn-nope" })).toEqual({ status: "INVALID", message: "기준 후원을 다시 골라 주세요." });
     // Another member's donation is not this member's 기준 후원.
     expect(await spin(key(4), { memberId: "cm-s3" })).toEqual({ status: "INVALID", message: "기준 후원을 다시 골라 주세요." });
-    expect(await spin(key(5), { sourceId: null })).toMatchObject({ status: "SPUN", run: { basePoints: 0, points: 500 } });
+    expect(await spin(key(5), { sourceId: null })).toMatchObject({ status: "PLAYED", run: { basePoints: 0, points: 500 } });
 
-    expect(await spin(key(6), { memberId: "cm-s4", sourceId: null })).toEqual({ status: "INVALID", message: "돌릴 멤버를 골라 주세요." }); // inactive
+    expect(await spin(key(6), { memberId: "cm-s4", sourceId: null })).toEqual({ status: "INVALID", message: "멤버를 골라 주세요." }); // inactive
     expect((await spin("short")).status).toBe("INVALID");
-    expect(await m.spinMachine({ broadcastId: "bc-x", requestId: key(7), memberId: "cm-s2" })).toEqual({ status: "INVALID", message: "진행 중인 방송이 아니에요." });
+    expect(await m.playGame({ game: "SPIN", broadcastId: "bc-x", requestId: key(7), memberId: "cm-s2" })).toEqual({ status: "INVALID", message: "진행 중인 방송이 아니에요." });
     await m.saveSpinMachine(settings({ items: [] }));
     expect(await spin(key(8), { sourceId: null })).toEqual({ status: "INVALID", message: "먼저 스핀머신 칸을 만들어 주세요." });
     signIn(["SUPPORTER"]);
@@ -184,14 +184,14 @@ describe("스핀머신", () => {
     const id = await m.start();
     await m.saveSpinMachine(settings({ items: [item({ kind: "TEXT", label: "애교" })] }));
     await m.startBattle({ broadcastId: id, requestId: key(20), mode: "MEMBERS", memberA: "cm-s1", memberB: "cm-s2", durationSec: 600, multiplier: 2 });
-    await m.spinMachine({ broadcastId: id, requestId: key(21), memberId: "cm-s1", sourceId: null });
-    await m.spinMachine({ broadcastId: id, requestId: key(22), memberId: "cm-s1", sourceId: null });
+    await m.playGame({ game: "SPIN", broadcastId: id, requestId: key(21), memberId: "cm-s1", sourceId: null });
+    await m.playGame({ game: "SPIN", broadcastId: id, requestId: key(22), memberId: "cm-s1", sourceId: null });
     expect((await m.getBroadcastView())!.live!.spin.tally.rows).toEqual([]); // still spinning
     vi.setSystemTime(at(16));
     expect((await m.getBroadcastView())!.live!.spin.tally).toEqual({ columns: ["애교"], rows: [{ memberId: "cm-s1", name: "길동", color: "#8b5cf6", counts: [2], total: 2 }] });
 
     await m.saveSpinMachine(settings({ items: [item({ kind: "ADD", label: "+1,000", value: 1_000 })] }));
-    await m.spinMachine({ broadcastId: id, requestId: key(23), memberId: "cm-s1", sourceId: null });
+    await m.playGame({ game: "SPIN", broadcastId: id, requestId: key(23), memberId: "cm-s1", sourceId: null });
     vi.setSystemTime(at(30));
     const live = (await m.getBroadcastView())!.live!;
     expect(live.battles[0].matches[0].sides[0].score).toBe(1_000); // ×2 battle: the game result counts as it is

@@ -6,14 +6,16 @@ import type {
   CrewMember,
   ExcelSettings,
   FeedEntry,
+  DiceSettings,
+  GameEffect,
   GameKey,
   PrizeBoardSettings,
   ScenarioPart,
   SigCountSettings,
-  SpinKind,
   SpinSettings,
   StealRules,
-  StealSlot
+  StealSlot,
+  TwoWheelSettings
 } from "./crewTypes";
 
 /**
@@ -85,8 +87,9 @@ export type MockBroadcast = {
   /** 기여도 강탈: points moved from `target` to `thief` (request id = record id, so a retry returns the same spin). */
   steals?: { id: string; at: string; thief: string; target: string; slotId: string; slotLabel: string; points: number }[];
   /**
-   * 점수 게임 runs (oldest first): the drawn item and its points, fixed when drawn; `showAt` · `revealAt` queue them on OBS.
+   * 점수 게임 runs (oldest first): the result and its points, fixed when drawn; `showAt` · `revealAt` queue them on OBS.
    * `sourceId`: the 기준 후원 (attribution donation id or 후원 리스트 entry id) — one run per donation and game.
+   * `itemId` (스핀머신) · `dice` (주사위) · `wheel` (투휠): what was drawn.
    */
   gameRuns?: {
     id: string;
@@ -98,9 +101,11 @@ export type MockBroadcast = {
     trigger: { kind: "SIGNATURE"; signatureId: string; signatureName: string } | { kind: "MANUAL" };
     sourceId: string | null;
     basePoints: number;
-    itemId: string;
+    itemId: string | null;
+    dice?: [number, number];
+    wheel?: { op: "ADD" | "MULTIPLY"; n: number };
     label: string;
-    kind: SpinKind;
+    kind: GameEffect;
     value: number;
     points: number;
   }[];
@@ -144,6 +149,9 @@ type MockCrew = {
   sigCounts?: Record<string, SigCountSettings>;
   /** 스핀머신 settings per channel (missing = DEFAULT_SPIN). */
   spinMachines?: Record<string, SpinSettings>;
+  /** 주사위 게임 · 투휠 게임 settings per channel (missing = DEFAULT_DICE · DEFAULT_TWO_WHEEL). */
+  diceGames?: Record<string, DiceSettings>;
+  twoWheels?: Record<string, TwoWheelSettings>;
   /** 멤버 추가 request ids already applied (a retried add is not a second member). */
   memberRequests?: string[];
 };
