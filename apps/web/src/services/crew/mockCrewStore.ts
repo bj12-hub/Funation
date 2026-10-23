@@ -12,6 +12,7 @@ import type {
   GridDrawSettings,
   GridDrawSize,
   GridPrizeKind,
+  SigHunterSettings,
   JupjupSettings,
   MedleySettings,
   SigBingoMode,
@@ -117,6 +118,8 @@ export type MockBroadcast = {
     wheel?: { op: "ADD" | "MULTIPLY"; n: number };
     range?: [number, number];
     from?: { memberId: string; amount: number };
+    /** Points the run moves for other members (시그니처 헌터 몰수권), counted with the run. */
+    shares?: { memberId: string; points: number }[];
     label: string;
     kind: GameEffect;
     value: number;
@@ -169,6 +172,25 @@ export type MockBroadcast = {
     lastOpened: number | null;
     resetAt: string | null;
   };
+  /**
+   * 시그니처 헌터 board (the current 라운드; 헌트 시작 replaces it): its slots — the signature, a hidden 몰수권, and who bought
+   * it (`points`: the 기여도 a 몰수권 can take; `absorbedBy`: who took it). `multiplier`: the 라운드 배수 as it was at its
+   * start. `advanceAt`: set when the last slot sells — the next 라운드 replaces this one then (or at the next sale).
+   * `requestId`: the start request (a retried start is not a new hunt).
+   */
+  sigHunter?: {
+    requestId: string;
+    startedAt: string;
+    round: number;
+    multiplier: number;
+    slots: {
+      signatureId: string;
+      forfeit: boolean;
+      sold: { memberId: string | null; at: string; revealAt: string; donationId: string | null; points: number; absorbedBy: string | null } | null;
+    }[];
+    lastSold: number | null;
+    advanceAt: string | null;
+  };
   /** 상품 순위표: shown on OBS (`?prize`) and its 구간 (시작 ~ 정지; a new 시작 restarts it). `starts`: 시작 request ids applied. */
   prizeBoard?: { visible: boolean; window: { startedAt: string; stoppedAt: string | null } | null; starts: string[] };
   /** 시그 카운트: shown on OBS (`?sigcount`) and counted from `since` (null = the broadcast start; 다시 세기 sets it). */
@@ -218,6 +240,8 @@ type MockCrew = {
   sigBingos?: Record<string, SigBingoSettings>;
   /** 복불복 뽑기판 settings per channel (missing = DEFAULT_GRID_DRAW). */
   gridDraws?: Record<string, GridDrawSettings>;
+  /** 시그니처 헌터 settings per channel (missing = DEFAULT_SIG_HUNTER). */
+  sigHunters?: Record<string, SigHunterSettings>;
   /** 멤버 추가 request ids already applied (a retried add is not a second member). */
   memberRequests?: string[];
 };

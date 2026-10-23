@@ -245,6 +245,8 @@ export type BroadcastLive = {
   sigBingo: SigBingoLive;
   /** Closed cells come without their prize here, and the settings without the prize list (OBS); the studio's GamesView has them. */
   gridDraw: GridDrawLive;
+  /** Unsold slots come without their 몰수권 here (OBS); the studio's GamesView has them. */
+  sigHunter: SigHunterLive;
   /** Server clock when this view was read: timers (시나리오 경과, 강탈 card) correct the browser's clock with it. */
   serverNow: string;
 };
@@ -366,7 +368,7 @@ export type SigCountLive = {
 // A game draws its result on the server; the result is display points only (FN · 지갑 · 수익 · 정산 never move).
 
 /** Games on the shared engine (crewGameCore). `param`: the OBS view (`?spin`). */
-export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL" | "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW";
+export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL" | "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW" | "SIG_HUNTER";
 export const GAMES: { key: GameKey; label: string; param: string }[] = [
   { key: "SPIN", label: "스핀머신", param: "spin" },
   { key: "DICE", label: "주사위 게임", param: "dice" },
@@ -376,7 +378,8 @@ export const GAMES: { key: GameKey; label: string; param: string }[] = [
   { key: "JUPJUP", label: "줍줍", param: "jupjup" },
   { key: "MEDLEY", label: "시그니처 메들리", param: "medley" },
   { key: "SIG_BINGO", label: "시그 빙고", param: "sigbingo" },
-  { key: "GRID_DRAW", label: "복불복 뽑기판", param: "griddraw" }
+  { key: "GRID_DRAW", label: "복불복 뽑기판", param: "griddraw" },
+  { key: "SIG_HUNTER", label: "시그니처 헌터", param: "sighunter" }
 ];
 
 /**
@@ -393,7 +396,8 @@ export const GAME_TIMING: Record<GameKey, { playSec: number; resultSec: number }
   JUPJUP: { playSec: 2, resultSec: 4 },
   MEDLEY: { playSec: 2, resultSec: 4 },
   SIG_BINGO: { playSec: 1, resultSec: 5 },
-  GRID_DRAW: { playSec: 1, resultSec: 4 }
+  GRID_DRAW: { playSec: 1, resultSec: 4 },
+  SIG_HUNTER: { playSec: 1, resultSec: 4 }
 };
 /** Runs a game lists (studio) and queues (OBS), newest first. */
 export const GAME_RUNS_SHOWN = 30;
@@ -669,6 +673,51 @@ export type GridDrawCell = {
 /** `round`: boards since 뽑기판 시작; `resetAt`: a full board's 자동 리셋 (after the last result), else null. */
 export type GridDrawBoard = { size: GridDrawSize; round: number; startedAt: string; cells: GridDrawCell[]; lastOpened: number | null; resetAt: string | null };
 
+// 시그니처 헌터 — StreamDonate 시그니처 헌터: a board of signature slots per 라운드; a 시그니처 후원 buys its slot (SOLD OUT,
+// × the 라운드 배수 for the member). A 몰수권 hidden in a slot takes the SOLD OUT 기여도 of the others' slots when bought.
+export const SIG_HUNTER_TITLE_DEFAULT = "시그니처 헌터";
+export const SIG_HUNTER_ROUNDS_MAX = 6;
+export const SIG_HUNTER_SLOTS_MAX = 40;
+export const SIG_HUNTER_MULTIPLIER_MAX = 10;
+
+/**
+ * A 라운드: `slots` signatures from the 금액 범위 (null = no end) in random places, the 배수 on what each slot is bought for
+ * (1 = 없음) and `forfeits` 몰수권 hidden among the slots (fewer than `slots`).
+ */
+export type SigHunterRound = { id: string; slots: number; priceMin: number | null; priceMax: number | null; multiplier: number; forfeits: number };
+/** `auto` = 시그니처 후원으로 SOLD OUT; `excluded`: signatures kept off the board. After the last 라운드 it repeats (6+). */
+export type SigHunterSettings = GameCommon & { rounds: SigHunterRound[] };
+export const DEFAULT_SIG_HUNTER: SigHunterSettings = {
+  title: "",
+  auto: false,
+  excluded: [],
+  showIdle: true,
+  rounds: [{ id: "hr-1", slots: 10, priceMin: null, priceMax: null, multiplier: 1, forfeits: 0 }]
+};
+
+/**
+ * A slot as shown. `forfeit`: a 몰수권 — on OBS only once it is sold (the studio sees it). `sold.points`: the 기여도 it
+ * counts for (후원 점수 × 배수 for a member, else 0); `absorbedBy`: who took it with a 몰수권. `revealAt`: when OBS shows it.
+ */
+export type SigHunterSlot = {
+  signatureId: string;
+  signatureName: string;
+  price: number;
+  imageUrl: string | null;
+  forfeit: boolean;
+  sold: { memberName: string | null; memberColor: string | null; at: string; revealAt: string; manual: boolean; points: number; absorbedBy: string | null } | null;
+};
+/** `round`: 1, 2, … (past the last 라운드 its settings repeat); `advanceAt`: a sold-out board's next 라운드 (after the last result). */
+export type SigHunterBoard = { round: number; multiplier: number; startedAt: string; slots: SigHunterSlot[]; lastSold: number | null; advanceAt: string | null };
+/** Columns of a board of `n` slots: no more rows than columns, the fewest empty cells, then the squarest (8 → 4 × 2, 40 → 8 × 5). */
+export function sigHunterColumns(n: number) {
+  if (n <= 3) return Math.max(n, 1);
+  const rows = (c: number) => Math.ceil(n / c);
+  const empty = (c: number) => rows(c) * c - n;
+  const fit = [3, 4, 5, 6, 8].filter((c) => c >= rows(c));
+  return fit.sort((x, y) => empty(x) - empty(y) || Math.abs(x - rows(x)) - Math.abs(y - rows(y)))[0] ?? 8;
+}
+
 /** What started a run: a 시그니처 후원 to the member (자동), a 랜덤시그 · 메들리 발동 금액 (자동), or the operator (수동). */
 /** `DONATION`: a donation that is no signature (복불복 뽑기판 on 모든 후원). */
 export type GameTrigger = { kind: "SIGNATURE"; signatureName: string } | { kind: "AMOUNT"; amount: number } | { kind: "DONATION"; amount: number } | { kind: "MANUAL" };
@@ -700,6 +749,8 @@ export type GameRunView = {
   range: [number, number] | null;
   /** 기여도 릴레이: the 트리거 후원 the 배수 came from. 줍줍: the stacked 후원 that was taken. */
   from: { memberName: string; amount: number } | null;
+  /** Points the run moves for other members (시그니처 헌터 몰수권: what each one loses), counted with the run. */
+  shares: { memberName: string; memberColor: string | null; points: number }[];
 };
 
 /** 스핀머신 BJ별 집계: how many times each member got each 문구 (TEXT) result, columns in first-seen order. */
@@ -708,9 +759,10 @@ export type SpinTally = { columns: string[]; rows: { memberId: string; name: str
 export type SpinLive = { settings: SpinSettings; runs: GameRunView[]; tally: SpinTally };
 export type DiceLive = { settings: DiceSettings; runs: GameRunView[] };
 export type TwoWheelLive = { settings: TwoWheelSettings; runs: GameRunView[] };
-/** `pool`: the signatures a 랜덤시그 can draw (active, not excluded) — the OBS rolling images. */
 /** `board`: null until 뽑기판 시작 (or after 판 비우기). */
 export type GridDrawLive = { settings: GridDrawSettings; runs: GameRunView[]; board: GridDrawBoard | null };
+/** `board`: null until 헌트 시작 (or after 판 비우기). */
+export type SigHunterLive = { settings: SigHunterSettings; runs: GameRunView[]; board: SigHunterBoard | null };
 /** `board`: null until 빙고 시작 (or after 판 비우기); `eligible`: how many signatures a new board would draw from. */
 export type SigBingoLive = { settings: SigBingoSettings; runs: GameRunView[]; board: SigBingoBoard | null; eligible: number };
 /** `pool`: the registered signatures that can be drawn (active) — the OBS rolling images. */
@@ -719,6 +771,7 @@ export type MedleyLive = { settings: MedleySettings; runs: GameRunView[]; pool: 
 export type JupjupLive = { settings: JupjupSettings; runs: GameRunView[]; stack: JupjupStackItem[]; stackCount: number; ownerNames: string[] };
 /** `pending`: the 배수 waiting for the next 시그니처 후원 (from the 트리거 BJ's last one); `triggerName`: the 트리거 BJ. */
 export type RelayLive = { settings: RelaySettings; runs: GameRunView[]; pending: { multiplier: number; amount: number; at: string } | null; triggerName: string | null };
+/** `pool`: the signatures a 랜덤시그 can draw (active, not excluded) — the OBS rolling images. */
 export type RandomSigLive = { settings: RandomSigSettings; runs: GameRunView[]; pool: { id: string; name: string; price: number; imageUrl: string }[] };
 
 /** A donation a member received in the broadcast, offered as the 기준 후원 of a 수동 run (studio only: names as sent). */
@@ -739,6 +792,7 @@ export type GamesView = {
     medley: MedleyLive;
     sigBingo: SigBingoLive;
     gridDraw: GridDrawLive;
+    sigHunter: SigHunterLive;
     sources: Record<GameKey, Record<string, GameSource[]>>;
     serverNow: string;
   } | null;
@@ -751,6 +805,7 @@ export type GamesView = {
   medleySettings: MedleySettings;
   sigBingoSettings: SigBingoSettings;
   gridDrawSettings: GridDrawSettings;
+  sigHunterSettings: SigHunterSettings;
   signatures: { id: string; name: string; group: string; active: boolean; price: number; match: "SELECT" | "AMOUNT"; rangeMin: number | null }[];
   overlayPath: string;
 };
