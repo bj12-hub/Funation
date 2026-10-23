@@ -229,8 +229,83 @@ export type BroadcastLive = {
   showRankUp: boolean;
   /** 팬 메시지 · 요청사항 sent from the room during this broadcast. */
   fanNotes: FanNotesView;
+  /** 상품 순위표 with the channel's settings and this broadcast's ranks (OBS `?prize`). */
+  prizeBoard: PrizeBoardLive;
   /** Server clock when this view was read: timers (시나리오 경과, 강탈 card) correct the browser's clock with it. */
   serverNow: string;
+};
+
+// ── 상품 순위표 (랭킹(상품) · 시간 내 랭킹) — code-first, StreamDonate 참고 (docs/research/streamdonate-reference.md) ──
+
+export const PRIZE_TITLE_MAX = 20;
+export const PRIZE_TITLE_DEFAULT = "순위표";
+export const PRIZE_TEXT_MAX = 30;
+/** One prize line per rank, up to the crew size. */
+export const PRIZE_RANKS_MAX = MAX_CREW_MEMBERS;
+
+/**
+ * BROADCAST: the main scoreboard score. WINDOW: what members got between 시작 and 정지 — received ± 기여도 강탈, no 보정,
+ * the same window score as 서브 점수판 and 실시간 배틀.
+ */
+export type PrizeBasis = "BROADCAST" | "WINDOW";
+export const PRIZE_BASES: { key: PrizeBasis; label: string }[] = [
+  { key: "BROADCAST", label: "방송 전체 점수" },
+  { key: "WINDOW", label: "구간 점수 (시작 ~ 정지)" }
+];
+
+/** The screen edge the OBS card sits against (its corners there are square); FLOAT keeps every corner round. */
+export type PrizePlacement = "LEFT" | "FLOAT" | "RIGHT";
+export const PRIZE_PLACEMENTS: { key: PrizePlacement; label: string }[] = [
+  { key: "LEFT", label: "왼쪽 붙임" },
+  { key: "FLOAT", label: "플로팅" },
+  { key: "RIGHT", label: "오른쪽 붙임" }
+];
+export const PRIZE_COLUMNS = [1, 2, 3] as const;
+export type PrizeColumns = (typeof PRIZE_COLUMNS)[number];
+
+/** A rank's 상품 · 벌칙 line. `color` null = the overlay theme's text color. */
+export type RankPrize = { text: string; color: string | null };
+
+/** Kept per channel across broadcasts, editable before going live. */
+export type PrizeBoardSettings = {
+  title: string;
+  basis: PrizeBasis;
+  /** prizes[0] = 1등. Ranks without a line show none. */
+  prizes: RankPrize[];
+  /** Members left out of the board; the ranks (and prize lines) shrink with them. */
+  excluded: string[];
+  /** 상단 고정: shown above 1등 with its own text and no rank (the others are ranked from 1). */
+  pinned: { memberId: string; text: string } | null;
+  columns: PrizeColumns;
+  showScore: boolean;
+  showTotal: boolean;
+  placement: PrizePlacement;
+};
+
+export const DEFAULT_PRIZE_BOARD: PrizeBoardSettings = {
+  title: "",
+  basis: "BROADCAST",
+  prizes: [],
+  excluded: [],
+  pinned: null,
+  columns: 1,
+  showScore: true,
+  showTotal: false,
+  placement: "FLOAT"
+};
+
+/** `rank` null = the pinned member. */
+export type PrizeRow = { memberId: string; name: string; color: string; rank: number | null; prize: RankPrize | null; score: number };
+
+export type PrizeBoardLive = {
+  settings: PrizeBoardSettings;
+  /** Shown on the OBS overlay (`?prize`); the studio always shows it. */
+  visible: boolean;
+  /** WINDOW basis: null until 시작; `stoppedAt` set by 정지 (or 방송 종료). */
+  window: { startedAt: string; stoppedAt: string | null } | null;
+  rows: PrizeRow[];
+  /** Sum of the listed scores (하단 합계). */
+  total: number;
 };
 
 // ── 콘텐츠 시나리오 도우미 (1부 ~ 5부) — code-first ─────────────────────────────────────────────
@@ -356,6 +431,8 @@ export type BroadcastView = {
   battleRules: BattleRules;
   /** 콘텐츠 시나리오 plan (kept across broadcasts; editable before going live). */
   scenario: ScenarioPart[];
+  /** 상품 순위표 settings (kept across broadcasts; editable before going live). */
+  prizeSettings: PrizeBoardSettings;
   keywords: Record<string, string[]>;
   /** Existing project names (for the start form). */
   projects: string[];

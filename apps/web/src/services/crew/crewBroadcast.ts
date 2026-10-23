@@ -26,6 +26,7 @@ import {
   type TeamKey
 } from "./crewTypes";
 import { battleBonus, battleRulesOf, fanNotesView, gradeBonus, gradeMultipliersOf, excelOf, feedOf, liveBroadcastOf, scoreEntry, scoreFn, stealRecordView, stealRulesOf, timesMultiplier, windowReceived, windowScores, windowSteals } from "./crewCore";
+import { prizeBoardLive, prizeSettingsOf } from "./crewPrizeCore";
 import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 /**
@@ -102,6 +103,7 @@ function liveView(b: MockBroadcast): BroadcastLive {
     rankUp,
     showRankUp: !!b.showRankUp,
     fanNotes: fanNotesView(b),
+    prizeBoard: prizeBoardLive(b, rows),
     serverNow: new Date().toISOString()
   };
 }
@@ -204,6 +206,7 @@ export async function getBroadcastView(): Promise<BroadcastView | null> {
     stealRules: { ...stealRulesOf(STUDIO_CHANNEL) },
     battleRules: { ...battleRulesOf(STUDIO_CHANNEL) },
     scenario: structuredClone(mockCrew.scenario?.[STUDIO_CHANNEL] ?? []),
+    prizeSettings: structuredClone(prizeSettingsOf(STUDIO_CHANNEL)),
     projects: [...new Set(broadcasts().filter((b) => b.channelId === STUDIO_CHANNEL && b.project).map((b) => b.project as string))],
     history: broadcasts()
       .filter((b) => b.channelId === STUDIO_CHANNEL && b.endedAt)
@@ -317,6 +320,7 @@ export async function endBroadcast(broadcastId: unknown): Promise<BroadcastResul
   }
   live.endedAt = new Date().toISOString();
   for (const s of live.subBoards ?? []) s.closedAt ??= live.endedAt;
+  if (live.prizeBoard?.window) live.prizeBoard.window.stoppedAt ??= live.endedAt;
   for (const x of live.battles ?? []) if (new Date(x.endsAt).getTime() > Date.now()) x.stoppedAt ??= live.endedAt;
   if (live.scenario) {
     for (const h of live.scenario.history) h.endedAt ??= live.endedAt;

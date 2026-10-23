@@ -11,6 +11,7 @@ import { OverlayOffNotice } from "../remote/OverlayOffNotice";
 import { BattlePanel } from "./BattlePanel";
 import { BroadcastFeed } from "./BroadcastFeed";
 import { FanNotesPanel } from "./FanNotesPanel";
+import { PrizeBoardPanel } from "./PrizeBoardPanel";
 import { ScenarioPanel } from "./ScenarioPanel";
 import { StealPanel } from "./StealPanel";
 import { CrewTabs } from "./CrewTabs";
@@ -302,6 +303,14 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
       {live && view.feed && <BroadcastFeed broadcastId={live.id} members={view.members} view={view.feed} pending={pending} run={run} />}
       {live && <FanNotesPanel broadcastId={live.id} members={view.members} view={live.fanNotes} pending={pending} run={run} />}
       {live && <SubBoards broadcastId={live.id} boards={live.subBoards} overlayPath={view.overlayPath} pending={pending} run={run} />}
+      <PrizeBoardPanel
+        settings={view.prizeSettings}
+        live={live ? { broadcastId: live.id, board: live.prizeBoard } : null}
+        members={view.members}
+        overlayPath={view.overlayPath}
+        pending={pending}
+        run={run}
+      />
 
       <section className={styles.card} aria-labelledby="bc-overlay">
         <h2 id="bc-overlay" className={styles.cardTitle}>
