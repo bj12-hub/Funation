@@ -241,6 +241,7 @@ export type BroadcastLive = {
   randomSig: RandomSigLive;
   relay: RelayLive;
   jupjup: JupjupLive;
+  medley: MedleyLive;
   /** Server clock when this view was read: timers (시나리오 경과, 강탈 card) correct the browser's clock with it. */
   serverNow: string;
 };
@@ -362,14 +363,15 @@ export type SigCountLive = {
 // A game draws its result on the server; the result is display points only (FN · 지갑 · 수익 · 정산 never move).
 
 /** Games on the shared engine (crewGameCore). `param`: the OBS view (`?spin`). */
-export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL" | "RANDOM_SIG" | "RELAY" | "JUPJUP";
+export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL" | "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY";
 export const GAMES: { key: GameKey; label: string; param: string }[] = [
   { key: "SPIN", label: "스핀머신", param: "spin" },
   { key: "DICE", label: "주사위 게임", param: "dice" },
   { key: "TWO_WHEEL", label: "투휠 게임", param: "twowheel" },
   { key: "RANDOM_SIG", label: "랜덤시그", param: "randomsig" },
   { key: "RELAY", label: "기여도 릴레이", param: "relay" },
-  { key: "JUPJUP", label: "줍줍", param: "jupjup" }
+  { key: "JUPJUP", label: "줍줍", param: "jupjup" },
+  { key: "MEDLEY", label: "시그니처 메들리", param: "medley" }
 ];
 
 /**
@@ -383,7 +385,8 @@ export const GAME_TIMING: Record<GameKey, { playSec: number; resultSec: number }
   TWO_WHEEL: { playSec: 4, resultSec: 4 },
   RANDOM_SIG: { playSec: 2, resultSec: 4 },
   RELAY: { playSec: 2, resultSec: 4 },
-  JUPJUP: { playSec: 2, resultSec: 4 }
+  JUPJUP: { playSec: 2, resultSec: 4 },
+  MEDLEY: { playSec: 2, resultSec: 4 }
 };
 /** Runs a game lists (studio) and queues (OBS), newest first. */
 export const GAME_RUNS_SHOWN = 30;
@@ -551,7 +554,18 @@ export const DEFAULT_JUPJUP: JupjupSettings = { title: "", auto: false, excluded
 /** A stacked 시그니처 후원 waiting for another member's one of the same amount. `manual`: added by the operator (수동 추가). */
 export type JupjupStackItem = { id: string; at: string; memberName: string; memberColor: string | null; signatureName: string; amount: number; manual: boolean };
 
-/** What started a run: a 시그니처 후원 to the member (자동), a 랜덤시그 발동 금액 (자동), or the operator (수동). */
+// 시그니처 메들리 — StreamDonate 메들리: a 일반 후원 of exactly the 메들리 금액 plays one of the registered signatures at random.
+// No points: the donation counts as it is.
+export const MEDLEY_TITLE_DEFAULT = "시그니처 메들리";
+export const MEDLEY_SIGNATURES_MAX = 50;
+/** Quick picks for the 발동 금액 (StreamDonate offers 10,000 · 30,000 · 50,000). */
+export const MEDLEY_TRIGGER_PRESETS = [10_000, 30_000, 50_000];
+
+/** `auto` = 메들리 켜짐; `trigger` = 발동 금액 (FN); `signatureIds` = 등록 시그니처 (the draw is among the active ones). */
+export type MedleySettings = GameCommon & { trigger: number | null; signatureIds: string[] };
+export const DEFAULT_MEDLEY: MedleySettings = { title: "", auto: false, excluded: [], showIdle: true, trigger: null, signatureIds: [] };
+
+/** What started a run: a 시그니처 후원 to the member (자동), a 랜덤시그 · 메들리 발동 금액 (자동), or the operator (수동). */
 export type GameTrigger = { kind: "SIGNATURE"; signatureName: string } | { kind: "AMOUNT"; amount: number } | { kind: "MANUAL" };
 
 export type GameRunView = {
@@ -561,6 +575,7 @@ export type GameRunView = {
   /** When OBS starts playing it, and when the result shows — the points count from then (`at` stays their time). */
   showAt: string;
   revealAt: string;
+  /** "" = no member (a 메들리 from a donation without one, or a 수동 메들리). */
   memberId: string;
   memberName: string;
   memberColor: string | null;
@@ -589,6 +604,8 @@ export type SpinLive = { settings: SpinSettings; runs: GameRunView[]; tally: Spi
 export type DiceLive = { settings: DiceSettings; runs: GameRunView[] };
 export type TwoWheelLive = { settings: TwoWheelSettings; runs: GameRunView[] };
 /** `pool`: the signatures a 랜덤시그 can draw (active, not excluded) — the OBS rolling images. */
+/** `pool`: the registered signatures that can be drawn (active) — the OBS rolling images. */
+export type MedleyLive = { settings: MedleySettings; runs: GameRunView[]; pool: { id: string; name: string; price: number; imageUrl: string }[] };
 /** `stack`: oldest first (up to JUPJUP_STACK_SHOWN of `stackCount`); `ownerNames`: the 지정 BJ. */
 export type JupjupLive = { settings: JupjupSettings; runs: GameRunView[]; stack: JupjupStackItem[]; stackCount: number; ownerNames: string[] };
 /** `pending`: the 배수 waiting for the next 시그니처 후원 (from the 트리거 BJ's last one); `triggerName`: the 트리거 BJ. */
@@ -610,6 +627,7 @@ export type GamesView = {
     randomSig: RandomSigLive;
     relay: RelayLive;
     jupjup: JupjupLive;
+    medley: MedleyLive;
     sources: Record<GameKey, Record<string, GameSource[]>>;
     serverNow: string;
   } | null;
@@ -619,6 +637,7 @@ export type GamesView = {
   randomSigSettings: RandomSigSettings;
   relaySettings: RelaySettings;
   jupjupSettings: JupjupSettings;
+  medleySettings: MedleySettings;
   signatures: { id: string; name: string; group: string; active: boolean; price: number; match: "SELECT" | "AMOUNT"; rangeMin: number | null }[];
   overlayPath: string;
 };

@@ -31,6 +31,7 @@ import { prizeBoardLive, prizeSettingsOf } from "./crewPrizeCore";
 import { sigCountLive, sigCountSettingsOf, sigCountSignatures } from "./crewSigCountCore";
 import { diceLive } from "./crewDiceCore";
 import { jupjupLive } from "./crewJupjupCore";
+import { medleyLive } from "./crewMedleyCore";
 import { randomSigLive } from "./crewRandomSigCore";
 import { relayLive } from "./crewRelayCore";
 import { spinLive } from "./crewSpinCore";
@@ -93,6 +94,7 @@ function liveView(b: MockBroadcast): BroadcastLive {
     randomSig: randomSigLive(b),
     relay: relayLive(b),
     jupjup: jupjupLive(b),
+    medley: medleyLive(b),
     serverNow: new Date().toISOString()
   };
 }

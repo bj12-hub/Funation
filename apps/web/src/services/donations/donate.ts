@@ -13,6 +13,7 @@ import { shownOnStream } from "@/services/creator/donationPageCore";
 import { getCreatorById } from "@/services/creators/creators";
 import { attributeMemberDonation, isActiveMember, liveBroadcastOf, recordBroadcastDonation } from "@/services/crew/crewCore";
 import { gamesForSignature } from "@/services/crew/crewGameTriggers";
+import { drawMedley, medleyRun } from "@/services/crew/crewMedleyCore";
 import { drawRandomSig, randomSigRun } from "@/services/crew/crewRandomSigCore";
 import { MEMBER_NICKNAME_ID, attributeDonation, nicknameChangeable, ownsNickname, resolveBadges } from "@/services/supporter/identityCore";
 import { alertBadgeLabels } from "@/services/supporter/identityTypes";
@@ -130,7 +131,10 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
     if (!request.hideProfile) attributeDonation(donationId, request.nicknameId);
     // 랜덤시그 (점수 게임, 2026-10-23): a 일반 후원 of exactly a 발동 금액 plays a signature drawn from that tier.
     const randomSig = request.type === "TEXT" ? drawRandomSig(creator.id, request.amount) : null;
-    const signatureId = randomSig?.signature.id ?? signatureIdFor(request.type, request.amount, request.details);
+    // 시그니처 메들리 (2026-10-24): one exactly the 메들리 금액 plays one of the registered signatures (랜덤시그 goes first).
+    const medley = request.type === "TEXT" && !randomSig ? drawMedley(creator.id, request.amount) : null;
+    const drawn = randomSig?.signature ?? medley?.signature;
+    const signatureId = drawn?.id ?? signatureIdFor(request.type, request.amount, request.details);
     if (quest) {
       const d = request.details as { title: string; timeLimitSec: number; creatorDecides: boolean };
       recordQuest({
@@ -155,6 +159,7 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
       // 점수 게임 (2026-10-23): a 랜덤시그 records its run; a 시그니처 후원 to a member plays each game with 자동 on while a
       // crew broadcast is live (a 랜덤시그 counts as the signature it drew).
       randomSigRun(creator.id, { donationId, memberId: request.memberId, fnAmount: request.amount, drawn: randomSig });
+      medleyRun(creator.id, { donationId, memberId: request.memberId, amount: request.amount, drawn: medley });
       gamesForSignature(creator.id, { donationId, memberId: request.memberId, signatureId, fnAmount: request.amount });
     }
     // 룰렛: the result is drawn now and revealed when the wheel spins (no FN prize — 2026-10-04 결정).
@@ -170,10 +175,14 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
       message: request.summary,
       fnAmount: request.amount,
       // 금액 매칭 (시그니처 관리): a 일반 후원 whose amount equals an AMOUNT-match signature alerts as that signature.
-      typeLabel: randomSig ? `랜덤시그 · ${randomSig.signature.name}` : alertTypeLabel(catalog, request.type, request.amount),
+      typeLabel: randomSig
+        ? `랜덤시그 · ${randomSig.signature.name}`
+        : medley
+          ? `메들리 · ${medley.signature.name}`
+          : alertTypeLabel(catalog, request.type, request.amount),
       donationType: request.type,
-      imageUrl: randomSig ? signatureImageOf(randomSig.signature) : signatureImageFor(catalog, request.type, request.amount, request.details),
-      soundUrl: randomSig ? signatureSoundOf(randomSig.signature) : signatureSoundFor(request.type, request.amount, request.details),
+      imageUrl: drawn ? signatureImageOf(drawn) : signatureImageFor(catalog, request.type, request.amount, request.details),
+      soundUrl: drawn ? signatureSoundOf(drawn) : signatureSoundFor(request.type, request.amount, request.details),
       // 시그 카운트 (2026-10-23): which signature, and the member the supporter picked.
       signatureId,
       ...(request.memberId ? { memberId: request.memberId } : {}),
