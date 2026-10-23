@@ -1,6 +1,6 @@
 import type { AmountUnit } from "@/types/donationUnit";
 import type { Platform } from "@/types/platform";
-import { BATTLE_MULTIPLIER_MAX, BATTLE_PENALTY_MAX, FAN_NOTE_LIMITS, GRADES_MAX, MULTI_TEAM_KEYS, PLATFORM_FAN_NOTE_RULES, GRADE_MULTIPLIER_MAX, GRADE_NAME_MAX, PLATFORM_BATTLE_RULES, PLATFORM_STEAL_RULES, SUB_BOARD_MAX, excelUnitOf, isExcelUnit, type BattleRules, type CrewGrade, type FanNoteRules, type FanNotesView, type RoomFanNotes, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow } from "./crewTypes";
+import { BATTLE_MULTIPLIER_MAX, BATTLE_PENALTY_MAX, FAN_NOTE_LIMITS, GRADES_MAX, MULTI_TEAM_KEYS, PLATFORM_FAN_NOTE_RULES, GRADE_MULTIPLIER_MAX, GRADE_NAME_MAX, PLATFORM_BATTLE_RULES, PLATFORM_STEAL_RULES, SUB_BOARD_MAX, excelUnitOf, isExcelUnit, type BattleRules, type CrewGrade, type FanNoteRules, type FanNotesView, type RoomFanNotes, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow, type ScoreRow } from "./crewTypes";
 import { mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 // ── 후원 리스트 (server-only) ──────────────────────────────────────────────────
@@ -298,6 +298,38 @@ export function battleGroups(x: StoredBattle): { key: string; name: string | nul
 export function stealRecordView(channelId: string, x: NonNullable<MockBroadcast["steals"]>[number]): StealRecord {
   const name = (id: string) => (mockCrew.crews[channelId] ?? []).find((m) => m.id === id)?.name ?? "삭제된 멤버";
   return { id: x.id, at: x.at, thiefId: x.thief, thiefName: name(x.thief), targetId: x.target, targetName: name(x.target), slotId: x.slotId, slotLabel: x.slotLabel, points: x.points };
+}
+
+/** Every 후원 리스트 entry with its points under the channel's current 자동엑셀 settings. */
+export const scoredFeed = (b: MockBroadcast) => {
+  const s = excelOf(b.channelId);
+  return feedOf(b).map((f) => scoreEntry(f, s));
+};
+
+/**
+ * The main scoreboard of a broadcast, best first (ties by name): active members and anyone with points in it, each
+ * with 후원 · 후원 리스트 · 보정 · 강탈 · 배틀 배수 · 직급 배수 parts. Shared by 방송 운영 and the 엔딩 크레딧.
+ */
+export function scoreboardRows(b: MockBroadcast): ScoreRow[] {
+  const end = b.endedAt ?? new Date(Date.now() + 1000).toISOString();
+  const s = excelOf(b.channelId);
+  const feed = scoredFeed(b);
+  const bonus = battleBonus(b);
+  const graded = gradeBonus(b);
+  const rows = (mockCrew.crews[b.channelId] ?? [])
+    .filter((m) => m.active || b.teams[m.id] !== undefined || b.adjustments.some((a) => a.memberId === m.id) || (b.feed ?? []).some((f) => f.memberId === m.id) || (b.steals ?? []).some((x) => x.thief === m.id || x.target === m.id))
+    .map((m) => {
+      const donated = mockCrew.attributions
+        .filter((a) => a.channelId === b.channelId && a.memberId === m.id && a.at >= b.startedAt && a.at <= end)
+        .reduce((sum, a) => sum + scoreFn(a.fnAmount, s), 0);
+      const adjust = b.adjustments.filter((a) => a.memberId === m.id).reduce((sum, a) => sum + a.points, 0);
+      const fromFeed = feed.filter((f) => f.status === "ASSIGNED" && f.memberId === m.id).reduce((sum, f) => sum + f.points, 0);
+      const stolen = (b.steals ?? []).reduce((sum, x) => sum + (x.thief === m.id ? x.points : 0) - (x.target === m.id ? x.points : 0), 0);
+      const battle = bonus.get(m.id) ?? 0;
+      const grade = graded.get(m.id) ?? 0;
+      return { memberId: m.id, name: m.name, color: m.color, team: b.teams[m.id] ?? null, donated, feed: fromFeed, adjust, stolen, battle, grade, score: donated + fromFeed + adjust + stolen + battle + grade };
+    });
+  return rows.sort((x, y) => y.score - x.score || x.name.localeCompare(y.name));
 }
 
 /** Points for a member-targeted FN donation (same conversion and 배수 규칙 as the list). */
