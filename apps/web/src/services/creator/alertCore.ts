@@ -3,6 +3,7 @@ import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
 import type { Platform } from "@/types/platform";
 import { notify } from "@/services/notifications/notificationCore";
 import type { AlertControls, AlertItem, AlertKind, NativeAmount, OverlaySignal, OverlayTarget } from "./alertTypes";
+import { addTimerForDonation } from "./broadcastToolsCore";
 import { replacesName, shownOnStream } from "./donationPageCore";
 
 /**
@@ -133,6 +134,8 @@ export function enqueueDonationAlert(
   const nameReplaced = replacesName(input.donor);
   const badges = nameReplaced ? [] : input.badges;
   const item = enqueueAlert({ kind: "DONATION", ...input, badges, ...shownOnStream(input), ...(nameReplaced ? { nameReplaced } : {}) });
+  // 타이머 후원 연동 (2026-10-23): a 퀘스트 후원 is held until it succeeds, so it adds no time.
+  if (!input.questId) addTimerForDonation(input.fnAmount);
   notify({ kind: "DONATION_RECEIVED", title: "새 후원이 들어왔어요", body: `${input.donor}님 · ${input.fnAmount.toLocaleString("ko-KR")} FN`, href: "/creator/donations?tab=list", dedupeKey: `alert:${item.id}` });
 }
 

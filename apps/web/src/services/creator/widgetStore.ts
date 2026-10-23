@@ -43,6 +43,8 @@ export function readWidget<K extends EditableWidgetKey>(key: K): WidgetSettingsM
     goal.customColors ??= true;
     goal.second ??= structuredClone(d.second);
     goal.alternateSec ??= d.alternateSec;
+    // 자동 증량 (2026-10-23): off for goals saved before it.
+    goal.autoRaise ??= 0;
   }
   if (key === "CHAT") {
     // 채팅창 saved before 오버레이 테마 (2026-10-08) follows the 전체 테마.

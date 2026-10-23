@@ -23,18 +23,23 @@ import {
   MARQUEE_LINES_MAX,
   MARQUEE_LINE_MAX,
   SUBTITLE_MAX,
+  TEXT_ALIGNS,
+  TEXT_SCROLL_SEC,
+  TEXT_SIZES,
+  TEXT_SLOTS,
+  TEXT_SLOT_NAME_MAX,
+  TEXT_SLOT_TEXT_MAX,
   TIMER_ADJUST_STEPS,
+  TIMER_DONATION_SEC_MAX,
   TIMER_MAX_SEC,
   bingoLinesMax,
   isToolKey,
   type BingoSize,
-  type BingoState,
   type CreditsData,
   type CreditsState,
   type OverlayTool,
   type TimerAction,
   type ToolResult,
-  type ToolStates,
   type ToolsView
 } from "./broadcastToolTypes";
 import { mockAlerts, overlaySignal } from "./alertCore";
@@ -42,6 +47,7 @@ import { donorRanking, rankingSince, totalBetween } from "./widgetOverlayCore";
 import { overlayTheme, readAppearance } from "./overlayThemeStore";
 import { isOverlayThemeChoice, type OverlayThemeChoice } from "./overlayThemeTypes";
 import { mockCreator } from "./mockCreatorStore";
+import { shiftTimer, tools } from "./broadcastToolsCore";
 
 /**
  * 방송 도구 Server Actions — code-first (no Figma frame). Studio route `/creator/widgets/tools`,
@@ -53,33 +59,9 @@ const assertMock = () => {
   if (!USE_MOCK) throw new Error("Broadcast tools API is not connected yet.");
 };
 
-// V2: credits gained rollingSince.
-const g = globalThis as typeof globalThis & { __ssumnationMockToolsV2?: ToolStates };
-const tools = (g.__ssumnationMockToolsV2 ??= {
-  subtitle: { text: "", size: "M" },
-  marquee: { lines: ["오늘도 방송에 와 주셔서 감사합니다!"], speed: "NORMAL" },
-  timer: { mode: "COUNTDOWN", durationSec: 600, startedAt: null, elapsedBeforeSec: 0 },
-  credits: { ...structuredClone(DEFAULT_CREDITS), rollingSince: null },
-  bingo: sampleBingo()
-});
-// 빙고 was added on 2026-10-06; dev stores from before start with the sample board.
-tools.bingo ??= sampleBingo();
-// Credits saved before the sections (2026-10-23) keep their title, thanks and roll; 크루 순위 포함 becomes 멤버별.
-if (!("sections" in tools.credits)) {
-  const old = tools.credits as { title: string; thanks: string[]; includeCrew?: boolean; rollingSince: string | null };
-  tools.credits = { ...structuredClone(DEFAULT_CREDITS), title: old.title, thanks: old.thanks, rollingSince: old.rollingSince };
-  tools.credits.sections.members.on = old.includeCrew !== false;
-}
-
 /** 방송 도구 테마 (2026-10-08): one 오버레이 테마 choice for all tool overlays. */
 const gt = globalThis as typeof globalThis & { __ssumnationMockToolThemeV1?: { theme: OverlayThemeChoice } };
 const toolLook = () => (gt.__ssumnationMockToolThemeV1 ??= { theme: "INHERIT" });
-
-/** A sample 3 × 3 board (generic missions) so the card and overlay have something to show. */
-function sampleBingo(): BingoState {
-  const cells = ["노래 한 곡", "댄스 챌린지", "성대모사", "사연 읽기", "물 한 잔", "애교 한 번", "삼행시", "퀴즈 한 문제", "게임 한 판"];
-  return { title: "오늘의 미션 빙고", size: 3, cells, marked: cells.map(() => false), goal: 1, shown: false };
-}
 
 const bad = (s: string) => MOCK_FORBIDDEN_WORDS.some((w) => s.toLowerCase().includes(w));
 
@@ -187,7 +169,7 @@ export async function configureTimer(input: unknown): Promise<ToolResult> {
   if (v.mode !== "COUNTDOWN" && v.mode !== "STOPWATCH") return { status: "INVALID", message: "모드를 확인해 주세요." };
   const d = v.durationSec;
   if (typeof d !== "number" || !Number.isInteger(d) || d < 1 || d > TIMER_MAX_SEC) return { status: "INVALID", message: "시간은 1초 ~ 24시간으로 설정해 주세요." };
-  tools.timer = { mode: v.mode, durationSec: d, startedAt: null, elapsedBeforeSec: 0 };
+  tools.timer = { mode: v.mode, durationSec: d, startedAt: null, elapsedBeforeSec: 0, donationSec: tools.timer.donationSec };
   return { status: "SAVED" };
 }
 
@@ -225,15 +207,60 @@ export async function adjustTimer(deltaSec: unknown): Promise<ToolResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (!TIMER_ADJUST_STEPS.includes(deltaSec as (typeof TIMER_ADJUST_STEPS)[number])) return { status: "INVALID", message: "조정 값을 확인해 주세요." };
-  const t = tools.timer;
-  const delta = deltaSec as number;
-  const running = t.startedAt ? Math.floor((Date.now() - new Date(t.startedAt).getTime()) / 1000) : 0;
-  const elapsed = t.elapsedBeforeSec + running;
-  // Shown time: countdown = duration - elapsed (0 once it ran out, so +30 after the end gives 30 seconds), stopwatch = elapsed.
-  const shown = t.mode === "COUNTDOWN" ? Math.max(0, t.durationSec - elapsed) : elapsed;
-  const target = Math.min(TIMER_MAX_SEC, Math.max(0, shown + delta));
-  const targetElapsed = t.mode === "COUNTDOWN" ? t.durationSec - target : target;
-  t.elapsedBeforeSec = targetElapsed - running;
+  // Countdown shows 0 once it ran out, so +30 after the end gives 30 seconds.
+  shiftTimer(tools.timer, deltaSec as number);
+  return { status: "SAVED" };
+}
+
+/** 타이머 후원 연동 (2026-10-23): seconds added per 1,000 FN of each completed 썸네이션 후원 (0 = off). Keeps the timer running. */
+export async function setTimerDonationLink(seconds: unknown): Promise<ToolResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  if (typeof seconds !== "number" || !Number.isInteger(seconds) || seconds < 0 || seconds > TIMER_DONATION_SEC_MAX) {
+    return { status: "INVALID", message: `1,000 FN마다 더할 시간은 0~${TIMER_DONATION_SEC_MAX}초예요.` };
+  }
+  tools.timer.donationSec = seconds;
+  return { status: "SAVED" };
+}
+
+/**
+ * 텍스트 슬롯 저장 (2026-10-23): one slot's name (studio only), text (on stream, 금지어 checked) and look. Saving an empty text
+ * takes it off the stream.
+ */
+export async function saveTextSlot(input: unknown): Promise<ToolResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
+  const slot = v.slot;
+  if (typeof slot !== "number" || !Number.isInteger(slot) || slot < 1 || slot > TEXT_SLOTS) return { status: "INVALID", message: "슬롯을 골라 주세요." };
+  const name = typeof v.name === "string" ? v.name.trim() : "";
+  if (name.length > TEXT_SLOT_NAME_MAX) return { status: "INVALID", message: `슬롯 이름은 ${TEXT_SLOT_NAME_MAX}자 이내로 입력해 주세요.` };
+  // Lines keep their own spaces; only the ends of the whole text are trimmed.
+  const text = typeof v.text === "string" ? v.text.replace(/\r\n?/g, "\n").trim() : "";
+  if (text.length > TEXT_SLOT_TEXT_MAX) return { status: "INVALID", message: `문구는 ${TEXT_SLOT_TEXT_MAX}자 이내로 입력해 주세요.` };
+  if (bad(text)) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
+  if (!TEXT_SIZES.includes(v.size as (typeof TEXT_SIZES)[number])) return { status: "INVALID", message: "글자 크기를 골라 주세요." };
+  if (typeof v.color !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(v.color)) return { status: "INVALID", message: "글자색을 확인해 주세요." };
+  if (![v.bold, v.outline, v.scroll].every((x) => typeof x === "boolean")) return { status: "INVALID", message: "설정을 확인해 주세요." };
+  if (v.background !== "NONE" && v.background !== "CARD") return { status: "INVALID", message: "배경을 골라 주세요." };
+  const align = TEXT_ALIGNS.find((x) => x.key === v.align)?.key;
+  if (!align) return { status: "INVALID", message: "정렬을 골라 주세요." };
+  const sec = v.scrollSec;
+  if (typeof sec !== "number" || !Number.isInteger(sec) || sec < TEXT_SCROLL_SEC.min || sec > TEXT_SCROLL_SEC.max) {
+    return { status: "INVALID", message: `스크롤 시간은 ${TEXT_SCROLL_SEC.min}~${TEXT_SCROLL_SEC.max}초예요.` };
+  }
+  tools.text.slots[slot - 1] = {
+    name,
+    text,
+    size: v.size as number,
+    color: v.color.toUpperCase(),
+    bold: v.bold as boolean,
+    outline: v.outline as boolean,
+    background: v.background,
+    align,
+    scroll: v.scroll as boolean,
+    scrollSec: sec
+  };
   return { status: "SAVED" };
 }
 
@@ -348,12 +375,16 @@ export async function controlBingo(action: unknown): Promise<ToolResult> {
   return { status: "SAVED" };
 }
 
-/** OBS overlay read — no login (OBS cannot sign in); the integration key is the secret. */
-export async function getOverlayTool(tool: unknown, key: unknown): Promise<OverlayTool | "FORBIDDEN"> {
+/**
+ * OBS overlay read — no login (OBS cannot sign in); the integration key is the secret. `slot`: the 텍스트 슬롯 address's
+ * `?slot=` (1 when missing; an unknown slot looks like a missing page).
+ */
+export async function getOverlayTool(tool: unknown, key: unknown, slot?: unknown): Promise<OverlayTool | "FORBIDDEN"> {
   assertMock();
   if (!overlayKeyOpen(key) || !isToolKey(tool)) return "FORBIDDEN";
-  // 리모컨 signals: 오버레이 새로고침 (reloadSeq) and 기능 제어 ON/OFF (on); the look is the 방송 도구 테마.
-  const signal = { ...overlaySignal(tool), theme: overlayTheme(toolLook().theme) };
+  // 리모컨 signals: 오버레이 새로고침 (reloadSeq) and 기능 제어 ON/OFF (on); the look is the 방송 도구 테마. 텍스트 슬롯 share
+  // the 자막 switch (both put the creator's text on stream).
+  const signal = { ...overlaySignal(tool === "text" ? "subtitle" : tool), theme: overlayTheme(toolLook().theme) };
   switch (tool) {
     case "subtitle":
       return { tool, state: { ...tools.subtitle }, ...signal };
@@ -365,5 +396,10 @@ export async function getOverlayTool(tool: unknown, key: unknown): Promise<Overl
       return { tool, state: structuredClone(tools.credits), data: creditsData(tools.credits), ...signal };
     case "bingo":
       return { tool, state: structuredClone(tools.bingo), ...signal };
+    case "text": {
+      const n = slot === undefined || slot === "" ? 1 : Number(slot);
+      if (!Number.isInteger(n) || n < 1 || n > TEXT_SLOTS) return "FORBIDDEN";
+      return { tool, slot: n, state: { ...tools.text.slots[n - 1] }, ...signal };
+    }
   }
 }

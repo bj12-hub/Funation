@@ -7,7 +7,7 @@ import type { OverlayAppearance, OverlayThemeChoice, ResolvedTheme } from "./ove
  * donation-driven effects (이모지 · 레이어 효과) are TBD.
  */
 
-export const TOOL_KEYS = ["subtitle", "marquee", "timer", "credits", "bingo"] as const;
+export const TOOL_KEYS = ["subtitle", "marquee", "timer", "credits", "bingo", "text"] as const;
 export type ToolKey = (typeof TOOL_KEYS)[number];
 export const isToolKey = (v: unknown): v is ToolKey => TOOL_KEYS.includes(v as ToolKey);
 
@@ -16,7 +16,8 @@ export const TOOL_CARDS: { key: ToolKey; emoji: string; title: string; descripti
   { key: "marquee", emoji: "📢", title: "전광판", description: "공지 문구를 화면 가로로 흘려 보여 줘요." },
   { key: "timer", emoji: "⏱️", title: "타이머", description: "카운트다운 또는 스톱워치를 화면에 표시해요." },
   { key: "credits", emoji: "🎬", title: "엔딩 크레딧", description: "방송 마무리에 총 후원 · MVP · 후원자 순위 · 멤버별 순위와 감사 인사를 영화 크레딧이나 스타워즈 크롤로 흘려 보여 줘요." },
-  { key: "bingo", emoji: "🎯", title: "빙고", description: "칸마다 미션을 적은 빙고판을 띄우고, 해낸 칸을 눌러 표시해요. 완성한 줄 수를 함께 보여 줘요." }
+  { key: "bingo", emoji: "🎯", title: "빙고", description: "칸마다 미션을 적은 빙고판을 띄우고, 해낸 칸을 눌러 표시해요. 완성한 줄 수를 함께 보여 줘요." },
+  { key: "text", emoji: "📝", title: "텍스트 슬롯", description: "문구를 슬롯 20개에 저장해 두고 슬롯마다 다른 OBS 주소로 띄워요. 줄바꿈 · 크기 · 색 · 세로 스크롤을 슬롯마다 정해요." }
 ];
 
 export const SUBTITLE_MAX = 80;
@@ -28,8 +29,15 @@ export const TIMER_MAX_SEC = 24 * 3600;
 
 export type SubtitleState = { text: string; size: "S" | "M" | "L" };
 export type MarqueeState = { lines: string[]; speed: "SLOW" | "NORMAL" | "FAST" };
-/** Countdown runs from `durationSec`; the stopwatch counts up. `startedAt` null = stopped/paused. */
-export type TimerState = { mode: "COUNTDOWN" | "STOPWATCH"; durationSec: number; startedAt: string | null; elapsedBeforeSec: number };
+/**
+ * Countdown runs from `durationSec`; the stopwatch counts up. `startedAt` null = stopped/paused. `donationSec`: 후원 연동
+ * (2026-10-23, StreamDonate 타이머 참고) — every completed 썸네이션 후원 adds this many seconds per 1,000 FN to a countdown
+ * (0 = off; kept when the timer is set up again).
+ */
+export type TimerState = { mode: "COUNTDOWN" | "STOPWATCH"; durationSec: number; startedAt: string | null; elapsedBeforeSec: number; donationSec: number };
+export const TIMER_DONATION_SEC_MAX = 600;
+/** 후원 연동 counts whole thousands: 2,500 FN adds 2 × `donationSec`. */
+export const TIMER_DONATION_UNIT_FN = 1_000;
 /**
  * 엔딩 크레딧 (2026-10-23 섹션 확장, StreamDonate 엔딩 크레딧 참고 — docs/research/streamdonate-reference.md P1-3):
  * FILM rolls the page up like a film's credits, CRAWL is the 스타워즈 크롤 (yellow text sliding away into the screen).
@@ -143,7 +151,36 @@ export function resizeBingo(from: Pick<BingoState, "size" | "cells" | "marked">,
   return { cells, marked };
 }
 
-export type ToolStates = { subtitle: SubtitleState; marquee: MarqueeState; timer: TimerState; credits: CreditsState; bingo: BingoState };
+/**
+ * 텍스트 슬롯 (2026-10-23, StreamDonate 텍스트 오버레이 참고): TEXT_SLOTS saved texts, each with its own look, each on its own
+ * OBS address (`?slot=N`). An empty text shows nothing. `scroll`: the text runs up the source and starts again.
+ */
+export const TEXT_SLOTS = 20;
+export const TEXT_SLOT_NAME_MAX = 20;
+export const TEXT_SLOT_TEXT_MAX = 300;
+export const TEXT_SIZES = [16, 20, 24, 28, 32, 40, 48, 56, 64, 72, 96, 120] as const;
+export const TEXT_SCROLL_SEC = { min: 5, max: 120 } as const;
+export const TEXT_ALIGNS = [
+  { key: "LEFT", label: "왼쪽" },
+  { key: "CENTER", label: "가운데" },
+  { key: "RIGHT", label: "오른쪽" }
+] as const;
+export type TextSlot = {
+  name: string;
+  text: string;
+  size: number;
+  color: string;
+  bold: boolean;
+  outline: boolean;
+  /** CARD: on the 방송 도구 테마 card (its colors win over `color`); NONE: straight on the stream. */
+  background: "NONE" | "CARD";
+  align: (typeof TEXT_ALIGNS)[number]["key"];
+  scroll: boolean;
+  scrollSec: number;
+};
+export const EMPTY_TEXT_SLOT: TextSlot = { name: "", text: "", size: 32, color: "#FFFFFF", bold: true, outline: true, background: "NONE", align: "LEFT", scroll: false, scrollSec: 20 };
+
+export type ToolStates = { subtitle: SubtitleState; marquee: MarqueeState; timer: TimerState; credits: CreditsState; bingo: BingoState; text: { slots: TextSlot[] } };
 
 /**
  * 방송 도구 테마 (2026-10-08 오버레이 테마): one choice for every tool overlay (전체 테마 따르기 by default); `appearance`
@@ -165,4 +202,6 @@ export type OverlayTool = (
   | { tool: "timer"; state: TimerState; serverNow: string }
   | { tool: "credits"; state: CreditsState; data: CreditsData }
   | { tool: "bingo"; state: BingoState }
+  /** `slot`: 1 … TEXT_SLOTS (the address's `?slot=`, 1 when left out). */
+  | { tool: "text"; slot: number; state: TextSlot }
 ) & { reloadSeq: number; on: boolean; theme: ResolvedTheme };

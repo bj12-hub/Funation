@@ -20,6 +20,7 @@ const ALERT = widget("ALERT");
 const SUBTITLE = link("SUBTITLE", "💬", "자막", "리모컨에서 입력하는 실시간 텍스트 자막을 표시합니다.", "/creator/widgets/tools");
 const MARQUEE = link("MARQUEE", "📢", "전광판", "공지 문구를 가로로 흘려 보여 줍니다.", "/creator/widgets/tools");
 const CREDITS = link("CREDITS", "🎬", "엔딩 크레딧", "방송 마무리에 순위와 감사 인사를 흘려 보여 줍니다.", "/creator/widgets/tools");
+const TEXT_SLOTS = link("TEXT_SLOTS", "📝", "텍스트 슬롯", "문구를 슬롯 20개에 저장해 두고 슬롯마다 다른 주소로 띄웁니다.", "/creator/widgets/tools");
 const TIMER = link("TIMER", "⏱️", "타이머", "카운트다운 / 스톱워치 오버레이를 표시합니다.", "/creator/widgets/tools");
 
 export const POPULAR: CatalogItem[] = [ALERT, widget("RANKING", { title: "후원자 랭킹" }), widget("GOAL", { title: "목표" })];
@@ -52,7 +53,7 @@ export const GROUPS: CatalogGroup[] = [
   },
   {
     title: "표시 · 자막",
-    items: [link("BANNER", "🖼️", "배너", "이미지 슬라이드쇼 배너를 화면 상/하/중앙에 표시합니다.", "/creator/widgets/banner"), SUBTITLE, MARQUEE, CREDITS, widget("CHAT"), widget("QR"), widget("WALLPAPER")]
+    items: [link("BANNER", "🖼️", "배너", "이미지 슬라이드쇼 배너를 화면 상/하/중앙에 표시합니다.", "/creator/widgets/banner"), SUBTITLE, TEXT_SLOTS, MARQUEE, CREDITS, widget("CHAT"), widget("QR"), widget("WALLPAPER")]
   },
   {
     title: "이펙트 · 효과",

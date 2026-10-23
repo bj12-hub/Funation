@@ -233,6 +233,8 @@ const parseGoal: Parser<GoalSettings> = (v) => {
   if (!bool(customColors)) return "설정 값을 확인해 주세요.";
   const alternateSec = v.alternateSec === undefined ? 10 : v.alternateSec;
   if (!int(alternateSec, GOAL_ALTERNATE_SEC.min, GOAL_ALTERNATE_SEC.max)) return `번갈아 보여 줄 간격은 ${GOAL_ALTERNATE_SEC.min}~${GOAL_ALTERNATE_SEC.max}초로 입력해 주세요.`;
+  const autoRaise = v.autoRaise === undefined ? 0 : v.autoRaise;
+  if (!int(autoRaise, 0, GOAL_AMOUNT_MAX)) return "자동 증량 금액을 확인해 주세요.";
   const sg = obj(v.second);
   const secondOn = sg.enabled === true;
   if (v.second !== undefined && !bool(sg.enabled)) return "두 번째 목표 설정을 확인해 주세요.";
@@ -266,7 +268,8 @@ const parseGoal: Parser<GoalSettings> = (v) => {
     textOutline: v.textOutline,
     font: f,
     second,
-    alternateSec
+    alternateSec,
+    autoRaise
   };
 };
 
