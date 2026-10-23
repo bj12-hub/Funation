@@ -55,7 +55,8 @@ export const HELPER_NAV: HelperNavGroup[] = [
     title: "크루 방송",
     items: [
       { label: "크루 관리", emoji: "👥", href: "/crew", description: "함께 방송하는 크루 멤버와 직급을 관리해요." },
-      { label: "방송 운영", emoji: "📋", href: "/crew/broadcast", description: "점수판 · 배틀 · 강탈 · 시나리오를 방송 중에 운영해요." }
+      { label: "방송 운영", emoji: "📋", href: "/crew/broadcast", description: "점수판 · 배틀 · 강탈 · 시나리오를 방송 중에 운영해요." },
+      { label: "점수 게임", emoji: "🎰", href: "/crew/games", description: "시그니처 후원으로 돌아가는 스핀머신 같은 점수 게임이에요." }
     ]
   },
   {

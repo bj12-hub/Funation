@@ -219,6 +219,7 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
                     {r.stolen !== 0 && ` · 강탈 ${signed(r.stolen)}`}
                     {r.battle !== 0 && ` · 배틀 배수 ${signed(r.battle)}`}
                     {r.grade !== 0 && ` · 직급 배수 ${signed(r.grade)}`}
+                    {r.game !== 0 && ` · 게임 ${signed(r.game)}`}
                   </span>
                 </span>
                 <span className={styles.boardButtons}>

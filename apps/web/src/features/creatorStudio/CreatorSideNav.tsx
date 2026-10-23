@@ -46,7 +46,8 @@ const GROUPS: Group[] = [
     title: "크루 방송",
     items: [
       { label: "크루 관리", emoji: "👥", href: "/creator/crew" },
-      { label: "방송 운영", emoji: "📋", href: "/creator/crew/broadcast" }
+      { label: "방송 운영", emoji: "📋", href: "/creator/crew/broadcast" },
+      { label: "점수 게임", emoji: "🎰", href: "/creator/crew/games" }
     ]
   },
   {

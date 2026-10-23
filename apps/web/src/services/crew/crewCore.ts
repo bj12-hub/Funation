@@ -200,13 +200,28 @@ export function windowSteals(b: MockBroadcast, from: string, to: string | null):
   return scores;
 }
 
+/** A 점수 게임 run counts once its result shows on OBS (`revealAt`), and every run counts once the broadcast ended. */
+export const gameRunCounts = (b: MockBroadcast, run: { revealAt: string }, now = Date.now()) => !!b.endedAt || Date.parse(run.revealAt) <= now;
+
+/**
+ * 점수 게임 points per member between `from` and `to` by the time of the run (`to` null = now), shown results only.
+ * Like 기여도 강탈 they count as they are: no 배틀 · 직급 배수 (2026-10-23 기본값).
+ */
+export function windowGames(b: MockBroadcast, from: string, to: string | null): Map<string, number> {
+  const end = to ?? new Date(Date.now() + 1000).toISOString();
+  const scores = new Map<string, number>();
+  for (const r of b.gameRuns ?? []) if (r.points && r.at >= from && r.at <= end && gameRunCounts(b, r)) scores.set(r.memberId, (scores.get(r.memberId) ?? 0) + r.points);
+  return scores;
+}
+
 /**
  * Points each member has from between `from` and `to`: what they received ± 기여도 강탈 (which moves points between
- * members inside the same window). Used by 서브 점수판 and 실시간 배틀. `to` null = now.
+ * members inside the same window) + 점수 게임 results. Used by 서브 점수판, 실시간 배틀 and the 구간 순위표. `to` null = now.
  */
 export function windowScores(b: MockBroadcast, from: string, to: string | null): Map<string, number> {
   const scores = windowReceived(b, from, to);
   for (const [id, p] of windowSteals(b, from, to)) scores.set(id, (scores.get(id) ?? 0) + p);
+  for (const [id, p] of windowGames(b, from, to)) scores.set(id, (scores.get(id) ?? 0) + p);
   return scores;
 }
 
@@ -308,7 +323,7 @@ export const scoredFeed = (b: MockBroadcast) => {
 
 /**
  * The main scoreboard of a broadcast, best first (ties by name): active members and anyone with points in it, each
- * with 후원 · 후원 리스트 · 보정 · 강탈 · 배틀 배수 · 직급 배수 parts. Shared by 방송 운영 and the 엔딩 크레딧.
+ * with 후원 · 후원 리스트 · 보정 · 강탈 · 배틀 배수 · 직급 배수 · 점수 게임 parts. Shared by 방송 운영 and the 엔딩 크레딧.
  */
 export function scoreboardRows(b: MockBroadcast): ScoreRow[] {
   const end = b.endedAt ?? new Date(Date.now() + 1000).toISOString();
@@ -316,8 +331,9 @@ export function scoreboardRows(b: MockBroadcast): ScoreRow[] {
   const feed = scoredFeed(b);
   const bonus = battleBonus(b);
   const graded = gradeBonus(b);
+  const games = windowGames(b, b.startedAt, b.endedAt);
   const rows = (mockCrew.crews[b.channelId] ?? [])
-    .filter((m) => m.active || b.teams[m.id] !== undefined || b.adjustments.some((a) => a.memberId === m.id) || (b.feed ?? []).some((f) => f.memberId === m.id) || (b.steals ?? []).some((x) => x.thief === m.id || x.target === m.id))
+    .filter((m) => m.active || b.teams[m.id] !== undefined || b.adjustments.some((a) => a.memberId === m.id) || (b.feed ?? []).some((f) => f.memberId === m.id) || (b.steals ?? []).some((x) => x.thief === m.id || x.target === m.id) || games.has(m.id))
     .map((m) => {
       const donated = mockCrew.attributions
         .filter((a) => a.channelId === b.channelId && a.memberId === m.id && a.at >= b.startedAt && a.at <= end)
@@ -327,7 +343,8 @@ export function scoreboardRows(b: MockBroadcast): ScoreRow[] {
       const stolen = (b.steals ?? []).reduce((sum, x) => sum + (x.thief === m.id ? x.points : 0) - (x.target === m.id ? x.points : 0), 0);
       const battle = bonus.get(m.id) ?? 0;
       const grade = graded.get(m.id) ?? 0;
-      return { memberId: m.id, name: m.name, color: m.color, team: b.teams[m.id] ?? null, donated, feed: fromFeed, adjust, stolen, battle, grade, score: donated + fromFeed + adjust + stolen + battle + grade };
+      const game = games.get(m.id) ?? 0;
+      return { memberId: m.id, name: m.name, color: m.color, team: b.teams[m.id] ?? null, donated, feed: fromFeed, adjust, stolen, battle, grade, game, score: donated + fromFeed + adjust + stolen + battle + grade + game };
     });
   return rows.sort((x, y) => y.score - x.score || x.name.localeCompare(y.name));
 }
