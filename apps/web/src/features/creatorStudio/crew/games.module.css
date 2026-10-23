@@ -298,3 +298,34 @@
 .bingoCell[data-line] {
   background: var(--color-primary-soft);
 }
+
+/* 복불복 뽑기판 (studio): the 빙고 grid with each cell's hidden prize shown faintly; click a closed cell to open it. */
+.drawCell {
+  composes: bingoCell;
+  position: relative;
+}
+
+.drawCell:not([data-open]) > span:not(.drawNo) {
+  opacity: 0.55;
+}
+
+.drawCell[data-open] {
+  border-width: 2px;
+  border-color: var(--cell-color, var(--color-primary));
+  background: var(--color-primary-soft);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+.drawCell[data-open][data-miss] {
+  background: var(--color-surface-raised);
+  color: var(--color-text-tertiary);
+}
+
+.drawNo {
+  position: absolute;
+  top: 3px;
+  left: 5px;
+  color: var(--color-text-tertiary);
+  font-size: 10px;
+}

@@ -9,6 +9,9 @@ import type {
   DiceSettings,
   GameEffect,
   GameKey,
+  GridDrawSettings,
+  GridDrawSize,
+  GridPrizeKind,
   JupjupSettings,
   MedleySettings,
   SigBingoMode,
@@ -106,7 +109,7 @@ export type MockBroadcast = {
     showAt: string;
     revealAt: string;
     memberId: string;
-    trigger: { kind: "SIGNATURE"; signatureId: string; signatureName: string } | { kind: "AMOUNT"; amount: number } | { kind: "MANUAL" };
+    trigger: { kind: "SIGNATURE"; signatureId: string; signatureName: string } | { kind: "AMOUNT"; amount: number } | { kind: "DONATION"; amount: number } | { kind: "MANUAL" };
     sourceId: string | null;
     basePoints: number;
     itemId: string | null;
@@ -145,6 +148,26 @@ export type MockBroadcast = {
     cells: { signatureId: string; signatureName: string; opened: { memberId: string | null; at: string; donationId: string | null } | null }[];
     lines: number[];
     lastOpened: number | null;
+  };
+  /**
+   * 복불복 뽑기판 board: the prizes placed at 시작 (MISS = 꽝) and who opened each cell (`revealAt`: its run's result). `round`
+   * counts the boards since 시작; `resetAt`: set when the last cell opens with 자동 리셋 on — the next board replaces this one
+   * then (or at the next opening). `requestId`: the start request (a retried start is not a new board).
+   */
+  gridDraw?: {
+    size: GridDrawSize;
+    round: number;
+    startedAt: string;
+    requestId: string;
+    cells: {
+      kind: GridPrizeKind | "MISS";
+      label: string;
+      signatureId: string | null;
+      points: number;
+      opened: { memberId: string | null; at: string; revealAt: string; donationId: string | null } | null;
+    }[];
+    lastOpened: number | null;
+    resetAt: string | null;
   };
   /** 상품 순위표: shown on OBS (`?prize`) and its 구간 (시작 ~ 정지; a new 시작 restarts it). `starts`: 시작 request ids applied. */
   prizeBoard?: { visible: boolean; window: { startedAt: string; stoppedAt: string | null } | null; starts: string[] };
@@ -193,6 +216,8 @@ type MockCrew = {
   medleys?: Record<string, MedleySettings>;
   /** 시그 빙고 settings per channel (missing = DEFAULT_SIG_BINGO). */
   sigBingos?: Record<string, SigBingoSettings>;
+  /** 복불복 뽑기판 settings per channel (missing = DEFAULT_GRID_DRAW). */
+  gridDraws?: Record<string, GridDrawSettings>;
   /** 멤버 추가 request ids already applied (a retried add is not a second member). */
   memberRequests?: string[];
 };
