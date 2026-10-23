@@ -1,0 +1,70 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
+import type { OverlayTarget } from "@/services/creator/alertTypes";
+import type { BroadcastResult, GamesView } from "@/services/crew/crewTypes";
+import { OverlayOffNotice } from "../remote/OverlayOffNotice";
+import { CrewTabs } from "./CrewTabs";
+import { SpinMachinePanel } from "./SpinMachinePanel";
+import styles from "./crew.module.css";
+
+/**
+ * 점수 게임 — code-first (no Figma frame; StreamDonate 점수 게임 참고, P2). Route `/creator/crew/games`. Games whose results
+ * are crew points (display scores — FN never moves); 스핀머신 first. Settings work any time; spins need a live broadcast
+ * (started on 방송 운영). Refreshes from the server every few seconds while live (자동 스핀 from donations).
+ */
+export function GamesScreen({ view, switches }: { view: GamesView; switches: Record<OverlayTarget, boolean> }) {
+  const router = useRouter();
+  const [message, setMessage] = useState<{ tone: "error" | "ok"; text: string } | null>(null);
+  const [pending, startTransition] = useTransition();
+  const liveId = view.live?.id ?? null;
+
+  useEffect(() => {
+    if (!liveId) return;
+    const poll = setInterval(() => router.refresh(), 3000);
+    return () => clearInterval(poll);
+  }, [liveId, router]);
+
+  const run = (action: () => Promise<BroadcastResult>, ok?: string) => {
+    setMessage(null);
+    startTransition(async () => {
+      const res = await action();
+      if (res.status === "SAVED") {
+        if (ok) setMessage({ tone: "ok", text: ok });
+        router.refresh();
+      } else if (res.status === "UNAUTHORIZED") router.push("/login?role=creator&next=/creator/crew/games");
+      else setMessage({ tone: "error", text: res.message });
+    });
+  };
+
+  return (
+    <div className={styles.content}>
+      <header className={styles.header}>
+        <h1 className={styles.title}>크루 관리</h1>
+        <p className={styles.subtitle}>
+          방송 중 후원으로 돌아가는 점수 게임이에요. 결과는 서버가 정하고, OBS에서 결과가 나온 뒤 점수판에 들어가요. 표시 점수일 뿐 FN은 움직이지 않아요.
+        </p>
+      </header>
+      <OverlayOffNotice targets={["crew"]} switches={switches} />
+      <CrewTabs active="games" />
+
+      {message && (
+        <p className={message.tone === "error" ? styles.error : styles.ok} role={message.tone === "error" ? "alert" : "status"}>
+          {message.text}
+        </p>
+      )}
+      {!view.live && <p className={styles.note}>진행 중인 방송이 없어요. 설정은 지금 저장할 수 있고, 스핀은 방송 운영에서 방송을 시작하면 돌아가요.</p>}
+
+      <SpinMachinePanel
+        settings={view.spinSettings}
+        signatures={view.signatures}
+        members={view.members}
+        live={view.live}
+        overlayPath={view.overlayPath}
+        pending={pending}
+        run={run}
+      />
+    </div>
+  );
+}

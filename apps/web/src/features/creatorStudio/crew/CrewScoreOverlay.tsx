@@ -38,7 +38,7 @@ export function CrewScoreOverlay({ data, reloadSeq, theme }: { data: OverlayScor
 }
 
 /** Transparent page + 3-second server refresh + 기능별 새로고침, shared by every crew overlay. */
-function useOverlayPage(reloadSeq: number) {
+export function useOverlayPage(reloadSeq: number) {
   const router = useRouter();
   useReloadSignal(reloadSeq);
   useEffect(() => {
