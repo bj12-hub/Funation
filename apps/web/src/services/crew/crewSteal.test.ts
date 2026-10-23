@@ -70,7 +70,7 @@ describe("기여도 강탈 룰렛", () => {
     roll.next = 0;
     await spinSteal({ broadcastId: id, requestId: key(2), thiefId: "cm-s1", targetId: "cm-s2" });
     const b = (await view()).live!.battles[0];
-    expect(b.sides.map((s) => s.score)).toEqual([1_200, 2_800]);
+    expect(b.matches[0].sides.map((s) => s.score)).toEqual([1_200, 2_800]);
 
     expect((await setStealSlots({ slots: [{ label: "x", kind: "PERCENT", value: 101, weight: 1 }] })).status).toBe("INVALID");
     expect((await setStealSlots({ slots: [{ label: "", kind: "MISS", value: 0, weight: 1 }] })).status).toBe("INVALID");
@@ -97,7 +97,7 @@ describe("기여도 강탈 룰렛", () => {
     // Not × 2 again: the target ends at 0 (not −2,000), the thief gets exactly 2,000.
     expect(row(v, "cm-s2")).toMatchObject({ score: 0, stolen: -2_000, battle: 1_000 });
     expect(row(v, "cm-s1")).toMatchObject({ score: 2_000, stolen: 2_000, battle: 0 });
-    expect(v.live!.battles[0].sides.map((s) => s.score)).toEqual([2_000, 0]);
+    expect(v.live!.battles[0].matches[0].sides.map((s) => s.score)).toEqual([2_000, 0]);
 
     await donate(300, "하늘"); // 600 on the scoreboard
     roll.next = 1;
@@ -106,7 +106,7 @@ describe("기여도 강탈 룰렛", () => {
     v = await view();
     expect(row(v, "cm-s2").score).toBe(0);
     expect(row(v, "cm-s1").score).toBe(2_600);
-    expect(v.live!.battles[0].sides.map((s) => s.score)).toEqual([2_600, 0]);
+    expect(v.live!.battles[0].matches[0].sides.map((s) => s.score)).toEqual([2_600, 0]);
   });
 
   it("follows the 강탈 기준 and 쿨다운, starting from the platform defaults", async () => {

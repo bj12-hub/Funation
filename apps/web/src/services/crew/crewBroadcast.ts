@@ -10,8 +10,10 @@ import {
   ADJUST_REASON_MAX,
   BROADCAST_TITLE_MAX,
   MAX_ADJUST_POINTS,
+  MULTI_TEAM_COLORS,
   OVERLAY_BOARD_ROWS,
   PROJECT_NAME_MAX,
+  battleStanding,
   rankUpPair,
   type FeedSourceKey,
   type FeedSummaryRow,
@@ -25,7 +27,7 @@ import {
   type ScoreRow,
   type TeamKey
 } from "./crewTypes";
-import { battleBonus, battleRulesOf, fanNotesView, gradeBonus, gradeMultipliersOf, excelOf, feedOf, liveBroadcastOf, scoreEntry, scoreFn, stealRecordView, stealRulesOf, timesMultiplier, windowReceived, windowScores, windowSteals } from "./crewCore";
+import { battleBonus, battleGroups, battleRulesOf, fanNotesView, gradeBonus, gradeMultipliersOf, excelOf, feedOf, liveBroadcastOf, scoreEntry, scoreFn, stealRecordView, stealRulesOf, timesMultiplier, windowReceived, windowScores, windowSteals } from "./crewCore";
 import { prizeBoardLive, prizeSettingsOf } from "./crewPrizeCore";
 import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
 
@@ -120,21 +122,23 @@ function battleView(b: MockBroadcast, x: NonNullable<MockBroadcast["battles"]>[n
   const byId = new Map(members().map((m) => [m.id, m]));
   const multiplier = x.multiplier ?? 1;
   const sum = (scores: Map<string, number>, ids: string[]) => ids.reduce((s, id) => s + (scores.get(id) ?? 0), 0);
-  const side = (key: "A" | "B", ids: string[]) => {
-    const one = x.mode === "MEMBERS" ? byId.get(ids[0]) : undefined;
-    return {
-      key,
-      label: x.mode === "MEMBERS" ? (one?.name ?? "삭제된 멤버") : `${key}팀`,
-      color: one?.color ?? TEAM_COLOR[key],
-      memberIds: [...ids],
-      // 배틀 배수 multiplies what the side received; 기여도 강탈 moves points as they are (2026-10-07 결정).
-      score: timesMultiplier(sum(received, ids), multiplier) + sum(steals, ids)
-    };
-  };
-  const sides: [Battle["sides"][0], Battle["sides"][1]] = [side("A", x.a), side("B", x.b)];
-  const [a, c] = sides;
-  const leader = a.score === 0 && c.score === 0 ? null : a.score === c.score ? "DRAW" : a.score > c.score ? "A" : "B";
-  return { no: x.no, title: x.title, mode: x.mode, startedAt: x.startedAt, endsAt: x.endsAt, stoppedAt: x.stoppedAt, running, remainingSec: running ? Math.ceil((endMs - now) / 1000) : 0, sides, multiplier, penalty: x.penalty ?? "", leader };
+  const perMember = x.mode === "MEMBERS" || x.mode === "PAIRS";
+  const matches = battleGroups(x).map((group) => {
+    const sides = group.map(({ key, name, memberIds }, i) => {
+      const one = perMember ? byId.get(memberIds[0]) : undefined;
+      return {
+        key,
+        label: perMember ? (one?.name ?? "삭제된 멤버") : (name ?? `${key}팀`),
+        color: one?.color ?? (x.mode === "MULTI_TEAMS" ? MULTI_TEAM_COLORS[i] : TEAM_COLOR[key as TeamKey]),
+        memberIds: [...memberIds],
+        memberNames: memberIds.map((id) => byId.get(id)?.name ?? "삭제된 멤버"),
+        // 배틀 배수 multiplies what the side received; 기여도 강탈 moves points as they are (2026-10-07 결정).
+        score: timesMultiplier(sum(received, memberIds), multiplier) + sum(steals, memberIds)
+      };
+    });
+    return { sides, ...battleStanding(sides) };
+  });
+  return { no: x.no, title: x.title, mode: x.mode, startedAt: x.startedAt, endsAt: x.endsAt, stoppedAt: x.stoppedAt, running, remainingSec: running ? Math.ceil((endMs - now) / 1000) : 0, matches, multiplier, penalty: x.penalty ?? "" };
 }
 
 /** 서브 점수판 rows: points donated to each active member between `from` and `to` (open board = now). */

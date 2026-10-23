@@ -1,6 +1,6 @@
 import type { AmountUnit } from "@/types/donationUnit";
 import type { Platform } from "@/types/platform";
-import { BATTLE_MULTIPLIER_MAX, BATTLE_PENALTY_MAX, FAN_NOTE_LIMITS, GRADES_MAX, PLATFORM_FAN_NOTE_RULES, GRADE_MULTIPLIER_MAX, GRADE_NAME_MAX, PLATFORM_BATTLE_RULES, PLATFORM_STEAL_RULES, SUB_BOARD_MAX, excelUnitOf, isExcelUnit, type BattleRules, type CrewGrade, type FanNoteRules, type FanNotesView, type RoomFanNotes, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow } from "./crewTypes";
+import { BATTLE_MULTIPLIER_MAX, BATTLE_PENALTY_MAX, FAN_NOTE_LIMITS, GRADES_MAX, MULTI_TEAM_KEYS, PLATFORM_FAN_NOTE_RULES, GRADE_MULTIPLIER_MAX, GRADE_NAME_MAX, PLATFORM_BATTLE_RULES, PLATFORM_STEAL_RULES, SUB_BOARD_MAX, excelUnitOf, isExcelUnit, type BattleRules, type CrewGrade, type FanNoteRules, type FanNotesView, type RoomFanNotes, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow } from "./crewTypes";
 import { mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 // ── 후원 리스트 (server-only) ──────────────────────────────────────────────────
@@ -277,9 +277,21 @@ export function battleBonus(b: MockBroadcast, now = Date.now()): Map<string, num
     if (m === 1) continue;
     const endMs = Math.min(Date.parse(x.endsAt), x.stoppedAt ? Date.parse(x.stoppedAt) : Infinity);
     const received = windowReceived(b, x.startedAt, endMs > now ? null : new Date(endMs).toISOString());
-    for (const id of [...x.a, ...x.b]) bonus.set(id, (bonus.get(id) ?? 0) + extraPoints(received.get(id) ?? 0, m));
+    for (const id of battleGroups(x).flat().flatMap((s) => s.memberIds)) bonus.set(id, (bonus.get(id) ?? 0) + extraPoints(received.get(id) ?? 0, m));
   }
   return bonus;
+}
+
+type StoredBattle = NonNullable<MockBroadcast["battles"]>[number];
+
+/**
+ * A stored battle's matches as member-id sides, keyed A, B … in set-up order: one match for BJ 1:1, A팀 vs B팀 and 다수 팀
+ * (`name` = the team name there), one per pair for 1:1 여러 쌍. A member is in at most one side of a battle.
+ */
+export function battleGroups(x: StoredBattle): { key: string; name: string | null; memberIds: string[] }[][] {
+  if (x.mode === "MULTI_TEAMS") return [(x.teams ?? []).map((t, i) => ({ key: MULTI_TEAM_KEYS[i], name: t.name, memberIds: t.memberIds }))];
+  if (x.mode === "PAIRS") return (x.pairs ?? []).map(([p, q]) => [{ key: "A", name: null, memberIds: [p] }, { key: "B", name: null, memberIds: [q] }]);
+  return [[{ key: "A", name: null, memberIds: x.a }, { key: "B", name: null, memberIds: x.b }]];
 }
 
 /** A 기여도 강탈 record with member names (removed members keep a placeholder). */
