@@ -46,13 +46,18 @@ export type MockBroadcast = {
   simRequests?: string[];
   /** 서브 점수판: window-scored boards under the main one (numbered from 1 per broadcast). */
   subBoards?: { no: number; title: string; openedAt: string; closedAt: string | null; requestId: string }[];
-  /** 실시간 배틀: side A/B member ids, timer and the request ids already applied (start · time changes). */
+  /**
+   * 실시간 배틀: side A/B member ids (BJ 1:1 · A팀 vs B팀), `teams` (다수 팀) or `pairs` (1:1 여러 쌍), timer and the request
+   * ids already applied (start · time changes). Read through crewCore.battleGroups.
+   */
   battles?: {
     no: number;
     title: string;
-    mode: "MEMBERS" | "TEAMS";
+    mode: "MEMBERS" | "TEAMS" | "MULTI_TEAMS" | "PAIRS";
     a: string[];
     b: string[];
+    teams?: { name: string; memberIds: string[] }[];
+    pairs?: [string, string][];
     startedAt: string;
     endsAt: string;
     stoppedAt: string | null;

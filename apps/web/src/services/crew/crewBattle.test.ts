@@ -42,14 +42,16 @@ describe("실시간 배틀", () => {
     await donate(3_000, "길동");
     await donate(5_000, "하늘");
     let b = (await battles())[0];
-    expect(b).toMatchObject({ no: 1, title: "배틀 1", running: true, remainingSec: 50, leader: "B" });
-    expect(b.sides.map((s) => [s.label, s.score])).toEqual([["길동", 3_000], ["하늘", 5_000]]);
+    expect(b).toMatchObject({ no: 1, title: "배틀 1", running: true, remainingSec: 50 });
+    expect(b.matches[0]).toMatchObject({ leader: "B", loser: "A" });
+    expect(b.matches[0].sides.map((s) => [s.label, s.score])).toEqual([["길동", 3_000], ["하늘", 5_000]]);
 
     at(80); // time is up at 70
     await donate(10_000, "길동"); // after the end: not counted
     b = (await battles()).at(-1)!;
-    expect(b).toMatchObject({ running: false, remainingSec: 0, leader: "B" });
-    expect(b.sides[0].score).toBe(3_000);
+    expect(b).toMatchObject({ running: false, remainingSec: 0 });
+    expect(b.matches[0].leader).toBe("B");
+    expect(b.matches[0].sides[0].score).toBe(3_000);
   });
 
   it("adds or takes time once per request, and stopping is double-click safe", async () => {
@@ -67,7 +69,8 @@ describe("실시간 배틀", () => {
     at(6);
     expect(await stopBattle({ broadcastId: id, no: 1 })).toEqual({ status: "SAVED" });
     const b = (await battles())[0];
-    expect(b).toMatchObject({ running: false, stoppedAt: new Date(T0 + 5000).toISOString(), leader: null });
+    expect(b).toMatchObject({ running: false, stoppedAt: new Date(T0 + 5000).toISOString() });
+    expect(b.matches[0]).toMatchObject({ leader: null, loser: null });
     expect((await adjustBattleTime({ broadcastId: id, no: 1, deltaSec: 30, requestId: key(5) })).status).toBe("INVALID");
   });
 
@@ -86,8 +89,8 @@ describe("실시간 배틀", () => {
     await donate(2_000, "길동");
     await donate(1_000, "하늘");
     const live = await getOverlayScoreboard(mockCreator.integrationKey);
-    expect(live !== "IDLE" && live !== "FORBIDDEN" && live.battles[0]).toMatchObject({ title: "팀전", mode: "TEAMS", running: true, leader: "A" });
-    expect((await battles())[0].sides.map((s) => [s.label, s.memberIds.length, s.score])).toEqual([["A팀", 1, 2_000], ["B팀", 2, 1_000]]);
+    expect(live !== "IDLE" && live !== "FORBIDDEN" && live.battles[0]).toMatchObject({ title: "팀전", mode: "TEAMS", running: true, matches: [{ leader: "A" }] });
+    expect((await battles())[0].matches[0].sides.map((s) => [s.label, s.memberIds.length, s.score])).toEqual([["A팀", 1, 2_000], ["B팀", 2, 1_000]]);
 
     at(30);
     await endBroadcast(id);
@@ -112,8 +115,8 @@ describe("실시간 배틀", () => {
     await donate(3_000, "길동");
     await donate(1_000, "하늘");
     const b = (await battles())[1];
-    expect(b).toMatchObject({ multiplier: 2, penalty: "노래 한 곡", leader: "A" });
-    expect(b.sides.map((s) => s.score)).toEqual([6_000, 2_000]);
+    expect(b).toMatchObject({ multiplier: 2, penalty: "노래 한 곡", matches: [{ leader: "A" }] });
+    expect(b.matches[0].sides.map((s) => s.score)).toEqual([6_000, 2_000]);
     // The main scoreboard counts the battle points × 배수 too (2026-10-05 결정), shown as its own part.
     const row = (await getBroadcastView())!.live!.rows.find((r) => r.memberId === "cm-s1")!;
     expect(row).toMatchObject({ feed: 3_000, battle: 3_000, score: 6_000 });
@@ -133,6 +136,88 @@ describe("실시간 배틀", () => {
     expect((await getBroadcastView())!.battleRules).toEqual({ multiplier: 1, penalty: "" });
     signIn(["SUPPORTER"]);
     expect(await setBattleRules({ multiplier: 3, penalty: "" })).toEqual({ status: "UNAUTHORIZED" });
+  });
+
+  it("runs 다수 팀 (2 ~ 8 teams made for the battle) with the last team on the 벌칙", async () => {
+    const { startBattle, stopBattle, setMemberKeywords, donate, battles, getBroadcastView, id } = await startLive();
+    await setMemberKeywords({ memberId: "cm-s3", keywords: ["바다"] });
+    const start = (n: number, teams: unknown, extra: Record<string, unknown> = {}) =>
+      startBattle({ broadcastId: id, requestId: key(n), mode: "MULTI_TEAMS", teams, durationSec: 120, penalty: "물 한 컵", ...extra });
+    const bad: [unknown, string][] = [
+      [[{ name: "혼자", memberIds: ["cm-s1"] }], "2~8개"],
+      [Array.from({ length: 9 }, () => ({ name: "", memberIds: ["cm-s1"] })), "2~8개"],
+      [[{ name: "가", memberIds: ["cm-s1"] }, { name: "나", memberIds: [] }], "나에 멤버"],
+      [[{ name: "가", memberIds: ["cm-s1"] }, { name: "가", memberIds: ["cm-s2"] }], "같은 이름"],
+      [[{ name: "가", memberIds: ["cm-s1"] }, { name: "나", memberIds: ["cm-s1", "cm-s2"] }], "한 팀에만"],
+      [[{ name: "가", memberIds: ["cm-s1"] }, { name: "나", memberIds: ["cm-s4"] }], "팀 배정"], // inactive
+      [[{ name: "가".repeat(11), memberIds: ["cm-s1"] }, { name: "나", memberIds: ["cm-s2"] }], "10자"],
+      [[{ name: "admin팀", memberIds: ["cm-s1"] }, { name: "나", memberIds: ["cm-s2"] }], "사용할 수 없는"]
+    ];
+    for (const [i, [teams, message]] of bad.entries()) {
+      const res = await start(10 + i, teams);
+      expect(res.status === "INVALID" && res.message, message).toContain(message);
+    }
+
+    at(1); // after the seed donation stamped at T0
+    expect(await start(1, [{ name: "", memberIds: ["cm-s1"] }, { name: "불꽃", memberIds: ["cm-s2"] }, { name: "", memberIds: ["cm-s3"] }])).toEqual({ status: "SAVED" });
+    at(10);
+    await donate(1_000, "길동");
+    await donate(5_000, "하늘");
+    await donate(3_000, "바다");
+    let b = (await battles())[0];
+    expect(b.mode).toBe("MULTI_TEAMS");
+    expect(b.matches).toHaveLength(1);
+    expect(b.matches[0].sides.map((s) => [s.key, s.label, s.memberNames, s.score, s.color])).toEqual([
+      ["A", "A팀", ["길동"], 1_000, "#3b82f6"],
+      ["B", "불꽃", ["하늘"], 5_000, "#ec4899"],
+      ["C", "C팀", ["바다"], 3_000, "#10b981"]
+    ]);
+    expect(b.matches[0]).toMatchObject({ leader: "B", loser: "A" });
+    // Shared last place: nobody is named for the 벌칙.
+    await donate(2_000, "길동");
+    b = (await battles())[0];
+    expect(b.matches[0]).toMatchObject({ leader: "B", loser: null });
+    await stopBattle({ broadcastId: id, no: 1 });
+    // The main scoreboard still counts every member once (1배).
+    expect((await getBroadcastView())!.live!.rows.find((r) => r.memberId === "cm-s1")).toMatchObject({ feed: 3_000, battle: 0 });
+  });
+
+  it("runs 1:1 여러 쌍 (up to 12 pairs at once), each pair with its own result and 배수", async () => {
+    const { startBattle, stopBattle, setMemberKeywords, addCrewMember, getCrewStudio, donate, battles, getBroadcastView, id } = { ...(await startLive()), ...(await import("./crew")) };
+    expect(await addCrewMember({ requestId: crypto.randomUUID(), name: "별", role: "MEMBER" })).toEqual({ status: "SAVED" });
+    const star = (await getCrewStudio())!.members.find((m) => m.name === "별")!.id;
+    await setMemberKeywords({ memberId: "cm-s3", keywords: ["바다"] });
+    await setMemberKeywords({ memberId: star, keywords: ["별님"] });
+    const start = (n: number, pairs: unknown, extra: Record<string, unknown> = {}) =>
+      startBattle({ broadcastId: id, requestId: key(n), mode: "PAIRS", pairs, durationSec: 60, ...extra });
+    const bad: [unknown, string][] = [
+      [[], "1~12쌍"],
+      [Array.from({ length: 13 }, () => ["cm-s1", "cm-s2"]), "1~12쌍"],
+      [[["cm-s1"]], "두 명"],
+      [[["cm-s1", "cm-s4"]], "두 명"], // inactive
+      [[["cm-s1", "cm-s1"]], "서로 다른"],
+      [[["cm-s1", "cm-s2"], ["cm-s2", "cm-s3"]], "한 쌍에만"]
+    ];
+    for (const [i, [pairs, message]] of bad.entries()) {
+      const res = await start(10 + i, pairs);
+      expect(res.status === "INVALID" && res.message, message).toContain(message);
+    }
+
+    at(1); // after the seed donation stamped at T0
+    expect(await start(1, [["cm-s1", "cm-s2"], ["cm-s3", star]], { multiplier: 2, penalty: "애교" })).toEqual({ status: "SAVED" });
+    at(10);
+    await donate(4_000, "길동");
+    await donate(1_000, "하늘");
+    await donate(2_000, "별님");
+    const b = (await battles())[0];
+    expect(b.matches.map((m) => [m.sides.map((s) => `${s.label} ${s.score}`), m.leader, m.loser])).toEqual([
+      [["길동 8000", "하늘 2000"], "A", "B"],
+      [["바다 0", "별 4000"], "B", "A"]
+    ]);
+    await stopBattle({ broadcastId: id, no: 1 });
+    // 배틀 배수 reaches the main scoreboard for every pair's members.
+    const rows = (await getBroadcastView())!.live!.rows;
+    expect([star, "cm-s1"].map((m) => rows.find((r) => r.memberId === m)!.battle)).toEqual([2_000, 4_000]);
   });
 
   it("keeps the 배틀 배수 in team scores and in the frozen final ranking", async () => {
@@ -155,7 +240,7 @@ describe("실시간 배틀", () => {
       { key: "A", score: byId["cm-s1"].score },
       { key: "B", score: byId["cm-s2"].score + byId["cm-s3"].score }
     ]);
-    expect(live.battles[0].sides.map((s) => s.score)).toEqual([3_000, 6_000]);
+    expect(live.battles[0].matches[0].sides.map((s) => s.score)).toEqual([3_000, 6_000]);
     const total = live.rows.reduce((sum, r) => sum + r.score, 0);
     await endBroadcast(id);
     expect((await getBroadcastView())!.history[0].totalScore).toBe(total);

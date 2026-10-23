@@ -132,3 +132,131 @@
   align-items: center;
   gap: 8px 12px;
 }
+
+/* 다수 팀 · 1:1 여러 쌍 (2026-10-23) */
+.two {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.two[data-small] .score {
+  font-size: var(--font-size-18);
+}
+
+.two[data-small] .gauge {
+  height: 8px;
+}
+
+.setup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.teamNames {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.teamNames input {
+  border-left-width: 4px;
+}
+
+.pairSetup,
+.pairs,
+.teams {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pairSetup li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.pairPick {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pairNo {
+  display: inline-grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-surface-raised);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+}
+
+.pairs li {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+}
+
+.pairResult {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  opacity: 0.8;
+}
+
+.teams li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+}
+
+.teams li[data-win] .teamScore {
+  color: var(--color-live);
+}
+
+.teams li[data-lose] {
+  outline: 1px dashed var(--color-warning-text);
+}
+
+.members {
+  display: block;
+  overflow: hidden;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-regular);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teamScore {
+  font-size: var(--font-size-18);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-extrabold);
+}
+
+@media (max-width: 600px) {
+  .pairs li {
+    grid-template-columns: 24px minmax(0, 1fr);
+  }
+
+  .pairResult {
+    grid-column: 2;
+  }
+}

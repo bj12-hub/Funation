@@ -69,7 +69,8 @@ export function StealPanel({
     }
   }, [slots]);
   // In a BJ 1:1 battle the two BJs are the natural pair.
-  const pair = battle?.mode === "MEMBERS" ? [battle.sides[0].memberIds[0], battle.sides[1].memberIds[0]] : ["", ""];
+  const sides = battle?.mode === "MEMBERS" ? battle.matches[0].sides : null;
+  const pair = sides ? [sides[0].memberIds[0], sides[1].memberIds[0]] : ["", ""];
   const [thief, setThief] = useState(pair[0]);
   const [target, setTarget] = useState(pair[1]);
   const [spin, setSpin] = useState<{ deg: number; result: StealRecord | null; spinning: boolean }>({ deg: 0, result: null, spinning: false });

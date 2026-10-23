@@ -196,6 +196,74 @@
   font-size: 14px;
 }
 
+/* 다수 팀 · 1:1 여러 쌍 (2026-10-23) */
+.battle[data-wide] {
+  width: min(100%, 1200px);
+}
+
+.tugBox {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tugBox[data-small] {
+  gap: 6px;
+  font-size: 14px;
+}
+
+.tugBox[data-small] .sideScore {
+  font-size: 24px;
+}
+
+.tugBox[data-small] .tug {
+  height: 10px;
+}
+
+/* As many pair columns as the browser source is wide. */
+.pairGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.teamBars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.teamBars li {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 150px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+}
+
+.teamBars li[data-win] .score {
+  color: var(--ov-accent);
+}
+
+.teamLabel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.teamMembers {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ── 콘텐츠 시나리오 ── */
 .scenario {
   display: inline-flex;
