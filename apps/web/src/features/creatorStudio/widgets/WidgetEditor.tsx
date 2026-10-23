@@ -12,6 +12,7 @@ import { GoalForm } from "./GoalForm";
 import { GachaForm } from "./GachaForm";
 import { QuestForm } from "./gameForms";
 import { EventForm, MiniForm, RecentForm } from "./listForms";
+import { DonationMonitorForm, SigQueueForm, TopDonationForm } from "./MonitorForms";
 import { RankingForm } from "./RankingForm";
 import { RouletteForm } from "./RouletteForm";
 import { VoteForm } from "./VoteForm";
@@ -34,7 +35,10 @@ const FORMS: { [K in EditableWidgetKey]: ComponentType<FormProps<K>> } = {
   GACHA: GachaForm,
   ROULETTE: RouletteForm,
   WALLPAPER: WallpaperForm,
-  CLOCK: ClockForm
+  CLOCK: ClockForm,
+  TOP_DONATION: TopDonationForm,
+  DONATION_MONITOR: DonationMonitorForm,
+  SIG_QUEUE: SigQueueForm
 };
 
 /** Popup titles; the URL label varies in the design (통합 채팅창 URL · 위젯 연동 URL …). */
@@ -55,7 +59,10 @@ export const WIDGET_EDITOR_COPY: Record<EditableWidgetKey, { title: string; urlL
   GACHA: { title: "뽑기 후원 위젯 설정", urlLabel: "뽑기 후원 위젯 URL" },
   ROULETTE: { title: "룰렛 설정", urlLabel: "룰렛 위젯 URL" },
   WALLPAPER: { title: "벽지 위젯 설정", urlLabel: "벽지 위젯 URL" },
-  CLOCK: { title: "시계 위젯 설정", urlLabel: "시계 위젯 URL" }
+  CLOCK: { title: "시계 위젯 설정", urlLabel: "시계 위젯 URL" },
+  TOP_DONATION: { title: "최고 후원 위젯 설정", urlLabel: "최고 후원 위젯 URL" },
+  DONATION_MONITOR: { title: "후원 모니터링 위젯 설정", urlLabel: "후원 모니터링 위젯 URL" },
+  SIG_QUEUE: { title: "시그 큐 모니터 위젯 설정", urlLabel: "시그 큐 모니터 위젯 URL" }
 };
 
 /** Widgets whose editor saves item by item instead of through a save button. */

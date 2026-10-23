@@ -6,8 +6,18 @@ import {
   ALERT_TOKENS,
   CLOCK_LABEL_MAX,
   CLOCK_STYLES,
+  MONITOR_LAYOUTS,
+  SIG_QUEUE_LAYOUTS,
+  SIG_QUEUE_NEXT_MAX,
+  TOP_DONATION_PRIZE_MAX,
+  TOP_DONATION_TIES,
+  TOP_DONATION_TIMINGS,
+  TOP_DONATION_TITLE_MAX,
   type AlertSettings,
   type ClockSettings,
+  type DonationMonitorSettings,
+  type SigQueueSettings,
+  type TopDonationSettings,
   GACHA_BOARD_PERIODS,
   GACHA_BOARD_SPEEDS,
   GACHA_BOARD_TYPES,
@@ -598,6 +608,46 @@ const parseClock: Parser<ClockSettings> = (v) => {
   return { theme: look.theme, style: v.style, hour12: v.hour12 as boolean, showSeconds: v.showSeconds as boolean, showDate: v.showDate as boolean, label: (v.label as string).trim() };
 };
 
+/** 최고 후원 (code-first, 2026-10-23): 제목 is required, 상금 문구 optional. */
+const parseTopDonation: Parser<TopDonationSettings> = (v) => {
+  const look = themeAndCard(v);
+  if (typeof look === "string") return look;
+  if (!text(v.title, TOP_DONATION_TITLE_MAX, 1)) return `제목을 1~${TOP_DONATION_TITLE_MAX}자로 입력해 주세요.`;
+  if (!text(v.prize, TOP_DONATION_PRIZE_MAX)) return `상금 문구는 ${TOP_DONATION_PRIZE_MAX}자 이내로 입력해 주세요.`;
+  if (!oneOf(v.period, RANKING_WIDGET_PERIODS)) return "기간을 골라 주세요.";
+  if (!keyOf(v.timing, TOP_DONATION_TIMINGS)) return "바뀌는 시점을 골라 주세요.";
+  if (!keyOf(v.tie, TOP_DONATION_TIES)) return "같은 금액일 때를 골라 주세요.";
+  if (!bool(v.showMessage)) return "설정 값을 확인해 주세요.";
+  return {
+    theme: look.theme,
+    title: (v.title as string).trim(),
+    prize: (v.prize as string).trim(),
+    period: v.period as TopDonationSettings["period"],
+    timing: v.timing,
+    tie: v.tie,
+    showMessage: v.showMessage
+  };
+};
+
+/** 후원 모니터링 (code-first, 2026-10-23). */
+const parseDonationMonitor: Parser<DonationMonitorSettings> = (v) => {
+  const look = themeAndCard(v);
+  if (typeof look === "string") return look;
+  if (!keyOf(v.layout, MONITOR_LAYOUTS)) return "표시 모드를 골라 주세요.";
+  if (!bool(v.showMessage)) return "설정 값을 확인해 주세요.";
+  return { theme: look.theme, layout: v.layout, showMessage: v.showMessage };
+};
+
+/** 시그 큐 모니터 (code-first, 2026-10-23): 0 ~ SIG_QUEUE_NEXT_MAX cards after the one playing. */
+const parseSigQueue: Parser<SigQueueSettings> = (v) => {
+  const look = themeAndCard(v);
+  if (typeof look === "string") return look;
+  if (!keyOf(v.layout, SIG_QUEUE_LAYOUTS)) return "카드 배치를 골라 주세요.";
+  if (![v.compact, v.showOrder, v.showMessage].every(bool)) return "설정 값을 확인해 주세요.";
+  if (!int(v.next, 0, SIG_QUEUE_NEXT_MAX)) return `다음 카드는 0~${SIG_QUEUE_NEXT_MAX}장이에요.`;
+  return { theme: look.theme, layout: v.layout, compact: v.compact as boolean, showOrder: v.showOrder as boolean, next: v.next, showMessage: v.showMessage as boolean };
+};
+
 /** WALLPAPER images are managed separately, so its parser returns the settings without them. */
 export type ParsedSettings<K extends EditableWidgetKey> = K extends "WALLPAPER" ? Omit<WallpaperSettings, "images"> : WidgetSettingsMap[K];
 
@@ -616,5 +666,8 @@ export const PARSERS: { [K in Exclude<EditableWidgetKey, "CUSTOM_SOUND">]: Parse
   GACHA: parseGacha,
   ROULETTE: parseRoulette,
   WALLPAPER: parseWallpaper,
-  CLOCK: parseClock
+  CLOCK: parseClock,
+  TOP_DONATION: parseTopDonation,
+  DONATION_MONITOR: parseDonationMonitor,
+  SIG_QUEUE: parseSigQueue
 };

@@ -24,7 +24,10 @@ export type WidgetKey =
   | "GACHA"
   | "ROULETTE"
   | "WALLPAPER"
-  | "CLOCK";
+  | "CLOCK"
+  | "TOP_DONATION"
+  | "DONATION_MONITOR"
+  | "SIG_QUEUE";
 
 export type CatalogCard<K extends string> = { key: K; emoji: string; color: string; title: string; description: string };
 
@@ -46,7 +49,10 @@ export const WIDGET_CARDS: CatalogCard<WidgetKey>[] = [
   { key: "GACHA", emoji: "🧸", color: "#f97316", title: "뽑기 후원", description: "시청자와 함께 다양한 뽑기 이벤트를 진행합니다." },
   { key: "ROULETTE", emoji: "🎡", color: "#0ea5e9", title: "룰렛", description: "후원으로 참여하는 룰렛 항목과 확률을 정하고 방송 화면에 돌립니다." },
   { key: "WALLPAPER", emoji: "🖼️", color: "#ef4444", title: "벽지", description: "후원 액션을 남길 수 있는 특수 배경 위젯입니다." },
-  { key: "CLOCK", emoji: "🕐", color: "#0ea5e9", title: "시계", description: "방송 화면에 지금 시각을 띄웁니다. 플립 · 디지털 · 아날로그 중에서 골라요." }
+  { key: "CLOCK", emoji: "🕐", color: "#0ea5e9", title: "시계", description: "방송 화면에 지금 시각을 띄웁니다. 플립 · 디지털 · 아날로그 중에서 골라요." },
+  { key: "TOP_DONATION", emoji: "🥇", color: "#eab308", title: "최고 후원", description: "기간 안에서 가장 큰 후원 한 건(후원자 · 금액)을 걸어 둡니다. 상금 문구도 함께 띄울 수 있어요." },
+  { key: "DONATION_MONITOR", emoji: "📺", color: "#06b6d4", title: "후원 모니터링", description: "지금 나오는 후원 알림을 다음 알림이 나올 때까지 화면 한쪽에 계속 보여 줍니다." },
+  { key: "SIG_QUEUE", emoji: "🎞️", color: "#a855f7", title: "시그 큐 모니터", description: "재생 중인 시그니처와 다음 차례 시그니처를 카드로 보여 줍니다." }
 ];
 
 /** URL path segment per widget (the design mixes /widget/ and /widgets/; one pattern is used). */
@@ -67,7 +73,10 @@ export const WIDGET_PATHS: Record<WidgetKey, string> = {
   GACHA: "gacha",
   ROULETTE: "roulette",
   WALLPAPER: "wallpaper",
-  CLOCK: "clock"
+  CLOCK: "clock",
+  TOP_DONATION: "top-donation",
+  DONATION_MONITOR: "donation-monitor",
+  SIG_QUEUE: "signature-queue"
 };
 
 // ── Shared field types ───────────────────────────────────────────────────────
@@ -572,6 +581,69 @@ export type ClockSettings = {
   label: string;
 };
 
+// ── 알림 모니터 (code-first, 2026-10-23 — StreamDonate 최고 후원 · 후원 모니터링 · 시그 큐 모니터 참고) ──────────────
+// All three read the 후원 알림 history and queue; none moves the queue (the 후원 알림 overlay plays it).
+
+export const TOP_DONATION_TIMINGS = [
+  { key: "RECEIVED", label: "후원이 들어올 때", hint: "후원이 완료되면 바로 바뀌어요" },
+  { key: "PLAYED", label: "알림이 나올 때", hint: "그 후원의 알림이 방송 화면에 나오면 바뀌어요" }
+] as const;
+export const TOP_DONATION_TIES = [
+  { key: "LATEST", label: "나중 후원자", hint: "같은 금액이 또 들어오면 나중에 보낸 사람으로 바뀌어요" },
+  { key: "FIRST", label: "먼저 후원자", hint: "같은 금액이면 먼저 보낸 사람이 그대로 남아요" }
+] as const;
+export const TOP_DONATION_TITLE_MAX = 20;
+export const TOP_DONATION_PRIZE_MAX = 30;
+
+/**
+ * 최고 후원: the single biggest completed Ssumnation donation (FN) in the period — 후원랭킹's 일간 · 주간 · 월간 · 전체. The
+ * name is the one its alert showed (익명 or the 대체 메시지 included: one donation, not a ranking). `prize` is a free line
+ * ("상금 10만원"); nothing is paid (TBD: 상금 지급).
+ */
+export type TopDonationSettings = {
+  theme: OverlayThemeChoice;
+  title: string;
+  prize: string;
+  period: (typeof RANKING_WIDGET_PERIODS)[number];
+  timing: (typeof TOP_DONATION_TIMINGS)[number]["key"];
+  tie: (typeof TOP_DONATION_TIES)[number]["key"];
+  showMessage: boolean;
+};
+
+export const MONITOR_LAYOUTS = [
+  { key: "BASIC", label: "기본", hint: "몇 초 전 · 후원자 · 금액 · 메시지" },
+  { key: "COMPACT", label: "컴팩트", hint: "후원자 · 메시지만 크게" }
+] as const;
+
+/** 후원 모니터링: the alert on screen now, or the last one shown, until the next one plays. */
+export type DonationMonitorSettings = {
+  theme: OverlayThemeChoice;
+  layout: (typeof MONITOR_LAYOUTS)[number]["key"];
+  showMessage: boolean;
+};
+
+export const SIG_QUEUE_LAYOUTS = [
+  { key: "VERTICAL", label: "세로형", hint: "카드를 위에서 아래로" },
+  { key: "HORIZONTAL", label: "가로형", hint: "카드를 왼쪽에서 오른쪽으로" }
+] as const;
+export const SIG_QUEUE_NEXT_MAX = 4;
+
+/**
+ * 시그 큐 모니터: the signature alert playing (when the alert on screen is one) and the next `next` signature alerts
+ * waiting in the queue. A signature alert is one that carries a signature image (시그니처 후원, or a 후원 matched to a
+ * signature by amount).
+ */
+export type SigQueueSettings = {
+  theme: OverlayThemeChoice;
+  layout: (typeof SIG_QUEUE_LAYOUTS)[number]["key"];
+  /** 컴팩트: no amount line. */
+  compact: boolean;
+  /** 순번: 1 = playing. */
+  showOrder: boolean;
+  next: number;
+  showMessage: boolean;
+};
+
 export type WidgetSettingsMap = {
   ALERT: AlertSettings;
   CHAT: ChatSettings;
@@ -589,9 +661,12 @@ export type WidgetSettingsMap = {
   ROULETTE: RouletteSettings;
   WALLPAPER: WallpaperSettings;
   CLOCK: ClockSettings;
+  TOP_DONATION: TopDonationSettings;
+  DONATION_MONITOR: DonationMonitorSettings;
+  SIG_QUEUE: SigQueueSettings;
 };
 export type EditableWidgetKey = keyof WidgetSettingsMap;
-export const EDITABLE_WIDGETS: EditableWidgetKey[] = ["ALERT", "CHAT", "QR", "GOAL", "TOTAL", "RECENT", "EVENT", "MINI", "RANKING", "VOTE", "CUSTOM_SOUND", "QUEST", "GACHA", "ROULETTE", "WALLPAPER", "CLOCK"];
+export const EDITABLE_WIDGETS: EditableWidgetKey[] = ["ALERT", "CHAT", "QR", "GOAL", "TOTAL", "RECENT", "EVENT", "MINI", "RANKING", "VOTE", "CUSTOM_SOUND", "QUEST", "GACHA", "ROULETTE", "WALLPAPER", "CLOCK", "TOP_DONATION", "DONATION_MONITOR", "SIG_QUEUE"];
 export const isEditableWidget = (k: unknown): k is EditableWidgetKey => EDITABLE_WIDGETS.includes(k as EditableWidgetKey);
 
 /** Values the server reads for previews (not editable). */
@@ -832,5 +907,8 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     nicknameColor: "#519CFF",
     textBoxColor: "#000000"
   },
-  CLOCK: { theme: "INHERIT", style: "FLIP", hour12: false, showSeconds: true, showDate: true, label: "" }
+  CLOCK: { theme: "INHERIT", style: "FLIP", hour12: false, showSeconds: true, showDate: true, label: "" },
+  TOP_DONATION: { theme: "INHERIT", title: "한 방 최고 후원", prize: "", period: "일간", timing: "RECEIVED", tie: "LATEST", showMessage: false },
+  DONATION_MONITOR: { theme: "INHERIT", layout: "BASIC", showMessage: true },
+  SIG_QUEUE: { theme: "INHERIT", layout: "VERTICAL", compact: false, showOrder: true, next: 2, showMessage: true }
 };
