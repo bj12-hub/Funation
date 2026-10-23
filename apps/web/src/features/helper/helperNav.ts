@@ -23,6 +23,7 @@ export const HELPER_NAV: HelperNavGroup[] = [
       { label: "통합 채팅", emoji: "🗨️", href: "/chat/manage", description: "유튜브 · FlexTV · SOOP · 치지직 채팅을 한곳에서 보고 답하고 관리해요." },
       { label: "목표치", emoji: "🎯", href: "/goal", description: "후원 목표 금액과 진행 모양을 정해요." },
       { label: "후원 자막", emoji: "🏆", href: "/subtitles", description: "후원 랭킹 · 누적 금액 · 최근 후원 · 이벤트 목록을 띄워요." },
+      { label: "알림 모니터", emoji: "📺", href: "/monitor", description: "최고 후원 · 지금 나오는 후원 · 시그니처 대기열을 띄워요." },
       { label: "시계", emoji: "🕐", href: "/clock", description: "플립 · 디지털 · 아날로그 시계를 띄워요." },
       { label: "QR 코드", emoji: "🔲", href: "/qr", description: "후원 QR 코드를 방송 화면에 항상 띄워 둬요." },
       { label: "방송 도구", emoji: "🛠️", href: "/tools", description: "자막 · 전광판 · 타이머 · 엔딩 크레딧 · 빙고를 띄우고 제어해요." }

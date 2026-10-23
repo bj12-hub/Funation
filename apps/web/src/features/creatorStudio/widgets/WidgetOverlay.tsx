@@ -7,6 +7,7 @@ import type { OverlayWidget } from "@/services/creator/widgetOverlayTypes";
 import { useReloadSignal } from "../remote/useReloadSignal";
 import { ClockView } from "./ClockView";
 import { GoalView } from "./GoalView";
+import { DonationMonitorView, SigQueueView, TopDonationView } from "./MonitorViews";
 import { GachaBoardView, GachaView, QuestView, RouletteView, VoteView, WallpaperView } from "./GameViews";
 import { EventView, MiniView, QrView, RankingView, RecentView, TotalView } from "./WidgetViews";
 
@@ -62,7 +63,19 @@ export function WidgetOverlay({ data, vertical = false }: { data: OverlayWidget;
       return <WallpaperView settings={data.settings} images={data.images} stickers={data.stickers} theme={data.theme} />;
     case "mini":
       return <MiniView settings={data.settings} lines={data.lines} theme={data.theme} />;
+    case "top-donation":
+      return <TopDonationView settings={data.settings} top={data.top} theme={data.theme} />;
+    case "donation-monitor":
+      return <Monitor data={data} />;
+    case "sig-queue":
+      return <SigQueueView settings={data.settings} cards={data.cards} theme={data.theme} />;
   }
+}
+
+/** 후원 모니터링: "N초 전" counts on the server clock (corrected for skew). */
+function Monitor({ data }: { data: Extract<OverlayWidget, { widget: "donation-monitor" }> }) {
+  const now = useServerClock(data.serverNow);
+  return <DonationMonitorView settings={data.settings} line={data.line} theme={data.theme} now={now} />;
 }
 
 /** 이벤트: lines older than 자동 숨김 seconds leave on the server clock (corrected for skew). */

@@ -1,5 +1,6 @@
 /**
- * 후원 위젯 OBS overlays (code-first): 후원목표 · 후원누적금액 · 후원랭킹 · 최근알림 · 이벤트 · 후원 QR코드 · 퀘스트 · 투표 · 룰렛 · 뽑기 · 뽑기 당첨 리스트 · 벽지 · 시계 · 미니후원.
+ * 후원 위젯 OBS overlays (code-first): 후원목표 · 후원누적금액 · 후원랭킹 · 최근알림 · 이벤트 · 후원 QR코드 · 퀘스트 · 투표 · 룰렛 · 뽑기 · 뽑기 당첨 리스트 · 벽지 · 시계 · 미니후원
+ * · 최고 후원 · 후원 모니터링 · 시그 큐 모니터.
  * Each reads its saved widget settings plus the creator's donation feed at
  * `/overlay/widget/[widget]/[integrationKey]`. Client-safe types only.
  */
@@ -9,9 +10,9 @@ import type { AlertKind, OverlaySignal } from "./alertTypes";
 import type { GachaBoardView, GachaStage } from "@/services/donations/gachaTypes";
 import type { RouletteStage } from "@/services/donations/rouletteTypes";
 import type { VoteBoard } from "@/services/votes/voteTypes";
-import type { ClockSettings, EventSettings, GachaSettings, GoalSettings, MiniSettings, QrSettings, QuestWidgetSettings, RankingSettings, RecentSettings, RouletteSettings, TotalSettings, VoteSettings, WallpaperSettings, WidgetKey } from "./widgetSettingsTypes";
+import type { ClockSettings, DonationMonitorSettings, SigQueueSettings, TopDonationSettings, EventSettings, GachaSettings, GoalSettings, MiniSettings, QrSettings, QuestWidgetSettings, RankingSettings, RecentSettings, RouletteSettings, TotalSettings, VoteSettings, WallpaperSettings, WidgetKey } from "./widgetSettingsTypes";
 
-export const WIDGET_OVERLAYS = ["goal", "total", "ranking", "recent", "event", "qr", "quest", "vote", "roulette", "gacha", "gacha-board", "wallpaper", "clock", "mini"] as const;
+export const WIDGET_OVERLAYS = ["goal", "total", "ranking", "recent", "event", "qr", "quest", "vote", "roulette", "gacha", "gacha-board", "wallpaper", "clock", "mini", "top-donation", "donation-monitor", "sig-queue"] as const;
 export type WidgetOverlayKind = (typeof WIDGET_OVERLAYS)[number];
 export const isWidgetOverlay = (v: unknown): v is WidgetOverlayKind => WIDGET_OVERLAYS.includes(v as WidgetOverlayKind);
 
@@ -30,7 +31,10 @@ export const WIDGET_OVERLAY_SETTINGS: Record<WidgetOverlayKind, WidgetKey> = {
   "gacha-board": "GACHA",
   wallpaper: "WALLPAPER",
   clock: "CLOCK",
-  mini: "MINI"
+  mini: "MINI",
+  "top-donation": "TOP_DONATION",
+  "donation-monitor": "DONATION_MONITOR",
+  "sig-queue": "SIG_QUEUE"
 };
 
 /** Mock QR image (the popup preview uses the same one). TBD: a real QR for the creator's donation page. */
@@ -73,6 +77,18 @@ export type WidgetRankRow = { rank: number; name: string; fnAmount: number; amou
  */
 export type WidgetQuest = { id: string; title: string; amount: number; endsAt: string; extendedMin: number };
 
+/** 최고 후원 (2026-10-23): the biggest donation of the period as its alert showed it; `at` = when it counts. */
+export type TopDonation = { donor: string; amount: string; message: string; at: string };
+
+/**
+ * 후원 모니터링 (2026-10-23): the alert on screen (`playing`), or the last one shown. `at` = when it was sent (the
+ * "N초 전"). Test alerts show too (`test`), so OBS can be checked with 테스트 알림.
+ */
+export type MonitorLine = { id: string; donor: string; amount: string; message: string; typeLabel: string; platform: Platform | null; at: string; playing: boolean; test: boolean };
+
+/** 시그 큐 모니터 (2026-10-23): one signature alert card; `order` counts from 1 (the one playing, when it is a signature). */
+export type SigCard = { id: string; order: number; playing: boolean; donor: string; amount: string; message: string; imageUrl: string };
+
 /** `theme`: the widget's 오버레이 테마 (its own choice, or the channel's 전체 테마). */
 type Common = OverlaySignal & { serverNow: string; theme: ResolvedTheme };
 
@@ -99,4 +115,8 @@ export type OverlayWidget = Common &
     | { widget: "clock"; settings: ClockSettings }
     /** 미니후원 (2026-10-08): the latest mini donations at or above 최소 표시 금액, newest first. */
     | { widget: "mini"; settings: MiniSettings; lines: MiniLine[] }
+    /** 알림 모니터 (2026-10-23): read from the 후원 알림 history and queue. */
+    | { widget: "top-donation"; settings: TopDonationSettings; top: TopDonation | null }
+    | { widget: "donation-monitor"; settings: DonationMonitorSettings; line: MonitorLine | null }
+    | { widget: "sig-queue"; settings: SigQueueSettings; cards: SigCard[] }
   );

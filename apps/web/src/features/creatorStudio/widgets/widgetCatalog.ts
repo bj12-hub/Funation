@@ -35,7 +35,10 @@ export const GROUPS: CatalogGroup[] = [
       widget("CUSTOM_SOUND"),
       widget("MINI"),
       widget("RECENT"),
-      widget("EVENT")
+      widget("EVENT"),
+      widget("TOP_DONATION"),
+      widget("DONATION_MONITOR"),
+      widget("SIG_QUEUE")
     ]
   },
   {

@@ -1,0 +1,189 @@
+/*
+ * 알림 모니터 views (code-first, 2026-10-23): 최고 후원 · 후원 모니터링 · 시그 큐 모니터.
+ * Theme tokens from overlayTheme.module.css ([data-ov] on each root).
+ */
+
+.pad {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 12px;
+}
+
+.message {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  font-size: 15px;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* ── 최고 후원 ── */
+.top {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 300px;
+  max-width: 520px;
+  box-sizing: border-box;
+  padding: 16px 20px;
+}
+
+.topHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.prize {
+  font-weight: 700;
+}
+
+.topBody {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.topName {
+  overflow: hidden;
+  font-size: 24px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topAmount {
+  flex-shrink: 0;
+  font-size: 28px;
+}
+
+/* ── 후원 모니터링 ── */
+.monitor {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 320px;
+  max-width: 560px;
+  box-sizing: border-box;
+  padding: 14px 18px;
+}
+
+.monitorHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.monitorMain {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.monitorName {
+  overflow: hidden;
+  font-size: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.monitorAmount {
+  flex-shrink: 0;
+  font-size: 20px;
+}
+
+.monitor[data-compact] .monitorName {
+  font-size: 24px;
+}
+
+.monitor[data-compact] .message {
+  font-size: 18px;
+}
+
+/* ── 시그 큐 모니터 ── */
+.queue {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.queue[data-layout="HORIZONTAL"] {
+  flex-direction: row;
+  overflow: hidden;
+}
+
+.sig {
+  position: relative;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  width: 380px;
+  box-sizing: border-box;
+  padding: 12px 14px;
+}
+
+.queue[data-layout="HORIZONTAL"] .sig {
+  grid-template-columns: 1fr;
+  width: 220px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+/* The card playing stands out; the ones waiting are a little dimmer. */
+.sig:not([data-playing]) {
+  opacity: 0.82;
+}
+
+.order {
+  position: absolute;
+  top: -8px;
+  left: -6px;
+  font-size: 12px;
+}
+
+.sigImage {
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.queue[data-layout="HORIZONTAL"] .sigImage {
+  justify-self: center;
+  width: 120px;
+  height: 120px;
+}
+
+.sigText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 16px;
+}
+
+.sigText strong {
+  overflow: hidden;
+  font-size: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sigMessage {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 14px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
