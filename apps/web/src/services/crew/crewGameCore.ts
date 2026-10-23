@@ -1,21 +1,43 @@
 import { randomInt } from "node:crypto";
-import { excelOf, feedOf, scoreEntry, scoreFn } from "./crewCore";
-import type { GameKey, GameRunView, GameSource } from "./crewTypes";
+import { mockSignatures } from "@/services/donations/signatureCore";
+import { excelOf, extraPoints, feedOf, isActiveMember, liveBroadcastOf, scoreEntry, scoreFn } from "./crewCore";
+import { GAMES, GAME_LEAD_SEC, GAME_RUNS_SHOWN, GAME_TIMING, GAME_TITLE_MAX, type GameCommon, type GameEffect, type GameKey, type GameRunView, type GameSource } from "./crewTypes";
 import { mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 /**
  * 점수 게임 engine (server-only) — code-first, StreamDonate 참고 (P2). Every game runs the same way: a trigger (a 시그니처
  * 후원 to a member, or the operator) → a draw on the server → points from the result (배수 on the 기준 후원 · 가산 · none)
- * → a run record queued on OBS. A run's points count on the boards once its result shows (crewCore.gameRunCounts).
- * Points are display scores only: no FN, wallet, earnings or settlement moves.
+ * → a run record queued on the game's OBS view. A run's points count on the boards once its result shows
+ * (crewCore.gameRunCounts). Points are display scores only: no FN, wallet, earnings or settlement moves.
  */
 
 export type StoredRun = NonNullable<MockBroadcast["gameRuns"]>[number];
+/** What starts a run: its id, member, trigger and 기준 후원 (the game adds what it drew). */
+export type RunStart = Pick<StoredRun, "id" | "memberId" | "trigger" | "sourceId" | "basePoints">;
 
-/** The drawn index for positive integer weights (server randomness; the browser only animates to it). */
+const rec = (input: unknown) => (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
+
+/** The drawn index for integer weights ≥ 0 with a positive total (server randomness; the browser only animates to it). */
 export function drawIndex(weights: number[]): number {
   let roll = randomInt(weights.reduce((s, w) => s + w, 0));
   return weights.findIndex((w) => (roll -= w) < 0);
+}
+
+/** Points a result adds for a 기준 후원 worth `base` points (배수: (배수 − 1) × base, rounded once). */
+export const effectPoints = (kind: GameEffect, value: number, base: number) => (kind === "MULTIPLY" ? extraPoints(base, value) : kind === "ADD" ? value : 0);
+
+/**
+ * Validates what every game has (title · 자동 · 제외 시그니처 · 대기 화면). `signatureIds`: the signatures that exist (제외
+ * must be among them). The title is checked against the 금지어 (it is shown on stream).
+ */
+export function parseGameCommon(input: unknown, forbidden: string[], signatureIds: string[]): GameCommon | { message: string } {
+  const v = rec(input);
+  const title = typeof v.title === "string" ? v.title.trim() : "";
+  if (title.length > GAME_TITLE_MAX) return { message: `제목은 ${GAME_TITLE_MAX}자 이내로 입력해 주세요.` };
+  if (title && forbidden.some((w) => title.toLowerCase().includes(w))) return { message: "사용할 수 없는 단어가 포함되어 있어요." };
+  if (!Array.isArray(v.excluded) || v.excluded.some((id) => typeof id !== "string" || !signatureIds.includes(id))) return { message: "제외할 시그니처를 확인해 주세요." };
+  if (typeof v.auto !== "boolean" || typeof v.showIdle !== "boolean") return { message: "설정을 확인해 주세요." };
+  return { title, auto: v.auto, excluded: [...new Set(v.excluded as string[])], showIdle: v.showIdle };
 }
 
 /** Donations already used as the 기준 후원 of a run of `game`: each donation starts at most one run per game. */
@@ -38,15 +60,42 @@ export function memberSources(b: MockBroadcast, memberId: string): GameSource[] 
 }
 
 /**
- * Records a run, queued on OBS: it starts `leadSec` after it is drawn or once the game's previous run is over (each takes
- * `reelSec` + `resultSec`). The reel starts at `showAt`, and the result — with its points — shows at `revealAt`.
+ * 자동: a completed donation credited to a member starts a run of `game` when it alerted as a signature (a 시그니처 후원,
+ * or a 일반 후원 matched by 금액 일치 · 금액범위), a crew broadcast is live, the game's 자동 is on and the signature is not
+ * excluded. Returns the broadcast and how the run starts (the donation is the 기준 후원), or null.
  */
-export function recordRun(b: MockBroadcast, run: Omit<StoredRun, "showAt" | "revealAt">, timing: { leadSec: number; reelSec: number; resultSec: number }): StoredRun {
+export function signatureTrigger(
+  channelId: string,
+  game: GameKey,
+  settings: GameCommon,
+  input: { donationId: string; memberId: string | null; signatureId: string | undefined; fnAmount: number }
+): { live: MockBroadcast; start: RunStart } | null {
+  const live = liveBroadcastOf(channelId);
+  if (!live || !input.memberId || !input.signatureId || !settings.auto || settings.excluded.includes(input.signatureId)) return null;
+  if (!isActiveMember(channelId, input.memberId) || usedSources(live, game).has(input.donationId)) return null;
+  const signatureName = mockSignatures.items.find((x) => x.id === input.signatureId)?.name ?? "시그니처";
+  return {
+    live,
+    start: {
+      id: `${GAMES.find((g) => g.key === game)!.param}-${input.donationId}`,
+      memberId: input.memberId,
+      trigger: { kind: "SIGNATURE", signatureId: input.signatureId, signatureName },
+      sourceId: input.donationId,
+      basePoints: scoreFn(input.fnAmount, excelOf(channelId))
+    }
+  };
+}
+
+/**
+ * Records a run, queued on its game's OBS view: it starts GAME_LEAD_SEC after it is drawn or once the game's previous run
+ * is over (play + result). It plays from `showAt`, and the result — with its points — shows at `revealAt`.
+ */
+export function recordRun(b: MockBroadcast, run: Omit<StoredRun, "at" | "showAt" | "revealAt">, now = Date.now()): StoredRun {
   const runs = (b.gameRuns ??= []);
+  const { playSec, resultSec } = GAME_TIMING[run.game];
   const prev = runs.filter((r) => r.game === run.game).at(-1);
-  const at = Date.parse(run.at);
-  const show = Math.max(at + timing.leadSec * 1000, prev ? Date.parse(prev.showAt) + (timing.reelSec + timing.resultSec) * 1000 : 0);
-  const stored = { ...run, showAt: new Date(show).toISOString(), revealAt: new Date(show + timing.reelSec * 1000).toISOString() };
+  const show = Math.max(now + GAME_LEAD_SEC * 1000, prev ? Date.parse(prev.showAt) + (playSec + resultSec) * 1000 : 0);
+  const stored = { ...run, at: new Date(now).toISOString(), showAt: new Date(show).toISOString(), revealAt: new Date(show + playSec * 1000).toISOString() };
   runs.push(stored);
   return stored;
 }
@@ -65,10 +114,20 @@ export function gameRunView(b: MockBroadcast, r: StoredRun): GameRunView {
     memberColor: m?.color ?? null,
     trigger: r.trigger.kind === "SIGNATURE" ? { kind: "SIGNATURE", signatureName: r.trigger.signatureName } : { kind: "MANUAL" },
     basePoints: r.basePoints,
-    itemId: r.itemId,
     label: r.label,
     kind: r.kind,
     value: r.value,
-    points: r.points
+    points: r.points,
+    itemId: r.itemId,
+    dice: r.dice ?? null,
+    wheel: r.wheel ?? null
   };
 }
+
+/** The latest runs of a game, newest first. */
+export const gameRunsView = (b: MockBroadcast, game: GameKey) =>
+  (b.gameRuns ?? [])
+    .filter((r) => r.game === game)
+    .slice(-GAME_RUNS_SHOWN)
+    .reverse()
+    .map((r) => gameRunView(b, r));

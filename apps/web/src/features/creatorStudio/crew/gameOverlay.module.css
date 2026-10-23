@@ -1,4 +1,4 @@
-/* 스핀머신 OBS overlay (code-first) in the 크루 점수판 오버레이 테마 (tokens from overlayTheme.module.css). */
+/* 점수 게임 OBS overlays (code-first: 스핀머신 · 주사위 · 투휠) in the 크루 점수판 오버레이 테마 (tokens from overlayTheme.module.css). */
 
 .machine {
   --spin-row: 56px;
@@ -99,4 +99,67 @@
 
 .effect {
   font-size: 24px;
+}
+
+/* ── 투휠 게임: the operator reel and the number reel side by side ── */
+.wheels {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  gap: 8px;
+}
+
+/* ── 주사위 게임 ── */
+.dice {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  padding: 10px 0;
+}
+
+.die {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  width: 76px;
+  height: 76px;
+  box-sizing: border-box;
+  padding: 10px;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow:
+    inset 0 -4px 0 rgba(0, 0, 0, 0.14),
+    0 6px 14px rgba(0, 0, 0, 0.25);
+}
+
+.die i {
+  width: 13px;
+  height: 13px;
+  margin: auto;
+  border-radius: 50%;
+  visibility: hidden;
+  background: #111111;
+}
+
+.die i[data-on] {
+  visibility: visible;
+}
+
+.die[data-rolling] {
+  animation: tumble 0.45s ease-in-out infinite alternate;
+}
+
+.dice[data-double] .die {
+  box-shadow:
+    0 0 0 3px var(--ov-accent),
+    0 6px 14px rgba(0, 0, 0, 0.25);
+}
+
+@keyframes tumble {
+  from {
+    transform: rotate(-14deg) translateY(-4px);
+  }
+
+  to {
+    transform: rotate(14deg) translateY(4px);
+  }
 }

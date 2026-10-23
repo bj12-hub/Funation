@@ -29,7 +29,9 @@ import {
 import { battleGroups, battleRulesOf, fanNotesView, gradeMultipliersOf, excelOf, liveBroadcastOf, scoreboardRows, scoredFeed, stealRecordView, stealRulesOf, timesMultiplier, windowGames, windowReceived, windowScores, windowSteals } from "./crewCore";
 import { prizeBoardLive, prizeSettingsOf } from "./crewPrizeCore";
 import { sigCountLive, sigCountSettingsOf, sigCountSignatures } from "./crewSigCountCore";
+import { diceLive } from "./crewDiceCore";
 import { spinLive } from "./crewSpinCore";
+import { twoWheelLive } from "./crewTwoWheelCore";
 import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 /**
@@ -83,6 +85,8 @@ function liveView(b: MockBroadcast): BroadcastLive {
     prizeBoard: prizeBoardLive(b, rows),
     sigCount: sigCountLive(b),
     spin: spinLive(b),
+    dice: diceLive(b),
+    twoWheel: twoWheelLive(b),
     serverNow: new Date().toISOString()
   };
 }
