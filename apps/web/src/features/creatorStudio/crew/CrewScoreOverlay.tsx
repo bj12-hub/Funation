@@ -6,7 +6,16 @@ import { OverlayThemeRoot, ov } from "@/features/overlayTheme/OverlayThemeRoot";
 import { useServerClock } from "@/hooks/useServerClock";
 import { formatNumber } from "@/lib/format";
 import type { ResolvedTheme } from "@/services/creator/overlayThemeTypes";
-import { OVERLAY_BOARD_ROWS, type Battle, type OverlayScenario, type OverlayScoreboard, type StealRecord, type SubBoard } from "@/services/crew/crewTypes";
+import {
+  OVERLAY_BOARD_ROWS,
+  PRIZE_TITLE_DEFAULT,
+  type Battle,
+  type OverlayScenario,
+  type OverlayScoreboard,
+  type PrizeBoardLive,
+  type StealRecord,
+  type SubBoard
+} from "@/services/crew/crewTypes";
 import { penaltyText, resultText, useCountdown } from "./BattlePanel";
 import { partName, usePartElapsed } from "./ScenarioPanel";
 import { stealText } from "./StealPanel";
@@ -175,6 +184,45 @@ export function StealOverlay({ latest, serverNow, reloadSeq, theme }: { latest: 
           {hit ? `${latest.thiefName} ← ${latest.targetName} ${formatNumber(latest.points)}점` : "꽝!"}
         </strong>
         <span className={ov.muted}>{stealText(latest)}</span>
+      </div>
+    </OverlayThemeRoot>
+  );
+}
+
+/**
+ * 상품 순위표 overlay (`?prize`): every listed member with the rank's 상품 · 벌칙 line, in 1 ~ 3 columns read top to
+ * bottom. Shown only while 방송 운영 has OBS에 표시 on, and on the 구간 basis once 시작 was pressed (마감 after 정지).
+ */
+export function PrizeBoardOverlay({ board, reloadSeq, theme }: { board: PrizeBoardLive | null; reloadSeq: number; theme: ResolvedTheme }) {
+  useOverlayPage(reloadSeq);
+  if (!board || !board.visible || (board.settings.basis === "WINDOW" && !board.window)) return null;
+  const s = board.settings;
+  return (
+    <OverlayThemeRoot theme={theme} className={styles.pad}>
+      <div className={`${ov.card} ${styles.board} ${styles.prize}`} data-placement={s.placement} data-cols={s.columns}>
+        <h1 className={`${ov.label} ${styles.title}`}>
+          {s.title || PRIZE_TITLE_DEFAULT}
+          {board.window?.stoppedAt && <span className={`${ov.chip} ${styles.closed}`}>마감</span>}
+        </h1>
+        <ol className={styles.prizeRows} style={{ "--prize-rows": Math.ceil(board.rows.length / s.columns) } as CSSProperties}>
+          {board.rows.map((r) => (
+            <li key={r.memberId} data-rank={r.rank !== null && r.rank <= 3 ? r.rank : undefined} data-noscore={s.showScore ? undefined : ""}>
+              <span className={`${ov.display} ${styles.rank}`}>{r.rank ?? "★"}</span>
+              <span className={`${ov.label} ${styles.name}`}>
+                <i className={styles.dot} style={{ background: r.color }} aria-hidden="true" /> {r.name}
+              </span>
+              <span className={styles.prizeText} style={r.prize?.color ? { color: r.prize.color } : undefined}>
+                {r.prize?.text}
+              </span>
+              {s.showScore && <span className={`${ov.display} ${styles.score}`}>{formatNumber(r.score)}</span>}
+            </li>
+          ))}
+        </ol>
+        {s.showTotal && (
+          <p className={`${ov.muted} ${styles.prizeTotal}`}>
+            합계 <b className={ov.display}>{formatNumber(board.total)}</b>
+          </p>
+        )}
       </div>
     </OverlayThemeRoot>
   );
