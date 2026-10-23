@@ -1,6 +1,7 @@
 import { diceForSignature } from "./crewDiceCore";
 import { jupjupForSignature } from "./crewJupjupCore";
 import { relayForSignature } from "./crewRelayCore";
+import { sigBingoForSignature } from "./crewSigBingoCore";
 import { spinForSignature } from "./crewSpinCore";
 import { twoWheelForSignature } from "./crewTwoWheelCore";
 
@@ -9,7 +10,7 @@ import { twoWheelForSignature } from "./crewTwoWheelCore";
  * with 자동 on plays once for a 시그니처 후원 (or a 일반 후원 that alerted as a signature by 금액 일치 · 금액범위) while a crew
  * broadcast is live; several games add up (each adds its own points). The donation is the 기준 후원. 기여도 릴레이 sets its
  * 배수 from the 트리거 BJ's 시그니처 후원 and hands it to the next one another member receives. 줍줍 runs last: its 스핀머신 연계
- * reads the spin of the same donation.
+ * reads the spin of the same donation. 시그 빙고 opens the signature's cell (공용 판 also for a donation without a member).
  */
 export function gamesForSignature(channelId: string, input: { donationId: string; memberId: string | null; signatureId: string | undefined; fnAmount: number }) {
   spinForSignature(channelId, input);
@@ -17,4 +18,5 @@ export function gamesForSignature(channelId: string, input: { donationId: string
   twoWheelForSignature(channelId, input);
   relayForSignature(channelId, input);
   jupjupForSignature(channelId, input);
+  sigBingoForSignature(channelId, input);
 }

@@ -9,6 +9,7 @@ import { diceLive, diceSettingsOf, parseDiceSettings, runDice } from "./crewDice
 import { gameRunView, memberSources, usedSources, type RunStart, type StoredRun } from "./crewGameCore";
 import { addJupjupItem, jupjupLive, jupjupSettingsOf, parseJupjupSettings, removeJupjupItems } from "./crewJupjupCore";
 import { medleyLive, medleySettingsOf, parseMedleySettings, playMedleyRun } from "./crewMedleyCore";
+import { clearSigBingoBoard, parseSigBingoSettings, setSigBingoCell, sigBingoLive, sigBingoSettingsOf, startSigBingoBoard } from "./crewSigBingoCore";
 import { parseRandomSigSettings, randomSigLive, randomSigSettingsOf } from "./crewRandomSigCore";
 import { clearRelayPending, parseRelaySettings, relayLive, relaySettingsOf } from "./crewRelayCore";
 import { sigCountSignatures } from "./crewSigCountCore";
@@ -19,7 +20,7 @@ import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 /**
  * 점수 게임 Server Actions — code-first (no Figma frame; StreamDonate 참고, P2), route `/creator/crew/games`: 스핀머신 · 주사위
- * 게임 · 투휠 게임 · 랜덤시그 · 기여도 릴레이 · 줍줍 · 시그니처 메들리. Settings are kept per channel; runs belong to the live broadcast. Results are display points only.
+ * 게임 · 투휠 게임 · 랜덤시그 · 기여도 릴레이 · 줍줍 · 시그니처 메들리 · 시그 빙고. Settings are kept per channel; runs belong to the live broadcast. Results are display points only.
  */
 
 const assertMock = () => {
@@ -36,7 +37,7 @@ const SOURCES_SHOWN = 10;
  * How each game plays one run by hand for a member (the caller checks the game can play). 랜덤시그 · 기여도 릴레이 · 줍줍 play only
  * from donations; 메들리 rolls by hand without a member (playMedley).
  */
-const PLAY: Record<Exclude<GameKey, "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY">, (b: MockBroadcast, start: RunStart) => StoredRun> = { SPIN: runSpin, DICE: runDice, TWO_WHEEL: runTwoWheel };
+const PLAY: Record<Exclude<GameKey, "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO">, (b: MockBroadcast, start: RunStart) => StoredRun> = { SPIN: runSpin, DICE: runDice, TWO_WHEEL: runTwoWheel };
 
 function sourcesOf(b: MockBroadcast): Record<GameKey, Record<string, GameSource[]>> {
   const active = (mockCrew.crews[STUDIO_CHANNEL] ?? []).filter((m) => m.active);
@@ -53,7 +54,7 @@ function sourcesOf(b: MockBroadcast): Record<GameKey, Record<string, GameSource[
       ])
     );
   };
-  return { SPIN: forGame("SPIN"), DICE: forGame("DICE"), TWO_WHEEL: forGame("TWO_WHEEL"), RANDOM_SIG: {}, RELAY: {}, JUPJUP: {}, MEDLEY: {} };
+  return { SPIN: forGame("SPIN"), DICE: forGame("DICE"), TWO_WHEEL: forGame("TWO_WHEEL"), RANDOM_SIG: {}, RELAY: {}, JUPJUP: {}, MEDLEY: {}, SIG_BINGO: {} };
 }
 
 export async function getGamesView(): Promise<GamesView | null> {
@@ -74,6 +75,7 @@ export async function getGamesView(): Promise<GamesView | null> {
           relay: relayLive(live),
           jupjup: jupjupLive(live),
           medley: medleyLive(live),
+          sigBingo: sigBingoLive(live),
           sources: sourcesOf(live),
           serverNow: new Date().toISOString()
         }
@@ -85,6 +87,7 @@ export async function getGamesView(): Promise<GamesView | null> {
     relaySettings: structuredClone(relaySettingsOf(STUDIO_CHANNEL)),
     jupjupSettings: structuredClone(jupjupSettingsOf(STUDIO_CHANNEL)),
     medleySettings: structuredClone(medleySettingsOf(STUDIO_CHANNEL)),
+    sigBingoSettings: structuredClone(sigBingoSettingsOf(STUDIO_CHANNEL)),
     signatures: sigCountSignatures(),
     overlayPath: `/overlay/crew/${mockCreator.integrationKey}`
   };
@@ -217,6 +220,49 @@ export async function playMedley(input: unknown): Promise<GamePlayResult> {
   return typeof run === "string" ? { status: "INVALID", message: run } : { status: "PLAYED", run: gameRunView(live, run) };
 }
 
+/** Replaces the 시그 빙고 settings (판 크기 · 모드 · 칸 표시 · 금액 범위 · 빙고 보너스 · 후원으로 칸 열기 · 제외 시그 · 대기 화면). */
+export async function saveSigBingo(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const parsed = parseSigBingoSettings(input, MOCK_FORBIDDEN_WORDS, signatureIds());
+  if ("message" in parsed) return { status: "INVALID", message: parsed.message };
+  (mockCrew.sigBingos ??= {})[STUDIO_CHANNEL] = parsed;
+  return { status: "SAVED" };
+}
+
+/** 빙고 시작: a new board from the saved settings (replacing the one there). `requestId`: a retried start is not a new board. */
+export async function startSigBingo(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = rec(input);
+  const live = liveBroadcastOf(STUDIO_CHANNEL);
+  if (!live || live.id !== v.broadcastId) return notLive;
+  if (!validId(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
+  const message = startSigBingoBoard(live, v.requestId);
+  return message ? { status: "INVALID", message } : { status: "SAVED" };
+}
+
+/** 수동 칸 열기 · 닫기 (`open`; 땅따먹기 opens for `memberId`). */
+export async function setSigBingo(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = rec(input);
+  const live = liveBroadcastOf(STUDIO_CHANNEL);
+  if (!live || live.id !== v.broadcastId) return notLive;
+  const message = setSigBingoCell(live, { index: v.index, open: v.open, memberId: v.memberId });
+  return message ? { status: "INVALID", message } : { status: "SAVED" };
+}
+
+/** 판 비우기: removes the board. Clearing nothing is a no-op. */
+export async function clearSigBingo(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const live = liveBroadcastOf(STUDIO_CHANNEL);
+  if (!live || live.id !== rec(input).broadcastId) return notLive;
+  clearSigBingoBoard(live);
+  return { status: "SAVED" };
+}
+
 /**
  * 수동: plays `game` once for an active member, optionally on one of their donations in the broadcast (기준 후원: a 배수
  * result multiplies its points; a donation plays each game at most once). `requestId` is the run id, so a retry returns
@@ -232,6 +278,7 @@ export async function playGame(input: unknown): Promise<GamePlayResult> {
   if (game === "RELAY") return { status: "INVALID", message: "기여도 릴레이는 시그니처 후원으로만 이어져요." };
   if (game === "JUPJUP") return { status: "INVALID", message: "줍줍은 같은 금액의 시그니처 후원으로만 가져가요." };
   if (game === "MEDLEY") return { status: "INVALID", message: "메들리는 'OBS에서 한 번 돌리기'로 돌려요." };
+  if (game === "SIG_BINGO") return { status: "INVALID", message: "시그 빙고는 시그니처 후원이나 칸 누르기로 열어요." };
   const live = liveBroadcastOf(STUDIO_CHANNEL);
   if (!live || live.id !== v.broadcastId) return notLive;
   if (!validId(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
