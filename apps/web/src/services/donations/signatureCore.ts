@@ -3,7 +3,7 @@ import { readWidget } from "@/services/creator/widgetStore";
 import { gachaOffers } from "./gachaCore";
 import { findAsset } from "@/services/creator/assetCore";
 import { assetUrl } from "@/services/creator/assetTypes";
-import { SIGNATURE_IMAGE_PRESETS, type ManagedSignature } from "./signatureTypes";
+import { DEFAULT_SIGNATURE_GROUP, SIGNATURE_IMAGE_PRESETS, amountSpan, type ManagedSignature } from "./signatureTypes";
 
 /**
  * Server-only signature store (not a "use server" module). Seeded from the Figma catalog; the creator's
@@ -22,11 +22,17 @@ const g = globalThis as typeof globalThis & { __ssumnationMockSignaturesV1?: Sto
 export const mockSignatures = (g.__ssumnationMockSignaturesV1 ??= ((): Store => {
   const seed = getMockDonationCatalog().signatures;
   return {
-    items: seed.map((s): ManagedSignature => ({ id: s.id, name: s.name, price: s.price, imageUrl: s.imageUrl, soundUrl: null, match: "SELECT", active: true })),
+    items: seed.map((s): ManagedSignature => ({ id: s.id, name: s.name, price: s.price, imageUrl: s.imageUrl, soundUrl: null, match: "SELECT", active: true, rangeMin: null, group: DEFAULT_SIGNATURE_GROUP })),
     requests: {},
     favorites: Object.fromEntries(seed.map((s) => [s.id, s.favorite]))
   };
 })());
+
+// 금액범위 · 그룹 (2026-10-23): signatures saved before have neither.
+for (const s of mockSignatures.items) {
+  s.rangeMin ??= null;
+  s.group ??= DEFAULT_SIGNATURE_GROUP;
+}
 
 /** A preset image or an IMAGE in the creator's library. */
 export function isSignatureImage(url: string) {
@@ -53,9 +59,24 @@ export function getDonationCatalog(): DonationCatalog {
   return { ...getMockDonationCatalog(), signatures: activeSignatures(), roulette: rouletteOffer(readWidget("ROULETTE")), gacha: gachaOffers() };
 }
 
-/** 금액 매칭: an active AMOUNT-match signature whose price equals the 일반 후원 amount, if any. */
+/**
+ * 금액 매칭: the active AMOUNT-match signature whose price — or 금액범위 (2026-10-23) — takes the 일반 후원 amount, if any.
+ * The save checks keep those amounts apart, so at most one signature takes an amount.
+ */
 export function matchSignatureByAmount(amount: number): ManagedSignature | null {
-  return mockSignatures.items.find((s) => s.active && s.match === "AMOUNT" && s.price === amount) ?? null;
+  return (
+    mockSignatures.items.find((s) => {
+      if (!s.active || s.match !== "AMOUNT") return false;
+      const { from, to } = amountSpan(s);
+      return amount >= from && amount <= to;
+    }) ?? null
+  );
+}
+
+/** The signature a donation alerts as (시그 카운트, 2026-10-23): the chosen one, or the one a 일반 후원 matched by amount. */
+export function signatureIdFor(type: string, amount: number, details: unknown): string | undefined {
+  if (type === "SIGNATURE") return (details as { signatureId?: string } | null)?.signatureId;
+  return type === "TEXT" ? matchSignatureByAmount(amount)?.id : undefined;
 }
 
 /** The signature's library sound for a 시그니처 후원 (or an amount-matched 일반 후원); the alert overlay plays it. */

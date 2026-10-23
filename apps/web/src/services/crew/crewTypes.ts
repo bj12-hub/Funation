@@ -231,6 +231,8 @@ export type BroadcastLive = {
   fanNotes: FanNotesView;
   /** 상품 순위표 with the channel's settings and this broadcast's ranks (OBS `?prize`). */
   prizeBoard: PrizeBoardLive;
+  /** 시그 카운트: signatures each member received during this broadcast (OBS `?sigcount`). */
+  sigCount: SigCountLive;
   /** Server clock when this view was read: timers (시나리오 경과, 강탈 card) correct the browser's clock with it. */
   serverNow: string;
 };
@@ -306,6 +308,46 @@ export type PrizeBoardLive = {
   rows: PrizeRow[];
   /** Sum of the listed scores (하단 합계). */
   total: number;
+};
+
+// ── 시그 카운트 — code-first, StreamDonate 시그 카운트 참고 (docs/research/streamdonate-reference.md) ──
+
+export const SIG_COUNT_TITLE_MAX = 20;
+export const SIG_COUNT_TITLE_DEFAULT = "시그 카운트";
+/** Signatures one table counts (its columns). */
+export const SIG_COUNT_COLUMNS_MAX = 8;
+
+/** RECEIVED: members who got a counted signature. ALL: every active member too, with 0s. */
+export type SigCountRows = "RECEIVED" | "ALL";
+export const SIG_COUNT_ROWS: { key: SigCountRows; label: string }[] = [
+  { key: "RECEIVED", label: "받은 멤버만" },
+  { key: "ALL", label: "활동 멤버 모두" }
+];
+export type SigCountSort = "TOTAL" | "ORDER";
+export const SIG_COUNT_SORTS: { key: SigCountSort; label: string }[] = [
+  { key: "TOTAL", label: "많이 받은 순" },
+  { key: "ORDER", label: "크루 순서" }
+];
+
+/** Kept per channel across broadcasts, editable before going live. `signatureIds`: the columns, in order. */
+export type SigCountSettings = { title: string; signatureIds: string[]; rows: SigCountRows; sort: SigCountSort; showTotal: boolean };
+
+export const DEFAULT_SIG_COUNT: SigCountSettings = { title: "", signatureIds: [], rows: "RECEIVED", sort: "TOTAL", showTotal: true };
+
+/** `memberId` null = 멤버를 지정하지 않은 시그니처 (미지정, always last). `counts` follow the columns. */
+export type SigCountRow = { memberId: string | null; name: string; color: string | null; counts: number[]; total: number };
+
+export type SigCountLive = {
+  settings: SigCountSettings;
+  /** Shown on the OBS overlay (`?sigcount`); the studio always shows it. */
+  visible: boolean;
+  /** Counted from: the broadcast start, or the last 다시 세기. */
+  since: string;
+  /** One per counted signature (a deleted one keeps its column as 삭제된 시그니처). */
+  columns: { id: string; name: string; imageUrl: string | null }[];
+  rows: SigCountRow[];
+  /** Per column, over every row (하단 합계). */
+  totals: number[];
 };
 
 // ── 콘텐츠 시나리오 도우미 (1부 ~ 5부) — code-first ─────────────────────────────────────────────
@@ -468,6 +510,9 @@ export type BroadcastView = {
   scenario: ScenarioPart[];
   /** 상품 순위표 settings (kept across broadcasts; editable before going live). */
   prizeSettings: PrizeBoardSettings;
+  /** 시그 카운트 settings (kept across broadcasts) and the signatures it can count (숨긴 시그니처 too, marked). */
+  sigCountSettings: SigCountSettings;
+  signatures: { id: string; name: string; group: string; active: boolean }[];
   keywords: Record<string, string[]>;
   /** Existing project names (for the start form). */
   projects: string[];
