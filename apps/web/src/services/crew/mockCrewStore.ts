@@ -11,6 +11,10 @@ import type {
   GameKey,
   JupjupSettings,
   MedleySettings,
+  SigBingoMode,
+  SigBingoReveal,
+  SigBingoSettings,
+  SigBingoSize,
   PrizeBoardSettings,
   RandomSigSettings,
   RelaySettings,
@@ -128,6 +132,20 @@ export type MockBroadcast = {
    * is the item id, so a retried add is not a second item).
    */
   jupjup?: { stack: { id: string; at: string; memberId: string; signatureId: string; signatureName: string; amount: number; donationId: string | null }[] };
+  /**
+   * 시그 빙고 board (빙고 시작 replaces it): settings as they were at the start, the cells row by row with who opened them,
+   * the completed lines and the cell opened last. `requestId`: the start request (a retried start is not a new board).
+   */
+  sigBingo?: {
+    size: SigBingoSize;
+    mode: SigBingoMode;
+    reveal: SigBingoReveal;
+    startedAt: string;
+    requestId: string;
+    cells: { signatureId: string; signatureName: string; opened: { memberId: string | null; at: string; donationId: string | null } | null }[];
+    lines: number[];
+    lastOpened: number | null;
+  };
   /** 상품 순위표: shown on OBS (`?prize`) and its 구간 (시작 ~ 정지; a new 시작 restarts it). `starts`: 시작 request ids applied. */
   prizeBoard?: { visible: boolean; window: { startedAt: string; stoppedAt: string | null } | null; starts: string[] };
   /** 시그 카운트: shown on OBS (`?sigcount`) and counted from `since` (null = the broadcast start; 다시 세기 sets it). */
@@ -173,6 +191,8 @@ type MockCrew = {
   jupjups?: Record<string, JupjupSettings>;
   /** 시그니처 메들리 settings per channel (missing = DEFAULT_MEDLEY). */
   medleys?: Record<string, MedleySettings>;
+  /** 시그 빙고 settings per channel (missing = DEFAULT_SIG_BINGO). */
+  sigBingos?: Record<string, SigBingoSettings>;
   /** 멤버 추가 request ids already applied (a retried add is not a second member). */
   memberRequests?: string[];
 };

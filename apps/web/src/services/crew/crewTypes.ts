@@ -242,6 +242,7 @@ export type BroadcastLive = {
   relay: RelayLive;
   jupjup: JupjupLive;
   medley: MedleyLive;
+  sigBingo: SigBingoLive;
   /** Server clock when this view was read: timers (시나리오 경과, 강탈 card) correct the browser's clock with it. */
   serverNow: string;
 };
@@ -363,7 +364,7 @@ export type SigCountLive = {
 // A game draws its result on the server; the result is display points only (FN · 지갑 · 수익 · 정산 never move).
 
 /** Games on the shared engine (crewGameCore). `param`: the OBS view (`?spin`). */
-export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL" | "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY";
+export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL" | "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO";
 export const GAMES: { key: GameKey; label: string; param: string }[] = [
   { key: "SPIN", label: "스핀머신", param: "spin" },
   { key: "DICE", label: "주사위 게임", param: "dice" },
@@ -371,7 +372,8 @@ export const GAMES: { key: GameKey; label: string; param: string }[] = [
   { key: "RANDOM_SIG", label: "랜덤시그", param: "randomsig" },
   { key: "RELAY", label: "기여도 릴레이", param: "relay" },
   { key: "JUPJUP", label: "줍줍", param: "jupjup" },
-  { key: "MEDLEY", label: "시그니처 메들리", param: "medley" }
+  { key: "MEDLEY", label: "시그니처 메들리", param: "medley" },
+  { key: "SIG_BINGO", label: "시그 빙고", param: "sigbingo" }
 ];
 
 /**
@@ -386,7 +388,8 @@ export const GAME_TIMING: Record<GameKey, { playSec: number; resultSec: number }
   RANDOM_SIG: { playSec: 2, resultSec: 4 },
   RELAY: { playSec: 2, resultSec: 4 },
   JUPJUP: { playSec: 2, resultSec: 4 },
-  MEDLEY: { playSec: 2, resultSec: 4 }
+  MEDLEY: { playSec: 2, resultSec: 4 },
+  SIG_BINGO: { playSec: 1, resultSec: 5 }
 };
 /** Runs a game lists (studio) and queues (OBS), newest first. */
 export const GAME_RUNS_SHOWN = 30;
@@ -565,6 +568,59 @@ export const MEDLEY_TRIGGER_PRESETS = [10_000, 30_000, 50_000];
 export type MedleySettings = GameCommon & { trigger: number | null; signatureIds: string[] };
 export const DEFAULT_MEDLEY: MedleySettings = { title: "", auto: false, excluded: [], showIdle: true, trigger: null, signatureIds: [] };
 
+// 시그 빙고 — StreamDonate 시그니처 빙고: signatures placed on a board, a 시그니처 후원 opens its cell, full lines are 빙고.
+export const SIG_BINGO_TITLE_DEFAULT = "시그 빙고";
+export const SIG_BINGO_SIZES = [3, 5, 7, 9] as const;
+export type SigBingoSize = (typeof SIG_BINGO_SIZES)[number];
+export const SIG_BINGO_BONUS_MAX = 10_000_000;
+
+/** SHARED (공용 판): any 시그니처 후원 opens its cell. TERRITORY (땅따먹기): only one sent to a member, in that member's color. */
+export type SigBingoMode = "SHARED" | "TERRITORY";
+export const SIG_BINGO_MODES: { key: SigBingoMode; label: string; note: string }[] = [
+  { key: "SHARED", label: "공용 판", note: "어떤 시그니처 후원이든 그 시그니처 칸을 열어요. 줄을 완성한 후원의 멤버가 빙고 보너스를 받아요." },
+  { key: "TERRITORY", label: "땅따먹기", note: "멤버를 고른 시그니처 후원만 칸을 열고 그 멤버 색으로 차지해요. 한 줄을 모두 차지한 멤버가 빙고 보너스를 받아요." }
+];
+/** SHOWN (칸 공개): every cell shows its signature. HIDDEN (칸 숨김): closed cells show "?" until opened. */
+export type SigBingoReveal = "SHOWN" | "HIDDEN";
+export const SIG_BINGO_REVEALS: { key: SigBingoReveal; label: string }[] = [
+  { key: "SHOWN", label: "칸 공개" },
+  { key: "HIDDEN", label: "칸 숨김" }
+];
+
+/**
+ * `auto` = 후원으로 칸 열기; `excluded` = 빙고 제외 시그; `priceMin` · `priceMax` = 금액 범위 for the board (null = no end);
+ * `bonus` = points per 빙고 line (0 = none). Size · mode · reveal · range take effect on the next 빙고 시작.
+ */
+export type SigBingoSettings = GameCommon & { size: SigBingoSize; mode: SigBingoMode; reveal: SigBingoReveal; priceMin: number | null; priceMax: number | null; bonus: number };
+export const DEFAULT_SIG_BINGO: SigBingoSettings = { title: "", auto: false, excluded: [], showIdle: true, size: 3, mode: "SHARED", reveal: "SHOWN", priceMin: null, priceMax: null, bonus: 0 };
+
+/** Cell indices of every line of a board (row by row): rows, then columns, then the diagonals ↘ and ↙. */
+export function sigBingoLines(size: number): number[][] {
+  const idx = Array.from({ length: size }, (_, i) => i);
+  return [
+    ...idx.map((r) => idx.map((c) => r * size + c)),
+    ...idx.map((c) => idx.map((r) => r * size + c)),
+    idx.map((i) => i * size + i),
+    idx.map((i) => i * size + (size - 1 - i))
+  ];
+}
+export const sigBingoLineName = (size: number, line: number) =>
+  line < size ? `가로 ${line + 1}줄` : line < size * 2 ? `세로 ${line - size + 1}줄` : line === size * 2 ? "대각선 ↘" : "대각선 ↙";
+
+/** `opened`: who opened it (memberName null = no member — 공용 판 · 수동); `manual` = opened by the operator. */
+export type SigBingoCell = { signatureId: string; signatureName: string; imageUrl: string | null; opened: { memberName: string | null; memberColor: string | null; at: string; manual: boolean } | null };
+export type SigBingoBoard = {
+  size: SigBingoSize;
+  mode: SigBingoMode;
+  reveal: SigBingoReveal;
+  startedAt: string;
+  cells: SigBingoCell[];
+  /** Completed 빙고 lines (indices of sigBingoLines). */
+  lines: number[];
+  /** The cell opened last (OBS highlights it). */
+  lastOpened: number | null;
+};
+
 /** What started a run: a 시그니처 후원 to the member (자동), a 랜덤시그 · 메들리 발동 금액 (자동), or the operator (수동). */
 export type GameTrigger = { kind: "SIGNATURE"; signatureName: string } | { kind: "AMOUNT"; amount: number } | { kind: "MANUAL" };
 
@@ -604,6 +660,8 @@ export type SpinLive = { settings: SpinSettings; runs: GameRunView[]; tally: Spi
 export type DiceLive = { settings: DiceSettings; runs: GameRunView[] };
 export type TwoWheelLive = { settings: TwoWheelSettings; runs: GameRunView[] };
 /** `pool`: the signatures a 랜덤시그 can draw (active, not excluded) — the OBS rolling images. */
+/** `board`: null until 빙고 시작 (or after 판 비우기); `eligible`: how many signatures a new board would draw from. */
+export type SigBingoLive = { settings: SigBingoSettings; runs: GameRunView[]; board: SigBingoBoard | null; eligible: number };
 /** `pool`: the registered signatures that can be drawn (active) — the OBS rolling images. */
 export type MedleyLive = { settings: MedleySettings; runs: GameRunView[]; pool: { id: string; name: string; price: number; imageUrl: string }[] };
 /** `stack`: oldest first (up to JUPJUP_STACK_SHOWN of `stackCount`); `ownerNames`: the 지정 BJ. */
@@ -628,6 +686,7 @@ export type GamesView = {
     relay: RelayLive;
     jupjup: JupjupLive;
     medley: MedleyLive;
+    sigBingo: SigBingoLive;
     sources: Record<GameKey, Record<string, GameSource[]>>;
     serverNow: string;
   } | null;
@@ -638,6 +697,7 @@ export type GamesView = {
   relaySettings: RelaySettings;
   jupjupSettings: JupjupSettings;
   medleySettings: MedleySettings;
+  sigBingoSettings: SigBingoSettings;
   signatures: { id: string; name: string; group: string; active: boolean; price: number; match: "SELECT" | "AMOUNT"; rangeMin: number | null }[];
   overlayPath: string;
 };

@@ -75,6 +75,7 @@ export function GameCard({
   result,
   idle,
   playing,
+  wide,
   children
 }: {
   theme: ResolvedTheme;
@@ -86,11 +87,13 @@ export function GameCard({
   result: { main: string; sub: string };
   idle: string;
   playing: string;
+  /** A wider card (시그 빙고 board). */
+  wide?: boolean;
   children: ReactNode;
 }) {
   return (
     <OverlayThemeRoot theme={theme} className={board.pad}>
-      <div className={`${ov.card} ${styles.machine}`}>
+      <div className={`${ov.card} ${styles.machine}`} data-wide={wide || undefined}>
         <h1 className={`${ov.label} ${styles.title}`}>
           {title}
           {waiting > 0 && <span className={`${ov.chip} ${styles.queue}`}>대기 {waiting}</span>}
