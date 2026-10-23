@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { formatNumber } from "@/lib/format";
 import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
-import { adjustTimer, configureTimer, controlCredits, controlTimer, saveCredits, saveMarquee, saveSubtitle, saveToolTheme } from "@/services/creator/broadcastTools";
+import { adjustTimer, configureTimer, controlCredits, controlTimer, saveCredits, saveMarquee, saveSubtitle, saveToolTheme, setTimerDonationLink } from "@/services/creator/broadcastTools";
 import type { OverlayThemeChoice } from "@/services/creator/overlayThemeTypes";
 import type { OverlayTarget } from "@/services/creator/alertTypes";
 import {
@@ -20,6 +20,7 @@ import {
   MARQUEE_LINES_MAX,
   SUBTITLE_MAX,
   TIMER_ADJUST_STEPS,
+  TIMER_DONATION_SEC_MAX,
   TOOL_CARDS,
   type CreditsData,
   type CreditsState,
@@ -36,6 +37,7 @@ import { OverlayOffNotice } from "../remote/OverlayOffNotice";
 import { signedSec } from "../remote/ToolsRemote";
 import { CopyButton } from "../settings/SettingsCards";
 import { BingoTool } from "./BingoTool";
+import { TextSlotsTool } from "./TextSlotsTool";
 import { clock, timerSeconds } from "./timerMath";
 
 const lines = (s: string) => s.split("\n").map((l) => l.trim()).filter(Boolean);
@@ -64,6 +66,7 @@ export function BroadcastToolsScreen({ view, overlayKey, switches }: { view: Too
   const [speed, setSpeed] = useState<MarqueeState["speed"]>(states.marquee.speed);
   const [mode, setMode] = useState(states.timer.mode);
   const [minutes, setMinutes] = useState(String(Math.round(states.timer.durationSec / 60)));
+  const [donationSec, setDonationSec] = useState(String(states.timer.donationSec));
   const [creditsTitle, setCreditsTitle] = useState(states.credits.title);
   const [thanks, setThanks] = useState(states.credits.thanks.join("\n"));
   const [creditsStyle, setCreditsStyle] = useState(states.credits.style);
@@ -141,7 +144,7 @@ export function BroadcastToolsScreen({ view, overlayKey, switches }: { view: Too
 
       <section className={styles.card} aria-label="방송 도구 테마">
         <h2 className={styles.cardTitle}>🎨 방송 도구 테마</h2>
-        <p className={styles.note}>자막 · 전광판 · 타이머 · 엔딩 크레딧 · 빙고 오버레이가 이 테마로 보여요. 고르면 바로 저장돼요.</p>
+        <p className={styles.note}>자막 · 전광판 · 타이머 · 엔딩 크레딧 · 빙고 · 텍스트 슬롯 오버레이가 이 테마로 보여요. 고르면 바로 저장돼요.</p>
         <ThemeChoiceField
           value={toolTheme}
           appearance={view.appearance}
@@ -309,6 +312,34 @@ export function BroadcastToolsScreen({ view, overlayKey, switches }: { view: Too
               설정 적용
             </button>
           </form>
+          <form
+            className={styles.addRow}
+            onSubmit={(e) => {
+              e.preventDefault();
+              const sec = Math.floor(Number(donationSec) || 0);
+              run("timer", () => setTimerDonationLink(sec), sec ? `후원 1,000 FN마다 ${sec}초씩 더해요.` : "후원 연동을 껐어요.");
+            }}
+          >
+            <span className={styles.muted}>후원 연동 · 1,000 FN마다</span>
+            <input
+              className={styles.inputSmall}
+              type="number"
+              min={0}
+              max={TIMER_DONATION_SEC_MAX}
+              aria-label="1,000 FN마다 더할 시간(초)"
+              value={donationSec}
+              onChange={(e) => setDonationSec(e.target.value)}
+            />
+            <span className={styles.muted}>초 더하기</span>
+            <button type="submit" className={styles.ghost} disabled={pending || Math.floor(Number(donationSec) || 0) === states.timer.donationSec}>
+              저장
+            </button>
+          </form>
+          <p className={styles.note}>
+            {states.timer.donationSec > 0
+              ? `카운트다운 중에 썸네이션 후원이 들어오면 1,000 FN마다 ${states.timer.donationSec}초가 더해져요 (5,500 FN이면 ${states.timer.donationSec * 5}초). 스톱워치에는 더하지 않고, 퀘스트 후원은 빼요.`
+              : "후원 연동이 꺼져 있어요. 초를 넣고 저장하면 카운트다운에 후원 금액만큼 시간이 더해져요 (0 = 끔)."}
+          </p>
         </div>
       )}
 
@@ -428,6 +459,11 @@ export function BroadcastToolsScreen({ view, overlayKey, switches }: { view: Too
       )}
 
       {card("bingo", <BingoTool state={states.bingo} pending={pending} run={(action, ok) => run("bingo", action, ok)} />)}
+
+      {card(
+        "text",
+        <TextSlotsTool slots={states.text.slots} overlayUrl={(slot) => `${origin}${view.overlayBase}/text/${overlayKey}?slot=${slot}`} pending={pending} run={(action, ok) => run("text", action, ok)} />
+      )}
     </div>
   );
 }

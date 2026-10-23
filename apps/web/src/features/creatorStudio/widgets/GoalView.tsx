@@ -7,7 +7,8 @@ import type { ResolvedTheme } from "@/services/creator/overlayThemeTypes";
 import type { GoalSettings } from "@/services/creator/widgetSettingsTypes";
 import g from "./goalView.module.css";
 
-export type GoalProgressView = { current: number; percent: number };
+/** `target`: the goal after 자동 증량 (missing = the goal as set). */
+export type GoalProgressView = { current: number; percent: number; target?: number };
 
 const OUTLINE = "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000";
 
@@ -83,7 +84,7 @@ export function GoalView({
   vertical?: boolean;
 }) {
   const index = useAlternating(s.second.enabled && second !== null, s.alternateSec);
-  const goal = index === 1 && second ? { title: s.second.title, target: s.second.goalAmount, ...second } : { title: s.title, target: s.goalAmount, ...first };
+  const goal = index === 1 && second ? { title: s.second.title, target: s.second.goalAmount, ...second } : { title: s.title, ...first, target: first.target ?? s.goalAmount };
   const colors = (s.customColors ? { "--ov-accent": s.barColor, "--ov-track-bg": s.barBackground } : {}) as CSSProperties;
   const size = vertical ? Math.round(s.font.size * 2) : s.font.size;
   const text: CSSProperties = { fontFamily: `"${s.font.family}", var(--ov-body-font)`, fontSize: size, textShadow: s.textOutline ? OUTLINE : undefined };

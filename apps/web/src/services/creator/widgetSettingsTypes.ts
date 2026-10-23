@@ -219,6 +219,11 @@ export type GoalSettings = {
   /** A second goal over the same period, shown in turn with the first. */
   second: SecondGoal;
   alternateSec: number;
+  /**
+   * 자동 증량 (2026-10-23, StreamDonate 통합 게이지 참고): once the (first) goal is reached, it moves up by this many FN —
+   * as many steps as it takes to be ahead again. 0 = off. Saved before: off.
+   */
+  autoRaise: number;
 };
 
 export const TOTAL_TITLE_MAX = 20;
@@ -762,7 +767,8 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     textOutline: true,
     font: { family: "Pretendard", size: 14 },
     second: { enabled: false, title: "", startAmount: 0, goalAmount: 300_000 },
-    alternateSec: 10
+    alternateSec: 10,
+    autoRaise: 0
   },
   TOTAL: {
     theme: "INHERIT",

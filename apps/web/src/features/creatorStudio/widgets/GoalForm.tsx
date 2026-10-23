@@ -3,7 +3,9 @@
 import { useId, useState } from "react";
 import { PreviewStage } from "@/features/overlayTheme/PreviewStage";
 import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
+import { formatNumber } from "@/lib/format";
 import { resolveTheme } from "@/services/creator/overlayThemeTypes";
+import { raisedGoal } from "@/services/creator/widgetOverlayCore";
 import { GOAL_ALTERNATE_SEC, GOAL_AMOUNT_MAX, GOAL_SHAPES, GOAL_STYLES, GOAL_TITLE_MAX } from "@/services/creator/widgetSettingsTypes";
 import { ColorField, FontFields, NumberField, Radios, Row, Section, SwitchText } from "./fields";
 import type { FormProps } from "./forms";
@@ -18,9 +20,10 @@ function daysLeft(to: string) {
   return Math.max(0, Math.ceil((end - Date.now()) / 86_400_000));
 }
 
-const progress = (start: number, goal: number, donated: number) => {
+const progress = (start: number, goal: number, donated: number, step = 0) => {
   const current = start + donated;
-  return { current, percent: goal > 0 ? Math.round(Math.min(100, (current / goal) * 100) * 10) / 10 : 0 };
+  const target = raisedGoal(goal, current, step);
+  return { current, target, percent: target > 0 ? Math.round(Math.min(100, (current / target) * 100) * 10) / 10 : 0 };
 };
 
 /**
@@ -47,7 +50,7 @@ export function GoalForm({ value: v, onChange, live }: FormProps<"GOAL">) {
         <PreviewStage width={vertical ? 1080 : 800} minHeight={bar ? 120 : 200} label="후원목표 미리보기">
           <GoalView
             settings={v}
-            first={progress(v.startAmount, v.goalAmount, live.goalCurrent)}
+            first={progress(v.startAmount, v.goalAmount, live.goalCurrent, v.autoRaise)}
             second={v.second.enabled ? progress(v.second.startAmount, v.second.goalAmount, live.goalCurrent) : null}
             daysLeft={daysLeft(v.to)}
             theme={resolveTheme(live.appearance, v.theme)}
@@ -89,6 +92,14 @@ export function GoalForm({ value: v, onChange, live }: FormProps<"GOAL">) {
           <Row label="목표 금액">
             <NumberField label="목표 금액" value={v.goalAmount} max={GOAL_AMOUNT_MAX} grouped width={160} suffix="FN" onChange={(x) => set("goalAmount", x)} />
           </Row>
+          <Row label="자동 증량">
+            <NumberField label="자동 증량" value={v.autoRaise} max={GOAL_AMOUNT_MAX} grouped width={160} suffix="FN · 0이면 끔" onChange={(x) => set("autoRaise", x)} />
+          </Row>
+          {v.autoRaise > 0 && (
+            <p className={styles.hint}>
+              목표 {formatNumber(v.goalAmount)} FN에 닿으면 {formatNumber(v.autoRaise)} FN씩 목표가 자동으로 올라가요 (예: {formatNumber(v.goalAmount)} → {formatNumber(v.goalAmount + v.autoRaise)}). 두 번째 목표에는 적용되지 않아요.
+            </p>
+          )}
           <Row label="산정 기간">
             <div className={styles.inline}>
               <input type="date" aria-label="산정 시작일" className={styles.input} value={v.from} max={v.to} onChange={(e) => set("from", e.target.value)} />

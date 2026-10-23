@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { formatNumber } from "@/lib/format";
 import { CREDITS_SECTIONS, bingoLines, type CreditsData, type CreditsSectionKey, type CreditsState, type OverlayTool } from "@/services/creator/broadcastToolTypes";
 import { OverlayThemeRoot, ov } from "@/features/overlayTheme/OverlayThemeRoot";
@@ -10,6 +10,8 @@ import { useReloadSignal } from "../remote/useReloadSignal";
 import { clock, timerSeconds } from "./timerMath";
 
 const SPEED_SEC = { SLOW: 30, NORMAL: 18, FAST: 10 } as const;
+/** 텍스트 슬롯 테두리 (글자 외곽선) on the stream, like the 후원 위젯's. */
+const OUTLINE = "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000";
 
 /**
  * OBS overlay for 방송 도구 (code-first). Transparent page that re-reads the tool state every
@@ -189,6 +191,34 @@ function ToolView({ data, now, skew }: { data: OverlayTool; now: number | null; 
             <div key={data.state.rollingSince} className={`${ov.onStream} ${styles.creditsRoll}`} style={{ animationDuration: `${data.state.durationSec}s` }}>
               <CreditsBody state={data.state} data={data.data} crawl={false} />
             </div>
+          )}
+        </OverlayThemeRoot>
+      );
+    }
+    case "text": {
+      // 텍스트 슬롯 (2026-10-23): an empty slot shows nothing; a new text restarts the scroll.
+      const t = data.state;
+      if (!t.text) return null;
+      const look: CSSProperties = {
+        fontSize: t.size,
+        fontWeight: t.bold ? 800 : 500,
+        textAlign: t.align === "LEFT" ? "left" : t.align === "RIGHT" ? "right" : "center",
+        color: t.background === "CARD" ? undefined : t.color,
+        textShadow: t.outline && t.background !== "CARD" ? OUTLINE : undefined
+      };
+      const body = (
+        <p className={`${t.background === "CARD" ? ov.card : ov.onStream} ${styles.textSlot}`} style={look}>
+          {t.text}
+        </p>
+      );
+      return (
+        <OverlayThemeRoot theme={data.theme} className={t.scroll ? styles.textScroll : styles.pad}>
+          {t.scroll ? (
+            <div key={t.text} className={styles.textScrollTrack} style={{ animationDuration: `${t.scrollSec}s` }}>
+              {body}
+            </div>
+          ) : (
+            body
           )}
         </OverlayThemeRoot>
       );

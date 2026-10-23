@@ -145,7 +145,7 @@ describe("후원 위젯 계산", () => {
 
   it("sums Ssumnation donations only for 목표 · 누적 (test and platform donations never count)", () => {
     const goal = goalProgress(feed, { ...D.GOAL, startAmount: 1_000, goalAmount: 100_000, from: "2026-10-01", to: "2026-10-05" }, now.getTime());
-    expect(goal).toEqual({ current: 1_000 + 10_000 + 5_000 + 50_000 + 10_000, percent: 76, daysLeft: 3 });
+    expect(goal).toEqual({ current: 1_000 + 10_000 + 5_000 + 50_000 + 10_000, target: 100_000, percent: 76, daysLeft: 3 });
     expect(goalProgress(feed, { ...D.GOAL, startAmount: 0, goalAmount: 10_000, from: "2026-09-01", to: "2026-12-31" }).percent).toBe(100);
     expect(totalAmount(feed, { ...D.TOTAL, from: "2026-10-02T09:00", to: "2026-10-02T12:00" })).toBe(55_000);
   });

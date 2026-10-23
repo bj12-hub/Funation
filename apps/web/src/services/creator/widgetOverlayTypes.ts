@@ -95,7 +95,7 @@ type Common = OverlaySignal & { serverNow: string; theme: ResolvedTheme };
 export type OverlayWidget = Common &
   (
     /** `second` = 두 번째 목표 progress (null when off), shown in turn with the first. */
-    | { widget: "goal"; settings: GoalSettings; current: number; percent: number; daysLeft: number | null; second: { current: number; percent: number } | null }
+    | { widget: "goal"; settings: GoalSettings; current: number; target: number; percent: number; daysLeft: number | null; second: { current: number; percent: number } | null }
     | { widget: "total"; settings: TotalSettings; total: number }
     | { widget: "ranking"; settings: RankingSettings; rows: WidgetRankRow[] }
     | { widget: "recent"; settings: RecentSettings; lines: WidgetFeedLine[] }
