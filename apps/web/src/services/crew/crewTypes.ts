@@ -234,8 +234,10 @@ export type BroadcastLive = {
   prizeBoard: PrizeBoardLive;
   /** 시그 카운트: signatures each member received during this broadcast (OBS `?sigcount`). */
   sigCount: SigCountLive;
-  /** 스핀머신: settings, recent runs (with their OBS timing) and the 문구 tally (OBS `?spin` · `?spintally`). */
+  /** 점수 게임: settings and recent runs with their OBS timing (`?spin` · `?spintally` · `?dice` · `?twowheel`). */
   spin: SpinLive;
+  dice: DiceLive;
+  twoWheel: TwoWheelLive;
   /** Server clock when this view was read: timers (시나리오 경과, 강탈 card) correct the browser's clock with it. */
   serverNow: string;
 };
@@ -356,18 +358,41 @@ export type SigCountLive = {
 // ── 점수 게임 (P2) — code-first, StreamDonate 참고 (docs/research/streamdonate-reference.md) ─────────────────────
 // A game draws its result on the server; the result is display points only (FN · 지갑 · 수익 · 정산 never move).
 
-/** Games on the shared engine (crewGameCore). 주사위 · 투휠 · 랜덤시그 … come later. */
-export type GameKey = "SPIN";
+/** Games on the shared engine (crewGameCore). 랜덤시그 · 기여도 릴레이 · 줍줍 … come later. `param`: the OBS view (`?spin`). */
+export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL";
+export const GAMES: { key: GameKey; label: string; param: string }[] = [
+  { key: "SPIN", label: "스핀머신", param: "spin" },
+  { key: "DICE", label: "주사위 게임", param: "dice" },
+  { key: "TWO_WHEEL", label: "투휠 게임", param: "twowheel" }
+];
 
 /**
- * A queued OBS run starts SPIN_LEAD_SEC after it is drawn (the overlay polls every 3 seconds, so it starts from the top),
- * spins for SPIN_REEL_SEC, then keeps the result for SPIN_RESULT_SEC before the next run.
+ * OBS timing: a run starts GAME_LEAD_SEC after it is drawn (the overlay polls every 3 seconds, so it plays from the start)
+ * or once the game's previous run is over; it plays for `playSec` (reel · dice), then keeps the result for `resultSec`.
  */
-export const SPIN_LEAD_SEC = 3;
-export const SPIN_REEL_SEC = 4;
-export const SPIN_RESULT_SEC = 4;
+export const GAME_LEAD_SEC = 3;
+export const GAME_TIMING: Record<GameKey, { playSec: number; resultSec: number }> = {
+  SPIN: { playSec: 4, resultSec: 4 },
+  DICE: { playSec: 3, resultSec: 4 },
+  TWO_WHEEL: { playSec: 4, resultSec: 4 }
+};
+/** Runs a game lists (studio) and queues (OBS), newest first. */
+export const GAME_RUNS_SHOWN = 30;
+export const GAME_TITLE_MAX = 20;
 
-export const SPIN_TITLE_MAX = 20;
+/**
+ * A result's effect. MULTIPLY: the 기준 후원's points × value (adds (value − 1) × those points). ADD: + value points.
+ * TEXT: a 문구 only (스핀머신 벌칙 · 미션 — counted in BJ별 집계). MISS: 꽝.
+ */
+export type GameEffect = "MULTIPLY" | "ADD" | "TEXT" | "MISS";
+
+/**
+ * What every game keeps per channel: its OBS title, 자동 (each 시그니처 후원 sent to a member — 금액 일치 · 금액범위
+ * included — plays once, except `excluded` signatures) and whether OBS shows it between runs.
+ */
+export type GameCommon = { title: string; auto: boolean; excluded: string[]; showIdle: boolean };
+
+// 스핀머신 — a slot-machine reel of the creator's items.
 export const SPIN_TITLE_DEFAULT = "스핀머신";
 export const SPIN_ITEMS_MAX = 12;
 export const SPIN_LABEL_MAX = 12;
@@ -375,11 +400,7 @@ export const SPIN_WEIGHT_MAX = 100;
 export const SPIN_MULTIPLIER_MAX = 10;
 export const SPIN_POINTS_MAX = 10_000_000;
 
-/**
- * MULTIPLY: the triggering donation's points × value (adds (value − 1) × those points). ADD: + value points. TEXT: a 문구
- * only (벌칙 · 미션 — counted in BJ별 집계). MISS: 꽝.
- */
-export type SpinKind = "MULTIPLY" | "ADD" | "TEXT" | "MISS";
+export type SpinKind = GameEffect;
 export const SPIN_KINDS: { key: SpinKind; label: string }[] = [
   { key: "MULTIPLY", label: "배수" },
   { key: "ADD", label: "점수 더하기" },
@@ -391,15 +412,7 @@ export const SPIN_KINDS: { key: SpinKind; label: string }[] = [
 export type SpinItem = { id: string; label: string; kind: SpinKind; value: number; weight: number };
 
 /** Kept per channel across broadcasts, editable before going live. */
-export type SpinSettings = {
-  title: string;
-  items: SpinItem[];
-  /** 자동 스핀: each 시그니처 후원 sent to a member (금액 일치 · 금액범위 included) spins once — `excluded` signatures do not. */
-  auto: boolean;
-  excluded: string[];
-  /** The OBS machine stays on screen between spins (otherwise it shows only while a run plays). */
-  showIdle: boolean;
-};
+export type SpinSettings = GameCommon & { items: SpinItem[] };
 
 export const DEFAULT_SPIN: SpinSettings = { title: "", items: [], auto: false, excluded: [], showIdle: true };
 
@@ -412,6 +425,51 @@ export const SPIN_EXAMPLE_ITEMS: Omit<SpinItem, "id">[] = [
   { label: "꽝", kind: "MISS", value: 0, weight: 18 }
 ];
 
+// 주사위 게임 — StreamDonate 주사위 게임: two dice per run, the rule turns them into a 배수 on the 기준 후원.
+export const DICE_TITLE_DEFAULT = "주사위 게임";
+export type DiceRule = "RULE1" | "RULE2";
+export const DICE_RULES: { key: DiceRule; label: string; lines: string[] }[] = [
+  { key: "RULE1", label: "룰 1", lines: ["합계 2 ~ 6 → 1배", "합계 7 ~ 12 → 2배", "더블 → 두 눈의 합 배 (1 + 1 = 2배 … 6 + 6 = 12배)"] },
+  { key: "RULE2", label: "룰 2", lines: ["합계 2 ~ 7 → 2배", "합계 8 ~ 10 → 3배", "합계 11 ~ 12 → 4배", "더블 → 그 배수 × 2 (6 + 6 → 4배 × 2 = 8배)"] }
+];
+
+/** The 배수 two dice give under a rule (StreamDonate 룰 1 · 룰 2). */
+export function diceMultiplier(rule: DiceRule, a: number, b: number): number {
+  const sum = a + b;
+  if (rule === "RULE1") return a === b ? sum : sum <= 6 ? 1 : 2;
+  const m = sum <= 7 ? 2 : sum <= 10 ? 3 : 4;
+  return a === b ? m * 2 : m;
+}
+
+export type DiceSettings = GameCommon & { rule: DiceRule };
+export const DEFAULT_DICE: DiceSettings = { title: "", auto: false, excluded: [], showIdle: true, rule: "RULE1" };
+
+// 투휠 게임 — StreamDonate 투휠: an operator reel (+ / ×) and a number reel (+1 ~ +10, ×1 ~ ×5), odds set by the creator.
+export const TWO_WHEEL_TITLE_DEFAULT = "투휠 게임";
+export const TWO_WHEEL_PLUS_MAX = 10;
+export const TWO_WHEEL_TIMES_MAX = 5;
+export const TWO_WHEEL_WEIGHT_MAX = 100;
+export const TWO_WHEEL_UNIT_MAX = 1_000_000;
+
+/**
+ * Weights 0 ~ 100 (0 = never): `plusWeight` · `timesWeight` for the operator, `plusWeights[n − 1]` for +n and
+ * `timesWeights[n − 1]` for ×n. `plusUnit`: points per +1 — our points are FN, so +3 adds 3 × plusUnit.
+ */
+export type TwoWheelSettings = GameCommon & { plusWeight: number; timesWeight: number; plusWeights: number[]; timesWeights: number[]; plusUnit: number };
+
+/** 기본값 (일반적인 기준): even odds, +1 = 1,000점. */
+export const DEFAULT_TWO_WHEEL: TwoWheelSettings = {
+  title: "",
+  auto: false,
+  excluded: [],
+  showIdle: true,
+  plusWeight: 50,
+  timesWeight: 50,
+  plusWeights: Array.from({ length: TWO_WHEEL_PLUS_MAX }, () => 10),
+  timesWeights: Array.from({ length: TWO_WHEEL_TIMES_MAX }, () => 10),
+  plusUnit: 1_000
+};
+
 /** What started a run: a 시그니처 후원 to the member (자동), or the operator (수동). */
 export type GameTrigger = { kind: "SIGNATURE"; signatureName: string } | { kind: "MANUAL" };
 
@@ -419,7 +477,7 @@ export type GameRunView = {
   id: string;
   game: GameKey;
   at: string;
-  /** When the OBS reel starts, and when the result shows — the points count from then (`at` stays their time). */
+  /** When OBS starts playing it, and when the result shows — the points count from then (`at` stays their time). */
   showAt: string;
   revealAt: string;
   memberId: string;
@@ -428,38 +486,48 @@ export type GameRunView = {
   trigger: GameTrigger;
   /** The 기준 후원's points when the run was drawn (0 = none). */
   basePoints: number;
-  itemId: string;
+  /** The result as shown: a 스핀머신 item's name, "4 + 4 더블", "+3", "×2". */
   label: string;
-  kind: SpinKind;
+  kind: GameEffect;
   value: number;
   /** Points the result adds (MULTIPLY · ADD); 0 for TEXT · MISS. */
   points: number;
+  /** 스핀머신: the drawn item. 주사위: the two dice. 투휠: the operator and the number. */
+  itemId: string | null;
+  dice: [number, number] | null;
+  wheel: { op: "ADD" | "MULTIPLY"; n: number } | null;
 };
 
 /** 스핀머신 BJ별 집계: how many times each member got each 문구 (TEXT) result, columns in first-seen order. */
 export type SpinTally = { columns: string[]; rows: { memberId: string; name: string; color: string | null; counts: number[]; total: number }[] };
 
-export type SpinLive = {
-  settings: SpinSettings;
-  /** Newest first (up to SPIN_RUNS_SHOWN). */
-  runs: GameRunView[];
-  tally: SpinTally;
-};
-export const SPIN_RUNS_SHOWN = 30;
+export type SpinLive = { settings: SpinSettings; runs: GameRunView[]; tally: SpinTally };
+export type DiceLive = { settings: DiceSettings; runs: GameRunView[] };
+export type TwoWheelLive = { settings: TwoWheelSettings; runs: GameRunView[] };
 
-/** A donation a member received in the broadcast, offered as the 기준 후원 of a 수동 스핀 (studio only: names as sent). */
+/** A donation a member received in the broadcast, offered as the 기준 후원 of a 수동 run (studio only: names as sent). */
 export type GameSource = { id: string; at: string; label: string; points: number };
 
-/** `/creator/crew/games` (점수 게임). */
+/** `/creator/crew/games` (점수 게임). `sources`: per game, each active member's donations not yet used by that game. */
 export type GamesView = {
   members: CrewMember[];
-  live: { id: string; title: string; spin: SpinLive; sources: Record<string, GameSource[]>; serverNow: string } | null;
+  live: {
+    id: string;
+    title: string;
+    spin: SpinLive;
+    dice: DiceLive;
+    twoWheel: TwoWheelLive;
+    sources: Record<GameKey, Record<string, GameSource[]>>;
+    serverNow: string;
+  } | null;
   spinSettings: SpinSettings;
+  diceSettings: DiceSettings;
+  twoWheelSettings: TwoWheelSettings;
   signatures: { id: string; name: string; group: string; active: boolean }[];
   overlayPath: string;
 };
 
-export type GameSpinResult = { status: "SPUN"; run: GameRunView } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
+export type GamePlayResult = { status: "PLAYED"; run: GameRunView } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
 
 // ── 콘텐츠 시나리오 도우미 (1부 ~ 5부) — code-first ─────────────────────────────────────────────
 

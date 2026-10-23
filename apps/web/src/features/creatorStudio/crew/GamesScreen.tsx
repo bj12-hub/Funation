@@ -2,23 +2,28 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import { useServerClock } from "@/hooks/useServerClock";
 import type { OverlayTarget } from "@/services/creator/alertTypes";
 import type { BroadcastResult, GamesView } from "@/services/crew/crewTypes";
 import { OverlayOffNotice } from "../remote/OverlayOffNotice";
 import { CrewTabs } from "./CrewTabs";
+import { DiceGamePanel } from "./DiceGamePanel";
 import { SpinMachinePanel } from "./SpinMachinePanel";
+import { TwoWheelPanel } from "./TwoWheelPanel";
 import styles from "./crew.module.css";
+import games from "./games.module.css";
 
 /**
  * 점수 게임 — code-first (no Figma frame; StreamDonate 점수 게임 참고, P2). Route `/creator/crew/games`. Games whose results
- * are crew points (display scores — FN never moves); 스핀머신 first. Settings work any time; spins need a live broadcast
- * (started on 방송 운영). Refreshes from the server every few seconds while live (자동 스핀 from donations).
+ * are crew points (display scores — FN never moves): 스핀머신 · 주사위 게임 · 투휠 게임. Settings work any time; runs need a live
+ * broadcast (started on 방송 운영). Refreshes from the server every few seconds while live (자동 runs from donations).
  */
 export function GamesScreen({ view, switches }: { view: GamesView; switches: Record<OverlayTarget, boolean> }) {
   const router = useRouter();
   const [message, setMessage] = useState<{ tone: "error" | "ok"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
   const liveId = view.live?.id ?? null;
+  const now = useServerClock(view.live?.serverNow ?? null);
 
   useEffect(() => {
     if (!liveId) return;
@@ -54,17 +59,16 @@ export function GamesScreen({ view, switches }: { view: GamesView; switches: Rec
           {message.text}
         </p>
       )}
-      {!view.live && <p className={styles.note}>진행 중인 방송이 없어요. 설정은 지금 저장할 수 있고, 스핀은 방송 운영에서 방송을 시작하면 돌아가요.</p>}
+      {!view.live && <p className={styles.note}>진행 중인 방송이 없어요. 설정은 지금 저장할 수 있고, 게임은 방송 운영에서 방송을 시작하면 돌아가요.</p>}
+      <nav className={games.jump} aria-label="게임 바로가기">
+        <a href="#game-spin">🎰 스핀머신</a>
+        <a href="#game-dice">🎲 주사위 게임</a>
+        <a href="#game-twowheel">🎡 투휠 게임</a>
+      </nav>
 
-      <SpinMachinePanel
-        settings={view.spinSettings}
-        signatures={view.signatures}
-        members={view.members}
-        live={view.live}
-        overlayPath={view.overlayPath}
-        pending={pending}
-        run={run}
-      />
+      <SpinMachinePanel settings={view.spinSettings} signatures={view.signatures} members={view.members} live={view.live} now={now} overlayPath={view.overlayPath} pending={pending} run={run} />
+      <DiceGamePanel settings={view.diceSettings} signatures={view.signatures} members={view.members} live={view.live} now={now} overlayPath={view.overlayPath} pending={pending} run={run} />
+      <TwoWheelPanel settings={view.twoWheelSettings} signatures={view.signatures} members={view.members} live={view.live} now={now} overlayPath={view.overlayPath} pending={pending} run={run} />
     </div>
   );
 }

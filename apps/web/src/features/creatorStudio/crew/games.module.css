@@ -1,4 +1,4 @@
-/* 스핀머신 (code-first) — studio card in 점수 게임. The form layout comes from prize.module.css. */
+/* 점수 게임 (code-first) — studio cards in /creator/crew/games (스핀머신 · 주사위 · 투휠). The form layout comes from prize.module.css. */
 
 .items {
   display: flex;
@@ -103,4 +103,83 @@
   .runs li {
     grid-template-columns: max-content minmax(0, 1fr);
   }
+}
+
+.jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.jump a {
+  padding: 6px 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+  text-decoration: none;
+}
+
+.jump a:hover {
+  color: var(--color-text-primary);
+}
+
+/* 주사위 룰: two option cards, the chosen one outlined. */
+.rules {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.rule {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-8);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+  text-align: left;
+}
+
+.rule strong {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+}
+
+.rule[aria-pressed="true"] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+/* 투휠 가중치: one small column per +n / ×n / operator. */
+.weights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.weight {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 64px;
+  font-size: var(--font-size-13);
+}
+
+.unit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.unit input {
+  width: 120px;
+}
+
+.weight input {
+  width: 100%;
+  text-align: center;
 }
