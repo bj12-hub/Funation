@@ -5,7 +5,16 @@ import { getCreatorSession } from "@/lib/session";
 import { ownEntry } from "@/lib/records";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { isSignatureImage, isSignatureSound, mockSignatures } from "./signatureCore";
-import { SIGNATURE_IMAGE_PRESETS, SIGNATURE_LIMITS, type ManagedSignature, type SignatureBulkResult, type SignatureResult } from "./signatureTypes";
+import {
+  DEFAULT_SIGNATURE_GROUP,
+  SIGNATURE_IMAGE_PRESETS,
+  SIGNATURE_LIMITS,
+  amountConflict,
+  spanText,
+  type ManagedSignature,
+  type SignatureBulkResult,
+  type SignatureResult
+} from "./signatureTypes";
 
 /**
  * 시그니처 관리 Server Actions — code-first. Route `/creator/widgets/signatures`. Creator only; every
@@ -45,6 +54,28 @@ function readFields(v: Record<string, unknown>, kept?: ManagedSignature): Fields
 
 const newSignatureId = (n: number) => `sig-${Date.now().toString(36)}-${n}`;
 
+/** 그룹: blank = 기본 (older clients send none). */
+function readGroup(v: unknown): string | { message: string } {
+  const group = typeof v === "string" ? v.normalize("NFC").trim() : "";
+  if (group.length > SIGNATURE_LIMITS.groupMax) return { message: `그룹 이름은 ${SIGNATURE_LIMITS.groupMax}자 이내로 입력해 주세요.` };
+  return group || DEFAULT_SIGNATURE_GROUP;
+}
+
+/** 금액범위: only with 금액 일치; from the lowest price up to just under the price (null = the price only). */
+function readRange(v: unknown, match: unknown, price: number): number | null | { message: string } {
+  if (match !== "AMOUNT" || v === null || v === undefined || v === "") return null;
+  if (typeof v !== "number" || !Number.isInteger(v) || v < SIGNATURE_LIMITS.priceMin || v >= price) {
+    return { message: `금액범위는 ${SIGNATURE_LIMITS.priceMin.toLocaleString()} FN부터 가격보다 작은 금액까지예요.` };
+  }
+  return v;
+}
+
+/** The message for two 금액 일치 signatures that would share an amount, naming the other one. */
+function conflictMessage(pair: [ManagedSignature, ManagedSignature], own: string | null) {
+  const other = pair[0].id === own ? pair[1] : pair[0];
+  return `금액 매칭이 '${other.name}'(${spanText(other)})와 겹쳐요. 가격이나 금액범위를 바꿔 주세요.`;
+}
+
 const assertMock = () => {
   if (!USE_MOCK) throw new Error("Signature API is not connected yet.");
 };
@@ -77,11 +108,15 @@ export async function saveSignature(input: unknown): Promise<SignatureResult> {
   const existing = id ? items.find((s) => s.id === id) : undefined;
   if (id && !existing) return { status: "INVALID", message: "시그니처를 찾을 수 없어요." };
   if (items.some((s) => s.id !== id && s.name === name)) return { status: "INVALID", message: "같은 이름의 시그니처가 있어요." };
-  // Two AMOUNT matches on one price would be ambiguous.
-  if (v.match === "AMOUNT" && v.active && items.some((s) => s.id !== id && s.active && s.match === "AMOUNT" && s.price === price)) {
-    return { status: "INVALID", message: "같은 가격으로 금액 매칭 중인 시그니처가 있어요." };
-  }
-  const next = { ...fields, match: v.match, active: v.active } as const;
+  const rangeMin = readRange(v.rangeMin, v.match, price);
+  if (rangeMin !== null && typeof rangeMin === "object") return { status: "INVALID", message: rangeMin.message };
+  const group = readGroup(v.group);
+  if (typeof group === "object") return { status: "INVALID", message: group.message };
+  const next = { ...fields, match: v.match, active: v.active, rangeMin, group } as const;
+  // Two 금액 일치 signatures taking one amount would be ambiguous (금액범위 included, 2026-10-23).
+  const ownId = existing?.id ?? "(new)";
+  const pair = amountConflict([...items.filter((s) => s.id !== ownId), { id: ownId, ...next }]);
+  if (pair) return { status: "INVALID", message: conflictMessage(pair, ownId) };
   if (existing) {
     Object.assign(existing, next);
     return { status: "SAVED", id: existing.id };
@@ -115,22 +150,24 @@ export async function createSignatures(input: unknown): Promise<SignatureBulkRes
   if (!Array.isArray(v.rows) || v.rows.length === 0) return { status: "INVALID", message: "만들 시그니처를 골라 주세요." };
   if (v.rows.length > room) return { status: "INVALID", message: `시그니처는 ${SIGNATURE_LIMITS.max}개까지 만들 수 있어요. 지금은 ${Math.max(0, room)}개 더 만들 수 있어요.` };
 
-  const amountMatched = v.match === "AMOUNT" && v.active;
+  const group = readGroup(v.group);
+  if (typeof group === "object") return { status: "INVALID", message: group.message };
+  const match = v.match;
+  const active = v.active;
   const rows: Fields[] = [];
+  const asSignature = (r: Fields, k: number): ManagedSignature => ({ id: `(row ${k})`, ...r, match, active, rangeMin: null, group });
   for (const [i, raw] of v.rows.entries()) {
     const fields = readFields(typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>) : {});
     if (typeof fields === "string") return { status: "INVALID", message: fields, row: i };
     if (items.some((s) => s.name === fields.name) || rows.some((r) => r.name === fields.name)) return { status: "INVALID", message: "같은 이름의 시그니처가 있어요.", row: i };
-    if (amountMatched && (items.some((s) => s.active && s.match === "AMOUNT" && s.price === fields.price) || rows.some((r) => r.price === fields.price))) {
-      return { status: "INVALID", message: "같은 가격으로 금액 매칭 중인 시그니처가 있어요.", row: i };
-    }
+    // Created rows take their price only (no 금액범위): a clash is another signature's price or range, or a row's price.
+    const pair = amountConflict([...items, ...rows.map(asSignature), asSignature(fields, i)]);
+    if (pair) return { status: "INVALID", message: conflictMessage(pair, `(row ${i})`), row: i };
     rows.push(fields);
   }
 
   // No await between the checks and the write, so a double submit cannot pass the checks twice.
-  const match = v.match;
-  const active = v.active;
-  const created = rows.map((r, i): ManagedSignature => ({ id: newSignatureId(items.length + i), ...r, match, active }));
+  const created = rows.map((r, i): ManagedSignature => ({ ...asSignature(r, i), id: newSignatureId(items.length + i) }));
   items.push(...created);
   const ids = created.map((s) => s.id);
   bulk[v.requestId] = ids;
@@ -143,6 +180,25 @@ export async function deleteSignature(id: unknown): Promise<SignatureResult> {
   const i = mockSignatures.items.findIndex((s) => s.id === id);
   if (i >= 0) mockSignatures.items.splice(i, 1);
   return { status: "SAVED", id: String(id) };
+}
+
+/**
+ * 그룹 보이기 · 숨기기 (2026-10-23): every signature of the group at once. Showing a group is refused when it would put two
+ * 금액 일치 signatures on one amount (the message names them). Setting the same value again is a no-op.
+ */
+export async function setSignatureGroupActive(input: unknown): Promise<SignatureResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
+  if (typeof v.active !== "boolean") return { status: "INVALID", message: "설정을 확인해 주세요." };
+  const items = mockSignatures.items;
+  const group = typeof v.group === "string" ? v.group.normalize("NFC").trim() : "";
+  if (!items.some((s) => s.group === group)) return { status: "INVALID", message: "그룹을 찾을 수 없어요." };
+  const active = v.active;
+  const pair = amountConflict(items.map((s) => (s.group === group ? { ...s, active } : s)));
+  if (pair) return { status: "INVALID", message: `'${pair[0].name}'(${spanText(pair[0])})와 '${pair[1].name}'(${spanText(pair[1])})의 금액 매칭이 겹쳐서 켤 수 없어요.` };
+  for (const s of items) if (s.group === group) s.active = active;
+  return { status: "SAVED", id: group };
 }
 
 /** Moves a signature one step up or down (the panel shows them in this order). */

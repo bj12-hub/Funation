@@ -54,6 +54,12 @@ export type AlertItem = {
   /** The signature's image for a 시그니처 후원 (or a 일반 후원 matched to a signature by amount); 벽지 "후원 이미지 우선" uses it. */
   imageUrl?: string;
   /**
+   * DONATION (2026-10-23, 시그 카운트): the signature it alerted as — the one chosen, or the one a 일반 후원 matched by amount
+   * or 금액범위 — and the crew member the supporter picked (멤버 지정). Absent on older alerts and when there is none.
+   */
+  signatureId?: string;
+  memberId?: string;
+  /**
    * EXTERNAL: the amount in the platform's own unit, by unit code (KRW, SOOP_BALLOON, CHZZK_CHEESE …), summed per
    * platform on 수단별 보드, which shows the unit's label. Read it through `nativeAmount` (older alerts carry a label).
    */

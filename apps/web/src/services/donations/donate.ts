@@ -19,7 +19,7 @@ import type { DonationCatalog } from "./donationCatalog";
 import { recordQuest } from "./questCore";
 import { canParticipate, enqueueSpin } from "./rouletteCore";
 import { canDraw, enqueueDraw } from "./gachaCore";
-import { getDonationCatalog, matchSignatureByAmount, signatureImageFor, signatureSoundFor } from "./signatureCore";
+import { getDonationCatalog, matchSignatureByAmount, signatureIdFor, signatureImageFor, signatureSoundFor } from "./signatureCore";
 import { addDonationDrawing, enqueueDonationVideo } from "@/services/creator/mediaCore";
 import { MEDIA_LIMITS } from "@/services/creator/mediaTypes";
 import { notify } from "@/services/notifications/notificationCore";
@@ -165,6 +165,9 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
       donationType: request.type,
       imageUrl: signatureImageFor(catalog, request.type, request.amount, request.details),
       soundUrl: signatureSoundFor(request.type, request.amount, request.details),
+      // 시그 카운트 (2026-10-23): which signature, and the member the supporter picked.
+      signatureId: signatureIdFor(request.type, request.amount, request.details),
+      ...(request.memberId ? { memberId: request.memberId } : {}),
       // The quest's arrival shows now; its FN counts in the 후원 위젯 once it succeeds.
       ...(quest ? { questId: donationId } : {})
     });

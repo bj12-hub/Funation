@@ -388,6 +388,65 @@
   overflow-wrap: anywhere;
 }
 
+/* ── 시그 카운트 (?sigcount) ── */
+.sigCount {
+  width: fit-content;
+  min-width: 260px;
+  max-width: 100%;
+}
+
+.sigTable {
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.sigTable th,
+.sigTable td {
+  padding: 5px 8px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.sigTable thead th {
+  vertical-align: bottom;
+}
+
+.sigTable th[scope="row"] {
+  max-width: 120px;
+  text-align: left;
+}
+
+.sigTable tfoot th,
+.sigTable tfoot td {
+  border-top: 1px solid var(--ov-chip-bg);
+}
+
+.sigHead {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  max-width: 76px;
+  margin: 0 auto;
+  font-size: 12px;
+}
+
+.sigHead img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.sigHead span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sigZero {
+  opacity: 0.4;
+}
+
 .prizeTotal {
   margin: 0;
   font-size: 14px;

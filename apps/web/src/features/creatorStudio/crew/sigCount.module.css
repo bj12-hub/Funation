@@ -1,0 +1,91 @@
+/* 시그 카운트 (code-first) — studio card in 방송 운영. The form layout comes from prize.module.css. */
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.groupName {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-12);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+/* Pressed = counted (a column of the table). */
+.chip[aria-pressed="true"] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+.chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.order {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-12);
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-14);
+}
+
+.table th,
+.table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-border);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.table thead th {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+}
+
+.table th:first-child {
+  text-align: left;
+}
+
+.table tbody th {
+  font-weight: var(--font-weight-regular);
+}
+
+.table td[data-zero] {
+  color: var(--color-text-tertiary);
+}
+
+.table tfoot th,
+.table tfoot td {
+  border-bottom: 0;
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-bold);
+}

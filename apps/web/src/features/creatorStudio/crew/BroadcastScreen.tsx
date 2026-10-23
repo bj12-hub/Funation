@@ -13,6 +13,7 @@ import { BroadcastFeed } from "./BroadcastFeed";
 import { FanNotesPanel } from "./FanNotesPanel";
 import { PrizeBoardPanel } from "./PrizeBoardPanel";
 import { ScenarioPanel } from "./ScenarioPanel";
+import { SigCountPanel } from "./SigCountPanel";
 import { StealPanel } from "./StealPanel";
 import { CrewTabs } from "./CrewTabs";
 import { SubBoards } from "./SubBoards";
@@ -307,6 +308,14 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
         settings={view.prizeSettings}
         live={live ? { broadcastId: live.id, board: live.prizeBoard } : null}
         members={view.members}
+        overlayPath={view.overlayPath}
+        pending={pending}
+        run={run}
+      />
+      <SigCountPanel
+        settings={view.sigCountSettings}
+        signatures={view.signatures}
+        live={live ? { broadcastId: live.id, table: live.sigCount } : null}
         overlayPath={view.overlayPath}
         pending={pending}
         run={run}

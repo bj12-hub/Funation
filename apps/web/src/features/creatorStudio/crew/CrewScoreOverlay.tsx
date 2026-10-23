@@ -9,11 +9,13 @@ import type { ResolvedTheme } from "@/services/creator/overlayThemeTypes";
 import {
   OVERLAY_BOARD_ROWS,
   PRIZE_TITLE_DEFAULT,
+  SIG_COUNT_TITLE_DEFAULT,
   type Battle,
   type BattleMatch,
   type OverlayScenario,
   type OverlayScoreboard,
   type PrizeBoardLive,
+  type SigCountLive,
   type StealRecord,
   type SubBoard
 } from "@/services/crew/crewTypes";
@@ -273,6 +275,78 @@ export function PrizeBoardOverlay({ board, reloadSeq, theme }: { board: PrizeBoa
             합계 <b className={ov.display}>{formatNumber(board.total)}</b>
           </p>
         )}
+      </div>
+    </OverlayThemeRoot>
+  );
+}
+
+/**
+ * 시그 카운트 overlay (`?sigcount`): members × the chosen signatures, with each member's 합계 and (optionally) the
+ * 하단 합계 row. Shown only while 방송 운영 has OBS에 표시 on and at least one signature is counted.
+ */
+export function SigCountOverlay({ table, reloadSeq, theme }: { table: SigCountLive | null; reloadSeq: number; theme: ResolvedTheme }) {
+  useOverlayPage(reloadSeq);
+  if (!table || !table.visible || table.columns.length === 0) return null;
+  const s = table.settings;
+  const count = (n: number) => <span className={n === 0 ? styles.sigZero : ov.display}>{formatNumber(n)}</span>;
+  return (
+    <OverlayThemeRoot theme={theme} className={styles.pad}>
+      <div className={`${ov.card} ${styles.board} ${styles.sigCount}`}>
+        <h1 className={`${ov.label} ${styles.title}`}>{s.title || SIG_COUNT_TITLE_DEFAULT}</h1>
+        <table className={styles.sigTable}>
+          <thead>
+            <tr>
+              <th scope="col" aria-label="멤버" />
+              {table.columns.map((c) => (
+                <th key={c.id} scope="col">
+                  <span className={styles.sigHead}>
+                    {/* eslint-disable-next-line @next/next/no-img-element -- signature images are uploaded files (data URLs in the mock) */}
+                    {c.imageUrl && <img src={c.imageUrl} alt="" />}
+                    <span className={ov.muted}>{c.name}</span>
+                  </span>
+                </th>
+              ))}
+              {table.columns.length > 1 && (
+                <th scope="col">
+                  <span className={`${ov.muted} ${styles.sigHead}`}>합계</span>
+                </th>
+              )}
+            </tr>
+          </thead>
+          <tbody>
+            {table.rows.length === 0 && (
+              <tr>
+                <td colSpan={table.columns.length + 2} className={ov.muted}>
+                  아직 받은 시그니처가 없어요
+                </td>
+              </tr>
+            )}
+            {table.rows.map((r) => (
+              <tr key={r.memberId ?? "none"}>
+                <th scope="row" className={`${ov.label} ${styles.name}`}>
+                  {r.color && <i className={styles.dot} style={{ background: r.color }} aria-hidden="true" />} {r.name}
+                </th>
+                {r.counts.map((n, i) => (
+                  <td key={table.columns[i].id}>{count(n)}</td>
+                ))}
+                {table.columns.length > 1 && <td>{count(r.total)}</td>}
+              </tr>
+            ))}
+          </tbody>
+          {s.showTotal && table.rows.length > 0 && (
+            <tfoot>
+              <tr>
+                <th scope="row" className={ov.muted}>
+                  합계
+                </th>
+                {table.totals.map((n, i) => (
+                  <td key={table.columns[i].id}>{count(n)}</td>
+                ))}
+                {table.columns.length > 1 && <td>{count(table.totals.reduce((sum, n) => sum + n, 0))}</td>}
+              </tr>
+            </tfoot>
+          )}
+        </table>
       </div>
     </OverlayThemeRoot>
   );

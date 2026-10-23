@@ -97,6 +97,8 @@ export function enqueueAlert(
     platform?: Platform;
     imageUrl?: string;
     soundUrl?: string;
+    signatureId?: string;
+    memberId?: string;
     native?: NativeAmount;
     questId?: string;
   },
@@ -128,7 +130,20 @@ export function enqueueAlert(
  */
 export function enqueueDonationAlert(
   creatorId: string,
-  input: { donor: string; donorKey?: string | null; badges?: string[]; message: string; fnAmount: number; typeLabel: string; donationType?: string; imageUrl?: string; soundUrl?: string; questId?: string }
+  input: {
+    donor: string;
+    donorKey?: string | null;
+    badges?: string[];
+    message: string;
+    fnAmount: number;
+    typeLabel: string;
+    donationType?: string;
+    imageUrl?: string;
+    soundUrl?: string;
+    signatureId?: string;
+    memberId?: string;
+    questId?: string;
+  }
 ) {
   if (creatorId !== STUDIO_CHANNEL) return;
   const nameReplaced = replacesName(input.donor);
