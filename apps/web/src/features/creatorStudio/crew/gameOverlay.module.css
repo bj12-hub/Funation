@@ -298,3 +298,74 @@
     opacity: 1;
   }
 }
+
+/* ── 시그 빙고: the board in a wider card ── */
+.machine[data-wide] {
+  width: min(100%, 480px);
+}
+
+.bingoGrid {
+  display: grid;
+  grid-template-columns: repeat(var(--bingo-size, 3), minmax(0, 1fr));
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bingoCell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--ov-chip-bg);
+  color: var(--ov-chip-ink);
+}
+
+.bingoCell img {
+  width: 82%;
+  height: 82%;
+  object-fit: contain;
+}
+
+.bingoCell:not([data-open]) img {
+  filter: grayscale(1);
+  opacity: 0.35;
+}
+
+.bingoCell[data-open] {
+  box-shadow: inset 0 0 0 3px var(--cell-color, var(--ov-accent));
+}
+
+.bingoCell[data-line] {
+  background: color-mix(in srgb, var(--ov-accent) 35%, var(--ov-chip-bg));
+}
+
+.bingoCell[data-last] {
+  animation: cellPop 0.7s cubic-bezier(0.2, 0.8, 0.3, 1.4) both;
+}
+
+.bingoQ {
+  font-size: 22px;
+  opacity: 0.6;
+}
+
+.bingoName {
+  padding: 2px;
+  font-size: 10px;
+  line-height: 1.15;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+@keyframes cellPop {
+  from {
+    transform: scale(0.6);
+  }
+
+  to {
+    transform: none;
+  }
+}

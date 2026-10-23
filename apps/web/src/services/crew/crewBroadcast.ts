@@ -32,6 +32,7 @@ import { sigCountLive, sigCountSettingsOf, sigCountSignatures } from "./crewSigC
 import { diceLive } from "./crewDiceCore";
 import { jupjupLive } from "./crewJupjupCore";
 import { medleyLive } from "./crewMedleyCore";
+import { sigBingoLive } from "./crewSigBingoCore";
 import { randomSigLive } from "./crewRandomSigCore";
 import { relayLive } from "./crewRelayCore";
 import { spinLive } from "./crewSpinCore";
@@ -95,6 +96,7 @@ function liveView(b: MockBroadcast): BroadcastLive {
     relay: relayLive(b),
     jupjup: jupjupLive(b),
     medley: medleyLive(b),
+    sigBingo: sigBingoLive(b),
     serverNow: new Date().toISOString()
   };
 }
