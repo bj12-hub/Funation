@@ -11,6 +11,7 @@ import type {
   GameKey,
   PrizeBoardSettings,
   RandomSigSettings,
+  RelaySettings,
   ScenarioPart,
   SigCountSettings,
   SpinSettings,
@@ -90,7 +91,7 @@ export type MockBroadcast = {
   /**
    * 점수 게임 runs (oldest first): the result and its points, fixed when drawn; `showAt` · `revealAt` queue them on OBS.
    * `sourceId`: the 기준 후원 (attribution donation id or 후원 리스트 entry id) — one run per donation and game.
-   * `itemId` (스핀머신 item · 랜덤시그 signature) · `dice` (주사위) · `wheel` (투휠) · `range` (랜덤시그 발동 구간): what was drawn.
+   * `itemId` (스핀머신 item · 랜덤시그 signature) · `dice` (주사위) · `wheel` (투휠) · `range` (랜덤시그 발동 구간) · `from` (기여도 릴레이 트리거 후원): what was drawn.
    */
   gameRuns?: {
     id: string;
@@ -106,6 +107,7 @@ export type MockBroadcast = {
     dice?: [number, number];
     wheel?: { op: "ADD" | "MULTIPLY"; n: number };
     range?: [number, number];
+    from?: { memberId: string; amount: number };
     label: string;
     kind: GameEffect;
     value: number;
@@ -117,6 +119,8 @@ export type MockBroadcast = {
   fanNotes?: { id: string; at: string; userId: string; author: string; kind: "MESSAGE" | "REQUEST"; memberId: string | null; text: string; status: "NEW" | "DONE" | "HIDDEN"; requestId: string }[];
   /** 팬 메시지 받기 꺼짐 (open by default). */
   fanNotesClosed?: boolean;
+  /** 기여도 릴레이: the 배수 waiting for the next 시그니처 후원 (set by the 트리거 BJ's last one, taken once). */
+  relay?: { pending: { multiplier: number; amount: number; at: string; donationId: string } | null };
   /** 상품 순위표: shown on OBS (`?prize`) and its 구간 (시작 ~ 정지; a new 시작 restarts it). `starts`: 시작 request ids applied. */
   prizeBoard?: { visible: boolean; window: { startedAt: string; stoppedAt: string | null } | null; starts: string[] };
   /** 시그 카운트: shown on OBS (`?sigcount`) and counted from `since` (null = the broadcast start; 다시 세기 sets it). */
@@ -156,6 +160,8 @@ type MockCrew = {
   twoWheels?: Record<string, TwoWheelSettings>;
   /** 랜덤시그 settings per channel (missing = DEFAULT_RANDOM_SIG). */
   randomSigs?: Record<string, RandomSigSettings>;
+  /** 기여도 릴레이 settings per channel (missing = DEFAULT_RELAY). */
+  relays?: Record<string, RelaySettings>;
   /** 멤버 추가 request ids already applied (a retried add is not a second member). */
   memberRequests?: string[];
 };

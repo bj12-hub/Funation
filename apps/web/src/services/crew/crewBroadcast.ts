@@ -31,6 +31,7 @@ import { prizeBoardLive, prizeSettingsOf } from "./crewPrizeCore";
 import { sigCountLive, sigCountSettingsOf, sigCountSignatures } from "./crewSigCountCore";
 import { diceLive } from "./crewDiceCore";
 import { randomSigLive } from "./crewRandomSigCore";
+import { relayLive } from "./crewRelayCore";
 import { spinLive } from "./crewSpinCore";
 import { twoWheelLive } from "./crewTwoWheelCore";
 import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
@@ -89,6 +90,7 @@ function liveView(b: MockBroadcast): BroadcastLive {
     dice: diceLive(b),
     twoWheel: twoWheelLive(b),
     randomSig: randomSigLive(b),
+    relay: relayLive(b),
     serverNow: new Date().toISOString()
   };
 }

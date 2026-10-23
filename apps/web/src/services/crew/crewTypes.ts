@@ -239,6 +239,7 @@ export type BroadcastLive = {
   dice: DiceLive;
   twoWheel: TwoWheelLive;
   randomSig: RandomSigLive;
+  relay: RelayLive;
   /** Server clock when this view was read: timers (시나리오 경과, 강탈 card) correct the browser's clock with it. */
   serverNow: string;
 };
@@ -359,13 +360,14 @@ export type SigCountLive = {
 // ── 점수 게임 (P2) — code-first, StreamDonate 참고 (docs/research/streamdonate-reference.md) ─────────────────────
 // A game draws its result on the server; the result is display points only (FN · 지갑 · 수익 · 정산 never move).
 
-/** Games on the shared engine (crewGameCore). 기여도 릴레이 · 줍줍 … come later. `param`: the OBS view (`?spin`). */
-export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL" | "RANDOM_SIG";
+/** Games on the shared engine (crewGameCore). 줍줍 … comes later. `param`: the OBS view (`?spin`). */
+export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL" | "RANDOM_SIG" | "RELAY";
 export const GAMES: { key: GameKey; label: string; param: string }[] = [
   { key: "SPIN", label: "스핀머신", param: "spin" },
   { key: "DICE", label: "주사위 게임", param: "dice" },
   { key: "TWO_WHEEL", label: "투휠 게임", param: "twowheel" },
-  { key: "RANDOM_SIG", label: "랜덤시그", param: "randomsig" }
+  { key: "RANDOM_SIG", label: "랜덤시그", param: "randomsig" },
+  { key: "RELAY", label: "기여도 릴레이", param: "relay" }
 ];
 
 /**
@@ -377,7 +379,8 @@ export const GAME_TIMING: Record<GameKey, { playSec: number; resultSec: number }
   SPIN: { playSec: 4, resultSec: 4 },
   DICE: { playSec: 3, resultSec: 4 },
   TWO_WHEEL: { playSec: 4, resultSec: 4 },
-  RANDOM_SIG: { playSec: 2, resultSec: 4 }
+  RANDOM_SIG: { playSec: 2, resultSec: 4 },
+  RELAY: { playSec: 2, resultSec: 4 }
 };
 /** Runs a game lists (studio) and queues (OBS), newest first. */
 export const GAME_RUNS_SHOWN = 30;
@@ -497,6 +500,25 @@ export type RandomSigSettings = GameCommon & { tiers: RandomSigTier[]; mode: Ran
 /** 기본값 (StreamDonate 기본): 기본 모드, 2배. */
 export const DEFAULT_RANDOM_SIG: RandomSigSettings = { title: "", auto: false, excluded: [], showIdle: true, tiers: [], mode: "BONUS", multiplier: 2 };
 
+// 기여도 릴레이 — StreamDonate 기여도 릴레이: a 시그니처 후원 the 트리거 BJ receives sets a 배수 by its amount; the next
+// 시그니처 후원 another member receives takes it.
+export const RELAY_TITLE_DEFAULT = "기여도 릴레이";
+export const RELAY_TIERS_MAX = 10;
+export const RELAY_MULTIPLIER_MAX = 10;
+
+/** A 금액 구간: a 트리거 후원 of `min` FN or more (up to `max`, null = no upper end) sets ×`multiplier`. */
+export type RelayTier = { id: string; min: number; max: number | null; multiplier: number };
+
+/** `auto` = 릴레이 켜짐; `memberId` = 트리거 BJ; `tiers` are matched top-down (the first wins, none = no effect). */
+export type RelaySettings = GameCommon & { memberId: string | null; tiers: RelayTier[] };
+export const DEFAULT_RELAY: RelaySettings = { title: "", auto: false, excluded: [], showIdle: true, memberId: null, tiers: [] };
+
+/** 예시 구간 — StreamDonate 기본값 as it is (its amounts are 원; set FN ranges that fit the channel's signatures). */
+export const RELAY_EXAMPLE_TIERS: Omit<RelayTier, "id">[] = Array.from({ length: 9 }, (_, i) => ({ min: i * 50_000, max: i * 50_000 + 49_999, multiplier: i + 2 }));
+
+/** The first 구간 an amount falls in, if any. */
+export const relayTierFor = (tiers: RelayTier[], amount: number) => tiers.find((t) => amount >= t.min && (t.max === null || amount <= t.max)) ?? null;
+
 /** What started a run: a 시그니처 후원 to the member (자동), a 랜덤시그 발동 금액 (자동), or the operator (수동). */
 export type GameTrigger = { kind: "SIGNATURE"; signatureName: string } | { kind: "AMOUNT"; amount: number } | { kind: "MANUAL" };
 
@@ -524,6 +546,8 @@ export type GameRunView = {
   dice: [number, number] | null;
   wheel: { op: "ADD" | "MULTIPLY"; n: number } | null;
   range: [number, number] | null;
+  /** 기여도 릴레이: the 트리거 후원 the 배수 came from. */
+  from: { memberName: string; amount: number } | null;
 };
 
 /** 스핀머신 BJ별 집계: how many times each member got each 문구 (TEXT) result, columns in first-seen order. */
@@ -533,6 +557,8 @@ export type SpinLive = { settings: SpinSettings; runs: GameRunView[]; tally: Spi
 export type DiceLive = { settings: DiceSettings; runs: GameRunView[] };
 export type TwoWheelLive = { settings: TwoWheelSettings; runs: GameRunView[] };
 /** `pool`: the signatures a 랜덤시그 can draw (active, not excluded) — the OBS rolling images. */
+/** `pending`: the 배수 waiting for the next 시그니처 후원 (from the 트리거 BJ's last one); `triggerName`: the 트리거 BJ. */
+export type RelayLive = { settings: RelaySettings; runs: GameRunView[]; pending: { multiplier: number; amount: number; at: string } | null; triggerName: string | null };
 export type RandomSigLive = { settings: RandomSigSettings; runs: GameRunView[]; pool: { id: string; name: string; price: number; imageUrl: string }[] };
 
 /** A donation a member received in the broadcast, offered as the 기준 후원 of a 수동 run (studio only: names as sent). */
@@ -548,6 +574,7 @@ export type GamesView = {
     dice: DiceLive;
     twoWheel: TwoWheelLive;
     randomSig: RandomSigLive;
+    relay: RelayLive;
     sources: Record<GameKey, Record<string, GameSource[]>>;
     serverNow: string;
   } | null;
@@ -555,6 +582,7 @@ export type GamesView = {
   diceSettings: DiceSettings;
   twoWheelSettings: TwoWheelSettings;
   randomSigSettings: RandomSigSettings;
+  relaySettings: RelaySettings;
   signatures: { id: string; name: string; group: string; active: boolean; price: number; match: "SELECT" | "AMOUNT"; rangeMin: number | null }[];
   overlayPath: string;
 };
