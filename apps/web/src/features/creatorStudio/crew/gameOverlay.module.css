@@ -163,3 +163,34 @@
     transform: rotate(14deg) translateY(4px);
   }
 }
+
+/* ── 랜덤시그: the signature image (rolling, then the drawn one) ── */
+.sigStage {
+  display: grid;
+  place-items: center;
+  height: 170px;
+}
+
+.sigStage img,
+.sigUnknown {
+  width: 150px;
+  height: 150px;
+  border-radius: 14px;
+}
+
+.sigStage img {
+  object-fit: contain;
+}
+
+.sigStage[data-rolling] img {
+  filter: saturate(0.6) blur(0.6px);
+}
+
+.sigUnknown {
+  display: grid;
+  place-items: center;
+  background: var(--ov-chip-bg);
+  color: var(--ov-chip-ink);
+  font-size: 64px;
+  font-weight: 800;
+}
