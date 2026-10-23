@@ -411,3 +411,51 @@
     animation: none;
   }
 }
+
+/* ── 시그니처 헌터 (판매상태): signature tiles with their price; SOLD OUT stamped in the buyer's color ── */
+.hunterTile:not([data-open]) img {
+  filter: none;
+  opacity: 1;
+}
+
+.hunterTile[data-open] img {
+  filter: grayscale(0.6);
+  opacity: 0.45;
+}
+
+.hunterTile[data-opening] {
+  animation: tileShake 0.45s ease-in-out infinite;
+}
+
+.hunterTile[data-absorbed] {
+  opacity: 0.45;
+}
+
+.hunterPrice {
+  position: absolute;
+  right: 0;
+  bottom: 2px;
+  left: 0;
+  font-size: 10px;
+  text-align: center;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 70%);
+}
+
+.soldStamp {
+  position: absolute;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: var(--cell-color, var(--ov-accent));
+  box-shadow: 0 1px 4px rgb(0 0 0 / 50%);
+  color: #ffffff;
+  font-size: 11px;
+  line-height: 1.1;
+  white-space: nowrap;
+  transform: rotate(-12deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hunterTile[data-opening] {
+    animation: none;
+  }
+}

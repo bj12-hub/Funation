@@ -15,7 +15,7 @@ import {
   type GamesView
 } from "@/services/crew/crewTypes";
 import { CopyButton } from "../settings/SettingsCards";
-import { gameEffect } from "./GameOverlayParts";
+import { gameEffect, signedPoints } from "./GameOverlayParts";
 import { shownOverlayAddress } from "./overlayAddress";
 import styles from "./crew.module.css";
 import games from "./games.module.css";
@@ -243,6 +243,7 @@ export function RunList({ name, runs, now }: { name: string; runs: GameRunView[]
               <span className={games.result}>
                 <strong>{r.label}</strong>
                 {effect && effect !== r.label && <span className={styles.muted}>{effect}</span>}
+                {r.shares.length > 0 && <span className={styles.muted}>{r.shares.map((x) => `${x.memberName} ${signedPoints(x.points)}`).join(" · ")}</span>}
               </span>
             ) : (
               <span className={styles.muted}>{waitSec > 0 ? `OBS 대기 ${waitSec}초` : "진행 중…"}</span>

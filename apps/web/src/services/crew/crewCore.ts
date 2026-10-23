@@ -204,13 +204,19 @@ export function windowSteals(b: MockBroadcast, from: string, to: string | null):
 export const gameRunCounts = (b: MockBroadcast, run: { revealAt: string }, now = Date.now()) => !!b.endedAt || Date.parse(run.revealAt) <= now;
 
 /**
- * 점수 게임 points per member between `from` and `to` by the time of the run (`to` null = now), shown results only.
+ * 점수 게임 points per member between `from` and `to` by the time of the run (`to` null = now), shown results only — a
+ * run's `shares` (시그니처 헌터 몰수권) count for their members with it.
  * Like 기여도 강탈 they count as they are: no 배틀 · 직급 배수 (2026-10-23 기본값).
  */
 export function windowGames(b: MockBroadcast, from: string, to: string | null): Map<string, number> {
   const end = to ?? new Date(Date.now() + 1000).toISOString();
   const scores = new Map<string, number>();
-  for (const r of b.gameRuns ?? []) if (r.points && r.at >= from && r.at <= end && gameRunCounts(b, r)) scores.set(r.memberId, (scores.get(r.memberId) ?? 0) + r.points);
+  const add = (id: string, p: number) => scores.set(id, (scores.get(id) ?? 0) + p);
+  for (const r of b.gameRuns ?? []) {
+    if (r.at < from || r.at > end || !gameRunCounts(b, r)) continue;
+    if (r.points) add(r.memberId, r.points);
+    for (const x of r.shares ?? []) add(x.memberId, x.points);
+  }
   return scores;
 }
 

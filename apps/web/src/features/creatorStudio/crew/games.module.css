@@ -329,3 +329,50 @@
   color: var(--color-text-tertiary);
   font-size: 10px;
 }
+
+/* 시그니처 헌터 (studio): slots in rows of --hunter-cols; a sold slot is framed in its member's color, a taken one dimmed. */
+.hunter {
+  display: grid;
+  grid-template-columns: repeat(var(--hunter-cols, 4), minmax(0, 1fr));
+  gap: 4px;
+  max-width: calc(var(--hunter-cols, 4) * 120px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hunterSlot {
+  composes: bingoCell;
+  position: relative;
+  aspect-ratio: auto;
+  min-height: 72px;
+}
+
+.hunterSlot[data-sold] {
+  border-width: 2px;
+  border-color: var(--cell-color, var(--color-primary));
+  background: var(--color-primary-soft);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+.hunterSlot[data-absorbed] {
+  opacity: 0.55;
+}
+
+.forfeit {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  padding: 0 4px;
+  border-radius: var(--radius-pill);
+  background: var(--color-error-text);
+  color: var(--color-surface);
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+}
+
+/* 시그니처 헌터 라운드: the count and 배수 fields are narrower than the 금액 fields. */
+.tierRow .short {
+  width: 72px;
+}
