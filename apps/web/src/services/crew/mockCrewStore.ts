@@ -13,6 +13,8 @@ import type {
   GridDrawSize,
   GridPrizeKind,
   SigHunterSettings,
+  SigDosanMode,
+  SigDosanSettings,
   JupjupSettings,
   MedleySettings,
   SigBingoMode,
@@ -191,6 +193,19 @@ export type MockBroadcast = {
     lastSold: number | null;
     advanceAt: string | null;
   };
+  /**
+   * 시그니처 두산 board (두산 시작 replaces it): the mode and the ladder (signature ids, the lowest price first) as they were
+   * at the start, each lane's climbed steps (`lanes` by "ALL" · "A" · "B" · member id) and the lane that finished first.
+   * `requestId`: the start request (a retried start is not a new board).
+   */
+  sigDosan?: {
+    requestId: string;
+    startedAt: string;
+    mode: SigDosanMode;
+    ladder: string[];
+    lanes: Record<string, { memberId: string | null; at: string; revealAt: string; donationId: string | null }[]>;
+    winner: { lane: string; memberId: string | null; revealAt: string } | null;
+  };
   /** 상품 순위표: shown on OBS (`?prize`) and its 구간 (시작 ~ 정지; a new 시작 restarts it). `starts`: 시작 request ids applied. */
   prizeBoard?: { visible: boolean; window: { startedAt: string; stoppedAt: string | null } | null; starts: string[] };
   /** 시그 카운트: shown on OBS (`?sigcount`) and counted from `since` (null = the broadcast start; 다시 세기 sets it). */
@@ -242,6 +257,8 @@ type MockCrew = {
   gridDraws?: Record<string, GridDrawSettings>;
   /** 시그니처 헌터 settings per channel (missing = DEFAULT_SIG_HUNTER). */
   sigHunters?: Record<string, SigHunterSettings>;
+  /** 시그니처 두산 settings per channel (missing = DEFAULT_SIG_DOSAN). */
+  sigDosans?: Record<string, SigDosanSettings>;
   /** 멤버 추가 request ids already applied (a retried add is not a second member). */
   memberRequests?: string[];
 };
