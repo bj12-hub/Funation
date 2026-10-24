@@ -30,6 +30,7 @@ import {
   type TeamKey
 } from "./crewTypes";
 import { battleGroups, battleRulesOf, donorKey, donorMergesOf, donorNamer, duplicateSuspects, fanNotesView, feedOf, scoreFn, gradeMultipliersOf, excelOf, liveBroadcastOf, scoreboardRows, scoredFeed, stealRecordView, stealRulesOf, timesMultiplier, windowGames, windowReceived, windowScores, windowSteals } from "./crewCore";
+import { cumulativeLive, cumulativeSettingsOf } from "./crewCumulativeCore";
 import { prizeBoardLive, prizeSettingsOf, teamPrizeLive, teamPrizeSettingsOf } from "./crewPrizeCore";
 import { sigCountLive, sigCountSettingsOf, sigCountSignatures } from "./crewSigCountCore";
 import { diceLive } from "./crewDiceCore";
@@ -99,6 +100,7 @@ function liveView(b: MockBroadcast): BroadcastLive {
     fanNotes: fanNotesView(b),
     prizeBoard: prizeBoardLive(b, rows),
     teamPrize: teamPrizeLive(b, rows),
+    cumulative: cumulativeLive(b, rows),
     sigCount: sigCountLive(b),
     spin: spinLive(b),
     dice: diceLive(b),
@@ -250,6 +252,7 @@ export async function getBroadcastView(): Promise<BroadcastView | null> {
     prizeSettings: structuredClone(prizeSettingsOf(STUDIO_CHANNEL)),
     donorMerges: structuredClone(donorMergesOf(STUDIO_CHANNEL)),
     teamPrizeSettings: structuredClone(teamPrizeSettingsOf(STUDIO_CHANNEL)),
+    cumulativeSettings: structuredClone(cumulativeSettingsOf(STUDIO_CHANNEL)),
     sigCountSettings: structuredClone(sigCountSettingsOf(STUDIO_CHANNEL)),
     signatures: sigCountSignatures(),
     projects: [...new Set(broadcasts().filter((b) => b.channelId === STUDIO_CHANNEL && b.project).map((b) => b.project as string))],
