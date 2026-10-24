@@ -53,5 +53,7 @@ PlatformAdapter
   site-wide CSP on that path (Next applies the later rule). The page hosting it, `/overlay/custom/*`, sends
   `Referrer-Policy: no-referrer` and frames it with `sandbox="allow-scripts"` + `referrerpolicy="no-referrer"`, so the
   code never sees the overlay key in `document.referrer`.
+- 외부 프로그램 연동 (2026-10-24): `/overlay/bridge/*` also sends `Referrer-Policy: no-referrer`, and its requests to the
+  creator's programs go with `referrerPolicy: "no-referrer"` and no credentials — the page's address holds the overlay key.
 - A full Content-Security-Policy (scripts, images, embeds) waits for the real embeds and payment provider (TBD).
   The admin console has its own strict headers (`apps/admin/next.config.ts`).

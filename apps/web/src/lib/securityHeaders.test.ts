@@ -43,6 +43,10 @@ describe("site response headers", () => {
     const custom = [...rules].reverse().find((r) => matches(r.source, "/overlay/custom/abcd") && r.headers.some((h) => h.key === "Referrer-Policy"))!;
     expect(custom.headers.find((h) => h.key === "Referrer-Policy")!.value).toBe("no-referrer");
     expect(rules.indexOf(custom)).toBeGreaterThan(rules.findIndex((r) => r.source === "/:path*"));
+    // And the 외부 프로그램 연동 page, which sends requests to the creator's programs.
+    const bridge = [...rules].reverse().find((r) => matches(r.source, "/overlay/bridge/abcd") && r.headers.some((h) => h.key === "Referrer-Policy"))!;
+    expect(bridge.headers.find((h) => h.key === "Referrer-Policy")!.value).toBe("no-referrer");
+    expect(rules.indexOf(bridge)).toBeGreaterThan(rules.findIndex((r) => r.source === "/:path*"));
   });
 
   it("allows the microphone on the 음악 편집기 page only, for this site only", async () => {
