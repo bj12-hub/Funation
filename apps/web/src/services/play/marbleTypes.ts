@@ -1,5 +1,5 @@
 import type { ResolvedTheme } from "@/services/creator/overlayThemeTypes";
-import type { Platform } from "@/types/platform";
+import { PLAY_KEYWORD_MAX, PLAY_NAME_MAX, type PlaySource } from "./playTypes";
 
 /**
  * 마블 룰렛 — code-first, StreamDonate 마블 룰렛 참고 (P2 시청자 참여 게임, free: no FN, no points). Viewers join a round
@@ -10,10 +10,10 @@ import type { Platform } from "@/types/platform";
 
 export const MARBLE_TITLE_DEFAULT = "마블 룰렛";
 export const MARBLE_TITLE_MAX = 20;
-export const MARBLE_KEYWORD_MAX = 10;
+export const MARBLE_KEYWORD_MAX = PLAY_KEYWORD_MAX;
 export const MARBLE_PLAYERS_MIN = 4;
 export const MARBLE_PLAYERS_MAX = 50;
-export const MARBLE_NAME_MAX = 20;
+export const MARBLE_NAME_MAX = PLAY_NAME_MAX;
 export const MARBLE_RACE_MIN_SEC = 10;
 export const MARBLE_RACE_MAX_SEC = 60;
 /** Seconds between 레이스 시작 and the marbles leaving (OBS counts down). */
@@ -60,8 +60,7 @@ export const DEFAULT_MARBLE: MarbleSettings = { title: "", mode: "CHAT", keyword
 /** The 당첨 rule as read: "1등" · "꼴등" · "3등". */
 export const marbleRuleLabel = (rule: MarbleWinRule, rank: number) => (rule === "RANK" ? `${rank}등` : MARBLE_WIN_RULES.find((r) => r.key === rule)!.label);
 
-/** Where an entrant came from: a chat platform, the 초대 링크, or the operator. */
-export type MarbleSource = Platform | "INVITE" | "MANUAL";
+export type MarbleSource = PlaySource;
 export type MarbleEntrant = { id: string; name: string; source: MarbleSource };
 /**
  * A race: it starts at `startAt` and the last marble is in at `finishAt`. `order`: entrant ids, first in first;
