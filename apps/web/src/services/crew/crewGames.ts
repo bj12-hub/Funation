@@ -19,6 +19,7 @@ import {
   territoryLive,
   territorySettingsOf
 } from "./crewTerritoryCore";
+import { parseSudopolySettings, resetSudopolyBoard, runSudopoly, sudopolyLive, sudopolySettingsOf } from "./crewSudopolyCore";
 import { clearSigDosanBoard, parseSigDosanSettings, sigDosanLive, sigDosanSettingsOf, startSigDosanBoard, stepSigDosanLane } from "./crewSigDosanCore";
 import {
   clearSigHunterBoard,
@@ -42,7 +43,7 @@ import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 /**
  * 점수 게임 Server Actions — code-first (no Figma frame; StreamDonate 참고, P2), route `/creator/crew/games`: 스핀머신 · 주사위
- * 게임 · 투휠 게임 · 랜덤시그 · 기여도 릴레이 · 줍줍 · 시그니처 메들리 · 시그 빙고 · 복불복 뽑기판 · 시그니처 헌터 · 시그니처 두산 · 알파벳 모으기 · 고스톱 · 땅따먹기. Settings are kept per channel; runs belong to the live broadcast. Results are display points only.
+ * 게임 · 투휠 게임 · 랜덤시그 · 기여도 릴레이 · 줍줍 · 시그니처 메들리 · 시그 빙고 · 복불복 뽑기판 · 시그니처 헌터 · 시그니처 두산 · 알파벳 모으기 · 고스톱 · 땅따먹기 · 스도폴리. Settings are kept per channel; runs belong to the live broadcast. Results are display points only.
  */
 
 const assertMock = () => {
@@ -59,7 +60,7 @@ const SOURCES_SHOWN = 10;
  * How each game plays one run by hand for a member (the caller checks the game can play). 랜덤시그 · 기여도 릴레이 · 줍줍 play only
  * from donations; 메들리 rolls by hand without a member (playMedley).
  */
-const PLAY: Record<Exclude<GameKey, "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW" | "SIG_HUNTER" | "SIG_DOSAN" | "TERRITORY">, (b: MockBroadcast, start: RunStart) => StoredRun> = { SPIN: runSpin, DICE: runDice, TWO_WHEEL: runTwoWheel, ALPHABET: runAlphabet, GOSTOP: runGoStop };
+const PLAY: Record<Exclude<GameKey, "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW" | "SIG_HUNTER" | "SIG_DOSAN" | "TERRITORY">, (b: MockBroadcast, start: RunStart) => StoredRun> = { SPIN: runSpin, DICE: runDice, TWO_WHEEL: runTwoWheel, ALPHABET: runAlphabet, GOSTOP: runGoStop, SUDOPOLY: runSudopoly };
 
 function sourcesOf(b: MockBroadcast): Record<GameKey, Record<string, GameSource[]>> {
   const active = (mockCrew.crews[STUDIO_CHANNEL] ?? []).filter((m) => m.active);
@@ -76,7 +77,7 @@ function sourcesOf(b: MockBroadcast): Record<GameKey, Record<string, GameSource[
       ])
     );
   };
-  return { SPIN: forGame("SPIN"), DICE: forGame("DICE"), TWO_WHEEL: forGame("TWO_WHEEL"), RANDOM_SIG: {}, RELAY: {}, JUPJUP: {}, MEDLEY: {}, SIG_BINGO: {}, GRID_DRAW: {}, SIG_HUNTER: {}, SIG_DOSAN: {}, ALPHABET: forGame("ALPHABET"), GOSTOP: forGame("GOSTOP"), TERRITORY: {} };
+  return { SPIN: forGame("SPIN"), DICE: forGame("DICE"), TWO_WHEEL: forGame("TWO_WHEEL"), RANDOM_SIG: {}, RELAY: {}, JUPJUP: {}, MEDLEY: {}, SIG_BINGO: {}, GRID_DRAW: {}, SIG_HUNTER: {}, SIG_DOSAN: {}, ALPHABET: forGame("ALPHABET"), GOSTOP: forGame("GOSTOP"), TERRITORY: {}, SUDOPOLY: {} };
 }
 
 export async function getGamesView(): Promise<GamesView | null> {
@@ -104,6 +105,7 @@ export async function getGamesView(): Promise<GamesView | null> {
           alphabet: alphabetLive(live),
           gostop: goStopLive(live),
           territory: territoryLive(live),
+          sudopoly: sudopolyLive(live),
           sources: sourcesOf(live),
           serverNow: new Date().toISOString()
         }
@@ -122,6 +124,7 @@ export async function getGamesView(): Promise<GamesView | null> {
     alphabetSettings: structuredClone(alphabetSettingsOf(STUDIO_CHANNEL)),
     gostopSettings: structuredClone(goStopSettingsOf(STUDIO_CHANNEL)),
     territorySettings: structuredClone(territorySettingsOf(STUDIO_CHANNEL)),
+    sudopolySettings: structuredClone(sudopolySettingsOf(STUDIO_CHANNEL)),
     signatures: sigCountSignatures(),
     overlayPath: `/overlay/crew/${mockCreator.integrationKey}`
   };
@@ -543,6 +546,28 @@ export async function clearTerritory(input: unknown): Promise<BroadcastResult> {
   return { status: "SAVED" };
 }
 
+/** Replaces the 스도폴리 settings (이름 · 말 · 칸 · 출발 보너스 · 무인도 · 황금열쇠 · 금액 구간 · 목표 바퀴 · 자동 · 제외 시그 · 대기 화면). */
+export async function saveSudopoly(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const saved = sudopolySettingsOf(STUDIO_CHANNEL);
+  const known = { spaces: saved.spaces.map((x) => x.id), keys: saved.keys.map((x) => x.id), tiers: saved.tiers.map((x) => x.id) };
+  const parsed = parseSudopolySettings(input, MOCK_FORBIDDEN_WORDS, signatureIds(), known);
+  if ("message" in parsed) return { status: "INVALID", message: parsed.message };
+  (mockCrew.sudopolys ??= {})[STUDIO_CHANNEL] = parsed;
+  return { status: "SAVED" };
+}
+
+/** 판 다시 시작: every piece back on 출발. */
+export async function resetSudopoly(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const live = liveBroadcastOf(STUDIO_CHANNEL);
+  if (!live || live.id !== rec(input).broadcastId) return notLive;
+  resetSudopolyBoard(live);
+  return { status: "SAVED" };
+}
+
 /**
  * 수동: plays `game` once for an active member, optionally on one of their donations in the broadcast (기준 후원: a 배수
  * result multiplies its points; a donation plays each game at most once). `requestId` is the run id, so a retry returns
@@ -570,6 +595,7 @@ export async function playGame(input: unknown): Promise<GamePlayResult> {
   if (previous) return { status: "PLAYED", run: gameRunView(live, previous) };
   if (game === "SPIN" && !spinSettingsOf(STUDIO_CHANNEL).items.length) return { status: "INVALID", message: "먼저 스핀머신 칸을 만들어 주세요." };
   if (game === "ALPHABET" && !alphabetSettingsOf(STUDIO_CHANNEL).word) return { status: "INVALID", message: "먼저 알파벳 모으기 단어를 정해 주세요." };
+  if (game === "SUDOPOLY" && !sudopolySettingsOf(STUDIO_CHANNEL).spaces.length) return { status: "INVALID", message: "먼저 스도폴리 판을 만들어 주세요." };
   if (!isActiveMember(STUDIO_CHANNEL, v.memberId)) return { status: "INVALID", message: "멤버를 골라 주세요." };
   const memberId = v.memberId as string;
   let source: GameSource | null = null;

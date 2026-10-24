@@ -36,6 +36,7 @@ import { sigBingoLive } from "./crewSigBingoCore";
 import { gridDrawLive } from "./crewGridDrawCore";
 import { alphabetLive } from "./crewAlphabetCore";
 import { goStopLive } from "./crewGoStopCore";
+import { sudopolyLive } from "./crewSudopolyCore";
 import { territoryLive } from "./crewTerritoryCore";
 import { sigDosanLive } from "./crewSigDosanCore";
 import { sigHunterLive } from "./crewSigHunterCore";
@@ -111,6 +112,7 @@ function liveView(b: MockBroadcast): BroadcastLive {
     alphabet: alphabetLive(b),
     gostop: goStopLive(b),
     territory: territoryLive(b),
+    sudopoly: sudopolyLive(b),
     serverNow: new Date().toISOString()
   };
 }

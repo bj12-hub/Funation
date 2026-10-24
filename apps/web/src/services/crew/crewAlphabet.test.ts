@@ -183,6 +183,7 @@ describe("알파벳 모으기", () => {
     await m.saveAlphabet(settings({ excluded: [m.a.id] }));
     await m.sign("cm-s2");
     expect(m.runs(id)).toHaveLength(before);
+    rolls.push(150); // 꽝 — an A here would complete 하늘's word and add the 완성 run
     await m.sign("cm-s2", m.b);
     expect(m.runs(id)).toHaveLength(before + 1);
   });

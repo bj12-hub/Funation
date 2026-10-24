@@ -857,3 +857,87 @@
   box-shadow: 0 0 0 2px #ffffff;
   animation: cellPop 0.6s cubic-bezier(0.2, 0.8, 0.3, 1.4) both;
 }
+
+/* ── 스도폴리: a square ring of 칸 (kinds in their colors) with the pieces, the dice in the middle ── */
+.sdBoard {
+  display: grid;
+  grid-template-columns: repeat(var(--sd-cells, 6), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--sd-cells, 6), minmax(0, 1fr));
+  gap: 2px;
+  aspect-ratio: 1;
+}
+
+.sdCell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--ov-chip-bg);
+  color: var(--ov-chip-ink);
+  font-size: 10px;
+}
+
+.sdCell[data-kind="START"] {
+  background: color-mix(in srgb, #22c55e 45%, var(--ov-chip-bg));
+}
+
+.sdCell[data-kind="KEY"] {
+  background: color-mix(in srgb, #eab308 45%, var(--ov-chip-bg));
+}
+
+.sdCell[data-kind="ISLAND"] {
+  background: color-mix(in srgb, #3b82f6 45%, var(--ov-chip-bg));
+}
+
+.sdCell[data-sign="+"] .sdLabel {
+  color: #4ade80;
+}
+
+.sdCell[data-sign="-"] .sdLabel {
+  color: #f87171;
+}
+
+.sdLabel {
+  padding: 1px;
+  line-height: 1.1;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.sdPieces {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1px;
+}
+
+.sdPieces i {
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--piece-color, var(--ov-accent));
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 60%);
+  color: #ffffff;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 800;
+  animation: cellPop 0.4s cubic-bezier(0.2, 0.8, 0.3, 1.4) both;
+}
+
+.sdCenter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.sdCenter > span {
+  width: min(76px, 40%);
+  height: auto;
+  aspect-ratio: 1;
+}
