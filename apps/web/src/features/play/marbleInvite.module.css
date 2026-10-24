@@ -1,0 +1,71 @@
+/* 마블 룰렛 초대 링크 page (code-first). */
+
+.page {
+  display: flex;
+  justify-content: center;
+  padding: 48px 16px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: min(100%, 420px);
+  box-sizing: border-box;
+  padding: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-16, 16px);
+  background: var(--color-surface);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-20, 20px);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.note {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-14);
+}
+
+.input {
+  height: 44px;
+  box-sizing: border-box;
+  padding: 0 14px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-16, 16px);
+}
+
+.primary {
+  height: 44px;
+  border-radius: var(--radius-8);
+  background: var(--color-primary);
+  color: #ffffff;
+  font-weight: var(--font-weight-bold);
+}
+
+.primary:disabled {
+  opacity: 0.5;
+}
+
+.error {
+  margin: 0;
+  color: var(--color-error-text);
+  font-size: var(--font-size-13);
+}
+
+.done {
+  margin: 0;
+  font-size: var(--font-size-16, 16px);
+  line-height: 1.5;
+}
