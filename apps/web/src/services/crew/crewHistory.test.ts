@@ -10,12 +10,13 @@ async function load() {
   const feed = await import("./crewFeed");
   const core = await import("./crewCore");
   const history = await import("./crewHistory");
+  const cumulative = await import("./crewCumulative");
   const battle = await import("./crewBattle");
   const crew = await import("./crew");
   const { mockCrew } = await import("./mockCrewStore");
   // The seed's 멤버 지정 후원 are stamped around now; these tests count only their own.
   mockCrew.attributions = [];
-  return { ...bc, ...feed, ...core, ...history, ...battle, ...crew, mockCrew };
+  return { ...bc, ...feed, ...core, ...history, ...cumulative, ...battle, ...crew, mockCrew };
 }
 
 const at = (s: string) => vi.setSystemTime(new Date(`2026-10-25T12:${s}Z`));
@@ -147,5 +148,121 @@ describe("기여도 내역", () => {
     expect((await m.getContributionHistory({ broadcastId: "bc-seed-c4" })).status).toBe("INVALID"); // another channel's broadcast
     signIn(["SUPPORTER"]);
     expect(await m.getContributionHistory({ broadcastId: id })).toEqual({ status: "UNAUTHORIZED" });
+  });
+});
+
+/** Two 회차 of 시즌1 (the second live) and a broadcast without a project, scored with 보정 only. */
+async function seasons() {
+  vi.useFakeTimers({ now: new Date("2026-10-25T10:00:00Z"), toFake: ["Date"] });
+  const m = await load();
+  let n = 0;
+  const run = async (title: string, project: string, points: Record<string, number>, end = true) => {
+    expect(await m.startBroadcast({ requestId: crypto.randomUUID(), title, project, teamMode: false })).toEqual({ status: "SAVED" });
+    const id = (await m.getBroadcastView())!.live!.id;
+    for (const [memberId, p] of Object.entries(points)) await m.adjustScore({ broadcastId: id, memberId, points: p, adjustmentId: key(++n) });
+    vi.setSystemTime(Date.now() + 3_600_000);
+    if (end) await m.endBroadcast(id);
+    return id;
+  };
+  expect(await m.addCrewMember({ requestId: crypto.randomUUID(), name: "별", role: "MEMBER" })).toEqual({ status: "SAVED" });
+  const star = (await m.getCrewStudio())!.members.find((x) => x.name === "별")!.id;
+  await run("개인 방송", "", { "cm-s3": 700 });
+  const first = await run("시즌1/첫 방송", "시즌1", { "cm-s1": 3_000, "cm-s2": 1_000, [star]: 2_000 });
+  await m.removeCrewMember(star);
+  const second = await run("둘째 날", "시즌1", { "cm-s2": 5_000 }, false);
+  return { ...m, first, second, star };
+}
+
+describe("기여도 내보내기", () => {
+  beforeEach(() => resetMockStores());
+  afterEach(() => vi.useRealTimers());
+
+  it("exports a project's 회차 side by side and every line, and one broadcast's lines", async () => {
+    const m = await seasons();
+    const rounds = await m.exportContributions({ project: "시즌1", format: "ROUNDS" });
+    expect(rounds).toMatchObject({ status: "OK", filename: "기여도-시즌1-회차별.csv", rows: 4, truncated: false });
+    if (rounds.status !== "OK") throw new Error();
+    // Final scores per 회차 (the live one now), best total first; a member removed since keeps their 회차 name.
+    expect(rounds.csv.replace("﻿", "").split("\r\n")).toEqual(["멤버,1회차,2회차 (진행 중),합계", "하늘,1000,5000,6000", "길동,3000,0,3000", "별,2000,0,2000", "바다,0,0,0", "합계,6000,5000,11000"]);
+
+    const lines = await m.exportContributions({ project: "시즌1", format: "LINES" });
+    if (lines.status !== "OK") throw new Error();
+    const rows = lines.csv.replace("﻿", "").split("\r\n");
+    expect(rows[0]).toBe("회차,방송,시각,멤버,종류,내용,상세,점수");
+    // 회차 oldest first (the 시각 column left out here). 별 was removed from the crew: like the scoreboard, the
+    // recomputed lines leave them out.
+    expect(rows.slice(1).map((r) => r.split(",").filter((_, i) => i !== 2).join(","))).toEqual([
+      "1회차,시즌1/첫 방송,길동,보정,보정,사유 없음,3000",
+      "1회차,시즌1/첫 방송,하늘,보정,보정,사유 없음,1000",
+      "2회차 (진행 중),둘째 날,하늘,보정,보정,사유 없음,5000"
+    ]);
+
+    const none = await m.exportContributions({ project: null, format: "ROUNDS" });
+    expect(none).toMatchObject({ status: "OK", filename: "기여도-프로젝트 없음-회차별.csv" });
+    expect(none.status === "OK" && none.csv).toContain("개인 방송");
+
+    const one = await m.exportContributions({ broadcastId: m.first, format: "LINES" });
+    expect(one).toMatchObject({ status: "OK", filename: "기여도내역-시즌1_첫 방송.csv", rows: 2 });
+
+    for (const [input, message] of [
+      [{ broadcastId: m.first, format: "ROUNDS" }, "프로젝트로"],
+      [{ project: "시즌1", format: "XLSX" }, "형식"],
+      [{ project: 3, format: "ROUNDS" }, "프로젝트를"],
+      [{ project: "시즌9", format: "ROUNDS" }, "내보낼 방송이 없어요"],
+      [{ broadcastId: "bc-seed-c4", format: "LINES" }, "방송을 찾을 수 없어요"]
+    ] as const) {
+      const res = await m.exportContributions(input);
+      expect(res.status === "INVALID" && res.message, message).toContain(message);
+    }
+    signIn(["SUPPORTER"]);
+    expect(await m.exportContributions({ project: "시즌1", format: "ROUNDS" })).toEqual({ status: "UNAUTHORIZED" });
+  });
+});
+
+describe("누적 기여도", () => {
+  beforeEach(() => resetMockStores());
+  afterEach(() => vi.useRealTimers());
+
+  it("adds the project's ended 회차 to the live scoreboard, and is shown on OBS after OBS에 표시", async () => {
+    const m = await seasons();
+    const { cumulative } = (await m.getBroadcastView())!.live!;
+    expect(cumulative).toMatchObject({ project: "시즌1", rounds: 2, total: 11_000, visible: false });
+    expect(cumulative.rows.map((r) => `${r.rank} ${r.name} ${r.past}+${r.current}=${r.total} ${r.color}`)).toEqual([
+      "1 하늘 1000+5000=6000 #ec4899",
+      "2 길동 3000+0=3000 #8b5cf6",
+      "3 별 2000+0=2000 #9ca3af",
+      "4 바다 0+0=0 #3b82f6"
+    ]);
+
+    expect((await m.setCumulativeVisible({ broadcastId: m.second, on: "yes" })).status).toBe("INVALID");
+    expect((await m.setCumulativeVisible({ broadcastId: m.first, on: true })).status).toBe("INVALID"); // ended
+    expect(await m.setCumulativeVisible({ broadcastId: m.second, on: true })).toEqual({ status: "SAVED" });
+    const overlay = await m.getOverlayScoreboard((await import("@/services/creator/mockCreatorStore")).mockCreator.integrationKey);
+    expect(overlay !== "IDLE" && overlay !== "FORBIDDEN" && overlay.cumulative.visible).toBe(true);
+
+    // Without a project only this broadcast counts.
+    await m.endBroadcast(m.second);
+    await m.startBroadcast({ requestId: crypto.randomUUID(), title: "번외", teamMode: false });
+    expect((await m.getBroadcastView())!.live!.cumulative).toMatchObject({ project: null, rounds: 1, total: 0 });
+  });
+
+  it("validates and keeps the settings", async () => {
+    const m = await load();
+    const ok = { title: " 시즌 누적 ", rows: 5, showBreakdown: false, showRounds: true, placement: "RIGHT" };
+    expect(await m.saveCumulative(ok)).toEqual({ status: "SAVED" });
+    expect((await m.getBroadcastView())!.cumulativeSettings).toEqual({ ...ok, title: "시즌 누적" });
+    for (const [patch, message] of [
+      [{ title: "가".repeat(21) }, "제목"],
+      [{ title: "admin 누적" }, "사용할 수 없는"],
+      [{ rows: 4 }, "멤버 수"],
+      [{ placement: "TOP" }, "배치"],
+      [{ showRounds: "yes" }, "표시 설정"]
+    ] as const) {
+      const res = await m.saveCumulative({ ...ok, ...patch });
+      expect(res.status === "INVALID" && res.message, message).toContain(message);
+    }
+    signIn(["SUPPORTER"]);
+    expect(await m.saveCumulative(ok)).toEqual({ status: "UNAUTHORIZED" });
+    expect(await m.setCumulativeVisible({ broadcastId: "x", on: true })).toEqual({ status: "UNAUTHORIZED" });
   });
 });
