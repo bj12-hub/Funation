@@ -213,3 +213,103 @@
   flex: 1 1 0;
   min-width: 0;
 }
+
+/* Five filters: they wrap on a phone instead of squeezing their labels. */
+.filters {
+  flex-wrap: wrap;
+}
+
+.filters button {
+  white-space: nowrap;
+}
+
+/* 끌어다 놓기 배정: member targets that stay in view while the list scrolls. */
+.dropBar {
+  position: sticky;
+  top: var(--header-height);
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 12px;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-12);
+  background: var(--color-surface);
+}
+
+.dropBar[data-dragging] {
+  border-color: var(--color-primary);
+}
+
+.dropTargets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dropTargets li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
+}
+
+.dropTargets li[data-unassign] {
+  border-style: dashed;
+  color: var(--color-text-secondary);
+}
+
+.dropTargets li[data-over] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.dragSource[data-draggable] {
+  cursor: grab;
+}
+
+.handle {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-13);
+}
+
+/* Touch screens have no drag and drop here: the row's select assigns. */
+@media (hover: none) and (pointer: coarse) {
+  .dropBar,
+  .handle {
+    display: none;
+  }
+}
+
+/* 중복 도네이션 확인 */
+.entry[data-duplicate] {
+  border-color: var(--color-warning);
+}
+
+/* Its own line under the row. */
+.duplicate {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--color-border-strong);
+  color: var(--color-warning-text);
+  font-size: var(--font-size-13);
+}
+
+.duplicateActions {
+  display: flex;
+  gap: 6px;
+}

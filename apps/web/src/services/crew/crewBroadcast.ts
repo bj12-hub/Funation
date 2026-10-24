@@ -26,7 +26,7 @@ import {
   type BroadcastView,
   type TeamKey
 } from "./crewTypes";
-import { battleGroups, battleRulesOf, fanNotesView, gradeMultipliersOf, excelOf, liveBroadcastOf, scoreboardRows, scoredFeed, stealRecordView, stealRulesOf, timesMultiplier, windowGames, windowReceived, windowScores, windowSteals } from "./crewCore";
+import { battleGroups, battleRulesOf, duplicateSuspects, fanNotesView, feedOf, gradeMultipliersOf, excelOf, liveBroadcastOf, scoreboardRows, scoredFeed, stealRecordView, stealRulesOf, timesMultiplier, windowGames, windowReceived, windowScores, windowSteals } from "./crewCore";
 import { prizeBoardLive, prizeSettingsOf, teamPrizeLive, teamPrizeSettingsOf } from "./crewPrizeCore";
 import { sigCountLive, sigCountSettingsOf, sigCountSignatures } from "./crewSigCountCore";
 import { diceLive } from "./crewDiceCore";
@@ -162,10 +162,11 @@ function windowRows(b: MockBroadcast, from: string, to: string | null) {
 function feedView(b: MockBroadcast): FeedView {
   const scored = scoredFeed(b);
   const pot = scored.filter((f) => f.status === "POT");
+  const suspects = duplicateSuspects(feedOf(b));
   return {
     assignMode: b.assignMode ?? "AUTO",
     keywords: structuredClone(mockCrew.keywords ?? {}),
-    entries: structuredClone(scored.reverse().slice(0, 200)),
+    entries: structuredClone(scored.reverse().slice(0, 200)).map((f) => ({ ...f, duplicateOf: suspects.get(f.id) ?? null })),
     oneshot: b.oneshot ? { startedAt: b.oneshot.startedAt, potPoints: pot.reduce((s, f) => s + f.points, 0), count: pot.length } : null,
     excel: structuredClone(excelOf(b.channelId)),
     summary: feedSummary(b)

@@ -100,7 +100,18 @@ export type FeedEntry = {
   oneshot: boolean;
   /** 기여도 수기 입력: fixed points or a multiplier of the converted amount. null = 배수 규칙. */
   contribution: Contribution | null;
+  /** The operator's 중복 도네이션 확인 decision (missing = none yet). */
+  duplicate?: DuplicateCheck;
 };
+
+/**
+ * 중복 도네이션 확인 (2026-10-25, StreamDonate 참고 — 기본값): an entry is 중복 의심 when an earlier entry that is not
+ * cancelled has the same donor (spaces and case ignored), amount and unit and came at most this many seconds before. The
+ * operator decides — nothing is cancelled on its own, since the same donor may well give twice.
+ */
+export const DUPLICATE_WINDOW_SEC = 60;
+/** DUPLICATE: cancelled as 중복 (배정 restores it, as KEPT). KEPT: 중복 아님 — the mark goes away. */
+export type DuplicateCheck = "DUPLICATE" | "KEPT";
 
 /** A 후원 리스트 entry with its server-computed score (자동엑셀). */
 export type FeedEntryView = FeedEntry & {
@@ -110,11 +121,14 @@ export type FeedEntryView = FeedEntry & {
   points: number;
 };
 
+/** A 후원 리스트 row: `duplicateOf` = the earlier entry it looks like a 중복 of (null when not suspected or decided). */
+export type FeedListEntry = FeedEntryView & { duplicateOf: { id: string; at: string } | null };
+
 export type FeedView = {
   assignMode: AssignMode;
   keywords: Record<string, string[]>;
   /** Newest first. */
-  entries: FeedEntryView[];
+  entries: FeedListEntry[];
   oneshot: { startedAt: string; potPoints: number; count: number } | null;
   excel: ExcelSettings;
   /** 플랫폼 · BJ별 정리: points per source (Ssumnation + each platform) for every member, plus 미지정. */

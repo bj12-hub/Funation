@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { key, mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
@@ -104,5 +104,67 @@ describe("후원 리스트", () => {
     expect((await setMemberKeywords({ memberId: "cm-s3", keywords: ["x".repeat(13)] })).status).toBe("INVALID");
     signIn(["SUPPORTER"]);
     expect(await setMemberKeywords({ memberId: "cm-s3", keywords: [] })).toEqual({ status: "UNAUTHORIZED" });
+  });
+});
+
+describe("중복 도네이션 확인", () => {
+  beforeEach(() => resetMockStores());
+  afterEach(() => vi.useRealTimers());
+
+  it("marks a later entry with the same donor, amount and unit within 60 seconds, until the operator decides", async () => {
+    vi.useFakeTimers({ now: new Date("2026-10-25T12:00:00Z"), toFake: ["Date"] });
+    const m = await startLive();
+    const at = (s: string) => vi.setSystemTime(new Date(`2026-10-25T12:${s}Z`));
+    let n = 0;
+    const sim = (donor: string, amount: number, unit = "FN", message = "") => m.simulateDonation({ broadcastId: m.id, requestId: key(++n), donor, amount, unit, message });
+    const list = async () => (await m.getBroadcastView())!.feed!.entries.slice().reverse(); // oldest first
+    const marks = async () => (await list()).map((e) => (e.duplicateOf ? `${e.donor}→${e.duplicateOf.at.slice(14, 19)}` : "-"));
+
+    await sim("별빛", 5_000, "FN", "하늘"); // A 00:00 (하늘)
+    at("00:30");
+    await sim(" 별 빛 ", 5_000); // B: same donor (spaces ignored) → 의심 of A
+    at("00:40");
+    await sim("별빛", 3_000); // other amount
+    at("00:45");
+    await sim("별빛", 5_000, "SOOP_BALLOON"); // other unit
+    at("01:31");
+    await sim("별빛", 5_000); // E: 61 s after B
+    at("02:00");
+    await sim("별빛", 5_000); // F: 29 s after E → 의심 of E
+    expect(await marks()).toEqual(["-", "별 빛→00:00", "-", "-", "-", "별빛→01:31"]);
+
+    // 중복 아님: the mark goes away, and a next one is checked against it.
+    const [a, b, , , , f] = (await list()).map((e) => e.id);
+    expect(await m.resolveDuplicate({ broadcastId: m.id, entryId: f, verdict: "KEPT" })).toEqual({ status: "SAVED" });
+    at("02:20");
+    await sim("별빛", 5_000); // G → 의심 of F
+    expect((await marks()).slice(5)).toEqual(["-", "별빛→02:00"]);
+
+    // 중복 취소: B is cancelled (no points); 배정 restores it as 중복 아님.
+    await m.assignFeedEntry({ broadcastId: m.id, entryId: b, memberId: "cm-s3" });
+    expect(score((await m.getBroadcastView())!, "cm-s3")).toBe(5_000);
+    expect(await m.resolveDuplicate({ broadcastId: m.id, entryId: b, verdict: "DUPLICATE" })).toEqual({ status: "SAVED" });
+    expect((await list())[1]).toMatchObject({ status: "CANCELLED", memberId: null, duplicate: "DUPLICATE", duplicateOf: null });
+    expect(score((await m.getBroadcastView())!, "cm-s3")).toBe(0);
+    expect((await m.resolveDuplicate({ broadcastId: m.id, entryId: b, verdict: "KEPT" })).status).toBe("INVALID"); // cancelled
+    await m.assignFeedEntry({ broadcastId: m.id, entryId: b, memberId: "cm-s3" });
+    expect((await list())[1]).toMatchObject({ status: "ASSIGNED", duplicate: "KEPT", duplicateOf: null });
+
+    // A cancelled original no longer makes a 의심.
+    await m.cancelFeedEntry({ broadcastId: m.id, entryId: a });
+    at("02:30");
+    await sim("기타", 1_000);
+    await sim("기타", 1_000);
+    expect((await marks()).slice(-2)).toEqual(["-", "기타→02:30"]);
+
+    expect((await m.resolveDuplicate({ broadcastId: m.id, entryId: b, verdict: "MAYBE" })).status).toBe("INVALID");
+    expect((await m.resolveDuplicate({ broadcastId: m.id, entryId: "fd-none", verdict: "KEPT" })).status).toBe("INVALID");
+    await m.startOneshot({ broadcastId: m.id });
+    await sim("기타", 1_000);
+    const pot = (await list()).at(-1)!;
+    expect(pot).toMatchObject({ status: "POT", duplicateOf: { at: "2026-10-25T12:02:30.000Z" } });
+    expect((await m.resolveDuplicate({ broadcastId: m.id, entryId: pot.id, verdict: "DUPLICATE" })).status).toBe("INVALID"); // 한방 중
+    signIn(["SUPPORTER"]);
+    expect(await m.resolveDuplicate({ broadcastId: m.id, entryId: b, verdict: "KEPT" })).toEqual({ status: "UNAUTHORIZED" });
   });
 });

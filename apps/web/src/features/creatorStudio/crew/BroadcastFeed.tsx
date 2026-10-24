@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type DragEvent } from "react";
 import { formatKstTime, formatNumber } from "@/lib/format";
-import { assignFeedEntry, cancelFeedEntry, setAssignMode, setEntryContribution, setMemberKeywords, simulateDonation, startOneshot, stopOneshot } from "@/services/crew/crewFeed";
+import { assignFeedEntry, cancelFeedEntry, resolveDuplicate, setAssignMode, setEntryContribution, setMemberKeywords, simulateDonation, startOneshot, stopOneshot } from "@/services/crew/crewFeed";
 import {
   EXCEL_UNITS,
   KEYWORDS_PER_MEMBER,
@@ -12,6 +12,7 @@ import {
   type ExcelSettings,
   type ExcelUnit,
   type FeedEntryView,
+  type FeedListEntry,
   type FeedStatus,
   type FeedView
 } from "@/services/crew/crewTypes";
@@ -25,6 +26,7 @@ const STATUS: Record<FeedStatus, string> = { ASSIGNED: "반영", PENDING: "확�
 const FILTERS = [
   { key: "ALL", label: "전체" },
   { key: "TODO", label: "미지정·대기" },
+  { key: "DUPLICATE", label: "중복 의심" },
   { key: "ASSIGNED", label: "반영" },
   { key: "CANCELLED", label: "취소 건" }
 ] as const;
@@ -32,12 +34,15 @@ type Filter = (typeof FILTERS)[number]["key"];
 const time = (iso: string) => formatKstTime(iso, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 /** Entries carry a unit code; the label is what shows (5,000 원 · 100 별풍선). */
 const amountText = (amount: number, unit: ExcelUnit) => `${formatNumber(amount)} ${unitLabel(unit)}`;
+/** What a dragged 후원 row carries (its entry id). */
+const DRAG_TYPE = "application/x-ssumnation-feed-entry";
+type Run = (action: () => Promise<BroadcastResult>, ok?: string) => void;
 
 /**
  * 후원 리스트 — code-first (no Figma frame), inside `/creator/crew/broadcast` while live.
  * Keywords per member, 반영 방식 (자동 / 확인 후), 자동엑셀 (원화 환산 · 배수 · 수기 기여도), 시뮬 후원,
- * 한방, 플랫폼 · BJ별 정리 and the entry list where the operator assigns, confirms or cancels. All
- * scoring happens on the server.
+ * 한방, 플랫폼 · BJ별 정리 and the entry list where the operator assigns (select, or drag a row onto a member —
+ * StreamDonate 참고, 2026-10-25), confirms, cancels or settles a 중복 의심. All scoring happens on the server.
  */
 export function BroadcastFeed({
   broadcastId,
@@ -62,10 +67,30 @@ export function BroadcastFeed({
   const [target, setTarget] = useState("");
   const simId = useRef<string | null>(null);
 
+  const [dragging, setDragging] = useState<string | null>(null);
+
+  // 중복 의심: the marked entries and the earlier ones they look like.
+  const suspects = view.entries.filter((e) => e.duplicateOf);
+  const inPair = new Set(suspects.flatMap((e) => [e.id, e.duplicateOf!.id]));
   const entries = view.entries.filter((e) =>
-    filter === "ALL" ? true : filter === "TODO" ? e.status === "UNMATCHED" || e.status === "PENDING" : e.status === filter
+    filter === "ALL"
+      ? true
+      : filter === "TODO"
+        ? e.status === "UNMATCHED" || e.status === "PENDING"
+        : filter === "DUPLICATE"
+          ? inPair.has(e.id)
+          : e.status === filter
   );
   const todo = view.entries.filter((e) => e.status === "UNMATCHED" || e.status === "PENDING").length;
+
+  /** A row dropped on a member (or 미지정, null): the same as picking it in the row's select. */
+  const dropOn = (entryId: string, memberId: string | null) => {
+    setDragging(null);
+    const e = view.entries.find((x) => x.id === entryId);
+    if (!e || e.status === "POT") return;
+    if (memberId === null ? e.status === "UNMATCHED" : e.status === "ASSIGNED" && e.memberId === memberId) return;
+    run(() => assignFeedEntry({ broadcastId, entryId, memberId }), memberId ? `${e.donor} 후원을 ${nameOf.get(memberId)?.name ?? ""}에게 배정했어요.` : `${e.donor} 후원을 미지정으로 돌렸어요.`);
+  };
 
   const simulate = () => {
     simId.current ??= crypto.randomUUID();
@@ -85,6 +110,7 @@ export function BroadcastFeed({
       <div className={styles.cardHead}>
         <h2 id="bc-feed" className={styles.cardTitle}>
           후원 리스트 {todo > 0 && <span className={feed.badge}>처리 필요 {todo}</span>}
+          {suspects.length > 0 && <span className={feed.badge}>중복 의심 {suspects.length}</span>}
         </h2>
         <span className={styles.segment} role="group" aria-label="반영 방식">
           {(["AUTO", "CONFIRM"] as const).map((m) => (
@@ -191,7 +217,7 @@ export function BroadcastFeed({
         </div>
       </div>
 
-      <div className={styles.tabs} role="group" aria-label="후원 리스트 필터">
+      <div className={`${styles.tabs} ${feed.filters}`} role="group" aria-label="후원 리스트 필터">
         {FILTERS.map((f) => (
           <button key={f.key} type="button" className={styles.tab} aria-current={filter === f.key ? "page" : undefined} onClick={() => setFilter(f.key)}>
             {f.label}
@@ -199,16 +225,70 @@ export function BroadcastFeed({
         ))}
       </div>
 
+      {view.entries.length > 0 && <DropBar active={active} dragging={dragging !== null} pending={pending} onDrop={dropOn} />}
+
       {entries.length === 0 ? (
-        <p className={styles.empty}>{view.entries.length ? "조건에 맞는 후원이 없어요." : "방송 중 들어온 후원이 여기에 쌓여요. 시뮬 후원으로 연습해 보세요."}</p>
+        <p className={styles.empty}>
+          {!view.entries.length ? "방송 중 들어온 후원이 여기에 쌓여요. 시뮬 후원으로 연습해 보세요." : filter === "DUPLICATE" ? "중복 의심 후원이 없어요." : "조건에 맞는 후원이 없어요."}
+        </p>
       ) : (
         <ul className={styles.list}>
           {entries.map((e) => (
-            <EntryRow key={e.id} entry={e} excel={view.excel} active={active} nameOf={nameOf} pending={pending} broadcastId={broadcastId} run={run} />
+            <EntryRow
+              key={e.id}
+              entry={e}
+              excel={view.excel}
+              active={active}
+              nameOf={nameOf}
+              pending={pending}
+              broadcastId={broadcastId}
+              run={run}
+              onDrag={(on) => setDragging(on ? e.id : null)}
+            />
           ))}
         </ul>
       )}
     </section>
+  );
+}
+
+/**
+ * 끌어다 놓기 배정 (StreamDonate 참고): drop a 후원 row on a member, or on 미지정 to take it back. Pointer only — each row's
+ * select does the same with a keyboard or on a touch screen (where the bar is hidden).
+ */
+function DropBar({ active, dragging, pending, onDrop }: { active: CrewMember[]; dragging: boolean; pending: boolean; onDrop: (entryId: string, memberId: string | null) => void }) {
+  const [over, setOver] = useState<string | null>(null);
+  const target = (key: string, memberId: string | null) => ({
+    "data-over": over === key ? "" : undefined,
+    onDragOver: (ev: DragEvent) => {
+      if (pending || !ev.dataTransfer.types.includes(DRAG_TYPE)) return;
+      ev.preventDefault();
+      ev.dataTransfer.dropEffect = "move";
+      setOver(key);
+    },
+    onDragLeave: () => setOver((o) => (o === key ? null : o)),
+    onDrop: (ev: DragEvent) => {
+      ev.preventDefault();
+      setOver(null);
+      const id = ev.dataTransfer.getData(DRAG_TYPE);
+      if (id) onDrop(id, memberId);
+    }
+  });
+  return (
+    <div className={feed.dropBar} data-dragging={dragging ? "" : undefined}>
+      <span className={styles.muted}>후원을 끌어다 멤버에 놓으면 배정돼요.</span>
+      <ul className={feed.dropTargets} aria-hidden="true">
+        {active.map((m) => (
+          <li key={m.id} {...target(m.id, m.id)}>
+            <span className={styles.dot} style={{ background: m.color }} />
+            {m.name}
+          </li>
+        ))}
+        <li data-unassign="" {...target("", null)}>
+          미지정
+        </li>
+      </ul>
+    </div>
   );
 }
 
@@ -219,26 +299,49 @@ function EntryRow({
   nameOf,
   pending,
   broadcastId,
-  run
+  run,
+  onDrag
 }: {
-  entry: FeedEntryView;
+  entry: FeedListEntry;
   excel: ExcelSettings;
   active: CrewMember[];
   nameOf: Map<string, CrewMember>;
   pending: boolean;
   broadcastId: string;
-  run: (action: () => Promise<BroadcastResult>, ok?: string) => void;
+  run: Run;
+  onDrag: (dragging: boolean) => void;
 }) {
   const suggested = e.suggestedMemberId ? nameOf.get(e.suggestedMemberId) : null;
+  // The donor side of the row drags it (the inputs on the right stay selectable); a 한방 entry waits for its STOP.
+  const draggable = e.status !== "POT" && !pending;
   return (
-    <li className={styles.row} data-inactive={e.status === "CANCELLED" ? "" : undefined}>
-      <div className={styles.rowMain}>
+    <li className={`${styles.row} ${feed.entry}`} data-inactive={e.status === "CANCELLED" ? "" : undefined} data-duplicate={e.duplicateOf ? "" : undefined}>
+      <div
+        className={`${styles.rowMain} ${feed.dragSource}`}
+        draggable={draggable}
+        data-draggable={draggable ? "" : undefined}
+        title={draggable ? "끌어서 멤버에 놓으면 배정돼요" : undefined}
+        onDragStart={(ev) => {
+          ev.dataTransfer.setData(DRAG_TYPE, e.id);
+          ev.dataTransfer.effectAllowed = "move";
+          const row = ev.currentTarget.closest("li");
+          if (row) ev.dataTransfer.setDragImage(row, 24, 20);
+          onDrag(true);
+        }}
+        onDragEnd={() => onDrag(false)}
+      >
         <span className={styles.rowTitle}>
+          {draggable && (
+            <span className={feed.handle} aria-hidden="true">
+              ⠿
+            </span>
+          )}
           {e.donor} · {amountText(e.amount, e.unit)}
           {e.platform && <span className={styles.chipOff}>{PLATFORM_LABEL[e.platform]}</span>}
           {e.source === "SIM" && <span className={styles.chipOff}>시뮬</span>}
           {e.source === "BANK" && <span className={styles.chipOff}>계좌</span>}
           {e.oneshot && <span className={styles.chip}>한방</span>}
+          {e.status === "CANCELLED" && e.duplicate === "DUPLICATE" && <span className={styles.chipOff}>중복 취소</span>}
         </span>
         <span className={styles.muted}>
           {time(e.at)}
@@ -277,6 +380,26 @@ function EntryRow({
             </button>
           )}
         </span>
+      )}
+      {e.duplicateOf && (
+        <div className={feed.duplicate}>
+          <span>중복 의심 · {time(e.duplicateOf.at)}에 같은 후원자 · 같은 금액 후원이 있어요.</span>
+          <span className={feed.duplicateActions}>
+            {e.status !== "POT" && (
+              <button
+                type="button"
+                className={styles.ghost}
+                disabled={pending}
+                onClick={() => run(() => resolveDuplicate({ broadcastId, entryId: e.id, verdict: "DUPLICATE" }), "중복으로 보고 취소했어요. 다시 배정하면 되살아나요.")}
+              >
+                중복 취소
+              </button>
+            )}
+            <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => resolveDuplicate({ broadcastId, entryId: e.id, verdict: "KEPT" }), "중복 아님으로 표시했어요.")}>
+              중복 아님
+            </button>
+          </span>
+        </div>
       )}
     </li>
   );
