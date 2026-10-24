@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { OVERLAYS, PREVIEW_TESTABLE } from "@/features/creatorStudio/widgets/overlayCatalog";
+import { OVERLAYS, PREVIEW_TESTABLE } from "@/services/creator/overlayCatalog";
 import { OverlayPreview } from "@/features/creatorStudio/widgets/OverlayPreview";
 import { getOverlaySwitches } from "@/services/creator/alertRemote";
 import { getOverlayKey } from "@/services/creator/broadcastTools";

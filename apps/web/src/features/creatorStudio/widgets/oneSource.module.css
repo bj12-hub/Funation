@@ -1,0 +1,18 @@
+/* 원소스 오버레이 (OBS): the canvas, and each overlay's frame placed and scaled on it. */
+
+.frame {
+  overflow: hidden;
+}
+
+.stage {
+  position: relative;
+  overflow: hidden;
+  transform-origin: top left;
+}
+
+.source {
+  position: absolute;
+  border: 0;
+  background: transparent;
+  transform-origin: top left;
+}

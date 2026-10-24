@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { OVERLAYS } from "./overlayCatalog";
+import { OVERLAYS } from "@/services/creator/overlayCatalog";
 import { OBS_ALL_SCENE, obsFileName, obsSceneCollection, overlaySize } from "./obsScenes";
 
 /** OBS 씬 일괄 다운로드 (code-first, 2026-10-06): an OBS scene collection with every overlay. */
