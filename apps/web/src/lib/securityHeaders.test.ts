@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import nextConfig, { NOT_OVERLAY_SOURCE, PRIVATE_SOURCES, SANDBOX_CSP } from "../../next.config";
+import nextConfig, { MUSIC_EDITOR_PERMISSIONS, MUSIC_EDITOR_SOURCE, NOT_OVERLAY_SOURCE, PRIVATE_SOURCES, SANDBOX_CSP } from "../../next.config";
 
 /** Anchors a `headers()` source the way Next's path-to-regexp reads these: `/:path*` is zero or more segments. */
 const matches = (source: string, path: string) => new RegExp(`^${source.replace(/\/:path\*/g, "(?:/.*)?")}$`).test(path);
@@ -43,6 +43,18 @@ describe("site response headers", () => {
     const custom = [...rules].reverse().find((r) => matches(r.source, "/overlay/custom/abcd") && r.headers.some((h) => h.key === "Referrer-Policy"))!;
     expect(custom.headers.find((h) => h.key === "Referrer-Policy")!.value).toBe("no-referrer");
     expect(rules.indexOf(custom)).toBeGreaterThan(rules.findIndex((r) => r.source === "/:path*"));
+  });
+
+  it("allows the microphone on the 음악 편집기 page only, for this site only", async () => {
+    const rules = await nextConfig.headers!();
+    const all = rules.find((r) => r.source === "/:path*")!;
+    expect(all.headers.find((h) => h.key === "Permissions-Policy")!.value).toContain("microphone=()");
+    const music = rules.find((r) => r.source === MUSIC_EDITOR_SOURCE)!;
+    expect(music.headers).toEqual([{ key: "Permissions-Policy", value: MUSIC_EDITOR_PERMISSIONS }]);
+    expect(MUSIC_EDITOR_PERMISSIONS).toBe("camera=(), microphone=(self), geolocation=()");
+    // The later rule wins: it comes after the site-wide one. Only that exact page matches.
+    expect(rules.indexOf(music)).toBeGreaterThan(rules.indexOf(all));
+    for (const path of ["/creator/widgets/music/x", "/creator/widgets/musicx", "/creator/widgets"]) expect(matches(MUSIC_EDITOR_SOURCE, path), path).toBe(false);
   });
 
   it("keeps the studio, overlays, account, wallet and API out of search engines", async () => {

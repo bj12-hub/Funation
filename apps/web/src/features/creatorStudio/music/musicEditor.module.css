@@ -1,0 +1,261 @@
+/* 음악 편집기 (code-first) — /creator/widgets/music. Cards, fields and buttons come from crew.module.css. */
+
+.addRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.addRow select {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* The timeline: track headers on the left, the lanes scrolling sideways on the right, rows of equal height. */
+.timeline {
+  --ruler-h: 24px;
+  --lane-h: 72px;
+  display: grid;
+  grid-template-columns: 168px minmax(0, 1fr);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  overflow: hidden;
+}
+
+.heads {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.rulerHead {
+  height: var(--ruler-h);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.trackHead {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  height: var(--lane-h);
+  box-sizing: border-box;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+}
+
+.trackHead[data-selected] {
+  box-shadow: inset 3px 0 0 var(--color-primary);
+  background: var(--color-surface-raised);
+}
+
+.trackName {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+}
+
+.trackGain {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-12);
+}
+
+.trackGain input {
+  flex: 1;
+  min-width: 0;
+}
+
+.trackButtons {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--font-size-12);
+}
+
+.mini {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: var(--color-text-tertiary);
+}
+
+.mini:disabled {
+  opacity: 0.3;
+}
+
+.addTrack {
+  margin: 6px;
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+.lanes {
+  position: relative;
+  min-width: 100%;
+}
+
+.ruler {
+  position: relative;
+  height: var(--ruler-h);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.ruler span {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  padding-left: 3px;
+  border-left: 1px solid var(--color-border-strong);
+  color: var(--color-text-tertiary);
+  font-size: 10px;
+  line-height: var(--ruler-h);
+}
+
+.lane {
+  position: relative;
+  height: var(--lane-h);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+}
+
+.lane[data-selected] {
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface-raised));
+}
+
+.lane[data-muted] .clip {
+  opacity: 0.4;
+}
+
+.clip {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 70%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-primary) 22%, var(--color-surface));
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.clip[aria-pressed="true"] {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -1px;
+}
+
+.clip:focus-visible {
+  outline: 2px solid #ffffff;
+}
+
+.wave {
+  position: absolute;
+  inset: 14px 0 0;
+  width: 100%;
+  height: calc(100% - 14px);
+  fill: color-mix(in srgb, var(--color-text-primary) 70%, transparent);
+}
+
+.fadeIn,
+.fadeOut {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.fadeIn {
+  left: 0;
+  background: linear-gradient(to top right, rgb(0 0 0 / 45%) 50%, transparent 50%);
+}
+
+.fadeOut {
+  right: 0;
+  background: linear-gradient(to top left, rgb(0 0 0 / 45%) 50%, transparent 50%);
+}
+
+.clipName {
+  position: absolute;
+  top: 1px;
+  left: 6px;
+  right: 6px;
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+.edge:hover {
+  background: color-mix(in srgb, var(--color-primary) 45%, transparent);
+}
+
+.edgeLeft {
+  left: 0;
+}
+
+.edgeRight {
+  right: 0;
+}
+
+.playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: #f43f5e;
+  pointer-events: none;
+}
+
+.fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field input[type="number"] {
+  width: 110px;
+}
+
+@media (max-width: 600px) {
+  .timeline {
+    grid-template-columns: 120px minmax(0, 1fr);
+  }
+}
