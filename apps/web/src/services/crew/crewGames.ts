@@ -8,6 +8,7 @@ import { isActiveMember, liveBroadcastOf } from "./crewCore";
 import { diceLive, diceSettingsOf, parseDiceSettings, runDice } from "./crewDiceCore";
 import { gameRunView, memberSources, usedSources, type RunStart, type StoredRun } from "./crewGameCore";
 import { clearGridDrawBoard, gridDrawLive, gridDrawSettingsOf, openGridDrawCell, parseGridDrawSettings, startGridDrawBoard } from "./crewGridDrawCore";
+import { clearSigDosanBoard, parseSigDosanSettings, sigDosanLive, sigDosanSettingsOf, startSigDosanBoard, stepSigDosanLane } from "./crewSigDosanCore";
 import {
   clearSigHunterBoard,
   nextSigHunterRound,
@@ -30,7 +31,7 @@ import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 /**
  * 점수 게임 Server Actions — code-first (no Figma frame; StreamDonate 참고, P2), route `/creator/crew/games`: 스핀머신 · 주사위
- * 게임 · 투휠 게임 · 랜덤시그 · 기여도 릴레이 · 줍줍 · 시그니처 메들리 · 시그 빙고 · 복불복 뽑기판 · 시그니처 헌터. Settings are kept per channel; runs belong to the live broadcast. Results are display points only.
+ * 게임 · 투휠 게임 · 랜덤시그 · 기여도 릴레이 · 줍줍 · 시그니처 메들리 · 시그 빙고 · 복불복 뽑기판 · 시그니처 헌터 · 시그니처 두산. Settings are kept per channel; runs belong to the live broadcast. Results are display points only.
  */
 
 const assertMock = () => {
@@ -47,7 +48,7 @@ const SOURCES_SHOWN = 10;
  * How each game plays one run by hand for a member (the caller checks the game can play). 랜덤시그 · 기여도 릴레이 · 줍줍 play only
  * from donations; 메들리 rolls by hand without a member (playMedley).
  */
-const PLAY: Record<Exclude<GameKey, "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW" | "SIG_HUNTER">, (b: MockBroadcast, start: RunStart) => StoredRun> = { SPIN: runSpin, DICE: runDice, TWO_WHEEL: runTwoWheel };
+const PLAY: Record<Exclude<GameKey, "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW" | "SIG_HUNTER" | "SIG_DOSAN">, (b: MockBroadcast, start: RunStart) => StoredRun> = { SPIN: runSpin, DICE: runDice, TWO_WHEEL: runTwoWheel };
 
 function sourcesOf(b: MockBroadcast): Record<GameKey, Record<string, GameSource[]>> {
   const active = (mockCrew.crews[STUDIO_CHANNEL] ?? []).filter((m) => m.active);
@@ -64,7 +65,7 @@ function sourcesOf(b: MockBroadcast): Record<GameKey, Record<string, GameSource[
       ])
     );
   };
-  return { SPIN: forGame("SPIN"), DICE: forGame("DICE"), TWO_WHEEL: forGame("TWO_WHEEL"), RANDOM_SIG: {}, RELAY: {}, JUPJUP: {}, MEDLEY: {}, SIG_BINGO: {}, GRID_DRAW: {}, SIG_HUNTER: {} };
+  return { SPIN: forGame("SPIN"), DICE: forGame("DICE"), TWO_WHEEL: forGame("TWO_WHEEL"), RANDOM_SIG: {}, RELAY: {}, JUPJUP: {}, MEDLEY: {}, SIG_BINGO: {}, GRID_DRAW: {}, SIG_HUNTER: {}, SIG_DOSAN: {} };
 }
 
 export async function getGamesView(): Promise<GamesView | null> {
@@ -88,6 +89,7 @@ export async function getGamesView(): Promise<GamesView | null> {
           sigBingo: sigBingoLive(live),
           gridDraw: gridDrawLive(live, true),
           sigHunter: sigHunterLive(live, true),
+          sigDosan: sigDosanLive(live),
           sources: sourcesOf(live),
           serverNow: new Date().toISOString()
         }
@@ -102,6 +104,7 @@ export async function getGamesView(): Promise<GamesView | null> {
     sigBingoSettings: structuredClone(sigBingoSettingsOf(STUDIO_CHANNEL)),
     gridDrawSettings: structuredClone(gridDrawSettingsOf(STUDIO_CHANNEL)),
     sigHunterSettings: structuredClone(sigHunterSettingsOf(STUDIO_CHANNEL)),
+    sigDosanSettings: structuredClone(sigDosanSettingsOf(STUDIO_CHANNEL)),
     signatures: sigCountSignatures(),
     overlayPath: `/overlay/crew/${mockCreator.integrationKey}`
   };
@@ -378,6 +381,50 @@ export async function clearSigHunter(input: unknown): Promise<BroadcastResult> {
   return { status: "SAVED" };
 }
 
+/** Replaces the 시그니처 두산 settings (이름 · 모드 · 두산 시그니처 · 완주 보너스 · 시그니처 후원으로 올리기 · 대기 화면). */
+export async function saveSigDosan(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const parsed = parseSigDosanSettings(input, MOCK_FORBIDDEN_WORDS, signatureIds());
+  if ("message" in parsed) return { status: "INVALID", message: parsed.message };
+  (mockCrew.sigDosans ??= {})[STUDIO_CHANNEL] = parsed;
+  return { status: "SAVED" };
+}
+
+/** 두산 시작: a new board from the saved settings (replacing the one there). `requestId`: a retried start is not a new board. */
+export async function startSigDosan(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = rec(input);
+  const live = liveBroadcastOf(STUDIO_CHANNEL);
+  if (!live || live.id !== v.broadcastId) return notLive;
+  if (!validId(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
+  const message = startSigDosanBoard(live, v.requestId);
+  return message ? { status: "INVALID", message } : { status: "SAVED" };
+}
+
+/** 수동 한 단 올리기 · 내리기 (`up`) of `lane`, for `memberId` or none. `requestId` · `count`: a retry moves it no further. */
+export async function stepSigDosan(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = rec(input);
+  const live = liveBroadcastOf(STUDIO_CHANNEL);
+  if (!live || live.id !== v.broadcastId) return notLive;
+  if (!validId(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
+  const message = stepSigDosanLane(live, { lane: v.lane, up: v.up, memberId: v.memberId, count: v.count, requestId: v.requestId });
+  return message ? { status: "INVALID", message } : { status: "SAVED" };
+}
+
+/** 판 비우기: removes the board. Clearing nothing is a no-op. */
+export async function clearSigDosan(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const live = liveBroadcastOf(STUDIO_CHANNEL);
+  if (!live || live.id !== rec(input).broadcastId) return notLive;
+  clearSigDosanBoard(live);
+  return { status: "SAVED" };
+}
+
 /**
  * 수동: plays `game` once for an active member, optionally on one of their donations in the broadcast (기준 후원: a 배수
  * result multiplies its points; a donation plays each game at most once). `requestId` is the run id, so a retry returns
@@ -396,6 +443,7 @@ export async function playGame(input: unknown): Promise<GamePlayResult> {
   if (game === "SIG_BINGO") return { status: "INVALID", message: "시그 빙고는 시그니처 후원이나 칸 누르기로 열어요." };
   if (game === "GRID_DRAW") return { status: "INVALID", message: "뽑기판은 후원이나 칸 누르기로 열어요." };
   if (game === "SIG_HUNTER") return { status: "INVALID", message: "시그니처 헌터는 시그니처 후원이나 슬롯 누르기로 SOLD OUT 돼요." };
+  if (game === "SIG_DOSAN") return { status: "INVALID", message: "시그니처 두산은 시그니처 후원이나 한 단 올리기로 올라가요." };
   const live = liveBroadcastOf(STUDIO_CHANNEL);
   if (!live || live.id !== v.broadcastId) return notLive;
   if (!validId(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };

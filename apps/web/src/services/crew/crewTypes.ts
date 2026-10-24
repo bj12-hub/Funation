@@ -247,6 +247,7 @@ export type BroadcastLive = {
   gridDraw: GridDrawLive;
   /** Unsold slots come without their 몰수권 here (OBS); the studio's GamesView has them. */
   sigHunter: SigHunterLive;
+  sigDosan: SigDosanLive;
   /** Server clock when this view was read: timers (시나리오 경과, 강탈 card) correct the browser's clock with it. */
   serverNow: string;
 };
@@ -368,7 +369,7 @@ export type SigCountLive = {
 // A game draws its result on the server; the result is display points only (FN · 지갑 · 수익 · 정산 never move).
 
 /** Games on the shared engine (crewGameCore). `param`: the OBS view (`?spin`). */
-export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL" | "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW" | "SIG_HUNTER";
+export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL" | "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW" | "SIG_HUNTER" | "SIG_DOSAN";
 export const GAMES: { key: GameKey; label: string; param: string }[] = [
   { key: "SPIN", label: "스핀머신", param: "spin" },
   { key: "DICE", label: "주사위 게임", param: "dice" },
@@ -379,7 +380,8 @@ export const GAMES: { key: GameKey; label: string; param: string }[] = [
   { key: "MEDLEY", label: "시그니처 메들리", param: "medley" },
   { key: "SIG_BINGO", label: "시그 빙고", param: "sigbingo" },
   { key: "GRID_DRAW", label: "복불복 뽑기판", param: "griddraw" },
-  { key: "SIG_HUNTER", label: "시그니처 헌터", param: "sighunter" }
+  { key: "SIG_HUNTER", label: "시그니처 헌터", param: "sighunter" },
+  { key: "SIG_DOSAN", label: "시그니처 두산", param: "sigdosan" }
 ];
 
 /**
@@ -397,7 +399,8 @@ export const GAME_TIMING: Record<GameKey, { playSec: number; resultSec: number }
   MEDLEY: { playSec: 2, resultSec: 4 },
   SIG_BINGO: { playSec: 1, resultSec: 5 },
   GRID_DRAW: { playSec: 1, resultSec: 4 },
-  SIG_HUNTER: { playSec: 1, resultSec: 4 }
+  SIG_HUNTER: { playSec: 1, resultSec: 4 },
+  SIG_DOSAN: { playSec: 1, resultSec: 3 }
 };
 /** Runs a game lists (studio) and queues (OBS), newest first. */
 export const GAME_RUNS_SHOWN = 30;
@@ -718,6 +721,44 @@ export function sigHunterColumns(n: number) {
   return fit.sort((x, y) => empty(x) - empty(y) || Math.abs(x - rows(x)) - Math.abs(y - rows(y)))[0] ?? 8;
 }
 
+// 시그니처 두산 — StreamDonate 시그니처 두산: the picked signatures from the lowest price up are a ladder; a 시그니처 후원 of
+// a lane's next one shoots it up a step. 전체: one lane for the crew · VS: A팀 / B팀 · 개인전: one per member. The first lane
+// to the top wins (완주).
+export const SIG_DOSAN_TITLE_DEFAULT = "시그니처 두산";
+export const SIG_DOSAN_STEPS_MIN = 2;
+export const SIG_DOSAN_STEPS_MAX = 20;
+export const SIG_DOSAN_BONUS_MAX = 10_000_000;
+export type SigDosanMode = "ALL" | "VS" | "SOLO";
+export const SIG_DOSAN_MODES: { key: SigDosanMode; label: string; note: string }[] = [
+  { key: "ALL", label: "전체", note: "크루 모두가 한 줄을 함께 올려요" },
+  { key: "VS", label: "VS", note: "A팀 · B팀이 각자 올려요 (팀 배틀 방송)" },
+  { key: "SOLO", label: "개인전", note: "멤버마다 따로 올려요" }
+];
+/** `signatureIds`: the picked signatures (the ladder sorts them by price); `bonus`: 완주 보너스 for the member who finishes. */
+export type SigDosanSettings = GameCommon & { mode: SigDosanMode; signatureIds: string[]; bonus: number };
+export const DEFAULT_SIG_DOSAN: SigDosanSettings = { title: "", auto: false, excluded: [], showIdle: true, mode: "ALL", signatureIds: [], bonus: 0 };
+
+/** A step of the ladder (the lowest price first). */
+export type SigDosanStep = { signatureId: string; signatureName: string; price: number; imageUrl: string | null };
+/**
+ * A lane: `key` "ALL" · "A" · "B" · a member id; `color` a member's (null for 전체 and the teams); its climbed steps in order
+ * (`revealAt`: when OBS shows each).
+ */
+export type SigDosanLane = {
+  key: string;
+  label: string;
+  color: string | null;
+  steps: { memberName: string | null; memberColor: string | null; at: string; revealAt: string; manual: boolean }[];
+};
+/** `winner`: the lane that finished first (`revealAt`: when OBS shows it), after which nothing climbs. */
+export type SigDosanBoard = {
+  mode: SigDosanMode;
+  startedAt: string;
+  ladder: SigDosanStep[];
+  lanes: SigDosanLane[];
+  winner: { lane: string; label: string; memberName: string | null; revealAt: string } | null;
+};
+
 /** What started a run: a 시그니처 후원 to the member (자동), a 랜덤시그 · 메들리 발동 금액 (자동), or the operator (수동). */
 /** `DONATION`: a donation that is no signature (복불복 뽑기판 on 모든 후원). */
 export type GameTrigger = { kind: "SIGNATURE"; signatureName: string } | { kind: "AMOUNT"; amount: number } | { kind: "DONATION"; amount: number } | { kind: "MANUAL" };
@@ -763,6 +804,8 @@ export type TwoWheelLive = { settings: TwoWheelSettings; runs: GameRunView[] };
 export type GridDrawLive = { settings: GridDrawSettings; runs: GameRunView[]; board: GridDrawBoard | null };
 /** `board`: null until 헌트 시작 (or after 판 비우기). */
 export type SigHunterLive = { settings: SigHunterSettings; runs: GameRunView[]; board: SigHunterBoard | null };
+/** `board`: null until 두산 시작 (or after 판 비우기). */
+export type SigDosanLive = { settings: SigDosanSettings; runs: GameRunView[]; board: SigDosanBoard | null };
 /** `board`: null until 빙고 시작 (or after 판 비우기); `eligible`: how many signatures a new board would draw from. */
 export type SigBingoLive = { settings: SigBingoSettings; runs: GameRunView[]; board: SigBingoBoard | null; eligible: number };
 /** `pool`: the registered signatures that can be drawn (active) — the OBS rolling images. */
@@ -793,6 +836,7 @@ export type GamesView = {
     sigBingo: SigBingoLive;
     gridDraw: GridDrawLive;
     sigHunter: SigHunterLive;
+    sigDosan: SigDosanLive;
     sources: Record<GameKey, Record<string, GameSource[]>>;
     serverNow: string;
   } | null;
@@ -806,6 +850,7 @@ export type GamesView = {
   sigBingoSettings: SigBingoSettings;
   gridDrawSettings: GridDrawSettings;
   sigHunterSettings: SigHunterSettings;
+  sigDosanSettings: SigDosanSettings;
   signatures: { id: string; name: string; group: string; active: boolean; price: number; match: "SELECT" | "AMOUNT"; rangeMin: number | null }[];
   overlayPath: string;
 };

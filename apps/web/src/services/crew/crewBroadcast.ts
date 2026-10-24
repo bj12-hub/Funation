@@ -34,6 +34,7 @@ import { jupjupLive } from "./crewJupjupCore";
 import { medleyLive } from "./crewMedleyCore";
 import { sigBingoLive } from "./crewSigBingoCore";
 import { gridDrawLive } from "./crewGridDrawCore";
+import { sigDosanLive } from "./crewSigDosanCore";
 import { sigHunterLive } from "./crewSigHunterCore";
 import { randomSigLive } from "./crewRandomSigCore";
 import { relayLive } from "./crewRelayCore";
@@ -103,6 +104,7 @@ function liveView(b: MockBroadcast): BroadcastLive {
     gridDraw: gridDrawLive(b, false),
     // Unsold slots' 몰수권 stay off this view too.
     sigHunter: sigHunterLive(b, false),
+    sigDosan: sigDosanLive(b),
     serverNow: new Date().toISOString()
   };
 }
