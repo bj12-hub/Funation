@@ -8,8 +8,13 @@
 
 .unit {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+}
+
+.unit > :first-child {
+  white-space: nowrap;
 }
 
 .unit input {
@@ -72,6 +77,15 @@
 
 .history li {
   grid-template-columns: 56px 64px minmax(0, 1fr) auto;
+}
+
+/* 로얄 럼블 순위: the name, 봇, 처치 수 and how they went out. */
+.who {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  min-width: 0;
 }
 
 .badge {
