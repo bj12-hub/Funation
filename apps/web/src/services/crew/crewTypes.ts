@@ -250,6 +250,7 @@ export type BroadcastLive = {
   sigDosan: SigDosanLive;
   alphabet: AlphabetLive;
   gostop: GoStopLive;
+  territory: TerritoryLive;
   /** Server clock when this view was read: timers (시나리오 경과, 강탈 card) correct the browser's clock with it. */
   serverNow: string;
 };
@@ -371,7 +372,7 @@ export type SigCountLive = {
 // A game draws its result on the server; the result is display points only (FN · 지갑 · 수익 · 정산 never move).
 
 /** Games on the shared engine (crewGameCore). `param`: the OBS view (`?spin`). */
-export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL" | "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW" | "SIG_HUNTER" | "SIG_DOSAN" | "ALPHABET" | "GOSTOP";
+export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL" | "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW" | "SIG_HUNTER" | "SIG_DOSAN" | "ALPHABET" | "GOSTOP" | "TERRITORY";
 export const GAMES: { key: GameKey; label: string; param: string }[] = [
   { key: "SPIN", label: "스핀머신", param: "spin" },
   { key: "DICE", label: "주사위 게임", param: "dice" },
@@ -385,7 +386,8 @@ export const GAMES: { key: GameKey; label: string; param: string }[] = [
   { key: "SIG_HUNTER", label: "시그니처 헌터", param: "sighunter" },
   { key: "SIG_DOSAN", label: "시그니처 두산", param: "sigdosan" },
   { key: "ALPHABET", label: "알파벳 모으기", param: "alphabet" },
-  { key: "GOSTOP", label: "고스톱", param: "gostop" }
+  { key: "GOSTOP", label: "고스톱", param: "gostop" },
+  { key: "TERRITORY", label: "땅따먹기", param: "territory" }
 ];
 
 /**
@@ -406,7 +408,8 @@ export const GAME_TIMING: Record<GameKey, { playSec: number; resultSec: number }
   SIG_HUNTER: { playSec: 1, resultSec: 4 },
   SIG_DOSAN: { playSec: 1, resultSec: 3 },
   ALPHABET: { playSec: 3, resultSec: 3 },
-  GOSTOP: { playSec: 2, resultSec: 3 }
+  GOSTOP: { playSec: 2, resultSec: 3 },
+  TERRITORY: { playSec: 1, resultSec: 3 }
 };
 /** Runs a game lists (studio) and queues (OBS), newest first. */
 export const GAME_RUNS_SHOWN = 30;
@@ -864,6 +867,29 @@ export function goStopRanking(wins: { memberId: string; name: string; color: str
 /** The 색 구간 of a 풀 (the last one it reached), or null. */
 export const goStopBand = (bands: GoStopBand[], pool: number) => [...bands].sort((x, y) => x.min - y.min).filter((b) => b.min <= pool).at(-1) ?? null;
 
+// 땅따먹기 — StreamDonate 땅따먹기: a member earns 하트 from what they receive; with a 하트 the BJ picks a cell of the N×N
+// board and the operator (조정실) assigns it — an owned cell is taken over. Cells show in the owner's color; 점유 순위.
+export const TERRITORY_TITLE_DEFAULT = "땅따먹기";
+export const TERRITORY_SIZES = [5, 6, 7, 8, 9, 10] as const;
+export type TerritorySize = (typeof TERRITORY_SIZES)[number];
+export const TERRITORY_HEART_POINTS_MAX = 10_000_000;
+export const TERRITORY_CELL_POINTS_MAX = 1_000_000;
+/** How a member earns 하트: one per 시그니처 후원, or one per `heartPoints` points of any donation. */
+export type TerritoryHeartMode = "SIGNATURE" | "AMOUNT";
+export const TERRITORY_HEART_MODES: { key: TerritoryHeartMode; label: string }[] = [
+  { key: "AMOUNT", label: "후원 점수마다" },
+  { key: "SIGNATURE", label: "시그니처 후원 1건마다" }
+];
+/** `auto` = 후원으로 하트 주기; `cellPoints`: 칸 점수 — a cell's points move with it (0 = 순위만). */
+export type TerritorySettings = GameCommon & { size: TerritorySize; heartMode: TerritoryHeartMode; heartPoints: number; cellPoints: number };
+export const DEFAULT_TERRITORY: TerritorySettings = { title: "", auto: false, excluded: [], showIdle: true, size: 8, heartMode: "AMOUNT", heartPoints: 1_000, cellPoints: 0 };
+/** A cell's label: A1 (column A, row 1) … */
+export const territoryCoord = (size: number, index: number) => `${String.fromCharCode(65 + (index % size))}${Math.floor(index / size) + 1}`;
+/** A cell as shown: its owners in order (`revealAt`: when OBS shows each) — the last one owns it. */
+export type TerritoryCell = { owners: { memberId: string; revealAt: string }[] };
+/** `boardId`: this board (a new 시작 makes another); `lastCell`: the cell assigned last. */
+export type TerritoryBoard = { boardId: string; size: TerritorySize; cells: TerritoryCell[]; lastCell: number | null };
+
 /** What started a run: a 시그니처 후원 to the member (자동), a 랜덤시그 · 메들리 발동 금액 (자동), or the operator (수동). */
 /** `DONATION`: a donation that is no signature (복불복 뽑기판 on 모든 후원). */
 export type GameTrigger = { kind: "SIGNATURE"; signatureName: string } | { kind: "AMOUNT"; amount: number } | { kind: "DONATION"; amount: number } | { kind: "MANUAL" };
@@ -924,6 +950,13 @@ export type GoStopLive = {
   go: number;
   wins: { memberId: string; name: string; color: string | null; points: number; pool: number; go: number; at: string; revealAt: string }[];
 };
+/** `board`: null until 판 시작 (or after 판 비우기); `members`: the crew's names, colors and unused 하트. */
+export type TerritoryLive = {
+  settings: TerritorySettings;
+  runs: GameRunView[];
+  board: TerritoryBoard | null;
+  members: { memberId: string; name: string; color: string | null; active: boolean; hearts: number }[];
+};
 /** `board`: null until 두산 시작 (or after 판 비우기). */
 export type SigDosanLive = { settings: SigDosanSettings; runs: GameRunView[]; board: SigDosanBoard | null };
 /** `board`: null until 빙고 시작 (or after 판 비우기); `eligible`: how many signatures a new board would draw from. */
@@ -959,6 +992,7 @@ export type GamesView = {
     sigDosan: SigDosanLive;
     alphabet: AlphabetLive;
     gostop: GoStopLive;
+    territory: TerritoryLive;
     sources: Record<GameKey, Record<string, GameSource[]>>;
     serverNow: string;
   } | null;
@@ -975,6 +1009,7 @@ export type GamesView = {
   sigDosanSettings: SigDosanSettings;
   alphabetSettings: AlphabetSettings;
   gostopSettings: GoStopSettings;
+  territorySettings: TerritorySettings;
   signatures: { id: string; name: string; group: string; active: boolean; price: number; match: "SELECT" | "AMOUNT"; rangeMin: number | null }[];
   overlayPath: string;
 };

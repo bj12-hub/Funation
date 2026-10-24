@@ -823,3 +823,37 @@
     animation: none;
   }
 }
+
+/* ── 땅따먹기: the board with its axes (A ~ · 1 ~), cells in their owner's color ── */
+.terr {
+  display: grid;
+  grid-template-columns: 18px repeat(var(--terr-size, 8), minmax(0, 1fr));
+  gap: 2px;
+}
+
+.terrRow {
+  display: contents;
+}
+
+.terrAxis {
+  display: grid;
+  place-items: center;
+  color: var(--ov-chip-ink);
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.terrCell {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background: var(--ov-chip-bg);
+}
+
+.terrCell[data-owned] {
+  background: var(--cell-color, var(--ov-accent));
+}
+
+.terrCell[data-last] {
+  box-shadow: 0 0 0 2px #ffffff;
+  animation: cellPop 0.6s cubic-bezier(0.2, 0.8, 0.3, 1.4) both;
+}

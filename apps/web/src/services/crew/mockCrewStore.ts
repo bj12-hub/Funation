@@ -16,6 +16,8 @@ import type {
   AlphabetEvent,
   AlphabetSettings,
   GoStopSettings,
+  TerritorySettings,
+  TerritorySize,
   SigDosanMode,
   SigDosanSettings,
   JupjupSettings,
@@ -219,6 +221,18 @@ export type MockBroadcast = {
   alphabet?: { word: string; members: Record<string, { slots: ({ revealAt: string } | null)[]; done: number; full: boolean; log: AlphabetEvent[] }> };
   /** 고스톱: the crew's 풀 and GO count now (a STOP's own record is its run). */
   gostop?: { pool: number; go: number };
+  /**
+   * 땅따먹기 board (판 시작 replaces it): each cell's owners in order (`revealAt`: when OBS shows each), and the 하트 log —
+   * what each member earned (`donationId`, one entry per donation) or the operator added or took (`requestId`). Unused 하트 =
+   * the log's sum − the cells assigned to the member.
+   */
+  territory?: {
+    boardId: string;
+    size: TerritorySize;
+    cells: { owners: { memberId: string; at: string; revealAt: string }[] }[];
+    lastCell: number | null;
+    hearts: { memberId: string; hearts: number; at: string; donationId: string | null; requestId: string | null }[];
+  };
   /** 상품 순위표: shown on OBS (`?prize`) and its 구간 (시작 ~ 정지; a new 시작 restarts it). `starts`: 시작 request ids applied. */
   prizeBoard?: { visible: boolean; window: { startedAt: string; stoppedAt: string | null } | null; starts: string[] };
   /** 시그 카운트: shown on OBS (`?sigcount`) and counted from `since` (null = the broadcast start; 다시 세기 sets it). */
@@ -276,6 +290,8 @@ type MockCrew = {
   alphabets?: Record<string, AlphabetSettings>;
   /** 고스톱 settings per channel (missing = DEFAULT_GOSTOP). */
   gostops?: Record<string, GoStopSettings>;
+  /** 땅따먹기 settings per channel (missing = DEFAULT_TERRITORY). */
+  territories?: Record<string, TerritorySettings>;
   /** 멤버 추가 request ids already applied (a retried add is not a second member). */
   memberRequests?: string[];
 };
