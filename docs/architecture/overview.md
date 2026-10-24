@@ -43,5 +43,12 @@ PlatformAdapter
   studio's 오버레이 미리보기) may frame its pages; overlays stay loadable by any streaming tool.
 - `X-Robots-Tag: noindex, nofollow` on the studio, overlays, pop-out windows, my page, wallet and API routes (the 도우미
   host is noindex through its layout metadata).
+- 커스텀 오버레이 (2026-10-24): `/sandbox/*` (the static page the creator's own HTML · CSS · JS runs in) gets its own
+  `Content-Security-Policy` (`SANDBOX_CSP`): `sandbox allow-scripts` (an opaque origin even if framed without the
+  `sandbox` attribute or opened directly), `default-src 'none'`, inline script · style only, images · media · fonts from
+  https / data: / this site, `connect-src 'none'`, no forms · frames · workers, `frame-ancestors 'self'`. It replaces the
+  site-wide CSP on that path (Next applies the later rule). The page hosting it, `/overlay/custom/*`, sends
+  `Referrer-Policy: no-referrer` and frames it with `sandbox="allow-scripts"` + `referrerpolicy="no-referrer"`, so the
+  code never sees the overlay key in `document.referrer`.
 - A full Content-Security-Policy (scripts, images, embeds) waits for the real embeds and payment provider (TBD).
   The admin console has its own strict headers (`apps/admin/next.config.ts`).

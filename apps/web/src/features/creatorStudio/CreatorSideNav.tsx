@@ -39,6 +39,7 @@ const GROUPS: Group[] = [
       { label: "시청자 참여", emoji: "🎮", href: "/creator/widgets/play" },
       { label: "오버레이 주소", emoji: "🔗", href: "/creator/widgets/overlays" },
       { label: "원소스 배치", emoji: "🧩", href: "/creator/widgets/onesource" },
+      { label: "커스텀 오버레이", emoji: "💻", href: "/creator/widgets/custom" },
       { label: "이미지·사운드", emoji: "🎵", href: "/creator/widgets/assets" },
       { label: "리모컨", emoji: "🎛️", href: "/creator/remote" }
     ]

@@ -116,7 +116,7 @@ export type HelperRoute =
   | { action: "notFound" };
 
 /** The top-level folders of `public/` (helperRouting.test.ts checks this list against the folder). */
-export const PUBLIC_FOLDERS = ["images", "mock"];
+export const PUBLIC_FOLDERS = ["images", "mock", "sandbox"];
 
 /**
  * The helper's own pages by their first segment: the folders of `app/helper` (helperRouting.test.ts checks this list
