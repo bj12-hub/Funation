@@ -214,6 +214,81 @@
   min-width: 0;
 }
 
+/* 출처 필터: smaller chips under the status filters, only for the sources the list has. */
+.origins {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.origin {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-12);
+  white-space: nowrap;
+}
+
+.origin[aria-pressed="true"] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-text-primary);
+}
+
+/* 후원자 이름 병합: the name the entry came under, next to its 대표 이름. */
+.alias {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-13);
+}
+
+.donors {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+}
+
+/* 받은 이름 wraps, so the table fits a phone. */
+.table .names {
+  min-width: 80px;
+  max-width: 280px;
+  color: var(--color-text-secondary);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.merges {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.merges li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 600px) {
+  .merges li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .merges li > :nth-child(2) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
 /* Five filters: they wrap on a phone instead of squeezing their labels. */
 .filters {
   flex-wrap: wrap;
