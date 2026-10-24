@@ -1,14 +1,12 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import type { CSSProperties } from "react";
 import { OverlayThemeRoot, ov } from "@/features/overlayTheme/OverlayThemeRoot";
 import { MARBLE_SKILL_LABEL, marbleProgress, type MarbleMap, type MarbleOverlayView, type MarbleRace, type MarbleRound } from "@/services/play/marbleTypes";
 import { useOverlayPage } from "../crew/CrewScoreOverlay";
+import { PLAY_COLORS as COLORS, playHash as hash, useFrameClock } from "./playOverlayClock";
 import styles from "./marbleOverlay.module.css";
 
-const COLORS = ["#f43f5e", "#f97316", "#eab308", "#22c55e", "#14b8a6", "#3b82f6", "#8b5cf6", "#ec4899", "#84cc16", "#06b6d4"];
-/** A stable number per entrant (its color, lane and wobble). */
-const hash = (s: string) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
 /** Names show beside the marbles up to this many entrants (initials past it). */
 const LABELS_MAX = 12;
 const SHOWN_NAMES = 30;
@@ -26,25 +24,6 @@ function marbleX(map: MarbleMap, p: number, seed: number) {
           ? 0.5 + 0.36 * Math.cos(p * Math.PI * 6 + phase)
           : lane + (Math.floor(p * 8) % 2 ? 0.1 : -0.1);
   return Math.min(0.95, Math.max(0.05, x));
-}
-
-/** The browser clock corrected to the server's, read every frame while racing. */
-function useFrameClock(serverNow: string, running: boolean) {
-  const [skew] = useState(() => Date.parse(serverNow) - Date.now());
-  const [now, setNow] = useState(() => Date.now() + skew);
-  useEffect(() => {
-    if (!running) {
-      setNow(Date.now() + skew);
-      const tick = setInterval(() => setNow(Date.now() + skew), 1000);
-      return () => clearInterval(tick);
-    }
-    let frame = requestAnimationFrame(function step() {
-      setNow(Date.now() + skew);
-      frame = requestAnimationFrame(step);
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [running, skew]);
-  return now;
 }
 
 /** When each entrant is in, by finishing place: the first at 70% of the race, the last at its end. */

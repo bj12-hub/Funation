@@ -30,6 +30,7 @@ import styles from "../crew/crew.module.css";
 import prize from "../crew/prize.module.css";
 import { OverlayOffNotice } from "../remote/OverlayOffNotice";
 import { CopyButton } from "../settings/SettingsCards";
+import { PlayTabs } from "./PlayTabs";
 import play from "./play.module.css";
 
 /** The form keeps numbers as typed. */
@@ -112,6 +113,7 @@ export function MarbleScreen({ view, switches }: { view: MarbleView; switches: R
         <p className={styles.subtitle}>후원 없이 채팅이나 초대 링크로 참여하는 무료 게임이에요. 점수 · FN은 움직이지 않아요.</p>
       </header>
       <OverlayOffNotice targets={["play"]} switches={switches} />
+      <PlayTabs active="marble" />
 
       {message && (
         <p className={message.tone === "error" ? styles.error : styles.ok} role={message.tone === "error" ? "alert" : "status"}>

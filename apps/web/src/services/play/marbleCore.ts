@@ -1,6 +1,7 @@
 import { randomBytes, randomInt, randomUUID } from "node:crypto";
 import { sameSecret } from "@/lib/secret";
 import { chatStore } from "@/services/broadcast/chatCore";
+import { addEntrantByName, parseKeyword, shuffled, syncChatEntries, type StoredEntrant } from "./playEntryCore";
 import {
   DEFAULT_MARBLE,
   MARBLE_HISTORY_MAX,
@@ -8,7 +9,6 @@ import {
   MARBLE_LEAD_SEC,
   MARBLE_MAPS,
   MARBLE_MODES,
-  MARBLE_NAME_MAX,
   MARBLE_PLAYERS_MAX,
   MARBLE_PLAYERS_MIN,
   MARBLE_RACE_MAX_SEC,
@@ -16,7 +16,6 @@ import {
   MARBLE_TITLE_MAX,
   MARBLE_WIN_RULES,
   marbleRuleLabel,
-  type MarbleEntrant,
   type MarbleHistoryEntry,
   type MarbleMap,
   type MarbleMode,
@@ -34,7 +33,6 @@ import {
  * order (server randomness) and the 스킬, fixes the winner by the 당첨 rule and keeps the 회차 결과. No FN, no points.
  */
 
-type StoredEntrant = MarbleEntrant & { key: string; at: string };
 type StoredRound = {
   id: string;
   no: number;
@@ -73,8 +71,8 @@ export function parseMarbleSettings(input: unknown, forbidden: string[]): Marble
   const map = MARBLE_MAPS.find((m) => m.key === v.map)?.key;
   const winRule = MARBLE_WIN_RULES.find((r) => r.key === v.winRule)?.key;
   if (!mode || !map || !winRule || typeof v.skills !== "boolean") return { message: "설정을 확인해 주세요." };
-  const keyword = typeof v.keyword === "string" ? v.keyword.trim() : "";
-  if (!keyword || keyword.length > MARBLE_KEYWORD_MAX || /\s/.test(keyword)) return { message: `참가 명령어는 띄어쓰기 없이 1~${MARBLE_KEYWORD_MAX}자로 입력해 주세요.` };
+  const keyword = parseKeyword(v.keyword, MARBLE_KEYWORD_MAX);
+  if (!keyword) return { message: `참가 명령어는 띄어쓰기 없이 1~${MARBLE_KEYWORD_MAX}자로 입력해 주세요.` };
   if (banned(title) || banned(keyword)) return { message: "사용할 수 없는 단어가 포함되어 있어요." };
   if (!isInt(v.maxPlayers, MARBLE_PLAYERS_MIN, MARBLE_PLAYERS_MAX)) return { message: `최대 인원은 ${MARBLE_PLAYERS_MIN} ~ ${MARBLE_PLAYERS_MAX}명이에요.` };
   if (!isInt(v.winRank, 1, MARBLE_PLAYERS_MAX)) return { message: `당첨 순위는 1 ~ ${MARBLE_PLAYERS_MAX}등이에요.` };
@@ -120,27 +118,7 @@ export function openMarbleRound(requestId: string, now = Date.now()): string | n
 /** Chat entries of an open 채팅 round: the keyword (alone or first) from each platform user once, up to the 최대 인원. */
 export function syncChatEntrants() {
   const r = marbleStore().round;
-  if (!r || r.race || r.mode !== "CHAT") return;
-  for (const m of chatStore().messages) {
-    if (m.seq <= r.chatSeq) continue;
-    r.chatSeq = m.seq;
-    const text = m.text.trim();
-    if (m.hidden || m.fromStudio || (text !== r.keyword && !text.startsWith(`${r.keyword} `))) continue;
-    const key = `${m.platform}:${m.author.platformUserId}`;
-    if (r.entrants.length >= r.maxPlayers || r.entrants.some((e) => e.key === key)) continue;
-    r.entrants.push({ id: `me-${randomUUID().slice(0, 8)}`, name: m.author.displayName.trim().slice(0, MARBLE_NAME_MAX) || "시청자", source: m.platform, key, at: m.receivedAt });
-  }
-}
-
-/** Adds an entrant by name (operator or 초대 링크): unique by name, within the 최대 인원. Returns an error message, or null. */
-function addByName(r: StoredRound, name: unknown, source: "MANUAL" | "INVITE", forbidden: string[], now: number): string | null {
-  const n = typeof name === "string" ? name.trim() : "";
-  if (!n || n.length > MARBLE_NAME_MAX) return `이름은 1~${MARBLE_NAME_MAX}자로 입력해 주세요.`;
-  if (forbidden.some((w) => n.toLowerCase().includes(w))) return "사용할 수 없는 단어가 포함되어 있어요.";
-  if (r.entrants.some((e) => e.name.toLowerCase() === n.toLowerCase())) return "이미 참가한 이름이에요.";
-  if (r.entrants.length >= r.maxPlayers) return "참가 인원이 다 찼어요.";
-  r.entrants.push({ id: `me-${randomUUID().slice(0, 8)}`, name: n, source, key: `${source}:${n.toLowerCase()}`, at: iso(now) });
-  return null;
+  if (r && !r.race && r.mode === "CHAT") syncChatEntries(r, "me");
 }
 
 const openRound = (roundId: unknown, now: number) => {
@@ -152,7 +130,7 @@ const openRound = (roundId: unknown, now: number) => {
 export function addMarbleEntrant(input: { roundId: unknown; name: unknown }, forbidden: string[], now = Date.now()): string | null {
   const r = openRound(input.roundId, now);
   if (!r) return "참가 모집 중인 판이 아니에요.";
-  return addByName(r, input.name, "MANUAL", forbidden, now);
+  return addEntrantByName(r, { name: input.name, source: "MANUAL", idPrefix: "me" }, forbidden, now);
 }
 
 /** 참가 취소 while the round is open (removing someone gone is a no-op). */
@@ -181,20 +159,12 @@ export function joinMarbleInvite(input: { token: unknown; name: unknown; request
   const r = inviteRound(input.token, now);
   if (!r) return { message: "참가 모집이 끝났거나 없는 링크예요." };
   if (r.inviteRequests.includes(input.requestId)) return { players: r.entrants.length };
-  const message = addByName(r, input.name, "INVITE", forbidden, now);
+  const message = addEntrantByName(r, { name: input.name, source: "INVITE", idPrefix: "me" }, forbidden, now);
   if (message) return { message };
   r.inviteRequests.push(input.requestId);
   return { players: r.entrants.length };
 }
 
-const shuffled = <T>(items: T[]) => {
-  const out = [...items];
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = randomInt(i + 1);
-    [out[i], out[j]] = [out[j], out[i]];
-  }
-  return out;
-};
 const SKILLS: MarbleSkill[] = ["BOOST", "WARP", "BACK", "STOP"];
 
 /**
