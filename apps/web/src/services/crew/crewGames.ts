@@ -10,6 +10,15 @@ import { gameRunView, memberSources, usedSources, type RunStart, type StoredRun 
 import { clearGridDrawBoard, gridDrawLive, gridDrawSettingsOf, openGridDrawCell, parseGridDrawSettings, startGridDrawBoard } from "./crewGridDrawCore";
 import { alphabetLive, alphabetSettingsOf, parseAlphabetSettings, resetAlphabetBoard, runAlphabet } from "./crewAlphabetCore";
 import { goStopLive, goStopSettingsOf, parseGoStopSettings, resetGoStopPool, runGoStop } from "./crewGoStopCore";
+import {
+  adjustTerritoryHearts,
+  assignTerritoryCell,
+  clearTerritoryBoard,
+  parseTerritorySettings,
+  startTerritoryBoard,
+  territoryLive,
+  territorySettingsOf
+} from "./crewTerritoryCore";
 import { clearSigDosanBoard, parseSigDosanSettings, sigDosanLive, sigDosanSettingsOf, startSigDosanBoard, stepSigDosanLane } from "./crewSigDosanCore";
 import {
   clearSigHunterBoard,
@@ -33,7 +42,7 @@ import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 /**
  * 점수 게임 Server Actions — code-first (no Figma frame; StreamDonate 참고, P2), route `/creator/crew/games`: 스핀머신 · 주사위
- * 게임 · 투휠 게임 · 랜덤시그 · 기여도 릴레이 · 줍줍 · 시그니처 메들리 · 시그 빙고 · 복불복 뽑기판 · 시그니처 헌터 · 시그니처 두산 · 알파벳 모으기 · 고스톱. Settings are kept per channel; runs belong to the live broadcast. Results are display points only.
+ * 게임 · 투휠 게임 · 랜덤시그 · 기여도 릴레이 · 줍줍 · 시그니처 메들리 · 시그 빙고 · 복불복 뽑기판 · 시그니처 헌터 · 시그니처 두산 · 알파벳 모으기 · 고스톱 · 땅따먹기. Settings are kept per channel; runs belong to the live broadcast. Results are display points only.
  */
 
 const assertMock = () => {
@@ -50,7 +59,7 @@ const SOURCES_SHOWN = 10;
  * How each game plays one run by hand for a member (the caller checks the game can play). 랜덤시그 · 기여도 릴레이 · 줍줍 play only
  * from donations; 메들리 rolls by hand without a member (playMedley).
  */
-const PLAY: Record<Exclude<GameKey, "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW" | "SIG_HUNTER" | "SIG_DOSAN">, (b: MockBroadcast, start: RunStart) => StoredRun> = { SPIN: runSpin, DICE: runDice, TWO_WHEEL: runTwoWheel, ALPHABET: runAlphabet, GOSTOP: runGoStop };
+const PLAY: Record<Exclude<GameKey, "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW" | "SIG_HUNTER" | "SIG_DOSAN" | "TERRITORY">, (b: MockBroadcast, start: RunStart) => StoredRun> = { SPIN: runSpin, DICE: runDice, TWO_WHEEL: runTwoWheel, ALPHABET: runAlphabet, GOSTOP: runGoStop };
 
 function sourcesOf(b: MockBroadcast): Record<GameKey, Record<string, GameSource[]>> {
   const active = (mockCrew.crews[STUDIO_CHANNEL] ?? []).filter((m) => m.active);
@@ -67,7 +76,7 @@ function sourcesOf(b: MockBroadcast): Record<GameKey, Record<string, GameSource[
       ])
     );
   };
-  return { SPIN: forGame("SPIN"), DICE: forGame("DICE"), TWO_WHEEL: forGame("TWO_WHEEL"), RANDOM_SIG: {}, RELAY: {}, JUPJUP: {}, MEDLEY: {}, SIG_BINGO: {}, GRID_DRAW: {}, SIG_HUNTER: {}, SIG_DOSAN: {}, ALPHABET: forGame("ALPHABET"), GOSTOP: forGame("GOSTOP") };
+  return { SPIN: forGame("SPIN"), DICE: forGame("DICE"), TWO_WHEEL: forGame("TWO_WHEEL"), RANDOM_SIG: {}, RELAY: {}, JUPJUP: {}, MEDLEY: {}, SIG_BINGO: {}, GRID_DRAW: {}, SIG_HUNTER: {}, SIG_DOSAN: {}, ALPHABET: forGame("ALPHABET"), GOSTOP: forGame("GOSTOP"), TERRITORY: {} };
 }
 
 export async function getGamesView(): Promise<GamesView | null> {
@@ -94,6 +103,7 @@ export async function getGamesView(): Promise<GamesView | null> {
           sigDosan: sigDosanLive(live),
           alphabet: alphabetLive(live),
           gostop: goStopLive(live),
+          territory: territoryLive(live),
           sources: sourcesOf(live),
           serverNow: new Date().toISOString()
         }
@@ -111,6 +121,7 @@ export async function getGamesView(): Promise<GamesView | null> {
     sigDosanSettings: structuredClone(sigDosanSettingsOf(STUDIO_CHANNEL)),
     alphabetSettings: structuredClone(alphabetSettingsOf(STUDIO_CHANNEL)),
     gostopSettings: structuredClone(goStopSettingsOf(STUDIO_CHANNEL)),
+    territorySettings: structuredClone(territorySettingsOf(STUDIO_CHANNEL)),
     signatures: sigCountSignatures(),
     overlayPath: `/overlay/crew/${mockCreator.integrationKey}`
   };
@@ -476,6 +487,62 @@ export async function resetGoStop(input: unknown): Promise<BroadcastResult> {
   return { status: "SAVED" };
 }
 
+/** Replaces the 땅따먹기 settings (이름 · 판 크기 · 하트 받는 방식 · 칸 점수 · 후원으로 하트 주기 · 제외 시그 · 대기 화면). */
+export async function saveTerritory(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const parsed = parseTerritorySettings(input, MOCK_FORBIDDEN_WORDS, signatureIds());
+  if ("message" in parsed) return { status: "INVALID", message: parsed.message };
+  (mockCrew.territories ??= {})[STUDIO_CHANNEL] = parsed;
+  return { status: "SAVED" };
+}
+
+/** 판 시작: an empty board from the saved size (replacing the one there). `requestId`: a retried start is not a new board. */
+export async function startTerritory(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = rec(input);
+  const live = liveBroadcastOf(STUDIO_CHANNEL);
+  if (!live || live.id !== v.broadcastId) return notLive;
+  if (!validId(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
+  startTerritoryBoard(live, v.requestId);
+  return { status: "SAVED" };
+}
+
+/** 조정실 할당: cell `index` of board `boardId` to `memberId` for a 하트. `requestId`: a retry assigns no more. */
+export async function assignTerritory(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = rec(input);
+  const live = liveBroadcastOf(STUDIO_CHANNEL);
+  if (!live || live.id !== v.broadcastId) return notLive;
+  if (!validId(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
+  const message = assignTerritoryCell(live, { boardId: v.boardId, index: v.index, memberId: v.memberId, requestId: v.requestId });
+  return message ? { status: "INVALID", message } : { status: "SAVED" };
+}
+
+/** 하트 +1 · −1 (`delta`) for `memberId`. `requestId`: a retry adds or takes no more. */
+export async function adjustTerritory(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = rec(input);
+  const live = liveBroadcastOf(STUDIO_CHANNEL);
+  if (!live || live.id !== v.broadcastId) return notLive;
+  if (!validId(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
+  const message = adjustTerritoryHearts(live, { memberId: v.memberId, delta: v.delta, requestId: v.requestId });
+  return message ? { status: "INVALID", message } : { status: "SAVED" };
+}
+
+/** 판 비우기: removes the board and its 하트. Clearing nothing is a no-op. */
+export async function clearTerritory(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const live = liveBroadcastOf(STUDIO_CHANNEL);
+  if (!live || live.id !== rec(input).broadcastId) return notLive;
+  clearTerritoryBoard(live);
+  return { status: "SAVED" };
+}
+
 /**
  * 수동: plays `game` once for an active member, optionally on one of their donations in the broadcast (기준 후원: a 배수
  * result multiplies its points; a donation plays each game at most once). `requestId` is the run id, so a retry returns
@@ -495,6 +562,7 @@ export async function playGame(input: unknown): Promise<GamePlayResult> {
   if (game === "GRID_DRAW") return { status: "INVALID", message: "뽑기판은 후원이나 칸 누르기로 열어요." };
   if (game === "SIG_HUNTER") return { status: "INVALID", message: "시그니처 헌터는 시그니처 후원이나 슬롯 누르기로 SOLD OUT 돼요." };
   if (game === "SIG_DOSAN") return { status: "INVALID", message: "시그니처 두산은 시그니처 후원이나 한 단 올리기로 올라가요." };
+  if (game === "TERRITORY") return { status: "INVALID", message: "땅따먹기는 칸을 눌러 멤버에게 할당해요." };
   const live = liveBroadcastOf(STUDIO_CHANNEL);
   if (!live || live.id !== v.broadcastId) return notLive;
   if (!validId(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };

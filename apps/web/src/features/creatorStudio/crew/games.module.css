@@ -493,3 +493,32 @@
   border-radius: var(--radius-8);
   background: transparent;
 }
+
+/* 땅따먹기 (studio): the board — click a cell to give it to the picked member; owned cells in the owner's color. */
+.territory {
+  display: grid;
+  grid-template-columns: repeat(var(--terr-size, 8), minmax(0, 1fr));
+  gap: 3px;
+  max-width: calc(var(--terr-size, 8) * 52px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.territoryCell {
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 6px;
+  background: var(--color-surface-raised);
+  color: var(--color-text-tertiary);
+  font-size: 11px;
+}
+
+.territoryCell[data-owned] {
+  border-color: var(--cell-color, var(--color-primary));
+  background: var(--cell-color, var(--color-primary));
+  color: #ffffff;
+  font-weight: var(--font-weight-bold);
+}
