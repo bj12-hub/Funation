@@ -146,7 +146,8 @@ export const OVERLAY_TARGETS = [
   { key: "bingo", label: "빙고" },
   { key: "widgets", label: "후원 위젯 (목표 · 누적 · 랭킹 · 최근알림 · 이벤트 · QR · 퀘스트 · 투표 · 룰렛 · 뽑기 · 벽지 · 시계 · 알림 모니터)" },
   { key: "chat", label: "통합 채팅" },
-  { key: "crew", label: "크루 점수판 · 배틀 · 강탈 · 시나리오" }
+  { key: "crew", label: "크루 점수판 · 배틀 · 강탈 · 시나리오" },
+  { key: "play", label: "시청자 참여 게임 (마블 룰렛)" }
 ] as const;
 export type OverlayTarget = (typeof OVERLAY_TARGETS)[number]["key"];
 export const isOverlayTarget = (v: unknown): v is OverlayTarget => OVERLAY_TARGETS.some((t) => t.key === v);
