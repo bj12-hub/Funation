@@ -13,7 +13,7 @@ import { AboutView, ChannelTabs, CrewView, SignaturesView, VideosView } from "./
 import type { ChannelView } from "./channelView";
 import channel from "./channel.module.css";
 import { Player } from "./Player";
-import { remote } from "./remoteImage";
+import { remote } from "@/lib/remoteImage";
 import { RoomActions } from "./RoomActions";
 import { RoomFanNotesCard } from "./RoomFanNotes";
 import { RoomVoteCard } from "./RoomVote";

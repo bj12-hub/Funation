@@ -1,5 +1,6 @@
 import { requestFrom, type DeviceContext } from "./auth";
 import { FlextvUnavailableError, flextvRequest, isRecord, type FlextvResponse } from "./client";
+import { sendChat } from "./live";
 
 /**
  * FLEXTV's 후원 (docs/development/flextv-backend.md "3단계"): the channel a donation goes to, its signatures, and
@@ -162,12 +163,7 @@ export async function sendDonation(
   return mapSend(response);
 }
 
-/** FLEXTV shows the message in chat too, as its own form does (`POST /api/channels/:id/stream/message`). Best effort. */
-export async function postChatMessage(token: string, context: DeviceContext, { channelId, streamId, message }: { channelId: string; streamId: string; message: string }) {
-  await flextvRequest(`/api/channels/${channelId}/stream/message`, {
-    method: "POST",
-    token,
-    ...requestFrom(context),
-    body: { streamId: Number(streamId), source: "web", message, messageType: 0 }
-  }).catch(() => null);
+/** FLEXTV shows the message in chat too, as its own form does (lib/flextv/live.ts `sendChat`). Best effort. */
+export async function postChatMessage(token: string, context: DeviceContext, line: { channelId: string; streamId: string; message: string }) {
+  await sendChat(token, context, line).catch(() => null);
 }

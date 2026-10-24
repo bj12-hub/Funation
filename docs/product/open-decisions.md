@@ -8,7 +8,8 @@ Confirmed:
   broadcasting is part of Ssumnation. The money is FLEXTV's 렉스 ledger as it is (charging, payment providers, refunds,
   settlement under FLEXTV's rules; the on-screen name is TBD), existing FLEXTV members sign in as they are, and watching
   happens inside Ssumnation with FLEXTV's player and chat. Phases 1 (로그인 · 회원가입 · 세션 · 간편 로그인), 2 (렉스
-  잔액 · 충전 · 충전 내역 · 지갑 개요) and 3 (후원 to a FLEXTV channel, 후원 내역) are behind `NEXT_PUBLIC_BACKEND=flextv`;
+  잔액 · 충전 · 충전 내역 · 지갑 개요), 3 (후원 to a FLEXTV channel, 후원 내역) and 4 (라이브 목록, FLEXTV's player in
+  the channel room, its chat) are behind `NEXT_PUBLIC_BACKEND=flextv`;
   there the login lock, the account rules, the charge prices, methods and limits, who may charge (본인인증, 만 19세
   이상) and who may donate and receive, and the donation types a FLEXTV channel offers (일반 · 시그니처) are FLEXTV's.
   See docs/development/flextv-backend.md

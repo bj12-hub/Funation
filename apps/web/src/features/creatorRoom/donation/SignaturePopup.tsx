@@ -7,7 +7,7 @@ import { Modal } from "@/components/ui/Modal";
 import { formatNumber } from "@/lib/format";
 import type { Signature } from "@/services/donations/donationCatalog";
 import styles from "./donation.module.css";
-import { remote } from "../remoteImage";
+import { remote } from "@/lib/remoteImage";
 
 const FILTERS = [
   { key: "ALL", label: "전체", test: () => true },

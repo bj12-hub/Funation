@@ -6,6 +6,7 @@ import type { CreatorRoom } from "@/services/creators/creatorRoom";
 import { ChatPanel } from "./ChatPanel";
 import { MOCK_MESSAGES, type ChatMessage } from "./chatMessages";
 import { DonationForm } from "./DonationForm";
+import { FlextvChat } from "./FlextvChat";
 import styles from "./room.module.css";
 
 export type Tab = "DONATION" | "CHAT";
@@ -30,10 +31,12 @@ export function SidePanel({
   /** `?tab=donation` (e.g. from the home 크리에이터 프로필 popup) opens the donation tab. */
   initialTab?: Tab;
 }) {
-  // A FLEXTV channel's room has no chat here until phase 4 (docs/development/flextv-backend.md): 후원하기 only.
+  // A FLEXTV channel's room (docs/development/flextv-backend.md): the chat is its stream's, while FLEXTV's player plays
+  // it here; otherwise 후원하기 only.
   const flextv = room.source === "FLEXTV";
-  const tabs = flextv ? TABS.filter((t) => t.key === "DONATION") : TABS;
-  const [tab, setTab] = useState<Tab>(flextv ? "DONATION" : initialTab);
+  const flextvStream = flextv && room.stream.status === "LIVE" ? (room.stream.embed ?? null) : null;
+  const tabs = flextv && !flextvStream ? TABS.filter((t) => t.key === "DONATION") : TABS;
+  const [tab, setTab] = useState<Tab>(flextv && !flextvStream ? "DONATION" : initialTab);
   // Local echo only; the realtime chat and donation feed are TBD.
   const [messages, setMessages] = useState<ChatMessage[]>(MOCK_MESSAGES);
   const sendChat = (text: string) =>
@@ -85,6 +88,11 @@ export function SidePanel({
       {!flextv && (
         <div id="room-panel-CHAT" role="tabpanel" aria-labelledby="room-tab-CHAT" className={styles.tabPanel} hidden={tab !== "CHAT"}>
           <ChatPanel signedIn={signedIn} messages={messages} onSend={sendChat} />
+        </div>
+      )}
+      {flextvStream && (
+        <div id="room-panel-CHAT" role="tabpanel" aria-labelledby="room-tab-CHAT" className={styles.tabPanel} hidden={tab !== "CHAT"}>
+          <FlextvChat channelId={room.creatorId} streamId={flextvStream.streamId} signedIn={signedIn} />
         </div>
       )}
     </section>

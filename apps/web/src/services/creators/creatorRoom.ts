@@ -33,6 +33,13 @@ export type LiveStream = {
   qualityLabel: string;
   /** Today's donation goal in FN, aggregated by the server; `null` when the creator has none. */
   goal: { current: number; target: number } | null;
+  /**
+   * FLEXTV channel (phase 4): `embed` — FLEXTV's player plays it here, and its chat is the stream's; `onFlextv` — only
+   * some viewers may watch it (19+, password, fan grade, full room), which FLEXTV's player in another site cannot tell
+   * (it is always signed out there), so it is watched on FLEXTV.
+   */
+  embed?: { playerUrl: string; streamId: string };
+  onFlextv?: { url: string; reason: "ADULT" | "LOCKED" | "FAN_ONLY" | "FULL" | "BANNED" };
 };
 
 export type OfflineStream = { status: "OFFLINE"; imageUrl: string };

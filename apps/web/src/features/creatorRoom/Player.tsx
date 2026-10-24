@@ -2,8 +2,17 @@ import Image from "next/image";
 import { CogIcon, MaximizeIcon, PlayerPlayIcon, VolumeIcon } from "@/components/icons";
 import { formatNumber } from "@/lib/format";
 import type { CreatorRoom } from "@/services/creators/creatorRoom";
-import { remote } from "./remoteImage";
+import { remote } from "@/lib/remoteImage";
 import styles from "./room.module.css";
+
+/** Why a FLEXTV stream is watched on FLEXTV (code-first copy). */
+const ON_FLEXTV_REASON: Record<NonNullable<Extract<CreatorRoom["stream"], { status: "LIVE" }>["onFlextv"]>["reason"], string> = {
+  ADULT: "19세 이상만 볼 수 있는 방송이에요.",
+  LOCKED: "비밀번호가 걸린 방송이에요.",
+  FAN_ONLY: "팬 등급 회원만 볼 수 있는 방송이에요.",
+  FULL: "시청 인원이 가득 찬 방송이에요.",
+  BANNED: "이 방송은 지금 볼 수 없어요."
+};
 
 /**
  * Stream area. Live: Figma 826:685 (portrait stream, goal card, controls).
@@ -20,6 +29,39 @@ export function Player({ name, stream }: { name: string; stream: CreatorRoom["st
         </div>
         <div className={`${styles.controls} ${styles.controlsOffline}`}>
           <span className={styles.streamBrand}>Ssumnation STREAM</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (stream.embed) {
+    // FLEXTV's own player (FLEXTV backend). Sandboxed: it plays and goes full screen, but cannot reach this page or
+    // navigate it (its gated-stream fallback only moves the frame).
+    return (
+      <div className={styles.player}>
+        <iframe
+          src={stream.embed.playerUrl}
+          title={`${name} 라이브 방송`}
+          className={styles.embedFrame}
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
+          sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox"
+        />
+      </div>
+    );
+  }
+
+  if (stream.onFlextv) {
+    return (
+      <div className={styles.player}>
+        <Image src={stream.thumbnailUrl} alt="" fill sizes="(max-width: 1200px) 100vw, 836px" className={styles.offlineImage} unoptimized={remote(stream.thumbnailUrl)} />
+        <div className={styles.offlineNotice}>
+          <span className={styles.offlineBadge}>LIVE</span>
+          <p className={styles.offlineText}>{ON_FLEXTV_REASON[stream.onFlextv.reason]}</p>
+          <a href={stream.onFlextv.url} target="_blank" rel="noopener noreferrer" className={styles.watchOnFlextv}>
+            FLEXTV에서 보기
+          </a>
         </div>
       </div>
     );

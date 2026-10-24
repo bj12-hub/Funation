@@ -12,7 +12,7 @@ import { PLATFORM_ERROR_LABEL, type VideoKind } from "@/services/platforms/platf
 import { PLATFORM_LABEL, type Platform } from "@/types/platform";
 import { CHANNEL_VIEWS, type ChannelView } from "./channelView";
 import styles from "./channel.module.css";
-import { remote } from "./remoteImage";
+import { remote } from "@/lib/remoteImage";
 
 /**
  * Creator channel tabs other than 홈 — structure follows the funnation channel page

@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 export default async function Page({ params, searchParams }: { params: Params; searchParams: SearchParams }) {
   const { id } = await params;
   const { tab, view, show } = await searchParams;
-  if (FLEXTV_DONATION && isFlextvChannelId(id)) return <FlextvRoom channelId={id} view={tab === "donation" ? "home" : parseChannelView(view)} />;
+  if (FLEXTV_DONATION && isFlextvChannelId(id)) return <FlextvRoom channelId={id} view={tab === "donation" ? "home" : parseChannelView(view)} donationTab={tab === "donation"} />;
   const postsShow = Math.min(Math.max(CHANNEL_POSTS_PAGE, Math.floor(Number(show)) || CHANNEL_POSTS_PAGE), 100);
   const channelView = tab === "donation" ? "home" : parseChannelView(view);
   const [room, account, favorite, crew, creator, ranking, posts, videos, vote, fanNotes] = await Promise.all([
@@ -80,10 +80,11 @@ export default async function Page({ params, searchParams }: { params: Params; s
 }
 
 /**
- * A FLEXTV channel's room (FLEXTV backend phase 3, docs/development/flextv-backend.md): the channel, FLEXTV's donation
- * options and the member's 렉스. Ssumnation's own parts of a room are empty here and not shown.
+ * A FLEXTV channel's room (FLEXTV backend phases 3 · 4, docs/development/flextv-backend.md): the channel, its stream in
+ * FLEXTV's player with its chat (opened first while on air), FLEXTV's donation options and the member's 렉스.
+ * Ssumnation's own parts of a room are empty here and not shown.
  */
-async function FlextvRoom({ channelId, view }: { channelId: string; view: ChannelView }) {
+async function FlextvRoom({ channelId, view, donationTab }: { channelId: string; view: ChannelView; donationTab: boolean }) {
   const [room, session, balance] = await Promise.all([getFlextvCreatorRoom(channelId), getSession(), getWalletBalance()]);
   if (!room) notFound();
   return (
@@ -91,7 +92,7 @@ async function FlextvRoom({ channelId, view }: { channelId: string; view: Channe
       room={room}
       viewer={session ? { nickname: session.nickname, fnBalance: balance } : null}
       isFavorite={false}
-      initialTab="DONATION"
+      initialTab={donationTab || room.stream.status !== "LIVE" || !room.stream.embed ? "DONATION" : "CHAT"}
       view={view === "signatures" ? "signatures" : "home"}
       crew={{ members: [] }}
       about={{ description: room.tagline, categories: [], subscriberCount: 0, joinedAt: "" }}

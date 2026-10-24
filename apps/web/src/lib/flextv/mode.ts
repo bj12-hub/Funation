@@ -19,5 +19,8 @@ export const FLEXTV_WALLET = FLEXTV_BACKEND;
 /** Phase 3: 후원 to a FLEXTV channel's room (`/creators/{FLEXTV channel id}`) and 후원 내역. */
 export const FLEXTV_DONATION = FLEXTV_BACKEND;
 
+/** Phase 4: FLEXTV's live list, its player in a channel's room, and the room's live chat. */
+export const FLEXTV_LIVE = FLEXTV_BACKEND;
+
 /** FLEXTV's own site, for flows Ssumnation does not host yet (아이디 · 비밀번호 찾기, 본인인증). */
 export const FLEXTV_WEB_URL = (process.env.NEXT_PUBLIC_FLEXTV_WEB_URL || "https://www.flextv.co.kr").replace(/\/+$/, "");

@@ -18,7 +18,7 @@ broadcasting is part of Ssumnation. The mock services are replaced area by area,
 | 1 | 로그인 · 회원가입 · 세션 · 간편 로그인 | **done** (below) |
 | 2 | 렉스 잔액 · 충전 · 충전 내역 · 지갑 개요 | **done** (below, "2단계") |
 | 3 | 후원 to a FLEXTV channel's room (일반 · 시그니처) · 후원 내역 | **done** (below, "3단계") |
-| 4 | 방송 목록 · 시청 · 채팅 | not started |
+| 4 | 라이브 목록 · 채널 방의 영상 · 채팅 | **done** (below, "4단계") |
 | 5 | 크리에이터 스튜디오 · 방송 설정 · 수익 · 정산 | not started |
 | 6 | Ssumnation-only features (룰렛 · 뽑기 · 위시리스트 · 그림 · 미니 후원 · 크루 게임 …) on new FLEXTV endpoints | not started |
 
@@ -30,10 +30,10 @@ environment until every area a member reaches is connected.
 
 | Variable | Meaning |
 |---|---|
-| `NEXT_PUBLIC_BACKEND=flextv` | Turns the connected phases on (`lib/flextv/mode.ts`: `FLEXTV_AUTH`, `FLEXTV_WALLET`, `FLEXTV_DONATION`). Unset: the mock. |
+| `NEXT_PUBLIC_BACKEND=flextv` | Turns the connected phases on (`lib/flextv/mode.ts`: `FLEXTV_AUTH`, `FLEXTV_WALLET`, `FLEXTV_DONATION`, `FLEXTV_LIVE`). Unset: the mock. |
 | `FLEXTV_API_URL` | FLEXTV's API server (`server/` of FLEXTV's web repository), e.g. its stage. Server-side calls only — the browser never calls FLEXTV, so no CORS entry is needed. |
 | `FLEXTV_SITE_CODE` | Optional `x-site-code`. Unset = FLEXTV's own members (the decision above); a tenant code would scope sign-ups to that tenant. |
-| `NEXT_PUBLIC_FLEXTV_WEB_URL` | FLEXTV's site for flows not connected yet (비밀번호 찾기, 본인인증, 환불 1:1 문의). Default `https://www.flextv.co.kr`. |
+| `NEXT_PUBLIC_FLEXTV_WEB_URL` | FLEXTV's site: its embeddable player, and the flows not connected yet (비밀번호 찾기, 본인인증, 환불 1:1 문의, gated streams). Default `https://www.flextv.co.kr`. |
 | `KAKAO_REST_API_KEY` · `KAKAO_CLIENT_SECRET` (optional) | FLEXTV's Kakao app. |
 | `NAVER_CLIENT_ID` · `NAVER_CLIENT_SECRET` | FLEXTV's Naver app. |
 | `GOOGLE_CLIENT_ID` · `GOOGLE_CLIENT_SECRET` | FLEXTV's Google client. |
@@ -140,6 +140,26 @@ sending again.
 Not connected: 미션 (도전렉스 — FLEXTV's missions are the streamer's, unlike Ssumnation's 퀘스트), 영상 · 사운드 후원
 (FLEXTV's own web has them switched off), and 룰렛 · 뽑기 · 위시리스트 · 그림 · 미니 후원 (phase 6).
 
+## 4단계 · 라이브
+
+Code: `lib/flextv/live.ts` (FLEXTV's live API, mapping), `services/live/liveChannels.ts` (`getAllLiveChannels`: `/live`,
+인기 라이브, 홈 라이브 탭), `services/creators/flextvChannel.ts` (the room's stream), `services/live/flextvRoomChat.ts`
+(the room's chat actions), `features/creatorRoom/FlextvChat.tsx`, the embed branch of `features/creatorRoom/Player.tsx`.
+
+| Ssumnation | FLEXTV | Notes |
+|---|---|---|
+| 라이브 목록 | `GET /api/channels/live-list-main?liveOption=total` | public (no 19+ streams for anyone, for now); blinded or suspended streams left out; sorted by viewers as before; one read per server every 15 s; a card opens `/creators/{channel id}` |
+| 영상 | `GET /api/channels/:id/stream?option=all` asked as a signed-out viewer, then FLEXTV's player `/embed/channels/:id/play` in a sandboxed iframe | FLEXTV's player handles its engines (NCP, LL-HLS …) and playback tokens. It is always signed out inside another site (its cookies are not sent there), so a 19+, password, fan-only or full stream shows "FLEXTV에서 보기" instead. Only the stream id, title and viewer count are read — never the sources or the room's settings |
+| 채팅 읽기 | `GET /api/channels/:id/stream/recent/messages?streamId` | the browser asks every 2 s while visible; the server asks FLEXTV at most once per stream in 2 s, whoever watches; passed on: nickname, a color, the text (never the 아이디); the chat opens first while on air |
+| 채팅 보내기 | `POST /api/channels/:id/stream/message` `{streamId, source:"web", message, messageType:0}` | with the member's token on the server; up to 100 characters; FLEXTV's refusals (muted, blocked, too long) in Ssumnation's words |
+
+No browser talks to FLEXTV's API or chat server, so nothing needs registering on FLEXTV's side (CORS, its socket
+origins, its player's domains); only FLEXTV's embed page is loaded from the browser.
+
+Limits: chat is read every 2 s rather than pushed (FLEXTV's socket would need Ssumnation's origin on its allowlist, or
+a relay); donation and system lines of FLEXTV's chat are not in its recent-messages list; a viewer is counted by
+FLEXTV's player in the frame (a signed-out viewer).
+
 ## FLEXTV-side changes needed before opening to the public
 
 1. **본인인증 from Ssumnation.** FLEXTV charges only members who did its NICE 본인인증, and NICE returns to a fixed
@@ -164,6 +184,7 @@ Not connected: 미션 (도전렉스 — FLEXTV's missions are the streamer's, un
 - Payletter returns to a FLEXTV page that closes the window; a payment abandoned in the window stays "not completed"
   (FLEXTV records no failure for it).
 - Not connected: 내통장결제 (Hecto's SDK), 해외카드 (NICE), 현금영수증, refunds, pending 무통장 requests in 충전 내역.
-- Ssumnation's creator list, home and favorites still list the mock's creators: a FLEXTV channel's room is reached by its
-  address until phase 4 brings FLEXTV's live list.
+- `/live`, 인기 라이브 and the home's live tabs list FLEXTV's streams; the creator list, the home's other sections
+  (hero, trending, creator strip) and favorites still show the mock's creators.
+- 19+, password and fan-only streams are watched on FLEXTV (FLEXTV's player in another site is signed out).
 - 마이페이지 (account linking, 본인인증, withdrawal) is still the mock.

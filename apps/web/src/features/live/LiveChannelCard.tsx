@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { formatDuration, formatNumber } from "@/lib/format";
+import { remote } from "@/lib/remoteImage";
 import type { LiveChannel } from "@/services/live/liveChannels";
 import styles from "./LiveChannelCard.module.css";
 
@@ -20,13 +21,13 @@ export function LiveChannelCard({ channel, variant, sizes, priority = false }: L
   return (
     <Link href={channel.href} className={`${styles.card} ${styles[variant]}`}>
       <div className={styles.thumb}>
-        <Image src={channel.thumbnailUrl} alt="" fill sizes={sizes} priority={priority} className={styles.thumbImage} />
+        <Image src={channel.thumbnailUrl} alt="" fill sizes={sizes} priority={priority} className={styles.thumbImage} unoptimized={remote(channel.thumbnailUrl)} />
         <span className={styles.shade} />
         <span className={`${styles.badge} ${styles.live}`}>LIVE</span>
         <span className={`${styles.badge} ${styles.viewers}`}>시청자 {formatNumber(channel.viewerCount)}명</span>
       </div>
       <div className={styles.info}>
-        <Image src={channel.channelAvatarUrl} alt="" width={avatarSize} height={avatarSize} className={styles.avatar} />
+        <Image src={channel.channelAvatarUrl} alt="" width={avatarSize} height={avatarSize} className={styles.avatar} unoptimized={remote(channel.channelAvatarUrl)} />
         <div className={styles.text}>
           <h3 className={styles.title} title={channel.title}>
             {channel.title}
