@@ -17,6 +17,7 @@ import type {
   AlphabetSettings,
   GoStopSettings,
   TerritorySettings,
+  SudopolySettings,
   TerritorySize,
   SigDosanMode,
   SigDosanSettings,
@@ -129,6 +130,8 @@ export type MockBroadcast = {
     shares?: { memberId: string; points: number }[];
     /** 고스톱: the 풀 after the run (a STOP: the 풀 it took), the GO count and the STOP 확률 rolled (per million). */
     gostop?: { pool: number; go: number; chance: number };
+    /** 스도폴리: the piece that moved, from and to which 칸, and its laps after. */
+    move?: { piece: string; from: number; to: number; laps: number };
     label: string;
     kind: GameEffect;
     value: number;
@@ -233,6 +236,8 @@ export type MockBroadcast = {
     lastCell: number | null;
     hearts: { memberId: string; hearts: number; at: string; donationId: string | null; requestId: string | null }[];
   };
+  /** 스도폴리 pieces (by "SHARED" or member id): 칸, laps toward the 목표, 무인도 rolls left. 판 다시 시작 empties it. */
+  sudopoly?: { pieces: Record<string, { pos: number; laps: number; island: number }> };
   /** 상품 순위표: shown on OBS (`?prize`) and its 구간 (시작 ~ 정지; a new 시작 restarts it). `starts`: 시작 request ids applied. */
   prizeBoard?: { visible: boolean; window: { startedAt: string; stoppedAt: string | null } | null; starts: string[] };
   /** 시그 카운트: shown on OBS (`?sigcount`) and counted from `since` (null = the broadcast start; 다시 세기 sets it). */
@@ -292,6 +297,8 @@ type MockCrew = {
   gostops?: Record<string, GoStopSettings>;
   /** 땅따먹기 settings per channel (missing = DEFAULT_TERRITORY). */
   territories?: Record<string, TerritorySettings>;
+  /** 스도폴리 settings per channel (missing = DEFAULT_SUDOPOLY). */
+  sudopolys?: Record<string, SudopolySettings>;
   /** 멤버 추가 request ids already applied (a retried add is not a second member). */
   memberRequests?: string[];
 };

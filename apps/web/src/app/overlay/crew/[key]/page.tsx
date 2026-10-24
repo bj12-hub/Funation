@@ -13,6 +13,7 @@ import { SigHunterOverlay } from "@/features/creatorStudio/crew/SigHunterOverlay
 import { RandomSigOverlay } from "@/features/creatorStudio/crew/RandomSigOverlay";
 import { RelayOverlay } from "@/features/creatorStudio/crew/RelayOverlay";
 import { SpinMachineOverlay, SpinTallyOverlay } from "@/features/creatorStudio/crew/SpinOverlay";
+import { SudopolyOverlay } from "@/features/creatorStudio/crew/SudopolyOverlay";
 import { TerritoryOverlay } from "@/features/creatorStudio/crew/TerritoryOverlay";
 import { TwoWheelOverlay } from "@/features/creatorStudio/crew/TwoWheelOverlay";
 import { getOverlaySignal } from "@/services/creator/alertRemote";
@@ -23,10 +24,10 @@ import { getOverlayScoreboard } from "@/services/crew/crewBroadcast";
 export const metadata: Metadata = { title: "크루 점수판", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
-type Views = { board?: string; battle?: string; steal?: string; scenario?: string; prize?: string; sigcount?: string; spin?: string; spintally?: string; dice?: string; twowheel?: string; randomsig?: string; relay?: string; jupjup?: string; medley?: string; sigbingo?: string; griddraw?: string; sighunter?: string; sigdosan?: string; alphabet?: string; gostop?: string; gostopticker?: string; territory?: string };
+type Views = { board?: string; battle?: string; steal?: string; scenario?: string; prize?: string; sigcount?: string; spin?: string; spintally?: string; dice?: string; twowheel?: string; randomsig?: string; relay?: string; jupjup?: string; medley?: string; sigbingo?: string; griddraw?: string; sighunter?: string; sigdosan?: string; alphabet?: string; gostop?: string; gostopticker?: string; territory?: string; sudopoly?: string };
 
 export default async function Page({ params, searchParams }: { params: Promise<{ key: string }>; searchParams: Promise<Views> }) {
-  const [{ key }, { board, battle, steal, scenario, prize, sigcount, spin, spintally, dice, twowheel, randomsig, relay, jupjup, medley, sigbingo, griddraw, sighunter, sigdosan, alphabet, gostop, gostopticker, territory }] = await Promise.all([params, searchParams]);
+  const [{ key }, { board, battle, steal, scenario, prize, sigcount, spin, spintally, dice, twowheel, randomsig, relay, jupjup, medley, sigbingo, griddraw, sighunter, sigdosan, alphabet, gostop, gostopticker, territory, sudopoly }] = await Promise.all([params, searchParams]);
   const [data, signal] = await Promise.all([getOverlayScoreboard(key), getOverlaySignal(key, "crew")]);
   // An invalid key looks like a missing page (no hint that the URL format is right).
   if (data === "FORBIDDEN" || signal === "FORBIDDEN") notFound();
@@ -41,7 +42,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   if (prize !== undefined) return <PrizeBoardOverlay board={live?.prizeBoard ?? null} reloadSeq={reloadSeq} theme={theme} />;
   // ?sigcount shows the 시그 카운트 table while 방송 운영 has it on.
   if (sigcount !== undefined) return <SigCountOverlay table={live?.sigCount ?? null} reloadSeq={reloadSeq} theme={theme} />;
-  // 점수 게임 (2026-10-23): ?spin · ?dice · ?twowheel · ?randomsig · ?relay · ?jupjup · ?medley · ?sigbingo · ?griddraw · ?sighunter · ?sigdosan · ?alphabet · ?gostop · ?territory play their runs in turn; ?spintally shows the 스핀머신 BJ별 집계, ?gostopticker the 고스톱 진행 자막.
+  // 점수 게임 (2026-10-23): ?spin · ?dice · ?twowheel · ?randomsig · ?relay · ?jupjup · ?medley · ?sigbingo · ?griddraw · ?sighunter · ?sigdosan · ?alphabet · ?gostop · ?territory · ?sudopoly play their runs in turn; ?spintally shows the 스핀머신 BJ별 집계, ?gostopticker the 고스톱 진행 자막.
   if (spin !== undefined) return <SpinMachineOverlay spin={live?.spin ?? null} serverNow={live?.serverNow ?? null} reloadSeq={reloadSeq} theme={theme} />;
   if (spintally !== undefined) return <SpinTallyOverlay spin={live?.spin ?? null} reloadSeq={reloadSeq} theme={theme} />;
   if (dice !== undefined) return <DiceOverlay dice={live?.dice ?? null} serverNow={live?.serverNow ?? null} reloadSeq={reloadSeq} theme={theme} />;
@@ -57,6 +58,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   if (gostop !== undefined) return <GoStopOverlay gostop={live?.gostop ?? null} serverNow={live?.serverNow ?? null} reloadSeq={reloadSeq} theme={theme} />;
   if (gostopticker !== undefined) return <GoStopTicker gostop={live?.gostop ?? null} serverNow={live?.serverNow ?? null} reloadSeq={reloadSeq} theme={theme} />;
   if (territory !== undefined) return <TerritoryOverlay territory={live?.territory ?? null} serverNow={live?.serverNow ?? null} reloadSeq={reloadSeq} theme={theme} />;
+  if (sudopoly !== undefined) return <SudopolyOverlay sudopoly={live?.sudopoly ?? null} serverNow={live?.serverNow ?? null} reloadSeq={reloadSeq} theme={theme} />;
   if (twowheel !== undefined) return <TwoWheelOverlay wheel={live?.twoWheel ?? null} serverNow={live?.serverNow ?? null} reloadSeq={reloadSeq} theme={theme} />;
   // ?scenario shows the running 콘텐츠 시나리오 part.
   if (scenario !== undefined) return <ScenarioOverlay scenario={live?.scenario ?? null} serverNow={live?.serverNow ?? null} reloadSeq={reloadSeq} theme={theme} />;
