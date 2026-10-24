@@ -1,0 +1,117 @@
+/* 로얄 럼블 (조작형) 조종 화면 (code-first) — phone first: the joystick on the left, 공격 on the right. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 20px 16px 32px;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-size-16, 16px);
+}
+
+.dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--me);
+  box-shadow: 0 0 0 2px #ffffff;
+}
+
+.muted {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.big {
+  margin: 0;
+  font-size: var(--font-size-18, 18px);
+  font-weight: var(--font-weight-bold);
+  text-align: center;
+}
+
+.count {
+  margin: 0;
+  color: var(--me);
+  font-size: 72px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.hp {
+  position: relative;
+  height: 28px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
+}
+
+.hp span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, #ef4444, var(--me));
+  transition: width 0.2s;
+}
+
+.hp b {
+  position: relative;
+  display: block;
+  line-height: 28px;
+  text-align: center;
+  font-size: var(--font-size-13);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+}
+
+.pad {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(56vw, 220px);
+  aspect-ratio: 1;
+  border: 2px solid var(--color-border-strong);
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--color-surface-raised), var(--color-surface));
+  touch-action: none;
+}
+
+.knob {
+  width: 40%;
+  height: 40%;
+  border-radius: 50%;
+  background: var(--me);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 45%);
+  pointer-events: none;
+}
+
+.attack {
+  width: min(30vw, 120px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: var(--font-size-18, 18px);
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 45%);
+  touch-action: manipulation;
+}
+
+.attack:active {
+  transform: scale(0.94);
+}
