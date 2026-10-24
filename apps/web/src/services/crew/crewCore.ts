@@ -1,6 +1,6 @@
 import type { AmountUnit } from "@/types/donationUnit";
 import type { Platform } from "@/types/platform";
-import { BATTLE_MULTIPLIER_MAX, BATTLE_PENALTY_MAX, DUPLICATE_WINDOW_SEC, FAN_NOTE_LIMITS, GRADES_MAX, MULTI_TEAM_KEYS, PLATFORM_FAN_NOTE_RULES, GRADE_MULTIPLIER_MAX, GRADE_NAME_MAX, PLATFORM_BATTLE_RULES, PLATFORM_STEAL_RULES, SUB_BOARD_MAX, excelUnitOf, isExcelUnit, type BattleRules, type CrewGrade, type FanNoteRules, type FanNotesView, type RoomFanNotes, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow, type ScoreRow } from "./crewTypes";
+import { BATTLE_MULTIPLIER_MAX, BATTLE_PENALTY_MAX, DONOR_ALIASES_MAX, DONOR_MERGES_MAX, DONOR_NAME_MAX, DUPLICATE_WINDOW_SEC, FAN_NOTE_LIMITS, GRADES_MAX, MULTI_TEAM_KEYS, PLATFORM_FAN_NOTE_RULES, GRADE_MULTIPLIER_MAX, GRADE_NAME_MAX, PLATFORM_BATTLE_RULES, PLATFORM_STEAL_RULES, SUB_BOARD_MAX, excelUnitOf, isExcelUnit, type BattleRules, type CrewGrade, type DonorMerge, type FanNoteRules, type FanNotesView, type RoomFanNotes, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow, type ScoreRow } from "./crewTypes";
 import { mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 // ── 후원 리스트 (server-only) ──────────────────────────────────────────────────
@@ -73,15 +73,63 @@ export function addFeedEntry(b: MockBroadcast, input: FeedInput, now = Date.now(
   return entry;
 }
 
-const sameDonor = (s: string) => s.replace(/\s+/g, "").toLowerCase();
+/** A donor name as names compare (후원자 이름 병합 · 중복 의심): spaces and case ignored. */
+export const donorKey = (s: string) => s.replace(/\s+/g, "").toLowerCase();
+
+/** The channel's 후원자 이름 병합 groups. */
+export const donorMergesOf = (channelId: string): DonorMerge[] => mockCrew.donorMerges?.[channelId] ?? [];
+
+/** A name → its group's 대표 이름 (the name itself when it is in no group). */
+export function donorNamer(merges: DonorMerge[]): (name: string) => string {
+  const byKey = new Map<string, string>();
+  for (const g of merges) for (const n of [g.name, ...g.aliases]) byKey.set(donorKey(n), g.name);
+  return (name) => byKey.get(donorKey(name)) ?? name;
+}
+
+/**
+ * Validates the 후원자 이름 병합 list: up to DONOR_MERGES_MAX groups, each a 대표 이름 and 1 ~ DONOR_ALIASES_MAX names to
+ * merge into it (DONOR_NAME_MAX each, blank ones and repeats of the group's own names dropped). A name may be in one group
+ * only. Only the 대표 이름 is typed fresh, so only it is checked for 금지어 (aliases are names donors already used).
+ * `known`: the channel's group ids — any other id gets a new one.
+ */
+export function parseDonorMerges(input: unknown, forbidden: string[], known: string[]): DonorMerge[] | { message: string } {
+  if (!Array.isArray(input) || input.length > DONOR_MERGES_MAX) return { message: `이름 병합은 ${DONOR_MERGES_MAX}개까지 만들 수 있어요.` };
+  const text = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+  const out: DonorMerge[] = [];
+  const taken = new Set<string>();
+  for (const raw of input) {
+    const g = (typeof raw === "object" && raw !== null ? raw : {}) as Record<string, unknown>;
+    const name = text(g.name);
+    if (!name || name.length > DONOR_NAME_MAX) return { message: `대표 이름은 1 ~ ${DONOR_NAME_MAX}자로 입력해 주세요.` };
+    if (forbidden.some((w) => name.toLowerCase().includes(w))) return { message: "사용할 수 없는 단어가 포함되어 있어요." };
+    if (!Array.isArray(g.aliases)) return { message: "합칠 이름을 확인해 주세요." };
+    const aliases: string[] = [];
+    for (const a of g.aliases) {
+      const alias = text(a);
+      if (alias.length > DONOR_NAME_MAX) return { message: `합칠 이름은 ${DONOR_NAME_MAX}자까지예요.` };
+      if (alias && ![name, ...aliases].some((n) => donorKey(n) === donorKey(alias))) aliases.push(alias);
+    }
+    if (!aliases.length) return { message: `${name}에 합칠 이름을 하나 이상 넣어 주세요.` };
+    if (aliases.length > DONOR_ALIASES_MAX) return { message: `합칠 이름은 대표 이름마다 ${DONOR_ALIASES_MAX}개까지예요.` };
+    for (const n of [name, ...aliases]) {
+      if (taken.has(donorKey(n))) return { message: `'${n}' 이름은 다른 병합에 이미 있어요.` };
+      taken.add(donorKey(n));
+    }
+    const id = typeof g.id === "string" && known.includes(g.id) && !out.some((x) => x.id === g.id) ? g.id : `dm-${crypto.randomUUID()}`;
+    out.push({ id, name, aliases });
+  }
+  return out;
+}
 
 /**
  * 중복 도네이션 확인: for each 중복 의심 entry (no decision yet, not cancelled), the closest earlier entry that is not
- * cancelled with the same donor, amount and unit at most DUPLICATE_WINDOW_SEC before it. `feed` is in arrival order.
+ * cancelled with the same donor (`nameOf`: 후원자 이름 병합), amount and unit at most DUPLICATE_WINDOW_SEC before it.
+ * `feed` is in arrival order.
  */
-export function duplicateSuspects(feed: FeedEntry[]): Map<string, { id: string; at: string }> {
+export function duplicateSuspects(feed: FeedEntry[], nameOf: (name: string) => string = (n) => n): Map<string, { id: string; at: string }> {
   const out = new Map<string, { id: string; at: string }>();
   const kept = feed.filter((f) => f.status !== "CANCELLED");
+  const sameDonor = (name: string) => donorKey(nameOf(name));
   for (const [i, f] of kept.entries()) {
     if (f.duplicate) continue;
     const t = Date.parse(f.at);

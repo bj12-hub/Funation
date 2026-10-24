@@ -28,6 +28,7 @@ import type {
   SigBingoSettings,
   SigBingoSize,
   PrizeBoardSettings,
+  DonorMerge,
   TeamPrizeSettings,
   RandomSigSettings,
   RelaySettings,
@@ -274,6 +275,8 @@ type MockCrew = {
   grades?: Record<string, CrewGrade[]>;
   /** 상품 순위표 settings per channel (missing = DEFAULT_PRIZE_BOARD). */
   prizeBoards?: Record<string, PrizeBoardSettings>;
+  /** 후원자 이름 병합 per channel (studio only). */
+  donorMerges?: Record<string, DonorMerge[]>;
   /** 팀 순위표 settings per channel (missing = DEFAULT_TEAM_PRIZE_BOARD). */
   teamPrizes?: Record<string, TeamPrizeSettings>;
   /** 시그 카운트 settings per channel (missing = DEFAULT_SIG_COUNT). */

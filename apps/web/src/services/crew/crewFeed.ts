@@ -3,7 +3,7 @@
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
-import { addFeedEntry, liveBroadcastOf, matchMember } from "./crewCore";
+import { addFeedEntry, donorMergesOf, liveBroadcastOf, matchMember, parseDonorMerges } from "./crewCore";
 import {
   EXCEL_MULTIPLIER_MAX,
   EXCEL_RATE_MAX,
@@ -44,6 +44,19 @@ const bad = (s: string) => MOCK_FORBIDDEN_WORDS.some((w) => s.toLowerCase().incl
 const members = () => mockCrew.crews[STUDIO_CHANNEL] ?? [];
 const rec = (input: unknown) => (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
 const notLive = { status: "INVALID", message: "진행 중인 방송이 아니에요." } as const;
+
+/**
+ * 후원자 이름 병합: replaces the channel's groups (kept across broadcasts, editable before going live). Studio only — it
+ * renames nothing on stream.
+ */
+export async function saveDonorMerges(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const parsed = parseDonorMerges(rec(input).merges, MOCK_FORBIDDEN_WORDS, donorMergesOf(STUDIO_CHANNEL).map((g) => g.id));
+  if ("message" in parsed) return { status: "INVALID", message: parsed.message };
+  (mockCrew.donorMerges ??= {})[STUDIO_CHANNEL] = parsed;
+  return { status: "SAVED" };
+}
 
 /** Keywords are kept per member across broadcasts; a keyword may belong to one member only. */
 export async function setMemberKeywords(input: unknown): Promise<BroadcastResult> {

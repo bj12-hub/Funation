@@ -11,6 +11,7 @@ import {
   BROADCAST_TITLE_MAX,
   MAX_ADJUST_POINTS,
   MULTI_TEAM_COLORS,
+  DONOR_SUMMARY_ROWS,
   OVERLAY_BOARD_ROWS,
   PROJECT_NAME_MAX,
   battleStanding,
@@ -18,6 +19,8 @@ import {
   type FeedSourceKey,
   type FeedSummaryRow,
   type Battle,
+  type DonorSummaryRow,
+  type FeedEntryView,
   type FeedView,
   type BroadcastLive,
   type OverlayScoreboard,
@@ -26,7 +29,7 @@ import {
   type BroadcastView,
   type TeamKey
 } from "./crewTypes";
-import { battleGroups, battleRulesOf, duplicateSuspects, fanNotesView, feedOf, gradeMultipliersOf, excelOf, liveBroadcastOf, scoreboardRows, scoredFeed, stealRecordView, stealRulesOf, timesMultiplier, windowGames, windowReceived, windowScores, windowSteals } from "./crewCore";
+import { battleGroups, battleRulesOf, donorKey, donorMergesOf, donorNamer, duplicateSuspects, fanNotesView, feedOf, scoreFn, gradeMultipliersOf, excelOf, liveBroadcastOf, scoreboardRows, scoredFeed, stealRecordView, stealRulesOf, timesMultiplier, windowGames, windowReceived, windowScores, windowSteals } from "./crewCore";
 import { prizeBoardLive, prizeSettingsOf, teamPrizeLive, teamPrizeSettingsOf } from "./crewPrizeCore";
 import { sigCountLive, sigCountSettingsOf, sigCountSignatures } from "./crewSigCountCore";
 import { diceLive } from "./crewDiceCore";
@@ -162,15 +165,39 @@ function windowRows(b: MockBroadcast, from: string, to: string | null) {
 function feedView(b: MockBroadcast): FeedView {
   const scored = scoredFeed(b);
   const pot = scored.filter((f) => f.status === "POT");
-  const suspects = duplicateSuspects(feedOf(b));
+  const nameOf = donorNamer(donorMergesOf(b.channelId));
+  const suspects = duplicateSuspects(feedOf(b), nameOf);
+  const merged = (donor: string) => (nameOf(donor) === donor ? null : nameOf(donor));
   return {
     assignMode: b.assignMode ?? "AUTO",
     keywords: structuredClone(mockCrew.keywords ?? {}),
-    entries: structuredClone(scored.reverse().slice(0, 200)).map((f) => ({ ...f, duplicateOf: suspects.get(f.id) ?? null })),
+    entries: structuredClone([...scored].reverse().slice(0, 200)).map((f) => ({ ...f, duplicateOf: suspects.get(f.id) ?? null, mergedDonor: merged(f.donor) })),
     oneshot: b.oneshot ? { startedAt: b.oneshot.startedAt, potPoints: pot.reduce((s, f) => s + f.points, 0), count: pot.length } : null,
     excel: structuredClone(excelOf(b.channelId)),
-    summary: feedSummary(b)
+    summary: feedSummary(b),
+    donors: donorSummary(b, scored, nameOf)
   };
+}
+
+/**
+ * 후원자별 정리: this broadcast's 후원 리스트 entries that are not cancelled and 멤버 지정 후원, by donor under 후원자 이름
+ * 병합, with the names each came under — best first by points (then 건수, then name).
+ */
+function donorSummary(b: MockBroadcast, scored: FeedEntryView[], nameOf: (name: string) => string): DonorSummaryRow[] {
+  const end = b.endedAt ?? new Date(Date.now() + 1000).toISOString();
+  const s = excelOf(b.channelId);
+  const rows = new Map<string, DonorSummaryRow>();
+  const add = (donor: string, points: number) => {
+    const name = nameOf(donor);
+    const row = rows.get(donorKey(name)) ?? { name, names: [], count: 0, points: 0 };
+    if (!row.names.some((n) => donorKey(n) === donorKey(donor))) row.names.push(donor);
+    row.count += 1;
+    row.points += points;
+    rows.set(donorKey(name), row);
+  };
+  for (const f of scored) if (f.status !== "CANCELLED") add(f.donor, f.points);
+  for (const a of mockCrew.attributions) if (a.channelId === b.channelId && a.at >= b.startedAt && a.at <= end) add(a.donor ?? a.shownDonor, scoreFn(a.fnAmount, s));
+  return [...rows.values()].sort((x, y) => y.points - x.points || y.count - x.count || x.name.localeCompare(y.name)).slice(0, DONOR_SUMMARY_ROWS);
 }
 
 /** 플랫폼 · BJ별 정리: assigned points per source for each member, plus everything not yet assigned. */
@@ -221,6 +248,7 @@ export async function getBroadcastView(): Promise<BroadcastView | null> {
     battleRules: { ...battleRulesOf(STUDIO_CHANNEL) },
     scenario: structuredClone(mockCrew.scenario?.[STUDIO_CHANNEL] ?? []),
     prizeSettings: structuredClone(prizeSettingsOf(STUDIO_CHANNEL)),
+    donorMerges: structuredClone(donorMergesOf(STUDIO_CHANNEL)),
     teamPrizeSettings: structuredClone(teamPrizeSettingsOf(STUDIO_CHANNEL)),
     sigCountSettings: structuredClone(sigCountSettingsOf(STUDIO_CHANNEL)),
     signatures: sigCountSignatures(),
