@@ -54,6 +54,15 @@ export async function getSession(): Promise<Session | null> {
 export const hasRole = (session: Session | null, role: Role): boolean => !!session && session.roles.includes(role);
 
 /**
+ * The signed-in member's FLEXTV access token, for services that call FLEXTV on their behalf (server code only — it
+ * never goes to the browser). Null without a FLEXTV session.
+ */
+export async function getFlextvAccessToken(): Promise<string | null> {
+  if (!FLEXTV_AUTH || !(await getSession())) return null;
+  return (await cookies()).get(SESSION_COOKIE)?.value ?? null;
+}
+
+/**
  * Session of a member with the Creator role, or `null`. Every creator-studio read and Server Action
  * uses this instead of `getSession()`, so a signed-in supporter cannot call creator APIs directly.
  * With FLEXTV: its broadcasters (lib/flextv/auth.ts `sessionFromMember`). Mock: TBD how the role is granted.

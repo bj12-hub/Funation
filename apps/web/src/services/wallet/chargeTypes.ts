@@ -24,7 +24,9 @@ export type PaymentMethodId =
   | "TMONEY"
   | "SSG_PAY"
   | "INTERNET_BANKING"
-  | "BOOK_GIFT";
+  | "BOOK_GIFT"
+  /** 무통장입금 to the site's account (FLEXTV backend): credited once the deposit is matched. */
+  | "BANK_TRANSFER";
 
 export type PaymentMethodInfo = { glyph: string; name: string; subtitle: string };
 
@@ -43,7 +45,8 @@ export const PAYMENT_METHODS: Record<PaymentMethodId, PaymentMethodInfo> = {
   TMONEY: { glyph: "T-money", name: "티머니", subtitle: "티머니/캐시비" },
   SSG_PAY: { glyph: "SSG", name: "SSG페이", subtitle: "SSG페이" },
   INTERNET_BANKING: { glyph: "💻", name: "인터넷뱅킹", subtitle: "인터넷뱅킹" },
-  BOOK_GIFT: { glyph: "BOOK", name: "도서상품권", subtitle: "도서문화상품권" }
+  BOOK_GIFT: { glyph: "BOOK", name: "도서상품권", subtitle: "도서문화상품권" },
+  BANK_TRANSFER: { glyph: "🏧", name: "무통장입금", subtitle: "무통장입금" }
 };
 
 export const PAYMENT_METHOD_IDS = Object.keys(PAYMENT_METHODS) as PaymentMethodId[];
@@ -64,7 +67,16 @@ export type ChargeOptions = {
   availableMethods: PaymentMethodId[];
   /** Minimum custom amount in FN. */
   minAmount: number;
+  /**
+   * FLEXTV backend: whether the member may charge — FLEXTV asks for its 본인인증 and 만 19세 이상 (`MINOR`), and does
+   * not sell to self-declared foreign members (`UNAVAILABLE`). Absent (the mock): the form is shown.
+   */
+  eligibility?: ChargeEligibility;
+  /** FLEXTV backend: bonus FN a 무통장입금 earns, as minimum FN → percent, highest minimum first. */
+  depositBonus?: { minAmount: number; percent: number }[];
 };
+
+export type ChargeEligibility = "OK" | "IDENTITY_REQUIRED" | "MINOR" | "UNAVAILABLE";
 
 export type ChargeQuote = { status: "OK"; fnAmount: number; price: number } | { status: "INVALID"; minAmount: number };
 
@@ -92,9 +104,18 @@ export type ChargeRequest = {
   methodId: PaymentMethodId;
   /** Generated once per submission in the browser; the same key never charges twice. */
   idempotencyKey: string;
+  /** 입금자명, for BANK_TRANSFER only. */
+  depositorName?: string;
 };
 
-export type ChargeErrorCode = "PAY-STOP-401" | "BANK-MAINT-503" | "LIMIT-OVER-429" | "METHOD-LOCK-403" | "SYSTEM-TEMP-500";
+export type ChargeErrorCode =
+  | "PAY-STOP-401"
+  | "BANK-MAINT-503"
+  | "LIMIT-OVER-429"
+  | "METHOD-LOCK-403"
+  | "SYSTEM-TEMP-500"
+  /** FLEXTV backend (code-first): a 무통장입금 request of the same amount is still waiting for its deposit. */
+  | "DEPOSIT-WAITING-409";
 
 export type ChargeResult =
   | {
@@ -107,11 +128,39 @@ export type ChargeResult =
       balance: number;
     }
   | { status: "FAILED"; code: ChargeErrorCode }
+  /**
+   * FLEXTV backend: the payment continues in the provider's window (`payUrl`, opened by the browser); the result comes
+   * from `checkChargeStatus(checkoutId)` once the provider told FLEXTV.
+   */
+  | { status: "PAYMENT_STARTED"; checkoutId: string; payUrl: string; fnAmount: number; price: number; methodId: PaymentMethodId }
+  /** FLEXTV backend: a 무통장입금 request; the FN arrive once the deposit to `account` is matched. */
+  | {
+      status: "DEPOSIT_REQUESTED";
+      fnAmount: number;
+      price: number;
+      bonusFn: number;
+      depositorName: string;
+      /** Null when FLEXTV did not say (the member is pointed to 고객센터). */
+      account: { bank: string; number: string; holder: string } | null;
+    }
+  /** FLEXTV backend: the member may not charge yet (ChargeOptions.eligibility). */
+  | { status: "NOT_ELIGIBLE"; eligibility: Exclude<ChargeEligibility, "OK"> }
   /** Same key is still being processed. */
   | { status: "IN_PROGRESS" }
   /** Same key was used with a different request. */
   | { status: "CONFLICT" }
   | { status: "INVALID" | "TERMS_REQUIRED" | "UNAUTHORIZED" };
+
+/** `checkChargeStatus`: where a payment started in the provider's window stands. */
+export type ChargeStatusResult =
+  | Extract<ChargeResult, { status: "COMPLETED" }>
+  /** Not finished — still paying, or the window was closed without paying. */
+  | { status: "PENDING" }
+  | { status: "FAILED"; code: ChargeErrorCode }
+  | { status: "UNAUTHORIZED" | "INVALID" };
+
+/** Methods whose payment continues in the provider's window (FLEXTV backend: Payletter). */
+export const WINDOW_PAYMENT_METHODS: readonly PaymentMethodId[] = ["KAKAO_PAY", "CARD", "PHONE"];
 
 /** Figma 739:* 결제 취소 variants. `primary` is the right (purple) button. */
 export const CHARGE_ERRORS: Record<
@@ -152,5 +201,12 @@ export const CHARGE_ERRORS: Record<
     secondary: "SUPPORT",
     primary: "RETRY",
     primaryLabel: "다시 시도"
+  },
+  "DEPOSIT-WAITING-409": {
+    title: "입금 대기 중인 요청이 있습니다",
+    lines: ["같은 금액의 무통장입금 요청이 입금을 기다리고 있습니다.", "입금을 마치거나 다른 금액 · 결제수단으로 충전해 주세요."],
+    secondary: "CLOSE",
+    primary: "CHANGE_METHOD",
+    primaryLabel: "다른 결제수단"
   }
 };

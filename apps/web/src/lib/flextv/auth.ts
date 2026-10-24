@@ -24,15 +24,19 @@ export type SocialProvider = "kakao" | "naver" | "google";
 export const SOCIAL_PROVIDERS: readonly SocialProvider[] = ["kakao", "naver", "google"];
 export const isSocialProvider = (value: unknown): value is SocialProvider => SOCIAL_PROVIDERS.includes(value as SocialProvider);
 
-/** Who is asking: FLEXTV counts logins and checks its black-IP list per IP, and records the device. */
-export type DeviceContext = { clientIp: string | null; device: "PCWEB" | "MOBILEWEB" };
+/** Who is asking: FLEXTV counts logins and checks its black-IP list per IP, and records the device and browser. */
+export type DeviceContext = { clientIp: string | null; device: "PCWEB" | "MOBILEWEB"; userAgent: string | null };
 
 export function deviceContextFrom(headers: Pick<Headers, "get">): DeviceContext {
   const forwarded = headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   const clientIp = forwarded || headers.get("x-real-ip")?.trim() || null;
-  const mobile = /Mobi|Android|iPhone|iPad/i.test(headers.get("user-agent") ?? "");
-  return { clientIp, device: mobile ? "MOBILEWEB" : "PCWEB" };
+  const userAgent = headers.get("user-agent")?.slice(0, 512) || null;
+  const mobile = /Mobi|Android|iPhone|iPad/i.test(userAgent ?? "");
+  return { clientIp, device: mobile ? "MOBILEWEB" : "PCWEB", userAgent };
 }
+
+/** What FLEXTV gets from the member's request on every call that acts for them. */
+export const requestFrom = (context: DeviceContext) => ({ clientIp: context.clientIp, userAgent: context.userAgent });
 
 const MEMBER_STATUS_NORMAL = 1;
 /** FLEXTV members who broadcast: 본사 소속 (2, also every 개인 BJ after 방송 신청) and 엔터 소속 (3). */
@@ -108,7 +112,7 @@ export async function signIn(
     method: "POST",
     // `device` must be set: without it FLEXTV treats the call as its app and drops the member's push device.
     body: { loginId, password, loginKeep: keepSignedIn, saveId: false, device: context.device },
-    clientIp: context.clientIp
+    ...requestFrom(context)
   });
   return mapSignIn(response);
 }
@@ -124,7 +128,7 @@ export async function signInWithProvider(provider: SocialProvider, providerToken
   const response = await flextvRequest(SOCIAL_SIGN_IN_PATH[provider], {
     method: "POST",
     body: { accessToken: providerToken, device: context.device },
-    clientIp: context.clientIp
+    ...requestFrom(context)
   });
   return mapSignIn(response);
 }
@@ -171,7 +175,7 @@ export async function signUp(
   const response = await flextvRequest("/api/auth/signup", {
     method: "POST",
     body: { loginId, nickname, password, device: context.device },
-    clientIp: context.clientIp
+    ...requestFrom(context)
   });
   return mapSignUp(response);
 }
@@ -180,7 +184,7 @@ export async function signUpWithProvider(provider: SocialProvider, providerToken
   const response = await flextvRequest(`/api/auth/signup/oauth/${provider}`, {
     method: "POST",
     body: { accessToken: providerToken, nickname, device: context.device },
-    clientIp: context.clientIp
+    ...requestFrom(context)
   });
   return mapSignUp(response);
 }

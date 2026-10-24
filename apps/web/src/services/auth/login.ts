@@ -14,7 +14,7 @@ import { clearPasswordFailures, isPasswordLocked, recordLogin, recordPasswordFai
 /**
  * Login service contract.
  *
- * With the FLEXTV backend (NEXT_PUBLIC_AUTH_BACKEND=flextv, docs/development/flextv-backend.md) the member signs in
+ * With the FLEXTV backend (NEXT_PUBLIC_BACKEND=flextv, docs/development/flextv-backend.md) the member signs in
  * with FLEXTV, which counts failures and locks itself. Otherwise this module is the contract the UI depends on, plus a
  * development-only mock that exercises the Figma states locally.
  *

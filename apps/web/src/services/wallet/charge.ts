@@ -1,5 +1,6 @@
 "use server";
 
+import { FLEXTV_WALLET } from "@/lib/flextv/mode";
 import { toDateString } from "@/lib/period";
 import { memberKeyOf, ownEntry } from "@/lib/records";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
@@ -15,8 +16,10 @@ import {
   type ChargeOptions,
   type ChargeQuote,
   type ChargeResult,
+  type ChargeStatusResult,
   type PaymentMethodId
 } from "./chargeTypes";
+import * as flextv from "./flextvCharge";
 import { beginCredit } from "./inFlightCore";
 import { mockWallet } from "./mockWalletStore";
 import { notify } from "@/services/notifications/notificationCore";
@@ -34,14 +37,20 @@ import { notify } from "@/services/notifications/notificationCore";
  * that account withdrew is never credited (not to the withdrawn account, not to a 재가입 account) and is kept for the
  * console (./chargeCore.ts). What happens to its KRW (PG 취소 · 환불) is TBD.
  *
+ * With the FLEXTV backend (FLEXTV_WALLET) every action goes to ./flextvCharge.ts: FLEXTV's 렉스, prices and payment
+ * providers, a payment window or a 무통장입금 request instead of an instant result, and `checkChargeStatus`.
+ *
  * TBD (docs/product/open-decisions.md): payment provider, FN packages, FN/KRW conversion, limits.
  * The mock follows the Figma samples (5,000 FN → 5,500원 …) and completes payments instantly.
  */
 
 const MIN_AMOUNT = 1_000; // Figma 817:7936 "최소 1,000 FN부터 충전할 수 있습니다." — server-owned
 const MAX_INPUT = 999_999_999;
+/** The mock completes everything at once; 무통장입금 (waiting for a deposit) is the FLEXTV backend's only. */
+const MOCK_METHOD_IDS: PaymentMethodId[] = PAYMENT_METHOD_IDS.filter((id) => id !== "BANK_TRANSFER");
 
 export async function getChargeOptions(): Promise<ChargeOptions | null> {
+  if (FLEXTV_WALLET) return flextv.chargeOptions();
   if (!USE_MOCK) throw new Error("Charge API is not connected yet.");
   if (!(await getSession())) return null;
   await mockDelay(300);
@@ -50,13 +59,14 @@ export async function getChargeOptions(): Promise<ChargeOptions | null> {
     termsAgreed: mockWallet.chargeTermsAgreedAt !== null,
     packages: MOCK_PACKAGES.map((fnAmount) => ({ id: `fn-${fnAmount}`, fnAmount, price: mockPrice(fnAmount) })),
     savedMethods: ["KAKAO_PAY", "NAVER_PAY"],
-    availableMethods: PAYMENT_METHOD_IDS,
+    availableMethods: MOCK_METHOD_IDS,
     minAmount: MIN_AMOUNT
   };
 }
 
 /** KRW price for a custom amount (Figma 672:2 "환산 금액"). */
 export async function quoteCharge(amount: unknown): Promise<ChargeQuote | null> {
+  if (FLEXTV_WALLET) return flextv.quote(amount);
   if (!USE_MOCK) throw new Error("Charge API is not connected yet.");
   if (!(await getSession())) return null;
   if (!isValidAmount(amount)) return { status: "INVALID", minAmount: MIN_AMOUNT };
@@ -64,6 +74,7 @@ export async function quoteCharge(amount: unknown): Promise<ChargeQuote | null> 
 }
 
 export async function agreeChargeTerms(consents: unknown): Promise<{ status: "AGREED" | "INVALID" | "UNAUTHORIZED" }> {
+  if (FLEXTV_WALLET) return flextv.agreeTerms(consents);
   if (!USE_MOCK) throw new Error("Charge API is not connected yet.");
   if (!(await getSession())) return { status: "UNAUTHORIZED" };
   if (typeof consents !== "object" || consents === null) return { status: "INVALID" };
@@ -77,6 +88,7 @@ export async function agreeChargeTerms(consents: unknown): Promise<{ status: "AG
 }
 
 export async function requestCharge(input: unknown): Promise<ChargeResult> {
+  if (FLEXTV_WALLET) return flextv.requestCharge(input);
   if (!USE_MOCK) throw new Error("Charge API is not connected yet.");
   const session = await getSession();
   if (!session) return { status: "UNAUTHORIZED" };
@@ -131,6 +143,15 @@ export async function requestCharge(input: unknown): Promise<ChargeResult> {
   }
 }
 
+/**
+ * FLEXTV backend: where a payment started in the provider's window stands (the browser asks while the window is open,
+ * and once more when it closes). The mock completes payments at once and never starts a window.
+ */
+export async function checkChargeStatus(checkoutId: unknown): Promise<ChargeStatusResult> {
+  if (FLEXTV_WALLET) return flextv.checkStatus(checkoutId);
+  return { status: "INVALID" };
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function isValidAmount(value: unknown): value is number {
@@ -141,7 +162,7 @@ function parseRequest(input: unknown): { fnAmount: number; methodId: PaymentMeth
   if (typeof input !== "object" || input === null) return null;
   const { amount, methodId, idempotencyKey } = input as { amount?: ChargeAmountInput; methodId?: unknown; idempotencyKey?: unknown };
   if (typeof idempotencyKey !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(idempotencyKey)) return null;
-  if (typeof methodId !== "string" || !Object.hasOwn(PAYMENT_METHODS, methodId)) return null;
+  if (typeof methodId !== "string" || !MOCK_METHOD_IDS.includes(methodId as PaymentMethodId)) return null;
   if (typeof amount !== "object" || amount === null) return null;
 
   let fnAmount: number | null = null;

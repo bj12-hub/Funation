@@ -15,24 +15,25 @@ broadcasting is part of Ssumnation. The mock services are replaced area by area,
 
 | # | Area | Status |
 |---|---|---|
-| 1 | 로그인 · 회원가입 · 세션 · 간편 로그인 | **this document** |
-| 2 | 렉스 충전 · 지갑 (FLEXTV's checkout and payment providers; charge where a donation runs short) | not started |
+| 1 | 로그인 · 회원가입 · 세션 · 간편 로그인 | **done** (below) |
+| 2 | 렉스 잔액 · 충전 · 충전 내역 · 지갑 개요 | **done** (below, "2단계") |
 | 3 | 후원 (FLEXTV's TTS · video · sound · signature · mission donations first) | not started |
 | 4 | 방송 목록 · 시청 · 채팅 | not started |
 | 5 | 크리에이터 스튜디오 · 방송 설정 · 수익 · 정산 | not started |
 | 6 | Ssumnation-only features (룰렛 · 뽑기 · 위시리스트 · 그림 · 미니 후원 · 크루 게임 …) on new FLEXTV endpoints | not started |
 
-Until its phase, an area keeps its mock: in `next dev` the site mixes a real FLEXTV member with sample data (마이페이지,
-wallet, header balance); a production build of phase 1 is for a staging environment only.
+One switch turns on every phase built so far. Until its phase, an area keeps its mock: in `next dev` the site mixes a
+real FLEXTV member with sample data (마이페이지, 후원 내역, the creator room …); a production build is for a staging
+environment until every area a member reaches is connected.
 
 ## Settings (`apps/web/.env.example`)
 
 | Variable | Meaning |
 |---|---|
-| `NEXT_PUBLIC_AUTH_BACKEND=flextv` | Turns phase 1 on (`lib/flextv/mode.ts`). Unset: the mock. |
+| `NEXT_PUBLIC_BACKEND=flextv` | Turns the connected phases on (`lib/flextv/mode.ts`: `FLEXTV_AUTH`, `FLEXTV_WALLET`). Unset: the mock. |
 | `FLEXTV_API_URL` | FLEXTV's API server (`server/` of FLEXTV's web repository), e.g. its stage. Server-side calls only — the browser never calls FLEXTV, so no CORS entry is needed. |
 | `FLEXTV_SITE_CODE` | Optional `x-site-code`. Unset = FLEXTV's own members (the decision above); a tenant code would scope sign-ups to that tenant. |
-| `NEXT_PUBLIC_FLEXTV_WEB_URL` | FLEXTV's site for flows not connected yet (비밀번호 찾기). Default `https://www.flextv.co.kr`. |
+| `NEXT_PUBLIC_FLEXTV_WEB_URL` | FLEXTV's site for flows not connected yet (비밀번호 찾기, 본인인증, 환불 1:1 문의). Default `https://www.flextv.co.kr`. |
 | `KAKAO_REST_API_KEY` · `KAKAO_CLIENT_SECRET` (optional) | FLEXTV's Kakao app. |
 | `NAVER_CLIENT_ID` · `NAVER_CLIENT_SECRET` | FLEXTV's Naver app. |
 | `GOOGLE_CLIENT_ID` · `GOOGLE_CLIENT_SECRET` | FLEXTV's Google client. |
@@ -87,20 +88,51 @@ Ssumnation must use **FLEXTV's own apps**: FLEXTV checks that a Kakao token came
 was issued to its client, and Kakao and Naver give each app its own user ids — another app would make every existing
 FLEXTV member a new one. Twitch (FLEXTV also has it) is not connected in phase 1.
 
-## FLEXTV-side changes needed before sign-ups open to the public
+## 2단계 · 렉스 충전 · 지갑
 
-1. **Store the agreements.** FLEXTV's sign-up neither takes nor records the terms and the marketing choice; Ssumnation
-   checks the required ones but has nowhere to keep them.
-2. Add Ssumnation's callback addresses (`https://<site>/auth/{kakao,naver,google}/callback`, and the 도우미 domain's) to
+Code: `lib/flextv/wallet.ts` (FLEXTV's wallet API, mapping), `services/wallet/flextvCharge.ts` (behind the actions of
+`charge.ts`), `services/wallet/flextvHistory.ts` (behind `walletHistory.ts`), `services/wallet/balance.ts` (header),
+`features/walletCharge/FlextvChargeViews.tsx`.
+
+The money is FLEXTV's: its 렉스, 110원 a 렉스 with VAT, its presets (100 · 300 · 500 · 1,000 · 2,000 · 3,000 · 4,000 ·
+5,000, custom from 10), its payment providers and its rules. The screens still say "FN" — the on-screen name is TBD.
+
+| Ssumnation | FLEXTV | Notes |
+|---|---|---|
+| balance (header, modal, 지갑) | `GET /api/luv/remain` | FLEXTV shows one spendable amount; no expiry, nothing held |
+| who may charge | `GET /api/my/profile` | `PI` (본인인증), `isChild` (under 19), `isCustomForeigner`, `isVip` — the modal explains instead of showing the form |
+| methods | `GET /v2/api/guest/payment-failure` | 카카오페이 and 무통장입금; 카드 · 휴대폰 for FLEXTV's VIP members only (others go through Hecto, not connected); a method FLEXTV switched off is left out |
+| 카카오페이 · 카드 · 휴대폰 | `POST /api/shoppings/buy` `{productCode:100, productName:"렉스", amount, price:110, payMethod, methodParams:{trdDt, trdTm}, targetId:null, payDiv:1, ver, os}` | → Payletter's window. The browser opens it within the click; the modal reads `GET /api/shoppings/checkouts/:id/status` every 2 s until FLEXTV completed it (Payletter tells FLEXTV), and twice more after the window closes |
+| 무통장입금 | `POST /api/shoppings/coin` `{amount, price: total, payMethod:"virtualaccount", methodParams:{name}}` | the account from `GET /api/guest/channeling-switching`, the bonus from `GET /api/shoppings/bankbook-point`; FLEXTV credits once it matches the deposit |
+| 충전 내역 | `GET /api/shoppings/flex/payments?option=all` | paid charges; read back 50 at a time to the period's start (at most 1,000 rows), then filtered and paged here |
+| FN Wallet | the charges + `GET /api/luv/sentluv-list` | 충전 and 사용 (후원) rows; FLEXTV shows no 환불 · 반환 · 적립 rows yet |
+
+Every call carries the member's Bearer token, IP (`X-Forwarded-For`) and browser (`User-Agent` — FLEXTV's payment code
+fails without one). FLEXTV has no idempotency key for a checkout: this server keeps one per member and key for 30
+minutes, so a double click opens one checkout (a second server would not know it).
+
+## FLEXTV-side changes needed before opening to the public
+
+1. **본인인증 from Ssumnation.** FLEXTV charges only members who did its NICE 본인인증, and NICE returns to a fixed
+   FLEXTV address (`server/services/personal-auth` `returnUrl`) that confirms with the browser's FLEXTV cookie. A member
+   who signed up on Ssumnation can therefore not charge until FLEXTV takes a return address on Ssumnation's domain (whose
+   callback would confirm with the member's Bearer token). Until then the modal sends them to FLEXTV's site.
+2. **Store the agreements** — the sign-up terms and the marketing choice, and the charge terms (kept in a cookie per
+   browser until then).
+3. Add Ssumnation's callback addresses (`https://<site>/auth/{kakao,naver,google}/callback`, and the 도우미 domain's) to
    FLEXTV's Kakao, Naver and Google apps.
-3. Make sure the path from Ssumnation to FLEXTV's API keeps `X-Forwarded-For` (FLEXTV trusts it: `app.proxy`).
-4. The security review of FLEXTV's API and oauth server (shared separately, not in this repository).
+4. Make sure the path from Ssumnation to FLEXTV's API keeps `X-Forwarded-For` (FLEXTV trusts it: `app.proxy`).
+5. Refunds: FLEXTV has no refund API (it takes them through its 1:1 문의), so 충전 내역 links there.
+6. The security review of FLEXTV's API and oauth server (shared separately, not in this repository).
 
-## Known limits of phase 1
+## Known limits
 
 - 비밀번호 찾기 opens FLEXTV's page (it needs FLEXTV's 본인인증); the password-change prompt (`/login/password-change`)
   is not used.
 - The login lock is FLEXTV's (20 wrong passwords within 10 minutes → 10 minutes refused), not the mock's 5-and-reset.
 - FLEXTV answers a 휴면 · 정지 · 탈퇴 member like an unknown 아이디, so the screen says "등록되지 않은 아이디입니다".
 - A 간편 로그인 session ends with the browser (no "로그인 유지" choice on that path yet).
-- 마이페이지 (account linking, 본인인증, withdrawal), the wallet and the header balance are still the mock.
+- Payletter returns to a FLEXTV page that closes the window; a payment abandoned in the window stays "not completed"
+  (FLEXTV records no failure for it).
+- Not connected: 내통장결제 (Hecto's SDK), 해외카드 (NICE), 현금영수증, refunds, pending 무통장 requests in 충전 내역.
+- 마이페이지 (account linking, 본인인증, withdrawal), 후원 내역 and the creator room's balance are still the mock.

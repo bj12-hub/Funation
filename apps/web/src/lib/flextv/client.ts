@@ -23,6 +23,8 @@ export type FlextvRequest = {
   token?: string;
   /** The member's IP: FLEXTV trusts X-Forwarded-For (`app.proxy`) for its black-IP list, sign-up checks and login counts. */
   clientIp?: string | null;
+  /** The member's browser: FLEXTV reads it on payments (its partner log fails without one) and records the OS. */
+  userAgent?: string | null;
 };
 
 export type FlextvResponse = {
@@ -39,8 +41,8 @@ export function flextvApiUrl(): string {
   return url.replace(/\/+$/, "");
 }
 
-export async function flextvRequest(path: string, { method = "GET", body, token, clientIp }: FlextvRequest = {}): Promise<FlextvResponse> {
-  const headers = new Headers({ Accept: "application/json" });
+export async function flextvRequest(path: string, { method = "GET", body, token, clientIp, userAgent }: FlextvRequest = {}): Promise<FlextvResponse> {
+  const headers = new Headers({ Accept: "application/json", "User-Agent": userAgent || "Ssumnation" });
   if (body) headers.set("Content-Type", "application/json");
   if (token) headers.set("Authorization", `Bearer ${token}`);
   if (clientIp) headers.set("X-Forwarded-For", clientIp);

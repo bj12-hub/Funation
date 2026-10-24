@@ -129,7 +129,7 @@ describe("FLEXTV member → session", () => {
 describe("device context", () => {
   it("sends FLEXTV the member's first forwarded IP and the device kind", () => {
     const headers = new Headers({ "x-forwarded-for": "203.0.113.7, 10.0.0.1", "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0)" });
-    expect(deviceContextFrom(headers)).toEqual({ clientIp: "203.0.113.7", device: "MOBILEWEB" });
-    expect(deviceContextFrom(new Headers({ "user-agent": "Mozilla/5.0 (Windows NT 10.0)" }))).toEqual({ clientIp: null, device: "PCWEB" });
+    expect(deviceContextFrom(headers)).toEqual({ clientIp: "203.0.113.7", device: "MOBILEWEB", userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0)" });
+    expect(deviceContextFrom(new Headers({ "user-agent": "Mozilla/5.0 (Windows NT 10.0)" }))).toEqual({ clientIp: null, device: "PCWEB", userAgent: "Mozilla/5.0 (Windows NT 10.0)" });
   });
 });

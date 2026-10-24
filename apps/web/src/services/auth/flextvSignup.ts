@@ -54,7 +54,7 @@ export type SocialSignupResult =
   | { status: "BLOCKED" }
   | { status: "INVALID" };
 
-const notConnected = () => new Error("FLEXTV sign-up is not enabled (NEXT_PUBLIC_AUTH_BACKEND).");
+const notConnected = () => new Error("FLEXTV sign-up is not enabled (NEXT_PUBLIC_BACKEND).");
 
 const requiredAgreed = (a: unknown): a is Agreements =>
   typeof a === "object" && a !== null && (a as Agreements).youth === true && (a as Agreements).service === true && (a as Agreements).privacy === true && typeof (a as Agreements).marketing === "boolean";

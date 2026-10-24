@@ -3,10 +3,11 @@ import { GlobalFooter } from "@/components/layout/GlobalFooter";
 import { SiteBanner } from "@/components/layout/SiteBanner";
 import { HelperFrame } from "@/features/helper/HelperLanding";
 import { FLEXTV_AUTH } from "@/lib/flextv/mode";
-import { getSession, hasRole } from "@/lib/session";
+import { getSession, hasRole, type Session } from "@/lib/session";
 import { getSurface } from "@/lib/surface";
 import { getMyAccount } from "@/services/account/myAccount";
 import { getSiteBanner } from "@/services/system/siteBanner";
+import { getWalletBalance } from "@/services/wallet/balance";
 
 // Site shell (funnation structure): header + side menu on every page + footer in the content column.
 export default async function MainLayout({ children }: { children: React.ReactNode }) {
@@ -20,20 +21,17 @@ export default async function MainLayout({ children }: { children: React.ReactNo
   }
 
   const [session, banner] = await Promise.all([getSession(), getSiteBanner()]);
-  const account = session ? await getMyAccount() : null;
-  // FLEXTV backend phase 1 (docs/development/flextv-backend.md): the member is FLEXTV's while 마이페이지 is still the
-  // mock, so the header shows who signed in. The balance follows with the 렉스 wallet (phase 2).
-  const profile = FLEXTV_AUTH && session ? { nickname: session.nickname, ssumnationId: session.ssumnationId, avatarUrl: session.avatarUrl } : account;
-  const user =
-    session && account && profile
-      ? {
-          nickname: profile.nickname,
-          ssumnationId: profile.ssumnationId,
-          avatarUrl: profile.avatarUrl,
-          fnBalance: account.fnBalance,
-          creator: hasRole(session, "CREATOR")
-        }
-      : null;
+  // FLEXTV backend (docs/development/flextv-backend.md): the member and the 렉스 balance are FLEXTV's — 마이페이지's
+  // account is still the mock's, and absent without it.
+  const user = FLEXTV_AUTH
+    ? session && {
+        nickname: session.nickname,
+        ssumnationId: session.ssumnationId,
+        avatarUrl: session.avatarUrl,
+        fnBalance: await getWalletBalance(),
+        creator: hasRole(session, "CREATOR")
+      }
+    : await mockUser(session);
 
   return (
     <AppShell user={user}>
@@ -42,4 +40,11 @@ export default async function MainLayout({ children }: { children: React.ReactNo
       <GlobalFooter />
     </AppShell>
   );
+}
+
+async function mockUser(session: Session | null) {
+  const account = session ? await getMyAccount() : null;
+  return session && account
+    ? { nickname: account.nickname, ssumnationId: account.ssumnationId, avatarUrl: account.avatarUrl, fnBalance: account.fnBalance, creator: hasRole(session, "CREATOR") }
+    : null;
 }
