@@ -17,6 +17,7 @@ import { SigDosanPanel } from "./SigDosanPanel";
 import { AlphabetPanel } from "./AlphabetPanel";
 import { GoStopPanel } from "./GoStopPanel";
 import { TerritoryPanel } from "./TerritoryPanel";
+import { SudopolyPanel } from "./SudopolyPanel";
 import { RandomSigPanel } from "./RandomSigPanel";
 import { RelayPanel } from "./RelayPanel";
 import { SpinMachinePanel } from "./SpinMachinePanel";
@@ -26,7 +27,7 @@ import games from "./games.module.css";
 
 /**
  * 점수 게임 — code-first (no Figma frame; StreamDonate 점수 게임 참고, P2). Route `/creator/crew/games`. Games whose results
- * are crew points (display scores — FN never moves): 스핀머신 · 주사위 게임 · 투휠 게임 · 랜덤시그 · 기여도 릴레이 · 줍줍 · 시그니처 메들리 · 시그 빙고 · 복불복 뽑기판 · 시그니처 헌터 · 시그니처 두산 · 알파벳 모으기 · 고스톱 · 땅따먹기. Settings work any time; runs need a live
+ * are crew points (display scores — FN never moves): 스핀머신 · 주사위 게임 · 투휠 게임 · 랜덤시그 · 기여도 릴레이 · 줍줍 · 시그니처 메들리 · 시그 빙고 · 복불복 뽑기판 · 시그니처 헌터 · 시그니처 두산 · 알파벳 모으기 · 고스톱 · 땅따먹기 · 스도폴리. Settings work any time; runs need a live
  * broadcast (started on 방송 운영). Refreshes from the server every few seconds while live (자동 runs from donations).
  */
 export function GamesScreen({ view, switches }: { view: GamesView; switches: Record<OverlayTarget, boolean> }) {
@@ -86,6 +87,7 @@ export function GamesScreen({ view, switches }: { view: GamesView; switches: Rec
         <a href="#game-alphabet">🔤 알파벳 모으기</a>
         <a href="#game-gostop">🎴 고스톱</a>
         <a href="#game-territory">🗺️ 땅따먹기</a>
+        <a href="#game-sudopoly">🎲 스도폴리</a>
       </nav>
 
       <SpinMachinePanel settings={view.spinSettings} signatures={view.signatures} members={view.members} live={view.live} now={now} overlayPath={view.overlayPath} pending={pending} run={run} />
@@ -102,6 +104,7 @@ export function GamesScreen({ view, switches }: { view: GamesView; switches: Rec
       <AlphabetPanel settings={view.alphabetSettings} signatures={view.signatures} members={view.members} live={view.live} now={now} overlayPath={view.overlayPath} pending={pending} run={run} />
       <GoStopPanel settings={view.gostopSettings} signatures={view.signatures} members={view.members} live={view.live} now={now} overlayPath={view.overlayPath} pending={pending} run={run} />
       <TerritoryPanel settings={view.territorySettings} signatures={view.signatures} live={view.live} now={now} overlayPath={view.overlayPath} pending={pending} run={run} />
+      <SudopolyPanel settings={view.sudopolySettings} signatures={view.signatures} members={view.members} live={view.live} now={now} overlayPath={view.overlayPath} pending={pending} run={run} />
     </div>
   );
 }

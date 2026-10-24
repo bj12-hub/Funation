@@ -251,6 +251,7 @@ export type BroadcastLive = {
   alphabet: AlphabetLive;
   gostop: GoStopLive;
   territory: TerritoryLive;
+  sudopoly: SudopolyLive;
   /** Server clock when this view was read: timers (시나리오 경과, 강탈 card) correct the browser's clock with it. */
   serverNow: string;
 };
@@ -372,7 +373,7 @@ export type SigCountLive = {
 // A game draws its result on the server; the result is display points only (FN · 지갑 · 수익 · 정산 never move).
 
 /** Games on the shared engine (crewGameCore). `param`: the OBS view (`?spin`). */
-export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL" | "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW" | "SIG_HUNTER" | "SIG_DOSAN" | "ALPHABET" | "GOSTOP" | "TERRITORY";
+export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL" | "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW" | "SIG_HUNTER" | "SIG_DOSAN" | "ALPHABET" | "GOSTOP" | "TERRITORY" | "SUDOPOLY";
 export const GAMES: { key: GameKey; label: string; param: string }[] = [
   { key: "SPIN", label: "스핀머신", param: "spin" },
   { key: "DICE", label: "주사위 게임", param: "dice" },
@@ -387,7 +388,8 @@ export const GAMES: { key: GameKey; label: string; param: string }[] = [
   { key: "SIG_DOSAN", label: "시그니처 두산", param: "sigdosan" },
   { key: "ALPHABET", label: "알파벳 모으기", param: "alphabet" },
   { key: "GOSTOP", label: "고스톱", param: "gostop" },
-  { key: "TERRITORY", label: "땅따먹기", param: "territory" }
+  { key: "TERRITORY", label: "땅따먹기", param: "territory" },
+  { key: "SUDOPOLY", label: "스도폴리", param: "sudopoly" }
 ];
 
 /**
@@ -409,7 +411,8 @@ export const GAME_TIMING: Record<GameKey, { playSec: number; resultSec: number }
   SIG_DOSAN: { playSec: 1, resultSec: 3 },
   ALPHABET: { playSec: 3, resultSec: 3 },
   GOSTOP: { playSec: 2, resultSec: 3 },
-  TERRITORY: { playSec: 1, resultSec: 3 }
+  TERRITORY: { playSec: 1, resultSec: 3 },
+  SUDOPOLY: { playSec: 2, resultSec: 3 }
 };
 /** Runs a game lists (studio) and queues (OBS), newest first. */
 export const GAME_RUNS_SHOWN = 30;
@@ -890,6 +893,87 @@ export type TerritoryCell = { owners: { memberId: string; revealAt: string }[] }
 /** `boardId`: this board (a new 시작 makes another); `lastCell`: the cell assigned last. */
 export type TerritoryBoard = { boardId: string; size: TerritorySize; cells: TerritoryCell[]; lastCell: number | null };
 
+// 스도폴리 — StreamDonate 스도폴리 (부루마불형): pieces go round a square loop of 칸 on two dice; a 시그니처 후원 rolls as
+// many times as its 금액 구간 gives. 출발 보너스, 무인도, 더블 (again; three in a row: 무인도), 황금열쇠 덱, 목표 바퀴.
+export const SUDOPOLY_TITLE_DEFAULT = "스도폴리";
+export const SUDOPOLY_SPACES_MIN = 8;
+export const SUDOPOLY_SPACES_MAX = 40;
+export const SUDOPOLY_LABEL_MAX = 12;
+export const SUDOPOLY_KEYS_MAX = 20;
+export const SUDOPOLY_KEY_LABEL_MAX = 20;
+export const SUDOPOLY_TIERS_MAX = 10;
+export const SUDOPOLY_ROLLS_MAX = 10;
+export const SUDOPOLY_POINTS_MAX = 10_000_000;
+export const SUDOPOLY_MOVE_MAX = 10;
+export const SUDOPOLY_ISLAND_MAX = 5;
+export const SUDOPOLY_LAPS_MAX = 20;
+export const SUDOPOLY_WEIGHT_MAX = 1000;
+export type SudopolySpaceKind = "START" | "POINTS" | "TEXT" | "ISLAND" | "KEY";
+export const SUDOPOLY_SPACE_KINDS: { key: SudopolySpaceKind; label: string }[] = [
+  { key: "START", label: "출발" },
+  { key: "POINTS", label: "점수" },
+  { key: "TEXT", label: "문구" },
+  { key: "ISLAND", label: "무인도" },
+  { key: "KEY", label: "황금열쇠" }
+];
+/** A 칸: `value` is the points of a 점수 칸 (± ; 0 for the others). The first 칸 is the only 출발. */
+export type SudopolySpace = { id: string; kind: SudopolySpaceKind; label: string; value: number };
+export type SudopolyKeyKind = "POINTS" | "TEXT" | "MOVE" | "START" | "ISLAND";
+export const SUDOPOLY_KEY_KINDS: { key: SudopolyKeyKind; label: string }[] = [
+  { key: "POINTS", label: "점수" },
+  { key: "TEXT", label: "문구" },
+  { key: "MOVE", label: "이동" },
+  { key: "START", label: "출발로" },
+  { key: "ISLAND", label: "무인도로" }
+];
+/** A 황금열쇠 card: `value` = points (점수) or 칸 to move (이동, − = back); drawn by 가중치. */
+export type SudopolyKey = { id: string; label: string; kind: SudopolyKeyKind; value: number; weight: number };
+/** 금액 구간: a 시그니처 후원 of `min` FN or more rolls `rolls` times (the highest 구간 it reaches). */
+export type SudopolyTier = { id: string; min: number; rolls: number };
+export type SudopolyPieceMode = "MEMBER" | "SHARED";
+export const SUDOPOLY_PIECE_MODES: { key: SudopolyPieceMode; label: string }[] = [
+  { key: "MEMBER", label: "BJ별 말" },
+  { key: "SHARED", label: "공용 말" }
+];
+/**
+ * `startBonus`: 출발 보너스 for passing 출발; `islandTurns`: the rolls a piece sits out on 무인도 (a 더블 gets it out);
+ * `goalLaps` (0 = none): a piece going round that many times gets the `goalBonus`, and counts again from 0.
+ */
+export type SudopolySettings = GameCommon & {
+  pieceMode: SudopolyPieceMode;
+  spaces: SudopolySpace[];
+  startBonus: number;
+  islandTurns: number;
+  keys: SudopolyKey[];
+  tiers: SudopolyTier[];
+  goalLaps: number;
+  goalBonus: number;
+};
+export const DEFAULT_SUDOPOLY: SudopolySettings = {
+  title: "",
+  auto: false,
+  excluded: [],
+  showIdle: true,
+  pieceMode: "MEMBER",
+  spaces: [],
+  startBonus: 0,
+  islandTurns: 1,
+  keys: [],
+  tiers: [{ id: "st-1", min: 0, rolls: 1 }],
+  goalLaps: 0,
+  goalBonus: 0
+};
+/** The grid cell of 칸 `i` on a square loop of `n` 칸 (n / 4 + 1 a side): 출발 bottom-right, then left, up, right and down. */
+export function sudopolyCell(n: number, i: number): { row: number; col: number } {
+  const side = n / 4;
+  if (i <= side) return { row: side, col: side - i };
+  if (i <= 2 * side) return { row: 2 * side - i, col: 0 };
+  if (i <= 3 * side) return { row: 0, col: i - 2 * side };
+  return { row: i - 3 * side, col: side };
+}
+/** A piece: `key` "SHARED" or a member id; where it is (`pos`), its laps toward the 목표 and 무인도 rolls left. */
+export type SudopolyPiece = { key: string; name: string; color: string | null; pos: number; laps: number; island: number };
+
 /** What started a run: a 시그니처 후원 to the member (자동), a 랜덤시그 · 메들리 발동 금액 (자동), or the operator (수동). */
 /** `DONATION`: a donation that is no signature (복불복 뽑기판 on 모든 후원). */
 export type GameTrigger = { kind: "SIGNATURE"; signatureName: string } | { kind: "AMOUNT"; amount: number } | { kind: "DONATION"; amount: number } | { kind: "MANUAL" };
@@ -925,6 +1009,8 @@ export type GameRunView = {
   shares: { memberName: string; memberColor: string | null; points: number }[];
   /** 고스톱: the 풀 after the run (a STOP: the 풀 it took), the GO count, and the STOP 확률 it rolled (%). */
   gostop: { pool: number; go: number; chance: number } | null;
+  /** 스도폴리: the piece that moved, from and to which 칸, and its laps after. */
+  move: { piece: string; from: number; to: number; laps: number } | null;
 };
 
 /** 스핀머신 BJ별 집계: how many times each member got each 문구 (TEXT) result, columns in first-seen order. */
@@ -957,6 +1043,8 @@ export type TerritoryLive = {
   board: TerritoryBoard | null;
   members: { memberId: string; name: string; color: string | null; active: boolean; hearts: number }[];
 };
+/** `pieces`: now (OBS shows where each was before its queued runs). */
+export type SudopolyLive = { settings: SudopolySettings; runs: GameRunView[]; pieces: SudopolyPiece[] };
 /** `board`: null until 두산 시작 (or after 판 비우기). */
 export type SigDosanLive = { settings: SigDosanSettings; runs: GameRunView[]; board: SigDosanBoard | null };
 /** `board`: null until 빙고 시작 (or after 판 비우기); `eligible`: how many signatures a new board would draw from. */
@@ -993,6 +1081,7 @@ export type GamesView = {
     alphabet: AlphabetLive;
     gostop: GoStopLive;
     territory: TerritoryLive;
+    sudopoly: SudopolyLive;
     sources: Record<GameKey, Record<string, GameSource[]>>;
     serverNow: string;
   } | null;
@@ -1010,6 +1099,7 @@ export type GamesView = {
   alphabetSettings: AlphabetSettings;
   gostopSettings: GoStopSettings;
   territorySettings: TerritorySettings;
+  sudopolySettings: SudopolySettings;
   signatures: { id: string; name: string; group: string; active: boolean; price: number; match: "SELECT" | "AMOUNT"; rangeMin: number | null }[];
   overlayPath: string;
 };

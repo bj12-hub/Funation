@@ -13,8 +13,8 @@ import styles from "./gameOverlay.module.css";
 const PIPS: Record<number, number[]> = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
 const IDLE: [number, number] = [6, 6];
 
-/** A die. While rolling it tumbles through random faces (looks only — the server rolled the result). */
-function Die({ value, rolling }: { value: number; rolling: boolean }) {
+/** A die. While rolling it tumbles through random faces (looks only — the server rolled the result). Also used by 스도폴리. */
+export function Die({ value, rolling }: { value: number; rolling: boolean }) {
   const [face, setFace] = useState(value);
   useEffect(() => {
     if (!rolling) {
