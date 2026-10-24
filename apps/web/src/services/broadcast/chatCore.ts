@@ -7,6 +7,7 @@ import { ADAPTERS, BROADCAST_PLATFORMS, withTimeout } from "@/services/platforms
 import { PLATFORM_ERROR_LABEL, PlatformError, type ChannelCursor, type ExternalChatMessage, type PlatformErrorCode } from "@/services/platforms/platformTypes";
 import { PLATFORM_LABEL, type Platform } from "@/types/platform";
 import { broadcastChannel, broadcastChannelId } from "./channelsCore";
+import { runChatBot } from "./chatBotCore";
 import {
   BAN_DURATIONS,
   CHAT_TEXT_MAX,
@@ -130,6 +131,12 @@ export async function ingestChat(opts: { force?: boolean } = {}) {
   s.lastIngestAt = Date.now();
   await Promise.all(BROADCAST_PLATFORMS.map((p) => ingestPlatform(s, p)));
   s.messages.sort((a, b) => a.seq - b.seq);
+  // 채팅봇 명령어 answer what just arrived. The bot never stops the feed.
+  try {
+    await runChatBot();
+  } catch {
+    // Ignored here on purpose.
+  }
 }
 
 /**

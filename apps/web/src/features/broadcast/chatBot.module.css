@@ -1,0 +1,138 @@
+/* 채팅봇 명령어 (code-first) — /creator/chat/bot. Cards, fields and buttons come from crew.module.css. */
+
+.platforms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.platform {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-14);
+}
+
+.platform [data-state="OK"] {
+  color: var(--color-success-text, #4ade80);
+}
+
+.commands {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.commands li {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+}
+
+.commands li[data-off] {
+  opacity: 0.6;
+}
+
+.commandHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.trigger {
+  width: 140px;
+  font-weight: var(--font-weight-bold);
+}
+
+.cooldown {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cooldown input {
+  width: 80px;
+}
+
+.testRow {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  gap: 8px;
+}
+
+.testResult {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+  font-size: var(--font-size-14);
+}
+
+.testResult[data-tone="muted"] {
+  color: var(--color-text-secondary);
+}
+
+.log {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.log li {
+  display: grid;
+  grid-template-columns: 72px auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+  font-size: var(--font-size-13);
+}
+
+.who {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.badge {
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-12);
+  white-space: nowrap;
+}
+
+.badge[data-outcome="SENT"] {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+@media (max-width: 600px) {
+  .testRow {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .testRow input {
+    grid-column: 1 / -1;
+  }
+
+  .log li {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .log li > :first-child {
+    display: none;
+  }
+}
