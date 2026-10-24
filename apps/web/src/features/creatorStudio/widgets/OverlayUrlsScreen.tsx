@@ -9,7 +9,7 @@ import { OVERLAY_THEMES, THEME_DEFAULT_ACCENT, type OverlayAppearance } from "@/
 import styles from "../crew/crew.module.css";
 import { CopyButton } from "../settings/SettingsCards";
 import { obsFileName, obsSceneCollection, OBS_COLLECTION_NAME } from "./obsScenes";
-import { OVERLAYS } from "./overlayCatalog";
+import { OVERLAYS } from "@/services/creator/overlayCatalog";
 import local from "./overlayUrls.module.css";
 
 const mask = (key: string) => `${key.slice(0, 4)}-····-····-····`;
@@ -64,7 +64,8 @@ export function OverlayUrlsScreen({ overlayKey, switches, appearance }: { overla
         <h1 className={styles.title}>오버레이 주소</h1>
         <p className={styles.subtitle}>OBS 브라우저 소스에 넣을 주소를 한곳에 모았어요. 계정 전용 주소이니 방송 화면이나 채팅에 노출하지 마세요.</p>
         <p className={styles.note}>
-          <Link href="/creator/widgets">← 후원위젯/알림설정</Link> · 주소가 노출됐다면 계정설정에서 연동 키를 재발급하세요. 모든 주소가 바뀌어요.
+          <Link href="/creator/widgets">← 후원위젯/알림설정</Link> · 주소가 노출됐다면 계정설정에서 연동 키를 재발급하세요. 모든 주소가 바뀌어요. 여러 오버레이를 브라우저 소스 하나로 쓰려면{" "}
+          <Link href="/creator/widgets/onesource">원소스 배치</Link>를 이용하세요.
         </p>
       </header>
       <p className={local.themeLine}>

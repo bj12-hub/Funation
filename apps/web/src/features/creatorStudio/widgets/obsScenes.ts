@@ -6,7 +6,7 @@
  * built in the browser from the page's own data and never sent anywhere.
  */
 import { kstDateString } from "@/lib/period";
-import type { OverlayEntry } from "./overlayCatalog";
+import type { OverlayEntry } from "@/services/creator/overlayCatalog";
 
 export const OBS_COLLECTION_NAME = "Ssumnation 오버레이";
 const CANVAS = { x: 1920, y: 1080 };

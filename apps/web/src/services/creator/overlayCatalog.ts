@@ -1,5 +1,5 @@
 /**
- * Every OBS browser-source overlay the app serves, for the 오버레이 주소 page (code-first).
+ * Every OBS browser-source overlay the app serves, for the 오버레이 주소 page and the 원소스 오버레이 배치 (code-first).
  * Sizes are recommended OBS source sizes (placeholders until designs exist).
  */
 import type { OverlayTarget } from "@/services/creator/alertTypes";
@@ -152,6 +152,26 @@ export const OVERLAYS: OverlayEntry[] = [
     size: "1920 × 1080",
     path: (k) => `/overlay/tool/credits/${k}`,
     manage: "/creator/widgets/tools"
+  },
+  {
+    id: "play-marble",
+    target: "play",
+    group: "기타",
+    title: "마블 룰렛",
+    description: "시청자 참여 게임: 채팅 !참여로 모인 참가자 구슬 레이스와 당첨자를 보여 줘요.",
+    size: "480 × 720",
+    path: (k) => `/overlay/play/${k}?marble`,
+    manage: "/creator/widgets/play"
+  },
+  {
+    id: "play-rumble",
+    target: "play",
+    group: "기타",
+    title: "로얄 럼블",
+    description: "시청자 참여 게임: 원형 링 배틀과 탈락 · 우승자를 보여 줘요.",
+    size: "480 × 720",
+    path: (k) => `/overlay/play/${k}?rumble`,
+    manage: "/creator/widgets/play/rumble"
   },
   {
     id: "widget-goal",
