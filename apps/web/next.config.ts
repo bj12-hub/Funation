@@ -57,6 +57,8 @@ const nextConfig: NextConfig = {
       // The 커스텀 오버레이 page's address holds the overlay key: its sandbox frame (the creator's code) must not see it as
       // document.referrer. The frame also asks for no referrer; this covers anything else the page loads.
       { source: "/overlay/custom/:path*", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] },
+      // Same for the 외부 프로그램 연동 page: its requests to the creator's programs never carry the key in Referer.
+      { source: "/overlay/bridge/:path*", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] },
       ...PRIVATE_SOURCES.map((source) => ({ source, headers: noindex }))
     ];
   }

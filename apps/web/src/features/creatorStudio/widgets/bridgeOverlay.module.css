@@ -1,0 +1,52 @@
+/* 외부 프로그램 연동 페이지 — only with ?status (a browser tab); in OBS it shows nothing. */
+
+.panel {
+  max-width: 560px;
+  margin: 16px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgb(15 17 23 / 92%);
+  color: #f1f5f9;
+  font-size: 14px;
+}
+
+.head {
+  margin: 0 0 8px;
+  font-weight: 700;
+}
+
+.empty {
+  margin: 0;
+  color: #94a3b8;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.list li {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr) auto;
+  gap: 8px;
+  color: #cbd5e1;
+  font-size: 13px;
+}
+
+.list li[data-outcome="FAILED"] b {
+  color: #f87171;
+}
+
+.list li[data-outcome="SENT"] b {
+  color: #4ade80;
+}
+
+.url {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
