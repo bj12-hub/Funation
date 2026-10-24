@@ -4,6 +4,8 @@ The web app talks to a **mock backend**: every call is a function in `apps/web/s
 
 Backend framework, database, payment provider and every business rule listed as **TBD** stay undecided (`docs/product/open-decisions.md`, CLAUDE.md §14).
 
+2026-10-25: the backend is **FLEXTV's existing API**, connected area by area (`docs/development/flextv-backend.md`). Phase 1 — `auth`, the session and 간편 로그인 — calls FLEXTV when `NEXT_PUBLIC_AUTH_BACKEND=flextv`; the sections below stay the contract of the mock and of the areas not connected yet.
+
 ## 1. Cross-cutting rules
 
 | Rule | Current mock | Backend requirement |

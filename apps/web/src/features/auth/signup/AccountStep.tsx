@@ -4,19 +4,16 @@ import { useRef, useState, type FormEvent } from "react";
 import { EyeIcon, EyeOffIcon } from "@/components/icons";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
-import { isEmail, isValidNickname, isValidPassword } from "@/lib/validation";
-import { checkEmailAvailability, checkNicknameAvailability } from "@/services/auth/signup";
 import shared from "../shared/form.module.css";
+import { SSUMNATION_ACCOUNT_RULES, type AccountRules } from "./accountRules";
 
 /**
  * Figma: signup-step3 45:39 · email format 722:692 · email taken 722:765 · password format 722:838
  *        confirm mismatch 722:912 · nickname format 722:985 · nickname taken 722:1059
+ * `rules`: the mock's e-mail account, or FLEXTV's 아이디 (./accountRules.ts) — same screen, same states.
  */
 
 const MSG = {
-  EMAIL_FORMAT: "올바른 이메일 형식이 아닙니다.",
-  EMAIL_TAKEN: "이미 사용 중인 이메일입니다. 다른 이메일을 사용해 주세요.",
-  EMAIL_UNCHECKED: "이메일 중복 확인을 해 주세요.",
   PASSWORD_FORMAT: "비밀번호가 형식에 맞지 않습니다. 다시 입력해 주세요.",
   PASSWORD_MISMATCH: "비밀번호가 일치하지 않습니다.",
   NICKNAME_FORMAT: "올바른 닉네임 형식이 아닙니다.",
@@ -28,55 +25,61 @@ const MSG = {
   CHECK_FAILED: "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요"
 };
 
-export type AccountValues = { email: string; password: string; nickname: string };
+export type AccountValues = { identifier: string; password: string; nickname: string };
 
 type AccountStepProps = {
   submitting: boolean;
   submitError: string | null;
   onBack: () => void;
   onSubmit: (values: AccountValues) => void;
+  rules?: AccountRules;
 };
 
 type Check = "idle" | "checking" | "ok";
 
-export function AccountStep({ submitting, submitError, onBack, onSubmit }: AccountStepProps) {
-  const [email, setEmail] = useState("");
+export function AccountStep({ submitting, submitError, onBack, onSubmit, rules = SSUMNATION_ACCOUNT_RULES }: AccountStepProps) {
+  const id = rules.identifier;
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [nickname, setNickname] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [emailCheck, setEmailCheck] = useState<Check>("idle");
+  const [identifierCheck, setIdentifierCheck] = useState<Check>("idle");
   const [nicknameCheck, setNicknameCheck] = useState<Check>("idle");
-  const [errors, setErrors] = useState<Partial<Record<"email" | "password" | "confirm" | "nickname", string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<"identifier" | "password" | "confirm" | "nickname", string>>>({});
   // Bumped on every edit of the field: a 중복 확인 answer counts only while the field still holds the value it was asked
   // about (an edit during the check already reset the check; the new value needs its own).
-  const emailEdits = useRef(0);
+  const identifierEdits = useRef(0);
   const nicknameEdits = useRef(0);
 
   const setError = (field: keyof typeof errors, message?: string) => setErrors((e) => ({ ...e, [field]: message }));
 
-  async function checkEmail() {
-    if (!isEmail(email)) return setError("email", MSG.EMAIL_FORMAT);
-    const asked = emailEdits.current;
-    setEmailCheck("checking");
+  async function checkIdentifier() {
+    if (!id.isValid(identifier)) return setError("identifier", id.messages.format);
+    if (id.forbidden?.(identifier)) return setError("identifier", id.messages.forbidden);
+    const asked = identifierEdits.current;
+    setIdentifierCheck("checking");
     try {
-      const { available } = await checkEmailAvailability(email);
-      if (asked !== emailEdits.current) return;
-      setEmailCheck(available ? "ok" : "idle");
-      setError("email", available ? undefined : MSG.EMAIL_TAKEN);
+      const { available, reason } = await id.check(identifier);
+      if (asked !== identifierEdits.current) return;
+      setIdentifierCheck(available ? "ok" : "idle");
+      setError(
+        "identifier",
+        available ? undefined : reason === "FORBIDDEN" ? id.messages.forbidden : reason === "INVALID" ? id.messages.format : id.messages.taken
+      );
     } catch {
-      if (asked !== emailEdits.current) return;
-      setEmailCheck("idle");
-      setError("email", MSG.CHECK_FAILED);
+      if (asked !== identifierEdits.current) return;
+      setIdentifierCheck("idle");
+      setError("identifier", MSG.CHECK_FAILED);
     }
   }
 
   async function checkNickname() {
-    if (!isValidNickname(nickname)) return setError("nickname", MSG.NICKNAME_FORMAT);
+    if (!rules.nickname.isValid(nickname)) return setError("nickname", MSG.NICKNAME_FORMAT);
     const asked = nicknameEdits.current;
     setNicknameCheck("checking");
     try {
-      const { available, reason } = await checkNicknameAvailability(nickname);
+      const { available, reason } = await rules.nickname.check(nickname);
       if (asked !== nicknameEdits.current) return;
       setNicknameCheck(available ? "ok" : "idle");
       setError(
@@ -93,10 +96,10 @@ export function AccountStep({ submitting, submitError, onBack, onSubmit }: Accou
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
     const next: typeof errors = {
-      email: !isEmail(email) ? MSG.EMAIL_FORMAT : emailCheck !== "ok" ? errors.email ?? MSG.EMAIL_UNCHECKED : undefined,
-      password: !isValidPassword(password) ? MSG.PASSWORD_FORMAT : undefined,
+      identifier: !id.isValid(identifier) ? id.messages.format : identifierCheck !== "ok" ? errors.identifier ?? id.messages.unchecked : undefined,
+      password: !rules.password.isValid(password) ? MSG.PASSWORD_FORMAT : undefined,
       confirm: confirm !== password || !confirm ? MSG.PASSWORD_MISMATCH : undefined,
-      nickname: !isValidNickname(nickname)
+      nickname: !rules.nickname.isValid(nickname)
         ? MSG.NICKNAME_FORMAT
         : nicknameCheck !== "ok"
           ? errors.nickname ?? MSG.NICKNAME_UNCHECKED
@@ -104,7 +107,7 @@ export function AccountStep({ submitting, submitError, onBack, onSubmit }: Accou
     };
     setErrors(next);
     if (Object.values(next).some(Boolean)) return;
-    onSubmit({ email: email.trim(), password, nickname });
+    onSubmit({ identifier: identifier.trim(), password, nickname });
   }
 
   const eye = (
@@ -123,22 +126,29 @@ export function AccountStep({ submitting, submitError, onBack, onSubmit }: Accou
     <form className={shared.section} onSubmit={handleSubmit} noValidate>
       <div className={shared.stack}>
         <TextField
-          label="아이디 (이메일)"
-          name="email"
-          type="email"
-          autoComplete="email"
-          placeholder="example@email.com"
-          value={email}
+          label={id.label}
+          name={id.name}
+          type={id.type}
+          autoComplete={id.autoComplete}
+          placeholder={id.placeholder}
+          maxLength={id.maxLength}
+          value={identifier}
           onChange={(e) => {
-            emailEdits.current += 1;
-            setEmail(e.target.value);
-            setEmailCheck("idle");
-            setError("email");
+            identifierEdits.current += 1;
+            setIdentifier(e.target.value);
+            setIdentifierCheck("idle");
+            setError("identifier");
           }}
-          error={errors.email}
-          hint={emailCheck === "ok" ? "사용 가능한 이메일입니다." : undefined}
+          error={errors.identifier}
+          hint={
+            errors.identifier === id.messages.format && id.messages.formatHint
+              ? id.messages.formatHint
+              : identifierCheck === "ok"
+                ? id.messages.available
+                : undefined
+          }
           action={
-            <Button variant="cta" onClick={checkEmail} disabled={emailCheck === "checking"}>
+            <Button variant="cta" onClick={checkIdentifier} disabled={identifierCheck === "checking"}>
               중복 확인
             </Button>
           }
@@ -148,15 +158,15 @@ export function AccountStep({ submitting, submitError, onBack, onSubmit }: Accou
           name="new-password"
           type={showPassword ? "text" : "password"}
           autoComplete="new-password"
-          placeholder="8~20자, 영문/숫자/특수문자 포함"
+          placeholder={rules.password.placeholder}
           value={password}
           onChange={(e) => {
             setPassword(e.target.value);
             setError("password");
           }}
-          onBlur={() => password && !isValidPassword(password) && setError("password", MSG.PASSWORD_FORMAT)}
+          onBlur={() => password && !rules.password.isValid(password) && setError("password", MSG.PASSWORD_FORMAT)}
           error={errors.password}
-          hint={errors.password ? "8~20자 · 영문, 숫자, 특수문자를 모두 포함해 주세요." : undefined}
+          hint={errors.password ? rules.password.hint : undefined}
           trailing={eye}
         />
         <TextField
@@ -176,8 +186,8 @@ export function AccountStep({ submitting, submitError, onBack, onSubmit }: Accou
         <TextField
           label="닉네임"
           name="nickname"
-          placeholder="2~12자 이내"
-          maxLength={12}
+          placeholder={rules.nickname.placeholder}
+          maxLength={rules.nickname.maxLength}
           value={nickname}
           onChange={(e) => {
             nicknameEdits.current += 1;
@@ -186,13 +196,7 @@ export function AccountStep({ submitting, submitError, onBack, onSubmit }: Accou
             setError("nickname");
           }}
           error={errors.nickname}
-          hint={
-            errors.nickname === MSG.NICKNAME_FORMAT
-              ? "2~12자의 한글, 영문, 숫자만 사용할 수 있어요."
-              : nicknameCheck === "ok"
-                ? "사용 가능한 닉네임입니다."
-                : undefined
-          }
+          hint={errors.nickname === MSG.NICKNAME_FORMAT ? rules.nickname.formatHint : nicknameCheck === "ok" ? "사용 가능한 닉네임입니다." : undefined}
           action={
             <Button variant="cta" onClick={checkNickname} disabled={nicknameCheck === "checking"}>
               중복 확인

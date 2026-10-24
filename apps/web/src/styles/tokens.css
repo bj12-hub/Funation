@@ -251,6 +251,8 @@
   --color-google-text: #1f2937;
   --color-kakao-bg: #fee500;
   --color-kakao-text: #181600;
+  --color-naver-bg: #03c75a;
+  --color-naver-text: #ffffff;
 
   /* ── Typography ───────────────────────────────────────── */
   /* --font-gothic / --font-inter come from next/font (app/layout.tsx) on <html>. */

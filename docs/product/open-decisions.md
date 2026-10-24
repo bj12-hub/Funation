@@ -4,6 +4,12 @@ Confirmed:
 
 - Frontend: Next.js + TypeScript
 - Platforms: YouTube + FlexTV + SOOP + CHZZK
+- Backend (2026-10-25): **FLEXTV's existing backend** — Ssumnation's screens run on FLEXTV's API, and FLEXTV's
+  broadcasting is part of Ssumnation. The money is FLEXTV's 렉스 ledger as it is (charging, payment providers, refunds,
+  settlement under FLEXTV's rules; the on-screen name is TBD), existing FLEXTV members sign in as they are, and watching
+  happens inside Ssumnation with FLEXTV's player and chat. Phase 1 (로그인 · 회원가입 · 세션 · 간편 로그인) is behind
+  `NEXT_PUBLIC_AUTH_BACKEND=flextv`; there the login lock and the account rules are FLEXTV's. See
+  docs/development/flextv-backend.md
 - Login lock (2026-10-08): 5 wrong passwords lock the account until a password reset — reset-only, no time-based unlock,
   no per-IP limit (`services/auth/loginLockCore.ts`)
 - Approved settlements at a 탈퇴 (2026-10-08): they are still paid (지급 완료) — a 탈퇴 forfeits only 정산 가능 and
