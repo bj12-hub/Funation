@@ -174,6 +174,16 @@ export const OVERLAYS: OverlayEntry[] = [
     manage: "/creator/widgets/play/rumble"
   },
   {
+    id: "play-rumble-live",
+    target: "play",
+    group: "기타",
+    title: "로얄 럼블 (조작형)",
+    description: "시청자 참여 게임: 참가자가 링크에서 직접 조종하는 실시간 링 배틀과 우승자를 보여 줘요.",
+    size: "520 × 760",
+    path: (k) => `/overlay/play/${k}?rumblelive`,
+    manage: "/creator/widgets/play/live"
+  },
+  {
     id: "custom",
     target: "custom",
     group: "기타",

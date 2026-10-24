@@ -1,0 +1,189 @@
+/* 로얄 럼블 (조작형) OBS overlay: the card, the arena (ring + storm), fighters at --x · --y (eased between reads), the result. */
+
+.pad {
+  padding: 16px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(100%, 520px);
+  box-sizing: border-box;
+  padding: 16px 18px;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  font-size: 20px;
+}
+
+.chip {
+  font-size: 12px;
+}
+
+.join {
+  margin: 0;
+  font-size: 20px;
+  text-align: center;
+}
+
+.names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.names li {
+  border-left: 4px solid var(--c);
+  font-size: 12px;
+}
+
+.alive {
+  margin: 0;
+  font-size: 14px;
+  text-align: center;
+}
+
+.alive strong {
+  font-size: 22px;
+}
+
+.arena {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--ov-chip-bg);
+}
+
+.ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(var(--r) * 100%);
+  height: calc(var(--r) * 100%);
+  border: 3px solid var(--ov-accent);
+  border-radius: 50%;
+  box-shadow: 0 0 0 999px rgb(239 68 68 / 22%);
+  transform: translate(-50%, -50%);
+  transition:
+    width 0.1s linear,
+    height 0.1s linear;
+}
+
+.ring[data-sudden] {
+  border-color: #ef4444;
+}
+
+/* A fighter eases to each new position over one read. */
+.fighter {
+  position: absolute;
+  top: calc(var(--y) * 100%);
+  left: calc(var(--x) * 100%);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffffff 0 12%, var(--c) 45%);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 45%);
+  transform: translate(-50%, -50%);
+  transition:
+    top 0.1s linear,
+    left 0.1s linear;
+}
+
+.fighter[data-attack] {
+  box-shadow:
+    0 0 0 6px color-mix(in srgb, var(--c) 45%, transparent),
+    0 0 18px var(--c);
+}
+
+.fighter[data-out] {
+  opacity: 0.25;
+  filter: grayscale(1);
+}
+
+.fighter[data-win] {
+  z-index: 2;
+  box-shadow:
+    0 0 0 3px #facc15,
+    0 0 16px #facc15;
+}
+
+.name {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  color: var(--ov-chip-ink);
+  font-size: 11px;
+  font-style: normal;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 70%);
+  transform: translateX(-50%);
+}
+
+.hp {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 50%;
+  width: 28px;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #4ade80 calc(var(--hp) * 100%), rgb(0 0 0 / 50%) 0);
+  transform: translateX(-50%);
+}
+
+.countdown {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--ov-accent);
+  font-size: 96px;
+}
+
+.feed {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: calc(4 * 1.4em);
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  list-style: none;
+}
+
+.result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+}
+
+.result strong {
+  font-size: 32px;
+}
+
+.top {
+  display: flex;
+  gap: 12px;
+  margin: 4px 0 0;
+  padding: 0;
+  font-size: 13px;
+  list-style: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fighter,
+  .ring {
+    transition: none;
+  }
+}
