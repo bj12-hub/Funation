@@ -1,0 +1,208 @@
+/* 원소스 오버레이 배치 (code-first) — the scaled canvas with draggable boxes, the 레이어 list and the selected overlay's fields. */
+
+.stageHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.wrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+/* The canvas on a checkerboard (overlays are transparent), clipped like OBS clips the canvas. */
+.stage {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--color-border-strong);
+  background-color: #1b1d24;
+  background-image:
+    linear-gradient(45deg, #23262f 25%, transparent 25%),
+    linear-gradient(-45deg, #23262f 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #23262f 75%),
+    linear-gradient(-45deg, transparent 75%, #23262f 75%);
+  background-position:
+    0 0,
+    0 8px,
+    8px -8px,
+    -8px 0;
+  background-size: 16px 16px;
+  touch-action: none;
+}
+
+.stageEmpty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 16px;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-13);
+  text-align: center;
+}
+
+.box {
+  position: absolute;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 70%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.box:active {
+  cursor: grabbing;
+}
+
+.selection {
+  position: absolute;
+  z-index: 1;
+  box-sizing: border-box;
+  border: 2px solid var(--color-primary);
+  pointer-events: none;
+}
+
+.box:focus-visible {
+  outline: 2px solid #ffffff;
+}
+
+.box[data-hidden] {
+  border-style: dashed;
+  opacity: 0.45;
+}
+
+.frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 0;
+  background: transparent;
+  transform-origin: top left;
+  pointer-events: none;
+}
+
+.boxLabel {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  max-width: calc(100% - 4px);
+  overflow: hidden;
+  padding: 1px 6px;
+  border-radius: var(--radius-8);
+  background: rgb(0 0 0 / 60%);
+  color: #ffffff;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The scale handle on the selected box's bottom-right corner. */
+.handle {
+  position: absolute;
+  right: -7px;
+  bottom: -7px;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #ffffff;
+  border-radius: 3px;
+  background: var(--color-primary);
+  cursor: nwse-resize;
+  touch-action: none;
+  pointer-events: auto;
+}
+
+.panels {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.layers {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.layers li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+  font-size: var(--font-size-14);
+}
+
+.layers li[data-selected] {
+  border-color: var(--color-primary);
+}
+
+.layers li[data-hidden] .layerName {
+  color: var(--color-text-tertiary);
+  text-decoration: line-through;
+}
+
+.layers li > button:not(.layerName) {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-8);
+}
+
+.layers li > button:disabled {
+  opacity: 0.35;
+}
+
+.grip {
+  color: var(--color-text-tertiary);
+  cursor: grab;
+}
+
+.layerName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The overlay picker shrinks with the card (its longest option would otherwise set its width). */
+.picker {
+  flex: 1 1 0;
+  width: 100%;
+  min-width: 0;
+}
+
+.fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field input {
+  width: 96px;
+}
+
+@media (max-width: 900px) {
+  .panels {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
