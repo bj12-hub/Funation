@@ -1,0 +1,115 @@
+/* 기여도 내역 (code-first) — studio card in 방송 운영, on top of crew.module.css. */
+
+/* A <details> card: its parts stack with the card's gap (flex does not reach the parts of a details element everywhere). */
+.card {
+  display: block;
+}
+
+.card > * + * {
+  margin-top: 14px;
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  cursor: pointer;
+  list-style-position: outside;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.kinds {
+  flex-wrap: wrap;
+}
+
+.kinds button {
+  white-space: nowrap;
+}
+
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 520px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.lines li {
+  display: grid;
+  grid-template-columns: 96px 88px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+  font-size: var(--font-size-13);
+}
+
+.when {
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.kind {
+  justify-self: start;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-neutral-soft);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-12);
+  white-space: nowrap;
+}
+
+.what {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 10px;
+  min-width: 0;
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.points {
+  color: var(--color-success-text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.points[data-negative] {
+  color: var(--color-error-text);
+}
+
+@media (max-width: 600px) {
+  /* 시각 · 종류 · 점수 on top, the line under them. */
+  .lines li {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .what {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .points {
+    grid-column: 3;
+    grid-row: 1;
+  }
+}

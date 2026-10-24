@@ -106,8 +106,8 @@ export type FeedEntry = {
 
 /**
  * 중복 도네이션 확인 (2026-10-25, StreamDonate 참고 — 기본값): an entry is 중복 의심 when an earlier entry that is not
- * cancelled has the same donor (spaces and case ignored), amount and unit and came at most this many seconds before. The
- * operator decides — nothing is cancelled on its own, since the same donor may well give twice.
+ * cancelled has the same donor (spaces and case ignored, 후원자 이름 병합 applied), amount and unit and came at most this
+ * many seconds before. The operator decides — nothing is cancelled on its own, since the same donor may well give twice.
  */
 export const DUPLICATE_WINDOW_SEC = 60;
 /** DUPLICATE: cancelled as 중복 (배정 restores it, as KEPT). KEPT: 중복 아님 — the mark goes away. */
@@ -121,8 +121,31 @@ export type FeedEntryView = FeedEntry & {
   points: number;
 };
 
-/** A 후원 리스트 row: `duplicateOf` = the earlier entry it looks like a 중복 of (null when not suspected or decided). */
-export type FeedListEntry = FeedEntryView & { duplicateOf: { id: string; at: string } | null };
+/**
+ * A 후원 리스트 row: `duplicateOf` = the earlier entry it looks like a 중복 of (null when not suspected or decided);
+ * `mergedDonor` = the 대표 이름 its donor is merged into (null when the name is not merged or already the 대표 이름).
+ */
+export type FeedListEntry = FeedEntryView & { duplicateOf: { id: string; at: string } | null; mergedDonor: string | null };
+
+/** 후원 리스트 출처 필터: where an entry came from — 시뮬 후원 apart from the source it plays. */
+export type FeedOrigin = FeedSourceKey | "SIM";
+export const FEED_ORIGINS: { key: FeedOrigin; label: string }[] = [
+  { key: "SSUMNATION", label: "썸네이션" },
+  { key: "YOUTUBE", label: "YouTube" },
+  { key: "CHZZK", label: "치지직" },
+  { key: "SOOP", label: "SOOP" },
+  { key: "FLEXTV", label: "FlexTV" },
+  { key: "BANK", label: "계좌" },
+  { key: "SIM", label: "시뮬" }
+];
+export const feedOrigin = (e: Pick<FeedEntry, "source" | "platform">): FeedOrigin => (e.source === "SIM" ? "SIM" : e.source === "BANK" ? "BANK" : (e.platform ?? "SSUMNATION"));
+
+/**
+ * 후원자별 정리: this broadcast's donors under their merged name — 후원 리스트 entries that are not cancelled and 멤버 지정
+ * 후원 — with the names they came under, best first by points.
+ */
+export type DonorSummaryRow = { name: string; names: string[]; count: number; points: number };
+export const DONOR_SUMMARY_ROWS = 20;
 
 export type FeedView = {
   assignMode: AssignMode;
@@ -133,7 +156,43 @@ export type FeedView = {
   excel: ExcelSettings;
   /** 플랫폼 · BJ별 정리: points per source (Ssumnation + each platform) for every member, plus 미지정. */
   summary: FeedSummaryRow[];
+  /** 후원자별 정리, at most DONOR_SUMMARY_ROWS. */
+  donors: DonorSummaryRow[];
 };
+
+// ── 후원자 이름 병합 (2026-10-25, StreamDonate 후원 및 통합 관리 참고 — 기본값) ─────────────────────
+
+/**
+ * One donor known under several names (another platform's nickname, a changed name): every alias reads as `name` in the
+ * studio — the 후원 리스트, 후원자별 정리, 중복 의심 and 기여도 내역. Names compare with spaces and case ignored. Studio
+ * only: nothing on stream (alerts, rankings, 엔딩 크레딧) is renamed or joined by it. Kept per channel.
+ */
+export type DonorMerge = { id: string; name: string; aliases: string[] };
+export const DONOR_MERGES_MAX = 50;
+export const DONOR_ALIASES_MAX = 10;
+export const DONOR_NAME_MAX = 60;
+
+// ── 기여도 내역 (2026-10-25, StreamDonate 참고 — 기본값) ───────────────────────────────────────────
+
+/**
+ * Every change to a member's broadcast score, by kind (기능별 필터): DONATION 멤버 지정 후원, FEED 후원 리스트 배정, ADJUST
+ * 보정, STEAL 기여도 강탈 (the thief + and the target −), BATTLE 배틀 배수 extra (per battle), GRADE 직급 배수 extra (one
+ * line per member for the whole broadcast, `at` null), GAME 점수 게임 results shown on OBS. A member's lines add up to
+ * their scoreboard score.
+ */
+export type ContributionKind = "DONATION" | "FEED" | "ADJUST" | "STEAL" | "BATTLE" | "GRADE" | "GAME";
+export const CONTRIBUTION_KINDS: { key: ContributionKind; label: string }[] = [
+  { key: "DONATION", label: "멤버 지정 후원" },
+  { key: "FEED", label: "후원 리스트" },
+  { key: "ADJUST", label: "보정" },
+  { key: "STEAL", label: "강탈" },
+  { key: "BATTLE", label: "배틀 배수" },
+  { key: "GRADE", label: "직급 배수" },
+  { key: "GAME", label: "점수 게임" }
+];
+export type ContributionLine = { id: string; at: string | null; kind: ContributionKind; memberId: string; memberName: string; color: string; points: number; label: string; detail: string };
+export type ContributionHistory = { broadcastId: string; title: string; lines: ContributionLine[] };
+export type ContributionResult = { status: "OK"; history: ContributionHistory } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
 
 // ── 자동엑셀 (원화 환산 · 기여도) — code-first; conversion values are entered by the creator ─────────
 
@@ -1362,6 +1421,8 @@ export type BroadcastView = {
   scenario: ScenarioPart[];
   /** 상품 순위표 settings (kept across broadcasts; editable before going live). */
   prizeSettings: PrizeBoardSettings;
+  /** 후원자 이름 병합 (kept across broadcasts; edited in the live 후원 리스트). */
+  donorMerges: DonorMerge[];
   /** 팀 순위표 settings (kept across broadcasts; editable before going live). */
   teamPrizeSettings: TeamPrizeSettings;
   /** 시그 카운트 settings (kept across broadcasts) and the signatures it can count (숨긴 시그니처 too, marked). */

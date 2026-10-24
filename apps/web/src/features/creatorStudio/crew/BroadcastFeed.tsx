@@ -5,19 +5,24 @@ import { formatKstTime, formatNumber } from "@/lib/format";
 import { assignFeedEntry, cancelFeedEntry, resolveDuplicate, setAssignMode, setEntryContribution, setMemberKeywords, simulateDonation, startOneshot, stopOneshot } from "@/services/crew/crewFeed";
 import {
   EXCEL_UNITS,
+  FEED_ORIGINS,
   KEYWORDS_PER_MEMBER,
+  feedOrigin,
   type BroadcastResult,
   type Contribution,
   type CrewMember,
+  type DonorMerge,
   type ExcelSettings,
   type ExcelUnit,
   type FeedEntryView,
   type FeedListEntry,
+  type FeedOrigin,
   type FeedStatus,
   type FeedView
 } from "@/services/crew/crewTypes";
 import { unitLabel } from "@/types/donationUnit";
 import { PLATFORM_LABEL } from "@/types/platform";
+import { DonorPanel } from "./DonorPanel";
 import { ExcelPanel, ExcelSummary } from "./ExcelPanel";
 import styles from "./crew.module.css";
 import feed from "./feed.module.css";
@@ -48,12 +53,15 @@ export function BroadcastFeed({
   broadcastId,
   members,
   view,
+  merges,
   pending,
   run
 }: {
   broadcastId: string;
   members: CrewMember[];
   view: FeedView;
+  /** 후원자 이름 병합 groups (the channel's, kept across broadcasts). */
+  merges: DonorMerge[];
   pending: boolean;
   run: (action: () => Promise<BroadcastResult>, ok?: string) => void;
 }) {
@@ -72,14 +80,19 @@ export function BroadcastFeed({
   // 중복 의심: the marked entries and the earlier ones they look like.
   const suspects = view.entries.filter((e) => e.duplicateOf);
   const inPair = new Set(suspects.flatMap((e) => [e.id, e.duplicateOf!.id]));
-  const entries = view.entries.filter((e) =>
-    filter === "ALL"
-      ? true
-      : filter === "TODO"
-        ? e.status === "UNMATCHED" || e.status === "PENDING"
-        : filter === "DUPLICATE"
-          ? inPair.has(e.id)
-          : e.status === filter
+  // 출처 필터: the sources this list has, with their counts (on top of the status filter).
+  const [origin, setOrigin] = useState<FeedOrigin | "ALL">("ALL");
+  const origins = FEED_ORIGINS.map((o) => ({ ...o, count: view.entries.filter((e) => feedOrigin(e) === o.key).length })).filter((o) => o.count > 0);
+  const entries = view.entries.filter(
+    (e) =>
+      (origin === "ALL" || feedOrigin(e) === origin) &&
+      (filter === "ALL"
+        ? true
+        : filter === "TODO"
+          ? e.status === "UNMATCHED" || e.status === "PENDING"
+          : filter === "DUPLICATE"
+            ? inPair.has(e.id)
+            : e.status === filter)
   );
   const todo = view.entries.filter((e) => e.status === "UNMATCHED" || e.status === "PENDING").length;
 
@@ -126,6 +139,7 @@ export function BroadcastFeed({
 
       <ExcelPanel settings={view.excel} pending={pending} run={run} />
       <ExcelSummary rows={view.summary} />
+      <DonorPanel donors={view.donors} merges={merges} pending={pending} run={run} />
 
       <details className={feed.panel}>
         <summary>멤버 키워드 (멤버당 {KEYWORDS_PER_MEMBER}개)</summary>
@@ -224,6 +238,16 @@ export function BroadcastFeed({
           </button>
         ))}
       </div>
+      {origins.length > 1 && (
+        <div className={feed.origins} role="group" aria-label="후원 리스트 출처">
+          <span className={styles.muted}>출처</span>
+          {[{ key: "ALL" as const, label: "전체", count: view.entries.length }, ...origins].map((o) => (
+            <button key={o.key} type="button" className={feed.origin} aria-pressed={origin === o.key} onClick={() => setOrigin(o.key)}>
+              {o.label} {o.count}
+            </button>
+          ))}
+        </div>
+      )}
 
       {view.entries.length > 0 && <DropBar active={active} dragging={dragging !== null} pending={pending} onDrop={dropOn} />}
 
@@ -336,7 +360,8 @@ function EntryRow({
               ⠿
             </span>
           )}
-          {e.donor} · {amountText(e.amount, e.unit)}
+          {e.mergedDonor ?? e.donor}
+          {e.mergedDonor && <span className={feed.alias}>({e.donor})</span>} · {amountText(e.amount, e.unit)}
           {e.platform && <span className={styles.chipOff}>{PLATFORM_LABEL[e.platform]}</span>}
           {e.source === "SIM" && <span className={styles.chipOff}>시뮬</span>}
           {e.source === "BANK" && <span className={styles.chipOff}>계좌</span>}
