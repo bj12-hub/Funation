@@ -1,0 +1,94 @@
+/* 시청자 참여 게임 (code-first) — studio page /creator/widgets/play. The card and form layout come from crew.module.css and prize.module.css. */
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.unit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.unit input {
+  width: 96px;
+}
+
+/* 참가자: a chip per entrant with where they came from (and ✕ while 모집 중). */
+.entrants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.entrants li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 4px 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-13);
+}
+
+.entrants button {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: var(--color-text-tertiary);
+}
+
+/* 결과: the finishing order, the winner marked. */
+.results,
+.history {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.results li,
+.history li {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+  font-size: var(--font-size-14);
+}
+
+.results li[data-win] {
+  box-shadow: inset 0 0 0 2px var(--color-primary);
+}
+
+.history li {
+  grid-template-columns: 56px 64px minmax(0, 1fr) auto;
+}
+
+.badge {
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  color: #ffffff;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+}
+
+@media (max-width: 600px) {
+  .history li {
+    grid-template-columns: 56px minmax(0, 1fr) auto;
+  }
+
+  .history li > :nth-child(2) {
+    display: none;
+  }
+}

@@ -1,0 +1,171 @@
+/* 마블 룰렛 OBS overlay: the card, the course by map, the marbles (positioned by --x · --y from the race), the result. */
+
+.pad {
+  padding: 16px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(100%, 440px);
+  box-sizing: border-box;
+  padding: 16px 18px;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  font-size: 20px;
+}
+
+.chip {
+  font-size: 12px;
+}
+
+.join {
+  margin: 0;
+  font-size: 22px;
+  text-align: center;
+}
+
+.names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.names li {
+  border-left: 4px solid var(--marble);
+  font-size: 12px;
+}
+
+/* The course: 3 : 4, a pattern per map. */
+.track {
+  --marble-size: 18px;
+  position: relative;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  border-radius: 12px;
+  background-color: var(--ov-chip-bg);
+}
+
+.track[data-map="PINS"] {
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--ov-chip-ink) 30%, transparent) 2px, transparent 3px);
+  background-size: 28px 28px;
+}
+
+.track[data-map="ZIGZAG"] {
+  background-image: repeating-linear-gradient(35deg, transparent 0 22px, color-mix(in srgb, var(--ov-chip-ink) 14%, transparent) 22px 25px),
+    repeating-linear-gradient(-35deg, transparent 0 22px, color-mix(in srgb, var(--ov-chip-ink) 14%, transparent) 22px 25px);
+}
+
+.track[data-map="SPIRAL"] {
+  background-image: repeating-radial-gradient(circle at 50% 50%, transparent 0 18px, color-mix(in srgb, var(--ov-chip-ink) 14%, transparent) 18px 21px);
+}
+
+.track[data-map="STAIRS"] {
+  background-image: repeating-linear-gradient(180deg, transparent 0 36px, color-mix(in srgb, var(--ov-chip-ink) 18%, transparent) 36px 40px);
+}
+
+.marble {
+  position: absolute;
+  top: calc((100% - var(--marble-size)) * var(--y));
+  left: calc((100% - var(--marble-size)) * var(--x));
+  display: grid;
+  place-items: center;
+  width: var(--marble-size);
+  height: var(--marble-size);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffffff 0 12%, var(--marble) 40%);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 45%);
+}
+
+.marble b {
+  color: #ffffff;
+  font-size: 9px;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 80%);
+}
+
+.marble[data-win] {
+  z-index: 2;
+  box-shadow:
+    0 0 0 3px #facc15,
+    0 0 16px #facc15;
+}
+
+.name {
+  position: absolute;
+  left: calc(100% + 3px);
+  color: var(--ov-chip-ink);
+  font-size: 10px;
+  font-style: normal;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 60%);
+}
+
+.skill {
+  position: absolute;
+  bottom: 100%;
+  color: #facc15;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.countdown {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--ov-accent);
+  font-size: 96px;
+}
+
+.finished {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-height: 22px;
+  margin: 0;
+  padding: 0;
+  font-size: 14px;
+  list-style: none;
+}
+
+.winner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  animation: winPop 0.6s cubic-bezier(0.2, 0.8, 0.3, 1.4) both;
+}
+
+.winner strong {
+  font-size: 34px;
+}
+
+@keyframes winPop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .winner {
+    animation: none;
+  }
+}
