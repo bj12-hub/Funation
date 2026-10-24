@@ -248,6 +248,7 @@ export type BroadcastLive = {
   /** Unsold slots come without their 몰수권 here (OBS); the studio's GamesView has them. */
   sigHunter: SigHunterLive;
   sigDosan: SigDosanLive;
+  alphabet: AlphabetLive;
   /** Server clock when this view was read: timers (시나리오 경과, 강탈 card) correct the browser's clock with it. */
   serverNow: string;
 };
@@ -369,7 +370,7 @@ export type SigCountLive = {
 // A game draws its result on the server; the result is display points only (FN · 지갑 · 수익 · 정산 never move).
 
 /** Games on the shared engine (crewGameCore). `param`: the OBS view (`?spin`). */
-export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL" | "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW" | "SIG_HUNTER" | "SIG_DOSAN";
+export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL" | "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW" | "SIG_HUNTER" | "SIG_DOSAN" | "ALPHABET";
 export const GAMES: { key: GameKey; label: string; param: string }[] = [
   { key: "SPIN", label: "스핀머신", param: "spin" },
   { key: "DICE", label: "주사위 게임", param: "dice" },
@@ -381,7 +382,8 @@ export const GAMES: { key: GameKey; label: string; param: string }[] = [
   { key: "SIG_BINGO", label: "시그 빙고", param: "sigbingo" },
   { key: "GRID_DRAW", label: "복불복 뽑기판", param: "griddraw" },
   { key: "SIG_HUNTER", label: "시그니처 헌터", param: "sighunter" },
-  { key: "SIG_DOSAN", label: "시그니처 두산", param: "sigdosan" }
+  { key: "SIG_DOSAN", label: "시그니처 두산", param: "sigdosan" },
+  { key: "ALPHABET", label: "알파벳 모으기", param: "alphabet" }
 ];
 
 /**
@@ -400,7 +402,8 @@ export const GAME_TIMING: Record<GameKey, { playSec: number; resultSec: number }
   SIG_BINGO: { playSec: 1, resultSec: 5 },
   GRID_DRAW: { playSec: 1, resultSec: 4 },
   SIG_HUNTER: { playSec: 1, resultSec: 4 },
-  SIG_DOSAN: { playSec: 1, resultSec: 3 }
+  SIG_DOSAN: { playSec: 1, resultSec: 3 },
+  ALPHABET: { playSec: 3, resultSec: 3 }
 };
 /** Runs a game lists (studio) and queues (OBS), newest first. */
 export const GAME_RUNS_SHOWN = 30;
@@ -759,6 +762,59 @@ export type SigDosanBoard = {
   winner: { lane: string; label: string; memberName: string | null; revealAt: string } | null;
 };
 
+// 알파벳 모으기 — StreamDonate 알파벳 모으기: each 시그니처 후원 to a member spins a horizontal reel to a letter of the word or
+// 꽝; each member collects the word's letters, and a completed word draws a 상품 (by 가중치).
+export const ALPHABET_TITLE_DEFAULT = "알파벳 모으기";
+export const ALPHABET_WORD_MIN = 2;
+export const ALPHABET_WORD_MAX = 12;
+export const ALPHABET_MISS_MAX = 90;
+export const ALPHABET_PRIZES_MAX = 12;
+export const ALPHABET_PRIZE_LABEL_MAX = 20;
+export const ALPHABET_PRIZE_POINTS_MAX = 10_000_000;
+export const ALPHABET_PRIZE_WEIGHT_MAX = 1000;
+/** 단어판 테마 (OBS). */
+export type AlphabetTheme = "NEON" | "GOLD" | "GOLD2" | "ARCADE";
+export const ALPHABET_THEMES: { key: AlphabetTheme; label: string }[] = [
+  { key: "NEON", label: "네온" },
+  { key: "GOLD", label: "골드" },
+  { key: "GOLD2", label: "골드 2" },
+  { key: "ARCADE", label: "아케이드" }
+];
+/** A 상품 drawn for a completed word: its 문구, points for the member (0 = none) and 가중치. */
+export type AlphabetPrize = { id: string; label: string; points: number; weight: number };
+/** `word`: A–Z ("" until set — nothing spins); `missPercent`: 꽝 비율 of the reel (the rest is the word's letters, evenly). */
+export type AlphabetSettings = GameCommon & { word: string; missPercent: number; prizes: AlphabetPrize[]; theme: AlphabetTheme };
+export const DEFAULT_ALPHABET: AlphabetSettings = { title: "", auto: false, excluded: [], showIdle: true, word: "", missPercent: 50, prizes: [], theme: "NEON" };
+/**
+ * What happened to a member's board, in order, at the time OBS shows it: a letter filled `slot`, the word was completed
+ * (the next letter starts it over) or the board was emptied.
+ */
+export type AlphabetEvent = { at: string; kind: "LETTER" | "DONE" | "CLEAR"; slot: number | null };
+/**
+ * A member's word board: each letter of the word, collected (`revealAt`: when OBS shows it) or not; `done`: 완성 so far.
+ * `timeline`: its events — OBS replays them up to its clock (runs queue, so the board can be ahead of what OBS shows).
+ */
+export type AlphabetBoard = { memberId: string; name: string; color: string | null; slots: { letter: string; revealAt: string | null }[]; done: number; timeline: AlphabetEvent[] };
+
+/** A board as OBS shows it at `now`: the lit letters and the 완성 count, replaying its timeline. */
+export function alphabetBoardAt(board: Pick<AlphabetBoard, "slots" | "timeline">, now: number): { lit: boolean[]; done: number } {
+  let lit = board.slots.map(() => false);
+  let full = false;
+  let done = 0;
+  for (const e of board.timeline) {
+    if (Date.parse(e.at) > now) break;
+    if (e.kind === "DONE") {
+      full = true;
+      done += 1;
+    } else if (e.kind === "CLEAR" || full) {
+      lit = lit.map(() => false);
+      full = false;
+    }
+    if (e.kind === "LETTER" && e.slot !== null) lit[e.slot] = true;
+  }
+  return { lit, done };
+}
+
 /** What started a run: a 시그니처 후원 to the member (자동), a 랜덤시그 · 메들리 발동 금액 (자동), or the operator (수동). */
 /** `DONATION`: a donation that is no signature (복불복 뽑기판 on 모든 후원). */
 export type GameTrigger = { kind: "SIGNATURE"; signatureName: string } | { kind: "AMOUNT"; amount: number } | { kind: "DONATION"; amount: number } | { kind: "MANUAL" };
@@ -804,6 +860,8 @@ export type TwoWheelLive = { settings: TwoWheelSettings; runs: GameRunView[] };
 export type GridDrawLive = { settings: GridDrawSettings; runs: GameRunView[]; board: GridDrawBoard | null };
 /** `board`: null until 헌트 시작 (or after 판 비우기). */
 export type SigHunterLive = { settings: SigHunterSettings; runs: GameRunView[]; board: SigHunterBoard | null };
+/** `boards`: the active members' (and anyone's who collected); `letters`: the word's letters, as on the reel. */
+export type AlphabetLive = { settings: AlphabetSettings; runs: GameRunView[]; boards: AlphabetBoard[]; letters: string[] };
 /** `board`: null until 두산 시작 (or after 판 비우기). */
 export type SigDosanLive = { settings: SigDosanSettings; runs: GameRunView[]; board: SigDosanBoard | null };
 /** `board`: null until 빙고 시작 (or after 판 비우기); `eligible`: how many signatures a new board would draw from. */
@@ -837,6 +895,7 @@ export type GamesView = {
     gridDraw: GridDrawLive;
     sigHunter: SigHunterLive;
     sigDosan: SigDosanLive;
+    alphabet: AlphabetLive;
     sources: Record<GameKey, Record<string, GameSource[]>>;
     serverNow: string;
   } | null;
@@ -851,6 +910,7 @@ export type GamesView = {
   gridDrawSettings: GridDrawSettings;
   sigHunterSettings: SigHunterSettings;
   sigDosanSettings: SigDosanSettings;
+  alphabetSettings: AlphabetSettings;
   signatures: { id: string; name: string; group: string; active: boolean; price: number; match: "SELECT" | "AMOUNT"; rangeMin: number | null }[];
   overlayPath: string;
 };

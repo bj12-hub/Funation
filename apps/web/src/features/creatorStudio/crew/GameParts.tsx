@@ -146,6 +146,7 @@ export function ManualPlay({
   game,
   name,
   verb,
+  withSource = true,
   live,
   members,
   disabled,
@@ -155,6 +156,8 @@ export function ManualPlay({
   game: GameKey;
   name: string;
   verb: string;
+  /** false: no 기준 후원 to pick (a game whose results do not use it). */
+  withSource?: boolean;
   live: LiveGames;
   members: CrewMember[];
   disabled?: boolean;
@@ -167,7 +170,7 @@ export function ManualPlay({
   const requestId = useRef<string | null>(null);
   const picked = active.some((m) => m.id === memberId) ? memberId : (active[0]?.id ?? "");
   const sources = live.sources[game][picked] ?? [];
-  const source = sourceId === null ? (sources[0]?.id ?? "") : sources.some((x) => x.id === sourceId) ? sourceId : "";
+  const source = !withSource ? "" : sourceId === null ? (sources[0]?.id ?? "") : sources.some((x) => x.id === sourceId) ? sourceId : "";
 
   const play = () => {
     if (!picked) return;
@@ -199,14 +202,16 @@ export function ManualPlay({
           </option>
         ))}
       </select>
-      <select className={styles.select} aria-label={`${name} 기준 후원`} value={source} onChange={(e) => setSourceId(e.target.value)}>
-        <option value="">기준 후원 없음</option>
-        {sources.map((x) => (
-          <option key={x.id} value={x.id}>
-            {formatKstTime(x.at, { hour: "2-digit", minute: "2-digit" })} · {x.label} · {formatNumber(x.points)}점
-          </option>
-        ))}
-      </select>
+      {withSource && (
+        <select className={styles.select} aria-label={`${name} 기준 후원`} value={source} onChange={(e) => setSourceId(e.target.value)}>
+          <option value="">기준 후원 없음</option>
+          {sources.map((x) => (
+            <option key={x.id} value={x.id}>
+              {formatKstTime(x.at, { hour: "2-digit", minute: "2-digit" })} · {x.label} · {formatNumber(x.points)}점
+            </option>
+          ))}
+        </select>
+      )}
       <button type="button" className={styles.primary} disabled={pending || disabled || !picked} onClick={play}>
         {verb}
       </button>

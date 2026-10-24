@@ -13,6 +13,8 @@ import type {
   GridDrawSize,
   GridPrizeKind,
   SigHunterSettings,
+  AlphabetEvent,
+  AlphabetSettings,
   SigDosanMode,
   SigDosanSettings,
   JupjupSettings,
@@ -206,6 +208,12 @@ export type MockBroadcast = {
     lanes: Record<string, { memberId: string | null; at: string; revealAt: string; donationId: string | null }[]>;
     winner: { lane: string; memberId: string | null; revealAt: string } | null;
   };
+  /**
+   * 알파벳 모으기 progress for `word` (another word starts over): per member, which letters of the word they collected
+   * (`revealAt` of the run that brought each), how many words they completed, and `full` while the last one is complete
+   * (it starts over with their next letter). `log`: the board's events at their OBS times (AlphabetBoard.timeline).
+   */
+  alphabet?: { word: string; members: Record<string, { slots: ({ revealAt: string } | null)[]; done: number; full: boolean; log: AlphabetEvent[] }> };
   /** 상품 순위표: shown on OBS (`?prize`) and its 구간 (시작 ~ 정지; a new 시작 restarts it). `starts`: 시작 request ids applied. */
   prizeBoard?: { visible: boolean; window: { startedAt: string; stoppedAt: string | null } | null; starts: string[] };
   /** 시그 카운트: shown on OBS (`?sigcount`) and counted from `since` (null = the broadcast start; 다시 세기 sets it). */
@@ -259,6 +267,8 @@ type MockCrew = {
   sigHunters?: Record<string, SigHunterSettings>;
   /** 시그니처 두산 settings per channel (missing = DEFAULT_SIG_DOSAN). */
   sigDosans?: Record<string, SigDosanSettings>;
+  /** 알파벳 모으기 settings per channel (missing = DEFAULT_ALPHABET). */
+  alphabets?: Record<string, AlphabetSettings>;
   /** 멤버 추가 request ids already applied (a retried add is not a second member). */
   memberRequests?: string[];
 };
