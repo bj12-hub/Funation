@@ -1,4 +1,4 @@
-import { FLEXTV_WALLET } from "@/lib/flextv/mode";
+import { FLEXTV_DONATION, FLEXTV_WALLET } from "@/lib/flextv/mode";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
@@ -85,6 +85,7 @@ export async function getDonationHistory(input: {
   all?: boolean;
   filter?: DonationFilter;
 }): Promise<(HistoryPage<DonationRecord> & { totalFn: number }) | null> {
+  if (FLEXTV_DONATION) return flextvDonationHistory(input);
   if (!USE_MOCK) throw new Error("Wallet API is not connected yet.");
   const session = await getSession();
   if (!session) return null;
@@ -115,6 +116,28 @@ export async function getDonationHistory(input: {
     return gameResult ? { ...d, gameResult } : d;
   });
   return { ...page, items, totalFn: rows.reduce((s, d) => s + d.fnAmount, 0) };
+}
+
+/**
+ * 후원 내역 on the FLEXTV backend: FLEXTV's sent donations, all of them 기본 후원 (FLEXTV has no 퀘스트 or 게임 후원 of
+ * Ssumnation's kind), searched by the recipient's name; the filters work as on the mock.
+ */
+async function flextvDonationHistory(input: { period: Period; category: DonationCategory; page?: number; all?: boolean; filter?: DonationFilter }) {
+  const rows = await flextvHistory.donationRecords(input.period.from);
+  if (!rows) return null;
+  const f = input.filter ?? {};
+  const q = f.q?.trim().toLowerCase() ?? "";
+  const matching = rows
+    .filter(
+      (d) =>
+        input.category === "basic" &&
+        inPeriod(d.donatedAt, input.period) &&
+        (!q || d.creatorName.toLowerCase().includes(q)) &&
+        (f.min === undefined || d.fnAmount >= f.min) &&
+        (f.max === undefined || d.fnAmount <= f.max)
+    )
+    .sort((a, b) => (f.sort === "oldest" ? a.donatedAt.localeCompare(b.donatedAt) : b.donatedAt.localeCompare(a.donatedAt)));
+  return { ...paginate(matching, input), totalFn: matching.reduce((s, d) => s + d.fnAmount, 0) };
 }
 
 function gameResultOf(id: string): string | null {

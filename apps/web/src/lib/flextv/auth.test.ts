@@ -23,14 +23,14 @@ const member = (over: Partial<FlextvMember> = {}): FlextvMember => ({ id: 1, log
 
 describe("FLEXTV sign-in", () => {
   it("signs in with the tokens and the member FLEXTV returns, the profile over the member row", () => {
-    const outcome = mapSignIn({ status: 200, data: { ...profile, token, member: { id: 601924, loginId: "viewer01", nickname: "옛 닉네임", status: 1, memberDiv: 1, password: "$2b$12$hash" } } });
+    const outcome = mapSignIn({ status: 200, data: { ...profile, token, member: { id: 601924, loginId: "viewer01", nickname: "옛 닉네임", status: 1, memberDiv: 1, createdAt: "2024-01-01" } } });
     expect(outcome).toEqual({
       kind: "OK",
       tokens: { accessToken: token.accessToken, refreshToken: token.refreshToken, accessTtl: 172_000, refreshTtl: 2_590_000 },
       member: { id: 601924, loginId: "viewer01", nickname: "시청자", thumbUrl: "https://static.flextv.co.kr/p.png", memberDiv: 1, status: 1 }
     });
-    // The member row's password hash is never kept.
-    expect(JSON.stringify(outcome)).not.toContain("$2b$");
+    // Only what the session needs is kept from the member row.
+    expect(JSON.stringify(outcome)).not.toContain("createdAt");
   });
 
   it("tells a wrong password, the 10-minute lock, an unknown 아이디 and a blocked member apart", () => {
@@ -131,5 +131,13 @@ describe("device context", () => {
     const headers = new Headers({ "x-forwarded-for": "203.0.113.7, 10.0.0.1", "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0)" });
     expect(deviceContextFrom(headers)).toEqual({ clientIp: "203.0.113.7", device: "MOBILEWEB", userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0)" });
     expect(deviceContextFrom(new Headers({ "user-agent": "Mozilla/5.0 (Windows NT 10.0)" }))).toEqual({ clientIp: null, device: "PCWEB", userAgent: "Mozilla/5.0 (Windows NT 10.0)" });
+  });
+
+  it("forwards only an IP literal, never a value the browser made up", () => {
+    expect(deviceContextFrom(new Headers({ "x-forwarded-for": "2001:db8::1" })).clientIp).toBe("2001:db8::1");
+    for (const forged of ["1.2.3.4 x", "999.1.1.1", "localhost", "1.2.3", "::1 x", "<b>"]) {
+      expect(deviceContextFrom(new Headers({ "x-forwarded-for": forged })).clientIp, forged).toBeNull();
+    }
+    expect(deviceContextFrom(new Headers({ "x-forwarded-for": "made-up", "x-real-ip": "198.51.100.2" })).clientIp).toBe("198.51.100.2");
   });
 });

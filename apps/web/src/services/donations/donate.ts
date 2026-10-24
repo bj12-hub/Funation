@@ -1,6 +1,8 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
+import { isFlextvChannelId } from "@/lib/flextv/donation";
+import { FLEXTV_DONATION } from "@/lib/flextv/mode";
 import { toDateString } from "@/lib/period";
 import { memberKeyOf } from "@/lib/records";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
@@ -19,6 +21,7 @@ import { MEMBER_NICKNAME_ID, attributeDonation, nicknameChangeable, ownsNickname
 import { alertBadgeLabels } from "@/services/supporter/identityTypes";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import type { DonationCatalog } from "./donationCatalog";
+import * as flextv from "./flextvDonate";
 import { recordQuest } from "./questCore";
 import { canParticipate, enqueueSpin } from "./rouletteCore";
 import { canDraw, enqueueDraw } from "./gachaCore";
@@ -41,8 +44,12 @@ import { MAX_DRAWING_CHARS, parseYouTubeId, type DonationResult } from "./donati
  * request read, only while it still holds the slot, active (UNAUTHORIZED otherwise, nothing debited) — every type, 룰렛 ·
  * 뽑기 · 퀘스트 · 미니 · 크루 멤버 지정 included, debits here.
  * TBD: creator revenue share, platform fee, refunds, delivery to the broadcast platform/overlay.
+ *
+ * A donation to a FLEXTV channel (FLEXTV_DONATION, a FLEXTV channel id as `creatorId`) goes to ./flextvDonate.ts:
+ * FLEXTV moves the 렉스 and delivers it to the broadcast.
  */
 export async function requestDonation(input: unknown): Promise<DonationResult> {
+  if (FLEXTV_DONATION && isFlextvChannelId((input as { creatorId?: unknown } | null)?.creatorId)) return flextv.requestDonation(input);
   if (!USE_MOCK) throw new Error("Donation API is not connected yet.");
   const session = await getSession();
   if (!session) return { status: "UNAUTHORIZED" };

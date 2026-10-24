@@ -7,6 +7,7 @@ import { Modal } from "@/components/ui/Modal";
 import { formatNumber } from "@/lib/format";
 import type { Signature } from "@/services/donations/donationCatalog";
 import styles from "./donation.module.css";
+import { remote } from "../remoteImage";
 
 const FILTERS = [
   { key: "ALL", label: "전체", test: () => true },
@@ -141,7 +142,7 @@ function Body({ signatures, initial, onClose, onSelect }: { signatures: Signatur
               return (
                 <button key={s.id} type="button" role="radio" aria-checked={on} className={`${styles.popupCard} ${on ? styles.popupCardOn : ""}`} onClick={() => setChoice(s.id)}>
                   <span className={styles.popupThumb}>
-                    <Image src={s.imageUrl} alt="" fill sizes="246px" className={styles.popupImage} />
+                    <Image src={s.imageUrl} alt="" fill sizes="246px" className={styles.popupImage} unoptimized={remote(s.imageUrl)} />
                     {on && <span className={styles.selectedBadge}>✓ 선택됨</span>}
                   </span>
                   <span className={styles.popupInfo}>

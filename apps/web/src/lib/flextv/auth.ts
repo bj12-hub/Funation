@@ -27,9 +27,19 @@ export const isSocialProvider = (value: unknown): value is SocialProvider => SOC
 /** Who is asking: FLEXTV counts logins and checks its black-IP list per IP, and records the device and browser. */
 export type DeviceContext = { clientIp: string | null; device: "PCWEB" | "MOBILEWEB"; userAgent: string | null };
 
+/**
+ * An IPv4 or IPv6 literal, nothing else: FLEXTV records the forwarded IP with logins, payments and donations, so a value
+ * a browser put in X-Forwarded-For never reaches it as it came.
+ */
+export function ipLiteral(value: string | null | undefined): string | null {
+  const v = value?.trim() ?? "";
+  if (/^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/.test(v)) return v;
+  if (v.length <= 45 && v.includes(":") && /^[0-9A-Fa-f:.]+$/.test(v)) return v;
+  return null;
+}
+
 export function deviceContextFrom(headers: Pick<Headers, "get">): DeviceContext {
-  const forwarded = headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const clientIp = forwarded || headers.get("x-real-ip")?.trim() || null;
+  const clientIp = ipLiteral(headers.get("x-forwarded-for")?.split(",")[0]) ?? ipLiteral(headers.get("x-real-ip"));
   const userAgent = headers.get("user-agent")?.slice(0, 512) || null;
   const mobile = /Mobi|Android|iPhone|iPad/i.test(userAgent ?? "");
   return { clientIp, device: mobile ? "MOBILEWEB" : "PCWEB", userAgent };

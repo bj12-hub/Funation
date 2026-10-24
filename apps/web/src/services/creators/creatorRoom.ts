@@ -25,7 +25,8 @@ export type RoomBanner = {
 export type LiveStream = {
   status: "LIVE";
   caption: string;
-  viewerCount: number;
+  /** Null when the platform does not say (a FLEXTV channel's room until phase 4). */
+  viewerCount: number | null;
   thumbnailUrl: string;
   /** e.g. "TOP 1 RANKER" — shown only when the server sends it. */
   rankBadge: string | null;
@@ -45,6 +46,11 @@ export type CreatorRoom = {
   banner: RoomBanner | null;
   stream: LiveStream | OfflineStream;
   donation: DonationCatalog;
+  /**
+   * "FLEXTV": a FLEXTV channel's room (FLEXTV backend, `/creators/{FLEXTV channel id}`) — FLEXTV's channel and donation
+   * options only; Ssumnation's own parts (크루, 투표, 커뮤니티, 별명 …) are not there. Absent: a Ssumnation creator.
+   */
+  source?: "FLEXTV";
 };
 
 export async function getCreatorRoom(creatorId: string): Promise<CreatorRoom | null> {

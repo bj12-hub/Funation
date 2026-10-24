@@ -7,10 +7,11 @@ Confirmed:
 - Backend (2026-10-25): **FLEXTV's existing backend** — Ssumnation's screens run on FLEXTV's API, and FLEXTV's
   broadcasting is part of Ssumnation. The money is FLEXTV's 렉스 ledger as it is (charging, payment providers, refunds,
   settlement under FLEXTV's rules; the on-screen name is TBD), existing FLEXTV members sign in as they are, and watching
-  happens inside Ssumnation with FLEXTV's player and chat. Phases 1 (로그인 · 회원가입 · 세션 · 간편 로그인) and 2 (렉스
-  잔액 · 충전 · 충전 내역 · 지갑 개요) are behind `NEXT_PUBLIC_BACKEND=flextv`; there the login lock, the account rules,
-  the charge prices, methods and limits, and who may charge (본인인증, 만 19세 이상) are FLEXTV's. See
-  docs/development/flextv-backend.md
+  happens inside Ssumnation with FLEXTV's player and chat. Phases 1 (로그인 · 회원가입 · 세션 · 간편 로그인), 2 (렉스
+  잔액 · 충전 · 충전 내역 · 지갑 개요) and 3 (후원 to a FLEXTV channel, 후원 내역) are behind `NEXT_PUBLIC_BACKEND=flextv`;
+  there the login lock, the account rules, the charge prices, methods and limits, who may charge (본인인증, 만 19세
+  이상) and who may donate and receive, and the donation types a FLEXTV channel offers (일반 · 시그니처) are FLEXTV's.
+  See docs/development/flextv-backend.md
 - Login lock (2026-10-08): 5 wrong passwords lock the account until a password reset — reset-only, no time-based unlock,
   no per-IP limit (`services/auth/loginLockCore.ts`)
 - Approved settlements at a 탈퇴 (2026-10-08): they are still paid (지급 완료) — a 탈퇴 forfeits only 정산 가능 and

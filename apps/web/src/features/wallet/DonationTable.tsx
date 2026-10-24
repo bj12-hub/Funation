@@ -48,9 +48,14 @@ export function DonationTable({ items }: { items: DonationRecord[] }) {
               <tr key={d.id}>
                 <td className={styles.datetimeMuted}>{d.donatedAt}</td>
                 <td>
-                  <Link href={`/creators/${d.creatorId}`} className={styles.creator}>
-                    {d.creatorName}
-                  </Link>
+                  {/* FLEXTV's 후원 내역 names the recipient without their channel: no link then. */}
+                  {d.creatorId ? (
+                    <Link href={`/creators/${d.creatorId}`} className={styles.creator}>
+                      {d.creatorName}
+                    </Link>
+                  ) : (
+                    <span className={styles.creator}>{d.creatorName}</span>
+                  )}
                 </td>
                 <td className={styles.message} title={d.message}>
                   {d.message}

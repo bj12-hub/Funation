@@ -1,6 +1,6 @@
 import { PAY_TYPE_LABEL, REX_UNIT_PRICE, fetchBalance, fetchPayments, fetchSpends, type FlextvPayment, type FlextvSpend } from "@/lib/flextv/wallet";
 import { getFlextvAccessToken } from "@/lib/session";
-import type { ChargeRecord, LedgerEntry } from "./walletTypes";
+import type { ChargeRecord, DonationRecord, LedgerEntry } from "./walletTypes";
 
 /**
  * 충전 내역 · FN Wallet on the FLEXTV backend (phase 2). FLEXTV pages its lists by offset only (no period filter), so
@@ -70,6 +70,30 @@ export async function walletLedger(since: string | null): Promise<{ balance: num
   ]);
   if (balance === null) return null;
   return { balance, charges: payments.map(chargeRecordOf), spends: spends.map(spendEntryOf) };
+}
+
+/**
+ * 후원 내역 from FLEXTV's sent-donation list. It names the recipient (nickname) but not the channel, the message or
+ * the kind, so a row shows the name without a link and "후원" as its type.
+ */
+export function donationRecordOf(s: FlextvSpend): DonationRecord {
+  return {
+    id: `flextv-spend-${s.id}`,
+    donatedAt: s.at,
+    creatorId: "",
+    creatorName: s.targetNick,
+    message: "",
+    fnAmount: s.rex,
+    typeLabel: "후원",
+    status: s.status === 9 ? "COMPLETED" : "PROCESSING"
+  };
+}
+
+export async function donationRecords(since: string | null): Promise<DonationRecord[] | null> {
+  const token = await getFlextvAccessToken();
+  if (!token) return null;
+  const rows = await readBack((offset) => fetchSpends(token, { offset, limit: PAGE }), since);
+  return rows.map(donationRecordOf);
 }
 
 export async function walletBalance(): Promise<number | null> {

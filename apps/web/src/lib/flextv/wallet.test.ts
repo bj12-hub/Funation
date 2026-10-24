@@ -102,7 +102,7 @@ describe("history", () => {
       count: 2
     });
     expect(readSpends({ data: [{ id: 3, amount: 500, targetId: "bj01", targetnick: "방송인", status: 9, createdAt: "2026-10-24T03:00:00Z" }], count: 1 }).items).toEqual([
-      { id: "3", at: "2026-10-24 12:00:00", rex: 500, targetNick: "방송인", status: 9 }
+      { id: "3", at: "2026-10-24 12:00:00", rex: 500, targetLoginId: "bj01", targetNick: "방송인", status: 9 }
     ]);
   });
 });

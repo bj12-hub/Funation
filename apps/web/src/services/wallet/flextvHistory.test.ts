@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
  * offset-paged lists read back to the period's start, then filtered and paged like the mock's.
  */
 
-vi.mock("@/lib/flextv/mode", () => ({ FLEXTV_BACKEND: true, FLEXTV_AUTH: true, FLEXTV_WALLET: true, FLEXTV_WEB_URL: "https://www.flextv.test" }));
+vi.mock("@/lib/flextv/mode", () => ({ FLEXTV_BACKEND: true, FLEXTV_AUTH: true, FLEXTV_WALLET: true, FLEXTV_DONATION: true, FLEXTV_WEB_URL: "https://www.flextv.test" }));
 vi.mock("@/lib/session", () => ({
   getSession: async () => ({ userId: "601924", nickname: "시청자", ssumnationId: "viewer01", avatarUrl: null, roles: ["SUPPORTER"] }),
   getFlextvAccessToken: async () => "member-token"
@@ -62,6 +62,21 @@ describe("충전 내역 (FLEXTV)", () => {
   it("gives the balance as available, with nothing expiring", async () => {
     const { getWalletSummary } = await import("./walletHistory");
     expect(await getWalletSummary()).toEqual({ balance: 4200, available: 4200, expiring: 0 });
+  });
+});
+
+describe("후원 내역 (FLEXTV)", () => {
+  it("lists FLEXTV's sent donations as 기본 후원, by recipient name, without a channel link", async () => {
+    const { getDonationHistory } = await import("./walletHistory");
+    const period = { preset: "month" as const, from: day(30).slice(0, 10), to: day(0).slice(0, 10) };
+    const basic = await getDonationHistory({ period, category: "basic" });
+    expect(basic?.items.map((d) => [d.creatorId, d.creatorName, d.fnAmount, d.typeLabel, d.status])).toEqual([
+      ["", "방송인", 300, "후원", "COMPLETED"],
+      ["", "", 50, "후원", "PROCESSING"]
+    ]);
+    expect(basic?.totalFn).toBe(350);
+    expect((await getDonationHistory({ period, category: "basic", filter: { q: "방송" } }))?.items).toHaveLength(1);
+    expect((await getDonationHistory({ period, category: "quest" }))?.items).toEqual([]);
   });
 });
 

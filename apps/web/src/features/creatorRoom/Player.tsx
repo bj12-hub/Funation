@@ -2,6 +2,7 @@ import Image from "next/image";
 import { CogIcon, MaximizeIcon, PlayerPlayIcon, VolumeIcon } from "@/components/icons";
 import { formatNumber } from "@/lib/format";
 import type { CreatorRoom } from "@/services/creators/creatorRoom";
+import { remote } from "./remoteImage";
 import styles from "./room.module.css";
 
 /**
@@ -12,7 +13,7 @@ export function Player({ name, stream }: { name: string; stream: CreatorRoom["st
   if (stream.status === "OFFLINE") {
     return (
       <div className={styles.player}>
-        <Image src={stream.imageUrl} alt="" fill sizes="(max-width: 1200px) 100vw, 836px" className={styles.offlineImage} />
+        <Image src={stream.imageUrl} alt="" fill sizes="(max-width: 1200px) 100vw, 836px" className={styles.offlineImage} unoptimized={remote(stream.imageUrl)} />
         <div className={styles.offlineNotice}>
           <span className={styles.offlineBadge}>오프라인</span>
           <p className={styles.offlineText}>{name} 님은 오프라인 상태입니다.</p>
@@ -29,7 +30,7 @@ export function Player({ name, stream }: { name: string; stream: CreatorRoom["st
   return (
     <div className={styles.player}>
       <div className={styles.streamFrame}>
-        <Image src={stream.thumbnailUrl} alt={`${name} 라이브 방송 화면`} fill sizes="436px" className={styles.streamImage} priority />
+        <Image src={stream.thumbnailUrl} alt={`${name} 라이브 방송 화면`} fill sizes="436px" className={styles.streamImage} priority unoptimized={remote(stream.thumbnailUrl)} />
       </div>
 
       <div className={styles.topOverlay}>
@@ -39,7 +40,7 @@ export function Player({ name, stream }: { name: string; stream: CreatorRoom["st
           </span>
           <span className={styles.liveText}>LIVE</span>
           <span className={styles.pillDivider} aria-hidden="true" />
-          <span className={styles.viewers}>{formatNumber(stream.viewerCount)} 시청 중</span>
+          {stream.viewerCount !== null && <span className={styles.viewers}>{formatNumber(stream.viewerCount)} 시청 중</span>}
         </span>
         {stream.rankBadge && <span className={`${styles.pill} ${styles.rank}`}>⭐ {stream.rankBadge}</span>}
       </div>

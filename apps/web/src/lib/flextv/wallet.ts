@@ -258,9 +258,12 @@ export async function fetchPayments(token: string, { offset, limit }: { offset: 
   return readPayments(response.data);
 }
 
-export type FlextvSpend = { id: string; at: string; rex: number; targetNick: string; status: number | null };
+export type FlextvSpend = { id: string; at: string; rex: number; targetLoginId: string; targetNick: string; status: number | null };
 
-/** `GET /api/luv/sentluv-list` rows: the member's donations (후원). */
+/**
+ * `GET /api/luv/sentluv-list` rows: the member's donations (후원), newest first — no channel, message or type in them.
+ * Status 9 is settled; 0 · 1 are still being processed.
+ */
 export function readSpends(data: unknown): { items: FlextvSpend[]; count: number } {
   const rows = isRecord(data) && Array.isArray(data.data) ? data.data : [];
   const items = rows.flatMap((row): FlextvSpend[] => {
@@ -269,7 +272,7 @@ export function readSpends(data: unknown): { items: FlextvSpend[]; count: number
     const at = kstStamp(row.createdAt);
     const rex = num(row.amount);
     if (id === null || !at || rex === null) return [];
-    return [{ id: String(id), at, rex, targetNick: text(row.targetnick) || text(row.targetId), status: num(row.status) }];
+    return [{ id: String(id), at, rex, targetLoginId: text(row.targetId), targetNick: text(row.targetnick) || text(row.targetId), status: num(row.status) }];
   });
   return { items, count: (isRecord(data) ? num(data.count) : null) ?? items.length };
 }

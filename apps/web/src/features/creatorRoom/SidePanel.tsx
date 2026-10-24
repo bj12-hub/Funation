@@ -30,7 +30,10 @@ export function SidePanel({
   /** `?tab=donation` (e.g. from the home 크리에이터 프로필 popup) opens the donation tab. */
   initialTab?: Tab;
 }) {
-  const [tab, setTab] = useState<Tab>(initialTab);
+  // A FLEXTV channel's room has no chat here until phase 4 (docs/development/flextv-backend.md): 후원하기 only.
+  const flextv = room.source === "FLEXTV";
+  const tabs = flextv ? TABS.filter((t) => t.key === "DONATION") : TABS;
+  const [tab, setTab] = useState<Tab>(flextv ? "DONATION" : initialTab);
   // Local echo only; the realtime chat and donation feed are TBD.
   const [messages, setMessages] = useState<ChatMessage[]>(MOCK_MESSAGES);
   const sendChat = (text: string) =>
@@ -52,7 +55,7 @@ export function SidePanel({
   return (
     <section className={styles.panel} aria-label="후원 및 채팅">
       <div className={styles.tabs} role="tablist">
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <button
             key={t.key}
             type="button"
@@ -76,11 +79,14 @@ export function SidePanel({
           signedIn={signedIn}
           fnBalance={fnBalance}
           onDonated={announceDonation}
+          extras={!flextv}
         />
       </div>
-      <div id="room-panel-CHAT" role="tabpanel" aria-labelledby="room-tab-CHAT" className={styles.tabPanel} hidden={tab !== "CHAT"}>
-        <ChatPanel signedIn={signedIn} messages={messages} onSend={sendChat} />
-      </div>
+      {!flextv && (
+        <div id="room-panel-CHAT" role="tabpanel" aria-labelledby="room-tab-CHAT" className={styles.tabPanel} hidden={tab !== "CHAT"}>
+          <ChatPanel signedIn={signedIn} messages={messages} onSend={sendChat} />
+        </div>
+      )}
     </section>
   );
 }

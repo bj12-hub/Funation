@@ -17,7 +17,7 @@ broadcasting is part of Ssumnation. The mock services are replaced area by area,
 |---|---|---|
 | 1 | 로그인 · 회원가입 · 세션 · 간편 로그인 | **done** (below) |
 | 2 | 렉스 잔액 · 충전 · 충전 내역 · 지갑 개요 | **done** (below, "2단계") |
-| 3 | 후원 (FLEXTV's TTS · video · sound · signature · mission donations first) | not started |
+| 3 | 후원 to a FLEXTV channel's room (일반 · 시그니처) · 후원 내역 | **done** (below, "3단계") |
 | 4 | 방송 목록 · 시청 · 채팅 | not started |
 | 5 | 크리에이터 스튜디오 · 방송 설정 · 수익 · 정산 | not started |
 | 6 | Ssumnation-only features (룰렛 · 뽑기 · 위시리스트 · 그림 · 미니 후원 · 크루 게임 …) on new FLEXTV endpoints | not started |
@@ -30,7 +30,7 @@ environment until every area a member reaches is connected.
 
 | Variable | Meaning |
 |---|---|
-| `NEXT_PUBLIC_BACKEND=flextv` | Turns the connected phases on (`lib/flextv/mode.ts`: `FLEXTV_AUTH`, `FLEXTV_WALLET`). Unset: the mock. |
+| `NEXT_PUBLIC_BACKEND=flextv` | Turns the connected phases on (`lib/flextv/mode.ts`: `FLEXTV_AUTH`, `FLEXTV_WALLET`, `FLEXTV_DONATION`). Unset: the mock. |
 | `FLEXTV_API_URL` | FLEXTV's API server (`server/` of FLEXTV's web repository), e.g. its stage. Server-side calls only — the browser never calls FLEXTV, so no CORS entry is needed. |
 | `FLEXTV_SITE_CODE` | Optional `x-site-code`. Unset = FLEXTV's own members (the decision above); a tenant code would scope sign-ups to that tenant. |
 | `NEXT_PUBLIC_FLEXTV_WEB_URL` | FLEXTV's site for flows not connected yet (비밀번호 찾기, 본인인증, 환불 1:1 문의). Default `https://www.flextv.co.kr`. |
@@ -111,6 +111,35 @@ Every call carries the member's Bearer token, IP (`X-Forwarded-For`) and browser
 fails without one). FLEXTV has no idempotency key for a checkout: this server keeps one per member and key for 30
 minutes, so a double click opens one checkout (a second server would not know it).
 
+## 3단계 · 후원
+
+Code: `lib/flextv/donation.ts` (FLEXTV's channel and donation API, mapping), `services/donations/flextvDonate.ts`
+(behind `requestDonation` of `donate.ts`), `services/creators/flextvChannel.ts` (the room), the FLEXTV branch of
+`app/(main)/creators/[id]/page.tsx`, `getDonationHistory` in `walletHistory.ts`.
+
+A FLEXTV channel's room is `/creators/{FLEXTV channel id}` (a number; Ssumnation's own creators keep their ids). It shows
+the channel's owner, whether it is on air, and FLEXTV's donation options only: Ssumnation's 크루, 투표, 커뮤니티, 랭킹,
+즐겨찾기, 구독자 수, 별명, 멤버 지정, 익명 and 후원 알림 미리보기 are left out (FLEXTV has none of them), and so is the
+chat until phase 4.
+
+| Ssumnation | FLEXTV | Notes |
+|---|---|---|
+| room | `GET /api/channels/:id/profile` · `/active-stream` | owner nickname and image, description, on air and the stream's title |
+| 일반 후원 | `POST /api/luv/send` `{channelId, amount, count:1, sendType:"default", effect:{type:"tts", params:{actorId:"", message}}}` | any whole 렉스 from 1; the message is read out (FLEXTV's default voice — its server ignores the voice) and also posted to chat (`POST /api/channels/:id/stream/message`) when on air, as FLEXTV's form does |
+| 시그니처 | the same with `code` | the channel's approved signatures (`GET /api/channels/:id/gift-types` → `img.host`) at their fixed amounts; a changed amount is PRICE_CHANGED before sending |
+| who may receive | profile `owner.PI` | an owner without FLEXTV's 본인인증 cannot receive: refused before sending |
+| refusals | 400 messages | 본인인증 · under 17 · blocked by the channel · balance · FLEXTV's re-verification, each in Ssumnation's words; nothing was debited |
+| 후원 내역 | `GET /api/luv/sentluv-list` | the recipient's nickname (no channel, message or kind in FLEXTV's list): rows have no link, type "후원", 처리중 until FLEXTV settles them |
+
+FLEXTV's send has no idempotency key and can debit even when it answers with an error. Ssumnation therefore sends one
+donation at a time per member, once per key (30 minutes on this server), and settles an unclear answer from FLEXTV's own
+record — the member's newest sent donation before and after: a new row of the amount is the donation; none after two
+minutes, not sent. Until then the result is IN_PROGRESS and the form's retry (the same key) asks again instead of
+sending again.
+
+Not connected: 미션 (도전렉스 — FLEXTV's missions are the streamer's, unlike Ssumnation's 퀘스트), 영상 · 사운드 후원
+(FLEXTV's own web has them switched off), and 룰렛 · 뽑기 · 위시리스트 · 그림 · 미니 후원 (phase 6).
+
 ## FLEXTV-side changes needed before opening to the public
 
 1. **본인인증 from Ssumnation.** FLEXTV charges only members who did its NICE 본인인증, and NICE returns to a fixed
@@ -135,4 +164,6 @@ minutes, so a double click opens one checkout (a second server would not know it
 - Payletter returns to a FLEXTV page that closes the window; a payment abandoned in the window stays "not completed"
   (FLEXTV records no failure for it).
 - Not connected: 내통장결제 (Hecto's SDK), 해외카드 (NICE), 현금영수증, refunds, pending 무통장 requests in 충전 내역.
-- 마이페이지 (account linking, 본인인증, withdrawal), 후원 내역 and the creator room's balance are still the mock.
+- Ssumnation's creator list, home and favorites still list the mock's creators: a FLEXTV channel's room is reached by its
+  address until phase 4 brings FLEXTV's live list.
+- 마이페이지 (account linking, 본인인증, withdrawal) is still the mock.

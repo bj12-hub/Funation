@@ -16,5 +16,8 @@ export const FLEXTV_AUTH = FLEXTV_BACKEND;
 /** Phase 2: 렉스 잔액 · 충전 · 충전 내역 · 지갑 개요. */
 export const FLEXTV_WALLET = FLEXTV_BACKEND;
 
+/** Phase 3: 후원 to a FLEXTV channel's room (`/creators/{FLEXTV channel id}`) and 후원 내역. */
+export const FLEXTV_DONATION = FLEXTV_BACKEND;
+
 /** FLEXTV's own site, for flows Ssumnation does not host yet (아이디 · 비밀번호 찾기, 본인인증). */
 export const FLEXTV_WEB_URL = (process.env.NEXT_PUBLIC_FLEXTV_WEB_URL || "https://www.flextv.co.kr").replace(/\/+$/, "");

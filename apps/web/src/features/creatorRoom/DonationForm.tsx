@@ -43,7 +43,8 @@ export function DonationForm({
   donation,
   signedIn,
   fnBalance,
-  onDonated
+  onDonated,
+  extras = true
 }: {
   creatorId: string;
   name: string;
@@ -51,6 +52,11 @@ export function DonationForm({
   signedIn: boolean;
   fnBalance: number | null;
   onDonated: (donation: { fnAmount: number; text: string; anonymous: boolean }) => void;
+  /**
+   * Ssumnation's own parts of a donation: 멤버 지정, 별명, 프로필 숨기기 and the 후원 알림 미리보기. Off for a FLEXTV
+   * channel, which has none of them (FLEXTV backend).
+   */
+  extras?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -62,23 +68,24 @@ export function DonationForm({
   const [nicknames, setNicknames] = useState<{ id: string; name: string }[]>([]);
   const [nicknameId, setNicknameId] = useState<string | null>(null);
   useEffect(() => {
-    if (!signedIn) return;
+    if (!signedIn || !extras) return;
     let alive = true;
     getDonationNicknameOptions().then((list) => alive && list && setNicknames(list));
     return () => {
       alive = false;
     };
-  }, [signedIn]);
+  }, [signedIn, extras]);
   // Crew members of this creator (크루 멤버 지정); optional, validated again on the server.
   const [members, setMembers] = useState<CrewPublic["members"]>([]);
   const [memberId, setMemberId] = useState<string | null>(null);
   useEffect(() => {
+    if (!extras) return;
     let alive = true;
     getCrewPublic(creatorId).then((crew) => alive && setMembers(crew.members));
     return () => {
       alive = false;
     };
-  }, [creatorId]);
+  }, [creatorId, extras]);
   // Remounts the fields after a completed donation (e.g. clears the drawing canvas).
   const [formVersion, setFormVersion] = useState(0);
   const [dialog, setDialog] = useState<Dialog>({ kind: "NONE" });
@@ -110,7 +117,7 @@ export function DonationForm({
     }
     setError(null);
     setDialog({ kind: "CONFIRM" });
-    loadAlertPreview();
+    if (extras) loadAlertPreview();
   };
 
   const loadAlertPreview = () => {
@@ -294,17 +301,19 @@ export function DonationForm({
           </label>
         )}
 
-        <div className={styles.toggleRow}>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={hideProfile}
-            aria-label="프로필 숨기기"
-            className={styles.miniToggle}
-            onClick={() => setHideProfile((h) => !h)}
-          />
-          <span aria-hidden="true">프로필 숨기기</span>
-        </div>
+        {extras && (
+          <div className={styles.toggleRow}>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={hideProfile}
+              aria-label="프로필 숨기기"
+              className={styles.miniToggle}
+              onClick={() => setHideProfile((h) => !h)}
+            />
+            <span aria-hidden="true">프로필 숨기기</span>
+          </div>
+        )}
       </form>
 
       {signedIn ? (
@@ -322,7 +331,7 @@ export function DonationForm({
         creatorName={name}
         amount={draft?.amount ?? 0}
         rows={draft?.summary ?? []}
-        alert={alertPreview}
+        alert={extras ? alertPreview : null}
         pending={pending}
         error={error}
         onCancel={() => setDialog({ kind: "NONE" })}
