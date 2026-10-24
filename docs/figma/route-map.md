@@ -23,6 +23,7 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/creator/widgets/overlays` | ✅ code-first | 오버레이 주소 — every OBS overlay URL (key masked on screen) + OBS 씬 파일; Figma W03 `213:5870` (현재 구현 레이아웃) · 오버레이 테마 · 세로 방송 W03c `279:9681` · 세로 미리보기 W03d `280:9867` |
 | `/creator/widgets/onesource` | ✅ code-first | 원소스 오버레이 배치 — 캔버스(PC 16:9 · 모바일 가로 · 세로 9:16)마다 오버레이 위치 · 크기 · 스케일 · 레이어 순서, 캔버스별 저장(다른 탭과 겹치면 거절) |
 | `/overlay/onesource/[key]` | ✅ code-first | OBS 원소스 — `?canvas=pc|landscape|portrait`, 배치한 오버레이를 각자 주소의 프레임으로 띄움, `key` = integration key |
+| `/creator/widgets/banner/ai` | ✅ code-first | AI 배너 — 설명 · 문구 · 스타일 · 비율 · 화질 → 4장 → PNG로 이미지·사운드 라이브러리에 저장 (지금은 mock 생성기, AI 제공자 TBD); 배너 머리말에서 링크 |
 | `/creator/widgets/play/live` | ✅ code-first | 시청자 참여 › 로얄 럼블 (조작형) — 설정 · 참가 링크 · 참가자(빼기) · 배틀 시작 · 순위 · 회차별 결과 · OBS 주소 `?rumblelive` |
 | `/play/rumble/[token]` | ✅ code-first | 로얄 럼블 (조작형) 참가 · 조종 — 로그인 없음(링크 토큰이 비밀), 이름으로 참가 후 조이스틱 · 키보드 · 공격 |
 | `/api/play/rumble-live/input` · `/api/play/rumble-live/[key]` | ✅ code-first | 조작형 럼블 실시간 — 조종 입력(POST, 토큰 · 참가자 id · 비밀값) / OBS 상태 읽기(GET, integration key) |

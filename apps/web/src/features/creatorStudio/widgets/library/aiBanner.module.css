@@ -1,0 +1,81 @@
+/* AI 배너 (code-first) — /creator/widgets/banner/ai. Cards and fields come from crew.module.css and prize.module.css. */
+
+.notice {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-8);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.choices {
+  flex-wrap: wrap;
+}
+
+.choices button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.texts,
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.row {
+  grid-template-columns: auto auto;
+  justify-content: start;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.grid[data-ratio="TALL"] {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.grid li {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+}
+
+.preview {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+
+.cardRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+@media (max-width: 600px) {
+  .texts,
+  .row,
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .grid[data-ratio="TALL"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
