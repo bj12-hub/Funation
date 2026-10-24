@@ -428,3 +428,58 @@
     grid-row: 2;
   }
 }
+
+/* 알파벳 모으기 (studio): each member's word board — collected letters bold, the rest dimmed. */
+.alphaBoards {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.alphaBoards li {
+  display: grid;
+  grid-template-columns: minmax(0, 120px) minmax(0, 1fr) max-content auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+  font-size: var(--font-size-14);
+}
+
+.alphaWord {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.alphaWord span {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 28px;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: 6px;
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-bold);
+}
+
+.alphaWord span[data-on] {
+  border: 2px solid var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-text-primary);
+}
+
+@media (max-width: 600px) {
+  .alphaBoards li {
+    grid-template-columns: minmax(0, 1fr) max-content auto;
+  }
+
+  .alphaBoards li > :nth-child(2) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}

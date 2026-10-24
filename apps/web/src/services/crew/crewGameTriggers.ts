@@ -1,3 +1,4 @@
+import { alphabetForSignature } from "./crewAlphabetCore";
 import { diceForSignature } from "./crewDiceCore";
 import { gridDrawForDonation } from "./crewGridDrawCore";
 import { jupjupForSignature } from "./crewJupjupCore";
@@ -15,7 +16,8 @@ import { twoWheelForSignature } from "./crewTwoWheelCore";
  * 배수 from the 트리거 BJ's 시그니처 후원 and hands it to the next one another member receives. 줍줍 runs last: its 스핀머신 연계
  * reads the spin of the same donation. 시그 빙고 opens the signature's cell (공용 판 also for a donation without a member);
  * 복불복 뽑기판 opens a random cell (also for a donation that is no signature, on 모든 후원); 시그니처 헌터 sells the signature's
- * slot (also for a donation without a member); 시그니처 두산 climbs a lane when the signature is its next step.
+ * slot (also for a donation without a member); 시그니처 두산 climbs a lane when the signature is its next step; 알파벳 모으기
+ * spins for the member.
  */
 export function gamesForSignature(channelId: string, input: { donationId: string; memberId: string | null; signatureId: string | undefined; fnAmount: number }) {
   spinForSignature(channelId, input);
@@ -27,4 +29,5 @@ export function gamesForSignature(channelId: string, input: { donationId: string
   gridDrawForDonation(channelId, input);
   sigHunterForSignature(channelId, input);
   sigDosanForSignature(channelId, input);
+  alphabetForSignature(channelId, input);
 }

@@ -559,3 +559,186 @@
     animation: none;
   }
 }
+
+/* ── 알파벳 모으기: a horizontal reel, then each member's word board in its 단어판 테마 ── */
+.hReel {
+  --alpha-cell: 56px;
+  position: relative;
+  width: calc(var(--alpha-cell) * 3);
+  height: var(--alpha-cell);
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--ov-chip-bg);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 28%, #000 72%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 28%, #000 72%, transparent);
+}
+
+.hReel::after {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--alpha-cell);
+  width: var(--alpha-cell);
+  box-sizing: border-box;
+  border-right: 2px solid var(--ov-accent);
+  border-left: 2px solid var(--ov-accent);
+  content: "";
+  pointer-events: none;
+}
+
+.hReel[data-hit]::after {
+  background: color-mix(in srgb, var(--ov-accent) 18%, transparent);
+}
+
+.hStrip {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hStrip li {
+  display: grid;
+  flex: 0 0 var(--alpha-cell);
+  place-items: center;
+  height: var(--alpha-cell);
+  color: var(--ov-chip-ink);
+  font-size: 28px;
+}
+
+.hStrip li[data-miss] {
+  font-size: 18px;
+  opacity: 0.7;
+}
+
+.hSpinning {
+  animation: hReel var(--reel-sec) cubic-bezier(0.12, 0.6, 0.18, 1) both;
+}
+
+@keyframes hReel {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(var(--reel-end));
+  }
+}
+
+.alphaBoards {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.alphaBoards li {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.alphaName {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.alphaWord {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.alphaTile {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 30px;
+  box-sizing: border-box;
+  border: 2px dashed color-mix(in srgb, var(--ov-chip-ink) 30%, transparent);
+  border-radius: 6px;
+  color: color-mix(in srgb, var(--ov-chip-ink) 25%, transparent);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.alphaTile[data-on] {
+  border-style: solid;
+  animation: cellPop 0.5s cubic-bezier(0.2, 0.8, 0.3, 1.4) both;
+}
+
+.alphaDone {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+/* 네온 */
+.alphaBoards[data-theme="NEON"] .alphaTile[data-on] {
+  border-color: #22d3ee;
+  background: #1a0633;
+  color: #f0abfc;
+  text-shadow: 0 0 6px #e879f9, 0 0 12px #22d3ee;
+}
+
+.alphaBoards[data-theme="NEON"] li[data-full] .alphaTile {
+  box-shadow: 0 0 10px #e879f9;
+}
+
+/* 골드 */
+.alphaBoards[data-theme="GOLD"] .alphaTile[data-on] {
+  border-color: #b8860b;
+  background: linear-gradient(#ffe48a, #d4a017);
+  color: #3a2600;
+}
+
+.alphaBoards[data-theme="GOLD"] li[data-full] .alphaTile {
+  box-shadow: 0 0 10px #facc15;
+}
+
+/* 골드 2 */
+.alphaBoards[data-theme="GOLD2"] .alphaTile[data-on] {
+  border-color: #f5c542;
+  background: #111111;
+  color: #f5c542;
+}
+
+.alphaBoards[data-theme="GOLD2"] li[data-full] .alphaTile {
+  background: #2a2205;
+}
+
+/* 아케이드 */
+.alphaBoards[data-theme="ARCADE"] .alphaTile {
+  border-radius: 0;
+  font-family: "Courier New", monospace;
+}
+
+.alphaBoards[data-theme="ARCADE"] .alphaTile[data-on] {
+  border-color: #ff4081;
+  background: #1b1bb3;
+  color: #ffeb3b;
+}
+
+.alphaBoards[data-theme="ARCADE"] li[data-full] .alphaTile {
+  animation: arcadeBlink 0.8s steps(2) infinite;
+}
+
+@keyframes arcadeBlink {
+  50% {
+    background: #ff4081;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alphaTile[data-on],
+  .alphaBoards[data-theme="ARCADE"] li[data-full] .alphaTile {
+    animation: none;
+  }
+}
