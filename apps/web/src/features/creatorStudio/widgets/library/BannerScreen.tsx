@@ -50,7 +50,8 @@ export function BannerScreen({ initial, library, overlayPath, switches }: { init
         <h1 className={styles.title}>배너</h1>
         <p className={styles.subtitle}>라이브러리 이미지로 슬라이드쇼 배너를 만들어 방송 화면 상단 · 중앙 · 하단에 띄워요.</p>
         <p className={styles.note}>
-          <Link href="/creator/widgets">← 위젯</Link> · 이미지는 <Link href="/creator/widgets/assets">이미지·사운드</Link>에서 올려요.
+          <Link href="/creator/widgets">← 위젯</Link> · 이미지는 <Link href="/creator/widgets/assets">이미지·사운드</Link>에서 올리거나{" "}
+          <Link href="/creator/widgets/banner/ai">✨ AI 배너</Link>로 만들어요.
         </p>
       </header>
       <OverlayOffNotice targets={["banner"]} switches={switches} />
