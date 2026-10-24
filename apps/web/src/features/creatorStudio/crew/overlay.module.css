@@ -388,6 +388,16 @@
   overflow-wrap: anywhere;
 }
 
+/* 팀 순위표 (?teamprize): the team's members, best first, on a line under the team. */
+.teamMembers {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 2 / -1;
+  gap: 2px 12px;
+  margin-top: -3px;
+  font-size: 0.8em;
+}
+
 /* ── 시그 카운트 (?sigcount) ── */
 .sigCount {
   width: fit-content;
