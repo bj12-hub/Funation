@@ -20,6 +20,9 @@ const framedBySiteOnly = [
   { key: "Content-Security-Policy", value: "frame-ancestors 'self'; object-src 'none'; base-uri 'self'" }
 ];
 const noindex = [{ key: "X-Robots-Tag", value: "noindex, nofollow" }];
+/** 음악 편집기 녹음 (2026-10-24): the microphone on that one studio page, for this site only (it stays off everywhere else). */
+export const MUSIC_EDITOR_SOURCE = "/creator/widgets/music";
+export const MUSIC_EDITOR_PERMISSIONS = "camera=(), microphone=(self), geolocation=()";
 /**
  * 커스텀 오버레이 sandbox (`public/sandbox/*`, 2026-10-24): the creator's own HTML · CSS · JS runs here. The page is
  * sandboxed by its own header too (an opaque origin even if something frames it without the sandbox attribute or opens
@@ -50,6 +53,7 @@ const nextConfig: NextConfig = {
       { source: "/:path*", headers: everywhere },
       { source: NOT_OVERLAY_SOURCE, headers: framedBySiteOnly },
       { source: "/sandbox/:path*", headers: [{ key: "Content-Security-Policy", value: SANDBOX_CSP }] },
+      { source: MUSIC_EDITOR_SOURCE, headers: [{ key: "Permissions-Policy", value: MUSIC_EDITOR_PERMISSIONS }] },
       // The 커스텀 오버레이 page's address holds the overlay key: its sandbox frame (the creator's code) must not see it as
       // document.referrer. The frame also asks for no referrer; this covers anything else the page loads.
       { source: "/overlay/custom/:path*", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] },
