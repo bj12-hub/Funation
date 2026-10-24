@@ -8,6 +8,7 @@ import { isActiveMember, liveBroadcastOf } from "./crewCore";
 import { diceLive, diceSettingsOf, parseDiceSettings, runDice } from "./crewDiceCore";
 import { gameRunView, memberSources, usedSources, type RunStart, type StoredRun } from "./crewGameCore";
 import { clearGridDrawBoard, gridDrawLive, gridDrawSettingsOf, openGridDrawCell, parseGridDrawSettings, startGridDrawBoard } from "./crewGridDrawCore";
+import { alphabetLive, alphabetSettingsOf, parseAlphabetSettings, resetAlphabetBoard, runAlphabet } from "./crewAlphabetCore";
 import { clearSigDosanBoard, parseSigDosanSettings, sigDosanLive, sigDosanSettingsOf, startSigDosanBoard, stepSigDosanLane } from "./crewSigDosanCore";
 import {
   clearSigHunterBoard,
@@ -31,7 +32,7 @@ import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 /**
  * 점수 게임 Server Actions — code-first (no Figma frame; StreamDonate 참고, P2), route `/creator/crew/games`: 스핀머신 · 주사위
- * 게임 · 투휠 게임 · 랜덤시그 · 기여도 릴레이 · 줍줍 · 시그니처 메들리 · 시그 빙고 · 복불복 뽑기판 · 시그니처 헌터 · 시그니처 두산. Settings are kept per channel; runs belong to the live broadcast. Results are display points only.
+ * 게임 · 투휠 게임 · 랜덤시그 · 기여도 릴레이 · 줍줍 · 시그니처 메들리 · 시그 빙고 · 복불복 뽑기판 · 시그니처 헌터 · 시그니처 두산 · 알파벳 모으기. Settings are kept per channel; runs belong to the live broadcast. Results are display points only.
  */
 
 const assertMock = () => {
@@ -48,7 +49,7 @@ const SOURCES_SHOWN = 10;
  * How each game plays one run by hand for a member (the caller checks the game can play). 랜덤시그 · 기여도 릴레이 · 줍줍 play only
  * from donations; 메들리 rolls by hand without a member (playMedley).
  */
-const PLAY: Record<Exclude<GameKey, "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW" | "SIG_HUNTER" | "SIG_DOSAN">, (b: MockBroadcast, start: RunStart) => StoredRun> = { SPIN: runSpin, DICE: runDice, TWO_WHEEL: runTwoWheel };
+const PLAY: Record<Exclude<GameKey, "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW" | "SIG_HUNTER" | "SIG_DOSAN">, (b: MockBroadcast, start: RunStart) => StoredRun> = { SPIN: runSpin, DICE: runDice, TWO_WHEEL: runTwoWheel, ALPHABET: runAlphabet };
 
 function sourcesOf(b: MockBroadcast): Record<GameKey, Record<string, GameSource[]>> {
   const active = (mockCrew.crews[STUDIO_CHANNEL] ?? []).filter((m) => m.active);
@@ -65,7 +66,7 @@ function sourcesOf(b: MockBroadcast): Record<GameKey, Record<string, GameSource[
       ])
     );
   };
-  return { SPIN: forGame("SPIN"), DICE: forGame("DICE"), TWO_WHEEL: forGame("TWO_WHEEL"), RANDOM_SIG: {}, RELAY: {}, JUPJUP: {}, MEDLEY: {}, SIG_BINGO: {}, GRID_DRAW: {}, SIG_HUNTER: {}, SIG_DOSAN: {} };
+  return { SPIN: forGame("SPIN"), DICE: forGame("DICE"), TWO_WHEEL: forGame("TWO_WHEEL"), RANDOM_SIG: {}, RELAY: {}, JUPJUP: {}, MEDLEY: {}, SIG_BINGO: {}, GRID_DRAW: {}, SIG_HUNTER: {}, SIG_DOSAN: {}, ALPHABET: forGame("ALPHABET") };
 }
 
 export async function getGamesView(): Promise<GamesView | null> {
@@ -90,6 +91,7 @@ export async function getGamesView(): Promise<GamesView | null> {
           gridDraw: gridDrawLive(live, true),
           sigHunter: sigHunterLive(live, true),
           sigDosan: sigDosanLive(live),
+          alphabet: alphabetLive(live),
           sources: sourcesOf(live),
           serverNow: new Date().toISOString()
         }
@@ -105,6 +107,7 @@ export async function getGamesView(): Promise<GamesView | null> {
     gridDrawSettings: structuredClone(gridDrawSettingsOf(STUDIO_CHANNEL)),
     sigHunterSettings: structuredClone(sigHunterSettingsOf(STUDIO_CHANNEL)),
     sigDosanSettings: structuredClone(sigDosanSettingsOf(STUDIO_CHANNEL)),
+    alphabetSettings: structuredClone(alphabetSettingsOf(STUDIO_CHANNEL)),
     signatures: sigCountSignatures(),
     overlayPath: `/overlay/crew/${mockCreator.integrationKey}`
   };
@@ -425,6 +428,29 @@ export async function clearSigDosan(input: unknown): Promise<BroadcastResult> {
   return { status: "SAVED" };
 }
 
+/** Replaces the 알파벳 모으기 settings (이름 · 단어 · 꽝 비율 · 상품 · 단어판 테마 · 자동 · 제외 시그 · 대기 화면). */
+export async function saveAlphabet(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const known = alphabetSettingsOf(STUDIO_CHANNEL).prizes.map((p) => p.id);
+  const parsed = parseAlphabetSettings(input, MOCK_FORBIDDEN_WORDS, signatureIds(), known);
+  if ("message" in parsed) return { status: "INVALID", message: parsed.message };
+  (mockCrew.alphabets ??= {})[STUDIO_CHANNEL] = parsed;
+  return { status: "SAVED" };
+}
+
+/** 단어판 비우기: `memberId`'s board, or everyone's (null). Emptying an empty board is a no-op. */
+export async function resetAlphabet(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = rec(input);
+  const live = liveBroadcastOf(STUDIO_CHANNEL);
+  if (!live || live.id !== v.broadcastId) return notLive;
+  if (v.memberId !== null && typeof v.memberId !== "string") return { status: "INVALID", message: "멤버를 다시 골라 주세요." };
+  resetAlphabetBoard(live, v.memberId);
+  return { status: "SAVED" };
+}
+
 /**
  * 수동: plays `game` once for an active member, optionally on one of their donations in the broadcast (기준 후원: a 배수
  * result multiplies its points; a donation plays each game at most once). `requestId` is the run id, so a retry returns
@@ -450,6 +476,7 @@ export async function playGame(input: unknown): Promise<GamePlayResult> {
   const previous = (live.gameRuns ?? []).find((r) => r.id === v.requestId);
   if (previous) return { status: "PLAYED", run: gameRunView(live, previous) };
   if (game === "SPIN" && !spinSettingsOf(STUDIO_CHANNEL).items.length) return { status: "INVALID", message: "먼저 스핀머신 칸을 만들어 주세요." };
+  if (game === "ALPHABET" && !alphabetSettingsOf(STUDIO_CHANNEL).word) return { status: "INVALID", message: "먼저 알파벳 모으기 단어를 정해 주세요." };
   if (!isActiveMember(STUDIO_CHANNEL, v.memberId)) return { status: "INVALID", message: "멤버를 골라 주세요." };
   const memberId = v.memberId as string;
   let source: GameSource | null = null;
