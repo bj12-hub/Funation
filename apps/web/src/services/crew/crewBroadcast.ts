@@ -35,6 +35,7 @@ import { medleyLive } from "./crewMedleyCore";
 import { sigBingoLive } from "./crewSigBingoCore";
 import { gridDrawLive } from "./crewGridDrawCore";
 import { alphabetLive } from "./crewAlphabetCore";
+import { goStopLive } from "./crewGoStopCore";
 import { sigDosanLive } from "./crewSigDosanCore";
 import { sigHunterLive } from "./crewSigHunterCore";
 import { randomSigLive } from "./crewRandomSigCore";
@@ -107,6 +108,7 @@ function liveView(b: MockBroadcast): BroadcastLive {
     sigHunter: sigHunterLive(b, false),
     sigDosan: sigDosanLive(b),
     alphabet: alphabetLive(b),
+    gostop: goStopLive(b),
     serverNow: new Date().toISOString()
   };
 }

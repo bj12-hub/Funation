@@ -483,3 +483,13 @@
     grid-row: 2;
   }
 }
+
+/* 고스톱 색 구간: a color well beside the 최소 풀. */
+.color {
+  width: 44px;
+  height: 32px;
+  padding: 2px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-8);
+  background: transparent;
+}
