@@ -126,7 +126,8 @@ export function UnifiedChatScreen({ initial, variant = "studio", switches }: { i
         <h1 className={crew.title}>통합 채팅</h1>
         <p className={crew.subtitle}>여러 플랫폼에 동시 송출할 때 채팅을 한곳에서 보고, 한 번에 답하고, 관리해요.</p>
         <p className={crew.note}>
-          방송 화면용 채팅창은 <Link href="/creator/widgets/overlays">오버레이 주소</Link>의 &lsquo;통합 채팅&rsquo;을 OBS에 넣어요 · 숨김은 오버레이에서만 가리고, 삭제 · 차단은 플랫폼에서 처리돼요 · 플랫폼마다 지원 범위가 달라요.
+          방송 화면용 채팅창은 <Link href="/creator/widgets/overlays">오버레이 주소</Link>의 &lsquo;통합 채팅&rsquo;을 OBS에 넣어요 · 숨김은 오버레이에서만 가리고, 삭제 · 차단은 플랫폼에서 처리돼요 · 플랫폼마다 지원 범위가 달라요 · 명령어(!공지 등)에 자동으로 답하려면{" "}
+          <Link href="/creator/chat/bot">채팅봇</Link>을 켜요.
         </p>
       </header>
       {switches && <OverlayOffNotice targets={["chat"]} switches={switches} />}

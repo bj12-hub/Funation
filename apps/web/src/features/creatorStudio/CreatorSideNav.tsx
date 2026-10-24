@@ -34,6 +34,7 @@ const GROUPS: Group[] = [
     title: "방송",
     items: [
       { label: "통합 채팅", emoji: "💬", href: "/creator/chat" },
+      { label: "채팅봇", emoji: "🤖", href: "/creator/chat/bot" },
       { label: "위젯", emoji: "🔔", href: "/creator/widgets" },
       { label: "방송 도구", emoji: "🛠️", href: "/creator/widgets/tools" },
       { label: "시청자 참여", emoji: "🎮", href: "/creator/widgets/play" },
