@@ -1,6 +1,6 @@
 import type { AmountUnit } from "@/types/donationUnit";
 import type { Platform } from "@/types/platform";
-import { BATTLE_MULTIPLIER_MAX, BATTLE_PENALTY_MAX, FAN_NOTE_LIMITS, GRADES_MAX, MULTI_TEAM_KEYS, PLATFORM_FAN_NOTE_RULES, GRADE_MULTIPLIER_MAX, GRADE_NAME_MAX, PLATFORM_BATTLE_RULES, PLATFORM_STEAL_RULES, SUB_BOARD_MAX, excelUnitOf, isExcelUnit, type BattleRules, type CrewGrade, type FanNoteRules, type FanNotesView, type RoomFanNotes, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow, type ScoreRow } from "./crewTypes";
+import { BATTLE_MULTIPLIER_MAX, BATTLE_PENALTY_MAX, DUPLICATE_WINDOW_SEC, FAN_NOTE_LIMITS, GRADES_MAX, MULTI_TEAM_KEYS, PLATFORM_FAN_NOTE_RULES, GRADE_MULTIPLIER_MAX, GRADE_NAME_MAX, PLATFORM_BATTLE_RULES, PLATFORM_STEAL_RULES, SUB_BOARD_MAX, excelUnitOf, isExcelUnit, type BattleRules, type CrewGrade, type FanNoteRules, type FanNotesView, type RoomFanNotes, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow, type ScoreRow } from "./crewTypes";
 import { mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 // ── 후원 리스트 (server-only) ──────────────────────────────────────────────────
@@ -71,6 +71,30 @@ export function addFeedEntry(b: MockBroadcast, input: FeedInput, now = Date.now(
   else entry = { ...base, status: suggested ? "PENDING" : "UNMATCHED", memberId: null };
   feed.push(entry);
   return entry;
+}
+
+const sameDonor = (s: string) => s.replace(/\s+/g, "").toLowerCase();
+
+/**
+ * 중복 도네이션 확인: for each 중복 의심 entry (no decision yet, not cancelled), the closest earlier entry that is not
+ * cancelled with the same donor, amount and unit at most DUPLICATE_WINDOW_SEC before it. `feed` is in arrival order.
+ */
+export function duplicateSuspects(feed: FeedEntry[]): Map<string, { id: string; at: string }> {
+  const out = new Map<string, { id: string; at: string }>();
+  const kept = feed.filter((f) => f.status !== "CANCELLED");
+  for (const [i, f] of kept.entries()) {
+    if (f.duplicate) continue;
+    const t = Date.parse(f.at);
+    for (let j = i - 1; j >= 0; j--) {
+      const g = kept[j];
+      if (t - Date.parse(g.at) > DUPLICATE_WINDOW_SEC * 1000) break;
+      if (g.amount === f.amount && g.unit === f.unit && sameDonor(g.donor) === sameDonor(f.donor)) {
+        out.set(f.id, { id: g.id, at: g.at });
+        break;
+      }
+    }
+  }
+  return out;
 }
 
 /**
