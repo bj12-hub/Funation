@@ -742,3 +742,84 @@
     animation: none;
   }
 }
+
+/* ── 고스톱: the 풀 in its 색 구간 (it pulses while a roll plays), the STOP 랭킹, and the 진행 자막 bar ── */
+.gsPool {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--gs-color, var(--ov-accent)) 22%, var(--ov-chip-bg));
+  color: var(--ov-chip-ink);
+}
+
+.gsPool strong {
+  color: var(--gs-color, var(--ov-accent));
+  font-size: 40px;
+  line-height: 1.1;
+}
+
+.gsPool[data-rolling] strong {
+  animation: gsPulse 0.5s ease-in-out infinite alternate;
+}
+
+.gsGo {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+@keyframes gsPulse {
+  to {
+    transform: scale(1.08);
+  }
+}
+
+.gsRanking {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+
+.gsRanking li {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.gsName {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.gsTicker {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0;
+  overflow: hidden;
+  padding: 10px 16px;
+  border-left: 6px solid var(--gs-color, var(--ov-accent));
+  font-size: 18px;
+  white-space: nowrap;
+}
+
+.gsTicker b {
+  color: var(--gs-color, var(--ov-accent));
+  font-size: 22px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gsPool[data-rolling] strong {
+    animation: none;
+  }
+}

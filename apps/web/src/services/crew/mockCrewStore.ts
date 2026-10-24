@@ -15,6 +15,7 @@ import type {
   SigHunterSettings,
   AlphabetEvent,
   AlphabetSettings,
+  GoStopSettings,
   SigDosanMode,
   SigDosanSettings,
   JupjupSettings,
@@ -124,6 +125,8 @@ export type MockBroadcast = {
     from?: { memberId: string; amount: number };
     /** Points the run moves for other members (시그니처 헌터 몰수권), counted with the run. */
     shares?: { memberId: string; points: number }[];
+    /** 고스톱: the 풀 after the run (a STOP: the 풀 it took), the GO count and the STOP 확률 rolled (per million). */
+    gostop?: { pool: number; go: number; chance: number };
     label: string;
     kind: GameEffect;
     value: number;
@@ -214,6 +217,8 @@ export type MockBroadcast = {
    * (it starts over with their next letter). `log`: the board's events at their OBS times (AlphabetBoard.timeline).
    */
   alphabet?: { word: string; members: Record<string, { slots: ({ revealAt: string } | null)[]; done: number; full: boolean; log: AlphabetEvent[] }> };
+  /** 고스톱: the crew's 풀 and GO count now (a STOP's own record is its run). */
+  gostop?: { pool: number; go: number };
   /** 상품 순위표: shown on OBS (`?prize`) and its 구간 (시작 ~ 정지; a new 시작 restarts it). `starts`: 시작 request ids applied. */
   prizeBoard?: { visible: boolean; window: { startedAt: string; stoppedAt: string | null } | null; starts: string[] };
   /** 시그 카운트: shown on OBS (`?sigcount`) and counted from `since` (null = the broadcast start; 다시 세기 sets it). */
@@ -269,6 +274,8 @@ type MockCrew = {
   sigDosans?: Record<string, SigDosanSettings>;
   /** 알파벳 모으기 settings per channel (missing = DEFAULT_ALPHABET). */
   alphabets?: Record<string, AlphabetSettings>;
+  /** 고스톱 settings per channel (missing = DEFAULT_GOSTOP). */
+  gostops?: Record<string, GoStopSettings>;
   /** 멤버 추가 request ids already applied (a retried add is not a second member). */
   memberRequests?: string[];
 };

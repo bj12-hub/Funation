@@ -173,7 +173,8 @@ export function gameRunView(b: MockBroadcast, r: StoredRun): GameRunView {
     shares: (r.shares ?? []).map((x) => {
       const o = (mockCrew.crews[b.channelId] ?? []).find((c) => c.id === x.memberId);
       return { memberName: o?.name ?? "삭제된 멤버", memberColor: o?.color ?? null, points: x.points };
-    })
+    }),
+    gostop: r.gostop ? { ...r.gostop, chance: r.gostop.chance / 10_000 } : null
   };
 }
 
