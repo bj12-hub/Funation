@@ -200,6 +200,11 @@ Confirmed:
   설정 · 테마 · 리모컨 ON/OFF를 그대로 씀), 배치 반영은 5초 안. 캔버스별 저장 · 다른 탭과 겹치면 거절. 표시 시간(일정 시간만 보이기) ·
   오버레이별 폰트 · 크루 점수 게임 오버레이(`?spin` 등) 넣기 · 도우미(helper) 화면 · OBS 씬 파일에 원소스 넣기는 TBD.
   See docs/figma/code-first-screens.md
+- 커스텀 오버레이 (2026-10-24, 기본값 — 일반적인 기준, StreamDonate 참고): 슬롯 5개, HTML · CSS · JS 각 20,000자, 데이터는 후원 알림 ·
+  통합 채팅 두 가지(처음 채팅 20줄). 크리에이터 코드는 불투명 출처 샌드박스(속성 + 헤더 CSP `sandbox allow-scripts`)에서만, 외부 요청
+  (`connect-src 'none'`) · 폼 · 팝업 · 프레임 막음, 이미지 · 미디어 · 글꼴은 https 허용. 실제 서비스는 샌드박스를 사이트와 다른 도메인에
+  두는 것도 검토(TBD). 외부 API 허용 목록 · 오버레이마다(후원 알림 등) 커스텀 · 목표/랭킹 등 다른 데이터 · 코드 검사/신고 · 도우미 화면 ·
+  원소스 배치에서 슬롯 2~5 고르기는 TBD. See docs/figma/code-first-screens.md
 
 Still TBD:
 

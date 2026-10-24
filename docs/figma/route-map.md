@@ -23,6 +23,9 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/creator/widgets/overlays` | ✅ code-first | 오버레이 주소 — every OBS overlay URL (key masked on screen) + OBS 씬 파일; Figma W03 `213:5870` (현재 구현 레이아웃) · 오버레이 테마 · 세로 방송 W03c `279:9681` · 세로 미리보기 W03d `280:9867` |
 | `/creator/widgets/onesource` | ✅ code-first | 원소스 오버레이 배치 — 캔버스(PC 16:9 · 모바일 가로 · 세로 9:16)마다 오버레이 위치 · 크기 · 스케일 · 레이어 순서, 캔버스별 저장(다른 탭과 겹치면 거절) |
 | `/overlay/onesource/[key]` | ✅ code-first | OBS 원소스 — `?canvas=pc|landscape|portrait`, 배치한 오버레이를 각자 주소의 프레임으로 띄움, `key` = integration key |
+| `/creator/widgets/custom` | ✅ code-first | 커스텀 오버레이 — 슬롯 5개 HTML · CSS · JS, 샌드박스 미리보기(테스트 후원 · 채팅), 슬롯별 OBS 주소 |
+| `/overlay/custom/[key]` | ✅ code-first | OBS 커스텀 오버레이 — `?slot=1~5`, 코드는 `/sandbox/custom-overlay.html` 프레임(`sandbox="allow-scripts"`)에서만 실행, `Referrer-Policy: no-referrer` |
+| `/sandbox/custom-overlay.html` | ✅ code-first | 커스텀 오버레이 샌드박스(정적 파일) — 헤더 CSP `sandbox allow-scripts` · 네트워크 없음, postMessage로 코드 · `onData` 데이터를 받음 |
 | `/creator/widgets/tools` | ✅ code-first | 방송 도구 remote — 자막 · 전광판 · 타이머 · 엔딩 크레딧 · 빙고 (server-owned state); Figma W02 `212:5861` (현재 구현 레이아웃) · 방송 도구 테마 W02b `278:9541` |
 | `/overlay/tool/[tool]/[key]` | ✅ code-first | OBS overlays for the tools; `tool` = subtitle / marquee / timer / credits / bingo, `key` = integration key; Figma O08 자막 `92:6894` · O09 전광판 `92:6900` · O10 타이머 `92:6906` · O11 엔딩 크레딧 `92:6912` · OFF `133:82` · `133:89` · `133:96` · `133:103` (현재 구현 레이아웃) · O24 빙고 `215:9924` · 테마별 Figma: 11 레이아웃 · 오버레이 테마 `258:333` |
 | `/creator/crew` | ✅ code-first | 크루 관리 — Creator role; member split of earnings TBD; Figma Y03 `200:5757` (현재 구현 레이아웃) |
