@@ -263,3 +263,8 @@ Still TBD:
   투네이션 export format (columns, encoding, whether 취소 / 환불 rows appear), the CSV limits (sample 5 MB · 20,000 rows), FlexTV's
   history API (paging, how far back, unit, rate limits, auth) and overlap with 후원 연동 events, re-importing after 되돌리기 of a
   FlexTV batch, retention of imported records while the account is active (deleted at 탈퇴), whether 내역 이관 belongs on the 도우미
+- StreamDonate 남은 정책 항목 (2026-10-24 정리, not built): 외부 정산 연동 · 시그니처 잭팟 복주머니 · 위젯 유료 · 크루 구독 ·
+  추천인 · 캐시 선물 · Direct 후원 수수료 · 마이너스 후원. Each needs a definition and product · finance · legal decisions
+  first, and most wait on the shared TBDs above (payment provider, FN price, platform fee · revenue share, settlement,
+  tax, identity verification · age, legal review, donation cancellation). The questions, options, owners and a
+  money-free variant for each are in docs/product/policy-decisions.md
