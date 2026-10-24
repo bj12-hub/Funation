@@ -12,6 +12,7 @@ import { BattlePanel } from "./BattlePanel";
 import { BroadcastFeed } from "./BroadcastFeed";
 import { FanNotesPanel } from "./FanNotesPanel";
 import { PrizeBoardPanel } from "./PrizeBoardPanel";
+import { TeamPrizePanel } from "./TeamPrizePanel";
 import { ScenarioPanel } from "./ScenarioPanel";
 import { SigCountPanel } from "./SigCountPanel";
 import { StealPanel } from "./StealPanel";
@@ -308,6 +309,14 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
       <PrizeBoardPanel
         settings={view.prizeSettings}
         live={live ? { broadcastId: live.id, board: live.prizeBoard } : null}
+        members={view.members}
+        overlayPath={view.overlayPath}
+        pending={pending}
+        run={run}
+      />
+      <TeamPrizePanel
+        settings={view.teamPrizeSettings}
+        live={live ? { broadcastId: live.id, board: live.teamPrize } : null}
         members={view.members}
         overlayPath={view.overlayPath}
         pending={pending}

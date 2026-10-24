@@ -28,6 +28,7 @@ import type {
   SigBingoSettings,
   SigBingoSize,
   PrizeBoardSettings,
+  TeamPrizeSettings,
   RandomSigSettings,
   RelaySettings,
   ScenarioPart,
@@ -54,6 +55,9 @@ export const STUDIO_CHANNEL = "studio";
  * the 대체 문구), fixed when the donation was sent, so a later 금지어 change does not rewrite it.
  */
 type Attribution = { donationId: string; channelId: string; memberId: string; fnAmount: number; at: string; donor?: string; donorId?: string; message?: string; shownDonor: string };
+
+/** A 순위표 on a broadcast: shown on OBS, its 구간 (시작 ~ 정지; a new 시작 restarts it) and the 시작 request ids applied. */
+export type PrizeBoardState = { visible: boolean; window: { startedAt: string; stoppedAt: string | null } | null; starts: string[] };
 
 export type MockBroadcast = {
   id: string;
@@ -238,8 +242,10 @@ export type MockBroadcast = {
   };
   /** 스도폴리 pieces (by "SHARED" or member id): 칸, laps toward the 목표, 무인도 rolls left. 판 다시 시작 empties it. */
   sudopoly?: { pieces: Record<string, { pos: number; laps: number; island: number }> };
-  /** 상품 순위표: shown on OBS (`?prize`) and its 구간 (시작 ~ 정지; a new 시작 restarts it). `starts`: 시작 request ids applied. */
-  prizeBoard?: { visible: boolean; window: { startedAt: string; stoppedAt: string | null } | null; starts: string[] };
+  /** 상품 순위표 (`?prize`). */
+  prizeBoard?: PrizeBoardState;
+  /** 팀 순위표 (`?teamprize`), with its own 구간. */
+  teamPrize?: PrizeBoardState;
   /** 시그 카운트: shown on OBS (`?sigcount`) and counted from `since` (null = the broadcast start; 다시 세기 sets it). */
   sigCount?: { visible: boolean; since: string | null; resets: string[] };
   /** Final ranking frozen at the end (members may be renamed or removed later). */
@@ -268,6 +274,8 @@ type MockCrew = {
   grades?: Record<string, CrewGrade[]>;
   /** 상품 순위표 settings per channel (missing = DEFAULT_PRIZE_BOARD). */
   prizeBoards?: Record<string, PrizeBoardSettings>;
+  /** 팀 순위표 settings per channel (missing = DEFAULT_TEAM_PRIZE_BOARD). */
+  teamPrizes?: Record<string, TeamPrizeSettings>;
   /** 시그 카운트 settings per channel (missing = DEFAULT_SIG_COUNT). */
   sigCounts?: Record<string, SigCountSettings>;
   /** 스핀머신 settings per channel (missing = DEFAULT_SPIN). */

@@ -27,7 +27,7 @@ import {
   type TeamKey
 } from "./crewTypes";
 import { battleGroups, battleRulesOf, fanNotesView, gradeMultipliersOf, excelOf, liveBroadcastOf, scoreboardRows, scoredFeed, stealRecordView, stealRulesOf, timesMultiplier, windowGames, windowReceived, windowScores, windowSteals } from "./crewCore";
-import { prizeBoardLive, prizeSettingsOf } from "./crewPrizeCore";
+import { prizeBoardLive, prizeSettingsOf, teamPrizeLive, teamPrizeSettingsOf } from "./crewPrizeCore";
 import { sigCountLive, sigCountSettingsOf, sigCountSignatures } from "./crewSigCountCore";
 import { diceLive } from "./crewDiceCore";
 import { jupjupLive } from "./crewJupjupCore";
@@ -95,6 +95,7 @@ function liveView(b: MockBroadcast): BroadcastLive {
     showRankUp: !!b.showRankUp,
     fanNotes: fanNotesView(b),
     prizeBoard: prizeBoardLive(b, rows),
+    teamPrize: teamPrizeLive(b, rows),
     sigCount: sigCountLive(b),
     spin: spinLive(b),
     dice: diceLive(b),
@@ -219,6 +220,7 @@ export async function getBroadcastView(): Promise<BroadcastView | null> {
     battleRules: { ...battleRulesOf(STUDIO_CHANNEL) },
     scenario: structuredClone(mockCrew.scenario?.[STUDIO_CHANNEL] ?? []),
     prizeSettings: structuredClone(prizeSettingsOf(STUDIO_CHANNEL)),
+    teamPrizeSettings: structuredClone(teamPrizeSettingsOf(STUDIO_CHANNEL)),
     sigCountSettings: structuredClone(sigCountSettingsOf(STUDIO_CHANNEL)),
     signatures: sigCountSignatures(),
     projects: [...new Set(broadcasts().filter((b) => b.channelId === STUDIO_CHANNEL && b.project).map((b) => b.project as string))],
@@ -335,6 +337,7 @@ export async function endBroadcast(broadcastId: unknown): Promise<BroadcastResul
   live.endedAt = new Date().toISOString();
   for (const s of live.subBoards ?? []) s.closedAt ??= live.endedAt;
   if (live.prizeBoard?.window) live.prizeBoard.window.stoppedAt ??= live.endedAt;
+  if (live.teamPrize?.window) live.teamPrize.window.stoppedAt ??= live.endedAt;
   for (const x of live.battles ?? []) if (new Date(x.endsAt).getTime() > Date.now()) x.stoppedAt ??= live.endedAt;
   if (live.scenario) {
     for (const h of live.scenario.history) h.endedAt ??= live.endedAt;

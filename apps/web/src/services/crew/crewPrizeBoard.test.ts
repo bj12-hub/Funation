@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { key, mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
-import { DEFAULT_PRIZE_BOARD, type PrizeBoardSettings } from "./crewTypes";
+import { DEFAULT_PRIZE_BOARD, DEFAULT_TEAM_PRIZE_BOARD, type PrizeBoardSettings, type TeamPrizeSettings } from "./crewTypes";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
@@ -141,5 +141,144 @@ describe("상품 순위표", () => {
     expect(await m.setPrizeBoardVisible({ broadcastId: id, on: false })).toEqual({ status: "UNAUTHORIZED" });
     expect(await m.startPrizeWindow({ broadcastId: id, requestId: key(9) })).toEqual({ status: "UNAUTHORIZED" });
     expect(await m.stopPrizeWindow({ broadcastId: id })).toEqual({ status: "UNAUTHORIZED" });
+  });
+});
+
+/** 팀 순위표 (code-first, StreamDonate 팀 랭킹(상품) 참고): prizes per team rank, team score = its members' scores. */
+const teamSettings = (patch: Partial<TeamPrizeSettings> = {}): TeamPrizeSettings => ({ ...DEFAULT_TEAM_PRIZE_BOARD, ...patch });
+const twoTeams = [
+  { name: "불꽃", memberIds: ["cm-s1", "cm-s2"] },
+  { name: "", memberIds: ["cm-s3"] }
+];
+const teamBoard = async (m: Awaited<ReturnType<typeof load>>) => (await m.getBroadcastView())!.live!.teamPrize;
+const teamLine = (b: { rows: { name: string; rank: number; prize: { text: string } | null; score: number; members: { name: string; score: number }[] }[] }) =>
+  b.rows.map((r) => `${r.rank} ${r.name} ${r.prize?.text ?? "-"} ${r.score} [${r.members.map((x) => `${x.name} ${x.score}`).join(", ")}]`);
+
+describe("팀 순위표", () => {
+  beforeEach(() => resetMockStores());
+  afterEach(() => vi.useRealTimers());
+
+  it("ranks teams by the sum of their members (a tie keeps the set-up order) and lists members best first", async () => {
+    const { teamPrizeRows } = await load();
+    const mem = (memberId: string, name: string, score: number) => ({ memberId, name, color: "#111111", score });
+    const out = teamPrizeRows(
+      [
+        { key: "A", name: "가팀", color: "#3b82f6", members: [mem("a", "다", 2), mem("b", "가", 3)] },
+        { key: "B", name: "나팀", color: "#ec4899", members: [mem("c", "나", 9)] },
+        { key: "C", name: "다팀", color: "#10b981", members: [mem("d", "라", 4), mem("e", "마", 4)] },
+        { key: "D", name: "라팀", color: "#f59e0b", members: [] }
+      ],
+      { prizes: [{ text: "회식", color: "#ffcc00" }, { text: "", color: null }, { text: "벌칙", color: null }] }
+    );
+    expect(teamLine(out)).toEqual(["1 나팀 회식 9 [나 9]", "2 다팀 - 8 [라 4, 마 4]", "3 가팀 벌칙 5 [가 3, 다 2]", "4 라팀 - 0 []"]);
+    expect(out.total).toBe(22);
+    const tie = teamPrizeRows([{ key: "A", name: "가팀", color: "#3b82f6", members: [mem("a", "x", 1)] }, { key: "B", name: "나팀", color: "#ec4899", members: [mem("b", "y", 1)] }], { prizes: [] });
+    expect(tie.rows.map((r) => `${r.rank} ${r.name}`)).toEqual(["1 가팀", "2 나팀"]);
+  });
+
+  it("validates and saves the settings: CUSTOM needs 2 ~ 8 teams, each named once and with members in one team only", async () => {
+    const m = await load();
+    expect(await m.saveTeamPrize(teamSettings({ title: " 팀 대항전 ", teams: twoTeams, prizes: [{ text: "회식", color: "#FFAA00" }, { text: "", color: null }] }))).toEqual({ status: "SAVED" });
+    expect((await m.getBroadcastView())!.teamPrizeSettings).toMatchObject({ title: "팀 대항전", source: "CUSTOM", teams: [{ name: "불꽃" }, { name: "B팀" }], prizes: [{ text: "회식", color: "#ffaa00" }] });
+    // Another source keeps the CUSTOM teams but does not need them.
+    expect(await m.saveTeamPrize(teamSettings({ source: "BROADCAST_TEAMS" }))).toEqual({ status: "SAVED" });
+
+    const bad: [Partial<Record<keyof TeamPrizeSettings, unknown>>, string][] = [
+      [{ title: "가".repeat(21) }, "제목"],
+      [{ basis: "MONTH" }, "집계 기준"],
+      [{ source: "AUTO" }, "팀 구성"],
+      [{ teams: [] }, "2개 이상"],
+      [{ teams: [twoTeams[0]] }, "2개 이상"],
+      [{ teams: Array.from({ length: 9 }, (_, i) => ({ name: `팀${i}`, memberIds: [`cm-s${i}`] })) }, "8개까지"],
+      [{ teams: [{ name: "가", memberIds: ["cm-s1"] }, { name: "가", memberIds: ["cm-s2"] }] }, "같은 이름"],
+      [{ teams: [{ name: "가", memberIds: ["cm-s1"] }, { name: "나", memberIds: [] }] }, "나에 멤버"],
+      [{ teams: [{ name: "가", memberIds: ["cm-s1"] }, { name: "나", memberIds: ["cm-s1"] }] }, "한 팀에만"],
+      [{ teams: [{ name: "가", memberIds: ["cm-s1"] }, { name: "나", memberIds: ["cm-nobody"] }] }, "팀 배정"],
+      [{ teams: [{ name: "가".repeat(11), memberIds: ["cm-s1"] }, { name: "나", memberIds: ["cm-s2"] }] }, "10자"],
+      [{ teams: [{ name: "admin팀", memberIds: ["cm-s1"] }, { name: "나", memberIds: ["cm-s2"] }] }, "사용할 수 없는"],
+      [{ teams: twoTeams, prizes: Array.from({ length: 9 }, () => ({ text: "x", color: null })) }, "8등"],
+      [{ teams: twoTeams, prizes: [{ text: "상금", color: "red" }] }, "글자색"],
+      [{ teams: twoTeams, members: "ALL" }, "팀원 표시"],
+      [{ teams: twoTeams, columns: 4 }, "열 개수"],
+      [{ teams: twoTeams, placement: "TOP" }, "배치"],
+      [{ teams: twoTeams, showTotal: 1 }, "표시 설정"]
+    ];
+    for (const [patch, message] of bad) {
+      const res = await m.saveTeamPrize({ ...teamSettings(), ...patch });
+      expect(res.status, message).toBe("INVALID");
+      expect(res.status === "INVALID" && res.message, message).toContain(message);
+    }
+    signIn(["SUPPORTER"]);
+    expect(await m.saveTeamPrize(teamSettings({ teams: twoTeams }))).toEqual({ status: "UNAUTHORIZED" });
+  });
+
+  it("takes the teams from the source: set up here, the broadcast's A팀 · B팀 or the latest 다수 팀 배틀", async () => {
+    const m = await load();
+    const { startBattle } = await import("./crewBattle");
+    await m.startBroadcast({ requestId: crypto.randomUUID(), title: "테스트", teamMode: false });
+    const id = (await m.getBroadcastView())!.live!.id;
+    expect(await teamBoard(m)).toMatchObject({ rows: [], missing: "NO_TEAMS", visible: false });
+
+    m.attributeMemberDonation("dn-1", "studio", "cm-s2", 3_000);
+    await m.adjustScore({ broadcastId: id, memberId: "cm-s3", points: 5_000, adjustmentId: key(1) });
+    await m.saveTeamPrize(teamSettings({ teams: twoTeams, prizes: [{ text: "회식", color: null }] }));
+    const custom = await teamBoard(m);
+    expect(teamLine(custom)).toEqual(["1 B팀 회식 5000 [바다 5000]", "2 불꽃 - 3000 [하늘 3000, 길동 0]"]);
+    expect(custom).toMatchObject({ missing: null, total: 8_000 });
+    expect(custom.rows.map((r) => r.color)).toEqual(["#ec4899", "#3b82f6"]); // colors follow the set-up order
+
+    await m.saveTeamPrize(teamSettings({ source: "BROADCAST_TEAMS", teams: twoTeams }));
+    expect(await teamBoard(m)).toMatchObject({ rows: [], missing: "NOT_TEAM_MODE" });
+
+    await m.saveTeamPrize(teamSettings({ source: "BATTLE" }));
+    expect(await teamBoard(m)).toMatchObject({ rows: [], missing: "NO_BATTLE" });
+    const teams = [{ name: "용", memberIds: ["cm-s1"] }, { name: "범", memberIds: ["cm-s2", "cm-s3"] }];
+    expect(await startBattle({ broadcastId: id, requestId: key(2), mode: "MULTI_TEAMS", teams, durationSec: 120 })).toEqual({ status: "SAVED" });
+    // The board's own basis (방송 전체 점수 here), not the battle's score.
+    expect(teamLine(await teamBoard(m))).toEqual(["1 범 - 8000 [바다 5000, 하늘 3000]", "2 용 - 0 [길동 0]"]);
+
+    await m.endBroadcast(id);
+    await m.startBroadcast({ requestId: crypto.randomUUID(), title: "팀전", teamMode: true, teams: { "cm-s1": "A", "cm-s2": "B", "cm-s3": "A" } });
+    const teamId = (await m.getBroadcastView())!.live!.id;
+    await m.adjustScore({ broadcastId: teamId, memberId: "cm-s2", points: 2_000, adjustmentId: key(3) });
+    await m.saveTeamPrize(teamSettings({ source: "BROADCAST_TEAMS", members: "NONE", prizes: [{ text: "1등", color: null }, { text: "벌칙", color: null }] }));
+    expect(teamLine(await teamBoard(m))).toEqual(["1 B팀 1등 2000 [하늘 2000]", "2 A팀 벌칙 0 [길동 0, 바다 0]"]);
+  });
+
+  it("counts its own 구간 on the window basis and is shown on OBS on its own", async () => {
+    vi.useFakeTimers({ now: new Date("2026-10-25T12:00:00Z"), toFake: ["Date"] });
+    const m = await load();
+    await m.setMemberKeywords({ memberId: "cm-s2", keywords: ["하늘"] });
+    await m.startBroadcast({ requestId: crypto.randomUUID(), title: "테스트", teamMode: false });
+    const id = (await m.getBroadcastView())!.live!.id;
+    await m.saveTeamPrize(teamSettings({ basis: "WINDOW", teams: twoTeams }));
+    await m.savePrizeBoard(settings({ basis: "WINDOW" }));
+    expect((await m.startPrizeWindow({ broadcastId: id, requestId: key(1), board: "BOTH" })).status).toBe("INVALID");
+    expect((await m.stopPrizeWindow({ broadcastId: id, board: "TEAM" })).status).toBe("INVALID"); // nothing to stop
+
+    vi.setSystemTime(new Date("2026-10-25T12:01:00Z"));
+    await m.simulateDonation({ broadcastId: id, requestId: key(10), amount: 1_000, message: "하늘" }); // before the 구간
+    vi.setSystemTime(new Date("2026-10-25T12:02:00Z"));
+    expect(await m.startPrizeWindow({ broadcastId: id, requestId: key(2), board: "TEAM" })).toEqual({ status: "SAVED" });
+    vi.setSystemTime(new Date("2026-10-25T12:03:00Z"));
+    await m.simulateDonation({ broadcastId: id, requestId: key(11), amount: 4_000, message: "하늘" });
+    await m.startPrizeWindow({ broadcastId: id, requestId: key(2), board: "TEAM" }); // retried start: no restart
+    const running = await teamBoard(m);
+    expect(running.window).toEqual({ startedAt: "2026-10-25T12:02:00.000Z", stoppedAt: null });
+    expect(teamLine(running)[0]).toBe("1 불꽃 - 4000 [하늘 4000, 길동 0]");
+    // The 상품 순위표 keeps its own 구간 (not started).
+    expect((await board(m)).window).toBeNull();
+
+    expect(await m.setPrizeBoardVisible({ broadcastId: id, on: true, board: "TEAM" })).toEqual({ status: "SAVED" });
+    const overlay = await m.getOverlayScoreboard(m.overlayKey);
+    expect(overlay !== "IDLE" && overlay !== "FORBIDDEN" && [overlay.teamPrize.visible, overlay.prizeBoard.visible]).toEqual([true, false]);
+
+    vi.setSystemTime(new Date("2026-10-25T12:04:00Z"));
+    await m.endBroadcast(id);
+    const ended = (await import("./mockCrewStore")).mockCrew.broadcasts!.find((b) => b.id === id)!;
+    expect(ended.teamPrize!.window!.stoppedAt).toBe("2026-10-25T12:04:00.000Z");
+
+    signIn(["SUPPORTER"]);
+    expect(await m.setPrizeBoardVisible({ broadcastId: id, on: false, board: "TEAM" })).toEqual({ status: "UNAUTHORIZED" });
   });
 });

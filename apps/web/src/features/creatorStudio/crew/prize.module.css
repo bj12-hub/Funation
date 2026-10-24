@@ -1,4 +1,4 @@
-/* 상품 순위표 (code-first) — studio card in 방송 운영. */
+/* 상품 순위표 · 팀 순위표 (code-first) — studio cards in 방송 운영. */
 
 .form {
   display: flex;
@@ -124,6 +124,14 @@
   color: var(--color-text-secondary);
 }
 
+/* 팀 순위표: the team's members on a line under it. */
+.previewMembers {
+  grid-column: 2 / -1;
+  overflow-wrap: anywhere;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-13);
+}
+
 @media (max-width: 600px) {
   .lines li {
     grid-template-columns: 36px minmax(0, 1fr) 40px;
@@ -141,5 +149,10 @@
   .previewPrize {
     grid-column: 2 / -1;
     grid-row: 2;
+  }
+
+  /* No line for the rank: the team's members move up. */
+  .previewPrize:empty {
+    display: none;
   }
 }
