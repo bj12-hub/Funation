@@ -9,6 +9,7 @@ import { diceLive, diceSettingsOf, parseDiceSettings, runDice } from "./crewDice
 import { gameRunView, memberSources, usedSources, type RunStart, type StoredRun } from "./crewGameCore";
 import { clearGridDrawBoard, gridDrawLive, gridDrawSettingsOf, openGridDrawCell, parseGridDrawSettings, startGridDrawBoard } from "./crewGridDrawCore";
 import { alphabetLive, alphabetSettingsOf, parseAlphabetSettings, resetAlphabetBoard, runAlphabet } from "./crewAlphabetCore";
+import { goStopLive, goStopSettingsOf, parseGoStopSettings, resetGoStopPool, runGoStop } from "./crewGoStopCore";
 import { clearSigDosanBoard, parseSigDosanSettings, sigDosanLive, sigDosanSettingsOf, startSigDosanBoard, stepSigDosanLane } from "./crewSigDosanCore";
 import {
   clearSigHunterBoard,
@@ -32,7 +33,7 @@ import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 /**
  * 점수 게임 Server Actions — code-first (no Figma frame; StreamDonate 참고, P2), route `/creator/crew/games`: 스핀머신 · 주사위
- * 게임 · 투휠 게임 · 랜덤시그 · 기여도 릴레이 · 줍줍 · 시그니처 메들리 · 시그 빙고 · 복불복 뽑기판 · 시그니처 헌터 · 시그니처 두산 · 알파벳 모으기. Settings are kept per channel; runs belong to the live broadcast. Results are display points only.
+ * 게임 · 투휠 게임 · 랜덤시그 · 기여도 릴레이 · 줍줍 · 시그니처 메들리 · 시그 빙고 · 복불복 뽑기판 · 시그니처 헌터 · 시그니처 두산 · 알파벳 모으기 · 고스톱. Settings are kept per channel; runs belong to the live broadcast. Results are display points only.
  */
 
 const assertMock = () => {
@@ -49,7 +50,7 @@ const SOURCES_SHOWN = 10;
  * How each game plays one run by hand for a member (the caller checks the game can play). 랜덤시그 · 기여도 릴레이 · 줍줍 play only
  * from donations; 메들리 rolls by hand without a member (playMedley).
  */
-const PLAY: Record<Exclude<GameKey, "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW" | "SIG_HUNTER" | "SIG_DOSAN">, (b: MockBroadcast, start: RunStart) => StoredRun> = { SPIN: runSpin, DICE: runDice, TWO_WHEEL: runTwoWheel, ALPHABET: runAlphabet };
+const PLAY: Record<Exclude<GameKey, "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW" | "SIG_HUNTER" | "SIG_DOSAN">, (b: MockBroadcast, start: RunStart) => StoredRun> = { SPIN: runSpin, DICE: runDice, TWO_WHEEL: runTwoWheel, ALPHABET: runAlphabet, GOSTOP: runGoStop };
 
 function sourcesOf(b: MockBroadcast): Record<GameKey, Record<string, GameSource[]>> {
   const active = (mockCrew.crews[STUDIO_CHANNEL] ?? []).filter((m) => m.active);
@@ -66,7 +67,7 @@ function sourcesOf(b: MockBroadcast): Record<GameKey, Record<string, GameSource[
       ])
     );
   };
-  return { SPIN: forGame("SPIN"), DICE: forGame("DICE"), TWO_WHEEL: forGame("TWO_WHEEL"), RANDOM_SIG: {}, RELAY: {}, JUPJUP: {}, MEDLEY: {}, SIG_BINGO: {}, GRID_DRAW: {}, SIG_HUNTER: {}, SIG_DOSAN: {}, ALPHABET: forGame("ALPHABET") };
+  return { SPIN: forGame("SPIN"), DICE: forGame("DICE"), TWO_WHEEL: forGame("TWO_WHEEL"), RANDOM_SIG: {}, RELAY: {}, JUPJUP: {}, MEDLEY: {}, SIG_BINGO: {}, GRID_DRAW: {}, SIG_HUNTER: {}, SIG_DOSAN: {}, ALPHABET: forGame("ALPHABET"), GOSTOP: forGame("GOSTOP") };
 }
 
 export async function getGamesView(): Promise<GamesView | null> {
@@ -92,6 +93,7 @@ export async function getGamesView(): Promise<GamesView | null> {
           sigHunter: sigHunterLive(live, true),
           sigDosan: sigDosanLive(live),
           alphabet: alphabetLive(live),
+          gostop: goStopLive(live),
           sources: sourcesOf(live),
           serverNow: new Date().toISOString()
         }
@@ -108,6 +110,7 @@ export async function getGamesView(): Promise<GamesView | null> {
     sigHunterSettings: structuredClone(sigHunterSettingsOf(STUDIO_CHANNEL)),
     sigDosanSettings: structuredClone(sigDosanSettingsOf(STUDIO_CHANNEL)),
     alphabetSettings: structuredClone(alphabetSettingsOf(STUDIO_CHANNEL)),
+    gostopSettings: structuredClone(goStopSettingsOf(STUDIO_CHANNEL)),
     signatures: sigCountSignatures(),
     overlayPath: `/overlay/crew/${mockCreator.integrationKey}`
   };
@@ -448,6 +451,28 @@ export async function resetAlphabet(input: unknown): Promise<BroadcastResult> {
   if (!live || live.id !== v.broadcastId) return notLive;
   if (v.memberId !== null && typeof v.memberId !== "string") return { status: "INVALID", message: "멤버를 다시 골라 주세요." };
   resetAlphabetBoard(live, v.memberId);
+  return { status: "SAVED" };
+}
+
+/** Replaces the 고스톱 settings (이름 · 적립률 · STOP 확률 · 최대 · 배수 · 색 구간 · 제외 BJ · 자동 · 제외 시그 · 대기 화면). */
+export async function saveGoStop(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const memberIds = (mockCrew.crews[STUDIO_CHANNEL] ?? []).map((m) => m.id);
+  const known = goStopSettingsOf(STUDIO_CHANNEL).bands.map((b) => b.id);
+  const parsed = parseGoStopSettings(input, MOCK_FORBIDDEN_WORDS, signatureIds(), memberIds, known);
+  if ("message" in parsed) return { status: "INVALID", message: parsed.message };
+  (mockCrew.gostops ??= {})[STUDIO_CHANNEL] = parsed;
+  return { status: "SAVED" };
+}
+
+/** 풀 비우기: the 풀 and GO count start over, no one taking it. */
+export async function resetGoStop(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const live = liveBroadcastOf(STUDIO_CHANNEL);
+  if (!live || live.id !== rec(input).broadcastId) return notLive;
+  resetGoStopPool(live);
   return { status: "SAVED" };
 }
 

@@ -249,6 +249,7 @@ export type BroadcastLive = {
   sigHunter: SigHunterLive;
   sigDosan: SigDosanLive;
   alphabet: AlphabetLive;
+  gostop: GoStopLive;
   /** Server clock when this view was read: timers (시나리오 경과, 강탈 card) correct the browser's clock with it. */
   serverNow: string;
 };
@@ -370,7 +371,7 @@ export type SigCountLive = {
 // A game draws its result on the server; the result is display points only (FN · 지갑 · 수익 · 정산 never move).
 
 /** Games on the shared engine (crewGameCore). `param`: the OBS view (`?spin`). */
-export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL" | "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW" | "SIG_HUNTER" | "SIG_DOSAN" | "ALPHABET";
+export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL" | "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW" | "SIG_HUNTER" | "SIG_DOSAN" | "ALPHABET" | "GOSTOP";
 export const GAMES: { key: GameKey; label: string; param: string }[] = [
   { key: "SPIN", label: "스핀머신", param: "spin" },
   { key: "DICE", label: "주사위 게임", param: "dice" },
@@ -383,7 +384,8 @@ export const GAMES: { key: GameKey; label: string; param: string }[] = [
   { key: "GRID_DRAW", label: "복불복 뽑기판", param: "griddraw" },
   { key: "SIG_HUNTER", label: "시그니처 헌터", param: "sighunter" },
   { key: "SIG_DOSAN", label: "시그니처 두산", param: "sigdosan" },
-  { key: "ALPHABET", label: "알파벳 모으기", param: "alphabet" }
+  { key: "ALPHABET", label: "알파벳 모으기", param: "alphabet" },
+  { key: "GOSTOP", label: "고스톱", param: "gostop" }
 ];
 
 /**
@@ -403,7 +405,8 @@ export const GAME_TIMING: Record<GameKey, { playSec: number; resultSec: number }
   GRID_DRAW: { playSec: 1, resultSec: 4 },
   SIG_HUNTER: { playSec: 1, resultSec: 4 },
   SIG_DOSAN: { playSec: 1, resultSec: 3 },
-  ALPHABET: { playSec: 3, resultSec: 3 }
+  ALPHABET: { playSec: 3, resultSec: 3 },
+  GOSTOP: { playSec: 2, resultSec: 3 }
 };
 /** Runs a game lists (studio) and queues (OBS), newest first. */
 export const GAME_RUNS_SHOWN = 30;
@@ -815,6 +818,52 @@ export function alphabetBoardAt(board: Pick<AlphabetBoard, "slots" | "timeline">
   return { lit, done };
 }
 
+// 고스톱 — StreamDonate 고스톱: each 시그니처 후원 to a member adds to the crew's 풀 and rolls STOP (more likely the more it
+// is worth, up to a 최대). GO goes on; STOP takes the 풀 × 배수 for that member and the 풀 starts over (STOP 랭킹).
+export const GOSTOP_TITLE_DEFAULT = "고스톱";
+export const GOSTOP_POOL_PERCENT_MAX = 1000;
+export const GOSTOP_RATE_MAX = 10;
+export const GOSTOP_MULTIPLIER_MAX = 10;
+export const GOSTOP_BANDS_MAX = 5;
+export const GOSTOP_BAND_MIN_MAX = 1_000_000_000;
+/** A 색 구간: from `min` 풀 points the 풀 shows in `color` (#rrggbb). */
+export type GoStopBand = { id: string; min: number; color: string };
+/**
+ * `poolPercent`: 적립률 — the share of a donation's points the 풀 gets; `stopRate`: STOP 확률 (%) per 1,000 of its points, up
+ * to `stopMax` (%); `multiplier`: STOP 배수 on the 풀; `excludedMembers`: 제외 BJ (their donations neither add nor roll).
+ */
+export type GoStopSettings = GameCommon & {
+  poolPercent: number;
+  stopRate: number;
+  stopMax: number;
+  multiplier: number;
+  bands: GoStopBand[];
+  excludedMembers: string[];
+};
+export const DEFAULT_GOSTOP: GoStopSettings = {
+  title: "",
+  auto: false,
+  excluded: [],
+  showIdle: true,
+  poolPercent: 100,
+  stopRate: 0.05,
+  stopMax: 50,
+  multiplier: 1,
+  bands: [],
+  excludedMembers: []
+};
+/** STOP 랭킹: each member's STOPs among `wins`, the most points first (`best`: the biggest 풀 they took). */
+export function goStopRanking(wins: { memberId: string; name: string; color: string | null; points: number; pool: number }[]) {
+  const rows = new Map<string, { memberId: string; name: string; color: string | null; points: number; count: number; best: number }>();
+  for (const w of wins) {
+    const r = rows.get(w.memberId) ?? { memberId: w.memberId, name: w.name, color: w.color, points: 0, count: 0, best: 0 };
+    rows.set(w.memberId, { ...r, points: r.points + w.points, count: r.count + 1, best: Math.max(r.best, w.pool) });
+  }
+  return [...rows.values()].sort((x, y) => y.points - x.points || y.count - x.count);
+}
+/** The 색 구간 of a 풀 (the last one it reached), or null. */
+export const goStopBand = (bands: GoStopBand[], pool: number) => [...bands].sort((x, y) => x.min - y.min).filter((b) => b.min <= pool).at(-1) ?? null;
+
 /** What started a run: a 시그니처 후원 to the member (자동), a 랜덤시그 · 메들리 발동 금액 (자동), or the operator (수동). */
 /** `DONATION`: a donation that is no signature (복불복 뽑기판 on 모든 후원). */
 export type GameTrigger = { kind: "SIGNATURE"; signatureName: string } | { kind: "AMOUNT"; amount: number } | { kind: "DONATION"; amount: number } | { kind: "MANUAL" };
@@ -848,6 +897,8 @@ export type GameRunView = {
   from: { memberName: string; amount: number } | null;
   /** Points the run moves for other members (시그니처 헌터 몰수권: what each one loses), counted with the run. */
   shares: { memberName: string; memberColor: string | null; points: number }[];
+  /** 고스톱: the 풀 after the run (a STOP: the 풀 it took), the GO count, and the STOP 확률 it rolled (%). */
+  gostop: { pool: number; go: number; chance: number } | null;
 };
 
 /** 스핀머신 BJ별 집계: how many times each member got each 문구 (TEXT) result, columns in first-seen order. */
@@ -862,6 +913,17 @@ export type GridDrawLive = { settings: GridDrawSettings; runs: GameRunView[]; bo
 export type SigHunterLive = { settings: SigHunterSettings; runs: GameRunView[]; board: SigHunterBoard | null };
 /** `boards`: the active members' (and anyone's who collected); `letters`: the word's letters, as on the reel. */
 export type AlphabetLive = { settings: AlphabetSettings; runs: GameRunView[]; boards: AlphabetBoard[]; letters: string[] };
+/**
+ * `pool` · `go`: now (OBS shows the latest result's — runs queue); `wins`: every STOP of the broadcast, oldest first
+ * (`revealAt`: when OBS shows it), for the STOP 랭킹.
+ */
+export type GoStopLive = {
+  settings: GoStopSettings;
+  runs: GameRunView[];
+  pool: number;
+  go: number;
+  wins: { memberId: string; name: string; color: string | null; points: number; pool: number; go: number; at: string; revealAt: string }[];
+};
 /** `board`: null until 두산 시작 (or after 판 비우기). */
 export type SigDosanLive = { settings: SigDosanSettings; runs: GameRunView[]; board: SigDosanBoard | null };
 /** `board`: null until 빙고 시작 (or after 판 비우기); `eligible`: how many signatures a new board would draw from. */
@@ -896,6 +958,7 @@ export type GamesView = {
     sigHunter: SigHunterLive;
     sigDosan: SigDosanLive;
     alphabet: AlphabetLive;
+    gostop: GoStopLive;
     sources: Record<GameKey, Record<string, GameSource[]>>;
     serverNow: string;
   } | null;
@@ -911,6 +974,7 @@ export type GamesView = {
   sigHunterSettings: SigHunterSettings;
   sigDosanSettings: SigDosanSettings;
   alphabetSettings: AlphabetSettings;
+  gostopSettings: GoStopSettings;
   signatures: { id: string; name: string; group: string; active: boolean; price: number; match: "SELECT" | "AMOUNT"; rangeMin: number | null }[];
   overlayPath: string;
 };
