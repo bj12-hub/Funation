@@ -115,12 +115,35 @@ export async function assignFeedEntry(input: unknown): Promise<BroadcastResult> 
   const entry = (live.feed ?? []).find((f) => f.id === v.entryId);
   if (!entry) return { status: "INVALID", message: "후원 기록을 찾을 수 없어요." };
   if (entry.status === "POT") return { status: "INVALID", message: "한방에 모이는 중인 후원이에요. 한방을 먼저 끝내 주세요." };
+  const restored = entry.duplicate === "DUPLICATE" ? { duplicate: "KEPT" as const } : {};
   if (v.memberId === null) {
-    Object.assign(entry, { status: "UNMATCHED", memberId: null });
+    Object.assign(entry, { status: "UNMATCHED", memberId: null, ...restored });
     return { status: "SAVED" };
   }
   if (!members().some((m) => m.id === v.memberId && m.active)) return { status: "INVALID", message: "활동 중인 멤버를 골라 주세요." };
-  Object.assign(entry, { status: "ASSIGNED", memberId: v.memberId });
+  Object.assign(entry, { status: "ASSIGNED", memberId: v.memberId, ...restored });
+  return { status: "SAVED" };
+}
+
+/**
+ * 중복 도네이션 확인: `verdict` DUPLICATE cancels the entry as 중복 (배정 restores it, then as 중복 아님); KEPT clears the
+ * 중복 의심 mark. Deciding the same way again is a no-op. Points never move until the operator decides.
+ */
+export async function resolveDuplicate(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = rec(input);
+  const live = liveBroadcastOf(STUDIO_CHANNEL);
+  if (!live || live.id !== v.broadcastId) return notLive;
+  const entry = (live.feed ?? []).find((f) => f.id === v.entryId);
+  if (!entry) return { status: "INVALID", message: "후원 기록을 찾을 수 없어요." };
+  if (v.verdict === "DUPLICATE") {
+    if (entry.status === "POT") return { status: "INVALID", message: "한방에 모이는 중인 후원이에요." };
+    Object.assign(entry, { status: "CANCELLED", memberId: null, oneshot: false, duplicate: "DUPLICATE" });
+  } else if (v.verdict === "KEPT") {
+    if (entry.status === "CANCELLED") return { status: "INVALID", message: "취소한 후원이에요. 먼저 다시 배정해 주세요." };
+    entry.duplicate = "KEPT";
+  } else return { status: "INVALID", message: "확인 결과를 골라 주세요." };
   return { status: "SAVED" };
 }
 
