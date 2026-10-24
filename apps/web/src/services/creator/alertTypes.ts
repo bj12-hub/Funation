@@ -148,7 +148,8 @@ export const OVERLAY_TARGETS = [
   { key: "chat", label: "통합 채팅" },
   { key: "crew", label: "크루 점수판 · 배틀 · 강탈 · 시나리오" },
   { key: "play", label: "시청자 참여 게임 (마블 룰렛 · 로얄 럼블)" },
-  { key: "custom", label: "커스텀 오버레이" }
+  { key: "custom", label: "커스텀 오버레이" },
+  { key: "bridge", label: "외부 프로그램 연동" }
 ] as const;
 export type OverlayTarget = (typeof OVERLAY_TARGETS)[number]["key"];
 export const isOverlayTarget = (v: unknown): v is OverlayTarget => OVERLAY_TARGETS.some((t) => t.key === v);

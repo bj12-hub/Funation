@@ -23,6 +23,8 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | `/creator/widgets/overlays` | ✅ code-first | 오버레이 주소 — every OBS overlay URL (key masked on screen) + OBS 씬 파일; Figma W03 `213:5870` (현재 구현 레이아웃) · 오버레이 테마 · 세로 방송 W03c `279:9681` · 세로 미리보기 W03d `280:9867` |
 | `/creator/widgets/onesource` | ✅ code-first | 원소스 오버레이 배치 — 캔버스(PC 16:9 · 모바일 가로 · 세로 9:16)마다 오버레이 위치 · 크기 · 스케일 · 레이어 순서, 캔버스별 저장(다른 탭과 겹치면 거절) |
 | `/overlay/onesource/[key]` | ✅ code-first | OBS 원소스 — `?canvas=pc|landscape|portrait`, 배치한 오버레이를 각자 주소의 프레임으로 띄움, `key` = integration key |
+| `/creator/widgets/bridge` | ✅ code-first | 외부 프로그램 연동 — 규칙(언제: 최소 FN · 시그니처 · 테스트 후원 / 보내기: GET · POST 주소 · 내용 · 지연), 테스트 보내기, 연동 페이지 주소, 최근 보낸 요청 |
+| `/overlay/bridge/[key]` | ✅ code-first | 외부 프로그램 연동 페이지 — 방송 PC(OBS 브라우저 소스 또는 탭, `?status`)에서 후원 알림마다 규칙의 요청을 보냄; 서버 claim으로 알림 × 규칙당 한 번, `Referrer-Policy: no-referrer` |
 | `/creator/widgets/music` | ✅ code-first | 음악 편집기 — 트랙 · 클립 타임라인(브라우저 Web Audio), 결과는 이미지·사운드 라이브러리(`uploadAsset`)로; 이 페이지만 마이크 허용(`Permissions-Policy: microphone=(self)`) |
 | `/creator/chat/bot` | ✅ code-first | 채팅봇 명령어 — 봇 사용 · 답할 플랫폼 · `!명령어` 목록, 명령어(응답 · 사용 가능 · 쿨다운), 테스트(보내지 않음), 최근 응답; 봇은 통합 채팅을 읽을 때마다(`ingestChat`) 새 메시지에 답함 |
 | `/creator/widgets/custom` | ✅ code-first | 커스텀 오버레이 — 슬롯 5개 HTML · CSS · JS, 샌드박스 미리보기(테스트 후원 · 채팅), 슬롯별 OBS 주소 |
