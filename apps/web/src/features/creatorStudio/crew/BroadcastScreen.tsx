@@ -14,6 +14,8 @@ import { ContributionPanel } from "./ContributionPanel";
 import { FanNotesPanel } from "./FanNotesPanel";
 import { PrizeBoardPanel } from "./PrizeBoardPanel";
 import { TeamPrizePanel } from "./TeamPrizePanel";
+import { BroadcastCsvButton, ContributionExportBar } from "./ContributionExport";
+import { CumulativePanel } from "./CumulativePanel";
 import { ScenarioPanel } from "./ScenarioPanel";
 import { SigCountPanel } from "./SigCountPanel";
 import { StealPanel } from "./StealPanel";
@@ -324,6 +326,13 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
         pending={pending}
         run={run}
       />
+      <CumulativePanel
+        settings={view.cumulativeSettings}
+        live={live ? { broadcastId: live.id, board: live.cumulative } : null}
+        overlayPath={view.overlayPath}
+        pending={pending}
+        run={run}
+      />
       <SigCountPanel
         settings={view.sigCountSettings}
         signatures={view.signatures}
@@ -351,6 +360,7 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
         <h2 id="bc-history" className={styles.cardTitle}>
           방송 이력
         </h2>
+        {(view.history.length > 0 || live) && <ContributionExportBar key={view.projects.join("|")} projects={view.projects} />}
         {view.history.length === 0 ? (
           <p className={styles.empty}>종료된 방송이 아직 없어요.</p>
         ) : (
@@ -367,6 +377,7 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
                   </span>
                 </div>
                 <span className={styles.muted}>{h.top.map((t, i) => `${i + 1}. ${t.name} ${formatNumber(t.score)}`).join("  ")}</span>
+                <BroadcastCsvButton broadcastId={h.id} title={h.title} />
               </li>
             ))}
           </ul>

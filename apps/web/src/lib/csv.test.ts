@@ -87,6 +87,7 @@ const OFFERS_CSV = /text\/csv|\.csv[`"']/;
 const FORMULA_CHECK = /\[(?=[^\]\n]*=)(?=[^\]\n]*\+)(?=[^\]\n]*@)[^\]\n]*\]/;
 /** Files that offer a CSV they do not build themselves, and where it is built. */
 const BUILT_ELSEWHERE: Record<string, string> = {
+  "web/src/features/creatorStudio/crew/ContributionExport.tsx": "saves the file exportContributions (crewHistory.ts, toCsv) built",
   "web/src/features/creatorStudio/donations/CsvExportButton.tsx": "saves the file exportReceivedDonationsCsv (donationManagement.ts) built",
   "web/src/features/creatorStudio/donations/ImportedCsvButton.tsx": "saves the file exportImportedDonationsCsv built (donationImportCore.ts importedCsv)",
   "web/src/features/creatorStudio/donations/ToonationImportCard.tsx": "the fixed SAMPLE_CSV (no user text) and the upload field",

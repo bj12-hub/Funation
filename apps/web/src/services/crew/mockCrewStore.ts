@@ -30,6 +30,7 @@ import type {
   PrizeBoardSettings,
   DonorMerge,
   TeamPrizeSettings,
+  CumulativeSettings,
   RandomSigSettings,
   RelaySettings,
   ScenarioPart,
@@ -247,6 +248,8 @@ export type MockBroadcast = {
   prizeBoard?: PrizeBoardState;
   /** 팀 순위표 (`?teamprize`), with its own 구간. */
   teamPrize?: PrizeBoardState;
+  /** 누적 기여도 shown on OBS (`?cumulative`). */
+  cumulative?: { visible: boolean };
   /** 시그 카운트: shown on OBS (`?sigcount`) and counted from `since` (null = the broadcast start; 다시 세기 sets it). */
   sigCount?: { visible: boolean; since: string | null; resets: string[] };
   /** Final ranking frozen at the end (members may be renamed or removed later). */
@@ -279,6 +282,8 @@ type MockCrew = {
   donorMerges?: Record<string, DonorMerge[]>;
   /** 팀 순위표 settings per channel (missing = DEFAULT_TEAM_PRIZE_BOARD). */
   teamPrizes?: Record<string, TeamPrizeSettings>;
+  /** 누적 기여도 settings per channel (missing = DEFAULT_CUMULATIVE). */
+  cumulatives?: Record<string, CumulativeSettings>;
   /** 시그 카운트 settings per channel (missing = DEFAULT_SIG_COUNT). */
   sigCounts?: Record<string, SigCountSettings>;
   /** 스핀머신 settings per channel (missing = DEFAULT_SPIN). */

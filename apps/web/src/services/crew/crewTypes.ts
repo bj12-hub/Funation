@@ -194,6 +194,40 @@ export type ContributionLine = { id: string; at: string | null; kind: Contributi
 export type ContributionHistory = { broadcastId: string; title: string; lines: ContributionLine[] };
 export type ContributionResult = { status: "OK"; history: ContributionHistory } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
 
+/**
+ * 기여도 내보내기 (2026-10-25, StreamDonate 프리셋별 기여도 내역 참고 — 기본값; 프리셋 = 프로젝트). ROUNDS: members × 회차
+ * (each 회차's final score, the live one's current score) with 합계. LINES: every 기여도 내역 line of those 회차.
+ */
+export type ContributionExportFormat = "ROUNDS" | "LINES";
+/** Lines in one file at most (the rest is left out and `truncated` says so). */
+export const CONTRIBUTION_EXPORT_MAX = 20_000;
+export type ContributionExportResult =
+  | { status: "OK"; csv: string; filename: string; rows: number; truncated: boolean }
+  | { status: "INVALID"; message: string }
+  | { status: "UNAUTHORIZED" };
+
+// ── 누적 기여도 (2026-10-25, StreamDonate 참고 — 기본값) ─────────────────────────────────────────
+
+export const CUMULATIVE_TITLE_DEFAULT = "누적 기여도";
+export const CUMULATIVE_ROWS = [3, 5, 10] as const;
+export type CumulativeRows = (typeof CUMULATIVE_ROWS)[number];
+
+/**
+ * Kept per channel. `rows`: members shown on OBS; `showBreakdown`: 지난 회차 · 이번 회차 under each total; `showRounds`: the
+ * 프로젝트 · N회차 chip; `placement` as on 상품 순위표.
+ */
+export type CumulativeSettings = { title: string; rows: CumulativeRows; showBreakdown: boolean; showRounds: boolean; placement: PrizePlacement };
+export const DEFAULT_CUMULATIVE: CumulativeSettings = { title: "", rows: 10, showBreakdown: true, showRounds: true, placement: "FLOAT" };
+
+/** `past`: the final scores of this project's earlier 회차; `current`: the live scoreboard; ties by name. */
+export type CumulativeRow = { memberId: string; name: string; color: string; rank: number; past: number; current: number; total: number };
+
+/**
+ * 누적 기여도 of the live broadcast (OBS `?cumulative`): its project's ended 회차 plus this one. `project` null = started
+ * without a project, so only this broadcast counts (`rounds` 1).
+ */
+export type CumulativeLive = { settings: CumulativeSettings; visible: boolean; project: string | null; rounds: number; rows: CumulativeRow[]; total: number };
+
 // ── 자동엑셀 (원화 환산 · 기여도) — code-first; conversion values are entered by the creator ─────────
 
 /**
@@ -307,6 +341,8 @@ export type BroadcastLive = {
   prizeBoard: PrizeBoardLive;
   /** 팀 순위표: the same by team (OBS `?teamprize`). */
   teamPrize: TeamPrizeLive;
+  /** 누적 기여도 over this broadcast's project (OBS `?cumulative`). */
+  cumulative: CumulativeLive;
   /** 시그 카운트: signatures each member received during this broadcast (OBS `?sigcount`). */
   sigCount: SigCountLive;
   /** 점수 게임: settings and recent runs with their OBS timing (`?spin` · `?spintally` · `?dice` · `?twowheel`). */
@@ -1425,6 +1461,8 @@ export type BroadcastView = {
   donorMerges: DonorMerge[];
   /** 팀 순위표 settings (kept across broadcasts; editable before going live). */
   teamPrizeSettings: TeamPrizeSettings;
+  /** 누적 기여도 settings (kept across broadcasts; editable before going live). */
+  cumulativeSettings: CumulativeSettings;
   /** 시그 카운트 settings (kept across broadcasts) and the signatures it can count (숨긴 시그니처 too, marked). */
   sigCountSettings: SigCountSettings;
   signatures: { id: string; name: string; group: string; active: boolean; price: number; match: "SELECT" | "AMOUNT"; rangeMin: number | null }[];

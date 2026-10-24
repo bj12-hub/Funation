@@ -7,12 +7,14 @@ import { useServerClock } from "@/hooks/useServerClock";
 import { formatNumber } from "@/lib/format";
 import type { ResolvedTheme } from "@/services/creator/overlayThemeTypes";
 import {
+  CUMULATIVE_TITLE_DEFAULT,
   OVERLAY_BOARD_ROWS,
   PRIZE_TITLE_DEFAULT,
   SIG_COUNT_TITLE_DEFAULT,
   TEAM_PRIZE_TITLE_DEFAULT,
   type Battle,
   type BattleMatch,
+  type CumulativeLive,
   type OverlayScenario,
   type OverlayScoreboard,
   type PrizeBoardLive,
@@ -327,6 +329,42 @@ export function TeamPrizeOverlay({ board, reloadSeq, theme }: { board: TeamPrize
             합계 <b className={ov.display}>{formatNumber(board.total)}</b>
           </p>
         )}
+      </div>
+    </OverlayThemeRoot>
+  );
+}
+
+/**
+ * 누적 기여도 overlay (`?cumulative`): the top members by their project total (ended 회차 + this one), with 지난 · 이번 회차
+ * under each when chosen. Shown only while 방송 운영 has OBS에 표시 on.
+ */
+export function CumulativeOverlay({ board, reloadSeq, theme }: { board: CumulativeLive | null; reloadSeq: number; theme: ResolvedTheme }) {
+  useOverlayPage(reloadSeq);
+  if (!board || !board.visible || !board.rows.length) return null;
+  const s = board.settings;
+  return (
+    <OverlayThemeRoot theme={theme} className={styles.pad}>
+      <div className={`${ov.card} ${styles.board} ${styles.prize}`} data-placement={s.placement} data-cols={1}>
+        <h1 className={`${ov.label} ${styles.title}`}>
+          {s.title || CUMULATIVE_TITLE_DEFAULT}
+          {s.showRounds && board.project && (
+            <span className={`${ov.chip} ${styles.closed}`}>
+              {board.project} · {board.rounds}회차
+            </span>
+          )}
+        </h1>
+        <ol className={styles.prizeRows} style={{ "--prize-rows": Math.min(board.rows.length, s.rows) } as CSSProperties}>
+          {board.rows.slice(0, s.rows).map((r) => (
+            <li key={r.memberId} data-rank={r.rank <= 3 ? r.rank : undefined}>
+              <span className={`${ov.display} ${styles.rank}`}>{r.rank}</span>
+              <span className={`${ov.label} ${styles.name}`}>
+                <i className={styles.dot} style={{ background: r.color }} aria-hidden="true" /> {r.name}
+              </span>
+              <span className={`${ov.muted} ${styles.prizeText}`}>{s.showBreakdown && `지난 ${formatNumber(r.past)} · 이번 ${formatNumber(r.current)}`}</span>
+              <span className={`${ov.display} ${styles.score}`}>{formatNumber(r.total)}</span>
+            </li>
+          ))}
+        </ol>
       </div>
     </OverlayThemeRoot>
   );
