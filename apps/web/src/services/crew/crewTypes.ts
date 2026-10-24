@@ -232,6 +232,8 @@ export type BroadcastLive = {
   fanNotes: FanNotesView;
   /** 상품 순위표 with the channel's settings and this broadcast's ranks (OBS `?prize`). */
   prizeBoard: PrizeBoardLive;
+  /** 팀 순위표: the same by team (OBS `?teamprize`). */
+  teamPrize: TeamPrizeLive;
   /** 시그 카운트: signatures each member received during this broadcast (OBS `?sigcount`). */
   sigCount: SigCountLive;
   /** 점수 게임: settings and recent runs with their OBS timing (`?spin` · `?spintally` · `?dice` · `?twowheel`). */
@@ -1238,6 +1240,86 @@ export type Battle = {
   penalty: string;
 };
 
+// ── 팀 순위표 (팀 랭킹(상품) · 시간 내 팀 랭킹(상품)) — code-first, StreamDonate 참고 (docs/research/streamdonate-reference.md) ──
+
+export const TEAM_PRIZE_TITLE_DEFAULT = "팀 순위표";
+/** One prize line per team rank, up to the most teams a source can have. */
+export const TEAM_PRIZE_RANKS_MAX = MULTI_TEAMS_MAX;
+
+/**
+ * Where the teams come from. CUSTOM: the teams set on the board (2 ~ 8, a member in one team at most). BROADCAST_TEAMS:
+ * the broadcast's A팀 · B팀 (team mode; StreamDonate VS 게이지 연동). BATTLE: the teams of this broadcast's latest 다수 팀
+ * 배틀 — the running one, else the last (StreamDonate 다수 팀 연동).
+ */
+export type TeamPrizeSource = "CUSTOM" | "BROADCAST_TEAMS" | "BATTLE";
+export const TEAM_PRIZE_SOURCES: { key: TeamPrizeSource; label: string }[] = [
+  { key: "CUSTOM", label: "직접 구성" },
+  { key: "BROADCAST_TEAMS", label: "방송 A팀 · B팀" },
+  { key: "BATTLE", label: "다수 팀 배틀" }
+];
+
+/** SCORE: each team's members under it, best first. NONE: team names only. */
+export type TeamPrizeMembers = "SCORE" | "NONE";
+export const TEAM_PRIZE_MEMBER_VIEWS: { key: TeamPrizeMembers; label: string }[] = [
+  { key: "SCORE", label: "팀원 점수순" },
+  { key: "NONE", label: "팀 이름만" }
+];
+
+/** Kept per channel across broadcasts, editable before going live. Display options work as on 상품 순위표. */
+export type TeamPrizeSettings = {
+  title: string;
+  basis: PrizeBasis;
+  source: TeamPrizeSource;
+  /** The CUSTOM teams in order (a blank name shows as "A팀" …); kept while another source is picked. */
+  teams: { name: string; memberIds: string[] }[];
+  /** prizes[0] = 1등 팀. */
+  prizes: RankPrize[];
+  members: TeamPrizeMembers;
+  columns: PrizeColumns;
+  showScore: boolean;
+  showTotal: boolean;
+  placement: PrizePlacement;
+};
+
+export const DEFAULT_TEAM_PRIZE_BOARD: TeamPrizeSettings = {
+  title: "",
+  basis: "BROADCAST",
+  source: "CUSTOM",
+  teams: [],
+  prizes: [],
+  members: "SCORE",
+  columns: 1,
+  showScore: true,
+  showTotal: false,
+  placement: "FLOAT"
+};
+
+/** A team, ranked from 1 (a tie keeps the set-up order). Team score = its members' scores. */
+export type TeamPrizeRow = {
+  key: string;
+  name: string;
+  color: string;
+  rank: number;
+  prize: RankPrize | null;
+  score: number;
+  members: { memberId: string; name: string; color: string; score: number }[];
+};
+
+/** Why a board has no teams: CUSTOM without 2 teams, a broadcast without team mode, no 다수 팀 배틀 yet. */
+export type TeamPrizeMissing = "NO_TEAMS" | "NOT_TEAM_MODE" | "NO_BATTLE";
+
+export type TeamPrizeLive = {
+  settings: TeamPrizeSettings;
+  /** Shown on the OBS overlay (`?teamprize`); the studio always shows it. */
+  visible: boolean;
+  /** WINDOW basis: null until 시작; `stoppedAt` set by 정지 (or 방송 종료). Separate from 상품 순위표's 구간. */
+  window: { startedAt: string; stoppedAt: string | null } | null;
+  rows: TeamPrizeRow[];
+  /** Sum of the team scores (하단 합계). */
+  total: number;
+  missing: TeamPrizeMissing | null;
+};
+
 export const SUB_BOARD_MAX = 5;
 export const SUB_BOARD_TITLE_MAX = 20;
 
@@ -1266,6 +1348,8 @@ export type BroadcastView = {
   scenario: ScenarioPart[];
   /** 상품 순위표 settings (kept across broadcasts; editable before going live). */
   prizeSettings: PrizeBoardSettings;
+  /** 팀 순위표 settings (kept across broadcasts; editable before going live). */
+  teamPrizeSettings: TeamPrizeSettings;
   /** 시그 카운트 settings (kept across broadcasts) and the signatures it can count (숨긴 시그니처 too, marked). */
   sigCountSettings: SigCountSettings;
   signatures: { id: string; name: string; group: string; active: boolean; price: number; match: "SELECT" | "AMOUNT"; rangeMin: number | null }[];
