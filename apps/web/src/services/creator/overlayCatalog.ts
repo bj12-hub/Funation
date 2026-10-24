@@ -174,6 +174,16 @@ export const OVERLAYS: OverlayEntry[] = [
     manage: "/creator/widgets/play/rumble"
   },
   {
+    id: "custom",
+    target: "custom",
+    group: "기타",
+    title: "커스텀 오버레이",
+    description: "HTML · CSS · JS로 직접 만든 오버레이예요. 주소 끝의 ?slot=1 을 2 ~ 5로 바꾸면 다른 슬롯이에요.",
+    size: "800 × 600",
+    path: (k) => `/overlay/custom/${k}?slot=1`,
+    manage: "/creator/widgets/custom"
+  },
+  {
     id: "widget-goal",
     target: "widgets",
     group: "점수·순위",

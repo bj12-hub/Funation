@@ -20,11 +20,20 @@ const framedBySiteOnly = [
   { key: "Content-Security-Policy", value: "frame-ancestors 'self'; object-src 'none'; base-uri 'self'" }
 ];
 const noindex = [{ key: "X-Robots-Tag", value: "noindex, nofollow" }];
+/**
+ * 커스텀 오버레이 sandbox (`public/sandbox/*`, 2026-10-24): the creator's own HTML · CSS · JS runs here. The page is
+ * sandboxed by its own header too (an opaque origin even if something frames it without the sandbox attribute or opens
+ * it directly): scripts only, no network (fetch · XHR · WebSocket), no forms, frames or workers. Inline script and
+ * style (the code itself); images · media · fonts from https, data: and this site. It replaces the site-wide CSP on this
+ * path (the later rule wins), so it repeats frame-ancestors: only this site may frame it.
+ */
+export const SANDBOX_CSP =
+  "sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' https: data: blob:; media-src 'self' https: data: blob:; font-src 'self' https: data:; connect-src 'none'; form-action 'none'; frame-src 'none'; worker-src 'none'; base-uri 'none'; frame-ancestors 'self'";
 
 /** Every path except /overlay and /overlay/… (path-to-regexp, as in `headers()` sources). */
 export const NOT_OVERLAY_SOURCE = "/((?!overlay(?:/|$)).*)";
-/** Studio, OBS overlays, pop-out windows, account and wallet pages, API routes. */
-export const PRIVATE_SOURCES = ["/creator/:path*", "/overlay/:path*", "/popout/:path*", "/mypage/:path*", "/wallet/:path*", "/api/:path*"];
+/** Studio, OBS overlays, the 커스텀 오버레이 sandbox, pop-out windows, account and wallet pages, API routes. */
+export const PRIVATE_SOURCES = ["/creator/:path*", "/overlay/:path*", "/sandbox/:path*", "/popout/:path*", "/mypage/:path*", "/wallet/:path*", "/api/:path*"];
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -40,6 +49,10 @@ const nextConfig: NextConfig = {
     return [
       { source: "/:path*", headers: everywhere },
       { source: NOT_OVERLAY_SOURCE, headers: framedBySiteOnly },
+      { source: "/sandbox/:path*", headers: [{ key: "Content-Security-Policy", value: SANDBOX_CSP }] },
+      // The 커스텀 오버레이 page's address holds the overlay key: its sandbox frame (the creator's code) must not see it as
+      // document.referrer. The frame also asks for no referrer; this covers anything else the page loads.
+      { source: "/overlay/custom/:path*", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] },
       ...PRIVATE_SOURCES.map((source) => ({ source, headers: noindex }))
     ];
   }

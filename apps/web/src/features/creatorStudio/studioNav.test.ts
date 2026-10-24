@@ -12,6 +12,7 @@ describe("studio sidebar active item", () => {
     expect(studioActiveHref("/creator/widgets/play", null)).toBe("/creator/widgets/play");
     expect(studioActiveHref("/creator/widgets/play/rumble", null)).toBe("/creator/widgets/play");
     expect(studioActiveHref("/creator/widgets/onesource", null)).toBe("/creator/widgets/onesource");
+    expect(studioActiveHref("/creator/widgets/custom", null)).toBe("/creator/widgets/custom");
     expect(studioActiveHref("/creator/settlement/register/form", null)).toBe("/creator/settlement/register");
     expect(studioActiveHref("/creator/crew/broadcast", null)).toBe("/creator/crew/broadcast");
     expect(studioActiveHref("/creator/unknown", null)).toBeNull();
