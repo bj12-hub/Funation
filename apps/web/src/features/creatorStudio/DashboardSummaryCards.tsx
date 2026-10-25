@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { FLEXTV_STUDIO } from "@/lib/flextv/mode";
 import { formatNumber } from "@/lib/format";
-import type { DashboardSummary } from "@/services/creator/creatorStudio";
+import type { AmountUnit, DashboardSummary } from "@/services/creator/creatorStudio";
+import { formatAmount } from "./amount";
 import styles from "./dashboardSummary.module.css";
 
 /** Card shell with the funnation "제목 · 바로가기 ›" header. */
@@ -22,8 +24,8 @@ export function SummaryCard({ title, href, linkLabel, children }: { title: strin
   );
 }
 
-/** 받은 후원 — 오늘 · 이번 주 · 이번 달 tiles and the 누적 line (₩, server values). */
-export function ReceivedCard({ received }: { received: DashboardSummary["received"] }) {
+/** 받은 후원 — 오늘 · 이번 주 · 이번 달 tiles and the 누적 line (₩, or FN with FLEXTV; server values). */
+export function ReceivedCard({ received, unit = "KRW" }: { received: DashboardSummary["received"]; unit?: AmountUnit }) {
   const tiles = [
     ["오늘", received.today],
     ["이번 주", received.week],
@@ -35,13 +37,14 @@ export function ReceivedCard({ received }: { received: DashboardSummary["receive
         {tiles.map(([label, t]) => (
           <div key={label} className={styles.tile}>
             <span className={styles.tileLabel}>{label}</span>
-            <strong className={styles.tileValue}>₩{formatNumber(t.amount)}</strong>
+            <strong className={styles.tileValue}>{formatAmount(t.amount, unit)}</strong>
             <span className={styles.tileSub}>{formatNumber(t.count)}건</span>
           </div>
         ))}
       </div>
       <p className={styles.total}>
-        누적 <strong>₩{formatNumber(received.total.amount)}</strong> · {formatNumber(received.total.count)}건
+        누적 <strong>{formatAmount(received.total.amount, unit)}</strong>
+        {received.total.count !== null && ` · ${formatNumber(received.total.count)}건`}
       </p>
     </SummaryCard>
   );
@@ -68,10 +71,10 @@ export function SettlementCard({ settlement }: { settlement: DashboardSummary["s
   );
 }
 
-/** 후원자 순위 — this month's top supporters; links to the ranking widget like funnation. */
-export function TopDonorsCard({ donors }: { donors: DashboardSummary["topDonors"] }) {
+/** 후원자 순위 — this month's top supporters; links to the ranking widget like funnation (받은 후원 with FLEXTV). */
+export function TopDonorsCard({ donors, unit = "KRW" }: { donors: DashboardSummary["topDonors"]; unit?: AmountUnit }) {
   return (
-    <SummaryCard title="후원자 순위" href="/creator/widgets?open=RANKING" linkLabel="랭킹 위젯">
+    <SummaryCard title="후원자 순위" href={FLEXTV_STUDIO ? "/creator/donations?tab=list" : "/creator/widgets?open=RANKING"} linkLabel={FLEXTV_STUDIO ? "받은 후원" : "랭킹 위젯"}>
       {donors.length === 0 ? (
         <p className={styles.empty}>아직 후원 받은 내역이 없습니다</p>
       ) : (
@@ -82,7 +85,7 @@ export function TopDonorsCard({ donors }: { donors: DashboardSummary["topDonors"
                 {d.rank}
               </span>
               <span className={styles.donor}>{d.donor}</span>
-              <span className={styles.amount}>₩{formatNumber(d.amount)}</span>
+              <span className={styles.amount}>{formatAmount(d.amount, unit)}</span>
             </li>
           ))}
         </ol>

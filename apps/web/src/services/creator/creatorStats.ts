@@ -48,3 +48,20 @@ export function eachDay(from: string, to: string) {
   }
   return out;
 }
+
+/** The dashboard chart's buckets: ≤31 days → daily, ≤180 → weekly, otherwise monthly. */
+export function bucket(daily: { date: string; amount: number }[]) {
+  const label = (iso: string, mode: "day" | "month") => (mode === "day" ? `${iso.slice(5, 7)}.${iso.slice(8, 10)}` : `${iso.slice(2, 4)}.${iso.slice(5, 7)}`);
+  if (daily.length <= 31) return daily.map((d) => ({ label: label(d.date, "day"), amount: d.amount }));
+  if (daily.length <= 180) {
+    const weeks: { label: string; amount: number }[] = [];
+    daily.forEach((d, i) => {
+      if (i % 7 === 0) weeks.push({ label: label(d.date, "day"), amount: 0 });
+      weeks[weeks.length - 1].amount += d.amount;
+    });
+    return weeks;
+  }
+  const months = new Map<string, number>();
+  daily.forEach((d) => months.set(label(d.date, "month"), (months.get(label(d.date, "month")) ?? 0) + d.amount));
+  return [...months].map(([l, amount]) => ({ label: l, amount }));
+}

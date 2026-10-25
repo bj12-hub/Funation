@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { formatNumber } from "@/lib/format";
-import type { RevenueOverview, RevenueShare } from "@/services/creator/creatorStudio";
+import type { AmountUnit, RevenueOverview, RevenueShare } from "@/services/creator/creatorStudio";
+import { formatAmount } from "../amount";
 import { SummaryCard, TopDonorsCard } from "../DashboardSummaryCards";
 import { RevenueChart } from "../RevenueChart";
 import summary from "../dashboardSummary.module.css";
@@ -10,10 +11,12 @@ import styles from "./revenue.module.css";
 /**
  * 수익 현황 — code-first, structure follows the funnation 수익 대시보드: 총 수익 · 미정산 · 오늘 후원 ·
  * 이번 달 tiles with 정산 요청, 일별 후원 추이 (30일), 월별 수익 추이 (6개월), 상위 후원자 and shortcuts.
- * Route `/creator/revenue`. ₩ amounts are server values (gross/net TBD); 미정산 is FN.
+ * Route `/creator/revenue`. ₩ amounts are server values (gross/net TBD); 미정산 is FN. With FLEXTV every amount is the
+ * 렉스 received (FN) and 수익원별 상세 is left out (FLEXTV does not tell the types apart).
  */
 export function RevenueScreen({ data }: { data: RevenueOverview }) {
   const empty = data.totalRevenue === 0;
+  const { unit } = data;
   return (
     <div className={studio.content}>
       <header className={styles.header}>
@@ -27,11 +30,13 @@ export function RevenueScreen({ data }: { data: RevenueOverview }) {
       </header>
 
       <div className={styles.tiles}>
-        <Tile label="총 수익" sub="전체 기간" value={`₩${formatNumber(data.totalRevenue)}`} />
+        <Tile label="총 수익" sub="전체 기간" value={formatAmount(data.totalRevenue, unit)} />
         <Tile label="미정산" sub={data.unsettledFn > 0 ? "정산 가능 금액" : "미정산 금액 없음"} value={`${formatNumber(data.unsettledFn)} FN`} />
-        <Tile label="오늘 후원" sub={`${formatNumber(data.today.count)}건`} value={`₩${formatNumber(data.today.amount)}`} />
-        <Tile label="이번 달" sub="이번 달 1일부터" value={`₩${formatNumber(data.thisMonth)}`} />
+        <Tile label="오늘 후원" sub={`${formatNumber(data.today.count)}건`} value={formatAmount(data.today.amount, unit)} />
+        <Tile label="이번 달" sub="이번 달 1일부터" value={formatAmount(data.thisMonth, unit)} />
       </div>
+      {unit === "FN" && <p className={styles.subtitle}>받은 렉스 기준이에요. 지급액은 정산(환전) 신청 때 FLEXTV의 계약 요율과 세금으로 정해져요.</p>}
+      {data.partial && <p className={styles.subtitle}>최근 6개월 후원이 많아 추이는 최근 후원부터 일부만 더했어요.</p>}
 
       {empty ? (
         <p className={styles.empty}>아직 수익이 없습니다. 후원을 받으면 여기에서 추이를 확인할 수 있어요.</p>
@@ -42,24 +47,26 @@ export function RevenueScreen({ data }: { data: RevenueOverview }) {
               {data.daily[0].label} ~ {data.daily[data.daily.length - 1].label} (최근 30일)
             </p>
             <div className={studio.chartArea}>
-              <RevenueChart series={data.daily} fillId="revenue-fill-daily" />
+              <RevenueChart series={data.daily} fillId="revenue-fill-daily" unit={unit} />
             </div>
           </SummaryCard>
           <SummaryCard title="월별 수익 추이" href="/creator/settlement/manage" linkLabel="정산 관리">
             <p className={styles.range}>최근 6개월</p>
             <div className={studio.chartArea}>
-              <RevenueChart series={data.monthly} fillId="revenue-fill-monthly" />
+              <RevenueChart series={data.monthly} fillId="revenue-fill-monthly" unit={unit} />
             </div>
           </SummaryCard>
-          <TopDonorsCard donors={data.topDonors} />
-          <section className={summary.card} aria-labelledby="revenue-sources">
-            <h2 id="revenue-sources" className={summary.title}>
-              수익원별 상세
-            </h2>
-            <p className={styles.range}>이번 달 · ₩{formatNumber(data.thisMonth)}</p>
-            <ShareList title="후원 유형별" items={data.bySource.types} total={data.thisMonth} />
-            <ShareList title="후원 경로별" items={data.bySource.routes} total={data.thisMonth} />
-          </section>
+          <TopDonorsCard donors={data.topDonors} unit={unit} />
+          {data.bySource && (
+            <section className={summary.card} aria-labelledby="revenue-sources">
+              <h2 id="revenue-sources" className={summary.title}>
+                수익원별 상세
+              </h2>
+              <p className={styles.range}>이번 달 · {formatAmount(data.thisMonth, unit)}</p>
+              <ShareList title="후원 유형별" items={data.bySource.types} total={data.thisMonth} unit={unit} />
+              <ShareList title="후원 경로별" items={data.bySource.routes} total={data.thisMonth} unit={unit} />
+            </section>
+          )}
           <section className={summary.card} aria-labelledby="revenue-links">
             <h2 id="revenue-links" className={summary.title}>
               바로가기
@@ -92,7 +99,7 @@ export function RevenueScreen({ data }: { data: RevenueOverview }) {
 }
 
 /** One breakdown: label, ₩ and share, with a bar (code-first, 2026-10-06). */
-function ShareList({ title, items, total }: { title: string; items: RevenueShare[]; total: number }) {
+function ShareList({ title, items, total, unit }: { title: string; items: RevenueShare[]; total: number; unit: AmountUnit }) {
   return (
     <div className={styles.shares}>
       <h3 className={styles.sharesTitle}>{title}</h3>
@@ -103,7 +110,7 @@ function ShareList({ title, items, total }: { title: string; items: RevenueShare
             <li key={i.key} className={styles.share}>
               <span className={styles.shareLabel}>{i.label}</span>
               <span className={styles.shareValue}>
-                ₩{formatNumber(i.amount)} <span className={styles.sharePct}>{pct}%</span>
+                {formatAmount(i.amount, unit)} <span className={styles.sharePct}>{pct}%</span>
               </span>
               <span className={styles.shareBar} aria-hidden="true">
                 <span style={{ width: `${pct}%` }} />

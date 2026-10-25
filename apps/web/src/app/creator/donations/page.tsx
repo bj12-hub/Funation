@@ -3,6 +3,9 @@ import { redirect } from "next/navigation";
 import { DonationListTab } from "@/features/creatorStudio/donations/DonationListTab";
 import { DonorRankingTab } from "@/features/creatorStudio/donations/DonorRankingTab";
 import { FilteringTab } from "@/features/creatorStudio/donations/FilteringTab";
+import { FlextvReceivedTab } from "@/features/creatorStudio/donations/FlextvReceivedTab";
+import { FLEXTV_STUDIO } from "@/lib/flextv/mode";
+import { flextvReceivedPage } from "@/services/creator/flextvEarnings";
 import { ImportTab } from "@/features/creatorStudio/donations/ImportTab";
 import { ManagementShell } from "@/features/creatorStudio/donations/ManagementShell";
 import { PageSettingsTab } from "@/features/creatorStudio/donations/PageSettingsTab";
@@ -38,6 +41,22 @@ const LOGIN = "/login?role=creator&next=/creator/donations";
 
 export default async function Page({ searchParams }: { searchParams: SearchParams }) {
   const raw = await searchParams;
+
+  if (FLEXTV_STUDIO) {
+    // With FLEXTV (phase 5) 받은 후원 is the one tab: the others manage Ssumnation's own 후원 page.
+    const data = await flextvReceivedPage({
+      period: parseListPeriod({ period: one(raw.period), from: one(raw.from), to: one(raw.to) }),
+      nickname: one(raw.q) ?? "",
+      page: Number(one(raw.page) ?? 1)
+    });
+    if (!data) redirect(LOGIN);
+    return (
+      <ManagementShell tab="list">
+        <FlextvReceivedTab data={data} />
+      </ManagementShell>
+    );
+  }
+
   const tab = parseManagementTab(one(raw.tab));
 
   if (tab === "filtering") {

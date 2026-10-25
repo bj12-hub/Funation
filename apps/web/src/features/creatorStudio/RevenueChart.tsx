@@ -1,15 +1,18 @@
-import { formatCompactKo } from "@/lib/format";
+import type { AmountUnit } from "@/services/creator/creatorStudio";
+import { formatCompactAmount } from "./amount";
 import styles from "./studio.module.css";
 
 const W = 1000;
 const H = 330;
 const PAD = { top: 36, right: 30, bottom: 34, left: 58 };
 
-/** "₩28만" */
-const won = (v: number) => `₩${formatCompactKo(v)}`;
-
-/** Round the axis maximum up to a clean step (Figma 287:38 uses ₩20만 steps). */
-function axisMax(max: number) {
+/** Round the axis maximum up to a clean step (Figma 287:38 uses ₩20만 steps). FN (렉스 counts) gets 1 · 2 · 5 steps. */
+function axisMax(max: number, unit: AmountUnit) {
+  if (unit === "FN") {
+    const magnitude = 10 ** Math.floor(Math.log10(Math.max(1, max / 3)));
+    const step = [1, 2, 5, 10].map((m) => m * magnitude).find((s) => s * 3 >= max) ?? magnitude * 10;
+    return Math.max(3, step * 3);
+  }
   const step = max <= 200_000 ? 50_000 : max <= 800_000 ? 200_000 : max <= 4_000_000 ? 1_000_000 : 5_000_000;
   return Math.max(step, Math.ceil(max / step) * step);
 }
@@ -35,12 +38,13 @@ function smoothPath(points: { x: number; y: number }[]) {
  * The design draws it from ~150 rectangles; this is a plain SVG built from the server series.
  */
 /** `fillId` must be unique on the page (two charts would otherwise share one gradient). */
-export function RevenueChart({ series, fillId = "revenue-fill" }: { series: { label: string; amount: number }[]; fillId?: string }) {
+export function RevenueChart({ series, fillId = "revenue-fill", unit = "KRW" }: { series: { label: string; amount: number }[]; fillId?: string; unit?: AmountUnit }) {
   if (series.length === 0) {
     return <p className={styles.chartEmpty}>표시할 후원 수익이 없습니다.</p>;
   }
 
-  const max = axisMax(Math.max(...series.map((s) => s.amount)));
+  const won = (v: number) => formatCompactAmount(v, unit);
+  const max = axisMax(Math.max(...series.map((s) => s.amount)), unit);
   const innerW = W - PAD.left - PAD.right;
   const innerH = H - PAD.top - PAD.bottom;
   const x = (i: number) => PAD.left + (series.length === 1 ? innerW / 2 : (i / (series.length - 1)) * innerW);

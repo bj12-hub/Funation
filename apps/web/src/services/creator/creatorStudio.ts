@@ -2,12 +2,13 @@ import { FLEXTV_STUDIO } from "@/lib/flextv/mode";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
+import { flextvDashboard, flextvDashboardSummary, flextvRevenueOverview } from "./flextvEarnings";
 import { flextvCreatorProfile } from "./flextvStudio";
 import { mockCreator } from "./mockCreatorStore";
 import { mockSettlement } from "./mockSettlementStore";
 import type { SettlementStatus } from "./settlementTypes";
 import type { Platform } from "@/types/platform";
-import { eachDay, type StatsPeriod } from "./creatorStats";
+import { bucket, eachDay, type StatsPeriod } from "./creatorStats";
 import { startOfMonths, startOfWeek } from "@/lib/period";
 
 export * from "./creatorStats";
@@ -19,7 +20,13 @@ export * from "./creatorStats";
  * TBD (backend): who is a creator (role/approval), how a member's creator channel is created, and whether
  * 후원 수익 is gross or net of fees. The design shows revenue in ₩, so the server returns KRW values and the
  * browser only formats them — no FN→KRW conversion happens here.
+ *
+ * With FLEXTV (phase 5, ./flextvEarnings.ts) the figures are the 렉스 the streamer received, in FN: FLEXTV pays them out
+ * at each streamer's own contract rate, which it does not publish, so no ₩ figure is made up from them.
  */
+
+/** What the amounts of a studio view count: ₩ (the mock, as designed) or FN (FLEXTV's 렉스). */
+export type AmountUnit = "KRW" | "FN";
 
 export type CreatorPlatformLink = { platform: Platform; logoUrl: string; connected: boolean };
 
@@ -37,6 +44,9 @@ export type RankEntry = { rank: number; donor: string; amount: number };
 
 export type CreatorDashboard = {
   period: StatsPeriod;
+  unit: AmountUnit;
+  /** The figures add up only the newest 후원 of a very busy period (FLEXTV has no totals per period). */
+  partial: boolean;
   stats: { count: number; revenue: number; donors: number };
   /** Revenue per bucket (daily, weekly or monthly depending on the period length). */
   series: { label: string; amount: number }[];
@@ -61,6 +71,7 @@ export async function getCreatorProfile(): Promise<CreatorProfile | null> {
 }
 
 export async function getCreatorDashboard(period: StatsPeriod): Promise<CreatorDashboard | null> {
+  if (FLEXTV_STUDIO) return flextvDashboard(period);
   if (!USE_MOCK) throw new Error("Creator API is not connected yet.");
   if (!(await getCreatorSession())) return null;
   await mockDelay(300);
@@ -70,6 +81,8 @@ export async function getCreatorDashboard(period: StatsPeriod): Promise<CreatorD
   const revenue = daily.reduce((sum, d) => sum + d.amount, 0);
   return {
     period,
+    unit: "KRW",
+    partial: false,
     stats: { count: Math.round(revenue / 19_140), revenue, donors: Math.round(revenue / 27_530) },
     series: bucket(daily),
     recent: RECENT.map((r, i) => ({ ...r, id: `r${i + 1}`, createdAt: new Date(Date.now() - r.minutesAgo * 60_000).toISOString() })),
@@ -79,23 +92,6 @@ export async function getCreatorDashboard(period: StatsPeriod): Promise<CreatorD
       ad: { imageUrl: "/mock/creator/banner-ad.png", alt: "크리애드 광고" }
     }
   };
-}
-
-/** ≤31 days → daily, ≤180 → weekly, otherwise monthly. */
-function bucket(daily: { date: string; amount: number }[]) {
-  const label = (iso: string, mode: "day" | "month") => (mode === "day" ? `${iso.slice(5, 7)}.${iso.slice(8, 10)}` : `${iso.slice(2, 4)}.${iso.slice(5, 7)}`);
-  if (daily.length <= 31) return daily.map((d) => ({ label: label(d.date, "day"), amount: d.amount }));
-  if (daily.length <= 180) {
-    const weeks: { label: string; amount: number }[] = [];
-    daily.forEach((d, i) => {
-      if (i % 7 === 0) weeks.push({ label: label(d.date, "day"), amount: 0 });
-      weeks[weeks.length - 1].amount += d.amount;
-    });
-    return weeks;
-  }
-  const months = new Map<string, number>();
-  daily.forEach((d) => months.set(label(d.date, "month"), (months.get(label(d.date, "month")) ?? 0) + d.amount));
-  return [...months].map(([l, amount]) => ({ label: l, amount }));
 }
 
 // ── Mock data: Figma 245:14 ──────────────────────────────────────────────────
@@ -153,8 +149,9 @@ const RANKINGS: CreatorDashboard["rankings"] = {
 // ── 대시보드 요약 카드 (funnation structure, code-first) ───────────────────────
 
 export type DashboardSummary = {
-  /** 받은 후원 in ₩ (same source and unit as the stats above). */
-  received: { today: Tally; week: Tally; month: Tally; total: Tally };
+  unit: AmountUnit;
+  /** 받은 후원 in ₩ (same source and unit as the stats above). 누적's count is null when the backend has none (FLEXTV). */
+  received: { today: Tally; week: Tally; month: Tally; total: { amount: number; count: number | null } };
   /** 정산 in FN (settlement records). 누적 수익 = 정산 가능 + 요청 중 + 승인(지급); 누적 출금 = 승인된 정산. */
   settlement: { availableFn: number; earnedFn: number; withdrawnFn: number };
   /** This month's top supporters. */
@@ -168,6 +165,7 @@ type Tally = { amount: number; count: number };
  * 00:00 and 이번 달 on the 1st, as in the 후원 리스트 summary (2026-10-08 결정 "달력 기준").
  */
 export async function getDashboardSummary(): Promise<DashboardSummary | null> {
+  if (FLEXTV_STUDIO) return flextvDashboardSummary();
   if (!USE_MOCK) throw new Error("Creator API is not connected yet.");
   if (!(await getCreatorSession())) return null;
   await mockDelay(150);
@@ -182,6 +180,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary | null> {
   const paid = sum("APPROVED", "PAID");
   const pending = sum("PENDING");
   return {
+    unit: "KRW",
     received: { today: tally(iso(today)), week: tally(iso(startOfWeek(today))), month: tally(iso(startOfMonths(1, today))), total: tally(MOCK_REVENUE_START) },
     settlement: { availableFn: mockSettlement.availableFn, earnedFn: mockSettlement.availableFn + pending + paid, withdrawnFn: paid },
     topDonors: RANKINGS.month.slice(0, 5)
@@ -208,6 +207,9 @@ const isoDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padSt
 // ── 수익 현황 (funnation 수익 대시보드, code-first) ──────────────────────────────
 
 export type RevenueOverview = {
+  unit: AmountUnit;
+  /** The daily and monthly trends add up only the newest 후원 of a very busy half year (FLEXTV). */
+  partial: boolean;
   /** ₩, same source as the dashboard stats. */
   totalRevenue: number;
   today: { amount: number; count: number };
@@ -219,8 +221,11 @@ export type RevenueOverview = {
   /** Last 6 months incl. this one, oldest first. */
   monthly: { label: string; amount: number }[];
   topDonors: RankEntry[];
-  /** 수익원별 상세 for 이번 달 (₩): by donation type and by route, each summing to `thisMonth`, largest first. */
-  bySource: { types: RevenueShare[]; routes: RevenueShare[] };
+  /**
+   * 수익원별 상세 for 이번 달 (₩): by donation type and by route, each summing to `thisMonth`, largest first. Null when
+   * the backend does not tell the types apart (FLEXTV).
+   */
+  bySource: { types: RevenueShare[]; routes: RevenueShare[] } | null;
 };
 
 export type RevenueShare = { key: string; label: string; amount: number };
@@ -259,6 +264,7 @@ const MOCK_ROUTE_WEIGHTS = [
  * (상품) revenue, gross vs net of fees.
  */
 export async function getRevenueOverview(): Promise<RevenueOverview | null> {
+  if (FLEXTV_STUDIO) return flextvRevenueOverview();
   if (!USE_MOCK) throw new Error("Creator API is not connected yet.");
   if (!(await getCreatorSession())) return null;
   await mockDelay(200);
@@ -275,6 +281,8 @@ export async function getRevenueOverview(): Promise<RevenueOverview | null> {
   });
   const todayAmount = mockDailyRevenue(today);
   return {
+    unit: "KRW",
+    partial: false,
     totalRevenue: sumRevenue(MOCK_REVENUE_START, today),
     today: { amount: todayAmount, count: Math.round(todayAmount / 19_140) },
     thisMonth: monthly[5].amount,
