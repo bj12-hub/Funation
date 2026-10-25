@@ -388,6 +388,59 @@
   overflow-wrap: anywhere;
 }
 
+/* ── 출근 BJ 게이지 (?bjgauge) ── */
+.gaugeRows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gaugeRows li {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.gaugeHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+}
+
+.gaugeNumbers {
+  margin-left: auto;
+  font-size: 0.9em;
+  white-space: nowrap;
+}
+
+.gaugeTrack {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(127, 127, 127, 0.25);
+}
+
+.gaugeFill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.6s ease;
+}
+
+/* 달성: the bar glows a little. */
+.gaugeRows li[data-reached] .gaugeFill {
+  box-shadow: 0 0 10px currentColor;
+}
+
+.gaugePledge {
+  font-size: 0.85em;
+  overflow-wrap: anywhere;
+}
+
 /* 팀 순위표 (?teamprize): the team's members, best first, on a line under the team. */
 .teamMembers {
   display: flex;

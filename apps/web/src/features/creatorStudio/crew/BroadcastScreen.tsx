@@ -16,6 +16,7 @@ import { PrizeBoardPanel } from "./PrizeBoardPanel";
 import { TeamPrizePanel } from "./TeamPrizePanel";
 import { BroadcastCsvButton, ContributionExportBar } from "./ContributionExport";
 import { CumulativePanel } from "./CumulativePanel";
+import { GaugePanel } from "./GaugePanel";
 import { ScenarioPanel } from "./ScenarioPanel";
 import { SigCountPanel } from "./SigCountPanel";
 import { StealPanel } from "./StealPanel";
@@ -329,6 +330,15 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
       <CumulativePanel
         settings={view.cumulativeSettings}
         live={live ? { broadcastId: live.id, board: live.cumulative } : null}
+        overlayPath={view.overlayPath}
+        pending={pending}
+        run={run}
+      />
+      <GaugePanel
+        members={view.members}
+        pledges={view.pledges}
+        settings={view.gaugeSettings}
+        live={live ? { broadcastId: live.id, board: live.gauge } : null}
         overlayPath={view.overlayPath}
         pending={pending}
         run={run}
