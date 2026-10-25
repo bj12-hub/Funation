@@ -1,6 +1,7 @@
+import { mockAlerts, setAlertHold } from "@/services/creator/alertCore";
 import type { AmountUnit } from "@/types/donationUnit";
 import type { Platform } from "@/types/platform";
-import { BATTLE_MULTIPLIER_MAX, BATTLE_PENALTY_MAX, DONOR_ALIASES_MAX, DONOR_MERGES_MAX, DONOR_NAME_MAX, DUPLICATE_WINDOW_SEC, FAN_NOTE_LIMITS, GRADES_MAX, MULTI_TEAM_KEYS, PLATFORM_FAN_NOTE_RULES, GRADE_MULTIPLIER_MAX, GRADE_NAME_MAX, PLATFORM_BATTLE_RULES, PLATFORM_STEAL_RULES, SUB_BOARD_MAX, excelUnitOf, isExcelUnit, type BattleRules, type CrewGrade, type DonorMerge, type FanNoteRules, type FanNotesView, type RoomFanNotes, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow, type ScoreRow } from "./crewTypes";
+import { BATTLE_MULTIPLIER_MAX, BATTLE_PENALTY_MAX, DONOR_ALIASES_MAX, DONOR_MERGES_MAX, DONOR_NAME_MAX, DUPLICATE_WINDOW_SEC, FAN_NOTE_LIMITS, GRADES_MAX, MULTI_TEAM_KEYS, PLATFORM_FAN_NOTE_RULES, GRADE_MULTIPLIER_MAX, GRADE_NAME_MAX, PLATFORM_BATTLE_RULES, PLATFORM_STEAL_RULES, SUB_BOARD_MAX, excelUnitOf, isExcelUnit, type BattleRules, type CrewGrade, type DonorMerge, type FanNoteRules, type FanNotesView, type RoomFanNotes, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedAlert, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow, type ScoreRow } from "./crewTypes";
 import { mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 // ── 후원 리스트 (server-only) ──────────────────────────────────────────────────
@@ -145,6 +146,45 @@ export function duplicateSuspects(feed: FeedEntry[], nameOf: (name: string) => s
   return out;
 }
 
+// ── 미지정 일시정지 · 미재생만 (2026-10-25, StreamDonate 후원 및 통합 관리 참고 — 기본값) ─────────────────────
+
+/**
+ * 미지정 일시정지: with the option on during the broadcast, an entry left 미지정 (미지정 · 확인 대기) holds its alert in the
+ * queue until it is assigned. A 한방 entry, an assigned one and a cancelled one do not hold.
+ */
+export const holdsAlert = (b: MockBroadcast, e: FeedEntry) => !!b.pauseUnassigned && !b.endedAt && (e.status === "UNMATCHED" || e.status === "PENDING");
+
+/**
+ * A donation just put on the 후원 리스트: the caller queues its alert next — held when `held` — and links the two with
+ * linkFeedAlert. The entry comes first because a queued alert may go on screen at once.
+ */
+export type FeedListing = { entry: FeedEntry; held: boolean };
+
+const listing = (b: MockBroadcast, entry: FeedEntry): FeedListing => ({ entry, held: holdsAlert(b, entry) });
+
+/** Links a listed donation to the alert it queued (미재생만 · 미지정 일시정지). */
+export function linkFeedAlert(listed: FeedListing | null, alert: { id: string } | undefined) {
+  if (listed && alert) listed.entry.alertId = alert.id;
+}
+
+/** Applies 미지정 일시정지 again to the broadcast's queued alerts, after an entry, the option or the broadcast changed. */
+export function syncAlertHolds(b: MockBroadcast) {
+  for (const e of b.feed ?? []) if (e.alertId) setAlertHold(e.alertId, holdsAlert(b, e));
+}
+
+/** Where each linked entry's alert is in the queue (FeedAlert), by entry id. */
+export function feedAlertsOf(b: MockBroadcast): Map<string, FeedAlert> {
+  const linked = new Set((b.feed ?? []).flatMap((e) => (e.alertId ? [e.alertId] : [])));
+  const byAlert = new Map<string, FeedAlert>();
+  for (const a of mockAlerts.items) {
+    if (!linked.has(a.id)) continue;
+    byAlert.set(a.id, a.status === "QUEUED" ? (a.held ? "HELD" : "QUEUED") : a.status === "SHOWING" ? "SHOWING" : "ENDED");
+  }
+  const out = new Map<string, FeedAlert>();
+  for (const e of b.feed ?? []) if (e.alertId && byAlert.has(e.alertId)) out.set(e.id, byAlert.get(e.alertId)!);
+  return out;
+}
+
 /**
  * Called by the Donation Core for a completed donation without a member target. Only a live crew
  * broadcast on that channel collects it (member-targeted donations are already scored directly).
@@ -152,27 +192,27 @@ export function duplicateSuspects(feed: FeedEntry[], nameOf: (name: string) => s
  * `donor`: the name as sent (the operator's list); `shownDonor`: the name on stream, after the creator's 대체 메시지 rules
  * when the donation was sent (2026-10-09 결정, like the alert's `nameReplaced`).
  */
-export function recordBroadcastDonation(channelId: string, input: { donor: string; shownDonor: string; message: string; fnAmount: number }, broadcastId?: string | null) {
+export function recordBroadcastDonation(channelId: string, input: { donor: string; shownDonor: string; message: string; fnAmount: number }, broadcastId?: string | null): FeedListing | null {
   const live = liveBroadcastOf(channelId);
-  if (!live || (broadcastId !== undefined && live.id !== broadcastId)) return;
-  addFeedEntry(live, { donor: input.donor, shownDonor: input.shownDonor, message: input.message, amount: input.fnAmount, unit: "FN", platform: null, source: "DONATION" });
+  if (!live || (broadcastId !== undefined && live.id !== broadcastId)) return null;
+  return listing(live, addFeedEntry(live, { donor: input.donor, shownDonor: input.shownDonor, message: input.message, amount: input.fnAmount, unit: "FN", platform: null, source: "DONATION" }));
 }
 
 /**
  * Called by 후원 연동 for each new (deduped) platform donation, with the unit code its adapter mapped. Units the
  * 자동엑셀 does not know (a Super Chat in EUR …) stay out of the list (the alert is still shown).
  */
-export function recordBroadcastExternal(channelId: string, input: { platform: Platform; donor: string; message: string; value: number; unit: AmountUnit }) {
+export function recordBroadcastExternal(channelId: string, input: { platform: Platform; donor: string; message: string; value: number; unit: AmountUnit }): FeedListing | null {
   const live = liveBroadcastOf(channelId);
   const unit = excelUnitOf(input.unit);
-  if (!live || !unit) return;
-  addFeedEntry(live, { donor: input.donor, message: input.message, amount: input.value, unit, platform: input.platform, source: "DONATION" });
+  if (!live || !unit) return null;
+  return listing(live, addFeedEntry(live, { donor: input.donor, message: input.message, amount: input.value, unit, platform: input.platform, source: "DONATION" }));
 }
 
 /** Called by SMS 계좌후원 for each recognised deposit: a live crew broadcast lists it in 원 (source BANK). */
-export function recordBroadcastBank(channelId: string, input: { donor: string; value: number }) {
+export function recordBroadcastBank(channelId: string, input: { donor: string; value: number }): FeedListing | null {
   const live = liveBroadcastOf(channelId);
-  if (live) addFeedEntry(live, { donor: input.donor, message: "", amount: input.value, unit: "KRW", platform: null, source: "BANK" });
+  return live ? listing(live, addFeedEntry(live, { donor: input.donor, message: "", amount: input.value, unit: "KRW", platform: null, source: "BANK" })) : null;
 }
 
 /**

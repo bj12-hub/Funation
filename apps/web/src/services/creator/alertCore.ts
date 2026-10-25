@@ -101,6 +101,8 @@ export function enqueueAlert(
     memberId?: string;
     native?: NativeAmount;
     questId?: string;
+    /** 미지정 일시정지: the alert waits at its place in the queue (crewCore.holdsAlert decides). */
+    held?: boolean;
   },
   now = Date.now()
 ) {
@@ -143,6 +145,7 @@ export function enqueueDonationAlert(
     signatureId?: string;
     memberId?: string;
     questId?: string;
+    held?: boolean;
   }
 ) {
   if (creatorId !== STUDIO_CHANNEL) return;
@@ -152,6 +155,7 @@ export function enqueueDonationAlert(
   // 타이머 후원 연동 (2026-10-23): a 퀘스트 후원 is held until it succeeds, so it adds no time.
   if (!input.questId) addTimerForDonation(input.fnAmount);
   notify({ kind: "DONATION_RECEIVED", title: "새 후원이 들어왔어요", body: `${input.donor}님 · ${input.fnAmount.toLocaleString("ko-KR")} FN`, href: "/creator/donations?tab=list", dedupeKey: `alert:${item.id}` });
+  return item;
 }
 
 /** A 퀘스트 후원 succeeded: its alerts (and 다시 보내기 copies) now count in 목표 · 누적 · 랭킹. Calling it again changes nothing. */
@@ -171,9 +175,34 @@ export function advance(now = Date.now()) {
     mockAlerts.shownAt = null;
   } else if (showing) return;
   if (mockAlerts.controls.paused) return;
+  // A held alert (미지정 일시정지) keeps its place: the queue waits behind it.
   const next = mockAlerts.items.find((a) => a.status === "QUEUED");
-  if (next) {
+  if (next && !next.held) {
     next.status = "SHOWING";
     mockAlerts.shownAt = now;
   }
+}
+
+/**
+ * 미지정 일시정지: holds a QUEUED alert at its place in the queue, or lets it go (the queue then moves on). An alert the
+ * operator already played anyway is not held again; one on screen or finished is left alone.
+ */
+export function setAlertHold(alertId: string, held: boolean) {
+  const a = mockAlerts.items.find((x) => x.id === alertId);
+  if (!a || a.status !== "QUEUED") return;
+  const next = held && !a.holdReleased;
+  if (!!a.held === next) return;
+  if (next) a.held = true;
+  else delete a.held;
+  advance();
+}
+
+/** 배정 없이 재생: lets a held alert go for good. False when it is no longer held (assigned meanwhile, cancelled …). */
+export function releaseAlertHold(alertId: string): boolean {
+  const a = mockAlerts.items.find((x) => x.id === alertId);
+  if (!a || a.status !== "QUEUED" || !a.held) return false;
+  a.holdReleased = true;
+  delete a.held;
+  advance();
+  return true;
 }

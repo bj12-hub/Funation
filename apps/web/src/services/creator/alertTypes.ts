@@ -78,6 +78,14 @@ export type AlertItem = {
   questSucceededAt?: string;
   /** 다시 보내기 copy: the id of the alert it repeats. Shown again on stream, never counted as another donation. */
   replayOf?: string;
+  /**
+   * 미지정 일시정지 (2026-10-25, StreamDonate 참고 — 기본값): a QUEUED alert whose 후원 리스트 entry is still 미지정 while the
+   * crew broadcast has the option on. The queue stops in front of it — later alerts wait too — until the entry is
+   * assigned or cancelled, the option goes off, the broadcast ends or the operator plays it anyway (`holdReleased`).
+   */
+  held?: boolean;
+  /** 배정 없이 재생: the operator let this held alert go, so it is not held again. */
+  holdReleased?: boolean;
   createdAt: string;
   status: AlertStatus;
 };

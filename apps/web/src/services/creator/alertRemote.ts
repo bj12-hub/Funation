@@ -5,7 +5,7 @@ import { ownEntry } from "@/lib/records";
 import { getCreatorSession } from "@/lib/session";
 import { overlayKeyOpen } from "@/services/account/creatorAccess";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
-import { advance, enqueueAlert, isOverlayOn, mockAlerts, overlaySignal } from "./alertCore";
+import { advance, enqueueAlert, isOverlayOn, mockAlerts, overlaySignal, releaseAlertHold } from "./alertCore";
 import { overlayCustomSounds } from "./customSoundCore";
 import { ingestDonationLinksThrottled } from "./donationLinkCore";
 import { mockMedia } from "./mediaCore";
@@ -128,6 +128,19 @@ export async function skipCurrentAlert(input: unknown): Promise<RemoteResult> {
     mockAlerts.shownAt = null;
     advance();
   }
+  return { status: "SAVED" };
+}
+
+/**
+ * 배정 없이 재생 of an alert held by 미지정 일시정지 (방송 운영 후원 리스트): it plays in its turn and is not held again. A
+ * no-op once it is not held (assigned meanwhile, cancelled …).
+ */
+export async function playHeldAlert(input: unknown): Promise<RemoteResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const alertId = rec(input).alertId;
+  if (typeof alertId !== "string") return { status: "INVALID", message: "요청을 확인해 주세요." };
+  releaseAlertHold(alertId);
   return { status: "SAVED" };
 }
 
