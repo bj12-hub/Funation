@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { FLEXTV_STUDIO } from "@/lib/flextv/mode";
 import { formatNumber } from "@/lib/format";
 import type { CreatorDashboard, CreatorProfile, DashboardSummary } from "@/services/creator/creatorStudio";
 import type { UpdatesView } from "@/services/creator/updatesTypes";
@@ -59,8 +60,9 @@ export function CreatorDashboardScreen({
               <LinkActions url={profile.donateUrl} />
             </div>
             <div className={styles.infoButtons}>
-              <Link href="/creator/settings" className={styles.gradientPill}>
-                계정 관리
+              {/* With FLEXTV the channel's settings are its 방송 설정 (phase 5). */}
+              <Link href={FLEXTV_STUDIO ? "/creator/broadcast" : "/creator/settings"} className={styles.gradientPill}>
+                {FLEXTV_STUDIO ? "방송 설정" : "계정 관리"}
               </Link>
               {/* 정산 관리 (478:2); unregistered creators are sent to the settlement home (429:4). */}
               <Link href="/creator/settlement/manage" className={styles.outlinePill}>

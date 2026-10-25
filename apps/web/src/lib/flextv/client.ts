@@ -16,7 +16,7 @@ export class FlextvUnavailableError extends Error {
 }
 
 export type FlextvRequest = {
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "PUT";
   /** Sent as JSON (FLEXTV's body parser reads JSON and forms alike). */
   body?: Record<string, unknown>;
   /** FLEXTV access token, sent as `Authorization: Bearer`. */

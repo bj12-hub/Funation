@@ -1,0 +1,338 @@
+/* 방송 설정 — code-first (FLEXTV's broadcast page as reference), studio dark theme tokens. */
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 960px;
+  padding: 40px 40px 80px;
+}
+
+.pageTitle {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-black);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-16);
+  background: var(--color-surface);
+}
+
+.cardTitle {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.help,
+.hint,
+.empty {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.hint {
+  font-size: var(--font-size-12);
+}
+
+.warning {
+  margin: 0;
+  color: var(--color-warning-text);
+  font-size: var(--font-size-12);
+}
+
+.error,
+.alert {
+  margin: 0;
+  color: var(--color-danger, #ff5c7a);
+  font-size: var(--font-size-13);
+}
+
+.alert {
+  padding: 14px 16px;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-12);
+}
+
+/* Status */
+
+.statusRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.statusText {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--color-surface-strong);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+}
+
+.badge[data-live] {
+  background: var(--color-danger, #ff3b5c);
+  color: #fff;
+}
+
+.actions,
+.inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Buttons */
+
+.primaryButton,
+.secondaryButton,
+.dangerButton {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  border-radius: var(--radius-8);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+  text-align: center;
+}
+
+.primaryButton {
+  padding: 14px 20px;
+  background: var(--color-primary);
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-15);
+  font-weight: var(--font-weight-bold);
+}
+
+.secondaryButton {
+  background: var(--color-surface-strong);
+  color: var(--color-text-primary);
+}
+
+.dangerButton {
+  background: var(--color-danger, #ff3b5c);
+  color: #fff;
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled,
+.dangerButton:disabled,
+.linkButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.linkButton {
+  padding: 0;
+  background: none;
+  color: var(--color-primary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: underline;
+}
+
+/* Stream keys */
+
+.keys {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.keyItem {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-12);
+}
+
+.keyItem[data-current] {
+  border-color: var(--color-primary);
+}
+
+.keyHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-15);
+}
+
+.fieldRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fieldLabel {
+  flex: 0 0 72px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-12);
+}
+
+.value {
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 10px 12px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  background: var(--color-bg-page);
+  color: var(--color-text-primary);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--font-size-13);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Form */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.label {
+  padding: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-semibold);
+}
+
+.input {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  background: var(--color-bg-page);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+}
+
+.twoCols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.radios,
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+
+.chips {
+  gap: 8px;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
+  cursor: pointer;
+}
+
+.check input {
+  accent-color: var(--color-primary);
+}
+
+.chip,
+.chipOn {
+  padding: 4px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: none;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-12);
+}
+
+.chipOn {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+.chip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.policy {
+  padding: 12px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-12);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-12);
+}
+
+.policy summary {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.policy ul {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding-left: 18px;
+}
+
+@media (max-width: 767px) {
+  .content {
+    padding: 20px 16px 60px;
+  }
+
+  .card {
+    padding: 18px 16px;
+  }
+
+  .twoCols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fieldLabel {
+    flex-basis: 100%;
+  }
+}

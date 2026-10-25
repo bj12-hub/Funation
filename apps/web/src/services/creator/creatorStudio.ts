@@ -1,6 +1,8 @@
+import { FLEXTV_STUDIO } from "@/lib/flextv/mode";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
+import { flextvCreatorProfile } from "./flextvStudio";
 import { mockCreator } from "./mockCreatorStore";
 import { mockSettlement } from "./mockSettlementStore";
 import type { SettlementStatus } from "./settlementTypes";
@@ -44,6 +46,7 @@ export type CreatorDashboard = {
 };
 
 export async function getCreatorProfile(): Promise<CreatorProfile | null> {
+  if (FLEXTV_STUDIO) return flextvCreatorProfile();
   if (!USE_MOCK) throw new Error("Creator API is not connected yet.");
   if (!(await getCreatorSession())) return null;
   return {

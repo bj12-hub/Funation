@@ -22,5 +22,12 @@ export const FLEXTV_DONATION = FLEXTV_BACKEND;
 /** Phase 4: FLEXTV's live list, its player in a channel's room, and the room's live chat. */
 export const FLEXTV_LIVE = FLEXTV_BACKEND;
 
+/**
+ * Phase 5: the creator studio for FLEXTV's streamers — becoming one, 방송 설정 (stream keys, start · change · end),
+ * the dashboard and 수익 from the 후원 they received, and 정산 (FLEXTV's 환전). The studio's other menus are not
+ * connected yet and are not served (lib/flextv/studioRoutes.ts).
+ */
+export const FLEXTV_STUDIO = FLEXTV_BACKEND;
+
 /** FLEXTV's own site, for flows Ssumnation does not host yet (아이디 · 비밀번호 찾기, 본인인증). */
 export const FLEXTV_WEB_URL = (process.env.NEXT_PUBLIC_FLEXTV_WEB_URL || "https://www.flextv.co.kr").replace(/\/+$/, "");

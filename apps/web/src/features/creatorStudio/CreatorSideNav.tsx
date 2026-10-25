@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type FocusEvent } from "react";
+import { FLEXTV_STUDIO } from "@/lib/flextv/mode";
 import styles from "./studio.module.css";
 
 /**
@@ -18,7 +19,7 @@ import styles from "./studio.module.css";
 type Item = { label: string; emoji: string; href?: string };
 type Group = { title: string | null; items: Item[] };
 
-const GROUPS: Group[] = [
+const MOCK_GROUPS: Group[] = [
   { title: null, items: [{ label: "대시보드", emoji: "📊", href: "/creator" }] },
   {
     title: "채널",
@@ -79,18 +80,49 @@ const GROUPS: Group[] = [
   { title: null, items: [{ label: "소식", emoji: "📰", href: "/creator/updates" }] }
 ];
 
-const DONATIONS = "/creator/donations";
-const PATHS = GROUPS.flatMap((g) => g.items.map((i) => i.href)).filter((h): h is string => Boolean(h) && !h!.startsWith(`${DONATIONS}?`));
+/**
+ * With FLEXTV (phase 5): the menus that run on it — lib/flextv/studioRoutes.ts serves no other studio page. 받은 후원
+ * is the only 후원관리 tab, and the 정산 계좌 is registered on FLEXTV's site.
+ */
+const FLEXTV_GROUPS: Group[] = [
+  { title: null, items: [{ label: "대시보드", emoji: "📊", href: "/creator" }] },
+  { title: "방송", items: [{ label: "방송 설정", emoji: "🎥", href: "/creator/broadcast" }] },
+  {
+    title: "수익",
+    items: [
+      { label: "수익 현황", emoji: "📊", href: "/creator/revenue" },
+      { label: "받은 후원", emoji: "💰", href: "/creator/donations?tab=list" }
+    ]
+  },
+  {
+    title: "정산",
+    items: [
+      { label: "정산 현황", emoji: "🧮", href: "/creator/settlement" },
+      { label: "정산 계좌", emoji: "🪪", href: "/creator/settlement/register" },
+      { label: "정산 신청", emoji: "💸", href: "/creator/settlement/apply" },
+      { label: "정산 관리", emoji: "🗂️", href: "/creator/settlement/manage" }
+    ]
+  }
+];
 
-/** Active item: 후원관리+ matches its `?tab=` (default 후원 페이지 설정); other pages the most specific path. */
-export function studioActiveHref(pathname: string, tab: string | null) {
-  if (pathname === DONATIONS) return `${DONATIONS}?tab=${tab ?? "settings"}`;
-  return PATHS.filter((h) => (h === "/creator" ? pathname === h : pathname === h || pathname.startsWith(`${h}/`))).sort((a, b) => b.length - a.length)[0] ?? null;
+export const studioGroups = (flextv: boolean) => (flextv ? FLEXTV_GROUPS : MOCK_GROUPS);
+const GROUPS = studioGroups(FLEXTV_STUDIO);
+
+const DONATIONS = "/creator/donations";
+
+/**
+ * Active item: 후원관리+ matches its `?tab=` (default 후원 페이지 설정, 받은 후원 with FLEXTV); other pages the most
+ * specific path.
+ */
+export function studioActiveHref(pathname: string, tab: string | null, groups: Group[] = GROUPS) {
+  if (pathname === DONATIONS) return `${DONATIONS}?tab=${tab ?? (groups === FLEXTV_GROUPS ? "list" : "settings")}`;
+  const paths = groups.flatMap((g) => g.items.map((i) => i.href)).filter((h): h is string => Boolean(h) && !h!.startsWith(`${DONATIONS}?`));
+  return paths.filter((h) => (h === "/creator" ? pathname === h : pathname === h || pathname.startsWith(`${h}/`))).sort((a, b) => b.length - a.length)[0] ?? null;
 }
 
 /** The phone bar's label: the menu item of the current page, or the studio's name on a page outside the menu. */
-export function studioCurrentItem(active: string | null): { label: string; emoji: string | null; inMenu: boolean } {
-  const item = active ? GROUPS.flatMap((g) => g.items).find((i) => i.href === active) : undefined;
+export function studioCurrentItem(active: string | null, groups: Group[] = GROUPS): { label: string; emoji: string | null; inMenu: boolean } {
+  const item = active ? groups.flatMap((g) => g.items).find((i) => i.href === active) : undefined;
   return item ? { label: item.label, emoji: item.emoji, inMenu: true } : { label: "크리에이터 스튜디오", emoji: null, inMenu: false };
 }
 

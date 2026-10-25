@@ -144,6 +144,12 @@ const g = globalThis as typeof globalThis & { __ssumnationFlextvSessions?: Map<s
 const flextvSessions = (g.__ssumnationFlextvSessions ??= new Map());
 const revokedTokens = (g.__ssumnationRevokedTokens ??= new Set());
 
+/** Makes the next lookup ask FLEXTV again, e.g. right after the member became a streamer. */
+export async function forgetFlextvSession() {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  if (token) flextvSessions.delete(token);
+}
+
 export function rememberFlextvSession(accessToken: string, session: Session) {
   revokedTokens.delete(accessToken);
   remember(accessToken, Promise.resolve(session));
