@@ -67,7 +67,9 @@ beforeEach(() => {
           return json({
             mini: { enabled: true, minAmount: 100, maxAmount: 999, maxLength: 30, colors: [{ id: "pink", label: "핑크", hex: "#FF5CA8" }] },
             wishlist: [{ id: "w1", emoji: "🎧", name: "헤드셋", price: wishPrice, note: "", inStock: true }],
-            drawing: null,
+            game: { minAmount: 1000, maxTitle: 50 },
+            drawing: { enabled: false },
+            quest: { enabled: true, maxTimeSec: 1800, allowExtension: true },
             roulette: { enabled: true, minAmount: 500, dailyLimit: 0, items: [{ name: "노래", percent: 40 }, { name: "꽝", percent: 60 }] },
             gacha: []
           });
@@ -107,9 +109,10 @@ describe("a FLEXTV channel's catalog", () => {
   it("offers 영상 and what the streamer turned on, priced as they set it", async () => {
     const { loadFlextvCatalog } = await import("./flextvDonate");
     const catalog = await loadFlextvCatalog("3021", "member-token");
-    expect(catalog.types.map((t) => t.key)).toEqual(expect.arrayContaining(["TEXT", "MINI", "VIDEO", "WISHLIST", "ROULETTE"]));
+    expect(catalog.types.map((t) => t.key)).toEqual(expect.arrayContaining(["TEXT", "MINI", "VIDEO", "WISHLIST", "ROULETTE", "QUEST"]));
     expect(catalog.types.map((t) => t.key)).not.toContain("GACHA");
-    expect(catalog.types.map((t) => t.key)).not.toContain("QUEST");
+    expect(catalog.types.map((t) => t.key)).not.toContain("DRAWING");
+    expect(catalog.game).toEqual({ minAmount: 1000, maxText: 50, maxTimeSec: 1800 });
     expect(catalog.mediaPricing).toEqual({ VIDEO: { perSecond: 10, maxSec: 60 } });
     expect(catalog.minAmount).toMatchObject({ VIDEO: 100, MINI: 100 });
     expect(catalog.roulette).toMatchObject({ enabled: true, minAmount: 500 });
@@ -157,6 +160,24 @@ describe("Ssumnation's own types", () => {
       { idempotencyKey: key(3), channelId: 3021, type: "ROULETTE", amount: 500, message: "", details: {} }
     ]);
     expect(sent("/api/luv/send")).toHaveLength(0);
+  });
+
+  it("sends a 퀘스트 as its 성공 보상, within the streamer's time limit", async () => {
+    const { requestDonation } = await import("./flextvDonate");
+    const quest = { ...base, type: "QUEST", title: "노래 한 곡", successReward: 3000, timeLimitSec: 600, creatorDecides: true, termsAgreed: true };
+    expect(await requestDonation({ ...quest, idempotencyKey: key(1) })).toMatchObject({ status: "COMPLETED", fnAmount: 3000 });
+    expect(sent("/api/ssumnation/donations")[0].body).toEqual({
+      idempotencyKey: key(1),
+      channelId: 3021,
+      type: "QUEST",
+      amount: 3000,
+      message: "",
+      details: { title: "노래 한 곡", timeLimitSec: 600, creatorDecides: true }
+    });
+    // Longer than the streamer allows (30 minutes), or under the shared minimum.
+    expect(await requestDonation({ ...quest, timeLimitSec: 3600, idempotencyKey: key(2) })).toMatchObject({ status: "INVALID" });
+    expect(await requestDonation({ ...quest, successReward: 500, idempotencyKey: key(3) })).toMatchObject({ status: "INVALID" });
+    expect(sent("/api/ssumnation/donations")).toHaveLength(1);
   });
 
   it("checks the streamer's settings and prices first", async () => {

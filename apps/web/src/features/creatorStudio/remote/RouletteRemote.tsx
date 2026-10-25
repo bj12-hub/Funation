@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { FLEXTV_STUDIO } from "@/lib/flextv/mode";
 import { formatKstTime, formatNumber } from "@/lib/format";
 import { finishRouletteSpin, revealRouletteSpin, setRouletteHidden, setRoulettePaused, setRouletteSwitch, startNextSpin } from "@/services/creator/rouletteRemote";
 import { ROULETTE_STATUS_LABEL, isBlankPrize, type RouletteControlResult, type RouletteRemoteRow, type RouletteRemoteView } from "@/services/donations/rouletteTypes";
@@ -33,7 +34,8 @@ export function RouletteRemote({
         <h2 className={styles.cardTitle} id="roulette-remote">
           🎡 룰렛
         </h2>
-        <Link href="/creator/widgets?open=ROULETTE" className={styles.ghost}>
+        {/* With FLEXTV the settings are 후원 종류 설정 (phase 6). */}
+        <Link href={FLEXTV_STUDIO ? "/creator/donation-types" : "/creator/widgets?open=ROULETTE"} className={styles.ghost}>
           항목 · 확률 설정
         </Link>
       </div>

@@ -66,6 +66,7 @@ export function flextvCatalog(
   if (settings.mini) offered.add("MINI");
   if (settings.wishlist.length > 0) offered.add("WISHLIST");
   if (settings.drawing) offered.add("DRAWING");
+  if (settings.quest) offered.add("QUEST");
   if (settings.roulette) offered.add("ROULETTE");
   if (settings.gacha.length > 0) offered.add("GACHA");
   return {
@@ -81,8 +82,8 @@ export function flextvCatalog(
     miniColors: settings.mini?.colors ?? [],
     roulette: settings.roulette ? { enabled: true, ...settings.roulette } : { enabled: false, minAmount: 0, dailyLimit: 0, items: [] },
     gacha: settings.gacha,
-    // 그림's minimum and title length are the streamer's; 퀘스트 is not offered on FLEXTV channels yet.
-    game: { ...base.game, minAmount: settings.drawing?.minAmount ?? base.game.minAmount, maxText: settings.drawing?.maxTitle ?? base.game.maxText },
+    // 그림 · 퀘스트 share the streamer's minimum and title length; the longest 퀘스트 time limit is theirs too.
+    game: { minAmount: settings.game.minAmount, maxText: settings.game.maxTitle, maxTimeSec: settings.quest?.maxTimeSec ?? base.game.maxTimeSec },
     ...(video?.enabled ? { mediaPricing: { VIDEO: { perSecond: video.perSecond, maxSec: video.maxSec } } } : {})
   };
 }
@@ -267,6 +268,8 @@ async function sendOwnType(
   const message = typeof details.message === "string" ? details.message : "";
   delete details.message;
   delete details.voiceId;
+  // A quest's 성공 보상 is the amount itself.
+  delete details.successReward;
   const donation = { idempotencyKey: p.key, channelId: p.channelId, type: d.type, amount: d.amount, message, details };
   const ask = async (): Promise<DonationResult> => {
     let outcome: SsumnationOutcome;

@@ -7,6 +7,7 @@ import { saveDonationTypeSettings } from "@/services/creator/flextvDonationTypes
 import {
   MINI_MAX_FN,
   MINI_PALETTE,
+  QUEST_TIME_MIN,
   WISHLIST_MAX,
   WISHLIST_NAME_MAX,
   WISHLIST_NOTE_MAX,
@@ -108,8 +109,28 @@ export function DonationTypesScreen({ initial }: { initial: DonationTypeSettings
         </button>
       </Section>
 
-      <Section title="그림 후원" on={s.drawing.enabled} onToggle={(enabled) => set("drawing", { ...s.drawing, enabled })} help="시청자가 그린 그림을 방송 화면에 띄워요.">
-        <NumberField label="최소 금액 (FN)" value={s.drawing.minAmount} onChange={(minAmount) => set("drawing", { ...s.drawing, minAmount })} />
+      <Section title="그림 · 퀘스트 후원" help="그림 후원은 시청자가 그린 그림을 방송 화면에 띄워요. 퀘스트 후원은 미션을 걸고, 성공하면 후원이 전달되고 실패 · 취소되면 시청자에게 돌아가요.">
+        <NumberField label="최소 금액 (FN, 그림 · 퀘스트 공통)" value={s.game.minAmount} onChange={(minAmount) => set("game", { minAmount })} />
+        <div className={styles.chips}>
+          <label className={styles.check}>
+            <input type="checkbox" checked={s.drawing.enabled} onChange={(e) => set("drawing", { enabled: e.target.checked })} />
+            그림 후원 받기
+          </label>
+          <label className={styles.check}>
+            <input type="checkbox" checked={s.quest.enabled} onChange={(e) => set("quest", { ...s.quest, enabled: e.target.checked })} />
+            퀘스트 후원 받기
+          </label>
+          <label className={styles.check}>
+            <input type="checkbox" checked={s.quest.allowExtension} onChange={(e) => set("quest", { ...s.quest, allowExtension: e.target.checked })} />
+            리모컨에서 퀘스트 시간 연장
+          </label>
+        </div>
+        <NumberField
+          label={`퀘스트 최대 제한시간 (분, ${QUEST_TIME_MIN.min} ~ ${QUEST_TIME_MIN.max})`}
+          value={Math.round(s.quest.maxTimeSec / 60)}
+          onChange={(minutes) => set("quest", { ...s.quest, maxTimeSec: minutes * 60 })}
+          max={QUEST_TIME_MIN.max}
+        />
       </Section>
 
       <Section title="룰렛" on={s.roulette.enabled} onToggle={(enabled) => set("roulette", { ...s.roulette, enabled })} help="결과는 후원할 때 FLEXTV가 확률대로 정하고, 방송 화면에서 공개돼요. 당첨은 FN이 아닌 방송 속 상품 · 미션이에요.">

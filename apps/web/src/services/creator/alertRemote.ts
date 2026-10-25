@@ -1,5 +1,6 @@
 "use server";
 
+import { FLEXTV_STUDIO } from "@/lib/flextv/mode";
 import { USE_MOCK } from "@/lib/mock";
 import { ownEntry } from "@/lib/records";
 import { getCreatorSession } from "@/lib/session";
@@ -244,6 +245,8 @@ export async function setVideoVolume(input: unknown): Promise<RemoteResult> {
 
 /** OBS overlay read — no login; the integration key is the secret. */
 export async function getOverlayAlert(key: unknown): Promise<OverlayAlert | "FORBIDDEN"> {
+  // With FLEXTV the 후원 알림 is its 도우미's (phase 6): this overlay is not served.
+  if (FLEXTV_STUDIO) return "FORBIDDEN";
   assertMock();
   if (!overlayKeyOpen(key)) return "FORBIDDEN";
   // Platform donations (후원 연동) reach the queue even when the studio screen is closed — throttled, and a

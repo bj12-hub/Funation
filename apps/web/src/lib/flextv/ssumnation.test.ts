@@ -8,7 +8,9 @@ describe("a channel's settings", () => {
   const settings = {
     mini: { enabled: true, minAmount: 100, maxAmount: 999, maxLength: 30, colors: [{ id: "pink", label: "핑크", hex: "#FF5CA8" }, { id: "bad", label: "x", hex: "red" }] },
     wishlist: [{ id: "w1", emoji: "🎧", name: "헤드셋", price: 30000, note: "", inStock: true }, { id: "w2", name: "가격 없음" }],
-    drawing: { enabled: true, minAmount: 1000, maxTitle: 40 },
+    game: { minAmount: 1000, maxTitle: 40 },
+    drawing: { enabled: true },
+    quest: { enabled: true, maxTimeSec: 1800, allowExtension: true },
     roulette: { enabled: true, minAmount: 500, dailyLimit: 3, items: [{ name: "노래", percent: 30 }, { name: "꽝", percent: 70 }] },
     gacha: [{ id: "g1", name: "행운 뽑기", price: 3000, mode: "PROBABILITY", prizes: [{ name: "꽝", blank: true, percent: 50, left: null }, { name: "사인", blank: false, percent: 50, left: null }], limit: 2, soldOut: false }]
   };
@@ -17,7 +19,9 @@ describe("a channel's settings", () => {
     const read = readDonationSettings(settings);
     expect(read.mini).toEqual({ minAmount: 100, maxAmount: 999, maxLength: 30, colors: [{ id: "pink", label: "핑크", hex: "#FF5CA8" }] });
     expect(read.wishlist.map((w) => w.id)).toEqual(["w1"]);
-    expect(read.drawing).toEqual({ minAmount: 1000, maxTitle: 40 });
+    expect(read.game).toEqual({ minAmount: 1000, maxTitle: 40 });
+    expect(read.drawing).toBe(true);
+    expect(read.quest).toEqual({ maxTimeSec: 1800, allowExtension: true });
     expect(read.roulette).toEqual({ minAmount: 500, dailyLimit: 3, items: settings.roulette.items });
     expect(read.gacha).toEqual([{ ...settings.gacha[0], limit: 2 }]);
   });

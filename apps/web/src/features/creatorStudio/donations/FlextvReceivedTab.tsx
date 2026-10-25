@@ -3,6 +3,7 @@ import { formatNumber } from "@/lib/format";
 import { LIST_PERIODS } from "@/services/creator/donationManagementTypes";
 import { RECEIVED_PAGE_SIZE, RECEIVED_QUERY_MAX, type FlextvReceivedPage } from "@/services/creator/flextvEarnings";
 import { PageLink } from "./DonationListTab";
+import { FlextvKindNav } from "./FlextvQuestTab";
 import styles from "./donations.module.css";
 
 const WINDOW = 5;
@@ -21,7 +22,7 @@ function href(params: Params) {
  * received: one row per 후원 or 선물 상품, filtered by period and FLEXTV's exact 닉네임 search. FLEXTV records no message
  * with the list.
  */
-export function FlextvReceivedTab({ data }: { data: FlextvReceivedPage }) {
+export function FlextvReceivedTab({ data, quests = false }: { data: FlextvReceivedPage; quests?: boolean }) {
   const { period, nickname, page, totalPages, total, items, sum } = data;
   const periodParams: Params = period.preset === "range" ? { period: "range", from: period.from, to: period.to } : { period: period.preset };
   const base: Params = { ...periodParams, q: nickname };
@@ -32,6 +33,8 @@ export function FlextvReceivedTab({ data }: { data: FlextvReceivedPage }) {
 
   return (
     <div className={styles.stack}>
+      {/* With FLEXTV's Ssumnation endpoints (phase 6) the quests sent to the channel have their own list. */}
+      {quests && <FlextvKindNav kind="all" />}
       <div className={styles.filterRow}>
         <nav className={styles.chipsRow} aria-label="기간">
           {LIST_PERIODS.map((p) => (

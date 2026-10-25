@@ -3,8 +3,10 @@ import { redirect } from "next/navigation";
 import { DonationListTab } from "@/features/creatorStudio/donations/DonationListTab";
 import { DonorRankingTab } from "@/features/creatorStudio/donations/DonorRankingTab";
 import { FilteringTab } from "@/features/creatorStudio/donations/FilteringTab";
+import { FlextvQuestTab } from "@/features/creatorStudio/donations/FlextvQuestTab";
 import { FlextvReceivedTab } from "@/features/creatorStudio/donations/FlextvReceivedTab";
-import { FLEXTV_STUDIO } from "@/lib/flextv/mode";
+import { FLEXTV_SSUMNATION_API, FLEXTV_STUDIO } from "@/lib/flextv/mode";
+import { flextvReceivedQuests } from "@/services/creator/flextvBroadcastGames";
 import { flextvReceivedPage } from "@/services/creator/flextvEarnings";
 import { ImportTab } from "@/features/creatorStudio/donations/ImportTab";
 import { ManagementShell } from "@/features/creatorStudio/donations/ManagementShell";
@@ -43,6 +45,20 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
   const raw = await searchParams;
 
   if (FLEXTV_STUDIO) {
+    // With FLEXTV's Ssumnation endpoints (phase 6): the quests sent to the channel, decided here.
+    if (FLEXTV_SSUMNATION_API && one(raw.kind) === "quest") {
+      const statusRaw = one(raw.status);
+      const quests = await flextvReceivedQuests({
+        status: QUEST_STATUSES.some((s) => s.key === statusRaw) ? (statusRaw as Exclude<StatusFilter, "ALL">) : "ALL",
+        page: Number(one(raw.page) ?? 1)
+      });
+      if (!quests) redirect(LOGIN);
+      return (
+        <ManagementShell tab="list">
+          <FlextvQuestTab data={quests} />
+        </ManagementShell>
+      );
+    }
     // With FLEXTV (phase 5) 받은 후원 is the one tab: the others manage Ssumnation's own 후원 page.
     const data = await flextvReceivedPage({
       period: parseListPeriod({ period: one(raw.period), from: one(raw.from), to: one(raw.to) }),
@@ -52,7 +68,7 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
     if (!data) redirect(LOGIN);
     return (
       <ManagementShell tab="list">
-        <FlextvReceivedTab data={data} />
+        <FlextvReceivedTab data={data} quests={FLEXTV_SSUMNATION_API} />
       </ManagementShell>
     );
   }

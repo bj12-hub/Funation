@@ -1,5 +1,7 @@
 "use server";
 
+import { FLEXTV_SSUMNATION_API, FLEXTV_STUDIO } from "@/lib/flextv/mode";
+import { flextvOverlayWidget } from "./flextvBroadcastGames";
 import { USE_MOCK } from "@/lib/mock";
 import { overlayKeyOpen } from "@/services/account/creatorAccess";
 import { mockAlerts, overlaySignal } from "./alertCore";
@@ -22,6 +24,9 @@ import { clearedAtOf, mockWallpaper, wallStickers } from "./wallpaperCore";
  * the other overlays. Settings come from 위젯 settings, numbers from the creator's donation feed.
  */
 export async function getOverlayWidget(widget: unknown, key: unknown): Promise<OverlayWidget | "FORBIDDEN"> {
+  // With FLEXTV: the 룰렛 · 뽑기 · 퀘스트 · 미니 overlays from FLEXTV (phase 6); the mock ones are not served.
+  if (FLEXTV_SSUMNATION_API) return flextvOverlayWidget(widget, key);
+  if (FLEXTV_STUDIO) return "FORBIDDEN";
   if (!USE_MOCK) throw new Error("Widget overlay API is not connected yet.");
   if (!overlayKeyOpen(key) || !isWidgetOverlay(widget)) return "FORBIDDEN";
   // 리모컨 signals: 새로고침 (reloadSeq) and 기능 제어 ON/OFF (on), shared by every 후원 위젯; the theme is the

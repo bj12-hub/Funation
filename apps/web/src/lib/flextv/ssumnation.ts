@@ -1,4 +1,4 @@
-import { DEFAULT_TYPE_SETTINGS, DRAWING_TITLE_MAX, MINI_PALETTE, MINI_TEXT_MAX, parseTypeSettings, type DonationTypeSettings } from "@/services/creator/donationTypeSettings";
+import { DEFAULT_TYPE_SETTINGS, GAME_TITLE_MAX, MINI_PALETTE, MINI_TEXT_MAX, parseTypeSettings, type DonationTypeSettings } from "@/services/creator/donationTypeSettings";
 import type { MiniColor, WishlistItem } from "@/services/donations/donationCatalog";
 import type { GachaOffer, MyGachaDraw, RoomGacha } from "@/services/donations/gachaTypes";
 import type { MyRouletteSpin, RoomRoulette } from "@/services/donations/rouletteTypes";
@@ -23,12 +23,17 @@ const rows = (value: unknown) => (Array.isArray(value) ? value.filter(isRecord) 
 export type ChannelDonationSettings = {
   mini: { minAmount: number; maxAmount: number; maxLength: number; colors: MiniColor[] } | null;
   wishlist: WishlistItem[];
-  drawing: { minAmount: number; maxTitle: number } | null;
+  /** Shared by 그림 and 퀘스트, as in Ssumnation: their minimum and title length. */
+  game: { minAmount: number; maxTitle: number };
+  drawing: boolean;
+  quest: { maxTimeSec: number; allowExtension: boolean } | null;
   roulette: { minAmount: number; dailyLimit: number; items: { name: string; percent: number }[] } | null;
   gacha: GachaOffer[];
 };
 
-export const NO_SETTINGS: ChannelDonationSettings = { mini: null, wishlist: [], drawing: null, roulette: null, gacha: [] };
+const GAME_DEFAULT = { minAmount: 1_000, maxTitle: 50 };
+
+export const NO_SETTINGS: ChannelDonationSettings = { mini: null, wishlist: [], game: GAME_DEFAULT, drawing: false, quest: null, roulette: null, gacha: [] };
 
 /** `GET /api/ssumnation/channels/:channelId/donation-settings`: what the streamer turned on. Anything malformed is off. */
 export function readDonationSettings(data: unknown): ChannelDonationSettings {
@@ -40,7 +45,9 @@ export function readDonationSettings(data: unknown): ChannelDonationSettings {
   });
   const miniMin = posInt(mini?.minAmount);
   const miniMax = posInt(mini?.maxAmount);
-  const drawing = isRecord(data.drawing) && data.drawing.enabled === true ? data.drawing : null;
+  const game = isRecord(data.game) && posInt(data.game.minAmount) !== null ? { minAmount: posInt(data.game.minAmount)!, maxTitle: posInt(data.game.maxTitle) ?? GAME_DEFAULT.maxTitle } : null;
+  const quest = isRecord(data.quest) && data.quest.enabled === true ? data.quest : null;
+  const questTime = posInt(quest?.maxTimeSec);
   const roulette = isRecord(data.roulette) && data.roulette.enabled === true ? data.roulette : null;
   const items = rows(roulette?.items).flatMap((i) => (text(i.name).trim() && (num(i.percent) ?? 0) > 0 ? [{ name: text(i.name).trim(), percent: num(i.percent)! }] : []));
   // A wheel adds up to 100%: anything else is not a wheel the room can show.
@@ -52,7 +59,10 @@ export function readDonationSettings(data: unknown): ChannelDonationSettings {
       const price = posInt(w.price);
       return itemId && price !== null && text(w.name).trim() ? [{ id: itemId, emoji: text(w.emoji) || "🎁", name: text(w.name).trim(), price, note: text(w.note), inStock: w.inStock !== false }] : [];
     }),
-    drawing: drawing && posInt(drawing.minAmount) !== null ? { minAmount: posInt(drawing.minAmount)!, maxTitle: posInt(drawing.maxTitle) ?? 50 } : null,
+    game: game ?? GAME_DEFAULT,
+    // 그림 · 퀘스트 need the shared minimum.
+    drawing: game !== null && isRecord(data.drawing) && data.drawing.enabled === true,
+    quest: game && quest && questTime !== null ? { maxTimeSec: Math.min(3_600, questTime), allowExtension: quest.allowExtension === true } : null,
     roulette: roulette && posInt(roulette.minAmount) !== null && wheelOk ? { minAmount: posInt(roulette.minAmount)!, dailyLimit: Math.max(0, num(roulette.dailyLimit) ?? 0), items } : null,
     gacha: rows(data.gacha).flatMap((g): GachaOffer[] => {
       const gachaId = id(g.id);
@@ -74,7 +84,7 @@ export async function fetchDonationSettings(channelId: string): Promise<ChannelD
 
 /* ── A donation ──────────────────────────────────────────── */
 
-export const SSUMNATION_TYPES = ["MINI", "WISHLIST", "DRAWING", "ROULETTE", "GACHA"] as const;
+export const SSUMNATION_TYPES = ["MINI", "WISHLIST", "DRAWING", "QUEST", "ROULETTE", "GACHA"] as const;
 export type SsumnationType = (typeof SSUMNATION_TYPES)[number];
 export const isSsumnationType = (value: unknown): value is SsumnationType => SSUMNATION_TYPES.includes(value as SsumnationType);
 
@@ -218,7 +228,9 @@ export function readEditableSettings(data: unknown): DonationTypeSettings | null
   const parsed = parseTypeSettings({
     mini: isRecord(data.mini) ? { ...data.mini, colorIds: rows(data.mini.colors).map((c) => c.id) } : DEFAULT_TYPE_SETTINGS.mini,
     wishlist: data.wishlist ?? [],
+    game: isRecord(data.game) ? data.game : DEFAULT_TYPE_SETTINGS.game,
     drawing: isRecord(data.drawing) ? data.drawing : DEFAULT_TYPE_SETTINGS.drawing,
+    quest: isRecord(data.quest) ? data.quest : DEFAULT_TYPE_SETTINGS.quest,
     roulette: isRecord(data.roulette) ? data.roulette : DEFAULT_TYPE_SETTINGS.roulette,
     gacha: rows(data.gacha).map((g) => ({ ...g, enabled: g.enabled !== false }))
   });
@@ -238,7 +250,9 @@ export function settingsBody(s: DonationTypeSettings) {
   return {
     mini: { enabled: s.mini.enabled, minAmount: s.mini.minAmount, maxAmount: s.mini.maxAmount, maxLength: MINI_TEXT_MAX, colors: MINI_PALETTE.filter((c) => s.mini.colorIds.includes(c.id)) },
     wishlist: s.wishlist,
-    drawing: { enabled: s.drawing.enabled, minAmount: s.drawing.minAmount, maxTitle: DRAWING_TITLE_MAX },
+    game: { minAmount: s.game.minAmount, maxTitle: GAME_TITLE_MAX },
+    drawing: s.drawing,
+    quest: s.quest,
     roulette: s.roulette,
     gacha: s.gacha
   };

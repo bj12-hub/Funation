@@ -109,7 +109,14 @@ const FLEXTV_GROUPS: Group[] = [
 export const studioGroups = (flextv: boolean, donationTypes = false): Group[] => {
   if (!flextv) return MOCK_GROUPS;
   if (!donationTypes) return FLEXTV_GROUPS;
-  return FLEXTV_GROUPS.map((g) => (g.title === "방송" ? { ...g, items: [...g.items, { label: "후원 종류 설정", emoji: "🎁", href: "/creator/donation-types" }] } : g));
+  return FLEXTV_GROUPS.map((g) =>
+    g.title === "방송"
+      ? {
+          ...g,
+          items: [...g.items, { label: "후원 종류 설정", emoji: "🎁", href: "/creator/donation-types" }, { label: "리모컨", emoji: "🎛️", href: "/creator/remote" }]
+        }
+      : g
+  );
 };
 const GROUPS = studioGroups(FLEXTV_STUDIO);
 

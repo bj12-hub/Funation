@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { FlextvRemoteScreen } from "@/features/creatorStudio/remote/FlextvRemoteScreen";
 import { RemoteScreen } from "@/features/creatorStudio/remote/RemoteScreen";
+import { FLEXTV_SSUMNATION_API, FLEXTV_STUDIO } from "@/lib/flextv/mode";
+import { getFlextvRemote } from "@/services/creator/flextvRemote";
 import { REMOTE_WINDOW_PATH } from "@/features/creatorStudio/remote/remoteWindow";
 import { creatorOnlyRedirect } from "@/lib/creatorGate";
 import { getRemoteView } from "@/services/creator/alertRemote";
@@ -18,6 +21,17 @@ export const metadata: Metadata = { title: "리모컨 | Ssumnation", robots: { i
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
+  if (FLEXTV_STUDIO) {
+    // With FLEXTV (phase 6): the 퀘스트 · 룰렛 · 뽑기 on FLEXTV's endpoints, as /creator/remote.
+    if (!FLEXTV_SSUMNATION_API) notFound();
+    const flextv = await getFlextvRemote();
+    if (!flextv) redirect(await creatorOnlyRedirect(REMOTE_WINDOW_PATH));
+    return (
+      <div data-theme="dark" className={studio.themeScope}>
+        <FlextvRemoteScreen {...flextv} variant="window" />
+      </div>
+    );
+  }
   const [view, key, tools, quest, vote, roulette, gacha, wallpaper] = await Promise.all([
     getRemoteView(),
     getOverlayKey(),

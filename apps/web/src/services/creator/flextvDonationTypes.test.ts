@@ -26,7 +26,9 @@ vi.mock("@/lib/session", () => ({
 const settings = (over: Partial<DonationTypeSettings> = {}): DonationTypeSettings => ({
   mini: { enabled: true, minAmount: 100, maxAmount: 999, colorIds: ["white", "pink"] },
   wishlist: [{ id: "w1", emoji: "🎧", name: "헤드셋", price: 30_000, note: "", inStock: true }],
-  drawing: { enabled: false, minAmount: 1000 },
+  game: { minAmount: 1000 },
+  drawing: { enabled: false },
+  quest: { enabled: true, maxTimeSec: 1800, allowExtension: true },
   roulette: { enabled: true, minAmount: 500, dailyLimit: 3, items: [{ name: "노래", percent: 40 }, { name: "꽝", percent: 60 }] },
   gacha: [{ id: null, enabled: true, name: "행운 뽑기", price: 1000, mode: "PROBABILITY", limit: 2, prizes: [{ name: "꽝", blank: true, percent: 50, left: null }, { name: "사인", blank: false, percent: 50, left: null }] }],
   ...over
@@ -53,6 +55,12 @@ describe("the form's rules", () => {
     expect(parseTypeSettings(settings({ gacha: [{ ...g, prizes: [{ ...g.prizes[0], percent: 30 }, g.prizes[1]] }] }))).toMatchObject({ invalid: expect.stringContaining("100%") });
     expect(parseTypeSettings(settings({ gacha: [{ ...g, mode: "STOCK", prizes: [{ name: "사인", blank: false, percent: null, left: 5 }] }] }))).not.toHaveProperty("invalid");
     expect(parseTypeSettings(settings({ gacha: [{ ...g, prizes: [] }] }))).toMatchObject({ invalid: expect.stringContaining("상품") });
+  });
+
+  it("keeps the 퀘스트 time limit in whole minutes, 1 ~ 60", () => {
+    expect(parseTypeSettings(settings({ quest: { enabled: true, maxTimeSec: 3_660, allowExtension: false } }))).toMatchObject({ invalid: expect.stringContaining("60분") });
+    expect(parseTypeSettings(settings({ quest: { enabled: true, maxTimeSec: 90, allowExtension: false } }))).toMatchObject({ invalid: expect.any(String) });
+    expect(parseTypeSettings(settings({ game: { minAmount: 0 } }))).toMatchObject({ invalid: expect.stringContaining("퀘스트") });
   });
 
   it("refuses a wishlist item without a name or a price", () => {
@@ -105,7 +113,9 @@ describe("saving through FLEXTV", () => {
     const [put] = calls.filter((c) => c.method === "PUT");
     expect(put.body).toMatchObject({
       mini: { enabled: true, minAmount: 100, maxAmount: 999, maxLength: 30, colors: [{ id: "white", label: "흰색", hex: "#ffffff" }, { id: "pink", label: "분홍", hex: "#ec4899" }] },
-      drawing: { enabled: false, minAmount: 1000, maxTitle: 50 },
+      game: { minAmount: 1000, maxTitle: 50 },
+      drawing: { enabled: false },
+      quest: { enabled: true, maxTimeSec: 1800, allowExtension: true },
       roulette: { enabled: true, minAmount: 500, dailyLimit: 3 }
     });
     expect(await getDonationTypeSettings()).toMatchObject({ mini: { colorIds: ["white", "pink"] }, roulette: { dailyLimit: 3 } });

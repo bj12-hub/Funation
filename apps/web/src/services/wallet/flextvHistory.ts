@@ -1,4 +1,5 @@
-import { PAY_TYPE_LABEL, REX_UNIT_PRICE, fetchBalance, fetchPayments, fetchSpends, type FlextvPayment, type FlextvSpend } from "@/lib/flextv/wallet";
+import { fetchMyDonations, gameResultText, type MyFlextvDonation } from "@/lib/flextv/ssumnationBroadcast";
+import { PAY_TYPE_LABEL, REX_UNIT_PRICE, fetchBalance, fetchPayments, fetchSpends, kstStamp, type FlextvPayment, type FlextvSpend } from "@/lib/flextv/wallet";
 import { getFlextvAccessToken } from "@/lib/session";
 import type { ChargeRecord, DonationRecord, LedgerEntry } from "./walletTypes";
 
@@ -99,4 +100,41 @@ export async function donationRecords(since: string | null): Promise<DonationRec
 export async function walletBalance(): Promise<number | null> {
   const token = await getFlextvAccessToken();
   return token ? fetchBalance(token) : null;
+}
+
+/* ── 퀘스트 후원 · 게임 후원 (phase 6) ───────────────────── */
+
+const OWN_TYPE_LABEL: Record<string, string> = { QUEST: "퀘스트 후원", ROULETTE: "룰렛 후원", GACHA: "뽑기 후원" };
+
+/**
+ * A 퀘스트 or 룰렛 · 뽑기 row from FLEXTV's Ssumnation list. A quest row carries the quest's own id, which its 성공 · 실패
+ * buttons decide (decideMyQuest).
+ */
+export function ownTypeRecordOf(d: MyFlextvDonation): DonationRecord {
+  const refunded = d.status === "REFUNDED";
+  return {
+    id: d.quest?.id ?? `flextv-${d.id}`,
+    donatedAt: kstStamp(d.donatedAt) ?? d.donatedAt,
+    creatorId: d.channelId,
+    creatorName: d.channelName,
+    message: d.message,
+    fnAmount: d.amount,
+    typeLabel: OWN_TYPE_LABEL[d.type] ?? "후원",
+    status: d.status,
+    ...(refunded ? { refundedAt: kstStamp(d.refundedAt) ?? undefined, fnReturned: true } : {}),
+    ...(d.quest ? { quest: { status: d.quest.status, canDecide: d.quest.status === "IN_PROGRESS", endsAt: d.quest.endsAt, extendedMin: d.quest.extendedMin } } : {}),
+    ...(d.game ? { gameResult: gameResultText(d.game) } : {})
+  };
+}
+
+export async function ownTypeRecords(category: "quest" | "game", since: string | null): Promise<DonationRecord[] | null> {
+  const token = await getFlextvAccessToken();
+  if (!token) return null;
+  let unauthorized = false;
+  const rows = await readBack(async (offset) => {
+    const page = await fetchMyDonations(token, { category, offset, limit: PAGE });
+    if (!page) unauthorized = true;
+    return { items: (page?.items ?? []).map((d) => ({ ...d, at: kstStamp(d.donatedAt) ?? d.donatedAt })), count: page?.count ?? 0 };
+  }, since);
+  return unauthorized ? null : rows.map(ownTypeRecordOf);
 }

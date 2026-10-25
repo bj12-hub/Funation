@@ -12,8 +12,11 @@ export const PRICE_MAX = 100_000_000;
 export const WISHLIST_MAX = 20;
 export const WISHLIST_NAME_MAX = 20;
 export const WISHLIST_NOTE_MAX = 40;
-export const DRAWING_TITLE_MAX = 50;
+/** 그림 · 퀘스트 titles (the mock catalog's `game.maxText`). */
+export const GAME_TITLE_MAX = 50;
 export const MINI_TEXT_MAX = 30;
+/** 퀘스트 제한시간 a streamer allows, in minutes (the mock catalog's 60-minute `game.maxTimeSec`). */
+export const QUEST_TIME_MIN = { min: 1, max: 60 } as const;
 
 /** The 미니 colors a streamer can offer: Ssumnation's palette. */
 export const MINI_PALETTE: MiniColor[] = getMockDonationCatalog().miniColors;
@@ -25,7 +28,11 @@ export type GachaDraft = { id: string | null; enabled: boolean; name: string; pr
 export type DonationTypeSettings = {
   mini: { enabled: boolean; minAmount: number; maxAmount: number; colorIds: string[] };
   wishlist: WishlistDraft[];
-  drawing: { enabled: boolean; minAmount: number };
+  /** 그림 · 퀘스트's shared minimum, as in Ssumnation's catalog. */
+  game: { minAmount: number };
+  drawing: { enabled: boolean };
+  /** `maxTimeSec`: the longest 제한시간 a supporter may set; `allowExtension`: 리모컨 시간 연장. */
+  quest: { enabled: boolean; maxTimeSec: number; allowExtension: boolean };
   roulette: { enabled: boolean; minAmount: number; dailyLimit: number; items: { name: string; percent: number }[] };
   gacha: GachaDraft[];
 };
@@ -34,7 +41,9 @@ export type DonationTypeSettings = {
 export const DEFAULT_TYPE_SETTINGS: DonationTypeSettings = {
   mini: { enabled: false, minAmount: 100, maxAmount: MINI_MAX_FN, colorIds: MINI_PALETTE.map((c) => c.id) },
   wishlist: [],
-  drawing: { enabled: false, minAmount: 1_000 },
+  game: { minAmount: 1_000 },
+  drawing: { enabled: false },
+  quest: { enabled: false, maxTimeSec: 3_600, allowExtension: true },
   roulette: { enabled: false, minAmount: 1_000, dailyLimit: 0, items: [{ name: "꽝", percent: 50 }, { name: "노래 한 곡", percent: 50 }] },
   gacha: []
 };
@@ -68,9 +77,13 @@ export function parseTypeSettings(input: unknown): DonationTypeSettings | { inva
     wishlist.push({ id: typeof w.id === "string" && /^[\w-]{1,40}$/.test(w.id) ? w.id : null, emoji, name, price, note, inStock: w.inStock !== false });
   }
 
+  const gameIn = isRecord(input.game) ? input.game : {};
+  const gameMin = whole(gameIn.minAmount, 1, PRICE_MAX);
+  if (gameMin === null) return { invalid: "그림 · 퀘스트 후원 최소 금액을 넣어 주세요." };
   const d = isRecord(input.drawing) ? input.drawing : {};
-  const drawingMin = whole(d.minAmount, 1, PRICE_MAX);
-  if (drawingMin === null) return { invalid: "그림 후원 최소 금액을 넣어 주세요." };
+  const q = isRecord(input.quest) ? input.quest : {};
+  const questTime = whole(q.maxTimeSec, QUEST_TIME_MIN.min * 60, QUEST_TIME_MIN.max * 60);
+  if (questTime === null || questTime % 60 !== 0) return { invalid: `퀘스트 최대 제한시간은 ${QUEST_TIME_MIN.min} ~ ${QUEST_TIME_MIN.max}분으로 넣어 주세요.` };
 
   const r = isRecord(input.roulette) ? input.roulette : {};
   const rouletteMin = whole(r.minAmount, 1, PRICE_MAX);
@@ -113,7 +126,9 @@ export function parseTypeSettings(input: unknown): DonationTypeSettings | { inva
   return {
     mini: { enabled: m.enabled === true, minAmount: miniMin, maxAmount: miniMax, colorIds },
     wishlist,
-    drawing: { enabled: d.enabled === true, minAmount: drawingMin },
+    game: { minAmount: gameMin },
+    drawing: { enabled: d.enabled === true },
+    quest: { enabled: q.enabled === true, maxTimeSec: questTime, allowExtension: q.allowExtension === true },
     roulette: { enabled: r.enabled === true, minAmount: rouletteMin, dailyLimit, items },
     gacha
   };

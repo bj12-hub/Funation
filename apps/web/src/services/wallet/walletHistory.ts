@@ -1,4 +1,4 @@
-import { FLEXTV_DONATION, FLEXTV_WALLET } from "@/lib/flextv/mode";
+import { FLEXTV_DONATION, FLEXTV_SSUMNATION_API, FLEXTV_WALLET } from "@/lib/flextv/mode";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
@@ -119,18 +119,20 @@ export async function getDonationHistory(input: {
 }
 
 /**
- * 후원 내역 on the FLEXTV backend: FLEXTV's sent donations, all of them 기본 후원 (FLEXTV has no 퀘스트 or 게임 후원 of
- * Ssumnation's kind), searched by the recipient's name; the filters work as on the mock.
+ * 후원 내역 on the FLEXTV backend: FLEXTV's sent donations as 기본 후원, searched by the recipient's name; with FLEXTV's
+ * Ssumnation endpoints (phase 6) the 퀘스트 후원 and 게임 후원 tabs are its quests and 룰렛 · 뽑기 with their state and
+ * results. The filters work as on the mock.
  */
 async function flextvDonationHistory(input: { period: Period; category: DonationCategory; page?: number; all?: boolean; filter?: DonationFilter }) {
-  const rows = await flextvHistory.donationRecords(input.period.from);
+  const own = input.category !== "basic";
+  if (own && !FLEXTV_SSUMNATION_API) return { ...paginate([], input), totalFn: 0 };
+  const rows = own ? await flextvHistory.ownTypeRecords(input.category as "quest" | "game", input.period.from) : await flextvHistory.donationRecords(input.period.from);
   if (!rows) return null;
   const f = input.filter ?? {};
   const q = f.q?.trim().toLowerCase() ?? "";
   const matching = rows
     .filter(
       (d) =>
-        input.category === "basic" &&
         inPeriod(d.donatedAt, input.period) &&
         (!q || d.creatorName.toLowerCase().includes(q)) &&
         (f.min === undefined || d.fnAmount >= f.min) &&

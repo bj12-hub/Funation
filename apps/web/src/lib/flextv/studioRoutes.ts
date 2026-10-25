@@ -6,8 +6,9 @@
 export const FLEXTV_STUDIO_PATHS = [
   "/creator",
   "/creator/broadcast",
-  // Phase 6: only with FLEXTV's Ssumnation endpoints (the page answers 404 without them).
+  // Phase 6: only with FLEXTV's Ssumnation endpoints (the pages answer 404 without them).
   "/creator/donation-types",
+  "/creator/remote",
   "/creator/revenue",
   "/creator/donations",
   "/creator/settlement",

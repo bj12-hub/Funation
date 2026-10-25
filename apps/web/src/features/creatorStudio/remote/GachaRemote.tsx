@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { FLEXTV_STUDIO } from "@/lib/flextv/mode";
 import { formatKstTime, formatNumber } from "@/lib/format";
 import { finishGachaDraw, setGachaClaimed, setGachaHidden } from "@/services/creator/gachaRemote";
 import { GACHA_STATUS_LABEL, type GachaControlResult, type GachaRemoteView, type GachaRow } from "@/services/donations/gachaTypes";
@@ -30,7 +31,8 @@ export function GachaRemote({
         <h2 className={styles.cardTitle} id="gacha-remote">
           🧸 뽑기
         </h2>
-        <Link href="/creator/widgets?open=GACHA" className={styles.ghost}>
+        {/* With FLEXTV the settings are 후원 종류 설정 (phase 6). */}
+        <Link href={FLEXTV_STUDIO ? "/creator/donation-types" : "/creator/widgets?open=GACHA"} className={styles.ghost}>
           상품 · 확률 설정
         </Link>
       </div>

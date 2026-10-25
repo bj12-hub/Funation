@@ -252,3 +252,24 @@
   align-items: center;
   gap: 6px;
 }
+
+/* FLEXTV 리모컨 (phase 6): the overlay addresses, one per row. */
+.overlayList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.overlayList li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+}
