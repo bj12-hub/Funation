@@ -695,6 +695,8 @@ export type WidgetLiveData = {
   gachaUnclaimed: number;
   /** The channel's 전체 테마, so a preview set to 전체 테마 따르기 draws in it. */
   appearance: OverlayAppearance;
+  /** With FLEXTV (phase 8): only the look is set here — the rules (items, odds, prices, minimums) are 후원 종류 설정's. */
+  designOnly?: boolean;
 };
 
 export type CustomSoundResult =

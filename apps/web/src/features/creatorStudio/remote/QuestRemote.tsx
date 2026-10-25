@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { QUEST_ACTION_LABEL } from "@/features/donations/questDecideText";
-import { FLEXTV_STUDIO } from "@/lib/flextv/mode";
 import { formatNumber } from "@/lib/format";
 import { decideReceivedQuest } from "@/services/creator/donationManagement";
 import { QUEST_STATUSES, type QuestStatus } from "@/services/creator/donationManagementTypes";
@@ -108,8 +107,8 @@ export function QuestRemote({ view }: { view: QuestRemoteView }) {
         <h2 className={styles.cardTitle} id="quest-remote">
           🎯 퀘스트
         </h2>
-        {/* With FLEXTV the settings are 후원 종류 설정 (phase 6). */}
-        <Link href={FLEXTV_STUDIO ? "/creator/donation-types" : "/creator/widgets?open=QUEST"} className={styles.ghost}>
+        {/* With FLEXTV too (phase 8): its look is set on the 위젯 page, its rules in 후원 종류 설정. */}
+        <Link href="/creator/widgets?open=QUEST" className={styles.ghost}>
           위젯 설정
         </Link>
       </div>

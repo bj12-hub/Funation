@@ -23,6 +23,7 @@ import {
   type GachaStyle
 } from "@/services/creator/widgetSettingsTypes";
 import { CopyButton } from "../settings/SettingsCards";
+import { DesignOnlyNotice } from "./DesignOnlyNotice";
 import { ColorField, NumberField, Radios, Row, Section, Select, SwitchText } from "./fields";
 import { GachaView } from "./GameViews";
 import type { FormProps } from "./forms";
@@ -51,9 +52,11 @@ const newGacha = (n: number): Gacha => ({
 /**
  * 뽑기 후원 위젯 설정 — Figma 373:3675. Viewers draw from the creator room (뽑기 donation type); prizes are the
  * creator's (2026-10-04 결정: FN 지급 없음). 당첨 내역 and the 전광판 read the real draws. Odds disclosure and
- * legal review for paid draws are TBD.
+ * legal review for paid draws are TBD. With FLEXTV (`live.designOnly`, phase 8) the 뽑기 are 후원 종류 설정's: only their
+ * look, the 크레딧 and the 당첨 리스트's title and speed are set here.
  */
 export function GachaForm({ value: v, onChange, live }: FormProps<"GACHA">) {
+  const designOnly = live.designOnly === true;
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
   const [previewStyle, setPreviewStyle] = useState<GachaStyle>(v.gachas[0]?.style ?? "CAPSULE");
   const [selectedId, setSelectedId] = useState<string | null>(v.gachas[0]?.id ?? null);
@@ -97,60 +100,69 @@ export function GachaForm({ value: v, onChange, live }: FormProps<"GACHA">) {
       </PreviewStage>
       <Section title="테마">
         <ThemeChoiceField value={v.overlayTheme} onChange={(x) => set("overlayTheme", x)} appearance={live.appearance} />
+        {designOnly && <DesignOnlyNotice rules="뽑기 · 상품 · 확률 · 가격" />}
       </Section>
 
       <Section
         title="뽑기 후원 리스트"
         aside={
-          <div className={styles.inline}>
-            <button
-              type="button"
-              className={styles.dangerButton}
-              disabled={checked.length === 0}
-              onClick={() => {
-                set("gachas", v.gachas.filter((g) => !checked.includes(g.id)));
-                if (selectedId && checked.includes(selectedId)) setSelectedId(null);
-                setChecked([]);
-              }}
-            >
-              🗑️ 삭제
-            </button>
-            <button
-              type="button"
-              className={styles.blueButton}
-              disabled={v.gachas.length >= GACHA_MAX}
-              onClick={() => {
-                const g = newGacha(v.gachas.length + 1);
-                set("gachas", [...v.gachas, g]);
-                setSelectedId(g.id);
-              }}
-            >
-              + 뽑기 추가
-            </button>
-          </div>
+          designOnly ? undefined : (
+            <div className={styles.inline}>
+              <button
+                type="button"
+                className={styles.dangerButton}
+                disabled={checked.length === 0}
+                onClick={() => {
+                  set("gachas", v.gachas.filter((g) => !checked.includes(g.id)));
+                  if (selectedId && checked.includes(selectedId)) setSelectedId(null);
+                  setChecked([]);
+                }}
+              >
+                🗑️ 삭제
+              </button>
+              <button
+                type="button"
+                className={styles.blueButton}
+                disabled={v.gachas.length >= GACHA_MAX}
+                onClick={() => {
+                  const g = newGacha(v.gachas.length + 1);
+                  set("gachas", [...v.gachas, g]);
+                  setSelectedId(g.id);
+                }}
+              >
+                + 뽑기 추가
+              </button>
+            </div>
+          )
         }
       >
-        {v.gachas.length === 0 && <p className={styles.hint}>뽑기가 없습니다. 뽑기를 추가해 주세요.</p>}
+        {v.gachas.length === 0 && <p className={styles.hint}>{designOnly ? "후원 종류 설정에서 뽑기를 만들면 여기서 모양을 정할 수 있어요." : "뽑기가 없습니다. 뽑기를 추가해 주세요."}</p>}
         <ul className={styles.presetList}>
           {v.gachas.map((g) => (
             <li key={g.id} className={`${styles.preset} ${g.id === selectedId ? styles.presetOn : ""}`}>
               <div className={styles.presetHead}>
-                <label className={styles.radio}>
-                  <input
-                    type="checkbox"
-                    checked={checked.includes(g.id)}
-                    onChange={(e) => setChecked((c) => (e.target.checked ? [...c, g.id] : c.filter((x) => x !== g.id)))}
-                  />
-                  {g.name}
-                </label>
+                {designOnly ? (
+                  <span className={styles.radio}>{g.name}</span>
+                ) : (
+                  <label className={styles.radio}>
+                    <input
+                      type="checkbox"
+                      checked={checked.includes(g.id)}
+                      onChange={(e) => setChecked((c) => (e.target.checked ? [...c, g.id] : c.filter((x) => x !== g.id)))}
+                    />
+                    {g.name}
+                  </label>
+                )}
                 <span className={styles.suffix}>{formatNumber(g.price)}FN</span>
-                <Toggle label={`${g.name} 사용`} checked={g.enabled} onChange={(x) => updateGacha(g.id, { enabled: x })} />
+                {!designOnly && <Toggle label={`${g.name} 사용`} checked={g.enabled} onChange={(x) => updateGacha(g.id, { enabled: x })} />}
                 <button type="button" className={styles.linkButton} aria-expanded={g.id === selectedId} onClick={() => setSelectedId(g.id === selectedId ? null : g.id)}>
-                  설정 {g.id === selectedId ? "▲" : "▼"}
+                  {designOnly ? "모양" : "설정"} {g.id === selectedId ? "▲" : "▼"}
                 </button>
-                <button type="button" className={styles.purpleSmall} aria-expanded={historyFor === g.id} onClick={() => setHistoryFor(historyFor === g.id ? null : g.id)}>
-                  당첨 내역 확인
-                </button>
+                {!designOnly && (
+                  <button type="button" className={styles.purpleSmall} aria-expanded={historyFor === g.id} onClick={() => setHistoryFor(historyFor === g.id ? null : g.id)}>
+                    당첨 내역 확인
+                  </button>
+                )}
               </div>
               {historyFor === g.id && <WinTable wins={live.gachaWins.filter((w) => w.gacha === g.name)} />}
             </li>
@@ -158,7 +170,12 @@ export function GachaForm({ value: v, onChange, live }: FormProps<"GACHA">) {
         </ul>
       </Section>
 
-      {selected && <GachaDetail key={selected.id} gacha={selected} onChange={(patch) => updateGacha(selected.id, patch)} />}
+      {selected &&
+        (designOnly ? (
+          <GachaLook key={selected.id} gacha={selected} onChange={(patch) => updateGacha(selected.id, patch)} />
+        ) : (
+          <GachaDetail key={selected.id} gacha={selected} onChange={(patch) => updateGacha(selected.id, patch)} />
+        ))}
 
       <Section title="크레딧 스타일 세부 설정">
         <div className={styles.rows}>
@@ -186,19 +203,25 @@ export function GachaForm({ value: v, onChange, live }: FormProps<"GACHA">) {
               <CopyButton value={`${origin}${live.gachaBoardUrl}`} label="복사" className={styles.copyButton} />
             </div>
           </div>
-          <div className={styles.subCard}>
-            <strong>미확인 상품 실시간 전광판 미리보기</strong>
-            <WinTable wins={live.gachaWins} unclaimed={live.gachaUnclaimed} />
-          </div>
-          <Row label="상품 타입">
-            <Radios name="board-type" label="상품 타입" options={GACHA_BOARD_TYPES} value={v.board.productType} onChange={(x) => set("board", { ...v.board, productType: x })} />
-          </Row>
+          {!designOnly && (
+            <>
+              <div className={styles.subCard}>
+                <strong>미확인 상품 실시간 전광판 미리보기</strong>
+                <WinTable wins={live.gachaWins} unclaimed={live.gachaUnclaimed} />
+              </div>
+              <Row label="상품 타입">
+                <Radios name="board-type" label="상품 타입" options={GACHA_BOARD_TYPES} value={v.board.productType} onChange={(x) => set("board", { ...v.board, productType: x })} />
+              </Row>
+            </>
+          )}
           <Row label="위젯 타이틀" htmlFor="board-title">
             <input id="board-title" className={styles.input} maxLength={20} value={v.board.title} onChange={(e) => set("board", { ...v.board, title: e.target.value })} />
           </Row>
-          <Row label="산정 기간">
-            <Select label="산정 기간" value={v.board.period} options={GACHA_BOARD_PERIODS} width={180} onChange={(x) => set("board", { ...v.board, period: x })} />
-          </Row>
+          {!designOnly && (
+            <Row label="산정 기간">
+              <Select label="산정 기간" value={v.board.period} options={GACHA_BOARD_PERIODS} width={180} onChange={(x) => set("board", { ...v.board, period: x })} />
+            </Row>
+          )}
           <Row label="흐르는 속도">
             <Radios name="board-speed" label="흐르는 속도" options={GACHA_BOARD_SPEEDS} value={v.board.speed} onChange={(x) => set("board", { ...v.board, speed: x })} />
           </Row>
@@ -229,6 +252,22 @@ function WinTable({ wins, unclaimed }: { wins: { gacha: string; prize: string; c
         ))}
       </tbody>
     </table>
+  );
+}
+
+/** With FLEXTV: a 뽑기's look only — its machine style and point color. */
+function GachaLook({ gacha: g, onChange }: { gacha: Gacha; onChange: (patch: Partial<Gacha>) => void }) {
+  return (
+    <Section title={`뽑기 모양 · ${g.name}`}>
+      <div className={styles.rows}>
+        <Row label="뽑기 스타일">
+          <Radios name={`${g.id}-style`} label="뽑기 스타일" options={GACHA_STYLES} value={g.style} onChange={(x) => onChange({ style: x })} />
+        </Row>
+        <Row label="포인트 폰트 컬러">
+          <ColorField label="포인트 폰트 컬러" value={g.pointColor} onChange={(x) => onChange({ pointColor: x })} />
+        </Row>
+      </div>
+    </Section>
   );
 }
 
