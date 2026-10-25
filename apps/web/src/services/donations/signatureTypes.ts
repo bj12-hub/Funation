@@ -24,6 +24,30 @@ export type ManagedSignature = {
   group: string;
 };
 
+/**
+ * 미디어 누락 (2026-10-25, StreamDonate 시그니처 관리 참고): where a signature's media stands, by the rules alerts use.
+ * image MISSING = a library image deleted since (alerts show the first preset); sound NONE = none picked, MISSING = a
+ * library sound deleted since (the alert plays none).
+ */
+export type SignatureMedia = { image: "OK" | "MISSING"; sound: "OK" | "NONE" | "MISSING" };
+/** A signature as the 시그니처 후원 screen lists it. */
+export type SignatureRow = ManagedSignature & { media: SignatureMedia };
+
+/** 미디어 누락 필터: one chip per kind of gap. */
+export const MEDIA_GAPS = [
+  { key: "IMAGE_MISSING", label: "이미지 지워짐" },
+  { key: "SOUND_MISSING", label: "소리 지워짐" },
+  { key: "SOUND_NONE", label: "소리 없음" }
+] as const;
+export type MediaGap = (typeof MEDIA_GAPS)[number]["key"];
+export function mediaGapsOf(m: SignatureMedia): MediaGap[] {
+  const gaps: MediaGap[] = [];
+  if (m.image === "MISSING") gaps.push("IMAGE_MISSING");
+  if (m.sound === "MISSING") gaps.push("SOUND_MISSING");
+  if (m.sound === "NONE") gaps.push("SOUND_NONE");
+  return gaps;
+}
+
 export const SIGNATURE_LIMITS = { max: 50, nameMax: 20, priceMin: 100, priceMax: 10_000_000, groupMax: 10 } as const;
 export const DEFAULT_SIGNATURE_GROUP = "기본";
 
