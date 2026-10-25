@@ -43,7 +43,8 @@ import {
   type ToolsView
 } from "./broadcastToolTypes";
 import { mockAlerts, overlaySignal } from "./alertCore";
-import { donorRanking, rankingSince, totalBetween } from "./widgetOverlayCore";
+import { donorRanking, rankingSince, signatureCredits, totalBetween } from "./widgetOverlayCore";
+import { mockSignatures } from "@/services/donations/signatureCore";
 import { overlayTheme, readAppearance } from "./overlayThemeStore";
 import { isOverlayThemeChoice, type OverlayThemeChoice } from "./overlayThemeTypes";
 import { mockCreator } from "./mockCreatorStore";
@@ -79,7 +80,7 @@ function creditsData(s: CreditsState, now = new Date()): CreditsData {
   if (s.period === "CREW") {
     const ofChannel = (mockCrew.broadcasts ?? []).filter((b) => b.channelId === STUDIO_CHANNEL);
     const b = liveBroadcastOf(STUDIO_CHANNEL) ?? [...ofChannel].filter((x) => x.endedAt).sort((x, y) => y.startedAt.localeCompare(x.startedAt))[0];
-    if (!b) return { periodLabel: "크루 방송 없음", empty: true, total: 0, donors: [], members: [], memberUnit: "점", mvp: null };
+    if (!b) return { periodLabel: "크루 방송 없음", empty: true, total: 0, donors: [], members: [], memberUnit: "점", mvp: null, hotSigs: [], highSigs: [] };
     from = Date.parse(b.startedAt);
     if (b.endedAt) to = Date.parse(b.endedAt);
     periodLabel = b.project ? `${b.title} · ${b.project} ${b.round}회차` : b.title;
@@ -98,8 +99,9 @@ function creditsData(s: CreditsState, now = new Date()): CreditsData {
       .map((m) => ({ name: m.name, score: sent.get(m.id) ?? 0 }))
       .sort((x, y) => y.score - x.score || x.name.localeCompare(y.name));
   }
-  const { top3, donors, members: memberSection } = s.sections;
+  const { top3, donors, members: memberSection, hotSigs, highSigs } = s.sections;
   const donorRows = donorRanking(items, from, to).slice(0, (top3.on ? 3 : 0) + (donors.on ? donors.max : 0));
+  const sigs = signatureCredits(items, from, to, mockSignatures.items);
   const first = members[0];
   return {
     periodLabel,
@@ -108,7 +110,9 @@ function creditsData(s: CreditsState, now = new Date()): CreditsData {
     donors: donorRows,
     members: members.slice(0, memberSection.max).map((m, i) => ({ rank: i + 1, ...m })),
     memberUnit: s.period === "CREW" ? "점" : "FN",
-    mvp: first && first.score > 0 ? { ...first } : null
+    mvp: first && first.score > 0 ? { ...first } : null,
+    hotSigs: sigs.hot.slice(0, hotSigs.max).map((r, i) => ({ rank: i + 1, ...r })),
+    highSigs: sigs.high.slice(0, highSigs.max).map((r, i) => ({ rank: i + 1, ...r }))
   };
 }
 
@@ -298,12 +302,19 @@ export async function saveCredits(input: unknown): Promise<ToolResult> {
   const raw = (typeof v.sections === "object" && v.sections !== null ? v.sections : {}) as Record<string, unknown>;
   const sections = {} as CreditsState["sections"];
   for (const meta of CREDITS_SECTIONS) {
+    // A screen opened before a section existed (HOT · HIGH 시그, 2026-10-25) does not send it: it stays as saved.
+    if (raw[meta.key] === undefined) {
+      sections[meta.key] = structuredClone(tools.credits.sections[meta.key]);
+      continue;
+    }
     const x = (typeof raw[meta.key] === "object" && raw[meta.key] !== null ? raw[meta.key] : {}) as Record<string, unknown>;
     const name = typeof x.title === "string" ? x.title.trim() : "";
     if (typeof x.on !== "boolean") return { status: "INVALID", message: "섹션 설정을 확인해 주세요." };
     if (name.length > CREDITS_SECTION_TITLE_MAX) return { status: "INVALID", message: `섹션 제목은 ${CREDITS_SECTION_TITLE_MAX}자 이내로 입력해 주세요.` };
     const max = meta.list ? x.max : DEFAULT_CREDITS.sections[meta.key].max;
-    if (typeof max !== "number" || !Number.isInteger(max) || max < 1 || max > CREDITS_LIST_MAX) return { status: "INVALID", message: `표시 인원은 1~${CREDITS_LIST_MAX}명이에요.` };
+    if (typeof max !== "number" || !Number.isInteger(max) || max < 1 || max > CREDITS_LIST_MAX) {
+      return { status: "INVALID", message: meta.unit === "개" ? `표시 개수는 1~${CREDITS_LIST_MAX}개예요.` : `표시 인원은 1~${CREDITS_LIST_MAX}명이에요.` };
+    }
     sections[meta.key] = { on: x.on, title: name, max };
   }
   const shown = [title, ...thanks, ...Object.values(sections).map((x) => x.title)];

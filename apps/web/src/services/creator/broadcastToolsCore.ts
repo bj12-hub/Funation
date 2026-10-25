@@ -1,4 +1,4 @@
-import { DEFAULT_CREDITS, EMPTY_TEXT_SLOT, TEXT_SLOTS, TIMER_DONATION_UNIT_FN, TIMER_MAX_SEC, type BingoState, type TimerState, type ToolStates } from "./broadcastToolTypes";
+import { CREDITS_SECTIONS, DEFAULT_CREDITS, EMPTY_TEXT_SLOT, TEXT_SLOTS, TIMER_DONATION_UNIT_FN, TIMER_MAX_SEC, type BingoState, type TimerState, type ToolStates } from "./broadcastToolTypes";
 
 /**
  * 방송 도구 state (server-only, not a "use server" module): the tool actions (./broadcastTools.ts) write it, the overlays
@@ -31,6 +31,8 @@ if (!("sections" in tools.credits)) {
   tools.credits = { ...structuredClone(DEFAULT_CREDITS), title: old.title, thanks: old.thanks, rollingSince: old.rollingSince };
   tools.credits.sections.members.on = old.includeCrew !== false;
 }
+// HOT 시그 · HIGH 시그 (2026-10-25): sections saved before them start at their defaults.
+for (const meta of CREDITS_SECTIONS) tools.credits.sections[meta.key] ??= structuredClone(DEFAULT_CREDITS.sections[meta.key]);
 // 타이머 후원 연동 and 텍스트 슬롯 (2026-10-23): off / empty for stores from before.
 tools.timer.donationSec ??= 0;
 tools.text ??= { slots: emptySlots() };

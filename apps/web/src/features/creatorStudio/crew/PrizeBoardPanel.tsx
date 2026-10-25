@@ -27,6 +27,8 @@ const time = (iso: string) => formatKstTime(iso, { hour: "2-digit", minute: "2-d
 const PICKER_DEFAULT = "#ffffff";
 
 type Run = (action: () => Promise<BroadcastResult>, ok?: string) => void;
+/** Which board a toggle or 구간 bar drives (crewPrizeBoard.ts `board`). */
+type BoardKey = "MEMBER" | "TEAM" | "WINDOW_GAUGE";
 type Display = Pick<PrizeBoardSettings, "showScore" | "showTotal" | "columns" | "placement">;
 
 /** A settings form's draft, refilled when the saved settings change (here or in another tab). */
@@ -126,7 +128,7 @@ export function PrizeLinesField({ prizes, lines, note, onChange }: { prizes: Ran
 export const lastPrizeLine = (prizes: RankPrize[]) => prizes.reduce((last, p, i) => (p.text.trim() ? i : last), -1);
 
 /** OBS에 표시 (the card head, while live). */
-export function BoardVisibleToggle({ broadcastId, board, visible, label, pending, run }: { broadcastId: string; board: "MEMBER" | "TEAM"; visible: boolean; label: string; pending: boolean; run: Run }) {
+export function BoardVisibleToggle({ broadcastId, board, visible, label, pending, run }: { broadcastId: string; board: BoardKey; visible: boolean; label: string; pending: boolean; run: Run }) {
   return (
     <label className={styles.checkRow}>
       <input
@@ -141,7 +143,7 @@ export function BoardVisibleToggle({ broadcastId, board, visible, label, pending
 }
 
 /** 구간 시작 · 다시 시작 · 정지 of a board on the WINDOW basis. */
-export function PrizeWindowBar({ broadcastId, board, span, pending, run }: { broadcastId: string; board: "MEMBER" | "TEAM"; span: PrizeBoardLive["window"]; pending: boolean; run: Run }) {
+export function PrizeWindowBar({ broadcastId, board, span, pending, run }: { broadcastId: string; board: BoardKey; span: PrizeBoardLive["window"]; pending: boolean; run: Run }) {
   const startId = useRef<string | null>(null);
   const start = () => {
     // One request id per intended 시작: a double click or retry never restarts the 구간 twice.

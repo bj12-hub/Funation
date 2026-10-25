@@ -32,6 +32,7 @@ import type {
   TeamPrizeSettings,
   CumulativeSettings,
   GaugeSettings,
+  WindowGaugeSettings,
   MemberPledge,
   RandomSigSettings,
   RelaySettings,
@@ -254,6 +255,8 @@ export type MockBroadcast = {
   cumulative?: { visible: boolean };
   /** 출근 BJ 게이지 shown on OBS (`?bjgauge`). */
   gauge?: { visible: boolean };
+  /** 시간 내 통합 게이지 (`?windowgauge`): shown on OBS and its 구간, like a 순위표. */
+  windowGauge?: PrizeBoardState;
   /** 시그 카운트: shown on OBS (`?sigcount`) and counted from `since` (null = the broadcast start; 다시 세기 sets it). */
   sigCount?: { visible: boolean; since: string | null; resets: string[] };
   /** Final ranking frozen at the end (members may be renamed or removed later). */
@@ -292,6 +295,8 @@ type MockCrew = {
   pledges?: Record<string, Record<string, MemberPledge>>;
   /** 출근 BJ 게이지 settings per channel (missing = DEFAULT_GAUGE). */
   gauges?: Record<string, GaugeSettings>;
+  /** 시간 내 통합 게이지 settings per channel (missing = DEFAULT_WINDOW_GAUGE). */
+  windowGauges?: Record<string, WindowGaugeSettings>;
   /** 시그 카운트 settings per channel (missing = DEFAULT_SIG_COUNT). */
   sigCounts?: Record<string, SigCountSettings>;
   /** 스핀머신 settings per channel (missing = DEFAULT_SPIN). */
