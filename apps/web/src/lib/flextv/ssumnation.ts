@@ -1,3 +1,4 @@
+import { DEFAULT_TYPE_SETTINGS, DRAWING_TITLE_MAX, MINI_PALETTE, MINI_TEXT_MAX, parseTypeSettings, type DonationTypeSettings } from "@/services/creator/donationTypeSettings";
 import type { MiniColor, WishlistItem } from "@/services/donations/donationCatalog";
 import type { GachaOffer, MyGachaDraw, RoomGacha } from "@/services/donations/gachaTypes";
 import type { MyRouletteSpin, RoomRoulette } from "@/services/donations/rouletteTypes";
@@ -204,4 +205,59 @@ export async function fetchGames(channelId: string, token: string | null) {
   const response = await flextvRequest(`/api/ssumnation/channels/${encodeURIComponent(channelId)}/games`, token ? { token } : {});
   if (response.status !== 200) throw new FlextvUnavailableError(`FLEXTV games answered ${response.status}`);
   return readGames(response.data, token !== null);
+}
+
+/* ── The streamer's own settings (§5) ────────────────────── */
+
+/**
+ * `GET /api/ssumnation/my/donation-settings` (the streamer's own channel): the §1 shape with every section, `enabled`
+ * on each, so a section that is off keeps its values. 404 = never set.
+ */
+export function readEditableSettings(data: unknown): DonationTypeSettings | null {
+  if (!isRecord(data)) return null;
+  const parsed = parseTypeSettings({
+    mini: isRecord(data.mini) ? { ...data.mini, colorIds: rows(data.mini.colors).map((c) => c.id) } : DEFAULT_TYPE_SETTINGS.mini,
+    wishlist: data.wishlist ?? [],
+    drawing: isRecord(data.drawing) ? data.drawing : DEFAULT_TYPE_SETTINGS.drawing,
+    roulette: isRecord(data.roulette) ? data.roulette : DEFAULT_TYPE_SETTINGS.roulette,
+    gacha: rows(data.gacha).map((g) => ({ ...g, enabled: g.enabled !== false }))
+  });
+  return "invalid" in parsed ? null : parsed;
+}
+
+export async function fetchMySettings(token: string): Promise<DonationTypeSettings | null> {
+  const response = await flextvRequest("/api/ssumnation/my/donation-settings", { token });
+  if (response.status === 404) return DEFAULT_TYPE_SETTINGS;
+  if (response.status === 401 || response.status === 403) return null;
+  if (response.status !== 200) throw new FlextvUnavailableError(`FLEXTV my donation settings answered ${response.status}`);
+  return readEditableSettings(response.data) ?? DEFAULT_TYPE_SETTINGS;
+}
+
+/** What FLEXTV keeps: the §1 shape, the 미니 colors as Ssumnation's palette entries. */
+export function settingsBody(s: DonationTypeSettings) {
+  return {
+    mini: { enabled: s.mini.enabled, minAmount: s.mini.minAmount, maxAmount: s.mini.maxAmount, maxLength: MINI_TEXT_MAX, colors: MINI_PALETTE.filter((c) => s.mini.colorIds.includes(c.id)) },
+    wishlist: s.wishlist,
+    drawing: { enabled: s.drawing.enabled, minAmount: s.drawing.minAmount, maxTitle: DRAWING_TITLE_MAX },
+    roulette: s.roulette,
+    gacha: s.gacha
+  };
+}
+
+export type SaveOutcome = { kind: "SAVED"; settings: DonationTypeSettings } | { kind: "INVALID"; message: string | null } | { kind: "UNAUTHORIZED" };
+
+/** `PUT /api/ssumnation/my/donation-settings`: `{ status: "SAVED", settings }` or `400 { status: "INVALID", message }`. */
+export function mapSave({ status, data }: Pick<FlextvResponse, "status" | "data">): SaveOutcome {
+  if (status === 401 || status === 403) return { kind: "UNAUTHORIZED" };
+  if (status >= 500 || !isRecord(data)) throw new FlextvUnavailableError(`FLEXTV settings save answered ${status}`);
+  if (data.status === "SAVED") {
+    const settings = readEditableSettings(data.settings);
+    if (!settings) throw new FlextvUnavailableError("FLEXTV saved settings it cannot show back");
+    return { kind: "SAVED", settings };
+  }
+  return { kind: "INVALID", message: typeof data.message === "string" && data.message.length <= 100 && /[가-힣]/.test(data.message) ? data.message : null };
+}
+
+export async function saveMySettings(token: string, context: DeviceContext, settings: DonationTypeSettings): Promise<SaveOutcome> {
+  return mapSave(await flextvRequest("/api/ssumnation/my/donation-settings", { method: "PUT", token, ...requestFrom(context), body: settingsBody(settings) }));
 }

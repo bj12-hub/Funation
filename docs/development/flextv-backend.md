@@ -20,7 +20,7 @@ broadcasting is part of Ssumnation. The mock services are replaced area by area,
 | 3 | 후원 to a FLEXTV channel's room (일반 · 시그니처) · 후원 내역 | **done** (below, "3단계") |
 | 4 | 라이브 목록 · 채널 방의 영상 · 채팅 | **done** (below, "4단계") |
 | 5 | 방송인 등록 · 방송 설정 · 대시보드 · 수익 · 받은 후원 · 정산 (환전) | **done** (below, "5단계") |
-| 6 | Ssumnation-only features (룰렛 · 뽑기 · 위시리스트 · 그림 · 미니 후원 · 크루 게임 …) on new FLEXTV endpoints | **front first, in progress** (below, "6단계"): the rooms' types and the contract are done; FLEXTV's endpoints, the studio's settings, 퀘스트 and the overlays are next |
+| 6 | Ssumnation-only features (룰렛 · 뽑기 · 위시리스트 · 그림 · 미니 후원 · 크루 게임 …) on new FLEXTV endpoints | **front first, in progress** (below, "6단계"): the rooms' types, the studio's 후원 종류 설정 and the contract are done; FLEXTV's endpoints, 퀘스트 and the overlays are next |
 
 One switch turns on every phase built so far. Until its phase, an area keeps its mock: in `next dev` the site mixes a
 real FLEXTV member with sample data (마이페이지, 후원 내역, the creator room …); a production build is for a staging
@@ -193,14 +193,15 @@ Code: `lib/flextv/studio.ts` (registration, channel, keys, start · change · en
 | 영상 후원 | FLEXTV's own `POST /api/luv/send` with its YouTube effect (`sendType: "youtube"`), as its 영상후원 form sends it | Offered where the streamer turned 영상 후원 on in FLEXTV's 도우미 (`GET /api/luv/effect-settings`); priced as they set it — the played length × 렉스 per second, from their minimum, up to their longest range (checked on the server; FLEXTV's own server does not). Needs nothing new on FLEXTV. FLEXTV's own web currently hides its 영상 tab. 음성 후원 is not offered: FLEXTV's is an uploaded sound file |
 | 미니 · 위시리스트 · 그림 · 룰렛 · 뽑기 | The endpoints FLEXTV adds for Ssumnation: `docs/development/flextv-ssumnation-api.md` | Behind `FLEXTV_SSUMNATION_API=on`. The streamer's settings, the donation by an Idempotency-Key FLEXTV keeps (an unclear answer is asked again by the key, and sent again only if FLEXTV never got it), the room's 내 룰렛 · 내 뽑기 |
 | 퀘스트 | not yet | needs its decisions and refunds on FLEXTV (contract "Next") |
+| 후원 종류 설정 (studio) | `GET · PUT /api/ssumnation/my/donation-settings` (contract §5) | `/creator/donation-types`, in the studio menu only with `FLEXTV_SSUMNATION_API=on`: 미니 (on/off, 1 ~ 999 FN, its colors from Ssumnation's palette), 위시리스트, 그림, 룰렛 (items and percents adding up to 100), 뽑기 (확률형 · 재고형). Checked on the server with the mock studio's limits before FLEXTV checks it again |
 
 Every type is checked with Donation Core's rules (`services/donations/donationDetails.ts`, shared with the mock) against
 the channel's catalog as FLEXTV has it at the send; prices of 위시리스트 · 뽑기 are checked again (PRICE_CHANGED). Code:
 `lib/flextv/ssumnation.ts`, `lib/flextv/donation.ts` (`readVideoSetting`, the video send), `services/donations/flextvDonate.ts`
 (`loadFlextvCatalog`, the sends), `services/donations/flextvGames.ts` (the room's panels).
 
-Next: FLEXTV implements the contract; the studio's settings for these types (`/api/ssumnation/my/donation-settings`),
-퀘스트, the 리모컨 · overlays, and the types in 후원 내역.
+Next: FLEXTV implements the contract; 퀘스트, the 리모컨 · overlays (start · reveal on the broadcast), and the types and
+results in 후원 내역.
 
 ## FLEXTV-side changes needed before opening to the public
 

@@ -43,5 +43,10 @@ describe("studio sidebar active item", () => {
     expect(studioCurrentItem(studioActiveHref("/creator/broadcast", null, flextv), flextv)).toMatchObject({ label: "방송 설정" });
     // The mock studio has no 방송 설정.
     expect(studioActiveHref("/creator/broadcast", null)).toBeNull();
+    // 후원 종류 설정 only with FLEXTV's Ssumnation endpoints (phase 6).
+    expect(hrefs).not.toContain("/creator/donation-types");
+    const withTypes = studioGroups(true, true);
+    expect(studioActiveHref("/creator/donation-types", null, withTypes)).toBe("/creator/donation-types");
+    expect(flextvStudioServes("/creator/donation-types")).toBe(true);
   });
 });

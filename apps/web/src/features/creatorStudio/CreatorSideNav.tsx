@@ -105,7 +105,12 @@ const FLEXTV_GROUPS: Group[] = [
   }
 ];
 
-export const studioGroups = (flextv: boolean) => (flextv ? FLEXTV_GROUPS : MOCK_GROUPS);
+/** `donationTypes`: FLEXTV's Ssumnation endpoints are on (phase 6), so 후원 종류 설정 is offered. */
+export const studioGroups = (flextv: boolean, donationTypes = false): Group[] => {
+  if (!flextv) return MOCK_GROUPS;
+  if (!donationTypes) return FLEXTV_GROUPS;
+  return FLEXTV_GROUPS.map((g) => (g.title === "방송" ? { ...g, items: [...g.items, { label: "후원 종류 설정", emoji: "🎁", href: "/creator/donation-types" }] } : g));
+};
 const GROUPS = studioGroups(FLEXTV_STUDIO);
 
 const DONATIONS = "/creator/donations";
@@ -115,7 +120,7 @@ const DONATIONS = "/creator/donations";
  * specific path.
  */
 export function studioActiveHref(pathname: string, tab: string | null, groups: Group[] = GROUPS) {
-  if (pathname === DONATIONS) return `${DONATIONS}?tab=${tab ?? (groups === FLEXTV_GROUPS ? "list" : "settings")}`;
+  if (pathname === DONATIONS) return `${DONATIONS}?tab=${tab ?? (groups === MOCK_GROUPS ? "settings" : "list")}`;
   const paths = groups.flatMap((g) => g.items.map((i) => i.href)).filter((h): h is string => Boolean(h) && !h!.startsWith(`${DONATIONS}?`));
   return paths.filter((h) => (h === "/creator" ? pathname === h : pathname === h || pathname.startsWith(`${h}/`))).sort((a, b) => b.length - a.length)[0] ?? null;
 }
@@ -129,11 +134,13 @@ export function studioCurrentItem(active: string | null, groups: Group[] = GROUP
 /** The phone dropdown (always in the page, shown by studio.module.css while open on phones). */
 export const STUDIO_MENU_ID = "studio-side-menu";
 
-export function CreatorSideNav() {
+/** `donationTypes` comes from the server (FLEXTV_SSUMNATION_API is a server-only setting). */
+export function CreatorSideNav({ donationTypes = false }: { donationTypes?: boolean }) {
   const pathname = usePathname() ?? "/creator";
   const tab = useSearchParams()?.get("tab") ?? null;
-  const active = studioActiveHref(pathname, tab);
-  const current = studioCurrentItem(active);
+  const groups = donationTypes ? studioGroups(FLEXTV_STUDIO, true) : GROUPS;
+  const active = studioActiveHref(pathname, tab, groups);
+  const current = studioCurrentItem(active, groups);
   // Phones only: whether the dropdown is open. Wider screens hide the bar and always show the menu.
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -195,7 +202,7 @@ export function CreatorSideNav() {
       </button>
       <div className={styles.sideScrim} aria-hidden="true" />
       <div ref={panelRef} id={STUDIO_MENU_ID} className={styles.sideMenu}>
-        {GROUPS.map((g, i) => (
+        {groups.map((g, i) => (
           <div key={g.title ?? `g${i}`} className={styles.sideGroup}>
             {g.title && <p className={styles.sideGroupTitle}>{g.title}</p>}
             <ul>

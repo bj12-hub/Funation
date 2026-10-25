@@ -116,10 +116,25 @@ unfinished ones). A result or prize is sent only once it is revealed on the broa
 - Viewers ask every 3 seconds; Ssumnation keeps one answer per channel and viewer for 2 seconds. A pushed event (the
   chat socket) can replace polling later.
 
+## 5. The streamer's settings — `GET · PUT /api/ssumnation/my/donation-settings`
+
+Member, a streamer (memberDiv 2 · 3), **for the caller's own channel only** (never a channel id from the body).
+Ssumnation's 후원 종류 설정 (`/creator/donation-types`) reads and saves them.
+
+- `GET`: the §1 shape with every section present and `enabled` on each (a section that is off keeps its values, and
+  every 뽑기 has `enabled`); `404 { "status": "NOT_FOUND" }` when the streamer never saved (Ssumnation starts from
+  everything off).
+- `PUT` body: the same shape. 위시리스트 items and 뽑기 without an `id` are new (FLEXTV gives them one); an item missing
+  from the list is removed (records of donations already made keep their copy).
+- Answer: `{ "status": "SAVED", "settings": { …as GET } }`, or `400 { "status": "INVALID", "message": "…" }`.
+- FLEXTV checks it again: 미니 `1 ≤ minAmount ≤ maxAmount ≤ 999` with at least one color; 룰렛 2–10 items, names ≤ 12
+  characters, whole percents adding up to 100 while on, `dailyLimit` 0–100; 뽑기 at most 10, 1–20 prizes each, names ≤
+  20 characters, whole percents adding up to 100 (확률형) or a stock per prize (재고형), `limit` null or 1–100;
+  위시리스트 at most 20 items, names ≤ 20, notes ≤ 40; prices 1–100,000,000. A change applies to donations from then
+  on; a spin or draw already paid keeps its result.
+
 ## Next (6단계 후반)
 
-- **Streamer settings**: `GET · PUT /api/ssumnation/my/donation-settings` (the §1 shape, the streamer's own channel only)
-  for Ssumnation's studio.
 - **Broadcast control**: start the next spin · reveal · 뽑기 결과 공개 from Ssumnation's 리모컨 and overlays, or from the
   도우미.
 - **퀘스트**: the donation (held until decided), the supporter's and the streamer's decisions, the refund of a failed or

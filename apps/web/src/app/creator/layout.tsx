@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { GlobalHeader } from "@/components/layout/GlobalHeader";
 import { CreatorSideNav } from "@/features/creatorStudio/CreatorSideNav";
-import { FLEXTV_STUDIO } from "@/lib/flextv/mode";
+import { FLEXTV_SSUMNATION_API, FLEXTV_STUDIO } from "@/lib/flextv/mode";
 import { getSession, hasRole } from "@/lib/session";
 import { getCreatorProfile } from "@/services/creator/creatorStudio";
 import styles from "@/features/creatorStudio/studio.module.css";
@@ -49,7 +49,7 @@ export default async function CreatorLayout({ children }: { children: ReactNode 
         creator={{ channelName: profile.channelName, platforms: profile.platforms }}
       />
       <div className={styles.shell}>
-        <CreatorSideNav />
+        <CreatorSideNav donationTypes={FLEXTV_SSUMNATION_API} />
         <main className={styles.main}>{children}</main>
       </div>
     </div>
