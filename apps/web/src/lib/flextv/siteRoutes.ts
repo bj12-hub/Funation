@@ -7,11 +7,9 @@
 
 /** Pages sent home: Ssumnation's own areas that FLEXTV has no counterpart for yet (TBD), and FLEXTV's own flows. */
 export const FLEXTV_UNSERVED_PAGES = [
-  // 커뮤니티 · 이벤트 · 출석 체크 (its reward credits the mock's FN) · 명예의 전당.
+  // 커뮤니티 · 출석 체크 (its reward credits the mock's FN). 이벤트 and 명예의 전당 are FLEXTV's since phase 9.
   "/community",
-  "/events",
   "/attendance",
-  "/hall-of-fame",
   // SOOP · FlexTV 플랫폼 후원 and its history: spends the mock's FN.
   "/donation",
   // The mock studio's 마블 · 럼블 invitations.

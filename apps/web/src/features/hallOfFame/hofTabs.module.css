@@ -107,3 +107,48 @@
   cursor: not-allowed;
   opacity: 0.5;
 }
+
+/* 명예의 전당 with FLEXTV (phase 9): FLEXTV's accumulated badges on a row. */
+.hofBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.hofBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
+.monthForm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.monthSelect,
+.monthGo {
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--font-size-14);
+}
+
+.monthGo {
+  cursor: pointer;
+}
+
+@media (max-width: 767px) {
+  .hofBadges {
+    display: none;
+  }
+}
