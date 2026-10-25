@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { formatKstTime, formatNumber } from "@/lib/format";
 import {
   cancelAllAlerts,
+  playHeldAlert,
   reloadOverlays,
   replayAlert,
   sendTestAlert,
@@ -260,6 +261,8 @@ export function RemoteScreen({
               </>
             ) : controls.paused ? (
               "일시정지됨 — 새 알림은 대기열에 쌓여요"
+            ) : view.queued[0]?.held ? (
+              "미지정 후원에서 멈춤 — 방송 운영 후원 리스트에서 배정하면 이어서 나가요"
             ) : (
               "표시 중인 알림 없음"
             )}
@@ -424,7 +427,7 @@ export function RemoteScreen({
         ) : (
           <ul className={styles.list}>
             {[...(view.showing ? [view.showing] : []), ...view.queued, ...view.recent].map((a) => (
-              <AlertRow key={a.id} alert={a} disabled={pending} onReplay={() => replay(a.id)} />
+              <AlertRow key={a.id} alert={a} disabled={pending} onReplay={() => replay(a.id)} onPlayHeld={() => run(() => playHeldAlert({ alertId: a.id }), "배정 없이 알림을 내보내요.")} />
             ))}
           </ul>
         )}
@@ -433,8 +436,10 @@ export function RemoteScreen({
   );
 }
 
-function AlertRow({ alert, disabled, onReplay }: { alert: AlertItem; disabled: boolean; onReplay: () => void }) {
+function AlertRow({ alert, disabled, onReplay, onPlayHeld }: { alert: AlertItem; disabled: boolean; onReplay: () => void; onPlayHeld: () => void }) {
   const done = alert.status !== "QUEUED" && alert.status !== "SHOWING";
+  // 미지정 일시정지 (방송 운영 후원 리스트): the queue waits at this alert until its donation is assigned.
+  const held = alert.status === "QUEUED" && alert.held;
   return (
     <li className={styles.row}>
       <div className={styles.rowMain}>
@@ -448,9 +453,14 @@ function AlertRow({ alert, disabled, onReplay }: { alert: AlertItem; disabled: b
           {alert.message && ` · ${alert.message}`}
         </span>
       </div>
-      <span className={remote.statusTag} data-status={alert.status}>
-        {STATUS_LABEL[alert.status]}
+      <span className={remote.statusTag} data-status={held ? "HELD" : alert.status}>
+        {held ? "미지정 대기" : STATUS_LABEL[alert.status]}
       </span>
+      {held && (
+        <button type="button" className={styles.ghost} disabled={disabled} onClick={onPlayHeld}>
+          배정 없이 재생
+        </button>
+      )}
       {done && (
         <button type="button" className={styles.ghost} disabled={disabled} onClick={onReplay}>
           다시 보내기

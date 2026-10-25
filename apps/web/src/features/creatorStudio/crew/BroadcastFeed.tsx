@@ -2,18 +2,32 @@
 
 import { useRef, useState, type DragEvent } from "react";
 import { formatKstTime, formatNumber } from "@/lib/format";
-import { assignFeedEntry, cancelFeedEntry, resolveDuplicate, setAssignMode, setEntryContribution, setMemberKeywords, simulateDonation, startOneshot, stopOneshot } from "@/services/crew/crewFeed";
+import {
+  assignFeedEntry,
+  cancelFeedEntry,
+  playHeldEntry,
+  resolveDuplicate,
+  setAssignMode,
+  setEntryContribution,
+  setMemberKeywords,
+  setPauseUnassigned,
+  simulateDonation,
+  startOneshot,
+  stopOneshot
+} from "@/services/crew/crewFeed";
 import {
   EXCEL_UNITS,
   FEED_ORIGINS,
   KEYWORDS_PER_MEMBER,
   feedOrigin,
+  feedUnplayed,
   type BroadcastResult,
   type Contribution,
   type CrewMember,
   type DonorMerge,
   type ExcelSettings,
   type ExcelUnit,
+  type FeedAlert,
   type FeedEntryView,
   type FeedListEntry,
   type FeedOrigin,
@@ -31,11 +45,14 @@ const STATUS: Record<FeedStatus, string> = { ASSIGNED: "반영", PENDING: "확�
 const FILTERS = [
   { key: "ALL", label: "전체" },
   { key: "TODO", label: "미지정·대기" },
+  { key: "UNPLAYED", label: "미재생" },
   { key: "DUPLICATE", label: "중복 의심" },
   { key: "ASSIGNED", label: "반영" },
   { key: "CANCELLED", label: "취소 건" }
 ] as const;
 type Filter = (typeof FILTERS)[number]["key"];
+/** Where the entry's alert is, while it has not finished (ENDED shows nothing). */
+const ALERT: Record<Exclude<FeedAlert, "ENDED">, string> = { HELD: "알림 멈춤", QUEUED: "알림 대기", SHOWING: "알림 중" };
 const time = (iso: string) => formatKstTime(iso, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 /** Entries carry a unit code; the label is what shows (5,000 원 · 100 별풍선). */
 const amountText = (amount: number, unit: ExcelUnit) => `${formatNumber(amount)} ${unitLabel(unit)}`;
@@ -48,6 +65,8 @@ type Run = (action: () => Promise<BroadcastResult>, ok?: string) => void;
  * Keywords per member, 반영 방식 (자동 / 확인 후), 자동엑셀 (원화 환산 · 배수 · 수기 기여도), 시뮬 후원,
  * 한방, 플랫폼 · BJ별 정리 and the entry list where the operator assigns (select, or drag a row onto a member —
  * StreamDonate 참고, 2026-10-25), confirms, cancels or settles a 중복 의심. All scoring happens on the server.
+ * Each row shows where its alert is in the queue (미재생 filter), and 미지정 일시정지 holds a 미지정 donation's alert until
+ * it is assigned (2026-10-25).
  */
 export function BroadcastFeed({
   broadcastId,
@@ -90,11 +109,14 @@ export function BroadcastFeed({
         ? true
         : filter === "TODO"
           ? e.status === "UNMATCHED" || e.status === "PENDING"
-          : filter === "DUPLICATE"
-            ? inPair.has(e.id)
-            : e.status === filter)
+          : filter === "UNPLAYED"
+            ? feedUnplayed(e)
+            : filter === "DUPLICATE"
+              ? inPair.has(e.id)
+              : e.status === filter)
   );
   const todo = view.entries.filter((e) => e.status === "UNMATCHED" || e.status === "PENDING").length;
+  const held = view.entries.filter((e) => e.alert === "HELD").length;
 
   /** A row dropped on a member (or 미지정, null): the same as picking it in the row's select. */
   const dropOn = (entryId: string, memberId: string | null) => {
@@ -124,6 +146,7 @@ export function BroadcastFeed({
         <h2 id="bc-feed" className={styles.cardTitle}>
           후원 리스트 {todo > 0 && <span className={feed.badge}>처리 필요 {todo}</span>}
           {suspects.length > 0 && <span className={feed.badge}>중복 의심 {suspects.length}</span>}
+          {held > 0 && <span className={feed.badge}>알림 멈춤 {held}</span>}
         </h2>
         <span className={styles.segment} role="group" aria-label="반영 방식">
           {(["AUTO", "CONFIRM"] as const).map((m) => (
@@ -136,6 +159,23 @@ export function BroadcastFeed({
       <p className={styles.note}>
         방송 중 멤버 지정 없이 들어온 후원이 여기에 쌓여요. 메시지에 멤버 키워드가 있으면 그 멤버에게 배정돼요. 키워드가 없거나 여러 멤버와 겹치면 미지정으로 남아요.
       </p>
+      <div className={feed.pauseRow}>
+        <label className={styles.checkRow}>
+          <input
+            type="checkbox"
+            checked={view.pauseUnassigned}
+            disabled={pending}
+            onChange={(ev) =>
+              run(
+                () => setPauseUnassigned({ broadcastId, on: ev.target.checked }),
+                ev.target.checked ? "미지정 일시정지를 켰어요. 미지정 후원의 알림은 배정할 때까지 멈춰요." : "미지정 일시정지를 껐어요. 멈춘 알림이 차례로 나가요."
+              )
+            }
+          />
+          미지정 일시정지
+        </label>
+        <span className={styles.muted}>켜면 미지정 · 확인 대기 후원의 알림이 배정하거나 취소할 때까지 대기열에서 멈춰요. 뒤 알림도 함께 기다려요.</span>
+      </div>
 
       <ExcelPanel settings={view.excel} pending={pending} run={run} />
       <ExcelSummary rows={view.summary} />
@@ -253,7 +293,13 @@ export function BroadcastFeed({
 
       {entries.length === 0 ? (
         <p className={styles.empty}>
-          {!view.entries.length ? "방송 중 들어온 후원이 여기에 쌓여요. 시뮬 후원으로 연습해 보세요." : filter === "DUPLICATE" ? "중복 의심 후원이 없어요." : "조건에 맞는 후원이 없어요."}
+          {!view.entries.length
+            ? "방송 중 들어온 후원이 여기에 쌓여요. 시뮬 후원으로 연습해 보세요."
+            : filter === "DUPLICATE"
+              ? "중복 의심 후원이 없어요."
+              : filter === "UNPLAYED"
+                ? "알림이 아직 나가지 않은 후원이 없어요."
+                : "조건에 맞는 후원이 없어요."}
         </p>
       ) : (
         <ul className={styles.list}>
@@ -339,7 +385,12 @@ function EntryRow({
   // The donor side of the row drags it (the inputs on the right stay selectable); a 한방 entry waits for its STOP.
   const draggable = e.status !== "POT" && !pending;
   return (
-    <li className={`${styles.row} ${feed.entry}`} data-inactive={e.status === "CANCELLED" ? "" : undefined} data-duplicate={e.duplicateOf ? "" : undefined}>
+    <li
+      className={`${styles.row} ${feed.entry}`}
+      data-inactive={e.status === "CANCELLED" ? "" : undefined}
+      data-duplicate={e.duplicateOf ? "" : undefined}
+      data-held={e.alert === "HELD" ? "" : undefined}
+    >
       <div
         className={`${styles.rowMain} ${feed.dragSource}`}
         draggable={draggable}
@@ -367,6 +418,11 @@ function EntryRow({
           {e.source === "BANK" && <span className={styles.chipOff}>계좌</span>}
           {e.oneshot && <span className={styles.chip}>한방</span>}
           {e.status === "CANCELLED" && e.duplicate === "DUPLICATE" && <span className={styles.chipOff}>중복 취소</span>}
+          {e.alert && e.alert !== "ENDED" && (
+            <span className={feed.alertTag} data-alert={e.alert}>
+              {ALERT[e.alert]}
+            </span>
+          )}
         </span>
         <span className={styles.muted}>
           {time(e.at)}
@@ -424,6 +480,14 @@ function EntryRow({
               중복 아님
             </button>
           </span>
+        </div>
+      )}
+      {e.alert === "HELD" && (
+        <div className={feed.held}>
+          <span>미지정 일시정지 · 이 후원의 알림이 대기열에서 멈춰 있어요. 배정하거나 취소하면 이어서 나가요.</span>
+          <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => playHeldEntry({ broadcastId, entryId: e.id }), "배정 없이 알림을 내보내요.")}>
+            배정 없이 재생
+          </button>
         </div>
       )}
     </li>

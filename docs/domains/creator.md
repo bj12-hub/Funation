@@ -79,6 +79,9 @@ Supported:
 - 전체 알림 취소 cancels the showing and queued alerts up to the newest one the remote listed (`upToId`); alerts that
   arrived after the operator looked stay queued.
 - 다시 보내기 carries a request id: a double click or retry queues one copy.
+- 미지정 일시정지 (2026-10-25, 방송 운영 후원 리스트): an alert can be held at its place in the queue (`held`), and the
+  queue waits behind it. The 후원 리스트 entry is listed before its alert is queued, so the hold is set when the alert is
+  queued — never after it went on screen. 배정 없이 재생 (리모컨 or 후원 리스트) lets it go for good (`holdReleased`).
 - 방송 도구 타이머 퀵 조정: a countdown that ran out counts as 0, so the first +30 / +60 adds that much time.
 
 ## 크루 방송 점수 (code-first, `services/crew`)
