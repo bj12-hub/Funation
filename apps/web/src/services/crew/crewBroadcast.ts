@@ -178,6 +178,7 @@ function feedView(b: MockBroadcast): FeedView {
   const alerts = feedAlertsOf(b);
   return {
     assignMode: b.assignMode ?? "AUTO",
+    nameKeywords: !!mockCrew.nameKeywords?.[b.channelId],
     pauseUnassigned: !!b.pauseUnassigned,
     keywords: structuredClone(mockCrew.keywords ?? {}),
     entries: structuredClone([...scored].reverse().slice(0, 200)).map((f) => ({ ...f, duplicateOf: suspects.get(f.id) ?? null, mergedDonor: merged(f.donor), alert: alerts.get(f.id) ?? null })),

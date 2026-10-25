@@ -44,6 +44,33 @@ describe("후원 리스트", () => {
     expect((await assignFeedEntry({ broadcastId: id, entryId: view.feed!.entries[1].id, memberId: "cm-s4" })).status).toBe("INVALID");
   });
 
+  it("BJ 이름 자동 인식: with it on, member names (2 letters or more) count as keywords", async () => {
+    const m = await startLive();
+    const sim = (n: number, message: string) => m.simulateDonation({ broadcastId: m.id, requestId: key(n), amount: 1_000, message });
+    expect((await m.getBroadcastView())!.feed!.nameKeywords).toBe(false);
+    await sim(1, "바다님 최고"); // off: 바다 has no keyword
+    expect(await m.setNameKeywords({ on: true })).toEqual({ status: "SAVED" });
+    await sim(2, "바다님 최고");
+    await sim(3, "바다 하늘 둘 다"); // a name and another member's keyword: ambiguous
+    const crew = await import("./crew");
+    expect(await crew.addCrewMember({ requestId: crypto.randomUUID(), name: "별", role: "MEMBER" })).toEqual({ status: "SAVED" });
+    await sim(4, "별빛 최고"); // a one-letter name never matches
+    await sim(5, "솔 화이팅"); // 솔 is not active
+    const view = (await m.getBroadcastView())!.feed!;
+    expect(view.nameKeywords).toBe(true);
+    expect(view.entries.map((e) => [e.message, e.status, e.memberId])).toEqual([
+      ["솔 화이팅", "UNMATCHED", null],
+      ["별빛 최고", "UNMATCHED", null],
+      ["바다 하늘 둘 다", "UNMATCHED", null],
+      ["바다님 최고", "ASSIGNED", "cm-s3"],
+      ["바다님 최고", "UNMATCHED", null]
+    ]);
+
+    expect((await m.setNameKeywords({ on: "yes" })).status).toBe("INVALID");
+    signIn(["SUPPORTER"]);
+    expect(await m.setNameKeywords({ on: false })).toEqual({ status: "UNAUTHORIZED" });
+  });
+
   it("waits for confirmation in 확인 후 mode, and 취소 removes an entry from the score", async () => {
     const { simulateDonation, getBroadcastView, assignFeedEntry, cancelFeedEntry, setAssignMode, id } = await startLive();
     await setAssignMode({ broadcastId: id, mode: "CONFIRM" });
