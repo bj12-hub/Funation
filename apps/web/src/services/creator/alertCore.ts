@@ -27,6 +27,8 @@ type MockAlerts = {
   reloadSeqs?: Partial<Record<OverlayTarget, number>>;
   /** 기능 제어: overlays switched OFF (missing = ON). */
   overlayOff?: Partial<Record<OverlayTarget, boolean>>;
+  /** 자동 일시정지 금액: the alert whose turn paused the queue (cleared when the operator pauses or resumes). */
+  autoPausedBy?: string | null;
 };
 
 /**
@@ -58,14 +60,15 @@ function seedHistory(now = Date.now()): AlertItem[] {
 const g = globalThis as typeof globalThis & { __ssumnationMockAlertsV5?: MockAlerts; __ssumnationDonorKeySecret?: Buffer };
 export const mockAlerts = (g.__ssumnationMockAlertsV5 ??= {
   items: seedHistory(),
-  controls: { paused: false, muted: false, minFn: 0, alertVolume: 50, ttsVolume: 80, signatureVolume: 80, displaySec: 8 },
+  controls: { paused: false, muted: false, minFn: 0, autoPauseFn: 0, alertVolume: 50, ttsVolume: 80, signatureVolume: 80, displaySec: 8 },
   shownAt: null,
   testRequests: {},
   ttsSkipSeq: 0,
   reloadSeq: 0
 });
-// Stores created before 시그니처 볼륨 (2026-10-06) start at the same default.
+// Stores created before 시그니처 볼륨 (2026-10-06) and 자동 일시정지 금액 (2026-10-25) start at the same defaults.
 mockAlerts.controls.signatureVolume ??= 80;
+mockAlerts.controls.autoPauseFn ??= 0;
 
 // Not under __ssumnationMock*: test resets keep it (the real backend keeps a server secret).
 const donorKeySecret = () => (g.__ssumnationDonorKeySecret ??= randomBytes(32));
@@ -180,7 +183,22 @@ export function advance(now = Date.now()) {
   if (next && !next.held) {
     next.status = "SHOWING";
     mockAlerts.shownAt = now;
+    // 자동 일시정지 금액: a big alert plays, and the ones after it wait for ▶ 알림 재개.
+    if (pausesQueue(next)) {
+      mockAlerts.controls.paused = true;
+      mockAlerts.autoPausedBy = next.id;
+    }
   }
+}
+
+/**
+ * 자동 일시정지 금액 (2026-10-25, StreamDonate 빠른 설정 참고 — 기본값): an alert of at least `autoPauseFn` FN (0 = off).
+ * Platform · 계좌 후원 alerts have no FN amount (no exchange rate — TBD) and never pause; neither does a 다시 보내기 copy
+ * (the operator sent it). 테스트 후원 does, so the setting can be tried.
+ */
+function pausesQueue(a: AlertItem) {
+  const min = mockAlerts.controls.autoPauseFn;
+  return min > 0 && a.kind !== "EXTERNAL" && !a.replayOf && a.fnAmount >= min;
 }
 
 /**

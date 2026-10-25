@@ -53,7 +53,7 @@ const time = (iso: string) => formatKstTime(iso, { hour: "2-digit", minute: "2-d
 
 /**
  * 리모컨 — code-first (no Figma frame). Route `/creator/remote`. Controls the server-side alert
- * queue that the OBS alert overlay shows: pause, mute, skip, cancel, volumes, minimum amount and
+ * queue that the OBS alert overlay shows: pause (or 자동 일시정지 after a big alert), mute, skip, cancel, volumes, minimum amount and
  * 테스트 후원 (display only — no FN moves), plus 방송 도구, 퀘스트, 투표, 룰렛, 뽑기 and 벽지. Refreshes from the server every
  * few seconds.
  */
@@ -85,6 +85,7 @@ export function RemoteScreen({
   const [donor, setDonor] = useState("");
   const [message, setMessageText] = useState("");
   const [minFn, setMinFn] = useState(String(controls.minFn));
+  const [autoPauseFn, setAutoPauseFn] = useState(String(controls.autoPauseFn));
   const [displaySec, setDisplaySec] = useState(String(controls.displaySec));
   const [notice, setNotice] = useState<{ tone: "error" | "ok"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
@@ -258,7 +259,10 @@ export function RemoteScreen({
               <>
                 <span className={styles.liveDot} aria-hidden="true" />
                 표시 중: {view.showing.donor} · {alertAmount(view.showing)}
+                {view.autoPausedBy?.id === view.showing.id && " · 끝나면 자동 일시정지"}
               </>
+            ) : view.autoPausedBy ? (
+              `자동 일시정지됨 — ${view.autoPausedBy.donor} · ${alertAmount(view.autoPausedBy)} 알림 뒤에 멈췄어요. ▶ 알림 재개로 이어서 내보내요`
             ) : controls.paused ? (
               "일시정지됨 — 새 알림은 대기열에 쌓여요"
             ) : view.queued[0]?.held ? (
@@ -391,6 +395,21 @@ export function RemoteScreen({
               적용
             </button>
           </form>
+          <form
+            className={styles.addRow}
+            onSubmit={(e) => {
+              e.preventDefault();
+              const v = Math.floor(Number(autoPauseFn) || 0);
+              run(() => setAlertControls({ autoPauseFn: v }), v ? `${formatNumber(v)} FN 이상 알림이 나가면 그 뒤에서 멈춰요.` : "자동 일시정지를 껐어요.");
+            }}
+          >
+            <input className={styles.input} type="number" min={0} aria-label="자동 일시정지 금액(FN)" value={autoPauseFn} onChange={(e) => setAutoPauseFn(e.target.value)} />
+            <span className={styles.muted}>FN 이상이면 멈춤</span>
+            <button type="submit" className={styles.ghost} disabled={pending}>
+              적용
+            </button>
+          </form>
+          <p className={styles.note}>자동 일시정지: 0이면 꺼져요. 큰 후원 알림은 그대로 나가고, 다음 알림은 ▶ 알림 재개를 누를 때까지 기다려요. 플랫폼 · 계좌 후원은 FN 금액이 없어 멈추지 않아요.</p>
           <form
             className={styles.addRow}
             onSubmit={(e) => {
