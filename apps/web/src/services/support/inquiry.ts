@@ -1,14 +1,17 @@
 "use server";
 
+import { FLEXTV_SITE } from "@/lib/flextv/mode";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
+import { flextvMyInquiries } from "./flextvSupport";
 import { inquiryAccountKey as accountKey, inquiryStore } from "./inquiryCore";
 import { INQUIRY_BODY_MAX, INQUIRY_TITLE_MAX, isFaqCategory, type Inquiry, type InquiryResult } from "./supportTypes";
 
 /**
  * 1:1 문의 Server Actions — code-first (funnation 고객센터 1:1 문의). Members submit and see their own
  * inquiries. Answers come from an operator console (TBD), so the mock only records 접수.
- * `requestId` makes a double submit create one inquiry.
+ * `requestId` makes a double submit create one inquiry. With FLEXTV (phase 7) the member's FLEXTV 1:1 문의, written on
+ * FLEXTV's site (./flextvSupport.ts).
  */
 
 const assertMock = () => {
@@ -20,6 +23,7 @@ const assertMock = () => {
  * account's, which stay stored for the operators for the 분쟁 처리 기록 period (account/retentionPolicy.ts, 기본값).
  */
 export async function listMyInquiries(): Promise<Inquiry[] | null> {
+  if (FLEXTV_SITE) return flextvMyInquiries();
   assertMock();
   const session = await getSession();
   if (!session) return null;
@@ -29,6 +33,8 @@ export async function listMyInquiries(): Promise<Inquiry[] | null> {
 }
 
 export async function submitInquiry(input: unknown): Promise<InquiryResult> {
+  // Written on FLEXTV's site (its categories and attachments).
+  if (FLEXTV_SITE) return { status: "INVALID", message: "1:1 문의는 FLEXTV에서 작성해 주세요." };
   assertMock();
   const session = await getSession();
   if (!session) return { status: "UNAUTHORIZED" };

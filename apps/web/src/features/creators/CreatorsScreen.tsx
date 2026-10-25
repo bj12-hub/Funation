@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { PageChevronLeftIcon, PageChevronRightIcon } from "@/components/icons";
+import { FLEXTV_SITE } from "@/lib/flextv/mode";
 import { CREATOR_SORT_LABEL, type CreatorPage, type CreatorSort } from "@/services/creators/creators";
+import { FLEXTV_CREATOR_SORTS } from "@/services/creators/creatorTypes";
 import { CreatorCard } from "./CreatorCard";
 import { CreatorSearch } from "./CreatorSearch";
 import { creatorsHref, type CreatorsParams } from "./creatorsHref";
@@ -25,7 +27,7 @@ export function CreatorsScreen({ data, params }: { data: CreatorPage; params: Cr
       <div className={styles.controls}>
         <CreatorSearch key={params.query ?? ""} params={params} />
         <nav className={styles.sorts} aria-label="정렬">
-          {(Object.keys(CREATOR_SORT_LABEL) as CreatorSort[]).map((s) => (
+          {(FLEXTV_SITE ? FLEXTV_CREATOR_SORTS : (Object.keys(CREATOR_SORT_LABEL) as CreatorSort[])).map((s) => (
             <Link key={s} href={creatorsHref(params, { sort: s })} className={styles.sort} aria-current={sort === s ? "page" : undefined}>
               {CREATOR_SORT_LABEL[s]}
             </Link>

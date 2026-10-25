@@ -2,7 +2,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { SearchLargeIcon, VerifiedCheckIcon } from "@/components/icons";
 import { Button } from "@/components/ui/Button";
+import { FLEXTV_SITE } from "@/lib/flextv/mode";
 import { formatCompactKo } from "@/lib/format";
+import { remote } from "@/lib/remoteImage";
 import type { FavoritesPage, PromotionBanner } from "@/services/favorites/favorites";
 import { RemoveFavoriteButtons } from "./RemoveFavoriteButtons";
 import styles from "./favorites.module.css";
@@ -87,7 +89,7 @@ export function FavoritesScreen({ data, query, promotion }: Props) {
           {data.items.map((c) => (
             <li key={c.creatorId} className={styles.row}>
               <RemoveFavoriteButtons creatorId={c.creatorId} name={c.name} part="heart" />
-              <Image src={c.avatarUrl} alt="" width={48} height={48} className={styles.avatar} />
+              <Image src={c.avatarUrl} alt="" width={48} height={48} className={styles.avatar} unoptimized={remote(c.avatarUrl)} />
               <div className={styles.details}>
                 <span className={styles.nameRow}>
                   <Link href={`/creators/${c.creatorId}`} className={styles.name}>
@@ -99,7 +101,9 @@ export function FavoritesScreen({ data, query, promotion }: Props) {
                     </span>
                   )}
                 </span>
-                <span className={styles.subs}>구독자 {formatCompactKo(c.subscriberCount)}명</span>
+                <span className={styles.subs}>
+                  {FLEXTV_SITE ? "즐겨찾기" : "구독자"} {formatCompactKo(c.subscriberCount)}명
+                </span>
               </div>
               <span className={`${styles.status} ${c.isLive ? styles.live : ""}`}>{c.isLive ? "방송 중" : "오프라인"}</span>
               <div className={styles.actions}>

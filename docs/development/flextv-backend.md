@@ -21,16 +21,16 @@ broadcasting is part of Ssumnation. The mock services are replaced area by area,
 | 4 | 라이브 목록 · 채널 방의 영상 · 채팅 | **done** (below, "4단계") |
 | 5 | 방송인 등록 · 방송 설정 · 대시보드 · 수익 · 받은 후원 · 정산 (환전) | **done** (below, "5단계") |
 | 6 | Ssumnation-only features (룰렛 · 뽑기 · 위시리스트 · 그림 · 미니 · 퀘스트) on new FLEXTV endpoints | **front done** (below, "6단계"): the rooms' types, 퀘스트, 후원 종류 설정, 후원 내역 · 받은 후원, the 리모컨 and the OBS overlays, against the contract; FLEXTV's endpoints are next |
+| 7 | The remaining screens: 마이페이지, 즐겨찾기, 알림, 크리에이터 찾기, the home, 고객센터, 채널 설정; the rest not served | **done** (below, "7단계") |
 
-One switch turns on every phase built so far. Until its phase, an area keeps its mock: in `next dev` the site mixes a
-real FLEXTV member with sample data (마이페이지, 후원 내역, the creator room …); a production build is for a staging
-environment until every area a member reaches is connected.
+One switch turns on every phase built so far. Since phase 7 no page a member reaches with FLEXTV shows the mock: what
+FLEXTV has no backend for is not served (below, "7단계"), so a production build no longer runs into a missing mock.
 
 ## Settings (`apps/web/.env.example`)
 
 | Variable | Meaning |
 |---|---|
-| `NEXT_PUBLIC_BACKEND=flextv` | Turns the connected phases on (`lib/flextv/mode.ts`: `FLEXTV_AUTH`, `FLEXTV_WALLET`, `FLEXTV_DONATION`, `FLEXTV_LIVE`, `FLEXTV_STUDIO`). Unset: the mock. |
+| `NEXT_PUBLIC_BACKEND=flextv` | Turns the connected phases on (`lib/flextv/mode.ts`: `FLEXTV_AUTH`, `FLEXTV_WALLET`, `FLEXTV_DONATION`, `FLEXTV_LIVE`, `FLEXTV_STUDIO`, `FLEXTV_SITE`). Unset: the mock. |
 | `FLEXTV_API_URL` | FLEXTV's API server (`server/` of FLEXTV's web repository), e.g. its stage. Server-side calls only — the browser never calls FLEXTV, so no CORS entry is needed. |
 | `FLEXTV_SSUMNATION_API=on` | Phase 6: Ssumnation's own types on FLEXTV channels through the endpoints FLEXTV adds (`docs/development/flextv-ssumnation-api.md`). Server-only; leave it unset until FLEXTV serves them. |
 | `FLEXTV_SITE_CODE` | Optional `x-site-code`. Unset = FLEXTV's own members (the decision above); a tenant code would scope sign-ups to that tenant. |
@@ -209,6 +209,28 @@ screens are unchanged — and `services/creator/flextvRemote.ts`.
 Next: FLEXTV implements the contract and `FLEXTV_SSUMNATION_API` goes on; the overlays' design and 위젯 settings, the
 리모컨's alert part (with FLEXTV's 도우미) and the 도우미 domain are not connected.
 
+## 7단계 · 남은 화면
+
+The rest of what a member reaches runs on FLEXTV (`FLEXTV_SITE`), each through its existing service, which delegates to a
+`flextv*` module when the switch is on, so the screens stay Ssumnation's:
+
+| Screen | FLEXTV | Notes |
+|---|---|---|
+| 마이페이지 (`/mypage`) | `GET /api/my/profile`; `PUT /api/my/profile` (multipart: `nickname`, `image`); `POST /api/oauth/password` | 사진 · 닉네임 (FLEXTV's 2–10자 rule, its 중복 확인 and forbidden words) · 비밀번호 (FLEXTV's 8–15자 rule; signed out afterwards, as in Figma 747:738, and not offered to a Kakao · Naver · Google sign-up without a password); the 아이디 stays; 가입 방법 is shown. 본인인증 and 회원 탈퇴 open FLEXTV's site (`/my/personal-auth`, `/my/expire`). Ssumnation's own sections (활동 등급, 후원자 프로필, 랭킹 노출, 연결 플랫폼, 마케팅 수신) are not shown |
+| 즐겨찾기 (`/favorites`, the room's ⭐) | `GET · POST /api/subscribes`, `GET /api/subscribes/:id/check`, `DELETE /api/subscribes/:id` | FLEXTV's 즐겨찾기 by channel id (its paid 구독 is another thing). FLEXTV takes one only after its 본인인증, checked here before asking; FLEXTV's "FAIL" is settled by its check. The room shows the 즐겨찾기 count; 쪽지 · 신고 are not there |
+| 알림 (bell, `/notifications`) | `GET /api/my/notification-list`; the profile's `setting.notificationView` | FLEXTV's latest ten, without times; reading them marks them read on FLEXTV, so the bell shows "N" while something is new. A channel's 알림 opens its room, FLEXTV's other pages its site |
+| 크리에이터 찾기 (`/creators`) | `GET /api/channels/rankings?sort=all`, `GET /api/channels/searchRankings`, the live list | 인기순 = FLEXTV's weekly ranking, 라이브 = its live list by viewers, a search its 방송국 검색; no categories and no 최신순 (FLEXTV has neither). One ranking read a minute per server |
+| 홈 | the live list and the ranking | The banner and 인기 라이브 영상 are the most watched streams, the strip the ranking. Ssumnation's promotion and arrival notices are its own content and are not shown |
+| 고객센터 (`/support`) | `GET /api/cs/notice-list`, `GET /api/cs/notice-page`, `GET /v2/api/cs/inquiry-list?boardType=2`, `GET /api/cs/inquiry-list` | FLEXTV's 공지사항 (published ones only) and 자주 묻는 질문, their editor HTML shown as plain paragraphs; the member's 1:1 문의 with FLEXTV's answers — written on FLEXTV's site (`/cs/inquiry`), like refunds. No categories or view counts |
+| 채널 설정 (`/creator/settings`) | `GET · PUT /api/my/channel/profile` (multipart), `GET /api/my/channel/:name`, `GET · POST /api/my/channel/external-link` | The FLEXTV 방송국: 이름 (2–15자, 중복 확인 again right before saving), 소개 (1–250자; FLEXTV cannot empty it), 배너 (JPG · PNG under 20MB, the bytes checked), the five platform links (FLEXTV's free links sent back unchanged). One change per call, as FLEXTV's form. The channel's picture is the streamer's profile picture (마이페이지) |
+
+**Not served with FLEXTV** (`lib/flextv/siteRoutes.ts`; the menus leave them out): 커뮤니티, 이벤트, 출석 체크, 명예의 전당,
+SOOP · FlexTV 플랫폼 후원, 마블 · 럼블 invitations, 쪽지, the supporter identity pages (칭호 · 후원 닉네임 · 내 랭킹 · 차단),
+회원 탈퇴 and password reset (FLEXTV's site) — sent home; the mock studio's OBS overlays, pop-outs and API routes — a 404
+(the FLEXTV 위젯 overlays and the 리모컨 pop-out stay); a mock creator's room — a 404; the 도우미 domain's own pages — a 404.
+Which of Ssumnation's own areas come back on which backend is TBD. Code: `lib/flextv/member.ts`, `channels.ts`,
+`notifications.ts`, `support.ts`, `channelSettings.ts`, `siteRoutes.ts` and the `services/**/flextv*.ts` they serve.
+
 ## FLEXTV-side changes needed before opening to the public
 
 1. **본인인증 from Ssumnation.** FLEXTV charges only members who did its NICE 본인인증, and NICE returns to a fixed
@@ -227,6 +249,10 @@ Next: FLEXTV implements the contract and `FLEXTV_SSUMNATION_API` goes on; the ov
    an endpoint returning count · sum · donors per day for a period would make every figure exact and cheap.
 8. **The 환전 계좌 from Ssumnation.** Registering or changing the account (with its documents) happens on FLEXTV's site.
 9. **The Ssumnation endpoints** of `docs/development/flextv-ssumnation-api.md` (phase 6), then `FLEXTV_SSUMNATION_API=on`.
+10. **알림 with an id and a time** (phase 7): FLEXTV's list has neither, and one "new" flag for all, so Ssumnation cannot
+    mark one 알림 read or say when it came.
+11. **Linking and unlinking social logins** for an existing member (FLEXTV only signs up or in with them), if 마이페이지
+    is to offer it as Ssumnation's design does.
 
 ## Known limits
 
@@ -238,11 +264,12 @@ Next: FLEXTV implements the contract and `FLEXTV_SSUMNATION_API` goes on; the ov
 - Payletter returns to a FLEXTV page that closes the window; a payment abandoned in the window stays "not completed"
   (FLEXTV records no failure for it).
 - Not connected: 내통장결제 (Hecto's SDK), 해외카드 (NICE), 현금영수증, refunds, pending 무통장 requests in 충전 내역.
-- `/live`, 인기 라이브 and the home's live tabs list FLEXTV's streams; the creator list, the home's other sections
-  (hero, trending, creator strip) and favorites still show the mock's creators.
+- Every list of channels (live, 크리에이터 찾기, the home, 즐겨찾기) is FLEXTV's; the mock's creators are not shown.
 - 19+, password and fan-only streams are watched on FLEXTV (FLEXTV's player in another site is signed out).
-- 마이페이지 (account linking, 본인인증, withdrawal) is still the mock.
-- Studio: only the pages above run on FLEXTV. 채널 설정 (name, description, images), 위젯 · 오버레이, 크루 방송, 채팅봇,
-  유튜브 연동, 소식 and the 도우미 domain are not connected; 구독 정산 (FLEXTV's channel subscriptions) is not shown.
+- 마이페이지: 본인인증, 회원 탈퇴 and the phone number change on FLEXTV's site; social logins cannot be linked later.
+- Studio: only the pages above run on FLEXTV. 위젯 · 오버레이, 크루 방송, 채팅봇, 유튜브 연동, 소식 and the 도우미 domain
+  are not connected; 구독 정산 (FLEXTV's channel subscriptions) is not shown.
+- The admin console (`apps/admin`) still works on the mock; FLEXTV's members, payments and settlement are run in
+  FLEXTV's own admin.
 - Studio figures are FLEXTV's 렉스 (FN); a period's figures add up at most 2,000 후원, and dates are FLEXTV's (KST).
 - 방송 설정 covers FLEXTV's PC broadcast form; 팬방송, 동시 송출 (YouTube), 엑셀 방송 and the mobile caster stay on FLEXTV.

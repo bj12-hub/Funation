@@ -10,8 +10,11 @@ import styles from "./room.module.css";
 
 type ToastState = { message: string; tone: "accent" | "neutral" } | null;
 
-/** Figma 826:510 favorite toggle + 826:387 share modal. */
-export function RoomActions({ creatorId, name, initialFavorite, signedIn }: { creatorId: string; name: string; initialFavorite: boolean; signedIn: boolean }) {
+/**
+ * Figma 826:510 favorite toggle + 826:387 share modal. In a FLEXTV channel's room (phase 7) the 즐겨찾기 is FLEXTV's,
+ * which asks for its 본인인증; 쪽지 and 신고 · 차단 are Ssumnation's and not there.
+ */
+export function RoomActions({ creatorId, name, initialFavorite, signedIn, flextv = false }: { creatorId: string; name: string; initialFavorite: boolean; signedIn: boolean; flextv?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
   const [favorite, setFavorite] = useState(initialFavorite);
@@ -38,6 +41,10 @@ export function RoomActions({ creatorId, name, initialFavorite, signedIn }: { cr
         router.push(`/login?next=${encodeURIComponent(pathname)}`);
         return;
       }
+      if (result.status === "NEEDS_VERIFICATION") {
+        setToast({ message: "즐겨찾기는 FLEXTV 본인인증 후에 할 수 있어요. 마이페이지에서 본인인증을 진행해 주세요.", tone: "neutral" });
+        return;
+      }
       // NOT_FOUND on removal means it is already gone — the end state is the same.
       const next = !favorite;
       setFavorite(next);
@@ -61,14 +68,16 @@ export function RoomActions({ creatorId, name, initialFavorite, signedIn }: { cr
           🔗 공유
         </button>
         {/* Code-first (no Figma frame): write to this creator. */}
-        <button
-          type="button"
-          className={styles.actionButton}
-          onClick={() => router.push(signedIn ? `/messages?to=${encodeURIComponent(creatorId)}` : `/login?next=${encodeURIComponent(pathname)}`)}
-        >
-          ✉️ 쪽지
-        </button>
-        <ModerationActions target={{ type: "CREATOR", id: creatorId }} signedIn={signedIn} block={false} className={styles.reportLink} />
+        {!flextv && (
+          <button
+            type="button"
+            className={styles.actionButton}
+            onClick={() => router.push(signedIn ? `/messages?to=${encodeURIComponent(creatorId)}` : `/login?next=${encodeURIComponent(pathname)}`)}
+          >
+            ✉️ 쪽지
+          </button>
+        )}
+        {!flextv && <ModerationActions target={{ type: "CREATOR", id: creatorId }} signedIn={signedIn} block={false} className={styles.reportLink} />}
       </div>
       <ShareModal
         open={shareOpen}

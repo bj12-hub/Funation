@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
+import { FLEXTV_SITE } from "@/lib/flextv/mode";
+import { FLEXTV_NICKNAME_MAX, isFlextvNickname } from "@/lib/flextv/rules";
 import { isValidNickname } from "@/lib/validation";
 import { changeNickname, checkNickname } from "@/services/account/profileActions";
 import { GENERIC_ERROR, euroParticle, formatKoreanDate } from "./shared";
@@ -23,8 +25,15 @@ type State =
   | { kind: "ERROR" }
   | { kind: "CHANGED"; value: string };
 
+/** With FLEXTV (phase 7) its nickname rule: members keep their FLEXTV nickname (lib/flextv/rules.ts). */
+const NICKNAME_MAX = FLEXTV_SITE ? FLEXTV_NICKNAME_MAX : 12;
+const isNickname = FLEXTV_SITE ? isFlextvNickname : isValidNickname;
+
 const NOTICES: Partial<Record<State["kind"], [string, string]>> = {
-  INVALID: ["! 닉네임 형식을 확인해 주세요.", "한글, 영문, 숫자만 사용할 수 있으며 2~12자로 입력해 주세요."],
+  INVALID: [
+    "! 닉네임 형식을 확인해 주세요.",
+    FLEXTV_SITE ? `${NICKNAME_MAX}자 이내의 한글, 영문, 숫자로 2자 이상 입력해 주세요.` : "한글, 영문, 숫자만 사용할 수 있으며 2~12자로 입력해 주세요."
+  ],
   DUPLICATE: ["! 이미 사용 중인 닉네임입니다.", "다른 닉네임을 입력한 뒤 중복 확인을 진행해 주세요."],
   FORBIDDEN: ["! 사용할 수 없는 표현이 포함되어 있습니다.", "모두가 편안하게 사용할 수 있는 다른 닉네임을 입력해 주세요."]
 };
@@ -49,7 +58,7 @@ export function NicknameEditor({ triggerClassName }: { triggerClassName: string 
   }
 
   async function runCheck() {
-    if (!isValidNickname(value)) return setState({ kind: "INVALID" });
+    if (!isNickname(value)) return setState({ kind: "INVALID" });
     setBusy("check");
     try {
       const result = await checkNickname(value);
@@ -62,7 +71,7 @@ export function NicknameEditor({ triggerClassName }: { triggerClassName: string 
   }
 
   async function submit() {
-    if (!isValidNickname(value)) return setState({ kind: "INVALID" });
+    if (!isNickname(value)) return setState({ kind: "INVALID" });
     setBusy("submit");
     try {
       const result = await changeNickname(value);
@@ -125,8 +134,8 @@ export function NicknameEditor({ triggerClassName }: { triggerClassName: string 
                   id="nickname-input"
                   ref={inputRef}
                   className={`${styles.input} ${changed ? styles.changedValue : ""}`}
-                  placeholder="2~12자 이내"
-                  maxLength={12}
+                  placeholder={`2~${NICKNAME_MAX}자 이내`}
+                  maxLength={NICKNAME_MAX}
                   value={changed ? state.value : value}
                   readOnly={changed || limited}
                   aria-invalid={errored || undefined}

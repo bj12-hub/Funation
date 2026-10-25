@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { HeartIcon, VerifiedCheckIcon } from "@/components/icons";
 import { Modal } from "@/components/ui/Modal";
+import { remote } from "@/lib/remoteImage";
 import type { PopularCreator } from "@/services/home/homeFeed";
 import { PLATFORM_LABEL } from "@/types/platform";
 import styles from "./creatorProfile.module.css";
@@ -25,7 +26,7 @@ export function CreatorProfilePopup({ creator, onClose }: { creator: PopularCrea
       {creator && (
         <>
           <div className={styles.body}>
-            <Image src={creator.avatarUrl} alt="" width={176} height={176} className={styles.avatar} />
+            <Image src={creator.avatarUrl} alt="" width={176} height={176} className={styles.avatar} unoptimized={remote(creator.avatarUrl)} />
             <div className={styles.details}>
               <div className={styles.nameRow}>
                 <strong className={styles.name}>{creator.name}</strong>

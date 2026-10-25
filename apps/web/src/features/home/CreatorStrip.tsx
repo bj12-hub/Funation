@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { remote } from "@/lib/remoteImage";
 import type { PopularCreator } from "@/services/home/homeFeed";
 import { CreatorProfilePopup } from "./CreatorProfilePopup";
 import styles from "./homeFunnation.module.css";
@@ -45,7 +46,7 @@ export function CreatorStrip({ creators }: { creators: PopularCreator[] }) {
             <li key={c.id}>
               <button type="button" className={styles.stripItem} aria-haspopup="dialog" onClick={() => setSelected(c)}>
                 <span className={styles.stripRing}>
-                  <Image src={c.avatarUrl} alt="" width={64} height={64} className={styles.stripAvatar} />
+                  <Image src={c.avatarUrl} alt="" width={64} height={64} className={styles.stripAvatar} unoptimized={remote(c.avatarUrl)} />
                 </span>
                 <span className={styles.stripName}>{c.name}</span>
               </button>

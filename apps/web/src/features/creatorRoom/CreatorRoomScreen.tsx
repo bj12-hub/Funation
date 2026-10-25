@@ -103,7 +103,10 @@ export function CreatorRoomScreen({
               </ul>
             </div>
             <span className={styles.tagline}>{room.tagline}</span>
-            {!flextv && <span className={channel.subscribers}>구독자 {formatCompactKo(about.subscriberCount)}명</span>}
+            {/* A FLEXTV channel shows its 즐겨찾기 count (phase 7); FLEXTV's 구독 is its paid membership. */}
+            <span className={channel.subscribers}>
+              {flextv ? "즐겨찾기" : "구독자"} {formatCompactKo(about.subscriberCount)}명
+            </span>
           </div>
         </div>
         <div className={styles.creatorActions}>
@@ -111,7 +114,7 @@ export function CreatorRoomScreen({
           <Link href={donateHref} className={channel.donateButton} scroll={false}>
             💝 후원하기
           </Link>
-          {!flextv && <RoomActions creatorId={room.creatorId} name={room.name} initialFavorite={isFavorite} signedIn={viewer !== null} />}
+          <RoomActions creatorId={room.creatorId} name={room.name} initialFavorite={isFavorite} signedIn={viewer !== null} flextv={flextv} />
         </div>
       </div>
 

@@ -37,5 +37,12 @@ export const FLEXTV_STUDIO = FLEXTV_BACKEND;
  */
 export const FLEXTV_SSUMNATION_API = FLEXTV_BACKEND && process.env.FLEXTV_SSUMNATION_API === "on";
 
+/**
+ * Phase 7: the site's remaining pages — 마이페이지, 즐겨찾기, 알림, 크리에이터 찾기, the home's other sections, 고객센터 and
+ * the studio's 채널 설정 run on FLEXTV; the pages FLEXTV has no counterpart for are not served (lib/flextv/siteRoutes.ts),
+ * and neither is the 도우미 domain (FLEXTV's 도우미 is its own).
+ */
+export const FLEXTV_SITE = FLEXTV_BACKEND;
+
 /** FLEXTV's own site, for flows Ssumnation does not host yet (아이디 · 비밀번호 찾기, 본인인증). */
 export const FLEXTV_WEB_URL = (process.env.NEXT_PUBLIC_FLEXTV_WEB_URL || "https://www.flextv.co.kr").replace(/\/+$/, "");

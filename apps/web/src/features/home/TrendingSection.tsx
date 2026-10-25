@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { formatCompactKo } from "@/lib/format";
+import { remote } from "@/lib/remoteImage";
 import type { TrendingVideo } from "@/services/home/homeFeed";
 import { SectionHeader } from "./SectionHeader";
 import styles from "./home.module.css";
@@ -17,7 +18,7 @@ export function TrendingSection({ videos }: { videos: TrendingVideo[] }) {
           {videos.map((video) => (
             <Link key={video.id} href={video.href} className={styles.card}>
               <div className={styles.thumb}>
-                <Image src={video.thumbnailUrl} alt="" fill sizes="(max-width: 768px) 100vw, 296px" className={styles.thumbImage} />
+                <Image src={video.thumbnailUrl} alt="" fill sizes="(max-width: 768px) 100vw, 296px" className={styles.thumbImage} unoptimized={remote(video.thumbnailUrl)} />
                 <span className={styles.thumbShade} />
                 <span className={`${styles.pillBadge} ${styles.pillStart}`}>{video.rank}위</span>
                 <span className={`${styles.pillBadge} ${styles.pillEnd}`}>{formatCompactKo(video.viewerCount)} 명 시청중</span>

@@ -119,10 +119,10 @@ describe("starting, changing and ending", () => {
 
 describe("studio pages served with FLEXTV", () => {
   it("serves only the connected pages", () => {
-    for (const path of ["/creator", "/creator/", "/creator/broadcast", "/creator/revenue", "/creator/donations", "/creator/settlement", "/creator/settlement/apply", "/creator/settlement/manage", "/creator/settlement/register"]) {
+    for (const path of ["/creator", "/creator/", "/creator/broadcast", "/creator/settings", "/creator/revenue", "/creator/donations", "/creator/settlement", "/creator/settlement/apply", "/creator/settlement/manage", "/creator/settlement/register"]) {
       expect(flextvStudioServes(path)).toBe(true);
     }
-    for (const path of ["/creator/widgets", "/creator/settings", "/creator/settlement/register/form", "/creator/crew/broadcast", "/creator/youtube"]) expect(flextvStudioServes(path)).toBe(false);
+    for (const path of ["/creator/widgets", "/creator/settlement/register/form", "/creator/crew/broadcast", "/creator/youtube"]) expect(flextvStudioServes(path)).toBe(false);
     expect(isStudioPath("/creator")).toBe(true);
     expect(isStudioPath("/creators/3021")).toBe(false);
   });

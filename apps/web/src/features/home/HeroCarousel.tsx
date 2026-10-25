@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { PlayIcon } from "@/components/icons";
 import { Button } from "@/components/ui/Button";
 import { formatCompactKo } from "@/lib/format";
+import { remote } from "@/lib/remoteImage";
 import type { HeroSlide } from "@/services/home/homeFeed";
 import styles from "./HeroCarousel.module.css";
 
@@ -65,6 +66,7 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
           priority={i === 0}
           sizes="100vw"
           className={`${styles.image} ${i === index ? styles.imageActive : ""}`}
+          unoptimized={remote(s.imageUrl)}
         />
       ))}
       <span className={styles.dim} />
