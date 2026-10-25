@@ -95,6 +95,11 @@ export type AlertControls = {
   muted: boolean;
   /** Alerts below this FN amount are recorded but not shown. 0 = show all. */
   minFn: number;
+  /**
+   * 자동 일시정지 금액 (2026-10-25): an FN alert of at least this amount pauses the queue as it goes on screen — it plays,
+   * the ones after it wait for 알림 재개. 0 = off. Platform · 계좌 후원 and 다시 보내기 alerts never pause (alertCore).
+   */
+  autoPauseFn: number;
   /** 0–100 */
   alertVolume: number;
   ttsVolume: number;
@@ -117,6 +122,8 @@ export type RemoteView = {
   queued: AlertItem[];
   /** Newest first, excluding queued. */
   recent: AlertItem[];
+  /** The alert whose turn paused the queue (자동 일시정지 금액), while it stays paused; null otherwise. */
+  autoPausedBy: AlertItem | null;
   /** 기능 제어: ON/OFF per overlay and the video donation volume (alert volumes live in `controls`). */
   overlays: { on: Record<OverlayTarget, boolean>; videoVolume: number };
 };
