@@ -131,6 +131,12 @@ export type ScoreRow = { memberId: string; name: string; color: string; team: Te
 export const PROJECT_NAME_MAX = 20;
 export const KEYWORD_MAX = 12;
 export const KEYWORDS_PER_MEMBER = 10;
+/**
+ * BJ 이름 자동 인식 (2026-10-25, StreamDonate 설정 "BJ 이름 · 별명 자동 인식" — 기본값): with it on, an active member's name
+ * counts as one of their keywords (별명 are the keywords) when it is at least this long — a one-letter name would match
+ * almost any message.
+ */
+export const NAME_KEYWORD_MIN = 2;
 export const SIM_AMOUNT_MAX = 10_000_000;
 export const SIM_TEXT_MAX = 60;
 
@@ -232,6 +238,8 @@ export const DONOR_SUMMARY_ROWS = 20;
 
 export type FeedView = {
   assignMode: AssignMode;
+  /** BJ 이름 자동 인식 (the channel's, off by default): member names count as keywords. */
+  nameKeywords: boolean;
   /** 미지정 일시정지 (this broadcast, off by default): a 미지정 entry holds its alert in the queue until it is assigned. */
   pauseUnassigned: boolean;
   keywords: Record<string, string[]>;

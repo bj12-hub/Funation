@@ -10,6 +10,7 @@ import {
   setAssignMode,
   setEntryContribution,
   setMemberKeywords,
+  setNameKeywords,
   setPauseUnassigned,
   simulateDonation,
   startOneshot,
@@ -19,6 +20,7 @@ import {
   EXCEL_UNITS,
   FEED_ORIGINS,
   KEYWORDS_PER_MEMBER,
+  NAME_KEYWORD_MIN,
   feedOrigin,
   feedUnplayed,
   type BroadcastResult,
@@ -182,7 +184,23 @@ export function BroadcastFeed({
       <DonorPanel donors={view.donors} merges={merges} pending={pending} run={run} />
 
       <details className={feed.panel}>
-        <summary>멤버 키워드 (멤버당 {KEYWORDS_PER_MEMBER}개)</summary>
+        <summary>
+          멤버 키워드 (멤버당 {KEYWORDS_PER_MEMBER}개){view.nameKeywords && " · 이름 자동 인식"}
+        </summary>
+        <label className={`${styles.checkRow} ${feed.nameKeywords}`}>
+          <input
+            type="checkbox"
+            checked={view.nameKeywords}
+            disabled={pending}
+            onChange={(e) =>
+              run(
+                () => setNameKeywords({ on: e.target.checked }),
+                e.target.checked ? "멤버 이름도 키워드로 인식해요. 다음 후원부터 적용돼요." : "멤버 이름 인식을 껐어요. 키워드만 봐요."
+              )
+            }
+          />
+          멤버 이름도 키워드로 인식 ({NAME_KEYWORD_MIN}글자 이상 이름)
+        </label>
         <ul className={feed.keywords}>
           {active.map((m) => (
             <li key={m.id}>

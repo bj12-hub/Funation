@@ -271,6 +271,8 @@ type MockCrew = {
   broadcasts?: MockBroadcast[];
   /** 후원 리스트 keywords per member id (kept across broadcasts). */
   keywords?: Record<string, string[]>;
+  /** BJ 이름 자동 인식 per channel (missing = off; 2026-10-25). */
+  nameKeywords?: Record<string, boolean>;
   /** 자동엑셀 settings per channel (kept across broadcasts). */
   excel?: Record<string, ExcelSettings>;
   /** 기여도 강탈 룰렛 slots per channel. */

@@ -1,7 +1,7 @@
 import { mockAlerts, setAlertHold } from "@/services/creator/alertCore";
 import type { AmountUnit } from "@/types/donationUnit";
 import type { Platform } from "@/types/platform";
-import { BATTLE_MULTIPLIER_MAX, BATTLE_PENALTY_MAX, DONOR_ALIASES_MAX, DONOR_MERGES_MAX, DONOR_NAME_MAX, DUPLICATE_WINDOW_SEC, FAN_NOTE_LIMITS, GRADES_MAX, MULTI_TEAM_KEYS, PLATFORM_FAN_NOTE_RULES, GRADE_MULTIPLIER_MAX, GRADE_NAME_MAX, PLATFORM_BATTLE_RULES, PLATFORM_STEAL_RULES, SUB_BOARD_MAX, excelUnitOf, isExcelUnit, type BattleRules, type CrewGrade, type DonorMerge, type FanNoteRules, type FanNotesView, type RoomFanNotes, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedAlert, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow, type ScoreRow } from "./crewTypes";
+import { BATTLE_MULTIPLIER_MAX, BATTLE_PENALTY_MAX, DONOR_ALIASES_MAX, DONOR_MERGES_MAX, DONOR_NAME_MAX, DUPLICATE_WINDOW_SEC, FAN_NOTE_LIMITS, GRADES_MAX, MULTI_TEAM_KEYS, PLATFORM_FAN_NOTE_RULES, GRADE_MULTIPLIER_MAX, GRADE_NAME_MAX, NAME_KEYWORD_MIN, PLATFORM_BATTLE_RULES, PLATFORM_STEAL_RULES, SUB_BOARD_MAX, excelUnitOf, isExcelUnit, type BattleRules, type CrewGrade, type CrewMember, type DonorMerge, type FanNoteRules, type FanNotesView, type RoomFanNotes, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedAlert, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow, type ScoreRow } from "./crewTypes";
 import { mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 // ── 후원 리스트 (server-only) ──────────────────────────────────────────────────
@@ -42,11 +42,16 @@ export function parseBattleRules(v: Record<string, unknown>, forbidden: string[]
 
 export const liveBroadcastOf = (channelId: string) => (mockCrew.broadcasts ?? []).find((b) => b.channelId === channelId && !b.endedAt) ?? null;
 
-/** The single active member whose keyword appears in the message; ambiguous or none → null. */
+/**
+ * The single active member whose keyword appears in the message — with BJ 이름 자동 인식 on, their name too (NAME_KEYWORD_MIN
+ * letters or more); ambiguous or none → null.
+ */
 export function matchMember(channelId: string, message: string): string | null {
   const text = message.toLowerCase();
   const keywords = mockCrew.keywords ?? {};
-  const hits = (mockCrew.crews[channelId] ?? []).filter((m) => m.active && (keywords[m.id] ?? []).some((k) => text.includes(k.toLowerCase())));
+  const byName = !!mockCrew.nameKeywords?.[channelId];
+  const wordsOf = (m: CrewMember) => [...(keywords[m.id] ?? []), ...(byName && m.name.trim().length >= NAME_KEYWORD_MIN ? [m.name.trim()] : [])];
+  const hits = (mockCrew.crews[channelId] ?? []).filter((m) => m.active && wordsOf(m).some((k) => text.includes(k.toLowerCase())));
   return hits.length === 1 ? hits[0].id : null;
 }
 

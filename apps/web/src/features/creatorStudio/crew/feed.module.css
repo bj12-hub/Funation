@@ -446,3 +446,8 @@
   color: var(--color-warning-text);
   font-size: var(--font-size-13);
 }
+
+/* BJ 이름 자동 인식 (2026-10-25): the option above the keyword list. */
+.nameKeywords {
+  margin-top: 12px;
+}

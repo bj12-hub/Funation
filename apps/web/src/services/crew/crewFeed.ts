@@ -81,6 +81,16 @@ export async function setMemberKeywords(input: unknown): Promise<BroadcastResult
   return { status: "SAVED" };
 }
 
+/** BJ 이름 자동 인식 (2026-10-25, off by default): member names count as keywords for the channel — from the next 후원. */
+export async function setNameKeywords(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const on = rec(input).on;
+  if (typeof on !== "boolean") return { status: "INVALID", message: "설정을 확인해 주세요." };
+  (mockCrew.nameKeywords ??= {})[STUDIO_CHANNEL] = on;
+  return { status: "SAVED" };
+}
+
 export async function setAssignMode(input: unknown): Promise<BroadcastResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
