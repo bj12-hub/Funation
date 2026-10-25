@@ -82,12 +82,19 @@ const MOCK_GROUPS: Group[] = [
 
 /**
  * With FLEXTV (phase 5): the menus that run on it — lib/flextv/studioRoutes.ts serves no other studio page. 받은 후원
- * is the only 후원관리 tab, and the 정산 계좌 is registered on FLEXTV's site. 채널 설정 is FLEXTV's 방송국 (phase 7).
+ * is the only 후원관리 tab, and the 정산 계좌 is registered on FLEXTV's site. 채널 설정 is FLEXTV's 방송국 (phase 7),
+ * 채팅 관리 the channel's chat on FLEXTV (phase 9).
  */
 const FLEXTV_GROUPS: Group[] = [
   { title: null, items: [{ label: "대시보드", emoji: "📊", href: "/creator" }] },
   { title: "채널", items: [{ label: "채널 설정", emoji: "⚙️", href: "/creator/settings" }] },
-  { title: "방송", items: [{ label: "방송 설정", emoji: "🎥", href: "/creator/broadcast" }] },
+  {
+    title: "방송",
+    items: [
+      { label: "방송 설정", emoji: "🎥", href: "/creator/broadcast" },
+      { label: "채팅 관리", emoji: "💬", href: "/creator/chat" }
+    ]
+  },
   {
     title: "수익",
     items: [

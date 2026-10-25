@@ -35,6 +35,10 @@ export const CHANNEL_DESCRIPTION_MAX = 250;
 export const CHANNEL_BANNER_MAX_BYTES = 20 * 1024 * 1024;
 export const CHANNEL_BANNER_TYPES = ["image/jpeg", "image/png"] as const;
 
+/** FLEXTV's chat settings (phase 9): the pop-up 공지 and 규칙 up to 250 characters, a 금지어 up to 30. */
+export const CHAT_NOTICE_MAX = 250;
+export const BAN_WORD_MAX = 30;
+
 /** The platforms FLEXTV's 방송국 홈페이지 form has a field for. */
 export const LINK_PLATFORMS = ["instagram", "youtube", "discord", "tiktok", "twitter"] as const;
 export type LinkPlatform = (typeof LINK_PLATFORMS)[number];

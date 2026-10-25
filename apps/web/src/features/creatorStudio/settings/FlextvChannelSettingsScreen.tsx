@@ -57,7 +57,8 @@ export function FlextvChannelSettingsScreen({ view }: { view: FlextvChannelSetti
       <h1 className={styles.pageTitle}>채널 설정</h1>
       <p className={styles.help}>FLEXTV 방송국 정보예요. 여기서 바꾸면 FLEXTV에도 그대로 반영돼요.</p>
       <NameCard current={view.name} settle={settle} />
-      <DescriptionCard current={view.description} settle={settle} />
+      {/* Keyed by the kept text: after a save the box shows what FLEXTV kept (it filters forbidden words out). */}
+      <DescriptionCard key={view.description} current={view.description} settle={settle} />
       <BannerCard current={view.bannerUrl} settle={settle} />
       <section className={styles.card} aria-labelledby="ch-avatar">
         <h2 id="ch-avatar" className={styles.cardTitle}>
