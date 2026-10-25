@@ -175,3 +175,10 @@
   justify-content: space-between;
   gap: 8px;
 }
+
+/* 미디어 누락 (2026-10-25): a deleted library image or sound, under the row title. */
+.gap {
+  display: block;
+  color: var(--color-warning-text);
+  font-size: var(--font-size-13);
+}

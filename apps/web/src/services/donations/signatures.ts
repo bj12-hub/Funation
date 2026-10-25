@@ -5,7 +5,7 @@ import { getCreatorSession } from "@/lib/session";
 import { ownEntry } from "@/lib/records";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { newIntegrationKey } from "@/services/creator/mockCreatorStore";
-import { isSignatureImage, isSignatureSound, mockSignatures, signaturePage, signaturePagePath } from "./signatureCore";
+import { isSignatureImage, isSignatureSound, mockSignatures, signatureMedia, signaturePage, signaturePagePath } from "./signatureCore";
 import {
   DEFAULT_SIGNATURE_GROUP,
   SIGNATURE_IMAGE_PRESETS,
@@ -15,7 +15,8 @@ import {
   type ManagedSignature,
   type SignatureBulkResult,
   type SignaturePageSettings,
-  type SignatureResult
+  type SignatureResult,
+  type SignatureRow
 } from "./signatureTypes";
 
 /**
@@ -82,10 +83,11 @@ const assertMock = () => {
   if (!USE_MOCK) throw new Error("Signature API is not connected yet.");
 };
 
-export async function listSignatures(): Promise<ManagedSignature[] | null> {
+/** The list in order, each with where its media stands (미디어 누락, 2026-10-25). */
+export async function listSignatures(): Promise<SignatureRow[] | null> {
   assertMock();
   if (!(await getCreatorSession())) return null;
-  return structuredClone(mockSignatures.items);
+  return structuredClone(mockSignatures.items).map((s) => ({ ...s, media: signatureMedia(s) }));
 }
 
 export async function saveSignature(input: unknown): Promise<SignatureResult> {

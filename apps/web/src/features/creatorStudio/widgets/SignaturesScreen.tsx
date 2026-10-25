@@ -8,13 +8,17 @@ import { deleteSignature, moveSignature, saveSignature, setSignatureGroupActive 
 import { pairOf, type Asset } from "@/services/creator/assetTypes";
 import {
   DEFAULT_SIGNATURE_GROUP,
+  MEDIA_GAPS,
   SIGNATURE_IMAGE_PRESETS,
   SIGNATURE_LIMITS,
+  mediaGapsOf,
   spanText,
   type ManagedSignature,
+  type MediaGap,
   type SignatureMatch,
   type SignaturePageSettings,
-  type SignatureResult
+  type SignatureResult,
+  type SignatureRow
 } from "@/services/donations/signatureTypes";
 import styles from "../crew/crew.module.css";
 import { BulkSignatures } from "./BulkSignatures";
@@ -24,6 +28,12 @@ import local from "./signatures.module.css";
 type Draft = Omit<ManagedSignature, "id"> & { id: string | null };
 
 const MATCH_LABEL: Record<SignatureMatch, string> = { SELECT: "선택 시에만", AMOUNT: "선택 + 금액 일치" };
+/** 미디어 누락 on a row: what the alert does instead. */
+const GAP_NOTE: Record<MediaGap, string> = {
+  IMAGE_MISSING: "이미지가 지워졌어요 — 알림은 기본 이미지로 나가요",
+  SOUND_MISSING: "소리가 지워졌어요 — 알림은 소리 없이 나가요",
+  SOUND_NONE: "소리 없음"
+};
 const blank = (group: string): Draft => ({ id: null, name: "", price: 10_000, imageUrl: SIGNATURE_IMAGE_PRESETS[0], soundUrl: null, match: "SELECT", active: true, rangeMin: null, group });
 
 /**
@@ -31,6 +41,8 @@ const blank = (group: string): Draft => ({ id: null, name: "", price: 10_000, im
  * The list is what supporters see in the room's 시그니처 후원 panel, in this order. `library` is the creator's
  * 이미지·사운드: picking a library image also picks the sound with the same name (자동 매칭, 2026-10-06 결정), and
  * "한 번에 만들기" turns several library images into signatures at once (`?bulk=1` opens it, from the library page).
+ * 미디어 누락 (2026-10-25): each row says when its library image or sound was deleted (or it has no sound), and the
+ * chips filter the list by it.
  */
 export function SignaturesScreen({
   items,
@@ -38,7 +50,7 @@ export function SignaturesScreen({
   startBulk = false,
   publicPage = null
 }: {
-  items: ManagedSignature[];
+  items: SignatureRow[];
   library: Asset[];
   startBulk?: boolean;
   /** 공개 시그니처 페이지 (2026-10-25); null hides the card. */
@@ -59,7 +71,12 @@ export function SignaturesScreen({
   const [groupFilter, setGroupFilter] = useState<string | null>(null);
   const groups = [...new Set(items.map((s) => s.group))];
   const filter = groupFilter !== null && groups.includes(groupFilter) ? groupFilter : null;
-  const shown = filter === null ? items : items.filter((s) => s.group === filter);
+  /** 미디어 누락 필터: null = 전체; a kind no signature has any more falls back to 전체. */
+  const [gapFilter, setGapFilter] = useState<MediaGap | null>(null);
+  const gaps = MEDIA_GAPS.map((g) => ({ ...g, count: items.filter((s) => mediaGapsOf(s.media).includes(g.key)).length })).filter((g) => g.count > 0);
+  const gap = gaps.some((g) => g.key === gapFilter) ? gapFilter : null;
+  const inGroup = filter === null ? items : items.filter((s) => s.group === filter);
+  const shown = gap === null ? inGroup : inGroup.filter((s) => mediaGapsOf(s.media).includes(gap));
 
   const run = (action: () => Promise<SignatureResult>, ok: string, after?: () => void) => {
     setNote(null);
@@ -153,33 +170,57 @@ export function SignaturesScreen({
             </span>
             {filter !== null && (
               <span className={styles.rowActions}>
-                <button type="button" className={styles.ghost} disabled={pending || shown.every((s) => s.active)} onClick={() => run(() => setSignatureGroupActive({ group: filter, active: true }), `'${filter}' 그룹을 모두 보이게 했어요.`)}>
+                <button type="button" className={styles.ghost} disabled={pending || inGroup.every((s) => s.active)} onClick={() => run(() => setSignatureGroupActive({ group: filter, active: true }), `'${filter}' 그룹을 모두 보이게 했어요.`)}>
                   그룹 모두 사용
                 </button>
-                <button type="button" className={styles.ghost} disabled={pending || shown.every((s) => !s.active)} onClick={() => run(() => setSignatureGroupActive({ group: filter, active: false }), `'${filter}' 그룹을 모두 숨겼어요.`)}>
+                <button type="button" className={styles.ghost} disabled={pending || inGroup.every((s) => !s.active)} onClick={() => run(() => setSignatureGroupActive({ group: filter, active: false }), `'${filter}' 그룹을 모두 숨겼어요.`)}>
                   그룹 모두 숨기기
                 </button>
               </span>
             )}
           </div>
         )}
+        {gaps.length > 0 && (
+          <div className={local.groups} role="group" aria-label="미디어 누락">
+            <span className={styles.segment}>
+              <button type="button" aria-pressed={gap === null} onClick={() => setGapFilter(null)}>
+                미디어 전체
+              </button>
+              {gaps.map((g) => (
+                <button key={g.key} type="button" aria-pressed={gap === g.key} onClick={() => setGapFilter(g.key)}>
+                  {g.label} {g.count}
+                </button>
+              ))}
+            </span>
+          </div>
+        )}
         {items.length === 0 ? (
           <p className={styles.empty}>아직 시그니처가 없어요. 첫 시그니처를 추가해 보세요.</p>
+        ) : shown.length === 0 ? (
+          <p className={styles.empty}>조건에 맞는 시그니처가 없어요.</p>
         ) : (
           <ul className={styles.list}>
             {shown.map((s) => {
               const i = items.indexOf(s);
+              // Missing media: the row shows what the alert shows (the first preset), and says so in a warning line.
+              const warnings = mediaGapsOf(s.media).filter((g) => g !== "SOUND_NONE");
               return (
               <li key={s.id} className={styles.row} data-inactive={s.active ? undefined : ""}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img className={local.thumb} src={s.imageUrl} alt="" />
+                <img className={local.thumb} src={s.media.image === "MISSING" ? SIGNATURE_IMAGE_PRESETS[0] : s.imageUrl} alt="" />
                 <div className={styles.rowMain}>
                   <span className={styles.rowTitle}>{s.name}</span>
                   <span className={styles.muted}>
                     {s.match === "AMOUNT" ? spanText(s) : `${formatNumber(s.price)} FN`} · {MATCH_LABEL[s.match]}
                     {soundName(s.soundUrl) && ` · 🔊 ${soundName(s.soundUrl)}`}
+                    {s.media.sound === "NONE" && ` · ${GAP_NOTE.SOUND_NONE}`}
                     {groups.length > 1 && ` · ${s.group}`}
                   </span>
+                  {warnings.map((g) => (
+                    <span key={g} className={local.gap}>
+                      ⚠ {GAP_NOTE[g]}
+                    </span>
+                  ))}
                 </div>
                 <span className={s.active ? styles.chip : styles.chipOff}>{s.active ? "사용" : "숨김"}</span>
                 <div className={styles.rowActions}>

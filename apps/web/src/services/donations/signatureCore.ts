@@ -8,7 +8,7 @@ import { readWidget } from "@/services/creator/widgetStore";
 import { gachaOffers } from "./gachaCore";
 import { findAsset } from "@/services/creator/assetCore";
 import { assetUrl } from "@/services/creator/assetTypes";
-import { DEFAULT_SIGNATURE_GROUP, SIGNATURE_IMAGE_PRESETS, amountSpan, type ManagedSignature, type PublicSignaturePage } from "./signatureTypes";
+import { DEFAULT_SIGNATURE_GROUP, SIGNATURE_IMAGE_PRESETS, amountSpan, type ManagedSignature, type PublicSignaturePage, type SignatureMedia } from "./signatureTypes";
 
 /**
  * Server-only signature store (not a "use server" module). Seeded from the Figma catalog; the creator's
@@ -58,6 +58,12 @@ export function isSignatureSound(url: string) {
 export const signatureImageOf = (s: ManagedSignature) => (isSignatureImage(s.imageUrl) ? s.imageUrl : SIGNATURE_IMAGE_PRESETS[0]);
 /** A signature's sound, while it is still in the library. */
 export const signatureSoundOf = (s: ManagedSignature) => (s.soundUrl && isSignatureSound(s.soundUrl) ? s.soundUrl : undefined);
+
+/** 미디어 누락: where the signature's image and sound stand, by the checks above (the ones alerts use). */
+export const signatureMedia = (s: ManagedSignature): SignatureMedia => ({
+  image: isSignatureImage(s.imageUrl) ? "OK" : "MISSING",
+  sound: !s.soundUrl ? "NONE" : isSignatureSound(s.soundUrl) ? "OK" : "MISSING"
+});
 
 /** Active signatures in the creator's order, shaped for the donation panel. */
 export function activeSignatures(): Signature[] {
