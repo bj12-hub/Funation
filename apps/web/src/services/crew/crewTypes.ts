@@ -37,7 +37,43 @@ export type MemberRankRow = { memberId: string; name: string; role: CrewRole; to
 export type CrewStudioView = { channelName: string; members: CrewMember[]; grades: CrewGrade[]; ranking: MemberRankRow[]; month: string };
 
 /** Public crew info for a channel's donation panel (active members only). */
-export type CrewPublic = { members: { id: string; name: string; role: CrewRole; color: string }[] };
+/**
+ * Active members for the 후원 페이지 and the channel's 크루 tab. `pledge`: the member's BJ 공약 (null = none); `score`: their
+ * score in the live crew broadcast, for the 공약 progress (null while not live).
+ */
+export type CrewPublic = { members: { id: string; name: string; role: CrewRole; color: string; pledge: MemberPledge | null; score: number | null }[] };
+
+// ── BJ 공약 · 출근 BJ 게이지 (2026-10-25, StreamDonate BJ 게이지 · BJ 공약 · 출근 참고 — 기본값) ──────────────
+
+export const PLEDGE_TEXT_MAX = 40;
+export const PLEDGE_GOAL_MAX = 100_000_000;
+/**
+ * A member's BJ 공약, kept per channel: `text` (shown on the 후원 페이지, the 크루 tab and OBS) and `goal`, the broadcast score
+ * the 공약 is for (0 = no goal: the 공약 is shown without a gauge). 출근 = 활동 중 (a member on 휴식 is not 출근).
+ */
+export type MemberPledge = { text: string; goal: number };
+
+/** A score against a goal: 0 ~ 100 (whole %), 100 once reached; a negative score is 0. */
+export const goalPercent = (score: number, goal: number) => (score >= goal ? 100 : Math.max(0, Math.floor((score / goal) * 100)));
+
+export const GAUGE_TITLE_DEFAULT = "BJ 게이지";
+/** SCORE: "32,000 / 100,000". PERCENT: "32%". BOTH: both. */
+export type GaugeNumbers = "SCORE" | "PERCENT" | "BOTH";
+export const GAUGE_NUMBERS: { key: GaugeNumbers; label: string }[] = [
+  { key: "SCORE", label: "점수" },
+  { key: "PERCENT", label: "퍼센트" },
+  { key: "BOTH", label: "둘 다" }
+];
+
+/** Kept per channel. `activeOnly`: 출근 BJ만 (members on 휴식 leave the gauge); `showPledge`: the 공약 under each bar. */
+export type GaugeSettings = { title: string; activeOnly: boolean; showPledge: boolean; numbers: GaugeNumbers; placement: PrizePlacement };
+export const DEFAULT_GAUGE: GaugeSettings = { title: "", activeOnly: true, showPledge: true, numbers: "BOTH", placement: "FLOAT" };
+
+/** A member with a goal: their broadcast score against it (`percent` 0 ~ 100, held at 100 once `reached`). */
+export type GaugeRow = { memberId: string; name: string; color: string; active: boolean; score: number; goal: number; percent: number; reached: boolean; pledge: string };
+
+/** 출근 BJ 게이지 of the live broadcast (OBS `?bjgauge`): members with a goal, in crew order. */
+export type GaugeLive = { settings: GaugeSettings; visible: boolean; rows: GaugeRow[] };
 
 export type CrewSaveResult = { status: "SAVED" } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
 
@@ -343,6 +379,8 @@ export type BroadcastLive = {
   teamPrize: TeamPrizeLive;
   /** 누적 기여도 over this broadcast's project (OBS `?cumulative`). */
   cumulative: CumulativeLive;
+  /** 출근 BJ 게이지 with BJ 공약 (OBS `?bjgauge`). */
+  gauge: GaugeLive;
   /** 시그 카운트: signatures each member received during this broadcast (OBS `?sigcount`). */
   sigCount: SigCountLive;
   /** 점수 게임: settings and recent runs with their OBS timing (`?spin` · `?spintally` · `?dice` · `?twowheel`). */
@@ -1463,6 +1501,9 @@ export type BroadcastView = {
   teamPrizeSettings: TeamPrizeSettings;
   /** 누적 기여도 settings (kept across broadcasts; editable before going live). */
   cumulativeSettings: CumulativeSettings;
+  /** BJ 공약 by member id and the 게이지 settings (kept across broadcasts; editable before going live). */
+  pledges: Record<string, MemberPledge>;
+  gaugeSettings: GaugeSettings;
   /** 시그 카운트 settings (kept across broadcasts) and the signatures it can count (숨긴 시그니처 too, marked). */
   sigCountSettings: SigCountSettings;
   signatures: { id: string; name: string; group: string; active: boolean; price: number; match: "SELECT" | "AMOUNT"; rangeMin: number | null }[];

@@ -5,7 +5,8 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { mockCreator } from "@/services/creator/mockCreatorStore";
-import { gradesOf, memberRanking, parseGrades } from "./crewCore";
+import { gradesOf, liveBroadcastOf, memberRanking, parseGrades, scoreboardRows } from "./crewCore";
+import { pledgesOf } from "./crewGaugeCore";
 import { CREW_ROLES, MAX_CREW_MEMBERS, MEMBER_NAME_RULE, type CrewPublic, type CrewRole, type CrewSaveResult, type CrewStudioView } from "./crewTypes";
 import { STUDIO_CHANNEL, mockCrew } from "./mockCrewStore";
 
@@ -119,10 +120,18 @@ export async function removeCrewMember(id: unknown): Promise<CrewSaveResult> {
   return { status: "SAVED" };
 }
 
-/** Active crew members of a channel for the donation panel (public). */
+/**
+ * Active crew members of a channel for the donation panel and the 크루 tab (public), each with their BJ 공약 and — while a
+ * crew broadcast is live — their score in it (the same score OBS shows).
+ */
 export async function getCrewPublic(channelId: unknown): Promise<CrewPublic> {
   assertMock();
   if (typeof channelId !== "string") return { members: [] };
-  const members = (mockCrew.crews[channelId] ?? []).filter((x) => x.active).map(({ id, name, role, color }) => ({ id, name, role, color }));
+  const pledges = pledgesOf(channelId);
+  const live = liveBroadcastOf(channelId);
+  const scores = live ? new Map(scoreboardRows(live).map((r) => [r.memberId, r.score])) : null;
+  const members = (mockCrew.crews[channelId] ?? [])
+    .filter((x) => x.active)
+    .map(({ id, name, role, color }) => ({ id, name, role, color, pledge: pledges[id] ? { ...pledges[id] } : null, score: scores ? (scores.get(id) ?? 0) : null }));
   return { members };
 }

@@ -31,6 +31,8 @@ import type {
   DonorMerge,
   TeamPrizeSettings,
   CumulativeSettings,
+  GaugeSettings,
+  MemberPledge,
   RandomSigSettings,
   RelaySettings,
   ScenarioPart,
@@ -250,6 +252,8 @@ export type MockBroadcast = {
   teamPrize?: PrizeBoardState;
   /** 누적 기여도 shown on OBS (`?cumulative`). */
   cumulative?: { visible: boolean };
+  /** 출근 BJ 게이지 shown on OBS (`?bjgauge`). */
+  gauge?: { visible: boolean };
   /** 시그 카운트: shown on OBS (`?sigcount`) and counted from `since` (null = the broadcast start; 다시 세기 sets it). */
   sigCount?: { visible: boolean; since: string | null; resets: string[] };
   /** Final ranking frozen at the end (members may be renamed or removed later). */
@@ -284,6 +288,10 @@ type MockCrew = {
   teamPrizes?: Record<string, TeamPrizeSettings>;
   /** 누적 기여도 settings per channel (missing = DEFAULT_CUMULATIVE). */
   cumulatives?: Record<string, CumulativeSettings>;
+  /** BJ 공약 per channel, by member id (entries of members no longer in the crew are ignored). */
+  pledges?: Record<string, Record<string, MemberPledge>>;
+  /** 출근 BJ 게이지 settings per channel (missing = DEFAULT_GAUGE). */
+  gauges?: Record<string, GaugeSettings>;
   /** 시그 카운트 settings per channel (missing = DEFAULT_SIG_COUNT). */
   sigCounts?: Record<string, SigCountSettings>;
   /** 스핀머신 settings per channel (missing = DEFAULT_SPIN). */
@@ -343,5 +351,7 @@ export const mockCrew = (g.__ssumnationMockCrewV2 ??= {
     { donationId: "seed-2", channelId: STUDIO_CHANNEL, memberId: "cm-s1", fnAmount: 30_000, at: monthStamp(3), donor: "우주비행사", donorId: "space_runner", message: "길동 리더 화이팅", shownDonor: "우주비행사" },
     { donationId: "seed-3", channelId: STUDIO_CHANNEL, memberId: "cm-s3", fnAmount: 12_000, at: monthStamp(1), donor: "치즈냥", donorId: "cheese_cat", message: "바다님 리액션 귀여워요 ㅋㅋ", shownDonor: "치즈냥" },
     { donationId: "seed-4", channelId: STUDIO_CHANNEL, memberId: "cm-s2", fnAmount: 8_000, at: monthStamp(0), donor: "익명", donorId: "", message: "응원합니다", shownDonor: "익명" }
-  ]
+  ],
+  // BJ 공약 of the c4 crew (its seed broadcast is live), so the 후원 페이지 shows one.
+  pledges: { c4: { "cm-c4-1": { text: "10만 점이면 노래 한 곡", goal: 100_000 }, "cm-c4-2": { text: "먹방 30분", goal: 0 } } }
 });
