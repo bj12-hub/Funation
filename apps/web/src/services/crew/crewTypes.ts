@@ -816,10 +816,31 @@ export const SIG_BINGO_REVEALS: { key: SigBingoReveal; label: string }[] = [
 
 /**
  * `auto` = 후원으로 칸 열기; `excluded` = 빙고 제외 시그; `priceMin` · `priceMax` = 금액 범위 for the board (null = no end);
- * `bonus` = points per 빙고 line (0 = none). Size · mode · reveal · range take effect on the next 빙고 시작.
+ * `bonus` = points per 빙고 line (0 = none); `showRemaining` = 남은 시그 목록 under the board on OBS (2026-10-25). Size · mode ·
+ * reveal · range take effect on the next 빙고 시작.
  */
-export type SigBingoSettings = GameCommon & { size: SigBingoSize; mode: SigBingoMode; reveal: SigBingoReveal; priceMin: number | null; priceMax: number | null; bonus: number };
-export const DEFAULT_SIG_BINGO: SigBingoSettings = { title: "", auto: false, excluded: [], showIdle: true, size: 3, mode: "SHARED", reveal: "SHOWN", priceMin: null, priceMax: null, bonus: 0 };
+export type SigBingoSettings = GameCommon & {
+  size: SigBingoSize;
+  mode: SigBingoMode;
+  reveal: SigBingoReveal;
+  priceMin: number | null;
+  priceMax: number | null;
+  bonus: number;
+  showRemaining: boolean;
+};
+export const DEFAULT_SIG_BINGO: SigBingoSettings = {
+  title: "",
+  auto: false,
+  excluded: [],
+  showIdle: true,
+  size: 3,
+  mode: "SHARED",
+  reveal: "SHOWN",
+  priceMin: null,
+  priceMax: null,
+  bonus: 0,
+  showRemaining: false
+};
 
 /** Cell indices of every line of a board (row by row): rows, then columns, then the diagonals ↘ and ↙. */
 export function sigBingoLines(size: number): number[][] {
@@ -1263,7 +1284,12 @@ export type SudopolyLive = { settings: SudopolySettings; runs: GameRunView[]; pi
 /** `board`: null until 두산 시작 (or after 판 비우기). */
 export type SigDosanLive = { settings: SigDosanSettings; runs: GameRunView[]; board: SigDosanBoard | null };
 /** `board`: null until 빙고 시작 (or after 판 비우기); `eligible`: how many signatures a new board would draw from. */
-export type SigBingoLive = { settings: SigBingoSettings; runs: GameRunView[]; board: SigBingoBoard | null; eligible: number };
+/**
+ * 남은 시그 (2026-10-25, StreamDonate 시그니처 빙고 "잔여 시그 목록"): the board's closed cells by signature — `cells` still to
+ * open — cheapest first, then by name. Empty without a board.
+ */
+export type SigBingoRemaining = { signatureId: string; name: string; price: number; cells: number };
+export type SigBingoLive = { settings: SigBingoSettings; runs: GameRunView[]; board: SigBingoBoard | null; eligible: number; remaining: SigBingoRemaining[] };
 /** `pool`: the registered signatures that can be drawn (active) — the OBS rolling images. */
 export type MedleyLive = { settings: MedleySettings; runs: GameRunView[]; pool: { id: string; name: string; price: number; imageUrl: string }[] };
 /** `stack`: oldest first (up to JUPJUP_STACK_SHOWN of `stackCount`); `ownerNames`: the 지정 BJ. */

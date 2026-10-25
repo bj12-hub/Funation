@@ -162,6 +162,40 @@ describe("시그 빙고", () => {
     expect((await m.view()).board!.cells[3].opened).toMatchObject({ memberName: "바다", memberColor: "#3b82f6", manual: false });
   });
 
+  it("남은 시그: lists the closed cells by signature, cheapest first, and shows them on OBS when chosen", async () => {
+    const m = await load();
+    const id = await m.start();
+    // Two signatures on a 3×3 board: each in turn, so one gets 5 cells and the other 4.
+    const [x, y] = [m.a, m.b].sort((p, q) => p.price - q.price);
+    const others = m.all.filter((s) => s.id !== x.id && s.id !== y.id).map((s) => s.id);
+    expect(await m.saveSigBingo(settings({ excluded: others }))).toEqual({ status: "SAVED" });
+    expect((await m.view()).remaining).toEqual([]); // no board yet
+    await m.startSigBingo({ broadcastId: id, requestId: key(1) });
+    let left = (await m.view()).remaining;
+    expect(left.map((r) => r.signatureId)).toEqual([x, y].map((s) => s.id));
+    expect(left.map((r) => r.cells).sort()).toEqual([4, 5]);
+    expect(left[0]).toMatchObject({ name: x.name, price: x.price });
+
+    await m.sign(x.id, x.price);
+    left = (await m.view()).remaining;
+    expect(left.reduce((s, r) => s + r.cells, 0)).toBe(8);
+
+    // OBS gets the list too; the setting decides whether it is drawn (off by default, and for older screens).
+    const obs = async () => {
+      const overlay = await m.getOverlayScoreboard(m.overlayKey);
+      if (overlay === "IDLE" || overlay === "FORBIDDEN") throw new Error("no overlay");
+      return overlay.sigBingo;
+    };
+    expect((await obs()).settings.showRemaining).toBe(false);
+    expect(await m.saveSigBingo(settings({ excluded: others, showRemaining: true }))).toEqual({ status: "SAVED" });
+    expect((await obs())).toMatchObject({ settings: { showRemaining: true }, remaining: left });
+    const { showRemaining: _off, ...older } = settings({ excluded: others });
+    expect(_off).toBe(false);
+    expect(await m.saveSigBingo(older)).toEqual({ status: "SAVED" });
+    expect((await m.getGamesView())!.sigBingoSettings.showRemaining).toBe(false);
+    expect((await m.saveSigBingo(settings({ showRemaining: "yes" as never }))).status).toBe("INVALID");
+  });
+
   it("lets the operator open and close cells", async () => {
     const m = await load();
     const id = await m.start();

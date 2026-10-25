@@ -524,3 +524,27 @@
   color: #ffffff;
   font-weight: var(--font-weight-bold);
 }
+
+/* 시그 빙고 남은 시그 (2026-10-25): the closed cells by signature, cheapest first. */
+.remaining {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.remaining ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.remaining li {
+  padding: 4px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
+}

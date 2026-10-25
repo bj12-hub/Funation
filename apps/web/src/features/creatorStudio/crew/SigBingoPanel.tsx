@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type CSSProperties } from "react";
+import { formatNumber } from "@/lib/format";
 import { clearSigBingo, saveSigBingo, setSigBingo, startSigBingo } from "@/services/crew/crewGames";
 import {
   SIG_BINGO_BONUS_MAX,
@@ -31,7 +32,8 @@ const fromDraft = (d: Draft) => ({
 /**
  * 시그 빙고 — code-first (no Figma frame; StreamDonate 시그니처 빙고 참고), inside `/creator/crew/games`. Board settings (크기 ·
  * 모드 · 칸 표시 · 금액 범위), 빙고 보너스, 후원으로 칸 열기 · 제외 시그; while live 빙고 시작 / 판 비우기, the board (a cell
- * opens or closes on click — 땅따먹기 for the picked member) and the 빙고 runs.
+ * opens or closes on click — 땅따먹기 for the picked member), the 남은 시그 (2026-10-25, also on OBS when chosen) and the 빙고
+ * runs.
  */
 export function SigBingoPanel({
   settings,
@@ -116,6 +118,10 @@ export function SigBingoPanel({
                 </button>
               ))}
             </span>
+            <label className={styles.checkRow}>
+              <input type="checkbox" checked={draft.showRemaining} onChange={(e) => edit({ showRemaining: e.target.checked })} />
+              OBS에 남은 시그 목록
+            </label>
           </span>
         </div>
         <div className={prize.field} role="group" aria-label="시그 빙고 모드">
@@ -221,6 +227,23 @@ export function SigBingoPanel({
                   </li>
                 ))}
               </ol>
+              {bingo.remaining.length > 0 ? (
+                <div className={games.remaining} aria-label="남은 시그">
+                  <span className={styles.muted}>
+                    남은 시그 {bingo.remaining.length}종 · {bingo.remaining.reduce((s, r) => s + r.cells, 0)}칸
+                  </span>
+                  <ul>
+                    {bingo.remaining.map((r) => (
+                      <li key={r.signatureId}>
+                        {r.name} <span className={styles.muted}>{formatNumber(r.price)} FN</span>
+                        {r.cells > 1 && <strong> ×{r.cells}</strong>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <p className={styles.note}>모든 칸이 열렸어요.</p>
+              )}
             </>
           )}
           <RunList name="시그 빙고" runs={bingo.runs} now={now} />

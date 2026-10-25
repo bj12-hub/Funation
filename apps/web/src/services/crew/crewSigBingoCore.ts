@@ -11,6 +11,7 @@ import {
   sigBingoLineName,
   sigBingoLines,
   type SigBingoLive,
+  type SigBingoRemaining,
   type SigBingoSettings
 } from "./crewTypes";
 import { mockCrew, type MockBroadcast } from "./mockCrewStore";
@@ -29,7 +30,8 @@ const isInt = (v: unknown, min: number, max: number): v is number => typeof v ==
 const optionalPrice = (v: unknown) => v === null || v === undefined || isInt(v, 0, SIGNATURE_LIMITS.priceMax);
 
 /** The channel's 시그 빙고 settings (defaults until saved). */
-export const sigBingoSettingsOf = (channelId: string): SigBingoSettings => mockCrew.sigBingos?.[channelId] ?? DEFAULT_SIG_BINGO;
+/** Settings saved before 남은 시그 목록 (2026-10-25) read with it off. */
+export const sigBingoSettingsOf = (channelId: string): SigBingoSettings => ({ ...DEFAULT_SIG_BINGO, ...mockCrew.sigBingos?.[channelId] });
 
 export function parseSigBingoSettings(input: unknown, forbidden: string[], signatureIds: string[]): SigBingoSettings | { message: string } {
   const common = parseGameCommon(input, forbidden, signatureIds);
@@ -45,7 +47,9 @@ export function parseSigBingoSettings(input: unknown, forbidden: string[], signa
   const priceMax = (v.priceMax as number | null | undefined) ?? null;
   if (priceMin !== null && priceMax !== null && priceMin > priceMax) return { message: "금액 범위의 최소가 최대보다 커요." };
   if (!isInt(v.bonus, 0, SIG_BINGO_BONUS_MAX)) return { message: `빙고 보너스는 0 ~ ${SIG_BINGO_BONUS_MAX.toLocaleString("ko-KR")}점이에요.` };
-  return { ...common, size, mode, reveal, priceMin, priceMax, bonus: v.bonus };
+  // A screen from before 남은 시그 목록 sends none: off.
+  if (v.showRemaining !== undefined && typeof v.showRemaining !== "boolean") return { message: "설정을 확인해 주세요." };
+  return { ...common, size, mode, reveal, priceMin, priceMax, bonus: v.bonus, showRemaining: v.showRemaining === true };
 }
 
 /** The signatures a new board draws from: active, not excluded (빙고 제외 시그), within the 금액 범위. */
@@ -161,6 +165,18 @@ export function clearSigBingoBoard(b: MockBroadcast) {
   delete b.sigBingo;
 }
 
+/** 남은 시그: the closed cells of the board by signature, cheapest first (a deleted signature keeps the name on its cell). */
+function remainingOf(board: StoredBoard | undefined): SigBingoRemaining[] {
+  const by = new Map<string, SigBingoRemaining>();
+  for (const c of board?.cells ?? []) {
+    if (c.opened) continue;
+    const row = by.get(c.signatureId) ?? { signatureId: c.signatureId, name: c.signatureName, price: mockSignatures.items.find((x) => x.id === c.signatureId)?.price ?? 0, cells: 0 };
+    row.cells += 1;
+    by.set(c.signatureId, row);
+  }
+  return [...by.values()].sort((x, y) => x.price - y.price || x.name.localeCompare(y.name));
+}
+
 export function sigBingoLive(b: MockBroadcast): SigBingoLive {
   const s = sigBingoSettingsOf(b.channelId);
   const crew = mockCrew.crews[b.channelId] ?? [];
@@ -169,6 +185,7 @@ export function sigBingoLive(b: MockBroadcast): SigBingoLive {
     settings: structuredClone(s),
     runs: gameRunsView(b, "SIG_BINGO"),
     eligible: eligibleOf(s).length,
+    remaining: remainingOf(board),
     board: board
       ? {
           size: board.size,
