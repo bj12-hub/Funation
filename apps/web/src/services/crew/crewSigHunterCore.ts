@@ -6,9 +6,12 @@ import { gameRunsView, parseGameCommon, recordRun, shuffled, type StoredRun } fr
 import {
   DEFAULT_SIG_HUNTER,
   GAME_TIMING,
+  SIG_HUNTER_BANDS_MAX,
   SIG_HUNTER_MULTIPLIER_MAX,
   SIG_HUNTER_ROUNDS_MAX,
   SIG_HUNTER_SLOTS_MAX,
+  sigHunterSlotsOf,
+  type SigHunterBand,
   type SigHunterLive,
   type SigHunterRound,
   type SigHunterSettings
@@ -51,27 +54,64 @@ export function parseSigHunterSettings(input: unknown, forbidden: string[], sign
     if (priceMin !== null && priceMax !== null && priceMin > priceMax) return { message: `${n} 금액 범위의 최소가 최대보다 커요.` };
     const multiplier = parseMultiplier(r.multiplier, SIG_HUNTER_MULTIPLIER_MAX);
     if (multiplier === null || multiplier < 1) return { message: `${n} 배수는 1 ~ ${SIG_HUNTER_MULTIPLIER_MAX}배, 소수 둘째 자리까지예요.` };
-    if (!isInt(r.forfeits, 0, r.slots - 1)) return { message: `${n} 몰수권은 슬롯보다 적게, 0 ~ ${r.slots - 1}개예요.` };
+    const bands = parseBands(r.bands, n);
+    if ("message" in bands) return bands;
+    const total = sigHunterSlotsOf({ slots: r.slots, bands: bands.bands });
+    if (total > SIG_HUNTER_SLOTS_MAX) return { message: `${n} 슬롯은 추가 금액 구간까지 모두 ${SIG_HUNTER_SLOTS_MAX}칸까지예요.` };
+    if (!isInt(r.forfeits, 0, total - 1)) return { message: `${n} 몰수권은 슬롯보다 적게, 0 ~ ${total - 1}개예요.` };
     const keep = typeof r.id === "string" && knownRounds.includes(r.id) && !rounds.some((x) => x.id === r.id);
-    rounds.push({ id: keep ? (r.id as string) : `hr-${randomUUID().slice(0, 8)}`, slots: r.slots, priceMin, priceMax, multiplier, forfeits: r.forfeits });
+    rounds.push({
+      id: keep ? (r.id as string) : `hr-${randomUUID().slice(0, 8)}`,
+      slots: r.slots,
+      priceMin,
+      priceMax,
+      multiplier,
+      forfeits: r.forfeits,
+      ...(bands.bands.length ? { bands: bands.bands } : {})
+    });
   }
   return { ...common, rounds };
+}
+
+/** A 라운드's 추가 금액 구간 (missing = none): up to SIG_HUNTER_BANDS_MAX, each 1 칸 or more and its own range. */
+function parseBands(input: unknown, n: string): { bands: SigHunterBand[] } | { message: string } {
+  if (input === undefined || input === null) return { bands: [] };
+  if (!Array.isArray(input) || input.length > SIG_HUNTER_BANDS_MAX) return { message: `${n} 추가 금액 구간은 ${SIG_HUNTER_BANDS_MAX}개까지예요.` };
+  const bands: SigHunterBand[] = [];
+  for (const [k, raw] of input.entries()) {
+    const b = rec(raw);
+    const name = `${n} 추가 구간 ${k + 1}`;
+    if (!isInt(b.slots, 1, SIG_HUNTER_SLOTS_MAX)) return { message: `${name}의 슬롯은 1칸 이상이에요.` };
+    if (!optionalPrice(b.priceMin) || !optionalPrice(b.priceMax)) return { message: `${name}의 금액 범위를 확인해 주세요.` };
+    const priceMin = (b.priceMin as number | null | undefined) ?? null;
+    const priceMax = (b.priceMax as number | null | undefined) ?? null;
+    if (priceMin !== null && priceMax !== null && priceMin > priceMax) return { message: `${name}의 금액 범위 최소가 최대보다 커요.` };
+    bands.push({ slots: b.slots, priceMin, priceMax });
+  }
+  return { bands };
 }
 
 /** The settings of 라운드 `round` (past the last one, the last one's). */
 const roundOf = (s: SigHunterSettings, round: number) => s.rounds[Math.min(round, s.rounds.length) - 1];
 
-/** The signatures a 라운드 draws from: active, not excluded, within its 금액 범위. */
-export const sigHunterEligible = (s: SigHunterSettings, r: SigHunterRound) =>
+/** The signatures a 라운드 (or one of its 추가 금액 구간) draws from: active, not excluded, within its 금액 범위. */
+export const sigHunterEligible = (s: SigHunterSettings, r: Pick<SigHunterBand, "priceMin" | "priceMax">) =>
   mockSignatures.items.filter((x) => x.active && !s.excluded.includes(x.id) && (r.priceMin === null || x.price >= r.priceMin) && (r.priceMax === null || x.price <= r.priceMax));
 
-/** A 라운드's board from the settings saved now: its signatures in random slots (each in turn when fewer), its 몰수권 in random ones. */
+/**
+ * A 라운드's board from the settings saved now: each 금액 범위's signatures for its slots (each in turn when fewer), all in
+ * random slots, its 몰수권 in random ones. null when a range has no signature.
+ */
 function newBoard(s: SigHunterSettings, requestId: string, round: number, now: number): StoredBoard | null {
   const r = roundOf(s, round);
-  const pool = sigHunterEligible(s, r);
-  if (!pool.length) return null;
-  const filled: typeof pool = [];
-  while (filled.length < r.slots) filled.push(...shuffled(pool).slice(0, r.slots - filled.length));
+  const filled: ReturnType<typeof sigHunterEligible> = [];
+  for (const range of [r, ...(r.bands ?? [])]) {
+    const pool = sigHunterEligible(s, range);
+    if (!pool.length) return null;
+    const part: typeof pool = [];
+    while (part.length < range.slots) part.push(...shuffled(pool).slice(0, range.slots - part.length));
+    filled.push(...part);
+  }
   const forfeit = new Set(shuffled(filled.map((_, i) => i)).slice(0, r.forfeits));
   return {
     requestId,

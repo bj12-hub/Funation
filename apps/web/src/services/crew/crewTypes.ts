@@ -898,12 +898,23 @@ export const SIG_HUNTER_TITLE_DEFAULT = "시그니처 헌터";
 export const SIG_HUNTER_ROUNDS_MAX = 6;
 export const SIG_HUNTER_SLOTS_MAX = 40;
 export const SIG_HUNTER_MULTIPLIER_MAX = 10;
+/** 추가 금액 구간 per 라운드 (2026-10-25, 기본값). */
+export const SIG_HUNTER_BANDS_MAX = 4;
 
 /**
- * A 라운드: `slots` signatures from the 금액 범위 (null = no end) in random places, the 배수 on what each slot is bought for
- * (1 = 없음) and `forfeits` 몰수권 hidden among the slots (fewer than `slots`).
+ * 추가 금액 구간 (2026-10-25, StreamDonate "라운드 · 슬롯별 가격 범위"): `slots` more slots of the 라운드, drawn from this
+ * range instead of the 라운드's (null = no end).
  */
-export type SigHunterRound = { id: string; slots: number; priceMin: number | null; priceMax: number | null; multiplier: number; forfeits: number };
+export type SigHunterBand = { slots: number; priceMin: number | null; priceMax: number | null };
+
+/**
+ * A 라운드: `slots` signatures from the 금액 범위 (null = no end), plus each 추가 금액 구간's (`bands`, missing = none), all in
+ * random places; the 배수 on what each slot is bought for (1 = 없음) and `forfeits` 몰수권 hidden among all the slots (fewer
+ * than them).
+ */
+export type SigHunterRound = { id: string; slots: number; priceMin: number | null; priceMax: number | null; multiplier: number; forfeits: number; bands?: SigHunterBand[] };
+/** Every slot of a 라운드: its own 금액 범위's and each 추가 금액 구간's. */
+export const sigHunterSlotsOf = (r: Pick<SigHunterRound, "slots" | "bands">) => r.slots + (r.bands ?? []).reduce((s, b) => s + b.slots, 0);
 /** `auto` = 시그니처 후원으로 SOLD OUT; `excluded`: signatures kept off the board. After the last 라운드 it repeats (6+). */
 export type SigHunterSettings = GameCommon & { rounds: SigHunterRound[] };
 export const DEFAULT_SIG_HUNTER: SigHunterSettings = {
