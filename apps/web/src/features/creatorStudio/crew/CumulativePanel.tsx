@@ -1,15 +1,25 @@
 "use client";
 
-import { formatNumber } from "@/lib/format";
 import { saveCumulative, setCumulativeVisible } from "@/services/crew/crewCumulative";
-import { CUMULATIVE_ROWS, CUMULATIVE_TITLE_DEFAULT, PRIZE_PLACEMENTS, PRIZE_TITLE_MAX, type BroadcastResult, type CumulativeLive, type CumulativeSettings } from "@/services/crew/crewTypes";
+import {
+  CUMULATIVE_ROWS,
+  CUMULATIVE_TITLE_DEFAULT,
+  PRIZE_PLACEMENTS,
+  PRIZE_TITLE_MAX,
+  WINDOW_GAUGE_BASES,
+  cumulativeText,
+  type BroadcastResult,
+  type CumulativeLive,
+  type CumulativeSettings
+} from "@/services/crew/crewTypes";
 import { BoardAddress, useSettingsDraft } from "./PrizeBoardPanel";
 import styles from "./crew.module.css";
 import prize from "./prize.module.css";
 
 /**
  * 누적 기여도 — code-first (no Figma frame; StreamDonate 누적 기여도 참고, 2026-10-25), inside `/creator/crew/broadcast`. Each
- * member's final scores of the live broadcast's project (프리셋 = 프로젝트) plus this 회차, for OBS `?cumulative`. Settings
+ * member's final scores (or, on 후원금, what they received) of the live broadcast's project (프리셋 = 프로젝트) plus this 회차,
+ * for OBS `?cumulative`. Settings
  * are saved with 설정 저장 (also before going live); OBS에 표시 works while live.
  */
 export function CumulativePanel({
@@ -47,7 +57,10 @@ export function CumulativePanel({
           </label>
         )}
       </div>
-      <p className={styles.note}>같은 프로젝트로 진행한 회차의 최종 점수에 이번 회차 점수를 더해 멤버별로 보여 줘요. 프로젝트 없이 시작한 방송은 이번 방송만 세요.</p>
+      <p className={styles.note}>
+        같은 프로젝트로 진행한 회차를 더해 멤버별로 보여 줘요. 기여도는 각 회차의 최종 점수, 후원금은 멤버가 받은 후원(멤버 지정 · 배정된 후원 리스트)을 자동엑셀 기준 단위로 배수 전에
+        더해요. 프로젝트 없이 시작한 방송은 이번 방송만 세요.
+      </p>
 
       <form
         className={prize.form}
@@ -59,6 +72,16 @@ export function CumulativePanel({
         <div className={prize.field}>
           <span className={styles.muted}>제목</span>
           <input className={styles.input} aria-label="누적 기여도 제목" placeholder={CUMULATIVE_TITLE_DEFAULT} maxLength={PRIZE_TITLE_MAX} value={draft.title} onChange={(e) => edit({ title: e.target.value })} />
+        </div>
+        <div className={prize.field}>
+          <span className={styles.muted}>집계 기준</span>
+          <span className={styles.segment} role="group" aria-label="누적 기여도 집계 기준">
+            {[...WINDOW_GAUGE_BASES].reverse().map((b) => (
+              <button key={b.key} type="button" aria-pressed={draft.basis === b.key} onClick={() => edit({ basis: b.key })}>
+                {b.label}
+              </button>
+            ))}
+          </span>
         </div>
         <div className={prize.field} role="group" aria-label="누적 기여도 표시">
           <span className={styles.muted}>표시</span>
@@ -113,9 +136,9 @@ export function CumulativePanel({
                     {r.name}
                   </span>
                   <span className={prize.previewPrize}>
-                    지난 {formatNumber(r.past)} · 이번 {formatNumber(r.current)}
+                    지난 {cumulativeText(r.past, board.unit)} · 이번 {cumulativeText(r.current, board.unit)}
                   </span>
-                  <strong>{formatNumber(r.total)}</strong>
+                  <strong>{cumulativeText(r.total, board.unit)}</strong>
                 </li>
               ))}
             </ol>
