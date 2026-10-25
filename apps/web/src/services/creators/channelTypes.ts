@@ -3,9 +3,19 @@
  * Ranking rules (what counts, ties, hidden supporters) and community moderation are TBD.
  */
 
-export type ChannelRankRow = { rank: number; name: string; fnAmount: number; me: boolean };
+/** `fnAmount` null: the amount is not shown (a FLEXTV channel's 팬 랭킹 shows the fan's 팬 등급, `level`, instead). */
+export type ChannelRankRow = { rank: number; name: string; fnAmount: number | null; level?: string; me: boolean };
 
-export type ChannelRanking = { month: string; rows: ChannelRankRow[] };
+/** `source` FLEXTV: the channel's 팬 랭킹 on FLEXTV (phase 9); `unavailable`: FLEXTV could not be read. */
+export type ChannelRanking = { month: string; rows: ChannelRankRow[]; source?: "FLEXTV"; unavailable?: boolean };
+
+/** A FLEXTV channel's 소식 (phase 9) as FLEXTV's channel page lists it; each one opens on FLEXTV (`href`). */
+export type ChannelNewsItem = { id: string; title: string; imageUrl: string | null; important: boolean; adult: boolean; createdAt: string; views: number; href: string };
+
+export type ChannelNews = { items: ChannelNewsItem[]; hasMore: boolean; unavailable: boolean };
+
+/** How many 소식 the 소식 tab shows at first, and how many more "더 보기" adds. */
+export const CHANNEL_NEWS_PAGE = 12;
 
 export const CHANNEL_POST_MAX = 500;
 export const CHANNEL_POSTS_PAGE = 10;

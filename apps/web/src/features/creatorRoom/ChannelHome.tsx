@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { formatNumber, kstParts } from "@/lib/format";
 import { createChannelPost, deleteChannelPost } from "@/services/creators/channelHome";
-import { CHANNEL_POST_MAX, CHANNEL_POSTS_PAGE, type ChannelPost, type ChannelPostsView, type ChannelRanking } from "@/services/creators/channelTypes";
+import { CHANNEL_POST_MAX, CHANNEL_POSTS_PAGE, type ChannelNews, type ChannelPost, type ChannelPostsView, type ChannelRanking } from "@/services/creators/channelTypes";
 import { ModerationActions } from "../moderation/ModerationActions";
 import styles from "./channel.module.css";
 
@@ -14,16 +14,24 @@ const when = (iso: string) => {
   return `${d.month}.${d.day} ${String(d.hour).padStart(2, "0")}:${String(d.minute).padStart(2, "0")}`;
 };
 
-/** 채널 홈 아래: 월간 후원 랭킹 + 커뮤니티 최근 글 (funnation channel home, code-first). */
-export function ChannelHomeExtras({ creatorId, ranking, posts }: { creatorId: string; ranking: ChannelRanking; posts: ChannelPost[] }) {
+/**
+ * 채널 홈 아래: 월간 후원 랭킹 + 커뮤니티 최근 글 (funnation channel home, code-first). A FLEXTV channel's room (phase 9)
+ * shows its 팬 랭킹 on FLEXTV — 팬 등급, no amounts — and its latest 소식 (`news`) instead.
+ */
+export function ChannelHomeExtras({ creatorId, ranking, posts, news }: { creatorId: string; ranking: ChannelRanking; posts: ChannelPost[]; news?: ChannelNews }) {
   const [y, m] = ranking.month.split("-");
+  const flextv = ranking.source === "FLEXTV";
   return (
     <div className={styles.homeGrid}>
       <section className={styles.homeCard} aria-labelledby="ch-ranking">
         <h2 id="ch-ranking" className={styles.homeTitle}>
-          🏆 {y}년 {Number(m)}월 후원 랭킹
+          🏆 {y}년 {Number(m)}월 {flextv ? "팬 랭킹" : "후원 랭킹"}
         </h2>
-        {ranking.rows.length === 0 ? (
+        {ranking.unavailable ? (
+          <p className={styles.muted} role="status">
+            랭킹을 불러오지 못했어요. 잠시 후 다시 확인해 주세요.
+          </p>
+        ) : ranking.rows.length === 0 ? (
           <p className={styles.muted}>이번 달 후원 기록이 아직 없어요.</p>
         ) : (
           <ol className={styles.rankList}>
@@ -36,39 +44,80 @@ export function ChannelHomeExtras({ creatorId, ranking, posts }: { creatorId: st
                   {r.name}
                   {r.me && <span className={styles.meBadge}>나</span>}
                 </span>
-                <span className={styles.rankAmount}>{formatNumber(r.fnAmount)} FN</span>
+                <span className={styles.rankAmount}>{r.fnAmount === null ? r.level || "팬" : `${formatNumber(r.fnAmount)} FN`}</span>
               </li>
             ))}
           </ol>
         )}
-        <p className={styles.muted}>후원 금액 기준 (집계 기준 · 공개 여부 TBD)</p>
+        <p className={styles.muted}>{flextv ? "FLEXTV 팬 랭킹 · 이번 달 후원 순 (금액은 보이지 않아요)" : "후원 금액 기준 (집계 기준 · 공개 여부 TBD)"}</p>
       </section>
 
-      <section className={styles.homeCard} aria-labelledby="ch-posts">
-        <div className={styles.homeHead}>
-          <h2 id="ch-posts" className={styles.homeTitle}>
-            💬 채널 커뮤니티
-          </h2>
-          <Link href={`/creators/${creatorId}?view=community`} className={styles.link} scroll={false}>
-            전체 보기 ›
-          </Link>
-        </div>
-        {posts.length === 0 ? (
-          <p className={styles.muted}>아직 글이 없어요. 첫 글을 남겨 보세요.</p>
-        ) : (
-          <ul className={styles.postList}>
-            {posts.map((p) => (
-              <li key={p.id} className={styles.postPreview}>
-                <span className={styles.postBody}>{p.body}</span>
-                <span className={styles.muted}>
-                  {p.authorName} · {when(p.createdAt)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      {news ? (
+        <NewsCard creatorId={creatorId} news={news} />
+      ) : (
+        <section className={styles.homeCard} aria-labelledby="ch-posts">
+          <div className={styles.homeHead}>
+            <h2 id="ch-posts" className={styles.homeTitle}>
+              💬 채널 커뮤니티
+            </h2>
+            <Link href={`/creators/${creatorId}?view=community`} className={styles.link} scroll={false}>
+              전체 보기 ›
+            </Link>
+          </div>
+          {posts.length === 0 ? (
+            <p className={styles.muted}>아직 글이 없어요. 첫 글을 남겨 보세요.</p>
+          ) : (
+            <ul className={styles.postList}>
+              {posts.map((p) => (
+                <li key={p.id} className={styles.postPreview}>
+                  <span className={styles.postBody}>{p.body}</span>
+                  <span className={styles.muted}>
+                    {p.authorName} · {when(p.createdAt)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
     </div>
+  );
+}
+
+/** A FLEXTV channel's latest 소식 on its room's 홈; each opens on FLEXTV, where its text and comments are. */
+function NewsCard({ creatorId, news }: { creatorId: string; news: ChannelNews }) {
+  return (
+    <section className={styles.homeCard} aria-labelledby="ch-news">
+      <div className={styles.homeHead}>
+        <h2 id="ch-news" className={styles.homeTitle}>
+          📣 방송국 소식
+        </h2>
+        <Link href={`/creators/${creatorId}?view=community`} className={styles.link} scroll={false}>
+          전체 보기 ›
+        </Link>
+      </div>
+      {news.unavailable ? (
+        <p className={styles.muted} role="status">
+          소식을 불러오지 못했어요. 잠시 후 다시 확인해 주세요.
+        </p>
+      ) : news.items.length === 0 ? (
+        <p className={styles.muted}>아직 소식이 없어요.</p>
+      ) : (
+        <ul className={styles.postList}>
+          {news.items.map((n) => (
+            <li key={n.id} className={styles.postPreview}>
+              <a href={n.href} target="_blank" rel="noopener noreferrer" className={styles.postBody}>
+                {n.important && <span className={styles.newsBadge}>필독</span>}
+                {n.title || "제목 없는 소식"}
+              </a>
+              <span className={styles.muted}>
+                {when(n.createdAt)} · 조회 {formatNumber(n.views)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
