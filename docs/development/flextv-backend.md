@@ -19,7 +19,7 @@ broadcasting is part of Ssumnation. The mock services are replaced area by area,
 | 2 | 렉스 잔액 · 충전 · 충전 내역 · 지갑 개요 | **done** (below, "2단계") |
 | 3 | 후원 to a FLEXTV channel's room (일반 · 시그니처) · 후원 내역 | **done** (below, "3단계") |
 | 4 | 라이브 목록 · 채널 방의 영상 · 채팅 | **done** (below, "4단계") |
-| 5 | 크리에이터 스튜디오 · 방송 설정 · 수익 · 정산 | not started |
+| 5 | 방송인 등록 · 방송 설정 · 대시보드 · 수익 · 받은 후원 · 정산 (환전) | **done** (below, "5단계") |
 | 6 | Ssumnation-only features (룰렛 · 뽑기 · 위시리스트 · 그림 · 미니 후원 · 크루 게임 …) on new FLEXTV endpoints | not started |
 
 One switch turns on every phase built so far. Until its phase, an area keeps its mock: in `next dev` the site mixes a
@@ -30,7 +30,7 @@ environment until every area a member reaches is connected.
 
 | Variable | Meaning |
 |---|---|
-| `NEXT_PUBLIC_BACKEND=flextv` | Turns the connected phases on (`lib/flextv/mode.ts`: `FLEXTV_AUTH`, `FLEXTV_WALLET`, `FLEXTV_DONATION`, `FLEXTV_LIVE`). Unset: the mock. |
+| `NEXT_PUBLIC_BACKEND=flextv` | Turns the connected phases on (`lib/flextv/mode.ts`: `FLEXTV_AUTH`, `FLEXTV_WALLET`, `FLEXTV_DONATION`, `FLEXTV_LIVE`, `FLEXTV_STUDIO`). Unset: the mock. |
 | `FLEXTV_API_URL` | FLEXTV's API server (`server/` of FLEXTV's web repository), e.g. its stage. Server-side calls only — the browser never calls FLEXTV, so no CORS entry is needed. |
 | `FLEXTV_SITE_CODE` | Optional `x-site-code`. Unset = FLEXTV's own members (the decision above); a tenant code would scope sign-ups to that tenant. |
 | `NEXT_PUBLIC_FLEXTV_WEB_URL` | FLEXTV's site: its embeddable player, and the flows not connected yet (비밀번호 찾기, 본인인증, 환불 1:1 문의, gated streams). Default `https://www.flextv.co.kr`. |
@@ -160,6 +160,29 @@ Limits: chat is read every 2 s rather than pushed (FLEXTV's socket would need Ss
 a relay); donation and system lines of FLEXTV's chat are not in its recent-messages list; a viewer is counted by
 FLEXTV's player in the frame (a signed-out viewer).
 
+## 5단계 · 크리에이터 스튜디오
+
+FLEXTV's streamers (memberDiv 2 · 3) are Ssumnation's Creators. The studio shows only what runs on FLEXTV: 대시보드 ·
+방송 설정 · 수익 현황 · 받은 후원 · 정산 현황 · 정산 계좌 · 정산 신청 · 정산 관리 (`lib/flextv/studioRoutes.ts`); the
+middleware sends the other studio pages (위젯, 크루 방송, 채널 설정 …, still mock) to the dashboard.
+
+Code: `lib/flextv/studio.ts` (registration, channel, keys, start · change · end), `lib/flextv/earnings.ts` (received 렉스),
+`lib/flextv/settlement.ts` (환전), `services/channel/flextvStreamer.ts`, `services/creator/broadcast.ts` ·
+`broadcastInput.ts`, `services/creator/flextvStudio.ts` · `flextvEarnings.ts` · `flextvSettlement.ts`, and the screens
+`features/channel/FlextvStreamerScreen.tsx`, `features/creatorStudio/broadcast/`, `features/creatorStudio/donations/FlextvReceivedTab.tsx`,
+`features/creatorStudio/settlement/FlextvSettlementScreens.tsx`.
+
+| Ssumnation | FLEXTV | Notes |
+|---|---|---|
+| 방송 시작하기 (`/channel/new`) | `GET /api/my/profile`, `POST /api/my/chennel-register` | FLEXTV's order: 본인인증 (on FLEXTV's site) → foreign members through its 1:1 문의 → 만 14세. FLEXTV's 방송 준수사항 first. One registration at a time per member; the member is read again, so the Creator role shows on the next page |
+| 방송 설정 · 서버 · 스트림 키 | `GET /api/my/channel/stream-key-sets`, `GET …/streams/latest/engine`, `POST …/update-stream-engine` | 짧은 지연 and 일반, as FLEXTV's page. The key is read from FLEXTV only when its owner presses 보기 · 복사, and kept nowhere; the engine changes only while no stream is open, always for the member's own channel |
+| 방송 시작 · 변경 · 종료 | `POST /api/my/channel/start-stream`, `PUT …/streams/:id`, `POST …/stop-stream`; options from `GET /api/guest/themes`, `GET /api/my/channel/tag` | FLEXTV starts a broadcast only while OBS is sending (its "송출되고 있지 않습니다" is explained), and ends it only when asked. The fields of FLEXTV's PC form: 제목 64자, 카테고리, 태그 3개, 화면 방향, 화질, 연령제한 (19+ members only; the 성인 category needs it), 탐방허용, 워터마크, 녹화 방지 경고, 비밀번호방. The room password stays on the server (a change keeps it unless replaced); 방송 준수사항 before every start; a 정지 channel cannot start |
+| 대시보드 · 수익 현황 | `GET /api/luv/receivedluv-sum`, `GET /api/luv/receivedluv-list` (`sendLexOption=ViewByCase`, whole KST days) | 오늘 · 누적 · 환전 from FLEXTV's summary; per-period figures add up its list (statuses 0 · 1 · 9, as FLEXTV counts), at most 2,000 후원 per figure — a busier period says so. Amounts are 렉스, shown as FN; no ₩ figure (FLEXTV pays at each streamer's contract rate, which it does not publish). 수익원별 상세 and the event banners are left out |
+| 받은 후원 | `GET /api/luv/receivedluv-list` | FLEXTV's pages of 10, period filter, its exact 닉네임 search; the senders' 아이디 never reach the browser. FLEXTV records no message with the list |
+| 정산 현황 · 정산 계좌 | `GET /api/my/banks`, `GET /api/guest/refcode/bankCode`, `GET /api/guest/timeCheck/21` | the account is masked on the server; it is registered and changed on FLEXTV's 환전 page (`/my/exchange`, its document review) |
+| 정산 신청 | `POST /api/luv/withdraw` `{amount, businessType}` | FLEXTV's rules checked here too: 본인인증, 계좌, 0시 1분 ~ 14시, one open request, 500 렉스 minimum, at most 환전 가능 렉스, 사업자 정산 for 엔터 소속 on Wednesdays before 14:00. One key ⇒ one request per member for 30 minutes, one at a time per member; FLEXTV's unclear "요청이 실패하였습니다" is settled from its list (IN_PROGRESS until it shows, at most two minutes). The payout is FLEXTV's, shown after the request |
+| 정산 관리 · 취소 | `GET /api/luv/withdraw-list`, `GET /api/luv/withdraw-cancel` | FLEXTV's ₩ figures (신청 금액 · 원천징수 · 실수령액); 취소 only for a 신청 of the member's own just read from their list, not on Wednesdays and Thursdays (FLEXTV's 환전 page rule) |
+
 ## FLEXTV-side changes needed before opening to the public
 
 1. **본인인증 from Ssumnation.** FLEXTV charges only members who did its NICE 본인인증, and NICE returns to a fixed
@@ -172,7 +195,11 @@ FLEXTV's player in the frame (a signed-out viewer).
    FLEXTV's Kakao, Naver and Google apps.
 4. Make sure the path from Ssumnation to FLEXTV's API keeps `X-Forwarded-For` (FLEXTV trusts it: `app.proxy`).
 5. Refunds: FLEXTV has no refund API (it takes them through its 1:1 문의), so 충전 내역 links there.
-6. The security review of FLEXTV's API and oauth server (shared separately, not in this repository).
+6. The security review of FLEXTV's API and oauth server (shared separately, not in this repository) — it now also
+   covers the broadcast and 환전 endpoints the studio uses.
+7. **Totals for the studio.** FLEXTV has no 받은 렉스 totals per period, so the dashboard adds up its list (capped);
+   an endpoint returning count · sum · donors per day for a period would make every figure exact and cheap.
+8. **The 환전 계좌 from Ssumnation.** Registering or changing the account (with its documents) happens on FLEXTV's site.
 
 ## Known limits
 
@@ -188,3 +215,7 @@ FLEXTV's player in the frame (a signed-out viewer).
   (hero, trending, creator strip) and favorites still show the mock's creators.
 - 19+, password and fan-only streams are watched on FLEXTV (FLEXTV's player in another site is signed out).
 - 마이페이지 (account linking, 본인인증, withdrawal) is still the mock.
+- Studio: only the pages above run on FLEXTV. 채널 설정 (name, description, images), 위젯 · 오버레이, 크루 방송, 채팅봇,
+  유튜브 연동, 소식 and the 도우미 domain are not connected; 구독 정산 (FLEXTV's channel subscriptions) is not shown.
+- Studio figures are FLEXTV's 렉스 (FN); a period's figures add up at most 2,000 후원, and dates are FLEXTV's (KST).
+- 방송 설정 covers FLEXTV's PC broadcast form; 팬방송, 동시 송출 (YouTube), 엑셀 방송 and the mobile caster stay on FLEXTV.
