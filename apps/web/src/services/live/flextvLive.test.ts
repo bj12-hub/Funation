@@ -9,7 +9,7 @@ vi.mock("next/headers", () => ({
   cookies: async () => ({ get: () => undefined, set: () => undefined, delete: () => undefined }),
   headers: async () => new Headers({ "x-forwarded-for": "203.0.113.7", "user-agent": "Mozilla/5.0 (Windows NT 10.0)" })
 }));
-vi.mock("@/lib/flextv/mode", () => ({ FLEXTV_BACKEND: true, FLEXTV_AUTH: true, FLEXTV_WALLET: true, FLEXTV_DONATION: true, FLEXTV_LIVE: true, FLEXTV_WEB_URL: "https://www.flextv.test" }));
+vi.mock("@/lib/flextv/mode", () => ({ FLEXTV_BACKEND: true, FLEXTV_AUTH: true, FLEXTV_WALLET: true, FLEXTV_DONATION: true, FLEXTV_LIVE: true, FLEXTV_SSUMNATION_API: false, FLEXTV_WEB_URL: "https://www.flextv.test" }));
 const member = { signedIn: true };
 vi.mock("@/lib/session", () => ({
   getSession: async () => (member.signedIn ? { userId: "601924", nickname: "시청자", ssumnationId: "viewer01", avatarUrl: null, roles: ["SUPPORTER"] } : null),

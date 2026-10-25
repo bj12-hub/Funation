@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { FlextvUnavailableError } from "./client";
-import { isFlextvChannelId, mapSend, readActiveStream, readChannel, readSignatures } from "./donation";
+import { isFlextvChannelId, mapSend, readActiveStream, readChannel, readSignatures, readVideoSetting } from "./donation";
 
 /** FLEXTV's channel and donation answers (server/routes/api/channel*, luv of FLEXTV's web repository), in its shapes. */
 
@@ -75,5 +75,19 @@ describe("sending", () => {
   it("treats anything else as unknown: FLEXTV may have debited already", () => {
     expect(() => mapSend({ status: 500, data: "InternalError" })).toThrow(FlextvUnavailableError);
     expect(() => mapSend({ status: 502, data: null })).toThrow(FlextvUnavailableError);
+  });
+});
+
+describe("영상 후원 setting (phase 6)", () => {
+  it("reads the streamer's YouTube preset only", () => {
+    const presets = [
+      { type: "sound", enabled: true, maxLength: 30, minAmount: 100, unitAmount: 10 },
+      { type: "youtube", enabled: true, maxLength: 120, minAmount: 300, unitAmount: 20, filterLevel: 1 }
+    ];
+    expect(readVideoSetting(presets)).toEqual({ enabled: true, perSecond: 20, minAmount: 300, maxSec: 120 });
+    expect(readVideoSetting([{ ...presets[1], enabled: false }])).toMatchObject({ enabled: false });
+    expect(readVideoSetting([presets[0]])).toBeNull();
+    expect(readVideoSetting([{ type: "youtube", enabled: true, maxLength: 0, minAmount: 300, unitAmount: 20 }])).toBeNull();
+    expect(readVideoSetting(null)).toBeNull();
   });
 });

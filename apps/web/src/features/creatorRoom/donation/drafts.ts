@@ -144,20 +144,26 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
     case "AUDIO": {
       const audio = key === "AUDIO";
       const s = states[key];
-      const amount = digits(s.amount);
       const min = audio ? catalog.minAmount.AUDIO : catalog.minAmount.VIDEO;
-      const tooSmall = amount !== null && amount < min;
       const videoId = s.url ? parseYouTubeId(s.url) : null;
       const start = parseClock(s.start);
       const end = parseClock(s.end);
       const rangeOk = start !== null && end !== null && end > start;
-      const error = tooSmall
-        ? `최소 ${formatNumber(min)} FN부터 후원할 수 있어요`
-        : s.url && !videoId
-          ? "YouTube 영상 주소를 입력해 주세요."
-          : !rangeOk
-            ? "종료 시간은 시작 시간보다 늦어야 해요."
-            : null;
+      // Priced by the second (a FLEXTV streamer's 영상 후원): the length sets the amount, within the streamer's limit.
+      const pricing = catalog.mediaPricing?.[key];
+      const length = rangeOk ? end - start : null;
+      const amount = pricing ? (length === null ? null : length * pricing.perSecond) : digits(s.amount);
+      const tooSmall = amount !== null && amount < min;
+      const tooLong = !!pricing && length !== null && length > pricing.maxSec;
+      const error = tooLong
+        ? `최대 ${formatNumber(pricing.maxSec)}초까지 보낼 수 있어요.`
+        : tooSmall
+          ? `최소 ${formatNumber(min)} FN부터 후원할 수 있어요${pricing ? " (재생 구간을 늘려 주세요)" : ""}`
+          : s.url && !videoId
+            ? "YouTube 영상 주소를 입력해 주세요."
+            : !rangeOk
+              ? "종료 시간은 시작 시간보다 늦어야 해요."
+              : null;
       const complete = amount !== null && !error && videoId && s.terms && start !== null && end !== null;
       return {
         details: complete

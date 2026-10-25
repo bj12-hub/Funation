@@ -145,7 +145,7 @@ export function mapSend({ status, data }: Pick<FlextvResponse, "status" | "data"
 export async function sendDonation(
   token: string,
   context: DeviceContext,
-  { channelId, amount, signatureCode, message }: { channelId: string; amount: number; signatureCode: string | null; message: string }
+  { channelId, amount, signatureCode, message, video = null }: { channelId: string; amount: number; signatureCode: string | null; message: string; video?: VideoEffect | null }
 ): Promise<SendOutcome> {
   const response = await flextvRequest("/api/luv/send", {
     method: "POST",
@@ -155,12 +155,43 @@ export async function sendDonation(
       channelId: Number(channelId),
       amount,
       count: 1,
-      sendType: "default",
-      ...(signatureCode ? { code: signatureCode } : {}),
-      ...(message ? { effect: { type: "tts", params: { actorId: "", message } } } : {})
+      // 영상 후원 as FLEXTV's own 영상후원 form sends it: the YouTube effect plays on the streamer's 도우미 (FLEXTV's
+      // single `effect` would take its place, so none is sent with it).
+      ...(video
+        ? { sendType: "youtube", effects: [{ type: "youtube", params: { url: video.url, startSec: video.startSec, endSec: video.endSec } }] }
+        : { sendType: "default", ...(message ? { effect: { type: "tts", params: { actorId: "", message } } } : {}) }),
+      ...(signatureCode ? { code: signatureCode } : {})
     }
   });
   return mapSend(response);
+}
+
+/* ── 영상 후원 (phase 6) ─────────────────────────────────── */
+
+export type VideoEffect = { url: string; startSec: number; endSec: number };
+
+/** The streamer's 영상 후원 setting on FLEXTV's 도우미: on/off, 렉스 per second, minimum, longest range. */
+export type MediaSetting = { enabled: boolean; perSecond: number; minAmount: number; maxSec: number };
+
+/**
+ * `GET /api/luv/effect-settings?channelId`: `[{ type: "youtube" | "sound", enabled, maxLength, minAmount, unitAmount }]`.
+ * Only 영상 (youtube): FLEXTV's 음성 is an uploaded sound file, not Ssumnation's YouTube-as-sound.
+ */
+export function readVideoSetting(data: unknown): MediaSetting | null {
+  const row = (Array.isArray(data) ? data : []).find((r) => isRecord(r) && r.type === "youtube");
+  if (!isRecord(row)) return null;
+  const n = (value: unknown) => (typeof value === "number" && Number.isSafeInteger(value) && value > 0 ? value : null);
+  const perSecond = n(row.unitAmount);
+  const minAmount = n(row.minAmount);
+  const maxSec = n(row.maxLength);
+  if (perSecond === null || minAmount === null || maxSec === null) return null;
+  return { enabled: row.enabled === true, perSecond, minAmount, maxSec };
+}
+
+export async function fetchVideoSetting(channelId: string): Promise<MediaSetting | null> {
+  const response = await flextvRequest(`/api/luv/effect-settings?channelId=${encodeURIComponent(channelId)}`);
+  if (response.status !== 200) throw new FlextvUnavailableError(`FLEXTV effect settings answered ${response.status}`);
+  return readVideoSetting(response.data);
 }
 
 /** FLEXTV shows the message in chat too, as its own form does (lib/flextv/live.ts `sendChat`). Best effort. */

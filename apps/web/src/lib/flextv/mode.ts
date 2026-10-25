@@ -29,5 +29,13 @@ export const FLEXTV_LIVE = FLEXTV_BACKEND;
  */
 export const FLEXTV_STUDIO = FLEXTV_BACKEND;
 
+/**
+ * Phase 6 (front first): Ssumnation's own donation types on FLEXTV channels (미니 · 위시리스트 · 그림 · 룰렛 · 뽑기)
+ * through the endpoints FLEXTV adds for Ssumnation (docs/development/flextv-ssumnation-api.md). Server-only setting,
+ * `FLEXTV_SSUMNATION_API=on` once FLEXTV serves them; until then a FLEXTV channel offers FLEXTV's own types
+ * (일반 · 시그니처 · 영상). Read on the server only: the browser gets the room's types from it.
+ */
+export const FLEXTV_SSUMNATION_API = FLEXTV_BACKEND && process.env.FLEXTV_SSUMNATION_API === "on";
+
 /** FLEXTV's own site, for flows Ssumnation does not host yet (아이디 · 비밀번호 찾기, 본인인증). */
 export const FLEXTV_WEB_URL = (process.env.NEXT_PUBLIC_FLEXTV_WEB_URL || "https://www.flextv.co.kr").replace(/\/+$/, "");

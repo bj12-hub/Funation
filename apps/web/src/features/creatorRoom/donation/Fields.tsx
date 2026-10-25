@@ -234,15 +234,27 @@ export function MiniFields({ value, onChange, catalog, error, onEnter }: Props<M
 // ── 영상 후원 (851:4788) ──────────────────────────────────────────────────────
 
 /** 영상 후원, or 음성 후원 (`audio`): the same YouTube link and range; 음성 plays the sound with a small player. */
-export function VideoFields({ value, onChange, balance, error, audio = false }: Props<VideoState> & { error: string | null; audio?: boolean }) {
+export function VideoFields({ value, onChange, catalog, balance, error, audio = false }: Props<VideoState> & { error: string | null; audio?: boolean }) {
   const videoId = value.url ? parseYouTubeId(value.url) : null;
   const start = parseClock(value.start);
   const end = parseClock(value.end);
   const length = start !== null && end !== null && end > start ? end - start : null;
+  // A room that prices by the second (a FLEXTV streamer's 영상 후원): the amount follows the range.
+  const pricing = catalog.mediaPricing?.[audio ? "AUDIO" : "VIDEO"];
 
   return (
     <>
-      <AmountField value={value.amount} onChange={(amount) => onChange({ ...value, amount })} hint={<Balance balance={balance} />} quick={{ balance }} />
+      {pricing ? (
+        <div className={room.field}>
+          <span className={room.fieldLabel}>후원 금액</span>
+          <span className={`${room.inputBox} ${styles.readonlyBox}`}>{length === null ? "-" : `${formatNumber(length * pricing.perSecond)} FN`}</span>
+          <span className={room.validation}>
+            1초당 {formatNumber(pricing.perSecond)} FN · 최소 {formatNumber(audio ? catalog.minAmount.AUDIO : catalog.minAmount.VIDEO)} FN · 최대 {formatNumber(pricing.maxSec)}초
+          </span>
+        </div>
+      ) : (
+        <AmountField value={value.amount} onChange={(amount) => onChange({ ...value, amount })} hint={<Balance balance={balance} />} quick={{ balance }} />
+      )}
       <label className={room.field}>
         <span className={room.fieldLabel}>{audio ? "YouTube 주소 (소리만 재생)" : "영상 URL"}</span>
         <span className={room.inputBox}>

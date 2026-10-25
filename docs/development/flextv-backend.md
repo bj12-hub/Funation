@@ -20,7 +20,7 @@ broadcasting is part of Ssumnation. The mock services are replaced area by area,
 | 3 | 후원 to a FLEXTV channel's room (일반 · 시그니처) · 후원 내역 | **done** (below, "3단계") |
 | 4 | 라이브 목록 · 채널 방의 영상 · 채팅 | **done** (below, "4단계") |
 | 5 | 방송인 등록 · 방송 설정 · 대시보드 · 수익 · 받은 후원 · 정산 (환전) | **done** (below, "5단계") |
-| 6 | Ssumnation-only features (룰렛 · 뽑기 · 위시리스트 · 그림 · 미니 후원 · 크루 게임 …) on new FLEXTV endpoints | not started |
+| 6 | Ssumnation-only features (룰렛 · 뽑기 · 위시리스트 · 그림 · 미니 후원 · 크루 게임 …) on new FLEXTV endpoints | **front first, in progress** (below, "6단계"): the rooms' types and the contract are done; FLEXTV's endpoints, the studio's settings, 퀘스트 and the overlays are next |
 
 One switch turns on every phase built so far. Until its phase, an area keeps its mock: in `next dev` the site mixes a
 real FLEXTV member with sample data (마이페이지, 후원 내역, the creator room …); a production build is for a staging
@@ -32,6 +32,7 @@ environment until every area a member reaches is connected.
 |---|---|
 | `NEXT_PUBLIC_BACKEND=flextv` | Turns the connected phases on (`lib/flextv/mode.ts`: `FLEXTV_AUTH`, `FLEXTV_WALLET`, `FLEXTV_DONATION`, `FLEXTV_LIVE`, `FLEXTV_STUDIO`). Unset: the mock. |
 | `FLEXTV_API_URL` | FLEXTV's API server (`server/` of FLEXTV's web repository), e.g. its stage. Server-side calls only — the browser never calls FLEXTV, so no CORS entry is needed. |
+| `FLEXTV_SSUMNATION_API=on` | Phase 6: Ssumnation's own types on FLEXTV channels through the endpoints FLEXTV adds (`docs/development/flextv-ssumnation-api.md`). Server-only; leave it unset until FLEXTV serves them. |
 | `FLEXTV_SITE_CODE` | Optional `x-site-code`. Unset = FLEXTV's own members (the decision above); a tenant code would scope sign-ups to that tenant. |
 | `NEXT_PUBLIC_FLEXTV_WEB_URL` | FLEXTV's site: its embeddable player, and the flows not connected yet (비밀번호 찾기, 본인인증, 환불 1:1 문의, gated streams). Default `https://www.flextv.co.kr`. |
 | `KAKAO_REST_API_KEY` · `KAKAO_CLIENT_SECRET` (optional) | FLEXTV's Kakao app. |
@@ -183,6 +184,24 @@ Code: `lib/flextv/studio.ts` (registration, channel, keys, start · change · en
 | 정산 신청 | `POST /api/luv/withdraw` `{amount, businessType}` | FLEXTV's rules checked here too: 본인인증, 계좌, 0시 1분 ~ 14시, one open request, 500 렉스 minimum, at most 환전 가능 렉스, 사업자 정산 for 엔터 소속 on Wednesdays before 14:00. One key ⇒ one request per member for 30 minutes, one at a time per member; FLEXTV's unclear "요청이 실패하였습니다" is settled from its list (IN_PROGRESS until it shows, at most two minutes). The payout is FLEXTV's, shown after the request |
 | 정산 관리 · 취소 | `GET /api/luv/withdraw-list`, `GET /api/luv/withdraw-cancel` | FLEXTV's ₩ figures (신청 금액 · 원천징수 · 실수령액); 취소 only for a 신청 of the member's own just read from their list, not on Wednesdays and Thursdays (FLEXTV's 환전 page rule) |
 
+## 6단계 · 썸네이션 전용 후원 (front first)
+
+2026-10-25: the screens first. A FLEXTV channel's room offers Ssumnation's types where FLEXTV can deliver them:
+
+| Type | How | Notes |
+|---|---|---|
+| 영상 후원 | FLEXTV's own `POST /api/luv/send` with its YouTube effect (`sendType: "youtube"`), as its 영상후원 form sends it | Offered where the streamer turned 영상 후원 on in FLEXTV's 도우미 (`GET /api/luv/effect-settings`); priced as they set it — the played length × 렉스 per second, from their minimum, up to their longest range (checked on the server; FLEXTV's own server does not). Needs nothing new on FLEXTV. FLEXTV's own web currently hides its 영상 tab. 음성 후원 is not offered: FLEXTV's is an uploaded sound file |
+| 미니 · 위시리스트 · 그림 · 룰렛 · 뽑기 | The endpoints FLEXTV adds for Ssumnation: `docs/development/flextv-ssumnation-api.md` | Behind `FLEXTV_SSUMNATION_API=on`. The streamer's settings, the donation by an Idempotency-Key FLEXTV keeps (an unclear answer is asked again by the key, and sent again only if FLEXTV never got it), the room's 내 룰렛 · 내 뽑기 |
+| 퀘스트 | not yet | needs its decisions and refunds on FLEXTV (contract "Next") |
+
+Every type is checked with Donation Core's rules (`services/donations/donationDetails.ts`, shared with the mock) against
+the channel's catalog as FLEXTV has it at the send; prices of 위시리스트 · 뽑기 are checked again (PRICE_CHANGED). Code:
+`lib/flextv/ssumnation.ts`, `lib/flextv/donation.ts` (`readVideoSetting`, the video send), `services/donations/flextvDonate.ts`
+(`loadFlextvCatalog`, the sends), `services/donations/flextvGames.ts` (the room's panels).
+
+Next: FLEXTV implements the contract; the studio's settings for these types (`/api/ssumnation/my/donation-settings`),
+퀘스트, the 리모컨 · overlays, and the types in 후원 내역.
+
 ## FLEXTV-side changes needed before opening to the public
 
 1. **본인인증 from Ssumnation.** FLEXTV charges only members who did its NICE 본인인증, and NICE returns to a fixed
@@ -200,6 +219,7 @@ Code: `lib/flextv/studio.ts` (registration, channel, keys, start · change · en
 7. **Totals for the studio.** FLEXTV has no 받은 렉스 totals per period, so the dashboard adds up its list (capped);
    an endpoint returning count · sum · donors per day for a period would make every figure exact and cheap.
 8. **The 환전 계좌 from Ssumnation.** Registering or changing the account (with its documents) happens on FLEXTV's site.
+9. **The Ssumnation endpoints** of `docs/development/flextv-ssumnation-api.md` (phase 6), then `FLEXTV_SSUMNATION_API=on`.
 
 ## Known limits
 

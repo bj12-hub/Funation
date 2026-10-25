@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
  * offset-paged lists read back to the period's start, then filtered and paged like the mock's.
  */
 
-vi.mock("@/lib/flextv/mode", () => ({ FLEXTV_BACKEND: true, FLEXTV_AUTH: true, FLEXTV_WALLET: true, FLEXTV_DONATION: true, FLEXTV_WEB_URL: "https://www.flextv.test" }));
+vi.mock("@/lib/flextv/mode", () => ({ FLEXTV_BACKEND: true, FLEXTV_AUTH: true, FLEXTV_WALLET: true, FLEXTV_DONATION: true, FLEXTV_SSUMNATION_API: false, FLEXTV_WEB_URL: "https://www.flextv.test" }));
 vi.mock("@/lib/session", () => ({
   getSession: async () => ({ userId: "601924", nickname: "시청자", ssumnationId: "viewer01", avatarUrl: null, roles: ["SUPPORTER"] }),
   getFlextvAccessToken: async () => "member-token"
