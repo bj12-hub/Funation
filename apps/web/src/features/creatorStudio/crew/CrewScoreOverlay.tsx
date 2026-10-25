@@ -8,6 +8,7 @@ import { formatNumber } from "@/lib/format";
 import type { ResolvedTheme } from "@/services/creator/overlayThemeTypes";
 import {
   CUMULATIVE_TITLE_DEFAULT,
+  cumulativeText,
   GAUGE_TITLE_DEFAULT,
   WINDOW_GAUGE_TITLE_DEFAULT,
   OVERLAY_BOARD_ROWS,
@@ -364,8 +365,8 @@ export function CumulativeOverlay({ board, reloadSeq, theme }: { board: Cumulati
               <span className={`${ov.label} ${styles.name}`}>
                 <i className={styles.dot} style={{ background: r.color }} aria-hidden="true" /> {r.name}
               </span>
-              <span className={`${ov.muted} ${styles.prizeText}`}>{s.showBreakdown && `지난 ${formatNumber(r.past)} · 이번 ${formatNumber(r.current)}`}</span>
-              <span className={`${ov.display} ${styles.score}`}>{formatNumber(r.total)}</span>
+              <span className={`${ov.muted} ${styles.prizeText}`}>{s.showBreakdown && `지난 ${cumulativeText(r.past, board.unit)} · 이번 ${cumulativeText(r.current, board.unit)}`}</span>
+              <span className={`${ov.display} ${styles.score}`}>{cumulativeText(r.total, board.unit)}</span>
             </li>
           ))}
         </ol>

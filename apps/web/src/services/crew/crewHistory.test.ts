@@ -13,10 +13,11 @@ async function load() {
   const cumulative = await import("./crewCumulative");
   const battle = await import("./crewBattle");
   const crew = await import("./crew");
+  const types = await import("./crewTypes");
   const { mockCrew } = await import("./mockCrewStore");
   // The seed's 멤버 지정 후원 are stamped around now; these tests count only their own.
   mockCrew.attributions = [];
-  return { ...bc, ...feed, ...core, ...history, ...cumulative, ...battle, ...crew, mockCrew };
+  return { ...bc, ...feed, ...core, ...history, ...cumulative, ...battle, ...crew, ...types, mockCrew };
 }
 
 const at = (s: string) => vi.setSystemTime(new Date(`2026-10-25T12:${s}Z`));
@@ -248,10 +249,16 @@ describe("누적 기여도", () => {
 
   it("validates and keeps the settings", async () => {
     const m = await load();
-    const ok = { title: " 시즌 누적 ", rows: 5, showBreakdown: false, showRounds: true, placement: "RIGHT" };
+    const ok = { title: " 시즌 누적 ", basis: "AMOUNT", rows: 5, showBreakdown: false, showRounds: true, placement: "RIGHT" };
     expect(await m.saveCumulative(ok)).toEqual({ status: "SAVED" });
     expect((await m.getBroadcastView())!.cumulativeSettings).toEqual({ ...ok, title: "시즌 누적" });
+    // A screen from before 집계 기준 sends none: 기여도.
+    const { basis: _basis, ...older } = ok;
+    expect(_basis).toBe("AMOUNT");
+    expect(await m.saveCumulative(older)).toEqual({ status: "SAVED" });
+    expect((await m.getBroadcastView())!.cumulativeSettings.basis).toBe("POINTS");
     for (const [patch, message] of [
+      [{ basis: "WON" }, "집계 기준"],
       [{ title: "가".repeat(21) }, "제목"],
       [{ title: "admin 누적" }, "사용할 수 없는"],
       [{ rows: 4 }, "멤버 수"],
@@ -264,5 +271,44 @@ describe("누적 기여도", () => {
     signIn(["SUPPORTER"]);
     expect(await m.saveCumulative(ok)).toEqual({ status: "UNAUTHORIZED" });
     expect(await m.setCumulativeVisible({ broadcastId: "x", on: true })).toEqual({ status: "UNAUTHORIZED" });
+  });
+
+  it("adds what each member received on 후원금, in the 자동엑셀 unit before 배수", async () => {
+    vi.useFakeTimers({ now: new Date("2026-10-25T10:00:00Z"), toFake: ["Date"] });
+    const m = await load();
+    await m.setMemberKeywords({ memberId: "cm-s1", keywords: ["길동"] });
+    let n = 0;
+    const start = async (title: string) => {
+      expect(await m.startBroadcast({ requestId: crypto.randomUUID(), title, project: "시즌A", teamMode: false })).toEqual({ status: "SAVED" });
+      return (await m.getBroadcastView())!.live!.id;
+    };
+    const sim = (broadcastId: string, amount: number, message: string, unit = "FN") => m.simulateDonation({ broadcastId, requestId: key(++n), amount, unit, message });
+    const toHaneul = (fnAmount: number) =>
+      m.mockCrew.attributions.push({ donationId: `d-${++n}`, channelId: "studio", memberId: "cm-s2", fnAmount, at: new Date().toISOString(), shownDonor: "후원자" });
+
+    const first = await start("1회차");
+    toHaneul(12_000); // 멤버 지정 후원
+    await sim(first, 5_000, "길동 화이팅"); // assigned by keyword
+    await sim(first, 3_000, "그냥 응원"); // 미지정: nobody's
+    await sim(first, 10_000, "길동 별풍선", "KRW"); // 원: no 환산값 on FN 기준
+    await m.adjustScore({ broadcastId: first, memberId: "cm-s3", points: 9_000, adjustmentId: key(++n) }); // 보정: points only
+    vi.setSystemTime(Date.now() + 3_600_000);
+    await m.endBroadcast(first);
+
+    const second = await start("2회차");
+    await sim(second, 2_000, "길동 또");
+    expect(await m.saveCumulative({ title: "", basis: "AMOUNT", rows: 10, showBreakdown: true, showRounds: true, placement: "FLOAT" })).toEqual({ status: "SAVED" });
+    let board = (await m.getBroadcastView())!.live!.cumulative;
+    expect(board).toMatchObject({ unit: "FN", rounds: 2, total: 19_000 });
+    expect(board.rows.map((r) => `${r.name} ${r.past}+${r.current}=${r.total}`)).toEqual(["하늘 12000+0=12000", "길동 5000+2000=7000", "바다 0+0=0"]);
+    expect(m.cumulativeText(board.rows[1].total, board.unit)).toBe("7,000 FN");
+
+    // 원화 기준: every unit with its 환산값 (today's), before the 배수 규칙.
+    expect(await m.setExcelSettings({ unit: "KRW", rates: { FN: 1.5 }, rules: [{ min: 1, multiplier: 2 }] })).toEqual({ status: "SAVED" });
+    board = (await m.getBroadcastView())!.live!.cumulative;
+    expect(board.unit).toBe("원");
+    expect(board.rows.map((r) => `${r.name} ${r.past}+${r.current}=${r.total}`)).toEqual(["길동 17500+3000=20500", "하늘 18000+0=18000", "바다 0+0=0"]);
+    expect(m.cumulativeText(20_500, "원")).toBe("20,500원");
+    expect(m.cumulativeText(20_500, "점")).toBe("20,500");
   });
 });
