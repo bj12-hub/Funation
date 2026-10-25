@@ -1,8 +1,8 @@
-import { formatNumber } from "@/lib/format";
+import { formatKstTime, formatNumber } from "@/lib/format";
 import { unitLabel } from "@/types/donationUnit";
-import { battleGroups, donorMergesOf, donorNamer, excelOf, extraPoints, gameRunCounts, gradeBonus, gradeMultipliersOf, scoreFn, scoredFeed, windowReceived } from "./crewCore";
-import { FEED_ORIGINS, GAMES, feedOrigin, type ContributionLine } from "./crewTypes";
-import { mockCrew, type MockBroadcast } from "./mockCrewStore";
+import { battleGroups, donorMergesOf, donorNamer, excelOf, extraPoints, gameRunCounts, gradeBonus, gradeMultipliersOf, scoreFn, scoreboardRows, scoredFeed, windowReceived } from "./crewCore";
+import { CONTRIBUTION_EXPORT_MAX, CONTRIBUTION_KINDS, FEED_ORIGINS, GAMES, feedOrigin, type ContributionLine } from "./crewTypes";
+import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 /**
  * 기여도 내역 (server-only) — code-first, StreamDonate 후원 및 통합 관리 "기여도 내역(후원 + 조정, 기능별 필터)" 참고. Every
@@ -64,4 +64,84 @@ export function contributionLines(b: MockBroadcast, now = Date.now()): Contribut
 
   // Newest first; 직급 배수 (the whole broadcast) last.
   return lines.sort((x, y) => (x.at === y.at ? x.id.localeCompare(y.id) : x.at === null ? 1 : y.at === null ? -1 : y.at.localeCompare(x.at)));
+}
+
+// ── 기여도 내보내기 (2026-10-25) ─────────────────────────────────────────────────────────────────────
+
+const KIND_LABEL = Object.fromEntries(CONTRIBUTION_KINDS.map((k) => [k.key, k.label]));
+const stamp = (iso: string) => formatKstTime(iso, { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+/** A 회차's column / cell name: "3회차" in a project, else the start date and title; "(진행 중)" while live. */
+const roundName = (b: MockBroadcast) =>
+  `${b.round ? `${b.round}회차` : `${formatKstTime(b.startedAt, { month: "2-digit", day: "2-digit" })} ${b.title}`}${b.endedAt ? "" : " (진행 중)"}`;
+/** Characters a file name cannot hold become _. */
+const fileSafe = (s: string) => s.replace(/[\\/:*?"<>|]/g, "_").trim() || "방송";
+
+/** A 기여도 내보내기 table: headers and rows, the file name without its extension, and how many rows it counts. */
+export type ContributionTable = { name: string; sheet: string; headers: string[]; rows: (string | number)[][]; count: number; truncated: boolean };
+
+const rec = (input: unknown) => (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
+const ofChannel = () => (mockCrew.broadcasts ?? []).filter((b) => b.channelId === STUDIO_CHANNEL);
+
+/**
+ * 기여도 내보내기 (CSV or Excel): `broadcastId` (one broadcast, LINES only), or `project` (a project name, or null for the
+ * broadcasts started without one — every 회차 oldest first, the live one included). ROUNDS: members × 회차 with each
+ * 회차's final score (the live one's current score), 합계 per member and a 합계 row, best total first. LINES: every 기여도
+ * 내역 line, with its 회차 — recomputed with today's 자동엑셀 settings, so it can differ from ROUNDS if those changed after a
+ * 회차 ended. Up to CONTRIBUTION_EXPORT_MAX lines.
+ */
+export function contributionTable(input: unknown): ContributionTable | { message: string } {
+  const v = rec(input);
+  if (v.format !== "ROUNDS" && v.format !== "LINES") return { message: "내보낼 형식을 골라 주세요." };
+  let list: MockBroadcast[];
+  let name: string;
+  if (v.broadcastId !== undefined) {
+    const b = ofChannel().find((x) => x.id === v.broadcastId);
+    if (!b) return { message: "방송을 찾을 수 없어요." };
+    if (v.format !== "LINES") return { message: "회차별 합계는 프로젝트로 내보내 주세요." };
+    list = [b];
+    name = `기여도내역-${fileSafe(b.title)}`;
+  } else {
+    if (v.project !== null && typeof v.project !== "string") return { message: "프로젝트를 골라 주세요." };
+    list = ofChannel()
+      .filter((b) => (b.project ?? null) === v.project)
+      .sort((a, b) => a.startedAt.localeCompare(b.startedAt));
+    if (!list.length) return { message: "내보낼 방송이 없어요." };
+    name = `기여도-${fileSafe((v.project as string | null) ?? "프로젝트 없음")}-${v.format === "ROUNDS" ? "회차별" : "상세"}`;
+  }
+
+  if (v.format === "ROUNDS") {
+    const scores = list.map((b) => new Map((b.final ?? scoreboardRows(b)).map((r) => [r.memberId, { name: r.name, score: r.score }])));
+    const crew = new Map((mockCrew.crews[STUDIO_CHANNEL] ?? []).map((m) => [m.id, m.name]));
+    const ids = [...new Set(scores.flatMap((m) => [...m.keys()]))];
+    const rows = ids
+      .map((id) => {
+        const each = scores.map((m) => m.get(id)?.score ?? 0);
+        // The current name, else the name of their last 회차.
+        const last = [...scores].reverse().find((m) => m.has(id))!.get(id)!.name;
+        return { name: crew.get(id) ?? last, each, total: each.reduce((s, x) => s + x, 0) };
+      })
+      .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
+    const totals = list.map((_, i) => rows.reduce((s, r) => s + r.each[i], 0));
+    return {
+      name,
+      sheet: "회차별 합계",
+      headers: ["멤버", ...list.map(roundName), "합계"],
+      rows: [...rows.map((r) => [r.name, ...r.each, r.total]), ["합계", ...totals, totals.reduce((s, x) => s + x, 0)]],
+      count: rows.length,
+      truncated: false
+    };
+  }
+
+  // Oldest first within each 회차 (the screen shows newest first), 직급 배수 for the whole 회차 last.
+  const oldestFirst = (b: MockBroadcast) => contributionLines(b).sort((x, y) => (x.at === y.at ? x.id.localeCompare(y.id) : x.at === null ? 1 : y.at === null ? -1 : x.at.localeCompare(y.at)));
+  const lines = list.flatMap((b) => oldestFirst(b).map((l) => ({ b, l })));
+  const shown = lines.slice(0, CONTRIBUTION_EXPORT_MAX);
+  return {
+    name,
+    sheet: "기여도 내역",
+    headers: ["회차", "방송", "시각", "멤버", "종류", "내용", "상세", "점수"],
+    rows: shown.map(({ b, l }) => [roundName(b), b.title, l.at ? stamp(l.at) : "방송 전체", l.memberName, KIND_LABEL[l.kind], l.label, l.detail, l.points]),
+    count: shown.length,
+    truncated: lines.length > shown.length
+  };
 }

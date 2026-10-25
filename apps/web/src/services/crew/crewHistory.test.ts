@@ -220,6 +220,42 @@ describe("기여도 내보내기", () => {
   });
 });
 
+describe("기여도 내보내기 — 엑셀", () => {
+  beforeEach(() => resetMockStores());
+  afterEach(() => vi.useRealTimers());
+
+  it("downloads the same table as an .xlsx file, and answers errors with a message", async () => {
+    const m = await seasons();
+    const { GET } = await import("@/app/api/creator/crew/contributions/route");
+    const get = (query: string) => GET({ nextUrl: new URL(`http://localhost/api/creator/crew/contributions?${query}`) } as never);
+
+    const res = await get(`format=ROUNDS&project=${encodeURIComponent("시즌1")}`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    expect(res.headers.get("Content-Disposition")).toContain(`filename*=UTF-8''${encodeURIComponent("기여도-시즌1-회차별.xlsx")}`);
+    expect(res.headers.get("Cache-Control")).toBe("no-store");
+    expect([res.headers.get("X-Export-Rows"), res.headers.get("X-Export-Truncated")]).toEqual(["4", "false"]);
+    const file = new Uint8Array(await res.arrayBuffer());
+    expect([...file.subarray(0, 4)]).toEqual([0x50, 0x4b, 3, 4]);
+    // The sheet part is stored as is: the header, a member row and the 합계 row read back from the bytes.
+    const text = new TextDecoder().decode(file);
+    expect(text).toContain('<sheet name="회차별 합계"');
+    expect(text).toContain('<t xml:space="preserve">2회차 (진행 중)</t>');
+    expect(text).toMatch(/<t xml:space="preserve">하늘<\/t><\/is><\/c><c r="B\d+"><v>1000<\/v><\/c><c r="C\d+"><v>5000<\/v><\/c><c r="D\d+"><v>6000<\/v>/);
+
+    // 프로젝트 없는 방송 (empty project) and one broadcast's lines.
+    expect((await get("format=ROUNDS&project=")).status).toBe(200);
+    expect((await get(`format=LINES&broadcastId=${m.first}`)).headers.get("Content-Disposition")).toContain(encodeURIComponent("기여도내역-시즌1_첫 방송.xlsx"));
+
+    const bad = await get("format=XLSX&project=x");
+    expect(bad.status).toBe(400);
+    expect(await bad.json()).toEqual({ message: "내보낼 형식을 골라 주세요." });
+    expect(await (await get("format=ROUNDS")).json()).toEqual({ message: "프로젝트를 골라 주세요." });
+    signIn(["SUPPORTER"]);
+    expect((await get("format=ROUNDS&project=")).status).toBe(401);
+  });
+});
+
 describe("누적 기여도", () => {
   beforeEach(() => resetMockStores());
   afterEach(() => vi.useRealTimers());
