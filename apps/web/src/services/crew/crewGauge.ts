@@ -5,6 +5,7 @@ import { getCreatorSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { liveBroadcastOf } from "./crewCore";
 import { parseGauge, parsePledges } from "./crewGaugeCore";
+import { parseWindowGauge } from "./crewWindowGaugeCore";
 import type { BroadcastResult } from "./crewTypes";
 import { STUDIO_CHANNEL, mockCrew } from "./mockCrewStore";
 
@@ -35,6 +36,19 @@ export async function saveGauge(input: unknown): Promise<BroadcastResult> {
   const parsed = parseGauge(input, MOCK_FORBIDDEN_WORDS);
   if ("message" in parsed) return { status: "INVALID", message: parsed.message };
   (mockCrew.gauges ??= {})[STUDIO_CHANNEL] = parsed;
+  return { status: "SAVED" };
+}
+
+/**
+ * Replaces the 시간 내 통합 게이지 settings (제목 · 후원금 / 기여도 · 목표 · 자동 증량 · 숫자 · 배치). Its OBS에 표시 and 구간
+ * (시작 ~ 정지) are the 순위표 actions with `board: "WINDOW_GAUGE"` (crewPrizeBoard.ts).
+ */
+export async function saveWindowGauge(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const parsed = parseWindowGauge(input, MOCK_FORBIDDEN_WORDS);
+  if ("message" in parsed) return { status: "INVALID", message: parsed.message };
+  (mockCrew.windowGauges ??= {})[STUDIO_CHANNEL] = parsed;
   return { status: "SAVED" };
 }
 

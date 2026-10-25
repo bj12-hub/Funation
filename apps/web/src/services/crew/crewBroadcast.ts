@@ -32,6 +32,7 @@ import {
 import { battleGroups, battleRulesOf, donorKey, donorMergesOf, donorNamer, duplicateSuspects, fanNotesView, feedOf, scoreFn, gradeMultipliersOf, excelOf, liveBroadcastOf, scoreboardRows, scoredFeed, stealRecordView, stealRulesOf, timesMultiplier, windowGames, windowReceived, windowScores, windowSteals } from "./crewCore";
 import { cumulativeLive, cumulativeSettingsOf } from "./crewCumulativeCore";
 import { gaugeLive, gaugeSettingsOf, pledgesOf } from "./crewGaugeCore";
+import { windowGaugeLive, windowGaugeSettingsOf } from "./crewWindowGaugeCore";
 import { prizeBoardLive, prizeSettingsOf, teamPrizeLive, teamPrizeSettingsOf } from "./crewPrizeCore";
 import { sigCountLive, sigCountSettingsOf, sigCountSignatures } from "./crewSigCountCore";
 import { diceLive } from "./crewDiceCore";
@@ -103,6 +104,7 @@ function liveView(b: MockBroadcast): BroadcastLive {
     teamPrize: teamPrizeLive(b, rows),
     cumulative: cumulativeLive(b, rows),
     gauge: gaugeLive(b, rows),
+    windowGauge: windowGaugeLive(b),
     sigCount: sigCountLive(b),
     spin: spinLive(b),
     dice: diceLive(b),
@@ -257,6 +259,7 @@ export async function getBroadcastView(): Promise<BroadcastView | null> {
     cumulativeSettings: structuredClone(cumulativeSettingsOf(STUDIO_CHANNEL)),
     pledges: structuredClone(pledgesOf(STUDIO_CHANNEL)),
     gaugeSettings: structuredClone(gaugeSettingsOf(STUDIO_CHANNEL)),
+    windowGaugeSettings: structuredClone(windowGaugeSettingsOf(STUDIO_CHANNEL)),
     sigCountSettings: structuredClone(sigCountSettingsOf(STUDIO_CHANNEL)),
     signatures: sigCountSignatures(),
     projects: [...new Set(broadcasts().filter((b) => b.channelId === STUDIO_CHANNEL && b.project).map((b) => b.project as string))],
@@ -374,6 +377,7 @@ export async function endBroadcast(broadcastId: unknown): Promise<BroadcastResul
   for (const s of live.subBoards ?? []) s.closedAt ??= live.endedAt;
   if (live.prizeBoard?.window) live.prizeBoard.window.stoppedAt ??= live.endedAt;
   if (live.teamPrize?.window) live.teamPrize.window.stoppedAt ??= live.endedAt;
+  if (live.windowGauge?.window) live.windowGauge.window.stoppedAt ??= live.endedAt;
   for (const x of live.battles ?? []) if (new Date(x.endsAt).getTime() > Date.now()) x.stoppedAt ??= live.endedAt;
   if (live.scenario) {
     for (const h of live.scenario.history) h.endedAt ??= live.endedAt;

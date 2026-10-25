@@ -126,6 +126,26 @@ export function donorRanking(items: AlertItem[], from: number, to: number): Widg
   return [...totals.values()].sort((x, y) => y.fn - x.fn || x.first - y.first).map((v, i) => ({ rank: i + 1, name: v.name, fnAmount: v.fn }));
 }
 
+/**
+ * 엔딩 크레딧 HOT 시그 · HIGH 시그 (2026-10-25, 기본값): the signatures counted donations between `from` and `to` alerted as
+ * (`signatureId` — chosen, or matched by amount) — HOT by how many times (ties: the pricier signature, then name), HIGH by
+ * the largest such donation (ties by name). `signatures`: the channel's signatures now; one deleted since is left out.
+ */
+export function signatureCredits(items: AlertItem[], from: number, to: number, signatures: { id: string; name: string; price: number }[]) {
+  const byId = new Map(signatures.map((s) => [s.id, s]));
+  const seen = new Map<string, { count: number; top: number }>();
+  for (const a of countedDonations(items)) {
+    const t = countedAt(a);
+    if (t < from || t > to || !a.signatureId || !byId.has(a.signatureId)) continue;
+    const cur = seen.get(a.signatureId) ?? { count: 0, top: 0 };
+    seen.set(a.signatureId, { count: cur.count + 1, top: Math.max(cur.top, a.fnAmount) });
+  }
+  const rows = [...seen].map(([id, v]) => ({ ...v, name: byId.get(id)!.name, price: byId.get(id)!.price }));
+  const hot = [...rows].sort((x, y) => y.count - x.count || y.price - x.price || x.name.localeCompare(y.name)).map((r) => ({ name: r.name, count: r.count }));
+  const high = [...rows].sort((x, y) => y.top - x.top || x.name.localeCompare(y.name)).map((r) => ({ name: r.name, fnAmount: r.top }));
+  return { hot, high };
+}
+
 /** Completed Ssumnation donations between `from` and `to` (ms, inclusive), in FN — 익명 included (no name is shown). */
 export const totalBetween = (items: AlertItem[], from: number, to: number) => sumBetween(items, from, to);
 

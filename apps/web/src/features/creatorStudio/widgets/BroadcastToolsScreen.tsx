@@ -49,6 +49,8 @@ function creditsPreview(d: CreditsData, s: CreditsState["sections"]) {
   if (s.total.on) parts.push(`총 ${formatNumber(d.total)} FN`);
   if (s.mvp.on) parts.push(d.mvp ? `MVP ${d.mvp.name} ${formatNumber(d.mvp.score)} ${d.memberUnit}` : "MVP 없음");
   if (s.top3.on || s.donors.on) parts.push(d.donors.length ? `후원자 ${d.donors.slice(0, 3).map((r) => r.name).join(" · ")}${d.donors.length > 3 ? ` 외 ${d.donors.length - 3}명` : ""}` : "후원자 없음");
+  if (s.hotSigs.on) parts.push(d.hotSigs.length ? `HOT 시그 ${d.hotSigs[0].name} ${d.hotSigs[0].count}회` : "HOT 시그 없음");
+  if (s.highSigs.on) parts.push(d.highSigs.length ? `HIGH 시그 ${d.highSigs[0].name} ${formatNumber(d.highSigs[0].fnAmount)} FN` : "HIGH 시그 없음");
   if (s.members.on) parts.push(`멤버 ${d.members.length}명`);
   return `${parts.join(" · ")} (저장한 설정 기준)`;
 }
@@ -418,12 +420,12 @@ export function BroadcastToolsScreen({ view, overlayKey, switches }: { view: Too
                         type="number"
                         min={1}
                         max={CREDITS_LIST_MAX}
-                        aria-label={`${meta.label} 표시 인원`}
+                        aria-label={`${meta.label} ${meta.unit === "개" ? "표시 개수" : "표시 인원"}`}
                         value={x.max}
                         disabled={!x.on}
                         onChange={(e) => set({ max: Math.max(1, Math.min(CREDITS_LIST_MAX, Math.floor(Number(e.target.value) || 1))) })}
                       />
-                      <span className={styles.muted}>명</span>
+                      <span className={styles.muted}>{meta.unit}</span>
                     </span>
                   ) : (
                     <span />

@@ -17,6 +17,7 @@ import { TeamPrizePanel } from "./TeamPrizePanel";
 import { BroadcastCsvButton, ContributionExportBar } from "./ContributionExport";
 import { CumulativePanel } from "./CumulativePanel";
 import { GaugePanel } from "./GaugePanel";
+import { WindowGaugePanel } from "./WindowGaugePanel";
 import { ScenarioPanel } from "./ScenarioPanel";
 import { SigCountPanel } from "./SigCountPanel";
 import { StealPanel } from "./StealPanel";
@@ -339,6 +340,13 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
         pledges={view.pledges}
         settings={view.gaugeSettings}
         live={live ? { broadcastId: live.id, board: live.gauge } : null}
+        overlayPath={view.overlayPath}
+        pending={pending}
+        run={run}
+      />
+      <WindowGaugePanel
+        settings={view.windowGaugeSettings}
+        live={live ? { broadcastId: live.id, board: live.windowGauge } : null}
         overlayPath={view.overlayPath}
         pending={pending}
         run={run}

@@ -9,6 +9,7 @@ import type { ResolvedTheme } from "@/services/creator/overlayThemeTypes";
 import {
   CUMULATIVE_TITLE_DEFAULT,
   GAUGE_TITLE_DEFAULT,
+  WINDOW_GAUGE_TITLE_DEFAULT,
   OVERLAY_BOARD_ROWS,
   PRIZE_TITLE_DEFAULT,
   SIG_COUNT_TITLE_DEFAULT,
@@ -17,6 +18,7 @@ import {
   type BattleMatch,
   type CumulativeLive,
   type GaugeLive,
+  type WindowGaugeLive,
   type OverlayScenario,
   type OverlayScoreboard,
   type PrizeBoardLive,
@@ -405,6 +407,34 @@ export function GaugeOverlay({ board, reloadSeq, theme }: { board: GaugeLive | n
             </li>
           ))}
         </ol>
+      </div>
+    </OverlayThemeRoot>
+  );
+}
+
+/**
+ * 시간 내 통합 게이지 overlay (`?windowgauge`): the crew's total of the 구간 filling up to the goal (after 자동 증량), with
+ * the numbers as chosen and a 마감 chip after 정지. Shown only while 방송 운영 has OBS에 표시 on and the 구간 has started.
+ */
+export function WindowGaugeOverlay({ board, reloadSeq, theme }: { board: WindowGaugeLive | null; reloadSeq: number; theme: ResolvedTheme }) {
+  useOverlayPage(reloadSeq);
+  if (!board || !board.visible || !board.window) return null;
+  const s = board.settings;
+  return (
+    <OverlayThemeRoot theme={theme} className={styles.pad}>
+      <div className={`${ov.card} ${styles.board} ${styles.prize}`} data-placement={s.placement} data-cols={1}>
+        <h1 className={`${ov.label} ${styles.title} ${styles.windowHead}`}>
+          {s.title || WINDOW_GAUGE_TITLE_DEFAULT}
+          {board.window.stoppedAt && <span className={`${ov.chip} ${styles.closed}`}>마감</span>}
+          <span className={`${ov.display} ${styles.gaugeNumbers}`}>
+            {s.numbers !== "PERCENT" && `${formatNumber(board.current)} / ${formatNumber(board.target)} ${board.unit}`}
+            {s.numbers === "BOTH" && " · "}
+            {s.numbers !== "SCORE" && `${board.percent}%`}
+          </span>
+        </h1>
+        <span className={`${styles.gaugeTrack} ${styles.windowTrack}`}>
+          <span className={styles.gaugeFill} style={{ width: `${board.percent}%`, background: "var(--ov-accent)" }} />
+        </span>
       </div>
     </OverlayThemeRoot>
   );
