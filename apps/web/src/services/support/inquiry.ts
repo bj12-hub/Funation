@@ -3,15 +3,15 @@
 import { FLEXTV_SITE } from "@/lib/flextv/mode";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
-import { flextvMyInquiries } from "./flextvSupport";
+import { flextvMyInquiries, flextvSubmitInquiry } from "./flextvSupport";
 import { inquiryAccountKey as accountKey, inquiryStore } from "./inquiryCore";
 import { INQUIRY_BODY_MAX, INQUIRY_TITLE_MAX, isFaqCategory, type Inquiry, type InquiryResult } from "./supportTypes";
 
 /**
  * 1:1 문의 Server Actions — code-first (funnation 고객센터 1:1 문의). Members submit and see their own
  * inquiries. Answers come from an operator console (TBD), so the mock only records 접수.
- * `requestId` makes a double submit create one inquiry. With FLEXTV (phase 7) the member's FLEXTV 1:1 문의, written on
- * FLEXTV's site (./flextvSupport.ts).
+ * `requestId` makes a double submit create one inquiry. With FLEXTV (phase 7) the member's FLEXTV 1:1 문의, written
+ * here as on FLEXTV's form since phase 9 (`submitFlextvInquiry`, ./flextvSupport.ts).
  */
 
 const assertMock = () => {
@@ -32,9 +32,15 @@ export async function listMyInquiries(): Promise<Inquiry[] | null> {
     .map((q) => ({ id: q.id, category: q.category, title: q.title, body: q.body, createdAt: q.createdAt, status: q.status, answer: q.answer }));
 }
 
+/** With FLEXTV (phase 9): FLEXTV's 1:1 문의 form — `requestId`, `category` (FLEXTV's 유형), `title`, `content`, `image`. */
+export async function submitFlextvInquiry(formData: FormData): Promise<InquiryResult> {
+  if (!FLEXTV_SITE || !(formData instanceof FormData)) return { status: "INVALID", message: "잘못된 요청입니다." };
+  return flextvSubmitInquiry(formData);
+}
+
 export async function submitInquiry(input: unknown): Promise<InquiryResult> {
-  // Written on FLEXTV's site (its categories and attachments).
-  if (FLEXTV_SITE) return { status: "INVALID", message: "1:1 문의는 FLEXTV에서 작성해 주세요." };
+  // With FLEXTV the form sends FLEXTV's 유형 and a picture: submitFlextvInquiry.
+  if (FLEXTV_SITE) return { status: "INVALID", message: "잘못된 요청입니다." };
   assertMock();
   const session = await getSession();
   if (!session) return { status: "UNAUTHORIZED" };

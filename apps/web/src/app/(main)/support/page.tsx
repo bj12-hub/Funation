@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { SupportScreen } from "@/features/support";
+import { FLEXTV_SITE } from "@/lib/flextv/mode";
 import { getFaqs } from "@/services/support/faq";
+import { flextvInquiryCategories } from "@/services/support/flextvSupport";
 import { listMyInquiries } from "@/services/support/inquiry";
 import { getNotices } from "@/services/support/notices";
 import { isFaqCategory, parseSupportTab, type FaqCategory } from "@/services/support/supportTypes";
@@ -19,10 +21,12 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
   const tab = query ? "faq" : parseSupportTab(one(raw.tab));
   const rawCategory = one(raw.category);
   const category: FaqCategory | undefined = isFaqCategory(rawCategory) ? rawCategory : undefined;
-  const [notices, faqs, inquiries] = await Promise.all([
+  const [notices, faqs, inquiries, inquiryCategories] = await Promise.all([
     tab === "notices" ? getNotices() : Promise.resolve([]),
     tab === "faq" ? getFaqs({ query, category }) : Promise.resolve([]),
-    tab === "inquiry" ? listMyInquiries() : Promise.resolve(null)
+    tab === "inquiry" ? listMyInquiries() : Promise.resolve(null),
+    // With FLEXTV (phase 9) a 문의 is written with FLEXTV's 유형.
+    FLEXTV_SITE && tab === "inquiry" ? flextvInquiryCategories() : Promise.resolve(null)
   ]);
-  return <SupportScreen tab={tab} notices={notices} faqs={faqs} query={query} category={category} inquiries={inquiries} />;
+  return <SupportScreen tab={tab} notices={notices} faqs={faqs} query={query} category={category} inquiries={inquiries} inquiryCategories={inquiryCategories} />;
 }

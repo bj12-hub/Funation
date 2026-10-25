@@ -90,12 +90,13 @@ export async function flextvSendMessage(input: { to?: unknown; body?: unknown; r
   if (!body || body.length > MESSAGE_BODY_MAX) return { status: "INVALID", message: `내용을 1~${MESSAGE_BODY_MAX}자로 입력해 주세요.` };
   const account = await fetchMyAccount(token);
   if (!account) return { status: "UNAUTHORIZED" };
+  const caller = requestFrom(await requestDeviceContext());
+  // Nothing is awaited from the check to the record: a second send with the id waits for the first.
   const key = `${account.loginId}:${input.requestId}`;
   const now = Date.now();
   for (const [k, v] of requests) if (now - v.at > REQUEST_TTL_MS) requests.delete(k);
   const done = requests.get(key);
   if (done) return done.result;
-  const caller = requestFrom(await requestDeviceContext());
   const result = serialize(account.loginId, async (): Promise<MessageResult> => {
     if (!account.verified) return { status: "INVALID", message: "쪽지는 FLEXTV 본인인증 후에 보낼 수 있어요. 마이페이지에서 진행해 주세요." };
     if (to.toLowerCase() === account.loginId.toLowerCase()) return { status: "INVALID", message: "나에게는 쪽지를 보낼 수 없어요." };

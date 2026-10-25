@@ -35,6 +35,12 @@ export const CHANNEL_DESCRIPTION_MAX = 250;
 export const CHANNEL_BANNER_MAX_BYTES = 20 * 1024 * 1024;
 export const CHANNEL_BANNER_TYPES = ["image/jpeg", "image/png"] as const;
 
+/** FLEXTV's 1:1 문의 form (its PostForm, phase 9): 제목 50자, 내용 1000자, one PNG · JPEG picture under 20MB. */
+export const FLEXTV_INQUIRY_TITLE_MAX = 50;
+export const FLEXTV_INQUIRY_BODY_MAX = 1000;
+export const FLEXTV_INQUIRY_IMAGE_MAX_BYTES = 20_000_000;
+export const FLEXTV_INQUIRY_IMAGE_TYPES = ["image/png", "image/jpeg"] as const;
+
 /** FLEXTV's chat settings (phase 9): the pop-up 공지 and 규칙 up to 250 characters, a 금지어 up to 30. */
 export const CHAT_NOTICE_MAX = 250;
 export const BAN_WORD_MAX = 30;
