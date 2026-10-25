@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from "react";
 import { ov } from "@/features/overlayTheme/OverlayThemeRoot";
+import { formatNumber } from "@/lib/format";
 import { useServerClock } from "@/hooks/useServerClock";
 import type { ResolvedTheme } from "@/services/creator/overlayThemeTypes";
 import { SIG_BINGO_TITLE_DEFAULT, sigBingoLines, type SigBingoLive } from "@/services/crew/crewTypes";
@@ -12,7 +13,8 @@ import styles from "./gameOverlay.module.css";
 /**
  * 시그 빙고 overlay (`?sigbingo`): the board — closed cells show their signature dimmed (칸 공개) or "?" (칸 숨김), opened
  * ones in full (땅따먹기: framed in the member's color), cells of 빙고 lines glow and the last opened one pops — and each
- * 빙고 line as it plays. Without a board it waits (대기 중에도 보이기), or the page stays empty.
+ * 빙고 line as it plays, with the 남은 시그 under the board when chosen (2026-10-25). Without a board it waits (대기 중에도
+ * 보이기), or the page stays empty.
  */
 export function SigBingoOverlay({ sigBingo, serverNow, reloadSeq, theme }: { sigBingo: SigBingoLive | null; serverNow: string | null; reloadSeq: number; theme: ResolvedTheme }) {
   useOverlayPage(reloadSeq);
@@ -61,6 +63,16 @@ export function SigBingoOverlay({ sigBingo, serverNow, reloadSeq, theme }: { sig
         <div className={styles.sigStage}>
           <span className={styles.sigUnknown}>🎯</span>
         </div>
+      )}
+      {board && sigBingo.settings.showRemaining && sigBingo.remaining.length > 0 && (
+        <ul className={styles.bingoLeft} aria-label="남은 시그">
+          {sigBingo.remaining.map((r) => (
+            <li key={r.signatureId}>
+              {r.name} {formatNumber(r.price)}
+              {r.cells > 1 && ` ×${r.cells}`}
+            </li>
+          ))}
+        </ul>
       )}
     </GameCard>
   );

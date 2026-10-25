@@ -941,3 +941,21 @@
   height: auto;
   aspect-ratio: 1;
 }
+
+/* 시그 빙고 남은 시그 (OBS, when chosen): one wrapping line of chips under the board. */
+.bingoLeft {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.bingoLeft li {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  white-space: nowrap;
+}
