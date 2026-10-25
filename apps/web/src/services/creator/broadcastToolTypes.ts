@@ -58,13 +58,19 @@ export const CREDITS_DURATION_MAX = 180;
 export const CREDITS_SECTION_TITLE_MAX = 20;
 export const CREDITS_LIST_MAX = 30;
 
-/** Sections in the order they roll; `max` = how many rows a list shows. Titles left blank use the default. */
+/**
+ * Sections in the order they roll; `max` = how many rows a list shows (`unit`: 명 or 개). Titles left blank use the default.
+ * HOT 시그 · HIGH 시그 (2026-10-25, StreamDonate 참고 — 기본값): the signatures donations alerted as in the period — HOT by
+ * how many times, HIGH by the largest donation that alerted as each.
+ */
 export const CREDITS_SECTIONS = [
-  { key: "total", label: "총 후원", title: "총 후원", list: false },
-  { key: "mvp", label: "MVP", title: "MVP", list: false },
-  { key: "top3", label: "후원자 TOP 3", title: "후원자 TOP 3", list: false },
-  { key: "donors", label: "후원 순위", title: "후원 순위", list: true },
-  { key: "members", label: "멤버별", title: "멤버별 순위", list: true }
+  { key: "total", label: "총 후원", title: "총 후원", list: false, unit: "명" },
+  { key: "mvp", label: "MVP", title: "MVP", list: false, unit: "명" },
+  { key: "top3", label: "후원자 TOP 3", title: "후원자 TOP 3", list: false, unit: "명" },
+  { key: "donors", label: "후원 순위", title: "후원 순위", list: true, unit: "명" },
+  { key: "hotSigs", label: "HOT 시그", title: "HOT 시그", list: true, unit: "개" },
+  { key: "highSigs", label: "HIGH 시그", title: "HIGH 시그", list: true, unit: "개" },
+  { key: "members", label: "멤버별", title: "멤버별 순위", list: true, unit: "명" }
 ] as const;
 export type CreditsSectionKey = (typeof CREDITS_SECTIONS)[number]["key"];
 export type CreditsSection = { on: boolean; title: string; max: number };
@@ -91,6 +97,8 @@ export const DEFAULT_CREDITS: Omit<CreditsState, "rollingSince"> = {
     mvp: { on: true, title: "", max: 1 },
     top3: { on: true, title: "", max: 3 },
     donors: { on: true, title: "", max: 10 },
+    hotSigs: { on: true, title: "", max: 5 },
+    highSigs: { on: true, title: "", max: 5 },
     members: { on: true, title: "", max: 10 }
   }
 };
@@ -110,6 +118,10 @@ export type CreditsData = {
   members: { rank: number; name: string; score: number }[];
   memberUnit: "FN" | "점";
   mvp: { name: string; score: number } | null;
+  /** HOT 시그: signatures by how many donations alerted as them (ties: the pricier first, then by name). */
+  hotSigs: { rank: number; name: string; count: number }[];
+  /** HIGH 시그: signatures by the largest donation that alerted as them (ties by name). */
+  highSigs: { rank: number; name: string; fnAmount: number }[];
 };
 
 /**

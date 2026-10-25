@@ -441,6 +441,23 @@
   overflow-wrap: anywhere;
 }
 
+/* 시간 내 통합 게이지 (?windowgauge): the title row (title · 마감 · numbers), then one wide bar. */
+.windowHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.windowHead .gaugeNumbers {
+  font-size: 0.75em;
+}
+
+.windowTrack {
+  display: block;
+  height: 20px;
+  margin-top: 10px;
+}
+
 /* 팀 순위표 (?teamprize): the team's members, best first, on a line under the team. */
 .teamMembers {
   display: flex;

@@ -75,6 +75,40 @@ export type GaugeRow = { memberId: string; name: string; color: string; active: 
 /** 출근 BJ 게이지 of the live broadcast (OBS `?bjgauge`): members with a goal, in crew order. */
 export type GaugeLive = { settings: GaugeSettings; visible: boolean; rows: GaugeRow[] };
 
+// ── 시간 내 통합 게이지 (2026-10-25, StreamDonate 시간 내 통합 게이지 참고 — 기본값) ─────────────────────────
+
+export const WINDOW_GAUGE_TITLE_DEFAULT = "구간 게이지";
+export const WINDOW_GAUGE_GOAL_MAX = 1_000_000_000;
+/**
+ * AMOUNT (후원금): every donation of the 구간 — 멤버 지정 후원 and 후원 리스트 entries not cancelled, assigned or not — in the
+ * 자동엑셀 score unit (FN, or 원 on 원화 기준; a unit without its 환산값 adds nothing), before 배수. POINTS (기여도): the
+ * members' 구간 points — what they received (배수 applied) + 점수 게임 (강탈 moves points between members: no change).
+ */
+export type WindowGaugeBasis = "AMOUNT" | "POINTS";
+export const WINDOW_GAUGE_BASES: { key: WindowGaugeBasis; label: string }[] = [
+  { key: "AMOUNT", label: "후원금" },
+  { key: "POINTS", label: "기여도" }
+];
+
+/** Kept per channel. `autoRaise`: 자동 증량 step once the goal is reached (0 = off), as on 후원목표. */
+export type WindowGaugeSettings = { title: string; basis: WindowGaugeBasis; goal: number; autoRaise: number; numbers: GaugeNumbers; placement: PrizePlacement };
+export const DEFAULT_WINDOW_GAUGE: WindowGaugeSettings = { title: "", basis: "AMOUNT", goal: 100_000, autoRaise: 0, numbers: "BOTH", placement: "FLOAT" };
+
+/**
+ * 시간 내 통합 게이지 of the live broadcast (OBS `?windowgauge`): the crew's total between 시작 and 정지 against the goal
+ * (after 자동 증량). `window` null until 시작; `count`: donations in the 구간.
+ */
+export type WindowGaugeLive = {
+  settings: WindowGaugeSettings;
+  visible: boolean;
+  window: { startedAt: string; stoppedAt: string | null } | null;
+  current: number;
+  target: number;
+  percent: number;
+  unit: "FN" | "원" | "점";
+  count: number;
+};
+
 export type CrewSaveResult = { status: "SAVED" } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
 
 // ── 크루 방송 (회차 · 점수판 · 이력) ────────────────────────────────────────────────
@@ -381,6 +415,8 @@ export type BroadcastLive = {
   cumulative: CumulativeLive;
   /** 출근 BJ 게이지 with BJ 공약 (OBS `?bjgauge`). */
   gauge: GaugeLive;
+  /** 시간 내 통합 게이지 (OBS `?windowgauge`). */
+  windowGauge: WindowGaugeLive;
   /** 시그 카운트: signatures each member received during this broadcast (OBS `?sigcount`). */
   sigCount: SigCountLive;
   /** 점수 게임: settings and recent runs with their OBS timing (`?spin` · `?spintally` · `?dice` · `?twowheel`). */
@@ -1504,6 +1540,8 @@ export type BroadcastView = {
   /** BJ 공약 by member id and the 게이지 settings (kept across broadcasts; editable before going live). */
   pledges: Record<string, MemberPledge>;
   gaugeSettings: GaugeSettings;
+  /** 시간 내 통합 게이지 settings (kept across broadcasts; editable before going live). */
+  windowGaugeSettings: WindowGaugeSettings;
   /** 시그 카운트 settings (kept across broadcasts) and the signatures it can count (숨긴 시그니처 too, marked). */
   sigCountSettings: SigCountSettings;
   signatures: { id: string; name: string; group: string; active: boolean; price: number; match: "SELECT" | "AMOUNT"; rangeMin: number | null }[];
