@@ -17,6 +17,7 @@ import {
   TEST_MESSAGE_MAX,
   isOverlayTarget,
   OVERLAY_TARGETS,
+  type AlertItem,
   type OverlayAlert,
   type OverlaySignal,
   type OverlayTarget,
@@ -50,6 +51,7 @@ export async function getRemoteView(): Promise<RemoteView | null> {
       .filter((a) => a.status !== "QUEUED" && a.status !== "SHOWING")
       .slice(-RECENT_MAX)
       .reverse(),
+    autoPausedBy: (mockAlerts.controls.paused && items.find((a) => a.id === mockAlerts.autoPausedBy)) || null,
     overlays: { on: Object.fromEntries(OVERLAY_TARGETS.map((t) => [t.key, isOverlayOn(t.key)])) as Record<OverlayTarget, boolean>, videoVolume: mockMedia.videoSettings.volume }
   };
 }
@@ -98,6 +100,11 @@ export async function setAlertControls(input: unknown): Promise<RemoteResult> {
     if (typeof m !== "number" || !Number.isInteger(m) || m < 0 || m > ALERT_MIN_FN_MAX) return { status: "INVALID", message: "최소 금액을 확인해 주세요." };
     next.minFn = m;
   }
+  if ("autoPauseFn" in v) {
+    const m = v.autoPauseFn;
+    if (typeof m !== "number" || !Number.isInteger(m) || m < 0 || m > ALERT_MIN_FN_MAX) return { status: "INVALID", message: "자동 일시정지 금액을 확인해 주세요." };
+    next.autoPauseFn = m;
+  }
   if ("displaySec" in v) {
     const d = v.displaySec;
     if (typeof d !== "number" || !Number.isInteger(d) || d < ALERT_DISPLAY_SEC.min || d > ALERT_DISPLAY_SEC.max) {
@@ -106,6 +113,8 @@ export async function setAlertControls(input: unknown): Promise<RemoteResult> {
     next.displaySec = d;
   }
   mockAlerts.controls = next;
+  // The operator paused or resumed: the pause is theirs now, not the 자동 일시정지.
+  if ("paused" in v) mockAlerts.autoPausedBy = null;
   advance();
   return { status: "SAVED" };
 }
@@ -177,7 +186,10 @@ export async function replayAlert(input: unknown): Promise<RemoteResult> {
   if (ownEntry(requests, v.requestId)) return { status: "SAVED" };
   const src = mockAlerts.items.find((a) => a.id === v.id);
   if (!src || src.status === "QUEUED" || src.status === "SHOWING") return { status: "INVALID", message: "다시 보낼 수 없는 알림이에요." };
-  const copy = { ...src, id: `al-${crypto.randomUUID()}`, createdAt: new Date().toISOString(), status: "QUEUED" as const, replayOf: src.replayOf ?? src.id };
+  const copy: AlertItem = { ...src, id: `al-${crypto.randomUUID()}`, createdAt: new Date().toISOString(), status: "QUEUED", replayOf: src.replayOf ?? src.id };
+  // 미지정 일시정지 belongs to the donation's own alert: a copy is never held (no 후원 리스트 entry would let it go).
+  delete copy.held;
+  delete copy.holdReleased;
   mockAlerts.items.push(copy);
   requests[v.requestId] = copy.id;
   advance();
