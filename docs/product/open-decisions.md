@@ -281,6 +281,8 @@ Confirmed:
 - BJ 이름 자동 인식 (2026-10-25, 기본값 — 일반적인 기준, StreamDonate 설정 참고): 채널마다 기본 꺼짐, 켜면 2글자 이상 멤버 이름이 키워드처럼
   배정에 쓰입니다(한 글자 이름은 거의 모든 메시지에 걸려서 제외). 별명은 기존 키워드로 넣습니다. 기여도 소수점 자릿수는 점수를 정수로
   계산하는 지금 규칙(배수는 1/100 단위로 한 번 반올림)을 바꾸는 일이라 TBD. See docs/figma/code-first-screens.md
+- 기여도 내보내기 엑셀 (2026-10-25, 기본값 — 일반적인 기준, StreamDonate 프리셋별 기여도 내역 참고): CSV와 같은 표를 .xlsx 시트 하나로. 다른
+  내보내기(받은 후원 · FN 후원내역 등)의 엑셀 형식은 TBD. See docs/figma/code-first-screens.md
 
 Still TBD:
 
