@@ -53,6 +53,16 @@ export const SIGNATURE_IMAGE_PRESETS = Array.from({ length: 8 }, (_, i) => `/moc
 export type SignatureResult = { status: "SAVED"; id: string } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
 
 /**
+ * 공개 시그니처 페이지 (2026-10-25, StreamDonate 참고 — 기본값): a page anyone with its address can open without logging in,
+ * listing the active signatures with their sound. Off until the creator turns it on; the key in `path` can be reissued
+ * (the old address stops), and it stops while the creator's access is closed (정지 · 탈퇴), like the other links.
+ */
+export type SignaturePageSettings = { enabled: boolean; path: string };
+export type PublicSignature = { id: string; name: string; price: number; imageUrl: string; soundUrl: string | null; group: string };
+/** The page: the channel's active signatures in the creator's order and their groups in order. */
+export type PublicSignaturePage = { channelName: string; signatures: PublicSignature[]; groups: string[] };
+
+/**
  * 시그니처 일괄 만들기 (funnation "시그니처 일괄 생성", code-first 2026-10-06): one signature per library image,
  * all saved together or none. `row` is the index of the row the message is about.
  */

@@ -4,7 +4,8 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { ownEntry } from "@/lib/records";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
-import { isSignatureImage, isSignatureSound, mockSignatures } from "./signatureCore";
+import { newIntegrationKey } from "@/services/creator/mockCreatorStore";
+import { isSignatureImage, isSignatureSound, mockSignatures, signaturePage, signaturePagePath } from "./signatureCore";
 import {
   DEFAULT_SIGNATURE_GROUP,
   SIGNATURE_IMAGE_PRESETS,
@@ -13,6 +14,7 @@ import {
   spanText,
   type ManagedSignature,
   type SignatureBulkResult,
+  type SignaturePageSettings,
   type SignatureResult
 } from "./signatureTypes";
 
@@ -212,4 +214,32 @@ export async function moveSignature(input: unknown): Promise<SignatureResult> {
   if (i < 0 || j < 0 || j >= items.length) return { status: "INVALID", message: "더 이상 옮길 수 없어요." };
   [items[i], items[j]] = [items[j], items[i]];
   return { status: "SAVED", id: String(v.id) };
+}
+
+// ── 공개 시그니처 페이지 (2026-10-25, StreamDonate 참고) ─────────────────────────────────────────
+
+/** The page's on/off and address (the studio shows the key masked, like the other links). */
+export async function getSignaturePage(): Promise<SignaturePageSettings | null> {
+  assertMock();
+  if (!(await getCreatorSession())) return null;
+  const page = signaturePage();
+  return { enabled: page.enabled, path: signaturePagePath(page.key) };
+}
+
+/** Turns the public page on or off (the address stays). Setting the same value again is a no-op. */
+export async function setSignaturePageEnabled(input: unknown): Promise<SignatureResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const enabled = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
+  if (typeof enabled.enabled !== "boolean") return { status: "INVALID", message: "설정을 확인해 주세요." };
+  signaturePage().enabled = enabled.enabled;
+  return { status: "SAVED", id: "public-page" };
+}
+
+/** 주소 재발급: a new key — the old address stops at once; on/off stays. */
+export async function reissueSignaturePageKey(): Promise<SignatureResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  signaturePage().key = newIntegrationKey();
+  return { status: "SAVED", id: "public-page" };
 }

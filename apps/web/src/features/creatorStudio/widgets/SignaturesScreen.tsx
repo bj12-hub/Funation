@@ -13,10 +13,12 @@ import {
   spanText,
   type ManagedSignature,
   type SignatureMatch,
+  type SignaturePageSettings,
   type SignatureResult
 } from "@/services/donations/signatureTypes";
 import styles from "../crew/crew.module.css";
 import { BulkSignatures } from "./BulkSignatures";
+import { SignatureShareCard } from "./SignatureShareCard";
 import local from "./signatures.module.css";
 
 type Draft = Omit<ManagedSignature, "id"> & { id: string | null };
@@ -30,7 +32,18 @@ const blank = (group: string): Draft => ({ id: null, name: "", price: 10_000, im
  * 이미지·사운드: picking a library image also picks the sound with the same name (자동 매칭, 2026-10-06 결정), and
  * "한 번에 만들기" turns several library images into signatures at once (`?bulk=1` opens it, from the library page).
  */
-export function SignaturesScreen({ items, library, startBulk = false }: { items: ManagedSignature[]; library: Asset[]; startBulk?: boolean }) {
+export function SignaturesScreen({
+  items,
+  library,
+  startBulk = false,
+  publicPage = null
+}: {
+  items: ManagedSignature[];
+  library: Asset[];
+  startBulk?: boolean;
+  /** 공개 시그니처 페이지 (2026-10-25); null hides the card. */
+  publicPage?: SignaturePageSettings | null;
+}) {
   const router = useRouter();
   const images = library.filter((a) => a.kind === "IMAGE");
   const sounds = library.filter((a) => a.kind === "SOUND");
@@ -345,6 +358,8 @@ export function SignaturesScreen({ items, library, startBulk = false }: { items:
           {note.text}
         </p>
       )}
+
+      {publicPage && <SignatureShareCard page={publicPage} />}
     </div>
   );
 }
