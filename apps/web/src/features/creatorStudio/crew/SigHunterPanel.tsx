@@ -4,6 +4,7 @@ import { useRef, useState, type CSSProperties } from "react";
 import { formatNumber } from "@/lib/format";
 import { clearSigHunter, nextSigHunter, saveSigHunter, setSigHunter, startSigHunter } from "@/services/crew/crewGames";
 import {
+  SIG_HUNTER_BANDS_MAX,
   SIG_HUNTER_MULTIPLIER_MAX,
   SIG_HUNTER_ROUNDS_MAX,
   SIG_HUNTER_SLOTS_MAX,
@@ -18,25 +19,29 @@ import styles from "./crew.module.css";
 import games from "./games.module.css";
 import prize from "./prize.module.css";
 
-/** The editor keeps a 라운드's numbers as typed ("" = no end for the 금액 범위). */
-type EditRound = { id: string; slots: string; priceMin: string; priceMax: string; multiplier: string; forfeits: string };
+/** The editor keeps a 라운드's numbers as typed ("" = no end for the 금액 범위), with its 추가 금액 구간 the same way. */
+type EditBand = { slots: string; priceMin: string; priceMax: string };
+type EditRound = EditBand & { id: string; multiplier: string; forfeits: string; bands: EditBand[] };
 type Draft = Omit<SigHunterSettings, "rounds"> & { rounds: EditRound[] };
 
 const optional = (v: string) => (v.trim() === "" ? null : Number(v));
+const price = (v: number | null) => (v === null ? "" : String(v));
 const toDraft = (s: SigHunterSettings): Draft => ({
   ...s,
   rounds: s.rounds.map((r) => ({
     id: r.id,
     slots: String(r.slots),
-    priceMin: r.priceMin === null ? "" : String(r.priceMin),
-    priceMax: r.priceMax === null ? "" : String(r.priceMax),
+    priceMin: price(r.priceMin),
+    priceMax: price(r.priceMax),
     multiplier: String(r.multiplier),
-    forfeits: String(r.forfeits)
+    forfeits: String(r.forfeits),
+    bands: (r.bands ?? []).map((b) => ({ slots: String(b.slots), priceMin: price(b.priceMin), priceMax: price(b.priceMax) }))
   }))
 });
+const fromBand = (b: EditBand) => ({ slots: Number(b.slots), priceMin: optional(b.priceMin), priceMax: optional(b.priceMax) });
 const fromDraft = (d: Draft) => ({
   ...d,
-  rounds: d.rounds.map((r) => ({ id: r.id, slots: Number(r.slots), priceMin: optional(r.priceMin), priceMax: optional(r.priceMax), multiplier: Number(r.multiplier), forfeits: Number(r.forfeits || 0) }))
+  rounds: d.rounds.map((r) => ({ id: r.id, ...fromBand(r), multiplier: Number(r.multiplier), forfeits: Number(r.forfeits || 0), bands: r.bands.map(fromBand) }))
 });
 const newId = () => `new-${crypto.randomUUID().slice(0, 8)}`;
 
@@ -76,12 +81,13 @@ export function SigHunterPanel({
   const sold = board ? board.slots.filter((x) => x.sold).length : 0;
   const forfeitsLeft = board ? board.slots.filter((x) => x.forfeit && !x.sold).length : 0;
 
-  // What each 라운드 would draw from under the draft settings.
-  const eligible = (r: EditRound) => {
+  // What each 금액 범위 of a 라운드 would draw from under the draft settings.
+  const eligible = (r: EditBand) => {
     const min = optional(r.priceMin);
     const max = optional(r.priceMax);
     return signatures.filter((s) => s.active && !draft.excluded.includes(s.id) && (min === null || s.price >= min) && (max === null || s.price <= max)).length;
   };
+  const setBand = (i: number, k: number, patch: Partial<EditBand>) => setRound(i, { bands: draft.rounds[i].bands.map((b, j) => (j === k ? { ...b, ...patch } : b)) });
 
   const start = () => {
     if (!live) return;
@@ -119,7 +125,11 @@ export function SigHunterPanel({
           </span>
           <ul className={games.tiers}>
             {draft.rounds.map((r, i) => {
-              const n = eligible(r);
+              const ranges = [r, ...r.bands];
+              const counts = ranges.map(eligible);
+              const empty = counts.findIndex((c) => c === 0);
+              const repeats = ranges.some((x, k) => Number(x.slots) > counts[k]);
+              const total = ranges.reduce((s, x) => s + (Number(x.slots) || 0), 0);
               const name = `${i + 1}라운드`;
               return (
                 <li key={r.id}>
@@ -182,8 +192,63 @@ export function SigHunterPanel({
                       삭제
                     </button>
                   </span>
-                  <span className={n === 0 ? styles.error : styles.note}>
-                    후보 시그니처 {n}개{n === 0 ? " — 이 라운드에 넣을 시그니처가 없어요." : Number(r.slots) > n ? " — 슬롯보다 적어 같은 시그니처가 여러 슬롯에 들어가요." : ""}
+                  {r.bands.map((b, k) => (
+                    <span key={k} className={games.tierRow}>
+                      <span className={styles.muted}>추가 구간 {k + 1}</span>
+                      <input
+                        className={`${styles.inputSmall} ${games.short}`}
+                        type="number"
+                        inputMode="numeric"
+                        aria-label={`${name} 추가 구간 ${k + 1} 슬롯 수`}
+                        min={1}
+                        max={SIG_HUNTER_SLOTS_MAX}
+                        value={b.slots}
+                        onChange={(e) => setBand(i, k, { slots: e.target.value })}
+                      />
+                      <span className={styles.muted}>칸 ·</span>
+                      <input
+                        className={styles.inputSmall}
+                        type="number"
+                        inputMode="numeric"
+                        aria-label={`${name} 추가 구간 ${k + 1} 최소 금액`}
+                        placeholder="최소"
+                        value={b.priceMin}
+                        onChange={(e) => setBand(i, k, { priceMin: e.target.value })}
+                      />
+                      <span className={styles.muted}>~</span>
+                      <input
+                        className={styles.inputSmall}
+                        type="number"
+                        inputMode="numeric"
+                        aria-label={`${name} 추가 구간 ${k + 1} 최대 금액`}
+                        placeholder="최대"
+                        value={b.priceMax}
+                        onChange={(e) => setBand(i, k, { priceMax: e.target.value })}
+                      />
+                      <span className={styles.muted}>FN</span>
+                      <button type="button" className={styles.ghost} onClick={() => setRound(i, { bands: r.bands.filter((_, j) => j !== k) })}>
+                        구간 삭제
+                      </button>
+                    </span>
+                  ))}
+                  <span className={prize.inline}>
+                    <button
+                      type="button"
+                      className={styles.ghost}
+                      disabled={r.bands.length >= SIG_HUNTER_BANDS_MAX || total >= SIG_HUNTER_SLOTS_MAX}
+                      onClick={() => setRound(i, { bands: [...r.bands, { slots: "5", priceMin: "", priceMax: "" }] })}
+                    >
+                      + 금액 구간 추가
+                    </button>
+                    <span className={empty >= 0 ? styles.error : styles.note}>
+                      {empty === 0
+                        ? "후보 시그니처 0개 — 이 라운드에 넣을 시그니처가 없어요."
+                        : empty > 0
+                          ? `추가 구간 ${empty}에 넣을 시그니처가 없어요.`
+                          : `후보 시그니처 ${
+                              r.bands.length ? `기본 ${counts[0]}개 · ${r.bands.map((_, k) => `추가 구간 ${k + 1} ${counts[k + 1]}개`).join(" · ")} · 모두 ${total}칸` : `${counts[0]}개`
+                            }${repeats ? " — 후보가 슬롯보다 적은 범위는 같은 시그니처가 여러 슬롯에 들어가요." : ""}`}
+                    </span>
                   </span>
                 </li>
               );
@@ -194,7 +259,10 @@ export function SigHunterPanel({
               type="button"
               className={styles.ghost}
               disabled={draft.rounds.length >= SIG_HUNTER_ROUNDS_MAX}
-              onClick={() => edit({ rounds: [...draft.rounds, { ...(draft.rounds.at(-1) ?? { slots: "10", priceMin: "", priceMax: "", multiplier: "1", forfeits: "0" }), id: newId() }] })}
+              onClick={() => {
+                const last = draft.rounds.at(-1) ?? { slots: "10", priceMin: "", priceMax: "", multiplier: "1", forfeits: "0", bands: [] };
+                edit({ rounds: [...draft.rounds, { ...last, bands: last.bands.map((b) => ({ ...b })), id: newId() }] });
+              }}
             >
               + 라운드 추가
             </button>
