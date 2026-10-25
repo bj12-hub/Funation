@@ -10,6 +10,7 @@ import type { PublicChannelVideos } from "@/services/creators/channelVideos";
 import type { Signature } from "@/services/donations/donationCatalog";
 import { PLATFORM_ERROR_LABEL, type VideoKind } from "@/services/platforms/platformTypes";
 import { PLATFORM_LABEL, type Platform } from "@/types/platform";
+import { PledgeLine } from "./PledgeLine";
 import { CHANNEL_VIEWS, type ChannelView } from "./channelView";
 import styles from "./channel.module.css";
 
@@ -41,6 +42,7 @@ export function CrewView({ crew, name }: { crew: CrewPublic; name: string }) {
           </span>
           <strong>{m.name}</strong>
           <span className={styles.muted}>{crewRoleLabel(m.role)}</span>
+          <PledgeLine member={m} compact />
         </li>
       ))}
     </ul>

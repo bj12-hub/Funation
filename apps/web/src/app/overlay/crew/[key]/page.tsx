@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { BattleOverlay, CrewScoreOverlay, PrizeBoardOverlay, ScenarioOverlay, SigCountOverlay, StealOverlay, SubBoardOverlay, TeamPrizeOverlay, CumulativeOverlay } from "@/features/creatorStudio/crew/CrewScoreOverlay";
+import { BattleOverlay, CrewScoreOverlay, PrizeBoardOverlay, ScenarioOverlay, SigCountOverlay, StealOverlay, SubBoardOverlay, TeamPrizeOverlay, CumulativeOverlay, GaugeOverlay } from "@/features/creatorStudio/crew/CrewScoreOverlay";
 import { AlphabetOverlay } from "@/features/creatorStudio/crew/AlphabetOverlay";
 import { DiceOverlay } from "@/features/creatorStudio/crew/DiceOverlay";
 import { GoStopOverlay, GoStopTicker } from "@/features/creatorStudio/crew/GoStopOverlay";
@@ -24,10 +24,10 @@ import { getOverlayScoreboard } from "@/services/crew/crewBroadcast";
 export const metadata: Metadata = { title: "크루 점수판", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
-type Views = { board?: string; battle?: string; steal?: string; scenario?: string; prize?: string; teamprize?: string; cumulative?: string; sigcount?: string; spin?: string; spintally?: string; dice?: string; twowheel?: string; randomsig?: string; relay?: string; jupjup?: string; medley?: string; sigbingo?: string; griddraw?: string; sighunter?: string; sigdosan?: string; alphabet?: string; gostop?: string; gostopticker?: string; territory?: string; sudopoly?: string };
+type Views = { board?: string; battle?: string; steal?: string; scenario?: string; prize?: string; teamprize?: string; cumulative?: string; bjgauge?: string; sigcount?: string; spin?: string; spintally?: string; dice?: string; twowheel?: string; randomsig?: string; relay?: string; jupjup?: string; medley?: string; sigbingo?: string; griddraw?: string; sighunter?: string; sigdosan?: string; alphabet?: string; gostop?: string; gostopticker?: string; territory?: string; sudopoly?: string };
 
 export default async function Page({ params, searchParams }: { params: Promise<{ key: string }>; searchParams: Promise<Views> }) {
-  const [{ key }, { board, battle, steal, scenario, prize, teamprize, cumulative, sigcount, spin, spintally, dice, twowheel, randomsig, relay, jupjup, medley, sigbingo, griddraw, sighunter, sigdosan, alphabet, gostop, gostopticker, territory, sudopoly }] = await Promise.all([params, searchParams]);
+  const [{ key }, { board, battle, steal, scenario, prize, teamprize, cumulative, bjgauge, sigcount, spin, spintally, dice, twowheel, randomsig, relay, jupjup, medley, sigbingo, griddraw, sighunter, sigdosan, alphabet, gostop, gostopticker, territory, sudopoly }] = await Promise.all([params, searchParams]);
   const [data, signal] = await Promise.all([getOverlayScoreboard(key), getOverlaySignal(key, "crew")]);
   // An invalid key looks like a missing page (no hint that the URL format is right).
   if (data === "FORBIDDEN" || signal === "FORBIDDEN") notFound();
@@ -44,6 +44,8 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   if (teamprize !== undefined) return <TeamPrizeOverlay board={live?.teamPrize ?? null} reloadSeq={reloadSeq} theme={theme} />;
   // ?cumulative shows the 누적 기여도 while 방송 운영 has it on.
   if (cumulative !== undefined) return <CumulativeOverlay board={live?.cumulative ?? null} reloadSeq={reloadSeq} theme={theme} />;
+  // ?bjgauge shows the 출근 BJ 게이지 while 방송 운영 has it on.
+  if (bjgauge !== undefined) return <GaugeOverlay board={live?.gauge ?? null} reloadSeq={reloadSeq} theme={theme} />;
   // ?sigcount shows the 시그 카운트 table while 방송 운영 has it on.
   if (sigcount !== undefined) return <SigCountOverlay table={live?.sigCount ?? null} reloadSeq={reloadSeq} theme={theme} />;
   // 점수 게임 (2026-10-23): ?spin · ?dice · ?twowheel · ?randomsig · ?relay · ?jupjup · ?medley · ?sigbingo · ?griddraw · ?sighunter · ?sigdosan · ?alphabet · ?gostop · ?territory · ?sudopoly play their runs in turn; ?spintally shows the 스핀머신 BJ별 집계, ?gostopticker the 고스톱 진행 자막.

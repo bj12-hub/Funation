@@ -8,6 +8,7 @@ import { formatNumber } from "@/lib/format";
 import type { ResolvedTheme } from "@/services/creator/overlayThemeTypes";
 import {
   CUMULATIVE_TITLE_DEFAULT,
+  GAUGE_TITLE_DEFAULT,
   OVERLAY_BOARD_ROWS,
   PRIZE_TITLE_DEFAULT,
   SIG_COUNT_TITLE_DEFAULT,
@@ -15,6 +16,7 @@ import {
   type Battle,
   type BattleMatch,
   type CumulativeLive,
+  type GaugeLive,
   type OverlayScenario,
   type OverlayScoreboard,
   type PrizeBoardLive,
@@ -362,6 +364,44 @@ export function CumulativeOverlay({ board, reloadSeq, theme }: { board: Cumulati
               </span>
               <span className={`${ov.muted} ${styles.prizeText}`}>{s.showBreakdown && `지난 ${formatNumber(r.past)} · 이번 ${formatNumber(r.current)}`}</span>
               <span className={`${ov.display} ${styles.score}`}>{formatNumber(r.total)}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </OverlayThemeRoot>
+  );
+}
+
+/**
+ * 출근 BJ 게이지 overlay (`?bjgauge`): each member's broadcast score filling up to their goal in their color, the numbers
+ * as chosen, a 달성 chip once reached and the 공약 under the bar. Shown only while 방송 운영 has OBS에 표시 on.
+ */
+export function GaugeOverlay({ board, reloadSeq, theme }: { board: GaugeLive | null; reloadSeq: number; theme: ResolvedTheme }) {
+  useOverlayPage(reloadSeq);
+  if (!board || !board.visible || !board.rows.length) return null;
+  const s = board.settings;
+  return (
+    <OverlayThemeRoot theme={theme} className={styles.pad}>
+      <div className={`${ov.card} ${styles.board} ${styles.prize}`} data-placement={s.placement} data-cols={1}>
+        <h1 className={`${ov.label} ${styles.title}`}>{s.title || GAUGE_TITLE_DEFAULT}</h1>
+        <ol className={styles.gaugeRows}>
+          {board.rows.map((r) => (
+            <li key={r.memberId} data-reached={r.reached ? "" : undefined}>
+              <span className={styles.gaugeHead}>
+                <span className={`${ov.label} ${styles.name}`}>
+                  <i className={styles.dot} style={{ background: r.color }} aria-hidden="true" /> {r.name}
+                </span>
+                {r.reached && <span className={`${ov.chip} ${styles.closed}`}>달성</span>}
+                <span className={`${ov.display} ${styles.gaugeNumbers}`}>
+                  {s.numbers !== "PERCENT" && `${formatNumber(r.score)} / ${formatNumber(r.goal)}`}
+                  {s.numbers === "BOTH" && " · "}
+                  {s.numbers !== "SCORE" && `${r.percent}%`}
+                </span>
+              </span>
+              <span className={styles.gaugeTrack}>
+                <span className={styles.gaugeFill} style={{ width: `${r.percent}%`, background: r.color }} />
+              </span>
+              {s.showPledge && r.pledge && <span className={`${ov.muted} ${styles.gaugePledge}`}>{r.pledge}</span>}
             </li>
           ))}
         </ol>
