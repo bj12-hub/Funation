@@ -5,6 +5,7 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { overlayKeyOpen } from "@/services/account/creatorAccess";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
+import { advance } from "@/services/creator/alertCore";
 import { mockCreator } from "@/services/creator/mockCreatorStore";
 import {
   ADJUST_REASON_MAX,
@@ -29,7 +30,7 @@ import {
   type BroadcastView,
   type TeamKey
 } from "./crewTypes";
-import { battleGroups, battleRulesOf, donorKey, donorMergesOf, donorNamer, duplicateSuspects, fanNotesView, feedOf, scoreFn, gradeMultipliersOf, excelOf, liveBroadcastOf, scoreboardRows, scoredFeed, stealRecordView, stealRulesOf, timesMultiplier, windowGames, windowReceived, windowScores, windowSteals } from "./crewCore";
+import { battleGroups, battleRulesOf, donorKey, donorMergesOf, donorNamer, duplicateSuspects, fanNotesView, feedAlertsOf, feedOf, scoreFn, gradeMultipliersOf, excelOf, liveBroadcastOf, scoreboardRows, scoredFeed, stealRecordView, stealRulesOf, syncAlertHolds, timesMultiplier, windowGames, windowReceived, windowScores, windowSteals } from "./crewCore";
 import { cumulativeLive, cumulativeSettingsOf } from "./crewCumulativeCore";
 import { gaugeLive, gaugeSettingsOf, pledgesOf } from "./crewGaugeCore";
 import { windowGaugeLive, windowGaugeSettingsOf } from "./crewWindowGaugeCore";
@@ -174,10 +175,12 @@ function feedView(b: MockBroadcast): FeedView {
   const nameOf = donorNamer(donorMergesOf(b.channelId));
   const suspects = duplicateSuspects(feedOf(b), nameOf);
   const merged = (donor: string) => (nameOf(donor) === donor ? null : nameOf(donor));
+  const alerts = feedAlertsOf(b);
   return {
     assignMode: b.assignMode ?? "AUTO",
+    pauseUnassigned: !!b.pauseUnassigned,
     keywords: structuredClone(mockCrew.keywords ?? {}),
-    entries: structuredClone([...scored].reverse().slice(0, 200)).map((f) => ({ ...f, duplicateOf: suspects.get(f.id) ?? null, mergedDonor: merged(f.donor) })),
+    entries: structuredClone([...scored].reverse().slice(0, 200)).map((f) => ({ ...f, duplicateOf: suspects.get(f.id) ?? null, mergedDonor: merged(f.donor), alert: alerts.get(f.id) ?? null })),
     oneshot: b.oneshot ? { startedAt: b.oneshot.startedAt, potPoints: pot.reduce((s, f) => s + f.points, 0), count: pot.length } : null,
     excel: structuredClone(excelOf(b.channelId)),
     summary: feedSummary(b),
@@ -244,6 +247,8 @@ export async function getBroadcastView(): Promise<BroadcastView | null> {
   if (!(await getCreatorSession())) return null;
   await mockDelay(200);
   const live = liveOf(STUDIO_CHANNEL);
+  // 미재생만: the queue moves with time, so bring it up to now before reading where each alert is.
+  advance();
   return {
     members: structuredClone(members()),
     live: live ? liveView(live) : null,
@@ -374,6 +379,8 @@ export async function endBroadcast(broadcastId: unknown): Promise<BroadcastResul
     live.oneshot = null;
   }
   live.endedAt = new Date().toISOString();
+  // 미지정 일시정지 ends with the broadcast: held alerts play.
+  syncAlertHolds(live);
   for (const s of live.subBoards ?? []) s.closedAt ??= live.endedAt;
   if (live.prizeBoard?.window) live.prizeBoard.window.stoppedAt ??= live.endedAt;
   if (live.teamPrize?.window) live.teamPrize.window.stoppedAt ??= live.endedAt;

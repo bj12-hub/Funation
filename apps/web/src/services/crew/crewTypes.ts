@@ -172,6 +172,11 @@ export type FeedEntry = {
   contribution: Contribution | null;
   /** The operator's 중복 도네이션 확인 decision (missing = none yet). */
   duplicate?: DuplicateCheck;
+  /**
+   * The alert this donation queued (후원 알림 대기열) — 미재생만 · 미지정 일시정지 (2026-10-25). Absent for 시뮬 후원, a 퀘스트
+   * (its alert went out when it was sent) and entries listed before.
+   */
+  alertId?: string;
 };
 
 /**
@@ -195,7 +200,15 @@ export type FeedEntryView = FeedEntry & {
  * A 후원 리스트 row: `duplicateOf` = the earlier entry it looks like a 중복 of (null when not suspected or decided);
  * `mergedDonor` = the 대표 이름 its donor is merged into (null when the name is not merged or already the 대표 이름).
  */
-export type FeedListEntry = FeedEntryView & { duplicateOf: { id: string; at: string } | null; mergedDonor: string | null };
+export type FeedListEntry = FeedEntryView & { duplicateOf: { id: string; at: string } | null; mergedDonor: string | null; alert: FeedAlert | null };
+
+/**
+ * Where a 후원 리스트 entry's alert is in the 후원 알림 대기열 (2026-10-25): HELD = waiting for 배정 (미지정 일시정지), QUEUED =
+ * waiting its turn, SHOWING = on screen, ENDED = shown, skipped or under the 최소 금액. null = no alert of its own (시뮬 후원,
+ * a 퀘스트, older entries). 미재생만 lists HELD and QUEUED — the donations whose alert has not been on screen yet.
+ */
+export type FeedAlert = "HELD" | "QUEUED" | "SHOWING" | "ENDED";
+export const feedUnplayed = (e: { alert: FeedAlert | null }) => e.alert === "HELD" || e.alert === "QUEUED";
 
 /** 후원 리스트 출처 필터: where an entry came from — 시뮬 후원 apart from the source it plays. */
 export type FeedOrigin = FeedSourceKey | "SIM";
@@ -219,6 +232,8 @@ export const DONOR_SUMMARY_ROWS = 20;
 
 export type FeedView = {
   assignMode: AssignMode;
+  /** 미지정 일시정지 (this broadcast, off by default): a 미지정 entry holds its alert in the queue until it is assigned. */
+  pauseUnassigned: boolean;
   keywords: Record<string, string[]>;
   /** Newest first. */
   entries: FeedListEntry[];

@@ -78,6 +78,8 @@ export type MockBroadcast = {
   project?: string | null;
   round?: number | null;
   assignMode?: AssignMode;
+  /** 미지정 일시정지 (2026-10-25): missing = off. */
+  pauseUnassigned?: boolean;
   /** 후원 리스트 (newest last). */
   feed?: FeedEntry[];
   /** Active 한방 window. */
