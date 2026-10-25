@@ -60,6 +60,8 @@ export type CreatorRoom = {
   source?: "FLEXTV";
   /** A FLEXTV channel's 즐겨찾기 count (phase 7). */
   followers?: number;
+  /** A FLEXTV channel's owner's 아이디, where a 쪽지 goes (phase 9). */
+  ownerLoginId?: string;
 };
 
 export async function getCreatorRoom(creatorId: string): Promise<CreatorRoom | null> {

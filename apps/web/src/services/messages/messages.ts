@@ -1,5 +1,6 @@
 "use server";
 
+import { FLEXTV_SITE } from "@/lib/flextv/mode";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { creatorMemberId } from "@/services/admin/memberCore";
 import { isBlockedBy } from "@/services/moderation/moderationCore";
@@ -7,13 +8,16 @@ import { getSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { getCreatorById, getCreators } from "@/services/creators/creators";
 import { MAILBOXES, MESSAGE_BODY_MAX, SEND_LIMIT_PER_HOUR, isMailbox, parseMessagePageSize, type Mailbox, type MailboxView, type MessageResult, type Recipient } from "./messageTypes";
+import type { BlockResult } from "@/services/moderation/moderationTypes";
+import { flextvBlockSenderOf, flextvDeleteMessages, flextvMailbox, flextvMarkRead, flextvRecipients, flextvSendMessage } from "./flextvMessages";
 import { mockMessages, type MockMessage } from "./mockMessageStore";
 
 /**
  * 쪽지 Server Actions — code-first (no Figma frame). Route `/messages`. Every action re-checks the
  * session; message ids are only looked up inside the member's own mailbox. 쪽지 보내기 carries a request id, so a
  * retry after a lost response sends once. TBD: moderation of
- * reported mail, blocking, attachments, retention, notifications.
+ * reported mail, blocking, attachments, retention, notifications. With FLEXTV (phase 9) FLEXTV's 쪽지
+ * (./flextvMessages.ts): 받은 · 보낸 쪽지 only, to a streamer's 아이디.
  */
 
 const assertMock = () => {
@@ -23,6 +27,7 @@ const assertMock = () => {
 const inBox = (m: MockMessage, box: Mailbox) => !m.deleted && m.folder === box;
 
 export async function getMailbox(params: { box?: unknown; q?: unknown; page?: unknown; size?: unknown }): Promise<MailboxView | null> {
+  if (FLEXTV_SITE) return flextvMailbox(params);
   assertMock();
   const session = await getSession();
   if (!session) return null;
@@ -53,8 +58,9 @@ export async function getMailbox(params: { box?: unknown; q?: unknown; page?: un
   };
 }
 
-/** Creators a member can write to (mock: the public creator directory). */
-export async function getMessageRecipients(): Promise<Recipient[] | null> {
+/** Creators a member can write to (mock: the public creator directory; FLEXTV: `to` and the 즐겨찾기's streamers). */
+export async function getMessageRecipients(to?: unknown): Promise<Recipient[] | null> {
+  if (FLEXTV_SITE) return flextvRecipients(typeof to === "string" ? to : undefined);
   assertMock();
   if (!(await getSession())) return null;
   const first = await getCreators({ page: 1 });
@@ -64,6 +70,7 @@ export async function getMessageRecipients(): Promise<Recipient[] | null> {
 }
 
 export async function sendMessage(input: unknown): Promise<MessageResult> {
+  if (FLEXTV_SITE) return flextvSendMessage(typeof input === "object" && input !== null ? input : {});
   assertMock();
   const session = await getSession();
   if (!session) return { status: "UNAUTHORIZED" };
@@ -105,6 +112,7 @@ function own(id: unknown) {
 }
 
 export async function markMessageRead(id: unknown): Promise<MessageResult> {
+  if (FLEXTV_SITE) return flextvMarkRead(id);
   assertMock();
   if (!(await getSession())) return { status: "UNAUTHORIZED" };
   const m = own(id);
@@ -114,6 +122,8 @@ export async function markMessageRead(id: unknown): Promise<MessageResult> {
 
 /** Moves received mail between inbox / archive / spam. Sent mail cannot be moved. */
 export async function moveMessages(input: unknown): Promise<MessageResult> {
+  // FLEXTV has no 보관함 or 스팸함.
+  if (FLEXTV_SITE) return { status: "INVALID", message: "FLEXTV 쪽지는 옮길 수 없어요." };
   assertMock();
   if (!(await getSession())) return { status: "UNAUTHORIZED" };
   const v = (typeof input === "object" && input !== null ? input : {}) as { ids?: unknown; to?: unknown };
@@ -130,6 +140,7 @@ export async function moveMessages(input: unknown): Promise<MessageResult> {
 
 /** Soft delete; deleting twice is a no-op. */
 export async function deleteMessages(ids: unknown): Promise<MessageResult> {
+  if (FLEXTV_SITE) return flextvDeleteMessages(ids);
   assertMock();
   if (!(await getSession())) return { status: "UNAUTHORIZED" };
   if (!Array.isArray(ids) || ids.length === 0 || ids.length > 50) return { status: "INVALID", message: "쪽지를 선택해 주세요." };
@@ -139,4 +150,10 @@ export async function deleteMessages(ids: unknown): Promise<MessageResult> {
     if (m) m.deleted = true;
   }
   return { status: "SAVED" };
+}
+
+/** With FLEXTV: 차단 the sender of a received 쪽지 (the mock blocks through services/moderation's 신고 · 차단). */
+export async function blockMessageSender(id: unknown): Promise<BlockResult> {
+  if (FLEXTV_SITE) return flextvBlockSenderOf(id);
+  return { status: "INVALID", message: "쪽지의 차단 메뉴를 이용해 주세요." };
 }

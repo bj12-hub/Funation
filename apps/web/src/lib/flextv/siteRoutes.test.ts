@@ -4,13 +4,13 @@ import { flextvServesLink, flextvSiteRoute } from "./siteRoutes";
 
 describe("the site with FLEXTV (phase 7)", () => {
   it("serves the pages that run on FLEXTV", () => {
-    for (const path of ["/", "/live", "/creators", "/creators/3021", "/favorites", "/mypage", "/notifications", "/support", "/support/notices/3", "/wallet", "/wallet/donations", "/login", "/signup", "/channel/new", "/creator", "/terms/service"]) {
+    for (const path of ["/", "/live", "/creators", "/creators/3021", "/favorites", "/mypage", "/notifications", "/support", "/support/notices/3", "/wallet", "/wallet/donations", "/login", "/signup", "/channel/new", "/creator", "/terms/service", "/messages", "/mypage/blocks"]) {
       expect(flextvSiteRoute(path)).toBe("serve");
     }
   });
 
   it("sends the pages FLEXTV has no backend for home", () => {
-    for (const path of ["/community", "/community/12/edit", "/events/3", "/attendance", "/hall-of-fame", "/donation/soop", "/donation/history", "/play/marble/x", "/messages", "/mypage/titles", "/mypage/nicknames/", "/mypage/ranking", "/mypage/blocks", "/mypage/withdraw", "/password-reset", "/login/password-change"]) {
+    for (const path of ["/community", "/community/12/edit", "/events/3", "/attendance", "/hall-of-fame", "/donation/soop", "/donation/history", "/play/marble/x", "/mypage/titles", "/mypage/nicknames/", "/mypage/ranking", "/mypage/withdraw", "/password-reset", "/login/password-change"]) {
       expect(flextvSiteRoute(path)).toBe("home");
     }
     // Segment-aware: a page whose name only starts the same is not caught.

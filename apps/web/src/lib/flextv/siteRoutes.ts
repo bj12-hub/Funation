@@ -16,13 +16,10 @@ export const FLEXTV_UNSERVED_PAGES = [
   "/donation",
   // The mock studio's 마블 · 럼블 invitations.
   "/play",
-  // 쪽지: FLEXTV has its own, not connected yet.
-  "/messages",
-  // The supporter identity (칭호 · 후원 닉네임 · 내 랭킹) and 차단 목록 are Ssumnation's.
+  // The supporter identity (칭호 · 후원 닉네임 · 내 랭킹) is Ssumnation's.
   "/mypage/titles",
   "/mypage/nicknames",
   "/mypage/ranking",
-  "/mypage/blocks",
   // 탈퇴, password reset and change happen on FLEXTV's site (its 본인인증); 마이페이지 links there.
   "/mypage/withdraw",
   "/password-reset",

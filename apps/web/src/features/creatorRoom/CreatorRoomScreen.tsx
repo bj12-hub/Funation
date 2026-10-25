@@ -114,7 +114,7 @@ export function CreatorRoomScreen({
           <Link href={donateHref} className={channel.donateButton} scroll={false}>
             💝 후원하기
           </Link>
-          <RoomActions creatorId={room.creatorId} name={room.name} initialFavorite={isFavorite} signedIn={viewer !== null} flextv={flextv} />
+          <RoomActions creatorId={room.creatorId} name={room.name} initialFavorite={isFavorite} signedIn={viewer !== null} flextv={flextv} messageTo={room.ownerLoginId} />
         </div>
       </div>
 

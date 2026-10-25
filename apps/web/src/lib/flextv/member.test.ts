@@ -20,7 +20,8 @@ describe("the member's account", () => {
       hasPassword: true,
       verified: false,
       balance: 2500,
-      newNotifications: false
+      newNotifications: false,
+      unreadMessages: 0
     });
   });
 
