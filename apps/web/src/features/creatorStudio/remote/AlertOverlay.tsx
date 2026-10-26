@@ -2,9 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
-import type { OverlayAlert } from "@/services/creator/alertTypes";
+import { ALERT_ROLL_MS, type OverlayAlert } from "@/services/creator/alertTypes";
 import { alertSpeech } from "@/services/creator/customSoundSpeech";
-import { AlertCard } from "./AlertCard";
+import { AlertCard, rollsIn } from "./AlertCard";
 import { useReloadSignal } from "./useReloadSignal";
 import { useSpeechQueue } from "./useSpeechQueue";
 
@@ -12,13 +12,14 @@ import { useSpeechQueue } from "./useSpeechQueue";
  * OBS alert overlay (code-first). Transparent page that re-reads the server queue every second and
  * shows the alert the server has on screen, drawn as the 후원 알림 design says (AlertCard, 오버레이 테마). Reads the message aloud with the browser's speech
  * synthesis when TTS volume > 0, not muted and 후원 메시지 표시 is on (voices TBD), playing each 커스텀 사운드 in place of its
- * word, and plays a 시그니처's sound at 시그니처 볼륨.
+ * word, and plays a 시그니처's sound at 시그니처 볼륨 (after the 랜덤시그 알림 롤링, when the card opens with one).
  */
 export function AlertOverlay({ data, vertical = false }: { data: OverlayAlert; vertical?: boolean }) {
   const router = useRouter();
   const spoken = useRef<string | null>(null);
   const played = useRef<string | null>(null);
   const sound = useRef<HTMLAudioElement | null>(null);
+  const soundStart = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // OBS keys out transparent pixels, so both <html> and <body> must drop the page background.
@@ -50,6 +51,7 @@ export function AlertOverlay({ data, vertical = false }: { data: OverlayAlert; v
   }, [controls.muted, data.on, stop]);
 
   const showMessage = data.design.showMessage;
+  const showImage = data.design.showImage;
   useEffect(() => {
     if (!alert || spoken.current === alert.id) return;
     spoken.current = alert.id;
@@ -58,18 +60,22 @@ export function AlertOverlay({ data, vertical = false }: { data: OverlayAlert; v
     if (parts.length > 0) speak(parts, controls.ttsVolume);
   }, [alert, controls.muted, controls.ttsVolume, data.on, data.customSounds, showMessage, speak]);
 
-  // 시그니처 소리: played once per alert at 시그니처 볼륨.
+  // 시그니처 소리: played once per alert at 시그니처 볼륨 — when a 랜덤시그 알림 롤링 stops, if the card opens with one.
   useEffect(() => {
     if (!alert?.soundUrl || played.current === alert.id) return;
     played.current = alert.id;
     // The previous alert's sound stops first, also when this one stays silent (볼륨 0 · 음소거 · OFF).
     sound.current?.pause();
     sound.current = null;
+    if (soundStart.current) clearTimeout(soundStart.current);
     if (!data.on || controls.muted || controls.signatureVolume === 0) return;
-    sound.current = new Audio(alert.soundUrl);
-    sound.current.volume = controls.signatureVolume / 100;
-    sound.current.play().catch(() => {}); // OBS allows autoplay; a normal browser tab may block it
-  }, [alert, controls.muted, controls.signatureVolume, data.on]);
+    const audio = new Audio(alert.soundUrl);
+    audio.volume = controls.signatureVolume / 100;
+    sound.current = audio;
+    // Muted, OFF or a new alert in the meantime: it stays silent (the effect below dropped it).
+    const start = () => sound.current === audio && audio.play().catch(() => {}); // OBS allows autoplay; a normal browser tab may block it
+    soundStart.current = setTimeout(start, rollsIn(alert, showImage) ? ALERT_ROLL_MS : 0);
+  }, [alert, controls.muted, controls.signatureVolume, data.on, showImage]);
 
   // The playing sound follows the remote: a new volume applies at once; mute, OFF or the alert leaving stops it.
   const alertId = alert?.id ?? null;
@@ -81,7 +87,13 @@ export function AlertOverlay({ data, vertical = false }: { data: OverlayAlert; v
       sound.current = null;
     } else s.volume = controls.signatureVolume / 100;
   }, [alertId, controls.muted, controls.signatureVolume, data.on]);
-  useEffect(() => () => sound.current?.pause(), []);
+  useEffect(
+    () => () => {
+      if (soundStart.current) clearTimeout(soundStart.current);
+      sound.current?.pause();
+    },
+    []
+  );
 
   // 리모컨 기능 제어 OFF: nothing on screen and no TTS.
   if (!alert || !data.on) return null;

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { key, mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
-import { DEFAULT_RANDOM_SIG, DEFAULT_SPIN, type RandomSigSettings, type RandomSigTier } from "./crewTypes";
+import { DEFAULT_RANDOM_SIG, DEFAULT_SPIN, RANDOM_SIG_ROLL_MAX, type RandomSigSettings, type RandomSigTier } from "./crewTypes";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
@@ -104,6 +104,32 @@ describe("랜덤시그", () => {
     await m.signatures.saveSignature({ ...m.b, match: "AMOUNT", price: 5_000 });
     await m.text(5_000);
     expect(m.lastAlert()).toMatchObject({ typeLabel: `시그니처 · ${m.b.name}`, signatureId: m.b.id });
+  });
+
+  it("알림 롤링 (2026-10-26): the alert carries the tier's candidate images to flip through, unless off or only one", async () => {
+    const m = await load();
+    const { listSignatures } = m.signatures;
+    const images = new Set((await listSignatures())!.filter((s) => s.active).map((s) => s.imageUrl));
+    await m.saveRandomSig(settings({ tiers: [tier(5_000, 0, 10_000_000)] }));
+    await m.text(5_000);
+    const rolling = m.lastAlert().rolling!;
+    expect(rolling.length).toBe(Math.min(RANDOM_SIG_ROLL_MAX, images.size));
+    expect(new Set(rolling).size).toBe(rolling.length);
+    for (const url of rolling) expect(images).toContain(url);
+    // The drawn signature still decides the image and the label.
+    expect(m.lastAlert().typeLabel).toMatch(/^랜덤시그 · /);
+
+    // Off, or a tier with one signature: no roll.
+    await m.saveRandomSig(settings({ alertRoll: false, tiers: [tier(5_000, 0, 10_000_000)] }));
+    await m.text(5_000);
+    expect(m.lastAlert().rolling).toBeUndefined();
+    await m.saveRandomSig(settings({ tiers: [tier(5_000, m.a.price, m.a.price)] }));
+    await m.text(5_000);
+    expect(m.lastAlert()).toMatchObject({ signatureId: m.a.id });
+    expect(m.lastAlert().rolling).toBeUndefined();
+
+    const res = await m.saveRandomSig({ ...settings(), alertRoll: "yes" });
+    expect(res.status === "INVALID" && res.message).toContain("알림 롤링");
   });
 
   it("records a run for a member while live: 기본 모드 × 기본 배수, or the drawn signature's points instead", async () => {

@@ -144,6 +144,7 @@ export function enqueueDonationAlert(
     typeLabel: string;
     donationType?: string;
     imageUrl?: string;
+    rolling?: string[];
     soundUrl?: string;
     signatureId?: string;
     memberId?: string;

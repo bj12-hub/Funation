@@ -755,10 +755,13 @@ export const RANDOM_SIG_MODES: { key: RandomSigMode; label: string; note: string
 /**
  * `auto` = 랜덤시그 켜짐 (the alert plays the drawn signature even without a crew broadcast); `excluded` = 제외 시그.
  * `digit` (기본 모드 only) = 앞자리 배수: the drawn signature's price in `digitUnit`s is the 배수, instead of the 기본 배수.
+ * `alertRoll` = 알림 롤링 (2026-10-26): the 후원 알림 flips through the tier's candidate images for a second first.
  */
-export type RandomSigSettings = GameCommon & { tiers: RandomSigTier[]; mode: RandomSigMode; multiplier: number; digit: boolean; digitUnit: number };
-/** 기본값 (StreamDonate 기본): 기본 모드, 2배, 앞자리 배수 꺼짐 (켜면 백만 자리). */
-export const DEFAULT_RANDOM_SIG: RandomSigSettings = { title: "", auto: false, excluded: [], showIdle: true, tiers: [], mode: "BONUS", multiplier: 2, digit: false, digitUnit: 1_000_000 };
+export type RandomSigSettings = GameCommon & { tiers: RandomSigTier[]; mode: RandomSigMode; multiplier: number; digit: boolean; digitUnit: number; alertRoll: boolean };
+/** 기본값 (StreamDonate 기본): 기본 모드, 2배, 앞자리 배수 꺼짐 (켜면 백만 자리), 알림 롤링 켜짐. */
+export const DEFAULT_RANDOM_SIG: RandomSigSettings = { title: "", auto: false, excluded: [], showIdle: true, tiers: [], mode: "BONUS", multiplier: 2, digit: false, digitUnit: 1_000_000, alertRoll: true };
+/** 알림 롤링: at most this many candidate images go with the alert (a random pick when the tier has more). */
+export const RANDOM_SIG_ROLL_MAX = 12;
 
 /**
  * 랜덤시그 설정 프리셋 (2026-10-26, StreamDonate 설정 프리셋): the 발동 구간 · 기여도 방식 · 배수 · 제외 시그 saved under a
