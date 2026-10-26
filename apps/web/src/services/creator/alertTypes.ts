@@ -64,6 +64,11 @@ export type AlertItem = {
    * platform on 수단별 보드, which shows the unit's label. Read it through `nativeAmount` (older alerts carry a label).
    */
   native?: NativeAmount;
+  /**
+   * 랜덤시그 알림 롤링 (2026-10-26): candidate signature images the card flips through for its first ALERT_ROLL_MS before
+   * showing `imageUrl` (looks only — the server drew the signature); the signature's sound starts when it stops.
+   */
+  rolling?: string[];
   /** The signature's sound (library), played by the overlay at 시그니처 볼륨 (code-first, 2026-10-06). */
   soundUrl?: string;
   /** DONATION: the 썸네이션 donation type it came from (TEXT · MINI · VIDEO …); the 미니후원 overlay reads MINI. Absent on older alerts. */
@@ -183,4 +188,7 @@ export const offOverlayTargets = (switches: Record<OverlayTarget, boolean>, targ
 export type OverlaySignal = { reloadSeq: number; on: boolean };
 
 /** How an alert's amount reads on screen. */
+/** 랜덤시그 알림 롤링 length (StreamDonate: 1초 롤링). */
+export const ALERT_ROLL_MS = 1000;
+
 export const alertAmount = (a: { fnAmount: number; amountLabel?: string }) => a.amountLabel ?? `${formatNumber(a.fnAmount)} FN`;

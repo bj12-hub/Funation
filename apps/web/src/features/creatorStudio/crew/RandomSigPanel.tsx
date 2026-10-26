@@ -307,6 +307,11 @@ export function RandomSigPanel({
           </label>
         )}
 
+        <label className={styles.checkRow}>
+          <input type="checkbox" checked={draft.alertRoll} onChange={(e) => edit({ alertRoll: e.target.checked })} />
+          후원 알림에서 1초 동안 후보 시그를 돌린 뒤 뽑힌 시그 보여 주기 (시그 소리는 그다음에)
+        </label>
+
         <AutoFields
           name="랜덤시그"
           verb="돌리기"

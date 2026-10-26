@@ -184,6 +184,8 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
           : alertTypeLabel(catalog, request.type, request.amount),
       donationType: request.type,
       imageUrl: drawn ? signatureImageOf(drawn) : signatureImageFor(catalog, request.type, request.amount, request.details),
+      // 랜덤시그 알림 롤링 (2026-10-26): the candidates the card flips through first.
+      ...(randomSig?.rolling.length ? { rolling: randomSig.rolling } : {}),
       soundUrl: drawn ? signatureSoundOf(drawn) : signatureSoundFor(request.type, request.amount, request.details),
       // 시그 카운트 (2026-10-23): which signature, and the member the supporter picked.
       signatureId,
