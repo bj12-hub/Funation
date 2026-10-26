@@ -6,7 +6,7 @@ import { overlayKeyOpen } from "@/services/account/creatorAccess";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { ingestChat } from "@/services/broadcast/chatCore";
 import { overlaySignal } from "./alertCore";
-import { customChat, customStore, parseCustomSlot, showingDonation } from "./customOverlayCore";
+import { customChat, customCrew, customStore, parseCustomSlot, showingDonation } from "./customOverlayCore";
 import { slotByQuery, type CustomOverlayData, type CustomOverlayView, type CustomResult } from "./customOverlayTypes";
 import { mockCreator } from "./mockCreatorStore";
 
@@ -50,6 +50,7 @@ export async function getCustomOverlay(key: unknown, slot: unknown): Promise<Cus
     code: live ? { html: s.html, css: s.css, js: s.js } : null,
     donation: live ? showingDonation() : null,
     chat: live ? customChat() : [],
+    crew: live ? customCrew() : null,
     ...overlaySignal("custom")
   };
 }
