@@ -136,6 +136,8 @@ export type MockBroadcast = {
     dice?: [number, number];
     wheel?: { op: "ADD" | "MULTIPLY"; n: number };
     range?: [number, number];
+    /** 랜덤시그 앞자리 배수: the 자리 단위 (FN). */
+    digit?: number;
     from?: { memberId: string; amount: number };
     /** Points the run moves for other members (시그니처 헌터 몰수권), counted with the run. */
     shares?: { memberId: string; points: number }[];

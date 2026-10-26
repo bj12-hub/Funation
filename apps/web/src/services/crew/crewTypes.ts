@@ -724,6 +724,19 @@ export const DEFAULT_TWO_WHEEL: TwoWheelSettings = {
 export const RANDOM_SIG_TITLE_DEFAULT = "랜덤시그";
 export const RANDOM_SIG_TIERS_MAX = 10;
 export const RANDOM_SIG_MULTIPLIER_MAX = 10;
+/**
+ * 앞자리 배수 (2026-10-26, StreamDonate: 뽑힌 시그 가격의 백만원 자리 = 배수): the 자리 단위 a drawn signature's price is
+ * counted in. FN has no 원 rate yet (TBD), so the creator picks the 자리 — 기본 백만 FN, StreamDonate's number as it is.
+ */
+export const RANDOM_SIG_DIGIT_UNITS: { unit: number; label: string }[] = [
+  { unit: 1_000, label: "천 자리" },
+  { unit: 10_000, label: "만 자리" },
+  { unit: 100_000, label: "십만 자리" },
+  { unit: 1_000_000, label: "백만 자리" }
+];
+export const RANDOM_SIG_DIGIT_MAX = 100;
+/** The 앞자리 배수 of a price: the whole 자리 units it holds (2,500,000 FN in 백만 자리 → 2). */
+export const digitMultiplier = (price: number, unit: number) => Math.floor(price / unit);
 
 /** A 발동 구간: a 일반 후원 of exactly `trigger` FN draws among the active signatures priced `min` ~ `max` FN. */
 export type RandomSigTier = { id: string; trigger: number; min: number; max: number };
@@ -739,10 +752,13 @@ export const RANDOM_SIG_MODES: { key: RandomSigMode; label: string; note: string
   { key: "REPLACE", label: "랜덤 결과 모드", note: "배수 없이, 발동 후원 대신 뽑힌 시그 가격 기준 점수로 바꿔요." }
 ];
 
-/** `auto` = 랜덤시그 켜짐 (the alert plays the drawn signature even without a crew broadcast); `excluded` = 제외 시그. */
-export type RandomSigSettings = GameCommon & { tiers: RandomSigTier[]; mode: RandomSigMode; multiplier: number };
-/** 기본값 (StreamDonate 기본): 기본 모드, 2배. */
-export const DEFAULT_RANDOM_SIG: RandomSigSettings = { title: "", auto: false, excluded: [], showIdle: true, tiers: [], mode: "BONUS", multiplier: 2 };
+/**
+ * `auto` = 랜덤시그 켜짐 (the alert plays the drawn signature even without a crew broadcast); `excluded` = 제외 시그.
+ * `digit` (기본 모드 only) = 앞자리 배수: the drawn signature's price in `digitUnit`s is the 배수, instead of the 기본 배수.
+ */
+export type RandomSigSettings = GameCommon & { tiers: RandomSigTier[]; mode: RandomSigMode; multiplier: number; digit: boolean; digitUnit: number };
+/** 기본값 (StreamDonate 기본): 기본 모드, 2배, 앞자리 배수 꺼짐 (켜면 백만 자리). */
+export const DEFAULT_RANDOM_SIG: RandomSigSettings = { title: "", auto: false, excluded: [], showIdle: true, tiers: [], mode: "BONUS", multiplier: 2, digit: false, digitUnit: 1_000_000 };
 
 // 기여도 릴레이 — StreamDonate 기여도 릴레이: a 시그니처 후원 the 트리거 BJ receives sets a 배수 by its amount; the next
 // 시그니처 후원 another member receives takes it.
@@ -1247,6 +1263,8 @@ export type GameRunView = {
   dice: [number, number] | null;
   wheel: { op: "ADD" | "MULTIPLY"; n: number } | null;
   range: [number, number] | null;
+  /** 랜덤시그 앞자리 배수: the 자리 단위 (FN) the 배수 was counted in; null otherwise. */
+  digit: number | null;
   /** 기여도 릴레이: the 트리거 후원 the 배수 came from. 줍줍: the stacked 후원 that was taken. */
   from: { memberName: string; amount: number } | null;
   /** Points the run moves for other members (시그니처 헌터 몰수권: what each one loses), counted with the run. */

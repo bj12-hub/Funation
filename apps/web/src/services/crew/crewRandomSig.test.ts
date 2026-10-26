@@ -135,6 +135,48 @@ describe("랜덤시그", () => {
     expect(await m.playGame({ game: "RANDOM_SIG", broadcastId: id, requestId: key(1), memberId: "cm-s2" })).toEqual({ status: "INVALID", message: "랜덤시그는 발동 금액 후원이 들어올 때만 돌아가요." });
   });
 
+  it("앞자리 배수 (2026-10-26): the drawn signature's price in 자리 units is the 배수, whatever the 발동 금액", async () => {
+    const m = await load();
+    const id = await m.start();
+    expect(await m.signatures.saveSignature({ ...m.b, price: 2_500_000 })).toMatchObject({ status: "SAVED" });
+    const only = tier(5_000, 1_000_000, 3_000_000); // signature b only
+    // 백만 자리 (기본): 2,500,000 FN → ×2, the 기본 배수 (×3) not used.
+    expect(await m.saveRandomSig(settings({ multiplier: 3, digit: true, tiers: [only] }))).toEqual({ status: "SAVED" });
+    expect((await m.getGamesView())!.randomSigSettings).toMatchObject({ digit: true, digitUnit: 1_000_000 });
+    await m.text(5_000, "cm-s2");
+    // 십만 자리: ×25.
+    await m.saveRandomSig(settings({ digit: true, digitUnit: 100_000, tiers: [only] }));
+    await m.text(5_000, "cm-s2");
+    // Off, or 랜덤 결과 모드: as before (no 자리 on the run).
+    await m.saveRandomSig(settings({ multiplier: 3, tiers: [only] }));
+    await m.text(5_000, "cm-s2");
+    await m.saveRandomSig(settings({ mode: "REPLACE", digit: true, tiers: [tier(5_000, 0, 3_000_000), tier(6_000, 2_000_000, 3_000_000)] }));
+    await m.text(6_000, "cm-s2");
+    expect(m.runs(id).map((r) => [r.kind, r.value, r.points, r.digit])).toEqual([
+      ["MULTIPLY", 2, 5_000, 1_000_000],
+      ["MULTIPLY", 25, 120_000, 100_000],
+      ["MULTIPLY", 3, 10_000, undefined],
+      ["ADD", 2_494_000, 2_494_000, undefined]
+    ]);
+    vi.setSystemTime(at(60));
+    const runs = (await m.getBroadcastView())!.live!.randomSig.runs;
+    expect(runs.map((r) => r.digit)).toEqual([null, null, 100_000, 1_000_000]);
+
+    const bad: [Partial<RandomSigSettings>, string][] = [
+      [{ digit: true, tiers: [tier(5_000, 999_999, 3_000_000)] }, "시그 최소는 1,000,000 FN(백만 자리) 이상"],
+      [{ digit: true, digitUnit: 1_000, tiers: [tier(5_000, 1_000, 101_000)] }, "100배까지예요. 시그 최대를 100,999 FN 이하로"],
+      [{ digitUnit: 5_000 }, "자리 단위를 골라"],
+      [{ digit: "yes" as unknown as boolean }, "앞자리 배수를 확인"]
+    ];
+    for (const [patch, message] of bad) {
+      const res = await m.saveRandomSig(settings(patch));
+      expect(res.status === "INVALID" && res.message, message).toContain(message);
+    }
+    // The limits hold only where 앞자리 배수 counts (기본 모드), and a tier at exactly ×100 is fine.
+    expect(await m.saveRandomSig(settings({ mode: "REPLACE", digit: true, tiers: [tier(5_000, 0, 10_000_000)] }))).toEqual({ status: "SAVED" });
+    expect(await m.saveRandomSig(settings({ digit: true, digitUnit: 1_000, tiers: [tier(5_000, 1_000, 100_999)] }))).toEqual({ status: "SAVED" });
+  });
+
   it("counts as the drawn signature for the other games and 시그 카운트", async () => {
     const m = await load();
     const id = await m.start();
