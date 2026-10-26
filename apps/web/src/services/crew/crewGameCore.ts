@@ -169,6 +169,7 @@ export function gameRunView(b: MockBroadcast, r: StoredRun): GameRunView {
     dice: r.dice ?? null,
     wheel: r.wheel ?? null,
     range: r.range ?? null,
+    digit: r.digit ?? null,
     from: r.from ? { memberName: (mockCrew.crews[b.channelId] ?? []).find((x) => x.id === r.from!.memberId)?.name ?? "삭제된 멤버", amount: r.from.amount } : null,
     shares: (r.shares ?? []).map((x) => {
       const o = (mockCrew.crews[b.channelId] ?? []).find((c) => c.id === x.memberId);

@@ -10,9 +10,13 @@ import styles from "./gameOverlay.module.css";
 
 type Pool = RandomSigLive["pool"];
 
-/** The line under the drawn signature: 기본 모드 "×2 · +10,000점" / "×1 · 발동 금액보다 낮은 시그", 랜덤 결과 모드 "시그 가격 기준 · −2,000점". */
+/**
+ * The line under the drawn signature: 기본 모드 "×2 · +10,000점" / "×1 · 발동 금액보다 낮은 시그", 앞자리 배수
+ * "앞자리 ×3 · +10,000점", 랜덤 결과 모드 "시그 가격 기준 · −2,000점".
+ */
 export function randomSigLine(r: GameRunView) {
   if (r.kind === "ADD") return `시그 가격 기준 · ${signedPoints(r.points)}`;
+  if (r.digit) return `앞자리 ×${r.value} · ${signedPoints(r.points)}`;
   return r.value > 1 ? `×${r.value} · ${signedPoints(r.points)}` : "×1 · 발동 금액보다 낮은 시그";
 }
 
