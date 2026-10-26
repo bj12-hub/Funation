@@ -1,7 +1,9 @@
 import { overlayLines } from "@/services/broadcast/chatCore";
 import { readWidget } from "./widgetStore";
 import { advance, mockAlerts } from "./alertCore";
-import { CUSTOM_CHAT_HISTORY, CUSTOM_CODE_MAX, CUSTOM_NAME_MAX, CUSTOM_SLOTS, emptySlot, type CustomChat, type CustomDonation, type CustomSlot } from "./customOverlayTypes";
+import { liveBroadcastOf, scoreboardRows } from "@/services/crew/crewCore";
+import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
+import { CUSTOM_CHAT_HISTORY, CUSTOM_CODE_MAX, CUSTOM_NAME_MAX, CUSTOM_SLOTS, emptySlot, type CustomChat, type CustomCrew, type CustomDonation, type CustomSlot } from "./customOverlayTypes";
 
 /**
  * 커스텀 오버레이 (server-only) — code-first. The creator's slots (stored as written: the code only ever runs in the
@@ -60,4 +62,14 @@ export function showingDonation(now = Date.now()): CustomDonation | null {
 export function customChat(): CustomChat[] {
   const blocked = new Set(readWidget("CHAT").filteredNicknames.map((n) => n.trim().toLowerCase()));
   return overlayLines(CUSTOM_CHAT_HISTORY, (name) => !blocked.has(name.trim().toLowerCase())).map((l) => ({ id: l.id, platform: l.platform, nickname: l.name, text: l.text, at: l.at }));
+}
+
+/** `onData("crew", …)`: the live crew broadcast's 점수판 (public fields only — what OBS /overlay/crew shows). */
+export function customCrew(): CustomCrew {
+  const b = liveBroadcastOf(STUDIO_CHANNEL);
+  if (!b) return { live: false, title: "", project: null, round: null, rows: [], total: 0 };
+  const rows = scoreboardRows(b)
+    .sort((x, y) => y.score - x.score || x.name.localeCompare(y.name))
+    .map((r, i) => ({ rank: i + 1, name: r.name, color: r.color, score: r.score }));
+  return { live: true, title: b.title, project: b.project ?? null, round: b.round ?? null, rows, total: rows.reduce((s, r) => s + r.score, 0) };
 }
