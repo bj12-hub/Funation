@@ -22,8 +22,10 @@ import {
 } from "@/services/donations/signatureTypes";
 import styles from "../crew/crew.module.css";
 import { BulkSignatures } from "./BulkSignatures";
+import { SigPlayerCard } from "./SigPlayerCard";
 import { SignatureShareCard } from "./SignatureShareCard";
 import local from "./signatures.module.css";
+import type { SigPlayerSettings } from "@/services/creator/sigPlayerTypes";
 
 type Draft = Omit<ManagedSignature, "id"> & { id: string | null };
 
@@ -48,13 +50,16 @@ export function SignaturesScreen({
   items,
   library,
   startBulk = false,
-  publicPage = null
+  publicPage = null,
+  sigPlayer = null
 }: {
   items: SignatureRow[];
   library: Asset[];
   startBulk?: boolean;
   /** 공개 시그니처 페이지 (2026-10-25); null hides the card. */
   publicPage?: SignaturePageSettings | null;
+  /** 시그니처 플레이어 (2026-10-25); null hides the card. */
+  sigPlayer?: { settings: SigPlayerSettings; overlayPath: string } | null;
 }) {
   const router = useRouter();
   const images = library.filter((a) => a.kind === "IMAGE");
@@ -400,6 +405,7 @@ export function SignaturesScreen({
         </p>
       )}
 
+      {sigPlayer && <SigPlayerCard initial={sigPlayer.settings} overlayPath={sigPlayer.overlayPath} />}
       {publicPage && <SignatureShareCard page={publicPage} />}
     </div>
   );

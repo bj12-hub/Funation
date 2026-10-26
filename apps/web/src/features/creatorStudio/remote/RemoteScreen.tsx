@@ -84,6 +84,9 @@ export function RemoteScreen({
   const [amount, setAmount] = useState(10_000);
   const [donor, setDonor] = useState("");
   const [message, setMessageText] = useState("");
+  /** 테스트 후원 as a signature (2026-10-25): its image · sound, and the member for the 시그니처 플레이어. "" = none. */
+  const [testSig, setTestSig] = useState("");
+  const [testMember, setTestMember] = useState("");
   const [minFn, setMinFn] = useState(String(controls.minFn));
   const [autoPauseFn, setAutoPauseFn] = useState(String(controls.autoPauseFn));
   const [displaySec, setDisplaySec] = useState(String(controls.displaySec));
@@ -119,7 +122,9 @@ export function RemoteScreen({
     // One id per intended send: a double click or retry reuses it, so the alert is queued once.
     requestId.current ??= crypto.randomUUID();
     const id = requestId.current;
-    run(() => sendTestAlert({ requestId: id, amount, donor, message }), "테스트 후원을 보냈어요.", () => {
+    const sig = view.testOptions.signatures.some((s) => s.id === testSig) ? testSig : null;
+    const member = view.testOptions.members.some((m) => m.id === testMember) ? testMember : null;
+    run(() => sendTestAlert({ requestId: id, amount, donor, message, signatureId: sig, memberId: member }), "테스트 후원을 보냈어요.", () => {
       requestId.current = null;
       setMessageText("");
     });
@@ -371,6 +376,24 @@ export function RemoteScreen({
           />
           <input className={styles.input} aria-label="후원자명" placeholder="후원자명 (비우면 테스트 후원자)" maxLength={TEST_DONOR_MAX} value={donor} onChange={(e) => setDonor(e.target.value)} />
           <input className={styles.input} aria-label="메시지" placeholder="메시지" maxLength={TEST_MESSAGE_MAX} value={message} onChange={(e) => setMessageText(e.target.value)} />
+          <div className={styles.addRow}>
+            <select className={styles.select} aria-label="테스트 시그니처" value={testSig} onChange={(e) => setTestSig(e.target.value)}>
+              <option value="">시그니처 없이</option>
+              {view.testOptions.signatures.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name} · {formatNumber(s.price)} FN
+                </option>
+              ))}
+            </select>
+            <select className={styles.select} aria-label="테스트 멤버" value={testMember} onChange={(e) => setTestMember(e.target.value)}>
+              <option value="">멤버 없이</option>
+              {view.testOptions.members.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className={styles.actions}>
             <button type="button" className={styles.primary} disabled={pending || amount < 1} onClick={sendTest}>
               전송
