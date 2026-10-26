@@ -283,6 +283,9 @@ Confirmed:
   계산하는 지금 규칙(배수는 1/100 단위로 한 번 반올림)을 바꾸는 일이라 TBD. See docs/figma/code-first-screens.md
 - 기여도 내보내기 엑셀 (2026-10-25, 기본값 — 일반적인 기준, StreamDonate 프리셋별 기여도 내역 참고): CSV와 같은 표를 .xlsx 시트 하나로. 다른
   내보내기(받은 후원 · FN 후원내역 등)의 엑셀 형식은 TBD. See docs/figma/code-first-screens.md
+- 후원 이펙트 영상 (2026-10-25, 기본값 — 일반적인 기준, StreamDonate 후원 이펙트 참고): 라이브러리 영상 MP4 · WEBM 15MB 이하(자리값), 레이어
+  효과 구간마다 영상 하나, 알림이 뜰 때 한 번 소리와 함께 재생. 영상 업로드 정책 · 검수 · 용량, 영상 길이 제한, 영상 볼륨 조절은 TBD.
+  See docs/figma/code-first-screens.md
 
 Still TBD:
 

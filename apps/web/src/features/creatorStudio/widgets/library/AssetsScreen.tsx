@@ -8,7 +8,9 @@ import { ASSET_LIMITS, ASSET_SORTS, ASSET_TYPES, filterAssets, pairOf, type Asse
 import styles from "../../crew/crew.module.css";
 import local from "./library.module.css";
 
-const KIND_LABEL: Record<AssetKind, string> = { IMAGE: "이미지", SOUND: "사운드" };
+const KIND_LABEL: Record<AssetKind, string> = { IMAGE: "이미지", SOUND: "사운드", VIDEO: "영상" };
+/** "아직 올린 이미지가 …" — 영상 takes 이 (it ends in a consonant). */
+const KIND_SUBJECT: Record<AssetKind, string> = { IMAGE: "이미지가", SOUND: "사운드가", VIDEO: "영상이" };
 const size = (bytes: number) => (bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)}MB` : `${Math.max(1, Math.round(bytes / 1024))}KB`);
 
 /**
@@ -96,14 +98,14 @@ export function AssetsScreen({ items }: { items: Asset[] }) {
             className={local.hiddenInput}
             type="file"
             multiple
-            accept={[...ASSET_TYPES.IMAGE, ...ASSET_TYPES.SOUND].join(",")}
+            accept={[...ASSET_TYPES.IMAGE, ...ASSET_TYPES.SOUND, ...ASSET_TYPES.VIDEO].join(",")}
             aria-label="올릴 파일"
             onChange={(e) => upload(e.target.files)}
           />
         </div>
         <p className={styles.note}>
-          이미지 PNG · JPG · GIF · WEBP ({ASSET_LIMITS.bytes.IMAGE / 1024 / 1024}MB 이하), 사운드 MP3 · WAV · OGG ({ASSET_LIMITS.bytes.SOUND / 1024 / 1024}MB 이하). 저작권이 있는 파일은 올리지
-          마세요 (검수 정책 TBD).
+          이미지 PNG · JPG · GIF · WEBP ({ASSET_LIMITS.bytes.IMAGE / 1024 / 1024}MB 이하), 사운드 MP3 · WAV · OGG ({ASSET_LIMITS.bytes.SOUND / 1024 / 1024}MB 이하), 영상 MP4 · WEBM (
+          {ASSET_LIMITS.bytes.VIDEO / 1024 / 1024}MB 이하 — <Link href="/creator/widgets/effects">이펙트 · 효과</Link>의 구간 영상). 저작권이 있는 파일은 올리지 마세요 (검수 정책 TBD).
         </p>
         <p className={styles.note}>
           이미지와 사운드의 이름이 같으면(예: 축하.png · 축하.mp3) 짝으로 묶여요. <Link href="/creator/widgets/signatures">시그니처</Link>에 그 이미지를 고르면 사운드가 소리로 함께 붙어요.
@@ -145,19 +147,21 @@ export function AssetsScreen({ items }: { items: Asset[] }) {
                 </option>
               ))}
             </select>
-            <label className={styles.checkRow}>
-              <input type="checkbox" checked={pairedOnly} onChange={(e) => setPairedOnly(e.target.checked)} />
-              짝 있는 파일만
-            </label>
+            {tab !== "VIDEO" && (
+              <label className={styles.checkRow}>
+                <input type="checkbox" checked={pairedOnly} onChange={(e) => setPairedOnly(e.target.checked)} />
+                짝 있는 파일만
+              </label>
+            )}
             <span className={styles.muted} role="status">
               {shown.length === ofKind ? `${ofKind}개` : `${ofKind}개 중 ${shown.length}개`}
             </span>
           </div>
         )}
         {ofKind === 0 ? (
-          <p className={styles.empty}>아직 올린 {KIND_LABEL[tab]}가 없어요.</p>
+          <p className={styles.empty}>아직 올린 {KIND_SUBJECT[tab]} 없어요.</p>
         ) : shown.length === 0 ? (
-          <p className={styles.empty}>조건에 맞는 {KIND_LABEL[tab]}가 없어요. 검색어나 필터를 바꿔 보세요.</p>
+          <p className={styles.empty}>조건에 맞는 {KIND_SUBJECT[tab]} 없어요. 검색어나 필터를 바꿔 보세요.</p>
         ) : (
           <ul className={tab === "IMAGE" ? local.grid : styles.list}>
             {shown.map((a) => (
@@ -165,6 +169,8 @@ export function AssetsScreen({ items }: { items: Asset[] }) {
                 {a.kind === "IMAGE" ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img className={local.preview} src={a.url} alt={a.name} />
+                ) : a.kind === "VIDEO" ? (
+                  <video className={local.video} src={a.url} controls muted playsInline preload="metadata" aria-label={`${a.name} 미리 보기`} />
                 ) : (
                   <audio className={local.audio} src={a.url} controls preload="none" aria-label={`${a.name} 미리 듣기`} />
                 )}
@@ -200,7 +206,7 @@ export function AssetsScreen({ items }: { items: Asset[] }) {
                     type="button"
                     className={styles.danger}
                     disabled={pending}
-                    onClick={() => window.confirm(`'${a.name}'을(를) 지울까요? 이 파일을 쓰는 배너 슬라이드는 건너뛰고, 시그니처는 기본 이미지로 바뀌어요.`) && run(() => deleteAsset(a.id), "파일을 지웠어요.")}
+                    onClick={() => window.confirm(`'${a.name}'을(를) 지울까요? 이 파일을 쓰는 배너 슬라이드는 건너뛰고, 시그니처는 기본 이미지로 바뀌고, 이펙트 구간 영상은 나오지 않아요.`) && run(() => deleteAsset(a.id), "파일을 지웠어요.")}
                   >
                     삭제
                   </button>
