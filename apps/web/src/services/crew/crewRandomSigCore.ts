@@ -9,11 +9,15 @@ import {
   RANDOM_SIG_DIGIT_UNITS,
   RANDOM_SIG_MODES,
   RANDOM_SIG_MULTIPLIER_MAX,
+  RANDOM_SIG_PRESETS_MAX,
+  RANDOM_SIG_PRESET_NAME_MAX,
   RANDOM_SIG_TIERS_MAX,
   type RandomSigLive,
+  type RandomSigPreset,
   type RandomSigSettings,
   type RandomSigTier,
-  digitMultiplier
+  digitMultiplier,
+  presetFieldsOf
 } from "./crewTypes";
 import { mockCrew, type MockBroadcast } from "./mockCrewStore";
 
@@ -66,6 +70,35 @@ export function parseRandomSigSettings(input: unknown, forbidden: string[], sign
       return { message: `앞자리 배수는 ${RANDOM_SIG_DIGIT_MAX}배까지예요. 시그 최대를 ${fn(unit.unit * (RANDOM_SIG_DIGIT_MAX + 1) - 1)} FN 이하로 하거나 자리 단위를 키워 주세요.` };
   }
   return { ...common, tiers, mode, multiplier, digit: v.digit, digitUnit: unit.unit };
+}
+
+/** The channel's 랜덤시그 설정 프리셋, newest first. */
+export const randomSigPresetsOf = (channelId: string): RandomSigPreset[] => mockCrew.randomSigPresets?.[channelId] ?? [];
+
+/**
+ * 설정 프리셋 저장: `settings` (the card as it is, checked like 설정 저장) under `name` — 켜짐 · 제목 · 대기 화면 left out.
+ * The same name replaces that 프리셋 and moves it first (so a retry stays one 프리셋); a new name needs a free slot.
+ */
+export function saveRandomSigPresetOf(channelId: string, input: unknown, forbidden: string[], signatureIds: string[], now = new Date()): { status: "SAVED" } | { message: string } {
+  const v = rec(input);
+  const name = typeof v.name === "string" ? v.name.trim() : "";
+  if (!name) return { message: "프리셋 이름을 입력해 주세요." };
+  if ([...name].length > RANDOM_SIG_PRESET_NAME_MAX) return { message: `프리셋 이름은 ${RANDOM_SIG_PRESET_NAME_MAX}자까지예요.` };
+  if (forbidden.some((w) => name.toLowerCase().includes(w))) return { message: "사용할 수 없는 단어가 포함되어 있어요." };
+  const parsed = parseRandomSigSettings(v.settings, forbidden, signatureIds, randomSigSettingsOf(channelId).tiers.map((x) => x.id));
+  if ("message" in parsed) return parsed;
+  const list = randomSigPresetsOf(channelId);
+  const same = list.find((p) => p.name === name);
+  if (!same && list.length >= RANDOM_SIG_PRESETS_MAX) return { message: `프리셋은 ${RANDOM_SIG_PRESETS_MAX}개까지 저장할 수 있어요. 안 쓰는 프리셋을 지워 주세요.` };
+  const preset = { id: same?.id ?? `rsp-${randomUUID().slice(0, 8)}`, name, savedAt: now.toISOString(), settings: structuredClone(presetFieldsOf(parsed)) };
+  (mockCrew.randomSigPresets ??= {})[channelId] = [preset, ...list.filter((p) => p !== same)];
+  return { status: "SAVED" };
+}
+
+/** 프리셋 삭제 (one already gone is fine — a retried delete). */
+export function deleteRandomSigPresetOf(channelId: string, id: unknown) {
+  const list = randomSigPresetsOf(channelId);
+  if (list.some((p) => p.id === id)) (mockCrew.randomSigPresets ??= {})[channelId] = list.filter((p) => p.id !== id);
 }
 
 /** The signatures a 랜덤시그 can draw: active and not excluded (제외 시그). */
