@@ -10,10 +10,11 @@ Confirmed:
   happens inside Ssumnation with FLEXTV's player and chat. Phases 1 (로그인 · 회원가입 · 세션 · 간편 로그인), 2 (렉스
   잔액 · 충전 · 충전 내역 · 지갑 개요), 3 (후원 to a FLEXTV channel, 후원 내역), 4 (라이브 목록, FLEXTV's player in
   the channel room, its chat), 5 (방송인 등록, 방송 설정, the studio's 수익 figures, 정산 as FLEXTV's 환전), 6 (Ssumnation's
-  own donation types, front first against a contract FLEXTV implements) and 7 (마이페이지, 즐겨찾기, 알림, 크리에이터
-  찾기, the home, 고객센터, 채널 설정) are behind `NEXT_PUBLIC_BACKEND=flextv`. Still TBD there: whether and on which
-  backend Ssumnation's own areas come back — 커뮤니티, 이벤트, 출석 체크, 명예의 전당, 쪽지, the supporter identity
-  (칭호 · 후원 닉네임 · 내 랭킹 · 차단), 플랫폼 후원, the 도우미 domain, 마케팅 수신 동의 — which are not served with FLEXTV;
+  own donation types, front first against a contract FLEXTV implements), 7 (마이페이지, 즐겨찾기, 알림, 크리에이터
+  찾기, the home, 고객센터, 채널 설정) and 9 (쪽지 · 차단, the room's 소식 · 팬 랭킹, 채팅 관리, 1:1 문의 작성, FLEXTV's
+  이벤트 and 명예의 전당) are behind `NEXT_PUBLIC_BACKEND=flextv`. Still TBD there: whether and on which backend
+  Ssumnation's own areas come back — 커뮤니티, its own 이벤트 (참여 · 보상), 출석 체크, the supporter identity (칭호 ·
+  후원 닉네임 · 내 랭킹), 플랫폼 후원, the 도우미 domain, 마케팅 수신 동의 — which are not served with FLEXTV;
   there the login lock, the account rules, the charge prices, methods and limits, who may charge (본인인증, 만 19세
   이상) and who may donate and receive, the donation types a FLEXTV channel offers (일반 · 시그니처), who may broadcast
   (본인인증, 만 14세) and the settlement rules (minimum, hours, rates, tax, the account review) are FLEXTV's.
