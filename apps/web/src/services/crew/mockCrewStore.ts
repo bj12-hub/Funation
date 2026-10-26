@@ -34,6 +34,7 @@ import type {
   GaugeSettings,
   WindowGaugeSettings,
   MemberPledge,
+  RandomSigPreset,
   RandomSigSettings,
   RelaySettings,
   ScenarioPart,
@@ -312,6 +313,8 @@ type MockCrew = {
   twoWheels?: Record<string, TwoWheelSettings>;
   /** 랜덤시그 settings per channel (missing = DEFAULT_RANDOM_SIG). */
   randomSigs?: Record<string, RandomSigSettings>;
+  /** 랜덤시그 설정 프리셋 per channel, newest first. */
+  randomSigPresets?: Record<string, RandomSigPreset[]>;
   /** 기여도 릴레이 settings per channel (missing = DEFAULT_RELAY). */
   relays?: Record<string, RelaySettings>;
   /** 줍줍 settings per channel (missing = DEFAULT_JUPJUP). */

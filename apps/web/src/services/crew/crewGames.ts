@@ -33,7 +33,7 @@ import {
 import { addJupjupItem, jupjupLive, jupjupSettingsOf, parseJupjupSettings, removeJupjupItems } from "./crewJupjupCore";
 import { medleyLive, medleySettingsOf, parseMedleySettings, playMedleyRun } from "./crewMedleyCore";
 import { clearSigBingoBoard, parseSigBingoSettings, setSigBingoCell, sigBingoLive, sigBingoSettingsOf, startSigBingoBoard } from "./crewSigBingoCore";
-import { parseRandomSigSettings, randomSigLive, randomSigSettingsOf } from "./crewRandomSigCore";
+import { deleteRandomSigPresetOf, parseRandomSigSettings, randomSigLive, randomSigPresetsOf, randomSigSettingsOf, saveRandomSigPresetOf } from "./crewRandomSigCore";
 import { clearRelayPending, parseRelaySettings, relayLive, relaySettingsOf } from "./crewRelayCore";
 import { sigCountSignatures } from "./crewSigCountCore";
 import { parseSpinSettings, runSpin, spinLive, spinSettingsOf } from "./crewSpinCore";
@@ -114,6 +114,7 @@ export async function getGamesView(): Promise<GamesView | null> {
     diceSettings: structuredClone(diceSettingsOf(STUDIO_CHANNEL)),
     twoWheelSettings: structuredClone(twoWheelSettingsOf(STUDIO_CHANNEL)),
     randomSigSettings: structuredClone(randomSigSettingsOf(STUDIO_CHANNEL)),
+    randomSigPresets: structuredClone(randomSigPresetsOf(STUDIO_CHANNEL)),
     relaySettings: structuredClone(relaySettingsOf(STUDIO_CHANNEL)),
     jupjupSettings: structuredClone(jupjupSettingsOf(STUDIO_CHANNEL)),
     medleySettings: structuredClone(medleySettingsOf(STUDIO_CHANNEL)),
@@ -172,6 +173,22 @@ export async function saveRandomSig(input: unknown): Promise<BroadcastResult> {
   const shared = parsed.auto && medley.auto ? parsed.tiers.find((t) => t.trigger === medley.trigger) : undefined;
   if (shared) return { status: "INVALID", message: `발동 금액 ${shared.trigger.toLocaleString("ko-KR")} FN은 시그니처 메들리가 쓰고 있어요.` };
   (mockCrew.randomSigs ??= {})[STUDIO_CHANNEL] = parsed;
+  return { status: "SAVED" };
+}
+
+/** 랜덤시그 설정 프리셋 저장 ({ name, settings }): the same name replaces that 프리셋. 켜짐 is not part of it. */
+export async function saveRandomSigPreset(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const res = saveRandomSigPresetOf(STUDIO_CHANNEL, input, MOCK_FORBIDDEN_WORDS, signatureIds());
+  return "message" in res ? { status: "INVALID", message: res.message } : res;
+}
+
+/** 랜덤시그 설정 프리셋 삭제 ({ id }). */
+export async function deleteRandomSigPreset(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  deleteRandomSigPresetOf(STUDIO_CHANNEL, rec(input).id);
   return { status: "SAVED" };
 }
 

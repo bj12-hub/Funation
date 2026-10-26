@@ -1,16 +1,20 @@
 "use client";
 
 import { formatNumber } from "@/lib/format";
-import { saveRandomSig } from "@/services/crew/crewGames";
+import { useState } from "react";
+import { deleteRandomSigPreset, saveRandomSig, saveRandomSigPreset } from "@/services/crew/crewGames";
 import {
   RANDOM_SIG_DIGIT_MAX,
   RANDOM_SIG_DIGIT_UNITS,
   RANDOM_SIG_MODES,
   RANDOM_SIG_MULTIPLIER_MAX,
+  RANDOM_SIG_PRESETS_MAX,
+  RANDOM_SIG_PRESET_NAME_MAX,
   RANDOM_SIG_TIERS_MAX,
   RANDOM_SIG_TITLE_DEFAULT,
   digitMultiplier,
   type GamesView,
+  type RandomSigPreset,
   type RandomSigSettings
 } from "@/services/crew/crewTypes";
 import { AutoFields, FormActions, OverlayAddress, RunList, TitleField, useSettingsDraft, type LiveGames, type RunAction } from "./GameParts";
@@ -36,11 +40,13 @@ const newId = () => `new-${crypto.randomUUID().slice(0, 8)}`;
 
 /**
  * 랜덤시그 — code-first (no Figma frame; StreamDonate 랜덤시그 참고), inside `/creator/crew/games`. 발동 구간 (발동 금액 → 시그
- * 금액 범위), 제외 시그, 기여도 방식 (기본 · 랜덤 결과), 기본 배수 or 앞자리 배수. A 일반 후원 of exactly a 발동 금액 plays a drawn
+ * 금액 범위), 제외 시그, 기여도 방식 (기본 · 랜덤 결과), 기본 배수 or 앞자리 배수, and 설정 프리셋 (saved by name, loaded into the
+ * card — 설정 저장 applies them). A 일반 후원 of exactly a 발동 금액 plays a drawn
  * signature as its alert; while live, one sent to a member also records a run. There is no 수동 run.
  */
 export function RandomSigPanel({
   settings,
+  presets,
   signatures,
   live,
   now,
@@ -49,6 +55,7 @@ export function RandomSigPanel({
   run
 }: {
   settings: RandomSigSettings;
+  presets: RandomSigPreset[];
   signatures: GamesView["signatures"];
   live: LiveGames | null;
   now: number | null;
@@ -57,6 +64,16 @@ export function RandomSigPanel({
   run: RunAction;
 }) {
   const { draft, edit, dirty, reset } = useSettingsDraft(settings, toDraft, fromDraft);
+  const [presetName, setPresetName] = useState("");
+  const [loaded, setLoaded] = useState<string | null>(null);
+  // 불러오기 fills the card (켜짐 · 제목 · 대기 화면 stay); 설정 저장 applies it. A deleted signature drops out of 제외.
+  const load = (p: RandomSigPreset) => {
+    const d = toDraft({ ...settings, ...p.settings });
+    edit({ tiers: d.tiers, mode: d.mode, multiplier: d.multiplier, digit: d.digit, digitUnit: d.digitUnit, excluded: d.excluded.filter((id) => known.has(id)) });
+    setLoaded(p.name);
+  };
+  const modeLabel = (p: RandomSigPreset) =>
+    p.settings.mode === "REPLACE" ? "랜덤 결과 모드" : p.settings.digit ? `기본 모드 · 앞자리 배수` : `기본 모드 · ×${p.settings.multiplier}`;
   const known = new Set(signatures.map((s) => s.id));
   const setTier = (i: number, patch: Partial<EditTier>) => edit({ tiers: draft.tiers.map((t, j) => (j === i ? { ...t, ...patch } : t)) });
   // What a tier would draw from, and a 금액 일치 signature that takes its 발동 금액 first.
@@ -89,6 +106,70 @@ export function RandomSigPanel({
         }}
       >
         <TitleField name="랜덤시그" placeholder={RANDOM_SIG_TITLE_DEFAULT} value={draft.title} onChange={(title) => edit({ title })} />
+
+        <div className={prize.field} role="group" aria-label="랜덤시그 설정 프리셋">
+          <span className={styles.muted}>
+            설정 프리셋 ({presets.length}/{RANDOM_SIG_PRESETS_MAX})
+          </span>
+          {presets.length > 0 ? (
+            <ul className={games.tiers} aria-label="저장한 프리셋">
+              {presets.map((p) => (
+                <li key={p.id}>
+                  <span className={games.tierRow}>
+                    <strong>{p.name}</strong>
+                    <span className={styles.muted}>
+                      구간 {p.settings.tiers.length}개 · {modeLabel(p)}
+                      {p.settings.excluded.length > 0 && ` · 제외 ${p.settings.excluded.length}개`}
+                    </span>
+                    <button type="button" className={styles.ghost} disabled={pending} onClick={() => load(p)}>
+                      불러오기
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.ghost}
+                      disabled={pending}
+                      onClick={() => run(() => deleteRandomSigPreset({ id: p.id }), `'${p.name}' 프리셋을 지웠어요.`)}
+                    >
+                      삭제
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <span className={styles.note}>저장한 프리셋이 없어요.</span>
+          )}
+          <span className={prize.inline}>
+            <input
+              className={styles.input}
+              aria-label="프리셋 이름"
+              placeholder="프리셋 이름 (예: 평일 방송)"
+              maxLength={RANDOM_SIG_PRESET_NAME_MAX}
+              value={presetName}
+              onChange={(e) => setPresetName(e.target.value)}
+            />
+            <button
+              type="button"
+              className={styles.ghost}
+              disabled={pending || !presetName.trim()}
+              onClick={() => {
+                const name = presetName.trim();
+                const next = fromDraft(draft);
+                run(() => saveRandomSigPreset({ name, settings: { ...next, excluded: next.excluded.filter((id) => known.has(id)) } }), `'${name}' 프리셋을 저장했어요.`);
+              }}
+            >
+              지금 설정 저장
+            </button>
+          </span>
+          {loaded && dirty && (
+            <span className={styles.note} role="status">
+              &apos;{loaded}&apos; 프리셋을 불러왔어요. 설정 저장을 눌러야 랜덤시그에 적용돼요.
+            </span>
+          )}
+          <span className={styles.note}>
+            지금 칸에 있는 발동 구간 · 기여도 방식 · 배수 · 제외 시그를 이름 붙여 저장해요(같은 이름이면 덮어써요). 켜짐 · 제목 · 대기 화면은 프리셋에 들어가지 않아요.
+          </span>
+        </div>
 
         <div className={prize.field}>
           <span className={styles.muted}>
