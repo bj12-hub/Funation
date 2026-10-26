@@ -126,6 +126,11 @@ export type RemoteView = {
   autoPausedBy: AlertItem | null;
   /** 기능 제어: ON/OFF per overlay and the video donation volume (alert volumes live in `controls`). */
   overlays: { on: Record<OverlayTarget, boolean>; videoVolume: number };
+  /**
+   * 테스트 후원 as a signature (2026-10-25 — to try the 시그니처 플레이어 and the alert's signature image and sound): the
+   * signatures, and the active crew members for its BJ 매치. Test alerts never count anywhere.
+   */
+  testOptions: { signatures: { id: string; name: string; price: number }[]; members: { id: string; name: string }[] };
 };
 
 /** 커스텀 사운드 for the 후원 알림 overlay: TTS plays `url` in place of `word` (`volume` 0–100, the sound's own). */
@@ -151,6 +156,7 @@ export type RemoteResult = { status: "SAVED" } | { status: "INVALID"; message: s
 export const OVERLAY_TARGETS = [
   { key: "alert", label: "후원 알림" },
   { key: "effects", label: "이펙트 · 효과" },
+  { key: "sigplayer", label: "시그니처 플레이어" },
   { key: "video", label: "영상 후원" },
   { key: "drawing", label: "그림 후원" },
   { key: "banner", label: "배너" },

@@ -44,6 +44,16 @@ export const OVERLAYS: OverlayEntry[] = [
     manage: "/creator/widgets/effects"
   },
   {
+    id: "sigplayer",
+    target: "sigplayer",
+    group: "알림",
+    title: "시그니처 플레이어",
+    description: "시그니처 후원이 오면 멤버 배너(또는 후원자 · 메시지)를 먼저, 이어서 시그니처 이미지를 크게 보여 줘요.",
+    size: "1280 × 720",
+    path: (k) => `/overlay/sigplayer/${k}`,
+    manage: "/creator/widgets/signatures"
+  },
+  {
     id: "video",
     target: "video",
     group: "알림",
