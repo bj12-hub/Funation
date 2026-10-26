@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { matchSignatureByAmount, mockSignatures, signatureImageOf } from "@/services/donations/signatureCore";
 import { SIGNATURE_LIMITS, spanText, type ManagedSignature } from "@/services/donations/signatureTypes";
 import { excelOf, isActiveMember, liveBroadcastOf, parseMultiplier, scoreFn } from "./crewCore";
-import { drawIndex, effectPoints, gameRunsView, parseGameCommon, recordRun } from "./crewGameCore";
+import { drawIndex, effectPoints, gameRunsView, parseGameCommon, recordRun, shuffled } from "./crewGameCore";
 import {
   DEFAULT_RANDOM_SIG,
   RANDOM_SIG_DIGIT_MAX,
@@ -11,6 +11,7 @@ import {
   RANDOM_SIG_MULTIPLIER_MAX,
   RANDOM_SIG_PRESETS_MAX,
   RANDOM_SIG_PRESET_NAME_MAX,
+  RANDOM_SIG_ROLL_MAX,
   RANDOM_SIG_TIERS_MAX,
   type RandomSigLive,
   type RandomSigPreset,
@@ -62,6 +63,7 @@ export function parseRandomSigSettings(input: unknown, forbidden: string[], sign
   const multiplier = parseMultiplier(v.multiplier, RANDOM_SIG_MULTIPLIER_MAX);
   if (multiplier === null || multiplier <= 1) return { message: `기본 배수는 1보다 크고 ${RANDOM_SIG_MULTIPLIER_MAX}배 이하, 소수 둘째 자리까지예요.` };
   if (typeof v.digit !== "boolean") return { message: "앞자리 배수를 확인해 주세요." };
+  if (typeof v.alertRoll !== "boolean") return { message: "알림 롤링을 확인해 주세요." };
   const unit = RANDOM_SIG_DIGIT_UNITS.find((u) => u.unit === v.digitUnit);
   if (!unit) return { message: "앞자리 배수의 자리 단위를 골라 주세요." };
   if (v.digit && mode === "BONUS") {
@@ -69,7 +71,7 @@ export function parseRandomSigSettings(input: unknown, forbidden: string[], sign
     if (tiers.some((t) => digitMultiplier(t.max, unit.unit) > RANDOM_SIG_DIGIT_MAX))
       return { message: `앞자리 배수는 ${RANDOM_SIG_DIGIT_MAX}배까지예요. 시그 최대를 ${fn(unit.unit * (RANDOM_SIG_DIGIT_MAX + 1) - 1)} FN 이하로 하거나 자리 단위를 키워 주세요.` };
   }
-  return { ...common, tiers, mode, multiplier, digit: v.digit, digitUnit: unit.unit };
+  return { ...common, tiers, mode, multiplier, digit: v.digit, digitUnit: unit.unit, alertRoll: v.alertRoll };
 }
 
 /** The channel's 랜덤시그 설정 프리셋, newest first. */
@@ -104,7 +106,8 @@ export function deleteRandomSigPresetOf(channelId: string, id: unknown) {
 /** The signatures a 랜덤시그 can draw: active and not excluded (제외 시그). */
 const poolOf = (s: RandomSigSettings) => mockSignatures.items.filter((x) => x.active && !s.excluded.includes(x.id));
 
-export type RandomSigDraw = { signature: ManagedSignature; tier: RandomSigTier };
+/** `rolling`: 알림 롤링 images (the tier's candidates, up to RANDOM_SIG_ROLL_MAX) — empty when off or only one could come out. */
+export type RandomSigDraw = { signature: ManagedSignature; tier: RandomSigTier; rolling: string[] };
 
 /**
  * Called by the Donation Core for a 일반 후원: when 랜덤시그 is on, no 금액 일치 signature takes the amount and it equals a
@@ -116,7 +119,10 @@ export function drawRandomSig(channelId: string, amount: number): RandomSigDraw 
   if (!s.auto || matchSignatureByAmount(amount)) return null;
   const tier = s.tiers.find((t) => t.trigger === amount);
   const candidates = tier ? poolOf(s).filter((x) => x.price >= tier.min && x.price <= tier.max) : [];
-  return tier && candidates.length ? { signature: candidates[drawIndex(candidates.map(() => 1))], tier } : null;
+  if (!tier || !candidates.length) return null;
+  const images = [...new Set(candidates.map(signatureImageOf))];
+  const rolling = s.alertRoll && candidates.length > 1 && images.length > 1 ? shuffled(images).slice(0, RANDOM_SIG_ROLL_MAX) : [];
+  return { signature: candidates[drawIndex(candidates.map(() => 1))], tier, rolling };
 }
 
 /**
