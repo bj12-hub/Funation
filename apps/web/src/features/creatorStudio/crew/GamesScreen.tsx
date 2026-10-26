@@ -93,7 +93,7 @@ export function GamesScreen({ view, switches }: { view: GamesView; switches: Rec
       <SpinMachinePanel settings={view.spinSettings} signatures={view.signatures} members={view.members} live={view.live} now={now} overlayPath={view.overlayPath} pending={pending} run={run} />
       <DiceGamePanel settings={view.diceSettings} signatures={view.signatures} members={view.members} live={view.live} now={now} overlayPath={view.overlayPath} pending={pending} run={run} />
       <TwoWheelPanel settings={view.twoWheelSettings} signatures={view.signatures} members={view.members} live={view.live} now={now} overlayPath={view.overlayPath} pending={pending} run={run} />
-      <RandomSigPanel settings={view.randomSigSettings} signatures={view.signatures} live={view.live} now={now} overlayPath={view.overlayPath} pending={pending} run={run} />
+      <RandomSigPanel settings={view.randomSigSettings} presets={view.randomSigPresets} signatures={view.signatures} live={view.live} now={now} overlayPath={view.overlayPath} pending={pending} run={run} />
       <RelayPanel settings={view.relaySettings} signatures={view.signatures} members={view.members} live={view.live} now={now} overlayPath={view.overlayPath} pending={pending} run={run} />
       <JupjupPanel settings={view.jupjupSettings} signatures={view.signatures} members={view.members} live={view.live} now={now} overlayPath={view.overlayPath} pending={pending} run={run} />
       <MedleyPanel settings={view.medleySettings} randomSig={view.randomSigSettings} signatures={view.signatures} live={view.live} now={now} overlayPath={view.overlayPath} pending={pending} run={run} />

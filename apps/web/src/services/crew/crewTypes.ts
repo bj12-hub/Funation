@@ -760,6 +760,23 @@ export type RandomSigSettings = GameCommon & { tiers: RandomSigTier[]; mode: Ran
 /** 기본값 (StreamDonate 기본): 기본 모드, 2배, 앞자리 배수 꺼짐 (켜면 백만 자리). */
 export const DEFAULT_RANDOM_SIG: RandomSigSettings = { title: "", auto: false, excluded: [], showIdle: true, tiers: [], mode: "BONUS", multiplier: 2, digit: false, digitUnit: 1_000_000 };
 
+/**
+ * 랜덤시그 설정 프리셋 (2026-10-26, StreamDonate 설정 프리셋): the 발동 구간 · 기여도 방식 · 배수 · 제외 시그 saved under a
+ * name, to load into the card later. 켜짐 · 제목 · 대기 화면 are not part of it.
+ */
+export const RANDOM_SIG_PRESETS_MAX = 10;
+export const RANDOM_SIG_PRESET_NAME_MAX = 20;
+export type RandomSigPresetFields = Pick<RandomSigSettings, "tiers" | "mode" | "multiplier" | "digit" | "digitUnit" | "excluded">;
+export type RandomSigPreset = { id: string; name: string; savedAt: string; settings: RandomSigPresetFields };
+export const presetFieldsOf = (s: RandomSigPresetFields): RandomSigPresetFields => ({
+  tiers: s.tiers,
+  mode: s.mode,
+  multiplier: s.multiplier,
+  digit: s.digit,
+  digitUnit: s.digitUnit,
+  excluded: s.excluded
+});
+
 // 기여도 릴레이 — StreamDonate 기여도 릴레이: a 시그니처 후원 the 트리거 BJ receives sets a 배수 by its amount; the next
 // 시그니처 후원 another member receives takes it.
 export const RELAY_TITLE_DEFAULT = "기여도 릴레이";
@@ -1356,6 +1373,8 @@ export type GamesView = {
   diceSettings: DiceSettings;
   twoWheelSettings: TwoWheelSettings;
   randomSigSettings: RandomSigSettings;
+  /** 랜덤시그 설정 프리셋, newest first. */
+  randomSigPresets: RandomSigPreset[];
   relaySettings: RelaySettings;
   jupjupSettings: JupjupSettings;
   medleySettings: MedleySettings;
