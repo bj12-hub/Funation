@@ -26,6 +26,8 @@ import {
 } from "./alertTypes";
 import { overlayTheme } from "./overlayThemeStore";
 import { readWidget } from "./widgetStore";
+import { STUDIO_CHANNEL, mockCrew } from "@/services/crew/mockCrewStore";
+import { mockSignatures, signatureImageOf, signatureSoundOf } from "@/services/donations/signatureCore";
 
 /**
  * 리모컨 Server Actions — code-first (no Figma frame). Route `/creator/remote`, overlay
@@ -52,7 +54,11 @@ export async function getRemoteView(): Promise<RemoteView | null> {
       .slice(-RECENT_MAX)
       .reverse(),
     autoPausedBy: (mockAlerts.controls.paused && items.find((a) => a.id === mockAlerts.autoPausedBy)) || null,
-    overlays: { on: Object.fromEntries(OVERLAY_TARGETS.map((t) => [t.key, isOverlayOn(t.key)])) as Record<OverlayTarget, boolean>, videoVolume: mockMedia.videoSettings.volume }
+    overlays: { on: Object.fromEntries(OVERLAY_TARGETS.map((t) => [t.key, isOverlayOn(t.key)])) as Record<OverlayTarget, boolean>, videoVolume: mockMedia.videoSettings.volume },
+    testOptions: {
+      signatures: mockSignatures.items.map((s) => ({ id: s.id, name: s.name, price: s.price })),
+      members: (mockCrew.crews[STUDIO_CHANNEL] ?? []).filter((m) => m.active).map((m) => ({ id: m.id, name: m.name }))
+    }
   };
 }
 
@@ -71,7 +77,21 @@ export async function sendTestAlert(input: unknown): Promise<RemoteResult> {
   const message = typeof v.message === "string" ? v.message.trim() : "";
   if (donor.length > TEST_DONOR_MAX || message.length > TEST_MESSAGE_MAX) return { status: "INVALID", message: "후원자명 또는 메시지가 너무 길어요." };
   if (bad(donor) || bad(message)) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
-  const item = enqueueAlert({ kind: "TEST", donor, message, fnAmount: amount, typeLabel: "테스트 후원" });
+  // As a signature (2026-10-25): its image and sound, and the member for the 시그니처 플레이어's BJ 매치.
+  const sig = v.signatureId === undefined || v.signatureId === null ? null : mockSignatures.items.find((s) => s.id === v.signatureId);
+  if (sig === undefined) return { status: "INVALID", message: "시그니처를 다시 골라 주세요." };
+  const member = v.memberId === undefined || v.memberId === null ? null : (mockCrew.crews[STUDIO_CHANNEL] ?? []).find((m) => m.id === v.memberId && m.active);
+  if (member === undefined) return { status: "INVALID", message: "멤버를 다시 골라 주세요." };
+  const asSignature = sig ? { signatureId: sig.id, imageUrl: signatureImageOf(sig), ...(signatureSoundOf(sig) ? { soundUrl: signatureSoundOf(sig) } : {}) } : {};
+  const item = enqueueAlert({
+    kind: "TEST",
+    donor,
+    message,
+    fnAmount: amount,
+    typeLabel: sig ? `테스트 후원 · ${sig.name}` : "테스트 후원",
+    ...asSignature,
+    ...(member ? { memberId: member.id } : {})
+  });
   mockAlerts.testRequests[v.requestId] = item.id;
   return { status: "SAVED" };
 }
