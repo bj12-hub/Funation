@@ -311,6 +311,9 @@ Confirmed:
 - 후원랭킹 랭킹제외 · 최고 후원 수동 수정 (2026-10-28, 기본값 — 일반적인 기준, StreamDonate 참고): 랭킹제외는 후원자 묶음 키로 OBS
   후원랭킹에서만(엔딩 크레딧 · 다른 순위는 그대로), 50명까지. 수동 수정은 지금 기간에만, 받은 BJ 없이. 데이터센터의 후원자명 바꾸기(드래그)는
   TBD. See docs/figma/code-first-screens.md
+- 고스톱 기본 풀 · 풀 수동 조정 · 랭킹 리셋 (2026-10-28, 기본값 — 일반적인 기준, StreamDonate 참고): 기본 풀 0, 조정은 0점 아래로 못 내리고
+  점수판에 직접 들어가지 않음(다음 STOP이 가져감), 랭킹 리셋은 STOP 랭킹 표시만. STOP 당첨 제외 BJ · STOP 확률 구간 지정 · 적립 배수 ·
+  별도 STOP 랭킹 오버레이는 TBD. See docs/figma/code-first-screens.md
 
 Still TBD:
 

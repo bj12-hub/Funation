@@ -167,6 +167,67 @@ describe("고스톱", () => {
     expect(m.runs(id)).toHaveLength(3);
   });
 
+  it("기본 풀 · 풀 수동 조정 · 랭킹 리셋 (2026-10-28)", async () => {
+    const m = await load();
+    const id = await m.start();
+    const older: Record<string, unknown> = { ...settings() };
+    delete older.basePool;
+    expect(await m.saveGoStop(older)).toEqual({ status: "SAVED" }); // a screen from before: 0
+    expect((await m.getGamesView())!.gostopSettings.basePool).toBe(0);
+    expect(await m.saveGoStop(settings({ basePool: 1_000 }))).toEqual({ status: "SAVED" });
+    expect((await m.view()).pool).toBe(1_000); // nothing yet: the 기본 풀
+    const p = m.a.price;
+    rolls.push(GO);
+    await m.sign("cm-s2");
+    expect((await m.view()).pool).toBe(1_000 + p);
+
+    // 풀 수동 조정: once per request, not below 0.
+    const adjust = (requestId: string, points: unknown, reason?: unknown) => m.adjustGoStop({ broadcastId: id, requestId, points, reason });
+    expect(await adjust(key(1), 500, " 보너스 ")).toEqual({ status: "SAVED" });
+    expect(await adjust(key(1), 500, " 보너스 ")).toEqual({ status: "SAVED" }); // retried
+    expect(await adjust(key(2), -200)).toEqual({ status: "SAVED" });
+    let view = await m.view();
+    expect(view.pool).toBe(1_000 + p + 300);
+    expect(view.adjustments.map((a) => [a.points, a.reason])).toEqual([
+      [-200, ""],
+      [500, "보너스"]
+    ]);
+    for (const [points, reason, message] of [
+      [0, "", "0이 아닌 정수"],
+      [1.5, "", "0이 아닌 정수"],
+      ["10", "", "0이 아닌 정수"],
+      [-99_999_999, "", "0점보다 작아질 수 없어요"],
+      [10, "가".repeat(31), "사유는 30자까지"]
+    ] as const) {
+      const res = await adjust(crypto.randomUUID(), points, reason);
+      expect(res.status === "INVALID" && res.message, message).toContain(message);
+    }
+
+    // A STOP starts the next 풀 from the 기본 풀; 풀 비우기 too.
+    rolls.push(STOP);
+    await m.sign("cm-s1");
+    expect(await m.view()).toMatchObject({ pool: 1_000, go: 0 });
+    rolls.push(GO);
+    await m.sign("cm-s2");
+    expect(await m.resetGoStop({ broadcastId: id })).toEqual({ status: "SAVED" });
+    expect(await m.view()).toMatchObject({ pool: 1_000, go: 0 });
+
+    // 랭킹 리셋: the STOP 랭킹 starts over; the points stay.
+    vi.setSystemTime(at(120));
+    expect((await m.view()).wins).toHaveLength(1);
+    const before = await m.gamePoints("cm-s1");
+    expect(before).toBeGreaterThan(0);
+    expect(await m.resetGoStopRank({ broadcastId: id })).toEqual({ status: "SAVED" });
+    view = await m.view();
+    expect(view.wins).toHaveLength(0);
+    expect(view.rankingSince).toBe(at(120).toISOString());
+    expect(await m.gamePoints("cm-s1")).toBe(before);
+    expect(await m.adjustGoStop({ broadcastId: "bc-x", requestId: key(9), points: 1 })).toEqual({ status: "INVALID", message: "진행 중인 방송이 아니에요." });
+    expect((await m.saveGoStop(settings({ basePool: -1 }))).status).toBe("INVALID");
+    signIn(["SUPPORTER"]);
+    expect(await m.resetGoStopRank({ broadcastId: id })).toEqual({ status: "UNAUTHORIZED" });
+  });
+
   it("lets the operator roll on a 기준 후원 and empty the 풀", async () => {
     const m = await load();
     const id = await m.start();
