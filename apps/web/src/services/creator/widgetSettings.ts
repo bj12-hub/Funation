@@ -14,7 +14,8 @@ import { readAppearance } from "./overlayThemeStore";
 import { mockCreator } from "./mockCreatorStore";
 import { keepDrawnStock, studioWins } from "@/services/donations/gachaCore";
 import { STUDIO_CHANNEL, mockCrew } from "@/services/crew/mockCrewStore";
-import { crewRankingRows, donorTotals, topDonation } from "./widgetOverlayCore";
+import { crewRankingRows, donorTotals, sigWallRows, topDonation } from "./widgetOverlayCore";
+import { mockSignatures } from "@/services/donations/signatureCore";
 import { PARSERS } from "./widgetParsers";
 import {
   CUSTOM_SOUND_MAX,
@@ -109,7 +110,9 @@ export async function getWidgetDetail(key: unknown): Promise<WidgetDetail | null
       donors: donorTotals(mockAlerts.items, 0, Infinity)
         .slice(0, 30)
         .map((d) => ({ key: d.key, name: d.name, amount: d.fn })),
-      topNow: topNow()
+      topNow: topNow(),
+      sigWalls: sigWallRows(mockAlerts.items, mockSignatures.items, mockCrew.crews[STUDIO_CHANNEL] ?? []),
+      sigWallPath: widgetOverlayPath("sig-wallpaper", mockCreator.integrationKey)
     }
   } as WidgetDetail;
 }

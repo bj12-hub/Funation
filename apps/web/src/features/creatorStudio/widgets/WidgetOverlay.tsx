@@ -8,6 +8,7 @@ import { useReloadSignal } from "../remote/useReloadSignal";
 import { ClockView } from "./ClockView";
 import { GoalView } from "./GoalView";
 import { DonationMonitorView, SigQueueView, TopDonationView } from "./MonitorViews";
+import { SigWallpaperView } from "./SigWallpaperView";
 import { GachaBoardView, GachaView, QuestView, RouletteView, VoteView, WallpaperView } from "./GameViews";
 import { EventView, MiniView, QrView, RankingView, RecentView, TotalView } from "./WidgetViews";
 
@@ -69,6 +70,8 @@ export function WidgetOverlay({ data, vertical = false }: { data: OverlayWidget;
       return <Monitor data={data} />;
     case "sig-queue":
       return <SigQueueView settings={data.settings} cards={data.cards} theme={data.theme} />;
+    case "sig-wallpaper":
+      return <SigWallpaperView settings={data.settings} card={data.card} theme={data.theme} />;
   }
 }
 

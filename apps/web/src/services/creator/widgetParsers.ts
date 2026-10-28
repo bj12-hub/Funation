@@ -14,6 +14,18 @@ import {
   TOP_DONATION_TIES,
   TOP_DONATION_TIMINGS,
   TOP_DONATION_TITLE_MAX,
+  SIG_WALL_GAP_MAX,
+  SIG_WALL_GAP_MIN,
+  SIG_WALL_IMAGE_MAX,
+  SIG_WALL_IMAGE_MIN,
+  SIG_WALL_PREFIX_MAX,
+  SIG_WALL_RADIUS_MAX,
+  SIG_WALL_STROKE_MAX,
+  SIG_WALL_TEXT_MAX,
+  SIG_WALL_TEXT_MIN,
+  SIG_WALL_TOP_LINES,
+  type SigWallLine,
+  type SigWallpaperSettings,
   type AlertSettings,
   type ClockSettings,
   type DonationMonitorSettings,
@@ -672,6 +684,46 @@ const parseSigQueue: Parser<SigQueueSettings> = (v) => {
   return { theme: look.theme, layout: v.layout, compact: v.compact as boolean, showOrder: v.showOrder as boolean, next: v.next, showMessage: v.showMessage as boolean };
 };
 
+/** 시그 벽지 (code-first, 2026-10-28): every number in its range, colors as #RRGGBB (kept upper-case). */
+const sigWallLine = (v: unknown, min: number): SigWallLine | null => {
+  const l = obj(v);
+  if (!int(l.size, Math.max(min, SIG_WALL_TEXT_MIN), SIG_WALL_TEXT_MAX) || !int(l.stroke, 0, SIG_WALL_STROKE_MAX)) return null;
+  if (![l.color, l.strokeColor, l.accent].every(isHexColor)) return null;
+  return { size: l.size, stroke: l.stroke, color: (l.color as string).toUpperCase(), strokeColor: (l.strokeColor as string).toUpperCase(), accent: (l.accent as string).toUpperCase() };
+};
+const parseSigWallpaper: Parser<SigWallpaperSettings> = (v) => {
+  if (!isHexColor(v.bgColor)) return COLOR_ERROR;
+  if (!int(v.bgOpacity, 0, 100)) return "배경 불투명도는 0~100%예요.";
+  if (!int(v.imageWidth, SIG_WALL_IMAGE_MIN, SIG_WALL_IMAGE_MAX) || !int(v.imageHeight, SIG_WALL_IMAGE_MIN, SIG_WALL_IMAGE_MAX)) {
+    return `이미지 너비 · 높이는 ${SIG_WALL_IMAGE_MIN}~${SIG_WALL_IMAGE_MAX}px이에요.`;
+  }
+  if (![v.gapImage, v.gapLines, v.gapBottom].every((x) => int(x, SIG_WALL_GAP_MIN, SIG_WALL_GAP_MAX))) return `여백은 ${SIG_WALL_GAP_MIN}~${SIG_WALL_GAP_MAX}px이에요.`;
+  if (!int(v.radius, 0, SIG_WALL_RADIUS_MAX)) return `모서리 둥글기는 0~${SIG_WALL_RADIUS_MAX}px이에요.`;
+  if (!bool(v.imagePad) || !keyOf(v.topLine, SIG_WALL_TOP_LINES) || !oneOf(v.font, FONT_FAMILIES)) return "설정 값을 확인해 주세요.";
+  // The prefix keeps its spaces (a trailing one sets it apart from the number).
+  if (typeof v.amountPrefix !== "string" || v.amountPrefix.length > SIG_WALL_PREFIX_MAX) return `금액 앞 문구는 ${SIG_WALL_PREFIX_MAX}자 이내로 입력해 주세요.`;
+  const top = sigWallLine(v.top, SIG_WALL_TEXT_MIN);
+  const bottomLine = sigWallLine(v.bottom, SIG_WALL_TEXT_MIN);
+  const bold = obj(v.bottom).bold;
+  if (!top || !bottomLine || !bool(bold)) return `글자 크기는 ${SIG_WALL_TEXT_MIN}~${SIG_WALL_TEXT_MAX}px, 테두리는 0~${SIG_WALL_STROKE_MAX}px이고 색은 #RRGGBB 형식이에요.`;
+  return {
+    bgColor: (v.bgColor as string).toUpperCase(),
+    bgOpacity: v.bgOpacity,
+    imageWidth: v.imageWidth as number,
+    imageHeight: v.imageHeight as number,
+    imagePad: v.imagePad,
+    radius: v.radius,
+    gapImage: v.gapImage as number,
+    gapLines: v.gapLines as number,
+    gapBottom: v.gapBottom as number,
+    topLine: v.topLine,
+    amountPrefix: v.amountPrefix,
+    font: v.font,
+    top,
+    bottom: { ...bottomLine, bold }
+  };
+};
+
 /** WALLPAPER images are managed separately, so its parser returns the settings without them. */
 export type ParsedSettings<K extends EditableWidgetKey> = K extends "WALLPAPER" ? Omit<WallpaperSettings, "images"> : WidgetSettingsMap[K];
 
@@ -693,5 +745,6 @@ export const PARSERS: { [K in Exclude<EditableWidgetKey, "CUSTOM_SOUND">]: Parse
   CLOCK: parseClock,
   TOP_DONATION: parseTopDonation,
   DONATION_MONITOR: parseDonationMonitor,
-  SIG_QUEUE: parseSigQueue
+  SIG_QUEUE: parseSigQueue,
+  SIG_WALLPAPER: parseSigWallpaper
 };
