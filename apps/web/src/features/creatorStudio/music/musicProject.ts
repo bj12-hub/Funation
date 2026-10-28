@@ -45,6 +45,45 @@ export function fitFades(c: MusicClip): MusicClip {
 /** A whole source as a new clip at `start`. */
 export const newClip = (id: string, source: MusicSource, start: number): MusicClip => ({ id, sourceId: source.id, start: round(Math.max(0, start)), in: 0, out: round(source.duration), fadeIn: 0, fadeOut: 0, gain: 1 });
 
+/** 붙여넣기 (2026-10-28): a copy of `c` with its own id at `start` (never before 0). */
+export const copyClip = (c: MusicClip, id: string, start: number): MusicClip => ({ ...c, id, start: round(Math.max(0, start)) });
+
+/** 되돌리기 (2026-10-28): how many edits back it goes. */
+export const MUSIC_HISTORY_MAX = 50;
+/** The history with `state` added last, keeping the latest MUSIC_HISTORY_MAX. */
+export const pushHistory = <T>(past: T[], state: T): T[] => [...past, state].slice(-MUSIC_HISTORY_MAX);
+
+/** 루프 재생 (2026-10-28): where playback is `elapsed` seconds after starting at `from` — around again past `length`. */
+export const playPosition = (from: number, elapsed: number, length: number, loop: boolean) => {
+  const at = from + elapsed;
+  return Math.round((loop && length > 0 ? at % length : at) * 100) / 100;
+};
+
+/** 단축키 (2026-10-28, StreamDonate 음악 제작): what a key press asks the editor to do. */
+export type MusicCommand = "PLAY" | "UNDO" | "REDO" | "SPLIT" | "COPY" | "PASTE" | "LOOP" | "DELETE";
+export const MUSIC_SHORTCUTS: { command: MusicCommand; label: string; keys: string }[] = [
+  { command: "PLAY", label: "재생 · 정지", keys: "Space" },
+  { command: "UNDO", label: "되돌리기", keys: "Ctrl+Z" },
+  { command: "REDO", label: "다시 실행", keys: "Ctrl+Shift+Z" },
+  { command: "LOOP", label: "루프", keys: "Ctrl+L" },
+  { command: "SPLIT", label: "분할", keys: "Ctrl+S" },
+  { command: "COPY", label: "복사", keys: "Ctrl+C" },
+  { command: "PASTE", label: "붙여넣기", keys: "Ctrl+V" },
+  { command: "DELETE", label: "클립 삭제", keys: "Delete" }
+];
+/** The command of a key press (Ctrl or ⌘), or null. Ctrl+Y also means 다시 실행. */
+export function musicCommandOf(e: { key: string; ctrlKey: boolean; metaKey: boolean; shiftKey: boolean; altKey: boolean }): MusicCommand | null {
+  if (e.altKey) return null;
+  const key = e.key.toLowerCase();
+  if (!e.ctrlKey && !e.metaKey) {
+    if (e.key === " " && !e.shiftKey) return "PLAY";
+    return e.key === "Delete" || e.key === "Backspace" ? "DELETE" : null;
+  }
+  if (key === "z") return e.shiftKey ? "REDO" : "UNDO";
+  if (e.shiftKey) return null;
+  return ({ y: "REDO", l: "LOOP", s: "SPLIT", c: "COPY", v: "PASTE" } as Record<string, MusicCommand>)[key] ?? null;
+}
+
 /** The clip moved to start at `start` (never before 0). */
 export const moveClip = (c: MusicClip, start: number): MusicClip => ({ ...c, start: round(Math.max(0, start)) });
 

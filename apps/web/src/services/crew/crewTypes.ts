@@ -1660,6 +1660,15 @@ export const BATTLE_MODES: { key: BattleMode; label: string }[] = [
   { key: "MULTI_TEAMS", label: "다수 팀" },
   { key: "PAIRS", label: "1:1 여러 쌍" }
 ];
+/**
+ * 다수 팀 표시 방식 (2026-10-28, StreamDonate 다수 팀 VS "표시 방식 — 가로 막대 / 누적 바"): BARS = a bar per team against
+ * the leader; STACKED = one bar split by each team's share.
+ */
+export type BattleDisplay = "BARS" | "STACKED";
+export const BATTLE_DISPLAYS: { key: BattleDisplay; label: string }[] = [
+  { key: "BARS", label: "가로 막대" },
+  { key: "STACKED", label: "누적 바" }
+];
 export const MULTI_TEAMS_MIN = 2;
 export const MULTI_TEAMS_MAX = 8;
 export const BATTLE_TEAM_NAME_MAX = 10;
@@ -1709,6 +1718,8 @@ export type Battle = {
   matches: BattleMatch[];
   multiplier: number;
   penalty: string;
+  /** 다수 팀 표시 방식 on OBS (other modes: BARS, unused). */
+  display: BattleDisplay;
 };
 
 // ── 팀 순위표 (팀 랭킹(상품) · 시간 내 팀 랭킹(상품)) — code-first, StreamDonate 참고 (docs/research/streamdonate-reference.md) ──

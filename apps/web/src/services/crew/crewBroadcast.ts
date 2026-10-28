@@ -159,7 +159,7 @@ function battleView(b: MockBroadcast, x: NonNullable<MockBroadcast["battles"]>[n
     });
     return { sides, ...battleStanding(sides) };
   });
-  return { no: x.no, title: x.title, mode: x.mode, startedAt: x.startedAt, endsAt: x.endsAt, stoppedAt: x.stoppedAt, running, remainingSec: running ? Math.ceil((endMs - now) / 1000) : 0, matches, multiplier, penalty: x.penalty ?? "" };
+  return { no: x.no, title: x.title, mode: x.mode, startedAt: x.startedAt, endsAt: x.endsAt, stoppedAt: x.stoppedAt, running, remainingSec: running ? Math.ceil((endMs - now) / 1000) : 0, matches, multiplier, penalty: x.penalty ?? "", display: x.display ?? "BARS" };
 }
 
 /** 서브 점수판 rows: points donated to each active member between `from` and `to` (open board = now). */
