@@ -1,4 +1,4 @@
-import { baseAmount, excelOf, feedOf } from "./crewCore";
+import { baseAmount, earlierRounds, excelOf, feedOf } from "./crewCore";
 import {
   CUMULATIVE_ROWS,
   DEFAULT_CUMULATIVE,
@@ -40,10 +40,6 @@ export function parseCumulative(input: unknown, forbidden: string[]): Cumulative
   return { title, basis, rows, showBreakdown: v.showBreakdown, showRounds: v.showRounds, placement };
 }
 
-/** The ended 회차 of `b`'s project before it, oldest first (none without a project). */
-export const earlierRounds = (b: MockBroadcast) =>
-  b.project ? (mockCrew.broadcasts ?? []).filter((x) => x !== b && x.channelId === b.channelId && x.project === b.project && x.endedAt && x.final).sort((x, y) => x.startedAt.localeCompare(y.startedAt)) : [];
-
 /**
  * 후원금 per member in one broadcast: their 멤버 지정 후원 and the 후원 리스트 entries assigned to them, in the channel's
  * 자동엑셀 unit (today's 환산값; a unit without one adds nothing), before 배수 — the 후원금 of 시간 내 통합 게이지, by member.
@@ -80,8 +76,9 @@ export function cumulativeLive(b: MockBroadcast, scoreboard: ScoreRow[]): Cumula
       a.current = Math.round(a.current);
     }
   } else {
-    for (const r of rounds) for (const f of r.final ?? []) entry(f.memberId, f.name).past += f.score;
-    for (const r of scoreboard) entry(r.memberId, r.name).current += r.score;
+    // Each 회차's own score: with 기여도 공유 the scores also hold earlier 회차, which are counted once, as their own.
+    for (const r of rounds) for (const f of r.final ?? []) entry(f.memberId, f.name).past += f.score - (f.carried ?? 0);
+    for (const r of scoreboard) entry(r.memberId, r.name).current += r.score - r.carried;
   }
   const rows: CumulativeRow[] = [...acc]
     .map(([memberId, a]) => ({ memberId, name: a.name, color: crew.get(memberId)?.color ?? REMOVED_COLOR, rank: 0, past: a.past, current: a.current, total: a.past + a.current }))

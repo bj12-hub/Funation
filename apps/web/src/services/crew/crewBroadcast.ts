@@ -82,6 +82,7 @@ function liveView(b: MockBroadcast): BroadcastLive {
     title: b.title,
     project: b.project ?? null,
     round: b.round ?? null,
+    carry: !!b.carry && !!b.project,
     oneshotPot: b.oneshot ? scoredFeed(b).filter((f) => f.status === "POT").reduce((s, f) => s + f.points, 0) : null,
     startedAt: b.startedAt,
     teamMode: b.teamMode,
@@ -229,7 +230,7 @@ function feedSummary(b: MockBroadcast): FeedSummaryRow[] {
 }
 
 function summary(b: MockBroadcast): BroadcastSummary {
-  const final = b.final ?? scoreRows(b).map((r) => ({ memberId: r.memberId, name: r.name, score: r.score }));
+  const final = b.final ?? scoreRows(b).map((r) => ({ memberId: r.memberId, name: r.name, score: r.score, ...(r.carried ? { carried: r.carried } : {}) }));
   return {
     id: b.id,
     title: b.title,
@@ -269,6 +270,7 @@ export async function getBroadcastView(): Promise<BroadcastView | null> {
     sigCountSettings: structuredClone(sigCountSettingsOf(STUDIO_CHANNEL)),
     signatures: sigCountSignatures(),
     projects: [...new Set(broadcasts().filter((b) => b.channelId === STUDIO_CHANNEL && b.project).map((b) => b.project as string))],
+    carryDefault: mockCrew.carryRounds?.[STUDIO_CHANNEL] ?? false,
     history: broadcasts()
       .filter((b) => b.channelId === STUDIO_CHANNEL && b.endedAt)
       .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
@@ -286,7 +288,7 @@ export async function startBroadcast(input: unknown): Promise<BroadcastResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   await mockDelay(300);
-  const v = (typeof input === "object" && input !== null ? input : {}) as { requestId?: unknown; title?: unknown; teamMode?: unknown; teams?: unknown; project?: unknown };
+  const v = (typeof input === "object" && input !== null ? input : {}) as { requestId?: unknown; title?: unknown; teamMode?: unknown; teams?: unknown; project?: unknown; carry?: unknown };
   if (typeof v.requestId !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
   const requestId = v.requestId;
   if (broadcasts().some((b) => b.requestId === requestId)) return { status: "SAVED" };
@@ -297,6 +299,8 @@ export async function startBroadcast(input: unknown): Promise<BroadcastResult> {
   if (project.length > PROJECT_NAME_MAX) return { status: "INVALID", message: `프로젝트 이름은 ${PROJECT_NAME_MAX}자 이내로 입력해 주세요.` };
   if (MOCK_FORBIDDEN_WORDS.some((w) => project.toLowerCase().includes(w))) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
   if (typeof v.teamMode !== "boolean") return { status: "INVALID", message: "팀 모드를 확인해 주세요." };
+  // 기여도 공유 (2026-10-28): a screen from before sends none — off.
+  if (v.carry !== undefined && typeof v.carry !== "boolean") return { status: "INVALID", message: "기여도 공유를 확인해 주세요." };
   const teams: Record<string, TeamKey> = {};
   if (v.teamMode) {
     const raw = (typeof v.teams === "object" && v.teams !== null ? v.teams : {}) as Record<string, unknown>;
@@ -308,6 +312,8 @@ export async function startBroadcast(input: unknown): Promise<BroadcastResult> {
     if (!counts.includes("A") || !counts.includes("B")) return { status: "INVALID", message: "두 팀에 멤버를 한 명 이상씩 배정해 주세요." };
   }
   if (liveOf(STUDIO_CHANNEL)) return { status: "INVALID", message: "이미 진행 중인 방송이 있어요. 먼저 종료해 주세요." };
+  // The next start form opens with the 기여도 공유 chosen now (with a project — the only time it shows).
+  if (project && typeof v.carry === "boolean") (mockCrew.carryRounds ??= {})[STUDIO_CHANNEL] = v.carry;
   broadcasts().push({
     id: `bc-${randomUUID()}`,
     requestId,
@@ -316,6 +322,7 @@ export async function startBroadcast(input: unknown): Promise<BroadcastResult> {
     // 회차 = this project's broadcast count + 1 (numbered automatically on start).
     project: project || null,
     round: project ? broadcasts().filter((b) => b.channelId === STUDIO_CHANNEL && b.project === project).length + 1 : null,
+    ...(project && v.carry === true ? { carry: true } : {}),
     assignMode: "AUTO",
     feed: [],
     oneshot: null,
@@ -391,7 +398,7 @@ export async function endBroadcast(broadcastId: unknown): Promise<BroadcastResul
     for (const h of live.scenario.history) h.endedAt ??= live.endedAt;
     live.scenario.current = null;
   }
-  live.final = scoreRows(live).map((r) => ({ memberId: r.memberId, name: r.name, score: r.score }));
+  live.final = scoreRows(live).map((r) => ({ memberId: r.memberId, name: r.name, score: r.score, ...(r.carried ? { carried: r.carried } : {}) }));
   return { status: "SAVED" };
 }
 

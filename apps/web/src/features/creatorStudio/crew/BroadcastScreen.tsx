@@ -35,14 +35,15 @@ const signed = (n: number) => `${n > 0 ? "+" : ""}${formatNumber(n)}`;
 
 /**
  * 크루 방송 운영 — code-first (no Figma frame). Route `/creator/crew/broadcast`. Start a broadcast
- * (optional 팀 배틀), watch the scoreboard (server scores), apply 보정 from the remote, end it and
- * review the history. Scores refresh from the server every few seconds while live.
+ * (optional 팀 배틀; with a project, optional 기여도 공유 — 2026-10-28), watch the scoreboard (server scores), apply 보정 from
+ * the remote, end it and review the history. Scores refresh from the server every few seconds while live.
  */
 export function BroadcastScreen({ view, switches }: { view: BroadcastView; switches: Record<OverlayTarget, boolean> }) {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [project, setProject] = useState("");
   const [teamMode, setTeamMode] = useState(false);
+  const [carry, setCarry] = useState(view.carryDefault);
   const [teams, setTeams] = useState<Record<string, TeamKey | "">>({});
   const [reason, setReason] = useState("");
   const [custom, setCustom] = useState("");
@@ -118,7 +119,7 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
               startId.current ??= crypto.randomUUID();
               const requestId = startId.current;
               run(async () => {
-                const res = await startBroadcast({ requestId, title, project, teamMode, teams: assigned });
+                const res = await startBroadcast({ requestId, title, project, teamMode, teams: assigned, carry: !!project.trim() && carry });
                 if (res.status === "SAVED") startId.current = null;
                 return res;
               }, "방송을 시작했어요.");
@@ -139,6 +140,17 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
                 <option key={p} value={p} />
               ))}
             </datalist>
+            {project.trim() && (
+              <div>
+                <label className={styles.checkRow}>
+                  <input type="checkbox" checked={carry} onChange={(e) => setCarry(e.target.checked)} />
+                  같은 프로젝트의 지난 회차 기여도 이어서 쌓기
+                </label>
+                <p className={styles.note}>
+                  후원 내역은 회차마다 따로 보이고, 점수판 점수에는 &apos;{project.trim()}&apos;의 지난 회차 점수가 더해져요. 끄면 회차마다 0점부터 시작해요.
+                </p>
+              </div>
+            )}
             <label className={styles.checkRow}>
               <input type="checkbox" checked={teamMode} onChange={(e) => setTeamMode(e.target.checked)} />
               팀 배틀 (A팀 vs B팀)
@@ -178,6 +190,7 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
                   {live.project} · {live.round}회차
                 </span>
               )}
+              {live.carry && <span className={styles.chip}>지난 회차 기여도 이어서</span>}
             </h2>
             <span className={styles.clock} aria-label="진행 시간">
               {now === null ? "--:--:--" : elapsed(live.startedAt, now)}
@@ -226,6 +239,7 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
                     {r.battle !== 0 && ` · 배틀 배수 ${signed(r.battle)}`}
                     {r.grade !== 0 && ` · 직급 배수 ${signed(r.grade)}`}
                     {r.game !== 0 && ` · 게임 ${signed(r.game)}`}
+                    {r.carried !== 0 && ` · 이전 회차 ${signed(r.carried)}`}
                   </span>
                 </span>
                 <span className={styles.boardButtons}>

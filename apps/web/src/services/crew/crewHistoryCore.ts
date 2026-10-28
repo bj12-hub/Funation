@@ -110,7 +110,8 @@ export function contributionTable(input: unknown): ContributionTable | { message
   }
 
   if (v.format === "ROUNDS") {
-    const scores = list.map((b) => new Map((b.final ?? scoreboardRows(b)).map((r) => [r.memberId, { name: r.name, score: r.score }])));
+    // Each 회차's own score (with 기여도 공유 a score also holds earlier 회차 — the 합계 counts them once).
+    const scores = list.map((b) => new Map((b.final ?? scoreboardRows(b)).map((r) => [r.memberId, { name: r.name, score: r.score - (r.carried ?? 0) }])));
     const crew = new Map((mockCrew.crews[STUDIO_CHANNEL] ?? []).map((m) => [m.id, m.name]));
     const ids = [...new Set(scores.flatMap((m) => [...m.keys()]))];
     const rows = ids
