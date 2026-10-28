@@ -101,13 +101,15 @@ describe("땅따먹기", () => {
     const bad: [Record<string, unknown>, string][] = [
       [{ ticker: "LEFT" }, "점유 롤링 표시"],
       [{ colors: { "cm-s2": "red" } }, "#RRGGBB"],
-      [{ colors: { "cm-nope": "#112233" } }, "BJ 색상의 멤버"],
       [{ colors: ["#112233"] }, "BJ 색상을 확인"]
     ];
     for (const [patch, message] of bad) {
       const res = await m.saveTerritory(settings(patch as Partial<TerritorySettings>));
       expect(res.status === "INVALID" && res.message, message).toContain(message);
     }
+    // A member removed since: their color drops out, the save goes through.
+    expect(await m.saveTerritory(settings({ colors: { "cm-nope": "#112233", "cm-s1": "#112233" } }))).toEqual({ status: "SAVED" });
+    expect((await m.getGamesView())!.territorySettings.colors).toEqual({ "cm-s1": "#112233" });
   });
 
   it("starts an empty board of the saved size", async () => {

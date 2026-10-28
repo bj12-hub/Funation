@@ -306,6 +306,8 @@ Confirmed:
   게임 결과도 조정 기여도로 들어감). 진행 중 켜고 끄기, 회차별 일부 항목만 공유는 TBD. See docs/figma/code-first-screens.md
 - 땅따먹기 점유 롤링 · 전용 BJ 색상 (2026-10-28, 기본값 — 일반적인 기준, StreamDonate 땅따먹기 참고): 롤링 기본 끄기, 내용은 멤버 · 칸 ·
   칸 점수(원본의 금액 대신). 칸 수 2 ~ 50과 금액 표시 단위(원 · 하트 · 달)는 TBD. See docs/figma/code-first-screens.md
+- 스도폴리 참여 BJ · 캐릭터 (2026-10-28, 기본값 — 일반적인 기준, StreamDonate 참고): 캐릭터는 이모지 16종(원본 3D 캐릭터 · 에셋은 없음),
+  기본 모두 참여 · 첫 글자. 캐릭터 이미지 업로드, 3D 보드, 상태 텍스트 오버레이는 TBD. See docs/figma/code-first-screens.md
 
 Still TBD:
 
