@@ -4,21 +4,24 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { formatNumber } from "@/lib/format";
-import { deleteSignature, moveSignature, saveSignature, setSignatureGroupActive } from "@/services/donations/signatures";
+import { deleteSignature, deleteSignatures, moveSignature, saveSignature, setSignatureGroupActive } from "@/services/donations/signatures";
 import { pairOf, type Asset } from "@/services/creator/assetTypes";
 import {
   DEFAULT_SIGNATURE_GROUP,
   MEDIA_GAPS,
   SIGNATURE_IMAGE_PRESETS,
   SIGNATURE_LIMITS,
+  SIGNATURE_SORTS,
   mediaGapsOf,
+  sortSignatures,
   spanText,
   type ManagedSignature,
   type MediaGap,
   type SignatureMatch,
   type SignaturePageSettings,
   type SignatureResult,
-  type SignatureRow
+  type SignatureRow,
+  type SignatureSort
 } from "@/services/donations/signatureTypes";
 import styles from "../crew/crew.module.css";
 import { BulkSignatures } from "./BulkSignatures";
@@ -44,7 +47,7 @@ const blank = (group: string): Draft => ({ id: null, name: "", price: 10_000, im
  * 이미지·사운드: picking a library image also picks the sound with the same name (자동 매칭, 2026-10-06 결정), and
  * "한 번에 만들기" turns several library images into signatures at once (`?bulk=1` opens it, from the library page).
  * 미디어 누락 (2026-10-25): each row says when its library image or sound was deleted (or it has no sound), and the
- * chips filter the list by it.
+ * chips filter the list by it. 정렬 · 전체 선택 · 선택 삭제 (2026-10-28, StreamDonate 시그니처 관리).
  */
 export function SignaturesScreen({
   items,
@@ -82,6 +85,14 @@ export function SignaturesScreen({
   const gap = gaps.some((g) => g.key === gapFilter) ? gapFilter : null;
   const inGroup = filter === null ? items : items.filter((s) => s.group === filter);
   const shown = gap === null ? inGroup : inGroup.filter((s) => mediaGapsOf(s.media).includes(gap));
+  /** 정렬 (2026-10-28): a view only — ↑ ↓ move the room's order, so they work on 기본 순서. */
+  const [sort, setSort] = useState<SignatureSort>("ORDER");
+  const listed = sortSignatures(shown, sort);
+  /** 선택 삭제 (2026-10-28): the picked ones still listed under the filters. */
+  const [picked, setPicked] = useState<string[]>([]);
+  const selected = picked.filter((id) => shown.some((s) => s.id === id));
+  const allPicked = shown.length > 0 && shown.every((s) => selected.includes(s.id));
+  const pick = (id: string, on: boolean) => setPicked((p) => (on ? [...p.filter((x) => x !== id), id] : p.filter((x) => x !== id)));
 
   const run = (action: () => Promise<SignatureResult>, ok: string, after?: () => void) => {
     setNote(null);
@@ -130,6 +141,10 @@ export function SignaturesScreen({
   const toggle = (s: ManagedSignature) => run(() => saveSignature({ ...s, active: !s.active }), s.active ? `${s.name} 숨김` : `${s.name} 사용`);
   const remove = (s: ManagedSignature) => {
     if (window.confirm(`'${s.name}' 시그니처를 삭제할까요?`)) run(() => deleteSignature(s.id), "시그니처를 삭제했어요.");
+  };
+  const removeSelected = () => {
+    const ids = selected;
+    if (window.confirm(`선택한 시그니처 ${ids.length}개를 삭제할까요? 되돌릴 수 없어요.`)) run(() => deleteSignatures({ ids }), `시그니처 ${ids.length}개를 삭제했어요.`, () => setPicked([]));
   };
 
   const activeCount = items.filter((s) => s.active).length;
@@ -199,18 +214,39 @@ export function SignaturesScreen({
             </span>
           </div>
         )}
+        {items.length > 0 && (
+          <div className={local.groups} role="group" aria-label="정렬 · 선택">
+            <span className={styles.segment} role="group" aria-label="정렬">
+              {SIGNATURE_SORTS.map((o) => (
+                <button key={o.key} type="button" aria-pressed={sort === o.key} onClick={() => setSort(o.key)}>
+                  {o.label}
+                </button>
+              ))}
+            </span>
+            <span className={styles.rowActions}>
+              <button type="button" className={styles.ghost} disabled={pending || shown.length === 0} onClick={() => setPicked(allPicked ? [] : shown.map((s) => s.id))}>
+                {allPicked ? "선택 해제" : "전체 선택"}
+              </button>
+              <button type="button" className={styles.danger} disabled={pending || selected.length === 0} onClick={removeSelected}>
+                선택 삭제{selected.length ? ` (${selected.length})` : ""}
+              </button>
+            </span>
+          </div>
+        )}
+        {sort !== "ORDER" && <p className={styles.note}>정렬해서 보는 중이에요. 방송 방 순서(↑ ↓)는 기본 순서에서 바꿀 수 있어요.</p>}
         {items.length === 0 ? (
           <p className={styles.empty}>아직 시그니처가 없어요. 첫 시그니처를 추가해 보세요.</p>
         ) : shown.length === 0 ? (
           <p className={styles.empty}>조건에 맞는 시그니처가 없어요.</p>
         ) : (
           <ul className={styles.list}>
-            {shown.map((s) => {
+            {listed.map((s) => {
               const i = items.indexOf(s);
               // Missing media: the row shows what the alert shows (the first preset), and says so in a warning line.
               const warnings = mediaGapsOf(s.media).filter((g) => g !== "SOUND_NONE");
               return (
               <li key={s.id} className={styles.row} data-inactive={s.active ? undefined : ""}>
+                <input type="checkbox" className={local.pick} aria-label={`${s.name} 선택`} checked={selected.includes(s.id)} onChange={(e) => pick(s.id, e.target.checked)} />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img className={local.thumb} src={s.media.image === "MISSING" ? SIGNATURE_IMAGE_PRESETS[0] : s.imageUrl} alt="" />
                 <div className={styles.rowMain}>
@@ -229,14 +265,14 @@ export function SignaturesScreen({
                 </div>
                 <span className={s.active ? styles.chip : styles.chipOff}>{s.active ? "사용" : "숨김"}</span>
                 <div className={styles.rowActions}>
-                  <button type="button" className={styles.ghost} aria-label={`${s.name} 위로`} disabled={pending || i === 0} onClick={() => run(() => moveSignature({ id: s.id, dir: "up" }), "순서를 바꿨어요.")}>
+                  <button type="button" className={styles.ghost} aria-label={`${s.name} 위로`} disabled={pending || sort !== "ORDER" || i === 0} onClick={() => run(() => moveSignature({ id: s.id, dir: "up" }), "순서를 바꿨어요.")}>
                     ↑
                   </button>
                   <button
                     type="button"
                     className={styles.ghost}
                     aria-label={`${s.name} 아래로`}
-                    disabled={pending || i === items.length - 1}
+                    disabled={pending || sort !== "ORDER" || i === items.length - 1}
                     onClick={() => run(() => moveSignature({ id: s.id, dir: "down" }), "순서를 바꿨어요.")}
                   >
                     ↓

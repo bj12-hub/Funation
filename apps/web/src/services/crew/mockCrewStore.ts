@@ -227,6 +227,8 @@ export type MockBroadcast = {
     }[];
     lastSold: number | null;
     advanceAt: string | null;
+    /** 몰수권 자동 잠김 (2026-10-28): when a 몰수권 locked the board (missing = open). */
+    lockedAt?: string | null;
   };
   /**
    * 시그니처 두산 board (두산 시작 replaces it): the mode and the ladder (signature ids, the lowest price first) as they were

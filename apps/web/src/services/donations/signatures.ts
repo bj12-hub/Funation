@@ -127,7 +127,7 @@ export async function saveSignature(input: unknown): Promise<SignatureResult> {
   }
   if (items.length >= SIGNATURE_LIMITS.max) return { status: "INVALID", message: `시그니처는 ${SIGNATURE_LIMITS.max}개까지 만들 수 있어요.` };
   const newId = newSignatureId(items.length);
-  items.push({ id: newId, ...next });
+  items.push({ id: newId, ...next, createdAt: new Date().toISOString() });
   mockSignatures.requests[v.requestId as string] = newId;
   return { status: "SAVED", id: newId };
 }
@@ -171,7 +171,8 @@ export async function createSignatures(input: unknown): Promise<SignatureBulkRes
   }
 
   // No await between the checks and the write, so a double submit cannot pass the checks twice.
-  const created = rows.map((r, i): ManagedSignature => ({ ...asSignature(r, i), id: newSignatureId(items.length + i) }));
+  const createdAt = new Date().toISOString();
+  const created = rows.map((r, i): ManagedSignature => ({ ...asSignature(r, i), id: newSignatureId(items.length + i), createdAt }));
   items.push(...created);
   const ids = created.map((s) => s.id);
   bulk[v.requestId] = ids;
@@ -184,6 +185,29 @@ export async function deleteSignature(id: unknown): Promise<SignatureResult> {
   const i = mockSignatures.items.findIndex((s) => s.id === id);
   if (i >= 0) mockSignatures.items.splice(i, 1);
   return { status: "SAVED", id: String(id) };
+}
+
+/**
+ * 선택 삭제 (2026-10-28, StreamDonate 시그니처 관리 "전체 선택 · 전체 삭제"): every signature in `ids` at once; ids no longer
+ * there are skipped (a retry deletes nothing more). Answers how many went.
+ */
+export async function deleteSignatures(input: unknown): Promise<SignatureResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
+  if (!Array.isArray(v.ids) || v.ids.length === 0 || v.ids.length > SIGNATURE_LIMITS.max || v.ids.some((id) => typeof id !== "string")) {
+    return { status: "INVALID", message: "삭제할 시그니처를 골라 주세요." };
+  }
+  const ids = new Set(v.ids as string[]);
+  const items = mockSignatures.items;
+  let removed = 0;
+  for (let i = items.length - 1; i >= 0; i--) {
+    if (ids.has(items[i].id)) {
+      items.splice(i, 1);
+      removed += 1;
+    }
+  }
+  return { status: "SAVED", id: String(removed) };
 }
 
 /**
