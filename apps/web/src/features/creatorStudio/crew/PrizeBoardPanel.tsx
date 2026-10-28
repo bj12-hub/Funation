@@ -30,7 +30,7 @@ const PICKER_DEFAULT = "#ffffff";
 type Run = (action: () => Promise<BroadcastResult>, ok?: string) => void;
 /** Which board a toggle or 구간 bar drives (crewPrizeBoard.ts `board`). */
 type BoardKey = "MEMBER" | "TEAM" | "WINDOW_GAUGE";
-type Display = Pick<PrizeBoardSettings, "showScore" | "showTotal" | "columns" | "placement">;
+type Display = Pick<PrizeBoardSettings, "titleColor" | "showScore" | "showTotal" | "columns" | "placement">;
 
 /** A settings form's draft, refilled when the saved settings change (here or in another tab). */
 export function useSettingsDraft<T>(settings: T) {
@@ -47,12 +47,26 @@ export function useSettingsDraft<T>(settings: T) {
   return { draft, setDraft, edit, dirty: JSON.stringify(draft) !== synced.current };
 }
 
-/** 표시: 점수 · 하단 합계 · 열 개수 · 배치 (the same on 상품 순위표 and 팀 순위표). */
+/** 표시: 제목 색 · 점수 · 하단 합계 · 열 개수 · 배치 (the same on 상품 순위표 and 팀 순위표). */
 export function BoardDisplayField({ draft, edit }: { draft: Display; edit: (patch: Partial<Display>) => void }) {
   return (
     <div className={prize.field} role="group" aria-label="표시">
       <span className={styles.muted}>표시</span>
       <span className={prize.inline}>
+        <span className={styles.inline} role="group" aria-label="제목 색">
+          <span className={styles.muted}>제목 색</span>
+          <input
+            type="color"
+            className={prize.color}
+            aria-label="제목 글자색"
+            value={draft.titleColor ?? PICKER_DEFAULT}
+            data-default={draft.titleColor ? undefined : ""}
+            onChange={(e) => edit({ titleColor: e.target.value })}
+          />
+          <button type="button" className={styles.ghost} disabled={!draft.titleColor} onClick={() => edit({ titleColor: null })}>
+            원래 색
+          </button>
+        </span>
         <label className={styles.checkRow}>
           <input type="checkbox" checked={draft.showScore} onChange={(e) => edit({ showScore: e.target.checked })} />
           점수

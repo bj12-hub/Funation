@@ -24,7 +24,12 @@ const stateOf = (b: MockBroadcast) => (b.sigCount ??= { visible: false, since: n
 export async function saveSigCount(input: unknown): Promise<BroadcastResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
-  const parsed = parseSigCount(input, MOCK_FORBIDDEN_WORDS, sigCountSignatures().map((s) => s.id));
+  const parsed = parseSigCount(
+    input,
+    MOCK_FORBIDDEN_WORDS,
+    sigCountSignatures().map((s) => s.id),
+    (mockCrew.crews[STUDIO_CHANNEL] ?? []).map((m) => m.id)
+  );
   if ("message" in parsed) return { status: "INVALID", message: parsed.message };
   (mockCrew.sigCounts ??= {})[STUDIO_CHANNEL] = parsed;
   return { status: "SAVED" };
