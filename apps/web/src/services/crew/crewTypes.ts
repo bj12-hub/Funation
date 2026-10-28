@@ -550,6 +550,8 @@ export type PrizeBoardSettings = {
   excluded: string[];
   /** 상단 고정: shown above 1등 with its own text and no rank (the others are ranked from 1). */
   pinned: { memberId: string; text: string } | null;
+  /** 제목 색 (2026-10-28, StreamDonate "제목 색 · 원래 색"): null = the overlay theme's. */
+  titleColor: string | null;
   columns: PrizeColumns;
   showScore: boolean;
   showTotal: boolean;
@@ -562,6 +564,7 @@ export const DEFAULT_PRIZE_BOARD: PrizeBoardSettings = {
   prizes: [],
   excluded: [],
   pinned: null,
+  titleColor: null,
   columns: 1,
   showScore: true,
   showTotal: false,
@@ -589,11 +592,15 @@ export const SIG_COUNT_TITLE_DEFAULT = "시그 카운트";
 /** Signatures one table counts (its columns). */
 export const SIG_COUNT_COLUMNS_MAX = 8;
 
-/** RECEIVED: members who got a counted signature. ALL: every active member too, with 0s. */
-export type SigCountRows = "RECEIVED" | "ALL";
+/**
+ * RECEIVED: members who got a counted signature. ALL: every active member too, with 0s. SELECTED (2026-10-28, StreamDonate
+ * "선택한 BJ (0이어도 표시)"): only the members picked in `memberIds`, with 0s. 미지정 shows under any of them once counted.
+ */
+export type SigCountRows = "RECEIVED" | "ALL" | "SELECTED";
 export const SIG_COUNT_ROWS: { key: SigCountRows; label: string }[] = [
   { key: "RECEIVED", label: "받은 멤버만" },
-  { key: "ALL", label: "활동 멤버 모두" }
+  { key: "ALL", label: "활동 멤버 모두" },
+  { key: "SELECTED", label: "선택한 멤버" }
 ];
 export type SigCountSort = "TOTAL" | "ORDER";
 export const SIG_COUNT_SORTS: { key: SigCountSort; label: string }[] = [
@@ -601,10 +608,22 @@ export const SIG_COUNT_SORTS: { key: SigCountSort; label: string }[] = [
   { key: "ORDER", label: "크루 순서" }
 ];
 
-/** Kept per channel across broadcasts, editable before going live. `signatureIds`: the columns, in order. */
-export type SigCountSettings = { title: string; signatureIds: string[]; rows: SigCountRows; sort: SigCountSort; showTotal: boolean };
+/**
+ * Kept per channel across broadcasts, editable before going live. `signatureIds`: the columns, in order. `memberIds`: the
+ * rows on SELECTED (kept while another choice is picked). `activeOnly` (2026-10-28, StreamDonate 출근 필터 "출근 BJ만"):
+ * members on 휴식 (and removed ones) leave the table — 출근 = 활동 중, as on 출근 BJ 게이지.
+ */
+export type SigCountSettings = {
+  title: string;
+  signatureIds: string[];
+  rows: SigCountRows;
+  memberIds: string[];
+  activeOnly: boolean;
+  sort: SigCountSort;
+  showTotal: boolean;
+};
 
-export const DEFAULT_SIG_COUNT: SigCountSettings = { title: "", signatureIds: [], rows: "RECEIVED", sort: "TOTAL", showTotal: true };
+export const DEFAULT_SIG_COUNT: SigCountSettings = { title: "", signatureIds: [], rows: "RECEIVED", memberIds: [], activeOnly: false, sort: "TOTAL", showTotal: true };
 
 /** `memberId` null = 멤버를 지정하지 않은 시그니처 (미지정, always last). `counts` follow the columns. */
 export type SigCountRow = { memberId: string | null; name: string; color: string | null; counts: number[]; total: number };
@@ -1674,6 +1693,8 @@ export type TeamPrizeSettings = {
   /** prizes[0] = 1등 팀. */
   prizes: RankPrize[];
   members: TeamPrizeMembers;
+  /** 제목 색 (2026-10-28): null = the overlay theme's. */
+  titleColor: string | null;
   columns: PrizeColumns;
   showScore: boolean;
   showTotal: boolean;
@@ -1687,6 +1708,7 @@ export const DEFAULT_TEAM_PRIZE_BOARD: TeamPrizeSettings = {
   teams: [],
   prizes: [],
   members: "SCORE",
+  titleColor: null,
   columns: 1,
   showScore: true,
   showTotal: false,

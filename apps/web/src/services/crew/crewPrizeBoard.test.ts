@@ -48,7 +48,14 @@ describe("상품 순위표", () => {
     const m = await load();
     const ok = { ...settings(), title: " 식사대전 ", prizes: [{ text: "스테이크", color: "#FFAA00" }, { text: "", color: "#123456" }, { text: " ", color: null }] };
     expect(await m.savePrizeBoard(ok)).toEqual({ status: "SAVED" });
-    expect((await m.getBroadcastView())!.prizeSettings).toMatchObject({ title: "식사대전", prizes: [{ text: "스테이크", color: "#ffaa00" }] });
+    expect((await m.getBroadcastView())!.prizeSettings).toMatchObject({ title: "식사대전", prizes: [{ text: "스테이크", color: "#ffaa00" }], titleColor: null });
+    // 제목 색 (2026-10-28): kept lowercased on both boards; a screen from before sends none — 원래 색.
+    expect(await m.savePrizeBoard({ ...ok, titleColor: "#FC8383" })).toEqual({ status: "SAVED" });
+    expect((await m.getBroadcastView())!.prizeSettings.titleColor).toBe("#fc8383");
+    const { titleColor: _c, ...older } = settings();
+    expect(_c).toBeNull();
+    expect(await m.savePrizeBoard(older)).toEqual({ status: "SAVED" });
+    expect((await m.getBroadcastView())!.prizeSettings.titleColor).toBeNull();
 
     const bad: [Record<string, unknown>, string][] = [
       [{ title: "가".repeat(21) }, "제목"],
@@ -60,6 +67,7 @@ describe("상품 순위표", () => {
       [{ excluded: ["cm-s1"], pinned: { memberId: "cm-s1", text: "" } }, "상단 고정"],
       [{ pinned: { memberId: "cm-s1", text: "운영자 고정" } }, "사용할 수 없는"],
       [{ columns: 4 }, "열 개수"],
+      [{ titleColor: "red" }, "제목 색"],
       [{ placement: "TOP" }, "배치"],
       [{ showScore: "yes" }, "표시 설정"]
     ];
@@ -196,8 +204,8 @@ describe("팀 순위표", () => {
 
   it("validates and saves the settings: CUSTOM needs 2 ~ 8 teams, each named once and with members in one team only", async () => {
     const m = await load();
-    expect(await m.saveTeamPrize(teamSettings({ title: " 팀 대항전 ", teams: twoTeams, prizes: [{ text: "회식", color: "#FFAA00" }, { text: "", color: null }] }))).toEqual({ status: "SAVED" });
-    expect((await m.getBroadcastView())!.teamPrizeSettings).toMatchObject({ title: "팀 대항전", source: "CUSTOM", teams: [{ name: "불꽃" }, { name: "B팀" }], prizes: [{ text: "회식", color: "#ffaa00" }] });
+    expect(await m.saveTeamPrize(teamSettings({ title: " 팀 대항전 ", teams: twoTeams, prizes: [{ text: "회식", color: "#FFAA00" }, { text: "", color: null }], titleColor: "#00AAFF" }))).toEqual({ status: "SAVED" });
+    expect((await m.getBroadcastView())!.teamPrizeSettings).toMatchObject({ title: "팀 대항전", source: "CUSTOM", teams: [{ name: "불꽃" }, { name: "B팀" }], prizes: [{ text: "회식", color: "#ffaa00" }], titleColor: "#00aaff" });
     // Another source keeps the CUSTOM teams but does not need them.
     expect(await m.saveTeamPrize(teamSettings({ source: "BROADCAST_TEAMS" }))).toEqual({ status: "SAVED" });
 

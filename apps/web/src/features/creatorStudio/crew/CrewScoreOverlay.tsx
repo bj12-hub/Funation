@@ -261,7 +261,7 @@ export function PrizeBoardOverlay({ board, reloadSeq, theme }: { board: PrizeBoa
   return (
     <OverlayThemeRoot theme={theme} className={styles.pad}>
       <div className={`${ov.card} ${styles.board} ${styles.prize}`} data-placement={s.placement} data-cols={s.columns}>
-        <h1 className={`${ov.label} ${styles.title}`}>
+        <h1 className={`${ov.label} ${styles.title}`} style={s.titleColor ? { color: s.titleColor } : undefined}>
           {s.title || PRIZE_TITLE_DEFAULT}
           {board.window?.stoppedAt && <span className={`${ov.chip} ${styles.closed}`}>마감</span>}
         </h1>
@@ -301,7 +301,7 @@ export function TeamPrizeOverlay({ board, reloadSeq, theme }: { board: TeamPrize
   return (
     <OverlayThemeRoot theme={theme} className={styles.pad}>
       <div className={`${ov.card} ${styles.board} ${styles.prize}`} data-placement={s.placement} data-cols={s.columns}>
-        <h1 className={`${ov.label} ${styles.title}`}>
+        <h1 className={`${ov.label} ${styles.title}`} style={s.titleColor ? { color: s.titleColor } : undefined}>
           {s.title || TEAM_PRIZE_TITLE_DEFAULT}
           {board.window?.stoppedAt && <span className={`${ov.chip} ${styles.closed}`}>마감</span>}
         </h1>
