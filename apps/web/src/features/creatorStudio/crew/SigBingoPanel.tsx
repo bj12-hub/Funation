@@ -6,6 +6,7 @@ import { clearSigBingo, saveSigBingo, setSigBingo, startSigBingo } from "@/servi
 import {
   SIG_BINGO_BONUS_MAX,
   SIG_BINGO_MODES,
+  SIG_BINGO_REMAINING_AT,
   SIG_BINGO_REVEALS,
   SIG_BINGO_SIZES,
   SIG_BINGO_TITLE_DEFAULT,
@@ -127,6 +128,15 @@ export function SigBingoPanel({
               <input type="checkbox" checked={draft.showRemaining} onChange={(e) => edit({ showRemaining: e.target.checked })} />
               OBS에 남은 시그 목록
             </label>
+            {draft.showRemaining && (
+              <span className={styles.segment} role="group" aria-label="남은 시그 위치">
+                {SIG_BINGO_REMAINING_AT.map((x) => (
+                  <button key={x.key} type="button" aria-pressed={draft.remainingAt === x.key} onClick={() => edit({ remainingAt: x.key })}>
+                    {x.label}
+                  </button>
+                ))}
+              </span>
+            )}
           </span>
         </div>
         <div className={prize.field} role="group" aria-label="시그 빙고 모드">

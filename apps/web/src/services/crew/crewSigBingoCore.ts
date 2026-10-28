@@ -7,6 +7,7 @@ import {
   MULTI_TEAM_COLORS,
   SIG_BINGO_BONUS_MAX,
   SIG_BINGO_MODES,
+  SIG_BINGO_REMAINING_AT,
   SIG_BINGO_REVEALS,
   SIG_BINGO_SIZES,
   sigBingoLineName,
@@ -39,7 +40,7 @@ const TEAM_KEYS = ["A", "B"] as const;
 const teamColor = (key: string) => MULTI_TEAM_COLORS[TEAM_KEYS.indexOf(key as "A" | "B")];
 
 /** The channel's 시그 빙고 settings (defaults until saved). */
-/** Settings saved before 남은 시그 목록 (2026-10-25) read with it off. */
+/** Settings saved before 남은 시그 목록 (2026-10-25) read with it off, before 잔여 시그 위치 (2026-10-28) below the board. */
 export const sigBingoSettingsOf = (channelId: string): SigBingoSettings => ({ ...DEFAULT_SIG_BINGO, ...mockCrew.sigBingos?.[channelId] });
 
 export function parseSigBingoSettings(input: unknown, forbidden: string[], signatureIds: string[]): SigBingoSettings | { message: string } {
@@ -58,7 +59,10 @@ export function parseSigBingoSettings(input: unknown, forbidden: string[], signa
   if (!isInt(v.bonus, 0, SIG_BINGO_BONUS_MAX)) return { message: `빙고 보너스는 0 ~ ${SIG_BINGO_BONUS_MAX.toLocaleString("ko-KR")}점이에요.` };
   // A screen from before 남은 시그 목록 sends none: off.
   if (v.showRemaining !== undefined && typeof v.showRemaining !== "boolean") return { message: "설정을 확인해 주세요." };
-  return { ...common, size, mode, reveal, priceMin, priceMax, bonus: v.bonus, showRemaining: v.showRemaining === true };
+  // 잔여 시그 위치 (2026-10-28): a screen from before sends none — below, as before.
+  const remainingAt = v.remainingAt === undefined ? "BOTTOM" : SIG_BINGO_REMAINING_AT.find((x) => x.key === v.remainingAt)?.key;
+  if (!remainingAt) return { message: "설정을 확인해 주세요." };
+  return { ...common, size, mode, reveal, priceMin, priceMax, bonus: v.bonus, showRemaining: v.showRemaining === true, remainingAt };
 }
 
 /** The signatures a new board draws from: active, not excluded (빙고 제외 시그), within the 금액 범위. */

@@ -59,6 +59,17 @@ export function SigBingoOverlay({ sigBingo, serverNow, reloadSeq, theme }: { sig
   const multi = grids.length > 1 || grids.some((g) => g.label);
   const cells = grids.flatMap((g) => g.cells);
   const lines = grids.reduce((s, g) => s + g.lines.length, 0);
+  const { remainingAt } = sigBingo.settings;
+  const left = board && sigBingo.settings.showRemaining && sigBingo.remaining.length > 0 && (
+    <ul className={styles.bingoLeft} data-at={remainingAt} aria-label="남은 시그">
+      {sigBingo.remaining.map((r) => (
+        <li key={r.signatureId}>
+          {r.name} {formatNumber(r.price)}
+          {r.cells > 1 && ` ×${r.cells}`}
+        </li>
+      ))}
+    </ul>
+  );
   return (
     <GameCard
       theme={theme}
@@ -72,6 +83,7 @@ export function SigBingoOverlay({ sigBingo, serverNow, reloadSeq, theme }: { sig
       wide
       columns={multi ? bingoColumns(grids.length) : undefined}
     >
+      {remainingAt === "TOP" && left}
       {board && multi ? (
         <div className={styles.bingoBoards} style={{ "--bingo-cols": bingoColumns(grids.length) } as CSSProperties}>
           {grids.map((g) => (
@@ -92,16 +104,7 @@ export function SigBingoOverlay({ sigBingo, serverNow, reloadSeq, theme }: { sig
           <span className={styles.sigUnknown}>🎯</span>
         </div>
       )}
-      {board && sigBingo.settings.showRemaining && sigBingo.remaining.length > 0 && (
-        <ul className={styles.bingoLeft} aria-label="남은 시그">
-          {sigBingo.remaining.map((r) => (
-            <li key={r.signatureId}>
-              {r.name} {formatNumber(r.price)}
-              {r.cells > 1 && ` ×${r.cells}`}
-            </li>
-          ))}
-        </ul>
-      )}
+      {remainingAt === "BOTTOM" && left}
     </GameCard>
   );
 }

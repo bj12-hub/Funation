@@ -53,6 +53,15 @@ export const CREDITS_PERIODS: { key: CreditsPeriod; label: string }[] = [
   { key: "TODAY", label: "오늘" },
   { key: "CREW", label: "크루 방송" }
 ];
+/**
+ * MVP 기준 (2026-10-28, StreamDonate 엔딩 크레딧 "MVP 기준 — 기여도 · 후원금액"): on the CREW period, the member with the
+ * most crew points or the most FN sent for them during the broadcast. TODAY reads FN either way.
+ */
+export type CreditsMvpBasis = "POINTS" | "AMOUNT";
+export const CREDITS_MVP_BASES: { key: CreditsMvpBasis; label: string }[] = [
+  { key: "POINTS", label: "기여도" },
+  { key: "AMOUNT", label: "후원금액" }
+];
 export const CREDITS_DURATION_MIN = 15;
 export const CREDITS_DURATION_MAX = 180;
 export const CREDITS_SECTION_TITLE_MAX = 20;
@@ -82,6 +91,7 @@ export type CreditsState = {
   style: CreditsStyle;
   durationSec: number;
   period: CreditsPeriod;
+  mvpBasis: CreditsMvpBasis;
   sections: Record<CreditsSectionKey, CreditsSection>;
   rollingSince: string | null;
 };
@@ -92,6 +102,7 @@ export const DEFAULT_CREDITS: Omit<CreditsState, "rollingSince"> = {
   style: "FILM",
   durationSec: 40,
   period: "TODAY",
+  mvpBasis: "POINTS",
   sections: {
     total: { on: true, title: "", max: 1 },
     mvp: { on: true, title: "", max: 1 },
@@ -107,7 +118,7 @@ export const DEFAULT_CREDITS: Omit<CreditsState, "rollingSince"> = {
  * What the credits show, computed on the server for the period. Donor names follow the 후원랭킹 rules (익명 and names
  * the 대체 메시지 rules replaced are left out); `total` counts every completed Ssumnation donation (FN). `members`: the
  * crew — FN sent for each member today, or the crew scoreboard's points (`unit` 점) on the CREW period. `mvp` = the
- * first member with more than 0. `periodLabel` names the period ("오늘" · the broadcast's title); `empty` = no crew
+ * first member with more than 0 — on the CREW period by MVP 기준 (points, or FN sent for them during the broadcast). `periodLabel` names the period ("오늘" · the broadcast's title); `empty` = no crew
  * broadcast to read on the CREW period.
  */
 export type CreditsData = {
@@ -117,7 +128,7 @@ export type CreditsData = {
   donors: { rank: number; name: string; fnAmount: number }[];
   members: { rank: number; name: string; score: number }[];
   memberUnit: "FN" | "점";
-  mvp: { name: string; score: number } | null;
+  mvp: { name: string; score: number; unit: "FN" | "점" } | null;
   /** HOT 시그: signatures by how many donations alerted as them (ties: the pricier first, then by name). */
   hotSigs: { rank: number; name: string; count: number }[];
   /** HIGH 시그: signatures by the largest donation that alerted as them (ties by name). */

@@ -3,6 +3,7 @@
 import { saveCumulative, setCumulativeVisible } from "@/services/crew/crewCumulative";
 import {
   CUMULATIVE_ROWS,
+  CUMULATIVE_SORTS,
   CUMULATIVE_TITLE_DEFAULT,
   PRIZE_PLACEMENTS,
   PRIZE_TITLE_MAX,
@@ -59,7 +60,7 @@ export function CumulativePanel({
       </div>
       <p className={styles.note}>
         같은 프로젝트로 진행한 회차를 더해 멤버별로 보여 줘요. 기여도는 각 회차의 최종 점수, 후원금은 멤버가 받은 후원(멤버 지정 · 배정된 후원 리스트)을 자동엑셀 기준 단위로 배수 전에
-        더해요. 프로젝트 없이 시작한 방송은 이번 방송만 세요.
+        더해요. 프로젝트 없이 시작한 방송은 이번 방송만 세요. BJ 목록 순서는 크루 관리의 멤버 순서대로 순위 뱃지 없이 보여 줘요.
       </p>
 
       <form
@@ -89,7 +90,14 @@ export function CumulativePanel({
             <span className={styles.segment} role="group" aria-label="보여 줄 멤버 수">
               {CUMULATIVE_ROWS.map((n) => (
                 <button key={n} type="button" aria-pressed={draft.rows === n} onClick={() => edit({ rows: n })}>
-                  상위 {n}명
+                  {draft.sort === "ORDER" ? `${n}명` : `상위 ${n}명`}
+                </button>
+              ))}
+            </span>
+            <span className={styles.segment} role="group" aria-label="누적 기여도 정렬">
+              {CUMULATIVE_SORTS.map((x) => (
+                <button key={x.key} type="button" aria-pressed={draft.sort === x.key} onClick={() => edit({ sort: x.key })}>
+                  {x.label}
                 </button>
               ))}
             </span>

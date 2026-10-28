@@ -268,6 +268,16 @@ describe("시그 빙고", () => {
     expect(await m.saveSigBingo(older)).toEqual({ status: "SAVED" });
     expect((await m.getGamesView())!.sigBingoSettings.showRemaining).toBe(false);
     expect((await m.saveSigBingo(settings({ showRemaining: "yes" as never }))).status).toBe("INVALID");
+
+    // 잔여 시그 위치 (2026-10-28): below by default and for older screens, above when chosen.
+    expect((await m.getGamesView())!.sigBingoSettings.remainingAt).toBe("BOTTOM");
+    expect(await m.saveSigBingo(settings({ excluded: others, showRemaining: true, remainingAt: "TOP" }))).toEqual({ status: "SAVED" });
+    expect((await obs()).settings).toMatchObject({ showRemaining: true, remainingAt: "TOP" });
+    const { remainingAt: _at, ...beforeAt } = settings({ excluded: others, showRemaining: true });
+    expect(_at).toBe("BOTTOM");
+    expect(await m.saveSigBingo(beforeAt)).toEqual({ status: "SAVED" });
+    expect((await m.getGamesView())!.sigBingoSettings.remainingAt).toBe("BOTTOM");
+    expect((await m.saveSigBingo(settings({ remainingAt: "LEFT" as never }))).status).toBe("INVALID");
   });
 
   it("lets the operator open and close cells", async () => {
