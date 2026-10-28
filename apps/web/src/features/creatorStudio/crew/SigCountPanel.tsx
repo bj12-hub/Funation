@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { formatKstTime, formatNumber } from "@/lib/format";
-import { resetSigCount, saveSigCount, setSigCountVisible } from "@/services/crew/crewSigCount";
+import { moveSigCountStart, resetSigCount, saveSigCount, setSigCountVisible } from "@/services/crew/crewSigCount";
+import { StartPointPicker } from "./StartPointPicker";
 import {
   SIG_COUNT_COLUMNS_MAX,
   SIG_COUNT_ROWS,
@@ -197,6 +198,11 @@ export function SigCountPanel({
             <button type="button" className={styles.ghost} disabled={pending} onClick={reset}>
               다시 세기
             </button>
+            <StartPointPicker
+              current={table.since}
+              pending={pending}
+              onMove={(at) => run(() => moveSigCountStart({ broadcastId: live.broadcastId, at }), `${time(at)}부터 다시 셀게요.`)}
+            />
           </div>
           {dirty && <p className={styles.note}>저장하지 않은 설정이 있어요. 미리보기와 OBS는 저장한 설정으로 보여요.</p>}
           {table.columns.length === 0 ? (

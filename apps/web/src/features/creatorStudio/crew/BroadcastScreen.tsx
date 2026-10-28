@@ -20,6 +20,7 @@ import { GaugePanel } from "./GaugePanel";
 import { WindowGaugePanel } from "./WindowGaugePanel";
 import { ScenarioPanel } from "./ScenarioPanel";
 import { SigCountPanel } from "./SigCountPanel";
+import { MomentsContext } from "./StartPointPicker";
 import { StealPanel } from "./StealPanel";
 import { CrewTabs } from "./CrewTabs";
 import { SubBoards } from "./SubBoards";
@@ -326,6 +327,7 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
       {live && <ContributionPanel broadcastId={live.id} version={live.rows.map((r) => `${r.memberId}:${r.score}`).join(",")} />}
       {live && <FanNotesPanel broadcastId={live.id} members={view.members} view={live.fanNotes} pending={pending} run={run} />}
       {live && <SubBoards broadcastId={live.id} boards={live.subBoards} overlayPath={view.overlayPath} pending={pending} run={run} />}
+      <MomentsContext.Provider value={live ? { startedAt: live.startedAt, moments: live.moments } : null}>
       <PrizeBoardPanel
         settings={view.prizeSettings}
         live={live ? { broadcastId: live.id, board: live.prizeBoard } : null}
@@ -373,6 +375,7 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
         pending={pending}
         run={run}
       />
+      </MomentsContext.Provider>
 
       <section className={styles.card} aria-labelledby="bc-overlay">
         <h2 id="bc-overlay" className={styles.cardTitle}>

@@ -30,7 +30,7 @@ import {
   type BroadcastView,
   type TeamKey
 } from "./crewTypes";
-import { battleGroups, battleRulesOf, donorKey, donorMergesOf, donorNamer, duplicateSuspects, fanNotesView, feedAlertsOf, feedOf, scoreFn, gradeMultipliersOf, excelOf, liveBroadcastOf, scoreboardRows, scoredFeed, stealRecordView, stealRulesOf, syncAlertHolds, timesMultiplier, windowGames, windowReceived, windowScores, windowSteals } from "./crewCore";
+import { battleGroups, battleRulesOf, donorKey, donorMergesOf, donorNamer, duplicateSuspects, fanNotesView, feedAlertsOf, feedOf, scoreFn, gradeMultipliersOf, excelOf, liveBroadcastOf, scoreboardRows, scoredFeed, stealRecordView, stealRulesOf, syncAlertHolds, timesMultiplier, windowGames, windowReceived, windowScores, windowSteals, donationMoments } from "./crewCore";
 import { cumulativeLive, cumulativeSettingsOf } from "./crewCumulativeCore";
 import { gaugeLive, gaugeSettingsOf, pledgesOf } from "./crewGaugeCore";
 import { windowGaugeLive, windowGaugeSettingsOf } from "./crewWindowGaugeCore";
@@ -83,6 +83,7 @@ function liveView(b: MockBroadcast): BroadcastLive {
     project: b.project ?? null,
     round: b.round ?? null,
     carry: !!b.carry && !!b.project,
+    moments: donationMoments(b),
     oneshotPot: b.oneshot ? scoredFeed(b).filter((f) => f.status === "POT").reduce((s, f) => s + f.points, 0) : null,
     startedAt: b.startedAt,
     teamMode: b.teamMode,
@@ -417,6 +418,8 @@ export async function getOverlayScoreboard(overlayKey: unknown): Promise<Overlay
   return {
     ...view,
     logs: [],
+    // 시작점 수정's 후원 리스트 has the names as sent: studio only.
+    moments: [],
     scenario: view.scenario && { ...view.scenario, parts: view.scenario.parts.map(({ title, minutes }) => ({ title, minutes })) },
     fanNotes: { open: view.fanNotes.open, rules: view.fanNotes.rules, notes: [], counts: { NEW: 0, DONE: 0, HIDDEN: 0 } },
     // 랭크업 between members who are on the board; a closer pair further down would name people OBS does not show.

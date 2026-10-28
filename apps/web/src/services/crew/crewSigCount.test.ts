@@ -92,6 +92,13 @@ describe("시그 카운트", () => {
     expect(t.since).toBe("2026-10-23T12:03:00.000Z");
     expect(lines(t)).toEqual(["길동 1/0 = 1", "하늘 0/0 = 0", "바다 0/0 = 0"]);
 
+    // 시작 시점 수정 (2026-10-28): back to the broadcast's start — the earlier ones count again.
+    expect(await m.moveSigCountStart({ broadcastId: id, at: "2026-10-23T12:01:00.000Z" })).toEqual({ status: "SAVED" });
+    expect((await table(m)).since).toBe("2026-10-23T12:01:00.000Z");
+    expect(lines(await table(m))).toEqual(["길동 1/0 = 1", "하늘 1/0 = 1", "바다 1/2 = 3", "미지정 0/1 = 1"]);
+    expect((await m.moveSigCountStart({ broadcastId: id, at: "2026-10-23T11:59:00.000Z" })).status).toBe("INVALID");
+    await m.moveSigCountStart({ broadcastId: id, at: "2026-10-23T12:03:00.000Z" });
+
     // OBS에 표시: the overlay gets the table only through the key.
     expect(await m.setSigCountVisible({ broadcastId: id, on: true })).toEqual({ status: "SAVED" });
     const overlay = await m.getOverlayScoreboard(m.overlayKey);
