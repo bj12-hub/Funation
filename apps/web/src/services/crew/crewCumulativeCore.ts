@@ -1,6 +1,7 @@
 import { baseAmount, earlierRounds, excelOf, feedOf } from "./crewCore";
 import {
   CUMULATIVE_ROWS,
+  CUMULATIVE_SORTS,
   DEFAULT_CUMULATIVE,
   PRIZE_PLACEMENTS,
   PRIZE_TITLE_MAX,
@@ -18,7 +19,7 @@ import { mockCrew, type MockBroadcast } from "./mockCrewStore";
  * they received in each 회차 (2026-10-25). Display numbers only.
  */
 
-/** Settings saved before 집계 기준 (2026-10-25) read as 기여도. */
+/** Settings saved before 집계 기준 (2026-10-25) read as 기여도, before 정렬 (2026-10-28) by total. */
 export const cumulativeSettingsOf = (channelId: string): CumulativeSettings => ({ ...DEFAULT_CUMULATIVE, ...mockCrew.cumulatives?.[channelId] });
 
 /** A member no longer in the crew keeps the name of their last 회차, in a neutral color. */
@@ -34,10 +35,13 @@ export function parseCumulative(input: unknown, forbidden: string[]): Cumulative
   if (!basis) return { message: "집계 기준을 골라 주세요." };
   const rows = CUMULATIVE_ROWS.find((n) => n === v.rows);
   if (!rows) return { message: "보여 줄 멤버 수를 골라 주세요." };
+  // A screen from before 정렬 sends none: by total, as before.
+  const sort = v.sort === undefined ? "TOTAL" : CUMULATIVE_SORTS.find((x) => x.key === v.sort)?.key;
+  if (!sort) return { message: "정렬을 골라 주세요." };
   const placement = PRIZE_PLACEMENTS.find((p) => p.key === v.placement)?.key;
   if (!placement) return { message: "배치를 골라 주세요." };
   if (typeof v.showBreakdown !== "boolean" || typeof v.showRounds !== "boolean") return { message: "표시 설정을 확인해 주세요." };
-  return { title, basis, rows, showBreakdown: v.showBreakdown, showRounds: v.showRounds, placement };
+  return { title, basis, rows, sort, showBreakdown: v.showBreakdown, showRounds: v.showRounds, placement };
 }
 
 /**
@@ -56,7 +60,8 @@ function amountsOf(b: MockBroadcast): Map<string, number> {
 
 /**
  * The board of a live broadcast. `scoreboard`: its main scoreboard rows (the current 회차). Members are everyone with a
- * row now or a final score in an earlier 회차; ranked by total, ties by name.
+ * row now or a final score in an earlier 회차; ranked by total, ties by name — listed by rank, or on BJ 목록 순서 as in the
+ * crew (those no longer in it after, by rank).
  */
 export function cumulativeLive(b: MockBroadcast, scoreboard: ScoreRow[]): CumulativeLive {
   const settings = cumulativeSettingsOf(b.channelId);
@@ -80,10 +85,13 @@ export function cumulativeLive(b: MockBroadcast, scoreboard: ScoreRow[]): Cumula
     for (const r of rounds) for (const f of r.final ?? []) entry(f.memberId, f.name).past += f.score - (f.carried ?? 0);
     for (const r of scoreboard) entry(r.memberId, r.name).current += r.score - r.carried;
   }
-  const rows: CumulativeRow[] = [...acc]
+  const ranked: CumulativeRow[] = [...acc]
     .map(([memberId, a]) => ({ memberId, name: a.name, color: crew.get(memberId)?.color ?? REMOVED_COLOR, rank: 0, past: a.past, current: a.current, total: a.past + a.current }))
     .sort((x, y) => y.total - x.total || x.name.localeCompare(y.name))
     .map((r, i) => ({ ...r, rank: i + 1 }));
+  const order = [...crew.keys()];
+  const at = (id: string) => (order.includes(id) ? order.indexOf(id) : order.length);
+  const rows = settings.sort === "ORDER" ? [...ranked].sort((x, y) => at(x.memberId) - at(y.memberId) || x.rank - y.rank) : ranked;
   return {
     settings: structuredClone(settings),
     visible: !!b.cumulative?.visible,

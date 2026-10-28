@@ -381,6 +381,11 @@
   grid-template-columns: 26px minmax(0, 96px) minmax(0, 1fr);
 }
 
+/* 누적 기여도 BJ 목록 순서 (2026-10-28): no rank column. */
+.prizeRows li[data-norank] {
+  grid-template-columns: minmax(0, 122px) minmax(0, 1fr) auto;
+}
+
 .prizeText {
   font-size: 0.95em;
   font-weight: 700;

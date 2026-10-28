@@ -321,6 +321,11 @@ describe("누적 기여도", () => {
       "3 별 2000+0=2000 #9ca3af",
       "4 바다 0+0=0 #3b82f6"
     ]);
+    // BJ 목록 순서 (2026-10-28): as in 크루 관리, 별 (no longer in the crew) after; ranks stay by total.
+    const sorted = { title: "", basis: "POINTS", rows: 10, sort: "ORDER", showBreakdown: true, showRounds: true, placement: "FLOAT" };
+    expect(await m.saveCumulative(sorted)).toEqual({ status: "SAVED" });
+    expect((await m.getBroadcastView())!.live!.cumulative.rows.map((r) => `${r.rank} ${r.name}`)).toEqual(["2 길동", "1 하늘", "4 바다", "3 별"]);
+    await m.saveCumulative({ ...sorted, sort: "TOTAL" });
 
     expect((await m.setCumulativeVisible({ broadcastId: m.second, on: "yes" })).status).toBe("INVALID");
     expect((await m.setCumulativeVisible({ broadcastId: m.first, on: true })).status).toBe("INVALID"); // ended
@@ -336,7 +341,7 @@ describe("누적 기여도", () => {
 
   it("validates and keeps the settings", async () => {
     const m = await load();
-    const ok = { title: " 시즌 누적 ", basis: "AMOUNT", rows: 5, showBreakdown: false, showRounds: true, placement: "RIGHT" };
+    const ok = { title: " 시즌 누적 ", basis: "AMOUNT", rows: 5, sort: "ORDER", showBreakdown: false, showRounds: true, placement: "RIGHT" };
     expect(await m.saveCumulative(ok)).toEqual({ status: "SAVED" });
     expect((await m.getBroadcastView())!.cumulativeSettings).toEqual({ ...ok, title: "시즌 누적" });
     // A screen from before 집계 기준 sends none: 기여도.
@@ -344,11 +349,17 @@ describe("누적 기여도", () => {
     expect(_basis).toBe("AMOUNT");
     expect(await m.saveCumulative(older)).toEqual({ status: "SAVED" });
     expect((await m.getBroadcastView())!.cumulativeSettings.basis).toBe("POINTS");
+    // … and before 정렬 (2026-10-28): by total.
+    const { sort: _sort, ...unsorted } = ok;
+    expect(_sort).toBe("ORDER");
+    expect(await m.saveCumulative(unsorted)).toEqual({ status: "SAVED" });
+    expect((await m.getBroadcastView())!.cumulativeSettings.sort).toBe("TOTAL");
     for (const [patch, message] of [
       [{ basis: "WON" }, "집계 기준"],
       [{ title: "가".repeat(21) }, "제목"],
       [{ title: "admin 누적" }, "사용할 수 없는"],
       [{ rows: 4 }, "멤버 수"],
+      [{ sort: "RANK" }, "정렬"],
       [{ placement: "TOP" }, "배치"],
       [{ showRounds: "yes" }, "표시 설정"]
     ] as const) {

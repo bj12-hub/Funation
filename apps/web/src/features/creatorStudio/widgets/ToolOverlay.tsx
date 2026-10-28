@@ -81,7 +81,7 @@ function CreditsBody({ state: s, data: d, crawl }: { state: CreditsState; data: 
           <h2>{sectionTitle(s, "mvp")}</h2>
           <p className={`${crawl ? "" : ov.display} ${styles.creditsBig}`}>{d.mvp.name}</p>
           <p>
-            {formatNumber(d.mvp.score)} {d.memberUnit}
+            {formatNumber(d.mvp.score)} {d.mvp.unit}
           </p>
         </section>
       )}
