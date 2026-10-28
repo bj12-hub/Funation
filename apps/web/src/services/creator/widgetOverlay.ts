@@ -14,7 +14,7 @@ import { crewRankingRows, eventLines, goalProgress, miniLines, monitorLine, rank
 import { overlayTheme } from "./overlayThemeStore";
 import type { OverlayThemeChoice } from "./overlayThemeTypes";
 import { QR_SAMPLE_IMAGE, isWidgetOverlay, type OverlayWidget } from "./widgetOverlayTypes";
-import { readWidget } from "./widgetStore";
+import { readWidget, widgetState } from "./widgetStore";
 import { clearedAtOf, mockWallpaper, wallStickers } from "./wallpaperCore";
 
 /**
@@ -117,7 +117,7 @@ export async function getOverlayWidget(widget: unknown, key: unknown): Promise<O
     // 알림 모니터 (2026-10-23): read the 후원 알림 history and queue as they are — only the 후원 알림 overlay moves the queue.
     case "top-donation": {
       const settings = readWidget("TOP_DONATION");
-      return { widget, settings, top: topDonation(items, settings), ...themed(settings) };
+      return { widget, settings, top: topDonation(items, settings, new Date(), widgetState.topDonation), ...themed(settings) };
     }
     case "donation-monitor": {
       const settings = readWidget("DONATION_MONITOR");

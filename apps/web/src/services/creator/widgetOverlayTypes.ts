@@ -78,7 +78,8 @@ export type WidgetRankRow = { rank: number; name: string; fnAmount: number; amou
 export type WidgetQuest = { id: string; title: string; amount: number; endsAt: string; extendedMin: number };
 
 /** 최고 후원 (2026-10-23): the biggest donation of the period as its alert showed it; `at` = when it counts. */
-export type TopDonation = { donor: string; amount: string; message: string; at: string };
+/** `manual` (2026-10-28): the entry set by hand (최고 후원 수동 수정). */
+export type TopDonation = { donor: string; amount: string; message: string; at: string; manual?: boolean };
 
 /**
  * 후원 모니터링 (2026-10-23): the alert on screen (`playing`), or the last one shown. `at` = when it was sent (the

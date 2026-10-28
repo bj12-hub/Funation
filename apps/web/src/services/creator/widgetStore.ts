@@ -23,6 +23,10 @@ export function readWidget<K extends EditableWidgetKey>(key: K): WidgetSettingsM
     // 후원 알림 디자인 saved before 알림 사운드 · 시그니처 음원 받는 방식 (2026-10-28): none · 기존 방식.
     return { ...DEFAULT_WIDGET_SETTINGS.ALERT, ...copy } as WidgetSettingsMap[K];
   }
+  if (key === "RANKING") {
+    // 후원랭킹 saved before 랭킹제외 (2026-10-28): nobody left out.
+    (copy as WidgetSettingsMap["RANKING"]).excluded ??= [];
+  }
   if (key === "ROULETTE") {
     // 룰렛 settings saved before 결과 자동 노출 read with its default.
     return { ...DEFAULT_WIDGET_SETTINGS.ROULETTE, ...copy } as WidgetSettingsMap[K];
@@ -71,3 +75,9 @@ export function readWidget<K extends EditableWidgetKey>(key: K): WidgetSettingsM
 export function withLiveAlertSound(s: WidgetSettingsMap["ALERT"]): WidgetSettingsMap["ALERT"] {
   return s.soundId && !findAsset(s.soundId, "SOUND") ? { ...s, soundId: null } : s;
 }
+
+/** 최고 후원 수동 수정 (2026-10-28): the entry set by hand and when — within its 기간 it stands for every donation before it. */
+export type TopDonationOverride = { donor: string; fnAmount: number; at: string };
+const state = globalThis as typeof globalThis & { __ssumnationMockWidgetStateV1?: { topDonation: TopDonationOverride | null } };
+/** Widget state that is not a setting (server-only, like the settings store). */
+export const widgetState = (state.__ssumnationMockWidgetStateV1 ??= { topDonation: null });

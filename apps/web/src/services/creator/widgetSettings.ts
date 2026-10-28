@@ -7,12 +7,14 @@ import { PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES } from "@/lib/validation";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { findAsset, matchesContent } from "./assetCore";
 import { QR_SAMPLE_IMAGE, WIDGET_OVERLAYS, WIDGET_OVERLAY_SETTINGS, widgetOverlayPath } from "./widgetOverlayTypes";
-import { readWidget, widgetStore, withLiveAlertSound } from "./widgetStore";
+import { readWidget, widgetState, widgetStore, withLiveAlertSound } from "./widgetStore";
+import { mockAlerts } from "./alertCore";
+import type { TopDonation } from "./widgetOverlayTypes";
 import { readAppearance } from "./overlayThemeStore";
 import { mockCreator } from "./mockCreatorStore";
 import { keepDrawnStock, studioWins } from "@/services/donations/gachaCore";
 import { STUDIO_CHANNEL, mockCrew } from "@/services/crew/mockCrewStore";
-import { crewRankingRows } from "./widgetOverlayCore";
+import { crewRankingRows, donorTotals, topDonation } from "./widgetOverlayCore";
 import { PARSERS } from "./widgetParsers";
 import {
   CUSTOM_SOUND_MAX,
@@ -20,6 +22,8 @@ import {
   CUSTOM_SOUND_TYPES,
   CUSTOM_SOUND_WORD_MAX,
   RANKING_MAX_RANKS,
+  TOP_DONATION_AMOUNT_MAX,
+  TOP_DONATION_DONOR_MAX,
   RANKING_WIDGET_PERIODS,
   WALLPAPER_IMAGES_MAX,
   WIDGET_PATHS,
@@ -101,9 +105,37 @@ export async function getWidgetDetail(key: unknown): Promise<WidgetDetail | null
       gachaBoardUrl: widgetOverlayPath("gacha-board", mockCreator.integrationKey),
       gachaWins: wins.wins,
       gachaUnclaimed: wins.unclaimed,
-      appearance: readAppearance()
+      appearance: readAppearance(),
+      donors: donorTotals(mockAlerts.items, 0, Infinity)
+        .slice(0, 30)
+        .map((d) => ({ key: d.key, name: d.name, amount: d.fn })),
+      topNow: topNow()
     }
   } as WidgetDetail;
+}
+
+/** 최고 후원 now under the saved settings and the entry set by hand. */
+const topNow = () => topDonation(mockAlerts.items, readWidget("TOP_DONATION"), new Date(), widgetState.topDonation);
+
+/**
+ * 최고 후원 수동 수정 (2026-10-28, StreamDonate "현재 최고 후원 … 직접 고칠 수 있습니다"): `{ donor, amount }` (FN) becomes the
+ * top as of now — later donations compete with it — for the current 기간; null takes it back. Answers the top now.
+ */
+export async function setTopDonationOverride(input: unknown): Promise<{ status: "SAVED"; top: TopDonation | null } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" }> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  if (input === null) widgetState.topDonation = null;
+  else {
+    const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
+    const donor = typeof v.donor === "string" ? v.donor.trim() : "";
+    if (!donor || donor.length > TOP_DONATION_DONOR_MAX) return { status: "INVALID", message: `후원자를 1~${TOP_DONATION_DONOR_MAX}자로 입력해 주세요.` };
+    if (MOCK_FORBIDDEN_WORDS.some((w) => donor.toLowerCase().includes(w))) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
+    if (typeof v.amount !== "number" || !Number.isInteger(v.amount) || v.amount < 1 || v.amount > TOP_DONATION_AMOUNT_MAX) {
+      return { status: "INVALID", message: `금액은 1 ~ ${TOP_DONATION_AMOUNT_MAX.toLocaleString("ko-KR")} FN이에요.` };
+    }
+    widgetState.topDonation = { donor, fnAmount: v.amount, at: new Date().toISOString() };
+  }
+  return { status: "SAVED", top: topNow() };
 }
 
 /** A 당첨 효과음 deleted from the library reads as "none", like the 배너's deleted slides. */
