@@ -1,3 +1,4 @@
+import { findAsset } from "./assetCore";
 import { DEFAULT_WIDGET_SETTINGS, type EditableWidgetKey, type WidgetSettingsMap } from "./widgetSettingsTypes";
 
 /**
@@ -17,6 +18,10 @@ export function readWidget<K extends EditableWidgetKey>(key: K): WidgetSettingsM
   if (key === "RECENT") {
     const recent = copy as WidgetSettingsMap["RECENT"];
     recent.templates = { ...DEFAULT_WIDGET_SETTINGS.RECENT.templates, ...recent.templates };
+  }
+  if (key === "ALERT") {
+    // 후원 알림 디자인 saved before 알림 사운드 · 시그니처 음원 받는 방식 (2026-10-28): none · 기존 방식.
+    return { ...DEFAULT_WIDGET_SETTINGS.ALERT, ...copy } as WidgetSettingsMap[K];
   }
   if (key === "ROULETTE") {
     // 룰렛 settings saved before 결과 자동 노출 read with its default.
@@ -60,4 +65,9 @@ export function readWidget<K extends EditableWidgetKey>(key: K): WidgetSettingsM
     vote.presets = vote.presets.map(({ id, name, color, durationSec, items }) => ({ id, name, color, durationSec, items }));
   }
   return copy;
+}
+
+/** An 알림 사운드 deleted from the library reads as none (2026-10-28). */
+export function withLiveAlertSound(s: WidgetSettingsMap["ALERT"]): WidgetSettingsMap["ALERT"] {
+  return s.soundId && !findAsset(s.soundId, "SOUND") ? { ...s, soundId: null } : s;
 }

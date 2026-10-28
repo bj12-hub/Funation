@@ -50,7 +50,8 @@ export async function getOverlaySigPlayer(key: unknown): Promise<OverlaySigPlaye
   advance();
   const { muted, signatureVolume, displaySec } = mockAlerts.controls;
   const showing = mockAlerts.items.find((a) => a.status === "SHOWING");
-  const base = { settings: { ...store() }, volume: muted ? 0 : signatureVolume, serverNow: new Date().toISOString(), theme: overlayTheme(readWidget("ALERT").theme), ...overlaySignal("sigplayer") };
+  const design = readWidget("ALERT");
+  const base = { settings: { ...store() }, volume: muted ? 0 : signatureVolume, sigFetch: design.sigFetch, serverNow: new Date().toISOString(), theme: overlayTheme(design.theme), ...overlaySignal("sigplayer") };
   if (!showing || !showing.signatureId || showing.kind === "EXTERNAL" || mockAlerts.shownAt === null) return { ...base, alert: null };
   const sig = mockSignatures.items.find((s) => s.id === showing.signatureId);
   const member = showing.memberId ? (mockCrew.crews[STUDIO_CHANNEL] ?? []).find((m) => m.id === showing.memberId) : undefined;

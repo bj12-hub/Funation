@@ -2,6 +2,7 @@ import { isOverlayMotion, isOverlayThemeChoice, type OverlayThemeChoice } from "
 import {
   ALERT_EFFECTS_IN,
   ALERT_HEADLINE_MAX,
+  SIG_FETCH_MODES,
   ALERT_LAYOUTS,
   ALERT_TOKENS,
   CLOCK_LABEL_MAX,
@@ -139,7 +140,10 @@ function themeAndCard(v: Raw): { theme: OverlayThemeChoice; card: boolean } | st
 const FONT_ERROR = "폰트 설정을 확인해 주세요.";
 const COLOR_ERROR = "색상은 #RRGGBB 형식으로 입력해 주세요.";
 
-/** 후원 알림 디자인 (code-first): the headline needs {닉네임}; {금액} is optional. */
+/**
+ * 후원 알림 디자인 (code-first): the headline needs {닉네임}; {금액} is optional. 알림 사운드 · 시그니처 음원 받는 방식
+ * (2026-10-28) read as none · 기존 방식 from a screen that sends neither (the sound is checked against the library on save).
+ */
 const parseAlert: Parser<AlertSettings> = (v) => {
   if (!isOverlayThemeChoice(v.theme)) return "테마를 골라 주세요.";
   if (!keyOf(v.layout, ALERT_LAYOUTS)) return "알림 모양을 골라 주세요.";
@@ -148,6 +152,10 @@ const parseAlert: Parser<AlertSettings> = (v) => {
   }
   if (!isOverlayMotion(v.motion)) return "등장 효과를 골라 주세요.";
   if (![v.showMessage, v.showBadges, v.showPlatform, v.showImage, v.countUp].every(bool)) return "설정 값을 확인해 주세요.";
+  const soundId = v.soundId ?? null;
+  if (soundId !== null && (typeof soundId !== "string" || !ASSET_ID.test(soundId))) return "알림 사운드를 다시 골라 주세요.";
+  const sigFetch = v.sigFetch ?? "CACHE";
+  if (!keyOf(sigFetch, SIG_FETCH_MODES)) return "시그니처 음원 받는 방식을 골라 주세요.";
   return {
     theme: v.theme,
     layout: v.layout,
@@ -157,7 +165,9 @@ const parseAlert: Parser<AlertSettings> = (v) => {
     showPlatform: v.showPlatform as boolean,
     showImage: v.showImage as boolean,
     motion: v.motion,
-    countUp: v.countUp as boolean
+    countUp: v.countUp as boolean,
+    soundId,
+    sigFetch
   };
 };
 
