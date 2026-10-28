@@ -264,6 +264,16 @@ export const OVERLAYS: OverlayEntry[] = [
     manage: "/creator/widgets?open=SIG_QUEUE"
   },
   {
+    id: "widget-sig-wallpaper",
+    target: "widgets",
+    group: "알림",
+    title: "시그 벽지",
+    description: "시그니처 후원 한 건을 계속 띄워 둬요. 후원마다 주소가 달라서, 위젯 설정의 시그니처 후원 목록에서 그 후원의 주소를 복사해 넣어요.",
+    size: "480 × 400 (설정에 따라 달라짐)",
+    path: (k) => widgetOverlayPath("sig-wallpaper", k),
+    manage: "/creator/widgets?open=SIG_WALLPAPER"
+  },
+  {
     id: "widget-recent",
     target: "widgets",
     group: "알림",

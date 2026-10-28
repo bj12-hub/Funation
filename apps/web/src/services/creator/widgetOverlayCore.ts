@@ -4,12 +4,14 @@ import { PLATFORM_LABEL, type Platform } from "@/types/platform";
 import { HIDDEN_PROFILE_LABEL } from "@/services/supporter/identityTypes";
 import { alertAmount, nativeAmount, type AlertItem } from "./alertTypes";
 import { IMPORT_SOURCE_LABEL, type ImportSource } from "./donationImportTypes";
-import type { MiniLine, MonitorLine, SigCard, TopDonation, WidgetFeedLine, WidgetRankRow } from "./widgetOverlayTypes";
+import type { MiniLine, MonitorLine, SigCard, SigWallCard, TopDonation, WidgetFeedLine, WidgetRankRow } from "./widgetOverlayTypes";
 import {
   RECENT_PLATFORMS,
   type DonationMonitorSettings,
   type SigQueueSettings,
+  type SigWallRow,
   type TopDonationSettings,
+  SIG_WALL_LIST_MAX,
   TOTAL_TEMPLATE_TOKEN,
   type EventSettings,
   type GoalSettings,
@@ -366,4 +368,37 @@ export function sigQueueCards(items: AlertItem[], s: Pick<SigQueueSettings, "nex
     message: s.showMessage ? a.message : "",
     imageUrl: a.imageUrl!
   }));
+}
+
+/**
+ * 시그 벽지 (2026-10-28): the counted 시그니처 후원 (a donation that alerted as a signature), newest first — the name its alert
+ * showed, the signature by its name now ("삭제된 시그니처" once deleted) and the BJ picked by crew name ("미지정" when none).
+ */
+export function sigWallRows(
+  items: AlertItem[],
+  signatures: { id: string; name: string }[],
+  crew: { id: string; name: string }[],
+  limit = SIG_WALL_LIST_MAX
+): SigWallRow[] {
+  return countedDonations(items)
+    .filter((a) => a.signatureId)
+    .sort((x, y) => y.createdAt.localeCompare(x.createdAt))
+    .slice(0, limit)
+    .map((a) => ({
+      id: a.id,
+      at: a.createdAt,
+      donor: a.donor,
+      amount: alertAmount(a),
+      fnAmount: a.fnAmount,
+      signature: signatures.find((s) => s.id === a.signatureId)?.name ?? "삭제된 시그니처",
+      member: a.memberId ? (crew.find((m) => m.id === a.memberId)?.name ?? "삭제된 멤버") : "미지정",
+      imageUrl: a.imageUrl ?? null
+    }));
+}
+
+/** 시그 벽지 of the donation `id` names: only a counted 시그니처 후원 has one. */
+export function sigWallCard(items: AlertItem[], id: unknown): SigWallCard | null {
+  if (typeof id !== "string" || !id) return null;
+  const a = countedDonations(items).find((x) => x.id === id && x.signatureId);
+  return a ? { imageUrl: a.imageUrl ?? null, donor: a.donor, amount: alertAmount(a) } : null;
 }
