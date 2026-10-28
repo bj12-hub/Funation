@@ -35,6 +35,7 @@ import type {
   WindowGaugeSettings,
   MemberPledge,
   RandomSigPreset,
+  RelayPreset,
   RandomSigSettings,
   RelaySettings,
   ScenarioPart,
@@ -336,6 +337,8 @@ type MockCrew = {
   randomSigPresets?: Record<string, RandomSigPreset[]>;
   /** 기여도 릴레이 settings per channel (missing = DEFAULT_RELAY). */
   relays?: Record<string, RelaySettings>;
+  /** 기여도 릴레이 설정 프리셋 per channel, newest first (2026-10-28). */
+  relayPresets?: Record<string, RelayPreset[]>;
   /** 줍줍 settings per channel (missing = DEFAULT_JUPJUP). */
   jupjups?: Record<string, JupjupSettings>;
   /** 시그니처 메들리 settings per channel (missing = DEFAULT_MEDLEY). */

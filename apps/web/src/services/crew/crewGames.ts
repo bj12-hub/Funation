@@ -34,7 +34,7 @@ import { addJupjupItem, jupjupLive, jupjupSettingsOf, parseJupjupSettings, remov
 import { medleyLive, medleySettingsOf, parseMedleySettings, playMedleyRun } from "./crewMedleyCore";
 import { clearSigBingoBoard, parseSigBingoSettings, setSigBingoCell, sigBingoLive, sigBingoSettingsOf, startSigBingoBoard } from "./crewSigBingoCore";
 import { deleteRandomSigPresetOf, parseRandomSigSettings, randomSigLive, randomSigPresetsOf, randomSigSettingsOf, saveRandomSigPresetOf } from "./crewRandomSigCore";
-import { clearRelayPending, parseRelaySettings, relayLive, relaySettingsOf } from "./crewRelayCore";
+import { clearRelayPending, deleteRelayPresetOf, parseRelaySettings, relayLive, relayPresetsOf, relaySettingsOf, saveRelayPresetOf } from "./crewRelayCore";
 import { sigCountSignatures } from "./crewSigCountCore";
 import { parseSpinSettings, runSpin, spinLive, spinSettingsOf } from "./crewSpinCore";
 import { parseTwoWheelSettings, runTwoWheel, twoWheelLive, twoWheelSettingsOf } from "./crewTwoWheelCore";
@@ -91,6 +91,7 @@ export async function getGamesView(): Promise<GamesView | null> {
       ? {
           id: live.id,
           title: live.title,
+          project: live.project ?? null,
           spin: spinLive(live),
           dice: diceLive(live),
           twoWheel: twoWheelLive(live),
@@ -116,6 +117,8 @@ export async function getGamesView(): Promise<GamesView | null> {
     randomSigSettings: structuredClone(randomSigSettingsOf(STUDIO_CHANNEL)),
     randomSigPresets: structuredClone(randomSigPresetsOf(STUDIO_CHANNEL)),
     relaySettings: structuredClone(relaySettingsOf(STUDIO_CHANNEL)),
+    relayPresets: structuredClone(relayPresetsOf(STUDIO_CHANNEL)),
+    projects: [...new Set((mockCrew.broadcasts ?? []).filter((b) => b.channelId === STUDIO_CHANNEL && b.project).map((b) => b.project as string))],
     jupjupSettings: structuredClone(jupjupSettingsOf(STUDIO_CHANNEL)),
     medleySettings: structuredClone(medleySettingsOf(STUDIO_CHANNEL)),
     sigBingoSettings: structuredClone(sigBingoSettingsOf(STUDIO_CHANNEL)),
@@ -189,6 +192,23 @@ export async function deleteRandomSigPreset(input: unknown): Promise<BroadcastRe
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   deleteRandomSigPresetOf(STUDIO_CHANNEL, rec(input).id);
+  return { status: "SAVED" };
+}
+
+/** 기여도 릴레이 설정 프리셋 저장 ({ name, settings }, 2026-10-28): the same name replaces that 프리셋. 켜짐 is not part of it. */
+export async function saveRelayPreset(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const active = (mockCrew.crews[STUDIO_CHANNEL] ?? []).filter((m) => m.active).map((m) => m.id);
+  const res = saveRelayPresetOf(STUDIO_CHANNEL, input, MOCK_FORBIDDEN_WORDS, signatureIds(), active);
+  return "message" in res ? { status: "INVALID", message: res.message } : res;
+}
+
+/** 기여도 릴레이 설정 프리셋 삭제 ({ id }). */
+export async function deleteRelayPreset(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  deleteRelayPresetOf(STUDIO_CHANNEL, rec(input).id);
   return { status: "SAVED" };
 }
 
