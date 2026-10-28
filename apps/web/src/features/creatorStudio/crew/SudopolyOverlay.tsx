@@ -56,8 +56,8 @@ export function SudopolyOverlay({ sudopoly, serverNow, reloadSeq, theme }: { sud
               {here.length > 0 && (
                 <span className={styles.sdPieces}>
                   {here.map((p) => (
-                    <i key={p.key} style={p.color ? ({ "--piece-color": p.color } as CSSProperties) : undefined} title={p.name}>
-                      {p.name.slice(0, 1)}
+                    <i key={p.key} style={p.color ? ({ "--piece-color": p.color } as CSSProperties) : undefined} title={p.name} data-emoji={p.emoji ? "" : undefined}>
+                      {p.emoji ?? p.name.slice(0, 1)}
                     </i>
                   ))}
                 </span>

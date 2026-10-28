@@ -1259,9 +1259,13 @@ export const SUDOPOLY_PIECE_MODES: { key: SudopolyPieceMode; label: string }[] =
 /**
  * `startBonus`: 출발 보너스 for passing 출발; `islandTurns`: the rolls a piece sits out on 무인도 (a 더블 gets it out);
  * `goalLaps` (0 = none): a piece going round that many times gets the `goalBonus`, and counts again from 0.
+ * 참여 BJ · 캐릭터 (2026-10-28, BJ별 말): `sitOut` = members who do not play (no piece, their 시그니처 후원 roll nothing);
+ * `characters` = a SUDOPOLY_CHARACTERS key per member, shown on their piece instead of their initial.
  */
 export type SudopolySettings = GameCommon & {
   pieceMode: SudopolyPieceMode;
+  sitOut: string[];
+  characters: Record<string, string>;
   spaces: SudopolySpace[];
   startBonus: number;
   islandTurns: number;
@@ -1276,6 +1280,8 @@ export const DEFAULT_SUDOPOLY: SudopolySettings = {
   excluded: [],
   showIdle: true,
   pieceMode: "MEMBER",
+  sitOut: [],
+  characters: {},
   spaces: [],
   startBonus: 0,
   islandTurns: 1,
@@ -1293,7 +1299,27 @@ export function sudopolyCell(n: number, i: number): { row: number; col: number }
   return { row: i - 3 * side, col: side };
 }
 /** A piece: `key` "SHARED" or a member id; where it is (`pos`), its laps toward the 목표 and 무인도 rolls left. */
-export type SudopolyPiece = { key: string; name: string; color: string | null; pos: number; laps: number; island: number };
+/** `emoji`: the member's 캐릭터 (null = their initial). */
+export type SudopolyPiece = { key: string; name: string; color: string | null; emoji: string | null; pos: number; laps: number; island: number };
+/** 스도폴리 캐릭터 (2026-10-28, StreamDonate "참여 BJ · 캐릭터" — its 3D characters as emoji on our 2D board). */
+export const SUDOPOLY_CHARACTERS: { key: string; emoji: string; label: string }[] = [
+  { key: "IDOL", emoji: "🎤", label: "아이돌" },
+  { key: "CAT", emoji: "🐱", label: "고양이" },
+  { key: "GODDESS", emoji: "👸", label: "여신" },
+  { key: "WITCH", emoji: "🧙", label: "마녀" },
+  { key: "CHEER", emoji: "📣", label: "치어리더" },
+  { key: "DIVA", emoji: "💃", label: "디바" },
+  { key: "TAEKWONDO", emoji: "🥋", label: "태권도" },
+  { key: "DJ", emoji: "🎧", label: "DJ" },
+  { key: "CHEF", emoji: "🧑‍🍳", label: "셰프" },
+  { key: "DEVIL", emoji: "😈", label: "데빌" },
+  { key: "ANGEL", emoji: "😇", label: "엔젤" },
+  { key: "ROBOT", emoji: "🤖", label: "로봇" },
+  { key: "NINJA", emoji: "🥷", label: "닌자" },
+  { key: "ASTRONAUT", emoji: "🧑‍🚀", label: "우주인" },
+  { key: "PIRATE", emoji: "🏴‍☠️", label: "해적" },
+  { key: "KING", emoji: "👑", label: "왕" }
+];
 
 /** What started a run: a 시그니처 후원 to the member (자동), a 랜덤시그 · 메들리 발동 금액 (자동), or the operator (수동). */
 /** `DONATION`: a donation that is no signature (복불복 뽑기판 on 모든 후원). */

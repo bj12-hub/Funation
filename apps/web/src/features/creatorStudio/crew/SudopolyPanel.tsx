@@ -9,6 +9,7 @@ import {
   SUDOPOLY_KEY_LABEL_MAX,
   SUDOPOLY_LABEL_MAX,
   SUDOPOLY_LAPS_MAX,
+  SUDOPOLY_CHARACTERS,
   SUDOPOLY_PIECE_MODES,
   SUDOPOLY_ROLLS_MAX,
   SUDOPOLY_SPACES_MAX,
@@ -100,8 +101,8 @@ const EXAMPLE_KEYS: [string, SudopolyKeyKind, number, number][] = [
 
 /**
  * 스도폴리 — code-first (no Figma frame; StreamDonate 스도폴리 참고), inside `/creator/crew/games`. 말 (BJ별 · 공용), 칸 (출발 ·
- * 점수 · 문구 · 무인도 · 황금열쇠), 출발 보너스 · 무인도 · 목표 바퀴, 황금열쇠 카드, 금액 구간별 굴림, 자동 (제외 시그);
- * while live the pieces, 판 다시 시작, a 수동 roll and the runs.
+ * 점수 · 문구 · 무인도 · 황금열쇠), 출발 보너스 · 무인도 · 목표 바퀴, 황금열쇠 카드, 금액 구간별 굴림, 자동 (제외 시그),
+ * 참여 BJ · 캐릭터 (BJ별 말, 2026-10-28); while live the pieces, 판 다시 시작, a 수동 roll and the runs.
  */
 export function SudopolyPanel({
   settings,
@@ -131,6 +132,11 @@ export function SudopolyPanel({
   const totalWeight = draft.keys.reduce((s, k) => s + (Number(k.weight) > 0 ? Number(k.weight) : 0), 0);
   const sudopoly = live?.sudopoly;
   const spaceName = (pos: number) => settings.spaces[pos]?.label ?? "출발";
+  const playable = members.filter((m) => m.active);
+  const setCharacter = (id: string, key: string) => {
+    const rest = Object.fromEntries(Object.entries(draft.characters).filter(([x]) => x !== id));
+    edit({ characters: key ? { ...rest, [id]: key } : rest });
+  };
 
   return (
     <section id="game-sudopoly" className={styles.card} aria-labelledby="game-sudopoly-title">
@@ -161,6 +167,42 @@ export function SudopolyPanel({
             ))}
           </span>
         </div>
+        {draft.pieceMode === "MEMBER" && (
+          <div className={prize.field} role="group" aria-label="참여 BJ · 캐릭터">
+            <span className={styles.muted}>
+              참여 BJ · 캐릭터 ({playable.filter((m) => !draft.sitOut.includes(m.id)).length}/{playable.length})
+            </span>
+            <ul className={games.tiers}>
+              {playable.map((m) => {
+                const playing = !draft.sitOut.includes(m.id);
+                return (
+                  <li key={m.id}>
+                    <span className={games.tierRow}>
+                      <label className={styles.checkRow}>
+                        <input
+                          type="checkbox"
+                          checked={playing}
+                          onChange={(e) => edit({ sitOut: e.target.checked ? draft.sitOut.filter((x) => x !== m.id) : [...draft.sitOut, m.id] })}
+                        />
+                        <span className={styles.dot} style={{ background: m.color }} aria-hidden="true" />
+                        {m.name}
+                      </label>
+                      <select className={styles.select} aria-label={`${m.name} 캐릭터`} value={draft.characters[m.id] ?? ""} disabled={!playing} onChange={(e) => setCharacter(m.id, e.target.value)}>
+                        <option value="">이름 첫 글자</option>
+                        {SUDOPOLY_CHARACTERS.map((c) => (
+                          <option key={c.key} value={c.key}>
+                            {c.emoji} {c.label}
+                          </option>
+                        ))}
+                      </select>
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+            <span className={styles.note}>참여하지 않는 BJ는 판에 말이 나오지 않고, 그 BJ에게 온 시그니처 후원은 굴리지 않아요. 캐릭터는 OBS 판의 말에 보여요.</span>
+          </div>
+        )}
 
         <div className={prize.field}>
           <span className={styles.muted}>
