@@ -1062,14 +1062,21 @@ export type SigHunterBand = { slots: number; priceMin: number | null; priceMax: 
 export type SigHunterRound = { id: string; slots: number; priceMin: number | null; priceMax: number | null; multiplier: number; forfeits: number; bands?: SigHunterBand[] };
 /** Every slot of a 라운드: its own 금액 범위's and each 추가 금액 구간's. */
 export const sigHunterSlotsOf = (r: Pick<SigHunterRound, "slots" | "bands">) => r.slots + (r.bands ?? []).reduce((s, b) => s + b.slots, 0);
-/** `auto` = 시그니처 후원으로 SOLD OUT; `excluded`: signatures kept off the board. After the last 라운드 it repeats (6+). */
-export type SigHunterSettings = GameCommon & { rounds: SigHunterRound[] };
+/**
+ * `auto` = 시그니처 후원으로 SOLD OUT; `excluded`: signatures kept off the board. After the last 라운드 it repeats (6+).
+ * 몰수권 (2026-10-28, StreamDonate 시그헌터 몰수권): `forfeitMin` — 몰수권 go only in slots of a signature at this price or
+ * more (0 = 제한 없음; none when no slot is) · `forfeitLock` — a 몰수권 opening locks the board (no more SOLD OUT until 다음
+ * 라운드); off, the board goes on.
+ */
+export type SigHunterSettings = GameCommon & { rounds: SigHunterRound[]; forfeitMin: number; forfeitLock: boolean };
 export const DEFAULT_SIG_HUNTER: SigHunterSettings = {
   title: "",
   auto: false,
   excluded: [],
   showIdle: true,
-  rounds: [{ id: "hr-1", slots: 10, priceMin: null, priceMax: null, multiplier: 1, forfeits: 0 }]
+  rounds: [{ id: "hr-1", slots: 10, priceMin: null, priceMax: null, multiplier: 1, forfeits: 0 }],
+  forfeitMin: 0,
+  forfeitLock: false
 };
 
 /**
@@ -1084,8 +1091,11 @@ export type SigHunterSlot = {
   forfeit: boolean;
   sold: { memberName: string | null; memberColor: string | null; at: string; revealAt: string; manual: boolean; points: number; absorbedBy: string | null } | null;
 };
-/** `round`: 1, 2, … (past the last 라운드 its settings repeat); `advanceAt`: a sold-out board's next 라운드 (after the last result). */
-export type SigHunterBoard = { round: number; multiplier: number; startedAt: string; slots: SigHunterSlot[]; lastSold: number | null; advanceAt: string | null };
+/**
+ * `round`: 1, 2, … (past the last 라운드 its settings repeat); `advanceAt`: a sold-out board's next 라운드 (after the last result);
+ * `locked`: a 몰수권 opened with 자동 잠김 on — nothing sells until 다음 라운드.
+ */
+export type SigHunterBoard = { round: number; multiplier: number; startedAt: string; slots: SigHunterSlot[]; lastSold: number | null; advanceAt: string | null; locked: boolean };
 /** Columns of a board of `n` slots: no more rows than columns, the fewest empty cells, then the squarest (8 → 4 × 2, 40 → 8 × 5). */
 export function sigHunterColumns(n: number) {
   if (n <= 3) return Math.max(n, 1);

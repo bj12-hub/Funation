@@ -324,6 +324,9 @@ Confirmed:
   따로), 출근 BJ만(휴식 중 멤버 빼기, 기본 끔), 상품 순위표 · 팀 순위표 제목 색(기본 원래 색). See docs/figma/code-first-screens.md
 - 시그 벽지 (2026-10-28, 기본값 — 일반적인 기준, StreamDonate 참고): 시그니처 후원 1건마다 `?d=` 주소의 카드(이미지 · 감사 문구 · 금액),
   스타일 공통, 최근 50건 목록. 원 · 캐시 금액 단위는 FN 환산이 없어 TBD. See docs/figma/code-first-screens.md
+- 시그니처 목록 정렬 · 선택 삭제, 시그헌터 몰수권 최소 금액 · 자동 잠김 (2026-10-28, 기본값 — 일반적인 기준, StreamDonate 참고): 정렬은
+  보기만(최신순은 만든 시각, 그 전 시그니처는 가장 오래된 것), 선택 삭제는 확인 창 뒤 한 번에. 몰수권 최소 금액 기본 0(제한 없음),
+  자동 잠김 기본 끔(켜면 다음 라운드까지 잠김). See docs/figma/code-first-screens.md
 
 Still TBD:
 
