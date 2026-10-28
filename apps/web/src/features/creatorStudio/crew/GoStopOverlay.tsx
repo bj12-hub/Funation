@@ -12,6 +12,8 @@ import board from "./overlay.module.css";
 import styles from "./gameOverlay.module.css";
 
 const RANKING_SHOWN = 5;
+/** 고스톱 랭킹 as its own source (2026-10-28): more rows than the game card has room for. */
+const RANKING_SOURCE_SHOWN = 10;
 
 /**
  * The 풀 and GO count as OBS shows them at `now`: runs queue, so it is the latest shown result's (none: 0), or the 풀 now
@@ -105,6 +107,42 @@ export function GoStopTicker({ gostop, serverNow, reloadSeq, theme }: { gostop: 
         )}
         <span className={ov.muted}>STOP 1,000점당 {gostop.settings.stopRate}% · 최대 {gostop.settings.stopMax}%</span>
       </p>
+    </OverlayThemeRoot>
+  );
+}
+
+/**
+ * 고스톱 랭킹 (`?gostoprank`, 2026-10-28 — StreamDonate gostop-ranking as its own source): the STOP 랭킹 since the last
+ * 랭킹 리셋, results shown so far, up to RANKING_SOURCE_SHOWN members. With 대기 화면 off it stays empty until the first STOP.
+ */
+export function GoStopRankOverlay({ gostop, serverNow, reloadSeq, theme }: { gostop: GoStopLive | null; serverNow: string | null; reloadSeq: number; theme: ResolvedTheme }) {
+  useOverlayPage(reloadSeq);
+  const now = useServerClock(serverNow);
+  if (!gostop || now === null) return null;
+  const ranking = goStopRanking(gostop.wins.filter((w) => now >= Date.parse(w.revealAt))).slice(0, RANKING_SOURCE_SHOWN);
+  if (!ranking.length && !gostop.settings.showIdle) return null;
+  return (
+    <OverlayThemeRoot theme={theme} className={board.pad}>
+      <div className={`${ov.card} ${styles.rankCard}`}>
+        <h1 className={`${ov.label} ${styles.rankTitle}`}>🎴 {gostop.settings.title || GOSTOP_TITLE_DEFAULT} 랭킹</h1>
+        {ranking.length === 0 ? (
+          <p className={ov.muted}>아직 STOP이 없어요</p>
+        ) : (
+          <ol className={styles.gsRanking}>
+            {ranking.map((r, i) => (
+              <li key={r.memberId}>
+                <span className={ov.muted}>{i + 1}</span>
+                <span className={styles.gsName}>
+                  {r.color && <i className={board.dot} style={{ background: r.color }} aria-hidden="true" />}
+                  {r.name}
+                </span>
+                <span className={ov.muted}>STOP {r.count}</span>
+                <strong>{formatNumber(r.points)}</strong>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
     </OverlayThemeRoot>
   );
 }

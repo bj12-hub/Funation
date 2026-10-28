@@ -837,6 +837,21 @@
   white-space: nowrap;
 }
 
+/* 따로 띄우는 순위 카드 (2026-10-28): 땅따먹기 점유 현황 · 고스톱 랭킹. */
+.rankCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 280px;
+  max-width: 460px;
+  padding: 12px 16px;
+}
+
+.rankTitle {
+  margin: 0;
+  font-size: 18px;
+}
+
 .gsTicker {
   display: flex;
   align-items: center;
@@ -846,6 +861,17 @@
   padding: 10px 16px;
   border-left: 6px solid var(--gs-color, var(--ov-accent));
   font-size: 18px;
+  white-space: nowrap;
+}
+
+/* 스도폴리 상태 텍스트 (2026-10-28): wraps between members instead of running off the source. */
+.sdStatus {
+  flex-wrap: wrap;
+  row-gap: 4px;
+  white-space: normal;
+}
+
+.sdStatus > span {
   white-space: nowrap;
 }
 
