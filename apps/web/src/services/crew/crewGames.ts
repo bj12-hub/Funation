@@ -296,14 +296,14 @@ export async function startSigBingo(input: unknown): Promise<BroadcastResult> {
   return message ? { status: "INVALID", message } : { status: "SAVED" };
 }
 
-/** 수동 칸 열기 · 닫기 (`open`; 땅따먹기 opens for `memberId`). */
+/** 수동 칸 열기 · 닫기 (`open`) on the `grid` board (BJ 모드; missing = the one board); 땅따먹기 · BJ(팀) open for `memberId`. */
 export async function setSigBingo(input: unknown): Promise<BroadcastResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const v = rec(input);
   const live = liveBroadcastOf(STUDIO_CHANNEL);
   if (!live || live.id !== v.broadcastId) return notLive;
-  const message = setSigBingoCell(live, { index: v.index, open: v.open, memberId: v.memberId });
+  const message = setSigBingoCell(live, { grid: v.grid, index: v.index, open: v.open, memberId: v.memberId });
   return message ? { status: "INVALID", message } : { status: "SAVED" };
 }
 

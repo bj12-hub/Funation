@@ -174,9 +174,15 @@ export type MockBroadcast = {
     reveal: SigBingoReveal;
     startedAt: string;
     requestId: string;
-    cells: { signatureId: string; signatureName: string; opened: { memberId: string | null; at: string; donationId: string | null } | null }[];
-    lines: number[];
-    lastOpened: number | null;
+    /** The boards by key (2026-10-28): "ALL" (공용 판 · 땅따먹기), "A" · "B" (BJ(팀)) or member ids (BJ(개인)). */
+    grids: Record<
+      string,
+      {
+        cells: { signatureId: string; signatureName: string; opened: { memberId: string | null; at: string; donationId: string | null } | null }[];
+        lines: number[];
+        lastOpened: number | null;
+      }
+    >;
   };
   /**
    * 복불복 뽑기판 board: the prizes placed at 시작 (MISS = 꽝) and who opened each cell (`revealAt`: its run's result). `round`

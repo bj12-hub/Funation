@@ -845,10 +845,17 @@ export const SIG_BINGO_SIZES = [3, 5, 7, 9] as const;
 export type SigBingoSize = (typeof SIG_BINGO_SIZES)[number];
 export const SIG_BINGO_BONUS_MAX = 10_000_000;
 
-/** SHARED (공용 판): any 시그니처 후원 opens its cell. TERRITORY (땅따먹기): only one sent to a member, in that member's color. */
-export type SigBingoMode = "SHARED" | "TERRITORY";
+/**
+ * SHARED (공용 판): any 시그니처 후원 opens its cell. TERRITORY (땅따먹기): only one sent to a member, in that member's color.
+ * TEAM (BJ(팀), 2026-10-28): A팀 · B팀 have a board each (팀 배틀 방송); one sent to a member opens their team's. SOLO
+ * (BJ(개인), 2026-10-28): each active member has a board; one sent to a member opens their own. Each board is laid out on its
+ * own.
+ */
+export type SigBingoMode = "SHARED" | "TERRITORY" | "TEAM" | "SOLO";
 export const SIG_BINGO_MODES: { key: SigBingoMode; label: string; note: string }[] = [
   { key: "SHARED", label: "공용 판", note: "어떤 시그니처 후원이든 그 시그니처 칸을 열어요. 줄을 완성한 후원의 멤버가 빙고 보너스를 받아요." },
+  { key: "TEAM", label: "BJ(팀)", note: "A팀 · B팀이 빙고판을 하나씩 가져요(팀 배틀 방송). 팀 멤버에게 온 시그니처 후원이 그 팀 판을 열고, 줄을 완성한 후원의 멤버가 빙고 보너스를 받아요." },
+  { key: "SOLO", label: "BJ(개인)", note: "멤버마다 자기 빙고판을 가져요. 그 멤버에게 온 시그니처 후원만 그 판을 열고, 줄을 완성한 판의 멤버가 빙고 보너스를 받아요." },
   { key: "TERRITORY", label: "땅따먹기", note: "멤버를 고른 시그니처 후원만 칸을 열고 그 멤버 색으로 차지해요. 한 줄을 모두 차지한 멤버가 빙고 보너스를 받아요." }
 ];
 /** SHOWN (칸 공개): every cell shows its signature. HIDDEN (칸 숨김): closed cells show "?" until opened. */
@@ -901,17 +908,23 @@ export const sigBingoLineName = (size: number, line: number) =>
 
 /** `opened`: who opened it (memberName null = no member — 공용 판 · 수동); `manual` = opened by the operator. */
 export type SigBingoCell = { signatureId: string; signatureName: string; imageUrl: string | null; opened: { memberName: string | null; memberColor: string | null; at: string; manual: boolean } | null };
-export type SigBingoBoard = {
-  size: SigBingoSize;
-  mode: SigBingoMode;
-  reveal: SigBingoReveal;
-  startedAt: string;
+/**
+ * One board (2026-10-28): `key` "ALL" (공용 판 · 땅따먹기 — `label` "") · "A" · "B" (BJ(팀)) · a member id (BJ(개인));
+ * `color` the team's or the member's (null for the one board); `members` who opens it (BJ(팀): the team · BJ(개인): the
+ * member · the one board: none listed).
+ */
+export type SigBingoGrid = {
+  key: string;
+  label: string;
+  color: string | null;
+  members: string[];
   cells: SigBingoCell[];
   /** Completed 빙고 lines (indices of sigBingoLines). */
   lines: number[];
   /** The cell opened last (OBS highlights it). */
   lastOpened: number | null;
 };
+export type SigBingoBoard = { size: SigBingoSize; mode: SigBingoMode; reveal: SigBingoReveal; startedAt: string; grids: SigBingoGrid[] };
 
 // 복불복 뽑기판 — StreamDonate 복불복 뽑기판: a grid of hidden cells (당첨 or 꽝); a donation opens one at random, the operator
 // can open any. The board resets when every cell is open (모든 칸 오픈 시 자동 리셋).
