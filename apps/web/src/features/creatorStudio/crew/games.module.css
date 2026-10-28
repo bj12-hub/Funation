@@ -526,6 +526,32 @@
 }
 
 /* 시그 빙고 남은 시그 (2026-10-25): the closed cells by signature, cheapest first. */
+/* 시그 빙고 BJ(팀) · BJ(개인): the boards side by side, wrapping on narrow screens. */
+.bingoBoards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 18px;
+}
+
+.bingoBoard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 260px;
+  min-width: 0;
+  max-width: 420px;
+}
+
+.bingoBoardName {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+}
+
 .remaining {
   display: flex;
   flex-direction: column;
