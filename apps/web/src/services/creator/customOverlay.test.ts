@@ -67,10 +67,42 @@ describe("커스텀 오버레이", () => {
     expect(await m.getCustomOverlayView()).toBeNull();
   });
 
+  it("hands OBS the crew 점수판 (2026-10-25): best first while a crew broadcast is live, empty otherwise", async () => {
+    const m = await load();
+    const read = async () => {
+      const res = await m.getCustomOverlay(m.overlayKey, "1");
+      if (res === "FORBIDDEN") throw new Error("forbidden");
+      return res;
+    };
+    expect((await read()).crew).toBeNull(); // the slot is off
+    expect(await m.saveCustomOverlay(slot())).toEqual({ status: "SAVED" });
+    expect((await read()).crew).toEqual({ live: false, title: "", project: null, round: null, rows: [], total: 0 });
+
+    const bc = await import("@/services/crew/crewBroadcast");
+    const { mockCrew } = await import("@/services/crew/mockCrewStore");
+    mockCrew.attributions = [];
+    expect(await bc.startBroadcast({ requestId: crypto.randomUUID(), title: "커스텀 방송", project: "시즌1", teamMode: false })).toEqual({ status: "SAVED" });
+    const id = (await bc.getBroadcastView())!.live!.id;
+    await bc.adjustScore({ broadcastId: id, memberId: "cm-s2", points: 5_000, adjustmentId: "test-key-00000001" });
+    await bc.adjustScore({ broadcastId: id, memberId: "cm-s1", points: 2_000, adjustmentId: "test-key-00000002" });
+    expect((await read()).crew).toEqual({
+      live: true,
+      title: "커스텀 방송",
+      project: "시즌1",
+      round: 1,
+      rows: [
+        { rank: 1, name: "하늘", color: "#ec4899", score: 5_000 },
+        { rank: 2, name: "길동", color: "#8b5cf6", score: 2_000 },
+        { rank: 3, name: "바다", color: "#3b82f6", score: 0 }
+      ],
+      total: 7_000
+    });
+  });
+
   it("hands OBS the slot's code with the showing donation and recent chat, and nothing while it is off or empty", async () => {
     const m = await load();
     expect(await m.getCustomOverlay("nope", "1")).toBe("FORBIDDEN");
-    expect(await m.getCustomOverlay(m.overlayKey, "1")).toEqual({ slot: 1, name: "커스텀 1", code: null, donation: null, chat: [], reloadSeq: 0, on: true });
+    expect(await m.getCustomOverlay(m.overlayKey, "1")).toEqual({ slot: 1, name: "커스텀 1", code: null, donation: null, chat: [], crew: null, reloadSeq: 0, on: true });
 
     await m.saveCustomOverlay(slot({ no: 3 }));
     m.chat("c1", "하나", "안녕하세요");

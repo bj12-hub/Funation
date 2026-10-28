@@ -12,7 +12,7 @@ import { sessionAccount } from "@/services/account/withdrawalCore";
 import { donorKeyOf, enqueueDonationAlert } from "@/services/creator/alertCore";
 import { shownOnStream } from "@/services/creator/donationPageCore";
 import { getCreatorById } from "@/services/creators/creators";
-import { attributeMemberDonation, isActiveMember, liveBroadcastOf, recordBroadcastDonation } from "@/services/crew/crewCore";
+import { attributeMemberDonation, isActiveMember, linkFeedAlert, liveBroadcastOf, recordBroadcastDonation, type FeedListing } from "@/services/crew/crewCore";
 import { gamesForSignature } from "@/services/crew/crewGameTriggers";
 import { drawMedley, medleyRun } from "@/services/crew/crewMedleyCore";
 import { drawRandomSig, randomSigRun } from "@/services/crew/crewRandomSigCore";
@@ -141,6 +141,8 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
     const medley = request.type === "TEXT" && !randomSig ? drawMedley(creator.id, request.amount) : null;
     const drawn = randomSig?.signature ?? medley?.signature;
     const signatureId = drawn?.id ?? signatureIdFor(request.type, request.amount, request.details);
+    // 후원 리스트 entry (crew broadcast, no member picked): listed before its alert is queued (미지정 일시정지).
+    let listed: FeedListing | null = null;
     if (quest) {
       const d = request.details as { title: string; timeLimitSec: number; creatorDecides: boolean };
       recordQuest({
@@ -161,7 +163,7 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
     } else {
       // Crew records keep the name as sent (방송 운영 후원 리스트, 크루 후원) and the name on stream (2026-10-09 결정).
       attributeMemberDonation(donationId, creator.id, request.memberId, request.amount, { donor, donorId, message: request.summary, shownDonor });
-      if (!request.memberId) recordBroadcastDonation(creator.id, { donor, shownDonor, message: request.summary, fnAmount: request.amount });
+      if (!request.memberId) listed = recordBroadcastDonation(creator.id, { donor, shownDonor, message: request.summary, fnAmount: request.amount });
       // 점수 게임 (2026-10-23): a 랜덤시그 records its run; a 시그니처 후원 to a member plays each game with 자동 on while a
       // crew broadcast is live (a 랜덤시그 counts as the signature it drew).
       randomSigRun(creator.id, { donationId, memberId: request.memberId, fnAmount: request.amount, drawn: randomSig });
@@ -173,7 +175,7 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
     // Their overlays show the name as the alert does (대체 메시지 표시 설정); the records keep the original.
     if (request.type === "GACHA") enqueueDraw({ id: donationId, channelId: creator.id, ...player, donor, shownDonor, gachaId: request.details.gachaId as string, amount: request.amount });
     if (request.type === "ROULETTE") enqueueSpin({ id: donationId, channelId: creator.id, ...player, donor, shownDonor, amount: request.amount });
-    enqueueDonationAlert(creator.id, {
+    const alert = enqueueDonationAlert(creator.id, {
       donor,
       // 후원랭킹 groups by this opaque key, never by the (copyable) name; a hidden profile has none.
       donorKey: request.hideProfile ? null : donorKeyOf(creator.id, session.userId),
@@ -188,13 +190,17 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
           : alertTypeLabel(catalog, request.type, request.amount),
       donationType: request.type,
       imageUrl: drawn ? signatureImageOf(drawn) : signatureImageFor(catalog, request.type, request.amount, request.details),
+      // 랜덤시그 알림 롤링 (2026-10-26): the candidates the card flips through first.
+      ...(randomSig?.rolling.length ? { rolling: randomSig.rolling } : {}),
       soundUrl: drawn ? signatureSoundOf(drawn) : signatureSoundFor(request.type, request.amount, request.details),
       // 시그 카운트 (2026-10-23): which signature, and the member the supporter picked.
       signatureId,
       ...(request.memberId ? { memberId: request.memberId } : {}),
       // The quest's arrival shows now; its FN counts in the 후원 위젯 once it succeeds.
-      ...(quest ? { questId: donationId } : {})
+      ...(quest ? { questId: donationId } : {}),
+      ...(listed?.held ? { held: true } : {})
     });
+    linkFeedAlert(listed, alert);
     // 영상 · 그림후원 위젯: paid requests reach the creator's queue / gallery.
     const d = request.details as Record<string, unknown>;
     if (request.type === "VIDEO" || request.type === "AUDIO") {

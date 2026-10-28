@@ -15,6 +15,7 @@ import {
   CREDITS_LINES_MAX,
   CREDITS_LINE_MAX,
   CREDITS_LIST_MAX,
+  CREDITS_MVP_BASES,
   CREDITS_PERIODS,
   CREDITS_SECTIONS,
   CREDITS_SECTION_TITLE_MAX,
@@ -43,7 +44,8 @@ import {
   type ToolsView
 } from "./broadcastToolTypes";
 import { mockAlerts, overlaySignal } from "./alertCore";
-import { donorRanking, rankingSince, totalBetween } from "./widgetOverlayCore";
+import { donorRanking, rankingSince, signatureCredits, totalBetween } from "./widgetOverlayCore";
+import { mockSignatures } from "@/services/donations/signatureCore";
 import { overlayTheme, readAppearance } from "./overlayThemeStore";
 import { isOverlayThemeChoice, type OverlayThemeChoice } from "./overlayThemeTypes";
 import { mockCreator } from "./mockCreatorStore";
@@ -65,9 +67,21 @@ const toolLook = () => (gt.__ssumnationMockToolThemeV1 ??= { theme: "INHERIT" })
 
 const bad = (s: string) => MOCK_FORBIDDEN_WORDS.some((w) => s.toLowerCase().includes(w));
 
+/** FN sent for each crew member (멤버 지정 후원) from `from` to `to`. */
+function sentBetween(from: number, to: number) {
+  const sent = new Map<string, number>();
+  for (const a of mockCrew.attributions) {
+    const t = Date.parse(a.at);
+    if (a.channelId === STUDIO_CHANNEL && t >= from && t <= to) sent.set(a.memberId, (sent.get(a.memberId) ?? 0) + a.fnAmount);
+  }
+  return sent;
+}
+
+const byScore = (x: { name: string; score: number }, y: { name: string; score: number }) => y.score - x.score || x.name.localeCompare(y.name);
+
 /**
  * The credits' numbers for its period (see CreditsData). Lists are cut to what the sections show: donors to TOP 3 + 후원
- * 순위, members to 멤버별 (MVP is the first member either way).
+ * 순위, members to 멤버별 (MVP is the first member either way, or by FN on MVP 기준 후원금액).
  */
 function creditsData(s: CreditsState, now = new Date()): CreditsData {
   const items = mockAlerts.items;
@@ -76,39 +90,46 @@ function creditsData(s: CreditsState, now = new Date()): CreditsData {
   let to = now.getTime();
   let periodLabel = "오늘";
   let members: { name: string; score: number }[];
+  let byAmount: { name: string; score: number }[] | null = null;
   if (s.period === "CREW") {
     const ofChannel = (mockCrew.broadcasts ?? []).filter((b) => b.channelId === STUDIO_CHANNEL);
     const b = liveBroadcastOf(STUDIO_CHANNEL) ?? [...ofChannel].filter((x) => x.endedAt).sort((x, y) => y.startedAt.localeCompare(x.startedAt))[0];
-    if (!b) return { periodLabel: "크루 방송 없음", empty: true, total: 0, donors: [], members: [], memberUnit: "점", mvp: null };
+    if (!b) return { periodLabel: "크루 방송 없음", empty: true, total: 0, donors: [], members: [], memberUnit: "점", mvp: null, hotSigs: [], highSigs: [] };
     from = Date.parse(b.startedAt);
     if (b.endedAt) to = Date.parse(b.endedAt);
     periodLabel = b.project ? `${b.title} · ${b.project} ${b.round}회차` : b.title;
     // An ended broadcast keeps the ranking frozen at its end (members may be renamed or removed since).
-    members = (b.final ?? scoreboardRows(b)).map((r) => ({ name: r.name, score: r.score }));
+    const rows = b.final ?? scoreboardRows(b);
+    members = rows.map((r) => ({ name: r.name, score: r.score }));
+    if (s.mvpBasis === "AMOUNT") {
+      // MVP 기준 후원금액: FN sent for each member during the broadcast, named as on its scoreboard.
+      const names = new Map([...crew.map((m) => [m.id, m.name] as const), ...rows.map((r) => [r.memberId, r.name] as const)]);
+      byAmount = [...sentBetween(from, to)].filter(([id]) => names.has(id)).map(([id, score]) => ({ name: names.get(id)!, score })).sort(byScore);
+    }
   } else {
     // Today in the service's time (Asia/Seoul), as the 후원랭킹 widget's 일간.
     from = rankingSince("일간", now);
-    const sent = new Map<string, number>();
-    for (const a of mockCrew.attributions) {
-      const t = Date.parse(a.at);
-      if (a.channelId === STUDIO_CHANNEL && t >= from && t <= to) sent.set(a.memberId, (sent.get(a.memberId) ?? 0) + a.fnAmount);
-    }
+    const sent = sentBetween(from, to);
     members = crew
       .filter((m) => m.active || sent.has(m.id))
       .map((m) => ({ name: m.name, score: sent.get(m.id) ?? 0 }))
-      .sort((x, y) => y.score - x.score || x.name.localeCompare(y.name));
+      .sort(byScore);
   }
-  const { top3, donors, members: memberSection } = s.sections;
+  const { top3, donors, members: memberSection, hotSigs, highSigs } = s.sections;
   const donorRows = donorRanking(items, from, to).slice(0, (top3.on ? 3 : 0) + (donors.on ? donors.max : 0));
-  const first = members[0];
+  const sigs = signatureCredits(items, from, to, mockSignatures.items);
+  const first = (byAmount ?? members)[0];
+  const memberUnit = s.period === "CREW" ? "점" : "FN";
   return {
     periodLabel,
     empty: false,
     total: totalBetween(items, from, to),
     donors: donorRows,
     members: members.slice(0, memberSection.max).map((m, i) => ({ rank: i + 1, ...m })),
-    memberUnit: s.period === "CREW" ? "점" : "FN",
-    mvp: first && first.score > 0 ? { ...first } : null
+    memberUnit,
+    mvp: first && first.score > 0 ? { ...first, unit: byAmount ? "FN" : memberUnit } : null,
+    hotSigs: sigs.hot.slice(0, hotSigs.max).map((r, i) => ({ rank: i + 1, ...r })),
+    highSigs: sigs.high.slice(0, highSigs.max).map((r, i) => ({ rank: i + 1, ...r }))
   };
 }
 
@@ -274,7 +295,7 @@ export async function controlCredits(action: unknown): Promise<ToolResult> {
 }
 
 /**
- * 엔딩 크레딧 저장: 제목 · 감사 문구, 연출 방식 · 스크롤 시간 · 집계 기간 and each section's on/off · title (blank = the
+ * 엔딩 크레딧 저장: 제목 · 감사 문구, 연출 방식 · 스크롤 시간 · 집계 기간 · MVP 기준 and each section's on/off · title (blank = the
  * default) · rows. A roll in progress keeps going with the new settings.
  */
 export async function saveCredits(input: unknown): Promise<ToolResult> {
@@ -295,21 +316,31 @@ export async function saveCredits(input: unknown): Promise<ToolResult> {
   }
   const period = CREDITS_PERIODS.find((x) => x.key === v.period)?.key;
   if (!period) return { status: "INVALID", message: "집계 기간을 골라 주세요." };
+  // A screen opened before MVP 기준 (2026-10-28) does not send it: it stays as saved.
+  const mvpBasis = v.mvpBasis === undefined ? tools.credits.mvpBasis : CREDITS_MVP_BASES.find((x) => x.key === v.mvpBasis)?.key;
+  if (!mvpBasis) return { status: "INVALID", message: "MVP 기준을 골라 주세요." };
   const raw = (typeof v.sections === "object" && v.sections !== null ? v.sections : {}) as Record<string, unknown>;
   const sections = {} as CreditsState["sections"];
   for (const meta of CREDITS_SECTIONS) {
+    // A screen opened before a section existed (HOT · HIGH 시그, 2026-10-25) does not send it: it stays as saved.
+    if (raw[meta.key] === undefined) {
+      sections[meta.key] = structuredClone(tools.credits.sections[meta.key]);
+      continue;
+    }
     const x = (typeof raw[meta.key] === "object" && raw[meta.key] !== null ? raw[meta.key] : {}) as Record<string, unknown>;
     const name = typeof x.title === "string" ? x.title.trim() : "";
     if (typeof x.on !== "boolean") return { status: "INVALID", message: "섹션 설정을 확인해 주세요." };
     if (name.length > CREDITS_SECTION_TITLE_MAX) return { status: "INVALID", message: `섹션 제목은 ${CREDITS_SECTION_TITLE_MAX}자 이내로 입력해 주세요.` };
     const max = meta.list ? x.max : DEFAULT_CREDITS.sections[meta.key].max;
-    if (typeof max !== "number" || !Number.isInteger(max) || max < 1 || max > CREDITS_LIST_MAX) return { status: "INVALID", message: `표시 인원은 1~${CREDITS_LIST_MAX}명이에요.` };
+    if (typeof max !== "number" || !Number.isInteger(max) || max < 1 || max > CREDITS_LIST_MAX) {
+      return { status: "INVALID", message: meta.unit === "개" ? `표시 개수는 1~${CREDITS_LIST_MAX}개예요.` : `표시 인원은 1~${CREDITS_LIST_MAX}명이에요.` };
+    }
     sections[meta.key] = { on: x.on, title: name, max };
   }
   const shown = [title, ...thanks, ...Object.values(sections).map((x) => x.title)];
   if (shown.some(bad)) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
   await mockDelay(150);
-  tools.credits = { title, thanks, style, durationSec: d, period, sections, rollingSince: tools.credits.rollingSince };
+  tools.credits = { title, thanks, style, durationSec: d, period, mvpBasis, sections, rollingSince: tools.credits.rollingSince };
   return { status: "SAVED" };
 }
 

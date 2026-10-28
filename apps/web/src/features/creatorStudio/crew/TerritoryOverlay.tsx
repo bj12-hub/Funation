@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from "react";
 import { ov } from "@/features/overlayTheme/OverlayThemeRoot";
+import { formatNumber } from "@/lib/format";
 import { useServerClock } from "@/hooks/useServerClock";
 import type { ResolvedTheme } from "@/services/creator/overlayThemeTypes";
 import { TERRITORY_TITLE_DEFAULT, type TerritoryLive } from "@/services/crew/crewTypes";
@@ -13,7 +14,9 @@ import styles from "./gameOverlay.module.css";
 /**
  * 땅따먹기 overlay (`?territory`): the board with its coordinates (A ~ · 1 ~) — each cell in its owner's color once that
  * assignment's result shows (runs queue, so a cell taken twice shows its owners in turn), the last one popping — and the
- * 점유 순위 (cells, share, 하트). Without a board it waits (대기 중에도 보이기), or the page stays empty.
+ * 점유 순위 (cells, share, 하트), and with 점유 롤링 표시 (2026-10-28) a line of 멤버 · 칸 (· 점수 with a 칸 점수) scrolling
+ * above or below the board. Colors are the 땅따먹기 BJ 색상. Without a board it waits (대기 중에도 보이기), or the page stays
+ * empty.
  */
 export function TerritoryOverlay({ territory, serverNow, reloadSeq, theme }: { territory: TerritoryLive | null; serverNow: string | null; reloadSeq: number; theme: ResolvedTheme }) {
   useOverlayPage(reloadSeq);
@@ -29,6 +32,23 @@ export function TerritoryOverlay({ territory, serverNow, reloadSeq, theme }: { t
     .map((m) => ({ ...m, cells: owners.filter((o) => o === m.memberId).length }))
     .filter((m) => m.cells > 0 || m.hearts > 0)
     .sort((x, y) => y.cells - x.cells || y.hearts - x.hearts);
+  const cellPoints = territory.settings.cellPoints;
+  const ticker = terr && territory.settings.ticker !== "OFF" && (
+    <p className={`${ov.label} ${styles.terrTicker}`} aria-hidden="true">
+      <span style={{ animationDuration: `${Math.max(10, ranking.length * 5)}s` }}>
+        {ranking.some((m) => m.cells > 0)
+          ? ranking
+              .filter((m) => m.cells > 0)
+              .map((m) => (
+                <b key={m.memberId}>
+                  {m.color && <i style={{ background: m.color }} />}
+                  {m.name} {m.cells}칸{cellPoints > 0 && ` · ${formatNumber(m.cells * cellPoints)}점`}
+                </b>
+              ))
+          : "아직 점령한 칸이 없어요"}
+      </span>
+    </p>
+  );
   const last = terr && terr.lastCell !== null ? terr.cells[terr.lastCell].owners.at(-1) : undefined;
   const lastShown = !!last && now >= Date.parse(last.revealAt);
   return (
@@ -43,6 +63,7 @@ export function TerritoryOverlay({ territory, serverNow, reloadSeq, theme }: { t
       playing="점령 중…"
       wide
     >
+      {territory.settings.ticker === "TOP" && ticker}
       {terr ? (
         <div className={styles.terr} style={{ "--terr-size": terr.size } as CSSProperties} aria-hidden="true">
           <span />
@@ -75,6 +96,7 @@ export function TerritoryOverlay({ territory, serverNow, reloadSeq, theme }: { t
           <span className={styles.sigUnknown}>🗺️</span>
         </div>
       )}
+      {territory.settings.ticker === "BOTTOM" && ticker}
       {ranking.length > 0 && terr && (
         <ol className={styles.gsRanking}>
           {ranking.map((m, i) => (

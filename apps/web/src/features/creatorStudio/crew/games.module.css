@@ -171,6 +171,8 @@
 
 .unit {
   display: flex;
+  /* Amount presets (시그니처 메들리 …) wrap on a phone instead of running off the card. */
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
@@ -521,4 +523,54 @@
   background: var(--cell-color, var(--color-primary));
   color: #ffffff;
   font-weight: var(--font-weight-bold);
+}
+
+/* 시그 빙고 남은 시그 (2026-10-25): the closed cells by signature, cheapest first. */
+/* 시그 빙고 BJ(팀) · BJ(개인): the boards side by side, wrapping on narrow screens. */
+.bingoBoards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 18px;
+}
+
+.bingoBoard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 260px;
+  min-width: 0;
+  max-width: 420px;
+}
+
+.bingoBoardName {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+}
+
+.remaining {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.remaining ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.remaining li {
+  padding: 4px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
 }

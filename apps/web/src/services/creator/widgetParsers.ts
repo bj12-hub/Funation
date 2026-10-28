@@ -2,6 +2,7 @@ import { isOverlayMotion, isOverlayThemeChoice, type OverlayThemeChoice } from "
 import {
   ALERT_EFFECTS_IN,
   ALERT_HEADLINE_MAX,
+  SIG_FETCH_MODES,
   ALERT_LAYOUTS,
   ALERT_TOKENS,
   CLOCK_LABEL_MAX,
@@ -13,6 +14,18 @@ import {
   TOP_DONATION_TIES,
   TOP_DONATION_TIMINGS,
   TOP_DONATION_TITLE_MAX,
+  SIG_WALL_GAP_MAX,
+  SIG_WALL_GAP_MIN,
+  SIG_WALL_IMAGE_MAX,
+  SIG_WALL_IMAGE_MIN,
+  SIG_WALL_PREFIX_MAX,
+  SIG_WALL_RADIUS_MAX,
+  SIG_WALL_STROKE_MAX,
+  SIG_WALL_TEXT_MAX,
+  SIG_WALL_TEXT_MIN,
+  SIG_WALL_TOP_LINES,
+  type SigWallLine,
+  type SigWallpaperSettings,
   type AlertSettings,
   type ClockSettings,
   type DonationMonitorSettings,
@@ -61,6 +74,7 @@ import {
   QR_CAPTION_MAX,
   QR_STYLES,
   RANKING_BOARDS,
+  RANKING_EXCLUDED_MAX,
   RANKING_MAX_RANKS,
   RANKING_NAME_TYPES,
   RANKING_SPEEDS,
@@ -139,7 +153,10 @@ function themeAndCard(v: Raw): { theme: OverlayThemeChoice; card: boolean } | st
 const FONT_ERROR = "폰트 설정을 확인해 주세요.";
 const COLOR_ERROR = "색상은 #RRGGBB 형식으로 입력해 주세요.";
 
-/** 후원 알림 디자인 (code-first): the headline needs {닉네임}; {금액} is optional. */
+/**
+ * 후원 알림 디자인 (code-first): the headline needs {닉네임}; {금액} is optional. 알림 사운드 · 시그니처 음원 받는 방식
+ * (2026-10-28) read as none · 기존 방식 from a screen that sends neither (the sound is checked against the library on save).
+ */
 const parseAlert: Parser<AlertSettings> = (v) => {
   if (!isOverlayThemeChoice(v.theme)) return "테마를 골라 주세요.";
   if (!keyOf(v.layout, ALERT_LAYOUTS)) return "알림 모양을 골라 주세요.";
@@ -148,6 +165,10 @@ const parseAlert: Parser<AlertSettings> = (v) => {
   }
   if (!isOverlayMotion(v.motion)) return "등장 효과를 골라 주세요.";
   if (![v.showMessage, v.showBadges, v.showPlatform, v.showImage, v.countUp].every(bool)) return "설정 값을 확인해 주세요.";
+  const soundId = v.soundId ?? null;
+  if (soundId !== null && (typeof soundId !== "string" || !ASSET_ID.test(soundId))) return "알림 사운드를 다시 골라 주세요.";
+  const sigFetch = v.sigFetch ?? "CACHE";
+  if (!keyOf(sigFetch, SIG_FETCH_MODES)) return "시그니처 음원 받는 방식을 골라 주세요.";
   return {
     theme: v.theme,
     layout: v.layout,
@@ -157,7 +178,9 @@ const parseAlert: Parser<AlertSettings> = (v) => {
     showPlatform: v.showPlatform as boolean,
     showImage: v.showImage as boolean,
     motion: v.motion,
-    countUp: v.countUp as boolean
+    countUp: v.countUp as boolean,
+    soundId,
+    sigFetch
   };
 };
 
@@ -391,8 +414,18 @@ const parseRanking: Parser<RankingSettings> = (v) => {
   }
   const look = themeAndCard(v);
   if (typeof look === "string") return look;
+  // 랭킹제외 (2026-10-28): a screen from before sends none.
+  const rawOut = v.excluded === undefined ? [] : v.excluded;
+  if (!Array.isArray(rawOut) || rawOut.length > RANKING_EXCLUDED_MAX) return `랭킹제외는 ${RANKING_EXCLUDED_MAX}명까지예요.`;
+  const excluded: RankingSettings["excluded"] = [];
+  for (const raw of rawOut) {
+    const x = obj(raw);
+    if (typeof x.key !== "string" || !/^(dk-[\w-]{1,40}|name:.{1,60})$/.test(x.key) || !text(x.name, 60, 1)) return "랭킹제외 목록을 확인해 주세요.";
+    if (!excluded.some((e) => e.key === x.key)) excluded.push({ key: x.key, name: (x.name as string).trim() });
+  }
   return {
     ...look,
+    excluded,
     style: v.style,
     board,
     title: (v.title as string).trim(),
@@ -651,6 +684,46 @@ const parseSigQueue: Parser<SigQueueSettings> = (v) => {
   return { theme: look.theme, layout: v.layout, compact: v.compact as boolean, showOrder: v.showOrder as boolean, next: v.next, showMessage: v.showMessage as boolean };
 };
 
+/** 시그 벽지 (code-first, 2026-10-28): every number in its range, colors as #RRGGBB (kept upper-case). */
+const sigWallLine = (v: unknown, min: number): SigWallLine | null => {
+  const l = obj(v);
+  if (!int(l.size, Math.max(min, SIG_WALL_TEXT_MIN), SIG_WALL_TEXT_MAX) || !int(l.stroke, 0, SIG_WALL_STROKE_MAX)) return null;
+  if (![l.color, l.strokeColor, l.accent].every(isHexColor)) return null;
+  return { size: l.size, stroke: l.stroke, color: (l.color as string).toUpperCase(), strokeColor: (l.strokeColor as string).toUpperCase(), accent: (l.accent as string).toUpperCase() };
+};
+const parseSigWallpaper: Parser<SigWallpaperSettings> = (v) => {
+  if (!isHexColor(v.bgColor)) return COLOR_ERROR;
+  if (!int(v.bgOpacity, 0, 100)) return "배경 불투명도는 0~100%예요.";
+  if (!int(v.imageWidth, SIG_WALL_IMAGE_MIN, SIG_WALL_IMAGE_MAX) || !int(v.imageHeight, SIG_WALL_IMAGE_MIN, SIG_WALL_IMAGE_MAX)) {
+    return `이미지 너비 · 높이는 ${SIG_WALL_IMAGE_MIN}~${SIG_WALL_IMAGE_MAX}px이에요.`;
+  }
+  if (![v.gapImage, v.gapLines, v.gapBottom].every((x) => int(x, SIG_WALL_GAP_MIN, SIG_WALL_GAP_MAX))) return `여백은 ${SIG_WALL_GAP_MIN}~${SIG_WALL_GAP_MAX}px이에요.`;
+  if (!int(v.radius, 0, SIG_WALL_RADIUS_MAX)) return `모서리 둥글기는 0~${SIG_WALL_RADIUS_MAX}px이에요.`;
+  if (!bool(v.imagePad) || !keyOf(v.topLine, SIG_WALL_TOP_LINES) || !oneOf(v.font, FONT_FAMILIES)) return "설정 값을 확인해 주세요.";
+  // The prefix keeps its spaces (a trailing one sets it apart from the number).
+  if (typeof v.amountPrefix !== "string" || v.amountPrefix.length > SIG_WALL_PREFIX_MAX) return `금액 앞 문구는 ${SIG_WALL_PREFIX_MAX}자 이내로 입력해 주세요.`;
+  const top = sigWallLine(v.top, SIG_WALL_TEXT_MIN);
+  const bottomLine = sigWallLine(v.bottom, SIG_WALL_TEXT_MIN);
+  const bold = obj(v.bottom).bold;
+  if (!top || !bottomLine || !bool(bold)) return `글자 크기는 ${SIG_WALL_TEXT_MIN}~${SIG_WALL_TEXT_MAX}px, 테두리는 0~${SIG_WALL_STROKE_MAX}px이고 색은 #RRGGBB 형식이에요.`;
+  return {
+    bgColor: (v.bgColor as string).toUpperCase(),
+    bgOpacity: v.bgOpacity,
+    imageWidth: v.imageWidth as number,
+    imageHeight: v.imageHeight as number,
+    imagePad: v.imagePad,
+    radius: v.radius,
+    gapImage: v.gapImage as number,
+    gapLines: v.gapLines as number,
+    gapBottom: v.gapBottom as number,
+    topLine: v.topLine,
+    amountPrefix: v.amountPrefix,
+    font: v.font,
+    top,
+    bottom: { ...bottomLine, bold }
+  };
+};
+
 /** WALLPAPER images are managed separately, so its parser returns the settings without them. */
 export type ParsedSettings<K extends EditableWidgetKey> = K extends "WALLPAPER" ? Omit<WallpaperSettings, "images"> : WidgetSettingsMap[K];
 
@@ -672,5 +745,6 @@ export const PARSERS: { [K in Exclude<EditableWidgetKey, "CUSTOM_SOUND">]: Parse
   CLOCK: parseClock,
   TOP_DONATION: parseTopDonation,
   DONATION_MONITOR: parseDonationMonitor,
-  SIG_QUEUE: parseSigQueue
+  SIG_QUEUE: parseSigQueue,
+  SIG_WALLPAPER: parseSigWallpaper
 };

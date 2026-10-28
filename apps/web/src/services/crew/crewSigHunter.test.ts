@@ -100,6 +100,45 @@ describe("시그니처 헌터", () => {
     expect(await m.saveSigHunter(settings())).toEqual({ status: "UNAUTHORIZED" });
   });
 
+  it("추가 금액 구간: each fills its own slots from its own range, all placed at random", async () => {
+    const m = await load();
+    const id = await m.start();
+    const [x, y] = [m.a, m.b];
+    const bands = [{ slots: 3, priceMin: y.price, priceMax: y.price }];
+    expect(await m.saveSigHunter(settings({ rounds: [only(x, { slots: 2, forfeits: 4, bands })] }))).toEqual({ status: "SAVED" });
+    const saved = (await m.getGamesView())!.sigHunterSettings.rounds[0];
+    expect(saved.bands).toEqual(bands);
+    expect(await m.startSigHunter({ broadcastId: id, requestId: key(1) })).toEqual({ status: "SAVED" });
+    const slots = (await m.view()).board!.slots;
+    expect(slots).toHaveLength(5);
+    expect(slots.filter((s) => s.signatureId === x.id)).toHaveLength(2);
+    expect(slots.filter((s) => s.signatureId === y.id)).toHaveLength(3);
+    expect(slots.filter((s) => s.forfeit)).toHaveLength(4); // 몰수권: fewer than all the slots, 구간 included
+
+    // A 라운드 without 추가 구간 keeps none; an empty 구간 list saves as none.
+    expect(await m.saveSigHunter(settings({ rounds: [round({ bands: [] })] }))).toEqual({ status: "SAVED" });
+    expect((await m.getGamesView())!.sigHunterSettings.rounds[0]).not.toHaveProperty("bands");
+
+    // A 구간 without a signature stops the hunt like a 라운드 without one.
+    await m.saveSigHunter(settings({ rounds: [round({ bands: [{ slots: 1, priceMin: 9_000_000, priceMax: null }] })] }));
+    expect(await m.startSigHunter({ broadcastId: id, requestId: key(2) })).toEqual({ status: "INVALID", message: "1라운드에 넣을 시그니처가 없어요. 금액 범위와 제외 시그를 확인해 주세요." });
+
+    const band = (b: Record<string, unknown>) => ({ slots: 1, priceMin: null, priceMax: null, ...b });
+    const bad: [Record<string, unknown>, string][] = [
+      [{ bands: "1" }, "추가 금액 구간은 4개까지"],
+      [{ bands: Array.from({ length: 5 }, () => band({})) }, "추가 금액 구간은 4개까지"],
+      [{ bands: [band({}), band({ slots: 0 })] }, "1라운드 추가 구간 2의 슬롯은 1칸 이상"],
+      [{ bands: [band({ priceMin: -5 })] }, "추가 구간 1의 금액 범위를 확인"],
+      [{ bands: [band({ priceMin: 10, priceMax: 5 })] }, "최소가 최대보다"],
+      [{ slots: 30, bands: [band({ slots: 11 })] }, "추가 금액 구간까지 모두 40칸까지"],
+      [{ slots: 3, forfeits: 5, bands: [band({ slots: 2 })] }, "몰수권은 슬롯보다 적게, 0 ~ 4개"]
+    ];
+    for (const [patch, message] of bad) {
+      const res = await m.saveSigHunter(settings({ rounds: [round(patch as Partial<SigHunterRound>)] }));
+      expect(res.status === "INVALID" && res.message, message).toContain(message);
+    }
+  });
+
   it("places 1라운드 signatures in random slots with its 몰수권 hidden from OBS", async () => {
     const m = await load();
     expect(await m.startSigHunter({ broadcastId: "bc-x", requestId: key(1) })).toEqual({ status: "INVALID", message: "진행 중인 방송이 아니에요." });

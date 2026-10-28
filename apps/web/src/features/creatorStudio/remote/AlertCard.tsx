@@ -3,14 +3,49 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { PlatformMark } from "@/features/broadcast/PlatformMark";
 import { OverlayThemeRoot, ov } from "@/features/overlayTheme/OverlayThemeRoot";
-import { alertAmount, type AlertItem } from "@/services/creator/alertTypes";
+import { ALERT_ROLL_MS, alertAmount, type AlertItem } from "@/services/creator/alertTypes";
 import type { ResolvedTheme } from "@/services/creator/overlayThemeTypes";
 import { ALERT_TOKENS, type AlertSettings } from "@/services/creator/widgetSettingsTypes";
 import c from "./alertCard.module.css";
 
-export type AlertCardData = Pick<AlertItem, "id" | "donor" | "message" | "fnAmount" | "amountLabel" | "typeLabel" | "platform" | "imageUrl" | "badges">;
+export type AlertCardData = Pick<AlertItem, "id" | "donor" | "message" | "fnAmount" | "amountLabel" | "typeLabel" | "platform" | "imageUrl" | "badges" | "rolling">;
 
 const COUNT_MS = 900;
+const ROLL_TICK_MS = 90;
+const reducedMotion = () => typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const rollOf = (alert: Pick<AlertItem, "imageUrl" | "rolling">, showImage: boolean) => (showImage && alert.imageUrl && (alert.rolling?.length ?? 0) > 1 ? alert.rolling! : null);
+
+/** Whether the card opens with the 랜덤시그 알림 롤링 (an image shown, more than one candidate, motion allowed). Browser only. */
+export const rollsIn = (alert: Pick<AlertItem, "imageUrl" | "rolling">, showImage: boolean) => !!rollOf(alert, showImage) && !reducedMotion();
+
+/**
+ * 랜덤시그 알림 롤링 (2026-10-26): for its first ALERT_ROLL_MS the card flips through the candidate images (looks only —
+ * the server drew the signature), then shows its own. Once per card (`runKey`), not again on each re-read of the queue.
+ */
+function useRolledImage(alert: AlertCardData, showImage: boolean, runKey: string) {
+  const image = showImage ? alert.imageUrl : undefined;
+  const roll = rollOf(alert, showImage);
+  const rolls = roll?.length ?? 0;
+  const [tick, setTick] = useState<number | null>(rolls ? 0 : null);
+  useEffect(() => {
+    if (!rolls || reducedMotion()) {
+      setTick(null);
+      return;
+    }
+    setTick(0);
+    const flip = setInterval(() => setTick((n) => (n ?? 0) + 1), ROLL_TICK_MS);
+    const done = setTimeout(() => {
+      clearInterval(flip);
+      setTick(null);
+    }, ALERT_ROLL_MS);
+    return () => {
+      clearInterval(flip);
+      clearTimeout(done);
+    };
+  }, [runKey, rolls]);
+  return roll && tick !== null ? roll[tick % roll.length] : image;
+}
 
 /**
  * The amount label with its number counting up from 0 when the card arrives (e.g. "10,000 FN", "₩5,000",
@@ -96,7 +131,7 @@ function Meta({ alert, design }: { alert: AlertCardData; design: AlertSettings }
 export function AlertCard({ alert, design, theme, replay = 0, vertical = false }: { alert: AlertCardData; design: AlertSettings; theme: ResolvedTheme; replay?: number; vertical?: boolean }) {
   const label = alertAmount(alert);
   const amount = useCountUp(label, design.countUp, `${alert.id}:${replay}`);
-  const image = design.showImage ? alert.imageUrl : undefined;
+  const image = useRolledImage(alert, design.showImage, `${alert.id}:${replay}`);
   const bold = theme.theme === "BOLD";
   const message = design.showMessage && alert.message ? alert.message : null;
   const headline = (

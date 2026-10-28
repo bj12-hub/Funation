@@ -9,7 +9,7 @@ import { diceLive, diceSettingsOf, parseDiceSettings, runDice } from "./crewDice
 import { gameRunView, memberSources, usedSources, type RunStart, type StoredRun } from "./crewGameCore";
 import { clearGridDrawBoard, gridDrawLive, gridDrawSettingsOf, openGridDrawCell, parseGridDrawSettings, startGridDrawBoard } from "./crewGridDrawCore";
 import { alphabetLive, alphabetSettingsOf, parseAlphabetSettings, resetAlphabetBoard, runAlphabet } from "./crewAlphabetCore";
-import { goStopLive, goStopSettingsOf, parseGoStopSettings, resetGoStopPool, runGoStop } from "./crewGoStopCore";
+import { adjustGoStopPool, goStopLive, goStopSettingsOf, parseGoStopSettings, resetGoStopPool, resetGoStopRanking, runGoStop } from "./crewGoStopCore";
 import {
   adjustTerritoryHearts,
   assignTerritoryCell,
@@ -33,7 +33,7 @@ import {
 import { addJupjupItem, jupjupLive, jupjupSettingsOf, parseJupjupSettings, removeJupjupItems } from "./crewJupjupCore";
 import { medleyLive, medleySettingsOf, parseMedleySettings, playMedleyRun } from "./crewMedleyCore";
 import { clearSigBingoBoard, parseSigBingoSettings, setSigBingoCell, sigBingoLive, sigBingoSettingsOf, startSigBingoBoard } from "./crewSigBingoCore";
-import { parseRandomSigSettings, randomSigLive, randomSigSettingsOf } from "./crewRandomSigCore";
+import { deleteRandomSigPresetOf, parseRandomSigSettings, randomSigLive, randomSigPresetsOf, randomSigSettingsOf, saveRandomSigPresetOf } from "./crewRandomSigCore";
 import { clearRelayPending, parseRelaySettings, relayLive, relaySettingsOf } from "./crewRelayCore";
 import { sigCountSignatures } from "./crewSigCountCore";
 import { parseSpinSettings, runSpin, spinLive, spinSettingsOf } from "./crewSpinCore";
@@ -114,6 +114,7 @@ export async function getGamesView(): Promise<GamesView | null> {
     diceSettings: structuredClone(diceSettingsOf(STUDIO_CHANNEL)),
     twoWheelSettings: structuredClone(twoWheelSettingsOf(STUDIO_CHANNEL)),
     randomSigSettings: structuredClone(randomSigSettingsOf(STUDIO_CHANNEL)),
+    randomSigPresets: structuredClone(randomSigPresetsOf(STUDIO_CHANNEL)),
     relaySettings: structuredClone(relaySettingsOf(STUDIO_CHANNEL)),
     jupjupSettings: structuredClone(jupjupSettingsOf(STUDIO_CHANNEL)),
     medleySettings: structuredClone(medleySettingsOf(STUDIO_CHANNEL)),
@@ -172,6 +173,22 @@ export async function saveRandomSig(input: unknown): Promise<BroadcastResult> {
   const shared = parsed.auto && medley.auto ? parsed.tiers.find((t) => t.trigger === medley.trigger) : undefined;
   if (shared) return { status: "INVALID", message: `발동 금액 ${shared.trigger.toLocaleString("ko-KR")} FN은 시그니처 메들리가 쓰고 있어요.` };
   (mockCrew.randomSigs ??= {})[STUDIO_CHANNEL] = parsed;
+  return { status: "SAVED" };
+}
+
+/** 랜덤시그 설정 프리셋 저장 ({ name, settings }): the same name replaces that 프리셋. 켜짐 is not part of it. */
+export async function saveRandomSigPreset(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const res = saveRandomSigPresetOf(STUDIO_CHANNEL, input, MOCK_FORBIDDEN_WORDS, signatureIds());
+  return "message" in res ? { status: "INVALID", message: res.message } : res;
+}
+
+/** 랜덤시그 설정 프리셋 삭제 ({ id }). */
+export async function deleteRandomSigPreset(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  deleteRandomSigPresetOf(STUDIO_CHANNEL, rec(input).id);
   return { status: "SAVED" };
 }
 
@@ -279,14 +296,14 @@ export async function startSigBingo(input: unknown): Promise<BroadcastResult> {
   return message ? { status: "INVALID", message } : { status: "SAVED" };
 }
 
-/** 수동 칸 열기 · 닫기 (`open`; 땅따먹기 opens for `memberId`). */
+/** 수동 칸 열기 · 닫기 (`open`) on the `grid` board (BJ 모드; missing = the one board); 땅따먹기 · BJ(팀) open for `memberId`. */
 export async function setSigBingo(input: unknown): Promise<BroadcastResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const v = rec(input);
   const live = liveBroadcastOf(STUDIO_CHANNEL);
   if (!live || live.id !== v.broadcastId) return notLive;
-  const message = setSigBingoCell(live, { index: v.index, open: v.open, memberId: v.memberId });
+  const message = setSigBingoCell(live, { grid: v.grid, index: v.index, open: v.open, memberId: v.memberId });
   return message ? { status: "INVALID", message } : { status: "SAVED" };
 }
 
@@ -490,11 +507,33 @@ export async function resetGoStop(input: unknown): Promise<BroadcastResult> {
   return { status: "SAVED" };
 }
 
+/** 풀 수동 조정 ({ points, reason, requestId }): ± points on the 풀, once per request. */
+export async function adjustGoStop(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = rec(input);
+  const live = liveBroadcastOf(STUDIO_CHANNEL);
+  if (!live || live.id !== v.broadcastId) return notLive;
+  if (!validId(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
+  const message = adjustGoStopPool(live, { points: v.points, reason: v.reason, requestId: v.requestId });
+  return message ? { status: "INVALID", message } : { status: "SAVED" };
+}
+
+/** 랭킹 리셋: the STOP 랭킹 counts from now (the points stay). */
+export async function resetGoStopRank(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const live = liveBroadcastOf(STUDIO_CHANNEL);
+  if (!live || live.id !== rec(input).broadcastId) return notLive;
+  resetGoStopRanking(live);
+  return { status: "SAVED" };
+}
+
 /** Replaces the 땅따먹기 settings (이름 · 판 크기 · 하트 받는 방식 · 칸 점수 · 후원으로 하트 주기 · 제외 시그 · 대기 화면). */
 export async function saveTerritory(input: unknown): Promise<BroadcastResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
-  const parsed = parseTerritorySettings(input, MOCK_FORBIDDEN_WORDS, signatureIds());
+  const parsed = parseTerritorySettings(input, MOCK_FORBIDDEN_WORDS, signatureIds(), (mockCrew.crews[STUDIO_CHANNEL] ?? []).map((m) => m.id));
   if ("message" in parsed) return { status: "INVALID", message: parsed.message };
   (mockCrew.territories ??= {})[STUDIO_CHANNEL] = parsed;
   return { status: "SAVED" };
@@ -552,7 +591,7 @@ export async function saveSudopoly(input: unknown): Promise<BroadcastResult> {
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const saved = sudopolySettingsOf(STUDIO_CHANNEL);
   const known = { spaces: saved.spaces.map((x) => x.id), keys: saved.keys.map((x) => x.id), tiers: saved.tiers.map((x) => x.id) };
-  const parsed = parseSudopolySettings(input, MOCK_FORBIDDEN_WORDS, signatureIds(), known);
+  const parsed = parseSudopolySettings(input, MOCK_FORBIDDEN_WORDS, signatureIds(), known, (mockCrew.crews[STUDIO_CHANNEL] ?? []).map((m) => m.id));
   if ("message" in parsed) return { status: "INVALID", message: parsed.message };
   (mockCrew.sudopolys ??= {})[STUDIO_CHANNEL] = parsed;
   return { status: "SAVED" };
@@ -598,6 +637,9 @@ export async function playGame(input: unknown): Promise<GamePlayResult> {
   if (game === "SUDOPOLY" && !sudopolySettingsOf(STUDIO_CHANNEL).spaces.length) return { status: "INVALID", message: "먼저 스도폴리 판을 만들어 주세요." };
   if (!isActiveMember(STUDIO_CHANNEL, v.memberId)) return { status: "INVALID", message: "멤버를 골라 주세요." };
   const memberId = v.memberId as string;
+  if (game === "SUDOPOLY" && sudopolySettingsOf(STUDIO_CHANNEL).pieceMode === "MEMBER" && sudopolySettingsOf(STUDIO_CHANNEL).sitOut.includes(memberId)) {
+    return { status: "INVALID", message: "스도폴리에 참여하지 않는 BJ예요." };
+  }
   let source: GameSource | null = null;
   if (v.sourceId !== null && v.sourceId !== undefined) {
     source = memberSources(live, memberId).find((x) => x.id === v.sourceId) ?? null;

@@ -12,18 +12,18 @@ import { currentRun, voteBoard } from "@/services/votes/voteCore";
 import { isHidden, stageOf } from "@/services/donations/rouletteCore";
 import { boardOf, channelRows as gachaRows, isHidden as gachaHidden, mockGacha, stageOf as gachaStageOf } from "@/services/donations/gachaCore";
 import { STUDIO_CHANNEL, mockCrew } from "@/services/crew/mockCrewStore";
-import { crewRankingRows, eventLines, goalProgress, miniLines, monitorLine, rankingRows, recentLines, secondGoalProgress, sigQueueCards, sourceBoardRows, topDonation, totalAmount } from "./widgetOverlayCore";
+import { crewRankingRows, eventLines, goalProgress, miniLines, monitorLine, rankingRows, recentLines, secondGoalProgress, sigQueueCards, sigWallCard, sourceBoardRows, topDonation, totalAmount } from "./widgetOverlayCore";
 import { overlayTheme } from "./overlayThemeStore";
 import type { OverlayThemeChoice } from "./overlayThemeTypes";
 import { QR_SAMPLE_IMAGE, isWidgetOverlay, type OverlayWidget } from "./widgetOverlayTypes";
-import { readWidget } from "./widgetStore";
+import { readWidget, widgetState } from "./widgetStore";
 import { clearedAtOf, mockWallpaper, wallStickers } from "./wallpaperCore";
 
 /**
  * 후원 위젯 OBS overlays (code-first): no login — the integration key in the URL is the credential, like
  * the other overlays. Settings come from 위젯 settings, numbers from the creator's donation feed.
  */
-export async function getOverlayWidget(widget: unknown, key: unknown): Promise<OverlayWidget | "FORBIDDEN"> {
+export async function getOverlayWidget(widget: unknown, key: unknown, donation?: unknown): Promise<OverlayWidget | "FORBIDDEN"> {
   // With FLEXTV: the 룰렛 · 뽑기 · 퀘스트 · 미니 overlays from FLEXTV (phase 6); the mock ones are not served.
   if (FLEXTV_SSUMNATION_API) return flextvOverlayWidget(widget, key);
   if (FLEXTV_STUDIO) return "FORBIDDEN";
@@ -122,7 +122,7 @@ export async function getOverlayWidget(widget: unknown, key: unknown): Promise<O
     // 알림 모니터 (2026-10-23): read the 후원 알림 history and queue as they are — only the 후원 알림 overlay moves the queue.
     case "top-donation": {
       const settings = readWidget("TOP_DONATION");
-      return { widget, settings, top: topDonation(items, settings), ...themed(settings) };
+      return { widget, settings, top: topDonation(items, settings, new Date(), widgetState.topDonation), ...themed(settings) };
     }
     case "donation-monitor": {
       const settings = readWidget("DONATION_MONITOR");
@@ -131,6 +131,11 @@ export async function getOverlayWidget(widget: unknown, key: unknown): Promise<O
     case "sig-queue": {
       const settings = readWidget("SIG_QUEUE");
       return { widget, settings, cards: sigQueueCards(items, settings), ...themed(settings) };
+    }
+    // 시그 벽지 (2026-10-28): the 시그니처 후원 `?d=` names, until the source is removed.
+    case "sig-wallpaper": {
+      const settings = readWidget("SIG_WALLPAPER");
+      return { widget, settings, card: sigWallCard(items, donation), ...themed(settings) };
     }
     case "wallpaper": {
       // Stickers since the last 벽지 비우기 (리모컨). The images go once; each sticker points at one.

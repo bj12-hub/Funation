@@ -49,7 +49,8 @@ export const WIDGET_PAGES = {
     tabs: [
       { key: "TOP_DONATION", slug: "top", label: "최고 후원" },
       { key: "DONATION_MONITOR", slug: "now", label: "후원 모니터링" },
-      { key: "SIG_QUEUE", slug: "queue", label: "시그 큐 모니터" }
+      { key: "SIG_QUEUE", slug: "queue", label: "시그 큐 모니터" },
+      { key: "SIG_WALLPAPER", slug: "sigwall", label: "시그 벽지" }
     ],
     target: "widgets"
   },

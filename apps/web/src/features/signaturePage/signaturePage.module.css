@@ -1,0 +1,58 @@
+/* 공개 시그니처 페이지 (code-first) — on top of the channel tab's signature cards (creatorRoom/channel.module.css). */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: min(100% - 32px, 1080px);
+  margin: 0 auto;
+  padding: 32px 0 64px;
+}
+
+.head h1 {
+  margin: 0 0 6px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.head p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-14);
+}
+
+.tools {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Group and sort chips wrap on a phone instead of squeezing their labels. */
+.tools > div {
+  flex-wrap: wrap;
+}
+
+.tools button {
+  white-space: nowrap;
+}
+
+/* The card is not a link here: ▶ is its only control. */
+.card {
+  cursor: default;
+}
+
+.play {
+  align-self: stretch;
+  height: 32px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-bold);
+}
+
+.play[aria-pressed="true"] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}

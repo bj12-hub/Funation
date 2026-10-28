@@ -24,6 +24,30 @@ export type ManagedSignature = {
   group: string;
 };
 
+/**
+ * 미디어 누락 (2026-10-25, StreamDonate 시그니처 관리 참고): where a signature's media stands, by the rules alerts use.
+ * image MISSING = a library image deleted since (alerts show the first preset); sound NONE = none picked, MISSING = a
+ * library sound deleted since (the alert plays none).
+ */
+export type SignatureMedia = { image: "OK" | "MISSING"; sound: "OK" | "NONE" | "MISSING" };
+/** A signature as the 시그니처 후원 screen lists it. */
+export type SignatureRow = ManagedSignature & { media: SignatureMedia };
+
+/** 미디어 누락 필터: one chip per kind of gap. */
+export const MEDIA_GAPS = [
+  { key: "IMAGE_MISSING", label: "이미지 지워짐" },
+  { key: "SOUND_MISSING", label: "소리 지워짐" },
+  { key: "SOUND_NONE", label: "소리 없음" }
+] as const;
+export type MediaGap = (typeof MEDIA_GAPS)[number]["key"];
+export function mediaGapsOf(m: SignatureMedia): MediaGap[] {
+  const gaps: MediaGap[] = [];
+  if (m.image === "MISSING") gaps.push("IMAGE_MISSING");
+  if (m.sound === "MISSING") gaps.push("SOUND_MISSING");
+  if (m.sound === "NONE") gaps.push("SOUND_NONE");
+  return gaps;
+}
+
 export const SIGNATURE_LIMITS = { max: 50, nameMax: 20, priceMin: 100, priceMax: 10_000_000, groupMax: 10 } as const;
 export const DEFAULT_SIGNATURE_GROUP = "기본";
 
@@ -51,6 +75,16 @@ export const spanText = (s: Pick<ManagedSignature, "price" | "rangeMin">) =>
 export const SIGNATURE_IMAGE_PRESETS = Array.from({ length: 8 }, (_, i) => `/mock/room/signatures/sig-${i + 1}.png`);
 
 export type SignatureResult = { status: "SAVED"; id: string } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
+
+/**
+ * 공개 시그니처 페이지 (2026-10-25, StreamDonate 참고 — 기본값): a page anyone with its address can open without logging in,
+ * listing the active signatures with their sound. Off until the creator turns it on; the key in `path` can be reissued
+ * (the old address stops), and it stops while the creator's access is closed (정지 · 탈퇴), like the other links.
+ */
+export type SignaturePageSettings = { enabled: boolean; path: string };
+export type PublicSignature = { id: string; name: string; price: number; imageUrl: string; soundUrl: string | null; group: string };
+/** The page: the channel's active signatures in the creator's order and their groups in order. */
+export type PublicSignaturePage = { channelName: string; signatures: PublicSignature[]; groups: string[] };
 
 /**
  * 시그니처 일괄 만들기 (funnation "시그니처 일괄 생성", code-first 2026-10-06): one signature per library image,

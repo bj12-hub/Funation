@@ -6,6 +6,7 @@ import {
   TERRITORY_HEART_MODES,
   TERRITORY_HEART_POINTS_MAX,
   TERRITORY_SIZES,
+  TERRITORY_TICKERS,
   territoryCoord,
   type TerritoryLive,
   type TerritorySettings
@@ -24,10 +25,11 @@ type StoredBoard = NonNullable<MockBroadcast["territory"]>;
 const rec = (input: unknown) => (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
 const isInt = (v: unknown, min: number, max: number): v is number => typeof v === "number" && Number.isInteger(v) && v >= min && v <= max;
 
-/** The channel's 땅따먹기 settings (defaults until saved). */
-export const territorySettingsOf = (channelId: string): TerritorySettings => mockCrew.territories?.[channelId] ?? DEFAULT_TERRITORY;
+/** The channel's 땅따먹기 settings (defaults until saved; settings from before 점유 롤링 · BJ 색상 read with them off). */
+export const territorySettingsOf = (channelId: string): TerritorySettings => ({ ...DEFAULT_TERRITORY, ...mockCrew.territories?.[channelId] });
 
-export function parseTerritorySettings(input: unknown, forbidden: string[], signatureIds: string[]): TerritorySettings | { message: string } {
+/** `memberIds`: the crew's members (a 땅따먹기 색상 is kept only for one of them). */
+export function parseTerritorySettings(input: unknown, forbidden: string[], signatureIds: string[], memberIds: string[]): TerritorySettings | { message: string } {
   const common = parseGameCommon(input, forbidden, signatureIds);
   if ("message" in common) return common;
   const v = rec(input);
@@ -37,7 +39,18 @@ export function parseTerritorySettings(input: unknown, forbidden: string[], sign
   if (!heartMode) return { message: "하트 받는 방식을 골라 주세요." };
   if (!isInt(v.heartPoints, 1, TERRITORY_HEART_POINTS_MAX)) return { message: `하트 기준 점수는 1 ~ ${TERRITORY_HEART_POINTS_MAX.toLocaleString("ko-KR")}점이에요.` };
   if (!isInt(v.cellPoints, 0, TERRITORY_CELL_POINTS_MAX)) return { message: `칸 점수는 0 ~ ${TERRITORY_CELL_POINTS_MAX.toLocaleString("ko-KR")}점이에요.` };
-  return { ...common, size, heartMode, heartPoints: v.heartPoints, cellPoints: v.cellPoints };
+  // A screen from before 점유 롤링 · BJ 색상 sends neither: off, crew colors.
+  const ticker = v.ticker === undefined ? "OFF" : TERRITORY_TICKERS.find((x) => x.key === v.ticker)?.key;
+  if (!ticker) return { message: "점유 롤링 표시를 골라 주세요." };
+  const raw = v.colors === undefined ? {} : v.colors;
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return { message: "BJ 색상을 확인해 주세요." };
+  const colors: Record<string, string> = {};
+  for (const [id, color] of Object.entries(raw)) {
+    if (typeof color !== "string" || !/^#[0-9a-f]{6}$/i.test(color)) return { message: "BJ 색상은 #RRGGBB 형식이에요." };
+    // A member removed since drops out (their color goes with them).
+    if (memberIds.includes(id)) colors[id] = color.toLowerCase();
+  }
+  return { ...common, size, heartMode, heartPoints: v.heartPoints, cellPoints: v.cellPoints, ticker, colors };
 }
 
 /** 판 시작: an empty board from the saved size, with no 하트 yet. `requestId` makes a retried start a no-op. */
@@ -134,9 +147,10 @@ export function clearTerritoryBoard(b: MockBroadcast) {
 export function territoryLive(b: MockBroadcast): TerritoryLive {
   const board = b.territory;
   const crew = mockCrew.crews[b.channelId] ?? [];
+  const settings = territorySettingsOf(b.channelId);
   const involved = (id: string) => !!board && (board.hearts.some((h) => h.memberId === id) || board.cells.some((c) => c.owners.some((o) => o.memberId === id)));
   return {
-    settings: structuredClone(territorySettingsOf(b.channelId)),
+    settings: structuredClone(settings),
     runs: gameRunsView(b, "TERRITORY"),
     board: board
       ? {
@@ -148,6 +162,7 @@ export function territoryLive(b: MockBroadcast): TerritoryLive {
       : null,
     members: crew
       .filter((m) => m.active || involved(m.id))
-      .map((m) => ({ memberId: m.id, name: m.name, color: m.color, active: m.active, hearts: board ? unusedHearts(board, m.id) : 0 }))
+      // 땅따먹기 전용 BJ 색상 first (2026-10-28).
+      .map((m) => ({ memberId: m.id, name: m.name, color: settings.colors[m.id] ?? m.color, active: m.active, hearts: board ? unusedHearts(board, m.id) : 0 }))
   };
 }

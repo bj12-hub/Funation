@@ -28,7 +28,13 @@ import type {
   SigBingoSettings,
   SigBingoSize,
   PrizeBoardSettings,
+  DonorMerge,
   TeamPrizeSettings,
+  CumulativeSettings,
+  GaugeSettings,
+  WindowGaugeSettings,
+  MemberPledge,
+  RandomSigPreset,
   RandomSigSettings,
   RelaySettings,
   ScenarioPart,
@@ -72,7 +78,14 @@ export type MockBroadcast = {
   adjustments: { id: string; at: string; memberId: string; points: number; reason: string }[];
   project?: string | null;
   round?: number | null;
+  /**
+   * 동일 프로젝트 회차 간 기여도 공유 (2026-10-28): chosen at the start (with a project) — the scoreboard adds the project's
+   * earlier 회차. Missing = off.
+   */
+  carry?: boolean;
   assignMode?: AssignMode;
+  /** 미지정 일시정지 (2026-10-25): missing = off. */
+  pauseUnassigned?: boolean;
   /** 후원 리스트 (newest last). */
   feed?: FeedEntry[];
   /** Active 한방 window. */
@@ -129,6 +142,8 @@ export type MockBroadcast = {
     dice?: [number, number];
     wheel?: { op: "ADD" | "MULTIPLY"; n: number };
     range?: [number, number];
+    /** 랜덤시그 앞자리 배수: the 자리 단위 (FN). */
+    digit?: number;
     from?: { memberId: string; amount: number };
     /** Points the run moves for other members (시그니처 헌터 몰수권), counted with the run. */
     shares?: { memberId: string; points: number }[];
@@ -164,9 +179,15 @@ export type MockBroadcast = {
     reveal: SigBingoReveal;
     startedAt: string;
     requestId: string;
-    cells: { signatureId: string; signatureName: string; opened: { memberId: string | null; at: string; donationId: string | null } | null }[];
-    lines: number[];
-    lastOpened: number | null;
+    /** The boards by key (2026-10-28): "ALL" (공용 판 · 땅따먹기), "A" · "B" (BJ(팀)) or member ids (BJ(개인)). */
+    grids: Record<
+      string,
+      {
+        cells: { signatureId: string; signatureName: string; opened: { memberId: string | null; at: string; donationId: string | null } | null }[];
+        lines: number[];
+        lastOpened: number | null;
+      }
+    >;
   };
   /**
    * 복불복 뽑기판 board: the prizes placed at 시작 (MISS = 꽝) and who opened each cell (`revealAt`: its run's result). `round`
@@ -227,7 +248,8 @@ export type MockBroadcast = {
    */
   alphabet?: { word: string; members: Record<string, { slots: ({ revealAt: string } | null)[]; done: number; full: boolean; log: AlphabetEvent[] }> };
   /** 고스톱: the crew's 풀 and GO count now (a STOP's own record is its run). */
-  gostop?: { pool: number; go: number };
+  /** 고스톱: the 풀 now, GO count, 풀 수동 조정 (request ids dedupe) and the 랭킹 리셋 time (2026-10-28). */
+  gostop?: { pool: number; go: number; adjustments?: { id: string; at: string; points: number; reason: string }[]; rankingSince?: string | null };
   /**
    * 땅따먹기 board (판 시작 replaces it): each cell's owners in order (`revealAt`: when OBS shows each), and the 하트 log —
    * what each member earned (`donationId`, one entry per donation) or the operator added or took (`requestId`). Unused 하트 =
@@ -246,10 +268,19 @@ export type MockBroadcast = {
   prizeBoard?: PrizeBoardState;
   /** 팀 순위표 (`?teamprize`), with its own 구간. */
   teamPrize?: PrizeBoardState;
+  /** 누적 기여도 shown on OBS (`?cumulative`). */
+  cumulative?: { visible: boolean };
+  /** 출근 BJ 게이지 shown on OBS (`?bjgauge`). */
+  gauge?: { visible: boolean };
+  /** 시간 내 통합 게이지 (`?windowgauge`): shown on OBS and its 구간, like a 순위표. */
+  windowGauge?: PrizeBoardState;
   /** 시그 카운트: shown on OBS (`?sigcount`) and counted from `since` (null = the broadcast start; 다시 세기 sets it). */
   sigCount?: { visible: boolean; since: string | null; resets: string[] };
-  /** Final ranking frozen at the end (members may be renamed or removed later). */
-  final: { memberId: string; name: string; score: number }[] | null;
+  /**
+   * Final ranking frozen at the end (members may be renamed or removed later). `carried`: the part of `score` that came
+   * from earlier 회차 (기여도 공유), so their own score is `score − carried`. Missing = 0.
+   */
+  final: { memberId: string; name: string; score: number; carried?: number }[] | null;
 };
 
 type MockCrew = {
@@ -258,6 +289,10 @@ type MockCrew = {
   broadcasts?: MockBroadcast[];
   /** 후원 리스트 keywords per member id (kept across broadcasts). */
   keywords?: Record<string, string[]>;
+  /** 기여도 공유 as last chosen at a start, per channel (the next start form opens with it). */
+  carryRounds?: Record<string, boolean>;
+  /** BJ 이름 자동 인식 per channel (missing = off; 2026-10-25). */
+  nameKeywords?: Record<string, boolean>;
   /** 자동엑셀 settings per channel (kept across broadcasts). */
   excel?: Record<string, ExcelSettings>;
   /** 기여도 강탈 룰렛 slots per channel. */
@@ -274,8 +309,18 @@ type MockCrew = {
   grades?: Record<string, CrewGrade[]>;
   /** 상품 순위표 settings per channel (missing = DEFAULT_PRIZE_BOARD). */
   prizeBoards?: Record<string, PrizeBoardSettings>;
+  /** 후원자 이름 병합 per channel (studio only). */
+  donorMerges?: Record<string, DonorMerge[]>;
   /** 팀 순위표 settings per channel (missing = DEFAULT_TEAM_PRIZE_BOARD). */
   teamPrizes?: Record<string, TeamPrizeSettings>;
+  /** 누적 기여도 settings per channel (missing = DEFAULT_CUMULATIVE). */
+  cumulatives?: Record<string, CumulativeSettings>;
+  /** BJ 공약 per channel, by member id (entries of members no longer in the crew are ignored). */
+  pledges?: Record<string, Record<string, MemberPledge>>;
+  /** 출근 BJ 게이지 settings per channel (missing = DEFAULT_GAUGE). */
+  gauges?: Record<string, GaugeSettings>;
+  /** 시간 내 통합 게이지 settings per channel (missing = DEFAULT_WINDOW_GAUGE). */
+  windowGauges?: Record<string, WindowGaugeSettings>;
   /** 시그 카운트 settings per channel (missing = DEFAULT_SIG_COUNT). */
   sigCounts?: Record<string, SigCountSettings>;
   /** 스핀머신 settings per channel (missing = DEFAULT_SPIN). */
@@ -285,6 +330,8 @@ type MockCrew = {
   twoWheels?: Record<string, TwoWheelSettings>;
   /** 랜덤시그 settings per channel (missing = DEFAULT_RANDOM_SIG). */
   randomSigs?: Record<string, RandomSigSettings>;
+  /** 랜덤시그 설정 프리셋 per channel, newest first. */
+  randomSigPresets?: Record<string, RandomSigPreset[]>;
   /** 기여도 릴레이 settings per channel (missing = DEFAULT_RELAY). */
   relays?: Record<string, RelaySettings>;
   /** 줍줍 settings per channel (missing = DEFAULT_JUPJUP). */
@@ -335,5 +382,7 @@ export const mockCrew = (g.__ssumnationMockCrewV2 ??= {
     { donationId: "seed-2", channelId: STUDIO_CHANNEL, memberId: "cm-s1", fnAmount: 30_000, at: monthStamp(3), donor: "우주비행사", donorId: "space_runner", message: "길동 리더 화이팅", shownDonor: "우주비행사" },
     { donationId: "seed-3", channelId: STUDIO_CHANNEL, memberId: "cm-s3", fnAmount: 12_000, at: monthStamp(1), donor: "치즈냥", donorId: "cheese_cat", message: "바다님 리액션 귀여워요 ㅋㅋ", shownDonor: "치즈냥" },
     { donationId: "seed-4", channelId: STUDIO_CHANNEL, memberId: "cm-s2", fnAmount: 8_000, at: monthStamp(0), donor: "익명", donorId: "", message: "응원합니다", shownDonor: "익명" }
-  ]
+  ],
+  // BJ 공약 of the c4 crew (its seed broadcast is live), so the 후원 페이지 shows one.
+  pledges: { c4: { "cm-c4-1": { text: "10만 점이면 노래 한 곡", goal: 100_000 }, "cm-c4-2": { text: "먹방 30분", goal: 0 } } }
 });

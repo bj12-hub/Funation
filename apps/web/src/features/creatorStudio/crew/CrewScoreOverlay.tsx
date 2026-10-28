@@ -7,12 +7,19 @@ import { useServerClock } from "@/hooks/useServerClock";
 import { formatNumber } from "@/lib/format";
 import type { ResolvedTheme } from "@/services/creator/overlayThemeTypes";
 import {
+  CUMULATIVE_TITLE_DEFAULT,
+  cumulativeText,
+  GAUGE_TITLE_DEFAULT,
+  WINDOW_GAUGE_TITLE_DEFAULT,
   OVERLAY_BOARD_ROWS,
   PRIZE_TITLE_DEFAULT,
   SIG_COUNT_TITLE_DEFAULT,
   TEAM_PRIZE_TITLE_DEFAULT,
   type Battle,
   type BattleMatch,
+  type CumulativeLive,
+  type GaugeLive,
+  type WindowGaugeLive,
   type OverlayScenario,
   type OverlayScoreboard,
   type PrizeBoardLive,
@@ -254,7 +261,7 @@ export function PrizeBoardOverlay({ board, reloadSeq, theme }: { board: PrizeBoa
   return (
     <OverlayThemeRoot theme={theme} className={styles.pad}>
       <div className={`${ov.card} ${styles.board} ${styles.prize}`} data-placement={s.placement} data-cols={s.columns}>
-        <h1 className={`${ov.label} ${styles.title}`}>
+        <h1 className={`${ov.label} ${styles.title}`} style={s.titleColor ? { color: s.titleColor } : undefined}>
           {s.title || PRIZE_TITLE_DEFAULT}
           {board.window?.stoppedAt && <span className={`${ov.chip} ${styles.closed}`}>마감</span>}
         </h1>
@@ -294,7 +301,7 @@ export function TeamPrizeOverlay({ board, reloadSeq, theme }: { board: TeamPrize
   return (
     <OverlayThemeRoot theme={theme} className={styles.pad}>
       <div className={`${ov.card} ${styles.board} ${styles.prize}`} data-placement={s.placement} data-cols={s.columns}>
-        <h1 className={`${ov.label} ${styles.title}`}>
+        <h1 className={`${ov.label} ${styles.title}`} style={s.titleColor ? { color: s.titleColor } : undefined}>
           {s.title || TEAM_PRIZE_TITLE_DEFAULT}
           {board.window?.stoppedAt && <span className={`${ov.chip} ${styles.closed}`}>마감</span>}
         </h1>
@@ -327,6 +334,109 @@ export function TeamPrizeOverlay({ board, reloadSeq, theme }: { board: TeamPrize
             합계 <b className={ov.display}>{formatNumber(board.total)}</b>
           </p>
         )}
+      </div>
+    </OverlayThemeRoot>
+  );
+}
+
+/**
+ * 누적 기여도 overlay (`?cumulative`): the top members by their project total (ended 회차 + this one), with 지난 · 이번 회차
+ * under each when chosen. Shown only while 방송 운영 has OBS에 표시 on.
+ */
+export function CumulativeOverlay({ board, reloadSeq, theme }: { board: CumulativeLive | null; reloadSeq: number; theme: ResolvedTheme }) {
+  useOverlayPage(reloadSeq);
+  if (!board || !board.visible || !board.rows.length) return null;
+  const s = board.settings;
+  return (
+    <OverlayThemeRoot theme={theme} className={styles.pad}>
+      <div className={`${ov.card} ${styles.board} ${styles.prize}`} data-placement={s.placement} data-cols={1}>
+        <h1 className={`${ov.label} ${styles.title}`}>
+          {s.title || CUMULATIVE_TITLE_DEFAULT}
+          {s.showRounds && board.project && (
+            <span className={`${ov.chip} ${styles.closed}`}>
+              {board.project} · {board.rounds}회차
+            </span>
+          )}
+        </h1>
+        <ol className={styles.prizeRows} style={{ "--prize-rows": Math.min(board.rows.length, s.rows) } as CSSProperties}>
+          {board.rows.slice(0, s.rows).map((r) => (
+            // BJ 목록 순서 (2026-10-28): no rank badges.
+            <li key={r.memberId} data-rank={s.sort !== "ORDER" && r.rank <= 3 ? r.rank : undefined} data-norank={s.sort === "ORDER" || undefined}>
+              {s.sort !== "ORDER" && <span className={`${ov.display} ${styles.rank}`}>{r.rank}</span>}
+              <span className={`${ov.label} ${styles.name}`}>
+                <i className={styles.dot} style={{ background: r.color }} aria-hidden="true" /> {r.name}
+              </span>
+              <span className={`${ov.muted} ${styles.prizeText}`}>{s.showBreakdown && `지난 ${cumulativeText(r.past, board.unit)} · 이번 ${cumulativeText(r.current, board.unit)}`}</span>
+              <span className={`${ov.display} ${styles.score}`}>{cumulativeText(r.total, board.unit)}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </OverlayThemeRoot>
+  );
+}
+
+/**
+ * 출근 BJ 게이지 overlay (`?bjgauge`): each member's broadcast score filling up to their goal in their color, the numbers
+ * as chosen, a 달성 chip once reached and the 공약 under the bar. Shown only while 방송 운영 has OBS에 표시 on.
+ */
+export function GaugeOverlay({ board, reloadSeq, theme }: { board: GaugeLive | null; reloadSeq: number; theme: ResolvedTheme }) {
+  useOverlayPage(reloadSeq);
+  if (!board || !board.visible || !board.rows.length) return null;
+  const s = board.settings;
+  return (
+    <OverlayThemeRoot theme={theme} className={styles.pad}>
+      <div className={`${ov.card} ${styles.board} ${styles.prize}`} data-placement={s.placement} data-cols={1}>
+        <h1 className={`${ov.label} ${styles.title}`}>{s.title || GAUGE_TITLE_DEFAULT}</h1>
+        <ol className={styles.gaugeRows}>
+          {board.rows.map((r) => (
+            <li key={r.memberId} data-reached={r.reached ? "" : undefined}>
+              <span className={styles.gaugeHead}>
+                <span className={`${ov.label} ${styles.name}`}>
+                  <i className={styles.dot} style={{ background: r.color }} aria-hidden="true" /> {r.name}
+                </span>
+                {r.reached && <span className={`${ov.chip} ${styles.closed}`}>달성</span>}
+                <span className={`${ov.display} ${styles.gaugeNumbers}`}>
+                  {s.numbers !== "PERCENT" && `${formatNumber(r.score)} / ${formatNumber(r.goal)}`}
+                  {s.numbers === "BOTH" && " · "}
+                  {s.numbers !== "SCORE" && `${r.percent}%`}
+                </span>
+              </span>
+              <span className={styles.gaugeTrack}>
+                <span className={styles.gaugeFill} style={{ width: `${r.percent}%`, background: r.color }} />
+              </span>
+              {s.showPledge && r.pledge && <span className={`${ov.muted} ${styles.gaugePledge}`}>{r.pledge}</span>}
+            </li>
+          ))}
+        </ol>
+      </div>
+    </OverlayThemeRoot>
+  );
+}
+
+/**
+ * 시간 내 통합 게이지 overlay (`?windowgauge`): the crew's total of the 구간 filling up to the goal (after 자동 증량), with
+ * the numbers as chosen and a 마감 chip after 정지. Shown only while 방송 운영 has OBS에 표시 on and the 구간 has started.
+ */
+export function WindowGaugeOverlay({ board, reloadSeq, theme }: { board: WindowGaugeLive | null; reloadSeq: number; theme: ResolvedTheme }) {
+  useOverlayPage(reloadSeq);
+  if (!board || !board.visible || !board.window) return null;
+  const s = board.settings;
+  return (
+    <OverlayThemeRoot theme={theme} className={styles.pad}>
+      <div className={`${ov.card} ${styles.board} ${styles.prize}`} data-placement={s.placement} data-cols={1}>
+        <h1 className={`${ov.label} ${styles.title} ${styles.windowHead}`}>
+          {s.title || WINDOW_GAUGE_TITLE_DEFAULT}
+          {board.window.stoppedAt && <span className={`${ov.chip} ${styles.closed}`}>마감</span>}
+          <span className={`${ov.display} ${styles.gaugeNumbers}`}>
+            {s.numbers !== "PERCENT" && `${formatNumber(board.current)} / ${formatNumber(board.target)} ${board.unit}`}
+            {s.numbers === "BOTH" && " · "}
+            {s.numbers !== "SCORE" && `${board.percent}%`}
+          </span>
+        </h1>
+        <span className={`${styles.gaugeTrack} ${styles.windowTrack}`}>
+          <span className={styles.gaugeFill} style={{ width: `${board.percent}%`, background: "var(--ov-accent)" }} />
+        </span>
       </div>
     </OverlayThemeRoot>
   );

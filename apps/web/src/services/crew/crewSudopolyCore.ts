@@ -3,6 +3,7 @@ import { SIGNATURE_LIMITS } from "@/services/donations/signatureTypes";
 import { drawIndex, gameRunsView, parseGameCommon, recordRun, signatureTrigger, type RunStart, type StoredRun } from "./crewGameCore";
 import {
   DEFAULT_SUDOPOLY,
+  SUDOPOLY_CHARACTERS,
   SUDOPOLY_ISLAND_MAX,
   SUDOPOLY_KEYS_MAX,
   SUDOPOLY_KEY_KINDS,
@@ -38,8 +39,8 @@ const rec = (input: unknown) => (typeof input === "object" && input !== null ? i
 const isInt = (v: unknown, min: number, max: number): v is number => typeof v === "number" && Number.isInteger(v) && v >= min && v <= max;
 const isPoints = (v: unknown): v is number => isInt(v, -SUDOPOLY_POINTS_MAX, SUDOPOLY_POINTS_MAX) && v !== 0;
 
-/** The channel's 스도폴리 settings (defaults until saved). */
-export const sudopolySettingsOf = (channelId: string): SudopolySettings => mockCrew.sudopolys?.[channelId] ?? DEFAULT_SUDOPOLY;
+/** The channel's 스도폴리 settings (defaults until saved; settings from before 참여 BJ · 캐릭터 read with everyone playing). */
+export const sudopolySettingsOf = (channelId: string): SudopolySettings => ({ ...DEFAULT_SUDOPOLY, ...mockCrew.sudopolys?.[channelId] });
 
 /**
  * Validates the settings: no 칸 yet (nothing rolls) or 8 ~ 40 칸 in fours, the first the only 출발; a 황금열쇠 칸 needs cards,
@@ -50,7 +51,8 @@ export function parseSudopolySettings(
   input: unknown,
   forbidden: string[],
   signatureIds: string[],
-  known: { spaces: string[]; keys: string[]; tiers: string[] }
+  known: { spaces: string[]; keys: string[]; tiers: string[] },
+  memberIds: string[] = []
 ): SudopolySettings | { message: string } {
   const common = parseGameCommon(input, forbidden, signatureIds);
   if ("message" in common) return common;
@@ -107,9 +109,22 @@ export function parseSudopolySettings(
   if (!isInt(v.islandTurns, 1, SUDOPOLY_ISLAND_MAX)) return { message: `무인도는 1 ~ ${SUDOPOLY_ISLAND_MAX}번 쉬어요.` };
   if (!isInt(v.goalLaps, 0, SUDOPOLY_LAPS_MAX)) return { message: `목표 바퀴는 0 ~ ${SUDOPOLY_LAPS_MAX}바퀴예요(0이면 없음).` };
   if (!isInt(v.goalBonus, 0, SUDOPOLY_POINTS_MAX)) return { message: `완주 보너스는 0 ~ ${SUDOPOLY_POINTS_MAX.toLocaleString("ko-KR")}점이에요.` };
+  // 참여 BJ · 캐릭터 (2026-10-28): a screen from before sends neither (everyone plays, initials); a member removed since drops out.
+  const sitOutRaw = v.sitOut === undefined ? [] : v.sitOut;
+  if (!Array.isArray(sitOutRaw) || sitOutRaw.some((id) => typeof id !== "string")) return { message: "참여 BJ를 확인해 주세요." };
+  const sitOut = [...new Set(sitOutRaw as string[])].filter((id) => memberIds.includes(id));
+  const charactersRaw = v.characters === undefined ? {} : v.characters;
+  if (typeof charactersRaw !== "object" || charactersRaw === null || Array.isArray(charactersRaw)) return { message: "캐릭터를 다시 골라 주세요." };
+  const characters: Record<string, string> = {};
+  for (const [id, key] of Object.entries(charactersRaw)) {
+    if (!SUDOPOLY_CHARACTERS.some((c) => c.key === key)) return { message: "캐릭터를 다시 골라 주세요." };
+    if (memberIds.includes(id)) characters[id] = key as string;
+  }
   return {
     ...common,
     pieceMode,
+    sitOut,
+    characters,
     spaces,
     startBonus: v.startBonus,
     islandTurns: v.islandTurns,
@@ -222,6 +237,7 @@ export function runSudopoly(b: MockBroadcast, start: RunStart, now = Date.now(),
 /** 자동 (crewGameTriggers): a 시그니처 후원 to a member rolls as many times as its 금액 구간 gives, while 자동 is on and the board has 칸. */
 export function sudopolyForSignature(channelId: string, input: Parameters<typeof signatureTrigger>[3]) {
   const s = sudopolySettingsOf(channelId);
+  if (s.pieceMode === "MEMBER" && input.memberId && s.sitOut.includes(input.memberId)) return; // 참여하지 않는 BJ
   const rolls = s.spaces.length ? sudopolyRolls(s.tiers, input.fnAmount) : 0;
   const t = rolls ? signatureTrigger(channelId, "SUDOPOLY", s, input) : null;
   if (t) runSudopoly(t.live, t.start, Date.now(), rolls);
@@ -244,7 +260,9 @@ export function sudopolyLive(b: MockBroadcast): SudopolyLive {
     runs: gameRunsView(b, "SUDOPOLY"),
     pieces:
       s.pieceMode === "SHARED"
-        ? [{ key: "SHARED", name: "공용 말", color: null, ...at("SHARED") }]
-        : (mockCrew.crews[b.channelId] ?? []).filter((m) => m.active || pieces[m.id]).map((m) => ({ key: m.id, name: m.name, color: m.color, ...at(m.id) }))
+        ? [{ key: "SHARED", name: "공용 말", color: null, emoji: null, ...at("SHARED") }]
+        : (mockCrew.crews[b.channelId] ?? [])
+            .filter((m) => !s.sitOut.includes(m.id) && (m.active || pieces[m.id]))
+            .map((m) => ({ key: m.id, name: m.name, color: m.color, emoji: SUDOPOLY_CHARACTERS.find((c) => c.key === s.characters[m.id])?.emoji ?? null, ...at(m.id) }))
   };
 }

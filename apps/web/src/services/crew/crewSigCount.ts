@@ -3,7 +3,7 @@
 import { USE_MOCK } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
-import { liveBroadcastOf } from "./crewCore";
+import { liveBroadcastOf, startPointOf } from "./crewCore";
 import { parseSigCount, sigCountSignatures } from "./crewSigCountCore";
 import type { BroadcastResult } from "./crewTypes";
 import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
@@ -24,7 +24,12 @@ const stateOf = (b: MockBroadcast) => (b.sigCount ??= { visible: false, since: n
 export async function saveSigCount(input: unknown): Promise<BroadcastResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
-  const parsed = parseSigCount(input, MOCK_FORBIDDEN_WORDS, sigCountSignatures().map((s) => s.id));
+  const parsed = parseSigCount(
+    input,
+    MOCK_FORBIDDEN_WORDS,
+    sigCountSignatures().map((s) => s.id),
+    (mockCrew.crews[STUDIO_CHANNEL] ?? []).map((m) => m.id)
+  );
   if ("message" in parsed) return { status: "INVALID", message: parsed.message };
   (mockCrew.sigCounts ??= {})[STUDIO_CHANNEL] = parsed;
   return { status: "SAVED" };
@@ -57,5 +62,18 @@ export async function resetSigCount(input: unknown): Promise<BroadcastResult> {
   if (state.resets.includes(v.requestId)) return { status: "SAVED" };
   state.resets.push(v.requestId);
   state.since = new Date().toISOString();
+  return { status: "SAVED" };
+}
+
+/** 시작 시점 수정 (2026-10-28, StreamDonate 시그 카운트): counts from `at` (the broadcast's start to now). */
+export async function moveSigCountStart(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = rec(input);
+  const live = liveBroadcastOf(STUDIO_CHANNEL);
+  if (!live || live.id !== v.broadcastId) return notLive;
+  const at = startPointOf(live, v.at);
+  if (!at) return { status: "INVALID", message: "시작점은 방송 시작부터 지금 사이로 골라 주세요." };
+  stateOf(live).since = at;
   return { status: "SAVED" };
 }

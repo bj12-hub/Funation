@@ -82,6 +82,22 @@ describe("시그 카운트", () => {
     await m.saveSigCount(settings({ signatureIds: [m.a.id, m.b.id], sort: "ORDER", rows: "ALL" }));
     expect(lines(await table(m))).toEqual(["길동 0/0 = 0", "하늘 1/0 = 1", "바다 1/2 = 3", "미지정 0/1 = 1"]);
 
+    // 선택한 멤버 (2026-10-28): only the picked ones (0s too) and 미지정; the 합계 counts those rows only.
+    expect(await m.saveSigCount(settings({ signatureIds: [m.a.id, m.b.id], sort: "ORDER", rows: "SELECTED", memberIds: ["cm-s3", "cm-s1"] }))).toEqual({ status: "SAVED" });
+    t = await table(m);
+    expect(lines(t)).toEqual(["길동 0/0 = 0", "바다 1/2 = 3", "미지정 0/1 = 1"]);
+    expect(t.totals).toEqual([1, 3]);
+    // 출근 BJ만: 바다 on 휴식 leaves the table (and the 합계); 미지정 stays.
+    const { mockCrew } = await import("./mockCrewStore");
+    const sea = mockCrew.crews.studio.find((x) => x.id === "cm-s3")!;
+    sea.active = false;
+    await m.saveSigCount(settings({ signatureIds: [m.a.id, m.b.id], sort: "ORDER", rows: "RECEIVED", activeOnly: true }));
+    t = await table(m);
+    expect(lines(t)).toEqual(["하늘 1/0 = 1", "미지정 0/1 = 1"]);
+    expect(t.totals).toEqual([1, 1]);
+    sea.active = true;
+    await m.saveSigCount(settings({ signatureIds: [m.a.id, m.b.id], sort: "ORDER", rows: "ALL" }));
+
     // 다시 세기: from now on (a retried reset does not move it again).
     vi.setSystemTime(new Date("2026-10-23T12:03:00Z"));
     expect(await m.resetSigCount({ broadcastId: id, requestId: key(50) })).toEqual({ status: "SAVED" });
@@ -91,6 +107,13 @@ describe("시그 카운트", () => {
     t = await table(m);
     expect(t.since).toBe("2026-10-23T12:03:00.000Z");
     expect(lines(t)).toEqual(["길동 1/0 = 1", "하늘 0/0 = 0", "바다 0/0 = 0"]);
+
+    // 시작 시점 수정 (2026-10-28): back to the broadcast's start — the earlier ones count again.
+    expect(await m.moveSigCountStart({ broadcastId: id, at: "2026-10-23T12:01:00.000Z" })).toEqual({ status: "SAVED" });
+    expect((await table(m)).since).toBe("2026-10-23T12:01:00.000Z");
+    expect(lines(await table(m))).toEqual(["길동 1/0 = 1", "하늘 1/0 = 1", "바다 1/2 = 3", "미지정 0/1 = 1"]);
+    expect((await m.moveSigCountStart({ broadcastId: id, at: "2026-10-23T11:59:00.000Z" })).status).toBe("INVALID");
+    await m.moveSigCountStart({ broadcastId: id, at: "2026-10-23T12:03:00.000Z" });
 
     // OBS에 표시: the overlay gets the table only through the key.
     expect(await m.setSigCountVisible({ broadcastId: id, on: true })).toEqual({ status: "SAVED" });
@@ -102,7 +125,6 @@ describe("시그 카운트", () => {
     await m.endBroadcast(id);
     vi.setSystemTime(new Date("2026-10-23T12:06:00Z"));
     await m.sign(m.a.id, m.a.price, "cm-s1");
-    const { mockCrew } = await import("./mockCrewStore");
     const { sigCountLive } = await import("./crewSigCountCore");
     expect(sigCountLive(mockCrew.broadcasts!.find((b) => b.id === id)!).totals).toEqual([1, 0]);
   });
@@ -137,7 +159,11 @@ describe("시그 카운트", () => {
       [{ signatureIds: ids.slice(0, 9) }, "8개"],
       [{ rows: "SOME" }, "표시 설정"],
       [{ sort: "NAME" }, "표시 설정"],
-      [{ showTotal: 1 }, "표시 설정"]
+      [{ showTotal: 1 }, "표시 설정"],
+      [{ rows: "SELECTED" }, "멤버를 골라"],
+      [{ rows: "SELECTED", memberIds: ["cm-nobody"] }, "멤버를 확인"],
+      [{ memberIds: "cm-s1" as never }, "멤버를 확인"],
+      [{ activeOnly: "yes" as never }, "표시 설정"]
     ];
     for (const [patch, message] of bad) {
       const res = await m.saveSigCount(settings(patch as Partial<SigCountSettings>));
@@ -146,6 +172,11 @@ describe("시그 카운트", () => {
     // A repeated signature is one column.
     expect(await m.saveSigCount(settings({ signatureIds: [ids[0], ids[0]] }))).toEqual({ status: "SAVED" });
     expect((await m.getBroadcastView())!.sigCountSettings.signatureIds).toEqual([ids[0]]);
+    // A screen from before 선택한 멤버 sends none: none picked.
+    const { memberIds: _picked, activeOnly: _active, ...older } = settings({ signatureIds: [ids[0]] });
+    expect([_picked, _active]).toEqual([[], false]);
+    expect(await m.saveSigCount(older)).toEqual({ status: "SAVED" });
+    expect((await m.getBroadcastView())!.sigCountSettings).toMatchObject({ rows: "RECEIVED", memberIds: [], activeOnly: false });
 
     expect(await m.setSigCountVisible({ broadcastId: "bc-x", on: true })).toEqual({ status: "INVALID", message: "진행 중인 방송이 아니에요." });
     expect((await m.resetSigCount({ broadcastId: "bc-x", requestId: key(1) })).status).toBe("INVALID");

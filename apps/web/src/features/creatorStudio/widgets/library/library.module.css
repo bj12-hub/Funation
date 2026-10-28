@@ -87,3 +87,12 @@
 .filters input[type="search"] {
   flex: 1 1 200px;
 }
+
+/* 영상 (2026-10-25): a small player in the list row. */
+.video {
+  width: 200px;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-8);
+  background: #000;
+}

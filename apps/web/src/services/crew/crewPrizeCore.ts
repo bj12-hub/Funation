@@ -38,11 +38,11 @@ const rec = (input: unknown) => (typeof input === "object" && input !== null ? i
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 const text = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 
-/** The channel's 상품 순위표 settings (defaults until saved). */
-export const prizeSettingsOf = (channelId: string): PrizeBoardSettings => mockCrew.prizeBoards?.[channelId] ?? DEFAULT_PRIZE_BOARD;
+/** The channel's 상품 순위표 settings (defaults until saved; saved before 제목 색 (2026-10-28) in the theme's color). */
+export const prizeSettingsOf = (channelId: string): PrizeBoardSettings => ({ ...DEFAULT_PRIZE_BOARD, ...mockCrew.prizeBoards?.[channelId] });
 
 /** The channel's 팀 순위표 settings (defaults until saved). */
-export const teamPrizeSettingsOf = (channelId: string): TeamPrizeSettings => mockCrew.teamPrizes?.[channelId] ?? DEFAULT_TEAM_PRIZE_BOARD;
+export const teamPrizeSettingsOf = (channelId: string): TeamPrizeSettings => ({ ...DEFAULT_TEAM_PRIZE_BOARD, ...mockCrew.teamPrizes?.[channelId] });
 
 /** 등수별 상품 · 벌칙: up to `max` lines; a line without text drops its color, and blank lines at the end are not kept. */
 function parsePrizeLines(input: unknown, max: number): RankPrize[] | { message: string } {
@@ -59,14 +59,16 @@ function parsePrizeLines(input: unknown, max: number): RankPrize[] | { message: 
   return prizes;
 }
 
-/** 열 개수 · 배치 · 점수 · 하단 합계, the same on both boards. */
-function parseDisplay(v: Record<string, unknown>): Pick<PrizeBoardSettings, "columns" | "placement" | "showScore" | "showTotal"> | { message: string } {
+/** 제목 색 · 열 개수 · 배치 · 점수 · 하단 합계, the same on both boards. A screen from before 제목 색 sends none: 원래 색. */
+function parseDisplay(v: Record<string, unknown>): Pick<PrizeBoardSettings, "titleColor" | "columns" | "placement" | "showScore" | "showTotal"> | { message: string } {
+  if (v.titleColor !== null && v.titleColor !== undefined && !(typeof v.titleColor === "string" && HEX_COLOR.test(v.titleColor))) return { message: "제목 색을 확인해 주세요." };
+  const titleColor = typeof v.titleColor === "string" ? v.titleColor.toLowerCase() : null;
   const columns = PRIZE_COLUMNS.find((c) => c === v.columns);
   if (!columns) return { message: "열 개수를 골라 주세요." };
   const placement = PRIZE_PLACEMENTS.find((p) => p.key === v.placement)?.key;
   if (!placement) return { message: "배치를 골라 주세요." };
   if (typeof v.showScore !== "boolean" || typeof v.showTotal !== "boolean") return { message: "표시 설정을 확인해 주세요." };
-  return { columns, placement, showScore: v.showScore, showTotal: v.showTotal };
+  return { titleColor, columns, placement, showScore: v.showScore, showTotal: v.showTotal };
 }
 
 /** Everything a board shows is on stream. */

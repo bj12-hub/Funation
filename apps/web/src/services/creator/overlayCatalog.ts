@@ -44,6 +44,16 @@ export const OVERLAYS: OverlayEntry[] = [
     manage: "/creator/widgets/effects"
   },
   {
+    id: "sigplayer",
+    target: "sigplayer",
+    group: "알림",
+    title: "시그니처 플레이어",
+    description: "시그니처 후원이 오면 멤버 배너(또는 후원자 · 메시지)를 먼저, 이어서 시그니처 이미지를 크게 보여 줘요.",
+    size: "1280 × 720",
+    path: (k) => `/overlay/sigplayer/${k}`,
+    manage: "/creator/widgets/signatures"
+  },
+  {
     id: "video",
     target: "video",
     group: "알림",
@@ -252,6 +262,16 @@ export const OVERLAYS: OverlayEntry[] = [
     size: "420 × 400 (가로형 1200 × 260)",
     path: (k) => widgetOverlayPath("sig-queue", k),
     manage: "/creator/widgets?open=SIG_QUEUE"
+  },
+  {
+    id: "widget-sig-wallpaper",
+    target: "widgets",
+    group: "알림",
+    title: "시그 벽지",
+    description: "시그니처 후원 한 건을 계속 띄워 둬요. 후원마다 주소가 달라서, 위젯 설정의 시그니처 후원 목록에서 그 후원의 주소를 복사해 넣어요.",
+    size: "480 × 400 (설정에 따라 달라짐)",
+    path: (k) => widgetOverlayPath("sig-wallpaper", k),
+    manage: "/creator/widgets?open=SIG_WALLPAPER"
   },
   {
     id: "widget-recent",
