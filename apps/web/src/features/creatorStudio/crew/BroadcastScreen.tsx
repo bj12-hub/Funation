@@ -370,6 +370,7 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
       <SigCountPanel
         settings={view.sigCountSettings}
         signatures={view.signatures}
+        members={view.members}
         live={live ? { broadcastId: live.id, table: live.sigCount } : null}
         overlayPath={view.overlayPath}
         pending={pending}
