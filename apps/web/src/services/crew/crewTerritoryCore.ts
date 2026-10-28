@@ -47,8 +47,8 @@ export function parseTerritorySettings(input: unknown, forbidden: string[], sign
   const colors: Record<string, string> = {};
   for (const [id, color] of Object.entries(raw)) {
     if (typeof color !== "string" || !/^#[0-9a-f]{6}$/i.test(color)) return { message: "BJ 색상은 #RRGGBB 형식이에요." };
-    if (!memberIds.includes(id)) return { message: "BJ 색상의 멤버를 다시 골라 주세요." };
-    colors[id] = color.toLowerCase();
+    // A member removed since drops out (their color goes with them).
+    if (memberIds.includes(id)) colors[id] = color.toLowerCase();
   }
   return { ...common, size, heartMode, heartPoints: v.heartPoints, cellPoints: v.cellPoints, ticker, colors };
 }

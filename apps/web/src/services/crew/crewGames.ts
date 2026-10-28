@@ -569,7 +569,7 @@ export async function saveSudopoly(input: unknown): Promise<BroadcastResult> {
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const saved = sudopolySettingsOf(STUDIO_CHANNEL);
   const known = { spaces: saved.spaces.map((x) => x.id), keys: saved.keys.map((x) => x.id), tiers: saved.tiers.map((x) => x.id) };
-  const parsed = parseSudopolySettings(input, MOCK_FORBIDDEN_WORDS, signatureIds(), known);
+  const parsed = parseSudopolySettings(input, MOCK_FORBIDDEN_WORDS, signatureIds(), known, (mockCrew.crews[STUDIO_CHANNEL] ?? []).map((m) => m.id));
   if ("message" in parsed) return { status: "INVALID", message: parsed.message };
   (mockCrew.sudopolys ??= {})[STUDIO_CHANNEL] = parsed;
   return { status: "SAVED" };
@@ -615,6 +615,9 @@ export async function playGame(input: unknown): Promise<GamePlayResult> {
   if (game === "SUDOPOLY" && !sudopolySettingsOf(STUDIO_CHANNEL).spaces.length) return { status: "INVALID", message: "먼저 스도폴리 판을 만들어 주세요." };
   if (!isActiveMember(STUDIO_CHANNEL, v.memberId)) return { status: "INVALID", message: "멤버를 골라 주세요." };
   const memberId = v.memberId as string;
+  if (game === "SUDOPOLY" && sudopolySettingsOf(STUDIO_CHANNEL).pieceMode === "MEMBER" && sudopolySettingsOf(STUDIO_CHANNEL).sitOut.includes(memberId)) {
+    return { status: "INVALID", message: "스도폴리에 참여하지 않는 BJ예요." };
+  }
   let source: GameSource | null = null;
   if (v.sourceId !== null && v.sourceId !== undefined) {
     source = memberSources(live, memberId).find((x) => x.id === v.sourceId) ?? null;

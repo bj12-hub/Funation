@@ -950,6 +950,14 @@
   gap: 1px;
 }
 
+/* 스도폴리 캐릭터 (2026-10-28): the emoji on the member's color. */
+.sdPieces i[data-emoji] {
+  width: 19px;
+  height: 19px;
+  font-size: 12px;
+  line-height: 1;
+}
+
 .sdPieces i {
   display: grid;
   place-items: center;
