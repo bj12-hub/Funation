@@ -7,6 +7,8 @@ import { useServerClock } from "@/hooks/useServerClock";
 import type { OverlaySigPlayer } from "@/services/creator/sigPlayerTypes";
 import { useReloadSignal } from "../remote/useReloadSignal";
 import styles from "./sigPlayerOverlay.module.css";
+import type { SigFetchMode } from "@/services/creator/widgetSettingsTypes";
+import { useSigAudioSrc } from "../remote/sigAudio";
 
 /**
  * 시그니처 플레이어 overlay (`/overlay/sigplayer/[key]`, code-first — StreamDonate 시그니처 플레이어 참고, 2026-10-25). Re-reads
@@ -60,18 +62,19 @@ export function SigPlayerOverlay({ data }: { data: OverlaySigPlayer }) {
             {a.signatureName}
             {a.member && <span className={ov.muted}> · {a.member.name}</span>}
           </figcaption>
-          {s.sound && a.soundUrl && <SigSound url={a.soundUrl} volume={data.volume} />}
+          {s.sound && a.soundUrl && <SigSound url={a.soundUrl} volume={data.volume} mode={data.sigFetch} />}
         </figure>
       )}
     </OverlayThemeRoot>
   );
 }
 
-/** The signature's sound, once, at the 리모컨 시그니처 볼륨. */
-function SigSound({ url, volume }: { url: string; volume: number }) {
+/** The signature's sound, once, at the 리모컨 시그니처 볼륨 — fetched by the 시그니처 음원 받는 방식 (2026-10-28). */
+function SigSound({ url, volume, mode }: { url: string; volume: number; mode: SigFetchMode }) {
   const ref = useRef<HTMLAudioElement>(null);
+  const src = useSigAudioSrc(url, mode);
   useEffect(() => {
     if (ref.current) ref.current.volume = Math.max(0, Math.min(1, volume / 100));
-  }, [volume]);
-  return <audio ref={ref} src={url} autoPlay />;
+  }, [volume, src]);
+  return src ? <audio ref={ref} src={src} autoPlay /> : null;
 }

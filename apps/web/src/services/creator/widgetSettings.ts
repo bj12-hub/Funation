@@ -7,7 +7,7 @@ import { PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES } from "@/lib/validation";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { findAsset, matchesContent } from "./assetCore";
 import { QR_SAMPLE_IMAGE, WIDGET_OVERLAYS, WIDGET_OVERLAY_SETTINGS, widgetOverlayPath } from "./widgetOverlayTypes";
-import { readWidget, widgetStore } from "./widgetStore";
+import { readWidget, widgetStore, withLiveAlertSound } from "./widgetStore";
 import { readAppearance } from "./overlayThemeStore";
 import { mockCreator } from "./mockCreatorStore";
 import { keepDrawnStock, studioWins } from "@/services/donations/gachaCore";
@@ -64,7 +64,7 @@ export async function getWidgetDetail(key: unknown): Promise<WidgetDetail | null
     url: `https://ssumnation.com/widget/${WIDGET_PATHS[key]}/${mockCreator.handle}`,
     // 후원 위젯 with an OBS overlay show its real address (the popup adds the site origin and masks the key).
     overlayPath: overlayPathFor(key),
-    settings: key === "GACHA" ? withLiveSounds(store.GACHA) : readWidget(key),
+    settings: key === "GACHA" ? withLiveSounds(store.GACHA) : key === "ALERT" ? withLiveAlertSound(readWidget("ALERT")) : readWidget(key),
     live: {
       goalCurrent: 100_000,
       totalAmount: 250_000,
@@ -121,6 +121,9 @@ export async function saveWidgetSettings(key: unknown, input: unknown): Promise<
   if (typeof parsed === "string") return { status: "INVALID", message: parsed };
   if (key === "GACHA" && (parsed as WidgetSettingsMap["GACHA"]).gachas.some((g) => g.winSoundId && !findAsset(g.winSoundId, "SOUND"))) {
     return { status: "INVALID", message: "라이브러리에 없는 효과음이 있어요. 다시 선택해 주세요." };
+  }
+  if (key === "ALERT" && (parsed as WidgetSettingsMap["ALERT"]).soundId && !findAsset((parsed as WidgetSettingsMap["ALERT"]).soundId!, "SOUND")) {
+    return { status: "INVALID", message: "라이브러리에 없는 알림 사운드예요. 다시 골라 주세요." };
   }
   await mockDelay(400);
   // Wallpaper images are uploaded/deleted on their own; keep the stored list. 뽑기: stock drawn while the form was open

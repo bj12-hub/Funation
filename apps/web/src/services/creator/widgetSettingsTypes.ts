@@ -106,6 +106,19 @@ export const ALERT_HEADLINE_MAX = 40;
 /** Headline tokens (same words as the 뽑기 message template). */
 export const ALERT_TOKENS = { donor: "{닉네임}", amount: "{금액}" } as const;
 
+/**
+ * 시그니처 음원 받는 방식 (2026-10-28, StreamDonate 설정 › 음원재생): CACHE 기존 (브라우저 캐시 · 받으면서 재생), FRESH 매번 새로
+ * 받기 (캐시 안 씀 · 받으면서 재생), FULL 다 받고 재생 (캐시 안 씀 · 전부 받은 뒤 재생 — 끊김 없음, 느리면 시작이 늦음).
+ */
+export type SigFetchMode = "CACHE" | "FRESH" | "FULL";
+export const SIG_FETCH_MODES: { key: SigFetchMode; label: string; hint: string }[] = [
+  { key: "CACHE", label: "기존 방식", hint: "브라우저 캐시를 쓰고, 받으면서 재생해요." },
+  { key: "FRESH", label: "매번 새로 받기", hint: "캐시를 쓰지 않고, 받으면서 재생해요." },
+  { key: "FULL", label: "다 받고 재생", hint: "캐시를 쓰지 않고, 전부 받은 뒤 재생해요. 재생 중 끊기지 않지만 네트워크가 느리면 시작이 늦어요." }
+];
+/** 알림 사운드: only its first seconds play (StreamDonate: 최대 2초). */
+export const ALERT_SOUND_MAX_SEC = 2;
+
 export type AlertSettings = {
   theme: OverlayThemeChoice;
   layout: AlertLayout;
@@ -121,6 +134,13 @@ export type AlertSettings = {
   motion: OverlayMotion;
   /** The amount counts up from 0 as the card arrives. */
   countUp: boolean;
+  /**
+   * 알림 사운드 (2026-10-28): a SOUND from the 이미지·사운드 library played first on every alert, at the 리모컨
+   * 후원 알림음 volume, for at most ALERT_SOUND_MAX_SEC — TTS and the signature's sound come after it. null = none.
+   */
+  soundId: string | null;
+  /** 시그니처 음원 받는 방식 for this overlay and the 시그니처 플레이어. */
+  sigFetch: SigFetchMode;
 };
 
 // ── Per-widget settings (PR 1: 채팅창 · QR · 후원목표 · 후원누적금액) ─────────────────
@@ -724,7 +744,9 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     showPlatform: true,
     showImage: true,
     motion: "POP",
-    countUp: true
+    countUp: true,
+    soundId: null,
+    sigFetch: "CACHE"
   },
   CHAT: {
     theme: "INHERIT",

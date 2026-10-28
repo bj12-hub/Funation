@@ -152,6 +152,8 @@ export type OverlayAlert = {
   on: boolean;
   /** 후원 알림 디자인 (위젯 → 후원 알림) and the theme it resolves to. */
   design: AlertSettings;
+  /** 알림 사운드 (2026-10-28): the library file's address, null when none (or deleted). */
+  alertSound: string | null;
   theme: ResolvedTheme;
 };
 

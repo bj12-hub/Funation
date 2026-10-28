@@ -1,4 +1,5 @@
 import type { ResolvedTheme } from "./overlayThemeTypes";
+import type { SigFetchMode } from "./widgetSettingsTypes";
 
 /**
  * 시그니처 플레이어 — code-first (no Figma frame; StreamDonate 시그니처 플레이어 참고, 2026-10-25). An OBS overlay of its own for
@@ -39,6 +40,8 @@ export type OverlaySigPlayer = {
   } | null;
   settings: SigPlayerSettings;
   volume: number;
+  /** 시그니처 음원 받는 방식 (후원 알림 디자인, 2026-10-28). */
+  sigFetch: SigFetchMode;
   serverNow: string;
   theme: ResolvedTheme;
   reloadSeq: number;
