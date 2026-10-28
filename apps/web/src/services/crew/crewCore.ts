@@ -448,6 +448,26 @@ export const scoredFeed = (b: MockBroadcast) => {
  * The main scoreboard of a broadcast, best first (ties by name): active members and anyone with points in it, each
  * with 후원 · 후원 리스트 · 보정 · 강탈 · 배틀 배수 · 직급 배수 · 점수 게임 parts. Shared by 방송 운영 and the 엔딩 크레딧.
  */
+/** The ended 회차 of `b`'s project before it, oldest first (none without a project). */
+export const earlierRounds = (b: MockBroadcast) =>
+  b.project
+    ? (mockCrew.broadcasts ?? [])
+        .filter((x) => x !== b && x.channelId === b.channelId && x.project === b.project && x.endedAt && x.final && x.startedAt < b.startedAt)
+        .sort((x, y) => x.startedAt.localeCompare(y.startedAt))
+    : [];
+
+/**
+ * 동일 프로젝트 회차 간 기여도 공유 (2026-10-28, StreamDonate "동일 프리셋 안에서 회차와 상관 없이 기여도 공유"): with it on,
+ * each member's own scores in the project's earlier 회차 (each final score without what that 회차 carried in), summed. The
+ * 후원 내역 stay per 회차. Empty when off.
+ */
+export function carriedScores(b: MockBroadcast): Map<string, number> {
+  const out = new Map<string, number>();
+  if (!b.carry || !b.project) return out;
+  for (const r of earlierRounds(b)) for (const f of r.final ?? []) out.set(f.memberId, (out.get(f.memberId) ?? 0) + f.score - (f.carried ?? 0));
+  return out;
+}
+
 export function scoreboardRows(b: MockBroadcast): ScoreRow[] {
   const end = b.endedAt ?? new Date(Date.now() + 1000).toISOString();
   const s = excelOf(b.channelId);
@@ -455,8 +475,9 @@ export function scoreboardRows(b: MockBroadcast): ScoreRow[] {
   const bonus = battleBonus(b);
   const graded = gradeBonus(b);
   const games = windowGames(b, b.startedAt, b.endedAt);
+  const carried = carriedScores(b);
   const rows = (mockCrew.crews[b.channelId] ?? [])
-    .filter((m) => m.active || b.teams[m.id] !== undefined || b.adjustments.some((a) => a.memberId === m.id) || (b.feed ?? []).some((f) => f.memberId === m.id) || (b.steals ?? []).some((x) => x.thief === m.id || x.target === m.id) || games.has(m.id))
+    .filter((m) => m.active || b.teams[m.id] !== undefined || b.adjustments.some((a) => a.memberId === m.id) || (b.feed ?? []).some((f) => f.memberId === m.id) || (b.steals ?? []).some((x) => x.thief === m.id || x.target === m.id) || games.has(m.id) || !!carried.get(m.id))
     .map((m) => {
       const donated = mockCrew.attributions
         .filter((a) => a.channelId === b.channelId && a.memberId === m.id && a.at >= b.startedAt && a.at <= end)
@@ -467,7 +488,8 @@ export function scoreboardRows(b: MockBroadcast): ScoreRow[] {
       const battle = bonus.get(m.id) ?? 0;
       const grade = graded.get(m.id) ?? 0;
       const game = games.get(m.id) ?? 0;
-      return { memberId: m.id, name: m.name, color: m.color, team: b.teams[m.id] ?? null, donated, feed: fromFeed, adjust, stolen, battle, grade, game, score: donated + fromFeed + adjust + stolen + battle + grade + game };
+      const past = carried.get(m.id) ?? 0;
+      return { memberId: m.id, name: m.name, color: m.color, team: b.teams[m.id] ?? null, donated, feed: fromFeed, adjust, stolen, battle, grade, game, carried: past, score: donated + fromFeed + adjust + stolen + battle + grade + game + past };
     });
   return rows.sort((x, y) => y.score - x.score || x.name.localeCompare(y.name));
 }

@@ -124,7 +124,22 @@ export const BROADCAST_TITLE_MAX = 40;
  */
 /** `battle` = extra points from 배틀 배수 (what the member received in a ×n battle counts n times; 2026-10-05 결정). */
 /** `game`: points from 점수 게임 results (스핀머신 …), counted once the result shows on OBS. */
-export type ScoreRow = { memberId: string; name: string; color: string; team: TeamKey | null; donated: number; feed: number; adjust: number; stolen: number; battle: number; grade: number; game: number; score: number };
+/** `carried` (이전 회차, 2026-10-28): with 기여도 공유, the member's own scores in the project's earlier 회차; 0 otherwise. */
+export type ScoreRow = {
+  memberId: string;
+  name: string;
+  color: string;
+  team: TeamKey | null;
+  donated: number;
+  feed: number;
+  adjust: number;
+  stolen: number;
+  battle: number;
+  grade: number;
+  game: number;
+  carried: number;
+  score: number;
+};
 
 // ── 후원 리스트 (키워드 배정 · 한방) — reference: funnation 엑셀콘 v3 ────────────────────
 
@@ -415,6 +430,8 @@ export type BroadcastLive = {
   /** 프로젝트 (preset) name and its auto-numbered 회차. */
   project: string | null;
   round: number | null;
+  /** 동일 프로젝트 회차 간 기여도 공유 (2026-10-28): the scores include the project's earlier 회차. */
+  carry: boolean;
   /** Points collected by an active 한방 window (shown on the overlay). */
   oneshotPot: number | null;
   startedAt: string;
@@ -1665,6 +1682,8 @@ export type BroadcastView = {
   keywords: Record<string, string[]>;
   /** Existing project names (for the start form). */
   projects: string[];
+  /** 기여도 공유 as last chosen at a start (the start form opens with it). */
+  carryDefault: boolean;
   history: BroadcastSummary[];
   overlayPath: string;
 };
