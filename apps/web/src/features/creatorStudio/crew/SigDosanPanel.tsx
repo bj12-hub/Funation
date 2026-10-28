@@ -13,6 +13,7 @@ import {
   type GamesView,
   type SigDosanSettings
 } from "@/services/crew/crewTypes";
+import { DOSAN_SORTS, pickDosanSignatures, sortDosanSignatures, type DosanSort } from "./dosanPick";
 import { AutoFields, FormActions, OverlayAddress, RunList, TitleField, useSettingsDraft, type LiveGames, type RunAction } from "./GameParts";
 import styles from "./crew.module.css";
 import games from "./games.module.css";
@@ -56,6 +57,19 @@ export function SigDosanPanel({
   const dosan = live?.sigDosan;
   const board = dosan?.board ?? null;
   const byPrice = [...signatures].sort((x, y) => x.price - y.price);
+  // 랜덤 선택 · 정렬 (2026-10-28): helpers for the selection below (설정 저장 keeps it).
+  const [sort, setSort] = useState<DosanSort>("PRICE_ASC");
+  const [pick, setPick] = useState({ min: "", max: "", count: "5" });
+  const [pickNote, setPickNote] = useState<string | null>(null);
+  const shown = sortDosanSignatures(signatures, sort);
+  const randomPick = () => {
+    const num = (v: string) => (v.trim() === "" ? null : Number(v));
+    const count = Math.min(SIG_DOSAN_STEPS_MAX, Math.max(1, Math.floor(Number(pick.count) || 0)));
+    const res = pickDosanSignatures(signatures, { min: num(pick.min), max: num(pick.max), count });
+    if (!res.found) return setPickNote("범위 안에 사용 중인 시그니처가 없어요.");
+    edit({ signatureIds: res.ids });
+    setPickNote(res.found > count ? `범위 안 ${res.found}개 중 ${res.ids.length}개를 골랐어요.` : `범위 안 ${res.found}개를 모두 넣었어요.`);
+  };
   const ladder = byPrice.filter((s) => s.active && draft.signatureIds.includes(s.id));
   const toggle = (id: string) => edit({ signatureIds: draft.signatureIds.includes(id) ? draft.signatureIds.filter((x) => x !== id) : [...draft.signatureIds, id] });
 
@@ -103,9 +117,43 @@ export function SigDosanPanel({
           <span className={styles.muted}>
             두산 시그니처 ({draft.signatureIds.length}/{SIG_DOSAN_STEPS_MAX}, 누르면 넣고 빼요)
           </span>
+          <span className={games.unit} role="group" aria-label="두산 시그니처 랜덤 선택">
+            <input className={styles.inputSmall} type="number" inputMode="numeric" aria-label="랜덤 선택 최소 금액" placeholder="최소" value={pick.min} onChange={(e) => setPick({ ...pick, min: e.target.value })} />
+            <span className={styles.muted}>~</span>
+            <input className={styles.inputSmall} type="number" inputMode="numeric" aria-label="랜덤 선택 최대 금액" placeholder="최대" value={pick.max} onChange={(e) => setPick({ ...pick, max: e.target.value })} />
+            <span className={styles.muted}>FN ·</span>
+            <input className={styles.inputSmall} type="number" inputMode="numeric" aria-label="랜덤 선택 개수" min={1} max={SIG_DOSAN_STEPS_MAX} value={pick.count} onChange={(e) => setPick({ ...pick, count: e.target.value })} />
+            <span className={styles.muted}>개</span>
+            <button type="button" className={styles.ghost} onClick={randomPick}>
+              랜덤 선택
+            </button>
+            <button
+              type="button"
+              className={styles.ghost}
+              disabled={draft.signatureIds.length === 0}
+              onClick={() => {
+                edit({ signatureIds: [] });
+                setPickNote(null);
+              }}
+            >
+              선택 해제
+            </button>
+          </span>
+          {pickNote && (
+            <span className={styles.note} role="status">
+              {pickNote} 설정 저장을 눌러야 두산에 적용돼요.
+            </span>
+          )}
+          <span className={styles.segment} role="group" aria-label="두산 시그니처 정렬">
+            {DOSAN_SORTS.map((x) => (
+              <button key={x.key} type="button" aria-pressed={sort === x.key} onClick={() => setSort(x.key)}>
+                {x.label}
+              </button>
+            ))}
+          </span>
           <span className={prize.chips}>
-            {byPrice.length === 0 && <span className={styles.note}>만든 시그니처가 없어요.</span>}
-            {byPrice.map((s) => (
+            {shown.length === 0 && <span className={styles.note}>만든 시그니처가 없어요.</span>}
+            {shown.map((s) => (
               <button
                 key={s.id}
                 type="button"
