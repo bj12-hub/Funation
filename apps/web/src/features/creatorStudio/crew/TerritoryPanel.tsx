@@ -285,6 +285,8 @@ export function TerritoryPanel({
       )}
 
       <OverlayAddress overlayPath={overlayPath} param="territory" label="땅따먹기" />
+      <p className={styles.note}>점유 현황 (순위만 따로)</p>
+      <OverlayAddress overlayPath={overlayPath} param="territoryrank" label="땅따먹기 점유 현황" />
     </section>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { ov } from "@/features/overlayTheme/OverlayThemeRoot";
+import { OverlayThemeRoot, ov } from "@/features/overlayTheme/OverlayThemeRoot";
 import { formatNumber } from "@/lib/format";
 import { useServerClock } from "@/hooks/useServerClock";
 import type { ResolvedTheme } from "@/services/creator/overlayThemeTypes";
@@ -10,6 +10,17 @@ import { useOverlayPage } from "./CrewScoreOverlay";
 import { GameCard, currentRun, signedPoints } from "./GameOverlayParts";
 import board from "./overlay.module.css";
 import styles from "./gameOverlay.module.css";
+
+/** Who owns each cell as OBS shows it at `now`, and the 점유 순위 from it (cells, then 하트). */
+export function territoryRanking(territory: TerritoryLive, now: number) {
+  const terr = territory.board;
+  const owners = terr ? terr.cells.map((c) => c.owners.filter((o) => now >= Date.parse(o.revealAt)).at(-1)?.memberId ?? null) : [];
+  const ranking = territory.members
+    .map((m) => ({ ...m, cells: owners.filter((o) => o === m.memberId).length }))
+    .filter((m) => m.cells > 0 || m.hearts > 0)
+    .sort((x, y) => y.cells - x.cells || y.hearts - x.hearts);
+  return { owners, ranking };
+}
 
 /**
  * 땅따먹기 overlay (`?territory`): the board with its coordinates (A ~ · 1 ~) — each cell in its owner's color once that
@@ -26,12 +37,8 @@ export function TerritoryOverlay({ territory, serverNow, reloadSeq, theme }: { t
   const run = currentRun(territory.runs, "TERRITORY", now);
   if (!terr && !run && !territory.settings.showIdle) return null;
   const shown = !!run && now >= Date.parse(run.revealAt);
-  const owners = terr ? terr.cells.map((c) => c.owners.filter((o) => now >= Date.parse(o.revealAt)).at(-1)?.memberId ?? null) : [];
+  const { owners, ranking } = territoryRanking(territory, now);
   const member = (id: string | null) => territory.members.find((m) => m.memberId === id);
-  const ranking = territory.members
-    .map((m) => ({ ...m, cells: owners.filter((o) => o === m.memberId).length }))
-    .filter((m) => m.cells > 0 || m.hearts > 0)
-    .sort((x, y) => y.cells - x.cells || y.hearts - x.hearts);
   const cellPoints = territory.settings.cellPoints;
   const ticker = terr && territory.settings.ticker !== "OFF" && (
     <p className={`${ov.label} ${styles.terrTicker}`} aria-hidden="true">
@@ -115,5 +122,51 @@ export function TerritoryOverlay({ territory, serverNow, reloadSeq, theme }: { t
         </ol>
       )}
     </GameCard>
+  );
+}
+
+/**
+ * 땅따먹기 점유 현황 (`?territoryrank`, 2026-10-28 — StreamDonate "점유 현황 (순위)" as its own source): the 점유 순위 alone —
+ * each member's cells as OBS shows them now, share, 하트 (and 점수 with a 칸 점수). Without a board it waits (대기 중에도
+ * 보이기), or the page stays empty.
+ */
+export function TerritoryRankOverlay({ territory, serverNow, reloadSeq, theme }: { territory: TerritoryLive | null; serverNow: string | null; reloadSeq: number; theme: ResolvedTheme }) {
+  useOverlayPage(reloadSeq);
+  const now = useServerClock(serverNow);
+  if (!territory || now === null) return null;
+  const terr = territory.board;
+  if (!terr && !territory.settings.showIdle) return null;
+  const { owners, ranking } = territoryRanking(territory, now);
+  const cellPoints = territory.settings.cellPoints;
+  return (
+    <OverlayThemeRoot theme={theme} className={board.pad}>
+      <div className={`${ov.card} ${styles.rankCard}`}>
+        <h1 className={`${ov.label} ${styles.rankTitle}`}>🏆 {territory.settings.title || TERRITORY_TITLE_DEFAULT} 점유 현황</h1>
+        {!terr ? (
+          <p className={ov.muted}>판 시작 전이에요</p>
+        ) : ranking.length === 0 ? (
+          <p className={ov.muted}>아직 점령한 칸이 없어요</p>
+        ) : (
+          <ol className={styles.gsRanking}>
+            {ranking.map((m, i) => (
+              <li key={m.memberId}>
+                <span className={ov.muted}>{i + 1}</span>
+                <span className={styles.gsName}>
+                  {m.color && <i className={board.dot} style={{ background: m.color }} aria-hidden="true" />}
+                  {m.name}
+                </span>
+                <span className={ov.muted}>
+                  ♥ {m.hearts}
+                  {cellPoints > 0 && ` · ${formatNumber(m.cells * cellPoints)}점`}
+                </span>
+                <strong>
+                  {m.cells}칸 <span className={ov.muted}>{Math.round((m.cells / owners.length) * 100)}%</span>
+                </strong>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+    </OverlayThemeRoot>
   );
 }

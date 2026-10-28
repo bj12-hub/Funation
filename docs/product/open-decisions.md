@@ -329,6 +329,8 @@ Confirmed:
   자동 잠김 기본 끔(켜면 다음 라운드까지 잠김). See docs/figma/code-first-screens.md
 - 텍스트 슬롯 스타일 (2026-10-28, 기본값 — 일반적인 기준, StreamDonate 참고): 폰트 · 줄 간격 · 테두리 두께 · 색 · 그림자 · 색 지정 배경(안쪽
   여백 · 모서리), 기본값은 그 전 모습 그대로. 부분 서식(드래그한 부분만 서식)은 TBD. See docs/figma/code-first-screens.md
+- 따로 띄우는 게임 OBS 소스 (2026-10-28, 기본값 — 일반적인 기준, StreamDonate 참고): 땅따먹기 점유 현황 `?territoryrank`, 고스톱 랭킹
+  `?gostoprank`(10명), 스도폴리 상태 텍스트 `?sudopolystatus`. 스도폴리 3D 보드는 TBD. See docs/figma/code-first-screens.md
 
 Still TBD:
 
