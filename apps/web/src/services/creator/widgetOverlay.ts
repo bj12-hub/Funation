@@ -10,7 +10,7 @@ import { currentRun, voteBoard } from "@/services/votes/voteCore";
 import { isHidden, stageOf } from "@/services/donations/rouletteCore";
 import { boardOf, channelRows as gachaRows, isHidden as gachaHidden, mockGacha, stageOf as gachaStageOf } from "@/services/donations/gachaCore";
 import { STUDIO_CHANNEL, mockCrew } from "@/services/crew/mockCrewStore";
-import { crewRankingRows, eventLines, goalProgress, miniLines, monitorLine, rankingRows, recentLines, secondGoalProgress, sigQueueCards, sourceBoardRows, topDonation, totalAmount } from "./widgetOverlayCore";
+import { crewRankingRows, eventLines, goalProgress, miniLines, monitorLine, rankingRows, recentLines, secondGoalProgress, sigQueueCards, sigWallCard, sourceBoardRows, topDonation, totalAmount } from "./widgetOverlayCore";
 import { overlayTheme } from "./overlayThemeStore";
 import type { OverlayThemeChoice } from "./overlayThemeTypes";
 import { QR_SAMPLE_IMAGE, isWidgetOverlay, type OverlayWidget } from "./widgetOverlayTypes";
@@ -21,7 +21,7 @@ import { clearedAtOf, mockWallpaper, wallStickers } from "./wallpaperCore";
  * 후원 위젯 OBS overlays (code-first): no login — the integration key in the URL is the credential, like
  * the other overlays. Settings come from 위젯 settings, numbers from the creator's donation feed.
  */
-export async function getOverlayWidget(widget: unknown, key: unknown): Promise<OverlayWidget | "FORBIDDEN"> {
+export async function getOverlayWidget(widget: unknown, key: unknown, donation?: unknown): Promise<OverlayWidget | "FORBIDDEN"> {
   if (!USE_MOCK) throw new Error("Widget overlay API is not connected yet.");
   if (!overlayKeyOpen(key) || !isWidgetOverlay(widget)) return "FORBIDDEN";
   // 리모컨 signals: 새로고침 (reloadSeq) and 기능 제어 ON/OFF (on), shared by every 후원 위젯; the theme is the
@@ -126,6 +126,11 @@ export async function getOverlayWidget(widget: unknown, key: unknown): Promise<O
     case "sig-queue": {
       const settings = readWidget("SIG_QUEUE");
       return { widget, settings, cards: sigQueueCards(items, settings), ...themed(settings) };
+    }
+    // 시그 벽지 (2026-10-28): the 시그니처 후원 `?d=` names, until the source is removed.
+    case "sig-wallpaper": {
+      const settings = readWidget("SIG_WALLPAPER");
+      return { widget, settings, card: sigWallCard(items, donation), ...themed(settings) };
     }
     case "wallpaper": {
       // Stickers since the last 벽지 비우기 (리모컨). The images go once; each sticker points at one.
