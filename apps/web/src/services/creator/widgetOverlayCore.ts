@@ -104,7 +104,12 @@ export function rankingSince(period: RankingSettings["period"], now = new Date()
  * alert (TBD).
  */
 export function rankingRows(items: AlertItem[], s: RankingSettings, now = new Date()): WidgetRankRow[] {
-  return donorRanking(items, rankingSince(s.period, now), Infinity).slice(0, s.ranks);
+  // 랭킹제외 (2026-10-28): those donors' rows go, and the rest close up.
+  const out = new Set((s.excluded ?? []).map((x) => x.key));
+  return donorTotals(items, rankingSince(s.period, now), Infinity)
+    .filter((v) => !out.has(v.key))
+    .slice(0, s.ranks)
+    .map((v, i) => ({ rank: i + 1, name: v.name, fnAmount: v.fn }));
 }
 
 /**
@@ -112,6 +117,11 @@ export function rankingRows(items: AlertItem[], s: RankingSettings, now = new Da
  * 대체 메시지 rules replaced are left out). The 엔딩 크레딧 reads its 후원자 TOP 3 · 후원 순위 from it (2026-10-23).
  */
 export function donorRanking(items: AlertItem[], from: number, to: number): WidgetRankRow[] {
+  return donorTotals(items, from, to).map((v, i) => ({ rank: i + 1, name: v.name, fnAmount: v.fn }));
+}
+
+/** The same, with each donor's private group key (`dk-…`, or `name:…` for alerts without one) — for 랭킹제외. */
+export function donorTotals(items: AlertItem[], from: number, to: number): { key: string; name: string; fn: number }[] {
   const totals = new Map<string, { name: string; fn: number; first: number }>();
   for (const a of countedDonations(items)) {
     const t = countedAt(a);
@@ -123,7 +133,9 @@ export function donorRanking(items: AlertItem[], from: number, to: number): Widg
     cur.name = a.donor;
     totals.set(key, cur);
   }
-  return [...totals.values()].sort((x, y) => y.fn - x.fn || x.first - y.first).map((v, i) => ({ rank: i + 1, name: v.name, fnAmount: v.fn }));
+  return [...totals]
+    .sort(([, x], [, y]) => y.fn - x.fn || x.first - y.first)
+    .map(([key, v]) => ({ key, name: v.name, fn: v.fn }));
 }
 
 /**
@@ -297,18 +309,27 @@ const played = (a: AlertItem) => a.status === "SHOWING" || a.status === "DONE";
  * 최고 후원: the biggest counted donation (FN, the 목표 · 누적 · 랭킹 rules: no tests or 다시 보내기, quests once they
  * succeeded) in the period. 알림이 나올 때 only takes donations whose alert reached the screen. Same amount: 나중 후원자
  * takes the later one, 먼저 후원자 keeps the earlier one. One donation, so the name is the one its alert showed (익명 or
- * the 대체 메시지 included).
+ * the 대체 메시지 included). 수동 수정 (2026-10-28): an entry set by hand within this 기간 stands for every donation before it; later
+ * ones still compete with it (same tie rule).
  */
-export function topDonation(items: AlertItem[], s: Pick<TopDonationSettings, "period" | "timing" | "tie">, now = new Date()): TopDonation | null {
+export function topDonation(
+  items: AlertItem[],
+  s: Pick<TopDonationSettings, "period" | "timing" | "tie">,
+  now = new Date(),
+  override: { donor: string; fnAmount: number; at: string } | null = null
+): TopDonation | null {
   const since = rankingSince(s.period, now);
-  let best: { a: AlertItem; t: number } | null = null;
+  const manual = override && Date.parse(override.at) >= since ? override : null;
+  let best: { fn: number; t: number; top: TopDonation } | null = manual
+    ? { fn: manual.fnAmount, t: Date.parse(manual.at), top: { donor: manual.donor, amount: `${formatNumber(manual.fnAmount)} FN`, message: "", at: manual.at, manual: true } }
+    : null;
   for (const a of countedDonations(items)) {
     const t = countedAt(a);
-    if (t < since || (s.timing === "PLAYED" && !played(a))) continue;
-    const better = !best || a.fnAmount > best.a.fnAmount || (a.fnAmount === best.a.fnAmount && (s.tie === "LATEST" ? t >= best.t : t < best.t));
-    if (better) best = { a, t };
+    if (t < since || (manual && t <= Date.parse(manual.at)) || (s.timing === "PLAYED" && !played(a))) continue;
+    const better = !best || a.fnAmount > best.fn || (a.fnAmount === best.fn && (s.tie === "LATEST" ? t >= best.t : t < best.t));
+    if (better) best = { fn: a.fnAmount, t, top: { donor: a.donor, amount: alertAmount(a), message: a.message, at: new Date(t).toISOString() } };
   }
-  return best && { donor: best.a.donor, amount: alertAmount(best.a), message: best.a.message, at: new Date(best.t).toISOString() };
+  return best?.top ?? null;
 }
 
 /** 후원 모니터링: the alert on screen now, else the last one that was shown (any kind the 후원 알림 plays). */

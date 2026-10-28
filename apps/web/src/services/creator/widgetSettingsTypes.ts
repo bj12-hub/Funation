@@ -347,6 +347,8 @@ export const RANKING_NAME_TYPES = [
 ] as const;
 /** Periods offered for the widget ranking (design shows 월간 selected; the full list is TBD). */
 export const RANKING_WIDGET_PERIODS = ["일간", "주간", "월간", "전체"] as const;
+/** 랭킹제외 (2026-10-28): at most this many donors left out of the 후원자 랭킹. */
+export const RANKING_EXCLUDED_MAX = 50;
 export const RANKING_SPEEDS = [
   { key: "VERY_SLOW", label: "매우 느리게" },
   { key: "SLOW", label: "느리게" },
@@ -386,6 +388,11 @@ export type RankingSettings = {
   scrollSpeed: (typeof RANKING_SPEEDS)[number]["key"];
   first: RankTierStyle;
   others: RankTierStyle;
+  /**
+   * 랭킹제외 (2026-10-28, StreamDonate 후원자 랭킹 "랭킹제외"): donors the 후원자 랭킹 leaves out, by their private group key
+   * (a copied name is not the same donor) with the name they had when left out. Saved before: none.
+   */
+  excluded: { key: string; name: string }[];
 };
 
 export const VOTE_PRESET_MAX = 10;
@@ -619,6 +626,9 @@ export const TOP_DONATION_TIES = [
 ] as const;
 export const TOP_DONATION_TITLE_MAX = 20;
 export const TOP_DONATION_PRIZE_MAX = 30;
+/** 최고 후원 수동 수정 (2026-10-28): the name and amount typed in. */
+export const TOP_DONATION_DONOR_MAX = 20;
+export const TOP_DONATION_AMOUNT_MAX = 100_000_000;
 
 /**
  * 최고 후원: the single biggest completed Ssumnation donation (FN) in the period — 후원랭킹's 일간 · 주간 · 월간 · 전체. The
@@ -715,6 +725,10 @@ export type WidgetLiveData = {
   gachaUnclaimed: number;
   /** The channel's 전체 테마, so a preview set to 전체 테마 따르기 draws in it. */
   appearance: OverlayAppearance;
+  /** 랭킹제외 (2026-10-28): the 후원자 랭킹 over all time (top 30, excluded ones too) with their private keys — studio only. */
+  donors: { key: string; name: string; amount: number }[];
+  /** 최고 후원 now under the saved settings (`manual`: the entry set by hand). */
+  topNow: { donor: string; amount: string; message: string; at: string; manual?: boolean } | null;
 };
 
 export type CustomSoundResult =
@@ -861,7 +875,8 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     scrollGap: 10,
     scrollSpeed: "FAST",
     first: { font: { family: "제주 고딕", size: 24, color: "#FFFFFF" }, accentColor: "#FFFFFF" },
-    others: { font: { family: "제주 고딕", size: 24, color: "#FFFFFF" }, accentColor: "#FFFFFF" }
+    others: { font: { family: "제주 고딕", size: 24, color: "#FFFFFF" }, accentColor: "#FFFFFF" },
+    excluded: []
   },
   VOTE: {
     theme: "INHERIT",

@@ -308,6 +308,9 @@ Confirmed:
   칸 점수(원본의 금액 대신). 칸 수 2 ~ 50과 금액 표시 단위(원 · 하트 · 달)는 TBD. See docs/figma/code-first-screens.md
 - 스도폴리 참여 BJ · 캐릭터 (2026-10-28, 기본값 — 일반적인 기준, StreamDonate 참고): 캐릭터는 이모지 16종(원본 3D 캐릭터 · 에셋은 없음),
   기본 모두 참여 · 첫 글자. 캐릭터 이미지 업로드, 3D 보드, 상태 텍스트 오버레이는 TBD. See docs/figma/code-first-screens.md
+- 후원랭킹 랭킹제외 · 최고 후원 수동 수정 (2026-10-28, 기본값 — 일반적인 기준, StreamDonate 참고): 랭킹제외는 후원자 묶음 키로 OBS
+  후원랭킹에서만(엔딩 크레딧 · 다른 순위는 그대로), 50명까지. 수동 수정은 지금 기간에만, 받은 BJ 없이. 데이터센터의 후원자명 바꾸기(드래그)는
+  TBD. See docs/figma/code-first-screens.md
 
 Still TBD:
 
