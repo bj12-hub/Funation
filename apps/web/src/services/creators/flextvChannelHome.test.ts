@@ -27,6 +27,7 @@ beforeEach(() => {
         return json({ data: [{ level: 5, name: "VIP", member: { id: 7, nickname: "열혈팬", loginId: "fan01" } }, { level: 1, name: "팬", member: { id: 8, nickname: "시청자", loginId: "viewer01" } }], count: 2 });
       }
       if (u.pathname === "/api/channels/3021/channel-notices") {
+        if (new Headers(init.headers).get("authorization") === "Bearer stale-token") return json({ error: "UNAUTHENTICATED" }, 401);
         const limit = Number(u.searchParams.get("limit"));
         return json({ data: [post(1, 1), post(2), post(3), post(4)].slice(0, limit) });
       }
@@ -75,6 +76,13 @@ describe("the 소식", () => {
     // With the member's token, so FLEXTV applies its own rules for them.
     expect(calls).toEqual([{ path: "/api/channels/3021/channel-notices?offset=0&limit=4&sort=recent&ver=0", auth: "Bearer member-token" }]);
     expect((await getFlextvChannelNews("3021", 12)).hasMore).toBe(false);
+  });
+
+  it("falls back to the visitor's list when FLEXTV no longer accepts the member's token", async () => {
+    token = "stale-token";
+    const { getFlextvChannelNews } = await import("./flextvChannelHome");
+    expect(await getFlextvChannelNews("3021", 3)).toMatchObject({ unavailable: false, hasMore: true });
+    expect(calls.map((c) => c.auth)).toEqual(["Bearer stale-token", null]);
   });
 
   it("does not ask FLEXTV about what is not a channel id", async () => {

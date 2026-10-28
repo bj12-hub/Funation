@@ -6,7 +6,7 @@ import { useState } from "react";
 import { formatCompactKo, formatNumber, kstIsoString } from "@/lib/format";
 import { CREATOR_CATEGORY_LABEL, type CreatorCategory } from "@/services/creators/creatorTypes";
 import { crewRoleLabel, type CrewPublic } from "@/services/crew/crewTypes";
-import { CHANNEL_NEWS_PAGE, type ChannelNews } from "@/services/creators/channelTypes";
+import { CHANNEL_NEWS_MAX, CHANNEL_NEWS_PAGE, type ChannelNews } from "@/services/creators/channelTypes";
 import type { PublicChannelVideos } from "@/services/creators/channelVideos";
 import type { Signature } from "@/services/donations/donationCatalog";
 import { PLATFORM_ERROR_LABEL, type VideoKind } from "@/services/platforms/platformTypes";
@@ -84,7 +84,7 @@ export function NewsView({ creatorId, name, news, show }: { creatorId: string; n
           </li>
         ))}
       </ul>
-      {news.hasMore && (
+      {news.hasMore && show < CHANNEL_NEWS_MAX && (
         <Link href={`/creators/${creatorId}?view=community&show=${show + CHANNEL_NEWS_PAGE}`} className={styles.link} scroll={false}>
           더 보기
         </Link>

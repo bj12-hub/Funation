@@ -27,6 +27,7 @@ beforeEach(() => {
       }
       if (u.pathname === "/api/cs/event-page") {
         const id = Number(u.searchParams.get("page"));
+        if (id === 70) return new Response("Gateway Timeout", { status: 504 });
         if (id !== 50 && id !== 51) return new Response("Internal Server Error", { status: 500 });
         return json({ events: { ...event(id), bcontent: id === 50 ? "" : "<p>참여하세요</p>" }, prevevents: null, nextevents: null });
       }
@@ -46,6 +47,8 @@ describe("이벤트", () => {
     const { getFlextvEvents } = await import("./flextvEvents");
     expect(await getFlextvEvents(undefined, undefined)).toMatchObject({ ended: false, total: 14, show: 12, hasMore: true });
     expect((await getFlextvEvents(undefined, "24")).hasMore).toBe(false);
+    // The most it shows: no "더 보기" past it.
+    expect(await getFlextvEvents(undefined, "500")).toMatchObject({ show: 96, hasMore: false });
     expect(await getFlextvEvents("ended", undefined)).toMatchObject({ ended: true, items: [{ id: "40" }], hasMore: false });
   });
 
@@ -60,6 +63,8 @@ describe("이벤트", () => {
     expect(await getFlextvEvent("99")).toBeNull();
     expect(await getFlextvEvent("../1")).toBeNull();
     expect(calls.filter((c) => c.includes("../1"))).toEqual([]);
+    // Only FLEXTV's server error can mean a missing event; another failure is FLEXTV being unreachable.
+    await expect(getFlextvEvent("70")).rejects.toThrow();
     down = true;
     await expect(getFlextvEvent("99")).rejects.toThrow();
   });

@@ -9,7 +9,7 @@ import { getMovedChannelHandle } from "@/services/channel/channel";
 import { getCreatorById } from "@/services/creators/creators";
 import { getCreatorRoom } from "@/services/creators/creatorRoom";
 import { getChannelMonthlyRanking, getChannelPosts } from "@/services/creators/channelHome";
-import { CHANNEL_NEWS_PAGE, CHANNEL_POSTS_PAGE } from "@/services/creators/channelTypes";
+import { CHANNEL_NEWS_MAX, CHANNEL_NEWS_PAGE, CHANNEL_POSTS_PAGE } from "@/services/creators/channelTypes";
 import { getPublicChannelVideos } from "@/services/creators/channelVideos";
 import { getFlextvCreatorRoom } from "@/services/creators/flextvChannel";
 import { getFlextvChannelNews, getFlextvChannelRanking } from "@/services/creators/flextvChannelHome";
@@ -42,7 +42,7 @@ export default async function Page({ params, searchParams }: { params: Params; s
   const { id } = await params;
   const { tab, view, show } = await searchParams;
   if (FLEXTV_DONATION && isFlextvChannelId(id)) {
-    const newsShow = Math.min(Math.max(CHANNEL_NEWS_PAGE, Math.floor(Number(show)) || CHANNEL_NEWS_PAGE), 60);
+    const newsShow = Math.min(Math.max(CHANNEL_NEWS_PAGE, Math.floor(Number(show)) || CHANNEL_NEWS_PAGE), CHANNEL_NEWS_MAX);
     return <FlextvRoom channelId={id} view={tab === "donation" ? "home" : parseChannelView(view)} donationTab={tab === "donation"} newsShow={newsShow} />;
   }
   // With FLEXTV (phase 7) every list links FLEXTV's channels: the mock's creators are not shown.
@@ -95,12 +95,15 @@ export default async function Page({ params, searchParams }: { params: Params; s
  */
 async function FlextvRoom({ channelId, view, donationTab, newsShow }: { channelId: string; view: ChannelView; donationTab: boolean; newsShow: number }) {
   const shown: ChannelView = view === "signatures" || view === "community" ? view : "home";
-  const [room, session, balance, favorite] = await Promise.all([getFlextvCreatorRoom(channelId), getSession(), getWalletBalance(), isFavorite(channelId)]);
-  if (!room) notFound();
-  const [ranking, news] = await Promise.all([
-    shown === "home" ? getFlextvChannelRanking(channelId, session?.ssumnationId ?? null) : null,
+  // The 팬 랭킹 and 소식 start with the room (neither throws: FLEXTV unreachable shows them as unavailable).
+  const sessionRead = getSession();
+  const extras = Promise.all([
+    shown === "home" ? sessionRead.then((s) => getFlextvChannelRanking(channelId, s?.ssumnationId ?? null)) : null,
     shown === "home" ? getFlextvChannelNews(channelId, 3) : shown === "community" ? getFlextvChannelNews(channelId, newsShow) : undefined
   ]);
+  const [room, session, balance, favorite] = await Promise.all([getFlextvCreatorRoom(channelId), sessionRead, getWalletBalance(), isFavorite(channelId)]);
+  if (!room) notFound();
+  const [ranking, news] = await extras;
   return (
     <CreatorRoomScreen
       room={room}

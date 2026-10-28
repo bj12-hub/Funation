@@ -114,6 +114,7 @@ export async function fetchEventPage(id: string): Promise<FlextvEventPage | null
   if (!/^[1-9]\d{0,15}$/.test(id)) return null;
   const response = await flextvRequest(`/api/cs/event-page?page=${id}`);
   if (response.status === 200) return readEventPage(response.data);
+  if (response.status !== 500) throw new FlextvUnavailableError(`FLEXTV event page answered ${response.status}`);
   await fetchEvents({ ended: false, offset: 0, limit: 1 });
   return null;
 }

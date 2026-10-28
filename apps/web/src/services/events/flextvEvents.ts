@@ -8,15 +8,16 @@ import { FLEXTV_WEB_URL } from "@/lib/flextv/mode";
  */
 
 export const FLEXTV_EVENTS_PAGE = 12;
+const FLEXTV_EVENTS_MAX = 96;
 
 export type FlextvEventListView = { ended: boolean; items: FlextvEvent[]; total: number; show: number; hasMore: boolean };
 
 /** `filter` "ended" shows FLEXTV's 종료 events; anything else its 진행 중 ones. */
 export async function getFlextvEvents(filter: unknown, show: unknown): Promise<FlextvEventListView> {
   const ended = filter === "ended";
-  const count = Math.min(Math.max(FLEXTV_EVENTS_PAGE, Math.floor(Number(show)) || FLEXTV_EVENTS_PAGE), 96);
+  const count = Math.min(Math.max(FLEXTV_EVENTS_PAGE, Math.floor(Number(show)) || FLEXTV_EVENTS_PAGE), FLEXTV_EVENTS_MAX);
   const { items, total } = await fetchEvents({ ended, offset: 0, limit: count });
-  return { ended, items, total, show: count, hasMore: items.length >= count && total > items.length };
+  return { ended, items, total, show: count, hasMore: count < FLEXTV_EVENTS_MAX && items.length >= count && total > items.length };
 }
 
 export type FlextvEventDetail = FlextvEventPage & { flextvUrl: string };

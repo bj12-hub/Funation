@@ -60,7 +60,10 @@ export function readNews(data: unknown): FlextvNewsItem[] {
  * rules for them (its channel blacklist, adult pictures); `ver=0` skips FLEXTV's count, which the room does not use.
  */
 export async function fetchNews(channelId: string, limit: number, token?: string): Promise<FlextvNewsItem[]> {
-  const response = await flextvRequest(`${channelPath(channelId)}/channel-notices?offset=0&limit=${limit}&sort=recent&ver=0`, { token });
+  const path = `${channelPath(channelId)}/channel-notices?offset=0&limit=${limit}&sort=recent&ver=0`;
+  let response = await flextvRequest(path, { token });
+  // A token FLEXTV no longer accepts: the list as a visitor sees it.
+  if (response.status === 401 && token) response = await flextvRequest(path);
   if (response.status === 204) return [];
   if (response.status !== 200) throw new FlextvUnavailableError(`FLEXTV channel-notices answered ${response.status}`);
   return readNews(response.data);

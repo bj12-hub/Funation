@@ -16,6 +16,8 @@ export type ChannelNews = { items: ChannelNewsItem[]; hasMore: boolean; unavaila
 
 /** How many 소식 the 소식 tab shows at first, and how many more "더 보기" adds. */
 export const CHANNEL_NEWS_PAGE = 12;
+/** The most 소식 the tab shows ("더 보기" stops there). */
+export const CHANNEL_NEWS_MAX = 60;
 
 export const CHANNEL_POST_MAX = 500;
 export const CHANNEL_POSTS_PAGE = 10;
