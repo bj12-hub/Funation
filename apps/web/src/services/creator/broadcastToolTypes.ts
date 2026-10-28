@@ -1,4 +1,5 @@
 import type { OverlayAppearance, OverlayThemeChoice, ResolvedTheme } from "./overlayThemeTypes";
+import type { FontFamily } from "./widgetSettingsTypes";
 
 /**
  * 방송 도구 (자막 · 전광판 · 타이머 · 엔딩 크레딧 · 빙고) — code-first, no Figma frame
@@ -188,20 +189,65 @@ export const TEXT_ALIGNS = [
   { key: "CENTER", label: "가운데" },
   { key: "RIGHT", label: "오른쪽" }
 ] as const;
+/** 텍스트 슬롯 스타일 (2026-10-28, StreamDonate 텍스트 오버레이 기본 스타일): 줄 간격 · 테두리 두께 · 안쪽 여백 · 모서리 bounds. */
+export const TEXT_LINE_HEIGHT = { min: 1, max: 3 } as const;
+export const TEXT_OUTLINE_MAX = 10;
+export const TEXT_PADDING_MAX = 80;
+export const TEXT_RADIUS_MAX = 60;
+export const TEXT_BACKGROUNDS = [
+  { key: "NONE", label: "배경 없음" },
+  { key: "CARD", label: "테마 카드" },
+  { key: "COLOR", label: "색 지정" }
+] as const;
 export type TextSlot = {
   name: string;
   text: string;
   size: number;
   color: string;
   bold: boolean;
+  /** 폰트 (2026-10-28): null = the 방송 도구 테마's. */
+  font: FontFamily | null;
+  /** 줄 간격 (2026-10-28): 1 ~ 3, up to two decimals. */
+  lineHeight: number;
   outline: boolean;
-  /** CARD: on the 방송 도구 테마 card (its colors win over `color`); NONE: straight on the stream. */
-  background: "NONE" | "CARD";
+  /** 테두리 두께 (px) · 색 when `outline` is on (2026-10-28). */
+  outlineWidth: number;
+  outlineColor: string;
+  /** 그림자 (2026-10-28). */
+  shadow: boolean;
+  /**
+   * CARD: on the 방송 도구 테마 card (its colors win over `color`); NONE: straight on the stream; COLOR (2026-10-28): on
+   * `bgColor` with `padding` · `radius` (px).
+   */
+  background: (typeof TEXT_BACKGROUNDS)[number]["key"];
+  bgColor: string;
+  padding: number;
+  radius: number;
   align: (typeof TEXT_ALIGNS)[number]["key"];
   scroll: boolean;
   scrollSec: number;
 };
-export const EMPTY_TEXT_SLOT: TextSlot = { name: "", text: "", size: 32, color: "#FFFFFF", bold: true, outline: true, background: "NONE", align: "LEFT", scroll: false, scrollSec: 20 };
+/** A new slot; the style fields added on 2026-10-28 keep the look slots had before (테마 글꼴, 2px 검은 테두리). */
+export const EMPTY_TEXT_SLOT: TextSlot = {
+  name: "",
+  text: "",
+  size: 32,
+  color: "#FFFFFF",
+  bold: true,
+  font: null,
+  lineHeight: 1.35,
+  outline: true,
+  outlineWidth: 2,
+  outlineColor: "#000000",
+  shadow: false,
+  background: "NONE",
+  bgColor: "#000000",
+  padding: 18,
+  radius: 12,
+  align: "LEFT",
+  scroll: false,
+  scrollSec: 20
+};
 
 export type ToolStates = { subtitle: SubtitleState; marquee: MarqueeState; timer: TimerState; credits: CreditsState; bingo: BingoState; text: { slots: TextSlot[] } };
 
