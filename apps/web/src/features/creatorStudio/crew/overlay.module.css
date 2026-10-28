@@ -473,6 +473,12 @@
   font-size: 0.8em;
 }
 
+/* 한 줄에 놓을 팀원 수 (2026-10-28): that many per line, then the next. */
+.teamMembers[data-per-line] {
+  display: grid;
+  grid-template-columns: repeat(var(--per-line), max-content);
+}
+
 /* ── 시그 카운트 (?sigcount) ── */
 .sigCount {
   width: fit-content;
