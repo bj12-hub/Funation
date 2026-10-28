@@ -145,7 +145,11 @@ export function BattleOverlay({ battle: x, reloadSeq, theme }: { battle: Battle 
             ))}
           </ol>
         ) : many ? (
-          <TeamBars match={x.matches[0]} running={x.running} />
+          x.display === "STACKED" ? (
+            <TeamStack match={x.matches[0]} running={x.running} />
+          ) : (
+            <TeamBars match={x.matches[0]} running={x.running} />
+          )
         ) : (
           <Tug match={x.matches[0]} running={x.running} />
         )}
@@ -202,6 +206,31 @@ function TeamBars({ match: m, running }: { match: BattleMatch; running: boolean 
         </li>
       ))}
     </ol>
+  );
+}
+
+/** 다수 팀 누적 바 (2026-10-28, StreamDonate "누적 바"): one bar split by each team's share, then the teams best first. */
+function TeamStack({ match: m, running }: { match: BattleMatch; running: boolean }) {
+  const total = m.sides.reduce((sum, s) => sum + Math.max(0, s.score), 0);
+  const share = (score: number) => (total ? (Math.max(0, score) / total) * 100 : 100 / m.sides.length);
+  return (
+    <div className={styles.stackBox}>
+      <span className={`${ov.track} ${styles.tug} ${styles.stack}`} role="img" aria-label={m.sides.map((s) => `${s.label} ${Math.round(share(s.score))}%`).join(" · ")}>
+        {m.sides.map((s) => (
+          <span key={s.key} style={{ width: `${share(s.score)}%`, background: s.color }} />
+        ))}
+      </span>
+      <ol className={styles.stackLegend}>
+        {ranked(m).map((s) => (
+          <li key={s.key} data-win={!running && m.leader === s.key ? "" : undefined}>
+            <i className={styles.dot} style={{ background: s.color }} aria-hidden="true" />
+            <span className={ov.label}>{s.label}</span>
+            <strong className={ov.display}>{formatNumber(s.score)}</strong>
+            <span className={ov.muted}>{Math.round(share(s.score))}%</span>
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }
 

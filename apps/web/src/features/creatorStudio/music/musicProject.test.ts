@@ -1,16 +1,21 @@
 import { describe, expect, it } from "vitest";
 import {
   MUSIC_CLIP_MIN,
+  MUSIC_HISTORY_MAX,
   clipEnd,
+  copyClip,
   encodeWav,
   fadeEnvelope,
   fitFades,
   formatSec,
   mixPlan,
   moveClip,
+  musicCommandOf,
   newClip,
   peaks,
+  playPosition,
   projectLength,
+  pushHistory,
   splitClip,
   trimClip,
   wavBytes,
@@ -103,5 +108,41 @@ describe("음악 편집기 내보내기", () => {
     expect(peaks(data, 4, 0, 2, 2)).toEqual([1, 0.75]);
     expect(peaks(data, 4, 1, 2, 1)).toEqual([0.75]);
     expect([formatSec(12.34), formatSec(65)]).toEqual(["12.3초", "1분 5.0초"]);
+  });
+});
+
+describe("음악 편집기 단축키 · 되돌리기 · 붙여넣기 · 루프 (2026-10-28)", () => {
+  const key = (k: string, mods: Partial<{ ctrlKey: boolean; metaKey: boolean; shiftKey: boolean; altKey: boolean }> = {}) =>
+    musicCommandOf({ key: k, ctrlKey: false, metaKey: false, shiftKey: false, altKey: false, ...mods });
+
+  it("reads the StreamDonate shortcuts (Ctrl or ⌘)", () => {
+    expect(key(" ")).toBe("PLAY");
+    expect(key("z", { ctrlKey: true })).toBe("UNDO");
+    expect(key("Z", { ctrlKey: true, shiftKey: true })).toBe("REDO");
+    expect(key("y", { metaKey: true })).toBe("REDO");
+    expect(key("l", { ctrlKey: true })).toBe("LOOP");
+    expect(key("s", { ctrlKey: true })).toBe("SPLIT");
+    expect(key("c", { metaKey: true })).toBe("COPY");
+    expect(key("v", { ctrlKey: true })).toBe("PASTE");
+    expect(key("Delete")).toBe("DELETE");
+    expect(key("Backspace")).toBe("DELETE");
+    for (const none of [key("a"), key("z"), key("s", { ctrlKey: true, shiftKey: true }), key("z", { ctrlKey: true, altKey: true }), key(" ", { shiftKey: true })]) expect(none).toBeNull();
+  });
+
+  it("keeps the latest edits for 되돌리기, pastes a copy at the playhead, and loops the playhead", () => {
+    let past: number[] = [];
+    for (let i = 0; i < MUSIC_HISTORY_MAX + 5; i++) past = pushHistory(past, i);
+    expect(past).toHaveLength(MUSIC_HISTORY_MAX);
+    expect([past[0], past.at(-1)]).toEqual([5, MUSIC_HISTORY_MAX + 4]);
+
+    const c = clip({ fadeIn: 1, gain: 1.5 });
+    expect(copyClip(c, "c-2", 7.12345)).toEqual({ ...c, id: "c-2", start: 7.123 });
+    expect(copyClip(c, "c-3", -1).start).toBe(0);
+
+    expect(playPosition(2, 3.5, 10, false)).toBe(5.5);
+    expect(playPosition(8, 3.5, 10, false)).toBe(11.5);
+    expect(playPosition(8, 3.5, 10, true)).toBe(1.5);
+    expect(playPosition(0, 25, 10, true)).toBe(5);
+    expect(playPosition(0, 25, 0, true)).toBe(25);
   });
 });

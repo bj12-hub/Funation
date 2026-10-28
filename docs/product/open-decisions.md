@@ -335,6 +335,8 @@ Confirmed:
   N명, 기본 10), 팀 순위표 한 줄에 놓을 팀원 수(기본 0 = 자동), 등수별 상품 테두리색(기본 없음). See docs/figma/code-first-screens.md
 - 기여도 릴레이 설정 프리셋 · 주사위 프로젝트별 룰 (2026-10-28, 기본값 — 일반적인 기준, StreamDonate 참고): 릴레이 프리셋은 랜덤시그와
   같은 방식(10개), 주사위 룰은 StreamDonate 프리셋을 우리 프로젝트로 보고 프로젝트마다(없으면 기본 룰). See docs/figma/code-first-screens.md
+- 다수 팀 표시 방식 · 음악 편집기 단축키 (2026-10-28, 기본값 — 일반적인 기준, StreamDonate 참고): 다수 팀 배틀 OBS 가로 막대(기본) / 누적 바,
+  음악 편집기 되돌리기 50번 · 복사 · 붙여넣기 · 루프와 StreamDonate 단축키. See docs/figma/code-first-screens.md
 
 Still TBD:
 
