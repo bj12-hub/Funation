@@ -995,3 +995,43 @@
   background: rgba(255, 255, 255, 0.12);
   white-space: nowrap;
 }
+
+/* 땅따먹기 점유 롤링 (2026-10-28): one line of 멤버 · 칸 scrolling above or below the board. */
+.terrTicker {
+  margin: 0;
+  overflow: hidden;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.terrTicker > span {
+  display: inline-block;
+  padding-left: 100%;
+  animation: terrTicker linear infinite;
+}
+
+.terrTicker b {
+  margin-right: 22px;
+}
+
+.terrTicker i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 5px;
+  border-radius: 50%;
+  vertical-align: baseline;
+}
+
+@keyframes terrTicker {
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .terrTicker > span {
+    padding-left: 0;
+    animation: none;
+  }
+}
