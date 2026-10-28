@@ -103,7 +103,7 @@ export function GamesScreen({ view, switches }: { view: GamesView; switches: Rec
       <SigDosanPanel settings={view.sigDosanSettings} signatures={view.signatures} members={view.members} live={view.live} now={now} overlayPath={view.overlayPath} pending={pending} run={run} />
       <AlphabetPanel settings={view.alphabetSettings} signatures={view.signatures} members={view.members} live={view.live} now={now} overlayPath={view.overlayPath} pending={pending} run={run} />
       <GoStopPanel settings={view.gostopSettings} signatures={view.signatures} members={view.members} live={view.live} now={now} overlayPath={view.overlayPath} pending={pending} run={run} />
-      <TerritoryPanel settings={view.territorySettings} signatures={view.signatures} live={view.live} now={now} overlayPath={view.overlayPath} pending={pending} run={run} />
+      <TerritoryPanel settings={view.territorySettings} signatures={view.signatures} members={view.members} live={view.live} now={now} overlayPath={view.overlayPath} pending={pending} run={run} />
       <SudopolyPanel settings={view.sudopolySettings} signatures={view.signatures} members={view.members} live={view.live} now={now} overlayPath={view.overlayPath} pending={pending} run={run} />
     </div>
   );

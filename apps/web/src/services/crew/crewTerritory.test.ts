@@ -78,6 +78,38 @@ describe("땅따먹기", () => {
     expect(await m.saveTerritory(settings())).toEqual({ status: "UNAUTHORIZED" });
   });
 
+  it("점유 롤링 표시 · 땅따먹기 전용 BJ 색상 (2026-10-28): kept with the settings, the colors only in 땅따먹기", async () => {
+    const m = await load();
+    const id = await m.start();
+    const older: Record<string, unknown> = { ...settings() };
+    delete older.ticker;
+    delete older.colors;
+    // A screen from before sends neither: off, crew colors.
+    expect(await m.saveTerritory(older)).toEqual({ status: "SAVED" });
+    expect((await m.getGamesView())!.territorySettings).toMatchObject({ ticker: "OFF", colors: {} });
+
+    expect(await m.saveTerritory(settings({ ticker: "BOTTOM", colors: { "cm-s2": "#00AA11" } }))).toEqual({ status: "SAVED" });
+    expect((await m.getGamesView())!.territorySettings).toMatchObject({ ticker: "BOTTOM", colors: { "cm-s2": "#00aa11" } });
+    await m.startTerritory({ broadcastId: id, requestId: key(90) });
+    const colors = Object.fromEntries((await m.view()).members.map((x) => [x.memberId, x.color]));
+    expect(colors).toMatchObject({ "cm-s1": "#8b5cf6", "cm-s2": "#00aa11", "cm-s3": "#3b82f6" });
+    // Other features keep the crew color.
+    expect((await m.getBroadcastView())!.live!.rows.find((r) => r.memberId === "cm-s2")!.color).toBe("#ec4899");
+    const overlay = await m.getOverlayScoreboard(m.overlayKey);
+    expect(overlay !== "IDLE" && overlay !== "FORBIDDEN" && overlay.territory.settings.ticker).toBe("BOTTOM");
+
+    const bad: [Record<string, unknown>, string][] = [
+      [{ ticker: "LEFT" }, "점유 롤링 표시"],
+      [{ colors: { "cm-s2": "red" } }, "#RRGGBB"],
+      [{ colors: { "cm-nope": "#112233" } }, "BJ 색상의 멤버"],
+      [{ colors: ["#112233"] }, "BJ 색상을 확인"]
+    ];
+    for (const [patch, message] of bad) {
+      const res = await m.saveTerritory(settings(patch as Partial<TerritorySettings>));
+      expect(res.status === "INVALID" && res.message, message).toContain(message);
+    }
+  });
+
   it("starts an empty board of the saved size", async () => {
     const m = await load();
     expect(await m.startTerritory({ broadcastId: "bc-x", requestId: key(1) })).toEqual({ status: "INVALID", message: "진행 중인 방송이 아니에요." });

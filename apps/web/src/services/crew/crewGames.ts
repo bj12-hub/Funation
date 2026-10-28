@@ -511,7 +511,7 @@ export async function resetGoStop(input: unknown): Promise<BroadcastResult> {
 export async function saveTerritory(input: unknown): Promise<BroadcastResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
-  const parsed = parseTerritorySettings(input, MOCK_FORBIDDEN_WORDS, signatureIds());
+  const parsed = parseTerritorySettings(input, MOCK_FORBIDDEN_WORDS, signatureIds(), (mockCrew.crews[STUDIO_CHANNEL] ?? []).map((m) => m.id));
   if ("message" in parsed) return { status: "INVALID", message: parsed.message };
   (mockCrew.territories ??= {})[STUDIO_CHANNEL] = parsed;
   return { status: "SAVED" };

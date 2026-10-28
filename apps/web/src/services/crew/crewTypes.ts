@@ -1193,9 +1193,20 @@ export const TERRITORY_HEART_MODES: { key: TerritoryHeartMode; label: string }[]
   { key: "AMOUNT", label: "후원 점수마다" },
   { key: "SIGNATURE", label: "시그니처 후원 1건마다" }
 ];
-/** `auto` = 후원으로 하트 주기; `cellPoints`: 칸 점수 — a cell's points move with it (0 = 순위만). */
-export type TerritorySettings = GameCommon & { size: TerritorySize; heartMode: TerritoryHeartMode; heartPoints: number; cellPoints: number };
-export const DEFAULT_TERRITORY: TerritorySettings = { title: "", auto: false, excluded: [], showIdle: true, size: 8, heartMode: "AMOUNT", heartPoints: 1_000, cellPoints: 0 };
+/** 점유 롤링 표시 (2026-10-28, StreamDonate 땅따먹기): a scrolling line of 멤버 · 칸 above or below the board on OBS, or none. */
+export type TerritoryTicker = "TOP" | "BOTTOM" | "OFF";
+export const TERRITORY_TICKERS: { key: TerritoryTicker; label: string }[] = [
+  { key: "TOP", label: "상단" },
+  { key: "BOTTOM", label: "하단" },
+  { key: "OFF", label: "끄기" }
+];
+/**
+ * `auto` = 후원으로 하트 주기; `cellPoints`: 칸 점수 — a cell's points move with it (0 = 순위만). `ticker`: 점유 롤링 표시.
+ * `colors` (2026-10-28): 땅따먹기 전용 BJ 색상 by member id — the board, 순위 and 롤링 use it instead of the crew color (other
+ * features keep theirs); cells already taken change with it.
+ */
+export type TerritorySettings = GameCommon & { size: TerritorySize; heartMode: TerritoryHeartMode; heartPoints: number; cellPoints: number; ticker: TerritoryTicker; colors: Record<string, string> };
+export const DEFAULT_TERRITORY: TerritorySettings = { title: "", auto: false, excluded: [], showIdle: true, size: 8, heartMode: "AMOUNT", heartPoints: 1_000, cellPoints: 0, ticker: "OFF", colors: {} };
 /** A cell's label: A1 (column A, row 1) … */
 export const territoryCoord = (size: number, index: number) => `${String.fromCharCode(65 + (index % size))}${Math.floor(index / size) + 1}`;
 /** A cell as shown: its owners in order (`revealAt`: when OBS shows each) — the last one owns it. */
