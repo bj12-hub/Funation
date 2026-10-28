@@ -22,7 +22,36 @@ export type ManagedSignature = {
   rangeMin: number | null;
   /** 그룹 (2026-10-23): a label to filter signatures and to show or hide a whole group at once. */
   group: string;
+  /** When it was made (2026-10-28, 최신순 · 오래된순); missing on signatures made before — they count as the oldest. */
+  createdAt?: string;
 };
+
+/** 목록 정렬 (2026-10-28, StreamDonate 시그니처 관리): a view only — 기본 순서 is the room's order (↑ ↓ move it). */
+export const SIGNATURE_SORTS = [
+  { key: "ORDER", label: "기본 순서" },
+  { key: "PRICE_ASC", label: "낮은 금액순" },
+  { key: "PRICE_DESC", label: "높은 금액순" },
+  { key: "NEWEST", label: "최신순" },
+  { key: "OLDEST", label: "오래된순" }
+] as const;
+export type SignatureSort = (typeof SIGNATURE_SORTS)[number]["key"];
+
+/**
+ * The signatures in `sort` order. Ties keep the room's order (newest: the later one first); a signature without
+ * `createdAt` is older than any with one, and among them the room's order stands for when they were made.
+ */
+export function sortSignatures<T extends Pick<ManagedSignature, "price" | "createdAt">>(items: T[], sort: SignatureSort): T[] {
+  const at = (s: T) => s.createdAt ?? "";
+  const indexed = items.map((s, i) => ({ s, i }));
+  const by: Record<SignatureSort, (x: { s: T; i: number }, y: { s: T; i: number }) => number> = {
+    ORDER: (x, y) => x.i - y.i,
+    PRICE_ASC: (x, y) => x.s.price - y.s.price || x.i - y.i,
+    PRICE_DESC: (x, y) => y.s.price - x.s.price || x.i - y.i,
+    NEWEST: (x, y) => at(y.s).localeCompare(at(x.s)) || y.i - x.i,
+    OLDEST: (x, y) => at(x.s).localeCompare(at(y.s)) || x.i - y.i
+  };
+  return indexed.sort(by[sort]).map((x) => x.s);
+}
 
 /**
  * 미디어 누락 (2026-10-25, StreamDonate 시그니처 관리 참고): where a signature's media stands, by the rules alerts use.

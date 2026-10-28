@@ -34,7 +34,7 @@ export function SigHunterOverlay({ sigHunter, serverNow, reloadSeq, theme }: { s
       run={run}
       shown={shown}
       result={{ main: run?.label ?? "", sub }}
-      idle={board ? `${board.round}라운드${board.multiplier > 1 ? ` · ×${board.multiplier}` : ""} · 남은 시그 ${left}/${board.slots.length}` : "헌트 시작 전이에요"}
+      idle={board ? `${board.round}라운드${board.multiplier > 1 ? ` · ×${board.multiplier}` : ""} · ${board.locked ? "🔒 몰수권으로 잠김" : `남은 시그 ${left}/${board.slots.length}`}` : "헌트 시작 전이에요"}
       playing="SOLD OUT…"
       wide
     >

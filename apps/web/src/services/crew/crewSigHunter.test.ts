@@ -90,12 +90,22 @@ describe("시그니처 헌터", () => {
       [{ rounds: [round({ multiplier: 1.234 })] }, "배수는 1 ~ 10배"],
       [{ rounds: [round({ forfeits: 3 })] }, "몰수권은 슬롯보다 적게, 0 ~ 2개"],
       [{ rounds: [round({ forfeits: -1 })] }, "몰수권은"],
-      [{ excluded: ["sig-nope"] }, "제외할 시그니처"]
+      [{ excluded: ["sig-nope"] }, "제외할 시그니처"],
+      [{ forfeitMin: -1 }, "몰수권 최소 금액"],
+      [{ forfeitMin: 1.5 }, "몰수권 최소 금액"],
+      [{ forfeitLock: "yes" }, "자동 잠김"]
     ];
     for (const [patch, message] of bad) {
       const res = await m.saveSigHunter(settings(patch as Partial<SigHunterSettings>));
       expect(res.status === "INVALID" && res.message, message).toContain(message);
     }
+    // 몰수권 최소 금액 · 자동 잠김 (2026-10-28): kept; a screen from before sends neither — 제한 없음, off.
+    expect(await m.saveSigHunter(settings({ forfeitMin: 30_000, forfeitLock: true }))).toEqual({ status: "SAVED" });
+    expect((await m.getGamesView())!.sigHunterSettings).toMatchObject({ forfeitMin: 30_000, forfeitLock: true });
+    const { forfeitMin: _min, forfeitLock: _lock, ...older } = settings();
+    expect([_min, _lock]).toEqual([0, false]);
+    expect(await m.saveSigHunter(older)).toEqual({ status: "SAVED" });
+    expect((await m.getGamesView())!.sigHunterSettings).toMatchObject({ forfeitMin: 0, forfeitLock: false });
     signIn(["SUPPORTER"]);
     expect(await m.saveSigHunter(settings())).toEqual({ status: "UNAUTHORIZED" });
   });
@@ -258,6 +268,43 @@ describe("시그니처 헌터", () => {
     expect(["cm-s1", "cm-s2", "cm-s3"].map((x) => rows.find((r) => r.memberId === x)!.score)).toEqual([8 * p, 2 * p, 0]);
     view = await m.view();
     expect(view.board!.round).toBe(2);
+  });
+
+  it("몰수권 최소 금액 puts them only in slots that price or more; 자동 잠김 stops the board at a 몰수권 until 다음 라운드", async () => {
+    const m = await load();
+    const id = await m.start();
+    const [cheap, dear] = [m.a, m.b].sort((x, y) => x.price - y.price);
+    expect(cheap.price).toBeLessThan(dear.price);
+    // 3 slots of the cheaper one and 1 of the dearer one; of 2 몰수권 only the dearer slot can hold one.
+    const mixed = only(cheap, { slots: 3, forfeits: 2, bands: [{ slots: 1, priceMin: dear.price, priceMax: dear.price }] });
+    await m.saveSigHunter(settings({ rounds: [mixed], forfeitMin: dear.price }));
+    await m.startSigHunter({ broadcastId: id, requestId: key(1) });
+    expect(m.stored(id).sigHunter!.slots.filter((x) => x.forfeit).map((x) => x.signatureId)).toEqual([dear.id]);
+    // No slot at the 최소 금액: no 몰수권 at all.
+    await m.saveSigHunter(settings({ rounds: [mixed], forfeitMin: dear.price + 1 }));
+    await m.startSigHunter({ broadcastId: id, requestId: key(2) });
+    expect(m.stored(id).sigHunter!.slots.some((x) => x.forfeit)).toBe(false);
+
+    // 자동 잠김: the 몰수권 in slot 1 locks the board — later 시그니처 후원 sell nothing, the operator is told so.
+    await m.saveSigHunter(settings({ rounds: [only(m.a, { slots: 4, forfeits: 1 }), only(m.b, { id: "new-2" })], forfeitLock: true }));
+    await m.startSigHunter({ broadcastId: id, requestId: key(3) });
+    m.stored(id).sigHunter!.slots.forEach((x, i) => (x.forfeit = i === 1));
+    await m.sign(m.a.id, m.a.price, "cm-s2");
+    expect((await m.view()).board!.locked).toBe(false);
+    await m.sign(m.a.id, m.a.price, "cm-s1");
+    expect(m.runs(id).at(-1)).toMatchObject({ memberId: "cm-s1", label: "몰수권! 1칸 흡수" });
+    const runs = m.runs(id).length;
+    await m.sign(m.a.id, m.a.price, "cm-s3");
+    expect(m.runs(id)).toHaveLength(runs);
+    expect((await m.view()).board!.slots.filter((x) => x.sold)).toHaveLength(2);
+    expect((await m.view()).board!.locked).toBe(true);
+    expect((await m.obs()).board!.locked).toBe(true);
+    expect(await m.setSigHunter({ broadcastId: id, requestId: key(4), index: 2, round: 1, sold: true, memberId: null })).toEqual({
+      status: "INVALID",
+      message: "몰수권이 열려 판이 잠겼어요. 다음 라운드를 눌러 주세요."
+    });
+    expect(await m.nextSigHunter({ broadcastId: id, round: 1 })).toEqual({ status: "SAVED" });
+    expect((await m.view()).board).toMatchObject({ round: 2, locked: false });
   });
 
   it("lets the operator sell, restore and move to the next 라운드", async () => {
