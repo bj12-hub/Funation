@@ -360,8 +360,9 @@ export function CumulativeOverlay({ board, reloadSeq, theme }: { board: Cumulati
         </h1>
         <ol className={styles.prizeRows} style={{ "--prize-rows": Math.min(board.rows.length, s.rows) } as CSSProperties}>
           {board.rows.slice(0, s.rows).map((r) => (
-            <li key={r.memberId} data-rank={r.rank <= 3 ? r.rank : undefined}>
-              <span className={`${ov.display} ${styles.rank}`}>{r.rank}</span>
+            // BJ 목록 순서 (2026-10-28): no rank badges.
+            <li key={r.memberId} data-rank={s.sort !== "ORDER" && r.rank <= 3 ? r.rank : undefined} data-norank={s.sort === "ORDER" || undefined}>
+              {s.sort !== "ORDER" && <span className={`${ov.display} ${styles.rank}`}>{r.rank}</span>}
               <span className={`${ov.label} ${styles.name}`}>
                 <i className={styles.dot} style={{ background: r.color }} aria-hidden="true" /> {r.name}
               </span>

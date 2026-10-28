@@ -997,6 +997,11 @@
   font-size: 12px;
 }
 
+/* 잔여 시그 위치 위 (2026-10-28): above the board(s). */
+.bingoLeft[data-at="TOP"] {
+  margin: 0 0 8px;
+}
+
 .bingoLeft li {
   padding: 2px 8px;
   border-radius: 999px;

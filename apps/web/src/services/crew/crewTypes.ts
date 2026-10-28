@@ -325,9 +325,28 @@ export type CumulativeRows = (typeof CUMULATIVE_ROWS)[number];
  * AMOUNT adds what each member received — 멤버 지정 후원 and 후원 리스트 entries assigned to them, in the 자동엑셀 unit (FN, or 원
  * on 원화 기준, with today's 환산값; a unit without one adds nothing), before 배수. `rows`: members shown on OBS;
  * `showBreakdown`: 지난 회차 · 이번 회차 under each total; `showRounds`: the 프로젝트 · N회차 chip; `placement` as on 상품 순위표.
+ * `sort` (2026-10-28): by total with rank badges, or the crew's member order without them.
  */
-export type CumulativeSettings = { title: string; basis: WindowGaugeBasis; rows: CumulativeRows; showBreakdown: boolean; showRounds: boolean; placement: PrizePlacement };
-export const DEFAULT_CUMULATIVE: CumulativeSettings = { title: "", basis: "POINTS", rows: 10, showBreakdown: true, showRounds: true, placement: "FLOAT" };
+export type CumulativeSettings = {
+  title: string;
+  basis: WindowGaugeBasis;
+  rows: CumulativeRows;
+  sort: CumulativeSort;
+  showBreakdown: boolean;
+  showRounds: boolean;
+  placement: PrizePlacement;
+};
+export const DEFAULT_CUMULATIVE: CumulativeSettings = { title: "", basis: "POINTS", rows: 10, sort: "TOTAL", showBreakdown: true, showRounds: true, placement: "FLOAT" };
+
+/**
+ * 정렬 (2026-10-28, StreamDonate 누적 기여도 "누적값 내림차순 (순위 뱃지 표시) · BJ 목록 순서 (BJ 순서 그대로 · 뱃지 없음)"):
+ * ORDER lists members as in 크루 관리, those no longer in the crew after them by total.
+ */
+export type CumulativeSort = "TOTAL" | "ORDER";
+export const CUMULATIVE_SORTS: { key: CumulativeSort; label: string }[] = [
+  { key: "TOTAL", label: "누적값 순" },
+  { key: "ORDER", label: "BJ 목록 순서" }
+];
 
 /** `past`: this project's earlier 회차; `current`: this one (final scores and the live scoreboard, or amounts); ties by name. */
 export type CumulativeRow = { memberId: string; name: string; color: string; rank: number; past: number; current: number; total: number };
@@ -887,9 +906,16 @@ export const SIG_BINGO_REVEALS: { key: SigBingoReveal; label: string }[] = [
   { key: "HIDDEN", label: "칸 숨김" }
 ];
 
+export type SigBingoRemainingAt = "TOP" | "BOTTOM";
+export const SIG_BINGO_REMAINING_AT: { key: SigBingoRemainingAt; label: string }[] = [
+  { key: "TOP", label: "판 위" },
+  { key: "BOTTOM", label: "판 아래" }
+];
+
 /**
  * `auto` = 후원으로 칸 열기; `excluded` = 빙고 제외 시그; `priceMin` · `priceMax` = 금액 범위 for the board (null = no end);
- * `bonus` = points per 빙고 line (0 = none); `showRemaining` = 남은 시그 목록 under the board on OBS (2026-10-25). Size · mode ·
+ * `bonus` = points per 빙고 line (0 = none); `showRemaining` = 남은 시그 목록 on OBS (2026-10-25), `remainingAt` above or
+ * below the board(s) (2026-10-28, StreamDonate "잔여 시그 위치 위 · 아래"). Size · mode ·
  * reveal · range take effect on the next 빙고 시작.
  */
 export type SigBingoSettings = GameCommon & {
@@ -900,6 +926,7 @@ export type SigBingoSettings = GameCommon & {
   priceMax: number | null;
   bonus: number;
   showRemaining: boolean;
+  remainingAt: SigBingoRemainingAt;
 };
 export const DEFAULT_SIG_BINGO: SigBingoSettings = {
   title: "",
@@ -912,7 +939,8 @@ export const DEFAULT_SIG_BINGO: SigBingoSettings = {
   priceMin: null,
   priceMax: null,
   bonus: 0,
-  showRemaining: false
+  showRemaining: false,
+  remainingAt: "BOTTOM"
 };
 
 /** Cell indices of every line of a board (row by row): rows, then columns, then the diagonals ↘ and ↙. */

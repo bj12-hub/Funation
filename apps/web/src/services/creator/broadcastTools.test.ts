@@ -103,7 +103,7 @@ describe("방송 도구", () => {
         { rank: 3, name: "바다", score: 0 }
       ],
       memberUnit: "FN",
-      mvp: { name: "하늘", score: 8_000 },
+      mvp: { name: "하늘", score: 8_000, unit: "FN" },
       hotSigs: [],
       highSigs: []
     });
@@ -150,6 +150,19 @@ describe("방송 도구", () => {
         { rank: 3, name: "하늘", score: 0 }
       ]
     });
+
+    // MVP 기준 후원금액 (2026-10-28): FN sent for each member during the broadcast — 바다's points are a 보정, not FN.
+    expect(await saveCredits(credits({ period: "CREW", mvpBasis: "AMOUNT" }))).toEqual({ status: "SAVED" });
+    expect((await data()).mvp).toBeNull();
+    const { mockCrew } = await import("@/services/crew/mockCrewStore");
+    mockCrew.attributions.push({ donationId: "d-mvp", channelId: "studio", memberId: "cm-s1", fnAmount: 3_000, at: new Date().toISOString(), shownDonor: "달빛" });
+    expect(await data()).toMatchObject({ memberUnit: "점", mvp: { name: "길동", score: 3_000, unit: "FN" } });
+    // A screen from before MVP 기준 sends none: it stays as saved. A bad value is refused.
+    expect(await saveCredits(credits({ period: "CREW" }))).toEqual({ status: "SAVED" });
+    expect((await data()).mvp).toEqual({ name: "길동", score: 3_000, unit: "FN" });
+    expect(await saveCredits(credits({ period: "CREW", mvpBasis: "WON" }))).toEqual({ status: "INVALID", message: "MVP 기준을 골라 주세요." });
+    expect(await saveCredits(credits({ period: "CREW", mvpBasis: "POINTS" }))).toEqual({ status: "SAVED" });
+    expect((await data()).mvp).toEqual({ name: "바다", score: 5_000, unit: "점" });
 
     vi.setSystemTime(new Date("2026-10-23T03:30:00Z"));
     await bc.endBroadcast(id);
