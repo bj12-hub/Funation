@@ -304,6 +304,8 @@ Confirmed:
 - 동일 프로젝트 회차 간 기여도 공유 (2026-10-28, 기본값 — 일반적인 기준, StreamDonate 설정 참고): 프리셋 = 프로젝트, 방송 시작 때
   정하는 방송별 선택(기본 꺼짐, 마지막 선택 기억), 이어받는 점수는 지난 회차 최종 점수 전체(게임 · 강탈 · 배틀 · 직급 포함 — StreamDonate는
   게임 결과도 조정 기여도로 들어감). 진행 중 켜고 끄기, 회차별 일부 항목만 공유는 TBD. See docs/figma/code-first-screens.md
+- 땅따먹기 점유 롤링 · 전용 BJ 색상 (2026-10-28, 기본값 — 일반적인 기준, StreamDonate 땅따먹기 참고): 롤링 기본 끄기, 내용은 멤버 · 칸 ·
+  칸 점수(원본의 금액 대신). 칸 수 2 ~ 50과 금액 표시 단위(원 · 하트 · 달)는 TBD. See docs/figma/code-first-screens.md
 
 Still TBD:
 
