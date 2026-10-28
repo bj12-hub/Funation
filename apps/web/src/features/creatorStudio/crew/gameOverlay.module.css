@@ -301,7 +301,43 @@
 
 /* ── 시그 빙고: the board in a wider card ── */
 .machine[data-wide] {
-  width: min(100%, 480px);
+  /* BJ(팀) · BJ(개인): one more board column per --card-cols (2026-10-28). */
+  width: min(100%, calc(480px + (var(--card-cols, 1) - 1) * 340px));
+}
+
+.bingoBoards {
+  display: grid;
+  grid-template-columns: repeat(var(--bingo-cols, 2), minmax(0, 1fr));
+  gap: 12px 14px;
+}
+
+.bingoBoard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.bingoBoardName {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.bingoBoardName i {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.bingoBoardName span {
+  margin-left: auto;
+  font-size: 12px;
 }
 
 .bingoGrid {
