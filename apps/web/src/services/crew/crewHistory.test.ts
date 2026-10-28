@@ -256,6 +256,57 @@ describe("기여도 내보내기 — 엑셀", () => {
   });
 });
 
+describe("동일 프로젝트 회차 간 기여도 공유", () => {
+  beforeEach(() => resetMockStores());
+  afterEach(() => vi.useRealTimers());
+
+  it("adds the project's earlier 회차 when chosen at the start, counting each 회차's own score once", async () => {
+    vi.useFakeTimers({ now: new Date("2026-10-28T10:00:00Z"), toFake: ["Date"] });
+    const m = await load();
+    let n = 0;
+    const run = async (title: string, project: string, points: Record<string, number>, carry: boolean, end = true) => {
+      expect(await m.startBroadcast({ requestId: crypto.randomUUID(), title, project, teamMode: false, carry })).toEqual({ status: "SAVED" });
+      const id = (await m.getBroadcastView())!.live!.id;
+      for (const [memberId, p] of Object.entries(points)) await m.adjustScore({ broadcastId: id, memberId, points: p, adjustmentId: key(++n) });
+      vi.setSystemTime(Date.now() + 3_600_000);
+      if (end) await m.endBroadcast(id);
+      return id;
+    };
+    expect((await m.getBroadcastView())!.carryDefault).toBe(false);
+    await run("1회", "시즌2", { "cm-s1": 3_000, "cm-s2": 1_000 }, false);
+    // 2회 with 공유: 하늘 1,000 + 2,000 of their own, 길동 3,000 carried.
+    await run("2회", "시즌2", { "cm-s2": 2_000 }, true);
+    expect((await m.getBroadcastView())!.carryDefault).toBe(true);
+    await run("3회", "시즌2", { "cm-s3": 500 }, true, false);
+    const live = (await m.getBroadcastView())!.live!;
+    expect(live.carry).toBe(true);
+    // 2회's final already held 1회: each 회차 counts once.
+    expect(live.rows.map((r) => [r.name, r.carried, r.score])).toEqual([
+      ["길동", 3_000, 3_000],
+      ["하늘", 3_000, 3_000],
+      ["바다", 0, 500]
+    ]);
+    expect(live.cumulative.rows.map((r) => `${r.name} ${r.past}+${r.current}=${r.total}`)).toEqual(["길동 3000+0=3000", "하늘 3000+0=3000", "바다 0+500=500"]);
+    const rounds = await m.exportContributions({ project: "시즌2", format: "ROUNDS" });
+    if (rounds.status !== "OK") throw new Error(JSON.stringify(rounds));
+    expect(rounds.csv.replace("\uFEFF", "").split("\r\n")).toEqual([
+      "멤버,1회차,2회차,3회차 (진행 중),합계",
+      "길동,3000,0,0,3000",
+      "하늘,1000,2000,0,3000",
+      "바다,0,0,500,500",
+      "합계,4000,2000,500,6500"
+    ]);
+
+    // Without a project there is nothing to carry; a bad value is refused.
+    await m.endBroadcast(live.id);
+    expect(await m.startBroadcast({ requestId: crypto.randomUUID(), title: "번외", teamMode: false, carry: "yes" })).toEqual({ status: "INVALID", message: "기여도 공유를 확인해 주세요." });
+    expect(await m.startBroadcast({ requestId: crypto.randomUUID(), title: "번외", teamMode: false, carry: true })).toEqual({ status: "SAVED" });
+    const solo = (await m.getBroadcastView())!.live!;
+    expect(solo.carry).toBe(false);
+    expect(solo.rows.every((r) => r.carried === 0 && r.score === 0)).toBe(true);
+  });
+});
+
 describe("누적 기여도", () => {
   beforeEach(() => resetMockStores());
   afterEach(() => vi.useRealTimers());

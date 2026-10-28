@@ -78,6 +78,11 @@ export type MockBroadcast = {
   adjustments: { id: string; at: string; memberId: string; points: number; reason: string }[];
   project?: string | null;
   round?: number | null;
+  /**
+   * 동일 프로젝트 회차 간 기여도 공유 (2026-10-28): chosen at the start (with a project) — the scoreboard adds the project's
+   * earlier 회차. Missing = off.
+   */
+  carry?: boolean;
   assignMode?: AssignMode;
   /** 미지정 일시정지 (2026-10-25): missing = off. */
   pauseUnassigned?: boolean;
@@ -270,8 +275,11 @@ export type MockBroadcast = {
   windowGauge?: PrizeBoardState;
   /** 시그 카운트: shown on OBS (`?sigcount`) and counted from `since` (null = the broadcast start; 다시 세기 sets it). */
   sigCount?: { visible: boolean; since: string | null; resets: string[] };
-  /** Final ranking frozen at the end (members may be renamed or removed later). */
-  final: { memberId: string; name: string; score: number }[] | null;
+  /**
+   * Final ranking frozen at the end (members may be renamed or removed later). `carried`: the part of `score` that came
+   * from earlier 회차 (기여도 공유), so their own score is `score − carried`. Missing = 0.
+   */
+  final: { memberId: string; name: string; score: number; carried?: number }[] | null;
 };
 
 type MockCrew = {
@@ -280,6 +288,8 @@ type MockCrew = {
   broadcasts?: MockBroadcast[];
   /** 후원 리스트 keywords per member id (kept across broadcasts). */
   keywords?: Record<string, string[]>;
+  /** 기여도 공유 as last chosen at a start, per channel (the next start form opens with it). */
+  carryRounds?: Record<string, boolean>;
   /** BJ 이름 자동 인식 per channel (missing = off; 2026-10-25). */
   nameKeywords?: Record<string, boolean>;
   /** 자동엑셀 settings per channel (kept across broadcasts). */
