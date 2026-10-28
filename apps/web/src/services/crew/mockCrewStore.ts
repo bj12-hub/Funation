@@ -248,7 +248,8 @@ export type MockBroadcast = {
    */
   alphabet?: { word: string; members: Record<string, { slots: ({ revealAt: string } | null)[]; done: number; full: boolean; log: AlphabetEvent[] }> };
   /** 고스톱: the crew's 풀 and GO count now (a STOP's own record is its run). */
-  gostop?: { pool: number; go: number };
+  /** 고스톱: the 풀 now, GO count, 풀 수동 조정 (request ids dedupe) and the 랭킹 리셋 time (2026-10-28). */
+  gostop?: { pool: number; go: number; adjustments?: { id: string; at: string; points: number; reason: string }[]; rankingSince?: string | null };
   /**
    * 땅따먹기 board (판 시작 replaces it): each cell's owners in order (`revealAt`: when OBS shows each), and the 하트 log —
    * what each member earned (`donationId`, one entry per donation) or the operator added or took (`requestId`). Unused 하트 =

@@ -1142,14 +1142,19 @@ export const GOSTOP_RATE_MAX = 10;
 export const GOSTOP_MULTIPLIER_MAX = 10;
 export const GOSTOP_BANDS_MAX = 5;
 export const GOSTOP_BAND_MIN_MAX = 1_000_000_000;
+/** 기본 풀 · 풀 수동 조정 (2026-10-28): the most points either can be. */
+export const GOSTOP_POOL_MAX = 1_000_000_000;
+export const GOSTOP_REASON_MAX = 30;
 /** A 색 구간: from `min` 풀 points the 풀 shows in `color` (#rrggbb). */
 export type GoStopBand = { id: string; min: number; color: string };
 /**
  * `poolPercent`: 적립률 — the share of a donation's points the 풀 gets; `stopRate`: STOP 확률 (%) per 1,000 of its points, up
  * to `stopMax` (%); `multiplier`: STOP 배수 on the 풀; `excludedMembers`: 제외 BJ (their donations neither add nor roll).
+ * `basePool` (2026-10-28, StreamDonate "기본 풀 (리셋 시 시작값)"): the 풀 a STOP or 풀 리셋 starts again from.
  */
 export type GoStopSettings = GameCommon & {
   poolPercent: number;
+  basePool: number;
   stopRate: number;
   stopMax: number;
   multiplier: number;
@@ -1162,6 +1167,7 @@ export const DEFAULT_GOSTOP: GoStopSettings = {
   excluded: [],
   showIdle: true,
   poolPercent: 100,
+  basePool: 0,
   stopRate: 0.05,
   stopMax: 50,
   multiplier: 1,
@@ -1378,11 +1384,17 @@ export type AlphabetLive = { settings: AlphabetSettings; runs: GameRunView[]; bo
  * `pool` · `go`: now (OBS shows the latest result's — runs queue); `wins`: every STOP of the broadcast, oldest first
  * (`revealAt`: when OBS shows it), for the STOP 랭킹.
  */
+/**
+ * `wins`: the STOPs since `rankingSince` (랭킹 리셋, 2026-10-28; null = the whole broadcast). `adjustments`: 풀 수동 조정,
+ * newest first.
+ */
 export type GoStopLive = {
   settings: GoStopSettings;
   runs: GameRunView[];
   pool: number;
   go: number;
+  rankingSince: string | null;
+  adjustments: { at: string; points: number; reason: string }[];
   wins: { memberId: string; name: string; color: string | null; points: number; pool: number; go: number; at: string; revealAt: string }[];
 };
 /** `board`: null until 판 시작 (or after 판 비우기); `members`: the crew's names, colors and unused 하트. */

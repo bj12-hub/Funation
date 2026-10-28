@@ -9,7 +9,7 @@ import { diceLive, diceSettingsOf, parseDiceSettings, runDice } from "./crewDice
 import { gameRunView, memberSources, usedSources, type RunStart, type StoredRun } from "./crewGameCore";
 import { clearGridDrawBoard, gridDrawLive, gridDrawSettingsOf, openGridDrawCell, parseGridDrawSettings, startGridDrawBoard } from "./crewGridDrawCore";
 import { alphabetLive, alphabetSettingsOf, parseAlphabetSettings, resetAlphabetBoard, runAlphabet } from "./crewAlphabetCore";
-import { goStopLive, goStopSettingsOf, parseGoStopSettings, resetGoStopPool, runGoStop } from "./crewGoStopCore";
+import { adjustGoStopPool, goStopLive, goStopSettingsOf, parseGoStopSettings, resetGoStopPool, resetGoStopRanking, runGoStop } from "./crewGoStopCore";
 import {
   adjustTerritoryHearts,
   assignTerritoryCell,
@@ -504,6 +504,28 @@ export async function resetGoStop(input: unknown): Promise<BroadcastResult> {
   const live = liveBroadcastOf(STUDIO_CHANNEL);
   if (!live || live.id !== rec(input).broadcastId) return notLive;
   resetGoStopPool(live);
+  return { status: "SAVED" };
+}
+
+/** 풀 수동 조정 ({ points, reason, requestId }): ± points on the 풀, once per request. */
+export async function adjustGoStop(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = rec(input);
+  const live = liveBroadcastOf(STUDIO_CHANNEL);
+  if (!live || live.id !== v.broadcastId) return notLive;
+  if (!validId(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
+  const message = adjustGoStopPool(live, { points: v.points, reason: v.reason, requestId: v.requestId });
+  return message ? { status: "INVALID", message } : { status: "SAVED" };
+}
+
+/** 랭킹 리셋: the STOP 랭킹 counts from now (the points stay). */
+export async function resetGoStopRank(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const live = liveBroadcastOf(STUDIO_CHANNEL);
+  if (!live || live.id !== rec(input).broadcastId) return notLive;
+  resetGoStopRanking(live);
   return { status: "SAVED" };
 }
 
