@@ -121,6 +121,24 @@ describe("상품 순위표", () => {
     await m.startPrizeWindow({ broadcastId: id, requestId: key(4) });
     expect((await board(m)).rows.every((r) => r.score === 0)).toBe(true);
 
+    // 시작점 수정 (2026-10-28): back to the 12:05 donation — it counts again.
+    const moments = (await m.getBroadcastView())!.live!.moments;
+    expect(moments.map((x) => [x.at, x.amount])).toEqual([
+      ["2026-10-23T12:05:00.000Z", 7_000],
+      ["2026-10-23T12:03:00.000Z", 4_000],
+      ["2026-10-23T12:01:00.000Z", 1_000]
+    ]);
+    expect(await m.movePrizeWindowStart({ broadcastId: id, at: moments[0].at })).toEqual({ status: "SAVED" });
+    expect((await board(m)).window!.startedAt).toBe("2026-10-23T12:05:00.000Z");
+    expect((await board(m)).rows.find((r) => r.memberId === "cm-s2")!.score).toBe(7_000);
+    for (const at of ["2026-10-23T11:00:00.000Z", "2026-10-23T12:30:00.000Z", "어제", 3]) {
+      expect(await m.movePrizeWindowStart({ broadcastId: id, at })).toEqual({ status: "INVALID", message: "시작점은 방송 시작부터 지금 사이로 골라 주세요." });
+    }
+    vi.setSystemTime(new Date("2026-10-23T12:06:30Z"));
+    await m.stopPrizeWindow({ broadcastId: id });
+    expect(await m.movePrizeWindowStart({ broadcastId: id, at: moments[1].at })).toEqual({ status: "INVALID", message: "집계 중인 구간의 시작점만 고칠 수 있어요." });
+    await m.startPrizeWindow({ broadcastId: id, requestId: key(5) }); // running again for the end below
+
     // 방송 종료 stops a running 구간.
     vi.setSystemTime(new Date("2026-10-23T12:07:00Z"));
     await m.endBroadcast(id);

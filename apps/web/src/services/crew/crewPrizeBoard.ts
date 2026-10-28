@@ -3,7 +3,7 @@
 import { USE_MOCK } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
-import { liveBroadcastOf } from "./crewCore";
+import { liveBroadcastOf, startPointOf } from "./crewCore";
 import { parsePrizeBoard, parseTeamPrize, prizeSettingsOf, teamPrizeSettingsOf } from "./crewPrizeCore";
 import type { BroadcastResult } from "./crewTypes";
 import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
@@ -98,5 +98,26 @@ export async function stopPrizeWindow(input: unknown): Promise<BroadcastResult> 
   const span = (board === "TEAM" ? live.teamPrize : board === "WINDOW_GAUGE" ? live.windowGauge : live.prizeBoard)?.window;
   if (!span) return { status: "INVALID", message: "구간을 먼저 시작해 주세요." };
   span.stoppedAt ??= new Date().toISOString();
+  return { status: "SAVED" };
+}
+
+/**
+ * 시작점 수정 (2026-10-28, StreamDonate "시작점 수정 — 시작점을 과거로 옮기면 그 이후 후원까지 소급"): moves the start of a
+ * running 구간 to `at` (from the broadcast's start to now) — every donation since then counts. Moving it to where it is
+ * is a no-op.
+ */
+export async function movePrizeWindowStart(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = rec(input);
+  const live = liveBroadcastOf(STUDIO_CHANNEL);
+  if (!live || live.id !== v.broadcastId) return notLive;
+  const board = boardOf(v);
+  if (!board) return badRequest;
+  const span = (board === "TEAM" ? live.teamPrize : board === "WINDOW_GAUGE" ? live.windowGauge : live.prizeBoard)?.window;
+  if (!span || span.stoppedAt) return { status: "INVALID", message: "집계 중인 구간의 시작점만 고칠 수 있어요." };
+  const at = startPointOf(live, v.at);
+  if (!at) return { status: "INVALID", message: "시작점은 방송 시작부터 지금 사이로 골라 주세요." };
+  span.startedAt = at;
   return { status: "SAVED" };
 }

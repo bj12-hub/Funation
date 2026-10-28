@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { formatKstTime, formatNumber } from "@/lib/format";
-import { savePrizeBoard, setPrizeBoardVisible, startPrizeWindow, stopPrizeWindow } from "@/services/crew/crewPrizeBoard";
+import { movePrizeWindowStart, savePrizeBoard, setPrizeBoardVisible, startPrizeWindow, stopPrizeWindow } from "@/services/crew/crewPrizeBoard";
+import { StartPointPicker } from "./StartPointPicker";
 import {
   PRIZE_BASES,
   PRIZE_COLUMNS,
@@ -142,7 +143,7 @@ export function BoardVisibleToggle({ broadcastId, board, visible, label, pending
   );
 }
 
-/** 구간 시작 · 다시 시작 · 정지 of a board on the WINDOW basis. */
+/** 구간 시작 · 다시 시작 · 정지 of a board on the WINDOW basis, and 시작점 수정 while it runs (2026-10-28). */
 export function PrizeWindowBar({ broadcastId, board, span, pending, run }: { broadcastId: string; board: BoardKey; span: PrizeBoardLive["window"]; pending: boolean; run: Run }) {
   const startId = useRef<string | null>(null);
   const start = () => {
@@ -167,6 +168,13 @@ export function PrizeWindowBar({ broadcastId, board, span, pending, run }: { bro
         <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => stopPrizeWindow({ broadcastId, board }), "구간을 마감했어요.")}>
           정지
         </button>
+      )}
+      {span && !span.stoppedAt && (
+        <StartPointPicker
+          current={span.startedAt}
+          pending={pending}
+          onMove={(at) => run(() => movePrizeWindowStart({ broadcastId, board, at }), `구간을 ${time(at)}부터 다시 셀게요.`)}
+        />
       )}
     </div>
   );
