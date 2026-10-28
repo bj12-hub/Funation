@@ -770,8 +770,16 @@ export function diceMultiplier(rule: DiceRule, a: number, b: number): number {
   return a === b ? m * 2 : m;
 }
 
-export type DiceSettings = GameCommon & { rule: DiceRule };
-export const DEFAULT_DICE: DiceSettings = { title: "", auto: false, excluded: [], showIdle: true, rule: "RULE1" };
+/**
+ * `rule`: the 룰. `projectRules` (2026-10-28, StreamDonate "룰은 프리셋별로 저장" — 프리셋 = 프로젝트): a broadcast started
+ * with one of these 프로젝트 rolls by its 룰; any other by `rule`.
+ */
+export type DiceSettings = GameCommon & { rule: DiceRule; projectRules: { project: string; rule: DiceRule }[] };
+export const DEFAULT_DICE: DiceSettings = { title: "", auto: false, excluded: [], showIdle: true, rule: "RULE1", projectRules: [] };
+export const DICE_PROJECT_RULES_MAX = 20;
+/** The 룰 a broadcast of `project` rolls by. */
+export const diceRuleFor = (s: Pick<DiceSettings, "rule" | "projectRules">, project: string | null) =>
+  (project && s.projectRules.find((p) => p.project === project)?.rule) || s.rule;
 
 // 투휠 게임 — StreamDonate 투휠: an operator reel (+ / ×) and a number reel (+1 ~ +10, ×1 ~ ×5), odds set by the creator.
 export const TWO_WHEEL_TITLE_DEFAULT = "투휠 게임";
@@ -874,6 +882,15 @@ export type RelayTier = AmountTier;
 /** `auto` = 릴레이 켜짐; `memberId` = 트리거 BJ; `tiers` are matched top-down (the first wins, none = no effect). */
 export type RelaySettings = GameCommon & { memberId: string | null; tiers: RelayTier[] };
 export const DEFAULT_RELAY: RelaySettings = { title: "", auto: false, excluded: [], showIdle: true, memberId: null, tiers: [] };
+
+/**
+ * 기여도 릴레이 설정 프리셋 (2026-10-28, StreamDonate 기여도 릴레이 "프리셋 — 현재 설정을 저장"): the 트리거 BJ · 금액 구간 · 제외 시그
+ * by name, as on 랜덤시그 (켜짐 · 제목 · 대기 화면 left out).
+ */
+export const RELAY_PRESETS_MAX = 10;
+export const RELAY_PRESET_NAME_MAX = 20;
+export type RelayPresetFields = Pick<RelaySettings, "memberId" | "tiers" | "excluded">;
+export type RelayPreset = { id: string; name: string; savedAt: string; settings: RelayPresetFields };
 
 /** 예시 구간 — StreamDonate 기여도 릴레이 기본값 as it is (its amounts are 원; set FN ranges that fit the channel's signatures). */
 export const RELAY_EXAMPLE_TIERS: Omit<AmountTier, "id">[] = Array.from({ length: 9 }, (_, i) => ({ min: i * 50_000, max: i * 50_000 + 49_999, multiplier: i + 2 }));
@@ -1453,7 +1470,8 @@ export type GameRunView = {
 export type SpinTally = { columns: string[]; rows: { memberId: string; name: string; color: string | null; counts: number[]; total: number }[] };
 
 export type SpinLive = { settings: SpinSettings; runs: GameRunView[]; tally: SpinTally };
-export type DiceLive = { settings: DiceSettings; runs: GameRunView[] };
+/** `rule`: the 룰 this broadcast rolls by (its 프로젝트's, 2026-10-28). */
+export type DiceLive = { settings: DiceSettings; runs: GameRunView[]; rule: DiceRule };
 export type TwoWheelLive = { settings: TwoWheelSettings; runs: GameRunView[] };
 /** `board`: null until 뽑기판 시작 (or after 판 비우기). */
 export type GridDrawLive = { settings: GridDrawSettings; runs: GameRunView[]; board: GridDrawBoard | null };
@@ -1514,6 +1532,8 @@ export type GamesView = {
   live: {
     id: string;
     title: string;
+    /** The broadcast's 프로젝트 (null = none). */
+    project: string | null;
     spin: SpinLive;
     dice: DiceLive;
     twoWheel: TwoWheelLive;
@@ -1539,6 +1559,10 @@ export type GamesView = {
   /** 랜덤시그 설정 프리셋, newest first. */
   randomSigPresets: RandomSigPreset[];
   relaySettings: RelaySettings;
+  /** 기여도 릴레이 설정 프리셋, newest first (2026-10-28). */
+  relayPresets: RelayPreset[];
+  /** Existing project names (주사위 룰 프로젝트별, 2026-10-28). */
+  projects: string[];
   jupjupSettings: JupjupSettings;
   medleySettings: MedleySettings;
   sigBingoSettings: SigBingoSettings;
