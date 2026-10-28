@@ -23,6 +23,7 @@ import {
   type OverlayScenario,
   type OverlayScoreboard,
   type PrizeBoardLive,
+  type RankPrize,
   type SigCountLive,
   type StealRecord,
   type SubBoard,
@@ -63,6 +64,10 @@ export function useOverlayPage(reloadSeq: number) {
     };
   }, [router]);
 }
+
+/** A 상품 · 벌칙 line's 글자색 and 테두리색 (2026-10-28: the outline outside the letters). */
+const prizeLook = (p: RankPrize | null): CSSProperties | undefined =>
+  p?.color || p?.outline ? { color: p.color ?? undefined, WebkitTextStroke: p.outline ? `3px ${p.outline}` : undefined, paintOrder: "stroke fill" } : undefined;
 
 /** Member rows: rank badge (1 · 2 · 3 medals), name, a bar in the member's color, score. */
 function Rows({ rows }: { rows: { memberId: string; name: string; score: number; color: string }[] }) {
@@ -272,7 +277,7 @@ export function PrizeBoardOverlay({ board, reloadSeq, theme }: { board: PrizeBoa
               <span className={`${ov.label} ${styles.name}`}>
                 <i className={styles.dot} style={{ background: r.color }} aria-hidden="true" /> {r.name}
               </span>
-              <span className={styles.prizeText} style={r.prize?.color ? { color: r.prize.color } : undefined}>
+              <span className={styles.prizeText} style={prizeLook(r.prize)}>
                 {r.prize?.text}
               </span>
               {s.showScore && <span className={`${ov.display} ${styles.score}`}>{formatNumber(r.score)}</span>}
@@ -312,12 +317,16 @@ export function TeamPrizeOverlay({ board, reloadSeq, theme }: { board: TeamPrize
               <span className={`${ov.label} ${styles.name}`}>
                 <i className={styles.dot} style={{ background: r.color }} aria-hidden="true" /> {r.name}
               </span>
-              <span className={styles.prizeText} style={r.prize?.color ? { color: r.prize.color } : undefined}>
+              <span className={styles.prizeText} style={prizeLook(r.prize)}>
                 {r.prize?.text}
               </span>
               {s.showScore && <span className={`${ov.display} ${styles.score}`}>{formatNumber(r.score)}</span>}
               {s.members === "SCORE" && r.members.length > 0 && (
-                <span className={`${ov.muted} ${styles.teamMembers}`}>
+                <span
+                  className={`${ov.muted} ${styles.teamMembers}`}
+                  data-per-line={s.membersPerLine > 0 || undefined}
+                  style={s.membersPerLine > 0 ? ({ "--per-line": s.membersPerLine } as CSSProperties) : undefined}
+                >
                   {r.members.map((m) => (
                     <span key={m.memberId}>
                       {m.name}

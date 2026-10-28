@@ -537,8 +537,22 @@ export const PRIZE_PLACEMENTS: { key: PrizePlacement; label: string }[] = [
 export const PRIZE_COLUMNS = [1, 2, 3] as const;
 export type PrizeColumns = (typeof PRIZE_COLUMNS)[number];
 
-/** A rank's 상품 · 벌칙 line. `color` null = the overlay theme's text color. */
-export type RankPrize = { text: string; color: string | null };
+/**
+ * A rank's 상품 · 벌칙 line. `color` null = the overlay theme's text color; `outline` (2026-10-28, StreamDonate "글자색 ·
+ * 테두리색") = the letters' outline, null or missing = none.
+ */
+export type RankPrize = { text: string; color: string | null; outline?: string | null };
+
+/**
+ * 표시 대상 (2026-10-28, StreamDonate 시간 내 랭킹 "후원 받은 BJ만 보기 — 상위 N명 / BJ 전체 보기"): ALL lists every member;
+ * SCORED only those with more than 0, the top `limit` of them (the 상단 고정 member always shows).
+ */
+export type PrizeAudience = "ALL" | "SCORED";
+export const PRIZE_AUDIENCES: { key: PrizeAudience; label: string }[] = [
+  { key: "ALL", label: "멤버 전체" },
+  { key: "SCORED", label: "점수 받은 멤버만" }
+];
+export const PRIZE_LIMIT_MAX = 50;
 
 /** Kept per channel across broadcasts, editable before going live. */
 export type PrizeBoardSettings = {
@@ -552,6 +566,9 @@ export type PrizeBoardSettings = {
   pinned: { memberId: string; text: string } | null;
   /** 제목 색 (2026-10-28, StreamDonate "제목 색 · 원래 색"): null = the overlay theme's. */
   titleColor: string | null;
+  /** 표시 대상 · 상위 표시 인원 (2026-10-28). */
+  audience: PrizeAudience;
+  limit: number;
   columns: PrizeColumns;
   showScore: boolean;
   showTotal: boolean;
@@ -565,6 +582,8 @@ export const DEFAULT_PRIZE_BOARD: PrizeBoardSettings = {
   excluded: [],
   pinned: null,
   titleColor: null,
+  audience: "ALL",
+  limit: 10,
   columns: 1,
   showScore: true,
   showTotal: false,
@@ -1688,6 +1707,7 @@ export const TEAM_PRIZE_SOURCES: { key: TeamPrizeSource; label: string }[] = [
 
 /** SCORE: each team's members under it, best first. NONE: team names only. */
 export type TeamPrizeMembers = "SCORE" | "NONE";
+export const TEAM_MEMBERS_PER_LINE_MAX = 20;
 export const TEAM_PRIZE_MEMBER_VIEWS: { key: TeamPrizeMembers; label: string }[] = [
   { key: "SCORE", label: "팀원 점수순" },
   { key: "NONE", label: "팀 이름만" }
@@ -1703,6 +1723,8 @@ export type TeamPrizeSettings = {
   /** prizes[0] = 1등 팀. */
   prizes: RankPrize[];
   members: TeamPrizeMembers;
+  /** 한 줄에 놓을 팀원 수 (2026-10-28, StreamDonate): more go on the next line; 0 = as many as fit (as before). */
+  membersPerLine: number;
   /** 제목 색 (2026-10-28): null = the overlay theme's. */
   titleColor: string | null;
   columns: PrizeColumns;
@@ -1718,6 +1740,7 @@ export const DEFAULT_TEAM_PRIZE_BOARD: TeamPrizeSettings = {
   teams: [],
   prizes: [],
   members: "SCORE",
+  membersPerLine: 0,
   titleColor: null,
   columns: 1,
   showScore: true,

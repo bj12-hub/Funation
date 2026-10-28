@@ -331,6 +331,8 @@ Confirmed:
   여백 · 모서리), 기본값은 그 전 모습 그대로. 부분 서식(드래그한 부분만 서식)은 TBD. See docs/figma/code-first-screens.md
 - 따로 띄우는 게임 OBS 소스 (2026-10-28, 기본값 — 일반적인 기준, StreamDonate 참고): 땅따먹기 점유 현황 `?territoryrank`, 고스톱 랭킹
   `?gostoprank`(10명), 스도폴리 상태 텍스트 `?sudopolystatus`. 스도폴리 3D 보드는 TBD. See docs/figma/code-first-screens.md
+- 순위표 표시 옵션 (2026-10-28, 기본값 — 일반적인 기준, StreamDonate 참고): 상품 순위표 표시 대상(멤버 전체 기본 / 점수 받은 멤버만 상위
+  N명, 기본 10), 팀 순위표 한 줄에 놓을 팀원 수(기본 0 = 자동), 등수별 상품 테두리색(기본 없음). See docs/figma/code-first-screens.md
 
 Still TBD:
 
