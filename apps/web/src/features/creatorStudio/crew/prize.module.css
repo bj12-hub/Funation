@@ -53,9 +53,10 @@
   list-style: none;
 }
 
+/* 등수 · 문구 · 글자색 · 기본색 · 테두리색 · 테두리 없음 (테두리색 2026-10-28). */
 .lines li {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 40px auto;
+  grid-template-columns: 44px minmax(0, 1fr) 40px auto 40px auto;
   align-items: center;
   gap: 8px;
 }
@@ -133,13 +134,18 @@
 }
 
 @media (max-width: 600px) {
+  /* The text on its own line, the colors and their buttons under it. */
   .lines li {
-    grid-template-columns: 36px minmax(0, 1fr) 40px;
+    grid-template-columns: 36px 40px auto 40px auto;
+    justify-content: start;
   }
 
-  .lines li button {
+  .lines li > :nth-child(2) {
     grid-column: 2 / -1;
-    justify-self: start;
+  }
+
+  .lines li > :nth-child(3) {
+    grid-column: 2;
   }
 
   .preview li {

@@ -6,7 +6,9 @@ import { movePrizeWindowStart, savePrizeBoard, setPrizeBoardVisible, startPrizeW
 import { StartPointPicker } from "./StartPointPicker";
 import {
   PRIZE_BASES,
+  PRIZE_AUDIENCES,
   PRIZE_COLUMNS,
+  PRIZE_LIMIT_MAX,
   PRIZE_PLACEMENTS,
   PRIZE_RANKS_MAX,
   PRIZE_TEXT_MAX,
@@ -129,6 +131,17 @@ export function PrizeLinesField({ prizes, lines, note, onChange }: { prizes: Ran
               />
               <button type="button" className={styles.ghost} disabled={!p.color} onClick={() => setLine(i, { color: null })}>
                 기본색
+              </button>
+              <input
+                type="color"
+                className={prize.color}
+                aria-label={`${i + 1}등 테두리색`}
+                value={p.outline ?? "#000000"}
+                data-default={p.outline ? undefined : ""}
+                onChange={(e) => setLine(i, { outline: e.target.value })}
+              />
+              <button type="button" className={styles.ghost} disabled={!p.outline} onClick={() => setLine(i, { outline: null })}>
+                테두리 없음
               </button>
             </li>
           );
@@ -315,6 +328,35 @@ export function PrizeBoardPanel({
             )}
           </span>
           <span className={styles.note}>고정한 멤버는 1등 위에 따로 보이고 등수에서 빠져요. 나머지가 1등부터 다시 매겨져요.</span>
+        </div>
+        <div className={prize.field} role="group" aria-label="표시 대상">
+          <span className={styles.muted}>표시 대상</span>
+          <span className={prize.inline}>
+            <span className={styles.segment}>
+              {PRIZE_AUDIENCES.map((a) => (
+                <button key={a.key} type="button" aria-pressed={draft.audience === a.key} onClick={() => edit({ audience: a.key })}>
+                  {a.label}
+                </button>
+              ))}
+            </span>
+            {draft.audience === "SCORED" && (
+              <>
+                <span className={styles.muted}>상위</span>
+                <input
+                  className={styles.inputSmall}
+                  type="number"
+                  min={1}
+                  max={PRIZE_LIMIT_MAX}
+                  aria-label="상위 표시 인원"
+                  style={{ width: 80, flex: "none" }}
+                  value={draft.limit}
+                  onChange={(e) => edit({ limit: Math.max(1, Math.min(PRIZE_LIMIT_MAX, Math.trunc(Number(e.target.value) || 1))) })}
+                />
+                <span className={styles.muted}>명</span>
+              </>
+            )}
+          </span>
+          <span className={styles.note}>점수 받은 멤버만은 0점인 멤버를 빼고 상위 N명만 보여 줘요. 상단 고정 멤버는 그대로 보여요.</span>
         </div>
         <div className={prize.field} role="group" aria-label="순위에서 뺄 멤버">
           <span className={styles.muted}>순위에서 뺄 멤버</span>
