@@ -432,6 +432,11 @@ export type BroadcastLive = {
   round: number | null;
   /** 동일 프로젝트 회차 간 기여도 공유 (2026-10-28): the scores include the project's earlier 회차. */
   carry: boolean;
+  /**
+   * 시작점 수정 (2026-10-28): this broadcast's 후원 리스트 newest first (up to 50) — the donations a 구간 or 시그 카운트 can be
+   * set to start from. Studio only.
+   */
+  moments: { at: string; donor: string; amount: number; unit: ExcelUnit }[];
   /** Points collected by an active 한방 window (shown on the overlay). */
   oneshotPot: number | null;
   startedAt: string;

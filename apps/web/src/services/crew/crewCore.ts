@@ -456,6 +456,23 @@ export const earlierRounds = (b: MockBroadcast) =>
         .sort((x, y) => x.startedAt.localeCompare(y.startedAt))
     : [];
 
+/** 시작점 수정 (2026-10-28): the latest donations of the broadcast's 후원 리스트, newest first. */
+export const donationMoments = (b: MockBroadcast, limit = 50) =>
+  [...feedOf(b)]
+    .sort((x, y) => y.at.localeCompare(x.at))
+    .slice(0, limit)
+    .map((f) => ({ at: f.at, donor: f.donor, amount: f.amount, unit: f.unit }));
+
+/**
+ * A start a 구간 or count can be moved to (시작점 수정): an ISO time from the broadcast's start to now. Null otherwise.
+ */
+export function startPointOf(b: MockBroadcast, at: unknown, now = Date.now()): string | null {
+  if (typeof at !== "string") return null;
+  const t = Date.parse(at);
+  if (Number.isNaN(t) || t < Date.parse(b.startedAt) || t > now) return null;
+  return new Date(t).toISOString();
+}
+
 /**
  * 동일 프로젝트 회차 간 기여도 공유 (2026-10-28, StreamDonate "동일 프리셋 안에서 회차와 상관 없이 기여도 공유"): with it on,
  * each member's own scores in the project's earlier 회차 (each final score without what that 회차 carried in), summed. The
