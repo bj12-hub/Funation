@@ -62,6 +62,7 @@ import {
   QR_CAPTION_MAX,
   QR_STYLES,
   RANKING_BOARDS,
+  RANKING_EXCLUDED_MAX,
   RANKING_MAX_RANKS,
   RANKING_NAME_TYPES,
   RANKING_SPEEDS,
@@ -401,8 +402,18 @@ const parseRanking: Parser<RankingSettings> = (v) => {
   }
   const look = themeAndCard(v);
   if (typeof look === "string") return look;
+  // 랭킹제외 (2026-10-28): a screen from before sends none.
+  const rawOut = v.excluded === undefined ? [] : v.excluded;
+  if (!Array.isArray(rawOut) || rawOut.length > RANKING_EXCLUDED_MAX) return `랭킹제외는 ${RANKING_EXCLUDED_MAX}명까지예요.`;
+  const excluded: RankingSettings["excluded"] = [];
+  for (const raw of rawOut) {
+    const x = obj(raw);
+    if (typeof x.key !== "string" || !/^(dk-[\w-]{1,40}|name:.{1,60})$/.test(x.key) || !text(x.name, 60, 1)) return "랭킹제외 목록을 확인해 주세요.";
+    if (!excluded.some((e) => e.key === x.key)) excluded.push({ key: x.key, name: (x.name as string).trim() });
+  }
   return {
     ...look,
+    excluded,
     style: v.style,
     board,
     title: (v.title as string).trim(),

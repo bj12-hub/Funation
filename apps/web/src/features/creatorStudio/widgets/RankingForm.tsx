@@ -1,11 +1,14 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
+import { formatNumber } from "@/lib/format";
 import { PreviewStage } from "@/features/overlayTheme/PreviewStage";
 import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
 import { resolveTheme } from "@/services/creator/overlayThemeTypes";
 import {
   RANKING_BOARDS,
+  RANKING_EXCLUDED_MAX,
   RANKING_MAX_RANKS,
   RANKING_NAME_TYPES,
   RANKING_SPEEDS,
@@ -18,11 +21,18 @@ import type { FormProps } from "./forms";
 import styles from "./widgets.module.css";
 import { RankingView } from "./WidgetViews";
 
-/** 후원랭킹 위젯 설정 — Figma 315:650. 랭킹 종류 (크루 후원 순위 · 수단별 보드) is code-first (2026-10-06). */
+/**
+ * 후원랭킹 위젯 설정 — Figma 315:650. 랭킹 종류 (크루 후원 순위 · 수단별 보드) is code-first (2026-10-06); 랭킹제외 (2026-10-28,
+ * StreamDonate 후원자 랭킹 "랭킹제외") too.
+ */
 export function RankingForm({ value: v, onChange, live }: FormProps<"RANKING">) {
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
   const source: { name: string; amount: number; amountLabel?: string }[] = v.board === "CREW" ? live.crewRanking[v.period] : v.board === "SOURCE" ? live.sourceBoard : live.ranking;
-  const rows = source.slice(0, v.ranks);
+  // 랭킹제외 drops those donors from the preview as it does on stream (the sample rows are no real donors).
+  const out = new Set(v.excluded.map((x) => x.name));
+  const rows = (v.board === "DONOR" ? source.filter((r) => !out.has(r.name)) : source).slice(0, v.ranks);
+  const [pick, setPick] = useState("");
+  const choices = live.donors.filter((d) => !v.excluded.some((x) => x.key === d.key));
 
   return (
     <>
@@ -42,6 +52,51 @@ export function RankingForm({ value: v, onChange, live }: FormProps<"RANKING">) 
           <SwitchText label="배경 카드" checked={v.card} onChange={(x) => set("card", x)} text="테마 카드 위에 순위 배지와 함께 그려요. 끄면 글자만 (아래 1등 · 2등 이하 색 사용)" />
         </div>
       </Section>
+
+      {v.board === "DONOR" && (
+        <Section title="랭킹제외">
+          <p className={styles.hint}>
+            순위에서 뺄 후원자를 골라요(테스트 · 스태프 후원 등). 그 후원자의 후원만 빠지고, 이름이 같은 다른 후원자는 그대로예요. 저장하면 오버레이에 바로
+            반영돼요.
+          </p>
+          <div className={styles.inline}>
+            <select className={styles.input} aria-label="랭킹에서 뺄 후원자" value={pick} onChange={(e) => setPick(e.target.value)}>
+              <option value="">{choices.length ? "후원자 고르기 (전체 기간 상위 30명)" : "고를 수 있는 후원자가 없어요"}</option>
+              {choices.map((d) => (
+                <option key={d.key} value={d.key}>
+                  {d.name} · {formatNumber(d.amount)} FN
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className={styles.purpleSmall}
+              disabled={!pick || v.excluded.length >= RANKING_EXCLUDED_MAX}
+              onClick={() => {
+                const d = live.donors.find((x) => x.key === pick);
+                if (d) set("excluded", [...v.excluded, { key: d.key, name: d.name }]);
+                setPick("");
+              }}
+            >
+              랭킹제외
+            </button>
+          </div>
+          {v.excluded.length > 0 ? (
+            <ul className={styles.tags} aria-label="랭킹제외 후원자">
+              {v.excluded.map((x) => (
+                <li key={x.key}>
+                  {x.name}
+                  <button type="button" aria-label={`${x.name} 다시 넣기`} onClick={() => set("excluded", v.excluded.filter((y) => y.key !== x.key))}>
+                    다시 넣기
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className={styles.hint}>뺀 후원자가 없어요.</p>
+          )}
+        </Section>
+      )}
 
       <Section title="기본 설정">
         <div className={styles.rows}>
