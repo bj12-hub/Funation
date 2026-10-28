@@ -75,8 +75,14 @@
 
 .field {
   display: inline-flex;
+  flex: none;
   align-items: center;
   gap: 6px;
+}
+
+/* A label stays on one line; the row wraps instead (텍스트 슬롯 스타일, 2026-10-28). */
+.field > span {
+  white-space: nowrap;
 }
 
 .color {

@@ -25,6 +25,11 @@ import {
   MARQUEE_LINE_MAX,
   SUBTITLE_MAX,
   TEXT_ALIGNS,
+  TEXT_BACKGROUNDS,
+  TEXT_LINE_HEIGHT,
+  TEXT_OUTLINE_MAX,
+  TEXT_PADDING_MAX,
+  TEXT_RADIUS_MAX,
   TEXT_SCROLL_SEC,
   TEXT_SIZES,
   TEXT_SLOTS,
@@ -41,7 +46,8 @@ import {
   type OverlayTool,
   type TimerAction,
   type ToolResult,
-  type ToolsView
+  type ToolsView,
+  type TextSlot
 } from "./broadcastToolTypes";
 import { mockAlerts, overlaySignal } from "./alertCore";
 import { donorRanking, rankingSince, signatureCredits, totalBetween } from "./widgetOverlayCore";
@@ -49,6 +55,7 @@ import { mockSignatures } from "@/services/donations/signatureCore";
 import { overlayTheme, readAppearance } from "./overlayThemeStore";
 import { isOverlayThemeChoice, type OverlayThemeChoice } from "./overlayThemeTypes";
 import { mockCreator } from "./mockCreatorStore";
+import { FONT_FAMILIES } from "./widgetSettingsTypes";
 import { shiftTimer, tools } from "./broadcastToolsCore";
 
 /**
@@ -263,7 +270,25 @@ export async function saveTextSlot(input: unknown): Promise<ToolResult> {
   if (!TEXT_SIZES.includes(v.size as (typeof TEXT_SIZES)[number])) return { status: "INVALID", message: "글자 크기를 골라 주세요." };
   if (typeof v.color !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(v.color)) return { status: "INVALID", message: "글자색을 확인해 주세요." };
   if (![v.bold, v.outline, v.scroll].every((x) => typeof x === "boolean")) return { status: "INVALID", message: "설정을 확인해 주세요." };
-  if (v.background !== "NONE" && v.background !== "CARD") return { status: "INVALID", message: "배경을 골라 주세요." };
+  const background = TEXT_BACKGROUNDS.find((x) => x.key === v.background)?.key;
+  if (!background) return { status: "INVALID", message: "배경을 골라 주세요." };
+  // 스타일 (2026-10-28): a screen from before sends none of these — the slot keeps what it has.
+  const prev = tools.text.slots[slot - 1];
+  const kept = <K extends keyof TextSlot>(k: K) => (v[k] === undefined ? prev[k] : v[k]);
+  const font = kept("font");
+  if (font !== null && !FONT_FAMILIES.includes(font as (typeof FONT_FAMILIES)[number])) return { status: "INVALID", message: "폰트를 골라 주세요." };
+  const lineHeight = kept("lineHeight");
+  if (typeof lineHeight !== "number" || lineHeight < TEXT_LINE_HEIGHT.min || lineHeight > TEXT_LINE_HEIGHT.max || Math.round(lineHeight * 100) !== lineHeight * 100) {
+    return { status: "INVALID", message: `줄 간격은 ${TEXT_LINE_HEIGHT.min}~${TEXT_LINE_HEIGHT.max}, 소수 둘째 자리까지예요.` };
+  }
+  const hex = (x: unknown): x is string => typeof x === "string" && /^#[0-9A-Fa-f]{6}$/.test(x);
+  const int = (x: unknown, max: number): x is number => typeof x === "number" && Number.isInteger(x) && x >= 0 && x <= max;
+  const [outlineWidth, outlineColor, shadow, bgColor, padding, radius] = [kept("outlineWidth"), kept("outlineColor"), kept("shadow"), kept("bgColor"), kept("padding"), kept("radius")];
+  if (!int(outlineWidth, TEXT_OUTLINE_MAX) || outlineWidth < 1 || !hex(outlineColor)) return { status: "INVALID", message: `테두리는 1~${TEXT_OUTLINE_MAX}px, 색은 #RRGGBB 형식이에요.` };
+  if (typeof shadow !== "boolean") return { status: "INVALID", message: "설정을 확인해 주세요." };
+  if (!hex(bgColor) || !int(padding, TEXT_PADDING_MAX) || !int(radius, TEXT_RADIUS_MAX)) {
+    return { status: "INVALID", message: `배경색은 #RRGGBB, 안쪽 여백은 0~${TEXT_PADDING_MAX}px, 모서리는 0~${TEXT_RADIUS_MAX}px이에요.` };
+  }
   const align = TEXT_ALIGNS.find((x) => x.key === v.align)?.key;
   if (!align) return { status: "INVALID", message: "정렬을 골라 주세요." };
   const sec = v.scrollSec;
@@ -276,8 +301,16 @@ export async function saveTextSlot(input: unknown): Promise<ToolResult> {
     size: v.size as number,
     color: v.color.toUpperCase(),
     bold: v.bold as boolean,
+    font: font as TextSlot["font"],
+    lineHeight,
     outline: v.outline as boolean,
-    background: v.background,
+    outlineWidth,
+    outlineColor: outlineColor.toUpperCase(),
+    shadow,
+    background,
+    bgColor: bgColor.toUpperCase(),
+    padding,
+    radius,
     align,
     scroll: v.scroll as boolean,
     scrollSec: sec
