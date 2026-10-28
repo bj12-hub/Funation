@@ -121,6 +121,8 @@ export type MockBroadcast = {
     /** 배수 · 벌칙 chosen at the start (missing on battles from before 2026-10-05 = 1배 · 없음). */
     multiplier?: number;
     penalty?: string;
+    /** 다수 팀 표시 방식 (2026-10-28; missing = 가로 막대). */
+    display?: "BARS" | "STACKED";
   }[];
   /** 기여도 강탈: points moved from `target` to `thief` (request id = record id, so a retry returns the same spin). */
   steals?: { id: string; at: string; thief: string; target: string; slotId: string; slotLabel: string; points: number }[];

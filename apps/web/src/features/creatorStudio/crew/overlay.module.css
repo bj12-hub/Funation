@@ -230,6 +230,39 @@
   list-style: none;
 }
 
+/* 다수 팀 누적 바 (2026-10-28): one bar, then each team's name · score · share. */
+.stackBox {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stack {
+  height: 24px;
+  overflow: hidden;
+  border-radius: 999px;
+}
+
+.stackLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 15px;
+}
+
+.stackLegend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stackLegend li[data-win] strong {
+  color: var(--ov-accent);
+}
+
 .teamBars {
   display: flex;
   flex-direction: column;
