@@ -602,6 +602,202 @@
   }
 }
 
+/* ── 시그니처 두산 롤러 (2026-10-30, StreamDonate 원본 연출): a window per lane on a strip of 4:3 signature cards that rolls up ── */
+.roller {
+  display: grid;
+  grid-template-columns: repeat(var(--roll-cols, 1), minmax(0, 1fr));
+  gap: 10px 12px;
+}
+
+.rollLane {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  transition: opacity 0.4s ease;
+}
+
+.rollLane[data-out] {
+  opacity: 0.5;
+}
+
+.rollWindow {
+  position: relative;
+  /* One card: the one it shoots next (the strip rolls the last one up and out). */
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--ov-chip-bg);
+  container-type: inline-size;
+}
+
+.rollStrip {
+  position: absolute;
+  inset: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.9s cubic-bezier(0.23, 1, 0.32, 1);
+  will-change: transform;
+}
+
+.rollCard {
+  position: relative;
+  flex: none;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #1e1b4b, #0f3460);
+  opacity: 0.45;
+  filter: grayscale(1);
+  transition:
+    filter 0.4s ease,
+    opacity 0.4s ease;
+}
+
+.rollCard[data-current] {
+  opacity: 1;
+  filter: none;
+}
+
+.rollCard[data-shooting] {
+  animation: rollShoot 0.5s ease-in-out infinite alternate;
+}
+
+.rollCard img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.rollPlaceholder {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: 0 8%;
+  color: rgb(255 255 255 / 0.18);
+  font-size: clamp(16px, 11cqi, 48px);
+  font-style: italic;
+  font-weight: 900;
+  text-align: center;
+  word-break: keep-all;
+}
+
+.rollCaption {
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16% 6% 4%;
+  background: linear-gradient(to top, rgb(0 0 0 / 0.85), rgb(0 0 0 / 0.4) 60%, transparent);
+  color: #ffffff;
+  text-align: center;
+}
+
+.rollCaption b {
+  font-size: clamp(12px, 7cqi, 26px);
+  font-weight: 900;
+  line-height: 1.2;
+  text-shadow: 0 2px 8px rgb(0 0 0 / 0.8);
+  word-break: keep-all;
+}
+
+.rollCaption i {
+  margin-top: 2px;
+  color: #facc15;
+  font-size: clamp(11px, 5.5cqi, 20px);
+  font-style: italic;
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+}
+
+.rollBadge {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 1;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.6);
+  color: #ffffff;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+.rollClear {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 100%;
+  color: var(--ov-chip-ink);
+  text-align: center;
+  animation: rollClearIn 0.8s ease-out both;
+}
+
+.rollClear span {
+  font-size: clamp(32px, 18cqi, 72px);
+  animation: rollClearPulse 2s ease-in-out infinite;
+}
+
+.rollClear strong {
+  color: #facc15;
+  font-size: clamp(16px, 11cqi, 44px);
+  font-style: italic;
+  font-weight: 900;
+}
+
+.rollClear small {
+  font-size: clamp(11px, 4.5cqi, 16px);
+  opacity: 0.7;
+}
+
+@keyframes rollShoot {
+  from {
+    transform: none;
+    box-shadow: inset 0 0 0 0 #facc15;
+  }
+
+  to {
+    transform: translateY(-3%);
+    box-shadow: inset 0 0 0 3px #facc15;
+    filter: brightness(1.2);
+  }
+}
+
+@keyframes rollClearIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes rollClearPulse {
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rollStrip {
+    transition: none;
+  }
+
+  .rollCard[data-shooting],
+  .rollClear,
+  .rollClear span {
+    animation: none;
+  }
+}
+
 /* ── 알파벳 모으기: a horizontal reel, then each member's word board in its 단어판 테마 ── */
 .hReel {
   --alpha-cell: 56px;

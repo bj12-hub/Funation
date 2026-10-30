@@ -42,7 +42,7 @@ async function load() {
   const runs = (id: string) => (mockCrew.broadcasts!.find((x) => x.id === id)!.gameRuns ?? []).filter((r) => r.game === "SIG_DOSAN");
   const climbed = async () => Object.fromEntries((await view()).board!.lanes.map((l) => [l.key, l.steps.length]));
   const gamePoints = async (memberId: string) => (await bc.getBroadcastView())!.live!.rows.find((r) => r.memberId === memberId)!.game;
-  return { ...bc, ...games, core, mockSignatures, all, s1, s2, s3, sign, start, view, obs, runs, climbed, gamePoints };
+  return { ...bc, ...games, core, mockCrew, mockSignatures, all, s1, s2, s3, sign, start, view, obs, runs, climbed, gamePoints };
 }
 
 const T0 = new Date("2026-10-24T12:00:00Z");
@@ -59,13 +59,14 @@ describe("시그니처 두산", () => {
   it("validates and saves the settings", async () => {
     const m = await load();
     expect(await m.saveSigDosan(settings({ mode: "VS", signatureIds: [m.s3.id, m.s1.id, m.s3.id], bonus: 5_000 }))).toEqual({ status: "SAVED" });
-    expect((await m.getGamesView())!.sigDosanSettings).toMatchObject({ mode: "VS", signatureIds: [m.s3.id, m.s1.id], bonus: 5_000 });
+    expect((await m.getGamesView())!.sigDosanSettings).toMatchObject({ mode: "VS", signatureIds: [m.s3.id, m.s1.id], bonus: 5_000, display: "ROLLER" });
     const bad: [Record<string, unknown>, string][] = [
       [{ mode: "TEAM" }, "설정을 확인"],
       [{ signatureIds: ["sig-nope"] }, "두산 시그니처를 확인"],
       [{ signatureIds: "all" }, "두산 시그니처를 확인"],
       [{ bonus: -1 }, "완주 보너스는 0 ~ 10,000,000점"],
       [{ bonus: 0.5 }, "완주 보너스는"],
+      [{ display: "SLIDE" } as never, "OBS 표시 방식을 골라"],
       [{ excluded: ["sig-nope"] }, "제외할 시그니처"]
     ];
     for (const [patch, message] of bad) {
@@ -75,6 +76,14 @@ describe("시그니처 두산", () => {
     const ids = Array.from({ length: 21 }, (_, i) => `sig-${i}`);
     expect(m.core.parseSigDosanSettings(settings({ signatureIds: ids }), [], ids)).toEqual({ message: "두산 시그니처는 20개까지 고를 수 있어요." });
     expect(m.core.parseSigDosanSettings(settings({ signatureIds: ids.slice(1) }), [], ids)).toMatchObject({ signatureIds: ids.slice(1) });
+    // OBS 표시 방식 (2026-10-30): 사다리 kept; a screen from before sends none (롤러), and settings saved before read with it.
+    expect(await m.saveSigDosan(settings({ display: "LADDER" }))).toEqual({ status: "SAVED" });
+    expect((await m.getGamesView())!.sigDosanSettings.display).toBe("LADDER");
+    const older: Partial<SigDosanSettings> = settings();
+    delete older.display;
+    expect(m.core.parseSigDosanSettings(older, [], [])).toMatchObject({ display: "ROLLER" });
+    m.mockCrew.sigDosans!.studio = older as SigDosanSettings;
+    expect((await m.getGamesView())!.sigDosanSettings.display).toBe("ROLLER");
     signIn(["SUPPORTER"]);
     expect(await m.saveSigDosan(settings())).toEqual({ status: "UNAUTHORIZED" });
   });

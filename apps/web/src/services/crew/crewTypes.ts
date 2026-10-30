@@ -1154,9 +1154,18 @@ export const SIG_DOSAN_MODES: { key: SigDosanMode; label: string; note: string }
   { key: "VS", label: "VS", note: "A팀 · B팀이 각자 올려요 (팀 배틀 방송)" },
   { key: "SOLO", label: "개인전", note: "멤버마다 따로 올려요" }
 ];
+/**
+ * OBS 표시 방식 (2026-10-30): 롤러 — StreamDonate's original look: each lane a window on a strip of the signature cards that
+ * rolls up a card per step; 사다리 — every step × every lane at once (what it had before).
+ */
+export type SigDosanDisplay = "ROLLER" | "LADDER";
+export const SIG_DOSAN_DISPLAYS: { key: SigDosanDisplay; label: string; note: string }[] = [
+  { key: "ROLLER", label: "롤러", note: "다음 시그 카드를 크게, 한 단 오를 때마다 위로 굴러가요" },
+  { key: "LADDER", label: "사다리", note: "모든 단과 줄을 한눈에 보여 줘요" }
+];
 /** `signatureIds`: the picked signatures (the ladder sorts them by price); `bonus`: 완주 보너스 for the member who finishes. */
-export type SigDosanSettings = GameCommon & { mode: SigDosanMode; signatureIds: string[]; bonus: number };
-export const DEFAULT_SIG_DOSAN: SigDosanSettings = { title: "", auto: false, excluded: [], showIdle: true, mode: "ALL", signatureIds: [], bonus: 0 };
+export type SigDosanSettings = GameCommon & { mode: SigDosanMode; signatureIds: string[]; bonus: number; display: SigDosanDisplay };
+export const DEFAULT_SIG_DOSAN: SigDosanSettings = { title: "", auto: false, excluded: [], showIdle: true, mode: "ALL", signatureIds: [], bonus: 0, display: "ROLLER" };
 
 /** A step of the ladder (the lowest price first). */
 export type SigDosanStep = { signatureId: string; signatureName: string; price: number; imageUrl: string | null };
