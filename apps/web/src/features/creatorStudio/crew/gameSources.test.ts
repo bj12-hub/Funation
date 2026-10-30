@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { SudopolyLive, TerritoryLive } from "@/services/crew/crewTypes";
-import { sudopolyPositions } from "./SudopolyOverlay";
+import type { GameRunView, SudopolyLive, TerritoryLive } from "@/services/crew/crewTypes";
+import { sudopolyLanded, sudopolyPositions } from "./SudopolyOverlay";
 import { territoryRanking } from "./TerritoryOverlay";
 
 /**
@@ -49,5 +49,15 @@ describe("스도폴리 상태 텍스트", () => {
     } as unknown as SudopolyLive;
     expect(sudopolyPositions(sudopoly, T + 10_000).map((p) => [p.pos, p.laps])).toEqual([[18, 1]]);
     expect(sudopolyPositions(sudopoly, T + 40_000).map((p) => [p.pos, p.laps])).toEqual([[3, 2]]);
+  });
+});
+
+describe("스도폴리 3D 보드 (2026-10-30)", () => {
+  it("lights the piece that moved and its 칸 only once the roll shows", () => {
+    const run = { id: "r1", revealAt: at(5), move: { piece: "m1", from: 18, to: 3, laps: 2 } } as unknown as GameRunView;
+    expect(sudopolyLanded(run, T)).toBeNull();
+    expect(sudopolyLanded(run, T + 5_000)).toEqual({ piece: "m1", cell: 3 });
+    expect(sudopolyLanded({ ...run, move: null }, T + 5_000)).toBeNull();
+    expect(sudopolyLanded(null, T)).toBeNull();
   });
 });

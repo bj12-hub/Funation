@@ -1219,6 +1219,180 @@
   aspect-ratio: 1;
 }
 
+/*
+ * ── 스도폴리 3D 보드 (2026-10-30, StreamDonate "3D보드"): the board tilted with 출발 nearest — raised tiles (their sides an
+ * in-plane extrusion), pieces and dice turned back to stand facing the viewer. Sizes follow the stage width (cqi).
+ */
+.sd3Stage {
+  --sd3-board: 60cqi;
+  --sd3-tilt: rotateX(55deg) rotateZ(45deg);
+  --sd3-stand: rotateZ(-45deg) rotateX(-55deg);
+  position: relative;
+  aspect-ratio: 100 / 60;
+  container-type: inline-size;
+  perspective: 2400px;
+  perspective-origin: 50% 20%;
+}
+
+.sd3Board {
+  position: absolute;
+  /* A little above the middle: the plate's sides show below, the back pieces stand into the room above. */
+  top: 45%;
+  left: 50%;
+  display: grid;
+  grid-template-columns: repeat(var(--sd-cells, 6), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--sd-cells, 6), minmax(0, 1fr));
+  gap: 0.5cqi;
+  width: var(--sd3-board);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%) var(--sd3-tilt);
+  transform-style: preserve-3d;
+}
+
+/* The plate under the ring. */
+.sd3Board::before {
+  position: absolute;
+  inset: -2.5%;
+  border-radius: 2.5%;
+  background: #1f2937;
+  box-shadow:
+    0.5cqi 0.5cqi 0 #111827,
+    1cqi 1cqi 0 #111827,
+    1.5cqi 1.5cqi 0 #0b0f19;
+  content: "";
+}
+
+.sd3Tile {
+  --sd3-top: #f5f0e6;
+  --sd3-side: #b8ad99;
+  position: relative;
+  display: grid;
+  place-items: center;
+  border-radius: 0.6cqi;
+  background: var(--sd3-top);
+  box-shadow:
+    0.25cqi 0.25cqi 0 var(--sd3-side),
+    0.5cqi 0.5cqi 0 var(--sd3-side),
+    0.75cqi 0.75cqi 0 var(--sd3-side);
+  transform-style: preserve-3d;
+}
+
+.sd3Tile[data-kind="START"] {
+  --sd3-top: #4ade80;
+  --sd3-side: #15803d;
+}
+
+.sd3Tile[data-kind="KEY"] {
+  --sd3-top: #facc15;
+  --sd3-side: #a16207;
+}
+
+.sd3Tile[data-kind="ISLAND"] {
+  --sd3-top: #60a5fa;
+  --sd3-side: #1d4ed8;
+}
+
+.sd3Tile[data-hit] {
+  outline: 0.5cqi solid #facc15;
+  outline-offset: 0.25cqi;
+}
+
+.sd3Label {
+  max-width: 100%;
+  padding: 0 6%;
+  color: #1f2937;
+  font-size: clamp(7px, calc(var(--sd3-board) / var(--sd-cells, 6) * 0.2), 16px);
+  font-weight: 800;
+  line-height: 1.1;
+  text-align: center;
+  overflow-wrap: anywhere;
+  /* Level with the viewer, still lying on the tile. */
+  transform: rotateZ(-45deg);
+}
+
+.sd3Tile[data-sign="+"] .sd3Label {
+  color: #15803d;
+}
+
+.sd3Tile[data-sign="-"] .sd3Label {
+  color: #dc2626;
+}
+
+.sd3Pieces {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4%;
+  transform-style: preserve-3d;
+}
+
+.sd3Pieces i {
+  --sd3-piece: clamp(14px, calc(var(--sd3-board) / var(--sd-cells, 6) * 0.42), 44px);
+  display: grid;
+  place-items: center;
+  width: var(--sd3-piece);
+  height: calc(var(--sd3-piece) * 1.25);
+  border-radius: 50% 50% 35% 35%;
+  background: var(--piece-color, var(--ov-accent));
+  box-shadow:
+    inset 0 calc(var(--sd3-piece) * -0.18) 0 rgb(0 0 0 / 22%),
+    0 0 0 1.5px rgb(0 0 0 / 55%);
+  color: #ffffff;
+  font-size: calc(var(--sd3-piece) * 0.55);
+  font-style: normal;
+  font-weight: 800;
+  transform: var(--sd3-stand);
+  transform-origin: 50% 100%;
+  animation: sd3Drop 0.5s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+
+.sd3Pieces i[data-moved] {
+  box-shadow:
+    inset 0 calc(var(--sd3-piece) * -0.18) 0 rgb(0 0 0 / 22%),
+    0 0 0 2px #facc15,
+    0 0 12px 2px rgb(250 204 21 / 70%);
+}
+
+.sd3Center {
+  display: grid;
+  place-items: center;
+  transform-style: preserve-3d;
+}
+
+.sd3Dice {
+  display: flex;
+  gap: 10px;
+  transform: var(--sd3-stand);
+  transform-origin: 50% 100%;
+}
+
+.sd3Dice > span {
+  width: clamp(36px, calc(var(--sd3-board) * 0.12), 76px);
+  height: auto;
+  aspect-ratio: 1;
+}
+
+@keyframes sd3Drop {
+  from {
+    opacity: 0;
+    transform: var(--sd3-stand) translateY(-80%);
+  }
+
+  to {
+    opacity: 1;
+    transform: var(--sd3-stand);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sd3Pieces i {
+    animation: none;
+  }
+}
+
 /* 시그 빙고 남은 시그 (OBS, when chosen): one wrapping line of chips under the board. */
 .bingoLeft {
   display: flex;
