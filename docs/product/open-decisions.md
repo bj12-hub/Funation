@@ -344,6 +344,8 @@ Confirmed:
 - 땅따먹기 판 크기 (2026-10-30, 기본값 — 일반적인 기준, StreamDonate 참고): 한 변 2 ~ 50칸(기본 8 그대로), 27열부터 AA ~ AX.
   OBS 카드는 판이 클수록 넓어지되 소스 너비 · 높이 안에. 금액 표시 단위(원 · 하트 · 달)는 환율 TBD라 그대로 없음.
   See docs/figma/code-first-screens.md
+- 시그니처 두산 롤러 연출 (2026-10-30, 기본값 — 일반적인 기준, StreamDonate 참고): OBS 표시 방식 롤러가 기본(예전 설정도 롤러),
+  사다리는 고를 수 있음. 카드 4:3, 한 단에 0.9초 굴림. See docs/figma/code-first-screens.md
 
 Still TBD:
 

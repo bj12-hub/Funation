@@ -5,6 +5,7 @@ import { formatNumber } from "@/lib/format";
 import { clearSigDosan, saveSigDosan, startSigDosan, stepSigDosan } from "@/services/crew/crewGames";
 import {
   SIG_DOSAN_BONUS_MAX,
+  SIG_DOSAN_DISPLAYS,
   SIG_DOSAN_MODES,
   SIG_DOSAN_STEPS_MAX,
   SIG_DOSAN_STEPS_MIN,
@@ -133,6 +134,17 @@ export function SigDosanPanel({
               <button key={m.key} type="button" className={games.rule} aria-pressed={draft.mode === m.key} onClick={() => edit({ mode: m.key })}>
                 <strong>{m.label}</strong>
                 <span>{m.note}</span>
+              </button>
+            ))}
+          </span>
+        </div>
+        <div className={prize.field} role="group" aria-label="시그니처 두산 OBS 표시 방식">
+          <span className={styles.muted}>OBS 표시 방식 (저장하면 진행 중인 두산에도 바로)</span>
+          <span className={games.rules}>
+            {SIG_DOSAN_DISPLAYS.map((d) => (
+              <button key={d.key} type="button" className={games.rule} aria-pressed={draft.display === d.key} onClick={() => edit({ display: d.key })}>
+                <strong>{d.label}</strong>
+                <span>{d.note}</span>
               </button>
             ))}
           </span>
