@@ -346,6 +346,8 @@ Confirmed:
   See docs/figma/code-first-screens.md
 - 시그니처 두산 롤러 연출 (2026-10-30, 기본값 — 일반적인 기준, StreamDonate 참고): OBS 표시 방식 롤러가 기본(예전 설정도 롤러),
   사다리는 고를 수 있음. 카드 4:3, 한 단에 0.9초 굴림. See docs/figma/code-first-screens.md
+- 스도폴리 3D 보드 (2026-10-30, 기본값 — 일반적인 기준, StreamDonate 참고): 따로 띄우는 `?sudopoly3d`, 55° 기울임 · 45° 돌림(출발이 앞),
+  칸 색은 보드게임풍 고정 색(테마와 별개). See docs/figma/code-first-screens.md
 
 Still TBD:
 
