@@ -39,9 +39,16 @@ const toDraft = (s: SigHunterSettings): Draft => ({
   }))
 });
 const fromBand = (b: EditBand) => ({ slots: Number(b.slots), priceMin: optional(b.priceMin), priceMax: optional(b.priceMax) });
+// A 라운드 without 추가 금액 구간 is saved without `bands`, so the card compares equal to it (no false "저장하지 않은 설정").
 const fromDraft = (d: Draft) => ({
   ...d,
-  rounds: d.rounds.map((r) => ({ id: r.id, ...fromBand(r), multiplier: Number(r.multiplier), forfeits: Number(r.forfeits || 0), bands: r.bands.map(fromBand) }))
+  rounds: d.rounds.map((r) => ({
+    id: r.id,
+    ...fromBand(r),
+    multiplier: Number(r.multiplier),
+    forfeits: Number(r.forfeits || 0),
+    ...(r.bands.length ? { bands: r.bands.map(fromBand) } : {})
+  }))
 });
 const newId = () => `new-${crypto.randomUUID().slice(0, 8)}`;
 
@@ -75,6 +82,8 @@ export function SigHunterPanel({
   const startId = useRef<string | null>(null);
   const active = members.filter((m) => m.active);
   const [memberId, setMemberId] = useState("");
+  // 클릭해제 방지 (2026-10-30, StreamDonate 시그헌터): a sold slot cannot be restored by a stray click.
+  const [keepSold, setKeepSold] = useState(false);
   const picked = active.some((m) => m.id === memberId) ? memberId : "";
   const hunter = live?.sigHunter;
   const board = hunter?.board ?? null;
@@ -344,7 +353,9 @@ export function SigHunterPanel({
                 <p className={styles.note}>모든 슬롯이 SOLD OUT이에요. 다음 라운드에 넣을 시그니처가 없으면 설정을 확인한 뒤 다음 라운드를 눌러 주세요.</p>
               )}
               <span className={prize.inline}>
-                <span className={styles.muted}>슬롯을 누르면 SOLD OUT 처리해요(기여도 없음, 수동 SOLD OUT은 다시 누르면 되돌려요) — 멤버(선택)</span>
+                <span className={styles.muted}>
+                  슬롯을 누르면 SOLD OUT 처리해요(기여도 없음{keepSold ? "" : ", 수동 SOLD OUT은 다시 누르면 되돌려요"}) — 멤버(선택)
+                </span>
                 <select className={styles.select} aria-label="SOLD OUT 처리할 멤버" value={picked} onChange={(e) => setMemberId(e.target.value)}>
                   <option value="">멤버 없음</option>
                   {active.map((m) => (
@@ -353,6 +364,10 @@ export function SigHunterPanel({
                     </option>
                   ))}
                 </select>
+                <label className={styles.checkRow}>
+                  <input type="checkbox" checked={keepSold} onChange={(e) => setKeepSold(e.target.checked)} />
+                  클릭해제 방지
+                </label>
               </span>
               <ol className={games.hunter} style={{ "--hunter-cols": sigHunterColumns(board.slots.length) } as CSSProperties} aria-label="시그니처 헌터 판">
                 {board.slots.map((x, i) => (
@@ -363,7 +378,7 @@ export function SigHunterPanel({
                       data-sold={x.sold ? "" : undefined}
                       data-absorbed={x.sold?.absorbedBy ? "" : undefined}
                       style={x.sold?.memberColor ? ({ "--cell-color": x.sold.memberColor } as CSSProperties) : undefined}
-                      disabled={pending || (!!x.sold && (!x.sold.manual || x.forfeit || !!x.sold.absorbedBy))}
+                      disabled={pending || (!!x.sold && (keepSold || !x.sold.manual || x.forfeit || !!x.sold.absorbedBy))}
                       aria-pressed={!!x.sold}
                       aria-label={`${i + 1}번 슬롯 ${x.signatureName}${x.forfeit ? " (몰수권)" : ""}${x.sold ? ` — SOLD OUT${x.sold.memberName ? ` · ${x.sold.memberName}` : ""}` : ""}`}
                       onClick={() => run(() => setSigHunter({ broadcastId: live.id, requestId: crypto.randomUUID(), index: i, round: board.round, sold: !x.sold, memberId: picked || null }))}

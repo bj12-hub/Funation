@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatNumber } from "@/lib/format";
 import { clearSigDosan, saveSigDosan, startSigDosan, stepSigDosan } from "@/services/crew/crewGames";
 import {
@@ -13,7 +13,7 @@ import {
   type GamesView,
   type SigDosanSettings
 } from "@/services/crew/crewTypes";
-import { DOSAN_SORTS, pickDosanSignatures, sortDosanSignatures, type DosanSort } from "./dosanPick";
+import { DOSAN_SORTS, paintPick, pickDosanSignatures, sortDosanSignatures, type DosanSort } from "./dosanPick";
 import { AutoFields, FormActions, OverlayAddress, RunList, TitleField, useSettingsDraft, type LiveGames, type RunAction } from "./GameParts";
 import styles from "./crew.module.css";
 import games from "./games.module.css";
@@ -61,17 +61,41 @@ export function SigDosanPanel({
   const [sort, setSort] = useState<DosanSort>("PRICE_ASC");
   const [pick, setPick] = useState({ min: "", max: "", count: "5" });
   const [pickNote, setPickNote] = useState<string | null>(null);
-  const shown = sortDosanSignatures(signatures, sort);
+  // 이미지+음악 있는 것만 (2026-10-30, StreamDonate "이미지+음악 있는 항목만 표시"): the picker and 랜덤 선택 leave the rest out.
+  const [completeOnly, setCompleteOnly] = useState(false);
+  const pool = completeOnly ? signatures.filter((s) => s.complete) : signatures;
+  const shown = sortDosanSignatures(pool, sort);
   const randomPick = () => {
     const num = (v: string) => (v.trim() === "" ? null : Number(v));
     const count = Math.min(SIG_DOSAN_STEPS_MAX, Math.max(1, Math.floor(Number(pick.count) || 0)));
-    const res = pickDosanSignatures(signatures, { min: num(pick.min), max: num(pick.max), count });
+    const res = pickDosanSignatures(pool, { min: num(pick.min), max: num(pick.max), count });
     if (!res.found) return setPickNote("범위 안에 사용 중인 시그니처가 없어요.");
     edit({ signatureIds: res.ids });
     setPickNote(res.found > count ? `범위 안 ${res.found}개 중 ${res.ids.length}개를 골랐어요.` : `범위 안 ${res.found}개를 모두 넣었어요.`);
   };
   const ladder = byPrice.filter((s) => s.active && draft.signatureIds.includes(s.id));
   const toggle = (id: string) => edit({ signatureIds: draft.signatureIds.includes(id) ? draft.signatureIds.filter((x) => x !== id) : [...draft.signatureIds, id] });
+  // 끌어서 고르기 (2026-10-30): press on a chip and drag across others — they all take the first one's new state.
+  const ids = useRef(draft.signatureIds);
+  useEffect(() => {
+    ids.current = draft.signatureIds;
+  });
+  const painting = useRef<boolean | null>(null);
+  /** The chip a mouse press just chose (its click that follows is not another toggle). */
+  const pressed = useRef<{ id: string; at: number } | null>(null);
+  useEffect(() => {
+    const done = () => (painting.current = null);
+    window.addEventListener("pointerup", done);
+    window.addEventListener("pointercancel", done);
+    return () => {
+      window.removeEventListener("pointerup", done);
+      window.removeEventListener("pointercancel", done);
+    };
+  }, []);
+  const paint = (id: string, on: boolean) => {
+    ids.current = paintPick(ids.current, id, on, SIG_DOSAN_STEPS_MAX);
+    edit({ signatureIds: ids.current });
+  };
 
   const start = () => {
     if (!live) return;
@@ -115,7 +139,7 @@ export function SigDosanPanel({
         </div>
         <div className={prize.field}>
           <span className={styles.muted}>
-            두산 시그니처 ({draft.signatureIds.length}/{SIG_DOSAN_STEPS_MAX}, 누르면 넣고 빼요)
+            두산 시그니처 ({draft.signatureIds.length}/{SIG_DOSAN_STEPS_MAX}, 누르거나 끌어서 넣고 빼요)
           </span>
           <span className={games.unit} role="group" aria-label="두산 시그니처 랜덤 선택">
             <input className={styles.inputSmall} type="number" inputMode="numeric" aria-label="랜덤 선택 최소 금액" placeholder="최소" value={pick.min} onChange={(e) => setPick({ ...pick, min: e.target.value })} />
@@ -144,15 +168,21 @@ export function SigDosanPanel({
               {pickNote} 설정 저장을 눌러야 두산에 적용돼요.
             </span>
           )}
-          <span className={styles.segment} role="group" aria-label="두산 시그니처 정렬">
-            {DOSAN_SORTS.map((x) => (
-              <button key={x.key} type="button" aria-pressed={sort === x.key} onClick={() => setSort(x.key)}>
-                {x.label}
-              </button>
-            ))}
+          <span className={prize.inline}>
+            <span className={styles.segment} role="group" aria-label="두산 시그니처 정렬">
+              {DOSAN_SORTS.map((x) => (
+                <button key={x.key} type="button" aria-pressed={sort === x.key} onClick={() => setSort(x.key)}>
+                  {x.label}
+                </button>
+              ))}
+            </span>
+            <label className={styles.checkRow}>
+              <input type="checkbox" checked={completeOnly} onChange={(e) => setCompleteOnly(e.target.checked)} />
+              이미지+음악 있는 것만
+            </label>
           </span>
           <span className={prize.chips}>
-            {shown.length === 0 && <span className={styles.note}>만든 시그니처가 없어요.</span>}
+            {shown.length === 0 && <span className={styles.note}>{completeOnly ? "이미지와 음악이 모두 있는 시그니처가 없어요." : "만든 시그니처가 없어요."}</span>}
             {shown.map((s) => (
               <button
                 key={s.id}
@@ -160,7 +190,22 @@ export function SigDosanPanel({
                 className={games.pick}
                 aria-pressed={draft.signatureIds.includes(s.id)}
                 disabled={!draft.signatureIds.includes(s.id) && draft.signatureIds.length >= SIG_DOSAN_STEPS_MAX}
-                onClick={() => toggle(s.id)}
+                onPointerDown={(e) => {
+                  if (e.button !== 0 || e.pointerType !== "mouse") return;
+                  e.preventDefault();
+                  painting.current = !ids.current.includes(s.id);
+                  pressed.current = { id: s.id, at: Date.now() };
+                  paint(s.id, painting.current);
+                }}
+                onPointerEnter={(e) => {
+                  if (painting.current !== null && e.buttons === 1) paint(s.id, painting.current);
+                }}
+                // A mouse press already chose; keys and touch choose here.
+                onClick={() => {
+                  const p = pressed.current;
+                  pressed.current = null;
+                  if (!(p && p.id === s.id && Date.now() - p.at < 2000)) toggle(s.id);
+                }}
               >
                 {s.name}
                 <span className={styles.muted}>{formatNumber(s.price)}</span>
