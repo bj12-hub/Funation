@@ -4,6 +4,7 @@ import { gameRunsView, parseGameCommon, recordRun, type StoredRun } from "./crew
 import {
   DEFAULT_SIG_DOSAN,
   SIG_DOSAN_BONUS_MAX,
+  SIG_DOSAN_DISPLAYS,
   SIG_DOSAN_MODES,
   SIG_DOSAN_STEPS_MAX,
   SIG_DOSAN_STEPS_MIN,
@@ -27,8 +28,8 @@ const rec = (input: unknown) => (typeof input === "object" && input !== null ? i
 const isInt = (v: unknown, min: number, max: number): v is number => typeof v === "number" && Number.isInteger(v) && v >= min && v <= max;
 const signatureOf = (id: string) => mockSignatures.items.find((x) => x.id === id);
 
-/** The channel's 시그니처 두산 settings (defaults until saved). */
-export const sigDosanSettingsOf = (channelId: string): SigDosanSettings => mockCrew.sigDosans?.[channelId] ?? DEFAULT_SIG_DOSAN;
+/** The channel's 시그니처 두산 settings (defaults until saved; settings from before 표시 방식 read with the 롤러). */
+export const sigDosanSettingsOf = (channelId: string): SigDosanSettings => ({ ...DEFAULT_SIG_DOSAN, ...mockCrew.sigDosans?.[channelId] });
 
 export function parseSigDosanSettings(input: unknown, forbidden: string[], signatureIds: string[]): SigDosanSettings | { message: string } {
   const common = parseGameCommon(input, forbidden, signatureIds);
@@ -40,7 +41,10 @@ export function parseSigDosanSettings(input: unknown, forbidden: string[], signa
   const picked = [...new Set(v.signatureIds as string[])];
   if (picked.length > SIG_DOSAN_STEPS_MAX) return { message: `두산 시그니처는 ${SIG_DOSAN_STEPS_MAX}개까지 고를 수 있어요.` };
   if (!isInt(v.bonus, 0, SIG_DOSAN_BONUS_MAX)) return { message: `완주 보너스는 0 ~ ${SIG_DOSAN_BONUS_MAX.toLocaleString("ko-KR")}점이에요.` };
-  return { ...common, mode, signatureIds: picked, bonus: v.bonus };
+  // A screen from before 표시 방식 sends none: the 롤러.
+  const display = v.display === undefined ? "ROLLER" : SIG_DOSAN_DISPLAYS.find((d) => d.key === v.display)?.key;
+  if (!display) return { message: "OBS 표시 방식을 골라 주세요." };
+  return { ...common, mode, signatureIds: picked, bonus: v.bonus, display };
 }
 
 /** The ladder from the picked signatures in use: the lowest price first (the same price in the picked order). */
