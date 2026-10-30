@@ -1573,7 +1573,8 @@ export type GamesView = {
   gostopSettings: GoStopSettings;
   territorySettings: TerritorySettings;
   sudopolySettings: SudopolySettings;
-  signatures: { id: string; name: string; group: string; active: boolean; price: number; match: "SELECT" | "AMOUNT"; rangeMin: number | null }[];
+  /** `createdAt`: when it was made (none for older ones); `complete`: it has its image and sound (2026-10-30, 두산 · 헌터 pickers). */
+  signatures: { id: string; name: string; group: string; active: boolean; price: number; match: "SELECT" | "AMOUNT"; rangeMin: number | null; createdAt?: string; complete: boolean }[];
   overlayPath: string;
 };
 
@@ -1850,7 +1851,8 @@ export type BroadcastView = {
   windowGaugeSettings: WindowGaugeSettings;
   /** 시그 카운트 settings (kept across broadcasts) and the signatures it can count (숨긴 시그니처 too, marked). */
   sigCountSettings: SigCountSettings;
-  signatures: { id: string; name: string; group: string; active: boolean; price: number; match: "SELECT" | "AMOUNT"; rangeMin: number | null }[];
+  /** `createdAt`: when it was made (none for older ones); `complete`: it has its image and sound (2026-10-30, 두산 · 헌터 pickers). */
+  signatures: { id: string; name: string; group: string; active: boolean; price: number; match: "SELECT" | "AMOUNT"; rangeMin: number | null; createdAt?: string; complete: boolean }[];
   keywords: Record<string, string[]>;
   /** Existing project names (for the start form). */
   projects: string[];

@@ -1,14 +1,30 @@
-/** 두산 시그니처 list order in the card: 낮은 금액순 (default) · 높은 금액순 · 시그니처 목록 순서. */
-export type DosanSort = "PRICE_ASC" | "PRICE_DESC" | "LIST";
+import { sortSignatures } from "@/services/donations/signatureTypes";
+
+/**
+ * 두산 시그니처 list order in the card: 낮은 금액순 (default) · 높은 금액순 · 최신순 · 오래된순 (2026-10-30, by when each was
+ * made — older signatures without it count as the oldest) · 시그니처 목록 순서.
+ */
+export type DosanSort = "PRICE_ASC" | "PRICE_DESC" | "NEWEST" | "OLDEST" | "LIST";
 export const DOSAN_SORTS: { key: DosanSort; label: string }[] = [
   { key: "PRICE_ASC", label: "낮은 금액순" },
   { key: "PRICE_DESC", label: "높은 금액순" },
+  { key: "NEWEST", label: "최신순" },
+  { key: "OLDEST", label: "오래된순" },
   { key: "LIST", label: "목록 순서" }
 ];
 
-export function sortDosanSignatures<T extends { price: number }>(signatures: T[], sort: DosanSort): T[] {
+export function sortDosanSignatures<T extends { price: number; createdAt?: string }>(signatures: T[], sort: DosanSort): T[] {
   if (sort === "LIST") return [...signatures];
-  return [...signatures].sort((x, y) => (sort === "PRICE_ASC" ? x.price - y.price : y.price - x.price));
+  return sortSignatures(signatures, sort);
+}
+
+/**
+ * 끌어서 고르기 (2026-10-30, StreamDonate "클릭하거나 드래그하여 다중 선택/해제"): `ids` with `id` put in (`on`) or taken out,
+ * at most `max` in.
+ */
+export function paintPick(ids: string[], id: string, on: boolean, max: number): string[] {
+  if (!on) return ids.filter((x) => x !== id);
+  return ids.includes(id) || ids.length >= max ? ids : [...ids, id];
 }
 
 /**

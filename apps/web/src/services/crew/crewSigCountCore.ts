@@ -1,5 +1,5 @@
 import { mockAlerts } from "@/services/creator/alertCore";
-import { isSignatureImage, mockSignatures } from "@/services/donations/signatureCore";
+import { isSignatureImage, mockSignatures, signatureMedia } from "@/services/donations/signatureCore";
 import { DEFAULT_SIG_COUNT, SIG_COUNT_COLUMNS_MAX, SIG_COUNT_ROWS, SIG_COUNT_SORTS, SIG_COUNT_TITLE_MAX, type SigCountLive, type SigCountRow, type SigCountSettings } from "./crewTypes";
 import { mockCrew, type MockBroadcast } from "./mockCrewStore";
 
@@ -15,8 +15,25 @@ const rec = (input: unknown) => (typeof input === "object" && input !== null ? i
 /** The channel's 시그 카운트 settings (defaults until saved; saved before 선택한 멤버 · 출근 필터 (2026-10-28) with none picked, 출퇴근 무관). */
 export const sigCountSettingsOf = (channelId: string): SigCountSettings => ({ ...DEFAULT_SIG_COUNT, ...mockCrew.sigCounts?.[channelId] });
 
-/** The signatures the settings can pick from, in the creator's order (숨긴 시그니처 too: it may have been sent before it was hidden). */
-export const sigCountSignatures = () => mockSignatures.items.map((s) => ({ id: s.id, name: s.name, group: s.group, active: s.active, price: s.price, match: s.match, rangeMin: s.rangeMin }));
+/**
+ * The signatures the settings can pick from, in the creator's order (숨긴 시그니처 too: it may have been sent before it was
+ * hidden), with when each was made and whether it has its image and sound (`complete`, 2026-10-30).
+ */
+export const sigCountSignatures = () =>
+  mockSignatures.items.map((s) => {
+    const media = signatureMedia(s);
+    return {
+      id: s.id,
+      name: s.name,
+      group: s.group,
+      active: s.active,
+      price: s.price,
+      match: s.match,
+      rangeMin: s.rangeMin,
+      ...(s.createdAt ? { createdAt: s.createdAt } : {}),
+      complete: media.image === "OK" && media.sound === "OK"
+    };
+  });
 
 /**
  * Validates the settings. `signatureIds`: the signatures that exist now (the columns must be among them); `memberIds`: the
