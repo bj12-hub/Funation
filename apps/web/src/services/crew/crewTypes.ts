@@ -1287,8 +1287,9 @@ export const goStopBand = (bands: GoStopBand[], pool: number) => [...bands].sort
 // 땅따먹기 — StreamDonate 땅따먹기: a member earns 하트 from what they receive; with a 하트 the BJ picks a cell of the N×N
 // board and the operator (조정실) assigns it — an owned cell is taken over. Cells show in the owner's color; 점유 순위.
 export const TERRITORY_TITLE_DEFAULT = "땅따먹기";
-export const TERRITORY_SIZES = [5, 6, 7, 8, 9, 10] as const;
-export type TerritorySize = (typeof TERRITORY_SIZES)[number];
+/** 판 크기: cells per side (2026-10-30: 2 ~ 50 as StreamDonate — 20 = 20×20; it was 5 ~ 10). */
+export const TERRITORY_SIZE_MIN = 2;
+export const TERRITORY_SIZE_MAX = 50;
 export const TERRITORY_HEART_POINTS_MAX = 10_000_000;
 export const TERRITORY_CELL_POINTS_MAX = 1_000_000;
 /** How a member earns 하트: one per 시그니처 후원, or one per `heartPoints` points of any donation. */
@@ -1309,14 +1310,17 @@ export const TERRITORY_TICKERS: { key: TerritoryTicker; label: string }[] = [
  * `colors` (2026-10-28): 땅따먹기 전용 BJ 색상 by member id — the board, 순위 and 롤링 use it instead of the crew color (other
  * features keep theirs); cells already taken change with it.
  */
-export type TerritorySettings = GameCommon & { size: TerritorySize; heartMode: TerritoryHeartMode; heartPoints: number; cellPoints: number; ticker: TerritoryTicker; colors: Record<string, string> };
+export type TerritorySettings = GameCommon & { size: number; heartMode: TerritoryHeartMode; heartPoints: number; cellPoints: number; ticker: TerritoryTicker; colors: Record<string, string> };
 export const DEFAULT_TERRITORY: TerritorySettings = { title: "", auto: false, excluded: [], showIdle: true, size: 8, heartMode: "AMOUNT", heartPoints: 1_000, cellPoints: 0, ticker: "OFF", colors: {} };
-/** A cell's label: A1 (column A, row 1) … */
-export const territoryCoord = (size: number, index: number) => `${String.fromCharCode(65 + (index % size))}${Math.floor(index / size) + 1}`;
+/** A column's letters as in a spreadsheet: A … Z, then AA … (a board has up to 50 columns). */
+export const territoryColumn = (column: number): string =>
+  (column >= 26 ? territoryColumn(Math.floor(column / 26) - 1) : "") + String.fromCharCode(65 + (column % 26));
+/** A cell's label: A1 (column A, row 1) … AX50. */
+export const territoryCoord = (size: number, index: number) => `${territoryColumn(index % size)}${Math.floor(index / size) + 1}`;
 /** A cell as shown: its owners in order (`revealAt`: when OBS shows each) — the last one owns it. */
 export type TerritoryCell = { owners: { memberId: string; revealAt: string }[] };
 /** `boardId`: this board (a new 시작 makes another); `lastCell`: the cell assigned last. */
-export type TerritoryBoard = { boardId: string; size: TerritorySize; cells: TerritoryCell[]; lastCell: number | null };
+export type TerritoryBoard = { boardId: string; size: number; cells: TerritoryCell[]; lastCell: number | null };
 
 // 스도폴리 — StreamDonate 스도폴리 (부루마불형): pieces go round a square loop of 칸 on two dice; a 시그니처 후원 rolls as
 // many times as its 금액 구간 gives. 출발 보너스, 무인도, 더블 (again; three in a row: 무인도), 황금열쇠 덱, 목표 바퀴.

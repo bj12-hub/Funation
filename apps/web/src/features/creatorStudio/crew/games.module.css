@@ -525,6 +525,17 @@
   font-weight: var(--font-weight-bold);
 }
 
+/* A big board (13 ~ 50 a side, 2026-10-30): small cells without their coordinates, scrolling sideways rather than shrinking past a click. */
+.territory[data-dense] {
+  grid-template-columns: repeat(var(--terr-size, 8), minmax(14px, 1fr));
+  gap: 2px;
+  overflow-x: auto;
+}
+
+.territory[data-dense] .territoryCell {
+  border-radius: 3px;
+}
+
 /* 시그 빙고 남은 시그 (2026-10-25): the closed cells by signature, cheapest first. */
 /* 시그 빙고 BJ(팀) · BJ(개인): the boards side by side, wrapping on narrow screens. */
 .bingoBoards {

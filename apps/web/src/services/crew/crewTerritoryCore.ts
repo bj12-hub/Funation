@@ -5,7 +5,8 @@ import {
   TERRITORY_CELL_POINTS_MAX,
   TERRITORY_HEART_MODES,
   TERRITORY_HEART_POINTS_MAX,
-  TERRITORY_SIZES,
+  TERRITORY_SIZE_MAX,
+  TERRITORY_SIZE_MIN,
   TERRITORY_TICKERS,
   territoryCoord,
   type TerritoryLive,
@@ -33,8 +34,8 @@ export function parseTerritorySettings(input: unknown, forbidden: string[], sign
   const common = parseGameCommon(input, forbidden, signatureIds);
   if ("message" in common) return common;
   const v = rec(input);
-  const size = TERRITORY_SIZES.find((x) => x === v.size);
-  if (!size) return { message: "판 크기를 골라 주세요." };
+  if (!isInt(v.size, TERRITORY_SIZE_MIN, TERRITORY_SIZE_MAX)) return { message: `판 크기는 한 변 ${TERRITORY_SIZE_MIN} ~ ${TERRITORY_SIZE_MAX}칸이에요.` };
+  const size = v.size;
   const heartMode = TERRITORY_HEART_MODES.find((m) => m.key === v.heartMode)?.key;
   if (!heartMode) return { message: "하트 받는 방식을 골라 주세요." };
   if (!isInt(v.heartPoints, 1, TERRITORY_HEART_POINTS_MAX)) return { message: `하트 기준 점수는 1 ~ ${TERRITORY_HEART_POINTS_MAX.toLocaleString("ko-KR")}점이에요.` };

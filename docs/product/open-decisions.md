@@ -341,6 +341,9 @@ Confirmed:
   스핀은 썸네이션 후원 완료마다 한 번(최소 금액 조건은 TBD), 결과는 화면 문구(지급 없음). See docs/figma/code-first-screens.md
 - 시그니처 선택 도구 (2026-10-30, 기본값 — 일반적인 기준, StreamDonate 참고): 두산 최신순 · 오래된순 · 이미지+음악 있는 것만(기본 끔) ·
   끌어서 고르기, 시그헌터 클릭해제 방지(기본 끔, 화면에서만). See docs/figma/code-first-screens.md
+- 땅따먹기 판 크기 (2026-10-30, 기본값 — 일반적인 기준, StreamDonate 참고): 한 변 2 ~ 50칸(기본 8 그대로), 27열부터 AA ~ AX.
+  OBS 카드는 판이 클수록 넓어지되 소스 너비 · 높이 안에. 금액 표시 단위(원 · 하트 · 달)는 환율 TBD라 그대로 없음.
+  See docs/figma/code-first-screens.md
 
 Still TBD:
 

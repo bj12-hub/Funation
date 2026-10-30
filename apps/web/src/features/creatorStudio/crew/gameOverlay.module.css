@@ -305,6 +305,12 @@
   width: min(100%, calc(480px + (var(--card-cols, 1) - 1) * 340px));
 }
 
+/* 땅따먹기 (2026-10-30): the square board grows with its size — but not past the source height (the title, result and
+   ranking take about 200px), and never under the 480px it always had. */
+.machine[data-fit-height] {
+  max-width: max(480px, calc(100vh - 200px));
+}
+
 .bingoBoards {
   display: grid;
   grid-template-columns: repeat(var(--bingo-cols, 2), minmax(0, 1fr));
@@ -891,6 +897,8 @@
   display: grid;
   grid-template-columns: 18px repeat(var(--terr-size, 8), minmax(0, 1fr));
   gap: 2px;
+  /* The axis labels size to the columns (below). */
+  container-type: inline-size;
 }
 
 .terrRow {
@@ -900,8 +908,11 @@
 .terrAxis {
   display: grid;
   place-items: center;
+  min-width: 0;
+  overflow: hidden;
   color: var(--ov-chip-ink);
-  font-size: 10px;
+  /* 2026-10-30: a big board in a narrow source shrinks them (AA ~ AX still fit a column), 10px otherwise. */
+  font-size: clamp(6px, calc(55cqi / (var(--terr-size, 8) + 1)), 10px);
   opacity: 0.7;
 }
 

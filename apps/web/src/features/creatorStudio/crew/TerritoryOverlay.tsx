@@ -5,7 +5,7 @@ import { OverlayThemeRoot, ov } from "@/features/overlayTheme/OverlayThemeRoot";
 import { formatNumber } from "@/lib/format";
 import { useServerClock } from "@/hooks/useServerClock";
 import type { ResolvedTheme } from "@/services/creator/overlayThemeTypes";
-import { TERRITORY_TITLE_DEFAULT, type TerritoryLive } from "@/services/crew/crewTypes";
+import { TERRITORY_TITLE_DEFAULT, territoryColumn, type TerritoryLive } from "@/services/crew/crewTypes";
 import { useOverlayPage } from "./CrewScoreOverlay";
 import { GameCard, currentRun, signedPoints } from "./GameOverlayParts";
 import board from "./overlay.module.css";
@@ -69,6 +69,9 @@ export function TerritoryOverlay({ territory, serverNow, reloadSeq, theme }: { t
       idle={terr ? `점령 ${owners.filter(Boolean).length}/${owners.length}칸` : "판 시작 전이에요"}
       playing="점령 중…"
       wide
+      // A bigger board widens the card (cells stay about the size of a 10×10's); the OBS source's width and height still cap it.
+      columns={terr ? Math.ceil(terr.size / 11) : undefined}
+      fitHeight
     >
       {territory.settings.ticker === "TOP" && ticker}
       {terr ? (
@@ -76,7 +79,7 @@ export function TerritoryOverlay({ territory, serverNow, reloadSeq, theme }: { t
           <span />
           {Array.from({ length: terr.size }, (_, c) => (
             <span key={`c${c}`} className={styles.terrAxis}>
-              {String.fromCharCode(65 + c)}
+              {territoryColumn(c)}
             </span>
           ))}
           {Array.from({ length: terr.size }, (_, r) => (
