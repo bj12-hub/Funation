@@ -34,6 +34,7 @@ export function LiveChannelCard({ channel, variant, sizes, priority = false }: L
           </h3>
           <div className={styles.meta}>
             <span className={styles.channel}>{channel.channelName}</span>
+            {channel.category && <span className={styles.category}>{channel.category.name}</span>}
             {full && <span className={styles.elapsed}>생방송 중 • {formatDuration(channel.elapsedSeconds)}</span>}
           </div>
         </div>

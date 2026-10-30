@@ -20,6 +20,15 @@ Confirmed:
   이상) and who may donate and receive, the donation types a FLEXTV channel offers (일반 · 시그니처), who may broadcast
   (본인인증, 만 14세) and the settlement rules (minimum, hours, rates, tax, the account review) are FLEXTV's.
   See docs/development/flextv-backend.md
+- funnation's renewed structure (2026-10-30): funnation.co.kr now has the shape planned for Ssumnation's renewal (its
+  own live streaming beside YouTube lives; watching, chat and donating on one screen). With FLEXTV, Ssumnation follows it
+  in the channel room (title · 방송 카테고리 · 시청자 · 방송 시간 under the player, 이번 방송 후원 랭킹 over the chat,
+  채팅 · 후원 · 시그니처 tabs, 메시지 읽어주기, 방송 신고), on the home (썸네이션 라이브 with 방송 카테고리 chips) and
+  `/live` (the chips and a sort), and in 방송 설정 (지금 방송: figures, 미리보기, top donors, the room's viewers with 채팅
+  금지 · 내보내기 · 블랙리스트, 채팅 얼리기). This lifts the 2026-10-02 "no topic categories" rule with FLEXTV only; the mock
+  keeps it. Broadcasting stays on FLEXTV's infrastructure (no streaming provider of Ssumnation's own). Funnation's business
+  rules — 등급별 수수료, the 가입 이벤트 points — are not taken over (TBD). 다시보기 and a 유튜브 라이브 row wait for a
+  FLEXTV source (TBD). See docs/development/flextv-backend.md "10단계"
 - Login lock (2026-10-08): 5 wrong passwords lock the account until a password reset — reset-only, no time-based unlock,
   no per-IP limit (`services/auth/loginLockCore.ts`)
 - Approved settlements at a 탈퇴 (2026-10-08): they are still paid (지급 완료) — a 탈퇴 forfeits only 정산 가능 and

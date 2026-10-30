@@ -15,7 +15,7 @@ vi.mock("@/lib/session", () => ({
   getFlextvAccessToken: async () => "member-token"
 }));
 
-type Call = { path: string; method: string; body: Record<string, unknown> | null };
+type Call = { path: string; method: string; body: Record<string, unknown> | null; auth: string | null };
 let calls: Call[];
 let balance: number;
 let spends: { id: number; amount: number; targetId: string; targetnick: string; status: number; createdAt: string }[];
@@ -49,7 +49,7 @@ beforeEach(() => {
     vi.fn(async (url: string, init: RequestInit = {}) => {
       const u = new URL(url);
       const body = init.body ? JSON.parse(String(init.body)) : null;
-      calls.push({ path: u.pathname, method: init.method ?? "GET", body });
+      calls.push({ path: u.pathname, method: init.method ?? "GET", body, auth: new Headers(init.headers).get("authorization") });
       switch (u.pathname) {
         case "/api/channels/3021/profile":
           return json({ id: 3021, name: "플렉스방송국", isInLive: live, owner: { id: 601900, loginId: "bj01", nickname: "방송인", PI: ownerPI } });
@@ -67,6 +67,11 @@ beforeEach(() => {
           return json({ data: spends.slice(0, Number(u.searchParams.get("limit") ?? 5)), count: spends.length });
         case "/api/luv/send":
           return onSend(body);
+        case "/api/luv/effect-settings":
+          // FLEXTV serves it to members only (`/api/luv/*`).
+          return new Headers(init.headers).get("authorization")
+            ? json([{ type: "youtube", enabled: true, unitAmount: 10, minAmount: 100, maxLength: 60 }])
+            : new Response("Unauthorized", { status: 401 });
       }
       throw new Error(`unexpected FLEXTV call ${u.pathname}`);
     })
@@ -96,6 +101,18 @@ describe("FLEXTV 채널 후원 카탈로그", () => {
     expect(catalog.voices).toEqual([]);
     expect(catalog.signatures).toEqual([{ id: "sig-1000", name: "하트 뿅", price: 1000, imageUrl: "https://static.flextv.test/s.png", favorite: false, rank: 1 }]);
     expect(flextvCatalog([]).types.map((t) => t.key)).toEqual(["TEXT"]);
+    // Phase 10: FLEXTV reads the message aloud unless the supporter turns it off.
+    expect(catalog.readAloudChoice).toBe(true);
+  });
+
+  it("reads the streamer's 영상 후원 setting with the member's token, and not at all for a signed-out room", async () => {
+    const { loadFlextvCatalog } = await import("./flextvDonate");
+    expect((await loadFlextvCatalog("3021", null)).types.map((t) => t.key)).not.toContain("VIDEO");
+    expect(calls.some((c) => c.path === "/api/luv/effect-settings")).toBe(false);
+    const catalog = await loadFlextvCatalog("3021", "member-token");
+    expect(catalog.types.map((t) => t.key)).toContain("VIDEO");
+    expect(catalog.mediaPricing).toEqual({ VIDEO: { perSecond: 10, maxSec: 60 } });
+    expect(calls.find((c) => c.path === "/api/luv/effect-settings")?.auth).toBe("Bearer member-token");
   });
 });
 
@@ -105,6 +122,13 @@ describe("FLEXTV 채널 후원", () => {
     expect(await requestDonation(text())).toEqual({ status: "COMPLETED", donationId: "flextv-101", fnAmount: 1000, balance: 4000 });
     expect(sends()[0].body).toEqual({ channelId: 3021, amount: 1000, count: 1, sendType: "default", effect: { type: "tts", params: { actorId: "", message: "응원해요!" } } });
     expect(calls.find((c) => c.path === "/api/channels/3021/stream/message")?.body).toEqual({ streamId: 77, source: "web", message: "응원해요!", messageType: 0 });
+  });
+
+  it("leaves the message out of FLEXTV's read-aloud when the supporter turns it off, and still shows it in chat", async () => {
+    const { requestDonation } = await load();
+    expect(await requestDonation(text({ readAloud: false }))).toMatchObject({ status: "COMPLETED", fnAmount: 1000 });
+    expect(sends()[0].body).toEqual({ channelId: 3021, amount: 1000, count: 1, sendType: "default" });
+    expect(calls.find((c) => c.path === "/api/channels/3021/stream/message")?.body).toMatchObject({ message: "응원해요!" });
   });
 
   it("sends a signature by FLEXTV's code at its current amount, and refuses a changed one before sending", async () => {

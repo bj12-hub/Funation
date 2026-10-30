@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { FlextvUnavailableError } from "./client";
-import { mapChatSend, mapWatch, readChat, readLiveList } from "./live";
+import { mapChatSend, mapWatch, readChat, readLiveList, readStreamDonors, readViewerCount } from "./live";
 
 /** FLEXTV's live answers (server/routes/api/channels, channels/stream of FLEXTV's web repository), in its shapes. */
 
@@ -11,6 +11,7 @@ describe("the live list", () => {
     thumbUrl: "https://thumb.flextv.test/3021.jpg",
     playerCount: 120,
     startedAt: "2026-10-25T10:00:00.000Z",
+    themeId: 3,
     isInLive: true,
     barrier: { blind: false, suspended: false, isLocked: false, isForAdult: false },
     owner: { nickname: "방송인", loginId: "bj01", thumbUrl: "https://static.flextv.test/p.png" },
@@ -25,6 +26,7 @@ describe("the live list", () => {
       thumbnailUrl: "https://thumb.flextv.test/3021.jpg",
       viewers: 120,
       startedAt: "2026-10-25T10:00:00.000Z",
+      themeId: "3",
       ownerNickname: "방송인",
       ownerThumbUrl: "https://static.flextv.test/p.png"
     });
@@ -41,12 +43,16 @@ describe("the live list", () => {
 describe("watching in FLEXTV's player", () => {
   const stream = (barrier: Record<string, unknown> = {}) => ({
     status: 200,
-    data: { stream: { id: 77, title: "저녁 방송", password: "secret" }, status: { barrier, password: "secret", performance: { viewerCount: 42 } }, sources: [{ url: "https://cdn.test/a.m3u8?token=t" }] }
+    data: {
+      stream: { id: 77, title: "저녁 방송", password: "secret", themeId: 5, createdAt: "2026-10-30T09:00:00.000Z" },
+      status: { barrier, password: "secret", performance: { viewerCount: 42 }, startedAt: "2026-10-30T09:00:05.000Z" },
+      sources: [{ url: "https://cdn.test/a.m3u8?token=t" }]
+    }
   });
 
   it("plays a public stream in the embed, and keeps the room's settings to itself", () => {
     const watch = mapWatch(stream());
-    expect(watch).toEqual({ kind: "EMBED", streamId: "77", title: "저녁 방송", viewers: 42 });
+    expect(watch).toEqual({ kind: "EMBED", streamId: "77", title: "저녁 방송", viewers: 42, startedAt: "2026-10-30T09:00:05.000Z", themeId: "5" });
     expect(JSON.stringify(watch)).not.toMatch(/secret|token|m3u8/);
   });
 
@@ -63,6 +69,26 @@ describe("watching in FLEXTV's player", () => {
   it("is offline once the stream ended, and unknown on FLEXTV's own failure", () => {
     expect(mapWatch({ status: 400, data: { message: "방송자가 방송을 종료 했습니다." } })).toEqual({ kind: "OFFLINE" });
     expect(() => mapWatch({ status: 500, data: "InternalError" })).toThrow(FlextvUnavailableError);
+  });
+});
+
+describe("viewers and the stream's top donors", () => {
+  it("reads the viewer count, and none when nothing is on air", () => {
+    expect(readViewerCount({ status: 200, data: { data: 128 } })).toBe(128);
+    expect(readViewerCount({ status: 400, data: { message: "방송중이 아닙니다." } })).toBeNull();
+    expect(() => readViewerCount({ status: 502, data: null })).toThrow(FlextvUnavailableError);
+  });
+
+  it("ranks the top three by rank, without member numbers or 아이디", () => {
+    const row = (rank: number, nickname: string, amount: number) => ({ id: 900 + rank, loginId: `fan0${rank}`, channelId: 3021, rank, nickname, amount, thumbUrl: "https://static.flextv.test/a.png" });
+    const donors = readStreamDonors({ data: [row(2, "둘째", 500), row(1, "첫째", 1000), row(3, "셋째", 100), row(4, "넷째", 50), { rank: 5, nickname: "", amount: 10 }], count: 4 });
+    expect(donors.map((d) => [d.rank, d.nickname, d.amount])).toEqual([
+      [1, "첫째", 1000],
+      [2, "둘째", 500],
+      [3, "셋째", 100]
+    ]);
+    expect(JSON.stringify(donors)).not.toMatch(/fan0|901/);
+    expect(readStreamDonors({ data: [] })).toEqual([]);
   });
 });
 

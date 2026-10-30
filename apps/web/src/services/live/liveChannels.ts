@@ -1,4 +1,5 @@
 import { fetchLiveList, type FlextvLive } from "@/lib/flextv/live";
+import { fetchThemes, type Option } from "@/lib/flextv/studio";
 import { FLEXTV_LIVE } from "@/lib/flextv/mode";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import type { Platform } from "@/types/platform";
@@ -11,6 +12,8 @@ import { POPULAR_LIVE_COUNT, type LiveChannel } from "./liveTypes";
  *
  * 2026-10-02 product decision: no topic categories (시사 · 금융 · 음악 …). Live lists are only split into
  * 인기 라이브 (most viewers first) and 전체 라이브. The Figma category chips and sections are not used.
+ * 2026-10-30 결정 (funnation's renewal): with FLEXTV each live carries FLEXTV's 방송 카테고리, which the home and
+ * `/live` offer as chips; the mock keeps none.
  */
 
 export { POPULAR_LIVE_COUNT, type LiveChannel } from "./liveTypes";
@@ -26,7 +29,8 @@ export async function getAllLiveChannels(): Promise<LiveChannel[]> {
 
 /**
  * FLEXTV backend (phase 4, docs/development/flextv-backend.md): FLEXTV's public live list — the same for everyone,
- * without 19+ streams — linked to each channel's room. One read per server every 15 s (FLEXTV caches it for longer).
+ * without 19+ streams — linked to each channel's room, each with its 방송 카테고리 (phase 10; none when FLEXTV's
+ * categories cannot be read). One read per server every 15 s (FLEXTV caches it for longer).
  */
 const LIVE_TTL_MS = 15_000;
 const liveCache = globalThis as typeof globalThis & { __ssumnationFlextvLive?: { at: number; list: Promise<LiveChannel[]> } };
@@ -34,9 +38,9 @@ const liveCache = globalThis as typeof globalThis & { __ssumnationFlextvLive?: {
 async function flextvLive(): Promise<LiveChannel[]> {
   const cached = liveCache.__ssumnationFlextvLive;
   if (cached && Date.now() - cached.at < LIVE_TTL_MS) return cached.list;
-  const list = fetchLiveList().then((rows) => {
+  const list = Promise.all([fetchLiveList(), fetchThemes().catch((): Option[] => [])]).then(([rows, themes]) => {
     const now = Date.now();
-    return rows.map((row) => liveChannelOf(row, now)).sort(byViewers);
+    return rows.map((row) => liveChannelOf(row, now, themes)).sort(byViewers);
   });
   liveCache.__ssumnationFlextvLive = { at: Date.now(), list };
   // A failed read is not kept: the next request asks again.
@@ -44,8 +48,9 @@ async function flextvLive(): Promise<LiveChannel[]> {
   return list;
 }
 
-export function liveChannelOf(row: FlextvLive, now = Date.now()): LiveChannel {
+export function liveChannelOf(row: FlextvLive, now = Date.now(), themes: Option[] = []): LiveChannel {
   const started = row.startedAt ? Date.parse(row.startedAt) : NaN;
+  const theme = row.themeId ? themes.find((t) => t.value === row.themeId) : undefined;
   return {
     id: row.channelId,
     title: row.title,
@@ -55,7 +60,8 @@ export function liveChannelOf(row: FlextvLive, now = Date.now()): LiveChannel {
     viewerCount: row.viewers,
     platform: "FLEXTV",
     elapsedSeconds: Number.isFinite(started) ? Math.max(0, Math.floor((now - started) / 1000)) : 0,
-    href: `/creators/${row.channelId}`
+    href: `/creators/${row.channelId}`,
+    category: theme ? { id: theme.value, name: theme.label } : null
   };
 }
 

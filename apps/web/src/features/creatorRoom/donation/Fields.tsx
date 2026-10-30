@@ -150,6 +150,7 @@ export function TextFields({ value, onChange, catalog, balance, error }: Props<T
         placeholder="크리에이터에게 전할 메시지를 입력하세요"
         tall
       />
+      {catalog.readAloudChoice && <ReadAloudToggle checked={value.readAloud} onChange={(readAloud) => onChange({ ...value, readAloud })} />}
       {catalog.voices.map((v) => (
         <VoiceCard key={v.id} voice={v} selected={value.voiceId === v.id} onToggle={() => onChange({ ...value, voiceId: value.voiceId === v.id ? null : v.id })} />
       ))}
@@ -350,8 +351,14 @@ export function SignatureFields({ value, onChange, catalog, onOpenAll }: Props<S
         max={catalog.maxLength.message}
         placeholder="크리에이터에게 전할 메시지"
       />
+      {catalog.readAloudChoice && <ReadAloudToggle checked={value.readAloud} onChange={(readAloud) => onChange({ ...value, readAloud })} />}
     </>
   );
+}
+
+/** "메시지 읽어주기" (phase 10, a FLEXTV room): off, the message is not read aloud and only shows in chat. */
+function ReadAloudToggle({ checked, onChange }: { checked: boolean; onChange: (checked: boolean) => void }) {
+  return <SwitchRow label="메시지 읽어주기" sub={checked ? "방송에서 메시지를 읽어 줘요" : "메시지는 채팅에만 보여요"} checked={checked} onChange={onChange} />;
 }
 
 // ── 위시 후원 (851:5054) ──────────────────────────────────────────────────────
