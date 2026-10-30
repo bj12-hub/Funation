@@ -8,7 +8,7 @@ import type { FontFamily } from "./widgetSettingsTypes";
  * donation-driven effects (이모지 · 레이어 효과) are TBD.
  */
 
-export const TOOL_KEYS = ["subtitle", "marquee", "timer", "credits", "bingo", "text"] as const;
+export const TOOL_KEYS = ["subtitle", "marquee", "timer", "credits", "bingo", "text", "wheel"] as const;
 export type ToolKey = (typeof TOOL_KEYS)[number];
 export const isToolKey = (v: unknown): v is ToolKey => TOOL_KEYS.includes(v as ToolKey);
 
@@ -18,7 +18,8 @@ export const TOOL_CARDS: { key: ToolKey; emoji: string; title: string; descripti
   { key: "timer", emoji: "⏱️", title: "타이머", description: "카운트다운 또는 스톱워치를 화면에 표시해요." },
   { key: "credits", emoji: "🎬", title: "엔딩 크레딧", description: "방송 마무리에 총 후원 · MVP · 후원자 순위 · 멤버별 순위와 감사 인사를 영화 크레딧이나 스타워즈 크롤로 흘려 보여 줘요." },
   { key: "bingo", emoji: "🎯", title: "빙고", description: "칸마다 미션을 적은 빙고판을 띄우고, 해낸 칸을 눌러 표시해요. 완성한 줄 수를 함께 보여 줘요." },
-  { key: "text", emoji: "📝", title: "텍스트 슬롯", description: "문구를 슬롯 20개에 저장해 두고 슬롯마다 다른 OBS 주소로 띄워요. 줄바꿈 · 크기 · 색 · 세로 스크롤을 슬롯마다 정해요." }
+  { key: "text", emoji: "📝", title: "텍스트 슬롯", description: "문구를 슬롯 20개에 저장해 두고 슬롯마다 다른 OBS 주소로 띄워요. 줄바꿈 · 크기 · 색 · 세로 스크롤을 슬롯마다 정해요." },
+  { key: "wheel", emoji: "🎡", title: "원형 룰렛", description: "문구나 시그니처를 칸으로 둔 룰렛을 방송 화면에서 돌려요. 결과는 서버가 정하고, 후원이 들어올 때마다 자동으로 돌릴 수도 있어요." }
 ];
 
 export const SUBTITLE_MAX = 80;
@@ -249,13 +250,62 @@ export const EMPTY_TEXT_SLOT: TextSlot = {
   scrollSec: 20
 };
 
-export type ToolStates = { subtitle: SubtitleState; marquee: MarqueeState; timer: TimerState; credits: CreditsState; bingo: BingoState; text: { slots: TextSlot[] } };
+// ── 원형 룰렛 (code-first, 2026-10-30 — StreamDonate 원형 룰렛 참고) ──────────────────────────────────────────
+
+export const WHEEL_TITLE_MAX = 20;
+export const WHEEL_ITEMS_MAX = 20;
+export const WHEEL_ITEM_TEXT_MAX = 20;
+export const WHEEL_QTY_MAX = 20;
+/** Seconds the wheel takes to slow down and stop (자동 멈춤 from 스핀!, 수동 멈춤 from 멈춤). */
+export const WHEEL_STOP_SEC = 5;
+/** Seconds the result stays big once the wheel stops; the next queued spin starts after it. */
+export const WHEEL_RESULT_SEC = 6;
+/** The latest spins kept (older ones are dropped once ended). */
+export const WHEEL_SPINS_KEPT = 30;
+/** Slice colors in item order (repeating). */
+export const WHEEL_COLORS = ["#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#3b82f6", "#ef4444", "#06b6d4", "#84cc16", "#f97316", "#a855f7"] as const;
+export const WHEEL_STOP_MODES = [
+  { key: "AUTO", label: "자동 멈춤", hint: "스핀! 누르면 알아서 감속하며 멈춰요" },
+  { key: "MANUAL", label: "수동 멈춤", hint: "멈춤을 눌러야 감속하며 멈춰요" }
+] as const;
+export type WheelStopMode = (typeof WHEEL_STOP_MODES)[number]["key"];
+
+/**
+ * A 칸: a 문구 (TEXT) or a signature (SIGNATURE — `label` is its name when saved). `qty` (×수량) is the slice's share: an
+ * item with ×3 is three times as wide, and three times as likely.
+ */
+export type WheelItem = { kind: "TEXT" | "SIGNATURE"; label: string; signatureId: string | null; qty: number };
+/** `autoSpin`: 후원 시 자동 스핀 — every completed 썸네이션 후원 to the channel queues a spin (스핀! works as well). */
+export type WheelSettings = { title: string; stopMode: WheelStopMode; autoSpin: boolean; items: WheelItem[] };
+export const DEFAULT_WHEEL: WheelSettings = { title: "", stopMode: "AUTO", autoSpin: false, items: [] };
+
+/** A slice as drawn: label, share and color. */
+export type WheelSlice = { label: string; qty: number; color: string };
+/**
+ * One spin. The slices are the items as they were when it was queued. `startAt` null = waiting for the one before;
+ * `stopAt` = when it starts slowing down (자동 멈춤: as it starts; 수동 멈춤: at 멈춤, null until then). `result` (a slice
+ * index) is drawn on the server — when queued (자동 멈춤) or at 멈춤 (수동 멈춤).
+ */
+export type WheelSpin = {
+  id: string;
+  trigger: "MANUAL" | "DONATION";
+  donor: string | null;
+  stopMode: WheelStopMode;
+  slices: WheelSlice[];
+  result: number | null;
+  startAt: string | null;
+  stopAt: string | null;
+};
+export type WheelState = { settings: WheelSettings; spins: WheelSpin[] };
+
+export type ToolStates = { subtitle: SubtitleState; marquee: MarqueeState; timer: TimerState; credits: CreditsState; bingo: BingoState; text: { slots: TextSlot[] }; wheel: WheelState };
 
 /**
  * 방송 도구 테마 (2026-10-08 오버레이 테마): one choice for every tool overlay (전체 테마 따르기 by default); `appearance`
  * is the channel's 전체 테마 so the screen can name what 따르기 means.
  */
-export type ToolsView = { states: ToolStates; overlayBase: string; credits: CreditsData; theme: OverlayThemeChoice; appearance: OverlayAppearance };
+/** `signatures`: what a 원형 룰렛 칸 can be (2026-10-30). */
+export type ToolsView = { states: ToolStates; overlayBase: string; credits: CreditsData; theme: OverlayThemeChoice; appearance: OverlayAppearance; signatures: { id: string; name: string }[] };
 
 export type TimerAction = "START" | "PAUSE" | "RESET";
 /** 퀵 조정 (seconds added to the shown time; negative subtracts). */
@@ -273,4 +323,9 @@ export type OverlayTool = (
   | { tool: "bingo"; state: BingoState }
   /** `slot`: 1 … TEXT_SLOTS (the address's `?slot=`, 1 when left out). */
   | { tool: "text"; slot: number; state: TextSlot }
+  /**
+   * 원형 룰렛 (2026-10-30): the saved 칸 (drawn while nothing has spun), the spin on screen (the latest started; its result
+   * only once it stops) and how many wait.
+   */
+  | { tool: "wheel"; title: string; slices: WheelSlice[]; current: WheelSpin | null; waiting: number; serverNow: string }
 ) & { reloadSeq: number; on: boolean; theme: ResolvedTheme };

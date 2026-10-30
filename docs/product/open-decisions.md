@@ -337,6 +337,8 @@ Confirmed:
   같은 방식(10개), 주사위 룰은 StreamDonate 프리셋을 우리 프로젝트로 보고 프로젝트마다(없으면 기본 룰). See docs/figma/code-first-screens.md
 - 다수 팀 표시 방식 · 음악 편집기 단축키 (2026-10-28, 기본값 — 일반적인 기준, StreamDonate 참고): 다수 팀 배틀 OBS 가로 막대(기본) / 누적 바,
   음악 편집기 되돌리기 50번 · 복사 · 붙여넣기 · 루프와 StreamDonate 단축키. See docs/figma/code-first-screens.md
+- 원형 룰렛 방송 도구 (2026-10-30, 기본값 — 일반적인 기준, StreamDonate 참고): 칸 20개 · ×1 ~ ×20, 감속 5초 · 결과 6초, 후원 시 자동
+  스핀은 썸네이션 후원 완료마다 한 번(최소 금액 조건은 TBD), 결과는 화면 문구(지급 없음). See docs/figma/code-first-screens.md
 
 Still TBD:
 
