@@ -8,6 +8,7 @@ import { OverlayThemeRoot, ov } from "@/features/overlayTheme/OverlayThemeRoot";
 import styles from "./toolOverlay.module.css";
 import { useReloadSignal } from "../remote/useReloadSignal";
 import { clock, timerSeconds } from "./timerMath";
+import { WheelOverlay } from "./WheelView";
 
 const SPEED_SEC = { SLOW: 30, NORMAL: 18, FAST: 10 } as const;
 
@@ -193,6 +194,8 @@ function ToolView({ data, now, skew }: { data: OverlayTool; now: number | null; 
         </OverlayThemeRoot>
       );
     }
+    case "wheel":
+      return <WheelOverlay data={data} />;
     case "timer":
       // Rendered only after mount so the server and client markup match.
       if (now === null) return null;

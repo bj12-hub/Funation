@@ -1,0 +1,119 @@
+/* 원형 룰렛 (code-first, 2026-10-30). */
+.pad {
+  padding: 12px;
+}
+
+.card {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px 16px;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding-top: 12px;
+}
+
+/* The pointer at the top, over the wheel. */
+.pointer {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 1;
+  width: 0;
+  height: 0;
+  border-top: 26px solid var(--ov-accent);
+  border-right: 14px solid transparent;
+  border-left: 14px solid transparent;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.45));
+}
+
+.turn {
+  display: block;
+  line-height: 0;
+}
+
+.turn[data-phase="spin"] {
+  animation: wheelSpin 0.6s linear infinite;
+}
+
+.turn[data-phase="stop"] {
+  animation-name: wheelStop;
+  animation-timing-function: cubic-bezier(0.12, 0.62, 0.18, 1);
+  animation-fill-mode: forwards;
+}
+
+@keyframes wheelSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes wheelStop {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(var(--wheel-to));
+  }
+}
+
+.disc {
+  display: block;
+  border-radius: 50%;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.label {
+  fill: #fff;
+  font-weight: 800;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  paint-order: stroke fill;
+  stroke: rgba(0, 0, 0, 0.45);
+  stroke-width: 2px;
+}
+
+.hub {
+  fill: #fff;
+  stroke: rgba(0, 0, 0, 0.3);
+  stroke-width: 2;
+}
+
+.result {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  font-size: 18px;
+}
+
+.result strong {
+  font-size: 26px;
+}
+
+.result[data-fresh] strong {
+  font-size: 36px;
+}
+
+.status {
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .turn[data-phase="spin"] {
+    animation-duration: 3s;
+  }
+}
