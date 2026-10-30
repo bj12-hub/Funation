@@ -150,6 +150,10 @@ describe("시그 카운트", () => {
     const { saveSignature } = await import("@/services/donations/signatures");
     await saveSignature({ name: "아홉째", price: 9_999, imageUrl: "/mock/room/signatures/sig-1.png", match: "SELECT", active: true, requestId: key(90) });
     const ids = (await m.getBroadcastView())!.signatures.map((s) => s.id);
+    // 2026-10-30: when each was made (the one just saved) and whether it has its image and sound (no sound on the seeds).
+    const listed = (await m.getBroadcastView())!.signatures;
+    expect(listed.at(-1)).toMatchObject({ name: "아홉째", createdAt: expect.any(String), complete: false });
+    expect(listed[0].createdAt).toBeUndefined();
     expect(ids).toHaveLength(9);
     const bad: [Record<string, unknown>, string][] = [
       [{ title: "가".repeat(21) }, "제목"],

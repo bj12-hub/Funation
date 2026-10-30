@@ -339,6 +339,8 @@ Confirmed:
   음악 편집기 되돌리기 50번 · 복사 · 붙여넣기 · 루프와 StreamDonate 단축키. See docs/figma/code-first-screens.md
 - 원형 룰렛 방송 도구 (2026-10-30, 기본값 — 일반적인 기준, StreamDonate 참고): 칸 20개 · ×1 ~ ×20, 감속 5초 · 결과 6초, 후원 시 자동
   스핀은 썸네이션 후원 완료마다 한 번(최소 금액 조건은 TBD), 결과는 화면 문구(지급 없음). See docs/figma/code-first-screens.md
+- 시그니처 선택 도구 (2026-10-30, 기본값 — 일반적인 기준, StreamDonate 참고): 두산 최신순 · 오래된순 · 이미지+음악 있는 것만(기본 끔) ·
+  끌어서 고르기, 시그헌터 클릭해제 방지(기본 끔, 화면에서만). See docs/figma/code-first-screens.md
 
 Still TBD:
 
