@@ -18,7 +18,6 @@ import type {
   GoStopSettings,
   TerritorySettings,
   SudopolySettings,
-  TerritorySize,
   SigDosanMode,
   SigDosanSettings,
   JupjupSettings,
@@ -262,7 +261,7 @@ export type MockBroadcast = {
    */
   territory?: {
     boardId: string;
-    size: TerritorySize;
+    size: number;
     cells: { owners: { memberId: string; at: string; revealAt: string }[] }[];
     lastCell: number | null;
     hearts: { memberId: string; hearts: number; at: string; donationId: string | null; requestId: string | null }[];

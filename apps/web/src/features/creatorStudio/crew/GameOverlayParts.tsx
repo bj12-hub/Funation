@@ -77,6 +77,7 @@ export function GameCard({
   playing,
   wide,
   columns,
+  fitHeight,
   children
 }: {
   theme: ResolvedTheme;
@@ -92,11 +93,13 @@ export function GameCard({
   wide?: boolean;
   /** 시그 빙고 BJ 모드: boards side by side — the wide card grows per column. */
   columns?: number;
+  /** 땅따먹기 (2026-10-30): a square board — the card also keeps within the source height (never under 480px). */
+  fitHeight?: boolean;
   children: ReactNode;
 }) {
   return (
     <OverlayThemeRoot theme={theme} className={board.pad}>
-      <div className={`${ov.card} ${styles.machine}`} data-wide={wide || undefined} style={columns ? ({ "--card-cols": columns } as CSSProperties) : undefined}>
+      <div className={`${ov.card} ${styles.machine}`} data-wide={wide || undefined} data-fit-height={fitHeight || undefined} style={columns ? ({ "--card-cols": columns } as CSSProperties) : undefined}>
         <h1 className={`${ov.label} ${styles.title}`}>
           {title}
           {waiting > 0 && <span className={`${ov.chip} ${styles.queue}`}>대기 {waiting}</span>}

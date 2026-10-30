@@ -7,7 +7,8 @@ import {
   TERRITORY_CELL_POINTS_MAX,
   TERRITORY_HEART_MODES,
   TERRITORY_HEART_POINTS_MAX,
-  TERRITORY_SIZES,
+  TERRITORY_SIZE_MAX,
+  TERRITORY_SIZE_MIN,
   TERRITORY_TICKERS,
   TERRITORY_TITLE_DEFAULT,
   territoryCoord,
@@ -21,9 +22,11 @@ import games from "./games.module.css";
 import prize from "./prize.module.css";
 
 /** The editor keeps the numbers as typed. */
-type Draft = Omit<TerritorySettings, "heartPoints" | "cellPoints"> & { heartPoints: string; cellPoints: string };
-const toDraft = (s: TerritorySettings): Draft => ({ ...s, heartPoints: String(s.heartPoints), cellPoints: String(s.cellPoints) });
-const fromDraft = (d: Draft) => ({ ...d, heartPoints: Number(d.heartPoints), cellPoints: Number(d.cellPoints || 0) });
+type Draft = Omit<TerritorySettings, "size" | "heartPoints" | "cellPoints"> & { size: string; heartPoints: string; cellPoints: string };
+const toDraft = (s: TerritorySettings): Draft => ({ ...s, size: String(s.size), heartPoints: String(s.heartPoints), cellPoints: String(s.cellPoints) });
+const fromDraft = (d: Draft) => ({ ...d, size: Number(d.size), heartPoints: Number(d.heartPoints), cellPoints: Number(d.cellPoints || 0) });
+/** Past this many cells a side the studio board drops the coordinates in its cells (still on hover and for screen readers). */
+const DENSE_FROM = 13;
 
 /**
  * 땅따먹기 — code-first (no Figma frame; StreamDonate 땅따먹기 참고), inside `/creator/crew/games`. 판 크기, 하트 받는 방식
@@ -97,16 +100,21 @@ export function TerritoryPanel({
         }}
       >
         <TitleField name="땅따먹기" placeholder={TERRITORY_TITLE_DEFAULT} value={draft.title} onChange={(title) => edit({ title })} />
-        <div className={prize.field} role="group" aria-label="판 크기">
-          <span className={styles.muted}>판 크기</span>
-          <span className={styles.segment}>
-            {TERRITORY_SIZES.map((n) => (
-              <button key={n} type="button" aria-pressed={draft.size === n} onClick={() => edit({ size: n })}>
-                {n}×{n}
-              </button>
-            ))}
+        <label className={games.unit}>
+          <span className={styles.muted}>판 크기 (한 변)</span>
+          <input
+            className={styles.inputSmall}
+            type="number"
+            inputMode="numeric"
+            min={TERRITORY_SIZE_MIN}
+            max={TERRITORY_SIZE_MAX}
+            value={draft.size}
+            onChange={(e) => edit({ size: e.target.value })}
+          />
+          <span className={styles.muted}>
+            칸 ({TERRITORY_SIZE_MIN} ~ {TERRITORY_SIZE_MAX}){/^\d+$/.test(draft.size) ? ` — ${draft.size}×${draft.size}` : ""}
           </span>
-        </div>
+        </label>
         <div className={prize.field} role="group" aria-label="하트 받는 방식">
           <span className={styles.muted}>하트 받는 방식</span>
           <span className={prize.inline}>
@@ -257,7 +265,12 @@ export function TerritoryPanel({
                   ))}
                 </select>
               </span>
-              <ol className={games.territory} style={{ "--terr-size": board.size } as CSSProperties} aria-label="땅따먹기 판">
+              <ol
+                className={games.territory}
+                data-dense={board.size >= DENSE_FROM || undefined}
+                style={{ "--terr-size": board.size } as CSSProperties}
+                aria-label="땅따먹기 판"
+              >
                 {board.cells.map((c, i) => {
                   const o = members.find((m) => m.memberId === owner(i));
                   const coord = territoryCoord(board.size, i);
@@ -270,9 +283,10 @@ export function TerritoryPanel({
                         style={o?.color ? ({ "--cell-color": o.color } as CSSProperties) : undefined}
                         disabled={pending || !picked || owner(i) === picked}
                         aria-label={`${coord}${o ? ` — ${o.name}` : ""}`}
+                        title={board.size >= DENSE_FROM ? `${coord}${o ? ` — ${o.name}` : ""}` : undefined}
                         onClick={() => run(() => assignTerritory({ broadcastId: live.id, boardId: board.boardId, requestId: crypto.randomUUID(), index: i, memberId: picked }))}
                       >
-                        {coord}
+                        {board.size >= DENSE_FROM ? null : coord}
                       </button>
                     </li>
                   );

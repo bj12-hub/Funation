@@ -46,6 +46,9 @@ describe("땅따먹기 좌표", () => {
   it("names a cell by column letter and row number", () => {
     expect([0, 1, 4, 5, 24].map((i) => territoryCoord(5, i))).toEqual(["A1", "B1", "E1", "A2", "E5"]);
     expect(territoryCoord(10, 99)).toBe("J10");
+    // 2026-10-30: up to 50 a side — columns go on as in a spreadsheet.
+    expect([25, 26, 27, 49, 2499].map((i) => territoryCoord(50, i))).toEqual(["Z1", "AA1", "AB1", "AX1", "AX50"]);
+    expect(territoryCoord(2, 3)).toBe("B2");
   });
 });
 
@@ -61,8 +64,9 @@ describe("땅따먹기", () => {
     expect(await m.saveTerritory(settings({ size: 6, heartMode: "SIGNATURE", heartPoints: 5_000, cellPoints: 300 }))).toEqual({ status: "SAVED" });
     expect((await m.getGamesView())!.territorySettings).toMatchObject({ size: 6, heartMode: "SIGNATURE", heartPoints: 5_000, cellPoints: 300 });
     const bad: [Record<string, unknown>, string][] = [
-      [{ size: 4 }, "판 크기"],
-      [{ size: 11 }, "판 크기"],
+      [{ size: 1 }, "판 크기는 한 변 2 ~ 50칸"],
+      [{ size: 51 }, "판 크기는"],
+      [{ size: 7.5 }, "판 크기는"],
       [{ heartMode: "TIME" }, "하트 받는 방식"],
       [{ heartPoints: 0 }, "하트 기준 점수는 1 ~ 10,000,000점"],
       [{ heartPoints: 1.5 }, "하트 기준 점수는"],
@@ -133,6 +137,14 @@ describe("땅따먹기", () => {
     expect(await m.playGame({ game: "TERRITORY", broadcastId: id, requestId: key(2), memberId: "cm-s2" })).toEqual({ status: "INVALID", message: "땅따먹기는 칸을 눌러 멤버에게 할당해요." });
     expect(await m.clearTerritory({ broadcastId: id })).toEqual({ status: "SAVED" });
     expect((await m.view()).board).toBeNull();
+    // A 50×50 board (2026-10-30), and a 2×2 one.
+    await m.saveTerritory(settings({ size: 50 }));
+    await m.startTerritory({ broadcastId: id, requestId: key(3) });
+    expect((await m.view()).board!.cells).toHaveLength(2500);
+    await m.saveTerritory(settings({ size: 2 }));
+    await m.startTerritory({ broadcastId: id, requestId: key(4) });
+    expect((await m.view()).board).toMatchObject({ size: 2, cells: [{ owners: [] }, { owners: [] }, { owners: [] }, { owners: [] }] });
+    await m.clearTerritory({ broadcastId: id });
     signIn(["SUPPORTER"]);
     expect(await m.startTerritory({ broadcastId: id, requestId: key(3) })).toEqual({ status: "UNAUTHORIZED" });
   });
