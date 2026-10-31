@@ -5,11 +5,12 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { CloseIcon, HeartLineIcon, VideoCameraIcon } from "@/components/icons";
 import { Modal } from "@/components/ui/Modal";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import styles from "./RoleChooser.module.css";
 
 const ROLES = [
-  { key: "creator", tag: "LIVE", question: "방송을 하고싶다면?", name: "크리에이터", Icon: VideoCameraIcon, tone: styles.creator },
-  { key: "donator", tag: "DONATE", question: "후원을 하고싶다면?", name: "도네이터", Icon: HeartLineIcon, tone: styles.donator }
+  { key: "creator", tag: "LIVE", question: "auth.creatorQuestion", name: "auth.creatorName", Icon: VideoCameraIcon, tone: styles.creator },
+  { key: "donator", tag: "DONATE", question: "auth.donatorQuestion", name: "auth.donatorName", Icon: HeartLineIcon, tone: styles.donator }
 ] as const;
 
 /**
@@ -18,6 +19,7 @@ const ROLES = [
  * TBD). After signing in, 크리에이터 goes to the creator dashboard and 도네이터 back to the current page.
  */
 export function RoleChooser({ className }: { className?: string }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const pathname = usePathname() ?? "/";
   const next = pathname.startsWith("/login") || pathname.startsWith("/signup") ? null : pathname;
@@ -31,21 +33,21 @@ export function RoleChooser({ className }: { className?: string }) {
   return (
     <>
       <button type="button" className={className} aria-haspopup="dialog" onClick={() => setOpen(true)}>
-        로그인
+        {t("auth.login")}
       </button>
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title="로그인/회원가입"
+        title={t("auth.roleTitle")}
         width={560}
         className={styles.dialog}
         customHeader={
           <header className={styles.header}>
             <div>
-              <h2>로그인/회원가입</h2>
-              <p>3초 만에 시작해보세요!</p>
+              <h2>{t("auth.roleTitle")}</h2>
+              <p>{t("auth.roleSubtitle")}</p>
             </div>
-            <button type="button" className={styles.close} aria-label="닫기" onClick={() => setOpen(false)}>
+            <button type="button" className={styles.close} aria-label={t("auth.close")} onClick={() => setOpen(false)}>
               <CloseIcon />
             </button>
           </header>
@@ -60,8 +62,8 @@ export function RoleChooser({ className }: { className?: string }) {
                 </span>
                 <span className={styles.labels}>
                   <span className={`${styles.tag} ${tone}`}>{tag}</span>
-                  <span className={styles.question}>{question}</span>
-                  <strong className={styles.name}>{name}</strong>
+                  <span className={styles.question}>{t(question)}</span>
+                  <strong className={styles.name}>{t(name)}</strong>
                 </span>
               </Link>
             </li>

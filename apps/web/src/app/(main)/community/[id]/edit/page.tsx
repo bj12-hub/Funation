@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { PostEditor } from "@/features/community/PostEditor";
+import { getT } from "@/lib/i18n/server";
 import { getSession } from "@/lib/session";
 import { getPost } from "@/services/community/community";
 
 // Code-first (no Figma frame): 커뮤니티 글 수정 (author only; the server re-checks on save)
-export const metadata: Metadata = { title: "글 수정 | Ssumnation 커뮤니티" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("community.metaEdit") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {

@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { MyRankingScreen } from "@/features/supporter/MyRankingScreen";
+import { getT } from "@/lib/i18n/server";
 import { getMyAccount } from "@/services/account/myAccount";
 import { getMyRanking } from "@/services/supporter/ranking";
 
 // Code-first (no Figma frame): 내 후원 랭킹 — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: "내 랭킹 | Ssumnation" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("myRanking.meta") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ period?: string }> }) {

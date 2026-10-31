@@ -1,4 +1,5 @@
 import { FLEXTV_NICKNAME_MAX, FLEXTV_PASSWORD_SPECIALS, hasReservedLoginWord, isFlextvLoginId, isFlextvNickname, isFlextvPassword } from "@/lib/flextv/rules";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { isEmail, isValidNickname, isValidPassword } from "@/lib/validation";
 import { checkFlextvNicknameAvailability, checkLoginIdAvailability } from "@/services/auth/flextvSignup";
 import { checkEmailAvailability, checkNicknameAvailability, type AvailabilityResult } from "@/services/auth/signup";
@@ -25,9 +26,14 @@ export type AccountRules = {
   nickname: { isValid: (value: string) => boolean; check: (value: string) => Promise<AvailabilityResult>; maxLength: number; placeholder: string; formatHint: string };
 };
 
-export const SSUMNATION_ACCOUNT_RULES: AccountRules = {
+type Translate = (key: MessageKey, vars?: Record<string, string | number>) => string;
+
+/** The rules with their text in the viewer's language (`t` from useI18n). */
+export type AccountRulesFor = (t: Translate) => AccountRules;
+
+export const ssumnationAccountRules: AccountRulesFor = (t) => ({
   identifier: {
-    label: "아이디 (이메일)",
+    label: t("auth.emailLabel"),
     name: "email",
     type: "email",
     autoComplete: "email",
@@ -35,53 +41,53 @@ export const SSUMNATION_ACCOUNT_RULES: AccountRules = {
     isValid: isEmail,
     check: checkEmailAvailability,
     messages: {
-      format: "올바른 이메일 형식이 아닙니다.",
-      taken: "이미 사용 중인 이메일입니다. 다른 이메일을 사용해 주세요.",
-      forbidden: "사용할 수 없는 이메일입니다.",
-      unchecked: "이메일 중복 확인을 해 주세요.",
-      available: "사용 가능한 이메일입니다."
+      format: t("auth.emailFormat"),
+      taken: t("auth.emailTaken"),
+      forbidden: t("auth.emailForbidden"),
+      unchecked: t("auth.emailUnchecked"),
+      available: t("auth.emailAvailable")
     }
   },
-  password: { isValid: isValidPassword, placeholder: "8~20자, 영문/숫자/특수문자 포함", hint: "8~20자 · 영문, 숫자, 특수문자를 모두 포함해 주세요." },
+  password: { isValid: isValidPassword, placeholder: t("auth.passwordPlaceholder", { min: 8, max: 20 }), hint: t("auth.passwordHint", { min: 8, max: 20 }) },
   nickname: {
     isValid: isValidNickname,
     check: checkNicknameAvailability,
     maxLength: 12,
-    placeholder: "2~12자 이내",
-    formatHint: "2~12자의 한글, 영문, 숫자만 사용할 수 있어요."
+    placeholder: t("auth.nicknamePlaceholder", { min: 2, max: 12 }),
+    formatHint: t("auth.nicknameHint", { min: 2, max: 12 })
   }
-};
+});
 
-export const FLEXTV_ACCOUNT_RULES: AccountRules = {
+export const flextvAccountRules: AccountRulesFor = (t) => ({
   identifier: {
-    label: "아이디",
+    label: t("auth.loginIdLabel"),
     name: "loginId",
     type: "text",
     autoComplete: "username",
-    placeholder: "6~15자 영문, 숫자",
+    placeholder: t("auth.loginIdPlaceholder"),
     maxLength: 15,
     isValid: isFlextvLoginId,
     forbidden: hasReservedLoginWord,
     check: checkLoginIdAvailability,
     messages: {
-      format: "올바른 아이디 형식이 아닙니다.",
-      taken: "이미 사용 중인 아이디입니다. 다른 아이디를 사용해 주세요.",
-      forbidden: "아이디에 'flex'는 사용할 수 없어요.",
-      unchecked: "아이디 중복 확인을 해 주세요.",
-      available: "사용 가능한 아이디입니다.",
-      formatHint: "6~15자의 영문, 숫자로 입력해 주세요. 숫자만으로는 만들 수 없어요."
+      format: t("auth.loginIdFormat"),
+      taken: t("auth.loginIdTaken"),
+      forbidden: t("auth.loginIdForbidden"),
+      unchecked: t("auth.loginIdUnchecked"),
+      available: t("auth.loginIdAvailable"),
+      formatHint: t("auth.loginIdHint")
     }
   },
   password: {
     isValid: isFlextvPassword,
-    placeholder: "8~15자, 영문/숫자/특수문자 포함",
-    hint: `8~15자 · 영문, 숫자와 특수문자(${FLEXTV_PASSWORD_SPECIALS} 중 하나)를 모두 포함해 주세요.`
+    placeholder: t("auth.passwordPlaceholder", { min: 8, max: 15 }),
+    hint: t("auth.flextvPasswordHint", { min: 8, max: 15, specials: FLEXTV_PASSWORD_SPECIALS })
   },
   nickname: {
     isValid: isFlextvNickname,
     check: checkFlextvNicknameAvailability,
     maxLength: FLEXTV_NICKNAME_MAX,
-    placeholder: `2~${FLEXTV_NICKNAME_MAX}자 이내`,
-    formatHint: `2~${FLEXTV_NICKNAME_MAX}자의 한글, 영문, 숫자로 입력해 주세요.`
+    placeholder: t("auth.nicknamePlaceholder", { min: 2, max: FLEXTV_NICKNAME_MAX }),
+    formatHint: t("auth.flextvNicknameHint", { min: 2, max: FLEXTV_NICKNAME_MAX })
   }
-};
+});

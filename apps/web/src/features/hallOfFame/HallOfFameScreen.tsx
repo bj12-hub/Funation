@@ -3,6 +3,8 @@ import Link from "next/link";
 import { TrophyMarkIcon, TrophyMarkSmallIcon } from "@/components/icons";
 import { Button } from "@/components/ui/Button";
 import { formatNumber } from "@/lib/format";
+import { getT } from "@/lib/i18n/server";
+import type { MessageKey } from "@/lib/i18n/translate";
 import {
   DEFAULT_RANKING_PERIOD,
   HOF_TABS,
@@ -11,12 +13,13 @@ import {
   RANKING_PERIOD_LABEL,
   type HofTab,
   type LiveRanking,
+  type LiveWindow,
   type RankedSupporter,
   type RankingPeriod,
   type SupporterRanking,
   type SupporterTier
 } from "@/services/hallOfFame/supporterRanking";
-import { GLOBAL_TITLES, GRADES, GRADE_MONTHS, TITLE_LINE_LABEL, globalTitleLabel, hasGrade, type GlobalTitleKey, type TitleLine } from "@/services/supporter/identityTypes";
+import { GLOBAL_TITLES, GRADES, GRADE_MONTHS, hasGrade, type GlobalTitleKey, type GradeKey, type TitleLine } from "@/services/supporter/identityTypes";
 import styles from "./hallOfFame.module.css";
 import local from "./hofTabs.module.css";
 
@@ -27,6 +30,36 @@ const TIER_CLASS: Record<TitleLine, string> = {
 };
 
 const formatKrw = (amount: number) => `₩${formatNumber(amount)}`;
+
+type T = Awaited<ReturnType<typeof getT>>;
+
+/** Labels kept in services (tabs, periods, windows, title and grade names), in the viewer's language (2026-11-01). */
+const TAB_KEY: Record<HofTab, MessageKey> = { titles: "hallOfFame.tabTitles", leaderboard: "hallOfFame.tabLeaderboard", live: "hallOfFame.tabLive" };
+const PERIOD_KEY: Record<RankingPeriod, MessageKey> = { all: "hallOfFame.periodAll", month: "hallOfFame.periodMonth", week: "hallOfFame.periodWeek" };
+const WINDOW_KEY: Record<LiveWindow, MessageKey> = { "30m": "hallOfFame.window30m", "1h": "hallOfFame.window1h", "3h": "hallOfFame.window3h", "6h": "hallOfFame.window6h" };
+const LINE_KEY: Record<TitleLine, MessageKey> = { BLACK: "hallOfFame.lineBlack", DIAMOND: "hallOfFame.lineDiamond" };
+const TITLE_KEY: Record<GlobalTitleKey, MessageKey> = {
+  DIAMOND: "hallOfFame.diamond",
+  BLUE_DIAMOND: "hallOfFame.blueDiamond",
+  GREEN_DIAMOND: "hallOfFame.greenDiamond",
+  RED_DIAMOND: "hallOfFame.redDiamond",
+  PURPLE_DIAMOND: "hallOfFame.purpleDiamond",
+  RAINBOW_DIAMOND: "hallOfFame.rainbowDiamond",
+  BLACK_1: "hallOfFame.black1",
+  BLACK_2: "hallOfFame.black2",
+  BLACK_3: "hallOfFame.black3",
+  BLACK_4: "hallOfFame.black4",
+  BLACK_5: "hallOfFame.black5",
+  BLACK_6: "hallOfFame.black6"
+};
+const GRADE_KEY: Record<GradeKey, MessageKey> = {
+  BASIC: "hallOfFame.gradeBasic",
+  SILVER: "hallOfFame.gradeSilver",
+  GOLD: "hallOfFame.gradeGold",
+  PLATINUM: "hallOfFame.gradePlatinum",
+  MASTER: "hallOfFame.gradeMaster",
+  LEGEND: "hallOfFame.gradeLegend"
+};
 
 const hofHref = (params: Record<string, string | number | undefined>) => {
   const p = new URLSearchParams();
@@ -41,7 +74,8 @@ type Props = { tab: HofTab; ranking: SupporterRanking | null; live: LiveRanking 
  * Hall of fame. Tabs follow funnation 명예의 전당 (칭호 갤러리 · 리더보드 · 실시간 랭킹); the hero, podium and
  * promo keep Figma ssumnation-hall-of-fame 3:637. Title names and thresholds are our placeholders (TBD).
  */
-export function HallOfFameScreen({ tab, ranking, live }: Props) {
+export async function HallOfFameScreen({ tab, ranking, live }: Props) {
+  const t = await getT();
   return (
     <>
       <section className={styles.hero}>
@@ -49,49 +83,46 @@ export function HallOfFameScreen({ tab, ranking, live }: Props) {
         <span className={styles.heroShade} />
         <div className={styles.heroInner}>
           <div className={styles.heroLabels}>
-            <span className={styles.heroBadge}>명예의 전당</span>
-            <span className={styles.heroHighlight}>크리에이터들의 영원한 등불</span>
+            <span className={styles.heroBadge}>{t("hallOfFame.title")}</span>
+            <span className={styles.heroHighlight}>{t("hallOfFame.highlight")}</span>
           </div>
           <div className={styles.heroCopy}>
             <h1 className={styles.heroTitle}>
               <TrophyMarkIcon className={styles.heroMark} />
-              우리의 크리에이터를 빛나게 해주신 최고의 서포터들
+              {t("hallOfFame.heroTitle")}
             </h1>
-            <p className={styles.heroDescription}>
-              썸네이션 생태계를 함께 만들고, 크리에이터들의 도전에 힘을 보태주신 고마운 분들을 기억합니다. 매일 실시간 및 정기 후원 내역을
-              집계하여 최고의 명예를 헌정합니다.
-            </p>
+            <p className={styles.heroDescription}>{t("hallOfFame.heroDescription")}</p>
           </div>
         </div>
       </section>
 
-      <nav className={local.tabs} aria-label="명예의 전당">
-        {HOF_TABS.map((t) => (
-          <Link key={t.key} href={hofHref({ tab: t.key === "titles" ? undefined : t.key })} className={local.tab} aria-current={tab === t.key ? "page" : undefined}>
-            {t.key === "titles" ? "🏅" : t.key === "leaderboard" ? "🏆" : "🔥"} {t.label}
+      <nav className={local.tabs} aria-label={t("hallOfFame.title")}>
+        {HOF_TABS.map((h) => (
+          <Link key={h.key} href={hofHref({ tab: h.key === "titles" ? undefined : h.key })} className={local.tab} aria-current={tab === h.key ? "page" : undefined}>
+            {h.key === "titles" ? "🏅" : h.key === "leaderboard" ? "🏆" : "🔥"} {t(TAB_KEY[h.key])}
           </Link>
         ))}
       </nav>
 
-      {tab === "titles" && <TitleGallery />}
-      {tab === "leaderboard" && ranking && <Leaderboard ranking={ranking} />}
-      {tab === "live" && live && <LiveBoard live={live} />}
+      {tab === "titles" && <TitleGallery t={t} />}
+      {tab === "leaderboard" && ranking && <Leaderboard ranking={ranking} t={t} />}
+      {tab === "live" && live && <LiveBoard live={live} t={t} />}
 
       <section className={styles.promo} aria-labelledby="hof-promo">
         <Image src="/mock/hall-of-fame/promo.jpg" alt="" fill sizes="100vw" className={styles.promoImage} />
         <div className={styles.promoInner}>
           <div className={styles.promoText}>
-            <span className={styles.promoLabel}>서포터즈 혜택</span>
+            <span className={styles.promoLabel}>{t("hallOfFame.promoLabel")}</span>
             <h2 id="hof-promo" className={styles.promoTitle}>
-              내 최애 크리에이터의 전용 명예 배지를 획득해보세요!
+              {t("hallOfFame.promoTitle")}
             </h2>
             <p className={styles.promoDescription}>
-              서포터즈 랭킹에 등재되면 프로필 전용 한정판 배지, 채팅 강조 하이라이트 및 비공개 오리지널 콘텐츠 사전 입장권을 지급해 드립니다.
+              {t("hallOfFame.promoDescription")}
             </p>
           </div>
           {/* 2026-10-04 결정: 후원할 크리에이터를 찾는 화면으로. */}
           <Button href="/creators" variant="light" size="lg" className={styles.promoCta}>
-            나도 서포터 되기
+            {t("hallOfFame.promoCta")}
           </Button>
         </div>
       </section>
@@ -100,30 +131,30 @@ export function HallOfFameScreen({ tab, ranking, live }: Props) {
 }
 
 /** 칭호 갤러리 — our 누적 등급 (다이아 · 블랙) and 활동 등급 ladders (2026-10-08 structure; thresholds are placeholders, TBD). */
-function TitleGallery() {
+function TitleGallery({ t }: { t: T }) {
   const grades = GRADES.filter((g) => hasGrade(g.key)).reverse();
-  const range = (min: number, next: number | undefined) => (next ? `${formatNumber(min)} ~ ${formatNumber(next)} FN` : `${formatNumber(min)} FN 이상`);
-  const nextTitle = (key: GlobalTitleKey) => GLOBAL_TITLES[GLOBAL_TITLES.findIndex((t) => t.key === key) + 1]?.minFn;
+  const range = (min: number, next: number | undefined) => (next ? `${formatNumber(min)} ~ ${formatNumber(next)} FN` : t("hallOfFame.fnOrMore", { min: formatNumber(min) }));
+  const nextTitle = (key: GlobalTitleKey) => GLOBAL_TITLES[GLOBAL_TITLES.findIndex((x) => x.key === key) + 1]?.minFn;
   return (
     <div className={local.panel}>
       {(["BLACK", "DIAMOND"] as const).map((line) => {
-        const titles = GLOBAL_TITLES.filter((t) => t.line === line).reverse();
+        const titles = GLOBAL_TITLES.filter((x) => x.line === line).reverse();
         return (
           <section key={line} className={local.gallery} aria-labelledby={`hof-titles-${line}`}>
             <h2 id={`hof-titles-${line}`} className={local.galleryTitle}>
-              누적 {TITLE_LINE_LABEL[line]}
+              {t("hallOfFame.cumulative", { line: t(LINE_KEY[line]) })}
             </h2>
             <p className={local.caption}>
-              {line === "BLACK" ? "다이아 등급 위의 최상위 누적 등급이에요. 누적 등급은 한 번 오르면 내려가지 않아요." : "누적 후원 FN으로 오르고, 한 번 오르면 내려가지 않아요."} 기준은 확정 전 임시 값이에요.
+              {line === "BLACK" ? t("hallOfFame.captionBlack") : t("hallOfFame.captionDiamond")} {t("hallOfFame.provisional")}
             </p>
             <ul className={local.cards}>
-              {titles.map((t, i) => (
-                <li key={t.key} className={local.card} data-top={(line === "BLACK" && i === 0) || undefined}>
+              {titles.map((title, i) => (
+                <li key={title.key} className={local.card} data-top={(line === "BLACK" && i === 0) || undefined}>
                   <span className={local.medal} aria-hidden="true">
                     {line === "BLACK" ? "👑" : "💎"}
                   </span>
-                  <strong>{t.label}</strong>
-                  <span className={local.range}>{range(t.minFn, nextTitle(t.key))}</span>
+                  <strong>{t(TITLE_KEY[title.key])}</strong>
+                  <span className={local.range}>{range(title.minFn, nextTitle(title.key))}</span>
                 </li>
               ))}
             </ul>
@@ -132,10 +163,10 @@ function TitleGallery() {
       })}
       <section className={local.gallery} aria-labelledby="hof-grades">
         <h2 id="hof-grades" className={local.galleryTitle}>
-          활동 등급
+          {t("hallOfFame.activity")}
         </h2>
         <p className={local.caption}>
-          이번 달을 포함한 최근 {GRADE_MONTHS}개월 후원 FN으로 정해져요. 기준을 넘으면 바로 오르고, 매월 1일에 다시 정해져요. 기준은 확정 전 임시 값이에요.
+          {t("hallOfFame.activityCaption", { months: GRADE_MONTHS })}
         </p>
         <ul className={local.cards}>
           {grades.map((g, i) => (
@@ -143,7 +174,7 @@ function TitleGallery() {
               <span className={local.medal} aria-hidden="true">
                 🏅
               </span>
-              <strong>{g.label}</strong>
+              <strong>{t(GRADE_KEY[g.key])}</strong>
               <span className={local.range}>{range(g.minFn, grades[i - 1]?.minFn)}</span>
             </li>
           ))}
@@ -153,7 +184,7 @@ function TitleGallery() {
   );
 }
 
-function Leaderboard({ ranking }: { ranking: SupporterRanking }) {
+function Leaderboard({ ranking, t }: { ranking: SupporterRanking; t: T }) {
   const podium = ranking.supporters.filter((s) => s.rank <= 3);
   const rest = ranking.supporters.filter((s) => s.rank > 3);
   const shown = ranking.supporters.length;
@@ -163,43 +194,43 @@ function Leaderboard({ ranking }: { ranking: SupporterRanking }) {
     <>
       <section className={styles.section} aria-labelledby="hof-period">
         <h2 id="hof-period" className={styles.periodTitle}>
-          리더보드
+          {t("hallOfFame.tabLeaderboard")}
         </h2>
         <nav className={styles.periodTabs} aria-labelledby="hof-period">
           {(Object.keys(RANKING_PERIOD_LABEL) as RankingPeriod[]).map((p) => (
             <Link key={p} href={periodHref(p)} className={`${styles.periodTab} ${p === ranking.period ? styles.periodTabActive : ""}`} aria-current={p === ranking.period ? "page" : undefined}>
-              {RANKING_PERIOD_LABEL[p]}
+              {t(PERIOD_KEY[p])}
             </Link>
           ))}
-          <span className={`${styles.periodTab} ${local.disabled}`} aria-disabled="true" title="준비 중인 기능입니다">
-            과거 기록
+          <span className={`${styles.periodTab} ${local.disabled}`} aria-disabled="true" title={t("common.comingSoon")}>
+            {t("hallOfFame.pastRecords")}
           </span>
         </nav>
       </section>
 
       {ranking.supporters.length === 0 ? (
         <div className={styles.section}>
-          <p className={styles.empty}>이 기간에는 아직 집계된 후원 내역이 없습니다.</p>
+          <p className={styles.empty}>{t("hallOfFame.emptyPeriod")}</p>
         </div>
       ) : (
         <>
-          <section className={styles.podiumSection} aria-label="1위부터 3위까지">
+          <section className={styles.podiumSection} aria-label={t("hallOfFame.top3")}>
             <ol className={styles.podium}>
               {[2, 1, 3].map((rank) => {
                 const supporter = podium.find((s) => s.rank === rank);
-                return supporter ? <PodiumCard key={rank} supporter={supporter} /> : null;
+                return supporter ? <PodiumCard key={rank} supporter={supporter} t={t} /> : null;
               })}
             </ol>
           </section>
           {rest.length > 0 && (
             <section className={styles.rankingSection} aria-labelledby="hof-ranking">
               <h2 id="hof-ranking" className={styles.rankingTitle}>
-                📈 서포터 랭킹 (4위 - {rest.at(-1)?.rank}위)
+                {t("hallOfFame.ranking", { last: rest.at(-1)?.rank ?? "" })}
               </h2>
-              <RankList supporters={rest} />
+              <RankList supporters={rest} t={t} />
               {shown < ranking.total && (
                 <Link href={hofHref({ tab: "leaderboard", period: ranking.period === DEFAULT_RANKING_PERIOD ? undefined : ranking.period, show: shown + LEADERBOARD_STEP })} className={local.more} scroll={false}>
-                  더 보기 ({shown}/{ranking.total})
+                  {t("hallOfFame.more", { shown, total: ranking.total })}
                 </Link>
               )}
             </section>
@@ -210,13 +241,13 @@ function Leaderboard({ ranking }: { ranking: SupporterRanking }) {
   );
 }
 
-function LiveBoard({ live }: { live: LiveRanking }) {
+function LiveBoard({ live, t }: { live: LiveRanking; t: T }) {
   return (
     <section className={styles.rankingSection} aria-labelledby="hof-live">
       <h2 id="hof-live" className={styles.rankingTitle}>
-        🔥 실시간 랭킹
+        {t("hallOfFame.liveTitle")}
       </h2>
-      <nav className={styles.periodTabs} aria-label="집계 시간">
+      <nav className={styles.periodTabs} aria-label={t("hallOfFame.window")}>
         {LIVE_WINDOWS.map((w) => (
           <Link
             key={w.key}
@@ -225,16 +256,16 @@ function LiveBoard({ live }: { live: LiveRanking }) {
             aria-current={w.key === live.window ? "page" : undefined}
             scroll={false}
           >
-            {w.label}
+            {t(WINDOW_KEY[w.key])}
           </Link>
         ))}
       </nav>
-      {live.supporters.length === 0 ? <p className={styles.empty}>이 시간 동안 들어온 후원이 없습니다.</p> : <RankList supporters={live.supporters} />}
+      {live.supporters.length === 0 ? <p className={styles.empty}>{t("hallOfFame.liveEmpty")}</p> : <RankList supporters={live.supporters} t={t} />}
     </section>
   );
 }
 
-function RankList({ supporters }: { supporters: RankedSupporter[] }) {
+function RankList({ supporters, t }: { supporters: RankedSupporter[]; t: T }) {
   return (
     <ol className={styles.rankingList}>
       {supporters.map((s) => (
@@ -245,10 +276,10 @@ function RankList({ supporters }: { supporters: RankedSupporter[] }) {
           </span>
           <span className={styles.rowName}>{s.nickname}</span>
           <span className={styles.rowRight}>
-            <TierBadge tier={s.tier} />
+            <TierBadge tier={s.tier} t={t} />
             <span className={styles.amount}>
               <strong>{formatKrw(s.donationAmountKrw)}</strong>
-              <span>후원 금액</span>
+              <span>{t("hallOfFame.donated")}</span>
             </span>
           </span>
         </li>
@@ -259,13 +290,13 @@ function RankList({ supporters }: { supporters: RankedSupporter[] }) {
 
 const PODIUM_CLASS: Record<number, string> = { 1: styles.first, 2: styles.second, 3: styles.third };
 
-function PodiumCard({ supporter }: { supporter: RankedSupporter }) {
+function PodiumCard({ supporter, t }: { supporter: RankedSupporter; t: T }) {
   const { rank } = supporter;
   return (
     <li className={`${styles.podiumCard} ${PODIUM_CLASS[rank]}`}>
       <span className={styles.podiumLabel}>
         {rank === 1 && <TrophyMarkSmallIcon />}
-        {rank}위 서포터
+        {t("hallOfFame.podiumRank", { rank })}
       </span>
       <span className={styles.podiumRing}>
         <Image src={supporter.avatarUrl} alt="" width={94} height={104} className={styles.podiumAvatar} />
@@ -274,13 +305,13 @@ function PodiumCard({ supporter }: { supporter: RankedSupporter }) {
         <strong className={styles.podiumName}>{supporter.nickname}</strong>
         <span className={styles.podiumAmount}>{formatKrw(supporter.donationAmountKrw)}</span>
       </span>
-      <TierBadge tier={supporter.tier} />
+      <TierBadge tier={supporter.tier} t={t} />
     </li>
   );
 }
 
-function TierBadge({ tier }: { tier: SupporterTier }) {
+function TierBadge({ tier, t }: { tier: SupporterTier; t: T }) {
   if (!tier) return null;
-  const line = GLOBAL_TITLES.find((t) => t.key === tier)!.line;
-  return <span className={`${styles.tier} ${TIER_CLASS[line]}`}>{globalTitleLabel(tier)}</span>;
+  const line = GLOBAL_TITLES.find((x) => x.key === tier)!.line;
+  return <span className={`${styles.tier} ${TIER_CLASS[line]}`}>{t(TITLE_KEY[tier])}</span>;
 }

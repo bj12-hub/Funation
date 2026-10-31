@@ -2,10 +2,19 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { kstToday, PERIOD_LABEL, presetRange, type Period, type PeriodPreset } from "@/lib/period";
 import styles from "./wallet.module.css";
 
 const PRESETS = Object.keys(PERIOD_LABEL) as PeriodPreset[];
+const PERIOD_KEY: Record<PeriodPreset, MessageKey> = {
+  day: "wallet.periodDay",
+  week: "wallet.periodWeek",
+  month: "wallet.periodMonth",
+  year: "wallet.periodYear",
+  range: "wallet.periodRange"
+};
 
 type Category = { key: string; label: string };
 
@@ -25,6 +34,7 @@ export function HistoryFilter({
   category?: string;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [preset, setPreset] = useState(period.preset);
   const [from, setFrom] = useState(period.from);
   const [to, setTo] = useState(period.to);
@@ -61,7 +71,7 @@ export function HistoryFilter({
       }}
     >
       {categories && (
-        <div className={styles.segment} role="radiogroup" aria-label="후원 유형">
+        <div className={styles.segment} role="radiogroup" aria-label={t("wallet.donationType")}>
           {categories.map((c) => (
             <button
               key={c.key}
@@ -78,7 +88,7 @@ export function HistoryFilter({
         </div>
       )}
 
-      <div className={styles.segment} role="radiogroup" aria-label="조회 기간">
+      <div className={styles.segment} role="radiogroup" aria-label={t("wallet.period")}>
         {PRESETS.map((p) => (
           <button
             key={p}
@@ -88,7 +98,7 @@ export function HistoryFilter({
             className={`${styles.segmentItem} ${p === preset ? styles.segmentActive : ""}`}
             onClick={() => pickPreset(p)}
           >
-            {PERIOD_LABEL[p]}
+            {t(PERIOD_KEY[p])}
           </button>
         ))}
       </div>
@@ -96,7 +106,7 @@ export function HistoryFilter({
       <div className={styles.dates}>
         <input
           type="date"
-          aria-label="시작일"
+          aria-label={t("wallet.startDate")}
           className={styles.dateInput}
           value={from}
           max={to || undefined}
@@ -108,7 +118,7 @@ export function HistoryFilter({
         <span aria-hidden="true">~</span>
         <input
           type="date"
-          aria-label="종료일"
+          aria-label={t("wallet.endDate")}
           className={styles.dateInput}
           value={to}
           min={from || undefined}
@@ -120,7 +130,7 @@ export function HistoryFilter({
       </div>
 
       <button type="submit" className={styles.searchButton} disabled={invalid}>
-        조회
+        {t("wallet.apply")}
       </button>
     </form>
   );

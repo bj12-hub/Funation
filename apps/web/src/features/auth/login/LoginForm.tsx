@@ -8,6 +8,8 @@ import { CircleXIcon, EyeIcon, EyeOffIcon, MessageCircleIcon } from "@/component
 import { TextField } from "@/components/ui/TextField";
 import type { SocialProvider } from "@/lib/flextv/auth";
 import { FLEXTV_AUTH, FLEXTV_WEB_URL } from "@/lib/flextv/mode";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { login } from "@/services/auth/login";
 import { LoginLocked } from "./LoginLocked";
 import styles from "./LoginForm.module.css";
@@ -22,18 +24,18 @@ import styles from "./LoginForm.module.css";
 type FormState = "DEFAULT" | "PROCESSING" | "UNKNOWN_ID" | "WRONG_PASSWORD" | "LOCKED" | "TOO_MANY_ATTEMPTS" | "SUSPENDED" | "ERROR";
 
 const MESSAGES = {
-  UNKNOWN_ID: "등록되지 않은 아이디입니다",
-  WRONG_PASSWORD: "비밀번호가 일치하지 않습니다. 다시 입력해 주세요",
+  UNKNOWN_ID: "auth.unknownId",
+  WRONG_PASSWORD: "auth.wrongPassword",
   // Code-first (FLEXTV): FLEXTV refuses for 10 minutes after 20 wrong passwords within 10 minutes.
-  TOO_MANY_ATTEMPTS: "로그인에 여러 번 실패했어요. 10분 뒤에 다시 시도해 주세요",
+  TOO_MANY_ATTEMPTS: "auth.tooManyAttempts",
   // Code-first (no Figma frame): the account is suspended by an operator (appeal flow TBD).
-  SUSPENDED: "운영 정책에 따라 이용이 정지된 계정입니다. 고객센터로 문의해 주세요",
+  SUSPENDED: "auth.suspended",
   // The 도우미 domain has no 고객센터 of its own (and the site's domain is TBD): name the site's, without a link.
-  SUSPENDED_HELPER: "운영 정책에 따라 이용이 정지된 계정입니다. 썸네이션 사이트의 고객센터로 문의해 주세요",
-  ERROR: "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요"
-} as const;
+  SUSPENDED_HELPER: "auth.suspendedHelper",
+  ERROR: "auth.tempError"
+} as const satisfies Record<string, MessageKey>;
 
-const SOCIAL_LABEL: Record<SocialProvider, string> = { kakao: "카카오로 로그인", naver: "네이버로 로그인", google: "Google 계정으로 로그인" };
+const SOCIAL_LABEL: Record<SocialProvider, MessageKey> = { kakao: "auth.kakao", naver: "auth.naver", google: "auth.google" };
 
 /**
  * `next`: where to go after signing in (already validated as a same-site path). `supportLink`: 고객센터 (`/support`) is on
@@ -52,6 +54,7 @@ export function LoginForm({
   notice?: string | null;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [keepSignedIn, setKeepSignedIn] = useState(false);
@@ -92,41 +95,41 @@ export function LoginForm({
   }
 
   return (
-    <AuthCard title="로그인">
+    <AuthCard title={t("auth.login")}>
       <form className={styles.form} onSubmit={handleSubmit} noValidate>
         <div className={styles.inputs}>
           <TextField
             ref={identifierRef}
             name="identifier"
             autoComplete="username"
-            placeholder={FLEXTV_AUTH ? "아이디" : "이메일 또는 아이디"}
-            aria-label={FLEXTV_AUTH ? "아이디" : "이메일 또는 아이디"}
+            placeholder={FLEXTV_AUTH ? t("auth.loginIdLabel") : t("auth.identifier")}
+            aria-label={FLEXTV_AUTH ? t("auth.loginIdLabel") : t("auth.identifier")}
             value={identifier}
             onChange={(e) => {
               setIdentifier(e.target.value);
               if (state === "UNKNOWN_ID") setState("DEFAULT");
             }}
-            error={state === "UNKNOWN_ID" ? MESSAGES.UNKNOWN_ID : null}
+            error={state === "UNKNOWN_ID" ? t(MESSAGES.UNKNOWN_ID) : null}
           />
           <TextField
             ref={passwordRef}
             name="password"
             type={showPassword ? "text" : "password"}
             autoComplete="current-password"
-            placeholder="비밀번호"
-            aria-label="비밀번호"
+            placeholder={t("auth.password")}
+            aria-label={t("auth.password")}
             value={password}
             onChange={(e) => {
               setPassword(e.target.value);
               if (state === "WRONG_PASSWORD") setState("DEFAULT");
             }}
-            error={state === "WRONG_PASSWORD" ? MESSAGES.WRONG_PASSWORD : null}
+            error={state === "WRONG_PASSWORD" ? t(MESSAGES.WRONG_PASSWORD) : null}
             trailing={
               <button
                 type="button"
                 className={styles.iconButton}
                 onClick={() => setShowPassword((v) => !v)}
-                aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 보기"}
+                aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
                 aria-pressed={showPassword}
               >
                 {showPassword ? <EyeOffIcon /> : <EyeIcon />}
@@ -139,22 +142,22 @@ export function LoginForm({
           <label className={styles.checkbox}>
             <input type="checkbox" checked={keepSignedIn} onChange={(e) => setKeepSignedIn(e.target.checked)} />
             <span className={styles.checkboxBox} aria-hidden="true" />
-            자동 로그인
+            {t("auth.keepSignedIn")}
           </label>
           {FLEXTV_AUTH ? (
             <a href={`${FLEXTV_WEB_URL}/member/find/findPw`} target="_blank" rel="noopener noreferrer" className={styles.textLink}>
-              비밀번호 찾기
+              {t("auth.forgotPassword")}
             </a>
           ) : (
             <Link href="/password-reset" className={styles.textLink}>
-              비밀번호 찾기
+              {t("auth.forgotPassword")}
             </Link>
           )}
         </div>
 
         {(state === "ERROR" || state === "SUSPENDED" || state === "TOO_MANY_ATTEMPTS") && (
           <p className={styles.formError} role="alert">
-            {state === "SUSPENDED" && !supportLink ? MESSAGES.SUSPENDED_HELPER : MESSAGES[state]}
+            {t(state === "SUSPENDED" && !supportLink ? MESSAGES.SUSPENDED_HELPER : MESSAGES[state])}
           </p>
         )}
         {state === "DEFAULT" && notice && (
@@ -164,14 +167,14 @@ export function LoginForm({
         )}
 
         <button type="submit" className={styles.primaryButton} disabled={processing} aria-busy={processing}>
-          {processing ? "로그인 중…" : state === "WRONG_PASSWORD" ? "다시 로그인" : "로그인"}
+          {processing ? t("auth.loggingIn") : state === "WRONG_PASSWORD" ? t("auth.loginAgain") : t("auth.login")}
         </button>
       </form>
 
       {(!FLEXTV_AUTH || socialProviders.length > 0) && (
         <div className={styles.divider}>
           <span className={styles.dividerLine} />
-          <span>또는</span>
+          <span>{t("auth.or")}</span>
           <span className={styles.dividerLine} />
         </div>
       )}
@@ -183,7 +186,7 @@ export function LoginForm({
             {socialProviders.map((provider) => (
               <a key={provider} href={`/auth/${provider}?next=${encodeURIComponent(next)}`} className={`${styles.socialButton} ${styles[provider]}`}>
                 {provider === "google" ? <CircleXIcon /> : provider === "kakao" ? <MessageCircleIcon /> : <span aria-hidden="true">N</span>}
-                {SOCIAL_LABEL[provider]}
+                {t(SOCIAL_LABEL[provider])}
               </a>
             ))}
           </div>
@@ -192,19 +195,19 @@ export function LoginForm({
         <div className={styles.social}>
           <button type="button" className={`${styles.socialButton} ${styles.google}`}>
             <CircleXIcon />
-            Google 계정으로 로그인
+            {t("auth.google")}
           </button>
           <button type="button" className={`${styles.socialButton} ${styles.kakao}`}>
             <MessageCircleIcon />
-            카카오로 로그인
+            {t("auth.kakao")}
           </button>
         </div>
       )}
 
       <p className={styles.bottom}>
-        <span>아직 회원이 아니신가요?</span>
+        <span>{t("auth.notMember")}</span>
         <Link href="/signup" className={styles.signupLink}>
-          회원가입
+          {t("auth.signup")}
         </Link>
       </p>
     </AuthCard>

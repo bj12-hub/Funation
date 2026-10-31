@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Toggle } from "@/components/ui/Toggle";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import {
   updateMarketingConsent,
   updateRankingVisibility,
@@ -10,10 +12,9 @@ import {
 } from "@/services/account/myAccount";
 import styles from "./mypage.module.css";
 
-const SAVE_ERROR = "저장하지 못했습니다. 잠시 후 다시 시도해 주세요";
-
 /** Saves one boolean setting: PROCESSING while saving, rolls back and shows ERROR on failure. */
 function useSavedToggle(initial: boolean, save: (next: boolean) => Promise<UpdateResult>) {
+  const { t } = useI18n();
   const [value, setValue] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +29,7 @@ function useSavedToggle(initial: boolean, save: (next: boolean) => Promise<Updat
       if (result.status !== "SAVED") throw new Error("not saved");
     } catch {
       setValue(previous);
-      setError(SAVE_ERROR);
+      setError(t("my.saveError"));
     } finally {
       setBusy(false);
     }
@@ -37,8 +38,8 @@ function useSavedToggle(initial: boolean, save: (next: boolean) => Promise<Updat
   return { value, busy, error, change };
 }
 
-const RANKING_ITEMS: { key: RankingVisibilityKey; label: string }[] = [
-  { key: "quest", label: "퀘스트 랭킹 노출" },
+const RANKING_ITEMS: { key: RankingVisibilityKey; label: MessageKey }[] = [
+  { key: "quest", label: "my.questRanking" },
 ];
 
 /** Figma 735:4292 ranking-card */
@@ -53,12 +54,14 @@ export function RankingVisibilitySettings({ initial }: { initial: Record<Ranking
 }
 
 function RankingItem({ item, initial }: { item: (typeof RANKING_ITEMS)[number]; initial: boolean }) {
+  const { t } = useI18n();
   const toggle = useSavedToggle(initial, (next) => updateRankingVisibility(item.key, next));
+  const label = t(item.label);
   return (
     <div className={styles.rankingItem}>
       <div className={styles.toggleRow}>
-        <span className={styles.toggleLabel}>{item.label}</span>
-        <Toggle label={item.label} checked={toggle.value} busy={toggle.busy} onChange={toggle.change} />
+        <span className={styles.toggleLabel}>{label}</span>
+        <Toggle label={label} checked={toggle.value} busy={toggle.busy} onChange={toggle.change} />
       </div>
       {toggle.error && (
         <p className={styles.toggleError} role="alert">
@@ -71,7 +74,8 @@ function RankingItem({ item, initial }: { item: (typeof RANKING_ITEMS)[number]; 
 
 /** Figma 735:4347 marketing-card */
 export function MarketingConsentSetting({ initial }: { initial: boolean }) {
-  const label = "광고성 정보 수신 및 마케팅 활용 동의";
+  const { t } = useI18n();
+  const label = t("my.marketingConsent");
   const toggle = useSavedToggle(initial, updateMarketingConsent);
   return (
     <div className={styles.marketingCard}>
