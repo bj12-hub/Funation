@@ -11,6 +11,11 @@ export function formatCompactKo(value: number) {
   return String(value);
 }
 
+/** Compact counts in the viewer's language (2026-11-01): Korean as formatCompactKo, English "245K" · "3.1M". */
+export function formatCompact(value: number, locale: string) {
+  return locale === "ko" ? formatCompactKo(value) : new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(value);
+}
+
 /** 12842 → "12,842" */
 export function formatNumber(value: number) {
   return value.toLocaleString("ko-KR");
