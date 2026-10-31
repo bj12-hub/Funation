@@ -2,6 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { DefaultAvatarIcon, SearchSmallIcon } from "@/components/icons";
 import { formatNumber } from "@/lib/format";
+import { getT } from "@/lib/i18n/server";
+import type { MessageKey } from "@/lib/i18n/translate";
 import {
   RANKING_PERIODS,
   RANKING_QUERY_MAX,
@@ -13,6 +15,18 @@ import {
 import styles from "./ranking.module.css";
 
 type Params = { type: RankingType; period: RankingPeriod; q?: string; page?: number };
+type T = Awaited<ReturnType<typeof getT>>;
+
+/** RANKING_TYPES · RANKING_PERIODS labels in the viewer's language (2026-11-01). */
+const TYPE_KEYS: Record<RankingType, { tab: MessageKey; myLabel: MessageKey; countLabel: MessageKey; rateLabel: MessageKey }> = {
+  quest: { tab: "studioRanking.questTab", myLabel: "studioRanking.questMy", countLabel: "studioRanking.questCount", rateLabel: "studioRanking.questRate" }
+};
+const PERIOD_KEYS: Record<RankingPeriod, MessageKey> = {
+  day: "studioRanking.day",
+  week: "studioRanking.week",
+  month: "studioRanking.month",
+  season: "studioRanking.season"
+};
 
 function hrefFor({ type, period, q, page }: Params) {
   const sp = new URLSearchParams({ type, period });
@@ -27,9 +41,12 @@ const WINDOW = 5;
  * Creator ranking. Figma 405:4 · 405:302 · 405:598 (route `/creator/ranking`).
  * Tabs, period and paging are links and search is a GET form, so every state is a shareable URL.
  */
-export function CreatorRankingScreen({ ranking }: { ranking: CreatorRanking }) {
+export async function CreatorRankingScreen({ ranking }: { ranking: CreatorRanking }) {
+  const t = await getT();
   const { type, period, query, page, totalPages, rows, me } = ranking;
-  const config = RANKING_TYPES.find((t) => t.key === type) ?? RANKING_TYPES[0];
+  const found = RANKING_TYPES.find((r) => r.key === type) ?? RANKING_TYPES[0];
+  const keys = TYPE_KEYS[found.key];
+  const config = { tab: t(keys.tab), myLabel: t(keys.myLabel), countLabel: t(keys.countLabel), rateLabel: t(keys.rateLabel) };
   const base = { type, period, q: query };
   const start = Math.max(1, Math.min(page - Math.floor(WINDOW / 2), totalPages - WINDOW + 1));
   const pages = Array.from({ length: Math.min(WINDOW, totalPages) }, (_, i) => start + i);
@@ -37,16 +54,16 @@ export function CreatorRankingScreen({ ranking }: { ranking: CreatorRanking }) {
   return (
     <div className={styles.content}>
       <header className={styles.header}>
-        <h1 className={styles.title}>랭킹</h1>
-        <nav className={styles.tabs} aria-label="랭킹 종류">
-          {RANKING_TYPES.map((t) => (
+        <h1 className={styles.title}>{t("studioRanking.title")}</h1>
+        <nav className={styles.tabs} aria-label={t("studioRanking.typesAria")}>
+          {RANKING_TYPES.map((r) => (
             <Link
-              key={t.key}
-              href={hrefFor({ type: t.key, period })}
-              className={`${styles.tab} ${t.key === type ? styles.tabOn : ""}`}
-              aria-current={t.key === type ? "page" : undefined}
+              key={r.key}
+              href={hrefFor({ type: r.key, period })}
+              className={`${styles.tab} ${r.key === type ? styles.tabOn : ""}`}
+              aria-current={r.key === type ? "page" : undefined}
             >
-              {t.tab}
+              {t(TYPE_KEYS[r.key].tab)}
             </Link>
           ))}
         </nav>
@@ -57,8 +74,8 @@ export function CreatorRankingScreen({ ranking }: { ranking: CreatorRanking }) {
           <div className={styles.myRank}>
             <span className={styles.myLabel}>{config.myLabel}</span>
             <strong className={styles.myRankValue}>
-              {me.rank === null ? "-" : formatNumber(me.rank)}위
-              {me.change !== null && me.change !== 0 && <Change value={me.change} />}
+              {t("studioRanking.rankValue", { rank: me.rank === null ? "-" : formatNumber(me.rank) })}
+              {me.change !== null && me.change !== 0 && <Change value={me.change} t={t} />}
             </strong>
           </div>
           <span className={styles.myDivider} aria-hidden="true" />
@@ -74,12 +91,12 @@ export function CreatorRankingScreen({ ranking }: { ranking: CreatorRanking }) {
         </div>
         <dl className={styles.myStats}>
           <div>
-            <dt>랭킹 포인트</dt>
+            <dt>{t("studioRanking.points")}</dt>
             <dd className={styles.points}>{formatNumber(me.points)}</dd>
           </div>
           <div>
             <dt>{config.countLabel}</dt>
-            <dd>{formatNumber(me.count)}회</dd>
+            <dd>{t("studioRanking.countValue", { count: formatNumber(me.count) })}</dd>
           </div>
           <div>
             <dt>{config.rateLabel}</dt>
@@ -91,7 +108,7 @@ export function CreatorRankingScreen({ ranking }: { ranking: CreatorRanking }) {
       </section>
 
       <div className={styles.toolbar}>
-        <nav className={styles.periods} aria-label="기간">
+        <nav className={styles.periods} aria-label={t("studioRanking.periodAria")}>
           {RANKING_PERIODS.map((p) => (
             <Link
               key={p.key}
@@ -99,7 +116,7 @@ export function CreatorRankingScreen({ ranking }: { ranking: CreatorRanking }) {
               className={`${styles.period} ${p.key === period ? styles.periodOn : ""}`}
               aria-current={p.key === period ? "true" : undefined}
             >
-              {p.label}
+              {t(PERIOD_KEYS[p.key])}
             </Link>
           ))}
         </nav>
@@ -108,23 +125,23 @@ export function CreatorRankingScreen({ ranking }: { ranking: CreatorRanking }) {
           <input type="hidden" name="period" value={period} />
           <SearchSmallIcon aria-hidden="true" />
           <label htmlFor="ranking-q" className={styles.srOnly}>
-            크리에이터 검색
+            {t("studioRanking.search")}
           </label>
-          <input id="ranking-q" name="q" type="search" defaultValue={query} maxLength={RANKING_QUERY_MAX} placeholder="크리에이터 명 입력" />
+          <input id="ranking-q" name="q" type="search" defaultValue={query} maxLength={RANKING_QUERY_MAX} placeholder={t("studioRanking.searchPlaceholder")} />
         </form>
       </div>
 
       <div className={styles.table}>
         <table>
           <caption className={styles.srOnly}>
-            {config.tab} ({RANKING_PERIODS.find((p) => p.key === period)?.label})
+            {config.tab} ({t(PERIOD_KEYS[period])})
           </caption>
           <thead>
             <tr>
-              <th scope="col">순위</th>
-              <th scope="col">변동</th>
-              <th scope="col">크리에이터</th>
-              <th scope="col">랭킹 포인트</th>
+              <th scope="col">{t("studioRanking.colRank")}</th>
+              <th scope="col">{t("studioRanking.colChange")}</th>
+              <th scope="col">{t("studioRanking.colCreator")}</th>
+              <th scope="col">{t("studioRanking.points")}</th>
               <th scope="col">{config.countLabel}</th>
               <th scope="col" className={styles.right}>
                 {config.rateLabel}
@@ -135,7 +152,7 @@ export function CreatorRankingScreen({ ranking }: { ranking: CreatorRanking }) {
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={6} className={styles.empty}>
-                  {query ? `'${query}' 검색 결과가 없습니다.` : "아직 집계된 랭킹이 없습니다."}
+                  {query ? t("studioRanking.noResults", { query }) : t("studioRanking.empty")}
                 </td>
               </tr>
             ) : (
@@ -148,7 +165,7 @@ export function CreatorRankingScreen({ ranking }: { ranking: CreatorRanking }) {
                       {r.rank}
                     </td>
                     <td>
-                      <Change value={r.change} />
+                      <Change value={r.change} t={t} />
                     </td>
                     <td>
                       <span className={styles.creator}>
@@ -157,7 +174,7 @@ export function CreatorRankingScreen({ ranking }: { ranking: CreatorRanking }) {
                         ) : (
                           <DefaultAvatarIcon width={32} height={32} className={styles.avatar} />
                         )}
-                        <span className={styles.name}>{r.name ?? <span aria-label="비공개">*****</span>}</span>
+                        <span className={styles.name}>{r.name ?? <span aria-label={t("studioRanking.private")}>*****</span>}</span>
                       </span>
                     </td>
                     <td>
@@ -175,12 +192,12 @@ export function CreatorRankingScreen({ ranking }: { ranking: CreatorRanking }) {
           </tbody>
         </table>
         <div className={styles.footer}>
-          <span className={styles.total}>총 {formatNumber(ranking.total)}명</span>
-          <nav className={styles.pagination} aria-label="페이지">
-            <PageLink href={hrefFor({ ...base, page: 1 })} disabled={page === 1} label="첫 페이지">
+          <span className={styles.total}>{t("studioRanking.total", { count: formatNumber(ranking.total) })}</span>
+          <nav className={styles.pagination} aria-label={t("studioRanking.pagesAria")}>
+            <PageLink href={hrefFor({ ...base, page: 1 })} disabled={page === 1} label={t("studioRanking.firstPage")}>
               |&lt;
             </PageLink>
-            <PageLink href={hrefFor({ ...base, page: page - 1 })} disabled={page === 1} label="이전 페이지">
+            <PageLink href={hrefFor({ ...base, page: page - 1 })} disabled={page === 1} label={t("studioRanking.prevPage")}>
               &lt;
             </PageLink>
             {pages.map((p) =>
@@ -194,10 +211,10 @@ export function CreatorRankingScreen({ ranking }: { ranking: CreatorRanking }) {
                 </Link>
               )
             )}
-            <PageLink href={hrefFor({ ...base, page: page + 1 })} disabled={page === totalPages} label="다음 페이지">
+            <PageLink href={hrefFor({ ...base, page: page + 1 })} disabled={page === totalPages} label={t("studioRanking.nextPage")}>
               &gt;
             </PageLink>
-            <PageLink href={hrefFor({ ...base, page: totalPages })} disabled={page === totalPages} label="마지막 페이지">
+            <PageLink href={hrefFor({ ...base, page: totalPages })} disabled={page === totalPages} label={t("studioRanking.lastPage")}>
               &gt;|
             </PageLink>
           </nav>
@@ -208,17 +225,17 @@ export function CreatorRankingScreen({ ranking }: { ranking: CreatorRanking }) {
 }
 
 /** Korean convention: red ▲ up, blue ▼ down, grey - unchanged. */
-function Change({ value }: { value: number }) {
+function Change({ value, t }: { value: number; t: T }) {
   if (value === 0) {
     return (
-      <span className={styles.same} aria-label="변동 없음">
+      <span className={styles.same} aria-label={t("studioRanking.same")}>
         -
       </span>
     );
   }
   const up = value > 0;
   return (
-    <span className={up ? styles.up : styles.down} aria-label={`${Math.abs(value)} ${up ? "상승" : "하락"}`}>
+    <span className={up ? styles.up : styles.down} aria-label={t(up ? "studioRanking.up" : "studioRanking.down", { n: Math.abs(value) })}>
       {up ? "▲" : "▼"}
       {formatNumber(Math.abs(value))}
     </span>

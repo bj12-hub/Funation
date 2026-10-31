@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { PreviewStage } from "@/features/overlayTheme/PreviewStage";
 import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
 import { resolveTheme } from "@/services/creator/overlayThemeTypes";
@@ -50,11 +51,12 @@ export function VoteForm({ value: v, onChange, live }: FormProps<"VOTE">) {
   const items = preview && preview.items.some((i) => i.trim()) ? preview.items : ["Item 3", "Item 2", "Item 4", "Item 1"];
 
   const updatePreset = (id: string, patch: Partial<VotePreset>) => set("presets", v.presets.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+  const { t } = useI18n();
 
   return (
     <>
-      <Section title="미리보기">
-        <PreviewStage width={600} minHeight={240} label="투표 미리보기">
+      <Section title={t("widgetForm.preview")}>
+        <PreviewStage width={600} minHeight={240} label={t("widgetFormVote.previewAria")}>
           <VoteView
             settings={{ ...v, enabled: true }}
             vote={{
@@ -71,38 +73,38 @@ export function VoteForm({ value: v, onChange, live }: FormProps<"VOTE">) {
             now={0}
           />
         </PreviewStage>
-        <p className={styles.hint}>글자 색은 테마를 따르고, 막대와 점은 프리셋 색이에요.</p>
+        <p className={styles.hint}>{t("widgetFormVote.previewHint")}</p>
       </Section>
-      <Section title="테마">
+      <Section title={t("widgetForm.theme")}>
         <ThemeChoiceField value={v.theme} onChange={(x) => set("theme", x)} appearance={live.appearance} />
       </Section>
 
-      <Section title="기본 설정">
+      <Section title={t("widgetForm.basic")}>
         <div className={styles.rows}>
-          <p className={styles.notice}>※ 상세 설정은 프리셋에서 미리 설정 후 리모컨에서 사용하는 것을 추천합니다.</p>
-          <Row label="사용하기">
-            <SwitchText label="투표 위젯 사용하기" checked={v.enabled} onChange={(x) => set("enabled", x)} />
+          <p className={styles.notice}>{t("widgetFormVote.notice")}</p>
+          <Row label={t("widgetForm.use")}>
+            <SwitchText label={t("widgetFormVote.useLabel")} checked={v.enabled} onChange={(x) => set("enabled", x)} />
           </Row>
-          <Row label="제목 폰트 설정">
-            <FontFields label="제목" value={v.titleFont} onChange={(x) => set("titleFont", x)} />
+          <Row label={t("widgetForm.titleFont")}>
+            <FontFields label={t("widgetForm.titleLabel")} value={v.titleFont} onChange={(x) => set("titleFont", x)} />
           </Row>
-          <Row label="정보 폰트 설정">
-            <FontFields label="정보" value={v.infoFont} onChange={(x) => set("infoFont", x)} />
+          <Row label={t("widgetFormVote.infoFont")}>
+            <FontFields label={t("widgetFormVote.infoLabel")} value={v.infoFont} onChange={(x) => set("infoFont", x)} />
           </Row>
-          <Row label="항목 폰트 설정">
-            <FontFields label="항목" value={v.itemFont} onChange={(x) => set("itemFont", x)} />
+          <Row label={t("widgetFormVote.itemFont")}>
+            <FontFields label={t("widgetFormVote.itemLabel")} value={v.itemFont} onChange={(x) => set("itemFont", x)} />
           </Row>
         </div>
       </Section>
 
       <Section
-        title="투표 프리셋 설정"
+        title={t("widgetFormVote.presets")}
         aside={
           <div className={styles.inline}>
             <button
               type="button"
               className={styles.iconButton}
-              aria-label="선택한 프리셋 삭제"
+              aria-label={t("widgetFormVote.deleteSelected")}
               disabled={checked.length === 0}
               onClick={() => {
                 set("presets", v.presets.filter((p) => !checked.includes(p.id)));
@@ -121,18 +123,18 @@ export function VoteForm({ value: v, onChange, live }: FormProps<"VOTE">) {
                 setOpenId(p.id);
               }}
             >
-              + 프리셋 추가
+              {t("widgetFormVote.addPreset")}
             </button>
           </div>
         }
       >
-        <p className={styles.notice}>※ 투표 프리셋을 설정하면 리모컨에서 최소 조작으로 투표 기능을 사용할 수 있습니다.</p>
-        <p className={styles.notice}>※ 투표는 무료예요. 로그인한 시청자가 방송 방에서 투표마다 한 번씩 참여해요.</p>
-        {v.presets.length === 0 && <p className={styles.hint}>프리셋이 없습니다. 프리셋을 추가해 주세요.</p>}
+        <p className={styles.notice}>{t("widgetFormVote.presetNotice")}</p>
+        <p className={styles.notice}>{t("widgetFormVote.freeNotice")}</p>
+        {v.presets.length === 0 && <p className={styles.hint}>{t("widgetFormVote.empty")}</p>}
         <ul className={styles.presetList}>
           {v.presets.map((p, index) => {
             const open = openId === p.id;
-            const label = p.name.trim() || `${index + 1}번 투표`;
+            const label = p.name.trim() || t("widgetFormVote.presetN", { n: index + 1 });
             return (
               <li key={p.id} className={styles.preset}>
                 <div className={styles.presetHead}>
@@ -144,7 +146,7 @@ export function VoteForm({ value: v, onChange, live }: FormProps<"VOTE">) {
                     />
                     {label}
                   </label>
-                  <span className={styles.colorChips} role="radiogroup" aria-label={`${label} 색상`}>
+                  <span className={styles.colorChips} role="radiogroup" aria-label={t("widgetFormVote.color", { label })}>
                     {VOTE_COLORS.map((c) => (
                       <button
                         key={c}
@@ -159,7 +161,7 @@ export function VoteForm({ value: v, onChange, live }: FormProps<"VOTE">) {
                     ))}
                   </span>
                   <button type="button" className={styles.linkButton} aria-expanded={open} onClick={() => setOpenId(open ? null : p.id)}>
-                    설정 {open ? "∧" : "∨"}
+                    {t("widgetForm.settings")} {open ? "∧" : "∨"}
                   </button>
                 </div>
                 {open && <PresetFields preset={p} onChange={(patch) => updatePreset(p.id, patch)} />}
@@ -175,19 +177,20 @@ export function VoteForm({ value: v, onChange, live }: FormProps<"VOTE">) {
 function PresetFields({ preset: p, onChange }: { preset: VotePreset; onChange: (patch: Partial<VotePreset>) => void }) {
   const [duration, setDuration] = useState(toHms(p.durationSec));
   const durationValid = fromHms(duration) !== null;
+  const { t } = useI18n();
   return (
     <div className={styles.rows}>
-      <Row label="투표 이름" htmlFor={`${p.id}-name`}>
+      <Row label={t("widgetFormVote.name")} htmlFor={`${p.id}-name`}>
         <input
           id={`${p.id}-name`}
           className={styles.input}
           maxLength={VOTE_NAME_MAX}
-          placeholder="투표 이름을 입력해주세요."
+          placeholder={t("widgetFormVote.namePlaceholder")}
           value={p.name}
           onChange={(e) => onChange({ name: e.target.value })}
         />
       </Row>
-      <Row label="투표 시간" htmlFor={`${p.id}-time`}>
+      <Row label={t("widgetFormVote.time")} htmlFor={`${p.id}-time`}>
         <input
           id={`${p.id}-time`}
           className={styles.input}
@@ -203,27 +206,32 @@ function PresetFields({ preset: p, onChange }: { preset: VotePreset; onChange: (
         />
       </Row>
       <div className={styles.sectionHead}>
-        <span className={styles.rowLabel}>투표 항목</span>
+        <span className={styles.rowLabel}>{t("widgetFormVote.items")}</span>
         <button type="button" className={styles.blueButton} disabled={p.items.length >= VOTE_ITEMS_MAX} onClick={() => onChange({ items: [...p.items, ""] })}>
-          + 투표 항목 추가
+          {t("widgetFormVote.addItem")}
         </button>
       </div>
       <ol className={styles.voteItems}>
         {p.items.map((item, i) => (
           <li key={i}>
-            <label htmlFor={`${p.id}-item-${i}`}>📌 항목 {i + 1}</label>
+            <label htmlFor={`${p.id}-item-${i}`}>{t("widgetFormVote.itemN", { n: i + 1 })}</label>
             <div className={styles.inline}>
               <input
                 id={`${p.id}-item-${i}`}
                 className={styles.input}
                 style={{ flex: 1 }}
                 maxLength={VOTE_ITEM_MAX_CHARS}
-                placeholder={`투표 항목의 내용을 입력해주세요. (${VOTE_ITEM_MAX_CHARS}자 이내)`}
+                placeholder={t("widgetFormVote.itemPlaceholder", { max: VOTE_ITEM_MAX_CHARS })}
                 value={item}
                 onChange={(e) => onChange({ items: p.items.map((x, j) => (j === i ? e.target.value : x)) })}
               />
               {p.items.length > VOTE_ITEMS_MIN && (
-                <button type="button" className={styles.iconButton} aria-label={`항목 ${i + 1} 삭제`} onClick={() => onChange({ items: p.items.filter((_, j) => j !== i) })}>
+                <button
+                  type="button"
+                  className={styles.iconButton}
+                  aria-label={t("widgetFormVote.itemDelete", { n: i + 1 })}
+                  onClick={() => onChange({ items: p.items.filter((_, j) => j !== i) })}
+                >
                   ✕
                 </button>
               )}

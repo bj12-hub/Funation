@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { GlobalHeader } from "@/components/layout/GlobalHeader";
 import { CreatorSideNav } from "@/features/creatorStudio/CreatorSideNav";
 import { FLEXTV_SSUMNATION_API, FLEXTV_STUDIO } from "@/lib/flextv/mode";
+import { getT } from "@/lib/i18n/server";
 import { getSession, hasRole } from "@/lib/session";
 import { getCreatorProfile } from "@/services/creator/creatorStudio";
 import styles from "@/features/creatorStudio/studio.module.css";
@@ -19,19 +20,18 @@ export default async function CreatorLayout({ children }: { children: ReactNode 
 
   if (!hasRole(session, "CREATOR")) {
     // Code-first (no Figma frame): members become creators by creating a channel (approval TBD).
+    const t = await getT();
     return (
       <>
         <GlobalHeader user={{ nickname: session.nickname, avatarUrl: session.avatarUrl }} />
         <main className={styles.noAccess}>
-          <h1 className={styles.noAccessTitle}>크리에이터 권한이 필요합니다</h1>
-          <p className={styles.noAccessText}>
-            {FLEXTV_STUDIO ? "크리에이터 스튜디오는 FLEXTV 방송인으로 등록한 회원만 이용할 수 있어요." : "크리에이터 스튜디오는 채널을 만든 회원만 이용할 수 있어요."}
-          </p>
+          <h1 className={styles.noAccessTitle}>{t("studioNav.noAccessTitle")}</h1>
+          <p className={styles.noAccessText}>{t(FLEXTV_STUDIO ? "studioNav.flextvNoAccessText" : "studioNav.noAccessText")}</p>
           <Link href="/channel/new" className={styles.noAccessButton}>
-            {FLEXTV_STUDIO ? "방송 시작하기" : "내 채널 만들기"}
+            {t(FLEXTV_STUDIO ? "studioNav.startBroadcast" : "studioNav.createChannel")}
           </Link>
           <Link href="/" className={styles.noAccessLink}>
-            홈으로 가기
+            {t("studioNav.goHome")}
           </Link>
         </main>
       </>

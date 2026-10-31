@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { formatNumber } from "@/lib/format";
+import { getT } from "@/lib/i18n/server";
 import type { AmountUnit, RevenueOverview, RevenueShare } from "@/services/creator/creatorStudio";
 import { formatAmount } from "../amount";
 import { SummaryCard, TopDonorsCard } from "../DashboardSummaryCards";
@@ -14,44 +15,49 @@ import styles from "./revenue.module.css";
  * Route `/creator/revenue`. ₩ amounts are server values (gross/net TBD); 미정산 is FN. With FLEXTV every amount is the
  * 렉스 received (FN) and 수익원별 상세 is left out (FLEXTV does not tell the types apart).
  */
-export function RevenueScreen({ data }: { data: RevenueOverview }) {
+export async function RevenueScreen({ data }: { data: RevenueOverview }) {
   const empty = data.totalRevenue === 0;
   const { unit } = data;
+  const t = await getT();
   return (
     <div className={studio.content}>
       <header className={styles.header}>
         <div>
-          <h1 className={summary.pageTitle}>수익 현황</h1>
-          <p className={styles.subtitle}>전체 수익 현황을 한눈에 확인하세요.</p>
+          <h1 className={summary.pageTitle}>{t("studioRevenue.title")}</h1>
+          <p className={styles.subtitle}>{t("studioRevenue.subtitle")}</p>
         </div>
         <Link href="/creator/settlement/apply" className={styles.primary}>
-          정산 요청
+          {t("studioRevenue.requestSettlement")}
         </Link>
       </header>
 
       <div className={styles.tiles}>
-        <Tile label="총 수익" sub="전체 기간" value={formatAmount(data.totalRevenue, unit)} />
-        <Tile label="미정산" sub={data.unsettledFn > 0 ? "정산 가능 금액" : "미정산 금액 없음"} value={`${formatNumber(data.unsettledFn)} FN`} />
-        <Tile label="오늘 후원" sub={`${formatNumber(data.today.count)}건`} value={formatAmount(data.today.amount, unit)} />
-        <Tile label="이번 달" sub="이번 달 1일부터" value={formatAmount(data.thisMonth, unit)} />
+        <Tile label={t("studioRevenue.total")} sub={t("studioRevenue.allTime")} value={formatAmount(data.totalRevenue, unit)} />
+        <Tile
+          label={t("studioRevenue.unsettled")}
+          sub={data.unsettledFn > 0 ? t("studioRevenue.unsettledSome") : t("studioRevenue.unsettledNone")}
+          value={`${formatNumber(data.unsettledFn)} FN`}
+        />
+        <Tile label={t("studioRevenue.today")} sub={t("studioRevenue.countValue", { count: formatNumber(data.today.count) })} value={formatAmount(data.today.amount, unit)} />
+        <Tile label={t("studioRevenue.thisMonth")} sub={t("studioRevenue.sinceFirst")} value={formatAmount(data.thisMonth, unit)} />
       </div>
-      {unit === "FN" && <p className={styles.subtitle}>받은 렉스 기준이에요. 지급액은 정산(환전) 신청 때 FLEXTV의 계약 요율과 세금으로 정해져요.</p>}
-      {data.partial && <p className={styles.subtitle}>최근 6개월 후원이 많아 추이는 최근 후원부터 일부만 더했어요.</p>}
+      {unit === "FN" && <p className={styles.subtitle}>{t("studioRevenue.flextvNote")}</p>}
+      {data.partial && <p className={styles.subtitle}>{t("studioRevenue.partial")}</p>}
 
       {empty ? (
-        <p className={styles.empty}>아직 수익이 없습니다. 후원을 받으면 여기에서 추이를 확인할 수 있어요.</p>
+        <p className={styles.empty}>{t("studioRevenue.empty")}</p>
       ) : (
         <div className={summary.grid}>
-          <SummaryCard title="일별 후원 추이" href="/creator/donations?tab=list" linkLabel="받은 후원">
+          <SummaryCard title={t("studioRevenue.daily")} href="/creator/donations?tab=list" linkLabel={t("studioRevenue.received")}>
             <p className={styles.range}>
-              {data.daily[0].label} ~ {data.daily[data.daily.length - 1].label} (최근 30일)
+              {data.daily[0].label} ~ {data.daily[data.daily.length - 1].label} {t("studioRevenue.last30")}
             </p>
             <div className={studio.chartArea}>
               <RevenueChart series={data.daily} fillId="revenue-fill-daily" unit={unit} />
             </div>
           </SummaryCard>
-          <SummaryCard title="월별 수익 추이" href="/creator/settlement/manage" linkLabel="정산 관리">
-            <p className={styles.range}>최근 6개월</p>
+          <SummaryCard title={t("studioRevenue.monthly")} href="/creator/settlement/manage" linkLabel={t("studioRevenue.manage")}>
+            <p className={styles.range}>{t("studioRevenue.last6")}</p>
             <div className={studio.chartArea}>
               <RevenueChart series={data.monthly} fillId="revenue-fill-monthly" unit={unit} />
             </div>
@@ -60,34 +66,36 @@ export function RevenueScreen({ data }: { data: RevenueOverview }) {
           {data.bySource && (
             <section className={summary.card} aria-labelledby="revenue-sources">
               <h2 id="revenue-sources" className={summary.title}>
-                수익원별 상세
+                {t("studioRevenue.sources")}
               </h2>
-              <p className={styles.range}>이번 달 · {formatAmount(data.thisMonth, unit)}</p>
-              <ShareList title="후원 유형별" items={data.bySource.types} total={data.thisMonth} unit={unit} />
-              <ShareList title="후원 경로별" items={data.bySource.routes} total={data.thisMonth} unit={unit} />
+              <p className={styles.range}>
+                {t("studioRevenue.thisMonth")} · {formatAmount(data.thisMonth, unit)}
+              </p>
+              <ShareList title={t("studioRevenue.byType")} items={data.bySource.types} total={data.thisMonth} unit={unit} />
+              <ShareList title={t("studioRevenue.byRoute")} items={data.bySource.routes} total={data.thisMonth} unit={unit} />
             </section>
           )}
           <section className={summary.card} aria-labelledby="revenue-links">
             <h2 id="revenue-links" className={summary.title}>
-              바로가기
+              {t("studioRevenue.shortcuts")}
             </h2>
             <ul className={styles.links}>
               <li>
                 <Link href="/creator/donations?tab=list">
-                  <strong>받은 후원</strong>
-                  <span>후원 내역 상세 보기</span>
+                  <strong>{t("studioRevenue.received")}</strong>
+                  <span>{t("studioRevenue.receivedDesc")}</span>
                 </Link>
               </li>
               <li>
                 <Link href="/creator/settlement">
-                  <strong>정산 현황</strong>
-                  <span>정산 인증 · 등록 상태</span>
+                  <strong>{t("studioRevenue.settlementStatus")}</strong>
+                  <span>{t("studioRevenue.settlementStatusDesc")}</span>
                 </Link>
               </li>
               <li>
                 <Link href="/creator/settlement/apply">
-                  <strong>정산 요청</strong>
-                  <span>수익금 정산 신청</span>
+                  <strong>{t("studioRevenue.requestSettlement")}</strong>
+                  <span>{t("studioRevenue.requestSettlementDesc")}</span>
                 </Link>
               </li>
             </ul>

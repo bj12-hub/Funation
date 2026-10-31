@@ -3,6 +3,8 @@
 import { useCallback, useId, useRef, useState, type ReactNode } from "react";
 import { Toast } from "@/components/ui/Toast";
 import { Toggle } from "@/components/ui/Toggle";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import {
   addBannedWord,
   changeDonationSlug,
@@ -26,7 +28,24 @@ import {
 import { slugCheckView, type SlugCheckView } from "./slugCheck";
 import styles from "./donations.module.css";
 
-const messageOf = (r: ManagementSaveResult) => (r.status === "INVALID" ? r.message : r.status === "UNAUTHORIZED" ? "로그인이 필요합니다." : null);
+type Translate = ReturnType<typeof useI18n>["t"];
+const messageOf = (r: ManagementSaveResult, t: Translate) => (r.status === "INVALID" ? r.message : r.status === "UNAUTHORIZED" ? t("studioDonations.loginRequired") : null);
+
+/** 후원 페이지 옵션 (`PAGE_OPTIONS` in the services) as message keys. */
+const OPTION_KEY: Record<PageOptionKey, { label: MessageKey; help: MessageKey; on: MessageKey; off: MessageKey }> = {
+  rankPublic: { label: "studioDonations.optRankPublic", help: "studioDonations.optRankPublicHelp", on: "studioDonations.optPublic", off: "studioDonations.optPrivate" },
+  historyPublic: { label: "studioDonations.optHistoryPublic", help: "studioDonations.optHistoryPublicHelp", on: "studioDonations.optPublic", off: "studioDonations.optPrivate" },
+  nicknameChangeable: { label: "studioDonations.optNickname", help: "studioDonations.optNicknameHelp", on: "studioDonations.optChangeable", off: "studioDonations.optLocked" },
+  customSoundPublic: { label: "studioDonations.optCustomSound", help: "studioDonations.optCustomSoundHelp", on: "studioDonations.optPublic", off: "studioDonations.optPrivate" }
+};
+
+/** 중복확인 lines written by `slugCheckView`; the server's own messages show as written. */
+const SLUG_TEXT_KEY: Record<string, MessageKey> = {
+  "사용할 수 있는 주소입니다.": "studioDonations.slugAvailable",
+  "현재 사용 중인 주소입니다.": "studioDonations.slugSame",
+  "이미 사용 중인 주소입니다.": "studioDonations.slugTaken",
+  "로그인이 필요합니다.": "studioDonations.loginRequired"
+};
 
 function Card({ title, children, description }: { title: string; children: ReactNode; description?: string }) {
   const id = useId();
@@ -62,9 +81,10 @@ function Line({ label, children, help, wide = false }: { label: string; children
  * text fields get their own 저장 button once edited.
  */
 export function PageSettingsTab({ initial }: { initial: DonationPageSettings }) {
+  const { t } = useI18n();
   const [toast, setToast] = useState<string | null>(null);
   const clearToast = useCallback(() => setToast(null), []);
-  const notify = (r: ManagementSaveResult, ok = "저장했습니다.") => setToast(messageOf(r) ?? ok);
+  const notify = (r: ManagementSaveResult, ok = t("studioDonations.saved")) => setToast(messageOf(r, t) ?? ok);
 
   return (
     <div className={styles.stack}>
@@ -80,6 +100,7 @@ export function PageSettingsTab({ initial }: { initial: DonationPageSettings }) 
 type Notify = (r: ManagementSaveResult, ok?: string) => void;
 
 function SlugCard({ initial, notify, setToast }: { initial: DonationPageSettings; notify: Notify; setToast: (m: string) => void }) {
+  const { t } = useI18n();
   const [slug, setSlug] = useState(initial.slug);
   // The address in the field right now, for answers that arrive after it was edited.
   const slugRef = useRef(initial.slug);
@@ -95,7 +116,7 @@ function SlugCard({ initial, notify, setToast }: { initial: DonationPageSettings
     try {
       await fn();
     } catch {
-      setCheck({ tone: "error", text: "잠시 후 다시 시도해 주세요." });
+      setCheck({ tone: "error", text: t("studioDonations.retryLater") });
     } finally {
       busyRef.current = false;
       setBusy(false);
@@ -103,13 +124,13 @@ function SlugCard({ initial, notify, setToast }: { initial: DonationPageSettings
   };
 
   return (
-    <Card title="후원 페이지 링크 설정">
-      <Line label="후원 페이지 URL">
+    <Card title={t("studioDonations.linkCard")}>
+      <Line label={t("studioDonations.pageUrl")}>
         <div className={styles.inline}>
           <span className={styles.urlInput}>
             <span className={styles.urlPrefix}>{initial.donateUrlBase}</span>
             <input
-              aria-label="후원 페이지 주소"
+              aria-label={t("studioDonations.pageAddress")}
               value={slug}
               maxLength={30}
               spellCheck={false}
@@ -126,13 +147,13 @@ function SlugCard({ initial, notify, setToast }: { initial: DonationPageSettings
             onClick={async () => {
               try {
                 await navigator.clipboard.writeText(initial.donateUrlBase + saved);
-                setToast("복사했습니다.");
+                setToast(t("studioDonations.copied"));
               } catch {
-                setToast("복사하지 못했습니다. 직접 선택해 복사해 주세요.");
+                setToast(t("studioDonations.copyFailed"));
               }
             }}
           >
-            복사
+            {t("studioDonations.copy")}
           </button>
           <button
             type="button"
@@ -145,13 +166,13 @@ function SlugCard({ initial, notify, setToast }: { initial: DonationPageSettings
               })
             }
           >
-            중복확인
+            {t("studioDonations.checkSlug")}
           </button>
         </div>
         {check && (
           <div className={styles.inline}>
             <p className={check.tone === "ok" ? styles.ok : styles.error} role={check.tone === "ok" ? "status" : "alert"}>
-              {check.text}
+              {SLUG_TEXT_KEY[check.text] ? t(SLUG_TEXT_KEY[check.text]) : check.text}
             </p>
             {check.available && (
               <button
@@ -161,7 +182,7 @@ function SlugCard({ initial, notify, setToast }: { initial: DonationPageSettings
                 onClick={() =>
                   run(async () => {
                     const r = await changeDonationSlug(slug);
-                    notify(r, "후원 페이지 주소를 변경했습니다.");
+                    notify(r, t("studioDonations.slugChanged"));
                     if (r.status === "SAVED") {
                       setSaved(slug);
                       setCheck(null);
@@ -169,26 +190,27 @@ function SlugCard({ initial, notify, setToast }: { initial: DonationPageSettings
                   })
                 }
               >
-                이 주소로 변경
+                {t("studioDonations.useSlug")}
               </button>
             )}
           </div>
         )}
-        <p className={styles.helper}>영문 소문자, 숫자, 하이픈으로 3~30자. 주소를 바꾸면 이전 주소는 30일 동안 새 주소로 연결되고, 그동안 다른 채널이 쓸 수 없어요.</p>
+        <p className={styles.helper}>{t("studioDonations.slugHelp")}</p>
       </Line>
     </Card>
   );
 }
 
 function OneLineCard({ initial, notify }: { initial: string; notify: Notify }) {
+  const { t } = useI18n();
   const [value, setValue] = useState(initial);
   const [saved, setSaved] = useState(initial);
   const [busy, setBusy] = useState(false);
   return (
-    <Card title="후원 페이지 설정">
-      <Line label="한 줄 메시지">
+    <Card title={t("studioDonations.pageCard")}>
+      <Line label={t("studioDonations.oneLine")}>
         <textarea
-          aria-label="한 줄 메시지"
+          aria-label={t("studioDonations.oneLine")}
           className={styles.textarea}
           maxLength={ONE_LINE_MESSAGE_MAX}
           value={value}
@@ -214,7 +236,7 @@ function OneLineCard({ initial, notify }: { initial: string; notify: Notify }) {
                 }
               }}
             >
-              저장
+              {t("studioDonations.save")}
             </button>
           )}
         </div>
@@ -224,13 +246,14 @@ function OneLineCard({ initial, notify }: { initial: string; notify: Notify }) {
 }
 
 function OptionsCard({ initial, notify }: { initial: Record<PageOptionKey, boolean>; notify: Notify }) {
+  const { t } = useI18n();
   const [options, setOptions] = useState(initial);
   const [pending, setPending] = useState<PageOptionKey | null>(null);
   return (
-    <Card title="후원 페이지 옵션">
+    <Card title={t("studioDonations.optionsCard")}>
       {PAGE_OPTIONS.map((o) => (
-        <Line key={o.key} label={o.label} help={o.help} wide>
-          <div role="radiogroup" aria-label={o.label} className={styles.radios} aria-busy={pending === o.key}>
+        <Line key={o.key} label={t(OPTION_KEY[o.key].label)} help={t(OPTION_KEY[o.key].help)} wide>
+          <div role="radiogroup" aria-label={t(OPTION_KEY[o.key].label)} className={styles.radios} aria-busy={pending === o.key}>
             {([true, false] as const).map((val) => (
               <label key={String(val)} className={`${styles.radio} ${options[o.key] === val ? styles.radioOn : ""}`}>
                 <input
@@ -248,13 +271,13 @@ function OptionsCard({ initial, notify }: { initial: Record<PageOptionKey, boole
                       notify(r);
                     } catch {
                       setOptions((x) => ({ ...x, [o.key]: prev }));
-                      notify({ status: "INVALID", message: "저장하지 못했습니다." });
+                      notify({ status: "INVALID", message: t("studioDonations.saveFailed") });
                     } finally {
                       setPending(null);
                     }
                   }}
                 />
-                {val ? o.on : o.off}
+                {val ? t(OPTION_KEY[o.key].on) : t(OPTION_KEY[o.key].off)}
               </label>
             ))}
           </div>
@@ -265,6 +288,7 @@ function OptionsCard({ initial, notify }: { initial: Record<PageOptionKey, boole
 }
 
 function ReplacementCard({ initial, notify }: { initial: DonationPageSettings["replacement"]; notify: Notify }) {
+  const { t } = useI18n();
   const [targets, setTargets] = useState({ nickname: initial.applyToNickname, text: initial.applyToText });
   const [words, setWords] = useState(initial.bannedWords);
   const [word, setWord] = useState("");
@@ -273,9 +297,9 @@ function ReplacementCard({ initial, notify }: { initial: DonationPageSettings["r
   const [busy, setBusy] = useState(false);
 
   const toggle = async (target: "nickname" | "text", value: boolean) => {
-    setTargets((t) => ({ ...t, [target]: value }));
-    const r = await setReplacementTarget(target, value).catch(() => ({ status: "INVALID", message: "저장하지 못했습니다." }) as const);
-    if (r.status !== "SAVED") setTargets((t) => ({ ...t, [target]: !value }));
+    setTargets((x) => ({ ...x, [target]: value }));
+    const r = await setReplacementTarget(target, value).catch(() => ({ status: "INVALID", message: t("studioDonations.saveFailed") }) as const);
+    if (r.status !== "SAVED") setTargets((x) => ({ ...x, [target]: !value }));
     notify(r);
   };
 
@@ -285,7 +309,7 @@ function ReplacementCard({ initial, notify }: { initial: DonationPageSettings["r
     setBusy(true);
     try {
       const r = await addBannedWord(w);
-      notify(r, "금지어를 추가했습니다.");
+      notify(r, t("studioDonations.bannedAdded"));
       if (r.status === "SAVED") {
         setWords((list) => [...list, w]);
         setWord("");
@@ -296,20 +320,20 @@ function ReplacementCard({ initial, notify }: { initial: DonationPageSettings["r
   };
 
   return (
-    <Card title="대체 메시지 표시 설정" description="도네이터가 등록한 금지어를 사용하여 후원할 경우, 사전에 등록된 대체메시지로 노출됩니다.">
-      <Line label="닉네임">
-        <Toggle label="닉네임에 대체 메시지 적용" checked={targets.nickname} onChange={(v) => toggle("nickname", v)} />
+    <Card title={t("studioDonations.replaceCard")} description={t("studioDonations.replaceDesc")}>
+      <Line label={t("studioDonations.nickname")}>
+        <Toggle label={t("studioDonations.replaceNickname")} checked={targets.nickname} onChange={(v) => toggle("nickname", v)} />
       </Line>
-      <Line label="텍스트 내용">
-        <Toggle label="텍스트 내용에 대체 메시지 적용" checked={targets.text} onChange={(v) => toggle("text", v)} />
+      <Line label={t("studioDonations.textContent")}>
+        <Toggle label={t("studioDonations.replaceText")} checked={targets.text} onChange={(v) => toggle("text", v)} />
       </Line>
-      <Line label="금지어 목록">
+      <Line label={t("studioDonations.bannedList")}>
         <div className={styles.inline}>
           <input
-            aria-label="추가할 금지어"
+            aria-label={t("studioDonations.bannedAdd")}
             className={styles.input}
             maxLength={BANNED_WORD_MAX}
-            placeholder="금지어 입력"
+            placeholder={t("studioDonations.bannedPlaceholder")}
             value={word}
             onChange={(e) => setWord(e.target.value)}
             onKeyDown={(e) => {
@@ -320,7 +344,7 @@ function ReplacementCard({ initial, notify }: { initial: DonationPageSettings["r
             }}
           />
           <button type="button" className={styles.solidBlue} onClick={add} disabled={busy || !word.trim()}>
-            추가
+            {t("studioDonations.add")}
           </button>
         </div>
         {words.length > 0 && (
@@ -330,11 +354,11 @@ function ReplacementCard({ initial, notify }: { initial: DonationPageSettings["r
                 {w}
                 <button
                   type="button"
-                  aria-label={`${w} 삭제`}
+                  aria-label={t("studioDonations.removeWord", { word: w })}
                   onClick={async () => {
                     const r = await removeBannedWord(w);
                     if (r.status === "SAVED") setWords((list) => list.filter((x) => x !== w));
-                    notify(r, "금지어를 삭제했습니다.");
+                    notify(r, t("studioDonations.bannedRemoved"));
                   }}
                 >
                   ✖
@@ -344,13 +368,13 @@ function ReplacementCard({ initial, notify }: { initial: DonationPageSettings["r
           </ul>
         )}
       </Line>
-      <Line label="대체 메시지">
+      <Line label={t("studioDonations.replaceMessage")}>
         <div className={styles.inline}>
           <input
-            aria-label="대체 메시지"
+            aria-label={t("studioDonations.replaceMessage")}
             className={styles.input}
             maxLength={REPLACEMENT_MESSAGE_MAX}
-            placeholder="대체 메시지 입력"
+            placeholder={t("studioDonations.replacePlaceholder")}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
           />
@@ -370,12 +394,12 @@ function ReplacementCard({ initial, notify }: { initial: DonationPageSettings["r
                 }
               }}
             >
-              저장
+              {t("studioDonations.save")}
             </button>
           )}
         </div>
         {/* Code-first copy (2026-10-06 결정 "기본 문구로 표시"). */}
-        <p className={styles.helper}>비워 두면 메시지는 &quot;{DEFAULT_REPLACEMENT_MESSAGE}&quot;, 닉네임은 &quot;익명&quot;으로 보여요.</p>
+        <p className={styles.helper}>{t("studioDonations.replaceHelp", { message: DEFAULT_REPLACEMENT_MESSAGE })}</p>
       </Line>
     </Card>
   );

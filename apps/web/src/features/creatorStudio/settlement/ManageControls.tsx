@@ -2,9 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { exportSettlementHistoryCsv, resetSettlementRegistration } from "@/services/creator/settlementManagement";
 import { MANAGE_PERIODS, type ManagePeriod } from "@/services/creator/settlementTypes";
 import { SettlementNoticeModal } from "./SettlementNoticeModal";
+import { MANAGE_PERIOD_KEY } from "./settlementLabels";
 import styles from "./manage.module.css";
 
 const BASE = "/creator/settlement/manage";
@@ -14,6 +16,7 @@ const BASE = "/creator/settlement/manage";
  * The server resolves the preset ranges and does the filtering.
  */
 export function ManageFilter({ period, from, to }: { period: ManagePeriod; from: string; to: string }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [range, setRange] = useState({ from, to });
   const [custom, setCustom] = useState(period === "custom");
@@ -29,7 +32,7 @@ export function ManageFilter({ period, from, to }: { period: ManagePeriod; from:
         go(`period=custom&from=${range.from}&to=${range.to}`);
       }}
     >
-      <div className={styles.segment} role="group" aria-label="조회 기간">
+      <div className={styles.segment} role="group" aria-label={t("studioSettlementApply.periodAria")}>
         {MANAGE_PERIODS.map((p) => (
           <button
             key={p.key}
@@ -43,7 +46,7 @@ export function ManageFilter({ period, from, to }: { period: ManagePeriod; from:
               }
             }}
           >
-            {p.label}
+            {t(MANAGE_PERIOD_KEY[p.key])}
           </button>
         ))}
       </div>
@@ -55,7 +58,7 @@ export function ManageFilter({ period, from, to }: { period: ManagePeriod; from:
           max={range.to}
           disabled={!custom}
           onChange={(e) => setRange((r) => ({ ...r, from: e.target.value }))}
-          aria-label="시작일"
+          aria-label={t("studioSettlementApply.from")}
           required
         />
         <span aria-hidden="true">~</span>
@@ -66,12 +69,12 @@ export function ManageFilter({ period, from, to }: { period: ManagePeriod; from:
           min={range.from}
           disabled={!custom}
           onChange={(e) => setRange((r) => ({ ...r, to: e.target.value }))}
-          aria-label="종료일"
+          aria-label={t("studioSettlementApply.to")}
           required
         />
       </span>
       <button type="submit" className={styles.search} disabled={!custom || pending} aria-busy={pending || undefined}>
-        조회
+        {t("studioSettlementApply.search")}
       </button>
     </form>
   );
@@ -82,6 +85,7 @@ export function ManageFilter({ period, from, to }: { period: ManagePeriod; from:
  * the server and saved in the browser.
  */
 export function SettlementCsvButton({ period, from, to }: { period: ManagePeriod; from: string; to: string }) {
+  const { t } = useI18n();
   const [state, setState] = useState<{ busy: boolean; note: string | null }>({ busy: false, note: null });
   const busy = useRef(false);
   const download = async () => {
@@ -91,7 +95,7 @@ export function SettlementCsvButton({ period, from, to }: { period: ManagePeriod
     try {
       const res = await exportSettlementHistoryCsv({ period, from, to });
       if (res.status !== "OK") {
-        setState({ busy: false, note: res.status === "UNAUTHORIZED" ? "로그인이 필요합니다." : "정산 정보를 먼저 등록해 주세요." });
+        setState({ busy: false, note: res.status === "UNAUTHORIZED" ? t("studioSettlementApply.loginRequired") : t("studioSettlementApply.registerFirst") });
         return;
       }
       const url = URL.createObjectURL(new Blob([res.csv], { type: "text/csv;charset=utf-8" }));
@@ -100,9 +104,9 @@ export function SettlementCsvButton({ period, from, to }: { period: ManagePeriod
       a.download = res.filename;
       a.click();
       URL.revokeObjectURL(url);
-      setState({ busy: false, note: `${res.rows.toLocaleString("ko-KR")}건을 내려받았어요.` });
+      setState({ busy: false, note: t("studioSettlementApply.downloaded", { count: res.rows.toLocaleString("ko-KR") }) });
     } catch {
-      setState({ busy: false, note: "내려받지 못했습니다. 잠시 후 다시 시도해 주세요." });
+      setState({ busy: false, note: t("studioSettlementApply.downloadFailed") });
     } finally {
       busy.current = false;
     }
@@ -115,7 +119,7 @@ export function SettlementCsvButton({ period, from, to }: { period: ManagePeriod
         </span>
       )}
       <button type="button" className={styles.search} onClick={download} disabled={state.busy} aria-busy={state.busy || undefined}>
-        {state.busy ? "준비 중…" : "CSV 다운로드"}
+        {state.busy ? t("studioSettlementApply.preparing") : t("studioSettlementApply.downloadCsv")}
       </button>
     </div>
   );
@@ -123,6 +127,7 @@ export function SettlementCsvButton({ period, from, to }: { period: ManagePeriod
 
 /** 정보 변경 → 480:2 confirm → 변경하기 removes the registration and restarts 정산 등록. */
 export function ChangeInfoButton() {
+  const { t } = useI18n();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -134,24 +139,24 @@ export function ChangeInfoButton() {
       const res = await resetSettlementRegistration();
       if (res.status === "RESET" || res.status === "NOT_REGISTERED") router.push("/creator/settlement/register");
       else if (res.status === "UNAUTHORIZED") router.push(`/login?role=creator&next=${BASE}`);
-      else setError("변경하지 못했어요. 다시 시도해 주세요.");
+      else setError(t("studioSettlementApply.changeFailed"));
     });
   };
 
   return (
     <>
       <button type="button" className={styles.changeButton} onClick={() => setOpen(true)} aria-haspopup="dialog">
-        정보 변경
+        {t("studioSettlementApply.changeInfo")}
       </button>
       <SettlementNoticeModal
         open={open}
         onClose={() => setOpen(false)}
-        title="정산 정보 변경"
+        title={t("studioSettlementApply.changeTitle")}
         width={420}
         lines={["현재의 정보는 삭제되며,", "정산 정보 재등록이 진행됩니다.", "", "정말로 변경하시겠습니까?", ...(error ? [error] : [])]}
         action={
           <button type="button" className={styles.dangerButton} onClick={change} disabled={pending} aria-busy={pending || undefined}>
-            {pending ? "처리 중..." : "변경하기"}
+            {pending ? t("studioSettlementApply.processing") : t("studioSettlementApply.change")}
           </button>
         }
       />
