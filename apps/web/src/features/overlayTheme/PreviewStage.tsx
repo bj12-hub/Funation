@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import s from "./previewStage.module.css";
 
 /**
  * A stream-like backdrop that draws an overlay at its OBS width and scales it down to fit (studio previews,
  * code-first). The overlay is the real component, so what shows here is what goes on stream.
  */
-export function PreviewStage({ width, minHeight = 0, children, label = "오버레이 미리보기" }: { width: number; minHeight?: number; children: ReactNode; label?: string }) {
+export function PreviewStage({ width, minHeight = 0, children, label }: { width: number; minHeight?: number; children: ReactNode; label?: string }) {
+  const { t } = useI18n();
   const outer = useRef<HTMLDivElement>(null);
   const inner = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -30,7 +32,7 @@ export function PreviewStage({ width, minHeight = 0, children, label = "오버�
   }, [width, minHeight]);
 
   return (
-    <div ref={outer} className={s.stage} style={height === null ? undefined : { height }} aria-label={label} role="img">
+    <div ref={outer} className={s.stage} style={height === null ? undefined : { height }} aria-label={label ?? t("studioToolsTheme.previewStage")} role="img">
       <div ref={inner} className={s.inner} style={{ width, minHeight, transform: `scale(${scale})` }}>
         {children}
       </div>

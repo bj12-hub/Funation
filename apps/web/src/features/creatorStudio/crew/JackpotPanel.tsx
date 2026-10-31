@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { formatKstTime, formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { resetJackpot, saveJackpot, setJackpotTurnOf } from "@/services/crew/crewGames";
 import {
   JACKPOT_PERCENT_MAX,
@@ -46,6 +47,8 @@ export function JackpotPanel({
   pending: boolean;
   run: RunAction;
 }) {
+  const { t } = useI18n();
+  const name = t("crewGame.nameJackpot");
   const { draft, edit, dirty, reset } = useSettingsDraft(settings, toDraft, fromDraft);
   const known = new Set(signatures.map((s) => s.id));
   const jackpot = live?.jackpot;
@@ -56,24 +59,21 @@ export function JackpotPanel({
   return (
     <section id="game-jackpot" className={styles.card} aria-labelledby="game-jackpot-title">
       <h2 id="game-jackpot-title" className={styles.cardTitle}>
-        🧧 시그니처 잭팟
+        🧧 {name}
       </h2>
-      <p className={styles.note}>
-        멤버가 받은 시그니처 후원마다 그 후원 점수의 일부가 복주머니(풀)에 쌓이고, 몇 번째 후원인지 세요. 당첨 순번의 후원을 받은 멤버가 풀의 점수를 모두 받고, 풀은 새로 시작해요. 점수만 움직여요 —
-        FN · 지갑 · 정산은 바뀌지 않아요.
-      </p>
+      <p className={styles.note}>{t("crewGameJackpot.intro")}</p>
 
       <form
         className={prize.form}
         onSubmit={(e) => {
           e.preventDefault();
           const next = fromDraft(draft);
-          run(() => saveJackpot({ ...next, excluded: next.excluded.filter((id) => known.has(id)) }), "시그니처 잭팟 설정을 저장했어요.");
+          run(() => saveJackpot({ ...next, excluded: next.excluded.filter((id) => known.has(id)) }), t("crewGame.saved", { name }));
         }}
       >
-        <TitleField name="시그니처 잭팟" placeholder={JACKPOT_TITLE_DEFAULT} value={draft.title} onChange={(title) => edit({ title })} />
+        <TitleField name={name} placeholder={JACKPOT_TITLE_DEFAULT} value={draft.title} onChange={(title) => edit({ title })} />
         <label className={games.unit}>
-          <span className={styles.muted}>적립 비율</span>
+          <span className={styles.muted}>{t("crewGameJackpot.percent")}</span>
           <input
             className={styles.inputSmall}
             type="number"
@@ -83,10 +83,10 @@ export function JackpotPanel({
             value={draft.percent}
             onChange={(e) => edit({ percent: e.target.value })}
           />
-          <span className={styles.muted}>% — 시그니처 후원 점수의 이만큼이 풀에 쌓여요</span>
+          <span className={styles.muted}>{t("crewGameJackpot.percentNote")}</span>
         </label>
         <label className={games.unit}>
-          <span className={styles.muted}>목표 개수</span>
+          <span className={styles.muted}>{t("crewGameJackpot.target")}</span>
           <input
             className={styles.inputSmall}
             type="number"
@@ -97,11 +97,11 @@ export function JackpotPanel({
             onChange={(e) => edit({ target: e.target.value })}
           />
           <span className={styles.muted}>
-            번째{range ? ` — 당첨 순번은 ${formatNumber(range[0])} ~ ${formatNumber(range[1])}번째 중 랜덤` : ""} (저장하면 진행 중인 풀의 당첨 순번도 다시 뽑아요)
+            {range ? t("crewGameJackpot.targetNoteRange", { from: formatNumber(range[0]), to: formatNumber(range[1]) }) : t("crewGameJackpot.targetNote")}
           </span>
         </label>
         <label className={games.unit}>
-          <span className={styles.muted}>당첨 문구 표시 시간</span>
+          <span className={styles.muted}>{t("crewGameJackpot.showSec")}</span>
           <input
             className={styles.inputSmall}
             type="number"
@@ -111,15 +111,15 @@ export function JackpotPanel({
             value={draft.showSec}
             onChange={(e) => edit({ showSec: e.target.value })}
           />
-          <span className={styles.muted}>초 (1 ~ {JACKPOT_SHOW_SEC_MAX})</span>
+          <span className={styles.muted}>{t("crewGameJackpot.showSecNote", { max: JACKPOT_SHOW_SEC_MAX })}</span>
         </label>
         <AutoFields
-          name="시그니처 잭팟"
-          verb="풀에 넣기"
+          name={name}
+          verb={t("crewGameJackpot.verb")}
           copy={{
-            auto: "멤버에게 시그니처 후원이 들어오면 자동으로 풀에 넣고 순번 세기",
-            excluded: "풀에 넣지 않을 시그니처 (누르면 제외)",
-            note: "후원자가 멤버를 고른 시그니처 후원(금액 일치 · 금액범위 · 랜덤시그 포함)마다 한 번이에요. 멤버를 고르지 않은 후원은 쌓이지도, 순번에 세지도 않아요."
+            auto: t("crewGameJackpot.autoCopy"),
+            excluded: t("crewGameJackpot.excludedCopy"),
+            note: t("crewGameJackpot.noteCopy")
           }}
           auto={draft.auto}
           excluded={draft.excluded}
@@ -132,38 +132,42 @@ export function JackpotPanel({
 
       {live && jackpot && (
         <>
-          {dirty && <p className={styles.note}>저장하지 않은 설정이 있어요. 풀은 저장한 설정으로 쌓여요.</p>}
+          {dirty && <p className={styles.note}>{t("crewGameJackpot.unsaved")}</p>}
           <div className={prize.window}>
             <span className={styles.muted}>
-              이번 풀 {formatNumber(jackpot.count)}번째 · 당첨 순번 {jackpot.turn ? `${formatNumber(jackpot.turn)}번째` : "첫 후원 때 정해요"} · 풀 {formatNumber(jackpot.pool)}점
-              {jackpot.startedAt && ` · ${formatKstTime(jackpot.startedAt, { hour: "2-digit", minute: "2-digit" })}부터`}
+              {t("crewGameJackpot.status", {
+                count: formatNumber(jackpot.count),
+                turn: jackpot.turn ? t("crewGameJackpot.turnNth", { n: formatNumber(jackpot.turn) }) : t("crewGameJackpot.turnLater"),
+                pool: formatNumber(jackpot.pool)
+              })}
+              {jackpot.startedAt && ` · ${t("crewGameJackpot.since", { time: formatKstTime(jackpot.startedAt, { hour: "2-digit", minute: "2-digit" }) })}`}
             </span>
             <button
               type="button"
               className={styles.ghost}
               disabled={pending || (jackpot.count === 0 && jackpot.pool === 0)}
               onClick={() => {
-                if (!window.confirm("풀을 비우고 새로 시작할까요? 쌓인 점수는 누구에게도 가지 않아요.")) return;
-                run(() => resetJackpot({ broadcastId: live.id }), "풀을 새로 시작했어요.");
+                if (!window.confirm(t("crewGameJackpot.resetConfirm"))) return;
+                run(() => resetJackpot({ broadcastId: live.id }), t("crewGameJackpot.resetDone"));
               }}
             >
-              풀 새로 시작
+              {t("crewGameJackpot.reset")}
             </button>
           </div>
-          <span className={games.unit} role="group" aria-label="당첨 순번 수기">
-            <span className={styles.muted}>당첨 순번 수기</span>
+          <span className={games.unit} role="group" aria-label={t("crewGameJackpot.turnManual")}>
+            <span className={styles.muted}>{t("crewGameJackpot.turnManual")}</span>
             <input
               className={styles.inputSmall}
               type="number"
               inputMode="numeric"
-              aria-label="당첨 순번"
+              aria-label={t("crewGameJackpot.turnAria")}
               min={jackpot.count + 1}
               max={JACKPOT_TURN_MAX}
               placeholder={jackpot.turn ? String(jackpot.turn) : ""}
               value={turn}
               onChange={(e) => setTurn(e.target.value)}
             />
-            <span className={styles.muted}>번째</span>
+            <span className={styles.muted}>{t("crewGameJackpot.nth")}</span>
             <button
               type="button"
               className={styles.ghost}
@@ -173,34 +177,34 @@ export function JackpotPanel({
                   const res = await setJackpotTurnOf({ broadcastId: live.id, turn: Number(turn) });
                   if (res.status === "SAVED") setTurn("");
                   return res;
-                }, "당첨 순번을 바꿨어요.")
+                }, t("crewGameJackpot.turnChanged"))
               }
             >
-              수동 설정
+              {t("crewGameJackpot.setManual")}
             </button>
           </span>
-          <p className={styles.note}>당첨 순번은 이 화면에만 보여요. OBS에는 복주머니가 당첨 순번에 가까워질수록 부풀어 올라요.</p>
+          <p className={styles.note}>{t("crewGameJackpot.turnNote")}</p>
           {jackpot.wins.length > 0 && (
-            <ol className={games.lanes} aria-label="당첨 기록">
+            <ol className={games.lanes} aria-label={t("crewGameJackpot.winsAria")}>
               {jackpot.wins.map((w) => (
                 <li key={`${w.at}-${w.memberId}`}>
                   <span className={styles.boardName}>
                     {w.color && <span className={styles.dot} style={{ background: w.color }} aria-hidden="true" />}
                     {w.name}
                   </span>
-                  <span>+{formatNumber(w.points)}점</span>
+                  <span>+{t("crewGame.points", { n: formatNumber(w.points) })}</span>
                   <span className={styles.muted}>
-                    {formatNumber(w.count)}번째 · {formatKstTime(w.at, { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                    {t("crewGameJackpot.winAt", { n: formatNumber(w.count), time: formatKstTime(w.at, { hour: "2-digit", minute: "2-digit", second: "2-digit" }) })}
                   </span>
                 </li>
               ))}
             </ol>
           )}
-          <RunList name="시그니처 잭팟" runs={jackpot.runs} now={now} />
+          <RunList name={name} runs={jackpot.runs} now={now} />
         </>
       )}
 
-      <OverlayAddress overlayPath={overlayPath} param="jackpot" label="시그니처 잭팟" />
+      <OverlayAddress overlayPath={overlayPath} param="jackpot" label={name} />
     </section>
   );
 }

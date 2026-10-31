@@ -2,6 +2,8 @@
 
 import { useRef, useState, type CSSProperties } from "react";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { adjustTerritory, assignTerritory, clearTerritory, saveTerritory, startTerritory } from "@/services/crew/crewGames";
 import {
   TERRITORY_CELL_POINTS_MAX,
@@ -14,7 +16,9 @@ import {
   territoryCoord,
   type CrewMember,
   type GamesView,
-  type TerritorySettings
+  type TerritoryHeartMode,
+  type TerritorySettings,
+  type TerritoryTicker
 } from "@/services/crew/crewTypes";
 import { AutoFields, FormActions, OverlayAddress, RunList, TitleField, useSettingsDraft, type LiveGames, type RunAction } from "./GameParts";
 import styles from "./crew.module.css";
@@ -27,6 +31,9 @@ const toDraft = (s: TerritorySettings): Draft => ({ ...s, size: String(s.size), 
 const fromDraft = (d: Draft) => ({ ...d, size: Number(d.size), heartPoints: Number(d.heartPoints), cellPoints: Number(d.cellPoints || 0) });
 /** Past this many cells a side the studio board drops the coordinates in its cells (still on hover and for screen readers). */
 const DENSE_FROM = 13;
+/** `TERRITORY_HEART_MODES` · `TERRITORY_TICKERS` labels as message keys. */
+const HEART_KEY: Record<TerritoryHeartMode, MessageKey> = { AMOUNT: "crewGameTerritory.heartAmount", SIGNATURE: "crewGameTerritory.heartSignature" };
+const TICKER_KEY: Record<TerritoryTicker, MessageKey> = { TOP: "crewGameTerritory.tickerTop", BOTTOM: "crewGameTerritory.tickerBottom", OFF: "crewGameTerritory.tickerOff" };
 
 /**
  * 땅따먹기 — code-first (no Figma frame; StreamDonate 땅따먹기 참고), inside `/creator/crew/games`. 판 크기, 하트 받는 방식
@@ -53,6 +60,8 @@ export function TerritoryPanel({
   pending: boolean;
   run: RunAction;
 }) {
+  const { t } = useI18n();
+  const name = t("crewGame.nameTerritory");
   const { draft, edit, dirty, reset } = useSettingsDraft(settings, toDraft, fromDraft);
   // 땅따먹기 전용 BJ 색상: a color only while it differs from the crew color (the same color is no override).
   const setColor = (m: CrewMember, color: string | null) => {
@@ -79,29 +88,27 @@ export function TerritoryPanel({
       const res = await startTerritory({ broadcastId: live.id, requestId });
       if (res.status !== "UNAUTHORIZED") startId.current = null;
       return res;
-    }, "땅따먹기 판을 만들었어요.");
+    }, t("crewGameTerritory.started"));
   };
 
   return (
     <section id="game-territory" className={styles.card} aria-labelledby="game-territory-title">
       <h2 id="game-territory-title" className={styles.cardTitle}>
-        🗺️ 땅따먹기
+        🗺️ {name}
       </h2>
-      <p className={styles.note}>
-        멤버가 후원을 받으면 하트가 쌓여요. 하트가 있는 BJ가 칸(A1 같은 좌표)을 고르면 여기서 그 칸을 눌러 할당해요(하트 1개). 다른 멤버의 칸도 빼앗을 수 있어요.
-      </p>
+      <p className={styles.note}>{t("crewGameTerritory.intro")}</p>
 
       <form
         className={prize.form}
         onSubmit={(e) => {
           e.preventDefault();
           const next = fromDraft(draft);
-          run(() => saveTerritory({ ...next, excluded: next.excluded.filter((id) => known.has(id)) }), "땅따먹기 설정을 저장했어요.");
+          run(() => saveTerritory({ ...next, excluded: next.excluded.filter((id) => known.has(id)) }), t("crewGame.saved", { name }));
         }}
       >
-        <TitleField name="땅따먹기" placeholder={TERRITORY_TITLE_DEFAULT} value={draft.title} onChange={(title) => edit({ title })} />
+        <TitleField name={name} placeholder={TERRITORY_TITLE_DEFAULT} value={draft.title} onChange={(title) => edit({ title })} />
         <label className={games.unit}>
-          <span className={styles.muted}>판 크기 (한 변)</span>
+          <span className={styles.muted}>{t("crewGameTerritory.size")}</span>
           <input
             className={styles.inputSmall}
             type="number"
@@ -112,16 +119,17 @@ export function TerritoryPanel({
             onChange={(e) => edit({ size: e.target.value })}
           />
           <span className={styles.muted}>
-            칸 ({TERRITORY_SIZE_MIN} ~ {TERRITORY_SIZE_MAX}){/^\d+$/.test(draft.size) ? ` — ${draft.size}×${draft.size}` : ""}
+            {t("crewGameTerritory.sizeRange", { min: TERRITORY_SIZE_MIN, max: TERRITORY_SIZE_MAX })}
+            {/^\d+$/.test(draft.size) ? ` — ${draft.size}×${draft.size}` : ""}
           </span>
         </label>
-        <div className={prize.field} role="group" aria-label="하트 받는 방식">
-          <span className={styles.muted}>하트 받는 방식</span>
+        <div className={prize.field} role="group" aria-label={t("crewGameTerritory.heartModeAria")}>
+          <span className={styles.muted}>{t("crewGameTerritory.heartModeAria")}</span>
           <span className={prize.inline}>
             <span className={styles.segment}>
               {TERRITORY_HEART_MODES.map((h) => (
                 <button key={h.key} type="button" aria-pressed={draft.heartMode === h.key} onClick={() => edit({ heartMode: h.key })}>
-                  {h.label}
+                  {t(HEART_KEY[h.key])}
                 </button>
               ))}
             </span>
@@ -131,71 +139,77 @@ export function TerritoryPanel({
                   className={styles.inputSmall}
                   type="number"
                   inputMode="numeric"
-                  aria-label="하트 기준 점수"
+                  aria-label={t("crewGameTerritory.heartPointsAria")}
                   min={1}
                   max={TERRITORY_HEART_POINTS_MAX}
                   value={draft.heartPoints}
                   onChange={(e) => edit({ heartPoints: e.target.value })}
                 />
-                <span className={styles.muted}>점마다 하트 1개</span>
+                <span className={styles.muted}>{t("crewGameTerritory.heartPointsNote")}</span>
               </span>
             )}
           </span>
         </div>
         <label className={games.unit}>
-          <span className={styles.muted}>칸 점수</span>
+          <span className={styles.muted}>{t("crewGameTerritory.cellPoints")}</span>
           <input
             className={styles.inputSmall}
             type="number"
             inputMode="numeric"
-            aria-label="칸 점수"
+            aria-label={t("crewGameTerritory.cellPoints")}
             min={0}
             max={TERRITORY_CELL_POINTS_MAX}
             value={draft.cellPoints}
             onChange={(e) => edit({ cellPoints: e.target.value })}
           />
-          <span className={styles.muted}>점 — 칸을 차지하면 받고, 빼앗기면 그만큼 넘어가요(0이면 순위만)</span>
+          <span className={styles.muted}>{t("crewGameTerritory.cellPointsNote")}</span>
         </label>
-        <div className={prize.field} role="group" aria-label="점유 롤링 표시">
-          <span className={styles.muted}>점유 롤링 표시 (멤버 · 칸)</span>
+        <div className={prize.field} role="group" aria-label={t("crewGameTerritory.tickerAria")}>
+          <span className={styles.muted}>{t("crewGameTerritory.ticker")}</span>
           <span className={styles.segment}>
             {TERRITORY_TICKERS.map((x) => (
               <button key={x.key} type="button" aria-pressed={draft.ticker === x.key} onClick={() => edit({ ticker: x.key })}>
-                {x.label}
+                {t(TICKER_KEY[x.key])}
               </button>
             ))}
           </span>
         </div>
-        <div className={prize.field} role="group" aria-label="땅따먹기 BJ 색상">
-          <span className={styles.muted}>BJ 색상 (땅따먹기 전용)</span>
+        <div className={prize.field} role="group" aria-label={t("crewGameTerritory.colorsAria")}>
+          <span className={styles.muted}>{t("crewGameTerritory.colors")}</span>
           <ul className={games.tiers}>
             {crew
               .filter((m) => m.active || draft.colors[m.id])
               .map((m) => (
                 <li key={m.id}>
                   <span className={games.tierRow}>
-                    <input className={games.color} type="color" aria-label={`${m.name} 땅따먹기 색`} value={draft.colors[m.id] ?? m.color} onChange={(e) => setColor(m, e.target.value)} />
+                    <input
+                      className={games.color}
+                      type="color"
+                      aria-label={t("crewGameTerritory.colorAria", { name: m.name })}
+                      value={draft.colors[m.id] ?? m.color}
+                      onChange={(e) => setColor(m, e.target.value)}
+                    />
                     <span className={styles.boardName}>{m.name}</span>
                     {draft.colors[m.id] ? (
                       <button type="button" className={styles.ghost} onClick={() => setColor(m, null)}>
-                        크루 색으로
+                        {t("crewGameTerritory.toCrewColor")}
                       </button>
                     ) : (
-                      <span className={styles.muted}>크루 색</span>
+                      <span className={styles.muted}>{t("crewGameTerritory.crewColor")}</span>
                     )}
                   </span>
                 </li>
               ))}
           </ul>
-          <span className={styles.note}>색을 바꾸면 이미 점유한 칸도 함께 바뀌어요. 다른 기능의 멤버 색은 그대로예요.</span>
+          <span className={styles.note}>{t("crewGameTerritory.colorsNote")}</span>
         </div>
         <AutoFields
-          name="땅따먹기"
-          verb="하트 주기"
+          name={name}
+          verb={t("crewGameTerritory.verb")}
           copy={{
-            auto: "멤버에게 후원이 들어오면 하트 주기",
-            excluded: "하트를 주지 않을 시그니처 (누르면 제외)",
-            note: "후원자가 멤버를 고른 후원(시그니처 · 일반)마다 한 번 하트를 줘요. 멤버를 고르지 않은 후원은 하트 +1로 직접 주세요."
+            auto: t("crewGameTerritory.autoCopy"),
+            excluded: t("crewGameTerritory.excludedCopy"),
+            note: t("crewGameTerritory.noteCopy")
           }}
           auto={draft.auto}
           excluded={draft.excluded}
@@ -203,29 +217,31 @@ export function TerritoryPanel({
           signatures={signatures}
           onChange={edit}
         />
-        <p className={styles.note}>판 크기는 다음 판 시작부터 적용돼요. 새 판은 하트도 0부터예요.</p>
+        <p className={styles.note}>{t("crewGameTerritory.sizeNote")}</p>
         <FormActions pending={pending} dirty={dirty} onReset={reset} />
       </form>
 
       {live && territory && (
         <>
-          {dirty && <p className={styles.note}>저장하지 않은 설정이 있어요. 판 시작은 저장한 크기로 판을 만들어요.</p>}
+          {dirty && <p className={styles.note}>{t("crewGameTerritory.unsaved")}</p>}
           <div className={prize.window}>
             <span className={styles.muted}>
-              {board ? `${board.size}×${board.size} · 점령 ${taken}/${board.cells.length}칸` : `판이 없어요. 판 시작을 누르면 ${settings.size}×${settings.size} 빈 판을 만들어요.`}
+              {board
+                ? `${board.size}×${board.size} · ${t("crewGameTerritory.taken", { taken, total: board.cells.length })}`
+                : t("crewGameTerritory.noBoard", { size: settings.size })}
             </span>
             <button type="button" className={styles.primary} disabled={pending} onClick={start}>
-              {board ? "새 판으로 다시 시작" : "판 시작"}
+              {board ? t("crewGameTerritory.restart") : t("crewGameTerritory.start")}
             </button>
             {board && (
-              <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => clearTerritory({ broadcastId: live.id }), "땅따먹기 판을 비웠어요.")}>
-                판 비우기
+              <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => clearTerritory({ broadcastId: live.id }), t("crewGameTerritory.cleared"))}>
+                {t("crewGameTerritory.clear")}
               </button>
             )}
           </div>
           {board && (
             <>
-              <ul className={games.lanes} aria-label="땅따먹기 하트">
+              <ul className={games.lanes} aria-label={t("crewGameTerritory.heartsAria")}>
                 {members.map((m) => (
                   <li key={m.memberId}>
                     <span className={styles.boardName}>
@@ -233,11 +249,11 @@ export function TerritoryPanel({
                       {m.name}
                     </span>
                     <span>♥ {formatNumber(m.hearts)}</span>
-                    <span className={styles.muted}>점유 {owned(m.memberId)}칸</span>
+                    <span className={styles.muted}>{t("crewGameTerritory.owned", { n: owned(m.memberId) })}</span>
                     <button
                       type="button"
                       className={styles.ghost}
-                      aria-label={`${m.name} 하트 +1`}
+                      aria-label={t("crewGameTerritory.plusAria", { name: m.name })}
                       disabled={pending || !m.active}
                       onClick={() => run(() => adjustTerritory({ broadcastId: live.id, requestId: crypto.randomUUID(), memberId: m.memberId, delta: 1 }))}
                     >
@@ -246,7 +262,7 @@ export function TerritoryPanel({
                     <button
                       type="button"
                       className={styles.ghost}
-                      aria-label={`${m.name} 하트 −1`}
+                      aria-label={t("crewGameTerritory.minusAria", { name: m.name })}
                       disabled={pending || !m.active || m.hearts < 1}
                       onClick={() => run(() => adjustTerritory({ broadcastId: live.id, requestId: crypto.randomUUID(), memberId: m.memberId, delta: -1 }))}
                     >
@@ -256,8 +272,8 @@ export function TerritoryPanel({
                 ))}
               </ul>
               <span className={prize.inline}>
-                <span className={styles.muted}>칸을 누르면 이 멤버에게 할당해요(하트 1개)</span>
-                <select className={styles.select} aria-label="칸을 받을 멤버" value={picked} onChange={(e) => setMemberId(e.target.value)}>
+                <span className={styles.muted}>{t("crewGameTerritory.assignHint")}</span>
+                <select className={styles.select} aria-label={t("crewGameTerritory.assignAria")} value={picked} onChange={(e) => setMemberId(e.target.value)}>
                   {active.map((m) => (
                     <option key={m.memberId} value={m.memberId}>
                       {m.name} (♥ {m.hearts})
@@ -269,7 +285,7 @@ export function TerritoryPanel({
                 className={games.territory}
                 data-dense={board.size >= DENSE_FROM || undefined}
                 style={{ "--terr-size": board.size } as CSSProperties}
-                aria-label="땅따먹기 판"
+                aria-label={t("crewGameTerritory.boardAria")}
               >
                 {board.cells.map((c, i) => {
                   const o = members.find((m) => m.memberId === owner(i));
@@ -294,13 +310,13 @@ export function TerritoryPanel({
               </ol>
             </>
           )}
-          <RunList name="땅따먹기" runs={territory.runs} now={now} />
+          <RunList name={name} runs={territory.runs} now={now} />
         </>
       )}
 
-      <OverlayAddress overlayPath={overlayPath} param="territory" label="땅따먹기" />
-      <p className={styles.note}>점유 현황 (순위만 따로)</p>
-      <OverlayAddress overlayPath={overlayPath} param="territoryrank" label="땅따먹기 점유 현황" />
+      <OverlayAddress overlayPath={overlayPath} param="territory" label={name} />
+      <p className={styles.note}>{t("crewGameTerritory.rankNote")}</p>
+      <OverlayAddress overlayPath={overlayPath} param="territoryrank" label={t("crewGameTerritory.rankLabel", { name })} />
     </section>
   );
 }

@@ -1,17 +1,20 @@
 "use client";
 
 import { useId, useRef, useState, useTransition } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { saveOverlayAppearance } from "@/services/creator/overlayTheme";
 import { ACCENT_PRESETS, OVERLAY_THEMES, isHex6, resolveTheme, type OverlayAppearance, type OverlayTheme } from "@/services/creator/overlayThemeTypes";
 import { ColorField } from "../creatorStudio/widgets/fields";
 import g from "./themeGallery.module.css";
 import { ThemeSample } from "./ThemeSample";
+import { THEME_TEXT } from "./themeText";
 
 /**
  * 오버레이 테마 (code-first, 2026-10-08): the channel's 전체 테마 for every OBS overlay, picked from three sample
  * scenes, plus one 포인트 색상. Widgets can still choose their own theme in their settings.
  */
 export function ThemeGallery({ initial }: { initial: OverlayAppearance }) {
+  const { t } = useI18n();
   const [saved, setSaved] = useState(initial);
   const [theme, setTheme] = useState<OverlayTheme>(initial.theme);
   const [accent, setAccent] = useState<string | null>(initial.accent);
@@ -33,10 +36,10 @@ export function ThemeGallery({ initial }: { initial: OverlayAppearance }) {
         const res = await saveOverlayAppearance(next);
         if (res.status === "SAVED") {
           setSaved(next);
-          setNote({ tone: "ok", text: "테마를 저장했어요. 열려 있는 오버레이에 몇 초 안에 반영돼요." });
-        } else setNote({ tone: "error", text: res.status === "INVALID" ? res.message : "로그인이 필요합니다. 다시 로그인해 주세요." });
+          setNote({ tone: "ok", text: t("studioToolsTheme.gallerySaved") });
+        } else setNote({ tone: "error", text: res.status === "INVALID" ? res.message : t("studioToolsTheme.relogin") });
       } catch {
-        setNote({ tone: "error", text: "저장하지 못했어요. 잠시 후 다시 시도해 주세요." });
+        setNote({ tone: "error", text: t("studioTools.saveFailed") });
       } finally {
         busy.current = false;
       }
@@ -47,23 +50,23 @@ export function ThemeGallery({ initial }: { initial: OverlayAppearance }) {
     <section className={g.section} aria-labelledby={`${name}-title`}>
       <div className={g.head}>
         <h2 id={`${name}-title`} className={g.title}>
-          오버레이 테마
+          {t("studioToolsTheme.overlayTheme")}
         </h2>
-        <p className={g.subtitle}>모든 오버레이에 같은 디자인을 입혀요. 위젯마다 설정에서 다른 테마를 고를 수도 있어요.</p>
+        <p className={g.subtitle}>{t("studioToolsTheme.gallerySubtitle")}</p>
       </div>
 
-      <div role="radiogroup" aria-label="오버레이 테마" className={g.grid}>
-        {OVERLAY_THEMES.map((t) => (
-          <label key={t.key} className={g.option} data-checked={theme === t.key || undefined}>
-            <input type="radio" name={`${name}-theme`} className={g.srOnly} checked={theme === t.key} onChange={() => setTheme(t.key)} aria-label={t.label} />
-            <ThemeSample theme={resolveTheme({ theme: t.key, accent: accentValid ? accent : null })} />
+      <div role="radiogroup" aria-label={t("studioToolsTheme.overlayTheme")} className={g.grid}>
+        {OVERLAY_THEMES.map((x) => (
+          <label key={x.key} className={g.option} data-checked={theme === x.key || undefined}>
+            <input type="radio" name={`${name}-theme`} className={g.srOnly} checked={theme === x.key} onChange={() => setTheme(x.key)} aria-label={t(THEME_TEXT[x.key].label)} />
+            <ThemeSample theme={resolveTheme({ theme: x.key, accent: accentValid ? accent : null })} />
             <span className={g.optionText}>
               <strong>
-                {t.label}
-                {saved.theme === t.key && <span className={g.badge}>사용 중</span>}
+                {t(THEME_TEXT[x.key].label)}
+                {saved.theme === x.key && <span className={g.badge}>{t("studioToolsTheme.inUse")}</span>}
               </strong>
-              <span>{t.summary}</span>
-              <span className={g.mood}>{t.mood}</span>
+              <span>{t(THEME_TEXT[x.key].summary)}</span>
+              <span className={g.mood}>{t(THEME_TEXT[x.key].mood)}</span>
             </span>
           </label>
         ))}
@@ -71,16 +74,16 @@ export function ThemeGallery({ initial }: { initial: OverlayAppearance }) {
 
       <div className={g.accentRow}>
         <span className={g.accentLabel} id={`${name}-accent`}>
-          포인트 색상
+          {t("studioToolsTheme.accent")}
         </span>
         <div role="radiogroup" aria-labelledby={`${name}-accent`} className={g.swatches}>
           <label className={g.swatchDefault} data-checked={accent === null || undefined}>
-            <input type="radio" name={`${name}-accent`} className={g.srOnly} checked={accent === null} onChange={() => setAccent(null)} aria-label="테마 기본 색" />
-            테마 기본
+            <input type="radio" name={`${name}-accent`} className={g.srOnly} checked={accent === null} onChange={() => setAccent(null)} aria-label={t("studioToolsTheme.accentDefaultAria")} />
+            {t("studioToolsTheme.accentDefault")}
           </label>
           {ACCENT_PRESETS.map((c) => (
             <label key={c} className={g.swatch} data-checked={accent === c || undefined} style={{ background: c }} title={c}>
-              <input type="radio" name={`${name}-accent`} className={g.srOnly} checked={accent === c} onChange={() => setAccent(c)} aria-label={`포인트 색상 ${c}`} />
+              <input type="radio" name={`${name}-accent`} className={g.srOnly} checked={accent === c} onChange={() => setAccent(c)} aria-label={t("studioToolsTheme.accentAria", { color: c })} />
             </label>
           ))}
           <label className={g.customToggle} data-checked={(accent !== null && !(ACCENT_PRESETS as readonly string[]).includes(accent)) || undefined}>
@@ -90,13 +93,13 @@ export function ThemeGallery({ initial }: { initial: OverlayAppearance }) {
               className={g.srOnly}
               checked={accent !== null && !(ACCENT_PRESETS as readonly string[]).includes(accent)}
               onChange={() => setAccent(custom)}
-              aria-label="포인트 색상 직접 고르기"
+              aria-label={t("studioToolsTheme.accentCustomAria")}
             />
-            직접 고르기
+            {t("studioToolsTheme.accentCustom")}
           </label>
           {accent !== null && !(ACCENT_PRESETS as readonly string[]).includes(accent) && (
             <ColorField
-              label="포인트 색상 직접 입력"
+              label={t("studioToolsTheme.accentInput")}
               value={custom}
               width={150}
               onChange={(v) => {
@@ -116,11 +119,11 @@ export function ThemeGallery({ initial }: { initial: OverlayAppearance }) {
         )}
         {!accentValid && (
           <p className={g.error} role="alert">
-            포인트 색상은 #RRGGBB 형식으로 입력해 주세요.
+            {t("studioToolsTheme.accentInvalid")}
           </p>
         )}
         <button type="button" className={g.save} onClick={save} disabled={!dirty || !accentValid || pending}>
-          {pending ? "저장 중…" : "테마 저장"}
+          {pending ? t("studioTools.saving") : t("studioToolsTheme.saveTheme")}
         </button>
       </div>
     </section>

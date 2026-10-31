@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { saveCustomOverlay } from "@/services/creator/customOverlay";
 import {
   CUSTOM_CODE_MAX,
@@ -106,6 +107,7 @@ const testCrew = (): CustomCrew => {
  */
 export function CustomOverlayScreen({ view }: { view: CustomOverlayView }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [no, setNo] = useState(1);
   const [drafts, setDrafts] = useState<CustomSlot[]>(() => view.slots);
   const [message, setMessage] = useState<{ tone: "error" | "ok"; text: string } | null>(null);
@@ -149,12 +151,12 @@ export function CustomOverlayScreen({ view }: { view: CustomOverlayView }) {
       try {
         const res = await saveCustomOverlay({ no, ...sent });
         if (res.status === "SAVED") {
-          setMessage({ tone: "ok", text: `${sent.name.trim() || `커스텀 ${no}`} 코드를 저장했어요. OBS에는 몇 초 안에 반영돼요.` });
+          setMessage({ tone: "ok", text: t("studioToolsCustom.saved", { name: sent.name.trim() || t("studioToolsCustom.defaultName", { n: no }) }) });
           router.refresh();
         } else if (res.status === "UNAUTHORIZED") router.push("/login?role=creator&next=/creator/widgets/custom");
         else setMessage({ tone: "error", text: res.message });
       } catch {
-        setMessage({ tone: "error", text: "저장하지 못했어요. 잠시 후 다시 시도해 주세요." });
+        setMessage({ tone: "error", text: t("studioTools.saveFailed") });
       }
     });
   };
@@ -165,18 +167,19 @@ export function CustomOverlayScreen({ view }: { view: CustomOverlayView }) {
   return (
     <div className={styles.content}>
       <header className={styles.header}>
-        <h1 className={styles.title}>커스텀 오버레이</h1>
-        <p className={styles.subtitle}>HTML · CSS · JS로 나만의 오버레이를 만들어요. 후원 알림과 통합 채팅을 실시간으로 받아 그릴 수 있어요.</p>
+        <h1 className={styles.title}>{t("studioToolsCustom.title")}</h1>
+        <p className={styles.subtitle}>{t("studioToolsCustom.subtitle")}</p>
         <p className={styles.note}>
-          코드는 사이트와 분리된 샌드박스에서만 실행돼요. 로그인 정보 · 연동 키 · 스튜디오에 접근할 수 없고, 외부 서버로 데이터를 보낼 수도 없어요. 다른 사람이 준 코드는 내용을 확인한
-          뒤 넣어 주세요. 오버레이 주소 · 원소스 배치는 <Link href="/creator/widgets/overlays">오버레이 주소</Link>에 있어요.
+          {t("studioToolsCustom.headBefore")}
+          <Link href="/creator/widgets/overlays">{t("studioToolsCustom.headLink")}</Link>
+          {t("studioToolsCustom.headAfter")}
         </p>
       </header>
 
-      <div className={styles.segment} role="group" aria-label="슬롯">
+      <div className={styles.segment} role="group" aria-label={t("studioToolsCustom.slotsAria")}>
         {Array.from({ length: CUSTOM_SLOTS }, (_, k) => k + 1).map((n) => (
-          <button key={n} type="button" aria-pressed={no === n} aria-label={`슬롯 ${n} ${drafts[n - 1].name}`} onClick={() => setNo(n)}>
-            슬롯 {n}
+          <button key={n} type="button" aria-pressed={no === n} aria-label={t("studioToolsCustom.slotAria", { n, name: drafts[n - 1].name })} onClick={() => setNo(n)}>
+            {t("studioToolsCustom.slot", { n })}
             {view.slots[n - 1].enabled && " ON"}
             {JSON.stringify(drafts[n - 1]) !== JSON.stringify(view.slots[n - 1]) && " •"}
           </button>
@@ -191,15 +194,15 @@ export function CustomOverlayScreen({ view }: { view: CustomOverlayView }) {
 
       <section className={styles.card} aria-labelledby="custom-code-title">
         <h2 id="custom-code-title" className={styles.cardTitle}>
-          슬롯 {no} · {draft.name || `커스텀 ${no}`}
+          {t("studioToolsCustom.cardTitle", { n: no, name: draft.name || t("studioToolsCustom.defaultName", { n: no }) })}
         </h2>
         <label className={prize.field}>
-          <span className={styles.muted}>이름</span>
-          <input className={styles.input} aria-label="오버레이 이름" maxLength={CUSTOM_NAME_MAX} value={draft.name} onChange={(e) => edit({ name: e.target.value })} />
+          <span className={styles.muted}>{t("studioToolsCustom.name")}</span>
+          <input className={styles.input} aria-label={t("studioToolsCustom.nameAria")} maxLength={CUSTOM_NAME_MAX} value={draft.name} onChange={(e) => edit({ name: e.target.value })} />
         </label>
         <label className={styles.checkRow}>
           <input type="checkbox" checked={draft.enabled} onChange={(e) => edit({ enabled: e.target.checked })} />
-          사용 (끄면 OBS에 아무것도 나오지 않아요)
+          {t("studioToolsCustom.enabled")}
         </label>
         {FIELDS.map((f) => (
           <label key={f.key} className={prize.field}>
@@ -211,7 +214,7 @@ export function CustomOverlayScreen({ view }: { view: CustomOverlayView }) {
             </span>
             <textarea
               className={`${styles.input} ${styles.textarea} ${local.code}`}
-              aria-label={`${f.label} 코드`}
+              aria-label={t("studioToolsCustom.codeAria", { label: f.label })}
               rows={f.rows}
               spellCheck={false}
               autoCapitalize="off"
@@ -221,39 +224,37 @@ export function CustomOverlayScreen({ view }: { view: CustomOverlayView }) {
             />
           </label>
         ))}
-        <p className={styles.note}>HTML 안의 &lt;script&gt;는 실행되지 않아요. 스크립트는 JS 칸에 넣어 주세요.</p>
+        <p className={styles.note}>{t("studioToolsCustom.scriptNote")}</p>
         <div className={styles.actions}>
           <button type="button" className={styles.ghost} onClick={() => edit(EXAMPLE)}>
-            예시 코드 넣기
+            {t("studioToolsCustom.example")}
           </button>
           <button type="button" className={styles.ghost} disabled={pending || !dirty} onClick={() => setDrafts((d) => d.map((s, k) => (k === i ? view.slots[i] : s)))}>
-            되돌리기
+            {t("studioTools.revert")}
           </button>
           <button type="button" className={styles.primary} disabled={pending || !dirty || over} onClick={save}>
-            {pending ? "저장하는 중…" : "저장"}
+            {pending ? t("studioTools.savingLong") : t("studioTools.save")}
           </button>
         </div>
       </section>
 
       <section className={styles.card} aria-labelledby="custom-preview-title">
         <h2 id="custom-preview-title" className={styles.cardTitle}>
-          미리보기
+          {t("studioTools.preview")}
         </h2>
-        <p className={styles.note}>
-          지금 입력한 코드를 OBS와 같은 샌드박스에서 실행해요. 테스트 후원 · 테스트 채팅 · 테스트 점수판은 이 미리보기에만 보내요(알림 대기열에 들어가지 않고 FN도 움직이지 않아요).
-        </p>
+        <p className={styles.note}>{t("studioToolsCustom.previewNote")}</p>
         <div className={styles.actions}>
           <button type="button" className={styles.primary} onClick={runPreview}>
-            미리보기 실행
+            {t("studioToolsCustom.runPreview")}
           </button>
           <button type="button" className={styles.ghost} onClick={() => send("donation", testDonation())}>
-            테스트 후원
+            {t("studioToolsCustom.testDonation")}
           </button>
           <button type="button" className={styles.ghost} onClick={() => send("chat", testChat())}>
-            테스트 채팅
+            {t("studioToolsCustom.testChat")}
           </button>
           <button type="button" className={styles.ghost} onClick={() => send("crew", testCrew())}>
-            테스트 점수판
+            {t("studioToolsCustom.testScoreboard")}
           </button>
         </div>
         <iframe
@@ -262,7 +263,7 @@ export function CustomOverlayScreen({ view }: { view: CustomOverlayView }) {
           src={SANDBOX_SRC}
           sandbox="allow-scripts"
           referrerPolicy="no-referrer"
-          title={`${draft.name || `커스텀 ${no}`} 미리보기`}
+          title={t("studioToolsCustom.frameTitle", { name: draft.name || t("studioToolsCustom.defaultName", { n: no }) })}
           className={local.preview}
           onLoad={onLoad}
         />
@@ -270,24 +271,30 @@ export function CustomOverlayScreen({ view }: { view: CustomOverlayView }) {
 
       <section className={styles.card} aria-labelledby="custom-api-title">
         <h2 id="custom-api-title" className={styles.cardTitle}>
-          onData로 받는 데이터
+          {t("studioToolsCustom.apiTitle")}
         </h2>
         <pre className={local.api}>{API}</pre>
         <ul className={local.rules}>
-          <li>JS 칸에 onData 함수를 만들면 데이터가 들어올 때마다 불러요. HTML은 &lt;div id=&quot;overlay&quot;&gt; 안에 들어가요.</li>
-          <li>외부 서버 요청(fetch · WebSocket)과 다른 창 · 폼 · 팝업은 막혀 있어요. 이미지 · 글꼴 · 소리는 https 주소로 불러올 수 있어요.</li>
-          <li>배경은 투명해요. 코드를 바꿔 저장하면 OBS의 오버레이가 새로 시작돼요.</li>
+          <li>{t("studioToolsCustom.api1")}</li>
+          <li>{t("studioToolsCustom.api2")}</li>
+          <li>{t("studioToolsCustom.api3")}</li>
         </ul>
       </section>
 
       <section className={styles.card} aria-labelledby="custom-obs-title">
         <h2 id="custom-obs-title" className={styles.cardTitle}>
-          OBS 주소
+          {t("studioToolsCustom.obsTitle")}
         </h2>
-        <p className={styles.note}>OBS 브라우저 소스에 넣어요. 크기는 자유예요(예: 800 × 600). 리모컨 기능 제어의 &lsquo;커스텀 오버레이&rsquo;로 모든 슬롯을 켜고 끌 수 있어요.</p>
+        <p className={styles.note}>{t("studioToolsCustom.obsNote")}</p>
         <div className={styles.addRow}>
-          <input className={styles.input} value={shownOverlayAddress(origin, path, query)} readOnly aria-label={`슬롯 ${no} OBS 주소`} onFocus={(e) => e.target.select()} />
-          <CopyButton value={`${origin}${path}${query}`} label="복사" className={styles.ghost} />
+          <input
+            className={styles.input}
+            value={shownOverlayAddress(origin, path, query)}
+            readOnly
+            aria-label={t("studioToolsCustom.obsAria", { n: no })}
+            onFocus={(e) => e.target.select()}
+          />
+          <CopyButton value={`${origin}${path}${query}`} label={t("studioTools.copy")} className={styles.ghost} />
         </div>
       </section>
     </div>

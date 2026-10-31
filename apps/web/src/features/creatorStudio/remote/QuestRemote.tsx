@@ -3,16 +3,15 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { QUEST_ACTION_LABEL } from "@/features/donations/questDecideText";
 import { FLEXTV_STUDIO } from "@/lib/flextv/mode";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { decideReceivedQuest } from "@/services/creator/donationManagement";
-import { QUEST_STATUSES, type QuestStatus } from "@/services/creator/donationManagementTypes";
 import { extendQuestTime } from "@/services/creator/questRemote";
-import { QUEST_EXTEND_MINUTES, questExtendedLabel, type QuestAction, type QuestRemoteRow, type QuestRemoteView } from "@/services/donations/questTypes";
+import { QUEST_EXTEND_MINUTES, type QuestAction, type QuestRemoteRow, type QuestRemoteView } from "@/services/donations/questTypes";
 import styles from "../crew/crew.module.css";
 import {
-  QUEST_EXTEND_BUTTON,
   QUEST_EXTEND_DEFAULT_MINUTES,
   decideFromRemote,
   extendFromRemote,
@@ -23,7 +22,13 @@ import {
 } from "./questRemoteModel";
 import remote from "./remote.module.css";
 
-const statusLabel = (s: QuestStatus) => QUEST_STATUSES.find((x) => x.key === s)!.label;
+/** The buttons (`QUEST_ACTION_LABEL`) and a decided quest's tag (`QUEST_STATUSES`), as message keys (2026-11-01). */
+const ACTION_KEY: Record<QuestAction, MessageKey> = { SUCCESS: "studioRemote.questSuccess", FAILED: "studioRemote.questFailed", CANCELED: "studioRemote.questCanceled" };
+const DECIDED_KEY: Record<QuestAction, MessageKey> = {
+  SUCCESS: "studioRemote.questStatusSuccess",
+  FAILED: "studioRemote.questStatusFailed",
+  CANCELED: "studioRemote.questStatusCanceled"
+};
 
 /**
  * 리모컨 "퀘스트" card — code-first (funnation 기본값: 미션은 리모컨에서 확인). Lists the running quests with time left and
@@ -33,6 +38,7 @@ const statusLabel = (s: QuestStatus) => QUEST_STATUSES.find((x) => x.key === s)!
  * leaves it on the next one.
  */
 export function QuestRemote({ view }: { view: QuestRemoteView }) {
+  const { t } = useI18n();
   const router = useRouter();
   // The server's clock first (the same text on the server and in the browser), then the browser's, every second.
   const [now, setNow] = useState(() => Date.parse(view.serverNow));
@@ -58,7 +64,8 @@ export function QuestRemote({ view }: { view: QuestRemoteView }) {
       onStart: () => {
         setBusy(row.id);
         setNotice(null);
-      }
+      },
+      t
     });
     setBusy((b) => (b === row.id ? null : b));
     if (result.kind === "SKIPPED") return;
@@ -81,7 +88,8 @@ export function QuestRemote({ view }: { view: QuestRemoteView }) {
       onStart: () => {
         setBusy(row.id);
         setNotice(null);
-      }
+      },
+      t
     });
     setBusy((b) => (b === row.id ? null : b));
     if (result.kind === "SKIPPED") return;
@@ -106,21 +114,20 @@ export function QuestRemote({ view }: { view: QuestRemoteView }) {
     <section className={styles.card} aria-labelledby="quest-remote">
       <div className={styles.cardHead}>
         <h2 className={styles.cardTitle} id="quest-remote">
-          🎯 퀘스트
+          {t("studioRemote.questTitle")}
         </h2>
         {/* With FLEXTV the settings are 후원 종류 설정 (phase 6). */}
         <Link href={FLEXTV_STUDIO ? "/creator/donation-types" : "/creator/widgets?open=QUEST"} className={styles.ghost}>
-          위젯 설정
+          {t("studioRemote.widgetSettings")}
         </Link>
       </div>
-      <p className={styles.note}>
-        성공은 크리에이터 몫이 되고, 실패 · 취소는 후원자에게 전액 환불돼요. 제한 시간이 지나도 결과를 정할 때까지 진행 중으로 남아요. 후원관리+ › 받은 후원 › 퀘스트에서도 정할 수 있어요.
-      </p>
+      <p className={styles.note}>{t("studioRemote.questNote")}</p>
       <div className={remote.status}>
         <span>
-          진행 중 {open.length}건{over > 0 ? ` · 시간 초과 ${over}건` : ""}
+          {t("studioRemote.questRunning", { count: open.length })}
+          {over > 0 ? t("studioRemote.questOverCount", { count: over }) : ""}
         </span>
-        <span>보관 중 {formatNumber(held)} FN</span>
+        <span>{t("studioRemote.questHeld", { amount: formatNumber(held) })}</span>
       </div>
 
       {notice && (
@@ -130,11 +137,11 @@ export function QuestRemote({ view }: { view: QuestRemoteView }) {
       )}
 
       {view.quests.length === 0 ? (
-        <p className={styles.empty}>진행 중인 퀘스트가 없어요.</p>
+        <p className={styles.empty}>{t("studioRemote.questEmpty")}</p>
       ) : (
         <ul className={styles.list}>
           {view.quests.map((q) => {
-            const left = questTimeLeft(q.endsAt, now);
+            const left = questTimeLeft(q.endsAt, now, t);
             const done = decided[q.id];
             const formId = `quest-extend-${q.id}`;
             return (
@@ -146,22 +153,22 @@ export function QuestRemote({ view }: { view: QuestRemoteView }) {
                   <span className={styles.muted}>
                     {q.donor}
                     {q.donorId && ` (${q.donorId})`} · {formatQuestAt(q.createdAt)}
-                    {!done && !q.actions.includes("SUCCESS") && " · 성공 · 실패는 후원자가 정해요"}
+                    {!done && !q.actions.includes("SUCCESS") && t("studioRemote.questSupporterDecides")}
                   </span>
                 </div>
                 {done ? (
                   <span className={remote.statusTag} data-status="DONE">
-                    {statusLabel(done)}
+                    {t(DECIDED_KEY[done])}
                   </span>
                 ) : (
                   <>
                     <span className={remote.statusTag} data-status={left.over ? "SHOWING" : "QUEUED"}>
                       {left.text}
                     </span>
-                    {q.extendedMin > 0 && <span className={remote.statusTag}>{questExtendedLabel(q.extendedMin)}</span>}
+                    {q.extendedMin > 0 && <span className={remote.statusTag}>{t("studioRemote.questExtended", { minutes: q.extendedMin })}</span>}
                     {busy === q.id && (
                       <span className={styles.muted} role="status">
-                        처리 중…
+                        {t("studioRemote.processing")}
                       </span>
                     )}
                     {view.allowExtension && (
@@ -173,13 +180,13 @@ export function QuestRemote({ view }: { view: QuestRemoteView }) {
                         aria-controls={extending === q.id ? formId : undefined}
                         onClick={() => setExtending((x) => (x === q.id ? null : q.id))}
                       >
-                        {QUEST_EXTEND_BUTTON}
+                        {t("studioRemote.questExtend")}
                       </button>
                     )}
-                    <span className={remote.buttons} role="group" aria-label={`${q.title} 결과 정하기`}>
+                    <span className={remote.buttons} role="group" aria-label={t("studioRemote.questDecideAria", { title: q.title })}>
                       {q.actions.map((a) => (
                         <button key={a} type="button" className={a === "SUCCESS" ? styles.primary : styles.danger} disabled={busy !== null} onClick={() => void decide(q, a)}>
-                          {QUEST_ACTION_LABEL[a]}
+                          {t(ACTION_KEY[a])}
                         </button>
                       ))}
                     </span>
@@ -187,14 +194,14 @@ export function QuestRemote({ view }: { view: QuestRemoteView }) {
                       <form
                         id={formId}
                         className={remote.extendForm}
-                        aria-label={`${q.title} 시간 연장`}
+                        aria-label={t("studioRemote.questExtendAria", { title: q.title })}
                         onSubmit={(e) => {
                           e.preventDefault();
                           void extend(q);
                         }}
                       >
                         <label className={remote.extendField}>
-                          연장할 시간
+                          {t("studioRemote.extendLabel")}
                           <input
                             className={styles.input}
                             type="number"
@@ -202,19 +209,19 @@ export function QuestRemote({ view }: { view: QuestRemoteView }) {
                             min={QUEST_EXTEND_MINUTES.min}
                             max={QUEST_EXTEND_MINUTES.max}
                             step={1}
-                            aria-label="연장할 시간(분)"
+                            aria-label={t("studioRemote.extendMinutesAria")}
                             value={minutes}
                             onChange={(e) => setMinutes(e.target.value)}
                           />
-                          분
+                          {t("studioRemote.minutes")}
                         </label>
                         <button type="submit" className={styles.primary} disabled={busy !== null}>
-                          연장하기
+                          {t("studioRemote.extendSubmit")}
                         </button>
                         <button type="button" className={styles.ghost} onClick={() => setExtending(null)}>
-                          닫기
+                          {t("studioRemote.close")}
                         </button>
-                        <span className={styles.muted}>{questExtendHint(q, now)}</span>
+                        <span className={styles.muted}>{questExtendHint(q, now, t)}</span>
                       </form>
                     )}
                   </>
