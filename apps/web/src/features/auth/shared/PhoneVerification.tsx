@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { useCountdown } from "@/hooks/useCountdown";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { formatPhone, isValidPhone } from "@/lib/validation";
 import { sendPhoneCode, verifyPhoneCode } from "@/services/auth/verification";
 import { CODE_LENGTH, CODE_TTL_SECONDS, type VerificationPurpose } from "@/services/auth/verificationTypes";
@@ -16,11 +18,11 @@ import shared from "./form.module.css";
  */
 
 const MESSAGES = {
-  PHONE_FORMAT: "휴대폰 번호가 올바른 형식이 아닙니다.",
-  PHONE_NOT_FOUND: "가입한 휴대폰 번호와 일치하지 않습니다.",
-  CODE_INVALID: "인증번호가 올바르지 않거나 유효시간이 지났습니다.",
-  FAILED: "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요"
-};
+  PHONE_FORMAT: "auth.phoneFormat",
+  PHONE_NOT_FOUND: "auth.phoneNotFound",
+  CODE_INVALID: "auth.codeInvalid",
+  FAILED: "auth.tempError"
+} as const satisfies Record<string, MessageKey>;
 
 type PhoneVerificationProps = {
   purpose: VerificationPurpose;
@@ -28,6 +30,7 @@ type PhoneVerificationProps = {
 };
 
 export function PhoneVerification({ purpose, onVerified }: PhoneVerificationProps) {
+  const { t } = useI18n();
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [sent, setSent] = useState(false);
@@ -37,25 +40,25 @@ export function PhoneVerification({ purpose, onVerified }: PhoneVerificationProp
   const countdown = useCountdown();
 
   async function send() {
-    if (!isValidPhone(phone)) return setPhoneError(MESSAGES.PHONE_FORMAT);
+    if (!isValidPhone(phone)) return setPhoneError(t(MESSAGES.PHONE_FORMAT));
     setBusy("send");
     try {
       const result = await sendPhoneCode(phone, purpose);
-      if (result.status === "PHONE_NOT_FOUND") return setPhoneError(MESSAGES.PHONE_NOT_FOUND);
+      if (result.status === "PHONE_NOT_FOUND") return setPhoneError(t(MESSAGES.PHONE_NOT_FOUND));
       setPhoneError(null);
       setCodeError(null);
       setCode("");
       setSent(true);
       countdown.start(CODE_TTL_SECONDS);
     } catch {
-      setPhoneError(MESSAGES.FAILED);
+      setPhoneError(t(MESSAGES.FAILED));
     } finally {
       setBusy(null);
     }
   }
 
   async function verify() {
-    if (countdown.expired || code.length !== CODE_LENGTH) return setCodeError(MESSAGES.CODE_INVALID);
+    if (countdown.expired || code.length !== CODE_LENGTH) return setCodeError(t(MESSAGES.CODE_INVALID));
     setBusy("verify");
     try {
       const result = await verifyPhoneCode(phone, purpose, code);
@@ -63,10 +66,10 @@ export function PhoneVerification({ purpose, onVerified }: PhoneVerificationProp
         countdown.stop();
         onVerified({ phone, token: result.verificationToken });
       } else {
-        setCodeError(MESSAGES.CODE_INVALID);
+        setCodeError(t(MESSAGES.CODE_INVALID));
       }
     } catch {
-      setCodeError(MESSAGES.FAILED);
+      setCodeError(t(MESSAGES.FAILED));
     } finally {
       setBusy(null);
     }
@@ -80,7 +83,7 @@ export function PhoneVerification({ purpose, onVerified }: PhoneVerificationProp
         inputMode="numeric"
         autoComplete="tel-national"
         placeholder="010-0000-0000"
-        aria-label="휴대폰 번호"
+        aria-label={t("auth.phone")}
         value={phone}
         onChange={(e) => {
           setPhone(formatPhone(e.target.value));
@@ -89,7 +92,7 @@ export function PhoneVerification({ purpose, onVerified }: PhoneVerificationProp
         error={phoneError}
         action={
           <Button variant="cta" onClick={send} disabled={busy !== null} aria-busy={busy === "send"}>
-            {sent ? "재발송" : "인증번호 발송"}
+            {sent ? t("auth.resend") : t("auth.sendCode")}
           </Button>
         }
       />
@@ -97,8 +100,8 @@ export function PhoneVerification({ purpose, onVerified }: PhoneVerificationProp
         name="code"
         inputMode="numeric"
         autoComplete="one-time-code"
-        placeholder={`인증번호 ${CODE_LENGTH}자리 입력`}
-        aria-label="인증번호"
+        placeholder={t("auth.codePlaceholder", { length: CODE_LENGTH })}
+        aria-label={t("auth.code")}
         maxLength={CODE_LENGTH}
         value={code}
         disabled={!sent}
@@ -115,20 +118,20 @@ export function PhoneVerification({ purpose, onVerified }: PhoneVerificationProp
         error={codeError}
         action={
           <>
-            <span className={`${shared.timer} ${countdown.expired ? shared.timerExpired : ""}`} aria-label="남은 유효시간">
+            <span className={`${shared.timer} ${countdown.expired ? shared.timerExpired : ""}`} aria-label={t("auth.timeLeft")}>
               {countdown.label ?? "03:00"}
             </span>
             <Button variant="cta" onClick={verify} disabled={!sent || busy !== null} aria-busy={busy === "verify"}>
-              인증 확인
+              {t("auth.verify")}
             </Button>
           </>
         }
       />
       {sent && (
         <p className={shared.helper}>
-          {countdown.expired ? "새 인증번호가 필요하신가요? " : "인증번호가 오지 않나요? "}
+          {countdown.expired ? t("auth.needNewCode") : t("auth.noCode")}{" "}
           <button type="button" className={shared.inlineLink} onClick={send} disabled={busy !== null}>
-            재발송
+            {t("auth.resend")}
           </button>
         </p>
       )}

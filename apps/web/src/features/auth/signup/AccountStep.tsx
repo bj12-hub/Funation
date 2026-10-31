@@ -4,6 +4,8 @@ import { useRef, useState, type FormEvent } from "react";
 import { EyeIcon, EyeOffIcon } from "@/components/icons";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { isEmail, isValidNickname, isValidPassword } from "@/lib/validation";
 import { checkEmailAvailability, checkNicknameAvailability } from "@/services/auth/signup";
 import shared from "../shared/form.module.css";
@@ -13,20 +15,20 @@ import shared from "../shared/form.module.css";
  *        confirm mismatch 722:912 · nickname format 722:985 · nickname taken 722:1059
  */
 
-const MSG = {
-  EMAIL_FORMAT: "올바른 이메일 형식이 아닙니다.",
-  EMAIL_TAKEN: "이미 사용 중인 이메일입니다. 다른 이메일을 사용해 주세요.",
-  EMAIL_UNCHECKED: "이메일 중복 확인을 해 주세요.",
-  PASSWORD_FORMAT: "비밀번호가 형식에 맞지 않습니다. 다시 입력해 주세요.",
-  PASSWORD_MISMATCH: "비밀번호가 일치하지 않습니다.",
-  NICKNAME_FORMAT: "올바른 닉네임 형식이 아닙니다.",
-  NICKNAME_TAKEN: "이미 사용 중인 닉네임입니다. 다른 닉네임을 사용해 주세요.",
+const MSG_KEYS = {
+  EMAIL_FORMAT: "auth.emailFormat",
+  EMAIL_TAKEN: "auth.emailTaken",
+  EMAIL_UNCHECKED: "auth.emailUnchecked",
+  PASSWORD_FORMAT: "auth.passwordFormat",
+  PASSWORD_MISMATCH: "auth.passwordMismatch",
+  NICKNAME_FORMAT: "auth.nicknameFormat",
+  NICKNAME_TAKEN: "auth.nicknameTaken",
   // Code-first: the 마이페이지 nickname change's FORBIDDEN copy (forbidden words and 익명).
-  NICKNAME_FORBIDDEN: "사용할 수 없는 표현이 포함되어 있습니다.",
-  NICKNAME_UNCHECKED: "닉네임 중복 확인을 해 주세요.",
+  NICKNAME_FORBIDDEN: "auth.nicknameForbidden",
+  NICKNAME_UNCHECKED: "auth.nicknameUnchecked",
   // The 중복 확인 request failed (network / server): the same copy as the sign-up submit's.
-  CHECK_FAILED: "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요"
-};
+  CHECK_FAILED: "auth.tempError"
+} as const satisfies Record<string, MessageKey>;
 
 export type AccountValues = { email: string; password: string; nickname: string };
 
@@ -40,6 +42,8 @@ type AccountStepProps = {
 type Check = "idle" | "checking" | "ok";
 
 export function AccountStep({ submitting, submitError, onBack, onSubmit }: AccountStepProps) {
+  const { t } = useI18n();
+  const MSG = Object.fromEntries(Object.entries(MSG_KEYS).map(([k, key]) => [k, t(key)])) as Record<keyof typeof MSG_KEYS, string>;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -111,7 +115,7 @@ export function AccountStep({ submitting, submitError, onBack, onSubmit }: Accou
     <button
       type="button"
       onClick={() => setShowPassword((v) => !v)}
-      aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 보기"}
+      aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
       aria-pressed={showPassword}
       style={{ display: "flex" }}
     >
@@ -123,7 +127,7 @@ export function AccountStep({ submitting, submitError, onBack, onSubmit }: Accou
     <form className={shared.section} onSubmit={handleSubmit} noValidate>
       <div className={shared.stack}>
         <TextField
-          label="아이디 (이메일)"
+          label={t("auth.emailLabel")}
           name="email"
           type="email"
           autoComplete="email"
@@ -136,19 +140,19 @@ export function AccountStep({ submitting, submitError, onBack, onSubmit }: Accou
             setError("email");
           }}
           error={errors.email}
-          hint={emailCheck === "ok" ? "사용 가능한 이메일입니다." : undefined}
+          hint={emailCheck === "ok" ? t("auth.emailAvailable") : undefined}
           action={
             <Button variant="cta" onClick={checkEmail} disabled={emailCheck === "checking"}>
-              중복 확인
+              {t("auth.checkAvailability")}
             </Button>
           }
         />
         <TextField
-          label="비밀번호"
+          label={t("auth.password")}
           name="new-password"
           type={showPassword ? "text" : "password"}
           autoComplete="new-password"
-          placeholder="8~20자, 영문/숫자/특수문자 포함"
+          placeholder={t("auth.passwordPlaceholder", { min: 8, max: 20 })}
           value={password}
           onChange={(e) => {
             setPassword(e.target.value);
@@ -156,15 +160,15 @@ export function AccountStep({ submitting, submitError, onBack, onSubmit }: Accou
           }}
           onBlur={() => password && !isValidPassword(password) && setError("password", MSG.PASSWORD_FORMAT)}
           error={errors.password}
-          hint={errors.password ? "8~20자 · 영문, 숫자, 특수문자를 모두 포함해 주세요." : undefined}
+          hint={errors.password ? t("auth.passwordHint", { min: 8, max: 20 }) : undefined}
           trailing={eye}
         />
         <TextField
-          label="비밀번호 확인"
+          label={t("auth.confirmPassword")}
           name="confirm-password"
           type={showPassword ? "text" : "password"}
           autoComplete="new-password"
-          placeholder="비밀번호를 다시 입력해 주세요"
+          placeholder={t("auth.confirmPlaceholder")}
           value={confirm}
           onChange={(e) => {
             setConfirm(e.target.value);
@@ -174,9 +178,9 @@ export function AccountStep({ submitting, submitError, onBack, onSubmit }: Accou
           error={errors.confirm}
         />
         <TextField
-          label="닉네임"
+          label={t("auth.nickname")}
           name="nickname"
-          placeholder="2~12자 이내"
+          placeholder={t("auth.nicknamePlaceholder", { min: 2, max: 12 })}
           maxLength={12}
           value={nickname}
           onChange={(e) => {
@@ -188,14 +192,14 @@ export function AccountStep({ submitting, submitError, onBack, onSubmit }: Accou
           error={errors.nickname}
           hint={
             errors.nickname === MSG.NICKNAME_FORMAT
-              ? "2~12자의 한글, 영문, 숫자만 사용할 수 있어요."
+              ? t("auth.nicknameHint", { min: 2, max: 12 })
               : nicknameCheck === "ok"
-                ? "사용 가능한 닉네임입니다."
+                ? t("auth.nicknameAvailable")
                 : undefined
           }
           action={
             <Button variant="cta" onClick={checkNickname} disabled={nicknameCheck === "checking"}>
-              중복 확인
+              {t("auth.checkAvailability")}
             </Button>
           }
         />
@@ -208,10 +212,10 @@ export function AccountStep({ submitting, submitError, onBack, onSubmit }: Accou
         </p>
       )}
       <Button type="submit" variant="accent" block disabled={submitting} aria-busy={submitting}>
-        {submitting ? "가입 처리 중…" : "회원가입 완료"}
+        {submitting ? t("auth.signingUp") : t("auth.completeSignup")}
       </Button>
       <button type="button" className={`${shared.textLink} ${shared.underline}`} onClick={onBack}>
-        이전 단계로 돌아가기
+        {t("auth.previousStep")}
       </button>
     </form>
   );
