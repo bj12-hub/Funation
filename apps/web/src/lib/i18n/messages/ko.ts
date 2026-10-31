@@ -6836,11 +6836,12 @@ export const ko = {
     loading: "랭킹을 불러오는 중…",
     meta: "명예의 전당 | Ssumnation"
   },
-  /** 커뮤니티 (2026-11-01). Posts, comments and author names are content. */
+  /** FLEXTV 위젯 목록: the 리모컨 card also hands out the overlay addresses. */
   flextvWidgets: {
     remoteTitle: "리모컨 · 오버레이 주소",
     remoteDesc: "방송 중 퀘스트 · 룰렛 · 뽑기를 다루고, OBS에 넣을 오버레이 주소를 복사합니다."
   },
+  /** 커뮤니티 (2026-11-01). Posts, comments and author names are content. */
   community: {
     title: "커뮤니티",
     total: "전체 게시글 {count}개",
