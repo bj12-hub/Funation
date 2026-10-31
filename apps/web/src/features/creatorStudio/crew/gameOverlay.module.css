@@ -1107,7 +1107,8 @@
   min-width: 0;
   overflow: hidden;
   color: var(--ov-chip-ink);
-  /* 2026-10-30: a big board in a narrow source shrinks them (AA ~ AX still fit a column), 10px otherwise. */
+  /* 2026-10-30: a big board in a narrow source shrinks them to fit a column (6px at the least: past that, as in a 480px
+     card from about 35 a side, AA ~ AX are clipped), 10px otherwise. */
   font-size: clamp(6px, calc(55cqi / (var(--terr-size, 8) + 1)), 10px);
   opacity: 0.7;
 }
@@ -1216,6 +1217,8 @@
 .sdCenter > span {
   width: min(76px, 40%);
   height: auto;
+  /* 10px of a 76px die as it shrinks (a padding % counts the parent's width: 13% of the die's 40%). */
+  padding: min(10px, 5.2%);
   aspect-ratio: 1;
 }
 
@@ -1370,7 +1373,26 @@
 }
 
 .sd3Dice > span {
-  width: clamp(36px, calc(var(--sd3-board) * 0.12), 76px);
+  --sd3-die: clamp(36px, calc(var(--sd3-board) * 0.12), 76px);
+  width: var(--sd3-die);
+  height: auto;
+  padding: calc(var(--sd3-die) * 0.13);
+  aspect-ratio: 1;
+}
+
+/*
+ * A die smaller than its 76px (스도폴리 판 가운데, 2D and 3D — 2026-11-01): its padding (above), corners and pips scale with
+ * it, so it stays square instead of growing to fit 13px pips.
+ */
+.sdCenter > span,
+.sd3Dice > span {
+  min-height: 0;
+  border-radius: 21%;
+}
+
+.sdCenter > span i,
+.sd3Dice > span i {
+  width: 70%;
   height: auto;
   aspect-ratio: 1;
 }
