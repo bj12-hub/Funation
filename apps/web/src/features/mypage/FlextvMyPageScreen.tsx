@@ -93,6 +93,15 @@ export function FlextvMyPageScreen({ account, creator }: { account: FlextvMyAcco
             <ChargeTrigger className={styles.actionButton} />
           </Row>
 
+          <Row label="쪽지">
+            <Link href="/messages" className={styles.actionButton}>
+              쪽지함
+            </Link>
+            <Link href="/mypage/blocks" className={styles.actionButton}>
+              차단 관리
+            </Link>
+          </Row>
+
           <Row label="크리에이터">
             <Link href={creator ? "/creator" : "/channel/new"} className={styles.actionButton}>
               {creator ? "크리에이터 스튜디오로" : "내 채널 만들기"}

@@ -15,6 +15,7 @@ import {
   type Notice,
   type SupportTab
 } from "@/services/support/supportTypes";
+import { FlextvInquiryForm } from "./FlextvInquiryForm";
 import { InquiryForm } from "./InquiryForm";
 import local from "./supportTabs.module.css";
 import styles from "./support.module.css";
@@ -35,6 +36,8 @@ type Props = {
   category?: FaqCategory;
   /** `null` = signed out. */
   inquiries: Inquiry[] | null;
+  /** With FLEXTV (phase 9): FLEXTV's 1:1 문의 유형; null when FLEXTV did not answer (its own form is linked instead). */
+  inquiryCategories?: { value: string; label: string }[] | null;
 };
 
 const faqHref = (category?: FaqCategory, q?: string) => {
@@ -47,10 +50,10 @@ const faqHref = (category?: FaqCategory, q?: string) => {
 /**
  * Customer support — tabs follow funnation 고객센터 (공지사항 · 자주 묻는 질문 · 1:1 문의).
  * Figma 고객센터 4:7 (hero, search, FAQ accordion, 문의 방법) visuals are kept. Route `/support`.
- * With FLEXTV (phase 7) FLEXTV's notices, questions and 1:1 문의: no categories or view counts, and a 문의 is written
- * on FLEXTV's site.
+ * With FLEXTV (phase 7) FLEXTV's notices, questions and 1:1 문의: no categories or view counts. A 문의 is written with
+ * FLEXTV's 유형 (phase 9).
  */
-export function SupportScreen({ tab, notices, faqs, query, category, inquiries }: Props) {
+export function SupportScreen({ tab, notices, faqs, query, category, inquiries, inquiryCategories = null }: Props) {
   return (
     <div className={styles.page}>
       <header className={styles.hero}>
@@ -74,7 +77,7 @@ export function SupportScreen({ tab, notices, faqs, query, category, inquiries }
 
       {tab === "notices" && <NoticeList notices={notices} />}
       {tab === "faq" && <FaqPanel faqs={faqs} query={query} category={category} />}
-      {tab === "inquiry" && <InquiryPanel inquiries={inquiries} />}
+      {tab === "inquiry" && <InquiryPanel inquiries={inquiries} categories={inquiryCategories} />}
     </div>
   );
 }
@@ -160,7 +163,7 @@ function FaqPanel({ faqs, query, category }: { faqs: FaqItem[]; query?: string; 
   );
 }
 
-function InquiryPanel({ inquiries }: { inquiries: Inquiry[] | null }) {
+function InquiryPanel({ inquiries, categories }: { inquiries: Inquiry[] | null; categories: Props["inquiryCategories"] }) {
   return (
     <>
       <ul className={styles.contacts} aria-label="상담 채널">
@@ -181,9 +184,11 @@ function InquiryPanel({ inquiries }: { inquiries: Inquiry[] | null }) {
         </div>
       ) : (
         <>
-          {FLEXTV_SITE ? (
+          {FLEXTV_SITE && categories ? (
+            <FlextvInquiryForm categories={categories} />
+          ) : FLEXTV_SITE ? (
             <div className={local.empty}>
-              <p>1:1 문의는 FLEXTV에서 작성해요. 답변은 이 아래 내 문의 내역에서도 볼 수 있어요.</p>
+              <p>지금은 문의 유형을 불러오지 못했어요. FLEXTV에서 문의해 주세요. 답변은 이 아래 내 문의 내역에서도 볼 수 있어요.</p>
               <a href={`${FLEXTV_WEB_URL}/cs/inquiry`} target="_blank" rel="noopener noreferrer" className={styles.emptyLink}>
                 FLEXTV에서 문의하기
               </a>

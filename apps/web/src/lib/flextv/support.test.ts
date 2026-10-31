@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { htmlToParagraphs, readNoticeList, readNoticePage, readQuestions } from "./support";
+import { FlextvUnavailableError } from "./client";
+import { htmlToParagraphs, mapInquiryPost, readInquiryCategories, readNoticeList, readNoticePage, readQuestions } from "./support";
 
 /** FLEXTV's 고객센터 answers (server/routes/api/cs, v2/api/cs of FLEXTV's web repository), in its shapes. */
 
@@ -43,5 +44,31 @@ describe("questions (자주 묻는 질문 · 1:1 문의)", () => {
       { id: "4", title: "환불 문의", paragraphs: ["환불해 주세요"], answer: ["처리했습니다."], answered: true, createdAt: "2026-10-02T00:00:00.000Z" }
     ]);
     expect(readQuestions([])).toEqual([]);
+  });
+});
+
+describe("1:1 문의 작성 (phase 9)", () => {
+  it("offers FLEXTV's 1:1 문의 유형 only (codes 1–19)", () => {
+    expect(
+      readInquiryCategories([
+        { key: 1, value: "1", text: "계정" },
+        { key: 2, value: 5, text: "결제/환불" },
+        { key: 3, value: "31", text: "건의" },
+        { key: 4, value: "x", text: "기타" },
+        { key: 5, value: "1", text: "계정" },
+        { key: 6, value: "7", text: "" }
+      ])
+    ).toEqual([
+      { value: "1", label: "계정" },
+      { value: "5", label: "결제/환불" }
+    ]);
+    expect(readInquiryCategories(null)).toEqual([]);
+  });
+
+  it("reads FLEXTV's answer to a 문의", () => {
+    expect(mapInquiryPost({ status: 200, data: { result: true, data: { id: 302, title: "질문" } } })).toEqual({ kind: "OK", id: "302" });
+    expect(mapInquiryPost({ status: 200, data: { result: false, error: 400, data: "정지된 회원입니다." } })).toEqual({ kind: "REFUSED", message: "정지된 회원입니다." });
+    expect(mapInquiryPost({ status: 401, data: "로그인을 해주세요." })).toEqual({ kind: "UNAUTHORIZED" });
+    expect(() => mapInquiryPost({ status: 200, data: { result: true, data: null } })).toThrow(FlextvUnavailableError);
   });
 });
