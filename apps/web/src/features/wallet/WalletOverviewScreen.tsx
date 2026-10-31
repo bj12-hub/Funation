@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChargeTrigger } from "@/features/walletCharge";
 import { formatNumber } from "@/lib/format";
 import { getT } from "@/lib/i18n/server";
+import { walletStatusText } from "./statusLabels";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { LEDGER_FILTER_KINDS, LEDGER_PERIODS, type LedgerKind, type LedgerPeriod, type WalletOverview } from "@/services/wallet/walletTypes";
 import styles from "./walletOverview.module.css";
@@ -115,7 +116,7 @@ export async function WalletOverviewScreen({ view }: { view: WalletOverview }) {
                     </td>
                     <td>
                       <span className={styles.status} data-tone={e.tone}>
-                        {e.statusLabel}
+                        {walletStatusText(e.statusLabel, t)}
                       </span>
                     </td>
                     <td>{dotted(e.at)}</td>

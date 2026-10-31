@@ -2,19 +2,24 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { markUpdatesRead } from "@/services/creator/updates";
-import { UPDATE_KIND_LABEL, type UpdateItemKind, type UpdatesView } from "@/services/creator/updatesTypes";
+import type { UpdateItemKind, UpdatesView } from "@/services/creator/updatesTypes";
 import styles from "../crew/crew.module.css";
 import local from "./updates.module.css";
 
 const KINDS: UpdateItemKind[] = ["NEW", "IMPROVED", "FIX"];
 const date = (d: string) => d.replace(/-/g, ".");
+/** UPDATE_KIND_LABEL in the viewer's language (2026-11-01). The posts themselves are content and stay as written. */
+const KIND_KEYS: Record<UpdateItemKind, MessageKey> = { NEW: "studioUpdates.kindNew", IMPROVED: "studioUpdates.kindImproved", FIX: "studioUpdates.kindFix" };
 
 /**
  * 업데이트 소식 — code-first (no Figma frame). Route `/creator/updates`. Posts with 신규 · 개선 ·
  * 버그 수정 counts; unread posts keep their NEW mark for this visit and are marked read on the server.
  */
 export function UpdatesScreen({ view }: { view: UpdatesView }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState<string | null>(view.posts[0]?.id ?? null);
   useEffect(() => {
     if (view.unreadCount) void markUpdatesRead().catch(() => undefined);
@@ -23,11 +28,11 @@ export function UpdatesScreen({ view }: { view: UpdatesView }) {
   return (
     <div className={styles.content}>
       <header className={styles.header}>
-        <h1 className={styles.title}>업데이트 소식</h1>
-        <p className={styles.subtitle}>썸네이션의 새로운 기능과 개선 사항을 확인하세요.</p>
+        <h1 className={styles.title}>{t("studioUpdates.title")}</h1>
+        <p className={styles.subtitle}>{t("studioUpdates.subtitle")}</p>
       </header>
       {view.posts.length === 0 ? (
-        <p className={styles.empty}>아직 소식이 없어요.</p>
+        <p className={styles.empty}>{t("studioUpdates.empty")}</p>
       ) : (
         <ul className={local.posts}>
           {view.posts.map((p) => {
@@ -45,7 +50,7 @@ export function UpdatesScreen({ view }: { view: UpdatesView }) {
                       const n = p.items.filter((i) => i.kind === k).length;
                       return n ? (
                         <span key={k} className={local.count} data-kind={k}>
-                          {UPDATE_KIND_LABEL[k]} {n}
+                          {t(KIND_KEYS[k])} {n}
                         </span>
                       ) : null;
                     })}
@@ -58,9 +63,9 @@ export function UpdatesScreen({ view }: { view: UpdatesView }) {
                       const items = p.items.filter((i) => i.kind === k);
                       if (!items.length) return null;
                       return (
-                        <section key={k} aria-label={UPDATE_KIND_LABEL[k]}>
+                        <section key={k} aria-label={t(KIND_KEYS[k])}>
                           <h3 className={local.kind} data-kind={k}>
-                            {UPDATE_KIND_LABEL[k]}
+                            {t(KIND_KEYS[k])}
                           </h3>
                           <ul>
                             {items.map((i) => (

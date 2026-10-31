@@ -2,16 +2,29 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { STATS_PRESET_LABEL, presetPeriod, type StatsPeriod, type StatsPreset } from "@/services/creator/creatorStats";
 import styles from "./studio.module.css";
 
 const PRESETS = (Object.keys(STATS_PRESET_LABEL) as StatsPreset[]).filter((p) => p !== "range");
+/** STATS_PRESET_LABEL in the viewer's language (2026-11-01). */
+const PRESET_KEYS: Record<StatsPreset, MessageKey> = {
+  today: "studioDashboard.presetToday",
+  week: "studioDashboard.presetWeek",
+  month: "studioDashboard.presetMonth",
+  "3months": "studioDashboard.preset3Months",
+  "6months": "studioDashboard.preset6Months",
+  year: "studioDashboard.presetYear",
+  range: "studioDashboard.presetRange"
+};
 
 /**
  * Figma 287:16 — 오늘/1주일/1개월/3개월/6개월/1년 chips, date range, 조회.
  * A chip applies right away; editing a date switches to a custom range applied with 조회.
  */
 export function StatsFilter({ period }: { period: StatsPeriod }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [from, setFrom] = useState(period.from);
   const [to, setTo] = useState(period.to);
@@ -30,7 +43,7 @@ export function StatsFilter({ period }: { period: StatsPeriod }) {
 
   return (
     <div className={styles.filter}>
-      <div className={styles.chips} role="radiogroup" aria-label="조회 기간">
+      <div className={styles.chips} role="radiogroup" aria-label={t("studioDashboard.periodAria")}>
         {PRESETS.map((p) => (
           <button
             key={p}
@@ -45,7 +58,7 @@ export function StatsFilter({ period }: { period: StatsPeriod }) {
               apply({ preset: p });
             }}
           >
-            {STATS_PRESET_LABEL[p]}
+            {t(PRESET_KEYS[p])}
           </button>
         ))}
       </div>
@@ -56,11 +69,11 @@ export function StatsFilter({ period }: { period: StatsPeriod }) {
           if (!invalid) apply({ preset: "range", from, to });
         }}
       >
-        <input type="date" aria-label="시작일" className={styles.date} value={from} max={to} onChange={(e) => setFrom(e.target.value)} />
+        <input type="date" aria-label={t("studioDashboard.from")} className={styles.date} value={from} max={to} onChange={(e) => setFrom(e.target.value)} />
         <span aria-hidden="true">~</span>
-        <input type="date" aria-label="종료일" className={styles.date} value={to} min={from} onChange={(e) => setTo(e.target.value)} />
+        <input type="date" aria-label={t("studioDashboard.to")} className={styles.date} value={to} min={from} onChange={(e) => setTo(e.target.value)} />
         <button type="submit" className={styles.search} disabled={invalid}>
-          조회
+          {t("studioDashboard.apply")}
         </button>
       </form>
     </div>

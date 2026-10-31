@@ -1,14 +1,24 @@
+"use client";
+
 import { Fragment } from "react";
 import { CreditCardIcon } from "@/components/icons";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import styles from "./settlement.module.css";
 
 export const SETTLEMENT_STEPS = ["정산 등록", "정산 신청", "정산 승인"] as const;
+const STEP_KEYS: Record<(typeof SETTLEMENT_STEPS)[number], MessageKey> = {
+  "정산 등록": "studioSettlement.stepRegister",
+  "정산 신청": "studioSettlement.stepRequest",
+  "정산 승인": "studioSettlement.stepApprove"
+};
 
 /**
  * Figma 429:54 gradient stepper banner. `current` is the active step (0-based): dots up to it are
  * filled, and the track is solid up to the segment leaving the active step (as drawn in 429:59).
  */
 export function SettlementStepper({ current }: { current: number }) {
+  const { t } = useI18n();
   return (
     <div className={styles.banner}>
       <div className={styles.stepper}>
@@ -20,10 +30,10 @@ export function SettlementStepper({ current }: { current: number }) {
             </Fragment>
           ))}
         </div>
-        <ol className={styles.stepLabels} aria-label="정산 진행 단계">
+        <ol className={styles.stepLabels} aria-label={t("studioSettlement.stepsAria")}>
           {SETTLEMENT_STEPS.map((label, i) => (
             <li key={label} data-on={i <= current || undefined} aria-current={i === current ? "step" : undefined}>
-              {label}
+              {t(STEP_KEYS[label])}
             </li>
           ))}
         </ol>

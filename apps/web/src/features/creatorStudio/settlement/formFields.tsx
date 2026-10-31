@@ -2,6 +2,7 @@
 
 import { useId, useRef, useState, type ReactNode } from "react";
 import { ChevronDownSmallIcon, UploadIcon } from "@/components/icons";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { EMAIL_DOMAINS, PHONE_PREFIXES, SETTLEMENT_FILE_MAX_BYTES, SETTLEMENT_FILE_TYPES } from "@/services/creator/settlementTypes";
 import styles from "./registration.module.css";
 
@@ -19,10 +20,12 @@ export function FormCard({ title, children }: { title: string; children: ReactNo
   );
 }
 
+/** `value` is the tax classification as written (policy wording, Korean until approved — TBD). */
 export function TaxBar({ value }: { value: string }) {
+  const { t } = useI18n();
   return (
     <p className={styles.taxBar}>
-      <span className={styles.taxLabel}>과세 유형</span>
+      <span className={styles.taxLabel}>{t("studioSettlementForm.taxType")}</span>
       <span className={styles.taxDivider} aria-hidden="true" />
       <span className={styles.taxValue}>{value}</span>
     </p>
@@ -84,38 +87,40 @@ export function Select({ options, placeholder, className, ...rest }: React.Selec
 }
 
 export function PhoneInputs({ prefix, label }: { prefix: string; label: string }) {
+  const { t } = useI18n();
   return (
     <span className={styles.row}>
-      <Select name={`${prefix}Prefix`} options={PHONE_PREFIXES} defaultValue="010" aria-label={`${label} 앞자리`} className={styles.phonePrefix} />
+      <Select name={`${prefix}Prefix`} options={PHONE_PREFIXES} defaultValue="010" aria-label={t("studioSettlementForm.phonePrefix", { label })} className={styles.phonePrefix} />
       <span className={styles.dash} aria-hidden="true">
         -
       </span>
-      <TextInput name={`${prefix}Mid`} inputMode="numeric" maxLength={4} pattern="\d{3,4}" placeholder="0000" aria-label={`${label} 가운데 자리`} />
+      <TextInput name={`${prefix}Mid`} inputMode="numeric" maxLength={4} pattern="\d{3,4}" placeholder="0000" aria-label={t("studioSettlementForm.phoneMiddle", { label })} />
       <span className={styles.dash} aria-hidden="true">
         -
       </span>
-      <TextInput name={`${prefix}Last`} inputMode="numeric" maxLength={4} pattern="\d{4}" placeholder="0000" aria-label={`${label} 끝자리`} />
+      <TextInput name={`${prefix}Last`} inputMode="numeric" maxLength={4} pattern="\d{4}" placeholder="0000" aria-label={t("studioSettlementForm.phoneLast", { label })} />
     </span>
   );
 }
 
 /** username @ domain + 직접입력 dropdown (443:5). Picking a domain fills the domain input. */
 export function EmailInputs({ prefix, label }: { prefix: string; label: string }) {
+  const { t } = useI18n();
   const [domain, setDomain] = useState<string>(EMAIL_DOMAINS[0]);
   return (
     <span className={styles.row}>
-      <TextInput name={`${prefix}Local`} placeholder="username" maxLength={64} aria-label={`${label} 아이디`} />
+      <TextInput name={`${prefix}Local`} placeholder="username" maxLength={64} aria-label={t("studioSettlementForm.emailLocal", { label })} />
       <span className={styles.dash} aria-hidden="true">
         @
       </span>
-      <TextInput name={`${prefix}Domain`} value={domain} onChange={(e) => setDomain(e.target.value)} maxLength={60} aria-label={`${label} 도메인`} />
+      <TextInput name={`${prefix}Domain`} value={domain} onChange={(e) => setDomain(e.target.value)} maxLength={60} aria-label={t("studioSettlementForm.emailDomain", { label })} />
       <Select
         options={EMAIL_DOMAINS}
-        placeholder="직접입력"
+        placeholder={t("studioSettlementForm.emailCustom")}
         value={(EMAIL_DOMAINS as readonly string[]).includes(domain) ? domain : ""}
         onChange={(e) => setDomain(e.target.value)}
         required={false}
-        aria-label={`${label} 도메인 선택`}
+        aria-label={t("studioSettlementForm.emailDomainSelect", { label })}
         className={styles.domainSelect}
       />
     </span>
@@ -127,15 +132,16 @@ export function EmailInputs({ prefix, label }: { prefix: string; label: string }
  * typed directly; the button explains that.
  */
 export function AddressInputs({ onSearch }: { onSearch: () => void }) {
+  const { t } = useI18n();
   return (
     <span className={styles.stack}>
       <span className={styles.row}>
-        <TextInput name="addressBase" placeholder="우편번호 및 기본 주소를 검색해 주세요" maxLength={150} aria-label="기본 주소" />
+        <TextInput name="addressBase" placeholder={t("studioSettlementForm.addressPlaceholder")} maxLength={150} aria-label={t("studioSettlementForm.addressBase")} />
         <button type="button" className={styles.inlineButton} onClick={onSearch}>
-          주소 검색
+          {t("studioSettlementForm.addressSearch")}
         </button>
       </span>
-      <TextInput name="addressDetail" placeholder="상세 주소를 입력해 주세요" maxLength={50} required={false} aria-label="상세 주소" />
+      <TextInput name="addressDetail" placeholder={t("studioSettlementForm.addressDetailPlaceholder")} maxLength={50} required={false} aria-label={t("studioSettlementForm.addressDetail")} />
     </span>
   );
 }
@@ -144,6 +150,7 @@ type UploadProps = { name: string; label: string; helper?: string; guide?: strin
 
 /** Drop zone (443:5): click or drag a file. Checks type and size before upload; the server re-checks. */
 export function UploadField({ name, label, helper, guide, target, onInvalid }: UploadProps) {
+  const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [drag, setDrag] = useState(false);
@@ -154,13 +161,13 @@ export function UploadField({ name, label, helper, guide, target, onInvalid }: U
     const input = inputRef.current;
     if (!file || !input) return;
     if (!(SETTLEMENT_FILE_TYPES as readonly string[]).includes(file.type)) {
-      onInvalid("JPG, PNG, PDF 파일만 업로드할 수 있어요.");
+      onInvalid(t("studioSettlementForm.fileTypes"));
       input.value = "";
       setFileName(null);
       return;
     }
     if (file.size > SETTLEMENT_FILE_MAX_BYTES) {
-      onInvalid("파일은 5MB 이하만 업로드할 수 있어요.");
+      onInvalid(t("studioSettlementForm.fileSize"));
       input.value = "";
       setFileName(null);
       return;
@@ -204,7 +211,7 @@ export function UploadField({ name, label, helper, guide, target, onInvalid }: U
         <span className={styles.dropIcon} aria-hidden="true">
           <UploadIcon />
         </span>
-        <span className={styles.dropText}>{fileName ?? `클릭하거나 파일을 드래그하여 ${target} 업로드 하세요`}</span>
+        <span className={styles.dropText}>{fileName ?? t("studioSettlementForm.dropText", { target })}</span>
         <input
           ref={inputRef}
           id={id}
@@ -218,7 +225,7 @@ export function UploadField({ name, label, helper, guide, target, onInvalid }: U
       </div>
       {guide && (
         // Guide pages are not designed yet (TBD); shown as the design's label only.
-        <span className={styles.guide} title="준비 중인 안내입니다">
+        <span className={styles.guide} title={t("studioSettlementForm.guideSoon")}>
           {guide} ›
         </span>
       )}

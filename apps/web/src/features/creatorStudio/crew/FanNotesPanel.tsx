@@ -2,17 +2,21 @@
 
 import { useState } from "react";
 import { formatKstTime, formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { saveFanNoteRules, setFanNotesOpen, setFanNoteStatus, simulateFanNote } from "@/services/crew/crewFanNotes";
 import { FAN_NOTE_KINDS, FAN_NOTE_LIMITS, FAN_NOTE_RULE_RANGE, PLATFORM_FAN_NOTE_RULES, type BroadcastResult, type CrewMember, type FanNoteKind, type FanNoteStatus, type FanNotesView } from "@/services/crew/crewTypes";
 import styles from "./crew.module.css";
 import local from "./fanNotes.module.css";
 
-const STATUS_TABS: { key: FanNoteStatus | "ALL"; label: string }[] = [
-  { key: "NEW", label: "처리 전" },
-  { key: "DONE", label: "완료" },
-  { key: "HIDDEN", label: "숨김" },
-  { key: "ALL", label: "전체" }
+const STATUS_TABS: { key: FanNoteStatus | "ALL"; label: MessageKey }[] = [
+  { key: "NEW", label: "crewOpsFanNotes.statusNew" },
+  { key: "DONE", label: "crewOpsFanNotes.statusDone" },
+  { key: "HIDDEN", label: "crewOpsFanNotes.statusHidden" },
+  { key: "ALL", label: "crewOps.all" }
 ];
+/** 종류 labels as message keys (FAN_NOTE_KINDS in crewTypes stays as written). */
+const KIND_KEY: Record<FanNoteKind, MessageKey> = { MESSAGE: "crewOpsFanNotes.kindMessage", REQUEST: "crewOpsFanNotes.kindRequest" };
 const time = (iso: string) => formatKstTime(iso, { hour: "2-digit", minute: "2-digit" });
 
 /**
@@ -34,6 +38,7 @@ export function FanNotesPanel({
   pending: boolean;
   run: (action: () => Promise<BroadcastResult>, ok?: string) => void;
 }) {
+  const { t } = useI18n();
   const [status, setStatus] = useState<FanNoteStatus | "ALL">("NEW");
   const [kind, setKind] = useState<FanNoteKind | "ALL">("ALL");
   const [member, setMember] = useState("ALL");
@@ -51,54 +56,52 @@ export function FanNotesPanel({
     <section className={styles.card} aria-labelledby="bc-fan">
       <div className={styles.cardHead}>
         <h2 id="bc-fan" className={styles.cardTitle}>
-          💌 팬 메시지 · 요청사항 {view.counts.NEW > 0 && <span className={styles.chip}>새 글 {view.counts.NEW}</span>}
+          {t("crewOpsFanNotes.title")} {view.counts.NEW > 0 && <span className={styles.chip}>{t("crewOpsFanNotes.newBadge", { count: view.counts.NEW })}</span>}
         </h2>
         <label className={styles.checkRow}>
-          <input type="checkbox" checked={view.open} disabled={pending} onChange={(e) => run(() => setFanNotesOpen({ broadcastId, on: e.target.checked }), e.target.checked ? "방송 방에서 다시 받아요." : "방송 방 입력 칸을 닫았어요.")} />
-          방송 방에서 받기
+          <input type="checkbox" checked={view.open} disabled={pending} onChange={(e) => run(() => setFanNotesOpen({ broadcastId, on: e.target.checked }), e.target.checked ? t("crewOpsFanNotes.reopened") : t("crewOpsFanNotes.closed"))} />
+          {t("crewOpsFanNotes.receive")}
         </label>
       </div>
-      <p className={styles.note}>
-        시청자가 방송 방에서 무료로 {FAN_NOTE_LIMITS.textMax}자까지 보내요. 완료하면 보낸 사람에게 &lsquo;완료&rsquo;로 보이고, 숨긴 글은 &lsquo;전달됨&rsquo;으로 남아요.
-      </p>
+      <p className={styles.note}>{t("crewOpsFanNotes.note", { max: FAN_NOTE_LIMITS.textMax })}</p>
       <form
         className={local.rules}
         onSubmit={(e) => {
           e.preventDefault();
-          run(() => saveFanNoteRules({ cooldownSec: num(cooldown), perBroadcast: num(cap) }), "도배 기준을 저장했어요. 지금 방송부터 적용돼요.");
+          run(() => saveFanNoteRules({ cooldownSec: num(cooldown), perBroadcast: num(cap) }), t("crewOpsFanNotes.rulesSaved"));
         }}
       >
-        <span className={styles.muted}>도배 기준</span>
+        <span className={styles.muted}>{t("crewOpsFanNotes.spamRules")}</span>
         <label className={local.rule}>
-          한 사람당
+          {t("crewOpsFanNotes.perPersonBefore")}
           <input
             className={styles.inputSmall}
             type="number"
             inputMode="numeric"
             min={FAN_NOTE_RULE_RANGE.cooldownSec[0]}
             max={FAN_NOTE_RULE_RANGE.cooldownSec[1]}
-            aria-label="대기 시간(초)"
+            aria-label={t("crewOpsFanNotes.cooldownAria")}
             value={cooldown}
             onChange={(e) => setCooldown(e.target.value)}
           />
-          초에 한 번
+          {t("crewOpsFanNotes.perPersonAfter")}
         </label>
         <label className={local.rule}>
-          방송당
+          {t("crewOpsFanNotes.perBroadcastBefore")}
           <input
             className={styles.inputSmall}
             type="number"
             inputMode="numeric"
             min={FAN_NOTE_RULE_RANGE.perBroadcast[0]}
             max={FAN_NOTE_RULE_RANGE.perBroadcast[1]}
-            aria-label="방송당 최대 개수"
+            aria-label={t("crewOpsFanNotes.capAria")}
             value={cap}
             onChange={(e) => setCap(e.target.value)}
           />
-          개까지
+          {t("crewOpsFanNotes.perBroadcastAfter")}
         </label>
         <button type="submit" className={styles.ghost} disabled={pending}>
-          저장
+          {t("crewOps.save")}
         </button>
         <button
           type="button"
@@ -109,12 +112,15 @@ export function FanNotesPanel({
             setCap(String(PLATFORM_FAN_NOTE_RULES.perBroadcast));
           }}
         >
-          기본값({PLATFORM_FAN_NOTE_RULES.cooldownSec}초 · {formatNumber(PLATFORM_FAN_NOTE_RULES.perBroadcast)}개)
+          {t("crewOpsFanNotes.defaults", { sec: PLATFORM_FAN_NOTE_RULES.cooldownSec, count: formatNumber(PLATFORM_FAN_NOTE_RULES.perBroadcast) })}
         </button>
       </form>
       <p className={styles.note}>
-        지금 {view.rules.cooldownSec > 0 ? `${view.rules.cooldownSec}초에 한 번` : "대기 없이"} · 이번 방송 {formatNumber(total)}/{formatNumber(view.rules.perBroadcast)}개 받음. 0초로 두면 기다리지 않고
-        보낼 수 있어요.
+        {t("crewOpsFanNotes.nowLine", {
+          rule: view.rules.cooldownSec > 0 ? t("crewOpsFanNotes.onceEvery", { n: view.rules.cooldownSec }) : t("crewOpsFanNotes.noWait"),
+          total: formatNumber(total),
+          cap: formatNumber(view.rules.perBroadcast)
+        })}
       </p>
 
       <div className={styles.rowActions}>
@@ -124,32 +130,32 @@ export function FanNotesPanel({
             type="button"
             className={styles.ghost}
             disabled={pending}
-            onClick={() => run(() => simulateFanNote({ broadcastId, kind: k.key, requestId: crypto.randomUUID() }), `테스트 ${k.label}를 넣었어요.`)}
+            onClick={() => run(() => simulateFanNote({ broadcastId, kind: k.key, requestId: crypto.randomUUID() }), t("crewOpsFanNotes.testAdded", { kind: t(KIND_KEY[k.key]) }))}
           >
-            테스트 {k.label}
+            {t("crewOpsFanNotes.test", { kind: t(KIND_KEY[k.key]) })}
           </button>
         ))}
       </div>
 
       <div className={local.filters}>
-        <div className={styles.tabs} role="tablist" aria-label="처리 상태">
-          {STATUS_TABS.map((t) => (
-            <button key={t.key} type="button" role="tab" aria-selected={status === t.key} aria-current={status === t.key ? "page" : undefined} className={styles.tab} onClick={() => setStatus(t.key)}>
-              {t.label} {t.key === "ALL" ? total : view.counts[t.key]}
+        <div className={styles.tabs} role="tablist" aria-label={t("crewOpsFanNotes.statusAria")}>
+          {STATUS_TABS.map((tab) => (
+            <button key={tab.key} type="button" role="tab" aria-selected={status === tab.key} aria-current={status === tab.key ? "page" : undefined} className={styles.tab} onClick={() => setStatus(tab.key)}>
+              {t(tab.label)} {tab.key === "ALL" ? total : view.counts[tab.key]}
             </button>
           ))}
         </div>
-        <select className={styles.select} aria-label="종류" value={kind} onChange={(e) => setKind(e.target.value as FanNoteKind | "ALL")}>
-          <option value="ALL">모든 종류</option>
+        <select className={styles.select} aria-label={t("crewOpsFanNotes.kindAria")} value={kind} onChange={(e) => setKind(e.target.value as FanNoteKind | "ALL")}>
+          <option value="ALL">{t("crewOpsFanNotes.allKinds")}</option>
           {FAN_NOTE_KINDS.map((k) => (
             <option key={k.key} value={k.key}>
-              {k.emoji} {k.label}
+              {k.emoji} {t(KIND_KEY[k.key])}
             </option>
           ))}
         </select>
-        <select className={styles.select} aria-label="받는 멤버" value={member} onChange={(e) => setMember(e.target.value)}>
-          <option value="ALL">모든 멤버</option>
-          <option value="CREW">크루 전체에게</option>
+        <select className={styles.select} aria-label={t("crewOpsFanNotes.memberAria")} value={member} onChange={(e) => setMember(e.target.value)}>
+          <option value="ALL">{t("crewOpsHistory.allMembers")}</option>
+          <option value="CREW">{t("crewOpsFanNotes.toCrew")}</option>
           {members.map((m) => (
             <option key={m.id} value={m.id}>
               {m.name}
@@ -159,9 +165,9 @@ export function FanNotesPanel({
       </div>
 
       {total === 0 ? (
-        <p className={styles.empty}>{view.open ? "아직 받은 글이 없어요. 방송 방에 입력 칸이 열려 있어요." : "방송 방에서 받기가 꺼져 있어요."}</p>
+        <p className={styles.empty}>{view.open ? t("crewOpsFanNotes.emptyOpen") : t("crewOpsFanNotes.emptyClosed")}</p>
       ) : shown.length === 0 ? (
-        <p className={styles.empty}>조건에 맞는 글이 없어요.</p>
+        <p className={styles.empty}>{t("crewOpsFanNotes.emptyFiltered")}</p>
       ) : (
         <ul className={styles.list}>
           {shown.map((n) => {
@@ -171,10 +177,10 @@ export function FanNotesPanel({
                 <div className={`${styles.rowMain} ${local.main}`}>
                   <span className={styles.muted}>
                     <span className={n.kind === "REQUEST" ? styles.chip : styles.chipOff}>
-                      {k.emoji} {k.label}
+                      {k.emoji} {t(KIND_KEY[k.key])}
                     </span>{" "}
-                    {n.memberName ? `→ ${n.memberName}` : "→ 크루 전체"} · {n.author} · {time(n.at)}
-                    {n.status !== "NEW" && ` · ${n.status === "DONE" ? "완료" : "숨김"}`}
+                    {n.memberName ? `→ ${n.memberName}` : t("crewOpsFanNotes.toWholeCrew")} · {n.author} · {time(n.at)}
+                    {n.status !== "NEW" && ` · ${n.status === "DONE" ? t("crewOpsFanNotes.statusDone") : t("crewOpsFanNotes.statusHidden")}`}
                   </span>
                   <span className={local.text}>{n.text}</span>
                 </div>
@@ -182,15 +188,15 @@ export function FanNotesPanel({
                   {n.status === "NEW" ? (
                     <>
                       <button type="button" className={styles.primary} disabled={pending} onClick={() => mark(n.id, "DONE")}>
-                        완료
+                        {t("crewOpsFanNotes.markDone")}
                       </button>
                       <button type="button" className={styles.ghost} disabled={pending} onClick={() => mark(n.id, "HIDDEN")}>
-                        숨기기
+                        {t("crewOpsFanNotes.hide")}
                       </button>
                     </>
                   ) : (
                     <button type="button" className={styles.ghost} disabled={pending} onClick={() => mark(n.id, "NEW")}>
-                      되돌리기
+                      {t("crewOps.revert")}
                     </button>
                   )}
                 </div>

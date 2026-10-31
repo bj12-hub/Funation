@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { uploadAsset } from "@/services/creator/assets";
 import { ASSET_LIMITS, type Asset } from "@/services/creator/assetTypes";
 import crew from "../crew/crew.module.css";
@@ -22,7 +24,6 @@ import {
   copyClip,
   encodeWav,
   fitFades,
-  formatSec,
   moveClip,
   musicCommandOf,
   newClip,
@@ -34,6 +35,7 @@ import {
   trimClip,
   wavBytes,
   type MusicClip,
+  type MusicCommand,
   type MusicQuality,
   type MusicSource,
   type MusicTrack
@@ -42,13 +44,25 @@ import local from "./musicEditor.module.css";
 
 type Drag = { clipId: string; trackId: string; mode: "move" | "left" | "right"; x: number; clip: MusicClip };
 const PPS_STEPS = [10, 20, 40, 80, 160];
-const MIC_MESSAGE: Record<MicError, string> = {
-  DENIED: "마이크 권한이 필요해요. 브라우저 주소창의 권한 설정에서 마이크를 허용해 주세요.",
-  NO_MIC: "마이크를 찾을 수 없어요. 연결을 확인해 주세요.",
-  FAILED: "녹음하지 못했어요. 이 브라우저에서는 녹음을 지원하지 않을 수 있어요."
+const MIC_MESSAGE: Record<MicError, MessageKey> = {
+  DENIED: "studioMusic.micDenied",
+  NO_MIC: "studioMusic.micMissing",
+  FAILED: "studioMusic.micFailed"
 };
+/** MUSIC_SHORTCUTS · MUSIC_QUALITIES labels in the viewer's language (2026-11-01). */
+const SHORTCUT_KEYS: Record<MusicCommand, MessageKey> = {
+  PLAY: "studioMusic.playStop",
+  UNDO: "studioMusic.undo",
+  REDO: "studioMusic.redo",
+  LOOP: "studioMusic.loopLabel",
+  SPLIT: "studioMusic.split",
+  COPY: "studioMusic.copy",
+  PASTE: "studioMusic.paste",
+  DELETE: "studioMusic.deleteClip"
+};
+const QUALITY_KEYS: Record<MusicQuality, MessageKey> = { STANDARD: "studioMusic.qualityStandard", SMALL: "studioMusic.qualitySmall" };
 const newId = (p: string) => `${p}-${crypto.randomUUID().slice(0, 8)}`;
-const firstTrack = (): MusicTrack => ({ id: "t-1", name: "트랙 1", gain: 1, muted: false, clips: [] });
+const firstTrack = (name: string): MusicTrack => ({ id: "t-1", name, gain: 1, muted: false, clips: [] });
 
 /**
  * 음악 편집기 — code-first (no Figma frame; StreamDonate "음악 제작" 참고, P3). Route `/creator/widgets/music`. Tracks (4)
@@ -59,11 +73,14 @@ const firstTrack = (): MusicTrack => ({ id: "t-1", name: "트랙 1", gain: 1, mu
  * and their 단축키 (not while typing in a field).
  */
 export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
+  const { t } = useI18n();
+  /** Seconds as read ("12.3초" · "1분 5.0초"), like formatSec, in the viewer's language. */
+  const sec = (s: number) => (s >= 60 ? t("studioMusic.minSec", { m: Math.floor(s / 60), s: (s % 60).toFixed(1) }) : t("studioMusic.sec", { s: s.toFixed(1) }));
   const router = useRouter();
   const [sources, setSources] = useState<MusicSource[]>([]);
   const buffers = useRef(new Map<string, AudioBuffer>());
   const envelopes = useRef(new Map<string, Float32Array>());
-  const [tracks, setTracks] = useState<MusicTrack[]>(() => [firstTrack()]);
+  const [tracks, setTracks] = useState<MusicTrack[]>(() => [firstTrack(t("studioMusic.trackName", { n: 1 }))]);
   const [trackSel, setTrackSel] = useState("t-1");
   const [clipSel, setClipSel] = useState<string | null>(null);
   const [playhead, setPlayhead] = useState(0);
@@ -124,10 +141,10 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
   // ── Adding audio ────────────────────────────────────────────────────────────
   const addSource = async (name: string, bytes: ArrayBuffer) => {
     if (clipCount(tracks) >= MUSIC_CLIPS_MAX) {
-      setMessage({ tone: "error", text: `클립은 ${MUSIC_CLIPS_MAX}개까지 놓을 수 있어요.` });
+      setMessage({ tone: "error", text: t("studioMusic.clipsMax", { max: MUSIC_CLIPS_MAX }) });
       return;
     }
-    setBusy("오디오를 읽고 있어요…");
+    setBusy(t("studioMusic.reading"));
     setMessage(null);
     try {
       const buffer = await decodeAudio(bytes);
@@ -139,7 +156,7 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
       edit((ts) => ts.map((t) => (t.id === trackSel ? { ...t, clips: [...t.clips, clip] } : t)));
       setClipSel(clip.id);
     } catch {
-      setMessage({ tone: "error", text: "이 파일은 읽을 수 없어요. MP3 · WAV · OGG 같은 오디오 파일을 골라 주세요." });
+      setMessage({ tone: "error", text: t("studioMusic.unreadable") });
     } finally {
       setBusy(null);
     }
@@ -150,24 +167,24 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
   const addFromLibrary = async () => {
     const a = sounds.find((s) => s.id === pick);
     if (!a) return;
-    setBusy("라이브러리에서 불러오는 중…");
+    setBusy(t("studioMusic.loadingLibrary"));
     try {
       const res = await fetch(a.url);
       if (!res.ok) throw new Error(String(res.status));
       await addSource(a.name, await res.arrayBuffer());
     } catch {
       setBusy(null);
-      setMessage({ tone: "error", text: "라이브러리 파일을 불러오지 못했어요. 잠시 후 다시 시도해 주세요." });
+      setMessage({ tone: "error", text: t("studioMusic.libraryFailed") });
     }
   };
   const fileInput = useRef<HTMLInputElement>(null);
   const addFromFile = async (file: File | undefined) => {
     if (!file) return;
     if (file.size > MUSIC_FILE_MAX) {
-      setMessage({ tone: "error", text: `파일은 ${MUSIC_FILE_MAX / 1024 / 1024}MB까지 불러올 수 있어요.` });
+      setMessage({ tone: "error", text: t("studioMusic.fileMax", { mb: MUSIC_FILE_MAX / 1024 / 1024 }) });
       return;
     }
-    await addSource(file.name.replace(/\.[^.]+$/, "").slice(0, ASSET_LIMITS.nameMax) || "내 파일", await file.arrayBuffer());
+    await addSource(file.name.replace(/\.[^.]+$/, "").slice(0, ASSET_LIMITS.nameMax) || t("studioMusic.myFile"), await file.arrayBuffer());
   };
   const recorder = useRef<{ stop: () => Promise<Blob> } | null>(null);
   const [recording, setRecording] = useState(false);
@@ -184,7 +201,7 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
     if (!r) return;
     const blob = await r.stop();
     recordNo.current += 1;
-    await addSourceRef.current(`녹음 ${recordNo.current}`, await blob.arrayBuffer());
+    await addSourceRef.current(t("studioMusic.recordingName", { n: recordNo.current }), await blob.arrayBuffer());
   };
   const record = async () => {
     if (recording) return stopRecording();
@@ -193,7 +210,7 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
       recorder.current = await startRecording(() => void stopRecording());
       setRecording(true);
     } catch (e) {
-      setMessage({ tone: "error", text: MIC_MESSAGE[(e as MicError) ?? "FAILED"] ?? MIC_MESSAGE.FAILED });
+      setMessage({ tone: "error", text: t(MIC_MESSAGE[(e as MicError) ?? "FAILED"] ?? MIC_MESSAGE.FAILED) });
     }
   };
 
@@ -230,8 +247,8 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
   const play = async () => {
     if (playing) return stop();
     if (length === 0) return;
-    if (length > MUSIC_LENGTH_MAX) return setMessage({ tone: "error", text: `음악은 ${MUSIC_LENGTH_MAX}초까지 만들 수 있어요. 클립을 줄이거나 옮겨 주세요.` });
-    setBusy("재생할 소리를 섞는 중…");
+    if (length > MUSIC_LENGTH_MAX) return setMessage({ tone: "error", text: t("studioMusic.lengthMax", { max: MUSIC_LENGTH_MAX }) });
+    setBusy(t("studioMusic.mixing"));
     try {
       const mix = await renderMix(tracks, buffers.current, 44_100);
       const ctx = new AudioContext();
@@ -250,7 +267,7 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
       player.current = { ctx, src, from, at: ctx.currentTime, length: mix.duration };
       setPlaying(true);
     } catch {
-      setMessage({ tone: "error", text: "재생하지 못했어요. 잠시 후 다시 시도해 주세요." });
+      setMessage({ tone: "error", text: t("studioMusic.playFailed") });
     } finally {
       setBusy(null);
     }
@@ -290,9 +307,9 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
   const split = () => {
     if (!selected) return;
     const parts = splitClip(selected.clip, playhead, newId("clip"));
-    if (!parts) return setMessage({ tone: "error", text: "재생 위치를 고른 클립 안에 두고 분할해 주세요." });
-    if (clipCount(tracks) >= MUSIC_CLIPS_MAX) return setMessage({ tone: "error", text: `클립은 ${MUSIC_CLIPS_MAX}개까지 놓을 수 있어요.` });
-    edit((ts) => ts.map((t) => ({ ...t, clips: t.clips.flatMap((c) => (c.id === selected.clip.id ? parts : [c])) })));
+    if (!parts) return setMessage({ tone: "error", text: t("studioMusic.splitOutside") });
+    if (clipCount(tracks) >= MUSIC_CLIPS_MAX) return setMessage({ tone: "error", text: t("studioMusic.clipsMax", { max: MUSIC_CLIPS_MAX }) });
+    edit((ts) => ts.map((tr) => ({ ...tr, clips: tr.clips.flatMap((c) => (c.id === selected.clip.id ? parts : [c])) })));
     setMessage(null);
   };
   const removeClip = () => {
@@ -304,12 +321,12 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
   const copy = () => {
     if (!selected) return;
     setCopied(selected.clip);
-    setMessage({ tone: "ok", text: "클립을 복사했어요. 재생 위치에 붙여넣을 수 있어요." });
+    setMessage({ tone: "ok", text: t("studioMusic.clipCopied") });
   };
   const paste = () => {
     const c = copied;
     if (!c) return;
-    if (clipCount(tracks) >= MUSIC_CLIPS_MAX) return setMessage({ tone: "error", text: `클립은 ${MUSIC_CLIPS_MAX}개까지 놓을 수 있어요.` });
+    if (clipCount(tracks) >= MUSIC_CLIPS_MAX) return setMessage({ tone: "error", text: t("studioMusic.clipsMax", { max: MUSIC_CLIPS_MAX }) });
     const pasted = copyClip(c, newId("clip"), playhead);
     edit((ts) => ts.map((t) => (t.id === trackSel ? { ...t, clips: [...t.clips, pasted] } : t)));
     setClipSel(pasted.id);
@@ -317,9 +334,9 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
   };
   const addTrack = () => {
     if (tracks.length >= MUSIC_TRACKS_MAX) return;
-    const t: MusicTrack = { id: newId("t"), name: `트랙 ${tracks.length + 1}`, gain: 1, muted: false, clips: [] };
-    edit((ts) => [...ts, t]);
-    setTrackSel(t.id);
+    const track: MusicTrack = { id: newId("t"), name: t("studioMusic.trackName", { n: tracks.length + 1 }), gain: 1, muted: false, clips: [] };
+    edit((ts) => [...ts, track]);
+    setTrackSel(track.id);
   };
   const removeTrack = (id: string) => {
     if (tracks.length <= 1) return;
@@ -357,7 +374,7 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
   }, []);
 
   // ── Export ──────────────────────────────────────────────────────────────────
-  const [name, setName] = useState("편집한 음악");
+  const [name, setName] = useState(() => t("studioMusic.defaultName"));
   const [quality, setQuality] = useState<MusicQuality>("STANDARD");
   const sampleRate = MUSIC_QUALITIES.find((q) => q.key === quality)!.sampleRate;
   const size = wavBytes(length, sampleRate);
@@ -370,8 +387,8 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
   };
   const save = async () => {
     const n = name.trim();
-    if (!n) return setMessage({ tone: "error", text: "이름을 입력해 주세요." });
-    setBusy("저장하는 중…");
+    if (!n) return setMessage({ tone: "error", text: t("studioMusic.nameRequired") });
+    setBusy(t("studioMusic.saving"));
     setMessage(null);
     try {
       const wav = await exportWav();
@@ -384,31 +401,31 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
       if (res.status === "SAVED") {
         saveId.current = null;
         setDirty(false);
-        setMessage({ tone: "ok", text: `'${res.asset.name}' 파일을 라이브러리에 저장했어요. 시그니처 · 알림 소리로 고를 수 있어요.`, link: true });
+        setMessage({ tone: "ok", text: t("studioMusic.savedToLibrary", { name: res.asset.name }), link: true });
         router.refresh();
       } else if (res.status === "UNAUTHORIZED") router.push("/login?role=creator&next=/creator/widgets/music");
       else {
         saveId.current = null;
-        setMessage({ tone: "error", text: res.status === "INVALID" ? res.message : "저장하지 못했어요. 잠시 후 다시 시도해 주세요." });
+        setMessage({ tone: "error", text: res.status === "INVALID" ? res.message : t("studioMusic.saveFailed") });
       }
     } catch {
-      setMessage({ tone: "error", text: "저장하지 못했어요. 잠시 후 다시 시도해 주세요." });
+      setMessage({ tone: "error", text: t("studioMusic.saveFailed") });
     } finally {
       setBusy(null);
     }
   };
   const download = async () => {
-    setBusy("파일을 만드는 중…");
+    setBusy(t("studioMusic.building"));
     try {
       const url = URL.createObjectURL(await exportWav());
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${name.trim() || "음악"}.wav`;
+      a.download = `${name.trim() || t("studioMusic.fileFallback")}.wav`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 10_000);
       setDirty(false);
     } catch {
-      setMessage({ tone: "error", text: "파일을 만들지 못했어요. 잠시 후 다시 시도해 주세요." });
+      setMessage({ tone: "error", text: t("studioMusic.buildFailed") });
     } finally {
       setBusy(null);
     }
@@ -422,16 +439,18 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
   return (
     <div className={crew.content}>
       <header className={crew.header}>
-        <h1 className={crew.title}>음악 편집기</h1>
-        <p className={crew.subtitle}>시그니처 · 알림 소리를 직접 다듬어요. 여러 트랙에 오디오를 놓고 자르고 이어 붙여 하나로 섞어요.</p>
+        <h1 className={crew.title}>{t("studioMusic.title")}</h1>
+        <p className={crew.subtitle}>{t("studioMusic.subtitle")}</p>
         <p className={crew.note}>
-          편집은 이 브라우저 안에서만 해요. 페이지를 떠나면 편집 내용은 사라지고, 저장한 결과만 <Link href="/creator/widgets/assets">이미지·사운드</Link> 라이브러리에 남아요.
+          {t("studioMusic.noteBefore")}
+          <Link href="/creator/widgets/assets">{t("studioMusic.assetsLink")}</Link>
+          {t("studioMusic.noteAfter")}
         </p>
       </header>
 
       {message && (
         <p className={message.tone === "ok" ? crew.ok : crew.error} role={message.tone === "ok" ? "status" : "alert"}>
-          {message.text} {message.link && <Link href="/creator/widgets/assets">라이브러리 보기</Link>}
+          {message.text} {message.link && <Link href="/creator/widgets/assets">{t("studioMusic.viewLibrary")}</Link>}
         </p>
       )}
       {busy && (
@@ -442,11 +461,11 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
 
       <section className={crew.card} aria-labelledby="music-add-title">
         <h2 id="music-add-title" className={crew.cardTitle}>
-          오디오 추가 <span className={crew.muted}>→ {tracks.find((t) => t.id === trackSel)?.name} · {formatSec(playhead)}</span>
+          {t("studioMusic.addTitle")} <span className={crew.muted}>→ {tracks.find((tr) => tr.id === trackSel)?.name} · {sec(playhead)}</span>
         </h2>
         <div className={local.addRow}>
-          <select className={crew.select} aria-label="라이브러리 사운드" value={pick} onChange={(e) => setLibraryPick(e.target.value)} disabled={sounds.length === 0}>
-            {sounds.length === 0 && <option value="">라이브러리에 사운드가 없어요</option>}
+          <select className={crew.select} aria-label={t("studioMusic.librarySound")} value={pick} onChange={(e) => setLibraryPick(e.target.value)} disabled={sounds.length === 0}>
+            {sounds.length === 0 && <option value="">{t("studioMusic.libraryEmpty")}</option>}
             {sounds.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -454,109 +473,107 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
             ))}
           </select>
           <button type="button" className={crew.ghost} disabled={working || !pick} onClick={() => void addFromLibrary()}>
-            라이브러리에서 추가
+            {t("studioMusic.addFromLibrary")}
           </button>
           <button type="button" className={crew.ghost} disabled={working} onClick={() => fileInput.current?.click()}>
-            내 파일 추가
+            {t("studioMusic.addFile")}
           </button>
           <input
             ref={fileInput}
             type="file"
             accept="audio/*"
             hidden
-            aria-label="오디오 파일"
+            aria-label={t("studioMusic.audioFile")}
             onChange={(e) => {
               void addFromFile(e.target.files?.[0]);
               e.target.value = "";
             }}
           />
           <button type="button" className={recording ? crew.danger : crew.ghost} disabled={working && !recording} onClick={() => void record()}>
-            {recording ? "■ 녹음 멈추기" : "● 녹음"}
+            {recording ? t("studioMusic.stopRecording") : t("studioMusic.record")}
           </button>
         </div>
-        <p className={crew.note}>
-          고른 트랙의 재생 위치에 놓여요. 파일은 {MUSIC_FILE_MAX / 1024 / 1024}MB까지, 녹음은 {MUSIC_RECORD_MAX}초까지예요. 클립 {clipCount(tracks)} / {MUSIC_CLIPS_MAX}
-        </p>
+        <p className={crew.note}>{t("studioMusic.addNote", { mb: MUSIC_FILE_MAX / 1024 / 1024, sec: MUSIC_RECORD_MAX, count: clipCount(tracks), max: MUSIC_CLIPS_MAX })}</p>
       </section>
 
       <section className={crew.card} aria-labelledby="music-timeline-title">
         <div className={crew.cardHead}>
           <h2 id="music-timeline-title" className={crew.cardTitle}>
-            타임라인 <span className={crew.muted}>{formatSec(playhead)} / {formatSec(length)}</span>
+            {t("studioMusic.timeline")} <span className={crew.muted}>{sec(playhead)} / {sec(length)}</span>
           </h2>
           <div className={local.tools}>
             <button type="button" className={crew.primary} disabled={working || length === 0} onClick={() => void play()}>
-              {playing ? "■ 정지" : "▶ 재생"}
+              {playing ? t("studioMusic.stop") : t("studioMusic.play")}
             </button>
-            <button type="button" className={crew.ghost} disabled={playing} onClick={() => setPlayhead(0)} aria-label="처음으로">
+            <button type="button" className={crew.ghost} disabled={playing} onClick={() => setPlayhead(0)} aria-label={t("studioMusic.toStart")}>
               ⏮
             </button>
             <button type="button" className={crew.ghost} disabled={!selected || playing} onClick={split}>
-              분할
+              {t("studioMusic.split")}
             </button>
             <button type="button" className={crew.ghost} disabled={!selected || playing} onClick={removeClip}>
-              클립 삭제
+              {t("studioMusic.deleteClip")}
             </button>
             <button type="button" className={crew.ghost} disabled={!past.length || playing} onClick={undo} title="Ctrl+Z">
-              되돌리기
+              {t("studioMusic.undo")}
             </button>
             <button type="button" className={crew.ghost} disabled={!future.length || playing} onClick={redo} title="Ctrl+Shift+Z">
-              다시 실행
+              {t("studioMusic.redo")}
             </button>
             <button type="button" className={crew.ghost} disabled={!selected || playing} onClick={copy} title="Ctrl+C">
-              복사
+              {t("studioMusic.copy")}
             </button>
             <button type="button" className={crew.ghost} disabled={playing || copied === null} onClick={paste} title="Ctrl+V">
-              붙여넣기
+              {t("studioMusic.paste")}
             </button>
             <button type="button" className={crew.ghost} aria-pressed={loop} onClick={() => setLoop((l) => !l)} title="Ctrl+L">
-              {loop ? "🔁 루프 켬" : "🔁 루프"}
+              {loop ? t("studioMusic.loopOn") : t("studioMusic.loop")}
             </button>
-            <button type="button" className={crew.ghost} aria-label="축소" disabled={pps <= PPS_STEPS[0]} onClick={() => setPps(PPS_STEPS[Math.max(0, PPS_STEPS.indexOf(pps) - 1)])}>
+            <button type="button" className={crew.ghost} aria-label={t("studioMusic.zoomOut")} disabled={pps <= PPS_STEPS[0]} onClick={() => setPps(PPS_STEPS[Math.max(0, PPS_STEPS.indexOf(pps) - 1)])}>
               −
             </button>
-            <button type="button" className={crew.ghost} aria-label="확대" disabled={pps >= PPS_STEPS.at(-1)!} onClick={() => setPps(PPS_STEPS[Math.min(PPS_STEPS.length - 1, PPS_STEPS.indexOf(pps) + 1)])}>
+            <button type="button" className={crew.ghost} aria-label={t("studioMusic.zoomIn")} disabled={pps >= PPS_STEPS.at(-1)!} onClick={() => setPps(PPS_STEPS[Math.min(PPS_STEPS.length - 1, PPS_STEPS.indexOf(pps) + 1)])}>
               +
             </button>
           </div>
         </div>
-        <p className={crew.note}>단축키 · {MUSIC_SHORTCUTS.map((s) => `${s.label} ${s.keys}`).join(" · ")} (입력 칸에서는 꺼져요)</p>
+        <p className={crew.note}>{t("studioMusic.shortcuts", { list: MUSIC_SHORTCUTS.map((s) => `${t(SHORTCUT_KEYS[s.command])} ${s.keys}`).join(" · ") })}</p>
         {tooLong && (
           <p className={crew.error} role="alert">
-            음악은 {MUSIC_LENGTH_MAX}초까지 만들 수 있어요. 지금 {formatSec(length)} — 클립을 줄이거나 옮겨 주세요.
+            {t("studioMusic.tooLong", { max: MUSIC_LENGTH_MAX, length: sec(length) })}
           </p>
         )}
         <div className={local.timeline}>
           <div className={local.heads}>
             <div className={local.rulerHead} />
-            {tracks.map((t) => (
-              <div key={t.id} className={local.trackHead} data-selected={trackSel === t.id || undefined} onClick={() => setTrackSel(t.id)}>
-                <input className={local.trackName} aria-label="트랙 이름" maxLength={12} value={t.name} onChange={(e) => edit((ts) => ts.map((x) => (x.id === t.id ? { ...x, name: e.target.value } : x)))} />
+            {tracks.map((tr) => (
+              <div key={tr.id} className={local.trackHead} data-selected={trackSel === tr.id || undefined} onClick={() => setTrackSel(tr.id)}>
+                <input className={local.trackName} aria-label={t("studioMusic.trackNameAria")} maxLength={12} value={tr.name} onChange={(e) => edit((ts) => ts.map((x) => (x.id === tr.id ? { ...x, name: e.target.value } : x)))} />
                 <label className={local.trackGain}>
-                  <span className={crew.muted}>볼륨</span>
+                  <span className={crew.muted}>{t("studioMusic.volume")}</span>
                   <input
                     type="range"
-                    aria-label={`${t.name} 볼륨`}
+                    aria-label={t("studioMusic.trackVolumeAria", { name: tr.name })}
                     min={0}
                     max={MUSIC_GAIN_MAX * 100}
                     step={5}
-                    value={Math.round(t.gain * 100)}
-                    onChange={(e) => edit((ts) => ts.map((x) => (x.id === t.id ? { ...x, gain: Number(e.target.value) / 100 } : x)))}
+                    value={Math.round(tr.gain * 100)}
+                    onChange={(e) => edit((ts) => ts.map((x) => (x.id === tr.id ? { ...x, gain: Number(e.target.value) / 100 } : x)))}
                   />
                 </label>
                 <span className={local.trackButtons}>
                   <label className={crew.checkRow}>
-                    <input type="checkbox" checked={t.muted} onChange={(e) => edit((ts) => ts.map((x) => (x.id === t.id ? { ...x, muted: e.target.checked } : x)))} />
-                    음소거
+                    <input type="checkbox" checked={tr.muted} onChange={(e) => edit((ts) => ts.map((x) => (x.id === tr.id ? { ...x, muted: e.target.checked } : x)))} />
+                    {t("studioMusic.mute")}
                   </label>
-                  <button type="button" className={local.mini} aria-label={`${t.name} 삭제`} disabled={tracks.length <= 1} onClick={() => removeTrack(t.id)}>
+                  <button type="button" className={local.mini} aria-label={t("studioMusic.trackRemoveAria", { name: tr.name })} disabled={tracks.length <= 1} onClick={() => removeTrack(tr.id)}>
                     ✕
                   </button>
                 </span>
               </div>
             ))}
             <button type="button" className={`${crew.ghost} ${local.addTrack}`} disabled={tracks.length >= MUSIC_TRACKS_MAX} onClick={addTrack}>
-              + 트랙
+              {t("studioMusic.addTrack")}
             </button>
           </div>
           <div className={local.scroll}>
@@ -568,12 +585,12 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
                   </span>
                 ))}
               </div>
-              {tracks.map((t) => (
-                <div key={t.id} className={local.lane} data-muted={t.muted || undefined} data-selected={trackSel === t.id || undefined} onPointerDown={(e) => {
-                    setTrackSel(t.id);
+              {tracks.map((tr) => (
+                <div key={tr.id} className={local.lane} data-muted={tr.muted || undefined} data-selected={trackSel === tr.id || undefined} onPointerDown={(e) => {
+                    setTrackSel(tr.id);
                     seek(e);
                   }}>
-                  {t.clips.map((c) => {
+                  {tr.clips.map((c) => {
                     const src = sourceOf(c.sourceId);
                     const w = Math.max(6, clipLength(c) * pps);
                     const env = envelopes.current.get(c.sourceId);
@@ -584,10 +601,10 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
                         role="button"
                         tabIndex={0}
                         aria-pressed={clipSel === c.id}
-                        aria-label={`${src?.name ?? "클립"} — ${formatSec(c.start)}부터 ${formatSec(clipLength(c))}`}
+                        aria-label={t("studioMusic.clipAria", { name: src?.name ?? t("studioMusic.clipFallback"), start: sec(c.start), length: sec(clipLength(c)) })}
                         className={local.clip}
                         style={{ left: c.start * pps, width: w }}
-                        onPointerDown={startDrag(t.id, c, "move")}
+                        onPointerDown={startDrag(tr.id, c, "move")}
                         onPointerMove={onDrag}
                         onPointerUp={endDrag}
                         onPointerCancel={endDrag}
@@ -602,8 +619,8 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
                         {c.fadeIn > 0 && <span className={local.fadeIn} style={{ width: c.fadeIn * pps }} aria-hidden />}
                         {c.fadeOut > 0 && <span className={local.fadeOut} style={{ width: c.fadeOut * pps }} aria-hidden />}
                         <span className={local.clipName}>{src?.name}</span>
-                        <span className={`${local.edge} ${local.edgeLeft}`} onPointerDown={startDrag(t.id, c, "left")} onPointerMove={onDrag} onPointerUp={endDrag} onPointerCancel={endDrag} aria-hidden />
-                        <span className={`${local.edge} ${local.edgeRight}`} onPointerDown={startDrag(t.id, c, "right")} onPointerMove={onDrag} onPointerUp={endDrag} onPointerCancel={endDrag} aria-hidden />
+                        <span className={`${local.edge} ${local.edgeLeft}`} onPointerDown={startDrag(tr.id, c, "left")} onPointerMove={onDrag} onPointerUp={endDrag} onPointerCancel={endDrag} aria-hidden />
+                        <span className={`${local.edge} ${local.edgeRight}`} onPointerDown={startDrag(tr.id, c, "right")} onPointerMove={onDrag} onPointerUp={endDrag} onPointerCancel={endDrag} aria-hidden />
                       </div>
                     );
                   })}
@@ -613,26 +630,30 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
             </div>
           </div>
         </div>
-        {clipCount(tracks) === 0 && <p className={crew.empty}>아직 오디오가 없어요. 위에서 라이브러리 · 내 파일 · 녹음으로 추가해 보세요.</p>}
-        <p className={crew.note}>
-          눈금(초)이나 빈 곳을 눌러 재생 위치를 정해요. 클립을 끌어 옮기고, 양 끝을 끌어 앞뒤를 잘라요(트림). 고른 클립은 ← → 로 0.1초(Shift 1초)씩 옮겨요.
-        </p>
+        {clipCount(tracks) === 0 && <p className={crew.empty}>{t("studioMusic.timelineEmpty")}</p>}
+        <p className={crew.note}>{t("studioMusic.timelineHelp")}</p>
       </section>
 
       <section className={crew.card} aria-labelledby="music-clip-title">
         <h2 id="music-clip-title" className={crew.cardTitle}>
-          {selected ? `클립 · ${sourceOf(selected.clip.sourceId)?.name ?? ""}` : "고른 클립"}
+          {selected ? t("studioMusic.clipTitle", { name: sourceOf(selected.clip.sourceId)?.name ?? "" }) : t("studioMusic.selectedClip")}
         </h2>
         {!selected ? (
-          <p className={crew.empty}>타임라인에서 클립을 골라 주세요.</p>
+          <p className={crew.empty}>{t("studioMusic.pickClip")}</p>
         ) : (
           <div className={local.fields}>
-            <NumberField label="시작 (초)" value={selected.clip.start} step={0.1} min={0} max={MUSIC_LENGTH_MAX} onChange={(v) => editClip(selected.clip.id, (c) => moveClip(c, v))} />
-            <NumberField label="볼륨 (%)" value={Math.round(selected.clip.gain * 100)} step={5} min={0} max={MUSIC_GAIN_MAX * 100} onChange={(v) => editClip(selected.clip.id, (c) => ({ ...c, gain: Math.min(MUSIC_GAIN_MAX, Math.max(0, v / 100)) }))} />
-            <NumberField label="페이드 인 (초)" value={selected.clip.fadeIn} step={0.1} min={0} max={clipLength(selected.clip)} onChange={(v) => editClip(selected.clip.id, (c) => fitFades({ ...c, fadeIn: v }))} />
-            <NumberField label="페이드 아웃 (초)" value={selected.clip.fadeOut} step={0.1} min={0} max={clipLength(selected.clip)} onChange={(v) => editClip(selected.clip.id, (c) => fitFades({ ...c, fadeOut: v }))} />
+            <NumberField label={t("studioMusic.startSec")} value={selected.clip.start} step={0.1} min={0} max={MUSIC_LENGTH_MAX} onChange={(v) => editClip(selected.clip.id, (c) => moveClip(c, v))} />
+            <NumberField label={t("studioMusic.volumePct")} value={Math.round(selected.clip.gain * 100)} step={5} min={0} max={MUSIC_GAIN_MAX * 100} onChange={(v) => editClip(selected.clip.id, (c) => ({ ...c, gain: Math.min(MUSIC_GAIN_MAX, Math.max(0, v / 100)) }))} />
+            <NumberField label={t("studioMusic.fadeIn")} value={selected.clip.fadeIn} step={0.1} min={0} max={clipLength(selected.clip)} onChange={(v) => editClip(selected.clip.id, (c) => fitFades({ ...c, fadeIn: v }))} />
+            <NumberField label={t("studioMusic.fadeOut")} value={selected.clip.fadeOut} step={0.1} min={0} max={clipLength(selected.clip)} onChange={(v) => editClip(selected.clip.id, (c) => fitFades({ ...c, fadeOut: v }))} />
             <p className={crew.muted}>
-              길이 {formatSec(clipLength(selected.clip))} · {formatSec(selected.clip.start)} ~ {formatSec(clipEnd(selected.clip))} · 원본의 {formatSec(selected.clip.in)} ~ {formatSec(selected.clip.out)}
+              {t("studioMusic.clipInfo", {
+                length: sec(clipLength(selected.clip)),
+                start: sec(selected.clip.start),
+                end: sec(clipEnd(selected.clip)),
+                from: sec(selected.clip.in),
+                to: sec(selected.clip.out)
+              })}
             </p>
           </div>
         )}
@@ -640,34 +661,34 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
 
       <section className={crew.card} aria-labelledby="music-export-title">
         <h2 id="music-export-title" className={crew.cardTitle}>
-          저장
+          {t("studioMusic.save")}
         </h2>
         <div className={local.fields}>
           <label className={local.field}>
-            <span className={crew.muted}>이름</span>
-            <input className={crew.input} aria-label="저장할 이름" maxLength={ASSET_LIMITS.nameMax} value={name} onChange={(e) => setName(e.target.value)} />
+            <span className={crew.muted}>{t("studioMusic.name")}</span>
+            <input className={crew.input} aria-label={t("studioMusic.nameAria")} maxLength={ASSET_LIMITS.nameMax} value={name} onChange={(e) => setName(e.target.value)} />
           </label>
-          <div className={local.field} role="group" aria-label="음질">
-            <span className={crew.muted}>음질</span>
+          <div className={local.field} role="group" aria-label={t("studioMusic.quality")}>
+            <span className={crew.muted}>{t("studioMusic.quality")}</span>
             <span className={crew.segment}>
               {MUSIC_QUALITIES.map((q) => (
                 <button key={q.key} type="button" aria-pressed={quality === q.key} onClick={() => setQuality(q.key)}>
-                  {q.label}
+                  {t(QUALITY_KEYS[q.key])}
                 </button>
               ))}
             </span>
           </div>
         </div>
         <p className={tooBig ? crew.error : crew.note}>
-          모노 WAV · {formatSec(length)} · 약 {(size / 1024 / 1024).toFixed(2)}MB
-          {tooBig && ` — 라이브러리 사운드는 ${ASSET_LIMITS.bytes.SOUND / 1024 / 1024}MB까지예요. 길이를 줄이거나 '작게'를 골라 주세요.`}
+          {t("studioMusic.wavInfo", { length: sec(length), mb: (size / 1024 / 1024).toFixed(2) })}
+          {tooBig && t("studioMusic.tooBig", { max: ASSET_LIMITS.bytes.SOUND / 1024 / 1024 })}
         </p>
         <div className={crew.actions}>
           <button type="button" className={crew.ghost} disabled={working || length === 0 || tooLong} onClick={() => void download()}>
-            WAV 내려받기
+            {t("studioMusic.download")}
           </button>
           <button type="button" className={crew.primary} disabled={working || length === 0 || tooLong || tooBig} onClick={() => void save()}>
-            라이브러리에 저장
+            {t("studioMusic.saveToLibrary")}
           </button>
         </div>
       </section>

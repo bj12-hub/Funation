@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { CreatorDashboardScreen } from "@/features/creatorStudio/CreatorDashboardScreen";
+import { getT } from "@/lib/i18n/server";
 import { getCreatorDashboard, getCreatorProfile, getDashboardSummary, parseStatsPeriod } from "@/services/creator/creatorStudio";
 import { getLatestUpdates } from "@/services/creator/updates";
 
 // Figma: creator-dashboard 245:14
-export const metadata: Metadata = { title: "크리에이터 대시보드 | Ssumnation" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("studioDashboard.meta") };
+}
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;

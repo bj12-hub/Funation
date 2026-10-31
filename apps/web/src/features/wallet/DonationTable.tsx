@@ -7,6 +7,7 @@ import { QUEST_STATUSES } from "@/services/creator/donationManagementTypes";
 import { decideMyQuest } from "@/services/donations/quests";
 import { questExtendedLabel } from "@/services/donations/questTypes";
 import { donationStatusLabel, type DonationRecord, type DonationStatus } from "@/services/wallet/walletTypes";
+import { walletStatusText } from "./statusLabels";
 import styles from "./wallet.module.css";
 
 const STATUS_TONE: Record<DonationStatus, string> = {
@@ -74,7 +75,7 @@ export function DonationTable({ items, t = koT }: { items: DonationRecord[]; t?:
                 </td>
                 <td className={`${styles.center} ${STATUS_TONE[d.status]}`}>
                   {/* A failed 플랫폼 후원 whose FN went back reads FN 반환, not 환불완료 (2026-10-09 결정). */}
-                  {donationStatusLabel(d)}
+                  {walletStatusText(donationStatusLabel(d), t)}
                   {/* 퀘스트 후원: the quest's result, or the buttons while the member can decide it. */}
                   {d.quest &&
                     (d.quest.canDecide ? (

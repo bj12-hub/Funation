@@ -3,15 +3,19 @@
 import { useCallback, useState } from "react";
 import { Toast } from "@/components/ui/Toast";
 import { Toggle } from "@/components/ui/Toggle";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { addFilterWord, removeFilterWord, setFilterStrength, setSpamBlock } from "@/services/creator/donationManagement";
 import { FILTER_STRENGTHS, FILTER_WORD_MAX, type FilterSettings, type FilterStrength, type ManagementSaveResult } from "@/services/creator/donationManagementTypes";
 import styles from "./donations.module.css";
 
-const messageOf = (r: ManagementSaveResult) => (r.status === "INVALID" ? r.message : r.status === "UNAUTHORIZED" ? "로그인이 필요합니다." : null);
-const FAILED: ManagementSaveResult = { status: "INVALID", message: "저장하지 못했습니다. 잠시 후 다시 시도해 주세요." };
+const STRENGTH_KEY: Record<FilterStrength, MessageKey> = { HIGH: "studioDonations.strengthHigh", NORMAL: "studioDonations.strengthNormal", OFF: "studioDonations.strengthOff" };
 
 /** 필터링 — Figma 539:466. Choices save as they change (the design has no save button). */
 export function FilterSettingsPanel({ initial }: { initial: FilterSettings }) {
+  const { t } = useI18n();
+  const messageOf = (r: ManagementSaveResult) => (r.status === "INVALID" ? r.message : r.status === "UNAUTHORIZED" ? t("studioDonations.loginRequired") : null);
+  const FAILED: ManagementSaveResult = { status: "INVALID", message: t("studioDonations.saveFailedRetry") };
   const [strength, setStrength] = useState(initial.strength);
   const [spam, setSpam] = useState(initial.blockSpam);
   const [words, setWords] = useState(initial.words);
@@ -19,7 +23,7 @@ export function FilterSettingsPanel({ initial }: { initial: FilterSettings }) {
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const clearToast = useCallback(() => setToast(null), []);
-  const notify = (r: ManagementSaveResult, ok = "저장했습니다.") => setToast(messageOf(r) ?? ok);
+  const notify = (r: ManagementSaveResult, ok = t("studioDonations.saved")) => setToast(messageOf(r) ?? ok);
 
   const changeStrength = async (next: FilterStrength) => {
     const prev = strength;
@@ -35,7 +39,7 @@ export function FilterSettingsPanel({ initial }: { initial: FilterSettings }) {
     setBusy(true);
     try {
       const r = await addFilterWord(w).catch(() => FAILED);
-      notify(r, "단어를 등록했습니다.");
+      notify(r, t("studioDonations.wordAdded"));
       if (r.status === "SAVED") {
         setWords((list) => [...list, w]);
         setWord("");
@@ -49,27 +53,27 @@ export function FilterSettingsPanel({ initial }: { initial: FilterSettings }) {
     <>
       <section className={styles.card} aria-labelledby="filter-title">
         <h2 id="filter-title" className={styles.cardTitle}>
-          비속어 및 불건전 메시지 자동 차단
+          {t("studioDonations.autoBlockTitle")}
         </h2>
-        <p className={styles.desc}>방송 통계와 시청자 채팅 창에서 부적절하거나 유해한 도네이션 내용을 사전에 차단하고 필터링합니다.</p>
+        <p className={styles.desc}>{t("studioDonations.autoBlockDesc")}</p>
         {/* Code-first copy (2026-10-06 결정 "대체 메시지로 바꿔 표시"). */}
-        <p className={styles.helper}>걸러진 후원도 그대로 받아요. 방송 알림과 TTS에서만 메시지가 후원 페이지 설정의 대체 메시지로 바뀌어요.</p>
+        <p className={styles.helper}>{t("studioDonations.autoBlockHelp")}</p>
         <div className={`${styles.line} ${styles.lineWide}`}>
-          <span className={styles.lineLabel}>비속어 필터 강도</span>
-          <div role="radiogroup" aria-label="비속어 필터 강도" className={styles.radios}>
+          <span className={styles.lineLabel}>{t("studioDonations.strength")}</span>
+          <div role="radiogroup" aria-label={t("studioDonations.strength")} className={styles.radios}>
             {FILTER_STRENGTHS.map((s) => (
               <label key={s.key} className={`${styles.radio} ${strength === s.key ? styles.radioOn : ""}`}>
                 <input type="radio" name="filter-strength" checked={strength === s.key} onChange={() => changeStrength(s.key)} />
-                {s.label}
+                {t(STRENGTH_KEY[s.key])}
               </label>
             ))}
           </div>
         </div>
         <div className={`${styles.line} ${styles.lineWide}`}>
-          <span className={styles.lineLabel}>특수 문자/도배 차단</span>
+          <span className={styles.lineLabel}>{t("studioDonations.spam")}</span>
           <div className={styles.lineControl}>
             <Toggle
-              label="특수 문자/도배 차단"
+              label={t("studioDonations.spam")}
               checked={spam}
               onChange={async (v) => {
                 setSpam(v);
@@ -81,13 +85,13 @@ export function FilterSettingsPanel({ initial }: { initial: FilterSettings }) {
           </div>
         </div>
         <div className={`${styles.line} ${styles.lineWide}`}>
-          <span className={styles.lineLabel}>커스텀 블랙리스트 단어</span>
+          <span className={styles.lineLabel}>{t("studioDonations.blacklist")}</span>
           <div className={styles.inline}>
             <input
-              aria-label="필터링할 추가 단어"
+              aria-label={t("studioDonations.filterWord")}
               className={styles.input}
               maxLength={FILTER_WORD_MAX}
-              placeholder="필터링할 추가 단어 입력"
+              placeholder={t("studioDonations.filterWordPlaceholder")}
               value={word}
               onChange={(e) => setWord(e.target.value)}
               onKeyDown={(e) => {
@@ -98,7 +102,7 @@ export function FilterSettingsPanel({ initial }: { initial: FilterSettings }) {
               }}
             />
             <button type="button" className={styles.solidPurple} onClick={add} disabled={busy || !word.trim()}>
-              등록
+              {t("studioDonations.register")}
             </button>
           </div>
         </div>
@@ -106,10 +110,10 @@ export function FilterSettingsPanel({ initial }: { initial: FilterSettings }) {
 
       <section className={styles.card} aria-labelledby="filter-words">
         <h2 id="filter-words" className={styles.cardTitleSmall}>
-          현재 적용 중인 단어 필터 ({words.length})
+          {t("studioDonations.activeWords", { count: words.length })}
         </h2>
         {words.length === 0 ? (
-          <p className={styles.helper}>등록된 단어가 없습니다.</p>
+          <p className={styles.helper}>{t("studioDonations.noWords")}</p>
         ) : (
           <ul className={styles.chips}>
             {words.map((w) => (
@@ -117,11 +121,11 @@ export function FilterSettingsPanel({ initial }: { initial: FilterSettings }) {
                 {w}
                 <button
                   type="button"
-                  aria-label={`${w} 삭제`}
+                  aria-label={t("studioDonations.removeWord", { word: w })}
                   onClick={async () => {
                     const r = await removeFilterWord(w).catch(() => FAILED);
                     if (r.status === "SAVED") setWords((list) => list.filter((x) => x !== w));
-                    notify(r, "단어를 삭제했습니다.");
+                    notify(r, t("studioDonations.wordRemoved"));
                   }}
                 >
                   ✖
