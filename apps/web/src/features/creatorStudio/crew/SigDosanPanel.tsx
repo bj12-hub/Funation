@@ -102,6 +102,23 @@ export function SigDosanPanel({
     ids.current = paintPick(ids.current, id, on, SIG_DOSAN_STEPS_MAX);
     edit({ signatureIds: ids.current });
   };
+  // A fast drag moves the pointer more than a chip between two events (2026-11-01): the chips on the line between them
+  // count too, not only the ones the pointer was seen over.
+  const lastPoint = useRef<{ x: number; y: number } | null>(null);
+  const paintRef = useRef(paint);
+  useEffect(() => {
+    paintRef.current = paint;
+  });
+  useEffect(() => {
+    const move = (e: PointerEvent) => {
+      const from = lastPoint.current;
+      if (painting.current === null || !from || !(e.buttons & 1)) return;
+      lastPoint.current = { x: e.clientX, y: e.clientY };
+      for (const id of chipsAlong(from, lastPoint.current)) paintRef.current(id, painting.current);
+    };
+    window.addEventListener("pointermove", move);
+    return () => window.removeEventListener("pointermove", move);
+  }, []);
 
   const start = () => {
     if (!live) return;
@@ -205,6 +222,7 @@ export function SigDosanPanel({
                 key={s.id}
                 type="button"
                 className={games.pick}
+                data-dosan-sig={s.id}
                 aria-pressed={draft.signatureIds.includes(s.id)}
                 disabled={!draft.signatureIds.includes(s.id) && draft.signatureIds.length >= SIG_DOSAN_STEPS_MAX}
                 onPointerDown={(e) => {
@@ -212,6 +230,7 @@ export function SigDosanPanel({
                   e.preventDefault();
                   painting.current = !ids.current.includes(s.id);
                   pressed.current = s.id;
+                  lastPoint.current = { x: e.clientX, y: e.clientY };
                   paint(s.id, painting.current);
                 }}
                 onPointerEnter={(e) => {
@@ -354,4 +373,16 @@ export function SigDosanPanel({
       <OverlayAddress overlayPath={overlayPath} param="sigdosan" label="시그니처 두산" />
     </section>
   );
+}
+
+/** The 두산 chips under the line from `a` to `b` (every 6px), in order, each once. */
+function chipsAlong(a: { x: number; y: number }, b: { x: number; y: number }) {
+  const steps = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 6));
+  const ids: string[] = [];
+  for (let i = 1; i <= steps; i++) {
+    const at = document.elementFromPoint(a.x + ((b.x - a.x) * i) / steps, a.y + ((b.y - a.y) * i) / steps);
+    const id = at?.closest<HTMLElement>("[data-dosan-sig]")?.dataset.dosanSig;
+    if (id && !ids.includes(id)) ids.push(id);
+  }
+  return ids;
 }
