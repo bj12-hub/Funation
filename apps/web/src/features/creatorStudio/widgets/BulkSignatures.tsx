@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { createSignatures } from "@/services/donations/signatures";
 import { pairOf, type Asset } from "@/services/creator/assetTypes";
 import { SIGNATURE_LIMITS, priceFromName, signatureNameFrom, type ManagedSignature, type SignatureMatch } from "@/services/donations/signatureTypes";
@@ -28,6 +29,7 @@ export function BulkSignatures({
   onClose: () => void;
   onDone: (count: number) => void;
 }) {
+  const { t } = useI18n();
   const images = library.filter((a) => a.kind === "IMAGE");
   const sounds = library.filter((a) => a.kind === "SOUND");
   const room = Math.max(0, SIGNATURE_LIMITS.max - items.length);
@@ -60,7 +62,7 @@ export function BulkSignatures({
   const submit = () => {
     const missing = chosen.find((a) => !rowFor(a).price.trim());
     if (missing) {
-      setError({ id: missing.id, text: "가격을 입력해 주세요." });
+      setError({ id: missing.id, text: t("studioToolsSignatures.needPrice") });
       return;
     }
     setError(null);
@@ -76,9 +78,9 @@ export function BulkSignatures({
           requestId.current = null;
           onDone(res.ids.length);
         } else if (res.status === "INVALID") setError({ id: res.row === undefined ? undefined : chosen[res.row]?.id, text: res.message });
-        else setError({ text: "로그인이 필요합니다." });
+        else setError({ text: t("studioTools.loginRequired") });
       } catch {
-        setError({ text: "만들지 못했어요. 잠시 후 다시 시도해 주세요." });
+        setError({ text: t("studioToolsSignatures.createFailed") });
       }
     });
   };
@@ -89,39 +91,36 @@ export function BulkSignatures({
     <section className={styles.card} aria-labelledby="sig-bulk">
       <div className={styles.cardHead}>
         <h2 className={styles.cardTitle} id="sig-bulk">
-          📚 라이브러리에서 한 번에 만들기
+          {t("studioToolsSignatures.bulkTitle")}
         </h2>
         <button type="button" className={styles.ghost} disabled={pending} onClick={onClose}>
-          닫기
+          {t("studioToolsSignatures.close")}
         </button>
       </div>
-      <p className={styles.note}>
-        고른 이미지마다 시그니처를 하나씩 만들어요. 이름은 파일 이름으로, 소리는 이름이 같은 사운드로 채워요. 파일 이름에 숫자가 있으면(예: 1004 하트) 가격으로 넣어
-        두니, 가격은 모두 확인해 주세요.
-      </p>
+      <p className={styles.note}>{t("studioToolsSignatures.bulkNote")}</p>
 
       {images.length === 0 ? (
         <p className={styles.empty}>
-          라이브러리에 이미지가 없어요. <Link href="/creator/widgets/assets">이미지·사운드</Link>에서 먼저 올려 주세요.
+          {t("studioToolsLibrary.noImagesBefore")}
+          <Link href="/creator/widgets/assets">{t("studioTools.assetsLink")}</Link>
+          {t("studioToolsLibrary.uploadFirstAfter")}
         </p>
       ) : room === 0 ? (
-        <p className={styles.empty}>시그니처가 {SIGNATURE_LIMITS.max}개로 가득 찼어요. 쓰지 않는 시그니처를 지우면 만들 수 있어요.</p>
+        <p className={styles.empty}>{t("studioToolsSignatures.full", { max: SIGNATURE_LIMITS.max })}</p>
       ) : (
         <>
           <div className={local.bulkBar}>
-            <span className={styles.muted}>
-              이미지 {picked.length}개 고름 · {room}개 더 만들 수 있어요
-            </span>
+            <span className={styles.muted}>{t("studioToolsSignatures.pickedCount", { picked: picked.length, room })}</span>
             <div className={styles.rowActions}>
               <button type="button" className={styles.ghost} disabled={pending || unused.length === 0} onClick={() => pick(unused.slice(0, room).map((a) => a.id))}>
-                안 쓴 이미지 모두 고르기
+                {t("studioToolsSignatures.pickUnused")}
               </button>
               <button type="button" className={styles.ghost} disabled={pending || picked.length === 0} onClick={() => pick([])}>
-                선택 해제
+                {t("studioToolsSignatures.unselect")}
               </button>
             </div>
           </div>
-          <ul className={local.bulkGrid} aria-label="라이브러리 이미지">
+          <ul className={local.bulkGrid} aria-label={t("studioToolsSignatures.libraryImages")}>
             {images.map((a) => {
               const on = picked.includes(a.id);
               const used = usedBy(a);
@@ -139,8 +138,8 @@ export function BulkSignatures({
                     <img src={a.url} alt="" />
                     <span className={local.bulkName}>{a.name}</span>
                     <span className={local.bulkTags}>
-                      {pairOf(a, library) && <span>🔊 짝</span>}
-                      {used && <span title={`'${used}' 시그니처에 쓰는 중`}>사용 중</span>}
+                      {pairOf(a, library) && <span>{t("studioToolsSignatures.pairTag")}</span>}
+                      {used && <span title={t("studioToolsSignatures.usedBy", { name: used })}>{t("studioToolsSignatures.inUse")}</span>}
                     </span>
                   </button>
                 </li>
@@ -152,7 +151,7 @@ export function BulkSignatures({
             <>
               <div className={local.bulkCommon}>
                 <label className={local.field}>
-                  <span>매칭 규칙 (모두 같게)</span>
+                  <span>{t("studioToolsSignatures.matchAll")}</span>
                   <select className={styles.select} value={match} disabled={pending} onChange={(e) => setMatch(e.target.value as SignatureMatch)}>
                     {(Object.keys(matchLabels) as SignatureMatch[]).map((m) => (
                       <option key={m} value={m}>
@@ -162,7 +161,7 @@ export function BulkSignatures({
                   </select>
                 </label>
                 <div className={local.field}>
-                  <span>가격 한 번에 넣기</span>
+                  <span>{t("studioToolsSignatures.priceAll")}</span>
                   <div className={styles.addRow}>
                     <input
                       className={styles.input}
@@ -171,7 +170,7 @@ export function BulkSignatures({
                       min={SIGNATURE_LIMITS.priceMin}
                       max={SIGNATURE_LIMITS.priceMax}
                       placeholder="FN"
-                      aria-label="모든 시그니처 가격"
+                      aria-label={t("studioToolsSignatures.priceAllAria")}
                       value={allPrice}
                       disabled={pending}
                       onChange={(e) => setAllPrice(e.target.value)}
@@ -185,17 +184,17 @@ export function BulkSignatures({
                         setRows((prev) => Object.fromEntries(Object.entries(prev).map(([id, r]) => [id, { ...r, price: allPrice.trim() }])));
                       }}
                     >
-                      모두 적용
+                      {t("studioToolsSignatures.applyAll")}
                     </button>
                   </div>
                 </div>
                 <label className={styles.checkRow}>
                   <input type="checkbox" checked={active} disabled={pending} onChange={(e) => setActive(e.target.checked)} />
-                  방송 방에 바로 표시
+                  {t("studioToolsSignatures.showNow")}
                 </label>
               </div>
 
-              <ol className={styles.list} aria-label="만들 시그니처">
+              <ol className={styles.list} aria-label={t("studioToolsSignatures.toCreateAria")}>
                 {chosen.map((a, i) => {
                   const r = rowFor(a);
                   const bad = error?.id === a.id;
@@ -204,19 +203,19 @@ export function BulkSignatures({
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img className={local.thumb} src={a.url} alt="" />
                       <label className={local.field}>
-                        <span>이름</span>
+                        <span>{t("studioToolsSignatures.name")}</span>
                         <input
                           className={styles.input}
                           maxLength={SIGNATURE_LIMITS.nameMax}
                           value={r.name}
-                          aria-label={`${i + 1}번째 이름`}
+                          aria-label={t("studioToolsSignatures.nthName", { n: i + 1 })}
                           aria-invalid={bad || undefined}
                           disabled={pending}
                           onChange={(e) => edit(a.id, { name: e.target.value })}
                         />
                       </label>
                       <label className={local.field}>
-                        <span>가격 (FN)</span>
+                        <span>{t("studioToolsSignatures.price")}</span>
                         <input
                           className={styles.input}
                           type="number"
@@ -224,22 +223,22 @@ export function BulkSignatures({
                           min={SIGNATURE_LIMITS.priceMin}
                           max={SIGNATURE_LIMITS.priceMax}
                           value={r.price}
-                          aria-label={`${i + 1}번째 가격`}
+                          aria-label={t("studioToolsSignatures.nthPrice", { n: i + 1 })}
                           aria-invalid={bad || undefined}
                           disabled={pending}
                           onChange={(e) => edit(a.id, { price: e.target.value })}
                         />
                       </label>
                       <label className={local.field}>
-                        <span>소리</span>
+                        <span>{t("studioToolsSignatures.sound")}</span>
                         <select
                           className={styles.select}
                           value={r.soundUrl ?? ""}
-                          aria-label={`${i + 1}번째 소리`}
+                          aria-label={t("studioToolsSignatures.nthSound", { n: i + 1 })}
                           disabled={pending}
                           onChange={(e) => edit(a.id, { soundUrl: e.target.value || null })}
                         >
-                          <option value="">소리 없음</option>
+                          <option value="">{t("studioToolsSignatures.soundNone")}</option>
                           {sounds.map((s) => (
                             <option key={s.id} value={s.url}>
                               {s.name}
@@ -247,8 +246,8 @@ export function BulkSignatures({
                           ))}
                         </select>
                       </label>
-                      <button type="button" className={styles.ghost} aria-label={`${r.name || a.name} 빼기`} disabled={pending} onClick={() => toggle(a)}>
-                        빼기
+                      <button type="button" className={styles.ghost} aria-label={t("studioToolsSignatures.removeAria", { name: r.name || a.name })} disabled={pending} onClick={() => toggle(a)}>
+                        {t("studioTools.remove")}
                       </button>
                       {bad && (
                         <p className={`${styles.error} ${local.bulkError}`} role="alert">
@@ -269,10 +268,10 @@ export function BulkSignatures({
           )}
           <div className={styles.actions}>
             <button type="button" className={styles.ghost} disabled={pending} onClick={onClose}>
-              취소
+              {t("studioTools.cancel")}
             </button>
             <button type="button" className={styles.primary} disabled={pending || chosen.length === 0} onClick={submit}>
-              {pending ? "만드는 중…" : chosen.length ? `시그니처 ${chosen.length}개 만들기` : "이미지를 골라 주세요"}
+              {pending ? t("studioToolsSignatures.creating") : chosen.length ? t("studioToolsSignatures.createCount", { count: chosen.length }) : t("studioToolsSignatures.pickImages")}
             </button>
           </div>
         </>

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { deleteSignature, deleteSignatures, moveSignature, saveSignature, setSignatureGroupActive } from "@/services/donations/signatures";
 import { pairOf, type Asset } from "@/services/creator/assetTypes";
 import {
@@ -32,12 +34,25 @@ import type { SigPlayerSettings } from "@/services/creator/sigPlayerTypes";
 
 type Draft = Omit<ManagedSignature, "id"> & { id: string | null };
 
-const MATCH_LABEL: Record<SignatureMatch, string> = { SELECT: "선택 시에만", AMOUNT: "선택 + 금액 일치" };
+const MATCH_LABEL: Record<SignatureMatch, MessageKey> = { SELECT: "studioToolsSignatures.matchSelect", AMOUNT: "studioToolsSignatures.matchAmount" };
 /** 미디어 누락 on a row: what the alert does instead. */
-const GAP_NOTE: Record<MediaGap, string> = {
-  IMAGE_MISSING: "이미지가 지워졌어요 — 알림은 기본 이미지로 나가요",
-  SOUND_MISSING: "소리가 지워졌어요 — 알림은 소리 없이 나가요",
-  SOUND_NONE: "소리 없음"
+const GAP_NOTE: Record<MediaGap, MessageKey> = {
+  IMAGE_MISSING: "studioToolsSignatures.gapImageMissing",
+  SOUND_MISSING: "studioToolsSignatures.gapSoundMissing",
+  SOUND_NONE: "studioToolsSignatures.soundNone"
+};
+/** The 미디어 누락 filter chips and 정렬 labels by key (the service's MEDIA_GAPS · SIGNATURE_SORTS stay as written, 2026-11-01). */
+const GAP_CHIP: Record<MediaGap, MessageKey> = {
+  IMAGE_MISSING: "studioToolsSignatures.chipImageMissing",
+  SOUND_MISSING: "studioToolsSignatures.chipSoundMissing",
+  SOUND_NONE: "studioToolsSignatures.soundNone"
+};
+const SORT_KEY: Record<SignatureSort, MessageKey> = {
+  ORDER: "studioToolsSignatures.sortOrder",
+  PRICE_ASC: "studioToolsSignatures.sortPriceAsc",
+  PRICE_DESC: "studioToolsSignatures.sortPriceDesc",
+  NEWEST: "studioToolsSignatures.sortNewest",
+  OLDEST: "studioToolsSignatures.sortOldest"
 };
 const blank = (group: string): Draft => ({ id: null, name: "", price: 10_000, imageUrl: SIGNATURE_IMAGE_PRESETS[0], soundUrl: null, match: "SELECT", active: true, rangeMin: null, group });
 
@@ -65,6 +80,7 @@ export function SignaturesScreen({
   sigPlayer?: { settings: SigPlayerSettings; overlayPath: string } | null;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const images = library.filter((a) => a.kind === "IMAGE");
   const sounds = library.filter((a) => a.kind === "SOUND");
   const soundName = (url: string | null) => sounds.find((a) => a.url === url)?.name ?? null;
@@ -103,9 +119,9 @@ export function SignaturesScreen({
           setNote({ tone: "ok", text: ok });
           after?.();
           router.refresh();
-        } else setNote({ tone: "error", text: res.status === "INVALID" ? res.message : "로그인이 필요합니다." });
+        } else setNote({ tone: "error", text: res.status === "INVALID" ? res.message : t("studioTools.loginRequired") });
       } catch {
-        setNote({ tone: "error", text: "처리하지 못했어요. 잠시 후 다시 시도해 주세요." });
+        setNote({ tone: "error", text: t("studioTools.processFailed") });
       }
     });
   };
@@ -133,54 +149,59 @@ export function SignaturesScreen({
   const submit = () => {
     if (!draft) return;
     if (!draft.id) requestId.current ??= crypto.randomUUID();
-    run(() => saveSignature({ ...draft, requestId: requestId.current }), draft.id ? "시그니처를 수정했어요." : "시그니처를 만들었어요.", () => {
+    run(() => saveSignature({ ...draft, requestId: requestId.current }), draft.id ? t("studioToolsSignatures.updated") : t("studioToolsSignatures.created"), () => {
       requestId.current = null;
       setDraft(null);
     });
   };
-  const toggle = (s: ManagedSignature) => run(() => saveSignature({ ...s, active: !s.active }), s.active ? `${s.name} 숨김` : `${s.name} 사용`);
+  const toggle = (s: ManagedSignature) =>
+    run(() => saveSignature({ ...s, active: !s.active }), s.active ? t("studioToolsSignatures.hiddenToast", { name: s.name }) : t("studioToolsSignatures.shownToast", { name: s.name }));
   const remove = (s: ManagedSignature) => {
-    if (window.confirm(`'${s.name}' 시그니처를 삭제할까요?`)) run(() => deleteSignature(s.id), "시그니처를 삭제했어요.");
+    if (window.confirm(t("studioToolsSignatures.confirmDelete", { name: s.name }))) run(() => deleteSignature(s.id), t("studioToolsSignatures.deleted"));
   };
   const removeSelected = () => {
     const ids = selected;
-    if (window.confirm(`선택한 시그니처 ${ids.length}개를 삭제할까요? 되돌릴 수 없어요.`)) run(() => deleteSignatures({ ids }), `시그니처 ${ids.length}개를 삭제했어요.`, () => setPicked([]));
+    if (window.confirm(t("studioToolsSignatures.confirmDeleteSelected", { count: ids.length })))
+      run(() => deleteSignatures({ ids }), t("studioToolsSignatures.deletedCount", { count: ids.length }), () => setPicked([]));
   };
+  const matchLabels = { SELECT: t(MATCH_LABEL.SELECT), AMOUNT: t(MATCH_LABEL.AMOUNT) };
 
   const activeCount = items.filter((s) => s.active).length;
 
   return (
     <div className={styles.content}>
       <header className={styles.header}>
-        <h1 className={styles.title}>시그니처 후원</h1>
-        <p className={styles.subtitle}>방송 방의 시그니처 후원에 보일 시그니처를 만들고 가격과 매칭 규칙을 정해요. 가격은 채널에서 직접 정해요.</p>
+        <h1 className={styles.title}>{t("studioToolsSignatures.title")}</h1>
+        <p className={styles.subtitle}>{t("studioToolsSignatures.subtitle")}</p>
         <p className={styles.note}>
-          <Link href="/creator/widgets">← 위젯</Link> · 사용 중 {activeCount}개 / 전체 {items.length}개 (최대 {SIGNATURE_LIMITS.max}개)
+          <Link href="/creator/widgets">{t("studioTools.backWidgets")}</Link>
+          {t("studioToolsSignatures.counts", { active: activeCount, total: items.length, max: SIGNATURE_LIMITS.max })}
         </p>
       </header>
 
       <section className={styles.card} aria-labelledby="sig-list">
         <div className={styles.cardHead}>
           <h2 className={styles.cardTitle} id="sig-list">
-            ⭐ 시그니처 목록
+            {t("studioToolsSignatures.listTitle")}
           </h2>
           <div className={styles.rowActions}>
             <button type="button" className={styles.ghost} onClick={openBulk} disabled={pending || bulk}>
-              📚 한 번에 만들기
+              {t("studioToolsSignatures.bulk")}
             </button>
             <button type="button" className={styles.primary} onClick={openNew} disabled={pending || items.length >= SIGNATURE_LIMITS.max}>
-              + 시그니처 추가
+              {t("studioToolsSignatures.add")}
             </button>
           </div>
         </div>
         <p className={styles.note}>
-          <strong>금액 일치</strong>로 두면 일반 후원 금액이 시그니처 가격과 같을 때(금액범위를 정하면 그 범위 안일 때)도 그 시그니처로 알림이 떠요. 위에서부터 방송 방에 보이는 순서예요.
+          <strong>{t("studioToolsSignatures.matchNoteStrong")}</strong>
+          {t("studioToolsSignatures.matchNoteRest")}
         </p>
         {groups.length > 0 && (
-          <div className={local.groups} role="group" aria-label="그룹">
+          <div className={local.groups} role="group" aria-label={t("studioToolsSignatures.group")}>
             <span className={styles.segment}>
               <button type="button" aria-pressed={filter === null} onClick={() => setGroupFilter(null)}>
-                전체 {items.length}
+                {t("studioToolsSignatures.all", { count: items.length })}
               </button>
               {groups.map((g) => (
                 <button key={g} type="button" aria-pressed={filter === g} onClick={() => setGroupFilter(g)}>
@@ -190,54 +211,65 @@ export function SignaturesScreen({
             </span>
             {filter !== null && (
               <span className={styles.rowActions}>
-                <button type="button" className={styles.ghost} disabled={pending || inGroup.every((s) => s.active)} onClick={() => run(() => setSignatureGroupActive({ group: filter, active: true }), `'${filter}' 그룹을 모두 보이게 했어요.`)}>
-                  그룹 모두 사용
+                <button
+                  type="button"
+                  className={styles.ghost}
+                  disabled={pending || inGroup.every((s) => s.active)}
+                  onClick={() => run(() => setSignatureGroupActive({ group: filter, active: true }), t("studioToolsSignatures.groupShown", { group: filter }))}
+                >
+                  {t("studioToolsSignatures.groupShowAll")}
                 </button>
-                <button type="button" className={styles.ghost} disabled={pending || inGroup.every((s) => !s.active)} onClick={() => run(() => setSignatureGroupActive({ group: filter, active: false }), `'${filter}' 그룹을 모두 숨겼어요.`)}>
-                  그룹 모두 숨기기
+                <button
+                  type="button"
+                  className={styles.ghost}
+                  disabled={pending || inGroup.every((s) => !s.active)}
+                  onClick={() => run(() => setSignatureGroupActive({ group: filter, active: false }), t("studioToolsSignatures.groupHidden", { group: filter }))}
+                >
+                  {t("studioToolsSignatures.groupHideAll")}
                 </button>
               </span>
             )}
           </div>
         )}
         {gaps.length > 0 && (
-          <div className={local.groups} role="group" aria-label="미디어 누락">
+          <div className={local.groups} role="group" aria-label={t("studioToolsSignatures.mediaAria")}>
             <span className={styles.segment}>
               <button type="button" aria-pressed={gap === null} onClick={() => setGapFilter(null)}>
-                미디어 전체
+                {t("studioToolsSignatures.mediaAll")}
               </button>
               {gaps.map((g) => (
                 <button key={g.key} type="button" aria-pressed={gap === g.key} onClick={() => setGapFilter(g.key)}>
-                  {g.label} {g.count}
+                  {t(GAP_CHIP[g.key])} {g.count}
                 </button>
               ))}
             </span>
           </div>
         )}
         {items.length > 0 && (
-          <div className={local.groups} role="group" aria-label="정렬 · 선택">
-            <span className={styles.segment} role="group" aria-label="정렬">
+          <div className={local.groups} role="group" aria-label={t("studioToolsSignatures.sortPickAria")}>
+            <span className={styles.segment} role="group" aria-label={t("studioToolsSignatures.sort")}>
               {SIGNATURE_SORTS.map((o) => (
                 <button key={o.key} type="button" aria-pressed={sort === o.key} onClick={() => setSort(o.key)}>
-                  {o.label}
+                  {t(SORT_KEY[o.key])}
                 </button>
               ))}
             </span>
             <span className={styles.rowActions}>
               <button type="button" className={styles.ghost} disabled={pending || shown.length === 0} onClick={() => setPicked(allPicked ? [] : shown.map((s) => s.id))}>
-                {allPicked ? "선택 해제" : "전체 선택"}
+                {allPicked ? t("studioToolsSignatures.unselect") : t("studioToolsSignatures.selectAll")}
               </button>
               <button type="button" className={styles.danger} disabled={pending || selected.length === 0} onClick={removeSelected}>
-                선택 삭제{selected.length ? ` (${selected.length})` : ""}
+                {t("studioToolsSignatures.deleteSelected")}
+                {selected.length ? ` (${selected.length})` : ""}
               </button>
             </span>
           </div>
         )}
-        {sort !== "ORDER" && <p className={styles.note}>정렬해서 보는 중이에요. 방송 방 순서(↑ ↓)는 기본 순서에서 바꿀 수 있어요.</p>}
+        {sort !== "ORDER" && <p className={styles.note}>{t("studioToolsSignatures.sortedNote")}</p>}
         {items.length === 0 ? (
-          <p className={styles.empty}>아직 시그니처가 없어요. 첫 시그니처를 추가해 보세요.</p>
+          <p className={styles.empty}>{t("studioToolsSignatures.empty")}</p>
         ) : shown.length === 0 ? (
-          <p className={styles.empty}>조건에 맞는 시그니처가 없어요.</p>
+          <p className={styles.empty}>{t("studioToolsSignatures.noMatch")}</p>
         ) : (
           <ul className={styles.list}>
             {listed.map((s) => {
@@ -246,39 +278,51 @@ export function SignaturesScreen({
               const warnings = mediaGapsOf(s.media).filter((g) => g !== "SOUND_NONE");
               return (
               <li key={s.id} className={styles.row} data-inactive={s.active ? undefined : ""}>
-                <input type="checkbox" className={local.pick} aria-label={`${s.name} 선택`} checked={selected.includes(s.id)} onChange={(e) => pick(s.id, e.target.checked)} />
+                <input
+                  type="checkbox"
+                  className={local.pick}
+                  aria-label={t("studioToolsSignatures.pickAria", { name: s.name })}
+                  checked={selected.includes(s.id)}
+                  onChange={(e) => pick(s.id, e.target.checked)}
+                />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img className={local.thumb} src={s.media.image === "MISSING" ? SIGNATURE_IMAGE_PRESETS[0] : s.imageUrl} alt="" />
                 <div className={styles.rowMain}>
                   <span className={styles.rowTitle}>{s.name}</span>
                   <span className={styles.muted}>
-                    {s.match === "AMOUNT" ? spanText(s) : `${formatNumber(s.price)} FN`} · {MATCH_LABEL[s.match]}
+                    {s.match === "AMOUNT" ? spanText(s) : `${formatNumber(s.price)} FN`} · {t(MATCH_LABEL[s.match])}
                     {soundName(s.soundUrl) && ` · 🔊 ${soundName(s.soundUrl)}`}
-                    {s.media.sound === "NONE" && ` · ${GAP_NOTE.SOUND_NONE}`}
+                    {s.media.sound === "NONE" && ` · ${t(GAP_NOTE.SOUND_NONE)}`}
                     {groups.length > 1 && ` · ${s.group}`}
                   </span>
                   {warnings.map((g) => (
                     <span key={g} className={local.gap}>
-                      ⚠ {GAP_NOTE[g]}
+                      ⚠ {t(GAP_NOTE[g])}
                     </span>
                   ))}
                 </div>
-                <span className={s.active ? styles.chip : styles.chipOff}>{s.active ? "사용" : "숨김"}</span>
+                <span className={s.active ? styles.chip : styles.chipOff}>{s.active ? t("studioToolsSignatures.chipOn") : t("studioToolsSignatures.chipHidden")}</span>
                 <div className={styles.rowActions}>
-                  <button type="button" className={styles.ghost} aria-label={`${s.name} 위로`} disabled={pending || sort !== "ORDER" || i === 0} onClick={() => run(() => moveSignature({ id: s.id, dir: "up" }), "순서를 바꿨어요.")}>
+                  <button
+                    type="button"
+                    className={styles.ghost}
+                    aria-label={t("studioToolsSignatures.upAria", { name: s.name })}
+                    disabled={pending || sort !== "ORDER" || i === 0}
+                    onClick={() => run(() => moveSignature({ id: s.id, dir: "up" }), t("studioToolsSignatures.moved"))}
+                  >
                     ↑
                   </button>
                   <button
                     type="button"
                     className={styles.ghost}
-                    aria-label={`${s.name} 아래로`}
+                    aria-label={t("studioToolsSignatures.downAria", { name: s.name })}
                     disabled={pending || sort !== "ORDER" || i === items.length - 1}
-                    onClick={() => run(() => moveSignature({ id: s.id, dir: "down" }), "순서를 바꿨어요.")}
+                    onClick={() => run(() => moveSignature({ id: s.id, dir: "down" }), t("studioToolsSignatures.moved"))}
                   >
                     ↓
                   </button>
                   <button type="button" className={styles.ghost} disabled={pending} onClick={() => toggle(s)}>
-                    {s.active ? "숨기기" : "사용"}
+                    {s.active ? t("studioToolsSignatures.hide") : t("studioToolsSignatures.show")}
                   </button>
                   <button
                     type="button"
@@ -292,10 +336,10 @@ export function SignaturesScreen({
                       setDraft({ ...s, soundUrl: soundName(s.soundUrl) ? s.soundUrl : null });
                     }}
                   >
-                    수정
+                    {t("studioToolsSignatures.edit")}
                   </button>
                   <button type="button" className={styles.danger} disabled={pending} onClick={() => remove(s)}>
-                    삭제
+                    {t("studioTools.delete")}
                   </button>
                 </div>
               </li>
@@ -309,11 +353,11 @@ export function SignaturesScreen({
         <BulkSignatures
           items={items}
           library={library}
-          matchLabels={MATCH_LABEL}
+          matchLabels={matchLabels}
           onClose={() => setBulk(false)}
           onDone={(count) => {
             setBulk(false);
-            setNote({ tone: "ok", text: `시그니처 ${count}개를 만들었어요. 목록 아래쪽에 추가됐어요.` });
+            setNote({ tone: "ok", text: t("studioToolsSignatures.bulkDone", { count }) });
             router.refresh();
           }}
         />
@@ -323,16 +367,16 @@ export function SignaturesScreen({
         <section className={styles.card} aria-labelledby="sig-edit">
           <div className={styles.cardHead}>
             <h2 className={styles.cardTitle} id="sig-edit">
-              {draft.id ? "시그니처 수정" : "새 시그니처"}
+              {draft.id ? t("studioToolsSignatures.editTitle") : t("studioToolsSignatures.newTitle")}
             </h2>
           </div>
           <div className={local.form}>
             <label className={local.field}>
-              <span>이름</span>
+              <span>{t("studioToolsSignatures.name")}</span>
               <input className={styles.input} maxLength={SIGNATURE_LIMITS.nameMax} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
             </label>
             <label className={local.field}>
-              <span>가격 (FN)</span>
+              <span>{t("studioToolsSignatures.price")}</span>
               <input
                 className={styles.input}
                 type="number"
@@ -343,31 +387,31 @@ export function SignaturesScreen({
               />
             </label>
             <label className={local.field}>
-              <span>매칭 규칙</span>
+              <span>{t("studioToolsSignatures.matchRule")}</span>
               <select className={styles.select} value={draft.match} onChange={(e) => setDraft({ ...draft, match: e.target.value as SignatureMatch })}>
                 {(Object.keys(MATCH_LABEL) as SignatureMatch[]).map((m) => (
                   <option key={m} value={m}>
-                    {MATCH_LABEL[m]}
+                    {t(MATCH_LABEL[m])}
                   </option>
                 ))}
               </select>
             </label>
             {draft.match === "AMOUNT" && (
               <label className={local.field}>
-                <span>금액범위 시작 (선택)</span>
+                <span>{t("studioToolsSignatures.rangeStart")}</span>
                 <input
                   className={styles.input}
                   type="number"
                   min={SIGNATURE_LIMITS.priceMin}
                   max={Math.max(SIGNATURE_LIMITS.priceMin, draft.price - 1)}
-                  placeholder="비우면 가격과 같은 금액만"
+                  placeholder={t("studioToolsSignatures.rangePlaceholder")}
                   value={draft.rangeMin ?? ""}
                   onChange={(e) => setDraft({ ...draft, rangeMin: e.target.value === "" ? null : Math.floor(Number(e.target.value) || 0) })}
                 />
               </label>
             )}
             <label className={local.field}>
-              <span>그룹</span>
+              <span>{t("studioToolsSignatures.group")}</span>
               <input className={styles.input} list="sig-groups" maxLength={SIGNATURE_LIMITS.groupMax} placeholder={DEFAULT_SIGNATURE_GROUP} value={draft.group} onChange={(e) => setDraft({ ...draft, group: e.target.value })} />
               <datalist id="sig-groups">
                 {groups.map((g) => (
@@ -377,29 +421,36 @@ export function SignaturesScreen({
             </label>
             <label className={styles.checkRow}>
               <input type="checkbox" checked={draft.active} onChange={(e) => setDraft({ ...draft, active: e.target.checked })} />
-              방송 방에 표시
+              {t("studioToolsSignatures.showInRoom")}
             </label>
           </div>
           {draft.match === "AMOUNT" && draft.rangeMin !== null && draft.rangeMin < draft.price && (
-            <p className={styles.note}>
-              {formatNumber(draft.rangeMin)} ~ {formatNumber(draft.price)} FN 일반 후원이 이 시그니처로 떠요. 가격과 정확히 같은 다른 시그니처가 있거나 범위가 겹치면 저장되지 않아요.
-            </p>
+            <p className={styles.note}>{t("studioToolsSignatures.rangeNote", { from: formatNumber(draft.rangeMin), to: formatNumber(draft.price) })}</p>
           )}
-          <div className={local.images} role="radiogroup" aria-label="이미지">
+          <div className={local.images} role="radiogroup" aria-label={t("studioToolsSignatures.imagesAria")}>
             {[...SIGNATURE_IMAGE_PRESETS, ...images.map((a) => a.url)].map((src, i) => (
-              <button key={src} type="button" role="radio" aria-checked={draft.imageUrl === src} aria-label={`이미지 ${i + 1}`} className={local.image} onClick={() => pickImage(src)}>
+              <button
+                key={src}
+                type="button"
+                role="radio"
+                aria-checked={draft.imageUrl === src}
+                aria-label={t("studioToolsSignatures.imageN", { n: i + 1 })}
+                className={local.image}
+                onClick={() => pickImage(src)}
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={src} alt="" />
               </button>
             ))}
           </div>
           <p className={styles.note}>
-            기본 이미지 {SIGNATURE_IMAGE_PRESETS.length}장 뒤에 <Link href="/creator/widgets/assets">이미지·사운드</Link> 라이브러리의 이미지가 이어져요. 라이브러리
-            이미지를 고르면 이름이 같은 사운드가 소리로 함께 붙어요.
+            {t("studioToolsSignatures.libraryBefore", { count: SIGNATURE_IMAGE_PRESETS.length })}
+            <Link href="/creator/widgets/assets">{t("studioTools.assetsLink")}</Link>
+            {t("studioToolsSignatures.libraryAfter")}
           </p>
           <div className={local.sound}>
             <label className={local.field}>
-              <span>소리 (알림과 함께 재생)</span>
+              <span>{t("studioToolsSignatures.soundLabel")}</span>
               <select
                 className={styles.select}
                 value={draft.soundUrl ?? ""}
@@ -408,7 +459,7 @@ export function SignaturesScreen({
                   setDraft({ ...draft, soundUrl: e.target.value || null });
                 }}
               >
-                <option value="">소리 없음</option>
+                <option value="">{t("studioToolsSignatures.soundNone")}</option>
                 {sounds.map((a) => (
                   <option key={a.id} value={a.url}>
                     {a.name}
@@ -416,20 +467,20 @@ export function SignaturesScreen({
                 ))}
               </select>
             </label>
-            {draft.soundUrl && <audio className={local.audio} src={draft.soundUrl} controls preload="none" aria-label="고른 소리 미리 듣기" />}
+            {draft.soundUrl && <audio className={local.audio} src={draft.soundUrl} controls preload="none" aria-label={t("studioToolsSignatures.previewSound")} />}
             {autoSound && draft.soundUrl && (
               <p className={styles.note} role="status">
-                이름이 같은 사운드 &lsquo;{soundName(draft.soundUrl)}&rsquo;를 함께 골랐어요.
+                {t("studioToolsSignatures.autoSound", { name: soundName(draft.soundUrl) ?? "" })}
               </p>
             )}
-            {sounds.length === 0 && <p className={styles.note}>라이브러리에 사운드를 올리면 고를 수 있어요.</p>}
+            {sounds.length === 0 && <p className={styles.note}>{t("studioToolsSignatures.noSounds")}</p>}
           </div>
           <div className={styles.actions}>
             <button type="button" className={styles.ghost} disabled={pending} onClick={() => setDraft(null)}>
-              취소
+              {t("studioTools.cancel")}
             </button>
             <button type="button" className={styles.primary} disabled={pending} onClick={submit}>
-              {pending ? "저장 중…" : "저장"}
+              {pending ? t("studioTools.saving") : t("studioTools.save")}
             </button>
           </div>
         </section>
