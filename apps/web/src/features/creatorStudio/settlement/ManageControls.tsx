@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
-import { resetSettlementRegistration } from "@/services/creator/settlementManagement";
+import { useRef, useState, useTransition } from "react";
+import { exportSettlementHistoryCsv, resetSettlementRegistration } from "@/services/creator/settlementManagement";
 import { MANAGE_PERIODS, type ManagePeriod } from "@/services/creator/settlementTypes";
 import { SettlementNoticeModal } from "./SettlementNoticeModal";
 import styles from "./manage.module.css";
@@ -74,6 +74,50 @@ export function ManageFilter({ period, from, to }: { period: ManagePeriod; from:
         조회
       </button>
     </form>
+  );
+}
+
+/**
+ * 정산 내역 CSV 다운로드 — code-first (no Figma frame, 2026-11-01): the 조회 기간 on screen, every page; the file is built on
+ * the server and saved in the browser.
+ */
+export function SettlementCsvButton({ period, from, to }: { period: ManagePeriod; from: string; to: string }) {
+  const [state, setState] = useState<{ busy: boolean; note: string | null }>({ busy: false, note: null });
+  const busy = useRef(false);
+  const download = async () => {
+    if (busy.current) return;
+    busy.current = true;
+    setState({ busy: true, note: null });
+    try {
+      const res = await exportSettlementHistoryCsv({ period, from, to });
+      if (res.status !== "OK") {
+        setState({ busy: false, note: res.status === "UNAUTHORIZED" ? "로그인이 필요합니다." : "정산 정보를 먼저 등록해 주세요." });
+        return;
+      }
+      const url = URL.createObjectURL(new Blob([res.csv], { type: "text/csv;charset=utf-8" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = res.filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      setState({ busy: false, note: `${res.rows.toLocaleString("ko-KR")}건을 내려받았어요.` });
+    } catch {
+      setState({ busy: false, note: "내려받지 못했습니다. 잠시 후 다시 시도해 주세요." });
+    } finally {
+      busy.current = false;
+    }
+  };
+  return (
+    <div className={styles.csvRow}>
+      {state.note && (
+        <span className={styles.csvNote} role="status">
+          {state.note}
+        </span>
+      )}
+      <button type="button" className={styles.search} onClick={download} disabled={state.busy} aria-busy={state.busy || undefined}>
+        {state.busy ? "준비 중…" : "CSV 다운로드"}
+      </button>
+    </div>
   );
 }
 

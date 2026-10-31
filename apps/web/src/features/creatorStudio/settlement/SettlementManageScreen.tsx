@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { memberTypeLabel, SETTLEMENT_STATUS_LABEL, type SettlementManageView } from "@/services/creator/settlementTypes";
-import { ChangeInfoButton, ManageFilter } from "./ManageControls";
+import { ChangeInfoButton, ManageFilter, SettlementCsvButton } from "./ManageControls";
 import { SettlementTabs } from "./SettlementTabs";
 import applyStyles from "./apply.module.css";
 import styles from "./manage.module.css";
@@ -45,6 +45,7 @@ export function SettlementManageScreen({ view }: { view: SettlementManageView })
       </section>
 
       <ManageFilter key={`${view.period}-${view.from}-${view.to}`} period={view.period} from={view.from} to={view.to} />
+      <SettlementCsvButton key={`csv-${view.period}-${view.from}-${view.to}`} period={view.period} from={view.from} to={view.to} />
 
       <div className={styles.tableWrap}>
         <table className={styles.table}>
