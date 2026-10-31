@@ -1,8 +1,9 @@
+// Korean only: other screens still import it. My page's own screens use t("my.genericError").
 export const GENERIC_ERROR = "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요";
 
-/** ISO date → "2026년 10월 18일" (Figma 747:166 / 747:439). */
-export function formatKoreanDate(iso: string) {
-  return new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "long", day: "numeric", timeZone: "Asia/Seoul" }).format(new Date(iso));
+/** ISO date → "2026년 10월 18일" (Figma 747:166 / 747:439); "October 18, 2026" in English. */
+export function formatKoreanDate(iso: string, locale = "ko") {
+  return new Intl.DateTimeFormat(locale === "ko" ? "ko-KR" : "en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "Asia/Seoul" }).format(new Date(iso));
 }
 
 /** Korean particle 으로/로 for `word` (Figma 747:210: "길동의펀타임" → "으로"). */

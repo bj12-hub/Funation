@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { DonationHistoryScreen } from "@/features/platformDonation/DonationHistoryScreen";
+import { getT } from "@/lib/i18n/server";
 import { getDonationHistory } from "@/services/platformDonation/donationHistory";
 
 // Figma: 후원 내역 817:8038 · 817:8223
-export const metadata: Metadata = { title: "후원 내역 | Ssumnation" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("platformDonation.metaHistory") };
+}
 export const dynamic = "force-dynamic";
 
 type Search = { tab?: string; period?: string; status?: string; q?: string; sort?: string; tx?: string };

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { RETENTION_DEFAULTS_LABEL, RETENTION_RULES } from "@/services/account/retentionPolicy";
 import { withdrawAccount } from "@/services/account/withdrawal";
 import type { WithdrawalInfo } from "@/services/account/withdrawalTypes";
@@ -26,6 +27,7 @@ import styles from "./withdraw.module.css";
  * (services/account/retentionPolicy.ts — 기본값, 법무 검토 전); posts are never deleted, so the effects say so.
  */
 export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [forfeit, setForfeit] = useState(false);
   const [earningsForfeit, setEarningsForfeit] = useState(false);
@@ -78,25 +80,25 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
           setPasswordError(true);
           passwordRef.current?.select();
         } else if (r.status === "LOCKED") {
-          setError("비밀번호를 5회 잘못 입력해 계정 보호를 위해 로그인이 제한되었습니다. 비밀번호를 재설정해 주세요.");
+          setError(t("my.passwordLocked"));
         } else if (r.status === "REFUND_PENDING") {
-          setError(`처리 중인 충전 환불 요청이 ${r.count}건 있어요. 환불 처리가 끝난 뒤에 탈퇴할 수 있어요.`);
+          setError(t("myWithdraw.refundPending", { count: r.count }));
           router.refresh();
         } else if (r.status === "QUEST_PENDING") {
           setError(
             r.sent > 0
-              ? `진행 중인 퀘스트 후원이 ${r.sent}건 있어요. 퀘스트 결과가 정해진 뒤에 탈퇴할 수 있어요.`
-              : `내 채널에 진행 중인 퀘스트 후원이 ${r.received}건 있어요. 퀘스트 결과를 정하거나 취소한 뒤에 탈퇴할 수 있어요.`
+              ? t("myWithdraw.questSentPending", { count: r.sent })
+              : t("myWithdraw.questReceivedPending", { count: r.received })
           );
           router.refresh();
         } else if (r.status === "PLATFORM_PENDING") {
-          setError(`처리 결과를 확인 중인 플랫폼 후원이 ${r.count}건 있어요. 후원 결과가 정해진 뒤에 탈퇴할 수 있어요.`);
+          setError(t("myWithdraw.platformPending", { count: r.count }));
           router.refresh();
         } else if (r.status === "CHARGE_PENDING") {
-          setError(`처리 중인 충전이 ${r.count}건 있어요. 충전이 끝난 뒤에 탈퇴할 수 있어요.`);
+          setError(t("myWithdraw.chargePending", { count: r.count }));
           router.refresh();
         } else if (r.status === "ATTENDANCE_PENDING") {
-          setError(`지급 중인 출석 보상이 ${r.count}건 있어요. 지급이 끝난 뒤에 탈퇴할 수 있어요.`);
+          setError(t("myWithdraw.attendancePending", { count: r.count }));
           router.refresh();
         } else {
           setError(r.message);
@@ -106,7 +108,7 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
           router.refresh();
         }
       } catch {
-        setError("탈퇴하지 못했어요. 잠시 후 다시 시도해 주세요.");
+        setError(t("myWithdraw.failed"));
       }
     });
   };
@@ -116,12 +118,12 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
       <div className={styles.content}>
         <section className={styles.done} role="status" aria-labelledby="withdraw-done">
           <h1 className={styles.title} id="withdraw-done">
-            탈퇴가 완료됐어요
+            {t("myWithdraw.doneTitle")}
           </h1>
-          <p className={styles.subtitle}>그동안 썸네이션을 이용해 주셔서 감사합니다. 언제든 새 계정으로 다시 가입할 수 있어요.</p>
+          <p className={styles.subtitle}>{t("myWithdraw.doneDesc")}</p>
           {/* A full load, so the header drops the signed-in member. */}
           <Button type="button" onClick={() => window.location.assign("/")}>
-            홈으로
+            {t("myWithdraw.home")}
           </Button>
         </section>
       </div>
@@ -132,29 +134,29 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
     <div className={styles.content}>
       <header className={styles.header}>
         <Link href="/mypage" className={styles.back}>
-          ← 내 정보
+          ← {t("my.title")}
         </Link>
-        <h1 className={styles.title}>회원 탈퇴</h1>
-        <p className={styles.subtitle}>{info.nickname} 님, 탈퇴하기 전에 아래 내용을 꼭 확인해 주세요.</p>
+        <h1 className={styles.title}>{t("myWithdraw.title")}</h1>
+        <p className={styles.subtitle}>{t("myWithdraw.intro", { name: info.nickname })}</p>
       </header>
 
       <section className={styles.card} aria-labelledby="withdraw-fn">
         <h2 className={styles.cardTitle} id="withdraw-fn">
-          남은 FN
+          {t("myWithdraw.fnTitle")}
         </h2>
         <strong className={styles.balance}>{formatNumber(info.fnBalance)} FN</strong>
-        <p className={styles.note}>{hasFn ? "탈퇴하면 남은 FN은 모두 소멸되고, 탈퇴 후에는 되살릴 수 없어요." : "남은 FN이 없어요."}</p>
+        <p className={styles.note}>{hasFn ? t("myWithdraw.fnForfeit") : t("myWithdraw.fnNone")}</p>
       </section>
 
       {hasRefunds && (
         <section className={styles.warnCard} aria-labelledby="withdraw-refunds">
           <h2 className={styles.cardTitle} id="withdraw-refunds">
-            처리 중인 충전 환불
+            {t("myWithdraw.refundsTitle")}
           </h2>
-          <strong className={styles.balance}>{formatNumber(info.pendingRefunds)}건</strong>
-          <p className={styles.note}>FN 충전 환불 요청을 운영팀이 확인하고 있어요. 환불 처리가 끝난 뒤에 탈퇴할 수 있어요.</p>
+          <strong className={styles.balance}>{t("myWithdraw.count", { count: formatNumber(info.pendingRefunds) })}</strong>
+          <p className={styles.note}>{t("myWithdraw.refundsNote")}</p>
           <div className={styles.links}>
-            <Link href="/wallet/charges">충전 내역으로</Link>
+            <Link href="/wallet/charges">{t("myWithdraw.toCharges")}</Link>
           </div>
         </section>
       )}
@@ -162,14 +164,12 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
       {questsSent > 0 && (
         <section className={styles.warnCard} aria-labelledby="withdraw-quests">
           <h2 className={styles.cardTitle} id="withdraw-quests">
-            진행 중인 퀘스트 후원
+            {t("myWithdraw.questsTitle")}
           </h2>
-          <strong className={styles.balance}>{formatNumber(questsSent)}건</strong>
-          <p className={styles.note}>
-            보낸 퀘스트 후원의 FN이 결과를 기다리며 보관되어 있어요. 퀘스트 결과가 정해진 뒤에 탈퇴할 수 있어요. 퀘스트 후원 내역에서 결과를 직접 정할 수도 있어요.
-          </p>
+          <strong className={styles.balance}>{t("myWithdraw.count", { count: formatNumber(questsSent) })}</strong>
+          <p className={styles.note}>{t("myWithdraw.questsNote")}</p>
           <div className={styles.links}>
-            <Link href="/wallet/donations?type=quest">퀘스트 후원 내역으로</Link>
+            <Link href="/wallet/donations?type=quest">{t("myWithdraw.toQuests")}</Link>
           </div>
         </section>
       )}
@@ -177,14 +177,12 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
       {questsReceived > 0 && (
         <section className={styles.warnCard} aria-labelledby="withdraw-channel-quests">
           <h2 className={styles.cardTitle} id="withdraw-channel-quests">
-            내 채널의 진행 중인 퀘스트
+            {t("myWithdraw.channelQuestsTitle")}
           </h2>
-          <strong className={styles.balance}>{formatNumber(questsReceived)}건</strong>
-          <p className={styles.note}>
-            시청자가 보낸 퀘스트 후원의 FN이 결과를 기다리며 보관되어 있어요. 후원 리스트에서 퀘스트 결과를 정하거나 취소한 뒤에 탈퇴할 수 있어요. 취소하면 시청자에게 전액 환불돼요.
-          </p>
+          <strong className={styles.balance}>{t("myWithdraw.count", { count: formatNumber(questsReceived) })}</strong>
+          <p className={styles.note}>{t("myWithdraw.channelQuestsNote")}</p>
           <div className={styles.links}>
-            <Link href="/creator/donations?tab=list&kind=quest&status=IN_PROGRESS">후원 리스트로</Link>
+            <Link href="/creator/donations?tab=list&kind=quest&status=IN_PROGRESS">{t("myWithdraw.toDonationList")}</Link>
           </div>
         </section>
       )}
@@ -192,14 +190,12 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
       {platformPending > 0 && (
         <section className={styles.warnCard} aria-labelledby="withdraw-platform">
           <h2 className={styles.cardTitle} id="withdraw-platform">
-            처리 결과 확인 중인 플랫폼 후원
+            {t("myWithdraw.platformTitle")}
           </h2>
-          <strong className={styles.balance}>{formatNumber(platformPending)}건</strong>
-          <p className={styles.note}>
-            플랫폼에서 후원 결과를 확인하고 있어요. 결과가 나올 때까지 FN은 보류되고, 실패하면 FN이 반환돼요. 후원 결과가 정해진 뒤에 탈퇴할 수 있어요.
-          </p>
+          <strong className={styles.balance}>{t("myWithdraw.count", { count: formatNumber(platformPending) })}</strong>
+          <p className={styles.note}>{t("myWithdraw.platformNote")}</p>
           <div className={styles.links}>
-            <Link href="/donation/history?period=all&status=PROCESSING">후원 내역으로</Link>
+            <Link href="/donation/history?period=all&status=PROCESSING">{t("myWithdraw.toDonations")}</Link>
           </div>
         </section>
       )}
@@ -207,12 +203,12 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
       {chargesPending > 0 && (
         <section className={styles.warnCard} aria-labelledby="withdraw-charges">
           <h2 className={styles.cardTitle} id="withdraw-charges">
-            처리 중인 충전
+            {t("myWithdraw.chargesTitle")}
           </h2>
-          <strong className={styles.balance}>{formatNumber(chargesPending)}건</strong>
-          <p className={styles.note}>결제 확인이 끝나면 충전한 FN이 남은 FN에 더해져요. 충전이 끝난 뒤에 탈퇴할 수 있어요.</p>
+          <strong className={styles.balance}>{t("myWithdraw.count", { count: formatNumber(chargesPending) })}</strong>
+          <p className={styles.note}>{t("myWithdraw.chargesNote")}</p>
           <div className={styles.links}>
-            <Link href="/wallet/charges">충전 내역으로</Link>
+            <Link href="/wallet/charges">{t("myWithdraw.toCharges")}</Link>
           </div>
         </section>
       )}
@@ -220,12 +216,12 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
       {rewardsPending > 0 && (
         <section className={styles.warnCard} aria-labelledby="withdraw-rewards">
           <h2 className={styles.cardTitle} id="withdraw-rewards">
-            지급 중인 출석 보상
+            {t("myWithdraw.rewardsTitle")}
           </h2>
-          <strong className={styles.balance}>{formatNumber(rewardsPending)}건</strong>
-          <p className={styles.note}>출석체크 보상 FN을 지급하고 있어요. 지급이 끝나면 남은 FN에 더해져요. 지급이 끝난 뒤에 탈퇴할 수 있어요.</p>
+          <strong className={styles.balance}>{t("myWithdraw.count", { count: formatNumber(rewardsPending) })}</strong>
+          <p className={styles.note}>{t("myWithdraw.rewardsNote")}</p>
           <div className={styles.links}>
-            <Link href="/attendance">출석체크로</Link>
+            <Link href="/attendance">{t("myWithdraw.toAttendance")}</Link>
           </div>
         </section>
       )}
@@ -233,37 +229,37 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
       {hasEarnings && (
         <section className={styles.warnCard} aria-labelledby="withdraw-earnings">
           <h2 className={styles.cardTitle} id="withdraw-earnings">
-            정산 대기 수익
+            {t("myWithdraw.earningsTitle")}
           </h2>
           <strong className={styles.balance}>{formatNumber(info.unsettledFn)} FN</strong>
-          <p className={styles.note}>정산 가능 금액과 심사 대기 중인 정산 신청 금액이에요. 탈퇴하면 함께 소멸되고, 심사 대기 중인 정산 신청도 취소돼요. 이미 승인된 정산은 소멸되지 않고 탈퇴 후에도 지급돼요. 먼저 정산을 받고 싶다면 정산 신청이 승인된 뒤에 탈퇴해 주세요.</p>
+          <p className={styles.note}>{t("myWithdraw.earningsNote")}</p>
           <div className={styles.links}>
-            <Link href="/creator/settlement">정산 화면으로</Link>
+            <Link href="/creator/settlement">{t("myWithdraw.toSettlement")}</Link>
           </div>
         </section>
       )}
 
       <section className={styles.card} aria-labelledby="withdraw-effects">
         <h2 className={styles.cardTitle} id="withdraw-effects">
-          탈퇴하면 이렇게 돼요
+          {t("myWithdraw.effectsTitle")}
         </h2>
         <ul className={styles.effects}>
-          {hasFn && <li>남은 FN {formatNumber(info.fnBalance)} FN이 소멸돼요.</li>}
-          {hasEarnings && <li>정산 대기 수익 {formatNumber(info.unsettledFn)} FN이 소멸되고, 심사 대기 중인 정산 신청은 취소돼요. 승인된 정산은 그대로 지급돼요.</li>}
-          <li>네이버 · Google · 카카오 로그인 연결과 방송 플랫폼 연결이 모두 해제돼요.</li>
-          <li>탈퇴한 계정으로는 다시 로그인할 수 없어요. 새 계정으로는 바로 다시 가입할 수 있지만, 이전 FN과 기록은 돌아오지 않아요.</li>
+          {hasFn && <li>{t("myWithdraw.effectFn", { amount: formatNumber(info.fnBalance) })}</li>}
+          {hasEarnings && <li>{t("myWithdraw.effectEarnings", { amount: formatNumber(info.unsettledFn) })}</li>}
+          <li>{t("myWithdraw.effectLinks")}</li>
+          <li>{t("myWithdraw.effectRelogin")}</li>
           {info.creator && (
-            <li>크리에이터 스튜디오와 채널도 더 이상 이용할 수 없어요. 등록한 정산 정보와 매니저 채팅 링크, 다른 플랫폼에서 가져온 후원 내역은 삭제되고, OBS 오버레이 · SMS 계좌후원 주소도 멈춰요.</li>
+            <li>{t("myWithdraw.effectCreator")}</li>
           )}
-          <li>작성한 게시물은 탈퇴 후에도 삭제되지 않아요. 지우고 싶은 글은 탈퇴 전에 직접 삭제해 주세요.</li>
+          <li>{t("myWithdraw.effectPosts")}</li>
         </ul>
       </section>
 
       <section className={styles.card} aria-labelledby="withdraw-retention">
         <h2 className={styles.cardTitle} id="withdraw-retention">
-          탈퇴 후에도 보관하는 정보
+          {t("myWithdraw.retentionTitle")}
         </h2>
-        <p className={styles.note}>아래 정보는 정해진 기간 동안 보관한 뒤 파기해요. 보관 기간은 {RETENTION_DEFAULTS_LABEL}이에요.</p>
+        <p className={styles.note}>{t("myWithdraw.retentionNote", { label: RETENTION_DEFAULTS_LABEL })}</p>
         <ul className={styles.effects}>
           {RETENTION_RULES.map((r) => (
             <li key={r.category}>
@@ -272,18 +268,18 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
             </li>
           ))}
         </ul>
-        <p className={styles.note}>그 밖의 정보(프로필 사진, 연락처, 본인인증 정보, 마케팅 수신 동의, 로그인 연결 등)는 탈퇴할 때 바로 삭제돼요.</p>
+        <p className={styles.note}>{t("myWithdraw.retentionOther")}</p>
       </section>
 
       <section className={styles.card} aria-labelledby="withdraw-consent">
         <h2 className={styles.cardTitle} id="withdraw-consent">
-          동의 및 본인 확인
+          {t("myWithdraw.consentTitle")}
         </h2>
         {hasFn && (
           <label className={styles.check}>
             <input type="checkbox" checked={forfeit} disabled={pending} onChange={(e) => setForfeit(e.target.checked)} />
             <span>
-              <b>(필수)</b> 남은 FN {formatNumber(info.fnBalance)} FN이 소멸되는 것에 동의합니다.
+              <b>{t("myWithdraw.required")}</b> {t("myWithdraw.consentFn", { amount: formatNumber(info.fnBalance) })}
             </span>
           </label>
         )}
@@ -291,18 +287,18 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
           <label className={styles.check}>
             <input type="checkbox" checked={earningsForfeit} disabled={pending} onChange={(e) => setEarningsForfeit(e.target.checked)} />
             <span>
-              <b>(필수)</b> 정산 대기 수익 {formatNumber(info.unsettledFn)} FN이 소멸되고 심사 대기 중인 정산 신청이 취소되는 것에 동의합니다.
+              <b>{t("myWithdraw.required")}</b> {t("myWithdraw.consentEarnings", { amount: formatNumber(info.unsettledFn) })}
             </span>
           </label>
         )}
         <label className={styles.check}>
           <input type="checkbox" checked={confirmed} disabled={pending} onChange={(e) => setConfirmed(e.target.checked)} />
           <span>
-            <b>(필수)</b> 위 내용을 모두 확인했고, 회원 탈퇴에 동의합니다.
+            <b>{t("myWithdraw.required")}</b> {t("myWithdraw.consentFinal")}
           </span>
         </label>
         <label className={styles.field}>
-          <span>비밀번호 확인</span>
+          <span>{t("myWithdraw.password")}</span>
           <input
             ref={passwordRef}
             type="password"
@@ -315,12 +311,12 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
               setPassword(e.target.value);
               setPasswordError(false);
             }}
-            placeholder="본인 확인을 위해 비밀번호를 입력해 주세요"
+            placeholder={t("myWithdraw.passwordPlaceholder")}
           />
         </label>
         {passwordError && (
           <p className={styles.error} id="withdraw-password-error" role="alert">
-            비밀번호가 일치하지 않아요. 다시 입력해 주세요.
+            {t("myWithdraw.passwordWrong")}
           </p>
         )}
         {error && (
@@ -332,10 +328,10 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
 
       <div className={styles.actions}>
         <Button href="/mypage" variant="secondary">
-          취소
+          {t("my.cancel")}
         </Button>
         <button type="button" className={styles.danger} disabled={!ready || pending} aria-busy={pending} onClick={submit}>
-          {pending ? "탈퇴 처리 중…" : "탈퇴하기"}
+          {pending ? t("myWithdraw.processing") : t("myWithdraw.submit")}
         </button>
       </div>
     </div>

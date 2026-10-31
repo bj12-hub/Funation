@@ -3,10 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { isValidSsumnationId } from "@/lib/validation";
 import { changeSsumnationId } from "@/services/account/profileActions";
 import { Message } from "./Message";
-import { GENERIC_ERROR, formatKoreanDate } from "./shared";
+import { formatKoreanDate } from "./shared";
 import styles from "./editors.module.css";
 
 /**
@@ -23,18 +25,18 @@ type State =
   | { kind: "LIMITED"; availableFrom: string }
   | { kind: "CHANGED"; value: string };
 
-const ERRORS: Record<"INVALID" | "DUPLICATE" | "FORBIDDEN" | "RESERVED" | "ERROR", string> = {
-  INVALID: "영문 소문자와 숫자만 사용해 5~20자로 입력해 주세요.",
-  DUPLICATE: "이미 사용 중인 ID입니다. 다른 ID를 입력해 주세요.",
+const ERRORS: Record<"INVALID" | "DUPLICATE" | "FORBIDDEN" | "RESERVED" | "ERROR", MessageKey> = {
+  INVALID: "myEdit.idInvalid",
+  DUPLICATE: "myEdit.idDuplicate",
   // Code-first (2026-10-08 결정): an ID another member gave up stays protected for 30 days.
-  RESERVED: "최근 변경되어 보호 중인 ID입니다. 다른 ID를 입력해 주세요.",
-  FORBIDDEN: "사용할 수 없는 표현이 포함되어 있습니다.",
-  ERROR: GENERIC_ERROR
+  RESERVED: "myEdit.idReserved",
+  FORBIDDEN: "myEdit.forbidden",
+  ERROR: "my.genericError"
 };
 
-const NOTICE = "ID는 30일에 한 번 변경할 수 있으며 프로필 주소도 함께 변경됩니다.";
-
 export function SsumnationIdEditor({ triggerClassName }: { triggerClassName: string }) {
+  const { t, locale } = useI18n();
+  const notice = t("myEdit.idNotice");
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
@@ -62,7 +64,7 @@ export function SsumnationIdEditor({ triggerClassName }: { triggerClassName: str
 
   const changed = state.kind === "CHANGED";
   const limited = state.kind === "LIMITED";
-  const error = state.kind in ERRORS ? ERRORS[state.kind as keyof typeof ERRORS] : null;
+  const error = state.kind in ERRORS ? t(ERRORS[state.kind as keyof typeof ERRORS]) : null;
   const shownValue = changed ? state.value : value;
 
   return (
@@ -76,25 +78,25 @@ export function SsumnationIdEditor({ triggerClassName }: { triggerClassName: str
           setOpen(true);
         }}
       >
-        수정
+        {t("my.edit")}
       </button>
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title="썸네이션 ID 수정"
-        description="나만의 썸네이션 ID를 설정해 주세요."
+        title={t("myEdit.idTitle")}
+        description={t("myEdit.idDesc")}
         footer={
           <>
             <button type="button" className={styles.secondary} onClick={() => setOpen(false)}>
-              {changed ? "닫기" : "취소"}
+              {changed ? t("my.close") : t("my.cancel")}
             </button>
             {changed ? (
               <button type="button" className={styles.primary} onClick={() => setOpen(false)}>
-                확인
+                {t("my.ok")}
               </button>
             ) : (
               <button type="button" className={styles.primary} onClick={submit} disabled={busy || limited} aria-busy={busy || undefined}>
-                ID 변경
+                {t("myEdit.idSubmit")}
               </button>
             )}
           </>
@@ -103,7 +105,7 @@ export function SsumnationIdEditor({ triggerClassName }: { triggerClassName: str
         <div className={styles.content}>
           <div className={styles.field}>
             <label htmlFor="ssumnation-id-input" className={styles.label}>
-              썸네이션 ID
+              {t("my.ssumnationId")}
             </label>
             <div className={`${styles.inputBox} ${error ? styles.inputError : ""}`}>
               <span className={styles.prefix} aria-hidden="true">
@@ -112,7 +114,7 @@ export function SsumnationIdEditor({ triggerClassName }: { triggerClassName: str
               <input
                 id="ssumnation-id-input"
                 className={styles.input}
-                placeholder="영문 소문자, 숫자 5~20자"
+                placeholder={t("myEdit.idPlaceholder")}
                 maxLength={20}
                 autoCapitalize="none"
                 autoComplete="off"
@@ -132,25 +134,23 @@ export function SsumnationIdEditor({ triggerClassName }: { triggerClassName: str
                   }
                 }}
               />
-              {error && <span className={styles.badge}>확인 필요</span>}
+              {error && <span className={styles.badge}>{t("my.needsCheck")}</span>}
             </div>
           </div>
 
           <div id="ssumnation-id-message" aria-live="polite" className={styles.content}>
             {error && <Message tone="error" text={error} />}
-            {limited && (
-              <Message tone="error" text={`최근 ID를 변경하여 지금은 수정할 수 없습니다. ${formatKoreanDate(state.availableFrom)}부터 변경할 수 있어요.`} />
-            )}
-            {changed && <Message tone="success" text={`썸네이션 ID가 @${state.value}로 변경되었습니다.`} />}
+            {limited && <Message tone="error" text={t("myEdit.idLimited", { date: formatKoreanDate(state.availableFrom, locale) })} />}
+            {changed && <Message tone="success" text={t("myEdit.idChanged", { id: state.value })} />}
             {state.kind === "IDLE" && (
               <p className={`${styles.message} ${styles.messageNotice}`}>
                 <span className={styles.messageGlyph} aria-hidden="true">
                   ⓘ
                 </span>
-                {NOTICE}
+                {notice}
               </p>
             )}
-            {(error || limited) && <p className={styles.footnote}>{NOTICE}</p>}
+            {(error || limited) && <p className={styles.footnote}>{notice}</p>}
           </div>
         </div>
       </Modal>

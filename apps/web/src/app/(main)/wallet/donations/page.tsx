@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { DonationHistoryScreen, parseDonationFilter, parseHistoryParams, type RawParams } from "@/features/wallet";
+import { getT } from "@/lib/i18n/server";
 import { getDonationHistory } from "@/services/wallet/walletHistory";
 
 // Figma: 632:4 · 637:214
-export const metadata: Metadata = { title: "FN 후원내역 | Ssumnation" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("wallet.metaDonations") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function Page({ searchParams }: { searchParams: Promise<RawParams> }) {
