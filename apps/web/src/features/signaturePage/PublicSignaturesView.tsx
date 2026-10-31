@@ -3,15 +3,16 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { PublicSignaturePage } from "@/services/donations/signatureTypes";
 import channel from "../creatorRoom/channel.module.css";
 import styles from "./signaturePage.module.css";
 
 const SORTS = [
-  { key: "order", label: "기본 순서" },
-  { key: "asc", label: "낮은 가격순" },
-  { key: "desc", label: "높은 가격순" },
-  { key: "name", label: "이름순" }
+  { key: "order", label: "signaturePage.sortOrder" },
+  { key: "asc", label: "signaturePage.sortAsc" },
+  { key: "desc", label: "signaturePage.sortDesc" },
+  { key: "name", label: "signaturePage.sortName" }
 ] as const;
 type Sort = (typeof SORTS)[number]["key"];
 
@@ -21,6 +22,7 @@ type Sort = (typeof SORTS)[number]["key"];
  * each with ▶ to hear its sound — one at a time, stopped when another starts or the same is pressed again.
  */
 export function PublicSignaturesView({ page }: { page: PublicSignaturePage }) {
+  const { t } = useI18n();
   const [group, setGroup] = useState<string | null>(null);
   const [sort, setSort] = useState<Sort>("order");
   const [playing, setPlaying] = useState<string | null>(null);
@@ -50,30 +52,30 @@ export function PublicSignaturesView({ page }: { page: PublicSignaturePage }) {
   return (
     <main className={styles.page}>
       <header className={styles.head}>
-        <h1>{page.channelName} 시그니처</h1>
+        <h1>{t("signaturePage.title", { channel: page.channelName })}</h1>
         <p>
-          시그니처 {page.signatures.length}개 · 소리가 있는 시그니처는 ▶를 눌러 들어 보세요. 시그니처 후원은 채널의 후원하기에서 할 수 있어요.
+          {t("signaturePage.lead", { count: page.signatures.length })}
         </p>
       </header>
 
       {page.signatures.length === 0 ? (
-        <p className={channel.empty}>공개된 시그니처가 없어요.</p>
+        <p className={channel.empty}>{t("signaturePage.empty")}</p>
       ) : (
         <>
           <div className={styles.tools}>
             {page.groups.length > 1 && (
-              <div className={channel.sorts} role="group" aria-label="그룹">
+              <div className={channel.sorts} role="group" aria-label={t("signaturePage.group")}>
                 {[null, ...page.groups].map((g) => (
                   <button key={g ?? "all"} type="button" className={channel.sort} aria-pressed={group === g} onClick={() => setGroup(g)}>
-                    {g ?? "전체"}
+                    {g ?? t("signaturePage.all")}
                   </button>
                 ))}
               </div>
             )}
-            <div className={channel.sorts} role="group" aria-label="정렬">
+            <div className={channel.sorts} role="group" aria-label={t("signaturePage.sort")}>
               {SORTS.map((x) => (
                 <button key={x.key} type="button" className={channel.sort} aria-pressed={sort === x.key} onClick={() => setSort(x.key)}>
-                  {x.label}
+                  {t(x.label)}
                 </button>
               ))}
             </div>
@@ -91,10 +93,10 @@ export function PublicSignaturesView({ page }: { page: PublicSignaturePage }) {
                     type="button"
                     className={styles.play}
                     aria-pressed={playing === s.id}
-                    aria-label={`${s.name} 소리 ${playing === s.id ? "정지" : "재생"}`}
+                    aria-label={t(playing === s.id ? "signaturePage.soundStop" : "signaturePage.soundPlay", { name: s.name })}
                     onClick={() => play(s.id, s.soundUrl!)}
                   >
-                    {playing === s.id ? "■ 정지" : "▶ 재생"}
+                    {playing === s.id ? t("signaturePage.stop") : t("signaturePage.play")}
                   </button>
                 )}
               </li>

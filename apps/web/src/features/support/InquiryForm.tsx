@@ -2,12 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { submitInquiry } from "@/services/support/inquiry";
 import { INQUIRY_BODY_MAX, INQUIRY_CATEGORIES, INQUIRY_TITLE_MAX, type FaqCategory } from "@/services/support/supportTypes";
+import { FAQ_CATEGORY_KEY } from "./labels";
 import styles from "./supportTabs.module.css";
 
 /** 1:1 문의 form — code-first. The server validates; `requestId` keeps a double submit to one inquiry. */
 export function InquiryForm() {
+  const { t } = useI18n();
   const router = useRouter();
   const [category, setCategory] = useState<FaqCategory | "">("");
   const [title, setTitle] = useState("");
@@ -33,12 +36,12 @@ export function InquiryForm() {
           setCategory("");
           setTitle("");
           setBody("");
-          setNote({ tone: "ok", text: "문의가 접수되었어요. 답변은 내 문의 내역에서 확인할 수 있어요." });
+          setNote({ tone: "ok", text: t("support.submitted") });
           router.refresh();
         } else if (res.status === "UNAUTHORIZED") router.push("/login?next=/support%3Ftab%3Dinquiry");
         else setNote({ tone: "error", text: res.message });
       } catch {
-        setNote({ tone: "error", text: "접수하지 못했어요. 잠시 후 다시 시도해 주세요." });
+        setNote({ tone: "error", text: t("support.submitError") });
       }
     });
   };
@@ -53,28 +56,28 @@ export function InquiryForm() {
       }}
     >
       <h2 id="inquiry-title" className={styles.formTitle}>
-        문의하기
+        {t("support.formTitle")}
       </h2>
       <select
         className={styles.input}
-        aria-label="문의 유형"
+        aria-label={t("support.type")}
         value={category}
         onChange={(e) => {
           edited();
           setCategory(e.target.value as FaqCategory | "");
         }}
       >
-        <option value="">문의 유형 선택</option>
+        <option value="">{t("support.typeSelect")}</option>
         {INQUIRY_CATEGORIES.map((c) => (
           <option key={c.key} value={c.key}>
-            {c.label}
+            {t(FAQ_CATEGORY_KEY[c.key])}
           </option>
         ))}
       </select>
       <input
         className={styles.input}
-        aria-label="제목"
-        placeholder="제목"
+        aria-label={t("support.titleLabel")}
+        placeholder={t("support.titleLabel")}
         maxLength={INQUIRY_TITLE_MAX}
         value={title}
         onChange={(e) => {
@@ -84,8 +87,8 @@ export function InquiryForm() {
       />
       <textarea
         className={styles.input}
-        aria-label="내용"
-        placeholder="문의 내용을 자세히 적어 주세요 (10자 이상)"
+        aria-label={t("support.body")}
+        placeholder={t("support.bodyPlaceholder")}
         rows={6}
         maxLength={INQUIRY_BODY_MAX}
         value={body}
@@ -99,7 +102,7 @@ export function InquiryForm() {
           {body.length}/{INQUIRY_BODY_MAX}
         </span>
         <button type="submit" className={styles.submit} disabled={pending || !category || !title.trim() || body.trim().length < 10}>
-          {pending ? "접수 중…" : "문의 접수"}
+          {pending ? t("support.submitting") : t("support.submit")}
         </button>
       </div>
       {note && (

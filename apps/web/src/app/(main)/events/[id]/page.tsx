@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { EventDetailScreen } from "@/features/events/EventDetailScreen";
+import { getT } from "@/lib/i18n/server";
 import { getSession } from "@/lib/session";
 import { getEvent } from "@/services/events/events";
 
@@ -15,7 +16,8 @@ const readEvent = cache(getEvent);
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const event = await readEvent((await params).id);
-  return { title: event ? `${event.title} | 이벤트 | Ssumnation` : "이벤트 | Ssumnation" };
+  const t = await getT();
+  return { title: event ? t("events.metaEvent", { title: event.title }) : t("events.meta") };
 }
 
 export default async function Page({ params }: { params: Params }) {
