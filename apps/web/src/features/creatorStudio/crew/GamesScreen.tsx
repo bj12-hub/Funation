@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { useServerClock } from "@/hooks/useServerClock";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { OverlayTarget } from "@/services/creator/alertTypes";
 import type { BroadcastResult, GamesView } from "@/services/crew/crewTypes";
 import { OverlayOffNotice } from "../remote/OverlayOffNotice";
@@ -33,6 +34,7 @@ import games from "./games.module.css";
  */
 export function GamesScreen({ view, switches }: { view: GamesView; switches: Record<OverlayTarget, boolean> }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [message, setMessage] = useState<{ tone: "error" | "ok"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
   const liveId = view.live?.id ?? null;
@@ -59,10 +61,8 @@ export function GamesScreen({ view, switches }: { view: GamesView; switches: Rec
   return (
     <div className={styles.content}>
       <header className={styles.header}>
-        <h1 className={styles.title}>크루 관리</h1>
-        <p className={styles.subtitle}>
-          방송 중 후원으로 돌아가는 점수 게임이에요. 결과는 서버가 정하고, OBS에서 결과가 나온 뒤 점수판에 들어가요. 표시 점수일 뿐 FN은 움직이지 않아요.
-        </p>
+        <h1 className={styles.title}>{t("crewGame.title")}</h1>
+        <p className={styles.subtitle}>{t("crewGame.subtitle")}</p>
       </header>
       <OverlayOffNotice targets={["crew"]} switches={switches} />
       <CrewTabs active="games" />
@@ -72,24 +72,24 @@ export function GamesScreen({ view, switches }: { view: GamesView; switches: Rec
           {message.text}
         </p>
       )}
-      {!view.live && <p className={styles.note}>진행 중인 방송이 없어요. 설정은 지금 저장할 수 있고, 게임은 방송 운영에서 방송을 시작하면 돌아가요.</p>}
-      <nav className={games.jump} aria-label="게임 바로가기">
-        <a href="#game-spin">🎰 스핀머신</a>
-        <a href="#game-dice">🎲 주사위 게임</a>
-        <a href="#game-twowheel">🎡 투휠 게임</a>
-        <a href="#game-randomsig">🔀 랜덤시그</a>
-        <a href="#game-relay">🔗 기여도 릴레이</a>
-        <a href="#game-jupjup">🎁 줍줍</a>
-        <a href="#game-medley">🎶 시그니처 메들리</a>
-        <a href="#game-sigbingo">🎯 시그 빙고</a>
-        <a href="#game-griddraw">🎟️ 복불복 뽑기판</a>
-        <a href="#game-sighunter">🏹 시그니처 헌터</a>
-        <a href="#game-sigdosan">🚀 시그니처 두산</a>
-        <a href="#game-alphabet">🔤 알파벳 모으기</a>
-        <a href="#game-gostop">🎴 고스톱</a>
-        <a href="#game-territory">🗺️ 땅따먹기</a>
-        <a href="#game-sudopoly">🎲 스도폴리</a>
-        <a href="#game-jackpot">🧧 시그니처 잭팟</a>
+      {!view.live && <p className={styles.note}>{t("crewGame.noLive")}</p>}
+      <nav className={games.jump} aria-label={t("crewGame.jumpAria")}>
+        <a href="#game-spin">🎰 {t("crewGame.nameSpin")}</a>
+        <a href="#game-dice">🎲 {t("crewGame.nameDice")}</a>
+        <a href="#game-twowheel">🎡 {t("crewGame.nameTwoWheel")}</a>
+        <a href="#game-randomsig">🔀 {t("crewGame.nameRandomSig")}</a>
+        <a href="#game-relay">🔗 {t("crewGame.nameRelay")}</a>
+        <a href="#game-jupjup">🎁 {t("crewGame.nameJupjup")}</a>
+        <a href="#game-medley">🎶 {t("crewGame.nameMedley")}</a>
+        <a href="#game-sigbingo">🎯 {t("crewGame.nameSigBingo")}</a>
+        <a href="#game-griddraw">🎟️ {t("crewGame.nameGridDraw")}</a>
+        <a href="#game-sighunter">🏹 {t("crewGame.nameSigHunter")}</a>
+        <a href="#game-sigdosan">🚀 {t("crewGame.nameSigDosan")}</a>
+        <a href="#game-alphabet">🔤 {t("crewGame.nameAlphabet")}</a>
+        <a href="#game-gostop">🎴 {t("crewGame.nameGoStop")}</a>
+        <a href="#game-territory">🗺️ {t("crewGame.nameTerritory")}</a>
+        <a href="#game-sudopoly">🎲 {t("crewGame.nameSudopoly")}</a>
+        <a href="#game-jackpot">🧧 {t("crewGame.nameJackpot")}</a>
       </nav>
 
       <SpinMachinePanel settings={view.spinSettings} signatures={view.signatures} members={view.members} live={view.live} now={now} overlayPath={view.overlayPath} pending={pending} run={run} />
