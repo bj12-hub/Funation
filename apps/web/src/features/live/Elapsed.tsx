@@ -5,9 +5,9 @@ import { formatDuration } from "@/lib/format";
 
 /**
  * 방송 시간 since `since` (ISO), ticking every second (phase 10). Drawn after mount so the server's and the browser's
- * clocks never disagree; nothing for a time that cannot be read.
+ * clocks never disagree; nothing for a time that cannot be read. `suffix` follows the time (the room's " 방송 중").
  */
-export function Elapsed({ since, className, suffix = " 방송 중" }: { since: string; className?: string; suffix?: string }) {
+export function Elapsed({ since, className, suffix = "" }: { since: string; className?: string; suffix?: string }) {
   const start = Date.parse(since);
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {

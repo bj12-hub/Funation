@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getT } from "@/lib/i18n/server";
 import styles from "./NotFoundView.module.css";
 
 /**
@@ -6,11 +7,12 @@ import styles from "./NotFoundView.module.css";
  * own for unmatched URLs (`app/not-found.tsx`). Deleted, hidden (신고 처리) and suspended content land
  * here too, so the copy does not say why the page is missing.
  */
-export function NotFoundView({ standalone = false }: { standalone?: boolean }) {
+export async function NotFoundView({ standalone = false }: { standalone?: boolean }) {
+  const t = await getT();
   return (
     <section className={`${styles.root} ${standalone ? styles.standalone : ""}`} aria-labelledby="not-found-title">
       {standalone && (
-        <Link href="/" className={styles.logo} aria-label="Ssumnation 홈">
+        <Link href="/" className={styles.logo} aria-label={t("common.homeAria")}>
           Ssumnation
         </Link>
       )}
@@ -18,18 +20,18 @@ export function NotFoundView({ standalone = false }: { standalone?: boolean }) {
         404
       </p>
       <h1 id="not-found-title" className={styles.title}>
-        페이지를 찾을 수 없어요
+        {t("page.notFoundTitle")}
       </h1>
-      <p className={styles.description}>주소가 바뀌었거나, 삭제 · 비공개 처리된 페이지예요. 주소를 다시 확인해 주세요.</p>
+      <p className={styles.description}>{t("page.notFoundDescription")}</p>
       <div className={styles.actions}>
         <Link href="/" className={styles.primary}>
-          홈으로 가기
+          {t("page.goHome")}
         </Link>
         <Link href="/creators" className={styles.secondary}>
-          크리에이터 찾기
+          {t("page.findCreators")}
         </Link>
         <Link href="/support" className={styles.secondary}>
-          고객센터
+          {t("page.support")}
         </Link>
       </div>
     </section>

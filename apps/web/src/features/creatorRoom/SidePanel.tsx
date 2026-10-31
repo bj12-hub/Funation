@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { useState } from "react";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { remote } from "@/lib/remoteImage";
 import type { CreatorRoom } from "@/services/creators/creatorRoom";
 import { ChatPanel } from "./ChatPanel";
@@ -14,16 +16,16 @@ import styles from "./room.module.css";
 
 export type Tab = "DONATION" | "CHAT" | "SIGNATURES";
 
-const TABS: { key: Tab; label: string }[] = [
-  { key: "DONATION", label: "후원하기" },
-  { key: "CHAT", label: "채팅하기" }
+const TABS: { key: Tab; label: MessageKey }[] = [
+  { key: "DONATION", label: "room.tabDonate" },
+  { key: "CHAT", label: "room.tabChat" }
 ];
 
 /** A FLEXTV channel's room (phase 10, funnation's live room): 채팅 · 후원 · 시그니처. */
-const FLEXTV_TABS: { key: Tab; label: string }[] = [
-  { key: "CHAT", label: "채팅" },
-  { key: "DONATION", label: "후원" },
-  { key: "SIGNATURES", label: "시그니처" }
+const FLEXTV_TABS: { key: Tab; label: MessageKey }[] = [
+  { key: "CHAT", label: "room.tabChatShort" },
+  { key: "DONATION", label: "room.tabDonateShort" },
+  { key: "SIGNATURES", label: "room.tabSignatures" }
 ];
 
 /**
@@ -44,14 +46,15 @@ export function SidePanel({
   /** `?tab=donation` (e.g. from the home 크리에이터 프로필 popup) opens the donation tab. */
   initialTab?: Tab;
 }) {
+  const { t } = useI18n();
   // A FLEXTV channel's room (docs/development/flextv-backend.md): the chat is its stream's, while FLEXTV's player plays
   // it here; otherwise 후원하기 only.
   const flextv = room.source === "FLEXTV";
   const flextvStream = flextv && room.stream.status === "LIVE" ? (room.stream.embed ?? null) : null;
   const tabs = flextv
-    ? FLEXTV_TABS.filter((t) => (t.key !== "CHAT" || flextvStream) && (t.key !== "SIGNATURES" || room.donation.signatures.length > 0))
+    ? FLEXTV_TABS.filter((item) => (item.key !== "CHAT" || flextvStream) && (item.key !== "SIGNATURES" || room.donation.signatures.length > 0))
     : TABS;
-  const [tab, setTab] = useState<Tab>(tabs.some((t) => t.key === initialTab) ? initialTab : tabs[0].key);
+  const [tab, setTab] = useState<Tab>(tabs.some((item) => item.key === initialTab) ? initialTab : tabs[0].key);
   // A signature picked on the 시그니처 tab opens the 후원 tab with it chosen.
   const [pick, setPick] = useState<{ signatureId: string; seq: number } | null>(null);
   // Local echo only; the realtime chat and donation feed are TBD.
@@ -59,7 +62,7 @@ export function SidePanel({
   const sendChat = (text: string) =>
     setMessages((list) => [
       ...list,
-      { id: `local-${Date.now()}`, kind: "CHAT", nickname: nickname ?? "나", handle: "", color: "var(--color-accent)", avatarUrl: null, text }
+      { id: `local-${Date.now()}`, kind: "CHAT", nickname: nickname ?? t("room.me"), handle: "", color: "var(--color-accent)", avatarUrl: null, text }
     ]);
   const announceDonation = ({ fnAmount, text, anonymous }: { fnAmount: number; text: string; anonymous: boolean }) =>
     setMessages((list) => [
@@ -67,26 +70,26 @@ export function SidePanel({
       {
         id: `donation-${Date.now()}`,
         kind: "DONATION",
-        title: `${anonymous ? "익명" : (nickname ?? "나")} 님이 ${formatNumber(fnAmount)} FN을 후원했습니다.`,
+        title: t("room.donated", { name: anonymous ? t("room.anonymous") : (nickname ?? t("room.me")), amount: formatNumber(fnAmount) }),
         text
       }
     ]);
 
   return (
-    <section className={styles.panel} aria-label="후원 및 채팅">
+    <section className={styles.panel} aria-label={t("room.panel")}>
       <div className={styles.tabs} role="tablist">
-        {tabs.map((t) => (
+        {tabs.map((item) => (
           <button
-            key={t.key}
+            key={item.key}
             type="button"
             role="tab"
-            id={`room-tab-${t.key}`}
-            aria-selected={tab === t.key}
-            aria-controls={`room-panel-${t.key}`}
-            className={`${styles.tab} ${tab === t.key ? styles.tabActive : ""}`}
-            onClick={() => setTab(t.key)}
+            id={`room-tab-${item.key}`}
+            aria-selected={tab === item.key}
+            aria-controls={`room-panel-${item.key}`}
+            className={`${styles.tab} ${tab === item.key ? styles.tabActive : ""}`}
+            onClick={() => setTab(item.key)}
           >
-            {t.label}
+            {t(item.label)}
           </button>
         ))}
       </div>
@@ -116,7 +119,7 @@ export function SidePanel({
       )}
       {flextv && room.donation.signatures.length > 0 && (
         <div id="room-panel-SIGNATURES" role="tabpanel" aria-labelledby="room-tab-SIGNATURES" className={styles.tabPanel} hidden={tab !== "SIGNATURES"}>
-          <ul className={styles.sigPicker} aria-label="시그니처">
+          <ul className={styles.sigPicker} aria-label={t("room.tabSignatures")}>
             {[...room.donation.signatures]
               .sort((a, b) => a.rank - b.rank)
               .map((s) => (
@@ -124,7 +127,7 @@ export function SidePanel({
                   <button
                     type="button"
                     className={styles.sigPick}
-                    title="이 시그니처로 후원해요"
+                    title={t("room.sigPickTitle")}
                     onClick={() => {
                       setPick((p) => ({ signatureId: s.id, seq: (p?.seq ?? 0) + 1 }));
                       setTab("DONATION");

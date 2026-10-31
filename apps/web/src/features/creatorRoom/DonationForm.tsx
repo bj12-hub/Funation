@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ChargeModal } from "@/features/walletCharge";
 import { formatNumber } from "@/lib/format";
-import type { DonationCatalog } from "@/services/donations/donationCatalog";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
+import type { DonationCatalog, DonationTypeKey } from "@/services/donations/donationCatalog";
 import { requestDonation } from "@/services/donations/donate";
 import type { DonationResult } from "@/services/donations/donationTypes";
 import { getCrewPublic } from "@/services/crew/crew";
@@ -30,6 +32,20 @@ type Dialog =
   | { kind: "SIGNATURES" };
 
 const CHIPS_PER_PAGE = 6;
+
+/** Type chip and form title in the viewer's language (the catalog keeps the Korean ones). */
+const TYPE_KEY: Record<DonationTypeKey, { label: MessageKey; title: MessageKey }> = {
+  TEXT: { label: "roomDonate.typeText", title: "roomDonate.typeTextTitle" },
+  MINI: { label: "roomDonate.typeMini", title: "roomDonate.typeMiniTitle" },
+  VIDEO: { label: "roomDonate.typeVideo", title: "roomDonate.typeVideoTitle" },
+  AUDIO: { label: "roomDonate.typeAudio", title: "roomDonate.typeAudioTitle" },
+  SIGNATURE: { label: "roomDonate.typeSignature", title: "roomDonate.typeSignatureTitle" },
+  WISHLIST: { label: "roomDonate.typeWishlist", title: "roomDonate.typeWishlistTitle" },
+  ROULETTE: { label: "roomDonate.typeRoulette", title: "roomDonate.typeRouletteTitle" },
+  QUEST: { label: "roomDonate.typeQuest", title: "roomDonate.typeQuestTitle" },
+  DRAWING: { label: "roomDonate.typeDrawing", title: "roomDonate.typeDrawingTitle" },
+  GACHA: { label: "roomDonate.typeGacha", title: "roomDonate.typeGachaTitle" }
+};
 
 /**
  * Donation tab. Figma 610:138 · 851:4546 (일반) · 851:4665 (미니) · 851:4788 (영상) · 851:4929 (시그니처)
@@ -62,6 +78,7 @@ export function DonationForm({
   /** A signature picked elsewhere in the room (its 시그니처 tab): selects 시그니처 with it, once per `seq`. */
   pick?: { signatureId: string; seq: number } | null;
 }) {
+  const { t } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
   const [typeIndex, setTypeIndex] = useState(0);
@@ -117,7 +134,7 @@ export function DonationForm({
 
   const type = donation.types[typeIndex];
   const formKey = isFormKey(type.key) && type.available ? type.key : null;
-  const draft = formKey ? buildDraft(formKey, states, donation) : null;
+  const draft = formKey ? buildDraft(formKey, states, donation, t) : null;
   const loginHref = `/login?next=${encodeURIComponent(pathname)}`;
   const pageCount = Math.ceil(donation.types.length / CHIPS_PER_PAGE);
   const chips = donation.types.slice(chipPage * CHIPS_PER_PAGE, (chipPage + 1) * CHIPS_PER_PAGE);
@@ -139,7 +156,7 @@ export function DonationForm({
   const loadAlertPreview = () => {
     const seq = ++previewSeq.current;
     // A hidden profile is delivered as 익명 without badges (same rule as the Donation Core).
-    if (hideProfile) return setAlertPreview({ status: "READY", name: "익명", badges: [] });
+    if (hideProfile) return setAlertPreview({ status: "READY", name: t("room.anonymous"), badges: [] });
     setAlertPreview({ status: "LOADING" });
     getAlertBadges(nicknameId, creatorId)
       .then((b) => seq === previewSeq.current && setAlertPreview(b ? { status: "READY", name: b.name, badges: alertBadgeLabels(b) } : { status: "ERROR" }))
@@ -161,17 +178,17 @@ export function DonationForm({
         break;
       case "PRICE_CHANGED":
         // Nothing was debited. The refresh brings the creator's new price into the panel and this dialog.
-        setError(`크리에이터가 가격을 바꿨어요. 지금 가격은 ${formatNumber(result.amount)} FN이에요. 확인하고 다시 후원해 주세요.`);
+        setError(t("roomDonate.priceChanged", { amount: formatNumber(result.amount) }));
         router.refresh();
         break;
       case "IN_PROGRESS":
-        setError("후원을 처리하고 있습니다. 잠시 후 다시 시도해 주세요.");
+        setError(t("roomDonate.inProgress"));
         break;
       case "UNAUTHORIZED":
         router.push(loginHref);
         break;
       default:
-        setError(result.status === "INVALID" && result.message ? result.message : "후원 정보를 다시 확인해 주세요.");
+        setError(result.status === "INVALID" && result.message ? result.message : t("roomDonate.checkDetails"));
     }
   };
 
@@ -185,7 +202,7 @@ export function DonationForm({
       const { sent, result } = await submitDonation(submitState.current, form, { formKey, chatText: draft.chatText }, requestDonation, () => crypto.randomUUID());
       show(sent, result);
     } catch {
-      setError("후원 결과를 확인하지 못했습니다. 다시 시도해 주세요.");
+      setError(t("roomDonate.resultUnknown"));
     } finally {
       sending.current = false;
       setPending(false);
@@ -197,23 +214,23 @@ export function DonationForm({
   return (
     <div className={styles.donation}>
       <div className={styles.typeRow}>
-        <button type="button" className={styles.typeArrow} aria-label="이전 후원 유형" disabled={chipPage === 0} onClick={() => setChipPage((p) => p - 1)}>
+        <button type="button" className={styles.typeArrow} aria-label={t("roomDonate.prevTypes")} disabled={chipPage === 0} onClick={() => setChipPage((p) => p - 1)}>
           ‹
         </button>
-        <div className={styles.types} role="radiogroup" aria-label="후원 유형">
-          {chips.map((t) => {
-            const i = donation.types.indexOf(t);
+        <div className={styles.types} role="radiogroup" aria-label={t("roomDonate.types")}>
+          {chips.map((chip) => {
+            const i = donation.types.indexOf(chip);
             return (
               <button
-                key={t.key}
+                key={chip.key}
                 type="button"
                 role="radio"
                 aria-checked={i === typeIndex}
                 className={`${styles.type} ${i === typeIndex ? styles.typeOn : ""}`}
                 onClick={() => selectType(i)}
               >
-                <span aria-hidden="true">{t.emoji}</span>
-                <span>{t.label}</span>
+                <span aria-hidden="true">{chip.emoji}</span>
+                <span>{t(TYPE_KEY[chip.key].label)}</span>
               </button>
             );
           })}
@@ -221,7 +238,7 @@ export function DonationForm({
         <button
           type="button"
           className={styles.typeArrow}
-          aria-label="다음 후원 유형"
+          aria-label={t("roomDonate.nextTypes")}
           disabled={chipPage >= pageCount - 1}
           onClick={() => setChipPage((p) => p + 1)}
         >
@@ -230,8 +247,8 @@ export function DonationForm({
       </div>
 
       <div className={styles.titleRow}>
-        <h2 className={styles.formTitle}>{type.title}</h2>
-        {fnBalance !== null && <span className={styles.balance}>보유 {formatNumber(fnBalance)} FN</span>}
+        <h2 className={styles.formTitle}>{t(TYPE_KEY[type.key].title)}</h2>
+        {fnBalance !== null && <span className={styles.balance}>{t("roomDonate.balance", { amount: formatNumber(fnBalance) })}</span>}
       </div>
 
       <form
@@ -271,16 +288,16 @@ export function DonationForm({
         )}
         {!formKey && (
           <p className={panel.unavailable} role="status">
-            준비 중인 후원 유형이에요.
+            {t("roomDonate.unavailable")}
           </p>
         )}
 
         {/* Code-first (no Figma frame): attribute the donation to a crew member. */}
         {members.length > 0 && (
           <div className={styles.memberRow}>
-            <span className={styles.memberLabel}>멤버 지정 (선택)</span>
-            <div className={styles.memberChips} role="radiogroup" aria-label="크루 멤버">
-              {[{ id: null as string | null, name: "지정 안 함", color: "transparent" }, ...members].map((m) => (
+            <span className={styles.memberLabel}>{t("roomDonate.memberPick")}</span>
+            <div className={styles.memberChips} role="radiogroup" aria-label={t("roomDonate.crewMembers")}>
+              {[{ id: null as string | null, name: t("roomDonate.noMember"), color: "transparent" }, ...members].map((m) => (
                 <button
                   key={m.id ?? "none"}
                   type="button"
@@ -294,7 +311,7 @@ export function DonationForm({
                 </button>
               ))}
             </div>
-            <span className={styles.memberHint}>멤버를 고르면 그 멤버의 순위에 집계돼요.</span>
+            <span className={styles.memberHint}>{t("roomDonate.memberHint")}</span>
             {/* BJ 공약 of the chosen member (2026-10-25). */}
             {chosenMember && <PledgeLine member={chosenMember} />}
           </div>
@@ -303,16 +320,16 @@ export function DonationForm({
         {/* Code-first (no Figma frame): donate under one of the supporter's 별명. */}
         {signedIn && nicknames.length > 1 && (
           <label className={styles.nicknameRow}>
-            <span>별명</span>
+            <span>{t("roomDonate.nickname")}</span>
             <select
               value={nicknameId ?? ""}
               onChange={(e) => setNicknameId(e.target.value || null)}
-              aria-label="후원 별명"
+              aria-label={t("roomDonate.nicknameAria")}
             >
               {nicknames.map((n, i) => (
                 <option key={n.id} value={i === 0 ? "" : n.id}>
                   {n.name}
-                  {i === 0 ? " (대표)" : ""}
+                  {i === 0 ? t("roomDonate.nicknameMain") : ""}
                 </option>
               ))}
             </select>
@@ -325,22 +342,22 @@ export function DonationForm({
               type="button"
               role="switch"
               aria-checked={hideProfile}
-              aria-label="프로필 숨기기"
+              aria-label={t("roomDonate.hideProfile")}
               className={styles.miniToggle}
               onClick={() => setHideProfile((h) => !h)}
             />
-            <span aria-hidden="true">프로필 숨기기</span>
+            <span aria-hidden="true">{t("roomDonate.hideProfile")}</span>
           </div>
         )}
       </form>
 
       {signedIn ? (
         <button type="button" className={styles.submit} disabled={!draft?.details} onClick={open}>
-          {draft?.buttonLabel ?? `${name}님에게 후원하기`}
+          {draft?.buttonLabel ?? t("roomDonate.donateTo", { name })}
         </button>
       ) : (
         <button type="button" className={styles.submit} onClick={() => router.push(loginHref)}>
-          로그인하고 후원하기
+          {t("roomDonate.loginToDonate")}
         </button>
       )}
 

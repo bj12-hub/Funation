@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { LiveChannel } from "@/services/live/liveChannels";
 import { PLATFORM_LABEL, type Platform } from "@/types/platform";
 import { CategoryChips, liveCategories } from "./CategoryChips";
@@ -18,6 +19,7 @@ const STEP = 12;
  * sort (시청자순 · 최신순) take the platform filter's place; `initialCategory` comes from `?category=`.
  */
 export function AllLiveBrowser({ channels, byCategory = false, initialCategory = null }: { channels: LiveChannel[]; byCategory?: boolean; initialCategory?: string | null }) {
+  const { t } = useI18n();
   const [platform, setPlatform] = useState<Platform | "ALL">("ALL");
   const categories = useMemo(() => (byCategory ? liveCategories(channels) : []), [byCategory, channels]);
   const [category, setCategory] = useState<string | null>(categories.some((c) => c.id === initialCategory) ? initialCategory : null);
@@ -44,9 +46,9 @@ export function AllLiveBrowser({ channels, byCategory = false, initialCategory =
               setShown(STEP);
             }}
           />
-          <select className={`${styles.control} ${styles.platformSelect}`} aria-label="정렬" value={sort} onChange={(e) => setSort(e.target.value as "viewers" | "recent")}>
-            <option value="viewers">시청자순</option>
-            <option value="recent">최신순</option>
+          <select className={`${styles.control} ${styles.platformSelect}`} aria-label={t("live.sort")} value={sort} onChange={(e) => setSort(e.target.value as "viewers" | "recent")}>
+            <option value="viewers">{t("live.sortViewers")}</option>
+            <option value="recent">{t("live.sortRecent")}</option>
           </select>
         </div>
         <LiveGrid channels={channels} visible={visible} shown={shown} onMore={() => setShown((n) => n + STEP)} />
@@ -56,17 +58,17 @@ export function AllLiveBrowser({ channels, byCategory = false, initialCategory =
 
   return (
     <>
-      <div className={styles.chipBar} role="group" aria-label="필터">
+      <div className={styles.chipBar} role="group" aria-label={t("live.filter")}>
         <select
           className={`${styles.control} ${styles.platformSelect}`}
-          aria-label="방송 플랫폼"
+          aria-label={t("live.platform")}
           value={platform}
           onChange={(e) => {
             setPlatform(e.target.value as Platform | "ALL");
             setShown(STEP);
           }}
         >
-          <option value="ALL">모든 플랫폼</option>
+          <option value="ALL">{t("live.allPlatforms")}</option>
           {(Object.keys(PLATFORM_LABEL) as Platform[]).map((p) => (
             <option key={p} value={p}>
               {PLATFORM_LABEL[p]}
@@ -81,10 +83,11 @@ export function AllLiveBrowser({ channels, byCategory = false, initialCategory =
 }
 
 function LiveGrid({ channels, visible, shown, onMore }: { channels: LiveChannel[]; visible: LiveChannel[]; shown: number; onMore: () => void }) {
+  const { t } = useI18n();
   return (
-    <section className={styles.section} aria-label="방송 중인 채널">
+    <section className={styles.section} aria-label={t("live.channelsAria")}>
       {visible.length === 0 ? (
-        <p className={styles.empty}>{channels.length === 0 ? "지금 방송 중인 채널이 없습니다." : "조건에 맞는 방송이 없습니다."}</p>
+        <p className={styles.empty}>{channels.length === 0 ? t("live.noneLive") : t("live.noMatch")}</p>
       ) : (
         <>
           <div className={styles.grid4}>
@@ -94,7 +97,7 @@ function LiveGrid({ channels, visible, shown, onMore }: { channels: LiveChannel[
           </div>
           {shown < visible.length && (
             <button type="button" className={styles.more} onClick={onMore}>
-              더 보기 ({Math.min(shown, visible.length)}/{visible.length})
+              {t("live.more", { shown: Math.min(shown, visible.length), total: visible.length })}
             </button>
           )}
         </>

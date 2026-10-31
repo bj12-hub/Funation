@@ -1,4 +1,5 @@
 import { formatNumber } from "@/lib/format";
+import { messagesFor, translate, type MessageKey } from "@/lib/i18n/translate";
 import type { DonationCatalog, DonationTypeKey } from "@/services/donations/donationCatalog";
 import { parseYouTubeId, type DonationDetails } from "@/services/donations/donationTypes";
 
@@ -41,6 +42,10 @@ export type FormStates = {
 
 export type FormKey = keyof FormStates;
 
+/** `t` from useI18n: errors, confirm rows and button labels follow the viewer's language. Korean by default. */
+export type Translate = (key: MessageKey, vars?: Record<string, string | number>) => string;
+const korean: Translate = (key, vars) => translate(messagesFor("ko"), key, vars);
+
 export function initialStates(catalog: DonationCatalog): FormStates {
   const voiceId = catalog.voices[0]?.id ?? null;
   return {
@@ -59,8 +64,8 @@ export function initialStates(catalog: DonationCatalog): FormStates {
 }
 
 /** The confirm step's "메시지 읽어주기" row, where the room offers the choice and there is a message to read. */
-const readAloudRow = (catalog: DonationCatalog, s: { message: string; readAloud: boolean }) =>
-  catalog.readAloudChoice && s.message.trim() ? [{ label: "메시지 읽어주기", value: s.readAloud ? "켬" : "끔 (채팅에만 보여요)" }] : [];
+const readAloudRow = (catalog: DonationCatalog, s: { message: string; readAloud: boolean }, t: Translate) =>
+  catalog.readAloudChoice && s.message.trim() ? [{ label: t("roomDonate.readAloud"), value: t(s.readAloud ? "roomDonate.readAloudOn" : "roomDonate.readAloudOff") }] : [];
 
 /** Minutes + seconds → seconds, or null when not a valid positive time. */
 export function timeToSec(time: TimeLimit): number | null {
@@ -110,7 +115,7 @@ export function addAmount(current: string, add: number): string {
   return String(Math.min(AMOUNT_INPUT_MAX, (Number.isFinite(base) ? base : 0) + add));
 }
 
-export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCatalog): Draft {
+export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCatalog, t: Translate = korean): Draft {
   switch (key) {
     case "TEXT": {
       const s = states.TEXT;
@@ -123,8 +128,8 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
             ? { type: "TEXT", amount, message: s.message.trim(), voiceId: s.voiceId, ...(catalog.readAloudChoice ? { readAloud: s.readAloud } : {}) }
             : null,
         amount,
-        error: tooSmall ? `최소 ${formatNumber(min)} FN부터 후원할 수 있어요` : null,
-        summary: [{ label: "후원 메시지", value: s.message.trim() || "메시지 없음" }, ...readAloudRow(catalog, s)],
+        error: tooSmall ? t("roomDonate.minAmount", { amount: formatNumber(min) }) : null,
+        summary: [{ label: t("roomDonate.message"), value: s.message.trim() || t("roomDonate.noMessage") }, ...readAloudRow(catalog, s, t)],
         chatText: s.message.trim()
       };
     }
@@ -140,11 +145,11 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
         details: amount !== null && !tooSmall && !tooLarge && text ? { type: "MINI", amount, text, colorId: s.colorId } : null,
         amount,
         error: tooSmall
-          ? `최소 ${formatNumber(min)} FN부터 후원할 수 있어요`
+          ? t("roomDonate.minAmount", { amount: formatNumber(min) })
           : tooLarge
-            ? `미니 후원은 ${formatNumber(max)} FN까지예요. ${formatNumber(max + 1)} FN부터는 일반 후원으로 보내 주세요`
+            ? t("roomDonate.miniMax", { max: formatNumber(max), next: formatNumber(max + 1) })
             : null,
-        summary: [{ label: "텍스트 내용", value: text }],
+        summary: [{ label: t("roomDonate.miniText"), value: text }],
         chatText: `⚡ ${text}`
       };
     }
@@ -164,13 +169,13 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
       const tooSmall = amount !== null && amount < min;
       const tooLong = !!pricing && length !== null && length > pricing.maxSec;
       const error = tooLong
-        ? `최대 ${formatNumber(pricing.maxSec)}초까지 보낼 수 있어요.`
+        ? t("roomDonate.maxSeconds", { max: formatNumber(pricing.maxSec) })
         : tooSmall
-          ? `최소 ${formatNumber(min)} FN부터 후원할 수 있어요${pricing ? " (재생 구간을 늘려 주세요)" : ""}`
+          ? t(pricing ? "roomDonate.minAmountLonger" : "roomDonate.minAmount", { amount: formatNumber(min) })
           : s.url && !videoId
-            ? "YouTube 영상 주소를 입력해 주세요."
+            ? t("roomDonate.youtubeOnly")
             : !rangeOk
-              ? "종료 시간은 시작 시간보다 늦어야 해요."
+              ? t("roomDonate.rangeError")
               : null;
       const complete = amount !== null && !error && videoId && s.terms && start !== null && end !== null;
       return {
@@ -180,10 +185,10 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
         amount,
         error,
         summary: [
-          { label: audio ? "음성 (YouTube 소리)" : "영상", value: videoId ? `youtu.be/${videoId}` : "-" },
-          { label: "재생 구간", value: `${s.start} ~ ${s.end}` }
+          { label: audio ? t("roomDonate.rowAudio") : t("roomDonate.rowVideo"), value: videoId ? `youtu.be/${videoId}` : "-" },
+          { label: t("roomDonate.rowRange"), value: `${s.start} ~ ${s.end}` }
         ],
-        chatText: audio ? "🎧 음성 후원" : "🎬 영상 후원"
+        chatText: audio ? t("roomDonate.chatAudio") : t("roomDonate.chatVideo")
       };
     }
     case "SIGNATURE": {
@@ -195,7 +200,11 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
           : null,
         amount: signature?.price ?? null,
         error: null,
-        summary: [{ label: "시그니처", value: signature?.name ?? "-" }, { label: "메시지", value: s.message.trim() || "메시지 없음" }, ...readAloudRow(catalog, s)],
+        summary: [
+          { label: t("roomDonate.rowSignature"), value: signature?.name ?? "-" },
+          { label: t("roomDonate.shortMessage"), value: s.message.trim() || t("roomDonate.noMessage") },
+          ...readAloudRow(catalog, s, t)
+        ],
         chatText: `✨ ${signature?.name ?? ""}${s.message.trim() ? ` · ${s.message.trim()}` : ""}`
       };
     }
@@ -205,10 +214,10 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
       return {
         details: item?.inStock ? { type: "WISHLIST", itemId: item.id, message: s.message.trim(), voiceId: s.voiceId, expectedAmount: item.price } : null,
         amount: item?.price ?? null,
-        error: item && !item.inStock ? "선택한 상품은 지금 후원할 수 없어요." : null,
+        error: item && !item.inStock ? t("roomDonate.notAvailable") : null,
         summary: [
-          { label: "위시 상품", value: item ? `${item.emoji} ${item.name}` : "-" },
-          { label: "후원 메시지", value: s.message.trim() || "메시지 없음" }
+          { label: t("roomDonate.rowWish"), value: item ? `${item.emoji} ${item.name}` : "-" },
+          { label: t("roomDonate.message"), value: s.message.trim() || t("roomDonate.noMessage") }
         ],
         chatText: `🎁 ${item?.name ?? ""}`
       };
@@ -220,9 +229,9 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
       const error = !r.enabled
         ? null
         : s.limitReached
-          ? "오늘 참여 가능 횟수를 모두 사용했어요."
+          ? t("roomDonate.limitUsed")
           : amount !== null && amount < r.minAmount
-            ? `${formatNumber(r.minAmount)} FN 이상이어야 참여할 수 있어요.`
+            ? t("roomDonate.rouletteMin", { amount: formatNumber(r.minAmount) })
             : null;
       const ok = r.enabled && amount !== null && error === null;
       return {
@@ -230,28 +239,28 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
         amount: ok ? amount : null,
         error,
         summary: [
-          { label: "룰렛", value: "참여 1회" },
-          { label: "당첨", value: "크리에이터 상품 (FN 지급 없음)" }
+          { label: t("roomDonate.rowRoulette"), value: t("roomDonate.onePlay") },
+          { label: t("roomDonate.rowPrize"), value: t("roomDonate.creatorPrize") }
         ],
-        chatText: "🎡 룰렛 참여",
-        buttonLabel: r.enabled ? `${formatNumber(amount ?? r.minAmount)} FN으로 참여하기` : "룰렛이 꺼져 있어요"
+        chatText: t("roomDonate.chatRoulette"),
+        buttonLabel: r.enabled ? t("roomDonate.joinWith", { amount: formatNumber(amount ?? r.minAmount) }) : t("roomDonate.rouletteOff")
       };
     }
     case "GACHA": {
       const s = states.GACHA;
       const offer = catalog.gacha.find((x) => x.id === s.gachaId) ?? null;
-      const error = !offer ? null : offer.soldOut ? "상품이 모두 소진됐어요." : s.limitReached ? "오늘 이 뽑기의 참여 한도를 모두 사용했어요." : null;
+      const error = !offer ? null : offer.soldOut ? t("roomDonate.soldOutError") : s.limitReached ? t("roomDonate.gachaLimit") : null;
       const ok = offer !== null && error === null && s.terms;
       return {
         details: ok ? { type: "GACHA", gachaId: offer.id, termsAgreed: true, expectedAmount: offer.price } : null,
         amount: ok ? offer.price : null,
         error,
         summary: [
-          { label: "뽑기", value: offer?.name ?? "-" },
-          { label: "당첨", value: "크리에이터 상품 (FN 지급 없음)" }
+          { label: t("roomDonate.rowGacha"), value: offer?.name ?? "-" },
+          { label: t("roomDonate.rowPrize"), value: t("roomDonate.creatorPrize") }
         ],
-        chatText: `🧸 ${offer?.name ?? ""} 뽑기`,
-        buttonLabel: offer ? `${offer.name} ${formatNumber(offer.price)} FN 뽑기` : "진행 중인 뽑기가 없어요"
+        chatText: t("roomDonate.chatGacha", { name: offer?.name ?? "" }),
+        buttonLabel: offer ? t("roomDonate.gachaButton", { name: offer.name, amount: formatNumber(offer.price) }) : t("roomDonate.noGacha")
       };
     }
     case "QUEST": {
@@ -261,9 +270,9 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
       const title = s.title.trim();
       const error =
         success !== null && success < catalog.game.minAmount
-          ? `성공 보상은 ${formatNumber(catalog.game.minAmount)} FN 이상이어야 해요.`
+          ? t("roomDonate.questMin", { amount: formatNumber(catalog.game.minAmount) })
           : time === null || time > catalog.game.maxTimeSec
-            ? "제한 시간을 확인해 주세요."
+            ? t("roomDonate.checkTime")
             : null;
       const ready = title && success !== null && time !== null && !error && s.terms;
       return {
@@ -273,12 +282,12 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
         amount: success,
         error,
         summary: [
-          { label: "퀘스트", value: title || "-" },
-          { label: "실패 · 취소 시", value: "전액 환불" },
-          { label: "제한 시간", value: `${s.time.minutes || "0"}분 ${s.time.seconds || "0"}초` }
+          { label: t("roomDonate.rowQuest"), value: title || "-" },
+          { label: t("roomDonate.rowFail"), value: t("roomDonate.fullRefund") },
+          { label: t("roomDonate.timeLimit"), value: t("roomDonate.timeValue", { m: s.time.minutes || "0", s: s.time.seconds || "0" }) }
         ],
-        chatText: `🏆 퀘스트: ${title}`,
-        buttonLabel: `퀘스트 ${formatNumber(success ?? 0)} FN 후원하기`
+        chatText: t("roomDonate.chatQuest", { title }),
+        buttonLabel: t("roomDonate.questButton", { amount: formatNumber(success ?? 0) })
       };
     }
     case "DRAWING": {
@@ -292,10 +301,10 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
             ? { type: "DRAWING", amount, title, image: s.image, showProcess: s.showProcess, canvasMode: s.canvasMode, termsAgreed: true }
             : null,
         amount,
-        error: tooSmall ? `최소 ${formatNumber(catalog.game.minAmount)} FN부터 후원할 수 있어요` : null,
-        summary: [{ label: "그림 제목", value: title || "-" }],
+        error: tooSmall ? t("roomDonate.minAmount", { amount: formatNumber(catalog.game.minAmount) }) : null,
+        summary: [{ label: t("roomDonate.drawingTitle"), value: title || "-" }],
         chatText: `🎨 ${title}`,
-        buttonLabel: `그림 후원 ${formatNumber(amount ?? 0)} FN 보내기`
+        buttonLabel: t("roomDonate.drawingButton", { amount: formatNumber(amount ?? 0) })
       };
     }
   }
