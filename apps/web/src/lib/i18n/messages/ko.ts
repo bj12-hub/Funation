@@ -81,7 +81,9 @@ export const ko = {
   /** 라이브 방송 카드 (2026-11-01, 홈 · 라이브 목록). */
   live: {
     viewers: "시청자 {count}명",
-    onAir: "생방송 중 • {time}"
+    onAir: "생방송 중 • {time}",
+    categories: "방송 카테고리",
+    allCategories: "전체"
   },
   /** 홈 화면 (2026-11-01): UI text only — creator names, video titles, banners and notices are content. */
   home: {
@@ -99,6 +101,7 @@ export const ko = {
     autoplayResume: "자동 넘김 다시 시작",
     autoplayPause: "자동 넘김 멈추기",
     allStreams: "전체 방송",
+    ssumnationLive: "썸네이션 라이브",
     popularLive: "인기 라이브",
     everyLive: "전체 라이브",
     mostWatched: "지금 가장 많이 보는 라이브",

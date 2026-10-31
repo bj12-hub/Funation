@@ -143,12 +143,19 @@ export function mapSend({ status, data }: Pick<FlextvResponse, "status" | "data"
 /**
  * `POST /api/luv/send` as FLEXTV's donate form sends it: `count` 1 (FLEXTV debits `amount` but checks `amount × count`),
  * a signature by its `code`, the message as the TTS effect (FLEXTV has no message field; its voice choice is ignored
- * by its server, so the default voice).
+ * by its server, so the default voice). `readAloud` false sends no TTS: the message is then only in chat (phase 10).
  */
 export async function sendDonation(
   token: string,
   context: DeviceContext,
-  { channelId, amount, signatureCode, message, video = null }: { channelId: string; amount: number; signatureCode: string | null; message: string; video?: VideoEffect | null }
+  {
+    channelId,
+    amount,
+    signatureCode,
+    message,
+    video = null,
+    readAloud = true
+  }: { channelId: string; amount: number; signatureCode: string | null; message: string; video?: VideoEffect | null; readAloud?: boolean }
 ): Promise<SendOutcome> {
   const response = await flextvRequest("/api/luv/send", {
     method: "POST",
@@ -162,7 +169,7 @@ export async function sendDonation(
       // single `effect` would take its place, so none is sent with it).
       ...(video
         ? { sendType: "youtube", effects: [{ type: "youtube", params: { url: video.url, startSec: video.startSec, endSec: video.endSec } }] }
-        : { sendType: "default", ...(message ? { effect: { type: "tts", params: { actorId: "", message } } } : {}) }),
+        : { sendType: "default", ...(message && readAloud ? { effect: { type: "tts", params: { actorId: "", message } } } : {}) }),
       ...(signatureCode ? { code: signatureCode } : {})
     }
   });
@@ -178,7 +185,8 @@ export type MediaSetting = { enabled: boolean; perSecond: number; minAmount: num
 
 /**
  * `GET /api/luv/effect-settings?channelId`: `[{ type: "youtube" | "sound", enabled, maxLength, minAmount, unitAmount }]`.
- * Only 영상 (youtube): FLEXTV's 음성 is an uploaded sound file, not Ssumnation's YouTube-as-sound.
+ * Only 영상 (youtube): FLEXTV's 음성 is an uploaded sound file, not Ssumnation's YouTube-as-sound. FLEXTV serves it to
+ * members only (`/api/luv/*`), so a signed-out viewer's room has no 영상 후원 — they cannot donate anyway.
  */
 export function readVideoSetting(data: unknown): MediaSetting | null {
   const row = (Array.isArray(data) ? data : []).find((r) => isRecord(r) && r.type === "youtube");
@@ -191,8 +199,9 @@ export function readVideoSetting(data: unknown): MediaSetting | null {
   return { enabled: row.enabled === true, perSecond, minAmount, maxSec };
 }
 
-export async function fetchVideoSetting(channelId: string): Promise<MediaSetting | null> {
-  const response = await flextvRequest(`/api/luv/effect-settings?channelId=${encodeURIComponent(channelId)}`);
+export async function fetchVideoSetting(channelId: string, token: string | null): Promise<MediaSetting | null> {
+  if (!token) return null;
+  const response = await flextvRequest(`/api/luv/effect-settings?channelId=${encodeURIComponent(channelId)}`, { token });
   if (response.status !== 200) throw new FlextvUnavailableError(`FLEXTV effect settings answered ${response.status}`);
   return readVideoSetting(response.data);
 }

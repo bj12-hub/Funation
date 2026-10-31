@@ -3,15 +3,24 @@ import { FlextvUnavailableError, flextvRequest, isRecord, type FlextvResponse } 
 import { FLEXTV_WEB_URL } from "./mode";
 
 /**
- * FLEXTV's live broadcasting (docs/development/flextv-backend.md "4단계"): the live list, whether a stream plays in
- * FLEXTV's embeddable player for a signed-out viewer, the recent chat and sending a chat line. The `map*` and `read*`
- * functions are pure and tested in `live.test.ts`. Nothing FLEXTV sends about a member beyond a nickname and a fan
- * level is passed on (no 아이디, no room password).
+ * FLEXTV's live broadcasting (docs/development/flextv-backend.md "4단계", "10단계"): the live list with each stream's
+ * 방송 카테고리 (`themeId`, named by `fetchThemes` of ./studio.ts), whether a stream plays in FLEXTV's embeddable player for a signed-out viewer, the stream's viewers and top donors, the
+ * recent chat and sending a chat line. The `map*` and `read*` functions are pure and tested in `live.test.ts`. Nothing
+ * FLEXTV sends about a member beyond a nickname, a picture and a fan level is passed on (no 아이디, no member number, no
+ * room password).
  */
 
 const num = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? value : typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value)) ? Number(value) : null);
 const text = (value: unknown) => (typeof value === "string" ? value : "");
 const httpsUrl = (value: unknown) => (typeof value === "string" && /^https:\/\//.test(value) ? value : null);
+const codeOf = (value: unknown) => {
+  const n = num(value);
+  return n !== null && Number.isInteger(n) && n > 0 ? String(n) : null;
+};
+const iso = (value: unknown) => {
+  const t = typeof value === "string" ? Date.parse(value) : NaN;
+  return Number.isFinite(t) ? new Date(t).toISOString() : null;
+};
 
 /* ── The live list ───────────────────────────────────────── */
 
@@ -21,6 +30,8 @@ export type FlextvLive = {
   thumbnailUrl: string | null;
   viewers: number;
   startedAt: string | null;
+  /** FLEXTV's 방송 카테고리 code (the `value` of ./studio.ts `fetchThemes`). */
+  themeId: string | null;
   ownerNickname: string;
   ownerThumbUrl: string | null;
 };
@@ -45,6 +56,7 @@ export function readLiveList(data: unknown): FlextvLive[] {
         thumbnailUrl: httpsUrl(row.thumbUrl),
         viewers: Math.max(0, num(row.playerCount) ?? 0),
         startedAt: typeof row.startedAt === "string" ? row.startedAt : null,
+        themeId: codeOf(row.themeId),
         ownerNickname: text(owner.nickname),
         ownerThumbUrl: httpsUrl(owner.thumbUrl)
       }
@@ -62,7 +74,7 @@ export async function fetchLiveList(): Promise<FlextvLive[]> {
 
 export type Watch =
   /** Plays in FLEXTV's embeddable player for anyone. */
-  | { kind: "EMBED"; streamId: string; title: string; viewers: number | null }
+  | { kind: "EMBED"; streamId: string; title: string; viewers: number | null; startedAt: string | null; themeId: string | null }
   /**
    * On air, but FLEXTV lets only some viewers in (19+, password, fan grade, full room). FLEXTV's player in another site
    * is always signed out (its cookies are not sent there), so these are watched on FLEXTV.
@@ -81,7 +93,8 @@ const GATES: [string, Exclude<Watch, { kind: "EMBED" | "OFFLINE" }>["reason"]][]
 
 /**
  * `GET /api/channels/:id/stream?option=all` asked as a signed-out viewer — what FLEXTV's player inside Ssumnation would
- * be. Only the stream id, its title and the viewer count are read; the rest (sources, the room's settings) stays here.
+ * be. Only the stream id, its title, when it started, its category and the viewer count are read; the rest (sources, the
+ * room's settings) stays here.
  */
 export function mapWatch({ status, data }: Pick<FlextvResponse, "status" | "data">): Watch {
   if (status === 200 && isRecord(data)) {
@@ -94,7 +107,14 @@ export function mapWatch({ status, data }: Pick<FlextvResponse, "status" | "data
     if (barrier.isLocked === true) return { kind: "ON_FLEXTV", reason: "LOCKED" };
     if ((num(barrier.minRatingLevel) ?? 0) > 0) return { kind: "ON_FLEXTV", reason: "FAN_ONLY" };
     const performance = isRecord(s.performance) ? s.performance : {};
-    return { kind: "EMBED", streamId: String(streamId), title: text(stream.title) || text(s.title), viewers: num(performance.viewerCount) };
+    return {
+      kind: "EMBED",
+      streamId: String(streamId),
+      title: text(stream.title) || text(s.title),
+      viewers: num(performance.viewerCount),
+      startedAt: iso(s.startedAt) ?? iso(stream.createdAt),
+      themeId: codeOf(stream.themeId)
+    };
   }
   if (status === 400) {
     const message = isRecord(data) && typeof data.message === "string" ? data.message : typeof data === "string" ? data : "";
@@ -113,6 +133,52 @@ export async function fetchWatch(channelId: string): Promise<Watch> {
 /** FLEXTV's embeddable player (no X-Frame-Options or frame-ancestors on it) and its own page for gated streams. */
 export const embedPlayerUrl = (channelId: string) => `${FLEXTV_WEB_URL}/embed/channels/${channelId}/play`;
 export const flextvLiveUrl = (channelId: string) => `${FLEXTV_WEB_URL}/channels/${channelId}/live`;
+
+/* ── The stream's viewers and top donors (phase 10) ─────── */
+
+/** `GET /api/channels/:id/stream/player-count` (public): `{ data: n }`; FLEXTV refuses (400) when nothing is on air. */
+export function readViewerCount({ status, data }: Pick<FlextvResponse, "status" | "data">): number | null {
+  if (status === 200) {
+    const count = num(isRecord(data) ? data.data : data);
+    return count === null ? null : Math.max(0, Math.floor(count));
+  }
+  if (status === 400 || status === 404) return null;
+  throw new FlextvUnavailableError(`FLEXTV viewer count answered ${status}`);
+}
+
+export async function fetchViewerCount(channelId: string): Promise<number | null> {
+  return readViewerCount(await flextvRequest(`/api/channels/${channelId}/stream/player-count`));
+}
+
+/** One of the stream's top donors: what FLEXTV's ranking shows, without the member's number or 아이디. */
+export type StreamDonor = { rank: number; nickname: string; amount: number; thumbUrl: string | null };
+
+/**
+ * `GET /v2/api/guest/RealTimeChannelRanking?channelId=` (public): the running stream's top three by 렉스,
+ * `{ data: [{ id, amount, rank, loginId, nickname, thumbUrl }], count }`. FLEXTV counts per stream and clears it when the
+ * stream ends; its staff accounts are not ranked.
+ */
+export function readStreamDonors(data: unknown): StreamDonor[] {
+  const rows = isRecord(data) && Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
+  return rows
+    .flatMap((row): StreamDonor[] => {
+      if (!isRecord(row)) return [];
+      const nickname = text(row.nickname).trim();
+      const amount = num(row.amount);
+      const rank = num(row.rank);
+      if (!nickname || amount === null || amount <= 0 || rank === null || !Number.isInteger(rank) || rank < 1) return [];
+      return [{ rank, nickname, amount: Math.floor(amount), thumbUrl: httpsUrl(row.thumbUrl) }];
+    })
+    .sort((a, b) => a.rank - b.rank)
+    .slice(0, 3);
+}
+
+export async function fetchStreamDonors(channelId: string): Promise<StreamDonor[]> {
+  const response = await flextvRequest(`/v2/api/guest/RealTimeChannelRanking?channelId=${channelId}`);
+  if (response.status === 204) return [];
+  if (response.status !== 200) throw new FlextvUnavailableError(`FLEXTV stream ranking answered ${response.status}`);
+  return readStreamDonors(response.data);
+}
 
 /* ── Chat ────────────────────────────────────────────────── */
 

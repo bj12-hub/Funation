@@ -82,7 +82,9 @@ export const en: Messages = {
   },
   live: {
     viewers: "{count} watching",
-    onAir: "Live • {time}"
+    onAir: "Live • {time}",
+    categories: "Categories",
+    allCategories: "All"
   },
   home: {
     title: "Ssumnation home",
@@ -99,6 +101,7 @@ export const en: Messages = {
     autoplayResume: "Resume autoplay",
     autoplayPause: "Pause autoplay",
     allStreams: "All streams",
+    ssumnationLive: "Ssumnation live",
     popularLive: "Popular live",
     everyLive: "All live",
     mostWatched: "Most watched right now",

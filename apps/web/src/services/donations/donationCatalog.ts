@@ -78,6 +78,11 @@ export type DonationCatalog = {
    * the played length × `perSecond`, up to `maxSec`. Absent = the supporter picks the amount (the mock).
    */
   mediaPricing?: Partial<Record<"VIDEO" | "AUDIO", { perSecond: number; maxSec: number }>>;
+  /**
+   * A room whose 일반 · 시그니처 message is read aloud unless the supporter turns it off (a FLEXTV channel, phase 10):
+   * the form offers "메시지 읽어주기". Absent = no choice (the mock reads it with the chosen voice).
+   */
+  readAloudChoice?: boolean;
 };
 
 /** What the donation panel shows of the 룰렛 settings. */
