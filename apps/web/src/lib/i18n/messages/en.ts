@@ -7066,6 +7066,7 @@ export const en: Messages = {
     providerOther: "another service",
     unverifiedNote: "(Identity verification is done on FLEXTV. Refresh this page when you're done.)",
     verify: "Verify identity",
+    messageBox: "Open messages",
     creator: "Creator",
     withdraw: "Delete account (FLEXTV)"
   },

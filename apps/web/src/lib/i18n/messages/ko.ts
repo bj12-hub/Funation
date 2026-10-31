@@ -7173,6 +7173,7 @@ export const ko = {
     providerOther: "다른 서비스",
     unverifiedNote: "(본인인증은 FLEXTV에서 진행돼요. 마치면 이 페이지를 새로고침해 주세요.)",
     verify: "본인인증 하기",
+    messageBox: "쪽지함",
     creator: "크리에이터",
     withdraw: "회원 탈퇴 (FLEXTV)"
   },
