@@ -3,9 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { isValidNickname } from "@/lib/validation";
 import { changeNickname, checkNickname } from "@/services/account/profileActions";
-import { GENERIC_ERROR, euroParticle, formatKoreanDate } from "./shared";
+import { euroParticle, formatKoreanDate } from "./shared";
 import styles from "./editors.module.css";
 
 /**
@@ -23,13 +25,14 @@ type State =
   | { kind: "ERROR" }
   | { kind: "CHANGED"; value: string };
 
-const NOTICES: Partial<Record<State["kind"], [string, string]>> = {
-  INVALID: ["! 닉네임 형식을 확인해 주세요.", "한글, 영문, 숫자만 사용할 수 있으며 2~12자로 입력해 주세요."],
-  DUPLICATE: ["! 이미 사용 중인 닉네임입니다.", "다른 닉네임을 입력한 뒤 중복 확인을 진행해 주세요."],
-  FORBIDDEN: ["! 사용할 수 없는 표현이 포함되어 있습니다.", "모두가 편안하게 사용할 수 있는 다른 닉네임을 입력해 주세요."]
+const NOTICES: Partial<Record<State["kind"], [MessageKey, MessageKey]>> = {
+  INVALID: ["myEdit.nickInvalid", "myEdit.nickInvalidHint"],
+  DUPLICATE: ["myEdit.nickDuplicate", "myEdit.nickDuplicateHint"],
+  FORBIDDEN: ["myEdit.forbidden", "myEdit.nickForbiddenHint"]
 };
 
 export function NicknameEditor({ triggerClassName }: { triggerClassName: string }) {
+  const { t, locale } = useI18n();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
@@ -86,27 +89,27 @@ export function NicknameEditor({ triggerClassName }: { triggerClassName: string 
   const errored = Boolean(notice) || limited;
 
   const primary = changed || limited
-    ? { label: "확인", onClick: () => setOpen(false) }
+    ? { label: t("my.ok"), onClick: () => setOpen(false) }
     : state.kind === "DUPLICATE"
-      ? { label: "중복 확인", onClick: runCheck }
+      ? { label: t("myEdit.nickCheck"), onClick: runCheck }
       : state.kind === "INVALID" || state.kind === "FORBIDDEN"
-        ? { label: "다시 입력", onClick: retype }
-        : { label: "변경하기", onClick: submit };
+        ? { label: t("myEdit.nickRetype"), onClick: retype }
+        : { label: t("myEdit.nickSubmit"), onClick: submit };
 
   return (
     <>
       <button type="button" className={triggerClassName} onClick={openModal}>
-        수정
+        {t("my.edit")}
       </button>
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title={changed ? "닉네임 변경 완료" : "닉네임 수정"}
-        description={changed ? "새 닉네임이 계정에 반영되었습니다." : "다른 회원에게 보여질 닉네임을 변경합니다."}
+        title={changed ? t("myEdit.nickChangedTitle") : t("myEdit.nickTitle")}
+        description={changed ? t("myEdit.nickChangedDesc") : t("myEdit.nickDesc")}
         footer={
           <>
             <button type="button" className={styles.secondary} onClick={() => setOpen(false)}>
-              {changed ? "닫기" : "취소"}
+              {changed ? t("my.close") : t("my.cancel")}
             </button>
             <button type="button" className={styles.primary} onClick={primary.onClick} disabled={busy !== null} aria-busy={busy === "submit" || undefined}>
               {primary.label}
@@ -117,7 +120,7 @@ export function NicknameEditor({ triggerClassName }: { triggerClassName: string 
         <div className={styles.content}>
           <div className={styles.field}>
             <label htmlFor="nickname-input" className={styles.nicknameLabel}>
-              {changed ? "변경된 닉네임" : "닉네임"}
+              {changed ? t("myEdit.nickChangedLabel") : t("my.nickname")}
             </label>
             <div className={styles.nicknameRow}>
               <div className={`${styles.inputBox} ${styles.nicknameBox} ${errored ? styles.inputError : ""} ${changed ? styles.inputSuccess : ""}`}>
@@ -125,7 +128,7 @@ export function NicknameEditor({ triggerClassName }: { triggerClassName: string 
                   id="nickname-input"
                   ref={inputRef}
                   className={`${styles.input} ${changed ? styles.changedValue : ""}`}
-                  placeholder="2~12자 이내"
+                  placeholder={t("myEdit.nickPlaceholder")}
                   maxLength={12}
                   value={changed ? state.value : value}
                   readOnly={changed || limited}
@@ -145,20 +148,26 @@ export function NicknameEditor({ triggerClassName }: { triggerClassName: string 
               </div>
               {!changed && !limited && (
                 <button type="button" className={styles.checkButton} onClick={runCheck} disabled={busy !== null || !value}>
-                  중복 확인
+                  {t("myEdit.nickCheck")}
                 </button>
               )}
             </div>
           </div>
 
           <div id="nickname-notice" aria-live="polite">
-            {state.kind === "AVAILABLE" && <p className={styles.available}>사용 가능한 닉네임입니다.</p>}
-            {notice && <Notice tone="error" title={notice[0]} body={notice[1]} />}
+            {state.kind === "AVAILABLE" && <p className={styles.available}>{t("myEdit.nickAvailable")}</p>}
+            {notice && <Notice tone="error" title={`! ${t(notice[0])}`} body={t(notice[1])} />}
             {state.kind === "LIMITED" && (
-              <Notice tone="error" title="! 최근 닉네임을 변경한 이력이 있습니다." body={`${formatKoreanDate(state.availableFrom)}부터 다시 변경할 수 있어요.`} />
+              <Notice tone="error" title={`! ${t("myEdit.nickLimited")}`} body={t("myEdit.nickLimitedHint", { date: formatKoreanDate(state.availableFrom, locale) })} />
             )}
-            {state.kind === "ERROR" && <Notice tone="error" title={`! ${GENERIC_ERROR}`} body="" />}
-            {changed && <Notice tone="success" title="✓ 닉네임 변경이 완료되었습니다." body={`이제 다른 회원에게 “${state.value}”${euroParticle(state.value)} 표시됩니다.`} />}
+            {state.kind === "ERROR" && <Notice tone="error" title={`! ${t("my.genericError")}`} body="" />}
+            {changed && (
+              <Notice
+                tone="success"
+                title={`✓ ${t("myEdit.nickChanged")}`}
+                body={t("myEdit.nickChangedHint", { name: state.value, particle: euroParticle(state.value) })}
+              />
+            )}
           </div>
         </div>
       </Modal>
