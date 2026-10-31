@@ -56,10 +56,21 @@ describe("후원 알림 디자인", () => {
     expect(await m.saveWidgetSettings("ALERT", { ...design, headline: "  {닉네임}님 {금액} 감사해요 " })).toEqual({ status: "SAVED" });
     overlay = await m.getOverlayAlert(m.overlayKey);
     if (overlay === "FORBIDDEN") throw new Error("forbidden");
-    // A screen from before 알림 사운드 · 시그니처 음원 받는 방식 (2026-10-28) saves none · 기존 방식.
-    expect(overlay.design).toEqual({ ...design, soundId: null, sigFetch: "CACHE" });
+    // A screen from before 알림 사운드 · 시그니처 음원 받는 방식 (2026-10-28) and 글자 크기 (2026-11-01) saves none · 기존 방식 · 100%.
+    expect(overlay.design).toEqual({ ...design, soundId: null, sigFetch: "CACHE", textScale: { amount: 100, name: 100, message: 100 } });
     expect(overlay.alertSound).toBeNull();
     expect(overlay.theme.theme).toBe("GLASS");
+  });
+
+  it("글자 크기 (2026-11-01): % of the theme's size for the amount, the 알림 문구 and the message", async () => {
+    const m = await load();
+    expect(await m.getWidgetDetail("ALERT")).toMatchObject({ settings: { textScale: { amount: 100, name: 100, message: 100 } } });
+    expect(await m.saveWidgetSettings("ALERT", { ...design, textScale: { amount: 150, name: 80, message: 200 } })).toEqual({ status: "SAVED" });
+    const overlay = await m.getOverlayAlert(m.overlayKey);
+    expect(overlay !== "FORBIDDEN" && overlay.design.textScale).toEqual({ amount: 150, name: 80, message: 200 });
+    for (const textScale of [{ amount: 155, name: 100, message: 100 }, { amount: 100, name: 40, message: 100 }, { amount: 100, name: 100 }, "big"]) {
+      expect(await m.saveWidgetSettings("ALERT", { ...design, textScale })).toEqual({ status: "INVALID", message: "글자 크기를 골라 주세요." });
+    }
   });
 
   it("알림 사운드 · 시그니처 음원 받는 방식 (2026-10-28): a library sound for the overlay, the mode for both overlays", async () => {

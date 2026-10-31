@@ -144,7 +144,14 @@ export type AlertSettings = {
   soundId: string | null;
   /** 시그니처 음원 받는 방식 for this overlay and the 시그니처 플레이어. */
   sigFetch: SigFetchMode;
+  /**
+   * 글자 크기 (2026-11-01, StreamDonate 기본후원 "금액 · 닉네임 · 메시지 폰트 크기"): % of the theme's size for the amount, the
+   * 알림 문구 (닉네임) line and the message, in every layout.
+   */
+  textScale: { amount: number; name: number; message: number };
 };
+/** 글자 크기 choices (%), 100 = the theme's size. */
+export const ALERT_TEXT_SCALES = [50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 175, 200] as const;
 
 // ── Per-widget settings (PR 1: 채팅창 · QR · 후원목표 · 후원누적금액) ─────────────────
 
@@ -823,7 +830,8 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     motion: "POP",
     countUp: true,
     soundId: null,
-    sigFetch: "CACHE"
+    sigFetch: "CACHE",
+    textScale: { amount: 100, name: 100, message: 100 }
   },
   CHAT: {
     theme: "INHERIT",

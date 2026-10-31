@@ -3,6 +3,7 @@ import {
   ALERT_EFFECTS_IN,
   ALERT_HEADLINE_MAX,
   SIG_FETCH_MODES,
+  ALERT_TEXT_SCALES,
   ALERT_LAYOUTS,
   ALERT_TOKENS,
   CLOCK_LABEL_MAX,
@@ -169,6 +170,10 @@ const parseAlert: Parser<AlertSettings> = (v) => {
   if (soundId !== null && (typeof soundId !== "string" || !ASSET_ID.test(soundId))) return "알림 사운드를 다시 골라 주세요.";
   const sigFetch = v.sigFetch ?? "CACHE";
   if (!keyOf(sigFetch, SIG_FETCH_MODES)) return "시그니처 음원 받는 방식을 골라 주세요.";
+  // 글자 크기 (2026-11-01): a screen from before sends none — the theme's sizes.
+  const scale = (v.textScale ?? { amount: 100, name: 100, message: 100 }) as Record<string, unknown>;
+  const sizes = [scale.amount, scale.name, scale.message];
+  if (typeof scale !== "object" || !sizes.every((x) => (ALERT_TEXT_SCALES as readonly unknown[]).includes(x))) return "글자 크기를 골라 주세요.";
   return {
     theme: v.theme,
     layout: v.layout,
@@ -180,7 +185,8 @@ const parseAlert: Parser<AlertSettings> = (v) => {
     motion: v.motion,
     countUp: v.countUp as boolean,
     soundId,
-    sigFetch
+    sigFetch,
+    textScale: { amount: scale.amount as number, name: scale.name as number, message: scale.message as number }
   };
 };
 
