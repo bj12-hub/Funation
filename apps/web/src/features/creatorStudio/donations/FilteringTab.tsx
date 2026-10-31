@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { formatNumber, kstIsoString } from "@/lib/format";
+import type { MessageKey } from "@/lib/i18n/translate";
 import {
   BLOCK_PAGE_SIZE,
   BLOCK_PLATFORM_LABEL,
@@ -10,8 +11,11 @@ import {
   type FilterSubtab
 } from "@/services/creator/donationManagementTypes";
 import { FilterSettingsPanel } from "./FilterSettingsPanel";
+import { koT, type T } from "./translator";
 import { UnblockButton } from "./UnblockButton";
 import styles from "./donations.module.css";
+
+const SUBTAB_KEY: Record<FilterSubtab, MessageKey> = { filter: "studioDonations.subFilter", block: "studioDonations.subBlock" };
 
 /** "2026.10.08 15:04" in Korea time. */
 const formatAt = (iso: string) => kstIsoString(iso).slice(0, 16).replaceAll("-", ".").replace("T", " ");
@@ -26,29 +30,40 @@ const blockHref = (q: string, page?: number) => {
 /**
  * 후원 필터링 — Figma 539:466 (필터링) · 539:574 (차단 리스트).
  * The design's 당월 필터 date row and 안전 단어 필터 chip have no defined behavior and are left out (TBD).
+ * `t`: the studio page's translator; Korean when rendered without one (the 도우미 filtering page).
  */
-export function FilteringTab({ sub, settings, blocked }: { sub: FilterSubtab; settings: FilterSettings | null; blocked: BlockedDonorPage | null }) {
+export function FilteringTab({
+  sub,
+  settings,
+  blocked,
+  t = koT
+}: {
+  sub: FilterSubtab;
+  settings: FilterSettings | null;
+  blocked: BlockedDonorPage | null;
+  t?: T;
+}) {
   return (
     <div className={styles.stack}>
-      <nav className={styles.subTabs} aria-label="후원 필터링 메뉴">
-        {FILTER_SUBTABS.map((t) => (
+      <nav className={styles.subTabs} aria-label={t("studioDonations.filterMenu")}>
+        {FILTER_SUBTABS.map((s) => (
           <Link
-            key={t.key}
-            href={`/creator/donations?tab=filtering&sub=${t.key}`}
-            className={`${styles.tab} ${t.key === sub ? styles.tabOn : ""}`}
-            aria-current={t.key === sub ? "page" : undefined}
+            key={s.key}
+            href={`/creator/donations?tab=filtering&sub=${s.key}`}
+            className={`${styles.tab} ${s.key === sub ? styles.tabOn : ""}`}
+            aria-current={s.key === sub ? "page" : undefined}
           >
-            {t.label}
+            {t(SUBTAB_KEY[s.key])}
           </Link>
         ))}
       </nav>
       {sub === "filter" && settings && <FilterSettingsPanel initial={settings} />}
-      {sub === "block" && blocked && <BlockList data={blocked} />}
+      {sub === "block" && blocked && <BlockList data={blocked} t={t} />}
     </div>
   );
 }
 
-function BlockList({ data }: { data: BlockedDonorPage }) {
+function BlockList({ data, t }: { data: BlockedDonorPage; t: T }) {
   const { query, page, totalPages, total, items } = data;
   const first = total === 0 ? 0 : (page - 1) * BLOCK_PAGE_SIZE + 1;
   const last = Math.min(total, page * BLOCK_PAGE_SIZE);
@@ -57,28 +72,28 @@ function BlockList({ data }: { data: BlockedDonorPage }) {
       <form action="/creator/donations" method="get" className={styles.searchForm} role="search">
         <input type="hidden" name="tab" value="filtering" />
         <input type="hidden" name="sub" value="block" />
-        <input name="q" type="search" aria-label="차단한 후원자 검색" className={styles.searchInput} placeholder="차단할 닉네임 또는 ID 검색" defaultValue={query} maxLength={LIST_QUERY_MAX} />
+        <input name="q" type="search" aria-label={t("studioDonations.blockSearch")} className={styles.searchInput} placeholder={t("studioDonations.blockPlaceholder")} defaultValue={query} maxLength={LIST_QUERY_MAX} />
         <button type="submit" className={styles.solidPurple}>
-          검색
+          {t("studioDonations.search")}
         </button>
       </form>
       <div className={styles.table}>
         <table>
-          <caption className={styles.srOnly}>차단 리스트</caption>
+          <caption className={styles.srOnly}>{t("studioDonations.blockCaption")}</caption>
           <thead>
             <tr>
               <th scope="col" style={{ width: 176 }}>
-                차단 일시
+                {t("studioDonations.colBlockedAt")}
               </th>
               <th scope="col" style={{ width: 220 }}>
-                ID / 닉네임
+                {t("studioDonations.colIdNick")}
               </th>
               <th scope="col" style={{ width: 110 }}>
-                플랫폼
+                {t("studioDonations.colPlatform")}
               </th>
-              <th scope="col">사유</th>
+              <th scope="col">{t("studioDonations.colReason")}</th>
               <th scope="col" className={styles.right} style={{ width: 100 }}>
-                관리
+                {t("studioDonations.colManage")}
               </th>
             </tr>
           </thead>
@@ -86,7 +101,7 @@ function BlockList({ data }: { data: BlockedDonorPage }) {
             {items.length === 0 ? (
               <tr>
                 <td colSpan={5} className={styles.empty}>
-                  {query ? `'${query}' 검색 결과가 없습니다.` : "차단한 후원자가 없습니다."}
+                  {query ? t("studioDonations.noResults", { query }) : t("studioDonations.noBlocked")}
                 </td>
               </tr>
             ) : (
@@ -114,9 +129,9 @@ function BlockList({ data }: { data: BlockedDonorPage }) {
         </table>
         <div className={styles.footer}>
           <span className={styles.muted}>
-            전체 {formatNumber(total)}개 중 {first}-{last} 표시
+            {t("studioDonations.rangeOf", { total: formatNumber(total), first, last })}
           </span>
-          <nav className={styles.pagination} aria-label="페이지">
+          <nav className={styles.pagination} aria-label={t("studioDonations.pages")}>
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) =>
               p === page ? (
                 <span key={p} className={`${styles.pageButton} ${styles.pageCurrent}`} aria-current="page">
