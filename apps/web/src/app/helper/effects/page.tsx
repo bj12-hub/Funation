@@ -4,9 +4,13 @@ import { getOverlaySwitches } from "@/services/creator/alertRemote";
 import { listAssets } from "@/services/creator/assets";
 import { getOverlayKey } from "@/services/creator/broadcastTools";
 import { getEffectSettings } from "@/services/creator/effects";
+import { getT } from "@/lib/i18n/server";
 
 // Code-first (no Figma frame): 이모지 리액션 · 레이어 효과, on the helper domain — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: "이펙트" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("helperNav.effects") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

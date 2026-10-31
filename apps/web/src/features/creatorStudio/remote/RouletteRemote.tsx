@@ -2,13 +2,24 @@
 
 import Link from "next/link";
 import { formatKstTime, formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { finishRouletteSpin, revealRouletteSpin, setRouletteHidden, setRoulettePaused, setRouletteSwitch, startNextSpin } from "@/services/creator/rouletteRemote";
-import { ROULETTE_STATUS_LABEL, isBlankPrize, type RouletteControlResult, type RouletteRemoteRow, type RouletteRemoteView } from "@/services/donations/rouletteTypes";
+import { isBlankPrize, type RouletteControlResult, type RouletteRemoteRow, type RouletteRemoteView, type RouletteSpinStatus } from "@/services/donations/rouletteTypes";
 import styles from "../crew/crew.module.css";
 import remote from "./remote.module.css";
 
 const time = (iso: string) => formatKstTime(iso, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-const resultText = (name: string) => (isBlankPrize(name) ? "꽝" : `${name} 당첨`);
+type T = (key: MessageKey, vars?: Record<string, string | number>) => string;
+const resultText = (name: string, t: T) => (isBlankPrize(name) ? t("studioRemote.blank") : t("studioRemote.won", { prize: name }));
+/** `ROULETTE_STATUS_LABEL` as message keys (2026-11-01). */
+const STATUS_KEY: Record<RouletteSpinStatus, MessageKey> = {
+  QUEUED: "studioRemote.rouletteQueued",
+  SPINNING: "studioRemote.spinning",
+  WAITING: "studioRemote.waitingResult",
+  RESULT: "studioRemote.resultCheck",
+  DONE: "studioRemote.statusDone"
+};
 
 /**
  * 리모컨 "룰렛" card — code-first (펀페이 1009:355 Web Remote 룰렛 제어). ▶ 시작 spins the oldest waiting
@@ -25,34 +36,37 @@ export function RouletteRemote({
   pending: boolean;
   run: (action: () => Promise<RouletteControlResult>, ok?: string) => void;
 }) {
+  const { t } = useI18n();
   const s = view.stage;
-  const limit = (r: { nth: number }) => (view.dailyLimit > 0 ? `오늘 ${r.nth}/${view.dailyLimit}회` : `오늘 ${r.nth}회째`);
+  const limit = (r: { nth: number }) =>
+    view.dailyLimit > 0 ? t("studioRemote.rouletteToday", { nth: r.nth, limit: view.dailyLimit }) : t("studioRemote.rouletteTodayNth", { nth: r.nth });
   return (
     <section className={styles.card} aria-labelledby="roulette-remote">
       <div className={styles.cardHead}>
         <h2 className={styles.cardTitle} id="roulette-remote">
-          🎡 룰렛
+          {t("studioRemote.rouletteTitle")}
         </h2>
         <Link href="/creator/widgets?open=ROULETTE" className={styles.ghost}>
-          항목 · 확률 설정
+          {t("studioRemote.rouletteSettings")}
         </Link>
       </div>
-      <p className={styles.note}>당첨 항목은 크리에이터 상품이에요 (FN 지급 없음). 결과는 후원 시점에 서버가 정하고, 룰렛 오버레이에서 돌아간 뒤 공개돼요.</p>
+      <p className={styles.note}>{t("studioRemote.rouletteNote")}</p>
 
       <div className={remote.status}>
         <span>
-          대기 {view.queue.length}회 · 오늘 참가자 {view.participantsToday}명{view.autoStart && view.paused ? " · 자동 시작 일시정지" : ""}
+          {t("studioRemote.rouletteStatus", { queue: view.queue.length, people: view.participantsToday })}
+          {view.autoStart && view.paused ? t("studioRemote.rouletteAutoPaused") : ""}
         </span>
         <span>{view.items.map((it) => `${it.name} ${it.percent}%`).join(" · ")}</span>
       </div>
 
       {/* 펀페이 1009:355: 후원 받기 · 룰렛 자동시작 · 결과 자동노출 · 위젯 화면 숨기기 */}
-      <div className={remote.buttons} role="group" aria-label="룰렛 설정 스위치">
+      <div className={remote.buttons} role="group" aria-label={t("studioRemote.rouletteSwitches")}>
         {(
           [
-            ["enabled", "후원 받기", view.enabled],
-            ["autoStart", "룰렛 자동 시작", view.autoStart],
-            ["autoReveal", "결과 자동 노출", view.autoReveal]
+            ["enabled", t("studioRemote.rouletteEnabled"), view.enabled],
+            ["autoStart", t("studioRemote.rouletteAutoStart"), view.autoStart],
+            ["autoReveal", t("studioRemote.rouletteAutoReveal"), view.autoReveal]
           ] as const
         ).map(([key, label, on]) => (
           <button
@@ -61,7 +75,7 @@ export function RouletteRemote({
             className={on ? styles.chip : styles.chipOff}
             aria-pressed={on}
             disabled={pending}
-            onClick={() => run(() => setRouletteSwitch({ key, on: !on }), `${label}을(를) ${on ? "껐어요" : "켰어요"}.`)}
+            onClick={() => run(() => setRouletteSwitch({ key, on: !on }), t(on ? "studioRemote.switchOff" : "studioRemote.switchOn", { label }))}
           >
             {label} {on ? "ON" : "OFF"}
           </button>
@@ -71,9 +85,9 @@ export function RouletteRemote({
           className={view.hidden ? styles.chip : styles.chipOff}
           aria-pressed={view.hidden}
           disabled={pending}
-          onClick={() => run(() => setRouletteHidden({ hidden: !view.hidden }), view.hidden ? "룰렛 위젯을 다시 보여 줘요." : "룰렛 위젯을 방송 화면에서 숨겼어요.")}
+          onClick={() => run(() => setRouletteHidden({ hidden: !view.hidden }), view.hidden ? t("studioRemote.rouletteShown") : t("studioRemote.rouletteHidden"))}
         >
-          {view.hidden ? "위젯 화면 숨김" : "위젯 화면 보임"}
+          {view.hidden ? t("studioRemote.widgetScreenHidden") : t("studioRemote.widgetScreenShown")}
         </button>
       </div>
 
@@ -81,27 +95,27 @@ export function RouletteRemote({
         <div className={remote.rouletteStage} data-status={s.status}>
           <strong>
             {s.status === "SPINNING" && <span className={styles.liveDot} aria-hidden="true" />}
-            {s.status === "SPINNING" ? "회전 중" : s.status === "WAITING" ? "결과 대기" : resultText(s.result ?? "")} · {s.donor}
+            {s.status === "SPINNING" ? t("studioRemote.spinning") : s.status === "WAITING" ? t("studioRemote.waitingResult") : resultText(s.result ?? "", t)} · {s.donor}
           </strong>
           <span className={styles.muted}>
             {formatNumber(s.amount)} FN · {s.no}
           </span>
           {s.status === "WAITING" && (
-            <button type="button" className={styles.primary} disabled={pending} onClick={() => run(() => revealRouletteSpin({ spinId: s.id }), "결과를 공개했어요.")}>
-              ✓ 결과 공개
+            <button type="button" className={styles.primary} disabled={pending} onClick={() => run(() => revealRouletteSpin({ spinId: s.id }), t("studioRemote.revealed"))}>
+              {t("studioRemote.reveal")}
             </button>
           )}
           {s.status === "RESULT" && (
-            <button type="button" className={styles.primary} disabled={pending} onClick={() => run(() => finishRouletteSpin({ spinId: s.id }), "결과를 방송 화면에서 내렸어요.")}>
-              ✓ 완료
+            <button type="button" className={styles.primary} disabled={pending} onClick={() => run(() => finishRouletteSpin({ spinId: s.id }), t("studioRemote.resultCleared"))}>
+              {t("studioRemote.done")}
             </button>
           )}
         </div>
       )}
 
       <div className={remote.buttons}>
-        <button type="button" className={styles.primary} disabled={pending || s !== null || view.queue.length === 0} onClick={() => run(startNextSpin, "룰렛을 돌렸어요.")}>
-          ▶ 시작
+        <button type="button" className={styles.primary} disabled={pending || s !== null || view.queue.length === 0} onClick={() => run(startNextSpin, t("studioRemote.spun"))}>
+          {t("studioRemote.start")}
         </button>
         {view.autoStart && (
           <button
@@ -109,22 +123,22 @@ export function RouletteRemote({
             className={view.paused ? styles.primary : styles.ghost}
             aria-pressed={view.paused}
             disabled={pending}
-            onClick={() => run(() => setRoulettePaused({ paused: !view.paused }), view.paused ? "자동 시작을 다시 켰어요." : "자동 시작을 멈췄어요.")}
+            onClick={() => run(() => setRoulettePaused({ paused: !view.paused }), view.paused ? t("studioRemote.autoStartResumed") : t("studioRemote.autoStartPaused"))}
           >
-            {view.paused ? "▶ 자동 시작 재개" : "Ⅱ 일시정지"}
+            {view.paused ? t("studioRemote.resumeAutoStart") : t("studioRemote.pause")}
           </button>
         )}
       </div>
 
       {view.queue.length === 0 && view.recent.length === 0 ? (
-        <p className={styles.empty}>아직 룰렛 참여가 없어요.</p>
+        <p className={styles.empty}>{t("studioRemote.rouletteEmpty")}</p>
       ) : (
         <ul className={styles.list}>
           {view.queue.map((r, i) => (
-            <Row key={r.id} row={r} meta={`${i + 1}번째 · ${limit(r)} · 등록 ${time(r.createdAt)}`} />
+            <Row key={r.id} row={r} meta={t("studioRemote.rouletteQueueMeta", { n: i + 1, limit: limit(r), time: time(r.createdAt) })} />
           ))}
           {view.recent.map((r) => (
-            <Row key={r.id} row={r} meta={`${limit(r)} · ${r.result ? resultText(r.result) : ""}`} />
+            <Row key={r.id} row={r} meta={`${limit(r)} · ${r.result ? resultText(r.result, t) : ""}`} />
           ))}
         </ul>
       )}
@@ -133,6 +147,7 @@ export function RouletteRemote({
 }
 
 function Row({ row, meta }: { row: RouletteRemoteRow; meta: string }) {
+  const { t } = useI18n();
   return (
     <li className={styles.row}>
       <div className={styles.rowMain}>
@@ -144,7 +159,7 @@ function Row({ row, meta }: { row: RouletteRemoteRow; meta: string }) {
         </span>
       </div>
       <span className={remote.statusTag} data-status={row.status === "QUEUED" ? "QUEUED" : "DONE"}>
-        {ROULETTE_STATUS_LABEL[row.status]}
+        {t(STATUS_KEY[row.status])}
       </span>
     </li>
   );
