@@ -44,9 +44,10 @@ import {
 } from "@/services/broadcast/chatTypes";
 import { formatKstTime } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
+import { platformLabel } from "@/lib/i18n/platformLabel";
 import type { MessageKey } from "@/lib/i18n/translate";
 import type { ChatAuthorRole, PlatformErrorCode } from "@/services/platforms/platformTypes";
-import { PLATFORM_LABEL, type Platform } from "@/types/platform";
+import type { Platform } from "@/types/platform";
 import type { OverlayTarget } from "@/services/creator/alertTypes";
 import { OverlayOffNotice } from "../creatorStudio/remote/OverlayOffNotice";
 import crew from "../creatorStudio/crew/crew.module.css";
@@ -208,7 +209,7 @@ export function UnifiedChatScreen({ initial, variant = "studio", switches }: { i
               <ul className={styles.logList}>
                 {view.log.map((l, i) => (
                   <li key={`${l.at}-${i}`}>
-                    {time(l.at)} · {PLATFORM_LABEL[l.platform]} · {t(LOG_KEY[l.action])} · {l.target} · {l.detail}
+                    {time(l.at)} · {platformLabel(l.platform, t)} · {t(LOG_KEY[l.action])} · {l.target} · {l.detail}
                     {l.by && t("unifiedChat.logBy", { name: l.by })}
                   </li>
                 ))}
@@ -266,7 +267,7 @@ function Feed({ view, states, pending, run, api }: { view: FeedView; states: Rec
           {t("unifiedChat.feedTitle")}
         </h2>
         <span className={crew.muted}>
-          {connected.length === 0 ? t("unifiedChat.noChannels") : t("unifiedChat.connectedList", { platforms: connected.map((p) => PLATFORM_LABEL[p.platform]).join(" · ") })}
+          {connected.length === 0 ? t("unifiedChat.noChannels") : t("unifiedChat.connectedList", { platforms: connected.map((p) => platformLabel(p.platform, t)).join(" · ") })}
         </span>
       </div>
       <div className={styles.filters} role="group" aria-label={t("unifiedChat.platformFilter")}>
@@ -275,8 +276,8 @@ function Feed({ view, states, pending, run, api }: { view: FeedView; states: Rec
         </button>
         {view.platforms.map((p) => (
           <button key={p.platform} type="button" className={styles.filterChip} aria-pressed={filter === p.platform} onClick={() => setFilter(p.platform)} disabled={!p.connected} title={p.connected ? undefined : t("unifiedChat.notConnectedTitle")}>
-            <PlatformMark platform={p.platform} size="sm" />
-            {PLATFORM_LABEL[p.platform]}
+            <PlatformMark platform={p.platform} label={platformLabel(p.platform, t)} size="sm" />
+            {platformLabel(p.platform, t)}
           </button>
         ))}
         <input className={`${crew.input} ${styles.search}`} type="search" placeholder={t("unifiedChat.searchPlaceholder")} aria-label={t("unifiedChat.searchAria")} value={query} onChange={(e) => setQuery(e.target.value)} />
@@ -318,7 +319,7 @@ function Line({ m, state, pending, run, api }: { m: UnifiedChatMessage; state: C
   const canBan = !isOwner && m.hidden !== "BANNED" && !!api.ban;
   return (
     <li className={styles.line} data-hidden={m.hidden ? "" : undefined}>
-      <PlatformMark platform={m.platform} />
+      <PlatformMark platform={m.platform} label={platformLabel(m.platform, t)} />
       <div className={styles.lineBody}>
         <span className={styles.nick}>{m.author.displayName}</span>
         {m.author.roles.map((r) => (
@@ -343,8 +344,8 @@ function Line({ m, state, pending, run, api }: { m: UnifiedChatMessage; state: C
               type="button"
               className={`${styles.mini} ${styles.miniDanger}`}
               disabled={pending || !state.canModerate}
-              title={state.canModerate ? t("unifiedChat.deleteOn", { platform: PLATFORM_LABEL[m.platform] }) : t("unifiedChat.unsupported")}
-              onClick={() => window.confirm(t("unifiedChat.deleteConfirm", { platform: PLATFORM_LABEL[m.platform] })) && run(() => api.remove!({ id: m.id }), t("unifiedChat.deleted"))}
+              title={state.canModerate ? t("unifiedChat.deleteOn", { platform: platformLabel(m.platform, t) }) : t("unifiedChat.unsupported")}
+              onClick={() => window.confirm(t("unifiedChat.deleteConfirm", { platform: platformLabel(m.platform, t) })) && run(() => api.remove!({ id: m.id }), t("unifiedChat.deleted"))}
             >
               {t("unifiedChat.delete")}
             </button>
@@ -362,9 +363,9 @@ function Line({ m, state, pending, run, api }: { m: UnifiedChatMessage; state: C
                 type="button"
                 className={`${styles.mini} ${styles.miniDanger}`}
                 disabled={pending || !state.canModerate}
-                title={state.canModerate ? t("unifiedChat.banOn", { platform: PLATFORM_LABEL[m.platform] }) : t("unifiedChat.unsupported")}
+                title={state.canModerate ? t("unifiedChat.banOn", { platform: platformLabel(m.platform, t) }) : t("unifiedChat.unsupported")}
                 onClick={() =>
-                  window.confirm(t("unifiedChat.banConfirm", { name: m.author.displayName, platform: PLATFORM_LABEL[m.platform], duration: durationLabel })) &&
+                  window.confirm(t("unifiedChat.banConfirm", { name: m.author.displayName, platform: platformLabel(m.platform, t), duration: durationLabel })) &&
                   run(() => api.ban!({ id: m.id, durationSec: duration.sec }), t("unifiedChat.banned", { duration: durationLabel }))
                 }
               >
@@ -441,8 +442,8 @@ function Composer({
                   checked={ok && (chosen.length === 0 || chosen.includes(p.platform))}
                   onChange={(e) => setTargets(e.target.checked ? [...new Set([...(chosen.length ? chosen : sendable), p.platform])] : (chosen.length ? chosen : sendable).filter((x) => x !== p.platform))}
                 />
-                <PlatformMark platform={p.platform} size="sm" />
-                {PLATFORM_LABEL[p.platform]}
+                <PlatformMark platform={p.platform} label={platformLabel(p.platform, t)} size="sm" />
+                {platformLabel(p.platform, t)}
                 {!p.canSend && t("unifiedChat.unsupportedTag")}
               </label>
             );
@@ -464,8 +465,8 @@ function Composer({
           <ul className={styles.results} aria-label={t("unifiedChat.resultsAria")}>
             {(Object.entries(results) as [Platform, ChatSendOutcome][]).map(([p, r]) => (
               <li key={p} data-status={r.status}>
-                <PlatformMark platform={p} size="sm" />
-                {PLATFORM_LABEL[p]} · {t(OUTCOME_KEY[r.status])}
+                <PlatformMark platform={p} label={platformLabel(p, t)} size="sm" />
+                {platformLabel(p, t)} · {t(OUTCOME_KEY[r.status])}
                 {r.status === "FAILED" ? ` (${t(ERROR_KEY[r.code])})` : r.status === "UNCONFIRMED" ? ` (${t("unifiedChat.unconfirmedHint")})` : ""}
               </li>
             ))}
@@ -487,8 +488,8 @@ function Channels({ states, pending, run }: { states: ChatPlatformState[]; pendi
       {states.map((p) => (
         <div key={p.platform} className={styles.channel}>
           <div className={styles.channelHead}>
-            <PlatformMark platform={p.platform} />
-            {PLATFORM_LABEL[p.platform]}
+            <PlatformMark platform={p.platform} label={platformLabel(p.platform, t)} />
+            {platformLabel(p.platform, t)}
             <span className={styles.status} data-on={p.connected ? "" : undefined}>
               {p.connected ? t("unifiedChat.connected") : t("unifiedChat.notConnected")}
             </span>
@@ -516,7 +517,7 @@ function Channels({ states, pending, run }: { states: ChatPlatformState[]; pendi
               </Link>
             )
           ) : p.connected ? (
-            <button type="button" className={crew.ghost} disabled={pending} onClick={() => run(() => disconnectBroadcastChannel({ platform: p.platform }), t("unifiedChat.disconnected", { platform: PLATFORM_LABEL[p.platform] }))}>
+            <button type="button" className={crew.ghost} disabled={pending} onClick={() => run(() => disconnectBroadcastChannel({ platform: p.platform }), t("unifiedChat.disconnected", { platform: platformLabel(p.platform, t) }))}>
               {t("unifiedChat.disconnect")}
             </button>
           ) : (
@@ -524,10 +525,10 @@ function Channels({ states, pending, run }: { states: ChatPlatformState[]; pendi
               className={crew.addRow}
               onSubmit={(e) => {
                 e.preventDefault();
-                run(() => connectBroadcastChannel({ platform: p.platform, handle: handles[p.platform] ?? "" }), t("unifiedChat.connectedOk", { platform: PLATFORM_LABEL[p.platform] }));
+                run(() => connectBroadcastChannel({ platform: p.platform, handle: handles[p.platform] ?? "" }), t("unifiedChat.connectedOk", { platform: platformLabel(p.platform, t) }));
               }}
             >
-              <input className={crew.input} aria-label={t("unifiedChat.channelIdAria", { platform: PLATFORM_LABEL[p.platform] })} placeholder={t("unifiedChat.channelId")} maxLength={40} value={handles[p.platform] ?? ""} onChange={(e) => setHandles({ ...handles, [p.platform]: e.target.value })} />
+              <input className={crew.input} aria-label={t("unifiedChat.channelIdAria", { platform: platformLabel(p.platform, t) })} placeholder={t("unifiedChat.channelId")} maxLength={40} value={handles[p.platform] ?? ""} onChange={(e) => setHandles({ ...handles, [p.platform]: e.target.value })} />
               <button type="submit" className={crew.primary} disabled={pending}>
                 {t("unifiedChat.connect")}
               </button>
@@ -554,7 +555,7 @@ function Simulator({ states, pending, run }: { states: Record<Platform, ChatPlat
         <select className={crew.select} aria-label={t("unifiedChat.platform")} value={platform} onChange={(e) => setSim({ ...sim, platform: e.target.value as Platform })}>
           {connected.map((p) => (
             <option key={p} value={p}>
-              {PLATFORM_LABEL[p]}
+              {platformLabel(p, t)}
             </option>
           ))}
         </select>
@@ -573,13 +574,13 @@ function Simulator({ states, pending, run }: { states: Record<Platform, ChatPlat
           type="button"
           className={crew.primary}
           disabled={pending || connected.length === 0}
-          onClick={() => run(() => simulateViewerChat({ ...sim, platform, requestId: crypto.randomUUID() }), t("unifiedChat.simArrived", { platform: PLATFORM_LABEL[platform] }))}
+          onClick={() => run(() => simulateViewerChat({ ...sim, platform, requestId: crypto.randomUUID() }), t("unifiedChat.simArrived", { platform: platformLabel(platform, t) }))}
         >
           {t("unifiedChat.send")}
         </button>
       </div>
       <button type="button" className={crew.ghost} disabled={pending || connected.length === 0} onClick={() => run(() => simulateChatReconnect({ platform }), t("unifiedChat.reconnected"))}>
-        {t("unifiedChat.reconnect", { platform: PLATFORM_LABEL[platform] })}
+        {t("unifiedChat.reconnect", { platform: platformLabel(platform, t) })}
       </button>
       <p className={crew.note}>{t("unifiedChat.simNote")}</p>
     </section>

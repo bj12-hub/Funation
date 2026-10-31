@@ -4,8 +4,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { useI18n } from "@/lib/i18n/I18nProvider";
+import { platformLabel } from "@/lib/i18n/platformLabel";
 import { logout } from "@/services/auth/logout";
-import { PLATFORM_LABEL, type Platform } from "@/types/platform";
+import type { Platform } from "@/types/platform";
 import { openRemoteWindow } from "@/features/creatorStudio/remote/remoteWindow";
 import { HELPER_BRAND, HELPER_NAV, HELPER_REMOTE, HELPER_REMOTE_GUIDE, helperActiveHref } from "./helperNav";
 import { helperGroupTitle, helperNavText, helperTitle } from "./helperText";
@@ -134,8 +135,8 @@ function Profile({ user }: { user: HelperShellUser }) {
               key={p.platform}
               className={styles.platform}
               src={p.logoUrl}
-              alt={t(p.connected ? "helper.platformConnected" : "helper.platformNotConnected", { platform: PLATFORM_LABEL[p.platform] })}
-              title={t(p.connected ? "helper.platformConnected" : "helper.platformNotConnected", { platform: PLATFORM_LABEL[p.platform] })}
+              alt={t(p.connected ? "helper.platformConnected" : "helper.platformNotConnected", { platform: platformLabel(p.platform, t) })}
+              title={t(p.connected ? "helper.platformConnected" : "helper.platformNotConnected", { platform: platformLabel(p.platform, t) })}
               width={20}
               height={20}
               data-off={p.connected ? undefined : ""}

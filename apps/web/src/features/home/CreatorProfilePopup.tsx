@@ -5,8 +5,8 @@ import Link from "next/link";
 import { HeartIcon, VerifiedCheckIcon } from "@/components/icons";
 import { Modal } from "@/components/ui/Modal";
 import { useI18n } from "@/lib/i18n/I18nProvider";
+import { platformLabel } from "@/lib/i18n/platformLabel";
 import type { PopularCreator } from "@/services/home/homeFeed";
-import { PLATFORM_LABEL } from "@/types/platform";
 import styles from "./creatorProfile.module.css";
 
 /**
@@ -49,7 +49,7 @@ export function CreatorProfilePopup({ creator, onClose }: { creator: PopularCrea
                 {creator.profile.channels.map((c) => (
                   <li key={c.platform}>
                     <Image src={c.logoUrl} alt="" width={24} height={24} className={styles.logo} />
-                    {PLATFORM_LABEL[c.platform]}
+                    {platformLabel(c.platform, t)}
                   </li>
                 ))}
               </ul>

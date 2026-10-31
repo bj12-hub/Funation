@@ -113,7 +113,7 @@ function BlockList({ data, t }: { data: BlockedDonorPage; t: T }) {
                       {b.nickname} ({b.donorId})
                     </span>
                   </td>
-                  <td className={styles.muted}>{BLOCK_PLATFORM_LABEL[b.platform]}</td>
+                  <td className={styles.muted}>{b.platform === "CHZZK" ? t("common.chzzk") : BLOCK_PLATFORM_LABEL[b.platform]}</td>
                   <td>
                     <span className={styles.ellipsis} title={b.reason}>
                       {b.reason}
