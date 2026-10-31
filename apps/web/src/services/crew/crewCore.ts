@@ -1,7 +1,7 @@
 import { mockAlerts, setAlertHold } from "@/services/creator/alertCore";
 import type { AmountUnit } from "@/types/donationUnit";
 import type { Platform } from "@/types/platform";
-import { BATTLE_MULTIPLIER_MAX, BATTLE_PENALTY_MAX, DONOR_ALIASES_MAX, DONOR_MERGES_MAX, DONOR_NAME_MAX, DUPLICATE_WINDOW_SEC, FAN_NOTE_LIMITS, GRADES_MAX, MULTI_TEAM_KEYS, PLATFORM_FAN_NOTE_RULES, GRADE_MULTIPLIER_MAX, GRADE_NAME_MAX, NAME_KEYWORD_MIN, PLATFORM_BATTLE_RULES, PLATFORM_STEAL_RULES, SUB_BOARD_MAX, excelUnitOf, isExcelUnit, type BattleRules, type CrewGrade, type CrewMember, type DonorMerge, type FanNoteRules, type FanNotesView, type RoomFanNotes, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedAlert, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow, type ScoreRow } from "./crewTypes";
+import { BATTLE_MULTIPLIER_MAX, BATTLE_PENALTY_MAX, DONOR_ALIASES_MAX, DONOR_MERGES_MAX, DONOR_NAME_MAX, DUPLICATE_WINDOW_SEC, FAN_NOTE_LIMITS, GRADES_MAX, MULTI_TEAM_KEYS, PLATFORM_FAN_NOTE_RULES, GRADE_MULTIPLIER_MAX, GRADE_NAME_MAX, NAME_KEYWORD_MIN, PLATFORM_BATTLE_RULES, PLATFORM_STEAL_RULES, SUB_BOARD_MAX, excelUnitOf, isExcelUnit, type BattleRules, type CrewGrade, type CrewMember, type DonorMerge, type FanNoteRules, type FanNotesView, type RoomFanNotes, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedAlert, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow, type MinusSettings, type ScoreRow, DEFAULT_MINUS, MINUS_SIGNATURES_MAX } from "./crewTypes";
 import { mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 // ── 후원 리스트 (server-only) ──────────────────────────────────────────────────
@@ -300,7 +300,7 @@ export function windowReceived(b: MockBroadcast, from: string, to: string | null
   const s = excelOf(b.channelId);
   const scores = new Map<string, number>();
   const add = (id: string, p: number) => scores.set(id, (scores.get(id) ?? 0) + p);
-  for (const a of mockCrew.attributions) if (a.channelId === b.channelId && inWindow(a.at)) add(a.memberId, scoreFn(a.fnAmount, s));
+  for (const a of mockCrew.attributions) if (a.channelId === b.channelId && inWindow(a.at)) add(a.memberId, attributionPoints(a, s));
   for (const f of feedOf(b)) if (f.status === "ASSIGNED" && f.memberId && inWindow(f.at)) add(f.memberId, scoreEntry(f, s).points);
   return scores;
 }
@@ -396,7 +396,7 @@ export function gradeBonus(b: MockBroadcast): Map<string, number> {
   const s = excelOf(b.channelId);
   const received = new Map<string, number>();
   const add = (id: string, p: number) => mult.has(id) && received.set(id, (received.get(id) ?? 0) + p);
-  for (const a of mockCrew.attributions) if (a.channelId === b.channelId && a.at >= b.startedAt && a.at <= end) add(a.memberId, scoreFn(a.fnAmount, s));
+  for (const a of mockCrew.attributions) if (a.channelId === b.channelId && a.at >= b.startedAt && a.at <= end) add(a.memberId, attributionPoints(a, s));
   for (const f of feedOf(b)) if (f.status === "ASSIGNED" && f.memberId) add(f.memberId, scoreEntry(f, s).points);
   for (const [id, points] of received) bonus.set(id, extraPoints(points, mult.get(id)!));
   return bonus;
@@ -498,7 +498,7 @@ export function scoreboardRows(b: MockBroadcast): ScoreRow[] {
     .map((m) => {
       const donated = mockCrew.attributions
         .filter((a) => a.channelId === b.channelId && a.memberId === m.id && a.at >= b.startedAt && a.at <= end)
-        .reduce((sum, a) => sum + scoreFn(a.fnAmount, s), 0);
+        .reduce((sum, a) => sum + attributionPoints(a, s), 0);
       const adjust = b.adjustments.filter((a) => a.memberId === m.id).reduce((sum, a) => sum + a.points, 0);
       const fromFeed = feed.filter((f) => f.status === "ASSIGNED" && f.memberId === m.id).reduce((sum, f) => sum + f.points, 0);
       const stolen = (b.steals ?? []).reduce((sum, x) => sum + (x.thief === m.id ? x.points : 0) - (x.target === m.id ? x.points : 0), 0);
@@ -510,6 +510,31 @@ export function scoreboardRows(b: MockBroadcast): ScoreRow[] {
     });
   return rows.sort((x, y) => y.score - x.score || x.name.localeCompare(y.name));
 }
+
+/** The channel's 마이너스 시그니처 settings (off until saved with signatures). */
+export const minusSettingsOf = (channelId: string): MinusSettings => ({ ...DEFAULT_MINUS, ...mockCrew.minusSigs?.[channelId] });
+
+/** Validates 마이너스 시그니처 settings: signatures that exist (up to MINUS_SIGNATURES_MAX), 제외 멤버 of the crew. */
+export function parseMinusSettings(input: unknown, signatureIds: string[], memberIds: string[]): MinusSettings | { message: string } {
+  const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
+  const idList = (x: unknown) => (Array.isArray(x) && x.every((y) => typeof y === "string") ? [...new Set(x as string[])] : null);
+  const sigs = idList(v.signatureIds);
+  if (!sigs || sigs.some((id) => !signatureIds.includes(id))) return { message: "마이너스 시그니처를 확인해 주세요." };
+  if (sigs.length > MINUS_SIGNATURES_MAX) return { message: `마이너스 시그니처는 ${MINUS_SIGNATURES_MAX}개까지 고를 수 있어요.` };
+  const excluded = idList(v.excludedMembers);
+  if (!excluded || excluded.some((id) => !memberIds.includes(id))) return { message: "제외할 멤버를 확인해 주세요." };
+  return { signatureIds: sigs, excludedMembers: excluded };
+}
+
+/** Whether a 시그니처 후원 of `signatureId` to `memberId` is a 마이너스 시그니처 후원 now (2026-11-01). */
+export function isMinusDonation(channelId: string, signatureId: string | undefined, memberId: string | null) {
+  if (!signatureId || !memberId) return false;
+  const s = minusSettingsOf(channelId);
+  return s.signatureIds.includes(signatureId) && !s.excludedMembers.includes(memberId);
+}
+
+/** A member-targeted donation's crew score: its points, taken off for a 마이너스 시그니처 후원. */
+export const attributionPoints = (a: { fnAmount: number; minus?: true }, s: ExcelSettings) => (a.minus ? -1 : 1) * scoreFn(a.fnAmount, s);
 
 /** Points for a member-targeted FN donation (same conversion and 배수 규칙 as the list). */
 export function scoreFn(fnAmount: number, s: ExcelSettings) {
@@ -534,10 +559,11 @@ export function attributeMemberDonation(
   channelId: string,
   memberId: string | null,
   fnAmount: number,
-  shown: CrewDonorShown = { donor: "익명", donorId: "", message: "", shownDonor: "익명" }
+  shown: CrewDonorShown = { donor: "익명", donorId: "", message: "", shownDonor: "익명" },
+  minus = false
 ) {
   if (!memberId || !isActiveMember(channelId, memberId)) return;
-  recordAttribution(donationId, channelId, memberId, fnAmount, shown);
+  recordAttribution(donationId, channelId, memberId, fnAmount, shown, minus);
 }
 
 /**
@@ -546,9 +572,9 @@ export function attributeMemberDonation(
  * since still gets it (a removed one shows as 삭제된 멤버, like any older donation). `shown.shownDonor` is fixed by the
  * caller when the donation was sent (2026-10-09 결정): on-stream views use it, the studio's 크루 후원 list `donor`.
  */
-export function recordAttribution(donationId: string, channelId: string, memberId: string, fnAmount: number, shown: CrewDonorShown) {
+export function recordAttribution(donationId: string, channelId: string, memberId: string, fnAmount: number, shown: CrewDonorShown, minus = false) {
   if (mockCrew.attributions.some((a) => a.donationId === donationId)) return;
-  mockCrew.attributions.push({ donationId, channelId, memberId, fnAmount, at: new Date().toISOString(), ...shown });
+  mockCrew.attributions.push({ donationId, channelId, memberId, fnAmount, at: new Date().toISOString(), ...shown, ...(minus ? { minus: true as const } : {}) });
 }
 
 /** 받은 후원 "크루 후원": donations sent for a member, newest first (removed members keep a placeholder). */

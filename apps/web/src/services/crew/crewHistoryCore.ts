@@ -1,6 +1,6 @@
 import { formatKstTime, formatNumber } from "@/lib/format";
 import { unitLabel } from "@/types/donationUnit";
-import { battleGroups, donorMergesOf, donorNamer, excelOf, extraPoints, gameRunCounts, gradeBonus, gradeMultipliersOf, scoreFn, scoreboardRows, scoredFeed, windowReceived } from "./crewCore";
+import { battleGroups, donorMergesOf, donorNamer, excelOf, extraPoints, gameRunCounts, gradeBonus, gradeMultipliersOf, attributionPoints, scoreboardRows, scoredFeed, windowReceived } from "./crewCore";
 import { CONTRIBUTION_EXPORT_MAX, CONTRIBUTION_KINDS, FEED_ORIGINS, GAMES, feedOrigin, type ContributionLine } from "./crewTypes";
 import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "./mockCrewStore";
 
@@ -25,7 +25,7 @@ export function contributionLines(b: MockBroadcast, now = Date.now()): Contribut
 
   for (const a of mockCrew.attributions) {
     if (a.channelId !== b.channelId || a.at < b.startedAt || a.at > end) continue;
-    push(a.memberId, { id: `donation-${a.donationId}`, at: a.at, kind: "DONATION", points: scoreFn(a.fnAmount, s), label: `${donor(a.donor ?? a.shownDonor)} · ${formatNumber(a.fnAmount)} FN`, detail: "멤버 지정 후원" });
+    push(a.memberId, { id: `donation-${a.donationId}`, at: a.at, kind: "DONATION", points: attributionPoints(a, s), label: `${donor(a.donor ?? a.shownDonor)} · ${formatNumber(a.fnAmount)} FN`, detail: a.minus ? "마이너스 시그니처" : "멤버 지정 후원" });
   }
   for (const f of scoredFeed(b)) {
     if (f.status !== "ASSIGNED" || !f.memberId) continue;

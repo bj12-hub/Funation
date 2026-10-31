@@ -662,6 +662,18 @@ export type SigCountLive = {
   totals: number[];
 };
 
+// ── 마이너스 시그니처 — code-first (2026-11-01) ─────────────────────────────────────────────────────────────
+/**
+ * policy-decisions 6 (a) "점수를 깎는 후원", as the crew option it lists (off until signatures are picked): a 시그니처 후원
+ * of one of `signatureIds` to a member takes its points off that member's crew score instead of adding them — fixed when
+ * the donation comes in, so a later change does not flip it. `excludedMembers`: members it never lowers (theirs count as
+ * usual). The donor's side does not change (FN · 랭킹 · 등급 count it as a donation), nor do the FN amounts members
+ * received (월간 순위 · 누적 금액 · 금액 게이지); 점수 게임 do not play for it.
+ */
+export type MinusSettings = { signatureIds: string[]; excludedMembers: string[] };
+export const DEFAULT_MINUS: MinusSettings = { signatureIds: [], excludedMembers: [] };
+export const MINUS_SIGNATURES_MAX = 20;
+
 // ── 점수 게임 (P2) — code-first, StreamDonate 참고 (docs/research/streamdonate-reference.md) ─────────────────────
 // A game draws its result on the server; the result is display points only (FN · 지갑 · 수익 · 정산 never move).
 
@@ -1908,6 +1920,8 @@ export type BroadcastView = {
   windowGaugeSettings: WindowGaugeSettings;
   /** 시그 카운트 settings (kept across broadcasts) and the signatures it can count (숨긴 시그니처 too, marked). */
   sigCountSettings: SigCountSettings;
+  /** 마이너스 시그니처 (2026-11-01). */
+  minusSettings: MinusSettings;
   /** `createdAt`: when it was made (none for older ones); `complete`: it has its image and sound (2026-10-30, 두산 · 헌터 pickers). */
   signatures: { id: string; name: string; group: string; active: boolean; price: number; match: "SELECT" | "AMOUNT"; rangeMin: number | null; createdAt?: string; complete: boolean }[];
   keywords: Record<string, string[]>;

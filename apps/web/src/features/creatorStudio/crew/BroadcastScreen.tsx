@@ -19,6 +19,7 @@ import { CumulativePanel } from "./CumulativePanel";
 import { GaugePanel } from "./GaugePanel";
 import { WindowGaugePanel } from "./WindowGaugePanel";
 import { ScenarioPanel } from "./ScenarioPanel";
+import { MinusPanel } from "./MinusPanel";
 import { SigCountPanel } from "./SigCountPanel";
 import { MomentsContext } from "./StartPointPicker";
 import { StealPanel } from "./StealPanel";
@@ -376,6 +377,7 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
         pending={pending}
         run={run}
       />
+      <MinusPanel settings={view.minusSettings} signatures={view.signatures} members={view.members} pending={pending} run={run} />
       </MomentsContext.Provider>
 
       <section className={styles.card} aria-labelledby="bc-overlay">
