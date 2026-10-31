@@ -16,6 +16,7 @@ import { SigHunterPanel } from "./SigHunterPanel";
 import { SigDosanPanel } from "./SigDosanPanel";
 import { AlphabetPanel } from "./AlphabetPanel";
 import { GoStopPanel } from "./GoStopPanel";
+import { JackpotPanel } from "./JackpotPanel";
 import { TerritoryPanel } from "./TerritoryPanel";
 import { SudopolyPanel } from "./SudopolyPanel";
 import { RandomSigPanel } from "./RandomSigPanel";
@@ -88,6 +89,7 @@ export function GamesScreen({ view, switches }: { view: GamesView; switches: Rec
         <a href="#game-gostop">🎴 고스톱</a>
         <a href="#game-territory">🗺️ 땅따먹기</a>
         <a href="#game-sudopoly">🎲 스도폴리</a>
+        <a href="#game-jackpot">🧧 시그니처 잭팟</a>
       </nav>
 
       <SpinMachinePanel settings={view.spinSettings} signatures={view.signatures} members={view.members} live={view.live} now={now} overlayPath={view.overlayPath} pending={pending} run={run} />
@@ -105,6 +107,7 @@ export function GamesScreen({ view, switches }: { view: GamesView; switches: Rec
       <GoStopPanel settings={view.gostopSettings} signatures={view.signatures} members={view.members} live={view.live} now={now} overlayPath={view.overlayPath} pending={pending} run={run} />
       <TerritoryPanel settings={view.territorySettings} signatures={view.signatures} members={view.members} live={view.live} now={now} overlayPath={view.overlayPath} pending={pending} run={run} />
       <SudopolyPanel settings={view.sudopolySettings} signatures={view.signatures} members={view.members} live={view.live} now={now} overlayPath={view.overlayPath} pending={pending} run={run} />
+      <JackpotPanel settings={view.jackpotSettings} signatures={view.signatures} live={view.live} now={now} overlayPath={view.overlayPath} pending={pending} run={run} />
     </div>
   );
 }

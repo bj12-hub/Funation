@@ -16,6 +16,7 @@ import type {
   AlphabetEvent,
   AlphabetSettings,
   GoStopSettings,
+  JackpotSettings,
   TerritorySettings,
   SudopolySettings,
   SigDosanMode,
@@ -153,6 +154,8 @@ export type MockBroadcast = {
     gostop?: { pool: number; go: number; chance: number };
     /** 스도폴리: the piece that moved, from and to which 칸, and its laps after. */
     move?: { piece: string; from: number; to: number; laps: number };
+    /** 시그니처 잭팟: the 풀 and 순번 after the run (a 당첨: what it took), the 복주머니's look (tenths). */
+    jackpot?: { pool: number; count: number; fill: number; won: boolean };
     label: string;
     kind: GameEffect;
     value: number;
@@ -253,6 +256,8 @@ export type MockBroadcast = {
   alphabet?: { word: string; members: Record<string, { slots: ({ revealAt: string } | null)[]; done: number; full: boolean; log: AlphabetEvent[] }> };
   /** 고스톱: the crew's 풀 and GO count now (a STOP's own record is its run). */
   /** 고스톱: the 풀 now, GO count, 풀 수동 조정 (request ids dedupe) and the 랭킹 리셋 time (2026-10-28). */
+  /** 시그니처 잭팟: the 풀 now, its 순번 so far, the 당첨 순번 drawn for it and when it started (a 당첨 or 리셋 starts a new one). */
+  jackpot?: { pool: number; count: number; turn: number; startedAt: string };
   gostop?: { pool: number; go: number; adjustments?: { id: string; at: string; points: number; reason: string }[]; rankingSince?: string | null };
   /**
    * 땅따먹기 board (판 시작 replaces it): each cell's owners in order (`revealAt`: when OBS shows each), and the 하트 log —
@@ -360,6 +365,8 @@ type MockCrew = {
   territories?: Record<string, TerritorySettings>;
   /** 스도폴리 settings per channel (missing = DEFAULT_SUDOPOLY). */
   sudopolys?: Record<string, SudopolySettings>;
+  /** 시그니처 잭팟 settings per channel (missing = DEFAULT_JACKPOT). */
+  jackpots?: Record<string, JackpotSettings>;
   /** 멤버 추가 request ids already applied (a retried add is not a second member). */
   memberRequests?: string[];
 };
