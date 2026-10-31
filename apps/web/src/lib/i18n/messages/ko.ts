@@ -81,7 +81,35 @@ export const ko = {
   /** 라이브 방송 카드 (2026-11-01, 홈 · 라이브 목록). */
   live: {
     viewers: "시청자 {count}명",
-    onAir: "생방송 중 • {time}"
+    onAir: "생방송 중 • {time}",
+    title: "전체 방송",
+    popular: "인기 라이브",
+    all: "전체 라이브",
+    description: "지금 방송 중인 라이브를 한곳에서 만나보세요.",
+    tabs: "라이브 목록",
+    loading: "라이브 목록을 불러오는 중",
+    popularEmpty: "지금 추천할 라이브 방송이 없습니다.",
+    mostWatched: "지금 가장 많이 보는 라이브",
+    filter: "필터",
+    platform: "방송 플랫폼",
+    allPlatforms: "모든 플랫폼",
+    channelsAria: "방송 중인 채널",
+    noneLive: "지금 방송 중인 채널이 없습니다.",
+    noMatch: "조건에 맞는 방송이 없습니다.",
+    more: "더 보기 ({shown}/{total})",
+    loadError: "라이브 목록을 불러오지 못했습니다",
+    metaAll: "전체 방송 | Ssumnation",
+    metaPopular: "인기 라이브 | Ssumnation"
+  },
+  /** Shared page states: the error boundary and 404 (2026-11-01). */
+  page: {
+    errorDescription: "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요",
+    retry: "다시 시도",
+    notFoundTitle: "페이지를 찾을 수 없어요",
+    notFoundDescription: "주소가 바뀌었거나, 삭제 · 비공개 처리된 페이지예요. 주소를 다시 확인해 주세요.",
+    goHome: "홈으로 가기",
+    findCreators: "크리에이터 찾기",
+    support: "고객센터"
   },
   /** 홈 화면 (2026-11-01): UI text only — creator names, video titles, banners and notices are content. */
   home: {

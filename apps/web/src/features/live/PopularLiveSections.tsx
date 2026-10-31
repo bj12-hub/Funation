@@ -1,3 +1,4 @@
+import { getT } from "@/lib/i18n/server";
 import type { LiveChannel } from "@/services/live/liveChannels";
 import { LiveChannelCard } from "./LiveChannelCard";
 import styles from "./live.module.css";
@@ -6,14 +7,15 @@ import styles from "./live.module.css";
  * 인기라이브 (route `/live/popular`) — one list of the most watched live channels.
  * Figma 617:102 splits this into category sections; categories were dropped (2026-10-02 product decision).
  */
-export function PopularLiveList({ channels }: { channels: LiveChannel[] }) {
+export async function PopularLiveList({ channels }: { channels: LiveChannel[] }) {
+  const t = await getT();
   if (channels.length === 0) {
-    return <p className={styles.empty}>지금 추천할 라이브 방송이 없습니다.</p>;
+    return <p className={styles.empty}>{t("live.popularEmpty")}</p>;
   }
   return (
     <section className={styles.popularSection} aria-labelledby="popular-live">
       <h2 id="popular-live" className={styles.sectionTitle}>
-        지금 가장 많이 보는 라이브
+        {t("live.mostWatched")}
       </h2>
       <div className={styles.popularGrid}>
         {channels.map((c, i) => (

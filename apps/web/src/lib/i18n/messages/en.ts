@@ -82,7 +82,34 @@ export const en: Messages = {
   },
   live: {
     viewers: "{count} watching",
-    onAir: "Live • {time}"
+    onAir: "Live • {time}",
+    title: "All streams",
+    popular: "Popular live",
+    all: "All live",
+    description: "Every stream that is live right now, in one place.",
+    tabs: "Live lists",
+    loading: "Loading the live list",
+    popularEmpty: "No live streams to recommend right now.",
+    mostWatched: "Most watched right now",
+    filter: "Filter",
+    platform: "Platform",
+    allPlatforms: "All platforms",
+    channelsAria: "Channels on air",
+    noneLive: "No channels are live right now.",
+    noMatch: "No streams match.",
+    more: "Show more ({shown}/{total})",
+    loadError: "Couldn't load the live list",
+    metaAll: "All streams | Ssumnation",
+    metaPopular: "Popular live | Ssumnation"
+  },
+  page: {
+    errorDescription: "Something went wrong for a moment. Please try again shortly",
+    retry: "Try again",
+    notFoundTitle: "Page not found",
+    notFoundDescription: "The address changed, or the page was deleted or made private. Please check the address.",
+    goHome: "Go home",
+    findCreators: "Find creators",
+    support: "Help center"
   },
   home: {
     title: "Ssumnation home",
