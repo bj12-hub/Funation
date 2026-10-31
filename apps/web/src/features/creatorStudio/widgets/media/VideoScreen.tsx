@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { addTestVideo, controlVideo, saveVideoSettings } from "@/services/creator/media";
 import { videoThumbUrl } from "@/services/creator/videoThumb";
 import { MEDIA_LIMITS, type MediaResult, type VideoQueueView, type VideoRequest, type VideoSettings } from "@/services/creator/mediaTypes";
@@ -15,7 +17,7 @@ import { CopyButton } from "../../settings/SettingsCards";
 import local from "./media.module.css";
 
 const clock = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
-const STATUS_LABEL = { DONE: "재생 완료", SKIPPED: "건너뜀" } as const;
+const STATUS_LABEL: Record<"DONE" | "SKIPPED", MessageKey> = { DONE: "studioToolsMedia.statusDone", SKIPPED: "studioToolsMedia.statusSkipped" };
 
 /**
  * 영상 후원 위젯 — code-first (no Figma frame). Route `/creator/widgets/video`.
@@ -23,6 +25,7 @@ const STATUS_LABEL = { DONE: "재생 완료", SKIPPED: "건너뜀" } as const;
  */
 export function VideoScreen({ view, overlayPath, switches }: { view: VideoQueueView; overlayPath: string; switches: Record<OverlayTarget, boolean> }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [settings, setSettings] = useState<VideoSettings>(view.settings);
   const [test, setTest] = useState<{ url: string; startSec: number; endSec: number; mode: "VIDEO" | "AUDIO" }>({ url: "", startSec: 0, endSec: 30, mode: "VIDEO" });
   const [note, setNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
@@ -51,16 +54,20 @@ export function VideoScreen({ view, overlayPath, switches }: { view: VideoQueueV
           setNote({ tone: "ok", text: okText });
           after?.();
           router.refresh();
-        } else setNote({ tone: "error", text: res.status === "INVALID" ? res.message : "로그인이 필요합니다." });
+        } else setNote({ tone: "error", text: res.status === "INVALID" ? res.message : t("studioTools.loginRequired") });
       } catch {
-        setNote({ tone: "error", text: "처리하지 못했어요. 잠시 후 다시 시도해 주세요." });
+        setNote({ tone: "error", text: t("studioTools.processFailed") });
       }
     });
   };
   const control = (id: string, action: "PLAY" | "SKIP" | "REQUEUE", okText: string) => run(() => controlVideo({ id, action }), okText);
   const sendTest = () => {
     requestId.current ??= crypto.randomUUID();
-    run(() => addTestVideo({ ...test, requestId: requestId.current }), test.mode === "AUDIO" ? "테스트 음성 후원을 대기열에 넣었어요." : "테스트 영상을 대기열에 넣었어요.", () => (requestId.current = null));
+    run(
+      () => addTestVideo({ ...test, requestId: requestId.current }),
+      test.mode === "AUDIO" ? t("studioToolsMedia.testAudioQueued") : t("studioToolsMedia.testVideoQueued"),
+      () => (requestId.current = null)
+    );
   };
 
   const p = view.playing;
@@ -69,10 +76,10 @@ export function VideoScreen({ view, overlayPath, switches }: { view: VideoQueueV
   return (
     <div className={styles.content}>
       <header className={styles.header}>
-        <h1 className={styles.title}>영상 후원</h1>
-        <p className={styles.subtitle}>시청자가 보낸 영상 · 음성 후원 요청을 한 대기열에서 재생하거나 건너뛰어요. 음성 후원은 같은 오버레이 구석의 작은 플레이어로 소리 위주로 나가요. 재생 시간과 자동 재생은 채널에서 정해요.</p>
+        <h1 className={styles.title}>{t("studioToolsMedia.videoTitle")}</h1>
+        <p className={styles.subtitle}>{t("studioToolsMedia.videoSubtitle")}</p>
         <p className={styles.note}>
-          <Link href="/creator/widgets">← 위젯</Link>
+          <Link href="/creator/widgets">{t("studioTools.backWidgets")}</Link>
         </p>
       </header>
       <OverlayOffNotice targets={["video"]} switches={switches} />
@@ -80,22 +87,22 @@ export function VideoScreen({ view, overlayPath, switches }: { view: VideoQueueV
       <section className={styles.card} aria-labelledby="vid-overlay">
         <div className={styles.cardHead}>
           <h2 className={styles.cardTitle} id="vid-overlay">
-            📹 영상 오버레이
+            {t("studioToolsMedia.videoOverlayTitle")}
           </h2>
-          <CopyButton value={`${origin}${overlayPath}`} label="오버레이 URL 복사" className={styles.ghost} />
+          <CopyButton value={`${origin}${overlayPath}`} label={t("studioTools.copyOverlayUrl")} className={styles.ghost} />
         </div>
-        <p className={styles.note}>OBS 브라우저 소스 권장 크기 1280 × 720. 소리를 내려면 OBS에서 &ldquo;브라우저 소스 오디오 제어&rdquo;를 켜 주세요. 주소에는 연동 키가 들어 있으니 공유하지 마세요.</p>
+        <p className={styles.note}>{t("studioToolsMedia.videoOverlayNote")}</p>
         <OverlayLookPicker target="video" />
       </section>
 
       <section className={styles.card} aria-labelledby="vid-now">
         <div className={styles.cardHead}>
           <h2 className={styles.cardTitle} id="vid-now">
-            ▶ 재생 중
+            {t("studioToolsMedia.nowTitle")}
           </h2>
           {p && (
-            <button type="button" className={styles.ghost} disabled={pending} onClick={() => control(p.id, "SKIP", "건너뛰었어요.")}>
-              건너뛰기
+            <button type="button" className={styles.ghost} disabled={pending} onClick={() => control(p.id, "SKIP", t("studioToolsMedia.skipped"))}>
+              {t("studioToolsMedia.skip")}
             </button>
           )}
         </div>
@@ -105,36 +112,37 @@ export function VideoScreen({ view, overlayPath, switches }: { view: VideoQueueV
             <img className={local.videoThumb} src={videoThumbUrl(p.videoId)} alt="" />
             <div className={styles.rowMain}>
               <span className={styles.rowTitle}>
-                {p.mode === "AUDIO" && <span className={local.audioTag}>🎧 음성</span>}youtu.be/{p.videoId}
+                {p.mode === "AUDIO" && <span className={local.audioTag}>{t("studioToolsMedia.audioTag")}</span>}youtu.be/{p.videoId}
               </span>
               <span className={styles.muted}>
-                {p.kind === "TEST" ? "테스트 요청" : `${p.donor} · ${formatNumber(p.fnAmount)} FN`} · 구간 {clock(p.startSec)}–{clock(p.endSec)}
+                {p.kind === "TEST" ? t("studioToolsMedia.testRequest") : `${p.donor} · ${formatNumber(p.fnAmount)} FN`} ·{" "}
+                {t("studioToolsMedia.segment", { from: clock(p.startSec), to: clock(p.endSec) })}
               </span>
-              {left !== null && <span className={styles.muted}> · 남은 시간 {clock(left)}</span>}
+              {left !== null && <span className={styles.muted}>{t("studioToolsMedia.timeLeft", { time: clock(left) })}</span>}
             </div>
           </div>
         ) : (
-          <p className={styles.empty}>재생 중인 영상이 없어요.</p>
+          <p className={styles.empty}>{t("studioToolsMedia.nowEmpty")}</p>
         )}
       </section>
 
       <section className={styles.card} aria-labelledby="vid-queue">
         <div className={styles.cardHead}>
           <h2 className={styles.cardTitle} id="vid-queue">
-            ⏳ 대기열 {view.waiting.length}
+            {t("studioToolsMedia.queueTitle", { count: view.waiting.length })}
           </h2>
         </div>
         {view.waiting.length === 0 ? (
-          <p className={styles.empty}>대기 중인 영상 후원이 없어요.</p>
+          <p className={styles.empty}>{t("studioToolsMedia.queueEmpty")}</p>
         ) : (
           <ul className={styles.list}>
             {view.waiting.map((v) => (
               <VideoRow key={v.id} v={v}>
-                <button type="button" className={styles.ghost} disabled={pending} onClick={() => control(v.id, "PLAY", "재생을 시작했어요.")}>
-                  지금 재생
+                <button type="button" className={styles.ghost} disabled={pending} onClick={() => control(v.id, "PLAY", t("studioToolsMedia.playStarted"))}>
+                  {t("studioToolsMedia.playNow")}
                 </button>
-                <button type="button" className={styles.danger} disabled={pending} onClick={() => control(v.id, "SKIP", "건너뛰었어요.")}>
-                  건너뛰기
+                <button type="button" className={styles.danger} disabled={pending} onClick={() => control(v.id, "SKIP", t("studioToolsMedia.skipped"))}>
+                  {t("studioToolsMedia.skip")}
                 </button>
               </VideoRow>
             ))}
@@ -145,77 +153,92 @@ export function VideoScreen({ view, overlayPath, switches }: { view: VideoQueueV
       <section className={styles.card} aria-labelledby="vid-settings">
         <div className={styles.cardHead}>
           <h2 className={styles.cardTitle} id="vid-settings">
-            ⚙️ 설정
+            {t("studioToolsMedia.settingsTitle")}
           </h2>
           <label className={styles.checkRow}>
             <input type="checkbox" checked={settings.autoPlay} onChange={(e) => setSettings({ ...settings, autoPlay: e.target.checked })} />
-            자동 재생
+            {t("studioToolsMedia.autoplay")}
           </label>
         </div>
         <div className={styles.addRow}>
-          <span className={styles.muted}>최대 재생</span>
+          <span className={styles.muted}>{t("studioToolsMedia.maxPlay")}</span>
           <input
             className={styles.inputSmall}
             type="number"
-            aria-label="최대 재생 시간(초)"
+            aria-label={t("studioToolsMedia.maxPlayAria")}
             min={MEDIA_LIMITS.maxSecMin}
             max={MEDIA_LIMITS.maxSecMax}
             value={settings.maxSec}
             onChange={(e) => setSettings({ ...settings, maxSec: Math.floor(Number(e.target.value) || 0) })}
           />
-          <span className={styles.muted}>초 · 볼륨</span>
+          <span className={styles.muted}>{t("studioToolsMedia.secVolume")}</span>
           <input
             className={styles.inputSmall}
             type="number"
-            aria-label="볼륨"
+            aria-label={t("studioToolsMedia.volume")}
             min={0}
             max={100}
             value={settings.volume}
             onChange={(e) => setSettings({ ...settings, volume: Math.floor(Number(e.target.value) || 0) })}
           />
-          <button type="button" className={styles.primary} disabled={pending} onClick={() => run(() => saveVideoSettings(settings), "설정을 저장했어요.")}>
-            저장
+          <button type="button" className={styles.primary} disabled={pending} onClick={() => run(() => saveVideoSettings(settings), t("studioToolsMedia.settingsSaved"))}>
+            {t("studioTools.save")}
           </button>
         </div>
-        <p className={styles.note}>자동 재생을 끄면 요청은 대기열에 쌓이고, &ldquo;지금 재생&rdquo;을 눌러야 재생돼요. 요청 구간이 최대 재생 시간보다 길면 거기서 끊어요.</p>
+        <p className={styles.note}>{t("studioToolsMedia.settingsNote")}</p>
       </section>
 
       <section className={styles.card} aria-labelledby="vid-test">
         <div className={styles.cardHead}>
           <h2 className={styles.cardTitle} id="vid-test">
-            🧪 테스트 영상
+            {t("studioToolsMedia.testTitle")}
           </h2>
         </div>
         <div className={styles.addRow}>
-          <input className={styles.input} aria-label="유튜브 주소" placeholder="https://youtu.be/…" value={test.url} onChange={(e) => setTest({ ...test, url: e.target.value })} />
-          <input className={styles.inputSmall} type="number" min={0} aria-label="시작(초)" value={test.startSec} onChange={(e) => setTest({ ...test, startSec: Math.floor(Number(e.target.value) || 0) })} />
+          <input className={styles.input} aria-label={t("studioToolsMedia.youtubeAria")} placeholder="https://youtu.be/…" value={test.url} onChange={(e) => setTest({ ...test, url: e.target.value })} />
+          <input
+            className={styles.inputSmall}
+            type="number"
+            min={0}
+            aria-label={t("studioToolsMedia.startAria")}
+            value={test.startSec}
+            onChange={(e) => setTest({ ...test, startSec: Math.floor(Number(e.target.value) || 0) })}
+          />
           <span className={styles.muted}>~</span>
-          <input className={styles.inputSmall} type="number" min={1} aria-label="끝(초)" value={test.endSec} onChange={(e) => setTest({ ...test, endSec: Math.floor(Number(e.target.value) || 0) })} />
-          <span className={styles.muted}>초</span>
+          <input
+            className={styles.inputSmall}
+            type="number"
+            min={1}
+            aria-label={t("studioToolsMedia.endAria")}
+            value={test.endSec}
+            onChange={(e) => setTest({ ...test, endSec: Math.floor(Number(e.target.value) || 0) })}
+          />
+          <span className={styles.muted}>{t("studioTools.sec")}</span>
           <label className={styles.muted}>
-            <input type="checkbox" checked={test.mode === "AUDIO"} onChange={(e) => setTest({ ...test, mode: e.target.checked ? "AUDIO" : "VIDEO" })} /> 음성 후원으로
+            <input type="checkbox" checked={test.mode === "AUDIO"} onChange={(e) => setTest({ ...test, mode: e.target.checked ? "AUDIO" : "VIDEO" })} />
+            {t("studioToolsMedia.asAudio")}
           </label>
           <button type="button" className={styles.primary} disabled={pending || !test.url.trim()} onClick={sendTest}>
-            대기열에 넣기
+            {t("studioToolsMedia.enqueue")}
           </button>
         </div>
-        <p className={styles.note}>FN이 이동하지 않는 테스트 요청이에요.</p>
+        <p className={styles.note}>{t("studioToolsMedia.testNote")}</p>
       </section>
 
       <section className={styles.card} aria-labelledby="vid-history">
         <div className={styles.cardHead}>
           <h2 className={styles.cardTitle} id="vid-history">
-            🕘 지난 요청
+            {t("studioToolsMedia.historyTitle")}
           </h2>
         </div>
         {view.history.length === 0 ? (
-          <p className={styles.empty}>아직 재생한 영상이 없어요.</p>
+          <p className={styles.empty}>{t("studioToolsMedia.historyEmpty")}</p>
         ) : (
           <ul className={styles.list}>
             {view.history.map((v) => (
-              <VideoRow key={v.id} v={v} status={STATUS_LABEL[v.status as keyof typeof STATUS_LABEL]}>
-                <button type="button" className={styles.ghost} disabled={pending} onClick={() => control(v.id, "REQUEUE", "다시 대기열에 넣었어요.")}>
-                  다시 대기열로
+              <VideoRow key={v.id} v={v} status={v.status in STATUS_LABEL ? t(STATUS_LABEL[v.status as keyof typeof STATUS_LABEL]) : undefined}>
+                <button type="button" className={styles.ghost} disabled={pending} onClick={() => control(v.id, "REQUEUE", t("studioToolsMedia.requeued"))}>
+                  {t("studioToolsMedia.requeue")}
                 </button>
               </VideoRow>
             ))}
@@ -233,16 +256,17 @@ export function VideoScreen({ view, overlayPath, switches }: { view: VideoQueueV
 }
 
 function VideoRow({ v, status, children }: { v: VideoRequest; status?: string; children: React.ReactNode }) {
+  const { t } = useI18n();
   return (
     <li className={styles.row}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img className={local.rowThumb} src={videoThumbUrl(v.videoId, "default")} alt="" />
       <div className={styles.rowMain}>
         <span className={styles.rowTitle}>
-          {v.mode === "AUDIO" && <span className={local.audioTag}>🎧 음성</span>}youtu.be/{v.videoId}
+          {v.mode === "AUDIO" && <span className={local.audioTag}>{t("studioToolsMedia.audioTag")}</span>}youtu.be/{v.videoId}
         </span>
         <span className={styles.muted}>
-          {v.kind === "TEST" ? "테스트 요청" : `${v.donor} · ${formatNumber(v.fnAmount)} FN`} · {clock(v.startSec)}–{clock(v.endSec)}
+          {v.kind === "TEST" ? t("studioToolsMedia.testRequest") : `${v.donor} · ${formatNumber(v.fnAmount)} FN`} · {clock(v.startSec)}–{clock(v.endSec)}
           {status ? ` · ${status}` : ""}
         </span>
       </div>

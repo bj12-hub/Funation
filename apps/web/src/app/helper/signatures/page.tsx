@@ -2,9 +2,13 @@ import type { Metadata } from "next";
 import { SignaturesScreen } from "@/features/creatorStudio/widgets/SignaturesScreen";
 import { listAssets } from "@/services/creator/assets";
 import { listSignatures } from "@/services/donations/signatures";
+import { getT } from "@/lib/i18n/server";
 
 // Code-first (no Figma frame): 시그니처 후원 관리, on the helper domain — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: "시그니처" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("helperNav.signatures") };
+}
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;

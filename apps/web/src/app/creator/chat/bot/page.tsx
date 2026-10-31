@@ -2,9 +2,13 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ChatBotScreen } from "@/features/broadcast/ChatBotScreen";
 import { getChatBotView } from "@/services/broadcast/chatBot";
+import { getT } from "@/lib/i18n/server";
 
 // Code-first (no Figma frame): 채팅봇 명령어 — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: "채팅봇 명령어 | Ssumnation 크리에이터" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("chatBot.meta") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

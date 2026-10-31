@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Toast } from "@/components/ui/Toast";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { OverlayTarget } from "@/services/creator/alertTypes";
 import type { WidgetDetail } from "@/services/creator/widgetSettingsTypes";
 import { OverlayOffNotice } from "@/features/creatorStudio/remote/OverlayOffNotice";
 import { WidgetEditorBody, useWidgetEditor } from "@/features/creatorStudio/widgets/WidgetEditor";
+import { widgetPageText, widgetTabLabel } from "./helperText";
 import type { WidgetPage } from "./widgetPages";
 import styles from "./helper.module.css";
 
@@ -28,10 +30,12 @@ export function WidgetFeaturePage({
   detail: WidgetDetail;
   switches: Record<OverlayTarget, boolean>;
 }) {
+  const { t } = useI18n();
   const [toast, setToast] = useState<string | null>(null);
   const clearToast = useCallback(() => setToast(null), []);
-  const current = page.tabs.find((t) => t.slug === tab) ?? page.tabs[0];
-  const editor = useWidgetEditor(current.key, { initial: detail, onSaved: () => setToast("설정을 저장했어요.") });
+  const current = page.tabs.find((x) => x.slug === tab) ?? page.tabs[0];
+  const text = widgetPageText(feature, page, t);
+  const editor = useWidgetEditor(current.key, { initial: detail, onSaved: () => setToast(t("helper.saved")) });
   const { state, saving, save, dirty, selfSaving } = editor;
 
   // Leaving with unsaved changes (closing the tab, reloading) asks first; moving inside the helper does not.
@@ -45,34 +49,34 @@ export function WidgetFeaturePage({
   return (
     <div className={styles.content}>
       <header className={styles.pageHeader}>
-        <h1>{page.title}</h1>
-        <p>{page.description}</p>
+        <h1>{text.title}</h1>
+        <p>{text.description}</p>
       </header>
       {page.tabs.length > 1 && (
-        <nav className={styles.tabs} aria-label={`${page.title} 메뉴`}>
-          {page.tabs.map((t, i) => (
+        <nav className={styles.tabs} aria-label={t("helper.tabsAria", { title: text.title })}>
+          {page.tabs.map((x, i) => (
             <Link
-              key={t.slug}
-              href={i === 0 ? `/${feature}` : `/${feature}?tab=${t.slug}`}
-              className={`${styles.tab} ${t.slug === current.slug ? styles.tabOn : ""}`}
-              aria-current={t.slug === current.slug ? "page" : undefined}
+              key={x.slug}
+              href={i === 0 ? `/${feature}` : `/${feature}?tab=${x.slug}`}
+              className={`${styles.tab} ${x.slug === current.slug ? styles.tabOn : ""}`}
+              aria-current={x.slug === current.slug ? "page" : undefined}
             >
-              {t.label}
+              {widgetTabLabel(x, t)}
             </Link>
           ))}
         </nav>
       )}
       <OverlayOffNotice targets={[page.target]} switches={switches} />
-      <section className={styles.editor} aria-label={`${current.label} 설정`} aria-busy={state.status === "LOADING" || saving}>
+      <section className={styles.editor} aria-label={t("helper.editorAria", { label: widgetTabLabel(current, t) })} aria-busy={state.status === "LOADING" || saving}>
         <WidgetEditorBody editor={editor} />
       </section>
       {!selfSaving && (
         <div className={styles.saveBar}>
           <span className={styles.saveState} role="status">
-            {dirty ? "저장하지 않은 변경이 있어요." : "방송 화면에 보이는 설정이에요."}
+            {dirty ? t("helper.unsaved") : t("helper.onStream")}
           </span>
           <button type="button" className={styles.saveButton} onClick={save} disabled={state.status !== "READY" || saving || !dirty}>
-            {saving ? "저장 중…" : "설정 저장"}
+            {saving ? t("helper.saving") : t("helper.save")}
           </button>
         </div>
       )}

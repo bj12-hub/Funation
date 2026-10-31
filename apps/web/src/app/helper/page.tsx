@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { HelperHome } from "@/features/helper/HelperHome";
-import { HELPER_TITLE } from "@/features/helper/helperNav";
+import { helperTitle } from "@/features/helper/helperText";
+import { getT } from "@/lib/i18n/server";
 import { getSession } from "@/lib/session";
 import { getOverlaySwitches } from "@/services/creator/alertRemote";
 
 // Code-first (no Figma frame): 도우미 시작하기 — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: { absolute: HELPER_TITLE } };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: { absolute: helperTitle(await getT()) } };
+}
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

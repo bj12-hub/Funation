@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { playMedley, saveMedley } from "@/services/crew/crewGames";
 import {
   MEDLEY_SIGNATURES_MAX,
@@ -46,6 +47,8 @@ export function MedleyPanel({
   pending: boolean;
   run: RunAction;
 }) {
+  const { t } = useI18n();
+  const name = t("crewGameMedley.name");
   const { draft, edit, dirty, reset } = useSettingsDraft(settings, toDraft, fromDraft);
   const playId = useRef<string | null>(null);
   const known = new Set(signatures.map((s) => s.id));
@@ -54,7 +57,7 @@ export function MedleyPanel({
   // What would keep the 발동 금액 from firing: a 금액 일치 signature, or 랜덤시그 using it.
   const takenBy = draft.trigger
     ? (signatures.find((s) => s.active && s.match === "AMOUNT" && amount >= (s.rangeMin ?? s.price) && amount <= s.price)?.name ??
-      (randomSig.auto && randomSig.tiers.some((t) => t.trigger === amount) ? "랜덤시그 발동 구간" : null))
+      (randomSig.auto && randomSig.tiers.some((tier) => tier.trigger === amount) ? t("crewGameMedley.randomSigTier") : null))
     : null;
   const toggle = (id: string) => edit({ signatureIds: picked.includes(id) ? picked.filter((x) => x !== id) : [...picked, id] });
 
@@ -67,17 +70,15 @@ export function MedleyPanel({
       if (res.status !== "PLAYED") return res;
       playId.current = null;
       return { status: "SAVED" };
-    }, "메들리를 돌렸어요. OBS에서 뽑힌 시그니처가 나와요.");
+    }, t("crewGameMedley.rolled"));
   };
 
   return (
     <section id="game-medley" className={styles.card} aria-labelledby="game-medley-title">
       <h2 id="game-medley-title" className={styles.cardTitle}>
-        🎶 시그니처 메들리
+        🎶 {t("crewGame.nameMedley")}
       </h2>
-      <p className={styles.note}>
-        발동 금액과 정확히 같은 일반 후원이 들어오면 등록한 시그니처 중 하나를 서버가 뽑아, 후원 알림이 그 시그니처로 나가요(시그 카운트에도 그 시그니처로 세요). 점수는 따로 더하지 않아요.
-      </p>
+      <p className={styles.note}>{t("crewGameMedley.intro")}</p>
 
       <form
         className={prize.form}
@@ -85,19 +86,19 @@ export function MedleyPanel({
           e.preventDefault();
           const next = fromDraft(draft);
           // A signature deleted since may still be registered: drop it instead of failing the save.
-          run(() => saveMedley({ ...next, signatureIds: next.signatureIds.filter((id) => known.has(id)) }), "메들리 설정을 저장했어요.");
+          run(() => saveMedley({ ...next, signatureIds: next.signatureIds.filter((id) => known.has(id)) }), t("crewGame.saved", { name }));
         }}
       >
-        <TitleField name="메들리" placeholder={MEDLEY_TITLE_DEFAULT} value={draft.title} onChange={(title) => edit({ title })} />
+        <TitleField name={name} placeholder={MEDLEY_TITLE_DEFAULT} value={draft.title} onChange={(title) => edit({ title })} />
         <div className={prize.field}>
-          <span className={styles.muted}>발동 금액</span>
+          <span className={styles.muted}>{t("crewGame.triggerAmountLabel")}</span>
           <span className={games.unit}>
             <input
               className={styles.inputSmall}
               type="number"
               inputMode="numeric"
-              aria-label="메들리 발동 금액"
-              placeholder="발동 금액"
+              aria-label={t("crewGameMedley.triggerAria")}
+              placeholder={t("crewGame.triggerAmountLabel")}
               value={draft.trigger}
               onChange={(e) => edit({ trigger: e.target.value })}
             />
@@ -110,37 +111,35 @@ export function MedleyPanel({
           </span>
           {takenBy && (
             <span className={styles.error} role="alert">
-              이 금액은 &apos;{takenBy}&apos;에서 먼저 받아요. 다른 발동 금액을 정해 주세요.
+              {t("crewGameMedley.taken", { name: takenBy })}
             </span>
           )}
         </div>
-        <div className={prize.field} role="group" aria-label="메들리 등록 시그니처">
-          <span className={styles.muted}>
-            등록 시그니처 ({picked.length}/{MEDLEY_SIGNATURES_MAX}) — 누르면 등록
-          </span>
+        <div className={prize.field} role="group" aria-label={t("crewGameMedley.sigsAria")}>
+          <span className={styles.muted}>{t("crewGameMedley.sigsLabel", { count: picked.length, max: MEDLEY_SIGNATURES_MAX })}</span>
           <span className={prize.chips}>
-            {signatures.length === 0 && <span className={styles.note}>만든 시그니처가 없어요.</span>}
+            {signatures.length === 0 && <span className={styles.note}>{t("crewGame.noSignatures")}</span>}
             {signatures.map((s) => (
               <button key={s.id} type="button" className={games.pick} aria-pressed={picked.includes(s.id)} disabled={!picked.includes(s.id) && picked.length >= MEDLEY_SIGNATURES_MAX} onClick={() => toggle(s.id)}>
                 {s.name}
-                {!s.active && <span className={styles.muted}>숨김</span>}
+                {!s.active && <span className={styles.muted}>{t("crewGame.hidden")}</span>}
               </button>
             ))}
           </span>
           <span className={prize.inline}>
             <button type="button" className={styles.ghost} onClick={() => edit({ signatureIds: signatures.filter((s) => s.active).slice(0, MEDLEY_SIGNATURES_MAX).map((s) => s.id) })}>
-              사용 중 모두 등록
+              {t("crewGameMedley.registerAll")}
             </button>
             <button type="button" className={styles.ghost} disabled={!picked.length} onClick={() => edit({ signatureIds: [] })}>
-              모두 해제
+              {t("crewGameMedley.clearAll")}
             </button>
           </span>
-          <span className={styles.note}>숨긴 시그니처는 등록돼 있어도 뽑히지 않아요.</span>
+          <span className={styles.note}>{t("crewGameMedley.hiddenNote")}</span>
         </div>
         <AutoFields
-          name="메들리"
-          verb="돌리기"
-          copy={{ auto: "메들리 켜기 — 발동 금액과 같은 일반 후원을 등록한 시그니처 중 하나로 보내요", excluded: "", note: "" }}
+          name={name}
+          verb={t("crewGame.spin")}
+          copy={{ auto: t("crewGameMedley.autoCopy"), excluded: "", note: "" }}
           withExcluded={false}
           auto={draft.auto}
           excluded={[]}
@@ -153,18 +152,18 @@ export function MedleyPanel({
 
       {live && (
         <>
-          {dirty && <p className={styles.note}>저장하지 않은 설정이 있어요. 메들리는 저장한 설정으로 뽑혀요.</p>}
+          {dirty && <p className={styles.note}>{t("crewGameMedley.unsaved")}</p>}
           <div className={prize.window}>
-            <span className={styles.muted}>크루 방송 중에는 메들리 후원마다 OBS에서 뽑기 연출이 나와요. 알림 없이 OBS에서만 한 번 돌릴 수도 있어요.</span>
+            <span className={styles.muted}>{t("crewGameMedley.liveNote")}</span>
             <button type="button" className={styles.ghost} disabled={pending || !settings.signatureIds.length} onClick={roll}>
-              OBS에서 한 번 돌리기
+              {t("crewGameMedley.rollOnce")}
             </button>
           </div>
-          <RunList name="메들리" runs={live.medley.runs} now={now} />
+          <RunList name={name} runs={live.medley.runs} now={now} />
         </>
       )}
 
-      <OverlayAddress overlayPath={overlayPath} param="medley" label="메들리" />
+      <OverlayAddress overlayPath={overlayPath} param="medley" label={name} />
     </section>
   );
 }

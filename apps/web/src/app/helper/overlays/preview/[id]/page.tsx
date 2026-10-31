@@ -4,9 +4,13 @@ import { OVERLAYS, PREVIEW_TESTABLE } from "@/services/creator/overlayCatalog";
 import { OverlayPreview } from "@/features/creatorStudio/widgets/OverlayPreview";
 import { getOverlaySwitches } from "@/services/creator/alertRemote";
 import { getOverlayKey } from "@/services/creator/broadcastTools";
+import { getT } from "@/lib/i18n/server";
 
 // Code-first (no Figma frame): 오버레이 미리보기, on the helper domain — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: "오버레이 미리보기" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("helper.metaOverlayPreview") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {

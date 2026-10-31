@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { saveEffectSettings } from "@/services/creator/effects";
 import type { Asset } from "@/services/creator/assetTypes";
 import { EFFECT_LIMITS, EMOJI_PRESETS, LAYER_EFFECTS, type EffectSettings, type EffectTier, type LayerEffect } from "@/services/creator/effectsTypes";
@@ -10,6 +12,14 @@ import styles from "../crew/crew.module.css";
 import { OverlayOffNotice } from "../remote/OverlayOffNotice";
 import { CopyButton } from "../settings/SettingsCards";
 import local from "./effects.module.css";
+
+/** Layer effect labels by key (the service's LAYER_EFFECTS stay as written, 2026-11-01). */
+const EFFECT_KEY: Record<LayerEffect, MessageKey> = {
+  CONFETTI: "studioToolsEffects.effectConfetti",
+  HEARTS: "studioToolsEffects.effectHearts",
+  STARS: "studioToolsEffects.effectStars",
+  FIREWORKS: "studioToolsEffects.effectFireworks"
+};
 
 /**
  * 이모지 리액션 · 레이어 효과 설정 — code-first (no Figma frame). Route `/creator/widgets/effects`.
@@ -27,6 +37,7 @@ export function EffectsScreen({
   overlayPath: string;
   switches: Record<OverlayTarget, boolean>;
 }) {
+  const { t } = useI18n();
   const [s, setS] = useState<EffectSettings>(initial);
   const [note, setNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
@@ -48,9 +59,13 @@ export function EffectsScreen({
     startTransition(async () => {
       try {
         const res = await saveEffectSettings(s);
-        setNote(res.status === "SAVED" ? { tone: "ok", text: "이펙트 설정을 저장했어요." } : { tone: "error", text: res.status === "INVALID" ? res.message : "로그인이 필요합니다." });
+        setNote(
+          res.status === "SAVED"
+            ? { tone: "ok", text: t("studioToolsEffects.saved") }
+            : { tone: "error", text: res.status === "INVALID" ? res.message : t("studioTools.loginRequired") }
+        );
       } catch {
-        setNote({ tone: "error", text: "저장하지 못했어요. 잠시 후 다시 시도해 주세요." });
+        setNote({ tone: "error", text: t("studioTools.saveFailed") });
       }
     });
   };
@@ -58,10 +73,13 @@ export function EffectsScreen({
   return (
     <div className={styles.content}>
       <header className={styles.header}>
-        <h1 className={styles.title}>이펙트 · 효과</h1>
-        <p className={styles.subtitle}>후원 알림이 뜰 때 방송 화면에 이모지와 전체 화면 효과를 함께 띄워요. 조건은 채널에서 직접 정해요.</p>
+        <h1 className={styles.title}>{t("studioToolsEffects.title")}</h1>
+        <p className={styles.subtitle}>{t("studioToolsEffects.subtitle")}</p>
         <p className={styles.note}>
-          <Link href="/creator/widgets">← 위젯</Link> · 테스트는 <Link href="/creator/remote">리모컨</Link>의 테스트 후원으로 해 보세요.
+          <Link href="/creator/widgets">{t("studioTools.backWidgets")}</Link>
+          {t("studioToolsEffects.headBefore")}
+          <Link href="/creator/remote">{t("studioTools.remote")}</Link>
+          {t("studioToolsEffects.headAfter")}
         </p>
       </header>
       <OverlayOffNotice targets={["effects"]} switches={switches} />
@@ -69,80 +87,95 @@ export function EffectsScreen({
       <section className={styles.card} aria-labelledby="fx-overlay">
         <div className={styles.cardHead}>
           <h2 className={styles.cardTitle} id="fx-overlay">
-            ✨ 이펙트 오버레이
+            {t("studioToolsEffects.overlayTitle")}
           </h2>
-          <CopyButton value={`${origin}${overlayPath}`} label="오버레이 URL 복사" className={styles.ghost} />
+          <CopyButton value={`${origin}${overlayPath}`} label={t("studioTools.copyOverlayUrl")} className={styles.ghost} />
         </div>
-        <p className={styles.note}>OBS 브라우저 소스 권장 크기 1920 × 1080 (알림 오버레이 위에 배치). 주소에는 연동 키가 들어 있으니 공유하지 마세요.</p>
+        <p className={styles.note}>{t("studioToolsEffects.overlayNote")}</p>
       </section>
 
       <section className={styles.card} aria-labelledby="fx-emoji">
         <div className={styles.cardHead}>
           <h2 className={styles.cardTitle} id="fx-emoji">
-            😍 이모지 리액션
+            {t("studioToolsEffects.emojiTitle")}
           </h2>
           <label className={styles.checkRow}>
             <input type="checkbox" checked={s.emoji.enabled} onChange={(e) => setEmoji({ enabled: e.target.checked })} />
-            사용
+            {t("studioTools.on")}
           </label>
         </div>
         <div className={styles.addRow}>
-          <input className={styles.inputSmall} type="number" min={0} aria-label="이모지 최소 금액(FN)" value={s.emoji.minFn} onChange={(e) => setEmoji({ minFn: Math.max(0, Math.floor(Number(e.target.value) || 0)) })} />
-          <span className={styles.muted}>FN 이상 후원 시</span>
+          <input
+            className={styles.inputSmall}
+            type="number"
+            min={0}
+            aria-label={t("studioToolsEffects.emojiMinAria")}
+            value={s.emoji.minFn}
+            onChange={(e) => setEmoji({ minFn: Math.max(0, Math.floor(Number(e.target.value) || 0)) })}
+          />
+          <span className={styles.muted}>{t("studioToolsEffects.fnOrMore")}</span>
           <input
             className={styles.inputSmall}
             type="number"
             min={EFFECT_LIMITS.countMin}
             max={EFFECT_LIMITS.countMax}
-            aria-label="이모지 개수"
+            aria-label={t("studioToolsEffects.emojiCountAria")}
             value={s.emoji.count}
             onChange={(e) => setEmoji({ count: Math.floor(Number(e.target.value) || 0) })}
           />
-          <span className={styles.muted}>개</span>
+          <span className={styles.muted}>{t("studioToolsEffects.countUnit")}</span>
         </div>
-        <div className={local.emojis} role="group" aria-label={`이모지 선택 (최대 ${EFFECT_LIMITS.emojisMax}개)`}>
+        <div className={local.emojis} role="group" aria-label={t("studioToolsEffects.emojiPickAria", { max: EFFECT_LIMITS.emojisMax })}>
           {EMOJI_PRESETS.map((e) => (
             <button key={e} type="button" className={local.emoji} aria-pressed={s.emoji.emojis.includes(e)} onClick={() => toggleEmoji(e)}>
               {e}
             </button>
           ))}
         </div>
-        <p className={styles.note}>1~{EFFECT_LIMITS.emojisMax}개를 고를 수 있어요.</p>
+        <p className={styles.note}>{t("studioToolsEffects.emojiNote", { max: EFFECT_LIMITS.emojisMax })}</p>
       </section>
 
       <section className={styles.card} aria-labelledby="fx-layer">
         <div className={styles.cardHead}>
           <h2 className={styles.cardTitle} id="fx-layer">
-            🎆 레이어 효과
+            {t("studioToolsEffects.layerTitle")}
           </h2>
           <label className={styles.checkRow}>
             <input type="checkbox" checked={s.layer.enabled} onChange={(e) => setLayer({ enabled: e.target.checked })} />
-            사용
+            {t("studioTools.on")}
           </label>
         </div>
         <p className={styles.note}>
-          금액 구간마다 효과를 정해요. 후원 금액에 맞는 가장 높은 구간의 효과가 재생돼요. 구간에 영상을 고르면 효과와 함께 화면 가운데에서 한 번 재생돼요(
-          <Link href="/creator/widgets/assets">이미지·사운드</Link>에서 영상 업로드).
+          {t("studioToolsEffects.layerNoteBefore")}
+          <Link href="/creator/widgets/assets">{t("studioTools.assetsLink")}</Link>
+          {t("studioToolsEffects.layerNoteAfter")}
         </p>
         <ul className={styles.list}>
-          {s.layer.tiers.map((t, i) => (
+          {s.layer.tiers.map((tier, i) => (
             <li key={i} className={styles.row}>
-              <input className={styles.inputSmall} type="number" min={0} aria-label={`구간 ${i + 1} 최소 금액(FN)`} value={t.minFn} onChange={(e) => setTier(i, { minFn: Math.max(0, Math.floor(Number(e.target.value) || 0)) })} />
-              <span className={styles.muted}>FN 이상 →</span>
-              <select className={styles.select} aria-label={`구간 ${i + 1} 효과`} value={t.effect} onChange={(e) => setTier(i, { effect: e.target.value as LayerEffect })}>
+              <input
+                className={styles.inputSmall}
+                type="number"
+                min={0}
+                aria-label={t("studioToolsEffects.tierMinAria", { n: i + 1 })}
+                value={tier.minFn}
+                onChange={(e) => setTier(i, { minFn: Math.max(0, Math.floor(Number(e.target.value) || 0)) })}
+              />
+              <span className={styles.muted}>{t("studioToolsEffects.fnOrMoreArrow")}</span>
+              <select className={styles.select} aria-label={t("studioToolsEffects.tierEffectAria", { n: i + 1 })} value={tier.effect} onChange={(e) => setTier(i, { effect: e.target.value as LayerEffect })}>
                 {LAYER_EFFECTS.map((l) => (
                   <option key={l.key} value={l.key}>
-                    {l.emoji} {l.label}
+                    {l.emoji} {t(EFFECT_KEY[l.key])}
                   </option>
                 ))}
               </select>
               <select
                 className={styles.select}
-                aria-label={`구간 ${i + 1} 영상`}
-                value={t.videoUrl && videos.some((v) => v.url === t.videoUrl) ? t.videoUrl : ""}
+                aria-label={t("studioToolsEffects.tierVideoAria", { n: i + 1 })}
+                value={tier.videoUrl && videos.some((v) => v.url === tier.videoUrl) ? tier.videoUrl : ""}
                 onChange={(e) => setTier(i, { videoUrl: e.target.value || null })}
               >
-                <option value="">영상 없음</option>
+                <option value="">{t("studioToolsEffects.noVideo")}</option>
                 {videos.map((v) => (
                   <option key={v.id} value={v.url}>
                     🎬 {v.name}
@@ -151,7 +184,7 @@ export function EffectsScreen({
               </select>
               {s.layer.tiers.length > 1 && (
                 <button type="button" className={styles.ghost} onClick={() => setLayer({ tiers: s.layer.tiers.filter((_, j) => j !== i) })}>
-                  삭제
+                  {t("studioTools.delete")}
                 </button>
               )}
             </li>
@@ -163,7 +196,7 @@ export function EffectsScreen({
             className={styles.ghost}
             onClick={() => setLayer({ tiers: [...s.layer.tiers, { minFn: (s.layer.tiers.at(-1)?.minFn ?? 0) * 2 || 10_000, effect: "HEARTS", videoUrl: null }] })}
           >
-            + 구간 추가
+            {t("studioToolsEffects.addTier")}
           </button>
         )}
       </section>
@@ -175,7 +208,7 @@ export function EffectsScreen({
       )}
       <div className={styles.actions}>
         <button type="button" className={styles.primary} disabled={pending} onClick={save}>
-          {pending ? "저장 중…" : "설정 저장"}
+          {pending ? t("studioTools.saving") : t("studioTools.saveSettings")}
         </button>
       </div>
     </div>
