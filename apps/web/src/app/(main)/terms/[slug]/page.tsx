@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { TermsDocument } from "@/features/terms/TermsDocument";
 import { isTermsSlug, TERMS_DOCS, TERMS_SLUGS } from "@/features/terms/termsOutline";
+import { getT } from "@/lib/i18n/server";
 
 // Figma: 약관 상세 예시 722:3 (terms text not provided) — 초안 bodies with the draft banner until legal review (2026-10-08).
 // Slugs: footer (service · privacy · youth · operation 727:3200), 회원가입 (marketing), 채널 만들기 (creator),
@@ -16,7 +17,8 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  return { title: `${isTermsSlug(slug) ? TERMS_DOCS[slug].title : "약관"} | Ssumnation` };
+  const t = await getT();
+  return { title: `${isTermsSlug(slug) ? TERMS_DOCS[slug].title : t("termsPage.metaFallback")} | Ssumnation` };
 }
 
 export default async function TermsPage({ params }: { params: Promise<{ slug: string }> }) {

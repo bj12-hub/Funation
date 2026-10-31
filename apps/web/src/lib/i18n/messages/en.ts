@@ -36,7 +36,11 @@ export const en: Messages = {
     bellLoadError: "Couldn't load notifications.",
     bellEmpty: "No new notifications.",
     bellAll: "See all notifications",
-    bannerMore: "Learn more ›"
+    bannerMore: "Learn more ›",
+    unitKrw: "KRW",
+    unitSoopBalloon: "Star balloons",
+    unitChzzkCheese: "Cheese",
+    unitFlextv: "FlexTV donation"
   },
   crewGame: {
     meta: "Score games | Ssumnation Creator",
@@ -5782,6 +5786,17 @@ export const en: Messages = {
     termsLoading: "Loading the terms…",
     globalErrorTitle: "Something went wrong",
     globalErrorBody: "Please try again in a moment."
+  },
+  termsPage: {
+    metaFallback: "Terms",
+    docsAria: "Terms and policies",
+    draftBadge: "Draft",
+    effectiveDate: "Effective date",
+    effectiveDateValue: "Official launch date (TBD)",
+    version: "Version",
+    versionValue: "Draft v0.1",
+    draftBanner: "Draft: written to common standards and not yet reviewed by legal. It may change before the official launch.",
+    toc: "Contents"
   },
   home: {
     title: "Ssumnation home",
