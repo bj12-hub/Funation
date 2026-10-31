@@ -17,8 +17,8 @@ type Props = {
 };
 
 /**
- * Centered alert modal of 433:4 · 462:2 · 480:2 — warning icon, title, copy, 취소 + primary action. The callers translate
- * the title and the action; the notice lines stay Korean for now (TBD, 2026-11-01).
+ * Centered alert modal of 433:4 · 462:2 · 480:2 — warning icon, title, copy, 취소 + primary action. The callers pass the
+ * title, the lines and the action already translated (2026-11-01).
  */
 export function SettlementNoticeModal({ open, onClose, title, lines, action, width = 500 }: Props) {
   const { t } = useI18n();
