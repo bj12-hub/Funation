@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { HelperNotFound } from "@/features/helper/HelperNotFound";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "페이지를 찾을 수 없어요", robots: { index: false, follow: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("helper.metaNotFound"), robots: { index: false, follow: false } };
+}
 
 export default function NotFound() {
   return <HelperNotFound />;

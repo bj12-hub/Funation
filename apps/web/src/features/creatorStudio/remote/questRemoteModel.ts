@@ -1,7 +1,6 @@
-import { QUEST_DECIDE_CONFIRM, QUEST_DECIDE_ERROR, QUEST_DECIDE_FAIL_TEXT } from "@/features/donations/questDecideText";
 import { formatNumber, kstIsoString } from "@/lib/format";
+import { messagesFor, translate, type MessageKey } from "@/lib/i18n/translate";
 import {
-  QUEST_EXTEND_BOUNDS_TEXT,
   QUEST_EXTEND_MINUTES,
   type QuestAction,
   type QuestDecideResult,
@@ -13,9 +12,13 @@ import {
  * 리모컨 퀘스트 card logic (code-first) — no React here, so the tests drive it directly. A decision goes through the same
  * server action, confirmation and texts as 후원관리+ › 받은 후원 › 퀘스트 (QuestDecide). 시간 연장 (2026-10-18 결정) is the
  * card's own: `extendQuestTime`, offered while the 퀘스트 위젯's 제한시간 연장 사용 is on.
+ *
+ * Texts come from the `studioRemote` messages (2026-11-01): each takes the screen's `t`, Korean when none is given (the
+ * tests and any caller outside the I18nProvider), so the Korean wording is unchanged.
  */
 
-export const QUEST_OVERTIME_TEXT = "시간 초과 · 결과 대기";
+export type Translate = (key: MessageKey, vars?: Record<string, string | number>) => string;
+const korean: Translate = (key, vars) => translate(messagesFor("ko"), key, vars);
 
 const two = (n: number) => String(n).padStart(2, "0");
 
@@ -23,24 +26,37 @@ const two = (n: number) => String(n).padStart(2, "0");
 export const formatQuestAt = (iso: string) => kstIsoString(iso).slice(0, 16).replaceAll("-", ".").replace("T", " ");
 
 /** "남은 시간 04:59" (1:02:03 from an hour up), or 시간 초과 · 결과 대기 once the time limit passed — it still runs. */
-export function questTimeLeft(endsAt: string, now: number): { text: string; over: boolean } {
+export function questTimeLeft(endsAt: string, now: number, t: Translate = korean): { text: string; over: boolean } {
   const sec = Math.floor((Date.parse(endsAt) - now) / 1000);
-  if (sec <= 0) return { text: QUEST_OVERTIME_TEXT, over: true };
+  if (sec <= 0) return { text: t("studioRemote.questOvertime"), over: true };
   const h = Math.floor(sec / 3600);
   const m = Math.floor((sec % 3600) / 60);
-  return { text: `남은 시간 ${h > 0 ? `${h}:${two(m)}` : two(m)}:${two(sec % 60)}`, over: false };
+  return { text: t("studioRemote.timeLeft", { time: `${h > 0 ? `${h}:${two(m)}` : two(m)}:${two(sec % 60)}` }), over: false };
 }
 
+/** The 받은 후원 questions (`QUEST_DECIDE_CONFIRM`), the server's refusals (`QUEST_DECIDE_FAIL_TEXT`) and 시간 연장's, as message keys. */
+const CONFIRM_KEY: Record<QuestAction, MessageKey> = {
+  SUCCESS: "studioRemote.questConfirmSuccess",
+  FAILED: "studioRemote.questConfirmFailed",
+  CANCELED: "studioRemote.questConfirmCanceled"
+};
+const DECIDE_FAIL_KEY: Record<Exclude<QuestDecideResult["status"], "OK">, MessageKey> = {
+  ALREADY_DECIDED: "studioRemote.questFailAlreadyDecided",
+  FORBIDDEN: "studioRemote.questFailForbidden",
+  NOT_FOUND: "studioRemote.questFailNotFound",
+  INVALID: "studioRemote.questFailInvalid",
+  UNAUTHORIZED: "studioRemote.signInAgain"
+};
+
 /** Which quest the confirmation is about (the card lists several), then the 받은 후원 question word for word. */
-export const questConfirmText = (row: QuestRemoteRow, outcome: QuestAction) =>
-  `‘${row.title}’ · ${row.donor} · ${formatNumber(row.amount)} FN\n\n${QUEST_DECIDE_CONFIRM[outcome]}`;
+export const questConfirmText = (row: QuestRemoteRow, outcome: QuestAction, t: Translate = korean) =>
+  `‘${row.title}’ · ${row.donor} · ${formatNumber(row.amount)} FN\n\n${t(CONFIRM_KEY[outcome])}`;
 
 /** What the card says once the server decided; the refund is the server's figure. */
-export function questDecidedText(row: QuestRemoteRow, outcome: QuestAction, refundedFn: number) {
-  const name = `‘${row.title}’ 퀘스트`;
-  if (outcome === "SUCCESS") return `${name}를 성공으로 정했어요.`;
-  const refund = `${formatNumber(refundedFn)} FN을 후원자에게 전액 환불했어요.`;
-  return outcome === "FAILED" ? `${name}를 실패로 정했어요. ${refund}` : `${name}를 취소했어요. ${refund}`;
+export function questDecidedText(row: QuestRemoteRow, outcome: QuestAction, refundedFn: number, t: Translate = korean) {
+  if (outcome === "SUCCESS") return t("studioRemote.questDecidedSuccess", { title: row.title });
+  const vars = { title: row.title, amount: formatNumber(refundedFn) };
+  return outcome === "FAILED" ? t("studioRemote.questDecidedFailed", vars) : t("studioRemote.questDecidedCanceled", vars);
 }
 
 export type QuestRemoteNotice = { tone: "ok" | "error"; text: string };
@@ -62,6 +78,8 @@ export type QuestDecideDeps = {
   decide: (input: { id: string; outcome: QuestAction }) => Promise<QuestDecideResult>;
   /** Called once the request is about to go (after the confirmation). */
   onStart?: () => void;
+  /** The screen's language (Korean when left out). */
+  t?: Translate;
 };
 
 /**
@@ -70,17 +88,18 @@ export type QuestDecideDeps = {
  * outcome, so a quest is settled — and refunded — once.
  */
 export async function decideFromRemote(row: QuestRemoteRow, outcome: QuestAction, deps: QuestDecideDeps): Promise<QuestDecision> {
+  const t = deps.t ?? korean;
   if (!row.actions.includes(outcome) || deps.inFlight.has(row.id)) return { kind: "SKIPPED" };
   deps.inFlight.add(row.id);
   try {
-    if (!deps.confirm(questConfirmText(row, outcome))) return { kind: "SKIPPED" };
+    if (!deps.confirm(questConfirmText(row, outcome, t))) return { kind: "SKIPPED" };
     deps.onStart?.();
     const res = await deps.decide({ id: row.id, outcome });
-    if (res.status === "OK") return { kind: "DECIDED", notice: { tone: "ok", text: questDecidedText(row, outcome, res.refundedFn) } };
+    if (res.status === "OK") return { kind: "DECIDED", notice: { tone: "ok", text: questDecidedText(row, outcome, res.refundedFn, t) } };
     if (res.status === "UNAUTHORIZED") return { kind: "SIGN_IN" };
-    return { kind: "FAILED", notice: { tone: "error", text: QUEST_DECIDE_FAIL_TEXT[res.status] }, refresh: res.status === "ALREADY_DECIDED" || res.status === "NOT_FOUND" };
+    return { kind: "FAILED", notice: { tone: "error", text: t(DECIDE_FAIL_KEY[res.status]) }, refresh: res.status === "ALREADY_DECIDED" || res.status === "NOT_FOUND" };
   } catch {
-    return { kind: "FAILED", notice: { tone: "error", text: QUEST_DECIDE_ERROR }, refresh: false };
+    return { kind: "FAILED", notice: { tone: "error", text: t("studioRemote.questError") }, refresh: false };
   } finally {
     deps.inFlight.delete(row.id);
   }
@@ -88,15 +107,14 @@ export async function decideFromRemote(row: QuestRemoteRow, outcome: QuestAction
 
 // ── 시간 연장 (2026-10-18 결정) ──────────────────────────────────────────────────
 
-/** The row's button, and the minutes field the form starts with. */
-export const QUEST_EXTEND_BUTTON = "시간 연장";
+/** The minutes field the form starts with (the row's button is `studioRemote.questExtend`). */
 export const QUEST_EXTEND_DEFAULT_MINUTES = "5";
 
 /** What the server answers when the extension did not happen (INVALID carries its own message). */
-export const QUEST_EXTEND_FAIL_TEXT: Record<"ALREADY_DECIDED" | "DISABLED" | "NOT_FOUND", string> = {
-  ALREADY_DECIDED: "이미 결과가 정해진 퀘스트라 연장할 수 없어요.",
-  DISABLED: "퀘스트 위젯 설정에서 제한시간 연장 사용이 꺼져 있어요.",
-  NOT_FOUND: "퀘스트를 찾을 수 없어요."
+const EXTEND_FAIL_KEY: Record<"ALREADY_DECIDED" | "DISABLED" | "NOT_FOUND", MessageKey> = {
+  ALREADY_DECIDED: "studioRemote.extendFailAlreadyDecided",
+  DISABLED: "studioRemote.extendFailDisabled",
+  NOT_FOUND: "studioRemote.questFailNotFound"
 };
 
 /** Whole minutes in 1~60 (the server checks the same), or null. */
@@ -108,25 +126,23 @@ export function parseExtendMinutes(text: string): number | null {
 }
 
 /** Under the minutes field: where the minutes go — onto the deadline, or from now once it passed. */
-export const questExtendHint = (row: QuestRemoteRow, now: number) =>
+export const questExtendHint = (row: QuestRemoteRow, now: number, t: Translate = korean) =>
   questTimeLeft(row.endsAt, now).over
-    ? `제한 시간이 지난 퀘스트라 지금부터 다시 계산해요 (${QUEST_EXTEND_MINUTES.min}~${QUEST_EXTEND_MINUTES.max}분).`
-    : `지금 마감 ${formatQuestAt(row.endsAt)}에 더해져요 (${QUEST_EXTEND_MINUTES.min}~${QUEST_EXTEND_MINUTES.max}분).`;
+    ? t("studioRemote.extendHintOver", { min: QUEST_EXTEND_MINUTES.min, max: QUEST_EXTEND_MINUTES.max })
+    : t("studioRemote.extendHint", { at: formatQuestAt(row.endsAt), min: QUEST_EXTEND_MINUTES.min, max: QUEST_EXTEND_MINUTES.max });
 
 /** Which quest, then the new deadline — or, past the deadline, that the clock starts again from now. */
-export function questExtendConfirmText(row: QuestRemoteRow, minutes: number, now: number) {
+export function questExtendConfirmText(row: QuestRemoteRow, minutes: number, now: number, t: Translate = korean) {
   const head = `‘${row.title}’ · ${row.donor} · ${formatNumber(row.amount)} FN\n\n`;
-  if (questTimeLeft(row.endsAt, now).over) return `${head}제한 시간이 지난 퀘스트예요. 지금부터 ${minutes}분 뒤를 새 마감으로 정할까요?\n연장한 시간은 되돌릴 수 없어요.`;
+  if (questTimeLeft(row.endsAt, now).over) return `${head}${t("studioRemote.extendConfirmOver", { minutes })}`;
   const to = new Date(Date.parse(row.endsAt) + minutes * 60_000).toISOString();
-  return `${head}제한 시간을 ${minutes}분 연장할까요?\n마감 ${formatQuestAt(row.endsAt)} → ${formatQuestAt(to)}\n연장한 시간은 되돌릴 수 없어요.`;
+  return `${head}${t("studioRemote.extendConfirm", { minutes, from: formatQuestAt(row.endsAt), to: formatQuestAt(to) })}`;
 }
 
 /** What the card says once the server extended it; the deadline is the server's. */
-export function questExtendedText(row: QuestRemoteRow, res: Extract<QuestExtendResult, { status: "OK" }>) {
-  const at = formatQuestAt(res.endsAt);
-  return res.restarted
-    ? `‘${row.title}’ 퀘스트는 제한 시간이 지나 지금부터 ${res.minutes}분 뒤로 마감을 정했어요 · 새 마감 ${at}`
-    : `‘${row.title}’ 퀘스트의 제한 시간을 ${res.minutes}분 연장했어요 · 새 마감 ${at}`;
+export function questExtendedText(row: QuestRemoteRow, res: Extract<QuestExtendResult, { status: "OK" }>, t: Translate = korean) {
+  const vars = { title: row.title, minutes: res.minutes, at: formatQuestAt(res.endsAt) };
+  return res.restarted ? t("studioRemote.extendedRestarted", vars) : t("studioRemote.extendedOk", vars);
 }
 
 export type QuestExtendOutcome =
@@ -150,28 +166,31 @@ export type QuestExtendDeps = {
   /** `extendQuestTime`. */
   extend: (input: { id: string; minutes: number; requestId: string }) => Promise<QuestExtendResult>;
   onStart?: () => void;
+  /** The screen's language (Korean when left out). */
+  t?: Translate;
 };
 
 /** One 시간 연장 from the card: the minutes as typed, checked, confirmed, then sent with a request id. */
 export async function extendFromRemote(row: QuestRemoteRow, minutesText: string, now: number, deps: QuestExtendDeps): Promise<QuestExtendOutcome> {
+  const t = deps.t ?? korean;
   const minutes = parseExtendMinutes(minutesText);
-  if (minutes === null) return { kind: "FAILED", notice: { tone: "error", text: QUEST_EXTEND_BOUNDS_TEXT }, refresh: false };
+  if (minutes === null) return { kind: "FAILED", notice: { tone: "error", text: t("studioRemote.extendBounds", { min: QUEST_EXTEND_MINUTES.min, max: QUEST_EXTEND_MINUTES.max }) }, refresh: false };
   if (deps.inFlight.has(row.id)) return { kind: "SKIPPED" };
   deps.inFlight.add(row.id);
   try {
-    if (!deps.confirm(questExtendConfirmText(row, minutes, now))) return { kind: "SKIPPED" };
+    if (!deps.confirm(questExtendConfirmText(row, minutes, now, t))) return { kind: "SKIPPED" };
     const kept = deps.pending.get(row.id);
     const requestId = kept && kept.minutes === minutes ? kept.requestId : deps.newRequestId();
     deps.pending.set(row.id, { minutes, requestId });
     deps.onStart?.();
     const res = await deps.extend({ id: row.id, minutes, requestId });
     deps.pending.delete(row.id); // answered: the next one is a new extension
-    if (res.status === "OK") return { kind: "EXTENDED", notice: { tone: "ok", text: questExtendedText(row, res) } };
+    if (res.status === "OK") return { kind: "EXTENDED", notice: { tone: "ok", text: questExtendedText(row, res, t) } };
     if (res.status === "UNAUTHORIZED") return { kind: "SIGN_IN" };
     if (res.status === "INVALID") return { kind: "FAILED", notice: { tone: "error", text: res.message }, refresh: false };
-    return { kind: "FAILED", notice: { tone: "error", text: QUEST_EXTEND_FAIL_TEXT[res.status] }, refresh: true };
+    return { kind: "FAILED", notice: { tone: "error", text: t(EXTEND_FAIL_KEY[res.status]) }, refresh: true };
   } catch {
-    return { kind: "FAILED", notice: { tone: "error", text: QUEST_DECIDE_ERROR }, refresh: false };
+    return { kind: "FAILED", notice: { tone: "error", text: t("studioRemote.questError") }, refresh: false };
   } finally {
     deps.inFlight.delete(row.id);
   }

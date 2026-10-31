@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { formatKstTime, formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import {
   cancelAllAlerts,
   playHeldAlert,
@@ -46,9 +48,16 @@ import { BingoRemote } from "./BingoRemote";
 import { ToolsRemote } from "./ToolsRemote";
 import { VoteRemote } from "./VoteRemote";
 import { WallpaperRemote } from "./WallpaperRemote";
+import { overlayTargetLabel } from "./OverlayOffNotice";
 import { openRemoteWindow } from "./remoteWindow";
 
-const STATUS_LABEL: Record<AlertStatus, string> = { QUEUED: "대기", SHOWING: "표시 중", DONE: "완료", SKIPPED: "건너뜀", FILTERED: "최소 금액 미만" };
+const STATUS_KEY: Record<AlertStatus, MessageKey> = {
+  QUEUED: "studioRemote.alertQueued",
+  SHOWING: "studioRemote.alertShowing",
+  DONE: "studioRemote.statusDone",
+  SKIPPED: "studioRemote.alertSkipped",
+  FILTERED: "studioRemote.alertFiltered"
+};
 const time = (iso: string) => formatKstTime(iso, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
 /**
@@ -79,6 +88,7 @@ export function RemoteScreen({
   /** "window": the 리모컨 on its own (`/popout/remote`), without the button that opens that window. */
   variant?: "page" | "window";
 }) {
+  const { t } = useI18n();
   const router = useRouter();
   const { controls } = view;
   const [amount, setAmount] = useState(10_000);
@@ -113,7 +123,7 @@ export function RemoteScreen({
         } else if (res.status === "UNAUTHORIZED") router.push("/login?role=creator&next=/creator/remote");
         else setNotice({ tone: "error", text: res.message });
       } catch {
-        setNotice({ tone: "error", text: "요청하지 못했어요. 잠시 후 다시 시도해 주세요." });
+        setNotice({ tone: "error", text: t("studioRemote.requestFailed") });
       }
     });
   };
@@ -124,7 +134,7 @@ export function RemoteScreen({
     const id = requestId.current;
     const sig = view.testOptions.signatures.some((s) => s.id === testSig) ? testSig : null;
     const member = view.testOptions.members.some((m) => m.id === testMember) ? testMember : null;
-    run(() => sendTestAlert({ requestId: id, amount, donor, message, signatureId: sig, memberId: member }), "테스트 후원을 보냈어요.", () => {
+    run(() => sendTestAlert({ requestId: id, amount, donor, message, signatureId: sig, memberId: member }), t("studioRemote.testSent"), () => {
       requestId.current = null;
       setMessageText("");
     });
@@ -134,7 +144,7 @@ export function RemoteScreen({
   const replayIds = useRef<Record<string, string>>({});
   const replay = (alertId: string) => {
     const id = (replayIds.current[alertId] ??= crypto.randomUUID());
-    run(() => replayAlert({ id: alertId, requestId: id }), "알림을 다시 보냈어요.", () => {
+    run(() => replayAlert({ id: alertId, requestId: id }), t("studioRemote.replayed"), () => {
       delete replayIds.current[alertId];
     });
   };
@@ -152,7 +162,7 @@ export function RemoteScreen({
         max={100}
         step={5}
         defaultValue={value}
-        aria-label={`${label} 볼륨`}
+        aria-label={t("studioRemote.volumeAria", { label })}
         onPointerUp={(e) => run(() => save(Number((e.target as HTMLInputElement).value)))}
         onKeyUp={(e) => run(() => save(Number((e.target as HTMLInputElement).value)))}
       />
@@ -164,19 +174,19 @@ export function RemoteScreen({
     <div className={styles.content}>
       <header className={remote.head}>
         <div className={styles.header}>
-          <h1 className={styles.title}>리모컨</h1>
-          <p className={styles.subtitle}>방송 중 후원 알림을 한 화면에서 제어하세요. 알림 오버레이는 이 대기열을 그대로 보여 줘요.</p>
+          <h1 className={styles.title}>{t("studioRemote.title")}</h1>
+          <p className={styles.subtitle}>{t("studioRemote.subtitle")}</p>
         </div>
         {variant === "page" && (
           <button
             type="button"
             className={styles.ghost}
-            title="방송 중 옆에 띄워 두는 작은 창 (1000 × 800)"
+            title={t("studioRemote.openWindowTitle")}
             onClick={() => {
-              if (!openRemoteWindow()) setNotice({ tone: "error", text: "브라우저가 새 창을 막았어요. 팝업을 허용한 뒤 다시 눌러 주세요." });
+              if (!openRemoteWindow()) setNotice({ tone: "error", text: t("studioRemote.popupBlocked") });
             }}
           >
-            ↗ 작은 창으로 열기
+            {t("studioRemote.openWindow")}
           </button>
         )}
       </header>
@@ -184,10 +194,12 @@ export function RemoteScreen({
       {offOverlays.length > 0 && (
         <div className={remote.offSummary} role="status">
           <span>
-            꺼진 오버레이 {offOverlays.length}개 · {offOverlays.map((t) => t.label).join(", ")} — 방송 화면에 나오지 않아요. 아래 <a href="#switch-title">기능 제어</a>에서 하나씩 켤 수도 있어요.
+            {t("studioRemote.offSummaryBefore", { count: offOverlays.length, labels: offOverlays.map((o) => overlayTargetLabel(o.key, t)).join(", ") })}
+            <a href="#switch-title">{t("studioRemote.offSummaryLink")}</a>
+            {t("studioRemote.offSummaryAfter")}
           </span>
-          <button type="button" className={styles.primary} disabled={pending} onClick={() => run(turnOnAllOverlays, "꺼진 오버레이를 모두 켰어요.")}>
-            모두 켜기
+          <button type="button" className={styles.primary} disabled={pending} onClick={() => run(turnOnAllOverlays, t("studioRemote.allOn"))}>
+            {t("studioRemote.turnAllOn")}
           </button>
         </div>
       )}
@@ -195,11 +207,11 @@ export function RemoteScreen({
       <section className={styles.card} aria-labelledby="overlay-title">
         <div className={styles.cardHead}>
           <h2 className={styles.cardTitle} id="overlay-title">
-            🔔 후원 알림 오버레이
+            {t("studioRemote.overlayTitle")}
           </h2>
-          <CopyButton value={`${origin}${overlayPath}`} label="오버레이 URL 복사" className={styles.ghost} />
+          <CopyButton value={`${origin}${overlayPath}`} label={t("studioRemote.copyOverlayUrl")} className={styles.ghost} />
         </div>
-        <p className={styles.note}>OBS 브라우저 소스 권장 크기 800 × 600. 주소에는 연동 키가 들어 있으니 공유하지 마세요.</p>
+        <p className={styles.note}>{t("studioRemote.overlayNote")}</p>
       </section>
 
       {notice && (
@@ -210,7 +222,7 @@ export function RemoteScreen({
 
       <section className={styles.card} aria-labelledby="all-title">
         <h2 className={styles.cardTitle} id="all-title">
-          전체 제어
+          {t("studioRemote.allTitle")}
         </h2>
         <div className={remote.buttons}>
           <button
@@ -220,7 +232,7 @@ export function RemoteScreen({
             disabled={pending}
             onClick={() => run(() => setAlertControls({ paused: !controls.paused }))}
           >
-            {controls.paused ? "▶ 알림 재개" : "⏸ 전체 일시정지"}
+            {controls.paused ? t("studioRemote.resume") : t("studioRemote.pauseAll")}
           </button>
           <button
             type="button"
@@ -229,16 +241,16 @@ export function RemoteScreen({
             disabled={pending}
             onClick={() => run(() => setAlertControls({ muted: !controls.muted }))}
           >
-            {controls.muted ? "🔊 음소거 해제" : "🔇 전체 음소거"}
+            {controls.muted ? t("studioRemote.unmute") : t("studioRemote.muteAll")}
           </button>
           {/* Skip / cancel name what this screen shows: an alert that ended or arrived since is left alone. */}
           <button
             type="button"
             className={styles.ghost}
             disabled={pending || !view.showing}
-            onClick={() => view.showing && run(() => skipCurrentAlert({ alertId: view.showing!.id }), "현재 알림을 건너뛰었어요.")}
+            onClick={() => view.showing && run(() => skipCurrentAlert({ alertId: view.showing!.id }), t("studioRemote.skippedOk"))}
           >
-            ⏭ 현재 알림 건너뛰기
+            {t("studioRemote.skipCurrent")}
           </button>
           <button
             type="button"
@@ -246,16 +258,16 @@ export function RemoteScreen({
             disabled={pending || (!view.showing && !view.queued.length)}
             onClick={() => {
               const upToId = view.queued.at(-1)?.id ?? view.showing?.id;
-              if (upToId) run(() => cancelAllAlerts({ upToId }), "모든 알림을 취소했어요.");
+              if (upToId) run(() => cancelAllAlerts({ upToId }), t("studioRemote.cancelledOk"));
             }}
           >
-            ✕ 전체 알림 취소
+            {t("studioRemote.cancelAll")}
           </button>
-          <button type="button" className={styles.ghost} disabled={pending || !view.showing} onClick={() => run(skipTts, "TTS를 건너뛰었어요.")}>
-            🔕 TTS 스킵
+          <button type="button" className={styles.ghost} disabled={pending || !view.showing} onClick={() => run(skipTts, t("studioRemote.ttsSkippedOk"))}>
+            {t("studioRemote.skipTts")}
           </button>
-          <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => reloadOverlays(), "열려 있는 모든 오버레이를 새로고침해요.")}>
-            ↻ 전체 오버레이 새로고침
+          <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => reloadOverlays(), t("studioRemote.reloadingAll"))}>
+            {t("studioRemote.reloadAll")}
           </button>
         </div>
         <div className={remote.status}>
@@ -263,46 +275,44 @@ export function RemoteScreen({
             {view.showing ? (
               <>
                 <span className={styles.liveDot} aria-hidden="true" />
-                표시 중: {view.showing.donor} · {alertAmount(view.showing)}
-                {view.autoPausedBy?.id === view.showing.id && " · 끝나면 자동 일시정지"}
+                {t("studioRemote.showing", { donor: view.showing.donor, amount: alertAmount(view.showing) })}
+                {view.autoPausedBy?.id === view.showing.id && t("studioRemote.showingAutoPause")}
               </>
             ) : view.autoPausedBy ? (
-              `자동 일시정지됨 — ${view.autoPausedBy.donor} · ${alertAmount(view.autoPausedBy)} 알림 뒤에 멈췄어요. ▶ 알림 재개로 이어서 내보내요`
+              t("studioRemote.autoPaused", { donor: view.autoPausedBy.donor, amount: alertAmount(view.autoPausedBy) })
             ) : controls.paused ? (
-              "일시정지됨 — 새 알림은 대기열에 쌓여요"
+              t("studioRemote.paused")
             ) : view.queued[0]?.held ? (
-              "미지정 후원에서 멈춤 — 방송 운영 후원 리스트에서 배정하면 이어서 나가요"
+              t("studioRemote.heldStop")
             ) : (
-              "표시 중인 알림 없음"
+              t("studioRemote.nothingShowing")
             )}
           </span>
-          <span>대기 {view.queued.length}건</span>
+          <span>{t("studioRemote.queued", { count: view.queued.length })}</span>
         </div>
       </section>
 
       <div className={remote.columns}>
         <section className={styles.card} aria-labelledby="switch-title">
           <h2 className={styles.cardTitle} id="switch-title">
-            기능 제어
+            {t("studioRemote.switchTitle")}
           </h2>
-          <p className={styles.note}>
-            OFF로 두면 그 오버레이는 화면 · 소리가 모두 꺼져요 (OBS 소스는 그대로). 끈 동안 지나간 알림은 다시 나오지 않으니, 잠깐 멈출 때는 &lsquo;전체 일시정지&rsquo;를 써요. ↻는 그 오버레이만 다시
-            불러와요.
-          </p>
+          <p className={styles.note}>{t("studioRemote.switchNote")}</p>
           <ul className={remote.switches}>
-            {OVERLAY_TARGETS.map((t) => {
-              const on = view.overlays.on[t.key];
+            {OVERLAY_TARGETS.map((target) => {
+              const on = view.overlays.on[target.key];
+              const label = overlayTargetLabel(target.key, t);
               return (
-                <li key={t.key} data-off={on ? undefined : ""}>
-                  <span className={remote.switchName}>{t.label}</span>
-                  <span className={styles.segment} role="group" aria-label={`${t.label} 켜기 · 끄기`}>
+                <li key={target.key} data-off={on ? undefined : ""}>
+                  <span className={remote.switchName}>{label}</span>
+                  <span className={styles.segment} role="group" aria-label={t("studioRemote.switchAria", { label })}>
                     {([true, false] as const).map((v) => (
                       <button
                         key={String(v)}
                         type="button"
                         aria-pressed={on === v}
                         disabled={pending}
-                        onClick={() => on !== v && run(() => setOverlaySwitch({ target: t.key, on: v }), `${t.label} 오버레이를 ${v ? "켰어요" : "껐어요"}.`)}
+                        onClick={() => on !== v && run(() => setOverlaySwitch({ target: target.key, on: v }), t(v ? "studioRemote.overlayOn" : "studioRemote.overlayOff", { label }))}
                       >
                         {v ? "ON" : "OFF"}
                       </button>
@@ -312,8 +322,8 @@ export function RemoteScreen({
                     type="button"
                     className={styles.ghost}
                     disabled={pending}
-                    aria-label={`${t.label} 새로고침`}
-                    onClick={() => run(() => reloadOverlays({ target: t.key }), `${t.label} 오버레이를 새로고침해요.`)}
+                    aria-label={t("studioRemote.reloadAria", { label })}
+                    onClick={() => run(() => reloadOverlays({ target: target.key }), t("studioRemote.reloadingOne", { label }))}
                   >
                     ↻
                   </button>
@@ -325,16 +335,14 @@ export function RemoteScreen({
 
         <section className={styles.card} aria-labelledby="volume-title">
           <h2 className={styles.cardTitle} id="volume-title">
-            볼륨 제어
+            {t("studioRemote.volumeTitle")}
           </h2>
-          <p className={styles.note}>
-            오버레이가 내는 소리의 크기예요. 한 번에 모두 끄려면 &lsquo;전체 음소거&rsquo;를 써요. OBS 오디오 믹서의 소스 볼륨과는 따로예요.
-          </p>
-          {slider("후원 알림음", controls.alertVolume, (v) => setAlertControls({ alertVolume: v }))}
-          {slider("후원 TTS", controls.ttsVolume, (v) => setAlertControls({ ttsVolume: v }))}
-          {slider("시그니처 소리", controls.signatureVolume, (v) => setAlertControls({ signatureVolume: v }))}
-          {slider("영상 후원", view.overlays.videoVolume, (v) => setVideoVolume({ volume: v }))}
-          {controls.muted && <p className={styles.muted}>지금은 전체 음소거 중이라 후원 알림 소리가 나지 않아요.</p>}
+          <p className={styles.note}>{t("studioRemote.volumeNote")}</p>
+          {slider(t("studioRemote.volumeAlert"), controls.alertVolume, (v) => setAlertControls({ alertVolume: v }))}
+          {slider(t("studioRemote.volumeTts"), controls.ttsVolume, (v) => setAlertControls({ ttsVolume: v }))}
+          {slider(t("studioRemote.volumeSignature"), controls.signatureVolume, (v) => setAlertControls({ signatureVolume: v }))}
+          {slider(t("studioRemote.volumeVideo"), view.overlays.videoVolume, (v) => setVideoVolume({ volume: v }))}
+          {controls.muted && <p className={styles.muted}>{t("studioRemote.mutedNote")}</p>}
         </section>
       </div>
 
@@ -356,9 +364,9 @@ export function RemoteScreen({
       <div className={remote.columns}>
         <section className={styles.card} aria-labelledby="test-title">
           <h2 className={styles.cardTitle} id="test-title">
-            테스트 후원
+            {t("studioRemote.testTitle")}
           </h2>
-          <p className={styles.note}>알림 화면만 확인하는 기능이에요. FN이 차감되거나 수익에 반영되지 않아요.</p>
+          <p className={styles.note}>{t("studioRemote.testNote")}</p>
           <div className={remote.buttons}>
             {TEST_AMOUNT_PRESETS.map((p) => (
               <button key={p} type="button" className={amount === p ? styles.chip : styles.chipOff} aria-pressed={amount === p} onClick={() => setAmount(p)}>
@@ -370,23 +378,23 @@ export function RemoteScreen({
             className={styles.input}
             type="number"
             min={1}
-            aria-label="테스트 금액(FN)"
+            aria-label={t("studioRemote.testAmount")}
             value={amount}
             onChange={(e) => setAmount(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
           />
-          <input className={styles.input} aria-label="후원자명" placeholder="후원자명 (비우면 테스트 후원자)" maxLength={TEST_DONOR_MAX} value={donor} onChange={(e) => setDonor(e.target.value)} />
-          <input className={styles.input} aria-label="메시지" placeholder="메시지" maxLength={TEST_MESSAGE_MAX} value={message} onChange={(e) => setMessageText(e.target.value)} />
+          <input className={styles.input} aria-label={t("studioRemote.testDonor")} placeholder={t("studioRemote.testDonorPlaceholder")} maxLength={TEST_DONOR_MAX} value={donor} onChange={(e) => setDonor(e.target.value)} />
+          <input className={styles.input} aria-label={t("studioRemote.testMessage")} placeholder={t("studioRemote.testMessage")} maxLength={TEST_MESSAGE_MAX} value={message} onChange={(e) => setMessageText(e.target.value)} />
           <div className={styles.addRow}>
-            <select className={styles.select} aria-label="테스트 시그니처" value={testSig} onChange={(e) => setTestSig(e.target.value)}>
-              <option value="">시그니처 없이</option>
+            <select className={styles.select} aria-label={t("studioRemote.testSignature")} value={testSig} onChange={(e) => setTestSig(e.target.value)}>
+              <option value="">{t("studioRemote.testNoSignature")}</option>
               {view.testOptions.signatures.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name} · {formatNumber(s.price)} FN
                 </option>
               ))}
             </select>
-            <select className={styles.select} aria-label="테스트 멤버" value={testMember} onChange={(e) => setTestMember(e.target.value)}>
-              <option value="">멤버 없이</option>
+            <select className={styles.select} aria-label={t("studioRemote.testMember")} value={testMember} onChange={(e) => setTestMember(e.target.value)}>
+              <option value="">{t("studioRemote.testNoMember")}</option>
               {view.testOptions.members.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.name}
@@ -396,26 +404,26 @@ export function RemoteScreen({
           </div>
           <div className={styles.actions}>
             <button type="button" className={styles.primary} disabled={pending || amount < 1} onClick={sendTest}>
-              전송
+              {t("studioRemote.testSend")}
             </button>
           </div>
         </section>
 
         <section className={styles.card} aria-labelledby="widget-title">
           <h2 className={styles.cardTitle} id="widget-title">
-            알림 설정
+            {t("studioRemote.settingsTitle")}
           </h2>
           <form
             className={styles.addRow}
             onSubmit={(e) => {
               e.preventDefault();
-              run(() => setAlertControls({ minFn: Math.floor(Number(minFn) || 0) }), "최소 금액을 적용했어요.");
+              run(() => setAlertControls({ minFn: Math.floor(Number(minFn) || 0) }), t("studioRemote.minApplied"));
             }}
           >
-            <input className={styles.input} type="number" min={0} aria-label="최소 알림 금액(FN)" value={minFn} onChange={(e) => setMinFn(e.target.value)} />
-            <span className={styles.muted}>FN 이상만 표시</span>
+            <input className={styles.input} type="number" min={0} aria-label={t("studioRemote.minAria")} value={minFn} onChange={(e) => setMinFn(e.target.value)} />
+            <span className={styles.muted}>{t("studioRemote.minSuffix")}</span>
             <button type="submit" className={styles.ghost} disabled={pending}>
-              적용
+              {t("studioRemote.apply")}
             </button>
           </form>
           <form
@@ -423,21 +431,21 @@ export function RemoteScreen({
             onSubmit={(e) => {
               e.preventDefault();
               const v = Math.floor(Number(autoPauseFn) || 0);
-              run(() => setAlertControls({ autoPauseFn: v }), v ? `${formatNumber(v)} FN 이상 알림이 나가면 그 뒤에서 멈춰요.` : "자동 일시정지를 껐어요.");
+              run(() => setAlertControls({ autoPauseFn: v }), v ? t("studioRemote.autoPauseSet", { amount: formatNumber(v) }) : t("studioRemote.autoPauseOff"));
             }}
           >
-            <input className={styles.input} type="number" min={0} aria-label="자동 일시정지 금액(FN)" value={autoPauseFn} onChange={(e) => setAutoPauseFn(e.target.value)} />
-            <span className={styles.muted}>FN 이상이면 멈춤</span>
+            <input className={styles.input} type="number" min={0} aria-label={t("studioRemote.autoPauseAria")} value={autoPauseFn} onChange={(e) => setAutoPauseFn(e.target.value)} />
+            <span className={styles.muted}>{t("studioRemote.autoPauseSuffix")}</span>
             <button type="submit" className={styles.ghost} disabled={pending}>
-              적용
+              {t("studioRemote.apply")}
             </button>
           </form>
-          <p className={styles.note}>자동 일시정지: 0이면 꺼져요. 큰 후원 알림은 그대로 나가고, 다음 알림은 ▶ 알림 재개를 누를 때까지 기다려요. 플랫폼 · 계좌 후원은 FN 금액이 없어 멈추지 않아요.</p>
+          <p className={styles.note}>{t("studioRemote.autoPauseNote")}</p>
           <form
             className={styles.addRow}
             onSubmit={(e) => {
               e.preventDefault();
-              run(() => setAlertControls({ displaySec: Math.floor(Number(displaySec) || 0) }), "표시 시간을 적용했어요.");
+              run(() => setAlertControls({ displaySec: Math.floor(Number(displaySec) || 0) }), t("studioRemote.displayApplied"));
             }}
           >
             <input
@@ -445,31 +453,33 @@ export function RemoteScreen({
               type="number"
               min={ALERT_DISPLAY_SEC.min}
               max={ALERT_DISPLAY_SEC.max}
-              aria-label="알림 표시 시간(초)"
+              aria-label={t("studioRemote.displayAria")}
               value={displaySec}
               onChange={(e) => setDisplaySec(e.target.value)}
             />
-            <span className={styles.muted}>초 동안 표시</span>
+            <span className={styles.muted}>{t("studioRemote.displaySuffix")}</span>
             <button type="submit" className={styles.ghost} disabled={pending}>
-              적용
+              {t("studioRemote.apply")}
             </button>
           </form>
           <p className={styles.note}>
-            자막 · 전광판 · 타이머 · 엔딩 크레딧은 <Link href="/creator/widgets/tools">방송 도구</Link>에서 제어해요.
+            {t("studioRemote.toolsNoteBefore")}
+            <Link href="/creator/widgets/tools">{t("studioRemote.toolsNoteLink")}</Link>
+            {t("studioRemote.toolsNoteAfter")}
           </p>
         </section>
       </div>
 
       <section className={styles.card} aria-labelledby="queue-title">
         <h2 className={styles.cardTitle} id="queue-title">
-          대기열 · 최근 알림
+          {t("studioRemote.queueTitle")}
         </h2>
         {!view.showing && !view.queued.length && !view.recent.length ? (
-          <p className={styles.empty}>아직 알림이 없어요. 테스트 후원으로 오버레이를 확인해 보세요.</p>
+          <p className={styles.empty}>{t("studioRemote.queueEmpty")}</p>
         ) : (
           <ul className={styles.list}>
             {[...(view.showing ? [view.showing] : []), ...view.queued, ...view.recent].map((a) => (
-              <AlertRow key={a.id} alert={a} disabled={pending} onReplay={() => replay(a.id)} onPlayHeld={() => run(() => playHeldAlert({ alertId: a.id }), "배정 없이 알림을 내보내요.")} />
+              <AlertRow key={a.id} alert={a} disabled={pending} onReplay={() => replay(a.id)} onPlayHeld={() => run(() => playHeldAlert({ alertId: a.id }), t("studioRemote.playHeldOk"))} />
             ))}
           </ul>
         )}
@@ -479,6 +489,7 @@ export function RemoteScreen({
 }
 
 function AlertRow({ alert, disabled, onReplay, onPlayHeld }: { alert: AlertItem; disabled: boolean; onReplay: () => void; onPlayHeld: () => void }) {
+  const { t } = useI18n();
   const done = alert.status !== "QUEUED" && alert.status !== "SHOWING";
   // 미지정 일시정지 (방송 운영 후원 리스트): the queue waits at this alert until its donation is assigned.
   const held = alert.status === "QUEUED" && alert.held;
@@ -487,8 +498,8 @@ function AlertRow({ alert, disabled, onReplay, onPlayHeld }: { alert: AlertItem;
       <div className={styles.rowMain}>
         <span className={styles.rowTitle}>
           {alert.donor} · {alertAmount(alert)}
-          {alert.kind === "TEST" && <span className={remote.testTag}>테스트</span>}
-          {alert.kind === "EXTERNAL" && <span className={remote.testTag}>연동</span>}
+          {alert.kind === "TEST" && <span className={remote.testTag}>{t("studioRemote.tagTest")}</span>}
+          {alert.kind === "EXTERNAL" && <span className={remote.testTag}>{t("studioRemote.tagExternal")}</span>}
         </span>
         <span className={styles.muted}>
           {time(alert.createdAt)} · {alert.typeLabel}
@@ -496,16 +507,16 @@ function AlertRow({ alert, disabled, onReplay, onPlayHeld }: { alert: AlertItem;
         </span>
       </div>
       <span className={remote.statusTag} data-status={held ? "HELD" : alert.status}>
-        {held ? "미지정 대기" : STATUS_LABEL[alert.status]}
+        {held ? t("studioRemote.heldTag") : t(STATUS_KEY[alert.status])}
       </span>
       {held && (
         <button type="button" className={styles.ghost} disabled={disabled} onClick={onPlayHeld}>
-          배정 없이 재생
+          {t("studioRemote.playHeld")}
         </button>
       )}
       {done && (
         <button type="button" className={styles.ghost} disabled={disabled} onClick={onReplay}>
-          다시 보내기
+          {t("studioRemote.replay")}
         </button>
       )}
     </li>
