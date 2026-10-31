@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { SignaturesScreen } from "@/features/creatorStudio/widgets/SignaturesScreen";
+import { getT } from "@/lib/i18n/server";
 import { listAssets } from "@/services/creator/assets";
 import { getOverlayKey } from "@/services/creator/broadcastTools";
 import { getSigPlayerSettings } from "@/services/creator/sigPlayer";
 import { getSignaturePage, listSignatures } from "@/services/donations/signatures";
 
 // Code-first (no Figma frame): 시그니처 후원 관리 — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: "시그니처 후원 | Ssumnation 크리에이터" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("studioToolsSignatures.meta") };
+}
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;

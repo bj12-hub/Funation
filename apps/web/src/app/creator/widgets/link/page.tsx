@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { DonationLinkScreen } from "@/features/creatorStudio/widgets/DonationLinkScreen";
+import { getT } from "@/lib/i18n/server";
 import { getBankSms } from "@/services/bankSms/bankSms";
 import { getDonationLinks } from "@/services/creator/donationLink";
 
 // Code-first (no Figma frame): 후원 연동 — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: "후원 연동 | Ssumnation 크리에이터" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("studioToolsLink.meta") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
