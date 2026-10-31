@@ -1,12 +1,23 @@
 import Link from "next/link";
 import { formatNumber } from "@/lib/format";
-import { LIST_PERIODS } from "@/services/creator/donationManagementTypes";
+import { getT } from "@/lib/i18n/server";
+import type { MessageKey } from "@/lib/i18n/translate";
+import { LIST_PERIODS, type ListPeriodPreset } from "@/services/creator/donationManagementTypes";
 import { RECEIVED_PAGE_SIZE, RECEIVED_QUERY_MAX, type FlextvReceivedPage } from "@/services/creator/flextvEarnings";
 import { PageLink } from "./DonationListTab";
 import { FlextvKindNav } from "./FlextvQuestTab";
 import styles from "./donations.module.css";
 
 const WINDOW = 5;
+/** The services' `LIST_PERIODS` labels as message keys. */
+const PERIOD_KEY: Record<Exclude<ListPeriodPreset, "year" | "range">, MessageKey> = {
+  today: "flextvDonations.periodToday",
+  "1w": "flextvDonations.period1w",
+  "1m": "flextvDonations.period1m",
+  "3m": "flextvDonations.period3m",
+  "6m": "flextvDonations.period6m",
+  "1y": "flextvDonations.period1y"
+};
 /** FLEXTV's rows are KST "yyyy-mm-dd hh:mm:ss": "2026.10.25 15:04". */
 const formatAt = (at: string) => at.slice(0, 16).replaceAll("-", ".");
 
@@ -22,7 +33,8 @@ function href(params: Params) {
  * received: one row per 후원 or 선물 상품, filtered by period and FLEXTV's exact 닉네임 search. FLEXTV records no message
  * with the list.
  */
-export function FlextvReceivedTab({ data, quests = false }: { data: FlextvReceivedPage; quests?: boolean }) {
+export async function FlextvReceivedTab({ data, quests = false }: { data: FlextvReceivedPage; quests?: boolean }) {
+  const t = await getT();
   const { period, nickname, page, totalPages, total, items, sum } = data;
   const periodParams: Params = period.preset === "range" ? { period: "range", from: period.from, to: period.to } : { period: period.preset };
   const base: Params = { ...periodParams, q: nickname };
@@ -34,12 +46,12 @@ export function FlextvReceivedTab({ data, quests = false }: { data: FlextvReceiv
   return (
     <div className={styles.stack}>
       {/* With FLEXTV's Ssumnation endpoints (phase 6) the quests sent to the channel have their own list. */}
-      {quests && <FlextvKindNav kind="all" />}
+      {quests && <FlextvKindNav kind="all" t={t} />}
       <div className={styles.filterRow}>
-        <nav className={styles.chipsRow} aria-label="기간">
+        <nav className={styles.chipsRow} aria-label={t("flextvDonations.periodAria")}>
           {LIST_PERIODS.map((p) => (
             <Link key={p.key} href={href({ period: p.key, q: nickname })} className={`${styles.chip} ${period.preset === p.key ? styles.chipOn : ""}`} aria-current={period.preset === p.key ? "true" : undefined}>
-              {p.label}
+              {t(PERIOD_KEY[p.key])}
             </Link>
           ))}
         </nav>
@@ -49,53 +61,53 @@ export function FlextvReceivedTab({ data, quests = false }: { data: FlextvReceiv
         <input type="hidden" name="tab" value="list" />
         <input type="hidden" name="period" value="range" />
         <span className={styles.dateRange}>
-          <input type="date" name="from" aria-label="시작일" defaultValue={period.from} max={period.to} />
+          <input type="date" name="from" aria-label={t("flextvDonations.from")} defaultValue={period.from} max={period.to} />
           <span aria-hidden="true">~</span>
-          <input type="date" name="to" aria-label="종료일" defaultValue={period.to} />
+          <input type="date" name="to" aria-label={t("flextvDonations.to")} defaultValue={period.to} />
         </span>
-        <input name="q" type="search" aria-label="후원자 닉네임 검색" className={styles.searchInput} placeholder="후원자 닉네임 (정확히 일치)" defaultValue={nickname} maxLength={RECEIVED_QUERY_MAX} />
+        <input name="q" type="search" aria-label={t("flextvDonations.donorSearch")} className={styles.searchInput} placeholder={t("flextvDonations.donorPlaceholder")} defaultValue={nickname} maxLength={RECEIVED_QUERY_MAX} />
         <button type="submit" className={styles.solidPurple}>
-          검색
+          {t("flextvDonations.search")}
         </button>
       </form>
 
       {sum && (
-        <dl className={styles.listStats} aria-label="조회한 후원 요약">
+        <dl className={styles.listStats} aria-label={t("flextvDonations.statsAria")}>
           <div>
-            <dt>받은 렉스</dt>
+            <dt>{t("flextvDonations.statRex")}</dt>
             <dd className={styles.teal}>{formatNumber(sum.amount)} FN</dd>
           </div>
           <div>
-            <dt>후원</dt>
-            <dd>{formatNumber(sum.count)}건</dd>
+            <dt>{t("flextvDonations.statCount")}</dt>
+            <dd>{t("flextvDonations.statCountValue", { count: formatNumber(sum.count) })}</dd>
           </div>
         </dl>
       )}
-      {sum?.partial && <p className={styles.listStatsNote}>이 기간은 후원이 많아 최근 후원부터 일부만 더했어요. 기간을 좁히면 정확하게 볼 수 있어요.</p>}
-      <p className={styles.listStatsNote}>FLEXTV와 썸네이션에서 받은 렉스가 모두 보여요. 합계는 FLEXTV처럼 취소된 후원을 빼고 더해요.</p>
+      {sum?.partial && <p className={styles.listStatsNote}>{t("flextvDonations.partialNote")}</p>}
+      <p className={styles.listStatsNote}>{t("flextvDonations.sourcesNote")}</p>
 
       <div className={styles.table}>
         <table>
-          <caption className={styles.srOnly}>받은 후원 목록</caption>
+          <caption className={styles.srOnly}>{t("flextvDonations.caption")}</caption>
           <thead>
             <tr>
               <th scope="col" style={{ width: 176 }}>
-                시간
+                {t("flextvDonations.colTime")}
               </th>
               <th scope="col" style={{ width: 200 }}>
-                후원자 닉네임
+                {t("flextvDonations.colDonor")}
               </th>
               <th scope="col" style={{ width: 130 }}>
-                렉스
+                {t("flextvDonations.colRex")}
               </th>
-              <th scope="col">선물</th>
+              <th scope="col">{t("flextvDonations.colGift")}</th>
             </tr>
           </thead>
           <tbody>
             {items.length === 0 ? (
               <tr>
                 <td colSpan={4} className={styles.empty}>
-                  {nickname ? `'${nickname}' 검색 결과가 없습니다.` : "선택한 기간에 받은 후원이 없습니다."}
+                  {nickname ? t("flextvDonations.noResults", { query: nickname }) : t("flextvDonations.empty")}
                 </td>
               </tr>
             ) : (
@@ -108,7 +120,7 @@ export function FlextvReceivedTab({ data, quests = false }: { data: FlextvReceiv
                   <td className={styles.amount}>{formatNumber(d.rex)} FN</td>
                   <td>
                     <span className={styles.ellipsis}>{d.productName ?? "-"}</span>
-                    {!d.counted && <span className={styles.muted}> · 취소</span>}
+                    {!d.counted && <span className={styles.muted}> · {t("flextvDonations.canceled")}</span>}
                   </td>
                 </tr>
               ))
@@ -116,12 +128,10 @@ export function FlextvReceivedTab({ data, quests = false }: { data: FlextvReceiv
           </tbody>
         </table>
         <div className={styles.footer}>
-          <span className={styles.muted}>
-            전체 {formatNumber(total)}개 중 {first}-{last} 표시
-          </span>
-          <nav className={styles.pagination} aria-label="페이지">
-            <PageLink to={href({ ...base, page: 1 })} disabled={page === 1} label="첫 페이지" text="|<" />
-            <PageLink to={href({ ...base, page: page - 1 })} disabled={page === 1} label="이전 페이지" text="<" />
+          <span className={styles.muted}>{t("flextvDonations.rangeOf", { total: formatNumber(total), first, last })}</span>
+          <nav className={styles.pagination} aria-label={t("flextvDonations.pages")}>
+            <PageLink to={href({ ...base, page: 1 })} disabled={page === 1} label={t("flextvDonations.firstPage")} text="|<" />
+            <PageLink to={href({ ...base, page: page - 1 })} disabled={page === 1} label={t("flextvDonations.prevPage")} text="<" />
             {pages.map((p) =>
               p === page ? (
                 <span key={p} className={`${styles.pageButton} ${styles.pageCurrent}`} aria-current="page">
@@ -133,8 +143,8 @@ export function FlextvReceivedTab({ data, quests = false }: { data: FlextvReceiv
                 </Link>
               )
             )}
-            <PageLink to={href({ ...base, page: page + 1 })} disabled={page === totalPages} label="다음 페이지" text=">" />
-            <PageLink to={href({ ...base, page: totalPages })} disabled={page === totalPages} label="마지막 페이지" text=">|" />
+            <PageLink to={href({ ...base, page: page + 1 })} disabled={page === totalPages} label={t("flextvDonations.nextPage")} text=">" />
+            <PageLink to={href({ ...base, page: totalPages })} disabled={page === totalPages} label={t("flextvDonations.lastPage")} text=">|" />
           </nav>
         </div>
       </div>

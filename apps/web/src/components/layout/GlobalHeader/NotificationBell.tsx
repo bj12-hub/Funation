@@ -91,7 +91,7 @@ export function NotificationBell() {
       <button
         type="button"
         className={styles.iconButton}
-        aria-label={unread ? `${t("common.notifications")} (${FLEXTV_SITE ? "새 알림" : unread})` : t("common.notifications")}
+        aria-label={unread ? `${t("common.notifications")} (${FLEXTV_SITE ? t("flextvHeader.newNotifications") : unread})` : t("common.notifications")}
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={toggle}
