@@ -358,6 +358,8 @@ Confirmed:
   고르는 방식과 (b) 취소 반영은 그대로 정책 결정 대기. See docs/figma/code-first-screens.md
 - 후원 알림 글자 크기 (2026-11-01, 기본값 — 일반적인 기준, StreamDonate 참고): 금액 · 알림 문구 · 메시지 각각 50 ~ 200%(기본 100%, 테마 크기에
   곱함). 원소스에서 오버레이마다 따로 정하는 방식 · 미디어별 표시 시간은 만들지 않음. See docs/figma/code-first-screens.md
+- 조작형 럼블 OBS 서버 푸시 (2026-11-01, 기본값): OBS는 SSE 스트림(전투 중 50ms, 그 밖에는 바뀔 때 · 1초), 안 되면 0.1초 요청.
+  조종 입력의 실시간 연결(WebSocket 등)은 실제 백엔드에서 정할 일 — TBD. See docs/figma/code-first-screens.md
 
 Still TBD:
 
