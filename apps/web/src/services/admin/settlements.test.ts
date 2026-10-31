@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { key, mockSessionModule, resetMockStores, signIn, verifyMockIdentity } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
@@ -14,6 +14,15 @@ async function load() {
   const { auditEntries } = await import("./auditCore");
   return { ...s, mockSettlement, auditEntries };
 }
+
+/**
+ * The clock these cases were written for (October 2026): the seed requests are dated from "now" (the 11th of earlier
+ * months) while the requests added here are fixed in 2026-09, so from 2026-11-01 their order in the lists changed.
+ */
+beforeEach(() => {
+  vi.useFakeTimers({ now: new Date("2026-10-20T03:00:00Z"), toFake: ["Date"] });
+});
+afterEach(() => vi.useRealTimers());
 
 /** Display-only registration: masked account, no real numbers. */
 const REG = { memberType: "INDIVIDUAL", registrant: "홍길동", holder: "홍길동", bankName: "예시은행", accountMasked: "********1234", code: "F0L0E0X0", submittedAt: "2026-09-01T00:00:00.000Z" } as const;
