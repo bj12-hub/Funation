@@ -43,6 +43,7 @@ import { sigBingoLive } from "./crewSigBingoCore";
 import { gridDrawLive } from "./crewGridDrawCore";
 import { alphabetLive } from "./crewAlphabetCore";
 import { goStopLive } from "./crewGoStopCore";
+import { jackpotLive } from "./crewJackpotCore";
 import { sudopolyLive } from "./crewSudopolyCore";
 import { territoryLive } from "./crewTerritoryCore";
 import { sigDosanLive } from "./crewSigDosanCore";
@@ -126,6 +127,8 @@ function liveView(b: MockBroadcast): BroadcastLive {
     gostop: goStopLive(b),
     territory: territoryLive(b),
     sudopoly: sudopolyLive(b),
+    // The 당첨 순번 stays off this view.
+    jackpot: jackpotLive(b, false),
     serverNow: new Date().toISOString()
   };
 }

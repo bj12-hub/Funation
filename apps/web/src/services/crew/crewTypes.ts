@@ -505,6 +505,8 @@ export type BroadcastLive = {
   gostop: GoStopLive;
   territory: TerritoryLive;
   sudopoly: SudopolyLive;
+  /** The 당첨 순번 is left out here (OBS). */
+  jackpot: JackpotLive;
   /** Server clock when this view was read: timers (시나리오 경과, 강탈 card) correct the browser's clock with it. */
   serverNow: string;
 };
@@ -664,7 +666,7 @@ export type SigCountLive = {
 // A game draws its result on the server; the result is display points only (FN · 지갑 · 수익 · 정산 never move).
 
 /** Games on the shared engine (crewGameCore). `param`: the OBS view (`?spin`). */
-export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL" | "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW" | "SIG_HUNTER" | "SIG_DOSAN" | "ALPHABET" | "GOSTOP" | "TERRITORY" | "SUDOPOLY";
+export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL" | "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW" | "SIG_HUNTER" | "SIG_DOSAN" | "ALPHABET" | "GOSTOP" | "TERRITORY" | "SUDOPOLY" | "JACKPOT";
 export const GAMES: { key: GameKey; label: string; param: string }[] = [
   { key: "SPIN", label: "스핀머신", param: "spin" },
   { key: "DICE", label: "주사위 게임", param: "dice" },
@@ -680,7 +682,8 @@ export const GAMES: { key: GameKey; label: string; param: string }[] = [
   { key: "ALPHABET", label: "알파벳 모으기", param: "alphabet" },
   { key: "GOSTOP", label: "고스톱", param: "gostop" },
   { key: "TERRITORY", label: "땅따먹기", param: "territory" },
-  { key: "SUDOPOLY", label: "스도폴리", param: "sudopoly" }
+  { key: "SUDOPOLY", label: "스도폴리", param: "sudopoly" },
+  { key: "JACKPOT", label: "시그니처 잭팟", param: "jackpot" }
 ];
 
 /**
@@ -703,7 +706,8 @@ export const GAME_TIMING: Record<GameKey, { playSec: number; resultSec: number }
   ALPHABET: { playSec: 3, resultSec: 3 },
   GOSTOP: { playSec: 2, resultSec: 3 },
   TERRITORY: { playSec: 1, resultSec: 3 },
-  SUDOPOLY: { playSec: 2, resultSec: 3 }
+  SUDOPOLY: { playSec: 2, resultSec: 3 },
+  JACKPOT: { playSec: 1, resultSec: 3 }
 };
 /** Runs a game lists (studio) and queues (OBS), newest first. */
 export const GAME_RUNS_SHOWN = 30;
@@ -1293,6 +1297,28 @@ export function goStopRanking(wins: { memberId: string; name: string; color: str
 /** The 색 구간 of a 풀 (the last one it reached), or null. */
 export const goStopBand = (bands: GoStopBand[], pool: number) => [...bands].sort((x, y) => x.min - y.min).filter((b) => b.min <= pool).at(-1) ?? null;
 
+// 시그니처 잭팟 — StreamDonate 시그니처 잭팟 복주머니 모드, as a 점수 풀 (policy-decisions 2 (C), 2026-11-01: the money version
+// waits on its policy). Each 시그니처 후원 to a member adds 적립 비율 of its points to the 풀 and is the 풀's next 순번; the one
+// at the 당첨 순번 gives that member the 풀. Points only — no FN, wallet, earnings or settlement moves.
+export const JACKPOT_TITLE_DEFAULT = "시그니처 잭팟";
+export const JACKPOT_PERCENT_MAX = 100;
+export const JACKPOT_TARGET_MIN = 2;
+export const JACKPOT_TARGET_MAX = 1_000;
+/** 당첨 순번 수기: up to this. */
+export const JACKPOT_TURN_MAX = 2_000;
+export const JACKPOT_SHOW_SEC_MAX = 60;
+/** 당첨 기록 kept (StreamDonate "최대 50건 보관"). */
+export const JACKPOT_WINS_KEPT = 50;
+/** `percent`: 적립 비율 (%) of each 시그니처 후원's points; `target`: 목표 개수; `showSec`: how long OBS shows a 당첨. */
+export type JackpotSettings = GameCommon & { percent: number; target: number; showSec: number };
+/** 기본값 from StreamDonate (적립 3% · 목표 120 · 당첨 문구 8초). */
+export const DEFAULT_JACKPOT: JackpotSettings = { title: "", auto: false, excluded: [], showIdle: true, percent: 3, target: 120, showSec: 8 };
+/** The 당첨 순번 range for a 목표 개수: ± ⌊목표 / 6⌋ (StreamDonate: "120 입력 → 100~140 중 랜덤"), never below 1. */
+export const jackpotRange = (target: number): [number, number] => {
+  const spread = Math.floor(target / 6);
+  return [Math.max(1, target - spread), target + spread];
+};
+
 // 땅따먹기 — StreamDonate 땅따먹기: a member earns 하트 from what they receive; with a 하트 the BJ picks a cell of the N×N
 // board and the operator (조정실) assigns it — an owned cell is taken over. Cells show in the owner's color; 점유 순위.
 export const TERRITORY_TITLE_DEFAULT = "땅따먹기";
@@ -1477,6 +1503,8 @@ export type GameRunView = {
   gostop: { pool: number; go: number; chance: number } | null;
   /** 스도폴리: the piece that moved, from and to which 칸, and its laps after. */
   move: { piece: string; from: number; to: number; laps: number } | null;
+  /** 시그니처 잭팟: the 풀 and its 순번 after the run (a 당첨: the 풀 it took), how full the 복주머니 looked (tenths). */
+  jackpot: { pool: number; count: number; fill: number; won: boolean } | null;
 };
 
 /** 스핀머신 BJ별 집계: how many times each member got each 문구 (TEXT) result, columns in first-seen order. */
@@ -1518,6 +1546,20 @@ export type TerritoryLive = {
 };
 /** `pieces`: now (OBS shows where each was before its queued runs). */
 export type SudopolyLive = { settings: SudopolySettings; runs: GameRunView[]; pieces: SudopolyPiece[] };
+/**
+ * 시그니처 잭팟: the 풀 now, its 순번 so far, how full the 복주머니 looks (tenths), the 당첨 순번 (studio only — null on OBS),
+ * when the 풀 started, and the 당첨 기록 (newest first).
+ */
+export type JackpotLive = {
+  settings: JackpotSettings;
+  runs: GameRunView[];
+  pool: number;
+  count: number;
+  fill: number;
+  turn: number | null;
+  startedAt: string | null;
+  wins: { memberId: string | null; name: string; color: string | null; points: number; count: number; at: string; revealAt: string }[];
+};
 /** `board`: null until 두산 시작 (or after 판 비우기). */
 export type SigDosanLive = { settings: SigDosanSettings; runs: GameRunView[]; board: SigDosanBoard | null };
 /** `board`: null until 빙고 시작 (or after 판 비우기); `eligible`: how many signatures a new board would draw from. */
@@ -1562,6 +1604,7 @@ export type GamesView = {
     gostop: GoStopLive;
     territory: TerritoryLive;
     sudopoly: SudopolyLive;
+    jackpot: JackpotLive;
     sources: Record<GameKey, Record<string, GameSource[]>>;
     serverNow: string;
   } | null;
@@ -1586,6 +1629,7 @@ export type GamesView = {
   gostopSettings: GoStopSettings;
   territorySettings: TerritorySettings;
   sudopolySettings: SudopolySettings;
+  jackpotSettings: JackpotSettings;
   /** `createdAt`: when it was made (none for older ones); `complete`: it has its image and sound (2026-10-30, 두산 · 헌터 pickers). */
   signatures: { id: string; name: string; group: string; active: boolean; price: number; match: "SELECT" | "AMOUNT"; rangeMin: number | null; createdAt?: string; complete: boolean }[];
   overlayPath: string;

@@ -1014,6 +1014,109 @@
   }
 }
 
+/* ── 시그니처 잭팟 (2026-11-01): the 복주머니 swells toward the 당첨 순번 (--jp-fill, tenths) and bursts on a 당첨 ── */
+.jpStage {
+  display: grid;
+  place-items: center;
+  min-height: 150px;
+}
+
+.jpPouch {
+  font-size: 64px;
+  line-height: 1;
+  transform: scale(calc(0.8 + var(--jp-fill, 0) * 0.9));
+  transition: transform 0.6s cubic-bezier(0.3, 1.4, 0.5, 1);
+  filter: drop-shadow(0 6px 10px rgb(0 0 0 / 35%));
+}
+
+.jpPouch[data-dropping] {
+  animation: jpWobble 0.35s ease-in-out infinite alternate;
+}
+
+.jpWin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--ov-chip-ink);
+  animation: jpWinIn 0.6s cubic-bezier(0.2, 0.8, 0.3, 1.4) both;
+}
+
+.jpWin strong {
+  color: #facc15;
+  font-size: 32px;
+}
+
+.jpWin > span:last-child {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.jpBurst {
+  font-size: 56px;
+  animation: jpBurst 1.2s ease-in-out infinite;
+}
+
+.jpPool {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, #ef4444 18%, var(--ov-chip-bg));
+  color: var(--ov-chip-ink);
+}
+
+.jpPool strong {
+  color: #facc15;
+  font-size: 32px;
+  line-height: 1.1;
+}
+
+.jpCount {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+@keyframes jpWobble {
+  from {
+    rotate: -8deg;
+  }
+
+  to {
+    rotate: 8deg;
+  }
+}
+
+@keyframes jpWinIn {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes jpBurst {
+  50% {
+    transform: scale(1.2) rotate(8deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jpPouch,
+  .jpPouch[data-dropping],
+  .jpWin,
+  .jpBurst {
+    transition: none;
+    animation: none;
+  }
+}
+
 .gsRanking {
   display: flex;
   flex-direction: column;
