@@ -1,6 +1,8 @@
 "use client";
 
 import { PreviewStage } from "@/features/overlayTheme/PreviewStage";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
 import { resolveTheme } from "@/services/creator/overlayThemeTypes";
 import { PRIZE_MAX, QUEST_STYLES } from "@/services/creator/widgetSettingsTypes";
@@ -8,154 +10,155 @@ import { QUEST_EXTEND_MINUTES } from "@/services/donations/questTypes";
 import { ColorFontFields, Help, NumberField, Radios, Row, Section, SwitchText } from "./fields";
 import { QuestView } from "./GameViews";
 import type { FormProps } from "./forms";
+import { translatedOptions } from "./widgetFormLabels";
 import styles from "./widgets.module.css";
 
 // ── 퀘스트 (373:1598) ──────────────────────────────────────────────────────────
 
-const AUTHORITY_TABLE = [
-  ["성공결정권한 메뉴노출 ON", "성공결정권한 ON", "크리에이터/도네이터 둘다"],
-  ["성공결정권한 메뉴노출 ON", "성공결정권한 OFF", "도네이터만 가능"],
-  ["성공결정권한 메뉴노출 OFF", "-", "크리에이터/도네이터 둘다"]
+/** 성공결정권한 table cells as message keys; "-" stays as is. */
+const AUTHORITY_TABLE: (MessageKey | "-")[][] = [
+  ["widgetFormQuest.menuOn", "widgetFormQuest.authorityOn", "widgetFormQuest.both"],
+  ["widgetFormQuest.menuOn", "widgetFormQuest.authorityOff", "widgetFormQuest.donorOnly"],
+  ["widgetFormQuest.menuOff", "-", "widgetFormQuest.both"]
 ];
 
 export function QuestForm({ value: v, onChange, live }: FormProps<"QUEST">) {
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
   const prize = Math.max(3_000, v.minAmount);
+  const { t } = useI18n();
+  const styleOptions = translatedOptions(QUEST_STYLES, t);
 
   return (
     <>
-      <Section title="미리보기">
-        <PreviewStage width={600} minHeight={160} label="퀘스트 미리보기">
+      <Section title={t("widgetForm.preview")}>
+        <PreviewStage width={600} minHeight={160} label={t("widgetFormQuest.previewAria")}>
           <div style={{ opacity: v.enabled ? 1 : 0.4 }}>
             {/* A sample quest 4:59 before its time limit (the clock is fixed so it does not tick here). */}
             <QuestView settings={{ ...v, enabled: true }} quests={[{ id: "sample", title: "노래 한 곡 불러주세요", amount: prize, endsAt: new Date(299_000).toISOString(), extendedMin: 0 }]} theme={resolveTheme(live.appearance, v.theme)} now={0} />
           </div>
         </PreviewStage>
-        <p className={styles.hint}>화려한 스타일은 테마 카드와 색을 쓰고, 심플한 스타일은 글자만 방송 위에 아래 글자 색으로 보여요.</p>
+        <p className={styles.hint}>{t("widgetFormQuest.previewHint")}</p>
       </Section>
-      <Section title="테마">
+      <Section title={t("widgetForm.theme")}>
         <ThemeChoiceField value={v.theme} onChange={(x) => set("theme", x)} appearance={live.appearance} />
       </Section>
-      <Section title="기본 설정">
+      <Section title={t("widgetForm.basic")}>
         <div className={styles.rows}>
-          <Row label="사용하기">
-            <SwitchText label="퀘스트 위젯 사용하기" checked={v.enabled} onChange={(x) => set("enabled", x)} />
+          <Row label={t("widgetForm.use")}>
+            <SwitchText label={t("widgetFormQuest.useLabel")} checked={v.enabled} onChange={(x) => set("enabled", x)} />
           </Row>
-          <Row label="위젯 스타일">
+          <Row label={t("widgetForm.widgetStyle")}>
             <div className={styles.filterBox}>
-              <Radios name="quest-style" label="위젯 스타일" options={QUEST_STYLES} value={v.style} onChange={(x) => set("style", x)} />
+              <Radios name="quest-style" label={t("widgetForm.widgetStyle")} options={styleOptions} value={v.style} onChange={(x) => set("style", x)} />
               <div className={styles.questThumbs}>
-                {QUEST_STYLES.map((s) => (
+                {styleOptions.map((s) => (
                   <button
                     key={s.key}
                     type="button"
                     aria-pressed={v.style === s.key}
-                    aria-label={`${s.label} 스타일 선택`}
+                    aria-label={t("widgetForm.styleSelect", { label: s.label })}
                     className={`${s.key === "FANCY" ? styles.questThumbFancy : styles.questThumbSimple} ${v.style === s.key ? styles.thumbOn : ""}`}
                     onClick={() => set("style", s.key)}
                   >
                     <b>QUEST</b>
-                    {s.key === "FANCY" ? "화려한 이펙트형" : "깔끔한 텍스트형"}
+                    {s.key === "FANCY" ? t("widgetFormQuest.fancyThumb") : t("widgetFormQuest.simpleThumb")}
                   </button>
                 ))}
               </div>
             </div>
           </Row>
           {/* Code-first copy (2026-10-18): quests run as soon as they arrive; the 리모컨 퀘스트 card and 받은 후원 › 퀘스트 settle them. */}
-          <Row label="미션 확인 및 수락">
+          <Row label={t("widgetFormQuest.accept")}>
             <span className={styles.inline}>
-              <span className={styles.remoteChip}>🟢 리모컨</span>
-              <span className={styles.noticePink}>
-                받은 퀘스트는 바로 진행돼요 (따로 수락하지 않아요). 리모컨의 퀘스트 카드나 후원관리+ › 받은 후원 › 퀘스트에서 미션을 확인하고 결과를 정해요 — 성공 · 실패는 아래 결정 권한대로, 취소는 언제든 할 수 있어요.
-              </span>
+              <span className={styles.remoteChip}>{t("widgetFormQuest.remoteChip")}</span>
+              <span className={styles.noticePink}>{t("widgetFormQuest.acceptNote")}</span>
             </span>
           </Row>
-          <Row label="제목 폰트 설정">
-            <ColorFontFields label="제목" value={v.titleFont} onChange={(x) => set("titleFont", x)} />
+          <Row label={t("widgetForm.titleFont")}>
+            <ColorFontFields label={t("widgetForm.titleLabel")} value={v.titleFont} onChange={(x) => set("titleFont", x)} />
           </Row>
-          <Row label="남은시간 폰트 설정">
-            <ColorFontFields label="남은시간" value={v.timeFont} onChange={(x) => set("timeFont", x)} />
+          <Row label={t("widgetFormQuest.timeFont")}>
+            <ColorFontFields label={t("widgetFormQuest.timeLabel")} value={v.timeFont} onChange={(x) => set("timeFont", x)} />
           </Row>
-          <Row label="상금 폰트 설정">
-            <ColorFontFields label="상금" value={v.prizeFont} onChange={(x) => set("prizeFont", x)} />
+          <Row label={t("widgetFormQuest.prizeFont")}>
+            <ColorFontFields label={t("widgetFormQuest.prizeLabel")} value={v.prizeFont} onChange={(x) => set("prizeFont", x)} />
           </Row>
         </div>
       </Section>
-      <Section title="퀘스트 추가 설정">
+      <Section title={t("widgetFormQuest.more")}>
         <div className={styles.rows}>
           <Row
             label={
               <>
-                후원 최소 FN <Help text="퀘스트 후원에 필요한 최소 금액입니다. 허용 범위는 TBD입니다." />
+                {t("widgetFormQuest.minFn")} <Help text={t("widgetFormQuest.minFnHelp")} />
               </>
             }
           >
-            <NumberField label="후원 최소 FN" value={v.minAmount} max={PRIZE_MAX} grouped width={140} suffix="FN" onChange={(x) => set("minAmount", x)} />
+            <NumberField label={t("widgetFormQuest.minFn")} value={v.minAmount} max={PRIZE_MAX} grouped width={140} suffix="FN" onChange={(x) => set("minAmount", x)} />
           </Row>
-          {/* 2026-10-04 결정: failed or cancelled quests refund everything (no 실패 · 취소 패널티); past the time limit a quest waits for a decision. */}
-          <Row label="실패 · 취소한 퀘스트">
+          {/* 2026-10-04 결정: failed or cancelled quests refund everything (no 실패 · 취소 패널티); past the time limit a quest waits for a decision.
+              The refund line is refund-policy wording and stays Korean until an approved translation exists (2026-11-01). */}
+          <Row label={t("widgetFormQuest.failed")}>
             <span className={styles.hint}>후원한 FN이 후원자에게 전액 환불돼요 (패널티 없음).</span>
           </Row>
-          <Row label="제한 시간이 지나면">
-            <span className={styles.hint}>결과를 정할 때까지 진행 중으로 남아요.</span>
+          <Row label={t("widgetFormQuest.timeout")}>
+            <span className={styles.hint}>{t("widgetFormQuest.timeoutHint")}</span>
           </Row>
           <Row
             label={
               <>
-                최대 개수 <Help text="동시에 진행할 수 있는 퀘스트 수입니다." />
+                {t("widgetFormQuest.maxCount")} <Help text={t("widgetFormQuest.maxCountHelp")} />
               </>
             }
           >
-            <NumberField label="최대 개수" value={v.maxCount} max={50} suffix="개" onChange={(x) => set("maxCount", x)} />
+            <NumberField label={t("widgetFormQuest.maxCount")} value={v.maxCount} max={50} suffix={t("widgetForm.unitItems")} onChange={(x) => set("maxCount", x)} />
           </Row>
           <Row
             label={
               <>
-                등록 간격시간 <Help text="같은 도네이터가 다음 퀘스트를 등록하기까지 기다려야 하는 시간입니다." />
+                {t("widgetFormQuest.interval")} <Help text={t("widgetFormQuest.intervalHelp")} />
               </>
             }
           >
-            <NumberField label="등록 간격시간" value={v.intervalSec} max={3600} suffix="초" onChange={(x) => set("intervalSec", x)} />
+            <NumberField label={t("widgetFormQuest.interval")} value={v.intervalSec} max={3600} suffix={t("widgetForm.unitSec")} onChange={(x) => set("intervalSec", x)} />
           </Row>
           {/* 2026-10-18 결정: on = the 리모컨 퀘스트 card offers 시간 연장 on each running quest (questTypes QUEST_EXTEND_MINUTES). */}
           <Row
             label={
               <>
-                제한시간 연장 사용 <Help text="진행 중인 퀘스트의 제한 시간을 리모컨에서 늘릴 수 있게 합니다." />
+                {t("widgetFormQuest.extend")} <Help text={t("widgetFormQuest.extendHelp")} />
               </>
             }
           >
             <SwitchText
-              label="제한시간 연장 사용"
+              label={t("widgetFormQuest.extend")}
               checked={v.allowExtension}
               onChange={(x) => set("allowExtension", x)}
-              text={`켜면 리모컨의 퀘스트 카드에서 진행 중인 퀘스트에 시간을 더할 수 있어요 (한 번에 ${QUEST_EXTEND_MINUTES.min}~${QUEST_EXTEND_MINUTES.max}분). 제한 시간이 지난 퀘스트는 지금부터 다시 계산해요.`}
+              text={t("widgetFormQuest.extendHint", { min: QUEST_EXTEND_MINUTES.min, max: QUEST_EXTEND_MINUTES.max })}
             />
           </Row>
-          <Row label="크리에이터 성공 결정 권한 메뉴 노출">
-            <SwitchText label="크리에이터 성공 결정 권한 메뉴 노출" checked={v.showSuccessAuthorityMenu} onChange={(x) => set("showSuccessAuthorityMenu", x)} />
+          <Row label={t("widgetFormQuest.authorityMenu")}>
+            <SwitchText label={t("widgetFormQuest.authorityMenu")} checked={v.showSuccessAuthorityMenu} onChange={(x) => set("showSuccessAuthorityMenu", x)} />
           </Row>
         </div>
       </Section>
       <div className={styles.subCard}>
-        <strong>❖ 퀘스트 설정 유의사항</strong>
-        <p className={styles.notice}>
-          - 도네이터가 퀘스트 후원 등록 도중(후원하기 버튼 클릭 전), 크리에이터가 설정을 수정한 경우 후원등록이 되지 않습니다. 도네이터는 크리에이터의 새로운 설정값으로 다시 후원을 등록해야합니다.
-        </p>
-        <p className={styles.notice}>- &apos;크리에이터 성공결정권한 메뉴 노출 ON&apos;인 경우, 후원페이지에 크리에이터 성공결정권한 ON/OFF 메뉴가 노출됩니다.</p>
+        <strong>{t("widgetFormQuest.notesTitle")}</strong>
+        <p className={styles.notice}>{t("widgetFormQuest.note1")}</p>
+        <p className={styles.notice}>{t("widgetFormQuest.note2")}</p>
         <table className={styles.noteTable}>
           <thead>
             <tr>
-              <th scope="col">크리에이터 페이지(설정)</th>
-              <th scope="col">후원 페이지(도네이터 설정)</th>
-              <th scope="col">성공결정 가능</th>
+              <th scope="col">{t("widgetFormQuest.colCreator")}</th>
+              <th scope="col">{t("widgetFormQuest.colDonation")}</th>
+              <th scope="col">{t("widgetFormQuest.colWho")}</th>
             </tr>
           </thead>
           <tbody>
             {AUTHORITY_TABLE.map((r, i) => (
               <tr key={i}>
                 {r.map((c, j) => (
-                  <td key={j}>{c}</td>
+                  <td key={j}>{c === "-" ? c : t(c)}</td>
                 ))}
               </tr>
             ))}
