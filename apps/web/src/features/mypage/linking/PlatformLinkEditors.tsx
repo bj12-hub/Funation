@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { PlusSmallIcon } from "@/components/icons";
 import { Modal } from "@/components/ui/Modal";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { connectPlatform, disconnectPlatform } from "@/services/account/linkingActions";
 import type { Platform } from "@/types/platform";
 import styles from "./linking.module.css";
@@ -15,11 +16,11 @@ import styles from "./linking.module.css";
  */
 
 const GLYPH: Record<Platform, string> = { YOUTUBE: "▶", FLEXTV: "F", SOOP: "S", CHZZK: "C" };
-const GENERIC_ERROR = "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요";
 
 type DisconnectProps = { platform: Platform; label: string; handle: string; triggerClassName: string };
 
 export function PlatformDisconnect({ platform, label, handle, triggerClassName }: DisconnectProps) {
+  const { t } = useI18n();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -44,20 +45,20 @@ export function PlatformDisconnect({ platform, label, handle, triggerClassName }
   return (
     <>
       <button type="button" className={triggerClassName} onClick={() => setOpen(true)}>
-        연결 해제
+        {t("myLink.disconnect")}
       </button>
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title={`${label} 연결 해제`}
-        description={`${label} 계정 연결을 해제하시겠어요?`}
+        title={t("myLink.disconnectTitle", { label })}
+        description={t("myLink.disconnectDesc", { label })}
         footer={
           <>
             <button type="button" className={styles.secondary} onClick={() => setOpen(false)}>
-              취소
+              {t("my.cancel")}
             </button>
             <button type="button" className={styles.danger} onClick={disconnect} disabled={busy} aria-busy={busy || undefined}>
-              연결 해제
+              {t("myLink.disconnect")}
             </button>
           </>
         }
@@ -77,11 +78,11 @@ export function PlatformDisconnect({ platform, label, handle, triggerClassName }
             <span className={styles.warningGlyph} aria-hidden="true">
               !
             </span>{" "}
-            연결을 해제하면 채널 활동 기반 리워드와 연동 혜택이 중단됩니다.
+            {t("myLink.disconnectWarning")}
           </p>
           {error && (
             <p className={styles.fieldError} role="alert">
-              {GENERIC_ERROR}
+              {t("my.genericError")}
             </p>
           )}
         </div>
@@ -93,6 +94,7 @@ export function PlatformDisconnect({ platform, label, handle, triggerClassName }
 type ConnectProps = { platform: Platform; label: string; triggerClassName: string };
 
 export function PlatformConnect({ platform, label, triggerClassName }: ConnectProps) {
+  const { t } = useI18n();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [accountId, setAccountId] = useState("");
@@ -132,20 +134,20 @@ export function PlatformConnect({ platform, label, triggerClassName }: ConnectPr
         }}
       >
         <PlusSmallIcon />
-        연결 추가
+        {t("myLink.addConnection")}
       </button>
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title={`${label} 계정 연결`}
-        description={`${label} 계정을 연결해 리워드를 받아보세요.`}
+        title={t("myLink.connectTitle", { label })}
+        description={t("myLink.connectDesc", { label })}
         footer={
           <>
             <button type="button" className={styles.secondary} onClick={() => setOpen(false)}>
-              취소
+              {t("my.cancel")}
             </button>
             <button type="submit" form={`connect-${platform}`} className={styles.primary} disabled={busy} aria-busy={busy || undefined}>
-              계정 연결
+              {t("myLink.connectAccount")}
             </button>
           </>
         }
@@ -161,7 +163,7 @@ export function PlatformConnect({ platform, label, triggerClassName }: ConnectPr
         >
           <div className={styles.field}>
             <label htmlFor={`connect-${platform}-id`} className={styles.label}>
-              {label} 계정 ID
+              {t("myLink.accountId", { label })}
             </label>
             <div className={`${styles.inputBox} ${error === "ACCOUNT" ? styles.inputError : ""}`}>
               <input
@@ -180,7 +182,7 @@ export function PlatformConnect({ platform, label, triggerClassName }: ConnectPr
           </div>
           <div className={styles.field}>
             <label htmlFor={`connect-${platform}-code`} className={styles.label}>
-              연결 인증 코드
+              {t("myLink.code")}
             </label>
             <div className={`${styles.inputBox} ${error === "CODE" ? styles.inputError : ""}`}>
               <input
@@ -195,14 +197,14 @@ export function PlatformConnect({ platform, label, triggerClassName }: ConnectPr
                   setError(null);
                 }}
               />
-              {error === "CODE" && <span className={styles.inlineError}>확인 필요</span>}
+              {error === "CODE" && <span className={styles.inlineError}>{t("my.needsCheck")}</span>}
             </div>
           </div>
-          <p className={styles.infoBox}>{label}에서 발급받은 인증 코드를 입력하면 계정 소유 확인 후 즉시 연결됩니다.</p>
+          <p className={styles.infoBox}>{t("myLink.codeInfo", { label })}</p>
           {error && (
             <p className={styles.fieldError} role="alert">
               {/* Error copy is not in Figma (TBD). */}
-              {error === "ACCOUNT" ? `${label} 계정 ID를 확인해 주세요.` : error === "CODE" ? "인증 코드를 확인해 주세요." : GENERIC_ERROR}
+              {error === "ACCOUNT" ? t("myLink.checkAccountId", { label }) : error === "CODE" ? t("myLink.checkCode") : t("my.genericError")}
             </p>
           )}
         </form>

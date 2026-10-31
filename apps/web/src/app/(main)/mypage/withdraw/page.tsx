@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { WithdrawScreen } from "@/features/mypage/WithdrawScreen";
+import { getT } from "@/lib/i18n/server";
 import { getWithdrawalInfo } from "@/services/account/withdrawal";
 
 // Code-first (no Figma frame): 회원 탈퇴 — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: "회원 탈퇴 | Ssumnation" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("myWithdraw.meta") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
