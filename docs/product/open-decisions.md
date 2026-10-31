@@ -348,6 +348,8 @@ Confirmed:
   사다리는 고를 수 있음. 카드 4:3, 한 단에 0.9초 굴림. See docs/figma/code-first-screens.md
 - 스도폴리 3D 보드 (2026-10-30, 기본값 — 일반적인 기준, StreamDonate 참고): 따로 띄우는 `?sudopoly3d`, 55° 기울임 · 45° 돌림(출발이 앞),
   칸 색은 보드게임풍 고정 색(테마와 별개). See docs/figma/code-first-screens.md
+- 정산 내역 CSV 다운로드 (2026-11-01, policy-decisions 1(b)의 돈 없이 먼저 만들 수 있는 변형): 크리에이터 본인의 정산 신청 내역만,
+  화면 표와 같은 값. 외부 서비스로 보내기(API · 주기) · 후원 원장 내보내기 · 지급 대행은 그대로 TBD. See docs/figma/code-first-screens.md
 
 Still TBD:
 
