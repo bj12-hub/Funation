@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { formatKst } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { deleteMessages, markMessageRead, moveMessages, sendMessage } from "@/services/messages/messages";
 import {
   MAILBOXES,
@@ -12,19 +14,27 @@ import {
   MESSAGE_PAGE_SIZE,
   MESSAGE_PAGE_SIZES,
   SEND_LIMIT_PER_HOUR,
-  mailboxEmptyText,
+  type Mailbox,
   type MailboxView,
   type MessageResult,
   type Recipient
 } from "@/services/messages/messageTypes";
 import { ModerationActions } from "../moderation/ModerationActions";
-import { GENERIC_ERROR } from "../mypage/editors/shared";
 import styles from "./messages.module.css";
 
 const when = (iso: string) => formatKst(iso, { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 
+/** Mailbox names and what an empty one says, in the viewer's language (2026-11-01; Korean as MAILBOXES · mailboxEmptyText). */
+const BOX_KEY: Record<Mailbox, { label: MessageKey; empty: MessageKey }> = {
+  inbox: { label: "messages.inbox", empty: "messages.emptyInbox" },
+  sent: { label: "messages.sent", empty: "messages.emptySent" },
+  archive: { label: "messages.archive", empty: "messages.emptyArchive" },
+  spam: { label: "messages.spam", empty: "messages.emptySpam" }
+};
+
 /** 쪽지 — code-first (no Figma frame). Route `/messages` (`?box=` `?q=` `?page=` `?size=` `?to=` opens compose). */
 export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxView; recipients: Recipient[]; composeTo: string | null }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [selected, setSelected] = useState<string[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -56,11 +66,11 @@ export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxV
           after?.();
           router.refresh();
         } else if (res.status === "UNAUTHORIZED") router.push("/login?next=/messages");
-        else if (res.status === "LIMITED") setMessage({ tone: "error", text: `한 시간에 ${SEND_LIMIT_PER_HOUR}통까지 보낼 수 있어요. 잠시 후 다시 시도해 주세요.` });
+        else if (res.status === "LIMITED") setMessage({ tone: "error", text: t("messages.limited", { limit: SEND_LIMIT_PER_HOUR }) });
         else setMessage({ tone: "error", text: res.message });
       } catch {
         // The request failed (network / server): the selection and the draft stay for another try.
-        setMessage({ tone: "error", text: GENERIC_ERROR });
+        setMessage({ tone: "error", text: t("page.errorDescription") });
       }
     });
   };
@@ -75,18 +85,18 @@ export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxV
     <div className={styles.content}>
       <header className={styles.header}>
         <div>
-          <h1 className={styles.title}>쪽지</h1>
-          <p className={styles.subtitle}>크리에이터와 주고받은 쪽지를 확인하고 답장할 수 있어요.</p>
+          <h1 className={styles.title}>{t("messages.title")}</h1>
+          <p className={styles.subtitle}>{t("messages.subtitle")}</p>
         </div>
         <button type="button" className={styles.primary} onClick={openCompose}>
-          쪽지 보내기
+          {t("messages.compose")}
         </button>
       </header>
 
-      <nav className={styles.tabs} aria-label="쪽지함">
+      <nav className={styles.tabs} aria-label={t("messages.boxes")}>
         {MAILBOXES.map((b) => (
           <Link key={b.key} href={href({ box: b.key, page: "1", q: "" })} className={styles.tab} aria-current={view.box === b.key ? "page" : undefined}>
-            {b.label} <span className={styles.count}>{b.key === "inbox" && view.unread ? `${view.unread} 새 쪽지` : view.counts[b.key]}</span>
+            {t(BOX_KEY[b.key].label)} <span className={styles.count}>{b.key === "inbox" && view.unread ? t("messages.newCount", { count: view.unread }) : view.counts[b.key]}</span>
           </Link>
         ))}
       </nav>
@@ -95,36 +105,36 @@ export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxV
         <form action="/messages" className={styles.search} role="search">
           <input type="hidden" name="box" value={view.box} />
           {view.size !== MESSAGE_PAGE_SIZE && <input type="hidden" name="size" value={view.size} />}
-          <input name="q" defaultValue={view.q} placeholder="내용 또는 이름 검색" aria-label="쪽지 검색" maxLength={40} className={styles.input} />
+          <input name="q" defaultValue={view.q} placeholder={t("messages.searchPlaceholder")} aria-label={t("messages.searchAria")} maxLength={40} className={styles.input} />
           <button type="submit" className={styles.ghost}>
-            검색
+            {t("common.search")}
           </button>
         </form>
         {received && (
-          <div className={styles.bulk} aria-label="선택한 쪽지">
+          <div className={styles.bulk} aria-label={t("messages.selected")}>
             {view.box !== "archive" && (
-              <button type="button" className={styles.ghost} disabled={!selected.length || pending} onClick={() => run(() => moveMessages({ ids: selected, to: "archive" }), "보관함으로 옮겼어요.")}>
-                보관
+              <button type="button" className={styles.ghost} disabled={!selected.length || pending} onClick={() => run(() => moveMessages({ ids: selected, to: "archive" }), t("messages.archived"))}>
+                {t("messages.archiveAction")}
               </button>
             )}
             {view.box !== "inbox" && (
-              <button type="button" className={styles.ghost} disabled={!selected.length || pending} onClick={() => run(() => moveMessages({ ids: selected, to: "inbox" }), "받은 쪽지함으로 옮겼어요.")}>
-                받은 쪽지함으로
+              <button type="button" className={styles.ghost} disabled={!selected.length || pending} onClick={() => run(() => moveMessages({ ids: selected, to: "inbox" }), t("messages.movedToInbox"))}>
+                {t("messages.toInbox")}
               </button>
             )}
             {view.box !== "spam" && (
-              <button type="button" className={styles.ghost} disabled={!selected.length || pending} onClick={() => run(() => moveMessages({ ids: selected, to: "spam" }), "스팸으로 신고했어요.")}>
-                스팸신고
+              <button type="button" className={styles.ghost} disabled={!selected.length || pending} onClick={() => run(() => moveMessages({ ids: selected, to: "spam" }), t("messages.reportedSpam"))}>
+                {t("messages.reportSpam")}
               </button>
             )}
-            <button type="button" className={styles.danger} disabled={!selected.length || pending} onClick={() => run(() => deleteMessages(selected), "삭제했어요.")}>
-              삭제
+            <button type="button" className={styles.danger} disabled={!selected.length || pending} onClick={() => run(() => deleteMessages(selected), t("messages.deleted"))}>
+              {t("messages.delete")}
             </button>
           </div>
         )}
         {!received && (
-          <button type="button" className={styles.danger} disabled={!selected.length || pending} onClick={() => run(() => deleteMessages(selected), "삭제했어요.")}>
-            삭제
+          <button type="button" className={styles.danger} disabled={!selected.length || pending} onClick={() => run(() => deleteMessages(selected), t("messages.deleted"))}>
+            {t("messages.delete")}
           </button>
         )}
       </div>
@@ -136,12 +146,12 @@ export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxV
       )}
 
       {view.items.length === 0 ? (
-        <p className={styles.empty}>{mailboxEmptyText(view.box, view.q)}</p>
+        <p className={styles.empty}>{view.q ? t("messages.noResults") : t(BOX_KEY[view.box].empty)}</p>
       ) : (
         <ul className={styles.list}>
           {view.items.map((m) => (
             <li key={m.id} className={styles.item} data-unread={(!m.read && m.direction === "IN") || undefined}>
-              <input type="checkbox" checked={selected.includes(m.id)} onChange={() => toggle(m.id)} aria-label={`${m.peerName} 쪽지 선택`} />
+              <input type="checkbox" checked={selected.includes(m.id)} onChange={() => toggle(m.id)} aria-label={t("messages.select", { name: m.peerName })} />
               <button
                 type="button"
                 className={styles.itemMain}
@@ -155,13 +165,13 @@ export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxV
                         router.refresh();
                       } catch {
                         // The message stays open; it is marked read on a later try.
-                        setMessage({ tone: "error", text: GENERIC_ERROR });
+                        setMessage({ tone: "error", text: t("page.errorDescription") });
                       }
                     });
                 }}
               >
                 <span className={styles.peer}>
-                  {m.direction === "IN" ? "보낸 사람" : "받는 사람"} · <strong>{m.peerName}</strong>
+                  {m.direction === "IN" ? t("messages.from") : t("messages.to")} · <strong>{m.peerName}</strong>
                 </span>
                 <span className={openId === m.id ? styles.bodyOpen : styles.body}>{m.body}</span>
               </button>
@@ -175,7 +185,7 @@ export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxV
                     openCompose();
                   }}
                 >
-                  답장
+                  {t("messages.reply")}
                 </button>
               )}
               {openId === m.id && m.direction === "IN" && <ModerationActions target={{ type: "MESSAGE", id: m.id }} signedIn />}
@@ -186,15 +196,15 @@ export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxV
 
       {view.total > MESSAGE_PAGE_SIZES[0] && (
         <div className={styles.listFooter}>
-          <nav className={styles.sizes} aria-label="한 페이지에 볼 쪽지 수">
+          <nav className={styles.sizes} aria-label={t("messages.perPage")}>
             {MESSAGE_PAGE_SIZES.map((n) => (
               <Link key={n} href={href({ size: String(n), page: "1" })} className={styles.size} aria-current={n === view.size ? "true" : undefined}>
-                {n}개씩
+                {t("messages.sizeN", { n })}
               </Link>
             ))}
           </nav>
           {view.totalPages > 1 && (
-            <nav className={styles.pagination} aria-label="페이지">
+            <nav className={styles.pagination} aria-label={t("messages.pages")}>
               {Array.from({ length: view.totalPages }, (_, i) => i + 1).map((n) => (
                 <Link key={n} href={href({ page: String(n) })} className={styles.page} aria-current={n === view.page ? "page" : undefined}>
                   {n}
@@ -208,11 +218,11 @@ export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxV
       <Modal
         open={compose}
         onClose={() => setCompose(false)}
-        title="쪽지 보내기"
+        title={t("messages.compose")}
         footer={
           <>
             <button type="button" className={styles.ghostWide} onClick={() => setCompose(false)}>
-              취소
+              {t("messages.cancel")}
             </button>
             <button
               type="button"
@@ -222,22 +232,22 @@ export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxV
                 const text = `${to}\n${body.trim()}`;
                 if (sendId.current?.text !== text) sendId.current = { id: crypto.randomUUID(), text };
                 const id = sendId.current.id;
-                run(() => sendMessage({ to, body, requestId: id }), "쪽지를 보냈어요.", () => {
+                run(() => sendMessage({ to, body, requestId: id }), t("messages.sentOk"), () => {
                   setCompose(false);
                   setBody("");
                   sendId.current = null;
                 });
               }}
             >
-              보내기
+              {t("messages.send")}
             </button>
           </>
         }
       >
         <label className={styles.field}>
-          <span>받는 사람</span>
+          <span>{t("messages.to")}</span>
           <select className={styles.input} value={to} onChange={(e) => setTo(e.target.value)}>
-            <option value="">선택해 주세요</option>
+            <option value="">{t("messages.chooseRecipient")}</option>
             {recipients.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.name}
@@ -246,7 +256,7 @@ export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxV
           </select>
         </label>
         <label className={styles.field}>
-          <span>내용</span>
+          <span>{t("messages.body")}</span>
           <textarea className={styles.textarea} value={body} maxLength={MESSAGE_BODY_MAX} onChange={(e) => setBody(e.target.value)} />
           <span className={styles.hint}>
             {body.length} / {MESSAGE_BODY_MAX}

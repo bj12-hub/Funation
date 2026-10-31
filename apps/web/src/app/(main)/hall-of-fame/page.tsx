@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { HallOfFameScreen } from "@/features/hallOfFame";
+import { getT } from "@/lib/i18n/server";
 import {
   DEFAULT_RANKING_PERIOD,
   RANKING_PERIOD_LABEL,
@@ -11,7 +12,9 @@ import {
 } from "@/services/hallOfFame/supporterRanking";
 
 // Figma: ssumnation-hall-of-fame 3:637 (hero, podium); tabs follow funnation 명예의 전당.
-export const metadata: Metadata = { title: "명예의 전당 | Ssumnation" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("hallOfFame.meta") };
+}
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { PlatformHomeScreen } from "@/features/platformDonation/PlatformHomeScreen";
+import { getT } from "@/lib/i18n/server";
 import { getPlatformHome } from "@/services/platformDonation/platformDonation";
 import { PLATFORMS, platformFromSlug } from "@/services/platformDonation/platformTypes";
 
@@ -11,7 +12,7 @@ type Props = { params: Promise<{ platform: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const platform = platformFromSlug((await params).platform);
-  return { title: platform ? `${PLATFORMS[platform].name} 후원 | Ssumnation` : "Ssumnation" };
+  return { title: platform ? (await getT())("platformDonation.meta", { platform: PLATFORMS[platform].name }) : "Ssumnation" };
 }
 
 export default async function Page({ params }: Props) {

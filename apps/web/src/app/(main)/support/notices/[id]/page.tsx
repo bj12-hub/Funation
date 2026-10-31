@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { NOTICE_CATEGORY_KEY } from "@/features/support/labels";
 import styles from "@/features/support/supportTabs.module.css";
+import { getT } from "@/lib/i18n/server";
 import { getNotice } from "@/services/support/notices";
-import { NOTICE_CATEGORY_LABEL } from "@/services/support/supportTypes";
 
 // Code-first (no Figma frame): 공지사항 detail — funnation 고객센터 notice page structure.
 export const dynamic = "force-dynamic";
@@ -12,20 +13,22 @@ type Params = Promise<{ id: string }>;
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const notice = await getNotice((await params).id);
-  return { title: notice ? `${notice.title} | 공지사항 | Ssumnation` : "공지사항 | Ssumnation" };
+  const t = await getT();
+  return { title: notice ? t("support.metaNotice", { title: notice.title }) : t("support.metaNotices") };
 }
 
 export default async function Page({ params }: { params: Params }) {
   const notice = await getNotice((await params).id);
   if (!notice) notFound();
+  const t = await getT();
   return (
     <article className={styles.detail}>
       <Link href="/support" className={styles.back}>
-        ← 공지사항 목록
+        {t("support.backToNotices")}
       </Link>
       <span className={styles.tags}>
-        <span className={styles.tag}>{NOTICE_CATEGORY_LABEL[notice.category]}</span>
-        {notice.important && <span className={`${styles.tag} ${styles.tagImportant}`}>중요</span>}
+        <span className={styles.tag}>{t(NOTICE_CATEGORY_KEY[notice.category])}</span>
+        {notice.important && <span className={`${styles.tag} ${styles.tagImportant}`}>{t("support.important")}</span>}
       </span>
       <h1 className={styles.noticeTitle}>{notice.title}</h1>
       <span className={styles.noticeMeta}>{notice.date.replace(/-/g, ". ")}.</span>

@@ -3,12 +3,36 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { markAllNotificationsRead, markNotificationRead } from "@/services/notifications/notifications";
-import { NOTIFICATION_KIND_LABEL, NOTIFICATIONS_PAGE, timeAgo as ago, type NotificationFilter, type NotificationPage } from "@/services/notifications/notificationTypes";
+import { NOTIFICATION_KIND_LABEL, NOTIFICATIONS_PAGE, type NotificationFilter, type NotificationKind, type NotificationPage } from "@/services/notifications/notificationTypes";
 import styles from "./notifications.module.css";
+
+/** Kind names in the viewer's language (2026-11-01; the emoji stay in NOTIFICATION_KIND_LABEL). */
+const KIND_KEY: Record<NotificationKind, MessageKey> = {
+  DONATION_SENT: "notifications.kindDonationSent",
+  DONATION_RECEIVED: "notifications.kindDonationReceived",
+  CHARGE: "notifications.kindCharge",
+  REFUND: "notifications.kindRefund",
+  SETTLEMENT: "notifications.kindSettlement",
+  EVENT: "notifications.kindEvent",
+  NOTICE: "notifications.kindNotice",
+  SYSTEM: "notifications.kindSystem"
+};
+
+/** "3분 전" · "3m ago" — the same steps as timeAgo in notificationTypes. */
+function ago(iso: string, now: number, t: (key: MessageKey, vars?: Record<string, string | number>) => string) {
+  const min = Math.max(0, Math.floor((now - new Date(iso).getTime()) / 60_000));
+  if (min < 1) return t("notifications.justNow");
+  if (min < 60) return t("notifications.minutesAgo", { n: min });
+  if (min < 1440) return t("notifications.hoursAgo", { n: Math.floor(min / 60) });
+  return t("notifications.daysAgo", { n: Math.floor(min / 1440) });
+}
 
 /** 알림 — code-first (no Figma frame). Route `/notifications` (`?filter=UNREAD`, `?show=`). */
 export function NotificationsScreen({ page, filter, show }: { page: NotificationPage; filter: NotificationFilter; show: number }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [now, setNow] = useState<number | null>(null);
@@ -25,22 +49,22 @@ export function NotificationsScreen({ page, filter, show }: { page: Notification
   return (
     <div className={styles.page}>
       <header className={styles.head}>
-        <h1 className={styles.title}>알림</h1>
+        <h1 className={styles.title}>{t("notifications.title")}</h1>
         <button type="button" className={styles.link} disabled={pending || page.unread === 0} onClick={() => act(markAllNotificationsRead)}>
-          모두 읽음
+          {t("notifications.markAll")}
         </button>
       </header>
-      <nav className={styles.tabs} aria-label="알림 필터">
+      <nav className={styles.tabs} aria-label={t("notifications.filter")}>
         <Link href={href("ALL")} className={styles.tab} aria-current={filter === "ALL" ? "page" : undefined}>
-          전체
+          {t("notifications.all")}
         </Link>
         <Link href={href("UNREAD")} className={styles.tab} aria-current={filter === "UNREAD" ? "page" : undefined}>
-          안 읽음 {page.unread}
+          {t("notifications.unreadCount", { count: page.unread })}
         </Link>
       </nav>
 
       {page.items.length === 0 ? (
-        <p className={styles.empty}>{filter === "UNREAD" ? "안 읽은 알림이 없어요." : "알림이 없어요."}</p>
+        <p className={styles.empty}>{filter === "UNREAD" ? t("notifications.emptyUnread") : t("notifications.empty")}</p>
       ) : (
         <ul className={styles.list}>
           {page.items.map((n) => (
@@ -51,9 +75,9 @@ export function NotificationsScreen({ page, filter, show }: { page: Notification
                 </span>
                 <span className={styles.text}>
                   <span className={styles.meta}>
-                    {NOTIFICATION_KIND_LABEL[n.kind].label}
-                    {now !== null && ` · ${ago(n.createdAt, now)}`}
-                    {!n.read && <span className={styles.dot} aria-label="안 읽음" />}
+                    {t(KIND_KEY[n.kind])}
+                    {now !== null && ` · ${ago(n.createdAt, now, t)}`}
+                    {!n.read && <span className={styles.dot} aria-label={t("notifications.unread")} />}
                   </span>
                   <strong>{n.title}</strong>
                   <span>{n.body}</span>
@@ -65,10 +89,10 @@ export function NotificationsScreen({ page, filter, show }: { page: Notification
       )}
       {page.hasMore && (
         <Link href={href(filter, show + NOTIFICATIONS_PAGE)} className={styles.more} scroll={false}>
-          더 보기 ({page.items.length}/{page.total})
+          {t("notifications.more", { shown: page.items.length, total: page.total })}
         </Link>
       )}
-      <p className={styles.note}>최근 100개까지 보관해요. 알림 종류 설정 · 푸시 알림은 준비 중이에요 (TBD).</p>
+      <p className={styles.note}>{t("notifications.note")}</p>
     </div>
   );
 }
