@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FLEXTV_STUDIO } from "@/lib/flextv/mode";
 import { formatNumber } from "@/lib/format";
+import { getT } from "@/lib/i18n/server";
 import type { AmountUnit, DashboardSummary } from "@/services/creator/creatorStudio";
 import { formatAmount } from "./amount";
 import styles from "./dashboardSummary.module.css";
@@ -25,40 +26,42 @@ export function SummaryCard({ title, href, linkLabel, children }: { title: strin
 }
 
 /** 받은 후원 — 오늘 · 이번 주 · 이번 달 tiles and the 누적 line (₩, or FN with FLEXTV; server values). */
-export function ReceivedCard({ received, unit = "KRW" }: { received: DashboardSummary["received"]; unit?: AmountUnit }) {
+export async function ReceivedCard({ received, unit = "KRW" }: { received: DashboardSummary["received"]; unit?: AmountUnit }) {
+  const t = await getT();
   const tiles = [
-    ["오늘", received.today],
-    ["이번 주", received.week],
-    ["이번 달", received.month]
+    [t("studioDashboard.today"), received.today],
+    [t("studioDashboard.thisWeek"), received.week],
+    [t("studioDashboard.thisMonth"), received.month]
   ] as const;
   return (
-    <SummaryCard title="받은 후원" href="/creator/donations?tab=list" linkLabel="후원 내역">
+    <SummaryCard title={t("studioDashboard.received")} href="/creator/donations?tab=list" linkLabel={t("studioDashboard.receivedLink")}>
       <div className={styles.tiles}>
-        {tiles.map(([label, t]) => (
+        {tiles.map(([label, tile]) => (
           <div key={label} className={styles.tile}>
             <span className={styles.tileLabel}>{label}</span>
-            <strong className={styles.tileValue}>{formatAmount(t.amount, unit)}</strong>
-            <span className={styles.tileSub}>{formatNumber(t.count)}건</span>
+            <strong className={styles.tileValue}>{formatAmount(tile.amount, unit)}</strong>
+            <span className={styles.tileSub}>{t("studioDashboard.countValue", { count: formatNumber(tile.count) })}</span>
           </div>
         ))}
       </div>
       <p className={styles.total}>
-        누적 <strong>{formatAmount(received.total.amount, unit)}</strong>
-        {received.total.count !== null && ` · ${formatNumber(received.total.count)}건`}
+        {t("studioDashboard.total")} <strong>{formatAmount(received.total.amount, unit)}</strong>
+        {received.total.count !== null && ` · ${t("studioDashboard.countValue", { count: formatNumber(received.total.count) })}`}
       </p>
     </SummaryCard>
   );
 }
 
 /** 정산 — 정산 가능 · 누적 수익 · 누적 출금 (FN, settlement records). */
-export function SettlementCard({ settlement }: { settlement: DashboardSummary["settlement"] }) {
+export async function SettlementCard({ settlement }: { settlement: DashboardSummary["settlement"] }) {
+  const t = await getT();
   const tiles = [
-    ["정산 가능", settlement.availableFn],
-    ["누적 수익", settlement.earnedFn],
-    ["누적 출금", settlement.withdrawnFn]
+    [t("studioDashboard.available"), settlement.availableFn],
+    [t("studioDashboard.earned"), settlement.earnedFn],
+    [t("studioDashboard.withdrawn"), settlement.withdrawnFn]
   ] as const;
   return (
-    <SummaryCard title="정산" href="/creator/settlement/apply" linkLabel="정산 신청">
+    <SummaryCard title={t("studioDashboard.settlement")} href="/creator/settlement/apply" linkLabel={t("studioDashboard.settlementLink")}>
       <div className={styles.tiles}>
         {tiles.map(([label, fn]) => (
           <div key={label} className={styles.tile}>
@@ -72,11 +75,16 @@ export function SettlementCard({ settlement }: { settlement: DashboardSummary["s
 }
 
 /** 후원자 순위 — this month's top supporters; links to the ranking widget like funnation (받은 후원 with FLEXTV). */
-export function TopDonorsCard({ donors, unit = "KRW" }: { donors: DashboardSummary["topDonors"]; unit?: AmountUnit }) {
+export async function TopDonorsCard({ donors, unit = "KRW" }: { donors: DashboardSummary["topDonors"]; unit?: AmountUnit }) {
+  const t = await getT();
   return (
-    <SummaryCard title="후원자 순위" href={FLEXTV_STUDIO ? "/creator/donations?tab=list" : "/creator/widgets?open=RANKING"} linkLabel={FLEXTV_STUDIO ? "받은 후원" : "랭킹 위젯"}>
+    <SummaryCard
+      title={t("studioDashboard.topDonors")}
+      href={FLEXTV_STUDIO ? "/creator/donations?tab=list" : "/creator/widgets?open=RANKING"}
+      linkLabel={t(FLEXTV_STUDIO ? "studioDashboard.topDonorsLinkFlextv" : "studioDashboard.topDonorsLink")}
+    >
       {donors.length === 0 ? (
-        <p className={styles.empty}>아직 후원 받은 내역이 없습니다</p>
+        <p className={styles.empty}>{t("studioDashboard.topDonorsEmpty")}</p>
       ) : (
         <ol className={styles.ranks}>
           {donors.map((d) => (
@@ -90,7 +98,7 @@ export function TopDonorsCard({ donors, unit = "KRW" }: { donors: DashboardSumma
           ))}
         </ol>
       )}
-      <p className={styles.caption}>이번 달 기준</p>
+      <p className={styles.caption}>{t("studioDashboard.thisMonthBasis")}</p>
     </SummaryCard>
   );
 }

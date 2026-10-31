@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { deleteCustomSound, saveCustomSound } from "@/services/creator/widgetSettings";
 import { CUSTOM_SOUND_MAX, CUSTOM_SOUND_TYPES, CUSTOM_SOUND_WORD_MAX, type CustomSound } from "@/services/creator/widgetSettingsTypes";
 import type { FormProps } from "./forms";
@@ -22,13 +23,14 @@ export function CustomSoundForm({ value }: FormProps<"CUSTOM_SOUND">) {
   const [cards, setCards] = useState<Card[]>(() => value.sounds.map((s) => ({ key: s.id, saved: s })));
   const count = cards.length;
   const library = useLibrarySounds();
+  const { t } = useI18n();
 
   const replace = (key: string, next: Card | null) =>
     setCards((prev) => (next ? prev.map((c) => (c.key === key ? next : c)) : prev.filter((c) => c.key !== key)));
 
   return (
     <div className={styles.rows}>
-      <p className={styles.noticePink}>※ 커스텀 사운드 기능은 크리에이터가 지정한 음성으로 특정 단어에 대해 보이스 기능 대신 재생되는 기능입니다.</p>
+      <p className={styles.noticePink}>{t("widgetFormSound.notice")}</p>
       <div className={styles.inline}>
         <button
           type="button"
@@ -36,7 +38,7 @@ export function CustomSoundForm({ value }: FormProps<"CUSTOM_SOUND">) {
           disabled={count >= CUSTOM_SOUND_MAX}
           onClick={() => setCards((c) => [...c, { key: `new-${Date.now().toString(36)}`, saved: null }])}
         >
-          + 커스텀 사운드 추가
+          {t("widgetFormSound.add")}
         </button>
         <button
           type="button"
@@ -44,16 +46,14 @@ export function CustomSoundForm({ value }: FormProps<"CUSTOM_SOUND">) {
           disabled={count >= CUSTOM_SOUND_MAX}
           onClick={() => setCards((c) => [...c, { key: `new-${Date.now().toString(36)}`, saved: null, fromLibrary: true }])}
         >
-          라이브러리
+          {t("widgetFormSound.library")}
         </button>
-        <span className={styles.help} title={`TTS가 후원 메시지를 읽다가 '교체할 단어'가 나오면 그 단어 대신 등록한 효과음이 재생됩니다. 최대 ${CUSTOM_SOUND_MAX}개.`}>
+        <span className={styles.help} title={t("widgetFormSound.help", { max: CUSTOM_SOUND_MAX })}>
           ?
         </span>
       </div>
-      <p className={styles.hint}>
-        후원 알림 오버레이에서 재생돼요. 따로 띄울 주소는 없어요. 소리 크기는 효과음 볼륨 × 리모컨의 후원 TTS 볼륨이고, TTS 스킵 · 음소거면 함께 멈춰요.
-      </p>
-      {count === 0 && <p className={styles.hint}>등록된 커스텀 사운드가 없습니다.</p>}
+      <p className={styles.hint}>{t("widgetFormSound.hint")}</p>
+      {count === 0 && <p className={styles.hint}>{t("widgetFormSound.empty")}</p>}
       {cards.map((c) => (
         <SoundCard key={c.key} card={c} library={library} onSaved={(s) => replace(c.key, { key: c.key, saved: s })} onRemoved={() => replace(c.key, null)} />
       ))}
@@ -71,7 +71,8 @@ function SoundCard({ card, library, onSaved, onRemoved }: { card: Card; library:
   const [libraryOpen, setLibraryOpen] = useState(card.fromLibrary === true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ tone: "error" | "ok"; text: string } | null>(null);
-  const fileName = file?.name ?? (picked ? `${picked.name} (라이브러리)` : (card.saved?.fileName ?? ""));
+  const { t } = useI18n();
+  const fileName = file?.name ?? (picked ? t("widgetFormSound.fromLibrary", { name: picked.name }) : (card.saved?.fileName ?? ""));
   const clearChoice = () => {
     setFile(null);
     setPicked(null);
@@ -92,11 +93,11 @@ function SoundCard({ card, library, onSaved, onRemoved }: { card: Card; library:
       const r = await saveCustomSound(fd);
       if (r.status === "SAVED") {
         clearChoice();
-        setMessage({ tone: "ok", text: "저장했습니다." });
+        setMessage({ tone: "ok", text: t("widgetFormSound.saved") });
         onSaved(r.sound);
-      } else setMessage({ tone: "error", text: r.status === "INVALID" ? r.message : "로그인이 필요합니다." });
+      } else setMessage({ tone: "error", text: r.status === "INVALID" ? r.message : t("widgetForm.loginRequired") });
     } catch {
-      setMessage({ tone: "error", text: "저장하지 못했습니다. 잠시 후 다시 시도해 주세요." });
+      setMessage({ tone: "error", text: t("widgetForm.saveFailed") });
     } finally {
       setBusy(false);
     }
@@ -109,59 +110,71 @@ function SoundCard({ card, library, onSaved, onRemoved }: { card: Card; library:
     try {
       const r = await deleteCustomSound(card.saved.id);
       if (r.status === "DELETED") onRemoved();
-      else setMessage({ tone: "error", text: "로그인이 필요합니다." });
+      else setMessage({ tone: "error", text: t("widgetForm.loginRequired") });
     } catch {
-      setMessage({ tone: "error", text: "삭제하지 못했습니다. 잠시 후 다시 시도해 주세요." });
+      setMessage({ tone: "error", text: t("widgetFormSound.deleteFailed") });
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <section className={styles.soundCard} aria-label={card.saved ? `커스텀 사운드: ${card.saved.word}` : "커스텀 사운드 추가"} aria-busy={busy}>
+    <section
+      className={styles.soundCard}
+      aria-label={card.saved ? t("widgetFormSound.cardAria", { word: card.saved.word }) : t("widgetFormSound.newCard")}
+      aria-busy={busy}
+    >
       <div className={styles.sectionHead}>
-        <strong>{card.saved ? card.saved.word : "커스텀 사운드 추가"}</strong>
-        <button type="button" className={styles.iconButton} aria-label={card.saved ? "사운드 삭제" : "추가 취소"} onClick={remove} disabled={busy}>
+        <strong>{card.saved ? card.saved.word : t("widgetFormSound.newCard")}</strong>
+        <button
+          type="button"
+          className={styles.iconButton}
+          aria-label={card.saved ? t("widgetFormSound.deleteSound") : t("widgetFormSound.cancelAdd")}
+          onClick={remove}
+          disabled={busy}
+        >
           ⊗
         </button>
       </div>
       <label htmlFor={`${id}-word`} className={styles.rowLabel}>
-        교체할 단어
+        {t("widgetFormSound.word")}
       </label>
       <input
         id={`${id}-word`}
         className={styles.input}
         maxLength={CUSTOM_SOUND_WORD_MAX}
-        placeholder="교체할 단어를 입력해주세요."
+        placeholder={t("widgetFormSound.wordPlaceholder")}
         value={word}
         onChange={(e) => setWord(e.target.value)}
       />
-      <span className={styles.rowLabel}>효과음 선택</span>
+      <span className={styles.rowLabel}>{t("widgetFormSound.effect")}</span>
       <div className={styles.inline}>
         <input
           ref={fileRef}
           type="file"
           accept={CUSTOM_SOUND_TYPES.join(",")}
           className={styles.srOnly}
-          aria-label="효과음 파일"
+          aria-label={t("widgetFormSound.file")}
           onChange={(e) => {
             setFile(e.target.files?.[0] ?? null);
             setPicked(null);
           }}
         />
         <button type="button" className={styles.smallButton} onClick={() => fileRef.current?.click()}>
-          파일선택
+          {t("widgetFormSound.chooseFile")}
         </button>
         <button type="button" className={styles.smallButton} aria-expanded={libraryOpen} onClick={() => setLibraryOpen((o) => !o)}>
-          라이브러리
+          {t("widgetFormSound.library")}
         </button>
-        <span className={styles.fileName}>{fileName || "선택된 파일 없음"}</span>
+        <span className={styles.fileName}>{fileName || t("widgetFormSound.noFile")}</span>
         {(file || picked) && (
-          <button type="button" className={styles.dangerIcon} aria-label="선택한 파일 취소" onClick={clearChoice}>
+          <button type="button" className={styles.dangerIcon} aria-label={t("widgetFormSound.clearFile")} onClick={clearChoice}>
             🗑️
           </button>
         )}
-        {card.saved && !file && !picked && <audio controls src={card.saved.fileUrl} className={styles.audio} aria-label={`${card.saved.word} 효과음 미리듣기`} />}
+        {card.saved && !file && !picked && (
+          <audio controls src={card.saved.fileUrl} className={styles.audio} aria-label={t("widgetFormSound.listen", { word: card.saved.word })} />
+        )}
       </div>
       {libraryOpen && (
         <LibrarySoundList
@@ -177,7 +190,7 @@ function SoundCard({ card, library, onSaved, onRemoved }: { card: Card; library:
         />
       )}
       <label htmlFor={`${id}-vol`} className={styles.rowLabel}>
-        알림 효과음 볼륨
+        {t("widgetFormSound.volume")}
       </label>
       <div className={styles.slider}>
         <input id={`${id}-vol`} type="range" min={0} max={100} step={1} value={volume} onChange={(e) => setVolume(Number(e.target.value))} />
@@ -187,6 +200,7 @@ function SoundCard({ card, library, onSaved, onRemoved }: { card: Card; library:
           <span>100%</span>
         </div>
       </div>
+      {/* Liability wording: stays Korean until an approved translation exists (2026-11-01). */}
       <p className={styles.warningBox}>
         ※알림※ 업로드한 음원에 대한 모든 책임은 게시자(크리에이터)에게 있으며, 썸네이션은 이로 인해 발생할 수 있는 모든 민/형사상 분쟁에 대해 일절 책임지지 않습니다.
       </p>
@@ -196,7 +210,7 @@ function SoundCard({ card, library, onSaved, onRemoved }: { card: Card; library:
         </p>
       )}
       <button type="button" className={styles.saveWide} onClick={save} disabled={busy}>
-        {busy ? "저장 중…" : "저장"}
+        {busy ? t("widgetForm.saving") : t("widgetFormSound.save")}
       </button>
     </section>
   );

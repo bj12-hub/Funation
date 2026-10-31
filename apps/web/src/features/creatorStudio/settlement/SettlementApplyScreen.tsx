@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { SETTLEMENT_STATUS_LABEL, type SettlementApplyView } from "@/services/creator/settlementTypes";
+import { getT } from "@/lib/i18n/server";
+import type { SettlementApplyView } from "@/services/creator/settlementTypes";
+import { SETTLEMENT_STATUS_KEY } from "./settlementLabels";
 import { SettlementRequestFlow } from "./SettlementRequestFlow";
 import { SettlementTabs } from "./SettlementTabs";
 import styles from "./apply.module.css";
@@ -7,7 +9,8 @@ import styles from "./apply.module.css";
 const fn = (n: number) => n.toLocaleString("ko-KR");
 
 /** Figma 458:4 (default) · 463:2 (after a request) — 정산 신청 (route `/creator/settlement/apply`). */
-export function SettlementApplyScreen({ view }: { view: SettlementApplyView }) {
+export async function SettlementApplyScreen({ view }: { view: SettlementApplyView }) {
+  const t = await getT();
   const max = Math.max(...view.monthly.map((m) => m.krw), 0);
   // Five axis labels from the rounded-up maximum down to 0, like 458:115.
   const top = Math.ceil(max / 20_000) * 20_000;
@@ -16,7 +19,7 @@ export function SettlementApplyScreen({ view }: { view: SettlementApplyView }) {
   return (
     <div className={styles.content}>
       <SettlementTabs active="apply" />
-      <h1 className={styles.pageTitle}>썸네이션 정산 현황</h1>
+      <h1 className={styles.pageTitle}>{t("studioSettlement.overviewTitle")}</h1>
 
       <div className={styles.topRow}>
         <SettlementRequestFlow view={view} />
@@ -24,24 +27,24 @@ export function SettlementApplyScreen({ view }: { view: SettlementApplyView }) {
         <section className={styles.accountCard} aria-labelledby="settle-code">
           <div className={styles.codeBlock}>
             <span id="settle-code" className={styles.muted}>
-              {view.registrant} 님의 정산 코드
+              {t("studioSettlementApply.codeOf", { name: view.registrant })}
             </span>
             <strong className={styles.code}>{view.code}</strong>
           </div>
           <hr className={styles.cardDivider} />
           <div className={styles.bankBlock}>
-            <span className={styles.muted}>정산 계좌 정보</span>
+            <span className={styles.muted}>{t("studioSettlementApply.accountInfo")}</span>
             <dl className={styles.bankTable}>
               <div>
-                <dt>은행명</dt>
+                <dt>{t("studioSettlementApply.bank")}</dt>
                 <dd>{view.bankName}</dd>
               </div>
               <div>
-                <dt>계좌</dt>
+                <dt>{t("studioSettlementApply.account")}</dt>
                 <dd>{view.accountMasked}</dd>
               </div>
               <div>
-                <dt>예금주</dt>
+                <dt>{t("studioSettlementApply.holder")}</dt>
                 <dd>{view.holder}</dd>
               </div>
             </dl>
@@ -52,16 +55,16 @@ export function SettlementApplyScreen({ view }: { view: SettlementApplyView }) {
       <div className={styles.bottomRow}>
         <section className={styles.chartSection} aria-labelledby="settle-monthly">
           <h2 id="settle-monthly" className={styles.sectionTitle}>
-            월별 정산 받은 금액
+            {t("studioSettlementApply.monthlyTitle")}
           </h2>
           <div className={styles.chartBox}>
             {max === 0 ? (
-              <p className={styles.empty}>정산 받은 내역이 없습니다.</p>
+              <p className={styles.empty}>{t("studioSettlementApply.noPayouts")}</p>
             ) : (
               <div className={styles.chart}>
                 <ol className={styles.yAxis} aria-hidden="true">
-                  {ticks.map((t) => (
-                    <li key={t}>{fn(t)}</li>
+                  {ticks.map((tick) => (
+                    <li key={tick}>{fn(tick)}</li>
                   ))}
                 </ol>
                 <ol className={styles.bars}>
@@ -88,22 +91,22 @@ export function SettlementApplyScreen({ view }: { view: SettlementApplyView }) {
         <section className={styles.historySection} aria-labelledby="settle-recent">
           <div className={styles.sectionHead}>
             <h2 id="settle-recent" className={styles.sectionTitle}>
-              최근 정산 내역
+              {t("studioSettlementApply.recentTitle")}
             </h2>
             <Link href="/creator/settlement/manage" className={styles.moreButton}>
-              더보기
+              {t("studioSettlementApply.more")}
             </Link>
           </div>
           <div className={styles.historyBox}>
             {view.recent.length === 0 ? (
-              <p className={styles.empty}>정산 내역이 없습니다.</p>
+              <p className={styles.empty}>{t("studioSettlementApply.noHistory")}</p>
             ) : (
               <ul className={styles.historyList}>
                 {view.recent.map((r) => (
                   <li key={r.id} className={styles.historyRow}>
                     <span className={styles.historyLeft}>
                       <span className={styles.badge} data-status={r.status}>
-                        {SETTLEMENT_STATUS_LABEL[r.status]}
+                        {t(SETTLEMENT_STATUS_KEY[r.status])}
                       </span>
                       <span className={styles.muted}>{r.requestedAt.slice(0, 7)}</span>
                     </span>

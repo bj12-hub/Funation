@@ -2,6 +2,8 @@
 
 import { useRef, useState, type DragEvent } from "react";
 import { formatKstTime, formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import {
   assignFeedEntry,
   cancelFeedEntry,
@@ -43,18 +45,30 @@ import { ExcelPanel, ExcelSummary } from "./ExcelPanel";
 import styles from "./crew.module.css";
 import feed from "./feed.module.css";
 
-const STATUS: Record<FeedStatus, string> = { ASSIGNED: "반영", PENDING: "확인 대기", UNMATCHED: "미지정", POT: "한방 모으는 중", CANCELLED: "취소" };
+const STATUS: Record<FeedStatus, MessageKey> = {
+  ASSIGNED: "crewOpsFeed.statusAssigned",
+  PENDING: "crewOpsFeed.statusPending",
+  UNMATCHED: "crewOpsFeed.statusUnmatched",
+  POT: "crewOpsFeed.statusPot",
+  CANCELLED: "crewOpsFeed.statusCancelled"
+};
 const FILTERS = [
-  { key: "ALL", label: "전체" },
-  { key: "TODO", label: "미지정·대기" },
-  { key: "UNPLAYED", label: "미재생" },
-  { key: "DUPLICATE", label: "중복 의심" },
-  { key: "ASSIGNED", label: "반영" },
-  { key: "CANCELLED", label: "취소 건" }
-] as const;
+  { key: "ALL", label: "crewOps.all" },
+  { key: "TODO", label: "crewOpsFeed.filterTodo" },
+  { key: "UNPLAYED", label: "crewOpsFeed.filterUnplayed" },
+  { key: "DUPLICATE", label: "crewOpsFeed.filterDuplicate" },
+  { key: "ASSIGNED", label: "crewOpsFeed.statusAssigned" },
+  { key: "CANCELLED", label: "crewOpsFeed.filterCancelled" }
+] as const satisfies readonly { key: string; label: MessageKey }[];
+/** 출처 labels that read differently per language; platform names show as written (PLATFORM_LABEL). */
+const ORIGIN_KEY: Partial<Record<FeedOrigin, MessageKey>> = {
+  SSUMNATION: "crewOpsFeed.originSsumnation",
+  BANK: "crewOpsFeed.originBank",
+  SIM: "crewOpsFeed.originSim"
+};
 type Filter = (typeof FILTERS)[number]["key"];
 /** Where the entry's alert is, while it has not finished (ENDED shows nothing). */
-const ALERT: Record<Exclude<FeedAlert, "ENDED">, string> = { HELD: "알림 멈춤", QUEUED: "알림 대기", SHOWING: "알림 중" };
+const ALERT: Record<Exclude<FeedAlert, "ENDED">, MessageKey> = { HELD: "crewOpsFeed.alertHeld", QUEUED: "crewOpsFeed.alertQueued", SHOWING: "crewOpsFeed.alertShowing" };
 const time = (iso: string) => formatKstTime(iso, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 /** Entries carry a unit code; the label is what shows (5,000 원 · 100 별풍선). */
 const amountText = (amount: number, unit: ExcelUnit) => `${formatNumber(amount)} ${unitLabel(unit)}`;
@@ -86,6 +100,7 @@ export function BroadcastFeed({
   pending: boolean;
   run: (action: () => Promise<BroadcastResult>, ok?: string) => void;
 }) {
+  const { t } = useI18n();
   const active = members.filter((m) => m.active);
   const nameOf = new Map(members.map((m) => [m.id, m]));
   const [filter, setFilter] = useState<Filter>("ALL");
@@ -126,7 +141,7 @@ export function BroadcastFeed({
     const e = view.entries.find((x) => x.id === entryId);
     if (!e || e.status === "POT") return;
     if (memberId === null ? e.status === "UNMATCHED" : e.status === "ASSIGNED" && e.memberId === memberId) return;
-    run(() => assignFeedEntry({ broadcastId, entryId, memberId }), memberId ? `${e.donor} 후원을 ${nameOf.get(memberId)?.name ?? ""}에게 배정했어요.` : `${e.donor} 후원을 미지정으로 돌렸어요.`);
+    run(() => assignFeedEntry({ broadcastId, entryId, memberId }), memberId ? t("crewOpsFeed.assignedTo", { donor: e.donor, member: nameOf.get(memberId)?.name ?? "" }) : t("crewOpsFeed.unassigned", { donor: e.donor }));
   };
 
   const simulate = () => {
@@ -146,21 +161,19 @@ export function BroadcastFeed({
     <section className={styles.card} aria-labelledby="bc-feed">
       <div className={styles.cardHead}>
         <h2 id="bc-feed" className={styles.cardTitle}>
-          후원 리스트 {todo > 0 && <span className={feed.badge}>처리 필요 {todo}</span>}
-          {suspects.length > 0 && <span className={feed.badge}>중복 의심 {suspects.length}</span>}
-          {held > 0 && <span className={feed.badge}>알림 멈춤 {held}</span>}
+          {t("crewOpsFeed.title")} {todo > 0 && <span className={feed.badge}>{t("crewOpsFeed.badgeTodo", { count: todo })}</span>}
+          {suspects.length > 0 && <span className={feed.badge}>{t("crewOpsFeed.badgeDuplicate", { count: suspects.length })}</span>}
+          {held > 0 && <span className={feed.badge}>{t("crewOpsFeed.badgeHeld", { count: held })}</span>}
         </h2>
-        <span className={styles.segment} role="group" aria-label="반영 방식">
+        <span className={styles.segment} role="group" aria-label={t("crewOpsFeed.assignModeAria")}>
           {(["AUTO", "CONFIRM"] as const).map((m) => (
             <button key={m} type="button" aria-pressed={view.assignMode === m} disabled={pending} onClick={() => run(() => setAssignMode({ broadcastId, mode: m }))}>
-              {m === "AUTO" ? "자동 반영" : "확인 후 반영"}
+              {m === "AUTO" ? t("crewOpsFeed.modeAuto") : t("crewOpsFeed.modeConfirm")}
             </button>
           ))}
         </span>
       </div>
-      <p className={styles.note}>
-        방송 중 멤버 지정 없이 들어온 후원이 여기에 쌓여요. 메시지에 멤버 키워드가 있으면 그 멤버에게 배정돼요. 키워드가 없거나 여러 멤버와 겹치면 미지정으로 남아요.
-      </p>
+      <p className={styles.note}>{t("crewOpsFeed.intro")}</p>
       <div className={feed.pauseRow}>
         <label className={styles.checkRow}>
           <input
@@ -170,13 +183,13 @@ export function BroadcastFeed({
             onChange={(ev) =>
               run(
                 () => setPauseUnassigned({ broadcastId, on: ev.target.checked }),
-                ev.target.checked ? "미지정 일시정지를 켰어요. 미지정 후원의 알림은 배정할 때까지 멈춰요." : "미지정 일시정지를 껐어요. 멈춘 알림이 차례로 나가요."
+                ev.target.checked ? t("crewOpsFeed.pauseOn") : t("crewOpsFeed.pauseOff")
               )
             }
           />
-          미지정 일시정지
+          {t("crewOpsFeed.pauseLabel")}
         </label>
-        <span className={styles.muted}>켜면 미지정 · 확인 대기 후원의 알림이 배정하거나 취소할 때까지 대기열에서 멈춰요. 뒤 알림도 함께 기다려요.</span>
+        <span className={styles.muted}>{t("crewOpsFeed.pauseNote")}</span>
       </div>
 
       <ExcelPanel settings={view.excel} pending={pending} run={run} />
@@ -185,7 +198,8 @@ export function BroadcastFeed({
 
       <details className={feed.panel}>
         <summary>
-          멤버 키워드 (멤버당 {KEYWORDS_PER_MEMBER}개){view.nameKeywords && " · 이름 자동 인식"}
+          {t("crewOpsFeed.keywordsTitle", { n: KEYWORDS_PER_MEMBER })}
+          {view.nameKeywords && t("crewOpsFeed.nameAuto")}
         </summary>
         <label className={`${styles.checkRow} ${feed.nameKeywords}`}>
           <input
@@ -195,11 +209,11 @@ export function BroadcastFeed({
             onChange={(e) =>
               run(
                 () => setNameKeywords({ on: e.target.checked }),
-                e.target.checked ? "멤버 이름도 키워드로 인식해요. 다음 후원부터 적용돼요." : "멤버 이름 인식을 껐어요. 키워드만 봐요."
+                e.target.checked ? t("crewOpsFeed.nameKeywordsOn") : t("crewOpsFeed.nameKeywordsOff")
               )
             }
           />
-          멤버 이름도 키워드로 인식 ({NAME_KEYWORD_MIN}글자 이상 이름)
+          {t("crewOpsFeed.nameKeywordsLabel", { n: NAME_KEYWORD_MIN })}
         </label>
         <ul className={feed.keywords}>
           {active.map((m) => (
@@ -210,12 +224,12 @@ export function BroadcastFeed({
               <input
                 key={(view.keywords[m.id] ?? []).join(",")}
                 className={styles.input}
-                aria-label={`${m.name} 키워드`}
-                placeholder="쉼표로 구분 (예: 하늘, sky)"
+                aria-label={t("crewOpsFeed.keywordsAria", { name: m.name })}
+                placeholder={t("crewOpsFeed.keywordsPlaceholder")}
                 defaultValue={(view.keywords[m.id] ?? []).join(", ")}
                 onBlur={(e) => {
                   const next = e.target.value.split(/[,\n]/).map((k) => k.trim()).filter(Boolean);
-                  if (next.join(",") !== (view.keywords[m.id] ?? []).join(",")) run(() => setMemberKeywords({ memberId: m.id, keywords: next }), "키워드를 저장했어요.");
+                  if (next.join(",") !== (view.keywords[m.id] ?? []).join(",")) run(() => setMemberKeywords({ memberId: m.id, keywords: next }), t("crewOpsFeed.keywordsSaved"));
                 }}
                 onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
               />
@@ -226,37 +240,37 @@ export function BroadcastFeed({
 
       <div className={feed.split}>
         <div className={feed.panelBox}>
-          <strong>시뮬 후원</strong>
-          <p className={styles.note}>연습용이에요. 점수판에만 반영되고 FN이나 플랫폼 후원은 움직이지 않아요.</p>
+          <strong>{t("crewOpsFeed.simTitle")}</strong>
+          <p className={styles.note}>{t("crewOpsFeed.simNote")}</p>
           <div className={styles.addRow}>
-            <input className={styles.inputSmall} inputMode="decimal" aria-label="시뮬 금액" value={simAmount} onChange={(e) => setSimAmount(e.target.value.replace(/[^\d.]/g, "").slice(0, 11))} />
-            <select className={`${styles.select} ${feed.grow}`} aria-label="시뮬 단위" value={simUnit} onChange={(e) => setSimUnit(e.target.value as ExcelUnit)}>
+            <input className={styles.inputSmall} inputMode="decimal" aria-label={t("crewOpsFeed.simAmountAria")} value={simAmount} onChange={(e) => setSimAmount(e.target.value.replace(/[^\d.]/g, "").slice(0, 11))} />
+            <select className={`${styles.select} ${feed.grow}`} aria-label={t("crewOpsFeed.simUnitAria")} value={simUnit} onChange={(e) => setSimUnit(e.target.value as ExcelUnit)}>
               {EXCEL_UNITS.map((u) => (
                 <option key={u.key} value={u.key}>
-                  {u.platform ? `${PLATFORM_LABEL[u.platform]} · ${u.label}` : `썸네이션 · ${u.label}`}
+                  {u.platform ? `${PLATFORM_LABEL[u.platform]} · ${u.label}` : t("crewOpsFeed.simUnitSsumnation", { unit: u.label })}
                 </option>
               ))}
             </select>
           </div>
-          <input className={styles.input} aria-label="시뮬 후원자명" placeholder="후원자명" value={simDonor} onChange={(e) => setSimDonor(e.target.value)} maxLength={60} />
+          <input className={styles.input} aria-label={t("crewOpsFeed.simDonorAria")} placeholder={t("crewOpsFeed.simDonorPlaceholder")} value={simDonor} onChange={(e) => setSimDonor(e.target.value)} maxLength={60} />
           <div className={styles.addRow}>
-            <input className={styles.input} aria-label="시뮬 메시지" placeholder="메시지 (키워드 포함 시 자동 배정)" value={simMessage} onChange={(e) => setSimMessage(e.target.value)} maxLength={60} />
+            <input className={styles.input} aria-label={t("crewOpsFeed.simMessageAria")} placeholder={t("crewOpsFeed.simMessagePlaceholder")} value={simMessage} onChange={(e) => setSimMessage(e.target.value)} maxLength={60} />
             <button type="button" className={styles.primary} disabled={pending || !Number(simAmount)} onClick={simulate}>
-              보내기
+              {t("crewOpsFeed.send")}
             </button>
           </div>
         </div>
 
         <div className={feed.panelBox} data-live={view.oneshot ? "" : undefined}>
-          <strong>한방 후원</strong>
+          <strong>{t("crewOpsFeed.oneshotTitle")}</strong>
           {view.oneshot ? (
             <>
               <p className={styles.muted}>
-                모으는 중 · {view.oneshot.count}건 <strong className={feed.pot}>{formatNumber(view.oneshot.potPoints)}점</strong>
+                {t("crewOpsFeed.potCollecting", { count: view.oneshot.count })} <strong className={feed.pot}>{t("crewOpsFeed.points", { n: formatNumber(view.oneshot.potPoints) })}</strong>
               </p>
               <div className={styles.addRow}>
-                <select className={styles.select} aria-label="몰아줄 멤버" value={target} onChange={(e) => setTarget(e.target.value)}>
-                  <option value="">몰아줄 멤버 선택</option>
+                <select className={styles.select} aria-label={t("crewOpsFeed.oneshotTargetAria")} value={target} onChange={(e) => setTarget(e.target.value)}>
+                  <option value="">{t("crewOpsFeed.oneshotTargetPick")}</option>
                   {active.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.name}
@@ -267,21 +281,21 @@ export function BroadcastFeed({
                   type="button"
                   className={styles.primary}
                   disabled={pending || !target}
-                  onClick={() => run(() => stopOneshot({ broadcastId, memberId: target }), `한방을 ${nameOf.get(target)?.name ?? ""}에게 몰아줬어요.`)}
+                  onClick={() => run(() => stopOneshot({ broadcastId, memberId: target }), t("crewOpsFeed.oneshotGiven", { name: nameOf.get(target)?.name ?? "" }))}
                 >
-                  STOP · 몰아주기
+                  {t("crewOpsFeed.oneshotStop")}
                 </button>
-                <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => stopOneshot({ broadcastId, memberId: null }), "한방을 취소했어요. 모은 후원은 다시 배정돼요.")}>
-                  취소
+                <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => stopOneshot({ broadcastId, memberId: null }), t("crewOpsFeed.oneshotCancelled"))}>
+                  {t("crewOps.cancel")}
                 </button>
               </div>
             </>
           ) : (
             <>
-              <p className={styles.note}>시작하면 그 구간의 후원이 점수판에 바로 들어가지 않고 따로 모여요. STOP 때 한 멤버에게 몰아줘요.</p>
+              <p className={styles.note}>{t("crewOpsFeed.oneshotNote")}</p>
               <div className={styles.actions}>
-                <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => startOneshot({ broadcastId }), "한방을 시작했어요.")}>
-                  한방 시작
+                <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => startOneshot({ broadcastId }), t("crewOpsFeed.oneshotStarted"))}>
+                  {t("crewOpsFeed.oneshotStart")}
                 </button>
               </div>
             </>
@@ -289,17 +303,17 @@ export function BroadcastFeed({
         </div>
       </div>
 
-      <div className={`${styles.tabs} ${feed.filters}`} role="group" aria-label="후원 리스트 필터">
+      <div className={`${styles.tabs} ${feed.filters}`} role="group" aria-label={t("crewOpsFeed.filtersAria")}>
         {FILTERS.map((f) => (
           <button key={f.key} type="button" className={styles.tab} aria-current={filter === f.key ? "page" : undefined} onClick={() => setFilter(f.key)}>
-            {f.label}
+            {t(f.label)}
           </button>
         ))}
       </div>
       {origins.length > 1 && (
-        <div className={feed.origins} role="group" aria-label="후원 리스트 출처">
-          <span className={styles.muted}>출처</span>
-          {[{ key: "ALL" as const, label: "전체", count: view.entries.length }, ...origins].map((o) => (
+        <div className={feed.origins} role="group" aria-label={t("crewOpsFeed.originsAria")}>
+          <span className={styles.muted}>{t("crewOpsFeed.originLabel")}</span>
+          {[{ key: "ALL" as const, label: t("crewOps.all"), count: view.entries.length }, ...origins.map((o) => ({ ...o, label: ORIGIN_KEY[o.key] ? t(ORIGIN_KEY[o.key]!) : o.label }))].map((o) => (
             <button key={o.key} type="button" className={feed.origin} aria-pressed={origin === o.key} onClick={() => setOrigin(o.key)}>
               {o.label} {o.count}
             </button>
@@ -312,12 +326,12 @@ export function BroadcastFeed({
       {entries.length === 0 ? (
         <p className={styles.empty}>
           {!view.entries.length
-            ? "방송 중 들어온 후원이 여기에 쌓여요. 시뮬 후원으로 연습해 보세요."
+            ? t("crewOpsFeed.emptyAll")
             : filter === "DUPLICATE"
-              ? "중복 의심 후원이 없어요."
+              ? t("crewOpsFeed.emptyDuplicate")
               : filter === "UNPLAYED"
-                ? "알림이 아직 나가지 않은 후원이 없어요."
-                : "조건에 맞는 후원이 없어요."}
+                ? t("crewOpsFeed.emptyUnplayed")
+                : t("crewOpsFeed.emptyFiltered")}
         </p>
       ) : (
         <ul className={styles.list}>
@@ -345,6 +359,7 @@ export function BroadcastFeed({
  * select does the same with a keyboard or on a touch screen (where the bar is hidden).
  */
 function DropBar({ active, dragging, pending, onDrop }: { active: CrewMember[]; dragging: boolean; pending: boolean; onDrop: (entryId: string, memberId: string | null) => void }) {
+  const { t } = useI18n();
   const [over, setOver] = useState<string | null>(null);
   const target = (key: string, memberId: string | null) => ({
     "data-over": over === key ? "" : undefined,
@@ -364,7 +379,7 @@ function DropBar({ active, dragging, pending, onDrop }: { active: CrewMember[]; 
   });
   return (
     <div className={feed.dropBar} data-dragging={dragging ? "" : undefined}>
-      <span className={styles.muted}>후원을 끌어다 멤버에 놓으면 배정돼요.</span>
+      <span className={styles.muted}>{t("crewOpsFeed.dropHint")}</span>
       <ul className={feed.dropTargets} aria-hidden="true">
         {active.map((m) => (
           <li key={m.id} {...target(m.id, m.id)}>
@@ -373,7 +388,7 @@ function DropBar({ active, dragging, pending, onDrop }: { active: CrewMember[]; 
           </li>
         ))}
         <li data-unassign="" {...target("", null)}>
-          미지정
+          {t("crewOpsFeed.statusUnmatched")}
         </li>
       </ul>
     </div>
@@ -399,6 +414,7 @@ function EntryRow({
   run: Run;
   onDrag: (dragging: boolean) => void;
 }) {
+  const { t } = useI18n();
   const suggested = e.suggestedMemberId ? nameOf.get(e.suggestedMemberId) : null;
   // The donor side of the row drags it (the inputs on the right stay selectable); a 한방 entry waits for its STOP.
   const draggable = e.status !== "POT" && !pending;
@@ -413,7 +429,7 @@ function EntryRow({
         className={`${styles.rowMain} ${feed.dragSource}`}
         draggable={draggable}
         data-draggable={draggable ? "" : undefined}
-        title={draggable ? "끌어서 멤버에 놓으면 배정돼요" : undefined}
+        title={draggable ? t("crewOpsFeed.dragTitle") : undefined}
         onDragStart={(ev) => {
           ev.dataTransfer.setData(DRAG_TYPE, e.id);
           ev.dataTransfer.effectAllowed = "move";
@@ -432,13 +448,13 @@ function EntryRow({
           {e.mergedDonor ?? e.donor}
           {e.mergedDonor && <span className={feed.alias}>({e.donor})</span>} · {amountText(e.amount, e.unit)}
           {e.platform && <span className={styles.chipOff}>{PLATFORM_LABEL[e.platform]}</span>}
-          {e.source === "SIM" && <span className={styles.chipOff}>시뮬</span>}
-          {e.source === "BANK" && <span className={styles.chipOff}>계좌</span>}
-          {e.oneshot && <span className={styles.chip}>한방</span>}
-          {e.status === "CANCELLED" && e.duplicate === "DUPLICATE" && <span className={styles.chipOff}>중복 취소</span>}
+          {e.source === "SIM" && <span className={styles.chipOff}>{t("crewOpsFeed.originSim")}</span>}
+          {e.source === "BANK" && <span className={styles.chipOff}>{t("crewOpsFeed.originBank")}</span>}
+          {e.oneshot && <span className={styles.chip}>{t("crewOpsFeed.chipOneshot")}</span>}
+          {e.status === "CANCELLED" && e.duplicate === "DUPLICATE" && <span className={styles.chipOff}>{t("crewOpsFeed.chipDuplicate")}</span>}
           {e.alert && e.alert !== "ENDED" && (
             <span className={feed.alertTag} data-alert={e.alert}>
-              {ALERT[e.alert]}
+              {t(ALERT[e.alert])}
             </span>
           )}
         </span>
@@ -449,24 +465,24 @@ function EntryRow({
       </div>
       <ContributionCell entry={e} excel={excel} pending={pending} broadcastId={broadcastId} run={run} />
       <span className={feed.status} data-status={e.status}>
-        {STATUS[e.status]}
+        {t(STATUS[e.status])}
         {e.status === "PENDING" && suggested && ` → ${suggested.name}`}
       </span>
       {e.status !== "POT" && (
         <span className={styles.rowActions}>
           {e.status === "PENDING" && e.suggestedMemberId && (
             <button type="button" className={styles.primary} disabled={pending} onClick={() => run(() => assignFeedEntry({ broadcastId, entryId: e.id, memberId: e.suggestedMemberId }))}>
-              확인
+              {t("crewOpsFeed.confirm")}
             </button>
           )}
           <select
             className={styles.select}
-            aria-label={`${e.donor} 후원 멤버 배정`}
+            aria-label={t("crewOpsFeed.assignAria", { donor: e.donor })}
             value={e.status === "ASSIGNED" ? (e.memberId ?? "") : ""}
             disabled={pending}
             onChange={(ev) => run(() => assignFeedEntry({ broadcastId, entryId: e.id, memberId: ev.target.value || null }))}
           >
-            <option value="">{e.status === "ASSIGNED" ? "배정 해제" : "멤버 선택"}</option>
+            <option value="">{e.status === "ASSIGNED" ? t("crewOpsFeed.unassignOption") : t("crewOpsFeed.pickMember")}</option>
             {active.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.name}
@@ -475,36 +491,36 @@ function EntryRow({
           </select>
           {e.status !== "CANCELLED" && (
             <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => cancelFeedEntry({ broadcastId, entryId: e.id }))}>
-              취소
+              {t("crewOps.cancel")}
             </button>
           )}
         </span>
       )}
       {e.duplicateOf && (
         <div className={feed.duplicate}>
-          <span>중복 의심 · {time(e.duplicateOf.at)}에 같은 후원자 · 같은 금액 후원이 있어요.</span>
+          <span>{t("crewOpsFeed.duplicateLine", { time: time(e.duplicateOf.at) })}</span>
           <span className={feed.duplicateActions}>
             {e.status !== "POT" && (
               <button
                 type="button"
                 className={styles.ghost}
                 disabled={pending}
-                onClick={() => run(() => resolveDuplicate({ broadcastId, entryId: e.id, verdict: "DUPLICATE" }), "중복으로 보고 취소했어요. 다시 배정하면 되살아나요.")}
+                onClick={() => run(() => resolveDuplicate({ broadcastId, entryId: e.id, verdict: "DUPLICATE" }), t("crewOpsFeed.duplicateCancelled"))}
               >
-                중복 취소
+                {t("crewOpsFeed.duplicateCancel")}
               </button>
             )}
-            <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => resolveDuplicate({ broadcastId, entryId: e.id, verdict: "KEPT" }), "중복 아님으로 표시했어요.")}>
-              중복 아님
+            <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => resolveDuplicate({ broadcastId, entryId: e.id, verdict: "KEPT" }), t("crewOpsFeed.notDuplicateDone"))}>
+              {t("crewOpsFeed.notDuplicate")}
             </button>
           </span>
         </div>
       )}
       {e.alert === "HELD" && (
         <div className={feed.held}>
-          <span>미지정 일시정지 · 이 후원의 알림이 대기열에서 멈춰 있어요. 배정하거나 취소하면 이어서 나가요.</span>
-          <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => playHeldEntry({ broadcastId, entryId: e.id }), "배정 없이 알림을 내보내요.")}>
-            배정 없이 재생
+          <span>{t("crewOpsFeed.heldLine")}</span>
+          <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => playHeldEntry({ broadcastId, entryId: e.id }), t("crewOpsFeed.playHeldDone"))}>
+            {t("crewOpsFeed.playHeld")}
           </button>
         </div>
       )}
@@ -528,6 +544,7 @@ function ContributionCell({
   broadcastId: string;
   run: (action: () => Promise<BroadcastResult>, ok?: string) => void;
 }) {
+  const { t } = useI18n();
   const mode: Mode = e.contribution?.kind ?? "AUTO";
   const send = (contribution: Contribution | null) => run(() => setEntryContribution({ broadcastId, entryId: e.id, contribution }));
   const commit = (raw: string, kind: Contribution["kind"]) => {
@@ -541,16 +558,16 @@ function ContributionCell({
   return (
     <span className={feed.contribution}>
       <span className={feed.points}>
-        <strong>{formatNumber(e.points)}점</strong>
+        <strong>{t("crewOpsFeed.points", { n: formatNumber(e.points) })}</strong>
         <span className={styles.muted}>
-          {missing ? (excel.unit === "KRW" ? "환산값 미설정" : "원화 환산에서 반영") : mode === "POINTS" ? "수기 입력" : `${baseText} × ${e.multiplier}`}
+          {missing ? (excel.unit === "KRW" ? t("crewOpsFeed.contribNoRate") : t("crewOpsFeed.contribKrwOnly")) : mode === "POINTS" ? t("crewOpsFeed.contribManual") : `${baseText} × ${e.multiplier}`}
         </span>
       </span>
       {e.status !== "CANCELLED" && (
         <span className={feed.contributionEdit}>
           <select
             className={styles.select}
-            aria-label={`${e.donor} 기여도 방식`}
+            aria-label={t("crewOpsFeed.contribModeAria", { donor: e.donor })}
             value={mode}
             disabled={pending}
             onChange={(ev) => {
@@ -559,16 +576,16 @@ function ContributionCell({
               else send(next === "POINTS" ? { kind: "POINTS", value: e.points } : { kind: "MULTIPLIER", value: e.multiplier });
             }}
           >
-            <option value="AUTO">규칙</option>
-            <option value="POINTS">점수</option>
-            <option value="MULTIPLIER">배수</option>
+            <option value="AUTO">{t("crewOpsFeed.modeRule")}</option>
+            <option value="POINTS">{t("crewOpsFeed.modePoints")}</option>
+            <option value="MULTIPLIER">{t("crewOpsFeed.modeMultiplier")}</option>
           </select>
           {mode !== "AUTO" && (
             <input
               key={`${mode}-${e.contribution?.value}`}
               className={styles.inputSmall}
               inputMode="decimal"
-              aria-label={`${e.donor} 기여도 ${mode === "POINTS" ? "점수" : "배수"}`}
+              aria-label={t(mode === "POINTS" ? "crewOpsFeed.contribPointsAria" : "crewOpsFeed.contribMultiplierAria", { donor: e.donor })}
               defaultValue={e.contribution?.value}
               onBlur={(ev) => commit(ev.target.value, mode)}
               onKeyDown={(ev) => ev.key === "Enter" && (ev.target as HTMLInputElement).blur()}

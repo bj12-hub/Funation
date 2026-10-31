@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { PreviewStage } from "@/features/overlayTheme/PreviewStage";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { MINI_MAX_FN } from "@/services/donations/donationCatalog";
 import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
 import { effectLabel, resolveTheme } from "@/services/creator/overlayThemeTypes";
@@ -18,6 +19,7 @@ import {
 } from "@/services/creator/widgetSettingsTypes";
 import { FontFields, NumberField, Radios, Row, Section, Select, SwitchText } from "./fields";
 import type { FormProps } from "./forms";
+import { optionText, translatedOptions } from "./widgetFormLabels";
 import styles from "./widgets.module.css";
 
 
@@ -42,47 +44,59 @@ function SwitchLine({ label, checked, onChange }: { label: string; checked: bool
 
 export function RecentForm({ value: v, onChange, live }: FormProps<"RECENT">) {
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
+  const { t } = useI18n();
   return (
     <>
-      <Section title="미리보기">
-        <PreviewStage width={800} minHeight={120} label="최근알림 미리보기">
+      <Section title={t("widgetForm.preview")}>
+        <PreviewStage width={800} minHeight={120} label={t("widgetFormList.recentPreview")}>
           <RecentView settings={v} lines={recentLines(SAMPLE_ALERTS, v)} theme={resolveTheme(live.appearance, v.theme)} />
         </PreviewStage>
       </Section>
-      <Section title="테마">
+      <Section title={t("widgetForm.theme")}>
         <div className={styles.rows}>
           <ThemeChoiceField value={v.theme} onChange={(x) => set("theme", x)} appearance={live.appearance} />
-          <SwitchText label="배경 카드" checked={v.card} onChange={(x) => set("card", x)} text="테마 카드 위에 그려요. 끄면 글자만 방송 화면 위에 (아래 글자 색 · 외곽선 사용)" />
+          <SwitchText label={t("widgetForm.bgCard")} checked={v.card} onChange={(x) => set("card", x)} text={t("widgetForm.bgCardHint")} />
         </div>
       </Section>
-      <Section title="기본 설정">
+      <Section title={t("widgetForm.basic")}>
         <div className={styles.rows}>
           <div className={styles.grid2}>
-            <Stacked label="알림 효과">
-              <Select label="알림 효과" value={v.effect} options={RECENT_EFFECTS} width={220} format={effectLabel} onChange={(x) => set("effect", x)} />
+            <Stacked label={t("widgetForm.effect")}>
+              <Select
+                label={t("widgetForm.effect")}
+                value={v.effect}
+                options={RECENT_EFFECTS}
+                width={220}
+                format={(x) => optionText(effectLabel(x), t)}
+                onChange={(x) => set("effect", x)}
+              />
             </Stacked>
-            <Stacked label="표시 개수">
-              <NumberField label="표시 개수" value={v.count} max={10} width={120} suffix="개" onChange={(x) => set("count", x)} />
+            <Stacked label={t("widgetFormList.count")}>
+              <NumberField label={t("widgetFormList.count")} value={v.count} max={10} width={120} suffix={t("widgetForm.unitItems")} onChange={(x) => set("count", x)} />
             </Stacked>
-            <Stacked label="줄 간격">
-              <NumberField label="줄 간격" value={v.lineGap} max={50} width={120} suffix="px" onChange={(x) => set("lineGap", x)} />
+            <Stacked label={t("widgetFormList.lineGap")}>
+              <NumberField label={t("widgetFormList.lineGap")} value={v.lineGap} max={50} width={120} suffix="px" onChange={(x) => set("lineGap", x)} />
             </Stacked>
-            <Stacked label="스크롤 이동 속도">
-              <Select label="스크롤 이동 속도" value={v.scrollSpeedSec} options={RECENT_SCROLL_SPEEDS} format={(s) => `${s}초`} onChange={(x) => set("scrollSpeedSec", x)} />
+            <Stacked label={t("widgetFormList.scrollSpeed")}>
+              <Select
+                label={t("widgetFormList.scrollSpeed")}
+                value={v.scrollSpeedSec}
+                options={RECENT_SCROLL_SPEEDS}
+                format={(s) => t("widgetForm.seconds", { s })}
+                onChange={(x) => set("scrollSpeedSec", x)}
+              />
             </Stacked>
           </div>
-          <Stacked label="알림 폰트 설정">
-            <FontFields label="알림" value={v.font} onChange={(x) => set("font", x)} />
+          <Stacked label={t("widgetFormList.alertFont")}>
+            <FontFields label={t("widgetFormList.alertFontLabel")} value={v.font} onChange={(x) => set("font", x)} />
           </Stacked>
-          <SwitchLine label="닉네임 컬러 사용하기" checked={v.nicknameColor} onChange={(x) => set("nicknameColor", x)} />
-          <SwitchLine label="텍스트 외곽선 표시하기" checked={v.textOutline} onChange={(x) => set("textOutline", x)} />
+          <SwitchLine label={t("widgetFormList.useNicknameColor")} checked={v.nicknameColor} onChange={(x) => set("nicknameColor", x)} />
+          <SwitchLine label={t("widgetForm.textOutline")} checked={v.textOutline} onChange={(x) => set("textOutline", x)} />
           <div className={styles.subCard}>
-            <strong>플랫폼별 알림 템플릿</strong>
-            <p className={styles.hint}>
-              {"{nickname}"} 닉네임 · {"{amount}"} 금액 · {"{count}"} 개수
-            </p>
+            <strong>{t("widgetFormList.templates")}</strong>
+            <p className={styles.hint}>{t("widgetFormList.tokens")}</p>
             {RECENT_PLATFORMS.map((p) => (
-              <Stacked key={p.key} label={`${p.label} 템플릿`} htmlFor={`tpl-${p.key}`}>
+              <Stacked key={p.key} label={t("widgetFormList.platformTemplate", { platform: optionText(p.label, t) })} htmlFor={`tpl-${p.key}`}>
                 <input
                   id={`tpl-${p.key}`}
                   className={styles.input}
@@ -103,54 +117,62 @@ export function RecentForm({ value: v, onChange, live }: FormProps<"RECENT">) {
 
 export function EventForm({ value: v, onChange, live }: FormProps<"EVENT">) {
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
+  const { t } = useI18n();
   return (
     <>
-      <Section title="미리보기">
-        <PreviewStage width={500} minHeight={160} label="이벤트 미리보기">
+      <Section title={t("widgetForm.preview")}>
+        <PreviewStage width={500} minHeight={160} label={t("widgetFormList.eventPreview")}>
           <EventView settings={v} lines={eventLines(SAMPLE_ALERTS, v)} theme={resolveTheme(live.appearance, v.theme)} now={null} />
         </PreviewStage>
       </Section>
-      <Section title="테마">
+      <Section title={t("widgetForm.theme")}>
         <ThemeChoiceField value={v.theme} onChange={(x) => set("theme", x)} appearance={live.appearance} />
       </Section>
-      <Section title="기본 설정">
+      <Section title={t("widgetForm.basic")}>
         <div className={styles.rows}>
-          <Stacked label="위젯 스타일">
-            <Radios name="event-style" label="위젯 스타일" options={EVENT_STYLES} value={v.style} onChange={(x) => set("style", x)} />
+          <Stacked label={t("widgetForm.widgetStyle")}>
+            <Radios name="event-style" label={t("widgetForm.widgetStyle")} options={translatedOptions(EVENT_STYLES, t)} value={v.style} onChange={(x) => set("style", x)} />
           </Stacked>
           <div className={styles.grid2}>
-            <Stacked label="표시 순서">
-              <Select label="표시 순서" value={v.order} options={EVENT_ORDERS} onChange={(x) => set("order", x)} />
+            <Stacked label={t("widgetFormList.order")}>
+              <Select label={t("widgetFormList.order")} value={v.order} options={EVENT_ORDERS} format={(x) => optionText(x, t)} onChange={(x) => set("order", x)} />
             </Stacked>
-            <Stacked label="알림 효과">
-              <Select label="알림 효과" value={v.effect} options={RECENT_EFFECTS} width={220} format={effectLabel} onChange={(x) => set("effect", x)} />
+            <Stacked label={t("widgetForm.effect")}>
+              <Select
+                label={t("widgetForm.effect")}
+                value={v.effect}
+                options={RECENT_EFFECTS}
+                width={220}
+                format={(x) => optionText(effectLabel(x), t)}
+                onChange={(x) => set("effect", x)}
+              />
             </Stacked>
           </div>
-          <Stacked label="폰트 설정">
-            <FontFields label="이벤트" value={v.font} onChange={(x) => set("font", x)} />
+          <Stacked label={t("widgetForm.fontSettings")}>
+            <FontFields label={t("widgetFormList.eventFontLabel")} value={v.font} onChange={(x) => set("font", x)} />
           </Stacked>
-          <SwitchLine label="닉네임 컬러 사용하기" checked={v.nicknameColor} onChange={(x) => set("nicknameColor", x)} />
-          <Stacked label="닉네임 배경 사용">
+          <SwitchLine label={t("widgetFormList.useNicknameColor")} checked={v.nicknameColor} onChange={(x) => set("nicknameColor", x)} />
+          <Stacked label={t("widgetFormList.nicknameBg")}>
             <Radios
               name="event-nick-bg"
-              label="닉네임 배경 사용"
+              label={t("widgetFormList.nicknameBg")}
               options={[
-                { key: "ON", label: "사용함" },
-                { key: "OFF", label: "사용 안 함" }
+                { key: "ON", label: t("widgetFormList.on") },
+                { key: "OFF", label: t("widgetForm.off") }
               ]}
               value={v.nicknameBackground ? "ON" : "OFF"}
               onChange={(x) => set("nicknameBackground", x === "ON")}
             />
           </Stacked>
           <div className={styles.grid2}>
-            <Stacked label="최대 표시 줄">
-              <NumberField label="최대 표시 줄" value={v.maxLines} max={20} width={120} suffix="줄" onChange={(x) => set("maxLines", x)} />
+            <Stacked label={t("widgetFormList.maxLines")}>
+              <NumberField label={t("widgetFormList.maxLines")} value={v.maxLines} max={20} width={120} suffix={t("widgetFormList.unitLines")} onChange={(x) => set("maxLines", x)} />
             </Stacked>
-            <Stacked label="감추기 시간">
-              <NumberField label="감추기 시간" value={v.hideAfterSec} max={3600} width={120} suffix="초" onChange={(x) => set("hideAfterSec", x)} />
+            <Stacked label={t("widgetForm.hideAfter")}>
+              <NumberField label={t("widgetForm.hideAfter")} value={v.hideAfterSec} max={3600} width={120} suffix={t("widgetForm.unitSec")} onChange={(x) => set("hideAfterSec", x)} />
             </Stacked>
           </div>
-          <SwitchLine label="자동으로 감추기 사용" checked={v.autoHide} onChange={(x) => set("autoHide", x)} />
+          <SwitchLine label={t("widgetFormList.autoHide")} checked={v.autoHide} onChange={(x) => set("autoHide", x)} />
         </div>
       </Section>
     </>
@@ -162,67 +184,68 @@ export function EventForm({ value: v, onChange, live }: FormProps<"EVENT">) {
 export function MiniForm({ value: v, onChange, live }: FormProps<"MINI">) {
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
   const lines = miniLines(SAMPLE_MINI_ALERTS, v);
+  const { t } = useI18n();
   return (
     <>
-      <Section title="미리보기">
+      <Section title={t("widgetForm.preview")}>
         {lines.length > 0 ? (
-          <PreviewStage width={800} minHeight={120} label="미니후원 미리보기">
+          <PreviewStage width={800} minHeight={120} label={t("widgetFormList.miniPreview")}>
             <MiniView settings={v} lines={lines} theme={resolveTheme(live.appearance, v.theme)} />
           </PreviewStage>
         ) : (
-          <p className={styles.hint}>최소 표시 금액보다 작은 후원은 표시되지 않아요.</p>
+          <p className={styles.hint}>{t("widgetFormList.miniBelowMin")}</p>
         )}
-        <p className={styles.hint}>미니후원은 지금처럼 후원 알림에도 함께 떠요. 이 위젯은 최근 미니후원 {MINI_LINES}개를 흘려 보여 줘요.</p>
+        <p className={styles.hint}>{t("widgetFormList.miniHint", { count: MINI_LINES })}</p>
       </Section>
-      <Section title="테마">
+      <Section title={t("widgetForm.theme")}>
         <div className={styles.rows}>
           <ThemeChoiceField value={v.theme} onChange={(x) => set("theme", x)} appearance={live.appearance} />
-          <SwitchText label="배경 카드" checked={v.card} onChange={(x) => set("card", x)} text="테마 띠(말풍선) 위에 그려요. 끄면 글자만 방송 화면 위에 (아래 글자 색 · 외곽선 사용)" />
+          <SwitchText label={t("widgetForm.bgCard")} checked={v.card} onChange={(x) => set("card", x)} text={t("widgetFormList.miniCardHint")} />
         </div>
       </Section>
-      <Section title="기본 설정">
+      <Section title={t("widgetForm.basic")}>
         <div className={styles.rows}>
           <div className={styles.grid2}>
-            <Stacked label="스타일">
+            <Stacked label={t("widgetFormList.style")}>
               <Radios
                 name="mini-style"
-                label="스타일"
+                label={t("widgetFormList.style")}
                 options={[
-                  { key: "SCROLL", label: "스크롤형" },
-                  { key: "BUBBLE", label: "말풍선형" }
+                  { key: "SCROLL", label: t("widgetFormList.scroll") },
+                  { key: "BUBBLE", label: t("widgetFormOptions.bubble") }
                 ]}
                 value={v.style}
                 onChange={(x) => set("style", x)}
               />
             </Stacked>
-            <Stacked label="방향">
+            <Stacked label={t("widgetFormList.direction")}>
               <Radios
                 name="mini-dir"
-                label="방향"
+                label={t("widgetFormList.direction")}
                 options={[
-                  { key: "RTL", label: "오른쪽에서 왼쪽" },
-                  { key: "LTR", label: "왼쪽에서 오른쪽" }
+                  { key: "RTL", label: t("widgetFormList.rtl") },
+                  { key: "LTR", label: t("widgetFormList.ltr") }
                 ]}
                 value={v.direction}
                 onChange={(x) => set("direction", x)}
               />
             </Stacked>
-            <Stacked label="속도">
-              <NumberField label="속도" value={v.speed} max={100} width={120} suffix="(1~100)" onChange={(x) => set("speed", Math.max(1, x))} />
+            <Stacked label={t("widgetFormList.speed")}>
+              <NumberField label={t("widgetFormList.speed")} value={v.speed} max={100} width={120} suffix="(1~100)" onChange={(x) => set("speed", Math.max(1, x))} />
             </Stacked>
-            <Stacked label="텍스트 시작 위치">
-              <NumberField label="텍스트 시작 위치" value={v.startPercent} max={100} width={120} suffix="%" onChange={(x) => set("startPercent", x)} />
+            <Stacked label={t("widgetFormList.startPos")}>
+              <NumberField label={t("widgetFormList.startPos")} value={v.startPercent} max={100} width={120} suffix="%" onChange={(x) => set("startPercent", x)} />
             </Stacked>
           </div>
-          <SwitchLine label="금액 표시하기" checked={v.showAmount} onChange={(x) => set("showAmount", x)} />
-          <SwitchLine label="닉네임 표시하기" checked={v.showNickname} onChange={(x) => set("showNickname", x)} />
-          <Stacked label="최소 표시 금액">
-            <NumberField label="최소 표시 금액" value={v.minAmount} max={MINI_MAX_FN} grouped width={160} suffix="FN" onChange={(x) => set("minAmount", x)} />
+          <SwitchLine label={t("widgetForm.showAmount")} checked={v.showAmount} onChange={(x) => set("showAmount", x)} />
+          <SwitchLine label={t("widgetFormList.showNickname")} checked={v.showNickname} onChange={(x) => set("showNickname", x)} />
+          <Stacked label={t("widgetFormList.minAmount")}>
+            <NumberField label={t("widgetFormList.minAmount")} value={v.minAmount} max={MINI_MAX_FN} grouped width={160} suffix="FN" onChange={(x) => set("minAmount", x)} />
           </Stacked>
-          <Stacked label="폰트 설정">
-            <FontFields label="미니후원" value={v.font} onChange={(x) => set("font", x)} />
+          <Stacked label={t("widgetForm.fontSettings")}>
+            <FontFields label={t("widgetFormList.miniFontLabel")} value={v.font} onChange={(x) => set("font", x)} />
           </Stacked>
-          <SwitchLine label="텍스트 외곽선 표시" checked={v.textOutline} onChange={(x) => set("textOutline", x)} />
+          <SwitchLine label={t("widgetFormList.outlineShort")} checked={v.textOutline} onChange={(x) => set("textOutline", x)} />
         </div>
       </Section>
     </>
