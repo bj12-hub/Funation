@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { ko } from "@/lib/i18n/messages/ko";
 import { getMockDonationCatalog } from "@/services/donations/donationCatalog";
 import { CHARGE_CONSENTS } from "@/services/wallet/chargeTypes";
 import { clauseHeading, isTermsSlug, TERMS_DOCS, TERMS_DRAFT, TERMS_SLUGS, type TermsBlock } from "./termsOutline";
@@ -65,6 +66,13 @@ describe("약관 · 정책 문서 (초안 본문, 2026-10-08)", () => {
     expect(TERMS_DRAFT.banner).toBe("초안 — 일반적인 기준으로 작성했고 법무 검토 전이에요. 정식 오픈 전에 바뀔 수 있어요.");
     expect(TERMS_DRAFT.effectiveDate).toBe("정식 오픈일 (TBD)");
     expect(TERMS_DRAFT.version).toBe("초안 v0.1");
+    // The page shows them through termsPage messages (2026-11-01): Korean must read exactly as the documents do.
+    expect([ko.termsPage.draftBadge, ko.termsPage.draftBanner, ko.termsPage.effectiveDateValue, ko.termsPage.versionValue]).toEqual([
+      TERMS_DRAFT.badge,
+      TERMS_DRAFT.banner,
+      TERMS_DRAFT.effectiveDate,
+      TERMS_DRAFT.version
+    ]);
   });
 
   it("names the operator only as 회사 and keeps 사업자 정보 a placeholder", () => {
