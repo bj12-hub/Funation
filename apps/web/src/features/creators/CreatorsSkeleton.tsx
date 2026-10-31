@@ -1,10 +1,12 @@
+import { getT } from "@/lib/i18n/server";
 import styles from "./creators.module.css";
 import skeleton from "./CreatorsSkeleton.module.css";
 
 /** LOADING state for the creator directory. */
-export function CreatorsSkeleton() {
+export async function CreatorsSkeleton() {
+  const t = await getT();
   return (
-    <div className={styles.page} aria-busy="true" aria-label="크리에이터 목록을 불러오는 중">
+    <div className={styles.page} aria-busy="true" aria-label={t("creators.loading")}>
       <div className={styles.hero}>
         <div className={skeleton.title} />
         <div className={skeleton.bar} />

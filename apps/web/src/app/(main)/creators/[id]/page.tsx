@@ -14,6 +14,7 @@ import { getPublicChannelVideos } from "@/services/creators/channelVideos";
 import { getFlextvCreatorRoom } from "@/services/creators/flextvChannel";
 import { getWalletBalance } from "@/services/wallet/balance";
 import { parseChannelView, type ChannelView } from "@/features/creatorRoom/channelView";
+import { getT } from "@/lib/i18n/server";
 import { getCrewPublic } from "@/services/crew/crew";
 import { getRoomFanNotes } from "@/services/crew/crewFanNotes";
 import { isFavorite } from "@/services/favorites/favorites";
@@ -29,10 +30,10 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const { id } = await params;
   if (FLEXTV_DONATION && isFlextvChannelId(id)) {
     const channel = await fetchChannel(id).catch(() => null);
-    return { title: channel ? `${channel.owner.nickname} | Ssumnation` : "크리에이터 | Ssumnation" };
+    return { title: channel ? `${channel.owner.nickname} | Ssumnation` : (await getT())("room.meta") };
   }
   const creator = await getCreatorById(id);
-  return { title: creator ? `${creator.name} | Ssumnation` : "크리에이터 | Ssumnation" };
+  return { title: creator ? `${creator.name} | Ssumnation` : (await getT())("room.meta") };
 }
 
 export default async function Page({ params, searchParams }: { params: Params; searchParams: SearchParams }) {

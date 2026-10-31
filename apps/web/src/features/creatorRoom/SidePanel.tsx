@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import type { CreatorRoom } from "@/services/creators/creatorRoom";
 import { ChatPanel } from "./ChatPanel";
 import { MOCK_MESSAGES, type ChatMessage } from "./chatMessages";
@@ -11,9 +13,9 @@ import styles from "./room.module.css";
 
 export type Tab = "DONATION" | "CHAT";
 
-const TABS: { key: Tab; label: string }[] = [
-  { key: "DONATION", label: "후원하기" },
-  { key: "CHAT", label: "채팅하기" }
+const TABS: { key: Tab; label: MessageKey }[] = [
+  { key: "DONATION", label: "room.tabDonate" },
+  { key: "CHAT", label: "room.tabChat" }
 ];
 
 /** Figma 420×600 right panel: 후원하기 (610:138) / 채팅하기 (826:685). */
@@ -31,18 +33,19 @@ export function SidePanel({
   /** `?tab=donation` (e.g. from the home 크리에이터 프로필 popup) opens the donation tab. */
   initialTab?: Tab;
 }) {
+  const { t } = useI18n();
   // A FLEXTV channel's room (docs/development/flextv-backend.md): the chat is its stream's, while FLEXTV's player plays
   // it here; otherwise 후원하기 only.
   const flextv = room.source === "FLEXTV";
   const flextvStream = flextv && room.stream.status === "LIVE" ? (room.stream.embed ?? null) : null;
-  const tabs = flextv && !flextvStream ? TABS.filter((t) => t.key === "DONATION") : TABS;
+  const tabs = flextv && !flextvStream ? TABS.filter((item) => item.key === "DONATION") : TABS;
   const [tab, setTab] = useState<Tab>(flextv && !flextvStream ? "DONATION" : initialTab);
   // Local echo only; the realtime chat and donation feed are TBD.
   const [messages, setMessages] = useState<ChatMessage[]>(MOCK_MESSAGES);
   const sendChat = (text: string) =>
     setMessages((list) => [
       ...list,
-      { id: `local-${Date.now()}`, kind: "CHAT", nickname: nickname ?? "나", handle: "", color: "var(--color-accent)", avatarUrl: null, text }
+      { id: `local-${Date.now()}`, kind: "CHAT", nickname: nickname ?? t("room.me"), handle: "", color: "var(--color-accent)", avatarUrl: null, text }
     ]);
   const announceDonation = ({ fnAmount, text, anonymous }: { fnAmount: number; text: string; anonymous: boolean }) =>
     setMessages((list) => [
@@ -50,26 +53,26 @@ export function SidePanel({
       {
         id: `donation-${Date.now()}`,
         kind: "DONATION",
-        title: `${anonymous ? "익명" : (nickname ?? "나")} 님이 ${formatNumber(fnAmount)} FN을 후원했습니다.`,
+        title: t("room.donated", { name: anonymous ? t("room.anonymous") : (nickname ?? t("room.me")), amount: formatNumber(fnAmount) }),
         text
       }
     ]);
 
   return (
-    <section className={styles.panel} aria-label="후원 및 채팅">
+    <section className={styles.panel} aria-label={t("room.panel")}>
       <div className={styles.tabs} role="tablist">
-        {tabs.map((t) => (
+        {tabs.map((item) => (
           <button
-            key={t.key}
+            key={item.key}
             type="button"
             role="tab"
-            id={`room-tab-${t.key}`}
-            aria-selected={tab === t.key}
-            aria-controls={`room-panel-${t.key}`}
-            className={`${styles.tab} ${tab === t.key ? styles.tabActive : ""}`}
-            onClick={() => setTab(t.key)}
+            id={`room-tab-${item.key}`}
+            aria-selected={tab === item.key}
+            aria-controls={`room-panel-${item.key}`}
+            className={`${styles.tab} ${tab === item.key ? styles.tabActive : ""}`}
+            onClick={() => setTab(item.key)}
           >
-            {t.label}
+            {t(item.label)}
           </button>
         ))}
       </div>

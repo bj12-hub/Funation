@@ -2,6 +2,7 @@
 
 import { Modal } from "@/components/ui/Modal";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import styles from "./donationDialogs.module.css";
 
 /** What the donation alert will show — resolved on the server (getAlertBadges), never assembled in the browser. */
@@ -31,16 +32,17 @@ export function DonationConfirmDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const { t } = useI18n();
   return (
-    <Modal open={open} onClose={pending ? () => {} : onCancel} title="후원하기 확인" width={460}>
-      <p className={styles.lead}>선택하신 정보로 후원을 진행하시겠습니까? 내용을 다시 한번 확인해주세요.</p>
+    <Modal open={open} onClose={pending ? () => {} : onCancel} title={t("roomDonate.confirmTitle")} width={460}>
+      <p className={styles.lead}>{t("roomDonate.confirmLead")}</p>
       <dl className={styles.info}>
         <div className={styles.infoRow}>
-          <dt>후원 대상</dt>
+          <dt>{t("roomDonate.recipient")}</dt>
           <dd className={styles.strong}>{creatorName}</dd>
         </div>
         <div className={styles.infoRow}>
-          <dt>후원 금액</dt>
+          <dt>{t("roomDonate.amount")}</dt>
           <dd className={styles.amount}>{formatNumber(amount)} FN</dd>
         </div>
         {rows.map((row) => (
@@ -53,10 +55,10 @@ export function DonationConfirmDialog({
       {alert && (
         <section className={styles.alertPreview} aria-labelledby="donation-alert-preview" aria-busy={alert.status === "LOADING"}>
           <h3 id="donation-alert-preview" className={styles.alertPreviewTitle}>
-            후원 알림 미리보기
+            {t("roomDonate.alertPreview")}
           </h3>
-          {alert.status === "LOADING" && <p className={styles.alertPreviewNote}>불러오는 중…</p>}
-          {alert.status === "ERROR" && <p className={styles.alertPreviewNote}>미리보기를 불러오지 못했어요. 후원은 그대로 진행할 수 있어요.</p>}
+          {alert.status === "LOADING" && <p className={styles.alertPreviewNote}>{t("roomDonate.loading")}</p>}
+          {alert.status === "ERROR" && <p className={styles.alertPreviewNote}>{t("roomDonate.alertError")}</p>}
           {alert.status === "READY" && (
             <>
               {alert.badges.length > 0 && (
@@ -69,7 +71,10 @@ export function DonationConfirmDialog({
                 </span>
               )}
               <p className={styles.alertHeadline}>
-                <strong>{alert.name}</strong>님이 <strong className={styles.alertAmount}>{formatNumber(amount)} FN</strong> 후원!
+                <strong>{alert.name}</strong>
+                {t("roomDonate.alertBy")}
+                <strong className={styles.alertAmount}>{formatNumber(amount)} FN</strong>
+                {t("roomDonate.alertEnd")}
               </p>
             </>
           )}
@@ -82,10 +87,10 @@ export function DonationConfirmDialog({
       )}
       <div className={styles.actions}>
         <button type="button" className={styles.cancel} onClick={onCancel} disabled={pending}>
-          취소
+          {t("roomDonate.cancel")}
         </button>
         <button type="button" className={styles.pink} onClick={onConfirm} disabled={pending}>
-          {pending ? "후원 진행 중..." : "후원하기"}
+          {pending ? t("roomDonate.donating") : t("roomDonate.donate")}
         </button>
       </div>
     </Modal>
@@ -94,27 +99,28 @@ export function DonationConfirmDialog({
 
 /** Figma 613:122 후원 완료. Both numbers come from the server result. */
 export function DonationCompleteDialog({ open, fnAmount, balance, onClose }: { open: boolean; fnAmount: number; balance: number; onClose: () => void }) {
+  const { t } = useI18n();
   return (
-    <Modal open={open} onClose={onClose} title="후원 완료" width={460}>
+    <Modal open={open} onClose={onClose} title={t("roomDonate.completeTitle")} width={460}>
       <div className={styles.center}>
         <span className={`${styles.badge} ${styles.badgePink}`} aria-hidden="true">
           💖
         </span>
-        <strong className={styles.headline}>후원이 정상적으로 완료되었습니다!</strong>
-        <p className={styles.sub}>스트리머에게 소중한 마음이 안전하게 전달되었습니다.</p>
+        <strong className={styles.headline}>{t("roomDonate.completeHeadline")}</strong>
+        <p className={styles.sub}>{t("roomDonate.completeSub")}</p>
       </div>
       <dl className={styles.info}>
         <div className={styles.infoRow}>
-          <dt>차감 FN</dt>
+          <dt>{t("roomDonate.debited")}</dt>
           <dd className={styles.strong}>-{formatNumber(fnAmount)} FN</dd>
         </div>
         <div className={styles.infoRow}>
-          <dt>잔여 FN</dt>
+          <dt>{t("roomDonate.remaining")}</dt>
           <dd className={styles.remaining}>{formatNumber(balance)} FN</dd>
         </div>
       </dl>
       <button type="button" className={styles.purple} onClick={onClose}>
-        확인
+        {t("roomDonate.ok")}
       </button>
     </Modal>
   );
@@ -132,25 +138,26 @@ export function InsufficientFnDialog({
   onCancel: () => void;
   onCharge: () => void;
 }) {
+  const { t } = useI18n();
   return (
-    <Modal open={open} onClose={onCancel} title="FN 부족 안내" width={460}>
+    <Modal open={open} onClose={onCancel} title={t("roomDonate.insufficientTitle")} width={460}>
       <div className={styles.center}>
         <span className={`${styles.badge} ${styles.badgeGold}`} aria-hidden="true">
           ⚠️
         </span>
-        <strong className={styles.headline}>보유한 FN이 부족합니다</strong>
+        <strong className={styles.headline}>{t("roomDonate.insufficientHeadline")}</strong>
         <p className={styles.body}>
-          현재 보유 FN: {formatNumber(balance)} FN
+          {t("roomDonate.currentBalance", { amount: formatNumber(balance) })}
           <br />
-          FN을 충전하러 이동하시겠습니까?
+          {t("roomDonate.chargePrompt")}
         </p>
       </div>
       <div className={styles.actions}>
         <button type="button" className={styles.cancel} onClick={onCancel}>
-          취소
+          {t("roomDonate.cancel")}
         </button>
         <button type="button" className={styles.pink} onClick={onCharge}>
-          FN 충전
+          {t("roomDonate.charge")}
         </button>
       </div>
     </Modal>

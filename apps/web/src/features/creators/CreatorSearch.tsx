@@ -6,7 +6,7 @@ import styles from "./creators.module.css";
  * Figma 690:5 creator-search-box.
  * A plain GET form: works without JavaScript and with IME input, and keeps the current category/sort.
  */
-export function CreatorSearch({ params }: { params: CreatorsParams }) {
+export function CreatorSearch({ params, label }: { params: CreatorsParams; label: string }) {
   return (
     <form role="search" action="/creators" className={styles.search}>
       {params.category && <input type="hidden" name="category" value={params.category} />}
@@ -16,8 +16,8 @@ export function CreatorSearch({ params }: { params: CreatorsParams }) {
         type="search"
         name="q"
         className={styles.searchInput}
-        placeholder="크리에이터 이름, 키워드 검색"
-        aria-label="크리에이터 이름, 키워드 검색"
+        placeholder={label}
+        aria-label={label}
         defaultValue={params.query ?? ""}
         maxLength={50}
       />

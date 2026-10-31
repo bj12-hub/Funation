@@ -2,16 +2,33 @@
 
 import { useEffect, useRef, useState } from "react";
 import { formatKstTime, formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import type { DonationCatalog } from "@/services/donations/donationCatalog";
 import { MAX_DRAWING_CHARS } from "@/services/donations/donationTypes";
 import { getRoomGacha } from "@/services/donations/gacha";
-import { GACHA_STATUS_LABEL, type RoomGacha } from "@/services/donations/gachaTypes";
+import type { GachaDrawStatus, RoomGacha } from "@/services/donations/gachaTypes";
 import { getRoomRoulette } from "@/services/donations/roulette";
-import { ROULETTE_STATUS_LABEL, isBlankPrize, rouletteColor, type RoomRoulette } from "@/services/donations/rouletteTypes";
+import { isBlankPrize, rouletteColor, type RoomRoulette, type RouletteSpinStatus } from "@/services/donations/rouletteTypes";
 import type { DrawingState, GachaState, QuestState, RouletteState, TimeLimit } from "./drafts";
 import { SwitchRow } from "./Fields";
 import room from "../room.module.css";
 import styles from "./game.module.css";
+
+/** 룰렛 · 뽑기 status labels in the viewer's language. */
+const ROULETTE_STATUS_KEY: Record<RouletteSpinStatus, MessageKey> = {
+  QUEUED: "roomDonate.waiting",
+  SPINNING: "roomDonate.spinning",
+  WAITING: "roomDonate.awaitingResult",
+  RESULT: "roomDonate.resultReady",
+  DONE: "roomDonate.done"
+};
+const GACHA_STATUS_KEY: Record<GachaDrawStatus, MessageKey> = {
+  QUEUED: "roomDonate.gachaWaiting",
+  SPINNING: "roomDonate.drawing",
+  RESULT: "roomDonate.resultReady",
+  DONE: "roomDonate.done"
+};
 
 /**
  * Game donation types. Figma 867:2458 룰렛 (now 펀페이 1009:510 · 1009:222 · 1009:473) · 867:2545 퀘스트 ·
@@ -51,22 +68,24 @@ function TextInput({ label, value, onChange, max, placeholder, tall = false }: {
 }
 
 function TimeInput({ value, onChange }: { value: TimeLimit; onChange: (v: TimeLimit) => void }) {
+  const { t } = useI18n();
   return (
     <div className={styles.field}>
-      <span className={styles.label}>제한 시간</span>
+      <span className={styles.label}>{t("roomDonate.timeLimit")}</span>
       <span className={`${room.inputBox} ${styles.time}`}>
-        <input aria-label="분" inputMode="numeric" value={value.minutes} onChange={(e) => onChange({ ...value, minutes: onlyDigits(e.target.value, 2) })} />
-        <span>분</span>
-        <input aria-label="초" inputMode="numeric" value={value.seconds} onChange={(e) => onChange({ ...value, seconds: onlyDigits(e.target.value, 2) })} />
-        <span>초</span>
+        <input aria-label={t("roomDonate.minutesAria")} inputMode="numeric" value={value.minutes} onChange={(e) => onChange({ ...value, minutes: onlyDigits(e.target.value, 2) })} />
+        <span>{t("roomDonate.minutesUnit")}</span>
+        <input aria-label={t("roomDonate.secondsAria")} inputMode="numeric" value={value.seconds} onChange={(e) => onChange({ ...value, seconds: onlyDigits(e.target.value, 2) })} />
+        <span>{t("roomDonate.secondsUnit")}</span>
       </span>
     </div>
   );
 }
 
-const Terms = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) => (
-  <SwitchRow label="후원 서비스 이용약관 및 안내 동의 (필수)" checked={checked} onChange={onChange} />
-);
+function Terms({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  const { t } = useI18n();
+  return <SwitchRow label={t("roomDonate.terms")} checked={checked} onChange={onChange} />;
+}
 
 const ErrorLine = ({ error }: { error: string | null }) =>
   error ? (
@@ -91,6 +110,7 @@ export function RouletteFields({
   creatorId,
   signedIn
 }: Props<RouletteState> & { creatorId: string; signedIn: boolean }) {
+  const { t } = useI18n();
   const r = catalog.roulette;
   const [status, setStatus] = useState<RoomRoulette | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -125,8 +145,8 @@ export function RouletteFields({
   if (!r.enabled) {
     return (
       <div className={styles.rouletteOff} role="status">
-        <strong>룰렛이 꺼져 있어요</strong>
-        <p>현재 크리에이터가 룰렛 후원을 받지 않고 있습니다. 참여가 열리면 다시 확인해 주세요.</p>
+        <strong>{t("roomDonate.rouletteOff")}</strong>
+        <p>{t("roomDonate.rouletteOffText")}</p>
       </div>
     );
   }
@@ -135,28 +155,28 @@ export function RouletteFields({
     <>
       <dl className={styles.rouletteInfo}>
         <div>
-          <dt>참여 조건</dt>
-          <dd>{formatNumber(r.minAmount)} FN 이상</dd>
+          <dt>{t("roomDonate.joinCondition")}</dt>
+          <dd>{t("roomDonate.atLeast", { amount: formatNumber(r.minAmount) })}</dd>
         </div>
         <div>
-          <dt>참여 가능 횟수</dt>
-          <dd>{r.dailyLimit === 0 ? "제한 없음" : `하루 ${r.dailyLimit}회`}</dd>
+          <dt>{t("roomDonate.dailyCount")}</dt>
+          <dd>{r.dailyLimit === 0 ? t("roomDonate.noLimit") : t("roomDonate.perDay", { count: r.dailyLimit })}</dd>
         </div>
         {left !== null && (
           <div>
-            <dt>남은 참여</dt>
-            <dd>{left}회</dd>
+            <dt>{t("roomDonate.playsLeft")}</dt>
+            <dd>{t("roomDonate.times", { count: left })}</dd>
           </div>
         )}
         {status && (
           <div>
-            <dt>대기 중</dt>
-            <dd>{status.waiting}회</dd>
+            <dt>{t("roomDonate.waiting")}</dt>
+            <dd>{t("roomDonate.times", { count: status.waiting })}</dd>
           </div>
         )}
       </dl>
       <div className={styles.odds}>
-        <strong>룰렛 항목 / 확률</strong>
+        <strong>{t("roomDonate.rouletteOdds")}</strong>
         <ul>
           {r.items.map((it, i) => (
             <li key={it.name + i}>
@@ -166,20 +186,20 @@ export function RouletteFields({
           ))}
         </ul>
       </div>
-      <FnInput label="참여 금액" value={value.amount} onChange={(amount) => onChange({ ...value, amount })} />
+      <FnInput label={t("roomDonate.entryAmount")} value={value.amount} onChange={(amount) => onChange({ ...value, amount })} />
       <ErrorLine error={error} />
-      <p className={styles.gameNote}>당첨 항목은 크리에이터가 방송에서 진행하는 상품 · 미션이에요. FN으로 지급되지 않아요. 결과는 후원할 때 서버가 정하고, 방송 화면에서 룰렛이 멈추면 공개돼요.</p>
+      <p className={styles.gameNote}>{t("roomDonate.rouletteNote")}</p>
       {signedIn && (
         <section className={styles.myRoulette} aria-labelledby="my-roulette">
-          <h3 id="my-roulette">내 룰렛</h3>
+          <h3 id="my-roulette">{t("roomDonate.myRoulette")}</h3>
           <MyListState
             loading={!status && !loadFailed}
             failed={!status && loadFailed}
             empty={!!status && status.mine.length === 0}
-            loadingText="룰렛 정보를 불러오고 있어요…"
-            failedText="룰렛을 불러오지 못했어요."
-            emptyTitle="참여한 룰렛이 없어요"
-            emptyText="룰렛에 참여하면 대기 순서와 당첨 결과가 이곳에 표시됩니다."
+            loadingText={t("roomDonate.rouletteLoading")}
+            failedText={t("roomDonate.rouletteFailed")}
+            emptyTitle={t("roomDonate.rouletteEmptyTitle")}
+            emptyText={t("roomDonate.rouletteEmpty")}
             onRetry={() => setAttempt((n) => n + 1)}
           />
           {status && status.mine.length > 0 && (
@@ -192,11 +212,11 @@ export function RouletteFields({
                 <strong data-status={m.status}>
                   {m.result !== null
                     ? isBlankPrize(m.result)
-                      ? "아쉽게도 꽝"
-                      : `${m.result} 당첨!`
+                      ? t("roomDonate.blank")
+                      : t("roomDonate.won", { prize: m.result })
                     : m.status === "QUEUED"
-                      ? `대기 중 · ${m.position}번째`
-                      : ROULETTE_STATUS_LABEL[m.status]}
+                      ? t("roomDonate.queued", { n: String(m.position) })
+                      : t(ROULETTE_STATUS_KEY[m.status])}
                 </strong>
               </li>
             ))}
@@ -211,14 +231,15 @@ export function RouletteFields({
 // ── 퀘스트 (867:2581) ────────────────────────────────────────────────────────
 
 export function QuestFields({ value, onChange, catalog, error }: Props<QuestState>) {
+  const { t } = useI18n();
   return (
     <>
-      <TextInput label="퀘스트 제목" value={value.title} onChange={(title) => onChange({ ...value, title })} max={catalog.game.maxText} placeholder="크리에이터에게 요청할 퀘스트" />
-      <FnInput label="성공 보상" value={value.success} onChange={(success) => onChange({ ...value, success })} />
+      <TextInput label={t("roomDonate.questTitle")} value={value.title} onChange={(title) => onChange({ ...value, title })} max={catalog.game.maxText} placeholder={t("roomDonate.questPlaceholder")} />
+      <FnInput label={t("roomDonate.successReward")} value={value.success} onChange={(success) => onChange({ ...value, success })} />
       <TimeInput value={value.time} onChange={(time) => onChange({ ...value, time })} />
       {/* 2026-10-04 결정: a failed or cancelled quest refunds the whole amount (no 실패 · 취소 금액). */}
-      <p className={styles.gameNote}>퀘스트가 실패하거나 크리에이터가 취소하면 후원한 FN이 전액 환불돼요.</p>
-      <SwitchRow label="크리에이터 성공 결정" checked={value.creatorDecides} onChange={(creatorDecides) => onChange({ ...value, creatorDecides })} />
+      <p className={styles.gameNote}>{t("roomDonate.questNote")}</p>
+      <SwitchRow label={t("roomDonate.creatorDecides")} checked={value.creatorDecides} onChange={(creatorDecides) => onChange({ ...value, creatorDecides })} />
       <Terms checked={value.terms} onChange={(terms) => onChange({ ...value, terms })} />
       <ErrorLine error={error} />
     </>
@@ -228,15 +249,16 @@ export function QuestFields({ value, onChange, catalog, error }: Props<QuestStat
 // ── 그림 후원 (867:2683) ─────────────────────────────────────────────────────
 
 export function DrawingFields({ value, onChange, catalog, error }: Props<DrawingState>) {
+  const { t } = useI18n();
   return (
     <>
       <div className={styles.inlineSwitches}>
-        <SwitchRow label="그림 과정 공개" checked={value.showProcess} onChange={(showProcess) => onChange({ ...value, showProcess })} />
-        <SwitchRow label="캔버스 모드" checked={value.canvasMode} onChange={(canvasMode) => onChange({ ...value, canvasMode })} />
+        <SwitchRow label={t("roomDonate.showProcess")} checked={value.showProcess} onChange={(showProcess) => onChange({ ...value, showProcess })} />
+        <SwitchRow label={t("roomDonate.canvasMode")} checked={value.canvasMode} onChange={(canvasMode) => onChange({ ...value, canvasMode })} />
       </div>
       <DrawingPad placeholder="✦ 〰 ✦" initial={value.image} onChange={(image) => onChange({ ...value, image })} />
-      <FnInput label="후원 금액" value={value.amount} onChange={(amount) => onChange({ ...value, amount })} />
-      <TextInput label="그림 제목" value={value.title} onChange={(title) => onChange({ ...value, title })} max={catalog.game.maxText} placeholder="그림에 붙일 제목" />
+      <FnInput label={t("roomDonate.amount")} value={value.amount} onChange={(amount) => onChange({ ...value, amount })} />
+      <TextInput label={t("roomDonate.drawingTitle")} value={value.title} onChange={(title) => onChange({ ...value, title })} max={catalog.game.maxText} placeholder={t("roomDonate.drawingPlaceholder")} />
       <Terms checked={value.terms} onChange={(terms) => onChange({ ...value, terms })} />
       <ErrorLine error={error} />
     </>
@@ -249,6 +271,7 @@ type Tool = "pen" | "eraser";
 
 /** Small canvas. Emits a PNG data URL after each stroke, or `null` when empty. */
 function DrawingPad({ placeholder, initial, onChange }: { placeholder: string; initial: string | null; onChange: (image: string | null) => void }) {
+  const { t } = useI18n();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const history = useRef<ImageData[]>([]);
   const drawing = useRef(false);
@@ -340,17 +363,17 @@ function DrawingPad({ placeholder, initial, onChange }: { placeholder: string; i
   return (
     <div className={styles.pad}>
       <div className={styles.canvasWrap}>
-        <div className={styles.tools} role="toolbar" aria-label="그리기 도구">
-          <button type="button" aria-pressed={tool === "pen"} className={tool === "pen" ? styles.toolOn : ""} onClick={() => setTool("pen")} aria-label="펜">
+        <div className={styles.tools} role="toolbar" aria-label={t("roomDonate.drawTools")}>
+          <button type="button" aria-pressed={tool === "pen"} className={tool === "pen" ? styles.toolOn : ""} onClick={() => setTool("pen")} aria-label={t("roomDonate.pen")}>
             ✎
           </button>
-          <button type="button" aria-pressed={tool === "eraser"} className={tool === "eraser" ? styles.toolOn : ""} onClick={() => setTool("eraser")} aria-label="지우개">
+          <button type="button" aria-pressed={tool === "eraser"} className={tool === "eraser" ? styles.toolOn : ""} onClick={() => setTool("eraser")} aria-label={t("roomDonate.eraser")}>
             ⌫
           </button>
-          <button type="button" onClick={clear} aria-label="모두 지우기">
+          <button type="button" onClick={clear} aria-label={t("roomDonate.clearAll")}>
             □
           </button>
-          <button type="button" onClick={undo} aria-label="되돌리기">
+          <button type="button" onClick={undo} aria-label={t("roomDonate.undo")}>
             ↶
           </button>
         </div>
@@ -359,7 +382,7 @@ function DrawingPad({ placeholder, initial, onChange }: { placeholder: string; i
           width={704}
           height={156}
           className={styles.canvas}
-          aria-label="그림 그리기 캔버스"
+          aria-label={t("roomDonate.canvas")}
           onPointerDown={start}
           onPointerMove={move}
           onPointerUp={end}
@@ -373,7 +396,7 @@ function DrawingPad({ placeholder, initial, onChange }: { placeholder: string; i
       </div>
       {tooLarge && (
         <p className={`${room.validation} ${room.validationError}`} role="alert">
-          ! 그림이 너무 커요. 조금 지우고 다시 시도해 주세요.
+          ! {t("roomDonate.tooLarge")}
         </p>
       )}
     </div>
@@ -395,6 +418,7 @@ export function GachaFields({
   creatorId,
   signedIn
 }: Props<GachaState> & { creatorId: string; signedIn: boolean }) {
+  const { t } = useI18n();
   const offers = catalog.gacha;
   const offer = offers.find((x) => x.id === value.gachaId) ?? null;
   const [status, setStatus] = useState<RoomGacha | null>(null);
@@ -431,14 +455,14 @@ export function GachaFields({
   if (offers.length === 0) {
     return (
       <div className={styles.rouletteOff} role="status">
-        <strong>진행 중인 뽑기가 없어요</strong>
-        <p>크리에이터가 뽑기를 열면 이곳에서 참여할 수 있어요.</p>
+        <strong>{t("roomDonate.noGacha")}</strong>
+        <p>{t("roomDonate.noGachaText")}</p>
       </div>
     );
   }
   return (
     <>
-      <div className={styles.gachaList} role="radiogroup" aria-label="뽑기 선택">
+      <div className={styles.gachaList} role="radiogroup" aria-label={t("roomDonate.gachaPick")}>
         {offers.map((x) => (
           <button
             key={x.id}
@@ -450,50 +474,50 @@ export function GachaFields({
             onClick={() => onChange({ ...value, gachaId: x.id })}
           >
             <strong>{x.name}</strong>
-            <span>{x.soldOut ? "모두 소진" : `${formatNumber(x.price)} FN`}</span>
+            <span>{x.soldOut ? t("roomDonate.soldOut") : `${formatNumber(x.price)} FN`}</span>
           </button>
         ))}
       </div>
       {offer && (
         <>
           <div className={styles.odds}>
-            <strong>{offer.mode === "PROBABILITY" ? "상품 / 당첨 확률" : "상품 / 남은 수량"}</strong>
+            <strong>{offer.mode === "PROBABILITY" ? t("roomDonate.prizeOdds") : t("roomDonate.prizeStock")}</strong>
             <ul>
               {offer.prizes.map((p, i) => (
                 <li key={p.name + i}>
-                  {p.blank && !p.name.includes("꽝") ? `${p.name} (꽝)` : p.name} · {offer.mode === "PROBABILITY" ? `${p.percent}%` : `${p.left}개`}
+                  {p.blank && !p.name.includes("꽝") ? t("roomDonate.blankMark", { name: p.name }) : p.name} · {offer.mode === "PROBABILITY" ? `${p.percent}%` : t("roomDonate.itemsLeft", { count: String(p.left) })}
                 </li>
               ))}
             </ul>
           </div>
           <dl className={styles.rouletteInfo}>
             <div>
-              <dt>참여 가능 횟수</dt>
-              <dd>{offer.limit === null ? "제한 없음" : `하루 ${offer.limit}회`}</dd>
+              <dt>{t("roomDonate.dailyCount")}</dt>
+              <dd>{offer.limit === null ? t("roomDonate.noLimit") : t("roomDonate.perDay", { count: offer.limit })}</dd>
             </div>
             {signedIn && offer.limit !== null && status?.usedToday && (
               <div>
-                <dt>남은 참여</dt>
-                <dd>{Math.max(0, offer.limit - used)}회</dd>
+                <dt>{t("roomDonate.playsLeft")}</dt>
+                <dd>{t("roomDonate.times", { count: Math.max(0, offer.limit - used) })}</dd>
               </div>
             )}
           </dl>
         </>
       )}
       <ErrorLine error={error} />
-      <SwitchRow label="뽑기 확률 · 상품 안내 동의 (필수)" checked={value.terms} onChange={(terms) => onChange({ ...value, terms })} />
-      <p className={styles.gameNote}>당첨 상품은 크리에이터가 직접 지급해요. FN으로 지급되지 않아요. 결과는 후원할 때 서버가 정하고, 방송 화면의 뽑기 기계가 멈추면 공개돼요.</p>
+      <SwitchRow label={t("roomDonate.gachaTerms")} checked={value.terms} onChange={(terms) => onChange({ ...value, terms })} />
+      <p className={styles.gameNote}>{t("roomDonate.gachaNote")}</p>
       {signedIn && (
         <section className={styles.myRoulette} aria-labelledby="my-gacha">
-          <h3 id="my-gacha">내 뽑기</h3>
+          <h3 id="my-gacha">{t("roomDonate.myGacha")}</h3>
           <MyListState
             loading={!status && !loadFailed}
             failed={!status && loadFailed}
             empty={!!status && status.mine.length === 0}
-            loadingText="뽑기 정보를 불러오고 있어요…"
-            failedText="뽑기를 불러오지 못했어요."
-            emptyTitle="참여한 뽑기가 없어요"
-            emptyText="뽑기에 참여하면 실행 순서와 당첨 결과가 이곳에 표시됩니다."
+            loadingText={t("roomDonate.gachaLoading")}
+            failedText={t("roomDonate.gachaFailed")}
+            emptyTitle={t("roomDonate.gachaEmptyTitle")}
+            emptyText={t("roomDonate.gachaEmpty")}
             onRetry={() => setAttempt((n) => n + 1)}
           />
           {status && status.mine.length > 0 && (
@@ -504,7 +528,7 @@ export function GachaFields({
                   {m.no} · {m.gachaName} · {time(m.createdAt)}
                 </span>
                 <strong data-status={m.status}>
-                  {m.prize !== null ? (m.blank ? "아쉽게도 꽝" : `${m.prize} 당첨!`) : m.status === "QUEUED" ? `실행 대기 · ${m.position}번째` : GACHA_STATUS_LABEL[m.status]}
+                  {m.prize !== null ? (m.blank ? t("roomDonate.blank") : t("roomDonate.won", { prize: m.prize })) : m.status === "QUEUED" ? t("roomDonate.gachaQueued", { n: String(m.position) }) : t(GACHA_STATUS_KEY[m.status])}
                 </strong>
               </li>
             ))}
@@ -536,6 +560,7 @@ function MyListState({
   emptyText: string;
   onRetry: () => void;
 }) {
+  const { t } = useI18n();
   if (loading) {
     return (
       <p className={styles.myState} role="status">
@@ -548,7 +573,7 @@ function MyListState({
       <p className={styles.myState} role="alert">
         {failedText}{" "}
         <button type="button" className={styles.myRetry} onClick={onRetry}>
-          다시 시도
+          {t("page.retry")}
         </button>
       </p>
     );

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { getRoomChat, sendRoomChat } from "@/services/live/flextvRoomChat";
 import { ROOM_CHAT_MAX } from "@/services/live/roomChatTypes";
 import { ChatPanel } from "./ChatPanel";
@@ -18,6 +19,7 @@ const KEEP = 200;
 export function FlextvChat({ channelId, streamId, signedIn }: { channelId: string; streamId: string; signedIn: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { t } = useI18n();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const seen = useRef(new Set<string>());
@@ -55,7 +57,7 @@ export function FlextvChat({ channelId, streamId, signedIn }: { channelId: strin
         if (r.status === "UNAUTHORIZED") return router.push(`/login?next=${encodeURIComponent(pathname)}`);
         setNotice(r.message);
       })
-      .catch(() => setNotice("메시지를 보내지 못했어요. 잠시 후 다시 시도해 주세요."));
+      .catch(() => setNotice(t("room.chatSendFailed")));
   };
 
   return <ChatPanel signedIn={signedIn} messages={messages} onSend={send} maxLength={ROOM_CHAT_MAX} notice={notice} />;

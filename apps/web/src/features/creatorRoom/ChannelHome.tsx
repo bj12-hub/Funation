@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { formatNumber, kstParts } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { createChannelPost, deleteChannelPost } from "@/services/creators/channelHome";
 import { CHANNEL_POST_MAX, CHANNEL_POSTS_PAGE, type ChannelPost, type ChannelPostsView, type ChannelRanking } from "@/services/creators/channelTypes";
 import { ModerationActions } from "../moderation/ModerationActions";
@@ -16,15 +17,16 @@ const when = (iso: string) => {
 
 /** 채널 홈 아래: 월간 후원 랭킹 + 커뮤니티 최근 글 (funnation channel home, code-first). */
 export function ChannelHomeExtras({ creatorId, ranking, posts }: { creatorId: string; ranking: ChannelRanking; posts: ChannelPost[] }) {
+  const { t } = useI18n();
   const [y, m] = ranking.month.split("-");
   return (
     <div className={styles.homeGrid}>
       <section className={styles.homeCard} aria-labelledby="ch-ranking">
         <h2 id="ch-ranking" className={styles.homeTitle}>
-          🏆 {y}년 {Number(m)}월 후원 랭킹
+          {t("roomChannel.ranking", { year: y, month: Number(m) })}
         </h2>
         {ranking.rows.length === 0 ? (
-          <p className={styles.muted}>이번 달 후원 기록이 아직 없어요.</p>
+          <p className={styles.muted}>{t("roomChannel.noRanking")}</p>
         ) : (
           <ol className={styles.rankList}>
             {ranking.rows.map((r) => (
@@ -34,27 +36,27 @@ export function ChannelHomeExtras({ creatorId, ranking, posts }: { creatorId: st
                 </span>
                 <span className={styles.rankName}>
                   {r.name}
-                  {r.me && <span className={styles.meBadge}>나</span>}
+                  {r.me && <span className={styles.meBadge}>{t("room.me")}</span>}
                 </span>
                 <span className={styles.rankAmount}>{formatNumber(r.fnAmount)} FN</span>
               </li>
             ))}
           </ol>
         )}
-        <p className={styles.muted}>후원 금액 기준 (집계 기준 · 공개 여부 TBD)</p>
+        <p className={styles.muted}>{t("roomChannel.rankingNote")}</p>
       </section>
 
       <section className={styles.homeCard} aria-labelledby="ch-posts">
         <div className={styles.homeHead}>
           <h2 id="ch-posts" className={styles.homeTitle}>
-            💬 채널 커뮤니티
+            {t("roomChannel.communityTitle")}
           </h2>
           <Link href={`/creators/${creatorId}?view=community`} className={styles.link} scroll={false}>
-            전체 보기 ›
+            {t("roomChannel.seeAll")}
           </Link>
         </div>
         {posts.length === 0 ? (
-          <p className={styles.muted}>아직 글이 없어요. 첫 글을 남겨 보세요.</p>
+          <p className={styles.muted}>{t("roomChannel.noPostsYet")}</p>
         ) : (
           <ul className={styles.postList}>
             {posts.map((p) => (
@@ -74,6 +76,7 @@ export function ChannelHomeExtras({ creatorId, ranking, posts }: { creatorId: st
 
 /** 커뮤니티 탭 — the channel's own feed. Signed-in viewers post; authors delete their posts. */
 export function ChannelCommunity({ creatorId, name, view, signedIn, show }: { creatorId: string; name: string; view: ChannelPostsView; signedIn: boolean; show: number }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [body, setBody] = useState("");
   const [note, setNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
@@ -92,23 +95,23 @@ export function ChannelCommunity({ creatorId, name, view, signedIn, show }: { cr
         if (res.status === "SAVED") {
           requestId.current = null;
           setBody("");
-          setNote({ tone: "ok", text: "글을 올렸어요." });
+          setNote({ tone: "ok", text: t("roomChannel.posted") });
           router.refresh();
-        } else setNote({ tone: "error", text: res.status === "INVALID" ? res.message : res.status === "UNAUTHORIZED" ? "로그인이 필요합니다." : "올리지 못했어요." });
+        } else setNote({ tone: "error", text: res.status === "INVALID" ? res.message : res.status === "UNAUTHORIZED" ? t("roomChannel.loginRequired") : t("roomChannel.postFailed") });
       } catch {
-        setNote({ tone: "error", text: "올리지 못했어요. 잠시 후 다시 시도해 주세요." });
+        setNote({ tone: "error", text: t("roomChannel.postFailedRetry") });
       }
     });
   };
   const remove = (id: string) => {
-    if (!window.confirm("이 글을 삭제할까요?")) return;
+    if (!window.confirm(t("roomChannel.deleteConfirm"))) return;
     startTransition(async () => {
       try {
         const res = await deleteChannelPost(id);
-        setNote(res.status === "DELETED" ? { tone: "ok", text: "글을 삭제했어요." } : { tone: "error", text: "삭제하지 못했어요." });
+        setNote(res.status === "DELETED" ? { tone: "ok", text: t("roomChannel.deleted") } : { tone: "error", text: t("roomChannel.deleteFailed") });
         router.refresh();
       } catch {
-        setNote({ tone: "error", text: "삭제하지 못했어요. 잠시 후 다시 시도해 주세요." });
+        setNote({ tone: "error", text: t("roomChannel.deleteFailedRetry") });
       }
     });
   };
@@ -119,8 +122,8 @@ export function ChannelCommunity({ creatorId, name, view, signedIn, show }: { cr
         <div className={styles.composer}>
           <textarea
             className={styles.textarea}
-            aria-label={`${name} 채널에 글쓰기`}
-            placeholder={`${name} 채널에 응원 글을 남겨 보세요`}
+            aria-label={t("roomChannel.writeAria", { name })}
+            placeholder={t("roomChannel.writePlaceholder", { name })}
             maxLength={CHANNEL_POST_MAX}
             rows={3}
             value={body}
@@ -131,13 +134,15 @@ export function ChannelCommunity({ creatorId, name, view, signedIn, show }: { cr
               {body.length}/{CHANNEL_POST_MAX}
             </span>
             <button type="button" className={styles.donateButton} disabled={pending || !body.trim()} onClick={submit}>
-              {pending ? "올리는 중…" : "올리기"}
+              {pending ? t("roomChannel.posting") : t("roomChannel.post")}
             </button>
           </div>
         </div>
       ) : (
         <p className={styles.muted}>
-          글을 쓰려면 <Link href={`/login?next=/creators/${creatorId}?view=community`}>로그인</Link>해 주세요.
+          {t("roomChannel.loginBefore")}
+          <Link href={`/login?next=/creators/${creatorId}?view=community`}>{t("roomChannel.loginLink")}</Link>
+          {t("roomChannel.loginAfter")}
         </p>
       )}
       {note && (
@@ -146,7 +151,7 @@ export function ChannelCommunity({ creatorId, name, view, signedIn, show }: { cr
         </p>
       )}
       {view.items.length === 0 ? (
-        <p className={styles.empty}>아직 글이 없어요.</p>
+        <p className={styles.empty}>{t("roomChannel.noPosts")}</p>
       ) : (
         <ul className={styles.postList}>
           {view.items.map((p) => (
@@ -156,7 +161,7 @@ export function ChannelCommunity({ creatorId, name, view, signedIn, show }: { cr
                 <span className={styles.muted}>{when(p.createdAt)}</span>
                 {p.mine ? (
                   <button type="button" className={styles.sort} disabled={pending} onClick={() => remove(p.id)}>
-                    삭제
+                    {t("roomChannel.delete")}
                   </button>
                 ) : (
                   <ModerationActions target={{ type: "CHANNEL_POST", id: p.id }} signedIn={signedIn} className={styles.postModeration} />
@@ -169,10 +174,10 @@ export function ChannelCommunity({ creatorId, name, view, signedIn, show }: { cr
       )}
       {view.hasMore && (
         <Link href={`/creators/${creatorId}?view=community&show=${show + CHANNEL_POSTS_PAGE}`} className={styles.link} scroll={false}>
-          더 보기 ({view.items.length}/{view.total})
+          {t("roomChannel.more", { shown: view.items.length, total: view.total })}
         </Link>
       )}
-      <p className={styles.muted}>글마다 신고할 수 있어요. 채널 주인의 글 숨김 · 관리는 준비 중이에요 (TBD).</p>
+      <p className={styles.muted}>{t("roomChannel.reportNote")}</p>
     </div>
   );
 }
