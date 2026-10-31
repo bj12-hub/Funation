@@ -3,12 +3,21 @@
 import Link from "next/link";
 import { FLEXTV_STUDIO } from "@/lib/flextv/mode";
 import { formatKstTime, formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { finishGachaDraw, setGachaClaimed, setGachaHidden } from "@/services/creator/gachaRemote";
-import { GACHA_STATUS_LABEL, type GachaControlResult, type GachaRemoteView, type GachaRow } from "@/services/donations/gachaTypes";
+import type { GachaControlResult, GachaDrawStatus, GachaRemoteView, GachaRow } from "@/services/donations/gachaTypes";
 import styles from "../crew/crew.module.css";
 import remote from "./remote.module.css";
 
 const time = (iso: string) => formatKstTime(iso, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+/** `GACHA_STATUS_LABEL` as message keys (2026-11-01). */
+const STATUS_KEY: Record<GachaDrawStatus, MessageKey> = {
+  QUEUED: "studioRemote.gachaQueued",
+  SPINNING: "studioRemote.drawing",
+  RESULT: "studioRemote.resultCheck",
+  DONE: "studioRemote.statusDone"
+};
 
 /**
  * 리모컨 "뽑기" card — code-first (펀페이 1009:6549 실행 대기 · 1009:6768 결과 확인). Draws play in order on
@@ -24,31 +33,30 @@ export function GachaRemote({
   pending: boolean;
   run: (action: () => Promise<GachaControlResult>, ok?: string) => void;
 }) {
+  const { t } = useI18n();
   const s = view.stage;
   return (
     <section className={styles.card} aria-labelledby="gacha-remote">
       <div className={styles.cardHead}>
         <h2 className={styles.cardTitle} id="gacha-remote">
-          🧸 뽑기
+          {t("studioRemote.gachaTitle")}
         </h2>
         {/* With FLEXTV the settings are 후원 종류 설정 (phase 6). */}
         <Link href={FLEXTV_STUDIO ? "/creator/donation-types" : "/creator/widgets?open=GACHA"} className={styles.ghost}>
-          상품 · 확률 설정
+          {t("studioRemote.gachaSettings")}
         </Link>
       </div>
-      <p className={styles.note}>당첨 상품은 크리에이터가 직접 지급해요 (FN 지급 없음). 결과는 후원 시점에 서버가 정하고, 뽑기 오버레이에서 순서대로 공개돼요.</p>
+      <p className={styles.note}>{t("studioRemote.gachaNote")}</p>
       <div className={remote.status}>
-        <span>
-          실행 대기 {view.queue.length}건 · 미수령 상품 {view.unclaimed}건
-        </span>
+        <span>{t("studioRemote.gachaStatus", { queue: view.queue.length, unclaimed: view.unclaimed })}</span>
         <button
           type="button"
           className={view.hidden ? styles.chip : styles.chipOff}
           aria-pressed={view.hidden}
           disabled={pending}
-          onClick={() => run(() => setGachaHidden({ hidden: !view.hidden }), view.hidden ? "뽑기 위젯을 다시 보여 줘요." : "뽑기 위젯을 방송 화면에서 숨겼어요.")}
+          onClick={() => run(() => setGachaHidden({ hidden: !view.hidden }), view.hidden ? t("studioRemote.gachaShown") : t("studioRemote.gachaHidden"))}
         >
-          {view.hidden ? "화면 숨김" : "화면 보임"}
+          {view.hidden ? t("studioRemote.screenHidden") : t("studioRemote.screenShown")}
         </button>
       </div>
 
@@ -56,28 +64,28 @@ export function GachaRemote({
         <div className={remote.rouletteStage} data-status={s.status}>
           <strong>
             {s.status === "SPINNING" && <span className={styles.liveDot} aria-hidden="true" />}
-            {s.prize === null ? "뽑는 중" : s.blank ? "꽝" : `${s.prize} 당첨`} · {s.donor}
+            {s.prize === null ? t("studioRemote.drawing") : s.blank ? t("studioRemote.blank") : t("studioRemote.won", { prize: s.prize })} · {s.donor}
           </strong>
           <span className={styles.muted}>
             {s.gachaName} · {formatNumber(s.amount)} FN · {s.no}
           </span>
           {s.status === "RESULT" && (
-            <button type="button" className={styles.primary} disabled={pending} onClick={() => run(() => finishGachaDraw({ drawId: s.id }), "결과를 방송 화면에서 내렸어요.")}>
-              ✓ 완료
+            <button type="button" className={styles.primary} disabled={pending} onClick={() => run(() => finishGachaDraw({ drawId: s.id }), t("studioRemote.resultCleared"))}>
+              {t("studioRemote.done")}
             </button>
           )}
         </div>
       )}
 
       {view.queue.length === 0 && view.recent.length === 0 ? (
-        <p className={styles.empty}>아직 뽑기 요청이 없어요.</p>
+        <p className={styles.empty}>{t("studioRemote.gachaEmpty")}</p>
       ) : (
         <ul className={styles.list}>
           {view.queue.map((r, i) => (
-            <Row key={r.id} row={r} meta={`${i + 1}번째 · 등록 ${time(r.createdAt)}`} pending={pending} run={run} />
+            <Row key={r.id} row={r} meta={t("studioRemote.gachaQueueMeta", { n: i + 1, time: time(r.createdAt) })} pending={pending} run={run} />
           ))}
           {view.recent.map((r) => (
-            <Row key={r.id} row={r} meta={r.blank ? "꽝" : `${r.prize} 당첨`} pending={pending} run={run} />
+            <Row key={r.id} row={r} meta={r.blank ? t("studioRemote.blank") : t("studioRemote.won", { prize: String(r.prize) })} pending={pending} run={run} />
           ))}
         </ul>
       )}
@@ -86,6 +94,7 @@ export function GachaRemote({
 }
 
 function Row({ row, meta, pending, run }: { row: GachaRow; meta: string; pending: boolean; run: (action: () => Promise<GachaControlResult>, ok?: string) => void }) {
+  const { t } = useI18n();
   return (
     <li className={styles.row}>
       <div className={styles.rowMain}>
@@ -97,7 +106,7 @@ function Row({ row, meta, pending, run }: { row: GachaRow; meta: string; pending
         </span>
       </div>
       <span className={remote.statusTag} data-status={row.status === "QUEUED" ? "QUEUED" : "DONE"}>
-        {GACHA_STATUS_LABEL[row.status]}
+        {t(STATUS_KEY[row.status])}
       </span>
       {row.claimed !== null && (
         <button
@@ -105,9 +114,9 @@ function Row({ row, meta, pending, run }: { row: GachaRow; meta: string; pending
           className={row.claimed ? styles.ghost : styles.primary}
           aria-pressed={row.claimed}
           disabled={pending}
-          onClick={() => run(() => setGachaClaimed({ drawId: row.id, claimed: !row.claimed }), row.claimed ? "미수령으로 바꿨어요." : "수령 처리했어요.")}
+          onClick={() => run(() => setGachaClaimed({ drawId: row.id, claimed: !row.claimed }), row.claimed ? t("studioRemote.unclaimedSet") : t("studioRemote.claimedSet"))}
         >
-          {row.claimed ? "수령 완료" : "수령 처리"}
+          {row.claimed ? t("studioRemote.claimedDone") : t("studioRemote.markClaimed")}
         </button>
       )}
     </li>

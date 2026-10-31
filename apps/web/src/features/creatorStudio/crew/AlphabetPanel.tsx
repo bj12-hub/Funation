@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { resetAlphabet, saveAlphabet } from "@/services/crew/crewGames";
 import {
   ALPHABET_MISS_MAX,
@@ -11,6 +13,7 @@ import {
   ALPHABET_TITLE_DEFAULT,
   ALPHABET_WORD_MAX,
   type AlphabetSettings,
+  type AlphabetTheme,
   type CrewMember,
   type GamesView
 } from "@/services/crew/crewTypes";
@@ -36,6 +39,13 @@ const fromDraft = (d: Draft) => ({
 });
 const newId = () => `new-${crypto.randomUUID().slice(0, 8)}`;
 const percent = (n: number) => `${Math.round(n * 10) / 10}%`;
+/** `ALPHABET_THEMES` labels as message keys. */
+const THEME_KEY: Record<AlphabetTheme, MessageKey> = {
+  NEON: "crewGameAlphabet.themeNeon",
+  GOLD: "crewGameAlphabet.themeGold",
+  GOLD2: "crewGameAlphabet.themeGold2",
+  ARCADE: "crewGameAlphabet.themeArcade"
+};
 
 /**
  * 알파벳 모으기 — code-first (no Figma frame; StreamDonate 알파벳 모으기 참고), inside `/creator/crew/games`. The word, 꽝
@@ -61,6 +71,8 @@ export function AlphabetPanel({
   pending: boolean;
   run: RunAction;
 }) {
+  const { t } = useI18n();
+  const name = t("crewGame.nameAlphabet");
   const { draft, edit, dirty, reset } = useSettingsDraft(settings, toDraft, fromDraft);
   const setPrize = (i: number, patch: Partial<EditPrize>) => edit({ prizes: draft.prizes.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
   const known = new Set(signatures.map((s) => s.id));
@@ -74,39 +86,37 @@ export function AlphabetPanel({
   return (
     <section id="game-alphabet" className={styles.card} aria-labelledby="game-alphabet-title">
       <h2 id="game-alphabet-title" className={styles.cardTitle}>
-        🔤 알파벳 모으기
+        🔤 {name}
       </h2>
-      <p className={styles.note}>
-        멤버에게 시그니처 후원이 들어오면 가로 릴이 돌아 단어의 글자나 꽝이 나와요. 멤버마다 글자를 모아 단어를 완성하면 상품을 추첨해요(가중치). 완성한 멤버는 다음 글자부터 다시 모아요.
-      </p>
+      <p className={styles.note}>{t("crewGameAlphabet.intro")}</p>
 
       <form
         className={prize.form}
         onSubmit={(e) => {
           e.preventDefault();
           const next = fromDraft(draft);
-          run(() => saveAlphabet({ ...next, excluded: next.excluded.filter((id) => known.has(id)) }), "알파벳 모으기 설정을 저장했어요.");
+          run(() => saveAlphabet({ ...next, excluded: next.excluded.filter((id) => known.has(id)) }), t("crewGame.saved", { name }));
         }}
       >
-        <TitleField name="알파벳 모으기" placeholder={ALPHABET_TITLE_DEFAULT} value={draft.title} onChange={(title) => edit({ title })} />
+        <TitleField name={name} placeholder={ALPHABET_TITLE_DEFAULT} value={draft.title} onChange={(title) => edit({ title })} />
         <div className={prize.field}>
-          <span className={styles.muted}>단어 (영문 알파벳 2 ~ {ALPHABET_WORD_MAX}자)</span>
+          <span className={styles.muted}>{t("crewGameAlphabet.word", { max: ALPHABET_WORD_MAX })}</span>
           <span className={games.unit}>
             <input
               className={styles.inputSmall}
-              aria-label="알파벳 모으기 단어"
-              placeholder="예: LUCKY"
+              aria-label={t("crewGameAlphabet.wordAria")}
+              placeholder={t("crewGameAlphabet.wordPlaceholder")}
               maxLength={ALPHABET_WORD_MAX}
               autoCapitalize="characters"
               value={draft.word}
               onChange={(e) => edit({ word: e.target.value.toUpperCase() })}
             />
-            <span className={styles.muted}>꽝</span>
+            <span className={styles.muted}>{t("crewGameAlphabet.miss")}</span>
             <input
               className={styles.inputSmall}
               type="number"
               inputMode="numeric"
-              aria-label="꽝 비율"
+              aria-label={t("crewGameAlphabet.missAria")}
               min={0}
               max={ALPHABET_MISS_MAX}
               value={draft.missPercent}
@@ -116,15 +126,13 @@ export function AlphabetPanel({
           </span>
           <span className={styles.note}>
             {letters.length && missOk
-              ? `릴: ${letters.map((c) => `${c} ${percent((100 - miss) / letters.length)}`).join(" · ")} · 꽝 ${percent(miss)} — 단어에 같은 글자가 여러 번 있으면 그만큼 모아야 해요.`
-              : "단어를 정하면 릴에 들어갈 글자와 확률이 보여요."}
+              ? t("crewGameAlphabet.reel", { letters: letters.map((c) => `${c} ${percent((100 - miss) / letters.length)}`).join(" · "), miss: percent(miss) })
+              : t("crewGameAlphabet.reelEmpty")}
           </span>
         </div>
 
         <div className={prize.field}>
-          <span className={styles.muted}>
-            완성 상품 ({draft.prizes.length}/{ALPHABET_PRIZES_MAX}) — 단어를 완성하면 하나를 추첨해요
-          </span>
+          <span className={styles.muted}>{t("crewGameAlphabet.prizes", { count: draft.prizes.length, max: ALPHABET_PRIZES_MAX })}</span>
           {draft.prizes.length > 0 && (
             <ul className={games.tiers}>
               {draft.prizes.map((p, i) => {
@@ -134,8 +142,8 @@ export function AlphabetPanel({
                     <span className={games.tierRow}>
                       <input
                         className={styles.inputSmall}
-                        aria-label={`상품 ${i + 1} 문구`}
-                        placeholder="문구 (예: 애교 3종)"
+                        aria-label={t("crewGameAlphabet.prizeTextAria", { n: i + 1 })}
+                        placeholder={t("crewGameAlphabet.textPlaceholder")}
                         maxLength={ALPHABET_PRIZE_LABEL_MAX}
                         value={p.label}
                         onChange={(e) => setPrize(i, { label: e.target.value })}
@@ -144,19 +152,19 @@ export function AlphabetPanel({
                         className={`${styles.inputSmall} ${games.short}`}
                         type="number"
                         inputMode="numeric"
-                        aria-label={`상품 ${i + 1} 점수`}
+                        aria-label={t("crewGameAlphabet.prizePointsAria", { n: i + 1 })}
                         min={0}
                         max={ALPHABET_PRIZE_POINTS_MAX}
                         placeholder="0"
                         value={p.points}
                         onChange={(e) => setPrize(i, { points: e.target.value })}
                       />
-                      <span className={styles.muted}>점 · 가중치</span>
+                      <span className={styles.muted}>{t("crewGameAlphabet.pointsWeight")}</span>
                       <input
                         className={`${styles.inputSmall} ${games.short}`}
                         type="number"
                         inputMode="numeric"
-                        aria-label={`상품 ${i + 1} 가중치`}
+                        aria-label={t("crewGameAlphabet.prizeWeightAria", { n: i + 1 })}
                         min={1}
                         max={ALPHABET_PRIZE_WEIGHT_MAX}
                         value={p.weight}
@@ -164,7 +172,7 @@ export function AlphabetPanel({
                       />
                       <span className={styles.muted}>{w > 0 && totalWeight ? percent((w / totalWeight) * 100) : "-"}</span>
                       <button type="button" className={styles.ghost} onClick={() => edit({ prizes: draft.prizes.filter((_, j) => j !== i) })}>
-                        삭제
+                        {t("crewGame.delete")}
                       </button>
                     </span>
                   </li>
@@ -179,29 +187,29 @@ export function AlphabetPanel({
               disabled={draft.prizes.length >= ALPHABET_PRIZES_MAX}
               onClick={() => edit({ prizes: [...draft.prizes, { id: newId(), label: "", points: "0", weight: "1" }] })}
             >
-              + 상품 추가
+              {t("crewGameAlphabet.addPrize")}
             </button>
           </span>
-          <span className={styles.note}>점수는 완성한 멤버의 점수로 OBS 결과 뒤 반영돼요(0이면 문구만). 상품이 없으면 &quot;단어 완성!&quot;만 나와요.</span>
+          <span className={styles.note}>{t("crewGameAlphabet.prizesNote")}</span>
         </div>
 
-        <div className={prize.field} role="group" aria-label="단어판 테마">
-          <span className={styles.muted}>단어판 테마 (OBS)</span>
+        <div className={prize.field} role="group" aria-label={t("crewGameAlphabet.themeAria")}>
+          <span className={styles.muted}>{t("crewGameAlphabet.theme")}</span>
           <span className={styles.segment}>
-            {ALPHABET_THEMES.map((t) => (
-              <button key={t.key} type="button" aria-pressed={draft.theme === t.key} onClick={() => edit({ theme: t.key })}>
-                {t.label}
+            {ALPHABET_THEMES.map((x) => (
+              <button key={x.key} type="button" aria-pressed={draft.theme === x.key} onClick={() => edit({ theme: x.key })}>
+                {t(THEME_KEY[x.key])}
               </button>
             ))}
           </span>
         </div>
         <AutoFields
-          name="알파벳 모으기"
-          verb="돌리기"
+          name={name}
+          verb={t("crewGame.spin")}
           copy={{
-            auto: "멤버에게 시그니처 후원이 들어오면 자동으로 돌리기",
-            excluded: "자동으로 돌리지 않을 시그니처 (누르면 제외)",
-            note: "후원자가 멤버를 고른 시그니처 후원(금액 일치 · 금액범위 · 랜덤시그 포함)마다 한 번 돌려요. 멤버를 고르지 않은 후원은 수동으로 돌려 주세요."
+            auto: t("crewGameAlphabet.autoCopy"),
+            excluded: t("crewGameAlphabet.excludedCopy"),
+            note: t("crewGameAlphabet.noteCopy")
           }}
           auto={draft.auto}
           excluded={draft.excluded}
@@ -209,18 +217,18 @@ export function AlphabetPanel({
           signatures={signatures}
           onChange={edit}
         />
-        <p className={styles.note}>단어를 바꾸면 모든 멤버가 처음부터 다시 모아요.</p>
+        <p className={styles.note}>{t("crewGameAlphabet.wordNote")}</p>
         <FormActions pending={pending} dirty={dirty} onReset={reset} />
       </form>
 
       {live && alphabet && (
         <>
-          {dirty && <p className={styles.note}>저장하지 않은 설정이 있어요. 릴은 저장한 단어로 돌아가요.</p>}
-          <ManualPlay game="ALPHABET" name="알파벳 모으기" verb="돌리기" withSource={false} live={live} members={members} disabled={!settings.word} pending={pending} run={run} />
-          {!settings.word && <p className={styles.note}>단어를 저장하면 돌릴 수 있어요.</p>}
+          {dirty && <p className={styles.note}>{t("crewGameAlphabet.unsaved")}</p>}
+          <ManualPlay game="ALPHABET" name={name} verb={t("crewGame.spin")} withSource={false} live={live} members={members} disabled={!settings.word} pending={pending} run={run} />
+          {!settings.word && <p className={styles.note}>{t("crewGameAlphabet.needWord")}</p>}
           {settings.word && (
             <>
-              <ul className={games.alphaBoards} aria-label="알파벳 모으기 단어판">
+              <ul className={games.alphaBoards} aria-label={t("crewGameAlphabet.boardsAria")}>
                 {alphabet.boards.map((x) => (
                   <li key={x.memberId}>
                     <span className={styles.boardName}>
@@ -234,30 +242,35 @@ export function AlphabetPanel({
                         </span>
                       ))}
                     </span>
-                    <span className={styles.muted}>완성 {x.done}회</span>
+                    <span className={styles.muted}>{t("crewGameAlphabet.done", { n: x.done })}</span>
                     <button
                       type="button"
                       className={styles.ghost}
                       disabled={pending || !x.slots.some((c) => c.revealAt)}
-                      onClick={() => run(() => resetAlphabet({ broadcastId: live.id, memberId: x.memberId }), `${x.name}의 단어판을 비웠어요.`)}
+                      onClick={() => run(() => resetAlphabet({ broadcastId: live.id, memberId: x.memberId }), t("crewGameAlphabet.boardCleared", { name: x.name }))}
                     >
-                      비우기
+                      {t("crewGameAlphabet.clear")}
                     </button>
                   </li>
                 ))}
               </ul>
               <span className={prize.inline}>
-                <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => resetAlphabet({ broadcastId: live.id, memberId: null }), "모든 단어판을 비웠어요.")}>
-                  모두 비우기 (완성 횟수 포함)
+                <button
+                  type="button"
+                  className={styles.ghost}
+                  disabled={pending}
+                  onClick={() => run(() => resetAlphabet({ broadcastId: live.id, memberId: null }), t("crewGameAlphabet.allCleared"))}
+                >
+                  {t("crewGameAlphabet.clearAll")}
                 </button>
               </span>
             </>
           )}
-          <RunList name="알파벳 모으기" runs={alphabet.runs} now={now} />
+          <RunList name={name} runs={alphabet.runs} now={now} />
         </>
       )}
 
-      <OverlayAddress overlayPath={overlayPath} param="alphabet" label="알파벳 모으기" />
+      <OverlayAddress overlayPath={overlayPath} param="alphabet" label={name} />
     </section>
   );
 }

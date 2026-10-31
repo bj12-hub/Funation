@@ -1,48 +1,47 @@
 import Link from "next/link";
+import type { MessageKey } from "@/lib/i18n/translate";
+import { getT } from "@/lib/i18n/server";
 import type { OverlayTarget } from "@/services/creator/alertTypes";
 import { OverlayOffNotice } from "@/features/creatorStudio/remote/OverlayOffNotice";
-import { HELPER_NAV, HELPER_REMOTE_GUIDE, HELPER_TITLE } from "./helperNav";
+import { HELPER_NAV, HELPER_REMOTE_GUIDE } from "./helperNav";
+import { helperGroupTitle, helperNavText, helperTitle } from "./helperText";
 import styles from "./helper.module.css";
 
-const STEPS = [
-  { title: "위젯 꾸미기", text: "전체 테마를 고르고, 후원 알림 · 목표치 · 후원 자막 같은 위젯을 메뉴에서 하나씩 꾸며요.", href: "/alert", link: "후원 알림 꾸미기" },
-  {
-    title: "OBS에 넣기",
-    text: "오버레이 주소를 복사해 OBS의 ‘브라우저’ 소스에 붙여 넣어요. 장면 파일을 받아 한 번에 넣을 수도 있어요.",
-    href: "/overlays",
-    link: "오버레이 주소"
-  },
-  { title: "리모컨으로 확인", text: "리모컨에서 테스트 후원을 보내 방송 화면에 잘 나오는지 확인하고, 방송 중에는 작은 창 · OBS 독 · 휴대폰으로 알림 대기열을 제어해요.", href: HELPER_REMOTE_GUIDE, link: "리모컨 가이드" }
+const STEPS: { title: MessageKey; text: MessageKey; href: string; link: MessageKey }[] = [
+  { title: "helper.stepWidgetsTitle", text: "helper.stepWidgetsText", href: "/alert", link: "helper.stepWidgetsLink" },
+  { title: "helper.stepObsTitle", text: "helper.stepObsText", href: "/overlays", link: "helperNav.overlays" },
+  { title: "helper.stepRemoteTitle", text: "helper.stepRemoteText", href: HELPER_REMOTE_GUIDE, link: "helper.remoteGuide" }
 ];
 
 /** 시작하기 — the helper home, code-first (no Figma frame). OBS connection steps and every helper feature. */
-export function HelperHome({ nickname, switches }: { nickname: string; switches: Record<OverlayTarget, boolean> }) {
+export async function HelperHome({ nickname, switches }: { nickname: string; switches: Record<OverlayTarget, boolean> }) {
+  const t = await getT();
   return (
     <div className={styles.content}>
       <header className={styles.pageHeader}>
-        <h1>{nickname}님의 방송 도우미</h1>
-        <p>{HELPER_TITLE}에서 방송 화면(OBS)에 띄우는 위젯과 라이브 방송 리모컨을 모두 다룰 수 있어요. 오버레이 주소에는 연동 키가 들어 있으니 다른 사람과 공유하지 마세요.</p>
+        <h1>{t("helper.homeTitle", { name: nickname })}</h1>
+        <p>{t("helper.homeIntro", { title: helperTitle(t) })}</p>
       </header>
       <OverlayOffNotice targets={Object.keys(switches) as OverlayTarget[]} switches={switches} />
       <section className={styles.section} aria-labelledby="helper-steps">
         <h2 id="helper-steps" className={styles.sectionTitle}>
-          OBS 연결 순서
+          {t("helper.stepsTitle")}
         </h2>
         <ol className={styles.steps}>
           {STEPS.map((s) => (
             <li key={s.title} className={styles.step}>
-              <strong>{s.title}</strong>
-              <p>{s.text}</p>
+              <strong>{t(s.title)}</strong>
+              <p>{t(s.text)}</p>
               <Link href={s.href} className={styles.stepLink}>
-                {s.link} →
+                {t(s.link)} →
               </Link>
             </li>
           ))}
         </ol>
       </section>
       {HELPER_NAV.filter((g) => g.title).map((g) => (
-        <section key={g.title} className={styles.section} aria-label={g.title ?? undefined}>
-          <h2 className={styles.sectionTitle}>{g.title}</h2>
+        <section key={g.title} className={styles.section} aria-label={g.title ? helperGroupTitle(g.title, t) : undefined}>
+          <h2 className={styles.sectionTitle}>{g.title && helperGroupTitle(g.title, t)}</h2>
           <ul className={styles.cards}>
             {g.items.map((item) => (
               <li key={item.href}>
@@ -51,8 +50,8 @@ export function HelperHome({ nickname, switches }: { nickname: string; switches:
                     {item.emoji}
                   </span>
                   <span className={styles.cardText}>
-                    <strong>{item.label}</strong>
-                    <span>{item.description}</span>
+                    <strong>{helperNavText(item, t).label}</strong>
+                    <span>{helperNavText(item, t).description}</span>
                   </span>
                 </Link>
               </li>

@@ -2,14 +2,15 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { sendTestAlert } from "@/services/creator/alertRemote";
 import styles from "../crew/crew.module.css";
 import local from "./overlayPreview.module.css";
 
 const BACKGROUNDS = [
-  { key: "checker", label: "체크무늬" },
-  { key: "dark", label: "어두운 화면" },
-  { key: "light", label: "밝은 화면" }
+  { key: "checker", label: "studioToolsOverlays.bgChecker" },
+  { key: "dark", label: "studioToolsOverlays.bgDark" },
+  { key: "light", label: "studioToolsOverlays.bgLight" }
 ] as const;
 type Background = (typeof BACKGROUNDS)[number]["key"];
 
@@ -32,6 +33,7 @@ export type OverlayPreviewProps = {
  * and can send a display-only 테스트 후원 to see an alert arrive.
  */
 export function OverlayPreview({ title, description, size, src, manage, on, testable }: OverlayPreviewProps) {
+  const { t } = useI18n();
   const [bg, setBg] = useState<Background>("checker");
   const [scale, setScale] = useState(1);
   const [note, setNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
@@ -55,9 +57,13 @@ export function OverlayPreview({ title, description, size, src, manage, on, test
     startTransition(async () => {
       try {
         const res = await sendTestAlert({ requestId: crypto.randomUUID(), amount: 10_000, donor: "미리보기", message: "오버레이 미리보기 테스트예요" });
-        setNote(res.status === "SAVED" ? { tone: "ok", text: "테스트 후원을 보냈어요. 잠시 뒤 오버레이에 나타나요." } : { tone: "error", text: res.status === "INVALID" ? res.message : "로그인이 필요합니다." });
+        setNote(
+          res.status === "SAVED"
+            ? { tone: "ok", text: t("studioToolsOverlays.testSent") }
+            : { tone: "error", text: res.status === "INVALID" ? res.message : t("studioTools.loginRequired") }
+        );
       } catch {
-        setNote({ tone: "error", text: "보내지 못했어요. 잠시 후 다시 시도해 주세요." });
+        setNote({ tone: "error", text: t("studioToolsOverlays.sendFailed") });
       }
     });
   };
@@ -65,43 +71,43 @@ export function OverlayPreview({ title, description, size, src, manage, on, test
   return (
     <div className={styles.content}>
       <header className={styles.header}>
-        <h1 className={styles.title}>{title} 미리보기</h1>
-        <p className={styles.subtitle}>
-          {description} OBS 권장 크기 {size}.
-        </p>
+        <h1 className={styles.title}>{t("studioToolsOverlays.previewTitle", { title })}</h1>
+        <p className={styles.subtitle}>{t("studioToolsOverlays.previewSubtitle", { description, size })}</p>
         <p className={styles.note}>
-          <Link href="/creator/widgets/overlays">← 오버레이 주소</Link>
+          <Link href="/creator/widgets/overlays">{t("studioToolsOverlays.backOverlays")}</Link>
         </p>
       </header>
 
       {!on && (
         <p className={styles.note} role="status">
-          리모컨 기능 제어에서 꺼져 있어 아무것도 보이지 않아요. <Link href="/creator/remote">리모컨</Link>에서 켜면 보여요.
+          {t("studioToolsOverlays.offNoteBefore")}
+          <Link href="/creator/remote">{t("studioTools.remote")}</Link>
+          {t("studioToolsOverlays.offNoteAfter")}
         </p>
       )}
 
       <div className={local.toolbar}>
-        <div className={`${styles.tabs} ${local.backgrounds}`} role="radiogroup" aria-label="미리보기 배경">
+        <div className={`${styles.tabs} ${local.backgrounds}`} role="radiogroup" aria-label={t("studioToolsOverlays.bgAria")}>
           {BACKGROUNDS.map((b) => (
             <button key={b.key} type="button" role="radio" aria-checked={bg === b.key} className={styles.tab} onClick={() => setBg(b.key)}>
-              {b.label}
+              {t(b.label)}
             </button>
           ))}
         </div>
         <div className={styles.rowActions}>
           {testable && (
             <button type="button" className={styles.primary} disabled={pending} onClick={test}>
-              {pending ? "보내는 중…" : "테스트 후원 보내기"}
+              {pending ? t("studioTools.sending") : t("studioToolsOverlays.sendTest")}
             </button>
           )}
           <button type="button" className={styles.ghost} onClick={() => setReload((n) => n + 1)}>
-            새로고침
+            {t("studioToolsOverlays.reload")}
           </button>
           <a href={src} target="_blank" rel="noopener noreferrer" className={styles.ghost}>
-            새 탭에서 열기
+            {t("studioToolsOverlays.openTab")}
           </a>
           <Link href={manage} className={styles.ghost}>
-            설정
+            {t("studioTools.settings")}
           </Link>
         </div>
       </div>
@@ -118,15 +124,13 @@ export function OverlayPreview({ title, description, size, src, manage, on, test
           <iframe
             key={reload}
             src={src}
-            title={`${title} 오버레이`}
+            title={t("studioToolsOverlays.frameTitle", { title })}
             className={local.frame}
             style={{ width: w, height: h, transform: `scale(${scale})` }}
           />
         </div>
       </div>
-      <p className={styles.note}>
-        {Math.round(scale * 100)}% 크기로 보여요. 테스트 후원은 화면에만 표시되고 FN은 움직이지 않아요.
-      </p>
+      <p className={styles.note}>{t("studioToolsOverlays.scaleNote", { percent: Math.round(scale * 100) })}</p>
     </div>
   );
 }

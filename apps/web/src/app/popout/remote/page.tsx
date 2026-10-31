@@ -14,10 +14,14 @@ import { getRouletteRemote } from "@/services/creator/rouletteRemote";
 import { getVoteRemote } from "@/services/creator/voteRemote";
 import { getWallpaperRemote } from "@/services/creator/wallpaperRemote";
 import studio from "@/features/creatorStudio/studio.module.css";
+import { getT } from "@/lib/i18n/server";
 
 // Code-first (no Figma frame): 리모컨 on its own — the 도우미's "리모컨 열기" window (1000 × 800), an OBS custom browser
 // dock or a phone. Same controls and server checks as /creator/remote; served on the site and the 도우미 domain.
-export const metadata: Metadata = { title: "리모컨 | Ssumnation", robots: { index: false, follow: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("studioRemote.metaWindow"), robots: { index: false, follow: false } };
+}
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

@@ -1,24 +1,27 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { getT } from "@/lib/i18n/server";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { logout } from "@/services/auth/logout";
 import { HelperBrand } from "./HelperShell";
-import { HELPER_TITLE } from "./helperNav";
+import { helperTitle } from "./helperText";
 import styles from "./helper.module.css";
 
-const FEATURES = [
-  { emoji: "🔔", title: "후원 알림 · 위젯", text: "후원 알림, 채팅창, 목표치, 후원 자막, 시계를 세 가지 테마로 꾸며 OBS에 띄워요." },
-  { emoji: "🎛️", title: "라이브 방송 리모컨", text: "방송 중에 알림 대기열 · 볼륨 · 테스트 후원 · 투표 · 룰렛을 작은 창에서 제어해요." },
-  { emoji: "👥", title: "크루 방송", text: "점수판, 배틀, 강탈, 시나리오까지 크루 방송에 필요한 화면을 한 번에 운영해요." }
+const FEATURES: { emoji: string; title: MessageKey; text: MessageKey }[] = [
+  { emoji: "🔔", title: "helper.featureAlertsTitle", text: "helper.featureAlertsText" },
+  { emoji: "🎛️", title: "helper.featureRemoteTitle", text: "helper.featureRemoteText" },
+  { emoji: "👥", title: "helper.featureCrewTitle", text: "helper.featureCrewText" }
 ];
 
 /** Plain top bar for the account pages the helper domain shares with the site (sign-in, sign-up, 채널 만들기, terms). */
-export function HelperFrame({ children }: { children: ReactNode }) {
+export async function HelperFrame({ children }: { children: ReactNode }) {
+  const t = await getT();
   return (
     <div data-theme="dark" className={styles.scope}>
       <header className={styles.frameBar}>
         <HelperBrand />
         <Link href="/" className={styles.frameLink}>
-          도우미 홈
+          {t("helper.helperHome")}
         </Link>
       </header>
       {children}
@@ -27,25 +30,23 @@ export function HelperFrame({ children }: { children: ReactNode }) {
 }
 
 /** Signed out on the helper domain — code-first (no Figma frame). */
-export function HelperLanding({ next }: { next: string }) {
+export async function HelperLanding({ next }: { next: string }) {
+  const t = await getT();
   const login = next === "/" ? "/login" : `/login?next=${encodeURIComponent(next)}`;
   return (
     <div data-theme="dark" className={styles.scope}>
       <main className={styles.landing}>
         <HelperBrand />
         <div>
-          <h1 className={styles.landingTitle}>방송 화면 위젯과 리모컨을 한곳에서</h1>
-          <p className={styles.landingText}>
-            {HELPER_TITLE}는 OBS에 띄우는 후원 알림 · 채팅창 · 방송 도구와 라이브 방송 리모컨을 모은 크리에이터 전용 페이지예요. 썸네이션 계정으로 로그인해
-            시작하세요.
-          </p>
+          <h1 className={styles.landingTitle}>{t("helper.landingTitle")}</h1>
+          <p className={styles.landingText}>{t("helper.landingText", { title: helperTitle(t) })}</p>
         </div>
         <div className={styles.landingActions}>
           <Link href={login} className={styles.primary}>
-            로그인
+            {t("helper.login")}
           </Link>
           <Link href="/signup" className={styles.secondary}>
-            회원가입
+            {t("helper.signup")}
           </Link>
         </div>
         <ul className={styles.featureGrid}>
@@ -54,8 +55,8 @@ export function HelperLanding({ next }: { next: string }) {
               <span className={styles.featureEmoji} aria-hidden="true">
                 {f.emoji}
               </span>
-              <strong>{f.title}</strong>
-              <span>{f.text}</span>
+              <strong>{t(f.title)}</strong>
+              <span>{t(f.text)}</span>
             </li>
           ))}
         </ul>
@@ -65,23 +66,22 @@ export function HelperLanding({ next }: { next: string }) {
 }
 
 /** Signed in without a channel: the Creator role comes from 채널 만들기 (approval TBD, as on the site). */
-export function HelperNeedsChannel({ nickname }: { nickname: string }) {
+export async function HelperNeedsChannel({ nickname }: { nickname: string }) {
+  const t = await getT();
   return (
     <HelperFrame>
       <main className={styles.landing}>
         <div>
-          <h1 className={styles.landingTitle}>크리에이터 채널이 필요해요</h1>
-          <p className={styles.landingText}>
-            {nickname}님, {HELPER_TITLE}는 채널을 만든 크리에이터만 쓸 수 있어요. 채널을 만들면 바로 방송 화면 위젯과 리모컨을 쓸 수 있어요.
-          </p>
+          <h1 className={styles.landingTitle}>{t("helper.needsChannelTitle")}</h1>
+          <p className={styles.landingText}>{t("helper.needsChannelText", { name: nickname, title: helperTitle(t) })}</p>
         </div>
         <div className={styles.landingActions}>
           <Link href="/channel/new" className={styles.primary}>
-            내 채널 만들기
+            {t("helper.createChannel")}
           </Link>
           <form action={logout}>
             <button type="submit" className={styles.secondary}>
-              다른 계정으로 로그인
+              {t("helper.otherAccount")}
             </button>
           </form>
         </div>
