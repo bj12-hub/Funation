@@ -6990,6 +6990,56 @@ export const ko = {
     stop: "■ 정지",
     meta: "시그니처 | Ssumnation"
   },
+  /** FLEXTV 채널(방송국) 설정 (2026-11-01). Messages the FLEXTV service returns are shown as they are. */
+  flextvChannelSettings: {
+    title: "채널 설정",
+    intro: "FLEXTV 방송국 정보예요. 여기서 바꾸면 FLEXTV에도 그대로 반영돼요.",
+    unreachable: "FLEXTV가 응답하지 않았어요. 잠시 후 다시 시도해 주세요.",
+    name: "방송국 이름",
+    nameCurrent: "지금 이름: {name}",
+    nameDefault: "(기본 이름)",
+    nameNewAria: "새 방송국 이름",
+    namePlaceholder: "{min}~{max}자",
+    nameCheck: "중복 확인",
+    nameAvailable: "사용할 수 있는 방송국 이름이에요.",
+    nameTaken: "이미 있는 방송국 이름이에요.",
+    nameSaved: "방송국 이름을 바꿨어요.",
+    description: "방송국 소개",
+    descriptionPlaceholder: "방송국 소개를 작성해 주세요. 최대 {max}자",
+    descriptionSaved: "방송국 소개를 바꿨어요.",
+    banner: "배너 이미지",
+    bannerCurrentAlt: "지금 배너",
+    bannerSpec: "1080 × 140px 권장 · JPG, PNG · 20MB 미만",
+    bannerUnsupported: "JPG, PNG 이미지만 올릴 수 있어요.",
+    bannerTooLarge: "20MB 미만의 이미지만 올릴 수 있어요.",
+    upload: "이미지 올리기",
+    uploading: "올리는 중…",
+    bannerSaved: "배너를 바꿨어요.",
+    avatar: "프로필 사진",
+    avatarHelp: "채널 프로필 사진은 내 FLEXTV 프로필 사진이에요.",
+    avatarChange: "마이페이지에서 바꾸기",
+    links: "방송국 링크",
+    linksHelp: "채널에 보여 줄 SNS 주소예요. 비워 두면 보이지 않아요.",
+    linksSaved: "링크를 저장했어요."
+  },
+  /** FLEXTV 마이페이지 (2026-11-01) — only what differs from `my`; the shared labels come from `my` and `myLink`. */
+  flextvMyPage: {
+    subtitle: "안녕하세요, 나의 회원 정보를 한 눈에 파악하고 관리하세요.",
+    loginId: "아이디",
+    signUp: "가입 방법",
+    signUpProvider: "{provider} 간편 가입",
+    signUpId: "아이디 가입",
+    providerTwitch: "Twitch",
+    providerOther: "다른 서비스",
+    unverifiedNote: "(본인인증은 FLEXTV에서 진행돼요. 마치면 이 페이지를 새로고침해 주세요.)",
+    verify: "본인인증 하기",
+    creator: "크리에이터",
+    withdraw: "회원 탈퇴 (FLEXTV)"
+  },
+  /** FLEXTV header bits: the bell shows no count (FLEXTV only reports whether something is unread). */
+  flextvHeader: {
+    newNotifications: "새 알림"
+  },
   /** 시청자 참가 링크 — 마블 룰렛 · 로얄 럼블 (2026-11-01). Round titles and player names are content. */
   play: {
     marble: "🔮 마블 룰렛",
