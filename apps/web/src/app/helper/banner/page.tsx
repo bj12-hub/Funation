@@ -4,9 +4,13 @@ import { getOverlaySwitches } from "@/services/creator/alertRemote";
 import { listAssets } from "@/services/creator/assets";
 import { getBannerSettings } from "@/services/creator/banner";
 import { getOverlayKey } from "@/services/creator/broadcastTools";
+import { getT } from "@/lib/i18n/server";
 
 // Code-first (no Figma frame): 배너 위젯, on the helper domain — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: "배너" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("helperNav.banner") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

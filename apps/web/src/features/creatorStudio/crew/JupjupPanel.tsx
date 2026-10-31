@@ -2,8 +2,10 @@
 
 import { useRef, useState } from "react";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { addJupjup, removeJupjup, saveJupjup } from "@/services/crew/crewGames";
-import { JUPJUP_MODES, JUPJUP_TITLE_DEFAULT, type CrewMember, type GamesView, type JupjupSettings } from "@/services/crew/crewTypes";
+import { JUPJUP_MODES, JUPJUP_TITLE_DEFAULT, type CrewMember, type GamesView, type JupjupMode, type JupjupSettings } from "@/services/crew/crewTypes";
 import {
   AmountTiersField,
   AutoFields,
@@ -26,6 +28,12 @@ type Draft = Omit<JupjupSettings, "tiers"> & { tiers: EditAmountTier[] };
 
 const toDraft = (s: JupjupSettings): Draft => ({ ...s, tiers: toEditTiers(s.tiers) });
 const fromDraft = (d: Draft) => ({ ...d, tiers: fromEditTiers(d.tiers) });
+/** `JUPJUP_MODES` as message keys. */
+const MODE_KEY: Record<JupjupMode, { label: MessageKey; note: MessageKey }> = {
+  ADD: { label: "crewGameJupjup.modeAdd", note: "crewGameJupjup.modeAddNote" },
+  MULTIPLY: { label: "crewGameJupjup.modeMultiply", note: "crewGameJupjup.modeMultiplyNote" },
+  SPIN: { label: "crewGameJupjup.modeSpin", note: "crewGameJupjup.modeSpinNote" }
+};
 
 /**
  * 줍줍 — code-first (no Figma frame; StreamDonate 줍줍 참고), inside `/creator/crew/games`. 지정 BJ, 모드 (더하기 · 배수 · 스핀머신
@@ -50,6 +58,8 @@ export function JupjupPanel({
   pending: boolean;
   run: RunAction;
 }) {
+  const { t } = useI18n();
+  const name = t("crewGame.nameJupjup");
   const { draft, edit, dirty, reset } = useSettingsDraft(settings, toDraft, fromDraft);
   const known = new Set(signatures.map((s) => s.id));
   const active = members.filter((m) => m.active);
@@ -70,17 +80,15 @@ export function JupjupPanel({
       const res = await addJupjup({ broadcastId: live.id, requestId, memberId: owner, signatureId });
       if (res.status === "SAVED") addId.current = null;
       return res;
-    }, "스택에 추가했어요.");
+    }, t("crewGameJupjup.added"));
   };
 
   return (
     <section id="game-jupjup" className={styles.card} aria-labelledby="game-jupjup-title">
       <h2 id="game-jupjup-title" className={styles.cardTitle}>
-        🎁 줍줍
+        🎁 {name}
       </h2>
-      <p className={styles.note}>
-        지정 BJ가 받은 시그니처 후원이 스택에 쌓이고, 다른 멤버가 같은 금액의 시그니처 후원을 받으면 가장 오래된 것을 가져가 점수를 한 번 더 받아요. 지정 BJ끼리는 가져가지 못해요.
-      </p>
+      <p className={styles.note}>{t("crewGameJupjup.intro")}</p>
 
       <form
         className={prize.form}
@@ -89,14 +97,14 @@ export function JupjupPanel({
           const next = fromDraft(draft);
           // A member removed since may still be a 지정 BJ: drop it instead of failing the save.
           const memberIds = next.memberIds.filter((id) => active.some((m) => m.id === id));
-          run(() => saveJupjup({ ...next, memberIds, excluded: next.excluded.filter((id) => known.has(id)) }), "줍줍 설정을 저장했어요.");
+          run(() => saveJupjup({ ...next, memberIds, excluded: next.excluded.filter((id) => known.has(id)) }), t("crewGame.saved", { name }));
         }}
       >
-        <TitleField name="줍줍" placeholder={JUPJUP_TITLE_DEFAULT} value={draft.title} onChange={(title) => edit({ title })} />
-        <div className={prize.field} role="group" aria-label="지정 BJ">
-          <span className={styles.muted}>지정 BJ (누르면 지정)</span>
+        <TitleField name={name} placeholder={JUPJUP_TITLE_DEFAULT} value={draft.title} onChange={(title) => edit({ title })} />
+        <div className={prize.field} role="group" aria-label={t("crewGameJupjup.owners")}>
+          <span className={styles.muted}>{t("crewGameJupjup.ownersLabel")}</span>
           <span className={prize.chips}>
-            {active.length === 0 && <span className={styles.note}>활동 중인 멤버가 없어요.</span>}
+            {active.length === 0 && <span className={styles.note}>{t("crewGame.noMembers")}</span>}
             {active.map((m) => (
               <button
                 key={m.id}
@@ -111,32 +119,25 @@ export function JupjupPanel({
             ))}
           </span>
         </div>
-        <div className={prize.field} role="group" aria-label="줍줍 모드">
-          <span className={styles.muted}>모드</span>
+        <div className={prize.field} role="group" aria-label={t("crewGameJupjup.modeAria")}>
+          <span className={styles.muted}>{t("crewGameJupjup.mode")}</span>
           <span className={games.rules}>
             {JUPJUP_MODES.map((m) => (
               <button key={m.key} type="button" className={games.rule} aria-pressed={draft.mode === m.key} onClick={() => edit({ mode: m.key })}>
-                <strong>{m.label}</strong>
-                <span>{m.note}</span>
+                <strong>{t(MODE_KEY[m.key].label)}</strong>
+                <span>{t(MODE_KEY[m.key].note)}</span>
               </button>
             ))}
           </span>
         </div>
-        {draft.mode === "MULTIPLY" && (
-          <AmountTiersField
-            name="줍줍"
-            tiers={draft.tiers}
-            onChange={(tiers) => edit({ tiers })}
-            note="가져간 후원 금액이 맞는 첫 구간의 배수가 적용돼요. 맞는 구간이 없으면 1배(점수 없음)예요."
-          />
-        )}
+        {draft.mode === "MULTIPLY" && <AmountTiersField name={name} tiers={draft.tiers} onChange={(tiers) => edit({ tiers })} note={t("crewGameJupjup.tiersNote")} />}
         <AutoFields
-          name="줍줍"
-          verb="돌리기"
+          name={name}
+          verb={t("crewGame.spin")}
           copy={{
-            auto: "줍줍 켜기",
-            excluded: "줍줍에서 뺄 시그니처 (누르면 제외)",
-            note: "후원자가 멤버를 고른 시그니처 후원(금액 일치 · 금액범위 · 랜덤시그 포함)만 쌓이고 가져가요. 같은 금액이 여러 개면 가장 오래된 것부터 가져가요."
+            auto: t("crewGameJupjup.autoCopy"),
+            excluded: t("crewGameJupjup.excludedCopy"),
+            note: t("crewGameJupjup.noteCopy")
           }}
           auto={draft.auto}
           excluded={draft.excluded}
@@ -149,19 +150,24 @@ export function JupjupPanel({
 
       {live && jupjup && (
         <>
-          {dirty && <p className={styles.note}>저장하지 않은 설정이 있어요. 줍줍은 저장한 설정으로 쌓이고 가져가요.</p>}
+          {dirty && <p className={styles.note}>{t("crewGameJupjup.unsaved")}</p>}
           <div className={prize.window}>
-            <span className={styles.muted}>대기 스택 {formatNumber(jupjup.stackCount)}건</span>
+            <span className={styles.muted}>{t("crewGameJupjup.stackCount", { n: formatNumber(jupjup.stackCount) })}</span>
             {jupjup.stackCount > 0 && (
-              <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => removeJupjup({ broadcastId: live.id, itemId: null }), "스택을 비웠어요.")}>
-                스택 비우기
+              <button
+                type="button"
+                className={styles.ghost}
+                disabled={pending}
+                onClick={() => run(() => removeJupjup({ broadcastId: live.id, itemId: null }), t("crewGameJupjup.stackCleared"))}
+              >
+                {t("crewGameJupjup.clearStack")}
               </button>
             )}
           </div>
           {jupjup.stack.length === 0 ? (
-            <p className={styles.empty}>쌓인 시그니처가 없어요.</p>
+            <p className={styles.empty}>{t("crewGameJupjup.emptyStack")}</p>
           ) : (
-            <ol className={games.stack} aria-label="줍줍 대기 스택">
+            <ol className={games.stack} aria-label={t("crewGameJupjup.stackAria")}>
               {jupjup.stack.map((x) => (
                 <li key={x.id}>
                   <span className={styles.boardName}>
@@ -170,26 +176,26 @@ export function JupjupPanel({
                   </span>
                   <span>
                     {x.signatureName} · <strong>{formatNumber(x.amount)} FN</strong>
-                    {x.manual && <span className={styles.muted}> · 수동</span>}
+                    {x.manual && <span className={styles.muted}> · {t("crewGame.manual")}</span>}
                   </span>
                   <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => removeJupjup({ broadcastId: live.id, itemId: x.id }))}>
-                    삭제
+                    {t("crewGame.delete")}
                   </button>
                 </li>
               ))}
             </ol>
           )}
-          <div className={games.manual} role="group" aria-label="줍줍 수동 추가">
-            <select className={styles.select} aria-label="줍줍 수동 추가 지정 BJ" value={owner} onChange={(e) => setOwnerId(e.target.value)}>
-              {owners.length === 0 && <option value="">저장한 지정 BJ가 없어요</option>}
+          <div className={games.manual} role="group" aria-label={t("crewGameJupjup.manualAddAria")}>
+            <select className={styles.select} aria-label={t("crewGameJupjup.manualOwnerAria")} value={owner} onChange={(e) => setOwnerId(e.target.value)}>
+              {owners.length === 0 && <option value="">{t("crewGameJupjup.noOwners")}</option>}
               {owners.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.name}
                 </option>
               ))}
             </select>
-            <select className={styles.select} aria-label="줍줍 수동 추가 시그니처" value={signatureId} onChange={(e) => setSignatureId(e.target.value)}>
-              <option value="">— 시그니처 선택 —</option>
+            <select className={styles.select} aria-label={t("crewGameJupjup.manualSigAria")} value={signatureId} onChange={(e) => setSignatureId(e.target.value)}>
+              <option value="">{t("crewGame.pickSignature")}</option>
               {sigs.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name} ({formatNumber(s.price)} FN)
@@ -197,14 +203,14 @@ export function JupjupPanel({
               ))}
             </select>
             <button type="button" className={styles.ghost} disabled={pending || !owner || !signatureId} onClick={add}>
-              수동 추가
+              {t("crewGameJupjup.manualAdd")}
             </button>
           </div>
-          <RunList name="줍줍" runs={jupjup.runs} now={now} />
+          <RunList name={name} runs={jupjup.runs} now={now} />
         </>
       )}
 
-      <OverlayAddress overlayPath={overlayPath} param="jupjup" label="줍줍" />
+      <OverlayAddress overlayPath={overlayPath} param="jupjup" label={name} />
     </section>
   );
 }

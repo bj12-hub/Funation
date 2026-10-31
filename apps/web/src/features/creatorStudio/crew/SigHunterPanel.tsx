@@ -2,6 +2,7 @@
 
 import { useRef, useState, type CSSProperties } from "react";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { clearSigHunter, nextSigHunter, saveSigHunter, setSigHunter, startSigHunter } from "@/services/crew/crewGames";
 import {
   SIG_HUNTER_BANDS_MAX,
@@ -76,6 +77,8 @@ export function SigHunterPanel({
   pending: boolean;
   run: RunAction;
 }) {
+  const { t } = useI18n();
+  const name = t("crewGame.nameSigHunter");
   const { draft, edit, dirty, reset } = useSettingsDraft(settings, toDraft, fromDraft);
   const setRound = (i: number, patch: Partial<EditRound>) => edit({ rounds: draft.rounds.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
   const known = new Set(signatures.map((s) => s.id));
@@ -106,32 +109,27 @@ export function SigHunterPanel({
       const res = await startSigHunter({ broadcastId: live.id, requestId });
       if (res.status !== "UNAUTHORIZED") startId.current = null;
       return res;
-    }, "1라운드 판을 만들었어요.");
+    }, t("crewGameSigHunter.started"));
   };
 
   return (
     <section id="game-sighunter" className={styles.card} aria-labelledby="game-sighunter-title">
       <h2 id="game-sighunter-title" className={styles.cardTitle}>
-        🏹 시그니처 헌터
+        🏹 {name}
       </h2>
-      <p className={styles.note}>
-        라운드마다 시그니처를 슬롯에 무작위로 깔고, 시그니처 후원이 들어오면 그 슬롯이 SOLD OUT 돼요. 라운드 배수만큼 멤버 점수가 더해지고, 숨은 몰수권을 산 멤버는 다른 멤버들의 SOLD OUT
-        기여도를 가져가요. 모든 슬롯이 팔리면 다음 라운드로 넘어가요.
-      </p>
+      <p className={styles.note}>{t("crewGameSigHunter.intro")}</p>
 
       <form
         className={prize.form}
         onSubmit={(e) => {
           e.preventDefault();
           const next = fromDraft(draft);
-          run(() => saveSigHunter({ ...next, excluded: next.excluded.filter((id) => known.has(id)) }), "시그니처 헌터 설정을 저장했어요.");
+          run(() => saveSigHunter({ ...next, excluded: next.excluded.filter((id) => known.has(id)) }), t("crewGame.saved", { name }));
         }}
       >
-        <TitleField name="시그니처 헌터" placeholder={SIG_HUNTER_TITLE_DEFAULT} value={draft.title} onChange={(title) => edit({ title })} />
+        <TitleField name={name} placeholder={SIG_HUNTER_TITLE_DEFAULT} value={draft.title} onChange={(title) => edit({ title })} />
         <div className={prize.field}>
-          <span className={styles.muted}>
-            라운드 ({draft.rounds.length}/{SIG_HUNTER_ROUNDS_MAX})
-          </span>
+          <span className={styles.muted}>{t("crewGameSigHunter.rounds", { count: draft.rounds.length, max: SIG_HUNTER_ROUNDS_MAX })}</span>
           <ul className={games.tiers}>
             {draft.rounds.map((r, i) => {
               const ranges = [r, ...r.bands];
@@ -139,28 +137,35 @@ export function SigHunterPanel({
               const empty = counts.findIndex((c) => c === 0);
               const repeats = ranges.some((x, k) => Number(x.slots) > counts[k]);
               const total = ranges.reduce((s, x) => s + (Number(x.slots) || 0), 0);
-              const name = `${i + 1}라운드`;
+              const round = t("crewGameSigHunter.roundName", { n: i + 1 });
+              const detail = r.bands.length
+                ? [
+                    t("crewGameSigHunter.candBase", { n: counts[0] }),
+                    ...r.bands.map((_, k) => t("crewGameSigHunter.candBand", { k: k + 1, n: counts[k + 1] })),
+                    t("crewGameSigHunter.candTotal", { n: total })
+                  ].join(" · ")
+                : t("crewGameSigHunter.candCount", { n: counts[0] });
               return (
                 <li key={r.id}>
                   <span className={games.tierRow}>
-                    <strong>{name}</strong>
+                    <strong>{round}</strong>
                     <input
                       className={`${styles.inputSmall} ${games.short}`}
                       type="number"
                       inputMode="numeric"
-                      aria-label={`${name} 슬롯 수`}
+                      aria-label={t("crewGameSigHunter.slotsAria", { round })}
                       min={1}
                       max={SIG_HUNTER_SLOTS_MAX}
                       value={r.slots}
                       onChange={(e) => setRound(i, { slots: e.target.value })}
                     />
-                    <span className={styles.muted}>칸 ·</span>
+                    <span className={styles.muted}>{t("crewGameSigHunter.cellsSep")}</span>
                     <input
                       className={styles.inputSmall}
                       type="number"
                       inputMode="numeric"
-                      aria-label={`${name} 최소 금액`}
-                      placeholder="최소"
+                      aria-label={t("crewGameSigHunter.minAria", { round })}
+                      placeholder={t("crewGame.min")}
                       value={r.priceMin}
                       onChange={(e) => setRound(i, { priceMin: e.target.value })}
                     />
@@ -169,8 +174,8 @@ export function SigHunterPanel({
                       className={styles.inputSmall}
                       type="number"
                       inputMode="numeric"
-                      aria-label={`${name} 최대 금액`}
-                      placeholder="최대"
+                      aria-label={t("crewGameSigHunter.maxAria", { round })}
+                      placeholder={t("crewGame.max")}
                       value={r.priceMax}
                       onChange={(e) => setRound(i, { priceMax: e.target.value })}
                     />
@@ -179,48 +184,48 @@ export function SigHunterPanel({
                       className={`${styles.inputSmall} ${games.short}`}
                       type="number"
                       inputMode="decimal"
-                      aria-label={`${name} 배수`}
+                      aria-label={t("crewGameSigHunter.multiplierAria", { round })}
                       step={0.01}
                       min={1}
                       max={SIG_HUNTER_MULTIPLIER_MAX}
                       value={r.multiplier}
                       onChange={(e) => setRound(i, { multiplier: e.target.value })}
                     />
-                    <span className={styles.muted}>· 몰수권</span>
+                    <span className={styles.muted}>{t("crewGameSigHunter.forfeitSep")}</span>
                     <input
                       className={`${styles.inputSmall} ${games.short}`}
                       type="number"
                       inputMode="numeric"
-                      aria-label={`${name} 몰수권 수`}
+                      aria-label={t("crewGameSigHunter.forfeitsAria", { round })}
                       min={0}
                       value={r.forfeits}
                       onChange={(e) => setRound(i, { forfeits: e.target.value })}
                     />
-                    <span className={styles.muted}>개</span>
+                    <span className={styles.muted}>{t("crewGameSigHunter.countUnit")}</span>
                     <button type="button" className={styles.ghost} disabled={draft.rounds.length <= 1} onClick={() => edit({ rounds: draft.rounds.filter((_, j) => j !== i) })}>
-                      삭제
+                      {t("crewGame.delete")}
                     </button>
                   </span>
                   {r.bands.map((b, k) => (
                     <span key={k} className={games.tierRow}>
-                      <span className={styles.muted}>추가 구간 {k + 1}</span>
+                      <span className={styles.muted}>{t("crewGameSigHunter.band", { n: k + 1 })}</span>
                       <input
                         className={`${styles.inputSmall} ${games.short}`}
                         type="number"
                         inputMode="numeric"
-                        aria-label={`${name} 추가 구간 ${k + 1} 슬롯 수`}
+                        aria-label={t("crewGameSigHunter.bandSlotsAria", { round, n: k + 1 })}
                         min={1}
                         max={SIG_HUNTER_SLOTS_MAX}
                         value={b.slots}
                         onChange={(e) => setBand(i, k, { slots: e.target.value })}
                       />
-                      <span className={styles.muted}>칸 ·</span>
+                      <span className={styles.muted}>{t("crewGameSigHunter.cellsSep")}</span>
                       <input
                         className={styles.inputSmall}
                         type="number"
                         inputMode="numeric"
-                        aria-label={`${name} 추가 구간 ${k + 1} 최소 금액`}
-                        placeholder="최소"
+                        aria-label={t("crewGameSigHunter.bandMinAria", { round, n: k + 1 })}
+                        placeholder={t("crewGame.min")}
                         value={b.priceMin}
                         onChange={(e) => setBand(i, k, { priceMin: e.target.value })}
                       />
@@ -229,14 +234,14 @@ export function SigHunterPanel({
                         className={styles.inputSmall}
                         type="number"
                         inputMode="numeric"
-                        aria-label={`${name} 추가 구간 ${k + 1} 최대 금액`}
-                        placeholder="최대"
+                        aria-label={t("crewGameSigHunter.bandMaxAria", { round, n: k + 1 })}
+                        placeholder={t("crewGame.max")}
                         value={b.priceMax}
                         onChange={(e) => setBand(i, k, { priceMax: e.target.value })}
                       />
                       <span className={styles.muted}>FN</span>
                       <button type="button" className={styles.ghost} onClick={() => setRound(i, { bands: r.bands.filter((_, j) => j !== k) })}>
-                        구간 삭제
+                        {t("crewGameSigHunter.deleteBand")}
                       </button>
                     </span>
                   ))}
@@ -247,16 +252,14 @@ export function SigHunterPanel({
                       disabled={r.bands.length >= SIG_HUNTER_BANDS_MAX || total >= SIG_HUNTER_SLOTS_MAX}
                       onClick={() => setRound(i, { bands: [...r.bands, { slots: "5", priceMin: "", priceMax: "" }] })}
                     >
-                      + 금액 구간 추가
+                      {t("crewGameSigHunter.addBand")}
                     </button>
                     <span className={empty >= 0 ? styles.error : styles.note}>
                       {empty === 0
-                        ? "후보 시그니처 0개 — 이 라운드에 넣을 시그니처가 없어요."
+                        ? t("crewGameSigHunter.noCandidates")
                         : empty > 0
-                          ? `추가 구간 ${empty}에 넣을 시그니처가 없어요.`
-                          : `후보 시그니처 ${
-                              r.bands.length ? `기본 ${counts[0]}개 · ${r.bands.map((_, k) => `추가 구간 ${k + 1} ${counts[k + 1]}개`).join(" · ")} · 모두 ${total}칸` : `${counts[0]}개`
-                            }${repeats ? " — 후보가 슬롯보다 적은 범위는 같은 시그니처가 여러 슬롯에 들어가요." : ""}`}
+                          ? t("crewGameSigHunter.bandEmpty", { n: empty })
+                          : `${t("crewGameSigHunter.candidates", { detail })}${repeats ? ` — ${t("crewGameSigHunter.repeats")}` : ""}`}
                     </span>
                   </span>
                 </li>
@@ -273,40 +276,38 @@ export function SigHunterPanel({
                 edit({ rounds: [...draft.rounds, { ...last, bands: last.bands.map((b) => ({ ...b })), id: newId() }] });
               }}
             >
-              + 라운드 추가
+              {t("crewGameSigHunter.addRound")}
             </button>
           </span>
-          <span className={styles.note}>
-            금액 범위를 비우면 끝이 없어요. 배수 1은 배수 없음이고, 몰수권은 슬롯보다 적게 숨길 수 있어요. 마지막 라운드가 끝나면 마지막 라운드 설정으로 계속돼요.
-          </span>
+          <span className={styles.note}>{t("crewGameSigHunter.roundsNote")}</span>
         </div>
-        <div className={prize.field} role="group" aria-label="몰수권">
-          <span className={styles.muted}>몰수권</span>
+        <div className={prize.field} role="group" aria-label={t("crewGameSigHunter.forfeit")}>
+          <span className={styles.muted}>{t("crewGameSigHunter.forfeit")}</span>
           <span className={prize.inline}>
             <input
               className={`${styles.inputSmall} ${games.short}`}
               type="number"
               min={0}
-              aria-label="몰수권 최소 금액"
+              aria-label={t("crewGameSigHunter.forfeitMinAria")}
               style={{ width: 120, flex: "none" }}
               value={String(draft.forfeitMin)}
               onChange={(e) => edit({ forfeitMin: Math.max(0, Math.trunc(Number(e.target.value) || 0)) })}
             />
-            <span className={styles.muted}>FN 이상인 시그에만 배치 (0 = 제한 없음)</span>
+            <span className={styles.muted}>{t("crewGameSigHunter.forfeitMinNote")}</span>
             <label className={styles.checkRow}>
               <input type="checkbox" checked={draft.forfeitLock} onChange={(e) => edit({ forfeitLock: e.target.checked })} />
-              몰수권이 열리면 헌터 판 자동 잠김
+              {t("crewGameSigHunter.forfeitLock")}
             </label>
           </span>
-          <span className={styles.note}>최소 금액 이상인 슬롯이 몰수권 수보다 적으면 그만큼만, 없으면 몰수권 없이 판을 만들어요. 잠김을 끄면 몰수권이 열려도 판이 계속돼요.</span>
+          <span className={styles.note}>{t("crewGameSigHunter.forfeitNote")}</span>
         </div>
         <AutoFields
-          name="시그니처 헌터"
+          name={name}
           verb="SOLD OUT"
           copy={{
-            auto: "시그니처 후원으로 SOLD OUT",
-            excluded: "헌터 판에서 뺄 시그니처 (누르면 제외)",
-            note: "시그니처 후원(금액 일치 · 금액범위 · 랜덤시그 · 메들리 포함)이 그 시그니처의 남은 첫 슬롯을 SOLD OUT 해요. 멤버를 고르지 않은 후원도 SOLD OUT 되지만 기여도는 없어요."
+            auto: t("crewGameSigHunter.autoCopy"),
+            excluded: t("crewGameSigHunter.excludedCopy"),
+            note: t("crewGameSigHunter.noteCopy")
           }}
           auto={draft.auto}
           excluded={draft.excluded}
@@ -314,21 +315,21 @@ export function SigHunterPanel({
           signatures={signatures}
           onChange={edit}
         />
-        <p className={styles.note}>라운드 설정은 다음 라운드부터(지금 라운드는 그대로) 적용돼요.</p>
+        <p className={styles.note}>{t("crewGameSigHunter.applyNote")}</p>
         <FormActions pending={pending} dirty={dirty} onReset={reset} />
       </form>
 
       {live && hunter && (
         <>
-          {dirty && <p className={styles.note}>저장하지 않은 설정이 있어요. 헌트 시작 · 다음 라운드는 저장한 설정으로 판을 만들어요.</p>}
+          {dirty && <p className={styles.note}>{t("crewGameSigHunter.unsaved")}</p>}
           <div className={prize.window}>
             <span className={styles.muted}>
               {board
-                ? `${board.round}라운드 · ×${board.multiplier} · SOLD OUT ${sold}/${board.slots.length} · 몰수권 ${forfeitsLeft}개 남음${board.advanceAt ? " · 결과 연출 뒤 다음 라운드" : ""}${board.locked ? " · 🔒 잠김" : ""}`
-                : "헌트가 없어요. 헌트 시작을 누르면 저장한 1라운드로 판을 만들어요."}
+                ? `${t("crewGameSigHunter.status", { round: board.round, multiplier: board.multiplier, sold, slots: board.slots.length, left: forfeitsLeft })}${board.advanceAt ? ` · ${t("crewGameSigHunter.advancePending")}` : ""}${board.locked ? ` · ${t("crewGameSigHunter.locked")}` : ""}`
+                : t("crewGameSigHunter.noBoard")}
             </span>
             <button type="button" className={styles.primary} disabled={pending} onClick={start}>
-              {board ? "처음부터 다시 시작" : "헌트 시작"}
+              {board ? t("crewGameSigHunter.restart") : t("crewGameSigHunter.start")}
             </button>
             {board && (
               <>
@@ -336,28 +337,24 @@ export function SigHunterPanel({
                   type="button"
                   className={styles.ghost}
                   disabled={pending}
-                  onClick={() => run(() => nextSigHunter({ broadcastId: live.id, round: board.round }), `${board.round + 1}라운드로 넘어갔어요.`)}
+                  onClick={() => run(() => nextSigHunter({ broadcastId: live.id, round: board.round }), t("crewGameSigHunter.advanced", { n: board.round + 1 }))}
                 >
-                  다음 라운드
+                  {t("crewGameSigHunter.next")}
                 </button>
-                <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => clearSigHunter({ broadcastId: live.id }), "헌터 판을 비웠어요.")}>
-                  판 비우기
+                <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => clearSigHunter({ broadcastId: live.id }), t("crewGameSigHunter.cleared"))}>
+                  {t("crewGameSigHunter.clear")}
                 </button>
               </>
             )}
           </div>
           {board && (
             <>
-              {board.locked && <p className={styles.note}>몰수권이 열려 판이 잠겼어요. 시그니처 후원이 더는 SOLD OUT 하지 않아요 — 다음 라운드를 눌러 주세요.</p>}
-              {sold === board.slots.length && !board.advanceAt && (
-                <p className={styles.note}>모든 슬롯이 SOLD OUT이에요. 다음 라운드에 넣을 시그니처가 없으면 설정을 확인한 뒤 다음 라운드를 눌러 주세요.</p>
-              )}
+              {board.locked && <p className={styles.note}>{t("crewGameSigHunter.lockedNote")}</p>}
+              {sold === board.slots.length && !board.advanceAt && <p className={styles.note}>{t("crewGameSigHunter.allSold")}</p>}
               <span className={prize.inline}>
-                <span className={styles.muted}>
-                  슬롯을 누르면 SOLD OUT 처리해요(기여도 없음{keepSold ? "" : ", 수동 SOLD OUT은 다시 누르면 되돌려요"}) — 멤버(선택)
-                </span>
-                <select className={styles.select} aria-label="SOLD OUT 처리할 멤버" value={picked} onChange={(e) => setMemberId(e.target.value)}>
-                  <option value="">멤버 없음</option>
+                <span className={styles.muted}>{keepSold ? t("crewGameSigHunter.clickHintKeep") : t("crewGameSigHunter.clickHint")}</span>
+                <select className={styles.select} aria-label={t("crewGameSigHunter.memberAria")} value={picked} onChange={(e) => setMemberId(e.target.value)}>
+                  <option value="">{t("crewGame.noMember")}</option>
                   {active.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.name}
@@ -366,10 +363,10 @@ export function SigHunterPanel({
                 </select>
                 <label className={styles.checkRow}>
                   <input type="checkbox" checked={keepSold} onChange={(e) => setKeepSold(e.target.checked)} />
-                  클릭해제 방지
+                  {t("crewGameSigHunter.keepSold")}
                 </label>
               </span>
-              <ol className={games.hunter} style={{ "--hunter-cols": sigHunterColumns(board.slots.length) } as CSSProperties} aria-label="시그니처 헌터 판">
+              <ol className={games.hunter} style={{ "--hunter-cols": sigHunterColumns(board.slots.length) } as CSSProperties} aria-label={t("crewGameSigHunter.boardAria")}>
                 {board.slots.map((x, i) => (
                   <li key={i}>
                     <button
@@ -380,15 +377,15 @@ export function SigHunterPanel({
                       style={x.sold?.memberColor ? ({ "--cell-color": x.sold.memberColor } as CSSProperties) : undefined}
                       disabled={pending || (!!x.sold && (keepSold || !x.sold.manual || x.forfeit || !!x.sold.absorbedBy))}
                       aria-pressed={!!x.sold}
-                      aria-label={`${i + 1}번 슬롯 ${x.signatureName}${x.forfeit ? " (몰수권)" : ""}${x.sold ? ` — SOLD OUT${x.sold.memberName ? ` · ${x.sold.memberName}` : ""}` : ""}`}
+                      aria-label={`${t("crewGameSigHunter.slotAria", { n: i + 1, name: x.signatureName })}${x.forfeit ? ` (${t("crewGameSigHunter.forfeit")})` : ""}${x.sold ? ` — SOLD OUT${x.sold.memberName ? ` · ${x.sold.memberName}` : ""}` : ""}`}
                       onClick={() => run(() => setSigHunter({ broadcastId: live.id, requestId: crypto.randomUUID(), index: i, round: board.round, sold: !x.sold, memberId: picked || null }))}
                     >
-                      {x.forfeit && <span className={games.forfeit}>몰수권</span>}
+                      {x.forfeit && <span className={games.forfeit}>{t("crewGameSigHunter.forfeit")}</span>}
                       <span>{x.signatureName}</span>
                       <small>{formatNumber(x.price)} FN</small>
                       {x.sold && (
                         <small>
-                          SOLD OUT · {x.sold.memberName ?? (x.sold.manual ? "수동" : "멤버 없음")}
+                          SOLD OUT · {x.sold.memberName ?? (x.sold.manual ? t("crewGame.manual") : t("crewGame.noMember"))}
                           {x.sold.absorbedBy && ` → ${x.sold.absorbedBy}`}
                         </small>
                       )}
@@ -398,11 +395,11 @@ export function SigHunterPanel({
               </ol>
             </>
           )}
-          <RunList name="시그니처 헌터" runs={hunter.runs} now={now} />
+          <RunList name={name} runs={hunter.runs} now={now} />
         </>
       )}
 
-      <OverlayAddress overlayPath={overlayPath} param="sighunter" label="시그니처 헌터" />
+      <OverlayAddress overlayPath={overlayPath} param="sighunter" label={name} />
     </section>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { adjustGoStop, resetGoStop, resetGoStopRank, saveGoStop } from "@/services/crew/crewGames";
 import {
   GOSTOP_BANDS_MAX,
@@ -76,6 +77,8 @@ export function GoStopPanel({
   pending: boolean;
   run: RunAction;
 }) {
+  const { t } = useI18n();
+  const name = t("crewGame.nameGoStop");
   const { draft, edit, dirty, reset } = useSettingsDraft(settings, toDraft, fromDraft);
   const setBand = (i: number, patch: Partial<EditBand>) => edit({ bands: draft.bands.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
   const known = new Set(signatures.map((s) => s.id));
@@ -91,12 +94,9 @@ export function GoStopPanel({
   return (
     <section id="game-gostop" className={styles.card} aria-labelledby="game-gostop-title">
       <h2 id="game-gostop-title" className={styles.cardTitle}>
-        🎴 고스톱
+        🎴 {name}
       </h2>
-      <p className={styles.note}>
-        멤버에게 시그니처 후원이 들어올 때마다 크루 풀에 점수가 쌓이고 GO · STOP을 굴려요. 후원 점수가 클수록 STOP 확률이 높아요. STOP이 나오면 그 멤버가 풀 × 배수를 가져가고 풀은 다시
-        시작해요.
-      </p>
+      <p className={styles.note}>{t("crewGameGoStop.intro")}</p>
 
       <form
         className={prize.form}
@@ -105,68 +105,68 @@ export function GoStopPanel({
           const next = fromDraft(draft);
           run(
             () => saveGoStop({ ...next, excluded: next.excluded.filter((id) => known.has(id)), excludedMembers: next.excludedMembers.filter((id) => memberIds.has(id)) }),
-            "고스톱 설정을 저장했어요."
+            t("crewGame.saved", { name })
           );
         }}
       >
-        <TitleField name="고스톱" placeholder={GOSTOP_TITLE_DEFAULT} value={draft.title} onChange={(title) => edit({ title })} />
+        <TitleField name={name} placeholder={GOSTOP_TITLE_DEFAULT} value={draft.title} onChange={(title) => edit({ title })} />
         <label className={games.unit}>
-          <span className={styles.muted}>기본 풀</span>
+          <span className={styles.muted}>{t("crewGameGoStop.basePool")}</span>
           <input
             className={styles.inputSmall}
             type="number"
             inputMode="numeric"
-            aria-label="기본 풀"
+            aria-label={t("crewGameGoStop.basePool")}
             min={0}
             max={GOSTOP_POOL_MAX}
             value={draft.basePool}
             onChange={(e) => edit({ basePool: e.target.value })}
           />
-          <span className={styles.muted}>점 — STOP이나 풀 비우기 뒤에 풀이 이 점수부터 다시 쌓여요</span>
+          <span className={styles.muted}>{t("crewGameGoStop.basePoolNote")}</span>
         </label>
         <div className={prize.field}>
-          <span className={styles.muted}>풀 · STOP</span>
+          <span className={styles.muted}>{t("crewGameGoStop.poolStop")}</span>
           <span className={games.tierRow}>
-            <span className={styles.muted}>적립률</span>
+            <span className={styles.muted}>{t("crewGameGoStop.poolPercent")}</span>
             <input
               className={`${styles.inputSmall} ${games.short}`}
               type="number"
               inputMode="numeric"
-              aria-label="적립률"
+              aria-label={t("crewGameGoStop.poolPercent")}
               min={1}
               max={GOSTOP_POOL_PERCENT_MAX}
               value={draft.poolPercent}
               onChange={(e) => edit({ poolPercent: e.target.value })}
             />
-            <span className={styles.muted}>% · STOP 1,000점당</span>
+            <span className={styles.muted}>{t("crewGameGoStop.perThousand")}</span>
             <input
               className={`${styles.inputSmall} ${games.short}`}
               type="number"
               inputMode="decimal"
-              aria-label="1,000점당 STOP 확률"
+              aria-label={t("crewGameGoStop.stopRateAria")}
               step={0.01}
               min={0.01}
               max={GOSTOP_RATE_MAX}
               value={draft.stopRate}
               onChange={(e) => edit({ stopRate: e.target.value })}
             />
-            <span className={styles.muted}>% · 최대</span>
+            <span className={styles.muted}>{t("crewGameGoStop.percentMax")}</span>
             <input
               className={`${styles.inputSmall} ${games.short}`}
               type="number"
               inputMode="numeric"
-              aria-label="최대 STOP 확률"
+              aria-label={t("crewGameGoStop.stopMaxAria")}
               min={1}
               max={100}
               value={draft.stopMax}
               onChange={(e) => edit({ stopMax: e.target.value })}
             />
-            <span className={styles.muted}>% · 배수 ×</span>
+            <span className={styles.muted}>{t("crewGameGoStop.percentTimes")}</span>
             <input
               className={`${styles.inputSmall} ${games.short}`}
               type="number"
               inputMode="decimal"
-              aria-label="STOP 배수"
+              aria-label={t("crewGameGoStop.multiplierAria")}
               step={0.01}
               min={1}
               max={GOSTOP_MULTIPLIER_MAX}
@@ -176,34 +176,36 @@ export function GoStopPanel({
           </span>
           <span className={styles.note}>
             {exampleChance === null
-              ? "STOP 확률과 최대를 정해 주세요."
-              : `예: ${formatNumber(example)}점 후원이면 풀에 ${formatNumber(Math.round((example * Number(draft.poolPercent || 0)) / 100))}점이 쌓이고 STOP 확률 ${Math.round(exampleChance * 100) / 100}%예요.`}
+              ? t("crewGameGoStop.needRate")
+              : t("crewGameGoStop.example", {
+                  amount: formatNumber(example),
+                  pool: formatNumber(Math.round((example * Number(draft.poolPercent || 0)) / 100)),
+                  chance: Math.round(exampleChance * 100) / 100
+                })}
           </span>
         </div>
 
         <div className={prize.field}>
-          <span className={styles.muted}>
-            색 구간 ({draft.bands.length}/{GOSTOP_BANDS_MAX}) — 풀이 이만큼 쌓이면 이 색으로 보여요
-          </span>
+          <span className={styles.muted}>{t("crewGameGoStop.bands", { count: draft.bands.length, max: GOSTOP_BANDS_MAX })}</span>
           {draft.bands.length > 0 && (
             <ul className={games.tiers}>
               {draft.bands.map((b, i) => (
                 <li key={b.id}>
                   <span className={games.tierRow}>
-                    <span className={styles.muted}>풀</span>
+                    <span className={styles.muted}>{t("crewGameGoStop.pool")}</span>
                     <input
                       className={styles.inputSmall}
                       type="number"
                       inputMode="numeric"
-                      aria-label={`색 구간 ${i + 1} 최소 풀`}
+                      aria-label={t("crewGameGoStop.bandMinAria", { n: i + 1 })}
                       min={0}
                       value={b.min}
                       onChange={(e) => setBand(i, { min: e.target.value })}
                     />
-                    <span className={styles.muted}>점부터</span>
-                    <input className={games.color} type="color" aria-label={`색 구간 ${i + 1} 색`} value={b.color} onChange={(e) => setBand(i, { color: e.target.value })} />
+                    <span className={styles.muted}>{t("crewGameGoStop.pointsFrom")}</span>
+                    <input className={games.color} type="color" aria-label={t("crewGameGoStop.bandColorAria", { n: i + 1 })} value={b.color} onChange={(e) => setBand(i, { color: e.target.value })} />
                     <button type="button" className={styles.ghost} onClick={() => edit({ bands: draft.bands.filter((_, j) => j !== i) })}>
-                      삭제
+                      {t("crewGame.delete")}
                     </button>
                   </span>
                 </li>
@@ -217,13 +219,13 @@ export function GoStopPanel({
               disabled={draft.bands.length >= GOSTOP_BANDS_MAX}
               onClick={() => edit({ bands: [...draft.bands, { id: newId(), min: draft.bands.length ? "" : "0", color: "#22c55e" }] })}
             >
-              + 색 구간 추가
+              {t("crewGameGoStop.addBand")}
             </button>
           </span>
         </div>
 
         <div className={prize.field}>
-          <span className={styles.muted}>제외 BJ (누르면 제외 — 그 멤버에게 온 후원은 풀에 넣지도 굴리지도 않아요)</span>
+          <span className={styles.muted}>{t("crewGameGoStop.excludedMembers")}</span>
           <span className={prize.chips}>
             {members.map((m) => (
               <button
@@ -236,18 +238,18 @@ export function GoStopPanel({
                 }
               >
                 {m.name}
-                {!m.active && <span className={styles.muted}>휴식</span>}
+                {!m.active && <span className={styles.muted}>{t("crewGameGoStop.resting")}</span>}
               </button>
             ))}
           </span>
         </div>
         <AutoFields
-          name="고스톱"
-          verb="굴리기"
+          name={name}
+          verb={t("crewGame.roll")}
           copy={{
-            auto: "멤버에게 시그니처 후원이 들어오면 자동으로 풀에 넣고 GO · STOP 굴리기",
-            excluded: "자동으로 하지 않을 시그니처 (누르면 제외)",
-            note: "후원자가 멤버를 고른 시그니처 후원(금액 일치 · 금액범위 · 랜덤시그 포함)마다 한 번, 그 후원 점수로 풀과 STOP 확률을 정해요. 멤버를 고르지 않은 후원은 수동으로 해 주세요."
+            auto: t("crewGameGoStop.autoCopy"),
+            excluded: t("crewGame.excludedDefault"),
+            note: t("crewGameGoStop.noteCopy")
           }}
           auto={draft.auto}
           excluded={draft.excluded}
@@ -260,34 +262,42 @@ export function GoStopPanel({
 
       {live && gostop && (
         <>
-          {dirty && <p className={styles.note}>저장하지 않은 설정이 있어요. GO · STOP은 저장한 설정으로 굴러가요.</p>}
+          {dirty && <p className={styles.note}>{t("crewGameGoStop.unsaved")}</p>}
           <div className={prize.window}>
-            <span className={styles.muted}>
-              지금 풀 {formatNumber(gostop.pool)}점 · {gostop.go} GO
-            </span>
-            <button type="button" className={styles.ghost} disabled={pending || (gostop.pool === 0 && gostop.go === 0)} onClick={() => run(() => resetGoStop({ broadcastId: live.id }), "풀을 비웠어요.")}>
-              풀 비우기
+            <span className={styles.muted}>{t("crewGameGoStop.poolNow", { pool: formatNumber(gostop.pool), go: gostop.go })}</span>
+            <button
+              type="button"
+              className={styles.ghost}
+              disabled={pending || (gostop.pool === 0 && gostop.go === 0)}
+              onClick={() => run(() => resetGoStop({ broadcastId: live.id }), t("crewGameGoStop.poolCleared"))}
+            >
+              {t("crewGameGoStop.clearPool")}
             </button>
-            <button type="button" className={styles.ghost} disabled={pending || gostop.wins.length === 0} onClick={() => run(() => resetGoStopRank({ broadcastId: live.id }), "STOP 랭킹을 새로 시작했어요.")}>
-              랭킹 리셋
+            <button
+              type="button"
+              className={styles.ghost}
+              disabled={pending || gostop.wins.length === 0}
+              onClick={() => run(() => resetGoStopRank({ broadcastId: live.id }), t("crewGameGoStop.rankReset"))}
+            >
+              {t("crewGameGoStop.resetRank")}
             </button>
           </div>
-          <span className={games.unit} role="group" aria-label="풀 수동 조정">
-            <span className={styles.muted}>풀 수동 조정</span>
+          <span className={games.unit} role="group" aria-label={t("crewGameGoStop.adjustLabel")}>
+            <span className={styles.muted}>{t("crewGameGoStop.adjustLabel")}</span>
             <input
               className={styles.inputSmall}
               type="number"
               inputMode="numeric"
-              aria-label="조정 점수"
-              placeholder="+50 또는 -10"
+              aria-label={t("crewGameGoStop.adjustPointsAria")}
+              placeholder={t("crewGameGoStop.adjustPlaceholder")}
               value={adjust.points}
               onChange={(e) => setAdjust({ ...adjust, points: e.target.value, requestId: "" })}
             />
-            <span className={styles.muted}>점</span>
+            <span className={styles.muted}>{t("crewGameGoStop.pointsUnit")}</span>
             <input
               className={styles.input}
-              aria-label="조정 사유"
-              placeholder="사유 (선택)"
+              aria-label={t("crewGameGoStop.reasonAria")}
+              placeholder={t("crewGameGoStop.reasonPlaceholder")}
               maxLength={GOSTOP_REASON_MAX}
               value={adjust.reason}
               onChange={(e) => setAdjust({ ...adjust, reason: e.target.value })}
@@ -303,53 +313,51 @@ export function GoStopPanel({
                   const res = await adjustGoStop({ broadcastId: live.id, requestId, points: Number(adjust.points), reason: adjust.reason });
                   if (res.status === "SAVED") setAdjust({ points: "", reason: "", requestId: "" });
                   return res;
-                }, "풀을 조정했어요.");
+                }, t("crewGameGoStop.adjusted"));
               }}
             >
-              조정
+              {t("crewGameGoStop.adjust")}
             </button>
           </span>
           {gostop.adjustments.length > 0 && (
-            <ul className={games.lanes} aria-label="풀 수동 조정 기록">
+            <ul className={games.lanes} aria-label={t("crewGameGoStop.adjustmentsAria")}>
               {gostop.adjustments.map((a, i) => (
                 <li key={`${a.at}-${i}`}>
                   <span>
                     {a.points > 0 ? "+" : ""}
-                    {formatNumber(a.points)}점
+                    {t("crewGame.points", { n: formatNumber(a.points) })}
                   </span>
-                  <span className={styles.muted}>{a.reason || "사유 없음"}</span>
+                  <span className={styles.muted}>{a.reason || t("crewGameGoStop.noReason")}</span>
                 </li>
               ))}
             </ul>
           )}
-          {gostop.rankingSince && <p className={styles.note}>STOP 랭킹은 랭킹 리셋 뒤의 STOP만 세요. 그 전에 받은 점수는 점수판에 그대로 있어요.</p>}
-          <ManualPlay game="GOSTOP" name="고스톱" verb="GO · STOP" live={live} members={members} pending={pending} run={run} />
-          <p className={styles.note}>수동은 고른 기준 후원의 점수로 풀과 STOP 확률을 정해요. 기준 후원 없이 굴리면 풀은 그대로이고 항상 GO예요.</p>
+          {gostop.rankingSince && <p className={styles.note}>{t("crewGameGoStop.rankingNote")}</p>}
+          <ManualPlay game="GOSTOP" name={name} verb="GO · STOP" live={live} members={members} pending={pending} run={run} />
+          <p className={styles.note}>{t("crewGameGoStop.manualNote")}</p>
           {gostop.wins.length > 0 && (
-            <ol className={games.lanes} aria-label="STOP 랭킹">
+            <ol className={games.lanes} aria-label={t("crewGameGoStop.rankingAria")}>
               {goStopRanking(gostop.wins).map((r, i) => (
                 <li key={r.memberId}>
                   <span className={styles.boardName}>
                     {i + 1}. {r.color && <span className={styles.dot} style={{ background: r.color }} aria-hidden="true" />}
                     {r.name}
                   </span>
-                  <span>{formatNumber(r.points)}점</span>
-                  <span className={styles.muted}>
-                    STOP {r.count}회 · 최고 풀 {formatNumber(r.best)}점
-                  </span>
+                  <span>{t("crewGame.points", { n: formatNumber(r.points) })}</span>
+                  <span className={styles.muted}>{t("crewGameGoStop.rankStats", { count: r.count, best: formatNumber(r.best) })}</span>
                 </li>
               ))}
             </ol>
           )}
-          <RunList name="고스톱" runs={gostop.runs} now={now} />
+          <RunList name={name} runs={gostop.runs} now={now} />
         </>
       )}
 
-      <OverlayAddress overlayPath={overlayPath} param="gostop" label="고스톱" />
-      <p className={styles.note}>진행 자막 (풀 · GO · 최근 STOP을 한 줄로)</p>
-      <OverlayAddress overlayPath={overlayPath} param="gostopticker" label="고스톱 진행 자막" />
-      <p className={styles.note}>랭킹 (STOP 랭킹만 따로, 10명까지)</p>
-      <OverlayAddress overlayPath={overlayPath} param="gostoprank" label="고스톱 랭킹" />
+      <OverlayAddress overlayPath={overlayPath} param="gostop" label={name} />
+      <p className={styles.note}>{t("crewGameGoStop.tickerNote")}</p>
+      <OverlayAddress overlayPath={overlayPath} param="gostopticker" label={t("crewGameGoStop.tickerLabel", { name })} />
+      <p className={styles.note}>{t("crewGameGoStop.rankNote")}</p>
+      <OverlayAddress overlayPath={overlayPath} param="gostoprank" label={t("crewGameGoStop.rankLabel", { name })} />
     </section>
   );
 }

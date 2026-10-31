@@ -3,14 +3,19 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { deleteAsset, renameAsset, uploadAsset } from "@/services/creator/assets";
 import { ASSET_LIMITS, ASSET_SORTS, ASSET_TYPES, filterAssets, pairOf, type Asset, type AssetKind, type AssetResult, type AssetSort } from "@/services/creator/assetTypes";
 import styles from "../../crew/crew.module.css";
 import local from "./library.module.css";
 
-const KIND_LABEL: Record<AssetKind, string> = { IMAGE: "이미지", SOUND: "사운드", VIDEO: "영상" };
-/** "아직 올린 이미지가 …" — 영상 takes 이 (it ends in a consonant). */
-const KIND_SUBJECT: Record<AssetKind, string> = { IMAGE: "이미지가", SOUND: "사운드가", VIDEO: "영상이" };
+const KIND_LABEL: Record<AssetKind, MessageKey> = { IMAGE: "studioToolsLibrary.kindImage", SOUND: "studioToolsLibrary.kindSound", VIDEO: "studioToolsLibrary.kindVideo" };
+/** The empty lines per kind, whole sentences (Korean: 영상 takes 이 — it ends in a consonant). */
+const KIND_EMPTY: Record<AssetKind, MessageKey> = { IMAGE: "studioToolsLibrary.emptyImage", SOUND: "studioToolsLibrary.emptySound", VIDEO: "studioToolsLibrary.emptyVideo" };
+const KIND_NO_MATCH: Record<AssetKind, MessageKey> = { IMAGE: "studioToolsLibrary.noMatchImage", SOUND: "studioToolsLibrary.noMatchSound", VIDEO: "studioToolsLibrary.noMatchVideo" };
+/** 정렬 labels by key (the service's ASSET_SORTS stay as written, 2026-11-01). */
+const SORT_KEY: Record<AssetSort, MessageKey> = { NEW: "studioToolsLibrary.sortNew", OLD: "studioToolsLibrary.sortOld", NAME: "studioToolsLibrary.sortName", SIZE: "studioToolsLibrary.sortSize" };
 const size = (bytes: number) => (bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)}MB` : `${Math.max(1, Math.round(bytes / 1024))}KB`);
 
 /**
@@ -21,6 +26,7 @@ const size = (bytes: number) => (bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024)
  */
 export function AssetsScreen({ items }: { items: Asset[] }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [tab, setTab] = useState<AssetKind>("IMAGE");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<AssetSort>("NEW");
@@ -39,9 +45,9 @@ export function AssetsScreen({ items }: { items: Asset[] }) {
           setNote({ tone: "ok", text: okText });
           after?.();
           router.refresh();
-        } else setNote({ tone: "error", text: res.status === "INVALID" ? res.message : "로그인이 필요합니다." });
+        } else setNote({ tone: "error", text: res.status === "INVALID" ? res.message : t("studioTools.loginRequired") });
       } catch {
-        setNote({ tone: "error", text: "처리하지 못했어요. 파일 크기를 확인하고 다시 시도해 주세요." });
+        setNote({ tone: "error", text: t("studioToolsLibrary.processFailedSize") });
       }
     });
   };
@@ -60,13 +66,13 @@ export function AssetsScreen({ items }: { items: Asset[] }) {
         try {
           const res = await uploadAsset(fd);
           if (res.status === "SAVED") ok++;
-          else error = res.status === "INVALID" ? `${file.name}: ${res.message}` : "로그인이 필요합니다.";
+          else error = res.status === "INVALID" ? `${file.name}: ${res.message}` : t("studioTools.loginRequired");
         } catch {
-          error = `${file.name}: 올리지 못했어요.`;
+          error = t("studioToolsLibrary.uploadFailed", { file: file.name });
         }
       }
       if (fileRef.current) fileRef.current.value = "";
-      setNote(error ? { tone: "error", text: ok ? `${ok}개를 올렸어요. ${error}` : error } : { tone: "ok", text: `${ok}개를 올렸어요.` });
+      setNote(error ? { tone: "error", text: ok ? t("studioToolsLibrary.uploadedWithError", { count: ok, error }) : error } : { tone: "ok", text: t("studioToolsLibrary.uploaded", { count: ok }) });
       router.refresh();
     });
   };
@@ -78,20 +84,21 @@ export function AssetsScreen({ items }: { items: Asset[] }) {
   return (
     <div className={styles.content}>
       <header className={styles.header}>
-        <h1 className={styles.title}>이미지·사운드</h1>
-        <p className={styles.subtitle}>위젯이 쓰는 이미지와 사운드를 올리고 관리해요. 배너 슬라이드와 시그니처 이미지에서 골라 쓸 수 있어요.</p>
+        <h1 className={styles.title}>{t("studioToolsLibrary.title")}</h1>
+        <p className={styles.subtitle}>{t("studioToolsLibrary.subtitle")}</p>
         <p className={styles.note}>
-          <Link href="/creator/widgets">← 위젯</Link> · 사용 {size(used)} / {ASSET_LIMITS.totalBytes / 1024 / 1024}MB · {items.length}/{ASSET_LIMITS.max}개
+          <Link href="/creator/widgets">{t("studioTools.backWidgets")}</Link>
+          {t("studioToolsLibrary.usage", { used: size(used), total: ASSET_LIMITS.totalBytes / 1024 / 1024, count: items.length, max: ASSET_LIMITS.max })}
         </p>
       </header>
 
       <section className={styles.card} aria-labelledby="asset-upload">
         <div className={styles.cardHead}>
           <h2 className={styles.cardTitle} id="asset-upload">
-            ⬆️ 파일 올리기
+            {t("studioToolsLibrary.uploadTitle")}
           </h2>
           <button type="button" className={styles.primary} disabled={pending} onClick={() => fileRef.current?.click()}>
-            {pending ? "처리 중…" : "파일 선택"}
+            {pending ? t("studioToolsLibrary.processing") : t("studioToolsLibrary.chooseFiles")}
           </button>
           <input
             ref={fileRef}
@@ -99,32 +106,40 @@ export function AssetsScreen({ items }: { items: Asset[] }) {
             type="file"
             multiple
             accept={[...ASSET_TYPES.IMAGE, ...ASSET_TYPES.SOUND, ...ASSET_TYPES.VIDEO].join(",")}
-            aria-label="올릴 파일"
+            aria-label={t("studioToolsLibrary.filesAria")}
             onChange={(e) => upload(e.target.files)}
           />
         </div>
         <p className={styles.note}>
-          이미지 PNG · JPG · GIF · WEBP ({ASSET_LIMITS.bytes.IMAGE / 1024 / 1024}MB 이하), 사운드 MP3 · WAV · OGG ({ASSET_LIMITS.bytes.SOUND / 1024 / 1024}MB 이하), 영상 MP4 · WEBM (
-          {ASSET_LIMITS.bytes.VIDEO / 1024 / 1024}MB 이하 — <Link href="/creator/widgets/effects">이펙트 · 효과</Link>의 구간 영상). 저작권이 있는 파일은 올리지 마세요 (검수 정책 TBD).
+          {t("studioToolsLibrary.typesBefore", {
+            image: ASSET_LIMITS.bytes.IMAGE / 1024 / 1024,
+            sound: ASSET_LIMITS.bytes.SOUND / 1024 / 1024,
+            video: ASSET_LIMITS.bytes.VIDEO / 1024 / 1024
+          })}
+          <Link href="/creator/widgets/effects">{t("studioToolsLibrary.typesLink")}</Link>
+          {t("studioToolsLibrary.typesAfter")}
         </p>
         <p className={styles.note}>
-          이미지와 사운드의 이름이 같으면(예: 축하.png · 축하.mp3) 짝으로 묶여요. <Link href="/creator/widgets/signatures">시그니처</Link>에 그 이미지를 고르면 사운드가 소리로 함께 붙어요.
+          {t("studioToolsLibrary.pairBefore")}
+          <Link href="/creator/widgets/signatures">{t("studioToolsLibrary.pairLink")}</Link>
+          {t("studioToolsLibrary.pairAfter")}
         </p>
         <p className={styles.note}>
-          올린 이미지 여러 장을 <Link href="/creator/widgets/signatures?bulk=1">시그니처로 한 번에 만들 수</Link> 있어요. 파일 이름에 가격을 넣어 두면(예: 1004 하트.png) 가격 칸이
-          채워져요.
+          {t("studioToolsLibrary.bulkBefore")}
+          <Link href="/creator/widgets/signatures?bulk=1">{t("studioToolsLibrary.bulkLink")}</Link>
+          {t("studioToolsLibrary.bulkAfter")}
         </p>
       </section>
 
       <section className={styles.card} aria-labelledby="asset-list">
         <div className={styles.cardHead}>
           <h2 className={styles.cardTitle} id="asset-list">
-            📁 라이브러리
+            {t("studioToolsLibrary.libraryTitle")}
           </h2>
-          <div className={styles.tabs} role="tablist" aria-label="파일 종류">
+          <div className={styles.tabs} role="tablist" aria-label={t("studioToolsLibrary.kindsAria")}>
             {(Object.keys(KIND_LABEL) as AssetKind[]).map((k) => (
               <button key={k} type="button" role="tab" aria-selected={tab === k} aria-current={tab === k ? "page" : undefined} className={styles.tab} onClick={() => setTab(k)}>
-                {KIND_LABEL[k]} {items.filter((a) => a.kind === k).length}
+                {t(KIND_LABEL[k])} {items.filter((a) => a.kind === k).length}
               </button>
             ))}
           </div>
@@ -134,34 +149,34 @@ export function AssetsScreen({ items }: { items: Asset[] }) {
             <input
               className={styles.input}
               type="search"
-              placeholder="이름으로 찾기"
-              aria-label="이름으로 찾기"
+              placeholder={t("studioToolsLibrary.search")}
+              aria-label={t("studioToolsLibrary.search")}
               maxLength={ASSET_LIMITS.nameMax}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
-            <select className={styles.select} aria-label="정렬" value={sort} onChange={(e) => setSort(e.target.value as AssetSort)}>
+            <select className={styles.select} aria-label={t("studioToolsLibrary.sort")} value={sort} onChange={(e) => setSort(e.target.value as AssetSort)}>
               {ASSET_SORTS.map((o) => (
                 <option key={o.key} value={o.key}>
-                  {o.label}
+                  {t(SORT_KEY[o.key])}
                 </option>
               ))}
             </select>
             {tab !== "VIDEO" && (
               <label className={styles.checkRow}>
                 <input type="checkbox" checked={pairedOnly} onChange={(e) => setPairedOnly(e.target.checked)} />
-                짝 있는 파일만
+                {t("studioToolsLibrary.pairedOnly")}
               </label>
             )}
             <span className={styles.muted} role="status">
-              {shown.length === ofKind ? `${ofKind}개` : `${ofKind}개 중 ${shown.length}개`}
+              {shown.length === ofKind ? t("studioToolsLibrary.countAll", { count: ofKind }) : t("studioToolsLibrary.countFiltered", { total: ofKind, shown: shown.length })}
             </span>
           </div>
         )}
         {ofKind === 0 ? (
-          <p className={styles.empty}>아직 올린 {KIND_SUBJECT[tab]} 없어요.</p>
+          <p className={styles.empty}>{t(KIND_EMPTY[tab])}</p>
         ) : shown.length === 0 ? (
-          <p className={styles.empty}>조건에 맞는 {KIND_SUBJECT[tab]} 없어요. 검색어나 필터를 바꿔 보세요.</p>
+          <p className={styles.empty}>{t(KIND_NO_MATCH[tab])}</p>
         ) : (
           <ul className={tab === "IMAGE" ? local.grid : styles.list}>
             {shown.map((a) => (
@@ -170,45 +185,45 @@ export function AssetsScreen({ items }: { items: Asset[] }) {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img className={local.preview} src={a.url} alt={a.name} />
                 ) : a.kind === "VIDEO" ? (
-                  <video className={local.video} src={a.url} controls muted playsInline preload="metadata" aria-label={`${a.name} 미리 보기`} />
+                  <video className={local.video} src={a.url} controls muted playsInline preload="metadata" aria-label={t("studioToolsLibrary.previewVideo", { name: a.name })} />
                 ) : (
-                  <audio className={local.audio} src={a.url} controls preload="none" aria-label={`${a.name} 미리 듣기`} />
+                  <audio className={local.audio} src={a.url} controls preload="none" aria-label={t("studioToolsLibrary.previewAudio", { name: a.name })} />
                 )}
                 <div className={styles.rowMain}>
                   {editing?.id === a.id ? (
                     <input
                       className={styles.input}
-                      aria-label="새 이름"
+                      aria-label={t("studioToolsLibrary.newName")}
                       maxLength={ASSET_LIMITS.nameMax}
                       value={editing.name}
                       onChange={(e) => setEditing({ id: a.id, name: e.target.value })}
-                      onKeyDown={(e) => e.key === "Enter" && run(() => renameAsset(editing), "이름을 바꿨어요.", () => setEditing(null))}
+                      onKeyDown={(e) => e.key === "Enter" && run(() => renameAsset(editing), t("studioToolsLibrary.renamed"), () => setEditing(null))}
                     />
                   ) : (
                     <span className={styles.rowTitle}>{a.name}</span>
                   )}
                   <span className={styles.muted}>
                     {a.mime.split("/")[1].toUpperCase()} · {size(a.size)}
-                    {pairOf(a, items) && ` · 🔗 ${a.kind === "IMAGE" ? "사운드" : "이미지"} 짝`}
+                    {pairOf(a, items) && t(a.kind === "IMAGE" ? "studioToolsLibrary.pairSound" : "studioToolsLibrary.pairImage")}
                   </span>
                 </div>
                 <div className={styles.rowActions}>
                   {editing?.id === a.id ? (
-                    <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => renameAsset(editing), "이름을 바꿨어요.", () => setEditing(null))}>
-                      저장
+                    <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => renameAsset(editing), t("studioToolsLibrary.renamed"), () => setEditing(null))}>
+                      {t("studioTools.save")}
                     </button>
                   ) : (
                     <button type="button" className={styles.ghost} disabled={pending} onClick={() => setEditing({ id: a.id, name: a.name })}>
-                      이름 변경
+                      {t("studioToolsLibrary.rename")}
                     </button>
                   )}
                   <button
                     type="button"
                     className={styles.danger}
                     disabled={pending}
-                    onClick={() => window.confirm(`'${a.name}'을(를) 지울까요? 이 파일을 쓰는 배너 슬라이드는 건너뛰고, 시그니처는 기본 이미지로 바뀌고, 이펙트 구간 영상은 나오지 않아요.`) && run(() => deleteAsset(a.id), "파일을 지웠어요.")}
+                    onClick={() => window.confirm(t("studioToolsLibrary.deleteConfirm", { name: a.name })) && run(() => deleteAsset(a.id), t("studioToolsLibrary.fileDeleted"))}
                   >
-                    삭제
+                    {t("studioTools.delete")}
                   </button>
                 </div>
               </li>

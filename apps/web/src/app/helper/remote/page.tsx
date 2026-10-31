@@ -7,9 +7,13 @@ import { getQuestRemote } from "@/services/creator/questRemote";
 import { getRouletteRemote } from "@/services/creator/rouletteRemote";
 import { getVoteRemote } from "@/services/creator/voteRemote";
 import { getWallpaperRemote } from "@/services/creator/wallpaperRemote";
+import { getT } from "@/lib/i18n/server";
 
 // Code-first (no Figma frame): 리모컨, on the helper domain — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: "리모컨" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("studioRemote.metaHelper") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

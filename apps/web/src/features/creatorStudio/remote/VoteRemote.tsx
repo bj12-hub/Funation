@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { closeVote, endVote, startVote } from "@/services/creator/voteRemote";
 import { rankItems, votePercent, type VoteControlResult, type VoteRemoteView } from "@/services/votes/voteTypes";
 import styles from "../crew/crew.module.css";
@@ -24,6 +25,7 @@ export function VoteRemote({
   pending: boolean;
   run: (action: () => Promise<VoteControlResult>, ok?: string, after?: () => void) => void;
 }) {
+  const { t } = useI18n();
   const ready = view.presets.filter((p) => p.ready);
   const [presetId, setPresetId] = useState(ready[0]?.id ?? "");
   const selected = ready.some((p) => p.id === presetId) ? presetId : (ready[0]?.id ?? "");
@@ -42,7 +44,7 @@ export function VoteRemote({
   const start = () => {
     requestId.current ??= crypto.randomUUID();
     const id = requestId.current;
-    run(() => startVote({ presetId: selected, requestId: id }), "투표를 시작했어요.", () => {
+    run(() => startVote({ presetId: selected, requestId: id }), t("studioRemote.voteStarted"), () => {
       requestId.current = null;
     });
   };
@@ -51,14 +53,14 @@ export function VoteRemote({
     <section className={styles.card} aria-labelledby="vote-remote">
       <div className={styles.cardHead}>
         <h2 className={styles.cardTitle} id="vote-remote">
-          📊 투표
+          {t("studioRemote.voteTitle")}
         </h2>
         <Link href="/creator/widgets?open=VOTE" className={styles.ghost}>
-          프리셋 설정
+          {t("studioRemote.votePresets")}
         </Link>
       </div>
-      <p className={styles.note}>무료 투표예요. 로그인한 시청자가 방송 방에서 한 번씩 투표하고, 결과는 투표 오버레이에 나와요.</p>
-      {!view.widgetEnabled && <p className={styles.muted}>투표 위젯이 꺼져 있어 방송 화면에는 나오지 않아요. 방송 방 투표는 그대로 받아요.</p>}
+      <p className={styles.note}>{t("studioRemote.voteNote")}</p>
+      {!view.widgetEnabled && <p className={styles.muted}>{t("studioRemote.voteWidgetOff")}</p>}
 
       {b && (
         <div className={remote.voteBoard} style={{ borderColor: b.color }}>
@@ -68,29 +70,28 @@ export function VoteRemote({
               {b.name}
             </strong>
             <span className={styles.muted}>
-              {running ? `남은 시간 ${left === null ? "--:--:--" : hms(left)}` : "투표 종료"} · 총 {formatNumber(b.total)}표
+              {running ? t("studioRemote.timeLeft", { time: left === null ? "--:--:--" : hms(left) }) : t("studioRemote.voteEnded")}
+              {t("studioRemote.voteTotal", { count: formatNumber(b.total) })}
             </span>
           </div>
           <ol className={remote.voteItems}>
             {rankItems(b).map((it) => (
               <li key={it.index}>
                 <span className={remote.voteFill} style={{ width: `${votePercent(it.count, b.total)}%`, background: b.color }} aria-hidden="true" />
-                <span>{it.rank}등</span>
+                <span>{t("studioRemote.voteRank", { rank: it.rank })}</span>
                 <span>{it.label}</span>
-                <span>
-                  {formatNumber(it.count)}표 · {votePercent(it.count, b.total)}%
-                </span>
+                <span>{t("studioRemote.voteCount", { count: formatNumber(it.count), percent: votePercent(it.count, b.total) })}</span>
               </li>
             ))}
           </ol>
           <div className={remote.buttons}>
             {running ? (
-              <button type="button" className={styles.danger} disabled={pending} onClick={() => run(() => endVote({ voteId: b.id }), "투표를 종료했어요.")}>
-                ■ 지금 종료
+              <button type="button" className={styles.danger} disabled={pending} onClick={() => run(() => endVote({ voteId: b.id }), t("studioRemote.voteEndedOk"))}>
+                {t("studioRemote.voteEndNow")}
               </button>
             ) : (
-              <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => closeVote({ voteId: b.id }), "결과를 방송 화면에서 내렸어요.")}>
-                결과 내리기
+              <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => closeVote({ voteId: b.id }), t("studioRemote.resultCleared"))}>
+                {t("studioRemote.voteClear")}
               </button>
             )}
           </div>
@@ -99,22 +100,22 @@ export function VoteRemote({
 
       {!running &&
         (ready.length === 0 ? (
-          <p className={styles.empty}>시작할 수 있는 프리셋이 없어요. 위젯 › 투표에서 항목을 2개 이상 입력해 주세요.</p>
+          <p className={styles.empty}>{t("studioRemote.voteNoPresets")}</p>
         ) : (
           <>
             <div className={styles.addRow}>
-              <select className={styles.input} aria-label="투표 프리셋" value={selected} onChange={(e) => setPresetId(e.target.value)}>
+              <select className={styles.input} aria-label={t("studioRemote.votePresetAria")} value={selected} onChange={(e) => setPresetId(e.target.value)}>
                 {ready.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.label} · 항목 {p.items.length}개 · {hms(p.durationSec)}
+                    {t("studioRemote.votePresetOption", { label: p.label, count: p.items.length, time: hms(p.durationSec) })}
                   </option>
                 ))}
               </select>
               <button type="button" className={styles.primary} disabled={pending || !selected} onClick={start}>
-                {b ? "새 투표 시작" : "투표 시작"}
+                {b ? t("studioRemote.voteStartNew") : t("studioRemote.voteStart")}
               </button>
             </div>
-            {b && <p className={styles.muted}>새 투표를 시작하면 지난 결과는 방송 화면에서 내려가요.</p>}
+            {b && <p className={styles.muted}>{t("studioRemote.voteNewNote")}</p>}
           </>
         ))}
     </section>
