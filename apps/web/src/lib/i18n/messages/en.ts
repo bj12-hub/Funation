@@ -92,7 +92,8 @@ export const en: Messages = {
     platformsNote: "Link your streaming platform accounts to earn special rewards.",
     chzzk: "CHZZK",
     marketing: "Marketing consent",
-    marketingConsent: "Receive promotional information and allow marketing use",
+    // Consent / privacy wording: an approved translation is TBD (docs/development/i18n.md), so it stays Korean.
+    marketingConsent: "광고성 정보 수신 및 마케팅 활용 동의",
     saveError: "Couldn't save. Please try again shortly",
     withdraw: "Delete account"
   },
@@ -279,13 +280,18 @@ export const en: Messages = {
     effectCreator: "Your Creator Studio and channel will no longer be available. Your settlement details, manager chat links and donation history imported from other platforms are deleted, and your OBS overlay and SMS bank-donation addresses stop working.",
     effectPosts: "Your posts are not deleted when you leave. Delete any you want removed before deleting your account.",
     retentionTitle: "Information kept after you leave",
-    retentionNote: "We keep the information below for a set period and then destroy it. Retention periods: {label}.",
-    retentionOther: "Everything else (profile photo, contact details, identity verification, marketing consent, log-in links and so on) is deleted as soon as you leave.",
+    // Consent / privacy wording: an approved translation is TBD (docs/development/i18n.md), so it stays Korean.
+    retentionNote: "아래 정보는 정해진 기간 동안 보관한 뒤 파기해요. 보관 기간은 {label}이에요.",
+    // Consent / privacy wording: an approved translation is TBD (docs/development/i18n.md), so it stays Korean.
+    retentionOther: "그 밖의 정보(프로필 사진, 연락처, 본인인증 정보, 마케팅 수신 동의, 로그인 연결 등)는 탈퇴할 때 바로 삭제돼요.",
     consentTitle: "Consent and confirmation",
     required: "(Required)",
-    consentFn: "I agree that my remaining {amount} FN will be forfeited.",
-    consentEarnings: "I agree that my {amount} FN of unsettled earnings will be forfeited and that settlement requests under review will be canceled.",
-    consentFinal: "I've read all of the above and agree to delete my account.",
+    // Consent / privacy wording: an approved translation is TBD (docs/development/i18n.md), so it stays Korean.
+    consentFn: "남은 FN {amount} FN이 소멸되는 것에 동의합니다.",
+    // Consent / privacy wording: an approved translation is TBD (docs/development/i18n.md), so it stays Korean.
+    consentEarnings: "정산 대기 수익 {amount} FN이 소멸되고 심사 대기 중인 정산 신청이 취소되는 것에 동의합니다.",
+    // Consent / privacy wording: an approved translation is TBD (docs/development/i18n.md), so it stays Korean.
+    consentFinal: "위 내용을 모두 확인했고, 회원 탈퇴에 동의합니다.",
     password: "Confirm password",
     passwordPlaceholder: "Enter your password to confirm it's you",
     passwordWrong: "The password doesn't match. Please try again.",
