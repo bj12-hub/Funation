@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { castVote, getRoomVote } from "@/services/votes/votes";
 import { votePercent, type RoomVote } from "@/services/votes/voteTypes";
 import styles from "./room.module.css";
@@ -16,6 +17,7 @@ const hms = (sec: number) => [Math.floor(sec / 3600), Math.floor((sec % 3600) / 
  * on screen. TBD: realtime push instead of polling.
  */
 export function RoomVoteCard({ channelId, signedIn, initial }: { channelId: string; signedIn: boolean; initial: RoomVote | null }) {
+  const { t } = useI18n();
   const pathname = usePathname();
   const [vote, setVote] = useState(initial);
   // The picked item belongs to one vote, so a new vote starts with nothing picked.
@@ -55,14 +57,14 @@ export function RoomVoteCard({ channelId, signedIn, initial }: { channelId: stri
         const res = await castVote({ channelId, voteId: vote.id, item: choice });
         if (res.status === "VOTED" || res.status === "ALREADY_VOTED" || res.status === "ENDED") {
           setVote(res.vote);
-          if (res.status === "ENDED") setError("투표가 끝나서 참여하지 못했어요.");
+          if (res.status === "ENDED") setError(t("room.voteEndedError"));
         } else if (res.status === "NOT_FOUND") {
-          setError("투표가 바뀌었어요. 새 투표를 확인해 주세요.");
+          setError(t("room.voteChanged"));
           setVote(await getRoomVote(channelId));
         } else if (res.status === "INVALID") setError(res.message);
-        else setError("로그인 후 투표할 수 있어요.");
+        else setError(t("room.voteLogin"));
       } catch {
-        setError("투표하지 못했어요. 잠시 후 다시 시도해 주세요.");
+        setError(t("room.voteFailed"));
       }
     });
   };
@@ -74,7 +76,7 @@ export function RoomVoteCard({ channelId, signedIn, initial }: { channelId: stri
           📊 {vote.name}
         </h2>
         <span className={styles.voteMeta}>
-          {ended ? "투표 종료" : `남은 시간 ${left === null ? "--:--:--" : hms(left)}`} · 총 {formatNumber(vote.total)}표
+          {ended ? t("room.voteClosed") : t("room.voteLeft", { time: left === null ? "--:--:--" : hms(left) })} · {t("room.voteTotal", { count: formatNumber(vote.total) })}
         </span>
       </div>
       <form onSubmit={submit} className={styles.voteForm}>
@@ -87,10 +89,10 @@ export function RoomVoteCard({ channelId, signedIn, initial }: { channelId: stri
                 <input type="radio" name={`vote-${vote.id}`} value={i} checked={(voted ? vote.myChoice : choice) === i} disabled={!canPick} onChange={() => setPick({ voteId: vote.id, item: i })} />
                 <span className={styles.voteLabel}>
                   {it.label}
-                  {vote.myChoice === i && <span className={styles.voteMine}>내 투표</span>}
+                  {vote.myChoice === i && <span className={styles.voteMine}>{t("room.voteMine")}</span>}
                 </span>
                 <span className={styles.voteCount}>
-                  {formatNumber(it.count)}표 · {pct}%
+                  {t("room.voteCount", { count: formatNumber(it.count) })} · {pct}%
                 </span>
               </label>
             );
@@ -98,18 +100,18 @@ export function RoomVoteCard({ channelId, signedIn, initial }: { channelId: stri
         </div>
         {!signedIn ? (
           <Link href={`/login?next=${encodeURIComponent(pathname)}`} className={styles.voteButton}>
-            로그인하고 투표하기
+            {t("room.voteLoginButton")}
           </Link>
         ) : voted ? (
-          <p className={styles.voteNote}>투표했어요. 투표는 한 번만 할 수 있어요.</p>
+          <p className={styles.voteNote}>{t("room.voted")}</p>
         ) : ended ? (
-          <p className={styles.voteNote}>투표가 끝났어요.</p>
+          <p className={styles.voteNote}>{t("room.voteOver")}</p>
         ) : (
           <>
             <button type="submit" className={styles.voteButton} disabled={choice === null || pending}>
-              {pending ? "투표하는 중…" : "투표하기 (무료)"}
+              {pending ? t("room.voting") : t("room.voteSubmit")}
             </button>
-            <p className={styles.voteNote}>한 번 투표하면 바꿀 수 없어요.</p>
+            <p className={styles.voteNote}>{t("room.voteFinal")}</p>
           </>
         )}
         {error && (

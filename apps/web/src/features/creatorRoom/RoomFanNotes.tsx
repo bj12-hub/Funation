@@ -3,9 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { getRoomFanNotes, sendFanNote } from "@/services/crew/crewFanNotes";
 import { FAN_NOTE_KINDS, FAN_NOTE_LIMITS, type FanNoteKind, type RoomFanNotes } from "@/services/crew/crewTypes";
 import styles from "./room.module.css";
+
+const FAN_KIND_KEY: Record<FanNoteKind, MessageKey> = { MESSAGE: "room.fanKindMessage", REQUEST: "room.fanKindRequest" };
 
 /**
  * 팬 메시지 · 요청사항 card under the player — code-first (funnation 엑셀방송, 2026-10-06 결정). Shown while the
@@ -13,6 +17,7 @@ import styles from "./room.module.css";
  * sees whether the operator marked it 완료. Refreshes every few seconds (TBD: realtime push).
  */
 export function RoomFanNotesCard({ channelId, signedIn, initial }: { channelId: string; signedIn: boolean; initial: RoomFanNotes | null }) {
+  const { t } = useI18n();
   const pathname = usePathname();
   const [room, setRoom] = useState(initial);
   const [kind, setKind] = useState<FanNoteKind>("MESSAGE");
@@ -38,7 +43,7 @@ export function RoomFanNotesCard({ channelId, signedIn, initial }: { channelId: 
     setClosed(false);
     setUntil(Date.now() + next.cooldownLeft * 1000);
   };
-  const CLOSED_TEXT = "지금은 메시지를 받지 않아요. 방송이 끝났거나 크리에이터가 받기를 껐어요.";
+  const CLOSED_TEXT = t("room.fanClosed");
 
   useEffect(() => {
     setUntil(Date.now() + (initial?.cooldownLeft ?? 0) * 1000);
@@ -79,10 +84,10 @@ export function RoomFanNotesCard({ channelId, signedIn, initial }: { channelId: 
           requestId.current = null;
           type("");
           apply(res.room);
-          setNote({ tone: "ok", text: "전달했어요. 처리되면 아래에 완료로 표시돼요." });
+          setNote({ tone: "ok", text: t("room.fanSent") });
         } else if (res.status === "COOLDOWN") {
           setUntil(Date.now() + res.seconds * 1000);
-          setNote({ tone: "error", text: `${res.seconds}초 뒤에 다시 보낼 수 있어요.` });
+          setNote({ tone: "error", text: t("room.fanCooldownError", { sec: res.seconds }) });
         } else if (res.status === "CLOSED") {
           // Keep the card (and the typed text) with the reason instead of letting it vanish.
           requestId.current = null;
@@ -91,9 +96,9 @@ export function RoomFanNotesCard({ channelId, signedIn, initial }: { channelId: 
         } else if (res.status === "INVALID") {
           requestId.current = null;
           setNote({ tone: "error", text: res.message });
-        } else setNote({ tone: "error", text: "로그인 후 보낼 수 있어요." });
+        } else setNote({ tone: "error", text: t("room.fanLogin") });
       } catch {
-        setNote({ tone: "error", text: "보내지 못했어요. 잠시 후 다시 시도해 주세요." });
+        setNote({ tone: "error", text: t("room.fanFailed") });
       }
     });
   };
@@ -102,26 +107,26 @@ export function RoomFanNotesCard({ channelId, signedIn, initial }: { channelId: 
     <section className={styles.fan} aria-labelledby="room-fan-title">
       <div className={styles.voteHead}>
         <h2 id="room-fan-title" className={styles.voteTitle}>
-          💌 팬 메시지 · 요청사항
+          {t("room.fanTitle")}
         </h2>
-        <span className={styles.voteMeta}>{room.title} · 진행 중 · 무료</span>
+        <span className={styles.voteMeta}>{t("room.fanMeta", { title: room.title })}</span>
       </div>
       {!signedIn ? (
         <Link href={`/login?next=${encodeURIComponent(pathname)}`} className={styles.voteButton}>
-          로그인하고 남기기
+          {t("room.fanLoginButton")}
         </Link>
       ) : (
         <form onSubmit={submit} className={styles.voteForm}>
           <div className={styles.fanRow}>
-            <div className={styles.fanKinds} role="radiogroup" aria-label="보낼 종류">
+            <div className={styles.fanKinds} role="radiogroup" aria-label={t("room.fanKinds")}>
               {FAN_NOTE_KINDS.map((k) => (
                 <button key={k.key} type="button" role="radio" aria-checked={kind === k.key} onClick={() => setKind(k.key)}>
-                  {k.emoji} {k.label}
+                  {k.emoji} {t(FAN_KIND_KEY[k.key])}
                 </button>
               ))}
             </div>
-            <select className={styles.fanSelect} aria-label="받는 멤버" value={target} onChange={(e) => setMemberId(e.target.value)}>
-              <option value="">크루 전체</option>
+            <select className={styles.fanSelect} aria-label={t("room.fanMember")} value={target} onChange={(e) => setMemberId(e.target.value)}>
+              <option value="">{t("room.fanAllCrew")}</option>
               {room.members.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.name}
@@ -131,8 +136,8 @@ export function RoomFanNotesCard({ channelId, signedIn, initial }: { channelId: 
           </div>
           <textarea
             className={styles.fanText}
-            aria-label="내용"
-            placeholder={kind === "REQUEST" ? "노래 · 미션 같은 요청을 적어 주세요." : "멤버에게 응원 한마디를 남겨 주세요."}
+            aria-label={t("room.fanText")}
+            placeholder={kind === "REQUEST" ? t("room.fanRequestPlaceholder") : t("room.fanMessagePlaceholder")}
             maxLength={FAN_NOTE_LIMITS.textMax}
             rows={2}
             value={text}
@@ -141,10 +146,10 @@ export function RoomFanNotesCard({ channelId, signedIn, initial }: { channelId: 
           <div className={styles.fanRow}>
             <span className={styles.voteNote}>
               {text.length}/{FAN_NOTE_LIMITS.textMax}
-              {room.cooldownSec > 0 && ` · ${room.cooldownSec}초에 한 번`}
+              {room.cooldownSec > 0 && ` · ${t("room.fanCooldown", { sec: room.cooldownSec })}`}
             </span>
             <button type="submit" className={`${styles.voteButton} ${styles.fanSend}`} disabled={pending || closed || left > 0 || !text.trim()}>
-              {pending ? "보내는 중…" : left > 0 ? `${left}초 뒤에 보내기` : "보내기 (무료)"}
+              {pending ? t("room.fanSending") : left > 0 ? t("room.fanWait", { sec: left }) : t("room.fanSend")}
             </button>
           </div>
           {note && (
@@ -168,21 +173,21 @@ export function RoomFanNotesCard({ channelId, signedIn, initial }: { channelId: 
                   setRoom(null);
                 }}
               >
-                닫기
+                {t("room.close")}
               </button>
             </div>
           )}
         </form>
       )}
       {room.mine.length > 0 && (
-        <ul className={styles.fanMine} aria-label="내가 보낸 글">
+        <ul className={styles.fanMine} aria-label={t("room.fanMine")}>
           {room.mine.map((n) => (
             <li key={n.id}>
               <span className={styles.fanMineText}>
-                {FAN_NOTE_KINDS.find((k) => k.key === n.kind)!.emoji} {n.memberName ? `${n.memberName}에게 · ` : ""}
+                {FAN_NOTE_KINDS.find((k) => k.key === n.kind)!.emoji} {n.memberName ? `${t("room.fanTo", { name: n.memberName })} · ` : ""}
                 {n.text}
               </span>
-              <span className={n.done ? styles.fanDone : styles.fanSent}>{n.done ? "완료" : "전달됨"}</span>
+              <span className={n.done ? styles.fanDone : styles.fanSent}>{n.done ? t("room.fanDone") : t("room.fanDelivered")}</span>
             </li>
           ))}
         </ul>

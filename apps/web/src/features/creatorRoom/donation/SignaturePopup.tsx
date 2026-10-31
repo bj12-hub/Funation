@@ -5,23 +5,24 @@ import { useMemo, useState } from "react";
 import { SearchLargeIcon } from "@/components/icons";
 import { Modal } from "@/components/ui/Modal";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { Signature } from "@/services/donations/donationCatalog";
 import styles from "./donation.module.css";
 import { remote } from "@/lib/remoteImage";
 
 const FILTERS = [
-  { key: "ALL", label: "전체", test: () => true },
-  { key: "FAVORITE", label: "⭐ 즐겨찾기", test: (s: Signature) => s.favorite },
-  { key: "UNDER_10K", label: "1만 FN 이하", test: (s: Signature) => s.price <= 10_000 },
-  { key: "10K_20K", label: "1만–2만 FN", test: (s: Signature) => s.price > 10_000 && s.price <= 20_000 },
-  { key: "20K_30K", label: "2만–3만 FN", test: (s: Signature) => s.price > 20_000 && s.price <= 30_000 },
-  { key: "OVER_30K", label: "3만 FN 이상", test: (s: Signature) => s.price > 30_000 }
+  { key: "ALL", label: "roomDonate.filterAll", test: () => true },
+  { key: "FAVORITE", label: "roomDonate.filterFavorite", test: (s: Signature) => s.favorite },
+  { key: "UNDER_10K", label: "roomDonate.filterUnder10k", test: (s: Signature) => s.price <= 10_000 },
+  { key: "10K_20K", label: "roomDonate.filter10kTo20k", test: (s: Signature) => s.price > 10_000 && s.price <= 20_000 },
+  { key: "20K_30K", label: "roomDonate.filter20kTo30k", test: (s: Signature) => s.price > 20_000 && s.price <= 30_000 },
+  { key: "OVER_30K", label: "roomDonate.filterOver30k", test: (s: Signature) => s.price > 30_000 }
 ] as const;
 
 const SORTS = {
-  POPULAR: { label: "인기순", compare: (a: Signature, b: Signature) => a.rank - b.rank },
-  PRICE_ASC: { label: "낮은 가격순", compare: (a: Signature, b: Signature) => a.price - b.price },
-  PRICE_DESC: { label: "높은 가격순", compare: (a: Signature, b: Signature) => b.price - a.price }
+  POPULAR: { label: "roomDonate.sortPopular", compare: (a: Signature, b: Signature) => a.rank - b.rank },
+  PRICE_ASC: { label: "roomDonate.sortPriceAsc", compare: (a: Signature, b: Signature) => a.price - b.price },
+  PRICE_DESC: { label: "roomDonate.sortPriceDesc", compare: (a: Signature, b: Signature) => b.price - a.price }
 } as const;
 
 const PAGE_SIZE = 8;
@@ -43,20 +44,21 @@ export function SignaturePopup({
   onClose: () => void;
   onSelect: (id: string) => void;
 }) {
+  const { t } = useI18n();
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title="시그니처 전체보기"
+      title={t("roomDonate.popupTitle")}
       width={1120}
       className={styles.signatureDialog}
       customHeader={
         <header className={styles.popupHeader}>
           <div>
-            <h2>시그니처 전체보기</h2>
-            <p>원하는 시그니처를 선택해 후원에 특별함을 더해보세요.</p>
+            <h2>{t("roomDonate.popupTitle")}</h2>
+            <p>{t("roomDonate.popupLead")}</p>
           </div>
-          <button type="button" className={styles.popupClose} aria-label="닫기" onClick={onClose}>
+          <button type="button" className={styles.popupClose} aria-label={t("roomDonate.close")} onClick={onClose}>
             ×
           </button>
         </header>
@@ -68,6 +70,7 @@ export function SignaturePopup({
 }
 
 function Body({ signatures, initial, onClose, onSelect }: { signatures: Signature[]; initial: string | null; onClose: () => void; onSelect: (id: string) => void }) {
+  const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["key"]>("ALL");
   const [sort, setSort] = useState<keyof typeof SORTS>("POPULAR");
@@ -92,17 +95,17 @@ function Body({ signatures, initial, onClose, onSelect }: { signatures: Signatur
           <SearchLargeIcon width={16} height={16} aria-hidden="true" />
           <input
             type="search"
-            placeholder="시그니처 이름 검색"
+            placeholder={t("roomDonate.search")}
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
               reset();
             }}
-            aria-label="시그니처 이름 검색"
+            aria-label={t("roomDonate.search")}
           />
         </label>
 
-        <div className={styles.pills} role="radiogroup" aria-label="필터">
+        <div className={styles.pills} role="radiogroup" aria-label={t("roomDonate.filter")}>
           {FILTERS.map((f) => (
             <button
               key={f.key}
@@ -115,40 +118,42 @@ function Body({ signatures, initial, onClose, onSelect }: { signatures: Signatur
                 reset();
               }}
             >
-              {f.label}
+              {t(f.label)}
             </button>
           ))}
         </div>
 
         <div className={styles.resultsRow}>
           <span>
-            총 <strong>{results.length}</strong>개의 시그니처
+            {t("roomDonate.totalBefore")}
+            <strong>{results.length}</strong>
+            {t("roomDonate.totalAfter")}
           </span>
-          <select className={styles.sort} value={sort} onChange={(e) => setSort(e.target.value as keyof typeof SORTS)} aria-label="정렬">
+          <select className={styles.sort} value={sort} onChange={(e) => setSort(e.target.value as keyof typeof SORTS)} aria-label={t("roomDonate.sort")}>
             {Object.entries(SORTS).map(([key, s]) => (
               <option key={key} value={key}>
-                {s.label}
+                {t(s.label)}
               </option>
             ))}
           </select>
         </div>
 
         {items.length === 0 ? (
-          <p className={styles.popupEmpty}>조건에 맞는 시그니처가 없어요.</p>
+          <p className={styles.popupEmpty}>{t("roomDonate.noMatch")}</p>
         ) : (
-          <div className={styles.popupGrid} role="radiogroup" aria-label="시그니처">
+          <div className={styles.popupGrid} role="radiogroup" aria-label={t("roomDonate.signatures")}>
             {items.map((s) => {
               const on = s.id === choice;
               return (
                 <button key={s.id} type="button" role="radio" aria-checked={on} className={`${styles.popupCard} ${on ? styles.popupCardOn : ""}`} onClick={() => setChoice(s.id)}>
                   <span className={styles.popupThumb}>
                     <Image src={s.imageUrl} alt="" fill sizes="246px" className={styles.popupImage} unoptimized={remote(s.imageUrl)} />
-                    {on && <span className={styles.selectedBadge}>✓ 선택됨</span>}
+                    {on && <span className={styles.selectedBadge}>{t("roomDonate.selectedBadge")}</span>}
                   </span>
                   <span className={styles.popupInfo}>
                     <span className={styles.popupName}>
                       {s.name}
-                      <span className={s.favorite ? styles.starOn : styles.star} aria-label={s.favorite ? "즐겨찾기" : undefined}>
+                      <span className={s.favorite ? styles.starOn : styles.star} aria-label={s.favorite ? t("roomDonate.favorite") : undefined}>
                         ★
                       </span>
                     </span>
@@ -161,8 +166,8 @@ function Body({ signatures, initial, onClose, onSelect }: { signatures: Signatur
         )}
 
         {totalPages > 1 && (
-          <nav className={styles.popupPages} aria-label="페이지">
-            <button type="button" disabled={current === 1} onClick={() => setPage(current - 1)} aria-label="이전 페이지">
+          <nav className={styles.popupPages} aria-label={t("roomDonate.pages")}>
+            <button type="button" disabled={current === 1} onClick={() => setPage(current - 1)} aria-label={t("roomDonate.prevPage")}>
               ‹
             </button>
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
@@ -170,7 +175,7 @@ function Body({ signatures, initial, onClose, onSelect }: { signatures: Signatur
                 {p}
               </button>
             ))}
-            <button type="button" disabled={current === totalPages} onClick={() => setPage(current + 1)} aria-label="다음 페이지">
+            <button type="button" disabled={current === totalPages} onClick={() => setPage(current + 1)} aria-label={t("roomDonate.nextPage")}>
               ›
             </button>
           </nav>
@@ -179,10 +184,10 @@ function Body({ signatures, initial, onClose, onSelect }: { signatures: Signatur
 
       <footer className={styles.popupFooter}>
         <button type="button" className={styles.popupCancel} onClick={onClose}>
-          취소
+          {t("roomDonate.cancel")}
         </button>
         <button type="button" className={styles.popupConfirm} disabled={!choice} onClick={() => choice && onSelect(choice)}>
-          선택 완료
+          {t("roomDonate.selectDone")}
         </button>
       </footer>
     </div>
