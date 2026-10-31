@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { formatKstTime, formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { moveSigCountStart, resetSigCount, saveSigCount, setSigCountVisible } from "@/services/crew/crewSigCount";
 import { StartPointPicker } from "./StartPointPicker";
 import {
@@ -14,7 +16,9 @@ import {
   type BroadcastView,
   type CrewMember,
   type SigCountLive,
-  type SigCountSettings
+  type SigCountRows,
+  type SigCountSettings,
+  type SigCountSort
 } from "@/services/crew/crewTypes";
 import { CopyButton } from "../settings/SettingsCards";
 import { shownOverlayAddress } from "./overlayAddress";
@@ -23,6 +27,13 @@ import prize from "./prize.module.css";
 import sig from "./sigCount.module.css";
 
 const time = (iso: string) => formatKstTime(iso, { hour: "2-digit", minute: "2-digit" });
+/** `SIG_COUNT_ROWS` · `SIG_COUNT_SORTS` labels as message keys. */
+const ROWS_KEY: Record<SigCountRows, MessageKey> = {
+  RECEIVED: "crewGameSigCount.rowsReceived",
+  ALL: "crewGameSigCount.rowsAll",
+  SELECTED: "crewGameSigCount.rowsSelected"
+};
+const SORT_KEY: Record<SigCountSort, MessageKey> = { TOTAL: "crewGameSigCount.sortTotal", ORDER: "crewGameSigCount.sortOrder" };
 
 /**
  * 시그 카운트 — code-first (no Figma frame; StreamDonate 시그 카운트 참고), inside `/creator/crew/broadcast`. Pick up to 8
@@ -47,6 +58,8 @@ export function SigCountPanel({
   pending: boolean;
   run: (action: () => Promise<BroadcastResult>, ok?: string) => void;
 }) {
+  const { t } = useI18n();
+  const name = t("crewGameSigCount.name");
   const [draft, setDraft] = useState(settings);
   const synced = useRef(JSON.stringify(settings));
   useEffect(() => {
@@ -81,7 +94,7 @@ export function SigCountPanel({
       const res = await resetSigCount({ broadcastId: live.broadcastId, requestId });
       if (res.status === "SAVED") resetId.current = null;
       return res;
-    }, "지금부터 다시 셀게요.");
+    }, t("crewGameSigCount.recounting"));
   };
 
   const chip = (s: { id: string; name: string; active: boolean } | { id: string; name: string; active?: undefined }) => {
@@ -97,7 +110,7 @@ export function SigCountPanel({
       >
         {order >= 0 && <span className={sig.order}>{order + 1}</span>}
         {s.name}
-        {s.active === false && <span className={styles.muted}>숨김</span>}
+        {s.active === false && <span className={styles.muted}>{t("crewGame.hidden")}</span>}
       </button>
     );
   };
@@ -106,7 +119,7 @@ export function SigCountPanel({
     <section className={styles.card} aria-labelledby="bc-sigcount">
       <div className={styles.cardHead}>
         <h2 id="bc-sigcount" className={styles.cardTitle}>
-          시그 카운트
+          {name}
         </h2>
         {live && (
           <label className={styles.checkRow}>
@@ -115,80 +128,78 @@ export function SigCountPanel({
               checked={!!table?.visible}
               disabled={pending}
               onChange={(e) =>
-                run(() => setSigCountVisible({ broadcastId: live.broadcastId, on: e.target.checked }), e.target.checked ? "OBS에 시그 카운트를 띄웠어요." : "시그 카운트를 내렸어요.")
+                run(
+                  () => setSigCountVisible({ broadcastId: live.broadcastId, on: e.target.checked }),
+                  e.target.checked ? t("crewGameSigCount.shown") : t("crewGameSigCount.hiddenNow")
+                )
               }
             />
-            OBS에 표시
+            {t("crewGameSigCount.showOnObs")}
           </label>
         )}
       </div>
-      <p className={styles.note}>
-        멤버마다 받은 시그니처 개수를 세어 표로 띄워요. 시그니처 후원과 금액이 맞아 시그니처로 나간 일반 후원을 후원자가 고른 멤버 앞으로 세고, 멤버를 고르지 않은 후원은
-        &quot;미지정&quot; 줄에 모아요.
-      </p>
+      <p className={styles.note}>{t("crewGameSigCount.intro")}</p>
 
       <form
         className={prize.form}
         onSubmit={(e) => {
           e.preventDefault();
-          run(() => saveSigCount({ ...draft, signatureIds: picked.filter((id) => known.has(id)) }), "시그 카운트 설정을 저장했어요.");
+          run(() => saveSigCount({ ...draft, signatureIds: picked.filter((id) => known.has(id)) }), t("crewGame.saved", { name }));
         }}
       >
         <div className={prize.field}>
-          <span className={styles.muted}>제목</span>
+          <span className={styles.muted}>{t("crewGame.titleLabel")}</span>
           <input
             className={styles.input}
-            aria-label="시그 카운트 제목"
+            aria-label={t("crewGame.titleAria", { name })}
             placeholder={SIG_COUNT_TITLE_DEFAULT}
             maxLength={SIG_COUNT_TITLE_MAX}
             value={draft.title}
             onChange={(e) => edit({ title: e.target.value })}
           />
         </div>
-        <div className={prize.field} role="group" aria-label="셀 시그니처">
-          <span className={styles.muted}>
-            셀 시그니처 ({picked.length}/{SIG_COUNT_COLUMNS_MAX})
-          </span>
-          {signatures.length === 0 && <span className={styles.note}>만든 시그니처가 없어요. 위젯 › 시그니처에서 먼저 만들어 주세요.</span>}
+        <div className={prize.field} role="group" aria-label={t("crewGameSigCount.columnsAria")}>
+          <span className={styles.muted}>{t("crewGameSigCount.columns", { count: picked.length, max: SIG_COUNT_COLUMNS_MAX })}</span>
+          {signatures.length === 0 && <span className={styles.note}>{t("crewGameSigCount.noSignatures")}</span>}
           {groups.map((g) => (
             <span key={g} className={sig.group}>
               {groups.length > 1 && <span className={sig.groupName}>{g}</span>}
               <span className={prize.chips}>{signatures.filter((s) => s.group === g).map(chip)}</span>
             </span>
           ))}
-          {gone.length > 0 && <span className={prize.chips}>{gone.map((id) => chip({ id, name: "삭제된 시그니처" }))}</span>}
-          <span className={styles.note}>고른 순서대로 표의 열이 돼요. 숨긴 시그니처도 숨기기 전에 받은 건 세요.</span>
+          {gone.length > 0 && <span className={prize.chips}>{gone.map((id) => chip({ id, name: t("crewGameSigCount.deletedSignature") }))}</span>}
+          <span className={styles.note}>{t("crewGameSigCount.columnsNote")}</span>
         </div>
-        <div className={prize.field} role="group" aria-label="표시">
-          <span className={styles.muted}>표시</span>
+        <div className={prize.field} role="group" aria-label={t("crewGameSigCount.display")}>
+          <span className={styles.muted}>{t("crewGameSigCount.display")}</span>
           <span className={prize.inline}>
-            <span className={styles.segment} role="group" aria-label="줄">
+            <span className={styles.segment} role="group" aria-label={t("crewGameSigCount.rowsAria")}>
               {SIG_COUNT_ROWS.map((r) => (
                 <button key={r.key} type="button" aria-pressed={draft.rows === r.key} onClick={() => edit({ rows: r.key })}>
-                  {r.label}
+                  {t(ROWS_KEY[r.key])}
                 </button>
               ))}
             </span>
-            <span className={styles.segment} role="group" aria-label="정렬">
+            <span className={styles.segment} role="group" aria-label={t("crewGameSigCount.sortAria")}>
               {SIG_COUNT_SORTS.map((r) => (
                 <button key={r.key} type="button" aria-pressed={draft.sort === r.key} onClick={() => edit({ sort: r.key })}>
-                  {r.label}
+                  {t(SORT_KEY[r.key])}
                 </button>
               ))}
             </span>
             <label className={styles.checkRow}>
               <input type="checkbox" checked={draft.activeOnly} onChange={(e) => edit({ activeOnly: e.target.checked })} />
-              출근 BJ만
+              {t("crewGameSigCount.activeOnly")}
             </label>
             <label className={styles.checkRow}>
               <input type="checkbox" checked={draft.showTotal} onChange={(e) => edit({ showTotal: e.target.checked })} />
-              하단 합계
+              {t("crewGameSigCount.showTotal")}
             </label>
           </span>
         </div>
         {draft.rows === "SELECTED" && (
-          <div className={prize.field} role="group" aria-label="표에 넣을 멤버">
-            <span className={styles.muted}>표에 넣을 멤버</span>
+          <div className={prize.field} role="group" aria-label={t("crewGameSigCount.membersLabel")}>
+            <span className={styles.muted}>{t("crewGameSigCount.membersLabel")}</span>
             <span className={prize.chips}>
               {members
                 .filter((m) => m.active || draft.memberIds.includes(m.id))
@@ -205,51 +216,51 @@ export function SigCountPanel({
                   </button>
                 ))}
             </span>
-            <span className={styles.note}>고른 멤버만 0건이어도 줄로 보여요. 멤버를 지정하지 않은 시그니처는 미지정 줄로 따로 보여요.</span>
+            <span className={styles.note}>{t("crewGameSigCount.membersNote")}</span>
           </div>
         )}
         <div className={styles.actions}>
           <button type="button" className={styles.ghost} disabled={pending || !dirty} onClick={() => setDraft(settings)}>
-            되돌리기
+            {t("crewGame.revert")}
           </button>
           <button type="submit" className={styles.primary} disabled={pending || !dirty}>
-            설정 저장
+            {t("crewGame.saveSettings")}
           </button>
         </div>
       </form>
 
       {!live || !table ? (
-        <p className={styles.note}>방송을 시작하면 실시간 미리보기와 OBS 표시 · 다시 세기 버튼이 나와요.</p>
+        <p className={styles.note}>{t("crewGameSigCount.notLive")}</p>
       ) : (
         <>
-          <div className={prize.window} role="group" aria-label="세는 구간">
-            <span className={styles.muted}>{time(table.since)}부터 세는 중</span>
+          <div className={prize.window} role="group" aria-label={t("crewGameSigCount.windowAria")}>
+            <span className={styles.muted}>{t("crewGameSigCount.countingSince", { time: time(table.since) })}</span>
             <button type="button" className={styles.ghost} disabled={pending} onClick={reset}>
-              다시 세기
+              {t("crewGameSigCount.recount")}
             </button>
             <StartPointPicker
               current={table.since}
               pending={pending}
-              onMove={(at) => run(() => moveSigCountStart({ broadcastId: live.broadcastId, at }), `${time(at)}부터 다시 셀게요.`)}
+              onMove={(at) => run(() => moveSigCountStart({ broadcastId: live.broadcastId, at }), t("crewGameSigCount.recountFrom", { time: time(at) }))}
             />
           </div>
-          {dirty && <p className={styles.note}>저장하지 않은 설정이 있어요. 미리보기와 OBS는 저장한 설정으로 보여요.</p>}
+          {dirty && <p className={styles.note}>{t("crewGameSigCount.unsaved")}</p>}
           {table.columns.length === 0 ? (
-            <p className={styles.empty}>셀 시그니처를 골라 저장해 주세요.</p>
+            <p className={styles.empty}>{t("crewGameSigCount.noColumns")}</p>
           ) : table.rows.length === 0 ? (
-            <p className={styles.empty}>아직 받은 시그니처가 없어요.</p>
+            <p className={styles.empty}>{t("crewGameSigCount.noRows")}</p>
           ) : (
             <div className={sig.scroll}>
-              <table className={sig.table} aria-label="시그 카운트 미리보기">
+              <table className={sig.table} aria-label={t("crewGameSigCount.previewAria")}>
                 <thead>
                   <tr>
-                    <th scope="col">멤버</th>
+                    <th scope="col">{t("crewGame.member")}</th>
                     {table.columns.map((c) => (
                       <th key={c.id} scope="col">
                         {c.name}
                       </th>
                     ))}
-                    <th scope="col">합계</th>
+                    <th scope="col">{t("crewGameSigCount.total")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -275,7 +286,7 @@ export function SigCountPanel({
                 {table.settings.showTotal && (
                   <tfoot>
                     <tr>
-                      <th scope="row">합계</th>
+                      <th scope="row">{t("crewGameSigCount.total")}</th>
                       {table.totals.map((n, i) => (
                         <td key={table.columns[i].id}>{formatNumber(n)}</td>
                       ))}
@@ -292,8 +303,14 @@ export function SigCountPanel({
       )}
 
       <div className={styles.addRow}>
-        <input className={styles.input} value={shownOverlayAddress(origin, overlayPath, "?sigcount")} readOnly aria-label="시그 카운트 오버레이 주소" onFocus={(e) => e.target.select()} />
-        <CopyButton value={`${origin}${overlayPath}?sigcount`} label="복사" className={styles.ghost} />
+        <input
+          className={styles.input}
+          value={shownOverlayAddress(origin, overlayPath, "?sigcount")}
+          readOnly
+          aria-label={t("crewGame.overlayAria", { label: name })}
+          onFocus={(e) => e.target.select()}
+        />
+        <CopyButton value={`${origin}${overlayPath}?sigcount`} label={t("crewGame.copy")} className={styles.ghost} />
       </div>
     </section>
   );

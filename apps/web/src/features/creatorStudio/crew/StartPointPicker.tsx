@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState } from "react";
 import { formatKstTime, formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { BroadcastLive } from "@/services/crew/crewTypes";
 import { unitLabel } from "@/types/donationUnit";
 import styles from "./crew.module.css";
@@ -18,13 +19,14 @@ const time = (iso: string) => formatKstTime(iso, { hour: "2-digit", minute: "2-d
  */
 export function StartPointPicker({ current, pending, onMove }: { current: string; pending: boolean; onMove: (at: string) => void }) {
   const ctx = useContext(MomentsContext);
+  const { t } = useI18n();
   const [at, setAt] = useState("");
   if (!ctx) return null;
   return (
-    <span className={styles.startPoint} role="group" aria-label="시작점 수정">
-      <select className={styles.select} aria-label="새 시작점" value={at} onChange={(e) => setAt(e.target.value)}>
-        <option value="">시작점 수정 — 이 후원부터 세기</option>
-        <option value={ctx.startedAt}>방송 시작 · {time(ctx.startedAt)}</option>
+    <span className={styles.startPoint} role="group" aria-label={t("crewGame.startPointAria")}>
+      <select className={styles.select} aria-label={t("crewGame.newStartAria")} value={at} onChange={(e) => setAt(e.target.value)}>
+        <option value="">{t("crewGame.startPointPrompt")}</option>
+        <option value={ctx.startedAt}>{t("crewGame.broadcastStart", { time: time(ctx.startedAt) })}</option>
         {ctx.moments.map((m, i) => (
           <option key={`${m.at}-${i}`} value={m.at}>
             {time(m.at)} · {m.donor} · {formatNumber(m.amount)} {unitLabel(m.unit)}
@@ -40,7 +42,7 @@ export function StartPointPicker({ current, pending, onMove }: { current: string
           setAt("");
         }}
       >
-        시작점 바꾸기
+        {t("crewGame.changeStart")}
       </button>
     </span>
   );

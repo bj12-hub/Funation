@@ -1,13 +1,29 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { saveDiceGame } from "@/services/crew/crewGames";
-import { DICE_PROJECT_RULES_MAX, DICE_RULES, DICE_TITLE_DEFAULT, PROJECT_NAME_MAX, type CrewMember, type DiceSettings, type GamesView } from "@/services/crew/crewTypes";
+import {
+  DICE_PROJECT_RULES_MAX,
+  DICE_RULES,
+  DICE_TITLE_DEFAULT,
+  PROJECT_NAME_MAX,
+  type CrewMember,
+  type DiceRule,
+  type DiceSettings,
+  type GamesView
+} from "@/services/crew/crewTypes";
 import { AutoFields, FormActions, ManualPlay, OverlayAddress, RunList, TitleField, useSettingsDraft, type LiveGames, type RunAction } from "./GameParts";
 import styles from "./crew.module.css";
 import games from "./games.module.css";
 import prize from "./prize.module.css";
 
 const same = (s: DiceSettings) => s;
+/** `DICE_RULES` (룰 1 · 룰 2) as message keys. */
+const RULE_TEXT: Record<DiceRule, { label: MessageKey; lines: MessageKey[] }> = {
+  RULE1: { label: "crewGameDice.rule1", lines: ["crewGameDice.rule1Line1", "crewGameDice.rule1Line2", "crewGameDice.rule1Line3"] },
+  RULE2: { label: "crewGameDice.rule2", lines: ["crewGameDice.rule2Line1", "crewGameDice.rule2Line2", "crewGameDice.rule2Line3", "crewGameDice.rule2Line4"] }
+};
 
 /**
  * 주사위 게임 — code-first (no Figma frame; StreamDonate 주사위 게임 참고), inside `/creator/crew/games`. Two dice per run,
@@ -35,6 +51,8 @@ export function DiceGamePanel({
   pending: boolean;
   run: RunAction;
 }) {
+  const { t } = useI18n();
+  const name = t("crewGame.nameDice");
   const { draft, edit, dirty, reset } = useSettingsDraft(settings, same, same);
   const known = new Set(signatures.map((s) => s.id));
   const setProject = (i: number, patch: Partial<DiceSettings["projectRules"][number]>) => edit({ projectRules: draft.projectRules.map((p, j) => (j === i ? { ...p, ...patch } : p)) });
@@ -43,35 +61,33 @@ export function DiceGamePanel({
   return (
     <section id="game-dice" className={styles.card} aria-labelledby="game-dice-title">
       <h2 id="game-dice-title" className={styles.cardTitle}>
-        🎲 주사위 게임
+        🎲 {name}
       </h2>
-      <p className={styles.note}>주사위 2개를 굴려 나온 배수를 기준 후원 점수에 곱해요(×2면 그 후원 점수만큼 더해져요). 1배는 점수가 그대로예요. 주사위는 서버가 굴려요.</p>
+      <p className={styles.note}>{t("crewGameDice.intro")}</p>
 
       <form
         className={prize.form}
         onSubmit={(e) => {
           e.preventDefault();
-          run(() => saveDiceGame({ ...draft, excluded: draft.excluded.filter((id) => known.has(id)) }), "주사위 게임 설정을 저장했어요.");
+          run(() => saveDiceGame({ ...draft, excluded: draft.excluded.filter((id) => known.has(id)) }), t("crewGame.saved", { name }));
         }}
       >
-        <TitleField name="주사위 게임" placeholder={DICE_TITLE_DEFAULT} value={draft.title} onChange={(title) => edit({ title })} />
-        <div className={prize.field} role="group" aria-label="주사위 룰">
-          <span className={styles.muted}>룰</span>
+        <TitleField name={name} placeholder={DICE_TITLE_DEFAULT} value={draft.title} onChange={(title) => edit({ title })} />
+        <div className={prize.field} role="group" aria-label={t("crewGameDice.rulesAria")}>
+          <span className={styles.muted}>{t("crewGameDice.rule")}</span>
           <span className={games.rules}>
             {DICE_RULES.map((r) => (
               <button key={r.key} type="button" className={games.rule} aria-pressed={draft.rule === r.key} onClick={() => edit({ rule: r.key })}>
-                <strong>{r.label}</strong>
-                {r.lines.map((line) => (
-                  <span key={line}>· {line}</span>
+                <strong>{t(RULE_TEXT[r.key].label)}</strong>
+                {RULE_TEXT[r.key].lines.map((line) => (
+                  <span key={line}>· {t(line)}</span>
                 ))}
               </button>
             ))}
           </span>
         </div>
-        <div className={prize.field} role="group" aria-label="프로젝트별 룰">
-          <span className={styles.muted}>
-            프로젝트별 룰 ({draft.projectRules.length}/{DICE_PROJECT_RULES_MAX})
-          </span>
+        <div className={prize.field} role="group" aria-label={t("crewGameDice.projectRulesAria")}>
+          <span className={styles.muted}>{t("crewGameDice.projectRules", { count: draft.projectRules.length, max: DICE_PROJECT_RULES_MAX })}</span>
           {draft.projectRules.length > 0 && (
             <ul className={games.tiers}>
               {draft.projectRules.map((p, i) => (
@@ -80,21 +96,21 @@ export function DiceGamePanel({
                     <input
                       className={styles.input}
                       list="dice-projects"
-                      aria-label={`${i + 1}번째 프로젝트 이름`}
-                      placeholder="프로젝트 이름"
+                      aria-label={t("crewGameDice.projectNameAria", { n: i + 1 })}
+                      placeholder={t("crewGameDice.projectNamePlaceholder")}
                       maxLength={PROJECT_NAME_MAX}
                       value={p.project}
                       onChange={(e) => setProject(i, { project: e.target.value })}
                     />
-                    <span className={styles.segment} role="group" aria-label={`${p.project || `${i + 1}번째 프로젝트`} 룰`}>
+                    <span className={styles.segment} role="group" aria-label={t("crewGameDice.projectRuleAria", { project: p.project || t("crewGameDice.nthProject", { n: i + 1 }) })}>
                       {DICE_RULES.map((r) => (
                         <button key={r.key} type="button" aria-pressed={p.rule === r.key} onClick={() => setProject(i, { rule: r.key })}>
-                          {r.label}
+                          {t(RULE_TEXT[r.key].label)}
                         </button>
                       ))}
                     </span>
                     <button type="button" className={styles.ghost} onClick={() => edit({ projectRules: draft.projectRules.filter((_, j) => j !== i) })}>
-                      삭제
+                      {t("crewGame.delete")}
                     </button>
                   </span>
                 </li>
@@ -113,25 +129,31 @@ export function DiceGamePanel({
               disabled={draft.projectRules.length >= DICE_PROJECT_RULES_MAX}
               onClick={() => edit({ projectRules: [...draft.projectRules, { project: projects.find((p) => !draft.projectRules.some((x) => x.project === p)) ?? "", rule: draft.rule === "RULE1" ? "RULE2" : "RULE1" }] })}
             >
-              + 프로젝트 룰 추가
+              {t("crewGameDice.addProjectRule")}
             </button>
           </span>
-          <span className={styles.note}>그 프로젝트로 시작한 방송은 여기 룰로, 다른 방송은 위 룰로 굴려요.</span>
+          <span className={styles.note}>{t("crewGameDice.projectNote")}</span>
         </div>
-        <AutoFields name="주사위 게임" verb="굴리기" auto={draft.auto} excluded={draft.excluded} showIdle={draft.showIdle} signatures={signatures} onChange={edit} />
+        <AutoFields name={name} verb={t("crewGame.roll")} auto={draft.auto} excluded={draft.excluded} showIdle={draft.showIdle} signatures={signatures} onChange={edit} />
         <FormActions pending={pending} dirty={dirty} onReset={reset} />
       </form>
 
       {live && (
         <>
-          {dirty && <p className={styles.note}>저장하지 않은 설정이 있어요. 주사위는 저장한 룰로 굴러가요.</p>}
-          {liveRule && <p className={styles.muted}>{live.project ? `이번 방송(${live.project})은 ${liveRule.label}로 굴려요.` : `이번 방송은 ${liveRule.label}로 굴려요.`}</p>}
-          <ManualPlay game="DICE" name="주사위 게임" verb="굴리기" live={live} members={members} pending={pending} run={run} />
-          <RunList name="주사위 게임" runs={live.dice.runs} now={now} />
+          {dirty && <p className={styles.note}>{t("crewGameDice.unsaved")}</p>}
+          {liveRule && (
+            <p className={styles.muted}>
+              {live.project
+                ? t("crewGameDice.liveRuleProject", { project: live.project, rule: t(RULE_TEXT[liveRule.key].label) })
+                : t("crewGameDice.liveRule", { rule: t(RULE_TEXT[liveRule.key].label) })}
+            </p>
+          )}
+          <ManualPlay game="DICE" name={name} verb={t("crewGame.roll")} live={live} members={members} pending={pending} run={run} />
+          <RunList name={name} runs={live.dice.runs} now={now} />
         </>
       )}
 
-      <OverlayAddress overlayPath={overlayPath} param="dice" label="주사위 게임" />
+      <OverlayAddress overlayPath={overlayPath} param="dice" label={name} />
     </section>
   );
 }
