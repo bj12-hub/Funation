@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { PostScreen } from "@/features/community/PostScreen";
+import { getT } from "@/lib/i18n/server";
 import { getSession } from "@/lib/session";
 import { getPost } from "@/services/community/community";
 
@@ -15,7 +16,8 @@ const readPost = cache(getPost);
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const post = await readPost((await params).id);
-  return { title: post ? `${post.title} | 커뮤니티 | Ssumnation` : "커뮤니티 | Ssumnation" };
+  const t = await getT();
+  return { title: post ? t("community.metaPost", { title: post.title }) : t("community.meta") };
 }
 
 export default async function Page({ params }: { params: Params }) {

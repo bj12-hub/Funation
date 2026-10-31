@@ -5,10 +5,11 @@ import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { FLEXTV_SITE } from "@/lib/flextv/mode";
 import { FLEXTV_PASSWORD_SPECIALS, isFlextvPassword } from "@/lib/flextv/rules";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { isValidPassword } from "@/lib/validation";
 import { changePassword } from "@/services/account/profileActions";
 import { Message } from "./Message";
-import { GENERIC_ERROR } from "./shared";
 import styles from "./editors.module.css";
 
 /**
@@ -19,29 +20,27 @@ import styles from "./editors.module.css";
 type Field = "current" | "next" | "confirm";
 type ErrorKind = "WRONG_CURRENT" | "INVALID" | "MISMATCH" | "REUSED" | "LOCKED" | "ERROR";
 
-const ERRORS: Record<ErrorKind, { field: Field | null; text: string }> = {
-  WRONG_CURRENT: { field: "current", text: "현재 비밀번호가 일치하지 않습니다. 다시 확인해 주세요." },
+const ERRORS: Record<ErrorKind, { field: Field | null; text: MessageKey }> = {
+  WRONG_CURRENT: { field: "current", text: "myEdit.pwWrongCurrent" },
   // Code-first (no Figma frame): the same 5-failure lock as the login (718:213); the server has ended the session.
-  LOCKED: { field: "current", text: "비밀번호를 5회 잘못 입력해 계정 보호를 위해 로그인이 제한되었습니다. 비밀번호를 재설정해 주세요." },
+  LOCKED: { field: "current", text: "my.passwordLocked" },
   // With FLEXTV (phase 7) its rule (lib/flextv/rules.ts); FLEXTV refuses only the current password again.
-  INVALID: {
-    field: "next",
-    text: FLEXTV_SITE ? `영문, 숫자와 특수문자(${FLEXTV_PASSWORD_SPECIALS} 중 하나)를 모두 포함해 8~15자로 입력해 주세요.` : "영문, 숫자, 특수문자를 모두 포함해 8~20자로 입력해 주세요."
-  },
-  MISMATCH: { field: "confirm", text: "새 비밀번호가 서로 일치하지 않습니다." },
-  REUSED: { field: "next", text: FLEXTV_SITE ? "현재 비밀번호와 같은 비밀번호는 사용할 수 없습니다." : "기존 비밀번호와 같거나 최근 사용한 비밀번호는 사용할 수 없습니다." },
-  ERROR: { field: null, text: GENERIC_ERROR }
+  INVALID: { field: "next", text: FLEXTV_SITE ? "myEdit.flextvPwInvalid" : "myEdit.pwInvalid" },
+  MISMATCH: { field: "confirm", text: "myEdit.pwMismatch" },
+  REUSED: { field: "next", text: FLEXTV_SITE ? "myEdit.flextvPwReused" : "myEdit.pwReused" },
+  ERROR: { field: null, text: "my.genericError" }
 };
 
-const FIELDS: { key: Field; label: string; autoComplete: string }[] = [
-  { key: "current", label: "현재 비밀번호", autoComplete: "current-password" },
-  { key: "next", label: "새 비밀번호", autoComplete: "new-password" },
-  { key: "confirm", label: "새 비밀번호 확인", autoComplete: "new-password" }
+const FIELDS: { key: Field; label: MessageKey; autoComplete: string }[] = [
+  { key: "current", label: "myEdit.pwCurrent", autoComplete: "current-password" },
+  { key: "next", label: "myEdit.pwNew", autoComplete: "new-password" },
+  { key: "confirm", label: "myEdit.pwConfirm", autoComplete: "new-password" }
 ];
 
 const EMPTY: Record<Field, string> = { current: "", next: "", confirm: "" };
 
 export function PasswordEditor({ triggerClassName }: { triggerClassName: string }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [values, setValues] = useState(EMPTY);
@@ -90,39 +89,39 @@ export function PasswordEditor({ triggerClassName }: { triggerClassName: string 
           setOpen(true);
         }}
       >
-        비밀번호 변경
+        {t("myEdit.pwChange")}
       </button>
       <Modal
         open={open}
         onClose={changed ? goToLogin : locked ? goToReset : () => setOpen(false)}
-        title="비밀번호 변경"
-        description="안전한 계정 이용을 위해 비밀번호를 변경합니다."
+        title={t("myEdit.pwChange")}
+        description={t("myEdit.pwDesc")}
         footer={
           changed ? (
             <>
               <button type="button" className={styles.secondary} onClick={goToLogin}>
-                닫기
+                {t("my.close")}
               </button>
               <button type="button" className={styles.primary} onClick={goToLogin}>
-                다시 로그인
+                {t("myEdit.pwRelogin")}
               </button>
             </>
           ) : locked ? (
             <>
               <button type="button" className={styles.secondary} onClick={goToReset}>
-                닫기
+                {t("my.close")}
               </button>
               <button type="button" className={styles.primary} onClick={goToReset}>
-                비밀번호 재설정
+                {t("myEdit.pwReset")}
               </button>
             </>
           ) : (
             <>
               <button type="button" className={styles.secondary} onClick={() => setOpen(false)}>
-                취소
+                {t("my.cancel")}
               </button>
               <button type="submit" form="password-change-form" className={styles.primary} disabled={busy} aria-busy={busy || undefined}>
-                비밀번호 변경
+                {t("myEdit.pwChange")}
               </button>
             </>
           )
@@ -140,7 +139,7 @@ export function PasswordEditor({ triggerClassName }: { triggerClassName: string 
           {FIELDS.map((f) => (
             <div key={f.key} className={styles.field}>
               <label htmlFor={`password-${f.key}`} className={styles.label}>
-                {f.label}
+                {t(f.label)}
               </label>
               <div className={`${styles.inputBox} ${fieldInError === f.key ? styles.inputError : ""}`}>
                 <input
@@ -159,14 +158,14 @@ export function PasswordEditor({ triggerClassName }: { triggerClassName: string 
                     setError(null);
                   }}
                 />
-                {fieldInError === f.key && <span className={styles.badge}>확인 필요</span>}
+                {fieldInError === f.key && <span className={styles.badge}>{t("my.needsCheck")}</span>}
               </div>
             </div>
           ))}
           <div id="password-message" aria-live="polite" className={styles.content}>
-            {error && <Message tone="error" text={ERRORS[error].text} />}
-            {changed && <Message tone="success" text="비밀번호가 안전하게 변경되었습니다. 보안을 위해 다시 로그인해 주세요." />}
-            {!changed && <p className={styles.footnote}>영문, 숫자, 특수문자를 포함해 8~20자로 입력해 주세요.</p>}
+            {error && <Message tone="error" text={t(ERRORS[error].text, { specials: FLEXTV_PASSWORD_SPECIALS })} />}
+            {changed && <Message tone="success" text={t("myEdit.pwChanged")} />}
+            {!changed && <p className={styles.footnote}>{t("myEdit.pwRule")}</p>}
           </div>
         </form>
       </Modal>

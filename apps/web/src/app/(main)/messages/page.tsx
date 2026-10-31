@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { MessagesScreen } from "@/features/messages/MessagesScreen";
+import { getT } from "@/lib/i18n/server";
 import { getSession } from "@/lib/session";
 import { getMailbox, getMessageRecipients } from "@/services/messages/messages";
 
 // Code-first (no Figma frame): 쪽지 — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: "쪽지 | Ssumnation" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("messages.meta") };
+}
 export const dynamic = "force-dynamic";
 
 type Search = { box?: string; q?: string; page?: string; size?: string; to?: string };

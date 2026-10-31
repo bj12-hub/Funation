@@ -3,11 +3,14 @@ import { redirect } from "next/navigation";
 import { CreateChannelScreen } from "@/features/channel/CreateChannelScreen";
 import { FlextvStreamerScreen } from "@/features/channel/FlextvStreamerScreen";
 import { FLEXTV_STUDIO } from "@/lib/flextv/mode";
+import { getT } from "@/lib/i18n/server";
 import { forgetFlextvSession, getSession, hasRole } from "@/lib/session";
 import { getStreamerGate } from "@/services/channel/flextvStreamer";
 
 // Code-first (no Figma frame): 채널 만들기 — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: "내 채널 만들기 | Ssumnation" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("channel.meta") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { FavoritesScreen } from "@/features/favorites";
+import { getT } from "@/lib/i18n/server";
 import { getSession } from "@/lib/session";
 import { getFavorites, getFavoritesPromotion } from "@/services/favorites/favorites";
 
 // Figma: ssumnation-favorites-page 735:3856
-export const metadata: Metadata = { title: "즐겨찾기 | Ssumnation" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("myFavorites.meta") };
+}
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<{ q?: string | string[]; page?: string | string[] }>;

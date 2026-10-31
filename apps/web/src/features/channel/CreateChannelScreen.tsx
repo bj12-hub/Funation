@@ -3,15 +3,17 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { checkChannelSlug, createChannel } from "@/services/channel/channel";
 import { CHANNEL_INTRO_MAX, CHANNEL_SLUG_RULE, type SlugCheck } from "@/services/channel/channelTypes";
 import styles from "./channel.module.css";
 
-const BENEFITS = [
-  { title: "후원 받기", text: "팬들에게 FN 후원과 다양한 후원 콘텐츠를 받을 수 있어요." },
-  { title: "크루 운영", text: "크루 멤버를 등록하고 멤버별 후원과 방송 점수판을 운영해요." },
-  { title: "위젯·오버레이", text: "후원 알림과 점수판을 방송 화면에 띄울 수 있어요." },
-  { title: "정산", text: "받은 후원을 정산 등록 후 신청할 수 있어요." }
+const BENEFITS: { title: MessageKey; text: MessageKey }[] = [
+  { title: "channel.benefitDonations", text: "channel.benefitDonationsText" },
+  { title: "channel.benefitCrew", text: "channel.benefitCrewText" },
+  { title: "channel.benefitWidgets", text: "channel.benefitWidgetsText" },
+  { title: "channel.benefitSettlement", text: "channel.benefitSettlementText" }
 ];
 
 /**
@@ -19,6 +21,7 @@ const BENEFITS = [
  * server validates everything again and grants the Creator role.
  */
 export function CreateChannelScreen() {
+  const { t } = useI18n();
   const router = useRouter();
   const [slug, setSlug] = useState("");
   const [name, setName] = useState("");
@@ -33,8 +36,8 @@ export function CreateChannelScreen() {
     if (!slug) return setSlugState(null);
     if (!CHANNEL_SLUG_RULE.test(slug)) return setSlugState("INVALID");
     setSlugState("CHECKING");
-    const t = setTimeout(() => checkChannelSlug(slug).then((r) => setSlugState(r.status)), 350);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => checkChannelSlug(slug).then((r) => setSlugState(r.status)), 350);
+    return () => clearTimeout(timer);
   }, [slug]);
 
   const submit = () => {
@@ -46,7 +49,7 @@ export function CreateChannelScreen() {
         router.refresh();
       } else if (res.status === "SLUG_TAKEN") {
         setSlugState("TAKEN");
-        setError({ field: "slug", text: "이미 사용 중인 주소예요." });
+        setError({ field: "slug", text: t("channel.slugTaken") });
       } else if (res.status === "INVALID") setError({ field: res.field, text: res.message });
       else if (res.status === "ALREADY_CREATOR") router.push("/creator");
       else router.push("/login?next=/channel/new");
@@ -55,20 +58,23 @@ export function CreateChannelScreen() {
 
   const slugHint =
     slugState === "INVALID"
-      ? "영문 소문자, 숫자, 하이픈으로 3~30자 (하이픈으로 시작·끝 불가)"
+      ? t("channel.slugInvalid")
       : slugState === "TAKEN"
-        ? "이미 사용 중인 주소예요."
+        ? t("channel.slugTaken")
         : slugState === "AVAILABLE"
-          ? "사용할 수 있는 주소예요."
+          ? t("channel.slugAvailable")
           : slugState === "CHECKING"
-            ? "확인 중..."
-            : "영문 소문자, 숫자, 하이픈 (3~30자)";
+            ? t("channel.checking")
+            : t("channel.slugHint");
+
+  // "{terms}" marks where the terms link goes in the sentence.
+  const agree = t("channel.agree").split("{terms}");
 
   return (
     <div className={styles.content}>
       <header className={styles.header}>
-        <h1 className={styles.title}>내 채널 만들기</h1>
-        <p className={styles.subtitle}>채널을 만들면 크리에이터 스튜디오를 쓸 수 있어요.</p>
+        <h1 className={styles.title}>{t("channel.title")}</h1>
+        <p className={styles.subtitle}>{t("channel.subtitle")}</p>
       </header>
 
       <form
@@ -80,7 +86,7 @@ export function CreateChannelScreen() {
       >
         <label className={styles.field}>
           <span className={styles.label}>
-            채널 주소 <span className={styles.req}>*</span>
+            {t("channel.address")} <span className={styles.req}>*</span>
           </span>
           <span className={styles.prefixInput}>
             <span className={styles.prefix}>ssumnation.com/c/</span>
@@ -93,14 +99,14 @@ export function CreateChannelScreen() {
 
         <label className={styles.field}>
           <span className={styles.label}>
-            채널 이름 <span className={styles.req}>*</span>
+            {t("channel.name")} <span className={styles.req}>*</span>
           </span>
-          <input className={styles.input} value={name} onChange={(e) => setName(e.target.value)} maxLength={20} placeholder="2~20자" />
+          <input className={styles.input} value={name} onChange={(e) => setName(e.target.value)} maxLength={20} placeholder={t("channel.namePlaceholder")} />
         </label>
 
         <label className={styles.field}>
-          <span className={styles.label}>소개</span>
-          <textarea className={styles.textarea} value={intro} onChange={(e) => setIntro(e.target.value)} maxLength={CHANNEL_INTRO_MAX} placeholder="어떤 방송을 하는지 알려 주세요." />
+          <span className={styles.label}>{t("channel.intro")}</span>
+          <textarea className={styles.textarea} value={intro} onChange={(e) => setIntro(e.target.value)} maxLength={CHANNEL_INTRO_MAX} placeholder={t("channel.introPlaceholder")} />
           <span className={styles.hint}>
             {intro.length} / {CHANNEL_INTRO_MAX}
           </span>
@@ -109,10 +115,11 @@ export function CreateChannelScreen() {
         <label className={styles.agree}>
           <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
           <span>
+            {agree[0]}
             <Link href="/terms/creator" target="_blank" className={styles.link}>
-              크리에이터 이용약관
+              {t("channel.terms")}
             </Link>
-            에 동의합니다 (필수)
+            {agree[1]}
           </span>
         </label>
 
@@ -123,20 +130,20 @@ export function CreateChannelScreen() {
         )}
 
         <button type="submit" className={styles.submit} disabled={pending || !agreed || slugState !== "AVAILABLE" || !name.trim()} aria-busy={pending || undefined}>
-          {pending ? "만드는 중..." : "채널 만들기"}
+          {pending ? t("channel.creating") : t("channel.create")}
         </button>
-        <p className={styles.note}>채널 승인 절차와 후원 수령 전 인증 요건은 아직 정해지지 않았어요(TBD).</p>
+        <p className={styles.note}>{t("channel.note")}</p>
       </form>
 
       <section aria-labelledby="ch-benefits">
         <h2 id="ch-benefits" className={styles.subTitle}>
-          채널을 만들면
+          {t("channel.benefits")}
         </h2>
         <ul className={styles.benefits}>
           {BENEFITS.map((b) => (
             <li key={b.title}>
-              <strong>{b.title}</strong>
-              <span>{b.text}</span>
+              <strong>{t(b.title)}</strong>
+              <span>{t(b.text)}</span>
             </li>
           ))}
         </ul>

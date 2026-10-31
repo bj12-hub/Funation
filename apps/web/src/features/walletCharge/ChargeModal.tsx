@@ -7,6 +7,7 @@ import { AlertCircleIcon } from "@/components/icons";
 import { Modal } from "@/components/ui/Modal";
 import { FLEXTV_WALLET } from "@/lib/flextv/mode";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { agreeChargeTerms, getChargeOptions, quoteCharge, requestCharge } from "@/services/wallet/charge";
 import {
   CHARGE_ERRORS,
@@ -60,10 +61,12 @@ type Quote = { state: "idle" } | { state: "loading" } | { state: "ok"; fnAmount:
  *
  * The browser only collects the choice. Price, balance and the outcome come from the server, and
  * each submission carries an idempotency key so a double click or a retry never charges twice.
+ * UI text follows the language; the legal notes, payment-method names and the CHARGE_ERRORS copy stay as written.
  */
 export function ChargeModal({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { t } = useI18n();
   const [step, setStep] = useState<Step>({ kind: "LOADING" });
   const [options, setOptions] = useState<ChargeOptions | null>(null);
   const [termsAgreed, setTermsAgreed] = useState(true);
@@ -167,7 +170,7 @@ export function ChargeModal({ onClose }: { onClose: () => void }) {
           setStep({ kind: "FAILED", code: result.code });
           break;
         case "IN_PROGRESS":
-          setSubmitError("결제를 처리하고 있습니다. 잠시 후 다시 시도해 주세요.");
+          setSubmitError(t("walletCharge.inProgress"));
           break;
         case "TERMS_REQUIRED":
           setTermsAgreed(false);
@@ -177,19 +180,27 @@ export function ChargeModal({ onClose }: { onClose: () => void }) {
           break;
         default:
           resetKey();
-          setSubmitError("충전 정보를 다시 확인해 주세요.");
+          setSubmitError(t("walletCharge.checkCharge"));
       }
     } catch {
       popup?.close();
       // Unknown outcome: keep the key so retrying cannot charge twice.
-      setSubmitError("결제 결과를 확인하지 못했습니다. 다시 시도해 주세요.");
+      setSubmitError(t("walletCharge.unknownResult"));
     } finally {
       setSubmitting(false);
     }
   };
 
   const title =
-    step.kind === "SUCCESS" ? "FN 충전 완료" : step.kind === "FAILED" ? "결제 취소" : step.kind === "PAYING" ? "결제 진행 중" : step.kind === "DEPOSIT" ? "무통장입금 안내" : "FN 충전하기";
+    step.kind === "SUCCESS"
+      ? t("walletCharge.titleDone")
+      : step.kind === "FAILED"
+        ? t("walletCharge.titleFailed")
+        : step.kind === "PAYING"
+          ? t("walletCharge.titlePaying")
+          : step.kind === "DEPOSIT"
+            ? t("walletCharge.titleDeposit")
+            : t("walletCharge.title");
   const ineligible = options?.eligibility && options.eligibility !== "OK" ? options.eligibility : null;
   const bonus = deposit && fnAmount !== null ? depositBonusOf(options?.depositBonus, fnAmount) : 0;
 
@@ -198,15 +209,15 @@ export function ChargeModal({ onClose }: { onClose: () => void }) {
       <Modal open onClose={onClose} title={title} width={480}>
         {step.kind === "LOADING" && (
           <p className={styles.status} role="status">
-            충전 정보를 불러오는 중입니다...
+            {t("walletCharge.loading")}
           </p>
         )}
 
         {step.kind === "LOAD_ERROR" && (
           <div className={styles.status} role="alert">
-            <p>충전 정보를 불러오지 못했습니다.</p>
+            <p>{t("walletCharge.loadError")}</p>
             <button type="button" className={styles.secondaryButton} onClick={() => void load()}>
-              다시 시도
+              {t("walletCharge.retry")}
             </button>
           </div>
         )}
@@ -218,12 +229,12 @@ export function ChargeModal({ onClose }: { onClose: () => void }) {
             {/* While the terms sheet is open the form behind it is inert (595:4891). */}
             <div className={styles.form} inert={!termsAgreed}>
               <div className={styles.balance}>
-                <span>현재 보유 FN</span>
+                <span>{t("walletCharge.balance")}</span>
                 <strong>{formatNumber(options.balance)} FN</strong>
               </div>
 
               <section className={styles.section}>
-                <h3 className={styles.label}>충전 금액 선택</h3>
+                <h3 className={styles.label}>{t("walletCharge.chooseAmount")}</h3>
                 <div className={styles.amounts}>
                   {selection?.type === "custom" ? (
                     <div className={`${styles.amount} ${styles.amountOn} ${styles.customOpen}`}>
@@ -231,8 +242,8 @@ export function ChargeModal({ onClose }: { onClose: () => void }) {
                         <input
                           autoFocus
                           inputMode="numeric"
-                          aria-label="충전할 FN"
-                          placeholder="충전할 금액을 입력해 주세요"
+                          aria-label={t("walletCharge.customFn")}
+                          placeholder={t("walletCharge.customPlaceholder")}
                           value={customInput ? formatNumber(customAmount) : ""}
                           onChange={(e) => {
                             setCustomInput(e.target.value.replace(/[^\d]/g, "").replace(/^0+/, "").slice(0, 9));
@@ -242,12 +253,12 @@ export function ChargeModal({ onClose }: { onClose: () => void }) {
                         <span>FN</span>
                       </label>
                       <div className={styles.quoteRow}>
-                        <span>환산 금액</span>
+                        <span>{t("walletCharge.converted")}</span>
                         {quote.state === "ok" && <strong>{formatNumber(quote.price)}원</strong>}
-                        {quote.state === "loading" && <span>계산 중...</span>}
+                        {quote.state === "loading" && <span>{t("walletCharge.calculating")}</span>}
                         {quote.state === "invalid" && (
                           <span className={styles.error} role="alert">
-                            최소 {formatNumber(quote.minAmount)} FN부터 충전할 수 있습니다.
+                            {t("walletCharge.minAmount", { amount: formatNumber(quote.minAmount) })}
                           </span>
                         )}
                       </div>
@@ -261,7 +272,7 @@ export function ChargeModal({ onClose }: { onClose: () => void }) {
                         resetKey();
                       }}
                     >
-                      + 직접 입력
+                      {t("walletCharge.custom")}
                     </button>
                   )}
 
@@ -288,14 +299,14 @@ export function ChargeModal({ onClose }: { onClose: () => void }) {
 
               <section className={styles.section}>
                 <div className={styles.methodHeader}>
-                  <h3 className={styles.label}>결제 수단</h3>
+                  <h3 className={styles.label}>{t("walletCharge.method")}</h3>
                   <button type="button" className={styles.changeMethod} onClick={() => setDrawerOpen(true)}>
-                    결제수단변경 ▼
+                    {t("walletCharge.changeMethod")} ▼
                   </button>
                 </div>
                 <label className={styles.radio}>
                   <input type="radio" name="charge-region" checked readOnly />
-                  국내 결제
+                  {t("walletCharge.domestic")}
                 </label>
                 <MethodCards
                   saved={options.savedMethods}
@@ -310,8 +321,8 @@ export function ChargeModal({ onClose }: { onClose: () => void }) {
                   <div className={styles.section}>
                     <label className={styles.customInput}>
                       <input
-                        aria-label="입금자명"
-                        placeholder="입금자명을 입력해 주세요"
+                        aria-label={t("walletCharge.depositor")}
+                        placeholder={t("walletCharge.depositorPlaceholder")}
                         maxLength={20}
                         value={depositorName}
                         onChange={(e) => {
@@ -321,20 +332,22 @@ export function ChargeModal({ onClose }: { onClose: () => void }) {
                       />
                     </label>
                     <p className={styles.muted}>
-                      입금이 확인되면 FN이 들어와요.{bonus > 0 ? ` 입금 보너스 ${formatNumber(bonus)} FN이 함께 들어와요.` : ""}
+                      {t("walletCharge.depositNote")}
+                      {bonus > 0 ? t("walletCharge.depositBonus", { amount: formatNumber(bonus) }) : ""}
                     </p>
                   </div>
                 )}
                 {/* TODO: overseas payment depends on the payment provider (TBD). */}
-                <label className={`${styles.radio} ${styles.radioOff}`} title="준비 중인 기능입니다">
+                <label className={`${styles.radio} ${styles.radioOff}`} title={t("common.comingSoon")}>
                   <input type="radio" name="charge-region" disabled />
-                  해외 결제
+                  {t("walletCharge.overseas")}
                 </label>
               </section>
 
               <div className={styles.totalRow}>
                 <div>
-                  <strong className={styles.totalLabel}>최종 결제 금액</strong>
+                  <strong className={styles.totalLabel}>{t("walletCharge.total")}</strong>
+                  {/* Validity, tax and legal-guardian notes: legal text, Korean until an approved translation exists (TBD). */}
                   <ul className={styles.notes}>
                     <li>FN 유효기간: 마지막 사용일로부터 5년</li>
                     <li>결제 금액에는 모든 세금이 포함되어 있습니다.</li>
@@ -355,7 +368,7 @@ export function ChargeModal({ onClose }: { onClose: () => void }) {
               )}
 
               <button type="button" className={styles.submit} disabled={!canSubmit} onClick={() => void submit()}>
-                {submitting ? "결제 진행 중..." : "충전하기"}
+                {submitting ? t("walletCharge.paying") : t("walletCharge.charge")}
               </button>
             </div>
 
@@ -373,7 +386,7 @@ export function ChargeModal({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        {step.kind === "SUCCESS" && <ChargeSuccess result={step.result} onClose={onClose} />}
+        {step.kind === "SUCCESS" && <ChargeSuccess result={step.result} onClose={onClose} t={t} />}
 
         {step.kind === "PAYING" && (
           <PaymentWindowView
@@ -397,6 +410,7 @@ export function ChargeModal({ onClose }: { onClose: () => void }) {
 
         {step.kind === "FAILED" && (
           <ChargeFailure
+            t={t}
             code={step.code}
             onClose={() => setStep({ kind: "FORM" })}
             onLeave={onClose}
@@ -429,36 +443,38 @@ export function ChargeModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+type T = ReturnType<typeof useI18n>["t"];
+
 /** Figma 606:540 */
-function ChargeSuccess({ result, onClose }: { result: Completed; onClose: () => void }) {
+function ChargeSuccess({ result, onClose, t }: { result: Completed; onClose: () => void; t: T }) {
   return (
     <div className={styles.result}>
       <div className={styles.successCard}>
-        <span>충전 완료</span>
+        <span>{t("walletCharge.done")}</span>
         <strong>{formatNumber(result.fnAmount)} FN</strong>
         <span className={styles.successPrice}>{formatNumber(result.price)}원</span>
       </div>
       <p className={styles.resultText}>
-        결제가 정상적으로 완료되었습니다.
+        {t("walletCharge.doneText")}
         <br />
-        보유 FN이 즉시 반영되었어요.
+        {t("walletCharge.doneBalance")}
       </p>
       <dl className={styles.resultRows}>
         <div>
-          <dt>결제 수단</dt>
+          <dt>{t("walletCharge.method")}</dt>
           <dd>{PAYMENT_METHODS[result.methodId].name}</dd>
         </div>
         <div>
-          <dt>결제 금액</dt>
+          <dt>{t("walletCharge.paidAmount")}</dt>
           <dd className={styles.accent}>{formatNumber(result.price)}원</dd>
         </div>
       </dl>
       <div className={styles.actions}>
         <Link href="/live" className={styles.primaryButton} onClick={onClose}>
-          LIVE 보러가기
+          {t("walletCharge.watchLive")}
         </Link>
         <button type="button" className={styles.secondaryButton} onClick={onClose}>
-          확인
+          {t("walletCharge.ok")}
         </button>
       </div>
     </div>
@@ -467,15 +483,17 @@ function ChargeSuccess({ result, onClose }: { result: Completed; onClose: () => 
 
 /**
  * Figma 739:28 · 739:132 · 739:236 · 739:340 · 739:444. `onLeave` closes the modal when 고객센터 is followed: opened from
- * the side menu, the modal lives in the layout and would stay open over the 고객센터 page.
+ * the side menu, the modal lives in the layout and would stay open over the 고객센터 page. `t` comes from the modal.
  */
 function ChargeFailure({
+  t,
   code,
   onClose,
   onLeave,
   onChangeMethod,
   onRetry
 }: {
+  t: T;
   code: ChargeErrorCode;
   onClose: () => void;
   onLeave: () => void;
@@ -490,16 +508,16 @@ function ChargeFailure({
         <strong>{copy.title}</strong>
         <p>{copy.lines[0]}</p>
         <p className={styles.muted}>{copy.lines[1]}</p>
-        <span className={styles.codeChip}>오류 코드 · {code}</span>
+        <span className={styles.codeChip}>{t("walletCharge.errorCode", { code })}</span>
       </div>
       <div className={styles.actions}>
         {copy.secondary === "SUPPORT" ? (
           <Link href="/support" className={styles.secondaryButton} onClick={onLeave}>
-            고객센터
+            {t("walletCharge.support")}
           </Link>
         ) : (
           <button type="button" className={styles.secondaryButton} onClick={onClose}>
-            확인
+            {t("walletCharge.ok")}
           </button>
         )}
         <button type="button" className={styles.primaryButton} onClick={copy.primary === "RETRY" ? onRetry : onChangeMethod}>

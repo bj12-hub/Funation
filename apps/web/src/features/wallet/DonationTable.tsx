@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { formatNumber, kstIsoString } from "@/lib/format";
 import { QuestDecide } from "@/features/donations/QuestDecide";
+import { DEFAULT_LOCALE } from "@/lib/i18n/config";
+import { messagesFor, translate, type MessageKey } from "@/lib/i18n/translate";
 import { QUEST_STATUSES } from "@/services/creator/donationManagementTypes";
 import { decideMyQuest } from "@/services/donations/quests";
 import { questExtendedLabel } from "@/services/donations/questTypes";
@@ -15,24 +17,30 @@ const STATUS_TONE: Record<DonationStatus, string> = {
   REFUNDED: styles.statusMuted
 };
 
-/** Figma 632:4 후원내역 table (empty 637:214). */
-export function DonationTable({ items }: { items: DonationRecord[] }) {
+type T = (key: MessageKey, vars?: Record<string, string | number>) => string;
+const koT: T = (key, vars) => translate(messagesFor(DEFAULT_LOCALE), key, vars);
+
+/**
+ * Figma 632:4 후원내역 table (empty 637:214). `t`: the page's translator (getT); Korean when rendered on its own.
+ * Status, type, quest and game labels come from the services as written.
+ */
+export function DonationTable({ items, t = koT }: { items: DonationRecord[]; t?: T }) {
   return (
     <div className={styles.tableWrap}>
       <table className={`${styles.table} ${styles.donationTable}`}>
         <thead>
           <tr>
-            <th scope="col">날짜와 시간</th>
-            <th scope="col">크리에이터</th>
-            <th scope="col">후원 내용</th>
+            <th scope="col">{t("wallet.dateTime")}</th>
+            <th scope="col">{t("wallet.creator")}</th>
+            <th scope="col">{t("wallet.donationContent")}</th>
             <th scope="col" className={styles.right}>
-              사용 FN 금액
+              {t("wallet.usedFn")}
             </th>
             <th scope="col" className={styles.center}>
-              후원 유형
+              {t("wallet.donationType")}
             </th>
             <th scope="col" className={styles.center}>
-              처리 상태
+              {t("wallet.status")}
             </th>
           </tr>
         </thead>
@@ -40,7 +48,7 @@ export function DonationTable({ items }: { items: DonationRecord[] }) {
           {items.length === 0 ? (
             <tr>
               <td colSpan={6} className={styles.empty}>
-                후원 내역이 존재하지 않습니다.
+                {t("wallet.noDonations")}
               </td>
             </tr>
           ) : (
@@ -74,12 +82,12 @@ export function DonationTable({ items }: { items: DonationRecord[] }) {
                         <QuestDecide id={d.id} decide={decideMyQuest} />
                       </span>
                     ) : (
-                      <span className={styles.questState}>퀘스트 {QUEST_STATUSES.find((s) => s.key === d.quest!.status)?.label}</span>
+                      <span className={styles.questState}>{t("wallet.quest", { status: QUEST_STATUSES.find((s) => s.key === d.quest!.status)?.label ?? "" })}</span>
                     ))}
                   {/* A running quest's deadline in Korea time — later when the creator extended it (2026-10-18 결정). */}
                   {d.quest?.status === "IN_PROGRESS" && (
                     <span className={styles.questState}>
-                      마감 {kstIsoString(d.quest.endsAt).slice(0, 16).replace("T", " ")}
+                      {t("wallet.questEnds", { at: kstIsoString(d.quest.endsAt).slice(0, 16).replace("T", " ") })}
                       {d.quest.extendedMin > 0 && ` · ${questExtendedLabel(d.quest.extendedMin)}`}
                     </span>
                   )}

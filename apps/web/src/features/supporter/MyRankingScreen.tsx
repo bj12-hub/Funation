@@ -1,62 +1,65 @@
 import Link from "next/link";
 import { formatNumber } from "@/lib/format";
-import { RANKING_PERIODS, type MyRankingView } from "@/services/supporter/rankingTypes";
+import { getT } from "@/lib/i18n/server";
+import type { MessageKey } from "@/lib/i18n/translate";
+import { RANKING_PERIODS, type MyRankingView, type RankingPeriod } from "@/services/supporter/rankingTypes";
 import styles from "./supporter.module.css";
 
+const PERIOD_KEY: Record<RankingPeriod, MessageKey> = { all: "myRanking.periodAll", year: "myRanking.periodYear", month: "myRanking.periodMonth" };
+
 /** 내 후원 랭킹 — code-first (no Figma frame). Route `/mypage/ranking` (`?period=`). Server values only. */
-export function MyRankingScreen({ view }: { view: MyRankingView }) {
+export async function MyRankingScreen({ view }: { view: MyRankingView }) {
+  const t = await getT();
   return (
     <div className={styles.content}>
-      <nav className={styles.breadcrumb} aria-label="현재 위치">
-        <Link href="/mypage">마이페이지</Link> <span aria-hidden="true">›</span> <span aria-current="page">내 랭킹</span>
+      <nav className={styles.breadcrumb} aria-label={t("my.breadcrumb")}>
+        <Link href="/mypage">{t("common.myPage")}</Link> <span aria-hidden="true">›</span> <span aria-current="page">{t("myRanking.crumb")}</span>
       </nav>
       <header className={styles.header}>
-        <h1 className={styles.title}>내 후원 랭킹</h1>
-        <p className={styles.subtitle}>전체 후원자 중 내 순위와 크리에이터별 순위를 확인하세요.</p>
+        <h1 className={styles.title}>{t("myRanking.title")}</h1>
+        <p className={styles.subtitle}>{t("myRanking.subtitle")}</p>
       </header>
 
-      <nav className={styles.segment} aria-label="기간">
+      <nav className={styles.segment} aria-label={t("myRanking.period")}>
         {RANKING_PERIODS.map((p) => (
           <Link key={p.key} href={p.key === "all" ? "/mypage/ranking" : `/mypage/ranking?period=${p.key}`} aria-current={view.period === p.key ? "page" : undefined} className={styles.segmentLink}>
-            {p.label}
+            {t(PERIOD_KEY[p.key])}
           </Link>
         ))}
       </nav>
 
       <dl className={styles.stats}>
         <div>
-          <dt>내 순위</dt>
+          <dt>{t("myRanking.myRank")}</dt>
           <dd>{view.myRank ? `#${view.myRank}` : "-"}</dd>
         </div>
         <div>
-          <dt>상위</dt>
+          <dt>{t("myRanking.top")}</dt>
           <dd>{view.topPercent ? `${view.topPercent}%` : "-"}</dd>
         </div>
         <div>
-          <dt>후원 합계</dt>
+          <dt>{t("myRanking.total")}</dt>
           <dd>{formatNumber(view.myTotalFn)} FN</dd>
         </div>
       </dl>
-      {!view.visible && <p className={styles.note}>마이페이지에서 랭킹 노출을 모두 껐어요. 이 화면에서는 나에게만 보여요.</p>}
+      {!view.visible && <p className={styles.note}>{t("myRanking.hidden")}</p>}
 
       <section className={styles.card} aria-labelledby="rk-creators">
         <h2 id="rk-creators" className={styles.cardTitle}>
-          크리에이터별 내 순위
+          {t("myRanking.byCreator")}
         </h2>
         {view.creators.length === 0 ? (
-          <p className={styles.empty}>이 기간에 후원한 크리에이터가 없어요.</p>
+          <p className={styles.empty}>{t("myRanking.noCreators")}</p>
         ) : (
           <ul className={styles.list}>
             {view.creators.map((c) => (
               <li key={c.creatorId} className={styles.row}>
                 <div className={styles.rowMain}>
                   <strong className={styles.rowTitle}>{c.creatorName}</strong>
-                  <span className={styles.muted}>
-                    {formatNumber(c.myTotalFn)} FN 후원
-                  </span>
+                  <span className={styles.muted}>{t("myRanking.donated", { fn: formatNumber(c.myTotalFn) })}</span>
                 </div>
                 <strong className={styles.rankBadge}>
-                  {c.myRank}위 / {c.donors}명
+                  {t("myRanking.rankOf", { rank: c.myRank, donors: c.donors })}
                 </strong>
               </li>
             ))}
@@ -66,7 +69,7 @@ export function MyRankingScreen({ view }: { view: MyRankingView }) {
 
       <section className={styles.card} aria-labelledby="rk-board">
         <h2 id="rk-board" className={styles.cardTitle}>
-          글로벌 후원자 TOP 20 · 전체 {view.totalDonors}명
+          {t("myRanking.board", { total: view.totalDonors })}
         </h2>
         <ol className={styles.board}>
           {view.board.map((r) => (
@@ -74,13 +77,13 @@ export function MyRankingScreen({ view }: { view: MyRankingView }) {
               <span className={styles.boardRank}>{r.rank}</span>
               <span className={styles.boardName}>
                 {r.name}
-                {r.me && <span className={styles.chip}>나</span>}
+                {r.me && <span className={styles.chip}>{t("myRanking.me")}</span>}
               </span>
               <span className={styles.boardValue}>{formatNumber(r.totalFn)} FN</span>
             </li>
           ))}
         </ol>
-        <p className={styles.note}>다른 후원자 정보는 목업 샘플이에요. 익명(프로필 숨김) 후원은 집계하지 않아요. 환불 반영 여부와 동점 기준은 확정 전이에요.</p>
+        <p className={styles.note}>{t("myRanking.boardNote")}</p>
       </section>
     </div>
   );
