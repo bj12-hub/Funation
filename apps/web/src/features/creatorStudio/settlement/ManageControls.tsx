@@ -153,7 +153,7 @@ export function ChangeInfoButton() {
         onClose={() => setOpen(false)}
         title={t("studioSettlementApply.changeTitle")}
         width={420}
-        lines={["현재의 정보는 삭제되며,", "정산 정보 재등록이 진행됩니다.", "", "정말로 변경하시겠습니까?", ...(error ? [error] : [])]}
+        lines={[t("studioSettlementApply.changeLine1"), t("studioSettlementApply.changeLine2"), "", t("studioSettlementApply.changeConfirm"), ...(error ? [error] : [])]}
         action={
           <button type="button" className={styles.dangerButton} onClick={change} disabled={pending} aria-busy={pending || undefined}>
             {pending ? t("studioSettlementApply.processing") : t("studioSettlementApply.change")}
