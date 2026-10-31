@@ -1,6 +1,7 @@
 "use client";
 
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { saveTwoWheel } from "@/services/crew/crewGames";
 import { TWO_WHEEL_TITLE_DEFAULT, TWO_WHEEL_UNIT_MAX, TWO_WHEEL_WEIGHT_MAX, type CrewMember, type GamesView, type TwoWheelSettings } from "@/services/crew/crewTypes";
 import { AutoFields, FormActions, ManualPlay, OverlayAddress, RunList, TitleField, useSettingsDraft, type LiveGames, type RunAction } from "./GameParts";
@@ -40,6 +41,7 @@ const percent = (w: string, all: string[]) => {
 
 /** A row of weight inputs (one per +n, ×n or operator) with each one's share. */
 function Weights({ name, labels, values, onChange }: { name: string; labels: string[]; values: string[]; onChange: (values: string[]) => void }) {
+  const { t } = useI18n();
   return (
     <span className={games.weights}>
       {labels.map((label, i) => (
@@ -49,7 +51,7 @@ function Weights({ name, labels, values, onChange }: { name: string; labels: str
             className={styles.inputSmall}
             type="number"
             inputMode="numeric"
-            aria-label={`${name} ${label} 가중치`}
+            aria-label={t("crewGameTwoWheel.weightAria", { name, label })}
             min={0}
             max={TWO_WHEEL_WEIGHT_MAX}
             value={values[i]}
@@ -85,6 +87,8 @@ export function TwoWheelPanel({
   pending: boolean;
   run: RunAction;
 }) {
+  const { t } = useI18n();
+  const name = t("crewGame.nameTwoWheel");
   const { draft, edit, dirty, reset } = useSettingsDraft(settings, toDraft, fromDraft);
   const known = new Set(signatures.map((s) => s.id));
   const ops = [draft.plusWeight, draft.timesWeight];
@@ -93,25 +97,25 @@ export function TwoWheelPanel({
   return (
     <section id="game-twowheel" className={styles.card} aria-labelledby="game-twowheel-title">
       <h2 id="game-twowheel-title" className={styles.cardTitle}>
-        🎡 투휠 게임
+        🎡 {name}
       </h2>
-      <p className={styles.note}>수식 릴(+ / ×)과 숫자 릴이 함께 돌아요. +는 숫자만큼 점수를 더하고, ×는 기준 후원 점수에 곱해요. 확률은 가중치로 직접 정해요(0이면 안 나와요).</p>
+      <p className={styles.note}>{t("crewGameTwoWheel.intro")}</p>
 
       <form
         className={prize.form}
         onSubmit={(e) => {
           e.preventDefault();
           const next = fromDraft(draft);
-          run(() => saveTwoWheel({ ...next, excluded: next.excluded.filter((id) => known.has(id)) }), "투휠 게임 설정을 저장했어요.");
+          run(() => saveTwoWheel({ ...next, excluded: next.excluded.filter((id) => known.has(id)) }), t("crewGame.saved", { name }));
         }}
       >
-        <TitleField name="투휠 게임" placeholder={TWO_WHEEL_TITLE_DEFAULT} value={draft.title} onChange={(title) => edit({ title })} />
-        <div className={prize.field} role="group" aria-label="수식 릴">
-          <span className={styles.muted}>수식 릴</span>
-          <Weights name="수식" labels={["+", "×"]} values={ops} onChange={([plusWeight, timesWeight]) => edit({ plusWeight, timesWeight })} />
+        <TitleField name={name} placeholder={TWO_WHEEL_TITLE_DEFAULT} value={draft.title} onChange={(title) => edit({ title })} />
+        <div className={prize.field} role="group" aria-label={t("crewGameTwoWheel.opReel")}>
+          <span className={styles.muted}>{t("crewGameTwoWheel.opReel")}</span>
+          <Weights name={t("crewGameTwoWheel.opName")} labels={["+", "×"]} values={ops} onChange={([plusWeight, timesWeight]) => edit({ plusWeight, timesWeight })} />
         </div>
-        <div className={prize.field} role="group" aria-label="+ 숫자 릴">
-          <span className={styles.muted}>+ 숫자 릴</span>
+        <div className={prize.field} role="group" aria-label={t("crewGameTwoWheel.plusReel")}>
+          <span className={styles.muted}>{t("crewGameTwoWheel.plusReel")}</span>
           <Weights name="+" labels={draft.plusWeights.map((_, i) => `+${i + 1}`)} values={draft.plusWeights} onChange={(plusWeights) => edit({ plusWeights })} />
           <label className={games.unit}>
             <span className={styles.muted}>+1 =</span>
@@ -119,34 +123,36 @@ export function TwoWheelPanel({
               className={styles.inputSmall}
               type="number"
               inputMode="numeric"
-              aria-label="+1 점수"
+              aria-label={t("crewGameTwoWheel.plusUnitAria")}
               min={1}
               max={TWO_WHEEL_UNIT_MAX}
               value={draft.plusUnit}
               onChange={(e) => edit({ plusUnit: e.target.value })}
             />
-            <span className={styles.muted}>점</span>
+            <span className={styles.muted}>{t("crewGameTwoWheel.pointsUnit")}</span>
           </label>
-          <span className={styles.note}>{unit > 0 ? `+3이 나오면 ${formatNumber(unit * 3)}점이 더해져요.` : "+1 점수를 넣어 주세요."} 기본값 1,000점은 일반적인 기준이에요.</span>
+          <span className={styles.note}>
+            {unit > 0 ? t("crewGameTwoWheel.plusExample", { points: formatNumber(unit * 3) }) : t("crewGameTwoWheel.plusMissing")} {t("crewGameTwoWheel.plusDefault")}
+          </span>
         </div>
-        <div className={prize.field} role="group" aria-label="× 숫자 릴">
-          <span className={styles.muted}>× 숫자 릴</span>
+        <div className={prize.field} role="group" aria-label={t("crewGameTwoWheel.timesReel")}>
+          <span className={styles.muted}>{t("crewGameTwoWheel.timesReel")}</span>
           <Weights name="×" labels={draft.timesWeights.map((_, i) => `×${i + 1}`)} values={draft.timesWeights} onChange={(timesWeights) => edit({ timesWeights })} />
-          <span className={styles.note}>×1은 점수가 그대로예요.</span>
+          <span className={styles.note}>{t("crewGameTwoWheel.timesNote")}</span>
         </div>
-        <AutoFields name="투휠 게임" verb="돌리기" auto={draft.auto} excluded={draft.excluded} showIdle={draft.showIdle} signatures={signatures} onChange={edit} />
+        <AutoFields name={name} verb={t("crewGame.spin")} auto={draft.auto} excluded={draft.excluded} showIdle={draft.showIdle} signatures={signatures} onChange={edit} />
         <FormActions pending={pending} dirty={dirty} onReset={reset} />
       </form>
 
       {live && (
         <>
-          {dirty && <p className={styles.note}>저장하지 않은 설정이 있어요. 투휠은 저장한 확률로 돌아가요.</p>}
-          <ManualPlay game="TWO_WHEEL" name="투휠 게임" verb="돌리기" live={live} members={members} pending={pending} run={run} />
-          <RunList name="투휠 게임" runs={live.twoWheel.runs} now={now} />
+          {dirty && <p className={styles.note}>{t("crewGameTwoWheel.unsaved")}</p>}
+          <ManualPlay game="TWO_WHEEL" name={name} verb={t("crewGame.spin")} live={live} members={members} pending={pending} run={run} />
+          <RunList name={name} runs={live.twoWheel.runs} now={now} />
         </>
       )}
 
-      <OverlayAddress overlayPath={overlayPath} param="twowheel" label="투휠 게임" />
+      <OverlayAddress overlayPath={overlayPath} param="twowheel" label={name} />
     </section>
   );
 }
