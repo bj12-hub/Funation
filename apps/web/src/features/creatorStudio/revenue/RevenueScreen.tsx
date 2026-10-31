@@ -34,7 +34,7 @@ const SOURCE_KEY: Record<string, MessageKey> = {
 /** The service's month label ("6월") as a short month name in English (Jun); Korean keeps it. */
 function monthLabel(label: string, locale: Locale) {
   const m = /^(\d{1,2})월$/.exec(label);
-  return m && locale === "en" ? new Intl.DateTimeFormat("en-US", { month: "short" }).format(new Date(2000, Number(m[1]) - 1, 1)) : label;
+  return m && locale === "en" ? new Intl.DateTimeFormat("en-US", { month: "short", timeZone: "UTC" }).format(Date.UTC(2000, Number(m[1]) - 1, 1)) : label;
 }
 
 export async function RevenueScreen({ data }: { data: RevenueOverview }) {
