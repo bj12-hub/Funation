@@ -1,12 +1,13 @@
-import { formatCompactKo } from "@/lib/format";
+import { formatCompact } from "@/lib/format";
+import { getLocale, getT } from "@/lib/i18n/server";
 import styles from "./studio.module.css";
 
 const W = 1000;
 const H = 330;
 const PAD = { top: 36, right: 30, bottom: 34, left: 58 };
 
-/** "₩28만" */
-const won = (v: number) => `₩${formatCompactKo(v)}`;
+/** "₩28만" (English "₩280K"): the same amount, written compactly in the viewer's language. */
+const won = (v: number, locale: string) => `₩${formatCompact(v, locale)}`;
 
 /** Round the axis maximum up to a clean step (Figma 287:38 uses ₩20만 steps). */
 function axisMax(max: number) {
@@ -35,9 +36,10 @@ function smoothPath(points: { x: number; y: number }[]) {
  * The design draws it from ~150 rectangles; this is a plain SVG built from the server series.
  */
 /** `fillId` must be unique on the page (two charts would otherwise share one gradient). */
-export function RevenueChart({ series, fillId = "revenue-fill" }: { series: { label: string; amount: number }[]; fillId?: string }) {
+export async function RevenueChart({ series, fillId = "revenue-fill" }: { series: { label: string; amount: number }[]; fillId?: string }) {
+  const [t, locale] = await Promise.all([getT(), getLocale()]);
   if (series.length === 0) {
-    return <p className={styles.chartEmpty}>표시할 후원 수익이 없습니다.</p>;
+    return <p className={styles.chartEmpty}>{t("studioDashboard.chartEmpty")}</p>;
   }
 
   const max = axisMax(Math.max(...series.map((s) => s.amount)));
@@ -54,18 +56,18 @@ export function RevenueChart({ series, fillId = "revenue-fill" }: { series: { la
   const showPointLabels = series.length <= 12;
 
   return (
-    <svg className={styles.chart} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`기간별 수익: ${series.map((s) => `${s.label} ${won(s.amount)}`).join(", ")}`}>
+    <svg className={styles.chart} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t("studioDashboard.chartAria", { list: series.map((s) => `${s.label} ${won(s.amount, locale)}`).join(", ") })}>
       <defs>
         <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="rgba(139,92,246,0.3)" />
           <stop offset="100%" stopColor="rgba(139,92,246,0.01)" />
         </linearGradient>
       </defs>
-      {ticks.map((t) => (
-        <g key={t}>
-          <line x1={PAD.left} x2={W - PAD.right} y1={y(t)} y2={y(t)} className={styles.gridLine} />
-          <text x={PAD.left - 10} y={y(t) + 4} textAnchor="end" className={styles.axisText}>
-            {won(t)}
+      {ticks.map((tick) => (
+        <g key={tick}>
+          <line x1={PAD.left} x2={W - PAD.right} y1={y(tick)} y2={y(tick)} className={styles.gridLine} />
+          <text x={PAD.left - 10} y={y(tick) + 4} textAnchor="end" className={styles.axisText}>
+            {won(tick, locale)}
           </text>
         </g>
       ))}
@@ -77,7 +79,7 @@ export function RevenueChart({ series, fillId = "revenue-fill" }: { series: { la
           <circle cx={p.x} cy={p.y} r={5} className={styles.pointDot} />
           {showPointLabels && (
             <text x={p.x} y={p.y - 14} textAnchor="middle" className={styles.pointText}>
-              {won(series[i].amount)}
+              {won(series[i].amount, locale)}
             </text>
           )}
           {i % every === 0 && (

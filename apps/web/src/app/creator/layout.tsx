@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { GlobalHeader } from "@/components/layout/GlobalHeader";
 import { CreatorSideNav } from "@/features/creatorStudio/CreatorSideNav";
+import { getT } from "@/lib/i18n/server";
 import { getSession, hasRole } from "@/lib/session";
 import { getCreatorProfile } from "@/services/creator/creatorStudio";
 import styles from "@/features/creatorStudio/studio.module.css";
@@ -18,17 +19,18 @@ export default async function CreatorLayout({ children }: { children: ReactNode 
 
   if (!hasRole(session, "CREATOR")) {
     // Code-first (no Figma frame): members become creators by creating a channel (approval TBD).
+    const t = await getT();
     return (
       <>
         <GlobalHeader user={{ nickname: session.nickname, avatarUrl: session.avatarUrl }} />
         <main className={styles.noAccess}>
-          <h1 className={styles.noAccessTitle}>크리에이터 권한이 필요합니다</h1>
-          <p className={styles.noAccessText}>크리에이터 스튜디오는 채널을 만든 회원만 이용할 수 있어요.</p>
+          <h1 className={styles.noAccessTitle}>{t("studioNav.noAccessTitle")}</h1>
+          <p className={styles.noAccessText}>{t("studioNav.noAccessText")}</p>
           <Link href="/channel/new" className={styles.noAccessButton}>
-            내 채널 만들기
+            {t("studioNav.createChannel")}
           </Link>
           <Link href="/" className={styles.noAccessLink}>
-            홈으로 가기
+            {t("studioNav.goHome")}
           </Link>
         </main>
       </>

@@ -1,17 +1,19 @@
 import Link from "next/link";
+import { getT } from "@/lib/i18n/server";
 import type { UpdatesView } from "@/services/creator/updatesTypes";
 import styles from "./updates.module.css";
 
 /** 대시보드 "업데이트 소식" card — code-first (not in Figma 245:14). Latest posts with a NEW mark. */
-export function UpdatesCard({ view }: { view: UpdatesView }) {
+export async function UpdatesCard({ view }: { view: UpdatesView }) {
+  const t = await getT();
   return (
     <section className={styles.card} aria-labelledby="dash-updates">
       <div className={styles.cardHead}>
-        <h2 id="dash-updates">업데이트 소식</h2>
-        <Link href="/creator/updates">전체 ›</Link>
+        <h2 id="dash-updates">{t("studioUpdates.title")}</h2>
+        <Link href="/creator/updates">{t("studioUpdates.all")}</Link>
       </div>
       {view.posts.length === 0 ? (
-        <p>아직 소식이 없어요.</p>
+        <p>{t("studioUpdates.empty")}</p>
       ) : (
         <ul className={styles.cardList}>
           {view.posts.map((p) => (

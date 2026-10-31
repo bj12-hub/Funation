@@ -3,14 +3,26 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
-import { formatCompactKo, formatKst, formatNumber, kstIsoString } from "@/lib/format";
+import { formatCompact, formatKst, formatNumber, kstIsoString } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { connectYouTube, disconnectYouTube, syncYouTubeVideos, updateVideo } from "@/services/creator/youtube";
 import type { ManagedVideo, VideoFilter, YouTubeIntegration, YouTubeResult } from "@/services/creator/youtubeTypes";
-import { PLATFORM_ERROR_LABEL } from "@/services/platforms/platformTypes";
+import type { PlatformErrorCode } from "@/services/platforms/platformTypes";
 import styles from "../crew/crew.module.css";
 import local from "./youtube.module.css";
 
 type Note = { tone: "ok" | "error"; text: string } | null;
+type T = ReturnType<typeof useI18n>["t"];
+
+/** PLATFORM_ERROR_LABEL in the viewer's language (2026-11-01). */
+const PLATFORM_ERROR_KEYS: Record<PlatformErrorCode, MessageKey> = {
+  TIMEOUT: "studioYoutube.errorTimeout",
+  NOT_FOUND: "studioYoutube.errorNotFound",
+  UNAUTHORIZED: "studioYoutube.errorUnauthorized",
+  UNSUPPORTED: "studioYoutube.errorUnsupported",
+  UNAVAILABLE: "studioYoutube.errorUnavailable"
+};
 
 export const duration = (sec: number) => {
   const h = Math.floor(sec / 3600);
@@ -21,6 +33,7 @@ export const duration = (sec: number) => {
 const stamp = (iso: string | null) => (iso ? formatKst(iso, { dateStyle: "medium", timeStyle: "short" }) : "—");
 
 function useRunner() {
+  const { t, locale } = useI18n();
   const router = useRouter();
   const [note, setNote] = useState<Note>(null);
   const [pending, startTransition] = useTransition();
@@ -35,15 +48,15 @@ function useRunner() {
         } else
           setNote({
             tone: "error",
-            text: res.status === "INVALID" ? res.message : res.status === "PLATFORM_ERROR" ? PLATFORM_ERROR_LABEL[res.code] : "로그인이 필요합니다."
+            text: res.status === "INVALID" ? res.message : res.status === "PLATFORM_ERROR" ? t(PLATFORM_ERROR_KEYS[res.code]) : t("studioYoutube.needLogin")
           });
         router.refresh();
       } catch {
-        setNote({ tone: "error", text: "처리하지 못했어요. 잠시 후 다시 시도해 주세요." });
+        setNote({ tone: "error", text: t("studioYoutube.failed") });
       }
     });
   };
-  return { note, pending, run };
+  return { note, pending, run, t, locale };
 }
 
 function NoteLine({ note }: { note: Note }) {
@@ -61,13 +74,13 @@ function NoteLine({ note }: { note: Note }) {
  */
 export function YouTubeConnectScreen({ integration }: { integration: YouTubeIntegration }) {
   const [handle, setHandle] = useState("");
-  const { note, pending, run } = useRunner();
+  const { note, pending, run, t, locale } = useRunner();
   const requestId = useRef<string | null>(null);
   const ch = integration.channel;
 
   const connect = () => {
     requestId.current ??= crypto.randomUUID();
-    run(() => connectYouTube({ handle, requestId: requestId.current }), (r) => `채널을 연결하고 영상 ${r.added ?? 0}개를 가져왔어요.`, () => {
+    run(() => connectYouTube({ handle, requestId: requestId.current }), (r) => t("studioYoutube.connected", { count: r.added ?? 0 }), () => {
       requestId.current = null;
       setHandle("");
     });
@@ -76,78 +89,76 @@ export function YouTubeConnectScreen({ integration }: { integration: YouTubeInte
   return (
     <div className={styles.content}>
       <header className={styles.header}>
-        <h1 className={styles.title}>유튜브 연동</h1>
-        <p className={styles.subtitle}>유튜브 채널을 연결하면 영상 목록을 가져와 채널의 영상 탭에 보여 줄 수 있어요.</p>
+        <h1 className={styles.title}>{t("studioYoutube.title")}</h1>
+        <p className={styles.subtitle}>{t("studioYoutube.subtitle")}</p>
       </header>
 
       <section className={styles.card} aria-labelledby="yt-status">
         <div className={styles.cardHead}>
           <h2 className={styles.cardTitle} id="yt-status">
-            ▶️ 연결 상태
+            {t("studioYoutube.status")}
           </h2>
           <span className={integration.status === "CONNECTED" ? styles.chip : styles.chipOff}>
-            {integration.status === "CONNECTED" ? "연결됨" : integration.status === "ERROR" ? "오류" : "연결 안 됨"}
+            {integration.status === "CONNECTED" ? t("studioYoutube.statusConnected") : integration.status === "ERROR" ? t("studioYoutube.statusError") : t("studioYoutube.statusOff")}
           </span>
         </div>
         {ch ? (
           <>
             <dl className={local.facts}>
               <div>
-                <dt>채널</dt>
+                <dt>{t("studioYoutube.channel")}</dt>
                 <dd>
                   {ch.title} <span className={styles.muted}>{ch.handle}</span>
                 </dd>
               </div>
               <div>
-                <dt>구독자</dt>
-                <dd>{formatCompactKo(ch.subscriberCount)}명</dd>
+                <dt>{t("studioYoutube.subscribers")}</dt>
+                <dd>{t("studioYoutube.subscriberCount", { count: formatCompact(ch.subscriberCount, locale) })}</dd>
               </div>
               <div>
-                <dt>연결일</dt>
+                <dt>{t("studioYoutube.connectedAt")}</dt>
                 <dd>{stamp(integration.connectedAt)}</dd>
               </div>
               <div>
-                <dt>마지막 동기화</dt>
+                <dt>{t("studioYoutube.lastSync")}</dt>
                 <dd>{stamp(integration.lastSyncedAt)}</dd>
               </div>
               <div>
-                <dt>영상</dt>
-                <dd>{formatNumber(integration.videoCount)}개</dd>
+                <dt>{t("studioYoutube.videos")}</dt>
+                <dd>{t("studioYoutube.videoCount", { count: formatNumber(integration.videoCount) })}</dd>
               </div>
             </dl>
             {integration.lastError && (
               <p className={styles.error} role="alert">
-                마지막 동기화 실패: {PLATFORM_ERROR_LABEL[integration.lastError]} (이전 목록은 그대로 보여요)
+                {t("studioYoutube.lastSyncFailed", { error: t(PLATFORM_ERROR_KEYS[integration.lastError]) })}
               </p>
             )}
             <div className={styles.addRow}>
-              <button type="button" className={styles.primary} disabled={pending} onClick={() => run(syncYouTubeVideos, syncNote)}>
-                {pending ? "처리 중…" : "지금 동기화"}
+              <button type="button" className={styles.primary} disabled={pending} onClick={() => run(syncYouTubeVideos, (r) => syncNote(r, t))}>
+                {pending ? t("studioYoutube.working") : t("studioYoutube.syncNow")}
               </button>
               <Link href="/creator/videos" className={styles.ghost}>
-                영상 목록 관리
+                {t("studioYoutube.manageVideos")}
               </Link>
               <button
                 type="button"
                 className={styles.danger}
                 disabled={pending}
-                onClick={() => window.confirm("유튜브 연결을 해제할까요? 가져온 영상 목록과 표시 설정이 지워져요.") && run(disconnectYouTube, () => "연결을 해제했어요.")}
+                onClick={() => window.confirm(t("studioYoutube.disconnectConfirm")) && run(disconnectYouTube, () => t("studioYoutube.disconnected"))}
               >
-                연결 해제
+                {t("studioYoutube.disconnect")}
               </button>
             </div>
           </>
         ) : (
           <>
             <div className={styles.addRow}>
-              <input className={styles.input} aria-label="유튜브 채널 핸들" placeholder="@mychannel" value={handle} onChange={(e) => setHandle(e.target.value)} />
+              <input className={styles.input} aria-label={t("studioYoutube.handleAria")} placeholder="@mychannel" value={handle} onChange={(e) => setHandle(e.target.value)} />
               <button type="button" className={styles.primary} disabled={pending || !handle.trim()} onClick={connect}>
-                {pending ? "연결 중…" : "채널 연결"}
+                {pending ? t("studioYoutube.connecting") : t("studioYoutube.connect")}
               </button>
             </div>
-            <p className={styles.note}>
-              개발용 mock 연결이에요: 핸들만 입력하면 연결돼요. 실제 서비스는 Google 로그인 동의 화면으로 연결해요 (OAuth · 권한 범위 TBD). 이 화면에서 비밀번호를 입력하지 마세요.
-            </p>
+            <p className={styles.note}>{t("studioYoutube.mockNote")}</p>
           </>
         )}
       </section>
@@ -156,31 +167,35 @@ export function YouTubeConnectScreen({ integration }: { integration: YouTubeInte
   );
 }
 
-const FILTERS: { key: VideoFilter; label: string }[] = [
-  { key: "ALL", label: "전체" },
-  { key: "VOD", label: "다시보기" },
-  { key: "SHORTS", label: "쇼츠" },
-  { key: "HIDDEN", label: "숨김" }
+const FILTERS: { key: VideoFilter; label: MessageKey }[] = [
+  { key: "ALL", label: "studioYoutube.filterAll" },
+  { key: "VOD", label: "studioYoutube.filterVod" },
+  { key: "SHORTS", label: "studioYoutube.filterShorts" },
+  { key: "HIDDEN", label: "studioYoutube.filterHidden" }
 ];
 
 /** Sync result line: new videos, and the ones YouTube no longer shows (deleted or private — 2026-10-08 결정). */
-const syncNote = (r: Extract<YouTubeResult, { status: "OK" }>) =>
-  [r.added ? `새 영상 ${r.added}개를 가져왔어요.` : "새 영상이 없어요.", r.missing ? `유튜브에서 찾을 수 없는 영상이 ${r.missing}개 있어요.` : ""].filter(Boolean).join(" ");
+const syncNote = (r: Extract<YouTubeResult, { status: "OK" }>, t: T) =>
+  [r.added ? t("studioYoutube.syncAdded", { count: r.added }) : t("studioYoutube.syncNone"), r.missing ? t("studioYoutube.syncMissing", { count: r.missing }) : ""]
+    .filter(Boolean)
+    .join(" ");
 
 /** 영상 목록 — code-first. Route `/creator/videos`. Choose what the channel's 영상 탭 shows and pin up to 3. */
 export function VideoListScreen({ integration, videos }: { integration: YouTubeIntegration; videos: ManagedVideo[] }) {
   const [filter, setFilter] = useState<VideoFilter>("ALL");
-  const { note, pending, run } = useRunner();
+  const { note, pending, run, t, locale } = useRunner();
   const shown = videos.filter((v) => (filter === "ALL" ? true : filter === "HIDDEN" ? !v.visible : v.kind === filter));
 
   if (!integration.channel) {
     return (
       <div className={styles.content}>
         <header className={styles.header}>
-          <h1 className={styles.title}>영상 목록</h1>
+          <h1 className={styles.title}>{t("studioYoutube.videosTitle")}</h1>
         </header>
         <p className={styles.empty}>
-          유튜브 채널이 연결되지 않았어요. <Link href="/creator/youtube">유튜브 연동</Link>에서 먼저 연결해 주세요.
+          {t("studioYoutube.notConnectedBefore")}
+          <Link href="/creator/youtube">{t("studioYoutube.title")}</Link>
+          {t("studioYoutube.notConnectedAfter")}
         </p>
       </div>
     );
@@ -189,30 +204,28 @@ export function VideoListScreen({ integration, videos }: { integration: YouTubeI
   return (
     <div className={styles.content}>
       <header className={styles.header}>
-        <h1 className={styles.title}>영상 목록</h1>
-        <p className={styles.subtitle}>
-          {integration.channel.title}에서 가져온 영상이에요. 채널 영상 탭에 보일 영상을 고르고, 3개까지 맨 위에 고정할 수 있어요.
-        </p>
+        <h1 className={styles.title}>{t("studioYoutube.videosTitle")}</h1>
+        <p className={styles.subtitle}>{t("studioYoutube.videosSubtitle", { channel: integration.channel.title })}</p>
         <p className={styles.note}>
-          마지막 동기화 {stamp(integration.lastSyncedAt)} · <Link href="/creator/youtube">유튜브 연동</Link>
+          {t("studioYoutube.lastSyncAt", { time: stamp(integration.lastSyncedAt) })} · <Link href="/creator/youtube">{t("studioYoutube.title")}</Link>
         </p>
       </header>
 
       <section className={styles.card} aria-labelledby="vl-list">
         <div className={styles.cardHead}>
           <h2 className={styles.cardTitle} id="vl-list">
-            🎞️ 영상 {shown.length}
+            {t("studioYoutube.listTitle", { count: shown.length })}
           </h2>
-          <div className={styles.tabs} role="tablist" aria-label="영상 필터">
+          <div className={styles.tabs} role="tablist" aria-label={t("studioYoutube.filterAria")}>
             {FILTERS.map((f) => (
               <button key={f.key} type="button" role="tab" aria-selected={filter === f.key} aria-current={filter === f.key ? "page" : undefined} className={styles.tab} onClick={() => setFilter(f.key)}>
-                {f.label}
+                {t(f.label)}
               </button>
             ))}
           </div>
         </div>
         {shown.length === 0 ? (
-          <p className={styles.empty}>해당하는 영상이 없어요.</p>
+          <p className={styles.empty}>{t("studioYoutube.listEmpty")}</p>
         ) : (
           <ul className={styles.list}>
             {shown.map((v) => (
@@ -228,20 +241,21 @@ export function VideoListScreen({ integration, videos }: { integration: YouTubeI
                     {v.missing && (
                       <>
                         {" "}
-                        <span className={styles.chipOff}>찾을 수 없음</span>
+                        <span className={styles.chipOff}>{t("studioYoutube.missing")}</span>
                       </>
                     )}
                   </span>
                   <span className={styles.muted}>
-                    {v.kind === "SHORTS" ? "쇼츠" : "다시보기"} · 조회 {formatCompactKo(v.viewCount)} · {kstIsoString(v.publishedAt).slice(0, 10).replace(/-/g, ".")}
+                    {v.kind === "SHORTS" ? t("studioYoutube.filterShorts") : t("studioYoutube.filterVod")} · {t("studioYoutube.views", { count: formatCompact(v.viewCount, locale) })} ·{" "}
+                    {kstIsoString(v.publishedAt).slice(0, 10).replace(/-/g, ".")}
                   </span>
                 </div>
                 <div className={styles.rowActions}>
-                  <button type="button" className={styles.ghost} disabled={pending || !v.visible || (v.missing && !v.pinned)} onClick={() => run(() => updateVideo({ externalId: v.externalId, pinned: !v.pinned }), () => (v.pinned ? "고정을 풀었어요." : "맨 위에 고정했어요."))}>
-                    {v.pinned ? "고정 해제" : "고정"}
+                  <button type="button" className={styles.ghost} disabled={pending || !v.visible || (v.missing && !v.pinned)} onClick={() => run(() => updateVideo({ externalId: v.externalId, pinned: !v.pinned }), () => (v.pinned ? t("studioYoutube.unpinned") : t("studioYoutube.pinned")))}>
+                    {v.pinned ? t("studioYoutube.unpin") : t("studioYoutube.pin")}
                   </button>
-                  <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => updateVideo({ externalId: v.externalId, visible: !v.visible }), () => (v.visible ? "채널에서 숨겼어요." : "채널에 표시해요."))}>
-                    {v.visible ? "숨기기" : "표시"}
+                  <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => updateVideo({ externalId: v.externalId, visible: !v.visible }), () => (v.visible ? t("studioYoutube.hidden") : t("studioYoutube.shown")))}>
+                    {v.visible ? t("studioYoutube.hide") : t("studioYoutube.show")}
                   </button>
                 </div>
               </li>
