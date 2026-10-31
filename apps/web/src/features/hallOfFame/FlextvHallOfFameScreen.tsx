@@ -3,6 +3,7 @@ import Link from "next/link";
 import { TrophyMarkIcon } from "@/components/icons";
 import { HALL_OF_FAME_BADGE_IMAGES } from "@/lib/flextv/events";
 import { formatNumber } from "@/lib/format";
+import { getT } from "@/lib/i18n/server";
 import type { FlextvHallOfFameView } from "@/services/hallOfFame/flextvHallOfFame";
 import styles from "./hallOfFame.module.css";
 import local from "./hofTabs.module.css";
@@ -16,7 +17,8 @@ const CHIP_MONTHS = 6;
  * 명예의 전당). Route `/hall-of-fame` (`?month=YYYYMM`): FLEXTV's top supporters of the month by 후원 점수, with their
  * accumulated badges; a supporter with a channel links to it.
  */
-export function FlextvHallOfFameScreen({ view }: { view: FlextvHallOfFameView }) {
+export async function FlextvHallOfFameScreen({ view }: { view: FlextvHallOfFameView }) {
+  const t = await getT();
   return (
     <>
       <section className={styles.hero}>
@@ -24,22 +26,22 @@ export function FlextvHallOfFameScreen({ view }: { view: FlextvHallOfFameView })
         <span className={styles.heroShade} />
         <div className={styles.heroInner}>
           <div className={styles.heroLabels}>
-            <span className={styles.heroBadge}>명예의 전당</span>
-            <span className={styles.heroHighlight}>이달의 서포터</span>
+            <span className={styles.heroBadge}>{t("hallOfFame.title")}</span>
+            <span className={styles.heroHighlight}>{t("flextvHallOfFame.highlight")}</span>
           </div>
           <div className={styles.heroCopy}>
             <h1 className={styles.heroTitle}>
               <TrophyMarkIcon className={styles.heroMark} />
-              크리에이터를 빛나게 해 주신 최고의 서포터들
+              {t("flextvHallOfFame.heroTitle")}
             </h1>
-            <p className={styles.heroDescription}>FLEXTV 후원 점수로 매달 집계해요. 지난달의 명예의 전당도 볼 수 있어요.</p>
+            <p className={styles.heroDescription}>{t("flextvHallOfFame.heroDescription")}</p>
           </div>
         </div>
       </section>
 
       <section className={styles.section} aria-labelledby="hof-month">
         <h2 id="hof-month" className={styles.periodTitle}>
-          {monthLabel(view.month)} 명예의 전당
+          {t("flextvHallOfFame.monthTitle", { month: monthLabel(view.month) })}
         </h2>
         <nav className={styles.periodTabs} aria-labelledby="hof-month">
           {view.months.slice(0, CHIP_MONTHS).map((m, i) => (
@@ -50,7 +52,7 @@ export function FlextvHallOfFameScreen({ view }: { view: FlextvHallOfFameView })
         </nav>
         {view.months.length > CHIP_MONTHS && (
           <form action="/hall-of-fame" className={local.monthForm}>
-            <select name="month" defaultValue={view.month} aria-label="명예의 전당 달" className={local.monthSelect}>
+            <select name="month" defaultValue={view.month} aria-label={t("flextvHallOfFame.monthPicker")} className={local.monthSelect}>
               {view.months.map((m) => (
                 <option key={m} value={m}>
                   {monthLabel(m)}
@@ -58,7 +60,7 @@ export function FlextvHallOfFameScreen({ view }: { view: FlextvHallOfFameView })
               ))}
             </select>
             <button type="submit" className={local.monthGo}>
-              보기
+              {t("flextvHallOfFame.show")}
             </button>
           </form>
         )}
@@ -66,12 +68,12 @@ export function FlextvHallOfFameScreen({ view }: { view: FlextvHallOfFameView })
 
       {view.rows.length === 0 ? (
         <div className={styles.section}>
-          <p className={styles.empty}>이 달에는 아직 집계된 후원이 없어요.</p>
+          <p className={styles.empty}>{t("flextvHallOfFame.empty")}</p>
         </div>
       ) : (
         <section className={styles.rankingSection} aria-labelledby="hof-ranking">
           <h2 id="hof-ranking" className={styles.rankingTitle}>
-            🏆 서포터 랭킹
+            {t("flextvHallOfFame.ranking")}
           </h2>
           <ol className={styles.rankingList}>
             {view.rows.map((r) => (
@@ -80,24 +82,24 @@ export function FlextvHallOfFameScreen({ view }: { view: FlextvHallOfFameView })
                 <span className={styles.rowName}>{r.channelId ? <Link href={`/creators/${r.channelId}`}>{r.nickname}</Link> : r.nickname}</span>
                 <span className={styles.rowRight}>
                   {r.badges.some((b) => b.count > 0) && (
-                    <span className={local.hofBadges} aria-label="누적 뱃지">
+                    <span className={local.hofBadges} aria-label={t("flextvHallOfFame.badges")}>
                       {r.badges.map((b) => (
                         <span key={b.id} className={local.hofBadge}>
                           {/* eslint-disable-next-line @next/next/no-img-element -- FLEXTV's CDN, not one of the image optimizer's hosts */}
-                          <img src={HALL_OF_FAME_BADGE_IMAGES[b.id]} alt={`뱃지 ${b.id}`} width={24} height={24} />× {formatNumber(b.count)}
+                          <img src={HALL_OF_FAME_BADGE_IMAGES[b.id]} alt={t("flextvHallOfFame.badge", { id: b.id })} width={24} height={24} />× {formatNumber(b.count)}
                         </span>
                       ))}
                     </span>
                   )}
                   <span className={styles.amount}>
-                    후원 점수
+                    {t("flextvHallOfFame.points")}
                     <strong>{formatNumber(r.points)}</strong>
                   </span>
                 </span>
               </li>
             ))}
           </ol>
-          <p className={local.caption}>FLEXTV 명예의 전당 기준이에요. 이번 달은 집계 중이라 순위가 바뀔 수 있어요.</p>
+          <p className={local.caption}>{t("flextvHallOfFame.caption")}</p>
         </section>
       )}
     </>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useState, useTransition } from "react";
 import { Toast } from "@/components/ui/Toast";
 import { CHANNEL_BANNER_MAX_BYTES, CHANNEL_BANNER_TYPES, CHANNEL_DESCRIPTION_MAX, CHANNEL_NAME_MAX, CHANNEL_NAME_MIN, LINK_PLATFORMS, type LinkPlatform } from "@/lib/flextv/rules";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import {
   checkFlextvChannelName,
   saveFlextvChannelDescription,
@@ -17,7 +18,6 @@ import styles from "../broadcast/broadcast.module.css";
 import local from "./flextvChannelSettings.module.css";
 
 const LOGIN = "/login?role=creator&next=/creator/settings";
-const UNREACHABLE = "FLEXTV가 응답하지 않았어요. 잠시 후 다시 시도해 주세요.";
 
 /** A call FLEXTV did not answer shows a message under its part instead of the error page. */
 async function attempt<T>(call: () => Promise<T>, fallback: T): Promise<T> {
@@ -27,13 +27,15 @@ async function attempt<T>(call: () => Promise<T>, fallback: T): Promise<T> {
     return fallback;
   }
 }
-const failed = (): ChannelSettingResult => ({ status: "INVALID", message: UNREACHABLE });
+/** `message`: the "FLEXTV did not answer" line in the viewer's language. */
+const failed = (message: string): ChannelSettingResult => ({ status: "INVALID", message });
 
 /**
  * 채널 설정 with FLEXTV (phase 7; code-first, no Figma frame — FLEXTV's own channel-setting page is the reference).
  * Route `/creator/settings`. Each part is saved on its own, as on FLEXTV; every value is checked again on the server.
  */
 export function FlextvChannelSettingsScreen({ view }: { view: FlextvChannelSettingsView }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [toast, setToast] = useState<string | null>(null);
   const clear = useCallback(() => setToast(null), []);
@@ -49,20 +51,20 @@ export function FlextvChannelSettingsScreen({ view }: { view: FlextvChannelSetti
       router.refresh();
       return null;
     }
-    return result.status === "TAKEN" ? "이미 있는 방송국 이름이에요." : result.message;
+    return result.status === "TAKEN" ? t("flextvChannelSettings.nameTaken") : result.message;
   };
 
   return (
     <div className={styles.content}>
-      <h1 className={styles.pageTitle}>채널 설정</h1>
-      <p className={styles.help}>FLEXTV 방송국 정보예요. 여기서 바꾸면 FLEXTV에도 그대로 반영돼요.</p>
+      <h1 className={styles.pageTitle}>{t("flextvChannelSettings.title")}</h1>
+      <p className={styles.help}>{t("flextvChannelSettings.intro")}</p>
       <NameCard current={view.name} settle={settle} />
       {/* Keyed by the kept text: after a save the box shows what FLEXTV kept (it filters forbidden words out). */}
       <DescriptionCard key={view.description} current={view.description} settle={settle} />
       <BannerCard current={view.bannerUrl} settle={settle} />
       <section className={styles.card} aria-labelledby="ch-avatar">
         <h2 id="ch-avatar" className={styles.cardTitle}>
-          프로필 사진
+          {t("flextvChannelSettings.avatar")}
         </h2>
         <div className={local.avatarRow}>
           {view.avatarUrl ? (
@@ -71,9 +73,9 @@ export function FlextvChannelSettingsScreen({ view }: { view: FlextvChannelSetti
           ) : (
             <span className={local.avatar} aria-hidden="true" />
           )}
-          <p className={styles.help}>채널 프로필 사진은 내 FLEXTV 프로필 사진이에요.</p>
+          <p className={styles.help}>{t("flextvChannelSettings.avatarHelp")}</p>
           <Link href="/mypage" className={styles.secondaryButton}>
-            마이페이지에서 바꾸기
+            {t("flextvChannelSettings.avatarChange")}
           </Link>
         </div>
       </section>
@@ -86,6 +88,7 @@ export function FlextvChannelSettingsScreen({ view }: { view: FlextvChannelSetti
 type Settle = (result: ChannelSettingResult, ok: string) => string | null;
 
 function NameCard({ current, settle }: { current: string; settle: Settle }) {
+  const { t } = useI18n();
   const [name, setName] = useState("");
   const [checked, setChecked] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
@@ -94,18 +97,21 @@ function NameCard({ current, settle }: { current: string; settle: Settle }) {
 
   const check = () =>
     start(async () => {
-      const result = await attempt<ChannelNameCheck>(() => checkFlextvChannelName(value), { status: "INVALID", message: UNREACHABLE });
+      const result = await attempt<ChannelNameCheck>(() => checkFlextvChannelName(value), { status: "INVALID", message: t("flextvChannelSettings.unreachable") });
       if (result.status === "UNAUTHORIZED") return void settle(result, "");
       if (result.status === "AVAILABLE") {
         setChecked(value);
-        setMessage({ text: "사용할 수 있는 방송국 이름이에요.", ok: true });
+        setMessage({ text: t("flextvChannelSettings.nameAvailable"), ok: true });
         return;
       }
-      setMessage({ text: result.status === "TAKEN" ? "이미 있는 방송국 이름이에요." : result.message, ok: false });
+      setMessage({ text: result.status === "TAKEN" ? t("flextvChannelSettings.nameTaken") : result.message, ok: false });
     });
   const save = () =>
     start(async () => {
-      const error = settle(await attempt(() => saveFlextvChannelName(value), failed()), "방송국 이름을 바꿨어요.");
+      const error = settle(
+        await attempt(() => saveFlextvChannelName(value), failed(t("flextvChannelSettings.unreachable"))),
+        t("flextvChannelSettings.nameSaved")
+      );
       setMessage(error ? { text: error, ok: false } : null);
       if (!error) {
         setName("");
@@ -116,14 +122,14 @@ function NameCard({ current, settle }: { current: string; settle: Settle }) {
   return (
     <section className={styles.card} aria-labelledby="ch-name">
       <h2 id="ch-name" className={styles.cardTitle}>
-        방송국 이름
+        {t("flextvChannelSettings.name")}
       </h2>
-      <p className={styles.help}>지금 이름: {current || "(기본 이름)"}</p>
+      <p className={styles.help}>{t("flextvChannelSettings.nameCurrent", { name: current || t("flextvChannelSettings.nameDefault") })}</p>
       <div className={styles.inline}>
         <input
           className={`${styles.input} ${local.grow}`}
-          aria-label="새 방송국 이름"
-          placeholder={`${CHANNEL_NAME_MIN}~${CHANNEL_NAME_MAX}자`}
+          aria-label={t("flextvChannelSettings.nameNewAria")}
+          placeholder={t("flextvChannelSettings.namePlaceholder", { min: CHANNEL_NAME_MIN, max: CHANNEL_NAME_MAX })}
           maxLength={CHANNEL_NAME_MAX}
           value={name}
           onChange={(e) => {
@@ -133,10 +139,10 @@ function NameCard({ current, settle }: { current: string; settle: Settle }) {
           }}
         />
         <button type="button" className={styles.secondaryButton} disabled={pending || value.length < CHANNEL_NAME_MIN} onClick={check}>
-          중복 확인
+          {t("flextvChannelSettings.nameCheck")}
         </button>
         <button type="button" className={styles.secondaryButton} disabled={pending || checked !== value || !value} onClick={save}>
-          저장
+          {t("studioSettings.save")}
         </button>
       </div>
       {message && (
@@ -149,14 +155,23 @@ function NameCard({ current, settle }: { current: string; settle: Settle }) {
 }
 
 function DescriptionCard({ current, settle }: { current: string; settle: Settle }) {
+  const { t } = useI18n();
   const [text, setText] = useState(current);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
-  const save = () => start(async () => setError(settle(await attempt(() => saveFlextvChannelDescription(text), failed()), "방송국 소개를 바꿨어요.")));
+  const save = () =>
+    start(async () =>
+      setError(
+        settle(
+          await attempt(() => saveFlextvChannelDescription(text), failed(t("flextvChannelSettings.unreachable"))),
+          t("flextvChannelSettings.descriptionSaved")
+        )
+      )
+    );
   return (
     <section className={styles.card} aria-labelledby="ch-desc">
       <h2 id="ch-desc" className={styles.cardTitle}>
-        방송국 소개
+        {t("flextvChannelSettings.description")}
       </h2>
       <textarea
         className={`${styles.input} ${local.textarea}`}
@@ -164,7 +179,7 @@ function DescriptionCard({ current, settle }: { current: string; settle: Settle 
         maxLength={CHANNEL_DESCRIPTION_MAX}
         rows={5}
         value={text}
-        placeholder={`방송국 소개를 작성해 주세요. 최대 ${CHANNEL_DESCRIPTION_MAX}자`}
+        placeholder={t("flextvChannelSettings.descriptionPlaceholder", { max: CHANNEL_DESCRIPTION_MAX })}
         onChange={(e) => setText(e.target.value)}
       />
       <div className={styles.actions}>
@@ -172,7 +187,7 @@ function DescriptionCard({ current, settle }: { current: string; settle: Settle 
           {text.length} / {CHANNEL_DESCRIPTION_MAX}
         </span>
         <button type="button" className={styles.secondaryButton} disabled={pending || !text.trim() || text === current} onClick={save}>
-          저장
+          {t("studioSettings.save")}
         </button>
       </div>
       {error && (
@@ -187,28 +202,31 @@ function DescriptionCard({ current, settle }: { current: string; settle: Settle 
 const BANNER_ACCEPT = CHANNEL_BANNER_TYPES.join(",");
 
 function BannerCard({ current, settle }: { current: string | null; settle: Settle }) {
+  const { t } = useI18n();
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const upload = (file: File | undefined) => {
     if (!file) return;
-    if (!(CHANNEL_BANNER_TYPES as readonly string[]).includes(file.type)) return setError("JPG, PNG 이미지만 올릴 수 있어요.");
-    if (file.size > CHANNEL_BANNER_MAX_BYTES) return setError("20MB 미만의 이미지만 올릴 수 있어요.");
+    if (!(CHANNEL_BANNER_TYPES as readonly string[]).includes(file.type)) return setError(t("flextvChannelSettings.bannerUnsupported"));
+    if (file.size > CHANNEL_BANNER_MAX_BYTES) return setError(t("flextvChannelSettings.bannerTooLarge"));
     const form = new FormData();
     form.set("banner", file);
-    start(async () => setError(settle(await attempt(() => uploadFlextvChannelBanner(form), failed()), "배너를 바꿨어요.")));
+    start(async () =>
+      setError(settle(await attempt(() => uploadFlextvChannelBanner(form), failed(t("flextvChannelSettings.unreachable"))), t("flextvChannelSettings.bannerSaved")))
+    );
   };
   return (
     <section className={styles.card} aria-labelledby="ch-banner">
       <h2 id="ch-banner" className={styles.cardTitle}>
-        배너 이미지
+        {t("flextvChannelSettings.banner")}
       </h2>
       {current && (
         // eslint-disable-next-line @next/next/no-img-element -- FLEXTV's CDN, not one of the image optimizer's hosts
-        <img src={current} alt="지금 배너" className={local.banner} />
+        <img src={current} alt={t("flextvChannelSettings.bannerCurrentAlt")} className={local.banner} />
       )}
-      <p className={styles.hint}>1080 × 140px 권장 · JPG, PNG · 20MB 미만</p>
+      <p className={styles.hint}>{t("flextvChannelSettings.bannerSpec")}</p>
       <label className={`${styles.secondaryButton} ${local.fileButton}`} aria-disabled={pending || undefined}>
-        {pending ? "올리는 중…" : "이미지 올리기"}
+        {pending ? t("flextvChannelSettings.uploading") : t("flextvChannelSettings.upload")}
         <input
           type="file"
           accept={BANNER_ACCEPT}
@@ -230,17 +248,21 @@ function BannerCard({ current, settle }: { current: string | null; settle: Settl
 }
 
 function LinksCard({ current, settle }: { current: Record<LinkPlatform, string>; settle: Settle }) {
+  const { t } = useI18n();
   const [links, setLinks] = useState(current);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const changed = LINK_PLATFORMS.some((k) => links[k] !== current[k]);
-  const save = () => start(async () => setError(settle(await attempt(() => saveFlextvChannelLinks(links), failed()), "링크를 저장했어요.")));
+  const save = () =>
+    start(async () =>
+      setError(settle(await attempt(() => saveFlextvChannelLinks(links), failed(t("flextvChannelSettings.unreachable"))), t("flextvChannelSettings.linksSaved")))
+    );
   return (
     <section className={styles.card} aria-labelledby="ch-links">
       <h2 id="ch-links" className={styles.cardTitle}>
-        방송국 링크
+        {t("flextvChannelSettings.links")}
       </h2>
-      <p className={styles.help}>채널에 보여 줄 SNS 주소예요. 비워 두면 보이지 않아요.</p>
+      <p className={styles.help}>{t("flextvChannelSettings.linksHelp")}</p>
       {LINK_PLATFORMS.map((key) => (
         <label key={key} className={styles.field}>
           <span className={styles.fieldLabel}>{LINK_LABEL[key]}</span>
@@ -257,7 +279,7 @@ function LinksCard({ current, settle }: { current: Record<LinkPlatform, string>;
       ))}
       <div className={styles.actions}>
         <button type="button" className={styles.secondaryButton} disabled={pending || !changed} onClick={save}>
-          저장
+          {t("studioSettings.save")}
         </button>
       </div>
       {error && (

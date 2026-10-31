@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { FLEXTV_INQUIRY_BODY_MAX, FLEXTV_INQUIRY_IMAGE_MAX_BYTES, FLEXTV_INQUIRY_IMAGE_TYPES, FLEXTV_INQUIRY_TITLE_MAX } from "@/lib/flextv/rules";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { submitFlextvInquiry } from "@/services/support/inquiry";
 import styles from "./supportTabs.module.css";
 
@@ -16,6 +17,7 @@ const REFUND_CATEGORY = "5";
  */
 export function FlextvInquiryForm({ categories }: { categories: { value: string; label: string }[] }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [category, setCategory] = useState("");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -33,7 +35,7 @@ export function FlextvInquiryForm({ categories }: { categories: { value: string;
     edited();
     if (!file) return setImage(null);
     if (!(FLEXTV_INQUIRY_IMAGE_TYPES as readonly string[]).includes(file.type) || file.size > FLEXTV_INQUIRY_IMAGE_MAX_BYTES) {
-      setNote({ tone: "error", text: "첨부 사진은 20MB 미만의 PNG, JPG 이미지만 올릴 수 있어요." });
+      setNote({ tone: "error", text: t("flextvInquiry.imageInvalid") });
       if (fileInput.current) fileInput.current.value = "";
       return setImage(null);
     }
@@ -60,12 +62,12 @@ export function FlextvInquiryForm({ categories }: { categories: { value: string;
           setBody("");
           setImage(null);
           if (fileInput.current) fileInput.current.value = "";
-          setNote({ tone: "ok", text: "문의가 접수되었어요. 답변은 내 문의 내역에서 확인할 수 있어요." });
+          setNote({ tone: "ok", text: t("support.submitted") });
           router.refresh();
         } else if (res.status === "UNAUTHORIZED") router.push("/login?next=/support%3Ftab%3Dinquiry");
         else setNote({ tone: "error", text: res.message });
       } catch {
-        setNote({ tone: "error", text: "접수하지 못했어요. 잠시 후 다시 시도해 주세요." });
+        setNote({ tone: "error", text: t("support.submitError") });
       }
     });
   };
@@ -80,18 +82,18 @@ export function FlextvInquiryForm({ categories }: { categories: { value: string;
       }}
     >
       <h2 id="inquiry-title" className={styles.formTitle}>
-        문의하기
+        {t("support.formTitle")}
       </h2>
       <select
         className={styles.input}
-        aria-label="문의 유형"
+        aria-label={t("support.type")}
         value={category}
         onChange={(e) => {
           edited();
           setCategory(e.target.value);
         }}
       >
-        <option value="">문의 유형 선택</option>
+        <option value="">{t("support.typeSelect")}</option>
         {categories.map((c) => (
           <option key={c.value} value={c.value}>
             {c.label}
@@ -100,8 +102,8 @@ export function FlextvInquiryForm({ categories }: { categories: { value: string;
       </select>
       <input
         className={styles.input}
-        aria-label="제목"
-        placeholder="제목"
+        aria-label={t("support.titleLabel")}
+        placeholder={t("support.titleLabel")}
         maxLength={FLEXTV_INQUIRY_TITLE_MAX}
         value={title}
         onChange={(e) => {
@@ -111,8 +113,8 @@ export function FlextvInquiryForm({ categories }: { categories: { value: string;
       />
       <textarea
         className={styles.input}
-        aria-label="내용"
-        placeholder="문의 내용을 자세히 적어 주세요"
+        aria-label={t("support.body")}
+        placeholder={t("flextvInquiry.bodyPlaceholder")}
         rows={6}
         maxLength={FLEXTV_INQUIRY_BODY_MAX}
         value={body}
@@ -123,7 +125,7 @@ export function FlextvInquiryForm({ categories }: { categories: { value: string;
       />
       <div className={styles.attach}>
         <label className={styles.attachButton}>
-          사진 첨부
+          {t("flextvInquiry.attach")}
           <input ref={fileInput} type="file" accept={FLEXTV_INQUIRY_IMAGE_TYPES.join(",")} className={styles.srOnly} onChange={(e) => pick(e.target.files?.[0])} />
         </label>
         {image ? (
@@ -137,15 +139,15 @@ export function FlextvInquiryForm({ categories }: { categories: { value: string;
                 if (fileInput.current) fileInput.current.value = "";
               }}
             >
-              빼기
+              {t("flextvInquiry.remove")}
             </button>
           </>
         ) : (
-          <span className={styles.note}>PNG, JPG · 20MB 미만 · 1장</span>
+          <span className={styles.note}>{t("flextvInquiry.attachHint")}</span>
         )}
       </div>
       {category === REFUND_CATEGORY && (
-        <ul className={styles.refundNote} aria-label="결제 · 환불 안내">
+        <ul className={styles.refundNote} aria-label={t("flextvInquiry.refundInfo")}>
           <li>휴대폰 결제의 경우, 당월은 결제 취소만 가능합니다.</li>
           <li>익월 이후 환불 요청 시, 휴대폰 요금 납부 확인 후 결제자 본인 계좌로만 환불 가능합니다.</li>
         </ul>
@@ -155,7 +157,7 @@ export function FlextvInquiryForm({ categories }: { categories: { value: string;
           {body.length}/{FLEXTV_INQUIRY_BODY_MAX}
         </span>
         <button type="submit" className={styles.submit} disabled={pending || !category || !title.trim() || !body.trim()}>
-          {pending ? "접수 중…" : "문의 접수"}
+          {pending ? t("support.submitting") : t("support.submit")}
         </button>
       </div>
       {note && (
