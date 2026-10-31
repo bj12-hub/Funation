@@ -132,7 +132,7 @@ export function SettlementStartCards({ registered, identityVerified, justRegiste
         open={dialog === "needRegistration"}
         onClose={close}
         title={t("studioSettlement.needRegistrationTitle")}
-        lines={["정산 자료가 등록되어 있지 않습니다.", "정산을 받기 위해서는 먼저 정산 자료를 등록해야 합니다.", "최초 등록을 진행해 주세요."]}
+        lines={[t("studioSettlement.needRegistrationLine1"), t("studioSettlement.needRegistrationLine2"), t("studioSettlement.needRegistrationLine3")]}
         action={
           <Link href="/creator/settlement/register" className={styles.btnBlue}>
             {t("studioSettlement.needRegistrationAction")}
@@ -144,7 +144,7 @@ export function SettlementStartCards({ registered, identityVerified, justRegiste
         open={dialog === "needIdentity"}
         onClose={close}
         title={t("studioSettlement.needIdentityTitle")}
-        lines={["본인인증이 아직 완료되지 않았어요.", "마이페이지에서 본인인증을 마치면 정산을 신청할 수 있어요."]}
+        lines={[t("studioSettlement.needIdentityLine1"), t("studioSettlement.needIdentityLine2")]}
         action={
           <Link href="/mypage" className={styles.btnBlue}>
             {t("studioSettlement.needIdentityAction")}
@@ -155,7 +155,7 @@ export function SettlementStartCards({ registered, identityVerified, justRegiste
         open={dialog === "alreadyRegistered"}
         onClose={close}
         title={t("studioSettlement.alreadyRegisteredTitle")}
-        lines={["등록된 정보 변경을 위해 정산 관리 페이지로 이동합니다."]}
+        lines={[t("studioSettlement.alreadyRegisteredLine")]}
         action={
           <Link href="/creator/settlement/manage" className={styles.btnBlue}>
             {t("studioSettlement.alreadyRegisteredAction")}
