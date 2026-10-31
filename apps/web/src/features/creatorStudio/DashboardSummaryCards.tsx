@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { formatNumber } from "@/lib/format";
+import { getT } from "@/lib/i18n/server";
 import type { DashboardSummary } from "@/services/creator/creatorStudio";
 import styles from "./dashboardSummary.module.css";
 
@@ -23,39 +24,41 @@ export function SummaryCard({ title, href, linkLabel, children }: { title: strin
 }
 
 /** 받은 후원 — 오늘 · 이번 주 · 이번 달 tiles and the 누적 line (₩, server values). */
-export function ReceivedCard({ received }: { received: DashboardSummary["received"] }) {
+export async function ReceivedCard({ received }: { received: DashboardSummary["received"] }) {
+  const t = await getT();
   const tiles = [
-    ["오늘", received.today],
-    ["이번 주", received.week],
-    ["이번 달", received.month]
+    [t("studioDashboard.today"), received.today],
+    [t("studioDashboard.thisWeek"), received.week],
+    [t("studioDashboard.thisMonth"), received.month]
   ] as const;
   return (
-    <SummaryCard title="받은 후원" href="/creator/donations?tab=list" linkLabel="후원 내역">
+    <SummaryCard title={t("studioDashboard.received")} href="/creator/donations?tab=list" linkLabel={t("studioDashboard.receivedLink")}>
       <div className={styles.tiles}>
-        {tiles.map(([label, t]) => (
+        {tiles.map(([label, tile]) => (
           <div key={label} className={styles.tile}>
             <span className={styles.tileLabel}>{label}</span>
-            <strong className={styles.tileValue}>₩{formatNumber(t.amount)}</strong>
-            <span className={styles.tileSub}>{formatNumber(t.count)}건</span>
+            <strong className={styles.tileValue}>₩{formatNumber(tile.amount)}</strong>
+            <span className={styles.tileSub}>{t("studioDashboard.countValue", { count: formatNumber(tile.count) })}</span>
           </div>
         ))}
       </div>
       <p className={styles.total}>
-        누적 <strong>₩{formatNumber(received.total.amount)}</strong> · {formatNumber(received.total.count)}건
+        {t("studioDashboard.total")} <strong>₩{formatNumber(received.total.amount)}</strong> · {t("studioDashboard.countValue", { count: formatNumber(received.total.count) })}
       </p>
     </SummaryCard>
   );
 }
 
 /** 정산 — 정산 가능 · 누적 수익 · 누적 출금 (FN, settlement records). */
-export function SettlementCard({ settlement }: { settlement: DashboardSummary["settlement"] }) {
+export async function SettlementCard({ settlement }: { settlement: DashboardSummary["settlement"] }) {
+  const t = await getT();
   const tiles = [
-    ["정산 가능", settlement.availableFn],
-    ["누적 수익", settlement.earnedFn],
-    ["누적 출금", settlement.withdrawnFn]
+    [t("studioDashboard.available"), settlement.availableFn],
+    [t("studioDashboard.earned"), settlement.earnedFn],
+    [t("studioDashboard.withdrawn"), settlement.withdrawnFn]
   ] as const;
   return (
-    <SummaryCard title="정산" href="/creator/settlement/apply" linkLabel="정산 신청">
+    <SummaryCard title={t("studioDashboard.settlement")} href="/creator/settlement/apply" linkLabel={t("studioDashboard.settlementLink")}>
       <div className={styles.tiles}>
         {tiles.map(([label, fn]) => (
           <div key={label} className={styles.tile}>
@@ -69,11 +72,12 @@ export function SettlementCard({ settlement }: { settlement: DashboardSummary["s
 }
 
 /** 후원자 순위 — this month's top supporters; links to the ranking widget like funnation. */
-export function TopDonorsCard({ donors }: { donors: DashboardSummary["topDonors"] }) {
+export async function TopDonorsCard({ donors }: { donors: DashboardSummary["topDonors"] }) {
+  const t = await getT();
   return (
-    <SummaryCard title="후원자 순위" href="/creator/widgets?open=RANKING" linkLabel="랭킹 위젯">
+    <SummaryCard title={t("studioDashboard.topDonors")} href="/creator/widgets?open=RANKING" linkLabel={t("studioDashboard.topDonorsLink")}>
       {donors.length === 0 ? (
-        <p className={styles.empty}>아직 후원 받은 내역이 없습니다</p>
+        <p className={styles.empty}>{t("studioDashboard.topDonorsEmpty")}</p>
       ) : (
         <ol className={styles.ranks}>
           {donors.map((d) => (
@@ -87,7 +91,7 @@ export function TopDonorsCard({ donors }: { donors: DashboardSummary["topDonors"
           ))}
         </ol>
       )}
-      <p className={styles.caption}>이번 달 기준</p>
+      <p className={styles.caption}>{t("studioDashboard.thisMonthBasis")}</p>
     </SummaryCard>
   );
 }

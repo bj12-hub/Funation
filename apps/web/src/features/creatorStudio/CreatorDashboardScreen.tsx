@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { formatNumber } from "@/lib/format";
+import { getT } from "@/lib/i18n/server";
 import type { CreatorDashboard, CreatorProfile, DashboardSummary } from "@/services/creator/creatorStudio";
 import type { UpdatesView } from "@/services/creator/updatesTypes";
 import { ReceivedCard, SettlementCard, TopDonorsCard } from "./DashboardSummaryCards";
@@ -11,21 +12,23 @@ import { StatsFilter } from "./StatsFilter";
 import styles from "./studio.module.css";
 import { UpdatesCard } from "./updates/UpdatesCard";
 
+type T = Awaited<ReturnType<typeof getT>>;
+
 /** Server-side relative time ("10분 전"), so server and client HTML match. */
-function timeAgo(iso: string) {
+function timeAgo(iso: string, t: T) {
   const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60_000));
-  if (minutes < 1) return "방금 전";
-  if (minutes < 60) return `${minutes}분 전`;
+  if (minutes < 1) return t("studioDashboard.justNow");
+  if (minutes < 60) return t("studioDashboard.minutesAgo", { n: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}시간 전`;
-  return `${Math.floor(hours / 24)}일 전`;
+  if (hours < 24) return t("studioDashboard.hoursAgo", { n: hours });
+  return t("studioDashboard.daysAgo", { n: Math.floor(hours / 24) });
 }
 
 /**
  * Creator dashboard. Figma 245:14 (route `/creator`).
  * Amounts are ₩ as in the design and come from the server as-is (gross/net and fees are TBD).
  */
-export function CreatorDashboardScreen({
+export async function CreatorDashboardScreen({
   profile,
   dashboard,
   updates,
@@ -37,12 +40,13 @@ export function CreatorDashboardScreen({
   summary: DashboardSummary | null;
 }) {
   const { stats, period } = dashboard;
+  const t = await getT();
   return (
     <div className={styles.content}>
-      <h1 className={summary.pageTitle}>대시보드</h1>
+      <h1 className={summary.pageTitle}>{t("studioDashboard.title")}</h1>
       {/* Top cards follow the funnation dashboard: 내 채널 · 받은 후원 · 정산 · 후원자 순위 · 소식 (code-first). */}
       <div className={summary.grid}>
-        <section className={`${styles.card} ${styles.infoCard}`} aria-label="내 채널">
+        <section className={`${styles.card} ${styles.infoCard}`} aria-label={t("studioDashboard.myChannel")}>
           {profile.avatarUrl ? (
             <Image src={profile.avatarUrl} alt="" width={80} height={80} className={styles.infoAvatar} />
           ) : (
@@ -53,18 +57,18 @@ export function CreatorDashboardScreen({
             <span className={styles.handle}>@{profile.handle}</span>
             <div className={styles.linkRow}>
               <span className={styles.linkText}>
-                내 후원링크
+                {t("studioDashboard.myDonateLink")}
                 <br />: {profile.donateUrl.replace(/^https?:\/\//, "https://")}
               </span>
               <LinkActions url={profile.donateUrl} />
             </div>
             <div className={styles.infoButtons}>
               <Link href="/creator/settings" className={styles.gradientPill}>
-                계정 관리
+                {t("studioDashboard.account")}
               </Link>
               {/* 정산 관리 (478:2); unregistered creators are sent to the settlement home (429:4). */}
               <Link href="/creator/settlement/manage" className={styles.outlinePill}>
-                정산 관리
+                {t("studioDashboard.settlementManage")}
               </Link>
             </div>
           </div>
@@ -74,16 +78,16 @@ export function CreatorDashboardScreen({
         {data && <SettlementCard settlement={data.settlement} />}
         {data && <TopDonorsCard donors={data.topDonors} />}
         {updates && <UpdatesCard view={updates} />}
-        <section className={`${styles.card} ${styles.quickCard}`} aria-label="이벤트 및 크리애드">
+        <section className={`${styles.card} ${styles.quickCard}`} aria-label={t("studioDashboard.quickAria")}>
           {dashboard.banners.event && (
             <div className={styles.quickItem}>
-              <h2 className={styles.quickTitle}>이벤트</h2>
+              <h2 className={styles.quickTitle}>{t("studioDashboard.event")}</h2>
               <Image src={dashboard.banners.event.imageUrl} alt={dashboard.banners.event.alt} width={268} height={111} priority className={`${styles.banner} ${styles.bannerEvent}`} />
             </div>
           )}
           {dashboard.banners.ad && (
             <div className={styles.quickItem}>
-              <h2 className={styles.quickTitle}>크리애드</h2>
+              <h2 className={styles.quickTitle}>{t("studioDashboard.ad")}</h2>
               <Image src={dashboard.banners.ad.imageUrl} alt={dashboard.banners.ad.alt} width={268} height={111} className={`${styles.banner} ${styles.bannerAd}`} />
             </div>
           )}
@@ -92,25 +96,25 @@ export function CreatorDashboardScreen({
 
       <section className={styles.statsSection} aria-labelledby="creator-stats">
         <h2 id="creator-stats" className={styles.sectionTitle}>
-          후원 통계
+          {t("studioDashboard.stats")}
         </h2>
         <StatsFilter key={`${period.preset}${period.from}${period.to}`} period={period} />
         <div className={styles.statCards}>
           <div className={styles.statCard}>
-            <span>후원 횟수</span>
-            <strong>{formatNumber(stats.count)}회</strong>
+            <span>{t("studioDashboard.statCount")}</span>
+            <strong>{t("studioDashboard.timesValue", { count: formatNumber(stats.count) })}</strong>
           </div>
           <div className={styles.statCard}>
-            <span>후원 수익</span>
+            <span>{t("studioDashboard.statRevenue")}</span>
             <strong>₩{formatNumber(stats.revenue)}</strong>
           </div>
           <div className={styles.statCard}>
-            <span>후원 인원수</span>
-            <strong>{formatNumber(stats.donors)}명</strong>
+            <span>{t("studioDashboard.statDonors")}</span>
+            <strong>{t("studioDashboard.peopleValue", { count: formatNumber(stats.donors) })}</strong>
           </div>
         </div>
         <div className={`${styles.card} ${styles.chartCard}`}>
-          <h3 className={styles.chartTitle}>기간별 수익 그래프</h3>
+          <h3 className={styles.chartTitle}>{t("studioDashboard.chartTitle")}</h3>
           <div className={styles.chartArea}>
             <RevenueChart series={dashboard.series} />
           </div>
@@ -120,17 +124,17 @@ export function CreatorDashboardScreen({
       <div className={styles.bottomRow}>
         <section className={styles.recentSection} aria-labelledby="creator-recent">
           <h2 id="creator-recent" className={styles.sectionTitle}>
-            최근 후원 내역
+            {t("studioDashboard.recent")}
           </h2>
           <div className={`${styles.card} ${styles.tableCard}`}>
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th scope="col">후원자</th>
-                  <th scope="col">금액</th>
-                  <th scope="col">메시지</th>
+                  <th scope="col">{t("studioDashboard.colDonor")}</th>
+                  <th scope="col">{t("studioDashboard.colAmount")}</th>
+                  <th scope="col">{t("studioDashboard.colMessage")}</th>
                   <th scope="col" className={styles.right}>
-                    날짜
+                    {t("studioDashboard.colDate")}
                   </th>
                 </tr>
               </thead>
@@ -138,7 +142,7 @@ export function CreatorDashboardScreen({
                 {dashboard.recent.length === 0 ? (
                   <tr>
                     <td colSpan={4} className={styles.empty}>
-                      아직 받은 후원이 없습니다.
+                      {t("studioDashboard.recentEmpty")}
                     </td>
                   </tr>
                 ) : (
@@ -154,7 +158,7 @@ export function CreatorDashboardScreen({
                       <td className={styles.message} title={r.message}>
                         {r.message}
                       </td>
-                      <td className={`${styles.time} ${styles.right}`}>{timeAgo(r.createdAt)}</td>
+                      <td className={`${styles.time} ${styles.right}`}>{timeAgo(r.createdAt, t)}</td>
                     </tr>
                   ))
                 )}

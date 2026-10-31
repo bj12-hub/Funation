@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { CreatorRankingScreen } from "@/features/creatorStudio/ranking/CreatorRankingScreen";
+import { getT } from "@/lib/i18n/server";
 import { getCreatorRanking, parseRankingPeriod, parseRankingType } from "@/services/creator/creatorRanking";
 
 // Figma: creator ranking 405:4 (퀘스트); 럭키박스 · 플레이 tabs removed (2026-10-04 결정)
-export const metadata: Metadata = { title: "크리에이터 랭킹 | Ssumnation" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("studioRanking.meta") };
+}
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
