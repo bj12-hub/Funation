@@ -15,6 +15,7 @@ import { PLATFORM_LABEL, type Platform } from "@/types/platform";
 import { PledgeLine } from "./PledgeLine";
 import { CHANNEL_VIEWS, type ChannelView } from "./channelView";
 import styles from "./channel.module.css";
+import { remote } from "@/lib/remoteImage";
 
 /** Labels in the viewer's language for the tab, role, category and platform error codes. */
 const VIEW_KEY: Record<ChannelView, MessageKey> = {
@@ -49,11 +50,12 @@ const PLATFORM_ERROR_KEY: Record<PlatformErrorCode, MessageKey> = {
  * (홈 · 크루 · 영상 · 커뮤니티 · 시그니처 · 소개). Code-first; visuals from existing tokens.
  */
 
-export function ChannelTabs({ creatorId, active }: { creatorId: string; active: ChannelView }) {
+/** `only`: the views this channel has (a FLEXTV channel's room: 홈 and, with signatures, 시그니처). */
+export function ChannelTabs({ creatorId, active, only }: { creatorId: string; active: ChannelView; only?: readonly ChannelView[] }) {
   const { t } = useI18n();
   return (
     <nav className={styles.tabs} aria-label={t("roomChannel.tabs")}>
-      {CHANNEL_VIEWS.map((v) => (
+      {CHANNEL_VIEWS.filter((v) => !only || only.includes(v.key)).map((v) => (
         <Link key={v.key} href={v.key === "home" ? `/creators/${creatorId}` : `/creators/${creatorId}?view=${v.key}`} className={styles.tab} aria-current={active === v.key ? "page" : undefined} scroll={false}>
           {t(VIEW_KEY[v.key])}
         </Link>
@@ -157,7 +159,7 @@ export function SignaturesView({ signatures, donateHref }: { signatures: Signatu
           <li key={s.id}>
             <Link href={donateHref} className={styles.sigCard} title={t("roomChannel.signatureHint")}>
               <span className={styles.sigImage}>
-                <Image src={s.imageUrl} alt="" fill sizes="160px" />
+                <Image src={s.imageUrl} alt="" fill sizes="160px" unoptimized={remote(s.imageUrl)} />
               </span>
               <strong className={styles.sigPrice}>{formatNumber(s.price)} FN</strong>
               <span className={styles.sigName}>{s.name}</span>

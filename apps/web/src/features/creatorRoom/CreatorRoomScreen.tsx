@@ -14,13 +14,15 @@ import { AboutView, ChannelTabs, CrewView, SignaturesView, VideosView } from "./
 import type { ChannelView } from "./channelView";
 import channel from "./channel.module.css";
 import { Player } from "./Player";
+import { remote } from "@/lib/remoteImage";
 import { RoomActions } from "./RoomActions";
 import { RoomFanNotesCard } from "./RoomFanNotes";
 import { RoomVoteCard } from "./RoomVote";
 import { SidePanel } from "./SidePanel";
 import styles from "./room.module.css";
 
-type Viewer = { nickname: string; fnBalance: number } | null;
+/** `fnBalance` null: the balance could not be read (the form leaves the check to the server). */
+type Viewer = { nickname: string; fnBalance: number | null } | null;
 
 /**
  * Creator channel — route `/creators/[id]`. Structure follows the funnation channel page: banner, profile
@@ -61,6 +63,8 @@ export async function CreatorRoomScreen({
   const t = await getT();
   const locale = await getLocale();
   const donateHref = `/creators/${room.creatorId}?tab=donation`;
+  // A FLEXTV channel (FLEXTV backend): only FLEXTV's channel and donation options — no 구독자 · 크루 · 투표 · 커뮤니티 …
+  const flextv = room.source === "FLEXTV";
   return (
     <div className={styles.page}>
       {room.banner && (
@@ -89,7 +93,7 @@ export async function CreatorRoomScreen({
 
       <div className={styles.creatorRow}>
         <div className={styles.creator}>
-          <Image src={room.avatarUrl} alt="" width={54} height={54} className={styles.avatar} />
+          <Image src={room.avatarUrl} alt="" width={54} height={54} className={styles.avatar} unoptimized={remote(room.avatarUrl)} />
           <div className={styles.creatorText}>
             <div className={styles.nameRow}>
               <h1 className={styles.name}>{room.name}</h1>
@@ -102,7 +106,7 @@ export async function CreatorRoomScreen({
               </ul>
             </div>
             <span className={styles.tagline}>{room.tagline}</span>
-            <span className={channel.subscribers}>{t("room.subscribers", { count: formatCompact(about.subscriberCount, locale) })}</span>
+            {!flextv && <span className={channel.subscribers}>{t("room.subscribers", { count: formatCompact(about.subscriberCount, locale) })}</span>}
           </div>
         </div>
         <div className={styles.creatorActions}>
@@ -110,11 +114,11 @@ export async function CreatorRoomScreen({
           <Link href={donateHref} className={channel.donateButton} scroll={false}>
             {t("room.donate")}
           </Link>
-          <RoomActions creatorId={room.creatorId} name={room.name} initialFavorite={isFavorite} signedIn={viewer !== null} />
+          {!flextv && <RoomActions creatorId={room.creatorId} name={room.name} initialFavorite={isFavorite} signedIn={viewer !== null} />}
         </div>
       </div>
 
-      <ChannelTabs creatorId={room.creatorId} active={view} />
+      <ChannelTabs creatorId={room.creatorId} active={view} only={flextv ? (room.donation.signatures.length > 0 ? ["home", "signatures"] : ["home"]) : undefined} />
 
       {view !== "home" && (
         <section className={channel.panel} aria-label={t("room.channelPanel")}>
@@ -133,13 +137,13 @@ export async function CreatorRoomScreen({
         <div className={styles.playerColumn}>
           <Player name={room.name} stream={room.stream} />
           {room.stream.status === "LIVE" && <p className={styles.caption}>{room.stream.caption}</p>}
-          <RoomVoteCard channelId={room.creatorId} signedIn={viewer !== null} initial={vote} />
-          <RoomFanNotesCard channelId={room.creatorId} signedIn={viewer !== null} initial={fanNotes} />
+          {!flextv && <RoomVoteCard channelId={room.creatorId} signedIn={viewer !== null} initial={vote} />}
+          {!flextv && <RoomFanNotesCard channelId={room.creatorId} signedIn={viewer !== null} initial={fanNotes} />}
         </div>
         <SidePanel key={initialTab} room={room} signedIn={viewer !== null} fnBalance={viewer?.fnBalance ?? null} nickname={viewer?.nickname ?? null} initialTab={initialTab} />
       </div>
       )}
-      {view === "home" && <ChannelHomeExtras creatorId={room.creatorId} ranking={ranking} posts={posts.items.slice(0, 3)} />}
+      {view === "home" && !flextv && <ChannelHomeExtras creatorId={room.creatorId} ranking={ranking} posts={posts.items.slice(0, 3)} />}
     </div>
   );
 }

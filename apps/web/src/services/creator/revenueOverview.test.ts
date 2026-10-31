@@ -11,12 +11,14 @@ describe("revenue overview", () => {
   it("splits this month into 수익원별 상세 that add up exactly, largest first", async () => {
     const { getRevenueOverview, splitByWeight } = await import("./creatorStudio");
     const data = (await getRevenueOverview())!;
-    for (const list of [data.bySource.types, data.bySource.routes]) {
+    const bySource = data.bySource!;
+    for (const list of [bySource.types, bySource.routes]) {
       expect(list.reduce((s, p) => s + p.amount, 0)).toBe(data.thisMonth);
       expect(list.map((p) => p.amount)).toEqual([...list.map((p) => p.amount)].sort((a, b) => b - a));
     }
-    expect(data.bySource.types).toHaveLength(9);
-    expect(data.bySource.routes.map((r) => r.key)).toEqual(["DIRECT", "SOOP", "FLEXTV"]);
+    expect(bySource.types).toHaveLength(9);
+    expect(bySource.routes.map((r) => r.key)).toEqual(["DIRECT", "SOOP", "FLEXTV"]);
+    expect(data.unit).toBe("KRW");
     const odd = splitByWeight(10, [
       { key: "a", label: "A", weight: 1 },
       { key: "b", label: "B", weight: 1 },

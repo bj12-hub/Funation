@@ -72,6 +72,15 @@ describe("후원 폼 → 요청", () => {
     expect(buildDraft("VIDEO", states({ VIDEO: { ...base, terms: false } }), catalog)).toMatchObject({ details: null, error: null });
   });
 
+  it("영상 후원 priced by the second (a FLEXTV streamer's setting): the range sets the amount, within the limit", () => {
+    const priced: DonationCatalog = { ...catalog, minAmount: { ...catalog.minAmount, VIDEO: 100 }, mediaPricing: { VIDEO: { perSecond: 10, maxSec: 60 } } };
+    const base = { amount: "999999", url: "https://youtu.be/dQw4w9WgXcQ", start: "00:10", end: "00:40", terms: true };
+    // The typed amount is ignored: 30 seconds × 10 FN.
+    expect(buildDraft("VIDEO", states({ VIDEO: base }), priced)).toMatchObject({ amount: 300, details: { type: "VIDEO", amount: 300 } });
+    expect(buildDraft("VIDEO", states({ VIDEO: { ...base, end: "01:20" } }), priced)).toMatchObject({ details: null, error: "최대 60초까지 보낼 수 있어요." });
+    expect(buildDraft("VIDEO", states({ VIDEO: { ...base, end: "00:15" } }), priced).error).toBe("최소 100 FN부터 후원할 수 있어요 (재생 구간을 늘려 주세요)");
+  });
+
   it("음성 후원 uses the 영상 fields and sends its own type", () => {
     const base = { amount: "1000", url: "https://youtu.be/dQw4w9WgXcQ", start: "00:10", end: "00:40", terms: true };
     const draft = buildDraft("AUDIO", states({ AUDIO: base }), catalog);

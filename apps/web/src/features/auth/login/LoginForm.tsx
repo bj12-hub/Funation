@@ -6,6 +6,8 @@ import { useRef, useState, type FormEvent } from "react";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { CircleXIcon, EyeIcon, EyeOffIcon, MessageCircleIcon } from "@/components/icons";
 import { TextField } from "@/components/ui/TextField";
+import type { SocialProvider } from "@/lib/flextv/auth";
+import { FLEXTV_AUTH, FLEXTV_WEB_URL } from "@/lib/flextv/mode";
 import { login } from "@/services/auth/login";
 import { LoginLocked } from "./LoginLocked";
 import styles from "./LoginForm.module.css";
@@ -13,13 +15,17 @@ import styles from "./LoginForm.module.css";
 /**
  * Login screen.
  * Figma: DEFAULT 13:7 · UNKNOWN ID 718:123 · WRONG PASSWORD 718:168 · LOCKED 718:213 (718:335 is its own route: /login/password-change)
+ * With the FLEXTV backend: the FLEXTV 아이디, 간편 로그인 through /auth/[provider], and FLEXTV's own 비밀번호 찾기
+ * (it needs FLEXTV's 본인인증) — docs/development/flextv-backend.md.
  */
 
-type FormState = "DEFAULT" | "PROCESSING" | "UNKNOWN_ID" | "WRONG_PASSWORD" | "LOCKED" | "SUSPENDED" | "ERROR";
+type FormState = "DEFAULT" | "PROCESSING" | "UNKNOWN_ID" | "WRONG_PASSWORD" | "LOCKED" | "TOO_MANY_ATTEMPTS" | "SUSPENDED" | "ERROR";
 
 const MESSAGES = {
   UNKNOWN_ID: "등록되지 않은 아이디입니다",
   WRONG_PASSWORD: "비밀번호가 일치하지 않습니다. 다시 입력해 주세요",
+  // Code-first (FLEXTV): FLEXTV refuses for 10 minutes after 20 wrong passwords within 10 minutes.
+  TOO_MANY_ATTEMPTS: "로그인에 여러 번 실패했어요. 10분 뒤에 다시 시도해 주세요",
   // Code-first (no Figma frame): the account is suspended by an operator (appeal flow TBD).
   SUSPENDED: "운영 정책에 따라 이용이 정지된 계정입니다. 고객센터로 문의해 주세요",
   // The 도우미 domain has no 고객센터 of its own (and the site's domain is TBD): name the site's, without a link.
@@ -27,11 +33,24 @@ const MESSAGES = {
   ERROR: "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요"
 } as const;
 
+const SOCIAL_LABEL: Record<SocialProvider, string> = { kakao: "카카오로 로그인", naver: "네이버로 로그인", google: "Google 계정으로 로그인" };
+
 /**
  * `next`: where to go after signing in (already validated as a same-site path). `supportLink`: 고객센터 (`/support`) is on
  * this host — false on the 도우미 domain, where the help lines name the site's 고객센터 in plain text.
+ * `socialProviders`: the 간편 로그인 the server has set up (FLEXTV backend). `notice`: why a 간편 로그인 came back here.
  */
-export function LoginForm({ next = "/", supportLink = true }: { next?: string; supportLink?: boolean }) {
+export function LoginForm({
+  next = "/",
+  supportLink = true,
+  socialProviders = [],
+  notice = null
+}: {
+  next?: string;
+  supportLink?: boolean;
+  socialProviders?: SocialProvider[];
+  notice?: string | null;
+}) {
   const router = useRouter();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -80,8 +99,8 @@ export function LoginForm({ next = "/", supportLink = true }: { next?: string; s
             ref={identifierRef}
             name="identifier"
             autoComplete="username"
-            placeholder="이메일 또는 아이디"
-            aria-label="이메일 또는 아이디"
+            placeholder={FLEXTV_AUTH ? "아이디" : "이메일 또는 아이디"}
+            aria-label={FLEXTV_AUTH ? "아이디" : "이메일 또는 아이디"}
             value={identifier}
             onChange={(e) => {
               setIdentifier(e.target.value);
@@ -122,14 +141,25 @@ export function LoginForm({ next = "/", supportLink = true }: { next?: string; s
             <span className={styles.checkboxBox} aria-hidden="true" />
             자동 로그인
           </label>
-          <Link href="/password-reset" className={styles.textLink}>
-            비밀번호 찾기
-          </Link>
+          {FLEXTV_AUTH ? (
+            <a href={`${FLEXTV_WEB_URL}/member/find/findPw`} target="_blank" rel="noopener noreferrer" className={styles.textLink}>
+              비밀번호 찾기
+            </a>
+          ) : (
+            <Link href="/password-reset" className={styles.textLink}>
+              비밀번호 찾기
+            </Link>
+          )}
         </div>
 
-        {(state === "ERROR" || state === "SUSPENDED") && (
+        {(state === "ERROR" || state === "SUSPENDED" || state === "TOO_MANY_ATTEMPTS") && (
           <p className={styles.formError} role="alert">
             {state === "SUSPENDED" && !supportLink ? MESSAGES.SUSPENDED_HELPER : MESSAGES[state]}
+          </p>
+        )}
+        {state === "DEFAULT" && notice && (
+          <p className={styles.formError} role="alert">
+            {notice}
           </p>
         )}
 
@@ -138,23 +168,38 @@ export function LoginForm({ next = "/", supportLink = true }: { next?: string; s
         </button>
       </form>
 
-      <div className={styles.divider}>
-        <span className={styles.dividerLine} />
-        <span>또는</span>
-        <span className={styles.dividerLine} />
-      </div>
+      {(!FLEXTV_AUTH || socialProviders.length > 0) && (
+        <div className={styles.divider}>
+          <span className={styles.dividerLine} />
+          <span>또는</span>
+          <span className={styles.dividerLine} />
+        </div>
+      )}
 
-      {/* TODO: connect OAuth once providers are configured (Figma social-login-page 13:142) */}
-      <div className={styles.social}>
-        <button type="button" className={`${styles.socialButton} ${styles.google}`}>
-          <CircleXIcon />
-          Google 계정으로 로그인
-        </button>
-        <button type="button" className={`${styles.socialButton} ${styles.kakao}`}>
-          <MessageCircleIcon />
-          카카오로 로그인
-        </button>
-      </div>
+      {/* Figma social-login-page 13:142. Mock: not connected. FLEXTV: through FLEXTV's own apps (lib/flextv/social.ts). */}
+      {FLEXTV_AUTH ? (
+        socialProviders.length > 0 && (
+          <div className={styles.social}>
+            {socialProviders.map((provider) => (
+              <a key={provider} href={`/auth/${provider}?next=${encodeURIComponent(next)}`} className={`${styles.socialButton} ${styles[provider]}`}>
+                {provider === "google" ? <CircleXIcon /> : provider === "kakao" ? <MessageCircleIcon /> : <span aria-hidden="true">N</span>}
+                {SOCIAL_LABEL[provider]}
+              </a>
+            ))}
+          </div>
+        )
+      ) : (
+        <div className={styles.social}>
+          <button type="button" className={`${styles.socialButton} ${styles.google}`}>
+            <CircleXIcon />
+            Google 계정으로 로그인
+          </button>
+          <button type="button" className={`${styles.socialButton} ${styles.kakao}`}>
+            <MessageCircleIcon />
+            카카오로 로그인
+          </button>
+        </div>
+      )}
 
       <p className={styles.bottom}>
         <span>아직 회원이 아니신가요?</span>

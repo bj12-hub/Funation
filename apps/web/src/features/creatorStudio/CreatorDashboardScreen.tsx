@@ -1,8 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
+import { FLEXTV_STUDIO } from "@/lib/flextv/mode";
 import { formatNumber } from "@/lib/format";
 import type { CreatorDashboard, CreatorProfile, DashboardSummary } from "@/services/creator/creatorStudio";
 import type { UpdatesView } from "@/services/creator/updatesTypes";
+import { formatAmount } from "./amount";
 import { ReceivedCard, SettlementCard, TopDonorsCard } from "./DashboardSummaryCards";
 import { LinkActions, RankingTabs } from "./DashboardWidgets";
 import summary from "./dashboardSummary.module.css";
@@ -23,7 +25,8 @@ function timeAgo(iso: string) {
 
 /**
  * Creator dashboard. Figma 245:14 (route `/creator`).
- * Amounts are ₩ as in the design and come from the server as-is (gross/net and fees are TBD).
+ * Amounts are ₩ as in the design and come from the server as-is (gross/net and fees are TBD); with FLEXTV they are the
+ * 렉스 received, in FN (`dashboard.unit`).
  */
 export function CreatorDashboardScreen({
   profile,
@@ -59,8 +62,9 @@ export function CreatorDashboardScreen({
               <LinkActions url={profile.donateUrl} />
             </div>
             <div className={styles.infoButtons}>
-              <Link href="/creator/settings" className={styles.gradientPill}>
-                계정 관리
+              {/* With FLEXTV the channel's settings are its 방송 설정 (phase 5). */}
+              <Link href={FLEXTV_STUDIO ? "/creator/broadcast" : "/creator/settings"} className={styles.gradientPill}>
+                {FLEXTV_STUDIO ? "방송 설정" : "계정 관리"}
               </Link>
               {/* 정산 관리 (478:2); unregistered creators are sent to the settlement home (429:4). */}
               <Link href="/creator/settlement/manage" className={styles.outlinePill}>
@@ -70,10 +74,11 @@ export function CreatorDashboardScreen({
           </div>
         </section>
 
-        {data && <ReceivedCard received={data.received} />}
+        {data && <ReceivedCard received={data.received} unit={data.unit} />}
         {data && <SettlementCard settlement={data.settlement} />}
-        {data && <TopDonorsCard donors={data.topDonors} />}
+        {data && <TopDonorsCard donors={data.topDonors} unit={data.unit} />}
         {updates && <UpdatesCard view={updates} />}
+        {(dashboard.banners.event || dashboard.banners.ad) && (
         <section className={`${styles.card} ${styles.quickCard}`} aria-label="이벤트 및 크리애드">
           {dashboard.banners.event && (
             <div className={styles.quickItem}>
@@ -88,6 +93,7 @@ export function CreatorDashboardScreen({
             </div>
           )}
         </section>
+        )}
       </div>
 
       <section className={styles.statsSection} aria-labelledby="creator-stats">
@@ -102,7 +108,7 @@ export function CreatorDashboardScreen({
           </div>
           <div className={styles.statCard}>
             <span>후원 수익</span>
-            <strong>₩{formatNumber(stats.revenue)}</strong>
+            <strong>{formatAmount(stats.revenue, dashboard.unit)}</strong>
           </div>
           <div className={styles.statCard}>
             <span>후원 인원수</span>
@@ -112,9 +118,10 @@ export function CreatorDashboardScreen({
         <div className={`${styles.card} ${styles.chartCard}`}>
           <h3 className={styles.chartTitle}>기간별 수익 그래프</h3>
           <div className={styles.chartArea}>
-            <RevenueChart series={dashboard.series} />
+            <RevenueChart series={dashboard.series} unit={dashboard.unit} />
           </div>
         </div>
+        {dashboard.partial && <p className={styles.chartEmpty}>이 기간은 후원이 많아 최근 후원부터 일부만 더했어요. 기간을 좁히면 정확하게 볼 수 있어요.</p>}
       </section>
 
       <div className={styles.bottomRow}>
@@ -150,7 +157,7 @@ export function CreatorDashboardScreen({
                           {r.donor}
                         </span>
                       </td>
-                      <td className={styles.money}>₩{formatNumber(r.amount)}</td>
+                      <td className={styles.money}>{formatAmount(r.amount, dashboard.unit)}</td>
                       <td className={styles.message} title={r.message}>
                         {r.message}
                       </td>
@@ -162,7 +169,7 @@ export function CreatorDashboardScreen({
             </table>
           </div>
         </section>
-        <RankingTabs rankings={dashboard.rankings} />
+        <RankingTabs rankings={dashboard.rankings} unit={dashboard.unit} />
       </div>
     </div>
   );

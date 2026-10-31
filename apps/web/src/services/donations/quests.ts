@@ -1,5 +1,7 @@
 "use server";
 
+import { FLEXTV_SSUMNATION_API } from "@/lib/flextv/mode";
+import { flextvDecideMyQuest } from "@/services/creator/flextvBroadcastGames";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { decideQuest, findQuest } from "./questCore";
@@ -10,6 +12,8 @@ import { isQuestOutcome, type QuestDecideResult } from "./questTypes";
  * FAILED refunds the whole amount to their wallet. Deciding again with the same outcome is a no-op.
  */
 export async function decideMyQuest(input: unknown): Promise<QuestDecideResult> {
+  // A FLEXTV supporter's quests are FLEXTV's (phase 6).
+  if (FLEXTV_SSUMNATION_API) return flextvDecideMyQuest(input);
   if (!USE_MOCK) throw new Error("Quest API is not connected yet.");
   const session = await getSession();
   if (!session) return { status: "UNAUTHORIZED" };

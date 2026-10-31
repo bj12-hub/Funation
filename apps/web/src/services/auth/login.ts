@@ -2,6 +2,9 @@
 
 import { redirect } from "next/navigation";
 import { SAMPLE_MEMBER_ID, isMemberSuspended } from "@/services/admin/memberCore";
+import { sessionFromMember, signIn as flextvSignIn } from "@/lib/flextv/auth";
+import { FLEXTV_AUTH } from "@/lib/flextv/mode";
+import { requestDeviceContext } from "@/lib/flextv/request";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { safeRedirectPath } from "@/lib/safeRedirect";
 import { startSession } from "@/lib/session";
@@ -11,10 +14,9 @@ import { clearPasswordFailures, isPasswordLocked, recordLogin, recordPasswordFai
 /**
  * Login service contract.
  *
- * The backend is not decided yet (see docs/product/open-decisions.md), so this
- * module only defines the contract the UI depends on, plus a development-only
- * mock. Login attempts, failure counting and lockout MUST be enforced by the
- * server; the mock only exists to exercise the Figma states locally.
+ * With the FLEXTV backend (NEXT_PUBLIC_BACKEND=flextv, docs/development/flextv-backend.md) the member signs in
+ * with FLEXTV, which counts failures and locks itself. Otherwise this module is the contract the UI depends on, plus a
+ * development-only mock that exercises the Figma states locally.
  *
  * This is a Server Action: credentials are checked on the server and, on success,
  * the session cookie is issued there (httpOnly), never in the browser.
@@ -33,9 +35,12 @@ export type LoginResult =
   | { status: "UNKNOWN_ID" }
   | { status: "WRONG_PASSWORD" }
   | { status: "LOCKED" }
+  /** FLEXTV only: 20 wrong passwords within 10 minutes — FLEXTV refuses for 10 minutes (no reset needed). */
+  | { status: "TOO_MANY_ATTEMPTS" }
   | { status: "SUSPENDED" };
 
 export async function login(request: LoginRequest): Promise<LoginResult> {
+  if (FLEXTV_AUTH) return flextvLogin(request);
   if (!USE_MOCK) throw new Error("Login API is not connected yet.");
   const result = await devMockLogin(request);
   if (result.status !== "SUCCESS") return result;
@@ -46,6 +51,35 @@ export async function login(request: LoginRequest): Promise<LoginResult> {
     redirect(`/login/password-change?next=${encodeURIComponent(safeRedirectPath(request.next))}`);
   }
   return result;
+}
+
+/* ── FLEXTV (docs/development/flextv-backend.md) ────────────
+ * The identifier is the member's FLEXTV 아이디. FLEXTV counts wrong passwords itself (20 within 10 minutes → 10 minutes
+ * refused) and answers a 휴면 · 정지 · 탈퇴 member like an unknown 아이디; a blocked member or IP is SUSPENDED.
+ * Any other answer (FLEXTV down, no tokens) throws, which the form shows as a temporary error.
+ */
+async function flextvLogin({ identifier, password, keepSignedIn }: LoginRequest): Promise<LoginResult> {
+  if (typeof identifier !== "string" || typeof password !== "string") return { status: "UNKNOWN_ID" };
+  const loginId = identifier.trim();
+  if (!loginId || loginId.length > 64 || !password || password.length > 64) return { status: "UNKNOWN_ID" };
+  const outcome = await flextvSignIn({ loginId, password, keepSignedIn: keepSignedIn === true }, await requestDeviceContext());
+  switch (outcome.kind) {
+    case "OK": {
+      const session = sessionFromMember(outcome.member);
+      if (!session) return { status: "SUSPENDED" };
+      await startSession({ keepSignedIn: keepSignedIn === true, tokens: outcome.tokens, session });
+      return { status: "SUCCESS" };
+    }
+    case "WRONG_PASSWORD":
+      return { status: "WRONG_PASSWORD" };
+    case "TOO_MANY_ATTEMPTS":
+      return { status: "TOO_MANY_ATTEMPTS" };
+    case "BLOCKED":
+      return { status: "SUSPENDED" };
+    default:
+      // NOT_FOUND; NEW_MEMBER only answers a social sign-in.
+      return { status: "UNKNOWN_ID" };
+  }
 }
 
 /* ── Development mock ───────────────────────────────────────

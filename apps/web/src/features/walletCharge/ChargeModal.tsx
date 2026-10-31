@@ -5,17 +5,20 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AlertCircleIcon } from "@/components/icons";
 import { Modal } from "@/components/ui/Modal";
+import { FLEXTV_WALLET } from "@/lib/flextv/mode";
 import { formatNumber } from "@/lib/format";
 import { agreeChargeTerms, getChargeOptions, quoteCharge, requestCharge } from "@/services/wallet/charge";
 import {
   CHARGE_ERRORS,
   PAYMENT_METHODS,
+  WINDOW_PAYMENT_METHODS,
   type ChargeAmountInput,
   type ChargeErrorCode,
   type ChargeOptions,
   type ChargeResult,
   type PaymentMethodId
 } from "@/services/wallet/chargeTypes";
+import { DepositRequestedView, EligibilityNotice, PaymentWindowView, depositBonusOf } from "./FlextvChargeViews";
 import { MethodCards } from "./MethodCards";
 import { MethodDrawer } from "./MethodDrawer";
 import { TermsSheet } from "./TermsSheet";
@@ -28,7 +31,24 @@ type Step =
   | { kind: "LOAD_ERROR" }
   | { kind: "FORM" }
   | { kind: "SUCCESS"; result: Completed }
-  | { kind: "FAILED"; code: ChargeErrorCode };
+  | { kind: "FAILED"; code: ChargeErrorCode }
+  /** FLEXTV backend: paying in the provider's window. */
+  | { kind: "PAYING"; started: Extract<ChargeResult, { status: "PAYMENT_STARTED" }>; popup: Window | null }
+  /** FLEXTV backend: a 무통장입금 request waiting for the deposit. */
+  | { kind: "DEPOSIT"; result: Extract<ChargeResult, { status: "DEPOSIT_REQUESTED" }> };
+
+/**
+ * Opens the payment window within the click (later, a popup blocker would stop it) with a holding page; the payment's
+ * address follows once the server started the checkout. Null when the browser blocked it — the modal offers a button.
+ */
+function openPaymentWindow(): Window | null {
+  const popup = window.open("", "ssumnation-payment", "popup,width=480,height=760");
+  if (popup) {
+    popup.document.title = "결제";
+    popup.document.body.textContent = "결제창을 여는 중입니다...";
+  }
+  return popup;
+}
 
 type Selection = { type: "package"; id: string } | { type: "custom" } | null;
 
@@ -54,6 +74,8 @@ export function ChargeModal({ onClose }: { onClose: () => void }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // 입금자명 for 무통장입금 (FLEXTV backend).
+  const [depositorName, setDepositorName] = useState("");
   // One key per distinct request; kept across a retry of the same request (see resetKey()).
   const keyRef = useRef<string | null>(null);
 
@@ -108,17 +130,33 @@ export function ChargeModal({ onClose }: { onClose: () => void }) {
 
   const selectedPackage = selection?.type === "package" ? options?.packages.find((p) => p.id === selection.id) : undefined;
   const total = selectedPackage ? selectedPackage.price : selection?.type === "custom" && quote.state === "ok" ? quote.price : null;
-  const canSubmit = total !== null && methodId !== null && !submitting;
+  const fnAmount = selectedPackage ? selectedPackage.fnAmount : selection?.type === "custom" && quote.state === "ok" ? quote.fnAmount : null;
+  const deposit = methodId === "BANK_TRANSFER";
+  const canSubmit = total !== null && methodId !== null && !submitting && (!deposit || depositorName.trim().length > 0);
 
   const submit = async () => {
     if (!canSubmit || !selection || !methodId) return;
     const amount: ChargeAmountInput = selection.type === "package" ? { packageId: selection.id } : { customAmount };
     keyRef.current ??= crypto.randomUUID();
+    const popup = FLEXTV_WALLET && WINDOW_PAYMENT_METHODS.includes(methodId) ? openPaymentWindow() : null;
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const result = await requestCharge({ amount, methodId, idempotencyKey: keyRef.current });
+      const result = await requestCharge({ amount, methodId, idempotencyKey: keyRef.current, ...(deposit ? { depositorName: depositorName.trim() } : {}) });
+      if (result.status !== "PAYMENT_STARTED") popup?.close();
       switch (result.status) {
+        case "PAYMENT_STARTED":
+          resetKey();
+          if (popup) popup.location.href = result.payUrl;
+          setStep({ kind: "PAYING", started: result, popup });
+          break;
+        case "DEPOSIT_REQUESTED":
+          resetKey();
+          setStep({ kind: "DEPOSIT", result });
+          break;
+        case "NOT_ELIGIBLE":
+          setOptions((current) => current && { ...current, eligibility: result.eligibility });
+          break;
         case "COMPLETED":
           resetKey();
           setStep({ kind: "SUCCESS", result });
@@ -142,6 +180,7 @@ export function ChargeModal({ onClose }: { onClose: () => void }) {
           setSubmitError("충전 정보를 다시 확인해 주세요.");
       }
     } catch {
+      popup?.close();
       // Unknown outcome: keep the key so retrying cannot charge twice.
       setSubmitError("결제 결과를 확인하지 못했습니다. 다시 시도해 주세요.");
     } finally {
@@ -149,7 +188,10 @@ export function ChargeModal({ onClose }: { onClose: () => void }) {
     }
   };
 
-  const title = step.kind === "SUCCESS" ? "FN 충전 완료" : step.kind === "FAILED" ? "결제 취소" : "FN 충전하기";
+  const title =
+    step.kind === "SUCCESS" ? "FN 충전 완료" : step.kind === "FAILED" ? "결제 취소" : step.kind === "PAYING" ? "결제 진행 중" : step.kind === "DEPOSIT" ? "무통장입금 안내" : "FN 충전하기";
+  const ineligible = options?.eligibility && options.eligibility !== "OK" ? options.eligibility : null;
+  const bonus = deposit && fnAmount !== null ? depositBonusOf(options?.depositBonus, fnAmount) : 0;
 
   return (
     <>
@@ -169,7 +211,9 @@ export function ChargeModal({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        {step.kind === "FORM" && options && (
+        {step.kind === "FORM" && options && ineligible && <EligibilityNotice eligibility={ineligible} onRecheck={() => void load()} onClose={onClose} />}
+
+        {step.kind === "FORM" && options && !ineligible && (
           <div className={styles.formWrap}>
             {/* While the terms sheet is open the form behind it is inert (595:4891). */}
             <div className={styles.form} inert={!termsAgreed}>
@@ -262,6 +306,25 @@ export function ChargeModal({ onClose }: { onClose: () => void }) {
                   }}
                   onAdd={() => setDrawerOpen(true)}
                 />
+                {deposit && (
+                  <div className={styles.section}>
+                    <label className={styles.customInput}>
+                      <input
+                        aria-label="입금자명"
+                        placeholder="입금자명을 입력해 주세요"
+                        maxLength={20}
+                        value={depositorName}
+                        onChange={(e) => {
+                          setDepositorName(e.target.value);
+                          resetKey();
+                        }}
+                      />
+                    </label>
+                    <p className={styles.muted}>
+                      입금이 확인되면 FN이 들어와요.{bonus > 0 ? ` 입금 보너스 ${formatNumber(bonus)} FN이 함께 들어와요.` : ""}
+                    </p>
+                  </div>
+                )}
                 {/* TODO: overseas payment depends on the payment provider (TBD). */}
                 <label className={`${styles.radio} ${styles.radioOff}`} title="준비 중인 기능입니다">
                   <input type="radio" name="charge-region" disabled />
@@ -275,7 +338,11 @@ export function ChargeModal({ onClose }: { onClose: () => void }) {
                   <ul className={styles.notes}>
                     <li>FN 유효기간: 마지막 사용일로부터 5년</li>
                     <li>결제 금액에는 모든 세금이 포함되어 있습니다.</li>
-                    <li>만 19세 미만 미성년자 회원은 법정대리인 동의가 필요하며, 동의가 완료 된 후 FN 충전 서비스 이용이 가능합니다.</li>
+                    {FLEXTV_WALLET ? (
+                      <li>본인인증을 마친 만 19세 이상 회원만 충전할 수 있습니다.</li>
+                    ) : (
+                      <li>만 19세 미만 미성년자 회원은 법정대리인 동의가 필요하며, 동의가 완료 된 후 FN 충전 서비스 이용이 가능합니다.</li>
+                    )}
                   </ul>
                 </div>
                 <strong className={styles.total}>{formatNumber(total ?? 0)}원</strong>
@@ -307,6 +374,26 @@ export function ChargeModal({ onClose }: { onClose: () => void }) {
         )}
 
         {step.kind === "SUCCESS" && <ChargeSuccess result={step.result} onClose={onClose} />}
+
+        {step.kind === "PAYING" && (
+          <PaymentWindowView
+            started={step.started}
+            popup={step.popup}
+            onCompleted={(result) => {
+              setStep({ kind: "SUCCESS", result });
+              router.refresh();
+            }}
+            onFailed={(code) => setStep({ kind: "FAILED", code })}
+            onUnauthorized={() => router.push(`/login?next=${encodeURIComponent(pathname)}`)}
+            onClose={() => {
+              // The payment may still finish in its window: the balance shows it on the next page.
+              router.refresh();
+              onClose();
+            }}
+          />
+        )}
+
+        {step.kind === "DEPOSIT" && <DepositRequestedView result={step.result} onClose={onClose} />}
 
         {step.kind === "FAILED" && (
           <ChargeFailure

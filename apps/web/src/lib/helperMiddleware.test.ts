@@ -20,18 +20,18 @@ const overridden = (res: Response) => (res.headers.get("x-middleware-override-he
 afterEach(() => vi.unstubAllEnvs());
 
 describe("middleware · surface header", () => {
-  it("overwrites a client-sent surface and drops a client-sent helper path on the site", () => {
+  it("overwrites a client-sent surface and drops a client-sent helper path on the site", async () => {
     vi.stubEnv("HELPER_HOST", "");
-    const res = middleware(request("http://localhost:3000/login", { host: "localhost:3000", "x-ssumnation-surface": "helper", "x-ssumnation-helper-path": "//evil.com" }));
+    const res = await middleware(request("http://localhost:3000/login", { host: "localhost:3000", "x-ssumnation-surface": "helper", "x-ssumnation-helper-path": "//evil.com" }));
     expect(forwarded(res, "x-ssumnation-surface")).toBe("site");
     expect(forwarded(res, "x-ssumnation-helper-path")).toBeNull();
     // Dropped from the request the page sees, not merely left unset.
     expect(overridden(res)).not.toContain("x-ssumnation-helper-path");
   });
 
-  it("marks helper requests and sets the helper path itself", () => {
+  it("marks helper requests and sets the helper path itself", async () => {
     vi.stubEnv("HELPER_HOST", "");
-    const res = middleware(request("http://localhost:3000/chat?tab=x", { host: "helper.localhost:3000", "x-ssumnation-surface": "site", "x-ssumnation-helper-path": "/evil" }));
+    const res = await middleware(request("http://localhost:3000/chat?tab=x", { host: "helper.localhost:3000", "x-ssumnation-surface": "site", "x-ssumnation-helper-path": "/evil" }));
     expect(res.headers.get("x-middleware-rewrite")).toBe("http://localhost:3000/helper/chat?tab=x");
     expect(forwarded(res, "x-ssumnation-surface")).toBe("helper");
     expect(forwarded(res, "x-ssumnation-helper-path")).toBe("/chat?tab=x");
@@ -39,36 +39,36 @@ describe("middleware · surface header", () => {
 });
 
 describe("middleware · the helper host keeps the site out", () => {
-  it("answers the site's API with 404, also with a dot in the last segment", () => {
+  it("answers the site's API with 404, also with a dot in the last segment", async () => {
     vi.stubEnv("HELPER_HOST", "helper.example.com");
     for (const path of ["/api/admin/members", "/api/admin/members/u.1", "/api/wallet/charges", "/api/admin/settlements/s.json"]) {
-      const res = middleware(request(`http://localhost:3000${path}`, { host: "helper.example.com" }));
+      const res = await middleware(request(`http://localhost:3000${path}`, { host: "helper.example.com" }));
       expect(res.status, path).toBe(404);
     }
   });
 
-  it("keeps its 404 out of shared caches (a forged X-Forwarded-Host on the site gets it too)", () => {
+  it("keeps its 404 out of shared caches (a forged X-Forwarded-Host on the site gets it too)", async () => {
     vi.stubEnv("HELPER_HOST", "helper.example.com");
-    const res = middleware(request("http://localhost:3000/api/wallet/charges", { host: "example.com", "x-forwarded-host": "helper.example.com" }));
+    const res = await middleware(request("http://localhost:3000/api/wallet/charges", { host: "example.com", "x-forwarded-host": "helper.example.com" }));
     expect(res.status).toBe(404);
     expect(res.headers.get("cache-control")).toBe("no-store");
   });
 
-  it("is not talked out of the helper by an appended X-Forwarded-Host or a trailing dot", () => {
+  it("is not talked out of the helper by an appended X-Forwarded-Host or a trailing dot", async () => {
     vi.stubEnv("HELPER_HOST", "helper.example.com");
     // Proxy that rewrites Host and appends to X-Forwarded-Host: the client's own value comes first.
-    const appended = middleware(request("http://localhost:3000/wallet", { host: "10.0.0.5:3000", "x-forwarded-host": "example.com, helper.example.com" }));
+    const appended = await middleware(request("http://localhost:3000/wallet", { host: "10.0.0.5:3000", "x-forwarded-host": "example.com, helper.example.com" }));
     expect(appended.headers.get("x-middleware-rewrite")).toBe("http://localhost:3000/helper/wallet");
     expect(forwarded(appended, "x-ssumnation-surface")).toBe("helper");
     // https://helper.example.com./api/admin/members
-    const dotted = middleware(request("http://localhost:3000/api/admin/members", { host: "helper.example.com." }));
+    const dotted = await middleware(request("http://localhost:3000/api/admin/members", { host: "helper.example.com." }));
     expect(dotted.status).toBe(404);
   });
 
-  it("serves the webhook, overlays and the remote window as on the site", () => {
+  it("serves the webhook, overlays and the remote window as on the site", async () => {
     vi.stubEnv("HELPER_HOST", "helper.example.com");
     for (const path of ["/api/bank-sms/0b6f2d0e-1111-4c4c-9c9c-123456789abc", "/overlay/alert/k", "/popout/remote", "/images/social/kakao.png"]) {
-      const res = middleware(request(`http://localhost:3000${path}`, { host: "helper.example.com" }));
+      const res = await middleware(request(`http://localhost:3000${path}`, { host: "helper.example.com" }));
       expect(res.headers.get("x-middleware-next"), path).toBe("1");
       expect(forwarded(res, "x-ssumnation-surface")).toBe("helper");
     }
@@ -76,27 +76,27 @@ describe("middleware · the helper host keeps the site out", () => {
 });
 
 describe("middleware · redirects", () => {
-  it("sends studio links to the helper page on the same host", () => {
+  it("sends studio links to the helper page on the same host", async () => {
     vi.stubEnv("HELPER_HOST", "");
-    const res = middleware(request("http://localhost:3000/creator/widgets?open=GOAL", { host: "helper.localhost:3000" }));
+    const res = await middleware(request("http://localhost:3000/creator/widgets?open=GOAL", { host: "helper.localhost:3000" }));
     expect(res.status).toBe(307);
     expect(new URL(res.headers.get("location") ?? "").pathname).toBe("/goal");
   });
 
-  it("answers an encoded /helper on the site with the site's 404, with or without HELPER_HOST", () => {
+  it("answers an encoded /helper on the site with the site's 404, with or without HELPER_HOST", async () => {
     for (const helperHost of ["", "helper.example.com"]) {
       vi.stubEnv("HELPER_HOST", helperHost);
       for (const path of ["/%68elper/link", "/helper%2Flink"]) {
-        const res = middleware(request(`https://example.com${path}`, { host: "example.com" }));
+        const res = await middleware(request(`https://example.com${path}`, { host: "example.com" }));
         expect(res.headers.get("x-middleware-rewrite"), path).toBe("https://example.com/__helper-not-served");
         expect(res.headers.get("location"), path).toBeNull();
       }
     }
   });
 
-  it("sends /helper/x on the site to the helper domain, never to another host", () => {
+  it("sends /helper/x on the site to the helper domain, never to another host", async () => {
     vi.stubEnv("HELPER_HOST", "helper.example.com");
-    const res = middleware(request("https://example.com/helper//evil.com", { host: "example.com" }));
+    const res = await middleware(request("https://example.com/helper//evil.com", { host: "example.com" }));
     expect(res.status).toBe(307);
     expect(res.headers.get("location")).toBe("https://helper.example.com/evil.com");
   });

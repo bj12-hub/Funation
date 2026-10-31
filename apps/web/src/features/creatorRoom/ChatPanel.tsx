@@ -41,10 +41,23 @@ const EMOJI_KEY: Record<string, MessageKey> = {
 };
 
 /**
- * Figma 826:685 chat tab. Messages are owned by SidePanel (mock data + local echoes).
+ * Figma 826:685 chat tab. Messages are owned by the caller: SidePanel (mock data + local echoes), or FlextvChat (a
+ * FLEXTV stream's chat). `maxLength` caps a line (default 200); `notice` is a line about the last send (code-first).
  * TODO: realtime chat transport, moderation and rate limiting belong to the backend (TBD).
  */
-export function ChatPanel({ signedIn, messages, onSend }: { signedIn: boolean; messages: ChatMessage[]; onSend: (text: string) => void }) {
+export function ChatPanel({
+  signedIn,
+  messages,
+  onSend,
+  maxLength = MAX_LENGTH,
+  notice = null
+}: {
+  signedIn: boolean;
+  messages: ChatMessage[];
+  onSend: (text: string) => void;
+  maxLength?: number;
+  notice?: string | null;
+}) {
   const { t } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
@@ -64,10 +77,12 @@ export function ChatPanel({ signedIn, messages, onSend }: { signedIn: boolean; m
    * whole draft; that selection is the browser's, so an emoji then goes to the end instead of replacing the draft.
    */
   const caretPlaced = useRef(false);
+  // Follows new messages while the viewer is at the bottom; someone reading older ones is left where they are.
+  const atBottom = useRef(true);
 
   useEffect(() => {
     const list = listRef.current;
-    if (list) list.scrollTop = list.scrollHeight;
+    if (list && atBottom.current) list.scrollTop = list.scrollHeight;
   }, [messages]);
 
   useEffect(() => {
@@ -94,7 +109,7 @@ export function ChatPanel({ signedIn, messages, onSend }: { signedIn: boolean; m
     const input = inputRef.current;
     const placed = caretPlaced.current && input;
     const caret = caretRef.current ?? (placed ? { start: input.selectionStart ?? draft.length, end: input.selectionEnd ?? draft.length } : { start: draft.length, end: draft.length });
-    const next = insertEmoji(draft, emoji, caret.start, caret.end, MAX_LENGTH);
+    const next = insertEmoji(draft, emoji, caret.start, caret.end, maxLength);
     if (!next) return;
     setDraft(next.text);
     caretRef.current = { start: next.caret, end: next.caret };
@@ -115,7 +130,16 @@ export function ChatPanel({ signedIn, messages, onSend }: { signedIn: boolean; m
 
   return (
     <div className={styles.chat}>
-      <ol ref={listRef} className={styles.messages} aria-label={t("room.chatLive")} aria-live="polite">
+      <ol
+        ref={listRef}
+        className={styles.messages}
+        aria-label={t("room.chatLive")}
+        aria-live="polite"
+        onScroll={(e) => {
+          const l = e.currentTarget;
+          atBottom.current = l.scrollHeight - l.scrollTop - l.clientHeight < 40;
+        }}
+      >
         {messages.map((m) =>
           m.kind === "DONATION" ? (
             <li key={m.id} className={styles.donationMessage}>
@@ -147,11 +171,16 @@ export function ChatPanel({ signedIn, messages, onSend }: { signedIn: boolean; m
       </ol>
 
       <form className={styles.composer} onSubmit={send}>
+        {notice && (
+          <p className={styles.chatNotice} role="alert">
+            {notice}
+          </p>
+        )}
         <div className={styles.composerInput}>
           <input
             aria-label={t("room.chatInput")}
             value={draft}
-            maxLength={MAX_LENGTH}
+            maxLength={maxLength}
             placeholder={signedIn ? t("room.chatPlaceholder") : t("room.chatSignedOut")}
             ref={inputRef}
             onChange={(e) => {

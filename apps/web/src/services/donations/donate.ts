@@ -1,6 +1,8 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
+import { isFlextvChannelId } from "@/lib/flextv/donation";
+import { FLEXTV_DONATION } from "@/lib/flextv/mode";
 import { toDateString } from "@/lib/period";
 import { memberKeyOf } from "@/lib/records";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
@@ -8,7 +10,6 @@ import { getSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS, currentPersonKey, mockAccount } from "@/services/account/mockStore";
 import { sessionAccount } from "@/services/account/withdrawalCore";
 import { donorKeyOf, enqueueDonationAlert } from "@/services/creator/alertCore";
-import { matchesContent } from "@/services/creator/assetCore";
 import { shownOnStream } from "@/services/creator/donationPageCore";
 import { getCreatorById } from "@/services/creators/creators";
 import { attributeMemberDonation, isActiveMember, isMinusDonation, linkFeedAlert, liveBroadcastOf, recordBroadcastDonation, type FeedListing } from "@/services/crew/crewCore";
@@ -19,14 +20,15 @@ import { MEMBER_NICKNAME_ID, attributeDonation, nicknameChangeable, ownsNickname
 import { alertBadgeLabels } from "@/services/supporter/identityTypes";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import type { DonationCatalog } from "./donationCatalog";
+import * as flextv from "./flextvDonate";
 import { recordQuest } from "./questCore";
 import { canParticipate, enqueueSpin } from "./rouletteCore";
 import { canDraw, enqueueDraw } from "./gachaCore";
 import { getDonationCatalog, matchSignatureByAmount, signatureIdFor, signatureImageFor, signatureImageOf, signatureSoundFor, signatureSoundOf } from "./signatureCore";
 import { addDonationDrawing, enqueueDonationVideo } from "@/services/creator/mediaCore";
-import { MEDIA_LIMITS } from "@/services/creator/mediaTypes";
 import { notify } from "@/services/notifications/notificationCore";
-import { MAX_DRAWING_CHARS, parseYouTubeId, type DonationResult } from "./donationTypes";
+import { parseDetails, type ParsedDetails } from "./donationDetails";
+import type { DonationResult } from "./donationTypes";
 
 /**
  * Donation Core: one debit path for every donation type (CLAUDE.md §10). Each type only
@@ -41,8 +43,12 @@ import { MAX_DRAWING_CHARS, parseYouTubeId, type DonationResult } from "./donati
  * request read, only while it still holds the slot, active (UNAUTHORIZED otherwise, nothing debited) — every type, 룰렛 ·
  * 뽑기 · 퀘스트 · 미니 · 크루 멤버 지정 included, debits here.
  * TBD: creator revenue share, platform fee, refunds, delivery to the broadcast platform/overlay.
+ *
+ * A donation to a FLEXTV channel (FLEXTV_DONATION, a FLEXTV channel id as `creatorId`) goes to ./flextvDonate.ts:
+ * FLEXTV moves the 렉스 and delivers it to the broadcast.
  */
 export async function requestDonation(input: unknown): Promise<DonationResult> {
+  if (FLEXTV_DONATION && isFlextvChannelId((input as { creatorId?: unknown } | null)?.creatorId)) return flextv.requestDonation(input);
   if (!USE_MOCK) throw new Error("Donation API is not connected yet.");
   const session = await getSession();
   if (!session) return { status: "UNAUTHORIZED" };
@@ -228,23 +234,13 @@ const fingerprintOf = (v: Record<string, unknown>) =>
       .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
   );
 
-type Parsed = {
+type Parsed = ParsedDetails & {
   creatorId: string;
   hideProfile: boolean;
   nicknameId: string | null;
   memberId: string | null;
-  type: string;
-  /** For a priced type: the price the supporter confirmed (checked against the current price before the debit). */
-  amount: number;
-  /** Signature, wishlist and 뽑기: the price is the creator's, so it is checked again right before the debit. */
-  priced: boolean;
-  /** Text recorded in the donation history. */
-  summary: string;
-  details: Record<string, unknown>;
 };
 
-/** Same wording as chat, test alerts and the other places that refuse platform forbidden words. */
-const FORBIDDEN_MESSAGE = "사용할 수 없는 단어가 포함되어 있어요.";
 const hasForbidden = (...texts: string[]) => texts.some((t) => MOCK_FORBIDDEN_WORDS.some((w) => t.toLowerCase().includes(w)));
 
 /** The creator's current price of a signature, wishlist item or 뽑기; null when it is gone (or out of stock). */
@@ -258,8 +254,6 @@ function currentPrice(type: string, details: Record<string, unknown>): number | 
   return catalog.gacha.find((x) => x.id === details.gachaId)?.price ?? null;
 }
 
-const MAX_FN = 999_999_999;
-
 /** 후원내역 tabs (632:4): 기본 후원 / 퀘스트 후원 / 게임 후원. */
 const HISTORY_CATEGORY: Partial<Record<string, "basic" | "quest" | "game">> = {
   QUEST: "quest",
@@ -267,21 +261,9 @@ const HISTORY_CATEGORY: Partial<Record<string, "basic" | "quest" | "game">> = {
   GACHA: "game"
 };
 
-const isFn = (value: unknown, min = 0): value is number => typeof value === "number" && Number.isInteger(value) && value >= min && value <= MAX_FN;
-
-const PNG_DATA_URL = "data:image/png;base64,";
-/** A PNG data URL within the size limit: plain base64 whose bytes start with the PNG signature (not just the prefix). */
-const isDrawing = (value: unknown): value is string => {
-  if (typeof value !== "string" || !value.startsWith(PNG_DATA_URL) || value.length > MAX_DRAWING_CHARS) return false;
-  const body = value.slice(PNG_DATA_URL.length);
-  return body.length % 4 === 0 && /^[A-Za-z0-9+/]+={0,2}$/.test(body) && matchesContent(Buffer.from(body.slice(0, 16), "base64"), "image/png");
-};
-
-/** null = malformed; `refused` = well-formed but the text cannot go out (a platform forbidden word). */
+/** null = malformed; `refused` = well-formed but the text cannot go out (a platform forbidden word). The per-type rules are ./donationDetails.ts. */
 function parse(v: Record<string, unknown>, catalog: DonationCatalog): Parsed | { refused: string } | null {
   if (typeof v.creatorId !== "string" || typeof v.hideProfile !== "boolean") return null;
-  const typeInfo = catalog.types.find((t) => t.key === v.type);
-  if (!typeInfo?.available) return null;
 
   // Optional donation nickname (별명): must belong to the supporter; null = the default nickname. With the creator's
   // 후원 닉네임 변경 off, the pick is ignored and the donation goes out under the member nickname.
@@ -291,100 +273,8 @@ function parse(v: Record<string, unknown>, catalog: DonationCatalog): Parsed | {
   // Optional crew member (크루 멤버 지정): must be an active member of this creator's crew.
   if (v.memberId !== undefined && v.memberId !== null && !isActiveMember(v.creatorId as string, v.memberId)) return null;
   const memberId = typeof v.memberId === "string" ? v.memberId : null;
-  const common = { creatorId: v.creatorId, hideProfile: v.hideProfile, nicknameId, memberId, type: typeInfo.key, priced: false };
-  const amountOk = (min: number, max = MAX_FN) => typeof v.amount === "number" && Number.isInteger(v.amount) && v.amount >= min && v.amount <= max;
-  const text = (value: unknown, max: number, required = false) =>
-    typeof value === "string" && value.trim().length <= max && (!required || value.trim().length > 0) ? value.trim() : null;
-  const game = catalog.game;
-  const voiceOk = (id: unknown) => id === null || (typeof id === "string" && catalog.voices.some((voice) => voice.id === id));
-  // Priced types: the price the supporter confirmed (any FN amount; it must equal the creator's price at the debit).
-  const expected = isFn(v.expectedAmount, 1) ? v.expectedAmount : null;
-  const refused = { refused: FORBIDDEN_MESSAGE };
 
-  // Supporter-written text goes on stream (alert · TTS · quest widget · drawing gallery): checked before any debit.
-  switch (typeInfo.key) {
-    case "TEXT": {
-      const message = text(v.message, catalog.maxLength.message);
-      if (!amountOk(catalog.minAmount.TEXT) || message === null || !voiceOk(v.voiceId)) return null;
-      if (hasForbidden(message)) return refused;
-      return { ...common, amount: v.amount as number, summary: message, details: { message, voiceId: v.voiceId } };
-    }
-    case "MINI": {
-      const body = text(v.text, catalog.maxLength.mini, true);
-      // 미니 후원 is under 1,000 FN (2026-10-09 결정); larger amounts go as 일반 후원.
-      if (!amountOk(catalog.minAmount.MINI, catalog.maxAmount.MINI) || body === null || !catalog.miniColors.some((c) => c.id === v.colorId)) return null;
-      if (hasForbidden(body)) return refused;
-      return { ...common, amount: v.amount as number, summary: body, details: { text: body, colorId: v.colorId } };
-    }
-    case "VIDEO":
-    case "AUDIO": {
-      // 음성 후원 takes the same link and range as 영상 후원; only how it plays differs (sound, small player).
-      const audio = typeInfo.key === "AUDIO";
-      const videoId = typeof v.videoUrl === "string" ? parseYouTubeId(v.videoUrl) : null;
-      const start = v.startSec;
-      const end = v.endSec;
-      // Same bounds as the 테스트 영상 (0 … 24 hours).
-      const rangeOk = Number.isInteger(start) && Number.isInteger(end) && (start as number) >= 0 && (end as number) > (start as number) && (end as number) <= MEDIA_LIMITS.rangeSecMax;
-      if (!amountOk(audio ? catalog.minAmount.AUDIO : catalog.minAmount.VIDEO) || !videoId || !rangeOk || v.termsAgreed !== true) return null;
-      return {
-        ...common,
-        amount: v.amount as number,
-        summary: `${audio ? "음성" : "영상"} youtu.be/${videoId}`,
-        // 2026-10-04 결정: no video library (no 라이브러리 tab, no 내 라이브러리에 등록).
-        details: { videoId, start, end }
-      };
-    }
-    case "SIGNATURE": {
-      const signature = catalog.signatures.find((s) => s.id === v.signatureId);
-      const message = text(v.message, catalog.maxLength.message);
-      if (!signature || message === null || expected === null) return null;
-      if (hasForbidden(message)) return refused;
-      return { ...common, priced: true, amount: expected, summary: message || signature.name, details: { signatureId: signature.id, message } };
-    }
-    case "WISHLIST": {
-      const item = catalog.wishlist.find((w) => w.id === v.itemId);
-      const message = text(v.message, catalog.maxLength.message);
-      if (!item || !item.inStock || message === null || !voiceOk(v.voiceId) || expected === null) return null;
-      if (hasForbidden(message)) return refused;
-      return { ...common, priced: true, amount: expected, summary: message || item.name, details: { itemId: item.id, message, voiceId: v.voiceId } };
-    }
-    case "ROULETTE": {
-      const roulette = catalog.roulette;
-      if (!roulette.enabled || !isFn(v.amount, roulette.minAmount)) return null;
-      return { ...common, amount: v.amount as number, summary: "룰렛 참여 1회", details: {} };
-    }
-    case "GACHA": {
-      const offer = catalog.gacha.find((x) => x.id === v.gachaId);
-      if (!offer || offer.soldOut || v.termsAgreed !== true || expected === null) return null;
-      return { ...common, priced: true, amount: expected, summary: `${offer.name} 뽑기`, details: { gachaId: offer.id } };
-    }
-    case "QUEST": {
-      const title = text(v.title, game.maxText, true);
-      const { successReward } = v;
-      // A failed or cancelled quest refunds the whole amount (2026-10-04 결정): no 실패 · 취소 금액.
-      const rewardsOk = isFn(successReward, game.minAmount);
-      if (!title || !rewardsOk || !timeOk(v.timeLimitSec) || typeof v.creatorDecides !== "boolean" || v.termsAgreed !== true) return null;
-      if (hasForbidden(title)) return refused;
-      return {
-        ...common,
-        amount: successReward,
-        summary: `퀘스트: ${title}`,
-        details: { title, successReward, timeLimitSec: v.timeLimitSec, creatorDecides: v.creatorDecides }
-      };
-    }
-    case "DRAWING": {
-      const title = text(v.title, game.maxText, true);
-      if (!amountOk(game.minAmount) || !title || !isDrawing(v.image) || typeof v.showProcess !== "boolean" || typeof v.canvasMode !== "boolean" || v.termsAgreed !== true)
-        return null;
-      if (hasForbidden(title)) return refused;
-      return { ...common, amount: v.amount as number, summary: `그림: ${title}`, details: { title, image: v.image, showProcess: v.showProcess, canvasMode: v.canvasMode } };
-    }
-    default:
-      return null;
-  }
-
-  function timeOk(value: unknown) {
-    return Number.isInteger(value) && (value as number) > 0 && (value as number) <= game.maxTimeSec;
-  }
-
+  const parsed = parseDetails(v, catalog, hasForbidden);
+  if (!parsed || "refused" in parsed) return parsed;
+  return { ...parsed, creatorId: v.creatorId, hideProfile: v.hideProfile, nicknameId, memberId };
 }

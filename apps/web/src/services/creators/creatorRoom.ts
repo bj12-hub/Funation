@@ -25,13 +25,21 @@ export type RoomBanner = {
 export type LiveStream = {
   status: "LIVE";
   caption: string;
-  viewerCount: number;
+  /** Null when the platform does not say (a FLEXTV channel's room until phase 4). */
+  viewerCount: number | null;
   thumbnailUrl: string;
   /** e.g. "TOP 1 RANKER" — shown only when the server sends it. */
   rankBadge: string | null;
   qualityLabel: string;
   /** Today's donation goal in FN, aggregated by the server; `null` when the creator has none. */
   goal: { current: number; target: number } | null;
+  /**
+   * FLEXTV channel (phase 4): `embed` — FLEXTV's player plays it here, and its chat is the stream's; `onFlextv` — only
+   * some viewers may watch it (19+, password, fan grade, full room), which FLEXTV's player in another site cannot tell
+   * (it is always signed out there), so it is watched on FLEXTV.
+   */
+  embed?: { playerUrl: string; streamId: string };
+  onFlextv?: { url: string; reason: "ADULT" | "LOCKED" | "FAN_ONLY" | "FULL" | "BANNED" };
 };
 
 export type OfflineStream = { status: "OFFLINE"; imageUrl: string };
@@ -45,6 +53,11 @@ export type CreatorRoom = {
   banner: RoomBanner | null;
   stream: LiveStream | OfflineStream;
   donation: DonationCatalog;
+  /**
+   * "FLEXTV": a FLEXTV channel's room (FLEXTV backend, `/creators/{FLEXTV channel id}`) — FLEXTV's channel and donation
+   * options only; Ssumnation's own parts (크루, 투표, 커뮤니티, 별명 …) are not there. Absent: a Ssumnation creator.
+   */
+  source?: "FLEXTV";
 };
 
 export async function getCreatorRoom(creatorId: string): Promise<CreatorRoom | null> {

@@ -404,6 +404,25 @@
   line-height: 1.35;
 }
 
+/* FLEXTV's embeddable player fills the stream area (FLEXTV backend). */
+.embedFrame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #000;
+}
+
+.watchOnFlextv {
+  padding: 8px 14px;
+  border-radius: var(--radius-8);
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+}
+
 /* ── Right panel (420×600) ────────────────────────── */
 
 .panel {
@@ -809,6 +828,12 @@
   gap: 10px;
   padding-top: 12px;
   border-top: 1px solid var(--color-border);
+}
+
+.chatNotice {
+  margin: 0;
+  color: var(--color-error-text);
+  font-size: var(--font-size-12);
 }
 
 .composerInput {

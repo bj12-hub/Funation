@@ -138,6 +138,11 @@
   color: var(--color-kakao-text);
 }
 
+.naver {
+  background: var(--color-naver-bg);
+  color: var(--color-naver-text);
+}
+
 /* ── Bottom ── */
 .bottom {
   display: flex;

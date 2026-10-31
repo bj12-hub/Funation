@@ -1,5 +1,8 @@
+import { fetchLiveList, type FlextvLive } from "@/lib/flextv/live";
+import { FLEXTV_LIVE } from "@/lib/flextv/mode";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import type { Platform } from "@/types/platform";
+import { POPULAR_LIVE_COUNT, type LiveChannel } from "./liveTypes";
 
 /**
  * Live channel list contract.
@@ -10,28 +13,50 @@ import type { Platform } from "@/types/platform";
  * 인기 라이브 (most viewers first) and 전체 라이브. The Figma category chips and sections are not used.
  */
 
-export type LiveChannel = {
-  id: string;
-  title: string;
-  channelName: string;
-  channelAvatarUrl: string;
-  thumbnailUrl: string;
-  viewerCount: number;
-  platform: Platform;
-  /** Seconds since the broadcast started, computed on the server when the list is fetched. */
-  elapsedSeconds: number;
-  href: string;
-};
-
-/** How many channels 인기 라이브 shows (the rest stay in 전체 라이브). Mock value; ranking rules are TBD. */
-export const POPULAR_LIVE_COUNT = 8;
+export { POPULAR_LIVE_COUNT, type LiveChannel } from "./liveTypes";
 
 const byViewers = (a: LiveChannel, b: LiveChannel) => b.viewerCount - a.viewerCount;
 
 export async function getAllLiveChannels(): Promise<LiveChannel[]> {
+  if (FLEXTV_LIVE) return flextvLive();
   if (!USE_MOCK) throw new Error("Live channel API is not connected yet.");
   await mockDelay(300);
   return [...MOCK_ALL_LIVE].sort(byViewers);
+}
+
+/**
+ * FLEXTV backend (phase 4, docs/development/flextv-backend.md): FLEXTV's public live list — the same for everyone,
+ * without 19+ streams — linked to each channel's room. One read per server every 15 s (FLEXTV caches it for longer).
+ */
+const LIVE_TTL_MS = 15_000;
+const liveCache = globalThis as typeof globalThis & { __ssumnationFlextvLive?: { at: number; list: Promise<LiveChannel[]> } };
+
+async function flextvLive(): Promise<LiveChannel[]> {
+  const cached = liveCache.__ssumnationFlextvLive;
+  if (cached && Date.now() - cached.at < LIVE_TTL_MS) return cached.list;
+  const list = fetchLiveList().then((rows) => {
+    const now = Date.now();
+    return rows.map((row) => liveChannelOf(row, now)).sort(byViewers);
+  });
+  liveCache.__ssumnationFlextvLive = { at: Date.now(), list };
+  // A failed read is not kept: the next request asks again.
+  list.catch(() => liveCache.__ssumnationFlextvLive?.list === list && delete liveCache.__ssumnationFlextvLive);
+  return list;
+}
+
+export function liveChannelOf(row: FlextvLive, now = Date.now()): LiveChannel {
+  const started = row.startedAt ? Date.parse(row.startedAt) : NaN;
+  return {
+    id: row.channelId,
+    title: row.title,
+    channelName: row.ownerNickname,
+    channelAvatarUrl: row.ownerThumbUrl ?? A(1),
+    thumbnailUrl: row.thumbnailUrl ?? T(1),
+    viewerCount: row.viewers,
+    platform: "FLEXTV",
+    elapsedSeconds: Number.isFinite(started) ? Math.max(0, Math.floor((now - started) / 1000)) : 0,
+    href: `/creators/${row.channelId}`
+  };
 }
 
 /** 인기 라이브 — the most watched live channels right now. */

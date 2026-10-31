@@ -73,6 +73,11 @@ export type DonationCatalog = {
   gacha: GachaOffer[];
   /** Quest, drawing and quiz (867:*). Minimum and limits are TBD. */
   game: { minAmount: number; maxTimeSec: number; maxText: number };
+  /**
+   * A room that prices 영상 · 음성 후원 by the second (a FLEXTV streamer's 영상 후원 setting, phase 6): the amount is
+   * the played length × `perSecond`, up to `maxSec`. Absent = the supporter picks the amount (the mock).
+   */
+  mediaPricing?: Partial<Record<"VIDEO" | "AUDIO", { perSecond: number; maxSec: number }>>;
 };
 
 /** What the donation panel shows of the 룰렛 settings. */
