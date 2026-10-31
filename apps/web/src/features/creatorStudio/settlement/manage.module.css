@@ -77,6 +77,20 @@
 
 /* ── Filter ── */
 
+/* 정산 내역 CSV (code-first, 2026-11-01): under the filter, on the right. */
+.csvRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 12px;
+}
+
+.csvNote {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-12);
+}
+
 .filter {
   display: flex;
   flex-wrap: wrap;
