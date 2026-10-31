@@ -4,16 +4,18 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { formatKst } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { addComment, deleteComment, deletePost } from "@/services/community/community";
-import { COMMENT_MAX, categoryLabel, type PostDetail } from "@/services/community/communityTypes";
+import { COMMENT_MAX, type PostDetail } from "@/services/community/communityTypes";
 import { ModerationActions } from "../moderation/ModerationActions";
-import { GENERIC_ERROR } from "../mypage/editors/shared";
+import { BOARD_CATEGORY_KEY } from "./labels";
 import styles from "./community.module.css";
 
 const when = (iso: string) => formatKst(iso, { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 
 /** 게시글 상세 + 댓글 — code-first (no Figma frame). Route `/community/[id]`. */
 export function PostScreen({ post, signedIn }: { post: PostDetail; signedIn: boolean }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [comment, setComment] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -30,10 +32,10 @@ export function PostScreen({ post, signedIn }: { post: PostDetail; signedIn: boo
           after?.();
           router.refresh();
         } else if (res.status === "UNAUTHORIZED") router.push(`/login?next=/community/${post.id}`);
-        else setError(res.message ?? "처리하지 못했어요.");
+        else setError(res.message ?? t("community.failed"));
       } catch {
         // The request failed (network / server): the typed comment stays for another try.
-        setError(GENERIC_ERROR);
+        setError(t("page.errorDescription"));
       }
     });
   };
@@ -41,15 +43,15 @@ export function PostScreen({ post, signedIn }: { post: PostDetail; signedIn: boo
   return (
     <div className={styles.content}>
       <Link href="/community" className={styles.back}>
-        ← 목록으로
+        {t("community.back")}
       </Link>
       <article className={styles.card}>
         <header className={styles.postHead}>
-          <span className={styles.chip}>{categoryLabel(post.category)}</span>
+          <span className={styles.chip}>{t(BOARD_CATEGORY_KEY[post.category])}</span>
           <h1 className={styles.postTitle}>{post.title}</h1>
           <span className={styles.meta}>
             {post.authorName} · {when(post.createdAt)}
-            {post.updatedAt ? " (수정됨)" : ""} · 조회 {post.views}
+            {post.updatedAt ? ` ${t("community.edited")}` : ""} · {t("community.views", { count: post.views })}
           </span>
           {/* A blocked author's post disappears for the member, so the block goes back to the board. */}
           {!post.mine && <ModerationActions target={{ type: "POST", id: post.id }} signedIn={signedIn} leaveTo="/community" />}
@@ -58,7 +60,7 @@ export function PostScreen({ post, signedIn }: { post: PostDetail; signedIn: boo
         {post.mine && (
           <div className={styles.actions}>
             <Link href={`/community/${post.id}/edit`} className={styles.ghost}>
-              수정
+              {t("community.edit")}
             </Link>
             <button
               type="button"
@@ -66,14 +68,14 @@ export function PostScreen({ post, signedIn }: { post: PostDetail; signedIn: boo
               disabled={pending}
               onClick={() => {
                 // 2026-10-08 결정: asked first, as channel posts are (comments and 쪽지 are not).
-                if (!window.confirm("이 글을 삭제할까요?")) return;
+                if (!window.confirm(t("community.confirmDelete"))) return;
                 act(
                   () => deletePost(post.id),
                   () => router.push("/community")
                 );
               }}
             >
-              삭제
+              {t("community.delete")}
             </button>
           </div>
         )}
@@ -81,10 +83,10 @@ export function PostScreen({ post, signedIn }: { post: PostDetail; signedIn: boo
 
       <section className={styles.card} aria-labelledby="post-comments">
         <h2 id="post-comments" className={styles.cardTitle}>
-          댓글 {post.comments.length}
+          {t("community.comments", { count: post.comments.length })}
         </h2>
         {post.comments.length === 0 ? (
-          <p className={styles.meta}>첫 댓글을 남겨 보세요.</p>
+          <p className={styles.meta}>{t("community.firstComment")}</p>
         ) : (
           <ul className={styles.commentList}>
             {post.comments.map((c) => (
@@ -96,7 +98,7 @@ export function PostScreen({ post, signedIn }: { post: PostDetail; signedIn: boo
                 <p className={styles.commentBody}>{c.body}</p>
                 {c.mine && (
                   <button type="button" className={styles.link} disabled={pending} onClick={() => act(() => deleteComment(post.id, c.id))}>
-                    삭제
+                    {t("community.delete")}
                   </button>
                 )}
               </li>
@@ -120,14 +122,14 @@ export function PostScreen({ post, signedIn }: { post: PostDetail; signedIn: boo
               );
             }}
           >
-            <input className={styles.input} value={comment} onChange={(e) => setComment(e.target.value)} maxLength={COMMENT_MAX} placeholder="댓글을 입력해 주세요" aria-label="댓글" />
+            <input className={styles.input} value={comment} onChange={(e) => setComment(e.target.value)} maxLength={COMMENT_MAX} placeholder={t("community.commentPlaceholder")} aria-label={t("community.comment")} />
             <button type="submit" className={styles.primary} disabled={pending || !comment.trim()}>
-              등록
+              {t("community.postComment")}
             </button>
           </form>
         ) : (
           <Link href={`/login?next=/community/${post.id}`} className={styles.link}>
-            로그인하고 댓글 남기기
+            {t("community.loginToComment")}
           </Link>
         )}
         {error && (

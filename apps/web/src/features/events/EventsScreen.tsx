@@ -1,26 +1,29 @@
 import Link from "next/link";
-import { EVENT_FILTERS, PHASE_LABEL, eventPeriodLabel, type EventListView } from "@/services/events/eventTypes";
+import { getT } from "@/lib/i18n/server";
+import { EVENT_FILTERS, eventPeriodLabel, type EventListView } from "@/services/events/eventTypes";
+import { FILTER_KEY, PHASE_KEY } from "./labels";
 import styles from "./events.module.css";
 
 /** 이벤트 목록 — code-first (no Figma frame). Route `/events` (`?filter=`). */
-export function EventsScreen({ view }: { view: EventListView }) {
+export async function EventsScreen({ view }: { view: EventListView }) {
+  const t = await getT();
   return (
     <div className={styles.content}>
       <header>
-        <h1 className={styles.title}>이벤트</h1>
-        <p className={styles.subtitle}>진행 중인 이벤트와 지난 이벤트를 확인하세요.</p>
+        <h1 className={styles.title}>{t("events.title")}</h1>
+        <p className={styles.subtitle}>{t("events.subtitle")}</p>
       </header>
-      <nav className={styles.tabs} aria-label="이벤트 분류">
+      <nav className={styles.tabs} aria-label={t("events.filters")}>
         {EVENT_FILTERS.filter((f) => f.key !== "mine" || view.signedIn).map((f) => (
           <Link key={f.key} href={f.key === "all" ? "/events" : `/events?filter=${f.key}`} className={styles.tab} aria-current={view.filter === f.key ? "page" : undefined}>
-            {f.label}
+            {t(FILTER_KEY[f.key])}
           </Link>
         ))}
       </nav>
       {view.items.length === 0 ? (
         <div className={styles.empty}>
-          <strong>이벤트가 없어요</strong>
-          <span>{view.filter === "mine" ? "참여한 이벤트가 아직 없어요." : "곧 새로운 이벤트가 시작돼요."}</span>
+          <strong>{t("events.emptyTitle")}</strong>
+          <span>{view.filter === "mine" ? t("events.emptyMine") : t("events.emptySoon")}</span>
         </div>
       ) : (
         <ul className={styles.grid}>
@@ -32,14 +35,14 @@ export function EventsScreen({ view }: { view: EventListView }) {
                 </span>
                 <span className={styles.badges}>
                   <span className={styles.phase} data-phase={e.phase}>
-                    {PHASE_LABEL[e.phase]}
+                    {t(PHASE_KEY[e.phase])}
                   </span>
-                  {e.joined && <span className={styles.joined}>참여함</span>}
+                  {e.joined && <span className={styles.joined}>{t("events.joined")}</span>}
                 </span>
                 <strong className={styles.cardTitle}>{e.title}</strong>
                 <span className={styles.muted}>{e.summary}</span>
                 <span className={styles.meta}>
-                  {eventPeriodLabel(e.startsAt, e.endsAt)} · 참여 {e.participants.toLocaleString("ko-KR")}명
+                  {eventPeriodLabel(e.startsAt, e.endsAt)} · {t("events.participants", { count: e.participants.toLocaleString("ko-KR") })}
                 </span>
               </Link>
             </li>

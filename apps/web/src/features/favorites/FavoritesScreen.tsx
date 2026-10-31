@@ -3,7 +3,8 @@ import Link from "next/link";
 import { SearchLargeIcon, VerifiedCheckIcon } from "@/components/icons";
 import { Button } from "@/components/ui/Button";
 import { FLEXTV_SITE } from "@/lib/flextv/mode";
-import { formatCompactKo } from "@/lib/format";
+import { formatCompact } from "@/lib/format";
+import { getLocale, getT } from "@/lib/i18n/server";
 import { remote } from "@/lib/remoteImage";
 import type { FavoritesPage, PromotionBanner } from "@/services/favorites/favorites";
 import { RemoveFavoriteButtons } from "./RemoveFavoriteButtons";
@@ -23,7 +24,9 @@ const pageHref = (page: number, query?: string) => {
  * Favorite creators.
  * Figma: ssumnation-favorites-page 735:3856 (route `/favorites`, signed-in members)
  */
-export function FavoritesScreen({ data, query, promotion }: Props) {
+export async function FavoritesScreen({ data, query, promotion }: Props) {
+  const t = await getT();
+  const locale = await getLocale();
   return (
     <div className={styles.content}>
       {promotion && (
@@ -40,7 +43,7 @@ export function FavoritesScreen({ data, query, promotion }: Props) {
               {promotion.ctaLabel}
             </Link>
           ) : (
-            <button type="button" className={styles.bannerCta} aria-disabled="true" title="준비 중인 기능입니다">
+            <button type="button" className={styles.bannerCta} aria-disabled="true" title={t("common.comingSoon")}>
               {promotion.ctaLabel}
             </button>
           )}
@@ -48,8 +51,8 @@ export function FavoritesScreen({ data, query, promotion }: Props) {
       )}
 
       <header className={styles.header}>
-        <h1 className={styles.title}>즐겨찾기</h1>
-        <p className={styles.count}>총 {data.totalCount}건 즐겨찾기</p>
+        <h1 className={styles.title}>{t("myFavorites.title")}</h1>
+        <p className={styles.count}>{t("myFavorites.count", { count: data.totalCount })}</p>
       </header>
 
       {/* Plain GET form: works without JavaScript and with IME input. */}
@@ -59,8 +62,8 @@ export function FavoritesScreen({ data, query, promotion }: Props) {
           type="search"
           name="q"
           className={styles.searchInput}
-          placeholder="즐겨찾는 크리에이터 검색"
-          aria-label="즐겨찾는 크리에이터 검색"
+          placeholder={t("myFavorites.search")}
+          aria-label={t("myFavorites.search")}
           defaultValue={query ?? ""}
           maxLength={50}
         />
@@ -70,16 +73,16 @@ export function FavoritesScreen({ data, query, promotion }: Props) {
         <div className={styles.empty}>
           {query ? (
             <>
-              <p>‘{query}’에 해당하는 즐겨찾기가 없습니다.</p>
+              <p>{t("myFavorites.noMatch", { query })}</p>
               <Link href="/favorites" className={styles.emptyLink}>
-                전체 즐겨찾기 보기
+                {t("myFavorites.viewAll")}
               </Link>
             </>
           ) : (
             <>
-              <p>아직 즐겨찾기한 크리에이터가 없습니다.</p>
+              <p>{t("myFavorites.none")}</p>
               <Link href="/creators" className={styles.emptyLink}>
-                크리에이터 둘러보기
+                {t("myFavorites.browse")}
               </Link>
             </>
           )}
@@ -96,19 +99,17 @@ export function FavoritesScreen({ data, query, promotion }: Props) {
                     {c.name}
                   </Link>
                   {c.verified && (
-                    <span className={styles.verified} role="img" aria-label="인증된 크리에이터">
+                    <span className={styles.verified} role="img" aria-label={t("myFavorites.verified")}>
                       <VerifiedCheckIcon />
                     </span>
                   )}
                 </span>
-                <span className={styles.subs}>
-                  {FLEXTV_SITE ? "즐겨찾기" : "구독자"} {formatCompactKo(c.subscriberCount)}명
-                </span>
+                <span className={styles.subs}>{t(FLEXTV_SITE ? "myFavorites.favorites" : "myFavorites.subscribers", { count: formatCompact(c.subscriberCount, locale) })}</span>
               </div>
-              <span className={`${styles.status} ${c.isLive ? styles.live : ""}`}>{c.isLive ? "방송 중" : "오프라인"}</span>
+              <span className={`${styles.status} ${c.isLive ? styles.live : ""}`}>{c.isLive ? t("myFavorites.live") : t("myFavorites.offline")}</span>
               <div className={styles.actions}>
                 <Button href={`/creators/${c.creatorId}?tab=donation`} className={styles.donate}>
-                  후원하기
+                  {t("myFavorites.donate")}
                 </Button>
                 <RemoveFavoriteButtons creatorId={c.creatorId} name={c.name} part="button" />
               </div>
@@ -118,20 +119,20 @@ export function FavoritesScreen({ data, query, promotion }: Props) {
       )}
 
       {data.totalPages > 1 && (
-        <nav className={styles.pagination} aria-label="페이지">
-          <PageLink href={pageHref(1, query)} disabled={data.page === 1} label="첫 페이지">
+        <nav className={styles.pagination} aria-label={t("myFavorites.pages")}>
+          <PageLink href={pageHref(1, query)} disabled={data.page === 1} label={t("myFavorites.first")}>
             «
           </PageLink>
-          <PageLink href={pageHref(data.page - 1, query)} disabled={data.page === 1} label="이전 페이지">
+          <PageLink href={pageHref(data.page - 1, query)} disabled={data.page === 1} label={t("myFavorites.prev")}>
             ‹
           </PageLink>
           <span className={`${styles.pageButton} ${styles.pageCurrent}`} aria-current="page">
             {data.page}
           </span>
-          <PageLink href={pageHref(data.page + 1, query)} disabled={data.page === data.totalPages} label="다음 페이지">
+          <PageLink href={pageHref(data.page + 1, query)} disabled={data.page === data.totalPages} label={t("myFavorites.next")}>
             ›
           </PageLink>
-          <PageLink href={pageHref(data.totalPages, query)} disabled={data.page === data.totalPages} label="마지막 페이지">
+          <PageLink href={pageHref(data.totalPages, query)} disabled={data.page === data.totalPages} label={t("myFavorites.last")}>
             »
           </PageLink>
         </nav>

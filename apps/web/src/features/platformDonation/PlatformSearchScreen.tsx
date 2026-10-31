@@ -1,22 +1,24 @@
-import { PLATFORMS, type PlatformCreator, type PlatformKey } from "@/services/platformDonation/platformTypes";
+import { getT } from "@/lib/i18n/server";
+import type { PlatformCreator, PlatformKey } from "@/services/platformDonation/platformTypes";
 import { CreatorRow, PlatformHeader, SearchForm } from "./parts";
+import { PLATFORM_WORDS } from "./words";
 import styles from "./platformDonation.module.css";
 
 /** Figma 817:9146 (SOOP) · 817:8449 (FlexTV) — results and the empty state. */
-export function PlatformSearchScreen({ platform, query, balance, results }: { platform: PlatformKey; query: string; balance: number; results: PlatformCreator[] }) {
-  const p = PLATFORMS[platform];
+export async function PlatformSearchScreen({ platform, query, balance, results }: { platform: PlatformKey; query: string; balance: number; results: PlatformCreator[] }) {
+  const t = await getT();
   return (
     <div className={styles.content}>
-      <PlatformHeader platform={platform} subtitle={`후원할 ${p.creatorWord}를 검색해보세요.`} balance={balance} />
+      <PlatformHeader platform={platform} subtitle={t("platformDonation.searchSubtitle", { who: t(PLATFORM_WORDS[platform].who) })} balance={balance} />
       <SearchForm platform={platform} defaultValue={query} />
-      <section className={styles.section} aria-label="검색 결과">
-        <h2 className={styles.sectionTitle}>검색 결과</h2>
+      <section className={styles.section} aria-label={t("platformDonation.results")}>
+        <h2 className={styles.sectionTitle}>{t("platformDonation.results")}</h2>
         {!query ? (
-          <p className={styles.emptyCard}>닉네임 또는 ID를 입력해 검색해 주세요.</p>
+          <p className={styles.emptyCard}>{t("platformDonation.searchPrompt")}</p>
         ) : results.length === 0 ? (
           <div className={styles.emptyCard}>
-            <strong>검색 결과가 없습니다.</strong>
-            <span>닉네임 또는 ID를 다시 확인해주세요.</span>
+            <strong>{t("platformDonation.noResults")}</strong>
+            <span>{t("platformDonation.checkId")}</span>
           </div>
         ) : (
           <ul className={styles.list}>
