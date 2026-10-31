@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { formatKstTime, formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { closeSubBoard, openSubBoard } from "@/services/crew/crewBoards";
 import { SUB_BOARD_MAX, SUB_BOARD_TITLE_MAX, type BroadcastResult, type SubBoard } from "@/services/crew/crewTypes";
 import { CopyButton } from "../settings/SettingsCards";
@@ -27,6 +28,7 @@ export function SubBoards({
   pending: boolean;
   run: (action: () => Promise<BroadcastResult>, ok?: string) => void;
 }) {
+  const { t } = useI18n();
   const [title, setTitle] = useState("");
   const requestId = useRef<string | null>(null);
   const [origin, setOrigin] = useState("");
@@ -43,22 +45,20 @@ export function SubBoards({
         setTitle("");
       }
       return res;
-    }, "새 판을 열었어요.");
+    }, t("crewOpsScenario.subOpened"));
   };
 
   return (
     <section className={styles.card} aria-labelledby="bc-subboards">
       <div className={styles.cardHead}>
         <h2 id="bc-subboards" className={styles.cardTitle}>
-          서브 점수판
+          {t("crewOpsScenario.subBoard")}
         </h2>
         <span className={styles.muted}>
-          {boards.length}/{SUB_BOARD_MAX}판
+          {t("crewOpsScenario.subCount", { count: boards.length, max: SUB_BOARD_MAX })}
         </span>
       </div>
-      <p className={styles.note}>
-        메인 점수판 아래에 두는 구간 점수판이에요. 판이 열려 있는 동안 멤버가 받은 후원(멤버 지정 + 후원 리스트 반영)만 집계해요. 새 판을 열면 이전 판은 마감돼요.
-      </p>
+      <p className={styles.note}>{t("crewOpsScenario.subNote")}</p>
       <form
         className={styles.addRow}
         onSubmit={(e) => {
@@ -68,18 +68,18 @@ export function SubBoards({
       >
         <input
           className={styles.input}
-          aria-label="판 이름"
-          placeholder={`판 이름 (비우면 서브 ${boards.length + 1}판)`}
+          aria-label={t("crewOpsScenario.subNameAria")}
+          placeholder={t("crewOpsScenario.subNamePlaceholder", { n: boards.length + 1 })}
           maxLength={SUB_BOARD_TITLE_MAX}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
         <button type="submit" className={styles.primary} disabled={pending || full}>
-          새 판
+          {t("crewOpsScenario.subNew")}
         </button>
       </form>
       {boards.length === 0 ? (
-        <p className={styles.empty}>아직 서브 점수판이 없어요.</p>
+        <p className={styles.empty}>{t("crewOpsScenario.subEmpty")}</p>
       ) : (
         <ul className={styles.list}>
           {[...boards].reverse().map((b) => (
@@ -88,25 +88,25 @@ export function SubBoards({
                 <span className={styles.rowTitle}>
                   {b.no}. {b.title}
                   <span className={feed.status} data-status={b.closedAt ? "CANCELLED" : "ASSIGNED"}>
-                    {b.closedAt ? "마감" : "진행 중"}
+                    {b.closedAt ? t("crewOpsScenario.subClosed") : t("crewOpsScenario.subOpen")}
                   </span>
                 </span>
                 <span className={styles.muted}>
-                  {time(b.openedAt)} ~ {b.closedAt ? time(b.closedAt) : "지금"} ·{" "}
+                  {time(b.openedAt)} ~ {b.closedAt ? time(b.closedAt) : t("crewOpsScenario.subNow")} ·{" "}
                   {b.rows.filter((r) => r.score > 0).length
                     ? b.rows
                         .filter((r) => r.score > 0)
                         .slice(0, 3)
                         .map((r, i) => `${i + 1}. ${r.name} ${formatNumber(r.score)}`)
                         .join("  ")
-                    : "아직 점수 없음"}
+                    : t("crewOpsScenario.subNoScore")}
                 </span>
               </div>
               <span className={styles.rowActions}>
-                <CopyButton value={`${origin}${overlayPath}?board=${b.no}`} label="OBS 주소" className={styles.ghost} />
+                <CopyButton value={`${origin}${overlayPath}?board=${b.no}`} label={t("crewOpsScenario.subObsAddress")} className={styles.ghost} />
                 {!b.closedAt && (
-                  <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => closeSubBoard({ broadcastId, no: b.no }), "판을 마감했어요.")}>
-                    마감
+                  <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => closeSubBoard({ broadcastId, no: b.no }), t("crewOpsScenario.subClosedDone"))}>
+                    {t("crewOpsScenario.subClose")}
                   </button>
                 )}
               </span>
