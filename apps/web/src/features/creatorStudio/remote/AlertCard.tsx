@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { PlatformMark } from "@/features/broadcast/PlatformMark";
 import { OverlayThemeRoot, ov } from "@/features/overlayTheme/OverlayThemeRoot";
 import { ALERT_ROLL_MS, alertAmount, type AlertItem } from "@/services/creator/alertTypes";
@@ -197,7 +197,14 @@ export function AlertCard({ alert, design, theme, replay = 0, vertical = false }
 
   return (
     <OverlayThemeRoot theme={theme} className={c.stage} data-layout={design.layout} data-vertical={vertical || undefined}>
-      <div key={`${alert.id}:${replay}`} className={`${ov.enter} ${c.motion}`} data-motion={design.motion} role="status">
+      <div
+        key={`${alert.id}:${replay}`}
+        className={`${ov.enter} ${c.motion}`}
+        data-motion={design.motion}
+        role="status"
+        // 글자 크기 (2026-11-01): alerts saved before it have none — the theme's sizes.
+        style={design.textScale ? ({ "--al-amount": design.textScale.amount / 100, "--al-name": design.textScale.name / 100, "--al-message": design.textScale.message / 100 } as CSSProperties) : undefined}
+      >
         {body}
       </div>
     </OverlayThemeRoot>
