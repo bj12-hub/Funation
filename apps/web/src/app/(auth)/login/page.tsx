@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/features/auth/login";
+import { getT } from "@/lib/i18n/server";
 import { safeRedirectPath } from "@/lib/safeRedirect";
 import { getSession } from "@/lib/session";
 import { getSurface } from "@/lib/surface";
 
-export const metadata: Metadata = {
-  title: "로그인 | Ssumnation"
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("auth.metaLogin") };
+}
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string | string[] }> }) {
   const next = safeRedirectPath((await searchParams).next);

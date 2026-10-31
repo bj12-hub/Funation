@@ -6,6 +6,8 @@ import { useState, useTransition } from "react";
 import { FileIcon } from "@/components/icons";
 import { Modal } from "@/components/ui/Modal";
 import { formatKstDate, formatNumber, kstIsoString } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { quoteChargeRefund, requestChargeRefund } from "@/services/wallet/refund";
 import {
   REFUND_FEE_PERCENT,
@@ -22,8 +24,15 @@ import {
   refundQuoteChangedText,
   type RefundQuote
 } from "@/services/wallet/refundPolicy";
-import { CHARGE_STATUS_LABEL, REFUND_REASON_MAX, refundStatusText, type ChargeRecord, type ChargeRefund, type ChargeStatus } from "@/services/wallet/walletTypes";
+import { REFUND_REASON_MAX, refundStatusText, type ChargeRecord, type ChargeRefund, type ChargeStatus } from "@/services/wallet/walletTypes";
 import styles from "./wallet.module.css";
+
+/** The services' CHARGE_STATUS_LABEL, in the viewer's language. */
+const STATUS_KEY: Record<ChargeStatus, MessageKey> = {
+  PROCESSING: "wallet.chargeProcessing",
+  COMPLETED: "wallet.chargeCompleted",
+  CANCELLED: "wallet.chargeCancelled"
+};
 
 const PILL: Record<ChargeStatus, string> = {
   PROCESSING: styles.pillProcessing,
@@ -33,6 +42,7 @@ const PILL: Record<ChargeStatus, string> = {
 
 /** Figma 640:2 table (empty 639:2) with the 충전내역 상세정보 popup (643:4 · 644:6 · 644:185 · 644:364). */
 export function ChargeTable({ items }: { items: ChargeRecord[] }) {
+  const { t } = useI18n();
   // Keep the id, not the record: after a refresh the popup shows the server's current state of the charge.
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = items.find((c) => c.id === selectedId) ?? null;
@@ -43,16 +53,16 @@ export function ChargeTable({ items }: { items: ChargeRecord[] }) {
         <table className={`${styles.table} ${styles.chargeTable}`}>
           <thead>
             <tr>
-              <th scope="col">날짜와 시간</th>
-              <th scope="col">결제수단</th>
+              <th scope="col">{t("wallet.dateTime")}</th>
+              <th scope="col">{t("wallet.paymentMethod")}</th>
               <th scope="col" className={styles.center}>
-                충전 FN
+                {t("wallet.chargedFn")}
               </th>
               <th scope="col" className={styles.center}>
-                처리 상태
+                {t("wallet.status")}
               </th>
               <th scope="col" className={styles.center}>
-                비고
+                {t("wallet.note")}
               </th>
             </tr>
           </thead>
@@ -60,7 +70,7 @@ export function ChargeTable({ items }: { items: ChargeRecord[] }) {
             {items.length === 0 ? (
               <tr>
                 <td colSpan={5} className={styles.empty}>
-                  충전 내역이 존재하지 않습니다.
+                  {t("wallet.noCharges")}
                 </td>
               </tr>
             ) : (
@@ -74,12 +84,12 @@ export function ChargeTable({ items }: { items: ChargeRecord[] }) {
                     <span className={styles.fnChip}>{formatNumber(c.fnAmount)} FN</span>
                   </td>
                   <td className={styles.center}>
-                    <span className={`${styles.pill} ${PILL[c.status]}`}>{CHARGE_STATUS_LABEL[c.status]}</span>
+                    <span className={`${styles.pill} ${PILL[c.status]}`}>{t(STATUS_KEY[c.status])}</span>
                     {c.refund && <span className={styles.refundTag}>{refundStatusText(c.refund)}</span>}
                   </td>
                   <td className={styles.center}>
-                    <button type="button" className={styles.detailButton} onClick={() => setSelectedId(c.id)} aria-label={`${c.chargedAt} 충전 자세히`}>
-                      자세히
+                    <button type="button" className={styles.detailButton} onClick={() => setSelectedId(c.id)} aria-label={t("wallet.detailsFor", { at: c.chargedAt })}>
+                      {t("wallet.details")}
                     </button>
                   </td>
                 </tr>
@@ -92,14 +102,14 @@ export function ChargeTable({ items }: { items: ChargeRecord[] }) {
       <Modal
         open={selected !== null}
         onClose={() => setSelectedId(null)}
-        title="충전내역 상세정보"
+        title={t("wallet.detailTitle")}
         footer={
           <>
             <button type="button" className={styles.modalSecondary} onClick={() => setSelectedId(null)}>
-              닫기
+              {t("wallet.close")}
             </button>
             <button type="button" className={styles.modalPrimary} onClick={() => setSelectedId(null)}>
-              확인
+              {t("wallet.ok")}
             </button>
           </>
         }
@@ -114,12 +124,16 @@ const day = (iso: string) => formatKstDate(iso);
 /** 충전 일시's format, "YYYY-MM-DD HH:mm:ss", in Korea time. */
 const dateTime = (at: string) => kstIsoString(at).replace("T", " ");
 
-/** 환불 정책 요약 — 기본값 (일반적인 기준, 법무 검토 전), with the policy document. */
+/**
+ * 환불 정책 요약 — 기본값 (일반적인 기준, 법무 검토 전), with the policy document. The policy lines are the services' wording
+ * and stay Korean until an approved translation exists (TBD); only the heading and the link follow the language.
+ */
 function RefundPolicy() {
+  const { t } = useI18n();
   return (
-    <section className={styles.refundPolicy} aria-label="환불 정책">
+    <section className={styles.refundPolicy} aria-label={t("wallet.refundPolicy")}>
       <p className={styles.refundPolicyTitle}>
-        환불 정책 <span className={styles.refundPolicyBadge}>{REFUND_POLICY_LABEL}</span>
+        {t("wallet.refundPolicy")} <span className={styles.refundPolicyBadge}>{REFUND_POLICY_LABEL}</span>
       </p>
       <ul className={styles.refundPolicyList}>
         {REFUND_POLICY_LINES.map((line) => (
@@ -127,7 +141,7 @@ function RefundPolicy() {
         ))}
       </ul>
       <Link href={REFUND_POLICY_HREF} className={styles.refundPolicyLink}>
-        환불 정책 전문 보기
+        {t("wallet.refundPolicyFull")}
       </Link>
     </section>
   );
@@ -136,8 +150,10 @@ function RefundPolicy() {
 /**
  * The server's outcome for this charge, before the member asks: 전액 취소 / 수수료 공제 후 환불 / 환불 불가 + 사유. The
  * KRW amount is the server's too (`refundKrw`: 전액 취소 the whole payment, otherwise its share for the net FN).
+ * The explanation lines are refund-policy wording: they stay Korean until an approved translation exists (TBD).
  */
 function RefundOutcome({ quote }: { quote: RefundQuote }) {
+  const { t } = useI18n();
   if (quote.type === "NOT_REFUNDABLE") {
     return (
       <div className={styles.refundOutcome}>
@@ -159,21 +175,21 @@ function RefundOutcome({ quote }: { quote: RefundQuote }) {
       </p>
       <dl className={styles.refundFacts}>
         <div>
-          <dt>{full ? "환불 FN" : "남은 충전 FN"}</dt>
+          <dt>{full ? t("wallet.refundFn") : t("wallet.remainingFn")}</dt>
           <dd>{formatNumber(quote.grossFn)} FN</dd>
         </div>
         <div>
-          <dt>{full ? "환불 수수료" : `환불 수수료 (${REFUND_FEE_PERCENT})`}</dt>
-          <dd>{full ? "없음" : `−${formatNumber(quote.feeFn)} FN`}</dd>
+          <dt>{full ? t("wallet.refundFee") : t("wallet.refundFeeRate", { rate: REFUND_FEE_PERCENT })}</dt>
+          <dd>{full ? t("wallet.none") : `−${formatNumber(quote.feeFn)} FN`}</dd>
         </div>
         {!full && (
           <div>
-            <dt>환불 FN</dt>
+            <dt>{t("wallet.refundFn")}</dt>
             <dd>{formatNumber(quote.netFn)} FN</dd>
           </div>
         )}
         <div>
-          <dt>{full ? "결제 취소 금액" : "환불 금액"}</dt>
+          <dt>{full ? t("wallet.cancelAmount") : t("wallet.refundAmount")}</dt>
           <dd className={styles.refundFactsTotal}>{formatNumber(quote.refundKrw)} 원</dd>
         </div>
       </dl>
@@ -188,10 +204,11 @@ function RefundOutcome({ quote }: { quote: RefundQuote }) {
 
 /** A filed request: 접수 · 심사 중 / 승인 / 거절, with the amounts the server stored. */
 function RefundStatus({ refund }: { refund: ChargeRefund }) {
+  const { t } = useI18n();
   if (refund.status === "REJECTED") {
     return (
       <p className={styles.refundDone} role="status">
-        환불 요청이 거절됐어요{refund.note ? ` · 사유: ${refund.note}` : ""}
+        {refund.note ? t("wallet.refundRejectedReason", { reason: refund.note }) : t("wallet.refundRejected")}
       </p>
     );
   }
@@ -201,11 +218,11 @@ function RefundStatus({ refund }: { refund: ChargeRefund }) {
     <div className={styles.refundStatus} role="status">
       <p className={styles.refundDone}>
         {approved
-          ? `환불이 승인됐어요 · ${formatNumber(refund.amounts.grossFn)} FN이 회수됐어요 (${day(refund.decidedAt ?? refund.requestedAt)})`
-          : `환불 요청이 접수됐어요 · 심사 중 (${day(refund.requestedAt)})`}
+          ? t("wallet.refundApproved", { fn: formatNumber(refund.amounts.grossFn), date: day(refund.decidedAt ?? refund.requestedAt) })
+          : t("wallet.refundRequested", { date: day(refund.requestedAt) })}
       </p>
       <p className={styles.refundNote}>
-        {approved ? "환불" : "요청 내용"}: {describeRefund(refund.amounts)}
+        {approved ? t("wallet.refundLabel") : t("wallet.requestLabel")}: {describeRefund(refund.amounts)}
       </p>
       {/* Approval used other amounts than the request: which way, by direction (2026-10-09 결정). */}
       {changedNote && <p className={styles.refundNote}>{changedNote}</p>}
@@ -222,6 +239,7 @@ function RefundStatus({ refund }: { refund: ChargeRefund }) {
  */
 function RefundSection({ charge }: { charge: ChargeRecord }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [quote, setQuote] = useState<RefundQuote | null>(null);
@@ -252,7 +270,7 @@ function RefundSection({ charge }: { charge: ChargeRecord }) {
         else if (res.status === "UNAUTHORIZED") router.push("/login?next=/wallet/charges");
         else showRequest(res);
       } catch {
-        setError("환불 금액을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.");
+        setError(t("wallet.quoteFailed"));
       }
     });
   };
@@ -271,7 +289,7 @@ function RefundSection({ charge }: { charge: ChargeRecord }) {
           setError(refundQuoteChangedText(quote, res.quote));
         } else showRequest(res);
       } catch {
-        setError("요청하지 못했어요. 잠시 후 다시 시도해 주세요.");
+        setError(t("wallet.requestFailed"));
       }
     });
   };
@@ -280,7 +298,7 @@ function RefundSection({ charge }: { charge: ChargeRecord }) {
     return (
       <div className={styles.refund}>
         <button type="button" className={styles.refundButton} onClick={loadQuote}>
-          환불 요청
+          {t("wallet.requestRefund")}
         </button>
       </div>
     );
@@ -293,14 +311,14 @@ function RefundSection({ charge }: { charge: ChargeRecord }) {
       ) : (
         pending && (
           <p className={styles.refundNote} role="status">
-            환불 금액을 계산하고 있어요…
+            {t("wallet.calculating")}
           </p>
         )
       )}
       {refundable && (
         <>
           <label className={styles.refundLabel} htmlFor={`refund-${charge.id}`}>
-            환불 사유 (선택)
+            {t("wallet.refundReason")}
           </label>
           <textarea id={`refund-${charge.id}`} className={styles.refundInput} value={reason} maxLength={REFUND_REASON_MAX} onChange={(e) => setReason(e.target.value)} />
         </>
@@ -313,17 +331,17 @@ function RefundSection({ charge }: { charge: ChargeRecord }) {
       )}
       <div className={styles.refundActions}>
         <button type="button" className={styles.modalSecondary} onClick={() => setOpen(false)} disabled={pending}>
-          {refundable ? "취소" : "닫기"}
+          {refundable ? t("wallet.cancel") : t("wallet.close")}
         </button>
         {refundable ? (
           <button type="button" className={styles.modalPrimary} onClick={submit} disabled={pending} aria-busy={pending || undefined}>
-            {pending ? "접수 중..." : "환불 요청하기"}
+            {pending ? t("wallet.submitting") : t("wallet.submitRefund")}
           </button>
         ) : (
           quote === null &&
           !pending && (
             <button type="button" className={styles.modalPrimary} onClick={loadQuote}>
-              다시 시도
+              {t("wallet.retry")}
             </button>
           )
         )}
@@ -337,44 +355,45 @@ function RefundSection({ charge }: { charge: ChargeRecord }) {
  * (`confirmedAt`, from the server) — its 7-day 청약철회 period counts from there, not from 충전 일시.
  */
 export function ChargeDetail({ charge }: { charge: ChargeRecord }) {
+  const { t } = useI18n();
   return (
     <div className={styles.detail}>
       <div className={styles.detailSummary}>
         <div className={styles.detailRow}>
-          <span>충전 처리 상태</span>
-          <span className={`${styles.pill} ${PILL[charge.status]}`}>{CHARGE_STATUS_LABEL[charge.status]}</span>
+          <span>{t("wallet.chargeStatus")}</span>
+          <span className={`${styles.pill} ${PILL[charge.status]}`}>{t(STATUS_KEY[charge.status])}</span>
         </div>
         <hr className={styles.detailDivider} />
         <div className={styles.detailRow}>
-          <span>충전 FN</span>
+          <span>{t("wallet.chargedFn")}</span>
           <strong className={styles.detailFn}>{formatNumber(charge.fnAmount)} FN</strong>
         </div>
       </div>
 
       <dl className={styles.detailList}>
         <div>
-          <dt>충전 일시</dt>
+          <dt>{t("wallet.chargedAt")}</dt>
           <dd>{charge.chargedAt}</dd>
         </div>
         {charge.confirmedAt && (
           <div>
-            <dt>결제 확인 일시</dt>
+            <dt>{t("wallet.confirmedAt")}</dt>
             <dd>{dateTime(charge.confirmedAt)}</dd>
           </div>
         )}
         <div>
-          <dt>결제 수단</dt>
+          <dt>{t("wallet.method")}</dt>
           <dd>
             <span aria-hidden="true">{charge.methodEmoji}</span> {charge.methodLabel}
             {charge.methodDetail && ` (${charge.methodDetail})`}
           </dd>
         </div>
         <div>
-          <dt>결제 금액</dt>
+          <dt>{t("wallet.paidAmount")}</dt>
           <dd className={styles.detailPaid}>{formatNumber(charge.paidAmount)} 원</dd>
         </div>
         <div>
-          <dt>거래 번호 (TID)</dt>
+          <dt>{t("wallet.transactionId")}</dt>
           <dd className={styles.detailTid}>{charge.transactionId ?? "-"}</dd>
         </div>
       </dl>
@@ -384,9 +403,9 @@ export function ChargeDetail({ charge }: { charge: ChargeRecord }) {
       {/* TODO: receipt (매출전표) comes from the payment provider, which is TBD. */}
       <div className={styles.receipt}>
         <FileIcon />
-        <span>매출전표 영수증 출력</span>
-        <button type="button" className={styles.receiptButton} aria-disabled="true" title="준비 중인 기능입니다">
-          확인
+        <span>{t("wallet.receipt")}</span>
+        <button type="button" className={styles.receiptButton} aria-disabled="true" title={t("common.comingSoon")}>
+          {t("wallet.receiptView")}
         </button>
       </div>
     </div>
