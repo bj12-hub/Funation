@@ -42,11 +42,11 @@ type Step =
  * Opens the payment window within the click (later, a popup blocker would stop it) with a holding page; the payment's
  * address follows once the server started the checkout. Null when the browser blocked it — the modal offers a button.
  */
-function openPaymentWindow(): Window | null {
+function openPaymentWindow(t: T): Window | null {
   const popup = window.open("", "ssumnation-payment", "popup,width=480,height=760");
   if (popup) {
-    popup.document.title = "결제";
-    popup.document.body.textContent = "결제창을 여는 중입니다...";
+    popup.document.title = t("flextvCharge.windowTitle");
+    popup.document.body.textContent = t("flextvCharge.windowOpening");
   }
   return popup;
 }
@@ -141,7 +141,7 @@ export function ChargeModal({ onClose }: { onClose: () => void }) {
     if (!canSubmit || !selection || !methodId) return;
     const amount: ChargeAmountInput = selection.type === "package" ? { packageId: selection.id } : { customAmount };
     keyRef.current ??= crypto.randomUUID();
-    const popup = FLEXTV_WALLET && WINDOW_PAYMENT_METHODS.includes(methodId) ? openPaymentWindow() : null;
+    const popup = FLEXTV_WALLET && WINDOW_PAYMENT_METHODS.includes(methodId) ? openPaymentWindow(t) : null;
     setSubmitting(true);
     setSubmitError(null);
     try {

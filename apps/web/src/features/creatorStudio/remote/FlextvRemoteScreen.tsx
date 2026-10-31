@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Modal } from "@/components/ui/Modal";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { reissueFlextvOverlayKey } from "@/services/creator/flextvRemote";
 import type { GachaControlResult, GachaRemoteView } from "@/services/donations/gachaTypes";
 import type { QuestRemoteView } from "@/services/donations/questTypes";
@@ -15,13 +17,13 @@ import { RouletteRemote } from "./RouletteRemote";
 import remote from "./remote.module.css";
 import { openRemoteWindow } from "./remoteWindow";
 
-const OVERLAYS = [
-  { widget: "roulette", label: "🎡 룰렛", size: "800 × 600" },
-  { widget: "gacha", label: "🎰 뽑기", size: "800 × 600" },
-  { widget: "gacha-board", label: "📜 뽑기 당첨 리스트", size: "1920 × 80" },
-  { widget: "quest", label: "🎯 퀘스트", size: "600 × 400" },
-  { widget: "mini", label: "⚡ 미니 후원", size: "1920 × 200" }
-] as const;
+const OVERLAYS: { widget: string; label: MessageKey; size: string }[] = [
+  { widget: "roulette", label: "flextvRemote.overlayRoulette", size: "800 × 600" },
+  { widget: "gacha", label: "flextvRemote.overlayGacha", size: "800 × 600" },
+  { widget: "gacha-board", label: "flextvRemote.overlayGachaBoard", size: "1920 × 80" },
+  { widget: "quest", label: "flextvRemote.overlayQuest", size: "600 × 400" },
+  { widget: "mini", label: "flextvRemote.overlayMini", size: "1920 × 200" }
+];
 
 /**
  * 리모컨 with FLEXTV (phase 6; code-first). Route `/creator/remote` (and `/popout/remote`) when FLEXTV's Ssumnation
@@ -41,6 +43,7 @@ export function FlextvRemoteScreen({
   overlayKey: string;
   variant?: "page" | "window";
 }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [notice, setNotice] = useState<{ tone: "error" | "ok"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
@@ -64,7 +67,7 @@ export function FlextvRemoteScreen({
         } else if (res.status === "UNAUTHORIZED") router.push("/login?role=creator&next=/creator/remote");
         else setNotice({ tone: "error", text: res.message });
       } catch {
-        setNotice({ tone: "error", text: "요청하지 못했어요. 잠시 후 다시 시도해 주세요." });
+        setNotice({ tone: "error", text: t("flextvRemote.requestFailed") });
       }
     });
   };
@@ -74,7 +77,7 @@ export function FlextvRemoteScreen({
       const r = await reissueFlextvOverlayKey();
       setConfirmReissue(false);
       if (r.status === "UNAUTHORIZED") return router.push("/login?role=creator&next=/creator/remote");
-      setNotice(r.status === "SAVED" ? { tone: "ok", text: "새 오버레이 주소를 만들었어요. OBS의 브라우저 소스 주소를 모두 바꿔 주세요." } : { tone: "error", text: "주소를 새로 만들지 못했어요. 잠시 후 다시 시도해 주세요." });
+      setNotice(r.status === "SAVED" ? { tone: "ok", text: t("flextvRemote.reissued") } : { tone: "error", text: t("flextvRemote.reissueFailed") });
       router.refresh();
     });
 
@@ -82,19 +85,19 @@ export function FlextvRemoteScreen({
     <div className={styles.content}>
       <header className={remote.head}>
         <div className={styles.header}>
-          <h1 className={styles.title}>리모컨</h1>
-          <p className={styles.subtitle}>방송 중 퀘스트 · 룰렛 · 뽑기를 한 화면에서 진행하세요. 후원 알림은 FLEXTV 도우미에서 나와요.</p>
+          <h1 className={styles.title}>{t("flextvRemote.title")}</h1>
+          <p className={styles.subtitle}>{t("flextvRemote.subtitle")}</p>
         </div>
         {variant === "page" && (
           <button
             type="button"
             className={styles.ghost}
-            title="방송 중 옆에 띄워 두는 작은 창 (1000 × 800)"
+            title={t("flextvRemote.openWindowTitle")}
             onClick={() => {
-              if (!openRemoteWindow()) setNotice({ tone: "error", text: "브라우저가 새 창을 막았어요. 팝업을 허용한 뒤 다시 눌러 주세요." });
+              if (!openRemoteWindow()) setNotice({ tone: "error", text: t("flextvRemote.popupBlocked") });
             }}
           >
-            ↗ 작은 창으로 열기
+            {t("flextvRemote.openWindow")}
           </button>
         )}
       </header>
@@ -102,23 +105,23 @@ export function FlextvRemoteScreen({
       <section className={styles.card} aria-labelledby="flextv-overlays">
         <div className={styles.cardHead}>
           <h2 className={styles.cardTitle} id="flextv-overlays">
-            OBS 오버레이 주소
+            {t("flextvRemote.overlaysTitle")}
           </h2>
           <button type="button" className={styles.ghost} disabled={pending} onClick={() => setConfirmReissue(true)}>
-            주소 새로 만들기
+            {t("flextvRemote.reissue")}
           </button>
         </div>
         <ul className={remote.overlayList}>
           {OVERLAYS.map((o) => (
             <li key={o.widget}>
               <span>
-                {o.label} <span className={styles.note}>· 권장 {o.size}</span>
+                {t(o.label)} <span className={styles.note}>· {t("flextvRemote.recommended", { size: o.size })}</span>
               </span>
-              <CopyButton value={`${origin}/overlay/widget/${o.widget}/${overlayKey}`} label="주소 복사" className={styles.ghost} />
+              <CopyButton value={`${origin}/overlay/widget/${o.widget}/${overlayKey}`} label={t("flextvRemote.copyAddress")} className={styles.ghost} />
             </li>
           ))}
         </ul>
-        <p className={styles.note}>OBS의 브라우저 소스에 붙여 넣어요. 주소에는 오버레이 키가 들어 있으니 공유하지 마세요.</p>
+        <p className={styles.note}>{t("flextvRemote.overlayNote")}</p>
       </section>
 
       {notice && (
@@ -134,15 +137,15 @@ export function FlextvRemoteScreen({
       <Modal
         open={confirmReissue}
         onClose={() => !pending && setConfirmReissue(false)}
-        title="오버레이 주소를 새로 만들까요?"
-        description="지금 쓰는 주소는 바로 멈춰요. OBS에 넣은 오버레이 주소를 모두 새 주소로 바꿔야 해요."
+        title={t("flextvRemote.reissueTitle")}
+        description={t("flextvRemote.reissueDescription")}
         footer={
           <>
             <button type="button" className={styles.ghost} disabled={pending} onClick={() => setConfirmReissue(false)}>
-              취소
+              {t("flextvRemote.cancel")}
             </button>
             <button type="button" className={styles.primary} disabled={pending} onClick={reissue}>
-              새로 만들기
+              {t("flextvRemote.reissueConfirm")}
             </button>
           </>
         }

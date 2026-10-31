@@ -2,10 +2,13 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { DonationTypesScreen } from "@/features/creatorStudio/donationTypes/DonationTypesScreen";
 import { FLEXTV_SSUMNATION_API } from "@/lib/flextv/mode";
+import { getT } from "@/lib/i18n/server";
 import { getDonationTypeSettings } from "@/services/creator/flextvDonationTypes";
 
 // Code-first (no Figma frame): 후원 종류 설정 on FLEXTV channels (phase 6).
-export const metadata: Metadata = { title: "후원 종류 설정 | Ssumnation 크리에이터" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("flextvDonationTypes.metaTitle") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

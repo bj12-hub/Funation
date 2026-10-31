@@ -1,4 +1,7 @@
+"use client";
+
 import { CheckIcon } from "@/components/icons";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import styles from "./SignupStepper.module.css";
 
 /** Figma: step-indicator 280:75 · 722:558 · 723:203 */
@@ -12,11 +15,12 @@ type SignupStepperProps = {
 };
 
 export function SignupStepper({ current, steps = STEPS }: SignupStepperProps) {
+  const { t } = useI18n();
   const total = steps.length;
   const shown = Math.min(current, total);
 
   return (
-    <div className={styles.root} aria-label={`회원가입 ${shown}/${total} 단계`}>
+    <div className={styles.root} aria-label={t("flextvSignup.stepperAria", { shown, total })}>
       <p className={styles.count}>
         {shown} / {total}
       </p>
