@@ -102,6 +102,28 @@ export const en: Messages = {
     metaAll: "All streams | Ssumnation",
     metaPopular: "Popular live | Ssumnation"
   },
+  creators: {
+    title: "Creators",
+    liveNow: "{count} live right now",
+    noneLive: "No creators are live right now",
+    sort: "Sort",
+    sortPopular: "Popular",
+    sortLive: "Live",
+    sortRecent: "Newest",
+    list: "Creator list",
+    results: "{count} results for ‘{query}’",
+    noMatch: "No creators match.",
+    none: "No creators yet.",
+    pages: "Pages",
+    prev: "Previous",
+    next: "Next",
+    subscribers: "{count} subscribers",
+    watching: "{count} watching",
+    search: "Search creators by name or keyword",
+    loading: "Loading creators",
+    loadError: "Couldn't load creators",
+    meta: "Find creators | Ssumnation"
+  },
   page: {
     errorDescription: "Something went wrong for a moment. Please try again shortly",
     retry: "Try again",
