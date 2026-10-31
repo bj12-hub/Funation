@@ -16,9 +16,15 @@ export const LIVE_BATTLE_MAX_SEC = 180;
 /** Seconds between 배틀 시작 and the fight (OBS and the controllers count down). */
 export const LIVE_LEAD_SEC = 3;
 export const LIVE_HISTORY_MAX = 20;
-/** How often OBS reads the battle, and how often a controller sends its stick at most (ms). */
+/** How often OBS reads the battle when it cannot stream it, and how often a controller sends its stick at most (ms). */
 export const LIVE_OBS_POLL_MS = 100;
 export const LIVE_INPUT_MS = 100;
+/**
+ * OBS stream (2026-11-01): the battle on every server tick while a round counts down or fights (ms); otherwise when it
+ * changes, or at least this often (ms).
+ */
+export const LIVE_STREAM_MS = 50;
+export const LIVE_STREAM_IDLE_MS = 1_000;
 
 export type LiveSettings = { title: string; maxPlayers: number; battleSec: number; ringShrink: boolean };
 export const DEFAULT_LIVE: LiveSettings = { title: "", maxPlayers: 12, battleSec: 90, ringShrink: true };
