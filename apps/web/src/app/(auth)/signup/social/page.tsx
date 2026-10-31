@@ -4,8 +4,11 @@ import { notFound, redirect } from "next/navigation";
 import { SocialSignupFlow } from "@/features/auth/signup";
 import { FLEXTV_AUTH } from "@/lib/flextv/mode";
 import { SOCIAL_SIGNUP_COOKIE, decodeSocialSignup } from "@/lib/flextv/social";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "간편 가입 | Ssumnation" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("flextvSignup.meta") };
+}
 
 /** 간편 가입 after a 카카오 · 네이버 · 구글 login FLEXTV did not know (app/auth/[provider]/callback). */
 export default async function SocialSignupPage() {
