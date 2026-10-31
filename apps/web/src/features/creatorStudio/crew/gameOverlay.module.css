@@ -305,10 +305,10 @@
   width: min(100%, calc(480px + (var(--card-cols, 1) - 1) * 340px));
 }
 
-/* 땅따먹기 (2026-10-30): the square board grows with its size — but not past the source height (the title, result and
-   ranking take about 200px), and never under the 480px it always had. */
+/* 땅따먹기 (2026-10-30): the square board grows with its size — but not past the source height (the title and result take
+   about 200px, the 롤링 and 순위 `--fit-extra`, 2026-11-01), and never under the 480px it always had. */
 .machine[data-fit-height] {
-  max-width: max(480px, calc(100vh - 200px));
+  max-width: max(480px, calc(100vh - 200px - var(--fit-extra, 0px)));
 }
 
 .bingoBoards {
