@@ -335,6 +335,42 @@ Confirmed:
   따로), 출근 BJ만(휴식 중 멤버 빼기, 기본 끔), 상품 순위표 · 팀 순위표 제목 색(기본 원래 색). See docs/figma/code-first-screens.md
 - 시그 벽지 (2026-10-28, 기본값 — 일반적인 기준, StreamDonate 참고): 시그니처 후원 1건마다 `?d=` 주소의 카드(이미지 · 감사 문구 · 금액),
   스타일 공통, 최근 50건 목록. 원 · 캐시 금액 단위는 FN 환산이 없어 TBD. See docs/figma/code-first-screens.md
+- 시그니처 목록 정렬 · 선택 삭제, 시그헌터 몰수권 최소 금액 · 자동 잠김 (2026-10-28, 기본값 — 일반적인 기준, StreamDonate 참고): 정렬은
+  보기만(최신순은 만든 시각, 그 전 시그니처는 가장 오래된 것), 선택 삭제는 확인 창 뒤 한 번에. 몰수권 최소 금액 기본 0(제한 없음),
+  자동 잠김 기본 끔(켜면 다음 라운드까지 잠김). See docs/figma/code-first-screens.md
+- 텍스트 슬롯 스타일 (2026-10-28, 기본값 — 일반적인 기준, StreamDonate 참고): 폰트 · 줄 간격 · 테두리 두께 · 색 · 그림자 · 색 지정 배경(안쪽
+  여백 · 모서리), 기본값은 그 전 모습 그대로. 부분 서식(드래그한 부분만 서식)은 TBD. See docs/figma/code-first-screens.md
+- 따로 띄우는 게임 OBS 소스 (2026-10-28, 기본값 — 일반적인 기준, StreamDonate 참고): 땅따먹기 점유 현황 `?territoryrank`, 고스톱 랭킹
+  `?gostoprank`(10명), 스도폴리 상태 텍스트 `?sudopolystatus`. 스도폴리 3D 보드는 TBD. See docs/figma/code-first-screens.md
+- 순위표 표시 옵션 (2026-10-28, 기본값 — 일반적인 기준, StreamDonate 참고): 상품 순위표 표시 대상(멤버 전체 기본 / 점수 받은 멤버만 상위
+  N명, 기본 10), 팀 순위표 한 줄에 놓을 팀원 수(기본 0 = 자동), 등수별 상품 테두리색(기본 없음). See docs/figma/code-first-screens.md
+- 기여도 릴레이 설정 프리셋 · 주사위 프로젝트별 룰 (2026-10-28, 기본값 — 일반적인 기준, StreamDonate 참고): 릴레이 프리셋은 랜덤시그와
+  같은 방식(10개), 주사위 룰은 StreamDonate 프리셋을 우리 프로젝트로 보고 프로젝트마다(없으면 기본 룰). See docs/figma/code-first-screens.md
+- 다수 팀 표시 방식 · 음악 편집기 단축키 (2026-10-28, 기본값 — 일반적인 기준, StreamDonate 참고): 다수 팀 배틀 OBS 가로 막대(기본) / 누적 바,
+  음악 편집기 되돌리기 50번 · 복사 · 붙여넣기 · 루프와 StreamDonate 단축키. See docs/figma/code-first-screens.md
+- 원형 룰렛 방송 도구 (2026-10-30, 기본값 — 일반적인 기준, StreamDonate 참고): 칸 20개 · ×1 ~ ×20, 감속 5초 · 결과 6초, 후원 시 자동
+  스핀은 썸네이션 후원 완료마다 한 번(최소 금액 조건은 TBD), 결과는 화면 문구(지급 없음). See docs/figma/code-first-screens.md
+- 시그니처 선택 도구 (2026-10-30, 기본값 — 일반적인 기준, StreamDonate 참고): 두산 최신순 · 오래된순 · 이미지+음악 있는 것만(기본 끔) ·
+  끌어서 고르기, 시그헌터 클릭해제 방지(기본 끔, 화면에서만). See docs/figma/code-first-screens.md
+- 땅따먹기 판 크기 (2026-10-30, 기본값 — 일반적인 기준, StreamDonate 참고): 한 변 2 ~ 50칸(기본 8 그대로), 27열부터 AA ~ AX.
+  OBS 카드는 판이 클수록 넓어지되 소스 너비 · 높이 안에. 금액 표시 단위(원 · 하트 · 달)는 환율 TBD라 그대로 없음.
+  See docs/figma/code-first-screens.md
+- 시그니처 두산 롤러 연출 (2026-10-30, 기본값 — 일반적인 기준, StreamDonate 참고): OBS 표시 방식 롤러가 기본(예전 설정도 롤러),
+  사다리는 고를 수 있음. 카드 4:3, 한 단에 0.9초 굴림. See docs/figma/code-first-screens.md
+- 스도폴리 3D 보드 (2026-10-30, 기본값 — 일반적인 기준, StreamDonate 참고): 따로 띄우는 `?sudopoly3d`, 55° 기울임 · 45° 돌림(출발이 앞),
+  칸 색은 보드게임풍 고정 색(테마와 별개). See docs/figma/code-first-screens.md
+- 정산 내역 CSV 다운로드 (2026-11-01, policy-decisions 1(b)의 돈 없이 먼저 만들 수 있는 변형): 크리에이터 본인의 정산 신청 내역만,
+  화면 표와 같은 값. 외부 서비스로 보내기(API · 주기) · 후원 원장 내보내기 · 지급 대행은 그대로 TBD. See docs/figma/code-first-screens.md
+- 시그니처 잭팟 점수 풀 (2026-11-01, policy-decisions 2 (C) — 돈이 움직이지 않는 변형, 기본값 StreamDonate 값): 적립 3% · 목표 120
+  (± 1/6에서 랜덤) · 당첨 문구 8초, 멤버를 고른 시그니처 후원만, 풀은 방송마다. 당첨금을 후원으로 적립하는 돈 버전은 그대로 정책 결정 대기.
+  See docs/figma/code-first-screens.md
+- 마이너스 시그니처 (2026-11-01, policy-decisions 6 (a) — 끌 수 있는 크루 옵션, 기본값): 크리에이터가 고른 시그니처의 멤버 지정 후원이
+  그 멤버 크루 점수에서 1배만큼 빠짐(0 아래 허용, 후원 때 고정), 제외 멤버 선택, 후원자 · FN 쪽은 그대로, 점수 게임 없음. 후원자가 깎기를
+  고르는 방식과 (b) 취소 반영은 그대로 정책 결정 대기. See docs/figma/code-first-screens.md
+- 후원 알림 글자 크기 (2026-11-01, 기본값 — 일반적인 기준, StreamDonate 참고): 금액 · 알림 문구 · 메시지 각각 50 ~ 200%(기본 100%, 테마 크기에
+  곱함). 원소스에서 오버레이마다 따로 정하는 방식 · 미디어별 표시 시간은 만들지 않음. See docs/figma/code-first-screens.md
+- 조작형 럼블 OBS 서버 푸시 (2026-11-01, 기본값): OBS는 SSE 스트림(전투 중 50ms, 그 밖에는 바뀔 때 · 1초), 안 되면 0.1초 요청.
+  조종 입력의 실시간 연결(WebSocket 등)은 실제 백엔드에서 정할 일 — TBD. See docs/figma/code-first-screens.md
 
 Still TBD:
 

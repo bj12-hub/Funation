@@ -12,7 +12,7 @@ import { sessionAccount } from "@/services/account/withdrawalCore";
 import { donorKeyOf, enqueueDonationAlert } from "@/services/creator/alertCore";
 import { shownOnStream } from "@/services/creator/donationPageCore";
 import { getCreatorById } from "@/services/creators/creators";
-import { attributeMemberDonation, isActiveMember, linkFeedAlert, liveBroadcastOf, recordBroadcastDonation, type FeedListing } from "@/services/crew/crewCore";
+import { attributeMemberDonation, isActiveMember, isMinusDonation, linkFeedAlert, liveBroadcastOf, recordBroadcastDonation, type FeedListing } from "@/services/crew/crewCore";
 import { gamesForSignature } from "@/services/crew/crewGameTriggers";
 import { drawMedley, medleyRun } from "@/services/crew/crewMedleyCore";
 import { drawRandomSig, randomSigRun } from "@/services/crew/crewRandomSigCore";
@@ -162,13 +162,15 @@ export async function requestDonation(input: unknown): Promise<DonationResult> {
       });
     } else {
       // Crew records keep the name as sent (방송 운영 후원 리스트, 크루 후원) and the name on stream (2026-10-09 결정).
-      attributeMemberDonation(donationId, creator.id, request.memberId, request.amount, { donor, donorId, message: request.summary, shownDonor });
+      // 마이너스 시그니처 (2026-11-01): fixed now — its points come off the member, and no 점수 게임 plays for it.
+      const minus = isMinusDonation(creator.id, signatureId, request.memberId);
+      attributeMemberDonation(donationId, creator.id, request.memberId, request.amount, { donor, donorId, message: request.summary, shownDonor }, minus);
       if (!request.memberId) listed = recordBroadcastDonation(creator.id, { donor, shownDonor, message: request.summary, fnAmount: request.amount });
       // 점수 게임 (2026-10-23): a 랜덤시그 records its run; a 시그니처 후원 to a member plays each game with 자동 on while a
       // crew broadcast is live (a 랜덤시그 counts as the signature it drew).
       randomSigRun(creator.id, { donationId, memberId: request.memberId, fnAmount: request.amount, drawn: randomSig });
       medleyRun(creator.id, { donationId, memberId: request.memberId, amount: request.amount, drawn: medley });
-      gamesForSignature(creator.id, { donationId, memberId: request.memberId, signatureId, fnAmount: request.amount });
+      if (!minus) gamesForSignature(creator.id, { donationId, memberId: request.memberId, signatureId, fnAmount: request.amount });
     }
     // 룰렛: the result is drawn now and revealed when the wheel spins (no FN prize — 2026-10-04 결정).
     // 뽑기: the prize is drawn now (stock goes down) and played on the 뽑기 overlay (no FN prize).

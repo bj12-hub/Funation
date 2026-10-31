@@ -8,10 +8,9 @@ import { OverlayThemeRoot, ov } from "@/features/overlayTheme/OverlayThemeRoot";
 import styles from "./toolOverlay.module.css";
 import { useReloadSignal } from "../remote/useReloadSignal";
 import { clock, timerSeconds } from "./timerMath";
+import { WheelOverlay } from "./WheelView";
 
 const SPEED_SEC = { SLOW: 30, NORMAL: 18, FAST: 10 } as const;
-/** 텍스트 슬롯 테두리 (글자 외곽선) on the stream, like the 후원 위젯's. */
-const OUTLINE = "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000";
 
 /**
  * OBS overlay for 방송 도구 (code-first). Transparent page that re-reads the tool state every
@@ -195,6 +194,8 @@ function ToolView({ data, now, skew }: { data: OverlayTool; now: number | null; 
         </OverlayThemeRoot>
       );
     }
+    case "wheel":
+      return <WheelOverlay data={data} />;
     case "timer":
       // Rendered only after mount so the server and client markup match.
       if (now === null) return null;
@@ -227,15 +228,22 @@ function ToolView({ data, now, skew }: { data: OverlayTool; now: number | null; 
       // 텍스트 슬롯 (2026-10-23): an empty slot shows nothing; a new text restarts the scroll.
       const t = data.state;
       if (!t.text) return null;
+      const card = t.background === "CARD";
       const look: CSSProperties = {
         fontSize: t.size,
         fontWeight: t.bold ? 800 : 500,
+        fontFamily: t.font ? `"${t.font}", var(--ov-body-font)` : undefined,
+        lineHeight: t.lineHeight,
         textAlign: t.align === "LEFT" ? "left" : t.align === "RIGHT" ? "right" : "center",
-        color: t.background === "CARD" ? undefined : t.color,
-        textShadow: t.outline && t.background !== "CARD" ? OUTLINE : undefined
+        color: card ? undefined : t.color,
+        // 테두리 (2026-10-28): its width outside the letters, in its color.
+        WebkitTextStroke: t.outline && !card ? `${t.outlineWidth * 2}px ${t.outlineColor}` : undefined,
+        paintOrder: "stroke fill",
+        textShadow: t.shadow ? "0 3px 10px rgba(0, 0, 0, 0.65)" : undefined,
+        ...(t.background === "COLOR" ? { background: t.bgColor, padding: t.padding, borderRadius: t.radius } : {})
       };
       const body = (
-        <p className={`${t.background === "CARD" ? ov.card : ov.onStream} ${styles.textSlot}`} style={look}>
+        <p className={`${card ? ov.card : ov.onStream} ${styles.textSlot}`} style={look}>
           {t.text}
         </p>
       );

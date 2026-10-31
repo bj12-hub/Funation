@@ -81,7 +81,7 @@ describe("주사위 게임 · 투휠 게임", () => {
     expect(await m.saveDiceGame(dice({ title: " 주사위 ", rule: "RULE2", auto: true, excluded: [m.a.id] }))).toEqual({ status: "SAVED" });
     expect(await m.saveTwoWheel(wheel({ plusUnit: 10_000, ...only("MULTIPLY", 3) }))).toEqual({ status: "SAVED" });
     const view = (await m.getGamesView())!;
-    expect(view.diceSettings).toEqual({ title: "주사위", auto: true, excluded: [m.a.id], showIdle: true, rule: "RULE2" });
+    expect(view.diceSettings).toEqual({ title: "주사위", auto: true, excluded: [m.a.id], showIdle: true, rule: "RULE2", projectRules: [] });
     expect(view.twoWheelSettings).toMatchObject({ plusUnit: 10_000, plusWeight: 0, timesWeight: 1, timesWeights: [0, 0, 1, 0, 0] });
 
     const badDice: [Record<string, unknown>, string][] = [
@@ -142,6 +142,47 @@ describe("주사위 게임 · 투휠 게임", () => {
     expect(await m.playGame({ game: "DICE", broadcastId: id, requestId: key(2), memberId: "cm-s2", sourceId: source.id })).toEqual({ status: "INVALID", message: "이 게임을 이미 돌린 후원이에요." });
     expect((await m.getGamesView())!.live!.sources.TWO_WHEEL["cm-s2"].map((x) => x.id)).toContain(source.id);
     expect(await m.playGame({ game: "BINGO", broadcastId: id, requestId: key(3), memberId: "cm-s2" })).toEqual({ status: "INVALID", message: "게임을 골라 주세요." });
+  });
+
+  it("rolls by the 프로젝트's 룰 when the broadcast has one (2026-10-28), and checks the 프로젝트별 룰", async () => {
+    const m = await load();
+    expect(await m.saveDiceGame(dice({ rule: "RULE1", projectRules: [{ project: " 시즌1 ", rule: "RULE2" }] }))).toEqual({ status: "SAVED" });
+    expect((await m.getGamesView())!.diceSettings.projectRules).toEqual([{ project: "시즌1", rule: "RULE2" }]);
+    vi.setSystemTime(at(1));
+    expect(await m.startBroadcast({ requestId: crypto.randomUUID(), title: "시즌 방송", project: "시즌1", teamMode: false })).toEqual({ status: "SAVED" });
+    const id = (await m.getBroadcastView())!.live!.id;
+    let view = (await m.getGamesView())!;
+    expect(view.live!.project).toBe("시즌1");
+    expect(view.live!.dice.rule).toBe("RULE2");
+    expect(view.projects).toEqual(["시즌1"]);
+    await m.sign(m.a.id, m.a.price, "cm-s2");
+    const source = (await m.getGamesView())!.live!.sources.DICE["cm-s2"][0];
+    const res = await m.playGame({ game: "DICE", broadcastId: id, requestId: key(1), memberId: "cm-s2", sourceId: source.id });
+    if (res.status !== "PLAYED") throw new Error(JSON.stringify(res));
+    expect(res.run.value).toBe(diceMultiplier("RULE2", ...(res.run.dice as [number, number])));
+
+    // Another broadcast (no 프로젝트) rolls by the base 룰.
+    await m.endBroadcast(id);
+    await m.startBroadcast({ requestId: crypto.randomUUID(), title: "번외", teamMode: false });
+    view = (await m.getGamesView())!;
+    expect([view.live!.project, view.live!.dice.rule]).toEqual([null, "RULE1"]);
+
+    const bad: [Partial<DiceSettings>, string][] = [
+      [{ projectRules: [{ project: "", rule: "RULE2" }] }, "프로젝트 이름"],
+      [{ projectRules: [{ project: "가".repeat(21), rule: "RULE2" }] }, "프로젝트 이름"],
+      [{ projectRules: [{ project: "시즌1", rule: "RULE3" as never }] }, "프로젝트의 룰"],
+      [{ projectRules: [{ project: "시즌1", rule: "RULE2" }, { project: "시즌1", rule: "RULE1" }] }, "두 번"],
+      [{ projectRules: Array.from({ length: 21 }, (_, i) => ({ project: `p${i}`, rule: "RULE2" as const })) }, "20개까지"]
+    ];
+    for (const [patch, message] of bad) {
+      const r = await m.saveDiceGame(dice(patch));
+      expect(r.status === "INVALID" && r.message, message).toContain(message);
+    }
+    // A screen from before sends none: no 프로젝트별 룰.
+    const { projectRules: _pr, ...older } = dice();
+    expect(_pr).toEqual([]);
+    expect(await m.saveDiceGame(older)).toEqual({ status: "SAVED" });
+    expect((await m.getGamesView())!.diceSettings.projectRules).toEqual([]);
   });
 
   it("adds +n × the +1 점수, or multiplies the 기준 후원 by ×n", async () => {

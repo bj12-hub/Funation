@@ -16,9 +16,10 @@ import type {
   AlphabetEvent,
   AlphabetSettings,
   GoStopSettings,
+  MinusSettings,
+  JackpotSettings,
   TerritorySettings,
   SudopolySettings,
-  TerritorySize,
   SigDosanMode,
   SigDosanSettings,
   JupjupSettings,
@@ -35,6 +36,7 @@ import type {
   WindowGaugeSettings,
   MemberPledge,
   RandomSigPreset,
+  RelayPreset,
   RandomSigSettings,
   RelaySettings,
   ScenarioPart,
@@ -60,7 +62,8 @@ export const STUDIO_CHANNEL = "studio";
  * sent. `shownDonor`: the name for anything on stream (2026-10-09 결정) — after the creator's 대체 메시지 rules (익명 or
  * the 대체 문구), fixed when the donation was sent, so a later 금지어 change does not rewrite it.
  */
-type Attribution = { donationId: string; channelId: string; memberId: string; fnAmount: number; at: string; donor?: string; donorId?: string; message?: string; shownDonor: string };
+/** `minus`: a 마이너스 시그니처 후원 (2026-11-01) — its points come off the member's crew score; fixed when it came in. */
+type Attribution = { donationId: string; channelId: string; memberId: string; fnAmount: number; at: string; donor?: string; donorId?: string; message?: string; shownDonor: string; minus?: true };
 
 /** A 순위표 on a broadcast: shown on OBS, its 구간 (시작 ~ 정지; a new 시작 restarts it) and the 시작 request ids applied. */
 export type PrizeBoardState = { visible: boolean; window: { startedAt: string; stoppedAt: string | null } | null; starts: string[] };
@@ -120,6 +123,8 @@ export type MockBroadcast = {
     /** 배수 · 벌칙 chosen at the start (missing on battles from before 2026-10-05 = 1배 · 없음). */
     multiplier?: number;
     penalty?: string;
+    /** 다수 팀 표시 방식 (2026-10-28; missing = 가로 막대). */
+    display?: "BARS" | "STACKED";
   }[];
   /** 기여도 강탈: points moved from `target` to `thief` (request id = record id, so a retry returns the same spin). */
   steals?: { id: string; at: string; thief: string; target: string; slotId: string; slotLabel: string; points: number }[];
@@ -151,6 +156,8 @@ export type MockBroadcast = {
     gostop?: { pool: number; go: number; chance: number };
     /** 스도폴리: the piece that moved, from and to which 칸, and its laps after. */
     move?: { piece: string; from: number; to: number; laps: number };
+    /** 시그니처 잭팟: the 풀 and 순번 after the run (a 당첨: what it took), the 복주머니's look (tenths). */
+    jackpot?: { pool: number; count: number; fill: number; won: boolean };
     label: string;
     kind: GameEffect;
     value: number;
@@ -227,6 +234,8 @@ export type MockBroadcast = {
     }[];
     lastSold: number | null;
     advanceAt: string | null;
+    /** 몰수권 자동 잠김 (2026-10-28): when a 몰수권 locked the board (missing = open). */
+    lockedAt?: string | null;
   };
   /**
    * 시그니처 두산 board (두산 시작 replaces it): the mode and the ladder (signature ids, the lowest price first) as they were
@@ -249,6 +258,8 @@ export type MockBroadcast = {
   alphabet?: { word: string; members: Record<string, { slots: ({ revealAt: string } | null)[]; done: number; full: boolean; log: AlphabetEvent[] }> };
   /** 고스톱: the crew's 풀 and GO count now (a STOP's own record is its run). */
   /** 고스톱: the 풀 now, GO count, 풀 수동 조정 (request ids dedupe) and the 랭킹 리셋 time (2026-10-28). */
+  /** 시그니처 잭팟: the 풀 now, its 순번 so far, the 당첨 순번 drawn for it and when it started (a 당첨 or 리셋 starts a new one). */
+  jackpot?: { pool: number; count: number; turn: number; startedAt: string };
   gostop?: { pool: number; go: number; adjustments?: { id: string; at: string; points: number; reason: string }[]; rankingSince?: string | null };
   /**
    * 땅따먹기 board (판 시작 replaces it): each cell's owners in order (`revealAt`: when OBS shows each), and the 하트 log —
@@ -257,7 +268,7 @@ export type MockBroadcast = {
    */
   territory?: {
     boardId: string;
-    size: TerritorySize;
+    size: number;
     cells: { owners: { memberId: string; at: string; revealAt: string }[] }[];
     lastCell: number | null;
     hearts: { memberId: string; hearts: number; at: string; donationId: string | null; requestId: string | null }[];
@@ -323,6 +334,8 @@ type MockCrew = {
   windowGauges?: Record<string, WindowGaugeSettings>;
   /** 시그 카운트 settings per channel (missing = DEFAULT_SIG_COUNT). */
   sigCounts?: Record<string, SigCountSettings>;
+  /** 마이너스 시그니처 settings per channel (missing = DEFAULT_MINUS, off). */
+  minusSigs?: Record<string, MinusSettings>;
   /** 스핀머신 settings per channel (missing = DEFAULT_SPIN). */
   spinMachines?: Record<string, SpinSettings>;
   /** 주사위 게임 · 투휠 게임 settings per channel (missing = DEFAULT_DICE · DEFAULT_TWO_WHEEL). */
@@ -334,6 +347,8 @@ type MockCrew = {
   randomSigPresets?: Record<string, RandomSigPreset[]>;
   /** 기여도 릴레이 settings per channel (missing = DEFAULT_RELAY). */
   relays?: Record<string, RelaySettings>;
+  /** 기여도 릴레이 설정 프리셋 per channel, newest first (2026-10-28). */
+  relayPresets?: Record<string, RelayPreset[]>;
   /** 줍줍 settings per channel (missing = DEFAULT_JUPJUP). */
   jupjups?: Record<string, JupjupSettings>;
   /** 시그니처 메들리 settings per channel (missing = DEFAULT_MEDLEY). */
@@ -354,6 +369,8 @@ type MockCrew = {
   territories?: Record<string, TerritorySettings>;
   /** 스도폴리 settings per channel (missing = DEFAULT_SUDOPOLY). */
   sudopolys?: Record<string, SudopolySettings>;
+  /** 시그니처 잭팟 settings per channel (missing = DEFAULT_JACKPOT). */
+  jackpots?: Record<string, JackpotSettings>;
   /** 멤버 추가 request ids already applied (a retried add is not a second member). */
   memberRequests?: string[];
 };

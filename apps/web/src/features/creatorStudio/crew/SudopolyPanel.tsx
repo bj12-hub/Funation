@@ -508,6 +508,10 @@ export function SudopolyPanel({
       )}
 
       <OverlayAddress overlayPath={overlayPath} param="sudopoly" label="스도폴리" />
+      <p className={styles.note}>상태 텍스트 (진행 · 말마다 칸과 바퀴를 한 줄로)</p>
+      <OverlayAddress overlayPath={overlayPath} param="sudopolystatus" label="스도폴리 상태 텍스트" />
+      <p className={styles.note}>3D 보드 (같은 판을 비스듬히 내려다본 모습 — 말과 주사위가 판 위에 서 있어요)</p>
+      <OverlayAddress overlayPath={overlayPath} param="sudopoly3d" label="스도폴리 3D 보드" />
     </section>
   );
 }

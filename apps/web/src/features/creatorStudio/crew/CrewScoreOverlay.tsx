@@ -23,6 +23,7 @@ import {
   type OverlayScenario,
   type OverlayScoreboard,
   type PrizeBoardLive,
+  type RankPrize,
   type SigCountLive,
   type StealRecord,
   type SubBoard,
@@ -63,6 +64,10 @@ export function useOverlayPage(reloadSeq: number) {
     };
   }, [router]);
 }
+
+/** A 상품 · 벌칙 line's 글자색 and 테두리색 (2026-10-28: the outline outside the letters). */
+const prizeLook = (p: RankPrize | null): CSSProperties | undefined =>
+  p?.color || p?.outline ? { color: p.color ?? undefined, WebkitTextStroke: p.outline ? `3px ${p.outline}` : undefined, paintOrder: "stroke fill" } : undefined;
 
 /** Member rows: rank badge (1 · 2 · 3 medals), name, a bar in the member's color, score. */
 function Rows({ rows }: { rows: { memberId: string; name: string; score: number; color: string }[] }) {
@@ -140,7 +145,11 @@ export function BattleOverlay({ battle: x, reloadSeq, theme }: { battle: Battle 
             ))}
           </ol>
         ) : many ? (
-          <TeamBars match={x.matches[0]} running={x.running} />
+          x.display === "STACKED" ? (
+            <TeamStack match={x.matches[0]} running={x.running} />
+          ) : (
+            <TeamBars match={x.matches[0]} running={x.running} />
+          )
         ) : (
           <Tug match={x.matches[0]} running={x.running} />
         )}
@@ -197,6 +206,31 @@ function TeamBars({ match: m, running }: { match: BattleMatch; running: boolean 
         </li>
       ))}
     </ol>
+  );
+}
+
+/** 다수 팀 누적 바 (2026-10-28, StreamDonate "누적 바"): one bar split by each team's share, then the teams best first. */
+function TeamStack({ match: m, running }: { match: BattleMatch; running: boolean }) {
+  const total = m.sides.reduce((sum, s) => sum + Math.max(0, s.score), 0);
+  const share = (score: number) => (total ? (Math.max(0, score) / total) * 100 : 100 / m.sides.length);
+  return (
+    <div className={styles.stackBox}>
+      <span className={`${ov.track} ${styles.tug} ${styles.stack}`} role="img" aria-label={m.sides.map((s) => `${s.label} ${Math.round(share(s.score))}%`).join(" · ")}>
+        {m.sides.map((s) => (
+          <span key={s.key} style={{ width: `${share(s.score)}%`, background: s.color }} />
+        ))}
+      </span>
+      <ol className={styles.stackLegend}>
+        {ranked(m).map((s) => (
+          <li key={s.key} data-win={!running && m.leader === s.key ? "" : undefined}>
+            <i className={styles.dot} style={{ background: s.color }} aria-hidden="true" />
+            <span className={ov.label}>{s.label}</span>
+            <strong className={ov.display}>{formatNumber(s.score)}</strong>
+            <span className={ov.muted}>{Math.round(share(s.score))}%</span>
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }
 
@@ -272,7 +306,7 @@ export function PrizeBoardOverlay({ board, reloadSeq, theme }: { board: PrizeBoa
               <span className={`${ov.label} ${styles.name}`}>
                 <i className={styles.dot} style={{ background: r.color }} aria-hidden="true" /> {r.name}
               </span>
-              <span className={styles.prizeText} style={r.prize?.color ? { color: r.prize.color } : undefined}>
+              <span className={styles.prizeText} style={prizeLook(r.prize)}>
                 {r.prize?.text}
               </span>
               {s.showScore && <span className={`${ov.display} ${styles.score}`}>{formatNumber(r.score)}</span>}
@@ -312,12 +346,16 @@ export function TeamPrizeOverlay({ board, reloadSeq, theme }: { board: TeamPrize
               <span className={`${ov.label} ${styles.name}`}>
                 <i className={styles.dot} style={{ background: r.color }} aria-hidden="true" /> {r.name}
               </span>
-              <span className={styles.prizeText} style={r.prize?.color ? { color: r.prize.color } : undefined}>
+              <span className={styles.prizeText} style={prizeLook(r.prize)}>
                 {r.prize?.text}
               </span>
               {s.showScore && <span className={`${ov.display} ${styles.score}`}>{formatNumber(r.score)}</span>}
               {s.members === "SCORE" && r.members.length > 0 && (
-                <span className={`${ov.muted} ${styles.teamMembers}`}>
+                <span
+                  className={`${ov.muted} ${styles.teamMembers}`}
+                  data-per-line={s.membersPerLine > 0 || undefined}
+                  style={s.membersPerLine > 0 ? ({ "--per-line": s.membersPerLine } as CSSProperties) : undefined}
+                >
                   {r.members.map((m) => (
                     <span key={m.memberId}>
                       {m.name}

@@ -505,6 +505,8 @@ export type BroadcastLive = {
   gostop: GoStopLive;
   territory: TerritoryLive;
   sudopoly: SudopolyLive;
+  /** The 당첨 순번 is left out here (OBS). */
+  jackpot: JackpotLive;
   /** Server clock when this view was read: timers (시나리오 경과, 강탈 card) correct the browser's clock with it. */
   serverNow: string;
 };
@@ -537,8 +539,22 @@ export const PRIZE_PLACEMENTS: { key: PrizePlacement; label: string }[] = [
 export const PRIZE_COLUMNS = [1, 2, 3] as const;
 export type PrizeColumns = (typeof PRIZE_COLUMNS)[number];
 
-/** A rank's 상품 · 벌칙 line. `color` null = the overlay theme's text color. */
-export type RankPrize = { text: string; color: string | null };
+/**
+ * A rank's 상품 · 벌칙 line. `color` null = the overlay theme's text color; `outline` (2026-10-28, StreamDonate "글자색 ·
+ * 테두리색") = the letters' outline, null or missing = none.
+ */
+export type RankPrize = { text: string; color: string | null; outline?: string | null };
+
+/**
+ * 표시 대상 (2026-10-28, StreamDonate 시간 내 랭킹 "후원 받은 BJ만 보기 — 상위 N명 / BJ 전체 보기"): ALL lists every member;
+ * SCORED only those with more than 0, the top `limit` of them (the 상단 고정 member always shows).
+ */
+export type PrizeAudience = "ALL" | "SCORED";
+export const PRIZE_AUDIENCES: { key: PrizeAudience; label: string }[] = [
+  { key: "ALL", label: "멤버 전체" },
+  { key: "SCORED", label: "점수 받은 멤버만" }
+];
+export const PRIZE_LIMIT_MAX = 50;
 
 /** Kept per channel across broadcasts, editable before going live. */
 export type PrizeBoardSettings = {
@@ -552,6 +568,9 @@ export type PrizeBoardSettings = {
   pinned: { memberId: string; text: string } | null;
   /** 제목 색 (2026-10-28, StreamDonate "제목 색 · 원래 색"): null = the overlay theme's. */
   titleColor: string | null;
+  /** 표시 대상 · 상위 표시 인원 (2026-10-28). */
+  audience: PrizeAudience;
+  limit: number;
   columns: PrizeColumns;
   showScore: boolean;
   showTotal: boolean;
@@ -565,6 +584,8 @@ export const DEFAULT_PRIZE_BOARD: PrizeBoardSettings = {
   excluded: [],
   pinned: null,
   titleColor: null,
+  audience: "ALL",
+  limit: 10,
   columns: 1,
   showScore: true,
   showTotal: false,
@@ -641,11 +662,23 @@ export type SigCountLive = {
   totals: number[];
 };
 
+// ── 마이너스 시그니처 — code-first (2026-11-01) ─────────────────────────────────────────────────────────────
+/**
+ * policy-decisions 6 (a) "점수를 깎는 후원", as the crew option it lists (off until signatures are picked): a 시그니처 후원
+ * of one of `signatureIds` to a member takes its points off that member's crew score instead of adding them — fixed when
+ * the donation comes in, so a later change does not flip it. `excludedMembers`: members it never lowers (theirs count as
+ * usual). The donor's side does not change (FN · 랭킹 · 등급 count it as a donation), nor do the FN amounts members
+ * received (월간 순위 · 누적 금액 · 금액 게이지); 점수 게임 do not play for it.
+ */
+export type MinusSettings = { signatureIds: string[]; excludedMembers: string[] };
+export const DEFAULT_MINUS: MinusSettings = { signatureIds: [], excludedMembers: [] };
+export const MINUS_SIGNATURES_MAX = 20;
+
 // ── 점수 게임 (P2) — code-first, StreamDonate 참고 (docs/research/streamdonate-reference.md) ─────────────────────
 // A game draws its result on the server; the result is display points only (FN · 지갑 · 수익 · 정산 never move).
 
 /** Games on the shared engine (crewGameCore). `param`: the OBS view (`?spin`). */
-export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL" | "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW" | "SIG_HUNTER" | "SIG_DOSAN" | "ALPHABET" | "GOSTOP" | "TERRITORY" | "SUDOPOLY";
+export type GameKey = "SPIN" | "DICE" | "TWO_WHEEL" | "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW" | "SIG_HUNTER" | "SIG_DOSAN" | "ALPHABET" | "GOSTOP" | "TERRITORY" | "SUDOPOLY" | "JACKPOT";
 export const GAMES: { key: GameKey; label: string; param: string }[] = [
   { key: "SPIN", label: "스핀머신", param: "spin" },
   { key: "DICE", label: "주사위 게임", param: "dice" },
@@ -661,7 +694,8 @@ export const GAMES: { key: GameKey; label: string; param: string }[] = [
   { key: "ALPHABET", label: "알파벳 모으기", param: "alphabet" },
   { key: "GOSTOP", label: "고스톱", param: "gostop" },
   { key: "TERRITORY", label: "땅따먹기", param: "territory" },
-  { key: "SUDOPOLY", label: "스도폴리", param: "sudopoly" }
+  { key: "SUDOPOLY", label: "스도폴리", param: "sudopoly" },
+  { key: "JACKPOT", label: "시그니처 잭팟", param: "jackpot" }
 ];
 
 /**
@@ -684,7 +718,8 @@ export const GAME_TIMING: Record<GameKey, { playSec: number; resultSec: number }
   ALPHABET: { playSec: 3, resultSec: 3 },
   GOSTOP: { playSec: 2, resultSec: 3 },
   TERRITORY: { playSec: 1, resultSec: 3 },
-  SUDOPOLY: { playSec: 2, resultSec: 3 }
+  SUDOPOLY: { playSec: 2, resultSec: 3 },
+  JACKPOT: { playSec: 1, resultSec: 3 }
 };
 /** Runs a game lists (studio) and queues (OBS), newest first. */
 export const GAME_RUNS_SHOWN = 30;
@@ -751,8 +786,16 @@ export function diceMultiplier(rule: DiceRule, a: number, b: number): number {
   return a === b ? m * 2 : m;
 }
 
-export type DiceSettings = GameCommon & { rule: DiceRule };
-export const DEFAULT_DICE: DiceSettings = { title: "", auto: false, excluded: [], showIdle: true, rule: "RULE1" };
+/**
+ * `rule`: the 룰. `projectRules` (2026-10-28, StreamDonate "룰은 프리셋별로 저장" — 프리셋 = 프로젝트): a broadcast started
+ * with one of these 프로젝트 rolls by its 룰; any other by `rule`.
+ */
+export type DiceSettings = GameCommon & { rule: DiceRule; projectRules: { project: string; rule: DiceRule }[] };
+export const DEFAULT_DICE: DiceSettings = { title: "", auto: false, excluded: [], showIdle: true, rule: "RULE1", projectRules: [] };
+export const DICE_PROJECT_RULES_MAX = 20;
+/** The 룰 a broadcast of `project` rolls by. */
+export const diceRuleFor = (s: Pick<DiceSettings, "rule" | "projectRules">, project: string | null) =>
+  (project && s.projectRules.find((p) => p.project === project)?.rule) || s.rule;
 
 // 투휠 게임 — StreamDonate 투휠: an operator reel (+ / ×) and a number reel (+1 ~ +10, ×1 ~ ×5), odds set by the creator.
 export const TWO_WHEEL_TITLE_DEFAULT = "투휠 게임";
@@ -855,6 +898,15 @@ export type RelayTier = AmountTier;
 /** `auto` = 릴레이 켜짐; `memberId` = 트리거 BJ; `tiers` are matched top-down (the first wins, none = no effect). */
 export type RelaySettings = GameCommon & { memberId: string | null; tiers: RelayTier[] };
 export const DEFAULT_RELAY: RelaySettings = { title: "", auto: false, excluded: [], showIdle: true, memberId: null, tiers: [] };
+
+/**
+ * 기여도 릴레이 설정 프리셋 (2026-10-28, StreamDonate 기여도 릴레이 "프리셋 — 현재 설정을 저장"): the 트리거 BJ · 금액 구간 · 제외 시그
+ * by name, as on 랜덤시그 (켜짐 · 제목 · 대기 화면 left out).
+ */
+export const RELAY_PRESETS_MAX = 10;
+export const RELAY_PRESET_NAME_MAX = 20;
+export type RelayPresetFields = Pick<RelaySettings, "memberId" | "tiers" | "excluded">;
+export type RelayPreset = { id: string; name: string; savedAt: string; settings: RelayPresetFields };
 
 /** 예시 구간 — StreamDonate 기여도 릴레이 기본값 as it is (its amounts are 원; set FN ranges that fit the channel's signatures). */
 export const RELAY_EXAMPLE_TIERS: Omit<AmountTier, "id">[] = Array.from({ length: 9 }, (_, i) => ({ min: i * 50_000, max: i * 50_000 + 49_999, multiplier: i + 2 }));
@@ -1062,14 +1114,21 @@ export type SigHunterBand = { slots: number; priceMin: number | null; priceMax: 
 export type SigHunterRound = { id: string; slots: number; priceMin: number | null; priceMax: number | null; multiplier: number; forfeits: number; bands?: SigHunterBand[] };
 /** Every slot of a 라운드: its own 금액 범위's and each 추가 금액 구간's. */
 export const sigHunterSlotsOf = (r: Pick<SigHunterRound, "slots" | "bands">) => r.slots + (r.bands ?? []).reduce((s, b) => s + b.slots, 0);
-/** `auto` = 시그니처 후원으로 SOLD OUT; `excluded`: signatures kept off the board. After the last 라운드 it repeats (6+). */
-export type SigHunterSettings = GameCommon & { rounds: SigHunterRound[] };
+/**
+ * `auto` = 시그니처 후원으로 SOLD OUT; `excluded`: signatures kept off the board. After the last 라운드 it repeats (6+).
+ * 몰수권 (2026-10-28, StreamDonate 시그헌터 몰수권): `forfeitMin` — 몰수권 go only in slots of a signature at this price or
+ * more (0 = 제한 없음; none when no slot is) · `forfeitLock` — a 몰수권 opening locks the board (no more SOLD OUT until 다음
+ * 라운드); off, the board goes on.
+ */
+export type SigHunterSettings = GameCommon & { rounds: SigHunterRound[]; forfeitMin: number; forfeitLock: boolean };
 export const DEFAULT_SIG_HUNTER: SigHunterSettings = {
   title: "",
   auto: false,
   excluded: [],
   showIdle: true,
-  rounds: [{ id: "hr-1", slots: 10, priceMin: null, priceMax: null, multiplier: 1, forfeits: 0 }]
+  rounds: [{ id: "hr-1", slots: 10, priceMin: null, priceMax: null, multiplier: 1, forfeits: 0 }],
+  forfeitMin: 0,
+  forfeitLock: false
 };
 
 /**
@@ -1084,8 +1143,11 @@ export type SigHunterSlot = {
   forfeit: boolean;
   sold: { memberName: string | null; memberColor: string | null; at: string; revealAt: string; manual: boolean; points: number; absorbedBy: string | null } | null;
 };
-/** `round`: 1, 2, … (past the last 라운드 its settings repeat); `advanceAt`: a sold-out board's next 라운드 (after the last result). */
-export type SigHunterBoard = { round: number; multiplier: number; startedAt: string; slots: SigHunterSlot[]; lastSold: number | null; advanceAt: string | null };
+/**
+ * `round`: 1, 2, … (past the last 라운드 its settings repeat); `advanceAt`: a sold-out board's next 라운드 (after the last result);
+ * `locked`: a 몰수권 opened with 자동 잠김 on — nothing sells until 다음 라운드.
+ */
+export type SigHunterBoard = { round: number; multiplier: number; startedAt: string; slots: SigHunterSlot[]; lastSold: number | null; advanceAt: string | null; locked: boolean };
 /** Columns of a board of `n` slots: no more rows than columns, the fewest empty cells, then the squarest (8 → 4 × 2, 40 → 8 × 5). */
 export function sigHunterColumns(n: number) {
   if (n <= 3) return Math.max(n, 1);
@@ -1108,9 +1170,18 @@ export const SIG_DOSAN_MODES: { key: SigDosanMode; label: string; note: string }
   { key: "VS", label: "VS", note: "A팀 · B팀이 각자 올려요 (팀 배틀 방송)" },
   { key: "SOLO", label: "개인전", note: "멤버마다 따로 올려요" }
 ];
+/**
+ * OBS 표시 방식 (2026-10-30): 롤러 — StreamDonate's original look: each lane a window on a strip of the signature cards that
+ * rolls up a card per step; 사다리 — every step × every lane at once (what it had before).
+ */
+export type SigDosanDisplay = "ROLLER" | "LADDER";
+export const SIG_DOSAN_DISPLAYS: { key: SigDosanDisplay; label: string; note: string }[] = [
+  { key: "ROLLER", label: "롤러", note: "다음 시그 카드를 크게, 한 단 오를 때마다 위로 굴러가요" },
+  { key: "LADDER", label: "사다리", note: "모든 단과 줄을 한눈에 보여 줘요" }
+];
 /** `signatureIds`: the picked signatures (the ladder sorts them by price); `bonus`: 완주 보너스 for the member who finishes. */
-export type SigDosanSettings = GameCommon & { mode: SigDosanMode; signatureIds: string[]; bonus: number };
-export const DEFAULT_SIG_DOSAN: SigDosanSettings = { title: "", auto: false, excluded: [], showIdle: true, mode: "ALL", signatureIds: [], bonus: 0 };
+export type SigDosanSettings = GameCommon & { mode: SigDosanMode; signatureIds: string[]; bonus: number; display: SigDosanDisplay };
+export const DEFAULT_SIG_DOSAN: SigDosanSettings = { title: "", auto: false, excluded: [], showIdle: true, mode: "ALL", signatureIds: [], bonus: 0, display: "ROLLER" };
 
 /** A step of the ladder (the lowest price first). */
 export type SigDosanStep = { signatureId: string; signatureName: string; price: number; imageUrl: string | null };
@@ -1238,11 +1309,34 @@ export function goStopRanking(wins: { memberId: string; name: string; color: str
 /** The 색 구간 of a 풀 (the last one it reached), or null. */
 export const goStopBand = (bands: GoStopBand[], pool: number) => [...bands].sort((x, y) => x.min - y.min).filter((b) => b.min <= pool).at(-1) ?? null;
 
+// 시그니처 잭팟 — StreamDonate 시그니처 잭팟 복주머니 모드, as a 점수 풀 (policy-decisions 2 (C), 2026-11-01: the money version
+// waits on its policy). Each 시그니처 후원 to a member adds 적립 비율 of its points to the 풀 and is the 풀's next 순번; the one
+// at the 당첨 순번 gives that member the 풀. Points only — no FN, wallet, earnings or settlement moves.
+export const JACKPOT_TITLE_DEFAULT = "시그니처 잭팟";
+export const JACKPOT_PERCENT_MAX = 100;
+export const JACKPOT_TARGET_MIN = 2;
+export const JACKPOT_TARGET_MAX = 1_000;
+/** 당첨 순번 수기: up to this. */
+export const JACKPOT_TURN_MAX = 2_000;
+export const JACKPOT_SHOW_SEC_MAX = 60;
+/** 당첨 기록 kept (StreamDonate "최대 50건 보관"). */
+export const JACKPOT_WINS_KEPT = 50;
+/** `percent`: 적립 비율 (%) of each 시그니처 후원's points; `target`: 목표 개수; `showSec`: how long OBS shows a 당첨. */
+export type JackpotSettings = GameCommon & { percent: number; target: number; showSec: number };
+/** 기본값 from StreamDonate (적립 3% · 목표 120 · 당첨 문구 8초). */
+export const DEFAULT_JACKPOT: JackpotSettings = { title: "", auto: false, excluded: [], showIdle: true, percent: 3, target: 120, showSec: 8 };
+/** The 당첨 순번 range for a 목표 개수: ± ⌊목표 / 6⌋ (StreamDonate: "120 입력 → 100~140 중 랜덤"), never below 1. */
+export const jackpotRange = (target: number): [number, number] => {
+  const spread = Math.floor(target / 6);
+  return [Math.max(1, target - spread), target + spread];
+};
+
 // 땅따먹기 — StreamDonate 땅따먹기: a member earns 하트 from what they receive; with a 하트 the BJ picks a cell of the N×N
 // board and the operator (조정실) assigns it — an owned cell is taken over. Cells show in the owner's color; 점유 순위.
 export const TERRITORY_TITLE_DEFAULT = "땅따먹기";
-export const TERRITORY_SIZES = [5, 6, 7, 8, 9, 10] as const;
-export type TerritorySize = (typeof TERRITORY_SIZES)[number];
+/** 판 크기: cells per side (2026-10-30: 2 ~ 50 as StreamDonate — 20 = 20×20; it was 5 ~ 10). */
+export const TERRITORY_SIZE_MIN = 2;
+export const TERRITORY_SIZE_MAX = 50;
 export const TERRITORY_HEART_POINTS_MAX = 10_000_000;
 export const TERRITORY_CELL_POINTS_MAX = 1_000_000;
 /** How a member earns 하트: one per 시그니처 후원, or one per `heartPoints` points of any donation. */
@@ -1263,14 +1357,17 @@ export const TERRITORY_TICKERS: { key: TerritoryTicker; label: string }[] = [
  * `colors` (2026-10-28): 땅따먹기 전용 BJ 색상 by member id — the board, 순위 and 롤링 use it instead of the crew color (other
  * features keep theirs); cells already taken change with it.
  */
-export type TerritorySettings = GameCommon & { size: TerritorySize; heartMode: TerritoryHeartMode; heartPoints: number; cellPoints: number; ticker: TerritoryTicker; colors: Record<string, string> };
+export type TerritorySettings = GameCommon & { size: number; heartMode: TerritoryHeartMode; heartPoints: number; cellPoints: number; ticker: TerritoryTicker; colors: Record<string, string> };
 export const DEFAULT_TERRITORY: TerritorySettings = { title: "", auto: false, excluded: [], showIdle: true, size: 8, heartMode: "AMOUNT", heartPoints: 1_000, cellPoints: 0, ticker: "OFF", colors: {} };
-/** A cell's label: A1 (column A, row 1) … */
-export const territoryCoord = (size: number, index: number) => `${String.fromCharCode(65 + (index % size))}${Math.floor(index / size) + 1}`;
+/** A column's letters as in a spreadsheet: A … Z, then AA … (a board has up to 50 columns). */
+export const territoryColumn = (column: number): string =>
+  (column >= 26 ? territoryColumn(Math.floor(column / 26) - 1) : "") + String.fromCharCode(65 + (column % 26));
+/** A cell's label: A1 (column A, row 1) … AX50. */
+export const territoryCoord = (size: number, index: number) => `${territoryColumn(index % size)}${Math.floor(index / size) + 1}`;
 /** A cell as shown: its owners in order (`revealAt`: when OBS shows each) — the last one owns it. */
 export type TerritoryCell = { owners: { memberId: string; revealAt: string }[] };
 /** `boardId`: this board (a new 시작 makes another); `lastCell`: the cell assigned last. */
-export type TerritoryBoard = { boardId: string; size: TerritorySize; cells: TerritoryCell[]; lastCell: number | null };
+export type TerritoryBoard = { boardId: string; size: number; cells: TerritoryCell[]; lastCell: number | null };
 
 // 스도폴리 — StreamDonate 스도폴리 (부루마불형): pieces go round a square loop of 칸 on two dice; a 시그니처 후원 rolls as
 // many times as its 금액 구간 gives. 출발 보너스, 무인도, 더블 (again; three in a row: 무인도), 황금열쇠 덱, 목표 바퀴.
@@ -1418,13 +1515,16 @@ export type GameRunView = {
   gostop: { pool: number; go: number; chance: number } | null;
   /** 스도폴리: the piece that moved, from and to which 칸, and its laps after. */
   move: { piece: string; from: number; to: number; laps: number } | null;
+  /** 시그니처 잭팟: the 풀 and its 순번 after the run (a 당첨: the 풀 it took), how full the 복주머니 looked (tenths). */
+  jackpot: { pool: number; count: number; fill: number; won: boolean } | null;
 };
 
 /** 스핀머신 BJ별 집계: how many times each member got each 문구 (TEXT) result, columns in first-seen order. */
 export type SpinTally = { columns: string[]; rows: { memberId: string; name: string; color: string | null; counts: number[]; total: number }[] };
 
 export type SpinLive = { settings: SpinSettings; runs: GameRunView[]; tally: SpinTally };
-export type DiceLive = { settings: DiceSettings; runs: GameRunView[] };
+/** `rule`: the 룰 this broadcast rolls by (its 프로젝트's, 2026-10-28). */
+export type DiceLive = { settings: DiceSettings; runs: GameRunView[]; rule: DiceRule };
 export type TwoWheelLive = { settings: TwoWheelSettings; runs: GameRunView[] };
 /** `board`: null until 뽑기판 시작 (or after 판 비우기). */
 export type GridDrawLive = { settings: GridDrawSettings; runs: GameRunView[]; board: GridDrawBoard | null };
@@ -1458,6 +1558,20 @@ export type TerritoryLive = {
 };
 /** `pieces`: now (OBS shows where each was before its queued runs). */
 export type SudopolyLive = { settings: SudopolySettings; runs: GameRunView[]; pieces: SudopolyPiece[] };
+/**
+ * 시그니처 잭팟: the 풀 now, its 순번 so far, how full the 복주머니 looks (tenths), the 당첨 순번 (studio only — null on OBS),
+ * when the 풀 started, and the 당첨 기록 (newest first).
+ */
+export type JackpotLive = {
+  settings: JackpotSettings;
+  runs: GameRunView[];
+  pool: number;
+  count: number;
+  fill: number;
+  turn: number | null;
+  startedAt: string | null;
+  wins: { memberId: string | null; name: string; color: string | null; points: number; count: number; at: string; revealAt: string }[];
+};
 /** `board`: null until 두산 시작 (or after 판 비우기). */
 export type SigDosanLive = { settings: SigDosanSettings; runs: GameRunView[]; board: SigDosanBoard | null };
 /** `board`: null until 빙고 시작 (or after 판 비우기); `eligible`: how many signatures a new board would draw from. */
@@ -1485,6 +1599,8 @@ export type GamesView = {
   live: {
     id: string;
     title: string;
+    /** The broadcast's 프로젝트 (null = none). */
+    project: string | null;
     spin: SpinLive;
     dice: DiceLive;
     twoWheel: TwoWheelLive;
@@ -1500,6 +1616,7 @@ export type GamesView = {
     gostop: GoStopLive;
     territory: TerritoryLive;
     sudopoly: SudopolyLive;
+    jackpot: JackpotLive;
     sources: Record<GameKey, Record<string, GameSource[]>>;
     serverNow: string;
   } | null;
@@ -1510,6 +1627,10 @@ export type GamesView = {
   /** 랜덤시그 설정 프리셋, newest first. */
   randomSigPresets: RandomSigPreset[];
   relaySettings: RelaySettings;
+  /** 기여도 릴레이 설정 프리셋, newest first (2026-10-28). */
+  relayPresets: RelayPreset[];
+  /** Existing project names (주사위 룰 프로젝트별, 2026-10-28). */
+  projects: string[];
   jupjupSettings: JupjupSettings;
   medleySettings: MedleySettings;
   sigBingoSettings: SigBingoSettings;
@@ -1520,7 +1641,9 @@ export type GamesView = {
   gostopSettings: GoStopSettings;
   territorySettings: TerritorySettings;
   sudopolySettings: SudopolySettings;
-  signatures: { id: string; name: string; group: string; active: boolean; price: number; match: "SELECT" | "AMOUNT"; rangeMin: number | null }[];
+  jackpotSettings: JackpotSettings;
+  /** `createdAt`: when it was made (none for older ones); `complete`: it has its image and sound (2026-10-30, 두산 · 헌터 pickers). */
+  signatures: { id: string; name: string; group: string; active: boolean; price: number; match: "SELECT" | "AMOUNT"; rangeMin: number | null; createdAt?: string; complete: boolean }[];
   overlayPath: string;
 };
 
@@ -1607,6 +1730,15 @@ export const BATTLE_MODES: { key: BattleMode; label: string }[] = [
   { key: "MULTI_TEAMS", label: "다수 팀" },
   { key: "PAIRS", label: "1:1 여러 쌍" }
 ];
+/**
+ * 다수 팀 표시 방식 (2026-10-28, StreamDonate 다수 팀 VS "표시 방식 — 가로 막대 / 누적 바"): BARS = a bar per team against
+ * the leader; STACKED = one bar split by each team's share.
+ */
+export type BattleDisplay = "BARS" | "STACKED";
+export const BATTLE_DISPLAYS: { key: BattleDisplay; label: string }[] = [
+  { key: "BARS", label: "가로 막대" },
+  { key: "STACKED", label: "누적 바" }
+];
 export const MULTI_TEAMS_MIN = 2;
 export const MULTI_TEAMS_MAX = 8;
 export const BATTLE_TEAM_NAME_MAX = 10;
@@ -1656,6 +1788,8 @@ export type Battle = {
   matches: BattleMatch[];
   multiplier: number;
   penalty: string;
+  /** 다수 팀 표시 방식 on OBS (other modes: BARS, unused). */
+  display: BattleDisplay;
 };
 
 // ── 팀 순위표 (팀 랭킹(상품) · 시간 내 팀 랭킹(상품)) — code-first, StreamDonate 참고 (docs/research/streamdonate-reference.md) ──
@@ -1678,6 +1812,7 @@ export const TEAM_PRIZE_SOURCES: { key: TeamPrizeSource; label: string }[] = [
 
 /** SCORE: each team's members under it, best first. NONE: team names only. */
 export type TeamPrizeMembers = "SCORE" | "NONE";
+export const TEAM_MEMBERS_PER_LINE_MAX = 20;
 export const TEAM_PRIZE_MEMBER_VIEWS: { key: TeamPrizeMembers; label: string }[] = [
   { key: "SCORE", label: "팀원 점수순" },
   { key: "NONE", label: "팀 이름만" }
@@ -1693,6 +1828,8 @@ export type TeamPrizeSettings = {
   /** prizes[0] = 1등 팀. */
   prizes: RankPrize[];
   members: TeamPrizeMembers;
+  /** 한 줄에 놓을 팀원 수 (2026-10-28, StreamDonate): more go on the next line; 0 = as many as fit (as before). */
+  membersPerLine: number;
   /** 제목 색 (2026-10-28): null = the overlay theme's. */
   titleColor: string | null;
   columns: PrizeColumns;
@@ -1708,6 +1845,7 @@ export const DEFAULT_TEAM_PRIZE_BOARD: TeamPrizeSettings = {
   teams: [],
   prizes: [],
   members: "SCORE",
+  membersPerLine: 0,
   titleColor: null,
   columns: 1,
   showScore: true,
@@ -1782,7 +1920,10 @@ export type BroadcastView = {
   windowGaugeSettings: WindowGaugeSettings;
   /** 시그 카운트 settings (kept across broadcasts) and the signatures it can count (숨긴 시그니처 too, marked). */
   sigCountSettings: SigCountSettings;
-  signatures: { id: string; name: string; group: string; active: boolean; price: number; match: "SELECT" | "AMOUNT"; rangeMin: number | null }[];
+  /** 마이너스 시그니처 (2026-11-01). */
+  minusSettings: MinusSettings;
+  /** `createdAt`: when it was made (none for older ones); `complete`: it has its image and sound (2026-10-30, 두산 · 헌터 pickers). */
+  signatures: { id: string; name: string; group: string; active: boolean; price: number; match: "SELECT" | "AMOUNT"; rangeMin: number | null; createdAt?: string; complete: boolean }[];
   keywords: Record<string, string[]>;
   /** Existing project names (for the start form). */
   projects: string[];

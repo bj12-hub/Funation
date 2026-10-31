@@ -42,6 +42,18 @@ describe("상품 순위표", () => {
     // 상단 고정: first, no rank, its own text; the others are ranked from 1 and keep the prize lines.
     const pinned = prizeRows(members, settings({ prizes, pinned: { memberId: "b", text: "MC" } }));
     expect(line(pinned)).toEqual(["고정 가 MC 9", "1 나 상금 5", "2 다 - 5", "3 라 벌칙 1"]);
+
+    // 표시 대상 점수 받은 멤버만 (2026-10-28): above 0 only, the top N — the pinned one anyway, the prizes by the ranks shown.
+    const zero = [...members, { memberId: "e", name: "마", color: "#555555", score: 0 }];
+    expect(line(prizeRows(zero, settings({ prizes, audience: "SCORED", limit: 2 })))).toEqual(["1 가 상금 9", "2 나 - 5"]);
+    expect(line(prizeRows(zero, settings({ prizes, audience: "SCORED", limit: 50, pinned: { memberId: "e", text: "MC" } })))).toEqual([
+      "고정 마 MC 0",
+      "1 가 상금 9",
+      "2 나 - 5",
+      "3 다 벌칙 5",
+      "4 라 - 1"
+    ]);
+    expect(prizeRows(zero, settings({ prizes }))).toMatchObject({ rows: { length: 5 } });
   });
 
   it("validates and saves the settings, trimming blank lines and colors without text", async () => {
@@ -56,12 +68,27 @@ describe("상품 순위표", () => {
     expect(_c).toBeNull();
     expect(await m.savePrizeBoard(older)).toEqual({ status: "SAVED" });
     expect((await m.getBroadcastView())!.prizeSettings.titleColor).toBeNull();
+    // 테두리색 (2026-10-28): kept lowercased with its line, dropped with an empty line; 표시 대상 · 인원 kept.
+    expect(await m.savePrizeBoard({ ...ok, audience: "SCORED", limit: 3, prizes: [{ text: "상금", color: null, outline: "#00FF00" }, { text: "", color: null, outline: "#123456" }, { text: "벌칙", color: null }] })).toEqual({ status: "SAVED" });
+    expect((await m.getBroadcastView())!.prizeSettings).toMatchObject({
+      audience: "SCORED",
+      limit: 3,
+      prizes: [{ text: "상금", color: null, outline: "#00ff00" }, { text: "", color: null, outline: null }, { text: "벌칙", color: null, outline: null }]
+    });
+    const { audience: _a, limit: _l, ...before } = settings();
+    expect([_a, _l]).toEqual(["ALL", 10]);
+    expect(await m.savePrizeBoard(before)).toEqual({ status: "SAVED" });
+    expect((await m.getBroadcastView())!.prizeSettings).toMatchObject({ audience: "ALL", limit: 10 });
 
     const bad: [Record<string, unknown>, string][] = [
       [{ title: "가".repeat(21) }, "제목"],
       [{ basis: "MONTH" }, "집계 기준"],
       [{ prizes: [{ text: "가".repeat(31), color: null }] }, "30자"],
       [{ prizes: [{ text: "상금", color: "red" }] }, "글자색"],
+      [{ prizes: [{ text: "상금", color: null, outline: "black" }] }, "테두리색"],
+      [{ audience: "TOP" }, "표시 대상"],
+      [{ audience: "SCORED", limit: 0 }, "표시 대상"],
+      [{ limit: 51 }, "표시 대상"],
       [{ prizes: Array.from({ length: 31 }, () => ({ text: "x", color: null })) }, "30등"],
       [{ excluded: ["cm-nobody"] }, "뺄 멤버"],
       [{ excluded: ["cm-s1"], pinned: { memberId: "cm-s1", text: "" } }, "상단 고정"],
@@ -206,6 +233,17 @@ describe("팀 순위표", () => {
     const m = await load();
     expect(await m.saveTeamPrize(teamSettings({ title: " 팀 대항전 ", teams: twoTeams, prizes: [{ text: "회식", color: "#FFAA00" }, { text: "", color: null }], titleColor: "#00AAFF" }))).toEqual({ status: "SAVED" });
     expect((await m.getBroadcastView())!.teamPrizeSettings).toMatchObject({ title: "팀 대항전", source: "CUSTOM", teams: [{ name: "불꽃" }, { name: "B팀" }], prizes: [{ text: "회식", color: "#ffaa00" }], titleColor: "#00aaff" });
+    expect((await m.getBroadcastView())!.teamPrizeSettings.membersPerLine).toBe(0);
+    // 한 줄에 놓을 팀원 수 (2026-10-28): kept; a screen from before sends none — as many as fit.
+    expect(await m.saveTeamPrize(teamSettings({ teams: twoTeams, membersPerLine: 3 }))).toEqual({ status: "SAVED" });
+    expect((await m.getBroadcastView())!.teamPrizeSettings.membersPerLine).toBe(3);
+    for (const bad of [-1, 21, 1.5, "3"]) {
+      expect(await m.saveTeamPrize(teamSettings({ teams: twoTeams, membersPerLine: bad as never }))).toEqual({ status: "INVALID", message: "한 줄에 놓을 팀원 수는 0~20명이에요." });
+    }
+    const { membersPerLine: _per, ...olderTeam } = teamSettings({ teams: twoTeams });
+    expect(_per).toBe(0);
+    expect(await m.saveTeamPrize(olderTeam)).toEqual({ status: "SAVED" });
+    expect((await m.getBroadcastView())!.teamPrizeSettings.membersPerLine).toBe(0);
     // Another source keeps the CUSTOM teams but does not need them.
     expect(await m.saveTeamPrize(teamSettings({ source: "BROADCAST_TEAMS" }))).toEqual({ status: "SAVED" });
 

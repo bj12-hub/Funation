@@ -25,6 +25,11 @@ import {
   MARQUEE_LINE_MAX,
   SUBTITLE_MAX,
   TEXT_ALIGNS,
+  TEXT_BACKGROUNDS,
+  TEXT_LINE_HEIGHT,
+  TEXT_OUTLINE_MAX,
+  TEXT_PADDING_MAX,
+  TEXT_RADIUS_MAX,
   TEXT_SCROLL_SEC,
   TEXT_SIZES,
   TEXT_SLOTS,
@@ -33,6 +38,13 @@ import {
   TIMER_ADJUST_STEPS,
   TIMER_DONATION_SEC_MAX,
   TIMER_MAX_SEC,
+  WHEEL_COLORS,
+  WHEEL_ITEMS_MAX,
+  WHEEL_ITEM_TEXT_MAX,
+  WHEEL_QTY_MAX,
+  WHEEL_STOP_MODES,
+  WHEEL_TITLE_MAX,
+  type WheelItem,
   bingoLinesMax,
   isToolKey,
   type BingoSize,
@@ -41,7 +53,8 @@ import {
   type OverlayTool,
   type TimerAction,
   type ToolResult,
-  type ToolsView
+  type ToolsView,
+  type TextSlot
 } from "./broadcastToolTypes";
 import { mockAlerts, overlaySignal } from "./alertCore";
 import { donorRanking, rankingSince, signatureCredits, totalBetween } from "./widgetOverlayCore";
@@ -49,7 +62,8 @@ import { mockSignatures } from "@/services/donations/signatureCore";
 import { overlayTheme, readAppearance } from "./overlayThemeStore";
 import { isOverlayThemeChoice, type OverlayThemeChoice } from "./overlayThemeTypes";
 import { mockCreator } from "./mockCreatorStore";
-import { shiftTimer, tools } from "./broadcastToolsCore";
+import { FONT_FAMILIES } from "./widgetSettingsTypes";
+import { queueWheelSpin, settleWheel, shiftTimer, stopWheelSpin, tools, wheelNow } from "./broadcastToolsCore";
 
 /**
  * 방송 도구 Server Actions — code-first (no Figma frame). Studio route `/creator/widgets/tools`,
@@ -137,7 +151,8 @@ export async function getToolsView(): Promise<ToolsView | null> {
   assertMock();
   if (!(await getCreatorSession())) return null;
   await mockDelay(150);
-  return { states: structuredClone(tools), overlayBase: `/overlay/tool`, credits: creditsData(tools.credits), theme: toolLook().theme, appearance: readAppearance() };
+  settleWheel(tools.wheel);
+  return { states: structuredClone(tools), overlayBase: `/overlay/tool`, credits: creditsData(tools.credits), theme: toolLook().theme, appearance: readAppearance(), signatures: mockSignatures.items.map((s) => ({ id: s.id, name: s.name })) };
 }
 
 /** 방송 도구 테마: applies to every tool overlay on its next read. */
@@ -263,7 +278,25 @@ export async function saveTextSlot(input: unknown): Promise<ToolResult> {
   if (!TEXT_SIZES.includes(v.size as (typeof TEXT_SIZES)[number])) return { status: "INVALID", message: "글자 크기를 골라 주세요." };
   if (typeof v.color !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(v.color)) return { status: "INVALID", message: "글자색을 확인해 주세요." };
   if (![v.bold, v.outline, v.scroll].every((x) => typeof x === "boolean")) return { status: "INVALID", message: "설정을 확인해 주세요." };
-  if (v.background !== "NONE" && v.background !== "CARD") return { status: "INVALID", message: "배경을 골라 주세요." };
+  const background = TEXT_BACKGROUNDS.find((x) => x.key === v.background)?.key;
+  if (!background) return { status: "INVALID", message: "배경을 골라 주세요." };
+  // 스타일 (2026-10-28): a screen from before sends none of these — the slot keeps what it has.
+  const prev = tools.text.slots[slot - 1];
+  const kept = <K extends keyof TextSlot>(k: K) => (v[k] === undefined ? prev[k] : v[k]);
+  const font = kept("font");
+  if (font !== null && !FONT_FAMILIES.includes(font as (typeof FONT_FAMILIES)[number])) return { status: "INVALID", message: "폰트를 골라 주세요." };
+  const lineHeight = kept("lineHeight");
+  if (typeof lineHeight !== "number" || lineHeight < TEXT_LINE_HEIGHT.min || lineHeight > TEXT_LINE_HEIGHT.max || Math.round(lineHeight * 100) !== lineHeight * 100) {
+    return { status: "INVALID", message: `줄 간격은 ${TEXT_LINE_HEIGHT.min}~${TEXT_LINE_HEIGHT.max}, 소수 둘째 자리까지예요.` };
+  }
+  const hex = (x: unknown): x is string => typeof x === "string" && /^#[0-9A-Fa-f]{6}$/.test(x);
+  const int = (x: unknown, max: number): x is number => typeof x === "number" && Number.isInteger(x) && x >= 0 && x <= max;
+  const [outlineWidth, outlineColor, shadow, bgColor, padding, radius] = [kept("outlineWidth"), kept("outlineColor"), kept("shadow"), kept("bgColor"), kept("padding"), kept("radius")];
+  if (!int(outlineWidth, TEXT_OUTLINE_MAX) || outlineWidth < 1 || !hex(outlineColor)) return { status: "INVALID", message: `테두리는 1~${TEXT_OUTLINE_MAX}px, 색은 #RRGGBB 형식이에요.` };
+  if (typeof shadow !== "boolean") return { status: "INVALID", message: "설정을 확인해 주세요." };
+  if (!hex(bgColor) || !int(padding, TEXT_PADDING_MAX) || !int(radius, TEXT_RADIUS_MAX)) {
+    return { status: "INVALID", message: `배경색은 #RRGGBB, 안쪽 여백은 0~${TEXT_PADDING_MAX}px, 모서리는 0~${TEXT_RADIUS_MAX}px이에요.` };
+  }
   const align = TEXT_ALIGNS.find((x) => x.key === v.align)?.key;
   if (!align) return { status: "INVALID", message: "정렬을 골라 주세요." };
   const sec = v.scrollSec;
@@ -276,8 +309,16 @@ export async function saveTextSlot(input: unknown): Promise<ToolResult> {
     size: v.size as number,
     color: v.color.toUpperCase(),
     bold: v.bold as boolean,
+    font: font as TextSlot["font"],
+    lineHeight,
     outline: v.outline as boolean,
-    background: v.background,
+    outlineWidth,
+    outlineColor: outlineColor.toUpperCase(),
+    shadow,
+    background,
+    bgColor: bgColor.toUpperCase(),
+    padding,
+    radius,
     align,
     scroll: v.scroll as boolean,
     scrollSec: sec
@@ -427,10 +468,83 @@ export async function getOverlayTool(tool: unknown, key: unknown, slot?: unknown
       return { tool, state: structuredClone(tools.credits), data: creditsData(tools.credits), ...signal };
     case "bingo":
       return { tool, state: structuredClone(tools.bingo), ...signal };
+    case "wheel": {
+      const { current, waiting } = wheelNow(tools.wheel);
+      const items = tools.wheel.settings.items;
+      return {
+        tool,
+        title: tools.wheel.settings.title,
+        slices: items.map((it, i) => ({ label: it.label, qty: it.qty, color: WHEEL_COLORS[i % WHEEL_COLORS.length] })),
+        // The result goes out only once the wheel stops.
+        current: current && structuredClone({ ...current, result: current.stopAt && Date.parse(current.stopAt) <= Date.now() ? current.result : null }),
+        waiting,
+        serverNow: new Date().toISOString(),
+        ...signal
+      };
+    }
     case "text": {
       const n = slot === undefined || slot === "" ? 1 : Number(slot);
       if (!Number.isInteger(n) || n < 1 || n > TEXT_SLOTS) return "FORBIDDEN";
       return { tool, slot: n, state: { ...tools.text.slots[n - 1] }, ...signal };
     }
   }
+}
+
+/**
+ * 원형 룰렛 저장 (2026-10-30): 제목, 멈춤 모드, 후원 시 자동 스핀 and 1 ~ WHEEL_ITEMS_MAX 칸 — a 문구 or a signature (named as
+ * it is now), each ×1 ~ ×WHEEL_QTY_MAX. A spin already queued keeps the 칸 it had.
+ */
+export async function saveWheel(input: unknown): Promise<ToolResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
+  const title = typeof v.title === "string" ? v.title.trim() : "";
+  if (title.length > WHEEL_TITLE_MAX) return { status: "INVALID", message: `룰렛 이름은 ${WHEEL_TITLE_MAX}자 이내로 입력해 주세요.` };
+  const stopMode = WHEEL_STOP_MODES.find((m) => m.key === v.stopMode)?.key;
+  if (!stopMode || typeof v.autoSpin !== "boolean") return { status: "INVALID", message: "설정을 확인해 주세요." };
+  if (!Array.isArray(v.items) || v.items.length > WHEEL_ITEMS_MAX) return { status: "INVALID", message: `칸은 ${WHEEL_ITEMS_MAX}개까지예요.` };
+  const items: WheelItem[] = [];
+  for (const raw of v.items) {
+    const x = (typeof raw === "object" && raw !== null ? raw : {}) as Record<string, unknown>;
+    const qty = x.qty;
+    if (typeof qty !== "number" || !Number.isInteger(qty) || qty < 1 || qty > WHEEL_QTY_MAX) return { status: "INVALID", message: `수량은 ×1 ~ ×${WHEEL_QTY_MAX}이에요.` };
+    if (x.kind === "SIGNATURE") {
+      const sig = mockSignatures.items.find((s) => s.id === x.signatureId);
+      if (!sig) return { status: "INVALID", message: "시그니처를 다시 골라 주세요." };
+      items.push({ kind: "SIGNATURE", label: sig.name, signatureId: sig.id, qty });
+    } else if (x.kind === "TEXT") {
+      const label = typeof x.label === "string" ? x.label.trim() : "";
+      if (!label || label.length > WHEEL_ITEM_TEXT_MAX) return { status: "INVALID", message: `칸 문구는 1~${WHEEL_ITEM_TEXT_MAX}자로 입력해 주세요.` };
+      items.push({ kind: "TEXT", label, signatureId: null, qty });
+    } else return { status: "INVALID", message: "칸 종류를 골라 주세요." };
+  }
+  if (bad(title) || items.some((it) => it.kind === "TEXT" && bad(it.label))) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
+  tools.wheel.settings = { title, stopMode, autoSpin: v.autoSpin, items };
+  return { status: "SAVED" };
+}
+
+/** 스핀! ({ requestId }): queues a spin of the saved 칸 — a retry with the same request id is the same spin. */
+export async function spinWheel(input: unknown): Promise<ToolResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
+  if (typeof v.requestId !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
+  const res = queueWheelSpin(tools.wheel, { id: `wh-${v.requestId}`, trigger: "MANUAL", donor: null });
+  return typeof res === "string" ? { status: "INVALID", message: res } : { status: "SAVED" };
+}
+
+/** 멈춤 (수동 멈춤): the spinning wheel draws its result and slows down. */
+export async function stopWheel(): Promise<ToolResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const res = stopWheelSpin(tools.wheel);
+  return res ? { status: "INVALID", message: res } : { status: "SAVED" };
+}
+
+/** 룰렛 비우기: every spin (on screen and waiting) goes away. */
+export async function clearWheel(): Promise<ToolResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  tools.wheel.spins = [];
+  return { status: "SAVED" };
 }

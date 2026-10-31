@@ -30,7 +30,7 @@ import {
   type BroadcastView,
   type TeamKey
 } from "./crewTypes";
-import { battleGroups, battleRulesOf, donorKey, donorMergesOf, donorNamer, duplicateSuspects, fanNotesView, feedAlertsOf, feedOf, scoreFn, gradeMultipliersOf, excelOf, liveBroadcastOf, scoreboardRows, scoredFeed, stealRecordView, stealRulesOf, syncAlertHolds, timesMultiplier, windowGames, windowReceived, windowScores, windowSteals, donationMoments } from "./crewCore";
+import { battleGroups, battleRulesOf, donorKey, donorMergesOf, donorNamer, duplicateSuspects, fanNotesView, feedAlertsOf, feedOf, attributionPoints, minusSettingsOf, gradeMultipliersOf, excelOf, liveBroadcastOf, scoreboardRows, scoredFeed, stealRecordView, stealRulesOf, syncAlertHolds, timesMultiplier, windowGames, windowReceived, windowScores, windowSteals, donationMoments } from "./crewCore";
 import { cumulativeLive, cumulativeSettingsOf } from "./crewCumulativeCore";
 import { gaugeLive, gaugeSettingsOf, pledgesOf } from "./crewGaugeCore";
 import { windowGaugeLive, windowGaugeSettingsOf } from "./crewWindowGaugeCore";
@@ -43,6 +43,7 @@ import { sigBingoLive } from "./crewSigBingoCore";
 import { gridDrawLive } from "./crewGridDrawCore";
 import { alphabetLive } from "./crewAlphabetCore";
 import { goStopLive } from "./crewGoStopCore";
+import { jackpotLive } from "./crewJackpotCore";
 import { sudopolyLive } from "./crewSudopolyCore";
 import { territoryLive } from "./crewTerritoryCore";
 import { sigDosanLive } from "./crewSigDosanCore";
@@ -126,6 +127,8 @@ function liveView(b: MockBroadcast): BroadcastLive {
     gostop: goStopLive(b),
     territory: territoryLive(b),
     sudopoly: sudopolyLive(b),
+    // The 당첨 순번 stays off this view.
+    jackpot: jackpotLive(b, false),
     serverNow: new Date().toISOString()
   };
 }
@@ -159,7 +162,7 @@ function battleView(b: MockBroadcast, x: NonNullable<MockBroadcast["battles"]>[n
     });
     return { sides, ...battleStanding(sides) };
   });
-  return { no: x.no, title: x.title, mode: x.mode, startedAt: x.startedAt, endsAt: x.endsAt, stoppedAt: x.stoppedAt, running, remainingSec: running ? Math.ceil((endMs - now) / 1000) : 0, matches, multiplier, penalty: x.penalty ?? "" };
+  return { no: x.no, title: x.title, mode: x.mode, startedAt: x.startedAt, endsAt: x.endsAt, stoppedAt: x.stoppedAt, running, remainingSec: running ? Math.ceil((endMs - now) / 1000) : 0, matches, multiplier, penalty: x.penalty ?? "", display: x.display ?? "BARS" };
 }
 
 /** 서브 점수판 rows: points donated to each active member between `from` and `to` (open board = now). */
@@ -208,7 +211,7 @@ function donorSummary(b: MockBroadcast, scored: FeedEntryView[], nameOf: (name: 
     rows.set(donorKey(name), row);
   };
   for (const f of scored) if (f.status !== "CANCELLED") add(f.donor, f.points);
-  for (const a of mockCrew.attributions) if (a.channelId === b.channelId && a.at >= b.startedAt && a.at <= end) add(a.donor ?? a.shownDonor, scoreFn(a.fnAmount, s));
+  for (const a of mockCrew.attributions) if (a.channelId === b.channelId && a.at >= b.startedAt && a.at <= end) add(a.donor ?? a.shownDonor, attributionPoints(a, s));
   return [...rows.values()].sort((x, y) => y.points - x.points || y.count - x.count || x.name.localeCompare(y.name)).slice(0, DONOR_SUMMARY_ROWS);
 }
 
@@ -269,6 +272,7 @@ export async function getBroadcastView(): Promise<BroadcastView | null> {
     gaugeSettings: structuredClone(gaugeSettingsOf(STUDIO_CHANNEL)),
     windowGaugeSettings: structuredClone(windowGaugeSettingsOf(STUDIO_CHANNEL)),
     sigCountSettings: structuredClone(sigCountSettingsOf(STUDIO_CHANNEL)),
+    minusSettings: structuredClone(minusSettingsOf(STUDIO_CHANNEL)),
     signatures: sigCountSignatures(),
     projects: [...new Set(broadcasts().filter((b) => b.channelId === STUDIO_CHANNEL && b.project).map((b) => b.project as string))],
     carryDefault: mockCrew.carryRounds?.[STUDIO_CHANNEL] ?? false,

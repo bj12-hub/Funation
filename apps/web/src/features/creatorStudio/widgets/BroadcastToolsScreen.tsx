@@ -39,6 +39,7 @@ import { signedSec } from "../remote/ToolsRemote";
 import { CopyButton } from "../settings/SettingsCards";
 import { BingoTool } from "./BingoTool";
 import { TextSlotsTool } from "./TextSlotsTool";
+import { WheelTool } from "./WheelTool";
 import { clock, timerSeconds } from "./timerMath";
 
 const lines = (s: string) => s.split("\n").map((l) => l.trim()).filter(Boolean);
@@ -475,6 +476,8 @@ export function BroadcastToolsScreen({ view, overlayKey, switches }: { view: Too
       )}
 
       {card("bingo", <BingoTool state={states.bingo} pending={pending} run={(action, ok) => run("bingo", action, ok)} />)}
+
+      {card("wheel", <WheelTool state={states.wheel} signatures={view.signatures} pending={pending} run={(action, ok) => run("wheel", action, ok)} />)}
 
       {card(
         "text",

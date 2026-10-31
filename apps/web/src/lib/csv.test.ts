@@ -92,6 +92,7 @@ const BUILT_ELSEWHERE: Record<string, string> = {
   "web/src/features/creatorStudio/donations/CsvExportButton.tsx": "saves the file exportReceivedDonationsCsv (donationManagement.ts) built",
   "web/src/features/creatorStudio/donations/ImportedCsvButton.tsx": "saves the file exportImportedDonationsCsv built (donationImportCore.ts importedCsv)",
   "web/src/features/creatorStudio/donations/ToonationImportCard.tsx": "the fixed SAMPLE_CSV (no user text) and the upload field",
+  "web/src/features/creatorStudio/settlement/ManageControls.tsx": "saves the file exportSettlementHistoryCsv (settlementManagement.ts, toCsv) built",
   "web/src/services/creator/donationImport.ts": "names the file donationImportCore.ts importedCsv builds"
 };
 

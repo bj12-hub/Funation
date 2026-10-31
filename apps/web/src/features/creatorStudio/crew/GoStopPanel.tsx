@@ -348,6 +348,8 @@ export function GoStopPanel({
       <OverlayAddress overlayPath={overlayPath} param="gostop" label="고스톱" />
       <p className={styles.note}>진행 자막 (풀 · GO · 최근 STOP을 한 줄로)</p>
       <OverlayAddress overlayPath={overlayPath} param="gostopticker" label="고스톱 진행 자막" />
+      <p className={styles.note}>랭킹 (STOP 랭킹만 따로, 10명까지)</p>
+      <OverlayAddress overlayPath={overlayPath} param="gostoprank" label="고스톱 랭킹" />
     </section>
   );
 }

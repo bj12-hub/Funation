@@ -143,4 +143,50 @@ describe("기여도 릴레이", () => {
     signIn(["SUPPORTER"]);
     expect(await m.clearRelay({ broadcastId: id })).toEqual({ status: "UNAUTHORIZED" });
   });
+
+  it("설정 프리셋 (2026-10-28): keeps 트리거 BJ · 금액 구간 · 제외 시그 under a name, replaces by name, deletes", async () => {
+    vi.useFakeTimers({ now: T0, toFake: ["Date"] });
+    const m = await load();
+    const card = settings({ title: "주말 릴레이", showIdle: false, excluded: [m.b.id] });
+    expect(await m.saveRelayPreset({ name: " 평일 방송 ", settings: card })).toEqual({ status: "SAVED" });
+    let view = (await m.getGamesView())!;
+    expect(view.relayPresets).toEqual([
+      {
+        id: expect.stringMatching(/^rlp-/),
+        name: "평일 방송",
+        savedAt: T0.toISOString(),
+        settings: { memberId: "cm-s1", tiers: [expect.objectContaining({ min: 0, max: 9_999, multiplier: 2 }), expect.objectContaining({ min: 10_000, max: null, multiplier: 3 })], excluded: [m.b.id] }
+      }
+    ]);
+    // Saving a 프리셋 leaves the relay as it is.
+    expect(view.relaySettings).toEqual(DEFAULT_RELAY);
+    const weekday = view.relayPresets[0].id;
+    vi.setSystemTime(at(30));
+    await m.saveRelayPreset({ name: "평일 방송", settings: settings({ memberId: "cm-s2", tiers: [tier(0, null, 4)] }) });
+    view = (await m.getGamesView())!;
+    expect(view.relayPresets.map((p) => [p.id === weekday, p.name, p.settings.memberId, p.settings.tiers.length, p.savedAt])).toEqual([[true, "평일 방송", "cm-s2", 1, at(30).toISOString()]]);
+
+    const bad: [unknown, string][] = [
+      [{ name: " ", settings: settings() }, "프리셋 이름을 입력"],
+      [{ name: "가".repeat(21), settings: settings() }, "20자까지"],
+      [{ name: "운영자", settings: settings() }, "사용할 수 없는"],
+      [{ name: "BJ", settings: settings({ memberId: "cm-nobody" }) }, "트리거 BJ"],
+      [{ name: "구간", settings: settings({ tiers: [] }) }, "금액 구간"]
+    ];
+    for (const [input, message] of bad) {
+      const res = await m.saveRelayPreset(input);
+      expect(res.status === "INVALID" && res.message, message).toContain(message);
+    }
+    for (let i = 2; i <= 10; i++) expect(await m.saveRelayPreset({ name: `프리셋 ${i}`, settings: settings() })).toEqual({ status: "SAVED" });
+    const full = await m.saveRelayPreset({ name: "하나 더", settings: settings() });
+    expect(full.status === "INVALID" && full.message).toContain("10개까지");
+
+    expect(await m.deleteRelayPreset({ id: weekday })).toEqual({ status: "SAVED" });
+    expect(await m.deleteRelayPreset({ id: weekday })).toEqual({ status: "SAVED" });
+    expect((await m.getGamesView())!.relayPresets).toHaveLength(9);
+    signIn(["SUPPORTER"]);
+    expect(await m.saveRelayPreset({ name: "평일", settings: settings() })).toEqual({ status: "UNAUTHORIZED" });
+    expect(await m.deleteRelayPreset({ id: "x" })).toEqual({ status: "UNAUTHORIZED" });
+    vi.useRealTimers();
+  });
 });

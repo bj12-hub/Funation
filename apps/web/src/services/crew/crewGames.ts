@@ -9,6 +9,7 @@ import { diceLive, diceSettingsOf, parseDiceSettings, runDice } from "./crewDice
 import { gameRunView, memberSources, usedSources, type RunStart, type StoredRun } from "./crewGameCore";
 import { clearGridDrawBoard, gridDrawLive, gridDrawSettingsOf, openGridDrawCell, parseGridDrawSettings, startGridDrawBoard } from "./crewGridDrawCore";
 import { alphabetLive, alphabetSettingsOf, parseAlphabetSettings, resetAlphabetBoard, runAlphabet } from "./crewAlphabetCore";
+import { jackpotLive, jackpotSettingsOf, parseJackpotSettings, redrawJackpotTurn, resetJackpotPool, setJackpotTurn } from "./crewJackpotCore";
 import { adjustGoStopPool, goStopLive, goStopSettingsOf, parseGoStopSettings, resetGoStopPool, resetGoStopRanking, runGoStop } from "./crewGoStopCore";
 import {
   adjustTerritoryHearts,
@@ -34,7 +35,7 @@ import { addJupjupItem, jupjupLive, jupjupSettingsOf, parseJupjupSettings, remov
 import { medleyLive, medleySettingsOf, parseMedleySettings, playMedleyRun } from "./crewMedleyCore";
 import { clearSigBingoBoard, parseSigBingoSettings, setSigBingoCell, sigBingoLive, sigBingoSettingsOf, startSigBingoBoard } from "./crewSigBingoCore";
 import { deleteRandomSigPresetOf, parseRandomSigSettings, randomSigLive, randomSigPresetsOf, randomSigSettingsOf, saveRandomSigPresetOf } from "./crewRandomSigCore";
-import { clearRelayPending, parseRelaySettings, relayLive, relaySettingsOf } from "./crewRelayCore";
+import { clearRelayPending, deleteRelayPresetOf, parseRelaySettings, relayLive, relayPresetsOf, relaySettingsOf, saveRelayPresetOf } from "./crewRelayCore";
 import { sigCountSignatures } from "./crewSigCountCore";
 import { parseSpinSettings, runSpin, spinLive, spinSettingsOf } from "./crewSpinCore";
 import { parseTwoWheelSettings, runTwoWheel, twoWheelLive, twoWheelSettingsOf } from "./crewTwoWheelCore";
@@ -60,7 +61,7 @@ const SOURCES_SHOWN = 10;
  * How each game plays one run by hand for a member (the caller checks the game can play). 랜덤시그 · 기여도 릴레이 · 줍줍 play only
  * from donations; 메들리 rolls by hand without a member (playMedley).
  */
-const PLAY: Record<Exclude<GameKey, "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW" | "SIG_HUNTER" | "SIG_DOSAN" | "TERRITORY">, (b: MockBroadcast, start: RunStart) => StoredRun> = { SPIN: runSpin, DICE: runDice, TWO_WHEEL: runTwoWheel, ALPHABET: runAlphabet, GOSTOP: runGoStop, SUDOPOLY: runSudopoly };
+const PLAY: Record<Exclude<GameKey, "RANDOM_SIG" | "RELAY" | "JUPJUP" | "MEDLEY" | "SIG_BINGO" | "GRID_DRAW" | "SIG_HUNTER" | "SIG_DOSAN" | "TERRITORY" | "JACKPOT">, (b: MockBroadcast, start: RunStart) => StoredRun> = { SPIN: runSpin, DICE: runDice, TWO_WHEEL: runTwoWheel, ALPHABET: runAlphabet, GOSTOP: runGoStop, SUDOPOLY: runSudopoly };
 
 function sourcesOf(b: MockBroadcast): Record<GameKey, Record<string, GameSource[]>> {
   const active = (mockCrew.crews[STUDIO_CHANNEL] ?? []).filter((m) => m.active);
@@ -77,7 +78,7 @@ function sourcesOf(b: MockBroadcast): Record<GameKey, Record<string, GameSource[
       ])
     );
   };
-  return { SPIN: forGame("SPIN"), DICE: forGame("DICE"), TWO_WHEEL: forGame("TWO_WHEEL"), RANDOM_SIG: {}, RELAY: {}, JUPJUP: {}, MEDLEY: {}, SIG_BINGO: {}, GRID_DRAW: {}, SIG_HUNTER: {}, SIG_DOSAN: {}, ALPHABET: forGame("ALPHABET"), GOSTOP: forGame("GOSTOP"), TERRITORY: {}, SUDOPOLY: {} };
+  return { SPIN: forGame("SPIN"), DICE: forGame("DICE"), TWO_WHEEL: forGame("TWO_WHEEL"), RANDOM_SIG: {}, RELAY: {}, JUPJUP: {}, MEDLEY: {}, SIG_BINGO: {}, GRID_DRAW: {}, SIG_HUNTER: {}, SIG_DOSAN: {}, ALPHABET: forGame("ALPHABET"), GOSTOP: forGame("GOSTOP"), TERRITORY: {}, SUDOPOLY: {}, JACKPOT: {} };
 }
 
 export async function getGamesView(): Promise<GamesView | null> {
@@ -91,6 +92,7 @@ export async function getGamesView(): Promise<GamesView | null> {
       ? {
           id: live.id,
           title: live.title,
+          project: live.project ?? null,
           spin: spinLive(live),
           dice: diceLive(live),
           twoWheel: twoWheelLive(live),
@@ -106,6 +108,7 @@ export async function getGamesView(): Promise<GamesView | null> {
           gostop: goStopLive(live),
           territory: territoryLive(live),
           sudopoly: sudopolyLive(live),
+          jackpot: jackpotLive(live, true),
           sources: sourcesOf(live),
           serverNow: new Date().toISOString()
         }
@@ -116,6 +119,8 @@ export async function getGamesView(): Promise<GamesView | null> {
     randomSigSettings: structuredClone(randomSigSettingsOf(STUDIO_CHANNEL)),
     randomSigPresets: structuredClone(randomSigPresetsOf(STUDIO_CHANNEL)),
     relaySettings: structuredClone(relaySettingsOf(STUDIO_CHANNEL)),
+    relayPresets: structuredClone(relayPresetsOf(STUDIO_CHANNEL)),
+    projects: [...new Set((mockCrew.broadcasts ?? []).filter((b) => b.channelId === STUDIO_CHANNEL && b.project).map((b) => b.project as string))],
     jupjupSettings: structuredClone(jupjupSettingsOf(STUDIO_CHANNEL)),
     medleySettings: structuredClone(medleySettingsOf(STUDIO_CHANNEL)),
     sigBingoSettings: structuredClone(sigBingoSettingsOf(STUDIO_CHANNEL)),
@@ -126,6 +131,7 @@ export async function getGamesView(): Promise<GamesView | null> {
     gostopSettings: structuredClone(goStopSettingsOf(STUDIO_CHANNEL)),
     territorySettings: structuredClone(territorySettingsOf(STUDIO_CHANNEL)),
     sudopolySettings: structuredClone(sudopolySettingsOf(STUDIO_CHANNEL)),
+    jackpotSettings: structuredClone(jackpotSettingsOf(STUDIO_CHANNEL)),
     signatures: sigCountSignatures(),
     overlayPath: `/overlay/crew/${mockCreator.integrationKey}`
   };
@@ -189,6 +195,23 @@ export async function deleteRandomSigPreset(input: unknown): Promise<BroadcastRe
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   deleteRandomSigPresetOf(STUDIO_CHANNEL, rec(input).id);
+  return { status: "SAVED" };
+}
+
+/** 기여도 릴레이 설정 프리셋 저장 ({ name, settings }, 2026-10-28): the same name replaces that 프리셋. 켜짐 is not part of it. */
+export async function saveRelayPreset(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const active = (mockCrew.crews[STUDIO_CHANNEL] ?? []).filter((m) => m.active).map((m) => m.id);
+  const res = saveRelayPresetOf(STUDIO_CHANNEL, input, MOCK_FORBIDDEN_WORDS, signatureIds(), active);
+  return "message" in res ? { status: "INVALID", message: res.message } : res;
+}
+
+/** 기여도 릴레이 설정 프리셋 삭제 ({ id }). */
+export async function deleteRelayPreset(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  deleteRelayPresetOf(STUDIO_CHANNEL, rec(input).id);
   return { status: "SAVED" };
 }
 
@@ -529,6 +552,43 @@ export async function resetGoStopRank(input: unknown): Promise<BroadcastResult> 
   return { status: "SAVED" };
 }
 
+/**
+ * Replaces the 시그니처 잭팟 settings (이름 · 적립 비율 · 목표 개수 · 당첨 문구 표시 시간 · 자동 · 제외 시그 · 대기 화면). A new 목표
+ * 개수 draws a new 당첨 순번 for the live 풀 (StreamDonate "적용 + 랜덤 재설정"); its points and count stay.
+ */
+export async function saveJackpot(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const parsed = parseJackpotSettings(input, MOCK_FORBIDDEN_WORDS, signatureIds());
+  if ("message" in parsed) return { status: "INVALID", message: parsed.message };
+  const before = jackpotSettingsOf(STUDIO_CHANNEL).target;
+  (mockCrew.jackpots ??= {})[STUDIO_CHANNEL] = parsed;
+  const live = liveBroadcastOf(STUDIO_CHANNEL);
+  if (live && parsed.target !== before) redrawJackpotTurn(live);
+  return { status: "SAVED" };
+}
+
+/** 풀 새로 시작 (리셋): the 풀 starts over from 0 with a new 당첨 순번, no one taking it. */
+export async function resetJackpot(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const live = liveBroadcastOf(STUDIO_CHANNEL);
+  if (!live || live.id !== rec(input).broadcastId) return notLive;
+  resetJackpotPool(live);
+  return { status: "SAVED" };
+}
+
+/** 당첨 순번 수기 ({ turn }): sets the 당첨 순번 of the live 풀 (past its count). */
+export async function setJackpotTurnOf(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = rec(input);
+  const live = liveBroadcastOf(STUDIO_CHANNEL);
+  if (!live || live.id !== v.broadcastId) return notLive;
+  const message = setJackpotTurn(live, v.turn);
+  return message ? { status: "INVALID", message } : { status: "SAVED" };
+}
+
 /** Replaces the 땅따먹기 settings (이름 · 판 크기 · 하트 받는 방식 · 칸 점수 · 후원으로 하트 주기 · 제외 시그 · 대기 화면). */
 export async function saveTerritory(input: unknown): Promise<BroadcastResult> {
   assertMock();
@@ -627,6 +687,7 @@ export async function playGame(input: unknown): Promise<GamePlayResult> {
   if (game === "SIG_HUNTER") return { status: "INVALID", message: "시그니처 헌터는 시그니처 후원이나 슬롯 누르기로 SOLD OUT 돼요." };
   if (game === "SIG_DOSAN") return { status: "INVALID", message: "시그니처 두산은 시그니처 후원이나 한 단 올리기로 올라가요." };
   if (game === "TERRITORY") return { status: "INVALID", message: "땅따먹기는 칸을 눌러 멤버에게 할당해요." };
+  if (game === "JACKPOT") return { status: "INVALID", message: "시그니처 잭팟은 시그니처 후원으로만 쌓여요." };
   const live = liveBroadcastOf(STUDIO_CHANNEL);
   if (!live || live.id !== v.broadcastId) return notLive;
   if (!validId(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
