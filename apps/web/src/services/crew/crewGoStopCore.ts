@@ -6,7 +6,9 @@ import {
   GOSTOP_BANDS_MAX,
   GOSTOP_BAND_MIN_MAX,
   GOSTOP_MULTIPLIER_MAX,
+  GOSTOP_POOL_MAX,
   GOSTOP_POOL_PERCENT_MAX,
+  GOSTOP_REASON_MAX,
   GOSTOP_RATE_MAX,
   type GoStopBand,
   type GoStopLive,
@@ -25,7 +27,8 @@ const rec = (input: unknown) => (typeof input === "object" && input !== null ? i
 const isInt = (v: unknown, min: number, max: number): v is number => typeof v === "number" && Number.isInteger(v) && v >= min && v <= max;
 
 /** The channel's 고스톱 settings (defaults until saved). */
-export const goStopSettingsOf = (channelId: string): GoStopSettings => mockCrew.gostops?.[channelId] ?? DEFAULT_GOSTOP;
+/** Settings saved before 기본 풀 (2026-10-28) read with 0. */
+export const goStopSettingsOf = (channelId: string): GoStopSettings => ({ ...DEFAULT_GOSTOP, ...mockCrew.gostops?.[channelId] });
 
 /**
  * Validates the settings. `memberIds`: the crew (제외 BJ must be among them); `knownBands`: the saved 색 구간 ids (kept). 색
@@ -36,6 +39,9 @@ export function parseGoStopSettings(input: unknown, forbidden: string[], signatu
   if ("message" in common) return common;
   const v = rec(input);
   if (!isInt(v.poolPercent, 1, GOSTOP_POOL_PERCENT_MAX)) return { message: `적립률은 1 ~ ${GOSTOP_POOL_PERCENT_MAX}%예요.` };
+  // A screen from before 기본 풀 sends none: 0.
+  const basePool = v.basePool === undefined ? 0 : v.basePool;
+  if (!isInt(basePool, 0, GOSTOP_POOL_MAX)) return { message: `기본 풀은 0 ~ ${GOSTOP_POOL_MAX.toLocaleString("ko-KR")}점이에요.` };
   const stopRate = parseMultiplier(v.stopRate, GOSTOP_RATE_MAX);
   if (stopRate === null) return { message: `STOP 확률은 1,000점당 0.01 ~ ${GOSTOP_RATE_MAX}%, 소수 둘째 자리까지예요.` };
   if (!isInt(v.stopMax, 1, 100)) return { message: "최대 STOP 확률은 1 ~ 100%예요." };
@@ -54,6 +60,7 @@ export function parseGoStopSettings(input: unknown, forbidden: string[], signatu
   return {
     ...common,
     poolPercent: v.poolPercent,
+    basePool,
     stopRate,
     stopMax: v.stopMax,
     multiplier,
@@ -68,13 +75,14 @@ export const goStopChance = (s: Pick<GoStopSettings, "stopRate" | "stopMax">, po
 /** Adds the 기준 후원 to the 풀 and rolls GO or STOP for `start.memberId` (server randomness); queued on OBS `?gostop`. */
 export function runGoStop(b: MockBroadcast, start: RunStart, now = Date.now()): StoredRun {
   const s = goStopSettingsOf(b.channelId);
-  const st = (b.gostop ??= { pool: 0, go: 0 });
+  const st = (b.gostop ??= { pool: s.basePool, go: 0 });
   st.pool += Math.round((start.basePoints * s.poolPercent) / 100);
   const chance = goStopChance(s, start.basePoints);
   if (chance > 0 && randomInt(1_000_000) < chance) {
     const points = st.pool + extraPoints(st.pool, s.multiplier);
     const run = recordRun(b, { ...start, game: "GOSTOP", itemId: null, label: "STOP!", kind: "ADD", value: points, points, gostop: { pool: st.pool, go: st.go, chance } }, now);
-    b.gostop = { pool: 0, go: 0 };
+    st.pool = s.basePool; // the next round starts from the 기본 풀
+    st.go = 0;
     return run;
   }
   st.go += 1;
@@ -89,9 +97,33 @@ export function goStopForSignature(channelId: string, input: Parameters<typeof s
   if (t) runGoStop(t.live, t.start);
 }
 
-/** 풀 비우기: the 풀 and GO count start over (no one takes it). */
+/** 풀 비우기: the 풀 starts over from the 기본 풀 and the GO count from 0 (no one takes it). */
 export function resetGoStopPool(b: MockBroadcast) {
-  b.gostop = { pool: 0, go: 0 };
+  b.gostop = { ...b.gostop, pool: goStopSettingsOf(b.channelId).basePool, go: 0 };
+}
+
+/**
+ * 풀 수동 조정 (2026-10-28, StreamDonate "풀 수동 조정 +50 또는 −10 · 사유"): adds `points` (± , not 0) to the 풀 — not below
+ * 0. `requestId`: a retry adjusts no more. Returns an error message, or null.
+ */
+export function adjustGoStopPool(b: MockBroadcast, input: { points: unknown; reason: unknown; requestId: string }, now = Date.now()): string | null {
+  const st = (b.gostop ??= { pool: goStopSettingsOf(b.channelId).basePool, go: 0 });
+  if (st.adjustments?.some((a) => a.id === input.requestId)) return null;
+  if (typeof input.points !== "number" || !Number.isInteger(input.points) || input.points === 0 || Math.abs(input.points) > GOSTOP_POOL_MAX) {
+    return `조정 점수는 0이 아닌 정수, ±${GOSTOP_POOL_MAX.toLocaleString("ko-KR")}점까지예요.`;
+  }
+  const reason = input.reason === undefined || input.reason === null ? "" : typeof input.reason === "string" ? input.reason.trim() : null;
+  if (reason === null || reason.length > GOSTOP_REASON_MAX) return `사유는 ${GOSTOP_REASON_MAX}자까지예요.`;
+  if (st.pool + input.points < 0) return `풀은 0점보다 작아질 수 없어요(지금 ${st.pool.toLocaleString("ko-KR")}점).`;
+  if (st.pool + input.points > GOSTOP_POOL_MAX) return `풀은 ${GOSTOP_POOL_MAX.toLocaleString("ko-KR")}점까지예요.`;
+  st.pool += input.points;
+  (st.adjustments ??= []).push({ id: input.requestId, at: new Date(now).toISOString(), points: input.points, reason });
+  return null;
+}
+
+/** 랭킹 리셋 (2026-10-28): the STOP 랭킹 counts from now — the points taken stay on the scoreboard. */
+export function resetGoStopRanking(b: MockBroadcast, now = Date.now()) {
+  b.gostop = { ...(b.gostop ?? { pool: goStopSettingsOf(b.channelId).basePool, go: 0 }), rankingSince: new Date(now).toISOString() };
 }
 
 export function goStopLive(b: MockBroadcast): GoStopLive {
@@ -99,10 +131,15 @@ export function goStopLive(b: MockBroadcast): GoStopLive {
   return {
     settings: structuredClone(goStopSettingsOf(b.channelId)),
     runs: gameRunsView(b, "GOSTOP"),
-    pool: b.gostop?.pool ?? 0,
+    pool: b.gostop?.pool ?? goStopSettingsOf(b.channelId).basePool,
     go: b.gostop?.go ?? 0,
+    rankingSince: b.gostop?.rankingSince ?? null,
+    adjustments: [...(b.gostop?.adjustments ?? [])]
+      .reverse()
+      .slice(0, 10)
+      .map((a) => ({ at: a.at, points: a.points, reason: a.reason })),
     wins: (b.gameRuns ?? [])
-      .filter((r) => r.game === "GOSTOP" && r.kind === "ADD" && r.gostop)
+      .filter((r) => r.game === "GOSTOP" && r.kind === "ADD" && r.gostop && (!b.gostop?.rankingSince || r.at >= b.gostop.rankingSince))
       .map((r) => {
         const m = crew.find((x) => x.id === r.memberId);
         return { memberId: r.memberId, name: m?.name ?? "삭제된 멤버", color: m?.color ?? null, points: r.points, pool: r.gostop!.pool, go: r.gostop!.go, at: r.at, revealAt: r.revealAt };

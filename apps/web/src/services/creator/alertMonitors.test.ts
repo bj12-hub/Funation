@@ -54,6 +54,23 @@ describe("최고 후원", () => {
   });
 });
 
+describe("최고 후원 수동 수정 (2026-10-28)", () => {
+  const base = { period: "일간", timing: "RECEIVED", tie: "LATEST" } as const;
+
+  it("stands for every donation before it in the 기간, and later ones still compete with it", () => {
+    const items = [alert({ donor: "큰손", fnAmount: 900_000, createdAt: ago(30) }), alert({ donor: "작은", fnAmount: 10_000, createdAt: ago(5) })];
+    const manual = { donor: "직접", fnAmount: 50_000, at: ago(10) };
+    expect(topDonation(items, base, NOW, manual)).toEqual({ donor: "직접", amount: "50,000 FN", message: "", at: manual.at, manual: true });
+    // A bigger one after it takes over; the same amount after it follows the tie rule.
+    const later = [...items, alert({ donor: "같음", fnAmount: 50_000, createdAt: ago(2) })];
+    expect(topDonation(later, base, NOW, manual)?.donor).toBe("같음");
+    expect(topDonation(later, { ...base, tie: "FIRST" }, NOW, manual)?.donor).toBe("직접");
+    expect(topDonation([...later, alert({ donor: "더큰", fnAmount: 60_000, createdAt: ago(1) })], base, NOW, manual)?.donor).toBe("더큰");
+    // From another 기간 (yesterday for 일간): not used.
+    expect(topDonation(items, base, NOW, { ...manual, at: ago(60 * 30) })?.donor).toBe("큰손");
+  });
+});
+
 describe("후원 모니터링", () => {
   it("shows the alert on screen, else the last one shown, and nothing before any", () => {
     const done = alert({ donor: "지난번", message: "고마워요", createdAt: ago(2) });

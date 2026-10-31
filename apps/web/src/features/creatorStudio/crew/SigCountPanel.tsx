@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { formatKstTime, formatNumber } from "@/lib/format";
-import { resetSigCount, saveSigCount, setSigCountVisible } from "@/services/crew/crewSigCount";
+import { moveSigCountStart, resetSigCount, saveSigCount, setSigCountVisible } from "@/services/crew/crewSigCount";
+import { StartPointPicker } from "./StartPointPicker";
 import {
   SIG_COUNT_COLUMNS_MAX,
   SIG_COUNT_ROWS,
@@ -11,6 +12,7 @@ import {
   SIG_COUNT_TITLE_MAX,
   type BroadcastResult,
   type BroadcastView,
+  type CrewMember,
   type SigCountLive,
   type SigCountSettings
 } from "@/services/crew/crewTypes";
@@ -31,6 +33,7 @@ const time = (iso: string) => formatKstTime(iso, { hour: "2-digit", minute: "2-d
 export function SigCountPanel({
   settings,
   signatures,
+  members,
   live,
   overlayPath,
   pending,
@@ -38,6 +41,7 @@ export function SigCountPanel({
 }: {
   settings: SigCountSettings;
   signatures: BroadcastView["signatures"];
+  members: CrewMember[];
   live: { broadcastId: string; table: SigCountLive } | null;
   overlayPath: string;
   pending: boolean;
@@ -173,11 +177,37 @@ export function SigCountPanel({
               ))}
             </span>
             <label className={styles.checkRow}>
+              <input type="checkbox" checked={draft.activeOnly} onChange={(e) => edit({ activeOnly: e.target.checked })} />
+              출근 BJ만
+            </label>
+            <label className={styles.checkRow}>
               <input type="checkbox" checked={draft.showTotal} onChange={(e) => edit({ showTotal: e.target.checked })} />
               하단 합계
             </label>
           </span>
         </div>
+        {draft.rows === "SELECTED" && (
+          <div className={prize.field} role="group" aria-label="표에 넣을 멤버">
+            <span className={styles.muted}>표에 넣을 멤버</span>
+            <span className={prize.chips}>
+              {members
+                .filter((m) => m.active || draft.memberIds.includes(m.id))
+                .map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    className={sig.chip}
+                    aria-pressed={draft.memberIds.includes(m.id)}
+                    onClick={() => edit({ memberIds: draft.memberIds.includes(m.id) ? draft.memberIds.filter((id) => id !== m.id) : [...draft.memberIds, m.id] })}
+                  >
+                    <span className={styles.dot} style={{ background: m.color }} aria-hidden="true" />
+                    {m.name}
+                  </button>
+                ))}
+            </span>
+            <span className={styles.note}>고른 멤버만 0건이어도 줄로 보여요. 멤버를 지정하지 않은 시그니처는 미지정 줄로 따로 보여요.</span>
+          </div>
+        )}
         <div className={styles.actions}>
           <button type="button" className={styles.ghost} disabled={pending || !dirty} onClick={() => setDraft(settings)}>
             되돌리기
@@ -197,6 +227,11 @@ export function SigCountPanel({
             <button type="button" className={styles.ghost} disabled={pending} onClick={reset}>
               다시 세기
             </button>
+            <StartPointPicker
+              current={table.since}
+              pending={pending}
+              onMove={(at) => run(() => moveSigCountStart({ broadcastId: live.broadcastId, at }), `${time(at)}부터 다시 셀게요.`)}
+            />
           </div>
           {dirty && <p className={styles.note}>저장하지 않은 설정이 있어요. 미리보기와 OBS는 저장한 설정으로 보여요.</p>}
           {table.columns.length === 0 ? (

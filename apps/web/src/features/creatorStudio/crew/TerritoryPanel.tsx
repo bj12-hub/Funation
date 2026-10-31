@@ -7,9 +7,12 @@ import {
   TERRITORY_CELL_POINTS_MAX,
   TERRITORY_HEART_MODES,
   TERRITORY_HEART_POINTS_MAX,
-  TERRITORY_SIZES,
+  TERRITORY_SIZE_MAX,
+  TERRITORY_SIZE_MIN,
+  TERRITORY_TICKERS,
   TERRITORY_TITLE_DEFAULT,
   territoryCoord,
+  type CrewMember,
   type GamesView,
   type TerritorySettings
 } from "@/services/crew/crewTypes";
@@ -19,18 +22,22 @@ import games from "./games.module.css";
 import prize from "./prize.module.css";
 
 /** The editor keeps the numbers as typed. */
-type Draft = Omit<TerritorySettings, "heartPoints" | "cellPoints"> & { heartPoints: string; cellPoints: string };
-const toDraft = (s: TerritorySettings): Draft => ({ ...s, heartPoints: String(s.heartPoints), cellPoints: String(s.cellPoints) });
-const fromDraft = (d: Draft) => ({ ...d, heartPoints: Number(d.heartPoints), cellPoints: Number(d.cellPoints || 0) });
+type Draft = Omit<TerritorySettings, "size" | "heartPoints" | "cellPoints"> & { size: string; heartPoints: string; cellPoints: string };
+const toDraft = (s: TerritorySettings): Draft => ({ ...s, size: String(s.size), heartPoints: String(s.heartPoints), cellPoints: String(s.cellPoints) });
+const fromDraft = (d: Draft) => ({ ...d, size: Number(d.size), heartPoints: Number(d.heartPoints), cellPoints: Number(d.cellPoints || 0) });
+/** Past this many cells a side the studio board drops the coordinates in its cells (still on hover and for screen readers). */
+const DENSE_FROM = 13;
 
 /**
  * 땅따먹기 — code-first (no Figma frame; StreamDonate 땅따먹기 참고), inside `/creator/crew/games`. 판 크기, 하트 받는 방식
  * (후원 점수마다 · 시그니처 후원 1건마다), 칸 점수, 후원으로 하트 주기 · 제외 시그; while live 판 시작 / 판 비우기, each
- * member's 하트 (+1 · −1) and 점유, the board (조정실: click a cell to give it to the picked member) and the runs.
+ * member's 하트 (+1 · −1) and 점유, the board (조정실: click a cell to give it to the picked member) and the runs. 점유 롤링
+ * 표시 · 땅따먹기 전용 BJ 색상 (2026-10-28).
  */
 export function TerritoryPanel({
   settings,
   signatures,
+  members: crew,
   live,
   now,
   overlayPath,
@@ -39,6 +46,7 @@ export function TerritoryPanel({
 }: {
   settings: TerritorySettings;
   signatures: GamesView["signatures"];
+  members: CrewMember[];
   live: LiveGames | null;
   now: number | null;
   overlayPath: string;
@@ -46,6 +54,11 @@ export function TerritoryPanel({
   run: RunAction;
 }) {
   const { draft, edit, dirty, reset } = useSettingsDraft(settings, toDraft, fromDraft);
+  // 땅따먹기 전용 BJ 색상: a color only while it differs from the crew color (the same color is no override).
+  const setColor = (m: CrewMember, color: string | null) => {
+    const rest = Object.fromEntries(Object.entries(draft.colors).filter(([id]) => id !== m.id));
+    edit({ colors: color && color.toLowerCase() !== m.color.toLowerCase() ? { ...rest, [m.id]: color.toLowerCase() } : rest });
+  };
   const known = new Set(signatures.map((s) => s.id));
   const startId = useRef<string | null>(null);
   const territory = live?.territory;
@@ -87,16 +100,21 @@ export function TerritoryPanel({
         }}
       >
         <TitleField name="땅따먹기" placeholder={TERRITORY_TITLE_DEFAULT} value={draft.title} onChange={(title) => edit({ title })} />
-        <div className={prize.field} role="group" aria-label="판 크기">
-          <span className={styles.muted}>판 크기</span>
-          <span className={styles.segment}>
-            {TERRITORY_SIZES.map((n) => (
-              <button key={n} type="button" aria-pressed={draft.size === n} onClick={() => edit({ size: n })}>
-                {n}×{n}
-              </button>
-            ))}
+        <label className={games.unit}>
+          <span className={styles.muted}>판 크기 (한 변)</span>
+          <input
+            className={styles.inputSmall}
+            type="number"
+            inputMode="numeric"
+            min={TERRITORY_SIZE_MIN}
+            max={TERRITORY_SIZE_MAX}
+            value={draft.size}
+            onChange={(e) => edit({ size: e.target.value })}
+          />
+          <span className={styles.muted}>
+            칸 ({TERRITORY_SIZE_MIN} ~ {TERRITORY_SIZE_MAX}){/^\d+$/.test(draft.size) ? ` — ${draft.size}×${draft.size}` : ""}
           </span>
-        </div>
+        </label>
         <div className={prize.field} role="group" aria-label="하트 받는 방식">
           <span className={styles.muted}>하트 받는 방식</span>
           <span className={prize.inline}>
@@ -138,6 +156,39 @@ export function TerritoryPanel({
           />
           <span className={styles.muted}>점 — 칸을 차지하면 받고, 빼앗기면 그만큼 넘어가요(0이면 순위만)</span>
         </label>
+        <div className={prize.field} role="group" aria-label="점유 롤링 표시">
+          <span className={styles.muted}>점유 롤링 표시 (멤버 · 칸)</span>
+          <span className={styles.segment}>
+            {TERRITORY_TICKERS.map((x) => (
+              <button key={x.key} type="button" aria-pressed={draft.ticker === x.key} onClick={() => edit({ ticker: x.key })}>
+                {x.label}
+              </button>
+            ))}
+          </span>
+        </div>
+        <div className={prize.field} role="group" aria-label="땅따먹기 BJ 색상">
+          <span className={styles.muted}>BJ 색상 (땅따먹기 전용)</span>
+          <ul className={games.tiers}>
+            {crew
+              .filter((m) => m.active || draft.colors[m.id])
+              .map((m) => (
+                <li key={m.id}>
+                  <span className={games.tierRow}>
+                    <input className={games.color} type="color" aria-label={`${m.name} 땅따먹기 색`} value={draft.colors[m.id] ?? m.color} onChange={(e) => setColor(m, e.target.value)} />
+                    <span className={styles.boardName}>{m.name}</span>
+                    {draft.colors[m.id] ? (
+                      <button type="button" className={styles.ghost} onClick={() => setColor(m, null)}>
+                        크루 색으로
+                      </button>
+                    ) : (
+                      <span className={styles.muted}>크루 색</span>
+                    )}
+                  </span>
+                </li>
+              ))}
+          </ul>
+          <span className={styles.note}>색을 바꾸면 이미 점유한 칸도 함께 바뀌어요. 다른 기능의 멤버 색은 그대로예요.</span>
+        </div>
         <AutoFields
           name="땅따먹기"
           verb="하트 주기"
@@ -214,7 +265,12 @@ export function TerritoryPanel({
                   ))}
                 </select>
               </span>
-              <ol className={games.territory} style={{ "--terr-size": board.size } as CSSProperties} aria-label="땅따먹기 판">
+              <ol
+                className={games.territory}
+                data-dense={board.size >= DENSE_FROM || undefined}
+                style={{ "--terr-size": board.size } as CSSProperties}
+                aria-label="땅따먹기 판"
+              >
                 {board.cells.map((c, i) => {
                   const o = members.find((m) => m.memberId === owner(i));
                   const coord = territoryCoord(board.size, i);
@@ -227,9 +283,10 @@ export function TerritoryPanel({
                         style={o?.color ? ({ "--cell-color": o.color } as CSSProperties) : undefined}
                         disabled={pending || !picked || owner(i) === picked}
                         aria-label={`${coord}${o ? ` — ${o.name}` : ""}`}
+                        title={board.size >= DENSE_FROM ? `${coord}${o ? ` — ${o.name}` : ""}` : undefined}
                         onClick={() => run(() => assignTerritory({ broadcastId: live.id, boardId: board.boardId, requestId: crypto.randomUUID(), index: i, memberId: picked }))}
                       >
-                        {coord}
+                        {board.size >= DENSE_FROM ? null : coord}
                       </button>
                     </li>
                   );
@@ -242,6 +299,8 @@ export function TerritoryPanel({
       )}
 
       <OverlayAddress overlayPath={overlayPath} param="territory" label="땅따먹기" />
+      <p className={styles.note}>점유 현황 (순위만 따로)</p>
+      <OverlayAddress overlayPath={overlayPath} param="territoryrank" label="땅따먹기 점유 현황" />
     </section>
   );
 }

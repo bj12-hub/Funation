@@ -4,12 +4,15 @@ import { USE_MOCK } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { overlayKeyOpen } from "@/services/account/creatorAccess";
 import { advance, mockAlerts, overlaySignal } from "./alertCore";
+import { findAsset } from "./assetCore";
+import { assetUrl } from "./assetTypes";
 import {
   DEFAULT_EFFECTS,
   EFFECT_LIMITS,
   EMOJI_PRESETS,
   LAYER_EFFECTS,
   type EffectSettings,
+  type EffectTier,
   type EffectsResult,
   type LayerEffect,
   type OverlayEffects
@@ -35,6 +38,12 @@ export async function getEffectSettings(): Promise<EffectSettings | null> {
 
 const fnOk = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= EFFECT_LIMITS.minFnMax;
 
+/** A library VIDEO's address, while it is still there (a deleted 영상 plays nothing). */
+const isVideo = (url: unknown): url is string => {
+  const id = typeof url === "string" && url.startsWith("/api/media/") ? url.slice("/api/media/".length) : null;
+  return !!id && !!findAsset(id, "VIDEO") && assetUrl(id) === url;
+};
+
 export async function saveEffectSettings(input: unknown): Promise<EffectsResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
@@ -53,20 +62,23 @@ export async function saveEffectSettings(input: unknown): Promise<EffectsResult>
   }
   const keys = LAYER_EFFECTS.map((x) => x.key) as string[];
   if (l.tiers.some((t) => !t || !fnOk(t.minFn) || !keys.includes(t.effect))) return { status: "INVALID", message: "레이어 효과 구간을 확인해 주세요." };
+  // 영상: none (missing · null), or a VIDEO still in the library.
+  if (l.tiers.some((t) => t.videoUrl !== undefined && t.videoUrl !== null && !isVideo(t.videoUrl))) return { status: "INVALID", message: "구간 영상을 라이브러리에서 다시 골라 주세요." };
   const mins = l.tiers.map((t) => t.minFn);
   if (new Set(mins).size !== mins.length) return { status: "INVALID", message: "구간 금액이 겹쳐요. 금액을 다르게 입력해 주세요." };
   g.__ssumnationMockEffectsV1 = {
     emoji: { enabled: e.enabled, minFn: e.minFn, emojis: [...new Set(e.emojis)], count: e.count },
-    layer: { enabled: l.enabled, tiers: [...l.tiers].sort((a, b) => a.minFn - b.minFn).map((t) => ({ minFn: t.minFn, effect: t.effect as LayerEffect })) }
+    layer: { enabled: l.enabled, tiers: [...l.tiers].sort((a, b) => a.minFn - b.minFn).map((t): EffectTier => ({ minFn: t.minFn, effect: t.effect as LayerEffect, videoUrl: t.videoUrl ?? null })) }
   };
   return { status: "SAVED" };
 }
 
 /** Pure resolution (exported for tests through the overlay read). */
-function resolve(settings: EffectSettings, fnAmount: number): Pick<OverlayEffects, "emoji" | "layer"> {
+function resolve(settings: EffectSettings, fnAmount: number): Pick<OverlayEffects, "emoji" | "layer" | "video"> {
   const emoji = settings.emoji.enabled && fnAmount >= settings.emoji.minFn ? { emojis: settings.emoji.emojis, count: settings.emoji.count } : null;
+  // The largest 구간 the amount reaches (최소 금액 이상 중 가장 큰 구간), with its 영상 if it is still in the library.
   const tier = settings.layer.enabled ? [...settings.layer.tiers].reverse().find((t) => fnAmount >= t.minFn) : undefined;
-  return { emoji, layer: tier?.effect ?? null };
+  return { emoji, layer: tier?.effect ?? null, video: tier?.videoUrl && isVideo(tier.videoUrl) ? tier.videoUrl : null };
 }
 
 /** OBS overlay read — no login; the integration key is the secret. */
@@ -76,6 +88,6 @@ export async function getOverlayEffects(key: unknown): Promise<OverlayEffects | 
   advance();
   const showing = mockAlerts.items.find((a) => a.status === "SHOWING");
   const signal = overlaySignal("effects");
-  if (!showing) return { alertId: null, emoji: null, layer: null, ...signal };
+  if (!showing) return { alertId: null, emoji: null, layer: null, video: null, ...signal };
   return { alertId: showing.id, ...resolve(store(), showing.fnAmount), ...signal };
 }

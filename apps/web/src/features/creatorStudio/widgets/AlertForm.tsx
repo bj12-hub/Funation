@@ -1,14 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { PreviewStage } from "@/features/overlayTheme/PreviewStage";
 import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
+import { assetUrl } from "@/services/creator/assetTypes";
 import { OVERLAY_MOTIONS, resolveTheme } from "@/services/creator/overlayThemeTypes";
-import { ALERT_HEADLINE_MAX, ALERT_LAYOUTS, ALERT_TOKENS } from "@/services/creator/widgetSettingsTypes";
+import { ALERT_HEADLINE_MAX, ALERT_LAYOUTS, ALERT_SOUND_MAX_SEC, ALERT_TEXT_SCALES, ALERT_TOKENS, SIG_FETCH_MODES } from "@/services/creator/widgetSettingsTypes";
 import { AlertCard, type AlertCardData } from "../remote/AlertCard";
-import { Row, Section, Select, SwitchText } from "./fields";
+import { Radios, Row, Section, Select, SwitchText } from "./fields";
 import type { FormProps } from "./forms";
+import { LibrarySoundField } from "./library/LibrarySounds";
 import a from "./alertForm.module.css";
 import styles from "./widgets.module.css";
 
@@ -31,6 +33,22 @@ const SAMPLES: { key: string; label: string; alert: AlertCardData }[] = [
   }
 ];
 
+/** How long a library sound is (seconds, rounded to 0.1), read from the file in the browser; null until known. */
+function useSoundLength(id: string | null) {
+  const [length, setLength] = useState<{ id: string; sec: number } | null>(null);
+  useEffect(() => {
+    if (!id) return;
+    const audio = new Audio(assetUrl(id));
+    audio.preload = "metadata";
+    audio.onloadedmetadata = () => Number.isFinite(audio.duration) && setLength({ id, sec: Math.round(audio.duration * 10) / 10 });
+    return () => {
+      audio.onloadedmetadata = null;
+      audio.src = "";
+    };
+  }, [id]);
+  return id && length?.id === id ? length.sec : null;
+}
+
 /**
  * 후원 알림 디자인 (code-first, 2026-10-08 오버레이 테마 개편). The preview is the OBS card itself (AlertCard) on a
  * stream-like backdrop; 표시 시간 · 볼륨 · 최소 금액 stay on the 리모컨.
@@ -45,6 +63,7 @@ export function AlertForm({ value: v, onChange, live }: FormProps<"ALERT">) {
   const theme = resolveTheme(live.appearance, v.theme);
   const current = SAMPLES.find((s) => s.key === sample) ?? SAMPLES[0];
   const headlineOk = v.headline.trim().length > 0 && v.headline.includes(ALERT_TOKENS.donor);
+  const soundSec = useSoundLength(v.soundId);
 
   const insert = (token: string) => {
     const el = headlineRef.current;
@@ -157,6 +176,29 @@ export function AlertForm({ value: v, onChange, live }: FormProps<"ALERT">) {
         </div>
       </Section>
 
+      <Section title="글자 크기">
+        <div className={styles.rows}>
+          {(
+            [
+              ["amount", "금액"],
+              ["name", "알림 문구 (닉네임)"],
+              ["message", "후원 메시지"]
+            ] as const
+          ).map(([k, label]) => (
+            <Row key={k} label={label}>
+              <Select
+                label={`${label} 글자 크기`}
+                value={(v.textScale ?? { amount: 100, name: 100, message: 100 })[k]}
+                options={ALERT_TEXT_SCALES}
+                width={120}
+                format={(x) => (x === 100 ? "100% (기본)" : `${x}%`)}
+                onChange={(x) => set("textScale", { ...(v.textScale ?? { amount: 100, name: 100, message: 100 }), [k]: x })}
+              />
+            </Row>
+          ))}
+        </div>
+      </Section>
+
       <Section title="움직임">
         <div className={styles.rows}>
           <Row label="등장 효과">
@@ -174,6 +216,28 @@ export function AlertForm({ value: v, onChange, live }: FormProps<"ALERT">) {
           </Row>
           <Row label="금액 올라가기">
             <SwitchText label="금액 올라가는 효과" checked={v.countUp} onChange={(x) => set("countUp", x)} text="0부터 후원 금액까지 숫자가 올라가요" />
+          </Row>
+        </div>
+      </Section>
+
+      <Section title="소리">
+        <div className={styles.rows}>
+          <Row label="알림 사운드">
+            <LibrarySoundField label="알림 사운드 설정" buttonClassName={styles.purpleSmall} value={v.soundId} onChange={(id) => set("soundId", id)} />
+            <p className={styles.hint}>
+              모든 후원 알림이 뜰 때 먼저 재생해요 — 최대 {ALERT_SOUND_MAX_SEC}초. TTS와 시그니처 소리는 그다음에 나와요. 볼륨은 리모컨의 &apos;후원 알림음&apos;이에요.
+            </p>
+            {soundSec !== null && soundSec > ALERT_SOUND_MAX_SEC && (
+              <p className={a.invalid}>
+                이 사운드는 {soundSec}초예요. 앞 {ALERT_SOUND_MAX_SEC}초만 재생해요.
+              </p>
+            )}
+          </Row>
+          <Row label="시그니처 음원">
+            <Radios name="sig-fetch" label="시그니처 음원 받는 방식" options={SIG_FETCH_MODES} value={v.sigFetch} onChange={(x) => set("sigFetch", x)} />
+            <p className={styles.hint}>
+              {SIG_FETCH_MODES.find((m) => m.key === v.sigFetch)?.hint} 후원 알림 · 시그니처 플레이어 오버레이 모두 이 방식으로 받고, 바꾸면 다음 시그니처부터 적용돼요.
+            </p>
           </Row>
         </div>
       </Section>

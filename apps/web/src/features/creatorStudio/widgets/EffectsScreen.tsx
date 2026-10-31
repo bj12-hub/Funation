@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { saveEffectSettings } from "@/services/creator/effects";
-import { EFFECT_LIMITS, EMOJI_PRESETS, LAYER_EFFECTS, type EffectSettings, type LayerEffect } from "@/services/creator/effectsTypes";
+import type { Asset } from "@/services/creator/assetTypes";
+import { EFFECT_LIMITS, EMOJI_PRESETS, LAYER_EFFECTS, type EffectSettings, type EffectTier, type LayerEffect } from "@/services/creator/effectsTypes";
 import type { OverlayTarget } from "@/services/creator/alertTypes";
 import styles from "../crew/crew.module.css";
 import { OverlayOffNotice } from "../remote/OverlayOffNotice";
@@ -12,9 +13,20 @@ import local from "./effects.module.css";
 
 /**
  * 이모지 리액션 · 레이어 효과 설정 — code-first (no Figma frame). Route `/creator/widgets/effects`.
- * Effects play with each donation alert on the OBS effects overlay; triggers are channel settings.
+ * Effects play with each donation alert on the OBS effects overlay; triggers are channel settings. A 레이어 효과 구간 can also
+ * play a 영상 from the library (`videos`, 2026-10-25 — StreamDonate 후원 이펙트 "금액 계단별 영상").
  */
-export function EffectsScreen({ initial, overlayPath, switches }: { initial: EffectSettings; overlayPath: string; switches: Record<OverlayTarget, boolean> }) {
+export function EffectsScreen({
+  initial,
+  videos,
+  overlayPath,
+  switches
+}: {
+  initial: EffectSettings;
+  videos: Asset[];
+  overlayPath: string;
+  switches: Record<OverlayTarget, boolean>;
+}) {
   const [s, setS] = useState<EffectSettings>(initial);
   const [note, setNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
@@ -29,7 +41,7 @@ export function EffectsScreen({ initial, overlayPath, switches }: { initial: Eff
       const next = has ? p.emoji.emojis.filter((x) => x !== e) : [...p.emoji.emojis, e];
       return next.length === 0 || next.length > EFFECT_LIMITS.emojisMax ? p : { ...p, emoji: { ...p.emoji, emojis: next } };
     });
-  const setTier = (i: number, patch: Partial<{ minFn: number; effect: LayerEffect }>) => setS((p) => ({ ...p, layer: { ...p.layer, tiers: p.layer.tiers.map((t, j) => (j === i ? { ...t, ...patch } : t)) } }));
+  const setTier = (i: number, patch: Partial<EffectTier>) => setS((p) => ({ ...p, layer: { ...p.layer, tiers: p.layer.tiers.map((t, j) => (j === i ? { ...t, ...patch } : t)) } }));
 
   const save = () => {
     setNote(null);
@@ -108,7 +120,10 @@ export function EffectsScreen({ initial, overlayPath, switches }: { initial: Eff
             사용
           </label>
         </div>
-        <p className={styles.note}>금액 구간마다 효과를 정해요. 후원 금액에 맞는 가장 높은 구간의 효과가 재생돼요.</p>
+        <p className={styles.note}>
+          금액 구간마다 효과를 정해요. 후원 금액에 맞는 가장 높은 구간의 효과가 재생돼요. 구간에 영상을 고르면 효과와 함께 화면 가운데에서 한 번 재생돼요(
+          <Link href="/creator/widgets/assets">이미지·사운드</Link>에서 영상 업로드).
+        </p>
         <ul className={styles.list}>
           {s.layer.tiers.map((t, i) => (
             <li key={i} className={styles.row}>
@@ -118,6 +133,19 @@ export function EffectsScreen({ initial, overlayPath, switches }: { initial: Eff
                 {LAYER_EFFECTS.map((l) => (
                   <option key={l.key} value={l.key}>
                     {l.emoji} {l.label}
+                  </option>
+                ))}
+              </select>
+              <select
+                className={styles.select}
+                aria-label={`구간 ${i + 1} 영상`}
+                value={t.videoUrl && videos.some((v) => v.url === t.videoUrl) ? t.videoUrl : ""}
+                onChange={(e) => setTier(i, { videoUrl: e.target.value || null })}
+              >
+                <option value="">영상 없음</option>
+                {videos.map((v) => (
+                  <option key={v.id} value={v.url}>
+                    🎬 {v.name}
                   </option>
                 ))}
               </select>
@@ -133,7 +161,7 @@ export function EffectsScreen({ initial, overlayPath, switches }: { initial: Eff
           <button
             type="button"
             className={styles.ghost}
-            onClick={() => setLayer({ tiers: [...s.layer.tiers, { minFn: (s.layer.tiers.at(-1)?.minFn ?? 0) * 2 || 10_000, effect: "HEARTS" }] })}
+            onClick={() => setLayer({ tiers: [...s.layer.tiers, { minFn: (s.layer.tiers.at(-1)?.minFn ?? 0) * 2 || 10_000, effect: "HEARTS", videoUrl: null }] })}
           >
             + 구간 추가
           </button>

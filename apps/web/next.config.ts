@@ -59,6 +59,8 @@ const nextConfig: NextConfig = {
       { source: "/overlay/custom/:path*", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] },
       // Same for the 외부 프로그램 연동 page: its requests to the creator's programs never carry the key in Referer.
       { source: "/overlay/bridge/:path*", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] },
+      // 공개 시그니처 페이지 (2026-10-25): its address holds the page key; no request it makes carries it in Referer.
+      { source: "/signatures/:path*", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] },
       ...PRIVATE_SOURCES.map((source) => ({ source, headers: noindex }))
     ];
   }

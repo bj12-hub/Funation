@@ -6,9 +6,12 @@ import { gameRunsView, parseGameCommon, recordRun, shuffled, type StoredRun } fr
 import {
   DEFAULT_SIG_HUNTER,
   GAME_TIMING,
+  SIG_HUNTER_BANDS_MAX,
   SIG_HUNTER_MULTIPLIER_MAX,
   SIG_HUNTER_ROUNDS_MAX,
   SIG_HUNTER_SLOTS_MAX,
+  sigHunterSlotsOf,
+  type SigHunterBand,
   type SigHunterLive,
   type SigHunterRound,
   type SigHunterSettings
@@ -20,7 +23,8 @@ import { mockCrew, type MockBroadcast } from "./mockCrewStore";
  * the 1라운드 signatures (its 금액 범위) in random slots, with its 몰수권 hidden among them. A 시그니처 후원 buys the first open
  * slot of its signature (SOLD OUT): its 기여도 is the donation's points × the 라운드 배수 (the 배수 part is the run's points,
  * for the member). Buying a 몰수권 slot takes the SOLD OUT 기여도 of the other members' slots on the board (the run moves it).
- * When every slot is sold the next 라운드 follows its last result; past the last 라운드 its settings repeat (6+).
+ * When every slot is sold the next 라운드 follows its last result; past the last 라운드 its settings repeat (6+). With 몰수권
+ * 자동 잠김 a 몰수권 opening locks the board until 다음 라운드.
  */
 
 type StoredBoard = NonNullable<MockBroadcast["sigHunter"]>;
@@ -31,8 +35,8 @@ const isInt = (v: unknown, min: number, max: number): v is number => typeof v ==
 const optionalPrice = (v: unknown) => v === null || v === undefined || isInt(v, 0, SIGNATURE_LIMITS.priceMax);
 const iso = (ms: number) => new Date(ms).toISOString();
 
-/** The channel's 시그니처 헌터 settings (defaults until saved). */
-export const sigHunterSettingsOf = (channelId: string): SigHunterSettings => mockCrew.sigHunters?.[channelId] ?? DEFAULT_SIG_HUNTER;
+/** The channel's 시그니처 헌터 settings (defaults until saved; saved before 몰수권 최소 금액 · 자동 잠김 (2026-10-28) without them). */
+export const sigHunterSettingsOf = (channelId: string): SigHunterSettings => ({ ...DEFAULT_SIG_HUNTER, ...mockCrew.sigHunters?.[channelId] });
 
 /** Validates the settings: 1 ~ 6 라운드. `knownRounds`: the saved 라운드 ids (kept); any other id is replaced. */
 export function parseSigHunterSettings(input: unknown, forbidden: string[], signatureIds: string[], knownRounds: string[]): SigHunterSettings | { message: string } {
@@ -51,36 +55,80 @@ export function parseSigHunterSettings(input: unknown, forbidden: string[], sign
     if (priceMin !== null && priceMax !== null && priceMin > priceMax) return { message: `${n} 금액 범위의 최소가 최대보다 커요.` };
     const multiplier = parseMultiplier(r.multiplier, SIG_HUNTER_MULTIPLIER_MAX);
     if (multiplier === null || multiplier < 1) return { message: `${n} 배수는 1 ~ ${SIG_HUNTER_MULTIPLIER_MAX}배, 소수 둘째 자리까지예요.` };
-    if (!isInt(r.forfeits, 0, r.slots - 1)) return { message: `${n} 몰수권은 슬롯보다 적게, 0 ~ ${r.slots - 1}개예요.` };
+    const bands = parseBands(r.bands, n);
+    if ("message" in bands) return bands;
+    const total = sigHunterSlotsOf({ slots: r.slots, bands: bands.bands });
+    if (total > SIG_HUNTER_SLOTS_MAX) return { message: `${n} 슬롯은 추가 금액 구간까지 모두 ${SIG_HUNTER_SLOTS_MAX}칸까지예요.` };
+    if (!isInt(r.forfeits, 0, total - 1)) return { message: `${n} 몰수권은 슬롯보다 적게, 0 ~ ${total - 1}개예요.` };
     const keep = typeof r.id === "string" && knownRounds.includes(r.id) && !rounds.some((x) => x.id === r.id);
-    rounds.push({ id: keep ? (r.id as string) : `hr-${randomUUID().slice(0, 8)}`, slots: r.slots, priceMin, priceMax, multiplier, forfeits: r.forfeits });
+    rounds.push({
+      id: keep ? (r.id as string) : `hr-${randomUUID().slice(0, 8)}`,
+      slots: r.slots,
+      priceMin,
+      priceMax,
+      multiplier,
+      forfeits: r.forfeits,
+      ...(bands.bands.length ? { bands: bands.bands } : {})
+    });
   }
-  return { ...common, rounds };
+  // 몰수권 최소 금액 · 자동 잠김 (2026-10-28): a screen from before sends neither — 제한 없음, off.
+  const forfeitMin = v.forfeitMin === undefined ? 0 : v.forfeitMin;
+  if (!isInt(forfeitMin, 0, SIGNATURE_LIMITS.priceMax)) return { message: "몰수권 최소 금액을 확인해 주세요." };
+  if (v.forfeitLock !== undefined && typeof v.forfeitLock !== "boolean") return { message: "몰수권 자동 잠김을 확인해 주세요." };
+  return { ...common, rounds, forfeitMin, forfeitLock: v.forfeitLock === true };
+}
+
+/** A 라운드's 추가 금액 구간 (missing = none): up to SIG_HUNTER_BANDS_MAX, each 1 칸 or more and its own range. */
+function parseBands(input: unknown, n: string): { bands: SigHunterBand[] } | { message: string } {
+  if (input === undefined || input === null) return { bands: [] };
+  if (!Array.isArray(input) || input.length > SIG_HUNTER_BANDS_MAX) return { message: `${n} 추가 금액 구간은 ${SIG_HUNTER_BANDS_MAX}개까지예요.` };
+  const bands: SigHunterBand[] = [];
+  for (const [k, raw] of input.entries()) {
+    const b = rec(raw);
+    const name = `${n} 추가 구간 ${k + 1}`;
+    if (!isInt(b.slots, 1, SIG_HUNTER_SLOTS_MAX)) return { message: `${name}의 슬롯은 1칸 이상이에요.` };
+    if (!optionalPrice(b.priceMin) || !optionalPrice(b.priceMax)) return { message: `${name}의 금액 범위를 확인해 주세요.` };
+    const priceMin = (b.priceMin as number | null | undefined) ?? null;
+    const priceMax = (b.priceMax as number | null | undefined) ?? null;
+    if (priceMin !== null && priceMax !== null && priceMin > priceMax) return { message: `${name}의 금액 범위 최소가 최대보다 커요.` };
+    bands.push({ slots: b.slots, priceMin, priceMax });
+  }
+  return { bands };
 }
 
 /** The settings of 라운드 `round` (past the last one, the last one's). */
 const roundOf = (s: SigHunterSettings, round: number) => s.rounds[Math.min(round, s.rounds.length) - 1];
 
-/** The signatures a 라운드 draws from: active, not excluded, within its 금액 범위. */
-export const sigHunterEligible = (s: SigHunterSettings, r: SigHunterRound) =>
+/** The signatures a 라운드 (or one of its 추가 금액 구간) draws from: active, not excluded, within its 금액 범위. */
+export const sigHunterEligible = (s: SigHunterSettings, r: Pick<SigHunterBand, "priceMin" | "priceMax">) =>
   mockSignatures.items.filter((x) => x.active && !s.excluded.includes(x.id) && (r.priceMin === null || x.price >= r.priceMin) && (r.priceMax === null || x.price <= r.priceMax));
 
-/** A 라운드's board from the settings saved now: its signatures in random slots (each in turn when fewer), its 몰수권 in random ones. */
+/**
+ * A 라운드's board from the settings saved now: each 금액 범위's signatures for its slots (each in turn when fewer), all in
+ * random slots, its 몰수권 in random ones — among slots at the 몰수권 최소 금액 or more (as many as there are). null when a
+ * range has no signature.
+ */
 function newBoard(s: SigHunterSettings, requestId: string, round: number, now: number): StoredBoard | null {
   const r = roundOf(s, round);
-  const pool = sigHunterEligible(s, r);
-  if (!pool.length) return null;
-  const filled: typeof pool = [];
-  while (filled.length < r.slots) filled.push(...shuffled(pool).slice(0, r.slots - filled.length));
-  const forfeit = new Set(shuffled(filled.map((_, i) => i)).slice(0, r.forfeits));
+  const filled: ReturnType<typeof sigHunterEligible> = [];
+  for (const range of [r, ...(r.bands ?? [])]) {
+    const pool = sigHunterEligible(s, range);
+    if (!pool.length) return null;
+    const part: typeof pool = [];
+    while (part.length < range.slots) part.push(...shuffled(pool).slice(0, range.slots - part.length));
+    filled.push(...part);
+  }
+  const placed = shuffled(filled);
+  const forfeit = new Set(shuffled(placed.flatMap((x, i) => (x.price >= s.forfeitMin ? [i] : []))).slice(0, r.forfeits));
   return {
     requestId,
     startedAt: iso(now),
     round,
     multiplier: r.multiplier,
-    slots: shuffled(filled).map((x, i) => ({ signatureId: x.id, forfeit: forfeit.has(i), sold: null })),
+    slots: placed.map((x, i) => ({ signatureId: x.id, forfeit: forfeit.has(i), sold: null })),
     lastSold: null,
-    advanceAt: null
+    advanceAt: null,
+    lockedAt: null
   };
 }
 
@@ -150,6 +198,8 @@ function sell(b: MockBroadcast, board: StoredBoard, index: number, opener: Opene
   }
   slot.sold = { memberId: opener.memberId || null, at: stored.at, revealAt: stored.revealAt, donationId: opener.sourceId, points: opener.memberId ? opener.base + extra : 0, absorbedBy: null };
   board.lastSold = index;
+  // 몰수권 자동 잠김: the board stops selling until 다음 라운드.
+  if (slot.forfeit && sigHunterSettingsOf(b.channelId).forfeitLock) board.lockedAt = stored.at;
   if (board.slots.every((x) => x.sold)) board.advanceAt = iso(Date.parse(stored.revealAt) + GAME_TIMING.SIG_HUNTER.resultSec * 1000);
 }
 
@@ -169,6 +219,7 @@ export function sigHunterForSignature(
   const runId = `sighunter-${input.donationId}`;
   if ((live.gameRuns ?? []).some((r) => r.id === runId)) return;
   const board = settleSigHunter(live, now, true)!;
+  if (board.lockedAt) return;
   const index = board.slots.findIndex((x) => x.signatureId === input.signatureId && !x.sold);
   if (index < 0) return;
   const memberId = input.memberId && isActiveMember(channelId, input.memberId) ? input.memberId : "";
@@ -207,6 +258,7 @@ export function setSigHunterSlot(b: MockBroadcast, input: { index: unknown; roun
     return null;
   }
   if (slot.sold) return null;
+  if (board.lockedAt) return "몰수권이 열려 판이 잠겼어요. 다음 라운드를 눌러 주세요.";
   const memberId = typeof input.memberId === "string" && isActiveMember(b.channelId, input.memberId) ? input.memberId : "";
   sell(b, board, input.index, { memberId, trigger: { kind: "MANUAL" }, sourceId: null, base: 0 }, runId, now);
   return null;
@@ -242,6 +294,7 @@ export function sigHunterLive(b: MockBroadcast, reveal: boolean, now = Date.now(
           startedAt: board.startedAt,
           lastSold: board.lastSold,
           advanceAt: board.advanceAt,
+          locked: !!board.lockedAt,
           slots: board.slots.map((x) => {
             const sig = mockSignatures.items.find((g) => g.id === x.signatureId);
             const m = x.sold?.memberId ? crew.find((c) => c.id === x.sold!.memberId) : undefined;

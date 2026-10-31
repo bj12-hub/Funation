@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { key, mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
-import { DEFAULT_RANDOM_SIG, DEFAULT_SPIN, type RandomSigSettings, type RandomSigTier } from "./crewTypes";
+import { DEFAULT_RANDOM_SIG, DEFAULT_SPIN, RANDOM_SIG_ROLL_MAX, type RandomSigSettings, type RandomSigTier } from "./crewTypes";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
@@ -106,6 +106,32 @@ describe("랜덤시그", () => {
     expect(m.lastAlert()).toMatchObject({ typeLabel: `시그니처 · ${m.b.name}`, signatureId: m.b.id });
   });
 
+  it("알림 롤링 (2026-10-26): the alert carries the tier's candidate images to flip through, unless off or only one", async () => {
+    const m = await load();
+    const { listSignatures } = m.signatures;
+    const images = new Set((await listSignatures())!.filter((s) => s.active).map((s) => s.imageUrl));
+    await m.saveRandomSig(settings({ tiers: [tier(5_000, 0, 10_000_000)] }));
+    await m.text(5_000);
+    const rolling = m.lastAlert().rolling!;
+    expect(rolling.length).toBe(Math.min(RANDOM_SIG_ROLL_MAX, images.size));
+    expect(new Set(rolling).size).toBe(rolling.length);
+    for (const url of rolling) expect(images).toContain(url);
+    // The drawn signature still decides the image and the label.
+    expect(m.lastAlert().typeLabel).toMatch(/^랜덤시그 · /);
+
+    // Off, or a tier with one signature: no roll.
+    await m.saveRandomSig(settings({ alertRoll: false, tiers: [tier(5_000, 0, 10_000_000)] }));
+    await m.text(5_000);
+    expect(m.lastAlert().rolling).toBeUndefined();
+    await m.saveRandomSig(settings({ tiers: [tier(5_000, m.a.price, m.a.price)] }));
+    await m.text(5_000);
+    expect(m.lastAlert()).toMatchObject({ signatureId: m.a.id });
+    expect(m.lastAlert().rolling).toBeUndefined();
+
+    const res = await m.saveRandomSig({ ...settings(), alertRoll: "yes" });
+    expect(res.status === "INVALID" && res.message).toContain("알림 롤링");
+  });
+
   it("records a run for a member while live: 기본 모드 × 기본 배수, or the drawn signature's points instead", async () => {
     const m = await load();
     const id = await m.start();
@@ -133,6 +159,105 @@ describe("랜덤시그", () => {
     expect(live.randomSig.pool.map((s) => s.id)).toContain(m.a.id);
     // 랜덤시그 plays only for its 발동 금액.
     expect(await m.playGame({ game: "RANDOM_SIG", broadcastId: id, requestId: key(1), memberId: "cm-s2" })).toEqual({ status: "INVALID", message: "랜덤시그는 발동 금액 후원이 들어올 때만 돌아가요." });
+  });
+
+  it("앞자리 배수 (2026-10-26): the drawn signature's price in 자리 units is the 배수, whatever the 발동 금액", async () => {
+    const m = await load();
+    const id = await m.start();
+    expect(await m.signatures.saveSignature({ ...m.b, price: 2_500_000 })).toMatchObject({ status: "SAVED" });
+    const only = tier(5_000, 1_000_000, 3_000_000); // signature b only
+    // 백만 자리 (기본): 2,500,000 FN → ×2, the 기본 배수 (×3) not used.
+    expect(await m.saveRandomSig(settings({ multiplier: 3, digit: true, tiers: [only] }))).toEqual({ status: "SAVED" });
+    expect((await m.getGamesView())!.randomSigSettings).toMatchObject({ digit: true, digitUnit: 1_000_000 });
+    await m.text(5_000, "cm-s2");
+    // 십만 자리: ×25.
+    await m.saveRandomSig(settings({ digit: true, digitUnit: 100_000, tiers: [only] }));
+    await m.text(5_000, "cm-s2");
+    // Off, or 랜덤 결과 모드: as before (no 자리 on the run).
+    await m.saveRandomSig(settings({ multiplier: 3, tiers: [only] }));
+    await m.text(5_000, "cm-s2");
+    await m.saveRandomSig(settings({ mode: "REPLACE", digit: true, tiers: [tier(5_000, 0, 3_000_000), tier(6_000, 2_000_000, 3_000_000)] }));
+    await m.text(6_000, "cm-s2");
+    expect(m.runs(id).map((r) => [r.kind, r.value, r.points, r.digit])).toEqual([
+      ["MULTIPLY", 2, 5_000, 1_000_000],
+      ["MULTIPLY", 25, 120_000, 100_000],
+      ["MULTIPLY", 3, 10_000, undefined],
+      ["ADD", 2_494_000, 2_494_000, undefined]
+    ]);
+    vi.setSystemTime(at(60));
+    const runs = (await m.getBroadcastView())!.live!.randomSig.runs;
+    expect(runs.map((r) => r.digit)).toEqual([null, null, 100_000, 1_000_000]);
+
+    const bad: [Partial<RandomSigSettings>, string][] = [
+      [{ digit: true, tiers: [tier(5_000, 999_999, 3_000_000)] }, "시그 최소는 1,000,000 FN(백만 자리) 이상"],
+      [{ digit: true, digitUnit: 1_000, tiers: [tier(5_000, 1_000, 101_000)] }, "100배까지예요. 시그 최대를 100,999 FN 이하로"],
+      [{ digitUnit: 5_000 }, "자리 단위를 골라"],
+      [{ digit: "yes" as unknown as boolean }, "앞자리 배수를 확인"]
+    ];
+    for (const [patch, message] of bad) {
+      const res = await m.saveRandomSig(settings(patch));
+      expect(res.status === "INVALID" && res.message, message).toContain(message);
+    }
+    // The limits hold only where 앞자리 배수 counts (기본 모드), and a tier at exactly ×100 is fine.
+    expect(await m.saveRandomSig(settings({ mode: "REPLACE", digit: true, tiers: [tier(5_000, 0, 10_000_000)] }))).toEqual({ status: "SAVED" });
+    expect(await m.saveRandomSig(settings({ digit: true, digitUnit: 1_000, tiers: [tier(5_000, 1_000, 100_999)] }))).toEqual({ status: "SAVED" });
+  });
+
+  it("설정 프리셋 (2026-10-26): keeps the card under a name without 켜짐 · 제목 · 대기 화면, replaces by name, deletes", async () => {
+    const m = await load();
+    const card = settings({ title: "주말 랜덤", showIdle: false, tiers: [tier(5_000, 7_000, 15_000)], multiplier: 3, excluded: [m.b.id] });
+    expect(await m.saveRandomSigPreset({ name: " 평일 방송 ", settings: card })).toEqual({ status: "SAVED" });
+    let view = (await m.getGamesView())!;
+    expect(view.randomSigPresets).toEqual([
+      {
+        id: expect.stringMatching(/^rsp-/),
+        name: "평일 방송",
+        savedAt: T0.toISOString(),
+        settings: { tiers: [{ id: expect.any(String), trigger: 5_000, min: 7_000, max: 15_000 }], mode: "BONUS", multiplier: 3, digit: false, digitUnit: 1_000_000, excluded: [m.b.id] }
+      }
+    ]);
+    // Saving a 프리셋 leaves the 랜덤시그 settings as they are.
+    expect(view.randomSigSettings).toEqual(DEFAULT_RANDOM_SIG);
+    const weekday = view.randomSigPresets[0].id;
+
+    // The same name replaces it (same id) and moves it first.
+    await m.saveRandomSigPreset({ name: "주말", settings: settings({ mode: "REPLACE" }) });
+    vi.setSystemTime(at(30));
+    await m.saveRandomSigPreset({ name: "평일 방송", settings: settings({ digit: true, digitUnit: 10_000, tiers: [tier(5_000, 10_000, 20_000)] }) });
+    view = (await m.getGamesView())!;
+    expect(view.randomSigPresets.map((p) => [p.id === weekday, p.name, p.settings.mode, p.settings.digit, p.savedAt])).toEqual([
+      [true, "평일 방송", "BONUS", true, at(30).toISOString()],
+      [false, "주말", "REPLACE", false, T0.toISOString()]
+    ]);
+
+    const bad: [unknown, string][] = [
+      [{ name: "  ", settings: settings() }, "프리셋 이름을 입력"],
+      [{ name: "가".repeat(21), settings: settings() }, "20자까지"],
+      [{ name: "운영자 프리셋", settings: settings() }, "사용할 수 없는"],
+      [{ name: "배수", settings: settings({ multiplier: 1 }) }, "기본 배수"],
+      [{ name: "구간", settings: settings({ digit: true, tiers: [tier(5_000, 1, 2)] }) }, "시그 최소는"]
+    ];
+    for (const [input, message] of bad) {
+      const res = await m.saveRandomSigPreset(input);
+      expect(res.status === "INVALID" && res.message, message).toContain(message);
+    }
+
+    // 10 at most — a full list still takes a 프리셋 it already has.
+    for (let i = 3; i <= 10; i++) expect(await m.saveRandomSigPreset({ name: `프리셋 ${i}`, settings: settings() })).toEqual({ status: "SAVED" });
+    const full = await m.saveRandomSigPreset({ name: "하나 더", settings: settings() });
+    expect(full.status === "INVALID" && full.message).toContain("10개까지");
+    expect(await m.saveRandomSigPreset({ name: "주말", settings: settings() })).toEqual({ status: "SAVED" });
+
+    // Delete (again: still fine).
+    expect(await m.deleteRandomSigPreset({ id: weekday })).toEqual({ status: "SAVED" });
+    expect(await m.deleteRandomSigPreset({ id: weekday })).toEqual({ status: "SAVED" });
+    view = (await m.getGamesView())!;
+    expect(view.randomSigPresets).toHaveLength(9);
+    expect(view.randomSigPresets.some((p) => p.id === weekday)).toBe(false);
+
+    signIn(["SUPPORTER"]);
+    expect(await m.saveRandomSigPreset({ name: "평일", settings: settings() })).toEqual({ status: "UNAUTHORIZED" });
+    expect(await m.deleteRandomSigPreset({ id: view.randomSigPresets[0].id })).toEqual({ status: "UNAUTHORIZED" });
   });
 
   it("counts as the drawn signature for the other games and 시그 카운트", async () => {

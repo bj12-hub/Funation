@@ -1,0 +1,81 @@
+/* 시그니처 플레이어 overlay (code-first, 2026-10-25): the 대기 단계 banner, then the signature image. */
+
+.stage {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.lead {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: min(70vw, 520px);
+  max-width: 90vw;
+  padding: 28px 40px;
+  border-top: 6px solid var(--member, var(--ov-accent));
+  text-align: center;
+  animation: pop 0.45s ease-out both;
+}
+
+.member {
+  color: var(--member, var(--ov-accent));
+  font-size: clamp(40px, 8vw, 88px);
+  line-height: 1.05;
+}
+
+.donor {
+  font-size: clamp(32px, 6vw, 64px);
+  line-height: 1.1;
+}
+
+.message {
+  font-size: clamp(18px, 3vw, 30px);
+  overflow-wrap: anywhere;
+}
+
+.kicker {
+  font-size: clamp(14px, 2.2vw, 22px);
+}
+
+.sig {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  animation: pop 0.5s ease-out both;
+}
+
+.sig img {
+  max-width: min(80vw, 900px);
+  max-height: 70vh;
+  object-fit: contain;
+}
+
+.caption {
+  padding: 8px 20px;
+  font-size: clamp(18px, 3vw, 32px);
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lead,
+  .sig {
+    animation: none;
+  }
+}

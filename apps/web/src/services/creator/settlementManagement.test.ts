@@ -53,6 +53,36 @@ describe("정산 관리", () => {
     expect(typeof bad !== "string" && bad.from <= bad.to).toBe(true);
   });
 
+  it("exports the 조회 기간's history as CSV, with what the table shows only (2026-11-01)", async () => {
+    const m = await load();
+    const view = await m.getSettlementManageView({});
+    if (typeof view === "string") throw new Error(view);
+    const res = await m.exportSettlementHistoryCsv({});
+    if (res.status !== "OK") throw new Error(res.status);
+    const lines = res.csv.replace(/^\uFEFF/, "").split("\r\n");
+    expect(lines[0]).toBe("상태,신청일,정산 기간 시작,정산 기간 끝,신청 금액(FN),수수료(FN),정산 금액(원),지급 예정일,지급 완료일,거절 사유");
+    const inYear = m.store.requests.filter((r) => r.requestedAt >= view.from && r.requestedAt <= view.to);
+    expect(res.rows).toBe(inYear.length);
+    expect(lines).toHaveLength(inYear.length + 1);
+    expect(res.filename).toBe(`ssumnation-settlements-${view.from}_${view.to}.csv`);
+    // No registration, account or operator data in the file.
+    expect(res.csv).not.toContain("********1234");
+    expect(res.csv).not.toContain("홍길동");
+    // A rejected one: no fee or amount, its 거절 사유 (a formula-looking one neutralised).
+    const r = inYear[0];
+    Object.assign(r, { status: "REJECTED", review: { at: "2026-10-01T00:00:00.000Z", by: "운영자", note: "=계좌 불일치" } });
+    const again = await m.exportSettlementHistoryCsv({});
+    if (again.status !== "OK") throw new Error(again.status);
+    expect(again.csv).toContain(`거절,${r.requestedAt},${r.periodFrom},${r.periodTo},${r.amountFn},,,`);
+    expect(again.csv).toContain("'=계좌 불일치");
+    // A range with nothing in it: the header only.
+    const none = await m.exportSettlementHistoryCsv({ period: "custom", from: "2000-01-01", to: "2000-01-31" });
+    expect(none).toMatchObject({ status: "OK", rows: 0 });
+
+    signIn(["SUPPORTER"]);
+    expect(await m.exportSettlementHistoryCsv({})).toEqual({ status: "UNAUTHORIZED" });
+  });
+
   it("정보 변경 removes the registration but keeps past requests with their request-time registration", async () => {
     const m = await load();
     const before = m.store.requests.length;

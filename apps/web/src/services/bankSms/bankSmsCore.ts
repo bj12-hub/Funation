@@ -1,7 +1,7 @@
 import { createHmac, randomBytes, randomUUID } from "node:crypto";
 import { enqueueAlert } from "@/services/creator/alertCore";
 import { formatMoney } from "@/services/creator/donationLinkTypes";
-import { recordBroadcastBank } from "@/services/crew/crewCore";
+import { linkFeedAlert, recordBroadcastBank } from "@/services/crew/crewCore";
 import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
 import { parseDepositSms } from "./bankSmsParser";
 import { BANK_SMS_LIMITS, maskName, type BankDeposit, type BankSmsOutcome } from "./bankSmsTypes";
@@ -59,8 +59,10 @@ export function receiveBankSms(text: string, deliveryId: string | null, now = Da
   if (s.seen.length > SEEN_MAX) s.seen.splice(0, s.seen.length - SEEN_MAX);
   const deposit: BankDeposit = { id: `bank-${randomUUID()}`, depositor: parsed.depositor, amount: parsed.amount, receivedAt: new Date().toISOString() };
   const donor = shownName(s, parsed.depositor);
-  enqueueAlert({ kind: "EXTERNAL", donor, message: "", fnAmount: 0, amountLabel: formatMoney(parsed.amount, "KRW"), typeLabel: "계좌 후원", native: { value: parsed.amount, unit: "KRW" } });
-  recordBroadcastBank(STUDIO_CHANNEL, { donor, value: parsed.amount });
+  // Listed first: with 미지정 일시정지 its alert waits in the queue until the entry is assigned.
+  const listed = recordBroadcastBank(STUDIO_CHANNEL, { donor, value: parsed.amount });
+  const alert = enqueueAlert({ kind: "EXTERNAL", donor, message: "", fnAmount: 0, amountLabel: formatMoney(parsed.amount, "KRW"), typeLabel: "계좌 후원", native: { value: parsed.amount, unit: "KRW" }, ...(listed?.held ? { held: true } : {}) });
+  linkFeedAlert(listed, alert);
   s.recent.unshift(deposit);
   s.recent.length = Math.min(s.recent.length, BANK_SMS_LIMITS.recent);
   s.stats.received++;
