@@ -25,7 +25,16 @@ export const ko = {
     notifications: "알림",
     studio: "스튜디오",
     studioHome: "크리에이터 스튜디오 홈",
-    toSite: "사이트로 이동"
+    toSite: "사이트로 이동",
+    close: "닫기",
+    retry: "다시 시도",
+    loading: "불러오는 중…",
+    chzzk: "치지직",
+    bellReadAll: "모두 읽음",
+    bellLoadError: "알림을 불러오지 못했어요.",
+    bellEmpty: "새 알림이 없어요.",
+    bellAll: "전체 알림 보기",
+    bannerMore: "자세히 보기 ›"
   },
   /** 크루 점수 게임 (2026-11-01): the studio cards' UI text only — titles, signature and member names, results and OBS overlays stay as written. */
   crewGame: {
@@ -3107,6 +3116,10 @@ export const ko = {
   auth: {
     loadError: "페이지를 불러오지 못했어요",
     loading: "불러오는 중…",
+    stepperTerms: "약관 동의",
+    stepperPhone: "번호 인증",
+    stepperAccount: "계정 설정",
+    stepperAria: "회원가입 {step}/3 단계",
     metaLogin: "로그인 | Ssumnation",
     metaPasswordChange: "비밀번호 변경 안내 | Ssumnation",
     metaPasswordReset: "비밀번호 찾기 | Ssumnation",
@@ -5820,12 +5833,17 @@ export const ko = {
     notFoundDescription: "주소가 바뀌었거나, 삭제 · 비공개 처리된 페이지예요. 주소를 다시 확인해 주세요.",
     goHome: "홈으로 가기",
     findCreators: "크리에이터 찾기",
-    support: "고객센터"
+    support: "고객센터",
+    loadError: "페이지를 불러오지 못했어요",
+    termsLoading: "약관을 불러오는 중…",
+    globalErrorTitle: "일시적인 오류가 발생했어요",
+    globalErrorBody: "잠시 후 다시 시도해 주세요."
   },
   /** 홈 화면 (2026-11-01): UI text only — creator names, video titles, banners and notices are content. */
   home: {
     title: "썸네이션 홈",
     loading: "홈 화면을 불러오는 중",
+    loadError: "홈 화면을 불러오지 못했습니다",
     creatorsLead: "요즘 인기 많은 크리에이터에게 후원하세요!",
     refresh: "↻ 새로고침",
     noCreators: "표시할 크리에이터가 없습니다.",
@@ -6145,6 +6163,18 @@ export const ko = {
     sources: "수익원별 상세",
     byType: "후원 유형별",
     byRoute: "후원 경로별",
+    typeText: "일반 후원",
+    typeSignature: "시그니처 후원",
+    typeMini: "미니 후원",
+    typeVideo: "영상 후원",
+    typeQuest: "퀘스트 후원",
+    typeRoulette: "룰렛 후원",
+    typeGacha: "뽑기 후원",
+    typeWishlist: "위시 후원",
+    typeDrawing: "그림 후원",
+    routeDirect: "방송 방 (직접 후원)",
+    routeSoop: "SOOP 플랫폼 후원",
+    routeFlextv: "FlexTV 플랫폼 후원",
     shortcuts: "바로가기",
     receivedDesc: "후원 내역 상세 보기",
     settlementStatus: "정산 현황",
