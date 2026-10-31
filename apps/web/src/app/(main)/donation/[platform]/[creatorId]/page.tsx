@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 import { PlatformDonationFlow } from "@/features/platformDonation/PlatformDonationFlow";
+import { getT } from "@/lib/i18n/server";
 import { getPlatformCreatorDetail } from "@/services/platformDonation/platformDonation";
 import { PLATFORMS, platformFromSlug } from "@/services/platformDonation/platformTypes";
 
@@ -19,7 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!platform) return { title: "Ssumnation" };
   const detail = await readDetail(platform, creatorId);
   const name = typeof detail === "object" ? `${detail.creator.nickname} · ` : "";
-  return { title: `${name}${PLATFORMS[platform].name} 후원 | Ssumnation` };
+  return { title: `${name}${(await getT())("platformDonation.meta", { platform: PLATFORMS[platform].name })}` };
 }
 
 export default async function Page({ params }: Props) {
