@@ -2,7 +2,9 @@
 
 import { useId, type ReactNode } from "react";
 import { Toggle } from "@/components/ui/Toggle";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { FONT_FAMILIES, FONT_SIZES, isHexColor, type ColorFont, type FontFamily } from "@/services/creator/widgetSettingsTypes";
+import { optionText } from "./widgetFormLabels";
 import styles from "./widgets.module.css";
 
 /** Popup section title: 4×16 purple bar + 14px bold (Figma 372:7). */
@@ -22,9 +24,10 @@ export function Section({ title, children, aside }: { title: string; children: R
 }
 
 export function Preview({ children, light = false }: { children: ReactNode; light?: boolean }) {
+  const { t } = useI18n();
   return (
-    <Section title="미리보기">
-      <div className={`${styles.preview} ${light ? styles.previewLight : ""}`} aria-label="위젯 미리보기">
+    <Section title={t("widgetForm.preview")}>
+      <div className={`${styles.preview} ${light ? styles.previewLight : ""}`} aria-label={t("widgetForm.previewAria")}>
         {children}
       </div>
     </Section>
@@ -108,11 +111,12 @@ export function Select<T extends string | number>({
 
 export function ColorField({ label, value, onChange, width = 160 }: { label: string; value: string; onChange: (v: string) => void; width?: number }) {
   const valid = isHexColor(value);
+  const { t } = useI18n();
   return (
     <span className={`${styles.color} ${valid ? "" : styles.invalid}`} style={{ width }}>
       <input
         type="color"
-        aria-label={`${label} 선택`}
+        aria-label={t("widgetForm.colorPick", { label })}
         className={styles.swatch}
         value={valid ? value.toLowerCase() : "#000000"}
         onChange={(e) => onChange(e.target.value.toUpperCase())}
@@ -137,11 +141,19 @@ export function ColorField({ label, value, onChange, width = 160 }: { label: str
 type FontValue = { family: FontFamily; size: number; color?: string };
 
 export function FontFields<V extends FontValue>({ label, value, onChange }: { label: string; value: V; onChange: (v: V) => void }) {
+  const { t } = useI18n();
   return (
     <div className={styles.inline}>
-      <Select label={`${label} 서체`} value={value.family} options={FONT_FAMILIES} width={140} onChange={(family) => onChange({ ...value, family })} />
-      <Select label={`${label} 크기`} value={value.size} options={FONT_SIZES} width={100} format={(s) => `${s}px`} onChange={(size) => onChange({ ...value, size })} />
-      {value.color !== undefined && <ColorField label={`${label} 색상`} value={value.color} onChange={(color) => onChange({ ...value, color })} />}
+      <Select
+        label={t("widgetForm.fontFamily", { label })}
+        value={value.family}
+        options={FONT_FAMILIES}
+        width={140}
+        format={(f) => optionText(f, t)}
+        onChange={(family) => onChange({ ...value, family })}
+      />
+      <Select label={t("widgetForm.fontSize", { label })} value={value.size} options={FONT_SIZES} width={100} format={(s) => `${s}px`} onChange={(size) => onChange({ ...value, size })} />
+      {value.color !== undefined && <ColorField label={t("widgetForm.fontColor", { label })} value={value.color} onChange={(color) => onChange({ ...value, color })} />}
     </div>
   );
 }
@@ -195,10 +207,18 @@ export function SwitchText({ label, checked, onChange, text }: { label: string; 
 }
 
 export function ColorFontFields({ label, value, onChange }: { label: string; value: ColorFont; onChange: (v: ColorFont) => void }) {
+  const { t } = useI18n();
   return (
     <div className={styles.inline}>
-      <Select label={`${label} 서체`} value={value.family} options={FONT_FAMILIES} width={140} onChange={(family) => onChange({ ...value, family })} />
-      <ColorField label={`${label} 색상`} value={value.color} onChange={(color) => onChange({ ...value, color })} />
+      <Select
+        label={t("widgetForm.fontFamily", { label })}
+        value={value.family}
+        options={FONT_FAMILIES}
+        width={140}
+        format={(f) => optionText(f, t)}
+        onChange={(family) => onChange({ ...value, family })}
+      />
+      <ColorField label={t("widgetForm.fontColor", { label })} value={value.color} onChange={(color) => onChange({ ...value, color })} />
     </div>
   );
 }

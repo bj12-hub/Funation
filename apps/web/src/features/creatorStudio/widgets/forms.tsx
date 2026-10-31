@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { DownloadIcon } from "@/components/icons";
 import { ChatLines } from "@/features/broadcast/ChatLines";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { QrView, TotalView } from "./WidgetViews";
 import { PreviewStage } from "@/features/overlayTheme/PreviewStage";
 import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
@@ -26,6 +27,7 @@ import {
   type WidgetSettingsMap
 } from "@/services/creator/widgetSettingsTypes";
 import { ColorField, FontFields, NumberField, Radios, Row, Section, Select, SwitchText } from "./fields";
+import { optionText, translatedOptions } from "./widgetFormLabels";
 import styles from "./widgets.module.css";
 
 export type FormProps<K extends EditableWidgetKey> = {
@@ -47,6 +49,7 @@ const CHAT_SAMPLE: ChatOverlayLine[] = [
 export function ChatForm({ value: v, onChange, live }: FormProps<"CHAT">) {
   const [nick, setNick] = useState("");
   const [vertical, setVertical] = useState(false);
+  const { t } = useI18n();
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
   const addFilter = () => {
     const n = nick.trim();
@@ -58,65 +61,101 @@ export function ChatForm({ value: v, onChange, live }: FormProps<"CHAT">) {
   return (
     <>
       <Section
-        title="미리보기"
+        title={t("widgetForm.preview")}
         aside={
           <label className={styles.hint}>
-            <input type="checkbox" checked={vertical} onChange={(e) => setVertical(e.target.checked)} /> 세로 방송으로 보기
+            <input type="checkbox" checked={vertical} onChange={(e) => setVertical(e.target.checked)} /> {t("widgetForm.verticalView")}
           </label>
         }
       >
         {/* The overlay's own lines (ChatLines) at the 400px OBS width (세로 방송: 1080); nothing hides here. */}
-        <PreviewStage width={vertical ? 1080 : 420} minHeight={200} label="채팅창 미리보기">
+        <PreviewStage width={vertical ? 1080 : 420} minHeight={200} label={t("widgetFormChat.previewAria")}>
           <ChatLines lines={CHAT_SAMPLE} settings={v} theme={resolveTheme(live.appearance, v.theme)} now={null} vertical={vertical} />
         </PreviewStage>
       </Section>
-      <Section title="테마">
+      <Section title={t("widgetForm.theme")}>
         <ThemeChoiceField value={v.theme} onChange={(x) => set("theme", x)} appearance={live.appearance} />
       </Section>
-      <Section title="기본 설정">
+      <Section title={t("widgetForm.basic")}>
         <div className={styles.rows}>
-          <Row label="위젯 스타일">
-            <Radios name="chat-style" label="위젯 스타일" options={CHAT_STYLES} value={v.style} onChange={(x) => set("style", x)} />
+          <Row label={t("widgetForm.widgetStyle")}>
+            <Radios name="chat-style" label={t("widgetForm.widgetStyle")} options={translatedOptions(CHAT_STYLES, t)} value={v.style} onChange={(x) => set("style", x)} />
           </Row>
-          <Row label="알림 효과">
+          <Row label={t("widgetForm.effect")}>
             <div className={styles.inline}>
-              <Select label="나타나는 효과" value={v.effectIn} options={ALERT_EFFECTS_IN} width={170} format={effectLabel} onChange={(x) => set("effectIn", x)} />
-              <Select label="사라지는 효과" value={v.effectOut} options={ALERT_EFFECTS_OUT} width={170} format={effectLabel} onChange={(x) => set("effectOut", x)} />
+              <Select
+                label={t("widgetFormChat.effectIn")}
+                value={v.effectIn}
+                options={ALERT_EFFECTS_IN}
+                width={170}
+                format={(x) => optionText(effectLabel(x), t)}
+                onChange={(x) => set("effectIn", x)}
+              />
+              <Select
+                label={t("widgetFormChat.effectOut")}
+                value={v.effectOut}
+                options={ALERT_EFFECTS_OUT}
+                width={170}
+                format={(x) => optionText(effectLabel(x), t)}
+                onChange={(x) => set("effectOut", x)}
+              />
             </div>
           </Row>
-          <Row label="폰트 설정">
+          <Row label={t("widgetForm.fontSettings")}>
             <div className={styles.inline}>
-              <FontFields label="채팅" value={v.font} onChange={(x) => set("font", x)} />
-              <span className={styles.hint}>글자 색은 “한 줄 테두리 없음”에 쓰이고, 상자 스타일은 테마 색을 써요.</span>
+              <FontFields label={t("widgetFormChat.fontLabel")} value={v.font} onChange={(x) => set("font", x)} />
+              <span className={styles.hint}>{t("widgetFormChat.fontHint")}</span>
             </div>
           </Row>
-          <Row label="닉네임 컬러">
-            <SwitchText label="닉네임 컬러" checked={v.creatorNicknameColor} onChange={(x) => set("creatorNicknameColor", x)} text="크리에이터 지정 고유 컬러 사용" />
+          <Row label={t("widgetForm.nicknameColor")}>
+            <SwitchText
+              label={t("widgetForm.nicknameColor")}
+              checked={v.creatorNicknameColor}
+              onChange={(x) => set("creatorNicknameColor", x)}
+              text={t("widgetFormChat.nicknameColorHint")}
+            />
           </Row>
-          <Row label="닉네임 배경">
-            <Radios name="nick-bg" label="닉네임 배경" options={NICKNAME_BG} value={v.nicknameBackground} onChange={(x) => set("nicknameBackground", x)} />
+          <Row label={t("widgetFormChat.nicknameBg")}>
+            <Radios
+              name="nick-bg"
+              label={t("widgetFormChat.nicknameBg")}
+              options={translatedOptions(NICKNAME_BG, t)}
+              value={v.nicknameBackground}
+              onChange={(x) => set("nicknameBackground", x)}
+            />
           </Row>
-          <Row label="채팅 최대 줄">
-            <NumberField label="채팅 최대 줄" value={v.maxLines} max={CHAT_MAX_LINES} onChange={(x) => set("maxLines", x)} suffix={`줄 (최대 ${CHAT_MAX_LINES}줄)`} />
+          <Row label={t("widgetFormChat.maxLines")}>
+            <NumberField
+              label={t("widgetFormChat.maxLines")}
+              value={v.maxLines}
+              max={CHAT_MAX_LINES}
+              onChange={(x) => set("maxLines", x)}
+              suffix={t("widgetFormChat.maxLinesSuffix", { max: CHAT_MAX_LINES })}
+            />
           </Row>
-          <Row label="자동으로 감추기">
-            <SwitchText label="자동으로 감추기" checked={v.autoHide} onChange={(x) => set("autoHide", x)} text="일정 시간 후 채팅 투명화" />
+          <Row label={t("widgetFormChat.autoHide")}>
+            <SwitchText label={t("widgetFormChat.autoHide")} checked={v.autoHide} onChange={(x) => set("autoHide", x)} text={t("widgetFormChat.autoHideHint")} />
           </Row>
-          <Row label="감추기 시간">
-            <NumberField label="감추기 시간" value={v.hideAfterSec} max={3600} onChange={(x) => set("hideAfterSec", x)} suffix="초 후 감춤" />
+          <Row label={t("widgetForm.hideAfter")}>
+            <NumberField label={t("widgetForm.hideAfter")} value={v.hideAfterSec} max={3600} onChange={(x) => set("hideAfterSec", x)} suffix={t("widgetFormChat.hideAfterSuffix")} />
           </Row>
-          <Row label="플랫폼 아이콘">
-            <SwitchText label="플랫폼 아이콘 숨기기" checked={v.hidePlatformIcon} onChange={(x) => set("hidePlatformIcon", x)} text="유튜브/FlexTV/SOOP 등 플랫폼 아이콘 숨기기" />
+          <Row label={t("widgetFormChat.platformIcon")}>
+            <SwitchText
+              label={t("widgetFormChat.hidePlatformIcon")}
+              checked={v.hidePlatformIcon}
+              onChange={(x) => set("hidePlatformIcon", x)}
+              text={t("widgetFormChat.hidePlatformIconHint")}
+            />
           </Row>
-          <Row label="필터링 닉네임">
+          <Row label={t("widgetFormChat.filter")}>
             <div className={styles.filterBox}>
               <div className={styles.inline}>
                 <input
-                  aria-label="숨길 닉네임"
+                  aria-label={t("widgetFormChat.filterInput")}
                   className={styles.input}
                   style={{ width: 200 }}
                   maxLength={NICKNAME_MAX}
-                  placeholder="숨길 닉네임 추가..."
+                  placeholder={t("widgetFormChat.filterPlaceholder")}
                   value={nick}
                   onChange={(e) => setNick(e.target.value)}
                   onKeyDown={(e) => {
@@ -127,7 +166,7 @@ export function ChatForm({ value: v, onChange, live }: FormProps<"CHAT">) {
                   }}
                 />
                 <button type="button" className={styles.smallButton} onClick={addFilter} disabled={!nick.trim() || v.filteredNicknames.length >= CHAT_MAX_FILTERS}>
-                  추가
+                  {t("widgetForm.add")}
                 </button>
               </div>
               {v.filteredNicknames.length > 0 && (
@@ -135,7 +174,11 @@ export function ChatForm({ value: v, onChange, live }: FormProps<"CHAT">) {
                   {v.filteredNicknames.map((n) => (
                     <li key={n}>
                       {n}
-                      <button type="button" aria-label={`${n} 삭제`} onClick={() => set("filteredNicknames", v.filteredNicknames.filter((x) => x !== n))}>
+                      <button
+                        type="button"
+                        aria-label={t("widgetForm.removeNamed", { name: n })}
+                        onClick={() => set("filteredNicknames", v.filteredNicknames.filter((x) => x !== n))}
+                      >
                         ✕
                       </button>
                     </li>
@@ -154,49 +197,50 @@ export function ChatForm({ value: v, onChange, live }: FormProps<"CHAT">) {
 
 export function QrForm({ value: v, onChange, live }: FormProps<"QR">) {
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
+  const { t } = useI18n();
   return (
     <>
-      <Section title="미리보기">
-        <PreviewStage width={300} minHeight={300} label="후원 QR코드 미리보기">
+      <Section title={t("widgetForm.preview")}>
+        <PreviewStage width={300} minHeight={300} label={t("widgetFormQr.previewAria")}>
           <QrView settings={v} imageUrl={live.qrImageUrl} theme={resolveTheme(live.appearance, v.theme)} />
         </PreviewStage>
       </Section>
-      <Section title="테마">
+      <Section title={t("widgetForm.theme")}>
         <ThemeChoiceField value={v.theme} onChange={(x) => set("theme", x)} appearance={live.appearance} />
       </Section>
-      <Section title="기본 설정">
+      <Section title={t("widgetForm.basic")}>
         <div className={styles.rows}>
-          <Row label="코드 스타일">
-            <Radios name="qr-style" label="코드 스타일" options={QR_STYLES} value={v.codeStyle} onChange={(x) => set("codeStyle", x)} />
+          <Row label={t("widgetFormQr.codeStyle")}>
+            <Radios name="qr-style" label={t("widgetFormQr.codeStyle")} options={translatedOptions(QR_STYLES, t)} value={v.codeStyle} onChange={(x) => set("codeStyle", x)} />
           </Row>
-          <Row label="테두리 색상">
-            <ColorField label="테두리 색상" value={v.borderColor} onChange={(x) => set("borderColor", x)} />
+          <Row label={t("widgetFormQr.borderColor")}>
+            <ColorField label={t("widgetFormQr.borderColor")} value={v.borderColor} onChange={(x) => set("borderColor", x)} />
           </Row>
-          <Row label="중앙 로고">
+          <Row label={t("widgetFormQr.centerLogo")}>
             <Radios
               name="qr-logo"
-              label="중앙 로고"
+              label={t("widgetFormQr.centerLogo")}
               options={[
-                { key: "ON", label: "기본 로고 사용" },
-                { key: "OFF", label: "사용 안 함" }
+                { key: "ON", label: t("widgetFormQr.logoOn") },
+                { key: "OFF", label: t("widgetForm.off") }
               ]}
               value={v.centerLogo ? "ON" : "OFF"}
               onChange={(x) => set("centerLogo", x === "ON")}
             />
           </Row>
-          <Row label="문구 정보">
+          <Row label={t("widgetFormQr.caption")}>
             <Radios
               name="qr-caption"
-              label="문구 정보"
+              label={t("widgetFormQr.caption")}
               options={[
-                { key: "ON", label: "사용하기" },
-                { key: "OFF", label: "사용 안함" }
+                { key: "ON", label: t("widgetForm.use") },
+                { key: "OFF", label: t("widgetFormQr.captionOff") }
               ]}
               value={v.captionEnabled ? "ON" : "OFF"}
               onChange={(x) => set("captionEnabled", x === "ON")}
             />
           </Row>
-          <Row label="문구 입력" htmlFor="qr-caption-text">
+          <Row label={t("widgetFormQr.captionText")} htmlFor="qr-caption-text">
             <input
               id="qr-caption-text"
               className={styles.input}
@@ -206,26 +250,26 @@ export function QrForm({ value: v, onChange, live }: FormProps<"QR">) {
               onChange={(e) => set("caption", e.target.value)}
             />
           </Row>
-          <Row label="문구 위치">
+          <Row label={t("widgetFormQr.captionPos")}>
             <Radios
               name="qr-pos"
-              label="문구 위치"
+              label={t("widgetFormQr.captionPos")}
               options={[
-                { key: "TOP", label: "상단 표시" },
-                { key: "BOTTOM", label: "하단 표시" }
+                { key: "TOP", label: t("widgetFormQr.top") },
+                { key: "BOTTOM", label: t("widgetFormQr.bottom") }
               ]}
               value={v.captionPosition}
               onChange={(x) => set("captionPosition", x)}
             />
           </Row>
-          <Row label="문구 폰트">
-            <FontFields label="문구" value={v.captionFont} onChange={(x) => set("captionFont", x)} />
+          <Row label={t("widgetFormQr.captionFont")}>
+            <FontFields label={t("widgetFormQr.captionFontLabel")} value={v.captionFont} onChange={(x) => set("captionFont", x)} />
           </Row>
-          <Row label="QR 다운로드">
+          <Row label={t("widgetFormQr.download")}>
             {/* Mock asset; the backend will render the QR for the creator's donate URL (TBD). */}
             <a href={live.qrImageUrl} download="ssumnation-donate-qr.png" className={styles.outlineButton}>
               <DownloadIcon aria-hidden="true" />
-              고화질 QR 이미지 다운로드 (.PNG)
+              {t("widgetFormQr.downloadButton")}
             </a>
           </Row>
         </div>
@@ -238,22 +282,23 @@ export function QrForm({ value: v, onChange, live }: FormProps<"QR">) {
 
 export function TotalForm({ value: v, onChange, live }: FormProps<"TOTAL">) {
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
+  const { t } = useI18n();
   return (
     <>
-      <Section title="미리보기">
-        <PreviewStage width={600} minHeight={120} label="후원누적금액 미리보기">
+      <Section title={t("widgetForm.preview")}>
+        <PreviewStage width={600} minHeight={120} label={t("widgetFormTotal.previewAria")}>
           <TotalView settings={v} total={live.totalAmount} theme={resolveTheme(live.appearance, v.theme)} />
         </PreviewStage>
       </Section>
-      <Section title="테마">
+      <Section title={t("widgetForm.theme")}>
         <div className={styles.rows}>
           <ThemeChoiceField value={v.theme} onChange={(x) => set("theme", x)} appearance={live.appearance} />
-          <SwitchText label="배경 카드" checked={v.card} onChange={(x) => set("card", x)} text="테마 카드 위에 그려요. 끄면 글자만 방송 화면 위에 (아래 글자 색 · 외곽선 사용)" />
+          <SwitchText label={t("widgetForm.bgCard")} checked={v.card} onChange={(x) => set("card", x)} text={t("widgetForm.bgCardHint")} />
         </div>
       </Section>
-      <Section title="기본 설정">
+      <Section title={t("widgetForm.basic")}>
         <div className={styles.rows}>
-          <Row stacked label="제목 입력" htmlFor="total-title">
+          <Row stacked label={t("widgetFormTotal.titleInput")} htmlFor="total-title">
             <input id="total-title" className={styles.input} value={v.title} maxLength={TOTAL_TITLE_MAX} onChange={(e) => set("title", e.target.value)} />
           </Row>
           <Row
@@ -261,8 +306,8 @@ export function TotalForm({ value: v, onChange, live }: FormProps<"TOTAL">) {
             htmlFor="total-template"
             label={
               <>
-                내용 템플릿{" "}
-                <span className={styles.help} title={`${TOTAL_TEMPLATE_TOKEN} 자리에 누적 후원 금액이 표시됩니다.`}>
+                {t("widgetFormTotal.template")}{" "}
+                <span className={styles.help} title={t("widgetFormTotal.templateHelp", { token: TOTAL_TEMPLATE_TOKEN })}>
                   ?
                 </span>
               </>
@@ -270,22 +315,29 @@ export function TotalForm({ value: v, onChange, live }: FormProps<"TOTAL">) {
           >
             <input id="total-template" className={styles.input} value={v.template} maxLength={TOTAL_TEMPLATE_MAX} onChange={(e) => set("template", e.target.value)} />
           </Row>
-          <Row stacked label="산정 기간">
+          <Row stacked label={t("widgetForm.period")}>
             <div className={styles.inline}>
-              <input type="datetime-local" aria-label="산정 시작" className={styles.input} value={v.from} max={v.to} onChange={(e) => set("from", e.target.value)} />
+              <input
+                type="datetime-local"
+                aria-label={t("widgetFormTotal.from")}
+                className={styles.input}
+                value={v.from}
+                max={v.to}
+                onChange={(e) => set("from", e.target.value)}
+              />
               <span className={styles.suffix}>~</span>
-              <input type="datetime-local" aria-label="산정 종료" className={styles.input} value={v.to} min={v.from} onChange={(e) => set("to", e.target.value)} />
+              <input type="datetime-local" aria-label={t("widgetFormTotal.to")} className={styles.input} value={v.to} min={v.from} onChange={(e) => set("to", e.target.value)} />
             </div>
           </Row>
-          <Row stacked label="제목 폰트 설정">
-            <FontFields label="제목" value={v.titleFont} onChange={(x) => set("titleFont", x)} />
+          <Row stacked label={t("widgetForm.titleFont")}>
+            <FontFields label={t("widgetForm.titleLabel")} value={v.titleFont} onChange={(x) => set("titleFont", x)} />
           </Row>
-          <Row stacked label="내용 폰트 설정">
-            <FontFields label="내용" value={v.contentFont} onChange={(x) => set("contentFont", x)} />
+          <Row stacked label={t("widgetFormTotal.contentFont")}>
+            <FontFields label={t("widgetFormTotal.contentLabel")} value={v.contentFont} onChange={(x) => set("contentFont", x)} />
           </Row>
           <div className={styles.switchLine}>
-            <span className={styles.rowLabel}>텍스트 외곽선 표시하기</span>
-            <SwitchText label="텍스트 외곽선 표시하기" checked={v.textOutline} onChange={(x) => set("textOutline", x)} />
+            <span className={styles.rowLabel}>{t("widgetForm.textOutline")}</span>
+            <SwitchText label={t("widgetForm.textOutline")} checked={v.textOutline} onChange={(x) => set("textOutline", x)} />
           </div>
         </div>
       </Section>
