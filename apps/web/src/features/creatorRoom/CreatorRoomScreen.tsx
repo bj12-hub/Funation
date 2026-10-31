@@ -1,7 +1,8 @@
 import Image from "next/image";
 import type { CreatorRoom } from "@/services/creators/creatorRoom";
 import Link from "next/link";
-import { formatCompactKo } from "@/lib/format";
+import { formatCompact } from "@/lib/format";
+import { getLocale, getT } from "@/lib/i18n/server";
 import type { CreatorCategory } from "@/services/creators/creators";
 import type { CrewPublic, RoomFanNotes } from "@/services/crew/crewTypes";
 import { PLATFORM_LABEL } from "@/types/platform";
@@ -28,7 +29,7 @@ type Viewer = { nickname: string; fnBalance: number | null } | null;
  * row with 후원하기, then tabs 홈 · 크루 · 영상 · 커뮤니티 · 시그니처 · 소개 (`?view=`). 홈 keeps the Figma room
  * (826:685 / 610:138 live · 710:195 offline): player + 후원/채팅 panel.
  */
-export function CreatorRoomScreen({
+export async function CreatorRoomScreen({
   room,
   viewer,
   isFavorite,
@@ -62,6 +63,8 @@ export function CreatorRoomScreen({
   /** A FLEXTV channel's 소식 (phase 9): its 커뮤니티 tab is "소식", FLEXTV's posts. */
   news?: ChannelNews;
 }) {
+  const t = await getT();
+  const locale = await getLocale();
   const donateHref = `/creators/${room.creatorId}?tab=donation`;
   // A FLEXTV channel (FLEXTV backend): only FLEXTV's channel, 소식 and donation options — no 구독자 · 크루 · 투표 …
   const flextv = room.source === "FLEXTV";
@@ -85,7 +88,7 @@ export function CreatorRoomScreen({
             </a>
           ) : (
             // TODO: promotion destination is TBD.
-            <span className={styles.bannerCta} aria-disabled="true" title="준비 중인 기능입니다">
+            <span className={styles.bannerCta} aria-disabled="true" title={t("common.comingSoon")}>
               {room.banner.ctaLabel}
             </span>
           )}
@@ -98,7 +101,7 @@ export function CreatorRoomScreen({
           <div className={styles.creatorText}>
             <div className={styles.nameRow}>
               <h1 className={styles.name}>{room.name}</h1>
-              <ul className={styles.channels} aria-label="방송 채널">
+              <ul className={styles.channels} aria-label={t("room.channels")}>
                 {room.channels.map((c) => (
                   <li key={c.platform} className={styles.channel}>
                     <Image src={c.logoUrl} alt={PLATFORM_LABEL[c.platform]} width={20} height={20} className={styles.channelLogo} />
@@ -109,23 +112,23 @@ export function CreatorRoomScreen({
             <span className={styles.tagline}>{room.tagline}</span>
             {/* A FLEXTV channel shows its 즐겨찾기 count (phase 7); FLEXTV's 구독 is its paid membership. */}
             <span className={channel.subscribers}>
-              {flextv ? "즐겨찾기" : "구독자"} {formatCompactKo(about.subscriberCount)}명
+              {t(flextv ? "room.favoritesCount" : "room.subscribers", { count: formatCompact(about.subscriberCount, locale) })}
             </span>
           </div>
         </div>
         <div className={styles.creatorActions}>
           {/* funnation: 후원하기 is the primary channel action; it opens the 후원 panel on 홈. */}
           <Link href={donateHref} className={channel.donateButton} scroll={false}>
-            💝 후원하기
+            {t("room.donate")}
           </Link>
           <RoomActions creatorId={room.creatorId} name={room.name} initialFavorite={isFavorite} signedIn={viewer !== null} flextv={flextv} messageTo={room.ownerLoginId} />
         </div>
       </div>
 
-      <ChannelTabs creatorId={room.creatorId} active={view} only={flextv ? flextvViews : undefined} labels={flextv ? { community: "소식" } : undefined} />
+      <ChannelTabs creatorId={room.creatorId} active={view} only={flextv ? flextvViews : undefined} labels={flextv ? { community: t("roomChannel.news") } : undefined} />
 
       {view !== "home" && (
-        <section className={channel.panel} aria-label="채널">
+        <section className={channel.panel} aria-label={t("room.channelPanel")}>
           {view === "crew" && <CrewView crew={crew} name={room.name} />}
           {view === "videos" && videos && <VideosView name={room.name} data={videos} />}
           {view === "community" &&

@@ -1,4 +1,7 @@
+"use client";
+
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { goalPercent, type CrewPublic } from "@/services/crew/crewTypes";
 import styles from "./pledge.module.css";
 
@@ -7,6 +10,7 @@ import styles from "./pledge.module.css";
  * broadcast is live, how far the member's score is (the same score as the OBS gauge). Nothing without a 공약.
  */
 export function PledgeLine({ member, compact = false }: { member: CrewPublic["members"][number]; compact?: boolean }) {
+  const { t } = useI18n();
   const p = member.pledge;
   if (!p) return null;
   const progress = p.goal > 0 && member.score !== null ? goalPercent(member.score, p.goal) : null;
@@ -14,19 +18,19 @@ export function PledgeLine({ member, compact = false }: { member: CrewPublic["me
     <span className={styles.pledge} data-compact={compact ? "" : undefined}>
       {p.text && (
         <span className={styles.text}>
-          <b>공약</b> {p.text}
+          <b>{t("room.pledge")}</b> {p.text}
         </span>
       )}
       {p.goal > 0 && (
         <span className={styles.goal}>
           {progress === null ? (
-            `목표 ${formatNumber(p.goal)}점`
+            t("room.pledgeGoal", { goal: formatNumber(p.goal) })
           ) : (
             <>
               <span className={styles.track} aria-hidden="true">
                 <span className={styles.fill} style={{ width: `${progress}%`, background: member.color }} />
               </span>
-              {progress >= 100 ? "목표 달성" : `이번 방송 ${formatNumber(member.score!)} / ${formatNumber(p.goal)}점`}
+              {progress >= 100 ? t("room.pledgeReached") : t("room.pledgeProgress", { score: formatNumber(member.score!), goal: formatNumber(p.goal) })}
             </>
           )}
         </span>

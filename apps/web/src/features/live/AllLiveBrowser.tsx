@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { LiveChannel } from "@/services/live/liveChannels";
 import { PLATFORM_LABEL, type Platform } from "@/types/platform";
 import { LiveChannelCard } from "./LiveChannelCard";
@@ -15,6 +16,7 @@ const STEP = 12;
  * Filters the list already loaded for the page (TODO: server-side once the live list API exists).
  */
 export function AllLiveBrowser({ channels }: { channels: LiveChannel[] }) {
+  const { t } = useI18n();
   const [platform, setPlatform] = useState<Platform | "ALL">("ALL");
   const [shown, setShown] = useState(STEP);
 
@@ -28,17 +30,17 @@ export function AllLiveBrowser({ channels }: { channels: LiveChannel[] }) {
 
   return (
     <>
-      <div className={styles.chipBar} role="group" aria-label="필터">
+      <div className={styles.chipBar} role="group" aria-label={t("live.filter")}>
         <select
           className={`${styles.control} ${styles.platformSelect}`}
-          aria-label="방송 플랫폼"
+          aria-label={t("live.platform")}
           value={platform}
           onChange={(e) => {
             setPlatform(e.target.value as Platform | "ALL");
             setShown(STEP);
           }}
         >
-          <option value="ALL">모든 플랫폼</option>
+          <option value="ALL">{t("live.allPlatforms")}</option>
           {(Object.keys(PLATFORM_LABEL) as Platform[]).map((p) => (
             <option key={p} value={p}>
               {PLATFORM_LABEL[p]}
@@ -47,9 +49,9 @@ export function AllLiveBrowser({ channels }: { channels: LiveChannel[] }) {
         </select>
       </div>
 
-      <section className={styles.section} aria-label="방송 중인 채널">
+      <section className={styles.section} aria-label={t("live.channelsAria")}>
         {visible.length === 0 ? (
-          <p className={styles.empty}>{channels.length === 0 ? "지금 방송 중인 채널이 없습니다." : "조건에 맞는 방송이 없습니다."}</p>
+          <p className={styles.empty}>{channels.length === 0 ? t("live.noneLive") : t("live.noMatch")}</p>
         ) : (
           <>
             <div className={styles.grid4}>
@@ -59,7 +61,7 @@ export function AllLiveBrowser({ channels }: { channels: LiveChannel[] }) {
             </div>
             {shown < visible.length && (
               <button type="button" className={styles.more} onClick={() => setShown((n) => n + STEP)}>
-                더 보기 ({Math.min(shown, visible.length)}/{visible.length})
+                {t("live.more", { shown: Math.min(shown, visible.length), total: visible.length })}
               </button>
             )}
           </>

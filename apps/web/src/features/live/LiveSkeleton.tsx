@@ -1,10 +1,12 @@
+import { getT } from "@/lib/i18n/server";
 import styles from "./live.module.css";
 import skeleton from "./LiveSkeleton.module.css";
 
 /** LOADING state for the live pages. */
-export function LiveSkeleton() {
+export async function LiveSkeleton() {
+  const t = await getT();
   return (
-    <div className={styles.content} aria-busy="true" aria-label="라이브 목록을 불러오는 중">
+    <div className={styles.content} aria-busy="true" aria-label={t("live.loading")}>
       <div className={skeleton.title} />
       <div className={skeleton.bar} />
       <div className={styles.grid}>
