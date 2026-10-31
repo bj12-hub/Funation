@@ -101,6 +101,29 @@ export const ko = {
     metaAll: "전체 방송 | Ssumnation",
     metaPopular: "인기 라이브 | Ssumnation"
   },
+  /** 크리에이터 찾기 (2026-11-01). Names and intros are content. */
+  creators: {
+    title: "크리에이터",
+    liveNow: "지금 {count}명이 방송 중이에요",
+    noneLive: "지금 방송 중인 크리에이터가 없어요",
+    sort: "정렬",
+    sortPopular: "인기순",
+    sortLive: "라이브",
+    sortRecent: "최신순",
+    list: "크리에이터 목록",
+    results: "‘{query}’ 검색 결과 {count}명",
+    noMatch: "조건에 맞는 크리에이터가 없습니다.",
+    none: "아직 등록된 크리에이터가 없습니다.",
+    pages: "페이지",
+    prev: "이전",
+    next: "다음",
+    subscribers: "구독자 {count}",
+    watching: "시청 {count}",
+    search: "크리에이터 이름, 키워드 검색",
+    loading: "크리에이터 목록을 불러오는 중",
+    loadError: "크리에이터 목록을 불러오지 못했습니다",
+    meta: "크리에이터 찾기 | Ssumnation"
+  },
   /** Shared page states: the error boundary and 404 (2026-11-01). */
   page: {
     errorDescription: "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요",
