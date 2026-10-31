@@ -6,11 +6,12 @@ import { useState, useTransition } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { ChargeModal, ChargeTrigger } from "@/features/walletCharge";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { quotePlatformDonation, requestPlatformDonation } from "@/services/platformDonation/platformDonation";
 import { MESSAGE_MAX, PLATFORMS, type PlatformCreatorDetail, type PlatformDonationResult, type PlatformQuote } from "@/services/platformDonation/platformTypes";
-import { GENERIC_ERROR } from "../mypage/editors/shared";
 import { platformErrorCopy, type PlatformErrorKind as ErrorKind } from "./errorCopy";
 import { Avatar, LivePill, PlatformHeader } from "./parts";
+import { PLATFORM_WORDS } from "./words";
 import styles from "./platformDonation.module.css";
 
 type Step = "product" | "message" | "processing" | "success" | "error";
@@ -26,7 +27,9 @@ const fn = (n: number) => `${formatNumber(n)} FN`;
  */
 export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail }) {
   const router = useRouter();
+  const { t } = useI18n();
   const p = PLATFORMS[detail.platform];
+  const words = PLATFORM_WORDS[detail.platform];
   const { creator, products } = detail;
   const [step, setStep] = useState<Step>("product");
   const [productId, setProductId] = useState<string | null>(null);
@@ -72,7 +75,7 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
         res = await quotePlatformDonation({ platform: detail.platform, creatorId: creator.id, productId: product.id, customFn });
       } catch {
         // Nothing was sent to the platform: the choice stays and 후원하기 can be pressed again.
-        setFormError(GENERIC_ERROR);
+        setFormError(t("page.errorDescription"));
         return;
       }
       if (res.status === "OK") {
@@ -80,7 +83,7 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
         setStep("message");
       } else if (res.status === "UNAUTHORIZED") setSessionExpired(true);
       else if (res.status === "INVALID" && product.custom) {
-        setFormError(`${formatNumber(product.custom.minFn)} ~ ${formatNumber(product.custom.maxFn)} FN 사이로 입력해 주세요.`);
+        setFormError(t("platformDonation.amountRange", { min: formatNumber(product.custom.minFn), max: formatNumber(product.custom.maxFn) }));
       } else {
         setErrorKind(res.status === "UNAVAILABLE" ? "UNAVAILABLE" : res.status === "NOT_FOUND" ? "NOT_FOUND" : "INVALID");
         setStep("error");
@@ -158,10 +161,10 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
       <div className={styles.content}>
         <div className={styles.stateCard} role="status" aria-live="polite">
           <span className={styles.spinner} aria-hidden="true" />
-          <strong className={styles.stateTitle}>후원을 처리하고 있습니다.</strong>
-          <p className={styles.muted}>처리 중에는 페이지를 새로고침하거나 뒤로가기를 누르지 마세요.</p>
+          <strong className={styles.stateTitle}>{t("platformDonation.processingTitle")}</strong>
+          <p className={styles.muted}>{t("platformDonation.processingNote")}</p>
           <button type="button" className={styles.primaryButton} disabled>
-            처리 중...
+            {t("platformDonation.processing")}
           </button>
         </div>
       </div>
@@ -175,36 +178,36 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
           <span className={styles.successMark} aria-hidden="true">
             ✓
           </span>
-          <strong className={styles.stateTitle}>후원이 완료되었습니다.</strong>
-          <p className={styles.muted}>{success.creatorName}에게 마음이 전달되었어요.</p>
+          <strong className={styles.stateTitle}>{t("platformDonation.successTitle")}</strong>
+          <p className={styles.muted}>{t("platformDonation.successText", { name: success.creatorName })}</p>
           <dl className={styles.receipt}>
             <div>
-              <dt>후원 대상</dt>
+              <dt>{t("platformDonation.recipient")}</dt>
               <dd>{success.creatorName}</dd>
             </div>
             <div>
-              <dt>상품</dt>
+              <dt>{t("platformDonation.product")}</dt>
               <dd>{success.productLabel}</dd>
             </div>
             <div>
-              <dt>사용 FN</dt>
+              <dt>{t("platformDonation.usedFn")}</dt>
               <dd>{fn(success.fnAmount)}</dd>
             </div>
             <div>
-              <dt>남은 FN</dt>
+              <dt>{t("platformDonation.remainingFn")}</dt>
               <dd>{fn(success.balance)}</dd>
             </div>
             <div>
-              <dt>{p.name} 거래번호</dt>
+              <dt>{t("platformDonation.platformTxId", { platform: p.name })}</dt>
               <dd>{success.externalTransactionId ?? "-"}</dd>
             </div>
           </dl>
           <div className={styles.actions}>
             <Link href="/donation/history" className={styles.secondaryButton}>
-              후원 내역 보기
+              {t("platformDonation.viewHistory")}
             </Link>
             <button type="button" className={styles.primaryButton} onClick={reset}>
-              다시 후원하기
+              {t("platformDonation.donateAgain")}
             </button>
           </div>
         </div>
@@ -213,10 +216,10 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
   }
 
   if (step === "error" && errorKind) {
-    const info = platformErrorCopy(errorKind, p.name, fnReturned);
+    const info = platformErrorCopy(errorKind, p.name, fnReturned, t);
     return (
       <div className={styles.content}>
-        <PlatformHeader platform={detail.platform} subtitle="후원 중 발생한 문제를 확인하고 다시 진행해주세요." balance={detail.balance} />
+        <PlatformHeader platform={detail.platform} subtitle={t("platformDonation.errorSubtitle")} balance={detail.balance} />
         <div className={styles.stateCard} role="alert">
           <span className={styles.errorMark} aria-hidden="true">
             {info.pending ? "…" : "!"}
@@ -224,18 +227,18 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
           <strong className={styles.stateTitle}>{info.title}</strong>
           <p className={styles.muted}>{info.text}</p>
           {info.fnLine && <p className={styles.notCharged}>{info.fnLine}</p>}
-          {errorKind === "PENDING" && pendingTxId && <p className={styles.muted}>결과가 확인될 때까지 FN은 보류됩니다. 거래 ID {pendingTxId}</p>}
+          {errorKind === "PENDING" && pendingTxId && <p className={styles.muted}>{t("platformDonation.pendingHeld", { id: pendingTxId })}</p>}
           <div className={styles.actions}>
             <Link href="/donation/history" className={styles.secondaryButton}>
-              후원 내역
+              {t("platformDonation.history")}
             </Link>
             {info.searchAgain ? (
               <Link href={`/donation/${p.slug}`} className={styles.primaryButton}>
-                {p.creatorWord} 검색
+                {t("platformDonation.searchWho", { who: t(words.whos) })}
               </Link>
             ) : (
               <button type="button" className={styles.primaryButton} onClick={retry} disabled={pending}>
-                {info.pending ? "결과 다시 확인" : "다시 시도"}
+                {info.pending ? t("platformDonation.recheck") : t("page.retry")}
               </button>
             )}
           </div>
@@ -250,13 +253,13 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
     <div className={styles.content}>
       <PlatformHeader
         platform={detail.platform}
-        subtitle={step === "product" ? `${p.creatorWord} 상세와 후원 상품을 확인해주세요.` : "후원 메시지와 결제 정보를 확인해주세요."}
+        subtitle={step === "product" ? t("platformDonation.productSubtitle", { who: t(words.who) }) : t("platformDonation.messageSubtitle")}
         balance={quote?.balance ?? detail.balance}
       />
 
       {step === "product" ? (
         <>
-          <section className={styles.creatorCard} aria-label={`${p.creatorWord} 정보`}>
+          <section className={styles.creatorCard} aria-label={t("platformDonation.whoInfo", { who: t(words.label) })}>
             <Avatar creator={creator} size={56} />
             <span className={styles.creatorText}>
               <span className={styles.creatorName}>
@@ -268,12 +271,12 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
           </section>
           {creator.viewers !== null && (
             // 방송 보기 needs the platform's watch URL (TBD), so only the viewer count is shown.
-            <p className={styles.muted}>현재 {formatNumber(creator.viewers)}명이 함께 시청 중입니다.</p>
+            <p className={styles.muted}>{t("platformDonation.watching", { count: formatNumber(creator.viewers) })}</p>
           )}
 
           <section className={styles.section} aria-labelledby="pd-products">
             <h2 id="pd-products" className={styles.sectionTitle}>
-              후원상품
+              {t("platformDonation.products")}
             </h2>
             <ul className={styles.products}>
               {products.map((x) => (
@@ -283,20 +286,20 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
                       {x.icon}
                     </span>
                     <span className={styles.productLabel}>{x.label}</span>
-                    <span className={styles.productPrice}>{x.priceFn !== null ? fn(x.priceFn) : "금액 입력"}</span>
-                    {productId === x.id && <span className={styles.selected}>✓ 선택됨</span>}
+                    <span className={styles.productPrice}>{x.priceFn !== null ? fn(x.priceFn) : t("platformDonation.enterAmount")}</span>
+                    {productId === x.id && <span className={styles.selected}>{t("platformDonation.selected")}</span>}
                   </button>
                 </li>
               ))}
             </ul>
             {product?.custom && (
               <label className={styles.customField}>
-                <span className={styles.fieldLabel}>후원 금액 직접 입력</span>
+                <span className={styles.fieldLabel}>{t("platformDonation.customAmount")}</span>
                 <span className={styles.customInput}>
                   <input
                     inputMode="numeric"
                     value={custom}
-                    placeholder={`${formatNumber(product.custom.minFn)} FN 이상`}
+                    placeholder={t("platformDonation.minAmount", { min: formatNumber(product.custom.minFn) })}
                     onChange={(e) => {
                       const d = e.target.value.replace(/\D/g, "").slice(0, 9);
                       setCustom(d ? formatNumber(Number(d)) : "");
@@ -320,14 +323,14 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
               {product ? ` · ${product.label}` : ""}
             </span>
             <button type="button" className={styles.primaryButton} onClick={toMessage} disabled={!product || (product.custom && !displayPrice) || pending}>
-              {displayPrice ? `${formatNumber(displayPrice)} FN 후원하기` : "후원하기"}
+              {displayPrice ? t("platformDonation.donateAmount", { amount: formatNumber(displayPrice) }) : t("platformDonation.donate")}
             </button>
           </div>
         </>
       ) : (
         quote && (
           <>
-            <section className={styles.creatorCard} aria-label="후원 대상">
+            <section className={styles.creatorCard} aria-label={t("platformDonation.recipient")}>
               <Avatar creator={creator} />
               <span className={styles.creatorText}>
                 <span className={styles.creatorName}>
@@ -341,7 +344,7 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
             <div className={styles.checkout}>
               <div className={styles.messageCol}>
                 <label htmlFor="pd-message" className={styles.sectionTitle}>
-                  후원 메시지
+                  {t("platformDonation.message")}
                 </label>
                 <span className={styles.textareaWrap}>
                   <textarea
@@ -349,7 +352,7 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
                     className={styles.textarea}
                     value={message}
                     maxLength={MESSAGE_MAX}
-                    placeholder="후원 메시지를 입력해주세요."
+                    placeholder={t("platformDonation.messagePlaceholder")}
                     onChange={(e) => setMessage(e.target.value)}
                   />
                   <span className={styles.counter}>
@@ -358,26 +361,26 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
                 </span>
                 {!quote.sufficient && (
                   <p className={styles.alert} role="alert">
-                    <span>⚠ FN 잔액이 부족합니다.</span>
-                    <ChargeTrigger className={styles.alertLink}>FN 충전하기</ChargeTrigger>
+                    <span>{t("platformDonation.lowBalance")}</span>
+                    <ChargeTrigger className={styles.alertLink}>{t("platformDonation.chargeFn")}</ChargeTrigger>
                   </p>
                 )}
               </div>
               <section className={styles.payment} aria-labelledby="pd-payment">
                 <h2 id="pd-payment" className={styles.paymentTitle}>
-                  결제 정보
+                  {t("platformDonation.payment")}
                 </h2>
                 <dl className={styles.receipt}>
                   <div>
-                    <dt>현재 보유 FN</dt>
+                    <dt>{t("platformDonation.currentFn")}</dt>
                     <dd>{fn(quote.balance)}</dd>
                   </div>
                   <div>
-                    <dt>사용 FN</dt>
+                    <dt>{t("platformDonation.usedFn")}</dt>
                     <dd>{fn(quote.priceFn)}</dd>
                   </div>
                   <div>
-                    <dt>결제 후 FN</dt>
+                    <dt>{t("platformDonation.afterFn")}</dt>
                     <dd>{quote.sufficient ? fn(quote.afterFn) : "-"}</dd>
                   </div>
                 </dl>
@@ -392,10 +395,10 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
             )}
             <div className={styles.actionsRight}>
               <button type="button" className={styles.secondaryButton} onClick={() => setStep("product")}>
-                이전
+                {t("platformDonation.back")}
               </button>
               <button type="button" className={styles.primaryButton} onClick={openConfirm} disabled={pending}>
-                후원하기
+                {t("platformDonation.donate")}
               </button>
             </div>
           </>
@@ -406,14 +409,14 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
       <Modal
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
-        title={`${p.name} 후원`}
+        title={t("platformDonation.title", { platform: p.name })}
         footer={
           <>
             <button type="button" className={`${styles.secondaryButton} ${styles.grow}`} onClick={() => setConfirmOpen(false)}>
-              취소
+              {t("platformDonation.cancel")}
             </button>
             <button type="button" className={`${styles.primaryButton} ${styles.grow}`} onClick={submit}>
-              후원하기
+              {t("platformDonation.donate")}
             </button>
           </>
         }
@@ -422,27 +425,27 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
           <>
             <dl className={styles.receipt}>
               <div>
-                <dt>{p.creatorWord}</dt>
+                <dt>{t(words.label)}</dt>
                 <dd>{creator.nickname}</dd>
               </div>
               <div>
-                <dt>상품</dt>
+                <dt>{t("platformDonation.product")}</dt>
                 <dd>{quote.productLabel}</dd>
               </div>
               <div>
-                <dt>결제 금액</dt>
+                <dt>{t("platformDonation.payAmount")}</dt>
                 <dd>{fn(quote.priceFn)}</dd>
               </div>
               <div>
-                <dt>현재 FN</dt>
+                <dt>{t("platformDonation.currentFnShort")}</dt>
                 <dd>{fn(quote.balance)}</dd>
               </div>
               <div>
-                <dt>결제 후 FN</dt>
+                <dt>{t("platformDonation.afterFn")}</dt>
                 <dd>{fn(quote.afterFn)}</dd>
               </div>
             </dl>
-            <p className={styles.notice}>후원하기를 선택하면 FN이 차감되고 {p.name} 후원이 진행됩니다.</p>
+            <p className={styles.notice}>{t("platformDonation.confirmNotice", { platform: p.name })}</p>
           </>
         )}
       </Modal>
@@ -451,12 +454,12 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
       <Modal
         open={insufficient !== null}
         onClose={() => setInsufficient(null)}
-        title="FN 잔액이 부족합니다."
+        title={t("platformDonation.insufficient")}
         width={440}
         footer={
           <>
             <button type="button" className={`${styles.secondaryButton} ${styles.grow}`} onClick={() => setInsufficient(null)}>
-              취소
+              {t("platformDonation.cancel")}
             </button>
             <button
               type="button"
@@ -466,7 +469,7 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
                 setCharging(true);
               }}
             >
-              FN 충전하기
+              {t("platformDonation.chargeFn")}
             </button>
           </>
         }
@@ -474,15 +477,15 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
         {insufficient && (
           <dl className={styles.receipt}>
             <div>
-              <dt>현재 잔액</dt>
+              <dt>{t("platformDonation.currentBalance")}</dt>
               <dd>{fn(insufficient.balance)}</dd>
             </div>
             <div>
-              <dt>필요 금액</dt>
+              <dt>{t("platformDonation.required")}</dt>
               <dd>{fn(insufficient.required)}</dd>
             </div>
             <div className={styles.shortRow}>
-              <dt>부족 금액</dt>
+              <dt>{t("platformDonation.shortfall")}</dt>
               <dd>{fn(insufficient.required - insufficient.balance)}</dd>
             </div>
           </dl>
@@ -503,12 +506,12 @@ export function PlatformDonationFlow({ detail }: { detail: PlatformCreatorDetail
       <Modal
         open={sessionExpired}
         onClose={() => setSessionExpired(false)}
-        title="로그인이 만료되었습니다."
-        description="안전한 이용을 위해 다시 로그인해주세요."
+        title={t("platformDonation.sessionTitle")}
+        description={t("platformDonation.sessionText")}
         width={420}
         footer={
           <Link href={`/login?next=/donation/${p.slug}/${creator.id}`} className={`${styles.primaryButton} ${styles.grow}`}>
-            다시 로그인
+            {t("platformDonation.relogin")}
           </Link>
         }
       />
