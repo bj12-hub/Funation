@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { CheckboxCheckIcon } from "@/components/icons";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { CHARGE_CONSENTS, type ChargeConsentKey } from "@/services/wallet/chargeTypes";
 import styles from "./charge.module.css";
 
@@ -10,8 +11,12 @@ type Consents = Record<ChargeConsentKey, boolean>;
 
 const NONE: Consents = { guardian: false, privacy: false, payment: false, marketing: false };
 
-/** Figma 595:5475 — 서비스 이용약관 동의 sheet shown on the first charge. */
+/**
+ * Figma 595:5475 — 서비스 이용약관 동의 sheet shown on the first charge. The consent lines (전체 동의, [필수] / [선택] and the
+ * services' labels) are legal text: they stay Korean until an approved translation exists (TBD).
+ */
 export function TermsSheet({ onCancel, onAgree }: { onCancel: () => void; onAgree: (consents: Consents) => Promise<boolean> }) {
+  const { t } = useI18n();
   const [consents, setConsents] = useState<Consents>(NONE);
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -28,9 +33,9 @@ export function TermsSheet({ onCancel, onAgree }: { onCancel: () => void; onAgre
     <section className={styles.sheet} role="region" aria-labelledby="charge-terms-title">
       <span className={styles.grabber} aria-hidden="true" />
       <h3 id="charge-terms-title" className={styles.sheetTitle}>
-        서비스 이용약관 동의
+        {t("walletCharge.termsTitle")}
       </h3>
-      <p className={styles.sheetText}>안전한 결제 및 서비스 이용을 위해 약관 동의가 필요합니다.</p>
+      <p className={styles.sheetText}>{t("walletCharge.termsText")}</p>
 
       <label className={`${styles.consentAll} ${all ? styles.consentAllOn : ""}`}>
         <input type="checkbox" className={styles.srOnly} checked={all} onChange={toggleAll} />
@@ -57,12 +62,12 @@ export function TermsSheet({ onCancel, onAgree }: { onCancel: () => void; onAgre
             </label>
             {/* Opens in a new tab so the charge in progress is kept. */}
             {c.href ? (
-              <Link href={c.href} target="_blank" className={styles.viewTerms} aria-label={`${c.label} 보기 (새 탭)`}>
-                보기 ›
+              <Link href={c.href} target="_blank" className={styles.viewTerms} aria-label={t("walletCharge.viewTermsLabel", { label: c.label })}>
+                {t("walletCharge.viewTerms")} ›
               </Link>
             ) : (
-              <span className={`${styles.viewTerms} ${styles.viewTermsOff}`} aria-disabled="true" title="약관 문서 준비 중">
-                보기 ›
+              <span className={`${styles.viewTerms} ${styles.viewTermsOff}`} aria-disabled="true" title={t("walletCharge.termsPending")}>
+                {t("walletCharge.viewTerms")} ›
               </span>
             )}
           </li>
@@ -71,13 +76,13 @@ export function TermsSheet({ onCancel, onAgree }: { onCancel: () => void; onAgre
 
       {failed && (
         <p className={styles.error} role="alert">
-          약관 동의를 저장하지 못했습니다. 다시 시도해 주세요.
+          {t("walletCharge.termsFailed")}
         </p>
       )}
 
       <div className={styles.actions}>
         <button type="button" className={styles.secondaryButton} onClick={onCancel}>
-          닫기
+          {t("walletCharge.close")}
         </button>
         <button
           type="button"
@@ -95,7 +100,7 @@ export function TermsSheet({ onCancel, onAgree }: { onCancel: () => void; onAgre
             }
           }}
         >
-          다음
+          {t("walletCharge.next")}
         </button>
       </div>
     </section>

@@ -1,4 +1,6 @@
 import { formatNumber } from "@/lib/format";
+import { getT } from "@/lib/i18n/server";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { DONATION_CATEGORY_LABEL, DONATION_QUERY_MAX, type DonationCategory, type DonationFilter, type DonationRecord, type HistoryPage } from "@/services/wallet/walletTypes";
 import { DonationTable } from "./DonationTable";
 import { HistoryFilter } from "./HistoryFilter";
@@ -7,22 +9,24 @@ import { WalletHistoryShell } from "./WalletHistoryShell";
 import { historyQuery } from "./historyParams";
 import styles from "./wallet.module.css";
 
-const CATEGORIES = (Object.keys(DONATION_CATEGORY_LABEL) as DonationCategory[]).map((key) => ({ key, label: DONATION_CATEGORY_LABEL[key] }));
+const CATEGORY_KEY: Record<DonationCategory, MessageKey> = { basic: "wallet.categoryBasic", quest: "wallet.categoryQuest", game: "wallet.categoryGame" };
+const CATEGORIES = Object.keys(DONATION_CATEGORY_LABEL) as DonationCategory[];
 
 /**
  * Figma 632:4 (data) · 637:214 (empty) — route `/wallet/donations`. The search row (크리에이터명·메시지,
  * 최소 / 최대 FN, 최신순 / 오래된순, 결과 · 합계) follows funnation 내 후원 내역 (code-first).
  */
-export function DonationHistoryScreen({ data, category, filter }: { data: HistoryPage<DonationRecord> & { totalFn: number }; category: DonationCategory; filter: DonationFilter }) {
+export async function DonationHistoryScreen({ data, category, filter }: { data: HistoryPage<DonationRecord> & { totalFn: number }; category: DonationCategory; filter: DonationFilter }) {
+  const t = await getT();
   const { period } = data;
   return (
     <WalletHistoryShell tab="donations">
-      <section className={styles.card} aria-label="후원 내역">
+      <section className={styles.card} aria-label={t("wallet.donationHistory")}>
         <HistoryFilter
           key={`${category}${period.preset}${period.from}${period.to}`}
           basePath="/wallet/donations"
           period={period}
-          categories={CATEGORIES}
+          categories={CATEGORIES.map((key) => ({ key, label: t(CATEGORY_KEY[key]) }))}
           category={category}
         />
         <form role="search" action="/wallet/donations" className={styles.donationSearch}>
@@ -34,22 +38,22 @@ export function DonationHistoryScreen({ data, category, filter }: { data: Histor
               <input type="hidden" name="to" value={period.to} />
             </>
           )}
-          <input type="search" name="q" className={styles.donationSearchInput} placeholder="크리에이터명·메시지로 검색" aria-label="크리에이터명·메시지로 검색" defaultValue={filter.q ?? ""} maxLength={DONATION_QUERY_MAX} />
-          <input type="number" name="min" min={0} className={styles.donationAmount} placeholder="최소 FN" aria-label="최소 금액(FN)" defaultValue={filter.min ?? ""} />
+          <input type="search" name="q" className={styles.donationSearchInput} placeholder={t("wallet.searchDonations")} aria-label={t("wallet.searchDonations")} defaultValue={filter.q ?? ""} maxLength={DONATION_QUERY_MAX} />
+          <input type="number" name="min" min={0} className={styles.donationAmount} placeholder={t("wallet.minFn")} aria-label={t("wallet.minFnLabel")} defaultValue={filter.min ?? ""} />
           <span aria-hidden="true">~</span>
-          <input type="number" name="max" min={0} className={styles.donationAmount} placeholder="최대 FN" aria-label="최대 금액(FN)" defaultValue={filter.max ?? ""} />
-          <select name="sort" className={styles.donationSort} aria-label="정렬" defaultValue={filter.sort ?? "latest"}>
-            <option value="latest">최신순</option>
-            <option value="oldest">오래된순</option>
+          <input type="number" name="max" min={0} className={styles.donationAmount} placeholder={t("wallet.maxFn")} aria-label={t("wallet.maxFnLabel")} defaultValue={filter.max ?? ""} />
+          <select name="sort" className={styles.donationSort} aria-label={t("wallet.sort")} defaultValue={filter.sort ?? "latest"}>
+            <option value="latest">{t("wallet.sortLatest")}</option>
+            <option value="oldest">{t("wallet.sortOldest")}</option>
           </select>
           <button type="submit" className={styles.donationSearchButton}>
-            검색
+            {t("wallet.search")}
           </button>
         </form>
         <p className={styles.donationSummary}>
-          결과 {formatNumber(data.totalCount)}건 · 합계 {formatNumber(data.totalFn)} FN
+          {t("wallet.donationSummary", { count: formatNumber(data.totalCount), total: formatNumber(data.totalFn) })}
         </p>
-        <DonationTable items={data.items} />
+        <DonationTable items={data.items} t={t} />
         <HistoryFooter
           page={data.page}
           totalPages={data.totalPages}
