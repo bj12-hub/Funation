@@ -4,7 +4,8 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { ownEntry } from "@/lib/records";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
-import { isSignatureImage, isSignatureSound, mockSignatures } from "./signatureCore";
+import { newIntegrationKey } from "@/services/creator/mockCreatorStore";
+import { isSignatureImage, isSignatureSound, mockSignatures, signatureMedia, signaturePage, signaturePagePath } from "./signatureCore";
 import {
   DEFAULT_SIGNATURE_GROUP,
   SIGNATURE_IMAGE_PRESETS,
@@ -13,7 +14,9 @@ import {
   spanText,
   type ManagedSignature,
   type SignatureBulkResult,
-  type SignatureResult
+  type SignaturePageSettings,
+  type SignatureResult,
+  type SignatureRow
 } from "./signatureTypes";
 
 /**
@@ -80,10 +83,11 @@ const assertMock = () => {
   if (!USE_MOCK) throw new Error("Signature API is not connected yet.");
 };
 
-export async function listSignatures(): Promise<ManagedSignature[] | null> {
+/** The list in order, each with where its media stands (미디어 누락, 2026-10-25). */
+export async function listSignatures(): Promise<SignatureRow[] | null> {
   assertMock();
   if (!(await getCreatorSession())) return null;
-  return structuredClone(mockSignatures.items);
+  return structuredClone(mockSignatures.items).map((s) => ({ ...s, media: signatureMedia(s) }));
 }
 
 export async function saveSignature(input: unknown): Promise<SignatureResult> {
@@ -123,7 +127,7 @@ export async function saveSignature(input: unknown): Promise<SignatureResult> {
   }
   if (items.length >= SIGNATURE_LIMITS.max) return { status: "INVALID", message: `시그니처는 ${SIGNATURE_LIMITS.max}개까지 만들 수 있어요.` };
   const newId = newSignatureId(items.length);
-  items.push({ id: newId, ...next });
+  items.push({ id: newId, ...next, createdAt: new Date().toISOString() });
   mockSignatures.requests[v.requestId as string] = newId;
   return { status: "SAVED", id: newId };
 }
@@ -167,7 +171,8 @@ export async function createSignatures(input: unknown): Promise<SignatureBulkRes
   }
 
   // No await between the checks and the write, so a double submit cannot pass the checks twice.
-  const created = rows.map((r, i): ManagedSignature => ({ ...asSignature(r, i), id: newSignatureId(items.length + i) }));
+  const createdAt = new Date().toISOString();
+  const created = rows.map((r, i): ManagedSignature => ({ ...asSignature(r, i), id: newSignatureId(items.length + i), createdAt }));
   items.push(...created);
   const ids = created.map((s) => s.id);
   bulk[v.requestId] = ids;
@@ -180,6 +185,29 @@ export async function deleteSignature(id: unknown): Promise<SignatureResult> {
   const i = mockSignatures.items.findIndex((s) => s.id === id);
   if (i >= 0) mockSignatures.items.splice(i, 1);
   return { status: "SAVED", id: String(id) };
+}
+
+/**
+ * 선택 삭제 (2026-10-28, StreamDonate 시그니처 관리 "전체 선택 · 전체 삭제"): every signature in `ids` at once; ids no longer
+ * there are skipped (a retry deletes nothing more). Answers how many went.
+ */
+export async function deleteSignatures(input: unknown): Promise<SignatureResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
+  if (!Array.isArray(v.ids) || v.ids.length === 0 || v.ids.length > SIGNATURE_LIMITS.max || v.ids.some((id) => typeof id !== "string")) {
+    return { status: "INVALID", message: "삭제할 시그니처를 골라 주세요." };
+  }
+  const ids = new Set(v.ids as string[]);
+  const items = mockSignatures.items;
+  let removed = 0;
+  for (let i = items.length - 1; i >= 0; i--) {
+    if (ids.has(items[i].id)) {
+      items.splice(i, 1);
+      removed += 1;
+    }
+  }
+  return { status: "SAVED", id: String(removed) };
 }
 
 /**
@@ -212,4 +240,32 @@ export async function moveSignature(input: unknown): Promise<SignatureResult> {
   if (i < 0 || j < 0 || j >= items.length) return { status: "INVALID", message: "더 이상 옮길 수 없어요." };
   [items[i], items[j]] = [items[j], items[i]];
   return { status: "SAVED", id: String(v.id) };
+}
+
+// ── 공개 시그니처 페이지 (2026-10-25, StreamDonate 참고) ─────────────────────────────────────────
+
+/** The page's on/off and address (the studio shows the key masked, like the other links). */
+export async function getSignaturePage(): Promise<SignaturePageSettings | null> {
+  assertMock();
+  if (!(await getCreatorSession())) return null;
+  const page = signaturePage();
+  return { enabled: page.enabled, path: signaturePagePath(page.key) };
+}
+
+/** Turns the public page on or off (the address stays). Setting the same value again is a no-op. */
+export async function setSignaturePageEnabled(input: unknown): Promise<SignatureResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const enabled = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
+  if (typeof enabled.enabled !== "boolean") return { status: "INVALID", message: "설정을 확인해 주세요." };
+  signaturePage().enabled = enabled.enabled;
+  return { status: "SAVED", id: "public-page" };
+}
+
+/** 주소 재발급: a new key — the old address stops at once; on/off stays. */
+export async function reissueSignaturePageKey(): Promise<SignatureResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  signaturePage().key = newIntegrationKey();
+  return { status: "SAVED", id: "public-page" };
 }

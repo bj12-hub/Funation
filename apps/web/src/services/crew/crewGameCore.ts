@@ -96,8 +96,9 @@ export const usedSources = (b: MockBroadcast, game: GameKey) => new Set((b.gameR
 export function memberSources(b: MockBroadcast, memberId: string): GameSource[] {
   const s = excelOf(b.channelId);
   const end = b.endedAt ?? new Date(Date.now() + 1000).toISOString();
+  // A 마이너스 시그니처 후원 is no 기준 후원 (its points come off the member).
   const donations = mockCrew.attributions
-    .filter((a) => a.channelId === b.channelId && a.memberId === memberId && a.at >= b.startedAt && a.at <= end)
+    .filter((a) => a.channelId === b.channelId && a.memberId === memberId && a.at >= b.startedAt && a.at <= end && !a.minus)
     .map((a) => ({ id: a.donationId, at: a.at, label: a.donor ?? a.shownDonor, points: scoreFn(a.fnAmount, s) }));
   const listed = feedOf(b)
     .filter((f) => f.status === "ASSIGNED" && f.memberId === memberId)
@@ -169,13 +170,15 @@ export function gameRunView(b: MockBroadcast, r: StoredRun): GameRunView {
     dice: r.dice ?? null,
     wheel: r.wheel ?? null,
     range: r.range ?? null,
+    digit: r.digit ?? null,
     from: r.from ? { memberName: (mockCrew.crews[b.channelId] ?? []).find((x) => x.id === r.from!.memberId)?.name ?? "삭제된 멤버", amount: r.from.amount } : null,
     shares: (r.shares ?? []).map((x) => {
       const o = (mockCrew.crews[b.channelId] ?? []).find((c) => c.id === x.memberId);
       return { memberName: o?.name ?? "삭제된 멤버", memberColor: o?.color ?? null, points: x.points };
     }),
     gostop: r.gostop ? { ...r.gostop, chance: r.gostop.chance / 10_000 } : null,
-    move: r.move ?? null
+    move: r.move ?? null,
+    jackpot: r.jackpot ?? null
   };
 }
 

@@ -5,12 +5,14 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { overlayKeyOpen } from "@/services/account/creatorAccess";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
+import { advance } from "@/services/creator/alertCore";
 import { mockCreator } from "@/services/creator/mockCreatorStore";
 import {
   ADJUST_REASON_MAX,
   BROADCAST_TITLE_MAX,
   MAX_ADJUST_POINTS,
   MULTI_TEAM_COLORS,
+  DONOR_SUMMARY_ROWS,
   OVERLAY_BOARD_ROWS,
   PROJECT_NAME_MAX,
   battleStanding,
@@ -18,6 +20,8 @@ import {
   type FeedSourceKey,
   type FeedSummaryRow,
   type Battle,
+  type DonorSummaryRow,
+  type FeedEntryView,
   type FeedView,
   type BroadcastLive,
   type OverlayScoreboard,
@@ -26,7 +30,10 @@ import {
   type BroadcastView,
   type TeamKey
 } from "./crewTypes";
-import { battleGroups, battleRulesOf, duplicateSuspects, fanNotesView, feedOf, gradeMultipliersOf, excelOf, liveBroadcastOf, scoreboardRows, scoredFeed, stealRecordView, stealRulesOf, timesMultiplier, windowGames, windowReceived, windowScores, windowSteals } from "./crewCore";
+import { battleGroups, battleRulesOf, donorKey, donorMergesOf, donorNamer, duplicateSuspects, fanNotesView, feedAlertsOf, feedOf, attributionPoints, minusSettingsOf, gradeMultipliersOf, excelOf, liveBroadcastOf, scoreboardRows, scoredFeed, stealRecordView, stealRulesOf, syncAlertHolds, timesMultiplier, windowGames, windowReceived, windowScores, windowSteals, donationMoments } from "./crewCore";
+import { cumulativeLive, cumulativeSettingsOf } from "./crewCumulativeCore";
+import { gaugeLive, gaugeSettingsOf, pledgesOf } from "./crewGaugeCore";
+import { windowGaugeLive, windowGaugeSettingsOf } from "./crewWindowGaugeCore";
 import { prizeBoardLive, prizeSettingsOf, teamPrizeLive, teamPrizeSettingsOf } from "./crewPrizeCore";
 import { sigCountLive, sigCountSettingsOf, sigCountSignatures } from "./crewSigCountCore";
 import { diceLive } from "./crewDiceCore";
@@ -36,6 +43,7 @@ import { sigBingoLive } from "./crewSigBingoCore";
 import { gridDrawLive } from "./crewGridDrawCore";
 import { alphabetLive } from "./crewAlphabetCore";
 import { goStopLive } from "./crewGoStopCore";
+import { jackpotLive } from "./crewJackpotCore";
 import { sudopolyLive } from "./crewSudopolyCore";
 import { territoryLive } from "./crewTerritoryCore";
 import { sigDosanLive } from "./crewSigDosanCore";
@@ -75,6 +83,8 @@ function liveView(b: MockBroadcast): BroadcastLive {
     title: b.title,
     project: b.project ?? null,
     round: b.round ?? null,
+    carry: !!b.carry && !!b.project,
+    moments: donationMoments(b),
     oneshotPot: b.oneshot ? scoredFeed(b).filter((f) => f.status === "POT").reduce((s, f) => s + f.points, 0) : null,
     startedAt: b.startedAt,
     teamMode: b.teamMode,
@@ -96,6 +106,9 @@ function liveView(b: MockBroadcast): BroadcastLive {
     fanNotes: fanNotesView(b),
     prizeBoard: prizeBoardLive(b, rows),
     teamPrize: teamPrizeLive(b, rows),
+    cumulative: cumulativeLive(b, rows),
+    gauge: gaugeLive(b, rows),
+    windowGauge: windowGaugeLive(b),
     sigCount: sigCountLive(b),
     spin: spinLive(b),
     dice: diceLive(b),
@@ -114,6 +127,8 @@ function liveView(b: MockBroadcast): BroadcastLive {
     gostop: goStopLive(b),
     territory: territoryLive(b),
     sudopoly: sudopolyLive(b),
+    // The 당첨 순번 stays off this view.
+    jackpot: jackpotLive(b, false),
     serverNow: new Date().toISOString()
   };
 }
@@ -147,7 +162,7 @@ function battleView(b: MockBroadcast, x: NonNullable<MockBroadcast["battles"]>[n
     });
     return { sides, ...battleStanding(sides) };
   });
-  return { no: x.no, title: x.title, mode: x.mode, startedAt: x.startedAt, endsAt: x.endsAt, stoppedAt: x.stoppedAt, running, remainingSec: running ? Math.ceil((endMs - now) / 1000) : 0, matches, multiplier, penalty: x.penalty ?? "" };
+  return { no: x.no, title: x.title, mode: x.mode, startedAt: x.startedAt, endsAt: x.endsAt, stoppedAt: x.stoppedAt, running, remainingSec: running ? Math.ceil((endMs - now) / 1000) : 0, matches, multiplier, penalty: x.penalty ?? "", display: x.display ?? "BARS" };
 }
 
 /** 서브 점수판 rows: points donated to each active member between `from` and `to` (open board = now). */
@@ -162,15 +177,42 @@ function windowRows(b: MockBroadcast, from: string, to: string | null) {
 function feedView(b: MockBroadcast): FeedView {
   const scored = scoredFeed(b);
   const pot = scored.filter((f) => f.status === "POT");
-  const suspects = duplicateSuspects(feedOf(b));
+  const nameOf = donorNamer(donorMergesOf(b.channelId));
+  const suspects = duplicateSuspects(feedOf(b), nameOf);
+  const merged = (donor: string) => (nameOf(donor) === donor ? null : nameOf(donor));
+  const alerts = feedAlertsOf(b);
   return {
     assignMode: b.assignMode ?? "AUTO",
+    nameKeywords: !!mockCrew.nameKeywords?.[b.channelId],
+    pauseUnassigned: !!b.pauseUnassigned,
     keywords: structuredClone(mockCrew.keywords ?? {}),
-    entries: structuredClone(scored.reverse().slice(0, 200)).map((f) => ({ ...f, duplicateOf: suspects.get(f.id) ?? null })),
+    entries: structuredClone([...scored].reverse().slice(0, 200)).map((f) => ({ ...f, duplicateOf: suspects.get(f.id) ?? null, mergedDonor: merged(f.donor), alert: alerts.get(f.id) ?? null })),
     oneshot: b.oneshot ? { startedAt: b.oneshot.startedAt, potPoints: pot.reduce((s, f) => s + f.points, 0), count: pot.length } : null,
     excel: structuredClone(excelOf(b.channelId)),
-    summary: feedSummary(b)
+    summary: feedSummary(b),
+    donors: donorSummary(b, scored, nameOf)
   };
+}
+
+/**
+ * 후원자별 정리: this broadcast's 후원 리스트 entries that are not cancelled and 멤버 지정 후원, by donor under 후원자 이름
+ * 병합, with the names each came under — best first by points (then 건수, then name).
+ */
+function donorSummary(b: MockBroadcast, scored: FeedEntryView[], nameOf: (name: string) => string): DonorSummaryRow[] {
+  const end = b.endedAt ?? new Date(Date.now() + 1000).toISOString();
+  const s = excelOf(b.channelId);
+  const rows = new Map<string, DonorSummaryRow>();
+  const add = (donor: string, points: number) => {
+    const name = nameOf(donor);
+    const row = rows.get(donorKey(name)) ?? { name, names: [], count: 0, points: 0 };
+    if (!row.names.some((n) => donorKey(n) === donorKey(donor))) row.names.push(donor);
+    row.count += 1;
+    row.points += points;
+    rows.set(donorKey(name), row);
+  };
+  for (const f of scored) if (f.status !== "CANCELLED") add(f.donor, f.points);
+  for (const a of mockCrew.attributions) if (a.channelId === b.channelId && a.at >= b.startedAt && a.at <= end) add(a.donor ?? a.shownDonor, attributionPoints(a, s));
+  return [...rows.values()].sort((x, y) => y.points - x.points || y.count - x.count || x.name.localeCompare(y.name)).slice(0, DONOR_SUMMARY_ROWS);
 }
 
 /** 플랫폼 · BJ별 정리: assigned points per source for each member, plus everything not yet assigned. */
@@ -192,7 +234,7 @@ function feedSummary(b: MockBroadcast): FeedSummaryRow[] {
 }
 
 function summary(b: MockBroadcast): BroadcastSummary {
-  const final = b.final ?? scoreRows(b).map((r) => ({ memberId: r.memberId, name: r.name, score: r.score }));
+  const final = b.final ?? scoreRows(b).map((r) => ({ memberId: r.memberId, name: r.name, score: r.score, ...(r.carried ? { carried: r.carried } : {}) }));
   return {
     id: b.id,
     title: b.title,
@@ -211,6 +253,8 @@ export async function getBroadcastView(): Promise<BroadcastView | null> {
   if (!(await getCreatorSession())) return null;
   await mockDelay(200);
   const live = liveOf(STUDIO_CHANNEL);
+  // 미재생만: the queue moves with time, so bring it up to now before reading where each alert is.
+  advance();
   return {
     members: structuredClone(members()),
     live: live ? liveView(live) : null,
@@ -221,10 +265,17 @@ export async function getBroadcastView(): Promise<BroadcastView | null> {
     battleRules: { ...battleRulesOf(STUDIO_CHANNEL) },
     scenario: structuredClone(mockCrew.scenario?.[STUDIO_CHANNEL] ?? []),
     prizeSettings: structuredClone(prizeSettingsOf(STUDIO_CHANNEL)),
+    donorMerges: structuredClone(donorMergesOf(STUDIO_CHANNEL)),
     teamPrizeSettings: structuredClone(teamPrizeSettingsOf(STUDIO_CHANNEL)),
+    cumulativeSettings: structuredClone(cumulativeSettingsOf(STUDIO_CHANNEL)),
+    pledges: structuredClone(pledgesOf(STUDIO_CHANNEL)),
+    gaugeSettings: structuredClone(gaugeSettingsOf(STUDIO_CHANNEL)),
+    windowGaugeSettings: structuredClone(windowGaugeSettingsOf(STUDIO_CHANNEL)),
     sigCountSettings: structuredClone(sigCountSettingsOf(STUDIO_CHANNEL)),
+    minusSettings: structuredClone(minusSettingsOf(STUDIO_CHANNEL)),
     signatures: sigCountSignatures(),
     projects: [...new Set(broadcasts().filter((b) => b.channelId === STUDIO_CHANNEL && b.project).map((b) => b.project as string))],
+    carryDefault: mockCrew.carryRounds?.[STUDIO_CHANNEL] ?? false,
     history: broadcasts()
       .filter((b) => b.channelId === STUDIO_CHANNEL && b.endedAt)
       .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
@@ -242,7 +293,7 @@ export async function startBroadcast(input: unknown): Promise<BroadcastResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   await mockDelay(300);
-  const v = (typeof input === "object" && input !== null ? input : {}) as { requestId?: unknown; title?: unknown; teamMode?: unknown; teams?: unknown; project?: unknown };
+  const v = (typeof input === "object" && input !== null ? input : {}) as { requestId?: unknown; title?: unknown; teamMode?: unknown; teams?: unknown; project?: unknown; carry?: unknown };
   if (typeof v.requestId !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
   const requestId = v.requestId;
   if (broadcasts().some((b) => b.requestId === requestId)) return { status: "SAVED" };
@@ -253,6 +304,8 @@ export async function startBroadcast(input: unknown): Promise<BroadcastResult> {
   if (project.length > PROJECT_NAME_MAX) return { status: "INVALID", message: `프로젝트 이름은 ${PROJECT_NAME_MAX}자 이내로 입력해 주세요.` };
   if (MOCK_FORBIDDEN_WORDS.some((w) => project.toLowerCase().includes(w))) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
   if (typeof v.teamMode !== "boolean") return { status: "INVALID", message: "팀 모드를 확인해 주세요." };
+  // 기여도 공유 (2026-10-28): a screen from before sends none — off.
+  if (v.carry !== undefined && typeof v.carry !== "boolean") return { status: "INVALID", message: "기여도 공유를 확인해 주세요." };
   const teams: Record<string, TeamKey> = {};
   if (v.teamMode) {
     const raw = (typeof v.teams === "object" && v.teams !== null ? v.teams : {}) as Record<string, unknown>;
@@ -264,6 +317,8 @@ export async function startBroadcast(input: unknown): Promise<BroadcastResult> {
     if (!counts.includes("A") || !counts.includes("B")) return { status: "INVALID", message: "두 팀에 멤버를 한 명 이상씩 배정해 주세요." };
   }
   if (liveOf(STUDIO_CHANNEL)) return { status: "INVALID", message: "이미 진행 중인 방송이 있어요. 먼저 종료해 주세요." };
+  // The next start form opens with the 기여도 공유 chosen now (with a project — the only time it shows).
+  if (project && typeof v.carry === "boolean") (mockCrew.carryRounds ??= {})[STUDIO_CHANNEL] = v.carry;
   broadcasts().push({
     id: `bc-${randomUUID()}`,
     requestId,
@@ -272,6 +327,7 @@ export async function startBroadcast(input: unknown): Promise<BroadcastResult> {
     // 회차 = this project's broadcast count + 1 (numbered automatically on start).
     project: project || null,
     round: project ? broadcasts().filter((b) => b.channelId === STUDIO_CHANNEL && b.project === project).length + 1 : null,
+    ...(project && v.carry === true ? { carry: true } : {}),
     assignMode: "AUTO",
     feed: [],
     oneshot: null,
@@ -336,15 +392,18 @@ export async function endBroadcast(broadcastId: unknown): Promise<BroadcastResul
     live.oneshot = null;
   }
   live.endedAt = new Date().toISOString();
+  // 미지정 일시정지 ends with the broadcast: held alerts play.
+  syncAlertHolds(live);
   for (const s of live.subBoards ?? []) s.closedAt ??= live.endedAt;
   if (live.prizeBoard?.window) live.prizeBoard.window.stoppedAt ??= live.endedAt;
   if (live.teamPrize?.window) live.teamPrize.window.stoppedAt ??= live.endedAt;
+  if (live.windowGauge?.window) live.windowGauge.window.stoppedAt ??= live.endedAt;
   for (const x of live.battles ?? []) if (new Date(x.endsAt).getTime() > Date.now()) x.stoppedAt ??= live.endedAt;
   if (live.scenario) {
     for (const h of live.scenario.history) h.endedAt ??= live.endedAt;
     live.scenario.current = null;
   }
-  live.final = scoreRows(live).map((r) => ({ memberId: r.memberId, name: r.name, score: r.score }));
+  live.final = scoreRows(live).map((r) => ({ memberId: r.memberId, name: r.name, score: r.score, ...(r.carried ? { carried: r.carried } : {}) }));
   return { status: "SAVED" };
 }
 
@@ -363,6 +422,8 @@ export async function getOverlayScoreboard(overlayKey: unknown): Promise<Overlay
   return {
     ...view,
     logs: [],
+    // 시작점 수정's 후원 리스트 has the names as sent: studio only.
+    moments: [],
     scenario: view.scenario && { ...view.scenario, parts: view.scenario.parts.map(({ title, minutes }) => ({ title, minutes })) },
     fanNotes: { open: view.fanNotes.open, rules: view.fanNotes.rules, notes: [], counts: { NEW: 0, DONE: 0, HIDDEN: 0 } },
     // 랭크업 between members who are on the board; a closer pair further down would name people OBS does not show.

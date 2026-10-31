@@ -1,6 +1,7 @@
+import { mockAlerts, setAlertHold } from "@/services/creator/alertCore";
 import type { AmountUnit } from "@/types/donationUnit";
 import type { Platform } from "@/types/platform";
-import { BATTLE_MULTIPLIER_MAX, BATTLE_PENALTY_MAX, DUPLICATE_WINDOW_SEC, FAN_NOTE_LIMITS, GRADES_MAX, MULTI_TEAM_KEYS, PLATFORM_FAN_NOTE_RULES, GRADE_MULTIPLIER_MAX, GRADE_NAME_MAX, PLATFORM_BATTLE_RULES, PLATFORM_STEAL_RULES, SUB_BOARD_MAX, excelUnitOf, isExcelUnit, type BattleRules, type CrewGrade, type FanNoteRules, type FanNotesView, type RoomFanNotes, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow, type ScoreRow } from "./crewTypes";
+import { BATTLE_MULTIPLIER_MAX, BATTLE_PENALTY_MAX, DONOR_ALIASES_MAX, DONOR_MERGES_MAX, DONOR_NAME_MAX, DUPLICATE_WINDOW_SEC, FAN_NOTE_LIMITS, GRADES_MAX, MULTI_TEAM_KEYS, PLATFORM_FAN_NOTE_RULES, GRADE_MULTIPLIER_MAX, GRADE_NAME_MAX, NAME_KEYWORD_MIN, PLATFORM_BATTLE_RULES, PLATFORM_STEAL_RULES, SUB_BOARD_MAX, excelUnitOf, isExcelUnit, type BattleRules, type CrewGrade, type CrewMember, type DonorMerge, type FanNoteRules, type FanNotesView, type RoomFanNotes, type StealRecord, type ExcelSettings, type ExcelUnit, type FeedAlert, type FeedEntry, type FeedEntryView, type FeedSource, type MemberRankRow, type MinusSettings, type ScoreRow, DEFAULT_MINUS, MINUS_SIGNATURES_MAX } from "./crewTypes";
 import { mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 // ── 후원 리스트 (server-only) ──────────────────────────────────────────────────
@@ -41,11 +42,16 @@ export function parseBattleRules(v: Record<string, unknown>, forbidden: string[]
 
 export const liveBroadcastOf = (channelId: string) => (mockCrew.broadcasts ?? []).find((b) => b.channelId === channelId && !b.endedAt) ?? null;
 
-/** The single active member whose keyword appears in the message; ambiguous or none → null. */
+/**
+ * The single active member whose keyword appears in the message — with BJ 이름 자동 인식 on, their name too (NAME_KEYWORD_MIN
+ * letters or more); ambiguous or none → null.
+ */
 export function matchMember(channelId: string, message: string): string | null {
   const text = message.toLowerCase();
   const keywords = mockCrew.keywords ?? {};
-  const hits = (mockCrew.crews[channelId] ?? []).filter((m) => m.active && (keywords[m.id] ?? []).some((k) => text.includes(k.toLowerCase())));
+  const byName = !!mockCrew.nameKeywords?.[channelId];
+  const wordsOf = (m: CrewMember) => [...(keywords[m.id] ?? []), ...(byName && m.name.trim().length >= NAME_KEYWORD_MIN ? [m.name.trim()] : [])];
+  const hits = (mockCrew.crews[channelId] ?? []).filter((m) => m.active && wordsOf(m).some((k) => text.includes(k.toLowerCase())));
   return hits.length === 1 ? hits[0].id : null;
 }
 
@@ -73,15 +79,63 @@ export function addFeedEntry(b: MockBroadcast, input: FeedInput, now = Date.now(
   return entry;
 }
 
-const sameDonor = (s: string) => s.replace(/\s+/g, "").toLowerCase();
+/** A donor name as names compare (후원자 이름 병합 · 중복 의심): spaces and case ignored. */
+export const donorKey = (s: string) => s.replace(/\s+/g, "").toLowerCase();
+
+/** The channel's 후원자 이름 병합 groups. */
+export const donorMergesOf = (channelId: string): DonorMerge[] => mockCrew.donorMerges?.[channelId] ?? [];
+
+/** A name → its group's 대표 이름 (the name itself when it is in no group). */
+export function donorNamer(merges: DonorMerge[]): (name: string) => string {
+  const byKey = new Map<string, string>();
+  for (const g of merges) for (const n of [g.name, ...g.aliases]) byKey.set(donorKey(n), g.name);
+  return (name) => byKey.get(donorKey(name)) ?? name;
+}
+
+/**
+ * Validates the 후원자 이름 병합 list: up to DONOR_MERGES_MAX groups, each a 대표 이름 and 1 ~ DONOR_ALIASES_MAX names to
+ * merge into it (DONOR_NAME_MAX each, blank ones and repeats of the group's own names dropped). A name may be in one group
+ * only. Only the 대표 이름 is typed fresh, so only it is checked for 금지어 (aliases are names donors already used).
+ * `known`: the channel's group ids — any other id gets a new one.
+ */
+export function parseDonorMerges(input: unknown, forbidden: string[], known: string[]): DonorMerge[] | { message: string } {
+  if (!Array.isArray(input) || input.length > DONOR_MERGES_MAX) return { message: `이름 병합은 ${DONOR_MERGES_MAX}개까지 만들 수 있어요.` };
+  const text = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+  const out: DonorMerge[] = [];
+  const taken = new Set<string>();
+  for (const raw of input) {
+    const g = (typeof raw === "object" && raw !== null ? raw : {}) as Record<string, unknown>;
+    const name = text(g.name);
+    if (!name || name.length > DONOR_NAME_MAX) return { message: `대표 이름은 1 ~ ${DONOR_NAME_MAX}자로 입력해 주세요.` };
+    if (forbidden.some((w) => name.toLowerCase().includes(w))) return { message: "사용할 수 없는 단어가 포함되어 있어요." };
+    if (!Array.isArray(g.aliases)) return { message: "합칠 이름을 확인해 주세요." };
+    const aliases: string[] = [];
+    for (const a of g.aliases) {
+      const alias = text(a);
+      if (alias.length > DONOR_NAME_MAX) return { message: `합칠 이름은 ${DONOR_NAME_MAX}자까지예요.` };
+      if (alias && ![name, ...aliases].some((n) => donorKey(n) === donorKey(alias))) aliases.push(alias);
+    }
+    if (!aliases.length) return { message: `${name}에 합칠 이름을 하나 이상 넣어 주세요.` };
+    if (aliases.length > DONOR_ALIASES_MAX) return { message: `합칠 이름은 대표 이름마다 ${DONOR_ALIASES_MAX}개까지예요.` };
+    for (const n of [name, ...aliases]) {
+      if (taken.has(donorKey(n))) return { message: `'${n}' 이름은 다른 병합에 이미 있어요.` };
+      taken.add(donorKey(n));
+    }
+    const id = typeof g.id === "string" && known.includes(g.id) && !out.some((x) => x.id === g.id) ? g.id : `dm-${crypto.randomUUID()}`;
+    out.push({ id, name, aliases });
+  }
+  return out;
+}
 
 /**
  * 중복 도네이션 확인: for each 중복 의심 entry (no decision yet, not cancelled), the closest earlier entry that is not
- * cancelled with the same donor, amount and unit at most DUPLICATE_WINDOW_SEC before it. `feed` is in arrival order.
+ * cancelled with the same donor (`nameOf`: 후원자 이름 병합), amount and unit at most DUPLICATE_WINDOW_SEC before it.
+ * `feed` is in arrival order.
  */
-export function duplicateSuspects(feed: FeedEntry[]): Map<string, { id: string; at: string }> {
+export function duplicateSuspects(feed: FeedEntry[], nameOf: (name: string) => string = (n) => n): Map<string, { id: string; at: string }> {
   const out = new Map<string, { id: string; at: string }>();
   const kept = feed.filter((f) => f.status !== "CANCELLED");
+  const sameDonor = (name: string) => donorKey(nameOf(name));
   for (const [i, f] of kept.entries()) {
     if (f.duplicate) continue;
     const t = Date.parse(f.at);
@@ -97,6 +151,45 @@ export function duplicateSuspects(feed: FeedEntry[]): Map<string, { id: string; 
   return out;
 }
 
+// ── 미지정 일시정지 · 미재생만 (2026-10-25, StreamDonate 후원 및 통합 관리 참고 — 기본값) ─────────────────────
+
+/**
+ * 미지정 일시정지: with the option on during the broadcast, an entry left 미지정 (미지정 · 확인 대기) holds its alert in the
+ * queue until it is assigned. A 한방 entry, an assigned one and a cancelled one do not hold.
+ */
+export const holdsAlert = (b: MockBroadcast, e: FeedEntry) => !!b.pauseUnassigned && !b.endedAt && (e.status === "UNMATCHED" || e.status === "PENDING");
+
+/**
+ * A donation just put on the 후원 리스트: the caller queues its alert next — held when `held` — and links the two with
+ * linkFeedAlert. The entry comes first because a queued alert may go on screen at once.
+ */
+export type FeedListing = { entry: FeedEntry; held: boolean };
+
+const listing = (b: MockBroadcast, entry: FeedEntry): FeedListing => ({ entry, held: holdsAlert(b, entry) });
+
+/** Links a listed donation to the alert it queued (미재생만 · 미지정 일시정지). */
+export function linkFeedAlert(listed: FeedListing | null, alert: { id: string } | undefined) {
+  if (listed && alert) listed.entry.alertId = alert.id;
+}
+
+/** Applies 미지정 일시정지 again to the broadcast's queued alerts, after an entry, the option or the broadcast changed. */
+export function syncAlertHolds(b: MockBroadcast) {
+  for (const e of b.feed ?? []) if (e.alertId) setAlertHold(e.alertId, holdsAlert(b, e));
+}
+
+/** Where each linked entry's alert is in the queue (FeedAlert), by entry id. */
+export function feedAlertsOf(b: MockBroadcast): Map<string, FeedAlert> {
+  const linked = new Set((b.feed ?? []).flatMap((e) => (e.alertId ? [e.alertId] : [])));
+  const byAlert = new Map<string, FeedAlert>();
+  for (const a of mockAlerts.items) {
+    if (!linked.has(a.id)) continue;
+    byAlert.set(a.id, a.status === "QUEUED" ? (a.held ? "HELD" : "QUEUED") : a.status === "SHOWING" ? "SHOWING" : "ENDED");
+  }
+  const out = new Map<string, FeedAlert>();
+  for (const e of b.feed ?? []) if (e.alertId && byAlert.has(e.alertId)) out.set(e.id, byAlert.get(e.alertId)!);
+  return out;
+}
+
 /**
  * Called by the Donation Core for a completed donation without a member target. Only a live crew
  * broadcast on that channel collects it (member-targeted donations are already scored directly).
@@ -104,27 +197,27 @@ export function duplicateSuspects(feed: FeedEntry[]): Map<string, { id: string; 
  * `donor`: the name as sent (the operator's list); `shownDonor`: the name on stream, after the creator's 대체 메시지 rules
  * when the donation was sent (2026-10-09 결정, like the alert's `nameReplaced`).
  */
-export function recordBroadcastDonation(channelId: string, input: { donor: string; shownDonor: string; message: string; fnAmount: number }, broadcastId?: string | null) {
+export function recordBroadcastDonation(channelId: string, input: { donor: string; shownDonor: string; message: string; fnAmount: number }, broadcastId?: string | null): FeedListing | null {
   const live = liveBroadcastOf(channelId);
-  if (!live || (broadcastId !== undefined && live.id !== broadcastId)) return;
-  addFeedEntry(live, { donor: input.donor, shownDonor: input.shownDonor, message: input.message, amount: input.fnAmount, unit: "FN", platform: null, source: "DONATION" });
+  if (!live || (broadcastId !== undefined && live.id !== broadcastId)) return null;
+  return listing(live, addFeedEntry(live, { donor: input.donor, shownDonor: input.shownDonor, message: input.message, amount: input.fnAmount, unit: "FN", platform: null, source: "DONATION" }));
 }
 
 /**
  * Called by 후원 연동 for each new (deduped) platform donation, with the unit code its adapter mapped. Units the
  * 자동엑셀 does not know (a Super Chat in EUR …) stay out of the list (the alert is still shown).
  */
-export function recordBroadcastExternal(channelId: string, input: { platform: Platform; donor: string; message: string; value: number; unit: AmountUnit }) {
+export function recordBroadcastExternal(channelId: string, input: { platform: Platform; donor: string; message: string; value: number; unit: AmountUnit }): FeedListing | null {
   const live = liveBroadcastOf(channelId);
   const unit = excelUnitOf(input.unit);
-  if (!live || !unit) return;
-  addFeedEntry(live, { donor: input.donor, message: input.message, amount: input.value, unit, platform: input.platform, source: "DONATION" });
+  if (!live || !unit) return null;
+  return listing(live, addFeedEntry(live, { donor: input.donor, message: input.message, amount: input.value, unit, platform: input.platform, source: "DONATION" }));
 }
 
 /** Called by SMS 계좌후원 for each recognised deposit: a live crew broadcast lists it in 원 (source BANK). */
-export function recordBroadcastBank(channelId: string, input: { donor: string; value: number }) {
+export function recordBroadcastBank(channelId: string, input: { donor: string; value: number }): FeedListing | null {
   const live = liveBroadcastOf(channelId);
-  if (live) addFeedEntry(live, { donor: input.donor, message: "", amount: input.value, unit: "KRW", platform: null, source: "BANK" });
+  return live ? listing(live, addFeedEntry(live, { donor: input.donor, message: "", amount: input.value, unit: "KRW", platform: null, source: "BANK" })) : null;
 }
 
 /**
@@ -207,7 +300,7 @@ export function windowReceived(b: MockBroadcast, from: string, to: string | null
   const s = excelOf(b.channelId);
   const scores = new Map<string, number>();
   const add = (id: string, p: number) => scores.set(id, (scores.get(id) ?? 0) + p);
-  for (const a of mockCrew.attributions) if (a.channelId === b.channelId && inWindow(a.at)) add(a.memberId, scoreFn(a.fnAmount, s));
+  for (const a of mockCrew.attributions) if (a.channelId === b.channelId && inWindow(a.at)) add(a.memberId, attributionPoints(a, s));
   for (const f of feedOf(b)) if (f.status === "ASSIGNED" && f.memberId && inWindow(f.at)) add(f.memberId, scoreEntry(f, s).points);
   return scores;
 }
@@ -303,7 +396,7 @@ export function gradeBonus(b: MockBroadcast): Map<string, number> {
   const s = excelOf(b.channelId);
   const received = new Map<string, number>();
   const add = (id: string, p: number) => mult.has(id) && received.set(id, (received.get(id) ?? 0) + p);
-  for (const a of mockCrew.attributions) if (a.channelId === b.channelId && a.at >= b.startedAt && a.at <= end) add(a.memberId, scoreFn(a.fnAmount, s));
+  for (const a of mockCrew.attributions) if (a.channelId === b.channelId && a.at >= b.startedAt && a.at <= end) add(a.memberId, attributionPoints(a, s));
   for (const f of feedOf(b)) if (f.status === "ASSIGNED" && f.memberId) add(f.memberId, scoreEntry(f, s).points);
   for (const [id, points] of received) bonus.set(id, extraPoints(points, mult.get(id)!));
   return bonus;
@@ -355,6 +448,43 @@ export const scoredFeed = (b: MockBroadcast) => {
  * The main scoreboard of a broadcast, best first (ties by name): active members and anyone with points in it, each
  * with 후원 · 후원 리스트 · 보정 · 강탈 · 배틀 배수 · 직급 배수 · 점수 게임 parts. Shared by 방송 운영 and the 엔딩 크레딧.
  */
+/** The ended 회차 of `b`'s project before it, oldest first (none without a project). */
+export const earlierRounds = (b: MockBroadcast) =>
+  b.project
+    ? (mockCrew.broadcasts ?? [])
+        .filter((x) => x !== b && x.channelId === b.channelId && x.project === b.project && x.endedAt && x.final && x.startedAt < b.startedAt)
+        .sort((x, y) => x.startedAt.localeCompare(y.startedAt))
+    : [];
+
+/** 시작점 수정 (2026-10-28): the latest donations of the broadcast's 후원 리스트, newest first. */
+export const donationMoments = (b: MockBroadcast, limit = 50) =>
+  [...feedOf(b)]
+    .sort((x, y) => y.at.localeCompare(x.at))
+    .slice(0, limit)
+    .map((f) => ({ at: f.at, donor: f.donor, amount: f.amount, unit: f.unit }));
+
+/**
+ * A start a 구간 or count can be moved to (시작점 수정): an ISO time from the broadcast's start to now. Null otherwise.
+ */
+export function startPointOf(b: MockBroadcast, at: unknown, now = Date.now()): string | null {
+  if (typeof at !== "string") return null;
+  const t = Date.parse(at);
+  if (Number.isNaN(t) || t < Date.parse(b.startedAt) || t > now) return null;
+  return new Date(t).toISOString();
+}
+
+/**
+ * 동일 프로젝트 회차 간 기여도 공유 (2026-10-28, StreamDonate "동일 프리셋 안에서 회차와 상관 없이 기여도 공유"): with it on,
+ * each member's own scores in the project's earlier 회차 (each final score without what that 회차 carried in), summed. The
+ * 후원 내역 stay per 회차. Empty when off.
+ */
+export function carriedScores(b: MockBroadcast): Map<string, number> {
+  const out = new Map<string, number>();
+  if (!b.carry || !b.project) return out;
+  for (const r of earlierRounds(b)) for (const f of r.final ?? []) out.set(f.memberId, (out.get(f.memberId) ?? 0) + f.score - (f.carried ?? 0));
+  return out;
+}
+
 export function scoreboardRows(b: MockBroadcast): ScoreRow[] {
   const end = b.endedAt ?? new Date(Date.now() + 1000).toISOString();
   const s = excelOf(b.channelId);
@@ -362,22 +492,49 @@ export function scoreboardRows(b: MockBroadcast): ScoreRow[] {
   const bonus = battleBonus(b);
   const graded = gradeBonus(b);
   const games = windowGames(b, b.startedAt, b.endedAt);
+  const carried = carriedScores(b);
   const rows = (mockCrew.crews[b.channelId] ?? [])
-    .filter((m) => m.active || b.teams[m.id] !== undefined || b.adjustments.some((a) => a.memberId === m.id) || (b.feed ?? []).some((f) => f.memberId === m.id) || (b.steals ?? []).some((x) => x.thief === m.id || x.target === m.id) || games.has(m.id))
+    .filter((m) => m.active || b.teams[m.id] !== undefined || b.adjustments.some((a) => a.memberId === m.id) || (b.feed ?? []).some((f) => f.memberId === m.id) || (b.steals ?? []).some((x) => x.thief === m.id || x.target === m.id) || games.has(m.id) || !!carried.get(m.id))
     .map((m) => {
       const donated = mockCrew.attributions
         .filter((a) => a.channelId === b.channelId && a.memberId === m.id && a.at >= b.startedAt && a.at <= end)
-        .reduce((sum, a) => sum + scoreFn(a.fnAmount, s), 0);
+        .reduce((sum, a) => sum + attributionPoints(a, s), 0);
       const adjust = b.adjustments.filter((a) => a.memberId === m.id).reduce((sum, a) => sum + a.points, 0);
       const fromFeed = feed.filter((f) => f.status === "ASSIGNED" && f.memberId === m.id).reduce((sum, f) => sum + f.points, 0);
       const stolen = (b.steals ?? []).reduce((sum, x) => sum + (x.thief === m.id ? x.points : 0) - (x.target === m.id ? x.points : 0), 0);
       const battle = bonus.get(m.id) ?? 0;
       const grade = graded.get(m.id) ?? 0;
       const game = games.get(m.id) ?? 0;
-      return { memberId: m.id, name: m.name, color: m.color, team: b.teams[m.id] ?? null, donated, feed: fromFeed, adjust, stolen, battle, grade, game, score: donated + fromFeed + adjust + stolen + battle + grade + game };
+      const past = carried.get(m.id) ?? 0;
+      return { memberId: m.id, name: m.name, color: m.color, team: b.teams[m.id] ?? null, donated, feed: fromFeed, adjust, stolen, battle, grade, game, carried: past, score: donated + fromFeed + adjust + stolen + battle + grade + game + past };
     });
   return rows.sort((x, y) => y.score - x.score || x.name.localeCompare(y.name));
 }
+
+/** The channel's 마이너스 시그니처 settings (off until saved with signatures). */
+export const minusSettingsOf = (channelId: string): MinusSettings => ({ ...DEFAULT_MINUS, ...mockCrew.minusSigs?.[channelId] });
+
+/** Validates 마이너스 시그니처 settings: signatures that exist (up to MINUS_SIGNATURES_MAX), 제외 멤버 of the crew. */
+export function parseMinusSettings(input: unknown, signatureIds: string[], memberIds: string[]): MinusSettings | { message: string } {
+  const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
+  const idList = (x: unknown) => (Array.isArray(x) && x.every((y) => typeof y === "string") ? [...new Set(x as string[])] : null);
+  const sigs = idList(v.signatureIds);
+  if (!sigs || sigs.some((id) => !signatureIds.includes(id))) return { message: "마이너스 시그니처를 확인해 주세요." };
+  if (sigs.length > MINUS_SIGNATURES_MAX) return { message: `마이너스 시그니처는 ${MINUS_SIGNATURES_MAX}개까지 고를 수 있어요.` };
+  const excluded = idList(v.excludedMembers);
+  if (!excluded || excluded.some((id) => !memberIds.includes(id))) return { message: "제외할 멤버를 확인해 주세요." };
+  return { signatureIds: sigs, excludedMembers: excluded };
+}
+
+/** Whether a 시그니처 후원 of `signatureId` to `memberId` is a 마이너스 시그니처 후원 now (2026-11-01). */
+export function isMinusDonation(channelId: string, signatureId: string | undefined, memberId: string | null) {
+  if (!signatureId || !memberId) return false;
+  const s = minusSettingsOf(channelId);
+  return s.signatureIds.includes(signatureId) && !s.excludedMembers.includes(memberId);
+}
+
+/** A member-targeted donation's crew score: its points, taken off for a 마이너스 시그니처 후원. */
+export const attributionPoints = (a: { fnAmount: number; minus?: true }, s: ExcelSettings) => (a.minus ? -1 : 1) * scoreFn(a.fnAmount, s);
 
 /** Points for a member-targeted FN donation (same conversion and 배수 규칙 as the list). */
 export function scoreFn(fnAmount: number, s: ExcelSettings) {
@@ -402,10 +559,11 @@ export function attributeMemberDonation(
   channelId: string,
   memberId: string | null,
   fnAmount: number,
-  shown: CrewDonorShown = { donor: "익명", donorId: "", message: "", shownDonor: "익명" }
+  shown: CrewDonorShown = { donor: "익명", donorId: "", message: "", shownDonor: "익명" },
+  minus = false
 ) {
   if (!memberId || !isActiveMember(channelId, memberId)) return;
-  recordAttribution(donationId, channelId, memberId, fnAmount, shown);
+  recordAttribution(donationId, channelId, memberId, fnAmount, shown, minus);
 }
 
 /**
@@ -414,9 +572,9 @@ export function attributeMemberDonation(
  * since still gets it (a removed one shows as 삭제된 멤버, like any older donation). `shown.shownDonor` is fixed by the
  * caller when the donation was sent (2026-10-09 결정): on-stream views use it, the studio's 크루 후원 list `donor`.
  */
-export function recordAttribution(donationId: string, channelId: string, memberId: string, fnAmount: number, shown: CrewDonorShown) {
+export function recordAttribution(donationId: string, channelId: string, memberId: string, fnAmount: number, shown: CrewDonorShown, minus = false) {
   if (mockCrew.attributions.some((a) => a.donationId === donationId)) return;
-  mockCrew.attributions.push({ donationId, channelId, memberId, fnAmount, at: new Date().toISOString(), ...shown });
+  mockCrew.attributions.push({ donationId, channelId, memberId, fnAmount, at: new Date().toISOString(), ...shown, ...(minus ? { minus: true as const } : {}) });
 }
 
 /** 받은 후원 "크루 후원": donations sent for a member, newest first (removed members keep a placeholder). */

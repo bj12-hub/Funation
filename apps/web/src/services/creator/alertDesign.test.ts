@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
+import { key, mockSessionModule, resetMockStores, signIn } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
@@ -9,8 +9,10 @@ async function load() {
   const widgets = await import("./widgetSettings");
   const remote = await import("./alertRemote");
   const theme = await import("./overlayTheme");
+  const assets = await import("./assets");
+  const sigPlayer = await import("./sigPlayer");
   const { mockCreator } = await import("./mockCreatorStore");
-  return { ...widgets, ...remote, ...theme, overlayKey: mockCreator.integrationKey };
+  return { ...widgets, ...remote, ...theme, ...assets, ...sigPlayer, overlayKey: mockCreator.integrationKey };
 }
 
 const design = {
@@ -54,8 +56,58 @@ describe("후원 알림 디자인", () => {
     expect(await m.saveWidgetSettings("ALERT", { ...design, headline: "  {닉네임}님 {금액} 감사해요 " })).toEqual({ status: "SAVED" });
     overlay = await m.getOverlayAlert(m.overlayKey);
     if (overlay === "FORBIDDEN") throw new Error("forbidden");
-    expect(overlay.design).toEqual(design);
+    // A screen from before 알림 사운드 · 시그니처 음원 받는 방식 (2026-10-28) and 글자 크기 (2026-11-01) saves none · 기존 방식 · 100%.
+    expect(overlay.design).toEqual({ ...design, soundId: null, sigFetch: "CACHE", textScale: { amount: 100, name: 100, message: 100 } });
+    expect(overlay.alertSound).toBeNull();
     expect(overlay.theme.theme).toBe("GLASS");
+  });
+
+  it("글자 크기 (2026-11-01): % of the theme's size for the amount, the 알림 문구 and the message", async () => {
+    const m = await load();
+    expect(await m.getWidgetDetail("ALERT")).toMatchObject({ settings: { textScale: { amount: 100, name: 100, message: 100 } } });
+    expect(await m.saveWidgetSettings("ALERT", { ...design, textScale: { amount: 150, name: 80, message: 200 } })).toEqual({ status: "SAVED" });
+    const overlay = await m.getOverlayAlert(m.overlayKey);
+    expect(overlay !== "FORBIDDEN" && overlay.design.textScale).toEqual({ amount: 150, name: 80, message: 200 });
+    for (const textScale of [{ amount: 155, name: 100, message: 100 }, { amount: 100, name: 40, message: 100 }, { amount: 100, name: 100 }, "big"]) {
+      expect(await m.saveWidgetSettings("ALERT", { ...design, textScale })).toEqual({ status: "INVALID", message: "글자 크기를 골라 주세요." });
+    }
+  });
+
+  it("알림 사운드 · 시그니처 음원 받는 방식 (2026-10-28): a library sound for the overlay, the mode for both overlays", async () => {
+    const m = await load();
+    const fd = new FormData();
+    fd.set("requestId", key(1));
+    fd.set("file", new File([new Uint8Array([0x49, 0x44, 0x33, 4, 0, 0, 0, 0])], "ding.mp3", { type: "audio/mpeg" }));
+    const up = await m.uploadAsset(fd);
+    if (up.status !== "SAVED") throw new Error(JSON.stringify(up));
+    const obs = async () => {
+      const overlay = await m.getOverlayAlert(m.overlayKey);
+      if (overlay === "FORBIDDEN") throw new Error("forbidden");
+      return overlay;
+    };
+    expect(await m.getWidgetDetail("ALERT")).toMatchObject({ settings: { soundId: null, sigFetch: "CACHE" } });
+
+    expect(await m.saveWidgetSettings("ALERT", { ...design, soundId: up.asset.id, sigFetch: "FULL" })).toEqual({ status: "SAVED" });
+    expect(await m.getWidgetDetail("ALERT")).toMatchObject({ settings: { soundId: up.asset.id, sigFetch: "FULL" } });
+    expect(await obs()).toMatchObject({ alertSound: up.asset.url, design: { sigFetch: "FULL" } });
+    const player = await m.getOverlaySigPlayer(m.overlayKey);
+    expect(player !== "FORBIDDEN" && player.sigFetch).toBe("FULL");
+
+    const bad: [Record<string, unknown>, string][] = [
+      [{ soundId: "missing-id" }, "라이브러리에 없는 알림 사운드"],
+      [{ soundId: "../x" }, "알림 사운드를 다시"],
+      [{ soundId: 3 }, "알림 사운드를 다시"],
+      [{ sigFetch: "STREAM" }, "시그니처 음원 받는 방식"]
+    ];
+    for (const [patch, message] of bad) {
+      const res = await m.saveWidgetSettings("ALERT", { ...design, ...patch });
+      expect(res.status === "INVALID" && res.message, message).toContain(message);
+    }
+
+    // Deleted from the library: none, on the screen and on OBS.
+    await m.deleteAsset(up.asset.id);
+    expect(await m.getWidgetDetail("ALERT")).toMatchObject({ settings: { soundId: null } });
+    expect(await obs()).toMatchObject({ alertSound: null, design: { soundId: null } });
   });
 
   it("refuses a headline without {닉네임}, unknown choices and non-creators", async () => {

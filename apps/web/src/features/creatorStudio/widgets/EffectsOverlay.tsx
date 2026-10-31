@@ -13,12 +13,14 @@ const LAYER_COUNT = 48;
 /**
  * OBS effects overlay (code-first). Re-reads the server every second; when a new alert goes on screen it
  * plays the effects the server resolved for that alert: an emoji burst rising from the bottom and/or a
- * full-screen layer (falling particles). Positions are randomised in the browser (display only).
+ * full-screen layer (falling particles), and the 구간's 영상 once in the middle (2026-10-25 — with sound; a browser that
+ * blocks sound plays it muted). Positions are randomised in the browser (display only).
  */
 export function EffectsOverlay({ data }: { data: OverlayEffects }) {
   const router = useRouter();
   const played = useRef<string | null>(null);
   const [burst, setBurst] = useState<{ key: string; emoji: Particle[]; layer: Particle[] } | null>(null);
+  const [video, setVideo] = useState<{ key: string; url: string } | null>(null);
   useReloadSignal(data.reloadSeq);
 
   useEffect(() => {
@@ -36,7 +38,9 @@ export function EffectsOverlay({ data }: { data: OverlayEffects }) {
   useEffect(() => {
     if (!data.alertId || played.current === data.alertId) return;
     played.current = data.alertId;
-    if (!data.on || (!data.emoji && !data.layer)) return;
+    if (!data.on) return;
+    if (data.video) setVideo({ key: data.alertId, url: data.video });
+    if (!data.emoji && !data.layer) return;
     const rand = (min: number, max: number) => min + Math.random() * (max - min);
     const emoji = data.emoji
       ? Array.from({ length: data.emoji.count }, (_, i) => ({
@@ -58,21 +62,36 @@ export function EffectsOverlay({ data }: { data: OverlayEffects }) {
     return () => clearTimeout(clear);
   }, [data]);
 
-  if (!burst || !data.on) return null;
+  if ((!burst && !video) || !data.on) return null;
   const style = (p: Particle) =>
     ({ left: `${p.x}%`, fontSize: `${p.size}px`, animationDelay: `${p.delay}s`, animationDuration: `${p.duration}s`, "--drift": `${p.drift}px` }) as CSSProperties;
   return (
-    <div className={styles.stage} key={burst.key} aria-hidden="true">
-      {burst.layer.map((p) => (
+    <div className={styles.stage} key={burst?.key ?? video?.key} aria-hidden="true">
+      {video && <EffectVideo key={video.key} url={video.url} onDone={() => setVideo(null)} />}
+      {burst?.layer.map((p) => (
         <span key={`l${p.id}`} className={styles.fall} style={style(p)}>
           {p.char}
         </span>
       ))}
-      {burst.emoji.map((p) => (
+      {burst?.emoji.map((p) => (
         <span key={`e${p.id}`} className={styles.rise} style={style(p)}>
           {p.char}
         </span>
       ))}
     </div>
   );
+}
+
+/** The 구간's 영상, once: with sound, or muted when the browser refuses to start it with sound. */
+function EffectVideo({ url, onDone }: { url: string; onDone: () => void }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    v.play().catch(() => {
+      v.muted = true;
+      v.play().catch(onDone);
+    });
+  }, [onDone]);
+  return <video ref={ref} className={styles.video} src={url} playsInline onEnded={onDone} onError={onDone} />;
 }

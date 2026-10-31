@@ -6,7 +6,7 @@ import { ownEntry } from "@/lib/records";
 import { getCreatorSession } from "@/lib/session";
 import { overlayKeyOpen } from "@/services/account/creatorAccess";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
-import { advance, enqueueAlert, isOverlayOn, mockAlerts, overlaySignal } from "./alertCore";
+import { advance, enqueueAlert, isOverlayOn, mockAlerts, overlaySignal, releaseAlertHold } from "./alertCore";
 import { overlayCustomSounds } from "./customSoundCore";
 import { ingestDonationLinksThrottled } from "./donationLinkCore";
 import { mockMedia } from "./mediaCore";
@@ -18,6 +18,7 @@ import {
   TEST_MESSAGE_MAX,
   isOverlayTarget,
   OVERLAY_TARGETS,
+  type AlertItem,
   type OverlayAlert,
   type OverlaySignal,
   type OverlayTarget,
@@ -25,7 +26,10 @@ import {
   type RemoteView
 } from "./alertTypes";
 import { overlayTheme } from "./overlayThemeStore";
-import { readWidget } from "./widgetStore";
+import { assetUrl } from "./assetTypes";
+import { readWidget, withLiveAlertSound } from "./widgetStore";
+import { STUDIO_CHANNEL, mockCrew } from "@/services/crew/mockCrewStore";
+import { mockSignatures, signatureImageOf, signatureSoundOf } from "@/services/donations/signatureCore";
 
 /**
  * 리모컨 Server Actions — code-first (no Figma frame). Route `/creator/remote`, overlay
@@ -51,7 +55,12 @@ export async function getRemoteView(): Promise<RemoteView | null> {
       .filter((a) => a.status !== "QUEUED" && a.status !== "SHOWING")
       .slice(-RECENT_MAX)
       .reverse(),
-    overlays: { on: Object.fromEntries(OVERLAY_TARGETS.map((t) => [t.key, isOverlayOn(t.key)])) as Record<OverlayTarget, boolean>, videoVolume: mockMedia.videoSettings.volume }
+    autoPausedBy: (mockAlerts.controls.paused && items.find((a) => a.id === mockAlerts.autoPausedBy)) || null,
+    overlays: { on: Object.fromEntries(OVERLAY_TARGETS.map((t) => [t.key, isOverlayOn(t.key)])) as Record<OverlayTarget, boolean>, videoVolume: mockMedia.videoSettings.volume },
+    testOptions: {
+      signatures: mockSignatures.items.map((s) => ({ id: s.id, name: s.name, price: s.price })),
+      members: (mockCrew.crews[STUDIO_CHANNEL] ?? []).filter((m) => m.active).map((m) => ({ id: m.id, name: m.name }))
+    }
   };
 }
 
@@ -70,7 +79,21 @@ export async function sendTestAlert(input: unknown): Promise<RemoteResult> {
   const message = typeof v.message === "string" ? v.message.trim() : "";
   if (donor.length > TEST_DONOR_MAX || message.length > TEST_MESSAGE_MAX) return { status: "INVALID", message: "후원자명 또는 메시지가 너무 길어요." };
   if (bad(donor) || bad(message)) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
-  const item = enqueueAlert({ kind: "TEST", donor, message, fnAmount: amount, typeLabel: "테스트 후원" });
+  // As a signature (2026-10-25): its image and sound, and the member for the 시그니처 플레이어's BJ 매치.
+  const sig = v.signatureId === undefined || v.signatureId === null ? null : mockSignatures.items.find((s) => s.id === v.signatureId);
+  if (sig === undefined) return { status: "INVALID", message: "시그니처를 다시 골라 주세요." };
+  const member = v.memberId === undefined || v.memberId === null ? null : (mockCrew.crews[STUDIO_CHANNEL] ?? []).find((m) => m.id === v.memberId && m.active);
+  if (member === undefined) return { status: "INVALID", message: "멤버를 다시 골라 주세요." };
+  const asSignature = sig ? { signatureId: sig.id, imageUrl: signatureImageOf(sig), ...(signatureSoundOf(sig) ? { soundUrl: signatureSoundOf(sig) } : {}) } : {};
+  const item = enqueueAlert({
+    kind: "TEST",
+    donor,
+    message,
+    fnAmount: amount,
+    typeLabel: sig ? `테스트 후원 · ${sig.name}` : "테스트 후원",
+    ...asSignature,
+    ...(member ? { memberId: member.id } : {})
+  });
   mockAlerts.testRequests[v.requestId] = item.id;
   return { status: "SAVED" };
 }
@@ -99,6 +122,11 @@ export async function setAlertControls(input: unknown): Promise<RemoteResult> {
     if (typeof m !== "number" || !Number.isInteger(m) || m < 0 || m > ALERT_MIN_FN_MAX) return { status: "INVALID", message: "최소 금액을 확인해 주세요." };
     next.minFn = m;
   }
+  if ("autoPauseFn" in v) {
+    const m = v.autoPauseFn;
+    if (typeof m !== "number" || !Number.isInteger(m) || m < 0 || m > ALERT_MIN_FN_MAX) return { status: "INVALID", message: "자동 일시정지 금액을 확인해 주세요." };
+    next.autoPauseFn = m;
+  }
   if ("displaySec" in v) {
     const d = v.displaySec;
     if (typeof d !== "number" || !Number.isInteger(d) || d < ALERT_DISPLAY_SEC.min || d > ALERT_DISPLAY_SEC.max) {
@@ -107,6 +135,8 @@ export async function setAlertControls(input: unknown): Promise<RemoteResult> {
     next.displaySec = d;
   }
   mockAlerts.controls = next;
+  // The operator paused or resumed: the pause is theirs now, not the 자동 일시정지.
+  if ("paused" in v) mockAlerts.autoPausedBy = null;
   advance();
   return { status: "SAVED" };
 }
@@ -129,6 +159,19 @@ export async function skipCurrentAlert(input: unknown): Promise<RemoteResult> {
     mockAlerts.shownAt = null;
     advance();
   }
+  return { status: "SAVED" };
+}
+
+/**
+ * 배정 없이 재생 of an alert held by 미지정 일시정지 (방송 운영 후원 리스트): it plays in its turn and is not held again. A
+ * no-op once it is not held (assigned meanwhile, cancelled …).
+ */
+export async function playHeldAlert(input: unknown): Promise<RemoteResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const alertId = rec(input).alertId;
+  if (typeof alertId !== "string") return { status: "INVALID", message: "요청을 확인해 주세요." };
+  releaseAlertHold(alertId);
   return { status: "SAVED" };
 }
 
@@ -165,7 +208,10 @@ export async function replayAlert(input: unknown): Promise<RemoteResult> {
   if (ownEntry(requests, v.requestId)) return { status: "SAVED" };
   const src = mockAlerts.items.find((a) => a.id === v.id);
   if (!src || src.status === "QUEUED" || src.status === "SHOWING") return { status: "INVALID", message: "다시 보낼 수 없는 알림이에요." };
-  const copy = { ...src, id: `al-${crypto.randomUUID()}`, createdAt: new Date().toISOString(), status: "QUEUED" as const, replayOf: src.replayOf ?? src.id };
+  const copy: AlertItem = { ...src, id: `al-${crypto.randomUUID()}`, createdAt: new Date().toISOString(), status: "QUEUED", replayOf: src.replayOf ?? src.id };
+  // 미지정 일시정지 belongs to the donation's own alert: a copy is never held (no 후원 리스트 entry would let it go).
+  delete copy.held;
+  delete copy.holdReleased;
   mockAlerts.items.push(copy);
   requests[v.requestId] = copy.id;
   advance();
@@ -259,9 +305,10 @@ export async function getOverlayAlert(key: unknown): Promise<OverlayAlert | "FOR
   advance();
   const { muted, alertVolume, ttsVolume, signatureVolume, displaySec } = mockAlerts.controls;
   const showing = mockAlerts.items.find((a) => a.status === "SHOWING");
-  const design = readWidget("ALERT");
+  const design = withLiveAlertSound(readWidget("ALERT"));
   return {
     design,
+    alertSound: design.soundId ? assetUrl(design.soundId) : null,
     theme: overlayTheme(design.theme),
     alert: showing && mockAlerts.shownAt !== null ? { ...showing, endsAt: new Date(mockAlerts.shownAt + displaySec * 1000).toISOString() } : null,
     controls: { muted, alertVolume, ttsVolume, signatureVolume },

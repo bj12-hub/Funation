@@ -64,6 +64,11 @@ export type AlertItem = {
    * platform on 수단별 보드, which shows the unit's label. Read it through `nativeAmount` (older alerts carry a label).
    */
   native?: NativeAmount;
+  /**
+   * 랜덤시그 알림 롤링 (2026-10-26): candidate signature images the card flips through for its first ALERT_ROLL_MS before
+   * showing `imageUrl` (looks only — the server drew the signature); the signature's sound starts when it stops.
+   */
+  rolling?: string[];
   /** The signature's sound (library), played by the overlay at 시그니처 볼륨 (code-first, 2026-10-06). */
   soundUrl?: string;
   /** DONATION: the 썸네이션 donation type it came from (TEXT · MINI · VIDEO …); the 미니후원 overlay reads MINI. Absent on older alerts. */
@@ -78,6 +83,14 @@ export type AlertItem = {
   questSucceededAt?: string;
   /** 다시 보내기 copy: the id of the alert it repeats. Shown again on stream, never counted as another donation. */
   replayOf?: string;
+  /**
+   * 미지정 일시정지 (2026-10-25, StreamDonate 참고 — 기본값): a QUEUED alert whose 후원 리스트 entry is still 미지정 while the
+   * crew broadcast has the option on. The queue stops in front of it — later alerts wait too — until the entry is
+   * assigned or cancelled, the option goes off, the broadcast ends or the operator plays it anyway (`holdReleased`).
+   */
+  held?: boolean;
+  /** 배정 없이 재생: the operator let this held alert go, so it is not held again. */
+  holdReleased?: boolean;
   createdAt: string;
   status: AlertStatus;
 };
@@ -87,6 +100,11 @@ export type AlertControls = {
   muted: boolean;
   /** Alerts below this FN amount are recorded but not shown. 0 = show all. */
   minFn: number;
+  /**
+   * 자동 일시정지 금액 (2026-10-25): an FN alert of at least this amount pauses the queue as it goes on screen — it plays,
+   * the ones after it wait for 알림 재개. 0 = off. Platform · 계좌 후원 and 다시 보내기 alerts never pause (alertCore).
+   */
+  autoPauseFn: number;
   /** 0–100 */
   alertVolume: number;
   ttsVolume: number;
@@ -109,8 +127,15 @@ export type RemoteView = {
   queued: AlertItem[];
   /** Newest first, excluding queued. */
   recent: AlertItem[];
+  /** The alert whose turn paused the queue (자동 일시정지 금액), while it stays paused; null otherwise. */
+  autoPausedBy: AlertItem | null;
   /** 기능 제어: ON/OFF per overlay and the video donation volume (alert volumes live in `controls`). */
   overlays: { on: Record<OverlayTarget, boolean>; videoVolume: number };
+  /**
+   * 테스트 후원 as a signature (2026-10-25 — to try the 시그니처 플레이어 and the alert's signature image and sound): the
+   * signatures, and the active crew members for its BJ 매치. Test alerts never count anywhere.
+   */
+  testOptions: { signatures: { id: string; name: string; price: number }[]; members: { id: string; name: string }[] };
 };
 
 /** 커스텀 사운드 for the 후원 알림 overlay: TTS plays `url` in place of `word` (`volume` 0–100, the sound's own). */
@@ -127,6 +152,8 @@ export type OverlayAlert = {
   on: boolean;
   /** 후원 알림 디자인 (위젯 → 후원 알림) and the theme it resolves to. */
   design: AlertSettings;
+  /** 알림 사운드 (2026-10-28): the library file's address, null when none (or deleted). */
+  alertSound: string | null;
   theme: ResolvedTheme;
 };
 
@@ -136,6 +163,7 @@ export type RemoteResult = { status: "SAVED" } | { status: "INVALID"; message: s
 export const OVERLAY_TARGETS = [
   { key: "alert", label: "후원 알림" },
   { key: "effects", label: "이펙트 · 효과" },
+  { key: "sigplayer", label: "시그니처 플레이어" },
   { key: "video", label: "영상 후원" },
   { key: "drawing", label: "그림 후원" },
   { key: "banner", label: "배너" },
@@ -144,7 +172,8 @@ export const OVERLAY_TARGETS = [
   { key: "timer", label: "타이머" },
   { key: "credits", label: "엔딩 크레딧" },
   { key: "bingo", label: "빙고" },
-  { key: "widgets", label: "후원 위젯 (목표 · 누적 · 랭킹 · 최근알림 · 이벤트 · QR · 퀘스트 · 투표 · 룰렛 · 뽑기 · 벽지 · 시계 · 알림 모니터)" },
+  { key: "wheel", label: "원형 룰렛" },
+  { key: "widgets", label: "후원 위젯 (목표 · 누적 · 랭킹 · 최근알림 · 이벤트 · QR · 퀘스트 · 투표 · 룰렛 · 뽑기 · 벽지 · 시계 · 알림 모니터 · 시그 벽지)" },
   { key: "chat", label: "통합 채팅" },
   { key: "crew", label: "크루 점수판 · 배틀 · 강탈 · 시나리오" },
   { key: "play", label: "시청자 참여 게임 (마블 룰렛 · 로얄 럼블 · 조작형)" },
@@ -162,4 +191,7 @@ export const offOverlayTargets = (switches: Record<OverlayTarget, boolean>, targ
 export type OverlaySignal = { reloadSeq: number; on: boolean };
 
 /** How an alert's amount reads on screen. */
+/** 랜덤시그 알림 롤링 length (StreamDonate: 1초 롤링). */
+export const ALERT_ROLL_MS = 1000;
+
 export const alertAmount = (a: { fnAmount: number; amountLabel?: string }) => a.amountLabel ?? `${formatNumber(a.fnAmount)} FN`;

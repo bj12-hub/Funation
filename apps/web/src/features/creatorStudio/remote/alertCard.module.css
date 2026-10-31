@@ -34,9 +34,10 @@
   gap: 6px;
 }
 
+/* 글자 크기 (2026-11-01): --al-amount · --al-name (the 알림 문구 line) · --al-message scale each size below; 1 = the theme's. */
 .headline {
   margin: 0;
-  font-size: 26px;
+  font-size: calc(26px * var(--al-name, 1));
   line-height: 1.35;
   word-break: keep-all;
   overflow-wrap: anywhere;
@@ -48,13 +49,13 @@
 }
 
 .amount {
-  font-size: 60px;
+  font-size: calc(60px * var(--al-amount, 1));
   white-space: nowrap;
 }
 
 .message {
   margin: 0;
-  font-size: 20px;
+  font-size: calc(20px * var(--al-message, 1));
   line-height: 1.45;
   overflow-wrap: anywhere;
 }
@@ -104,18 +105,18 @@
 }
 
 .banner .headline {
-  font-size: 18px;
+  font-size: calc(18px * var(--al-name, 1));
 }
 
 .banner .amount {
-  font-size: 34px;
+  font-size: calc(34px * var(--al-amount, 1));
 }
 
 .bannerMessage {
   display: -webkit-box;
   max-width: 260px;
   overflow: hidden;
-  font-size: 17px;
+  font-size: calc(17px * var(--al-message, 1));
   line-height: 1.4;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -149,7 +150,7 @@
   z-index: 1;
   margin-bottom: -22px;
   padding: 14px 30px;
-  font-size: 64px;
+  font-size: calc(64px * var(--al-amount, 1));
   white-space: nowrap;
 }
 
@@ -170,7 +171,7 @@
    The bigger amount is for the card layouts only; the 가로 띠형 keeps its 34px. */
 [data-ov="BOLD"] .card .amount,
 [data-ov="BOLD"] .imageCard .amount {
-  font-size: 68px;
+  font-size: calc(68px * var(--al-amount, 1));
 }
 
 [data-ov="BOLD"] .card .message,
@@ -257,15 +258,15 @@
 }
 
 .stage[data-vertical] .amount {
-  font-size: 104px;
+  font-size: calc(104px * var(--al-amount, 1));
 }
 
 .stage[data-vertical] .headline {
-  font-size: 42px;
+  font-size: calc(42px * var(--al-name, 1));
 }
 
 .stage[data-vertical] .message {
-  font-size: 34px;
+  font-size: calc(34px * var(--al-message, 1));
 }
 
 .stage[data-vertical] .meta {
@@ -283,11 +284,11 @@
 }
 
 .stage[data-vertical] .banner .amount {
-  font-size: 60px;
+  font-size: calc(60px * var(--al-amount, 1));
 }
 
 .stage[data-vertical] .banner .headline {
-  font-size: 30px;
+  font-size: calc(30px * var(--al-name, 1));
 }
 
 .stage[data-vertical] .bannerImage,
@@ -299,5 +300,5 @@
 
 .stage[data-vertical] .bannerMessage {
   max-width: 380px;
-  font-size: 26px;
+  font-size: calc(26px * var(--al-message, 1));
 }

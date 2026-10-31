@@ -42,24 +42,59 @@ describe("상품 순위표", () => {
     // 상단 고정: first, no rank, its own text; the others are ranked from 1 and keep the prize lines.
     const pinned = prizeRows(members, settings({ prizes, pinned: { memberId: "b", text: "MC" } }));
     expect(line(pinned)).toEqual(["고정 가 MC 9", "1 나 상금 5", "2 다 - 5", "3 라 벌칙 1"]);
+
+    // 표시 대상 점수 받은 멤버만 (2026-10-28): above 0 only, the top N — the pinned one anyway, the prizes by the ranks shown.
+    const zero = [...members, { memberId: "e", name: "마", color: "#555555", score: 0 }];
+    expect(line(prizeRows(zero, settings({ prizes, audience: "SCORED", limit: 2 })))).toEqual(["1 가 상금 9", "2 나 - 5"]);
+    expect(line(prizeRows(zero, settings({ prizes, audience: "SCORED", limit: 50, pinned: { memberId: "e", text: "MC" } })))).toEqual([
+      "고정 마 MC 0",
+      "1 가 상금 9",
+      "2 나 - 5",
+      "3 다 벌칙 5",
+      "4 라 - 1"
+    ]);
+    expect(prizeRows(zero, settings({ prizes }))).toMatchObject({ rows: { length: 5 } });
   });
 
   it("validates and saves the settings, trimming blank lines and colors without text", async () => {
     const m = await load();
     const ok = { ...settings(), title: " 식사대전 ", prizes: [{ text: "스테이크", color: "#FFAA00" }, { text: "", color: "#123456" }, { text: " ", color: null }] };
     expect(await m.savePrizeBoard(ok)).toEqual({ status: "SAVED" });
-    expect((await m.getBroadcastView())!.prizeSettings).toMatchObject({ title: "식사대전", prizes: [{ text: "스테이크", color: "#ffaa00" }] });
+    expect((await m.getBroadcastView())!.prizeSettings).toMatchObject({ title: "식사대전", prizes: [{ text: "스테이크", color: "#ffaa00" }], titleColor: null });
+    // 제목 색 (2026-10-28): kept lowercased on both boards; a screen from before sends none — 원래 색.
+    expect(await m.savePrizeBoard({ ...ok, titleColor: "#FC8383" })).toEqual({ status: "SAVED" });
+    expect((await m.getBroadcastView())!.prizeSettings.titleColor).toBe("#fc8383");
+    const { titleColor: _c, ...older } = settings();
+    expect(_c).toBeNull();
+    expect(await m.savePrizeBoard(older)).toEqual({ status: "SAVED" });
+    expect((await m.getBroadcastView())!.prizeSettings.titleColor).toBeNull();
+    // 테두리색 (2026-10-28): kept lowercased with its line, dropped with an empty line; 표시 대상 · 인원 kept.
+    expect(await m.savePrizeBoard({ ...ok, audience: "SCORED", limit: 3, prizes: [{ text: "상금", color: null, outline: "#00FF00" }, { text: "", color: null, outline: "#123456" }, { text: "벌칙", color: null }] })).toEqual({ status: "SAVED" });
+    expect((await m.getBroadcastView())!.prizeSettings).toMatchObject({
+      audience: "SCORED",
+      limit: 3,
+      prizes: [{ text: "상금", color: null, outline: "#00ff00" }, { text: "", color: null, outline: null }, { text: "벌칙", color: null, outline: null }]
+    });
+    const { audience: _a, limit: _l, ...before } = settings();
+    expect([_a, _l]).toEqual(["ALL", 10]);
+    expect(await m.savePrizeBoard(before)).toEqual({ status: "SAVED" });
+    expect((await m.getBroadcastView())!.prizeSettings).toMatchObject({ audience: "ALL", limit: 10 });
 
     const bad: [Record<string, unknown>, string][] = [
       [{ title: "가".repeat(21) }, "제목"],
       [{ basis: "MONTH" }, "집계 기준"],
       [{ prizes: [{ text: "가".repeat(31), color: null }] }, "30자"],
       [{ prizes: [{ text: "상금", color: "red" }] }, "글자색"],
+      [{ prizes: [{ text: "상금", color: null, outline: "black" }] }, "테두리색"],
+      [{ audience: "TOP" }, "표시 대상"],
+      [{ audience: "SCORED", limit: 0 }, "표시 대상"],
+      [{ limit: 51 }, "표시 대상"],
       [{ prizes: Array.from({ length: 31 }, () => ({ text: "x", color: null })) }, "30등"],
       [{ excluded: ["cm-nobody"] }, "뺄 멤버"],
       [{ excluded: ["cm-s1"], pinned: { memberId: "cm-s1", text: "" } }, "상단 고정"],
       [{ pinned: { memberId: "cm-s1", text: "운영자 고정" } }, "사용할 수 없는"],
       [{ columns: 4 }, "열 개수"],
+      [{ titleColor: "red" }, "제목 색"],
       [{ placement: "TOP" }, "배치"],
       [{ showScore: "yes" }, "표시 설정"]
     ];
@@ -121,6 +156,24 @@ describe("상품 순위표", () => {
     await m.startPrizeWindow({ broadcastId: id, requestId: key(4) });
     expect((await board(m)).rows.every((r) => r.score === 0)).toBe(true);
 
+    // 시작점 수정 (2026-10-28): back to the 12:05 donation — it counts again.
+    const moments = (await m.getBroadcastView())!.live!.moments;
+    expect(moments.map((x) => [x.at, x.amount])).toEqual([
+      ["2026-10-23T12:05:00.000Z", 7_000],
+      ["2026-10-23T12:03:00.000Z", 4_000],
+      ["2026-10-23T12:01:00.000Z", 1_000]
+    ]);
+    expect(await m.movePrizeWindowStart({ broadcastId: id, at: moments[0].at })).toEqual({ status: "SAVED" });
+    expect((await board(m)).window!.startedAt).toBe("2026-10-23T12:05:00.000Z");
+    expect((await board(m)).rows.find((r) => r.memberId === "cm-s2")!.score).toBe(7_000);
+    for (const at of ["2026-10-23T11:00:00.000Z", "2026-10-23T12:30:00.000Z", "어제", 3]) {
+      expect(await m.movePrizeWindowStart({ broadcastId: id, at })).toEqual({ status: "INVALID", message: "시작점은 방송 시작부터 지금 사이로 골라 주세요." });
+    }
+    vi.setSystemTime(new Date("2026-10-23T12:06:30Z"));
+    await m.stopPrizeWindow({ broadcastId: id });
+    expect(await m.movePrizeWindowStart({ broadcastId: id, at: moments[1].at })).toEqual({ status: "INVALID", message: "집계 중인 구간의 시작점만 고칠 수 있어요." });
+    await m.startPrizeWindow({ broadcastId: id, requestId: key(5) }); // running again for the end below
+
     // 방송 종료 stops a running 구간.
     vi.setSystemTime(new Date("2026-10-23T12:07:00Z"));
     await m.endBroadcast(id);
@@ -178,8 +231,19 @@ describe("팀 순위표", () => {
 
   it("validates and saves the settings: CUSTOM needs 2 ~ 8 teams, each named once and with members in one team only", async () => {
     const m = await load();
-    expect(await m.saveTeamPrize(teamSettings({ title: " 팀 대항전 ", teams: twoTeams, prizes: [{ text: "회식", color: "#FFAA00" }, { text: "", color: null }] }))).toEqual({ status: "SAVED" });
-    expect((await m.getBroadcastView())!.teamPrizeSettings).toMatchObject({ title: "팀 대항전", source: "CUSTOM", teams: [{ name: "불꽃" }, { name: "B팀" }], prizes: [{ text: "회식", color: "#ffaa00" }] });
+    expect(await m.saveTeamPrize(teamSettings({ title: " 팀 대항전 ", teams: twoTeams, prizes: [{ text: "회식", color: "#FFAA00" }, { text: "", color: null }], titleColor: "#00AAFF" }))).toEqual({ status: "SAVED" });
+    expect((await m.getBroadcastView())!.teamPrizeSettings).toMatchObject({ title: "팀 대항전", source: "CUSTOM", teams: [{ name: "불꽃" }, { name: "B팀" }], prizes: [{ text: "회식", color: "#ffaa00" }], titleColor: "#00aaff" });
+    expect((await m.getBroadcastView())!.teamPrizeSettings.membersPerLine).toBe(0);
+    // 한 줄에 놓을 팀원 수 (2026-10-28): kept; a screen from before sends none — as many as fit.
+    expect(await m.saveTeamPrize(teamSettings({ teams: twoTeams, membersPerLine: 3 }))).toEqual({ status: "SAVED" });
+    expect((await m.getBroadcastView())!.teamPrizeSettings.membersPerLine).toBe(3);
+    for (const bad of [-1, 21, 1.5, "3"]) {
+      expect(await m.saveTeamPrize(teamSettings({ teams: twoTeams, membersPerLine: bad as never }))).toEqual({ status: "INVALID", message: "한 줄에 놓을 팀원 수는 0~20명이에요." });
+    }
+    const { membersPerLine: _per, ...olderTeam } = teamSettings({ teams: twoTeams });
+    expect(_per).toBe(0);
+    expect(await m.saveTeamPrize(olderTeam)).toEqual({ status: "SAVED" });
+    expect((await m.getBroadcastView())!.teamPrizeSettings.membersPerLine).toBe(0);
     // Another source keeps the CUSTOM teams but does not need them.
     expect(await m.saveTeamPrize(teamSettings({ source: "BROADCAST_TEAMS" }))).toEqual({ status: "SAVED" });
 

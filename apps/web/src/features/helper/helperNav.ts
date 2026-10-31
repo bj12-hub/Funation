@@ -26,7 +26,7 @@ export const HELPER_NAV: HelperNavGroup[] = [
       { label: "알림 모니터", emoji: "📺", href: "/monitor", description: "최고 후원 · 지금 나오는 후원 · 시그니처 대기열을 띄워요." },
       { label: "시계", emoji: "🕐", href: "/clock", description: "플립 · 디지털 · 아날로그 시계를 띄워요." },
       { label: "QR 코드", emoji: "🔲", href: "/qr", description: "후원 QR 코드를 방송 화면에 항상 띄워 둬요." },
-      { label: "방송 도구", emoji: "🛠️", href: "/tools", description: "자막 · 전광판 · 타이머 · 엔딩 크레딧 · 빙고를 띄우고 제어해요." }
+      { label: "방송 도구", emoji: "🛠️", href: "/tools", description: "자막 · 전광판 · 타이머 · 엔딩 크레딧 · 빙고 · 원형 룰렛을 띄우고 제어해요." }
     ]
   },
   {

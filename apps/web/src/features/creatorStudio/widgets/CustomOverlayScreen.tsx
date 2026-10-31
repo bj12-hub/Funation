@@ -10,6 +10,7 @@ import {
   CUSTOM_SLOTS,
   SANDBOX_SRC,
   type CustomChat,
+  type CustomCrew,
   type CustomCode,
   type CustomDonation,
   type CustomOverlayView,
@@ -69,6 +70,9 @@ const API = `function onData(type, data) {
   //   data.typeLabel · kind · platform · imageUrl · endsAt (알림이 끝나는 시각)
   // type "chat" — 통합 채팅 한 줄 (처음 열리면 최근 20줄부터)
   //   data.nickname · text · platform · at
+  // type "crew" — 크루 점수판이 바뀔 때마다 (처음 열리면 지금 점수판)
+  //   data.live (방송 중) · title · project · round · total
+  //   data.rows[] — rank · name · color · score (높은 점수부터)
 }`;
 
 let testNo = 0;
@@ -85,6 +89,15 @@ const testDonation = (): CustomDonation => ({
   endsAt: new Date(Date.now() + 5000).toISOString()
 });
 const testChat = (): CustomChat => ({ id: `preview-c${++testNo}`, platform: "YOUTUBE", nickname: "시청자", text: `안녕하세요 ${testNo}`, at: new Date().toISOString() });
+const testCrew = (): CustomCrew => {
+  const base = [
+    { name: "길동", color: "#8b5cf6", score: 30_000 },
+    { name: "하늘", color: "#ec4899", score: 25_000 },
+    { name: "바다", color: "#3b82f6", score: 12_000 }
+  ].map((r) => ({ ...r, score: r.score + ++testNo * 1_000 }));
+  const rows = base.sort((x, y) => y.score - x.score).map((r, i) => ({ rank: i + 1, ...r }));
+  return { live: true, title: "미리보기 방송", project: "시즌1", round: 3, rows, total: rows.reduce((s, r) => s + r.score, 0) };
+};
 
 /**
  * 커스텀 오버레이 — code-first (no Figma frame; StreamDonate "오버레이 커스텀" 참고, P3). Route `/creator/widgets/custom`. 슬롯
@@ -227,7 +240,7 @@ export function CustomOverlayScreen({ view }: { view: CustomOverlayView }) {
           미리보기
         </h2>
         <p className={styles.note}>
-          지금 입력한 코드를 OBS와 같은 샌드박스에서 실행해요. 테스트 후원 · 테스트 채팅은 이 미리보기에만 보내요(알림 대기열에 들어가지 않고 FN도 움직이지 않아요).
+          지금 입력한 코드를 OBS와 같은 샌드박스에서 실행해요. 테스트 후원 · 테스트 채팅 · 테스트 점수판은 이 미리보기에만 보내요(알림 대기열에 들어가지 않고 FN도 움직이지 않아요).
         </p>
         <div className={styles.actions}>
           <button type="button" className={styles.primary} onClick={runPreview}>
@@ -238,6 +251,9 @@ export function CustomOverlayScreen({ view }: { view: CustomOverlayView }) {
           </button>
           <button type="button" className={styles.ghost} onClick={() => send("chat", testChat())}>
             테스트 채팅
+          </button>
+          <button type="button" className={styles.ghost} onClick={() => send("crew", testCrew())}>
+            테스트 점수판
           </button>
         </div>
         <iframe

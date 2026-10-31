@@ -51,7 +51,8 @@ export const GROUPS: CatalogGroup[] = [
       widget("EVENT"),
       widget("TOP_DONATION"),
       widget("DONATION_MONITOR"),
-      widget("SIG_QUEUE")
+      widget("SIG_QUEUE"),
+      widget("SIG_WALLPAPER")
     ]
   },
   {
@@ -77,7 +78,7 @@ export const GROUPS: CatalogGroup[] = [
   {
     // Ours (funnation puts these under 엑셀방송).
     title: "게임 · 이벤트",
-    items: [widget("VOTE"), widget("ROULETTE"), widget("GACHA"), link("DRAWING", "🖼️", "그림후원", "받은 그림 후원을 방송 화면에 전시합니다.", "/creator/widgets/drawing")]
+    items: [widget("VOTE"), widget("ROULETTE"), link("WHEEL", "🎡", "원형 룰렛", "방송인이 직접 돌리는 룰렛이에요. 문구 · 시그니처 칸을 두고 스핀!이나 후원으로 돌립니다.", "/creator/widgets/tools"), widget("GACHA"), link("DRAWING", "🖼️", "그림후원", "받은 그림 후원을 방송 화면에 전시합니다.", "/creator/widgets/drawing")]
   },
   { title: "타이머", items: [TIMER, widget("CLOCK")] }
 ];

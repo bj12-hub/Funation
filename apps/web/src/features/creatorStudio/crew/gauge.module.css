@@ -1,0 +1,73 @@
+/* BJ 공약 · 출근 BJ 게이지 (code-first) — studio card in 방송 운영, on top of crew.module.css. */
+
+.pledges {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pledges li {
+  display: grid;
+  grid-template-columns: 120px 160px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.preview li {
+  display: grid;
+  grid-template-columns: minmax(0, 140px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--font-size-13);
+}
+
+.track {
+  height: 10px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-neutral-soft);
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.4s ease;
+}
+
+.pledge {
+  grid-column: 1 / -1;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+  .pledges li {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .pledges li > :first-child {
+    grid-column: 1 / -1;
+  }
+
+  .preview li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .track {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { formatKstTime, formatNumber } from "@/lib/format";
 import {
   cancelAllAlerts,
+  playHeldAlert,
   reloadOverlays,
   replayAlert,
   sendTestAlert,
@@ -52,7 +53,7 @@ const time = (iso: string) => formatKstTime(iso, { hour: "2-digit", minute: "2-d
 
 /**
  * 리모컨 — code-first (no Figma frame). Route `/creator/remote`. Controls the server-side alert
- * queue that the OBS alert overlay shows: pause, mute, skip, cancel, volumes, minimum amount and
+ * queue that the OBS alert overlay shows: pause (or 자동 일시정지 after a big alert), mute, skip, cancel, volumes, minimum amount and
  * 테스트 후원 (display only — no FN moves), plus 방송 도구, 퀘스트, 투표, 룰렛, 뽑기 and 벽지. Refreshes from the server every
  * few seconds.
  */
@@ -83,7 +84,11 @@ export function RemoteScreen({
   const [amount, setAmount] = useState(10_000);
   const [donor, setDonor] = useState("");
   const [message, setMessageText] = useState("");
+  /** 테스트 후원 as a signature (2026-10-25): its image · sound, and the member for the 시그니처 플레이어. "" = none. */
+  const [testSig, setTestSig] = useState("");
+  const [testMember, setTestMember] = useState("");
   const [minFn, setMinFn] = useState(String(controls.minFn));
+  const [autoPauseFn, setAutoPauseFn] = useState(String(controls.autoPauseFn));
   const [displaySec, setDisplaySec] = useState(String(controls.displaySec));
   const [notice, setNotice] = useState<{ tone: "error" | "ok"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
@@ -117,7 +122,9 @@ export function RemoteScreen({
     // One id per intended send: a double click or retry reuses it, so the alert is queued once.
     requestId.current ??= crypto.randomUUID();
     const id = requestId.current;
-    run(() => sendTestAlert({ requestId: id, amount, donor, message }), "테스트 후원을 보냈어요.", () => {
+    const sig = view.testOptions.signatures.some((s) => s.id === testSig) ? testSig : null;
+    const member = view.testOptions.members.some((m) => m.id === testMember) ? testMember : null;
+    run(() => sendTestAlert({ requestId: id, amount, donor, message, signatureId: sig, memberId: member }), "테스트 후원을 보냈어요.", () => {
       requestId.current = null;
       setMessageText("");
     });
@@ -257,9 +264,14 @@ export function RemoteScreen({
               <>
                 <span className={styles.liveDot} aria-hidden="true" />
                 표시 중: {view.showing.donor} · {alertAmount(view.showing)}
+                {view.autoPausedBy?.id === view.showing.id && " · 끝나면 자동 일시정지"}
               </>
+            ) : view.autoPausedBy ? (
+              `자동 일시정지됨 — ${view.autoPausedBy.donor} · ${alertAmount(view.autoPausedBy)} 알림 뒤에 멈췄어요. ▶ 알림 재개로 이어서 내보내요`
             ) : controls.paused ? (
               "일시정지됨 — 새 알림은 대기열에 쌓여요"
+            ) : view.queued[0]?.held ? (
+              "미지정 후원에서 멈춤 — 방송 운영 후원 리스트에서 배정하면 이어서 나가요"
             ) : (
               "표시 중인 알림 없음"
             )}
@@ -364,6 +376,24 @@ export function RemoteScreen({
           />
           <input className={styles.input} aria-label="후원자명" placeholder="후원자명 (비우면 테스트 후원자)" maxLength={TEST_DONOR_MAX} value={donor} onChange={(e) => setDonor(e.target.value)} />
           <input className={styles.input} aria-label="메시지" placeholder="메시지" maxLength={TEST_MESSAGE_MAX} value={message} onChange={(e) => setMessageText(e.target.value)} />
+          <div className={styles.addRow}>
+            <select className={styles.select} aria-label="테스트 시그니처" value={testSig} onChange={(e) => setTestSig(e.target.value)}>
+              <option value="">시그니처 없이</option>
+              {view.testOptions.signatures.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name} · {formatNumber(s.price)} FN
+                </option>
+              ))}
+            </select>
+            <select className={styles.select} aria-label="테스트 멤버" value={testMember} onChange={(e) => setTestMember(e.target.value)}>
+              <option value="">멤버 없이</option>
+              {view.testOptions.members.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className={styles.actions}>
             <button type="button" className={styles.primary} disabled={pending || amount < 1} onClick={sendTest}>
               전송
@@ -388,6 +418,21 @@ export function RemoteScreen({
               적용
             </button>
           </form>
+          <form
+            className={styles.addRow}
+            onSubmit={(e) => {
+              e.preventDefault();
+              const v = Math.floor(Number(autoPauseFn) || 0);
+              run(() => setAlertControls({ autoPauseFn: v }), v ? `${formatNumber(v)} FN 이상 알림이 나가면 그 뒤에서 멈춰요.` : "자동 일시정지를 껐어요.");
+            }}
+          >
+            <input className={styles.input} type="number" min={0} aria-label="자동 일시정지 금액(FN)" value={autoPauseFn} onChange={(e) => setAutoPauseFn(e.target.value)} />
+            <span className={styles.muted}>FN 이상이면 멈춤</span>
+            <button type="submit" className={styles.ghost} disabled={pending}>
+              적용
+            </button>
+          </form>
+          <p className={styles.note}>자동 일시정지: 0이면 꺼져요. 큰 후원 알림은 그대로 나가고, 다음 알림은 ▶ 알림 재개를 누를 때까지 기다려요. 플랫폼 · 계좌 후원은 FN 금액이 없어 멈추지 않아요.</p>
           <form
             className={styles.addRow}
             onSubmit={(e) => {
@@ -424,7 +469,7 @@ export function RemoteScreen({
         ) : (
           <ul className={styles.list}>
             {[...(view.showing ? [view.showing] : []), ...view.queued, ...view.recent].map((a) => (
-              <AlertRow key={a.id} alert={a} disabled={pending} onReplay={() => replay(a.id)} />
+              <AlertRow key={a.id} alert={a} disabled={pending} onReplay={() => replay(a.id)} onPlayHeld={() => run(() => playHeldAlert({ alertId: a.id }), "배정 없이 알림을 내보내요.")} />
             ))}
           </ul>
         )}
@@ -433,8 +478,10 @@ export function RemoteScreen({
   );
 }
 
-function AlertRow({ alert, disabled, onReplay }: { alert: AlertItem; disabled: boolean; onReplay: () => void }) {
+function AlertRow({ alert, disabled, onReplay, onPlayHeld }: { alert: AlertItem; disabled: boolean; onReplay: () => void; onPlayHeld: () => void }) {
   const done = alert.status !== "QUEUED" && alert.status !== "SHOWING";
+  // 미지정 일시정지 (방송 운영 후원 리스트): the queue waits at this alert until its donation is assigned.
+  const held = alert.status === "QUEUED" && alert.held;
   return (
     <li className={styles.row}>
       <div className={styles.rowMain}>
@@ -448,9 +495,14 @@ function AlertRow({ alert, disabled, onReplay }: { alert: AlertItem; disabled: b
           {alert.message && ` · ${alert.message}`}
         </span>
       </div>
-      <span className={remote.statusTag} data-status={alert.status}>
-        {STATUS_LABEL[alert.status]}
+      <span className={remote.statusTag} data-status={held ? "HELD" : alert.status}>
+        {held ? "미지정 대기" : STATUS_LABEL[alert.status]}
       </span>
+      {held && (
+        <button type="button" className={styles.ghost} disabled={disabled} onClick={onPlayHeld}>
+          배정 없이 재생
+        </button>
+      )}
       {done && (
         <button type="button" className={styles.ghost} disabled={disabled} onClick={onReplay}>
           다시 보내기

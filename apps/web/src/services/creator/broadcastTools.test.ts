@@ -18,6 +18,8 @@ const credits = (patch: Record<string, unknown> = {}) => ({
     mvp: { on: true, title: "", max: 1 },
     top3: { on: true, title: "", max: 3 },
     donors: { on: true, title: "", max: 10 },
+    hotSigs: { on: true, title: "", max: 5 },
+    highSigs: { on: true, title: "", max: 5 },
     members: { on: true, title: "", max: 10 }
   },
   ...patch
@@ -101,7 +103,9 @@ describe("방송 도구", () => {
         { rank: 3, name: "바다", score: 0 }
       ],
       memberUnit: "FN",
-      mvp: { name: "하늘", score: 8_000 }
+      mvp: { name: "하늘", score: 8_000, unit: "FN" },
+      hotSigs: [],
+      highSigs: []
     });
     expect((await getToolsView())!.credits).toEqual(view.data);
 
@@ -147,11 +151,57 @@ describe("방송 도구", () => {
       ]
     });
 
+    // MVP 기준 후원금액 (2026-10-28): FN sent for each member during the broadcast — 바다's points are a 보정, not FN.
+    expect(await saveCredits(credits({ period: "CREW", mvpBasis: "AMOUNT" }))).toEqual({ status: "SAVED" });
+    expect((await data()).mvp).toBeNull();
+    const { mockCrew } = await import("@/services/crew/mockCrewStore");
+    mockCrew.attributions.push({ donationId: "d-mvp", channelId: "studio", memberId: "cm-s1", fnAmount: 3_000, at: new Date().toISOString(), shownDonor: "달빛" });
+    expect(await data()).toMatchObject({ memberUnit: "점", mvp: { name: "길동", score: 3_000, unit: "FN" } });
+    // A screen from before MVP 기준 sends none: it stays as saved. A bad value is refused.
+    expect(await saveCredits(credits({ period: "CREW" }))).toEqual({ status: "SAVED" });
+    expect((await data()).mvp).toEqual({ name: "길동", score: 3_000, unit: "FN" });
+    expect(await saveCredits(credits({ period: "CREW", mvpBasis: "WON" }))).toEqual({ status: "INVALID", message: "MVP 기준을 골라 주세요." });
+    expect(await saveCredits(credits({ period: "CREW", mvpBasis: "POINTS" }))).toEqual({ status: "SAVED" });
+    expect((await data()).mvp).toEqual({ name: "바다", score: 5_000, unit: "점" });
+
     vi.setSystemTime(new Date("2026-10-23T03:30:00Z"));
     await bc.endBroadcast(id);
     vi.setSystemTime(new Date("2026-10-23T03:40:00Z"));
     donation("after", 9_000); // after the end: not counted
     expect(await data()).toMatchObject({ total: 12_000, mvp: { name: "바다", score: 5_000 } });
+  });
+
+  it("rolls HOT 시그 by how often and HIGH 시그 by the largest donation, for signatures that still exist", async () => {
+    vi.useFakeTimers({ now: new Date("2026-10-25T03:00:00Z"), toFake: ["Date"] });
+    const { saveCredits, getToolsView } = await load();
+    const { mockAlerts } = await import("./alertCore");
+    const { mockSignatures } = await import("@/services/donations/signatureCore");
+    const [a, b, c] = mockSignatures.items;
+    const now = Date.now();
+    const sig = (id: string, signatureId: string | undefined, fnAmount: number, extra: Record<string, unknown> = {}, at = now) =>
+      mockAlerts.items.push({ id, kind: "DONATION", donor: "달빛", donorKey: "k1", message: "", fnAmount, typeLabel: "시그니처 후원", createdAt: new Date(at).toISOString(), status: "DONE", signatureId, ...extra });
+    sig("s1", a.id, a.price);
+    sig("s2", a.id, a.price);
+    sig("s3", b.id, 70_000); // matched by 금액범위 above its price
+    sig("s4", c.id, c.price);
+    sig("s5", c.id, c.price, {}, now - 86_400_000); // yesterday: not today's
+    sig("s6", "sig-deleted", 999_000); // a signature deleted since
+    sig("s7", undefined, 5_000); // no signature
+    sig("s8", b.id, 1_000, { kind: "TEST" }); // 테스트 후원 never counts
+    expect(await saveCredits(credits({ sections: { ...credits().sections, highSigs: { on: true, title: "", max: 2 } } }))).toEqual({ status: "SAVED" });
+    const d = (await getToolsView())!.credits;
+    // HOT: a twice; b and c once — the pricier first.
+    const once = [b, c].sort((x, y) => y.price - x.price || x.name.localeCompare(y.name));
+    expect(d.hotSigs).toEqual([{ rank: 1, name: a.name, count: 2 }, ...once.map((s, i) => ({ rank: i + 2, name: s.name, count: 1 }))]);
+    // HIGH: by the largest donation that alerted as each, cut to the section's 2.
+    const high = [{ name: a.name, fnAmount: a.price }, { name: b.name, fnAmount: 70_000 }, { name: c.name, fnAmount: c.price }].sort((x, y) => y.fnAmount - x.fnAmount || x.name.localeCompare(y.name));
+    expect(d.highSigs).toEqual(high.slice(0, 2).map((r, i) => ({ rank: i + 1, ...r })));
+
+    // A screen from before the sections existed saves without them: they stay as saved.
+    const older = Object.fromEntries(Object.entries(credits().sections).filter(([k]) => k !== "hotSigs" && k !== "highSigs"));
+    expect(await saveCredits(credits({ sections: older }))).toEqual({ status: "SAVED" });
+    expect((await getToolsView())!.states.credits.sections.highSigs).toEqual({ on: true, title: "", max: 2 });
+    expect((await saveCredits(credits({ sections: { ...credits().sections, hotSigs: { on: true, title: "", max: 0 } } })))).toEqual({ status: "INVALID", message: "표시 개수는 1~30개예요." });
   });
 
   it("validates the credits settings and keeps blank section titles for the defaults", async () => {

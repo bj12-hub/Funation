@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { LiveChannelCard } from "@/features/live/LiveChannelCard";
 import { POPULAR_LIVE_COUNT, type LiveChannel } from "@/services/live/liveTypes";
 import styles from "./homeFunnation.module.css";
@@ -15,6 +16,7 @@ const PER_ROW = 4;
  * - 전체 라이브: every live channel by viewers, linking to /live.
  */
 export function HomeLiveTabs({ channels }: { channels: LiveChannel[] }) {
+  const { t } = useI18n();
   const [tab, setTab] = useState<"popular" | "all">("popular");
   const all = [...channels].sort((a, b) => b.viewerCount - a.viewerCount);
   const popular = all.slice(0, POPULAR_LIVE_COUNT);
@@ -23,14 +25,14 @@ export function HomeLiveTabs({ channels }: { channels: LiveChannel[] }) {
     <section className={styles.block} aria-labelledby="home-all-live">
       <div className={styles.blockHead}>
         <h2 id="home-all-live" className={styles.blockTitleLarge}>
-          전체 방송
+          {t("home.allStreams")}
         </h2>
       </div>
-      <div className={styles.tabs} role="tablist" aria-label="전체 방송">
+      <div className={styles.tabs} role="tablist" aria-label={t("home.allStreams")}>
         {(
           [
-            ["popular", "인기 라이브"],
-            ["all", "전체 라이브"]
+            ["popular", t("home.popularLive")],
+            ["all", t("home.everyLive")]
           ] as const
         ).map(([key, label]) => (
           <button key={key} type="button" role="tab" aria-selected={tab === key} className={styles.tab} onClick={() => setTab(key)}>
@@ -42,15 +44,15 @@ export function HomeLiveTabs({ channels }: { channels: LiveChannel[] }) {
       {tab === "popular" ? (
         <div className={styles.rows} role="tabpanel">
           {popular.length > 0 ? (
-            <LiveRow id="home-row-popular" title="지금 가장 많이 보는 라이브" href="/live/popular" channels={popular} />
+            <LiveRow id="home-row-popular" title={t("home.mostWatched")} viewAll={t("home.viewAllArrow")} href="/live/popular" channels={popular} />
           ) : (
-            <p className={styles.empty}>진행 중인 라이브 방송이 없습니다.</p>
+            <p className={styles.empty}>{t("home.noLive")}</p>
           )}
         </div>
       ) : (
         <div role="tabpanel">
           {all.length === 0 ? (
-            <p className={styles.empty}>진행 중인 라이브 방송이 없습니다.</p>
+            <p className={styles.empty}>{t("home.noLive")}</p>
           ) : (
             <>
               <div className={styles.grid}>
@@ -59,7 +61,7 @@ export function HomeLiveTabs({ channels }: { channels: LiveChannel[] }) {
                 ))}
               </div>
               <Link href="/live" className={styles.moreLink}>
-                전체 라이브 보기 ›
+                {t("home.seeAllLive")}
               </Link>
             </>
           )}
@@ -69,7 +71,7 @@ export function HomeLiveTabs({ channels }: { channels: LiveChannel[] }) {
   );
 }
 
-function LiveRow({ id, title, href, channels }: { id: string; title: string; href: string; channels: LiveChannel[] }) {
+function LiveRow({ id, title, viewAll, href, channels }: { id: string; title: string; viewAll: string; href: string; channels: LiveChannel[] }) {
   return (
     <section aria-labelledby={id} className={styles.row}>
       <div className={styles.blockHead}>
@@ -77,7 +79,7 @@ function LiveRow({ id, title, href, channels }: { id: string; title: string; hre
           {title}
         </h3>
         <Link href={href} className={styles.textButton}>
-          전체보기 ›
+          {viewAll}
         </Link>
       </div>
       <div className={styles.grid}>

@@ -1,5 +1,5 @@
 import { broadcastChannelId } from "@/services/broadcast/channelsCore";
-import { recordBroadcastExternal } from "@/services/crew/crewCore";
+import { linkFeedAlert, recordBroadcastExternal } from "@/services/crew/crewCore";
 import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
 import { ADAPTERS, BROADCAST_PLATFORMS, withTimeout } from "@/services/platforms/adapters";
 import { PlatformError, type ChannelCursor, type PlatformErrorCode } from "@/services/platforms/platformTypes";
@@ -87,9 +87,11 @@ export async function ingestDonationLinks(only?: Platform): Promise<{ ingested: 
       s.seen[k] = true;
       // The unit is a code (mapped by the adapter); screens read its label ("1,000 치즈", "₩5,000").
       const amountLabel = formatUnitAmount(e.amount.value, e.amount.unit);
-      enqueueAlert({ kind: "EXTERNAL", donor: e.donorName, message: e.message, fnAmount: 0, amountLabel, typeLabel: e.kindLabel, platform: p, native: e.amount });
-      // 자동엑셀: a live crew broadcast also lists it in its own unit (scored after conversion).
-      recordBroadcastExternal(STUDIO_CHANNEL, { platform: p, donor: e.donorName, message: e.message, value: e.amount.value, unit: e.amount.unit });
+      // 자동엑셀: a live crew broadcast also lists it in its own unit (scored after conversion) — first, so that with
+      // 미지정 일시정지 its alert waits in the queue until the entry is assigned.
+      const listed = recordBroadcastExternal(STUDIO_CHANNEL, { platform: p, donor: e.donorName, message: e.message, value: e.amount.value, unit: e.amount.unit });
+      const alert = enqueueAlert({ kind: "EXTERNAL", donor: e.donorName, message: e.message, fnAmount: 0, amountLabel, typeLabel: e.kindLabel, platform: p, native: e.amount, ...(listed?.held ? { held: true } : {}) });
+      linkFeedAlert(listed, alert);
       s.recent.unshift({ key: k, platform: p, donor: e.donorName, message: e.message, amountLabel, kindLabel: e.kindLabel, receivedAt: new Date().toISOString() });
       s.recent.length = Math.min(s.recent.length, 20);
       s.stats[p].received++;

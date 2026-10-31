@@ -1,16 +1,19 @@
 "use client";
 
 import { useRef, useState, type CSSProperties } from "react";
+import { formatNumber } from "@/lib/format";
 import { clearSigBingo, saveSigBingo, setSigBingo, startSigBingo } from "@/services/crew/crewGames";
 import {
   SIG_BINGO_BONUS_MAX,
   SIG_BINGO_MODES,
+  SIG_BINGO_REMAINING_AT,
   SIG_BINGO_REVEALS,
   SIG_BINGO_SIZES,
   SIG_BINGO_TITLE_DEFAULT,
   sigBingoLines,
   type CrewMember,
   type GamesView,
+  type SigBingoGrid,
   type SigBingoSettings
 } from "@/services/crew/crewTypes";
 import { AutoFields, FormActions, OverlayAddress, RunList, TitleField, useSettingsDraft, type LiveGames, type RunAction } from "./GameParts";
@@ -31,7 +34,9 @@ const fromDraft = (d: Draft) => ({
 /**
  * 시그 빙고 — code-first (no Figma frame; StreamDonate 시그니처 빙고 참고), inside `/creator/crew/games`. Board settings (크기 ·
  * 모드 · 칸 표시 · 금액 범위), 빙고 보너스, 후원으로 칸 열기 · 제외 시그; while live 빙고 시작 / 판 비우기, the board (a cell
- * opens or closes on click — 땅따먹기 for the picked member) and the 빙고 runs.
+ * opens or closes on click — 땅따먹기 for the picked member), the 남은 시그 (2026-10-25, also on OBS when chosen) and the 빙고
+ * runs. BJ(팀) · BJ(개인) (2026-10-28): every board under its team or member (a click there opens it for the picked member
+ * of that team, or the board's member).
  */
 export function SigBingoPanel({
   settings,
@@ -66,8 +71,11 @@ export function SigBingoPanel({
   const max = draft.priceMax.trim() === "" ? null : Number(draft.priceMax);
   const eligible = signatures.filter((s) => s.active && !draft.excluded.includes(s.id) && (min === null || s.price >= min) && (max === null || s.price <= max)).length;
   const cells = draft.size * draft.size;
-  const inLine = new Set(board ? board.lines.flatMap((l) => sigBingoLines(board.size)[l]) : []);
-  const opened = board ? board.cells.filter((c) => c.opened).length : 0;
+  const grids = board?.grids ?? [];
+  const allCells = grids.flatMap((g) => g.cells);
+  const opened = allCells.filter((c) => c.opened).length;
+  const lines = grids.reduce((s, g) => s + g.lines.length, 0);
+  const multi = grids.length > 1 || grids.some((g) => g.label);
 
   const start = () => {
     if (!live) return;
@@ -116,6 +124,19 @@ export function SigBingoPanel({
                 </button>
               ))}
             </span>
+            <label className={styles.checkRow}>
+              <input type="checkbox" checked={draft.showRemaining} onChange={(e) => edit({ showRemaining: e.target.checked })} />
+              OBS에 남은 시그 목록
+            </label>
+            {draft.showRemaining && (
+              <span className={styles.segment} role="group" aria-label="남은 시그 위치">
+                {SIG_BINGO_REMAINING_AT.map((x) => (
+                  <button key={x.key} type="button" aria-pressed={draft.remainingAt === x.key} onClick={() => edit({ remainingAt: x.key })}>
+                    {x.label}
+                  </button>
+                ))}
+              </span>
+            )}
           </span>
         </div>
         <div className={prize.field} role="group" aria-label="시그 빙고 모드">
@@ -176,7 +197,7 @@ export function SigBingoPanel({
           <div className={prize.window}>
             <span className={styles.muted}>
               {board
-                ? `${board.size}×${board.size} · ${SIG_BINGO_MODES.find((m) => m.key === board.mode)!.label} · 열린 칸 ${opened}/${board.cells.length} · 빙고 ${board.lines.length}줄`
+                ? `${board.size}×${board.size} · ${SIG_BINGO_MODES.find((m) => m.key === board.mode)!.label}${multi ? ` · 판 ${grids.length}개` : ""} · 열린 칸 ${opened}/${allCells.length} · 빙고 ${lines}줄`
                 : `판이 없어요. 빙고 시작을 누르면 시그니처 ${bingo.eligible}개로 판을 만들어요.`}
             </span>
             <button type="button" className={styles.primary} disabled={pending || bingo.eligible === 0} onClick={start}>
@@ -190,37 +211,73 @@ export function SigBingoPanel({
           </div>
           {board && (
             <>
-              <span className={prize.inline}>
-                <span className={styles.muted}>칸을 누르면 열고 닫아요{board.mode === "TERRITORY" ? " — 차지할 멤버" : " — 멤버(선택)"}</span>
-                <select className={styles.select} aria-label="칸을 열 멤버" value={picked} onChange={(e) => setMemberId(e.target.value)}>
-                  <option value="">{board.mode === "TERRITORY" ? "— 멤버 선택 —" : "멤버 없음"}</option>
-                  {active.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
-              </span>
-              <ol className={games.bingo} style={{ "--bingo-size": board.size } as CSSProperties} aria-label="시그 빙고판">
-                {board.cells.map((c, i) => (
-                  <li key={i}>
-                    <button
-                      type="button"
-                      className={games.bingoCell}
-                      data-open={c.opened ? "" : undefined}
-                      data-line={inLine.has(i) || undefined}
-                      style={c.opened?.memberColor ? ({ "--cell-color": c.opened.memberColor } as CSSProperties) : undefined}
-                      disabled={pending}
-                      aria-pressed={!!c.opened}
-                      aria-label={`${i + 1}번 칸 ${c.signatureName}${c.opened ? ` — 열림${c.opened.memberName ? ` · ${c.opened.memberName}` : ""}` : ""}`}
-                      onClick={() => run(() => setSigBingo({ broadcastId: live.id, index: i, open: !c.opened, memberId: picked || null }))}
-                    >
-                      <span>{c.signatureName}</span>
-                      {c.opened && <small>{c.opened.memberName ?? (c.opened.manual ? "수동" : "열림")}</small>}
-                    </button>
-                  </li>
+              {board.mode !== "SOLO" && (
+                <span className={prize.inline}>
+                  <span className={styles.muted}>
+                    칸을 누르면 열고 닫아요
+                    {board.mode === "TERRITORY" ? " — 차지할 멤버" : board.mode === "TEAM" ? " — 멤버(선택, 그 팀 판에만)" : " — 멤버(선택)"}
+                  </span>
+                  <select className={styles.select} aria-label="칸을 열 멤버" value={picked} onChange={(e) => setMemberId(e.target.value)}>
+                    <option value="">{board.mode === "TERRITORY" ? "— 멤버 선택 —" : "멤버 없음"}</option>
+                    {active.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
+                </span>
+              )}
+              {board.mode === "SOLO" && <span className={styles.muted}>칸을 누르면 그 판 멤버로 열고 닫아요</span>}
+              <div className={multi ? games.bingoBoards : undefined}>
+                {grids.map((g) => (
+                  <section key={g.key} className={games.bingoBoard} aria-label={g.label ? `${g.label} 빙고판` : undefined}>
+                    {multi && (
+                      <h3 className={games.bingoBoardName}>
+                        {g.color && <span className={styles.dot} style={{ background: g.color }} aria-hidden="true" />}
+                        {g.label}
+                        <span className={styles.muted}>
+                          열린 칸 {g.cells.filter((c) => c.opened).length}/{g.cells.length} · 빙고 {g.lines.length}줄
+                        </span>
+                      </h3>
+                    )}
+                    <BingoCells
+                      grid={g}
+                      size={board.size}
+                      label={g.label ? `${g.label} 시그 빙고판` : "시그 빙고판"}
+                      pending={pending}
+                      onToggle={(i, open) =>
+                        run(() =>
+                          setSigBingo({
+                            broadcastId: live.id,
+                            grid: g.key,
+                            index: i,
+                            open,
+                            // BJ(팀): only a member of that team (anyone else opens it with none).
+                            memberId: board.mode === "TEAM" ? (g.members.includes(picked) ? picked : null) : picked || null
+                          })
+                        )
+                      }
+                    />
+                  </section>
                 ))}
-              </ol>
+              </div>
+              {bingo.remaining.length > 0 ? (
+                <div className={games.remaining} aria-label="남은 시그">
+                  <span className={styles.muted}>
+                    남은 시그 {bingo.remaining.length}종 · {bingo.remaining.reduce((s, r) => s + r.cells, 0)}칸
+                  </span>
+                  <ul>
+                    {bingo.remaining.map((r) => (
+                      <li key={r.signatureId}>
+                        {r.name} <span className={styles.muted}>{formatNumber(r.price)} FN</span>
+                        {r.cells > 1 && <strong> ×{r.cells}</strong>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <p className={styles.note}>모든 칸이 열렸어요.</p>
+              )}
             </>
           )}
           <RunList name="시그 빙고" runs={bingo.runs} now={now} />
@@ -229,5 +286,32 @@ export function SigBingoPanel({
 
       <OverlayAddress overlayPath={overlayPath} param="sigbingo" label="시그 빙고" />
     </section>
+  );
+}
+
+/** One board's cells: a click opens or closes the cell. */
+function BingoCells({ grid, size, label, pending, onToggle }: { grid: SigBingoGrid; size: number; label: string; pending: boolean; onToggle: (index: number, open: boolean) => void }) {
+  const inLine = new Set(grid.lines.flatMap((l) => sigBingoLines(size)[l]));
+  return (
+    <ol className={games.bingo} style={{ "--bingo-size": size } as CSSProperties} aria-label={label}>
+      {grid.cells.map((c, i) => (
+        <li key={i}>
+          <button
+            type="button"
+            className={games.bingoCell}
+            data-open={c.opened ? "" : undefined}
+            data-line={inLine.has(i) || undefined}
+            style={c.opened?.memberColor ? ({ "--cell-color": c.opened.memberColor } as CSSProperties) : undefined}
+            disabled={pending}
+            aria-pressed={!!c.opened}
+            aria-label={`${i + 1}번 칸 ${c.signatureName}${c.opened ? ` — 열림${c.opened.memberName ? ` · ${c.opened.memberName}` : ""}` : ""}`}
+            onClick={() => onToggle(i, !c.opened)}
+          >
+            <span>{c.signatureName}</span>
+            {c.opened && <small>{c.opened.memberName ?? (c.opened.manual ? "수동" : "열림")}</small>}
+          </button>
+        </li>
+      ))}
+    </ol>
   );
 }

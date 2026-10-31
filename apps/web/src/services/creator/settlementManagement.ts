@@ -3,7 +3,8 @@
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { mockSettlement, toHistoryItem } from "./mockSettlementStore";
-import { MANAGE_PAGE_SIZE, isManagePeriod, type ManagePeriod, type ResetResult, type SettlementManageView } from "./settlementTypes";
+import { MANAGE_PAGE_SIZE, SETTLEMENT_STATUS_LABEL, isManagePeriod, type ManagePeriod, type ResetResult, type SettlementCsvResult, type SettlementManageView } from "./settlementTypes";
+import { toCsv } from "@/lib/csv";
 import { isIsoDate, presetRange } from "@/lib/period";
 
 /**
@@ -17,22 +18,24 @@ const assertMock = () => {
   if (!USE_MOCK) throw new Error("Settlement API is not connected yet.");
 };
 
+/** The 조회 기간 as the screen sends it: a preset, or 기간별 dates (bad ones fall back to this month, a reversed range swaps). */
+function periodOf(params: { period?: unknown; from?: unknown; to?: unknown }): { period: ManagePeriod; from: string; to: string } {
+  // Default 연별 so the whole recent history is visible on first load.
+  const period: ManagePeriod = isManagePeriod(params.period) ? params.period : "year";
+  if (period !== "custom") return { period, ...presetRange(period) };
+  const fallback = presetRange("month");
+  const from = isIsoDate(params.from) ? params.from : fallback.from;
+  const to = isIsoDate(params.to) ? params.to : fallback.to;
+  return from > to ? { period, from: to, to: from } : { period, from, to };
+}
+
 export async function getSettlementManageView(params: { period?: unknown; from?: unknown; to?: unknown; page?: unknown }): Promise<SettlementManageView | "UNAUTHORIZED" | "NOT_REGISTERED"> {
   assertMock();
   if (!(await getCreatorSession())) return "UNAUTHORIZED";
   const reg = mockSettlement.registration;
   if (!reg) return "NOT_REGISTERED";
 
-  // Default 연별 so the whole recent history is visible on first load.
-  const period: ManagePeriod = isManagePeriod(params.period) ? params.period : "year";
-  let { from, to } = period === "custom" ? { from: "", to: "" } : presetRange(period);
-  if (period === "custom") {
-    const fallback = presetRange("month");
-    from = isIsoDate(params.from) ? params.from : fallback.from;
-    to = isIsoDate(params.to) ? params.to : fallback.to;
-    if (from > to) [from, to] = [to, from];
-  }
-
+  const { period, from, to } = periodOf(params);
   await mockDelay(250);
   const filtered = mockSettlement.requests.filter((r) => r.requestedAt >= from && r.requestedAt <= to);
   const totalPages = Math.max(1, Math.ceil(filtered.length / MANAGE_PAGE_SIZE));
@@ -51,6 +54,28 @@ export async function getSettlementManageView(params: { period?: unknown; from?:
     page,
     totalPages
   };
+}
+
+/**
+ * 정산 내역 CSV 다운로드 (code-first, 2026-11-01 — policy-decisions 1(b)의 "정산 내역 CSV 내려받기(크리에이터 본인 데이터)"): every
+ * request of the 조회 기간 (all pages), with what the table shows — no 정산 정보, operator memo or transfer reference.
+ * 거절 · 탈퇴 소멸 rows leave 수수료 · 정산 금액 empty, as the table shows "-".
+ */
+export async function exportSettlementHistoryCsv(params: { period?: unknown; from?: unknown; to?: unknown }): Promise<SettlementCsvResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  if (!mockSettlement.registration) return { status: "NOT_REGISTERED" };
+  const { from, to } = periodOf(typeof params === "object" && params !== null ? params : {});
+  await mockDelay(250);
+  const items = mockSettlement.requests.filter((r) => r.requestedAt >= from && r.requestedAt <= to).map(toHistoryItem);
+  const csv = toCsv(
+    ["상태", "신청일", "정산 기간 시작", "정산 기간 끝", "신청 금액(FN)", "수수료(FN)", "정산 금액(원)", "지급 예정일", "지급 완료일", "거절 사유"],
+    items.map((r) => {
+      const none = r.status === "REJECTED" || r.status === "FORFEITED";
+      return [SETTLEMENT_STATUS_LABEL[r.status], r.requestedAt, r.periodFrom, r.periodTo, r.amountFn, none ? "" : r.feeFn, none ? "" : r.netKrw, r.payoutDate ?? "", r.paidAt ?? "", r.reviewNote ?? ""];
+    })
+  );
+  return { status: "OK", filename: `ssumnation-settlements-${from}_${to}.csv`, csv, rows: items.length };
 }
 
 /**

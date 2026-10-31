@@ -36,6 +36,40 @@ describe("signature management", () => {
     expect((await m.listSignatures())!).toHaveLength(8);
   });
 
+  it("sorts the list by price or by when each was made, and deletes the picked ones at once (2026-10-28)", async () => {
+    vi.useFakeTimers({ now: new Date("2026-10-28T01:00:00Z"), toFake: ["Date"] });
+    const m = await load();
+    const { sortSignatures } = await import("./signatureTypes");
+    const one = await m.saveSignature({ ...draft, name: "첫째", price: 30_001, requestId: key(60) });
+    vi.setSystemTime(new Date("2026-10-28T01:01:00Z"));
+    const two = await m.saveSignature({ ...draft, name: "둘째", price: 5_001, requestId: key(61) });
+    await m.createSignatures({ requestId: key(62), match: "SELECT", active: true, rows: [{ ...draft, name: "셋째", price: 6_001 }] });
+    if (one.status !== "SAVED" || two.status !== "SAVED") throw new Error("not saved");
+    const list = (await m.listSignatures())!;
+    expect(list.slice(-3).map((s) => s.createdAt)).toEqual(["2026-10-28T01:00:00.000Z", "2026-10-28T01:01:00.000Z", "2026-10-28T01:01:00.000Z"]);
+    // Same time: the later in the list is the newer. Signatures from before (no createdAt) are the oldest, in list order.
+    expect(sortSignatures(list, "NEWEST").slice(0, 3).map((s) => s.name)).toEqual(["셋째", "둘째", "첫째"]);
+    expect(sortSignatures(list, "OLDEST").map((s) => s.id)).toEqual(list.map((s) => s.id));
+    const asc = sortSignatures(list, "PRICE_ASC").map((s) => s.price);
+    expect(asc).toEqual([...asc].sort((x, y) => x - y));
+    expect(sortSignatures(list, "PRICE_DESC").map((s) => s.price)).toEqual([...asc].reverse());
+    expect(sortSignatures(list, "ORDER")).toEqual(list);
+    // Editing keeps when it was made.
+    await m.saveSignature({ ...list.at(-3)!, price: 30_002 });
+    expect((await m.listSignatures())!.at(-3)!.createdAt).toBe("2026-10-28T01:00:00.000Z");
+
+    expect(await m.deleteSignatures({ ids: [one.id, two.id, "sig-gone"] })).toEqual({ status: "SAVED", id: "2" });
+    expect((await m.listSignatures())!.map((s) => s.name)).not.toContain("첫째");
+    expect((await m.listSignatures())!).toHaveLength(list.length - 2);
+    expect(await m.deleteSignatures({ ids: [one.id] })).toEqual({ status: "SAVED", id: "0" }); // retried: nothing more
+    for (const ids of [[], "x", [1], Array.from({ length: 1000 }, (_, i) => `s${i}`)]) {
+      expect(await m.deleteSignatures({ ids })).toEqual({ status: "INVALID", message: "삭제할 시그니처를 골라 주세요." });
+    }
+    signIn(["SUPPORTER"]);
+    expect(await m.deleteSignatures({ ids: [list[0].id] })).toEqual({ status: "UNAUTHORIZED" });
+    vi.useRealTimers();
+  });
+
   it("treats an NFD copy of a name as the same name", async () => {
     const m = await load();
     expect((await m.saveSignature({ ...draft, requestId: key(40) })).status).toBe("SAVED");

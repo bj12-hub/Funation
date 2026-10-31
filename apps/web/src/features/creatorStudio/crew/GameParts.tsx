@@ -365,3 +365,83 @@ export function AmountTiersField({
     </div>
   );
 }
+
+/**
+ * 설정 프리셋 (랜덤시그 2026-10-26 · 기여도 릴레이 2026-10-28): the saved 프리셋 (불러오기 fills the card — 설정 저장 applies it — and
+ * 삭제) and 지금 설정 저장 under a name (the same name replaces that 프리셋). `summary`: a line about each one.
+ */
+export function PresetField<P extends { id: string; name: string }>({
+  game,
+  presets,
+  max,
+  nameMax,
+  summary,
+  note,
+  dirty,
+  pending,
+  onLoad,
+  onSave,
+  onDelete
+}: {
+  game: string;
+  presets: P[];
+  max: number;
+  nameMax: number;
+  summary: (p: P) => string;
+  note: string;
+  dirty: boolean;
+  pending: boolean;
+  onLoad: (p: P) => void;
+  onSave: (name: string) => void;
+  onDelete: (p: P) => void;
+}) {
+  const [name, setName] = useState("");
+  const [loaded, setLoaded] = useState<string | null>(null);
+  return (
+    <div className={prize.field} role="group" aria-label={`${game} 설정 프리셋`}>
+      <span className={styles.muted}>
+        설정 프리셋 ({presets.length}/{max})
+      </span>
+      {presets.length > 0 ? (
+        <ul className={games.tiers} aria-label="저장한 프리셋">
+          {presets.map((p) => (
+            <li key={p.id}>
+              <span className={games.tierRow}>
+                <strong>{p.name}</strong>
+                <span className={styles.muted}>{summary(p)}</span>
+                <button
+                  type="button"
+                  className={styles.ghost}
+                  disabled={pending}
+                  onClick={() => {
+                    onLoad(p);
+                    setLoaded(p.name);
+                  }}
+                >
+                  불러오기
+                </button>
+                <button type="button" className={styles.ghost} disabled={pending} onClick={() => onDelete(p)}>
+                  삭제
+                </button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <span className={styles.note}>저장한 프리셋이 없어요.</span>
+      )}
+      <span className={prize.inline}>
+        <input className={styles.input} aria-label="프리셋 이름" placeholder="프리셋 이름 (예: 평일 방송)" maxLength={nameMax} value={name} onChange={(e) => setName(e.target.value)} />
+        <button type="button" className={styles.ghost} disabled={pending || !name.trim()} onClick={() => onSave(name.trim())}>
+          지금 설정 저장
+        </button>
+      </span>
+      {loaded && dirty && (
+        <span className={styles.note} role="status">
+          &apos;{loaded}&apos; 프리셋을 불러왔어요. 설정 저장을 눌러야 {game}에 적용돼요.
+        </span>
+      )}
+      <span className={styles.note}>{note}</span>
+    </div>
+  );
+}

@@ -15,6 +15,7 @@ import {
   CREDITS_LINES_MAX,
   CREDITS_LINE_MAX,
   CREDITS_LIST_MAX,
+  CREDITS_MVP_BASES,
   CREDITS_PERIODS,
   CREDITS_SECTIONS,
   CREDITS_SECTION_TITLE_MAX,
@@ -24,6 +25,11 @@ import {
   MARQUEE_LINE_MAX,
   SUBTITLE_MAX,
   TEXT_ALIGNS,
+  TEXT_BACKGROUNDS,
+  TEXT_LINE_HEIGHT,
+  TEXT_OUTLINE_MAX,
+  TEXT_PADDING_MAX,
+  TEXT_RADIUS_MAX,
   TEXT_SCROLL_SEC,
   TEXT_SIZES,
   TEXT_SLOTS,
@@ -32,6 +38,13 @@ import {
   TIMER_ADJUST_STEPS,
   TIMER_DONATION_SEC_MAX,
   TIMER_MAX_SEC,
+  WHEEL_COLORS,
+  WHEEL_ITEMS_MAX,
+  WHEEL_ITEM_TEXT_MAX,
+  WHEEL_QTY_MAX,
+  WHEEL_STOP_MODES,
+  WHEEL_TITLE_MAX,
+  type WheelItem,
   bingoLinesMax,
   isToolKey,
   type BingoSize,
@@ -40,14 +53,17 @@ import {
   type OverlayTool,
   type TimerAction,
   type ToolResult,
-  type ToolsView
+  type ToolsView,
+  type TextSlot
 } from "./broadcastToolTypes";
 import { mockAlerts, overlaySignal } from "./alertCore";
-import { donorRanking, rankingSince, totalBetween } from "./widgetOverlayCore";
+import { donorRanking, rankingSince, signatureCredits, totalBetween } from "./widgetOverlayCore";
+import { mockSignatures } from "@/services/donations/signatureCore";
 import { overlayTheme, readAppearance } from "./overlayThemeStore";
 import { isOverlayThemeChoice, type OverlayThemeChoice } from "./overlayThemeTypes";
 import { mockCreator } from "./mockCreatorStore";
-import { shiftTimer, tools } from "./broadcastToolsCore";
+import { FONT_FAMILIES } from "./widgetSettingsTypes";
+import { queueWheelSpin, settleWheel, shiftTimer, stopWheelSpin, tools, wheelNow } from "./broadcastToolsCore";
 
 /**
  * 방송 도구 Server Actions — code-first (no Figma frame). Studio route `/creator/widgets/tools`,
@@ -65,9 +81,21 @@ const toolLook = () => (gt.__ssumnationMockToolThemeV1 ??= { theme: "INHERIT" })
 
 const bad = (s: string) => MOCK_FORBIDDEN_WORDS.some((w) => s.toLowerCase().includes(w));
 
+/** FN sent for each crew member (멤버 지정 후원) from `from` to `to`. */
+function sentBetween(from: number, to: number) {
+  const sent = new Map<string, number>();
+  for (const a of mockCrew.attributions) {
+    const t = Date.parse(a.at);
+    if (a.channelId === STUDIO_CHANNEL && t >= from && t <= to) sent.set(a.memberId, (sent.get(a.memberId) ?? 0) + a.fnAmount);
+  }
+  return sent;
+}
+
+const byScore = (x: { name: string; score: number }, y: { name: string; score: number }) => y.score - x.score || x.name.localeCompare(y.name);
+
 /**
  * The credits' numbers for its period (see CreditsData). Lists are cut to what the sections show: donors to TOP 3 + 후원
- * 순위, members to 멤버별 (MVP is the first member either way).
+ * 순위, members to 멤버별 (MVP is the first member either way, or by FN on MVP 기준 후원금액).
  */
 function creditsData(s: CreditsState, now = new Date()): CreditsData {
   const items = mockAlerts.items;
@@ -76,39 +104,46 @@ function creditsData(s: CreditsState, now = new Date()): CreditsData {
   let to = now.getTime();
   let periodLabel = "오늘";
   let members: { name: string; score: number }[];
+  let byAmount: { name: string; score: number }[] | null = null;
   if (s.period === "CREW") {
     const ofChannel = (mockCrew.broadcasts ?? []).filter((b) => b.channelId === STUDIO_CHANNEL);
     const b = liveBroadcastOf(STUDIO_CHANNEL) ?? [...ofChannel].filter((x) => x.endedAt).sort((x, y) => y.startedAt.localeCompare(x.startedAt))[0];
-    if (!b) return { periodLabel: "크루 방송 없음", empty: true, total: 0, donors: [], members: [], memberUnit: "점", mvp: null };
+    if (!b) return { periodLabel: "크루 방송 없음", empty: true, total: 0, donors: [], members: [], memberUnit: "점", mvp: null, hotSigs: [], highSigs: [] };
     from = Date.parse(b.startedAt);
     if (b.endedAt) to = Date.parse(b.endedAt);
     periodLabel = b.project ? `${b.title} · ${b.project} ${b.round}회차` : b.title;
     // An ended broadcast keeps the ranking frozen at its end (members may be renamed or removed since).
-    members = (b.final ?? scoreboardRows(b)).map((r) => ({ name: r.name, score: r.score }));
+    const rows = b.final ?? scoreboardRows(b);
+    members = rows.map((r) => ({ name: r.name, score: r.score }));
+    if (s.mvpBasis === "AMOUNT") {
+      // MVP 기준 후원금액: FN sent for each member during the broadcast, named as on its scoreboard.
+      const names = new Map([...crew.map((m) => [m.id, m.name] as const), ...rows.map((r) => [r.memberId, r.name] as const)]);
+      byAmount = [...sentBetween(from, to)].filter(([id]) => names.has(id)).map(([id, score]) => ({ name: names.get(id)!, score })).sort(byScore);
+    }
   } else {
     // Today in the service's time (Asia/Seoul), as the 후원랭킹 widget's 일간.
     from = rankingSince("일간", now);
-    const sent = new Map<string, number>();
-    for (const a of mockCrew.attributions) {
-      const t = Date.parse(a.at);
-      if (a.channelId === STUDIO_CHANNEL && t >= from && t <= to) sent.set(a.memberId, (sent.get(a.memberId) ?? 0) + a.fnAmount);
-    }
+    const sent = sentBetween(from, to);
     members = crew
       .filter((m) => m.active || sent.has(m.id))
       .map((m) => ({ name: m.name, score: sent.get(m.id) ?? 0 }))
-      .sort((x, y) => y.score - x.score || x.name.localeCompare(y.name));
+      .sort(byScore);
   }
-  const { top3, donors, members: memberSection } = s.sections;
+  const { top3, donors, members: memberSection, hotSigs, highSigs } = s.sections;
   const donorRows = donorRanking(items, from, to).slice(0, (top3.on ? 3 : 0) + (donors.on ? donors.max : 0));
-  const first = members[0];
+  const sigs = signatureCredits(items, from, to, mockSignatures.items);
+  const first = (byAmount ?? members)[0];
+  const memberUnit = s.period === "CREW" ? "점" : "FN";
   return {
     periodLabel,
     empty: false,
     total: totalBetween(items, from, to),
     donors: donorRows,
     members: members.slice(0, memberSection.max).map((m, i) => ({ rank: i + 1, ...m })),
-    memberUnit: s.period === "CREW" ? "점" : "FN",
-    mvp: first && first.score > 0 ? { ...first } : null
+    memberUnit,
+    mvp: first && first.score > 0 ? { ...first, unit: byAmount ? "FN" : memberUnit } : null,
+    hotSigs: sigs.hot.slice(0, hotSigs.max).map((r, i) => ({ rank: i + 1, ...r })),
+    highSigs: sigs.high.slice(0, highSigs.max).map((r, i) => ({ rank: i + 1, ...r }))
   };
 }
 
@@ -116,7 +151,8 @@ export async function getToolsView(): Promise<ToolsView | null> {
   assertMock();
   if (!(await getCreatorSession())) return null;
   await mockDelay(150);
-  return { states: structuredClone(tools), overlayBase: `/overlay/tool`, credits: creditsData(tools.credits), theme: toolLook().theme, appearance: readAppearance() };
+  settleWheel(tools.wheel);
+  return { states: structuredClone(tools), overlayBase: `/overlay/tool`, credits: creditsData(tools.credits), theme: toolLook().theme, appearance: readAppearance(), signatures: mockSignatures.items.map((s) => ({ id: s.id, name: s.name })) };
 }
 
 /** 방송 도구 테마: applies to every tool overlay on its next read. */
@@ -242,7 +278,25 @@ export async function saveTextSlot(input: unknown): Promise<ToolResult> {
   if (!TEXT_SIZES.includes(v.size as (typeof TEXT_SIZES)[number])) return { status: "INVALID", message: "글자 크기를 골라 주세요." };
   if (typeof v.color !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(v.color)) return { status: "INVALID", message: "글자색을 확인해 주세요." };
   if (![v.bold, v.outline, v.scroll].every((x) => typeof x === "boolean")) return { status: "INVALID", message: "설정을 확인해 주세요." };
-  if (v.background !== "NONE" && v.background !== "CARD") return { status: "INVALID", message: "배경을 골라 주세요." };
+  const background = TEXT_BACKGROUNDS.find((x) => x.key === v.background)?.key;
+  if (!background) return { status: "INVALID", message: "배경을 골라 주세요." };
+  // 스타일 (2026-10-28): a screen from before sends none of these — the slot keeps what it has.
+  const prev = tools.text.slots[slot - 1];
+  const kept = <K extends keyof TextSlot>(k: K) => (v[k] === undefined ? prev[k] : v[k]);
+  const font = kept("font");
+  if (font !== null && !FONT_FAMILIES.includes(font as (typeof FONT_FAMILIES)[number])) return { status: "INVALID", message: "폰트를 골라 주세요." };
+  const lineHeight = kept("lineHeight");
+  if (typeof lineHeight !== "number" || lineHeight < TEXT_LINE_HEIGHT.min || lineHeight > TEXT_LINE_HEIGHT.max || Math.round(lineHeight * 100) !== lineHeight * 100) {
+    return { status: "INVALID", message: `줄 간격은 ${TEXT_LINE_HEIGHT.min}~${TEXT_LINE_HEIGHT.max}, 소수 둘째 자리까지예요.` };
+  }
+  const hex = (x: unknown): x is string => typeof x === "string" && /^#[0-9A-Fa-f]{6}$/.test(x);
+  const int = (x: unknown, max: number): x is number => typeof x === "number" && Number.isInteger(x) && x >= 0 && x <= max;
+  const [outlineWidth, outlineColor, shadow, bgColor, padding, radius] = [kept("outlineWidth"), kept("outlineColor"), kept("shadow"), kept("bgColor"), kept("padding"), kept("radius")];
+  if (!int(outlineWidth, TEXT_OUTLINE_MAX) || outlineWidth < 1 || !hex(outlineColor)) return { status: "INVALID", message: `테두리는 1~${TEXT_OUTLINE_MAX}px, 색은 #RRGGBB 형식이에요.` };
+  if (typeof shadow !== "boolean") return { status: "INVALID", message: "설정을 확인해 주세요." };
+  if (!hex(bgColor) || !int(padding, TEXT_PADDING_MAX) || !int(radius, TEXT_RADIUS_MAX)) {
+    return { status: "INVALID", message: `배경색은 #RRGGBB, 안쪽 여백은 0~${TEXT_PADDING_MAX}px, 모서리는 0~${TEXT_RADIUS_MAX}px이에요.` };
+  }
   const align = TEXT_ALIGNS.find((x) => x.key === v.align)?.key;
   if (!align) return { status: "INVALID", message: "정렬을 골라 주세요." };
   const sec = v.scrollSec;
@@ -255,8 +309,16 @@ export async function saveTextSlot(input: unknown): Promise<ToolResult> {
     size: v.size as number,
     color: v.color.toUpperCase(),
     bold: v.bold as boolean,
+    font: font as TextSlot["font"],
+    lineHeight,
     outline: v.outline as boolean,
-    background: v.background,
+    outlineWidth,
+    outlineColor: outlineColor.toUpperCase(),
+    shadow,
+    background,
+    bgColor: bgColor.toUpperCase(),
+    padding,
+    radius,
     align,
     scroll: v.scroll as boolean,
     scrollSec: sec
@@ -274,7 +336,7 @@ export async function controlCredits(action: unknown): Promise<ToolResult> {
 }
 
 /**
- * 엔딩 크레딧 저장: 제목 · 감사 문구, 연출 방식 · 스크롤 시간 · 집계 기간 and each section's on/off · title (blank = the
+ * 엔딩 크레딧 저장: 제목 · 감사 문구, 연출 방식 · 스크롤 시간 · 집계 기간 · MVP 기준 and each section's on/off · title (blank = the
  * default) · rows. A roll in progress keeps going with the new settings.
  */
 export async function saveCredits(input: unknown): Promise<ToolResult> {
@@ -295,21 +357,31 @@ export async function saveCredits(input: unknown): Promise<ToolResult> {
   }
   const period = CREDITS_PERIODS.find((x) => x.key === v.period)?.key;
   if (!period) return { status: "INVALID", message: "집계 기간을 골라 주세요." };
+  // A screen opened before MVP 기준 (2026-10-28) does not send it: it stays as saved.
+  const mvpBasis = v.mvpBasis === undefined ? tools.credits.mvpBasis : CREDITS_MVP_BASES.find((x) => x.key === v.mvpBasis)?.key;
+  if (!mvpBasis) return { status: "INVALID", message: "MVP 기준을 골라 주세요." };
   const raw = (typeof v.sections === "object" && v.sections !== null ? v.sections : {}) as Record<string, unknown>;
   const sections = {} as CreditsState["sections"];
   for (const meta of CREDITS_SECTIONS) {
+    // A screen opened before a section existed (HOT · HIGH 시그, 2026-10-25) does not send it: it stays as saved.
+    if (raw[meta.key] === undefined) {
+      sections[meta.key] = structuredClone(tools.credits.sections[meta.key]);
+      continue;
+    }
     const x = (typeof raw[meta.key] === "object" && raw[meta.key] !== null ? raw[meta.key] : {}) as Record<string, unknown>;
     const name = typeof x.title === "string" ? x.title.trim() : "";
     if (typeof x.on !== "boolean") return { status: "INVALID", message: "섹션 설정을 확인해 주세요." };
     if (name.length > CREDITS_SECTION_TITLE_MAX) return { status: "INVALID", message: `섹션 제목은 ${CREDITS_SECTION_TITLE_MAX}자 이내로 입력해 주세요.` };
     const max = meta.list ? x.max : DEFAULT_CREDITS.sections[meta.key].max;
-    if (typeof max !== "number" || !Number.isInteger(max) || max < 1 || max > CREDITS_LIST_MAX) return { status: "INVALID", message: `표시 인원은 1~${CREDITS_LIST_MAX}명이에요.` };
+    if (typeof max !== "number" || !Number.isInteger(max) || max < 1 || max > CREDITS_LIST_MAX) {
+      return { status: "INVALID", message: meta.unit === "개" ? `표시 개수는 1~${CREDITS_LIST_MAX}개예요.` : `표시 인원은 1~${CREDITS_LIST_MAX}명이에요.` };
+    }
     sections[meta.key] = { on: x.on, title: name, max };
   }
   const shown = [title, ...thanks, ...Object.values(sections).map((x) => x.title)];
   if (shown.some(bad)) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
   await mockDelay(150);
-  tools.credits = { title, thanks, style, durationSec: d, period, sections, rollingSince: tools.credits.rollingSince };
+  tools.credits = { title, thanks, style, durationSec: d, period, mvpBasis, sections, rollingSince: tools.credits.rollingSince };
   return { status: "SAVED" };
 }
 
@@ -396,10 +468,83 @@ export async function getOverlayTool(tool: unknown, key: unknown, slot?: unknown
       return { tool, state: structuredClone(tools.credits), data: creditsData(tools.credits), ...signal };
     case "bingo":
       return { tool, state: structuredClone(tools.bingo), ...signal };
+    case "wheel": {
+      const { current, waiting } = wheelNow(tools.wheel);
+      const items = tools.wheel.settings.items;
+      return {
+        tool,
+        title: tools.wheel.settings.title,
+        slices: items.map((it, i) => ({ label: it.label, qty: it.qty, color: WHEEL_COLORS[i % WHEEL_COLORS.length] })),
+        // The result goes out only once the wheel stops.
+        current: current && structuredClone({ ...current, result: current.stopAt && Date.parse(current.stopAt) <= Date.now() ? current.result : null }),
+        waiting,
+        serverNow: new Date().toISOString(),
+        ...signal
+      };
+    }
     case "text": {
       const n = slot === undefined || slot === "" ? 1 : Number(slot);
       if (!Number.isInteger(n) || n < 1 || n > TEXT_SLOTS) return "FORBIDDEN";
       return { tool, slot: n, state: { ...tools.text.slots[n - 1] }, ...signal };
     }
   }
+}
+
+/**
+ * 원형 룰렛 저장 (2026-10-30): 제목, 멈춤 모드, 후원 시 자동 스핀 and 1 ~ WHEEL_ITEMS_MAX 칸 — a 문구 or a signature (named as
+ * it is now), each ×1 ~ ×WHEEL_QTY_MAX. A spin already queued keeps the 칸 it had.
+ */
+export async function saveWheel(input: unknown): Promise<ToolResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
+  const title = typeof v.title === "string" ? v.title.trim() : "";
+  if (title.length > WHEEL_TITLE_MAX) return { status: "INVALID", message: `룰렛 이름은 ${WHEEL_TITLE_MAX}자 이내로 입력해 주세요.` };
+  const stopMode = WHEEL_STOP_MODES.find((m) => m.key === v.stopMode)?.key;
+  if (!stopMode || typeof v.autoSpin !== "boolean") return { status: "INVALID", message: "설정을 확인해 주세요." };
+  if (!Array.isArray(v.items) || v.items.length > WHEEL_ITEMS_MAX) return { status: "INVALID", message: `칸은 ${WHEEL_ITEMS_MAX}개까지예요.` };
+  const items: WheelItem[] = [];
+  for (const raw of v.items) {
+    const x = (typeof raw === "object" && raw !== null ? raw : {}) as Record<string, unknown>;
+    const qty = x.qty;
+    if (typeof qty !== "number" || !Number.isInteger(qty) || qty < 1 || qty > WHEEL_QTY_MAX) return { status: "INVALID", message: `수량은 ×1 ~ ×${WHEEL_QTY_MAX}이에요.` };
+    if (x.kind === "SIGNATURE") {
+      const sig = mockSignatures.items.find((s) => s.id === x.signatureId);
+      if (!sig) return { status: "INVALID", message: "시그니처를 다시 골라 주세요." };
+      items.push({ kind: "SIGNATURE", label: sig.name, signatureId: sig.id, qty });
+    } else if (x.kind === "TEXT") {
+      const label = typeof x.label === "string" ? x.label.trim() : "";
+      if (!label || label.length > WHEEL_ITEM_TEXT_MAX) return { status: "INVALID", message: `칸 문구는 1~${WHEEL_ITEM_TEXT_MAX}자로 입력해 주세요.` };
+      items.push({ kind: "TEXT", label, signatureId: null, qty });
+    } else return { status: "INVALID", message: "칸 종류를 골라 주세요." };
+  }
+  if (bad(title) || items.some((it) => it.kind === "TEXT" && bad(it.label))) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
+  tools.wheel.settings = { title, stopMode, autoSpin: v.autoSpin, items };
+  return { status: "SAVED" };
+}
+
+/** 스핀! ({ requestId }): queues a spin of the saved 칸 — a retry with the same request id is the same spin. */
+export async function spinWheel(input: unknown): Promise<ToolResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
+  if (typeof v.requestId !== "string" || !/^[A-Za-z0-9-]{16,64}$/.test(v.requestId)) return { status: "INVALID", message: "잘못된 요청입니다." };
+  const res = queueWheelSpin(tools.wheel, { id: `wh-${v.requestId}`, trigger: "MANUAL", donor: null });
+  return typeof res === "string" ? { status: "INVALID", message: res } : { status: "SAVED" };
+}
+
+/** 멈춤 (수동 멈춤): the spinning wheel draws its result and slows down. */
+export async function stopWheel(): Promise<ToolResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const res = stopWheelSpin(tools.wheel);
+  return res ? { status: "INVALID", message: res } : { status: "SAVED" };
+}
+
+/** 룰렛 비우기: every spin (on screen and waiting) goes away. */
+export async function clearWheel(): Promise<ToolResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  tools.wheel.spins = [];
+  return { status: "SAVED" };
 }
