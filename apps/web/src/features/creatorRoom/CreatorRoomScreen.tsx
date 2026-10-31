@@ -1,7 +1,8 @@
 import Image from "next/image";
 import type { CreatorRoom } from "@/services/creators/creatorRoom";
 import Link from "next/link";
-import { formatCompactKo } from "@/lib/format";
+import { formatCompact } from "@/lib/format";
+import { getLocale, getT } from "@/lib/i18n/server";
 import type { CreatorCategory } from "@/services/creators/creators";
 import type { CrewPublic, RoomFanNotes } from "@/services/crew/crewTypes";
 import { PLATFORM_LABEL } from "@/types/platform";
@@ -26,7 +27,7 @@ type Viewer = { nickname: string; fnBalance: number } | null;
  * row with 후원하기, then tabs 홈 · 크루 · 영상 · 커뮤니티 · 시그니처 · 소개 (`?view=`). 홈 keeps the Figma room
  * (826:685 / 610:138 live · 710:195 offline): player + 후원/채팅 panel.
  */
-export function CreatorRoomScreen({
+export async function CreatorRoomScreen({
   room,
   viewer,
   isFavorite,
@@ -57,6 +58,8 @@ export function CreatorRoomScreen({
   /** 팬 메시지 · 요청사항 while the channel's crew broadcast takes notes (code-first). */
   fanNotes: RoomFanNotes | null;
 }) {
+  const t = await getT();
+  const locale = await getLocale();
   const donateHref = `/creators/${room.creatorId}?tab=donation`;
   return (
     <div className={styles.page}>
@@ -77,7 +80,7 @@ export function CreatorRoomScreen({
             </a>
           ) : (
             // TODO: promotion destination is TBD.
-            <span className={styles.bannerCta} aria-disabled="true" title="준비 중인 기능입니다">
+            <span className={styles.bannerCta} aria-disabled="true" title={t("common.comingSoon")}>
               {room.banner.ctaLabel}
             </span>
           )}
@@ -90,7 +93,7 @@ export function CreatorRoomScreen({
           <div className={styles.creatorText}>
             <div className={styles.nameRow}>
               <h1 className={styles.name}>{room.name}</h1>
-              <ul className={styles.channels} aria-label="방송 채널">
+              <ul className={styles.channels} aria-label={t("room.channels")}>
                 {room.channels.map((c) => (
                   <li key={c.platform} className={styles.channel}>
                     <Image src={c.logoUrl} alt={PLATFORM_LABEL[c.platform]} width={20} height={20} className={styles.channelLogo} />
@@ -99,13 +102,13 @@ export function CreatorRoomScreen({
               </ul>
             </div>
             <span className={styles.tagline}>{room.tagline}</span>
-            <span className={channel.subscribers}>구독자 {formatCompactKo(about.subscriberCount)}명</span>
+            <span className={channel.subscribers}>{t("room.subscribers", { count: formatCompact(about.subscriberCount, locale) })}</span>
           </div>
         </div>
         <div className={styles.creatorActions}>
           {/* funnation: 후원하기 is the primary channel action; it opens the 후원 panel on 홈. */}
           <Link href={donateHref} className={channel.donateButton} scroll={false}>
-            💝 후원하기
+            {t("room.donate")}
           </Link>
           <RoomActions creatorId={room.creatorId} name={room.name} initialFavorite={isFavorite} signedIn={viewer !== null} />
         </div>
@@ -114,7 +117,7 @@ export function CreatorRoomScreen({
       <ChannelTabs creatorId={room.creatorId} active={view} />
 
       {view !== "home" && (
-        <section className={channel.panel} aria-label="채널">
+        <section className={channel.panel} aria-label={t("room.channelPanel")}>
           {view === "crew" && <CrewView crew={crew} name={room.name} />}
           {view === "videos" && videos && <VideosView name={room.name} data={videos} />}
           {view === "community" && <ChannelCommunity creatorId={room.creatorId} name={room.name} view={posts} signedIn={viewer !== null} show={postsShow} />}

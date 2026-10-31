@@ -9,6 +9,7 @@ import { getChannelMonthlyRanking, getChannelPosts } from "@/services/creators/c
 import { CHANNEL_POSTS_PAGE } from "@/services/creators/channelTypes";
 import { getPublicChannelVideos } from "@/services/creators/channelVideos";
 import { parseChannelView } from "@/features/creatorRoom/channelView";
+import { getT } from "@/lib/i18n/server";
 import { getCrewPublic } from "@/services/crew/crew";
 import { getRoomFanNotes } from "@/services/crew/crewFanNotes";
 import { isFavorite } from "@/services/favorites/favorites";
@@ -22,7 +23,7 @@ type SearchParams = Promise<{ tab?: string | string[]; view?: string | string[];
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const creator = await getCreatorById((await params).id);
-  return { title: creator ? `${creator.name} | Ssumnation` : "크리에이터 | Ssumnation" };
+  return { title: creator ? `${creator.name} | Ssumnation` : (await getT())("room.meta") };
 }
 
 export default async function Page({ params, searchParams }: { params: Params; searchParams: SearchParams }) {
