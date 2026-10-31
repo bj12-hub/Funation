@@ -24,5 +24,3 @@ export type LiveControlView = {
 export type LiveControlAction = "MUTE" | "UNMUTE" | "KICK" | "BLACKLIST" | "FREEZE";
 
 export type LiveControlResult = { status: "DONE" } | { status: "UNAUTHORIZED" } | { status: "INVALID"; message: string };
-
-export const LIVE_ROLE_LABEL: Record<LiveViewerRole, string> = { OWNER: "방송인", MANAGER: "매니저", HOT_FAN: "열혈팬", FAN: "팬", VIEWER: "시청자" };
