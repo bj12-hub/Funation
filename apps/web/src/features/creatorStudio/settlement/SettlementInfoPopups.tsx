@@ -1,26 +1,29 @@
 "use client";
 
 import { Modal } from "@/components/ui/Modal";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import styles from "./apply.module.css";
 
 /**
  * Informational popups, Figma copy verbatim: 정산 관련 안내 (466:2) and 수수료 안내 (475:2).
  * The conditions, schedule and rates they describe are not approved policy (TBD) and nothing is
  * computed from this text — the server holds the numbers it actually uses. `minFn` comes from the
- * server so the displayed minimum matches the one it enforces.
+ * server so the displayed minimum matches the one it enforces. Only the titles and buttons follow the language: the body is
+ * policy wording and stays Korean until an approved translation exists (TBD, 2026-11-01).
  */
 
 export function SettlementGuideModal({ open, onClose, minFn }: { open: boolean; onClose: () => void; minFn: number | null }) {
+  const { t } = useI18n();
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title="정산 관련 안내"
+      title={t("studioSettlementApply.guideTitle")}
       width={580}
       className={styles.popup}
       footer={
         <button type="button" className={styles.purpleButton} onClick={onClose}>
-          확인
+          {t("studioSettlementApply.ok")}
         </button>
       }
     >
@@ -144,17 +147,18 @@ const FEE_GROUPS: { title: string; emoji: string; rows: [string, string][] }[] =
 ];
 
 export function FeeGuideModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useI18n();
   const half = Math.ceil(FEE_GROUPS.length / 2);
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title="수수료 안내"
+      title={t("studioSettlementApply.feeGuideTitle")}
       width={560}
       className={styles.popup}
       footer={
         <button type="button" className={styles.blueButton} onClick={onClose}>
-          확인
+          {t("studioSettlementApply.ok")}
         </button>
       }
     >

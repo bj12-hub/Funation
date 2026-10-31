@@ -4,12 +4,14 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Toast } from "@/components/ui/Toast";
 import { Toggle } from "@/components/ui/Toggle";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { PROFILE_PHOTO_TYPES } from "@/lib/validation";
 import { saveTitleTier, setTitleEnabled } from "@/services/creator/donationManagement";
 import { TITLE_DESCRIPTION_MAX, TITLE_NAME_MAX, type TitleSaveResult, type TitleTier } from "@/services/creator/donationManagementTypes";
 import styles from "./donations.module.css";
 
-const messageOf = (r: TitleSaveResult) => (r.status === "INVALID" ? r.message : r.status === "UNAUTHORIZED" ? "로그인이 필요합니다." : null);
+type Translate = ReturnType<typeof useI18n>["t"];
+const messageOf = (r: TitleSaveResult, t: Translate) => (r.status === "INVALID" ? r.message : r.status === "UNAUTHORIZED" ? t("studioDonations.loginRequired") : null);
 const isHex = (v: string) => /^#[0-9A-Fa-f]{6}$/.test(v);
 
 /**
@@ -17,27 +19,28 @@ const isHex = (v: string) => /^#[0-9A-Fa-f]{6}$/.test(v);
  * threshold. Thresholds are the design's fixed list; whether creators can change them is TBD.
  */
 export function TitlesTab({ initial }: { initial: TitleTier[] }) {
+  const { t } = useI18n();
   const [tiers, setTiers] = useState(initial);
   const [openAt, setOpenAt] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const clearToast = useCallback(() => setToast(null), []);
-  const replace = (t: TitleTier) => setTiers((list) => list.map((x) => (x.threshold === t.threshold ? t : x)));
+  const replace = (tier: TitleTier) => setTiers((list) => list.map((x) => (x.threshold === tier.threshold ? tier : x)));
 
   return (
     <div className={styles.stack}>
       <div>
-        <h2 className={styles.sectionHeading}>크리에이터 칭호 목록</h2>
-        <p className={styles.desc}>도네이터가 누적 후원 금액을 충족하면 획득하는 칭호 목록입니다. 우측의 &apos;설정&apos; 버튼으로 설정할 수 있습니다.</p>
+        <h2 className={styles.sectionHeading}>{t("studioDonations.titlesHeading")}</h2>
+        <p className={styles.desc}>{t("studioDonations.titlesDesc")}</p>
         {/* 2026-10-09 결정: 익명 donations do not count toward the 크리에이터 칭호 (code-first line under the Figma copy). */}
-        <p className={styles.desc}>프로필 숨기기(익명)로 받은 후원은 누적 후원 금액에 들어가지 않습니다.</p>
+        <p className={styles.desc}>{t("studioDonations.titlesAnonymous")}</p>
       </div>
       <ul className={styles.tierList}>
-        {tiers.map((t) => (
+        {tiers.map((tier) => (
           <TierCard
-            key={t.threshold}
-            tier={t}
-            open={openAt === t.threshold}
-            onToggleOpen={() => setOpenAt(openAt === t.threshold ? null : t.threshold)}
+            key={tier.threshold}
+            tier={tier}
+            open={openAt === tier.threshold}
+            onToggleOpen={() => setOpenAt(openAt === tier.threshold ? null : tier.threshold)}
             onSaved={(next, msg) => {
               replace(next);
               setToast(msg);
@@ -67,18 +70,19 @@ function TierCard({
   onError: (message: string) => void;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   const [busy, setBusy] = useState(false);
-  const label = `누적 후원 금액 ${formatNumber(tier.threshold)}FN`;
+  const label = t("studioDonations.tierLabel", { amount: formatNumber(tier.threshold) });
 
   const toggle = async (enabled: boolean) => {
     if (busy) return;
     setBusy(true);
     try {
       const r = await setTitleEnabled(tier.threshold, enabled);
-      if (r.status === "SAVED") onSaved(r.tier, enabled ? "칭호를 사용합니다." : "칭호를 사용하지 않습니다.");
-      else onError(messageOf(r) ?? "저장하지 못했습니다.");
+      if (r.status === "SAVED") onSaved(r.tier, enabled ? t("studioDonations.titleOn") : t("studioDonations.titleOff"));
+      else onError(messageOf(r, t) ?? t("studioDonations.saveFailed"));
     } catch {
-      onError("저장하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      onError(t("studioDonations.saveFailedRetry"));
     } finally {
       setBusy(false);
     }
@@ -90,7 +94,7 @@ function TierCard({
         <div className={styles.tierSummary}>
           <strong>{label}</strong>
           {open ? (
-            <span className={styles.editing}>[설정 편집 중]</span>
+            <span className={styles.editing}>{t("studioDonations.editing")}</span>
           ) : tier.name ? (
             <span className={styles.tierName} style={{ color: tier.color }}>
               {tier.iconUrl ? (
@@ -102,13 +106,13 @@ function TierCard({
               {tier.name}
             </span>
           ) : (
-            <span className={styles.helper}>설정 버튼을 눌러 칭호를 설정해 주세요.</span>
+            <span className={styles.helper}>{t("studioDonations.setTitleHint")}</span>
           )}
         </div>
         <div className={styles.inline}>
-          <Toggle label={`${label} 칭호 사용`} checked={tier.enabled} onChange={toggle} busy={busy} />
+          <Toggle label={t("studioDonations.useTitle", { label })} checked={tier.enabled} onChange={toggle} busy={busy} />
           <button type="button" className={open ? styles.solidPurple : styles.ghostButton} aria-expanded={open} onClick={onToggleOpen}>
-            {open ? "설정 접기 ▲" : "설정 ▼"}
+            {open ? t("studioDonations.collapse") : t("studioDonations.expand")}
           </button>
         </div>
       </div>
@@ -116,8 +120,8 @@ function TierCard({
         <TierEditor
           tier={tier}
           onCancel={onClose}
-          onSaved={(t) => {
-            onSaved(t, "변경사항을 저장했습니다.");
+          onSaved={(next) => {
+            onSaved(next, t("studioDonations.changesSaved"));
             onClose();
           }}
         />
@@ -127,6 +131,7 @@ function TierCard({
 }
 
 function TierEditor({ tier, onCancel, onSaved }: { tier: TitleTier; onCancel: () => void; onSaved: (t: TitleTier) => void }) {
+  const { t } = useI18n();
   const id = useId();
   const [name, setName] = useState(tier.name);
   const [description, setDescription] = useState(tier.description);
@@ -160,9 +165,9 @@ function TierEditor({ tier, onCancel, onSaved }: { tier: TitleTier; onCancel: ()
     try {
       const r = await saveTitleTier(fd);
       if (r.status === "SAVED") onSaved(r.tier);
-      else setError(messageOf(r));
+      else setError(messageOf(r, t));
     } catch {
-      setError("저장하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      setError(t("studioDonations.saveFailedRetry"));
     } finally {
       setBusy(false);
     }
@@ -171,46 +176,46 @@ function TierEditor({ tier, onCancel, onSaved }: { tier: TitleTier; onCancel: ()
   return (
     <div className={styles.tierBody} aria-busy={busy}>
       <label className={styles.field} htmlFor={`${id}-name`}>
-        <span className={styles.lineLabel}>칭호명 설정 (최대 {TITLE_NAME_MAX}자)</span>
+        <span className={styles.lineLabel}>{t("studioDonations.nameLabel", { max: TITLE_NAME_MAX })}</span>
         <input
           id={`${id}-name`}
           className={styles.input}
           maxLength={TITLE_NAME_MAX}
-          placeholder={`미설정 칭호입니다. 칭호명을 입력해주세요. (최대 ${TITLE_NAME_MAX}자)`}
+          placeholder={t("studioDonations.namePlaceholder", { max: TITLE_NAME_MAX })}
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
       </label>
       <label className={styles.field} htmlFor={`${id}-desc`}>
-        <span className={styles.lineLabel}>칭호 설명 설정</span>
+        <span className={styles.lineLabel}>{t("studioDonations.descLabel")}</span>
         <input
           id={`${id}-desc`}
           className={styles.input}
           maxLength={TITLE_DESCRIPTION_MAX}
-          placeholder="도네이터에게 보여질 칭호 설명입니다."
+          placeholder={t("studioDonations.descPlaceholder")}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
       </label>
       <div className={styles.field}>
-        <span className={styles.lineLabel}>칭호 아이콘 / 배지 등록</span>
+        <span className={styles.lineLabel}>{t("studioDonations.iconLabel")}</span>
         <div className={styles.inline}>
           <input
             ref={fileRef}
             type="file"
             accept={PROFILE_PHOTO_TYPES.join(",")}
             className={styles.srOnly}
-            aria-label="칭호 아이콘 파일"
+            aria-label={t("studioDonations.iconFile")}
             onChange={(e) => {
               const f = e.target.files?.[0] ?? null;
               setFile(f);
               setRemoveIcon(false);
             }}
           />
-          <button type="button" className={styles.uploadTile} aria-label="칭호 아이콘 업로드" onClick={() => fileRef.current?.click()}>
+          <button type="button" className={styles.uploadTile} aria-label={t("studioDonations.iconUpload")} onClick={() => fileRef.current?.click()}>
             +
           </button>
-          <span className={styles.iconPreview} aria-label="칭호 아이콘 미리보기" role="img">
+          <span className={styles.iconPreview} aria-label={t("studioDonations.iconPreview")} role="img">
             {preview && !removeIcon ? (
               // eslint-disable-next-line @next/next/no-img-element -- local object URL / data URL preview
               <img src={preview} alt="" />
@@ -229,16 +234,16 @@ function TierEditor({ tier, onCancel, onSaved }: { tier: TitleTier; onCancel: ()
                 if (fileRef.current) fileRef.current.value = "";
               }}
             >
-              기본 아이콘 사용
+              {t("studioDonations.defaultIcon")}
             </button>
           )}
         </div>
       </div>
       <div className={styles.field}>
-        <span className={styles.lineLabel}>칭호 표시 색상 (Hex 코드)</span>
+        <span className={styles.lineLabel}>{t("studioDonations.colorLabel")}</span>
         <span className={`${styles.colorField} ${isHex(color) ? "" : styles.colorInvalid}`}>
           <input
-            aria-label="칭호 표시 색상"
+            aria-label={t("studioDonations.color")}
             value={color}
             maxLength={7}
             spellCheck={false}
@@ -247,9 +252,9 @@ function TierEditor({ tier, onCancel, onSaved }: { tier: TitleTier; onCancel: ()
               setColor(v.startsWith("#") ? v : `#${v}`);
             }}
           />
-          <input type="color" aria-label="칭호 표시 색상 선택" value={isHex(color) ? color.toLowerCase() : "#ffffff"} onChange={(e) => setColor(e.target.value.toUpperCase())} />
+          <input type="color" aria-label={t("studioDonations.colorPick")} value={isHex(color) ? color.toLowerCase() : "#ffffff"} onChange={(e) => setColor(e.target.value.toUpperCase())} />
         </span>
-        <span className={styles.helper}>도네이션 메시지 팝업에서 이 색상으로 강조 표시됩니다.</span>
+        <span className={styles.helper}>{t("studioDonations.colorHelp")}</span>
       </div>
       {error && (
         <p className={styles.error} role="alert">
@@ -258,10 +263,10 @@ function TierEditor({ tier, onCancel, onSaved }: { tier: TitleTier; onCancel: ()
       )}
       <div className={styles.editorActions}>
         <button type="button" className={styles.ghostButton} onClick={onCancel} disabled={busy}>
-          취소
+          {t("studioDonations.cancel")}
         </button>
         <button type="button" className={styles.solidPurple} onClick={save} disabled={busy}>
-          {busy ? "저장 중…" : "변경사항 저장"}
+          {busy ? t("studioDonations.saving") : t("studioDonations.saveChanges")}
         </button>
       </div>
     </div>

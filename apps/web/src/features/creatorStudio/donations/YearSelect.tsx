@@ -1,14 +1,16 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import styles from "./donations.module.css";
 
 /** 연도 선택 dropdown (539:156) — navigates as soon as a year is picked. */
 export function YearSelect({ years, value, baseParams }: { years: number[]; value?: number; baseParams: Record<string, string> }) {
+  const { t } = useI18n();
   const router = useRouter();
   return (
     <select
-      aria-label="연도 선택"
+      aria-label={t("studioDonationsList.yearSelect")}
       className={`${styles.chip} ${styles.select} ${value ? styles.chipOn : ""}`}
       value={value ?? ""}
       onChange={(e) => {
@@ -19,10 +21,10 @@ export function YearSelect({ years, value, baseParams }: { years: number[]; valu
         router.push(`/creator/donations?${sp}`);
       }}
     >
-      <option value="">연도 선택</option>
+      <option value="">{t("studioDonationsList.yearSelect")}</option>
       {years.map((y) => (
         <option key={y} value={y}>
-          {y}년
+          {t("studioDonationsList.year", { year: y })}
         </option>
       ))}
     </select>

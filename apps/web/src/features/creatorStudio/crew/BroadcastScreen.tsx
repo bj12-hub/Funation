@@ -4,6 +4,7 @@ import { OverlayLookPicker } from "@/features/overlayTheme/OverlayLookPicker";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { formatKst, formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { adjustScore, endBroadcast, setRankUpOverlay, startBroadcast } from "@/services/crew/crewBroadcast";
 import { BROADCAST_TITLE_MAX, PROJECT_NAME_MAX, type BroadcastResult, type BroadcastView, type TeamKey } from "@/services/crew/crewTypes";
 import type { OverlayTarget } from "@/services/creator/alertTypes";
@@ -42,6 +43,7 @@ const signed = (n: number) => `${n > 0 ? "+" : ""}${formatNumber(n)}`;
  */
 export function BroadcastScreen({ view, switches }: { view: BroadcastView; switches: Record<OverlayTarget, boolean> }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [title, setTitle] = useState("");
   const [project, setProject] = useState("");
   const [teamMode, setTeamMode] = useState(false);
@@ -95,8 +97,8 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
   return (
     <div className={styles.content}>
       <header className={styles.header}>
-        <h1 className={styles.title}>크루 관리</h1>
-        <p className={styles.subtitle}>방송 회차를 시작하고 점수판을 운영하세요. 멤버 점수 = 방송 중 그 멤버에게 들어온 후원 점수(자동엑셀 기준) + 보정 점수예요.</p>
+        <h1 className={styles.title}>{t("crewOps.title")}</h1>
+        <p className={styles.subtitle}>{t("crewOpsBroadcast.subtitle")}</p>
       </header>
       <OverlayOffNotice targets={["crew"]} switches={switches} />
       <CrewTabs active="broadcast" />
@@ -110,7 +112,7 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
       {!live ? (
         <section className={styles.card} aria-labelledby="bc-start">
           <h2 id="bc-start" className={styles.cardTitle}>
-            새 방송 시작
+            {t("crewOpsBroadcast.startTitle")}
           </h2>
           <form
             className={styles.startForm}
@@ -124,17 +126,17 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
                 const res = await startBroadcast({ requestId, title, project, teamMode, teams: assigned, carry: !!project.trim() && carry });
                 if (res.status === "SAVED") startId.current = null;
                 return res;
-              }, "방송을 시작했어요.");
+              }, t("crewOpsBroadcast.started"));
             }}
           >
-            <input className={styles.input} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="방송 제목 (예: 시즌1 3회차)" maxLength={BROADCAST_TITLE_MAX} aria-label="방송 제목" />
+            <input className={styles.input} value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("crewOpsBroadcast.titlePlaceholder")} maxLength={BROADCAST_TITLE_MAX} aria-label={t("crewOpsBroadcast.titleAria")} />
             <input
               className={styles.input}
               value={project}
               onChange={(e) => setProject(e.target.value)}
-              placeholder="프로젝트 (선택) — 같은 프로젝트로 시작하면 회차가 자동으로 붙어요"
+              placeholder={t("crewOpsBroadcast.projectPlaceholder")}
               maxLength={PROJECT_NAME_MAX}
-              aria-label="프로젝트"
+              aria-label={t("crewOpsBroadcast.projectAria")}
               list="bc-projects"
             />
             <datalist id="bc-projects">
@@ -146,16 +148,14 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
               <div>
                 <label className={styles.checkRow}>
                   <input type="checkbox" checked={carry} onChange={(e) => setCarry(e.target.checked)} />
-                  같은 프로젝트의 지난 회차 기여도 이어서 쌓기
+                  {t("crewOpsBroadcast.carry")}
                 </label>
-                <p className={styles.note}>
-                  후원 내역은 회차마다 따로 보이고, 점수판 점수에는 &apos;{project.trim()}&apos;의 지난 회차 점수가 더해져요. 끄면 회차마다 0점부터 시작해요.
-                </p>
+                <p className={styles.note}>{t("crewOpsBroadcast.carryNote", { project: project.trim() })}</p>
               </div>
             )}
             <label className={styles.checkRow}>
               <input type="checkbox" checked={teamMode} onChange={(e) => setTeamMode(e.target.checked)} />
-              팀 배틀 (A팀 vs B팀)
+              {t("crewOpsBroadcast.teamMode")}
             </label>
             {teamMode && (
               <ul className={styles.teamPick}>
@@ -163,10 +163,10 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
                   <li key={m.id}>
                     <span className={styles.dot} style={{ background: m.color }} aria-hidden="true" />
                     <span className={styles.teamName}>{m.name}</span>
-                    <span className={styles.segment} role="group" aria-label={`${m.name} 팀`}>
-                      {(["", "A", "B"] as const).map((t) => (
-                        <button key={t || "none"} type="button" aria-pressed={(teams[m.id] ?? "") === t} onClick={() => setTeams((prev) => ({ ...prev, [m.id]: t }))}>
-                          {t ? `${t}팀` : "없음"}
+                    <span className={styles.segment} role="group" aria-label={t("crewOpsBroadcast.memberTeamAria", { name: m.name })}>
+                      {(["", "A", "B"] as const).map((team) => (
+                        <button key={team || "none"} type="button" aria-pressed={(teams[m.id] ?? "") === team} onClick={() => setTeams((prev) => ({ ...prev, [m.id]: team }))}>
+                          {team ? t("crewOpsBroadcast.team", { team }) : t("crewOpsBroadcast.noTeam")}
                         </button>
                       ))}
                     </span>
@@ -176,11 +176,11 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
             )}
             <div className={styles.actions}>
               <button type="submit" className={styles.primary} disabled={pending || !title.trim()}>
-                방송 시작
+                {t("crewOpsBroadcast.start")}
               </button>
             </div>
           </form>
-          {active.length === 0 && <p className={styles.note}>활동 중인 멤버가 없어요. 멤버 탭에서 먼저 추가해 주세요.</p>}
+          {active.length === 0 && <p className={styles.note}>{t("crewOpsBroadcast.noActive")}</p>}
         </section>
       ) : (
         <section className={styles.card} aria-labelledby="bc-live">
@@ -189,35 +189,35 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
               <span className={styles.liveDot} aria-hidden="true" /> {live.title}
               {live.project && (
                 <span className={styles.chip}>
-                  {live.project} · {live.round}회차
+                  {t("crewOpsBroadcast.roundChip", { project: live.project, round: live.round ?? "" })}
                 </span>
               )}
-              {live.carry && <span className={styles.chip}>지난 회차 기여도 이어서</span>}
+              {live.carry && <span className={styles.chip}>{t("crewOpsBroadcast.carryChip")}</span>}
             </h2>
-            <span className={styles.clock} aria-label="진행 시간">
+            <span className={styles.clock} aria-label={t("crewOpsBroadcast.elapsedAria")}>
               {now === null ? "--:--:--" : elapsed(live.startedAt, now)}
             </span>
           </div>
 
           {live.teamMode && (
-            <div className={styles.teamGauge} aria-label="팀 점수">
-              {live.teams.map((t) => (
-                <span key={t.key} data-team={t.key} style={{ flexGrow: teamTotal ? Math.max(0.05, Math.max(0, t.score) / teamTotal) : 1 }}>
-                  {t.key}팀 {formatNumber(t.score)}
+            <div className={styles.teamGauge} aria-label={t("crewOpsBroadcast.teamScoresAria")}>
+              {live.teams.map((tm) => (
+                <span key={tm.key} data-team={tm.key} style={{ flexGrow: teamTotal ? Math.max(0.05, Math.max(0, tm.score) / teamTotal) : 1 }}>
+                  {t("crewOpsBroadcast.teamScore", { team: tm.key, score: formatNumber(tm.score) })}
                 </span>
               ))}
             </div>
           )}
 
           <div className={styles.remoteBar}>
-            <input className={styles.input} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="보정 사유 (선택)" maxLength={40} aria-label="보정 사유" />
+            <input className={styles.input} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t("crewOpsBroadcast.reasonPlaceholder")} maxLength={40} aria-label={t("crewOpsBroadcast.reasonAria")} />
             <input
               className={styles.inputSmall}
               inputMode="numeric"
               value={custom}
               onChange={(e) => setCustom(e.target.value.replace(/[^\d-]/g, "").slice(0, 9))}
-              placeholder="직접 입력"
-              aria-label="보정 점수 직접 입력"
+              placeholder={t("crewOpsBroadcast.customPlaceholder")}
+              aria-label={t("crewOpsBroadcast.customAria")}
             />
           </div>
 
@@ -228,7 +228,7 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
                 <span className={styles.boardName}>
                   <span className={styles.dot} style={{ background: r.color }} aria-hidden="true" />
                   {r.name}
-                  {r.team && <span className={styles.chip}>{r.team}팀</span>}
+                  {r.team && <span className={styles.chip}>{t("crewOpsBroadcast.team", { team: r.team })}</span>}
                 </span>
                 <span className={styles.rankBar} aria-hidden="true">
                   <span style={{ width: `${(Math.max(0, r.score) / maxScore) * 100}%` }} />
@@ -236,12 +236,12 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
                 <span className={styles.boardScore}>
                   <strong>{formatNumber(r.score)}</strong>
                   <span className={styles.muted}>
-                    후원 {formatNumber(r.donated + r.feed)} · 보정 {signed(r.adjust)}
-                    {r.stolen !== 0 && ` · 강탈 ${signed(r.stolen)}`}
-                    {r.battle !== 0 && ` · 배틀 배수 ${signed(r.battle)}`}
-                    {r.grade !== 0 && ` · 직급 배수 ${signed(r.grade)}`}
-                    {r.game !== 0 && ` · 게임 ${signed(r.game)}`}
-                    {r.carried !== 0 && ` · 이전 회차 ${signed(r.carried)}`}
+                    {t("crewOpsBroadcast.rowParts", { donated: formatNumber(r.donated + r.feed), adjust: signed(r.adjust) })}
+                    {r.stolen !== 0 && t("crewOpsBroadcast.partSteal", { n: signed(r.stolen) })}
+                    {r.battle !== 0 && t("crewOpsBroadcast.partBattle", { n: signed(r.battle) })}
+                    {r.grade !== 0 && t("crewOpsBroadcast.partGrade", { n: signed(r.grade) })}
+                    {r.game !== 0 && t("crewOpsBroadcast.partGame", { n: signed(r.game) })}
+                    {r.carried !== 0 && t("crewOpsBroadcast.partCarried", { n: signed(r.carried) })}
                   </span>
                 </span>
                 <span className={styles.boardButtons}>
@@ -251,7 +251,7 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
                     </button>
                   ))}
                   <button type="button" className={styles.ghost} disabled={pending || !Number(custom)} onClick={() => adjust(r.memberId, Number(custom))}>
-                    적용
+                    {t("crewOpsBroadcast.apply")}
                   </button>
                 </span>
               </li>
@@ -259,27 +259,27 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
           </ol>
 
           {/* 랭크업 (code-first, 2026-10-06): the closest overtake on the board. */}
-          <div className={styles.rankUp} role="status" aria-label="랭크업">
+          <div className={styles.rankUp} role="status" aria-label={t("crewOpsBroadcast.rankUpAria")}>
             <span>
-              🔥 랭크업{" "}
+              {t("crewOpsBroadcast.rankUp")}{" "}
               {live.rankUp ? (
                 <>
-                  <strong>{live.rankUp.lower.name}</strong>({live.rankUp.lower.rank}위) → <strong>{live.rankUp.upper.name}</strong>({live.rankUp.upper.rank}위){" "}
-                  {live.rankUp.gap === 0 ? "동점!" : `${formatNumber(live.rankUp.gap)}점 차`}
+                  <strong>{live.rankUp.lower.name}</strong>{t("crewOpsBroadcast.rankPos", { rank: live.rankUp.lower.rank })} → <strong>{live.rankUp.upper.name}</strong>{t("crewOpsBroadcast.rankPos", { rank: live.rankUp.upper.rank })}{" "}
+                  {live.rankUp.gap === 0 ? t("crewOpsBroadcast.tied") : t("crewOpsBroadcast.gap", { gap: formatNumber(live.rankUp.gap) })}
                 </>
               ) : (
-                <span className={styles.muted}>점수가 쌓이면 역전이 가장 가까운 두 멤버를 보여 줘요.</span>
+                <span className={styles.muted}>{t("crewOpsBroadcast.rankUpEmpty")}</span>
               )}
             </span>
             <label className={styles.checkRow}>
-              <input type="checkbox" checked={live.showRankUp} disabled={pending} onChange={(e) => run(() => setRankUpOverlay({ broadcastId: live.id, on: e.target.checked }), e.target.checked ? "OBS 점수판에 랭크업을 띄웠어요." : "랭크업을 내렸어요.")} />
-              OBS 점수판에 표시
+              <input type="checkbox" checked={live.showRankUp} disabled={pending} onChange={(e) => run(() => setRankUpOverlay({ broadcastId: live.id, on: e.target.checked }), e.target.checked ? t("crewOpsBroadcast.rankUpShown") : t("crewOpsBroadcast.rankUpHidden"))} />
+              {t("crewOpsBroadcast.rankUpToggle")}
             </label>
           </div>
 
           {live.logs.length > 0 && (
             <details className={styles.logs}>
-              <summary>보정 로그 {live.logs.length}건</summary>
+              <summary>{t("crewOpsBroadcast.logs", { count: live.logs.length })}</summary>
               <ul>
                 {live.logs.map((l) => (
                   <li key={l.id}>
@@ -291,8 +291,8 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
           )}
 
           <div className={styles.actions}>
-            <button type="button" className={styles.danger} disabled={pending} onClick={() => run(() => endBroadcast(live.id), "방송을 종료했어요. 결과가 이력에 저장됐어요.")}>
-              방송 종료
+            <button type="button" className={styles.danger} disabled={pending} onClick={() => run(() => endBroadcast(live.id), t("crewOpsBroadcast.ended"))}>
+              {t("crewOpsBroadcast.end")}
             </button>
           </div>
         </section>
@@ -382,13 +382,13 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
 
       <section className={styles.card} aria-labelledby="bc-overlay">
         <h2 id="bc-overlay" className={styles.cardTitle}>
-          OBS 점수판 오버레이
+          {t("crewOpsBroadcast.overlayTitle")}
         </h2>
-        <p className={styles.muted}>OBS 브라우저 소스에 아래 주소를 넣으면 진행 중인 방송의 점수판이 표시돼요. 주소에 연동키가 들어 있으니 공유하지 마세요 — 계정설정에서 연동키를 재발급하면 이전 주소는 막혀요.</p>
+        <p className={styles.muted}>{t("crewOpsBroadcast.overlayNote")}</p>
         <div className={styles.addRow}>
-          <input className={styles.input} value={shownOverlayAddress(origin, view.overlayPath)} readOnly aria-label="오버레이 주소" onFocus={(e) => e.target.select()} />
-          <button type="button" className={styles.ghost} onClick={() => navigator.clipboard?.writeText(overlayUrl).then(() => setMessage({ tone: "ok", text: "주소를 복사했어요." }))}>
-            복사
+          <input className={styles.input} value={shownOverlayAddress(origin, view.overlayPath)} readOnly aria-label={t("crewOpsBroadcast.overlayAddressAria")} onFocus={(e) => e.target.select()} />
+          <button type="button" className={styles.ghost} onClick={() => navigator.clipboard?.writeText(overlayUrl).then(() => setMessage({ tone: "ok", text: t("crewOpsBroadcast.copied") }))}>
+            {t("crewOpsBroadcast.copy")}
           </button>
         </div>
         <OverlayLookPicker target="crew" />
@@ -396,11 +396,11 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
 
       <section className={styles.card} aria-labelledby="bc-history">
         <h2 id="bc-history" className={styles.cardTitle}>
-          방송 이력
+          {t("crewOpsBroadcast.historyTitle")}
         </h2>
         {(view.history.length > 0 || live) && <ContributionExportBar key={view.projects.join("|")} projects={view.projects} />}
         {view.history.length === 0 ? (
-          <p className={styles.empty}>종료된 방송이 아직 없어요.</p>
+          <p className={styles.empty}>{t("crewOpsBroadcast.historyEmpty")}</p>
         ) : (
           <ul className={styles.list}>
             {view.history.map((h) => (
@@ -408,13 +408,14 @@ export function BroadcastScreen({ view, switches }: { view: BroadcastView; switc
                 <div className={styles.rowMain}>
                   <strong className={styles.rowTitle}>
                     {h.title}
-                    {h.project && <span className={styles.chipOff}>{h.project} · {h.round}회차</span>}
+                    {h.project && <span className={styles.chipOff}>{t("crewOpsBroadcast.roundChip", { project: h.project, round: h.round ?? "" })}</span>}
                   </strong>
                   <span className={styles.muted}>
-                    {time(h.startedAt)} ~ {time(h.endedAt)} · 총 {formatNumber(h.totalScore)}점{h.winner ? ` · 1위 ${h.winner}` : ""}
+                    {t("crewOpsBroadcast.historyLine", { from: time(h.startedAt), to: time(h.endedAt), total: formatNumber(h.totalScore) })}
+                    {h.winner ? t("crewOpsBroadcast.historyWinner", { name: h.winner }) : ""}
                   </span>
                 </div>
-                <span className={styles.muted}>{h.top.map((t, i) => `${i + 1}. ${t.name} ${formatNumber(t.score)}`).join("  ")}</span>
+                <span className={styles.muted}>{h.top.map((top, i) => `${i + 1}. ${top.name} ${formatNumber(top.score)}`).join("  ")}</span>
                 <BroadcastCsvButton broadcastId={h.id} title={h.title} />
               </li>
             ))}

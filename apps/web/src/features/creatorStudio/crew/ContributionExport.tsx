@@ -1,6 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { exportContributions } from "@/services/crew/crewHistory";
 import type { ContributionExportFormat } from "@/services/crew/crewTypes";
 import styles from "./crew.module.css";
@@ -10,9 +12,9 @@ import history from "./history.module.css";
 const NO_PROJECT = "__none__";
 /** 파일 형식 (2026-10-25): CSV from the Server Action, 엑셀 from the download route (the same table). */
 type FileKind = "CSV" | "XLSX";
-const FILE_KINDS: { key: FileKind; label: string }[] = [
-  { key: "CSV", label: "CSV" },
-  { key: "XLSX", label: "엑셀" }
+const FILE_KINDS: { key: FileKind; label: MessageKey }[] = [
+  { key: "CSV", label: "crewOpsHistory.fileCsv" },
+  { key: "XLSX", label: "crewOpsHistory.fileXlsx" }
 ];
 type ExportInput = { project?: string | null; broadcastId?: string; format: ContributionExportFormat };
 
@@ -30,14 +32,14 @@ function save(blob: Blob, filename: string) {
  * 엑셀: `GET /api/creator/crew/contributions` — the file, its name (Content-Disposition filename*), rows and truncation from
  * the X-Export headers; an error answer carries the message.
  */
-async function fetchXlsx(input: ExportInput): Promise<{ ok: true; blob: Blob; filename: string; rows: number; truncated: boolean } | { ok: false; message: string }> {
+async function fetchXlsx(input: ExportInput, failed: string): Promise<{ ok: true; blob: Blob; filename: string; rows: number; truncated: boolean } | { ok: false; message: string }> {
   const q = new URLSearchParams({ format: input.format });
   if (input.broadcastId !== undefined) q.set("broadcastId", input.broadcastId);
   else q.set("project", input.project ?? "");
   const res = await fetch(`/api/creator/crew/contributions?${q}`, { cache: "no-store" });
   if (!res.ok) {
     const body = (await res.json().catch(() => null)) as { message?: string } | null;
-    return { ok: false, message: body?.message ?? "내려받지 못했어요. 잠시 후 다시 시도해 주세요." };
+    return { ok: false, message: body?.message ?? failed };
   }
   const name = /filename\*=UTF-8''([^;]+)/.exec(res.headers.get("Content-Disposition") ?? "")?.[1];
   return { ok: true, blob: await res.blob(), filename: name ? decodeURIComponent(name) : "기여도.xlsx", rows: Number(res.headers.get("X-Export-Rows") ?? 0), truncated: res.headers.get("X-Export-Truncated") === "true" };
@@ -45,6 +47,7 @@ async function fetchXlsx(input: ExportInput): Promise<{ ok: true; blob: Blob; fi
 
 /** Runs one export on the server and saves the file; returns the line to show under the buttons. */
 function useCsvDownload() {
+  const { t } = useI18n();
   const busy = useRef(false);
   const [state, setState] = useState<{ busy: boolean; note: string | null; error: boolean }>({ busy: false, note: null, error: false });
   const download = async (input: ExportInput, kind: FileKind = "CSV") => {
@@ -55,7 +58,7 @@ function useCsvDownload() {
       let rows: number;
       let truncated: boolean;
       if (kind === "XLSX") {
-        const res = await fetchXlsx(input);
+        const res = await fetchXlsx(input, t("crewOpsHistory.downloadFailed"));
         if (!res.ok) {
           setState({ busy: false, note: res.message, error: true });
           return;
@@ -65,16 +68,16 @@ function useCsvDownload() {
       } else {
         const res = await exportContributions(input);
         if (res.status !== "OK") {
-          setState({ busy: false, note: res.status === "UNAUTHORIZED" ? "로그인이 필요해요." : res.message, error: true });
+          setState({ busy: false, note: res.status === "UNAUTHORIZED" ? t("crewOps.loginNeeded") : res.message, error: true });
           return;
         }
         save(new Blob([res.csv], { type: "text/csv;charset=utf-8" }), res.filename);
         ({ rows, truncated } = res);
       }
-      const done = input.format === "ROUNDS" ? `멤버 ${rows.toLocaleString()}명의 회차별 합계를 내려받았어요.` : `${rows.toLocaleString()}줄을 내려받았어요.`;
-      setState({ busy: false, note: truncated ? `앞의 ${rows.toLocaleString()}줄까지 내려받았어요. 회차를 나눠 내려받아 주세요.` : done, error: false });
+      const done = input.format === "ROUNDS" ? t("crewOpsHistory.doneRounds", { n: rows.toLocaleString() }) : t("crewOpsHistory.doneLines", { n: rows.toLocaleString() });
+      setState({ busy: false, note: truncated ? t("crewOpsHistory.truncated", { n: rows.toLocaleString() }) : done, error: false });
     } catch {
-      setState({ busy: false, note: "내려받지 못했어요. 잠시 후 다시 시도해 주세요.", error: true });
+      setState({ busy: false, note: t("crewOpsHistory.downloadFailed"), error: true });
     } finally {
       busy.current = false;
     }
@@ -88,39 +91,38 @@ function useCsvDownload() {
  * or 상세 내역 (every 기여도 내역 line). The live 회차 is included with its current score.
  */
 export function ContributionExportBar({ projects }: { projects: string[] }) {
+  const { t } = useI18n();
   const [project, setProject] = useState(projects[0] ?? NO_PROJECT);
   const [kind, setKind] = useState<FileKind>("CSV");
-  const kindLabel = FILE_KINDS.find((k) => k.key === kind)!.label;
+  const kindLabel = t(FILE_KINDS.find((k) => k.key === kind)!.label);
   const { busy, note, error, download } = useCsvDownload();
   const chosen = project === NO_PROJECT ? null : project;
   return (
     <div className={history.export}>
       <span className={history.tools}>
-        <select className={styles.select} aria-label="내보낼 프로젝트" value={project} onChange={(e) => setProject(e.target.value)}>
+        <select className={styles.select} aria-label={t("crewOpsHistory.projectAria")} value={project} onChange={(e) => setProject(e.target.value)}>
           {projects.map((p) => (
             <option key={p} value={p}>
               {p}
             </option>
           ))}
-          <option value={NO_PROJECT}>프로젝트 없는 방송</option>
+          <option value={NO_PROJECT}>{t("crewOpsHistory.noProject")}</option>
         </select>
-        <span className={styles.segment} role="group" aria-label="파일 형식">
+        <span className={styles.segment} role="group" aria-label={t("crewOpsHistory.fileKindAria")}>
           {FILE_KINDS.map((k) => (
             <button key={k.key} type="button" aria-pressed={kind === k.key} onClick={() => setKind(k.key)}>
-              {k.label}
+              {t(k.label)}
             </button>
           ))}
         </span>
         <button type="button" className={styles.ghost} disabled={busy} onClick={() => void download({ project: chosen, format: "ROUNDS" }, kind)}>
-          회차별 합계 {kindLabel}
+          {t("crewOpsHistory.roundsButton", { kind: kindLabel })}
         </button>
         <button type="button" className={styles.ghost} disabled={busy} onClick={() => void download({ project: chosen, format: "LINES" }, kind)}>
-          상세 내역 {kindLabel}
+          {t("crewOpsHistory.linesButton", { kind: kindLabel })}
         </button>
       </span>
-      <span className={styles.note}>
-        회차별 합계는 회차가 끝날 때 고정된 점수예요. 상세 내역은 지금 자동엑셀 설정으로 다시 계산해서, 방송 뒤에 환산값 · 배수 규칙을 바꿨다면 합계와 다를 수 있어요.
-      </span>
+      <span className={styles.note}>{t("crewOpsHistory.exportNote")}</span>
       {note && (
         <span className={error ? styles.error : styles.ok} role={error ? "alert" : "status"}>
           {note}
@@ -132,11 +134,12 @@ export function ContributionExportBar({ projects }: { projects: string[] }) {
 
 /** One ended broadcast's 기여도 내역 as CSV (in its 방송 이력 row). */
 export function BroadcastCsvButton({ broadcastId, title }: { broadcastId: string; title: string }) {
+  const { t } = useI18n();
   const { busy, note, error, download } = useCsvDownload();
   return (
     <span className={history.rowExport}>
-      <button type="button" className={styles.ghost} aria-label={`${title} 기여도 내역 CSV`} disabled={busy} onClick={() => void download({ broadcastId, format: "LINES" })}>
-        내역 CSV
+      <button type="button" className={styles.ghost} aria-label={t("crewOpsHistory.csvAria", { title })} disabled={busy} onClick={() => void download({ broadcastId, format: "LINES" })}>
+        {t("crewOpsHistory.csvButton")}
       </button>
       {note && error && (
         <span className={styles.error} role="alert">

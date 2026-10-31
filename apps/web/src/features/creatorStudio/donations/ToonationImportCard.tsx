@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { formatNumber, kstIsoString } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { importToonationCsv, previewToonationCsv, remapToonationCsv } from "@/services/creator/donationImport";
 import {
   CSV_FILE_ERROR_MESSAGE,
@@ -11,15 +13,15 @@ import {
   CSV_MAX_ROWS,
   IMPORT_FIELDS,
   IMPORT_PROBLEM_ROWS,
-  ROW_ERROR_LABEL,
-  ROW_STATUS_LABEL,
   SAMPLE_CSV,
   type ColumnMapping,
   type CsvImportResult,
   type CsvPreview,
   type CsvPreviewResult,
   type ImportField,
-  type PreviewRow
+  type PreviewRow,
+  type RowErrorCode,
+  type RowStatus
 } from "@/services/creator/donationImportTypes";
 import styles from "./donations.module.css";
 import local from "./importTab.module.css";
@@ -27,18 +29,44 @@ import local from "./importTab.module.css";
 /** "2026.10.08 15:04:05" in Korea time. */
 const formatAt = (iso: string) => kstIsoString(iso).replaceAll("-", ".").replace("T", " ");
 const won = (n: number) => `${formatNumber(n)}원`;
+type Translate = ReturnType<typeof useI18n>["t"];
+
 /** "A열 · 날짜" (an empty header shows only the column letter). */
-const columnName = (headers: string[], i: number) => {
+const columnName = (headers: string[], i: number, tr: Translate) => {
   let n = i;
   let letters = "";
   do {
     letters = String.fromCharCode(65 + (n % 26)) + letters;
     n = Math.floor(n / 26) - 1;
   } while (n >= 0);
-  return headers[i] ? `${letters}열 · ${headers[i]}` : `${letters}열`;
+  return headers[i] ? tr("studioDonationsImport.columnNamed", { letters, header: headers[i] }) : tr("studioDonationsImport.column", { letters });
 };
 const STATUS_CLASS: Record<PreviewRow["status"], string> = { OK: local.rowOk, INVALID: local.rowBad, DUPLICATE_IN_FILE: local.rowSkip, ALREADY_IMPORTED: local.rowSkip };
-const reasonOf = (r: PreviewRow) => (r.status === "INVALID" ? r.errors.map((e) => ROW_ERROR_LABEL[e]).join(" · ") : r.status === "DUPLICATE_IN_FILE" ? "위에 같은 후원이 있어요" : "전에 가져온 후원이에요");
+/** The services' row labels (`ROW_STATUS_LABEL`, `ROW_ERROR_LABEL`, `IMPORT_FIELDS`) as message keys. */
+const ROW_STATUS_KEY: Record<RowStatus, MessageKey> = {
+  OK: "studioDonationsImport.rowOk",
+  INVALID: "studioDonationsImport.rowInvalid",
+  DUPLICATE_IN_FILE: "studioDonationsImport.rowDupInFile",
+  ALREADY_IMPORTED: "studioDonationsImport.rowAlready"
+};
+const ROW_ERROR_KEY: Record<RowErrorCode, MessageKey> = {
+  BAD_DATE: "studioDonationsImport.errBadDate",
+  FUTURE_DATE: "studioDonationsImport.errFutureDate",
+  BAD_AMOUNT: "studioDonationsImport.errBadAmount",
+  NON_POSITIVE_AMOUNT: "studioDonationsImport.errNonPositive",
+  NON_INTEGER_AMOUNT: "studioDonationsImport.errNonInteger",
+  AMOUNT_TOO_LARGE: "studioDonationsImport.errTooLarge",
+  EMPTY_NICKNAME: "studioDonationsImport.errEmptyNickname"
+};
+const FIELD_KEY: Record<ImportField, MessageKey> = {
+  at: "studioDonationsImport.fieldAt",
+  nickname: "studioDonationsImport.fieldNickname",
+  amount: "studioDonationsImport.fieldAmount",
+  message: "studioDonationsImport.fieldMessage",
+  type: "studioDonationsImport.fieldType"
+};
+const reasonOf = (r: PreviewRow, tr: Translate) =>
+  r.status === "INVALID" ? r.errors.map((e) => tr(ROW_ERROR_KEY[e])).join(" · ") : r.status === "DUPLICATE_IN_FILE" ? tr("studioDonationsImport.dupInFile") : tr("studioDonationsImport.alreadyImported");
 const mappingKey = (m: ColumnMapping) => JSON.stringify(IMPORT_FIELDS.map((f) => m[f.key]));
 
 type Busy = null | "reading" | "remapping" | "importing";
@@ -47,9 +75,11 @@ type Busy = null | "reading" | "remapping" | "importing";
  * 투네이션 CSV 가져오기 — code-first (no Figma frame). The file goes to the server, which reads it and answers with a
  * preview (totals, the first rows, every problem row up to 100); nothing is imported until "n건 가져오기". Columns found
  * by header name can be changed; when a required one is missing the creator picks it. Text from the file is shown as
- * text only.
+ * text only. `tr` translates (`t` is the preview totals here); the services' file messages (CSV_FILE_ERROR_MESSAGE, the
+ * server's answers) show as written.
  */
 export function ToonationImportCard() {
+  const { t: tr } = useI18n();
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<CsvPreview | null>(null);
@@ -80,7 +110,7 @@ export function ToonationImportCard() {
   const showPreview = (r: CsvPreviewResult | null) => {
     if (!r) return;
     if (r.status === "OK") setPreview(r.preview);
-    else if (r.status === "UNAUTHORIZED") setError("로그인이 필요합니다.");
+    else if (r.status === "UNAUTHORIZED") setError(tr("studioDonationsImport.loginRequired"));
     else {
       setError(r.message);
       if (r.code === "EXPIRED") setPreview(null);
@@ -93,7 +123,7 @@ export function ToonationImportCard() {
     if (file.size > CSV_MAX_BYTES) return setError(CSV_FILE_ERROR_MESSAGE.TOO_LARGE);
     const form = new FormData();
     form.append("file", file);
-    showPreview(await run("reading", () => previewToonationCsv(form), "파일을 읽지 못했어요. 잠시 후 다시 시도해 주세요."));
+    showPreview(await run("reading", () => previewToonationCsv(form), tr("studioDonationsImport.readFailed")));
   };
 
   const remap = async (field: ImportField, value: string) => {
@@ -101,7 +131,7 @@ export function ToonationImportCard() {
     const mapping: ColumnMapping = { ...preview.mapping, [field]: value === "" ? null : Number(value) };
     // A column picked for this field leaves the field that had it.
     for (const f of IMPORT_FIELDS) if (f.key !== field && mapping[f.key] !== null && mapping[f.key] === mapping[field]) mapping[f.key] = null;
-    showPreview(await run("remapping", () => remapToonationCsv({ previewId: preview.previewId, mapping }), "열을 바꾸지 못했어요. 잠시 후 다시 시도해 주세요."));
+    showPreview(await run("remapping", () => remapToonationCsv({ previewId: preview.previewId, mapping }), tr("studioDonationsImport.remapFailed")));
   };
 
   const doImport = async () => {
@@ -109,7 +139,7 @@ export function ToonationImportCard() {
     const key = `${preview.previewId}:${mappingKey(preview.mapping)}`;
     if (requestId.current?.key !== key) requestId.current = { key, id: crypto.randomUUID() };
     const id = requestId.current.id;
-    const r = await run("importing", () => importToonationCsv({ previewId: preview.previewId, mapping: preview.mapping, requestId: id }), "가져오지 못했어요. 잠시 후 다시 시도해 주세요.");
+    const r = await run("importing", () => importToonationCsv({ previewId: preview.previewId, mapping: preview.mapping, requestId: id }), tr("studioDonationsImport.importFailed"));
     if (!r) return;
     if (r.status === "IMPORTED" || r.status === "NOTHING_TO_IMPORT") {
       setDone(r);
@@ -120,9 +150,9 @@ export function ToonationImportCard() {
     } else if (r.status === "INVALID") {
       setError(r.message);
       if (r.code === "EXPIRED") setPreview(null);
-    } else if (r.status === "IN_PROGRESS") setError("가져오는 중이에요. 잠시 후 다시 확인해 주세요.");
-    else if (r.status === "CONFLICT") setError("같은 요청이 다른 내용으로 이미 처리됐어요. 파일을 다시 올려 주세요.");
-    else setError("로그인이 필요합니다.");
+    } else if (r.status === "IN_PROGRESS") setError(tr("studioDonationsImport.inProgress"));
+    else if (r.status === "CONFLICT") setError(tr("studioDonationsImport.conflict"));
+    else setError(tr("studioDonationsImport.loginRequired"));
   };
 
   const reset = () => {
@@ -143,19 +173,19 @@ export function ToonationImportCard() {
   };
 
   const t = preview?.totals;
-  const missingLabels = preview?.missing.map((k) => IMPORT_FIELDS.find((f) => f.key === k)!.label) ?? [];
+  const missingLabels = preview?.missing.map((k) => tr(FIELD_KEY[k])) ?? [];
 
   return (
     <section className={styles.card} aria-labelledby="import-toonation">
       <div className={local.cardHead}>
         <h2 className={styles.cardTitle} id="import-toonation">
-          투네이션 CSV 가져오기
+          {tr("studioDonationsImport.toonationTitle")}
         </h2>
         <button type="button" className={styles.ghostButton} onClick={downloadSample}>
-          예시 파일 받기
+          {tr("studioDonationsImport.sampleFile")}
         </button>
       </div>
-      <p className={styles.desc}>투네이션에서 내려받은 받은 후원 내역 CSV 파일을 올려 주세요. 가져오기 전에 어떤 내역이 들어가는지 먼저 보여 드려요.</p>
+      <p className={styles.desc}>{tr("studioDonationsImport.toonationDesc")}</p>
 
       {!preview && (
         <div className={local.fileRow}>
@@ -163,7 +193,7 @@ export function ToonationImportCard() {
             ref={inputRef}
             type="file"
             accept=".csv,.txt,text/csv"
-            aria-label="투네이션 후원 내역 CSV 파일"
+            aria-label={tr("studioDonationsImport.fileAria")}
             className={local.fileInput}
             disabled={busy !== null}
             onChange={(e) => {
@@ -172,13 +202,12 @@ export function ToonationImportCard() {
             }}
           />
           <button type="button" className={styles.solidPurple} onClick={read} disabled={!file || busy !== null}>
-            {busy === "reading" ? "파일을 읽고 있어요…" : "미리보기"}
+            {busy === "reading" ? tr("studioDonationsImport.reading") : tr("studioDonationsImport.preview")}
           </button>
         </div>
       )}
       <p className={local.limits}>
-        CSV(UTF-8 또는 엑셀의 &apos;CSV (쉼표로 분리)&apos;) · {CSV_MAX_BYTES / 1024 / 1024}MB · {formatNumber(CSV_MAX_ROWS)}행까지 (예시 값). 제목 줄에 후원 일시 · 닉네임 · 금액 열이
-        있어야 해요. 시간은 한국 시간, 금액은 원으로 읽어요.
+        {tr("studioDonationsImport.limits", { mb: CSV_MAX_BYTES / 1024 / 1024, rows: formatNumber(CSV_MAX_ROWS) })}
       </p>
 
       {error && (
@@ -188,44 +217,46 @@ export function ToonationImportCard() {
       )}
       {done?.status === "IMPORTED" && (
         <p className={styles.ok} role="status">
-          {formatNumber(done.batch.imported)}건을 가져왔어요.
-          {done.batch.invalid + done.batch.duplicates > 0 && ` 오류 ${formatNumber(done.batch.invalid)}건 · 중복 ${formatNumber(done.batch.duplicates)}건은 건너뛰었어요.`}{" "}
-          <Link href="/creator/donations?tab=import&sub=records">가져온 내역 보기</Link>
+          {tr("studioDonationsImport.imported", { count: formatNumber(done.batch.imported) })}
+          {done.batch.invalid + done.batch.duplicates > 0 &&
+            tr("studioDonationsImport.importedSkipped", { invalid: formatNumber(done.batch.invalid), duplicates: formatNumber(done.batch.duplicates) })}{" "}
+          <Link href="/creator/donations?tab=import&sub=records">{tr("studioDonationsImport.viewImported")}</Link>
         </p>
       )}
       {done?.status === "NOTHING_TO_IMPORT" && (
         <p className={styles.error} role="status">
-          가져올 새 내역이 없어요. 오류 {formatNumber(done.invalid)}건 · 중복 {formatNumber(done.duplicates)}건이에요.
+          {tr("studioDonationsImport.nothingNew", { invalid: formatNumber(done.invalid), duplicates: formatNumber(done.duplicates) })}
         </p>
       )}
 
       {preview && t && (
         <>
           <p className={local.meta}>
-            <strong>{preview.fileName}</strong> · {preview.encoding === "CP949" ? "엑셀 CSV (CP949)" : preview.encoding} · 미리보기는 {formatAt(preview.expiresAt).slice(11, 16)}까지 유지돼요
+            <strong>{preview.fileName}</strong> · {preview.encoding === "CP949" ? tr("studioDonationsImport.excelCsv") : preview.encoding} ·{" "}
+            {tr("studioDonationsImport.previewUntil", { time: formatAt(preview.expiresAt).slice(11, 16) })}
           </p>
 
           <div className={local.section}>
-            <h3 className={local.sectionTitle}>열 선택</h3>
+            <h3 className={local.sectionTitle}>{tr("studioDonationsImport.mappingTitle")}</h3>
             {preview.missing.length > 0 ? (
               <p className={styles.error} role="alert">
-                {missingLabels.join(" · ")} 열을 찾지 못했어요. 아래에서 직접 골라 주세요.
+                {tr("studioDonationsImport.missing", { labels: missingLabels.join(" · ") })}
               </p>
             ) : (
-              <p className={local.meta}>{preview.detected ? "제목 줄 이름으로 열을 찾았어요. 다르면 직접 바꿔 주세요." : "고른 열로 읽었어요."}</p>
+              <p className={local.meta}>{preview.detected ? tr("studioDonationsImport.detected") : tr("studioDonationsImport.picked")}</p>
             )}
             <div className={local.mappingGrid}>
               {IMPORT_FIELDS.map((f) => (
                 <label key={f.key} className={local.mappingField}>
                   <span>
-                    {f.label}
+                    {tr(FIELD_KEY[f.key])}
                     {f.required && <span className={local.required}> *</span>}
                   </span>
                   <select className={styles.select} value={preview.mapping[f.key] ?? ""} disabled={busy !== null} onChange={(e) => remap(f.key, e.target.value)}>
-                    <option value="">{f.required ? "열을 골라 주세요" : "선택 안 함"}</option>
+                    <option value="">{f.required ? tr("studioDonationsImport.pickColumn") : tr("studioDonationsImport.noColumn")}</option>
                     {preview.headers.map((_, i) => (
                       <option key={i} value={i}>
-                        {columnName(preview.headers, i)}
+                        {columnName(preview.headers, i, tr)}
                       </option>
                     ))}
                   </select>
@@ -235,12 +266,12 @@ export function ToonationImportCard() {
             {preview.missing.length > 0 && preview.sample.length > 0 && (
               <div className={local.wrapTable}>
                 <table>
-                  <caption className={styles.srOnly}>파일 앞부분</caption>
+                  <caption className={styles.srOnly}>{tr("studioDonationsImport.fileHead")}</caption>
                   <thead>
                     <tr>
                       {preview.headers.map((_, i) => (
                         <th key={i} scope="col">
-                          {columnName(preview.headers, i)}
+                          {columnName(preview.headers, i, tr)}
                         </th>
                       ))}
                     </tr>
@@ -263,54 +294,56 @@ export function ToonationImportCard() {
 
           {preview.missing.length === 0 && (
             <>
-              <dl className={styles.listStats} aria-label="미리보기 요약">
+              <dl className={styles.listStats} aria-label={tr("studioDonationsImport.summaryAria")}>
                 <div>
-                  <dt>가져올 내역</dt>
+                  <dt>{tr("studioDonationsImport.toImport")}</dt>
                   <dd className={styles.teal}>
-                    {formatNumber(t.valid)}건 <span className={styles.listStatsCount}>/ 전체 {formatNumber(t.rows)}행</span>
+                    {tr("studioDonationsImport.count", { count: formatNumber(t.valid) })} <span className={styles.listStatsCount}>{tr("studioDonationsImport.rowsOfTotal", { rows: formatNumber(t.rows) })}</span>
                   </dd>
                 </div>
                 <div>
-                  <dt>합계</dt>
+                  <dt>{tr("studioDonationsImport.total")}</dt>
                   <dd>{won(t.amount)}</dd>
                 </div>
                 <div>
-                  <dt>오류</dt>
-                  <dd>{formatNumber(t.invalid)}건</dd>
+                  <dt>{tr("studioDonationsImport.errors")}</dt>
+                  <dd>{tr("studioDonationsImport.count", { count: formatNumber(t.invalid) })}</dd>
                 </div>
                 <div>
-                  <dt>중복</dt>
+                  <dt>{tr("studioDonationsImport.duplicates")}</dt>
                   <dd>
-                    {formatNumber(t.duplicateInFile + t.alreadyImported)}건{" "}
+                    {tr("studioDonationsImport.count", { count: formatNumber(t.duplicateInFile + t.alreadyImported) })}{" "}
                     <span className={styles.listStatsCount}>
-                      · 파일 안 {formatNumber(t.duplicateInFile)} · 이미 가져옴 {formatNumber(t.alreadyImported)}
+                      {tr("studioDonationsImport.dupBreakdown", { inFile: formatNumber(t.duplicateInFile), already: formatNumber(t.alreadyImported) })}
                     </span>
                   </dd>
                 </div>
               </dl>
 
               <div className={local.section}>
-                <h3 className={local.sectionTitle}>앞부분 미리보기</h3>
-                <RowsTable rows={preview.rows} caption="파일 앞부분 미리보기" />
+                <h3 className={local.sectionTitle}>{tr("studioDonationsImport.headPreview")}</h3>
+                <RowsTable rows={preview.rows} caption={tr("studioDonationsImport.headPreviewCaption")} />
               </div>
 
               {preview.problems.length > 0 && (
                 <div className={local.section}>
-                  <h3 className={local.sectionTitle}>가져오지 않는 행 {t.invalid + t.duplicateInFile + t.alreadyImported > IMPORT_PROBLEM_ROWS && `(앞의 ${IMPORT_PROBLEM_ROWS}개)`}</h3>
+                  <h3 className={local.sectionTitle}>
+                    {tr("studioDonationsImport.skippedRows")} {t.invalid + t.duplicateInFile + t.alreadyImported > IMPORT_PROBLEM_ROWS && tr("studioDonationsImport.firstN", { n: IMPORT_PROBLEM_ROWS })}
+                  </h3>
                   <div className={local.wrapTable}>
                     <table>
-                      <caption className={styles.srOnly}>가져오지 않는 행과 이유</caption>
+                      <caption className={styles.srOnly}>{tr("studioDonationsImport.skippedCaption")}</caption>
                       <thead>
                         <tr>
                           <th scope="col" style={{ width: 70 }}>
-                            행
+                            {tr("studioDonationsImport.colRow")}
                           </th>
                           <th scope="col" style={{ width: 110 }}>
-                            상태
+                            {tr("studioDonationsImport.colStatus")}
                           </th>
-                          <th scope="col">이유</th>
+                          <th scope="col">{tr("studioDonationsImport.colReason")}</th>
                           <th scope="col" style={{ width: 160 }}>
-                            닉네임
+                            {tr("studioDonationsImport.colNickname")}
                           </th>
                         </tr>
                       </thead>
@@ -318,8 +351,8 @@ export function ToonationImportCard() {
                         {preview.problems.map((r) => (
                           <tr key={r.row}>
                             <td>{formatNumber(r.row)}</td>
-                            <td className={STATUS_CLASS[r.status]}>{ROW_STATUS_LABEL[r.status]}</td>
-                            <td>{reasonOf(r)}</td>
+                            <td className={STATUS_CLASS[r.status]}>{tr(ROW_STATUS_KEY[r.status])}</td>
+                            <td>{reasonOf(r, tr)}</td>
                             <td>
                               <span className={local.clip}>{r.nickname || "-"}</span>
                             </td>
@@ -335,10 +368,10 @@ export function ToonationImportCard() {
 
           <div className={local.actions}>
             <button type="button" className={styles.ghostButton} onClick={reset} disabled={busy !== null}>
-              다른 파일 고르기
+              {tr("studioDonationsImport.pickAnother")}
             </button>
             <button type="button" className={styles.solidPurple} onClick={doImport} disabled={busy !== null || preview.missing.length > 0 || t.valid === 0}>
-              {busy === "importing" ? "가져오는 중…" : busy === "remapping" ? "다시 읽는 중…" : `${formatNumber(t.valid)}건 가져오기`}
+              {busy === "importing" ? tr("studioDonationsImport.importing") : busy === "remapping" ? tr("studioDonationsImport.rereading") : tr("studioDonationsImport.importN", { count: formatNumber(t.valid) })}
             </button>
           </div>
         </>
@@ -348,6 +381,7 @@ export function ToonationImportCard() {
 }
 
 function RowsTable({ rows, caption }: { rows: PreviewRow[]; caption: string }) {
+  const { t } = useI18n();
   return (
     <div className={local.wrapTable}>
       <table>
@@ -355,23 +389,23 @@ function RowsTable({ rows, caption }: { rows: PreviewRow[]; caption: string }) {
         <thead>
           <tr>
             <th scope="col" style={{ width: 60 }}>
-              행
+              {t("studioDonationsImport.colRow")}
             </th>
             <th scope="col" style={{ width: 100 }}>
-              상태
+              {t("studioDonationsImport.colStatus")}
             </th>
             <th scope="col" style={{ width: 160 }}>
-              후원 일시
+              {t("studioDonationsImport.colDonatedAt")}
             </th>
             <th scope="col" style={{ width: 140 }}>
-              닉네임
+              {t("studioDonationsImport.colNickname")}
             </th>
             <th scope="col" style={{ width: 110 }}>
-              금액
+              {t("studioDonationsImport.colAmount")}
             </th>
-            <th scope="col">메시지</th>
+            <th scope="col">{t("studioDonationsImport.colMessage")}</th>
             <th scope="col" style={{ width: 80 }}>
-              유형
+              {t("studioDonationsImport.colType")}
             </th>
           </tr>
         </thead>
@@ -379,7 +413,7 @@ function RowsTable({ rows, caption }: { rows: PreviewRow[]; caption: string }) {
           {rows.map((r) => (
             <tr key={r.row}>
               <td>{formatNumber(r.row)}</td>
-              <td className={STATUS_CLASS[r.status]}>{ROW_STATUS_LABEL[r.status]}</td>
+              <td className={STATUS_CLASS[r.status]}>{t(ROW_STATUS_KEY[r.status])}</td>
               <td>{r.at ? formatAt(r.at) : <span className={local.rowBad}>-</span>}</td>
               <td>
                 <span className={local.clip}>{r.nickname || "-"}</span>

@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { saveCumulative, setCumulativeVisible } from "@/services/crew/crewCumulative";
 import {
   CUMULATIVE_ROWS,
@@ -11,11 +13,14 @@ import {
   cumulativeText,
   type BroadcastResult,
   type CumulativeLive,
-  type CumulativeSettings
+  type CumulativeSettings,
+  type CumulativeSort
 } from "@/services/crew/crewTypes";
-import { BoardAddress, useSettingsDraft } from "./PrizeBoardPanel";
+import { AMOUNT_BASIS_KEY, BoardAddress, PLACEMENT_KEY, useSettingsDraft } from "./PrizeBoardPanel";
 import styles from "./crew.module.css";
 import prize from "./prize.module.css";
+
+const SORT_KEY: Record<CumulativeSort, MessageKey> = { TOTAL: "crewOpsBoards.sortTotal", ORDER: "crewOpsBoards.sortOrder" };
 
 /**
  * 누적 기여도 — code-first (no Figma frame; StreamDonate 누적 기여도 참고, 2026-10-25), inside `/creator/crew/broadcast`. Each
@@ -36,13 +41,14 @@ export function CumulativePanel({
   pending: boolean;
   run: (action: () => Promise<BroadcastResult>, ok?: string) => void;
 }) {
+  const { t } = useI18n();
   const { draft, setDraft, edit, dirty } = useSettingsDraft(settings);
   const board = live?.board;
   return (
     <section className={styles.card} aria-labelledby="bc-cumulative">
       <div className={styles.cardHead}>
         <h2 id="bc-cumulative" className={styles.cardTitle}>
-          누적 기여도
+          {t("crewOpsBoards.cumTitle")}
         </h2>
         {live && (
           <label className={styles.checkRow}>
@@ -51,68 +57,65 @@ export function CumulativePanel({
               checked={!!board?.visible}
               disabled={pending}
               onChange={(e) =>
-                run(() => setCumulativeVisible({ broadcastId: live.broadcastId, on: e.target.checked }), e.target.checked ? "OBS에 누적 기여도를 띄웠어요." : "누적 기여도를 내렸어요.")
+                run(() => setCumulativeVisible({ broadcastId: live.broadcastId, on: e.target.checked }), e.target.checked ? t("crewOpsBoards.boardShown", { label: t("crewOpsBoards.cumTitle") }) : t("crewOpsBoards.boardHidden", { label: t("crewOpsBoards.cumTitle") }))
               }
             />
-            OBS에 표시
+            {t("crewOps.showOnObs")}
           </label>
         )}
       </div>
-      <p className={styles.note}>
-        같은 프로젝트로 진행한 회차를 더해 멤버별로 보여 줘요. 기여도는 각 회차의 최종 점수, 후원금은 멤버가 받은 후원(멤버 지정 · 배정된 후원 리스트)을 자동엑셀 기준 단위로 배수 전에
-        더해요. 프로젝트 없이 시작한 방송은 이번 방송만 세요. BJ 목록 순서는 크루 관리의 멤버 순서대로 순위 뱃지 없이 보여 줘요.
-      </p>
+      <p className={styles.note}>{t("crewOpsBoards.cumNote")}</p>
 
       <form
         className={prize.form}
         onSubmit={(e) => {
           e.preventDefault();
-          run(() => saveCumulative(draft), "누적 기여도 설정을 저장했어요.");
+          run(() => saveCumulative(draft), t("crewOpsBoards.cumSaved"));
         }}
       >
         <div className={prize.field}>
-          <span className={styles.muted}>제목</span>
-          <input className={styles.input} aria-label="누적 기여도 제목" placeholder={CUMULATIVE_TITLE_DEFAULT} maxLength={PRIZE_TITLE_MAX} value={draft.title} onChange={(e) => edit({ title: e.target.value })} />
+          <span className={styles.muted}>{t("crewOpsBoards.titleLabel")}</span>
+          <input className={styles.input} aria-label={t("crewOpsBoards.cumTitleAria")} placeholder={CUMULATIVE_TITLE_DEFAULT} maxLength={PRIZE_TITLE_MAX} value={draft.title} onChange={(e) => edit({ title: e.target.value })} />
         </div>
         <div className={prize.field}>
-          <span className={styles.muted}>집계 기준</span>
-          <span className={styles.segment} role="group" aria-label="누적 기여도 집계 기준">
+          <span className={styles.muted}>{t("crewOpsBoards.basisLabel")}</span>
+          <span className={styles.segment} role="group" aria-label={t("crewOpsBoards.cumBasisAria")}>
             {[...WINDOW_GAUGE_BASES].reverse().map((b) => (
               <button key={b.key} type="button" aria-pressed={draft.basis === b.key} onClick={() => edit({ basis: b.key })}>
-                {b.label}
+                {t(AMOUNT_BASIS_KEY[b.key])}
               </button>
             ))}
           </span>
         </div>
-        <div className={prize.field} role="group" aria-label="누적 기여도 표시">
-          <span className={styles.muted}>표시</span>
+        <div className={prize.field} role="group" aria-label={t("crewOpsBoards.cumDisplayAria")}>
+          <span className={styles.muted}>{t("crewOpsBoards.display")}</span>
           <span className={prize.inline}>
-            <span className={styles.segment} role="group" aria-label="보여 줄 멤버 수">
+            <span className={styles.segment} role="group" aria-label={t("crewOpsBoards.rowsAria")}>
               {CUMULATIVE_ROWS.map((n) => (
                 <button key={n} type="button" aria-pressed={draft.rows === n} onClick={() => edit({ rows: n })}>
-                  {draft.sort === "ORDER" ? `${n}명` : `상위 ${n}명`}
+                  {draft.sort === "ORDER" ? t("crewOpsBoards.rowsN", { n }) : t("crewOpsBoards.rowsTopN", { n })}
                 </button>
               ))}
             </span>
-            <span className={styles.segment} role="group" aria-label="누적 기여도 정렬">
+            <span className={styles.segment} role="group" aria-label={t("crewOpsBoards.cumSortAria")}>
               {CUMULATIVE_SORTS.map((x) => (
                 <button key={x.key} type="button" aria-pressed={draft.sort === x.key} onClick={() => edit({ sort: x.key })}>
-                  {x.label}
+                  {t(SORT_KEY[x.key])}
                 </button>
               ))}
             </span>
             <label className={styles.checkRow}>
               <input type="checkbox" checked={draft.showBreakdown} onChange={(e) => edit({ showBreakdown: e.target.checked })} />
-              지난 회차 · 이번 회차
+              {t("crewOpsBoards.showBreakdown")}
             </label>
             <label className={styles.checkRow}>
               <input type="checkbox" checked={draft.showRounds} onChange={(e) => edit({ showRounds: e.target.checked })} />
-              프로젝트 · 회차 수
+              {t("crewOpsBoards.showRounds")}
             </label>
-            <span className={styles.segment} role="group" aria-label="누적 기여도 배치">
+            <span className={styles.segment} role="group" aria-label={t("crewOpsBoards.cumPlacementAria")}>
               {PRIZE_PLACEMENTS.map((p) => (
                 <button key={p.key} type="button" aria-pressed={draft.placement === p.key} onClick={() => edit({ placement: p.key })}>
-                  {p.label}
+                  {t(PLACEMENT_KEY[p.key])}
                 </button>
               ))}
             </span>
@@ -120,22 +123,22 @@ export function CumulativePanel({
         </div>
         <div className={styles.actions}>
           <button type="button" className={styles.ghost} disabled={pending || !dirty} onClick={() => setDraft(settings)}>
-            되돌리기
+            {t("crewOps.revert")}
           </button>
           <button type="submit" className={styles.primary} disabled={pending || !dirty}>
-            설정 저장
+            {t("crewOps.saveSettings")}
           </button>
         </div>
       </form>
 
       {!board ? (
-        <p className={styles.note}>방송을 시작하면 실시간 미리보기와 OBS 표시 버튼이 나와요.</p>
+        <p className={styles.note}>{t("crewOpsBoards.liveIdle")}</p>
       ) : (
         <>
-          <p className={styles.muted}>{board.project ? `${board.project} · ${board.rounds}회차까지 누적 (이번 회차 포함)` : "프로젝트 없이 시작한 방송이라 이번 방송만 보여요."}</p>
-          {dirty && <p className={styles.note}>저장하지 않은 설정이 있어요. OBS는 저장한 설정으로 보여요.</p>}
+          <p className={styles.muted}>{board.project ? t("crewOpsBoards.cumProject", { project: board.project, rounds: board.rounds }) : t("crewOpsBoards.cumNoProject")}</p>
+          {dirty && <p className={styles.note}>{t("crewOpsBoards.unsavedObs")}</p>}
           {board.rows.length ? (
-            <ol className={prize.preview} aria-label="누적 기여도 미리보기">
+            <ol className={prize.preview} aria-label={t("crewOpsBoards.cumPreviewAria")}>
               {board.rows.map((r) => (
                 <li key={r.memberId}>
                   <span className={styles.rankNo}>{r.rank}</span>
@@ -144,19 +147,19 @@ export function CumulativePanel({
                     {r.name}
                   </span>
                   <span className={prize.previewPrize}>
-                    지난 {cumulativeText(r.past, board.unit)} · 이번 {cumulativeText(r.current, board.unit)}
+                    {t("crewOpsBoards.cumPastCurrent", { past: cumulativeText(r.past, board.unit), current: cumulativeText(r.current, board.unit) })}
                   </span>
                   <strong>{cumulativeText(r.total, board.unit)}</strong>
                 </li>
               ))}
             </ol>
           ) : (
-            <p className={styles.empty}>순위에 넣을 멤버가 없어요.</p>
+            <p className={styles.empty}>{t("crewOpsBoards.noRankable")}</p>
           )}
         </>
       )}
 
-      <BoardAddress overlayPath={overlayPath} query="?cumulative" label="누적 기여도" />
+      <BoardAddress overlayPath={overlayPath} query="?cumulative" label={t("crewOpsBoards.cumTitle")} />
     </section>
   );
 }

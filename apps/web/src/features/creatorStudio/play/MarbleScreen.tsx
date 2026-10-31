@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useServerClock } from "@/hooks/useServerClock";
 import { formatKstTime } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import type { OverlayTarget } from "@/services/creator/alertTypes";
 import { addMarble, closeMarble, openMarble, removeMarble, saveMarble, startMarble } from "@/services/play/marble";
 import {
@@ -19,10 +21,13 @@ import {
   MARBLE_TITLE_DEFAULT,
   MARBLE_TITLE_MAX,
   MARBLE_WIN_RULES,
+  type MarbleMap,
+  type MarbleMode,
   type MarbleResult,
   type MarbleSettings,
   type MarbleSource,
-  type MarbleView
+  type MarbleView,
+  type MarbleWinRule
 } from "@/services/play/marbleTypes";
 import { PLATFORM_LABEL } from "@/types/platform";
 import { shownOverlayAddress } from "../crew/overlayAddress";
@@ -37,7 +42,15 @@ import play from "./play.module.css";
 type Draft = Omit<MarbleSettings, "maxPlayers" | "winRank" | "raceSec"> & { maxPlayers: string; winRank: string; raceSec: string };
 const toDraft = (s: MarbleSettings): Draft => ({ ...s, maxPlayers: String(s.maxPlayers), winRank: String(s.winRank), raceSec: String(s.raceSec) });
 const fromDraft = (d: Draft): MarbleSettings => ({ ...d, title: d.title.trim(), keyword: d.keyword.trim(), maxPlayers: Number(d.maxPlayers), winRank: Number(d.winRank), raceSec: Number(d.raceSec) });
-const sourceLabel = (s: MarbleSource) => (s === "INVITE" ? "초대" : s === "MANUAL" ? "직접" : PLATFORM_LABEL[s]);
+type T = ReturnType<typeof useI18n>["t"];
+const sourceLabel = (s: MarbleSource, t: T) => (s === "INVITE" ? t("studioPlay.sourceInvite") : s === "MANUAL" ? t("studioPlay.sourceManual") : PLATFORM_LABEL[s]);
+/** MARBLE_MODES · MARBLE_MAPS · MARBLE_WIN_RULES labels in the viewer's language (2026-11-01). */
+const MODE_KEYS: Record<MarbleMode, MessageKey> = { CHAT: "studioPlay.modeChat", INVITE: "studioPlay.modeInvite" };
+const MAP_KEYS: Record<MarbleMap, MessageKey> = { PINS: "studioPlay.mapPins", ZIGZAG: "studioPlay.mapZigzag", SPIRAL: "studioPlay.mapSpiral", STAIRS: "studioPlay.mapStairs" };
+const WIN_KEYS: Record<MarbleWinRule, MessageKey> = { FIRST: "studioPlay.winFirst", LAST: "studioPlay.winLast", RANK: "studioPlay.winRank" };
+/** The 당첨 rule as the server writes it (marbleRuleLabel: "1등" · "꼴등" · "3등"), in the viewer's language; anything else shows as written. */
+const ruleText = (rule: string, t: T) =>
+  rule === "1등" ? t("studioPlay.winFirst") : rule === "꼴등" ? t("studioPlay.winLast") : /^\d+등$/.test(rule) ? t("studioPlay.rankN", { rank: parseInt(rule, 10) }) : rule;
 
 /**
  * 시청자 참여 게임 — code-first (no Figma frame; StreamDonate 마블 룰렛 참고, P2). Route `/creator/widgets/play`. 마블 룰렛:
@@ -45,6 +58,7 @@ const sourceLabel = (s: MarbleSource) => (s === "INVITE" ? "초대" : s === "MAN
  * 초대 링크 entries come in on the 3-second refresh, 직접 추가 · 빼기), 회차별 결과 and the OBS address. Free: no FN or points.
  */
 export function MarbleScreen({ view, switches }: { view: MarbleView; switches: Record<OverlayTarget, boolean> }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [message, setMessage] = useState<{ tone: "error" | "ok"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
@@ -93,13 +107,13 @@ export function MarbleScreen({ view, switches }: { view: MarbleView; switches: R
   const open = () => {
     openId.current ??= crypto.randomUUID();
     const requestId = openId.current;
-    run(() => openMarble({ requestId }), "참가 모집을 시작했어요.", () => (openId.current = null));
+    run(() => openMarble({ requestId }), t("studioPlay.recruitStarted"), () => (openId.current = null));
   };
   const start = () => {
     if (!round) return;
     startId.current ??= crypto.randomUUID();
     const requestId = startId.current;
-    run(() => startMarble({ roundId: round.id, requestId }), "레이스를 시작했어요. OBS에서 3초 뒤 출발해요.", () => (startId.current = null));
+    run(() => startMarble({ roundId: round.id, requestId }), t("studioPlay.raceStarted"), () => (startId.current = null));
   };
 
   const race = round?.race ?? null;
@@ -109,8 +123,8 @@ export function MarbleScreen({ view, switches }: { view: MarbleView; switches: R
   return (
     <div className={styles.content}>
       <header className={styles.header}>
-        <h1 className={styles.title}>시청자 참여 게임</h1>
-        <p className={styles.subtitle}>후원 없이 채팅이나 초대 링크로 참여하는 무료 게임이에요. 점수 · FN은 움직이지 않아요.</p>
+        <h1 className={styles.title}>{t("studioPlay.pageTitle")}</h1>
+        <p className={styles.subtitle}>{t("studioPlay.pageSubtitle")}</p>
       </header>
       <OverlayOffNotice targets={["play"]} switches={switches} />
       <PlayTabs active="marble" />
@@ -123,66 +137,66 @@ export function MarbleScreen({ view, switches }: { view: MarbleView; switches: R
 
       <section className={styles.card} aria-labelledby="marble-title">
         <h2 id="marble-title" className={styles.cardTitle}>
-          🔮 마블 룰렛
+          {t("studioPlay.marble")}
         </h2>
-        <p className={styles.note}>
-          참가자 구슬이 코스를 굴러 내려가요. 순서는 레이스를 시작할 때 서버가 정하고, OBS는 그 순서대로 구슬을 굴려요. 1등 · 꼴등 · N등 중 정한 순위가 당첨이에요.
-        </p>
+        <p className={styles.note}>{t("studioPlay.marbleIntro")}</p>
         <form
           className={prize.form}
           onSubmit={(e) => {
             e.preventDefault();
-            run(() => saveMarble(fromDraft(draft)), "마블 룰렛 설정을 저장했어요.");
+            run(() => saveMarble(fromDraft(draft)), t("studioPlay.marbleSaved"));
           }}
         >
           <div className={prize.field}>
-            <span className={styles.muted}>제목</span>
-            <input className={styles.input} aria-label="마블 룰렛 제목" placeholder={MARBLE_TITLE_DEFAULT} maxLength={MARBLE_TITLE_MAX} value={draft.title} onChange={(e) => edit({ title: e.target.value })} />
+            <span className={styles.muted}>{t("studioPlay.titleLabel")}</span>
+            <input className={styles.input} aria-label={t("studioPlay.marbleTitleAria")} placeholder={MARBLE_TITLE_DEFAULT} maxLength={MARBLE_TITLE_MAX} value={draft.title} onChange={(e) => edit({ title: e.target.value })} />
           </div>
-          <div className={prize.field} role="group" aria-label="참가 방식">
-            <span className={styles.muted}>참가 방식</span>
+          <div className={prize.field} role="group" aria-label={t("studioPlay.joinMode")}>
+            <span className={styles.muted}>{t("studioPlay.joinMode")}</span>
             <span className={prize.inline}>
               <span className={styles.segment}>
                 {MARBLE_MODES.map((m) => (
                   <button key={m.key} type="button" aria-pressed={draft.mode === m.key} onClick={() => edit({ mode: m.key })}>
-                    {m.label}
+                    {t(MODE_KEYS[m.key])}
                   </button>
                 ))}
               </span>
               {draft.mode === "CHAT" && (
                 <span className={play.unit}>
-                  <span className={styles.muted}>명령어</span>
-                  <input className={styles.inputSmall} aria-label="참가 명령어" maxLength={MARBLE_KEYWORD_MAX} value={draft.keyword} onChange={(e) => edit({ keyword: e.target.value })} />
+                  <span className={styles.muted}>{t("studioPlay.command")}</span>
+                  <input className={styles.inputSmall} aria-label={t("studioPlay.joinCommand")} maxLength={MARBLE_KEYWORD_MAX} value={draft.keyword} onChange={(e) => edit({ keyword: e.target.value })} />
                 </span>
               )}
             </span>
             <span className={styles.note}>
               {draft.mode === "CHAT" ? (
                 <>
-                  <Link href="/creator/chat">통합 채팅</Link>에 연결한 플랫폼(YouTube · 치지직 · SOOP · FlexTV) 채팅에서 명령어를 입력한 시청자가 한 번씩 참가해요.
+                  {t("studioPlay.chatNoteBefore")}
+                  <Link href="/creator/chat">{t("studioPlay.unifiedChat")}</Link>
+                  {t("studioPlay.chatNoteAfter")}
                 </>
               ) : (
-                "참가 모집을 시작하면 초대 링크가 생겨요. 링크를 받은 사람만 이름을 넣고 참가해요(채팅 참가 없음)."
+                t("studioPlay.inviteNote")
               )}
             </span>
           </div>
-          <div className={prize.field} role="group" aria-label="맵">
-            <span className={styles.muted}>맵</span>
+          <div className={prize.field} role="group" aria-label={t("studioPlay.map")}>
+            <span className={styles.muted}>{t("studioPlay.map")}</span>
             <span className={styles.segment}>
               {MARBLE_MAPS.map((m) => (
                 <button key={m.key} type="button" aria-pressed={draft.map === m.key} onClick={() => edit({ map: m.key })}>
-                  {m.label}
+                  {t(MAP_KEYS[m.key])}
                 </button>
               ))}
             </span>
           </div>
-          <div className={prize.field} role="group" aria-label="당첨">
-            <span className={styles.muted}>당첨</span>
+          <div className={prize.field} role="group" aria-label={t("studioPlay.win")}>
+            <span className={styles.muted}>{t("studioPlay.win")}</span>
             <span className={prize.inline}>
               <span className={styles.segment}>
                 {MARBLE_WIN_RULES.map((r) => (
                   <button key={r.key} type="button" aria-pressed={draft.winRule === r.key} onClick={() => edit({ winRule: r.key })}>
-                    {r.label}
+                    {t(WIN_KEYS[r.key])}
                   </button>
                 ))}
               </span>
@@ -192,60 +206,58 @@ export function MarbleScreen({ view, switches }: { view: MarbleView; switches: R
                     className={styles.inputSmall}
                     type="number"
                     inputMode="numeric"
-                    aria-label="당첨 순위"
+                    aria-label={t("studioPlay.winRankAria")}
                     min={1}
                     max={MARBLE_PLAYERS_MAX}
                     value={draft.winRank}
                     onChange={(e) => edit({ winRank: e.target.value })}
                   />
-                  <span className={styles.muted}>등 (참가자보다 크면 꼴등)</span>
+                  <span className={styles.muted}>{t("studioPlay.winRankUnit")}</span>
                 </span>
               )}
             </span>
           </div>
           <div className={play.row}>
             <label className={play.unit}>
-              <span className={styles.muted}>최대 인원</span>
+              <span className={styles.muted}>{t("studioPlay.maxPlayers")}</span>
               <input
                 className={styles.inputSmall}
                 type="number"
                 inputMode="numeric"
-                aria-label="최대 인원"
+                aria-label={t("studioPlay.maxPlayers")}
                 min={MARBLE_PLAYERS_MIN}
                 max={MARBLE_PLAYERS_MAX}
                 value={draft.maxPlayers}
                 onChange={(e) => edit({ maxPlayers: e.target.value })}
               />
-              <span className={styles.muted}>
-                명 ({MARBLE_PLAYERS_MIN} ~ {MARBLE_PLAYERS_MAX})
-              </span>
+              <span className={styles.muted}>{t("studioPlay.peopleRange", { min: MARBLE_PLAYERS_MIN, max: MARBLE_PLAYERS_MAX })}</span>
             </label>
             <label className={play.unit}>
-              <span className={styles.muted}>레이스</span>
+              <span className={styles.muted}>{t("studioPlay.race")}</span>
               <input
                 className={styles.inputSmall}
                 type="number"
                 inputMode="numeric"
-                aria-label="레이스 시간"
+                aria-label={t("studioPlay.raceTime")}
                 min={MARBLE_RACE_MIN_SEC}
                 max={MARBLE_RACE_MAX_SEC}
                 value={draft.raceSec}
                 onChange={(e) => edit({ raceSec: e.target.value })}
               />
-              <span className={styles.muted}>초</span>
+              <span className={styles.muted}>{t("studioPlay.secUnit")}</span>
             </label>
           </div>
           <label className={styles.checkRow}>
             <input type="checkbox" checked={draft.skills} onChange={(e) => edit({ skills: e.target.checked })} />
-            스킬 연출 (부스트 · 순간이동 · 역주행 · 멈춤 — 연출일 뿐 순위는 바뀌지 않아요)
+            {t("studioPlay.skills")}
           </label>
-          <p className={styles.note}>설정은 다음 참가 모집부터 적용돼요.</p>
+          <p className={styles.note}>{t("studioPlay.appliesNext")}</p>
           <div className={styles.actions}>
             <button type="button" className={styles.ghost} disabled={pending || !dirty} onClick={() => setDraft(toDraft(settings))}>
-              되돌리기
+              {t("studioPlay.revert")}
             </button>
             <button type="submit" className={styles.primary} disabled={pending || !dirty}>
-              설정 저장
+              {t("studioPlay.saveSettings")}
             </button>
           </div>
         </form>
@@ -253,13 +265,13 @@ export function MarbleScreen({ view, switches }: { view: MarbleView; switches: R
 
       <section className={styles.card} aria-labelledby="marble-round-title">
         <h2 id="marble-round-title" className={styles.cardTitle}>
-          진행
+          {t("studioPlay.progress")}
         </h2>
         {!round && (
           <div className={prize.window}>
-            <span className={styles.muted}>진행 중인 판이 없어요. 참가 모집을 시작하면 OBS에 모집 화면이 떠요.</span>
+            <span className={styles.muted}>{t("studioPlay.noRound")}</span>
             <button type="button" className={styles.primary} disabled={pending} onClick={open}>
-              참가 모집 시작
+              {t("studioPlay.startRecruit")}
             </button>
           </div>
         )}
@@ -267,22 +279,28 @@ export function MarbleScreen({ view, switches }: { view: MarbleView; switches: R
           <>
             <div className={prize.window}>
               <span className={styles.muted}>
-                {round.no}회차 · {round.status === "OPEN" ? "참가 모집 중" : round.status === "RACING" ? `레이스 중 · ${left}초 남음` : "결과"} · {round.entrants.length}/{round.maxPlayers}명 · 당첨{" "}
-                {round.rule}
+                {t("studioPlay.roundNo", { no: round.no })} ·{" "}
+                {round.status === "OPEN" ? t("studioPlay.recruiting") : round.status === "RACING" ? t("studioPlay.racing", { left }) : t("studioPlay.result")} ·{" "}
+                {t("studioPlay.players", { count: round.entrants.length, max: round.maxPlayers })} · {t("studioPlay.winRule", { rule: ruleText(round.rule, t) })}
               </span>
               {round.status === "OPEN" && (
                 <button type="button" className={styles.primary} disabled={pending || round.entrants.length < MARBLE_PLAYERS_MIN} onClick={start}>
-                  레이스 시작
+                  {t("studioPlay.startRace")}
                 </button>
               )}
               {round.status === "DONE" && (
                 <button type="button" className={styles.primary} disabled={pending} onClick={open}>
-                  다음 판 모집
+                  {t("studioPlay.nextRound")}
                 </button>
               )}
               {round.status !== "RACING" && (
-                <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => closeMarble({ roundId: round.id }), round.status === "OPEN" ? "참가 모집을 취소했어요." : "판을 닫았어요.")}>
-                  {round.status === "OPEN" ? "모집 취소" : "판 닫기"}
+                <button
+                  type="button"
+                  className={styles.ghost}
+                  disabled={pending}
+                  onClick={() => run(() => closeMarble({ roundId: round.id }), round.status === "OPEN" ? t("studioPlay.recruitCancelled") : t("studioPlay.roundClosed"))}
+                >
+                  {round.status === "OPEN" ? t("studioPlay.cancelRecruit") : t("studioPlay.closeRound")}
                 </button>
               )}
             </div>
@@ -290,13 +308,15 @@ export function MarbleScreen({ view, switches }: { view: MarbleView; switches: R
               <>
                 {round.mode === "CHAT" ? (
                   <p className={styles.note}>
-                    채팅에 <strong>{round.keyword}</strong>를 입력하면 참가해요. {MARBLE_PLAYERS_MIN}명 이상이면 시작할 수 있어요.
+                    {t("studioPlay.chatJoinBefore")}
+                    <strong>{round.keyword}</strong>
+                    {t("studioPlay.chatJoinAfter", { min: MARBLE_PLAYERS_MIN })}
                   </p>
                 ) : (
                   view.invitePath && (
                     <div className={styles.addRow}>
-                      <input className={styles.input} value={`${origin}${view.invitePath}`} readOnly aria-label="초대 링크" onFocus={(e) => e.target.select()} />
-                      <CopyButton value={`${origin}${view.invitePath}`} label="복사" className={styles.ghost} />
+                      <input className={styles.input} value={`${origin}${view.invitePath}`} readOnly aria-label={t("studioPlay.inviteLinkAria")} onFocus={(e) => e.target.select()} />
+                      <CopyButton value={`${origin}${view.invitePath}`} className={styles.ghost} />
                     </div>
                   )
                 )}
@@ -307,22 +327,29 @@ export function MarbleScreen({ view, switches }: { view: MarbleView; switches: R
                     run(() => addMarble({ roundId: round.id, name }), undefined, () => setName(""));
                   }}
                 >
-                  <input className={styles.input} aria-label="직접 추가할 이름" placeholder="이름 직접 추가" maxLength={MARBLE_NAME_MAX} value={name} onChange={(e) => setName(e.target.value)} />
+                  <input
+                    className={styles.input}
+                    aria-label={t("studioPlay.addNameAria")}
+                    placeholder={t("studioPlay.addNamePlaceholder")}
+                    maxLength={MARBLE_NAME_MAX}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
                   <button type="submit" className={styles.ghost} disabled={pending || !name.trim()}>
-                    추가
+                    {t("studioPlay.add")}
                   </button>
                 </form>
               </>
             )}
             {round.status !== "DONE" ? (
               round.entrants.length > 0 ? (
-                <ul className={play.entrants} aria-label="참가자">
+                <ul className={play.entrants} aria-label={t("studioPlay.entrantsAria")}>
                   {round.entrants.map((e) => (
                     <li key={e.id}>
                       {e.name}
-                      <span className={styles.muted}>{sourceLabel(e.source)}</span>
+                      <span className={styles.muted}>{sourceLabel(e.source, t)}</span>
                       {round.status === "OPEN" && (
-                        <button type="button" aria-label={`${e.name} 빼기`} disabled={pending} onClick={() => run(() => removeMarble({ roundId: round.id, entrantId: e.id }))}>
+                        <button type="button" aria-label={t("studioPlay.removeAria", { name: e.name })} disabled={pending} onClick={() => run(() => removeMarble({ roundId: round.id, entrantId: e.id }))}>
                           ✕
                         </button>
                       )}
@@ -330,16 +357,16 @@ export function MarbleScreen({ view, switches }: { view: MarbleView; switches: R
                   ))}
                 </ul>
               ) : (
-                <p className={styles.empty}>아직 참가자가 없어요.</p>
+                <p className={styles.empty}>{t("studioPlay.noEntrants")}</p>
               )
             ) : (
               race && (
-                <ol className={play.results} aria-label="결과">
+                <ol className={play.results} aria-label={t("studioPlay.result")}>
                   {race.order.map((id, i) => (
                     <li key={id} data-win={id === race.winnerId || undefined}>
-                      <span className={styles.muted}>{i + 1}등</span>
+                      <span className={styles.muted}>{t("studioPlay.rankN", { rank: i + 1 })}</span>
                       <strong>{name0(id)}</strong>
-                      {id === race.winnerId && <span className={play.badge}>당첨</span>}
+                      {id === race.winnerId && <span className={play.badge}>{t("studioPlay.win")}</span>}
                     </li>
                   ))}
                 </ol>
@@ -351,19 +378,17 @@ export function MarbleScreen({ view, switches }: { view: MarbleView; switches: R
 
       <section className={styles.card} aria-labelledby="marble-history-title">
         <h2 id="marble-history-title" className={styles.cardTitle}>
-          회차별 결과
+          {t("studioPlay.history")}
         </h2>
         {view.history.length === 0 ? (
-          <p className={styles.empty}>아직 끝난 판이 없어요.</p>
+          <p className={styles.empty}>{t("studioPlay.noHistory")}</p>
         ) : (
           <ol className={play.history}>
             {view.history.map((h) => (
               <li key={h.no}>
-                <span className={styles.muted}>{h.no}회차</span>
+                <span className={styles.muted}>{t("studioPlay.roundNo", { no: h.no })}</span>
                 <span className={styles.muted}>{formatKstTime(h.at, { hour: "2-digit", minute: "2-digit" })}</span>
-                <span>
-                  {h.players}명 · {MARBLE_MAPS.find((m) => m.key === h.map)!.label} · {h.rule} 당첨
-                </span>
+                <span>{t("studioPlay.marbleHistory", { players: h.players, map: t(MAP_KEYS[h.map]), rule: ruleText(h.rule, t) })}</span>
                 <strong>{h.winner}</strong>
               </li>
             ))}
@@ -373,12 +398,18 @@ export function MarbleScreen({ view, switches }: { view: MarbleView; switches: R
 
       <section className={styles.card} aria-labelledby="marble-obs-title">
         <h2 id="marble-obs-title" className={styles.cardTitle}>
-          OBS 주소
+          {t("studioPlay.obsAddress")}
         </h2>
-        <p className={styles.note}>OBS 브라우저 소스로 추가하면 모집 화면 → 구슬 레이스 → 당첨 결과가 나와요. 권장 크기 480 × 720.</p>
+        <p className={styles.note}>{t("studioPlay.marbleObsNote")}</p>
         <div className={styles.addRow}>
-          <input className={styles.input} value={shownOverlayAddress(origin, view.overlayPath, "?marble")} readOnly aria-label="마블 룰렛 오버레이 주소" onFocus={(e) => e.target.select()} />
-          <CopyButton value={`${origin}${view.overlayPath}?marble`} label="복사" className={styles.ghost} />
+          <input
+            className={styles.input}
+            value={shownOverlayAddress(origin, view.overlayPath, "?marble")}
+            readOnly
+            aria-label={t("studioPlay.marbleOverlayAria")}
+            onFocus={(e) => e.target.select()}
+          />
+          <CopyButton value={`${origin}${view.overlayPath}?marble`} className={styles.ghost} />
         </div>
       </section>
     </div>

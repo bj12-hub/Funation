@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import styles from "./widgets.module.css";
 
 /**
@@ -6,13 +7,14 @@ import styles from "./widgets.module.css";
  * `live.designOnly`).
  */
 export function DesignOnlyNotice({ rules }: { rules: string }) {
+  const { t } = useI18n();
   return (
     <p className={styles.notice}>
-      ※ 여기서는 방송 화면에 보이는 모양만 정해요. {rules}은(는){" "}
+      {t("widgetForm.designOnlyBefore", { rules })}{" "}
       <Link href="/creator/donation-types" className={styles.linkButton}>
-        후원 종류 설정
+        {t("widgetForm.designOnlyLink")}
       </Link>
-      에서 바꿔요.
+      {t("widgetForm.designOnlyAfter")}
     </p>
   );
 }
