@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { memberTypeLabel, SETTLEMENT_STATUS_LABEL, type SettlementManageView } from "@/services/creator/settlementTypes";
+import { getT } from "@/lib/i18n/server";
+import type { SettlementManageView } from "@/services/creator/settlementTypes";
 import { ChangeInfoButton, ManageFilter, SettlementCsvButton } from "./ManageControls";
 import { SettlementTabs } from "./SettlementTabs";
+import { MEMBER_TYPE_KEY, SETTLEMENT_STATUS_KEY } from "./settlementLabels";
 import applyStyles from "./apply.module.css";
 import styles from "./manage.module.css";
 
@@ -9,7 +11,8 @@ const fn = (n: number) => n.toLocaleString("ko-KR");
 const short = (iso: string) => iso.slice(5);
 
 /** Figma 478:2 · 479:144 — 정산 관리 (route `/creator/settlement/manage`). */
-export function SettlementManageScreen({ view }: { view: SettlementManageView }) {
+export async function SettlementManageScreen({ view }: { view: SettlementManageView }) {
+  const t = await getT();
   const qs = (page: number) => {
     const p = new URLSearchParams({ period: view.period, page: String(page) });
     if (view.period === "custom") {
@@ -22,23 +25,23 @@ export function SettlementManageScreen({ view }: { view: SettlementManageView })
   return (
     <div className={applyStyles.content}>
       <SettlementTabs active="manage" />
-      <h1 className={applyStyles.pageTitle}>정산 관리</h1>
+      <h1 className={applyStyles.pageTitle}>{t("studioSettlementApply.manageTitle")}</h1>
 
-      <section className={styles.infoCard} aria-label="정산 등록 정보">
+      <section className={styles.infoCard} aria-label={t("studioSettlementApply.registrationAria")}>
         <dl className={styles.info}>
           <div>
-            <dt>정산 등록자</dt>
+            <dt>{t("studioSettlementApply.registrant")}</dt>
             <dd>{view.registrant}</dd>
           </div>
           <div>
-            <dt>정산 계좌</dt>
+            <dt>{t("studioSettlementApply.payoutAccountLabel")}</dt>
             <dd>
               {view.bankName} {view.accountMasked}
             </dd>
           </div>
           <div>
-            <dt>정산 유형</dt>
-            <dd>{memberTypeLabel(view.memberType)}</dd>
+            <dt>{t("studioSettlementApply.memberType")}</dt>
+            <dd>{t(MEMBER_TYPE_KEY[view.memberType])}</dd>
           </div>
         </dl>
         <ChangeInfoButton />
@@ -51,20 +54,20 @@ export function SettlementManageScreen({ view }: { view: SettlementManageView })
         <table className={styles.table}>
           <thead>
             <tr>
-              <th scope="col">상태</th>
-              <th scope="col">신청일</th>
-              <th scope="col">정산 기간</th>
-              <th scope="col">신청 금액</th>
-              <th scope="col">수수료</th>
-              <th scope="col">정산 금액</th>
-              <th scope="col">지급(예정)일</th>
+              <th scope="col">{t("studioSettlementApply.colStatus")}</th>
+              <th scope="col">{t("studioSettlementApply.colRequested")}</th>
+              <th scope="col">{t("studioSettlementApply.colPeriod")}</th>
+              <th scope="col">{t("studioSettlementApply.colAmount")}</th>
+              <th scope="col">{t("studioSettlementApply.colFee")}</th>
+              <th scope="col">{t("studioSettlementApply.colNet")}</th>
+              <th scope="col">{t("studioSettlementApply.colPayoutDate")}</th>
             </tr>
           </thead>
           <tbody>
             {view.items.length === 0 ? (
               <tr>
                 <td colSpan={7} className={styles.empty}>
-                  조회된 정산 내역이 없습니다.
+                  {t("studioSettlementApply.empty")}
                 </td>
               </tr>
             ) : (
@@ -74,9 +77,9 @@ export function SettlementManageScreen({ view }: { view: SettlementManageView })
                   <tr key={r.id}>
                     <td>
                       <span className={applyStyles.badge} data-status={r.status}>
-                        {SETTLEMENT_STATUS_LABEL[r.status]}
+                        {t(SETTLEMENT_STATUS_KEY[r.status])}
                       </span>
-                      {r.reviewNote && <p className={styles.reviewNote}>사유: {r.reviewNote}</p>}
+                      {r.reviewNote && <p className={styles.reviewNote}>{t("studioSettlementApply.reason", { note: r.reviewNote })}</p>}
                     </td>
                     <td>{r.requestedAt}</td>
                     <td>
@@ -95,9 +98,9 @@ export function SettlementManageScreen({ view }: { view: SettlementManageView })
         </table>
       </div>
 
-      <nav className={styles.pagination} aria-label="페이지">
+      <nav className={styles.pagination} aria-label={t("studioSettlementApply.pages")}>
         {view.page > 1 ? (
-          <Link href={qs(view.page - 1)} className={styles.pageButton} aria-label="이전 페이지">
+          <Link href={qs(view.page - 1)} className={styles.pageButton} aria-label={t("studioSettlementApply.prevPage")}>
             ‹
           </Link>
         ) : (
@@ -111,7 +114,7 @@ export function SettlementManageScreen({ view }: { view: SettlementManageView })
           </Link>
         ))}
         {view.page < view.totalPages ? (
-          <Link href={qs(view.page + 1)} className={styles.pageButton} aria-label="다음 페이지">
+          <Link href={qs(view.page + 1)} className={styles.pageButton} aria-label={t("studioSettlementApply.nextPage")}>
             ›
           </Link>
         ) : (

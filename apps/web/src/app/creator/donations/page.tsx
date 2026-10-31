@@ -7,6 +7,7 @@ import { ImportTab } from "@/features/creatorStudio/donations/ImportTab";
 import { ManagementShell } from "@/features/creatorStudio/donations/ManagementShell";
 import { PageSettingsTab } from "@/features/creatorStudio/donations/PageSettingsTab";
 import { TitlesTab } from "@/features/creatorStudio/donations/TitlesTab";
+import { getT } from "@/lib/i18n/server";
 import {
   getBlockedDonors,
   getDonationPageSettings,
@@ -29,7 +30,9 @@ import {
 
 // Figma: donation-management 539:7 (후원 페이지 설정) · 539:156 (후원 리스트) · 539:303 (후원 순위) ·
 // 539:466 / 539:574 (후원 필터링 · 차단 리스트) · 539:690 (칭호 설정)
-export const metadata: Metadata = { title: "후원관리+ | Ssumnation 크리에이터" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("studioDonations.meta") };
+}
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -37,7 +40,7 @@ const one = (v: string | string[] | undefined) => (typeof v === "string" ? v : u
 const LOGIN = "/login?role=creator&next=/creator/donations";
 
 export default async function Page({ searchParams }: { searchParams: SearchParams }) {
-  const raw = await searchParams;
+  const [raw, t] = await Promise.all([searchParams, getT()]);
   const tab = parseManagementTab(one(raw.tab));
 
   if (tab === "filtering") {
@@ -48,8 +51,8 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
     ]);
     if (!settings && !blocked) redirect(LOGIN);
     return (
-      <ManagementShell tab="filtering">
-        <FilteringTab sub={sub} settings={settings} blocked={blocked} />
+      <ManagementShell tab="filtering" t={t}>
+        <FilteringTab sub={sub} settings={settings} blocked={blocked} t={t} />
       </ManagementShell>
     );
   }
@@ -60,16 +63,16 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
       const records = await getImportedDonations({ source: one(raw.source), from: one(raw.from), to: one(raw.to), q: one(raw.q), page: Number(one(raw.page) ?? 1) });
       if (!records) redirect(LOGIN);
       return (
-        <ManagementShell tab="import">
-          <ImportTab sub="records" overview={null} records={records} />
+        <ManagementShell tab="import" t={t}>
+          <ImportTab sub="records" overview={null} records={records} t={t} />
         </ManagementShell>
       );
     }
     const overview = await getDonationImportOverview();
     if (!overview) redirect(LOGIN);
     return (
-      <ManagementShell tab="import">
-        <ImportTab sub="upload" overview={overview} records={null} />
+      <ManagementShell tab="import" t={t}>
+        <ImportTab sub="upload" overview={overview} records={null} t={t} />
       </ManagementShell>
     );
   }
@@ -78,7 +81,7 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
     const tiers = await getTitleTiers();
     if (!tiers) redirect(LOGIN);
     return (
-      <ManagementShell tab="titles">
+      <ManagementShell tab="titles" t={t}>
         <TitlesTab initial={tiers} />
       </ManagementShell>
     );
@@ -96,8 +99,8 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
     });
     if (!data) redirect(LOGIN);
     return (
-      <ManagementShell tab="list">
-        <DonationListTab data={data} />
+      <ManagementShell tab="list" t={t}>
+        <DonationListTab data={data} t={t} />
       </ManagementShell>
     );
   }
@@ -107,8 +110,8 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
     const data = await getDonorRanking(RANK_PERIODS.some((x) => x.key === p) ? (p as RankPeriod) : "month");
     if (!data) redirect(LOGIN);
     return (
-      <ManagementShell tab="ranking">
-        <DonorRankingTab data={data} />
+      <ManagementShell tab="ranking" t={t}>
+        <DonorRankingTab data={data} t={t} />
       </ManagementShell>
     );
   }
@@ -116,7 +119,7 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
   const settings = await getDonationPageSettings();
   if (!settings) redirect(LOGIN);
   return (
-    <ManagementShell tab="settings">
+    <ManagementShell tab="settings" t={t}>
       <PageSettingsTab initial={settings} />
     </ManagementShell>
   );

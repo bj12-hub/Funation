@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useCallback, useState, useTransition } from "react";
 import { ChevronDownSmallIcon } from "@/components/icons";
 import { Toast } from "@/components/ui/Toast";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { registerSettlement } from "@/services/creator/settlement";
 import {
   BANKS,
@@ -16,29 +18,32 @@ import {
   VISA_TYPES,
   type MemberType
 } from "@/services/creator/settlementTypes";
+import { MEMBER_TYPE_FORM_KEY } from "./settlementLabels";
 import { AddressInputs, EmailInputs, Field, FormCard, PhoneInputs, Select, TaxBar, TextInput, UploadField } from "./formFields";
 import styles from "./registration.module.css";
 
-const TITLES: Record<MemberType, string> = {
-  INDIVIDUAL: "정산 자료 등록",
-  FOREIGN_RESIDENT: "정산 자료 등록 (개인 - 외국인)",
-  SOLE_PROPRIETOR: "정산 자료 등록 (개인사업자)",
-  CORPORATION: "정산 자료 등록"
+const TITLES: Record<MemberType, MessageKey> = {
+  INDIVIDUAL: "studioSettlementForm.titleIndividual",
+  FOREIGN_RESIDENT: "studioSettlementForm.titleForeign",
+  SOLE_PROPRIETOR: "studioSettlementForm.titleSole",
+  CORPORATION: "studioSettlementForm.titleCorporation"
 };
-
-const SAME_AS_ACCOUNT = "정산 받으실 계좌와 동일한 정보를 입력해 주세요.";
 
 /**
  * 정산 자료 등록 — Figma 429:219 (개인) · 443:5 (외국인) · 433:210 (개인사업자) · 437:4 (법인).
- * Native validation gives instant feedback; `registerSettlement` validates everything again.
+ * Native validation gives instant feedback; `registerSettlement` validates everything again. `tr` translates (`t` is the
+ * member type here); the tax-type bars, the 면세 helper and the select options (banks, nationalities, visa and tax types)
+ * stay as written.
  */
 export function RegistrationForm({ memberType }: { memberType: MemberType }) {
+  const { t: tr } = useI18n();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const clearToast = useCallback(() => setToast(null), []);
   const t = memberType;
+  const SAME_AS_ACCOUNT = tr("studioSettlementForm.sameAsAccount");
 
   const submit = (form: HTMLFormElement) => {
     setError(null);
@@ -60,14 +65,14 @@ export function RegistrationForm({ memberType }: { memberType: MemberType }) {
 
   const bankCard = (holderHelper: string, holderPlaceholder: string, fallback: string) => (
     <>
-      <FormCard title="계좌 인증">
-        <Field label="은행명" htmlFor="st-bank">
+      <FormCard title={tr("studioSettlementForm.cardAccount")}>
+        <Field label={tr("studioSettlementForm.bank")} htmlFor="st-bank">
           <Select id="st-bank" name="bank" options={BANKS} defaultValue={t === "SOLE_PROPRIETOR" || t === "CORPORATION" ? "우리은행" : "신한은행"} />
         </Field>
-        <Field label="계좌번호" htmlFor="st-account">
-          <TextInput id="st-account" name="accountNo" inputMode="numeric" pattern="\d{6,20}" maxLength={20} placeholder="-없이 입력" />
+        <Field label={tr("studioSettlementForm.accountNo")} htmlFor="st-account">
+          <TextInput id="st-account" name="accountNo" inputMode="numeric" pattern="\d{6,20}" maxLength={20} placeholder={tr("studioSettlementForm.accountNoPlaceholder")} />
         </Field>
-        <Field label="예금주 명" helper={holderHelper} htmlFor="st-holder">
+        <Field label={tr("studioSettlementForm.holder")} helper={holderHelper} htmlFor="st-holder">
           <TextInput id="st-holder" name="holder" maxLength={40} placeholder={holderPlaceholder} />
         </Field>
       </FormCard>
@@ -79,48 +84,48 @@ export function RegistrationForm({ memberType }: { memberType: MemberType }) {
   );
 
   const phoneField = (
-    <Field label="전화번호" group>
-      <PhoneInputs prefix="phone" label="전화번호" />
+    <Field label={tr("studioSettlementForm.phone")} group>
+      <PhoneInputs prefix="phone" label={tr("studioSettlementForm.phone")} />
     </Field>
   );
   const emailField = (
-    <Field label="이메일" group>
-      <EmailInputs prefix="email" label="이메일" />
+    <Field label={tr("studioSettlementForm.email")} group>
+      <EmailInputs prefix="email" label={tr("studioSettlementForm.email")} />
     </Field>
   );
   const addressField = (
-    <Field label="주소" group>
-      <AddressInputs onSearch={() => setToast("주소 검색은 준비 중이에요. 주소를 직접 입력해 주세요.")} />
+    <Field label={tr("studioSettlementForm.address")} group>
+      <AddressInputs onSearch={() => setToast(tr("studioSettlementForm.addressSoon"))} />
     </Field>
   );
   const channelField = (
-    <Field label="썸네이션 사용채널" group>
+    <Field label={tr("studioSettlementForm.channel")} group>
       <span className={styles.row}>
         <ChannelSelect />
-        <TextInput name="channelUrl" type="url" maxLength={300} placeholder="채널 URL을 입력해 주세요" aria-label="채널 URL" />
+        <TextInput name="channelUrl" type="url" maxLength={300} placeholder={tr("studioSettlementForm.channelUrlPlaceholder")} aria-label={tr("studioSettlementForm.channelUrl")} />
       </span>
     </Field>
   );
   const bizNoField = (
-    <Field label="사업자등록번호" group>
+    <Field label={tr("studioSettlementForm.bizNo")} group>
       <span className={styles.row}>
-        <TextInput name="bizNo1" inputMode="numeric" pattern="\d{3}" maxLength={3} placeholder="000" aria-label="사업자등록번호 앞 3자리" />
+        <TextInput name="bizNo1" inputMode="numeric" pattern="\d{3}" maxLength={3} placeholder="000" aria-label={tr("studioSettlementForm.bizNoFirst")} />
         <span className={styles.dash} aria-hidden="true">
           -
         </span>
-        <TextInput name="bizNo2" inputMode="numeric" pattern="\d{2}" maxLength={2} placeholder="00" aria-label="사업자등록번호 가운데 2자리" />
+        <TextInput name="bizNo2" inputMode="numeric" pattern="\d{2}" maxLength={2} placeholder="00" aria-label={tr("studioSettlementForm.bizNoMiddle")} />
         <span className={styles.dash} aria-hidden="true">
           -
         </span>
-        <TextInput name="bizNo3" inputMode="numeric" pattern="\d{5}" maxLength={5} placeholder="00000" aria-label="사업자등록번호 끝 5자리" />
+        <TextInput name="bizNo3" inputMode="numeric" pattern="\d{5}" maxLength={5} placeholder="00000" aria-label={tr("studioSettlementForm.bizNoLast")} />
       </span>
     </Field>
   );
   const bizKindField = (
-    <Field label="업태 / 업종" group>
+    <Field label={tr("studioSettlementForm.bizKind")} group>
       <span className={styles.row}>
-        <TextInput name="bizCategory" maxLength={40} placeholder="업태" aria-label="업태" />
-        <TextInput name="bizItem" maxLength={40} placeholder="업종" aria-label="업종" />
+        <TextInput name="bizCategory" maxLength={40} placeholder={tr("studioSettlementForm.bizCategory")} aria-label={tr("studioSettlementForm.bizCategory")} />
+        <TextInput name="bizItem" maxLength={40} placeholder={tr("studioSettlementForm.bizItem")} aria-label={tr("studioSettlementForm.bizItem")} />
       </span>
     </Field>
   );
@@ -130,17 +135,18 @@ export function RegistrationForm({ memberType }: { memberType: MemberType }) {
 
   return (
     <div className={styles.content}>
-      <nav className={styles.breadcrumb} aria-label="현재 위치">
-        <Link href="/creator/settlement">정산관리</Link> <span aria-hidden="true">&gt;</span> <Link href={`/creator/settlement/register?type=${t}`}>정산 등록</Link>{" "}
-        <span aria-hidden="true">&gt;</span> <span aria-current="page">정산 자료 등록</span>
+      <nav className={styles.breadcrumb} aria-label={tr("studioSettlementForm.breadcrumbAria")}>
+        <Link href="/creator/settlement">{tr("studioSettlementForm.crumbSettlement")}</Link> <span aria-hidden="true">&gt;</span>{" "}
+        <Link href={`/creator/settlement/register?type=${t}`}>{tr("studioSettlementForm.crumbRegister")}</Link> <span aria-hidden="true">&gt;</span>{" "}
+        <span aria-current="page">{tr("studioSettlementForm.crumbForm")}</span>
       </nav>
-      <h1 className={styles.title}>{TITLES[t]}</h1>
+      <h1 className={styles.title}>{tr(TITLES[t])}</h1>
 
       {/* 443:62 type tabs — switching type goes back to 이용동의 for that type (consent is per type). */}
-      <nav className={styles.typeTabs} aria-label="회원 유형">
+      <nav className={styles.typeTabs} aria-label={tr("studioSettlementForm.memberTypeAria")}>
         {MEMBER_TYPES.map((m) => (
           <Link key={m.key} href={`/creator/settlement/register?type=${m.key}`} className={styles.typeTab} aria-current={m.key === t ? "page" : undefined}>
-            {m.formLabel}
+            {tr(MEMBER_TYPE_FORM_KEY[m.key])}
           </Link>
         ))}
       </nav>
@@ -154,44 +160,44 @@ export function RegistrationForm({ memberType }: { memberType: MemberType }) {
       >
         {t === "INDIVIDUAL" && (
           <>
-            <FormCard title="본인 인증">
+            <FormCard title={tr("studioSettlementForm.cardIdentity")}>
               <TaxBar value="개인 (사업소득)" />
-              <Field label="이름" helper={SAME_AS_ACCOUNT} htmlFor="st-name">
-                <TextInput id="st-name" name="name" maxLength={40} placeholder="이름을 입력해주세요" />
+              <Field label={tr("studioSettlementForm.name")} helper={SAME_AS_ACCOUNT} htmlFor="st-name">
+                <TextInput id="st-name" name="name" maxLength={40} placeholder={tr("studioSettlementForm.namePlaceholder")} />
               </Field>
-              <IdNumberField label="주민등록번호" frontHint="앞 6자리" backHint="뒤 7자리" />
+              <IdNumberField label={tr("studioSettlementForm.residentNo")} frontHint={tr("studioSettlementForm.front6")} backHint={tr("studioSettlementForm.back7")} />
               {phoneField}
             </FormCard>
-            {bankCard("정산 받으실 본인 명의의 계좌번호를 입력해 주세요.", "예금주 명을 입력해주세요", "실명인증 및 계좌인증이 어려운 경우 체크하세요 (파일 직접 업로드 필수)")}
-            <FormCard title="추가 정보">
+            {bankCard(tr("studioSettlementForm.holderHelpIndividual"), tr("studioSettlementForm.holderPlaceholder"), tr("studioSettlementForm.fallbackIndividual"))}
+            <FormCard title={tr("studioSettlementForm.cardExtra")}>
               {emailField}
               {addressField}
               {channelField}
             </FormCard>
-            <FormCard title="파일 업로드">
-              {upload("idCopy", "신분증 사본", "신분증 사본을", "주민등록증, 운전면허증, 여권 사본 중 하나", "개인(대한민국 국민) 신분증 인정범위 안내")}
-              {upload("bankCopy", "통장 사본", "통장 사본을", "계좌인증을 완료한 통장의 사본", "통장사본 업로드 방법 안내")}
+            <FormCard title={tr("studioSettlementForm.cardFiles")}>
+              {upload("idCopy", tr("studioSettlementForm.idCopy"), tr("studioSettlementForm.idCopyTarget"), tr("studioSettlementForm.idCopyHelp"), tr("studioSettlementForm.idCopyGuide"))}
+              {upload("bankCopy", tr("studioSettlementForm.bankCopy"), tr("studioSettlementForm.bankCopyTarget"), tr("studioSettlementForm.bankCopyHelp"), tr("studioSettlementForm.bankCopyGuide"))}
             </FormCard>
           </>
         )}
 
         {t === "FOREIGN_RESIDENT" && (
           <>
-            <FormCard title="계약자 정보">
+            <FormCard title={tr("studioSettlementForm.cardContractor")}>
               <TaxBar value="개인 (사업소득, 대한민국 거주 외국인)" />
-              <Field label="이름" helper={SAME_AS_ACCOUNT} htmlFor="st-name">
-                <TextInput id="st-name" name="name" maxLength={40} placeholder="여권 또는 외국인등록증 상의 이름을 입력해주세요" />
+              <Field label={tr("studioSettlementForm.name")} helper={SAME_AS_ACCOUNT} htmlFor="st-name">
+                <TextInput id="st-name" name="name" maxLength={40} placeholder={tr("studioSettlementForm.nameForeignPlaceholder")} />
               </Field>
-              <IdNumberField label="외국인등록번호" frontHint="앞 6자리 (예: 950101)" backHint="뒤 7자리 (예: 5xxxxxx)" />
+              <IdNumberField label={tr("studioSettlementForm.foreignNo")} frontHint={tr("studioSettlementForm.front6Example")} backHint={tr("studioSettlementForm.back7Example")} />
             </FormCard>
-            {bankCard("정산 받으실 외국인등록증 상의 이름과 완전히 일치해야 합니다.", "예금주 명을 입력해주세요", "외국인등록인증 및 계좌인증이 어려운 경우 체크하세요 (파일 직접 업로드 필수)")}
-            <FormCard title="추가 정보">
+            {bankCard(tr("studioSettlementForm.holderHelpForeign"), tr("studioSettlementForm.holderPlaceholder"), tr("studioSettlementForm.fallbackForeign"))}
+            <FormCard title={tr("studioSettlementForm.cardExtra")}>
               <div className={styles.pair}>
-                <Field label="국적 (국가/지역)" htmlFor="st-nation">
-                  <Select id="st-nation" name="nationality" options={NATIONALITIES} placeholder="선택해주세요" />
+                <Field label={tr("studioSettlementForm.nationality")} htmlFor="st-nation">
+                  <Select id="st-nation" name="nationality" options={NATIONALITIES} placeholder={tr("studioSettlementForm.selectPlaceholder")} />
                 </Field>
-                <Field label="체류 자격 (비자 종류)" htmlFor="st-visa">
-                  <Select id="st-visa" name="visa" options={VISA_TYPES} placeholder="선택해주세요" />
+                <Field label={tr("studioSettlementForm.visa")} htmlFor="st-visa">
+                  <Select id="st-visa" name="visa" options={VISA_TYPES} placeholder={tr("studioSettlementForm.selectPlaceholder")} />
                 </Field>
               </div>
               {phoneField}
@@ -199,35 +205,29 @@ export function RegistrationForm({ memberType }: { memberType: MemberType }) {
               {addressField}
               {channelField}
             </FormCard>
-            <FormCard title="파일 업로드">
-              {upload(
-                "foreignIdCopy",
-                "외국인등록증 (또는 영주증) 사본",
-                "외국인등록증 (또는 영주증) 사본을(를)",
-                "이름, 외국인등록번호 및 체류 자격이 명확히 식별되는 선명한 사본 (앞/뒷면 모두 포함)",
-                "개인(대한민국 거주 외국인) 신분증 인정범위 안내"
-              )}
-              {upload("bankCopy", "통장 사본", "통장 사본을(를)", "계좌인증을 완료한 본인 명의의 통장 사본", "통장사본 업로드 방법 안내")}
+            <FormCard title={tr("studioSettlementForm.cardFiles")}>
+              {upload("foreignIdCopy", tr("studioSettlementForm.foreignIdCopy"), tr("studioSettlementForm.foreignIdCopyTarget"), tr("studioSettlementForm.foreignIdCopyHelp"), tr("studioSettlementForm.foreignIdCopyGuide"))}
+              {upload("bankCopy", tr("studioSettlementForm.bankCopy"), tr("studioSettlementForm.bankCopyTargetForeign"), tr("studioSettlementForm.bankCopyHelpOwn"), tr("studioSettlementForm.bankCopyGuide"))}
             </FormCard>
           </>
         )}
 
         {t === "SOLE_PROPRIETOR" && (
           <>
-            <FormCard title="본인 인증">
+            <FormCard title={tr("studioSettlementForm.cardIdentity")}>
               <TaxBar value="개인사업자" />
               {bizNoField}
-              <Field label="면세 여부" helper="1인 미디어 콘텐츠 창작자(940306) 만 비과세 대상입니다." htmlFor="st-exempt">
+              <Field label={tr("studioSettlementForm.taxExempt")} helper="1인 미디어 콘텐츠 창작자(940306) 만 비과세 대상입니다." htmlFor="st-exempt">
                 <Select id="st-exempt" name="taxExempt" options={TAX_EXEMPT_OPTIONS} defaultValue="과세사업자" />
               </Field>
-              <Field label="대표자 성명" helper={SAME_AS_ACCOUNT} htmlFor="st-ceo">
-                <TextInput id="st-ceo" name="ceoName" maxLength={40} placeholder="대표자 성명을 입력해주세요" />
+              <Field label={tr("studioSettlementForm.ceoName")} helper={SAME_AS_ACCOUNT} htmlFor="st-ceo">
+                <TextInput id="st-ceo" name="ceoName" maxLength={40} placeholder={tr("studioSettlementForm.ceoPlaceholder")} />
               </Field>
             </FormCard>
-            {bankCard("정산 받으실 본인 명의 혹은 기업 명의의 계좌번호를 입력해 주세요.", "예금주 명", "사업자인증 및 계좌인증이 어려운 경우 체크하세요 (파일 직접 업로드 필수)")}
-            <FormCard title="추가 정보">
-              <Field label="상호" htmlFor="st-company">
-                <TextInput id="st-company" name="companyName" maxLength={60} placeholder="상호명 입력" />
+            {bankCard(tr("studioSettlementForm.holderHelpSole"), tr("studioSettlementForm.holderPlaceholderShort"), tr("studioSettlementForm.fallbackSole"))}
+            <FormCard title={tr("studioSettlementForm.cardExtra")}>
+              <Field label={tr("studioSettlementForm.companyName")} htmlFor="st-company">
+                <TextInput id="st-company" name="companyName" maxLength={60} placeholder={tr("studioSettlementForm.companyPlaceholder")} />
               </Field>
               {bizKindField}
               {phoneField}
@@ -235,56 +235,56 @@ export function RegistrationForm({ memberType }: { memberType: MemberType }) {
               {addressField}
               {channelField}
             </FormCard>
-            <FormCard title="파일 업로드">
-              {upload("bizLicense", "사업자등록증", "사업자등록증을", "대표자 성명 및 사업자등록번호가 식별되는 선명한 사본")}
-              {upload("bankCopy", "통장 사본", "통장 사본을", "계좌인증을 완료한 통장의 사본")}
+            <FormCard title={tr("studioSettlementForm.cardFiles")}>
+              {upload("bizLicense", tr("studioSettlementForm.bizLicense"), tr("studioSettlementForm.bizLicenseTarget"), tr("studioSettlementForm.bizLicenseHelp"))}
+              {upload("bankCopy", tr("studioSettlementForm.bankCopy"), tr("studioSettlementForm.bankCopyTarget"), tr("studioSettlementForm.bankCopyHelp"))}
             </FormCard>
           </>
         )}
 
         {t === "CORPORATION" && (
           <>
-            <FormCard title="사업자 인증">
-              <Field label="과세 유형" htmlFor="st-corp-type">
+            <FormCard title={tr("studioSettlementForm.cardBusiness")}>
+              <Field label={tr("studioSettlementForm.taxType")} htmlFor="st-corp-type">
                 <Select id="st-corp-type" name="corpTaxType" options={CORP_TAX_TYPES} defaultValue="법인 사업자" />
               </Field>
               {bizNoField}
-              <Field label="상호" helper={SAME_AS_ACCOUNT} htmlFor="st-company">
-                <TextInput id="st-company" name="companyName" maxLength={60} placeholder="상호명 입력" />
+              <Field label={tr("studioSettlementForm.companyName")} helper={SAME_AS_ACCOUNT} htmlFor="st-company">
+                <TextInput id="st-company" name="companyName" maxLength={60} placeholder={tr("studioSettlementForm.companyPlaceholder")} />
               </Field>
             </FormCard>
-            {bankCard(SAME_AS_ACCOUNT, "예금주 명", "사업자인증, 계좌인증이 어려운 경우 체크하세요 (파일 직접 업로드 필수)")}
-            <FormCard title="추가 정보">
+            {bankCard(SAME_AS_ACCOUNT, tr("studioSettlementForm.holderPlaceholderShort"), tr("studioSettlementForm.fallbackCorporation"))}
+            <FormCard title={tr("studioSettlementForm.cardExtra")}>
               {bizKindField}
-              <Field label="대표자 성명" htmlFor="st-ceo">
-                <TextInput id="st-ceo" name="ceoName" maxLength={40} placeholder="대표자 성명 입력" />
+              <Field label={tr("studioSettlementForm.ceoName")} htmlFor="st-ceo">
+                <TextInput id="st-ceo" name="ceoName" maxLength={40} placeholder={tr("studioSettlementForm.ceoPlaceholderShort")} />
               </Field>
               {phoneField}
               {emailField}
               {addressField}
               {channelField}
             </FormCard>
-            <FormCard title="정산 담당자">
+            <FormCard title={tr("studioSettlementForm.cardManager")}>
               <div className={styles.pair}>
-                <Field label="이름" htmlFor="st-manager">
-                  <TextInput id="st-manager" name="managerName" maxLength={40} placeholder="이름" />
+                <Field label={tr("studioSettlementForm.name")} htmlFor="st-manager">
+                  <TextInput id="st-manager" name="managerName" maxLength={40} placeholder={tr("studioSettlementForm.name")} />
                 </Field>
-                <Field label="직책" htmlFor="st-manager-title">
-                  <TextInput id="st-manager-title" name="managerTitle" maxLength={40} placeholder="직책" />
+                <Field label={tr("studioSettlementForm.managerPosition")} htmlFor="st-manager-title">
+                  <TextInput id="st-manager-title" name="managerTitle" maxLength={40} placeholder={tr("studioSettlementForm.managerPosition")} />
                 </Field>
               </div>
-              <Field label="전화번호" group>
-                <PhoneInputs prefix="managerPhone" label="담당자 전화번호" />
+              <Field label={tr("studioSettlementForm.phone")} group>
+                <PhoneInputs prefix="managerPhone" label={tr("studioSettlementForm.managerPhone")} />
               </Field>
-              <Field label="이메일" group>
-                <EmailInputs prefix="managerEmail" label="담당자 이메일" />
+              <Field label={tr("studioSettlementForm.email")} group>
+                <EmailInputs prefix="managerEmail" label={tr("studioSettlementForm.managerEmail")} />
               </Field>
             </FormCard>
-            <FormCard title="파일 업로드">
-              {upload("bizLicense", "사업자등록증", "사업자등록증을")}
-              {upload("bankCopy", "통장 사본", "통장 사본을", undefined, "통장사본 업로드 방법 안내")}
-              {upload("accountForm", "입금계좌등록신청서", "입금계좌 등록신청서를", undefined, "입금계좌 등록신청서 다운로드 및 안내")}
-              {upload("corpSeal", "법인인감증명서", "법인인감증명서를", "3개월 이내 발급분")}
+            <FormCard title={tr("studioSettlementForm.cardFiles")}>
+              {upload("bizLicense", tr("studioSettlementForm.bizLicense"), tr("studioSettlementForm.bizLicenseTarget"))}
+              {upload("bankCopy", tr("studioSettlementForm.bankCopy"), tr("studioSettlementForm.bankCopyTarget"), undefined, tr("studioSettlementForm.bankCopyGuide"))}
+              {upload("accountForm", tr("studioSettlementForm.accountForm"), tr("studioSettlementForm.accountFormTarget"), undefined, tr("studioSettlementForm.accountFormGuide"))}
+              {upload("corpSeal", tr("studioSettlementForm.corpSeal"), tr("studioSettlementForm.corpSealTarget"), tr("studioSettlementForm.corpSealHelp"))}
             </FormCard>
           </>
         )}
@@ -297,10 +297,10 @@ export function RegistrationForm({ memberType }: { memberType: MemberType }) {
 
         <div className={styles.actions}>
           <Link href={`/creator/settlement/register?type=${t}`} className={styles.back}>
-            뒤로
+            {tr("studioSettlementForm.back")}
           </Link>
           <button type="submit" className={styles.submit} disabled={pending} aria-busy={pending || undefined}>
-            {pending ? "제출 중..." : t === "CORPORATION" ? "등록 (신청하기)" : "신청하기"}
+            {pending ? tr("studioSettlementForm.submitting") : t === "CORPORATION" ? tr("studioSettlementForm.submitCorporation") : tr("studioSettlementForm.submit")}
           </button>
         </div>
       </form>
@@ -326,9 +326,10 @@ function IdNumberField({ label, frontHint, backHint }: { label: string; frontHin
 
 /** Platform dropdown posting the platform key. */
 function ChannelSelect() {
+  const { t } = useI18n();
   return (
     <span className={`${styles.selectWrap} ${styles.channelSelect}`}>
-      <select name="channelPlatform" className={styles.select} required defaultValue="YOUTUBE" aria-label="사용 플랫폼">
+      <select name="channelPlatform" className={styles.select} required defaultValue="YOUTUBE" aria-label={t("studioSettlementForm.platform")}>
         {CHANNEL_PLATFORMS.map((p) => (
           <option key={p.key} value={p.key}>
             {p.label}

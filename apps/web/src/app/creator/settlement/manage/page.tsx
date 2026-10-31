@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { SettlementManageScreen } from "@/features/creatorStudio/settlement/SettlementManageScreen";
+import { getT } from "@/lib/i18n/server";
 import { getSettlementManageView } from "@/services/creator/settlementManagement";
 
 // Figma: 정산 관리 478:2 (월별) · 479:144 (기간별) · 정산 정보 변경 480:2
-export const metadata: Metadata = { title: "정산 관리 | Ssumnation 크리에이터" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("studioSettlement.metaManage") };
+}
 export const dynamic = "force-dynamic";
 
 type Search = { period?: string; from?: string; to?: string; page?: string };
