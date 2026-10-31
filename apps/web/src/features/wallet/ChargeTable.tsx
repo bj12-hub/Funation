@@ -25,6 +25,7 @@ import {
   type RefundQuote
 } from "@/services/wallet/refundPolicy";
 import { REFUND_REASON_MAX, refundStatusText, type ChargeRecord, type ChargeRefund, type ChargeStatus } from "@/services/wallet/walletTypes";
+import { walletMethodText } from "./methodLabels";
 import styles from "./wallet.module.css";
 
 /** The services' CHARGE_STATUS_LABEL, in the viewer's language. */
@@ -78,7 +79,7 @@ export function ChargeTable({ items }: { items: ChargeRecord[] }) {
                 <tr key={c.id}>
                   <td className={styles.datetime}>{c.chargedAt}</td>
                   <td className={styles.method}>
-                    <span aria-hidden="true">{c.methodEmoji}</span> {c.methodLabel}
+                    <span aria-hidden="true">{c.methodEmoji}</span> {walletMethodText(c.methodLabel, t)}
                   </td>
                   <td className={styles.center}>
                     <span className={styles.fnChip}>{formatNumber(c.fnAmount)} FN</span>
@@ -190,7 +191,7 @@ function RefundOutcome({ quote }: { quote: RefundQuote }) {
         )}
         <div>
           <dt>{full ? t("wallet.cancelAmount") : t("wallet.refundAmount")}</dt>
-          <dd className={styles.refundFactsTotal}>{formatNumber(quote.refundKrw)} 원</dd>
+          <dd className={styles.refundFactsTotal}>{t("wallet.krw", { amount: formatNumber(quote.refundKrw) })}</dd>
         </div>
       </dl>
       {!full && (
@@ -384,13 +385,13 @@ export function ChargeDetail({ charge }: { charge: ChargeRecord }) {
         <div>
           <dt>{t("wallet.method")}</dt>
           <dd>
-            <span aria-hidden="true">{charge.methodEmoji}</span> {charge.methodLabel}
-            {charge.methodDetail && ` (${charge.methodDetail})`}
+            <span aria-hidden="true">{charge.methodEmoji}</span> {walletMethodText(charge.methodLabel, t)}
+            {charge.methodDetail && ` (${walletMethodText(charge.methodDetail, t)})`}
           </dd>
         </div>
         <div>
           <dt>{t("wallet.paidAmount")}</dt>
-          <dd className={styles.detailPaid}>{formatNumber(charge.paidAmount)} 원</dd>
+          <dd className={styles.detailPaid}>{t("wallet.krw", { amount: formatNumber(charge.paidAmount) })}</dd>
         </div>
         <div>
           <dt>{t("wallet.transactionId")}</dt>

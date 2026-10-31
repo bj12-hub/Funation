@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { formatNumber } from "@/lib/format";
-import { getT } from "@/lib/i18n/server";
+import type { Locale } from "@/lib/i18n/config";
+import { getLocale, getT } from "@/lib/i18n/server";
+import type { MessageKey } from "@/lib/i18n/translate";
 import type { RevenueOverview, RevenueShare } from "@/services/creator/creatorStudio";
 import { SummaryCard, TopDonorsCard } from "../DashboardSummaryCards";
 import { RevenueChart } from "../RevenueChart";
@@ -13,9 +15,32 @@ import styles from "./revenue.module.css";
  * 이번 달 tiles with 정산 요청, 일별 후원 추이 (30일), 월별 수익 추이 (6개월), 상위 후원자 and shortcuts.
  * Route `/creator/revenue`. ₩ amounts are server values (gross/net TBD); 미정산 is FN.
  */
+/** 수익원 labels by the service's key; a key not listed shows the service's label. */
+const SOURCE_KEY: Record<string, MessageKey> = {
+  TEXT: "studioRevenue.typeText",
+  SIGNATURE: "studioRevenue.typeSignature",
+  MINI: "studioRevenue.typeMini",
+  VIDEO: "studioRevenue.typeVideo",
+  QUEST: "studioRevenue.typeQuest",
+  ROULETTE: "studioRevenue.typeRoulette",
+  GACHA: "studioRevenue.typeGacha",
+  WISHLIST: "studioRevenue.typeWishlist",
+  DRAWING: "studioRevenue.typeDrawing",
+  DIRECT: "studioRevenue.routeDirect",
+  SOOP: "studioRevenue.routeSoop",
+  FLEXTV: "studioRevenue.routeFlextv"
+};
+
+/** The service's month label ("6월") as a short month name in English (Jun); Korean keeps it. */
+function monthLabel(label: string, locale: Locale) {
+  const m = /^(\d{1,2})월$/.exec(label);
+  return m && locale === "en" ? new Intl.DateTimeFormat("en-US", { month: "short", timeZone: "UTC" }).format(Date.UTC(2000, Number(m[1]) - 1, 1)) : label;
+}
+
 export async function RevenueScreen({ data }: { data: RevenueOverview }) {
   const empty = data.totalRevenue === 0;
-  const t = await getT();
+  const [t, locale] = await Promise.all([getT(), getLocale()]);
+  const shares = (items: RevenueShare[]) => items.map((i) => (SOURCE_KEY[i.key] ? { ...i, label: t(SOURCE_KEY[i.key]) } : i));
   return (
     <div className={studio.content}>
       <header className={styles.header}>
@@ -54,7 +79,7 @@ export async function RevenueScreen({ data }: { data: RevenueOverview }) {
           <SummaryCard title={t("studioRevenue.monthly")} href="/creator/settlement/manage" linkLabel={t("studioRevenue.manage")}>
             <p className={styles.range}>{t("studioRevenue.last6")}</p>
             <div className={studio.chartArea}>
-              <RevenueChart series={data.monthly} fillId="revenue-fill-monthly" />
+              <RevenueChart series={data.monthly.map((m) => ({ ...m, label: monthLabel(m.label, locale) }))} fillId="revenue-fill-monthly" />
             </div>
           </SummaryCard>
           <TopDonorsCard donors={data.topDonors} />
@@ -65,8 +90,8 @@ export async function RevenueScreen({ data }: { data: RevenueOverview }) {
             <p className={styles.range}>
               {t("studioRevenue.thisMonth")} · ₩{formatNumber(data.thisMonth)}
             </p>
-            <ShareList title={t("studioRevenue.byType")} items={data.bySource.types} total={data.thisMonth} />
-            <ShareList title={t("studioRevenue.byRoute")} items={data.bySource.routes} total={data.thisMonth} />
+            <ShareList title={t("studioRevenue.byType")} items={shares(data.bySource.types)} total={data.thisMonth} />
+            <ShareList title={t("studioRevenue.byRoute")} items={shares(data.bySource.routes)} total={data.thisMonth} />
           </section>
           <section className={summary.card} aria-labelledby="revenue-links">
             <h2 id="revenue-links" className={summary.title}>

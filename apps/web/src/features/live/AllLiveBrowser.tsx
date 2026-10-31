@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n/I18nProvider";
+import { platformLabel } from "@/lib/i18n/platformLabel";
 import type { LiveChannel } from "@/services/live/liveChannels";
 import { PLATFORM_LABEL, type Platform } from "@/types/platform";
 import { LiveChannelCard } from "./LiveChannelCard";
@@ -43,7 +44,7 @@ export function AllLiveBrowser({ channels }: { channels: LiveChannel[] }) {
           <option value="ALL">{t("live.allPlatforms")}</option>
           {(Object.keys(PLATFORM_LABEL) as Platform[]).map((p) => (
             <option key={p} value={p}>
-              {PLATFORM_LABEL[p]}
+              {platformLabel(p, t)}
             </option>
           ))}
         </select>

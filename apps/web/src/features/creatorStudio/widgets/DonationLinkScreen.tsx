@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { formatKst } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
+import { platformLabel } from "@/lib/i18n/platformLabel";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { pollDonationLinks, setDonationLink, simulateExternalDonation } from "@/services/creator/donationLink";
 import { SIM_CURRENCIES, type DonationLinkResult, type DonationLinkView, type SimCurrency } from "@/services/creator/donationLinkTypes";
 import type { BankSmsView } from "@/services/bankSms/bankSmsTypes";
 import type { PlatformErrorCode } from "@/services/platforms/platformTypes";
-import { PLATFORM_LABEL, type Platform } from "@/types/platform";
+import type { Platform } from "@/types/platform";
 import styles from "../crew/crew.module.css";
 import { BankSmsCard } from "./BankSmsCard";
 
@@ -62,7 +63,7 @@ export function DonationLinkScreen({ view, bank }: { view: DonationLinkView; ban
     requestId.current ??= crypto.randomUUID();
     run(
       () => simulateExternalDonation({ ...sim, platform: simPlatform, requestId: requestId.current }),
-      (r) => t("studioToolsLink.testSent", { platform: PLATFORM_LABEL[simPlatform], counts: counts(r) }),
+      (r) => t("studioToolsLink.testSent", { platform: platformLabel(simPlatform, t), counts: counts(r) }),
       () => (requestId.current = null)
     );
   };
@@ -95,7 +96,7 @@ export function DonationLinkScreen({ view, bank }: { view: DonationLinkView; ban
             <li key={l.platform} className={styles.row} data-inactive={l.supported ? undefined : ""}>
               <div className={styles.rowMain}>
                 <span className={styles.rowTitle}>
-                  {PLATFORM_LABEL[l.platform]} {l.supported && l.unverified && <span className={styles.chipOff}>{t("studioToolsLink.apiChecking")}</span>}
+                  {platformLabel(l.platform, t)} {l.supported && l.unverified && <span className={styles.chipOff}>{t("studioToolsLink.apiChecking")}</span>}
                 </span>
                 <span className={styles.muted}>
                   {!l.supported
@@ -124,7 +125,7 @@ export function DonationLinkScreen({ view, bank }: { view: DonationLinkView; ban
                   onChange={(e) =>
                     run(
                       () => setDonationLink({ platform: l.platform, enabled: e.target.checked }),
-                      () => (e.target.checked ? t("studioToolsLink.enabledOn", { platform: PLATFORM_LABEL[l.platform] }) : t("studioToolsLink.enabledOff"))
+                      () => (e.target.checked ? t("studioToolsLink.enabledOn", { platform: platformLabel(l.platform, t) }) : t("studioToolsLink.enabledOff"))
                     )
                   }
                 />
@@ -145,7 +146,7 @@ export function DonationLinkScreen({ view, bank }: { view: DonationLinkView; ban
           <select className={styles.select} aria-label={t("studioToolsLink.platform")} value={simPlatform} onChange={(e) => setSim({ ...sim, platform: e.target.value as Platform })}>
             {ready.map((p) => (
               <option key={p} value={p}>
-                {PLATFORM_LABEL[p]}
+                {platformLabel(p, t)}
               </option>
             ))}
           </select>

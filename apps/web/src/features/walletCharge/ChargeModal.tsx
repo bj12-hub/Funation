@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AlertCircleIcon } from "@/components/icons";
 import { Modal } from "@/components/ui/Modal";
+import { walletMethodText } from "@/features/wallet/methodLabels";
 import { formatNumber } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { agreeChargeTerms, getChargeOptions, quoteCharge, requestCharge } from "@/services/wallet/charge";
@@ -202,7 +203,7 @@ export function ChargeModal({ onClose }: { onClose: () => void }) {
                       </label>
                       <div className={styles.quoteRow}>
                         <span>{t("walletCharge.converted")}</span>
-                        {quote.state === "ok" && <strong>{formatNumber(quote.price)}원</strong>}
+                        {quote.state === "ok" && <strong>{t("walletCharge.krw", { amount: formatNumber(quote.price) })}</strong>}
                         {quote.state === "loading" && <span>{t("walletCharge.calculating")}</span>}
                         {quote.state === "invalid" && (
                           <span className={styles.error} role="alert">
@@ -238,7 +239,7 @@ export function ChargeModal({ onClose }: { onClose: () => void }) {
                         }}
                       >
                         <span>{formatNumber(p.fnAmount)} FN</span>
-                        <span className={styles.price}>{formatNumber(p.price)}원</span>
+                        <span className={styles.price}>{t("walletCharge.krw", { amount: formatNumber(p.price) })}</span>
                       </button>
                     );
                   })}
@@ -282,7 +283,7 @@ export function ChargeModal({ onClose }: { onClose: () => void }) {
                     <li>만 19세 미만 미성년자 회원은 법정대리인 동의가 필요하며, 동의가 완료 된 후 FN 충전 서비스 이용이 가능합니다.</li>
                   </ul>
                 </div>
-                <strong className={styles.total}>{formatNumber(total ?? 0)}원</strong>
+                <strong className={styles.total}>{t("walletCharge.krw", { amount: formatNumber(total ?? 0) })}</strong>
               </div>
 
               {submitError && (
@@ -356,7 +357,7 @@ function ChargeSuccess({ result, onClose, t }: { result: Completed; onClose: () 
       <div className={styles.successCard}>
         <span>{t("walletCharge.done")}</span>
         <strong>{formatNumber(result.fnAmount)} FN</strong>
-        <span className={styles.successPrice}>{formatNumber(result.price)}원</span>
+        <span className={styles.successPrice}>{t("walletCharge.krw", { amount: formatNumber(result.price) })}</span>
       </div>
       <p className={styles.resultText}>
         {t("walletCharge.doneText")}
@@ -366,11 +367,11 @@ function ChargeSuccess({ result, onClose, t }: { result: Completed; onClose: () 
       <dl className={styles.resultRows}>
         <div>
           <dt>{t("walletCharge.method")}</dt>
-          <dd>{PAYMENT_METHODS[result.methodId].name}</dd>
+          <dd>{walletMethodText(PAYMENT_METHODS[result.methodId].name, t)}</dd>
         </div>
         <div>
           <dt>{t("walletCharge.paidAmount")}</dt>
-          <dd className={styles.accent}>{formatNumber(result.price)}원</dd>
+          <dd className={styles.accent}>{t("walletCharge.krw", { amount: formatNumber(result.price) })}</dd>
         </div>
       </dl>
       <div className={styles.actions}>

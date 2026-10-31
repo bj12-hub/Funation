@@ -5,13 +5,14 @@ import Link from "next/link";
 import { useState } from "react";
 import { formatCompact, formatNumber, kstIsoString } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
+import { platformLabel } from "@/lib/i18n/platformLabel";
 import type { MessageKey } from "@/lib/i18n/translate";
 import type { CreatorCategory } from "@/services/creators/creatorTypes";
 import type { CrewPublic, CrewRole } from "@/services/crew/crewTypes";
 import type { PublicChannelVideos } from "@/services/creators/channelVideos";
 import type { Signature } from "@/services/donations/donationCatalog";
 import type { PlatformErrorCode, VideoKind } from "@/services/platforms/platformTypes";
-import { PLATFORM_LABEL, type Platform } from "@/types/platform";
+import type { Platform } from "@/types/platform";
 import { PledgeLine } from "./PledgeLine";
 import { CHANNEL_VIEWS, type ChannelView } from "./channelView";
 import styles from "./channel.module.css";
@@ -113,7 +114,7 @@ export function VideosView({ name, data }: { name: string; data: PublicChannelVi
                 </span>
                 <strong className={styles.videoTitle}>{v.title}</strong>
                 <span className={styles.muted}>
-                  {PLATFORM_LABEL[v.platform]} · {t("roomChannel.views", { count: formatCompact(v.viewCount, locale) })} · {kstIsoString(v.publishedAt).slice(0, 10).replace(/-/g, ".")}
+                  {platformLabel(v.platform, t)} · {t("roomChannel.views", { count: formatCompact(v.viewCount, locale) })} · {kstIsoString(v.publishedAt).slice(0, 10).replace(/-/g, ".")}
                 </span>
               </a>
             </li>
@@ -187,7 +188,7 @@ export function AboutView({
       </div>
       <div>
         <dt>{t("roomChannel.aboutPlatforms")}</dt>
-        <dd>{about.platforms.map((p) => PLATFORM_LABEL[p]).join(" · ") || "—"}</dd>
+        <dd>{about.platforms.map((p) => platformLabel(p, t)).join(" · ") || "—"}</dd>
       </div>
       <div>
         <dt>{t("roomChannel.aboutSubscribers")}</dt>
