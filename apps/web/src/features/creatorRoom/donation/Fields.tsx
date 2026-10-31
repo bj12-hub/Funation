@@ -1,7 +1,8 @@
 "use client";
 
 import { useId, type ReactNode } from "react";
-import { formatNumber } from "@/lib/format";
+import { formatCompact, formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { DonationCatalog, Voice } from "@/services/donations/donationCatalog";
 import { parseYouTubeId } from "@/services/donations/donationTypes";
 import { AMOUNT_INPUT_MAX, QUICK_AMOUNTS, addAmount, parseClock, type MiniState, type SignatureState, type TextState, type VideoState, type WishlistState } from "./drafts";
@@ -28,16 +29,17 @@ function AmountField({
   /** Shows the 빠른 금액 추가 row; 전액 needs the balance. */
   quick?: { balance: number | null };
 }) {
+  const { t, locale } = useI18n();
   const field = (
     <label className={room.field}>
       <span className={room.fieldLabel}>
-        후원 금액
+        {t("roomDonate.amount")}
         {hint}
       </span>
       <span className={`${room.inputBox} ${error ? styles.inputError : ""}`}>
         <input
           className={room.input}
-          aria-label="후원 금액"
+          aria-label={t("roomDonate.amount")}
           inputMode="numeric"
           placeholder="0"
           value={value ? formatNumber(Number(value)) : ""}
@@ -53,20 +55,20 @@ function AmountField({
   return (
     <div className={styles.amountGroup}>
       {field}
-      <div className={styles.quickAmounts} role="group" aria-label="빠른 금액 추가">
+      <div className={styles.quickAmounts} role="group" aria-label={t("roomDonate.quickAmounts")}>
         {QUICK_AMOUNTS.map((q) => (
-          <button key={q.add} type="button" className={styles.quickAmount} aria-label={`${formatNumber(q.add)} FN 더하기`} onClick={() => onChange(addAmount(value, q.add))}>
-            {q.label}
+          <button key={q.add} type="button" className={styles.quickAmount} aria-label={t("roomDonate.addAmount", { amount: formatNumber(q.add) })} onClick={() => onChange(addAmount(value, q.add))}>
+            {`+${formatCompact(q.add, locale)}`}
           </button>
         ))}
         <button
           type="button"
           className={styles.quickAmount}
           disabled={all === null}
-          aria-label={all === null ? "보유 FN 전액" : `보유 FN 전액 (${formatNumber(all)} FN)`}
+          aria-label={all === null ? t("roomDonate.allBalance") : t("roomDonate.allBalanceAmount", { amount: formatNumber(all) })}
           onClick={() => all !== null && onChange(String(all))}
         >
-          전액
+          {t("roomDonate.all")}
         </button>
       </div>
     </div>
@@ -94,6 +96,7 @@ function MessageField({ label, value, onChange, max, placeholder, tall = false }
 }
 
 function VoiceCard({ voice, selected, onToggle, compact = false }: { voice: Voice; selected: boolean; onToggle: () => void; compact?: boolean }) {
+  const { t } = useI18n();
   return (
     <button type="button" className={room.voice} aria-pressed={selected} onClick={onToggle}>
       <span className={room.voiceEmoji} aria-hidden="true">
@@ -104,7 +107,7 @@ function VoiceCard({ voice, selected, onToggle, compact = false }: { voice: Voic
           {voice.name} · {voice.description}
         </span>
         {/* TODO: voice catalog and preview audio are TBD. */}
-        {!compact && <span className={room.voiceDetail}>보이스 / 상품 선택  ·  미리듣기 ▶</span>}
+        {!compact && <span className={room.voiceDetail}>{t("roomDonate.voiceDetail")}</span>}
       </span>
       {selected && (
         <span className={room.voiceCheck} aria-hidden="true">
@@ -128,11 +131,15 @@ export function SwitchRow({ label, sub, checked, onChange }: { label: string; su
   );
 }
 
-const Balance = ({ balance }: { balance: number | null }) => (balance === null ? null : <span className={styles.hintAccent}>보유 {formatNumber(balance)} FN</span>);
+function Balance({ balance }: { balance: number | null }) {
+  const { t } = useI18n();
+  return balance === null ? null : <span className={styles.hintAccent}>{t("roomDonate.balance", { amount: formatNumber(balance) })}</span>;
+}
 
 // ── 일반 후원 (851:4546) ──────────────────────────────────────────────────────
 
 export function TextFields({ value, onChange, catalog, balance, error }: Props<TextState> & { error: string | null }) {
+  const { t } = useI18n();
   return (
     <>
       <AmountField
@@ -143,18 +150,18 @@ export function TextFields({ value, onChange, catalog, balance, error }: Props<T
         quick={{ balance }}
       />
       <MessageField
-        label="후원 메시지"
+        label={t("roomDonate.message")}
         value={value.message}
         onChange={(message) => onChange({ ...value, message })}
         max={catalog.maxLength.message}
-        placeholder="크리에이터에게 전할 메시지를 입력하세요"
+        placeholder={t("roomDonate.messagePlaceholder")}
         tall
       />
       {catalog.voices.map((v) => (
         <VoiceCard key={v.id} voice={v} selected={value.voiceId === v.id} onToggle={() => onChange({ ...value, voiceId: value.voiceId === v.id ? null : v.id })} />
       ))}
       <p className={`${room.validation} ${error ? room.validationError : ""}`} role={error ? "alert" : undefined}>
-        {error ? `! ${error}` : `✓ 최소 ${formatNumber(catalog.minAmount.TEXT)} FN부터 후원할 수 있어요`}
+        {error ? `! ${error}` : `✓ ${t("roomDonate.minAmount", { amount: formatNumber(catalog.minAmount.TEXT) })}`}
       </p>
     </>
   );
@@ -163,9 +170,10 @@ export function TextFields({ value, onChange, catalog, balance, error }: Props<T
 // ── 미니 후원 (851:4665) ──────────────────────────────────────────────────────
 
 export function MiniFields({ value, onChange, catalog, error, onEnter }: Props<MiniState> & { error: string | null; onEnter: () => void }) {
+  const { t } = useI18n();
   return (
     <>
-      <p className={styles.intro}>짧은 메시지를 빠르게 띄우는 미니 후원이에요.</p>
+      <p className={styles.intro}>{t("roomDonate.miniIntro")}</p>
       <AmountField
         value={value.amount}
         onChange={(amount) => onChange({ ...value, amount })}
@@ -178,7 +186,7 @@ export function MiniFields({ value, onChange, catalog, error, onEnter }: Props<M
       />
       <label className={room.field}>
         <span className={room.fieldLabel}>
-          텍스트 내용
+          {t("roomDonate.miniText")}
           <span>
             {value.text.length}/{catalog.maxLength.mini}
           </span>
@@ -186,7 +194,7 @@ export function MiniFields({ value, onChange, catalog, error, onEnter }: Props<M
         <span className={room.inputBox}>
           <input
             className={room.input}
-            placeholder="화면에 띄울 짧은 메시지"
+            placeholder={t("roomDonate.miniPlaceholder")}
             maxLength={catalog.maxLength.mini}
             value={value.text}
             onChange={(e) => onChange({ ...value, text: e.target.value })}
@@ -200,8 +208,8 @@ export function MiniFields({ value, onChange, catalog, error, onEnter }: Props<M
         </span>
       </label>
       <div className={room.field}>
-        <span className={room.fieldLabel}>텍스트 색상</span>
-        <div className={styles.swatches} role="radiogroup" aria-label="텍스트 색상">
+        <span className={room.fieldLabel}>{t("roomDonate.miniColor")}</span>
+        <div className={styles.swatches} role="radiogroup" aria-label={t("roomDonate.miniColor")}>
           {catalog.miniColors.map((c) => (
             <button
               key={c.id}
@@ -217,8 +225,8 @@ export function MiniFields({ value, onChange, catalog, error, onEnter }: Props<M
         </div>
       </div>
       <SwitchRow
-        label="Enter 키로 바로 후원"
-        sub="메시지 입력 후 Enter를 누르면 실행돼요"
+        label={t("roomDonate.enterToSend")}
+        sub={t("roomDonate.enterToSendSub")}
         checked={value.enterToSend}
         onChange={(enterToSend) => onChange({ ...value, enterToSend })}
       />
@@ -235,6 +243,7 @@ export function MiniFields({ value, onChange, catalog, error, onEnter }: Props<M
 
 /** 영상 후원, or 음성 후원 (`audio`): the same YouTube link and range; 음성 plays the sound with a small player. */
 export function VideoFields({ value, onChange, balance, error, audio = false }: Props<VideoState> & { error: string | null; audio?: boolean }) {
+  const { t } = useI18n();
   const videoId = value.url ? parseYouTubeId(value.url) : null;
   const start = parseClock(value.start);
   const end = parseClock(value.end);
@@ -244,7 +253,7 @@ export function VideoFields({ value, onChange, balance, error, audio = false }: 
     <>
       <AmountField value={value.amount} onChange={(amount) => onChange({ ...value, amount })} hint={<Balance balance={balance} />} quick={{ balance }} />
       <label className={room.field}>
-        <span className={room.fieldLabel}>{audio ? "YouTube 주소 (소리만 재생)" : "영상 URL"}</span>
+        <span className={room.fieldLabel}>{audio ? t("roomDonate.audioUrl") : t("roomDonate.videoUrl")}</span>
         <span className={room.inputBox}>
           <input
             className={room.input}
@@ -261,29 +270,29 @@ export function VideoFields({ value, onChange, balance, error, audio = false }: 
           ▶
         </span>
         <span className={styles.previewLabel}>
-          {videoId ? `YouTube · ${videoId}${audio ? " · 소리만" : ""}` : audio ? "노래나 목소리가 담긴 YouTube 주소를 넣어 주세요" : "영상 URL을 입력하면 미리보기가 표시돼요"}
+          {videoId ? `YouTube · ${videoId}${audio ? t("roomDonate.soundOnly") : ""}` : audio ? t("roomDonate.audioPreviewEmpty") : t("roomDonate.videoPreviewEmpty")}
         </span>
       </div>
       <div className={styles.clockGrid}>
         <label className={room.field}>
-          <span className={room.fieldLabel}>시작</span>
+          <span className={room.fieldLabel}>{t("roomDonate.start")}</span>
           <span className={room.inputBox}>
             <input className={room.input} value={value.start} placeholder="00:00" maxLength={5} onChange={(e) => onChange({ ...value, start: e.target.value })} />
           </span>
         </label>
         <label className={room.field}>
-          <span className={room.fieldLabel}>종료</span>
+          <span className={room.fieldLabel}>{t("roomDonate.end")}</span>
           <span className={room.inputBox}>
             <input className={room.input} value={value.end} placeholder="00:30" maxLength={5} onChange={(e) => onChange({ ...value, end: e.target.value })} />
           </span>
         </label>
         <div className={room.field}>
-          <span className={room.fieldLabel}>재생</span>
-          <span className={`${room.inputBox} ${styles.readonlyBox}`}>{length === null ? "-" : `${length}초`}</span>
+          <span className={room.fieldLabel}>{t("roomDonate.play")}</span>
+          <span className={`${room.inputBox} ${styles.readonlyBox}`}>{length === null ? "-" : t("roomDonate.seconds", { sec: length })}</span>
         </div>
       </div>
-      {audio && <p className={`${room.validation} ${styles.audioNote}`}>방송 화면 구석의 작은 플레이어에서 소리 위주로 재생돼요. 공유할 권리가 있는 영상만 보내 주세요.</p>}
-      <SwitchRow label={audio ? "음성 후원 이용약관 동의 (필수)" : "영상 후원 이용약관 동의 (필수)"} checked={value.terms} onChange={(terms) => onChange({ ...value, terms })} />
+      {audio && <p className={`${room.validation} ${styles.audioNote}`}>{t("roomDonate.audioNote")}</p>}
+      <SwitchRow label={audio ? t("roomDonate.audioTerms") : t("roomDonate.videoTerms")} checked={value.terms} onChange={(terms) => onChange({ ...value, terms })} />
       {error && (
         <p className={`${room.validation} ${room.validationError}`} role="alert">
           ! {error}
@@ -296,6 +305,7 @@ export function VideoFields({ value, onChange, balance, error, audio = false }: 
 // ── 시그니처 후원 (851:4929) ──────────────────────────────────────────────────
 
 export function SignatureFields({ value, onChange, catalog, onOpenAll }: Props<SignatureState> & { onOpenAll: () => void }) {
+  const { t } = useI18n();
   const byRank = [...catalog.signatures].sort((a, b) => a.rank - b.rank);
   const selected = catalog.signatures.find((s) => s.id === value.signatureId) ?? null;
   // Four cards; a pick from 전체보기 that is not among them is shown first.
@@ -304,13 +314,13 @@ export function SignatureFields({ value, onChange, catalog, onOpenAll }: Props<S
   return (
     <>
       <div className={styles.sectionHead}>
-        <span>시그니처 선택</span>
+        <span>{t("roomDonate.pickSignature")}</span>
         <button type="button" className={styles.linkButton} onClick={onOpenAll} aria-haspopup="dialog">
-          전체보기 〉
+          {t("roomDonate.viewAll")}
         </button>
       </div>
-      {cards.length === 0 && <p className={styles.selectedNote}>아직 준비된 시그니처가 없어요.</p>}
-      <div className={styles.signatureGrid} role="radiogroup" aria-label="시그니처">
+      {cards.length === 0 && <p className={styles.selectedNote}>{t("roomDonate.noSignatures")}</p>}
+      <div className={styles.signatureGrid} role="radiogroup" aria-label={t("roomDonate.signatures")}>
         {cards.map((s) => (
           <button
             key={s.id}
@@ -321,7 +331,7 @@ export function SignatureFields({ value, onChange, catalog, onOpenAll }: Props<S
             onClick={() => onChange({ ...value, signatureId: s.id })}
           >
             <span className={styles.signatureTop}>
-              <span className={s.favorite ? styles.starOn : styles.star} aria-label={s.favorite ? "즐겨찾기" : undefined}>
+              <span className={s.favorite ? styles.starOn : styles.star} aria-label={s.favorite ? t("roomDonate.favorite") : undefined}>
                 ★
               </span>
               <strong>{formatNumber(s.price)} FN</strong>
@@ -330,13 +340,13 @@ export function SignatureFields({ value, onChange, catalog, onOpenAll }: Props<S
           </button>
         ))}
       </div>
-      {selected && <p className={styles.selectedNote}>✓ {selected.name} 선택됨</p>}
+      {selected && <p className={styles.selectedNote}>{t("roomDonate.selected", { name: selected.name })}</p>}
       <MessageField
-        label="메시지"
+        label={t("roomDonate.shortMessage")}
         value={value.message}
         onChange={(message) => onChange({ ...value, message })}
         max={catalog.maxLength.message}
-        placeholder="크리에이터에게 전할 메시지"
+        placeholder={t("roomDonate.shortMessagePlaceholder")}
       />
     </>
   );
@@ -345,17 +355,18 @@ export function SignatureFields({ value, onChange, catalog, onOpenAll }: Props<S
 // ── 위시 후원 (851:5054) ──────────────────────────────────────────────────────
 
 export function WishlistFields({ value, onChange, catalog, creatorName, error }: Props<WishlistState> & { creatorName: string; error: string | null }) {
+  const { t } = useI18n();
   const selected = catalog.wishlist.find((w) => w.id === value.itemId) ?? null;
   return (
     <>
       <div className={styles.sectionHead}>
-        <span>{creatorName}님의 위시리스트</span>
-        <span className={styles.count}>{catalog.wishlist.length}개</span>
+        <span>{t("roomDonate.wishlistOf", { name: creatorName })}</span>
+        <span className={styles.count}>{t("roomDonate.itemCount", { count: catalog.wishlist.length })}</span>
       </div>
       {catalog.wishlist.length === 0 ? (
-        <p className={styles.empty}>등록된 위시 상품이 없어요.</p>
+        <p className={styles.empty}>{t("roomDonate.noWishes")}</p>
       ) : (
-        <div className={styles.wishList} role="radiogroup" aria-label="위시 상품">
+        <div className={styles.wishList} role="radiogroup" aria-label={t("roomDonate.wishItems")}>
           {catalog.wishlist.map((w) => (
             <button
               key={w.id}
@@ -383,18 +394,18 @@ export function WishlistFields({ value, onChange, catalog, creatorName, error }:
           ))}
         </div>
       )}
-      {selected && !error && <p className={room.validation}>● 선택 상품 재고 있음 · 바로 후원 가능</p>}
+      {selected && !error && <p className={room.validation}>{t("roomDonate.inStock")}</p>}
       {error && (
         <p className={`${room.validation} ${room.validationError}`} role="alert">
           ! {error}
         </p>
       )}
       <MessageField
-        label="후원 메시지"
+        label={t("roomDonate.message")}
         value={value.message}
         onChange={(message) => onChange({ ...value, message })}
         max={catalog.maxLength.message}
-        placeholder="크리에이터에게 전할 메시지"
+        placeholder={t("roomDonate.shortMessagePlaceholder")}
       />
       {catalog.voices.map((v) => (
         <VoiceCard key={v.id} voice={v} compact selected={value.voiceId === v.id} onToggle={() => onChange({ ...value, voiceId: value.voiceId === v.id ? null : v.id })} />

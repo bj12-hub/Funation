@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { CogIcon, MaximizeIcon, PlayerPlayIcon, VolumeIcon } from "@/components/icons";
 import { formatNumber } from "@/lib/format";
+import { getT } from "@/lib/i18n/server";
 import type { CreatorRoom } from "@/services/creators/creatorRoom";
 import styles from "./room.module.css";
 
@@ -8,14 +9,15 @@ import styles from "./room.module.css";
  * Stream area. Live: Figma 826:685 (portrait stream, goal card, controls).
  * Offline: 710:195. The embedded platform player is TBD, so controls are display-only.
  */
-export function Player({ name, stream }: { name: string; stream: CreatorRoom["stream"] }) {
+export async function Player({ name, stream }: { name: string; stream: CreatorRoom["stream"] }) {
+  const t = await getT();
   if (stream.status === "OFFLINE") {
     return (
       <div className={styles.player}>
         <Image src={stream.imageUrl} alt="" fill sizes="(max-width: 1200px) 100vw, 836px" className={styles.offlineImage} />
         <div className={styles.offlineNotice}>
-          <span className={styles.offlineBadge}>오프라인</span>
-          <p className={styles.offlineText}>{name} 님은 오프라인 상태입니다.</p>
+          <span className={styles.offlineBadge}>{t("room.offline")}</span>
+          <p className={styles.offlineText}>{t("room.offlineText", { name })}</p>
         </div>
         <div className={`${styles.controls} ${styles.controlsOffline}`}>
           <span className={styles.streamBrand}>Ssumnation STREAM</span>
@@ -29,7 +31,7 @@ export function Player({ name, stream }: { name: string; stream: CreatorRoom["st
   return (
     <div className={styles.player}>
       <div className={styles.streamFrame}>
-        <Image src={stream.thumbnailUrl} alt={`${name} 라이브 방송 화면`} fill sizes="436px" className={styles.streamImage} priority />
+        <Image src={stream.thumbnailUrl} alt={t("room.streamAlt", { name })} fill sizes="436px" className={styles.streamImage} priority />
       </div>
 
       <div className={styles.topOverlay}>
@@ -39,7 +41,7 @@ export function Player({ name, stream }: { name: string; stream: CreatorRoom["st
           </span>
           <span className={styles.liveText}>LIVE</span>
           <span className={styles.pillDivider} aria-hidden="true" />
-          <span className={styles.viewers}>{formatNumber(stream.viewerCount)} 시청 중</span>
+          <span className={styles.viewers}>{t("room.watching", { count: formatNumber(stream.viewerCount) })}</span>
         </span>
         {stream.rankBadge && <span className={`${styles.pill} ${styles.rank}`}>⭐ {stream.rankBadge}</span>}
       </div>
@@ -47,13 +49,13 @@ export function Player({ name, stream }: { name: string; stream: CreatorRoom["st
       {stream.goal && (
         <div className={styles.goal} data-theme="dark">
           <div className={styles.goalHeader}>
-            <span>🏁 오늘 목표 후원 금액</span>
-            <span className={styles.goalPercent}>{percent}% 달성</span>
+            <span>{t("room.goal")}</span>
+            <span className={styles.goalPercent}>{t("room.goalPercent", { percent })}</span>
           </div>
           <div
             className={styles.goalTrack}
             role="progressbar"
-            aria-label="오늘 목표 후원 달성률"
+            aria-label={t("room.goalAria")}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={percent}
