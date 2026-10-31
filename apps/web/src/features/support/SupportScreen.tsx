@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ChevronDownIcon, MailIcon, MessageSquareIcon, PhoneIcon, SearchMediumIcon } from "@/components/icons";
+import { FLEXTV_SITE, FLEXTV_WEB_URL } from "@/lib/flextv/mode";
 import { formatKst, formatNumber } from "@/lib/format";
 import {
   FAQ_CATEGORIES,
@@ -46,6 +47,8 @@ const faqHref = (category?: FaqCategory, q?: string) => {
 /**
  * Customer support — tabs follow funnation 고객센터 (공지사항 · 자주 묻는 질문 · 1:1 문의).
  * Figma 고객센터 4:7 (hero, search, FAQ accordion, 문의 방법) visuals are kept. Route `/support`.
+ * With FLEXTV (phase 7) FLEXTV's notices, questions and 1:1 문의: no categories or view counts, and a 문의 is written
+ * on FLEXTV's site.
  */
 export function SupportScreen({ tab, notices, faqs, query, category, inquiries }: Props) {
   return (
@@ -90,7 +93,7 @@ function NoticeList({ notices }: { notices: Notice[] }) {
             <strong className={local.noticeTitle}>{n.title}</strong>
             <span className={local.noticeSummary}>{n.summary}</span>
             <span className={local.noticeMeta}>
-              {n.date.replace(/-/g, ". ")}. · 조회 {formatNumber(n.views)}
+              {n.date.replace(/-/g, ". ")}.{!FLEXTV_SITE && ` · 조회 ${formatNumber(n.views)}`}
             </span>
           </Link>
         </li>
@@ -105,16 +108,18 @@ function FaqPanel({ faqs, query, category }: { faqs: FaqItem[]; query?: string; 
       <h2 id="support-faq" className={local.srOnly}>
         자주 묻는 질문
       </h2>
-      <nav className={local.chips} aria-label="질문 분류">
-        <Link href={faqHref(undefined, query)} className={local.chip} aria-current={!category ? "page" : undefined}>
-          전체
-        </Link>
-        {FAQ_CATEGORIES.map((c) => (
-          <Link key={c.key} href={faqHref(c.key, query)} className={local.chip} aria-current={category === c.key ? "page" : undefined}>
-            {c.label}
+      {!FLEXTV_SITE && (
+        <nav className={local.chips} aria-label="질문 분류">
+          <Link href={faqHref(undefined, query)} className={local.chip} aria-current={!category ? "page" : undefined}>
+            전체
           </Link>
-        ))}
-      </nav>
+          {FAQ_CATEGORIES.map((c) => (
+            <Link key={c.key} href={faqHref(c.key, query)} className={local.chip} aria-current={category === c.key ? "page" : undefined}>
+              {c.label}
+            </Link>
+          ))}
+        </nav>
+      )}
       {query && <p className={local.note}>‘{query}’ 검색 결과 {faqs.length}건</p>}
       {faqs.length === 0 ? (
         <div className={styles.empty}>
@@ -130,13 +135,16 @@ function FaqPanel({ faqs, query, category }: { faqs: FaqItem[]; query?: string; 
               <details className={styles.faq}>
                 <summary className={styles.faqQuestion}>
                   <span>
-                    <span className={local.faqCategory}>{faqCategoryLabel(faq.category)}</span>
+                    {!FLEXTV_SITE && <span className={local.faqCategory}>{faqCategoryLabel(faq.category)}</span>}
                     {faq.question}
                   </span>
                   <ChevronDownIcon className={styles.faqChevron} />
                 </summary>
                 <div className={styles.faqAnswer}>
-                  <p>{faq.answer ?? "답변을 준비하고 있습니다. 급한 문의는 1:1 문의를 이용해 주세요."}</p>
+                  {/* By position: FLEXTV's answers come as lines (lib/flextv/support.ts). */}
+                  {(faq.answer ?? "답변을 준비하고 있습니다. 급한 문의는 1:1 문의를 이용해 주세요.").split("\n").map((line, i) => (
+                    <p key={i}>{line}</p>
+                  ))}
                   {faq.link && (
                     <Link href={faq.link.href} className={styles.faqLink}>
                       {faq.link.label} →
@@ -173,7 +181,16 @@ function InquiryPanel({ inquiries }: { inquiries: Inquiry[] | null }) {
         </div>
       ) : (
         <>
-          <InquiryForm />
+          {FLEXTV_SITE ? (
+            <div className={local.empty}>
+              <p>1:1 문의는 FLEXTV에서 작성해요. 답변은 이 아래 내 문의 내역에서도 볼 수 있어요.</p>
+              <a href={`${FLEXTV_WEB_URL}/cs/inquiry`} target="_blank" rel="noopener noreferrer" className={styles.emptyLink}>
+                FLEXTV에서 문의하기
+              </a>
+            </div>
+          ) : (
+            <InquiryForm />
+          )}
           <section className={styles.section} aria-labelledby="my-inquiries">
             <h2 id="my-inquiries" className={styles.sectionTitle}>
               내 문의 내역
@@ -187,7 +204,7 @@ function InquiryPanel({ inquiries }: { inquiries: Inquiry[] | null }) {
                     <details className={local.notice}>
                       <summary className={local.inquirySummary}>
                         <span className={local.tags}>
-                          <span className={local.tag}>{faqCategoryLabel(q.category)}</span>
+                          {!FLEXTV_SITE && <span className={local.tag}>{faqCategoryLabel(q.category)}</span>}
                           <span className={`${local.tag} ${q.status === "ANSWERED" ? local.tagDone : ""}`}>{INQUIRY_STATUS_LABEL[q.status]}</span>
                         </span>
                         <strong className={local.noticeTitle}>{q.title}</strong>

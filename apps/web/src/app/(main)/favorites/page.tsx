@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { FavoritesScreen } from "@/features/favorites";
-import { getMyAccount } from "@/services/account/myAccount";
+import { getSession } from "@/lib/session";
 import { getFavorites, getFavoritesPromotion } from "@/services/favorites/favorites";
 
 // Figma: ssumnation-favorites-page 735:3856
@@ -16,8 +16,8 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
   const pageNumber = typeof page === "string" && Number.isInteger(Number(page)) ? Number(page) : 1;
 
   // Route guard for UX only; the backend must authorize the favorites API.
-  const [account, data, promotion] = await Promise.all([getMyAccount(), getFavorites({ query, page: pageNumber }), getFavoritesPromotion()]);
-  if (!account || !data) redirect("/login?next=/favorites");
+  const [session, data, promotion] = await Promise.all([getSession(), getFavorites({ query, page: pageNumber }), getFavoritesPromotion()]);
+  if (!session || !data) redirect("/login?next=/favorites");
 
   return (
     <>

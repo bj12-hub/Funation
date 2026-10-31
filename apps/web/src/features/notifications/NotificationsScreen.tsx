@@ -52,7 +52,7 @@ export function NotificationsScreen({ page, filter, show }: { page: Notification
                 <span className={styles.text}>
                   <span className={styles.meta}>
                     {NOTIFICATION_KIND_LABEL[n.kind].label}
-                    {now !== null && ` · ${ago(n.createdAt, now)}`}
+                    {now !== null && n.createdAt && ` · ${ago(n.createdAt, now)}`}
                     {!n.read && <span className={styles.dot} aria-label="안 읽음" />}
                   </span>
                   <strong>{n.title}</strong>

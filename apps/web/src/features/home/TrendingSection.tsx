@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { formatCompact } from "@/lib/format";
 import { getLocale, getT } from "@/lib/i18n/server";
+import { remote } from "@/lib/remoteImage";
 import type { TrendingVideo } from "@/services/home/homeFeed";
 import { SectionHeader } from "./SectionHeader";
 import styles from "./home.module.css";
@@ -20,7 +21,7 @@ export async function TrendingSection({ videos }: { videos: TrendingVideo[] }) {
           {videos.map((video) => (
             <Link key={video.id} href={video.href} className={styles.card}>
               <div className={styles.thumb}>
-                <Image src={video.thumbnailUrl} alt="" fill sizes="(max-width: 768px) 100vw, 296px" className={styles.thumbImage} />
+                <Image src={video.thumbnailUrl} alt="" fill sizes="(max-width: 768px) 100vw, 296px" className={styles.thumbImage} unoptimized={remote(video.thumbnailUrl)} />
                 <span className={styles.thumbShade} />
                 <span className={`${styles.pillBadge} ${styles.pillStart}`}>{t("home.rank", { n: video.rank })}</span>
                 <span className={`${styles.pillBadge} ${styles.pillEnd}`}>{t("home.watching", { count: formatCompact(video.viewerCount, locale) })}</span>

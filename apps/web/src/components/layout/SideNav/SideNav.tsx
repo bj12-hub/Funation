@@ -25,6 +25,8 @@ import {
   WalletOutlineIcon
 } from "@/components/icons";
 import { ChargeTrigger, QrChargeTrigger } from "@/features/walletCharge";
+import { FLEXTV_SITE } from "@/lib/flextv/mode";
+import { flextvServesLink } from "@/lib/flextv/siteRoutes";
 import { formatNumber } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { MessageKey } from "@/lib/i18n/translate";
@@ -101,7 +103,15 @@ const GROUPS: MenuGroup[] = [
   }
 ];
 
-const ALL_HREFS = GROUPS.flatMap((g) => g.items.map((i) => i.href)).filter((h): h is string => Boolean(h));
+/** With FLEXTV the menu leaves out the pages it has no backend for (lib/flextv/siteRoutes.ts), and groups left empty. */
+export function siteGroups(flextv: boolean): MenuGroup[] {
+  if (!flextv) return GROUPS;
+  return GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => !i.href || flextvServesLink(i.href)) })).filter((g) => g.items.length > 0);
+}
+
+const SITE_GROUPS = siteGroups(FLEXTV_SITE);
+
+const ALL_HREFS = SITE_GROUPS.flatMap((g) => g.items.map((i) => i.href)).filter((h): h is string => Boolean(h));
 
 /** The most specific menu href that contains the current path (so /wallet/donations ≠ /wallet). */
 export function activeHref(pathname: string) {
@@ -125,7 +135,7 @@ export function SideNav({ user, onNavigate }: { user: SideNavUser | null; onNavi
       )}
 
       <nav className={styles.menu} aria-label={t("side.liveMenu")}>
-        {GROUPS.filter((g) => user || !g.signedInOnly).map((g, i) => (
+        {SITE_GROUPS.filter((g) => user || !g.signedInOnly).map((g, i) => (
           <div key={g.title ?? i} className={styles.group}>
             {g.title && <p className={styles.groupTitle}>{t(g.title)}</p>}
             {g.items.map((item) => (

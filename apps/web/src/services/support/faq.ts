@@ -1,4 +1,6 @@
+import { FLEXTV_SITE } from "@/lib/flextv/mode";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
+import { flextvFaqs } from "./flextvSupport";
 import type { FaqCategory, FaqItem } from "./supportTypes";
 
 export type { FaqItem } from "./supportTypes";
@@ -6,9 +8,10 @@ export type { FaqItem } from "./supportTypes";
 /**
  * Support FAQ contract. Figma: 고객센터 4:7 (route `/support`); categories follow funnation 자주 묻는 질문.
  * Answers describe what the app does today; anything depending on an undecided policy (fees, schedules,
- * refunds, identity rules) stays `null` (see CLAUDE.md §14).
+ * refunds, identity rules) stays `null` (see CLAUDE.md §14). With FLEXTV (phase 7) FLEXTV's own, without categories.
  */
 export async function getFaqs(input: { query?: string; category?: FaqCategory } = {}): Promise<FaqItem[]> {
+  if (FLEXTV_SITE) return flextvFaqs(input.query);
   if (!USE_MOCK) throw new Error("Support API is not connected yet.");
   await mockDelay(200);
   const keyword = input.query?.trim().toLowerCase();

@@ -23,6 +23,8 @@ export type FlextvChannel = {
   description: string;
   backgroundUrl: string | null;
   live: boolean;
+  /** 즐겨찾기 count (FLEXTV's `stat.numberOfSubs`). */
+  followers: number;
   owner: { memberId: number; loginId: string; nickname: string; thumbUrl: string | null; /** Did FLEXTV's 본인인증: only then can they receive. */ verified: boolean };
 };
 
@@ -38,6 +40,7 @@ export function readChannel(data: unknown): FlextvChannel | null {
     description: text(data.description),
     backgroundUrl: httpsUrl(data.backgroundImgUrl),
     live: data.isInLive === true,
+    followers: Math.max(0, (isRecord(data.stat) ? num(data.stat.numberOfSubs) : null) ?? 0),
     owner: {
       memberId,
       loginId: text(data.owner.loginId),

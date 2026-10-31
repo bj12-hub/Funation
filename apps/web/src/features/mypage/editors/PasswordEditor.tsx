@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
+import { FLEXTV_SITE } from "@/lib/flextv/mode";
+import { FLEXTV_PASSWORD_SPECIALS, isFlextvPassword } from "@/lib/flextv/rules";
 import { isValidPassword } from "@/lib/validation";
 import { changePassword } from "@/services/account/profileActions";
 import { Message } from "./Message";
@@ -21,9 +23,13 @@ const ERRORS: Record<ErrorKind, { field: Field | null; text: string }> = {
   WRONG_CURRENT: { field: "current", text: "현재 비밀번호가 일치하지 않습니다. 다시 확인해 주세요." },
   // Code-first (no Figma frame): the same 5-failure lock as the login (718:213); the server has ended the session.
   LOCKED: { field: "current", text: "비밀번호를 5회 잘못 입력해 계정 보호를 위해 로그인이 제한되었습니다. 비밀번호를 재설정해 주세요." },
-  INVALID: { field: "next", text: "영문, 숫자, 특수문자를 모두 포함해 8~20자로 입력해 주세요." },
+  // With FLEXTV (phase 7) its rule (lib/flextv/rules.ts); FLEXTV refuses only the current password again.
+  INVALID: {
+    field: "next",
+    text: FLEXTV_SITE ? `영문, 숫자와 특수문자(${FLEXTV_PASSWORD_SPECIALS} 중 하나)를 모두 포함해 8~15자로 입력해 주세요.` : "영문, 숫자, 특수문자를 모두 포함해 8~20자로 입력해 주세요."
+  },
   MISMATCH: { field: "confirm", text: "새 비밀번호가 서로 일치하지 않습니다." },
-  REUSED: { field: "next", text: "기존 비밀번호와 같거나 최근 사용한 비밀번호는 사용할 수 없습니다." },
+  REUSED: { field: "next", text: FLEXTV_SITE ? "현재 비밀번호와 같은 비밀번호는 사용할 수 없습니다." : "기존 비밀번호와 같거나 최근 사용한 비밀번호는 사용할 수 없습니다." },
   ERROR: { field: null, text: GENERIC_ERROR }
 };
 
@@ -51,7 +57,7 @@ export function PasswordEditor({ triggerClassName }: { triggerClassName: string 
 
   async function submit() {
     if (!values.current) return setError("WRONG_CURRENT");
-    if (!isValidPassword(values.next)) return setError("INVALID");
+    if (!(FLEXTV_SITE ? isFlextvPassword : isValidPassword)(values.next)) return setError("INVALID");
     if (values.next !== values.confirm) return setError("MISMATCH");
     setBusy(true);
     try {

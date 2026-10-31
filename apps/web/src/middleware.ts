@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { FLEXTV_AUTH, FLEXTV_STUDIO } from "@/lib/flextv/mode";
+import { FLEXTV_AUTH, FLEXTV_SITE, FLEXTV_STUDIO } from "@/lib/flextv/mode";
 import { cookieHeaderWith, refreshSessionCookies } from "@/lib/flextv/sessionRefresh";
+import { flextvSiteRoute } from "@/lib/flextv/siteRoutes";
 import { flextvStudioServes, isStudioPath } from "@/lib/flextv/studioRoutes";
 import {
   HELPER_PATH_HEADER,
@@ -21,8 +22,9 @@ import {
  * overwritten here. This is navigation only — every page and server action still checks the session itself.
  *
  * With the FLEXTV backend it also renews the member's FLEXTV access token before it expires
- * (lib/flextv/sessionRefresh.ts), for the browser and for the page rendered for this request, and sends the studio pages
- * not connected to FLEXTV yet to the dashboard.
+ * (lib/flextv/sessionRefresh.ts), for the browser and for the page rendered for this request, sends the studio pages
+ * not connected to FLEXTV yet to the dashboard and the site's pages with no FLEXTV backend home, and does not serve the
+ * 도우미 domain's own pages.
  */
 export function middleware(request: NextRequest) {
   return FLEXTV_AUTH ? withSessionRefresh(request) : route(request, new Headers(request.headers));
@@ -46,17 +48,24 @@ function route(request: NextRequest, headers: Headers) {
   headers.delete(HELPER_PATH_HEADER);
   headers.set(SURFACE_HEADER, (helper ? "helper" : "site") satisfies Surface);
 
+  // With FLEXTV the site's pages and overlays that have no FLEXTV backend are not served (lib/flextv/siteRoutes.ts).
+  const flextvRoute = FLEXTV_SITE ? flextvSiteRoute(pathname) : "serve";
+  if (flextvRoute === "home") return NextResponse.redirect(new URL("/", request.url));
+
   if (!helper) {
     // With FLEXTV only the studio pages that run on it are served (lib/flextv/studioRoutes.ts).
     if (FLEXTV_STUDIO && isStudioPath(pathname) && !flextvStudioServes(pathname)) return NextResponse.redirect(new URL("/creator", request.url));
-    const route = routeSiteRequest(pathname, search, helperHosts);
+    const route = flextvRoute === "notFound" ? ({ action: "notFound" } as const) : routeSiteRequest(pathname, search, helperHosts);
     // An address no route matches, so the site's own 404 page answers (status 404).
     if (route.action === "notFound") return NextResponse.rewrite(new URL("/__helper-not-served", request.url), { request: { headers } });
     if (route.action === "redirectHost") return NextResponse.redirect(new URL(route.path, `${request.nextUrl.protocol}//${route.host}`));
     return NextResponse.next({ request: { headers } });
   }
 
-  const route = routeHelperRequest(pathname, search);
+  const helperRoute = routeHelperRequest(pathname, search);
+  // With FLEXTV the 도우미's own pages (and the studio addresses sent to them) read the mock studio: only what the site
+  // shares with it is served — sign-in, and the overlays and pop-outs that run on FLEXTV.
+  const route = flextvRoute === "notFound" || (FLEXTV_SITE && helperRoute.action !== "pass") ? ({ action: "notFound" } as const) : helperRoute;
   switch (route.action) {
     case "redirect":
       return NextResponse.redirect(new URL(route.path, request.url));
