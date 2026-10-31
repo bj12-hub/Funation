@@ -6740,6 +6740,10 @@ export const en: Messages = {
     loading: "Loading rankings…",
     meta: "Hall of fame | Ssumnation"
   },
+  flextvWidgets: {
+    remoteTitle: "Remote · overlay addresses",
+    remoteDesc: "Run quests, roulettes and gachas during the stream, and copy the overlay addresses for OBS."
+  },
   community: {
     title: "Community",
     total: "{count} posts",
