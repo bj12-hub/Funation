@@ -2,11 +2,12 @@
 
 import { useRef } from "react";
 import { CheckboxCheckIcon } from "@/components/icons";
+import { walletMethodText } from "@/features/wallet/methodLabels";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { PAYMENT_METHODS, type PaymentMethodId } from "@/services/wallet/chargeTypes";
 import styles from "./charge.module.css";
 
-/** Brand cards drawn in Figma 593:558; other methods use the neutral card. Brand names and subtitles stay as written. */
+/** Brand cards drawn in Figma 593:558; other methods use the neutral card. The logo titles stay as written; names and subtitles follow the language. */
 const BRAND: Partial<Record<PaymentMethodId, { title: string; subtitle: string; className: string }>> = {
   KAKAO_PAY: { title: "kakao pay", subtitle: "카카오페이 간편결제", className: styles.cardKakao },
   NAVER_PAY: { title: "N pay", subtitle: "네이버페이", className: styles.cardNaver }
@@ -44,15 +45,15 @@ export function MethodCards({
               type="button"
               role="radio"
               aria-checked={on}
-              aria-label={info.name}
+              aria-label={walletMethodText(info.name, t)}
               className={`${styles.card} ${brand?.className ?? styles.cardNeutral} ${on ? styles.cardOn : ""}`}
               onClick={() => onSelect(id)}
             >
-              <span className={styles.cardTitle}>{brand?.title ?? `${info.glyph} ${info.name}`.trim()}</span>
+              <span className={styles.cardTitle}>{brand?.title ?? `${info.glyph} ${walletMethodText(info.name, t)}`.trim()}</span>
               <span className={styles.cardCheck} aria-hidden="true">
                 {on && <CheckboxCheckIcon width={14} height={14} />}
               </span>
-              <span className={styles.cardSubtitle}>{brand?.subtitle ?? info.subtitle}</span>
+              <span className={styles.cardSubtitle}>{walletMethodText(brand?.subtitle ?? info.subtitle, t)}</span>
             </button>
           );
         })}

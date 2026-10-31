@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useServerClock } from "@/hooks/useServerClock";
 import { formatKstTime } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
+import { platformLabel } from "@/lib/i18n/platformLabel";
 import type { MessageKey } from "@/lib/i18n/translate";
 import type { OverlayTarget } from "@/services/creator/alertTypes";
 import { addMarble, closeMarble, openMarble, removeMarble, saveMarble, startMarble } from "@/services/play/marble";
@@ -29,7 +30,6 @@ import {
   type MarbleView,
   type MarbleWinRule
 } from "@/services/play/marbleTypes";
-import { PLATFORM_LABEL } from "@/types/platform";
 import { shownOverlayAddress } from "../crew/overlayAddress";
 import styles from "../crew/crew.module.css";
 import prize from "../crew/prize.module.css";
@@ -43,7 +43,7 @@ type Draft = Omit<MarbleSettings, "maxPlayers" | "winRank" | "raceSec"> & { maxP
 const toDraft = (s: MarbleSettings): Draft => ({ ...s, maxPlayers: String(s.maxPlayers), winRank: String(s.winRank), raceSec: String(s.raceSec) });
 const fromDraft = (d: Draft): MarbleSettings => ({ ...d, title: d.title.trim(), keyword: d.keyword.trim(), maxPlayers: Number(d.maxPlayers), winRank: Number(d.winRank), raceSec: Number(d.raceSec) });
 type T = ReturnType<typeof useI18n>["t"];
-const sourceLabel = (s: MarbleSource, t: T) => (s === "INVITE" ? t("studioPlay.sourceInvite") : s === "MANUAL" ? t("studioPlay.sourceManual") : PLATFORM_LABEL[s]);
+const sourceLabel = (s: MarbleSource, t: T) => (s === "INVITE" ? t("studioPlay.sourceInvite") : s === "MANUAL" ? t("studioPlay.sourceManual") : platformLabel(s, t));
 /** MARBLE_MODES · MARBLE_MAPS · MARBLE_WIN_RULES labels in the viewer's language (2026-11-01). */
 const MODE_KEYS: Record<MarbleMode, MessageKey> = { CHAT: "studioPlay.modeChat", INVITE: "studioPlay.modeInvite" };
 const MAP_KEYS: Record<MarbleMap, MessageKey> = { PINS: "studioPlay.mapPins", ZIGZAG: "studioPlay.mapZigzag", SPIRAL: "studioPlay.mapSpiral", STAIRS: "studioPlay.mapStairs" };

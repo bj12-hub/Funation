@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertCircleIcon } from "@/components/icons";
+import { walletMethodText } from "@/features/wallet/methodLabels";
 import { FLEXTV_WEB_URL } from "@/lib/flextv/mode";
 import { formatNumber } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
@@ -150,9 +151,9 @@ export function PaymentWindowView({
   return (
     <div className={styles.result} aria-live="polite">
       <div className={styles.successCard}>
-        <span>{PAYMENT_METHODS[started.methodId].name}</span>
+        <span>{walletMethodText(PAYMENT_METHODS[started.methodId].name, t)}</span>
         <strong>{formatNumber(started.fnAmount)} FN</strong>
-        <span className={styles.successPrice}>{formatNumber(started.price)}원</span>
+        <span className={styles.successPrice}>{t("walletCharge.krw", { amount: formatNumber(started.price) })}</span>
       </div>
       {state === "WAITING" ? (
         <p className={styles.resultText} role="status">
@@ -198,7 +199,7 @@ export function DepositRequestedView({ result, onClose }: { result: Deposit; onC
       <div className={styles.successCard}>
         <span>{t("flextvCharge.depositRequested")}</span>
         <strong>{formatNumber(result.fnAmount)} FN</strong>
-        <span className={styles.successPrice}>{formatNumber(result.price)}원</span>
+        <span className={styles.successPrice}>{t("walletCharge.krw", { amount: formatNumber(result.price) })}</span>
       </div>
       <p className={styles.resultText}>
         {t("flextvCharge.depositText")}
@@ -231,7 +232,7 @@ export function DepositRequestedView({ result, onClose }: { result: Deposit; onC
         </div>
         <div>
           <dt>{t("flextvCharge.depositAmount")}</dt>
-          <dd className={styles.accent}>{formatNumber(result.price)}원</dd>
+          <dd className={styles.accent}>{t("walletCharge.krw", { amount: formatNumber(result.price) })}</dd>
         </div>
         {result.bonusFn > 0 && (
           <div>

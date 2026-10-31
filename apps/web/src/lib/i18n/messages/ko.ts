@@ -25,7 +25,16 @@ export const ko = {
     notifications: "알림",
     studio: "스튜디오",
     studioHome: "크리에이터 스튜디오 홈",
-    toSite: "사이트로 이동"
+    toSite: "사이트로 이동",
+    close: "닫기",
+    retry: "다시 시도",
+    loading: "불러오는 중…",
+    chzzk: "치지직",
+    bellReadAll: "모두 읽음",
+    bellLoadError: "알림을 불러오지 못했어요.",
+    bellEmpty: "새 알림이 없어요.",
+    bellAll: "전체 알림 보기",
+    bannerMore: "자세히 보기 ›"
   },
   /** 크루 점수 게임 (2026-11-01): the studio cards' UI text only — titles, signature and member names, results and OBS overlays stay as written. */
   crewGame: {
@@ -3124,6 +3133,10 @@ export const ko = {
   auth: {
     loadError: "페이지를 불러오지 못했어요",
     loading: "불러오는 중…",
+    stepperTerms: "약관 동의",
+    stepperPhone: "번호 인증",
+    stepperAccount: "계정 설정",
+    stepperAria: "회원가입 {step}/{total} 단계",
     metaLogin: "로그인 | Ssumnation",
     metaPasswordChange: "비밀번호 변경 안내 | Ssumnation",
     metaPasswordReset: "비밀번호 찾기 | Ssumnation",
@@ -4089,7 +4102,8 @@ export const ko = {
     at: "일시",
     noEntries: "조회된 내역이 없습니다.",
     flextvRefund: "환불은 FLEXTV 고객센터 1:1 문의로 접수해 주세요.",
-    flextvInquiry: "1:1 문의하기"
+    flextvInquiry: "1:1 문의하기",
+    krw: "{amount} 원"
   },
   /** FN 충전 modal and its triggers (2026-11-01): UI text only — legal notes, consent lines, payment-method names and charge error copy stay as written. */
   walletCharge: {
@@ -4149,7 +4163,33 @@ export const ko = {
     depositor: "입금자명",
     depositorPlaceholder: "입금자명을 입력해 주세요",
     depositNote: "입금이 확인되면 FN이 들어와요.",
-    depositBonus: " 입금 보너스 {amount} FN이 함께 들어와요."
+    depositBonus: " 입금 보너스 {amount} FN이 함께 들어와요.",
+    pmSsumnationPay: "썸네이션 Pay",
+    pmFunPay: "펀페이",
+    pmNaverPay: "네이버페이",
+    pmKakaoPay: "카카오페이",
+    pmKakaoPayQuick: "카카오페이 간편결제",
+    pmCreditCard: "신용카드",
+    pmDebitCard: "체크카드",
+    pmPayco: "페이코",
+    pmPhone: "휴대폰결제",
+    pmPhoneQuick: "휴대폰(간편)",
+    pmPhoneQuickLong: "휴대폰결제(간편)",
+    pmTossPay: "토스페이",
+    pmSamsungPay: "삼성페이",
+    pmCultureland: "컬쳐랜드",
+    pmCulturelandGift: "컬쳐랜드 상품권",
+    pmVirtualAccount: "가상계좌",
+    pmTmoney: "티머니",
+    pmTmoneyCashbee: "티머니/캐시비",
+    pmSsgPay: "SSG페이",
+    pmInternetBanking: "인터넷뱅킹",
+    pmBookGift: "도서상품권",
+    pmBookCultureGift: "도서문화상품권",
+    pmBankTransfer: "실시간 계좌이체",
+    pmBankDeposit: "무통장입금",
+    pmLumpSum: "일시불",
+    krw: "{amount}원"
   },
   side: {
     aside: "보조 메뉴",
@@ -5871,12 +5911,17 @@ export const ko = {
     notFoundDescription: "주소가 바뀌었거나, 삭제 · 비공개 처리된 페이지예요. 주소를 다시 확인해 주세요.",
     goHome: "홈으로 가기",
     findCreators: "크리에이터 찾기",
-    support: "고객센터"
+    support: "고객센터",
+    loadError: "페이지를 불러오지 못했어요",
+    termsLoading: "약관을 불러오는 중…",
+    globalErrorTitle: "일시적인 오류가 발생했어요",
+    globalErrorBody: "잠시 후 다시 시도해 주세요."
   },
   /** 홈 화면 (2026-11-01): UI text only — creator names, video titles, banners and notices are content. */
   home: {
     title: "썸네이션 홈",
     loading: "홈 화면을 불러오는 중",
+    loadError: "홈 화면을 불러오지 못했습니다",
     creatorsLead: "요즘 인기 많은 크리에이터에게 후원하세요!",
     refresh: "↻ 새로고침",
     noCreators: "표시할 크리에이터가 없습니다.",
@@ -6207,6 +6252,18 @@ export const ko = {
     sources: "수익원별 상세",
     byType: "후원 유형별",
     byRoute: "후원 경로별",
+    typeText: "일반 후원",
+    typeSignature: "시그니처 후원",
+    typeMini: "미니 후원",
+    typeVideo: "영상 후원",
+    typeQuest: "퀘스트 후원",
+    typeRoulette: "룰렛 후원",
+    typeGacha: "뽑기 후원",
+    typeWishlist: "위시 후원",
+    typeDrawing: "그림 후원",
+    routeDirect: "방송 방 (직접 후원)",
+    routeSoop: "SOOP 플랫폼 후원",
+    routeFlextv: "FlexTV 플랫폼 후원",
     shortcuts: "바로가기",
     receivedDesc: "후원 내역 상세 보기",
     settlementStatus: "정산 현황",
@@ -7405,8 +7462,7 @@ export const ko = {
     memberTitle: "이미 가입된 계정이에요",
     memberText: "이 {provider} 계정으로 로그인해 주세요.",
     submit: "가입하고 시작하기",
-    otherMethod: "다른 방법으로 가입할까요?",
-    stepperAria: "회원가입 {shown}/{total} 단계"
+    otherMethod: "다른 방법으로 가입할까요?"
   },
   flextvStreamer: {
     title: "방송 시작하기",

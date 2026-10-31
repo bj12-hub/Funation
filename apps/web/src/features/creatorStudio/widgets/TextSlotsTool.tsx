@@ -22,6 +22,7 @@ import { FONT_FAMILIES } from "@/services/creator/widgetSettingsTypes";
 import { CopyButton } from "../settings/SettingsCards";
 import styles from "../crew/crew.module.css";
 import tools from "./broadcastTools.module.css";
+import { optionText } from "./widgetFormLabels";
 
 type Run = (action: () => Promise<ToolResult>, ok?: string) => void;
 
@@ -110,7 +111,7 @@ export function TextSlotsTool({ slots, overlayUrl, pending, run }: { slots: Text
             <option value="">{t("studioTools.themeFont")}</option>
             {FONT_FAMILIES.map((f) => (
               <option key={f} value={f}>
-                {f}
+                {optionText(f, t)}
               </option>
             ))}
           </select>
