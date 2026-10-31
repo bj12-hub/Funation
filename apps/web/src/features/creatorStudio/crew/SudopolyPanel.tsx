@@ -1,6 +1,8 @@
 "use client";
 
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { resetSudopoly, saveSudopoly } from "@/services/crew/crewGames";
 import {
   SUDOPOLY_ISLAND_MAX,
@@ -21,6 +23,7 @@ import {
   type CrewMember,
   type GamesView,
   type SudopolyKeyKind,
+  type SudopolyPieceMode,
   type SudopolySettings,
   type SudopolySpaceKind
 } from "@/services/crew/crewTypes";
@@ -65,6 +68,22 @@ const fromDraft = (d: Draft) => ({
   goalBonus: Number(d.goalBonus || 0)
 });
 const newId = () => `new-${crypto.randomUUID().slice(0, 8)}`;
+/** `SUDOPOLY_PIECE_MODES` · `SUDOPOLY_SPACE_KINDS` · `SUDOPOLY_KEY_KINDS` labels as message keys. */
+const PIECE_KEY: Record<SudopolyPieceMode, MessageKey> = { MEMBER: "crewGameSudopoly.pieceMember", SHARED: "crewGameSudopoly.pieceShared" };
+const SPACE_KEY: Record<SudopolySpaceKind, MessageKey> = {
+  START: "crewGameSudopoly.kindStart",
+  POINTS: "crewGameSudopoly.kindPoints",
+  TEXT: "crewGameSudopoly.kindText",
+  ISLAND: "crewGameSudopoly.kindIsland",
+  KEY: "crewGameSudopoly.kindKey"
+};
+const KEY_KIND_KEY: Record<SudopolyKeyKind, MessageKey> = {
+  POINTS: "crewGameSudopoly.keyPoints",
+  TEXT: "crewGameSudopoly.keyText",
+  MOVE: "crewGameSudopoly.keyMove",
+  START: "crewGameSudopoly.keyStart",
+  ISLAND: "crewGameSudopoly.keyIsland"
+};
 
 /** 예시 판: 20 칸 and a 황금열쇠 deck — example values to change for the broadcast. */
 const EXAMPLE_SPACES: [SudopolySpaceKind, string, number][] = [
@@ -123,6 +142,8 @@ export function SudopolyPanel({
   pending: boolean;
   run: RunAction;
 }) {
+  const { t } = useI18n();
+  const name = t("crewGame.nameSudopoly");
   const { draft, edit, dirty, reset } = useSettingsDraft(settings, toDraft, fromDraft);
   const setSpace = (i: number, patch: Partial<EditSpace>) => edit({ spaces: draft.spaces.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
   const setKey = (i: number, patch: Partial<EditKey>) => edit({ keys: draft.keys.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
@@ -131,7 +152,7 @@ export function SudopolyPanel({
   const n = draft.spaces.length;
   const totalWeight = draft.keys.reduce((s, k) => s + (Number(k.weight) > 0 ? Number(k.weight) : 0), 0);
   const sudopoly = live?.sudopoly;
-  const spaceName = (pos: number) => settings.spaces[pos]?.label ?? "출발";
+  const spaceName = (pos: number) => settings.spaces[pos]?.label ?? t("crewGameSudopoly.kindStart");
   const playable = members.filter((m) => m.active);
   const setCharacter = (id: string, key: string) => {
     const rest = Object.fromEntries(Object.entries(draft.characters).filter(([x]) => x !== id));
@@ -141,37 +162,32 @@ export function SudopolyPanel({
   return (
     <section id="game-sudopoly" className={styles.card} aria-labelledby="game-sudopoly-title">
       <h2 id="game-sudopoly-title" className={styles.cardTitle}>
-        🎲 스도폴리
+        🎲 {name}
       </h2>
-      <p className={styles.note}>
-        부루마불처럼 말이 판을 돌아요. 멤버에게 시그니처 후원이 들어오면 금액 구간만큼 주사위 두 개를 굴려 칸을 움직이고, 칸 · 황금열쇠 · 출발 보너스 점수가 그 멤버에게 들어가요. 더블이면 한 번
-        더, 세 번 연속이면 무인도예요.
-      </p>
+      <p className={styles.note}>{t("crewGameSudopoly.intro")}</p>
 
       <form
         className={prize.form}
         onSubmit={(e) => {
           e.preventDefault();
           const next = fromDraft(draft);
-          run(() => saveSudopoly({ ...next, excluded: next.excluded.filter((id) => known.has(id)) }), "스도폴리 설정을 저장했어요.");
+          run(() => saveSudopoly({ ...next, excluded: next.excluded.filter((id) => known.has(id)) }), t("crewGame.saved", { name }));
         }}
       >
-        <TitleField name="스도폴리" placeholder={SUDOPOLY_TITLE_DEFAULT} value={draft.title} onChange={(title) => edit({ title })} />
-        <div className={prize.field} role="group" aria-label="말">
-          <span className={styles.muted}>말</span>
+        <TitleField name={name} placeholder={SUDOPOLY_TITLE_DEFAULT} value={draft.title} onChange={(title) => edit({ title })} />
+        <div className={prize.field} role="group" aria-label={t("crewGameSudopoly.piece")}>
+          <span className={styles.muted}>{t("crewGameSudopoly.piece")}</span>
           <span className={styles.segment}>
             {SUDOPOLY_PIECE_MODES.map((m) => (
               <button key={m.key} type="button" aria-pressed={draft.pieceMode === m.key} onClick={() => edit({ pieceMode: m.key })}>
-                {m.label}
+                {t(PIECE_KEY[m.key])}
               </button>
             ))}
           </span>
         </div>
         {draft.pieceMode === "MEMBER" && (
-          <div className={prize.field} role="group" aria-label="참여 BJ · 캐릭터">
-            <span className={styles.muted}>
-              참여 BJ · 캐릭터 ({playable.filter((m) => !draft.sitOut.includes(m.id)).length}/{playable.length})
-            </span>
+          <div className={prize.field} role="group" aria-label={t("crewGameSudopoly.playersAria")}>
+            <span className={styles.muted}>{t("crewGameSudopoly.players", { playing: playable.filter((m) => !draft.sitOut.includes(m.id)).length, all: playable.length })}</span>
             <ul className={games.tiers}>
               {playable.map((m) => {
                 const playing = !draft.sitOut.includes(m.id);
@@ -187,8 +203,14 @@ export function SudopolyPanel({
                         <span className={styles.dot} style={{ background: m.color }} aria-hidden="true" />
                         {m.name}
                       </label>
-                      <select className={styles.select} aria-label={`${m.name} 캐릭터`} value={draft.characters[m.id] ?? ""} disabled={!playing} onChange={(e) => setCharacter(m.id, e.target.value)}>
-                        <option value="">이름 첫 글자</option>
+                      <select
+                        className={styles.select}
+                        aria-label={t("crewGameSudopoly.characterAria", { name: m.name })}
+                        value={draft.characters[m.id] ?? ""}
+                        disabled={!playing}
+                        onChange={(e) => setCharacter(m.id, e.target.value)}
+                      >
+                        <option value="">{t("crewGameSudopoly.initial")}</option>
                         {SUDOPOLY_CHARACTERS.map((c) => (
                           <option key={c.key} value={c.key}>
                             {c.emoji} {c.label}
@@ -200,14 +222,12 @@ export function SudopolyPanel({
                 );
               })}
             </ul>
-            <span className={styles.note}>참여하지 않는 BJ는 판에 말이 나오지 않고, 그 BJ에게 온 시그니처 후원은 굴리지 않아요. 캐릭터는 OBS 판의 말에 보여요.</span>
+            <span className={styles.note}>{t("crewGameSudopoly.playersNote")}</span>
           </div>
         )}
 
         <div className={prize.field}>
-          <span className={styles.muted}>
-            칸 ({n}개 — {SUDOPOLY_SPACES_MIN} ~ {SUDOPOLY_SPACES_MAX}개, 4의 배수, 첫 칸은 출발)
-          </span>
+          <span className={styles.muted}>{t("crewGameSudopoly.spaces", { n, min: SUDOPOLY_SPACES_MIN, max: SUDOPOLY_SPACES_MAX })}</span>
           {n > 0 && (
             <ul className={games.tiers}>
               {draft.spaces.map((x, i) => (
@@ -216,20 +236,20 @@ export function SudopolyPanel({
                     <span className={styles.muted}>{i + 1}</span>
                     <select
                       className={styles.select}
-                      aria-label={`${i + 1}번 칸 종류`}
+                      aria-label={t("crewGameSudopoly.spaceKindAria", { n: i + 1 })}
                       value={x.kind}
                       disabled={i === 0}
                       onChange={(e) => setSpace(i, { kind: e.target.value as SudopolySpaceKind, value: "" })}
                     >
                       {SUDOPOLY_SPACE_KINDS.filter((k) => (i === 0) === (k.key === "START")).map((k) => (
                         <option key={k.key} value={k.key}>
-                          {k.label}
+                          {t(SPACE_KEY[k.key])}
                         </option>
                       ))}
                     </select>
                     <input
                       className={styles.inputSmall}
-                      aria-label={`${i + 1}번 칸 이름`}
+                      aria-label={t("crewGameSudopoly.spaceNameAria", { n: i + 1 })}
                       maxLength={SUDOPOLY_LABEL_MAX}
                       value={x.label}
                       onChange={(e) => setSpace(i, { label: e.target.value })}
@@ -240,16 +260,16 @@ export function SudopolyPanel({
                           className={`${styles.inputSmall} ${games.short}`}
                           type="number"
                           inputMode="numeric"
-                          aria-label={`${i + 1}번 칸 점수`}
+                          aria-label={t("crewGameSudopoly.spacePointsAria", { n: i + 1 })}
                           value={x.value}
                           onChange={(e) => setSpace(i, { value: e.target.value })}
                         />
-                        <span className={styles.muted}>점</span>
+                        <span className={styles.muted}>{t("crewGameSudopoly.pointsUnit")}</span>
                       </>
                     )}
                     {i > 0 && (
                       <button type="button" className={styles.ghost} onClick={() => edit({ spaces: draft.spaces.filter((_, j) => j !== i) })}>
-                        삭제
+                        {t("crewGame.delete")}
                       </button>
                     )}
                   </span>
@@ -264,7 +284,7 @@ export function SudopolyPanel({
               disabled={n >= SUDOPOLY_SPACES_MAX}
               onClick={() => edit({ spaces: [...draft.spaces, n ? { id: newId(), kind: "TEXT", label: "", value: "" } : { id: newId(), kind: "START", label: "출발", value: "" }] })}
             >
-              + 칸 추가
+              {t("crewGameSudopoly.addSpace")}
             </button>
             {n === 0 && (
               <button
@@ -277,69 +297,65 @@ export function SudopolyPanel({
                   })
                 }
               >
-                예시 판으로 채우기
+                {t("crewGameSudopoly.fillExample")}
               </button>
             )}
           </span>
-          <span className={styles.note}>
-            {n > 0 && n % 4 !== 0 ? `칸이 ${n}개예요. 4의 배수로 맞춰 주세요.` : "판은 정사각형으로 돌아요. 예시 값은 일반적인 기준이니 방송에 맞게 바꿔 주세요."}
-          </span>
+          <span className={styles.note}>{n > 0 && n % 4 !== 0 ? t("crewGameSudopoly.notMultiple", { n }) : t("crewGameSudopoly.spacesNote")}</span>
         </div>
 
         <div className={prize.field}>
-          <span className={styles.muted}>규칙</span>
+          <span className={styles.muted}>{t("crewGameSudopoly.rules")}</span>
           <span className={games.tierRow}>
-            <span className={styles.muted}>출발 보너스</span>
+            <span className={styles.muted}>{t("crewGameSudopoly.startBonus")}</span>
             <input
               className={`${styles.inputSmall} ${games.short}`}
               type="number"
               inputMode="numeric"
-              aria-label="출발 보너스"
+              aria-label={t("crewGameSudopoly.startBonus")}
               min={0}
               value={draft.startBonus}
               onChange={(e) => edit({ startBonus: e.target.value })}
             />
-            <span className={styles.muted}>점 · 무인도</span>
+            <span className={styles.muted}>{t("crewGameSudopoly.pointsIsland")}</span>
             <input
               className={`${styles.inputSmall} ${games.short}`}
               type="number"
               inputMode="numeric"
-              aria-label="무인도에서 쉬는 횟수"
+              aria-label={t("crewGameSudopoly.islandAria")}
               min={1}
               max={SUDOPOLY_ISLAND_MAX}
               value={draft.islandTurns}
               onChange={(e) => edit({ islandTurns: e.target.value })}
             />
-            <span className={styles.muted}>번 쉬기 · 목표</span>
+            <span className={styles.muted}>{t("crewGameSudopoly.restGoal")}</span>
             <input
               className={`${styles.inputSmall} ${games.short}`}
               type="number"
               inputMode="numeric"
-              aria-label="목표 바퀴"
+              aria-label={t("crewGameSudopoly.goalLapsAria")}
               min={0}
               max={SUDOPOLY_LAPS_MAX}
               value={draft.goalLaps}
               onChange={(e) => edit({ goalLaps: e.target.value })}
             />
-            <span className={styles.muted}>바퀴 →</span>
+            <span className={styles.muted}>{t("crewGameSudopoly.lapsArrow")}</span>
             <input
               className={`${styles.inputSmall} ${games.short}`}
               type="number"
               inputMode="numeric"
-              aria-label="완주 보너스"
+              aria-label={t("crewGameSudopoly.goalBonusAria")}
               min={0}
               value={draft.goalBonus}
               onChange={(e) => edit({ goalBonus: e.target.value })}
             />
-            <span className={styles.muted}>점</span>
+            <span className={styles.muted}>{t("crewGameSudopoly.pointsUnit")}</span>
           </span>
-          <span className={styles.note}>목표 바퀴를 0으로 두면 완주 보너스가 없어요. 목표에 닿으면 보너스를 받고 바퀴 수를 다시 세요.</span>
+          <span className={styles.note}>{t("crewGameSudopoly.rulesNote")}</span>
         </div>
 
         <div className={prize.field}>
-          <span className={styles.muted}>
-            황금열쇠 카드 ({draft.keys.length}/{SUDOPOLY_KEYS_MAX})
-          </span>
+          <span className={styles.muted}>{t("crewGameSudopoly.keys", { count: draft.keys.length, max: SUDOPOLY_KEYS_MAX })}</span>
           {draft.keys.length > 0 && (
             <ul className={games.tiers}>
               {draft.keys.map((k, i) => (
@@ -347,15 +363,20 @@ export function SudopolyPanel({
                   <span className={games.tierRow}>
                     <input
                       className={styles.inputSmall}
-                      aria-label={`황금열쇠 ${i + 1} 문구`}
+                      aria-label={t("crewGameSudopoly.keyTextAria", { n: i + 1 })}
                       maxLength={SUDOPOLY_KEY_LABEL_MAX}
                       value={k.label}
                       onChange={(e) => setKey(i, { label: e.target.value })}
                     />
-                    <select className={styles.select} aria-label={`황금열쇠 ${i + 1} 종류`} value={k.kind} onChange={(e) => setKey(i, { kind: e.target.value as SudopolyKeyKind, value: "" })}>
+                    <select
+                      className={styles.select}
+                      aria-label={t("crewGameSudopoly.keyKindAria", { n: i + 1 })}
+                      value={k.kind}
+                      onChange={(e) => setKey(i, { kind: e.target.value as SudopolyKeyKind, value: "" })}
+                    >
                       {SUDOPOLY_KEY_KINDS.map((x) => (
                         <option key={x.key} value={x.key}>
-                          {x.label}
+                          {t(KEY_KIND_KEY[x.key])}
                         </option>
                       ))}
                     </select>
@@ -365,19 +386,19 @@ export function SudopolyPanel({
                           className={`${styles.inputSmall} ${games.short}`}
                           type="number"
                           inputMode="numeric"
-                          aria-label={`황금열쇠 ${i + 1} ${k.kind === "MOVE" ? "칸 수" : "점수"}`}
+                          aria-label={t(k.kind === "MOVE" ? "crewGameSudopoly.keyMoveAria" : "crewGameSudopoly.keyPointsAria", { n: i + 1 })}
                           value={k.value}
                           onChange={(e) => setKey(i, { value: e.target.value })}
                         />
-                        <span className={styles.muted}>{k.kind === "MOVE" ? "칸" : "점"}</span>
+                        <span className={styles.muted}>{k.kind === "MOVE" ? t("crewGameSudopoly.cellsUnit") : t("crewGameSudopoly.pointsUnit")}</span>
                       </>
                     )}
-                    <span className={styles.muted}>· 가중치</span>
+                    <span className={styles.muted}>{t("crewGameSudopoly.weightSep")}</span>
                     <input
                       className={`${styles.inputSmall} ${games.short}`}
                       type="number"
                       inputMode="numeric"
-                      aria-label={`황금열쇠 ${i + 1} 가중치`}
+                      aria-label={t("crewGameSudopoly.keyWeightAria", { n: i + 1 })}
                       min={1}
                       max={SUDOPOLY_WEIGHT_MAX}
                       value={k.weight}
@@ -385,7 +406,7 @@ export function SudopolyPanel({
                     />
                     <span className={styles.muted}>{Number(k.weight) > 0 && totalWeight ? `${Math.round((Number(k.weight) / totalWeight) * 1000) / 10}%` : "-"}</span>
                     <button type="button" className={styles.ghost} onClick={() => edit({ keys: draft.keys.filter((_, j) => j !== i) })}>
-                      삭제
+                      {t("crewGame.delete")}
                     </button>
                   </span>
                 </li>
@@ -399,44 +420,42 @@ export function SudopolyPanel({
               disabled={draft.keys.length >= SUDOPOLY_KEYS_MAX}
               onClick={() => edit({ keys: [...draft.keys, { id: newId(), label: "", kind: "POINTS", value: "", weight: "1" }] })}
             >
-              + 카드 추가
+              {t("crewGameSudopoly.addKey")}
             </button>
           </span>
-          <span className={styles.note}>이동은 앞(+) · 뒤(−) 칸 수예요. 카드로 옮겨 간 칸의 효과는 다시 받지 않아요.</span>
+          <span className={styles.note}>{t("crewGameSudopoly.keysNote")}</span>
         </div>
 
         <div className={prize.field}>
-          <span className={styles.muted}>
-            금액 구간별 굴림 ({draft.tiers.length}/{SUDOPOLY_TIERS_MAX})
-          </span>
+          <span className={styles.muted}>{t("crewGameSudopoly.tiers", { count: draft.tiers.length, max: SUDOPOLY_TIERS_MAX })}</span>
           {draft.tiers.length > 0 && (
             <ul className={games.tiers}>
-              {draft.tiers.map((t, i) => (
-                <li key={t.id}>
+              {draft.tiers.map((tier, i) => (
+                <li key={tier.id}>
                   <span className={games.tierRow}>
                     <input
                       className={styles.inputSmall}
                       type="number"
                       inputMode="numeric"
-                      aria-label={`금액 구간 ${i + 1} 최소 금액`}
+                      aria-label={t("crewGameSudopoly.tierMinAria", { n: i + 1 })}
                       min={0}
-                      value={t.min}
+                      value={tier.min}
                       onChange={(e) => setTier(i, { min: e.target.value })}
                     />
-                    <span className={styles.muted}>FN 이상 →</span>
+                    <span className={styles.muted}>{t("crewGameSudopoly.fnOrMoreArrow")}</span>
                     <input
                       className={`${styles.inputSmall} ${games.short}`}
                       type="number"
                       inputMode="numeric"
-                      aria-label={`금액 구간 ${i + 1} 굴림 수`}
+                      aria-label={t("crewGameSudopoly.tierRollsAria", { n: i + 1 })}
                       min={1}
                       max={SUDOPOLY_ROLLS_MAX}
-                      value={t.rolls}
+                      value={tier.rolls}
                       onChange={(e) => setTier(i, { rolls: e.target.value })}
                     />
-                    <span className={styles.muted}>번</span>
+                    <span className={styles.muted}>{t("crewGameSudopoly.times")}</span>
                     <button type="button" className={styles.ghost} onClick={() => edit({ tiers: draft.tiers.filter((_, j) => j !== i) })}>
-                      삭제
+                      {t("crewGame.delete")}
                     </button>
                   </span>
                 </li>
@@ -450,19 +469,19 @@ export function SudopolyPanel({
               disabled={draft.tiers.length >= SUDOPOLY_TIERS_MAX}
               onClick={() => edit({ tiers: [...draft.tiers, { id: newId(), min: "", rolls: "1" }] })}
             >
-              + 구간 추가
+              {t("crewGame.addTier")}
             </button>
           </span>
-          <span className={styles.note}>시그니처 후원 금액이 닿은 가장 높은 구간만큼 굴려요. 가장 낮은 구간보다 적으면 굴리지 않아요.</span>
+          <span className={styles.note}>{t("crewGameSudopoly.tiersNote")}</span>
         </div>
 
         <AutoFields
-          name="스도폴리"
-          verb="굴리기"
+          name={name}
+          verb={t("crewGame.roll")}
           copy={{
-            auto: "멤버에게 시그니처 후원이 들어오면 금액 구간만큼 굴리기",
-            excluded: "굴리지 않을 시그니처 (누르면 제외)",
-            note: "후원자가 멤버를 고른 시그니처 후원(금액 일치 · 금액범위 · 랜덤시그 포함)마다 굴려요. 멤버를 고르지 않은 후원은 수동으로 굴려 주세요."
+            auto: t("crewGameSudopoly.autoCopy"),
+            excluded: t("crewGameSudopoly.excludedCopy"),
+            note: t("crewGameSudopoly.noteCopy")
           }}
           auto={draft.auto}
           excluded={draft.excluded}
@@ -475,43 +494,42 @@ export function SudopolyPanel({
 
       {live && sudopoly && (
         <>
-          {dirty && <p className={styles.note}>저장하지 않은 설정이 있어요. 주사위는 저장한 판으로 굴러가요.</p>}
-          <ManualPlay game="SUDOPOLY" name="스도폴리" verb="굴리기" withSource={false} live={live} members={members} disabled={!settings.spaces.length} pending={pending} run={run} />
-          {!settings.spaces.length && <p className={styles.note}>판을 저장하면 굴릴 수 있어요.</p>}
+          {dirty && <p className={styles.note}>{t("crewGameSudopoly.unsaved")}</p>}
+          <ManualPlay game="SUDOPOLY" name={name} verb={t("crewGame.roll")} withSource={false} live={live} members={members} disabled={!settings.spaces.length} pending={pending} run={run} />
+          {!settings.spaces.length && <p className={styles.note}>{t("crewGameSudopoly.needBoard")}</p>}
           {settings.spaces.length > 0 && (
             <>
-              <ul className={games.lanes} aria-label="스도폴리 말">
+              <ul className={games.lanes} aria-label={t("crewGameSudopoly.piecesAria", { name })}>
                 {sudopoly.pieces.map((p) => (
                   <li key={p.key}>
                     <span className={styles.boardName}>
                       {p.color && <span className={styles.dot} style={{ background: p.color }} aria-hidden="true" />}
                       {p.name}
                     </span>
-                    <span>
-                      {p.pos + 1}번 칸 · {spaceName(p.pos)}
-                    </span>
+                    <span>{t("crewGameSudopoly.piecePos", { n: p.pos + 1, space: spaceName(p.pos) })}</span>
                     <span className={styles.muted}>
-                      {formatNumber(p.laps)}바퀴{p.island > 0 ? ` · 무인도 ${p.island}번 남음` : ""}
+                      {t("crewGameSudopoly.laps", { n: formatNumber(p.laps) })}
+                      {p.island > 0 ? ` · ${t("crewGameSudopoly.islandLeft", { n: p.island })}` : ""}
                     </span>
                   </li>
                 ))}
               </ul>
               <span className={prize.inline}>
-                <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => resetSudopoly({ broadcastId: live.id }), "모든 말을 출발로 돌렸어요.")}>
-                  판 다시 시작 (모든 말 출발로)
+                <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => resetSudopoly({ broadcastId: live.id }), t("crewGameSudopoly.resetDone"))}>
+                  {t("crewGameSudopoly.reset")}
                 </button>
               </span>
             </>
           )}
-          <RunList name="스도폴리" runs={sudopoly.runs} now={now} />
+          <RunList name={name} runs={sudopoly.runs} now={now} />
         </>
       )}
 
-      <OverlayAddress overlayPath={overlayPath} param="sudopoly" label="스도폴리" />
-      <p className={styles.note}>상태 텍스트 (진행 · 말마다 칸과 바퀴를 한 줄로)</p>
-      <OverlayAddress overlayPath={overlayPath} param="sudopolystatus" label="스도폴리 상태 텍스트" />
-      <p className={styles.note}>3D 보드 (같은 판을 비스듬히 내려다본 모습 — 말과 주사위가 판 위에 서 있어요)</p>
-      <OverlayAddress overlayPath={overlayPath} param="sudopoly3d" label="스도폴리 3D 보드" />
+      <OverlayAddress overlayPath={overlayPath} param="sudopoly" label={name} />
+      <p className={styles.note}>{t("crewGameSudopoly.statusNote")}</p>
+      <OverlayAddress overlayPath={overlayPath} param="sudopolystatus" label={t("crewGameSudopoly.statusLabel", { name })} />
+      <p className={styles.note}>{t("crewGameSudopoly.board3dNote")}</p>
+      <OverlayAddress overlayPath={overlayPath} param="sudopoly3d" label={t("crewGameSudopoly.board3dLabel", { name })} />
     </section>
   );
 }

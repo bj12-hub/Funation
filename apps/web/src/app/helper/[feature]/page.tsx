@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { widgetPageText } from "@/features/helper/helperText";
 import { WidgetFeaturePage } from "@/features/helper/WidgetFeaturePage";
 import { widgetPageOf } from "@/features/helper/widgetPages";
+import { getT } from "@/lib/i18n/server";
 import { getOverlaySwitches } from "@/services/creator/alertRemote";
 import { getWidgetDetail } from "@/services/creator/widgetSettings";
 
@@ -13,8 +15,10 @@ type Params = Promise<{ feature: string }>;
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
-  const page = widgetPageOf((await params).feature);
-  return { title: page?.title ?? "페이지를 찾을 수 없어요" };
+  const { feature } = await params;
+  const page = widgetPageOf(feature);
+  const t = await getT();
+  return { title: page ? widgetPageText(feature, page, t).title : t("helper.metaNotFound") };
 }
 
 export default async function Page({ params, searchParams }: { params: Params; searchParams: SearchParams }) {

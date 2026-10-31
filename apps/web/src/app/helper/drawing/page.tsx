@@ -3,9 +3,13 @@ import { DrawingScreen } from "@/features/creatorStudio/widgets/media/DrawingScr
 import { getOverlaySwitches } from "@/services/creator/alertRemote";
 import { getOverlayKey } from "@/services/creator/broadcastTools";
 import { getDrawings } from "@/services/creator/media";
+import { getT } from "@/lib/i18n/server";
 
 // Code-first (no Figma frame): 그림후원 전시, on the helper domain — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: "그림 후원" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("helperNav.drawing") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { BingoState, ToolResult } from "@/services/creator/broadcastToolTypes";
 import styles from "../crew/crew.module.css";
 import { BingoPlay } from "../widgets/BingoTool";
@@ -10,14 +11,15 @@ import { BingoPlay } from "../widgets/BingoTool";
  * 표시 초기화, 화면에 보이기 / 내리기. Missions, size and goal are edited on /creator/widgets/tools.
  */
 export function BingoRemote({ bingo, pending, run }: { bingo: BingoState; pending: boolean; run: (action: () => Promise<ToolResult>, ok?: string) => void }) {
+  const { t } = useI18n();
   return (
     <section className={styles.card} aria-labelledby="bingo-remote">
       <div className={styles.cardHead}>
         <h2 className={styles.cardTitle} id="bingo-remote">
-          🎯 빙고
+          {t("studioRemote.bingoTitle")}
         </h2>
         <Link href="/creator/widgets/tools#tool-bingo" className={styles.ghost}>
-          판 편집
+          {t("studioRemote.bingoEdit")}
         </Link>
       </div>
       <BingoPlay state={bingo} pending={pending} run={run} />

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { formatKstTime, formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { playGame } from "@/services/crew/crewGames";
 import {
   AMOUNT_TIERS_MAX,
@@ -51,10 +52,11 @@ export function useSettingsDraft<S, D>(settings: S, toDraft: (s: S) => D, fromDr
 }
 
 export function TitleField({ name, placeholder, value, onChange }: { name: string; placeholder: string; value: string; onChange: (title: string) => void }) {
+  const { t } = useI18n();
   return (
     <div className={prize.field}>
-      <span className={styles.muted}>제목</span>
-      <input className={styles.input} aria-label={`${name} 제목`} placeholder={placeholder} maxLength={GAME_TITLE_MAX} value={value} onChange={(e) => onChange(e.target.value)} />
+      <span className={styles.muted}>{t("crewGame.titleLabel")}</span>
+      <input className={styles.input} aria-label={t("crewGame.titleAria", { name })} placeholder={placeholder} maxLength={GAME_TITLE_MAX} value={value} onChange={(e) => onChange(e.target.value)} />
     </div>
   );
 }
@@ -85,18 +87,19 @@ export function AutoFields({
   signatures: GamesView["signatures"];
   onChange: (patch: { auto?: boolean; excluded?: string[]; showIdle?: boolean }) => void;
 }) {
+  const { t } = useI18n();
   return (
     <>
-      <div className={prize.field} role="group" aria-label={`${name} 자동`}>
+      <div className={prize.field} role="group" aria-label={t("crewGame.autoAria", { name })}>
         <label className={styles.checkRow}>
           <input type="checkbox" checked={auto} onChange={(e) => onChange({ auto: e.target.checked })} />
-          {copy?.auto ?? `멤버에게 시그니처 후원이 들어오면 자동으로 ${verb}`}
+          {copy?.auto ?? t("crewGame.autoDefault", { verb })}
         </label>
         {auto && withExcluded && (
           <>
-            <span className={styles.muted}>{copy?.excluded ?? "자동으로 하지 않을 시그니처 (누르면 제외)"}</span>
+            <span className={styles.muted}>{copy?.excluded ?? t("crewGame.excludedDefault")}</span>
             <span className={prize.chips}>
-              {signatures.length === 0 && <span className={styles.note}>만든 시그니처가 없어요.</span>}
+              {signatures.length === 0 && <span className={styles.note}>{t("crewGame.noSignatures")}</span>}
               {signatures.map((s) => (
                 <button
                   key={s.id}
@@ -106,33 +109,31 @@ export function AutoFields({
                   onClick={() => onChange({ excluded: excluded.includes(s.id) ? excluded.filter((x) => x !== s.id) : [...excluded, s.id] })}
                 >
                   {s.name}
-                  {!s.active && <span className={styles.muted}>숨김</span>}
+                  {!s.active && <span className={styles.muted}>{t("crewGame.hidden")}</span>}
                 </button>
               ))}
             </span>
-            <span className={styles.note}>
-              {copy?.note ??
-                "후원자가 멤버를 고른 시그니처 후원(금액 일치 · 금액범위 · 랜덤시그 포함)마다 한 번 하고, 그 후원이 기준 후원이 돼요. 멤버를 고르지 않은 후원은 수동으로 해 주세요."}
-            </span>
+            <span className={styles.note}>{copy?.note ?? t("crewGame.autoNoteDefault")}</span>
           </>
         )}
       </div>
       <label className={styles.checkRow}>
         <input type="checkbox" checked={showIdle} onChange={(e) => onChange({ showIdle: e.target.checked })} />
-        진행 중인 게임이 없을 때도 OBS에 보이기
+        {t("crewGame.showIdle")}
       </label>
     </>
   );
 }
 
 export function FormActions({ pending, dirty, onReset }: { pending: boolean; dirty: boolean; onReset: () => void }) {
+  const { t } = useI18n();
   return (
     <div className={styles.actions}>
       <button type="button" className={styles.ghost} disabled={pending || !dirty} onClick={onReset}>
-        되돌리기
+        {t("crewGame.revert")}
       </button>
       <button type="submit" className={styles.primary} disabled={pending || !dirty}>
-        설정 저장
+        {t("crewGame.saveSettings")}
       </button>
     </div>
   );
@@ -164,6 +165,7 @@ export function ManualPlay({
   pending: boolean;
   run: RunAction;
 }) {
+  const { t } = useI18n();
   const active = members.filter((m) => m.active);
   const [memberId, setMemberId] = useState("");
   const [sourceId, setSourceId] = useState<string | null>(null);
@@ -182,14 +184,14 @@ export function ManualPlay({
       requestId.current = null;
       setSourceId(null);
       return { status: "SAVED" };
-    }, `${name}: 결과는 OBS에서 연출이 끝난 뒤 보여요.`);
+    }, t("crewGame.playedOk", { name }));
   };
 
   return (
-    <div className={games.manual} role="group" aria-label={`${name} 수동`}>
+    <div className={games.manual} role="group" aria-label={t("crewGame.manualAria", { name })}>
       <select
         className={styles.select}
-        aria-label={`${name} 멤버`}
+        aria-label={t("crewGame.memberAria", { name })}
         value={picked}
         onChange={(e) => {
           setMemberId(e.target.value);
@@ -203,11 +205,11 @@ export function ManualPlay({
         ))}
       </select>
       {withSource && (
-        <select className={styles.select} aria-label={`${name} 기준 후원`} value={source} onChange={(e) => setSourceId(e.target.value)}>
-          <option value="">기준 후원 없음</option>
+        <select className={styles.select} aria-label={t("crewGame.sourceAria", { name })} value={source} onChange={(e) => setSourceId(e.target.value)}>
+          <option value="">{t("crewGame.noSource")}</option>
           {sources.map((x) => (
             <option key={x.id} value={x.id}>
-              {formatKstTime(x.at, { hour: "2-digit", minute: "2-digit" })} · {x.label} · {formatNumber(x.points)}점
+              {formatKstTime(x.at, { hour: "2-digit", minute: "2-digit" })} · {x.label} · {t("crewGame.points", { n: formatNumber(x.points) })}
             </option>
           ))}
         </select>
@@ -221,9 +223,10 @@ export function ManualPlay({
 
 /** The latest runs, newest first; a result stays hidden until OBS shows it. */
 export function RunList({ name, runs, now }: { name: string; runs: GameRunView[]; now: number | null }) {
-  if (!runs.length) return <p className={styles.empty}>아직 기록이 없어요.</p>;
+  const { t } = useI18n();
+  if (!runs.length) return <p className={styles.empty}>{t("crewGame.noRuns")}</p>;
   return (
-    <ol className={games.runs} aria-label={`${name} 기록`}>
+    <ol className={games.runs} aria-label={t("crewGame.runsAria", { name })}>
       {runs.map((r) => {
         const shown = now !== null && now >= Date.parse(r.revealAt);
         const waitSec = now === null ? 0 : Math.ceil((Date.parse(r.showAt) - now) / 1000);
@@ -233,16 +236,16 @@ export function RunList({ name, runs, now }: { name: string; runs: GameRunView[]
             <span className={styles.muted}>{time(r.at)}</span>
             <span className={styles.chip}>
               {r.trigger.kind === "SIGNATURE"
-                ? `자동 · ${r.trigger.signatureName}`
+                ? t("crewGame.triggerSignature", { name: r.trigger.signatureName })
                 : r.trigger.kind === "AMOUNT"
-                  ? `자동 · ${formatNumber(r.trigger.amount)} FN 발동`
+                  ? t("crewGame.triggerAmount", { amount: formatNumber(r.trigger.amount) })
                   : r.trigger.kind === "DONATION"
-                    ? `자동 · ${formatNumber(r.trigger.amount)} FN 후원`
-                    : "수동"}
+                    ? t("crewGame.triggerDonation", { amount: formatNumber(r.trigger.amount) })
+                    : t("crewGame.manual")}
             </span>
             <span className={styles.boardName}>
               {r.memberColor && <span className={styles.dot} style={{ background: r.memberColor }} aria-hidden="true" />}
-              {r.memberName || <span className={styles.muted}>멤버 없음</span>}
+              {r.memberName || <span className={styles.muted}>{t("crewGame.noMember")}</span>}
             </span>
             {shown ? (
               <span className={games.result}>
@@ -251,7 +254,7 @@ export function RunList({ name, runs, now }: { name: string; runs: GameRunView[]
                 {r.shares.length > 0 && <span className={styles.muted}>{r.shares.map((x) => `${x.memberName} ${signedPoints(x.points)}`).join(" · ")}</span>}
               </span>
             ) : (
-              <span className={styles.muted}>{waitSec > 0 ? `OBS 대기 ${waitSec}초` : "진행 중…"}</span>
+              <span className={styles.muted}>{waitSec > 0 ? t("crewGame.obsWait", { sec: waitSec }) : t("crewGame.running")}</span>
             )}
           </li>
         );
@@ -261,12 +264,13 @@ export function RunList({ name, runs, now }: { name: string; runs: GameRunView[]
 }
 
 export function OverlayAddress({ overlayPath, param, label }: { overlayPath: string; param: string; label: string }) {
+  const { t } = useI18n();
   const [origin, setOrigin] = useState("");
   useEffect(() => setOrigin(window.location.origin), []);
   return (
     <div className={styles.addRow}>
-      <input className={styles.input} value={shownOverlayAddress(origin, overlayPath, `?${param}`)} readOnly aria-label={`${label} 오버레이 주소`} onFocus={(e) => e.target.select()} />
-      <CopyButton value={`${origin}${overlayPath}?${param}`} label="복사" className={styles.ghost} />
+      <input className={styles.input} value={shownOverlayAddress(origin, overlayPath, `?${param}`)} readOnly aria-label={t("crewGame.overlayAria", { label })} onFocus={(e) => e.target.select()} />
+      <CopyButton value={`${origin}${overlayPath}?${param}`} label={t("crewGame.copy")} className={styles.ghost} />
     </div>
   );
 }
@@ -295,12 +299,11 @@ export function AmountTiersField({
   example?: Omit<AmountTier, "id">[];
   note: string;
 }) {
+  const { t: tr } = useI18n();
   const setTier = (i: number, patch: Partial<EditAmountTier>) => onChange(tiers.map((t, j) => (j === i ? { ...t, ...patch } : t)));
   return (
     <div className={prize.field}>
-      <span className={styles.muted}>
-        금액 구간 ({tiers.length}/{AMOUNT_TIERS_MAX})
-      </span>
+      <span className={styles.muted}>{tr("crewGame.tiersLabel", { count: tiers.length, max: AMOUNT_TIERS_MAX })}</span>
       {tiers.length > 0 && (
         <ul className={games.tiers}>
           {tiers.map((t, i) => (
@@ -310,18 +313,18 @@ export function AmountTiersField({
                   className={styles.inputSmall}
                   type="number"
                   inputMode="numeric"
-                  aria-label={`${name} 구간 ${i + 1} 최소 금액`}
-                  placeholder="최소"
+                  aria-label={tr("crewGame.tierMinAria", { name, n: i + 1 })}
+                  placeholder={tr("crewGame.min")}
                   value={t.min}
                   onChange={(e) => setTier(i, { min: e.target.value })}
                 />
-                <span className={styles.muted}>FN 이상 ~</span>
+                <span className={styles.muted}>{tr("crewGame.tierFrom")}</span>
                 <input
                   className={styles.inputSmall}
                   type="number"
                   inputMode="numeric"
-                  aria-label={`${name} 구간 ${i + 1} 최대 금액`}
-                  placeholder="비우면 이상"
+                  aria-label={tr("crewGame.tierMaxAria", { name, n: i + 1 })}
+                  placeholder={tr("crewGame.tierMaxPlaceholder")}
                   value={t.max}
                   onChange={(e) => setTier(i, { max: e.target.value })}
                 />
@@ -330,16 +333,16 @@ export function AmountTiersField({
                   className={styles.inputSmall}
                   type="number"
                   inputMode="decimal"
-                  aria-label={`${name} 구간 ${i + 1} 배수`}
+                  aria-label={tr("crewGame.tierMultiplierAria", { name, n: i + 1 })}
                   step={0.01}
                   min={1.01}
                   max={AMOUNT_TIER_MULTIPLIER_MAX}
                   value={t.multiplier}
                   onChange={(e) => setTier(i, { multiplier: e.target.value })}
                 />
-                <span className={styles.muted}>배</span>
+                <span className={styles.muted}>{tr("crewGame.times")}</span>
                 <button type="button" className={styles.ghost} onClick={() => onChange(tiers.filter((_, j) => j !== i))}>
-                  삭제
+                  {tr("crewGame.delete")}
                 </button>
               </span>
             </li>
@@ -353,11 +356,11 @@ export function AmountTiersField({
           disabled={tiers.length >= AMOUNT_TIERS_MAX}
           onClick={() => onChange([...tiers, { id: newTierId(), min: "", max: "", multiplier: "2" }])}
         >
-          + 구간 추가
+          {tr("crewGame.addTier")}
         </button>
         {example && tiers.length === 0 && (
           <button type="button" className={styles.ghost} onClick={() => onChange(toEditTiers(example.map((t) => ({ ...t, id: newTierId() }))))}>
-            예시로 채우기
+            {tr("crewGame.fillExample")}
           </button>
         )}
       </span>
@@ -395,15 +398,14 @@ export function PresetField<P extends { id: string; name: string }>({
   onSave: (name: string) => void;
   onDelete: (p: P) => void;
 }) {
+  const { t } = useI18n();
   const [name, setName] = useState("");
   const [loaded, setLoaded] = useState<string | null>(null);
   return (
-    <div className={prize.field} role="group" aria-label={`${game} 설정 프리셋`}>
-      <span className={styles.muted}>
-        설정 프리셋 ({presets.length}/{max})
-      </span>
+    <div className={prize.field} role="group" aria-label={t("crewGame.presetAria", { game })}>
+      <span className={styles.muted}>{t("crewGame.presetLabel", { count: presets.length, max })}</span>
       {presets.length > 0 ? (
-        <ul className={games.tiers} aria-label="저장한 프리셋">
+        <ul className={games.tiers} aria-label={t("crewGame.presetsAria")}>
           {presets.map((p) => (
             <li key={p.id}>
               <span className={games.tierRow}>
@@ -418,27 +420,34 @@ export function PresetField<P extends { id: string; name: string }>({
                     setLoaded(p.name);
                   }}
                 >
-                  불러오기
+                  {t("crewGame.load")}
                 </button>
                 <button type="button" className={styles.ghost} disabled={pending} onClick={() => onDelete(p)}>
-                  삭제
+                  {t("crewGame.delete")}
                 </button>
               </span>
             </li>
           ))}
         </ul>
       ) : (
-        <span className={styles.note}>저장한 프리셋이 없어요.</span>
+        <span className={styles.note}>{t("crewGame.noPresets")}</span>
       )}
       <span className={prize.inline}>
-        <input className={styles.input} aria-label="프리셋 이름" placeholder="프리셋 이름 (예: 평일 방송)" maxLength={nameMax} value={name} onChange={(e) => setName(e.target.value)} />
+        <input
+          className={styles.input}
+          aria-label={t("crewGame.presetName")}
+          placeholder={t("crewGame.presetNamePlaceholder")}
+          maxLength={nameMax}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
         <button type="button" className={styles.ghost} disabled={pending || !name.trim()} onClick={() => onSave(name.trim())}>
-          지금 설정 저장
+          {t("crewGame.saveCurrent")}
         </button>
       </span>
       {loaded && dirty && (
         <span className={styles.note} role="status">
-          &apos;{loaded}&apos; 프리셋을 불러왔어요. 설정 저장을 눌러야 {game}에 적용돼요.
+          {t("crewGame.presetLoaded", { name: loaded, game })}
         </span>
       )}
       <span className={styles.note}>{note}</span>

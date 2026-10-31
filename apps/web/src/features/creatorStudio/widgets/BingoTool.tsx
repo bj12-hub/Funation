@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { controlBingo, markBingo, saveBingo } from "@/services/creator/broadcastTools";
 import { BINGO_CELL_MAX, BINGO_SIZES, BINGO_TITLE_MAX, bingoLines, bingoLinesMax, resizeBingo, type BingoSize, type BingoState, type ToolResult } from "@/services/creator/broadcastToolTypes";
 import styles from "../crew/crew.module.css";
@@ -13,37 +14,40 @@ type Run = (action: () => Promise<ToolResult>, ok?: string) => void;
  * cell. Shared by the 방송 도구 card and the 리모컨 (2026-10-06 결정).
  */
 export function BingoPlay({ state, pending, run }: { state: BingoState; pending: boolean; run: Run }) {
+  const { t } = useI18n();
   const lines = bingoLines(state.size, state.marked);
   const done = lines >= state.goal;
   return (
     <>
       <div className={styles.cardHead}>
         <span className={local.status} role="status">
-          <strong>{state.title || "빙고"}</strong> · 완성 {lines}줄 / 목표 {state.goal}줄{done && <span className={styles.chip}>🎉 빙고!</span>}
+          <strong>{state.title || t("studioTools.bingoDefault")}</strong>
+          {t("studioTools.bingoStatus", { lines, goal: state.goal })}
+          {done && <span className={styles.chip}>{t("studioTools.bingoDone")}</span>}
         </span>
         <span className={styles.actions}>
-          <button type="button" className={styles.ghost} disabled={pending || !state.marked.some(Boolean)} onClick={() => run(() => controlBingo("RESET"), "표시를 모두 지웠어요.")}>
-            표시 초기화
+          <button type="button" className={styles.ghost} disabled={pending || !state.marked.some(Boolean)} onClick={() => run(() => controlBingo("RESET"), t("studioTools.marksCleared"))}>
+            {t("studioTools.clearMarks")}
           </button>
           <button
             type="button"
             className={state.shown ? styles.ghost : styles.primary}
             disabled={pending}
-            onClick={() => run(() => controlBingo(state.shown ? "HIDE" : "SHOW"), state.shown ? "방송 화면에서 내렸어요." : "방송 화면에 띄웠어요.")}
+            onClick={() => run(() => controlBingo(state.shown ? "HIDE" : "SHOW"), state.shown ? t("studioTools.takenOffStream") : t("studioTools.shownOnStream"))}
           >
-            {state.shown ? "화면에서 내리기" : "화면에 보이기"}
+            {state.shown ? t("studioTools.hideFromScreen") : t("studioTools.showOnScreen")}
           </button>
         </span>
       </div>
 
-      <div className={local.board} style={{ gridTemplateColumns: `repeat(${state.size}, 1fr)` }} role="group" aria-label="빙고판">
+      <div className={local.board} style={{ gridTemplateColumns: `repeat(${state.size}, 1fr)` }} role="group" aria-label={t("studioTools.boardAria")}>
         {state.cells.map((c, i) => (
           <button
             key={i}
             type="button"
             className={local.cell}
             aria-pressed={state.marked[i]}
-            aria-label={c ? `${c}${state.marked[i] ? " (표시됨)" : ""}` : `빈 칸 ${i + 1}`}
+            aria-label={c ? `${c}${state.marked[i] ? t("studioTools.markedSuffix") : ""}` : t("studioTools.emptyCell", { n: i + 1 })}
             disabled={pending || !c}
             onClick={() => run(() => markBingo({ index: i, marked: !state.marked[i], size: state.size, cell: c }))}
           >
@@ -51,7 +55,9 @@ export function BingoPlay({ state, pending, run }: { state: BingoState; pending:
           </button>
         ))}
       </div>
-      <p className={styles.note}>칸을 누르면 표시되고, 다시 누르면 지워져요. {state.shown ? "방송 화면에 보이는 중이에요." : "지금은 방송 화면에 보이지 않아요."}</p>
+      <p className={styles.note}>
+        {t("studioTools.bingoHelp")} {state.shown ? t("studioTools.bingoVisible") : t("studioTools.bingoHidden")}
+      </p>
     </>
   );
 }
@@ -62,6 +68,7 @@ export function BingoPlay({ state, pending, run }: { state: BingoState; pending:
  * local until 저장). The overlay shows the board only while "화면에 보이기" is on.
  */
 export function BingoTool({ state, pending, run }: { state: BingoState; pending: boolean; run: Run }) {
+  const { t } = useI18n();
   const [title, setTitle] = useState(state.title);
   const [size, setSize] = useState<BingoSize>(state.size);
   const [cells, setCells] = useState(state.cells);
@@ -85,27 +92,34 @@ export function BingoTool({ state, pending, run }: { state: BingoState; pending:
       <BingoPlay state={state} pending={pending} run={run} />
 
       <details className={local.edit}>
-        <summary>판 편집</summary>
+        <summary>{t("studioTools.editBoard")}</summary>
         <form
           className={styles.startForm}
           onSubmit={(e) => {
             e.preventDefault();
-            run(() => saveBingo({ title, size, cells, goal }), "빙고판을 저장했어요.");
+            run(() => saveBingo({ title, size, cells, goal }), t("studioTools.bingoSaved"));
           }}
         >
           <div className={local.editRow}>
-            <input className={styles.input} aria-label="빙고 제목" placeholder="빙고 제목" maxLength={BINGO_TITLE_MAX} value={title} onChange={(e) => setTitle(e.target.value)} />
-            <select className={styles.select} aria-label="판 크기" value={size} onChange={(e) => resize(Number(e.target.value) as BingoSize)}>
+            <input
+              className={styles.input}
+              aria-label={t("studioTools.bingoTitle")}
+              placeholder={t("studioTools.bingoTitle")}
+              maxLength={BINGO_TITLE_MAX}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+            <select className={styles.select} aria-label={t("studioTools.boardSize")} value={size} onChange={(e) => resize(Number(e.target.value) as BingoSize)}>
               {BINGO_SIZES.map((n) => (
                 <option key={n} value={n}>
                   {n} × {n}
                 </option>
               ))}
             </select>
-            <select className={styles.select} aria-label="목표 줄 수" value={goal} onChange={(e) => setGoal(Number(e.target.value))}>
+            <select className={styles.select} aria-label={t("studioTools.goalLines")} value={goal} onChange={(e) => setGoal(Number(e.target.value))}>
               {Array.from({ length: bingoLinesMax(size) }, (_, i) => i + 1).map((n) => (
                 <option key={n} value={n}>
-                  {n}줄 빙고
+                  {t("studioTools.goalOption", { n })}
                 </option>
               ))}
             </select>
@@ -115,8 +129,8 @@ export function BingoTool({ state, pending, run }: { state: BingoState; pending:
               <input
                 key={i}
                 className={styles.input}
-                aria-label={`${Math.floor(i / size) + 1}행 ${(i % size) + 1}열 미션`}
-                placeholder="미션"
+                aria-label={t("studioTools.cellMission", { row: Math.floor(i / size) + 1, col: (i % size) + 1 })}
+                placeholder={t("studioTools.mission")}
                 maxLength={BINGO_CELL_MAX}
                 value={c}
                 onChange={(e) => setCells(cells.map((x, j) => (j === i ? e.target.value : x)))}
@@ -124,12 +138,12 @@ export function BingoTool({ state, pending, run }: { state: BingoState; pending:
             ))}
           </div>
           <div className={styles.actions}>
-            <span className={styles.muted}>판 크기를 바꾸면 남는 칸의 표시는 그대로예요.</span>
+            <span className={styles.muted}>{t("studioTools.resizeNote")}</span>
             <button type="button" className={styles.ghost} disabled={pending} onClick={shuffle}>
-              칸 섞기
+              {t("studioTools.shuffle")}
             </button>
             <button type="submit" className={styles.primary} disabled={pending}>
-              저장
+              {t("studioTools.save")}
             </button>
           </div>
         </form>

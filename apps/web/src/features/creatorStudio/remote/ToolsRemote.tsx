@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { adjustTimer, controlCredits, controlTimer } from "@/services/creator/broadcastTools";
 import { TIMER_ADJUST_STEPS, type ToolResult, type ToolStates } from "@/services/creator/broadcastToolTypes";
 import styles from "../crew/crew.module.css";
@@ -23,65 +24,66 @@ export function ToolsRemote({
   pending: boolean;
   run: (action: () => Promise<ToolResult>, ok?: string) => void;
 }) {
-  const t = tools.timer;
-  const running = Boolean(t.startedAt);
+  const { t } = useI18n();
+  const timer = tools.timer;
+  const running = Boolean(timer.startedAt);
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
     setNow(Date.now());
     if (!running) return;
     const tick = setInterval(() => setNow(Date.now()), 500);
     return () => clearInterval(tick);
-  }, [running, t]);
+  }, [running, timer]);
   const rolling = Boolean(tools.credits.rollingSince);
 
   return (
     <section className={styles.card} aria-labelledby="tools-remote">
       <div className={styles.cardHead}>
         <h2 className={styles.cardTitle} id="tools-remote">
-          방송 도구
+          {t("studioRemote.toolsTitle")}
         </h2>
         <Link href="/creator/widgets/tools" className={styles.ghost}>
-          문구 · 시간 설정
+          {t("studioRemote.toolsSettings")}
         </Link>
       </div>
       <div className={remote.columns}>
         <div className={remote.toolBox}>
-          <span className={styles.muted}>타이머 · {t.mode === "COUNTDOWN" ? "카운트다운" : "스톱워치"}</span>
+          <span className={styles.muted}>{t("studioRemote.timerLabel", { mode: t(timer.mode === "COUNTDOWN" ? "studioRemote.countdown" : "studioRemote.stopwatch") })}</span>
           <span className={styles.clock}>
             {running && <span className={styles.liveDot} aria-hidden="true" />}
-            {now === null ? "--:--" : clock(timerSeconds(t, now))}
+            {now === null ? "--:--" : clock(timerSeconds(timer, now))}
           </span>
           <div className={remote.buttons}>
             {running ? (
               <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => controlTimer("PAUSE"))}>
-                일시정지
+                {t("studioRemote.timerPause")}
               </button>
             ) : (
               <button type="button" className={styles.primary} disabled={pending} onClick={() => run(() => controlTimer("START"))}>
-                {t.elapsedBeforeSec > 0 ? "재개" : "시작"}
+                {timer.elapsedBeforeSec > 0 ? t("studioRemote.timerResume") : t("studioRemote.timerStart")}
               </button>
             )}
             <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => controlTimer("RESET"))}>
-              초기화
+              {t("studioRemote.timerReset")}
             </button>
           </div>
-          <div className={remote.buttons} role="group" aria-label="타이머 퀵 조정">
+          <div className={remote.buttons} role="group" aria-label={t("studioRemote.timerQuick")}>
             {TIMER_ADJUST_STEPS.map((s) => (
               <button key={s} type="button" className={styles.chipOff} disabled={pending} onClick={() => run(() => adjustTimer(s))}>
-                {signedSec(s)}
+                {t("studioRemote.signedSec", { sign: s > 0 ? "+" : "−", sec: Math.abs(s) })}
               </button>
             ))}
           </div>
         </div>
         <div className={remote.toolBox}>
-          <span className={styles.muted}>엔딩 크레딧</span>
-          <strong>{rolling ? "방송 화면에 흐르는 중" : "대기 중"}</strong>
+          <span className={styles.muted}>{t("studioRemote.credits")}</span>
+          <strong>{rolling ? t("studioRemote.creditsRolling") : t("studioRemote.creditsIdle")}</strong>
           <div className={remote.buttons}>
-            <button type="button" className={styles.primary} disabled={pending} onClick={() => run(() => controlCredits("START"), rolling ? "처음부터 다시 흘려요." : "엔딩 크레딧을 시작했어요.")}>
-              {rolling ? "처음부터" : "🎬 크레딧 시작"}
+            <button type="button" className={styles.primary} disabled={pending} onClick={() => run(() => controlCredits("START"), rolling ? t("studioRemote.creditsRestarted") : t("studioRemote.creditsStarted"))}>
+              {rolling ? t("studioRemote.creditsFromStart") : t("studioRemote.creditsStart")}
             </button>
-            <button type="button" className={styles.ghost} disabled={pending || !rolling} onClick={() => run(() => controlCredits("STOP"), "엔딩 크레딧을 멈췄어요.")}>
-              크레딧 중지
+            <button type="button" className={styles.ghost} disabled={pending || !rolling} onClick={() => run(() => controlCredits("STOP"), t("studioRemote.creditsStopped"))}>
+              {t("studioRemote.creditsStop")}
             </button>
           </div>
         </div>

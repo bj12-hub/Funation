@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { clearSigDosan, saveSigDosan, startSigDosan, stepSigDosan } from "@/services/crew/crewGames";
 import {
   SIG_DOSAN_BONUS_MAX,
@@ -12,6 +14,8 @@ import {
   SIG_DOSAN_TITLE_DEFAULT,
   type CrewMember,
   type GamesView,
+  type SigDosanDisplay,
+  type SigDosanMode,
   type SigDosanSettings
 } from "@/services/crew/crewTypes";
 import { DOSAN_SORTS, paintPick, pickDosanSignatures, sortDosanSignatures, type DosanSort } from "./dosanPick";
@@ -24,6 +28,23 @@ import prize from "./prize.module.css";
 type Draft = Omit<SigDosanSettings, "bonus"> & { bonus: string };
 const toDraft = (s: SigDosanSettings): Draft => ({ ...s, bonus: String(s.bonus) });
 const fromDraft = (d: Draft) => ({ ...d, bonus: Number(d.bonus || 0) });
+/** `SIG_DOSAN_MODES` · `SIG_DOSAN_DISPLAYS` · `DOSAN_SORTS` labels as message keys. */
+const MODE_KEY: Record<SigDosanMode, { label: MessageKey; note: MessageKey }> = {
+  ALL: { label: "crewGameSigDosan.modeAll", note: "crewGameSigDosan.modeAllNote" },
+  VS: { label: "crewGameSigDosan.modeVs", note: "crewGameSigDosan.modeVsNote" },
+  SOLO: { label: "crewGameSigDosan.modeSolo", note: "crewGameSigDosan.modeSoloNote" }
+};
+const DISPLAY_KEY: Record<SigDosanDisplay, { label: MessageKey; note: MessageKey }> = {
+  ROLLER: { label: "crewGameSigDosan.displayRoller", note: "crewGameSigDosan.displayRollerNote" },
+  LADDER: { label: "crewGameSigDosan.displayLadder", note: "crewGameSigDosan.displayLadderNote" }
+};
+const SORT_KEY: Record<DosanSort, MessageKey> = {
+  PRICE_ASC: "crewGameSigDosan.sortPriceAsc",
+  PRICE_DESC: "crewGameSigDosan.sortPriceDesc",
+  NEWEST: "crewGameSigDosan.sortNewest",
+  OLDEST: "crewGameSigDosan.sortOldest",
+  LIST: "crewGameSigDosan.sortList"
+};
 
 /**
  * 시그니처 두산 — code-first (no Figma frame; StreamDonate 시그니처 두산 참고), inside `/creator/crew/games`. 모드 (전체 · VS ·
@@ -49,6 +70,8 @@ export function SigDosanPanel({
   pending: boolean;
   run: RunAction;
 }) {
+  const { t } = useI18n();
+  const name = t("crewGame.nameSigDosan");
   const { draft, edit, dirty, reset } = useSettingsDraft(settings, toDraft, fromDraft);
   const known = new Set(signatures.map((s) => s.id));
   const startId = useRef<string | null>(null);
@@ -71,9 +94,9 @@ export function SigDosanPanel({
     const num = (v: string) => (v.trim() === "" ? null : Number(v));
     const count = Math.min(SIG_DOSAN_STEPS_MAX, Math.max(1, Math.floor(Number(pick.count) || 0)));
     const res = pickDosanSignatures(pool, { min: num(pick.min), max: num(pick.max), count });
-    if (!res.found) return setPickNote("범위 안에 사용 중인 시그니처가 없어요.");
+    if (!res.found) return setPickNote(t("crewGameSigDosan.pickNone"));
     edit({ signatureIds: res.ids });
-    setPickNote(res.found > count ? `범위 안 ${res.found}개 중 ${res.ids.length}개를 골랐어요.` : `범위 안 ${res.found}개를 모두 넣었어요.`);
+    setPickNote(res.found > count ? t("crewGameSigDosan.pickSome", { found: res.found, picked: res.ids.length }) : t("crewGameSigDosan.pickAll", { found: res.found }));
   };
   const ladder = byPrice.filter((s) => s.active && draft.signatureIds.includes(s.id));
   const toggle = (id: string) => edit({ signatureIds: draft.signatureIds.includes(id) ? draft.signatureIds.filter((x) => x !== id) : [...draft.signatureIds, id] });
@@ -128,62 +151,83 @@ export function SigDosanPanel({
       const res = await startSigDosan({ broadcastId: live.id, requestId });
       if (res.status !== "UNAUTHORIZED") startId.current = null;
       return res;
-    }, "두산 판을 만들었어요.");
+    }, t("crewGameSigDosan.started"));
   };
 
   return (
     <section id="game-sigdosan" className={styles.card} aria-labelledby="game-sigdosan-title">
       <h2 id="game-sigdosan-title" className={styles.cardTitle}>
-        🚀 시그니처 두산
+        🚀 {name}
       </h2>
-      <p className={styles.note}>
-        고른 시그니처를 낮은 금액부터 높은 금액까지 한 줄로 세우고, 다음 단의 시그니처 후원이 들어올 때마다 한 단씩 쏘아 올려요. 맨 위까지 먼저 올라간 줄이 완주예요.
-      </p>
+      <p className={styles.note}>{t("crewGameSigDosan.intro")}</p>
 
       <form
         className={prize.form}
         onSubmit={(e) => {
           e.preventDefault();
           const next = fromDraft(draft);
-          run(() => saveSigDosan({ ...next, excluded: [], signatureIds: next.signatureIds.filter((id) => known.has(id)) }), "시그니처 두산 설정을 저장했어요.");
+          run(() => saveSigDosan({ ...next, excluded: [], signatureIds: next.signatureIds.filter((id) => known.has(id)) }), t("crewGame.saved", { name }));
         }}
       >
-        <TitleField name="시그니처 두산" placeholder={SIG_DOSAN_TITLE_DEFAULT} value={draft.title} onChange={(title) => edit({ title })} />
-        <div className={prize.field} role="group" aria-label="시그니처 두산 모드">
-          <span className={styles.muted}>모드</span>
+        <TitleField name={name} placeholder={SIG_DOSAN_TITLE_DEFAULT} value={draft.title} onChange={(title) => edit({ title })} />
+        <div className={prize.field} role="group" aria-label={t("crewGameSigDosan.modeAria")}>
+          <span className={styles.muted}>{t("crewGameSigDosan.mode")}</span>
           <span className={games.rules}>
             {SIG_DOSAN_MODES.map((m) => (
               <button key={m.key} type="button" className={games.rule} aria-pressed={draft.mode === m.key} onClick={() => edit({ mode: m.key })}>
-                <strong>{m.label}</strong>
-                <span>{m.note}</span>
+                <strong>{t(MODE_KEY[m.key].label)}</strong>
+                <span>{t(MODE_KEY[m.key].note)}</span>
               </button>
             ))}
           </span>
         </div>
-        <div className={prize.field} role="group" aria-label="시그니처 두산 OBS 표시 방식">
-          <span className={styles.muted}>OBS 표시 방식 (저장하면 진행 중인 두산에도 바로)</span>
+        <div className={prize.field} role="group" aria-label={t("crewGameSigDosan.displayAria")}>
+          <span className={styles.muted}>{t("crewGameSigDosan.display")}</span>
           <span className={games.rules}>
             {SIG_DOSAN_DISPLAYS.map((d) => (
               <button key={d.key} type="button" className={games.rule} aria-pressed={draft.display === d.key} onClick={() => edit({ display: d.key })}>
-                <strong>{d.label}</strong>
-                <span>{d.note}</span>
+                <strong>{t(DISPLAY_KEY[d.key].label)}</strong>
+                <span>{t(DISPLAY_KEY[d.key].note)}</span>
               </button>
             ))}
           </span>
         </div>
         <div className={prize.field}>
-          <span className={styles.muted}>
-            두산 시그니처 ({draft.signatureIds.length}/{SIG_DOSAN_STEPS_MAX}, 누르거나 끌어서 넣고 빼요)
-          </span>
-          <span className={games.unit} role="group" aria-label="두산 시그니처 랜덤 선택">
-            <input className={styles.inputSmall} type="number" inputMode="numeric" aria-label="랜덤 선택 최소 금액" placeholder="최소" value={pick.min} onChange={(e) => setPick({ ...pick, min: e.target.value })} />
+          <span className={styles.muted}>{t("crewGameSigDosan.sigs", { count: draft.signatureIds.length, max: SIG_DOSAN_STEPS_MAX })}</span>
+          <span className={games.unit} role="group" aria-label={t("crewGameSigDosan.randomAria")}>
+            <input
+              className={styles.inputSmall}
+              type="number"
+              inputMode="numeric"
+              aria-label={t("crewGameSigDosan.randomMinAria")}
+              placeholder={t("crewGame.min")}
+              value={pick.min}
+              onChange={(e) => setPick({ ...pick, min: e.target.value })}
+            />
             <span className={styles.muted}>~</span>
-            <input className={styles.inputSmall} type="number" inputMode="numeric" aria-label="랜덤 선택 최대 금액" placeholder="최대" value={pick.max} onChange={(e) => setPick({ ...pick, max: e.target.value })} />
+            <input
+              className={styles.inputSmall}
+              type="number"
+              inputMode="numeric"
+              aria-label={t("crewGameSigDosan.randomMaxAria")}
+              placeholder={t("crewGame.max")}
+              value={pick.max}
+              onChange={(e) => setPick({ ...pick, max: e.target.value })}
+            />
             <span className={styles.muted}>FN ·</span>
-            <input className={styles.inputSmall} type="number" inputMode="numeric" aria-label="랜덤 선택 개수" min={1} max={SIG_DOSAN_STEPS_MAX} value={pick.count} onChange={(e) => setPick({ ...pick, count: e.target.value })} />
-            <span className={styles.muted}>개</span>
+            <input
+              className={styles.inputSmall}
+              type="number"
+              inputMode="numeric"
+              aria-label={t("crewGameSigDosan.randomCountAria")}
+              min={1}
+              max={SIG_DOSAN_STEPS_MAX}
+              value={pick.count}
+              onChange={(e) => setPick({ ...pick, count: e.target.value })}
+            />
+            <span className={styles.muted}>{t("crewGameSigDosan.countUnit")}</span>
             <button type="button" className={styles.ghost} onClick={randomPick}>
-              랜덤 선택
+              {t("crewGameSigDosan.random")}
             </button>
             <button
               type="button"
@@ -194,29 +238,29 @@ export function SigDosanPanel({
                 setPickNote(null);
               }}
             >
-              선택 해제
+              {t("crewGameSigDosan.clearPick")}
             </button>
           </span>
           {pickNote && (
             <span className={styles.note} role="status">
-              {pickNote} 설정 저장을 눌러야 두산에 적용돼요.
+              {pickNote} {t("crewGameSigDosan.pickApply")}
             </span>
           )}
           <span className={prize.inline}>
-            <span className={styles.segment} role="group" aria-label="두산 시그니처 정렬">
+            <span className={styles.segment} role="group" aria-label={t("crewGameSigDosan.sortAria")}>
               {DOSAN_SORTS.map((x) => (
                 <button key={x.key} type="button" aria-pressed={sort === x.key} onClick={() => setSort(x.key)}>
-                  {x.label}
+                  {t(SORT_KEY[x.key])}
                 </button>
               ))}
             </span>
             <label className={styles.checkRow}>
               <input type="checkbox" checked={completeOnly} onChange={(e) => setCompleteOnly(e.target.checked)} />
-              이미지+음악 있는 것만
+              {t("crewGameSigDosan.completeOnly")}
             </label>
           </span>
           <span className={prize.chips}>
-            {shown.length === 0 && <span className={styles.note}>{completeOnly ? "이미지와 음악이 모두 있는 시그니처가 없어요." : "만든 시그니처가 없어요."}</span>}
+            {shown.length === 0 && <span className={styles.note}>{completeOnly ? t("crewGameSigDosan.noComplete") : t("crewGame.noSignatures")}</span>}
             {shown.map((s) => (
               <button
                 key={s.id}
@@ -243,34 +287,34 @@ export function SigDosanPanel({
               >
                 {s.name}
                 <span className={styles.muted}>{formatNumber(s.price)}</span>
-                {!s.active && <span className={styles.muted}>숨김</span>}
+                {!s.active && <span className={styles.muted}>{t("crewGame.hidden")}</span>}
               </button>
             ))}
           </span>
           <span className={styles.note}>
             {ladder.length < SIG_DOSAN_STEPS_MIN
-              ? `사용 중인 시그니처를 ${SIG_DOSAN_STEPS_MIN}개 이상 골라야 시작할 수 있어요. 숨긴 시그니처는 들어가지 않아요.`
-              : `낮은 금액부터 ${ladder.length}단: ${ladder.map((s) => s.name).join(" → ")}`}
+              ? t("crewGameSigDosan.tooFew", { min: SIG_DOSAN_STEPS_MIN })
+              : t("crewGameSigDosan.ladder", { n: ladder.length, names: ladder.map((s) => s.name).join(" → ") })}
           </span>
         </div>
         <label className={games.unit}>
-          <span className={styles.muted}>완주 보너스</span>
+          <span className={styles.muted}>{t("crewGameSigDosan.bonus")}</span>
           <input
             className={styles.inputSmall}
             type="number"
             inputMode="numeric"
-            aria-label="완주 보너스 점수"
+            aria-label={t("crewGameSigDosan.bonusAria")}
             min={0}
             max={SIG_DOSAN_BONUS_MAX}
             value={draft.bonus}
             onChange={(e) => edit({ bonus: e.target.value })}
           />
-          <span className={styles.muted}>점 — 완주한 후원의 멤버에게, 0이면 점수 없음</span>
+          <span className={styles.muted}>{t("crewGameSigDosan.bonusNote")}</span>
         </label>
         <AutoFields
-          name="시그니처 두산"
-          verb="올리기"
-          copy={{ auto: "시그니처 후원으로 한 단씩 올리기", excluded: "", note: "" }}
+          name={name}
+          verb={t("crewGameSigDosan.verb")}
+          copy={{ auto: t("crewGameSigDosan.autoCopy"), excluded: "", note: "" }}
           withExcluded={false}
           auto={draft.auto}
           excluded={draft.excluded}
@@ -278,45 +322,50 @@ export function SigDosanPanel({
           signatures={signatures}
           onChange={edit}
         />
-        <p className={styles.note}>
-          다음 단의 시그니처 후원(금액 일치 · 금액범위 · 랜덤시그 · 메들리 포함)만 그 줄을 올려요. 전체는 멤버를 고르지 않은 후원도, VS는 팀에 배정된 멤버를 고른 후원만, 개인전은 그 멤버를 고른 후원만
-          올려요. 모드 · 시그니처는 다음 두산 시작부터 적용돼요.
-        </p>
+        <p className={styles.note}>{t("crewGameSigDosan.rulesNote")}</p>
         <FormActions pending={pending} dirty={dirty} onReset={reset} />
       </form>
 
       {live && dosan && (
         <>
-          {dirty && <p className={styles.note}>저장하지 않은 설정이 있어요. 두산 시작은 저장한 설정으로 판을 만들어요.</p>}
+          {dirty && <p className={styles.note}>{t("crewGameSigDosan.unsaved")}</p>}
           <div className={prize.window}>
             <span className={styles.muted}>
               {board
-                ? `${SIG_DOSAN_MODES.find((m) => m.key === board.mode)!.label} · ${board.ladder.length}단${board.winner ? ` · 🏁 ${board.winner.label} 완주${board.winner.memberName ? `(${board.winner.memberName})` : ""}` : ""}`
-                : "판이 없어요. 두산 시작을 누르면 저장한 시그니처로 판을 만들어요."}
+                ? `${t(MODE_KEY[board.mode].label)} · ${t("crewGameSigDosan.steps", { n: board.ladder.length })}${
+                    board.winner
+                      ? ` · 🏁 ${
+                          board.winner.memberName
+                            ? t("crewGameSigDosan.winnerBy", { label: board.winner.label, name: board.winner.memberName })
+                            : t("crewGameSigDosan.winner", { label: board.winner.label })
+                        }`
+                      : ""
+                  }`
+                : t("crewGameSigDosan.noBoard")}
             </span>
             <button type="button" className={styles.primary} disabled={pending} onClick={start}>
-              {board ? "처음부터 다시 시작" : "두산 시작"}
+              {board ? t("crewGameSigDosan.restart") : t("crewGameSigDosan.start")}
             </button>
             {board && (
-              <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => clearSigDosan({ broadcastId: live.id }), "두산 판을 비웠어요.")}>
-                판 비우기
+              <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => clearSigDosan({ broadcastId: live.id }), t("crewGameSigDosan.cleared"))}>
+                {t("crewGameSigDosan.clear")}
               </button>
             )}
           </div>
           {board && (
             <>
-              <ol className={games.ladder} aria-label="두산 순서">
+              <ol className={games.ladder} aria-label={t("crewGameSigDosan.ladderAria")}>
                 {board.ladder.map((x, i) => (
                   <li key={x.signatureId}>
-                    <span className={styles.muted}>{i + 1}단</span> {x.signatureName} <span className={styles.muted}>{formatNumber(x.price)} FN</span>
+                    <span className={styles.muted}>{t("crewGameSigDosan.steps", { n: i + 1 })}</span> {x.signatureName} <span className={styles.muted}>{formatNumber(x.price)} FN</span>
                   </li>
                 ))}
               </ol>
               {board.mode !== "SOLO" && (
                 <span className={prize.inline}>
-                  <span className={styles.muted}>한 단 올리기는 이 멤버의 후원으로 쳐요(선택{board.mode === "VS" ? ", 그 팀 멤버" : ""})</span>
-                  <select className={styles.select} aria-label="한 단 올릴 멤버" value={picked} onChange={(e) => setMemberId(e.target.value)}>
-                    <option value="">멤버 없음</option>
+                  <span className={styles.muted}>{board.mode === "VS" ? t("crewGameSigDosan.stepMemberVs") : t("crewGameSigDosan.stepMember")}</span>
+                  <select className={styles.select} aria-label={t("crewGameSigDosan.stepMemberAria")} value={picked} onChange={(e) => setMemberId(e.target.value)}>
+                    <option value="">{t("crewGame.noMember")}</option>
                     {active.map((m) => (
                       <option key={m.id} value={m.id}>
                         {m.name}
@@ -325,7 +374,7 @@ export function SigDosanPanel({
                   </select>
                 </span>
               )}
-              <ul className={games.lanes} aria-label="두산 줄">
+              <ul className={games.lanes} aria-label={t("crewGameSigDosan.lanesAria")}>
                 {board.lanes.map((lane) => {
                   const next = board.ladder[lane.steps.length];
                   return (
@@ -334,27 +383,29 @@ export function SigDosanPanel({
                         {lane.color && <span className={styles.dot} style={{ background: lane.color }} aria-hidden="true" />}
                         {lane.label}
                       </span>
-                      <span>
-                        {lane.steps.length}/{board.ladder.length}단
-                      </span>
+                      <span>{t("crewGameSigDosan.laneSteps", { done: lane.steps.length, all: board.ladder.length })}</span>
                       <span className={styles.muted}>
-                        {next ? `다음: ${next.signatureName} (${formatNumber(next.price)} FN)` : board.winner?.lane === lane.key ? "🏁 완주" : "완주"}
+                        {next
+                          ? t("crewGameSigDosan.next", { name: next.signatureName, price: formatNumber(next.price) })
+                          : board.winner?.lane === lane.key
+                            ? `🏁 ${t("crewGameSigDosan.finished")}`
+                            : t("crewGameSigDosan.finished")}
                       </span>
                       <button
                         type="button"
                         className={styles.ghost}
-                        aria-label={`${lane.label} 한 단 올리기`}
+                        aria-label={t("crewGameSigDosan.upAria", { label: lane.label })}
                         disabled={pending || !!board.winner}
                         onClick={() =>
                           run(() => stepSigDosan({ broadcastId: live.id, lane: lane.key, up: true, requestId: crypto.randomUUID(), memberId: board.mode === "SOLO" ? null : picked || null }))
                         }
                       >
-                        ▲ 한 단
+                        ▲ {t("crewGameSigDosan.oneStep")}
                       </button>
                       <button
                         type="button"
                         className={styles.ghost}
-                        aria-label={`${lane.label} 한 단 내리기`}
+                        aria-label={t("crewGameSigDosan.downAria", { label: lane.label })}
                         disabled={pending || !!board.winner || lane.steps.length === 0}
                         onClick={() => run(() => stepSigDosan({ broadcastId: live.id, lane: lane.key, up: false, requestId: crypto.randomUUID(), count: lane.steps.length }))}
                       >
@@ -366,11 +417,11 @@ export function SigDosanPanel({
               </ul>
             </>
           )}
-          <RunList name="시그니처 두산" runs={dosan.runs} now={now} />
+          <RunList name={name} runs={dosan.runs} now={now} />
         </>
       )}
 
-      <OverlayAddress overlayPath={overlayPath} param="sigdosan" label="시그니처 두산" />
+      <OverlayAddress overlayPath={overlayPath} param="sigdosan" label={name} />
     </section>
   );
 }

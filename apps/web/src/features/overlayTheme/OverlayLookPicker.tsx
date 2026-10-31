@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { getOverlayLook, saveOverlayLook } from "@/services/creator/overlayTheme";
 import type { LookTarget, OverlayAppearance, OverlayThemeChoice } from "@/services/creator/overlayThemeTypes";
 import s from "./lookPicker.module.css";
@@ -13,6 +14,7 @@ type State = { status: "LOADING" } | { status: "ERROR" } | { status: "READY"; th
  * Loads the current choice, saves as soon as one is picked; the overlay changes on its next read.
  */
 export function OverlayLookPicker({ target }: { target: LookTarget }) {
+  const { t } = useI18n();
   const [state, setState] = useState<State>({ status: "LOADING" });
   const [note, setNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
@@ -28,11 +30,11 @@ export function OverlayLookPicker({ target }: { target: LookTarget }) {
     };
   }, [target, attempt]);
 
-  if (state.status === "LOADING") return <p className={s.note}>테마를 불러오는 중…</p>;
+  if (state.status === "LOADING") return <p className={s.note}>{t("studioToolsTheme.loading")}</p>;
   if (state.status === "ERROR")
     return (
       <p className={s.note}>
-        테마를 불러오지 못했어요.{" "}
+        {t("studioToolsTheme.loadFailed")}{" "}
         <button
           type="button"
           className={s.retry}
@@ -41,7 +43,7 @@ export function OverlayLookPicker({ target }: { target: LookTarget }) {
             setAttempt((n) => n + 1);
           }}
         >
-          다시 시도
+          {t("studioTools.retry")}
         </button>
       </p>
     );
@@ -53,21 +55,21 @@ export function OverlayLookPicker({ target }: { target: LookTarget }) {
     startTransition(async () => {
       try {
         const res = await saveOverlayLook(target, theme);
-        if (res.status === "SAVED") setNote({ tone: "ok", text: "테마를 바꿨어요. 오버레이에 몇 초 안에 반영돼요." });
+        if (res.status === "SAVED") setNote({ tone: "ok", text: t("studioToolsTheme.lookSaved") });
         else {
           setState((cur) => (cur.status === "READY" ? { ...cur, theme: before } : cur));
-          setNote({ tone: "error", text: res.status === "INVALID" ? res.message : "로그인이 필요합니다. 다시 로그인해 주세요." });
+          setNote({ tone: "error", text: res.status === "INVALID" ? res.message : t("studioToolsTheme.relogin") });
         }
       } catch {
         setState((cur) => (cur.status === "READY" ? { ...cur, theme: before } : cur));
-        setNote({ tone: "error", text: "저장하지 못했어요. 잠시 후 다시 시도해 주세요." });
+        setNote({ tone: "error", text: t("studioTools.saveFailed") });
       }
     });
   };
 
   return (
     <div className={s.picker} aria-busy={pending || undefined}>
-      <span className={s.label}>오버레이 테마</span>
+      <span className={s.label}>{t("studioToolsTheme.overlayTheme")}</span>
       <ThemeChoiceField value={state.theme} onChange={pick} appearance={state.appearance} />
       {note && (
         <p className={note.tone === "error" ? s.error : s.ok} role={note.tone === "error" ? "alert" : "status"}>
