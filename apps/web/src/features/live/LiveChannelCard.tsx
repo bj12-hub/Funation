@@ -1,6 +1,9 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { formatDuration, formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { remote } from "@/lib/remoteImage";
 import type { LiveChannel } from "@/services/live/liveChannels";
 import styles from "./LiveChannelCard.module.css";
@@ -15,6 +18,7 @@ type LiveChannelCardProps = {
 };
 
 export function LiveChannelCard({ channel, variant, sizes, priority = false }: LiveChannelCardProps) {
+  const { t } = useI18n();
   const full = variant === "full";
   const avatarSize = full ? 36 : 32;
 
@@ -24,7 +28,7 @@ export function LiveChannelCard({ channel, variant, sizes, priority = false }: L
         <Image src={channel.thumbnailUrl} alt="" fill sizes={sizes} priority={priority} className={styles.thumbImage} unoptimized={remote(channel.thumbnailUrl)} />
         <span className={styles.shade} />
         <span className={`${styles.badge} ${styles.live}`}>LIVE</span>
-        <span className={`${styles.badge} ${styles.viewers}`}>시청자 {formatNumber(channel.viewerCount)}명</span>
+        <span className={`${styles.badge} ${styles.viewers}`}>{t("live.viewers", { count: formatNumber(channel.viewerCount) })}</span>
       </div>
       <div className={styles.info}>
         <Image src={channel.channelAvatarUrl} alt="" width={avatarSize} height={avatarSize} className={styles.avatar} unoptimized={remote(channel.channelAvatarUrl)} />
@@ -34,7 +38,7 @@ export function LiveChannelCard({ channel, variant, sizes, priority = false }: L
           </h3>
           <div className={styles.meta}>
             <span className={styles.channel}>{channel.channelName}</span>
-            {full && <span className={styles.elapsed}>생방송 중 • {formatDuration(channel.elapsedSeconds)}</span>}
+            {full && <span className={styles.elapsed}>{t("live.onAir", { time: formatDuration(channel.elapsedSeconds) })}</span>}
           </div>
         </div>
       </div>

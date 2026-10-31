@@ -68,6 +68,10 @@ const liveData = (design: FlextvOverlayDesign, overlayKey: string, miniMinAmount
   gachaWins: [],
   gachaUnclaimed: 0,
   appearance: design.appearance,
+  donors: [],
+  topNow: null,
+  sigWalls: [],
+  sigWallPath: "",
   designOnly: true
 });
 

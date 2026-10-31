@@ -1,6 +1,6 @@
 /**
  * 후원 위젯 OBS overlays (code-first): 후원목표 · 후원누적금액 · 후원랭킹 · 최근알림 · 이벤트 · 후원 QR코드 · 퀘스트 · 투표 · 룰렛 · 뽑기 · 뽑기 당첨 리스트 · 벽지 · 시계 · 미니후원
- * · 최고 후원 · 후원 모니터링 · 시그 큐 모니터.
+ * · 최고 후원 · 후원 모니터링 · 시그 큐 모니터 · 시그 벽지.
  * Each reads its saved widget settings plus the creator's donation feed at
  * `/overlay/widget/[widget]/[integrationKey]`. Client-safe types only.
  */
@@ -10,9 +10,9 @@ import type { AlertKind, OverlaySignal } from "./alertTypes";
 import type { GachaBoardView, GachaStage } from "@/services/donations/gachaTypes";
 import type { RouletteStage } from "@/services/donations/rouletteTypes";
 import type { VoteBoard } from "@/services/votes/voteTypes";
-import type { ClockSettings, DonationMonitorSettings, SigQueueSettings, TopDonationSettings, EventSettings, GachaSettings, GoalSettings, MiniSettings, QrSettings, QuestWidgetSettings, RankingSettings, RecentSettings, RouletteSettings, TotalSettings, VoteSettings, WallpaperSettings, WidgetKey } from "./widgetSettingsTypes";
+import type { ClockSettings, DonationMonitorSettings, SigQueueSettings, SigWallpaperSettings, TopDonationSettings, EventSettings, GachaSettings, GoalSettings, MiniSettings, QrSettings, QuestWidgetSettings, RankingSettings, RecentSettings, RouletteSettings, TotalSettings, VoteSettings, WallpaperSettings, WidgetKey } from "./widgetSettingsTypes";
 
-export const WIDGET_OVERLAYS = ["goal", "total", "ranking", "recent", "event", "qr", "quest", "vote", "roulette", "gacha", "gacha-board", "wallpaper", "clock", "mini", "top-donation", "donation-monitor", "sig-queue"] as const;
+export const WIDGET_OVERLAYS = ["goal", "total", "ranking", "recent", "event", "qr", "quest", "vote", "roulette", "gacha", "gacha-board", "wallpaper", "clock", "mini", "top-donation", "donation-monitor", "sig-queue", "sig-wallpaper"] as const;
 export type WidgetOverlayKind = (typeof WIDGET_OVERLAYS)[number];
 export const isWidgetOverlay = (v: unknown): v is WidgetOverlayKind => WIDGET_OVERLAYS.includes(v as WidgetOverlayKind);
 
@@ -34,8 +34,12 @@ export const WIDGET_OVERLAY_SETTINGS: Record<WidgetOverlayKind, WidgetKey> = {
   mini: "MINI",
   "top-donation": "TOP_DONATION",
   "donation-monitor": "DONATION_MONITOR",
-  "sig-queue": "SIG_QUEUE"
+  "sig-queue": "SIG_QUEUE",
+  "sig-wallpaper": "SIG_WALLPAPER"
 };
+
+/** 시그 벽지: one 시그니처 후원 — its image (as alerted), the name its alert showed and the amount. */
+export type SigWallCard = { imageUrl: string | null; donor: string; amount: string };
 
 /** Mock QR image (the popup preview uses the same one). TBD: a real QR for the creator's donation page. */
 export const QR_SAMPLE_IMAGE = "/mock/creator/widgets/qr-sample.png";
@@ -78,7 +82,8 @@ export type WidgetRankRow = { rank: number; name: string; fnAmount: number; amou
 export type WidgetQuest = { id: string; title: string; amount: number; endsAt: string; extendedMin: number };
 
 /** 최고 후원 (2026-10-23): the biggest donation of the period as its alert showed it; `at` = when it counts. */
-export type TopDonation = { donor: string; amount: string; message: string; at: string };
+/** `manual` (2026-10-28): the entry set by hand (최고 후원 수동 수정). */
+export type TopDonation = { donor: string; amount: string; message: string; at: string; manual?: boolean };
 
 /**
  * 후원 모니터링 (2026-10-23): the alert on screen (`playing`), or the last one shown. `at` = when it was sent (the
@@ -119,4 +124,6 @@ export type OverlayWidget = Common &
     | { widget: "top-donation"; settings: TopDonationSettings; top: TopDonation | null }
     | { widget: "donation-monitor"; settings: DonationMonitorSettings; line: MonitorLine | null }
     | { widget: "sig-queue"; settings: SigQueueSettings; cards: SigCard[] }
+    /** 시그 벽지 (2026-10-28): the 시그니처 후원 the address names (`?d=`); null = none (or not a 시그니처 후원). */
+    | { widget: "sig-wallpaper"; settings: SigWallpaperSettings; card: SigWallCard | null }
   );

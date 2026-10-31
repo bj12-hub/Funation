@@ -124,6 +124,9 @@ export type SettlementHistoryItem = {
   paidAt?: string;
 };
 
+/** 정산 내역 CSV (2026-11-01, policy-decisions 1(b)의 돈 없이 먼저 만들 수 있는 변형): the creator's own history only. */
+export type SettlementCsvResult = { status: "OK"; filename: string; csv: string; rows: number } | { status: "UNAUTHORIZED" } | { status: "NOT_REGISTERED" };
+
 export type SettlementApplyView = {
   availableFn: number;
   /** Minimum request from the server's policy (TBD — Figma sample). Null when no minimum applies. */

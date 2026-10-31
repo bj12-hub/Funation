@@ -13,6 +13,7 @@ import {
   CREDITS_DURATION_MIN,
   CREDITS_LINES_MAX,
   CREDITS_LIST_MAX,
+  CREDITS_MVP_BASES,
   CREDITS_PERIODS,
   CREDITS_SECTIONS,
   CREDITS_SECTION_TITLE_MAX,
@@ -38,6 +39,7 @@ import { signedSec } from "../remote/ToolsRemote";
 import { CopyButton } from "../settings/SettingsCards";
 import { BingoTool } from "./BingoTool";
 import { TextSlotsTool } from "./TextSlotsTool";
+import { WheelTool } from "./WheelTool";
 import { clock, timerSeconds } from "./timerMath";
 
 const lines = (s: string) => s.split("\n").map((l) => l.trim()).filter(Boolean);
@@ -47,8 +49,10 @@ function creditsPreview(d: CreditsData, s: CreditsState["sections"]) {
   if (d.empty) return "미리보기 · 크루 방송이 아직 없어요. 크루 방송을 시작하거나 집계 기간을 오늘로 바꿔 주세요.";
   const parts = [`미리보기 · ${d.periodLabel}`];
   if (s.total.on) parts.push(`총 ${formatNumber(d.total)} FN`);
-  if (s.mvp.on) parts.push(d.mvp ? `MVP ${d.mvp.name} ${formatNumber(d.mvp.score)} ${d.memberUnit}` : "MVP 없음");
+  if (s.mvp.on) parts.push(d.mvp ? `MVP ${d.mvp.name} ${formatNumber(d.mvp.score)} ${d.mvp.unit}` : "MVP 없음");
   if (s.top3.on || s.donors.on) parts.push(d.donors.length ? `후원자 ${d.donors.slice(0, 3).map((r) => r.name).join(" · ")}${d.donors.length > 3 ? ` 외 ${d.donors.length - 3}명` : ""}` : "후원자 없음");
+  if (s.hotSigs.on) parts.push(d.hotSigs.length ? `HOT 시그 ${d.hotSigs[0].name} ${d.hotSigs[0].count}회` : "HOT 시그 없음");
+  if (s.highSigs.on) parts.push(d.highSigs.length ? `HIGH 시그 ${d.highSigs[0].name} ${formatNumber(d.highSigs[0].fnAmount)} FN` : "HIGH 시그 없음");
   if (s.members.on) parts.push(`멤버 ${d.members.length}명`);
   return `${parts.join(" · ")} (저장한 설정 기준)`;
 }
@@ -72,6 +76,7 @@ export function BroadcastToolsScreen({ view, overlayKey, switches }: { view: Too
   const [creditsStyle, setCreditsStyle] = useState(states.credits.style);
   const [creditsSec, setCreditsSec] = useState(String(states.credits.durationSec));
   const [creditsPeriod, setCreditsPeriod] = useState(states.credits.period);
+  const [mvpBasis, setMvpBasis] = useState(states.credits.mvpBasis);
   const [sections, setSections] = useState(states.credits.sections);
   const [message, setMessage] = useState<{ tool: ToolKey; tone: "error" | "ok"; text: string } | null>(null);
   const [toolTheme, setToolTheme] = useState<OverlayThemeChoice>(view.theme);
@@ -351,7 +356,7 @@ export function BroadcastToolsScreen({ view, overlayKey, switches }: { view: Too
             e.preventDefault();
             run(
               "credits",
-              () => saveCredits({ title: creditsTitle, thanks: lines(thanks), style: creditsStyle, durationSec: Number(creditsSec), period: creditsPeriod, sections }),
+              () => saveCredits({ title: creditsTitle, thanks: lines(thanks), style: creditsStyle, durationSec: Number(creditsSec), period: creditsPeriod, mvpBasis, sections }),
               "엔딩 크레딧을 저장했어요."
             );
           }}
@@ -385,11 +390,23 @@ export function BroadcastToolsScreen({ view, overlayKey, switches }: { view: Too
                 </button>
               ))}
             </span>
+            {creditsPeriod === "CREW" && (
+              <>
+                <span className={styles.muted}>MVP 기준</span>
+                <span className={styles.segment} role="group" aria-label="MVP 기준">
+                  {CREDITS_MVP_BASES.map((x) => (
+                    <button key={x.key} type="button" aria-pressed={mvpBasis === x.key} onClick={() => setMvpBasis(x.key)}>
+                      {x.label}
+                    </button>
+                  ))}
+                </span>
+              </>
+            )}
           </div>
           <p className={styles.note}>
             {creditsPeriod === "TODAY"
               ? "오늘(한국 날짜) 받은 후원과, 오늘 멤버를 지정해 받은 후원(FN)으로 집계해요."
-              : "진행 중인 크루 방송(없으면 마지막으로 끝난 방송) 동안의 후원과 크루 점수판 점수로 집계해요."}{" "}
+              : `진행 중인 크루 방송(없으면 마지막으로 끝난 방송) 동안의 후원과 크루 점수판 점수로 집계해요. MVP는 ${mvpBasis === "AMOUNT" ? "방송 동안 멤버를 지정해 받은 후원(FN)" : "점수판 점수"} 1위예요.`}{" "}
             후원자 이름은 후원랭킹과 같아요 — 익명과 대체 문구로 바뀐 이름은 순위에 넣지 않고 총 후원에만 더해요.
           </p>
           <ul className={tools.sections} aria-label="크레딧 섹션">
@@ -418,12 +435,12 @@ export function BroadcastToolsScreen({ view, overlayKey, switches }: { view: Too
                         type="number"
                         min={1}
                         max={CREDITS_LIST_MAX}
-                        aria-label={`${meta.label} 표시 인원`}
+                        aria-label={`${meta.label} ${meta.unit === "개" ? "표시 개수" : "표시 인원"}`}
                         value={x.max}
                         disabled={!x.on}
                         onChange={(e) => set({ max: Math.max(1, Math.min(CREDITS_LIST_MAX, Math.floor(Number(e.target.value) || 1))) })}
                       />
-                      <span className={styles.muted}>명</span>
+                      <span className={styles.muted}>{meta.unit}</span>
                     </span>
                   ) : (
                     <span />
@@ -459,6 +476,8 @@ export function BroadcastToolsScreen({ view, overlayKey, switches }: { view: Too
       )}
 
       {card("bingo", <BingoTool state={states.bingo} pending={pending} run={(action, ok) => run("bingo", action, ok)} />)}
+
+      {card("wheel", <WheelTool state={states.wheel} signatures={view.signatures} pending={pending} run={(action, ok) => run("wheel", action, ok)} />)}
 
       {card(
         "text",

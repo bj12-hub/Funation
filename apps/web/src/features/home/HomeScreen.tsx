@@ -1,3 +1,4 @@
+import { getT } from "@/lib/i18n/server";
 import type { HomeFeed } from "@/services/home/homeFeed";
 import type { LiveChannel } from "@/services/live/liveChannels";
 import { CreatorStrip } from "./CreatorStrip";
@@ -14,10 +15,11 @@ import styles from "./home.module.css";
  * 인기 라이브 영상 모음 → promotion. Card and banner visuals keep the Figma components
  * (ssumnation-videos-page 727:2742). Popups: 크리에이터 프로필 688:646 · arrival notices 200:115 · 200:223.
  */
-export function HomeScreen({ feed, liveChannels }: { feed: HomeFeed; liveChannels: LiveChannel[] }) {
+export async function HomeScreen({ feed, liveChannels }: { feed: HomeFeed; liveChannels: LiveChannel[] }) {
+  const t = await getT();
   return (
     <>
-      <h1 className={styles.srOnly}>썸네이션 홈</h1>
+      <h1 className={styles.srOnly}>{t("home.title")}</h1>
       <CreatorStrip creators={feed.creators} />
       <HeroCarousel slides={feed.heroSlides} />
       <HomeLiveTabs channels={liveChannels} />

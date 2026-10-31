@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { EffectsScreen } from "@/features/creatorStudio/widgets/EffectsScreen";
 import { getOverlaySwitches } from "@/services/creator/alertRemote";
+import { listAssets } from "@/services/creator/assets";
 import { getOverlayKey } from "@/services/creator/broadcastTools";
 import { getEffectSettings } from "@/services/creator/effects";
 
@@ -10,7 +11,7 @@ export const metadata: Metadata = { title: "이펙트 · 효과 | Ssumnation 크
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const [settings, key, switches] = await Promise.all([getEffectSettings(), getOverlayKey(), getOverlaySwitches()]);
-  if (!settings || !key || !switches) redirect("/login?role=creator&next=/creator/widgets/effects");
-  return <EffectsScreen initial={settings} overlayPath={`/overlay/effects/${key}`} switches={switches} />;
+  const [settings, key, switches, videos] = await Promise.all([getEffectSettings(), getOverlayKey(), getOverlaySwitches(), listAssets("VIDEO")]);
+  if (!settings || !key || !switches || !videos) redirect("/login?role=creator&next=/creator/widgets/effects");
+  return <EffectsScreen initial={settings} videos={videos} overlayPath={`/overlay/effects/${key}`} switches={switches} />;
 }

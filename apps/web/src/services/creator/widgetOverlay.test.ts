@@ -165,6 +165,25 @@ describe("후원 위젯 계산", () => {
     expect(wallStickers(all, { images: [] }, null).map((x) => x.id)).not.toContain("rp-1"); // no second 벽지 sticker
   });
 
+  it("랭킹제외 (2026-10-28): leaves those donors out by their private key and closes up the ranks", () => {
+    const now = new Date("2026-10-05T12:00:00");
+    const rows = [
+      alert("2026-10-05T10:00:00", "별빛", 30_000, { donorKey: "dk-star" }),
+      alert("2026-10-05T10:10:00", "별빛", 20_000, { donorKey: "dk-copy" }), // a copied name: another donor
+      alert("2026-10-05T10:20:00", "치즈냥", 10_000, { donorKey: "dk-cheese" })
+    ];
+    const s = { ...D.RANKING, period: "전체" as const, ranks: 5 };
+    expect(rankingRows(rows, s, now).map((r) => [r.rank, r.name, r.fnAmount])).toEqual([
+      [1, "별빛", 30_000],
+      [2, "별빛", 20_000],
+      [3, "치즈냥", 10_000]
+    ]);
+    expect(rankingRows(rows, { ...s, excluded: [{ key: "dk-star", name: "별빛" }] }, now).map((r) => [r.rank, r.name, r.fnAmount])).toEqual([
+      [1, "별빛", 20_000],
+      [2, "치즈냥", 10_000]
+    ]);
+  });
+
   it("counts a 퀘스트 후원 only once it succeeded (held until then, refunded on 실패 · 취소)", () => {
     const quests = [
       alert("2026-10-03T10:00:00", "퀘스터", 20_000, { questId: "q-run" }),

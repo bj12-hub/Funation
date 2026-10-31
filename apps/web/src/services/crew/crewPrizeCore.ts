@@ -8,11 +8,14 @@ import {
   MULTI_TEAMS_MAX,
   MULTI_TEAMS_MIN,
   PRIZE_BASES,
+  PRIZE_AUDIENCES,
   PRIZE_COLUMNS,
+  PRIZE_LIMIT_MAX,
   PRIZE_PLACEMENTS,
   PRIZE_RANKS_MAX,
   PRIZE_TEXT_MAX,
   PRIZE_TITLE_MAX,
+  TEAM_MEMBERS_PER_LINE_MAX,
   TEAM_PRIZE_MEMBER_VIEWS,
   TEAM_PRIZE_RANKS_MAX,
   TEAM_PRIZE_SOURCES,
@@ -38,13 +41,16 @@ const rec = (input: unknown) => (typeof input === "object" && input !== null ? i
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 const text = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 
-/** The channel's 상품 순위표 settings (defaults until saved). */
-export const prizeSettingsOf = (channelId: string): PrizeBoardSettings => mockCrew.prizeBoards?.[channelId] ?? DEFAULT_PRIZE_BOARD;
+/** The channel's 상품 순위표 settings (defaults until saved; saved before 제목 색 (2026-10-28) in the theme's color). */
+export const prizeSettingsOf = (channelId: string): PrizeBoardSettings => ({ ...DEFAULT_PRIZE_BOARD, ...mockCrew.prizeBoards?.[channelId] });
 
 /** The channel's 팀 순위표 settings (defaults until saved). */
-export const teamPrizeSettingsOf = (channelId: string): TeamPrizeSettings => mockCrew.teamPrizes?.[channelId] ?? DEFAULT_TEAM_PRIZE_BOARD;
+export const teamPrizeSettingsOf = (channelId: string): TeamPrizeSettings => ({ ...DEFAULT_TEAM_PRIZE_BOARD, ...mockCrew.teamPrizes?.[channelId] });
 
-/** 등수별 상품 · 벌칙: up to `max` lines; a line without text drops its color, and blank lines at the end are not kept. */
+/**
+ * 등수별 상품 · 벌칙: up to `max` lines; a line without text drops its colors (글자색 · 테두리색), and blank lines at the end
+ * are not kept.
+ */
 function parsePrizeLines(input: unknown, max: number): RankPrize[] | { message: string } {
   if (!Array.isArray(input) || input.length > max) return { message: `상품 · 벌칙은 ${max}등까지 적을 수 있어요.` };
   const prizes: RankPrize[] = [];
@@ -53,20 +59,23 @@ function parsePrizeLines(input: unknown, max: number): RankPrize[] | { message: 
     const line = text(p.text);
     if (line.length > PRIZE_TEXT_MAX) return { message: `상품 · 벌칙은 등수마다 ${PRIZE_TEXT_MAX}자 이내로 입력해 주세요.` };
     if (p.color !== null && p.color !== undefined && !(typeof p.color === "string" && HEX_COLOR.test(p.color))) return { message: "글자색을 확인해 주세요." };
-    prizes.push({ text: line, color: line && typeof p.color === "string" ? p.color.toLowerCase() : null });
+    if (p.outline !== null && p.outline !== undefined && !(typeof p.outline === "string" && HEX_COLOR.test(p.outline))) return { message: "테두리색을 확인해 주세요." };
+    prizes.push({ text: line, color: line && typeof p.color === "string" ? p.color.toLowerCase() : null, outline: line && typeof p.outline === "string" ? p.outline.toLowerCase() : null });
   }
   while (prizes.length && !prizes[prizes.length - 1].text) prizes.pop();
   return prizes;
 }
 
-/** 열 개수 · 배치 · 점수 · 하단 합계, the same on both boards. */
-function parseDisplay(v: Record<string, unknown>): Pick<PrizeBoardSettings, "columns" | "placement" | "showScore" | "showTotal"> | { message: string } {
+/** 제목 색 · 열 개수 · 배치 · 점수 · 하단 합계, the same on both boards. A screen from before 제목 색 sends none: 원래 색. */
+function parseDisplay(v: Record<string, unknown>): Pick<PrizeBoardSettings, "titleColor" | "columns" | "placement" | "showScore" | "showTotal"> | { message: string } {
+  if (v.titleColor !== null && v.titleColor !== undefined && !(typeof v.titleColor === "string" && HEX_COLOR.test(v.titleColor))) return { message: "제목 색을 확인해 주세요." };
+  const titleColor = typeof v.titleColor === "string" ? v.titleColor.toLowerCase() : null;
   const columns = PRIZE_COLUMNS.find((c) => c === v.columns);
   if (!columns) return { message: "열 개수를 골라 주세요." };
   const placement = PRIZE_PLACEMENTS.find((p) => p.key === v.placement)?.key;
   if (!placement) return { message: "배치를 골라 주세요." };
   if (typeof v.showScore !== "boolean" || typeof v.showTotal !== "boolean") return { message: "표시 설정을 확인해 주세요." };
-  return { columns, placement, showScore: v.showScore, showTotal: v.showTotal };
+  return { titleColor, columns, placement, showScore: v.showScore, showTotal: v.showTotal };
 }
 
 /** Everything a board shows is on stream. */
@@ -98,11 +107,16 @@ export function parsePrizeBoard(input: unknown, forbidden: string[], memberIds: 
     pinned = { memberId: p.memberId, text: line };
   }
 
+  // 표시 대상 (2026-10-28): a screen from before sends neither — 멤버 전체, 10명.
+  const audience = v.audience === undefined ? "ALL" : PRIZE_AUDIENCES.find((a) => a.key === v.audience)?.key;
+  const limit = v.limit === undefined ? 10 : v.limit;
+  if (!audience || typeof limit !== "number" || !Number.isInteger(limit) || limit < 1 || limit > PRIZE_LIMIT_MAX) return { message: `표시 대상과 상위 표시 인원(1~${PRIZE_LIMIT_MAX}명)을 확인해 주세요.` };
+
   const display = parseDisplay(v);
   if ("message" in display) return display;
   if (hasForbidden([title, pinned?.text ?? "", ...prizes.map((p) => p.text)], forbidden)) return { message: "사용할 수 없는 단어가 포함되어 있어요." };
 
-  return { title, basis, prizes, excluded, pinned, ...display };
+  return { title, basis, prizes, excluded, pinned, audience, limit, ...display };
 }
 
 /**
@@ -141,23 +155,30 @@ export function parseTeamPrize(input: unknown, forbidden: string[], memberIds: s
   if ("message" in prizes) return prizes;
   const members = TEAM_PRIZE_MEMBER_VIEWS.find((m) => m.key === v.members)?.key;
   if (!members) return { message: "팀원 표시를 골라 주세요." };
+  // 한 줄에 놓을 팀원 수 (2026-10-28): a screen from before sends none — one line.
+  const membersPerLine = v.membersPerLine === undefined ? 0 : v.membersPerLine;
+  if (typeof membersPerLine !== "number" || !Number.isInteger(membersPerLine) || membersPerLine < 0 || membersPerLine > TEAM_MEMBERS_PER_LINE_MAX) {
+    return { message: `한 줄에 놓을 팀원 수는 0~${TEAM_MEMBERS_PER_LINE_MAX}명이에요.` };
+  }
   const display = parseDisplay(v);
   if ("message" in display) return display;
   if (hasForbidden([title, ...teams.map((t) => t.name), ...prizes.map((p) => p.text)], forbidden)) return { message: "사용할 수 없는 단어가 포함되어 있어요." };
 
-  return { title, basis, source, teams, prizes, members, ...display };
+  return { title, basis, source, teams, prizes, members, membersPerLine, ...display };
 }
 
 type Scored = { memberId: string; name: string; color: string; score: number };
 
 /**
  * The board: excluded members left out, the pinned member first (no rank), the rest by score — ties by name, as on the
- * scoreboard — numbered from 1, each with prizes[rank − 1] (none for a blank line or a rank past the list).
+ * scoreboard — numbered from 1, each with prizes[rank − 1] (none for a blank line or a rank past the list). 점수 받은 멤버만:
+ * only members above 0, the top `limit` (the pinned one shows anyway).
  */
 export function prizeRows(members: Scored[], s: PrizeBoardSettings): { rows: PrizeRow[]; total: number } {
   const listed = members.filter((m) => !s.excluded.includes(m.memberId));
   const pinned = s.pinned ? listed.find((m) => m.memberId === s.pinned!.memberId) : undefined;
-  const ranked = listed.filter((m) => m !== pinned).sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+  const sorted = listed.filter((m) => m !== pinned).sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+  const ranked = s.audience === "SCORED" ? sorted.filter((m) => m.score > 0).slice(0, s.limit) : sorted;
   const row = (m: Scored, rank: number | null, prize: RankPrize | null): PrizeRow => ({ memberId: m.memberId, name: m.name, color: m.color, rank, prize, score: m.score });
   const rows = [
     ...(pinned ? [row(pinned, null, s.pinned!.text ? { text: s.pinned!.text, color: null } : null)] : []),

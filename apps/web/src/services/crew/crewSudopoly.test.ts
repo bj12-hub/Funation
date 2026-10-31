@@ -211,6 +211,43 @@ describe("스도폴리", () => {
     ]);
   });
 
+  it("참여 BJ · 캐릭터 (2026-10-28): a member sitting out has no piece and does not roll; a 캐릭터 shows on the piece", async () => {
+    const m = await load();
+    const id = await m.start();
+    const older: Record<string, unknown> = { ...settings() };
+    delete older.sitOut;
+    delete older.characters;
+    // A screen from before sends neither: everyone plays, initials.
+    expect(await m.saveSudopoly(older)).toEqual({ status: "SAVED" });
+    expect((await m.getGamesView())!.sudopolySettings).toMatchObject({ sitOut: [], characters: {} });
+
+    // A member removed since drops out of both.
+    expect(await m.saveSudopoly(settings({ sitOut: ["cm-s3", "cm-gone"], characters: { "cm-s1": "DJ", "cm-gone": "CAT" } }))).toEqual({ status: "SAVED" });
+    expect((await m.getGamesView())!.sudopolySettings).toMatchObject({ sitOut: ["cm-s3"], characters: { "cm-s1": "DJ" } });
+    expect((await m.view()).pieces.map((p) => [p.key, p.emoji])).toEqual([
+      ["cm-s1", "🎧"],
+      ["cm-s2", null]
+    ]);
+    await m.sign("cm-s3"); // sits out: no roll
+    expect(m.runs(id)).toHaveLength(0);
+    expect(await m.playGame({ game: "SUDOPOLY", broadcastId: id, requestId: key(70), memberId: "cm-s3", sourceId: null })).toEqual({ status: "INVALID", message: "스도폴리에 참여하지 않는 BJ예요." });
+    await m.sign("cm-s1");
+    expect(m.runs(id).length).toBeGreaterThan(0);
+    // 공용 말 ignores both.
+    await m.saveSudopoly(settings({ pieceMode: "SHARED", sitOut: ["cm-s3"], characters: { "cm-s1": "DJ" } }));
+    expect((await m.view()).pieces.map((p) => [p.key, p.emoji])).toEqual([["SHARED", null]]);
+
+    for (const [patch, message] of [
+      [{ sitOut: "cm-s3" }, "참여 BJ"],
+      [{ sitOut: [3] }, "참여 BJ"],
+      [{ characters: { "cm-s1": "DRAGON" } }, "캐릭터"],
+      [{ characters: ["DJ"] }, "캐릭터"]
+    ] as const) {
+      const res = await m.saveSudopoly(settings(patch as unknown as Partial<SudopolySettings>));
+      expect(res.status === "INVALID" && res.message, message).toContain(message);
+    }
+  });
+
   it("공용 말 moves for every member; 금액 구간 give more rolls; 수동 rolls once; 판 다시 시작", async () => {
     const m = await load();
     const id = await m.start();
@@ -227,7 +264,7 @@ describe("스도폴리", () => {
     expect(await play(key(2))).toMatchObject({ status: "PLAYED", run: { memberName: "바다", label: "무인도", move: { piece: "SHARED", from: 1, to: 4 } } });
     expect(await play(key(2))).toMatchObject({ status: "PLAYED" }); // retried: the same roll
     expect(m.runs(id)).toHaveLength(3);
-    expect((await m.view()).pieces).toEqual([{ key: "SHARED", name: "공용 말", color: null, pos: 4, laps: 1, island: 1 }]);
+    expect((await m.view()).pieces).toEqual([{ key: "SHARED", name: "공용 말", color: null, emoji: null, pos: 4, laps: 1, island: 1 }]);
     expect(await m.resetSudopoly({ broadcastId: id })).toEqual({ status: "SAVED" });
     expect((await m.view()).pieces[0]).toMatchObject({ pos: 0, laps: 0, island: 0 });
     expect(await m.resetSudopoly({ broadcastId: "bc-x" })).toEqual({ status: "INVALID", message: "진행 중인 방송이 아니에요." });

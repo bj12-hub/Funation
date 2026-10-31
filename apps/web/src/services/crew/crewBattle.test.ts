@@ -139,7 +139,7 @@ describe("실시간 배틀", () => {
   });
 
   it("runs 다수 팀 (2 ~ 8 teams made for the battle) with the last team on the 벌칙", async () => {
-    const { startBattle, stopBattle, setMemberKeywords, donate, battles, getBroadcastView, id } = await startLive();
+    const { startBattle, stopBattle, setBattleDisplay, setMemberKeywords, donate, battles, getBroadcastView, id } = await startLive();
     await setMemberKeywords({ memberId: "cm-s3", keywords: ["바다"] });
     const start = (n: number, teams: unknown, extra: Record<string, unknown> = {}) =>
       startBattle({ broadcastId: id, requestId: key(n), mode: "MULTI_TEAMS", teams, durationSec: 120, penalty: "물 한 컵", ...extra });
@@ -177,7 +177,24 @@ describe("실시간 배틀", () => {
     await donate(2_000, "길동");
     b = (await battles())[0];
     expect(b.matches[0]).toMatchObject({ leader: "B", loser: null });
+
+    // 표시 방식 (2026-10-28): 가로 막대 unless chosen; switchable while it runs and after, 다수 팀 only.
+    expect(b.display).toBe("BARS");
+    expect(await setBattleDisplay({ broadcastId: id, no: 1, display: "STACKED" })).toEqual({ status: "SAVED" });
+    expect((await battles())[0].display).toBe("STACKED");
+    expect(await setBattleDisplay({ broadcastId: id, no: 1, display: "PIE" })).toEqual({ status: "INVALID", message: "표시 방식을 골라 주세요." });
+    expect(await setBattleDisplay({ broadcastId: id, no: 9, display: "BARS" })).toEqual({ status: "INVALID", message: "배틀을 찾을 수 없어요." });
     await stopBattle({ broadcastId: id, no: 1 });
+    expect(await setBattleDisplay({ broadcastId: id, no: 1, display: "BARS" })).toEqual({ status: "SAVED" });
+    expect((await battles())[0].display).toBe("BARS");
+    // A new 다수 팀 배틀 can start as 누적 바; a bad one is refused; other modes have none to set.
+    expect((await start(30, [{ name: "", memberIds: ["cm-s1"] }, { name: "", memberIds: ["cm-s2"] }], { display: "PIE" })).status).toBe("INVALID");
+    expect(await start(31, [{ name: "", memberIds: ["cm-s1"] }, { name: "", memberIds: ["cm-s2"] }], { display: "STACKED" })).toEqual({ status: "SAVED" });
+    expect((await battles())[1].display).toBe("STACKED");
+    await stopBattle({ broadcastId: id, no: 2 });
+    expect(await startBattle({ broadcastId: id, requestId: key(32), mode: "MEMBERS", memberA: "cm-s1", memberB: "cm-s2", durationSec: 60 })).toEqual({ status: "SAVED" });
+    expect(await setBattleDisplay({ broadcastId: id, no: 3, display: "STACKED" })).toEqual({ status: "INVALID", message: "다수 팀 배틀만 표시 방식을 고를 수 있어요." });
+    await stopBattle({ broadcastId: id, no: 3 });
     // The main scoreboard still counts every member once (1배).
     expect((await getBroadcastView())!.live!.rows.find((r) => r.memberId === "cm-s1")).toMatchObject({ feed: 3_000, battle: 0 });
   });

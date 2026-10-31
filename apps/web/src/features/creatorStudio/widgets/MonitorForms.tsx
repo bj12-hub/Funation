@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useState, useTransition } from "react";
+import { setTopDonationOverride } from "@/services/creator/widgetSettings";
 import { PreviewStage } from "@/features/overlayTheme/PreviewStage";
 import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
 import { resolveTheme } from "@/services/creator/overlayThemeTypes";
@@ -10,6 +11,8 @@ import {
   RANKING_WIDGET_PERIODS,
   SIG_QUEUE_LAYOUTS,
   SIG_QUEUE_NEXT_MAX,
+  TOP_DONATION_AMOUNT_MAX,
+  TOP_DONATION_DONOR_MAX,
   TOP_DONATION_PRIZE_MAX,
   TOP_DONATION_TIES,
   TOP_DONATION_TIMINGS,
@@ -48,6 +51,61 @@ function Choice<T extends string>({ label, options, value, onChange }: { label: 
         </label>
       ))}
     </div>
+  );
+}
+
+/**
+ * 현재 최고 후원 (2026-10-28, StreamDonate "후원자명 · 금액을 직접 고칠 수 있습니다"): sent at once, not with 설정 저장. The
+ * entry stands for every donation before it in the 기간; later ones still compete with it.
+ */
+function TopDonationNow({ initial }: { initial: TopDonation | null }) {
+  const [top, setTop] = useState(initial);
+  const [donor, setDonor] = useState("");
+  const [amount, setAmount] = useState("");
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const [pending, startTransition] = useTransition();
+  const send = (input: { donor: string; amount: number } | null, ok: string) =>
+    startTransition(async () => {
+      const res = await setTopDonationOverride(input);
+      if (res.status === "SAVED") {
+        setTop(res.top);
+        setNote({ ok: true, text: ok });
+        setDonor("");
+        setAmount("");
+      } else setNote({ ok: false, text: res.status === "INVALID" ? res.message : "로그인이 필요해요." });
+    });
+  return (
+    <Section title="현재 최고 후원">
+      <p className={styles.hint}>{top ? `${top.donor} · ${top.amount}${top.manual ? " (직접 고친 값)" : ""}` : "이 기간에 아직 최고 후원이 없어요."}</p>
+      <div className={styles.inline}>
+        <input className={styles.input} aria-label="최고 후원 후원자" placeholder="후원자" maxLength={TOP_DONATION_DONOR_MAX} value={donor} onChange={(e) => setDonor(e.target.value)} />
+        <input
+          className={styles.input}
+          type="number"
+          inputMode="numeric"
+          aria-label="최고 후원 금액(FN)"
+          placeholder="금액 (FN)"
+          min={1}
+          max={TOP_DONATION_AMOUNT_MAX}
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+        />
+        <button type="button" className={styles.purpleSmall} disabled={pending || !donor.trim() || !amount} onClick={() => send({ donor, amount: Number(amount) }, "최고 후원을 고쳤어요.")}>
+          수정
+        </button>
+        {top?.manual && (
+          <button type="button" className={styles.smallButton} disabled={pending} onClick={() => send(null, "직접 고친 값을 지웠어요.")}>
+            고친 값 지우기
+          </button>
+        )}
+      </div>
+      {note && (
+        <p className={note.ok ? styles.hint : a.invalid} role={note.ok ? "status" : "alert"}>
+          {note.text}
+        </p>
+      )}
+      <p className={styles.hint}>설정 저장과 따로 바로 반영돼요. 고친 뒤에 들어오는 후원과 다시 금액을 비교하고, 지금 기간(일간이면 오늘)에만 적용돼요.</p>
+    </Section>
   );
 }
 
@@ -100,6 +158,8 @@ export function TopDonationForm({ value: v, onChange, live }: FormProps<"TOP_DON
         <p className={styles.hint}>같은 금액일 때</p>
         <Choice label="같은 금액일 때" options={TOP_DONATION_TIES} value={v.tie} onChange={(x) => set("tie", x)} />
       </Section>
+
+      <TopDonationNow initial={live.topNow} />
     </>
   );
 }

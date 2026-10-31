@@ -6,6 +6,7 @@ import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
 import { battleRulesOf, liveBroadcastOf, parseBattleRules } from "./crewCore";
 import {
   BATTLES_MAX,
+  BATTLE_DISPLAYS,
   BATTLE_MAX_SEC,
   BATTLE_MIN_SEC,
   BATTLE_PAIRS_MAX,
@@ -14,6 +15,7 @@ import {
   MULTI_TEAMS_MAX,
   MULTI_TEAMS_MIN,
   MULTI_TEAM_KEYS,
+  type BattleDisplay,
   type BroadcastResult
 } from "./crewTypes";
 import { STUDIO_CHANNEL, mockCrew } from "./mockCrewStore";
@@ -102,6 +104,7 @@ export async function startBattle(input: unknown): Promise<BroadcastResult> {
   let b: string[] = [];
   let teams: { name: string; memberIds: string[] }[] | undefined;
   let pairs: [string, string][] | undefined;
+  let display: BattleDisplay | undefined;
   if (v.mode === "MEMBERS") {
     if (!activeMember(v.memberA) || !activeMember(v.memberB)) return { status: "INVALID", message: "배틀할 BJ 두 명을 골라 주세요." };
     if (v.memberA === v.memberB) return { status: "INVALID", message: "서로 다른 BJ를 골라 주세요." };
@@ -115,6 +118,9 @@ export async function startBattle(input: unknown): Promise<BroadcastResult> {
     const parsed = parseTeams(v.teams);
     if ("message" in parsed) return { status: "INVALID", message: parsed.message };
     teams = parsed;
+    // 표시 방식 (2026-10-28): a screen from before sends none — 가로 막대.
+    display = v.display === undefined ? "BARS" : BATTLE_DISPLAYS.find((d) => d.key === v.display)?.key;
+    if (!display) return { status: "INVALID", message: "표시 방식을 골라 주세요." };
   } else if (v.mode === "PAIRS") {
     const parsed = parsePairs(v.pairs);
     if ("message" in parsed) return { status: "INVALID", message: parsed.message };
@@ -130,6 +136,7 @@ export async function startBattle(input: unknown): Promise<BroadcastResult> {
     b,
     ...(teams && { teams }),
     ...(pairs && { pairs }),
+    ...(display && { display }),
     startedAt: new Date(now).toISOString(),
     endsAt: new Date(now + sec * 1000).toISOString(),
     stoppedAt: null,
@@ -174,6 +181,25 @@ export async function adjustBattleTime(input: unknown): Promise<BroadcastResult>
   if (end - new Date(battle.startedAt).getTime() > BATTLE_MAX_SEC * 1000) return { status: "INVALID", message: `배틀은 최대 ${BATTLE_MAX_SEC / 3600}시간이에요.` };
   battle.endsAt = new Date(Math.max(end, now)).toISOString();
   battle.requests.push(v.requestId);
+  return { status: "SAVED" };
+}
+
+/**
+ * 다수 팀 표시 방식 (2026-10-28): 가로 막대 / 누적 바 on OBS, while it runs or after. Only a 다수 팀 배틀 has one; the same
+ * value again is a no-op.
+ */
+export async function setBattleDisplay(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = rec(input);
+  const live = liveBroadcastOf(STUDIO_CHANNEL);
+  if (!live || live.id !== v.broadcastId) return notLive;
+  const battle = (live.battles ?? []).find((x) => x.no === v.no);
+  if (!battle) return { status: "INVALID", message: "배틀을 찾을 수 없어요." };
+  if (battle.mode !== "MULTI_TEAMS") return { status: "INVALID", message: "다수 팀 배틀만 표시 방식을 고를 수 있어요." };
+  const display = BATTLE_DISPLAYS.find((d) => d.key === v.display)?.key;
+  if (!display) return { status: "INVALID", message: "표시 방식을 골라 주세요." };
+  battle.display = display;
   return { status: "SAVED" };
 }
 

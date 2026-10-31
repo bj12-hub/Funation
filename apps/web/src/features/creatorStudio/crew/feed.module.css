@@ -8,6 +8,8 @@
   color: var(--color-platform-live);
   font-size: var(--font-size-12);
   vertical-align: middle;
+  /* Up to three badges: the title wraps between them, never inside one. */
+  white-space: nowrap;
 }
 
 .panel summary {
@@ -214,7 +216,82 @@
   min-width: 0;
 }
 
-/* Five filters: they wrap on a phone instead of squeezing their labels. */
+/* 출처 필터: smaller chips under the status filters, only for the sources the list has. */
+.origins {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.origin {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-12);
+  white-space: nowrap;
+}
+
+.origin[aria-pressed="true"] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-text-primary);
+}
+
+/* 후원자 이름 병합: the name the entry came under, next to its 대표 이름. */
+.alias {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-13);
+}
+
+.donors {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+}
+
+/* 받은 이름 wraps, so the table fits a phone. */
+.table .names {
+  min-width: 80px;
+  max-width: 280px;
+  color: var(--color-text-secondary);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.merges {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.merges li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 600px) {
+  .merges li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .merges li > :nth-child(2) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+/* Six filters: they wrap on a phone instead of squeezing their labels. */
 .filters {
   flex-wrap: wrap;
 }
@@ -312,4 +389,65 @@
 .duplicateActions {
   display: flex;
   gap: 6px;
+}
+
+/* 미지정 일시정지 (2026-10-25): the option under the list's note. */
+.pauseRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-12);
+  background: var(--color-surface-raised);
+}
+
+.pauseRow label {
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
+/* 미재생: where the entry's alert is in the queue. */
+.alertTag {
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-light);
+  font-size: var(--font-size-11);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
+.alertTag[data-alert="SHOWING"] {
+  background: var(--color-platform-live-bg);
+  color: var(--color-platform-live);
+}
+
+.alertTag[data-alert="HELD"] {
+  background: var(--color-gold-soft);
+  color: var(--color-warning-text);
+}
+
+.entry[data-held] {
+  border-color: var(--color-gold);
+}
+
+/* Its own line under the row, like 중복 의심. */
+.held {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--color-border-strong);
+  color: var(--color-warning-text);
+  font-size: var(--font-size-13);
+}
+
+/* BJ 이름 자동 인식 (2026-10-25): the option above the keyword list. */
+.nameKeywords {
+  margin-top: 12px;
 }

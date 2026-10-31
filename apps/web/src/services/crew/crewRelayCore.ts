@@ -1,6 +1,7 @@
+import { randomUUID } from "node:crypto";
 import { isActiveMember, liveBroadcastOf } from "./crewCore";
 import { effectPoints, gameRunsView, parseAmountTiers, parseGameCommon, recordRun, signatureTrigger } from "./crewGameCore";
-import { DEFAULT_RELAY, relayTierFor, type RelayLive, type RelaySettings } from "./crewTypes";
+import { DEFAULT_RELAY, RELAY_PRESETS_MAX, RELAY_PRESET_NAME_MAX, relayTierFor, type RelayLive, type RelayPreset, type RelaySettings } from "./crewTypes";
 import { mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 /**
@@ -29,6 +30,47 @@ export function parseRelaySettings(input: unknown, forbidden: string[], signatur
   if (common.auto && !memberId) return { message: "릴레이를 켜려면 트리거 BJ를 골라 주세요." };
   if (common.auto && !tiers.length) return { message: "릴레이를 켜려면 금액 구간을 하나 이상 만들어 주세요." };
   return { ...common, memberId, tiers };
+}
+
+/** The channel's 기여도 릴레이 설정 프리셋, newest first. */
+export const relayPresetsOf = (channelId: string): RelayPreset[] => mockCrew.relayPresets?.[channelId] ?? [];
+
+/**
+ * 설정 프리셋 저장 (2026-10-28, as on 랜덤시그): `settings` (the card as it is, checked like 설정 저장) under `name` — 트리거 BJ ·
+ * 금액 구간 · 제외 시그. The same name replaces that 프리셋 and moves it first; a new name needs a free slot.
+ */
+export function saveRelayPresetOf(
+  channelId: string,
+  input: unknown,
+  forbidden: string[],
+  signatureIds: string[],
+  memberIds: string[],
+  now = new Date()
+): { status: "SAVED" } | { message: string } {
+  const v = rec(input);
+  const name = typeof v.name === "string" ? v.name.trim() : "";
+  if (!name) return { message: "프리셋 이름을 입력해 주세요." };
+  if ([...name].length > RELAY_PRESET_NAME_MAX) return { message: `프리셋 이름은 ${RELAY_PRESET_NAME_MAX}자까지예요.` };
+  if (forbidden.some((w) => name.toLowerCase().includes(w))) return { message: "사용할 수 없는 단어가 포함되어 있어요." };
+  const parsed = parseRelaySettings(v.settings, forbidden, signatureIds, memberIds, relaySettingsOf(channelId).tiers.map((x) => x.id));
+  if ("message" in parsed) return parsed;
+  const list = relayPresetsOf(channelId);
+  const same = list.find((p) => p.name === name);
+  if (!same && list.length >= RELAY_PRESETS_MAX) return { message: `프리셋은 ${RELAY_PRESETS_MAX}개까지 저장할 수 있어요. 안 쓰는 프리셋을 지워 주세요.` };
+  const preset = {
+    id: same?.id ?? `rlp-${randomUUID().slice(0, 8)}`,
+    name,
+    savedAt: now.toISOString(),
+    settings: structuredClone({ memberId: parsed.memberId, tiers: parsed.tiers, excluded: parsed.excluded })
+  };
+  (mockCrew.relayPresets ??= {})[channelId] = [preset, ...list.filter((p) => p !== same)];
+  return { status: "SAVED" };
+}
+
+/** 프리셋 삭제 (one already gone is fine — a retried delete). */
+export function deleteRelayPresetOf(channelId: string, id: unknown) {
+  const list = relayPresetsOf(channelId);
+  if (list.some((p) => p.id === id)) (mockCrew.relayPresets ??= {})[channelId] = list.filter((p) => p.id !== id);
 }
 
 const stateOf = (b: MockBroadcast) => (b.relay ??= { pending: null });

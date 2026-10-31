@@ -90,14 +90,63 @@ describe("시그니처 헌터", () => {
       [{ rounds: [round({ multiplier: 1.234 })] }, "배수는 1 ~ 10배"],
       [{ rounds: [round({ forfeits: 3 })] }, "몰수권은 슬롯보다 적게, 0 ~ 2개"],
       [{ rounds: [round({ forfeits: -1 })] }, "몰수권은"],
-      [{ excluded: ["sig-nope"] }, "제외할 시그니처"]
+      [{ excluded: ["sig-nope"] }, "제외할 시그니처"],
+      [{ forfeitMin: -1 }, "몰수권 최소 금액"],
+      [{ forfeitMin: 1.5 }, "몰수권 최소 금액"],
+      [{ forfeitLock: "yes" }, "자동 잠김"]
     ];
     for (const [patch, message] of bad) {
       const res = await m.saveSigHunter(settings(patch as Partial<SigHunterSettings>));
       expect(res.status === "INVALID" && res.message, message).toContain(message);
     }
+    // 몰수권 최소 금액 · 자동 잠김 (2026-10-28): kept; a screen from before sends neither — 제한 없음, off.
+    expect(await m.saveSigHunter(settings({ forfeitMin: 30_000, forfeitLock: true }))).toEqual({ status: "SAVED" });
+    expect((await m.getGamesView())!.sigHunterSettings).toMatchObject({ forfeitMin: 30_000, forfeitLock: true });
+    const { forfeitMin: _min, forfeitLock: _lock, ...older } = settings();
+    expect([_min, _lock]).toEqual([0, false]);
+    expect(await m.saveSigHunter(older)).toEqual({ status: "SAVED" });
+    expect((await m.getGamesView())!.sigHunterSettings).toMatchObject({ forfeitMin: 0, forfeitLock: false });
     signIn(["SUPPORTER"]);
     expect(await m.saveSigHunter(settings())).toEqual({ status: "UNAUTHORIZED" });
+  });
+
+  it("추가 금액 구간: each fills its own slots from its own range, all placed at random", async () => {
+    const m = await load();
+    const id = await m.start();
+    const [x, y] = [m.a, m.b];
+    const bands = [{ slots: 3, priceMin: y.price, priceMax: y.price }];
+    expect(await m.saveSigHunter(settings({ rounds: [only(x, { slots: 2, forfeits: 4, bands })] }))).toEqual({ status: "SAVED" });
+    const saved = (await m.getGamesView())!.sigHunterSettings.rounds[0];
+    expect(saved.bands).toEqual(bands);
+    expect(await m.startSigHunter({ broadcastId: id, requestId: key(1) })).toEqual({ status: "SAVED" });
+    const slots = (await m.view()).board!.slots;
+    expect(slots).toHaveLength(5);
+    expect(slots.filter((s) => s.signatureId === x.id)).toHaveLength(2);
+    expect(slots.filter((s) => s.signatureId === y.id)).toHaveLength(3);
+    expect(slots.filter((s) => s.forfeit)).toHaveLength(4); // 몰수권: fewer than all the slots, 구간 included
+
+    // A 라운드 without 추가 구간 keeps none; an empty 구간 list saves as none.
+    expect(await m.saveSigHunter(settings({ rounds: [round({ bands: [] })] }))).toEqual({ status: "SAVED" });
+    expect((await m.getGamesView())!.sigHunterSettings.rounds[0]).not.toHaveProperty("bands");
+
+    // A 구간 without a signature stops the hunt like a 라운드 without one.
+    await m.saveSigHunter(settings({ rounds: [round({ bands: [{ slots: 1, priceMin: 9_000_000, priceMax: null }] })] }));
+    expect(await m.startSigHunter({ broadcastId: id, requestId: key(2) })).toEqual({ status: "INVALID", message: "1라운드에 넣을 시그니처가 없어요. 금액 범위와 제외 시그를 확인해 주세요." });
+
+    const band = (b: Record<string, unknown>) => ({ slots: 1, priceMin: null, priceMax: null, ...b });
+    const bad: [Record<string, unknown>, string][] = [
+      [{ bands: "1" }, "추가 금액 구간은 4개까지"],
+      [{ bands: Array.from({ length: 5 }, () => band({})) }, "추가 금액 구간은 4개까지"],
+      [{ bands: [band({}), band({ slots: 0 })] }, "1라운드 추가 구간 2의 슬롯은 1칸 이상"],
+      [{ bands: [band({ priceMin: -5 })] }, "추가 구간 1의 금액 범위를 확인"],
+      [{ bands: [band({ priceMin: 10, priceMax: 5 })] }, "최소가 최대보다"],
+      [{ slots: 30, bands: [band({ slots: 11 })] }, "추가 금액 구간까지 모두 40칸까지"],
+      [{ slots: 3, forfeits: 5, bands: [band({ slots: 2 })] }, "몰수권은 슬롯보다 적게, 0 ~ 4개"]
+    ];
+    for (const [patch, message] of bad) {
+      const res = await m.saveSigHunter(settings({ rounds: [round(patch as Partial<SigHunterRound>)] }));
+      expect(res.status === "INVALID" && res.message, message).toContain(message);
+    }
   });
 
   it("places 1라운드 signatures in random slots with its 몰수권 hidden from OBS", async () => {
@@ -219,6 +268,43 @@ describe("시그니처 헌터", () => {
     expect(["cm-s1", "cm-s2", "cm-s3"].map((x) => rows.find((r) => r.memberId === x)!.score)).toEqual([8 * p, 2 * p, 0]);
     view = await m.view();
     expect(view.board!.round).toBe(2);
+  });
+
+  it("몰수권 최소 금액 puts them only in slots that price or more; 자동 잠김 stops the board at a 몰수권 until 다음 라운드", async () => {
+    const m = await load();
+    const id = await m.start();
+    const [cheap, dear] = [m.a, m.b].sort((x, y) => x.price - y.price);
+    expect(cheap.price).toBeLessThan(dear.price);
+    // 3 slots of the cheaper one and 1 of the dearer one; of 2 몰수권 only the dearer slot can hold one.
+    const mixed = only(cheap, { slots: 3, forfeits: 2, bands: [{ slots: 1, priceMin: dear.price, priceMax: dear.price }] });
+    await m.saveSigHunter(settings({ rounds: [mixed], forfeitMin: dear.price }));
+    await m.startSigHunter({ broadcastId: id, requestId: key(1) });
+    expect(m.stored(id).sigHunter!.slots.filter((x) => x.forfeit).map((x) => x.signatureId)).toEqual([dear.id]);
+    // No slot at the 최소 금액: no 몰수권 at all.
+    await m.saveSigHunter(settings({ rounds: [mixed], forfeitMin: dear.price + 1 }));
+    await m.startSigHunter({ broadcastId: id, requestId: key(2) });
+    expect(m.stored(id).sigHunter!.slots.some((x) => x.forfeit)).toBe(false);
+
+    // 자동 잠김: the 몰수권 in slot 1 locks the board — later 시그니처 후원 sell nothing, the operator is told so.
+    await m.saveSigHunter(settings({ rounds: [only(m.a, { slots: 4, forfeits: 1 }), only(m.b, { id: "new-2" })], forfeitLock: true }));
+    await m.startSigHunter({ broadcastId: id, requestId: key(3) });
+    m.stored(id).sigHunter!.slots.forEach((x, i) => (x.forfeit = i === 1));
+    await m.sign(m.a.id, m.a.price, "cm-s2");
+    expect((await m.view()).board!.locked).toBe(false);
+    await m.sign(m.a.id, m.a.price, "cm-s1");
+    expect(m.runs(id).at(-1)).toMatchObject({ memberId: "cm-s1", label: "몰수권! 1칸 흡수" });
+    const runs = m.runs(id).length;
+    await m.sign(m.a.id, m.a.price, "cm-s3");
+    expect(m.runs(id)).toHaveLength(runs);
+    expect((await m.view()).board!.slots.filter((x) => x.sold)).toHaveLength(2);
+    expect((await m.view()).board!.locked).toBe(true);
+    expect((await m.obs()).board!.locked).toBe(true);
+    expect(await m.setSigHunter({ broadcastId: id, requestId: key(4), index: 2, round: 1, sold: true, memberId: null })).toEqual({
+      status: "INVALID",
+      message: "몰수권이 열려 판이 잠겼어요. 다음 라운드를 눌러 주세요."
+    });
+    expect(await m.nextSigHunter({ broadcastId: id, round: 1 })).toEqual({ status: "SAVED" });
+    expect((await m.view()).board).toMatchObject({ round: 2, locked: false });
   });
 
   it("lets the operator sell, restore and move to the next 라운드", async () => {

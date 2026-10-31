@@ -3,7 +3,8 @@
  * Size and format limits are placeholders (TBD: upload policy, content review).
  */
 
-export type AssetKind = "IMAGE" | "SOUND";
+/** VIDEO (2026-10-25): 후원 이펙트 영상 (이펙트 · 효과 구간마다). */
+export type AssetKind = "IMAGE" | "SOUND" | "VIDEO";
 
 export type Asset = {
   id: string;
@@ -18,13 +19,14 @@ export type Asset = {
 
 export const ASSET_TYPES: Record<AssetKind, readonly string[]> = {
   IMAGE: ["image/png", "image/jpeg", "image/gif", "image/webp"],
-  SOUND: ["audio/mpeg", "audio/wav", "audio/x-wav", "audio/ogg"]
+  SOUND: ["audio/mpeg", "audio/wav", "audio/x-wav", "audio/ogg"],
+  VIDEO: ["video/mp4", "video/webm"]
 };
 
 export const ASSET_LIMITS = {
   max: 60,
   nameMax: 40,
-  bytes: { IMAGE: 5 * 1024 * 1024, SOUND: 2 * 1024 * 1024 } as Record<AssetKind, number>,
+  bytes: { IMAGE: 5 * 1024 * 1024, SOUND: 2 * 1024 * 1024, VIDEO: 15 * 1024 * 1024 } as Record<AssetKind, number>,
   totalBytes: 60 * 1024 * 1024
 } as const;
 
@@ -40,6 +42,8 @@ const pairKey = nameKey;
 
 /** The other half of `asset`'s pair in `library`, if any (the first match by upload order). */
 export function pairOf(asset: Pick<Asset, "kind" | "name">, library: Asset[]): Asset | null {
+  // Videos stand alone: only an image and a sound pair.
+  if (asset.kind === "VIDEO") return null;
   const other: AssetKind = asset.kind === "IMAGE" ? "SOUND" : "IMAGE";
   return library.find((a) => a.kind === other && pairKey(a.name) === pairKey(asset.name)) ?? null;
 }

@@ -1,15 +1,22 @@
 "use client";
 
-import { saveRandomSig } from "@/services/crew/crewGames";
+import { formatNumber } from "@/lib/format";
+import { deleteRandomSigPreset, saveRandomSig, saveRandomSigPreset } from "@/services/crew/crewGames";
 import {
+  RANDOM_SIG_DIGIT_MAX,
+  RANDOM_SIG_DIGIT_UNITS,
   RANDOM_SIG_MODES,
   RANDOM_SIG_MULTIPLIER_MAX,
+  RANDOM_SIG_PRESETS_MAX,
+  RANDOM_SIG_PRESET_NAME_MAX,
   RANDOM_SIG_TIERS_MAX,
   RANDOM_SIG_TITLE_DEFAULT,
+  digitMultiplier,
   type GamesView,
+  type RandomSigPreset,
   type RandomSigSettings
 } from "@/services/crew/crewTypes";
-import { AutoFields, FormActions, OverlayAddress, RunList, TitleField, useSettingsDraft, type LiveGames, type RunAction } from "./GameParts";
+import { AutoFields, FormActions, OverlayAddress, PresetField, RunList, TitleField, useSettingsDraft, type LiveGames, type RunAction } from "./GameParts";
 import styles from "./crew.module.css";
 import games from "./games.module.css";
 import prize from "./prize.module.css";
@@ -32,11 +39,13 @@ const newId = () => `new-${crypto.randomUUID().slice(0, 8)}`;
 
 /**
  * 랜덤시그 — code-first (no Figma frame; StreamDonate 랜덤시그 참고), inside `/creator/crew/games`. 발동 구간 (발동 금액 → 시그
- * 금액 범위), 제외 시그, 기여도 방식 (기본 · 랜덤 결과) and 기본 배수. A 일반 후원 of exactly a 발동 금액 plays a drawn
+ * 금액 범위), 제외 시그, 기여도 방식 (기본 · 랜덤 결과), 기본 배수 or 앞자리 배수, and 설정 프리셋 (saved by name, loaded into the
+ * card — 설정 저장 applies them). A 일반 후원 of exactly a 발동 금액 plays a drawn
  * signature as its alert; while live, one sent to a member also records a run. There is no 수동 run.
  */
 export function RandomSigPanel({
   settings,
+  presets,
   signatures,
   live,
   now,
@@ -45,6 +54,7 @@ export function RandomSigPanel({
   run
 }: {
   settings: RandomSigSettings;
+  presets: RandomSigPreset[];
   signatures: GamesView["signatures"];
   live: LiveGames | null;
   now: number | null;
@@ -53,10 +63,24 @@ export function RandomSigPanel({
   run: RunAction;
 }) {
   const { draft, edit, dirty, reset } = useSettingsDraft(settings, toDraft, fromDraft);
+  // 불러오기 fills the card (켜짐 · 제목 · 대기 화면 stay); 설정 저장 applies it. A deleted signature drops out of 제외.
+  const load = (p: RandomSigPreset) => {
+    const d = toDraft({ ...settings, ...p.settings });
+    edit({ tiers: d.tiers, mode: d.mode, multiplier: d.multiplier, digit: d.digit, digitUnit: d.digitUnit, excluded: d.excluded.filter((id) => known.has(id)) });
+  };
+  const modeLabel = (p: RandomSigPreset) =>
+    p.settings.mode === "REPLACE" ? "랜덤 결과 모드" : p.settings.digit ? `기본 모드 · 앞자리 배수` : `기본 모드 · ×${p.settings.multiplier}`;
   const known = new Set(signatures.map((s) => s.id));
   const setTier = (i: number, patch: Partial<EditTier>) => edit({ tiers: draft.tiers.map((t, j) => (j === i ? { ...t, ...patch } : t)) });
   // What a tier would draw from, and a 금액 일치 signature that takes its 발동 금액 first.
   const candidates = (t: EditTier) => signatures.filter((s) => s.active && !draft.excluded.includes(s.id) && s.price >= Number(t.min) && s.price <= Number(t.max)).length;
+  // 앞자리 배수 (기본 모드): the 배수 a tier's cheapest and dearest signature would get.
+  const digitOn = draft.mode === "BONUS" && draft.digit;
+  const digitLabel = RANDOM_SIG_DIGIT_UNITS.find((u) => u.unit === draft.digitUnit)?.label ?? "";
+  const digitSpan = (t: EditTier) => {
+    const [lo, hi] = [digitMultiplier(Number(t.min), draft.digitUnit), digitMultiplier(Number(t.max), draft.digitUnit)];
+    return t.min && t.max && lo >= 1 && hi >= lo ? ` · 앞자리 ×${lo}${hi > lo ? ` ~ ×${hi}` : ""}` : "";
+  };
   const takenBy = (t: EditTier) => signatures.find((s) => s.active && s.match === "AMOUNT" && Number(t.trigger) >= (s.rangeMin ?? s.price) && Number(t.trigger) <= s.price);
 
   return (
@@ -78,6 +102,23 @@ export function RandomSigPanel({
         }}
       >
         <TitleField name="랜덤시그" placeholder={RANDOM_SIG_TITLE_DEFAULT} value={draft.title} onChange={(title) => edit({ title })} />
+
+        <PresetField
+          game="랜덤시그"
+          presets={presets}
+          max={RANDOM_SIG_PRESETS_MAX}
+          nameMax={RANDOM_SIG_PRESET_NAME_MAX}
+          summary={(p) => `구간 ${p.settings.tiers.length}개 · ${modeLabel(p)}${p.settings.excluded.length > 0 ? ` · 제외 ${p.settings.excluded.length}개` : ""}`}
+          note="지금 칸에 있는 발동 구간 · 기여도 방식 · 배수 · 제외 시그를 이름 붙여 저장해요(같은 이름이면 덮어써요). 켜짐 · 제목 · 대기 화면은 프리셋에 들어가지 않아요."
+          dirty={dirty}
+          pending={pending}
+          onLoad={load}
+          onDelete={(p) => run(() => deleteRandomSigPreset({ id: p.id }), `'${p.name}' 프리셋을 지웠어요.`)}
+          onSave={(name) => {
+            const next = fromDraft(draft);
+            run(() => saveRandomSigPreset({ name, settings: { ...next, excluded: next.excluded.filter((id) => known.has(id)) } }), `'${name}' 프리셋을 저장했어요.`);
+          }}
+        />
 
         <div className={prize.field}>
           <span className={styles.muted}>
@@ -120,7 +161,9 @@ export function RandomSigPanel({
                         value={t.max}
                         onChange={(e) => setTier(i, { max: e.target.value })}
                       />
-                      <span className={styles.muted}>FN · 후보 {candidates(t)}개</span>
+                      <span className={styles.muted}>
+                        FN · 후보 {candidates(t)}개{digitOn && digitSpan(t)}
+                      </span>
                       <button type="button" className={styles.ghost} onClick={() => edit({ tiers: draft.tiers.filter((_, j) => j !== i) })}>
                         삭제
                       </button>
@@ -128,6 +171,16 @@ export function RandomSigPanel({
                     {taken && (
                       <span className={styles.error} role="alert">
                         이 금액은 &apos;{taken.name}&apos; 시그니처가 금액 일치로 먼저 받아요. 다른 발동 금액을 정해 주세요.
+                      </span>
+                    )}
+                    {digitOn && t.min !== "" && Number(t.min) < draft.digitUnit && (
+                      <span className={styles.error} role="alert">
+                        앞자리 배수를 켜면 시그 최소는 {formatNumber(draft.digitUnit)} FN 이상이에요.
+                      </span>
+                    )}
+                    {digitOn && digitMultiplier(Number(t.max), draft.digitUnit) > RANDOM_SIG_DIGIT_MAX && (
+                      <span className={styles.error} role="alert">
+                        앞자리 배수는 {RANDOM_SIG_DIGIT_MAX}배까지예요. 시그 최대를 줄이거나 자리 단위를 키워 주세요.
                       </span>
                     )}
                   </li>
@@ -160,6 +213,32 @@ export function RandomSigPanel({
           </span>
         </div>
         {draft.mode === "BONUS" && (
+          <div className={prize.field} role="group" aria-label="앞자리 배수">
+            <label className={styles.checkRow}>
+              <input type="checkbox" checked={draft.digit} onChange={(e) => edit({ digit: e.target.checked })} />
+              앞자리 배수 — 뽑힌 시그 가격의 앞자리가 그대로 배수가 돼요
+            </label>
+            {draft.digit && (
+              <>
+                <label className={games.unit}>
+                  <select className={styles.select} aria-label="앞자리 배수 자리 단위" value={draft.digitUnit} onChange={(e) => edit({ digitUnit: Number(e.target.value) })}>
+                    {RANDOM_SIG_DIGIT_UNITS.map((u) => (
+                      <option key={u.unit} value={u.unit}>
+                        {u.label} ({formatNumber(u.unit)} FN)
+                      </option>
+                    ))}
+                  </select>
+                  <span className={styles.muted}>마다 1배</span>
+                </label>
+                <span className={styles.note}>
+                  {digitLabel} 기준: {formatNumber(draft.digitUnit * 2)} ~ {formatNumber(draft.digitUnit * 3 - 1)} FN 시그 → ×2, {formatNumber(draft.digitUnit * 3)} FN대 → ×3. 발동 금액과
+                  비교하지 않고, ×N이면 발동 후원 점수의 N배가 돼요. 시그 최소는 {formatNumber(draft.digitUnit)} FN 이상, {RANDOM_SIG_DIGIT_MAX}배까지예요.
+                </span>
+              </>
+            )}
+          </div>
+        )}
+        {draft.mode === "BONUS" && !draft.digit && (
           <label className={games.unit}>
             <span className={styles.muted}>기본 배수</span>
             <input
@@ -176,6 +255,11 @@ export function RandomSigPanel({
             <span className={styles.muted}>배 — 뽑힌 시그 가격이 발동 금액 이상일 때 (×2면 발동 후원 점수만큼 더해져요)</span>
           </label>
         )}
+
+        <label className={styles.checkRow}>
+          <input type="checkbox" checked={draft.alertRoll} onChange={(e) => edit({ alertRoll: e.target.checked })} />
+          후원 알림에서 1초 동안 후보 시그를 돌린 뒤 뽑힌 시그 보여 주기 (시그 소리는 그다음에)
+        </label>
 
         <AutoFields
           name="랜덤시그"

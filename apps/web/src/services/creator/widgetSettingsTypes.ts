@@ -27,7 +27,8 @@ export type WidgetKey =
   | "CLOCK"
   | "TOP_DONATION"
   | "DONATION_MONITOR"
-  | "SIG_QUEUE";
+  | "SIG_QUEUE"
+  | "SIG_WALLPAPER";
 
 export type CatalogCard<K extends string> = { key: K; emoji: string; color: string; title: string; description: string };
 
@@ -52,7 +53,8 @@ export const WIDGET_CARDS: CatalogCard<WidgetKey>[] = [
   { key: "CLOCK", emoji: "🕐", color: "#0ea5e9", title: "시계", description: "방송 화면에 지금 시각을 띄웁니다. 플립 · 디지털 · 아날로그 중에서 골라요." },
   { key: "TOP_DONATION", emoji: "🥇", color: "#eab308", title: "최고 후원", description: "기간 안에서 가장 큰 후원 한 건(후원자 · 금액)을 걸어 둡니다. 상금 문구도 함께 띄울 수 있어요." },
   { key: "DONATION_MONITOR", emoji: "📺", color: "#06b6d4", title: "후원 모니터링", description: "지금 나오는 후원 알림을 다음 알림이 나올 때까지 화면 한쪽에 계속 보여 줍니다." },
-  { key: "SIG_QUEUE", emoji: "🎞️", color: "#a855f7", title: "시그 큐 모니터", description: "재생 중인 시그니처와 다음 차례 시그니처를 카드로 보여 줍니다." }
+  { key: "SIG_QUEUE", emoji: "🎞️", color: "#a855f7", title: "시그 큐 모니터", description: "재생 중인 시그니처와 다음 차례 시그니처를 카드로 보여 줍니다." },
+  { key: "SIG_WALLPAPER", emoji: "🪧", color: "#f43f5e", title: "시그 벽지", description: "시그니처 후원 한 건마다 전용 주소로 그 후원의 시그니처 이미지 · 후원자 · 금액을 계속 띄워 둡니다." }
 ];
 
 /** URL path segment per widget (the design mixes /widget/ and /widgets/; one pattern is used). */
@@ -76,7 +78,8 @@ export const WIDGET_PATHS: Record<WidgetKey, string> = {
   CLOCK: "clock",
   TOP_DONATION: "top-donation",
   DONATION_MONITOR: "donation-monitor",
-  SIG_QUEUE: "signature-queue"
+  SIG_QUEUE: "signature-queue",
+  SIG_WALLPAPER: "sig-wallpaper"
 };
 
 // ── Shared field types ───────────────────────────────────────────────────────
@@ -106,6 +109,19 @@ export const ALERT_HEADLINE_MAX = 40;
 /** Headline tokens (same words as the 뽑기 message template). */
 export const ALERT_TOKENS = { donor: "{닉네임}", amount: "{금액}" } as const;
 
+/**
+ * 시그니처 음원 받는 방식 (2026-10-28, StreamDonate 설정 › 음원재생): CACHE 기존 (브라우저 캐시 · 받으면서 재생), FRESH 매번 새로
+ * 받기 (캐시 안 씀 · 받으면서 재생), FULL 다 받고 재생 (캐시 안 씀 · 전부 받은 뒤 재생 — 끊김 없음, 느리면 시작이 늦음).
+ */
+export type SigFetchMode = "CACHE" | "FRESH" | "FULL";
+export const SIG_FETCH_MODES: { key: SigFetchMode; label: string; hint: string }[] = [
+  { key: "CACHE", label: "기존 방식", hint: "브라우저 캐시를 쓰고, 받으면서 재생해요." },
+  { key: "FRESH", label: "매번 새로 받기", hint: "캐시를 쓰지 않고, 받으면서 재생해요." },
+  { key: "FULL", label: "다 받고 재생", hint: "캐시를 쓰지 않고, 전부 받은 뒤 재생해요. 재생 중 끊기지 않지만 네트워크가 느리면 시작이 늦어요." }
+];
+/** 알림 사운드: only its first seconds play (StreamDonate: 최대 2초). */
+export const ALERT_SOUND_MAX_SEC = 2;
+
 export type AlertSettings = {
   theme: OverlayThemeChoice;
   layout: AlertLayout;
@@ -121,7 +137,21 @@ export type AlertSettings = {
   motion: OverlayMotion;
   /** The amount counts up from 0 as the card arrives. */
   countUp: boolean;
+  /**
+   * 알림 사운드 (2026-10-28): a SOUND from the 이미지·사운드 library played first on every alert, at the 리모컨
+   * 후원 알림음 volume, for at most ALERT_SOUND_MAX_SEC — TTS and the signature's sound come after it. null = none.
+   */
+  soundId: string | null;
+  /** 시그니처 음원 받는 방식 for this overlay and the 시그니처 플레이어. */
+  sigFetch: SigFetchMode;
+  /**
+   * 글자 크기 (2026-11-01, StreamDonate 기본후원 "금액 · 닉네임 · 메시지 폰트 크기"): % of the theme's size for the amount, the
+   * 알림 문구 (닉네임) line and the message, in every layout.
+   */
+  textScale: { amount: number; name: number; message: number };
 };
+/** 글자 크기 choices (%), 100 = the theme's size. */
+export const ALERT_TEXT_SCALES = [50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 175, 200] as const;
 
 // ── Per-widget settings (PR 1: 채팅창 · QR · 후원목표 · 후원누적금액) ─────────────────
 
@@ -327,6 +357,8 @@ export const RANKING_NAME_TYPES = [
 ] as const;
 /** Periods offered for the widget ranking (design shows 월간 selected; the full list is TBD). */
 export const RANKING_WIDGET_PERIODS = ["일간", "주간", "월간", "전체"] as const;
+/** 랭킹제외 (2026-10-28): at most this many donors left out of the 후원자 랭킹. */
+export const RANKING_EXCLUDED_MAX = 50;
 export const RANKING_SPEEDS = [
   { key: "VERY_SLOW", label: "매우 느리게" },
   { key: "SLOW", label: "느리게" },
@@ -366,6 +398,11 @@ export type RankingSettings = {
   scrollSpeed: (typeof RANKING_SPEEDS)[number]["key"];
   first: RankTierStyle;
   others: RankTierStyle;
+  /**
+   * 랭킹제외 (2026-10-28, StreamDonate 후원자 랭킹 "랭킹제외"): donors the 후원자 랭킹 leaves out, by their private group key
+   * (a copied name is not the same donor) with the name they had when left out. Saved before: none.
+   */
+  excluded: { key: string; name: string }[];
 };
 
 export const VOTE_PRESET_MAX = 10;
@@ -599,6 +636,9 @@ export const TOP_DONATION_TIES = [
 ] as const;
 export const TOP_DONATION_TITLE_MAX = 20;
 export const TOP_DONATION_PRIZE_MAX = 30;
+/** 최고 후원 수동 수정 (2026-10-28): the name and amount typed in. */
+export const TOP_DONATION_DONOR_MAX = 20;
+export const TOP_DONATION_AMOUNT_MAX = 100_000_000;
 
 /**
  * 최고 후원: the single biggest completed Ssumnation donation (FN) in the period — 후원랭킹's 일간 · 주간 · 월간 · 전체. The
@@ -649,6 +689,62 @@ export type SigQueueSettings = {
   showMessage: boolean;
 };
 
+// ── 시그 벽지 (code-first, 2026-10-28 — StreamDonate 시그 벽지 참고) ─────────────────────────────────────────────
+// A card for one 시그니처 후원 (its image, "○○○님, 후원 감사합니다." and the amount) at its own address; it stays on until
+// the source is removed. One style for every card.
+
+export const SIG_WALL_IMAGE_MIN = 80;
+export const SIG_WALL_IMAGE_MAX = 1000;
+export const SIG_WALL_GAP_MIN = -40;
+export const SIG_WALL_GAP_MAX = 120;
+export const SIG_WALL_TEXT_MIN = 10;
+export const SIG_WALL_TEXT_MAX = 100;
+export const SIG_WALL_STROKE_MAX = 10;
+export const SIG_WALL_RADIUS_MAX = 60;
+export const SIG_WALL_PREFIX_MAX = 20;
+/** 이미지 좌우 · 위 여백 when on. */
+export const SIG_WALL_PAD = 15;
+/** 시그니처 후원 목록: the latest ones. */
+export const SIG_WALL_LIST_MAX = 50;
+export const SIG_WALL_TOP_LINES = [
+  { key: "THANKS", label: "표시", hint: "○○○님, 후원 감사합니다." },
+  { key: "NAME", label: "후원자명만", hint: "○○○" }
+] as const;
+
+/** One line of the card: 글자 크기 · 테두리 굵기 (px), 기본 글자색 · 테두리 색, and `accent` (후원자명 · 금액 색). */
+export type SigWallLine = { size: number; stroke: number; color: string; strokeColor: string; accent: string };
+
+/**
+ * 시그 벽지: `bgOpacity` 0 ~ 100 (%); gaps in px — `gapLines` adds to (or, negative, takes from) the normal line spacing;
+ * `amountPrefix` goes before the amount as typed (a trailing space keeps it apart).
+ */
+export type SigWallpaperSettings = {
+  bgColor: string;
+  bgOpacity: number;
+  imageWidth: number;
+  imageHeight: number;
+  imagePad: boolean;
+  radius: number;
+  gapImage: number;
+  gapLines: number;
+  gapBottom: number;
+  topLine: (typeof SIG_WALL_TOP_LINES)[number]["key"];
+  amountPrefix: string;
+  font: FontFamily;
+  top: SigWallLine;
+  bottom: SigWallLine & { bold: boolean };
+};
+
+/** The OBS 브라우저 소스 size the card needs (lines at 1.3 × their size). */
+export function sigWallSize(s: SigWallpaperSettings) {
+  const pad = s.imagePad ? SIG_WALL_PAD : 0;
+  const line = (size: number) => Math.ceil(size * 1.3);
+  return { w: s.imageWidth + pad * 2, h: Math.max(0, pad + s.imageHeight + s.gapImage + line(s.top.size) + s.gapLines + line(s.bottom.size) + s.gapBottom) };
+}
+
+/** A 시그니처 후원 in the 시그 벽지 list (studio only): `member` = the BJ picked, "미지정" when none. */
+export type SigWallRow = { id: string; at: string; donor: string; amount: string; fnAmount: number; signature: string; member: string; imageUrl: string | null };
+
 export type WidgetSettingsMap = {
   ALERT: AlertSettings;
   CHAT: ChatSettings;
@@ -669,9 +765,10 @@ export type WidgetSettingsMap = {
   TOP_DONATION: TopDonationSettings;
   DONATION_MONITOR: DonationMonitorSettings;
   SIG_QUEUE: SigQueueSettings;
+  SIG_WALLPAPER: SigWallpaperSettings;
 };
 export type EditableWidgetKey = keyof WidgetSettingsMap;
-export const EDITABLE_WIDGETS: EditableWidgetKey[] = ["ALERT", "CHAT", "QR", "GOAL", "TOTAL", "RECENT", "EVENT", "MINI", "RANKING", "VOTE", "CUSTOM_SOUND", "QUEST", "GACHA", "ROULETTE", "WALLPAPER", "CLOCK", "TOP_DONATION", "DONATION_MONITOR", "SIG_QUEUE"];
+export const EDITABLE_WIDGETS: EditableWidgetKey[] = ["ALERT", "CHAT", "QR", "GOAL", "TOTAL", "RECENT", "EVENT", "MINI", "RANKING", "VOTE", "CUSTOM_SOUND", "QUEST", "GACHA", "ROULETTE", "WALLPAPER", "CLOCK", "TOP_DONATION", "DONATION_MONITOR", "SIG_QUEUE", "SIG_WALLPAPER"];
 export const isEditableWidget = (k: unknown): k is EditableWidgetKey => EDITABLE_WIDGETS.includes(k as EditableWidgetKey);
 
 /** Values the server reads for previews (not editable). */
@@ -695,6 +792,13 @@ export type WidgetLiveData = {
   gachaUnclaimed: number;
   /** The channel's 전체 테마, so a preview set to 전체 테마 따르기 draws in it. */
   appearance: OverlayAppearance;
+  /** 랭킹제외 (2026-10-28): the 후원자 랭킹 over all time (top 30, excluded ones too) with their private keys — studio only. */
+  donors: { key: string; name: string; amount: number }[];
+  /** 최고 후원 now under the saved settings (`manual`: the entry set by hand). */
+  topNow: { donor: string; amount: string; message: string; at: string; manual?: boolean } | null;
+  /** 시그 벽지 (2026-10-28): the latest 시그니처 후원 (newest first) and the overlay path each card adds `?d=<id>` to. */
+  sigWalls: SigWallRow[];
+  sigWallPath: string;
   /** With FLEXTV (phase 8): only the look is set here — the rules (items, odds, prices, minimums) are 후원 종류 설정's. */
   designOnly?: boolean;
 };
@@ -726,7 +830,10 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     showPlatform: true,
     showImage: true,
     motion: "POP",
-    countUp: true
+    countUp: true,
+    soundId: null,
+    sigFetch: "CACHE",
+    textScale: { amount: 100, name: 100, message: 100 }
   },
   CHAT: {
     theme: "INHERIT",
@@ -841,7 +948,8 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     scrollGap: 10,
     scrollSpeed: "FAST",
     first: { font: { family: "제주 고딕", size: 24, color: "#FFFFFF" }, accentColor: "#FFFFFF" },
-    others: { font: { family: "제주 고딕", size: 24, color: "#FFFFFF" }, accentColor: "#FFFFFF" }
+    others: { font: { family: "제주 고딕", size: 24, color: "#FFFFFF" }, accentColor: "#FFFFFF" },
+    excluded: []
   },
   VOTE: {
     theme: "INHERIT",
@@ -918,5 +1026,21 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
   CLOCK: { theme: "INHERIT", style: "FLIP", hour12: false, showSeconds: true, showDate: true, label: "" },
   TOP_DONATION: { theme: "INHERIT", title: "한 방 최고 후원", prize: "", period: "일간", timing: "RECEIVED", tie: "LATEST", showMessage: false },
   DONATION_MONITOR: { theme: "INHERIT", layout: "BASIC", showMessage: true },
-  SIG_QUEUE: { theme: "INHERIT", layout: "VERTICAL", compact: false, showOrder: true, next: 2, showMessage: true }
+  SIG_QUEUE: { theme: "INHERIT", layout: "VERTICAL", compact: false, showOrder: true, next: 2, showMessage: true },
+  SIG_WALLPAPER: {
+    bgColor: "#111827",
+    bgOpacity: 100,
+    imageWidth: 450,
+    imageHeight: 254,
+    imagePad: true,
+    radius: 16,
+    gapImage: 12,
+    gapLines: 0,
+    gapBottom: 14,
+    topLine: "THANKS",
+    amountPrefix: "",
+    font: "Pretendard",
+    top: { size: 24, stroke: 0, color: "#FFFFFF", strokeColor: "#000000", accent: "#FDE047" },
+    bottom: { size: 40, stroke: 0, color: "#FFFFFF", strokeColor: "#000000", accent: "#F9A8D4", bold: true }
+  }
 };

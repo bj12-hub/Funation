@@ -15,9 +15,15 @@ export type LayerEffect = (typeof LAYER_EFFECTS)[number]["key"];
 
 export const EFFECT_LIMITS = { minFnMax: 10_000_000, countMin: 5, countMax: 40, emojisMax: 6, tiersMax: 4 } as const;
 
+/**
+ * A 레이어 효과 구간: from `minFn`, its particle effect — and its 영상 (2026-10-25, StreamDonate 후원 이펙트 "금액 계단별 영상"):
+ * a VIDEO from the library (`/api/media/…`), played over the screen when the alert shows. Missing on settings saved before.
+ */
+export type EffectTier = { minFn: number; effect: LayerEffect; videoUrl?: string | null };
+
 export type EffectSettings = {
   emoji: { enabled: boolean; minFn: number; emojis: string[]; count: number };
-  layer: { enabled: boolean; tiers: { minFn: number; effect: LayerEffect }[] };
+  layer: { enabled: boolean; tiers: EffectTier[] };
 };
 
 export const DEFAULT_EFFECTS: EffectSettings = {
@@ -30,6 +36,8 @@ export type OverlayEffects = {
   alertId: string | null;
   emoji: { emojis: string[]; count: number } | null;
   layer: LayerEffect | null;
+  /** The 구간's 영상 while it is still in the library (null = none). */
+  video: string | null;
   /** 리모컨 "오버레이 새로고침" signal. */
   reloadSeq: number;
   /** 리모컨 기능 제어 ON/OFF. */

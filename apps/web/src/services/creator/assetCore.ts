@@ -36,6 +36,9 @@ export function sniffMime(b: Buffer): string | null {
   if (ascii(0, "RIFF") && ascii(8, "WEBP")) return "image/webp";
   if (ascii(0, "RIFF") && ascii(8, "WAVE")) return "audio/wav";
   if (ascii(0, "OggS")) return "audio/ogg";
+  // 영상 (2026-10-25): an MP4 starts with its ftyp box, WebM with the EBML header.
+  if (ascii(4, "ftyp")) return "video/mp4";
+  if (at(0, 0x1a, 0x45, 0xdf, 0xa3)) return "video/webm";
   if (ascii(0, "ID3") || (b[0] === 0xff && (b[1] & 0xe0) === 0xe0)) return "audio/mpeg";
   // 정산 서류 (PDF): only that upload allows the type, the others refuse it before sniffing.
   if (ascii(0, "%PDF-")) return "application/pdf";

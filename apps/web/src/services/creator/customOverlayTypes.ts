@@ -40,11 +40,17 @@ export type CustomDonation = {
 /** `onData("chat", …)`: a 통합 채팅 line (필터링 닉네임 left out). */
 export type CustomChat = { id: string; platform: Platform; nickname: string; text: string; at: string };
 
+/**
+ * `onData("crew", …)` (2026-10-25): the live crew broadcast's 점수판, as OBS `/overlay/crew` shows it — sent when it changes,
+ * best first (ties by name). `live` false (no rows) while no crew broadcast is on.
+ */
+export type CustomCrew = { live: boolean; title: string; project: string | null; round: number | null; rows: { rank: number; name: string; color: string; score: number }[]; total: number };
+
 /** The studio: the slots, and the key the OBS addresses need (creator only). */
 export type CustomOverlayView = { slots: CustomSlot[]; overlayKey: string };
 export type CustomResult = { status: "SAVED" } | { status: "INVALID"; message: string } | { status: "UNAUTHORIZED" };
 /** OBS: the slot's code (null while it is off or empty), what it gets through `onData`, and 리모컨 `reloadSeq` · `on`. */
-export type CustomOverlayData = { slot: number; name: string; code: CustomCode | null; donation: CustomDonation | null; chat: CustomChat[]; reloadSeq: number; on: boolean };
+export type CustomOverlayData = { slot: number; name: string; code: CustomCode | null; donation: CustomDonation | null; chat: CustomChat[]; crew: CustomCrew | null; reloadSeq: number; on: boolean };
 
 /** The `?slot=` value as a slot number (1 when it names none). */
 export const slotByQuery = (v: unknown) => {
