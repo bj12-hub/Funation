@@ -10,7 +10,7 @@ import { isEditableWidget, type EditableWidgetKey } from "@/services/creator/wid
 import { ThemeGallery } from "@/features/overlayTheme/ThemeGallery";
 import { OverlayOffNotice } from "../remote/OverlayOffNotice";
 import { CopyButton } from "../settings/SettingsCards";
-import { ALL_COUNT, GROUPS, POPULAR, TOOLS, type CatalogItem } from "./widgetCatalog";
+import { ALL_COUNT, FLEXTV_ITEMS, GROUPS, POPULAR, TOOLS, type CatalogItem } from "./widgetCatalog";
 import { WIDGET_EDITOR_COPY, WidgetEditorBody, useWidgetEditor } from "./WidgetEditor";
 import catalog from "./widgetCatalog.module.css";
 import styles from "./widgets.module.css";
@@ -23,18 +23,22 @@ import styles from "./widgets.module.css";
  * Catalog layout follows the funnation 위젯 page (인기 · 전체 by group · 도구; see ./widgetCatalog.ts).
  * The Figma 후원 알림 설정 alert-type cards are no longer listed (they had no popups); 그림후원 links to its own page.
  * 오버레이 테마 (code-first, 2026-10-08) sits above the catalog: the 전체 테마 every overlay is drawn in.
+ * With FLEXTV (`flextv`, phase 8): the theme and the overlays FLEXTV runs (퀘스트 · 미니 · 룰렛 · 뽑기), whose look only is
+ * set here — their rules are 후원 종류 설정's — and the 리모컨 for their addresses.
  */
 export function WidgetSettingsScreen({
   alertWidgetUrl,
   switches,
   appearance,
-  initialOpen = null
+  initialOpen = null,
+  flextv = false
 }: {
   alertWidgetUrl: string;
   switches: Record<OverlayTarget, boolean>;
   appearance: OverlayAppearance;
   /** `?open=` — the popup to show first. */
   initialOpen?: EditableWidgetKey | null;
+  flextv?: boolean;
 }) {
   const [openKey, setOpenKey] = useState<EditableWidgetKey | null>(initialOpen);
   const [toast, setToast] = useState<string | null>(null);
@@ -46,23 +50,29 @@ export function WidgetSettingsScreen({
         <h1 className={catalog.title}>위젯</h1>
         <p className={catalog.subtitle}>방송 화면에 띄울 위젯을 고르고 설정하세요. 오버레이 주소는 도구에서 한 번에 복사할 수 있어요.</p>
       </header>
-      <OverlayOffNotice targets={["widgets"]} switches={switches} />
+      {!flextv && <OverlayOffNotice targets={["widgets"]} switches={switches} />}
       <ThemeGallery initial={appearance} />
-      <CatalogGrid title="인기" count={POPULAR.length} items={POPULAR} onOpen={setOpenKey} />
-      <section className={styles.group} aria-label="전체 위젯">
-        <h2 className={styles.groupTitle}>
-          전체 <span className={catalog.count}>{ALL_COUNT}</span>
-        </h2>
-        {GROUPS.map((g) => (
-          <CatalogGrid key={g.title} title={g.title} items={g.items} onOpen={setOpenKey} sub />
-        ))}
-      </section>
-      <CatalogGrid title="도구" count={TOOLS.length} items={TOOLS} onOpen={setOpenKey} />
+      {flextv ? (
+        <CatalogGrid title="방송 위젯" count={FLEXTV_ITEMS.length} items={FLEXTV_ITEMS} onOpen={setOpenKey} />
+      ) : (
+        <>
+          <CatalogGrid title="인기" count={POPULAR.length} items={POPULAR} onOpen={setOpenKey} />
+          <section className={styles.group} aria-label="전체 위젯">
+            <h2 className={styles.groupTitle}>
+              전체 <span className={catalog.count}>{ALL_COUNT}</span>
+            </h2>
+            {GROUPS.map((g) => (
+              <CatalogGrid key={g.title} title={g.title} items={g.items} onOpen={setOpenKey} sub />
+            ))}
+          </section>
+          <CatalogGrid title="도구" count={TOOLS.length} items={TOOLS} onOpen={setOpenKey} />
+        </>
+      )}
       {openKey && (
         <WidgetModal
           key={openKey}
           widgetKey={openKey}
-          alertWidgetUrl={alertWidgetUrl}
+          alertWidgetUrl={flextv ? null : alertWidgetUrl}
           onClose={() => setOpenKey(null)}
           onSaved={() => {
             setOpenKey(null);
@@ -131,7 +141,8 @@ function WidgetModal({
   onSaved
 }: {
   widgetKey: EditableWidgetKey;
-  alertWidgetUrl: string;
+  /** Null with FLEXTV: its 후원 알림 is FLEXTV's 도우미. */
+  alertWidgetUrl: string | null;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -160,7 +171,7 @@ function WidgetModal({
       </div>
       <footer className={styles.modalFooter}>
         {/* The design leaves this button's action undefined; it copies the 통합 알림창 URL (TBD). */}
-        <CopyButton value={alertWidgetUrl} label="알림창 URL ⓘ" className={styles.footerGhost} />
+        {alertWidgetUrl !== null && <CopyButton value={alertWidgetUrl} label="알림창 URL ⓘ" className={styles.footerGhost} />}
         <button type="button" className={styles.footerGhost} onClick={onClose}>
           {selfSaving ? "닫기" : "취소"}
         </button>

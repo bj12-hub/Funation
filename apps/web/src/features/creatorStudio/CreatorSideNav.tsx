@@ -114,7 +114,12 @@ export const studioGroups = (flextv: boolean, donationTypes = false): Group[] =>
     g.title === "방송"
       ? {
           ...g,
-          items: [...g.items, { label: "후원 종류 설정", emoji: "🎁", href: "/creator/donation-types" }, { label: "리모컨", emoji: "🎛️", href: "/creator/remote" }]
+          items: [
+            ...g.items,
+            { label: "후원 종류 설정", emoji: "🎁", href: "/creator/donation-types" },
+            { label: "위젯", emoji: "🔔", href: "/creator/widgets" },
+            { label: "리모컨", emoji: "🎛️", href: "/creator/remote" }
+          ]
         }
       : g
   );

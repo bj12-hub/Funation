@@ -5,6 +5,7 @@ import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
 import { resolveTheme } from "@/services/creator/overlayThemeTypes";
 import { PRIZE_MAX, QUEST_STYLES } from "@/services/creator/widgetSettingsTypes";
 import { QUEST_EXTEND_MINUTES } from "@/services/donations/questTypes";
+import { DesignOnlyNotice } from "./DesignOnlyNotice";
 import { ColorFontFields, Help, NumberField, Radios, Row, Section, SwitchText } from "./fields";
 import { QuestView } from "./GameViews";
 import type { FormProps } from "./forms";
@@ -18,6 +19,7 @@ const AUTHORITY_TABLE = [
   ["성공결정권한 메뉴노출 OFF", "-", "크리에이터/도네이터 둘다"]
 ];
 
+/** With FLEXTV (`live.designOnly`, phase 8) only the look and how many quests show; the rules are 후원 종류 설정's. */
 export function QuestForm({ value: v, onChange, live }: FormProps<"QUEST">) {
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
   const prize = Math.max(3_000, v.minAmount);
@@ -62,14 +64,16 @@ export function QuestForm({ value: v, onChange, live }: FormProps<"QUEST">) {
             </div>
           </Row>
           {/* Code-first copy (2026-10-18): quests run as soon as they arrive; the 리모컨 퀘스트 card and 받은 후원 › 퀘스트 settle them. */}
-          <Row label="미션 확인 및 수락">
-            <span className={styles.inline}>
-              <span className={styles.remoteChip}>🟢 리모컨</span>
-              <span className={styles.noticePink}>
-                받은 퀘스트는 바로 진행돼요 (따로 수락하지 않아요). 리모컨의 퀘스트 카드나 후원관리+ › 받은 후원 › 퀘스트에서 미션을 확인하고 결과를 정해요 — 성공 · 실패는 아래 결정 권한대로, 취소는 언제든 할 수 있어요.
+          {!live.designOnly && (
+            <Row label="미션 확인 및 수락">
+              <span className={styles.inline}>
+                <span className={styles.remoteChip}>🟢 리모컨</span>
+                <span className={styles.noticePink}>
+                  받은 퀘스트는 바로 진행돼요 (따로 수락하지 않아요). 리모컨의 퀘스트 카드나 후원관리+ › 받은 후원 › 퀘스트에서 미션을 확인하고 결과를 정해요 — 성공 · 실패는 아래 결정 권한대로, 취소는 언제든 할 수 있어요.
+                </span>
               </span>
-            </span>
-          </Row>
+            </Row>
+          )}
           <Row label="제목 폰트 설정">
             <ColorFontFields label="제목" value={v.titleFont} onChange={(x) => set("titleFont", x)} />
           </Row>
@@ -81,87 +85,100 @@ export function QuestForm({ value: v, onChange, live }: FormProps<"QUEST">) {
           </Row>
         </div>
       </Section>
-      <Section title="퀘스트 추가 설정">
-        <div className={styles.rows}>
-          <Row
-            label={
-              <>
-                후원 최소 FN <Help text="퀘스트 후원에 필요한 최소 금액입니다. 허용 범위는 TBD입니다." />
-              </>
-            }
-          >
-            <NumberField label="후원 최소 FN" value={v.minAmount} max={PRIZE_MAX} grouped width={140} suffix="FN" onChange={(x) => set("minAmount", x)} />
-          </Row>
-          {/* 2026-10-04 결정: failed or cancelled quests refund everything (no 실패 · 취소 패널티); past the time limit a quest waits for a decision. */}
-          <Row label="실패 · 취소한 퀘스트">
-            <span className={styles.hint}>후원한 FN이 후원자에게 전액 환불돼요 (패널티 없음).</span>
-          </Row>
-          <Row label="제한 시간이 지나면">
-            <span className={styles.hint}>결과를 정할 때까지 진행 중으로 남아요.</span>
-          </Row>
-          <Row
-            label={
-              <>
-                최대 개수 <Help text="동시에 진행할 수 있는 퀘스트 수입니다." />
-              </>
-            }
-          >
-            <NumberField label="최대 개수" value={v.maxCount} max={50} suffix="개" onChange={(x) => set("maxCount", x)} />
-          </Row>
-          <Row
-            label={
-              <>
-                등록 간격시간 <Help text="같은 도네이터가 다음 퀘스트를 등록하기까지 기다려야 하는 시간입니다." />
-              </>
-            }
-          >
-            <NumberField label="등록 간격시간" value={v.intervalSec} max={3600} suffix="초" onChange={(x) => set("intervalSec", x)} />
-          </Row>
-          {/* 2026-10-18 결정: on = the 리모컨 퀘스트 card offers 시간 연장 on each running quest (questTypes QUEST_EXTEND_MINUTES). */}
-          <Row
-            label={
-              <>
-                제한시간 연장 사용 <Help text="진행 중인 퀘스트의 제한 시간을 리모컨에서 늘릴 수 있게 합니다." />
-              </>
-            }
-          >
-            <SwitchText
-              label="제한시간 연장 사용"
-              checked={v.allowExtension}
-              onChange={(x) => set("allowExtension", x)}
-              text={`켜면 리모컨의 퀘스트 카드에서 진행 중인 퀘스트에 시간을 더할 수 있어요 (한 번에 ${QUEST_EXTEND_MINUTES.min}~${QUEST_EXTEND_MINUTES.max}분). 제한 시간이 지난 퀘스트는 지금부터 다시 계산해요.`}
-            />
-          </Row>
-          <Row label="크리에이터 성공 결정 권한 메뉴 노출">
-            <SwitchText label="크리에이터 성공 결정 권한 메뉴 노출" checked={v.showSuccessAuthorityMenu} onChange={(x) => set("showSuccessAuthorityMenu", x)} />
-          </Row>
-        </div>
-      </Section>
-      <div className={styles.subCard}>
-        <strong>❖ 퀘스트 설정 유의사항</strong>
-        <p className={styles.notice}>
-          - 도네이터가 퀘스트 후원 등록 도중(후원하기 버튼 클릭 전), 크리에이터가 설정을 수정한 경우 후원등록이 되지 않습니다. 도네이터는 크리에이터의 새로운 설정값으로 다시 후원을 등록해야합니다.
-        </p>
-        <p className={styles.notice}>- &apos;크리에이터 성공결정권한 메뉴 노출 ON&apos;인 경우, 후원페이지에 크리에이터 성공결정권한 ON/OFF 메뉴가 노출됩니다.</p>
-        <table className={styles.noteTable}>
-          <thead>
-            <tr>
-              <th scope="col">크리에이터 페이지(설정)</th>
-              <th scope="col">후원 페이지(도네이터 설정)</th>
-              <th scope="col">성공결정 가능</th>
-            </tr>
-          </thead>
-          <tbody>
-            {AUTHORITY_TABLE.map((r, i) => (
-              <tr key={i}>
-                {r.map((c, j) => (
-                  <td key={j}>{c}</td>
+      {live.designOnly ? (
+        <Section title="화면 표시">
+          <div className={styles.rows}>
+            <Row label="화면에 보일 최대 개수">
+              <NumberField label="화면에 보일 최대 개수" value={v.maxCount} max={50} suffix="개" onChange={(x) => set("maxCount", x)} />
+            </Row>
+            <DesignOnlyNotice rules="퀘스트 최소 금액 · 최대 제한시간 · 시간 연장" />
+          </div>
+        </Section>
+      ) : (
+        <>
+          <Section title="퀘스트 추가 설정">
+            <div className={styles.rows}>
+              <Row
+                label={
+                  <>
+                    후원 최소 FN <Help text="퀘스트 후원에 필요한 최소 금액입니다. 허용 범위는 TBD입니다." />
+                  </>
+                }
+              >
+                <NumberField label="후원 최소 FN" value={v.minAmount} max={PRIZE_MAX} grouped width={140} suffix="FN" onChange={(x) => set("minAmount", x)} />
+              </Row>
+              {/* 2026-10-04 결정: failed or cancelled quests refund everything (no 실패 · 취소 패널티); past the time limit a quest waits for a decision. */}
+              <Row label="실패 · 취소한 퀘스트">
+                <span className={styles.hint}>후원한 FN이 후원자에게 전액 환불돼요 (패널티 없음).</span>
+              </Row>
+              <Row label="제한 시간이 지나면">
+                <span className={styles.hint}>결과를 정할 때까지 진행 중으로 남아요.</span>
+              </Row>
+              <Row
+                label={
+                  <>
+                    최대 개수 <Help text="동시에 진행할 수 있는 퀘스트 수입니다." />
+                  </>
+                }
+              >
+                <NumberField label="최대 개수" value={v.maxCount} max={50} suffix="개" onChange={(x) => set("maxCount", x)} />
+              </Row>
+              <Row
+                label={
+                  <>
+                    등록 간격시간 <Help text="같은 도네이터가 다음 퀘스트를 등록하기까지 기다려야 하는 시간입니다." />
+                  </>
+                }
+              >
+                <NumberField label="등록 간격시간" value={v.intervalSec} max={3600} suffix="초" onChange={(x) => set("intervalSec", x)} />
+              </Row>
+              {/* 2026-10-18 결정: on = the 리모컨 퀘스트 card offers 시간 연장 on each running quest (questTypes QUEST_EXTEND_MINUTES). */}
+              <Row
+                label={
+                  <>
+                    제한시간 연장 사용 <Help text="진행 중인 퀘스트의 제한 시간을 리모컨에서 늘릴 수 있게 합니다." />
+                  </>
+                }
+              >
+                <SwitchText
+                  label="제한시간 연장 사용"
+                  checked={v.allowExtension}
+                  onChange={(x) => set("allowExtension", x)}
+                  text={`켜면 리모컨의 퀘스트 카드에서 진행 중인 퀘스트에 시간을 더할 수 있어요 (한 번에 ${QUEST_EXTEND_MINUTES.min}~${QUEST_EXTEND_MINUTES.max}분). 제한 시간이 지난 퀘스트는 지금부터 다시 계산해요.`}
+                />
+              </Row>
+              <Row label="크리에이터 성공 결정 권한 메뉴 노출">
+                <SwitchText label="크리에이터 성공 결정 권한 메뉴 노출" checked={v.showSuccessAuthorityMenu} onChange={(x) => set("showSuccessAuthorityMenu", x)} />
+              </Row>
+            </div>
+          </Section>
+          <div className={styles.subCard}>
+            <strong>❖ 퀘스트 설정 유의사항</strong>
+            <p className={styles.notice}>
+              - 도네이터가 퀘스트 후원 등록 도중(후원하기 버튼 클릭 전), 크리에이터가 설정을 수정한 경우 후원등록이 되지 않습니다. 도네이터는 크리에이터의 새로운 설정값으로 다시 후원을 등록해야합니다.
+            </p>
+            <p className={styles.notice}>- &apos;크리에이터 성공결정권한 메뉴 노출 ON&apos;인 경우, 후원페이지에 크리에이터 성공결정권한 ON/OFF 메뉴가 노출됩니다.</p>
+            <table className={styles.noteTable}>
+              <thead>
+                <tr>
+                  <th scope="col">크리에이터 페이지(설정)</th>
+                  <th scope="col">후원 페이지(도네이터 설정)</th>
+                  <th scope="col">성공결정 가능</th>
+                </tr>
+              </thead>
+              <tbody>
+                {AUTHORITY_TABLE.map((r, i) => (
+                  <tr key={i}>
+                    {r.map((c, j) => (
+                      <td key={j}>{c}</td>
+                    ))}
+                  </tr>
                 ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </>
   );
 }

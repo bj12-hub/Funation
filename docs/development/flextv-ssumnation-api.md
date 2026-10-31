@@ -1,8 +1,9 @@
-# FLEXTV ↔ Ssumnation API (6단계 · 썸네이션 전용 후원)
+# FLEXTV ↔ Ssumnation API (6단계 · 썸네이션 전용 후원, 8단계 · 오버레이 디자인)
 
 Status: **contract, front first** (2026-10-25). Ssumnation's side is built against it (`apps/web/src/lib/flextv/ssumnation.ts`,
-`ssumnationBroadcast.ts`) and tested with a stand-in; FLEXTV implements it next. Until FLEXTV serves it, Ssumnation keeps
-it off (`FLEXTV_SSUMNATION_API` unset) and a FLEXTV channel offers FLEXTV's own types only.
+`ssumnationBroadcast.ts`, `overlayDesign.ts` for §10) and tested with a stand-in; FLEXTV implements it next. Until
+FLEXTV serves it, Ssumnation keeps it off (`FLEXTV_SSUMNATION_API` unset) and a FLEXTV channel offers FLEXTV's own types
+only.
 
 Ssumnation's screens offer donation types FLEXTV has no endpoint for: **미니 · 위시리스트 · 그림 · 룰렛 · 뽑기 · 퀘스트**,
 with their broadcast control (Ssumnation's 리모컨 and OBS overlays) and their place in the supporter's 후원 내역 (영상
@@ -212,8 +213,8 @@ its 자동 시작 · 결과 자동 공개 switches.
   "HIDE" | "SHOW" | "SWITCH", "spinId"?, "key"?: "enabled" | "autoStart" | "autoReveal", "on"? }` → `{ "status":
   "SAVED" }`, or `400 { "status": "INVALID", "message" }` (busy, nothing waiting, not in that state …).
 - `GET /api/ssumnation/my/games/gacha` → `{ "stage", "queue": [<draw>], "recent": [<draw>], "unclaimed", "hidden" }`:
-  - `stage` = `{ "id", "no", "status": "SPINNING" | "RESULT", "gachaName", "donor", "amount", "message", "prize",
-    "blank", "endsAt" }` or null;
+  - `stage` = `{ "id", "no", "status": "SPINNING" | "RESULT", "gachaId", "gachaName", "donor", "amount", "message",
+    "prize", "blank", "endsAt" }` or null — `gachaId` is the 뽑기's id of §5, so the overlay draws it in its look (§10);
   - a draw row = `{ "id", "no", "gachaName", "donor", "amount", "createdAt", "status", "prize", "blank", "claimed" }`.
 - `POST /api/ssumnation/my/games/gacha` `{ "action": "FINISH" | "CLAIM" | "UNCLAIM" | "HIDE" | "SHOW", "drawId"? }` →
   `{ "status": "SAVED" }` or `400 INVALID` (a 꽝 is never claimed).
@@ -233,3 +234,24 @@ key and the state. The 후원 알림 stays FLEXTV's 도우미 alert.
   - `gacha-board` → `{ "rows": [{ "id", "donor", "gachaName", "prize", "claimed" }] }`
   - `quest` → `{ "quests": [{ "id", "title", "amount", "endsAt", "extendedMin" }] }` (running quests, oldest first)
   - `mini` → `{ "lines": [{ "id", "nickname", "amount", "text" }] }` (the latest 미니 후원, newest first)
+
+## 10. Overlay design — `GET · PUT /api/ssumnation/my/overlay-design`
+
+Ssumnation's 위젯 page (`/creator/widgets`) sets how the overlays of §9 look: the 오버레이 테마 every overlay is drawn in,
+and per overlay its theme, fonts, layout and what it shows (퀘스트's style and how many, 미니's band or bubble, speed and
+the smallest amount it shows, the 뽑기 machine and point color of each 뽑기, the 크레딧 and 당첨 리스트 title and speed).
+FLEXTV keeps it as **one document per streamer, as it is given**: Ssumnation owns its fields, checks every one before it
+sends it, and reads it leniently (an unknown or wrong field is its default). The rules — items, odds, prices,
+minimums — stay §5's and are never in it.
+
+- `GET` (member, a streamer, the caller's own channel) → `{ "status": "OK", "design": { … } }`, or
+  `404 { "status": "NOT_FOUND" }` when the streamer never saved one (Ssumnation shows its defaults).
+- `PUT` the same path, body `{ "design": { … } }` → `{ "status": "SAVED" }`, or `400 { "status": "INVALID", "message" }`
+  for a body that is not a JSON object or is larger than 16 KB. The whole document is replaced.
+- `GET /api/ssumnation/overlay/:key/design` (no token: the key of §9 is the credential; unknown key → 404) →
+  `{ "design": { … } | null }`. The overlays read it with their state; Ssumnation asks at most once a second per key.
+- The document today (version 1; Ssumnation may add fields, FLEXTV keeps whatever it is given):
+  `{ "version": 1, "appearance": { "theme", "accent" }, "roulette": { "theme" }, "gacha": { "theme", "credit": {
+  "historyCount", "displaySec" }, "board": { "title", "speed" }, "looks": { "<§5 뽑기 id>": { "style", "pointColor" } } },
+  "quest": { "theme", "enabled", "style", "titleFont", "timeFont", "prizeFont", "maxCount" }, "mini": { … } }`. Text in
+  it (the 당첨 리스트 title) is shown on stream: FLEXTV's forbidden words may be applied to it, nothing else changes.
