@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ChargeHistoryScreen, parseHistoryParams, type RawParams } from "@/features/wallet";
+import { getT } from "@/lib/i18n/server";
 import { getChargeHistory, getWalletSummary } from "@/services/wallet/walletHistory";
 
 // Figma: 640:2 · 639:2 · 643:4
-export const metadata: Metadata = { title: "FN 충전내역 | Ssumnation" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("wallet.metaCharges") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function Page({ searchParams }: { searchParams: Promise<RawParams> }) {

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { HeartIcon } from "@/components/icons";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { removeFavorite } from "@/services/favorites/favorites";
 import styles from "./favorites.module.css";
 
@@ -11,6 +12,7 @@ import styles from "./favorites.module.css";
  * PROCESSING disables the control; a failure shows an inline error.
  */
 export function RemoveFavoriteButtons({ creatorId, name, part }: { creatorId: string; name: string; part: "heart" | "button" }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -33,7 +35,7 @@ export function RemoveFavoriteButtons({ creatorId, name, part }: { creatorId: st
       <button
         type="button"
         className={styles.heart}
-        aria-label={`${name} 즐겨찾기 해제`}
+        aria-label={t("myFavorites.removeLabel", { name })}
         aria-pressed="true"
         disabled={busy}
         onClick={remove}
@@ -46,11 +48,11 @@ export function RemoveFavoriteButtons({ creatorId, name, part }: { creatorId: st
   return (
     <>
       <button type="button" className={styles.unfavorite} disabled={busy} aria-busy={busy || undefined} onClick={remove}>
-        즐겨찾기 해제
+        {t("myFavorites.remove")}
       </button>
       {failed && (
         <span className={styles.rowError} role="alert">
-          해제하지 못했습니다. 다시 시도해 주세요
+          {t("myFavorites.removeFailed")}
         </span>
       )}
     </>

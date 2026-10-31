@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { PlatformSearchScreen } from "@/features/platformDonation/PlatformSearchScreen";
+import { PLATFORM_WORDS } from "@/features/platformDonation/words";
+import { getT } from "@/lib/i18n/server";
 import { searchPlatformCreators } from "@/services/platformDonation/platformDonation";
 import { PLATFORMS, platformFromSlug } from "@/services/platformDonation/platformTypes";
 
@@ -11,7 +13,9 @@ type Props = { params: Promise<{ platform: string }>; searchParams: Promise<{ q?
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const platform = platformFromSlug((await params).platform);
-  return { title: platform ? `${PLATFORMS[platform].name} ${PLATFORMS[platform].creatorWord} 검색 | Ssumnation` : "Ssumnation" };
+  if (!platform) return { title: "Ssumnation" };
+  const t = await getT();
+  return { title: t("platformDonation.metaSearch", { platform: PLATFORMS[platform].name, who: t(PLATFORM_WORDS[platform].whos) }) };
 }
 
 export default async function Page({ params, searchParams }: Props) {

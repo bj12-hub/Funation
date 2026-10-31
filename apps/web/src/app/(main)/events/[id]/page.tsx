@@ -4,6 +4,7 @@ import { cache } from "react";
 import { EventDetailScreen } from "@/features/events/EventDetailScreen";
 import { FlextvEventDetailScreen } from "@/features/events/FlextvEventScreens";
 import { FLEXTV_SITE } from "@/lib/flextv/mode";
+import { getT } from "@/lib/i18n/server";
 import { getSession } from "@/lib/session";
 import { getEvent } from "@/services/events/events";
 import { getFlextvEvent } from "@/services/events/flextvEvents";
@@ -20,7 +21,8 @@ const readFlextvEvent = cache(getFlextvEvent);
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { id } = await params;
   const event = FLEXTV_SITE ? await readFlextvEvent(id) : await readEvent(id);
-  return { title: event?.title ? `${event.title} | 이벤트 | Ssumnation` : "이벤트 | Ssumnation" };
+  const t = await getT();
+  return { title: event?.title ? t("events.metaEvent", { title: event.title }) : t("events.meta") };
 }
 
 export default async function Page({ params }: { params: Params }) {

@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { GENERIC_ERROR } from "@/features/mypage/editors/shared";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { saveEquipSettings } from "@/services/supporter/identity";
 import {
   GLOBAL_TITLES,
@@ -29,6 +29,7 @@ import styles from "./supporter.module.css";
  * 활동 등급 (최근 6개월) · 누적 등급 (다이아 · 블랙) follow the 2026-10-08 structure; thresholds are placeholders (TBD).
  */
 export function TitlesScreen({ identity }: { identity: SupporterIdentity }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [equip, setEquip] = useState<EquipSettings>(identity.equip);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
@@ -51,36 +52,36 @@ export function TitlesScreen({ identity }: { identity: SupporterIdentity }) {
       try {
         const res = await saveEquipSettings(equip);
         if (res.status === "SAVED") {
-          setMessage({ tone: "ok", text: "표시 설정을 저장했어요." });
+          setMessage({ tone: "ok", text: t("myTitles.saved") });
           router.refresh();
         } else if (res.status === "UNAUTHORIZED") router.push("/login?next=/mypage/titles");
         else setMessage({ tone: "error", text: res.message });
       } catch {
         // The chosen settings stay selected, so 저장 can be pressed again.
-        setMessage({ tone: "error", text: GENERIC_ERROR });
+        setMessage({ tone: "error", text: t("my.genericError") });
       }
     });
   };
 
   return (
     <div className={styles.content}>
-      <nav className={styles.breadcrumb} aria-label="현재 위치">
-        <Link href="/mypage">마이페이지</Link> <span aria-hidden="true">›</span> <span aria-current="page">칭호·등급</span>
+      <nav className={styles.breadcrumb} aria-label={t("my.breadcrumb")}>
+        <Link href="/mypage">{t("common.myPage")}</Link> <span aria-hidden="true">›</span> <span aria-current="page">{t("myTitles.title")}</span>
       </nav>
       <header className={styles.header}>
-        <h1 className={styles.title}>칭호·등급</h1>
-        <p className={styles.subtitle}>후원 알림과 랭킹에 붙는 등급과 칭호를 확인하고, 어떻게 보일지 정하세요.</p>
+        <h1 className={styles.title}>{t("myTitles.title")}</h1>
+        <p className={styles.subtitle}>{t("myTitles.subtitle")}</p>
       </header>
 
       <section className={styles.card} aria-labelledby="st-preview">
         <div className={styles.cardHead}>
           <h2 id="st-preview" className={styles.cardTitle}>
-            후원 알림 미리보기
+            {t("myTitles.preview")}
           </h2>
-          <span className={styles.segment} role="group" aria-label="미리보기 배경">
-            {(["dark", "light"] as const).map((t) => (
-              <button key={t} type="button" aria-pressed={theme === t} onClick={() => setTheme(t)}>
-                {t === "dark" ? "어두움" : "밝음"}
+          <span className={styles.segment} role="group" aria-label={t("myTitles.previewBg")}>
+            {(["dark", "light"] as const).map((mode) => (
+              <button key={mode} type="button" aria-pressed={theme === mode} onClick={() => setTheme(mode)}>
+                {mode === "dark" ? t("myTitles.dark") : t("myTitles.light")}
               </button>
             ))}
           </span>
@@ -93,25 +94,25 @@ export function TitlesScreen({ identity }: { identity: SupporterIdentity }) {
               </span>
             ))}
           </span>
-          <strong>{def.name} 님 10,000 FN 후원!</strong>
-          <span className={styles.previewMsg}>오늘 방송도 응원합니다!</span>
+          <strong>{t("myTitles.previewAlert", { name: def.name })}</strong>
+          <span className={styles.previewMsg}>{t("myTitles.previewMessage")}</span>
         </div>
-        {badges.length === 0 && <p className={styles.note}>표시할 등급·칭호가 없어서 닉네임만 나가요.</p>}
+        {badges.length === 0 && <p className={styles.note}>{t("myTitles.noBadges")}</p>}
       </section>
 
       <section className={styles.card} aria-labelledby="st-equip">
         <h2 id="st-equip" className={styles.cardTitle}>
-          표시 설정
+          {t("myTitles.display")}
         </h2>
         <label className={styles.switchRow}>
-          <span>활동 등급 배지 표시</span>
+          <span>{t("myTitles.showGrade")}</span>
           <input type="checkbox" checked={equip.showGrade} onChange={(e) => setEquip({ ...equip, showGrade: e.target.checked })} />
         </label>
         <label className={styles.switchRow}>
-          <span>누적 등급</span>
+          <span>{t("myTitles.globalGrade")}</span>
           <select className={styles.select} value={equip.globalTitle} onChange={(e) => setEquip({ ...equip, globalTitle: e.target.value as EquipSettings["globalTitle"] })}>
-            <option value="AUTO">자동 — 항상 가장 높은 등급</option>
-            <option value="OFF">표시 안 함</option>
+            <option value="AUTO">{t("myTitles.auto")}</option>
+            <option value="OFF">{t("myTitles.off")}</option>
             {identity.global.earned.map((k) => (
               <option key={k} value={k}>
                 {globalTitleLabel(k)}
@@ -120,7 +121,7 @@ export function TitlesScreen({ identity }: { identity: SupporterIdentity }) {
           </select>
         </label>
         <label className={styles.switchRow}>
-          <span>크리에이터 칭호 표시 (크리에이터마다 자동)</span>
+          <span>{t("myTitles.showStore")}</span>
           <input type="checkbox" checked={equip.showStoreTitle} onChange={(e) => setEquip({ ...equip, showStoreTitle: e.target.checked })} />
         </label>
         {message && (
@@ -130,19 +131,17 @@ export function TitlesScreen({ identity }: { identity: SupporterIdentity }) {
         )}
         <div className={styles.actions}>
           <button type="button" className={styles.primary} onClick={save} disabled={!dirty || pending} aria-busy={pending || undefined}>
-            {pending ? "저장 중..." : "저장"}
+            {pending ? t("myTitles.saving") : t("my.save")}
           </button>
         </div>
       </section>
 
       <section className={styles.card} aria-labelledby="st-grade">
         <h2 id="st-grade" className={styles.cardTitle}>
-          활동 등급 · {gradeLabel(identity.grade.key)}
+          {t("myTitles.activity", { grade: gradeLabel(identity.grade.key) })}
         </h2>
-        <p className={styles.muted}>
-          이번 달을 포함한 최근 {GRADE_MONTHS}개월 후원 {formatNumber(identity.grade.recentFn)} FN 기준이에요. 기준을 넘으면 바로 오르고, 매월 1일에 지난 {GRADE_MONTHS}개월 후원으로 다시 정해져요.
-        </p>
-        {identity.grade.kept && <p className={styles.note}>지난 {GRADE_MONTHS}개월 후원으로 정해진 {gradeLabel(identity.grade.key)} 등급이 이번 달 말까지 유지돼요.</p>}
+        <p className={styles.muted}>{t("myTitles.activityNote", { months: GRADE_MONTHS, fn: formatNumber(identity.grade.recentFn) })}</p>
+        {identity.grade.kept && <p className={styles.note}>{t("myTitles.kept", { months: GRADE_MONTHS, grade: gradeLabel(identity.grade.key) })}</p>}
         <ProgressBar progress={identity.grade.progress} />
         <ol className={styles.ladder}>
           {GRADES.map((g) => (
@@ -156,9 +155,9 @@ export function TitlesScreen({ identity }: { identity: SupporterIdentity }) {
 
       <section className={styles.card} aria-labelledby="st-global">
         <h2 id="st-global" className={styles.cardTitle}>
-          누적 등급 · {identity.global.best ? globalTitleLabel(identity.global.best) : "없음"}
+          {t("myTitles.global", { grade: identity.global.best ? globalTitleLabel(identity.global.best) : t("myTitles.none") })}
         </h2>
-        <p className={styles.muted}>썸네이션 전체 누적 후원 {formatNumber(identity.global.lifetimeFn)} FN 기준이에요. 어느 크리에이터에게 후원해도 쌓이고, 한 번 오르면 내려가지 않아요.</p>
+        <p className={styles.muted}>{t("myTitles.globalNote", { fn: formatNumber(identity.global.lifetimeFn) })}</p>
         <ProgressBar progress={identity.global.progress} />
         {(Object.keys(TITLE_LINE_LABEL) as TitleLine[]).map((line) => (
           <div key={line} className={styles.ladderGroup}>
@@ -177,11 +176,11 @@ export function TitlesScreen({ identity }: { identity: SupporterIdentity }) {
 
       <section className={styles.card} aria-labelledby="st-store">
         <h2 id="st-store" className={styles.cardTitle}>
-          크리에이터 칭호
+          {t("myTitles.store")}
         </h2>
-        <p className={styles.muted}>크리에이터마다 따로 쌓여요. 프로필 숨기기(익명)로 보낸 후원은 크리에이터 칭호에 들어가지 않아요.</p>
+        <p className={styles.muted}>{t("myTitles.storeNote")}</p>
         {identity.stores.length === 0 ? (
-          <p className={styles.empty}>아직 크리에이터 칭호에 쌓인 후원이 없어요.</p>
+          <p className={styles.empty}>{t("myTitles.storeEmpty")}</p>
         ) : (
           <ul className={styles.list}>
             {identity.stores.map((s) => (
@@ -190,7 +189,7 @@ export function TitlesScreen({ identity }: { identity: SupporterIdentity }) {
                   <strong className={styles.rowTitle}>
                     {s.creatorName} {s.title && <span className={styles.chip}>{storeTitleLabel(s.title)}</span>}
                   </strong>
-                  <span className={styles.muted}>누적 {formatNumber(s.totalFn)} FN</span>
+                  <span className={styles.muted}>{t("myTitles.storeTotal", { fn: formatNumber(s.totalFn) })}</span>
                 </div>
                 <div className={styles.rowProgress}>
                   <ProgressBar progress={s.progress} compact />
@@ -199,13 +198,14 @@ export function TitlesScreen({ identity }: { identity: SupporterIdentity }) {
             ))}
           </ul>
         )}
-        <p className={styles.note}>칭호 단계: {STORE_TITLES.map((t) => `${t.label} ${formatNumber(t.minFn)} FN`).join(" · ")} (기준은 확정 전)</p>
+        <p className={styles.note}>{t("myTitles.steps", { steps: STORE_TITLES.map((s) => `${s.label} ${formatNumber(s.minFn)} FN`).join(" · ") })}</p>
       </section>
     </div>
   );
 }
 
 function ProgressBar({ progress, compact = false }: { progress: Progress; compact?: boolean }) {
+  const { t } = useI18n();
   return (
     <div className={compact ? styles.progressCompact : styles.progress}>
       <span className={styles.bar} aria-hidden="true">
@@ -213,8 +213,8 @@ function ProgressBar({ progress, compact = false }: { progress: Progress; compac
       </span>
       <span className={styles.muted}>
         {progress.nextLabel && progress.nextMinFn !== null
-          ? `다음 ${progress.nextLabel}까지 ${formatNumber(progress.nextMinFn - progress.currentFn)} FN`
-          : "최고 단계예요"}
+          ? t("myTitles.nextStep", { label: progress.nextLabel, fn: formatNumber(progress.nextMinFn - progress.currentFn) })
+          : t("myTitles.topStep")}
       </span>
     </div>
   );

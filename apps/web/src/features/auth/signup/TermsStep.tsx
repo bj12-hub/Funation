@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { CheckboxCheckIcon, ChevronRightIcon } from "@/components/icons";
 import { Button } from "@/components/ui/Button";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import shared from "../shared/form.module.css";
 import styles from "./TermsStep.module.css";
 
-/** Figma: signup-step1 280:56 */
+/** Figma: signup-step1 280:56. The consent lines are legal text: they stay Korean until an approved translation exists (TBD). */
 
 export type Agreements = { youth: boolean; service: boolean; privacy: boolean; marketing: boolean };
 
@@ -36,6 +37,7 @@ function Checkbox({ checked, onChange, label, strong }: { checked: boolean; onCh
 }
 
 export function TermsStep({ value, onChange, onNext }: TermsStepProps) {
+  const { t } = useI18n();
   const all = TERMS.every((t) => value[t.key]);
   const requiredDone = TERMS.filter((t) => t.required).every((t) => value[t.key]);
 
@@ -58,7 +60,7 @@ export function TermsStep({ value, onChange, onNext }: TermsStepProps) {
                 label={`(${term.required ? "필수" : "선택"}) ${term.label}`}
                 onChange={(checked) => onChange({ ...value, [term.key]: checked })}
               />
-              <Link href={term.href} target="_blank" className={styles.view} aria-label={`${term.label} 전문 보기`}>
+              <Link href={term.href} target="_blank" className={styles.view} aria-label={t("auth.viewTerms", { label: term.label })}>
                 <ChevronRightIcon />
               </Link>
             </li>
@@ -67,7 +69,7 @@ export function TermsStep({ value, onChange, onNext }: TermsStepProps) {
       </div>
 
       <Button block disabled={!requiredDone} onClick={onNext}>
-        다음 단계
+        {t("auth.nextStep")}
       </Button>
     </div>
   );

@@ -7,12 +7,14 @@ import { AuthCard } from "@/components/auth/AuthCard";
 import { SignupStepper } from "@/components/auth/SignupStepper";
 import { Button } from "@/components/ui/Button";
 import { FLEXTV_AUTH } from "@/lib/flextv/mode";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { createFlextvAccount } from "@/services/auth/flextvSignup";
 import { signup } from "@/services/auth/signup";
 import { PhoneVerification } from "../shared/PhoneVerification";
 import shared from "../shared/form.module.css";
 import { AccountStep, type AccountValues } from "./AccountStep";
-import { FLEXTV_ACCOUNT_RULES, SSUMNATION_ACCOUNT_RULES } from "./accountRules";
+import { flextvAccountRules, ssumnationAccountRules } from "./accountRules";
 import { TermsStep, type Agreements } from "./TermsStep";
 
 /**
@@ -25,19 +27,19 @@ import { TermsStep, type Agreements } from "./TermsStep";
 
 type Step = 1 | 2 | 3 | 4;
 
-const COPY: Record<Step, { title?: string; description?: string }> = {
-  1: { title: "약관 동의", description: "서비스 이용을 위해 필요한 약관에 동의해 주세요" },
-  2: { title: "휴대폰 번호 인증", description: "본인 확인을 위해 휴대폰 번호를 인증해 주세요" },
-  3: { title: "계정 설정", description: "아이디와 비밀번호를 설정해 주세요" },
+const COPY: Record<Step, { title?: MessageKey; description?: MessageKey }> = {
+  1: { title: "auth.stepTerms", description: "auth.stepTermsDescription" },
+  2: { title: "auth.stepPhone", description: "auth.stepPhoneDescription" },
+  3: { title: "auth.stepAccount", description: "auth.stepAccountDescription" },
   4: {}
 };
 
-const FLEXTV_STEPS = ["약관 동의", "계정 설정"] as const;
 /** The FLEXTV flow skips step 2: its steps 1 · 3 · 4 are shown as 1 · 2 · done. */
 const FLEXTV_STEP_SHOWN: Record<Step, number> = { 1: 1, 2: 1, 3: 2, 4: 3 };
 
 /** `socialLink`: offer 간편 로그인 연동 (마이페이지) after sign-up — not on the 도우미 domain, which has no 마이페이지. */
 export function SignupFlow({ socialLink = true }: { socialLink?: boolean }) {
+  const { t } = useI18n();
   const [step, setStep] = useState<Step>(1);
   const [agreements, setAgreements] = useState<Agreements>({ youth: false, service: false, privacy: false, marketing: false });
   const [verified, setVerified] = useState<{ phone: string; token: string } | null>(null);
@@ -48,7 +50,7 @@ export function SignupFlow({ socialLink = true }: { socialLink?: boolean }) {
   // FLEXTV signs the new member in with the sign-up (false: the account exists, the member signs in on /login).
   const [signedIn, setSignedIn] = useState(false);
 
-  const verifiedCopy = { title: "휴대폰 인증 완료", description: "본인 확인이 완료되었습니다. 계정 설정을 계속해 주세요" };
+  const verifiedCopy = { title: "auth.phoneVerifiedTitle", description: "auth.phoneVerifiedDescription" } as const;
   const copy = step === 2 && verified ? verifiedCopy : COPY[step];
 
   async function handleSubmit(values: AccountValues) {
@@ -66,15 +68,15 @@ export function SignupFlow({ socialLink = true }: { socialLink?: boolean }) {
         agreements
       });
       if (result.status === "CREATED") setStep(4);
-      else if (result.status === "EMAIL_TAKEN") setSubmitError("이미 사용 중인 이메일입니다. 다른 이메일을 사용해 주세요.");
-      else if (result.status === "NICKNAME_TAKEN") setSubmitError("이미 사용 중인 닉네임입니다. 다른 닉네임을 사용해 주세요.");
+      else if (result.status === "EMAIL_TAKEN") setSubmitError(t("auth.emailTaken"));
+      else if (result.status === "NICKNAME_TAKEN") setSubmitError(t("auth.nicknameTaken"));
       else if (result.status === "VERIFICATION_EXPIRED") {
         setVerified(null);
-        setVerifyNotice("인증이 만료되었어요. 휴대폰 인증을 다시 진행해 주세요.");
+        setVerifyNotice(t("auth.verificationExpired"));
         setStep(2);
-      } else setSubmitError("입력한 정보를 다시 확인해 주세요.");
+      } else setSubmitError(t("auth.checkInput"));
     } catch {
-      setSubmitError("일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요");
+      setSubmitError(t("auth.tempError"));
     } finally {
       setSubmitting(false);
     }
@@ -88,9 +90,9 @@ export function SignupFlow({ socialLink = true }: { socialLink?: boolean }) {
       if (result.status === "CREATED") {
         setSignedIn(result.signedIn);
         setStep(4);
-      } else setSubmitError(FLEXTV_SIGNUP_ERRORS[result.status]);
+      } else setSubmitError(t(FLEXTV_SIGNUP_ERRORS[result.status]));
     } catch {
-      setSubmitError("일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요");
+      setSubmitError(t("auth.tempError"));
     } finally {
       setSubmitting(false);
     }
@@ -99,9 +101,9 @@ export function SignupFlow({ socialLink = true }: { socialLink?: boolean }) {
   return (
     <AuthCard
       size="lg"
-      title={copy.title}
-      description={copy.description}
-      progress={FLEXTV_AUTH ? <SignupStepper current={FLEXTV_STEP_SHOWN[step]} steps={FLEXTV_STEPS} /> : <SignupStepper current={step} />}
+      title={copy.title && t(copy.title)}
+      description={copy.description && t(copy.description)}
+      progress={FLEXTV_AUTH ? <SignupStepper current={FLEXTV_STEP_SHOWN[step]} steps={[t("auth.stepTerms"), t("auth.stepAccount")]} /> : <SignupStepper current={step} />}
     >
       {step === 1 && <TermsStep value={agreements} onChange={setAgreements} onNext={() => setStep(FLEXTV_AUTH ? 3 : 2)} />}
 
@@ -109,7 +111,7 @@ export function SignupFlow({ socialLink = true }: { socialLink?: boolean }) {
         <div className={shared.section}>
           {verified ? (
             <div className={shared.successBox} role="status">
-              <strong>휴대폰 인증이 완료되었습니다</strong>
+              <strong>{t("auth.phoneVerified")}</strong>
               <span>{verified.phone}</span>
             </div>
           ) : (
@@ -129,7 +131,7 @@ export function SignupFlow({ socialLink = true }: { socialLink?: boolean }) {
             </>
           )}
           <Button block disabled={!verified} onClick={() => setStep(3)}>
-            다음 단계
+            {t("auth.nextStep")}
           </Button>
         </div>
       )}
@@ -140,7 +142,7 @@ export function SignupFlow({ socialLink = true }: { socialLink?: boolean }) {
           submitError={submitError}
           onBack={() => setStep(FLEXTV_AUTH ? 1 : 2)}
           onSubmit={handleSubmit}
-          rules={FLEXTV_AUTH ? FLEXTV_ACCOUNT_RULES : SSUMNATION_ACCOUNT_RULES}
+          rules={FLEXTV_AUTH ? flextvAccountRules : ssumnationAccountRules}
         />
       )}
 
@@ -150,21 +152,21 @@ export function SignupFlow({ socialLink = true }: { socialLink?: boolean }) {
             <span className={shared.successIcon} aria-hidden="true">
               ✓
             </span>
-            <h1 className={shared.centerTitle}>회원가입을 축하합니다!</h1>
+            <h1 className={shared.centerTitle}>{t("auth.welcomeTitle")}</h1>
             <p className={shared.centerText}>
-              썸네이션 계정 생성이 완료되었습니다.
+              {t("auth.welcomeText")}
               <br />
-              {signedIn ? "지금 바로 다양한 콘텐츠를 만나보세요." : "이제 로그인하고 다양한 콘텐츠를 만나보세요."}
+              {signedIn ? t("auth.welcomeTextNow") : t("auth.welcomeTextAfter")}
             </p>
           </div>
           <div className={shared.divider} />
           {signedIn ? (
             <Button href="/" block>
-              시작하기
+              {t("auth.getStarted")}
             </Button>
           ) : (
             <Button href="/login" block>
-              로그인 페이지로 이동
+              {t("auth.toLogin")}
             </Button>
           )}
           {/* 간편 로그인 연동은 로그인 후 마이페이지 > 계정 연결(Figma 743:2180, 743:2227)에서 진행 — not connected to FLEXTV yet */}
@@ -172,7 +174,7 @@ export function SignupFlow({ socialLink = true }: { socialLink?: boolean }) {
             <Button href="/mypage" variant="accent" block>
               <Image src="/images/social/kakao.png" alt="" width={30} height={30} style={{ borderRadius: 10 }} />
               <Image src="/images/social/google.png" alt="" width={30} height={30} style={{ borderRadius: 10 }} />
-              간편 로그인 연동하러 가기
+              {t("auth.linkSocial")}
             </Button>
           )}
         </div>
@@ -180,9 +182,9 @@ export function SignupFlow({ socialLink = true }: { socialLink?: boolean }) {
 
       {step < 3 && (
         <p className={shared.bottom}>
-          <span>이미 계정이 있으신가요?</span>
+          <span>{t("auth.haveAccount")}</span>
           <Link href="/login" className={shared.bottomLink}>
-            로그인
+            {t("auth.login")}
           </Link>
         </p>
       )}
@@ -191,9 +193,9 @@ export function SignupFlow({ socialLink = true }: { socialLink?: boolean }) {
 }
 
 const FLEXTV_SIGNUP_ERRORS = {
-  LOGIN_ID_TAKEN: "이미 사용 중인 아이디입니다. 다른 아이디를 사용해 주세요.",
-  NICKNAME_TAKEN: "이미 사용 중인 닉네임입니다. 다른 닉네임을 사용해 주세요.",
-  FORBIDDEN: "닉네임에 사용할 수 없는 표현이 포함되어 있습니다.",
-  BLOCKED: "지금은 가입할 수 없어요. 고객센터로 문의해 주세요.",
-  INVALID: "입력한 정보를 다시 확인해 주세요."
-} as const;
+  LOGIN_ID_TAKEN: "auth.loginIdTaken",
+  NICKNAME_TAKEN: "auth.nicknameTaken",
+  FORBIDDEN: "auth.signupNicknameForbidden",
+  BLOCKED: "auth.signupBlocked",
+  INVALID: "auth.checkInput"
+} as const satisfies Record<string, MessageKey>;

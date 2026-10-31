@@ -4,8 +4,10 @@ import { useRef, useState, type FormEvent } from "react";
 import { EyeIcon, EyeOffIcon } from "@/components/icons";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import shared from "../shared/form.module.css";
-import { SSUMNATION_ACCOUNT_RULES, type AccountRules } from "./accountRules";
+import { ssumnationAccountRules, type AccountRulesFor } from "./accountRules";
 
 /**
  * Figma: signup-step3 45:39 · email format 722:692 · email taken 722:765 · password format 722:838
@@ -13,17 +15,17 @@ import { SSUMNATION_ACCOUNT_RULES, type AccountRules } from "./accountRules";
  * `rules`: the mock's e-mail account, or FLEXTV's 아이디 (./accountRules.ts) — same screen, same states.
  */
 
-const MSG = {
-  PASSWORD_FORMAT: "비밀번호가 형식에 맞지 않습니다. 다시 입력해 주세요.",
-  PASSWORD_MISMATCH: "비밀번호가 일치하지 않습니다.",
-  NICKNAME_FORMAT: "올바른 닉네임 형식이 아닙니다.",
-  NICKNAME_TAKEN: "이미 사용 중인 닉네임입니다. 다른 닉네임을 사용해 주세요.",
+const MSG_KEYS = {
+  PASSWORD_FORMAT: "auth.passwordFormat",
+  PASSWORD_MISMATCH: "auth.passwordMismatch",
+  NICKNAME_FORMAT: "auth.nicknameFormat",
+  NICKNAME_TAKEN: "auth.nicknameTaken",
   // Code-first: the 마이페이지 nickname change's FORBIDDEN copy (forbidden words and 익명).
-  NICKNAME_FORBIDDEN: "사용할 수 없는 표현이 포함되어 있습니다.",
-  NICKNAME_UNCHECKED: "닉네임 중복 확인을 해 주세요.",
+  NICKNAME_FORBIDDEN: "auth.nicknameForbidden",
+  NICKNAME_UNCHECKED: "auth.nicknameUnchecked",
   // The 중복 확인 request failed (network / server): the same copy as the sign-up submit's.
-  CHECK_FAILED: "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요"
-};
+  CHECK_FAILED: "auth.tempError"
+} as const satisfies Record<string, MessageKey>;
 
 export type AccountValues = { identifier: string; password: string; nickname: string };
 
@@ -32,12 +34,15 @@ type AccountStepProps = {
   submitError: string | null;
   onBack: () => void;
   onSubmit: (values: AccountValues) => void;
-  rules?: AccountRules;
+  rules?: AccountRulesFor;
 };
 
 type Check = "idle" | "checking" | "ok";
 
-export function AccountStep({ submitting, submitError, onBack, onSubmit, rules = SSUMNATION_ACCOUNT_RULES }: AccountStepProps) {
+export function AccountStep({ submitting, submitError, onBack, onSubmit, rules: rulesFor = ssumnationAccountRules }: AccountStepProps) {
+  const { t } = useI18n();
+  const MSG = Object.fromEntries(Object.entries(MSG_KEYS).map(([k, key]) => [k, t(key)])) as Record<keyof typeof MSG_KEYS, string>;
+  const rules = rulesFor(t);
   const id = rules.identifier;
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -114,7 +119,7 @@ export function AccountStep({ submitting, submitError, onBack, onSubmit, rules =
     <button
       type="button"
       onClick={() => setShowPassword((v) => !v)}
-      aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 보기"}
+      aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
       aria-pressed={showPassword}
       style={{ display: "flex" }}
     >
@@ -149,12 +154,12 @@ export function AccountStep({ submitting, submitError, onBack, onSubmit, rules =
           }
           action={
             <Button variant="cta" onClick={checkIdentifier} disabled={identifierCheck === "checking"}>
-              중복 확인
+              {t("auth.checkAvailability")}
             </Button>
           }
         />
         <TextField
-          label="비밀번호"
+          label={t("auth.password")}
           name="new-password"
           type={showPassword ? "text" : "password"}
           autoComplete="new-password"
@@ -170,11 +175,11 @@ export function AccountStep({ submitting, submitError, onBack, onSubmit, rules =
           trailing={eye}
         />
         <TextField
-          label="비밀번호 확인"
+          label={t("auth.confirmPassword")}
           name="confirm-password"
           type={showPassword ? "text" : "password"}
           autoComplete="new-password"
-          placeholder="비밀번호를 다시 입력해 주세요"
+          placeholder={t("auth.confirmPlaceholder")}
           value={confirm}
           onChange={(e) => {
             setConfirm(e.target.value);
@@ -184,7 +189,7 @@ export function AccountStep({ submitting, submitError, onBack, onSubmit, rules =
           error={errors.confirm}
         />
         <TextField
-          label="닉네임"
+          label={t("auth.nickname")}
           name="nickname"
           placeholder={rules.nickname.placeholder}
           maxLength={rules.nickname.maxLength}
@@ -196,10 +201,10 @@ export function AccountStep({ submitting, submitError, onBack, onSubmit, rules =
             setError("nickname");
           }}
           error={errors.nickname}
-          hint={errors.nickname === MSG.NICKNAME_FORMAT ? rules.nickname.formatHint : nicknameCheck === "ok" ? "사용 가능한 닉네임입니다." : undefined}
+          hint={errors.nickname === MSG.NICKNAME_FORMAT ? rules.nickname.formatHint : nicknameCheck === "ok" ? t("auth.nicknameAvailable") : undefined}
           action={
             <Button variant="cta" onClick={checkNickname} disabled={nicknameCheck === "checking"}>
-              중복 확인
+              {t("auth.checkAvailability")}
             </Button>
           }
         />
@@ -212,10 +217,10 @@ export function AccountStep({ submitting, submitError, onBack, onSubmit, rules =
         </p>
       )}
       <Button type="submit" variant="accent" block disabled={submitting} aria-busy={submitting}>
-        {submitting ? "가입 처리 중…" : "회원가입 완료"}
+        {submitting ? t("auth.signingUp") : t("auth.completeSignup")}
       </Button>
       <button type="button" className={`${shared.textLink} ${shared.underline}`} onClick={onBack}>
-        이전 단계로 돌아가기
+        {t("auth.previousStep")}
       </button>
     </form>
   );

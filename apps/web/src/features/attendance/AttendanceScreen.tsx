@@ -5,11 +5,17 @@ import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { checkIn, claimAttendanceReward } from "@/services/attendance/attendance";
 import type { AttendanceReward, AttendanceSummary } from "@/services/attendance/attendanceTypes";
 import styles from "./attendance.module.css";
 
-const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+const WEEKDAYS: MessageKey[] = ["myAttendance.sun", "myAttendance.mon", "myAttendance.tue", "myAttendance.wed", "myAttendance.thu", "myAttendance.fri", "myAttendance.sat"];
+
+/** "October": the month name for the English titles (the Korean ones use the number). A calendar month, so UTC. */
+const monthName = (year: number, month: number) =>
+  new Intl.DateTimeFormat("en-US", { month: "long", timeZone: "UTC" }).format(Date.UTC(year, month - 1, 1));
 
 type Dialog =
   | { kind: "NONE" }
@@ -21,6 +27,7 @@ type Dialog =
  * Every number comes from the server; after an action the page reloads the server summary.
  */
 export function AttendanceScreen({ summary }: { summary: AttendanceSummary }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [dialog, setDialog] = useState<Dialog>({ kind: "NONE" });
   const [pending, startTransition] = useTransition();
@@ -50,7 +57,7 @@ export function AttendanceScreen({ summary }: { summary: AttendanceSummary }) {
         else if (result.status === "UNAUTHORIZED") router.push("/login?next=/attendance");
         router.refresh();
       } catch {
-        setToast("출석 처리에 실패했습니다. 다시 시도해 주세요.");
+        setToast(t("myAttendance.stampFailed"));
       }
     });
 
@@ -59,12 +66,12 @@ export function AttendanceScreen({ summary }: { summary: AttendanceSummary }) {
       try {
         const result = await claimAttendanceReward(reward.days);
         setDialog({ kind: "NONE" });
-        if (result.status === "CLAIMED") setToast(`${formatNumber(result.fnAmount)} FN을 수령했습니다.`);
+        if (result.status === "CLAIMED") setToast(t("myAttendance.claimed", { amount: formatNumber(result.fnAmount) }));
         else if (result.status === "UNAUTHORIZED") router.push("/login?next=/attendance");
-        else setToast("이미 수령했거나 수령할 수 없는 보상입니다.");
+        else setToast(t("myAttendance.claimUnavailable"));
         router.refresh();
       } catch {
-        setToast("보상 수령에 실패했습니다. 다시 시도해 주세요.");
+        setToast(t("myAttendance.claimFailed"));
       }
     });
 
@@ -72,18 +79,18 @@ export function AttendanceScreen({ summary }: { summary: AttendanceSummary }) {
     <div className={styles.content}>
       <header className={styles.header}>
         <div>
-          <h1 className={styles.title}>매일매일 출석체크! 🎁</h1>
-          <p className={styles.subtitle}>하루 한 번 출석하고 푸짐한 FN과 한정판 굿즈 혜택을 챙기세요.</p>
+          <h1 className={styles.title}>{t("myAttendance.title")} 🎁</h1>
+          <p className={styles.subtitle}>{t("myAttendance.subtitle")}</p>
         </div>
         {summary.streak > 0 && (
-          <span className={`${styles.streak} ${summary.checkedInToday ? styles.streakOn : ""}`}>🔥 {summary.streak}일 연속 출석 중</span>
+          <span className={`${styles.streak} ${summary.checkedInToday ? styles.streakOn : ""}`}>🔥 {t("myAttendance.streak", { days: summary.streak })}</span>
         )}
       </header>
 
       <div className={styles.widgets}>
         <section className={`${styles.card} ${summary.checkedInToday ? styles.cardDone : ""}`} aria-labelledby="attendance-today">
           <h2 id="attendance-today" className={styles.cardTitle}>
-            오늘의 출석현황
+            {t("myAttendance.today")}
           </h2>
           <div className={styles.stampRow}>
             <span className={styles.stamp} aria-hidden="true">
@@ -92,24 +99,24 @@ export function AttendanceScreen({ summary }: { summary: AttendanceSummary }) {
             <div className={styles.stampText}>
               {summary.checkedInToday ? (
                 <>
-                  <strong className={styles.done}>오늘의 출석 완료!</strong>
-                  <span>내일 오전 00:00에 다시 출석하실 수 있습니다.</span>
+                  <strong className={styles.done}>{t("myAttendance.doneToday")}</strong>
+                  <span>{t("myAttendance.comeBack")}</span>
                 </>
               ) : (
                 <>
-                  <strong>오늘 출석이 완료되지 않았습니다.</strong>
-                  <span>버튼을 눌러 스탬프를 찍고 {formatNumber(summary.dailyReward)} FN을 받아 가세요!</span>
+                  <strong>{t("myAttendance.notYet")}</strong>
+                  <span>{t("myAttendance.stampHint", { amount: formatNumber(summary.dailyReward) })}</span>
                 </>
               )}
             </div>
           </div>
           {summary.checkedInToday ? (
             <button type="button" className={`${styles.stampButton} ${styles.stampButtonDone}`} disabled>
-              출석 완료되었습니다 👍
+              {t("myAttendance.doneButton")} 👍
             </button>
           ) : (
             <button type="button" className={styles.stampButton} onClick={stamp} disabled={pending}>
-              {pending ? "출석 처리 중..." : "오늘의 출석 도장 찍기 ✍️"}
+              {pending ? t("myAttendance.stamping") : `${t("myAttendance.stamp")} ✍️`}
             </button>
           )}
         </section>
@@ -117,20 +124,20 @@ export function AttendanceScreen({ summary }: { summary: AttendanceSummary }) {
         <section className={styles.card} aria-labelledby="attendance-next">
           <div className={styles.cardHeader}>
             <h2 id="attendance-next" className={styles.cardTitle}>
-              다음 스페셜 보상까지
+              {t("myAttendance.nextReward")}
             </h2>
-            {next && <span className={styles.dday}>D-{next.days - summary.total}일</span>}
+            {next && <span className={styles.dday}>{t("myAttendance.dday", { days: next.days - summary.total })}</span>}
           </div>
           {next ? (
             <div className={styles.progress}>
               <div className={styles.progressLabels}>
-                <span>누적 출석 {next.days}일 달성 시</span>
-                <strong>{formatNumber(next.fnAmount)} FN 지급</strong>
+                <span>{t("myAttendance.reach", { days: next.days })}</span>
+                <strong>{t("myAttendance.pays", { amount: formatNumber(next.fnAmount) })}</strong>
               </div>
               <div
                 className={styles.track}
                 role="progressbar"
-                aria-label="다음 보상 진행률"
+                aria-label={t("myAttendance.progress")}
                 aria-valuemin={0}
                 aria-valuemax={next.days}
                 aria-valuenow={summary.total}
@@ -138,15 +145,15 @@ export function AttendanceScreen({ summary }: { summary: AttendanceSummary }) {
                 <div className={styles.fill} style={{ width: `${progress}%` }} />
               </div>
               <div className={styles.progressFoot}>
-                <span>{summary.total}일 완료</span>
-                <span>목표 {next.days}일</span>
+                <span>{t("myAttendance.daysDone", { days: summary.total })}</span>
+                <span>{t("myAttendance.goal", { days: next.days })}</span>
               </div>
             </div>
           ) : (
-            <p className={styles.allDone}>이번 달 누적 출석 보상을 모두 달성했어요!</p>
+            <p className={styles.allDone}>{t("myAttendance.allDone")}</p>
           )}
           <p className={styles.tip}>
-            <span aria-hidden="true">💡</span> 하루라도 결석 시 연속 출석 일수가 초기화되니 주의하세요!
+            <span aria-hidden="true">💡</span> {t("myAttendance.tip")}
           </p>
         </section>
       </div>
@@ -154,16 +161,16 @@ export function AttendanceScreen({ summary }: { summary: AttendanceSummary }) {
       <section className={`${styles.card} ${styles.calendar}`} aria-labelledby="attendance-calendar">
         <div className={styles.cardHeader}>
           <h2 id="attendance-calendar" className={styles.calendarTitle}>
-            📅 {summary.year}년 {summary.month}월 출석현황
+            📅 {t("myAttendance.calendarTitle", { year: summary.year, month: summary.month, monthName: monthName(summary.year, summary.month) })}
           </h2>
           <ul className={styles.legend}>
             <li>
               <span className={`${styles.dot} ${styles.dotDone}`} aria-hidden="true" />
-              출석 완료
+              {t("myAttendance.legendDone")}
             </li>
             <li>
               <span className={styles.dot} aria-hidden="true" />
-              미출석/대기
+              {t("myAttendance.legendPending")}
             </li>
           </ul>
         </div>
@@ -172,7 +179,7 @@ export function AttendanceScreen({ summary }: { summary: AttendanceSummary }) {
 
       <section className={styles.rewards} aria-labelledby="attendance-rewards">
         <h2 id="attendance-rewards" className={styles.rewardsTitle}>
-          🎁 누적 출석 단계별 특별 보상
+          🎁 {t("myAttendance.rewardsTitle")}
         </h2>
         <ul className={styles.rewardCards}>
           {summary.rewards.map((r) => (
@@ -186,20 +193,23 @@ export function AttendanceScreen({ summary }: { summary: AttendanceSummary }) {
       <Modal
         open={dialog.kind === "CHECKED_IN"}
         onClose={() => setDialog(dialog.kind === "CHECKED_IN" && dialog.next ? { kind: "CLAIM", reward: dialog.next } : { kind: "NONE" })}
-        title="오늘의 출석체크 완료!"
+        title={t("myAttendance.checkedInTitle")}
         width={480}
         className={styles.popup}
-        customHeader={<PopupHeader icon="🎯" ring title="오늘의 출석체크 완료!" />}
+        customHeader={<PopupHeader icon="🎯" ring title={t("myAttendance.checkedInTitle")} />}
       >
         <p className={styles.popupBody}>
-          스탬프를 성공적으로 획득했습니다!
-          <br />+{formatNumber(dialog.kind === "CHECKED_IN" ? dialog.reward : summary.dailyReward)} FN이 보관함으로 적립되었습니다.
+          {t("myAttendance.stampEarned")}
+          <br />
+          {t("myAttendance.credited", { amount: formatNumber(dialog.kind === "CHECKED_IN" ? dialog.reward : summary.dailyReward) })}
           {/* Code-first (2026-10-08 결정): 15·30일 보상은 달성 즉시 자동 지급. */}
           {dialog.kind === "CHECKED_IN" &&
             dialog.autoPaid.map((r) => (
               <span key={r.days}>
                 <br />
-                {r.days}일 누적 보상 <strong className={styles.accent}>+{formatNumber(r.fnAmount)} FN</strong>도 자동으로 지급되었습니다.
+                {t("myAttendance.autoPaidBefore", { days: r.days })}
+                <strong className={styles.accent}>+{formatNumber(r.fnAmount)} FN</strong>
+                {t("myAttendance.autoPaidAfter")}
               </span>
             ))}
         </p>
@@ -208,31 +218,32 @@ export function AttendanceScreen({ summary }: { summary: AttendanceSummary }) {
           className={styles.gradientButton}
           onClick={() => setDialog(dialog.kind === "CHECKED_IN" && dialog.next ? { kind: "CLAIM", reward: dialog.next } : { kind: "NONE" })}
         >
-          확인
+          {t("my.ok")}
         </button>
       </Modal>
 
       <Modal
         open={dialog.kind === "CLAIM"}
         onClose={() => !pending && setDialog({ kind: "NONE" })}
-        title="누적 특별 보상 획득"
+        title={t("myAttendance.claimTitle")}
         width={520}
         className={styles.popup}
-        customHeader={<PopupHeader icon="🎁" title={`${dialog.kind === "CLAIM" ? dialog.reward.days : ""}일 누적 특별 보상 획득!`} />}
+        customHeader={<PopupHeader icon="🎁" title={t("myAttendance.claimHeader", { days: dialog.kind === "CLAIM" ? dialog.reward.days : "" })} />}
       >
         {dialog.kind === "CLAIM" && (
           <>
             <p className={styles.popupBody}>
-              꾸준한 출석을 축하합니다!
+              {t("myAttendance.congrats")}
               <br />
-              <strong className={styles.accent}>{formatNumber(dialog.reward.fnAmount)} FN </strong>가 지급됩니다. 지금 수령하시겠습니까?
+              <strong className={styles.accent}>{formatNumber(dialog.reward.fnAmount)} FN </strong>
+              {t("myAttendance.claimAfter")}
             </p>
             <div className={styles.popupActions}>
               <button type="button" className={styles.closeButton} onClick={() => setDialog({ kind: "NONE" })} disabled={pending}>
-                닫기
+                {t("my.close")}
               </button>
               <button type="button" className={styles.gradientButton} onClick={() => claim(dialog.reward)} disabled={pending}>
-                {pending ? "수령 중..." : "보상 수령하기"}
+                {pending ? t("myAttendance.claiming") : t("myAttendance.claim")}
               </button>
             </div>
           </>
@@ -245,16 +256,18 @@ export function AttendanceScreen({ summary }: { summary: AttendanceSummary }) {
 }
 
 function Calendar({ summary }: { summary: AttendanceSummary }) {
+  const { t } = useI18n();
+  const month = { year: summary.year, month: summary.month, monthName: monthName(summary.year, summary.month) };
   const checked = new Set(summary.checkedDays);
   const cells: (number | null)[] = [...Array(summary.firstWeekday).fill(null), ...Array.from({ length: summary.daysInMonth }, (_, i) => i + 1)];
   while (cells.length % 7) cells.push(null);
 
   return (
-    <div className={styles.grid} role="grid" aria-label={`${summary.year}년 ${summary.month}월 출석 달력`}>
+    <div className={styles.grid} role="grid" aria-label={t("myAttendance.calendar", month)}>
       <div className={styles.weekRow} role="row">
         {WEEKDAYS.map((d, i) => (
           <span key={d} role="columnheader" className={`${styles.weekday} ${i === 0 ? styles.sun : i === 6 ? styles.sat : ""}`}>
-            {d}
+            {t(d)}
           </span>
         ))}
       </div>
@@ -270,7 +283,7 @@ function Calendar({ summary }: { summary: AttendanceSummary }) {
                 key={day}
                 role="gridcell"
                 className={`${styles.cell} ${isToday ? styles.today : ""}`}
-                aria-label={`${summary.month}월 ${day}일 ${isChecked ? "출석 완료" : isToday ? "오늘, 미출석" : "미출석"}`}
+                aria-label={t("myAttendance.day", { ...month, day, status: t(isChecked ? "myAttendance.dayChecked" : isToday ? "myAttendance.dayToday" : "myAttendance.dayMissed") })}
               >
                 {isChecked ? (
                   <>
@@ -300,15 +313,16 @@ function Calendar({ summary }: { summary: AttendanceSummary }) {
 }
 
 function RewardCard({ reward, onClaim }: { reward: AttendanceReward; onClaim: () => void }) {
+  const { t } = useI18n();
   const achieved = reward.status !== "LOCKED";
   const body = (
     <>
       <span className={styles.rewardHeader}>
-        <strong>{reward.days}일 출석 보상</strong>
-        {reward.status === "CLAIMED" && <span className={`${styles.chip} ${styles.chipClaimed}`}>{reward.auto ? "지급 완료" : "수령 완료"}</span>}
-        {reward.status === "CLAIMABLE" && <span className={`${styles.chip} ${styles.chipClaimable}`}>수령 대기</span>}
+        <strong>{t("myAttendance.rewardDays", { days: reward.days })}</strong>
+        {reward.status === "CLAIMED" && <span className={`${styles.chip} ${styles.chipClaimed}`}>{reward.auto ? t("myAttendance.paid") : t("myAttendance.claimedChip")}</span>}
+        {reward.status === "CLAIMABLE" && <span className={`${styles.chip} ${styles.chipClaimable}`}>{t("myAttendance.claimable")}</span>}
         {/* Code-first (2026-10-08 결정): paid the moment it is reached, so there is nothing to claim. */}
-        {reward.status === "LOCKED" && reward.auto && <span className={`${styles.chip} ${styles.chipClaimable}`}>달성 시 자동 지급</span>}
+        {reward.status === "LOCKED" && reward.auto && <span className={`${styles.chip} ${styles.chipClaimable}`}>{t("myAttendance.autoPay")}</span>}
       </span>
       <span className={styles.rewardBody}>
         <span className={styles.rewardEmoji} aria-hidden="true">

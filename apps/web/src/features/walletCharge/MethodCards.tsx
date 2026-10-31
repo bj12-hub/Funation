@@ -2,10 +2,11 @@
 
 import { useRef } from "react";
 import { CheckboxCheckIcon } from "@/components/icons";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { PAYMENT_METHODS, type PaymentMethodId } from "@/services/wallet/chargeTypes";
 import styles from "./charge.module.css";
 
-/** Brand cards drawn in Figma 593:558; other methods use the neutral card. */
+/** Brand cards drawn in Figma 593:558; other methods use the neutral card. Brand names and subtitles stay as written. */
 const BRAND: Partial<Record<PaymentMethodId, { title: string; subtitle: string; className: string }>> = {
   KAKAO_PAY: { title: "kakao pay", subtitle: "카카오페이 간편결제", className: styles.cardKakao },
   NAVER_PAY: { title: "N pay", subtitle: "네이버페이", className: styles.cardNaver }
@@ -26,12 +27,13 @@ export function MethodCards({
   onSelect: (id: PaymentMethodId) => void;
   onAdd: () => void;
 }) {
+  const { t } = useI18n();
   const listRef = useRef<HTMLDivElement>(null);
   const ids = selected && !saved.includes(selected) ? [selected, ...saved] : saved;
 
   return (
     <div className={styles.carousel}>
-      <div ref={listRef} className={styles.cards} role="radiogroup" aria-label="결제수단">
+      <div ref={listRef} className={styles.cards} role="radiogroup" aria-label={t("walletCharge.methods")}>
         {ids.map((id) => {
           const on = id === selected;
           const brand = BRAND[id];
@@ -58,13 +60,13 @@ export function MethodCards({
           <span className={styles.addIcon} aria-hidden="true">
             +
           </span>
-          결제수단 추가
+          {t("walletCharge.addMethod")}
         </button>
       </div>
       <button
         type="button"
         className={styles.carouselNext}
-        aria-label="다음 결제수단"
+        aria-label={t("walletCharge.nextMethod")}
         onClick={() => listRef.current?.scrollBy({ left: 212, behavior: "smooth" })}
       >
         ›
