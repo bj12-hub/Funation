@@ -350,6 +350,9 @@ Confirmed:
   칸 색은 보드게임풍 고정 색(테마와 별개). See docs/figma/code-first-screens.md
 - 정산 내역 CSV 다운로드 (2026-11-01, policy-decisions 1(b)의 돈 없이 먼저 만들 수 있는 변형): 크리에이터 본인의 정산 신청 내역만,
   화면 표와 같은 값. 외부 서비스로 보내기(API · 주기) · 후원 원장 내보내기 · 지급 대행은 그대로 TBD. See docs/figma/code-first-screens.md
+- 시그니처 잭팟 점수 풀 (2026-11-01, policy-decisions 2 (C) — 돈이 움직이지 않는 변형, 기본값 StreamDonate 값): 적립 3% · 목표 120
+  (± 1/6에서 랜덤) · 당첨 문구 8초, 멤버를 고른 시그니처 후원만, 풀은 방송마다. 당첨금을 후원으로 적립하는 돈 버전은 그대로 정책 결정 대기.
+  See docs/figma/code-first-screens.md
 
 Still TBD:
 

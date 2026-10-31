@@ -176,7 +176,8 @@ export function gameRunView(b: MockBroadcast, r: StoredRun): GameRunView {
       return { memberName: o?.name ?? "삭제된 멤버", memberColor: o?.color ?? null, points: x.points };
     }),
     gostop: r.gostop ? { ...r.gostop, chance: r.gostop.chance / 10_000 } : null,
-    move: r.move ?? null
+    move: r.move ?? null,
+    jackpot: r.jackpot ?? null
   };
 }
 

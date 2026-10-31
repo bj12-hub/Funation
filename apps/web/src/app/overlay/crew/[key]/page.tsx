@@ -5,6 +5,7 @@ import { AlphabetOverlay } from "@/features/creatorStudio/crew/AlphabetOverlay";
 import { DiceOverlay } from "@/features/creatorStudio/crew/DiceOverlay";
 import { GoStopOverlay, GoStopRankOverlay, GoStopTicker } from "@/features/creatorStudio/crew/GoStopOverlay";
 import { GridDrawOverlay } from "@/features/creatorStudio/crew/GridDrawOverlay";
+import { JackpotOverlay } from "@/features/creatorStudio/crew/JackpotOverlay";
 import { JupjupOverlay } from "@/features/creatorStudio/crew/JupjupOverlay";
 import { MedleyOverlay } from "@/features/creatorStudio/crew/MedleyOverlay";
 import { SigBingoOverlay } from "@/features/creatorStudio/crew/SigBingoOverlay";
@@ -24,10 +25,10 @@ import { getOverlayScoreboard } from "@/services/crew/crewBroadcast";
 export const metadata: Metadata = { title: "크루 점수판", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
-type Views = { board?: string; battle?: string; steal?: string; scenario?: string; prize?: string; teamprize?: string; cumulative?: string; bjgauge?: string; windowgauge?: string; sigcount?: string; spin?: string; spintally?: string; dice?: string; twowheel?: string; randomsig?: string; relay?: string; jupjup?: string; medley?: string; sigbingo?: string; griddraw?: string; sighunter?: string; sigdosan?: string; alphabet?: string; gostop?: string; gostopticker?: string; gostoprank?: string; territory?: string; territoryrank?: string; sudopoly?: string; sudopolystatus?: string; sudopoly3d?: string };
+type Views = { board?: string; battle?: string; steal?: string; scenario?: string; prize?: string; teamprize?: string; cumulative?: string; bjgauge?: string; windowgauge?: string; sigcount?: string; spin?: string; spintally?: string; dice?: string; twowheel?: string; randomsig?: string; relay?: string; jupjup?: string; medley?: string; sigbingo?: string; griddraw?: string; sighunter?: string; sigdosan?: string; alphabet?: string; gostop?: string; gostopticker?: string; gostoprank?: string; territory?: string; territoryrank?: string; sudopoly?: string; sudopolystatus?: string; sudopoly3d?: string; jackpot?: string };
 
 export default async function Page({ params, searchParams }: { params: Promise<{ key: string }>; searchParams: Promise<Views> }) {
-  const [{ key }, { board, battle, steal, scenario, prize, teamprize, cumulative, bjgauge, windowgauge, sigcount, spin, spintally, dice, twowheel, randomsig, relay, jupjup, medley, sigbingo, griddraw, sighunter, sigdosan, alphabet, gostop, gostopticker, gostoprank, territory, territoryrank, sudopoly, sudopolystatus, sudopoly3d }] = await Promise.all([params, searchParams]);
+  const [{ key }, { board, battle, steal, scenario, prize, teamprize, cumulative, bjgauge, windowgauge, sigcount, spin, spintally, dice, twowheel, randomsig, relay, jupjup, medley, sigbingo, griddraw, sighunter, sigdosan, alphabet, gostop, gostopticker, gostoprank, territory, territoryrank, sudopoly, sudopolystatus, sudopoly3d, jackpot }] = await Promise.all([params, searchParams]);
   const [data, signal] = await Promise.all([getOverlayScoreboard(key), getOverlaySignal(key, "crew")]);
   // An invalid key looks like a missing page (no hint that the URL format is right).
   if (data === "FORBIDDEN" || signal === "FORBIDDEN") notFound();
@@ -66,6 +67,8 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   if (gostop !== undefined) return <GoStopOverlay gostop={live?.gostop ?? null} serverNow={live?.serverNow ?? null} reloadSeq={reloadSeq} theme={theme} />;
   if (gostopticker !== undefined) return <GoStopTicker gostop={live?.gostop ?? null} serverNow={live?.serverNow ?? null} reloadSeq={reloadSeq} theme={theme} />;
   if (territory !== undefined) return <TerritoryOverlay territory={live?.territory ?? null} serverNow={live?.serverNow ?? null} reloadSeq={reloadSeq} theme={theme} />;
+  // ?jackpot (2026-11-01): 시그니처 잭팟's 복주머니.
+  if (jackpot !== undefined) return <JackpotOverlay jackpot={live?.jackpot ?? null} serverNow={live?.serverNow ?? null} reloadSeq={reloadSeq} theme={theme} />;
   if (sudopoly !== undefined) return <SudopolyOverlay sudopoly={live?.sudopoly ?? null} serverNow={live?.serverNow ?? null} reloadSeq={reloadSeq} theme={theme} />;
   // Separate sources (2026-10-28): ?territoryrank the 땅따먹기 점유 현황, ?gostoprank the 고스톱 랭킹, ?sudopolystatus the 스도폴리 상태 줄.
   if (territoryrank !== undefined) return <TerritoryRankOverlay territory={live?.territory ?? null} serverNow={live?.serverNow ?? null} reloadSeq={reloadSeq} theme={theme} />;
