@@ -4,6 +4,7 @@ import { useCallback, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { addFavorite, removeFavorite } from "@/services/favorites/favorites";
 import { ModerationActions } from "../moderation/ModerationActions";
 import styles from "./room.module.css";
@@ -15,6 +16,7 @@ type ToastState = { message: string; tone: "accent" | "neutral" } | null;
  * which asks for its 본인인증; 쪽지 and 신고 · 차단 are Ssumnation's and not there.
  */
 export function RoomActions({ creatorId, name, initialFavorite, signedIn, flextv = false }: { creatorId: string; name: string; initialFavorite: boolean; signedIn: boolean; flextv?: boolean }) {
+  const { t } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
   const [favorite, setFavorite] = useState(initialFavorite);
@@ -34,7 +36,7 @@ export function RoomActions({ creatorId, name, initialFavorite, signedIn, flextv
         result = favorite ? await removeFavorite(creatorId) : await addFavorite(creatorId);
       } catch {
         // The request failed (network / server): the button stays as it was, and the room with it.
-        setToast({ message: "즐겨찾기를 바꾸지 못했어요. 잠시 후 다시 시도해 주세요.", tone: "neutral" });
+        setToast({ message: t("room.favoriteError"), tone: "neutral" });
         return;
       }
       if (result.status === "UNAUTHORIZED") {
@@ -42,13 +44,13 @@ export function RoomActions({ creatorId, name, initialFavorite, signedIn, flextv
         return;
       }
       if (result.status === "NEEDS_VERIFICATION") {
-        setToast({ message: "즐겨찾기는 FLEXTV 본인인증 후에 할 수 있어요. 마이페이지에서 본인인증을 진행해 주세요.", tone: "neutral" });
+        setToast({ message: t("room.favoriteNeedsVerification"), tone: "neutral" });
         return;
       }
       // NOT_FOUND on removal means it is already gone — the end state is the same.
       const next = !favorite;
       setFavorite(next);
-      setToast({ message: next ? "즐겨찾기에 추가했습니다." : "즐겨찾기를 해제했습니다.", tone: "accent" });
+      setToast({ message: next ? t("room.favoriteAdded") : t("room.favoriteRemoved"), tone: "accent" });
     });
   };
 
@@ -62,10 +64,10 @@ export function RoomActions({ creatorId, name, initialFavorite, signedIn, flextv
           disabled={pending}
           onClick={toggleFavorite}
         >
-          ⭐ {favorite ? "즐겨찾기 완료" : "즐겨찾기"}
+          ⭐ {favorite ? t("room.favoriteOn") : t("room.favorite")}
         </button>
         <button type="button" className={styles.actionButton} onClick={() => setShareOpen(true)}>
-          🔗 공유
+          {t("room.share")}
         </button>
         {/* Code-first (no Figma frame): write to this creator. */}
         {!flextv && (
@@ -74,7 +76,7 @@ export function RoomActions({ creatorId, name, initialFavorite, signedIn, flextv
             className={styles.actionButton}
             onClick={() => router.push(signedIn ? `/messages?to=${encodeURIComponent(creatorId)}` : `/login?next=${encodeURIComponent(pathname)}`)}
           >
-            ✉️ 쪽지
+            {t("room.message")}
           </button>
         )}
         {!flextv && <ModerationActions target={{ type: "CREATOR", id: creatorId }} signedIn={signedIn} block={false} className={styles.reportLink} />}
@@ -95,12 +97,13 @@ export function RoomActions({ creatorId, name, initialFavorite, signedIn, flextv
 
 // 카카오톡 is left out until the Kakao JS SDK app key exists (2026-10-06 결정: hidden rather than shown disabled).
 const SHARE_TARGETS = [
-  { key: "naver", emoji: "🟢", label: "네이버", url: (u: string, t: string) => `https://share.naver.com/web/shareView?url=${u}&title=${t}` },
-  { key: "telegram", emoji: "✈️", label: "텔레그램", url: (u: string, t: string) => `https://t.me/share/url?url=${u}&text=${t}` },
-  { key: "x", emoji: "𝕏", label: "X", url: (u: string, t: string) => `https://twitter.com/intent/tweet?url=${u}&text=${t}` }
+  { key: "naver", emoji: "🟢", label: "room.shareNaver", url: (u: string, t: string) => `https://share.naver.com/web/shareView?url=${u}&title=${t}` },
+  { key: "telegram", emoji: "✈️", label: "room.shareTelegram", url: (u: string, t: string) => `https://t.me/share/url?url=${u}&text=${t}` },
+  { key: "x", emoji: "𝕏", label: "room.shareX", url: (u: string, t: string) => `https://twitter.com/intent/tweet?url=${u}&text=${t}` }
 ] as const;
 
 function ShareModal({ open, name, onClose, onDone }: { open: boolean; name: string; onClose: () => void; onDone: (message: string) => void }) {
+  const { t } = useI18n();
   const [copyFailed, setCopyFailed] = useState(false);
   const link = typeof window === "undefined" ? "" : window.location.href.split("?")[0];
 
@@ -108,27 +111,27 @@ function ShareModal({ open, name, onClose, onDone }: { open: boolean; name: stri
     try {
       await navigator.clipboard.writeText(link);
       setCopyFailed(false);
-      onDone("링크를 복사했습니다.");
+      onDone(t("room.copied"));
     } catch {
       setCopyFailed(true);
     }
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="공유하기" description={`${name}님의 라이브 방송을 친구에게 공유해보세요.`}>
+    <Modal open={open} onClose={onClose} title={t("room.shareTitle")} description={t("room.shareDescription", { name })}>
       <ul className={styles.shareTargets}>
-        {SHARE_TARGETS.map((t) => (
-          <li key={t.key}>
+        {SHARE_TARGETS.map((target) => (
+          <li key={target.key}>
             <button
               type="button"
               className={styles.shareTarget}
               onClick={() => {
-                window.open(t.url(encodeURIComponent(link), encodeURIComponent(`${name} | Ssumnation`)), "_blank", "noopener,noreferrer");
-                onDone("공유가 완료되었습니다.");
+                window.open(target.url(encodeURIComponent(link), encodeURIComponent(`${name} | Ssumnation`)), "_blank", "noopener,noreferrer");
+                onDone(t("room.shared"));
               }}
             >
-              <span aria-hidden="true">{t.emoji}</span>
-              <span>{t.label}</span>
+              <span aria-hidden="true">{target.emoji}</span>
+              <span>{t(target.label)}</span>
             </button>
           </li>
         ))}
@@ -136,12 +139,12 @@ function ShareModal({ open, name, onClose, onDone }: { open: boolean; name: stri
       <div className={styles.linkBox}>
         <span className={styles.linkText}>{link}</span>
         <button type="button" className={styles.copy} onClick={copy}>
-          링크 복사
+          {t("room.copyLink")}
         </button>
       </div>
       {copyFailed && (
         <p className={`${styles.validation} ${styles.validationError}`} role="alert">
-          링크를 복사하지 못했습니다. 주소를 직접 선택해 복사해 주세요.
+          {t("room.copyFailed")}
         </p>
       )}
     </Modal>

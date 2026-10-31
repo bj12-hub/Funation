@@ -4,11 +4,41 @@ import Image from "next/image";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { DefaultAvatarIcon, GiftIcon, SmileIcon } from "@/components/icons";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { CHAT_EMOJIS, insertEmoji } from "./chatEmoji";
 import type { ChatMessage } from "./chatMessages";
 import styles from "./room.module.css";
 
 const MAX_LENGTH = 200;
+
+/** The picker's emoji names in the viewer's language (chatEmoji.ts keeps the Korean names). */
+const EMOJI_KEY: Record<string, MessageKey> = {
+  "😀": "roomEmoji.grin",
+  "😂": "roomEmoji.joy",
+  "🤣": "roomEmoji.rofl",
+  "😊": "roomEmoji.smile",
+  "😍": "roomEmoji.heartEyes",
+  "🥰": "roomEmoji.hearts",
+  "😎": "roomEmoji.sunglasses",
+  "🤔": "roomEmoji.thinking",
+  "😮": "roomEmoji.surprised",
+  "😢": "roomEmoji.cry",
+  "😭": "roomEmoji.sob",
+  "😡": "roomEmoji.angry",
+  "👍": "roomEmoji.thumbsUp",
+  "👏": "roomEmoji.clap",
+  "🙌": "roomEmoji.raisedHands",
+  "🙏": "roomEmoji.pray",
+  "💪": "roomEmoji.muscle",
+  "🔥": "roomEmoji.fire",
+  "💯": "roomEmoji.hundred",
+  "🎉": "roomEmoji.party",
+  "❤️": "roomEmoji.redHeart",
+  "💜": "roomEmoji.purpleHeart",
+  "✨": "roomEmoji.sparkles",
+  "🍀": "roomEmoji.clover"
+};
 
 /**
  * Figma 826:685 chat tab. Messages are owned by the caller: SidePanel (mock data + local echoes), or FlextvChat (a
@@ -28,6 +58,7 @@ export function ChatPanel({
   maxLength?: number;
   notice?: string | null;
 }) {
+  const { t } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
   const [draft, setDraft] = useState("");
@@ -102,7 +133,7 @@ export function ChatPanel({
       <ol
         ref={listRef}
         className={styles.messages}
-        aria-label="실시간 채팅"
+        aria-label={t("room.chatLive")}
         aria-live="polite"
         onScroll={(e) => {
           const l = e.currentTarget;
@@ -147,10 +178,10 @@ export function ChatPanel({
         )}
         <div className={styles.composerInput}>
           <input
-            aria-label="채팅 메시지"
+            aria-label={t("room.chatInput")}
             value={draft}
             maxLength={maxLength}
-            placeholder={signedIn ? "실시간 라이브 채팅에 참여하세요..." : "로그인 후 채팅에 참여할 수 있어요"}
+            placeholder={signedIn ? t("room.chatPlaceholder") : t("room.chatSignedOut")}
             ref={inputRef}
             onChange={(e) => {
               caretPlaced.current = true;
@@ -171,7 +202,7 @@ export function ChatPanel({
               ref={emojiToggleRef}
               type="button"
               className={styles.emoji}
-              aria-label="이모지"
+              aria-label={t("room.emoji")}
               aria-expanded={emojiOpen}
               aria-controls={emojiOpen ? "chat-emoji" : undefined}
               disabled={!signedIn}
@@ -180,9 +211,9 @@ export function ChatPanel({
               <SmileIcon />
             </button>
             {emojiOpen && (
-              <div id="chat-emoji" className={styles.emojiPicker} role="group" aria-label="이모지 고르기">
+              <div id="chat-emoji" className={styles.emojiPicker} role="group" aria-label={t("room.emojiPicker")}>
                 {CHAT_EMOJIS.map((e) => (
-                  <button key={e.emoji} type="button" aria-label={e.label} title={e.label} onClick={() => pickEmoji(e.emoji)}>
+                  <button key={e.emoji} type="button" aria-label={EMOJI_KEY[e.emoji] ? t(EMOJI_KEY[e.emoji]) : e.label} title={EMOJI_KEY[e.emoji] ? t(EMOJI_KEY[e.emoji]) : e.label} onClick={() => pickEmoji(e.emoji)}>
                     {e.emoji}
                   </button>
                 ))}
@@ -191,7 +222,7 @@ export function ChatPanel({
           </div>
         </div>
         <button type="submit" className={styles.send} disabled={signedIn && !text}>
-          {signedIn ? "채팅 전송" : "로그인하고 채팅하기"}
+          {signedIn ? t("room.send") : t("room.loginToChat")}
         </button>
       </form>
     </div>

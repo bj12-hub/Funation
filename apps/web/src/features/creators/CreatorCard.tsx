@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { FLEXTV_SITE } from "@/lib/flextv/mode";
-import { formatCompactKo, formatNumber } from "@/lib/format";
+import { formatNumber } from "@/lib/format";
 import { remote } from "@/lib/remoteImage";
 import type { CreatorSummary } from "@/services/creators/creators";
 import styles from "./creatorsDirectory.module.css";
@@ -10,7 +10,8 @@ import styles from "./creatorsDirectory.module.css";
  * 크리에이터 찾기 card — funnation structure (wide card: avatar with LIVE ring, name, 2-line intro,
  * 구독자 · 시청 N). Live creators get the accent border. Links to the creator room.
  */
-export function CreatorCard({ creator }: { creator: CreatorSummary }) {
+/** `labels`: 구독자 · 시청 in the viewer's language (the page passes them). */
+export function CreatorCard({ creator, labels }: { creator: CreatorSummary; labels: { subscribers: (count: number) => string; watching: (count: string) => string } }) {
   const live = creator.isLive && creator.viewerCount !== null;
   return (
     <Link href={`/creators/${creator.id}`} className={styles.card} data-live={live || undefined}>
@@ -29,13 +30,9 @@ export function CreatorCard({ creator }: { creator: CreatorSummary }) {
           {creator.description}
         </span>
         <span className={styles.meta}>
-          {/* With FLEXTV its 즐겨찾기 count (phase 7); its live list has none. */}
-          {!(FLEXTV_SITE && live && creator.subscriberCount === 0) && (
-            <span>
-              {FLEXTV_SITE ? "즐겨찾기" : "구독자"} {formatCompactKo(creator.subscriberCount)}
-            </span>
-          )}
-          {live && <span className={styles.watching}>시청 {formatNumber(creator.viewerCount!)}</span>}
+          {/* With FLEXTV its 즐겨찾기 count (phase 7, the page's label); its live list has none. */}
+          {!(FLEXTV_SITE && live && creator.subscriberCount === 0) && <span>{labels.subscribers(creator.subscriberCount)}</span>}
+          {live && <span className={styles.watching}>{labels.watching(formatNumber(creator.viewerCount!))}</span>}
         </span>
       </span>
     </Link>

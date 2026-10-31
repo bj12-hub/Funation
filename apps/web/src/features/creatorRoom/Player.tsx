@@ -1,31 +1,34 @@
 import Image from "next/image";
 import { CogIcon, MaximizeIcon, PlayerPlayIcon, VolumeIcon } from "@/components/icons";
 import { formatNumber } from "@/lib/format";
+import { getT } from "@/lib/i18n/server";
+import type { MessageKey } from "@/lib/i18n/translate";
 import type { CreatorRoom } from "@/services/creators/creatorRoom";
 import { remote } from "@/lib/remoteImage";
 import styles from "./room.module.css";
 
 /** Why a FLEXTV stream is watched on FLEXTV (code-first copy). */
-const ON_FLEXTV_REASON: Record<NonNullable<Extract<CreatorRoom["stream"], { status: "LIVE" }>["onFlextv"]>["reason"], string> = {
-  ADULT: "19세 이상만 볼 수 있는 방송이에요.",
-  LOCKED: "비밀번호가 걸린 방송이에요.",
-  FAN_ONLY: "팬 등급 회원만 볼 수 있는 방송이에요.",
-  FULL: "시청 인원이 가득 찬 방송이에요.",
-  BANNED: "이 방송은 지금 볼 수 없어요."
+const ON_FLEXTV_REASON: Record<NonNullable<Extract<CreatorRoom["stream"], { status: "LIVE" }>["onFlextv"]>["reason"], MessageKey> = {
+  ADULT: "room.flextvAdult",
+  LOCKED: "room.flextvLocked",
+  FAN_ONLY: "room.flextvFanOnly",
+  FULL: "room.flextvFull",
+  BANNED: "room.flextvBanned"
 };
 
 /**
  * Stream area. Live: Figma 826:685 (portrait stream, goal card, controls).
  * Offline: 710:195. The embedded platform player is TBD, so controls are display-only.
  */
-export function Player({ name, stream }: { name: string; stream: CreatorRoom["stream"] }) {
+export async function Player({ name, stream }: { name: string; stream: CreatorRoom["stream"] }) {
+  const t = await getT();
   if (stream.status === "OFFLINE") {
     return (
       <div className={styles.player}>
         <Image src={stream.imageUrl} alt="" fill sizes="(max-width: 1200px) 100vw, 836px" className={styles.offlineImage} unoptimized={remote(stream.imageUrl)} />
         <div className={styles.offlineNotice}>
-          <span className={styles.offlineBadge}>오프라인</span>
-          <p className={styles.offlineText}>{name} 님은 오프라인 상태입니다.</p>
+          <span className={styles.offlineBadge}>{t("room.offline")}</span>
+          <p className={styles.offlineText}>{t("room.offlineText", { name })}</p>
         </div>
         <div className={`${styles.controls} ${styles.controlsOffline}`}>
           <span className={styles.streamBrand}>Ssumnation STREAM</span>
@@ -41,7 +44,7 @@ export function Player({ name, stream }: { name: string; stream: CreatorRoom["st
       <div className={styles.player}>
         <iframe
           src={stream.embed.playerUrl}
-          title={`${name} 라이브 방송`}
+          title={t("room.streamTitle", { name })}
           className={styles.embedFrame}
           allow="autoplay; fullscreen; picture-in-picture"
           allowFullScreen
@@ -58,9 +61,9 @@ export function Player({ name, stream }: { name: string; stream: CreatorRoom["st
         <Image src={stream.thumbnailUrl} alt="" fill sizes="(max-width: 1200px) 100vw, 836px" className={styles.offlineImage} unoptimized={remote(stream.thumbnailUrl)} />
         <div className={styles.offlineNotice}>
           <span className={styles.offlineBadge}>LIVE</span>
-          <p className={styles.offlineText}>{ON_FLEXTV_REASON[stream.onFlextv.reason]}</p>
+          <p className={styles.offlineText}>{t(ON_FLEXTV_REASON[stream.onFlextv.reason])}</p>
           <a href={stream.onFlextv.url} target="_blank" rel="noopener noreferrer" className={styles.watchOnFlextv}>
-            FLEXTV에서 보기
+            {t("room.watchOnFlextv")}
           </a>
         </div>
       </div>
@@ -72,7 +75,7 @@ export function Player({ name, stream }: { name: string; stream: CreatorRoom["st
   return (
     <div className={styles.player}>
       <div className={styles.streamFrame}>
-        <Image src={stream.thumbnailUrl} alt={`${name} 라이브 방송 화면`} fill sizes="436px" className={styles.streamImage} priority unoptimized={remote(stream.thumbnailUrl)} />
+        <Image src={stream.thumbnailUrl} alt={t("room.streamAlt", { name })} fill sizes="436px" className={styles.streamImage} priority unoptimized={remote(stream.thumbnailUrl)} />
       </div>
 
       <div className={styles.topOverlay}>
@@ -82,7 +85,7 @@ export function Player({ name, stream }: { name: string; stream: CreatorRoom["st
           </span>
           <span className={styles.liveText}>LIVE</span>
           <span className={styles.pillDivider} aria-hidden="true" />
-          {stream.viewerCount !== null && <span className={styles.viewers}>{formatNumber(stream.viewerCount)} 시청 중</span>}
+          {stream.viewerCount !== null && <span className={styles.viewers}>{t("room.watching", { count: formatNumber(stream.viewerCount) })}</span>}
         </span>
         {stream.rankBadge && <span className={`${styles.pill} ${styles.rank}`}>⭐ {stream.rankBadge}</span>}
       </div>
@@ -90,13 +93,13 @@ export function Player({ name, stream }: { name: string; stream: CreatorRoom["st
       {stream.goal && (
         <div className={styles.goal} data-theme="dark">
           <div className={styles.goalHeader}>
-            <span>🏁 오늘 목표 후원 금액</span>
-            <span className={styles.goalPercent}>{percent}% 달성</span>
+            <span>{t("room.goal")}</span>
+            <span className={styles.goalPercent}>{t("room.goalPercent", { percent })}</span>
           </div>
           <div
             className={styles.goalTrack}
             role="progressbar"
-            aria-label="오늘 목표 후원 달성률"
+            aria-label={t("room.goalAria")}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={percent}
