@@ -12,6 +12,7 @@ import type { CrewPublic } from "@/services/crew/crewTypes";
 import { getAlertBadges, getDonationNicknameOptions } from "@/services/supporter/identity";
 import { alertBadgeLabels } from "@/services/supporter/identityTypes";
 import { DonationCompleteDialog, DonationConfirmDialog, InsufficientFnDialog, type AlertPreview } from "./DonationDialogs";
+import { PledgeLine } from "./PledgeLine";
 import { MiniFields, SignatureFields, TextFields, VideoFields, WishlistFields } from "./donation/Fields";
 import { DrawingFields, GachaFields, QuestFields, RouletteFields } from "./donation/GameFields";
 import { SignaturePopup } from "./donation/SignaturePopup";
@@ -81,6 +82,7 @@ export function DonationForm({
   // Crew members of this creator (크루 멤버 지정); optional, validated again on the server.
   const [members, setMembers] = useState<CrewPublic["members"]>([]);
   const [memberId, setMemberId] = useState<string | null>(null);
+  const chosenMember = members.find((m) => m.id === memberId);
   useEffect(() => {
     if (!extras) return;
     let alive = true;
@@ -293,6 +295,8 @@ export function DonationForm({
               ))}
             </div>
             <span className={styles.memberHint}>멤버를 고르면 그 멤버의 순위에 집계돼요.</span>
+            {/* BJ 공약 of the chosen member (2026-10-25). */}
+            {chosenMember && <PledgeLine member={chosenMember} />}
           </div>
         )}
 

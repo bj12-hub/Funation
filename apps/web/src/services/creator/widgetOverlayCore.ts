@@ -4,12 +4,14 @@ import { PLATFORM_LABEL, type Platform } from "@/types/platform";
 import { HIDDEN_PROFILE_LABEL } from "@/services/supporter/identityTypes";
 import { alertAmount, nativeAmount, type AlertItem } from "./alertTypes";
 import { IMPORT_SOURCE_LABEL, type ImportSource } from "./donationImportTypes";
-import type { MiniLine, MonitorLine, SigCard, TopDonation, WidgetFeedLine, WidgetRankRow } from "./widgetOverlayTypes";
+import type { MiniLine, MonitorLine, SigCard, SigWallCard, TopDonation, WidgetFeedLine, WidgetRankRow } from "./widgetOverlayTypes";
 import {
   RECENT_PLATFORMS,
   type DonationMonitorSettings,
   type SigQueueSettings,
+  type SigWallRow,
   type TopDonationSettings,
+  SIG_WALL_LIST_MAX,
   TOTAL_TEMPLATE_TOKEN,
   type EventSettings,
   type GoalSettings,
@@ -104,7 +106,12 @@ export function rankingSince(period: RankingSettings["period"], now = new Date()
  * alert (TBD).
  */
 export function rankingRows(items: AlertItem[], s: RankingSettings, now = new Date()): WidgetRankRow[] {
-  return donorRanking(items, rankingSince(s.period, now), Infinity).slice(0, s.ranks);
+  // 랭킹제외 (2026-10-28): those donors' rows go, and the rest close up.
+  const out = new Set((s.excluded ?? []).map((x) => x.key));
+  return donorTotals(items, rankingSince(s.period, now), Infinity)
+    .filter((v) => !out.has(v.key))
+    .slice(0, s.ranks)
+    .map((v, i) => ({ rank: i + 1, name: v.name, fnAmount: v.fn }));
 }
 
 /**
@@ -112,6 +119,11 @@ export function rankingRows(items: AlertItem[], s: RankingSettings, now = new Da
  * 대체 메시지 rules replaced are left out). The 엔딩 크레딧 reads its 후원자 TOP 3 · 후원 순위 from it (2026-10-23).
  */
 export function donorRanking(items: AlertItem[], from: number, to: number): WidgetRankRow[] {
+  return donorTotals(items, from, to).map((v, i) => ({ rank: i + 1, name: v.name, fnAmount: v.fn }));
+}
+
+/** The same, with each donor's private group key (`dk-…`, or `name:…` for alerts without one) — for 랭킹제외. */
+export function donorTotals(items: AlertItem[], from: number, to: number): { key: string; name: string; fn: number }[] {
   const totals = new Map<string, { name: string; fn: number; first: number }>();
   for (const a of countedDonations(items)) {
     const t = countedAt(a);
@@ -123,7 +135,29 @@ export function donorRanking(items: AlertItem[], from: number, to: number): Widg
     cur.name = a.donor;
     totals.set(key, cur);
   }
-  return [...totals.values()].sort((x, y) => y.fn - x.fn || x.first - y.first).map((v, i) => ({ rank: i + 1, name: v.name, fnAmount: v.fn }));
+  return [...totals]
+    .sort(([, x], [, y]) => y.fn - x.fn || x.first - y.first)
+    .map(([key, v]) => ({ key, name: v.name, fn: v.fn }));
+}
+
+/**
+ * 엔딩 크레딧 HOT 시그 · HIGH 시그 (2026-10-25, 기본값): the signatures counted donations between `from` and `to` alerted as
+ * (`signatureId` — chosen, or matched by amount) — HOT by how many times (ties: the pricier signature, then name), HIGH by
+ * the largest such donation (ties by name). `signatures`: the channel's signatures now; one deleted since is left out.
+ */
+export function signatureCredits(items: AlertItem[], from: number, to: number, signatures: { id: string; name: string; price: number }[]) {
+  const byId = new Map(signatures.map((s) => [s.id, s]));
+  const seen = new Map<string, { count: number; top: number }>();
+  for (const a of countedDonations(items)) {
+    const t = countedAt(a);
+    if (t < from || t > to || !a.signatureId || !byId.has(a.signatureId)) continue;
+    const cur = seen.get(a.signatureId) ?? { count: 0, top: 0 };
+    seen.set(a.signatureId, { count: cur.count + 1, top: Math.max(cur.top, a.fnAmount) });
+  }
+  const rows = [...seen].map(([id, v]) => ({ ...v, name: byId.get(id)!.name, price: byId.get(id)!.price }));
+  const hot = [...rows].sort((x, y) => y.count - x.count || y.price - x.price || x.name.localeCompare(y.name)).map((r) => ({ name: r.name, count: r.count }));
+  const high = [...rows].sort((x, y) => y.top - x.top || x.name.localeCompare(y.name)).map((r) => ({ name: r.name, fnAmount: r.top }));
+  return { hot, high };
 }
 
 /** Completed Ssumnation donations between `from` and `to` (ms, inclusive), in FN — 익명 included (no name is shown). */
@@ -277,18 +311,27 @@ const played = (a: AlertItem) => a.status === "SHOWING" || a.status === "DONE";
  * 최고 후원: the biggest counted donation (FN, the 목표 · 누적 · 랭킹 rules: no tests or 다시 보내기, quests once they
  * succeeded) in the period. 알림이 나올 때 only takes donations whose alert reached the screen. Same amount: 나중 후원자
  * takes the later one, 먼저 후원자 keeps the earlier one. One donation, so the name is the one its alert showed (익명 or
- * the 대체 메시지 included).
+ * the 대체 메시지 included). 수동 수정 (2026-10-28): an entry set by hand within this 기간 stands for every donation before it; later
+ * ones still compete with it (same tie rule).
  */
-export function topDonation(items: AlertItem[], s: Pick<TopDonationSettings, "period" | "timing" | "tie">, now = new Date()): TopDonation | null {
+export function topDonation(
+  items: AlertItem[],
+  s: Pick<TopDonationSettings, "period" | "timing" | "tie">,
+  now = new Date(),
+  override: { donor: string; fnAmount: number; at: string } | null = null
+): TopDonation | null {
   const since = rankingSince(s.period, now);
-  let best: { a: AlertItem; t: number } | null = null;
+  const manual = override && Date.parse(override.at) >= since ? override : null;
+  let best: { fn: number; t: number; top: TopDonation } | null = manual
+    ? { fn: manual.fnAmount, t: Date.parse(manual.at), top: { donor: manual.donor, amount: `${formatNumber(manual.fnAmount)} FN`, message: "", at: manual.at, manual: true } }
+    : null;
   for (const a of countedDonations(items)) {
     const t = countedAt(a);
-    if (t < since || (s.timing === "PLAYED" && !played(a))) continue;
-    const better = !best || a.fnAmount > best.a.fnAmount || (a.fnAmount === best.a.fnAmount && (s.tie === "LATEST" ? t >= best.t : t < best.t));
-    if (better) best = { a, t };
+    if (t < since || (manual && t <= Date.parse(manual.at)) || (s.timing === "PLAYED" && !played(a))) continue;
+    const better = !best || a.fnAmount > best.fn || (a.fnAmount === best.fn && (s.tie === "LATEST" ? t >= best.t : t < best.t));
+    if (better) best = { fn: a.fnAmount, t, top: { donor: a.donor, amount: alertAmount(a), message: a.message, at: new Date(t).toISOString() } };
   }
-  return best && { donor: best.a.donor, amount: alertAmount(best.a), message: best.a.message, at: new Date(best.t).toISOString() };
+  return best?.top ?? null;
 }
 
 /** 후원 모니터링: the alert on screen now, else the last one that was shown (any kind the 후원 알림 plays). */
@@ -325,4 +368,37 @@ export function sigQueueCards(items: AlertItem[], s: Pick<SigQueueSettings, "nex
     message: s.showMessage ? a.message : "",
     imageUrl: a.imageUrl!
   }));
+}
+
+/**
+ * 시그 벽지 (2026-10-28): the counted 시그니처 후원 (a donation that alerted as a signature), newest first — the name its alert
+ * showed, the signature by its name now ("삭제된 시그니처" once deleted) and the BJ picked by crew name ("미지정" when none).
+ */
+export function sigWallRows(
+  items: AlertItem[],
+  signatures: { id: string; name: string }[],
+  crew: { id: string; name: string }[],
+  limit = SIG_WALL_LIST_MAX
+): SigWallRow[] {
+  return countedDonations(items)
+    .filter((a) => a.signatureId)
+    .sort((x, y) => y.createdAt.localeCompare(x.createdAt))
+    .slice(0, limit)
+    .map((a) => ({
+      id: a.id,
+      at: a.createdAt,
+      donor: a.donor,
+      amount: alertAmount(a),
+      fnAmount: a.fnAmount,
+      signature: signatures.find((s) => s.id === a.signatureId)?.name ?? "삭제된 시그니처",
+      member: a.memberId ? (crew.find((m) => m.id === a.memberId)?.name ?? "삭제된 멤버") : "미지정",
+      imageUrl: a.imageUrl ?? null
+    }));
+}
+
+/** 시그 벽지 of the donation `id` names: only a counted 시그니처 후원 has one. */
+export function sigWallCard(items: AlertItem[], id: unknown): SigWallCard | null {
+  if (typeof id !== "string" || !id) return null;
+  const a = countedDonations(items).find((x) => x.id === id && x.signatureId);
+  return a ? { imageUrl: a.imageUrl ?? null, donor: a.donor, amount: alertAmount(a) } : null;
 }

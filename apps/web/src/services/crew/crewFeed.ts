@@ -3,7 +3,8 @@
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
-import { addFeedEntry, liveBroadcastOf, matchMember } from "./crewCore";
+import { releaseAlertHold } from "@/services/creator/alertCore";
+import { addFeedEntry, donorMergesOf, liveBroadcastOf, matchMember, parseDonorMerges, syncAlertHolds } from "./crewCore";
 import {
   EXCEL_MULTIPLIER_MAX,
   EXCEL_RATE_MAX,
@@ -45,6 +46,19 @@ const members = () => mockCrew.crews[STUDIO_CHANNEL] ?? [];
 const rec = (input: unknown) => (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
 const notLive = { status: "INVALID", message: "진행 중인 방송이 아니에요." } as const;
 
+/**
+ * 후원자 이름 병합: replaces the channel's groups (kept across broadcasts, editable before going live). Studio only — it
+ * renames nothing on stream.
+ */
+export async function saveDonorMerges(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const parsed = parseDonorMerges(rec(input).merges, MOCK_FORBIDDEN_WORDS, donorMergesOf(STUDIO_CHANNEL).map((g) => g.id));
+  if ("message" in parsed) return { status: "INVALID", message: parsed.message };
+  (mockCrew.donorMerges ??= {})[STUDIO_CHANNEL] = parsed;
+  return { status: "SAVED" };
+}
+
 /** Keywords are kept per member across broadcasts; a keyword may belong to one member only. */
 export async function setMemberKeywords(input: unknown): Promise<BroadcastResult> {
   assertMock();
@@ -67,6 +81,16 @@ export async function setMemberKeywords(input: unknown): Promise<BroadcastResult
   return { status: "SAVED" };
 }
 
+/** BJ 이름 자동 인식 (2026-10-25, off by default): member names count as keywords for the channel — from the next 후원. */
+export async function setNameKeywords(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const on = rec(input).on;
+  if (typeof on !== "boolean") return { status: "INVALID", message: "설정을 확인해 주세요." };
+  (mockCrew.nameKeywords ??= {})[STUDIO_CHANNEL] = on;
+  return { status: "SAVED" };
+}
+
 export async function setAssignMode(input: unknown): Promise<BroadcastResult> {
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
@@ -75,6 +99,35 @@ export async function setAssignMode(input: unknown): Promise<BroadcastResult> {
   if (!live || live.id !== v.broadcastId) return notLive;
   if (v.mode !== "AUTO" && v.mode !== "CONFIRM") return { status: "INVALID", message: "반영 방식을 확인해 주세요." };
   live.assignMode = v.mode;
+  return { status: "SAVED" };
+}
+
+/**
+ * 미지정 일시정지 (2026-10-25, StreamDonate 참고 — 기본값, off): while on, the alert of a 미지정 entry waits in the queue —
+ * and the alerts behind it with it — until the entry is assigned or cancelled. Turning it off lets every held alert go.
+ */
+export async function setPauseUnassigned(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = rec(input);
+  const live = liveBroadcastOf(STUDIO_CHANNEL);
+  if (!live || live.id !== v.broadcastId) return notLive;
+  if (typeof v.on !== "boolean") return { status: "INVALID", message: "설정을 확인해 주세요." };
+  live.pauseUnassigned = v.on;
+  syncAlertHolds(live);
+  return { status: "SAVED" };
+}
+
+/** 배정 없이 재생: lets the entry's held alert go without assigning it (it is not held again). No-op once it is not held. */
+export async function playHeldEntry(input: unknown): Promise<BroadcastResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  const v = rec(input);
+  const live = liveBroadcastOf(STUDIO_CHANNEL);
+  if (!live || live.id !== v.broadcastId) return notLive;
+  const entry = (live.feed ?? []).find((f) => f.id === v.entryId);
+  if (!entry) return { status: "INVALID", message: "후원 기록을 찾을 수 없어요." };
+  if (entry.alertId) releaseAlertHold(entry.alertId);
   return { status: "SAVED" };
 }
 
@@ -116,12 +169,13 @@ export async function assignFeedEntry(input: unknown): Promise<BroadcastResult> 
   if (!entry) return { status: "INVALID", message: "후원 기록을 찾을 수 없어요." };
   if (entry.status === "POT") return { status: "INVALID", message: "한방에 모이는 중인 후원이에요. 한방을 먼저 끝내 주세요." };
   const restored = entry.duplicate === "DUPLICATE" ? { duplicate: "KEPT" as const } : {};
-  if (v.memberId === null) {
-    Object.assign(entry, { status: "UNMATCHED", memberId: null, ...restored });
-    return { status: "SAVED" };
+  if (v.memberId === null) Object.assign(entry, { status: "UNMATCHED", memberId: null, ...restored });
+  else {
+    if (!members().some((m) => m.id === v.memberId && m.active)) return { status: "INVALID", message: "활동 중인 멤버를 골라 주세요." };
+    Object.assign(entry, { status: "ASSIGNED", memberId: v.memberId, ...restored });
   }
-  if (!members().some((m) => m.id === v.memberId && m.active)) return { status: "INVALID", message: "활동 중인 멤버를 골라 주세요." };
-  Object.assign(entry, { status: "ASSIGNED", memberId: v.memberId, ...restored });
+  // 미지정 일시정지: an assigned entry lets its alert go (taken back to 미지정, a still-queued one waits again).
+  syncAlertHolds(live);
   return { status: "SAVED" };
 }
 
@@ -144,6 +198,7 @@ export async function resolveDuplicate(input: unknown): Promise<BroadcastResult>
     if (entry.status === "CANCELLED") return { status: "INVALID", message: "취소한 후원이에요. 먼저 다시 배정해 주세요." };
     entry.duplicate = "KEPT";
   } else return { status: "INVALID", message: "확인 결과를 골라 주세요." };
+  syncAlertHolds(live);
   return { status: "SAVED" };
 }
 
@@ -158,6 +213,8 @@ export async function cancelFeedEntry(input: unknown): Promise<BroadcastResult> 
   if (!entry) return { status: "INVALID", message: "후원 기록을 찾을 수 없어요." };
   if (entry.status === "POT") return { status: "INVALID", message: "한방에 모이는 중인 후원이에요." };
   Object.assign(entry, { status: "CANCELLED", memberId: null, oneshot: false });
+  // A cancelled entry no longer counts, but the donation was made: its alert plays.
+  syncAlertHolds(live);
   return { status: "SAVED" };
 }
 
@@ -197,6 +254,7 @@ export async function stopOneshot(input: unknown): Promise<BroadcastResult> {
     }
   }
   live.oneshot = null;
+  syncAlertHolds(live);
   return { status: "SAVED" };
 }
 

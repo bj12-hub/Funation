@@ -1,12 +1,15 @@
 "use client";
 
 import { formatKstTime, formatNumber } from "@/lib/format";
-import { clearRelay, saveRelay } from "@/services/crew/crewGames";
+import { clearRelay, deleteRelayPreset, saveRelay, saveRelayPreset } from "@/services/crew/crewGames";
 import {
   RELAY_EXAMPLE_TIERS,
+  RELAY_PRESETS_MAX,
+  RELAY_PRESET_NAME_MAX,
   RELAY_TITLE_DEFAULT,
   type CrewMember,
   type GamesView,
+  type RelayPreset,
   type RelaySettings
 } from "@/services/crew/crewTypes";
 import {
@@ -14,6 +17,7 @@ import {
   AutoFields,
   FormActions,
   OverlayAddress,
+  PresetField,
   RunList,
   TitleField,
   fromEditTiers,
@@ -34,10 +38,11 @@ const fromDraft = (d: Draft) => ({ ...d, tiers: fromEditTiers(d.tiers) });
 /**
  * 기여도 릴레이 — code-first (no Figma frame; StreamDonate 기여도 릴레이 참고), inside `/creator/crew/games`. 트리거 BJ and
  * 금액 구간 (first match wins); a 시그니처 후원 the 트리거 BJ receives sets the 배수, the next one another member receives
- * takes it. While live: the waiting 배수 (대기 비우기) and the runs. There is no 수동 run.
+ * takes it. While live: the waiting 배수 (대기 비우기) and the runs. There is no 수동 run. 설정 프리셋 (2026-10-28) as on 랜덤시그.
  */
 export function RelayPanel({
   settings,
+  presets,
   signatures,
   members,
   live,
@@ -47,6 +52,7 @@ export function RelayPanel({
   run
 }: {
   settings: RelaySettings;
+  presets: RelayPreset[];
   signatures: GamesView["signatures"];
   members: CrewMember[];
   live: LiveGames | null;
@@ -59,6 +65,13 @@ export function RelayPanel({
   const known = new Set(signatures.map((s) => s.id));
   const active = members.filter((m) => m.active);
   const relay = live?.relay;
+  // A member removed (or on 휴식) since may still be the 트리거 BJ: drop it instead of failing the save.
+  const liveMember = (id: string | null) => (id && active.some((m) => m.id === id) ? id : null);
+  const current = () => {
+    const next = fromDraft(draft);
+    return { ...next, memberId: liveMember(next.memberId), excluded: next.excluded.filter((id) => known.has(id)) };
+  };
+  const nameOf = (id: string | null) => (id ? (members.find((m) => m.id === id)?.name ?? "삭제된 멤버") : "트리거 BJ 없음");
 
   return (
     <section id="game-relay" className={styles.card} aria-labelledby="game-relay-title">
@@ -74,13 +87,23 @@ export function RelayPanel({
         className={prize.form}
         onSubmit={(e) => {
           e.preventDefault();
-          const next = fromDraft(draft);
-          // A member removed since may still be the 트리거 BJ: drop it instead of failing the save.
-          const memberId = next.memberId && active.some((m) => m.id === next.memberId) ? next.memberId : null;
-          run(() => saveRelay({ ...next, memberId, excluded: next.excluded.filter((id) => known.has(id)) }), "기여도 릴레이 설정을 저장했어요.");
+          run(() => saveRelay(current()), "기여도 릴레이 설정을 저장했어요.");
         }}
       >
         <TitleField name="기여도 릴레이" placeholder={RELAY_TITLE_DEFAULT} value={draft.title} onChange={(title) => edit({ title })} />
+        <PresetField
+          game="기여도 릴레이"
+          presets={presets}
+          max={RELAY_PRESETS_MAX}
+          nameMax={RELAY_PRESET_NAME_MAX}
+          summary={(p) => `${nameOf(p.settings.memberId)} · 구간 ${p.settings.tiers.length}개${p.settings.excluded.length > 0 ? ` · 제외 ${p.settings.excluded.length}개` : ""}`}
+          note="지금 칸에 있는 트리거 BJ · 금액 구간 · 제외 시그를 이름 붙여 저장해요(같은 이름이면 덮어써요). 켜짐 · 제목 · 대기 화면은 프리셋에 들어가지 않아요."
+          dirty={dirty}
+          pending={pending}
+          onLoad={(p) => edit({ memberId: liveMember(p.settings.memberId), tiers: toEditTiers(p.settings.tiers), excluded: p.settings.excluded.filter((id) => known.has(id)) })}
+          onDelete={(p) => run(() => deleteRelayPreset({ id: p.id }), `'${p.name}' 프리셋을 지웠어요.`)}
+          onSave={(name) => run(() => saveRelayPreset({ name, settings: current() }), `'${name}' 프리셋을 저장했어요.`)}
+        />
         <div className={prize.field}>
           <span className={styles.muted}>트리거 BJ</span>
           <select className={styles.select} aria-label="트리거 BJ" value={draft.memberId ?? ""} onChange={(e) => edit({ memberId: e.target.value || null })}>

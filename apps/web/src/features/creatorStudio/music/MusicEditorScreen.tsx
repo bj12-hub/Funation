@@ -11,6 +11,7 @@ import {
   MUSIC_CLIPS_MAX,
   MUSIC_FILE_MAX,
   MUSIC_GAIN_MAX,
+  MUSIC_SHORTCUTS,
   MUSIC_LENGTH_MAX,
   MUSIC_QUALITIES,
   MUSIC_RECORD_MAX,
@@ -18,13 +19,17 @@ import {
   clipCount,
   clipEnd,
   clipLength,
+  copyClip,
   encodeWav,
   fitFades,
   formatSec,
   moveClip,
+  musicCommandOf,
   newClip,
   peaks,
+  playPosition,
   projectLength,
+  pushHistory,
   splitClip,
   trimClip,
   wavBytes,
@@ -50,6 +55,8 @@ const firstTrack = (): MusicTrack => ({ id: "t-1", name: "트랙 1", gain: 1, mu
  * of clips on one timeline: add audio from the 라이브러리, a file or 녹음 at the playhead on the chosen track; drag a clip to
  * move it, its edges to 트림; 분할 at the playhead; 볼륨 · 페이드 per clip, 볼륨 · 음소거 per track; 재생 from the playhead.
  * The mix (mono WAV) is saved to the 이미지·사운드 library or downloaded. All editing stays in this browser tab.
+ * 2026-10-28 (StreamDonate 음악 제작): 되돌리기 · 다시 실행, 클립 복사 · 붙여넣기 (at the playhead, on the chosen track), 루프 재생
+ * and their 단축키 (not while typing in a field).
  */
 export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
   const router = useRouter();
@@ -66,12 +73,40 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
   const [dirty, setDirty] = useState(false);
   const length = projectLength(tracks);
 
-  const edit = (fn: (ts: MusicTrack[]) => MusicTrack[]) => {
+  // 되돌리기 · 다시 실행: the timeline before each edit (a drag is one edit).
+  const [past, setPast] = useState<MusicTrack[][]>([]);
+  const [future, setFuture] = useState<MusicTrack[][]>([]);
+  const tracksRef = useRef(tracks);
+  useEffect(() => {
+    tracksRef.current = tracks;
+  });
+  const remember = () => {
+    setPast((p) => pushHistory(p, tracksRef.current));
+    setFuture([]);
+  };
+  const edit = (fn: (ts: MusicTrack[]) => MusicTrack[], record = true) => {
+    if (record) remember();
     setTracks(fn);
     setDirty(true);
   };
-  const editClip = (clipId: string, fn: (c: MusicClip) => MusicClip) =>
-    edit((ts) => ts.map((t) => ({ ...t, clips: t.clips.map((c) => (c.id === clipId ? fn(c) : c)) })));
+  const undo = () => {
+    const prev = past.at(-1);
+    if (!prev) return;
+    setFuture((f) => [tracksRef.current, ...f]);
+    setPast((p) => p.slice(0, -1));
+    setTracks(prev);
+    setDirty(true);
+  };
+  const redo = () => {
+    const next = future[0];
+    if (!next) return;
+    setPast((p) => pushHistory(p, tracksRef.current));
+    setFuture((f) => f.slice(1));
+    setTracks(next);
+    setDirty(true);
+  };
+  const editClip = (clipId: string, fn: (c: MusicClip) => MusicClip, record = true) =>
+    edit((ts) => ts.map((t) => ({ ...t, clips: t.clips.map((c) => (c.id === clipId ? fn(c) : c)) })), record);
   const selected = (() => {
     for (const t of tracks) for (const c of t.clips) if (c.id === clipSel) return { track: t, clip: c };
     return null;
@@ -163,8 +198,15 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
   };
 
   // ── Playing ─────────────────────────────────────────────────────────────────
-  const player = useRef<{ ctx: AudioContext; src: AudioBufferSourceNode; from: number; at: number } | null>(null);
+  const player = useRef<{ ctx: AudioContext; src: AudioBufferSourceNode; from: number; at: number; length: number } | null>(null);
   const [playing, setPlaying] = useState(false);
+  /** 루프 재생: playback goes around the whole mix until 정지. */
+  const [loop, setLoop] = useState(false);
+  const loopRef = useRef(loop);
+  useEffect(() => {
+    loopRef.current = loop;
+    if (player.current) player.current.src.loop = loop;
+  }, [loop]);
   const stop = useCallback(() => {
     const p = player.current;
     player.current = null;
@@ -180,7 +222,7 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
     if (!playing) return;
     let frame = requestAnimationFrame(function step() {
       const p = player.current;
-      if (p) setPlayhead(Math.round((p.from + p.ctx.currentTime - p.at) * 100) / 100);
+      if (p) setPlayhead(playPosition(p.from, p.ctx.currentTime - p.at, p.length, loopRef.current));
       frame = requestAnimationFrame(step);
     });
     return () => cancelAnimationFrame(frame);
@@ -196,13 +238,16 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
       const src = ctx.createBufferSource();
       src.buffer = mix;
       src.connect(ctx.destination);
+      src.loop = loop;
+      src.loopStart = 0;
+      src.loopEnd = mix.duration;
       const from = playhead >= length ? 0 : playhead;
       src.onended = () => {
         stop();
         setPlayhead(0);
       };
       src.start(0, from);
-      player.current = { ctx, src, from, at: ctx.currentTime };
+      player.current = { ctx, src, from, at: ctx.currentTime, length: mix.duration };
       setPlaying(true);
     } catch {
       setMessage({ tone: "error", text: "재생하지 못했어요. 잠시 후 다시 시도해 주세요." });
@@ -220,6 +265,7 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
     setClipSel(c.id);
     setTrackSel(trackId);
     e.currentTarget.setPointerCapture(e.pointerId);
+    remember();
     drag.current = { clipId: c.id, trackId, mode, x: e.clientX, clip: c };
   };
   const onDrag = (e: PointerEvent<HTMLElement>) => {
@@ -227,7 +273,7 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
     if (!d) return;
     const delta = (e.clientX - d.x) / pps;
     const duration = sourceOf(d.clip.sourceId)?.duration ?? clipLength(d.clip);
-    editClip(d.clipId, () => (d.mode === "move" ? moveClip(d.clip, d.clip.start + delta) : trimClip(d.clip, d.mode, delta, duration)));
+    editClip(d.clipId, () => (d.mode === "move" ? moveClip(d.clip, d.clip.start + delta) : trimClip(d.clip, d.mode, delta, duration)), false);
   };
   const endDrag = () => (drag.current = null);
   const nudge = (c: MusicClip) => (e: KeyboardEvent<HTMLElement>) => {
@@ -254,6 +300,21 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
     edit((ts) => ts.map((t) => ({ ...t, clips: t.clips.filter((c) => c.id !== selected.clip.id) })));
     setClipSel(null);
   };
+  const [copied, setCopied] = useState<MusicClip | null>(null);
+  const copy = () => {
+    if (!selected) return;
+    setCopied(selected.clip);
+    setMessage({ tone: "ok", text: "클립을 복사했어요. 재생 위치에 붙여넣을 수 있어요." });
+  };
+  const paste = () => {
+    const c = copied;
+    if (!c) return;
+    if (clipCount(tracks) >= MUSIC_CLIPS_MAX) return setMessage({ tone: "error", text: `클립은 ${MUSIC_CLIPS_MAX}개까지 놓을 수 있어요.` });
+    const pasted = copyClip(c, newId("clip"), playhead);
+    edit((ts) => ts.map((t) => (t.id === trackSel ? { ...t, clips: [...t.clips, pasted] } : t)));
+    setClipSel(pasted.id);
+    setMessage(null);
+  };
   const addTrack = () => {
     if (tracks.length >= MUSIC_TRACKS_MAX) return;
     const t: MusicTrack = { id: newId("t"), name: `트랙 ${tracks.length + 1}`, gain: 1, muted: false, clips: [] };
@@ -266,6 +327,34 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
     if (trackSel === id) setTrackSel(tracks.find((t) => t.id !== id)!.id);
     if (selected?.track.id === id) setClipSel(null);
   };
+
+  // ── 단축키 (2026-10-28) ────────────────────────────────────────────────────────
+  // Not while typing in a field (or an IME is composing); the handler reads this render's state.
+  const commands = useRef<(e: globalThis.KeyboardEvent) => void>(() => {});
+  useEffect(() => {
+    commands.current = (e) => {
+      const target = e.target as HTMLElement | null;
+      if (e.isComposing || target?.closest("input, textarea, select, [contenteditable='true']")) return;
+      const command = musicCommandOf(e);
+      if (!command || busy !== null) return;
+      if (command === "PLAY" && target?.closest("button")) return; // Space on a focused button presses it
+      e.preventDefault();
+      if (command === "PLAY") void play();
+      else if (command === "LOOP") setLoop((l) => !l);
+      else if (playing) return;
+      else if (command === "UNDO") undo();
+      else if (command === "REDO") redo();
+      else if (command === "SPLIT") split();
+      else if (command === "COPY") copy();
+      else if (command === "PASTE") paste();
+      else if (command === "DELETE") removeClip();
+    };
+  });
+  useEffect(() => {
+    const onKey = (e: globalThis.KeyboardEvent) => commands.current(e);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // ── Export ──────────────────────────────────────────────────────────────────
   const [name, setName] = useState("편집한 음악");
@@ -408,6 +497,21 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
             <button type="button" className={crew.ghost} disabled={!selected || playing} onClick={removeClip}>
               클립 삭제
             </button>
+            <button type="button" className={crew.ghost} disabled={!past.length || playing} onClick={undo} title="Ctrl+Z">
+              되돌리기
+            </button>
+            <button type="button" className={crew.ghost} disabled={!future.length || playing} onClick={redo} title="Ctrl+Shift+Z">
+              다시 실행
+            </button>
+            <button type="button" className={crew.ghost} disabled={!selected || playing} onClick={copy} title="Ctrl+C">
+              복사
+            </button>
+            <button type="button" className={crew.ghost} disabled={playing || copied === null} onClick={paste} title="Ctrl+V">
+              붙여넣기
+            </button>
+            <button type="button" className={crew.ghost} aria-pressed={loop} onClick={() => setLoop((l) => !l)} title="Ctrl+L">
+              {loop ? "🔁 루프 켬" : "🔁 루프"}
+            </button>
             <button type="button" className={crew.ghost} aria-label="축소" disabled={pps <= PPS_STEPS[0]} onClick={() => setPps(PPS_STEPS[Math.max(0, PPS_STEPS.indexOf(pps) - 1)])}>
               −
             </button>
@@ -416,6 +520,7 @@ export function MusicEditorScreen({ sounds }: { sounds: Asset[] }) {
             </button>
           </div>
         </div>
+        <p className={crew.note}>단축키 · {MUSIC_SHORTCUTS.map((s) => `${s.label} ${s.keys}`).join(" · ")} (입력 칸에서는 꺼져요)</p>
         {tooLong && (
           <p className={crew.error} role="alert">
             음악은 {MUSIC_LENGTH_MAX}초까지 만들 수 있어요. 지금 {formatSec(length)} — 클립을 줄이거나 옮겨 주세요.

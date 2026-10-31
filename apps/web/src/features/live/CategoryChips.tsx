@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { LiveChannel } from "@/services/live/liveTypes";
 import styles from "./CategoryChips.module.css";
 
@@ -21,10 +22,11 @@ export function liveCategories(channels: LiveChannel[]): LiveCategory[] {
  * 방송 카테고리 chips (code-first, funnation's live list): 전체 and each category on air. `value` null is 전체. Shared by
  * the home's 썸네이션 라이브 and `/live` with FLEXTV.
  */
-export function CategoryChips({ categories, value, onChange, label = "방송 카테고리" }: { categories: LiveCategory[]; value: string | null; onChange: (id: string | null) => void; label?: string }) {
+export function CategoryChips({ categories, value, onChange, label }: { categories: LiveCategory[]; value: string | null; onChange: (id: string | null) => void; label?: string }) {
+  const { t } = useI18n();
   return (
-    <div className={styles.chips} role="group" aria-label={label}>
-      {[{ id: null, name: "전체" } as const, ...categories].map((c) => (
+    <div className={styles.chips} role="group" aria-label={label ?? t("live.categories")}>
+      {[{ id: null, name: t("live.allCategories") } as const, ...categories].map((c) => (
         <button key={c.id ?? "all"} type="button" className={styles.chip} aria-pressed={value === c.id} onClick={() => onChange(c.id)}>
           {c.name}
         </button>

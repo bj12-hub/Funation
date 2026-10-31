@@ -75,8 +75,14 @@
 
 .field {
   display: inline-flex;
+  flex: none;
   align-items: center;
   gap: 6px;
+}
+
+/* A label stays on one line; the row wraps instead (텍스트 슬롯 스타일, 2026-10-28). */
+.field > span {
+  white-space: nowrap;
 }
 
 .color {
@@ -92,4 +98,58 @@
 .color:disabled {
   cursor: not-allowed;
   opacity: 0.4;
+}
+
+/* 원형 룰렛 (2026-10-30): the wheel beside the controls, the 칸 list. */
+.wheelRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.wheelSide {
+  display: flex;
+  flex: 1 1 220px;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.wheelResults {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding-left: 18px;
+  font-size: var(--font-size-13);
+}
+
+.wheelItems {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wheelItems li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.wheelItems li > input:not([type="number"]),
+.wheelItems li > select {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+.wheelSwatch {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
 }

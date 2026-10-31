@@ -4,15 +4,16 @@ import type { CSSProperties } from "react";
 import { useServerClock } from "@/hooks/useServerClock";
 import { formatNumber } from "@/lib/format";
 import type { ResolvedTheme } from "@/services/creator/overlayThemeTypes";
-import { SIG_DOSAN_TITLE_DEFAULT, type SigDosanLane, type SigDosanLive } from "@/services/crew/crewTypes";
+import { SIG_DOSAN_TITLE_DEFAULT, type SigDosanBoard, type SigDosanLane, type SigDosanLive } from "@/services/crew/crewTypes";
 import { useOverlayPage } from "./CrewScoreOverlay";
 import { GameCard, currentRun, signedPoints } from "./GameOverlayParts";
 import styles from "./gameOverlay.module.css";
 
 /**
- * 시그니처 두산 overlay (`?sigdosan`): the ladder from the highest step at the top down to the lowest, a column per lane (전체 ·
- * A팀 / B팀 · each member). A lane's step lights in its color once that run's result shows (it shoots up until then), its
- * next step waits outlined, and the winning lane is crowned. Without a board it waits (대기 중에도 보이기).
+ * 시그니처 두산 overlay (`?sigdosan`), in the saved 표시 방식 — 롤러 (`DosanRoller`) or 사다리: the ladder from the highest step
+ * at the top down to the lowest, a column per lane (전체 · A팀 / B팀 · each member). A lane's step lights in its color once that
+ * run's result shows (it shoots up until then), its next step waits outlined, and the winning lane is crowned. Without a
+ * board it waits (대기 중에도 보이기).
  */
 export function SigDosanOverlay({ sigDosan, serverNow, reloadSeq, theme }: { sigDosan: SigDosanLive | null; serverNow: string | null; reloadSeq: number; theme: ResolvedTheme }) {
   useOverlayPage(reloadSeq);
@@ -45,8 +46,11 @@ export function SigDosanOverlay({ sigDosan, serverNow, reloadSeq, theme }: { sig
       idle={idle}
       playing="발사!"
       wide
+      columns={board && sigDosan.settings.display === "ROLLER" && board.lanes.length > 1 ? Math.min(board.lanes.length, 3) : undefined}
     >
-      {board ? (
+      {board && sigDosan.settings.display === "ROLLER" ? (
+        <DosanRoller board={board} won={won} shownSteps={shownSteps} />
+      ) : board ? (
         <div className={styles.dosan} style={{ "--dosan-lanes": board.lanes.length } as CSSProperties} aria-hidden="true">
           <span />
           {board.lanes.map((lane) => (
@@ -101,5 +105,74 @@ export function SigDosanOverlay({ sigDosan, serverNow, reloadSeq, theme }: { sig
         </div>
       )}
     </GameCard>
+  );
+}
+
+/**
+ * 롤러 (2026-10-30, StreamDonate 시그니처 두산의 원본 연출): each lane a window on a strip of the ladder's cards, the lowest
+ * price on top — the card it shoots next in full color (pulsing while a shot waits for its result), the rest in gray; a
+ * shown step rolls the strip up a card (the shot one goes up and out, the next comes up from below). A lane at the top shows CLEAR (전체: ALL CLEAR); the
+ * other lanes dim once a lane wins.
+ */
+function DosanRoller({ board, won, shownSteps }: { board: SigDosanBoard; won: SigDosanBoard["winner"]; shownSteps: (lane: SigDosanLane) => number }) {
+  const total = board.ladder.length;
+  return (
+    <div className={styles.roller} style={{ "--roll-cols": Math.min(board.lanes.length, 4) } as CSSProperties} aria-hidden="true">
+      {board.lanes.map((lane) => {
+        const done = shownSteps(lane);
+        const team = lane.key === "A" || lane.key === "B" ? lane.key : undefined;
+        return (
+          <div key={lane.key} className={styles.rollLane} data-out={(!!won && won.lane !== lane.key) || undefined}>
+            {board.mode !== "ALL" && (
+              <span
+                className={styles.dosanHead}
+                data-team={team}
+                data-win={won?.lane === lane.key || undefined}
+                style={lane.color ? ({ "--lane-color": lane.color } as CSSProperties) : undefined}
+              >
+                {won?.lane === lane.key && "👑 "}
+                {lane.label}
+              </span>
+            )}
+            <div className={styles.rollWindow}>
+              {done >= total ? (
+                <div className={styles.rollClear}>
+                  <span>{board.mode === "ALL" ? "🎉" : "🏆"}</span>
+                  <strong>{board.mode === "ALL" ? "ALL CLEAR!" : "CLEAR!"}</strong>
+                  <small>{total}개 시그니처 완료</small>
+                </div>
+              ) : (
+                <>
+                  <span className={styles.rollBadge}>
+                    {done + 1} / {total}
+                  </span>
+                  <div className={styles.rollStrip} style={{ transform: `translateY(${(-100 * done) / total}%)` }}>
+                    {board.ladder.map((step, i) => (
+                      <div
+                        key={step.signatureId}
+                        className={styles.rollCard}
+                        data-current={i === done || undefined}
+                        data-shooting={(i === done && lane.steps.length > done) || undefined}
+                      >
+                        {step.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element -- signature images are uploaded files (data URLs in the mock)
+                          <img src={step.imageUrl} alt="" />
+                        ) : (
+                          <span className={styles.rollPlaceholder}>{step.signatureName}</span>
+                        )}
+                        <span className={styles.rollCaption}>
+                          <b>{step.signatureName}</b>
+                          <i>{formatNumber(step.price)} FN</i>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }

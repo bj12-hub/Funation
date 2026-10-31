@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { remote } from "@/lib/remoteImage";
 import type { PopularCreator } from "@/services/home/homeFeed";
 import { CreatorProfilePopup } from "./CreatorProfilePopup";
@@ -13,6 +14,7 @@ import styles from "./homeFunnation.module.css";
  * A creator opens the profile popup (Figma 688:646), which links to the creator room.
  */
 export function CreatorStrip({ creators }: { creators: PopularCreator[] }) {
+  const { t } = useI18n();
   const [order, setOrder] = useState(creators);
   const [selected, setSelected] = useState<PopularCreator | null>(null);
 
@@ -30,16 +32,16 @@ export function CreatorStrip({ creators }: { creators: PopularCreator[] }) {
     <section className={styles.block} aria-labelledby="home-creator-strip">
       <div className={styles.blockHead}>
         <h2 id="home-creator-strip" className={styles.blockTitle}>
-          요즘 인기 많은 크리에이터에게 후원하세요!
+          {t("home.creatorsLead")}
         </h2>
         {order.length > 1 && (
           <button type="button" className={styles.textButton} onClick={reshuffle}>
-            ↻ 새로고침
+            {t("home.refresh")}
           </button>
         )}
       </div>
       {order.length === 0 ? (
-        <p className={styles.empty}>표시할 크리에이터가 없습니다.</p>
+        <p className={styles.empty}>{t("home.noCreators")}</p>
       ) : (
         <ul className={styles.strip}>
           {order.map((c) => (

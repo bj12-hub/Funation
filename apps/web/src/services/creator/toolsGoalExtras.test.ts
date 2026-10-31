@@ -129,7 +129,17 @@ describe("텍스트 슬롯", () => {
       [{ bold: "yes" }, "설정"],
       [{ background: "IMAGE" }, "배경"],
       [{ align: "JUSTIFY" }, "정렬"],
-      [{ scrollSec: 4 }, "스크롤 시간"]
+      [{ scrollSec: 4 }, "스크롤 시간"],
+      [{ font: "Comic Sans" }, "폰트"],
+      [{ lineHeight: 0.9 }, "줄 간격"],
+      [{ lineHeight: 1.234 }, "줄 간격"],
+      [{ outlineWidth: 0 }, "테두리"],
+      [{ outlineWidth: 11 }, "테두리"],
+      [{ outlineColor: "black" }, "테두리"],
+      [{ shadow: "yes" }, "설정"],
+      [{ bgColor: "red" }, "배경색"],
+      [{ padding: 81 }, "안쪽 여백"],
+      [{ radius: -1 }, "모서리"]
     ];
     for (const [patch, message] of bad) {
       const res = await m.saveTextSlot(slot(patch));
@@ -137,5 +147,24 @@ describe("텍스트 슬롯", () => {
     }
     signIn(["SUPPORTER"]);
     expect(await m.saveTextSlot(slot())).toEqual({ status: "UNAUTHORIZED" });
+  });
+
+  it("keeps each slot's style — 폰트 · 줄 간격 · 테두리 · 그림자 · 색 지정 배경 (2026-10-28) — and older screens leave it as saved", async () => {
+    const m = await load();
+    const shown = async () => {
+      const view = await m.getOverlayTool("text", m.overlayKey, "2");
+      if (view === "FORBIDDEN" || view.tool !== "text") throw new Error("expected text");
+      return view.state;
+    };
+    // A new slot looks as slots did before: 테마 글꼴, a 2px black outline, no shadow.
+    expect(await shown()).toMatchObject({ font: null, lineHeight: 1.35, outlineWidth: 2, outlineColor: "#000000", shadow: false, bgColor: "#000000", padding: 18, radius: 12 });
+    const style = { font: "Pretendard", lineHeight: 1.8, outlineWidth: 4, outlineColor: "#ff0066", shadow: true, background: "COLOR", bgColor: "#112233", padding: 24, radius: 0 };
+    expect(await m.saveTextSlot(slot({ slot: 2, text: "공지", ...style }))).toEqual({ status: "SAVED" });
+    expect(await shown()).toMatchObject({ ...style, outlineColor: "#FF0066", bgColor: "#112233" });
+    // A screen from before sends none of them: the slot keeps them.
+    expect(await m.saveTextSlot(slot({ slot: 2, text: "다시 공지", background: "COLOR" }))).toEqual({ status: "SAVED" });
+    expect(await shown()).toMatchObject({ text: "다시 공지", font: "Pretendard", lineHeight: 1.8, outlineWidth: 4, shadow: true, padding: 24, radius: 0 });
+    expect(await m.saveTextSlot(slot({ slot: 2, text: "공지", font: null }))).toEqual({ status: "SAVED" });
+    expect((await shown()).font).toBeNull();
   });
 });

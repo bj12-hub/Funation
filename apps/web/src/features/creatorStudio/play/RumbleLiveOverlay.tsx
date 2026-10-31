@@ -10,8 +10,9 @@ import local from "./rumbleLiveOverlay.module.css";
 const SHOWN_NAMES = 16;
 
 /**
- * 로얄 럼블 (조작형) overlay (`/overlay/play/[key]?rumblelive`): reads the battle from `/api/play/rumble-live/[key]` about
- * ten times a second. 모집 중: who joined (the link itself is shared in chat, never shown here); then the arena — the ring
+ * 로얄 럼블 (조작형) overlay (`/overlay/play/[key]?rumblelive`): the server pushes the battle on every tick
+ * (`/api/play/rumble-live/[key]/stream`, 2026-11-01); where the stream cannot open, it reads `/api/play/rumble-live/[key]`
+ * about ten times a second instead. 모집 중: who joined (the link itself is shared in chat, never shown here); then the arena — the ring
  * and the storm outside, every fighter where the server has it (name, HP bar; a flash when attacking), the latest
  * knockouts and the time left — and the winner with the top three. Nothing without a round (or with 리모컨 OFF).
  */
@@ -31,25 +32,39 @@ export function RumbleLiveOverlay({ overlayKey, initial, theme }: { overlayKey: 
   }, []);
   useEffect(() => {
     let alive = true;
-    let timer: ReturnType<typeof setTimeout>;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const show = (next: LiveState) => {
+      // 기능별 새로고침 from 리모컨.
+      if (next.reloadSeq !== initial.reloadSeq) return window.location.reload();
+      setState(next);
+      setSkew(Date.parse(next.serverNow) - Date.now());
+    };
     const poll = async () => {
       try {
         const res = await fetch(`/api/play/rumble-live/${encodeURIComponent(overlayKey)}`, { cache: "no-store" });
-        if (res.ok && alive) {
-          const next = (await res.json()) as LiveState;
-          // 기능별 새로고침 from 리모컨.
-          if (next.reloadSeq !== initial.reloadSeq) return window.location.reload();
-          setState(next);
-          setSkew(Date.parse(next.serverNow) - Date.now());
-        }
+        if (res.ok && alive) show((await res.json()) as LiveState);
       } catch {
         // The next read tries again.
       }
       if (alive) timer = setTimeout(poll, LIVE_OBS_POLL_MS);
     };
-    timer = setTimeout(poll, LIVE_OBS_POLL_MS);
+    // The stream first; reading again and again only when it cannot open (it never sent anything) or the browser has none.
+    let streamed = false;
+    const source = typeof EventSource === "undefined" ? null : new EventSource(`/api/play/rumble-live/${encodeURIComponent(overlayKey)}/stream`);
+    if (!source) timer = setTimeout(poll, LIVE_OBS_POLL_MS);
+    source?.addEventListener("message", (e) => {
+      streamed = true;
+      if (alive) show(JSON.parse((e as MessageEvent<string>).data) as LiveState);
+    });
+    source?.addEventListener("gone", () => source.close());
+    source?.addEventListener("error", () => {
+      // A stream that worked reconnects by itself; one that never opened is left for polling.
+      if (streamed || source.readyState !== EventSource.CLOSED || !alive || timer) return;
+      timer = setTimeout(poll, LIVE_OBS_POLL_MS);
+    });
     return () => {
       alive = false;
+      source?.close();
       clearTimeout(timer);
     };
   }, [overlayKey, initial.reloadSeq]);

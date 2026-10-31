@@ -1,10 +1,12 @@
+import { getT } from "@/lib/i18n/server";
 import shared from "./home.module.css";
 import styles from "./HomeSkeleton.module.css";
 
 /** LOADING state for the home screen — mirrors the section layout of 727:2742. */
-export function HomeSkeleton() {
+export async function HomeSkeleton() {
+  const t = await getT();
   return (
-    <div aria-busy="true" aria-label="홈 화면을 불러오는 중">
+    <div aria-busy="true" aria-label={t("home.loading")}>
       <div className={styles.hero} />
       <div className={shared.section}>
         <div className={styles.heading} />

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { formatNumber } from "@/lib/format";
-import { adjustBattleTime, setBattleRules, startBattle, stopBattle } from "@/services/crew/crewBattle";
+import { adjustBattleTime, setBattleDisplay, setBattleRules, startBattle, stopBattle } from "@/services/crew/crewBattle";
 import {
   BATTLE_MODES,
   BATTLE_PAIRS_MAX,
@@ -10,8 +10,10 @@ import {
   BATTLE_TEAM_NAME_MAX,
   BATTLE_TIME_STEPS,
   BATTLE_TITLE_MAX,
+  BATTLE_DISPLAYS,
   MULTI_TEAMS_MAX,
   MULTI_TEAMS_MIN,
+  type BattleDisplay,
   MULTI_TEAM_COLORS,
   MULTI_TEAM_KEYS,
   PLATFORM_BATTLE_RULES,
@@ -81,6 +83,7 @@ export function BattlePanel({
   const [teamCount, setTeamCount] = useState(3);
   const [teamNames, setTeamNames] = useState<string[]>(() => Array(MULTI_TEAMS_MAX).fill(""));
   const [teamOf, setTeamOf] = useState<Record<string, number>>({});
+  const [display, setDisplay] = useState<BattleDisplay>("BARS");
   // 1:1 여러 쌍: the pairs being set up ("" = not chosen).
   const [pairSlots, setPairs] = useState<[string, string][]>([["", ""]]);
   const [minutes, setMinutes] = useState("5");
@@ -110,7 +113,7 @@ export function BattlePanel({
     startId.current ??= crypto.randomUUID();
     const requestId = startId.current;
     run(async () => {
-      const res = await startBattle({ broadcastId, requestId, mode, memberA, memberB, teams, pairs, durationSec: Math.round(Number(minutes) * 60), title, multiplier: multiplierValue, penalty });
+      const res = await startBattle({ broadcastId, requestId, mode, memberA, memberB, teams, pairs, display, durationSec: Math.round(Number(minutes) * 60), title, multiplier: multiplierValue, penalty });
       if (res.status === "SAVED") {
         startId.current = null;
         setTitle("");
@@ -153,6 +156,24 @@ export function BattlePanel({
               지금 끝내기
             </button>
           </div>
+          {current.mode === "MULTI_TEAMS" && (
+            <div className={styles.addRow}>
+              <span className={styles.muted}>OBS 표시</span>
+              <span className={styles.segment} role="group" aria-label="다수 팀 표시 방식">
+                {BATTLE_DISPLAYS.map((d) => (
+                  <button
+                    key={d.key}
+                    type="button"
+                    aria-pressed={current.display === d.key}
+                    disabled={pending}
+                    onClick={() => run(() => setBattleDisplay({ broadcastId, no: current.no, display: d.key }), `OBS에 ${d.label}로 보여 줘요.`)}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </span>
+            </div>
+          )}
         </>
       ) : (
         <>
@@ -186,6 +207,16 @@ export function BattlePanel({
             )}
             {mode === "MULTI_TEAMS" && (
               <div className={battle.setup}>
+                <div className={styles.addRow}>
+                  <span className={styles.muted}>OBS 표시</span>
+                  <span className={styles.segment} role="group" aria-label="다수 팀 표시 방식">
+                    {BATTLE_DISPLAYS.map((d) => (
+                      <button key={d.key} type="button" aria-pressed={display === d.key} onClick={() => setDisplay(d.key)}>
+                        {d.label}
+                      </button>
+                    ))}
+                  </span>
+                </div>
                 <label className={styles.addRow}>
                   <span className={styles.muted}>팀 수</span>
                   <select className={styles.select} aria-label="팀 수" value={teamCount} onChange={(e) => setTeamCount(Number(e.target.value))}>

@@ -1,12 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { formatNumber } from "@/lib/format";
-import { resetGoStop, saveGoStop } from "@/services/crew/crewGames";
+import { adjustGoStop, resetGoStop, resetGoStopRank, saveGoStop } from "@/services/crew/crewGames";
 import {
   GOSTOP_BANDS_MAX,
   GOSTOP_MULTIPLIER_MAX,
+  GOSTOP_POOL_MAX,
   GOSTOP_POOL_PERCENT_MAX,
   GOSTOP_RATE_MAX,
+  GOSTOP_REASON_MAX,
   GOSTOP_TITLE_DEFAULT,
   goStopRanking,
   type CrewMember,
@@ -20,8 +23,9 @@ import prize from "./prize.module.css";
 
 /** The editor keeps numbers as typed. */
 type EditBand = { id: string; min: string; color: string };
-type Draft = Omit<GoStopSettings, "poolPercent" | "stopRate" | "stopMax" | "multiplier" | "bands"> & {
+type Draft = Omit<GoStopSettings, "poolPercent" | "basePool" | "stopRate" | "stopMax" | "multiplier" | "bands"> & {
   poolPercent: string;
+  basePool: string;
   stopRate: string;
   stopMax: string;
   multiplier: string;
@@ -31,6 +35,7 @@ type Draft = Omit<GoStopSettings, "poolPercent" | "stopRate" | "stopMax" | "mult
 const toDraft = (s: GoStopSettings): Draft => ({
   ...s,
   poolPercent: String(s.poolPercent),
+  basePool: String(s.basePool),
   stopRate: String(s.stopRate),
   stopMax: String(s.stopMax),
   multiplier: String(s.multiplier),
@@ -39,6 +44,7 @@ const toDraft = (s: GoStopSettings): Draft => ({
 const fromDraft = (d: Draft) => ({
   ...d,
   poolPercent: Number(d.poolPercent),
+  basePool: Number(d.basePool || 0),
   stopRate: Number(d.stopRate),
   stopMax: Number(d.stopMax),
   multiplier: Number(d.multiplier),
@@ -75,6 +81,8 @@ export function GoStopPanel({
   const known = new Set(signatures.map((s) => s.id));
   const memberIds = new Set(members.map((m) => m.id));
   const gostop = live?.gostop;
+  // 풀 수동 조정 (2026-10-28): one request id per intended adjustment, so a double click adjusts once.
+  const [adjust, setAdjust] = useState({ points: "", reason: "", requestId: "" });
   const rate = Number(draft.stopRate);
   const max = Number(draft.stopMax);
   const example = 10_000;
@@ -102,6 +110,20 @@ export function GoStopPanel({
         }}
       >
         <TitleField name="고스톱" placeholder={GOSTOP_TITLE_DEFAULT} value={draft.title} onChange={(title) => edit({ title })} />
+        <label className={games.unit}>
+          <span className={styles.muted}>기본 풀</span>
+          <input
+            className={styles.inputSmall}
+            type="number"
+            inputMode="numeric"
+            aria-label="기본 풀"
+            min={0}
+            max={GOSTOP_POOL_MAX}
+            value={draft.basePool}
+            onChange={(e) => edit({ basePool: e.target.value })}
+          />
+          <span className={styles.muted}>점 — STOP이나 풀 비우기 뒤에 풀이 이 점수부터 다시 쌓여요</span>
+        </label>
         <div className={prize.field}>
           <span className={styles.muted}>풀 · STOP</span>
           <span className={games.tierRow}>
@@ -246,7 +268,61 @@ export function GoStopPanel({
             <button type="button" className={styles.ghost} disabled={pending || (gostop.pool === 0 && gostop.go === 0)} onClick={() => run(() => resetGoStop({ broadcastId: live.id }), "풀을 비웠어요.")}>
               풀 비우기
             </button>
+            <button type="button" className={styles.ghost} disabled={pending || gostop.wins.length === 0} onClick={() => run(() => resetGoStopRank({ broadcastId: live.id }), "STOP 랭킹을 새로 시작했어요.")}>
+              랭킹 리셋
+            </button>
           </div>
+          <span className={games.unit} role="group" aria-label="풀 수동 조정">
+            <span className={styles.muted}>풀 수동 조정</span>
+            <input
+              className={styles.inputSmall}
+              type="number"
+              inputMode="numeric"
+              aria-label="조정 점수"
+              placeholder="+50 또는 -10"
+              value={adjust.points}
+              onChange={(e) => setAdjust({ ...adjust, points: e.target.value, requestId: "" })}
+            />
+            <span className={styles.muted}>점</span>
+            <input
+              className={styles.input}
+              aria-label="조정 사유"
+              placeholder="사유 (선택)"
+              maxLength={GOSTOP_REASON_MAX}
+              value={adjust.reason}
+              onChange={(e) => setAdjust({ ...adjust, reason: e.target.value })}
+            />
+            <button
+              type="button"
+              className={styles.ghost}
+              disabled={pending || !Number(adjust.points)}
+              onClick={() => {
+                const requestId = adjust.requestId || crypto.randomUUID();
+                setAdjust({ ...adjust, requestId });
+                run(async () => {
+                  const res = await adjustGoStop({ broadcastId: live.id, requestId, points: Number(adjust.points), reason: adjust.reason });
+                  if (res.status === "SAVED") setAdjust({ points: "", reason: "", requestId: "" });
+                  return res;
+                }, "풀을 조정했어요.");
+              }}
+            >
+              조정
+            </button>
+          </span>
+          {gostop.adjustments.length > 0 && (
+            <ul className={games.lanes} aria-label="풀 수동 조정 기록">
+              {gostop.adjustments.map((a, i) => (
+                <li key={`${a.at}-${i}`}>
+                  <span>
+                    {a.points > 0 ? "+" : ""}
+                    {formatNumber(a.points)}점
+                  </span>
+                  <span className={styles.muted}>{a.reason || "사유 없음"}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {gostop.rankingSince && <p className={styles.note}>STOP 랭킹은 랭킹 리셋 뒤의 STOP만 세요. 그 전에 받은 점수는 점수판에 그대로 있어요.</p>}
           <ManualPlay game="GOSTOP" name="고스톱" verb="GO · STOP" live={live} members={members} pending={pending} run={run} />
           <p className={styles.note}>수동은 고른 기준 후원의 점수로 풀과 STOP 확률을 정해요. 기준 후원 없이 굴리면 풀은 그대로이고 항상 GO예요.</p>
           {gostop.wins.length > 0 && (
@@ -272,6 +348,8 @@ export function GoStopPanel({
       <OverlayAddress overlayPath={overlayPath} param="gostop" label="고스톱" />
       <p className={styles.note}>진행 자막 (풀 · GO · 최근 STOP을 한 줄로)</p>
       <OverlayAddress overlayPath={overlayPath} param="gostopticker" label="고스톱 진행 자막" />
+      <p className={styles.note}>랭킹 (STOP 랭킹만 따로, 10명까지)</p>
+      <OverlayAddress overlayPath={overlayPath} param="gostoprank" label="고스톱 랭킹" />
     </section>
   );
 }

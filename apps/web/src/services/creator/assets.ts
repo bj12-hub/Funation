@@ -30,6 +30,8 @@ export async function listAssets(kind?: AssetKind): Promise<Asset[] | null> {
   return mockAssets.items.filter((a) => !kind || a.kind === kind).map(publicAsset);
 }
 
+const KIND_NAME: Record<AssetKind, string> = { IMAGE: "이미지", SOUND: "사운드", VIDEO: "영상" };
+
 export async function uploadAsset(formData: FormData): Promise<AssetResult> {
   assertMock();
   const session = await getCreatorSession();
@@ -43,9 +45,9 @@ export async function uploadAsset(formData: FormData): Promise<AssetResult> {
 
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) return invalid("파일을 선택해 주세요.");
-  const kind: AssetKind | null = ASSET_TYPES.IMAGE.includes(file.type) ? "IMAGE" : ASSET_TYPES.SOUND.includes(file.type) ? "SOUND" : null;
-  if (!kind) return invalid("PNG · JPG · GIF · WEBP 이미지나 MP3 · WAV · OGG 사운드만 올릴 수 있어요.");
-  if (file.size > ASSET_LIMITS.bytes[kind]) return invalid(`${kind === "IMAGE" ? "이미지" : "사운드"}는 ${ASSET_LIMITS.bytes[kind] / 1024 / 1024}MB 이하만 올릴 수 있어요.`);
+  const kind = (Object.keys(ASSET_TYPES) as AssetKind[]).find((k) => ASSET_TYPES[k].includes(file.type)) ?? null;
+  if (!kind) return invalid("PNG · JPG · GIF · WEBP 이미지, MP3 · WAV · OGG 사운드, MP4 · WEBM 영상만 올릴 수 있어요.");
+  if (file.size > ASSET_LIMITS.bytes[kind]) return invalid(`${KIND_NAME[kind]}은 ${ASSET_LIMITS.bytes[kind] / 1024 / 1024}MB 이하만 올릴 수 있어요.`);
   const full = noRoom(file.size);
   if (full) return invalid(full);
 

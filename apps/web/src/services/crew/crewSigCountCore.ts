@@ -1,5 +1,5 @@
 import { mockAlerts } from "@/services/creator/alertCore";
-import { isSignatureImage, mockSignatures } from "@/services/donations/signatureCore";
+import { isSignatureImage, mockSignatures, signatureMedia } from "@/services/donations/signatureCore";
 import { DEFAULT_SIG_COUNT, SIG_COUNT_COLUMNS_MAX, SIG_COUNT_ROWS, SIG_COUNT_SORTS, SIG_COUNT_TITLE_MAX, type SigCountLive, type SigCountRow, type SigCountSettings } from "./crewTypes";
 import { mockCrew, type MockBroadcast } from "./mockCrewStore";
 
@@ -12,14 +12,34 @@ import { mockCrew, type MockBroadcast } from "./mockCrewStore";
 
 const rec = (input: unknown) => (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
 
-/** The channel's 시그 카운트 settings (defaults until saved). */
-export const sigCountSettingsOf = (channelId: string): SigCountSettings => mockCrew.sigCounts?.[channelId] ?? DEFAULT_SIG_COUNT;
+/** The channel's 시그 카운트 settings (defaults until saved; saved before 선택한 멤버 · 출근 필터 (2026-10-28) with none picked, 출퇴근 무관). */
+export const sigCountSettingsOf = (channelId: string): SigCountSettings => ({ ...DEFAULT_SIG_COUNT, ...mockCrew.sigCounts?.[channelId] });
 
-/** The signatures the settings can pick from, in the creator's order (숨긴 시그니처 too: it may have been sent before it was hidden). */
-export const sigCountSignatures = () => mockSignatures.items.map((s) => ({ id: s.id, name: s.name, group: s.group, active: s.active, price: s.price, match: s.match, rangeMin: s.rangeMin }));
+/**
+ * The signatures the settings can pick from, in the creator's order (숨긴 시그니처 too: it may have been sent before it was
+ * hidden), with when each was made and whether it has its image and sound (`complete`, 2026-10-30).
+ */
+export const sigCountSignatures = () =>
+  mockSignatures.items.map((s) => {
+    const media = signatureMedia(s);
+    return {
+      id: s.id,
+      name: s.name,
+      group: s.group,
+      active: s.active,
+      price: s.price,
+      match: s.match,
+      rangeMin: s.rangeMin,
+      ...(s.createdAt ? { createdAt: s.createdAt } : {}),
+      complete: media.image === "OK" && media.sound === "OK"
+    };
+  });
 
-/** Validates the settings. `signatureIds`: the signatures that exist now (the columns must be among them). */
-export function parseSigCount(input: unknown, forbidden: string[], signatureIds: string[]): SigCountSettings | { message: string } {
+/**
+ * Validates the settings. `signatureIds`: the signatures that exist now (the columns must be among them); `memberIds`: the
+ * channel's crew (the picked rows must be in it).
+ */
+export function parseSigCount(input: unknown, forbidden: string[], signatureIds: string[], memberIds: string[]): SigCountSettings | { message: string } {
   const v = rec(input);
   const title = typeof v.title === "string" ? v.title.trim() : "";
   if (title.length > SIG_COUNT_TITLE_MAX) return { message: `제목은 ${SIG_COUNT_TITLE_MAX}자 이내로 입력해 주세요.` };
@@ -30,13 +50,21 @@ export function parseSigCount(input: unknown, forbidden: string[], signatureIds:
   const rows = SIG_COUNT_ROWS.find((r) => r.key === v.rows)?.key;
   const sort = SIG_COUNT_SORTS.find((r) => r.key === v.sort)?.key;
   if (!rows || !sort || typeof v.showTotal !== "boolean") return { message: "표시 설정을 확인해 주세요." };
-  return { title, signatureIds: ids, rows, sort, showTotal: v.showTotal };
+  // A screen from before 선택한 멤버 (2026-10-28) sends none: none picked.
+  const picked = v.memberIds === undefined ? [] : v.memberIds;
+  if (!Array.isArray(picked) || picked.some((id) => typeof id !== "string" || !memberIds.includes(id))) return { message: "표에 넣을 멤버를 확인해 주세요." };
+  const members = [...new Set(picked as string[])];
+  if (rows === "SELECTED" && !members.length) return { message: "표에 넣을 멤버를 골라 주세요." };
+  // … and no 출근 필터: 출퇴근 무관.
+  if (v.activeOnly !== undefined && typeof v.activeOnly !== "boolean") return { message: "표시 설정을 확인해 주세요." };
+  return { title, signatureIds: ids, rows, memberIds: members, activeOnly: v.activeOnly === true, sort, showTotal: v.showTotal };
 }
 
 /**
  * The table of a broadcast: donation alerts from `since` (the start, or the last 다시 세기) to the end. 다시 보내기 copies
  * and test alerts never count; a 퀘스트 후원 counts once it succeeded. Members in crew order (removed ones after, as
- * 삭제된 멤버), 미지정 last; sorted by total when the settings say so (ties keep crew order).
+ * 삭제된 멤버), 미지정 last; sorted by total when the settings say so (ties keep crew order). On 선택한 멤버 only the picked
+ * members (and 미지정) are rows; 출근 BJ만 leaves out members on 휴식. The 합계 counts the rows shown only.
  */
 export function sigCountLive(b: MockBroadcast): SigCountLive {
   const settings = sigCountSettingsOf(b.channelId);
@@ -68,8 +96,13 @@ export function sigCountLive(b: MockBroadcast): SigCountLive {
     const m = memberId === null ? undefined : crew.find((x) => x.id === memberId);
     return { memberId, name: memberId === null ? "미지정" : (m?.name ?? "삭제된 멤버"), color: m?.color ?? null, counts: n, total: n.reduce((s, c) => s + c, 0) };
   };
-  const listed = new Set<string | null>(counts.keys());
+  // 선택한 멤버: only those still in the crew, and 미지정.
+  const picked = new Set(settings.memberIds.filter((id) => order.has(id)));
+  const listed = new Set<string | null>(settings.rows === "SELECTED" ? [...counts.keys()].filter((id) => id === null) : counts.keys());
   if (settings.rows === "ALL") for (const m of crew) if (m.active) listed.add(m.id);
+  if (settings.rows === "SELECTED") for (const id of picked) listed.add(id);
+  // 출근 BJ만: members on 휴식 and removed ones leave (미지정 stays).
+  if (settings.activeOnly) for (const id of listed) if (id !== null && !crew.find((m) => m.id === id)?.active) listed.delete(id);
   const rank = (id: string | null) => (id === null ? Infinity : (order.get(id) ?? crew.length));
   const rows = [...listed]
     .map((id) => row(id, counts.get(id) ?? columns.map(() => 0)))

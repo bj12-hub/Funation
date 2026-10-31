@@ -14,6 +14,7 @@ import { QuestForm } from "./gameForms";
 import { EventForm, MiniForm, RecentForm } from "./listForms";
 import { DonationMonitorForm, SigQueueForm, TopDonationForm } from "./MonitorForms";
 import { RankingForm } from "./RankingForm";
+import { SigWallpaperForm } from "./SigWallpaperForm";
 import { RouletteForm } from "./RouletteForm";
 import { VoteForm } from "./VoteForm";
 import { WallpaperForm } from "./WallpaperForm";
@@ -38,7 +39,8 @@ const FORMS: { [K in EditableWidgetKey]: ComponentType<FormProps<K>> } = {
   CLOCK: ClockForm,
   TOP_DONATION: TopDonationForm,
   DONATION_MONITOR: DonationMonitorForm,
-  SIG_QUEUE: SigQueueForm
+  SIG_QUEUE: SigQueueForm,
+  SIG_WALLPAPER: SigWallpaperForm
 };
 
 /** Popup titles; the URL label varies in the design (통합 채팅창 URL · 위젯 연동 URL …). */
@@ -62,7 +64,8 @@ export const WIDGET_EDITOR_COPY: Record<EditableWidgetKey, { title: string; urlL
   CLOCK: { title: "시계 위젯 설정", urlLabel: "시계 위젯 URL" },
   TOP_DONATION: { title: "최고 후원 위젯 설정", urlLabel: "최고 후원 위젯 URL" },
   DONATION_MONITOR: { title: "후원 모니터링 위젯 설정", urlLabel: "후원 모니터링 위젯 URL" },
-  SIG_QUEUE: { title: "시그 큐 모니터 위젯 설정", urlLabel: "시그 큐 모니터 위젯 URL" }
+  SIG_QUEUE: { title: "시그 큐 모니터 위젯 설정", urlLabel: "시그 큐 모니터 위젯 URL" },
+  SIG_WALLPAPER: { title: "시그 벽지 설정", urlLabel: "시그 벽지 기본 URL (후원마다 아래 목록에서 복사)" }
 };
 
 /** Widgets whose editor saves item by item instead of through a save button. */

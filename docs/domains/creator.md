@@ -56,6 +56,7 @@ Supported:
 | OBS 오버레이 `/overlay/<종류>/<연동 키>` — 후원 알림 · 통합 채팅 · 후원 위젯 14종(`/overlay/widget/*`) · 방송 도구 5종(`/overlay/tool/*`) · 배너 · 이펙트 · 영상 후원 · 그림 후원 · 크루 점수판, 그리고 오버레이가 주기적으로 읽는 데이터(리모컨 신호 포함, `overlayKeyOpen`) | 잘못된 키와 같음: 페이지는 오버레이 404(투명, 아무것도 그리지 않음), 읽기는 `FORBIDDEN`. 방송 화면에 오류 문구는 없다. 이미 열려 있던 오버레이는 다음 읽기에서 비워진다 |
 | 매니저 채팅 링크 `/popout/chat/m/<토큰>` (보기 · 숨김 · 삭제 · 차단 · 통합 입력) | 지운 링크와 같은 거부 화면 · `UNAUTHORIZED` |
 | SMS 계좌후원 주소 `/api/bank-sms/<키>` | 403 `{ "status": "OFF" }`, 문자는 기록되지 않음 |
+| 공개 시그니처 페이지 `/signatures/<키>` (2026-10-25, 켰을 때만) | 꺼짐 · 잘못된 키와 같은 404 |
 
 - 정지가 풀리면(기간 만료 또는 운영자의 정지 해제) 같은 키 · 링크로 다시 동작한다(재발급 없음). 열려 있던 통합 채팅
   오버레이는 계속 확인하다가 스스로 돌아오고, 다른 오버레이는 OBS 브라우저 소스를 새로 고치면 돌아온다.
@@ -78,6 +79,15 @@ Supported:
 - 전체 알림 취소 cancels the showing and queued alerts up to the newest one the remote listed (`upToId`); alerts that
   arrived after the operator looked stay queued.
 - 다시 보내기 carries a request id: a double click or retry queues one copy.
+- 테스트 후원 as a signature (2026-10-25): it carries the signature's image · sound and the member picked, for the 시그니처
+  플레이어 and the alert overlay — and stays kind TEST, so no count (시그 카운트, HOT · HIGH 시그, 위젯 합계) includes it.
+- 미지정 일시정지 (2026-10-25, 방송 운영 후원 리스트): an alert can be held at its place in the queue (`held`), and the
+  queue waits behind it. The 후원 리스트 entry is listed before its alert is queued, so the hold is set when the alert is
+  queued — never after it went on screen. 배정 없이 재생 (리모컨 or 후원 리스트) lets it go for good (`holdReleased`).
+  A 다시 보내기 copy is never held (it has no 후원 리스트 entry to let it go).
+- 자동 일시정지 금액 (2026-10-25): an FN alert at or above `autoPauseFn` sets `paused` as it goes on screen, so it plays
+  and the next waits. Platform · 계좌 후원 (no FN amount) and 다시 보내기 copies never pause. Pausing or resuming by hand
+  clears `autoPausedBy` — the pause is the operator's from then on.
 - 방송 도구 타이머 퀵 조정: a countdown that ran out counts as 0, so the first +30 / +60 adds that much time.
 
 ## 크루 방송 점수 (code-first, `services/crew`)

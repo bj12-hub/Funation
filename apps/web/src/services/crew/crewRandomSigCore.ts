@@ -2,15 +2,23 @@ import { randomUUID } from "node:crypto";
 import { matchSignatureByAmount, mockSignatures, signatureImageOf } from "@/services/donations/signatureCore";
 import { SIGNATURE_LIMITS, spanText, type ManagedSignature } from "@/services/donations/signatureTypes";
 import { excelOf, isActiveMember, liveBroadcastOf, parseMultiplier, scoreFn } from "./crewCore";
-import { drawIndex, effectPoints, gameRunsView, parseGameCommon, recordRun } from "./crewGameCore";
+import { drawIndex, effectPoints, gameRunsView, parseGameCommon, recordRun, shuffled } from "./crewGameCore";
 import {
   DEFAULT_RANDOM_SIG,
+  RANDOM_SIG_DIGIT_MAX,
+  RANDOM_SIG_DIGIT_UNITS,
   RANDOM_SIG_MODES,
   RANDOM_SIG_MULTIPLIER_MAX,
+  RANDOM_SIG_PRESETS_MAX,
+  RANDOM_SIG_PRESET_NAME_MAX,
+  RANDOM_SIG_ROLL_MAX,
   RANDOM_SIG_TIERS_MAX,
   type RandomSigLive,
+  type RandomSigPreset,
   type RandomSigSettings,
-  type RandomSigTier
+  type RandomSigTier,
+  digitMultiplier,
+  presetFieldsOf
 } from "./crewTypes";
 import { mockCrew, type MockBroadcast } from "./mockCrewStore";
 
@@ -18,19 +26,20 @@ import { mockCrew, type MockBroadcast } from "./mockCrewStore";
  * 랜덤시그 (server-only) — code-first, StreamDonate 랜덤시그 참고 (P2, a game on crewGameCore). A 일반 후원 of exactly a
  * 발동 금액 plays a signature drawn on the server from that 발동 구간's price range: the alert shows and plays it (and
  * 시그 카운트 · the other games count it). While a crew broadcast is live, a donation credited to a member also records a
- * run with points (기본 모드 · 랜덤 결과 모드). StreamDonate's 앞자리 배수 is not built (its 백만원 place does not fit FN).
+ * run with points (기본 모드 — 기본 배수 or 앞자리 배수 — · 랜덤 결과 모드).
  */
 
 const rec = (input: unknown) => (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
 const isInt = (v: unknown, min: number, max: number): v is number => typeof v === "number" && Number.isInteger(v) && v >= min && v <= max;
 const fn = (n: number) => n.toLocaleString("ko-KR");
 
-/** The channel's 랜덤시그 settings (defaults until saved). */
-export const randomSigSettingsOf = (channelId: string): RandomSigSettings => mockCrew.randomSigs?.[channelId] ?? DEFAULT_RANDOM_SIG;
+/** The channel's 랜덤시그 settings (defaults until saved; fields added later take their 기본값). */
+export const randomSigSettingsOf = (channelId: string): RandomSigSettings => ({ ...DEFAULT_RANDOM_SIG, ...mockCrew.randomSigs?.[channelId] });
 
 /**
  * Validates the settings. A 발동 금액 an active 금액 일치 signature takes is refused (that signature keeps the amount, so
- * the tier would never fire). `knownTiers`: the saved tier ids (kept); any other id is replaced.
+ * the tier would never fire). With 앞자리 배수 on (기본 모드), every tier draws from at least one 자리 unit and at most
+ * ×RANDOM_SIG_DIGIT_MAX. `knownTiers`: the saved tier ids (kept); any other id is replaced.
  */
 export function parseRandomSigSettings(input: unknown, forbidden: string[], signatureIds: string[], knownTiers: string[]): RandomSigSettings | { message: string } {
   const common = parseGameCommon(input, forbidden, signatureIds);
@@ -53,13 +62,52 @@ export function parseRandomSigSettings(input: unknown, forbidden: string[], sign
   if (!mode) return { message: "기여도 방식을 골라 주세요." };
   const multiplier = parseMultiplier(v.multiplier, RANDOM_SIG_MULTIPLIER_MAX);
   if (multiplier === null || multiplier <= 1) return { message: `기본 배수는 1보다 크고 ${RANDOM_SIG_MULTIPLIER_MAX}배 이하, 소수 둘째 자리까지예요.` };
-  return { ...common, tiers, mode, multiplier };
+  if (typeof v.digit !== "boolean") return { message: "앞자리 배수를 확인해 주세요." };
+  if (typeof v.alertRoll !== "boolean") return { message: "알림 롤링을 확인해 주세요." };
+  const unit = RANDOM_SIG_DIGIT_UNITS.find((u) => u.unit === v.digitUnit);
+  if (!unit) return { message: "앞자리 배수의 자리 단위를 골라 주세요." };
+  if (v.digit && mode === "BONUS") {
+    if (tiers.some((t) => t.min < unit.unit)) return { message: `앞자리 배수를 켜면 시그 최소는 ${fn(unit.unit)} FN(${unit.label}) 이상이에요.` };
+    if (tiers.some((t) => digitMultiplier(t.max, unit.unit) > RANDOM_SIG_DIGIT_MAX))
+      return { message: `앞자리 배수는 ${RANDOM_SIG_DIGIT_MAX}배까지예요. 시그 최대를 ${fn(unit.unit * (RANDOM_SIG_DIGIT_MAX + 1) - 1)} FN 이하로 하거나 자리 단위를 키워 주세요.` };
+  }
+  return { ...common, tiers, mode, multiplier, digit: v.digit, digitUnit: unit.unit, alertRoll: v.alertRoll };
+}
+
+/** The channel's 랜덤시그 설정 프리셋, newest first. */
+export const randomSigPresetsOf = (channelId: string): RandomSigPreset[] => mockCrew.randomSigPresets?.[channelId] ?? [];
+
+/**
+ * 설정 프리셋 저장: `settings` (the card as it is, checked like 설정 저장) under `name` — 켜짐 · 제목 · 대기 화면 left out.
+ * The same name replaces that 프리셋 and moves it first (so a retry stays one 프리셋); a new name needs a free slot.
+ */
+export function saveRandomSigPresetOf(channelId: string, input: unknown, forbidden: string[], signatureIds: string[], now = new Date()): { status: "SAVED" } | { message: string } {
+  const v = rec(input);
+  const name = typeof v.name === "string" ? v.name.trim() : "";
+  if (!name) return { message: "프리셋 이름을 입력해 주세요." };
+  if ([...name].length > RANDOM_SIG_PRESET_NAME_MAX) return { message: `프리셋 이름은 ${RANDOM_SIG_PRESET_NAME_MAX}자까지예요.` };
+  if (forbidden.some((w) => name.toLowerCase().includes(w))) return { message: "사용할 수 없는 단어가 포함되어 있어요." };
+  const parsed = parseRandomSigSettings(v.settings, forbidden, signatureIds, randomSigSettingsOf(channelId).tiers.map((x) => x.id));
+  if ("message" in parsed) return parsed;
+  const list = randomSigPresetsOf(channelId);
+  const same = list.find((p) => p.name === name);
+  if (!same && list.length >= RANDOM_SIG_PRESETS_MAX) return { message: `프리셋은 ${RANDOM_SIG_PRESETS_MAX}개까지 저장할 수 있어요. 안 쓰는 프리셋을 지워 주세요.` };
+  const preset = { id: same?.id ?? `rsp-${randomUUID().slice(0, 8)}`, name, savedAt: now.toISOString(), settings: structuredClone(presetFieldsOf(parsed)) };
+  (mockCrew.randomSigPresets ??= {})[channelId] = [preset, ...list.filter((p) => p !== same)];
+  return { status: "SAVED" };
+}
+
+/** 프리셋 삭제 (one already gone is fine — a retried delete). */
+export function deleteRandomSigPresetOf(channelId: string, id: unknown) {
+  const list = randomSigPresetsOf(channelId);
+  if (list.some((p) => p.id === id)) (mockCrew.randomSigPresets ??= {})[channelId] = list.filter((p) => p.id !== id);
 }
 
 /** The signatures a 랜덤시그 can draw: active and not excluded (제외 시그). */
 const poolOf = (s: RandomSigSettings) => mockSignatures.items.filter((x) => x.active && !s.excluded.includes(x.id));
 
-export type RandomSigDraw = { signature: ManagedSignature; tier: RandomSigTier };
+/** `rolling`: 알림 롤링 images (the tier's candidates, up to RANDOM_SIG_ROLL_MAX) — empty when off or only one could come out. */
+export type RandomSigDraw = { signature: ManagedSignature; tier: RandomSigTier; rolling: string[] };
 
 /**
  * Called by the Donation Core for a 일반 후원: when 랜덤시그 is on, no 금액 일치 signature takes the amount and it equals a
@@ -71,13 +119,17 @@ export function drawRandomSig(channelId: string, amount: number): RandomSigDraw 
   if (!s.auto || matchSignatureByAmount(amount)) return null;
   const tier = s.tiers.find((t) => t.trigger === amount);
   const candidates = tier ? poolOf(s).filter((x) => x.price >= tier.min && x.price <= tier.max) : [];
-  return tier && candidates.length ? { signature: candidates[drawIndex(candidates.map(() => 1))], tier } : null;
+  if (!tier || !candidates.length) return null;
+  const images = [...new Set(candidates.map(signatureImageOf))];
+  const rolling = s.alertRoll && candidates.length > 1 && images.length > 1 ? shuffled(images).slice(0, RANDOM_SIG_ROLL_MAX) : [];
+  return { signature: candidates[drawIndex(candidates.map(() => 1))], tier, rolling };
 }
 
 /**
  * The 점수 게임 side, once the donation is credited: while a crew broadcast is live, a 랜덤시그 donation sent to a member
  * records a run (OBS `?randomsig`). 기본 모드: × 기본 배수 when the drawn signature is priced at or above the 발동 금액,
- * else 1배. 랜덤 결과 모드: the drawn signature's points replace the donation's (the run adds the difference).
+ * else 1배 — or, with 앞자리 배수, × the price's 자리 units (no comparison with the 발동 금액). 랜덤 결과 모드: the drawn
+ * signature's points replace the donation's (the run adds the difference).
  */
 export function randomSigRun(channelId: string, input: { donationId: string; memberId: string | null; fnAmount: number; drawn: RandomSigDraw | null }) {
   const live = liveBroadcastOf(channelId);
@@ -86,10 +138,11 @@ export function randomSigRun(channelId: string, input: { donationId: string; mem
   const excel = excelOf(channelId);
   const base = scoreFn(input.fnAmount, excel);
   const { signature, tier } = input.drawn;
+  const digit = s.mode === "BONUS" && s.digit;
   const effect =
     s.mode === "REPLACE"
       ? { kind: "ADD" as const, value: scoreFn(signature.price, excel) - base }
-      : { kind: "MULTIPLY" as const, value: signature.price >= tier.trigger ? s.multiplier : 1 };
+      : { kind: "MULTIPLY" as const, value: digit ? Math.max(1, digitMultiplier(signature.price, s.digitUnit)) : signature.price >= tier.trigger ? s.multiplier : 1 };
   recordRun(live, {
     id: `randomsig-${input.donationId}`,
     game: "RANDOM_SIG",
@@ -100,6 +153,7 @@ export function randomSigRun(channelId: string, input: { donationId: string; mem
     itemId: signature.id,
     range: [tier.min, tier.max],
     label: signature.name,
+    ...(digit && { digit: s.digitUnit }),
     ...effect,
     points: effectPoints(effect.kind, effect.value, base)
   });

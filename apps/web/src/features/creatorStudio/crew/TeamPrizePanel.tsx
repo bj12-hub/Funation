@@ -10,6 +10,7 @@ import {
   MULTI_TEAMS_MIN,
   PRIZE_BASES,
   PRIZE_TITLE_MAX,
+  TEAM_MEMBERS_PER_LINE_MAX,
   TEAM_PRIZE_MEMBER_VIEWS,
   TEAM_PRIZE_RANKS_MAX,
   TEAM_PRIZE_SOURCES,
@@ -190,6 +191,22 @@ export function TeamPrizePanel({
               </button>
             ))}
           </span>
+          {draft.members === "SCORE" && (
+            <span className={prize.inline}>
+              <span className={styles.muted}>한 줄에</span>
+              <input
+                className={styles.inputSmall}
+                type="number"
+                min={0}
+                max={TEAM_MEMBERS_PER_LINE_MAX}
+                aria-label="한 줄에 놓을 팀원 수"
+                style={{ width: 80, flex: "none" }}
+                value={draft.membersPerLine}
+                onChange={(e) => edit({ membersPerLine: Math.max(0, Math.min(TEAM_MEMBERS_PER_LINE_MAX, Math.trunc(Number(e.target.value) || 0))) })}
+              />
+              <span className={styles.muted}>명 넘으면 다음 줄로 (0 = 칸 너비에 맞춰 자동)</span>
+            </span>
+          )}
         </div>
         <BoardDisplayField draft={draft} edit={edit} />
 
