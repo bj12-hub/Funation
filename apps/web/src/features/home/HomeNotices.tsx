@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { AlertTriangleIcon } from "@/components/icons";
 import { Modal } from "@/components/ui/Modal";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { kstDateString } from "@/lib/period";
 import type { HomeNotice } from "@/services/home/homeFeed";
 import styles from "./homeNotices.module.css";
@@ -29,6 +30,7 @@ function readHidden() {
  * Opens after mount so server and client HTML match.
  */
 export function HomeNotices({ notices }: { notices: HomeNotice[] }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [index, setIndex] = useState(0);
   const [hideToday, setHideToday] = useState(false);
@@ -54,25 +56,25 @@ export function HomeNotices({ notices }: { notices: HomeNotice[] }) {
   const go = (delta: number) => setIndex((i) => (i + delta + notices.length) % notices.length);
 
   return (
-    <Modal open={open} onClose={close} title="공지사항" width={664} className={styles.dialog} customHeader={<span className={styles.srOnly}>공지사항</span>}>
+    <Modal open={open} onClose={close} title={t("home.notices")} width={664} className={styles.dialog} customHeader={<span className={styles.srOnly}>{t("home.notices")}</span>}>
       {/* Figma notice popups are dark-only: keep dark tokens in the light theme. */}
       <div className={styles.stage} data-theme="dark">
         {notices.length > 1 && (
-          <button type="button" className={styles.arrow} onClick={() => go(-1)} aria-label="이전 공지">
+          <button type="button" className={styles.arrow} onClick={() => go(-1)} aria-label={t("home.prevNotice")}>
             ‹
           </button>
         )}
-        <article className={`${styles.card} ${notice.kind === "ID_CONNECT" ? styles.light : styles.warning}`} aria-roledescription="공지" aria-label={`${index + 1} / ${notices.length}`}>
+        <article className={`${styles.card} ${notice.kind === "ID_CONNECT" ? styles.light : styles.warning}`} aria-roledescription={t("home.notice")} aria-label={`${index + 1} / ${notices.length}`}>
           {notice.kind === "ID_CONNECT" ? <IdConnect notice={notice} /> : <FraudWarning notice={notice} />}
           {notices.length > 1 && (
-            <div className={styles.dots} role="tablist" aria-label="공지 선택">
+            <div className={styles.dots} role="tablist" aria-label={t("home.noticePicker")}>
               {notices.map((n, i) => (
                 <button
                   key={n.id}
                   type="button"
                   role="tab"
                   aria-selected={i === index}
-                  aria-label={`${i + 1}번째 공지`}
+                  aria-label={t("home.noticeN", { n: i + 1 })}
                   className={i === index ? styles.dotOn : styles.dot}
                   onClick={() => setIndex(i)}
                 />
@@ -85,15 +87,15 @@ export function HomeNotices({ notices }: { notices: HomeNotice[] }) {
               <span className={styles.box} aria-hidden="true">
                 {hideToday ? "✓" : ""}
               </span>
-              오늘 하루 열지 않음
+              {t("home.hideToday")}
             </label>
             <button type="button" className={styles.closeText} onClick={close}>
-              닫기 ✕
+              {t("home.closeX")}
             </button>
           </div>
         </article>
         {notices.length > 1 && (
-          <button type="button" className={styles.arrow} onClick={() => go(1)} aria-label="다음 공지">
+          <button type="button" className={styles.arrow} onClick={() => go(1)} aria-label={t("home.nextNotice")}>
             ›
           </button>
         )}
@@ -105,12 +107,13 @@ export function HomeNotices({ notices }: { notices: HomeNotice[] }) {
 /** 200:157 — white card. The design's illustration shows unconfirmed platforms (Naver, Twitch);
  *  it is redrawn with the confirmed YouTube · SOOP · FlexTV logos. */
 function IdConnect({ notice }: { notice: Extract<HomeNotice, { kind: "ID_CONNECT" }> }) {
+  const { t } = useI18n();
   return (
     <div className={styles.lightBody}>
       <header className={styles.lightHeader}>
         <span className={styles.miniBrand}>
           <span aria-hidden="true" />
-          썸네이션
+          {t("home.brand")}
         </span>
         <span className={styles.noticeLabel}>NOTICE</span>
       </header>

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { HeartIcon, VerifiedCheckIcon } from "@/components/icons";
 import { Modal } from "@/components/ui/Modal";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { PopularCreator } from "@/services/home/homeFeed";
 import { PLATFORM_LABEL } from "@/types/platform";
 import styles from "./creatorProfile.module.css";
@@ -13,14 +14,15 @@ import styles from "./creatorProfile.module.css";
  * "후원하기" opens the creator room with the donation tab selected.
  */
 export function CreatorProfilePopup({ creator, onClose }: { creator: PopularCreator | null; onClose: () => void }) {
+  const { t } = useI18n();
   return (
     <Modal
       open={creator !== null}
       onClose={onClose}
-      title="크리에이터 프로필"
+      title={t("home.profileTitle")}
       width={800}
       className={styles.dialog}
-      customHeader={<h2 className={styles.title}>크리에이터 프로필</h2>}
+      customHeader={<h2 className={styles.title}>{t("home.profileTitle")}</h2>}
     >
       {creator && (
         <>
@@ -30,20 +32,20 @@ export function CreatorProfilePopup({ creator, onClose }: { creator: PopularCrea
               <div className={styles.nameRow}>
                 <strong className={styles.name}>{creator.name}</strong>
                 {creator.profile.verified && (
-                  <span className={styles.verified} role="img" aria-label="인증된 크리에이터">
+                  <span className={styles.verified} role="img" aria-label={t("home.verified")}>
                     <VerifiedCheckIcon width={12} height={12} />
                   </span>
                 )}
               </div>
               {creator.profile.status && <p className={styles.status}>{creator.profile.status}</p>}
               {creator.profile.tags.length > 0 && (
-                <ul className={styles.tags} aria-label="카테고리">
+                <ul className={styles.tags} aria-label={t("home.categories")}>
                   {creator.profile.tags.map((t) => (
                     <li key={t}>{t}</li>
                   ))}
                 </ul>
               )}
-              <ul className={styles.channels} aria-label="방송 채널">
+              <ul className={styles.channels} aria-label={t("home.channels")}>
                 {creator.profile.channels.map((c) => (
                   <li key={c.platform}>
                     <Image src={c.logoUrl} alt="" width={24} height={24} className={styles.logo} />
@@ -56,10 +58,10 @@ export function CreatorProfilePopup({ creator, onClose }: { creator: PopularCrea
           <footer className={styles.footer}>
             <Link href={`/creators/${creator.id}?tab=donation`} className={styles.donate} onClick={onClose}>
               <HeartIcon width={17} height={17} aria-hidden="true" />
-              후원하기
+              {t("home.donate")}
             </Link>
             <button type="button" className={styles.close} onClick={onClose}>
-              닫기
+              {t("home.close")}
             </button>
           </footer>
         </>
