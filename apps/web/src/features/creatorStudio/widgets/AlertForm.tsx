@@ -6,7 +6,7 @@ import { PreviewStage } from "@/features/overlayTheme/PreviewStage";
 import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
 import { assetUrl } from "@/services/creator/assetTypes";
 import { OVERLAY_MOTIONS, resolveTheme } from "@/services/creator/overlayThemeTypes";
-import { ALERT_HEADLINE_MAX, ALERT_LAYOUTS, ALERT_SOUND_MAX_SEC, ALERT_TOKENS, SIG_FETCH_MODES } from "@/services/creator/widgetSettingsTypes";
+import { ALERT_HEADLINE_MAX, ALERT_LAYOUTS, ALERT_SOUND_MAX_SEC, ALERT_TEXT_SCALES, ALERT_TOKENS, SIG_FETCH_MODES } from "@/services/creator/widgetSettingsTypes";
 import { AlertCard, type AlertCardData } from "../remote/AlertCard";
 import { Radios, Row, Section, Select, SwitchText } from "./fields";
 import type { FormProps } from "./forms";
@@ -173,6 +173,29 @@ export function AlertForm({ value: v, onChange, live }: FormProps<"ALERT">) {
           <Row label="시그니처 이미지">
             <SwitchText label="시그니처 이미지 표시" checked={v.showImage} onChange={(x) => set("showImage", x)} text="시그니처 후원이면 이미지를 함께" />
           </Row>
+        </div>
+      </Section>
+
+      <Section title="글자 크기">
+        <div className={styles.rows}>
+          {(
+            [
+              ["amount", "금액"],
+              ["name", "알림 문구 (닉네임)"],
+              ["message", "후원 메시지"]
+            ] as const
+          ).map(([k, label]) => (
+            <Row key={k} label={label}>
+              <Select
+                label={`${label} 글자 크기`}
+                value={(v.textScale ?? { amount: 100, name: 100, message: 100 })[k]}
+                options={ALERT_TEXT_SCALES}
+                width={120}
+                format={(x) => (x === 100 ? "100% (기본)" : `${x}%`)}
+                onChange={(x) => set("textScale", { ...(v.textScale ?? { amount: 100, name: 100, message: 100 }), [k]: x })}
+              />
+            </Row>
+          ))}
         </div>
       </Section>
 
