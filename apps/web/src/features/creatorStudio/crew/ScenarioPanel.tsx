@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useServerClock } from "@/hooks/useServerClock";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { finishScenario, setScenario, startScenarioPart } from "@/services/crew/crewScenario";
 import {
   SCENARIO_MEMO_MAX,
@@ -47,6 +48,7 @@ export function ScenarioPanel({
   pending: boolean;
   run: (action: () => Promise<BroadcastResult>, ok?: string) => void;
 }) {
+  const { t } = useI18n();
   const [rows, setRows] = useState<Row[]>(() => plan.map(toRow));
   const synced = useRef(JSON.stringify(plan));
   useEffect(() => {
@@ -70,7 +72,7 @@ export function ScenarioPanel({
   const parts = running?.parts ?? plan;
   const current = running?.current ?? null;
   const next = current === null ? (running ? null : 0) : current + 1 < parts.length ? current + 1 : null;
-  const go = (index: number) => live && run(() => startScenarioPart({ broadcastId: live.broadcastId, index, requestId: crypto.randomUUID() }), `${index + 1}부를 시작했어요.`);
+  const go = (index: number) => live && run(() => startScenarioPart({ broadcastId: live.broadcastId, index, requestId: crypto.randomUUID() }), t("crewOpsScenario.partStarted", { n: index + 1 }));
   const part = current === null ? undefined : parts[current];
   const over = part?.minutes && elapsed !== null && elapsed > part.minutes * 60;
 
@@ -78,16 +80,16 @@ export function ScenarioPanel({
     <section className={styles.card} aria-labelledby="bc-scenario">
       <div className={styles.cardHead}>
         <h2 id="bc-scenario" className={styles.cardTitle}>
-          콘텐츠 시나리오
+          {t("crewOpsScenario.title")}
         </h2>
         {part && (
           <span className={scen.clock} data-over={over ? "" : undefined}>
             {elapsed === null ? "--:--" : mmss(elapsed)}
-            {part.minutes ? ` / ${part.minutes}분` : ""}
+            {part.minutes ? t("crewOpsScenario.clockPlan", { n: part.minutes }) : ""}
           </span>
         )}
       </div>
-      <p className={styles.note}>1부부터 {SCENARIO_PARTS_MAX}부까지 방송 흐름을 미리 짜 두고, 방송 중에 다음 부로 넘기세요. 부를 시작할 때 서브 점수판을 자동으로 열 수 있어요.</p>
+      <p className={styles.note}>{t("crewOpsScenario.note", { max: SCENARIO_PARTS_MAX })}</p>
 
       {live && parts.length > 0 && (
         <div className={scen.live}>
@@ -98,7 +100,7 @@ export function ScenarioPanel({
                 <li key={i} data-state={i === current ? "current" : done ? "done" : undefined}>
                   <button type="button" className={scen.step} disabled={pending || i === current} onClick={() => go(i)} aria-current={i === current ? "step" : undefined}>
                     <strong>{partName(i, p)}</strong>
-                    <span className={styles.muted}>{p.minutes ? `${p.minutes}분` : "시간 미정"}</span>
+                    <span className={styles.muted}>{p.minutes ? t("crewOpsBattle.minutes", { n: p.minutes }) : t("crewOpsScenario.noTime")}</span>
                   </button>
                 </li>
               );
@@ -106,66 +108,66 @@ export function ScenarioPanel({
           </ol>
           {part ? (
             <div className={scen.now}>
-              <strong>지금 · {partName(current!, part)}</strong>
+              <strong>{t("crewOpsScenario.now", { name: partName(current!, part) })}</strong>
               {part.memo && <p className={scen.memo}>{part.memo}</p>}
-              {over && <p className={styles.error}>예정 시간을 넘겼어요.</p>}
+              {over && <p className={styles.error}>{t("crewOpsScenario.overTime")}</p>}
             </div>
           ) : (
-            <p className={styles.muted}>{running ? "시나리오를 마쳤어요. 부를 눌러 다시 이어 갈 수 있어요." : "1부를 시작하면 시간이 재져요."}</p>
+            <p className={styles.muted}>{running ? t("crewOpsScenario.finishedNote") : t("crewOpsScenario.idleNote")}</p>
           )}
           <div className={styles.actions}>
             {next !== null && (
               <button type="button" className={styles.primary} disabled={pending} onClick={() => go(next)}>
-                {current === null ? `${next + 1}부 시작` : `다음: ${partName(next, parts[next])}`}
+                {current === null ? t("crewOpsScenario.startPart", { n: next + 1 }) : t("crewOpsScenario.nextPart", { name: partName(next, parts[next]) })}
               </button>
             )}
             {current !== null && (
-              <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => finishScenario({ broadcastId: live.broadcastId }), "시나리오를 마쳤어요.")}>
-                시나리오 마치기
+              <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => finishScenario({ broadcastId: live.broadcastId }), t("crewOpsScenario.finished"))}>
+                {t("crewOpsScenario.finish")}
               </button>
             )}
           </div>
-          {running && <p className={styles.note}>진행 중인 방송은 처음 부를 시작할 때의 시나리오로 진행돼요. 아래에서 고친 내용은 다음 방송부터 적용돼요.</p>}
+          {running && <p className={styles.note}>{t("crewOpsScenario.runningNote")}</p>}
         </div>
       )}
 
       <details className={styles.logs} open={!live || !rows.length}>
-        <summary>시나리오 편집 ({rows.length}/{SCENARIO_PARTS_MAX}부)</summary>
+        <summary>{t("crewOpsScenario.editTitle", { count: rows.length, max: SCENARIO_PARTS_MAX })}</summary>
         <ol className={scen.editor}>
           {rows.map((r, i) => (
             <li key={i}>
-              <span className={scen.no}>{i + 1}부</span>
-              <input className={styles.input} aria-label={`${i + 1}부 이름`} placeholder="이름 (예: 오프닝 · 직급전)" value={r.title} maxLength={SCENARIO_TITLE_MAX} onChange={(e) => edit(i, { title: e.target.value })} onBlur={() => save(rows)} />
+              <span className={scen.no}>{t("crewOpsScenario.partN", { n: i + 1 })}</span>
+              <input className={styles.input} aria-label={t("crewOpsScenario.partNameAria", { n: i + 1 })} placeholder={t("crewOpsScenario.partNamePlaceholder")} value={r.title} maxLength={SCENARIO_TITLE_MAX} onChange={(e) => edit(i, { title: e.target.value })} onBlur={() => save(rows)} />
               <input
                 className={styles.inputSmall}
                 inputMode="numeric"
-                aria-label={`${i + 1}부 예정 시간(분)`}
-                placeholder="분"
+                aria-label={t("crewOpsScenario.partMinutesAria", { n: i + 1 })}
+                placeholder={t("crewOpsBattle.minutesUnit")}
                 value={r.minutes}
                 onChange={(e) => edit(i, { minutes: e.target.value.replace(/\D/g, "").slice(0, 3) })}
                 onBlur={() => save(rows)}
               />
-              <input className={styles.input} aria-label={`${i + 1}부 메모`} placeholder="메모 (진행 내용 · 미션)" value={r.memo} maxLength={SCENARIO_MEMO_MAX} onChange={(e) => edit(i, { memo: e.target.value })} onBlur={() => save(rows)} />
+              <input className={styles.input} aria-label={t("crewOpsScenario.partMemoAria", { n: i + 1 })} placeholder={t("crewOpsScenario.partMemoPlaceholder")} value={r.memo} maxLength={SCENARIO_MEMO_MAX} onChange={(e) => edit(i, { memo: e.target.value })} onBlur={() => save(rows)} />
               <label className={styles.checkRow}>
                 <input type="checkbox" checked={r.openBoard} onChange={(e) => save(rows.map((x, j) => (j === i ? { ...x, openBoard: e.target.checked } : x)))} />
-                서브 점수판
+                {t("crewOpsScenario.subBoard")}
               </label>
               <button type="button" className={styles.ghost} disabled={pending} onClick={() => save(rows.filter((_, j) => j !== i))}>
-                삭제
+                {t("crewOps.delete")}
               </button>
             </li>
           ))}
         </ol>
         {rows.length < SCENARIO_PARTS_MAX && (
           <button type="button" className={styles.ghost} onClick={() => save([...rows, { title: "", minutes: "", memo: "", openBoard: false }])}>
-            + {rows.length + 1}부 추가
+            {t("crewOpsScenario.addPart", { n: rows.length + 1 })}
           </button>
         )}
       </details>
 
       <div className={styles.addRow}>
-        <input className={styles.input} value={shownOverlayAddress(origin, overlayPath, "?scenario")} readOnly aria-label="시나리오 오버레이 주소" onFocus={(e) => e.target.select()} />
-        <CopyButton value={`${origin}${overlayPath}?scenario`} label="복사" className={styles.ghost} />
+        <input className={styles.input} value={shownOverlayAddress(origin, overlayPath, "?scenario")} readOnly aria-label={t("crewOpsScenario.overlayAddressAria")} onFocus={(e) => e.target.select()} />
+        <CopyButton value={`${origin}${overlayPath}?scenario`} label={t("crewOpsBroadcast.copy")} className={styles.ghost} />
       </div>
     </section>
   );
