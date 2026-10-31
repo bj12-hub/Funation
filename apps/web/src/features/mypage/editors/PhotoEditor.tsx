@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangleIcon, FileImageIcon, UploadIcon } from "@/components/icons";
 import { Modal } from "@/components/ui/Modal";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES } from "@/lib/validation";
 import { uploadProfilePhoto } from "@/services/account/profileActions";
 import { formatMegabytes } from "./shared";
@@ -19,26 +21,26 @@ import styles from "./editors.module.css";
 
 type Failure = "UNSUPPORTED" | "TOO_LARGE" | "FAILED";
 
-const FAILURES: Record<Failure, { title: string; headline: string; sub: string; retry: string; showType: boolean }> = {
+const FAILURES: Record<Failure, { title: MessageKey; headline: MessageKey; sub: MessageKey; retry: MessageKey; showType: boolean }> = {
   UNSUPPORTED: {
-    title: "지원하지 않는 파일 형식",
-    headline: "선택한 파일 형식은 업로드할 수 없어요.",
-    sub: "JPG, PNG, WEBP 형식의 이미지를 선택해 주세요.",
-    retry: "다른 이미지 선택",
+    title: "myEdit.photoUnsupportedTitle",
+    headline: "myEdit.photoUnsupported",
+    sub: "myEdit.photoUnsupportedHint",
+    retry: "myEdit.photoPickAnother",
     showType: true
   },
   TOO_LARGE: {
-    title: "파일 용량 초과",
-    headline: "이미지 용량이 최대 허용 크기를 초과했어요.",
-    sub: "5MB 이하의 파일을 다시 선택해 주세요.",
-    retry: "다시 선택",
+    title: "myEdit.photoTooLargeTitle",
+    headline: "myEdit.photoTooLarge",
+    sub: "myEdit.photoTooLargeHint",
+    retry: "myEdit.photoPickAgain",
     showType: false
   },
   FAILED: {
-    title: "업로드 실패",
-    headline: "프로필 사진을 업로드하지 못했어요.",
-    sub: "네트워크 연결을 확인하거나 잠시 후 다시 시도해 주세요.",
-    retry: "다시 시도",
+    title: "myEdit.photoFailedTitle",
+    headline: "myEdit.photoFailed",
+    sub: "myEdit.photoFailedHint",
+    retry: "my.retry",
     showType: false
   }
 };
@@ -46,6 +48,7 @@ const FAILURES: Record<Failure, { title: string; headline: string; sub: string; 
 type Props = { triggerClassName: string; currentUrl: string | null; nickname: string };
 
 export function PhotoEditor({ triggerClassName, currentUrl, nickname }: Props) {
+  const { t } = useI18n();
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
@@ -103,10 +106,10 @@ export function PhotoEditor({ triggerClassName, currentUrl, nickname }: Props) {
     : "";
 
   let primary: { label: string; onClick: () => void };
-  if (done) primary = { label: "확인", onClick: () => setOpen(false) };
-  else if (failure === "FAILED") primary = { label: f!.retry, onClick: save };
-  else if (failure) primary = { label: f!.retry, onClick: () => inputRef.current?.click() };
-  else primary = { label: "사진 저장", onClick: save };
+  if (done) primary = { label: t("my.ok"), onClick: () => setOpen(false) };
+  else if (failure === "FAILED") primary = { label: t(f!.retry), onClick: save };
+  else if (failure) primary = { label: t(f!.retry), onClick: () => inputRef.current?.click() };
+  else primary = { label: t("myEdit.photoSave"), onClick: save };
 
   return (
     <>
@@ -118,17 +121,17 @@ export function PhotoEditor({ triggerClassName, currentUrl, nickname }: Props) {
           setOpen(true);
         }}
       >
-        사진 변경
+        {t("myEdit.photoChange")}
       </button>
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title={done ? "프로필 사진 적용 완료" : f ? f.title : "프로필 사진 변경"}
-        description={done ? "새 프로필 사진이 적용되었어요." : f ? f.headline : "새 프로필 이미지를 업로드하고 미리보기를 확인해 주세요."}
+        title={done ? t("myEdit.photoDoneTitle") : f ? t(f.title) : t("myEdit.photoTitle")}
+        description={done ? t("myEdit.photoDone") : f ? t(f.headline) : t("myEdit.photoDesc")}
         footer={
           <>
             <button type="button" className={styles.secondary} onClick={() => setOpen(false)}>
-              {done ? "닫기" : "취소"}
+              {done ? t("my.close") : t("my.cancel")}
             </button>
             <button
               type="button"
@@ -163,7 +166,7 @@ export function PhotoEditor({ triggerClassName, currentUrl, nickname }: Props) {
             <span className={`${styles.preview} ${done ? styles.previewSuccess : ""}`}>
               {shownImage ? (
                 // eslint-disable-next-line @next/next/no-img-element -- local preview (blob:) or uploaded data URL
-                <img src={shownImage} alt="프로필 사진 미리보기" className={styles.previewImage} />
+                <img src={shownImage} alt={t("myEdit.photoPreview")} className={styles.previewImage} />
               ) : (
                 <span className={styles.previewFallback} aria-hidden="true">
                   {nickname.slice(0, 1)}
@@ -175,9 +178,9 @@ export function PhotoEditor({ triggerClassName, currentUrl, nickname }: Props) {
           {(f || done) && (
             <div className={styles.statusText}>
               <p className={`${styles.statusHeadline} ${done ? styles.statusHeadlineSuccess : ""}`} role={f ? "alert" : "status"}>
-                {done ? "새 프로필 사진이 적용되었어요." : f!.headline}
+                {done ? t("myEdit.photoDone") : t(f!.headline)}
               </p>
-              <p className={styles.statusSub}>{done ? "마이페이지와 활동 프로필에서 새 사진을 확인할 수 있어요." : f!.sub}</p>
+              <p className={styles.statusSub}>{done ? t("myEdit.photoDoneHint") : t(f!.sub)}</p>
             </div>
           )}
 
@@ -187,7 +190,7 @@ export function PhotoEditor({ triggerClassName, currentUrl, nickname }: Props) {
                 <FileImageIcon />
                 <span>{fileLabel}</span>
               </span>
-              <span className={styles.fileBadge}>{done ? "적용됨" : "확인 필요"}</span>
+              <span className={styles.fileBadge}>{done ? t("myEdit.photoApplied") : t("my.needsCheck")}</span>
             </div>
           )}
 
@@ -195,10 +198,10 @@ export function PhotoEditor({ triggerClassName, currentUrl, nickname }: Props) {
             <>
               <button type="button" className={styles.uploadButton} onClick={() => inputRef.current?.click()}>
                 <UploadIcon />
-                이미지 선택
+                {t("myEdit.photoSelect")}
               </button>
               <p className={styles.hint}>
-                {file ? `${file.name} · ${formatMegabytes(file.size)}` : "JPG, PNG · 최대 5MB · 권장 400×400px"}
+                {file ? `${file.name} · ${formatMegabytes(file.size)}` : t("myEdit.photoSpec")}
               </p>
             </>
           )}

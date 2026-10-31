@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { MyPageScreen } from "@/features/mypage";
+import { getT } from "@/lib/i18n/server";
 import { getSession, hasRole } from "@/lib/session";
 import { getMyAccount } from "@/services/account/myAccount";
 import { getSupporterIdentity } from "@/services/supporter/identity";
 
 // Figma: ssumnation-my-page 735:4119 · 622:4
-export const metadata: Metadata = { title: "내 정보 | Ssumnation" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("my.meta") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
