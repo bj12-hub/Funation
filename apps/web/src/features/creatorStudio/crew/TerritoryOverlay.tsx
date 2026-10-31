@@ -11,6 +11,11 @@ import { GameCard, currentRun, signedPoints } from "./GameOverlayParts";
 import board from "./overlay.module.css";
 import styles from "./gameOverlay.module.css";
 
+/** What the 롤링 line and each 순위 row (with the gap above the list) take under the board, for the card's height budget. */
+const TICKER_PX = 32;
+const RANK_GAP_PX = 12;
+const RANK_ROW_PX = 23;
+
 /** Who owns each cell as OBS shows it at `now`, and the 점유 순위 from it (cells, then 하트). */
 export function territoryRanking(territory: TerritoryLive, now: number) {
   const terr = territory.board;
@@ -71,7 +76,8 @@ export function TerritoryOverlay({ territory, serverNow, reloadSeq, theme }: { t
       wide
       // A bigger board widens the card (cells stay about the size of a 10×10's); the OBS source's width and height still cap it.
       columns={terr ? Math.ceil(terr.size / 11) : undefined}
-      fitHeight
+      // The 롤링 line and the 순위 rows under the board take their height from the board's room.
+      fitHeight={terr ? (territory.settings.ticker !== "OFF" ? TICKER_PX : 0) + (ranking.length ? RANK_GAP_PX + ranking.length * RANK_ROW_PX : 0) : 0}
     >
       {territory.settings.ticker === "TOP" && ticker}
       {terr ? (
