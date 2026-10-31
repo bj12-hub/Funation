@@ -62,10 +62,11 @@ export function SigDosanPanel({
   const [sort, setSort] = useState<DosanSort>("PRICE_ASC");
   const [pick, setPick] = useState({ min: "", max: "", count: "5" });
   const [pickNote, setPickNote] = useState<string | null>(null);
-  // 이미지+음악 있는 것만 (2026-10-30, StreamDonate "이미지+음악 있는 항목만 표시"): the picker and 랜덤 선택 leave the rest out.
+  // 이미지+음악 있는 것만 (2026-10-30, StreamDonate "이미지+음악 있는 항목만 표시"): the picker and 랜덤 선택 leave the rest out —
+  // but the picker keeps the ones already picked, so they can still be taken out (they count toward the 20).
   const [completeOnly, setCompleteOnly] = useState(false);
   const pool = completeOnly ? signatures.filter((s) => s.complete) : signatures;
-  const shown = sortDosanSignatures(pool, sort);
+  const shown = sortDosanSignatures(completeOnly ? signatures.filter((s) => s.complete || draft.signatureIds.includes(s.id)) : signatures, sort);
   const randomPick = () => {
     const num = (v: string) => (v.trim() === "" ? null : Number(v));
     const count = Math.min(SIG_DOSAN_STEPS_MAX, Math.max(1, Math.floor(Number(pick.count) || 0)));
@@ -82,10 +83,14 @@ export function SigDosanPanel({
     ids.current = draft.signatureIds;
   });
   const painting = useRef<boolean | null>(null);
-  /** The chip a mouse press just chose (its click that follows is not another toggle). */
-  const pressed = useRef<{ id: string; at: number } | null>(null);
+  /** The chip a mouse press just chose: the click that follows the release is not another toggle. */
+  const pressed = useRef<string | null>(null);
   useEffect(() => {
-    const done = () => (painting.current = null);
+    const done = () => {
+      painting.current = null;
+      // After the click this release fires (same task), however long the press or wherever the drag ended.
+      setTimeout(() => (pressed.current = null));
+    };
     window.addEventListener("pointerup", done);
     window.addEventListener("pointercancel", done);
     return () => {
@@ -206,7 +211,7 @@ export function SigDosanPanel({
                   if (e.button !== 0 || e.pointerType !== "mouse") return;
                   e.preventDefault();
                   painting.current = !ids.current.includes(s.id);
-                  pressed.current = { id: s.id, at: Date.now() };
+                  pressed.current = s.id;
                   paint(s.id, painting.current);
                 }}
                 onPointerEnter={(e) => {
@@ -214,9 +219,7 @@ export function SigDosanPanel({
                 }}
                 // A mouse press already chose; keys and touch choose here.
                 onClick={() => {
-                  const p = pressed.current;
-                  pressed.current = null;
-                  if (!(p && p.id === s.id && Date.now() - p.at < 2000)) toggle(s.id);
+                  if (pressed.current !== s.id) toggle(s.id);
                 }}
               >
                 {s.name}
