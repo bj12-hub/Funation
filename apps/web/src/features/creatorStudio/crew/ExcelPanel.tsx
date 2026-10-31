@@ -4,6 +4,7 @@ import { useState } from "react";
 import { formatNumber } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { MessageKey } from "@/lib/i18n/translate";
+import { unitText } from "@/lib/i18n/unitText";
 import { setExcelSettings } from "@/services/crew/crewFeed";
 import {
   EXCEL_RULES_MAX,
@@ -96,12 +97,12 @@ export function ExcelPanel({
             <legend>{t("crewOpsFeed.ratesLegend")}</legend>
             {RATE_UNITS.map((u) => (
               <label key={u.key} className={feed.rate}>
-                <span>1 {u.label}</span>
+                <span>1 {unitText(u.key, t)}</span>
                 <input
                   key={`${u.key}-${settings.rates[u.key] ?? ""}`}
                   className={styles.inputSmall}
                   inputMode="decimal"
-                  aria-label={t("crewOpsFeed.rateAria", { unit: u.label })}
+                  aria-label={t("crewOpsFeed.rateAria", { unit: unitText(u.key, t) })}
                   placeholder={t("crewOpsFeed.notSet")}
                   defaultValue={settings.rates[u.key] ?? ""}
                   onBlur={(e) => setRate(u.key, e.target.value)}
