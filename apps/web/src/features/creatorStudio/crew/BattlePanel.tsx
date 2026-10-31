@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { adjustBattleTime, setBattleDisplay, setBattleRules, startBattle, stopBattle } from "@/services/crew/crewBattle";
 import {
   BATTLE_MODES,
@@ -31,7 +33,16 @@ import battle from "./battle.module.css";
 
 const PRESETS = [3, 5, 10];
 const clock = (sec: number) => `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
-const signedSec = (s: number) => `${s > 0 ? "+" : "−"}${Math.abs(s) >= 60 ? `${Math.abs(s) / 60}분` : `${Math.abs(s)}초`}`;
+type T = ReturnType<typeof useI18n>["t"];
+const signedSec = (s: number, t: T) => `${s > 0 ? "+" : "−"}${Math.abs(s) >= 60 ? t("crewOpsBattle.minutes", { n: Math.abs(s) / 60 }) : t("crewOpsBattle.seconds", { n: Math.abs(s) })}`;
+/** 배틀 방식 · 다수 팀 표시 방식 labels as message keys (the constants in crewTypes stay as written). */
+const MODE_KEY: Record<BattleMode, MessageKey> = {
+  MEMBERS: "crewOpsBattle.modeMembers",
+  TEAMS: "crewOpsBattle.modeTeams",
+  MULTI_TEAMS: "crewOpsBattle.modeMultiTeams",
+  PAIRS: "crewOpsBattle.modePairs"
+};
+const DISPLAY_KEY: Record<BattleDisplay, MessageKey> = { BARS: "crewOpsBattle.displayBars", STACKED: "crewOpsBattle.displayStacked" };
 
 /** Seconds left, counting down locally between server refreshes (the server decides when it ends). */
 export function useCountdown(b: Battle | undefined) {
@@ -72,6 +83,7 @@ export function BattlePanel({
   pending: boolean;
   run: (action: () => Promise<BroadcastResult>, ok?: string) => void;
 }) {
+  const { t } = useI18n();
   const active = members.filter((m) => m.active);
   const current = battles.find((x) => x.running);
   const last = battles.at(-1);
@@ -119,23 +131,20 @@ export function BattlePanel({
         setTitle("");
       }
       return res;
-    }, "배틀을 시작했어요.");
+    }, t("crewOpsBattle.started"));
   };
-  const ready = { MEMBERS: !!memberA && !!memberB && memberA !== memberB, TEAMS: teamMode, MULTI_TEAMS: teams.every((t) => t.memberIds.length > 0), PAIRS: pairsReady }[mode];
+  const ready = { MEMBERS: !!memberA && !!memberB && memberA !== memberB, TEAMS: teamMode, MULTI_TEAMS: teams.every((team) => team.memberIds.length > 0), PAIRS: pairsReady }[mode];
   const canStart = ready && multiplierValue > 0;
 
   return (
     <section className={styles.card} aria-labelledby="bc-battle">
       <div className={styles.cardHead}>
         <h2 id="bc-battle" className={styles.cardTitle}>
-          실시간 배틀
+          {t("crewOpsBattle.title")}
         </h2>
         {current && <span className={battle.timer}>{clock(left)}</span>}
       </div>
-      <p className={styles.note}>
-        BJ 1:1, A팀 vs B팀(팀 배틀 방송), 다수 팀(2~8팀) 또는 1:1 여러 쌍(최대 12쌍)이 정한 시간 동안 받은 후원 점수 × 배수로 겨뤄요. 보정 점수는 들어가지 않고, 배틀 중 받은 점수는
-        메인 점수판에도 배수만큼 들어가요. 진 쪽(다수 팀은 꼴찌 팀, 여러 쌍은 쌍마다 진 BJ)이 벌칙을 해요.
-      </p>
+      <p className={styles.note}>{t("crewOpsBattle.note")}</p>
 
       {current ? (
         <>
@@ -149,26 +158,26 @@ export function BattlePanel({
                 disabled={pending}
                 onClick={() => run(() => adjustBattleTime({ broadcastId, no: current.no, deltaSec: s, requestId: crypto.randomUUID() }))}
               >
-                {signedSec(s)}
+                {signedSec(s, t)}
               </button>
             ))}
-            <button type="button" className={styles.danger} disabled={pending} onClick={() => run(() => stopBattle({ broadcastId, no: current.no }), "배틀을 끝냈어요.")}>
-              지금 끝내기
+            <button type="button" className={styles.danger} disabled={pending} onClick={() => run(() => stopBattle({ broadcastId, no: current.no }), t("crewOpsBattle.stopped"))}>
+              {t("crewOpsBattle.stopNow")}
             </button>
           </div>
           {current.mode === "MULTI_TEAMS" && (
             <div className={styles.addRow}>
-              <span className={styles.muted}>OBS 표시</span>
-              <span className={styles.segment} role="group" aria-label="다수 팀 표시 방식">
+              <span className={styles.muted}>{t("crewOpsBattle.obsDisplay")}</span>
+              <span className={styles.segment} role="group" aria-label={t("crewOpsBattle.displayAria")}>
                 {BATTLE_DISPLAYS.map((d) => (
                   <button
                     key={d.key}
                     type="button"
                     aria-pressed={current.display === d.key}
                     disabled={pending}
-                    onClick={() => run(() => setBattleDisplay({ broadcastId, no: current.no, display: d.key }), `OBS에 ${d.label}로 보여 줘요.`)}
+                    onClick={() => run(() => setBattleDisplay({ broadcastId, no: current.no, display: d.key }), t("crewOpsBattle.displaySet", { display: t(DISPLAY_KEY[d.key]) }))}
                   >
-                    {d.label}
+                    {t(DISPLAY_KEY[d.key])}
                   </button>
                 ))}
               </span>
@@ -179,10 +188,10 @@ export function BattlePanel({
         <>
           {last && <BattleBoard battle={last} />}
           <div className={styles.startForm}>
-            <span className={styles.segment} role="group" aria-label="배틀 방식">
+            <span className={styles.segment} role="group" aria-label={t("crewOpsBattle.modeAria")}>
               {BATTLE_MODES.map((m) => (
                 <button key={m.key} type="button" aria-pressed={mode === m.key} disabled={m.key === "TEAMS" && !teamMode} onClick={() => setMode(m.key)}>
-                  {m.label}
+                  {t(MODE_KEY[m.key])}
                 </button>
               ))}
             </span>
@@ -195,7 +204,7 @@ export function BattlePanel({
                   ] as const
                 ).map(([label, value, set]) => (
                   <select key={label} className={styles.select} aria-label={label} value={value} onChange={(e) => set(e.target.value)}>
-                    <option value="">{label} 선택</option>
+                    <option value="">{t("crewOpsBattle.pickSide", { label })}</option>
                     {active.map((m) => (
                       <option key={m.id} value={m.id}>
                         {m.name}
@@ -208,32 +217,32 @@ export function BattlePanel({
             {mode === "MULTI_TEAMS" && (
               <div className={battle.setup}>
                 <div className={styles.addRow}>
-                  <span className={styles.muted}>OBS 표시</span>
-                  <span className={styles.segment} role="group" aria-label="다수 팀 표시 방식">
+                  <span className={styles.muted}>{t("crewOpsBattle.obsDisplay")}</span>
+                  <span className={styles.segment} role="group" aria-label={t("crewOpsBattle.displayAria")}>
                     {BATTLE_DISPLAYS.map((d) => (
                       <button key={d.key} type="button" aria-pressed={display === d.key} onClick={() => setDisplay(d.key)}>
-                        {d.label}
+                        {t(DISPLAY_KEY[d.key])}
                       </button>
                     ))}
                   </span>
                 </div>
                 <label className={styles.addRow}>
-                  <span className={styles.muted}>팀 수</span>
-                  <select className={styles.select} aria-label="팀 수" value={teamCount} onChange={(e) => setTeamCount(Number(e.target.value))}>
+                  <span className={styles.muted}>{t("crewOpsBattle.teamCount")}</span>
+                  <select className={styles.select} aria-label={t("crewOpsBattle.teamCount")} value={teamCount} onChange={(e) => setTeamCount(Number(e.target.value))}>
                     {Array.from({ length: MULTI_TEAMS_MAX - MULTI_TEAMS_MIN + 1 }, (_, i) => i + MULTI_TEAMS_MIN).map((n) => (
                       <option key={n} value={n}>
-                        {n}팀
+                        {t("crewOpsBattle.teamsN", { n })}
                       </option>
                     ))}
                   </select>
                 </label>
                 <div className={battle.teamNames}>
-                  {teams.map((t, i) => (
+                  {teams.map((_, i) => (
                     <input
                       key={i}
                       className={styles.input}
                       style={{ borderLeftColor: MULTI_TEAM_COLORS[i] }}
-                      aria-label={`${i + 1}번 팀 이름`}
+                      aria-label={t("crewOpsBattle.teamNameAria", { n: i + 1 })}
                       placeholder={`${MULTI_TEAM_KEYS[i]}팀`}
                       maxLength={BATTLE_TEAM_NAME_MAX}
                       value={teamNames[i]}
@@ -248,30 +257,30 @@ export function BattlePanel({
                       <span className={styles.teamName}>{m.name}</span>
                       <select
                         className={styles.select}
-                        aria-label={`${m.name} 팀`}
+                        aria-label={t("crewOpsBroadcast.memberTeamAria", { name: m.name })}
                         value={teamOf[m.id] !== undefined && teamOf[m.id] < teamCount ? teamOf[m.id] : ""}
                         onChange={(e) => setTeamOf((prev) => ({ ...prev, [m.id]: e.target.value === "" ? -1 : Number(e.target.value) }))}
                       >
-                        <option value="">없음</option>
-                        {teams.map((t, i) => (
+                        <option value="">{t("crewOpsBroadcast.noTeam")}</option>
+                        {teams.map((team, i) => (
                           <option key={i} value={i}>
-                            {t.name.trim() || `${MULTI_TEAM_KEYS[i]}팀`}
+                            {team.name.trim() || `${MULTI_TEAM_KEYS[i]}팀`}
                           </option>
                         ))}
                       </select>
                     </li>
                   ))}
                 </ul>
-                {!ready && <p className={styles.note}>팀마다 멤버를 한 명 이상 배정해 주세요. 한 멤버는 한 팀에만 들어가요.</p>}
+                {!ready && <p className={styles.note}>{t("crewOpsBattle.teamsNotReady")}</p>}
               </div>
             )}
             {mode === "PAIRS" && (
               <div className={battle.setup}>
                 <label className={styles.addRow}>
-                  <span className={styles.muted}>쌍 수</span>
+                  <span className={styles.muted}>{t("crewOpsBattle.pairCount")}</span>
                   <select
                     className={styles.select}
-                    aria-label="쌍 수"
+                    aria-label={t("crewOpsBattle.pairCount")}
                     value={pairs.length}
                     onChange={(e) => {
                       const n = Number(e.target.value);
@@ -280,7 +289,7 @@ export function BattlePanel({
                   >
                     {Array.from({ length: maxPairs }, (_, i) => i + 1).map((n) => (
                       <option key={n} value={n}>
-                        {n}쌍
+                        {t("crewOpsBattle.pairsN", { n })}
                       </option>
                     ))}
                   </select>
@@ -294,11 +303,11 @@ export function BattlePanel({
                           {side === 1 && <span className={styles.muted}>vs</span>}
                           <select
                             className={styles.select}
-                            aria-label={`${i + 1}번 쌍 BJ ${side + 1}`}
+                            aria-label={t("crewOpsBattle.pairBjAria", { n: i + 1, side: side + 1 })}
                             value={value}
                             onChange={(e) => setPairs(pairs.map((p, j) => (j === i ? (side === 0 ? [e.target.value, p[1]] : [p[0], e.target.value]) : p)))}
                           >
-                            <option value="">BJ 선택</option>
+                            <option value="">{t("crewOpsBattle.pickBj")}</option>
                             {active.map((m) => (
                               // A BJ already in another slot cannot be picked twice.
                               <option key={m.id} value={m.id} disabled={m.id !== value && pairIds.includes(m.id)}>
@@ -311,15 +320,15 @@ export function BattlePanel({
                     </li>
                   ))}
                 </ol>
-                {active.length < 2 && <p className={styles.note}>활동 중인 멤버가 두 명 이상 있어야 해요.</p>}
+                {active.length < 2 && <p className={styles.note}>{t("crewOpsBattle.needTwo")}</p>}
               </div>
             )}
             <div className={styles.addRow}>
-              <input className={styles.inputSmall} inputMode="decimal" aria-label="배틀 시간(분)" value={minutes} onChange={(e) => setMinutes(e.target.value.replace(/[^\d.]/g, "").slice(0, 5))} />
-              <span className={styles.muted}>분</span>
+              <input className={styles.inputSmall} inputMode="decimal" aria-label={t("crewOpsBattle.durationAria")} value={minutes} onChange={(e) => setMinutes(e.target.value.replace(/[^\d.]/g, "").slice(0, 5))} />
+              <span className={styles.muted}>{t("crewOpsBattle.minutesUnit")}</span>
               {PRESETS.map((p) => (
                 <button key={p} type="button" className={styles.ghost} aria-pressed={minutes === String(p)} onClick={() => setMinutes(String(p))}>
-                  {p}분
+                  {t("crewOpsBattle.minutes", { n: p })}
                 </button>
               ))}
             </div>
@@ -327,36 +336,36 @@ export function BattlePanel({
               <input
                 className={styles.inputSmall}
                 inputMode="decimal"
-                aria-label="배틀 배수"
+                aria-label={t("crewOpsBattle.multiplierAria")}
                 value={multiplier}
                 onChange={(e) => setMultiplier(e.target.value.replace(/[^\d.]/g, "").slice(0, 5))}
               />
-              <span className={styles.muted}>배</span>
-              <input className={styles.input} value={penalty} onChange={(e) => setPenalty(e.target.value)} placeholder="벌칙 (비우면 벌칙 없음)" maxLength={BATTLE_PENALTY_MAX} aria-label="벌칙" />
+              <span className={styles.muted}>{t("crewOps.multiplierSuffix")}</span>
+              <input className={styles.input} value={penalty} onChange={(e) => setPenalty(e.target.value)} placeholder={t("crewOpsBattle.penaltyPlaceholder")} maxLength={BATTLE_PENALTY_MAX} aria-label={t("crewOpsBattle.penaltyAria")} />
             </div>
             <div className={battle.rulesRow}>
               <span className={styles.muted}>
-                기본값 ×{rules.multiplier} · 벌칙 {rules.penalty || "없음"}
-                {isPlatform ? " (플랫폼 기본값)" : ""}
+                {t("crewOpsBattle.defaults", { multiplier: rules.multiplier, penalty: rules.penalty || t("crewOpsBattle.penaltyNone") })}
+                {isPlatform ? t("crewOpsBattle.platformDefault") : ""}
               </span>
               <button
                 type="button"
                 className={styles.ghost}
                 disabled={pending || !(multiplierValue > 0) || (multiplierValue === rules.multiplier && penalty.trim() === rules.penalty)}
-                onClick={() => run(() => setBattleRules({ multiplier: multiplierValue, penalty }), "배수 · 벌칙을 기본값으로 저장했어요.")}
+                onClick={() => run(() => setBattleRules({ multiplier: multiplierValue, penalty }), t("crewOpsBattle.rulesSaved"))}
               >
-                기본값으로 저장
+                {t("crewOpsBattle.saveDefaults")}
               </button>
               {!isPlatform && (
-                <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => setBattleRules({ reset: true }), "플랫폼 기본값(1배 · 벌칙 없음)으로 되돌렸어요.")}>
-                  플랫폼 기본값으로
+                <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => setBattleRules({ reset: true }), t("crewOpsBattle.rulesReset"))}>
+                  {t("crewOpsBattle.resetDefaults")}
                 </button>
               )}
             </div>
             <div className={styles.addRow}>
-              <input className={styles.input} value={title} onChange={(e) => setTitle(e.target.value)} placeholder={`배틀 이름 (비우면 배틀 ${battles.length + 1})`} maxLength={BATTLE_TITLE_MAX} aria-label="배틀 이름" />
+              <input className={styles.input} value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("crewOpsBattle.titlePlaceholder", { n: battles.length + 1 })} maxLength={BATTLE_TITLE_MAX} aria-label={t("crewOpsBattle.titleAria")} />
               <button type="button" className={styles.primary} disabled={pending || !canStart || !Number(minutes)} onClick={start}>
-                배틀 시작
+                {t("crewOpsBattle.start")}
               </button>
             </div>
           </div>
@@ -365,7 +374,7 @@ export function BattlePanel({
 
       {battles.length > 1 && (
         <details className={styles.logs}>
-          <summary>배틀 기록 {battles.length}건</summary>
+          <summary>{t("crewOpsBattle.logs", { count: battles.length })}</summary>
           <ul>
             {[...battles].reverse().map((x) => (
               <li key={x.no}>
@@ -379,8 +388,8 @@ export function BattlePanel({
       )}
 
       <div className={styles.addRow}>
-        <input className={styles.input} value={shownOverlayAddress(origin, overlayPath, "?battle")} readOnly aria-label="배틀 오버레이 주소" onFocus={(e) => e.target.select()} />
-        <CopyButton value={overlayUrl} label="복사" className={styles.ghost} />
+        <input className={styles.input} value={shownOverlayAddress(origin, overlayPath, "?battle")} readOnly aria-label={t("crewOpsBattle.overlayAddressAria")} onFocus={(e) => e.target.select()} />
+        <CopyButton value={overlayUrl} label={t("crewOpsBroadcast.copy")} className={styles.ghost} />
       </div>
     </section>
   );

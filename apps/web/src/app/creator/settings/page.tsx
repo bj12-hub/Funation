@@ -3,11 +3,14 @@ import { redirect } from "next/navigation";
 import { CreatorSettingsScreen } from "@/features/creatorStudio/settings/CreatorSettingsScreen";
 import { FlextvChannelSettingsScreen } from "@/features/creatorStudio/settings/FlextvChannelSettingsScreen";
 import { FLEXTV_SITE } from "@/lib/flextv/mode";
+import { getT } from "@/lib/i18n/server";
 import { getCreatorSettings } from "@/services/creator/creatorSettings";
 import { getFlextvChannelSettings } from "@/services/creator/flextvChannelSettings";
 
 // Figma: creator-account-settings-page 315:405 · 315:2 · 프로필 수정 326:496
-export const metadata: Metadata = { title: FLEXTV_SITE ? "채널 설정 | Ssumnation 크리에이터" : "계정설정 | Ssumnation 크리에이터" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())(FLEXTV_SITE ? "studioSettings.metaChannel" : "studioSettings.meta") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

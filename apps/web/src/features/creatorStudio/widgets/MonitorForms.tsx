@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState, useTransition } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { setTopDonationOverride } from "@/services/creator/widgetSettings";
 import { PreviewStage } from "@/features/overlayTheme/PreviewStage";
 import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
@@ -20,6 +21,7 @@ import {
 } from "@/services/creator/widgetSettingsTypes";
 import { Row, Section, Select, SwitchText } from "./fields";
 import type { FormProps } from "./forms";
+import { periodText, translatedOptions } from "./widgetFormLabels";
 import { DonationMonitorView, SigQueueView, TopDonationView } from "./MonitorViews";
 import a from "./alertForm.module.css";
 import styles from "./widgets.module.css";
@@ -41,9 +43,10 @@ const SAMPLE_SIGS: Omit<SigCard, "order">[] = [
 /** Option cards like 시계 모양: a title and a hint each. */
 function Choice<T extends string>({ label, options, value, onChange }: { label: string; options: readonly { key: T; label: string; hint: string }[]; value: T; onChange: (v: T) => void }) {
   const id = useId();
+  const { t } = useI18n();
   return (
     <div role="radiogroup" aria-label={label} className={a.layouts}>
-      {options.map((o) => (
+      {translatedOptions(options, t).map((o) => (
         <label key={o.key} className={a.layout} data-checked={value === o.key || undefined}>
           <input type="radio" name={id} className={styles.srOnly} checked={value === o.key} onChange={() => onChange(o.key)} />
           <strong>{o.label}</strong>
@@ -64,6 +67,7 @@ function TopDonationNow({ initial }: { initial: TopDonation | null }) {
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
+  const { t } = useI18n();
   const send = (input: { donor: string; amount: number } | null, ok: string) =>
     startTransition(async () => {
       const res = await setTopDonationOverride(input);
@@ -72,30 +76,42 @@ function TopDonationNow({ initial }: { initial: TopDonation | null }) {
         setNote({ ok: true, text: ok });
         setDonor("");
         setAmount("");
-      } else setNote({ ok: false, text: res.status === "INVALID" ? res.message : "로그인이 필요해요." });
+      } else setNote({ ok: false, text: res.status === "INVALID" ? res.message : t("widgetFormMonitor.loginRequired") });
     });
   return (
-    <Section title="현재 최고 후원">
-      <p className={styles.hint}>{top ? `${top.donor} · ${top.amount}${top.manual ? " (직접 고친 값)" : ""}` : "이 기간에 아직 최고 후원이 없어요."}</p>
+    <Section title={t("widgetFormMonitor.topNow")}>
+      <p className={styles.hint}>{top ? `${top.donor} · ${top.amount}${top.manual ? t("widgetFormMonitor.manualSuffix") : ""}` : t("widgetFormMonitor.noTop")}</p>
       <div className={styles.inline}>
-        <input className={styles.input} aria-label="최고 후원 후원자" placeholder="후원자" maxLength={TOP_DONATION_DONOR_MAX} value={donor} onChange={(e) => setDonor(e.target.value)} />
+        <input
+          className={styles.input}
+          aria-label={t("widgetFormMonitor.donorAria")}
+          placeholder={t("widgetFormMonitor.donorPlaceholder")}
+          maxLength={TOP_DONATION_DONOR_MAX}
+          value={donor}
+          onChange={(e) => setDonor(e.target.value)}
+        />
         <input
           className={styles.input}
           type="number"
           inputMode="numeric"
-          aria-label="최고 후원 금액(FN)"
-          placeholder="금액 (FN)"
+          aria-label={t("widgetFormMonitor.amountAria")}
+          placeholder={t("widgetFormMonitor.amountPlaceholder")}
           min={1}
           max={TOP_DONATION_AMOUNT_MAX}
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
         />
-        <button type="button" className={styles.purpleSmall} disabled={pending || !donor.trim() || !amount} onClick={() => send({ donor, amount: Number(amount) }, "최고 후원을 고쳤어요.")}>
-          수정
+        <button
+          type="button"
+          className={styles.purpleSmall}
+          disabled={pending || !donor.trim() || !amount}
+          onClick={() => send({ donor, amount: Number(amount) }, t("widgetFormMonitor.fixed"))}
+        >
+          {t("widgetFormMonitor.edit")}
         </button>
         {top?.manual && (
-          <button type="button" className={styles.smallButton} disabled={pending} onClick={() => send(null, "직접 고친 값을 지웠어요.")}>
-            고친 값 지우기
+          <button type="button" className={styles.smallButton} disabled={pending} onClick={() => send(null, t("widgetFormMonitor.cleared"))}>
+            {t("widgetFormMonitor.clear")}
           </button>
         )}
       </div>
@@ -104,7 +120,7 @@ function TopDonationNow({ initial }: { initial: TopDonation | null }) {
           {note.text}
         </p>
       )}
-      <p className={styles.hint}>설정 저장과 따로 바로 반영돼요. 고친 뒤에 들어오는 후원과 다시 금액을 비교하고, 지금 기간(일간이면 오늘)에만 적용돼요.</p>
+      <p className={styles.hint}>{t("widgetFormMonitor.nowHint")}</p>
     </Section>
   );
 }
@@ -112,51 +128,59 @@ function TopDonationNow({ initial }: { initial: TopDonation | null }) {
 export function TopDonationForm({ value: v, onChange, live }: FormProps<"TOP_DONATION">) {
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
   const id = useId();
+  const { t } = useI18n();
   return (
     <>
-      <Section title="미리보기">
-        <PreviewStage width={560} minHeight={160} label="최고 후원 미리보기">
+      <Section title={t("widgetForm.preview")}>
+        <PreviewStage width={560} minHeight={160} label={t("widgetFormMonitor.topPreview")}>
           <TopDonationView settings={v} top={SAMPLE_TOP} theme={resolveTheme(live.appearance, v.theme)} />
         </PreviewStage>
-        <p className={styles.hint}>기간 안에서 가장 큰 썸네이션 후원(FN) 한 건을 걸어 둬요. 그 후원의 알림에 나온 이름 그대로예요(익명 포함). 아직 후원이 없으면 아무것도 안 보여요.</p>
+        <p className={styles.hint}>{t("widgetFormMonitor.topHint")}</p>
       </Section>
 
-      <Section title="테마">
+      <Section title={t("widgetForm.theme")}>
         <ThemeChoiceField value={v.theme} onChange={(x) => set("theme", x)} appearance={live.appearance} />
       </Section>
 
-      <Section title="문구">
+      <Section title={t("widgetForm.textSection")}>
         <div className={styles.rows}>
-          <Row label="제목" htmlFor={`${id}-title`}>
+          <Row label={t("widgetForm.titleLabel")} htmlFor={`${id}-title`}>
             <input id={`${id}-title`} className={styles.input} value={v.title} maxLength={TOP_DONATION_TITLE_MAX} onChange={(e) => set("title", e.target.value)} />
           </Row>
-          <Row label="상금 문구" htmlFor={`${id}-prize`}>
+          <Row label={t("widgetFormMonitor.prizeLine")} htmlFor={`${id}-prize`}>
             <input
               id={`${id}-prize`}
               className={styles.input}
               value={v.prize}
               maxLength={TOP_DONATION_PRIZE_MAX}
-              placeholder="예: 방송 끝까지 1위면 상금 10만원 (비우면 없음)"
+              placeholder={t("widgetFormMonitor.prizePlaceholder")}
               onChange={(e) => set("prize", e.target.value)}
             />
           </Row>
-          <Row label="메시지">
-            <SwitchText label="후원 메시지 표시" checked={v.showMessage} onChange={(x) => set("showMessage", x)} text="최고 후원의 메시지를 아래에 보여 줘요" />
+          <Row label={t("widgetFormMonitor.message")}>
+            <SwitchText label={t("widgetForm.showMessage")} checked={v.showMessage} onChange={(x) => set("showMessage", x)} text={t("widgetFormMonitor.topMessageHint")} />
           </Row>
         </div>
-        <p className={styles.hint}>상금은 화면 문구일 뿐이에요. 지급은 직접 진행해 주세요.</p>
+        <p className={styles.hint}>{t("widgetFormMonitor.prizeNote")}</p>
       </Section>
 
-      <Section title="집계">
+      <Section title={t("widgetFormMonitor.tally")}>
         <div className={styles.rows}>
-          <Row label="기간">
-            <Select label="기간" value={v.period} options={RANKING_WIDGET_PERIODS} onChange={(x) => set("period", x)} width={120} />
+          <Row label={t("widgetFormMonitor.period")}>
+            <Select
+              label={t("widgetFormMonitor.period")}
+              value={v.period}
+              options={RANKING_WIDGET_PERIODS}
+              format={(x) => periodText(x, t)}
+              onChange={(x) => set("period", x)}
+              width={120}
+            />
           </Row>
         </div>
-        <p className={styles.hint}>바뀌는 시점</p>
-        <Choice label="바뀌는 시점" options={TOP_DONATION_TIMINGS} value={v.timing} onChange={(x) => set("timing", x)} />
-        <p className={styles.hint}>같은 금액일 때</p>
-        <Choice label="같은 금액일 때" options={TOP_DONATION_TIES} value={v.tie} onChange={(x) => set("tie", x)} />
+        <p className={styles.hint}>{t("widgetFormMonitor.timing")}</p>
+        <Choice label={t("widgetFormMonitor.timing")} options={TOP_DONATION_TIMINGS} value={v.timing} onChange={(x) => set("timing", x)} />
+        <p className={styles.hint}>{t("widgetFormMonitor.tie")}</p>
+        <Choice label={t("widgetFormMonitor.tie")} options={TOP_DONATION_TIES} value={v.tie} onChange={(x) => set("tie", x)} />
       </Section>
 
       <TopDonationNow initial={live.topNow} />
@@ -167,10 +191,11 @@ export function TopDonationForm({ value: v, onChange, live }: FormProps<"TOP_DON
 export function DonationMonitorForm({ value: v, onChange, live }: FormProps<"DONATION_MONITOR">) {
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
   const [now, setNow] = useState<number | null>(null);
+  const { t } = useI18n();
   useEffect(() => {
     setNow(Date.now());
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
   }, []);
   // The sample was sent 12 seconds before this popup opened, so its "N초 전" counts on like the overlay.
   const [sentAt] = useState(() => new Date(Date.now() - 12_000).toISOString());
@@ -187,22 +212,22 @@ export function DonationMonitorForm({ value: v, onChange, live }: FormProps<"DON
   };
   return (
     <>
-      <Section title="미리보기">
-        <PreviewStage width={600} minHeight={150} label="후원 모니터링 미리보기">
+      <Section title={t("widgetForm.preview")}>
+        <PreviewStage width={600} minHeight={150} label={t("widgetFormMonitor.monitorPreview")}>
           <DonationMonitorView settings={v} line={sample} theme={resolveTheme(live.appearance, v.theme)} now={now} />
         </PreviewStage>
-        <p className={styles.hint}>후원 알림이 화면에 나올 때마다 그 후원으로 바뀌고, 다음 알림이 나올 때까지 그대로 남아요. 테스트 알림도 보여요.</p>
+        <p className={styles.hint}>{t("widgetFormMonitor.monitorHint")}</p>
       </Section>
 
-      <Section title="테마">
+      <Section title={t("widgetForm.theme")}>
         <ThemeChoiceField value={v.theme} onChange={(x) => set("theme", x)} appearance={live.appearance} />
       </Section>
 
-      <Section title="표시">
-        <Choice label="표시 모드" options={MONITOR_LAYOUTS} value={v.layout} onChange={(x) => set("layout", x)} />
+      <Section title={t("widgetForm.display")}>
+        <Choice label={t("widgetFormMonitor.mode")} options={MONITOR_LAYOUTS} value={v.layout} onChange={(x) => set("layout", x)} />
         <div className={styles.rows}>
-          <Row label="메시지">
-            <SwitchText label="후원 메시지 표시" checked={v.showMessage} onChange={(x) => set("showMessage", x)} />
+          <Row label={t("widgetFormMonitor.message")}>
+            <SwitchText label={t("widgetForm.showMessage")} checked={v.showMessage} onChange={(x) => set("showMessage", x)} />
           </Row>
         </div>
       </Section>
@@ -213,35 +238,41 @@ export function DonationMonitorForm({ value: v, onChange, live }: FormProps<"DON
 export function SigQueueForm({ value: v, onChange, live }: FormProps<"SIG_QUEUE">) {
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
   const cards = SAMPLE_SIGS.slice(0, 1 + v.next).map((c, i) => ({ ...c, order: i + 1, message: v.showMessage ? c.message : "" }));
+  const { t } = useI18n();
   return (
     <>
-      <Section title="미리보기">
-        <PreviewStage width={v.layout === "HORIZONTAL" ? 1200 : 420} minHeight={200} label="시그 큐 모니터 미리보기">
+      <Section title={t("widgetForm.preview")}>
+        <PreviewStage width={v.layout === "HORIZONTAL" ? 1200 : 420} minHeight={200} label={t("widgetFormMonitor.sigPreview")}>
           <SigQueueView settings={v} cards={cards} theme={resolveTheme(live.appearance, v.theme)} />
         </PreviewStage>
-        <p className={styles.hint}>
-          시그니처 이미지가 있는 후원 알림(시그니처 후원, 금액이 맞은 시그니처)만 보여요. 지금 나오는 시그니처가 맨 앞, 그다음은 대기열 순서예요. 대기열이 비면 아무것도 안 보여요.
-        </p>
+        <p className={styles.hint}>{t("widgetFormMonitor.sigHint")}</p>
       </Section>
 
-      <Section title="테마">
+      <Section title={t("widgetForm.theme")}>
         <ThemeChoiceField value={v.theme} onChange={(x) => set("theme", x)} appearance={live.appearance} />
       </Section>
 
-      <Section title="카드">
-        <Choice label="카드 배치" options={SIG_QUEUE_LAYOUTS} value={v.layout} onChange={(x) => set("layout", x)} />
+      <Section title={t("widgetFormMonitor.cards")}>
+        <Choice label={t("widgetFormMonitor.cardLayout")} options={SIG_QUEUE_LAYOUTS} value={v.layout} onChange={(x) => set("layout", x)} />
         <div className={styles.rows}>
-          <Row label="다음 카드">
-            <Select label="다음 카드 수" value={v.next} options={Array.from({ length: SIG_QUEUE_NEXT_MAX + 1 }, (_, i) => i)} onChange={(x) => set("next", x)} width={110} format={(x) => `${x}장`} />
+          <Row label={t("widgetFormMonitor.next")}>
+            <Select
+              label={t("widgetFormMonitor.nextCount")}
+              value={v.next}
+              options={Array.from({ length: SIG_QUEUE_NEXT_MAX + 1 }, (_, i) => i)}
+              onChange={(x) => set("next", x)}
+              width={110}
+              format={(x) => t("widgetFormMonitor.nextFormat", { n: x })}
+            />
           </Row>
-          <Row label="순번">
-            <SwitchText label="순번 표시" checked={v.showOrder} onChange={(x) => set("showOrder", x)} text="카드 왼쪽 위에 1 · 2 · 3 (1 = 재생 중)" />
+          <Row label={t("widgetFormMonitor.order")}>
+            <SwitchText label={t("widgetFormMonitor.showOrder")} checked={v.showOrder} onChange={(x) => set("showOrder", x)} text={t("widgetFormMonitor.orderHint")} />
           </Row>
-          <Row label="컴팩트">
-            <SwitchText label="컴팩트" checked={v.compact} onChange={(x) => set("compact", x)} text="금액 줄을 빼요" />
+          <Row label={t("widgetFormMonitor.compact")}>
+            <SwitchText label={t("widgetFormMonitor.compact")} checked={v.compact} onChange={(x) => set("compact", x)} text={t("widgetFormMonitor.compactHint")} />
           </Row>
-          <Row label="메시지">
-            <SwitchText label="후원 메시지 표시" checked={v.showMessage} onChange={(x) => set("showMessage", x)} text="두 줄까지" />
+          <Row label={t("widgetFormMonitor.message")}>
+            <SwitchText label={t("widgetForm.showMessage")} checked={v.showMessage} onChange={(x) => set("showMessage", x)} text={t("widgetFormMonitor.twoLines")} />
           </Row>
         </div>
       </Section>

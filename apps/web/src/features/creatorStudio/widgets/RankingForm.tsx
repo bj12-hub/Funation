@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { PreviewStage } from "@/features/overlayTheme/PreviewStage";
 import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
 import { resolveTheme } from "@/services/creator/overlayThemeTypes";
@@ -20,6 +21,7 @@ import { ColorField, FontFields, NumberField, Radios, Row, Section, Select, Swit
 import type { FormProps } from "./forms";
 import styles from "./widgets.module.css";
 import { RankingView } from "./WidgetViews";
+import { periodText, translatedOptions } from "./widgetFormLabels";
 
 /**
  * 후원랭킹 위젯 설정 — Figma 315:650. 랭킹 종류 (크루 후원 순위 · 수단별 보드) is code-first (2026-10-06); 랭킹제외 (2026-10-28,
@@ -33,35 +35,34 @@ export function RankingForm({ value: v, onChange, live }: FormProps<"RANKING">) 
   const rows = (v.board === "DONOR" ? source.filter((r) => !out.has(r.name)) : source).slice(0, v.ranks);
   const [pick, setPick] = useState("");
   const choices = live.donors.filter((d) => !v.excluded.some((x) => x.key === d.key));
+  const { t } = useI18n();
+  const styleOptions = translatedOptions(RANKING_STYLES, t);
 
   return (
     <>
-      <Section title="미리보기">
-        <PreviewStage width={400} minHeight={200} label="후원랭킹 미리보기">
+      <Section title={t("widgetForm.preview")}>
+        <PreviewStage width={400} minHeight={200} label={t("widgetFormRanking.previewAria")}>
           <RankingView
             settings={v}
             rows={rows.map((r, i) => ({ rank: i + 1, name: r.name, fnAmount: r.amount, amountLabel: r.amountLabel }))}
             theme={resolveTheme(live.appearance, v.theme)}
-            empty="이 기간에 크루 멤버에게 지정된 후원이 아직 없어요."
+            empty={t("widgetFormRanking.empty")}
           />
         </PreviewStage>
       </Section>
-      <Section title="테마">
+      <Section title={t("widgetForm.theme")}>
         <div className={styles.rows}>
           <ThemeChoiceField value={v.theme} onChange={(x) => set("theme", x)} appearance={live.appearance} />
-          <SwitchText label="배경 카드" checked={v.card} onChange={(x) => set("card", x)} text="테마 카드 위에 순위 배지와 함께 그려요. 끄면 글자만 (아래 1등 · 2등 이하 색 사용)" />
+          <SwitchText label={t("widgetForm.bgCard")} checked={v.card} onChange={(x) => set("card", x)} text={t("widgetFormRanking.cardHint")} />
         </div>
       </Section>
 
       {v.board === "DONOR" && (
-        <Section title="랭킹제외">
-          <p className={styles.hint}>
-            순위에서 뺄 후원자를 골라요(테스트 · 스태프 후원 등). 그 후원자의 후원만 빠지고, 이름이 같은 다른 후원자는 그대로예요. 저장하면 오버레이에 바로
-            반영돼요.
-          </p>
+        <Section title={t("widgetFormRanking.excluded")}>
+          <p className={styles.hint}>{t("widgetFormRanking.excludeHint")}</p>
           <div className={styles.inline}>
-            <select className={styles.input} aria-label="랭킹에서 뺄 후원자" value={pick} onChange={(e) => setPick(e.target.value)}>
-              <option value="">{choices.length ? "후원자 고르기 (전체 기간 상위 30명)" : "고를 수 있는 후원자가 없어요"}</option>
+            <select className={styles.input} aria-label={t("widgetFormRanking.pickAria")} value={pick} onChange={(e) => setPick(e.target.value)}>
+              <option value="">{choices.length ? t("widgetFormRanking.pickPlaceholder") : t("widgetFormRanking.noChoices")}</option>
               {choices.map((d) => (
                 <option key={d.key} value={d.key}>
                   {d.name} · {formatNumber(d.amount)} FN
@@ -78,48 +79,46 @@ export function RankingForm({ value: v, onChange, live }: FormProps<"RANKING">) 
                 setPick("");
               }}
             >
-              랭킹제외
+              {t("widgetFormRanking.exclude")}
             </button>
           </div>
           {v.excluded.length > 0 ? (
-            <ul className={styles.tags} aria-label="랭킹제외 후원자">
+            <ul className={styles.tags} aria-label={t("widgetFormRanking.excludedAria")}>
               {v.excluded.map((x) => (
                 <li key={x.key}>
                   {x.name}
-                  <button type="button" aria-label={`${x.name} 다시 넣기`} onClick={() => set("excluded", v.excluded.filter((y) => y.key !== x.key))}>
-                    다시 넣기
+                  <button
+                    type="button"
+                    aria-label={t("widgetFormRanking.restoreAria", { name: x.name })}
+                    onClick={() => set("excluded", v.excluded.filter((y) => y.key !== x.key))}
+                  >
+                    {t("widgetFormRanking.restore")}
                   </button>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className={styles.hint}>뺀 후원자가 없어요.</p>
+            <p className={styles.hint}>{t("widgetFormRanking.noneExcluded")}</p>
           )}
         </Section>
       )}
 
-      <Section title="기본 설정">
+      <Section title={t("widgetForm.basic")}>
         <div className={styles.rows}>
-          <Row label="랭킹 종류">
-            <Radios name="rank-board" label="랭킹 종류" options={RANKING_BOARDS} value={v.board} onChange={(x) => set("board", x)} />
+          <Row label={t("widgetFormRanking.board")}>
+            <Radios name="rank-board" label={t("widgetFormRanking.board")} options={translatedOptions(RANKING_BOARDS, t)} value={v.board} onChange={(x) => set("board", x)} />
           </Row>
-          {v.board !== "DONOR" && (
-            <p className={styles.hint}>
-              {v.board === "CREW"
-                ? "크루 멤버에게 지정된 후원(멤버 지정)을 멤버별로 합쳐 순위를 보여 줘요."
-                : "썸네이션 FN과 플랫폼 후원을 수단마다 그 단위로 합쳐 후원 건수가 많은 순으로 보여 줘요. 금액 표시 형식 대신 각 단위가 그대로 나와요."}
-            </p>
-          )}
-          <Row label="위젯 스타일">
+          {v.board !== "DONOR" && <p className={styles.hint}>{v.board === "CREW" ? t("widgetFormRanking.crewHint") : t("widgetFormRanking.sourceHint")}</p>}
+          <Row label={t("widgetForm.widgetStyle")}>
             <div className={styles.filterBox}>
-              <Radios name="rank-style" label="위젯 스타일" options={RANKING_STYLES} value={v.style} onChange={(x) => set("style", x)} />
+              <Radios name="rank-style" label={t("widgetForm.widgetStyle")} options={styleOptions} value={v.style} onChange={(x) => set("style", x)} />
               <div className={styles.thumbs}>
-                {RANKING_STYLES.map((s) => (
+                {styleOptions.map((s) => (
                   <button
                     key={s.key}
                     type="button"
                     className={`${styles.thumb} ${v.style === s.key ? styles.thumbOn : ""}`}
-                    aria-label={`${s.label} 스타일 선택`}
+                    aria-label={t("widgetForm.styleSelect", { label: s.label })}
                     aria-pressed={v.style === s.key}
                     onClick={() => set("style", s.key)}
                   >
@@ -129,30 +128,30 @@ export function RankingForm({ value: v, onChange, live }: FormProps<"RANKING">) 
               </div>
             </div>
           </Row>
-          <Row label="위젯 제목" htmlFor="rank-title">
+          <Row label={t("widgetFormRanking.widgetTitle")} htmlFor="rank-title">
             <input id="rank-title" className={styles.input} value={v.title} maxLength={20} onChange={(e) => set("title", e.target.value)} />
           </Row>
-          <Row label="제목 폰트 설정">
-            <FontFields label="제목" value={v.titleFont} onChange={(x) => set("titleFont", x)} />
+          <Row label={t("widgetForm.titleFont")}>
+            <FontFields label={t("widgetForm.titleLabel")} value={v.titleFont} onChange={(x) => set("titleFont", x)} />
           </Row>
-          <Row label="표시할 이름 유형">
-            <Radios name="rank-name" label="표시할 이름 유형" options={RANKING_NAME_TYPES} value={v.nameType} onChange={(x) => set("nameType", x)} />
+          <Row label={t("widgetFormRanking.nameType")}>
+            <Radios name="rank-name" label={t("widgetFormRanking.nameType")} options={translatedOptions(RANKING_NAME_TYPES, t)} value={v.nameType} onChange={(x) => set("nameType", x)} />
           </Row>
-          <Row label="산정 기간">
-            <Select label="산정 기간" value={v.period} options={RANKING_WIDGET_PERIODS} width={140} onChange={(x) => set("period", x)} />
+          <Row label={t("widgetForm.period")}>
+            <Select label={t("widgetForm.period")} value={v.period} options={RANKING_WIDGET_PERIODS} width={140} format={(x) => periodText(x, t)} onChange={(x) => set("period", x)} />
           </Row>
-          <Row label="금액 표시하기">
-            <SwitchText label="금액 표시하기" checked={v.showAmount} onChange={(x) => set("showAmount", x)} />
+          <Row label={t("widgetForm.showAmount")}>
+            <SwitchText label={t("widgetForm.showAmount")} checked={v.showAmount} onChange={(x) => set("showAmount", x)} />
           </Row>
-          <Row label="표시 등수">
-            <NumberField label="표시 등수" value={v.ranks} max={RANKING_MAX_RANKS} suffix="등까지 공개" onChange={(x) => set("ranks", Math.max(1, x))} />
+          <Row label={t("widgetFormRanking.ranks")}>
+            <NumberField label={t("widgetFormRanking.ranks")} value={v.ranks} max={RANKING_MAX_RANKS} suffix={t("widgetFormRanking.ranksSuffix")} onChange={(x) => set("ranks", Math.max(1, x))} />
           </Row>
-          <Row label="표시 메시지 설정">
+          <Row label={t("widgetFormRanking.format")}>
             <div className={styles.inline}>
               {(["rank", "name", "amount"] as const).map((k) => (
                 <input
                   key={k}
-                  aria-label={`표시 메시지 ${k === "rank" ? "등수" : k === "name" ? "이름" : "금액"}`}
+                  aria-label={t(k === "rank" ? "widgetFormRanking.formatRank" : k === "name" ? "widgetFormRanking.formatName" : "widgetFormRanking.formatAmount")}
                   className={styles.input}
                   style={{ width: 120 }}
                   maxLength={20}
@@ -165,32 +164,33 @@ export function RankingForm({ value: v, onChange, live }: FormProps<"RANKING">) 
         </div>
       </Section>
 
-      <Section title="스크롤 되는 텍스트 세부 설정">
+      <Section title={t("widgetFormRanking.scroll")}>
         <div className={styles.rows}>
-          <Row label="표시 간격(px)">
-            <NumberField label="표시 간격" value={v.scrollGap} max={200} suffix="px" onChange={(x) => set("scrollGap", x)} />
+          <Row label={t("widgetFormRanking.gapPx")}>
+            <NumberField label={t("widgetFormRanking.gap")} value={v.scrollGap} max={200} suffix="px" onChange={(x) => set("scrollGap", x)} />
           </Row>
-          <Row label="흐르는 속도">
-            <Radios name="rank-speed" label="흐르는 속도" options={RANKING_SPEEDS} value={v.scrollSpeed} onChange={(x) => set("scrollSpeed", x)} />
+          <Row label={t("widgetForm.flowSpeed")}>
+            <Radios name="rank-speed" label={t("widgetForm.flowSpeed")} options={translatedOptions(RANKING_SPEEDS, t)} value={v.scrollSpeed} onChange={(x) => set("scrollSpeed", x)} />
           </Row>
         </div>
       </Section>
 
-      <TierSection title="1등 설정" value={v.first} onChange={(x) => set("first", x)} />
-      <TierSection title="2등 이하 설정" value={v.others} onChange={(x) => set("others", x)} />
+      <TierSection title={t("widgetFormRanking.first")} value={v.first} onChange={(x) => set("first", x)} />
+      <TierSection title={t("widgetFormRanking.others")} value={v.others} onChange={(x) => set("others", x)} />
     </>
   );
 }
 
 function TierSection({ title, value, onChange }: { title: string; value: RankTierStyle; onChange: (v: RankTierStyle) => void }) {
+  const { t } = useI18n();
   return (
     <Section title={title}>
       <div className={styles.rows}>
-        <Row label="폰트 설정">
+        <Row label={t("widgetForm.fontSettings")}>
           <FontFields label={title} value={value.font} onChange={(font) => onChange({ ...value, font })} />
         </Row>
-        <Row label="닉네임, 금액 컬러">
-          <ColorField label={`${title} 강조 색상`} value={value.accentColor} onChange={(accentColor) => onChange({ ...value, accentColor })} />
+        <Row label={t("widgetFormRanking.tierColor")}>
+          <ColorField label={t("widgetFormRanking.tierAccent", { title })} value={value.accentColor} onChange={(accentColor) => onChange({ ...value, accentColor })} />
         </Row>
       </div>
     </Section>

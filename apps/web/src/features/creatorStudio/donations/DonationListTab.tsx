@@ -1,22 +1,48 @@
 import Link from "next/link";
 import { formatNumber, kstIsoString } from "@/lib/format";
+import type { MessageKey } from "@/lib/i18n/translate";
 import {
   LIST_KINDS,
   LIST_PAGE_SIZE,
   LIST_PERIODS,
   LIST_QUERY_MAX,
   QUEST_STATUSES,
+  type ListKind,
+  type ListPeriodPreset,
+  type QuestStatus,
   type ReceivedDonationPage
 } from "@/services/creator/donationManagementTypes";
 import { QuestDecide } from "@/features/donations/QuestDecide";
 import { decideReceivedQuest } from "@/services/creator/donationManagement";
 import { questExtendedLabel } from "@/services/donations/questTypes";
 import { CsvExportButton } from "./CsvExportButton";
+import { koT, type T } from "./translator";
 import { YearSelect } from "./YearSelect";
 import styles from "./donations.module.css";
 
 const STATUS_CLASS = { SUCCESS: styles.badgeSuccess, IN_PROGRESS: styles.badgeProgress, FAILED: styles.badgeFailed, CANCELED: styles.badgeFailed } as const;
 const WINDOW = 5;
+
+/** The services' list labels (`LIST_KINDS`, `LIST_PERIODS`, `QUEST_STATUSES`) as message keys. */
+const KIND_KEY: Record<ListKind, { label: MessageKey; column: MessageKey }> = {
+  quest: { label: "studioDonationsList.kindQuest", column: "studioDonationsList.colQuest" },
+  game: { label: "studioDonationsList.kindGame", column: "studioDonationsList.colGame" },
+  crew: { label: "studioDonationsList.kindCrew", column: "studioDonationsList.colCrew" }
+};
+const PERIOD_KEY: Record<Exclude<ListPeriodPreset, "year" | "range">, MessageKey> = {
+  today: "studioDonationsList.periodToday",
+  "1w": "studioDonationsList.period1w",
+  "1m": "studioDonationsList.period1m",
+  "3m": "studioDonationsList.period3m",
+  "6m": "studioDonationsList.period6m",
+  "1y": "studioDonationsList.period1y"
+};
+const QUEST_STATUS_KEY: Record<QuestStatus, MessageKey> = {
+  SUCCESS: "studioDonationsList.statusSuccess",
+  IN_PROGRESS: "studioDonationsList.statusInProgress",
+  FAILED: "studioDonationsList.statusFailed",
+  CANCELED: "studioDonationsList.statusCanceled"
+};
 
 /** "2026.10.08 15:04" in Korea time. */
 const formatAt = (iso: string) => kstIsoString(iso).slice(0, 16).replaceAll("-", ".").replace("T", " ");
@@ -32,8 +58,9 @@ function href(params: Params) {
  * 후원 리스트 — Figma 539:156. Filters are links and a GET form, so every state is a URL.
  * Only 퀘스트 후원 is designed; 게임 후원 (룰렛 · 뽑기) and 크루 후원 (멤버를 지정한 후원) are code-first with
  * the same table — the last column shows the game or the member, and the 상태 filter is quest-only.
+ * `t`: the page's translator (getT); Korean when rendered on its own. The quest-stats note stays Korean (refund wording, TBD).
  */
-export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
+export function DonationListTab({ data, t = koT }: { data: ReceivedDonationPage; t?: T }) {
   const { kind, period, status, query, page, totalPages, total, items, stats, years } = data;
   const periodParams: Params =
     period.preset === "range" ? { period: "range", from: period.from, to: period.to } : period.preset === "year" ? { period: "year", year: period.year } : { period: period.preset };
@@ -42,20 +69,20 @@ export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
   const pages = Array.from({ length: Math.min(WINDOW, totalPages) }, (_, i) => start + i);
   const first = total === 0 ? 0 : (page - 1) * LIST_PAGE_SIZE + 1;
   const last = Math.min(total, page * LIST_PAGE_SIZE);
-  const kindInfo = LIST_KINDS.find((k) => k.key === kind)!;
+  const kindInfo = KIND_KEY[kind];
 
   return (
     <div className={styles.stack}>
-      <nav className={styles.segment} aria-label="후원 종류">
+      <nav className={styles.segment} aria-label={t("studioDonationsList.kindAria")}>
         {LIST_KINDS.map((k) => (
           <Link key={k.key} href={href({ ...base, kind: k.key, page: undefined })} className={k.key === kind ? styles.segmentOn : undefined} aria-current={k.key === kind ? "page" : undefined}>
-            {k.label}
+            {t(KIND_KEY[k.key].label)}
           </Link>
         ))}
       </nav>
 
       <div className={styles.filterRow}>
-        <nav className={styles.chipsRow} aria-label="기간">
+        <nav className={styles.chipsRow} aria-label={t("studioDonationsList.periodAria")}>
           {LIST_PERIODS.map((p) => (
             <Link
               key={p.key}
@@ -63,7 +90,7 @@ export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
               className={`${styles.chip} ${period.preset === p.key ? styles.chipOn : ""}`}
               aria-current={period.preset === p.key ? "true" : undefined}
             >
-              {p.label}
+              {t(PERIOD_KEY[p.key])}
             </Link>
           ))}
           <YearSelect years={years} value={period.preset === "year" ? period.year : undefined} baseParams={{ tab: "list", kind, status, q: query }} />
@@ -75,52 +102,52 @@ export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
         <input type="hidden" name="kind" value={kind} />
         <input type="hidden" name="period" value="range" />
         <span className={styles.dateRange}>
-          <input type="date" name="from" aria-label="시작일" defaultValue={period.from} max={period.to} />
+          <input type="date" name="from" aria-label={t("studioDonationsList.from")} defaultValue={period.from} max={period.to} />
           <span aria-hidden="true">~</span>
-          <input type="date" name="to" aria-label="종료일" defaultValue={period.to} />
+          <input type="date" name="to" aria-label={t("studioDonationsList.to")} defaultValue={period.to} />
         </span>
         {kind === "quest" && (
-          <select name="status" aria-label="상태 필터" defaultValue={status} className={styles.select}>
-            <option value="ALL">전체 필터</option>
+          <select name="status" aria-label={t("studioDonationsList.statusFilter")} defaultValue={status} className={styles.select}>
+            <option value="ALL">{t("studioDonationsList.allStatuses")}</option>
             {QUEST_STATUSES.map((s) => (
               <option key={s.key} value={s.key}>
-                {s.label}
+                {t(QUEST_STATUS_KEY[s.key])}
               </option>
             ))}
           </select>
         )}
-        <input name="q" type="search" aria-label="후원자 검색" className={styles.searchInput} placeholder="후원자 닉네임 or 아이디" defaultValue={query} maxLength={LIST_QUERY_MAX} />
+        <input name="q" type="search" aria-label={t("studioDonationsList.donorSearch")} className={styles.searchInput} placeholder={t("studioDonationsList.donorPlaceholder")} defaultValue={query} maxLength={LIST_QUERY_MAX} />
         <button type="submit" className={styles.solidPurple}>
-          검색
+          {t("studioDonationsList.search")}
         </button>
         <CsvExportButton filter={{ kind, period, status, query }} />
       </form>
 
       {/* Code-first (2026-10-06, funnation 받은 후원 요약): over every row the filters match. */}
-      <dl className={styles.listStats} aria-label="조회한 후원 요약">
+      <dl className={styles.listStats} aria-label={t("studioDonationsList.statsAria")}>
         <div>
-          <dt>총 수령액</dt>
+          <dt>{t("studioDonationsList.statTotal")}</dt>
           <dd className={styles.teal}>{formatNumber(stats.totalFn)} FN</dd>
         </div>
         <div>
-          <dt>오늘</dt>
+          <dt>{t("studioDonationsList.statToday")}</dt>
           <dd>{formatNumber(stats.todayFn)} FN</dd>
         </div>
         <div>
-          <dt>이번 주</dt>
+          <dt>{t("studioDonationsList.statWeek")}</dt>
           <dd>{formatNumber(stats.weekFn)} FN</dd>
         </div>
         <div>
-          <dt>평균 금액</dt>
+          <dt>{t("studioDonationsList.statAverage")}</dt>
           <dd>
-            {formatNumber(stats.averageFn)} FN <span className={styles.listStatsCount}>· {formatNumber(stats.count)}건</span>
+            {formatNumber(stats.averageFn)} FN <span className={styles.listStatsCount}>· {t("studioDonationsList.count", { count: formatNumber(stats.count) })}</span>
           </dd>
         </div>
         {stats.heldCount > 0 && (
           <div>
-            <dt>진행 중 퀘스트</dt>
+            <dt>{t("studioDonationsList.statHeld")}</dt>
             <dd>
-              {formatNumber(stats.heldFn)} FN <span className={styles.listStatsCount}>· {formatNumber(stats.heldCount)}건</span>
+              {formatNumber(stats.heldFn)} FN <span className={styles.listStatsCount}>· {t("studioDonationsList.count", { count: formatNumber(stats.heldCount) })}</span>
             </dd>
           </div>
         )}
@@ -130,26 +157,27 @@ export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
       )}
       {/* Code-first (2026-10-16): imported records stay out of these FN totals; they have their own view. */}
       <p className={styles.listStatsNote}>
-        투네이션 · FlexTV에서 가져온 후원은 이 목록과 합계에 들어가지 않아요. <Link href="/creator/donations?tab=import&sub=records">내역 이관 › 가져온 내역</Link>에서 볼 수 있어요.
+        {t("studioDonationsList.importNote")} <Link href="/creator/donations?tab=import&sub=records">{t("studioDonationsList.importNoteLink")}</Link>
+        {t("studioDonationsList.importNoteAfter")}
       </p>
 
       <div className={styles.table}>
         <table>
-          <caption className={styles.srOnly}>{kindInfo.label} 목록</caption>
+          <caption className={styles.srOnly}>{t("studioDonationsList.caption", { kind: t(kindInfo.label) })}</caption>
           <thead>
             <tr>
               <th scope="col" style={{ width: 176 }}>
-                시간
+                {t("studioDonationsList.colTime")}
               </th>
               <th scope="col" style={{ width: 200 }}>
-                후원자 닉네임(ID)
+                {t("studioDonationsList.colDonor")}
               </th>
               <th scope="col" style={{ width: 130 }}>
-                후원금액
+                {t("studioDonationsList.colAmount")}
               </th>
-              <th scope="col">내용</th>
+              <th scope="col">{t("studioDonationsList.colContent")}</th>
               <th scope="col" className={styles.right} style={{ width: kind === "quest" ? 250 : 120 }}>
-                {kindInfo.column}
+                {t(kindInfo.column)}
               </th>
             </tr>
           </thead>
@@ -157,7 +185,7 @@ export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
             {items.length === 0 ? (
               <tr>
                 <td colSpan={5} className={styles.empty}>
-                  {query ? `'${query}' 검색 결과가 없습니다.` : kind === "crew" ? "선택한 기간에 멤버를 지정해 받은 후원이 없습니다." : "선택한 기간에 받은 후원이 없습니다."}
+                  {query ? t("studioDonationsList.noResults", { query }) : kind === "crew" ? t("studioDonationsList.emptyCrew") : t("studioDonationsList.empty")}
                 </td>
               </tr>
             ) : (
@@ -181,14 +209,14 @@ export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
                         {/* A running quest's deadline (the extended one after a 리모컨 시간 연장, 2026-10-18 결정). */}
                         {d.questEndsAt && (
                           <span className={styles.questDeadline}>
-                            마감 {formatAt(d.questEndsAt)}
+                            {t("studioDonationsList.deadline", { at: formatAt(d.questEndsAt) })}
                             {d.questExtendedMin ? ` · ${questExtendedLabel(d.questExtendedMin)}` : ""}
                           </span>
                         )}
                       </>
                     ) : d.status ? (
                       <>
-                        <span className={`${styles.badge} ${STATUS_CLASS[d.status]}`}>{QUEST_STATUSES.find((s) => s.key === d.status)?.label}</span>
+                        <span className={`${styles.badge} ${STATUS_CLASS[d.status]}`}>{t(QUEST_STATUS_KEY[d.status])}</span>
                         {d.status === "SUCCESS" && d.receivedAt !== d.at && <span className={`${styles.muted} ${styles.nowrap}`}> {formatAt(d.receivedAt)}</span>}
                       </>
                     ) : (
@@ -202,11 +230,11 @@ export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
         </table>
         <div className={styles.footer}>
           <span className={styles.muted}>
-            전체 {formatNumber(total)}개 중 {first}-{last} 표시
+            {t("studioDonationsList.rangeOf", { total: formatNumber(total), first, last })}
           </span>
-          <nav className={styles.pagination} aria-label="페이지">
-            <PageLink to={href({ ...base, page: 1 })} disabled={page === 1} label="첫 페이지" text="|<" />
-            <PageLink to={href({ ...base, page: page - 1 })} disabled={page === 1} label="이전 페이지" text="<" />
+          <nav className={styles.pagination} aria-label={t("studioDonationsList.pages")}>
+            <PageLink to={href({ ...base, page: 1 })} disabled={page === 1} label={t("studioDonationsList.firstPage")} text="|<" />
+            <PageLink to={href({ ...base, page: page - 1 })} disabled={page === 1} label={t("studioDonationsList.prevPage")} text="<" />
             {pages.map((p) =>
               p === page ? (
                 <span key={p} className={`${styles.pageButton} ${styles.pageCurrent}`} aria-current="page">
@@ -218,8 +246,8 @@ export function DonationListTab({ data }: { data: ReceivedDonationPage }) {
                 </Link>
               )
             )}
-            <PageLink to={href({ ...base, page: page + 1 })} disabled={page === totalPages} label="다음 페이지" text=">" />
-            <PageLink to={href({ ...base, page: totalPages })} disabled={page === totalPages} label="마지막 페이지" text=">|" />
+            <PageLink to={href({ ...base, page: page + 1 })} disabled={page === totalPages} label={t("studioDonationsList.nextPage")} text=">" />
+            <PageLink to={href({ ...base, page: totalPages })} disabled={page === totalPages} label={t("studioDonationsList.lastPage")} text=">|" />
           </nav>
         </div>
       </div>

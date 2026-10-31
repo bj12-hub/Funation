@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition, type ComponentType } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { getWidgetDetail, saveWidgetSettings } from "@/services/creator/widgetSettings";
 import type { EditableWidgetKey, WidgetDetail } from "@/services/creator/widgetSettingsTypes";
 import { CopyButton } from "../settings/SettingsCards";
@@ -43,29 +45,29 @@ const FORMS: { [K in EditableWidgetKey]: ComponentType<FormProps<K>> } = {
   SIG_WALLPAPER: SigWallpaperForm
 };
 
-/** Popup titles; the URL label varies in the design (통합 채팅창 URL · 위젯 연동 URL …). */
-export const WIDGET_EDITOR_COPY: Record<EditableWidgetKey, { title: string; urlLabel: string }> = {
-  ALERT: { title: "후원 알림 디자인", urlLabel: "후원 알림 URL" },
-  CHAT: { title: "채팅창 위젯 설정", urlLabel: "통합 채팅창 URL" },
-  QR: { title: "후원 QR코드 위젯 설정", urlLabel: "QR코드 위젯 URL" },
-  GOAL: { title: "후원목표 위젯 설정", urlLabel: "후원목표 위젯 URL" },
-  TOTAL: { title: "후원누적금액 위젯 설정", urlLabel: "위젯 연동 URL" },
-  RECENT: { title: "최근알림 위젯 설정", urlLabel: "최근알림 위젯 URL" },
-  EVENT: { title: "이벤트 위젯 설정", urlLabel: "이벤트 위젯 URL" },
-  MINI: { title: "미니후원 위젯 설정", urlLabel: "미니후원 위젯 URL" },
-  RANKING: { title: "후원랭킹 위젯 설정", urlLabel: "후원랭킹 위젯 URL" },
-  VOTE: { title: "투표 위젯 설정", urlLabel: "투표 위젯 URL" },
+/** Popup titles; the URL label varies in the design (통합 채팅창 URL · 위젯 연동 URL …). Message keys (2026-11-01). */
+export const WIDGET_EDITOR_COPY: Record<EditableWidgetKey, { title: MessageKey; urlLabel: MessageKey | null }> = {
+  ALERT: { title: "widgetFormEditor.alertTitle", urlLabel: "widgetFormEditor.alertUrl" },
+  CHAT: { title: "widgetFormEditor.chatTitle", urlLabel: "widgetFormEditor.chatUrl" },
+  QR: { title: "widgetFormEditor.qrTitle", urlLabel: "widgetFormEditor.qrUrl" },
+  GOAL: { title: "widgetFormEditor.goalTitle", urlLabel: "widgetFormEditor.goalUrl" },
+  TOTAL: { title: "widgetFormEditor.totalTitle", urlLabel: "widgetFormEditor.totalUrl" },
+  RECENT: { title: "widgetFormEditor.recentTitle", urlLabel: "widgetFormEditor.recentUrl" },
+  EVENT: { title: "widgetFormEditor.eventTitle", urlLabel: "widgetFormEditor.eventUrl" },
+  MINI: { title: "widgetFormEditor.miniTitle", urlLabel: "widgetFormEditor.miniUrl" },
+  RANKING: { title: "widgetFormEditor.rankingTitle", urlLabel: "widgetFormEditor.rankingUrl" },
+  VOTE: { title: "widgetFormEditor.voteTitle", urlLabel: "widgetFormEditor.voteUrl" },
   // 373:1307 has no URL box: sounds play through the alert widget.
-  CUSTOM_SOUND: { title: "커스텀 사운드 설정", urlLabel: "" },
-  QUEST: { title: "퀘스트 위젯 설정", urlLabel: "퀘스트 위젯 URL" },
-  GACHA: { title: "뽑기 후원 위젯 설정", urlLabel: "뽑기 후원 위젯 URL" },
-  ROULETTE: { title: "룰렛 설정", urlLabel: "룰렛 위젯 URL" },
-  WALLPAPER: { title: "벽지 위젯 설정", urlLabel: "벽지 위젯 URL" },
-  CLOCK: { title: "시계 위젯 설정", urlLabel: "시계 위젯 URL" },
-  TOP_DONATION: { title: "최고 후원 위젯 설정", urlLabel: "최고 후원 위젯 URL" },
-  DONATION_MONITOR: { title: "후원 모니터링 위젯 설정", urlLabel: "후원 모니터링 위젯 URL" },
-  SIG_QUEUE: { title: "시그 큐 모니터 위젯 설정", urlLabel: "시그 큐 모니터 위젯 URL" },
-  SIG_WALLPAPER: { title: "시그 벽지 설정", urlLabel: "시그 벽지 기본 URL (후원마다 아래 목록에서 복사)" }
+  CUSTOM_SOUND: { title: "widgetFormEditor.customSoundTitle", urlLabel: null },
+  QUEST: { title: "widgetFormEditor.questTitle", urlLabel: "widgetFormEditor.questUrl" },
+  GACHA: { title: "widgetFormEditor.gachaTitle", urlLabel: "widgetFormEditor.gachaUrl" },
+  ROULETTE: { title: "widgetFormEditor.rouletteTitle", urlLabel: "widgetFormEditor.rouletteUrl" },
+  WALLPAPER: { title: "widgetFormEditor.wallpaperTitle", urlLabel: "widgetFormEditor.wallpaperUrl" },
+  CLOCK: { title: "widgetFormEditor.clockTitle", urlLabel: "widgetFormEditor.clockUrl" },
+  TOP_DONATION: { title: "widgetFormEditor.topDonationTitle", urlLabel: "widgetFormEditor.topDonationUrl" },
+  DONATION_MONITOR: { title: "widgetFormEditor.monitorTitle", urlLabel: "widgetFormEditor.monitorUrl" },
+  SIG_QUEUE: { title: "widgetFormEditor.sigQueueTitle", urlLabel: "widgetFormEditor.sigQueueUrl" },
+  SIG_WALLPAPER: { title: "widgetFormEditor.sigWallpaperTitle", urlLabel: "widgetFormEditor.sigWallpaperUrl" }
 };
 
 /** Widgets whose editor saves item by item instead of through a save button. */
@@ -88,6 +90,7 @@ export function useWidgetEditor(widgetKey: EditableWidgetKey, { initial, onSaved
   const [attempt, setAttempt] = useState(0);
   const busy = useRef(false);
   const preloaded = attempt === 0 && !!initial;
+  const { t } = useI18n();
 
   useEffect(() => {
     if (preloaded) return;
@@ -117,9 +120,9 @@ export function useWidgetEditor(widgetKey: EditableWidgetKey, { initial, onSaved
         if (result.status === "SAVED") {
           setSaved(sent);
           onSaved?.();
-        } else setError(result.status === "INVALID" ? result.message : "로그인이 필요합니다. 다시 로그인해 주세요.");
+        } else setError(result.status === "INVALID" ? result.message : t("widgetForm.loginAgain"));
       } catch {
-        setError("저장하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+        setError(t("widgetForm.saveFailed"));
       } finally {
         busy.current = false;
       }
@@ -140,14 +143,15 @@ export function WidgetEditorBody({ editor }: { editor: WidgetEditor }) {
   const { widgetKey, state, draft, setDraft, error, retry } = editor;
   const copy = WIDGET_EDITOR_COPY[widgetKey];
   const Form = FORMS[widgetKey] as ComponentType<FormProps<EditableWidgetKey>>;
+  const { t } = useI18n();
   return (
     <>
-      {state.status === "LOADING" && <p className={styles.state}>설정을 불러오는 중입니다…</p>}
+      {state.status === "LOADING" && <p className={styles.state}>{t("widgetForm.loading")}</p>}
       {state.status === "ERROR" && (
         <div className={styles.state}>
-          <p>설정을 불러오지 못했습니다.</p>
+          <p>{t("widgetForm.loadError")}</p>
           <button type="button" className={styles.smallButton} onClick={retry}>
-            다시 시도
+            {t("widgetForm.retry")}
           </button>
         </div>
       )}
@@ -155,7 +159,7 @@ export function WidgetEditorBody({ editor }: { editor: WidgetEditor }) {
         <>
           {copy.urlLabel && (
             <div className={styles.urlBox}>
-              <span className={styles.urlLabel}>{copy.urlLabel}</span>
+              <span className={styles.urlLabel}>{t(copy.urlLabel)}</span>
               <WidgetUrl detail={state.detail} />
             </div>
           )}
@@ -182,12 +186,13 @@ function WidgetUrl({ detail }: { detail: WidgetDetail }) {
   useEffect(() => setOrigin(window.location.origin), []);
   const url = detail.overlayPath ? `${origin}${detail.overlayPath}` : detail.url;
   const shown = detail.overlayPath ? `${origin}${maskKey(detail.overlayPath)}` : detail.url;
+  const { t } = useI18n();
   return (
     <div className={styles.urlRow}>
       <span className={styles.urlField}>{shown}</span>
-      <CopyButton value={url} label="URL 복사" className={styles.copyButton} />
+      <CopyButton value={url} label={t("widgetForm.copyUrl")} className={styles.copyButton} />
       <a href={url} target="_blank" rel="noopener noreferrer" className={styles.openButton}>
-        열기
+        {t("widgetForm.open")}
       </a>
     </div>
   );

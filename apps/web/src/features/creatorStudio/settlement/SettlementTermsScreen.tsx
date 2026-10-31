@@ -2,22 +2,27 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { acceptSettlementTerms, submitOverseasAnswers } from "@/services/creator/settlement";
 import { MEMBER_TYPES, OVERSEAS_QUESTIONS, type MemberType, type ResidenceCountry } from "@/services/creator/settlementTypes";
+import { MEMBER_TYPE_KEY } from "./settlementLabels";
 import { TERM_TITLES, termsTextFor } from "./settlementTerms";
 import styles from "./terms.module.css";
 
-const COUNTRIES: { key: ResidenceCountry; label: string }[] = [
-  { key: "KR", label: "대한민국" },
-  { key: "OTHER", label: "대한민국 이외" }
+const COUNTRIES: { key: ResidenceCountry; label: MessageKey }[] = [
+  { key: "KR", label: "studioSettlement.countryKr" },
+  { key: "OTHER", label: "studioSettlement.countryOther" }
 ];
 
 /**
  * 이용동의 — Figma 429:139 · 443:257 · 433:138 · 437:338 (대한민국, by member type) and
  * 452:4 · 452:47 (대한민국 이외 questionnaire). 다음 records the consent on the server and opens the
- * member type's registration form. Where the overseas answers lead is not designed (TBD).
+ * member type's registration form. Where the overseas answers lead is not designed (TBD). The terms (titles, bodies, the
+ * 전체 동의 line) and the overseas questions stay Korean until an approved translation exists (TBD, 2026-11-01).
  */
 export function SettlementTermsScreen({ initialType }: { initialType: MemberType }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [country, setCountry] = useState<ResidenceCountry>("KR");
   const [type, setType] = useState<MemberType>(initialType);
@@ -37,14 +42,14 @@ export function SettlementTermsScreen({ initialType }: { initialType: MemberType
         const res = await acceptSettlementTerms({ memberType: type, agreed });
         if (res.status === "ACCEPTED") router.push(`/creator/settlement/register/form?type=${res.memberType}`);
         else if (res.status === "UNAUTHORIZED") router.push("/login?role=creator&next=/creator/settlement/register");
-        else setMessage({ tone: "error", text: res.message ?? "입력 내용을 확인해 주세요." });
+        else setMessage({ tone: "error", text: res.message ?? t("studioSettlement.checkInput") });
         return;
       }
       const res = await submitOverseasAnswers(answers);
       if (res.status === "RECEIVED") {
-        setMessage({ tone: "info", text: "대한민국 이외 거주자의 정산 등록은 준비 중입니다. 고객센터로 문의해 주세요." });
+        setMessage({ tone: "info", text: t("studioSettlement.overseasPending") });
       } else if (res.status === "UNAUTHORIZED") router.push("/login?role=creator&next=/creator/settlement/register");
-      else setMessage({ tone: "error", text: res.message ?? "모든 질문에 답해 주세요." });
+      else setMessage({ tone: "error", text: res.message ?? t("studioSettlement.answerAll") });
     });
   };
 
@@ -54,11 +59,11 @@ export function SettlementTermsScreen({ initialType }: { initialType: MemberType
     <div className={styles.page}>
       <section className={styles.modal} aria-labelledby="terms-title">
         <h1 id="terms-title" className={styles.title}>
-          이용동의
+          {t("studioSettlement.termsTitle")}
         </h1>
 
         <fieldset className={styles.group}>
-          <legend className={styles.groupLabel}>거주 국가 선택</legend>
+          <legend className={styles.groupLabel}>{t("studioSettlement.countryLegend")}</legend>
           <div className={styles.choices}>
             {COUNTRIES.map((c) => (
               <button
@@ -71,7 +76,7 @@ export function SettlementTermsScreen({ initialType }: { initialType: MemberType
                   setMessage(null);
                 }}
               >
-                {c.label}
+                {t(c.label)}
               </button>
             ))}
           </div>
@@ -80,11 +85,11 @@ export function SettlementTermsScreen({ initialType }: { initialType: MemberType
         {country === "KR" ? (
           <>
             <fieldset className={styles.group}>
-              <legend className={styles.groupLabel}>회원 유형 선택</legend>
+              <legend className={styles.groupLabel}>{t("studioSettlement.memberTypeLegend")}</legend>
               <div className={`${styles.choices} ${styles.typeChoices}`}>
-                {MEMBER_TYPES.map((t) => (
-                  <button key={t.key} type="button" className={`${styles.choice} ${styles.typeChoice}`} aria-pressed={type === t.key} onClick={() => setType(t.key)}>
-                    {t.label}
+                {MEMBER_TYPES.map((m) => (
+                  <button key={m.key} type="button" className={`${styles.choice} ${styles.typeChoice}`} aria-pressed={type === m.key} onClick={() => setType(m.key)}>
+                    {t(MEMBER_TYPE_KEY[m.key])}
                   </button>
                 ))}
               </div>
@@ -95,9 +100,9 @@ export function SettlementTermsScreen({ initialType }: { initialType: MemberType
             <section className={styles.agreements} aria-labelledby="terms-agree">
               <div className={styles.agreeHead}>
                 <h2 id="terms-agree" className={styles.agreeTitle}>
-                  썸네이션 서비스 이용 및 정산등록 동의
+                  {t("studioSettlement.agreeTitle")}
                 </h2>
-                <p className={styles.agreeLead}>정산 과정에 필요한 서비스 약관 및 개인정보 수집, 이용 동의에 동의해 주세요.</p>
+                <p className={styles.agreeLead}>{t("studioSettlement.agreeLead")}</p>
               </div>
 
               <label className={`${styles.check} ${styles.checkAll}`}>
@@ -117,7 +122,7 @@ export function SettlementTermsScreen({ initialType }: { initialType: MemberType
                       <span className={styles.checkMark} aria-hidden="true" />
                       <span className={styles.checkLabel}>{title}</span>
                     </label>
-                    <div className={styles.termBox} tabIndex={0} role="region" aria-label={`${title} 내용`}>
+                    <div className={styles.termBox} tabIndex={0} role="region" aria-label={t("studioSettlement.termBody", { title })}>
                       {texts[i]}
                     </div>
                   </li>
@@ -141,7 +146,7 @@ export function SettlementTermsScreen({ initialType }: { initialType: MemberType
                       aria-pressed={answers[i] === yes}
                       onClick={() => setAnswers((prev) => prev.map((a, j) => (j === i ? yes : a)))}
                     >
-                      {yes ? "예" : "아니오"}
+                      {yes ? t("studioSettlement.yes") : t("studioSettlement.no")}
                     </button>
                   ))}
                 </span>
@@ -157,7 +162,7 @@ export function SettlementTermsScreen({ initialType }: { initialType: MemberType
         )}
 
         <button type="button" className={styles.next} onClick={next} disabled={!canNext || pending} aria-busy={pending || undefined}>
-          {pending ? "처리 중..." : "다음"}
+          {pending ? t("studioSettlement.processing") : t("studioSettlement.next")}
         </button>
       </section>
     </div>

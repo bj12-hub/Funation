@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type FocusEvent } from "react";
 import { FLEXTV_STUDIO } from "@/lib/flextv/mode";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import styles from "./studio.module.css";
 
 /**
@@ -139,11 +141,64 @@ export function studioCurrentItem(active: string | null, groups: Group[] = GROUP
   return item ? { label: item.label, emoji: item.emoji, inMenu: true } : { label: "크리에이터 스튜디오", emoji: null, inMenu: false };
 }
 
+/**
+ * The menu in the viewer's language (2026-11-01): the group titles, item labels and studio name above are the Korean source
+ * (studioCurrentItem names the current item by them); each maps to its message key here. A label not listed shows as written.
+ */
+const LABEL_KEYS: Record<string, MessageKey> = {
+  대시보드: "studioNav.dashboard",
+  채널: "studioNav.groupChannel",
+  "채널 설정": "studioNav.channelSettings",
+  "후원 페이지 설정": "studioNav.donationPage",
+  "칭호 관리": "studioNav.titles",
+  "유튜브 연동": "studioNav.youtube",
+  "영상 목록": "studioNav.videos",
+  방송: "studioNav.groupBroadcast",
+  "통합 채팅": "studioNav.unifiedChat",
+  채팅봇: "studioNav.chatBot",
+  위젯: "studioNav.widgets",
+  "방송 도구": "studioNav.tools",
+  "시청자 참여": "studioNav.play",
+  "오버레이 주소": "studioNav.overlays",
+  "원소스 배치": "studioNav.oneSource",
+  "커스텀 오버레이": "studioNav.customOverlay",
+  "외부 프로그램 연동": "studioNav.bridge",
+  "이미지·사운드": "studioNav.assets",
+  "음악 편집기": "studioNav.music",
+  리모컨: "studioNav.remote",
+  "크루 방송": "studioNav.groupCrew",
+  "크루 관리": "studioNav.crew",
+  "방송 운영": "studioNav.crewBroadcast",
+  "점수 게임": "studioNav.crewGames",
+  수익: "studioNav.groupRevenue",
+  "수익 현황": "studioNav.revenue",
+  "받은 후원": "studioNav.received",
+  "후원 순위": "studioNav.donorRanking",
+  "후원 필터링": "studioNav.filtering",
+  "내역 이관": "studioNav.import",
+  "크리에이터 랭킹": "studioNav.creatorRanking",
+  정산: "studioNav.groupSettlement",
+  "정산 현황": "studioNav.settlement",
+  "정산 인증·등록": "studioNav.settlementRegister",
+  "정산 계좌": "studioNav.settlementAccount",
+  "방송 설정": "studioNav.broadcastSettings",
+  "후원 종류 설정": "studioNav.donationTypes",
+  "정산 신청": "studioNav.settlementApply",
+  "정산 관리": "studioNav.settlementManage",
+  소식: "studioNav.updates",
+  "크리에이터 스튜디오": "studioNav.studio"
+};
+
 /** The phone dropdown (always in the page, shown by studio.module.css while open on phones). */
 export const STUDIO_MENU_ID = "studio-side-menu";
 
 /** `donationTypes` comes from the server (FLEXTV_SSUMNATION_API is a server-only setting). */
 export function CreatorSideNav({ donationTypes = false }: { donationTypes?: boolean }) {
+  const { t } = useI18n();
+  const label = (text: string) => {
+    const key = LABEL_KEYS[text];
+    return key ? t(key) : text;
+  };
   const pathname = usePathname() ?? "/creator";
   const tab = useSearchParams()?.get("tab") ?? null;
   const groups = donationTypes ? studioGroups(FLEXTV_STUDIO, true) : GROUPS;
@@ -190,7 +245,7 @@ export function CreatorSideNav({ donationTypes = false }: { donationTypes?: bool
   };
 
   return (
-    <nav className={styles.sidebar} aria-label="크리에이터 메뉴" data-open={open || undefined} onBlur={onBlur}>
+    <nav className={styles.sidebar} aria-label={t("studioNav.menuAria")} data-open={open || undefined} onBlur={onBlur}>
       <button ref={buttonRef} type="button" className={styles.sideToggle} aria-expanded={open} aria-controls={STUDIO_MENU_ID} onClick={() => setOpen((v) => !v)}>
         <span className={styles.sideToggleCurrent}>
           {current.emoji && (
@@ -198,11 +253,11 @@ export function CreatorSideNav({ donationTypes = false }: { donationTypes?: bool
               {current.emoji}
             </span>
           )}
-          <span className={styles.sideToggleLabel}>{current.label}</span>
-          {current.inMenu && <span className={styles.srOnly}> (현재 페이지)</span>}
+          <span className={styles.sideToggleLabel}>{label(current.label)}</span>
+          {current.inMenu && <span className={styles.srOnly}>{` ${t("studioNav.currentPage")}`}</span>}
         </span>
         <span className={styles.sideToggleMore}>
-          메뉴
+          {t("studioNav.menu")}
           <span className={styles.sideChevron} aria-hidden="true">
             ▾
           </span>
@@ -212,7 +267,7 @@ export function CreatorSideNav({ donationTypes = false }: { donationTypes?: bool
       <div ref={panelRef} id={STUDIO_MENU_ID} className={styles.sideMenu}>
         {groups.map((g, i) => (
           <div key={g.title ?? `g${i}`} className={styles.sideGroup}>
-            {g.title && <p className={styles.sideGroupTitle}>{g.title}</p>}
+            {g.title && <p className={styles.sideGroupTitle}>{label(g.title)}</p>}
             <ul>
               {g.items.map((item) => {
                 const content = (
@@ -220,7 +275,7 @@ export function CreatorSideNav({ donationTypes = false }: { donationTypes?: bool
                     <span className={styles.sideEmoji} aria-hidden="true">
                       {item.emoji}
                     </span>
-                    {item.label}
+                    {label(item.label)}
                   </>
                 );
                 const isActive = item.href === active;
@@ -231,7 +286,7 @@ export function CreatorSideNav({ donationTypes = false }: { donationTypes?: bool
                         {content}
                       </Link>
                     ) : (
-                      <span className={`${styles.sideItem} ${styles.sideItemOff}`} aria-disabled="true" title="준비 중인 기능입니다">
+                      <span className={`${styles.sideItem} ${styles.sideItemOff}`} aria-disabled="true" title={t("common.comingSoon")}>
                         {content}
                       </span>
                     )}

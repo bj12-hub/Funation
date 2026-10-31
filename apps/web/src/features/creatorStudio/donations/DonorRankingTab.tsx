@@ -2,20 +2,28 @@ import Image from "next/image";
 import Link from "next/link";
 import { DefaultAvatarIcon } from "@/components/icons";
 import { formatNumber } from "@/lib/format";
-import { RANK_PERIODS, type DonorRanking } from "@/services/creator/donationManagementTypes";
+import type { MessageKey } from "@/lib/i18n/translate";
+import { RANK_PERIODS, type DonorRanking, type RankPeriod } from "@/services/creator/donationManagementTypes";
+import { koT, type T } from "./translator";
 import styles from "./donations.module.css";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
+const PERIOD_KEY: Record<RankPeriod, MessageKey> = {
+  day: "studioDonationsList.rankDay",
+  week: "studioDonationsList.rankWeek",
+  month: "studioDonationsList.rankMonth",
+  season: "studioDonationsList.rankSeason"
+};
 
-function Change({ value }: { value: number }) {
+function Change({ value, t }: { value: number; t: T }) {
   if (value === 0)
     return (
-      <span className={styles.same} aria-label="변동 없음">
+      <span className={styles.same} aria-label={t("studioDonationsList.noChange")}>
         -
       </span>
     );
   return (
-    <span className={value > 0 ? styles.up : styles.down} aria-label={`${Math.abs(value)} ${value > 0 ? "상승" : "하락"}`}>
+    <span className={value > 0 ? styles.up : styles.down} aria-label={t(value > 0 ? "studioDonationsList.rankUp" : "studioDonationsList.rankDown", { n: Math.abs(value) })}>
       {value > 0 ? "▲" : "▼"} {formatNumber(Math.abs(value))}
     </span>
   );
@@ -31,42 +39,42 @@ function Avatar({ src, size }: { src: string | null; size: number }) {
 
 /**
  * 후원 순위 — Figma 539:303. Ranks this creator's supporters. 랭킹 포인트 and 성공 기여율 formulas are TBD.
- * The design writes amounts in 원; FN is shown since donations are recorded in FN.
+ * The design writes amounts in 원; FN is shown since donations are recorded in FN. `t`: the page's translator (getT).
  */
-export function DonorRankingTab({ data }: { data: DonorRanking }) {
+export function DonorRankingTab({ data, t = koT }: { data: DonorRanking; t?: T }) {
   const { top, rows, period } = data;
   return (
     <div className={styles.stack}>
       {top && (
-        <section className={styles.topCard} aria-label="내 누적 후원 랭킹">
+        <section className={styles.topCard} aria-label={t("studioDonationsList.myRanking")}>
           <div className={styles.topLeft}>
             <div className={styles.topRank}>
-              <span className={styles.label}>내 누적 후원 랭킹</span>
+              <span className={styles.label}>{t("studioDonationsList.myRanking")}</span>
               <strong>
-                최고 {top.rank}위 <Change value={top.change} />
+                {t("studioDonationsList.bestRank", { rank: top.rank })} <Change value={top.change} t={t} />
               </strong>
             </div>
             <span className={styles.divider} aria-hidden="true" />
             <Avatar src={top.avatarUrl} size={48} />
             <div className={styles.topName}>
               <strong>{top.nickname}</strong>
-              <span>종합 랭킹포인트 {formatNumber(top.points)}</span>
+              <span>{t("studioDonationsList.points", { points: formatNumber(top.points) })}</span>
             </div>
           </div>
           <dl className={styles.topStats}>
             <div>
-              <dt>총 후원금액</dt>
+              <dt>{t("studioDonationsList.totalAmount")}</dt>
               <dd className={styles.teal}>{formatNumber(top.totalAmount)} FN</dd>
             </div>
             <div>
-              <dt>후원 횟수</dt>
-              <dd>{formatNumber(top.count)}회</dd>
+              <dt>{t("studioDonationsList.donationCount")}</dt>
+              <dd>{t("studioDonationsList.times", { count: formatNumber(top.count) })}</dd>
             </div>
           </dl>
         </section>
       )}
 
-      <nav className={styles.periods} aria-label="기간">
+      <nav className={styles.periods} aria-label={t("studioDonationsList.periodAria")}>
         {RANK_PERIODS.map((p) => (
           <Link
             key={p.key}
@@ -74,31 +82,31 @@ export function DonorRankingTab({ data }: { data: DonorRanking }) {
             className={p.key === period ? styles.periodOn : undefined}
             aria-current={p.key === period ? "true" : undefined}
           >
-            {p.label}
+            {t(PERIOD_KEY[p.key])}
           </Link>
         ))}
       </nav>
 
       <div className={styles.table}>
         <table>
-          <caption className={styles.srOnly}>후원자 순위</caption>
+          <caption className={styles.srOnly}>{t("studioDonationsList.rankCaption")}</caption>
           <thead>
             <tr>
               <th scope="col" style={{ width: 100 }}>
-                순위
+                {t("studioDonationsList.colRank")}
               </th>
               <th scope="col" style={{ width: 90 }}>
-                변동
+                {t("studioDonationsList.colChange")}
               </th>
-              <th scope="col">후원자 정보</th>
+              <th scope="col">{t("studioDonationsList.colDonorInfo")}</th>
               <th scope="col" style={{ width: 160 }}>
-                랭킹 포인트
+                {t("studioDonationsList.colPoints")}
               </th>
               <th scope="col" style={{ width: 120 }}>
-                후원 횟수
+                {t("studioDonationsList.colCount")}
               </th>
               <th scope="col" className={styles.right} style={{ width: 120 }}>
-                성공 기여율
+                {t("studioDonationsList.colSuccess")}
               </th>
             </tr>
           </thead>
@@ -106,7 +114,7 @@ export function DonorRankingTab({ data }: { data: DonorRanking }) {
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={6} className={styles.empty}>
-                  아직 집계된 후원 순위가 없습니다.
+                  {t("studioDonationsList.rankEmpty")}
                 </td>
               </tr>
             ) : (
@@ -117,7 +125,7 @@ export function DonorRankingTab({ data }: { data: DonorRanking }) {
                     {r.rank}
                   </td>
                   <td>
-                    <Change value={r.change} />
+                    <Change value={r.change} t={t} />
                   </td>
                   <td>
                     <span className={styles.donor}>

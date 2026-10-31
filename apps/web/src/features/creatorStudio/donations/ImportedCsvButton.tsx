@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { exportImportedDonationsCsv } from "@/services/creator/donationImport";
 import type { ImportedFilter } from "@/services/creator/donationImportTypes";
 import styles from "./donations.module.css";
@@ -11,6 +12,7 @@ import styles from "./donations.module.css";
  * with formula-looking cells escaped.
  */
 export function ImportedCsvButton({ filter }: { filter: ImportedFilter }) {
+  const { t } = useI18n();
   const [state, setState] = useState<{ busy: boolean; note: string | null }>({ busy: false, note: null });
   const busy = useRef(false);
 
@@ -21,7 +23,7 @@ export function ImportedCsvButton({ filter }: { filter: ImportedFilter }) {
     try {
       const res = await exportImportedDonationsCsv({ source: filter.source, from: filter.from, to: filter.to, q: filter.query });
       if (res.status !== "OK") {
-        setState({ busy: false, note: res.status === "UNAUTHORIZED" ? "로그인이 필요합니다." : "조건을 확인해 주세요." });
+        setState({ busy: false, note: res.status === "UNAUTHORIZED" ? t("studioDonationsList.loginRequired") : t("studioDonationsImport.checkFilters") });
         return;
       }
       const url = URL.createObjectURL(new Blob([res.csv], { type: "text/csv;charset=utf-8" }));
@@ -30,9 +32,9 @@ export function ImportedCsvButton({ filter }: { filter: ImportedFilter }) {
       a.download = res.filename;
       a.click();
       URL.revokeObjectURL(url);
-      setState({ busy: false, note: res.truncated ? `최대 ${formatNumber(res.rows)}건까지 내려받았어요. 조건을 나눠 주세요.` : `${formatNumber(res.rows)}건을 내려받았어요.` });
+      setState({ busy: false, note: res.truncated ? t("studioDonationsImport.downloadedMax", { count: formatNumber(res.rows) }) : t("studioDonationsList.downloaded", { count: formatNumber(res.rows) }) });
     } catch {
-      setState({ busy: false, note: "내려받지 못했습니다. 잠시 후 다시 시도해 주세요." });
+      setState({ busy: false, note: t("studioDonationsList.downloadFailed") });
     } finally {
       busy.current = false;
     }
@@ -41,7 +43,7 @@ export function ImportedCsvButton({ filter }: { filter: ImportedFilter }) {
   return (
     <>
       <button type="button" className={styles.outlineBlue} onClick={download} disabled={state.busy}>
-        {state.busy ? "준비 중…" : "CSV 다운로드"}
+        {state.busy ? t("studioDonationsList.preparing") : t("studioDonationsList.downloadCsv")}
       </button>
       {state.note && (
         <span className={styles.muted} role="status">
