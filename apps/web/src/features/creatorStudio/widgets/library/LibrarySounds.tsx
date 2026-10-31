@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { listAssets } from "@/services/creator/assets";
 import type { Asset } from "@/services/creator/assetTypes";
 import styles from "./librarySounds.module.css";
@@ -42,6 +43,7 @@ export function LibrarySoundList({
   selectedId: string | null;
   onPick: (sound: Asset) => void;
 }) {
+  const { t } = useI18n();
   const audio = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState<string | null>(null);
   useEffect(() => () => audio.current?.pause(), []);
@@ -61,16 +63,16 @@ export function LibrarySoundList({
   if (state.status === "LOADING") {
     return (
       <p className={styles.note} role="status">
-        라이브러리를 불러오는 중…
+        {t("studioToolsLibrary.loading")}
       </p>
     );
   }
   if (state.status === "ERROR") {
     return (
       <p className={styles.error} role="alert">
-        라이브러리를 불러오지 못했어요.{" "}
+        {t("studioToolsLibrary.loadFailed")}{" "}
         <button type="button" className={styles.link} onClick={reload}>
-          다시 시도
+          {t("studioTools.retry")}
         </button>
       </p>
     );
@@ -78,28 +80,36 @@ export function LibrarySoundList({
   if (state.sounds.length === 0) {
     return (
       <p className={styles.note}>
-        라이브러리에 사운드가 없어요. <Link href="/creator/widgets/assets">이미지·사운드</Link>에서 먼저 올려 주세요.
+        {t("studioToolsLibrary.noSoundsBefore")}
+        <Link href="/creator/widgets/assets">{t("studioTools.assetsLink")}</Link>
+        {t("studioToolsLibrary.uploadFirstAfter")}
       </p>
     );
   }
   return (
     <div className={styles.box}>
-      <ul className={styles.list} aria-label="라이브러리 사운드">
+      <ul className={styles.list} aria-label={t("studioToolsLibrary.soundsAria")}>
         {state.sounds.map((s) => (
           <li key={s.id} className={styles.item} data-selected={s.id === selectedId ? "" : undefined}>
             <span className={styles.name}>{s.name}</span>
             <span className={styles.size}>{kb(s.size)}</span>
-            <button type="button" className={styles.listen} aria-label={`${s.name} ${playing === s.id ? "멈춤" : "듣기"}`} aria-pressed={playing === s.id} onClick={() => toggle(s)}>
-              {playing === s.id ? "■ 멈춤" : "▶ 듣기"}
+            <button
+              type="button"
+              className={styles.listen}
+              aria-label={t(playing === s.id ? "studioToolsLibrary.stopAria" : "studioToolsLibrary.playAria", { name: s.name })}
+              aria-pressed={playing === s.id}
+              onClick={() => toggle(s)}
+            >
+              {playing === s.id ? t("studioToolsLibrary.stop") : t("studioToolsLibrary.play")}
             </button>
             <button type="button" className={styles.pick} disabled={s.id === selectedId} onClick={() => onPick(s)}>
-              {s.id === selectedId ? "선택됨" : "선택"}
+              {s.id === selectedId ? t("studioToolsLibrary.selected") : t("studioToolsLibrary.select")}
             </button>
           </li>
         ))}
       </ul>
       <Link href="/creator/widgets/assets" className={styles.manage}>
-        라이브러리 관리 ›
+        {t("studioToolsLibrary.manage")}
       </Link>
     </div>
   );
@@ -117,10 +127,11 @@ export function LibrarySoundField({
   label: string;
   buttonClassName?: string;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const { state, reload } = useLibrarySounds();
   const current = value && state.status === "READY" ? (state.sounds.find((s) => s.id === value) ?? null) : null;
-  const currentText = !value ? "선택 안 함" : current ? current.name : state.status === "LOADING" ? "…" : "라이브러리에서 지워진 효과음";
+  const currentText = !value ? t("studioToolsLibrary.noneSelected") : current ? current.name : state.status === "LOADING" ? "…" : t("studioToolsLibrary.deletedSound");
 
   return (
     <div className={styles.field}>
@@ -131,7 +142,7 @@ export function LibrarySoundField({
         <span className={styles.current}>{currentText}</span>
         {value && (
           <button type="button" className={styles.link} onClick={() => onChange(null)}>
-            빼기
+            {t("studioTools.remove")}
           </button>
         )}
       </div>

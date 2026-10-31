@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { formatKst, formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { reissueBankSmsKey, setBankSms, simulateBankSms } from "@/services/bankSms/bankSms";
 import { SAMPLE_BANK_SMS, type BankSmsResult, type BankSmsView } from "@/services/bankSms/bankSmsTypes";
 import styles from "../crew/crew.module.css";
@@ -19,6 +20,7 @@ const masked = (path: string) => path.replace(/[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9
  */
 export function BankSmsCard({ view }: { view: BankSmsView }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [text, setText] = useState(SAMPLE_BANK_SMS);
   const [note, setNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
@@ -31,7 +33,7 @@ export function BankSmsCard({ view }: { view: BankSmsView }) {
     startTransition(async () => {
       try {
         const res = await action();
-        if (res.status === "UNAUTHORIZED") setNote({ tone: "error", text: "로그인이 필요합니다." });
+        if (res.status === "UNAUTHORIZED") setNote({ tone: "error", text: t("studioTools.loginRequired") });
         else if (res.status === "INVALID") setNote({ tone: "error", text: res.message });
         else {
           setNote(ok(res));
@@ -39,7 +41,7 @@ export function BankSmsCard({ view }: { view: BankSmsView }) {
         }
         router.refresh();
       } catch {
-        setNote({ tone: "error", text: "처리하지 못했어요. 잠시 후 다시 시도해 주세요." });
+        setNote({ tone: "error", text: t("studioTools.processFailed") });
       }
     });
   };
@@ -49,12 +51,12 @@ export function BankSmsCard({ view }: { view: BankSmsView }) {
       () => simulateBankSms({ text, requestId: requestId.current }),
       (r) =>
         r.status === "OK"
-          ? { tone: "ok", text: `${r.deposit.depositor} 님 ${formatNumber(r.deposit.amount)}원 입금을 알림으로 보냈어요.` }
+          ? { tone: "ok", text: t("studioToolsLink.depositSent", { name: r.deposit.depositor, amount: formatNumber(r.deposit.amount) }) }
           : r.status === "UNPARSED"
-            ? { tone: "error", text: "입금 문자로 인식하지 못했어요. 금액과 입금자명이 들어 있는지 확인해 주세요." }
+            ? { tone: "error", text: t("studioToolsLink.unparsed") }
             : r.status === "OFF"
-              ? { tone: "error", text: "SMS 계좌후원이 꺼져 있어요. 먼저 켜 주세요." }
-              : { tone: "ok", text: "이미 받은 문자예요. 알림은 한 번만 떠요." },
+              ? { tone: "error", text: t("studioToolsLink.smsOff") }
+              : { tone: "ok", text: t("studioToolsLink.duplicate") },
       () => (requestId.current = null)
     );
   };
@@ -63,7 +65,7 @@ export function BankSmsCard({ view }: { view: BankSmsView }) {
     <section className={styles.card} aria-labelledby="ln-bank">
       <div className={styles.cardHead}>
         <h2 className={styles.cardTitle} id="ln-bank">
-          🏦 SMS 계좌후원 <span className={styles.chipOff}>목업</span>
+          {t("studioToolsLink.bankTitle")} <span className={styles.chipOff}>{t("studioToolsLink.mock")}</span>
         </h2>
         <label className={styles.checkRow}>
           <input
@@ -72,26 +74,23 @@ export function BankSmsCard({ view }: { view: BankSmsView }) {
             disabled={pending}
             onChange={(e) => {
               const on = e.target.checked;
-              run(() => setBankSms({ enabled: on }), () => ({ tone: "ok", text: on ? "SMS 계좌후원을 켰어요." : "SMS 계좌후원을 껐어요." }));
+              run(() => setBankSms({ enabled: on }), () => ({ tone: "ok", text: on ? t("studioToolsLink.bankOn") : t("studioToolsLink.bankOff") }));
             }}
           />
-          사용
+          {t("studioTools.on")}
         </label>
       </div>
-      <p className={styles.note}>
-        휴대폰의 문자 전달 앱에서 은행 입금 문자를 아래 주소로 보내도록 설정하면, 입금이 &lsquo;계좌 후원&rsquo; 알림으로 떠요. 금액과 입금자명만 읽고 문자 내용 · 계좌번호 · 잔액은
-        저장하지 않아요. 썸네이션 결제가 아니라서 FN · 수익 · 정산에 포함되지 않아요. 은행별 문자 형식과 전달 앱 연동은 TBD예요.
-      </p>
+      <p className={styles.note}>{t("studioToolsLink.bankNote")}</p>
       <div className={styles.addRow}>
-        <input className={styles.input} readOnly aria-label="문자 전달 주소" value={`${origin}${masked(view.hookPath)}`} />
-        <CopyButton value={`${origin}${view.hookPath}`} label="주소 복사" className={styles.ghost} />
+        <input className={styles.input} readOnly aria-label={t("studioToolsLink.hookAddress")} value={`${origin}${masked(view.hookPath)}`} />
+        <CopyButton value={`${origin}${view.hookPath}`} label={t("studioTools.copyAddress")} className={styles.ghost} />
         <button
           type="button"
           className={styles.ghost}
           disabled={pending}
-          onClick={() => window.confirm("주소를 새로 만들까요? 지금 주소로 오는 문자는 더 이상 받지 않아요.") && run(reissueBankSmsKey, () => ({ tone: "ok", text: "새 주소를 만들었어요. 문자 전달 앱에 새 주소를 넣어 주세요." }))}
+          onClick={() => window.confirm(t("studioToolsLink.reissueConfirm")) && run(reissueBankSmsKey, () => ({ tone: "ok", text: t("studioToolsLink.reissued") }))}
         >
-          재발급
+          {t("studioTools.reissue")}
         </button>
       </div>
       <label className={styles.checkRow}>
@@ -101,20 +100,20 @@ export function BankSmsCard({ view }: { view: BankSmsView }) {
           disabled={pending}
           onChange={(e) => {
             const on = e.target.checked;
-            run(() => setBankSms({ maskNames: on }), () => ({ tone: "ok", text: on ? "입금자명을 가려서 보여 줘요." : "입금자명을 그대로 보여 줘요." }));
+            run(() => setBankSms({ maskNames: on }), () => ({ tone: "ok", text: on ? t("studioToolsLink.maskOn") : t("studioToolsLink.maskOff") }));
           }}
         />
-        입금자명 가리기 (예: 별***타)
+        {t("studioToolsLink.maskLabel")}
       </label>
 
       <details>
-        <summary className={styles.muted}>테스트 문자 보내기</summary>
+        <summary className={styles.muted}>{t("studioToolsLink.testSummary")}</summary>
         <div className={styles.startForm}>
-          <textarea className={`${styles.input} ${styles.textarea}`} rows={7} aria-label="테스트 문자 내용" value={text} onChange={(e) => setText(e.target.value)} />
+          <textarea className={`${styles.input} ${styles.textarea}`} rows={7} aria-label={t("studioToolsLink.testAria")} value={text} onChange={(e) => setText(e.target.value)} />
           <div className={styles.actions}>
-            <span className={styles.muted}>실제 계좌번호 · 잔액은 넣지 마세요.</span>
+            <span className={styles.muted}>{t("studioToolsLink.noRealData")}</span>
             <button type="button" className={styles.primary} disabled={pending || !text.trim()} onClick={test}>
-              {pending ? "보내는 중…" : "테스트 문자 보내기"}
+              {pending ? t("studioTools.sending") : t("studioToolsLink.testSummary")}
             </button>
           </div>
         </div>
@@ -127,19 +126,19 @@ export function BankSmsCard({ view }: { view: BankSmsView }) {
       )}
 
       <p className={styles.muted}>
-        받은 입금 {formatNumber(view.received)}건 · 중복 {formatNumber(view.duplicates)}건 무시 · 인식 못 한 문자 {formatNumber(view.unparsed)}건
+        {t("studioToolsLink.bankStats", { received: formatNumber(view.received), duplicates: formatNumber(view.duplicates), unparsed: formatNumber(view.unparsed) })}
       </p>
       {view.recent.length === 0 ? (
-        <p className={styles.empty}>아직 받은 입금이 없어요.</p>
+        <p className={styles.empty}>{t("studioToolsLink.bankEmpty")}</p>
       ) : (
-        <ul className={styles.list} aria-label="최근 계좌 후원">
+        <ul className={styles.list} aria-label={t("studioToolsLink.bankRecentAria")}>
           {view.recent.map((d) => (
             <li key={d.id} className={styles.row}>
               <div className={styles.rowMain}>
                 <span className={styles.rowTitle}>{d.depositor}</span>
                 <span className={styles.muted}>{time(d.receivedAt)}</span>
               </div>
-              <strong>{formatNumber(d.amount)}원</strong>
+              <strong>{t("studioToolsLink.won", { amount: formatNumber(d.amount) })}</strong>
             </li>
           ))}
         </ul>

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition, type KeyboardEvent, type PointerEvent } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { OVERLAYS } from "@/services/creator/overlayCatalog";
 import { saveOverlayLayout } from "@/services/creator/overlayLayout";
 import {
@@ -25,6 +27,7 @@ import { shownOverlayAddress } from "../crew/overlayAddress";
 import styles from "../crew/crew.module.css";
 import { CopyButton } from "../settings/SettingsCards";
 import local from "./overlayLayout.module.css";
+import { overlayGroup, overlaySize, overlayTitle } from "./overlayCatalogText";
 
 type Drafts = Record<LayoutCanvas, LayoutItem[]>;
 type Editing = { loaded: Record<LayoutCanvas, CanvasLayout>; drafts: Drafts };
@@ -39,6 +42,12 @@ const clampPos = (v: number) => clamp(Math.round(v), -LAYOUT_POS_LIMIT, LAYOUT_P
 const clampScale = (v: number) => clamp(Math.round(v * 100) / 100, LAYOUT_SCALE_MIN, LAYOUT_SCALE_MAX);
 /** The preview is at most this tall on screen (a 세로 canvas would otherwise run off the page). */
 const STAGE_MAX_HEIGHT = 640;
+/** Canvas labels by key (the service's LAYOUT_CANVASES stay as written, 2026-11-01). */
+const CANVAS_KEY: Record<LayoutCanvas, MessageKey> = {
+  PC: "studioToolsOverlays.canvasPc",
+  LANDSCAPE: "studioToolsOverlays.canvasLandscape",
+  PORTRAIT: "studioToolsOverlays.canvasPortrait"
+};
 
 /**
  * 원소스 오버레이 배치 — code-first (no Figma frame; StreamDonate "오버레이 설정 (원소스)" 참고, P3). Route
@@ -49,6 +58,7 @@ const STAGE_MAX_HEIGHT = 640;
  */
 export function OverlayLayoutScreen({ view }: { view: OverlayLayoutView }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [canvas, setCanvas] = useState<LayoutCanvas>("PC");
   const [ed, setEd] = useState<Editing>(() => ({ loaded: view.canvases, drafts: Object.fromEntries(KEYS.map((k) => [k, view.canvases[k].items])) as Drafts }));
   const [selected, setSelected] = useState<string | null>(null);
@@ -83,6 +93,11 @@ export function OverlayLayoutScreen({ view }: { view: OverlayLayoutView }) {
   }, [view]);
 
   const info = canvasInfo(canvas);
+  const canvasLabel = t(CANVAS_KEY[canvas]);
+  const titleOf = (id: string) => {
+    const o = overlayOf(id);
+    return o ? overlayTitle(o, t) : t("studioToolsOverlays.missingOverlay");
+  };
   const items = ed.drafts[canvas];
   const dirty = !same(items, ed.loaded[canvas].items);
   const sel = items.find((i) => i.id === selected) ?? null;
@@ -162,7 +177,7 @@ export function OverlayLayoutScreen({ view }: { view: OverlayLayoutView }) {
         if (res.status === "SAVED") {
           saveId.current = null;
           setEd((s) => ({ ...s, loaded: { ...s.loaded, [target]: { items: sent, revision: res.revision, updatedAt: new Date().toISOString() } } }));
-          setMessage({ tone: "ok", text: `${canvasInfo(target).label} 배치를 저장했어요. OBS에는 5초 안에 반영돼요.` });
+          setMessage({ tone: "ok", text: t("studioToolsOverlays.layoutSaved", { canvas: t(CANVAS_KEY[target]) }) });
           router.refresh();
         } else if (res.status === "UNAUTHORIZED") router.push("/login?role=creator&next=/creator/widgets/onesource");
         else {
@@ -170,7 +185,7 @@ export function OverlayLayoutScreen({ view }: { view: OverlayLayoutView }) {
           setMessage({ tone: res.status === "CONFLICT" ? "conflict" : "error", text: res.message });
         }
       } catch {
-        setMessage({ tone: "error", text: "저장하지 못했어요. 잠시 후 다시 시도해 주세요." });
+        setMessage({ tone: "error", text: t("studioTools.saveFailed") });
       }
     });
   };
@@ -187,15 +202,18 @@ export function OverlayLayoutScreen({ view }: { view: OverlayLayoutView }) {
   return (
     <div className={styles.content}>
       <header className={styles.header}>
-        <h1 className={styles.title}>원소스 오버레이</h1>
-        <p className={styles.subtitle}>OBS 브라우저 소스 하나에 여러 오버레이를 배치해요. PC · 모바일 가로 · 세로 캔버스마다 따로 저장돼요.</p>
+        <h1 className={styles.title}>{t("studioToolsOverlays.layoutTitle")}</h1>
+        <p className={styles.subtitle}>{t("studioToolsOverlays.layoutSubtitle")}</p>
         <p className={styles.note}>
-          오버레이마다의 설정 · 테마 · <Link href="/creator/remote">리모컨</Link> 켜기/끄기는 그대로 적용되고, 여기서는 위치 · 크기 · 순서만 정해요. 개별 주소는{" "}
-          <Link href="/creator/widgets/overlays">오버레이 주소</Link>에 있어요.
+          {t("studioToolsOverlays.layoutNoteBefore")}
+          <Link href="/creator/remote">{t("studioTools.remote")}</Link>
+          {t("studioToolsOverlays.layoutNoteMiddle")}
+          <Link href="/creator/widgets/overlays">{t("studioToolsOverlays.title")}</Link>
+          {t("studioToolsOverlays.layoutNoteAfter")}
         </p>
       </header>
 
-      <div className={styles.segment} role="group" aria-label="캔버스">
+      <div className={styles.segment} role="group" aria-label={t("studioToolsOverlays.canvasAria")}>
         {LAYOUT_CANVASES.map((c) => (
           <button
             key={c.key}
@@ -206,7 +224,7 @@ export function OverlayLayoutScreen({ view }: { view: OverlayLayoutView }) {
               setSelected(null);
             }}
           >
-            {c.label}
+            {t(CANVAS_KEY[c.key])}
             {!same(ed.drafts[c.key], ed.loaded[c.key].items) && " •"}
           </button>
         ))}
@@ -217,7 +235,7 @@ export function OverlayLayoutScreen({ view }: { view: OverlayLayoutView }) {
           {message.text}{" "}
           {message.tone === "conflict" && (
             <button type="button" className={styles.ghost} onClick={reload}>
-              최신 배치 불러오기
+              {t("studioToolsOverlays.loadLatest")}
             </button>
           )}
         </p>
@@ -226,26 +244,26 @@ export function OverlayLayoutScreen({ view }: { view: OverlayLayoutView }) {
       <section className={styles.card} aria-labelledby="layout-stage-title">
         <div className={local.stageHead}>
           <h2 id="layout-stage-title" className={styles.cardTitle}>
-            {info.label} · {info.width} × {info.height}
+            {canvasLabel} · {info.width} × {info.height}
           </h2>
           <label className={styles.checkRow}>
             <input type="checkbox" checked={live} onChange={(e) => setLive(e.target.checked)} />
-            실시간 미리보기
+            {t("studioToolsOverlays.livePreview")}
           </label>
         </div>
         <div ref={wrap} className={local.wrap}>
           <div className={local.stage} style={{ width: info.width * fit, height: info.height * fit }} onPointerDown={() => setSelected(null)}>
-            {items.length === 0 && <p className={local.stageEmpty}>아직 놓은 오버레이가 없어요. 아래 &lsquo;오버레이 추가&rsquo;에서 골라 주세요.</p>}
+            {items.length === 0 && <p className={local.stageEmpty}>{t("studioToolsOverlays.stageEmpty")}</p>}
             {items.map((i) => {
               const o = overlayOf(i.overlayId);
-              const title = o?.title ?? "없는 오버레이";
+              const title = titleOf(i.overlayId);
               return (
                 <div
                   key={i.id}
                   role="button"
                   tabIndex={0}
                   aria-pressed={selected === i.id}
-                  aria-label={`${title} — X ${i.x}, Y ${i.y}, ${Math.round(i.scale * 100)}%`}
+                  aria-label={t("studioToolsOverlays.boxAria", { title, x: i.x, y: i.y, scale: Math.round(i.scale * 100) })}
                   className={local.box}
                   data-hidden={i.hidden || undefined}
                   style={{ left: i.x * fit, top: i.y * fit, width: i.width * i.scale * fit, height: i.height * i.scale * fit }}
@@ -259,7 +277,7 @@ export function OverlayLayoutScreen({ view }: { view: OverlayLayoutView }) {
                   {live && o && !i.hidden && (
                     <iframe
                       src={o.path(view.overlayKey)}
-                      title={`${title} 미리보기`}
+                      title={t("studioToolsOverlays.previewTitle", { title })}
                       tabIndex={-1}
                       className={local.frame}
                       style={{ width: i.width, height: i.height, transform: `scale(${i.scale * fit})` }}
@@ -267,7 +285,7 @@ export function OverlayLayoutScreen({ view }: { view: OverlayLayoutView }) {
                   )}
                   <span className={local.boxLabel}>
                     {title}
-                    {i.hidden && " (숨김)"}
+                    {i.hidden && t("studioToolsOverlays.hiddenSuffix")}
                   </span>
                 </div>
               );
@@ -280,48 +298,44 @@ export function OverlayLayoutScreen({ view }: { view: OverlayLayoutView }) {
             )}
           </div>
         </div>
-        <p className={styles.note}>
-          끌어서 옮기고, 고른 오버레이의 오른쪽 아래 손잡이로 크기(스케일)를 바꿔요. 방향키로 1px · Shift+방향키로 10px 옮겨요. 캔버스 밖으로 나간 부분은 방송에 보이지 않아요.
-        </p>
+        <p className={styles.note}>{t("studioToolsOverlays.stageNote")}</p>
       </section>
 
       <div className={local.panels}>
         <section className={styles.card} aria-labelledby="layout-layers-title">
           <h2 id="layout-layers-title" className={styles.cardTitle}>
-            레이어 <span className={styles.muted}>(위가 앞)</span>
+            {t("studioToolsOverlays.layers")} <span className={styles.muted}>{t("studioToolsOverlays.layersFront")}</span>
           </h2>
           {items.length === 0 ? (
-            <p className={styles.empty}>놓은 오버레이가 없어요.</p>
+            <p className={styles.empty}>{t("studioToolsOverlays.noneplaced")}</p>
           ) : (
             <LayerList items={items} selected={selected} onSelect={setSelected} onMove={move} onToggle={(i) => patch(i.id, { hidden: !i.hidden })} />
           )}
           <div className={styles.addRow}>
-            <select className={`${styles.select} ${local.picker}`} aria-label="추가할 오버레이" value={adding} onChange={(e) => setAdding(e.target.value)}>
+            <select className={`${styles.select} ${local.picker}`} aria-label={t("studioToolsOverlays.addAria")} value={adding} onChange={(e) => setAdding(e.target.value)}>
               {GROUPS.map((g) => (
-                <optgroup key={g} label={g}>
+                <optgroup key={g} label={overlayGroup(g, t)}>
                   {OVERLAYS.filter((o) => o.group === g).map((o) => (
                     <option key={o.id} value={o.id}>
-                      {o.title} ({o.size})
+                      {overlayTitle(o, t)} ({overlaySize(o, t)})
                     </option>
                   ))}
                 </optgroup>
               ))}
             </select>
             <button type="button" className={styles.ghost} disabled={items.length >= LAYOUT_ITEMS_MAX} onClick={add}>
-              오버레이 추가
+              {t("studioToolsOverlays.addOverlay")}
             </button>
           </div>
-          <p className={styles.note}>
-            한 캔버스에 {LAYOUT_ITEMS_MAX}개까지 놓을 수 있어요. 같은 오버레이를 원소스와 따로 추가한 브라우저 소스에 함께 두면 알림 소리가 두 번 날 수 있어요.
-          </p>
+          <p className={styles.note}>{t("studioToolsOverlays.maxNote", { max: LAYOUT_ITEMS_MAX })}</p>
         </section>
 
         <section className={styles.card} aria-labelledby="layout-item-title">
           <h2 id="layout-item-title" className={styles.cardTitle}>
-            {sel ? (overlayOf(sel.overlayId)?.title ?? "없는 오버레이") : "고른 오버레이"}
+            {sel ? titleOf(sel.overlayId) : t("studioToolsOverlays.selectedTitle")}
           </h2>
           {!sel ? (
-            <p className={styles.empty}>미리보기나 레이어에서 오버레이를 골라 주세요.</p>
+            <p className={styles.empty}>{t("studioToolsOverlays.pickPrompt")}</p>
           ) : (
             <ItemFields item={sel} canvas={canvas} onPatch={(p) => patch(sel.id, p)} onRemove={() => remove(sel.id)} />
           )}
@@ -330,10 +344,10 @@ export function OverlayLayoutScreen({ view }: { view: OverlayLayoutView }) {
 
       <section className={styles.card} aria-labelledby="layout-save-title">
         <h2 id="layout-save-title" className={styles.cardTitle}>
-          저장 · OBS 주소
+          {t("studioToolsOverlays.saveTitle")}
         </h2>
         <p className={styles.note}>
-          {dirty ? `${info.label} 캔버스에 저장하지 않은 변경이 있어요.` : `${info.label} 캔버스는 저장된 상태예요.`} 캔버스는 하나씩 저장해요.
+          {dirty ? t("studioToolsOverlays.dirtyNote", { canvas: canvasLabel }) : t("studioToolsOverlays.cleanNote", { canvas: canvasLabel })} {t("studioToolsOverlays.oneByOne")}
         </p>
         <div className={styles.actions}>
           <button
@@ -345,18 +359,22 @@ export function OverlayLayoutScreen({ view }: { view: OverlayLayoutView }) {
               setSelected(null);
             }}
           >
-            되돌리기
+            {t("studioTools.revert")}
           </button>
           <button type="button" className={styles.primary} disabled={pending || !dirty} onClick={save}>
-            {pending ? "저장하는 중…" : `${info.label} 저장`}
+            {pending ? t("studioTools.savingLong") : t("studioToolsOverlays.saveCanvas", { canvas: canvasLabel })}
           </button>
         </div>
-        <p className={styles.note}>
-          OBS에 브라우저 소스 하나를 {info.width} × {info.height} 크기로 추가하고 아래 주소를 넣어요. 캔버스마다 주소가 달라요.
-        </p>
+        <p className={styles.note}>{t("studioToolsOverlays.obsNote", { width: info.width, height: info.height })}</p>
         <div className={styles.addRow}>
-          <input className={styles.input} value={shownOverlayAddress(origin, path, query)} readOnly aria-label={`${info.label} 원소스 주소`} onFocus={(e) => e.target.select()} />
-          <CopyButton value={`${origin}${path}${query}`} label="복사" className={styles.ghost} />
+          <input
+            className={styles.input}
+            value={shownOverlayAddress(origin, path, query)}
+            readOnly
+            aria-label={t("studioToolsOverlays.addressAria", { canvas: canvasLabel })}
+            onFocus={(e) => e.target.select()}
+          />
+          <CopyButton value={`${origin}${path}${query}`} label={t("studioTools.copy")} className={styles.ghost} />
         </div>
       </section>
     </div>
@@ -377,6 +395,7 @@ function LayerList({
   onMove: (from: number, to: number) => void;
   onToggle: (item: LayoutItem) => void;
 }) {
+  const { t } = useI18n();
   const from = useRef<number | null>(null);
   const last = items.length - 1;
   return (
@@ -385,7 +404,8 @@ function LayerList({
         .map((i, index) => ({ i, index }))
         .reverse()
         .map(({ i, index }) => {
-          const title = overlayOf(i.overlayId)?.title ?? "없는 오버레이";
+          const o = overlayOf(i.overlayId);
+          const title = o ? overlayTitle(o, t) : t("studioToolsOverlays.missingOverlay");
           return (
             <li
               key={i.id}
@@ -410,13 +430,13 @@ function LayerList({
                 {title}
               </button>
               <span className={styles.muted}>{Math.round(i.scale * 100)}%</span>
-              <button type="button" aria-label={`${title} ${i.hidden ? "보이기" : "숨기기"}`} aria-pressed={i.hidden} onClick={() => onToggle(i)}>
+              <button type="button" aria-label={t(i.hidden ? "studioToolsOverlays.showAria" : "studioToolsOverlays.hideAria", { title })} aria-pressed={i.hidden} onClick={() => onToggle(i)}>
                 {i.hidden ? "🙈" : "👁"}
               </button>
-              <button type="button" aria-label={`${title} 앞으로`} disabled={index === last} onClick={() => onMove(index, index + 1)}>
+              <button type="button" aria-label={t("studioToolsOverlays.frontAria", { title })} disabled={index === last} onClick={() => onMove(index, index + 1)}>
                 ↑
               </button>
-              <button type="button" aria-label={`${title} 뒤로`} disabled={index === 0} onClick={() => onMove(index, index - 1)}>
+              <button type="button" aria-label={t("studioToolsOverlays.backAria", { title })} disabled={index === 0} onClick={() => onMove(index, index - 1)}>
                 ↓
               </button>
             </li>
@@ -428,6 +448,7 @@ function LayerList({
 
 /** The selected overlay's numbers: typed values apply as soon as they are whole numbers. */
 function ItemFields({ item, canvas, onPatch, onRemove }: { item: LayoutItem; canvas: LayoutCanvas; onPatch: (p: Partial<LayoutItem>) => void; onRemove: () => void }) {
+  const { t } = useI18n();
   const o = overlayOf(item.overlayId);
   const c = canvasInfo(canvas);
   const num = (key: "x" | "y" | "width" | "height", label: string, min: number, max: number) => (
@@ -453,15 +474,15 @@ function ItemFields({ item, canvas, onPatch, onRemove }: { item: LayoutItem; can
       <div className={local.fields}>
         {num("x", "X", -LAYOUT_POS_LIMIT, LAYOUT_POS_LIMIT)}
         {num("y", "Y", -LAYOUT_POS_LIMIT, LAYOUT_POS_LIMIT)}
-        {num("width", "가로", LAYOUT_SIZE_MIN, LAYOUT_SIZE_MAX)}
-        {num("height", "세로", LAYOUT_SIZE_MIN, LAYOUT_SIZE_MAX)}
+        {num("width", t("studioToolsOverlays.width"), LAYOUT_SIZE_MIN, LAYOUT_SIZE_MAX)}
+        {num("height", t("studioToolsOverlays.height"), LAYOUT_SIZE_MIN, LAYOUT_SIZE_MAX)}
         <label className={local.field}>
-          <span className={styles.muted}>스케일 %</span>
+          <span className={styles.muted}>{t("studioToolsOverlays.scalePercent")}</span>
           <input
             className={styles.inputSmall}
             type="number"
             inputMode="numeric"
-            aria-label="스케일"
+            aria-label={t("studioToolsOverlays.scale")}
             min={LAYOUT_SCALE_MIN * 100}
             max={LAYOUT_SCALE_MAX * 100}
             value={Math.round(item.scale * 100)}
@@ -473,11 +494,15 @@ function ItemFields({ item, canvas, onPatch, onRemove }: { item: LayoutItem; can
         </label>
       </div>
       <p className={styles.note}>
-        가로 · 세로는 브라우저 소스 크기예요{o && ` (권장 ${o.size})`}. 방송에는 스케일을 곱한 {Math.round(item.width * item.scale)} × {Math.round(item.height * item.scale)}으로 보여요.
+        {t("studioToolsOverlays.sizeNote", {
+          recommended: o ? t("studioToolsOverlays.sizeRecommended", { size: overlaySize(o, t) }) : "",
+          width: Math.round(item.width * item.scale),
+          height: Math.round(item.height * item.scale)
+        })}
       </p>
       <label className={styles.checkRow}>
         <input type="checkbox" checked={item.hidden} onChange={(e) => onPatch({ hidden: e.target.checked })} />
-        OBS에서 숨기기 (배치는 남겨 둬요)
+        {t("studioToolsOverlays.hideInObs")}
       </label>
       <div className={styles.actions}>
         {o && (
@@ -489,21 +514,21 @@ function ItemFields({ item, canvas, onPatch, onRemove }: { item: LayoutItem; can
               onPatch({ width, height });
             }}
           >
-            권장 크기로
+            {t("studioToolsOverlays.recommendedSize")}
           </button>
         )}
         <button type="button" className={styles.ghost} onClick={() => onPatch({ scale: 1 })}>
-          100%로
+          {t("studioToolsOverlays.fullScale")}
         </button>
         <button
           type="button"
           className={styles.ghost}
           onClick={() => onPatch({ x: Math.round((c.width - item.width * item.scale) / 2), y: Math.round((c.height - item.height * item.scale) / 2) })}
         >
-          가운데로
+          {t("studioToolsOverlays.center")}
         </button>
         <button type="button" className={styles.ghost} onClick={onRemove}>
-          빼기
+          {t("studioTools.remove")}
         </button>
       </div>
     </>

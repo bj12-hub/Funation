@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { generateBanners } from "@/services/creator/aiBanner";
 import {
   AI_HEADLINE_MAX,
@@ -23,6 +25,22 @@ import prize from "../../crew/prize.module.css";
 import local from "./aiBanner.module.css";
 
 const svgUrl = (svg: string) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+/** Style, ratio and quality labels by key (the service's AI_STYLES · AI_RATIOS · AI_QUALITIES stay as written, 2026-11-01). */
+const STYLE_KEY: Record<AiStyle, MessageKey> = {
+  NEON: "studioToolsLibrary.aiStyleNeon",
+  PASTEL: "studioToolsLibrary.aiStylePastel",
+  RETRO: "studioToolsLibrary.aiStyleRetro",
+  MINIMAL: "studioToolsLibrary.aiStyleMinimal",
+  COMIC: "studioToolsLibrary.aiStyleComic",
+  SPACE: "studioToolsLibrary.aiStyleSpace"
+};
+const RATIO_KEY: Record<AiRatio, MessageKey> = {
+  WIDE: "studioToolsLibrary.aiRatioWide",
+  STRIP: "studioToolsLibrary.aiRatioStrip",
+  SQUARE: "studioToolsLibrary.aiRatioSquare",
+  TALL: "studioToolsLibrary.aiRatioTall"
+};
+const QUALITY_KEY: Record<AiQuality, MessageKey> = { STANDARD: "studioToolsLibrary.aiQualityStandard", HIGH: "studioToolsLibrary.aiQualityHigh" };
 
 /** The banner as an image file: PNG, or JPEG when the PNG would not fit the library's image limit. */
 async function toImageFile(img: AiBannerImage, name: string): Promise<File> {
@@ -51,6 +69,7 @@ async function toImageFile(img: AiBannerImage, name: string): Promise<File> {
  */
 export function AiBannerScreen() {
   const router = useRouter();
+  const { t } = useI18n();
   const [prompt, setPrompt] = useState("");
   const [headline, setHeadline] = useState("");
   const [subline, setSubline] = useState("");
@@ -74,7 +93,7 @@ export function AiBannerScreen() {
         } else if (res.status === "UNAUTHORIZED") router.push("/login?role=creator&next=/creator/widgets/banner/ai");
         else setMessage({ tone: "error", text: res.message });
       } catch {
-        setMessage({ tone: "error", text: "배너를 만들지 못했어요. 잠시 후 다시 시도해 주세요." });
+        setMessage({ tone: "error", text: t("studioToolsLibrary.aiFailed") });
       }
     });
   };
@@ -91,11 +110,11 @@ export function AiBannerScreen() {
       const res = await uploadAsset(form);
       if (res.status === "SAVED") {
         setSaved((s) => ({ ...s, [img.id]: res.asset.name }));
-        setMessage({ tone: "ok", text: `'${res.asset.name}' 이미지를 라이브러리에 저장했어요. 배너 슬라이드쇼에 넣어 보세요.` });
+        setMessage({ tone: "ok", text: t("studioToolsLibrary.aiSaved", { name: res.asset.name }) });
       } else if (res.status === "UNAUTHORIZED") router.push("/login?role=creator&next=/creator/widgets/banner/ai");
-      else setMessage({ tone: "error", text: res.status === "INVALID" ? res.message : "저장하지 못했어요. 잠시 후 다시 시도해 주세요." });
+      else setMessage({ tone: "error", text: res.status === "INVALID" ? res.message : t("studioTools.saveFailed") });
     } catch {
-      setMessage({ tone: "error", text: "이미지로 바꾸지 못했어요. 잠시 후 다시 시도해 주세요." });
+      setMessage({ tone: "error", text: t("studioToolsLibrary.aiConvertFailed") });
     } finally {
       setSaving(null);
     }
@@ -107,14 +126,19 @@ export function AiBannerScreen() {
   return (
     <div className={styles.content}>
       <header className={styles.header}>
-        <h1 className={styles.title}>AI 배너</h1>
-        <p className={styles.subtitle}>설명과 문구를 넣으면 배너 이미지를 4장 만들어 줘요. 마음에 드는 걸 라이브러리에 저장해 배너 슬라이드쇼에 써요.</p>
+        <h1 className={styles.title}>{t("studioToolsLibrary.aiTitle")}</h1>
+        <p className={styles.subtitle}>{t("studioToolsLibrary.aiSubtitle")}</p>
         <p className={styles.note}>
-          <Link href="/creator/widgets/banner">← 배너</Link> · 저장한 이미지는 <Link href="/creator/widgets/assets">이미지·사운드</Link>에 들어가요.
+          <Link href="/creator/widgets/banner">{t("studioToolsLibrary.backBanner")}</Link>
+          {t("studioToolsLibrary.aiHeadBefore")}
+          <Link href="/creator/widgets/assets">{t("studioTools.assetsLink")}</Link>
+          {t("studioToolsLibrary.aiHeadAfter")}
         </p>
       </header>
       <p className={local.notice} role="note">
-        🧪 지금은 AI 제공자를 연결하기 전이라 <b>샘플 생성기</b>로 만들어요. 실제 AI 결과와는 달라요 (제공자 · 비용 · 이용 한도는 아직 정하지 않았어요).
+        {t("studioToolsLibrary.aiNoticeBefore")}
+        <b>{t("studioToolsLibrary.aiNoticeBold")}</b>
+        {t("studioToolsLibrary.aiNoticeAfter")}
       </p>
 
       {message && (
@@ -125,7 +149,7 @@ export function AiBannerScreen() {
 
       <section className={styles.card} aria-labelledby="ai-form-title">
         <h2 id="ai-form-title" className={styles.cardTitle}>
-          ✨ 만들기
+          {t("studioToolsLibrary.aiMakeTitle")}
         </h2>
         <form
           className={prize.form}
@@ -135,66 +159,85 @@ export function AiBannerScreen() {
           }}
         >
           <label className={prize.field}>
-            <span className={styles.muted}>설명</span>
+            <span className={styles.muted}>{t("studioToolsLibrary.aiDescription")}</span>
             <textarea
               className={`${styles.input} ${styles.textarea}`}
-              aria-label="배너 설명"
+              aria-label={t("studioToolsLibrary.aiDescriptionAria")}
               rows={3}
               maxLength={AI_PROMPT_MAX}
-              placeholder="예: 보라색 우주 배경에 고양이, 밤에 하는 게임 방송"
+              placeholder={t("studioToolsLibrary.aiDescriptionPlaceholder")}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
             />
           </label>
           <div className={local.texts}>
             <label className={prize.field}>
-              <span className={styles.muted}>배너 문구</span>
-              <input className={styles.input} aria-label="배너 문구" maxLength={AI_HEADLINE_MAX} placeholder="예: 오늘도 달린다" value={headline} onChange={(e) => setHeadline(e.target.value)} />
+              <span className={styles.muted}>{t("studioToolsLibrary.aiHeadline")}</span>
+              <input
+                className={styles.input}
+                aria-label={t("studioToolsLibrary.aiHeadline")}
+                maxLength={AI_HEADLINE_MAX}
+                placeholder={t("studioToolsLibrary.aiHeadlinePlaceholder")}
+                value={headline}
+                onChange={(e) => setHeadline(e.target.value)}
+              />
             </label>
             <label className={prize.field}>
-              <span className={styles.muted}>작은 문구</span>
-              <input className={styles.input} aria-label="작은 문구" maxLength={AI_SUBLINE_MAX} placeholder="예: 매일 밤 9시" value={subline} onChange={(e) => setSubline(e.target.value)} />
+              <span className={styles.muted}>{t("studioToolsLibrary.aiSubline")}</span>
+              <input
+                className={styles.input}
+                aria-label={t("studioToolsLibrary.aiSubline")}
+                maxLength={AI_SUBLINE_MAX}
+                placeholder={t("studioToolsLibrary.aiSublinePlaceholder")}
+                value={subline}
+                onChange={(e) => setSubline(e.target.value)}
+              />
             </label>
           </div>
-          <div className={prize.field} role="group" aria-label="스타일">
-            <span className={styles.muted}>스타일</span>
+          <div className={prize.field} role="group" aria-label={t("studioToolsLibrary.aiStyle")}>
+            <span className={styles.muted}>{t("studioToolsLibrary.aiStyle")}</span>
             <span className={`${styles.segment} ${local.choices}`}>
               {AI_STYLES.map((s) => (
                 <button key={s.key} type="button" aria-pressed={style === s.key} onClick={() => setStyle(s.key)}>
-                  {s.emoji} {s.label}
+                  {s.emoji} {t(STYLE_KEY[s.key])}
                 </button>
               ))}
             </span>
           </div>
           <div className={local.row}>
-            <div className={prize.field} role="group" aria-label="비율">
-              <span className={styles.muted}>비율</span>
+            <div className={prize.field} role="group" aria-label={t("studioToolsLibrary.aiRatio")}>
+              <span className={styles.muted}>{t("studioToolsLibrary.aiRatio")}</span>
               <span className={`${styles.segment} ${local.choices}`}>
                 {AI_RATIOS.map((r) => (
                   <button key={r.key} type="button" aria-pressed={ratio === r.key} onClick={() => setRatio(r.key)}>
-                    {r.label}
+                    {t(RATIO_KEY[r.key])}
                   </button>
                 ))}
               </span>
             </div>
-            <div className={prize.field} role="group" aria-label="화질">
-              <span className={styles.muted}>화질</span>
+            <div className={prize.field} role="group" aria-label={t("studioToolsLibrary.aiQuality")}>
+              <span className={styles.muted}>{t("studioToolsLibrary.aiQuality")}</span>
               <span className={`${styles.segment} ${local.choices}`}>
                 {AI_QUALITIES.map((q) => (
                   <button key={q.key} type="button" aria-pressed={quality === q.key} onClick={() => setQuality(q.key)}>
-                    {q.label}
+                    {t(QUALITY_KEY[q.key])}
                   </button>
                 ))}
               </span>
             </div>
           </div>
           <p className={styles.note}>
-            저장 크기 {Math.round(size.width * scale)} × {Math.round(size.height * scale)} · 설명은 {AI_PROMPT_MAX}자, 배너 문구 {AI_HEADLINE_MAX}자, 작은 문구 {AI_SUBLINE_MAX}자까지. 설명이나 배너
-            문구 중 하나는 넣어 주세요.
+            {t("studioToolsLibrary.aiSizeNote", {
+              width: Math.round(size.width * scale),
+              height: Math.round(size.height * scale),
+              prompt: AI_PROMPT_MAX,
+              headline: AI_HEADLINE_MAX,
+              subline: AI_SUBLINE_MAX
+            })}
           </p>
           <div className={styles.actions}>
             <button type="submit" className={styles.primary} disabled={pending || (!prompt.trim() && !headline.trim())}>
-              {pending ? "만드는 중…" : images.length ? "다시 만들기" : "만들기"}
+              {pending ? t("studioToolsLibrary.aiCreating") : images.length ? t("studioToolsLibrary.aiRemake") : t("studioToolsLibrary.aiMake")}
             </button>
           </div>
         </form>
@@ -202,27 +245,27 @@ export function AiBannerScreen() {
 
       <section className={styles.card} aria-labelledby="ai-results-title">
         <h2 id="ai-results-title" className={styles.cardTitle}>
-          결과
+          {t("studioToolsLibrary.aiResults")}
         </h2>
         {images.length === 0 ? (
-          <p className={styles.empty}>아직 만든 배너가 없어요. 위에서 설명과 문구를 넣고 만들어 보세요.</p>
+          <p className={styles.empty}>{t("studioToolsLibrary.aiResultsEmpty")}</p>
         ) : (
           <ul className={local.grid} data-ratio={ratio}>
             {images.map((img, i) => (
               <li key={img.id}>
                 {/* eslint-disable-next-line @next/next/no-img-element -- a generated SVG shown as is */}
-                <img src={svgUrl(img.svg)} alt={`만든 배너 ${i + 1}`} className={local.preview} />
+                <img src={svgUrl(img.svg)} alt={t("studioToolsLibrary.aiBannerAlt", { n: i + 1 })} className={local.preview} />
                 <div className={local.cardRow}>
                   <span className={styles.muted}>
                     {img.width} × {img.height}
                   </span>
                   {saved[img.id] ? (
                     <Link href="/creator/widgets/banner" className={styles.ghost}>
-                      저장됨 · 배너에서 쓰기
+                      {t("studioToolsLibrary.aiSavedUse")}
                     </Link>
                   ) : (
                     <button type="button" className={styles.primary} disabled={saving !== null} onClick={() => void save(img, i + 1)}>
-                      {saving === img.id ? "저장하는 중…" : "라이브러리에 저장"}
+                      {saving === img.id ? t("studioTools.savingLong") : t("studioToolsLibrary.aiSaveToLibrary")}
                     </button>
                   )}
                 </div>

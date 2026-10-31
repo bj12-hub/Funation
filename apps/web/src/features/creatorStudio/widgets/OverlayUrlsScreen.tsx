@@ -3,12 +3,15 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import { THEME_TEXT } from "@/features/overlayTheme/themeText";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { setOverlaySwitch } from "@/services/creator/alertRemote";
 import type { OverlayTarget } from "@/services/creator/alertTypes";
-import { OVERLAY_THEMES, THEME_DEFAULT_ACCENT, type OverlayAppearance } from "@/services/creator/overlayThemeTypes";
+import { THEME_DEFAULT_ACCENT, type OverlayAppearance } from "@/services/creator/overlayThemeTypes";
 import styles from "../crew/crew.module.css";
 import { CopyButton } from "../settings/SettingsCards";
 import { obsFileName, obsSceneCollection, OBS_COLLECTION_NAME } from "./obsScenes";
+import { overlayDescription, overlayGroup, overlaySize, overlayTitle } from "./overlayCatalogText";
 import { OVERLAYS } from "@/services/creator/overlayCatalog";
 import local from "./overlayUrls.module.css";
 
@@ -25,6 +28,7 @@ const mask = (key: string) => `${key.slice(0, 4)}-····-····-····`;
  */
 export function OverlayUrlsScreen({ overlayKey, switches, appearance }: { overlayKey: string; switches: Record<OverlayTarget, boolean>; appearance: OverlayAppearance }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -34,12 +38,12 @@ export function OverlayUrlsScreen({ overlayKey, switches, appearance }: { overla
       setError(null);
       const res = await setOverlaySwitch({ target, on: true });
       if (res.status === "SAVED") router.refresh();
-      else setError(res.status === "INVALID" ? res.message : "다시 로그인해 주세요.");
+      else setError(res.status === "INVALID" ? res.message : t("studioToolsOverlays.relogin"));
     });
   const [origin, setOrigin] = useState("");
   useEffect(() => setOrigin(window.location.origin), []);
   const groups = [...new Set(OVERLAYS.map((o) => o.group))];
-  const all = OVERLAYS.map((o) => `${o.title}\t${origin}${o.path(overlayKey)}`).join("\n");
+  const all = OVERLAYS.map((o) => `${overlayTitle(o, t)}\t${origin}${o.path(overlayKey)}`).join("\n");
   const downloadObs = () => {
     setError(null);
     try {
@@ -54,28 +58,35 @@ export function OverlayUrlsScreen({ overlayKey, switches, appearance }: { overla
       setTimeout(() => URL.revokeObjectURL(href), 1000);
       setSaved(true);
     } catch {
-      setError("파일을 만들지 못했어요. 잠시 후 다시 시도해 주세요.");
+      setError(t("studioToolsOverlays.fileFailed"));
     }
   };
 
   return (
     <div className={styles.content}>
       <header className={styles.header}>
-        <h1 className={styles.title}>오버레이 주소</h1>
-        <p className={styles.subtitle}>OBS 브라우저 소스에 넣을 주소를 한곳에 모았어요. 계정 전용 주소이니 방송 화면이나 채팅에 노출하지 마세요.</p>
+        <h1 className={styles.title}>{t("studioToolsOverlays.title")}</h1>
+        <p className={styles.subtitle}>{t("studioToolsOverlays.subtitle")}</p>
         <p className={styles.note}>
-          <Link href="/creator/widgets">← 후원위젯/알림설정</Link> · 주소가 노출됐다면 계정설정에서 연동 키를 재발급하세요. 모든 주소가 바뀌어요. 여러 오버레이를 브라우저 소스 하나로 쓰려면{" "}
-          <Link href="/creator/widgets/onesource">원소스 배치</Link>를 이용하세요.
+          <Link href="/creator/widgets">{t("studioTools.backWidgetAlerts")}</Link>
+          {t("studioToolsOverlays.noteBefore")}
+          <Link href="/creator/widgets/onesource">{t("studioToolsOverlays.noteLink")}</Link>
+          {t("studioToolsOverlays.noteAfter")}
         </p>
       </header>
       <p className={local.themeLine}>
         <span className={local.themeDot} style={{ background: appearance.accent ?? THEME_DEFAULT_ACCENT[appearance.theme] }} aria-hidden="true" />
-        오버레이 테마 · <b>{OVERLAY_THEMES.find((t) => t.key === appearance.theme)?.label}</b> — 위젯 · 방송 도구 · 크루 점수판 · 영상 · 그림마다 다른 테마를 고를 수도 있어요.{" "}
-        <Link href="/creator/widgets">테마 바꾸기</Link> · 세로(휴대폰) 방송용 주소는 맨 아래 &lsquo;세로 방송&rsquo;에 있어요.
+        {t("studioToolsOverlays.themeLabel")}
+        <b>{THEME_TEXT[appearance.theme] ? t(THEME_TEXT[appearance.theme].label) : undefined}</b>
+        {t("studioToolsOverlays.themeRest")}
+        <Link href="/creator/widgets">{t("studioToolsOverlays.changeTheme")}</Link>
+        {t("studioToolsOverlays.verticalNote")}
       </p>
       {off.length > 0 && (
         <p className={local.offSummary} role="status">
-          꺼진 오버레이 {off.length}개 · {off.map((o) => o.title).join(", ")} — 방송 화면에 나오지 않아요. <Link href="/creator/remote">리모컨 기능 제어</Link>에서 켜고 끌 수 있어요.
+          {t("studioToolsOverlays.offBefore", { count: off.length, titles: off.map((o) => overlayTitle(o, t)).join(", ") })}
+          <Link href="/creator/remote">{t("studioToolsOverlays.offLink")}</Link>
+          {t("studioToolsOverlays.offAfter")}
         </p>
       )}
       {error && (
@@ -84,33 +95,30 @@ export function OverlayUrlsScreen({ overlayKey, switches, appearance }: { overla
         </p>
       )}
       <div className={styles.actions}>
-        <CopyButton value={all} label={`목록 전체 복사 (${OVERLAYS.length})`} className={styles.ghost} />
+        <CopyButton value={all} label={t("studioToolsOverlays.copyAll", { count: OVERLAYS.length })} className={styles.ghost} />
         <button type="button" className={styles.primary} onClick={downloadObs}>
-          OBS 씬 파일 내려받기
+          {t("studioToolsOverlays.downloadObs")}
         </button>
       </div>
       <section className={styles.card} aria-labelledby="obs-import">
         <h2 className={styles.cardTitle} id="obs-import">
-          🎬 OBS에 한 번에 넣기
+          {t("studioToolsOverlays.importTitle")}
         </h2>
         <ol className={local.steps}>
-          <li>위의 &lsquo;OBS 씬 파일 내려받기&rsquo;로 파일을 받아요.</li>
-          <li>OBS 메뉴 장면 모음(Scene Collection) → 가져오기(Import)에서 받은 파일을 골라 가져와요.</li>
-          <li>
-            장면 모음에서 &lsquo;{OBS_COLLECTION_NAME}&rsquo;를 고르면 오버레이 {OVERLAYS.length}개가 모두 들어 있는 &lsquo;전체&rsquo; 장면과 분류별 장면 {groups.length}개가 있어요. 브라우저 소스는 권장
-            크기로 한 번만 만들어져 여러 장면이 함께 써요. 쓰던 장면 모음은 그대로예요.
-          </li>
+          <li>{t("studioToolsOverlays.step1")}</li>
+          <li>{t("studioToolsOverlays.step2")}</li>
+          <li>{t("studioToolsOverlays.step3", { collection: OBS_COLLECTION_NAME, count: OVERLAYS.length, groups: groups.length })}</li>
         </ol>
-        <p className={styles.note}>파일에 연동 키가 들어 있으니 다른 사람에게 보내지 마세요. 연동 키를 재발급하면 파일을 다시 받아야 해요.</p>
+        <p className={styles.note}>{t("studioToolsOverlays.fileNote")}</p>
         {saved && (
           <p className={styles.ok} role="status">
-            파일을 내려받았어요. OBS에서 가져오기로 불러오세요.
+            {t("studioToolsOverlays.downloaded")}
           </p>
         )}
       </section>
       {groups.map((g) => (
-        <section key={g} className={styles.card} aria-label={g}>
-          <h2 className={styles.cardTitle}>{g}</h2>
+        <section key={g} className={styles.card} aria-label={overlayGroup(g, t)}>
+          <h2 className={styles.cardTitle}>{overlayGroup(g, t)}</h2>
           <ul className={styles.list}>
             {OVERLAYS.filter((o) => o.group === g).map((o) => {
               const url = `${origin}${o.path(overlayKey)}`;
@@ -118,25 +126,25 @@ export function OverlayUrlsScreen({ overlayKey, switches, appearance }: { overla
                 <li key={o.id} className={styles.row} data-off={switches[o.target] ? undefined : ""}>
                   <div className={`${styles.rowMain} ${local.main}`}>
                     <span className={styles.rowTitle}>
-                      {o.title} <span className={local.size}>OBS {o.size}</span>
+                      {overlayTitle(o, t)} <span className={local.size}>OBS {overlaySize(o, t)}</span>
                       {!switches[o.target] && <span className={local.off}>OFF</span>}
                     </span>
-                    <span className={styles.muted}>{switches[o.target] ? o.description : "리모컨 기능 제어에서 꺼져 있어요. OBS 소스는 그대로지만 화면 · 소리가 나오지 않아요."}</span>
+                    <span className={styles.muted}>{switches[o.target] ? overlayDescription(o, t) : t("studioToolsOverlays.offDescription")}</span>
                     <code className={local.url}>{`${origin}${o.path(mask(overlayKey))}`}</code>
                   </div>
                   <div className={styles.rowActions}>
                     {!switches[o.target] && (
                       <button type="button" className={styles.primary} disabled={pending} onClick={() => turnOn(o.target)}>
-                        켜기
+                        {t("studioToolsOverlays.turnOn")}
                       </button>
                     )}
                     <Link href={o.manage} className={styles.ghost}>
-                      설정
+                      {t("studioTools.settings")}
                     </Link>
                     <Link href={`/creator/widgets/overlays/preview/${o.id}`} className={styles.ghost}>
-                      미리보기
+                      {t("studioTools.preview")}
                     </Link>
-                    <CopyButton value={url} label="복사" className={styles.ghost} />
+                    <CopyButton value={url} label={t("studioTools.copy")} className={styles.ghost} />
                   </div>
                 </li>
               );
