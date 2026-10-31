@@ -3,13 +3,25 @@
 import { useEffect, useRef, useState } from "react";
 import { toCsv } from "@/lib/csv";
 import { formatKstTime, formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { getContributionHistory } from "@/services/crew/crewHistory";
 import { CONTRIBUTION_KINDS, type ContributionHistory, type ContributionKind } from "@/services/crew/crewTypes";
 import styles from "./crew.module.css";
 import history from "./history.module.css";
 
+/** Korean labels for the CSV (file contents stay as written); the screen uses KIND_KEY. */
 const KIND_LABEL = Object.fromEntries(CONTRIBUTION_KINDS.map((k) => [k.key, k.label])) as Record<ContributionKind, string>;
-const time = (iso: string | null) => (iso ? formatKstTime(iso, { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "방송 전체");
+const KIND_KEY: Record<ContributionKind, MessageKey> = {
+  DONATION: "crewOpsHistory.kindDonation",
+  FEED: "crewOpsHistory.kindFeed",
+  ADJUST: "crewOpsHistory.kindAdjust",
+  STEAL: "crewOpsHistory.kindSteal",
+  BATTLE: "crewOpsHistory.kindBattle",
+  GRADE: "crewOpsHistory.kindGrade",
+  GAME: "crewOpsHistory.kindGame"
+};
+const time = (iso: string | null, whole: string) => (iso ? formatKstTime(iso, { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : whole);
 const signed = (n: number) => `${n > 0 ? "+" : ""}${formatNumber(n)}`;
 
 /**
@@ -19,6 +31,7 @@ const signed = (n: number) => `${n > 0 ? "+" : ""}${formatNumber(n)}`;
  * scoreboard changes (`version`), not with every board refresh.
  */
 export function ContributionPanel({ broadcastId, version }: { broadcastId: string; version: string }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [data, setData] = useState<ContributionHistory | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -34,9 +47,9 @@ export function ContributionPanel({ broadcastId, version }: { broadcastId: strin
       if (res.status === "OK") {
         setData(res.history);
         setError(null);
-      } else setError(res.status === "UNAUTHORIZED" ? "로그인이 필요해요." : res.message);
+      } else setError(res.status === "UNAUTHORIZED" ? t("crewOps.loginNeeded") : res.message);
     } catch {
-      setError("기여도 내역을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.");
+      setError(t("crewOpsHistory.loadFailed"));
     } finally {
       loading.current = false;
     }
@@ -69,26 +82,26 @@ export function ContributionPanel({ broadcastId, version }: { broadcastId: strin
   return (
     <details className={`${styles.card} ${history.card}`} onToggle={(e) => setOpen(e.currentTarget.open)}>
       <summary className={history.summary}>
-        <h2 className={styles.cardTitle}>기여도 내역</h2>
-        <span className={styles.muted}>점수판 점수가 어디서 왔는지 한 줄씩 보여 줘요</span>
+        <h2 className={styles.cardTitle}>{t("crewOpsHistory.title")}</h2>
+        <span className={styles.muted}>{t("crewOpsHistory.subtitle")}</span>
       </summary>
-      <p className={styles.note}>멤버마다 더하면 점수판 점수와 같아요. 직급 배수는 방송 전체에 한 줄, 점수 게임은 OBS에 결과가 나온 뒤에 들어와요.</p>
+      <p className={styles.note}>{t("crewOpsHistory.note")}</p>
 
       <div className={history.filters}>
-        <div className={`${styles.tabs} ${history.kinds}`} role="group" aria-label="기여도 내역 종류">
-          {[{ key: "ALL" as const, label: "전체" }, ...CONTRIBUTION_KINDS].map((k) => {
+        <div className={`${styles.tabs} ${history.kinds}`} role="group" aria-label={t("crewOpsHistory.kindsAria")}>
+          {[{ key: "ALL" as const }, ...CONTRIBUTION_KINDS].map((k) => {
             const count = k.key === "ALL" ? byMember.length : byMember.filter((l) => l.kind === k.key).length;
             if (k.key !== "ALL" && !count) return null;
             return (
               <button key={k.key} type="button" className={styles.tab} aria-current={kind === k.key ? "page" : undefined} onClick={() => setKind(k.key)}>
-                {k.label} {count}
+                {k.key === "ALL" ? t("crewOps.all") : t(KIND_KEY[k.key])} {count}
               </button>
             );
           })}
         </div>
         <span className={history.tools}>
-          <select className={styles.select} aria-label="기여도 내역 멤버" value={member} onChange={(e) => setMember(e.target.value)}>
-            <option value="">모든 멤버</option>
+          <select className={styles.select} aria-label={t("crewOpsHistory.memberAria")} value={member} onChange={(e) => setMember(e.target.value)}>
+            <option value="">{t("crewOpsHistory.allMembers")}</option>
             {members.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.name}
@@ -96,10 +109,10 @@ export function ContributionPanel({ broadcastId, version }: { broadcastId: strin
             ))}
           </select>
           <button type="button" className={styles.ghost} onClick={() => void load()}>
-            새로고침
+            {t("crewOpsHistory.refresh")}
           </button>
           <button type="button" className={styles.ghost} disabled={!shown.length} onClick={download}>
-            CSV 다운로드
+            {t("crewOpsHistory.csvDownload")}
           </button>
         </span>
       </div>
@@ -110,19 +123,19 @@ export function ContributionPanel({ broadcastId, version }: { broadcastId: strin
         </p>
       )}
       {!data && !error ? (
-        <p className={styles.note}>불러오는 중…</p>
+        <p className={styles.note}>{t("crewOps.loading")}</p>
       ) : shown.length === 0 ? (
-        <p className={styles.empty}>{lines.length ? "조건에 맞는 내역이 없어요." : "아직 점수가 움직이지 않았어요."}</p>
+        <p className={styles.empty}>{lines.length ? t("crewOpsHistory.emptyFiltered") : t("crewOpsHistory.empty")}</p>
       ) : (
         <>
           <p className={styles.muted}>
-            {formatNumber(shown.length)}건 · 합계 <strong>{signed(total)}점</strong>
+            {t("crewOpsHistory.total", { count: formatNumber(shown.length) })} <strong>{t("crewOpsFeed.points", { n: signed(total) })}</strong>
           </p>
-          <ol className={history.lines} aria-label="기여도 내역">
+          <ol className={history.lines} aria-label={t("crewOpsHistory.title")}>
             {shown.map((l) => (
               <li key={l.id}>
-                <span className={history.when}>{time(l.at)}</span>
-                <span className={history.kind}>{KIND_LABEL[l.kind]}</span>
+                <span className={history.when}>{time(l.at, t("crewOpsHistory.wholeBroadcast"))}</span>
+                <span className={history.kind}>{t(KIND_KEY[l.kind])}</span>
                 <span className={history.what}>
                   <span className={styles.boardName}>
                     <span className={styles.dot} style={{ background: l.color }} aria-hidden="true" />

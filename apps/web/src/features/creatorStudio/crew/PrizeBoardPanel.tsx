@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { formatKstTime, formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { movePrizeWindowStart, savePrizeBoard, setPrizeBoardVisible, startPrizeWindow, stopPrizeWindow } from "@/services/crew/crewPrizeBoard";
 import { StartPointPicker } from "./StartPointPicker";
 import {
@@ -16,9 +18,14 @@ import {
   PRIZE_TITLE_MAX,
   type BroadcastResult,
   type CrewMember,
+  type GaugeNumbers,
+  type PrizeAudience,
+  type PrizeBasis,
   type PrizeBoardLive,
   type PrizeBoardSettings,
-  type RankPrize
+  type PrizePlacement,
+  type RankPrize,
+  type WindowGaugeBasis
 } from "@/services/crew/crewTypes";
 import { CopyButton } from "../settings/SettingsCards";
 import { shownOverlayAddress } from "./overlayAddress";
@@ -30,6 +37,13 @@ const time = (iso: string) => formatKstTime(iso, { hour: "2-digit", minute: "2-d
 const PICKER_DEFAULT = "#ffffff";
 
 type Run = (action: () => Promise<BroadcastResult>, ok?: string) => void;
+
+/** Option labels from crewTypes as message keys (the constants stay as written; OBS shows its own text). */
+export const PLACEMENT_KEY: Record<PrizePlacement, MessageKey> = { LEFT: "crewOpsBoards.placementLeft", FLOAT: "crewOpsBoards.placementFloat", RIGHT: "crewOpsBoards.placementRight" };
+export const NUMBERS_KEY: Record<GaugeNumbers, MessageKey> = { SCORE: "crewOpsBoards.numbersScore", PERCENT: "crewOpsBoards.numbersPercent", BOTH: "crewOpsBoards.numbersBoth" };
+export const AMOUNT_BASIS_KEY: Record<WindowGaugeBasis, MessageKey> = { AMOUNT: "crewOpsBoards.basisAmount", POINTS: "crewOpsBoards.basisPoints" };
+export const PRIZE_BASIS_KEY: Record<PrizeBasis, MessageKey> = { BROADCAST: "crewOpsBoards.basisBroadcast", WINDOW: "crewOpsBoards.basisWindow" };
+const AUDIENCE_KEY: Record<PrizeAudience, MessageKey> = { ALL: "crewOpsBoards.audienceAll", SCORED: "crewOpsBoards.audienceScored" };
 /** Which board a toggle or 구간 bar drives (crewPrizeBoard.ts `board`). */
 type BoardKey = "MEMBER" | "TEAM" | "WINDOW_GAUGE";
 type Display = Pick<PrizeBoardSettings, "titleColor" | "showScore" | "showTotal" | "columns" | "placement">;
@@ -51,43 +65,44 @@ export function useSettingsDraft<T>(settings: T) {
 
 /** 표시: 제목 색 · 점수 · 하단 합계 · 열 개수 · 배치 (the same on 상품 순위표 and 팀 순위표). */
 export function BoardDisplayField({ draft, edit }: { draft: Display; edit: (patch: Partial<Display>) => void }) {
+  const { t } = useI18n();
   return (
-    <div className={prize.field} role="group" aria-label="표시">
-      <span className={styles.muted}>표시</span>
+    <div className={prize.field} role="group" aria-label={t("crewOpsBoards.display")}>
+      <span className={styles.muted}>{t("crewOpsBoards.display")}</span>
       <span className={prize.inline}>
-        <span className={styles.inline} role="group" aria-label="제목 색">
-          <span className={styles.muted}>제목 색</span>
+        <span className={styles.inline} role="group" aria-label={t("crewOpsBoards.titleColor")}>
+          <span className={styles.muted}>{t("crewOpsBoards.titleColor")}</span>
           <input
             type="color"
             className={prize.color}
-            aria-label="제목 글자색"
+            aria-label={t("crewOpsBoards.titleColorAria")}
             value={draft.titleColor ?? PICKER_DEFAULT}
             data-default={draft.titleColor ? undefined : ""}
             onChange={(e) => edit({ titleColor: e.target.value })}
           />
           <button type="button" className={styles.ghost} disabled={!draft.titleColor} onClick={() => edit({ titleColor: null })}>
-            원래 색
+            {t("crewOpsBoards.originalColor")}
           </button>
         </span>
         <label className={styles.checkRow}>
           <input type="checkbox" checked={draft.showScore} onChange={(e) => edit({ showScore: e.target.checked })} />
-          점수
+          {t("crewOpsBoards.showScore")}
         </label>
         <label className={styles.checkRow}>
           <input type="checkbox" checked={draft.showTotal} onChange={(e) => edit({ showTotal: e.target.checked })} />
-          하단 합계
+          {t("crewOpsBoards.showTotal")}
         </label>
-        <span className={styles.segment} role="group" aria-label="열 개수">
+        <span className={styles.segment} role="group" aria-label={t("crewOpsBoards.columnsAria")}>
           {PRIZE_COLUMNS.map((c) => (
             <button key={c} type="button" aria-pressed={draft.columns === c} onClick={() => edit({ columns: c })}>
-              {c}열
+              {t("crewOpsBoards.columnsN", { n: c })}
             </button>
           ))}
         </span>
-        <span className={styles.segment} role="group" aria-label="배치">
+        <span className={styles.segment} role="group" aria-label={t("crewOpsBoards.placementAria")}>
           {PRIZE_PLACEMENTS.map((p) => (
             <button key={p.key} type="button" aria-pressed={draft.placement === p.key} onClick={() => edit({ placement: p.key })}>
-              {p.label}
+              {t(PLACEMENT_KEY[p.key])}
             </button>
           ))}
         </span>
@@ -98,6 +113,7 @@ export function BoardDisplayField({ draft, edit }: { draft: Display; edit: (patc
 
 /** 등수별 상품 · 벌칙: `lines` ranks, each a line of text and its 글자색. */
 export function PrizeLinesField({ prizes, lines, note, onChange }: { prizes: RankPrize[]; lines: number; note: string; onChange: (prizes: RankPrize[]) => void }) {
+  const { t } = useI18n();
   const setLine = (i: number, patch: Partial<RankPrize>) => {
     const next = Array.from({ length: Math.max(prizes.length, i + 1) }, (_, j) => prizes[j] ?? { text: "", color: null });
     next[i] = { ...next[i], ...patch };
@@ -105,17 +121,17 @@ export function PrizeLinesField({ prizes, lines, note, onChange }: { prizes: Ran
   };
   return (
     <div className={prize.field}>
-      <span className={styles.muted}>등수별 상품 · 벌칙</span>
+      <span className={styles.muted}>{t("crewOpsBoards.prizeLines")}</span>
       <ol className={prize.lines}>
         {Array.from({ length: lines }, (_, i) => {
           const p = prizes[i] ?? { text: "", color: null };
           return (
             <li key={i}>
-              <span className={prize.rankLabel}>{i + 1}등</span>
+              <span className={prize.rankLabel}>{t("crewOpsBoards.rankN", { n: i + 1 })}</span>
               <input
                 className={styles.input}
-                aria-label={`${i + 1}등 상품 · 벌칙`}
-                placeholder="비우면 빈칸"
+                aria-label={t("crewOpsBoards.rankPrizeAria", { n: i + 1 })}
+                placeholder={t("crewOpsBoards.blankIsEmpty")}
                 maxLength={PRIZE_TEXT_MAX}
                 value={p.text}
                 style={p.color ? { color: p.color } : undefined}
@@ -124,24 +140,24 @@ export function PrizeLinesField({ prizes, lines, note, onChange }: { prizes: Ran
               <input
                 type="color"
                 className={prize.color}
-                aria-label={`${i + 1}등 글자색`}
+                aria-label={t("crewOpsBoards.rankColorAria", { n: i + 1 })}
                 value={p.color ?? PICKER_DEFAULT}
                 data-default={p.color ? undefined : ""}
                 onChange={(e) => setLine(i, { color: e.target.value })}
               />
               <button type="button" className={styles.ghost} disabled={!p.color} onClick={() => setLine(i, { color: null })}>
-                기본색
+                {t("crewOpsBoards.defaultColor")}
               </button>
               <input
                 type="color"
                 className={prize.color}
-                aria-label={`${i + 1}등 테두리색`}
+                aria-label={t("crewOpsBoards.rankOutlineAria", { n: i + 1 })}
                 value={p.outline ?? "#000000"}
                 data-default={p.outline ? undefined : ""}
                 onChange={(e) => setLine(i, { outline: e.target.value })}
               />
               <button type="button" className={styles.ghost} disabled={!p.outline} onClick={() => setLine(i, { outline: null })}>
-                테두리 없음
+                {t("crewOpsBoards.noOutline")}
               </button>
             </li>
           );
@@ -157,21 +173,23 @@ export const lastPrizeLine = (prizes: RankPrize[]) => prizes.reduce((last, p, i)
 
 /** OBS에 표시 (the card head, while live). */
 export function BoardVisibleToggle({ broadcastId, board, visible, label, pending, run }: { broadcastId: string; board: BoardKey; visible: boolean; label: string; pending: boolean; run: Run }) {
+  const { t } = useI18n();
   return (
     <label className={styles.checkRow}>
       <input
         type="checkbox"
         checked={visible}
         disabled={pending}
-        onChange={(e) => run(() => setPrizeBoardVisible({ broadcastId, board, on: e.target.checked }), e.target.checked ? `OBS에 ${label}를 띄웠어요.` : `${label}를 내렸어요.`)}
+        onChange={(e) => run(() => setPrizeBoardVisible({ broadcastId, board, on: e.target.checked }), e.target.checked ? t("crewOpsBoards.boardShown", { label }) : t("crewOpsBoards.boardHidden", { label }))}
       />
-      OBS에 표시
+      {t("crewOps.showOnObs")}
     </label>
   );
 }
 
 /** 구간 시작 · 다시 시작 · 정지 of a board on the WINDOW basis, and 시작점 수정 while it runs (2026-10-28). */
 export function PrizeWindowBar({ broadcastId, board, span, pending, run }: { broadcastId: string; board: BoardKey; span: PrizeBoardLive["window"]; pending: boolean; run: Run }) {
+  const { t } = useI18n();
   const startId = useRef<string | null>(null);
   const start = () => {
     // One request id per intended 시작: a double click or retry never restarts the 구간 twice.
@@ -181,26 +199,30 @@ export function PrizeWindowBar({ broadcastId, board, span, pending, run }: { bro
       const res = await startPrizeWindow({ broadcastId, board, requestId });
       if (res.status === "SAVED") startId.current = null;
       return res;
-    }, span ? "구간을 처음부터 다시 셀게요." : "구간 집계를 시작했어요.");
+    }, span ? t("crewOpsBoards.windowRestarted") : t("crewOpsBoards.windowStarted"));
   };
   return (
-    <div className={prize.window} role="group" aria-label="구간 집계">
+    <div className={prize.window} role="group" aria-label={t("crewOpsBoards.windowAria")}>
       <span className={styles.muted}>
-        {!span ? "구간 시작 전 — 시작을 누른 뒤 들어온 후원만 세요." : span.stoppedAt ? `마감 · ${time(span.startedAt)} ~ ${time(span.stoppedAt)}` : `집계 중 · ${time(span.startedAt)}부터`}
+        {!span
+          ? t("crewOpsBoards.windowIdle")
+          : span.stoppedAt
+            ? t("crewOpsBoards.windowClosed", { from: time(span.startedAt), to: time(span.stoppedAt) })
+            : t("crewOpsBoards.windowRunning", { from: time(span.startedAt) })}
       </span>
       <button type="button" className={styles.primary} disabled={pending} onClick={start}>
-        {span ? "다시 시작" : "시작"}
+        {span ? t("crewOpsBoards.restart") : t("crewOpsBoards.start")}
       </button>
       {span && !span.stoppedAt && (
-        <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => stopPrizeWindow({ broadcastId, board }), "구간을 마감했어요.")}>
-          정지
+        <button type="button" className={styles.ghost} disabled={pending} onClick={() => run(() => stopPrizeWindow({ broadcastId, board }), t("crewOpsBoards.windowStopped"))}>
+          {t("crewOpsBoards.stop")}
         </button>
       )}
       {span && !span.stoppedAt && (
         <StartPointPicker
           current={span.startedAt}
           pending={pending}
-          onMove={(at) => run(() => movePrizeWindowStart({ broadcastId, board, at }), `구간을 ${time(at)}부터 다시 셀게요.`)}
+          onMove={(at) => run(() => movePrizeWindowStart({ broadcastId, board, at }), t("crewOpsBoards.windowMoved", { time: time(at) }))}
         />
       )}
     </div>
@@ -209,12 +231,13 @@ export function PrizeWindowBar({ broadcastId, board, span, pending, run }: { bro
 
 /** The board's OBS address (`?prize` · `?teamprize`) with a copy button. */
 export function BoardAddress({ overlayPath, query, label }: { overlayPath: string; query: string; label: string }) {
+  const { t } = useI18n();
   const [origin, setOrigin] = useState("");
   useEffect(() => setOrigin(window.location.origin), []);
   return (
     <div className={styles.addRow}>
-      <input className={styles.input} value={shownOverlayAddress(origin, overlayPath, query)} readOnly aria-label={`${label} 오버레이 주소`} onFocus={(e) => e.target.select()} />
-      <CopyButton value={`${origin}${overlayPath}${query}`} label="복사" className={styles.ghost} />
+      <input className={styles.input} value={shownOverlayAddress(origin, overlayPath, query)} readOnly aria-label={t("crewOpsBoards.addressAria", { label })} onFocus={(e) => e.target.select()} />
+      <CopyButton value={`${origin}${overlayPath}${query}`} label={t("crewOpsBroadcast.copy")} className={styles.ghost} />
     </div>
   );
 }
@@ -239,6 +262,7 @@ export function PrizeBoardPanel({
   pending: boolean;
   run: Run;
 }) {
+  const { t } = useI18n();
   const { draft, setDraft, edit, dirty } = useSettingsDraft(settings);
 
   // Members a rank can go to: listed ones (active, on this broadcast's board, or pinned) minus 제외 and 상단 고정.
@@ -257,14 +281,11 @@ export function PrizeBoardPanel({
     <section className={styles.card} aria-labelledby="bc-prize">
       <div className={styles.cardHead}>
         <h2 id="bc-prize" className={styles.cardTitle}>
-          상품 순위표
+          {t("crewOpsBoards.prizeTitle")}
         </h2>
-        {live && <BoardVisibleToggle broadcastId={live.broadcastId} board="MEMBER" visible={!!board?.visible} label="상품 순위표" pending={pending} run={run} />}
+        {live && <BoardVisibleToggle broadcastId={live.broadcastId} board="MEMBER" visible={!!board?.visible} label={t("crewOpsBoards.prizeTitle")} pending={pending} run={run} />}
       </div>
-      <p className={styles.note}>
-        등수마다 상품 · 벌칙을 적어 OBS에 띄우는 순위표예요. 방송 전체 점수나, 시작 ~ 정지 사이 구간 점수(받은 후원 ± 강탈, 보정 제외)로 순위를 매겨요. 상품은 화면 문구일 뿐
-        지급되지 않아요.
-      </p>
+      <p className={styles.note}>{t("crewOpsBoards.prizeNote")}</p>
 
       <form
         className={prize.form}
@@ -273,41 +294,41 @@ export function PrizeBoardPanel({
           // A member removed from the crew since may still be in 제외 / 상단 고정: drop it instead of failing the save.
           const known = new Set(members.map((m) => m.id));
           const next = { ...draft, excluded: draft.excluded.filter((id) => known.has(id)), pinned: draft.pinned && known.has(draft.pinned.memberId) ? draft.pinned : null };
-          run(() => savePrizeBoard(next), "상품 순위표 설정을 저장했어요.");
+          run(() => savePrizeBoard(next), t("crewOpsBoards.prizeSaved"));
         }}
       >
         <div className={prize.field}>
-          <span className={styles.muted}>제목</span>
+          <span className={styles.muted}>{t("crewOpsBoards.titleLabel")}</span>
           <input
             className={styles.input}
-            aria-label="순위표 제목"
+            aria-label={t("crewOpsBoards.prizeTitleAria")}
             placeholder={PRIZE_TITLE_DEFAULT}
             maxLength={PRIZE_TITLE_MAX}
             value={draft.title}
             onChange={(e) => edit({ title: e.target.value })}
           />
         </div>
-        <div className={prize.field} role="group" aria-label="집계 기준">
-          <span className={styles.muted}>집계 기준</span>
+        <div className={prize.field} role="group" aria-label={t("crewOpsBoards.basisLabel")}>
+          <span className={styles.muted}>{t("crewOpsBoards.basisLabel")}</span>
           <span className={styles.segment}>
             {PRIZE_BASES.map((b) => (
               <button key={b.key} type="button" aria-pressed={draft.basis === b.key} onClick={() => edit({ basis: b.key })}>
-                {b.label}
+                {t(PRIZE_BASIS_KEY[b.key])}
               </button>
             ))}
           </span>
         </div>
         <BoardDisplayField draft={draft} edit={edit} />
         <div className={prize.field}>
-          <span className={styles.muted}>상단 고정</span>
+          <span className={styles.muted}>{t("crewOpsBoards.pinLabel")}</span>
           <span className={prize.inline}>
             <select
               className={styles.select}
-              aria-label="상단 고정 멤버"
+              aria-label={t("crewOpsBoards.pinAria")}
               value={draft.pinned?.memberId ?? ""}
               onChange={(e) => edit({ pinned: e.target.value ? { memberId: e.target.value, text: draft.pinned?.text ?? "" } : null })}
             >
-              <option value="">사용 안 함</option>
+              <option value="">{t("crewOpsBoards.notUsed")}</option>
               {listed
                 .filter((m) => !draft.excluded.includes(m.id))
                 .map((m) => (
@@ -319,49 +340,49 @@ export function PrizeBoardPanel({
             {draft.pinned && (
               <input
                 className={styles.input}
-                aria-label="고정 문구"
-                placeholder="고정 문구 (예: MC)"
+                aria-label={t("crewOpsBoards.pinTextAria")}
+                placeholder={t("crewOpsBoards.pinTextPlaceholder")}
                 maxLength={PRIZE_TEXT_MAX}
                 value={draft.pinned.text}
                 onChange={(e) => edit({ pinned: { memberId: draft.pinned!.memberId, text: e.target.value } })}
               />
             )}
           </span>
-          <span className={styles.note}>고정한 멤버는 1등 위에 따로 보이고 등수에서 빠져요. 나머지가 1등부터 다시 매겨져요.</span>
+          <span className={styles.note}>{t("crewOpsBoards.pinNote")}</span>
         </div>
-        <div className={prize.field} role="group" aria-label="표시 대상">
-          <span className={styles.muted}>표시 대상</span>
+        <div className={prize.field} role="group" aria-label={t("crewOpsBoards.audienceLabel")}>
+          <span className={styles.muted}>{t("crewOpsBoards.audienceLabel")}</span>
           <span className={prize.inline}>
             <span className={styles.segment}>
               {PRIZE_AUDIENCES.map((a) => (
                 <button key={a.key} type="button" aria-pressed={draft.audience === a.key} onClick={() => edit({ audience: a.key })}>
-                  {a.label}
+                  {t(AUDIENCE_KEY[a.key])}
                 </button>
               ))}
             </span>
             {draft.audience === "SCORED" && (
               <>
-                <span className={styles.muted}>상위</span>
+                <span className={styles.muted}>{t("crewOpsBoards.top")}</span>
                 <input
                   className={styles.inputSmall}
                   type="number"
                   min={1}
                   max={PRIZE_LIMIT_MAX}
-                  aria-label="상위 표시 인원"
+                  aria-label={t("crewOpsBoards.topAria")}
                   style={{ width: 80, flex: "none" }}
                   value={draft.limit}
                   onChange={(e) => edit({ limit: Math.max(1, Math.min(PRIZE_LIMIT_MAX, Math.trunc(Number(e.target.value) || 1))) })}
                 />
-                <span className={styles.muted}>명</span>
+                <span className={styles.muted}>{t("crewOpsBoards.peopleUnit")}</span>
               </>
             )}
           </span>
-          <span className={styles.note}>점수 받은 멤버만은 0점인 멤버를 빼고 상위 N명만 보여 줘요. 상단 고정 멤버는 그대로 보여요.</span>
+          <span className={styles.note}>{t("crewOpsBoards.audienceNote")}</span>
         </div>
-        <div className={prize.field} role="group" aria-label="순위에서 뺄 멤버">
-          <span className={styles.muted}>순위에서 뺄 멤버</span>
+        <div className={prize.field} role="group" aria-label={t("crewOpsBoards.excludeLabel")}>
+          <span className={styles.muted}>{t("crewOpsBoards.excludeLabel")}</span>
           <span className={prize.chips}>
-            {listed.length === 0 && <span className={styles.note}>활동 중인 멤버가 없어요.</span>}
+            {listed.length === 0 && <span className={styles.note}>{t("crewOpsBoards.noActiveMembers")}</span>}
             {listed.map((m) => (
               <button key={m.id} type="button" className={prize.chip} aria-pressed={draft.excluded.includes(m.id)} onClick={() => toggleExcluded(m.id)}>
                 <span className={styles.dot} style={{ background: m.color }} aria-hidden="true" />
@@ -374,31 +395,31 @@ export function PrizeBoardPanel({
         <PrizeLinesField
           prizes={draft.prizes}
           lines={lines}
-          note="칸 수는 순위에 들어가는 멤버 수예요. 글자색을 고르지 않으면 오버레이 테마의 글자색으로 보여요."
+          note={t("crewOpsBoards.prizeLinesNote")}
           onChange={(prizes) => edit({ prizes })}
         />
 
         <div className={styles.actions}>
           <button type="button" className={styles.ghost} disabled={pending || !dirty} onClick={() => setDraft(settings)}>
-            되돌리기
+            {t("crewOps.revert")}
           </button>
           <button type="submit" className={styles.primary} disabled={pending || !dirty}>
-            설정 저장
+            {t("crewOps.saveSettings")}
           </button>
         </div>
       </form>
 
       {!live ? (
-        <p className={styles.note}>방송을 시작하면 실시간 미리보기와 OBS 표시 · 구간 시작 버튼이 나와요.</p>
+        <p className={styles.note}>{t("crewOpsBoards.prizeIdle")}</p>
       ) : (
         <>
           {settings.basis === "WINDOW" && <PrizeWindowBar broadcastId={live.broadcastId} board="MEMBER" span={board?.window ?? null} pending={pending} run={run} />}
-          {dirty && <p className={styles.note}>저장하지 않은 설정이 있어요. 미리보기와 OBS는 저장한 설정으로 보여요.</p>}
+          {dirty && <p className={styles.note}>{t("crewOpsBoards.unsavedPreview")}</p>}
           {board && board.rows.length > 0 ? (
-            <ol className={prize.preview} aria-label="상품 순위표 미리보기">
+            <ol className={prize.preview} aria-label={t("crewOpsBoards.prizePreviewAria")}>
               {board.rows.map((r) => (
                 <li key={r.memberId} data-pinned={r.rank === null ? "" : undefined}>
-                  <span className={styles.rankNo}>{r.rank ?? "고정"}</span>
+                  <span className={styles.rankNo}>{r.rank ?? t("crewOpsBoards.pinned")}</span>
                   <span className={styles.boardName}>
                     <span className={styles.dot} style={{ background: r.color }} aria-hidden="true" />
                     {r.name}
@@ -411,13 +432,13 @@ export function PrizeBoardPanel({
               ))}
             </ol>
           ) : (
-            <p className={styles.empty}>순위에 넣을 멤버가 없어요.</p>
+            <p className={styles.empty}>{t("crewOpsBoards.noRankable")}</p>
           )}
-          {board && board.settings.showTotal && <p className={styles.muted}>합계 {formatNumber(board.total)}점</p>}
+          {board && board.settings.showTotal && <p className={styles.muted}>{t("crewOpsBoards.totalPoints", { n: formatNumber(board.total) })}</p>}
         </>
       )}
 
-      <BoardAddress overlayPath={overlayPath} query="?prize" label="상품 순위표" />
+      <BoardAddress overlayPath={overlayPath} query="?prize" label={t("crewOpsBoards.prizeTitle")} />
     </section>
   );
 }
