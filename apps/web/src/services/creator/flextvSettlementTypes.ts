@@ -7,9 +7,6 @@
 /** FLEXTV's minimum 환전 (its `WITHDRAW_MIN_EXCHANGE`). */
 export const EXCHANGE_MIN_REX = 500;
 
-export const EXCHANGE_STATUS_LABEL: Record<number, string> = { 0: "신청", 1: "검토 중", 2: "검토 완료", 4: "입금 대기", 7: "취소", 8: "반려", 9: "지급 완료" };
-export const exchangeStatusLabel = (status: number) => EXCHANGE_STATUS_LABEL[status] ?? "처리 중";
-
 export type ExchangeRow = {
   id: string;
   /** KST "yyyy-mm-dd hh:mm:ss". */

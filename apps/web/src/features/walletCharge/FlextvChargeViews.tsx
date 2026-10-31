@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertCircleIcon } from "@/components/icons";
 import { FLEXTV_WEB_URL } from "@/lib/flextv/mode";
 import { formatNumber } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import { checkChargeStatus } from "@/services/wallet/charge";
 import { PAYMENT_METHODS, type ChargeEligibility, type ChargeErrorCode, type ChargeResult, type ChargeStatusResult } from "@/services/wallet/chargeTypes";
 import styles from "./charge.module.css";
@@ -17,17 +18,26 @@ type Started = Extract<ChargeResult, { status: "PAYMENT_STARTED" }>;
 type Deposit = Extract<ChargeResult, { status: "DEPOSIT_REQUESTED" }>;
 type Completed = Extract<ChargeStatusResult, { status: "COMPLETED" }>;
 
-const ELIGIBILITY_COPY: Record<Exclude<ChargeEligibility, "OK">, { title: string; text: string }> = {
-  IDENTITY_REQUIRED: {
-    title: "본인인증이 필요해요",
-    text: "충전은 본인인증을 마친 만 19세 이상 회원만 이용할 수 있어요. 지금은 FLEXTV 사이트에서 본인인증을 진행한 뒤 다시 확인해 주세요."
-  },
-  MINOR: { title: "충전을 이용할 수 없어요", text: "만 19세 미만 회원은 충전할 수 없어요." },
-  UNAVAILABLE: { title: "충전을 이용할 수 없어요", text: "이 계정은 충전을 이용할 수 없어요. 고객센터로 문의해 주세요." }
-};
+type T = ReturnType<typeof useI18n>["t"];
+
+/** The age lines stay Korean in both languages (policy wording, docs/development/i18n.md). */
+function eligibilityCopy(eligibility: Exclude<ChargeEligibility, "OK">, t: T): { title: string; text: string } {
+  switch (eligibility) {
+    case "IDENTITY_REQUIRED":
+      return {
+        title: t("flextvCharge.identityTitle"),
+        text: `충전은 본인인증을 마친 만 19세 이상 회원만 이용할 수 있어요. ${t("flextvCharge.identityText")}`
+      };
+    case "MINOR":
+      return { title: t("flextvCharge.unavailableTitle"), text: "만 19세 미만 회원은 충전할 수 없어요." };
+    case "UNAVAILABLE":
+      return { title: t("flextvCharge.unavailableTitle"), text: t("flextvCharge.unavailableText") };
+  }
+}
 
 export function EligibilityNotice({ eligibility, onRecheck, onClose }: { eligibility: Exclude<ChargeEligibility, "OK">; onRecheck: () => void; onClose: () => void }) {
-  const copy = ELIGIBILITY_COPY[eligibility];
+  const { t } = useI18n();
+  const copy = eligibilityCopy(eligibility, t);
   return (
     <div className={styles.result}>
       <div className={styles.failureCard} role="alert">
@@ -39,15 +49,15 @@ export function EligibilityNotice({ eligibility, onRecheck, onClose }: { eligibi
         {eligibility === "IDENTITY_REQUIRED" ? (
           <>
             <button type="button" className={styles.secondaryButton} onClick={onRecheck}>
-              다시 확인
+              {t("flextvCharge.recheck")}
             </button>
             <a className={styles.primaryButton} href={`${FLEXTV_WEB_URL}/my/personal-auth`} target="_blank" rel="noopener noreferrer">
-              FLEXTV에서 본인인증하기
+              {t("flextvCharge.verifyOnFlextv")}
             </a>
           </>
         ) : (
           <button type="button" className={styles.primaryButton} onClick={onClose}>
-            확인
+            {t("walletCharge.ok")}
           </button>
         )}
       </div>
@@ -80,6 +90,7 @@ export function PaymentWindowView({
   onUnauthorized: () => void;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   const [state, setState] = useState<"WAITING" | "NOT_DONE">("WAITING");
   const [checking, setChecking] = useState(false);
   const windowRef = useRef<Window | null>(popup);
@@ -145,34 +156,34 @@ export function PaymentWindowView({
       </div>
       {state === "WAITING" ? (
         <p className={styles.resultText} role="status">
-          결제창에서 결제를 마쳐 주세요.
+          {t("flextvCharge.waitingLine1")}
           <br />
-          결제가 끝나면 이 화면에 바로 반영돼요.
+          {t("flextvCharge.waitingLine2")}
         </p>
       ) : (
         <p className={styles.resultText} role="alert">
-          결제가 아직 완료되지 않았어요.
+          {t("flextvCharge.notDoneLine1")}
           <br />
-          결제를 마쳤다면 다시 확인해 주세요.
+          {t("flextvCharge.notDoneLine2")}
         </p>
       )}
       <div className={styles.actions}>
         <button type="button" className={styles.secondaryButton} onClick={onClose}>
-          닫기
+          {t("walletCharge.close")}
         </button>
         {state === "WAITING" && (!windowRef.current || windowRef.current.closed) ? (
           <button type="button" className={styles.primaryButton} onClick={reopen}>
-            결제창 열기
+            {t("flextvCharge.openWindow")}
           </button>
         ) : (
           <button type="button" className={styles.primaryButton} onClick={() => void recheck()} disabled={checking} aria-busy={checking}>
-            {checking ? "확인 중..." : "결제 완료 확인"}
+            {checking ? t("flextvCharge.checking") : t("flextvCharge.checkPaid")}
           </button>
         )}
       </div>
       {state === "NOT_DONE" && (
         <button type="button" className={styles.changeMethod} onClick={reopen}>
-          결제창 다시 열기
+          {t("flextvCharge.reopenWindow")}
         </button>
       )}
     </div>
@@ -181,56 +192,57 @@ export function PaymentWindowView({
 
 /** A 무통장입금 request: where to transfer, and that the FN arrive once the deposit is matched. */
 export function DepositRequestedView({ result, onClose }: { result: Deposit; onClose: () => void }) {
+  const { t } = useI18n();
   return (
     <div className={styles.result}>
       <div className={styles.successCard}>
-        <span>입금 요청 완료</span>
+        <span>{t("flextvCharge.depositRequested")}</span>
         <strong>{formatNumber(result.fnAmount)} FN</strong>
         <span className={styles.successPrice}>{formatNumber(result.price)}원</span>
       </div>
       <p className={styles.resultText}>
-        아래 계좌로 입금자명과 금액을 정확히 맞춰 입금해 주세요.
+        {t("flextvCharge.depositText")}
         <br />
-        입금이 확인되면 FN이 들어와요.
+        {t("walletCharge.depositNote")}
       </p>
       <dl className={styles.resultRows}>
         {result.account ? (
           <>
             <div>
-              <dt>입금 계좌</dt>
+              <dt>{t("flextvCharge.depositAccount")}</dt>
               <dd>
                 {result.account.bank} {result.account.number}
               </dd>
             </div>
             <div>
-              <dt>예금주</dt>
+              <dt>{t("flextvCharge.accountHolder")}</dt>
               <dd>{result.account.holder}</dd>
             </div>
           </>
         ) : (
           <div>
-            <dt>입금 계좌</dt>
-            <dd>고객센터에서 안내해 드려요</dd>
+            <dt>{t("flextvCharge.depositAccount")}</dt>
+            <dd>{t("flextvCharge.accountBySupport")}</dd>
           </div>
         )}
         <div>
-          <dt>입금자명</dt>
+          <dt>{t("walletCharge.depositor")}</dt>
           <dd>{result.depositorName}</dd>
         </div>
         <div>
-          <dt>입금 금액</dt>
+          <dt>{t("flextvCharge.depositAmount")}</dt>
           <dd className={styles.accent}>{formatNumber(result.price)}원</dd>
         </div>
         {result.bonusFn > 0 && (
           <div>
-            <dt>입금 보너스</dt>
+            <dt>{t("flextvCharge.depositBonus")}</dt>
             <dd>+{formatNumber(result.bonusFn)} FN</dd>
           </div>
         )}
       </dl>
       <div className={styles.actions}>
         <button type="button" className={styles.primaryButton} onClick={onClose}>
-          확인
+          {t("walletCharge.ok")}
         </button>
       </div>
     </div>

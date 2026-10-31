@@ -57,6 +57,11 @@ const ITEM_KEYS: Record<string, { title: MessageKey; description: MessageKey }> 
   ASSETS: { title: "widgetFormCatalog.assetsTitle", description: "widgetFormCatalog.assetsDesc" },
   LINK: { title: "widgetFormCatalog.linkTitle", description: "widgetFormCatalog.linkDesc" }
 };
+/** With FLEXTV the 리모컨 card also hands out the overlay addresses (./widgetCatalog.ts FLEXTV_ITEMS). */
+const FLEXTV_ITEM_KEYS: typeof ITEM_KEYS = {
+  ...ITEM_KEYS,
+  REMOTE: { title: "flextvWidgets.remoteTitle", description: "flextvWidgets.remoteDesc" }
+};
 const GROUP_KEYS: Record<string, MessageKey> = {
   "후원 알림": "widgetFormCatalog.groupAlerts",
   "게이지 · 랭킹": "widgetFormCatalog.groupGauges",
@@ -105,7 +110,7 @@ export function WidgetSettingsScreen({
       {!flextv && <OverlayOffNotice targets={["widgets"]} switches={switches} />}
       <ThemeGallery initial={appearance} />
       {flextv ? (
-        <CatalogGrid title={t("widgetForm.broadcastWidgets")} count={FLEXTV_ITEMS.length} items={FLEXTV_ITEMS} onOpen={setOpenKey} />
+        <CatalogGrid title={t("widgetForm.broadcastWidgets")} count={FLEXTV_ITEMS.length} items={FLEXTV_ITEMS} itemKeys={FLEXTV_ITEM_KEYS} onOpen={setOpenKey} />
       ) : (
         <>
           <CatalogGrid title={t("widgetForm.popular")} count={POPULAR.length} items={POPULAR} onOpen={setOpenKey} />
@@ -138,7 +143,21 @@ export function WidgetSettingsScreen({
 }
 
 /** One catalog section (funnation 위젯 layout). `sub` renders a group inside 전체. */
-function CatalogGrid({ title, count, items, onOpen, sub = false }: { title: string; count?: number; items: CatalogItem[]; onOpen: (k: EditableWidgetKey) => void; sub?: boolean }) {
+function CatalogGrid({
+  title,
+  count,
+  items,
+  itemKeys = ITEM_KEYS,
+  onOpen,
+  sub = false
+}: {
+  title: string;
+  count?: number;
+  items: CatalogItem[];
+  itemKeys?: typeof ITEM_KEYS;
+  onOpen: (k: EditableWidgetKey) => void;
+  sub?: boolean;
+}) {
   const Heading = sub ? "h3" : "h2";
   const { t } = useI18n();
   return (
@@ -148,7 +167,7 @@ function CatalogGrid({ title, count, items, onOpen, sub = false }: { title: stri
       </Heading>
       <ul className={styles.grid}>
         {items.map((item) => {
-          const keys = ITEM_KEYS[item.id];
+          const keys = itemKeys[item.id];
           const body = (
             <>
               <span className={styles.cardIcon} style={{ background: "var(--color-surface-raised)" }} aria-hidden="true">

@@ -1,28 +1,38 @@
 import Link from "next/link";
 import { QuestDecide } from "@/features/donations/QuestDecide";
 import { formatNumber, kstIsoString } from "@/lib/format";
+import { getT } from "@/lib/i18n/server";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { decideReceivedQuest } from "@/services/creator/donationManagement";
-import { QUEST_STATUSES } from "@/services/creator/donationManagementTypes";
+import { QUEST_STATUSES, type QuestStatus, type StatusFilter } from "@/services/creator/donationManagementTypes";
 import type { FlextvQuestPage } from "@/services/creator/flextvBroadcastGames";
-import { questExtendedLabel } from "@/services/donations/questTypes";
 import { PageLink } from "./DonationListTab";
+import type { T } from "./translator";
 import styles from "./donations.module.css";
 
 const STATUS_CLASS = { SUCCESS: styles.badgeSuccess, IN_PROGRESS: styles.badgeProgress, FAILED: styles.badgeFailed, CANCELED: styles.badgeFailed } as const;
+/** The services' `QUEST_STATUSES` labels as message keys. */
+const STATUS_KEY: Record<QuestStatus, MessageKey> = {
+  SUCCESS: "flextvDonations.statusSuccess",
+  IN_PROGRESS: "flextvDonations.statusInProgress",
+  FAILED: "flextvDonations.statusFailed",
+  CANCELED: "flextvDonations.statusCanceled"
+};
+const STATUS_CHIPS: { key: StatusFilter; label: MessageKey }[] = [{ key: "ALL", label: "flextvDonations.statusAll" }, ...QUEST_STATUSES.map((s) => ({ key: s.key, label: STATUS_KEY[s.key] }))];
 const WINDOW = 5;
 /** "2026.10.25 15:04" in Korea time. */
 const formatAt = (iso: string) => kstIsoString(iso).slice(0, 16).replaceAll("-", ".").replace("T", " ");
 const href = (params: Record<string, string | number>) => `/creator/donations?${new URLSearchParams({ tab: "list", kind: "quest", ...Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])) })}`;
 
-/** 받은 후원 · 퀘스트 (the FLEXTV page's two lists). */
-export function FlextvKindNav({ kind }: { kind: "all" | "quest" }) {
+/** 받은 후원 · 퀘스트 (the FLEXTV page's two lists). `t`: the tab's translator. */
+export function FlextvKindNav({ kind, t }: { kind: "all" | "quest"; t: T }) {
   return (
-    <nav className={styles.segment} aria-label="받은 후원 종류">
+    <nav className={styles.segment} aria-label={t("flextvDonations.kindAria")}>
       <Link href="/creator/donations?tab=list" className={kind === "all" ? styles.segmentOn : undefined} aria-current={kind === "all" ? "page" : undefined}>
-        받은 후원
+        {t("flextvDonations.kindAll")}
       </Link>
       <Link href="/creator/donations?tab=list&kind=quest" className={kind === "quest" ? styles.segmentOn : undefined} aria-current={kind === "quest" ? "page" : undefined}>
-        퀘스트
+        {t("flextvDonations.kindQuest")}
       </Link>
     </nav>
   );
@@ -31,8 +41,10 @@ export function FlextvKindNav({ kind }: { kind: "all" | "quest" }) {
 /**
  * 받은 후원 › 퀘스트 with FLEXTV (phase 6; the 후원 리스트 539:156 quest layout). The quests sent to the channel, decided
  * here as in the mock (성공 · 실패 with 크리에이터 성공 결정, 취소 always); FLEXTV holds the 렉스 until 성공.
+ * The quest note stays Korean (refund wording, TBD), as in `DonationListTab`.
  */
-export function FlextvQuestTab({ data }: { data: FlextvQuestPage }) {
+export async function FlextvQuestTab({ data }: { data: FlextvQuestPage }) {
+  const t = await getT();
   const { status, page, totalPages, total, items, held } = data;
   const start = Math.max(1, Math.min(page - Math.floor(WINDOW / 2), totalPages - WINDOW + 1));
   const pages = Array.from({ length: Math.min(WINDOW, totalPages) }, (_, i) => start + i);
@@ -40,19 +52,19 @@ export function FlextvQuestTab({ data }: { data: FlextvQuestPage }) {
 
   return (
     <div className={styles.stack}>
-      <FlextvKindNav kind="quest" />
-      <nav className={styles.chipsRow} aria-label="상태">
-        {[{ key: "ALL", label: "전체" }, ...QUEST_STATUSES].map((s) => (
+      <FlextvKindNav kind="quest" t={t} />
+      <nav className={styles.chipsRow} aria-label={t("flextvDonations.statusAria")}>
+        {STATUS_CHIPS.map((s) => (
           <Link key={s.key} href={href(s.key === "ALL" ? {} : { status: s.key })} className={`${styles.chip} ${status === s.key ? styles.chipOn : ""}`} aria-current={status === s.key ? "true" : undefined}>
-            {s.label}
+            {t(s.label)}
           </Link>
         ))}
       </nav>
-      <dl className={styles.listStats} aria-label="진행 중인 퀘스트">
+      <dl className={styles.listStats} aria-label={t("flextvDonations.heldAria")}>
         <div>
-          <dt>진행 중 퀘스트</dt>
+          <dt>{t("flextvDonations.heldTitle")}</dt>
           <dd className={styles.teal}>
-            {formatNumber(held.amount)} FN <span className={styles.listStatsCount}>· {formatNumber(held.count)}건</span>
+            {formatNumber(held.amount)} FN <span className={styles.listStatsCount}>· {t("flextvDonations.heldCount", { count: formatNumber(held.count) })}</span>
           </dd>
         </div>
       </dl>
@@ -60,21 +72,21 @@ export function FlextvQuestTab({ data }: { data: FlextvQuestPage }) {
 
       <div className={styles.table}>
         <table>
-          <caption className={styles.srOnly}>퀘스트 후원 목록</caption>
+          <caption className={styles.srOnly}>{t("flextvDonations.questCaption")}</caption>
           <thead>
             <tr>
               <th scope="col" style={{ width: 176 }}>
-                시간
+                {t("flextvDonations.colTime")}
               </th>
               <th scope="col" style={{ width: 180 }}>
-                후원자 닉네임
+                {t("flextvDonations.colDonor")}
               </th>
               <th scope="col" style={{ width: 120 }}>
-                성공 보상
+                {t("flextvDonations.colReward")}
               </th>
-              <th scope="col">퀘스트</th>
+              <th scope="col">{t("flextvDonations.colQuest")}</th>
               <th scope="col" className={styles.right} style={{ width: 250 }}>
-                결과
+                {t("flextvDonations.colResult")}
               </th>
             </tr>
           </thead>
@@ -82,7 +94,7 @@ export function FlextvQuestTab({ data }: { data: FlextvQuestPage }) {
             {items.length === 0 ? (
               <tr>
                 <td colSpan={5} className={styles.empty}>
-                  받은 퀘스트 후원이 없습니다.
+                  {t("flextvDonations.questEmpty")}
                 </td>
               </tr>
             ) : (
@@ -101,12 +113,12 @@ export function FlextvQuestTab({ data }: { data: FlextvQuestPage }) {
                       <>
                         <QuestDecide id={q.id} decide={decideReceivedQuest} actions={q.actions} />
                         <span className={styles.questDeadline}>
-                          마감 {formatAt(q.endsAt)}
-                          {q.extendedMin ? ` · ${questExtendedLabel(q.extendedMin)}` : ""}
+                          {t("flextvDonations.deadline", { at: formatAt(q.endsAt) })}
+                          {q.extendedMin ? ` · ${t("flextvDonations.extended", { minutes: q.extendedMin })}` : ""}
                         </span>
                       </>
                     ) : (
-                      <span className={`${styles.badge} ${STATUS_CLASS[q.status]}`}>{QUEST_STATUSES.find((s) => s.key === q.status)?.label}</span>
+                      <span className={`${styles.badge} ${STATUS_CLASS[q.status]}`}>{t(STATUS_KEY[q.status])}</span>
                     )}
                   </td>
                 </tr>
@@ -115,10 +127,10 @@ export function FlextvQuestTab({ data }: { data: FlextvQuestPage }) {
           </tbody>
         </table>
         <div className={styles.footer}>
-          <span className={styles.muted}>전체 {formatNumber(total)}건</span>
-          <nav className={styles.pagination} aria-label="페이지">
-            <PageLink to={href({ ...base, page: 1 })} disabled={page === 1} label="첫 페이지" text="|<" />
-            <PageLink to={href({ ...base, page: page - 1 })} disabled={page === 1} label="이전 페이지" text="<" />
+          <span className={styles.muted}>{t("flextvDonations.totalCount", { total: formatNumber(total) })}</span>
+          <nav className={styles.pagination} aria-label={t("flextvDonations.pages")}>
+            <PageLink to={href({ ...base, page: 1 })} disabled={page === 1} label={t("flextvDonations.firstPage")} text="|<" />
+            <PageLink to={href({ ...base, page: page - 1 })} disabled={page === 1} label={t("flextvDonations.prevPage")} text="<" />
             {pages.map((p) =>
               p === page ? (
                 <span key={p} className={`${styles.pageButton} ${styles.pageCurrent}`} aria-current="page">
@@ -130,8 +142,8 @@ export function FlextvQuestTab({ data }: { data: FlextvQuestPage }) {
                 </Link>
               )
             )}
-            <PageLink to={href({ ...base, page: page + 1 })} disabled={page === totalPages} label="다음 페이지" text=">" />
-            <PageLink to={href({ ...base, page: totalPages })} disabled={page === totalPages} label="마지막 페이지" text=">|" />
+            <PageLink to={href({ ...base, page: page + 1 })} disabled={page === totalPages} label={t("flextvDonations.nextPage")} text=">" />
+            <PageLink to={href({ ...base, page: totalPages })} disabled={page === totalPages} label={t("flextvDonations.lastPage")} text=">|" />
           </nav>
         </div>
       </div>
