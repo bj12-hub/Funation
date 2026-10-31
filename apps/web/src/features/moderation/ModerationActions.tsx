@@ -5,10 +5,29 @@ import { useCallback, useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { blockAuthorOf, submitReport } from "@/services/moderation/moderation";
-import { REPORT_DETAIL_MAX, REPORT_REASONS, REPORT_TARGET_LABEL, type ReportReason, type ReportTarget } from "@/services/moderation/moderationTypes";
+import { REPORT_DETAIL_MAX, REPORT_REASONS, type ReportReason, type ReportTarget } from "@/services/moderation/moderationTypes";
 import { carryToast } from "./CarriedToast";
 import styles from "./moderation.module.css";
+
+/** `REPORT_TARGET_LABEL` and `REPORT_REASONS` labels as message keys (2026-11-01). */
+const TARGET_KEY: Record<ReportTarget["type"], MessageKey> = {
+  POST: "moderation.targetPost",
+  COMMENT: "moderation.targetComment",
+  CHANNEL_POST: "moderation.targetChannelPost",
+  MESSAGE: "moderation.targetMessage",
+  CREATOR: "moderation.targetCreator"
+};
+const REASON_KEY: Record<ReportReason, MessageKey> = {
+  SPAM: "moderation.reasonSpam",
+  ABUSE: "moderation.reasonAbuse",
+  SEXUAL: "moderation.reasonSexual",
+  PRIVACY: "moderation.reasonPrivacy",
+  IMPERSONATION: "moderation.reasonImpersonation",
+  ETC: "moderation.reasonEtc"
+};
 
 /**
  * 신고 · 차단 버튼 (code-first, no Figma frame). `target` points at the content; the server resolves its
@@ -29,6 +48,7 @@ export function ModerationActions({
   leaveTo?: string;
   className?: string;
 }) {
+  const { t } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -54,21 +74,21 @@ export function ModerationActions({
           setOpen(false);
           setReason(null);
           setDetail("");
-          setToast(res.status === "REPORTED" ? "신고가 접수됐어요. 운영팀이 확인할게요." : "이미 신고한 내용이에요.");
+          setToast(res.status === "REPORTED" ? t("moderation.reported") : t("moderation.alreadyReported"));
         } else if (res.status === "UNAUTHORIZED") needLogin();
-        else setError(res.status === "INVALID" ? res.message : "이미 삭제된 내용이에요.");
+        else setError(res.status === "INVALID" ? res.message : t("moderation.gone"));
       } catch {
-        setError("신고하지 못했어요. 잠시 후 다시 시도해 주세요.");
+        setError(t("moderation.reportFailed"));
       }
     });
   };
   const blockAuthor = () => {
-    if (needLogin() || !window.confirm("작성자를 차단할까요? 차단한 사용자의 글 · 댓글 · 쪽지가 보이지 않아요. 마이페이지 › 차단 관리에서 해제할 수 있어요.")) return;
+    if (needLogin() || !window.confirm(t("moderation.blockConfirm"))) return;
     startTransition(async () => {
       try {
         const res = await blockAuthorOf({ target });
         if (res.status === "OK") {
-          const message = `${res.name}님을 차단했어요.`;
+          const message = t("moderation.blocked", { name: res.name });
           if (leaveTo) {
             carryToast(message);
             router.push(leaveTo);
@@ -77,9 +97,9 @@ export function ModerationActions({
             router.refresh();
           }
         } else if (res.status === "UNAUTHORIZED") needLogin();
-        else setToast(res.status === "INVALID" ? res.message : "이미 삭제된 내용이에요.");
+        else setToast(res.status === "INVALID" ? res.message : t("moderation.gone"));
       } catch {
-        setToast("차단하지 못했어요. 잠시 후 다시 시도해 주세요.");
+        setToast(t("moderation.blockFailed"));
       }
     });
   };
@@ -87,35 +107,35 @@ export function ModerationActions({
   return (
     <span className={`${styles.actions} ${className ?? ""}`}>
       <button type="button" className={styles.link} onClick={() => !needLogin() && setOpen(true)} disabled={pending}>
-        신고
+        {t("moderation.report")}
       </button>
       {block && (
         <button type="button" className={styles.link} onClick={blockAuthor} disabled={pending}>
-          차단
+          {t("moderation.block")}
         </button>
       )}
       <Modal
         open={open}
         onClose={() => !pending && setOpen(false)}
-        title={`${REPORT_TARGET_LABEL[target.type]} 신고`}
-        description="신고 내용은 운영팀만 볼 수 있고, 신고한 사람은 상대에게 알려지지 않아요. 처리 기준은 운영 정책에 따라요 (TBD)."
+        title={t("moderation.reportTitle", { target: t(TARGET_KEY[target.type]) })}
+        description={t("moderation.reportDescription")}
         width={480}
         footer={
           <>
             <Button variant="secondary" block onClick={() => setOpen(false)} disabled={pending}>
-              취소
+              {t("moderation.cancel")}
             </Button>
             <Button variant="primary" block onClick={report} disabled={pending || !reason}>
-              {pending ? "접수 중…" : "신고하기"}
+              {pending ? t("moderation.submitting") : t("moderation.submit")}
             </Button>
           </>
         }
       >
-        <div className={styles.reasons} role="radiogroup" aria-label="신고 사유">
+        <div className={styles.reasons} role="radiogroup" aria-label={t("moderation.reasonAria")}>
           {REPORT_REASONS.map((r) => (
             <label key={r.key} className={styles.reason}>
               <input type="radio" name="report-reason" checked={reason === r.key} onChange={() => setReason(r.key)} />
-              {r.label}
+              {t(REASON_KEY[r.key])}
             </label>
           ))}
         </div>
@@ -123,8 +143,8 @@ export function ModerationActions({
           className={styles.detail}
           rows={3}
           maxLength={REPORT_DETAIL_MAX}
-          aria-label="상세 내용"
-          placeholder={reason === "ETC" ? "신고 사유를 적어 주세요 (필수)" : "상세 내용 (선택)"}
+          aria-label={t("moderation.detailAria")}
+          placeholder={reason === "ETC" ? t("moderation.detailRequired") : t("moderation.detailOptional")}
           value={detail}
           onChange={(e) => setDetail(e.target.value)}
         />

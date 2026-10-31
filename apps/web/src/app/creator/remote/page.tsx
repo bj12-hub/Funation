@@ -8,9 +8,13 @@ import { getVoteRemote } from "@/services/creator/voteRemote";
 import { getRouletteRemote } from "@/services/creator/rouletteRemote";
 import { getGachaRemote } from "@/services/creator/gachaRemote";
 import { getWallpaperRemote } from "@/services/creator/wallpaperRemote";
+import { getT } from "@/lib/i18n/server";
 
 // Code-first (no Figma frame): 리모컨 — see docs/figma/code-first-screens.md
-export const metadata: Metadata = { title: "리모컨 | Ssumnation 크리에이터" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return { title: t("studioRemote.metaStudio") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
