@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { PreviewStage } from "@/features/overlayTheme/PreviewStage";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/translate";
 import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
 import { assetUrl } from "@/services/creator/assetTypes";
 import { OVERLAY_MOTIONS, resolveTheme } from "@/services/creator/overlayThemeTypes";
@@ -11,6 +13,7 @@ import { AlertCard, type AlertCardData } from "../remote/AlertCard";
 import { Radios, Row, Section, Select, SwitchText } from "./fields";
 import type { FormProps } from "./forms";
 import { LibrarySoundField } from "./library/LibrarySounds";
+import { optionText, translatedOptions } from "./widgetFormLabels";
 import a from "./alertForm.module.css";
 import styles from "./widgets.module.css";
 
@@ -32,6 +35,9 @@ const SAMPLES: { key: string; label: string; alert: AlertCardData }[] = [
     alert: { id: "sample-chzzk", donor: "밤톨게임", message: "치지직에서 보내요~", fnAmount: 0, amountLabel: "1,000 치즈", typeLabel: "치지직 후원", platform: "CHZZK" }
   }
 ];
+
+/** The sample tabs' labels as message keys (the sample donations themselves stay as written, like the OBS card). */
+const SAMPLE_KEYS: Record<string, MessageKey> = { fn: "widgetFormAlert.sampleFn", signature: "widgetFormAlert.sampleSignature", platform: "widgetFormAlert.samplePlatform" };
 
 /** How long a library sound is (seconds, rounded to 0.1), read from the file in the browser; null until known. */
 function useSoundLength(id: string | null) {
@@ -64,6 +70,8 @@ export function AlertForm({ value: v, onChange, live }: FormProps<"ALERT">) {
   const current = SAMPLES.find((s) => s.key === sample) ?? SAMPLES[0];
   const headlineOk = v.headline.trim().length > 0 && v.headline.includes(ALERT_TOKENS.donor);
   const soundSec = useSoundLength(v.soundId);
+  const { t } = useI18n();
+  const sigHint = SIG_FETCH_MODES.find((m) => m.key === v.sigFetch)?.hint;
 
   const insert = (token: string) => {
     const el = headlineRef.current;
@@ -80,19 +88,19 @@ export function AlertForm({ value: v, onChange, live }: FormProps<"ALERT">) {
   return (
     <>
       <Section
-        title="미리보기"
+        title={t("widgetForm.preview")}
         aside={
           <span className={styles.inline}>
             <label className={styles.hint}>
-            <input type="checkbox" checked={vertical} onChange={(e) => setVertical(e.target.checked)} /> 세로 방송으로 보기
+            <input type="checkbox" checked={vertical} onChange={(e) => setVertical(e.target.checked)} /> {t("widgetForm.verticalView")}
           </label>
             <button type="button" className={styles.smallButton} onClick={() => setReplay((n) => n + 1)}>
-              ↻ 다시 재생
+              {t("widgetFormAlert.replay")}
             </button>
           </span>
         }
       >
-        <div role="radiogroup" aria-label="미리보기 후원" className={a.samples}>
+        <div role="radiogroup" aria-label={t("widgetFormAlert.sampleAria")} className={a.samples}>
           {SAMPLES.map((s) => (
             <label key={s.key} className={a.sample} data-checked={sample === s.key || undefined}>
               <input
@@ -105,23 +113,23 @@ export function AlertForm({ value: v, onChange, live }: FormProps<"ALERT">) {
                   setReplay((n) => n + 1);
                 }}
               />
-              {s.label}
+              {SAMPLE_KEYS[s.key] ? t(SAMPLE_KEYS[s.key]) : s.label}
             </label>
           ))}
         </div>
-        <PreviewStage width={vertical ? 1080 : 800} minHeight={v.layout === "BANNER" ? 180 : 360} label="후원 알림 미리보기">
+        <PreviewStage width={vertical ? 1080 : 800} minHeight={v.layout === "BANNER" ? 180 : 360} label={t("widgetFormAlert.previewAria")}>
           <AlertCard alert={current.alert} design={headlineOk ? v : { ...v, headline: `${ALERT_TOKENS.donor}님` }} theme={theme} replay={replay} vertical={vertical} />
         </PreviewStage>
-        <p className={styles.hint}>실제 방송에 나가는 알림과 같은 모양이에요. 미리보기는 저장하지 않아도 바로 바뀌어요.</p>
+        <p className={styles.hint}>{t("widgetFormAlert.previewHint")}</p>
       </Section>
 
-      <Section title="테마">
+      <Section title={t("widgetForm.theme")}>
         <ThemeChoiceField value={v.theme} onChange={(x) => set("theme", x)} appearance={live.appearance} />
       </Section>
 
-      <Section title="알림 모양">
-        <div role="radiogroup" aria-label="알림 모양" className={a.layouts}>
-          {ALERT_LAYOUTS.map((l) => (
+      <Section title={t("widgetFormAlert.layout")}>
+        <div role="radiogroup" aria-label={t("widgetFormAlert.layout")} className={a.layouts}>
+          {translatedOptions(ALERT_LAYOUTS, t).map((l) => (
             <label key={l.key} className={a.layout} data-checked={v.layout === l.key || undefined}>
               <input type="radio" name={`${id}-layout`} className={styles.srOnly} checked={v.layout === l.key} onChange={() => set("layout", l.key)} />
               <span className={a.layoutIcon} data-layout={l.key} aria-hidden="true" />
@@ -132,9 +140,9 @@ export function AlertForm({ value: v, onChange, live }: FormProps<"ALERT">) {
         </div>
       </Section>
 
-      <Section title="문구">
+      <Section title={t("widgetForm.textSection")}>
         <div className={styles.rows}>
-          <Row label="알림 문구" htmlFor={`${id}-headline`}>
+          <Row label={t("widgetFormAlert.headline")} htmlFor={`${id}-headline`}>
             <div className={a.headlineBox}>
               <input
                 ref={headlineRef}
@@ -148,50 +156,50 @@ export function AlertForm({ value: v, onChange, live }: FormProps<"ALERT">) {
               />
               <span className={a.tokens}>
                 <button type="button" className={a.token} onClick={() => insert(ALERT_TOKENS.donor)}>
-                  + 닉네임
+                  {t("widgetFormAlert.addNickname")}
                 </button>
                 <button type="button" className={a.token} onClick={() => insert(ALERT_TOKENS.amount)}>
-                  + 금액
+                  {t("widgetFormAlert.addAmount")}
                 </button>
               </span>
               <span id={`${id}-headline-hint`} className={headlineOk ? styles.hint : a.invalid}>
                 {headlineOk
-                  ? `금액은 따로 크게 보여 줘요. 문장 안에도 넣으려면 ${ALERT_TOKENS.amount}을 쓰세요. (${v.headline.length}/${ALERT_HEADLINE_MAX})`
-                  : `${ALERT_TOKENS.donor}을 넣어 주세요.`}
+                  ? t("widgetFormAlert.headlineHint", { amount: ALERT_TOKENS.amount, length: v.headline.length, max: ALERT_HEADLINE_MAX })
+                  : t("widgetFormAlert.headlineMissing", { donor: ALERT_TOKENS.donor })}
               </span>
             </div>
           </Row>
-          <Row label="후원 메시지">
-            <SwitchText label="후원 메시지 표시" checked={v.showMessage} onChange={(x) => set("showMessage", x)} text="시청자가 쓴 메시지를 함께 보여 주고 TTS로 읽어 줘요. 끄면 읽지도 않아요" />
+          <Row label={t("widgetFormAlert.message")}>
+            <SwitchText label={t("widgetForm.showMessage")} checked={v.showMessage} onChange={(x) => set("showMessage", x)} text={t("widgetFormAlert.messageHint")} />
           </Row>
-          <Row label="등급 · 칭호">
-            <SwitchText label="등급 · 칭호 배지 표시" checked={v.showBadges} onChange={(x) => set("showBadges", x)} text="후원자의 등급 · 칭호 배지" />
+          <Row label={t("widgetFormAlert.badges")}>
+            <SwitchText label={t("widgetFormAlert.showBadges")} checked={v.showBadges} onChange={(x) => set("showBadges", x)} text={t("widgetFormAlert.badgesHint")} />
           </Row>
-          <Row label="후원 종류">
-            <SwitchText label="후원 종류 표시" checked={v.showPlatform} onChange={(x) => set("showPlatform", x)} text="시그니처 · 치지직 후원 같은 종류와 플랫폼 표시" />
+          <Row label={t("widgetFormAlert.kind")}>
+            <SwitchText label={t("widgetFormAlert.showKind")} checked={v.showPlatform} onChange={(x) => set("showPlatform", x)} text={t("widgetFormAlert.kindHint")} />
           </Row>
-          <Row label="시그니처 이미지">
-            <SwitchText label="시그니처 이미지 표시" checked={v.showImage} onChange={(x) => set("showImage", x)} text="시그니처 후원이면 이미지를 함께" />
+          <Row label={t("widgetFormAlert.image")}>
+            <SwitchText label={t("widgetFormAlert.showImage")} checked={v.showImage} onChange={(x) => set("showImage", x)} text={t("widgetFormAlert.imageHint")} />
           </Row>
         </div>
       </Section>
 
-      <Section title="글자 크기">
+      <Section title={t("widgetForm.textSize")}>
         <div className={styles.rows}>
           {(
             [
-              ["amount", "금액"],
-              ["name", "알림 문구 (닉네임)"],
-              ["message", "후원 메시지"]
+              ["amount", t("widgetFormAlert.sizeAmount")],
+              ["name", t("widgetFormAlert.sizeName")],
+              ["message", t("widgetFormAlert.message")]
             ] as const
           ).map(([k, label]) => (
             <Row key={k} label={label}>
               <Select
-                label={`${label} 글자 크기`}
+                label={t("widgetFormAlert.sizeLabel", { label })}
                 value={(v.textScale ?? { amount: 100, name: 100, message: 100 })[k]}
                 options={ALERT_TEXT_SCALES}
                 width={120}
-                format={(x) => (x === 100 ? "100% (기본)" : `${x}%`)}
+                format={(x) => (x === 100 ? t("widgetFormAlert.sizeDefault") : `${x}%`)}
                 onChange={(x) => set("textScale", { ...(v.textScale ?? { amount: 100, name: 100, message: 100 }), [k]: x })}
               />
             </Row>
@@ -199,51 +207,45 @@ export function AlertForm({ value: v, onChange, live }: FormProps<"ALERT">) {
         </div>
       </Section>
 
-      <Section title="움직임">
+      <Section title={t("widgetFormAlert.motion")}>
         <div className={styles.rows}>
-          <Row label="등장 효과">
+          <Row label={t("widgetFormAlert.entrance")}>
             <Select
-              label="등장 효과"
+              label={t("widgetFormAlert.entrance")}
               value={v.motion}
               options={OVERLAY_MOTIONS.map((m) => m.key)}
               width={200}
-              format={(k) => OVERLAY_MOTIONS.find((m) => m.key === k)?.label ?? k}
+              format={(k) => optionText(OVERLAY_MOTIONS.find((m) => m.key === k)?.label ?? k, t)}
               onChange={(x) => {
                 set("motion", x);
                 setReplay((n) => n + 1);
               }}
             />
           </Row>
-          <Row label="금액 올라가기">
-            <SwitchText label="금액 올라가는 효과" checked={v.countUp} onChange={(x) => set("countUp", x)} text="0부터 후원 금액까지 숫자가 올라가요" />
+          <Row label={t("widgetFormAlert.countUp")}>
+            <SwitchText label={t("widgetFormAlert.countUpLabel")} checked={v.countUp} onChange={(x) => set("countUp", x)} text={t("widgetFormAlert.countUpHint")} />
           </Row>
         </div>
       </Section>
 
-      <Section title="소리">
+      <Section title={t("widgetFormAlert.sound")}>
         <div className={styles.rows}>
-          <Row label="알림 사운드">
-            <LibrarySoundField label="알림 사운드 설정" buttonClassName={styles.purpleSmall} value={v.soundId} onChange={(id) => set("soundId", id)} />
-            <p className={styles.hint}>
-              모든 후원 알림이 뜰 때 먼저 재생해요 — 최대 {ALERT_SOUND_MAX_SEC}초. TTS와 시그니처 소리는 그다음에 나와요. 볼륨은 리모컨의 &apos;후원 알림음&apos;이에요.
-            </p>
-            {soundSec !== null && soundSec > ALERT_SOUND_MAX_SEC && (
-              <p className={a.invalid}>
-                이 사운드는 {soundSec}초예요. 앞 {ALERT_SOUND_MAX_SEC}초만 재생해요.
-              </p>
-            )}
+          <Row label={t("widgetFormAlert.alertSound")}>
+            <LibrarySoundField label={t("widgetFormAlert.alertSoundButton")} buttonClassName={styles.purpleSmall} value={v.soundId} onChange={(id) => set("soundId", id)} />
+            <p className={styles.hint}>{t("widgetFormAlert.soundHint", { max: ALERT_SOUND_MAX_SEC })}</p>
+            {soundSec !== null && soundSec > ALERT_SOUND_MAX_SEC && <p className={a.invalid}>{t("widgetFormAlert.soundTooLong", { sec: soundSec, max: ALERT_SOUND_MAX_SEC })}</p>}
           </Row>
-          <Row label="시그니처 음원">
-            <Radios name="sig-fetch" label="시그니처 음원 받는 방식" options={SIG_FETCH_MODES} value={v.sigFetch} onChange={(x) => set("sigFetch", x)} />
-            <p className={styles.hint}>
-              {SIG_FETCH_MODES.find((m) => m.key === v.sigFetch)?.hint} 후원 알림 · 시그니처 플레이어 오버레이 모두 이 방식으로 받고, 바꾸면 다음 시그니처부터 적용돼요.
-            </p>
+          <Row label={t("widgetFormAlert.sigAudio")}>
+            <Radios name="sig-fetch" label={t("widgetFormAlert.sigFetch")} options={translatedOptions(SIG_FETCH_MODES, t)} value={v.sigFetch} onChange={(x) => set("sigFetch", x)} />
+            <p className={styles.hint}>{t("widgetFormAlert.sigFetchHint", { hint: sigHint ? optionText(sigHint, t) : "" })}</p>
           </Row>
         </div>
       </Section>
 
       <p className={a.remoteNote}>
-        알림 표시 시간 · 볼륨 · 최소 금액 · 대기열은 <Link href="/creator/remote">리모컨</Link>에서 바꿔요.
+        {t("widgetFormAlert.remoteNoteBefore")}
+        <Link href="/creator/remote">{t("widgetFormAlert.remoteLink")}</Link>
+        {t("widgetFormAlert.remoteNoteAfter")}
       </p>
     </>
   );
