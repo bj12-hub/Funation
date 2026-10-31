@@ -9,6 +9,7 @@ import type { RequestResult, SettlementGate, SettlementQuote } from "@/services/
 export type SubmitAnswer = RequestResult | { status: "UNKNOWN" };
 
 export const SUBMIT_UNKNOWN_MESSAGE = "신청 결과를 확인하지 못했어요. 다시 확인을 누르면 같은 신청으로 확인돼요 (두 번 신청되지 않아요).";
+export const SUBMIT_CONFLICT_MESSAGE = "요청이 중복되었어요. 금액을 확인하고 다시 신청해 주세요.";
 
 /** Calls the server; a call that throws comes back as UNKNOWN instead of turning the page into the error screen. */
 export async function askServer(call: () => Promise<RequestResult>): Promise<SubmitAnswer> {
@@ -46,7 +47,7 @@ export function afterSubmit(answer: SubmitAnswer): SubmitNext {
     case "INVALID":
       return { step: "request", error: answer.message };
     case "CONFLICT":
-      return { step: "request", error: "요청이 중복되었어요. 금액을 확인하고 다시 신청해 주세요." };
+      return { step: "request", error: SUBMIT_CONFLICT_MESSAGE };
     default:
       return { leave: answer.status };
   }
