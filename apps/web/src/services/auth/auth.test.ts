@@ -9,7 +9,7 @@ const SIGNUP = {
   email: "new@ssumnation.kr",
   password: "abcd123!",
   nickname: "새회원",
-  agreements: { youth: true, service: true, privacy: true, marketing: false }
+  agreements: { service: true, privacy: true, marketing: false }
 } as const;
 
 /** Password reset and phone verification contracts: the server re-checks shapes and rules. */

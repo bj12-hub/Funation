@@ -2,8 +2,11 @@ import { formatNumber } from "@/lib/format";
 import { toDateString } from "@/lib/period";
 
 /**
- * FN 충전 환불 정책 — 기본값 (일반적인 기준, 법무 검토 전). On 2026-10-08 the user asked to start with commonly used
- * rules; each number is one constant here so it can change after the legal review (docs/domains/wallet.md "환불 정책").
+ * FN 충전 환불 정책 — 기본값 (플렉스티비 기준, 법무 검토 전). On 2026-10-08 the user asked to start with commonly used
+ * rules; on 2026-11-01 to use FLEXTV's 유료서비스 이용약관 as the default (Ssumnation runs on FLEXTV's backend since
+ * 2026-10-25). Its conditions match these rules — 7일 이내 · 미사용 청약철회, 사용한 FN과 무상 FN은 환불 불가, 3영업일 환급;
+ * the 10% fee on the remaining paid FN stays ours (FLEXTV states a fee only for 해외 신용카드 결제, which the mock has no
+ * method for). Each number is one constant here so it can change after the legal review (docs/domains/wallet.md "환불 정책").
  * Client-safe (no server-only imports): the screens format these values, the server decides with them
  * (`refundCore.ts`). Amounts are in FN, like the charge and wallet records; the KRW refund follows from them (5).
  *
@@ -21,7 +24,7 @@ import { toDateString } from "@/lib/period";
  * TBD: the payment provider and how each method returns the KRW (결제 취소 · 계좌 환불), the FN price itself.
  */
 
-export const REFUND_POLICY_LABEL = "기본값 (일반적인 기준, 법무 검토 전)";
+export const REFUND_POLICY_LABEL = "기본값 (플렉스티비 기준, 법무 검토 전)";
 /**
  * 청약철회 기간: the request date may be at most this many calendar days after the payment date (server time) —
  * paid on 10/1, a request until 10/8 23:59:59 counts.
