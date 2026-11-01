@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ko } from "@/lib/i18n/messages/ko";
+import { WITHDRAWAL_GRACE_DAYS } from "@/services/account/withdrawalTypes";
 import { getMockDonationCatalog } from "@/services/donations/donationCatalog";
 import { CHARGE_CONSENTS } from "@/services/wallet/chargeTypes";
 import { clauseHeading, isTermsSlug, TERMS_DOCS, TERMS_DRAFT, TERMS_SLUGS, type TermsBlock } from "./termsOutline";
@@ -120,6 +121,21 @@ describe("약관 · 정책 문서 (초안 본문, 2026-10-08)", () => {
       expect(text).toContain("처리 중인 FN 충전");
       expect(text).toContain("결제 확인을 기다리는 충전 포함");
       expect(text).toContain("지급 중인 출석 보상");
+    }
+  });
+
+  it("states FLEXTV's 회원탈퇴 유예 in the privacy policy, the service terms and the refund policy (2026-11-01 사용자 결정)", () => {
+    const clause = (slug: "privacy" | "service" | "refund", title: string) => TERMS_DOCS[slug].clauses.find((c) => c.title === title)!.body.flatMap(blockTexts).join("\n");
+    // The documents state the period services/account/withdrawal.ts applies.
+    const days = `${WITHDRAWAL_GRACE_DAYS}일`;
+    const privacy = clause("privacy", "개인정보의 보유 및 이용 기간");
+    expect(privacy).toContain("회원탈퇴 유예 (탈퇴 철회)");
+    expect(privacy).toMatch(new RegExp(`신청한 때부터 ${days} 동안 탈퇴가 유예되고.*언제든지 로그인해 탈퇴를 철회할 수 있습니다 \\(플렉스티비 기준\\)`));
+    expect(privacy).toContain("유예 기간에는 계정을 이용할 수 없습니다 (기본값)");
+    for (const text of [clause("service", "회원 탈퇴와 이용계약 해지"), clause("refund", "회원 탈퇴와 남은 FN")]) {
+      expect(text).toContain(`신청한 때부터 ${days}이 지나면 적용`);
+      expect(text).toContain("철회");
+      expect(text).toContain("(플렉스티비 기준)");
     }
   });
 

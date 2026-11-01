@@ -139,6 +139,12 @@ export type AdminMember = {
   suspension: Suspension | null;
   /** 회원 탈퇴: when, the FN and creator earnings the member agreed to forfeit, and until when each kind of data is kept. */
   withdrawal: { at: string; forfeitedFn: number; forfeitedEarningsFn: number; retentionNote: string; retention: MemberRetention[] } | null;
+  /**
+   * 탈퇴 신청 waiting for its date (회원탈퇴 유예 30일, 2026-11-01 — 플렉스티비 기준): when the member asked and when it
+   * takes effect (ISO). The status stays 정상 / 정지 meanwhile; the member can cancel it by signing in until then.
+   * Absent from a site older than this field.
+   */
+  withdrawalRequest?: { requestedAt: string; effectiveAt: string } | null;
   fnBalance: number;
   donationTotalFn: number;
   creatorId: string | null;
@@ -235,7 +241,7 @@ export type AdminRefund = {
 };
 
 /**
- * 환불 정책 기본값 (일반적인 기준, 법무 검토 전) — the site computes every amount; the console only shows them.
+ * 환불 정책 기본값 (플렉스티비 기준, 법무 검토 전) — the site computes every amount; the console only shows them.
  * FULL_CANCEL: 청약철회 (전액 취소, no fee); PARTIAL: the charge's unused FN minus the fee; NOT_REFUNDABLE: all used.
  * `grossFn`: FN taken back from the wallet; `feeFn` + `netFn` = `grossFn`. `refundKrw` (2026-10-08 결정): FULL_CANCEL the
  * whole paid amount, PARTIAL net FN ÷ the charge's FN × its paid KRW, rounded down to the won (payout per method: TBD).

@@ -22,7 +22,8 @@ export function isEmailTaken(email: string) {
   const e = email.trim().toLowerCase();
   if (FIGMA_TAKEN_EMAILS.includes(e) || store().accounts.some((a) => a.email === e)) return true;
   // Whether a withdrawn account's e-mail stays reserved is TBD; the mock frees it, so the same person can 재가입
-  // right away with it (2026-10-05 결정).
+  // right away with it (2026-10-05 결정) — once the 탈퇴 has taken effect: during the 30 days of a 탈퇴 신청 the account
+  // still exists and keeps it (2026-11-01 사용자 결정).
   return e === SAMPLE_ACCOUNT_EMAIL && accountSince() === null && !isWithdrawn();
 }
 

@@ -774,7 +774,7 @@
   font-weight: var(--font-weight-bold);
 }
 
-/* 환불 정책 요약 — 기본값 (일반적인 기준, 법무 검토 전) */
+/* 환불 정책 요약 — 기본값 (플렉스티비 기준, 법무 검토 전) */
 .refundPolicy {
   display: flex;
   flex-direction: column;
