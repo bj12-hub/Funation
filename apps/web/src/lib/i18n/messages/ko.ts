@@ -2305,6 +2305,10 @@ export const ko = {
   },
   /** 위젯 (/creator/widgets) — screen, popup frame, shared fields and labels (2026-11-01). Widget names users type, sample donations and anything OBS shows stay as written. */
   widgetForm: {
+    broadcastWidgets: "방송 위젯",
+    designOnlyBefore: "※ 여기서는 방송 화면에 보이는 모양만 정해요. {rules}은(는)",
+    designOnlyLink: "후원 종류 설정",
+    designOnlyAfter: "에서 바꿔요.",
     metaTitle: "위젯 | Ssumnation 크리에이터",
     title: "위젯",
     subtitle: "방송 화면에 띄울 위젯을 고르고 설정하세요. 오버레이 주소는 도구에서 한 번에 복사할 수 있어요.",
@@ -2783,6 +2787,9 @@ export const ko = {
   },
   /** 퀘스트 위젯 설정 (2026-11-01). The 실패 · 취소 refund line is refund-policy wording and stays Korean in the component. */
   widgetFormQuest: {
+    display: "화면 표시",
+    maxShown: "화면에 보일 최대 개수",
+    designRules: "퀘스트 최소 금액 · 최대 제한시간 · 시간 연장",
     previewAria: "퀘스트 미리보기",
     previewHint: "화려한 스타일은 테마 카드와 색을 쓰고, 심플한 스타일은 글자만 방송 위에 아래 글자 색으로 보여요.",
     useLabel: "퀘스트 위젯 사용하기",
@@ -2865,6 +2872,10 @@ export const ko = {
   },
   /** 뽑기 후원 위젯 설정 (2026-11-01). Gacha and prize names, the default 뽑기 names and message template, and the preview sample stay as written. */
   widgetFormGacha: {
+    emptyDesign: "후원 종류 설정에서 뽑기를 만들면 여기서 모양을 정할 수 있어요.",
+    look: "모양",
+    lookTitle: "뽑기 모양 · {name}",
+    designRules: "뽑기 · 상품 · 확률 · 가격",
     previewStyleAria: "미리보기 스타일",
     previewAria: "뽑기 미리보기",
     list: "뽑기 후원 리스트",
@@ -2989,6 +3000,7 @@ export const ko = {
   },
   /** 룰렛 설정 (2026-11-01). Item names (including 꽝) and the wheel preview stay as written. */
   widgetFormRoulette: {
+    designRules: "룰렛 항목 · 확률 · 참여 금액",
     previewAria: "룰렛 미리보기",
     notice: "※ 룰렛 당첨 항목은 크리에이터가 방송에서 진행하는 상품 · 미션이에요. FN으로 지급되지 않아요.",
     accept: "후원 받기",
@@ -6909,6 +6921,11 @@ export const ko = {
     loadError: "명예의 전당을 불러오지 못했습니다",
     loading: "랭킹을 불러오는 중…",
     meta: "명예의 전당 | Ssumnation"
+  },
+  /** FLEXTV 위젯 목록: the 리모컨 card also hands out the overlay addresses. */
+  flextvWidgets: {
+    remoteTitle: "리모컨 · 오버레이 주소",
+    remoteDesc: "방송 중 퀘스트 · 룰렛 · 뽑기를 다루고, OBS에 넣을 오버레이 주소를 복사합니다."
   },
   /** 커뮤니티 (2026-11-01). Posts, comments and author names are content. */
   community: {

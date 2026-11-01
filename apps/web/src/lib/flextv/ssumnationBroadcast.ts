@@ -255,7 +255,7 @@ function readDrawRow(r: Record<string, unknown>): GachaRow | null {
   };
 }
 
-/** The 뽑기 machine's look is Ssumnation's default (FLEXTV keeps no design). */
+/** The 뽑기 machine's look is the default here; an overlay draws it with the 뽑기's own (`gachaId`, phase 8). */
 export function readGachaStage(value: unknown): GachaStage | null {
   if (!isRecord(value)) return null;
   const stageId = id(value.id);
@@ -342,10 +342,11 @@ export const isOverlayGame = (value: unknown): value is OverlayGame => OVERLAY_G
 
 export type OverlayState =
   | { widget: "roulette"; stage: RouletteStage | null }
-  | { widget: "gacha"; stage: GachaStage | null; history: { donor: string; prize: string }[] }
+  | { widget: "gacha"; stage: GachaStage | null; gachaId: string | null; history: { donor: string; prize: string }[] }
   | { widget: "gacha-board"; rows: GachaBoardView["rows"] }
   | { widget: "quest"; quests: { id: string; title: string; amount: number; endsAt: string; extendedMin: number }[] }
-  | { widget: "mini"; lines: MiniLine[] };
+  /** `fn`: the amount, for the widget's 최소 금액 (phase 8). */
+  | { widget: "mini"; lines: (MiniLine & { fn: number })[] };
 
 export function readOverlay(widget: OverlayGame, data: unknown): OverlayState {
   const b = isRecord(data) ? data : {};
@@ -353,7 +354,7 @@ export function readOverlay(widget: OverlayGame, data: unknown): OverlayState {
     case "roulette":
       return { widget, stage: readRouletteStage(b.stage) };
     case "gacha":
-      return { widget, stage: readGachaStage(b.stage), history: rows(b.history).flatMap((h) => (text(h.prize) ? [{ donor: text(h.donor), prize: text(h.prize) }] : [])) };
+      return { widget, stage: readGachaStage(b.stage), gachaId: isRecord(b.stage) ? id(b.stage.gachaId) : null, history: rows(b.history).flatMap((h) => (text(h.prize) ? [{ donor: text(h.donor), prize: text(h.prize) }] : [])) };
     case "gacha-board":
       return {
         widget,
@@ -367,7 +368,7 @@ export function readOverlay(widget: OverlayGame, data: unknown): OverlayState {
     case "mini":
       return {
         widget,
-        lines: rows(b.lines).flatMap((l) => (id(l.id) && text(l.text) ? [{ id: id(l.id)!, nickname: text(l.nickname), amount: `${(whole(l.amount) ?? 0).toLocaleString("ko-KR")} FN`, text: text(l.text) }] : []))
+        lines: rows(b.lines).flatMap((l) => (id(l.id) && text(l.text) ? [{ id: id(l.id)!, nickname: text(l.nickname), amount: `${(whole(l.amount) ?? 0).toLocaleString("ko-KR")} FN`, text: text(l.text), fn: whole(l.amount) ?? 0 }] : []))
       };
   }
 }

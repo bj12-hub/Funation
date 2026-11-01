@@ -2271,6 +2271,10 @@ export const en: Messages = {
     notConnected: "not connected"
   },
   widgetForm: {
+    broadcastWidgets: "Broadcast widgets",
+    designOnlyBefore: "※ Only the on-stream look is set here. Change {rules} in",
+    designOnlyLink: "Donation types",
+    designOnlyAfter: ".",
     metaTitle: "Widgets | Ssumnation Creator",
     title: "Widgets",
     subtitle: "Choose and set up the widgets to show on your stream. You can copy every overlay address at once under Tools.",
@@ -2739,6 +2743,9 @@ export const en: Messages = {
     outlineShort: "Show text outline"
   },
   widgetFormQuest: {
+    display: "On screen",
+    maxShown: "Most shown on screen",
+    designRules: "the quest minimum, time limit and extensions",
     previewAria: "Quest preview",
     previewHint: "The fancy style uses the theme card and colors; the simple style shows text only, over the stream, in the text colors below.",
     useLabel: "Use the quest widget",
@@ -2818,6 +2825,10 @@ export const en: Messages = {
     save: "Save"
   },
   widgetFormGacha: {
+    emptyDesign: "Create gachas in Donation types, then set their look here.",
+    look: "Look",
+    lookTitle: "Gacha look · {name}",
+    designRules: "gachas, prizes, odds and prices",
     previewStyleAria: "Preview style",
     previewAria: "Gacha preview",
     list: "Gacha donation list",
@@ -2939,6 +2950,7 @@ export const en: Messages = {
     tierAccent: "{title} accent color"
   },
   widgetFormRoulette: {
+    designRules: "roulette items, odds and the entry amount",
     previewAria: "Roulette preview",
     notice: "※ Roulette results are prizes · missions you run on stream. They aren't paid out in FN.",
     accept: "Accept donations",
@@ -6806,6 +6818,10 @@ export const en: Messages = {
     loadError: "Couldn't load the hall of fame",
     loading: "Loading rankings…",
     meta: "Hall of fame | Ssumnation"
+  },
+  flextvWidgets: {
+    remoteTitle: "Remote · overlay addresses",
+    remoteDesc: "Run quests, roulettes and gachas during the stream, and copy the overlay addresses for OBS."
   },
   community: {
     title: "Community",

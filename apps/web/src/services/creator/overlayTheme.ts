@@ -1,14 +1,17 @@
 "use server";
 
+import { FLEXTV_SSUMNATION_API } from "@/lib/flextv/mode";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { readAppearance, readLook, writeAppearance, writeLook } from "./overlayThemeStore";
 import { isHex6, isLookTarget, isOverlayTheme, isOverlayThemeChoice, type OverlayAppearance, type OverlayThemeChoice } from "./overlayThemeTypes";
 import type { WidgetSaveResult } from "./widgetSettingsTypes";
+import { getFlextvAppearance, saveFlextvAppearance } from "./flextvOverlaySettings";
 
 /**
  * 오버레이 테마 Server Actions — code-first (route `/creator/widgets`, "오버레이 테마" section). The overlays read
- * the same store without a login (./overlayThemeStore.ts), like their other settings.
+ * the same store without a login (./overlayThemeStore.ts), like their other settings. With FLEXTV's Ssumnation endpoints
+ * (phase 8) FLEXTV keeps it (./flextvOverlaySettings.ts).
  */
 
 const assertMock = () => {
@@ -16,12 +19,14 @@ const assertMock = () => {
 };
 
 export async function getOverlayAppearance(): Promise<OverlayAppearance | null> {
+  if (FLEXTV_SSUMNATION_API) return getFlextvAppearance();
   assertMock();
   if (!(await getCreatorSession())) return null;
   return readAppearance();
 }
 
 export async function saveOverlayAppearance(input: unknown): Promise<WidgetSaveResult> {
+  if (FLEXTV_SSUMNATION_API) return saveFlextvAppearance(input);
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;

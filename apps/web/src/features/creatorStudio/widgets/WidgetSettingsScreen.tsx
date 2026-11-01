@@ -12,7 +12,7 @@ import { isEditableWidget, type EditableWidgetKey } from "@/services/creator/wid
 import { ThemeGallery } from "@/features/overlayTheme/ThemeGallery";
 import { OverlayOffNotice } from "../remote/OverlayOffNotice";
 import { CopyButton } from "../settings/SettingsCards";
-import { ALL_COUNT, GROUPS, POPULAR, TOOLS, type CatalogItem } from "./widgetCatalog";
+import { ALL_COUNT, FLEXTV_ITEMS, GROUPS, POPULAR, TOOLS, type CatalogItem } from "./widgetCatalog";
 import { WIDGET_EDITOR_COPY, WidgetEditorBody, useWidgetEditor } from "./WidgetEditor";
 import catalog from "./widgetCatalog.module.css";
 import styles from "./widgets.module.css";
@@ -57,6 +57,11 @@ const ITEM_KEYS: Record<string, { title: MessageKey; description: MessageKey }> 
   ASSETS: { title: "widgetFormCatalog.assetsTitle", description: "widgetFormCatalog.assetsDesc" },
   LINK: { title: "widgetFormCatalog.linkTitle", description: "widgetFormCatalog.linkDesc" }
 };
+/** With FLEXTV the 리모컨 card also hands out the overlay addresses (./widgetCatalog.ts FLEXTV_ITEMS). */
+const FLEXTV_ITEM_KEYS: typeof ITEM_KEYS = {
+  ...ITEM_KEYS,
+  REMOTE: { title: "flextvWidgets.remoteTitle", description: "flextvWidgets.remoteDesc" }
+};
 const GROUP_KEYS: Record<string, MessageKey> = {
   "후원 알림": "widgetFormCatalog.groupAlerts",
   "게이지 · 랭킹": "widgetFormCatalog.groupGauges",
@@ -74,18 +79,22 @@ const GROUP_KEYS: Record<string, MessageKey> = {
  * Catalog layout follows the funnation 위젯 page (인기 · 전체 by group · 도구; see ./widgetCatalog.ts).
  * The Figma 후원 알림 설정 alert-type cards are no longer listed (they had no popups); 그림후원 links to its own page.
  * 오버레이 테마 (code-first, 2026-10-08) sits above the catalog: the 전체 테마 every overlay is drawn in.
+ * With FLEXTV (`flextv`, phase 8): the theme and the overlays FLEXTV runs (퀘스트 · 미니 · 룰렛 · 뽑기), whose look only is
+ * set here — their rules are 후원 종류 설정's — and the 리모컨 for their addresses.
  */
 export function WidgetSettingsScreen({
   alertWidgetUrl,
   switches,
   appearance,
-  initialOpen = null
+  initialOpen = null,
+  flextv = false
 }: {
   alertWidgetUrl: string;
   switches: Record<OverlayTarget, boolean>;
   appearance: OverlayAppearance;
   /** `?open=` — the popup to show first. */
   initialOpen?: EditableWidgetKey | null;
+  flextv?: boolean;
 }) {
   const [openKey, setOpenKey] = useState<EditableWidgetKey | null>(initialOpen);
   const [toast, setToast] = useState<string | null>(null);
@@ -98,23 +107,29 @@ export function WidgetSettingsScreen({
         <h1 className={catalog.title}>{t("widgetForm.title")}</h1>
         <p className={catalog.subtitle}>{t("widgetForm.subtitle")}</p>
       </header>
-      <OverlayOffNotice targets={["widgets"]} switches={switches} />
+      {!flextv && <OverlayOffNotice targets={["widgets"]} switches={switches} />}
       <ThemeGallery initial={appearance} />
-      <CatalogGrid title={t("widgetForm.popular")} count={POPULAR.length} items={POPULAR} onOpen={setOpenKey} />
-      <section className={styles.group} aria-label={t("widgetForm.allAria")}>
-        <h2 className={styles.groupTitle}>
-          {t("widgetForm.all")} <span className={catalog.count}>{ALL_COUNT}</span>
-        </h2>
-        {GROUPS.map((g) => (
-          <CatalogGrid key={g.title} title={GROUP_KEYS[g.title] ? t(GROUP_KEYS[g.title]) : g.title} items={g.items} onOpen={setOpenKey} sub />
-        ))}
-      </section>
-      <CatalogGrid title={t("widgetForm.tools")} count={TOOLS.length} items={TOOLS} onOpen={setOpenKey} />
+      {flextv ? (
+        <CatalogGrid title={t("widgetForm.broadcastWidgets")} count={FLEXTV_ITEMS.length} items={FLEXTV_ITEMS} itemKeys={FLEXTV_ITEM_KEYS} onOpen={setOpenKey} />
+      ) : (
+        <>
+          <CatalogGrid title={t("widgetForm.popular")} count={POPULAR.length} items={POPULAR} onOpen={setOpenKey} />
+          <section className={styles.group} aria-label={t("widgetForm.allAria")}>
+            <h2 className={styles.groupTitle}>
+              {t("widgetForm.all")} <span className={catalog.count}>{ALL_COUNT}</span>
+            </h2>
+            {GROUPS.map((g) => (
+              <CatalogGrid key={g.title} title={GROUP_KEYS[g.title] ? t(GROUP_KEYS[g.title]) : g.title} items={g.items} onOpen={setOpenKey} sub />
+            ))}
+          </section>
+          <CatalogGrid title={t("widgetForm.tools")} count={TOOLS.length} items={TOOLS} onOpen={setOpenKey} />
+        </>
+      )}
       {openKey && (
         <WidgetModal
           key={openKey}
           widgetKey={openKey}
-          alertWidgetUrl={alertWidgetUrl}
+          alertWidgetUrl={flextv ? null : alertWidgetUrl}
           onClose={() => setOpenKey(null)}
           onSaved={() => {
             setOpenKey(null);
@@ -128,7 +143,21 @@ export function WidgetSettingsScreen({
 }
 
 /** One catalog section (funnation 위젯 layout). `sub` renders a group inside 전체. */
-function CatalogGrid({ title, count, items, onOpen, sub = false }: { title: string; count?: number; items: CatalogItem[]; onOpen: (k: EditableWidgetKey) => void; sub?: boolean }) {
+function CatalogGrid({
+  title,
+  count,
+  items,
+  itemKeys = ITEM_KEYS,
+  onOpen,
+  sub = false
+}: {
+  title: string;
+  count?: number;
+  items: CatalogItem[];
+  itemKeys?: typeof ITEM_KEYS;
+  onOpen: (k: EditableWidgetKey) => void;
+  sub?: boolean;
+}) {
   const Heading = sub ? "h3" : "h2";
   const { t } = useI18n();
   return (
@@ -138,7 +167,7 @@ function CatalogGrid({ title, count, items, onOpen, sub = false }: { title: stri
       </Heading>
       <ul className={styles.grid}>
         {items.map((item) => {
-          const keys = ITEM_KEYS[item.id];
+          const keys = itemKeys[item.id];
           const body = (
             <>
               <span className={styles.cardIcon} style={{ background: "var(--color-surface-raised)" }} aria-hidden="true">
@@ -185,7 +214,8 @@ function WidgetModal({
   onSaved
 }: {
   widgetKey: EditableWidgetKey;
-  alertWidgetUrl: string;
+  /** Null with FLEXTV: its 후원 알림 is FLEXTV's 도우미. */
+  alertWidgetUrl: string | null;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -215,7 +245,7 @@ function WidgetModal({
       </div>
       <footer className={styles.modalFooter}>
         {/* The design leaves this button's action undefined; it copies the 통합 알림창 URL (TBD). */}
-        <CopyButton value={alertWidgetUrl} label={t("widgetForm.alertUrl")} className={styles.footerGhost} />
+        {alertWidgetUrl !== null && <CopyButton value={alertWidgetUrl} label={t("widgetForm.alertUrl")} className={styles.footerGhost} />}
         <button type="button" className={styles.footerGhost} onClick={onClose}>
           {selfSaving ? t("widgetForm.close") : t("widgetForm.cancel")}
         </button>
