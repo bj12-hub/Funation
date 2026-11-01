@@ -3,6 +3,7 @@ import Link from "next/link";
 import { FLEXTV_STUDIO } from "@/lib/flextv/mode";
 import { formatNumber } from "@/lib/format";
 import { getT } from "@/lib/i18n/server";
+import { remote } from "@/lib/remoteImage";
 import type { CreatorDashboard, CreatorProfile, DashboardSummary } from "@/services/creator/creatorStudio";
 import type { UpdatesView } from "@/services/creator/updatesTypes";
 import { formatAmount } from "./amount";
@@ -51,7 +52,7 @@ export async function CreatorDashboardScreen({
       <div className={summary.grid}>
         <section className={`${styles.card} ${styles.infoCard}`} aria-label={t("studioDashboard.myChannel")}>
           {profile.avatarUrl ? (
-            <Image src={profile.avatarUrl} alt="" width={80} height={80} className={styles.infoAvatar} />
+            <Image src={profile.avatarUrl} alt="" width={80} height={80} className={styles.infoAvatar} unoptimized={remote(profile.avatarUrl)} />
           ) : (
             <span className={styles.infoAvatar} aria-hidden="true" />
           )}
