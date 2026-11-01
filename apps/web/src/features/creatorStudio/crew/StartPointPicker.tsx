@@ -3,8 +3,8 @@
 import { createContext, useContext, useState } from "react";
 import { formatKstTime, formatNumber } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
+import { unitText } from "@/lib/i18n/unitText";
 import type { BroadcastLive } from "@/services/crew/crewTypes";
-import { unitLabel } from "@/types/donationUnit";
 import styles from "./crew.module.css";
 
 type Moments = BroadcastLive["moments"];
@@ -29,7 +29,7 @@ export function StartPointPicker({ current, pending, onMove }: { current: string
         <option value={ctx.startedAt}>{t("crewGame.broadcastStart", { time: time(ctx.startedAt) })}</option>
         {ctx.moments.map((m, i) => (
           <option key={`${m.at}-${i}`} value={m.at}>
-            {time(m.at)} · {m.donor} · {formatNumber(m.amount)} {unitLabel(m.unit)}
+            {time(m.at)} · {m.donor} · {formatNumber(m.amount)} {unitText(m.unit, t)}
           </option>
         ))}
       </select>
