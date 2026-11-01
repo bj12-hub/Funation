@@ -23,8 +23,8 @@ export type SignupRequest = {
   password: string;
   nickname: string;
   phoneVerificationToken: string;
-  /** The agreement state as the member left it; the server requires the three required ones. */
-  agreements: { youth: boolean; service: boolean; privacy: boolean; marketing: boolean };
+  /** The agreement state as the member left it; the server requires the two required ones (FLEXTV's set, 2026-11-01). */
+  agreements: { service: boolean; privacy: boolean; marketing: boolean };
 };
 
 export type SignupResult =
@@ -65,7 +65,6 @@ export async function signup(request: SignupRequest): Promise<SignupResult> {
     typeof r.phoneVerificationToken === "string" &&
     r.phoneVerificationToken.length > 0 &&
     !!a &&
-    a.youth === true &&
     a.service === true &&
     a.privacy === true &&
     typeof a.marketing === "boolean";

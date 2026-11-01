@@ -29,6 +29,16 @@ Confirmed:
   keeps it. Broadcasting stays on FLEXTV's infrastructure (no streaming provider of Ssumnation's own). Funnation's business
   rules — 등급별 수수료, the 가입 이벤트 points — are not taken over (TBD). 다시보기 and a 유튜브 라이브 row wait for a
   FLEXTV source (TBD). See docs/development/flextv-backend.md "10단계"
+- 약관 · 동의 · 환불 정책 (2026-11-01): FLEXTV's conditions are the default ("약관 및 동의 환불 정책은 플렉스티비에 있는
+  조건들 기본안으로 사용하고, 나머지는 썸네이션에 맞도록 수정") — Ssumnation runs on FLEXTV's backend since 2026-10-25.
+  The 7 drafts (`apps/web/src/features/terms/drafts`) take FLEXTV's 이용약관 · 유료서비스 이용약관 · 개인정보처리방침 ·
+  운영정책 · 청소년보호정책 conditions, marked "(플렉스티비 기준)"; Ssumnation's own rules stay "(기본값)". In code: 가입 동의는
+  이용약관 · 개인정보 수집 및 이용 (필수) · 마케팅 활용 및 정보 수신 (선택) (the Figma 청소년 보호정책 확인 line is gone);
+  본인 확인 값 보관 탈퇴 후 6개월 (was 1년) and 전자금융 거래 기록 5년 (`retentionPolicy.ts`); 이용 정지 1 · 3 · 7 · 15 · 30일 ·
+  영구 (`SUSPEND_DAYS`, both apps); labels "기본값 (플렉스티비 기준, 법무 검토 전)". Age: 만 14세 미만 가입 불가, 만 19세 미만
+  FN 충전은 법정대리인 동의 (FLEXTV; the mock sign-up has no birth date, so the check comes with 본인인증). Not taken over
+  yet: FLEXTV's 30-day 탈퇴 철회 (the withdraw screen deletes at once) and its 정지 중 환전 지급 유예 · 적발 당일 후원 기부
+  (conflicts with the 2026-10-08 이용 정지 and money decision below) — both wait for the user. Legal review still TBD.
 - Login lock (2026-10-08): 5 wrong passwords lock the account until a password reset — reset-only, no time-based unlock,
   no per-IP limit (`services/auth/loginLockCore.ts`)
 - Approved settlements at a 탈퇴 (2026-10-08): they are still paid (지급 완료) — a 탈퇴 forfeits only 정산 가능 and
@@ -409,8 +419,9 @@ Still TBD:
 - Settlement minimum
 - Identity verification (decided 2026-10-06: 정산 신청 requires the 마이페이지 본인인증 — see docs/domains/settlement.md; the provider still TBD)
 - Phone verification (decided 2026-10-08, 기본값: 5 wrong codes invalidate the code, a code lives 3 minutes (180 s), a verified phone must be used within 30 minutes — `services/auth/verificationCore.ts`; the SMS provider and send rate limits still TBD)
-- Retention of withdrawal records and withdrawn members' data (defaults since 2026-10-08, labelled "기본값 (일반적인 기준, 법무 검토 전)": 계약 · 청약철회 기록 5년, 대금결제 · 재화 공급 기록 5년, 소비자 불만 · 분쟁 처리 기록 3년, 접속 기록 3개월, 부정 이용 방지용 본인 확인 값 탈퇴 후 1년, 게시물 삭제하지 않음 — counted from the withdrawal; one list in `apps/web/src/services/account/retentionPolicy.ts`, see docs/domains/wallet.md. Legal review, the start point and the retention of active members' access logs still TBD)
-- Age restriction
+- Retention of withdrawal records and withdrawn members' data (defaults since 2026-10-08, labelled "기본값 (플렉스티비 기준, 법무 검토 전)" since 2026-11-01: 계약 · 청약철회 기록 5년, 대금결제 · 재화 공급 · 전자금융 거래 기록 5년, 소비자 불만 · 분쟁 처리 기록 3년, 접속 기록 3개월, 부정 이용 방지용 본인 확인 값 탈퇴 후 6개월 (1년 until 2026-11-01), 게시물 삭제하지 않음 — counted from the withdrawal; one list in `apps/web/src/services/account/retentionPolicy.ts`, see docs/domains/wallet.md. Legal review, the start point and the retention of active members' access logs still TBD)
+- Age restriction (2026-11-01, FLEXTV: 만 14세 미만 가입 불가, 만 19세 미만 FN 충전은 법정대리인 동의 — see Confirmed; how the
+  mock checks the age without a birth date is TBD)
 - Tax/accounting treatment
 - Exact external API capabilities
 - 후원 내역 이관 (2026-10-16 request, built with **기본값 (TBD) — pending the user's confirmation**, docs/domains/donation-import.md):
