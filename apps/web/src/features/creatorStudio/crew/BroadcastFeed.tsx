@@ -3,6 +3,7 @@
 import { useRef, useState, type DragEvent } from "react";
 import { formatKstTime, formatNumber } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
+import { platformLabel } from "@/lib/i18n/platformLabel";
 import type { MessageKey } from "@/lib/i18n/translate";
 import {
   assignFeedEntry,
@@ -39,7 +40,6 @@ import {
   type FeedView
 } from "@/services/crew/crewTypes";
 import { unitLabel } from "@/types/donationUnit";
-import { PLATFORM_LABEL } from "@/types/platform";
 import { DonorPanel } from "./DonorPanel";
 import { ExcelPanel, ExcelSummary } from "./ExcelPanel";
 import styles from "./crew.module.css";
@@ -60,7 +60,7 @@ const FILTERS = [
   { key: "ASSIGNED", label: "crewOpsFeed.statusAssigned" },
   { key: "CANCELLED", label: "crewOpsFeed.filterCancelled" }
 ] as const satisfies readonly { key: string; label: MessageKey }[];
-/** 출처 labels that read differently per language; platform names show as written (PLATFORM_LABEL). */
+/** 출처 labels that read differently per language; platform names go through platformLabel (치지직 reads CHZZK in English). */
 const ORIGIN_KEY: Partial<Record<FeedOrigin, MessageKey>> = {
   SSUMNATION: "crewOpsFeed.originSsumnation",
   BANK: "crewOpsFeed.originBank",
@@ -247,7 +247,7 @@ export function BroadcastFeed({
             <select className={`${styles.select} ${feed.grow}`} aria-label={t("crewOpsFeed.simUnitAria")} value={simUnit} onChange={(e) => setSimUnit(e.target.value as ExcelUnit)}>
               {EXCEL_UNITS.map((u) => (
                 <option key={u.key} value={u.key}>
-                  {u.platform ? `${PLATFORM_LABEL[u.platform]} · ${u.label}` : t("crewOpsFeed.simUnitSsumnation", { unit: u.label })}
+                  {u.platform ? `${platformLabel(u.platform, t)} · ${u.label}` : t("crewOpsFeed.simUnitSsumnation", { unit: u.label })}
                 </option>
               ))}
             </select>
@@ -447,7 +447,7 @@ function EntryRow({
           )}
           {e.mergedDonor ?? e.donor}
           {e.mergedDonor && <span className={feed.alias}>({e.donor})</span>} · {amountText(e.amount, e.unit)}
-          {e.platform && <span className={styles.chipOff}>{PLATFORM_LABEL[e.platform]}</span>}
+          {e.platform && <span className={styles.chipOff}>{platformLabel(e.platform, t)}</span>}
           {e.source === "SIM" && <span className={styles.chipOff}>{t("crewOpsFeed.originSim")}</span>}
           {e.source === "BANK" && <span className={styles.chipOff}>{t("crewOpsFeed.originBank")}</span>}
           {e.oneshot && <span className={styles.chip}>{t("crewOpsFeed.chipOneshot")}</span>}

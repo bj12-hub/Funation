@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useServerClock } from "@/hooks/useServerClock";
 import { formatKstTime } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
+import { platformLabel } from "@/lib/i18n/platformLabel";
 import type { OverlayTarget } from "@/services/creator/alertTypes";
 import type { PlaySource } from "@/services/play/playTypes";
 import { addRumble, closeRumble, openRumble, removeRumble, saveRumble, startRumble } from "@/services/play/rumble";
@@ -25,7 +26,6 @@ import {
   type RumbleSettings,
   type RumbleView
 } from "@/services/play/rumbleTypes";
-import { PLATFORM_LABEL } from "@/types/platform";
 import { shownOverlayAddress } from "../crew/overlayAddress";
 import styles from "../crew/crew.module.css";
 import prize from "../crew/prize.module.css";
@@ -39,7 +39,7 @@ type Draft = Omit<RumbleSettings, "maxPlayers" | "fillTo" | "battleSec"> & { max
 const toDraft = (s: RumbleSettings): Draft => ({ ...s, maxPlayers: String(s.maxPlayers), fillTo: String(s.fillTo), battleSec: String(s.battleSec) });
 const fromDraft = (d: Draft): RumbleSettings => ({ ...d, title: d.title.trim(), keyword: d.keyword.trim(), maxPlayers: Number(d.maxPlayers), fillTo: Number(d.fillTo), battleSec: Number(d.battleSec) });
 type T = ReturnType<typeof useI18n>["t"];
-const sourceLabel = (s: PlaySource, t: T) => (s === "INVITE" ? t("studioPlay.sourceInvite") : s === "MANUAL" ? t("studioPlay.sourceManual") : PLATFORM_LABEL[s]);
+const sourceLabel = (s: PlaySource, t: T) => (s === "INVITE" ? t("studioPlay.sourceInvite") : s === "MANUAL" ? t("studioPlay.sourceManual") : platformLabel(s, t));
 
 /**
  * 시청자 참여 게임 › 로얄 럼블 — code-first (no Figma frame; StreamDonate 로얄 럼블 참고, P2). Route

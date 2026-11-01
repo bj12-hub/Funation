@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import styles from "./Modal.module.css";
 
 type ModalProps = {
@@ -27,6 +28,7 @@ type ModalProps = {
  * Uses the native <dialog> for focus trapping, Esc to close and inert background.
  */
 export function Modal({ open, onClose, title, description, children, footer, customHeader, width, className }: ModalProps) {
+  const { t } = useI18n();
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const descriptionId = useId();
@@ -64,7 +66,7 @@ export function Modal({ open, onClose, title, description, children, footer, cus
                 <h2 id={titleId} className={styles.title}>
                   {title}
                 </h2>
-                <button type="button" className={styles.close} aria-label="닫기" onClick={onClose}>
+                <button type="button" className={styles.close} aria-label={t("common.close")} onClick={onClose}>
                   ×
                 </button>
               </div>
