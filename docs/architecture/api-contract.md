@@ -30,7 +30,7 @@ Backend framework, database, payment provider and every business rule listed as 
 | 출석 보상 | `attendance.checkIn` (daily + automatic 15·30-day rewards) · `claimAttendanceReward` (3·7-day) | credit FN — on its way until paid (회원 탈퇴 refused meanwhile), then only to the account it is for while still active; otherwise not paid (2026-10-10 결정, `wallet/inFlightCore.ts`) | natural (once per day per person / reward per month) | credit ledger (`wallet/mockCreditStore`, tagged with the account marker) |
 | 정산 신청 | `creator/settlementRequests.requestSettlement` | debit creator earnings (`availableFn`) | key + amount (`CONFLICT`) | PENDING settlement request (`st-<uuid>`) with a copy of the masked registration at request time |
 
-Not implemented anywhere yet (TBD): refunds, holds for quest/quiz outcomes, creator revenue credit from donations, platform fees, payouts.
+Built since this table started (see docs/domains/wallet.md and donation.md): FN 충전 환불, 퀘스트 후원 holds and their refunds, 남은 FN 정리 for a 영구 정지 member. Not implemented yet (TBD): creator revenue credit from donations (the studio's 정산 가능 FN is sample data), platform fees, the actual payout transfer (the console only records 지급 완료).
 
 ## 3. Endpoints by domain
 
