@@ -34,7 +34,8 @@ export async function getFlextvCreatorRoom(channelId: string): Promise<CreatorRo
     banner: null,
     stream: streamOf(channelId, watch, image),
     donation,
-    followers: channel.followers
+    followers: channel.followers,
+    ownerLoginId: channel.owner.loginId
   };
 }
 

@@ -9,6 +9,7 @@ import { platformLabel } from "@/lib/i18n/platformLabel";
 import type { MessageKey } from "@/lib/i18n/translate";
 import type { CreatorCategory } from "@/services/creators/creatorTypes";
 import type { CrewPublic, CrewRole } from "@/services/crew/crewTypes";
+import { CHANNEL_NEWS_MAX, CHANNEL_NEWS_PAGE, type ChannelNews } from "@/services/creators/channelTypes";
 import type { PublicChannelVideos } from "@/services/creators/channelVideos";
 import type { Signature } from "@/services/donations/donationCatalog";
 import type { PlatformErrorCode, VideoKind } from "@/services/platforms/platformTypes";
@@ -52,13 +53,13 @@ const PLATFORM_ERROR_KEY: Record<PlatformErrorCode, MessageKey> = {
  */
 
 /** `only`: the views this channel has (a FLEXTV channel's room: 홈 and, with signatures, 시그니처). */
-export function ChannelTabs({ creatorId, active, only }: { creatorId: string; active: ChannelView; only?: readonly ChannelView[] }) {
+export function ChannelTabs({ creatorId, active, only, labels }: { creatorId: string; active: ChannelView; only?: readonly ChannelView[]; labels?: Partial<Record<ChannelView, string>> }) {
   const { t } = useI18n();
   return (
     <nav className={styles.tabs} aria-label={t("roomChannel.tabs")}>
       {CHANNEL_VIEWS.filter((v) => !only || only.includes(v.key)).map((v) => (
         <Link key={v.key} href={v.key === "home" ? `/creators/${creatorId}` : `/creators/${creatorId}?view=${v.key}`} className={styles.tab} aria-current={active === v.key ? "page" : undefined} scroll={false}>
-          {t(VIEW_KEY[v.key])}
+          {labels?.[v.key] ?? t(VIEW_KEY[v.key])}
         </Link>
       ))}
     </nav>
@@ -81,6 +82,51 @@ export function CrewView({ crew, name }: { crew: CrewPublic; name: string }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+/**
+ * 소식 — a FLEXTV channel's 소식 (phase 9) as FLEXTV's channel page lists them: title, picture, 필독 · 19 marks. Each opens
+ * on FLEXTV, which shows its text and comments (and keeps a 구독자 전용 one for subscribers).
+ */
+export function NewsView({ creatorId, name, news, show }: { creatorId: string; name: string; news: ChannelNews; show: number }) {
+  const { t } = useI18n();
+  if (news.unavailable) {
+    return (
+      <p className={styles.empty} role="status">
+        {t("roomChannel.newsFailed")}
+      </p>
+    );
+  }
+  if (news.items.length === 0) return <p className={styles.empty}>{t("roomChannel.noNews", { name })}</p>;
+  return (
+    <>
+      <ul className={styles.videoGrid}>
+        {news.items.map((n) => (
+          <li key={n.id}>
+            <a href={n.href} target="_blank" rel="noopener noreferrer" className={styles.videoCard}>
+              <span className={styles.videoThumb} aria-hidden="true">
+                {n.imageUrl ? <Image src={n.imageUrl} alt="" fill sizes="(max-width: 720px) 100vw, 320px" className={styles.newsImage} unoptimized={remote(n.imageUrl)} /> : "📣"}
+              </span>
+              <strong className={styles.videoTitle}>
+                {n.important && <span className={styles.newsBadge}>{t("roomChannel.newsImportant")}</span>}
+                {n.adult && <span className={styles.newsBadge}>19</span>}
+                {n.title || t("roomChannel.newsUntitled")}
+              </strong>
+              <span className={styles.muted}>
+                {t("roomChannel.views", { count: formatNumber(n.views) })} · {kstIsoString(n.createdAt).slice(0, 10).replace(/-/g, ".")}
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+      {news.hasMore && show < CHANNEL_NEWS_MAX && (
+        <Link href={`/creators/${creatorId}?view=community&show=${show + CHANNEL_NEWS_PAGE}`} className={styles.link} scroll={false}>
+          {t("roomChannel.newsMore")}
+        </Link>
+      )}
+      <p className={styles.muted}>{t("roomChannel.newsOnFlextv")}</p>
+    </>
   );
 }
 

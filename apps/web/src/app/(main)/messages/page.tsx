@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { MessagesScreen } from "@/features/messages/MessagesScreen";
 import { getT } from "@/lib/i18n/server";
-import { getMyAccount } from "@/services/account/myAccount";
+import { getSession } from "@/lib/session";
 import { getMailbox, getMessageRecipients } from "@/services/messages/messages";
 
 // Code-first (no Figma frame): 쪽지 — see docs/figma/code-first-screens.md
@@ -15,8 +15,8 @@ type Search = { box?: string; q?: string; page?: string; size?: string; to?: str
 
 export default async function Page({ searchParams }: { searchParams: Promise<Search> }) {
   const params = await searchParams;
-  const [account, view, recipients] = await Promise.all([getMyAccount(), getMailbox(params), getMessageRecipients()]);
-  if (!account || !view || !recipients) redirect("/login?next=/messages");
+  const [session, view, recipients] = await Promise.all([getSession(), getMailbox(params), getMessageRecipients(params.to)]);
+  if (!session || !view || !recipients) redirect("/login?next=/messages");
   const composeTo = typeof params.to === "string" && recipients.some((r) => r.id === params.to) ? params.to : null;
   return (
     <>

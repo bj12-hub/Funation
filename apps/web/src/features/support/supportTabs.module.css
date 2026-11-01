@@ -194,6 +194,48 @@ a.notice:hover {
   cursor: not-allowed;
 }
 
+/* 사진 첨부 · 환불 안내 (1:1 문의 with FLEXTV, phase 9) */
+.attach {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  min-width: 0;
+}
+
+.attach .note {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.attachButton,
+.attachRemove {
+  padding: 8px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
+  cursor: pointer;
+}
+
+.attachButton:focus-within {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.refundNote {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 12px 12px 12px 28px;
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-13);
+}
+
 .ok,
 .error {
   margin: 0;

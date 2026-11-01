@@ -13,9 +13,23 @@ type ToastState = { message: string; tone: "accent" | "neutral" } | null;
 
 /**
  * Figma 826:510 favorite toggle + 826:387 share modal. In a FLEXTV channel's room (phase 7) the 즐겨찾기 is FLEXTV's,
- * which asks for its 본인인증; 쪽지 and 신고 · 차단 are Ssumnation's and not there.
+ * which asks for its 본인인증, a 쪽지 goes to the owner's 아이디 (`messageTo`, phase 9), and 신고 · 차단 are not there.
  */
-export function RoomActions({ creatorId, name, initialFavorite, signedIn, flextv = false }: { creatorId: string; name: string; initialFavorite: boolean; signedIn: boolean; flextv?: boolean }) {
+export function RoomActions({
+  creatorId,
+  name,
+  initialFavorite,
+  signedIn,
+  flextv = false,
+  messageTo
+}: {
+  creatorId: string;
+  name: string;
+  initialFavorite: boolean;
+  signedIn: boolean;
+  flextv?: boolean;
+  messageTo?: string;
+}) {
   const { t } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
@@ -70,11 +84,11 @@ export function RoomActions({ creatorId, name, initialFavorite, signedIn, flextv
           {t("room.share")}
         </button>
         {/* Code-first (no Figma frame): write to this creator. */}
-        {!flextv && (
+        {(!flextv || messageTo) && (
           <button
             type="button"
             className={styles.actionButton}
-            onClick={() => router.push(signedIn ? `/messages?to=${encodeURIComponent(creatorId)}` : `/login?next=${encodeURIComponent(pathname)}`)}
+            onClick={() => router.push(signedIn ? `/messages?to=${encodeURIComponent(messageTo ?? creatorId)}` : `/login?next=${encodeURIComponent(pathname)}`)}
           >
             {t("room.message")}
           </button>

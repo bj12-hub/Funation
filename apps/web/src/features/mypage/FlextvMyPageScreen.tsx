@@ -98,6 +98,15 @@ export async function FlextvMyPageScreen({ account, creator }: { account: Flextv
             <ChargeTrigger className={styles.actionButton} />
           </Row>
 
+          <Row label={t("messages.title")}>
+            <Link href="/messages" className={styles.actionButton}>
+              {t("flextvMyPage.messageBox")}
+            </Link>
+            <Link href="/mypage/blocks" className={styles.actionButton}>
+              {t("my.blocks")}
+            </Link>
+          </Row>
+
           <Row label={t("flextvMyPage.creator")}>
             <Link href={creator ? "/creator" : "/channel/new"} className={styles.actionButton}>
               {creator ? t("my.toStudio") : t("my.createChannel")}
