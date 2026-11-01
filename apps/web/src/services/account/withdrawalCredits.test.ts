@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { key, mockSessionModule, rejoinWithPhone, resetMockStores, settleSampleCharges, settleSamplePlatformDonations, signIn } from "@/test/mockEnv";
+import { key, mockSessionModule, rejoinWithPhone, resetMockStores, settleSampleCharges, settleSamplePlatformDonations, signIn, withdrawNow } from "@/test/mockEnv";
 
 /**
  * `during` runs inside the next mock delay; a held delay (`hold(ms)`) waits until released — e.g. the payment provider
@@ -96,7 +96,7 @@ describe("회원 탈퇴 · 처리 중인 충전 (2026-10-10 결정)", () => {
     expect(await m.getWithdrawalInfo()).toMatchObject({ fnBalance: 15_000, pendingCharges: 0 });
     expect(m.confirmChargePayment("ch1", "COMPLETED")).toBe("NOT_PROCESSING"); // confirmed once
     expect(await m.withdrawAccount(supporter(2, 5_000))).toMatchObject({ status: "INVALID", message: "남은 FN이 바뀌었어요. 금액을 다시 확인해 주세요." });
-    expect(await m.withdrawAccount(supporter(3, 15_000))).toEqual({ status: "WITHDRAWN" });
+    expect(await withdrawNow(supporter(3, 15_000))).toEqual({ status: "REQUESTED", effectiveAt: expect.any(String) });
   });
 
   it("lets the account go once a 처리중 charge failed, with nothing credited (the test helper)", async () => {
@@ -104,7 +104,7 @@ describe("회원 탈퇴 · 처리 중인 충전 (2026-10-10 결정)", () => {
     await settleSampleCharges();
     expect(m.listChargeRecords().find((c) => c.id === "ch1")).toMatchObject({ status: "CANCELLED", paidAmount: 0, transactionId: null });
     expect(await m.getWithdrawalInfo()).toMatchObject({ fnBalance: 5_000, pendingCharges: 0 });
-    expect(await m.withdrawAccount(supporter(1, 5_000))).toEqual({ status: "WITHDRAWN" });
+    expect(await withdrawNow(supporter(1, 5_000))).toEqual({ status: "REQUESTED", effectiveAt: expect.any(String) });
   });
 
   it("counts a charge whose payment provider call is still running (another tab), on the screen and on the button", async () => {
@@ -128,7 +128,7 @@ describe("회원 탈퇴 · 처리 중인 충전 (2026-10-10 결정)", () => {
     release();
     expect(await charging).toMatchObject({ status: "COMPLETED", fnAmount: 10_000, balance: 15_000 });
     expect(await m.getWithdrawalInfo()).toMatchObject({ fnBalance: 15_000, pendingCharges: 0 });
-    expect(await m.withdrawAccount(supporter(2, 15_000))).toEqual({ status: "WITHDRAWN" });
+    expect(await withdrawNow(supporter(2, 15_000))).toEqual({ status: "REQUESTED", effectiveAt: expect.any(String) });
     expect(m.withdrawalOf()).toMatchObject({ forfeitedFn: 15_000 });
   });
 
@@ -274,7 +274,7 @@ describe("회원 탈퇴 · 지급 중인 출석 보상 (2026-10-10 결정)", () 
     if (checked.status !== "CHECKED_IN") throw new Error(checked.status);
     expect(checked.balance).toBeGreaterThan(5_000);
     expect(await m.getWithdrawalInfo()).toMatchObject({ fnBalance: checked.balance, pendingAttendanceRewards: 0 });
-    expect(await m.withdrawAccount(supporter(2, checked.balance))).toEqual({ status: "WITHDRAWN" });
+    expect(await withdrawNow(supporter(2, checked.balance))).toEqual({ status: "REQUESTED", effectiveAt: expect.any(String) });
   });
 
   it("is checked again with the write: a check-in during the password check stops the withdrawal", async () => {

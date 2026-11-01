@@ -10,7 +10,8 @@
  *
  * Every period counts from the withdrawal (기산점 — also a default: the law counts some records from the transaction,
  * so counting from the withdrawal keeps them at least that long), as Korean calendar months, clamped at a month's end.
- * Data not listed here is destroyed or anonymised at the withdrawal itself (./withdrawal.ts).
+ * Since 2026-11-01 (회원탈퇴 유예, FLEXTV 조건 기본안) that is the day the 탈퇴 takes effect — 30 days after the request
+ * (the record's `at`). Data not listed here is destroyed or anonymised then (./withdrawalApply.ts).
  */
 
 /** How every screen and document labels these periods until the legal review. */

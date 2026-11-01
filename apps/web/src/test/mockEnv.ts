@@ -66,6 +66,33 @@ export async function rejoinWithPhone(phone: string, now = new Date()) {
 }
 
 /**
+ * The sample account's waiting 탈퇴 신청 takes effect now, as if its 30 days were over (회원탈퇴 유예, 2026-11-01 사용자
+ * 결정): its `effectiveAt` becomes `now` and the lazy apply runs (services/account/withdrawalApply.ts), so the record is
+ * dated `now` and forfeits the amounts as they are now.
+ */
+export async function applyWithdrawalNow(now = new Date()) {
+  const { withdrawalStore } = await import("@/services/account/withdrawalCore");
+  const { applyDueWithdrawal } = await import("@/services/account/withdrawalApply");
+  const request = withdrawalStore().request;
+  if (!request) throw new Error("no 탈퇴 신청 waiting");
+  request.effectiveAt = now.toISOString();
+  if (!applyDueWithdrawal(now)) throw new Error("탈퇴 신청 not applied");
+}
+
+/**
+ * `withdrawAccount` with the end state the tests of the withdrawn account need: a `REQUESTED` answer that stored a
+ * request is applied at once (`applyWithdrawalNow`). Any other answer (a refusal, or a replay of a request already
+ * applied) is returned as it is.
+ */
+export async function withdrawNow(input: unknown) {
+  const { withdrawAccount } = await import("@/services/account/withdrawal");
+  const { withdrawalStore } = await import("@/services/account/withdrawalCore");
+  const result = await withdrawAccount(input);
+  if (result.status === "REQUESTED" && withdrawalStore().request) await applyWithdrawalNow();
+  return result;
+}
+
+/**
  * The sample PENDING 플랫폼 후원 (TXN-SEED-B12, the first account's) gets its result — 완료, as an operator decides it in
  * 확인 중 후원 — so the sample member can withdraw (2026-10-09 결정: not while a 플랫폼 후원 is PENDING). Call after
  * resetMockStores().
