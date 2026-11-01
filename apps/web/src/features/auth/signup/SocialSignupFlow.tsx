@@ -38,7 +38,7 @@ export function SocialSignupFlow({ provider, suggestedNickname }: { provider: So
   const { t } = useI18n();
   const router = useRouter();
   const [step, setStep] = useState<1 | 2>(1);
-  const [agreements, setAgreements] = useState<Agreements>({ youth: false, service: false, privacy: false, marketing: false });
+  const [agreements, setAgreements] = useState<Agreements>({ service: false, privacy: false, marketing: false });
   const [nickname, setNickname] = useState(suggestedNickname);
   const [error, setError] = useState<string | null>(null);
   const [ended, setEnded] = useState<"EXPIRED" | "ALREADY_MEMBER" | null>(null);

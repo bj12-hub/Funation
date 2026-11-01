@@ -65,8 +65,11 @@ export type AdminCreatorRow = {
 export const MEMBERS_PAGE = 20;
 /** 회원 · 크리에이터 검색어 길이 (the site's other searches use 40 too). */
 export const ADMIN_QUERY_MAX = 40;
-/** 이용 정지 기간: days, or `null` = 영구 정지 (no end — its remaining FN are settled by 남은 FN 정리). */
-export const SUSPEND_DAYS = [1, 7, 30, null] as const;
+/**
+ * 이용 정지 기간: days, or `null` = 영구 정지 (no end — its remaining FN are settled by 남은 FN 정리). 1 · 3 · 7 · 15 · 30일 ·
+ * 영구 follow FLEXTV's 운영정책 (2026-11-01 사용자 결정; was 1 · 7 · 30일 · 영구). apps/admin keeps a copy (types/adminApi.ts).
+ */
+export const SUSPEND_DAYS = [1, 3, 7, 15, 30, null] as const;
 export const SUSPEND_REASON = { min: 5, max: 200 } as const;
 
 /**

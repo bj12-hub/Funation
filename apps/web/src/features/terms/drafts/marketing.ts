@@ -1,23 +1,28 @@
 import type { TermsDoc } from "../termsOutline";
 
 /**
- * 광고성 정보 수신 및 마케팅 활용 동의 — 초안 (2026-10-08). One optional consent (회원가입, 마이페이지, 스튜디오 설정
- * "마케팅 활용 동의", FN 충전 약관 — services/account/myAccount.ts `marketingConsent`); it does not carry over to a
- * 재가입 account. The sending channels are not chosen yet.
+ * 마케팅 활용 및 정보 수신 동의 — 초안. Since 2026-11-01 (사용자 결정: FLEXTV's conditions are the default, adapted to
+ * Ssumnation — Ssumnation runs on FLEXTV's backend since 2026-10-25) the title is FLEXTV's sign-up wording and the
+ * purposes follow FLEXTV 개인정보처리방침 2.다 (신규 서비스 개발 · 맞춤 서비스, 이벤트 · 광고성 정보) and 이용약관 제21조
+ * (수신을 거부해도 약관 · 개인정보 처리 방침 등 중요한 사항은 알릴 수 있음).
+ * Ssumnation's own: one optional consent (회원가입, 마이페이지, 스튜디오 설정 "마케팅 활용 동의", FN 충전 약관 —
+ * services/account/myAccount.ts `marketingConsent`) that does not carry over to a 재가입 account; the sending channels
+ * are not chosen yet (TBD); (광고) 표시 · 야간 전송 · 2년 확인 · 14일 처리 결과 안내 follow 정보통신망법.
  */
 export const MARKETING_CONSENT: TermsDoc = {
-  title: "광고성 정보 수신 및 마케팅 활용 동의",
+  title: "마케팅 활용 및 정보 수신 동의",
   numbering: "SECTION",
   clauses: [
     {
       title: "수집·이용 목적",
       body: [
-        "회사는 동의한 회원에게 다음 목적으로 개인정보를 이용하고 광고성 정보를 보냅니다.",
+        "회사는 동의한 회원의 개인정보를 다음 목적으로 이용하고, 광고성 정보를 보냅니다.",
         {
           ol: [
-            "이벤트 · 프로모션 · 혜택 안내",
-            "새 기능과 서비스 소식 안내",
-            "이벤트 참여 확인과 경품 · 보상 안내"
+            "신규 서비스 개발과 회원 맞춤 서비스 제공",
+            "서비스의 유효성 확인, 접속 빈도 파악, 서비스 이용 통계",
+            "이벤트 · 프로모션 정보와 참여 기회 제공, 이벤트 참여 확인과 경품 · 보상 안내",
+            "새 기능 · 서비스 소식과 혜택 등 광고성 정보 제공"
           ]
         }
       ]
@@ -25,8 +30,8 @@ export const MARKETING_CONSENT: TermsDoc = {
     {
       title: "수집 항목",
       body: [
-        "이 동의를 위해 새로 받는 정보는 없으며, 가입할 때 받은 다음 정보를 이용합니다.",
-        { ul: ["이메일, 휴대폰 번호, 닉네임", "수신 동의 여부와 동의 · 철회 일시"] }
+        "이 동의를 위해 새로 받는 정보는 없으며, 가입할 때 받은 정보와 서비스를 이용하면서 생긴 다음 정보를 이용합니다.",
+        { ul: ["이메일, 휴대폰 번호, 닉네임", "서비스 이용 기록, 방문 일시 등 접속 기록", "수신 동의 여부와 동의 · 철회 일시"] }
       ]
     },
     {
@@ -49,17 +54,18 @@ export const MARKETING_CONSENT: TermsDoc = {
     {
       title: "동의 거부 권리와 철회 방법",
       body: [
-        "① 이 동의는 선택입니다. 동의하지 않아도 회원가입과 서비스 이용에 제한이 없으며, 서비스 공지 · 결제 · 계정 보안 등 꼭 필요한 안내는 동의와 관계없이 보냅니다.",
+        "① 이 동의는 선택입니다. 동의하지 않아도 회원가입과 서비스 이용에 제한이 없습니다.",
         "② 동의는 언제든지 철회할 수 있습니다.",
         {
           ul: [
-            "마이페이지의 \"광고성 정보 수신 및 마케팅 활용 동의\" 설정",
+            "마이페이지의 \"마케팅 수신 동의\" 설정",
             "크리에이터 스튜디오 설정의 \"마케팅 활용 동의\"",
             "받은 광고성 정보에 적힌 수신 거부 방법",
             "고객센터 1:1 문의"
           ]
         },
-        "③ 회사는 동의하거나 철회한 날부터 14일 이내에 처리 결과(동의 · 철회 사실과 일시)를 회원에게 알립니다."
+        "③ 동의하지 않았거나 수신을 거부한 회원에게도 이용약관 · 개인정보 처리 방침의 변경 등 회원이 꼭 알아야 하는 중요한 사항과 결제 · 계정 보안 등 꼭 필요한 안내는 이메일 등으로 보낼 수 있습니다.",
+        "④ 회사는 동의하거나 철회한 날부터 14일 이내에 처리 결과(동의 · 철회 사실과 일시)를 회원에게 알립니다."
       ]
     }
   ]
