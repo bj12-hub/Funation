@@ -39,9 +39,10 @@ export async function Player({ name, stream }: { name: string; stream: CreatorRo
 
   if (stream.embed) {
     // FLEXTV's own player (FLEXTV backend). Sandboxed: it plays and goes full screen, but cannot reach this page or
-    // navigate it (its gated-stream fallback only moves the frame).
+    // navigate it (its gated-stream fallback only moves the frame). A landscape stream gets a 16:9 frame instead of the
+    // portrait design's fixed height, which would letterbox it.
     return (
-      <div className={styles.player}>
+      <div className={stream.embed.portrait ? styles.player : `${styles.player} ${styles.playerWide}`}>
         <iframe
           src={stream.embed.playerUrl}
           title={t("room.streamTitle", { name })}
