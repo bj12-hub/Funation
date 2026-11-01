@@ -2,10 +2,10 @@ import Image from "next/image";
 import type { CreatorRoom } from "@/services/creators/creatorRoom";
 import Link from "next/link";
 import { formatCompact } from "@/lib/format";
+import { platformLabel } from "@/lib/i18n/platformLabel";
 import { getLocale, getT } from "@/lib/i18n/server";
 import type { CreatorCategory } from "@/services/creators/creators";
 import type { CrewPublic, RoomFanNotes } from "@/services/crew/crewTypes";
-import { PLATFORM_LABEL } from "@/types/platform";
 import type { ChannelNews, ChannelPostsView, ChannelRanking } from "@/services/creators/channelTypes";
 import type { PublicChannelVideos } from "@/services/creators/channelVideos";
 import type { RoomVote } from "@/services/votes/voteTypes";
@@ -107,7 +107,7 @@ export async function CreatorRoomScreen({
               <ul className={styles.channels} aria-label={t("room.channels")}>
                 {room.channels.map((c) => (
                   <li key={c.platform} className={styles.channel}>
-                    <Image src={c.logoUrl} alt={PLATFORM_LABEL[c.platform]} width={20} height={20} className={styles.channelLogo} />
+                    <Image src={c.logoUrl} alt={platformLabel(c.platform, t)} width={20} height={20} className={styles.channelLogo} />
                   </li>
                 ))}
               </ul>

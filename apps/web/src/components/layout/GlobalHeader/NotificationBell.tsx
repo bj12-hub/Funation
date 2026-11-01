@@ -5,9 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BellOutlineIcon } from "@/components/icons";
 import { FLEXTV_SITE } from "@/lib/flextv/mode";
+import { agoText } from "@/features/notifications/agoText";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { getUnreadCount, listNotifications, markAllNotificationsRead, markNotificationRead } from "@/services/notifications/notifications";
-import { NOTIFICATION_KIND_LABEL, timeAgo as ago, type SiteNotification } from "@/services/notifications/notificationTypes";
+import { NOTIFICATION_KIND_LABEL, type SiteNotification } from "@/services/notifications/notificationTypes";
 import styles from "./GlobalHeader.module.css";
 
 const POLL_MS = 30_000;
@@ -109,22 +110,22 @@ export function NotificationBell() {
           <div className={styles.bellHead}>
             <strong>{t("common.notifications")}</strong>
             <button type="button" className={styles.bellLink} disabled={!unread} onClick={readAll}>
-              모두 읽음
+              {t("common.bellReadAll")}
             </button>
           </div>
           {failed ? (
             <p className={styles.bellEmpty} role="alert">
-              알림을 불러오지 못했어요.{" "}
+              {t("common.bellLoadError")}{" "}
               <button type="button" className={styles.bellLink} onClick={load}>
-                다시 시도
+                {t("common.retry")}
               </button>
             </p>
           ) : items === null ? (
             <p className={styles.bellEmpty} aria-busy="true">
-              불러오는 중…
+              {t("common.loading")}
             </p>
           ) : items.length === 0 ? (
-            <p className={styles.bellEmpty}>새 알림이 없어요.</p>
+            <p className={styles.bellEmpty}>{t("common.bellEmpty")}</p>
           ) : (
             <ul className={styles.bellList}>
               {items.map((n) => (
@@ -134,7 +135,7 @@ export function NotificationBell() {
                     <span className={styles.bellText}>
                       <strong>{n.title}</strong>
                       <span>{n.body}</span>
-                      {n.createdAt && <small>{ago(n.createdAt)}</small>}
+                      {n.createdAt && <small>{agoText(n.createdAt, Date.now(), t)}</small>}
                     </span>
                   </button>
                 </li>
@@ -142,7 +143,7 @@ export function NotificationBell() {
             </ul>
           )}
           <Link href="/notifications" className={styles.bellAll} onClick={() => setOpen(false)}>
-            전체 알림 보기
+            {t("common.bellAll")}
           </Link>
         </div>
       )}

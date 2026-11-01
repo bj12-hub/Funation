@@ -41,7 +41,6 @@ import {
 import styles from "../crew/crew.module.css";
 import tools from "./broadcastTools.module.css";
 import { OverlayOffNotice } from "../remote/OverlayOffNotice";
-import { signedSec } from "../remote/ToolsRemote";
 import { CopyButton } from "../settings/SettingsCards";
 import { BingoTool } from "./BingoTool";
 import { TextSlotsTool } from "./TextSlotsTool";
@@ -323,7 +322,7 @@ export function BroadcastToolsScreen({ view, overlayKey, switches }: { view: Too
           <div className={styles.actions} role="group" aria-label={t("studioTools.quickAdjust")}>
             {TIMER_ADJUST_STEPS.map((s) => (
               <button key={s} type="button" className={styles.chipOff} disabled={pending} onClick={() => run("timer", () => adjustTimer(s))}>
-                {signedSec(s)}
+                {t("studioRemote.signedSec", { sign: s > 0 ? "+" : "−", sec: Math.abs(s) })}
               </button>
             ))}
           </div>

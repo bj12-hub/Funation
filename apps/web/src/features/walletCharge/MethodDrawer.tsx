@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
+import { walletMethodText } from "@/features/wallet/methodLabels";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { PAYMENT_METHODS, type PaymentMethodId } from "@/services/wallet/chargeTypes";
 import styles from "./charge.module.css";
@@ -64,9 +65,9 @@ function DrawerBody({ methods, initial, onSelect }: { methods: PaymentMethodId[]
       >
         <span className={wide ? styles.tileBrand : styles.tileTitle}>
           {info.glyph && <span className={styles.tileGlyph}>{info.glyph}</span>}
-          {info.name}
+          {walletMethodText(info.name, t)}
         </span>
-        <span className={styles.tileSubtitle}>{info.subtitle}</span>
+        <span className={styles.tileSubtitle}>{walletMethodText(info.subtitle, t)}</span>
       </button>
     );
   };

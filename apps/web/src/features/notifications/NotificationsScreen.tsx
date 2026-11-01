@@ -7,6 +7,7 @@ import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { markAllNotificationsRead, markNotificationRead } from "@/services/notifications/notifications";
 import { NOTIFICATION_KIND_LABEL, NOTIFICATIONS_PAGE, type NotificationFilter, type NotificationKind, type NotificationPage } from "@/services/notifications/notificationTypes";
+import { agoText } from "./agoText";
 import styles from "./notifications.module.css";
 
 /** Kind names in the viewer's language (2026-11-01; the emoji stay in NOTIFICATION_KIND_LABEL). */
@@ -21,15 +22,6 @@ const KIND_KEY: Record<NotificationKind, MessageKey> = {
   LIVE: "notifications.kindLive",
   SYSTEM: "notifications.kindSystem"
 };
-
-/** "3분 전" · "3m ago" — the same steps as timeAgo in notificationTypes. */
-function ago(iso: string, now: number, t: (key: MessageKey, vars?: Record<string, string | number>) => string) {
-  const min = Math.max(0, Math.floor((now - new Date(iso).getTime()) / 60_000));
-  if (min < 1) return t("notifications.justNow");
-  if (min < 60) return t("notifications.minutesAgo", { n: min });
-  if (min < 1440) return t("notifications.hoursAgo", { n: Math.floor(min / 60) });
-  return t("notifications.daysAgo", { n: Math.floor(min / 1440) });
-}
 
 /** 알림 — code-first (no Figma frame). Route `/notifications` (`?filter=UNREAD`, `?show=`). */
 export function NotificationsScreen({ page, filter, show }: { page: NotificationPage; filter: NotificationFilter; show: number }) {
@@ -77,7 +69,7 @@ export function NotificationsScreen({ page, filter, show }: { page: Notification
                 <span className={styles.text}>
                   <span className={styles.meta}>
                     {t(KIND_KEY[n.kind])}
-                    {now !== null && n.createdAt && ` · ${ago(n.createdAt, now, t)}`}
+                    {now !== null && n.createdAt && ` · ${agoText(n.createdAt, now, t)}`}
                     {!n.read && <span className={styles.dot} aria-label={t("notifications.unread")} />}
                   </span>
                   <strong>{n.title}</strong>
