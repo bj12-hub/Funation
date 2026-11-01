@@ -260,6 +260,8 @@ Which of Ssumnation's own areas come back on which backend is TBD. Code: `lib/fl
   is not used.
 - The login lock is FLEXTV's (20 wrong passwords within 10 minutes → 10 minutes refused), not the mock's 5-and-reset.
 - FLEXTV answers a 휴면 · 정지 · 탈퇴 member like an unknown 아이디, so the screen says "등록되지 않은 아이디입니다".
+  The 탈퇴 철회 card (회원탈퇴 유예, 2026-11-01) is the mock's: what FLEXTV answers during a 탈퇴 신청's 30 days is
+  checked on staging.
 - A 간편 로그인 session ends with the browser (no "로그인 유지" choice on that path yet).
 - Payletter returns to a FLEXTV page that closes the window; a payment abandoned in the window stays "not completed"
   (FLEXTV records no failure for it).

@@ -39,7 +39,7 @@ describe("회원 상세 — 탈퇴 회원 정보 보관", () => {
       at: "2026-10-08T03:00:00.000Z",
       forfeitedFn: 5_000,
       forfeitedEarningsFn: 0,
-      retentionNote: "기본값 (일반적인 기준, 법무 검토 전)",
+      retentionNote: "기본값 (플렉스티비 기준, 법무 검토 전)",
       retention: [
         row("CONTRACT", "계약 · 청약철회 기록", "5년", "2031-10-08T03:00:00.000Z"),
         // 2027-01-07 16:00 UTC is already 1월 8일 in Korea.
@@ -49,7 +49,7 @@ describe("회원 상세 — 탈퇴 회원 정보 보관", () => {
     };
     const html = renderToStaticMarkup(createElement(MemberDetailScreen, { member: member(withdrawal), audit: [] }));
     expect(html).toContain("탈퇴 회원 정보 보관");
-    expect(html).toContain("보관 기간: 기본값 (일반적인 기준, 법무 검토 전).");
+    expect(html).toContain("보관 기간: 기본값 (플렉스티비 기준, 법무 검토 전).");
     expect(html).toContain("<td>계약 · 청약철회 기록</td><td>2031.10.08까지</td><td>5년</td><td>전자상거래법</td><td>탈퇴 기록, 약관 동의 기록</td>");
     expect(html).toContain("<td>접속 기록</td><td>파기됨 (2027.01.08)</td>");
     expect(html).toContain("<td>게시물 (커뮤니티 글 · 댓글 · 채널 글)</td><td>삭제하지 않음</td>");

@@ -1,5 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { key, mockSessionModule, phoneToken, resetMockStores, settleSampleCharges, settleSamplePlatformDonations, signIn, signInAs, verifyMockIdentity } from "@/test/mockEnv";
+import {
+  key,
+  mockSessionModule,
+  phoneToken,
+  resetMockStores,
+  settleSampleCharges,
+  settleSamplePlatformDonations,
+  signIn,
+  signInAs,
+  verifyMockIdentity,
+  withdrawNow
+} from "@/test/mockEnv";
 
 /** `during` runs inside the next mock delay, i.e. while the server is "busy" between its checks. */
 const delay = vi.hoisted(() => ({ during: null as null | (() => void) }));
@@ -18,7 +29,9 @@ vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
  * 회원 탈퇴 (2026-10-04 결정: 남은 FN 소멸 동의 후 바로 탈퇴; 2026-10-05: 크리에이터 정산 대기 수익도 소멸 동의,
  * 비밀번호 재입력, 바로 재가입 가능): every consent and the password are checked on the server, exactly the amounts
  * the member saw are forfeited, the account can no longer sign in, the admin directory keeps the record, and a new
- * sign-up starts a fresh account.
+ * sign-up starts a fresh account. Since 2026-11-01 (회원탈퇴 유예) pressing 탈퇴 stores a request that takes effect 30
+ * days later: these tests apply it at once (`withdrawNow`) to check the withdrawn end state; the 30 days themselves are
+ * tested in withdrawalGrace.test.ts.
  */
 async function load() {
   const withdrawal = await import("./withdrawal");
@@ -52,6 +65,8 @@ async function load() {
 const OP = { userId: "admin-1", nickname: "운영자1" };
 const PASSWORD = "password"; // the mock account's initial password (services/account/mockStore.ts)
 const supporter = (n = 1) => ({ requestId: key(n), confirmed: true, forfeitAgreed: true, fnBalance: 5_000, unsettledFn: 0, password: PASSWORD });
+/** The 탈퇴 신청 went through (it takes effect 30 days later; `withdrawNow` applies it at once). */
+const REQUESTED = { status: "REQUESTED", effectiveAt: expect.any(String) };
 
 /**
  * The studio's sample quests that are still running (q1 · q2) end first: a creator cannot withdraw while quests sent to
@@ -96,7 +111,7 @@ describe("회원 탈퇴", () => {
     expect(await m.withdrawAccount({ ...base, password: undefined })).toEqual({ status: "WRONG_PASSWORD" });
     expect(m.isWithdrawn()).toBe(false);
 
-    expect(await m.withdrawAccount(base)).toEqual({ status: "WITHDRAWN" });
+    expect(await withdrawNow(base)).toEqual(REQUESTED);
     expect(m.withdrawalOf()).toMatchObject({ requestId: key(1), forfeitedFn: 5_000, forfeitedEarningsFn: 0, nickname: "홍길동" });
     expect(m.account.fnBalance).toBe(0);
     expect(Object.values(m.account.linkedLoginProviders).every((p) => p === null)).toBe(true);
@@ -105,7 +120,7 @@ describe("회원 탈퇴", () => {
 
     // The same request again (lost response) gets the same answer, even signed out; another one does not.
     signIn(null);
-    expect(await m.withdrawAccount(base)).toEqual({ status: "WITHDRAWN" });
+    expect(await m.withdrawAccount(base)).toEqual({ status: "REQUESTED", effectiveAt: m.withdrawalOf()!.at });
     expect(await m.withdrawAccount(supporter(2))).toEqual({ status: "UNAUTHORIZED" });
 
     // The account no longer exists for sign-in.
@@ -115,7 +130,7 @@ describe("회원 탈퇴", () => {
   it("does not ask for the FN consent without a balance", async () => {
     const m = await load();
     m.account.fnBalance = 0;
-    expect(await m.withdrawAccount({ ...supporter(), forfeitAgreed: false, fnBalance: 0 })).toEqual({ status: "WITHDRAWN" });
+    expect(await withdrawNow({ ...supporter(), forfeitAgreed: false, fnBalance: 0 })).toEqual(REQUESTED);
     expect(m.withdrawalOf()!.forfeitedFn).toBe(0);
   });
 
@@ -131,7 +146,7 @@ describe("회원 탈퇴", () => {
     expect(await m.withdrawAccount({ ...base, unsettledFn: 127_500 })).toEqual({ status: "INVALID", message: "정산 대기 수익이 바뀌었어요. 금액을 다시 확인해 주세요." });
     expect(m.isWithdrawn()).toBe(false);
 
-    expect(await m.withdrawAccount(base)).toEqual({ status: "WITHDRAWN" });
+    expect(await withdrawNow(base)).toEqual(REQUESTED);
     expect(m.withdrawalOf()).toMatchObject({ forfeitedFn: 5_000, forfeitedEarningsFn: 147_500 });
     expect(m.settlement.availableFn).toBe(0);
     // The waiting request ends as 탈퇴 소멸 (not 반려) and leaves the review queue; decided ones stay as they were.
@@ -153,7 +168,7 @@ describe("회원 탈퇴", () => {
     expect(approved).toHaveLength(5);
     // 정산 대기 수익 = 정산 가능 + 심사 대기 only; the approved amounts are not part of it.
     expect(await m.getWithdrawalInfo()).toMatchObject({ unsettledFn: 147_500 });
-    expect(await m.withdrawAccount({ ...supporter(), unsettledFn: 147_500, earningsForfeitAgreed: true })).toEqual({ status: "WITHDRAWN" });
+    expect(await withdrawNow({ ...supporter(), unsettledFn: 147_500, earningsForfeitAgreed: true })).toEqual(REQUESTED);
 
     expect(m.settlement.requests.find((r) => r.id === "st-pending")).toMatchObject({ status: "FORFEITED" });
     for (const a of approved) expect(m.settlement.requests.find((r) => r.id === a.id)).toMatchObject({ status: "APPROVED", payoutDate: a.payoutDate, netKrw: a.netKrw });
@@ -177,7 +192,7 @@ describe("회원 탈퇴", () => {
     expect(await m.withdrawAccount(base)).toEqual({ status: "INVALID", message: "정산 대기 수익이 바뀌었어요. 금액을 다시 확인해 주세요." });
     expect(m.isWithdrawn()).toBe(false);
     expect(m.settlement.requests.find((r) => r.id === "st-pending")!.status).toBe("APPROVED");
-    expect(await m.withdrawAccount({ ...base, requestId: key(2), unsettledFn: 127_500 })).toEqual({ status: "WITHDRAWN" });
+    expect(await withdrawNow({ ...base, requestId: key(2), unsettledFn: 127_500 })).toEqual(REQUESTED);
     expect(m.withdrawalOf()).toMatchObject({ forfeitedEarningsFn: 127_500 });
   });
 
@@ -221,7 +236,7 @@ describe("회원 탈퇴", () => {
     expect(youtubeStore().channel).not.toBeNull();
 
     const earnings = (await m.getWithdrawalInfo())!.unsettledFn;
-    expect(await m.withdrawAccount({ ...supporter(), unsettledFn: earnings, earningsForfeitAgreed: true })).toEqual({ status: "WITHDRAWN" });
+    expect(await withdrawNow({ ...supporter(), unsettledFn: earnings, earningsForfeitAgreed: true })).toEqual(REQUESTED);
     expect(managerLinks()).toHaveLength(0);
     expect(channelsStore().channels).toEqual({});
     expect(youtubeStore()).toMatchObject({ channel: null, connectedAt: null });
@@ -252,7 +267,7 @@ describe("회원 탈퇴", () => {
 
   it("keeps the withdrawn member in the admin directory as 탈퇴", async () => {
     const m = await load();
-    await m.withdrawAccount(supporter());
+    expect(await withdrawNow(supporter())).toEqual(REQUESTED);
     const detail = (await m.getMemberDetail(m.SAMPLE_MEMBER_ID))!;
     expect(detail.member).toMatchObject({ status: "WITHDRAWN", suspension: null, withdrawal: { forfeitedFn: 5_000, forfeitedEarningsFn: 0 } });
     expect((await m.listMembers({ status: "WITHDRAWN" }))!.items.map((i) => i.id)).toEqual([m.SAMPLE_MEMBER_ID]);
@@ -308,7 +323,7 @@ describe("회원 탈퇴", () => {
 
     // Once every quest has a result, the account can go.
     expect(await decideMyQuest({ id: "dn-during", outcome: "SUCCESS" })).toMatchObject({ status: "OK", questStatus: "SUCCESS" });
-    expect(await m.withdrawAccount(supporter(3))).toEqual({ status: "WITHDRAWN" });
+    expect(await withdrawNow(supporter(3))).toEqual(REQUESTED);
   });
 
   it("keeps a creator with quests in progress on the channel until each is decided or cancelled (2026-10-08 결정)", async () => {
@@ -327,14 +342,14 @@ describe("회원 탈퇴", () => {
     expect(await m.withdrawAccount({ ...base, requestId: key(2) })).toEqual({ status: "QUEST_PENDING", sent: 0, received: 1 });
     expect(await decideReceivedQuest({ id: "q2", outcome: "SUCCESS" })).toMatchObject({ status: "OK", questStatus: "SUCCESS" });
     expect((await m.getWithdrawalInfo())!.pendingQuests).toEqual({ sent: 0, received: 0 });
-    expect(await m.withdrawAccount({ ...base, requestId: key(3) })).toEqual({ status: "WITHDRAWN" });
+    expect(await withdrawNow({ ...base, requestId: key(3) })).toEqual(REQUESTED);
   });
 
   it("lets the same person sign up again right away as a new account", async () => {
     const m = await load();
     const { mockWallet } = await import("@/services/wallet/mockWalletStore");
     Object.assign(mockWallet, { chargeTermsAgreedAt: "2026-10-01T00:00:00.000Z", marketingOptIn: true });
-    await m.withdrawAccount(supporter());
+    expect(await withdrawNow(supporter())).toEqual(REQUESTED);
     const signupRequest = {
       email: "again@ssumnation.kr",
       password: "newpass12!",
@@ -374,7 +389,7 @@ describe("회원 탈퇴", () => {
     expect(await identity.setDefaultDonationNickname(nick.id)).toEqual({ status: "SAVED" });
     expect(await identity.getAlertBadges(null, "c1")).toEqual({ name: "응원단장", grade: "플래티넘", globalTitle: null, storeTitle: null });
 
-    expect(await m.withdrawAccount(supporter())).toEqual({ status: "WITHDRAWN" });
+    expect(await withdrawNow(supporter())).toEqual(REQUESTED);
     expect(
       await m.signup({ email: "again@ssumnation.kr", password: "newpass12!", nickname: "다시왔어요", phoneVerificationToken: await phoneToken(), agreements: { service: true, privacy: true, marketing: false } })
     ).toEqual({ status: "CREATED" });
@@ -394,7 +409,7 @@ describe("회원 탈퇴", () => {
     await verifyMockIdentity(); // the withdrawn account had done 본인인증
     const earnings = (await m.getWithdrawalInfo())!.unsettledFn;
     const before = m.settlement.requests.length;
-    expect(await m.withdrawAccount({ ...supporter(), unsettledFn: earnings, earningsForfeitAgreed: true })).toEqual({ status: "WITHDRAWN" });
+    expect(await withdrawNow({ ...supporter(), unsettledFn: earnings, earningsForfeitAgreed: true })).toEqual(REQUESTED);
     expect(
       await m.signup({ email: "again@ssumnation.kr", password: "newpass12!", nickname: "다시왔어요", phoneVerificationToken: await phoneToken(), agreements: { service: true, privacy: true, marketing: false } })
     ).toEqual({ status: "CREATED" });
@@ -452,7 +467,7 @@ describe("회원 탈퇴", () => {
     expect(await moderation.blockAuthorOf({ target: { type: "POST", id: postId } })).toMatchObject({ status: "OK" });
     signInAs(m.SAMPLE_MEMBER_ID);
 
-    await m.withdrawAccount(supporter());
+    expect(await withdrawNow(supporter())).toEqual(REQUESTED);
     expect(
       await m.signup({ email: "again@ssumnation.kr", password: "newpass12!", nickname: "다시왔어요", phoneVerificationToken: await phoneToken(), agreements: { service: true, privacy: true, marketing: false } })
     ).toEqual({ status: "CREATED" });
@@ -534,7 +549,7 @@ describe("회원 탈퇴 · 결과를 확인 중인 플랫폼 후원 (2026-10-09 
     const { resolvePendingDonation } = await import("@/services/admin/pendingDonations");
     expect(await resolvePendingDonation(OP, { transactionId: "TXN-SEED-B12", outcome: "COMPLETED", note: "플랫폼 확인: 전송됨", requestId: key(80) })).toMatchObject({ status: "OK" });
     expect(await m.getWithdrawalInfo()).toMatchObject({ pendingPlatformDonations: 0 });
-    expect(await m.withdrawAccount({ ...supporter(), requestId: key(2) })).toEqual({ status: "WITHDRAWN" });
+    expect(await withdrawNow({ ...supporter(), requestId: key(2) })).toEqual(REQUESTED);
   });
 
   it("counts a 플랫폼 후원 that went PENDING, also one that does while the password is checked", async () => {
@@ -589,7 +604,7 @@ describe("회원 탈퇴 · 결과를 확인 중인 플랫폼 후원 (2026-10-09 
     answer({ ok: false, reason: "API_ERROR" });
     expect(await sending).toEqual({ status: "FAILED", reason: "API_ERROR" });
     expect(await m.getWithdrawalInfo()).toMatchObject({ fnBalance: 30_000, pendingPlatformDonations: 0 });
-    expect(await m.withdrawAccount({ ...supporter(2), fnBalance: 30_000 })).toEqual({ status: "WITHDRAWN" });
+    expect(await withdrawNow({ ...supporter(2), fnBalance: 30_000 })).toEqual(REQUESTED);
     expect(m.withdrawalOf()).toMatchObject({ forfeitedFn: 30_000 });
     expect(m.account.fnBalance).toBe(0);
   });
@@ -622,7 +637,7 @@ describe("회원 탈퇴 · 결과를 확인 중인 플랫폼 후원 (2026-10-09 
       vi.setSystemTime(t0 + 61_000);
       expect(await m.getWithdrawalInfo()).toMatchObject({ fnBalance: 30_000, pendingPlatformDonations: 0 });
       expect(lookup).toHaveBeenCalledTimes(2);
-      expect(await m.withdrawAccount({ ...supporter(), fnBalance: 30_000 })).toEqual({ status: "WITHDRAWN" });
+      expect(await withdrawNow({ ...supporter(), fnBalance: 30_000 })).toEqual(REQUESTED);
     } finally {
       vi.useRealTimers();
     }
@@ -657,7 +672,7 @@ describe("회원 탈퇴 · 결과를 확인 중인 플랫폼 후원 (2026-10-09 
       // More than a minute after the last check the button asks the platform: the result settles the donation and the
       // withdrawal goes through in the same request.
       vi.setSystemTime(t0 + 61_000);
-      expect(await m.withdrawAccount({ ...supporter(2), fnBalance: 20_000 })).toEqual({ status: "WITHDRAWN" });
+      expect(await withdrawNow({ ...supporter(2), fnBalance: 20_000 })).toEqual(REQUESTED);
       expect(lookup).toHaveBeenCalledTimes(2);
       expect(mockPlatform.transactions.find((t) => t.transactionId === held.transactionId)).toMatchObject({ status: "COMPLETED", externalTransactionId: "SP-LK-BUTTON" });
       expect(m.withdrawalOf()).toMatchObject({ requestId: key(2), forfeitedFn: 20_000 });
@@ -692,7 +707,7 @@ describe("회원 탈퇴 · 결과를 확인 중인 플랫폼 후원 (2026-10-09 
       // returns the held FN, the balance is the 30,000 FN the member agreed to forfeit, and the account goes.
       lookup.mockResolvedValue({ status: "FAILED", reason: "API_ERROR" });
       vi.setSystemTime(t0 + 61_000);
-      expect(await m.withdrawAccount({ ...supporter(), fnBalance: 30_000 })).toEqual({ status: "WITHDRAWN" });
+      expect(await withdrawNow({ ...supporter(), fnBalance: 30_000 })).toEqual(REQUESTED);
       expect(lookup).toHaveBeenCalledTimes(2);
       expect(mockPlatform.transactions.find((t) => t.transactionId === held.transactionId)).toMatchObject({ status: "FAILED", resolution: { fnReturn: "RETURNED" } });
       expect(m.withdrawalOf()).toMatchObject({ forfeitedFn: 30_000 });
