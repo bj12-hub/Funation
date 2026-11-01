@@ -28,7 +28,8 @@ import type { AvailabilityResult } from "./signup";
  * takes them (docs/development/flextv-backend.md "FLEXTV에 필요한 변경").
  */
 
-type Agreements = { youth: boolean; service: boolean; privacy: boolean; marketing: boolean };
+/** FLEXTV's sign-up consents (2026-11-01): 이용약관 · 개인정보 수집 및 이용 (필수), 마케팅 활용 및 정보 수신 (선택). */
+type Agreements = { service: boolean; privacy: boolean; marketing: boolean };
 
 export type FlextvSignupRequest = { loginId: string; password: string; nickname: string; agreements: Agreements };
 
@@ -57,7 +58,7 @@ export type SocialSignupResult =
 const notConnected = () => new Error("FLEXTV sign-up is not enabled (NEXT_PUBLIC_BACKEND).");
 
 const requiredAgreed = (a: unknown): a is Agreements =>
-  typeof a === "object" && a !== null && (a as Agreements).youth === true && (a as Agreements).service === true && (a as Agreements).privacy === true && typeof (a as Agreements).marketing === "boolean";
+  typeof a === "object" && a !== null && (a as Agreements).service === true && (a as Agreements).privacy === true && typeof (a as Agreements).marketing === "boolean";
 
 export async function checkLoginIdAvailability(loginId: string): Promise<AvailabilityResult> {
   if (!FLEXTV_AUTH) throw notConnected();
