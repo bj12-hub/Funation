@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { FileIcon } from "@/components/icons";
 import { Modal } from "@/components/ui/Modal";
+import { FLEXTV_WALLET, FLEXTV_WEB_URL } from "@/lib/flextv/mode";
 import { formatKstDate, formatNumber, kstIsoString } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { MessageKey } from "@/lib/i18n/translate";
@@ -28,6 +29,8 @@ import { REFUND_REASON_MAX, refundStatusText, type ChargeRecord, type ChargeRefu
 import { walletMethodText } from "./methodLabels";
 import styles from "./wallet.module.css";
 
+/** FLEXTV's 1:1 문의, where it takes refunds. */
+const FLEXTV_REFUND_URL = `${FLEXTV_WEB_URL}/cs/inquiry`;
 /** The services' CHARGE_STATUS_LABEL, in the viewer's language. */
 const STATUS_KEY: Record<ChargeStatus, MessageKey> = {
   PROCESSING: "wallet.chargeProcessing",
@@ -399,7 +402,19 @@ export function ChargeDetail({ charge }: { charge: ChargeRecord }) {
         </div>
       </dl>
 
-      <RefundSection charge={charge} />
+      {FLEXTV_WALLET ? (
+        // FLEXTV takes refunds through its 1:1 문의 and has no refund API yet (docs/development/flextv-backend.md).
+        <div className={styles.refund}>
+          <p className={styles.refundNote}>
+            {t("wallet.flextvRefund")}{" "}
+            <a href={FLEXTV_REFUND_URL} target="_blank" rel="noopener noreferrer">
+              {t("wallet.flextvInquiry")}
+            </a>
+          </p>
+        </div>
+      ) : (
+        <RefundSection charge={charge} />
+      )}
 
       {/* TODO: receipt (매출전표) comes from the payment provider, which is TBD. */}
       <div className={styles.receipt}>

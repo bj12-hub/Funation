@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { FLEXTV_STUDIO } from "@/lib/flextv/mode";
 import { formatKstTime, formatNumber } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { MessageKey } from "@/lib/i18n/translate";
@@ -46,7 +47,8 @@ export function RouletteRemote({
         <h2 className={styles.cardTitle} id="roulette-remote">
           {t("studioRemote.rouletteTitle")}
         </h2>
-        <Link href="/creator/widgets?open=ROULETTE" className={styles.ghost}>
+        {/* With FLEXTV the settings are 후원 종류 설정 (phase 6). */}
+        <Link href={FLEXTV_STUDIO ? "/creator/donation-types" : "/creator/widgets?open=ROULETTE"} className={styles.ghost}>
           {t("studioRemote.rouletteSettings")}
         </Link>
       </div>

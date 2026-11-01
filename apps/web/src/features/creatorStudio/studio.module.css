@@ -530,6 +530,23 @@ a.sideItemActive:hover {
   text-align: center;
 }
 
+/* Phones: at 18% of a 328–343px card the 날짜 column cut "12시간 전"; tighter cells and a wider column keep it whole. */
+@media (max-width: 767px) {
+  .table th,
+  .table td {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .table th:nth-child(1) {
+    width: 32%;
+  }
+
+  .table th:nth-child(4) {
+    width: 24%;
+  }
+}
+
 .rankTabs {
   display: flex;
   gap: 8px;

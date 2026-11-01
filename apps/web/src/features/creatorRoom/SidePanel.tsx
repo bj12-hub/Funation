@@ -8,6 +8,7 @@ import type { CreatorRoom } from "@/services/creators/creatorRoom";
 import { ChatPanel } from "./ChatPanel";
 import { MOCK_MESSAGES, type ChatMessage } from "./chatMessages";
 import { DonationForm } from "./DonationForm";
+import { FlextvChat } from "./FlextvChat";
 import styles from "./room.module.css";
 
 export type Tab = "DONATION" | "CHAT";
@@ -33,7 +34,12 @@ export function SidePanel({
   initialTab?: Tab;
 }) {
   const { t } = useI18n();
-  const [tab, setTab] = useState<Tab>(initialTab);
+  // A FLEXTV channel's room (docs/development/flextv-backend.md): the chat is its stream's, while FLEXTV's player plays
+  // it here; otherwise 후원하기 only.
+  const flextv = room.source === "FLEXTV";
+  const flextvStream = flextv && room.stream.status === "LIVE" ? (room.stream.embed ?? null) : null;
+  const tabs = flextv && !flextvStream ? TABS.filter((item) => item.key === "DONATION") : TABS;
+  const [tab, setTab] = useState<Tab>(flextv && !flextvStream ? "DONATION" : initialTab);
   // Local echo only; the realtime chat and donation feed are TBD.
   const [messages, setMessages] = useState<ChatMessage[]>(MOCK_MESSAGES);
   const sendChat = (text: string) =>
@@ -55,7 +61,7 @@ export function SidePanel({
   return (
     <section className={styles.panel} aria-label={t("room.panel")}>
       <div className={styles.tabs} role="tablist">
-        {TABS.map((item) => (
+        {tabs.map((item) => (
           <button
             key={item.key}
             type="button"
@@ -79,11 +85,19 @@ export function SidePanel({
           signedIn={signedIn}
           fnBalance={fnBalance}
           onDonated={announceDonation}
+          extras={!flextv}
         />
       </div>
-      <div id="room-panel-CHAT" role="tabpanel" aria-labelledby="room-tab-CHAT" className={styles.tabPanel} hidden={tab !== "CHAT"}>
-        <ChatPanel signedIn={signedIn} messages={messages} onSend={sendChat} />
-      </div>
+      {!flextv && (
+        <div id="room-panel-CHAT" role="tabpanel" aria-labelledby="room-tab-CHAT" className={styles.tabPanel} hidden={tab !== "CHAT"}>
+          <ChatPanel signedIn={signedIn} messages={messages} onSend={sendChat} />
+        </div>
+      )}
+      {flextvStream && (
+        <div id="room-panel-CHAT" role="tabpanel" aria-labelledby="room-tab-CHAT" className={styles.tabPanel} hidden={tab !== "CHAT"}>
+          <FlextvChat channelId={room.creatorId} streamId={flextvStream.streamId} signedIn={signedIn} />
+        </div>
+      )}
     </section>
   );
 }

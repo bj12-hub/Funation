@@ -1,5 +1,7 @@
 "use server";
 
+import { FLEXTV_SSUMNATION_API } from "@/lib/flextv/mode";
+import { flextvExtendQuest, flextvQuestRemote } from "./flextvBroadcastGames";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
@@ -22,6 +24,7 @@ const REQUEST_ID = /^[A-Za-z0-9-]{16,64}$/;
 const invalidRequest = { status: "INVALID", message: "잘못된 요청입니다." } as const;
 
 export async function getQuestRemote(): Promise<QuestRemoteView | null> {
+  if (FLEXTV_SSUMNATION_API) return flextvQuestRemote();
   assertMock();
   if (!(await getCreatorSession())) return null;
   const quests = mockQuests.items
@@ -48,6 +51,7 @@ export async function getQuestRemote(): Promise<QuestRemoteView | null> {
  * id with another quest or other minutes is refused. Every check from the request id on runs in the step that writes.
  */
 export async function extendQuestTime(input: unknown): Promise<QuestExtendResult> {
+  if (FLEXTV_SSUMNATION_API) return flextvExtendQuest(input);
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;

@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { FlextvRemoteScreen } from "@/features/creatorStudio/remote/FlextvRemoteScreen";
 import { RemoteScreen } from "@/features/creatorStudio/remote/RemoteScreen";
+import { FLEXTV_SSUMNATION_API, FLEXTV_STUDIO } from "@/lib/flextv/mode";
+import { getFlextvRemote } from "@/services/creator/flextvRemote";
 import { getRemoteView } from "@/services/creator/alertRemote";
 import { getOverlayKey, getToolsView } from "@/services/creator/broadcastTools";
 import { getQuestRemote } from "@/services/creator/questRemote";
@@ -18,6 +21,13 @@ export async function generateMetadata(): Promise<Metadata> {
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
+  if (FLEXTV_STUDIO) {
+    // With FLEXTV (phase 6): the 퀘스트 · 룰렛 · 뽑기 on FLEXTV's endpoints; without them there is nothing to control.
+    if (!FLEXTV_SSUMNATION_API) notFound();
+    const flextv = await getFlextvRemote();
+    if (!flextv) redirect("/login?role=creator&next=/creator/remote");
+    return <FlextvRemoteScreen {...flextv} />;
+  }
   const [view, key, tools, quest, vote, roulette, gacha, wallpaper] = await Promise.all([
     getRemoteView(),
     getOverlayKey(),

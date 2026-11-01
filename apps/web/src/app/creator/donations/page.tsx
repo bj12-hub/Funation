@@ -3,6 +3,11 @@ import { redirect } from "next/navigation";
 import { DonationListTab } from "@/features/creatorStudio/donations/DonationListTab";
 import { DonorRankingTab } from "@/features/creatorStudio/donations/DonorRankingTab";
 import { FilteringTab } from "@/features/creatorStudio/donations/FilteringTab";
+import { FlextvQuestTab } from "@/features/creatorStudio/donations/FlextvQuestTab";
+import { FlextvReceivedTab } from "@/features/creatorStudio/donations/FlextvReceivedTab";
+import { FLEXTV_SSUMNATION_API, FLEXTV_STUDIO } from "@/lib/flextv/mode";
+import { flextvReceivedQuests } from "@/services/creator/flextvBroadcastGames";
+import { flextvReceivedPage } from "@/services/creator/flextvEarnings";
 import { ImportTab } from "@/features/creatorStudio/donations/ImportTab";
 import { ManagementShell } from "@/features/creatorStudio/donations/ManagementShell";
 import { PageSettingsTab } from "@/features/creatorStudio/donations/PageSettingsTab";
@@ -31,7 +36,7 @@ import {
 // Figma: donation-management 539:7 (후원 페이지 설정) · 539:156 (후원 리스트) · 539:303 (후원 순위) ·
 // 539:466 / 539:574 (후원 필터링 · 차단 리스트) · 539:690 (칭호 설정)
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getT())("studioDonations.meta") };
+  return { title: (await getT())(FLEXTV_STUDIO ? "studioDonations.metaFlextv" : "studioDonations.meta") };
 }
 export const dynamic = "force-dynamic";
 
@@ -41,6 +46,36 @@ const LOGIN = "/login?role=creator&next=/creator/donations";
 
 export default async function Page({ searchParams }: { searchParams: SearchParams }) {
   const [raw, t] = await Promise.all([searchParams, getT()]);
+
+  if (FLEXTV_STUDIO) {
+    // With FLEXTV's Ssumnation endpoints (phase 6): the quests sent to the channel, decided here.
+    if (FLEXTV_SSUMNATION_API && one(raw.kind) === "quest") {
+      const statusRaw = one(raw.status);
+      const quests = await flextvReceivedQuests({
+        status: QUEST_STATUSES.some((s) => s.key === statusRaw) ? (statusRaw as Exclude<StatusFilter, "ALL">) : "ALL",
+        page: Number(one(raw.page) ?? 1)
+      });
+      if (!quests) redirect(LOGIN);
+      return (
+        <ManagementShell tab="list" t={t}>
+          <FlextvQuestTab data={quests} />
+        </ManagementShell>
+      );
+    }
+    // With FLEXTV (phase 5) 받은 후원 is the one tab: the others manage Ssumnation's own 후원 page.
+    const data = await flextvReceivedPage({
+      period: parseListPeriod({ period: one(raw.period), from: one(raw.from), to: one(raw.to) }),
+      nickname: one(raw.q) ?? "",
+      page: Number(one(raw.page) ?? 1)
+    });
+    if (!data) redirect(LOGIN);
+    return (
+      <ManagementShell tab="list" t={t}>
+        <FlextvReceivedTab data={data} quests={FLEXTV_SSUMNATION_API} />
+      </ManagementShell>
+    );
+  }
+
   const tab = parseManagementTab(one(raw.tab));
 
   if (tab === "filtering") {

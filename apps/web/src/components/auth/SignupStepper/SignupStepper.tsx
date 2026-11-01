@@ -9,18 +9,23 @@ import styles from "./SignupStepper.module.css";
 const STEPS: readonly MessageKey[] = ["auth.stepperTerms", "auth.stepperPhone", "auth.stepperAccount"];
 
 type SignupStepperProps = {
-  /** 1-based current step. Pass 4 when every step is complete. */
-  current: 1 | 2 | 3 | 4;
+  /** 1-based current step. Pass `steps.length + 1` when every step is complete. */
+  current: number;
+  /** Step labels, already translated; the FLEXTV sign-up has no 번호 인증 step (docs/development/flextv-backend.md). */
+  steps?: readonly string[];
 };
 
-export function SignupStepper({ current }: SignupStepperProps) {
+export function SignupStepper({ current, steps }: SignupStepperProps) {
   const { t } = useI18n();
-  const shown = Math.min(current, 3);
-  const labels = STEPS.map((key) => t(key));
+  const labels = steps ?? STEPS.map((key) => t(key));
+  const total = labels.length;
+  const shown = Math.min(current, total);
 
   return (
-    <div className={styles.root} aria-label={t("auth.stepperAria", { step: shown })}>
-      <p className={styles.count}>{shown} / 3</p>
+    <div className={styles.root} aria-label={t("auth.stepperAria", { step: shown, total })}>
+      <p className={styles.count}>
+        {shown} / {total}
+      </p>
       <ol className={styles.dots}>
         {labels.map((label, index) => {
           const step = index + 1;

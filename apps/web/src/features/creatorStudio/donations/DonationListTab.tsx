@@ -255,7 +255,7 @@ export function DonationListTab({ data, t = koT }: { data: ReceivedDonationPage;
   );
 }
 
-function PageLink({ to, disabled, label, text }: { to: string; disabled: boolean; label: string; text: string }) {
+export function PageLink({ to, disabled, label, text }: { to: string; disabled: boolean; label: string; text: string }) {
   return disabled ? (
     <span className={`${styles.pageButton} ${styles.pageDisabled}`} aria-disabled="true" aria-label={label}>
       {text}

@@ -1,16 +1,19 @@
-import { formatCompact } from "@/lib/format";
 import { getLocale, getT } from "@/lib/i18n/server";
+import type { AmountUnit } from "@/services/creator/creatorStudio";
+import { formatCompactAmount } from "./amount";
 import styles from "./studio.module.css";
 
 const W = 1000;
 const H = 330;
 const PAD = { top: 36, right: 30, bottom: 34, left: 58 };
 
-/** "₩28만" (English "₩280K"): the same amount, written compactly in the viewer's language. */
-const won = (v: number, locale: string) => `₩${formatCompact(v, locale)}`;
-
-/** Round the axis maximum up to a clean step (Figma 287:38 uses ₩20만 steps). */
-function axisMax(max: number) {
+/** Round the axis maximum up to a clean step (Figma 287:38 uses ₩20만 steps). FN (렉스 counts) gets 1 · 2 · 5 steps. */
+function axisMax(max: number, unit: AmountUnit) {
+  if (unit === "FN") {
+    const magnitude = 10 ** Math.floor(Math.log10(Math.max(1, max / 3)));
+    const step = [1, 2, 5, 10].map((m) => m * magnitude).find((s) => s * 3 >= max) ?? magnitude * 10;
+    return Math.max(3, step * 3);
+  }
   const step = max <= 200_000 ? 50_000 : max <= 800_000 ? 200_000 : max <= 4_000_000 ? 1_000_000 : 5_000_000;
   return Math.max(step, Math.ceil(max / step) * step);
 }
@@ -36,13 +39,14 @@ function smoothPath(points: { x: number; y: number }[]) {
  * The design draws it from ~150 rectangles; this is a plain SVG built from the server series.
  */
 /** `fillId` must be unique on the page (two charts would otherwise share one gradient). */
-export async function RevenueChart({ series, fillId = "revenue-fill" }: { series: { label: string; amount: number }[]; fillId?: string }) {
+export async function RevenueChart({ series, fillId = "revenue-fill", unit = "KRW" }: { series: { label: string; amount: number }[]; fillId?: string; unit?: AmountUnit }) {
   const [t, locale] = await Promise.all([getT(), getLocale()]);
   if (series.length === 0) {
     return <p className={styles.chartEmpty}>{t("studioDashboard.chartEmpty")}</p>;
   }
 
-  const max = axisMax(Math.max(...series.map((s) => s.amount)));
+  const won = (v: number) => formatCompactAmount(v, unit, locale);
+  const max = axisMax(Math.max(...series.map((s) => s.amount)), unit);
   const innerW = W - PAD.left - PAD.right;
   const innerH = H - PAD.top - PAD.bottom;
   const x = (i: number) => PAD.left + (series.length === 1 ? innerW / 2 : (i / (series.length - 1)) * innerW);
@@ -56,7 +60,7 @@ export async function RevenueChart({ series, fillId = "revenue-fill" }: { series
   const showPointLabels = series.length <= 12;
 
   return (
-    <svg className={styles.chart} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t("studioDashboard.chartAria", { list: series.map((s) => `${s.label} ${won(s.amount, locale)}`).join(", ") })}>
+    <svg className={styles.chart} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t("studioDashboard.chartAria", { list: series.map((s) => `${s.label} ${won(s.amount)}`).join(", ") })}>
       <defs>
         <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="rgba(139,92,246,0.3)" />
@@ -67,7 +71,7 @@ export async function RevenueChart({ series, fillId = "revenue-fill" }: { series
         <g key={tick}>
           <line x1={PAD.left} x2={W - PAD.right} y1={y(tick)} y2={y(tick)} className={styles.gridLine} />
           <text x={PAD.left - 10} y={y(tick) + 4} textAnchor="end" className={styles.axisText}>
-            {won(tick, locale)}
+            {won(tick)}
           </text>
         </g>
       ))}
@@ -79,7 +83,7 @@ export async function RevenueChart({ series, fillId = "revenue-fill" }: { series
           <circle cx={p.x} cy={p.y} r={5} className={styles.pointDot} />
           {showPointLabels && (
             <text x={p.x} y={p.y - 14} textAnchor="middle" className={styles.pointText}>
-              {won(series[i].amount, locale)}
+              {won(series[i].amount)}
             </text>
           )}
           {i % every === 0 && (

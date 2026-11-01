@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { LiveChannelCard } from "@/features/live/LiveChannelCard";
-import { POPULAR_LIVE_COUNT, type LiveChannel } from "@/services/live/liveChannels";
+import { POPULAR_LIVE_COUNT, type LiveChannel } from "@/services/live/liveTypes";
 import styles from "./homeFunnation.module.css";
 
 /** Cards per row on the home (funnation shows four). */

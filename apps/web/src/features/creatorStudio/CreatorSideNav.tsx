@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type FocusEvent } from "react";
+import { FLEXTV_STUDIO } from "@/lib/flextv/mode";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { MessageKey } from "@/lib/i18n/translate";
 import styles from "./studio.module.css";
@@ -20,7 +21,7 @@ import styles from "./studio.module.css";
 type Item = { label: string; emoji: string; href?: string };
 type Group = { title: string | null; items: Item[] };
 
-const GROUPS: Group[] = [
+const MOCK_GROUPS: Group[] = [
   { title: null, items: [{ label: "대시보드", emoji: "📊", href: "/creator" }] },
   {
     title: "채널",
@@ -81,18 +82,61 @@ const GROUPS: Group[] = [
   { title: null, items: [{ label: "소식", emoji: "📰", href: "/creator/updates" }] }
 ];
 
-const DONATIONS = "/creator/donations";
-const PATHS = GROUPS.flatMap((g) => g.items.map((i) => i.href)).filter((h): h is string => Boolean(h) && !h!.startsWith(`${DONATIONS}?`));
+/**
+ * With FLEXTV (phase 5): the menus that run on it — lib/flextv/studioRoutes.ts serves no other studio page. 받은 후원
+ * is the only 후원관리 tab, and the 정산 계좌 is registered on FLEXTV's site.
+ */
+const FLEXTV_GROUPS: Group[] = [
+  { title: null, items: [{ label: "대시보드", emoji: "📊", href: "/creator" }] },
+  { title: "방송", items: [{ label: "방송 설정", emoji: "🎥", href: "/creator/broadcast" }] },
+  {
+    title: "수익",
+    items: [
+      { label: "수익 현황", emoji: "📊", href: "/creator/revenue" },
+      { label: "받은 후원", emoji: "💰", href: "/creator/donations?tab=list" }
+    ]
+  },
+  {
+    title: "정산",
+    items: [
+      { label: "정산 현황", emoji: "🧮", href: "/creator/settlement" },
+      { label: "정산 계좌", emoji: "🪪", href: "/creator/settlement/register" },
+      { label: "정산 신청", emoji: "💸", href: "/creator/settlement/apply" },
+      { label: "정산 관리", emoji: "🗂️", href: "/creator/settlement/manage" }
+    ]
+  }
+];
 
-/** Active item: 후원관리+ matches its `?tab=` (default 후원 페이지 설정); other pages the most specific path. */
-export function studioActiveHref(pathname: string, tab: string | null) {
-  if (pathname === DONATIONS) return `${DONATIONS}?tab=${tab ?? "settings"}`;
-  return PATHS.filter((h) => (h === "/creator" ? pathname === h : pathname === h || pathname.startsWith(`${h}/`))).sort((a, b) => b.length - a.length)[0] ?? null;
+/** `donationTypes`: FLEXTV's Ssumnation endpoints are on (phase 6), so 후원 종류 설정 is offered. */
+export const studioGroups = (flextv: boolean, donationTypes = false): Group[] => {
+  if (!flextv) return MOCK_GROUPS;
+  if (!donationTypes) return FLEXTV_GROUPS;
+  return FLEXTV_GROUPS.map((g) =>
+    g.title === "방송"
+      ? {
+          ...g,
+          items: [...g.items, { label: "후원 종류 설정", emoji: "🎁", href: "/creator/donation-types" }, { label: "리모컨", emoji: "🎛️", href: "/creator/remote" }]
+        }
+      : g
+  );
+};
+const GROUPS = studioGroups(FLEXTV_STUDIO);
+
+const DONATIONS = "/creator/donations";
+
+/**
+ * Active item: 후원관리+ matches its `?tab=` (default 후원 페이지 설정, 받은 후원 with FLEXTV); other pages the most
+ * specific path.
+ */
+export function studioActiveHref(pathname: string, tab: string | null, groups: Group[] = GROUPS) {
+  if (pathname === DONATIONS) return `${DONATIONS}?tab=${tab ?? (groups === MOCK_GROUPS ? "settings" : "list")}`;
+  const paths = groups.flatMap((g) => g.items.map((i) => i.href)).filter((h): h is string => Boolean(h) && !h!.startsWith(`${DONATIONS}?`));
+  return paths.filter((h) => (h === "/creator" ? pathname === h : pathname === h || pathname.startsWith(`${h}/`))).sort((a, b) => b.length - a.length)[0] ?? null;
 }
 
 /** The phone bar's label: the menu item of the current page, or the studio's name on a page outside the menu. */
-export function studioCurrentItem(active: string | null): { label: string; emoji: string | null; inMenu: boolean } {
-  const item = active ? GROUPS.flatMap((g) => g.items).find((i) => i.href === active) : undefined;
+export function studioCurrentItem(active: string | null, groups: Group[] = GROUPS): { label: string; emoji: string | null; inMenu: boolean } {
+  const item = active ? groups.flatMap((g) => g.items).find((i) => i.href === active) : undefined;
   return item ? { label: item.label, emoji: item.emoji, inMenu: true } : { label: "크리에이터 스튜디오", emoji: null, inMenu: false };
 }
 
@@ -135,6 +179,9 @@ const LABEL_KEYS: Record<string, MessageKey> = {
   정산: "studioNav.groupSettlement",
   "정산 현황": "studioNav.settlement",
   "정산 인증·등록": "studioNav.settlementRegister",
+  "정산 계좌": "studioNav.settlementAccount",
+  "방송 설정": "studioNav.broadcastSettings",
+  "후원 종류 설정": "studioNav.donationTypes",
   "정산 신청": "studioNav.settlementApply",
   "정산 관리": "studioNav.settlementManage",
   소식: "studioNav.updates",
@@ -144,7 +191,8 @@ const LABEL_KEYS: Record<string, MessageKey> = {
 /** The phone dropdown (always in the page, shown by studio.module.css while open on phones). */
 export const STUDIO_MENU_ID = "studio-side-menu";
 
-export function CreatorSideNav() {
+/** `donationTypes` comes from the server (FLEXTV_SSUMNATION_API is a server-only setting). */
+export function CreatorSideNav({ donationTypes = false }: { donationTypes?: boolean }) {
   const { t } = useI18n();
   const label = (text: string) => {
     const key = LABEL_KEYS[text];
@@ -152,8 +200,9 @@ export function CreatorSideNav() {
   };
   const pathname = usePathname() ?? "/creator";
   const tab = useSearchParams()?.get("tab") ?? null;
-  const active = studioActiveHref(pathname, tab);
-  const current = studioCurrentItem(active);
+  const groups = donationTypes ? studioGroups(FLEXTV_STUDIO, true) : GROUPS;
+  const active = studioActiveHref(pathname, tab, groups);
+  const current = studioCurrentItem(active, groups);
   // Phones only: whether the dropdown is open. Wider screens hide the bar and always show the menu.
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -215,7 +264,7 @@ export function CreatorSideNav() {
       </button>
       <div className={styles.sideScrim} aria-hidden="true" />
       <div ref={panelRef} id={STUDIO_MENU_ID} className={styles.sideMenu}>
-        {GROUPS.map((g, i) => (
+        {groups.map((g, i) => (
           <div key={g.title ?? `g${i}`} className={styles.sideGroup}>
             {g.title && <p className={styles.sideGroupTitle}>{label(g.title)}</p>}
             <ul>

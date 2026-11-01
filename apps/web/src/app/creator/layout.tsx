@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { GlobalHeader } from "@/components/layout/GlobalHeader";
 import { CreatorSideNav } from "@/features/creatorStudio/CreatorSideNav";
+import { FLEXTV_SSUMNATION_API, FLEXTV_STUDIO } from "@/lib/flextv/mode";
 import { getT } from "@/lib/i18n/server";
 import { getSession, hasRole } from "@/lib/session";
 import { getCreatorProfile } from "@/services/creator/creatorStudio";
@@ -25,9 +26,9 @@ export default async function CreatorLayout({ children }: { children: ReactNode 
         <GlobalHeader user={{ nickname: session.nickname, avatarUrl: session.avatarUrl }} />
         <main className={styles.noAccess}>
           <h1 className={styles.noAccessTitle}>{t("studioNav.noAccessTitle")}</h1>
-          <p className={styles.noAccessText}>{t("studioNav.noAccessText")}</p>
+          <p className={styles.noAccessText}>{t(FLEXTV_STUDIO ? "studioNav.flextvNoAccessText" : "studioNav.noAccessText")}</p>
           <Link href="/channel/new" className={styles.noAccessButton}>
-            {t("studioNav.createChannel")}
+            {t(FLEXTV_STUDIO ? "studioNav.startBroadcast" : "studioNav.createChannel")}
           </Link>
           <Link href="/" className={styles.noAccessLink}>
             {t("studioNav.goHome")}
@@ -48,7 +49,7 @@ export default async function CreatorLayout({ children }: { children: ReactNode 
         creator={{ channelName: profile.channelName, platforms: profile.platforms }}
       />
       <div className={styles.shell}>
-        <CreatorSideNav />
+        <CreatorSideNav donationTypes={FLEXTV_SSUMNATION_API} />
         <main className={styles.main}>{children}</main>
       </div>
     </div>

@@ -1,5 +1,7 @@
 "use server";
 
+import { FLEXTV_SSUMNATION_API } from "@/lib/flextv/mode";
+import { flextvGachaButton, flextvGachaRemote } from "./flextvBroadcastGames";
 import { USE_MOCK } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
@@ -19,6 +21,7 @@ const assertMock = () => {
 const studioDraw = (id: unknown) => mockGacha.draws.find((d) => d.channelId === STUDIO_CHANNEL && d.id === id) ?? null;
 
 export async function getGachaRemote(): Promise<GachaRemoteView | null> {
+  if (FLEXTV_SSUMNATION_API) return flextvGachaRemote();
   assertMock();
   if (!(await getCreatorSession())) return null;
   return { stage: stageOf(STUDIO_CHANNEL), ...channelRows(STUDIO_CHANNEL), hidden: isHidden(STUDIO_CHANNEL) };
@@ -26,6 +29,7 @@ export async function getGachaRemote(): Promise<GachaRemoteView | null> {
 
 /** ✓ 완료: a shown result leaves the 뽑기 overlay now (the next draw can start). */
 export async function finishGachaDraw(input: unknown): Promise<GachaControlResult> {
+  if (FLEXTV_SSUMNATION_API) return flextvGachaButton("finish", input);
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const draw = studioDraw((input as { drawId?: unknown } | null)?.drawId);
@@ -39,6 +43,7 @@ export async function finishGachaDraw(input: unknown): Promise<GachaControlResul
 
 /** 화면 숨기기: the 뽑기 overlay shows nothing while draws go on. */
 export async function setGachaHidden(input: unknown): Promise<GachaControlResult> {
+  if (FLEXTV_SSUMNATION_API) return flextvGachaButton("hide", input);
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const hidden = (input as { hidden?: unknown } | null)?.hidden;
@@ -49,6 +54,7 @@ export async function setGachaHidden(input: unknown): Promise<GachaControlResult
 
 /** 수령 처리: whether a revealed prize was handed over (a 꽝 has nothing to hand over). */
 export async function setGachaClaimed(input: unknown): Promise<GachaControlResult> {
+  if (FLEXTV_SSUMNATION_API) return flextvGachaButton("claim", input);
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const v = (typeof input === "object" && input !== null ? input : {}) as { drawId?: unknown; claimed?: unknown };
