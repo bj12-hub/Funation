@@ -18,7 +18,9 @@ Confirmed:
   account as it was. Defaults (기본값) for the 30 days: the account and all its data are kept but cannot be used (no
   session, channel hidden and overlay · 매니저 채팅 · SMS 계좌후원 keys closed like a suspension, a waiting debit refused);
   operator decisions on what existed before the request (e.g. a 심사 대기 정산) still happen; its e-mail, nickname and phone
-  stay taken; password reset works. See docs/domains/wallet.md "회원 탈퇴". Not taken (2026-11-02, the user kept the 2026-10-08
+  stay taken; password reset works. See docs/domains/wallet.md "회원 탈퇴". 2026-11-02 (user): every 탈퇴 신청 and 철회 is
+  kept and listed on the admin 회원 상세 (탈퇴 신청 이력), kept like the withdrawal record as a 계약 기록 for 5 years — a
+  cancelled request from its 철회 (기본값), the applied one with the record. Not taken (2026-11-02, the user kept the 2026-10-08
   이용 정지 and money decision below): FLEXTV's 정지 중 환전 지급 유예 · 신청 불가, 적발 당일 후원 기부 and 중대한 위반 시
   환불 거절. Legal review still TBD.
 - Login lock (2026-10-08): 5 wrong passwords lock the account until a password reset — reset-only, no time-based unlock,

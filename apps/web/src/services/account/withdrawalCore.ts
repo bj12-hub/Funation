@@ -15,6 +15,12 @@ import type { RetentionCategory } from "./retentionPolicy";
  * and signing in with the password offers to cancel it (services/auth/login.ts), which restores the account exactly as
  * it was. On the day it is due, ./withdrawalApply.ts applies it lazily (`applyDueWithdrawal`); until that has run,
  * `isWithdrawn()` already counts a due request, so every check treats the account as withdrawn from `effectiveAt` on.
+ *
+ * 탈퇴 신청 · 철회 이력 — 2026-11-02 사용자 결정: a cancelled request is kept (`CancelledWithdrawalRequest`) and the
+ * admin console's 회원 상세 lists every request of the account with how it ended. They are 계약 · 청약철회 기록, kept like
+ * the withdrawal record (5년 — ./retentionPolicy.ts, 기본값): a cancelled one for 5 years from its 철회, and the one that
+ * took effect with the record, 5 years from the 탈퇴 (./retentionPurge.ts). A withdrawal takes the account's cancelled
+ * ones into its record.
  */
 
 /**
@@ -31,6 +37,9 @@ export type WithdrawalRequest = {
   consentedEarningsFn: number;
   creator: boolean;
 };
+
+/** A 탈퇴 신청 the member cancelled by signing in (탈퇴 철회) at `cancelledAt` (ISO), with what it held. */
+export type CancelledWithdrawalRequest = WithdrawalRequest & { cancelledAt: string };
 
 /** 약관 동의 기록 kept with the withdrawal (계약 · 청약철회 기록): when the account agreed, or null when it never did. */
 export type WithdrawalConsents = {
@@ -61,6 +70,8 @@ export type Withdrawal = {
    * forfeited 30 days later; null for a record written without a request.
    */
   consented: { fn: number; earningsFn: number } | null;
+  /** The account's 탈퇴 신청 cancelled before this one, oldest first; each goes 5 years after its 철회 (계약 기록). */
+  cancelled: CancelledWithdrawalRequest[];
   /** Who withdrew (the admin directory keeps listing them as 탈퇴). */
   nickname: string;
   ssumnationId: string;
@@ -79,6 +90,8 @@ type Store = {
   withdrawal: Withdrawal | null;
   /** The slot account's 탈퇴 신청 until it is applied (then `withdrawal`) or cancelled at sign-in. */
   request: WithdrawalRequest | null;
+  /** The slot account's cancelled 탈퇴 신청, oldest first, until its withdrawal takes them into its record. */
+  cancelled: CancelledWithdrawalRequest[];
   /** Earlier withdrawals of the slot, before a 재가입 started a new account. Never removed (`…-wN` is the index). */
   past: PastAccount[];
   /** Local "YYYY-MM-DD HH:MM:SS" when the current account started (재가입); earlier wallet records are not its own. */
@@ -86,11 +99,11 @@ type Store = {
   /** The mock's secret for phone hashes (the backend keeps one outside the database). */
   phoneHashKey: string;
 };
-// V5: the 탈퇴 신청 waiting for its date, records keep when it was asked (V4: consents, 본인 확인 값, purged
-// categories; V3: past accounts keep their start marker).
-const g = globalThis as typeof globalThis & { __ssumnationMockWithdrawalV5?: Store };
+// V6: cancelled 탈퇴 신청 (V5: the 탈퇴 신청 waiting for its date, records keep when it was asked; V4: consents, 본인 확인
+// 값, purged categories; V3: past accounts keep their start marker).
+const g = globalThis as typeof globalThis & { __ssumnationMockWithdrawalV6?: Store };
 export const withdrawalStore = (): Store =>
-  (g.__ssumnationMockWithdrawalV5 ??= { withdrawal: null, request: null, past: [], accountSince: null, phoneHashKey: "" });
+  (g.__ssumnationMockWithdrawalV6 ??= { withdrawal: null, request: null, cancelled: [], past: [], accountSince: null, phoneHashKey: "" });
 
 /** True from the request's `effectiveAt` on. */
 export const isRequestDue = (request: WithdrawalRequest, now = Date.now()) => Date.parse(request.effectiveAt) <= now;
@@ -104,6 +117,19 @@ export const withdrawalRequestOf = (): WithdrawalRequest | null => {
 };
 /** True during the 30 days of a 탈퇴 신청: the account exists, unchanged, but cannot be used until it is cancelled. */
 export const isWithdrawalRequested = () => withdrawalRequestOf() !== null;
+
+/**
+ * 탈퇴 철회: the slot account's waiting 탈퇴 신청 ends, kept as cancelled at `now` (탈퇴 신청 · 철회 이력). False when
+ * there is none to cancel (none, or already due).
+ */
+export function cancelWithdrawalRequest(now: Date = new Date()): boolean {
+  const store = withdrawalStore();
+  const request = store.request;
+  if (!request || isRequestDue(request, now.getTime())) return false;
+  store.request = null;
+  store.cancelled.push({ ...request, cancelledAt: now.toISOString() });
+  return true;
+}
 /**
  * True once the slot account has withdrawn: its record exists, or its 탈퇴 신청 is due (from `effectiveAt` on, also
  * before ./withdrawalApply.ts has applied it).
