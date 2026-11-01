@@ -1,18 +1,21 @@
 import Link from "next/link";
-import { clauseHeading, effectiveLine, TERMS_DOCS, TERMS_DRAFT, TERMS_SLUGS, type TermsBlock, type TermsSlug } from "./termsOutline";
+import { getT } from "@/lib/i18n/server";
+import { clauseHeading, effectiveLine, TERMS_DOCS, TERMS_SLUGS, type TermsBlock, type TermsSlug } from "./termsOutline";
 import styles from "./terms.module.css";
 
 /**
  * 약관·정책 문서 — code-first (Figma 722:3 has no terms text). Shows the 초안 bodies written on 2026-10-08 ("정책 부분은
  * 일반적으로 사용하는 로직으로 시작") with the draft banner; the 시행일 and version are draft placeholders until legal review.
- * Every body is plain text rendered as React text nodes (no HTML injection).
+ * Every body is plain text rendered as React text nodes (no HTML injection). The page's own labels follow the language
+ * (2026-11-01); document titles and bodies stay Korean until an approved translation exists.
  */
-export function TermsDocument({ slug }: { slug: TermsSlug }) {
+export async function TermsDocument({ slug }: { slug: TermsSlug }) {
   const doc = TERMS_DOCS[slug];
+  const t = await getT();
 
   return (
     <article className={styles.page} aria-labelledby="terms-title">
-      <nav className={styles.docs} aria-label="약관·정책 문서">
+      <nav className={styles.docs} aria-label={t("termsPage.docsAria")}>
         {TERMS_SLUGS.map((s) => (
           <Link key={s} href={`/terms/${s}`} className={styles.docLink} aria-current={s === slug ? "page" : undefined}>
             {TERMS_DOCS[s].title}
@@ -21,29 +24,29 @@ export function TermsDocument({ slug }: { slug: TermsSlug }) {
       </nav>
 
       <header className={styles.head}>
-        <span className={styles.badge}>{TERMS_DRAFT.badge}</span>
+        <span className={styles.badge}>{t("termsPage.draftBadge")}</span>
         <h1 id="terms-title" className={styles.title}>
           {doc.title}
         </h1>
         <dl className={styles.meta}>
           <div>
-            <dt>시행일</dt>
-            <dd>{TERMS_DRAFT.effectiveDate}</dd>
+            <dt>{t("termsPage.effectiveDate")}</dt>
+            <dd>{t("termsPage.effectiveDateValue")}</dd>
           </div>
           <div>
-            <dt>버전</dt>
-            <dd>{TERMS_DRAFT.version}</dd>
+            <dt>{t("termsPage.version")}</dt>
+            <dd>{t("termsPage.versionValue")}</dd>
           </div>
         </dl>
       </header>
 
       <p className={styles.banner} role="note">
-        {TERMS_DRAFT.banner}
+        {t("termsPage.draftBanner")}
       </p>
 
       <nav className={styles.toc} aria-labelledby="terms-toc">
         <h2 id="terms-toc" className={styles.tocTitle}>
-          목차
+          {t("termsPage.toc")}
         </h2>
         <ol className={styles.tocList}>
           {doc.clauses.map((_, i) => (
