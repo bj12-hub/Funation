@@ -1,5 +1,6 @@
 import { USE_MOCK } from "@/lib/mock";
 import { purgeExpired } from "@/services/account/retentionPurge";
+import { applyDueWithdrawal } from "@/services/account/withdrawalApply";
 import { accountSince, isWithdrawn } from "@/services/account/withdrawalCore";
 import { mockCreator } from "@/services/creator/mockCreatorStore";
 import { mockSettlement, type MockSettlementRegistration, type MockSettlementRequest } from "@/services/creator/mockSettlementStore";
@@ -135,6 +136,10 @@ export async function getSettlementReview(input: { status?: unknown } = {}): Pro
 
 export async function decideSettlement(admin: AdminActor, input: unknown): Promise<SettlementDecisionResult> {
   assertMock();
+  // A 탈퇴 신청 whose 30 days are over is applied first (회원탈퇴 유예, 2026-11-01 사용자 결정): its 심사 대기 requests
+  // ended as 탈퇴 소멸 on that day, so a console page opened before it cannot approve or reject them. During the 30 days
+  // the decision goes on as usual — a rejected request's FN return to 정산 가능 and are forfeited with it on that day.
+  applyDueWithdrawal();
   const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   const request = mockSettlement.requests.find((r) => r.id === v.id);
   if (!request) return { status: "NOT_FOUND" };

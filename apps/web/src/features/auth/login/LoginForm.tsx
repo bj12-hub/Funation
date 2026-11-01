@@ -10,8 +10,9 @@ import type { SocialProvider } from "@/lib/flextv/auth";
 import { FLEXTV_AUTH, FLEXTV_WEB_URL } from "@/lib/flextv/mode";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { MessageKey } from "@/lib/i18n/translate";
-import { login } from "@/services/auth/login";
+import { login, type LoginResult } from "@/services/auth/login";
 import { LoginLocked } from "./LoginLocked";
+import { LoginWithdrawalPending } from "./LoginWithdrawalPending";
 import styles from "./LoginForm.module.css";
 
 /**
@@ -19,9 +20,11 @@ import styles from "./LoginForm.module.css";
  * Figma: DEFAULT 13:7 · UNKNOWN ID 718:123 · WRONG PASSWORD 718:168 · LOCKED 718:213 (718:335 is its own route: /login/password-change)
  * With the FLEXTV backend: the FLEXTV 아이디, 간편 로그인 through /auth/[provider], and FLEXTV's own 비밀번호 찾기
  * (it needs FLEXTV's 본인인증) — docs/development/flextv-backend.md.
+ * Code-first: WITHDRAWAL_PENDING (탈퇴 신청한 계정, 회원탈퇴 유예 30일 — 2026-11-01 사용자 결정) shows its own card,
+ * which can cancel the 탈퇴 and sign in (./LoginWithdrawalPending.tsx).
  */
 
-type FormState = "DEFAULT" | "PROCESSING" | "UNKNOWN_ID" | "WRONG_PASSWORD" | "LOCKED" | "TOO_MANY_ATTEMPTS" | "SUSPENDED" | "ERROR";
+type FormState = "DEFAULT" | "PROCESSING" | "UNKNOWN_ID" | "WRONG_PASSWORD" | "LOCKED" | "TOO_MANY_ATTEMPTS" | "SUSPENDED" | "WITHDRAWAL_PENDING" | "ERROR";
 
 const MESSAGES = {
   UNKNOWN_ID: "auth.unknownId",
@@ -60,10 +63,38 @@ export function LoginForm({
   const [keepSignedIn, setKeepSignedIn] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [state, setState] = useState<FormState>("DEFAULT");
+  // WITHDRAWAL_PENDING: when the account's 탈퇴 takes effect.
+  const [effectiveAt, setEffectiveAt] = useState("");
   const identifierRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
+  const request = { identifier: identifier.trim(), password, keepSignedIn, next };
+
+  /** The sign-in's answer, from the form or from the 탈퇴 철회 card. */
+  function handleResult(result: LoginResult) {
+    if (result.status === "SUCCESS") {
+      // The session cookie was set by the server action; refresh so layouts read it.
+      router.replace(next);
+      router.refresh();
+      return;
+    }
+    if (result.status === "WITHDRAWAL_PENDING") setEffectiveAt(result.effectiveAt);
+    setState(result.status);
+    if (result.status === "WRONG_PASSWORD") {
+      // Figma 718:168 keeps the entered password; select it so the user can retype.
+      passwordRef.current?.select();
+    }
+  }
 
   if (state === "LOCKED") return <LoginLocked supportLink={supportLink} />;
+  if (state === "WITHDRAWAL_PENDING") {
+    // "다른 계정으로 로그인": back to an empty form.
+    const back = () => {
+      setIdentifier("");
+      setPassword("");
+      setState("DEFAULT");
+    };
+    return <LoginWithdrawalPending request={request} effectiveAt={effectiveAt} onResult={handleResult} onBack={back} />;
+  }
 
   const processing = state === "PROCESSING";
 
@@ -75,20 +106,10 @@ export function LoginForm({
 
     setState("PROCESSING");
     try {
-      const result = await login({ identifier: identifier.trim(), password, keepSignedIn, next });
+      const result = await login(request);
       // A server-side redirect (password change prompt) resolves without a result.
       if (!result) return;
-      if (result.status === "SUCCESS") {
-        // The session cookie was set by the server action; refresh so layouts read it.
-        router.replace(next);
-        router.refresh();
-        return;
-      }
-      setState(result.status);
-      if (result.status === "WRONG_PASSWORD") {
-        // Figma 718:168 keeps the entered password; select it so the user can retype.
-        passwordRef.current?.select();
-      }
+      handleResult(result);
     } catch {
       setState("ERROR");
     }

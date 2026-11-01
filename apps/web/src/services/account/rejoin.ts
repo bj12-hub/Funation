@@ -29,6 +29,8 @@ import { personKeyFor } from "./withdrawalRecord";
  * limitation: the 썸네이션 ID and other per-account sample data (favorites, messages …) are shared with the old slot.
  * The same person means the same phone while a withdrawn account's 본인 확인 값 is kept (탈퇴 후 6개월,
  * retentionPolicy.ts — 플렉스티비 기준): expired data is purged first, so after that the same phone is a new person.
+ * A 탈퇴 신청 whose 30 days are over is applied first too (`purgeExpired` → ./withdrawalApply.ts); one still waiting
+ * keeps the slot's account, so the sign-up is recorded outside the slot like any other (2026-11-01 사용자 결정).
  */
 export function startNewAccount(input: { nickname: string; password: string; marketing: boolean; phone: string }, now = new Date()) {
   purgeExpired(now);

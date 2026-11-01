@@ -323,6 +323,8 @@ screens.
   is not used.
 - The login lock is FLEXTV's (20 wrong passwords within 10 minutes → 10 minutes refused), not the mock's 5-and-reset.
 - FLEXTV answers a 휴면 · 정지 · 탈퇴 member like an unknown 아이디, so the screen says "등록되지 않은 아이디입니다".
+  The 탈퇴 철회 card (회원탈퇴 유예, 2026-11-01) is the mock's: what FLEXTV answers during a 탈퇴 신청's 30 days is
+  checked on staging.
 - A 간편 로그인 session ends with the browser (no "로그인 유지" choice on that path yet).
 - The room's 이번 방송 후원 랭킹 is FLEXTV's top three; 방송 설정's 시청자 list is the first 50; a 내보내기 does not keep
   the viewer out (블랙리스트 does). The home has no 유튜브 라이브 row and the room no 다시보기 (above, items 12 and 13).

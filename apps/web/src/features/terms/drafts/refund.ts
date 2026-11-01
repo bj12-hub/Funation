@@ -13,7 +13,7 @@ import { DEFAULTS_NOTE, effectiveLine } from "./common";
  * 3개월~5년, 만료 30일 전 안내); 이의신청 1개월 / 10일; 해외 신용카드 결제 환불 (60% 기준, 취소수수료 1천원 · 10% — only
  * once a 해외 결제 수단 is offered after the payment provider is connected, TBD); 부정 · 위법 구매의 승인 취소 · 회수
  * (FLEXTV's "중대한 위반이면 환불하지 않을 수 있음" is not taken: it conflicts with the 2026-10-08 rule that a 영구 정지
- * member's paid FN are refunded on request — clause 8 ② states that rule; the user decides); 계약 해제 · 해지와 효과,
+ * member's paid FN are refunded on request — clause 8 ② states that rule, which the user kept on 2026-11-02); 계약 해제 · 해지와 효과,
  * 양도 금지, 책임 제한, 회사 책임으로 손상 · 삭제된 유상 FN의 보상; 정책 변경 7일 (불리 30일) and 거부 10일 (30일). Dropped, as Ssumnation has none: 꿀 · 게임 콘텐츠, mobile in-app passes and
  * Google · Apple refunds, 교환권, 이용기간 연장 보상, the 고객센터 phone · fax.
  *
@@ -22,8 +22,9 @@ import { DEFAULTS_NOTE, effectiveLine } from "./common";
  * 처리중 counting its 청약철회 period from its 결제 확인 (2026-10-13, services/wallet/refundCore.ts `paidAt`, 5. 청약철회 ③),
  * the 환불 요청 → 운영자 승인 flow processed within 3영업일 (wallet.md 충전 환불), 회사 사정에 따른 환불. Decided
  * elsewhere: 퀘스트 실패 · 취소 = 전액 환불 (donation.md), 처리 중 환불 · 진행 중 퀘스트 · 결과 확인 중인 플랫폼 후원
- * (2026-10-09) · 처리 중인 충전 · 지급 중인 출석 보상 (2026-10-10) = 탈퇴 불가 and 탈퇴 시 FN 소멸 (wallet.md). The
- * numbers must match services/wallet/refundPolicy.ts.
+ * (2026-10-09) · 처리 중인 충전 · 지급 중인 출석 보상 (2026-10-10) = 탈퇴 불가 and 탈퇴 시 FN 소멸 (wallet.md) — since
+ * 2026-11-02 at the end of FLEXTV's 30-day 회원탈퇴 유예 (14. ①, "(플렉스티비 기준)"). The numbers must match
+ * services/wallet/refundPolicy.ts.
  * TBD: FN 가격, the payment provider and the refund method per payment method, 해외 결제 수단, 무상 FN의 유효기간, the
  * 고객센터 contact.
  */
@@ -189,10 +190,10 @@ export const REFUND_POLICY: TermsDoc = {
     {
       title: "회원 탈퇴와 남은 FN",
       body: [
-        "① 회원이 탈퇴하면 남은 FN(유상 FN과 무상 FN 모두)은 사라지며 복구되지 않습니다. 탈퇴할 때 사라지는 금액을 보여 주고 동의를 받습니다.",
-        "② 환불받을 수 있는 유상 FN이 있다면 탈퇴 전에 환불을 요청해 주세요. 탈퇴한 뒤에는 청약철회나 환불을 받을 수 없습니다 (플렉스티비 기준). 처리 중인 환불 요청이 있으면 처리가 끝날 때까지 탈퇴할 수 없습니다.",
-        "③ 진행 중인 퀘스트 후원이나 처리 결과를 확인 중인 SOOP · FlexTV 플랫폼 후원이 있으면 결과가 정해질 때까지, 처리 중인 FN 충전(결제 확인을 기다리는 충전 포함)이나 지급 중인 출석 보상이 있으면 충전 · 지급이 끝날 때까지 탈퇴할 수 없습니다.",
-        "④ 탈퇴 후 다시 가입하면 새 계정으로 시작하며, 이전 계정의 FN과 기록은 이어지지 않습니다."
+        "① 탈퇴는 신청한 때부터 30일이 지나면 적용되며 (플렉스티비 기준), 그때 남은 FN(유상 FN과 무상 FN 모두)은 사라지고 복구되지 않습니다. 탈퇴를 신청할 때 사라지는 금액을 보여 주고 동의를 받습니다. 탈퇴가 적용되기 전에 로그인해 탈퇴를 철회하면 FN은 그대로 남습니다.",
+        "② 환불받을 수 있는 유상 FN이 있다면 탈퇴를 신청하기 전에 환불을 요청해 주세요. 탈퇴한 뒤에는 청약철회나 환불을 받을 수 없습니다 (플렉스티비 기준). 처리 중인 환불 요청이 있으면 처리가 끝날 때까지 탈퇴를 신청할 수 없습니다.",
+        "③ 진행 중인 퀘스트 후원이나 처리 결과를 확인 중인 SOOP · FlexTV 플랫폼 후원이 있으면 결과가 정해질 때까지, 처리 중인 FN 충전(결제 확인을 기다리는 충전 포함)이나 지급 중인 출석 보상이 있으면 충전 · 지급이 끝날 때까지 탈퇴를 신청할 수 없습니다.",
+        "④ 탈퇴가 적용된 뒤 다시 가입하면 새 계정으로 시작하며, 이전 계정의 FN과 기록은 이어지지 않습니다."
       ]
     },
     {
