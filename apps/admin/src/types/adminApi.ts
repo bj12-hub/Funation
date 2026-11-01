@@ -235,7 +235,7 @@ export type AdminRefund = {
 };
 
 /**
- * 환불 정책 기본값 (일반적인 기준, 법무 검토 전) — the site computes every amount; the console only shows them.
+ * 환불 정책 기본값 (플렉스티비 기준, 법무 검토 전) — the site computes every amount; the console only shows them.
  * FULL_CANCEL: 청약철회 (전액 취소, no fee); PARTIAL: the charge's unused FN minus the fee; NOT_REFUNDABLE: all used.
  * `grossFn`: FN taken back from the wallet; `feeFn` + `netFn` = `grossFn`. `refundKrw` (2026-10-08 결정): FULL_CANCEL the
  * whole paid amount, PARTIAL net FN ÷ the charge's FN × its paid KRW, rounded down to the won (payout per method: TBD).
