@@ -12,7 +12,8 @@ import { DEFAULTS_NOTE, effectiveLine } from "./common";
  * 제3자 제공의 예외, 회원 · 법정대리인의 권리 (정정 전 이용 · 제공 중지, 정정 결과 통지), 만 14세 미만 가입 불가,
  * 안전성 확보 조치, YouTube API 서비스 안내, 권익침해 구제 기관, 변경 고지 (시행 7일 전), and since 2026-11-02 its
  * 회원탈퇴 유예 제도 (탈퇴 철회 30일 — services/account/withdrawalApply.ts; what the account can do during the 30 days
- * is Ssumnation's 기본값). Not taken: FLEXTV's joint processing with other companies, company · vendor names and its
+ * is Ssumnation's 기본값) — a cancelled 탈퇴 신청 is kept as a 계약 · 청약철회 기록 for 5 years from its 철회 (2026-11-02
+ * 사용자 결정, counting from the 철회 is a 기본값). Not taken: FLEXTV's joint processing with other companies, company · vendor names and its
  * contact people.
  *
  * Ssumnation's own, kept: what Ssumnation-only features process — 회원 정보 (썸네이션 ID · 후원 별명), 방송 플랫폼 연동,
@@ -127,7 +128,7 @@ export const PRIVACY_POLICY: TermsDoc = {
         "③ 탈퇴한 회원이 쓴 커뮤니티 글 · 댓글 · 채널 글은 삭제되지 않고 남으며, 작성자는 \"탈퇴한 회원\"으로 표시됩니다. 게시물을 지우고 싶다면 탈퇴 전에 직접 삭제해야 합니다.",
         "④ 1년 동안 서비스 이용 기록이 없는 회원(휴면 회원)의 개인정보는 다른 회원의 개인정보와 분리해 따로 보관합니다 (플렉스티비 기준). 분리 보관한 개인정보는 법령에 특별한 규정이 있는 경우 외에는 이용하거나 제공하지 않습니다. 휴면 회원이 요청하면 분리 보관한 개인정보를 되돌려 다시 서비스를 이용할 수 있게 합니다.",
         "⑤ 회사는 휴면 회원으로 바뀌기 30일 전에, 그리고 분리 보관한 개인정보를 관계 법령에서 정한 기간이 지나 파기하기 30일 전에 그 사실을 이메일 등으로 알립니다 (플렉스티비 기준). 유상 FN이 남아 있는 휴면 회원의 정보는 파기 대상에서 제외합니다.",
-        "⑥ 회원탈퇴 유예 (탈퇴 철회): 회원이 탈퇴를 신청하면 신청한 때부터 30일 동안 탈퇴가 유예되고, 30일이 지나면 탈퇴가 적용됩니다. 유예 기간에는 회원의 모든 개인정보와 기록을 그대로 보관하며, 회원은 그동안 언제든지 로그인해 탈퇴를 철회할 수 있습니다 (플렉스티비 기준). 철회하면 계정을 신청 전과 같이 다시 이용할 수 있고, 유예 기간에는 계정을 이용할 수 없습니다 (기본값). ②의 보관 기간은 탈퇴가 적용된 날부터 셉니다.",
+        "⑥ 회원탈퇴 유예 (탈퇴 철회): 회원이 탈퇴를 신청하면 신청한 때부터 30일 동안 탈퇴가 유예되고, 30일이 지나면 탈퇴가 적용됩니다. 유예 기간에는 회원의 모든 개인정보와 기록을 그대로 보관하며, 회원은 그동안 언제든지 로그인해 탈퇴를 철회할 수 있습니다 (플렉스티비 기준). 철회하면 계정을 신청 전과 같이 다시 이용할 수 있고, 유예 기간에는 계정을 이용할 수 없습니다 (기본값). ②의 보관 기간은 탈퇴가 적용된 날부터 셉니다. 탈퇴 신청과 철회 기록은 ②의 계약 또는 청약철회 등에 관한 기록으로 보관하며, 철회한 신청의 기록은 철회한 날부터 5년 동안 보관합니다 (기본값).",
         DEFAULTS_NOTE
       ]
     },

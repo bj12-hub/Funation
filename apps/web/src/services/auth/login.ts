@@ -7,7 +7,7 @@ import { safeRedirectPath } from "@/lib/safeRedirect";
 import { startSession } from "@/lib/session";
 import { mockCredentials } from "@/services/account/mockStore";
 import { applyDueWithdrawal } from "@/services/account/withdrawalApply";
-import { withdrawalRequestOf, withdrawalStore } from "@/services/account/withdrawalCore";
+import { cancelWithdrawalRequest, withdrawalRequestOf } from "@/services/account/withdrawalCore";
 import { clearPasswordFailures, isPasswordLocked, recordLogin, recordPasswordFailure, resolveAccount } from "./loginLockCore";
 
 /**
@@ -84,11 +84,12 @@ async function devMockLogin({ identifier, password, cancelWithdrawal }: LoginReq
   if (typeof password === "string" && password === mockCredentials.password) {
     clearPasswordFailures(account);
     // 탈퇴 신청 waiting for its date: no session. 탈퇴 철회 removes it — nothing else changed during the 30 days, so the
-    // account is exactly as it was — and the sign-in goes on as usual (a suspension still applies).
+    // account is exactly as it was — and the sign-in goes on as usual (a suspension still applies). The cancelled
+    // request is kept for the admin console's 탈퇴 신청 이력 (계약 기록, 5년 — 2026-11-02 사용자 결정).
     const request = withdrawalRequestOf();
     if (request) {
       if (cancelWithdrawal !== true) return { status: "WITHDRAWAL_PENDING", effectiveAt: request.effectiveAt };
-      withdrawalStore().request = null;
+      cancelWithdrawalRequest();
     }
     // 이용 정지 (관리자 콘솔): the sample member cannot sign in while suspended.
     if (isMemberSuspended(SAMPLE_MEMBER_ID)) return { status: "SUSPENDED" };

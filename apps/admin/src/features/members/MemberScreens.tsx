@@ -9,7 +9,8 @@ import {
   type AdminMember,
   type FnSettlementLine,
   type MemberFnSettlement,
-  type MemberPage
+  type MemberPage,
+  type WithdrawalHistoryItem
 } from "@/types/adminApi";
 import { SITE_URL } from "@/lib/siteUrl";
 import styles from "../admin.module.css";
@@ -191,6 +192,7 @@ export function MemberDetailScreen({ member, audit, fnSettlement = null }: { mem
           ) : (
             <MemberActions id={member.id} suspended={member.status === "SUSPENDED"} />
           )}
+          <WithdrawalHistory items={member.withdrawalHistory ?? []} />
           <h3 className={styles.subTitle}>처리 이력</h3>
           {audit.length === 0 ? (
             <p className={styles.muted}>처리 이력이 없어요.</p>
@@ -221,6 +223,34 @@ const settledText = (lines: FnSettlementLine[], forfeitFn: number) => {
   const refund = lines.length > 0 ? `환불 ${lines.length}건 · ${fn(t.grossFn)} 회수 · ${fn(t.netFn)} 환불 · ${won(t.refundKrw)}` : "환불한 유상 FN 없음";
   return `${refund} · 무상 FN 소멸 ${fn(forfeitFn)}`;
 };
+
+/** How each 탈퇴 신청 ended, after the time it was asked. */
+const historyEnd = (h: WithdrawalHistoryItem) =>
+  h.outcome === "PENDING" ? `${day(h.effectiveAt)} 탈퇴 적용 예정` : h.outcome === "CANCELLED" ? `철회 ${formatKst(h.endedAt ?? "")} (회원 로그인)` : `탈퇴 적용 ${formatKst(h.endedAt ?? "")}`;
+const HISTORY_OUTCOME = { PENDING: "대기 중", CANCELLED: "철회", APPLIED: "탈퇴 적용" } as const;
+
+/**
+ * 탈퇴 신청 이력 — code-first (2026-11-02 사용자 결정). Every 탈퇴 신청 of the member, newest first: when it was asked,
+ * how it ended (대기 중 · 철회 · 탈퇴 적용) and the amounts the member agreed to forfeit. Kept as 계약 기록 (5년, 기본값).
+ * Nothing for a member who never asked.
+ */
+function WithdrawalHistory({ items }: { items: WithdrawalHistoryItem[] }) {
+  if (items.length === 0) return null;
+  return (
+    <>
+      <h3 className={styles.subTitle}>탈퇴 신청 이력</h3>
+      <ul className={styles.history}>
+        {items.map((h) => (
+          <li key={h.requestedAt}>
+            <strong>{HISTORY_OUTCOME[h.outcome]}</strong> · 신청 {formatKst(h.requestedAt)} · {historyEnd(h)} · 동의한 소멸 FN {fn(h.consentedFn)}
+            {h.consentedEarningsFn > 0 && ` · 정산 대기 수익 ${fn(h.consentedEarningsFn)}`}
+          </li>
+        ))}
+      </ul>
+      <p className={styles.muted}>계약 기록으로 5년 보관해요. 철회한 신청은 철회한 날부터, 탈퇴로 이어진 신청은 탈퇴 기록과 함께 탈퇴일부터 세요 (기본값 · 플렉스티비 기준, 법무 검토 전).</p>
+    </>
+  );
+}
 
 /**
  * 남은 FN 정리 — code-first (2026-10-08 결정). On a 영구 정지 member's detail: the paid FN still unused per charge and

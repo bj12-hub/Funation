@@ -11,7 +11,9 @@
  * Every period counts from the withdrawal (기산점 — also a default: the law counts some records from the transaction,
  * so counting from the withdrawal keeps them at least that long), as Korean calendar months, clamped at a month's end.
  * Since 2026-11-01 (회원탈퇴 유예, FLEXTV 조건 기본안) that is the day the 탈퇴 takes effect — 30 days after the request
- * (the record's `at`). Data not listed here is destroyed or anonymised then (./withdrawalApply.ts).
+ * (the record's `at`). Data not listed here is destroyed or anonymised then (./withdrawalApply.ts). A 탈퇴 신청 the
+ * member cancelled is a 계약 기록 of an account that stays: it is kept 5 years from its 철회 (2026-11-02 사용자 결정 —
+ * "탈퇴 기록(계약 기록 5년)과 같이"; counting from the 철회 is a default too, ./retentionPurge.ts).
  */
 
 /** How every screen and document labels these periods until the legal review. */
@@ -52,7 +54,7 @@ export const RETENTION_RULES: readonly RetentionRule[] = Object.freeze(([
     months: RETENTION_CONTRACT_YEARS * 12,
     period: `${RETENTION_CONTRACT_YEARS}년`,
     basis: "전자상거래법",
-    covers: "탈퇴 기록, 약관 동의 기록"
+    covers: "탈퇴 기록 (탈퇴 신청 · 철회 기록 포함), 약관 동의 기록"
   },
   {
     category: "PAYMENT",
