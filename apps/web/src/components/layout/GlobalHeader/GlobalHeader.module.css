@@ -637,3 +637,11 @@
     display: none;
   }
 }
+
+/* The studio header's logo with 스튜디오 and its four buttons need about 382px, so on narrower phones (375px, 360px
+   Galaxy) the channel picture was pushed past the edge. There the logo goes alone; its label still says 스튜디오 홈. */
+@media (max-width: 400px) {
+  .studioBadge {
+    display: none;
+  }
+}
