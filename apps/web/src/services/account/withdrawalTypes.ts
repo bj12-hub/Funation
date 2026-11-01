@@ -3,7 +3,12 @@
  * 수익도 소멸 동의 후 탈퇴, 탈퇴 직전 비밀번호 재입력; 2026-10-06: 처리 중인 충전 환불이 있으면 탈퇴 불가; 2026-10-08:
  * 진행 중인 퀘스트 후원이 있으면 탈퇴 불가; 2026-10-09: 결과를 확인 중인 플랫폼 후원이 있으면 탈퇴 불가; 2026-10-10:
  * 처리 중인 충전 · 지급 중인 출석 보상이 있으면 탈퇴 불가).
+ * 2026-11-01 사용자 결정 (FLEXTV 조건 기본안): 회원탈퇴 유예 (탈퇴 철회) — the 탈퇴 is a request that takes effect
+ * WITHDRAWAL_GRACE_DAYS after it; until then the member can sign in and cancel it (./withdrawalCore.ts).
  */
+
+/** 탈퇴 유예 기간: a 탈퇴 신청 takes effect exactly this many days after it (플렉스티비 기준, 2026-11-01 사용자 결정). */
+export const WITHDRAWAL_GRACE_DAYS = 30;
 
 export type WithdrawalInfo = {
   nickname: string;
@@ -37,7 +42,8 @@ export type WithdrawalInfo = {
 export type PendingQuests = { sent: number; received: number };
 
 export type WithdrawResult =
-  | { status: "WITHDRAWN" }
+  /** 탈퇴 신청 접수: the session ended; the 탈퇴 takes effect at `effectiveAt` (ISO) unless the member cancels it first. */
+  | { status: "REQUESTED"; effectiveAt: string }
   | { status: "INVALID"; message: string }
   | { status: "REFUND_PENDING"; count: number }
   | ({ status: "QUEST_PENDING" } & PendingQuests)

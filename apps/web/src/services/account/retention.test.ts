@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { key, mockSessionModule, resetMockStores, settleSampleCharges, settleSamplePlatformDonations, signIn, signInAs } from "@/test/mockEnv";
+import { key, mockSessionModule, resetMockStores, settleSampleCharges, settleSamplePlatformDonations, signIn, signInAs, withdrawNow } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
@@ -74,12 +74,15 @@ async function load() {
 }
 type M = Awaited<ReturnType<typeof load>>;
 
-/** The sample supporter withdraws at the current (fake) time with the right consents and password. */
+/**
+ * The sample supporter withdraws at the current (fake) time with the right consents and password: the 탈퇴 신청 is
+ * applied at once (`withdrawNow`), so the record is dated now and the periods count from it.
+ */
 async function withdraw(m: M, n = 1, password = PASSWORD) {
   await settleSamplePlatformDonations(); // withdrawal waits while a 플랫폼 후원 is PENDING (2026-10-09 결정)
   await settleSampleCharges(); // and while a charge is in progress (2026-10-10 결정)
-  const r = await m.withdrawAccount({ requestId: key(900 + n), confirmed: true, forfeitAgreed: true, fnBalance: m.account.fnBalance, unsettledFn: 0, password });
-  expect(r).toEqual({ status: "WITHDRAWN" });
+  const r = await withdrawNow({ requestId: key(900 + n), confirmed: true, forfeitAgreed: true, fnBalance: m.account.fnBalance, unsettledFn: 0, password });
+  expect(r).toEqual({ status: "REQUESTED", effectiveAt: expect.any(String) });
 }
 
 const signUp = (m: M, phone: string) => expect(m.startNewAccount({ nickname: "다시왔어요", password: "newpass12!", marketing: false, phone })).toBe(true);

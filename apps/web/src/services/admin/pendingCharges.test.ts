@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { key, mockSessionModule, rejoinWithPhone, resetMockStores, settleSamplePlatformDonations, signIn } from "@/test/mockEnv";
+import { key, mockSessionModule, rejoinWithPhone, resetMockStores, settleSamplePlatformDonations, signIn, withdrawNow } from "@/test/mockEnv";
 
 vi.mock("@/lib/mock", () => ({ USE_MOCK: true, mockDelay: () => Promise.resolve() }));
 vi.mock("@/lib/session", () => mockSessionModule());
@@ -210,7 +210,7 @@ describe("처리 중 충전 (2026-10-12 결정)", () => {
     expect(await m.withdrawAccount(supporter(1, 5_000))).toEqual({ status: "CHARGE_PENDING", count: 1 });
     expect(await decide(m, { outcome: "CANCELLED", note: "결제 대행사 확인: 미결제" })).toEqual({ status: "OK", result: "CANCELLED" });
     expect(await m.getWithdrawalInfo()).toMatchObject({ fnBalance: 5_000, pendingCharges: 0 });
-    expect(await m.withdrawAccount(supporter(2, 5_000))).toEqual({ status: "WITHDRAWN" });
+    expect(await withdrawNow(supporter(2, 5_000))).toEqual({ status: "REQUESTED", effectiveAt: expect.any(String) });
   });
 
   it("lets the sample member withdraw once ch1 is decided (결제 확인), for the balance with its FN", async () => {
@@ -218,7 +218,7 @@ describe("처리 중 충전 (2026-10-12 결정)", () => {
     await settleSamplePlatformDonations();
     expect(await decide(m)).toEqual({ status: "OK", result: "CREDITED" });
     expect(await m.getWithdrawalInfo()).toMatchObject({ fnBalance: 15_000, pendingCharges: 0 });
-    expect(await m.withdrawAccount(supporter(1, 15_000))).toEqual({ status: "WITHDRAWN" });
+    expect(await withdrawNow(supporter(1, 15_000))).toEqual({ status: "REQUESTED", effectiveAt: expect.any(String) });
   });
 
   it("dates the confirmed charge's FN in the refund ledger when they landed, not when the charge was requested", async () => {

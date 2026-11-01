@@ -139,6 +139,12 @@ export type AdminMember = {
   suspension: Suspension | null;
   /** 회원 탈퇴: when, the FN and creator earnings the member agreed to forfeit, and until when each kind of data is kept. */
   withdrawal: { at: string; forfeitedFn: number; forfeitedEarningsFn: number; retentionNote: string; retention: MemberRetention[] } | null;
+  /**
+   * 탈퇴 신청 waiting for its date (회원탈퇴 유예 30일, 2026-11-01 — 플렉스티비 기준): when the member asked and when it
+   * takes effect (ISO). The status stays 정상 / 정지 meanwhile; the member can cancel it by signing in until then.
+   * Absent from a site older than this field.
+   */
+  withdrawalRequest?: { requestedAt: string; effectiveAt: string } | null;
   fnBalance: number;
   donationTotalFn: number;
   creatorId: string | null;

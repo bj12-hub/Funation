@@ -1,17 +1,8 @@
 "use server";
 
-import { randomUUID } from "node:crypto";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { clearPasswordFailures, currentAccountKey, isPasswordLocked, recordPasswordFailure } from "@/services/auth/loginLockCore";
 import { getSession, hasRole, revokeSession, type Session } from "@/lib/session";
-import { bankSmsStore } from "@/services/bankSms/bankSmsCore";
-import { clearChatFeed, managerLinks, onChannelChanged } from "@/services/broadcast/chatCore";
-import { channelsStore } from "@/services/broadcast/channelsCore";
-import { BROADCAST_PLATFORMS } from "@/services/platforms/adapters";
-import { clearDonationImports } from "@/services/creator/donationImportCore";
-import { mockCreator, newIntegrationKey } from "@/services/creator/mockCreatorStore";
-import { mockSettlement } from "@/services/creator/mockSettlementStore";
-import { youtubeStore } from "@/services/creator/youtubeCore";
 import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
 import { mockQuests } from "@/services/donations/questCore";
 import { mockPlatform } from "@/services/platformDonation/mockPlatformStore";
@@ -19,18 +10,17 @@ import { awaitsResult, recheckAccountPending } from "@/services/platformDonation
 import { pendingCharges } from "@/services/wallet/chargeCore";
 import { inFlightCount, settleInFlight } from "@/services/wallet/inFlightCore";
 import { mockRefunds } from "@/services/wallet/mockRefundStore";
-import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { mockAccount, mockCredentials } from "./mockStore";
-import { accountSince, isWithdrawn, withdrawalOf } from "./withdrawalCore";
-import { recordWithdrawal } from "./withdrawalRecord";
-import type { PendingQuests, WithdrawResult, WithdrawalInfo } from "./withdrawalTypes";
+import { unsettledFn } from "./withdrawalApply";
+import { accountSince, isWithdrawn, withdrawalStore } from "./withdrawalCore";
+import { WITHDRAWAL_GRACE_DAYS, type PendingQuests, type WithdrawResult, type WithdrawalInfo } from "./withdrawalTypes";
 
 /**
  * 회원 탈퇴 — code-first, route `/mypage/withdraw` (2026-10-04 결정: 남은 FN 소멸 동의 후 바로 탈퇴; 2026-10-05:
  * 크리에이터 정산 대기 수익도 소멸 동의, 탈퇴 직전 비밀번호 재입력). The server re-checks the session, every consent
- * and the password, forfeits exactly the amounts the member saw, and ends the session. One request id per intended
- * withdrawal, so a retry after a lost response gets the same answer. Rate limiting of password attempts belongs to
- * the backend; accounts that only use social login re-confirm with that login (provider hand-off TBD).
+ * and the password, takes the consents only for exactly the amounts the member saw, and ends the session. One request
+ * id per intended withdrawal, so a retry after a lost response gets the same answer. Rate limiting of password attempts
+ * belongs to the backend; accounts that only use social login re-confirm with that login (provider hand-off TBD).
  * 2026-10-06 결정: while an FN 충전 환불 request of this account waits for an operator, withdrawal is refused (the
  * member withdraws once it is decided).
  * 2026-10-08 결정: while a 퀘스트 후원 is in progress (FN held, no result yet), withdrawal is refused too — for quests the
@@ -46,9 +36,14 @@ import type { PendingQuests, WithdrawResult, WithdrawalInfo } from "./withdrawal
  * fails, and so while an 출석 보상 is on its way to the balance (wallet/inFlightCore.ts). Opening the screen and pressing
  * 탈퇴 first wait a moment for those on their way to land, so both show the state after them. A credit that completes
  * after a withdrawal anyway lands on nobody (the charge is kept for the console, the 출석 보상 is not paid).
+ * 2026-11-01 사용자 결정 (FLEXTV 조건 기본안) — 회원탈퇴 유예 (탈퇴 철회): pressing 탈퇴 passes every check above as
+ * before but only stores a 탈퇴 신청 and ends the session (`REQUESTED` with its `effectiveAt`). The 탈퇴 takes effect
+ * exactly 30 days later (WITHDRAWAL_GRACE_DAYS), when ./withdrawalApply.ts forfeits and deletes what this did at once
+ * before; during the 30 days (기본값) the account and its data stay as they are, cannot be used, and signing in with
+ * the password can cancel the request (services/auth/login.ts `cancelWithdrawal`).
  * Retention (./retentionPolicy.ts — 기본값, 플렉스티비 기준, 법무 검토 전): the withdrawal record with the consents, the
- * payment, dispute and access records and the 본인 확인 값 stay until their dates (./retentionPurge.ts), posts stay up
- * under "탈퇴한 회원"; every other piece of personal data goes now.
+ * payment, dispute and access records and the 본인 확인 값 stay until their dates (./retentionPurge.ts — counted from
+ * the day the 탈퇴 took effect), posts stay up under "탈퇴한 회원"; every other piece of personal data goes then.
  */
 
 const assertMock = () => {
@@ -57,11 +52,21 @@ const assertMock = () => {
 
 const REQUEST_ID = /^[A-Za-z0-9-]{16,64}$/;
 
+const DAY_MS = 86_400_000;
+
 /**
- * Creator earnings a 탈퇴 forfeits: 정산 가능 FN + 심사 대기 requests. Approved requests are not part of it — they are
- * still paid after the 탈퇴 (2026-10-08 결정).
+ * The answer a 탈퇴 신청 with this id already got (a retry after a lost response): the same `REQUESTED`, while it waits
+ * for its date and after it was applied (the record keeps the request id; its `at` is the request's `effectiveAt`).
  */
-const unsettledFn = () => mockSettlement.availableFn + mockSettlement.requests.filter((r) => r.status === "PENDING").reduce((s, r) => s + r.amountFn, 0);
+function sameRequest(requestId: string): WithdrawResult | null {
+  const { request, withdrawal } = withdrawalStore();
+  if (request?.requestId === requestId) return { status: "REQUESTED", effectiveAt: request.effectiveAt };
+  if (withdrawal?.requestId === requestId) return { status: "REQUESTED", effectiveAt: withdrawal.at };
+  return null;
+}
+
+/** The slot account has asked already (its 30 days are running or over) or has withdrawn. */
+const requestedOrWithdrawn = () => withdrawalStore().request !== null || isWithdrawn();
 
 /** This account's FN 충전 환불 requests still waiting for an operator. */
 const pendingRefunds = () => mockRefunds.requests.filter((r) => r.status === "REQUESTED" && r.accountSince === accountSince()).length;
@@ -140,10 +145,14 @@ export async function withdrawAccount(input: unknown): Promise<WithdrawResult> {
   assertMock();
   const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   if (typeof v.requestId !== "string" || !REQUEST_ID.test(v.requestId)) return { status: "INVALID", message: "요청을 확인해 주세요." };
+  const requestId = v.requestId;
   // The same request again (e.g. the response was lost): it already went through, and the session is gone.
-  if (withdrawalOf()?.requestId === v.requestId) return { status: "WITHDRAWN" };
+  const replay = sameRequest(requestId);
+  if (replay) return replay;
   const session = await getSession();
   if (!session) return { status: "UNAUTHORIZED" };
+  // Another request while one is waiting (or after the 탈퇴): the account has no session any more.
+  if (requestedOrWithdrawn()) return { status: "UNAUTHORIZED" };
   if (v.confirmed !== true) return { status: "INVALID", message: "탈퇴 안내를 확인하고 동의해 주세요." };
   if (pendingRefunds() > 0) return { status: "REFUND_PENDING", count: pendingRefunds() };
   const questsEarly = questProblem(session);
@@ -175,9 +184,9 @@ export async function withdrawAccount(input: unknown): Promise<WithdrawResult> {
   }
   clearPasswordFailures(account);
 
-  // From here on nothing awaits: the amounts are read again, compared with the consents and forfeited in one
-  // step, so an admin decision or a donation during the password check cannot leave the record out of date.
-  if (isWithdrawn()) return withdrawalOf()?.requestId === v.requestId ? { status: "WITHDRAWN" } : { status: "UNAUTHORIZED" };
+  // From here on nothing awaits: the amounts are read again, compared with the consents and the request stored in one
+  // step, so an admin decision or a donation during the password check cannot leave the consents out of date.
+  if (requestedOrWithdrawn()) return sameRequest(requestId) ?? { status: "UNAUTHORIZED" };
   // A refund request made during the password check counts too, and so does a quest sent in the meantime.
   if (pendingRefunds() > 0) return { status: "REFUND_PENDING", count: pendingRefunds() };
   const quests = questProblem(session);
@@ -194,46 +203,21 @@ export async function withdrawAccount(input: unknown): Promise<WithdrawResult> {
   const changed = consentProblem(v, balance, earnings);
   if (changed) return changed;
 
-  const now = new Date().toISOString();
-  // The record keeps the consents (약관 동의 기록) and takes the 본인 확인 값 out of the credentials (the phone itself
-  // goes, a keyed hash stays a year).
-  recordWithdrawal({
-    at: now,
-    requestId: v.requestId,
-    forfeitedFn: balance,
-    forfeitedEarningsFn: earnings,
-    consents: { chargeTerms: mockWallet.chargeTermsAgreedAt, settlementTerms: mockSettlement.terms?.acceptedAt ?? null }
-  });
-  mockAccount.fnBalance = 0;
-  // Personal data no retention rule keeps: profile image, 본인인증, marketing consent, login and platform links.
-  Object.assign(mockAccount, { avatarUrl: null, identity: null, marketingConsent: false });
-  mockWallet.marketingOptIn = false;
-  mockAccount.linkedLoginProviders = { NAVER: null, GOOGLE: null, KAKAO: null };
-  mockAccount.connectedPlatforms = mockAccount.connectedPlatforms.map((p) => ({ ...p, handle: null }));
-  if (earnings > 0) {
-    // 정산 가능 FN is gone, and requests still waiting for review end as 탈퇴 소멸 (not 반려 — nobody rejected them).
-    mockSettlement.availableFn = 0;
-    for (const r of mockSettlement.requests.filter((r) => r.status === "PENDING")) {
-      Object.assign(r, { status: "FORFEITED", feeFn: 0, netKrw: 0, payoutDate: null, review: { at: now, by: "회원 탈퇴", note: "정산 대기 수익 소멸 (회원 동의)" } });
-    }
-  }
-  // The payout account is this member's personal data, and a 재가입 must not find it registered (the 정산 이용 동의
-  // stays in the withdrawal record, and each request keeps its own masked copy as a 정산 기록).
-  Object.assign(mockSettlement, { terms: null, registration: null, autoSettlement: false });
-  // Access that acts for the channel without a login ends with the account: manager links, platform chat
-  // connections, the YouTube link, and the overlay / bank-SMS keys (reissued, so old URLs stop for good).
-  managerLinks().length = 0;
-  channelsStore().channels = {};
-  Object.assign(youtubeStore(), { channel: null, connectedAt: null, lastSyncedAt: null, lastError: null, videos: {} });
-  // Chat / 후원 연동 cursors and switches belonged to those channels, and the chat feed holds viewers' messages.
-  for (const p of BROADCAST_PLATFORMS) onChannelChanged(p);
-  clearChatFeed();
-  Object.assign(bankSmsStore(), { enabled: false, key: randomUUID() });
-  mockCreator.integrationKey = newIntegrationKey();
-  // 내역 이관: donations imported from 투네이션 / FlexTV hold other people's nicknames and messages; they go with the
-  // account, with the batches, files waiting in a preview and the FlexTV read position.
-  clearDonationImports();
-  // Revoke instead of deleting the cookie, so the page keeps showing the 탈퇴 완료 state.
+  // 회원탈퇴 유예 (2026-11-01 사용자 결정, FLEXTV 조건 기본안): nothing is forfeited or deleted now. The request is
+  // stored with the amounts the member agreed to, and ./withdrawalApply.ts applies it exactly WITHDRAWAL_GRACE_DAYS
+  // later; until then the account stays as it is, unusable, and signing in can cancel it (services/auth/login.ts).
+  const requested = new Date();
+  const effectiveAt = new Date(requested.getTime() + WITHDRAWAL_GRACE_DAYS * DAY_MS).toISOString();
+  withdrawalStore().request = {
+    requestId,
+    requestedAt: requested.toISOString(),
+    effectiveAt,
+    consentedFn: balance,
+    consentedEarningsFn: earnings,
+    creator: hasRole(session, "CREATOR")
+  };
+  // Revoke instead of deleting the cookie, so the page keeps showing the 탈퇴 신청 접수 state. lib/session.ts also
+  // refuses the account's session while the request waits, so a session in another tab ends too.
   await revokeSession();
-  return { status: "WITHDRAWN" };
+  return { status: "REQUESTED", effectiveAt };
 }

@@ -13,6 +13,7 @@ import { mockFnSettlements } from "@/services/wallet/mockFnSettlementStore";
 import { mockRefunds } from "@/services/wallet/mockRefundStore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
 import { isRetentionExpired, retentionSchedule, type RetentionCategory } from "./retentionPolicy";
+import { applyDueWithdrawal } from "./withdrawalApply";
 import { accountAt, withdrawnAccounts, type Withdrawal } from "./withdrawalCore";
 
 /**
@@ -84,7 +85,7 @@ const PURGE: Record<Exclude<RetentionCategory, "POSTS">, (t: Target) => void> = 
    * the nickname stored with its kept posts, comments, channel posts, block entries and the reports about them goes.
    */
   CONTRACT: (t) => {
-    Object.assign(t.record, { requestId: "", forfeitedFn: 0, forfeitedEarningsFn: 0, nickname: WITHDRAWN_MEMBER_NAME, ssumnationId: "", consents: null });
+    Object.assign(t.record, { requestedAt: null, requestId: "", forfeitedFn: 0, forfeitedEarningsFn: 0, nickname: WITHDRAWN_MEMBER_NAME, ssumnationId: "", consents: null });
     for (const p of mockCommunity.posts) {
       if (p.authorId === t.memberId) p.authorName = WITHDRAWN_MEMBER_NAME;
       for (const c of p.comments) if (c.authorId === t.memberId) c.authorName = WITHDRAWN_MEMBER_NAME;
@@ -101,9 +102,12 @@ const PURGE: Record<Exclude<RetentionCategory, "POSTS">, (t: Target) => void> = 
 
 /**
  * Removes or anonymises every withdrawn account's data whose retention date is at or before `now`. Idempotent: each
- * category of an account is purged once (`Withdrawal.purged`).
+ * category of an account is purged once (`Withdrawal.purged`). A 탈퇴 신청 due by `now` is applied first
+ * (./withdrawalApply.ts, 2026-11-01 사용자 결정), so its record — dated at its `effectiveAt` — is purged on the same
+ * rules.
  */
 export function purgeExpired(now: Date = new Date()) {
+  applyDueWithdrawal(now);
   for (const a of withdrawnAccounts()) {
     const target: Target = { record: a.record, account: a.account, memberId: a.n === null ? SAMPLE_MEMBER_ID : withdrawnMemberId(a.n) };
     for (const due of retentionSchedule(a.record.at)) {
