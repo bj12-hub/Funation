@@ -15,7 +15,7 @@ import type { AdminActor } from "./adminTypes";
 import { auditEntries, recordAudit } from "./auditCore";
 import { activeHold } from "./holdCore";
 import { SAMPLE_MEMBER_ID, creatorMemberId, isMemberSuspended, isPermanentlySuspended, isWithdrawnMember, memberStore, slotMemberAt, suspensionOf, withdrawnMemberId, type SuspendRequest } from "./memberCore";
-import { accountSince, withdrawalOf, withdrawalStore, type Withdrawal } from "@/services/account/withdrawalCore";
+import { accountSince, withdrawalOf, withdrawalRequestOf, withdrawalStore, type Withdrawal } from "@/services/account/withdrawalCore";
 import { RETENTION_DEFAULTS_LABEL, retentionRule, retentionSchedule } from "@/services/account/retentionPolicy";
 import { purgeExpired } from "@/services/account/retentionPurge";
 import {
@@ -59,28 +59,34 @@ async function directory(): Promise<AdminMember[]> {
   purgeExpired();
   const now = Date.now();
   const status = (id: string) => (isMemberSuspended(id, now) ? "SUSPENDED" : "ACTIVE") as AdminMember["status"];
-  const withStatus = (m: Omit<AdminMember, "status" | "suspension" | "withdrawal">): AdminMember => ({
+  const withStatus = (m: Omit<AdminMember, "status" | "suspension" | "withdrawal" | "withdrawalRequest">): AdminMember => ({
     ...m,
     status: status(m.id),
     suspension: isMemberSuspended(m.id, now) ? suspensionOf(m.id) : null,
-    withdrawal: null
+    withdrawal: null,
+    withdrawalRequest: null
   });
   const withdrawal = withdrawalOf();
+  // 탈퇴 신청 (2026-11-01 사용자 결정): the sample account keeps its status while it waits (a due one was applied above).
+  const request = withdrawalRequestOf();
   // Completed donations per slot account (start marker): each account, withdrawn ones too, totals only its own.
   const donated = listAccountDonationRecords().filter((d) => d.status === "COMPLETED");
   const donatedBy = (account: string | null) => donated.filter((d) => d.account === account).reduce((s, d) => s + d.fnAmount, 0);
-  const active = withStatus({
-    id: SAMPLE_MEMBER_ID,
-    nickname: mockAccount.nickname,
-    ssumnationId: mockAccount.ssumnationId,
-    roles: ["SUPPORTER", "CREATOR"],
-    joinedAt: "2025-11-02",
-    // The Korean day (the UTC day turns over at 09:00 KST).
-    lastActiveAt: kstDateString(new Date(now)),
-    fnBalance: mockAccount.fnBalance,
-    donationTotalFn: donatedBy(accountSince()),
-    creatorId: null
-  });
+  const active: AdminMember = {
+    ...withStatus({
+      id: SAMPLE_MEMBER_ID,
+      nickname: mockAccount.nickname,
+      ssumnationId: mockAccount.ssumnationId,
+      roles: ["SUPPORTER", "CREATOR"],
+      joinedAt: "2025-11-02",
+      // The Korean day (the UTC day turns over at 09:00 KST).
+      lastActiveAt: kstDateString(new Date(now)),
+      fnBalance: mockAccount.fnBalance,
+      donationTotalFn: donatedBy(accountSince()),
+      creatorId: null
+    }),
+    withdrawalRequest: request ? { requestedAt: request.requestedAt, effectiveAt: request.effectiveAt } : null
+  };
   const record = (w: Withdrawal): AdminMember["withdrawal"] => ({
     at: w.at,
     forfeitedFn: w.forfeitedFn,
@@ -91,7 +97,11 @@ async function directory(): Promise<AdminMember[]> {
   // A withdrawn account is listed while its 탈퇴 기록 is kept (계약 기록, 5년 — 기본값); after that it is gone.
   const listed = (w: Withdrawal) => !w.purged.includes("CONTRACT");
   // 회원 탈퇴: the sample member stays listed as 탈퇴 with what was forfeited.
-  const sample: AdminMember | null = withdrawal ? (listed(withdrawal) ? { ...active, status: "WITHDRAWN", suspension: null, withdrawal: record(withdrawal) } : null) : active;
+  const sample: AdminMember | null = withdrawal
+    ? listed(withdrawal)
+      ? { ...active, status: "WITHDRAWN", suspension: null, withdrawal: record(withdrawal), withdrawalRequest: null }
+      : null
+    : active;
   // After a 재가입 the slot is a new account; the withdrawn ones stay in the directory (mock ids `…-w1`, `…-w2`).
   const withdrawn = withdrawalStore().past.flatMap((w, i): AdminMember[] =>
     listed(w)
@@ -106,7 +116,8 @@ async function directory(): Promise<AdminMember[]> {
             donationTotalFn: donatedBy(w.accountSince),
             status: "WITHDRAWN",
             suspension: null,
-            withdrawal: record(w)
+            withdrawal: record(w),
+            withdrawalRequest: null
           }
         ]
       : []

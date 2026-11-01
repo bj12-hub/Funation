@@ -11,8 +11,14 @@ Confirmed:
   이용약관 · 개인정보 수집 및 이용 (필수) · 마케팅 활용 및 정보 수신 (선택) (the Figma 청소년 보호정책 확인 line is gone);
   본인 확인 값 보관 탈퇴 후 6개월 (was 1년) and 전자금융 거래 기록 5년 (`retentionPolicy.ts`); 이용 정지 1 · 3 · 7 · 15 · 30일 ·
   영구 (`SUSPEND_DAYS`, both apps); labels "기본값 (플렉스티비 기준, 법무 검토 전)". Age: 만 14세 미만 가입 불가, 만 19세 미만
-  FN 충전은 법정대리인 동의 (FLEXTV; the mock sign-up has no birth date, so the check comes with 본인인증). Not taken over
-  yet: FLEXTV's 30-day 탈퇴 철회 (the withdraw screen deletes at once). Not taken (2026-11-02, the user kept the 2026-10-08
+  FN 충전은 법정대리인 동의 (FLEXTV; the mock sign-up has no birth date, so the check comes with 본인인증). Taken over on
+  2026-11-02: FLEXTV's 회원탈퇴 유예 (탈퇴 철회 30일) — pressing 탈퇴 (every check as before) stores a request and signs the
+  member out; exactly 30 days later the 탈퇴 takes effect (FN · 정산 대기 수익 as they are then forfeited, personal data
+  deleted, retention counted from that day); until then signing in with the password offers 탈퇴 철회, which restores the
+  account as it was. Defaults (기본값) for the 30 days: the account and all its data are kept but cannot be used (no
+  session, channel hidden and overlay · 매니저 채팅 · SMS 계좌후원 keys closed like a suspension, a waiting debit refused);
+  operator decisions on what existed before the request (e.g. a 심사 대기 정산) still happen; its e-mail, nickname and phone
+  stay taken; password reset works. See docs/domains/wallet.md "회원 탈퇴". Not taken (2026-11-02, the user kept the 2026-10-08
   이용 정지 and money decision below): FLEXTV's 정지 중 환전 지급 유예 · 신청 불가, 적발 당일 후원 기부 and 중대한 위반 시
   환불 거절. Legal review still TBD.
 - Login lock (2026-10-08): 5 wrong passwords lock the account until a password reset — reset-only, no time-based unlock,
