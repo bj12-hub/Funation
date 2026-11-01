@@ -8,7 +8,7 @@ vi.mock("@/lib/actions", () => ({}));
 
 /** Console lists: every list shows its EMPTY state, and the audit log never offers a 더 보기 it cannot load. */
 const render = (el: Parameters<typeof renderToStaticMarkup>[0]) => renderToStaticMarkup(el);
-const POLICY = { label: "기본값 (일반적인 기준, 법무 검토 전)", summary: "요약" };
+const POLICY = { label: "기본값 (플렉스티비 기준, 법무 검토 전)", summary: "요약" };
 
 const noDonations: DonationsView = {
   rows: [],

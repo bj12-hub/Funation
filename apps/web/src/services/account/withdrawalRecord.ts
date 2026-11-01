@@ -13,14 +13,25 @@ const phoneHash = (phone: string) => createHmac("sha256", hashKey()).update(phon
 
 /**
  * Records the slot account's withdrawal. The 본인 확인 값 moves out of the account's credentials into the record (the
- * phone only as a keyed hash); the caller destroys the rest of the account's personal data (./withdrawal.ts).
+ * phone only as a keyed hash); the caller destroys the rest of the account's personal data (./withdrawalApply.ts).
+ * `requestedAt`: when the member asked (the 탈퇴 신청), null when written without one.
  */
-export function recordWithdrawal(r: { at: string; requestId: string; forfeitedFn: number; forfeitedEarningsFn: number; consents?: WithdrawalConsents }): Withdrawal {
+export function recordWithdrawal(r: {
+  at: string;
+  requestedAt?: string | null;
+  requestId: string;
+  forfeitedFn: number;
+  forfeitedEarningsFn: number;
+  consented?: { fn: number; earningsFn: number } | null;
+  consents?: WithdrawalConsents;
+}): Withdrawal {
   const record: Withdrawal = {
     at: r.at,
+    requestedAt: r.requestedAt ?? null,
     requestId: r.requestId,
     forfeitedFn: r.forfeitedFn,
     forfeitedEarningsFn: r.forfeitedEarningsFn,
+    consented: r.consented ?? null,
     nickname: mockAccount.nickname,
     ssumnationId: mockAccount.ssumnationId,
     consents: r.consents ?? { chargeTerms: null, settlementTerms: null },

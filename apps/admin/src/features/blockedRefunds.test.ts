@@ -7,7 +7,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh() {} }) }));
 vi.mock("@/lib/actions", () => ({}));
 
 const FULL = { type: "FULL_CANCEL" as const, grossFn: 10_000, feeFn: 0, netFn: 10_000, refundKrw: 11_000 };
-const POLICY = { label: "기본값 (일반적인 기준, 법무 검토 전)", summary: "청약철회(결제일로부터 7일 이내 · 미사용) 전액 취소" };
+const POLICY = { label: "기본값 (플렉스티비 기준, 법무 검토 전)", summary: "청약철회(결제일로부터 7일 이내 · 미사용) 전액 취소" };
 const view = (refunds: AdminRefund[]): PaymentsView => ({ charges: [], refunds, balance: 0, refundPolicy: POLICY });
 
 /** 2026-10-08 결정 D4b: a withdrawn account's waiting refund is 처리 불가(탈퇴) — outside 처리 대기, listed apart, undecidable. */

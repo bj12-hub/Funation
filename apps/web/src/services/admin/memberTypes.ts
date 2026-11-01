@@ -42,6 +42,11 @@ export type AdminMember = {
    * category of the account's data is kept (`retentionNote`: how the periods are labelled — 기본값).
    */
   withdrawal: { at: string; forfeitedFn: number; forfeitedEarningsFn: number; retentionNote: string; retention: MemberRetention[] } | null;
+  /**
+   * 탈퇴 신청 waiting for its date (회원탈퇴 유예, 2026-11-01 사용자 결정): when the member asked and when it takes effect
+   * (ISO). The status stays ACTIVE / SUSPENDED meanwhile; the member can cancel it by signing in until `effectiveAt`.
+   */
+  withdrawalRequest: { requestedAt: string; effectiveAt: string } | null;
   /** Server-side values (mock: only the sample member has real wallet data). */
   fnBalance: number;
   donationTotalFn: number;

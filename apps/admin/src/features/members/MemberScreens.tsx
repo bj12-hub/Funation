@@ -30,6 +30,20 @@ function StatusChip({ status }: { status: AdminMember["status"] }) {
   return <span className={STATUS_CHIP[status].className}>{STATUS_CHIP[status].label}</span>;
 }
 
+/**
+ * 탈퇴 신청 (회원탈퇴 유예 30일, 2026-11-01 — 플렉스티비 기준): next to the status, which stays 정상 / 정지 while the
+ * request waits for its date. Nothing without one.
+ */
+function RequestChip({ request }: { request: AdminMember["withdrawalRequest"] }) {
+  if (!request) return null;
+  return (
+    <>
+      {" "}
+      <span className={styles.chipWarn}>탈퇴 신청</span>
+    </>
+  );
+}
+
 /** 회원 관리 — code-first. Route `/members` (`?q=&role=&status=&page=`). */
 export function MembersScreen({ page }: { page: MemberPage }) {
   const f = page.filter;
@@ -86,6 +100,7 @@ export function MembersScreen({ page }: { page: MemberPage }) {
                   <td>{formatNumber(m.donationTotalFn)} FN</td>
                   <td>
                     <StatusChip status={m.status} />
+                    <RequestChip request={m.withdrawalRequest} />
                   </td>
                 </tr>
               ))}
@@ -125,6 +140,7 @@ export function MemberDetailScreen({ member, audit, fnSettlement = null }: { mem
         </Link>
         <h1 className={styles.title}>
           {member.nickname} <StatusChip status={member.status} />
+          <RequestChip request={member.withdrawalRequest} />
         </h1>
       </header>
       <div className={styles.split}>
@@ -161,6 +177,11 @@ export function MemberDetailScreen({ member, audit, fnSettlement = null }: { mem
                   : "영구 정지된 회원은 로그인할 수 없어요. 회원이 요청하면 아래 '남은 FN 정리'에서 남은 FN을 처리해요."}
               </p>
             </>
+          )}
+          {member.withdrawalRequest && (
+            <p className={styles.muted}>
+              {`탈퇴 신청 · 신청 ${day(member.withdrawalRequest.requestedAt)} · ${day(member.withdrawalRequest.effectiveAt)} 탈퇴 적용 예정 — 그 전에 회원이 로그인해서 철회할 수 있어요.`}
+            </p>
           )}
           {member.withdrawal ? (
             <p className={styles.muted}>

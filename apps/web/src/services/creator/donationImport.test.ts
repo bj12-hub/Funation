@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { key, mockSessionModule, resetMockStores, signIn, signInAs } from "@/test/mockEnv";
+import { key, mockSessionModule, resetMockStores, signIn, signInAs, withdrawNow } from "@/test/mockEnv";
 
 /** `during` runs inside the next mock delay, i.e. while the server is "busy" between its checks and its write. */
 const delay = vi.hoisted(() => ({ during: null as null | (() => unknown) }));
@@ -563,11 +563,11 @@ describe("회원 탈퇴", () => {
 
     const { decideReceivedQuest } = await import("./donationManagement");
     for (const id of ["q1", "q2"]) expect(await decideReceivedQuest({ id, outcome: "CANCELED" })).toMatchObject({ status: "OK" });
-    const { getWithdrawalInfo, withdrawAccount } = await import("@/services/account/withdrawal");
+    const { getWithdrawalInfo } = await import("@/services/account/withdrawal");
     const info = (await getWithdrawalInfo())!;
     expect(
-      await withdrawAccount({ requestId: key(77), confirmed: true, forfeitAgreed: true, fnBalance: info.fnBalance, unsettledFn: info.unsettledFn, earningsForfeitAgreed: true, password: "password" })
-    ).toEqual({ status: "WITHDRAWN" });
+      await withdrawNow({ requestId: key(77), confirmed: true, forfeitAgreed: true, fnBalance: info.fnBalance, unsettledFn: info.unsettledFn, earningsForfeitAgreed: true, password: "password" })
+    ).toEqual({ status: "REQUESTED", effectiveAt: expect.any(String) });
 
     const s = m.core.importStore();
     expect(s.records).toEqual([]);
