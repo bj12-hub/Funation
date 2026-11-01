@@ -7285,6 +7285,7 @@ export const ko = {
   },
   /** FLEXTV 정산 현황 · 정산 계좌 · 정산 신청 · 정산 관리 (FlextvSettlementScreens, FlextvExchangeForm, FlextvCancelButton). Schedule, minimum, contract-rate · tax and document lines stay in the code. */
   flextvSettlement: {
+    metaHome: "정산 현황 | Ssumnation 크리에이터",
     homeTitle: "정산 현황",
     tileAvailable: "정산 가능",
     tileInProgress: "정산 진행 중",

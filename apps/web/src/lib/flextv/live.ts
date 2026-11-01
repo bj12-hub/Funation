@@ -62,7 +62,7 @@ export async function fetchLiveList(): Promise<FlextvLive[]> {
 
 export type Watch =
   /** Plays in FLEXTV's embeddable player for anyone. */
-  | { kind: "EMBED"; streamId: string; title: string; viewers: number | null }
+  | { kind: "EMBED"; streamId: string; title: string; viewers: number | null; portrait: boolean }
   /**
    * On air, but FLEXTV lets only some viewers in (19+, password, fan grade, full room). FLEXTV's player in another site
    * is always signed out (its cookies are not sent there), so these are watched on FLEXTV.
@@ -94,7 +94,8 @@ export function mapWatch({ status, data }: Pick<FlextvResponse, "status" | "data
     if (barrier.isLocked === true) return { kind: "ON_FLEXTV", reason: "LOCKED" };
     if ((num(barrier.minRatingLevel) ?? 0) > 0) return { kind: "ON_FLEXTV", reason: "FAN_ONLY" };
     const performance = isRecord(s.performance) ? s.performance : {};
-    return { kind: "EMBED", streamId: String(streamId), title: text(stream.title) || text(s.title), viewers: num(performance.viewerCount) };
+    // 화면 방향 as the streamer set it (FLEXTV's 방송 설정); anything else is a landscape stream.
+    return { kind: "EMBED", streamId: String(streamId), title: text(stream.title) || text(s.title), viewers: num(performance.viewerCount), portrait: stream.displayMode === "portrait" };
   }
   if (status === 400) {
     const message = isRecord(data) && typeof data.message === "string" ? data.message : typeof data === "string" ? data : "";
