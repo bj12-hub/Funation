@@ -14,8 +14,8 @@ import { DEFAULTS_NOTE, effectiveLine } from "./common";
  * services/account/nicknameRules.ts, 채널 주소 docs/domains/creator.md), 후원 메시지와 후원 콘텐츠 (금지어 · 후원 필터링
  * docs/domains/donation.md), 신고 절차, 이의 신청, 정책의 변경 (7일 · 불리하면 30일, 기본값) and the remaining FN during
  * and after a suspension (2026-10-08 결정, docs/domains/wallet.md "이용 정지와 남은 FN"). FLEXTV's 정지 중 환전 지급 유예
- * and 적발 당일 후원 기부 are not taken: they conflict with that decision (open question to the user). What each report
- * reason means for sanctions and the appeal channel are TBD (community.md).
+ * · 신청 불가 and 적발 당일 후원 기부 are not taken: the user kept that decision (2026-11-02: "정지 중 정산 · 환불은 지금 규칙(2026-10-08 결정)대로 유지"). What each
+ * report reason means for sanctions and the appeal channel are TBD (community.md).
  */
 export const OPERATION_POLICY: TermsDoc = {
   title: "운영정책",

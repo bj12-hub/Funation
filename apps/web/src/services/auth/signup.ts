@@ -4,6 +4,7 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { isEmail, isValidNickname, isValidPassword } from "@/lib/validation";
 import { judgeNickname, nicknamesTakenForSignup } from "@/services/account/nicknameRules";
 import { startNewAccount } from "@/services/account/rejoin";
+import { applyDueWithdrawal } from "@/services/account/withdrawalApply";
 import { isEmailTaken, recordSignup } from "./signupCore";
 import { consumeVerificationToken } from "./verificationCore";
 
@@ -13,6 +14,9 @@ import { consumeVerificationToken } from "./verificationCore";
  * the phone verification (a SIGNUP token from ./verification.ts, single-use) with the account write.
  * TBD: age rules, account creation on the backend.
  * A withdrawn member can sign up again right away (2026-10-05 결정) as a new account — nothing is restored.
+ * 회원탈퇴 유예 (2026-11-01 사용자 결정, FLEXTV 조건 기본안): during the 30 days of a 탈퇴 신청 the account still exists,
+ * so its e-mail and nickname stay taken (the existing "already in use" answers); every action here first applies a
+ * request whose 30 days are over (services/account/withdrawalApply.ts), so the same person can sign up again from then.
  */
 
 /** `reason` (nickname only) tells a forbidden name from a taken one, so the form can say which. */
@@ -38,6 +42,7 @@ export type SignupResult =
 export async function checkEmailAvailability(email: string): Promise<AvailabilityResult> {
   if (!USE_MOCK) throw new Error("Sign-up API is not connected yet.");
   if (typeof email !== "string" || !isEmail(email)) return { available: false };
+  applyDueWithdrawal();
   await mockDelay(300);
   return { available: !isEmailTaken(email) };
 }
@@ -46,6 +51,7 @@ export async function checkEmailAvailability(email: string): Promise<Availabilit
 export async function checkNicknameAvailability(nickname: string): Promise<AvailabilityResult> {
   if (!USE_MOCK) throw new Error("Sign-up API is not connected yet.");
   if (typeof nickname !== "string" || !isValidNickname(nickname.trim())) return { available: false, reason: "INVALID" };
+  applyDueWithdrawal();
   await mockDelay(300);
   const verdict = judgeNickname(nickname.trim(), await nicknamesTakenForSignup());
   return verdict === "AVAILABLE" ? { available: true } : { available: false, reason: verdict };
@@ -69,6 +75,7 @@ export async function signup(request: SignupRequest): Promise<SignupResult> {
     a.privacy === true &&
     typeof a.marketing === "boolean";
   if (!valid) return { status: "INVALID" };
+  applyDueWithdrawal();
   await mockDelay();
   const takenNicknames = await nicknamesTakenForSignup();
   // From here to the write nothing awaits.

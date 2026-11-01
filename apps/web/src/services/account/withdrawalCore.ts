@@ -8,7 +8,29 @@ import type { RetentionCategory } from "./retentionPolicy";
  * when, what was forfeited, its consents and its 본인 확인 값) stays for audit, also after the same person signs up
  * again as a new account — each part until its date in ./retentionPolicy.ts (기본값, 법무 검토 전), when
  * ./retentionPurge.ts removes or anonymises it.
+ *
+ * 회원탈퇴 유예 (탈퇴 철회) — 2026-11-01 사용자 결정 (FLEXTV 조건 기본안): pressing 탈퇴 stores a request
+ * (`WithdrawalRequest`) that takes effect WITHDRAWAL_GRACE_DAYS (30) days later. During those days (기본값) the account
+ * and all its data stay as they are but cannot be used — no session, creator access closed, a waiting debit refused —
+ * and signing in with the password offers to cancel it (services/auth/login.ts), which restores the account exactly as
+ * it was. On the day it is due, ./withdrawalApply.ts applies it lazily (`applyDueWithdrawal`); until that has run,
+ * `isWithdrawn()` already counts a due request, so every check treats the account as withdrawn from `effectiveAt` on.
  */
+
+/**
+ * 탈퇴 신청 waiting for its date. `consentedFn` / `consentedEarningsFn`: the amounts the member saw and agreed to
+ * forfeit when it was made (the apply forfeits what remains at `effectiveAt`). `creator`: the account had the Creator
+ * role when it asked, so its 정산 대기 수익 are forfeited too.
+ */
+export type WithdrawalRequest = {
+  requestId: string;
+  requestedAt: string;
+  /** `requestedAt` + WITHDRAWAL_GRACE_DAYS days, exactly. */
+  effectiveAt: string;
+  consentedFn: number;
+  consentedEarningsFn: number;
+  creator: boolean;
+};
 
 /** 약관 동의 기록 kept with the withdrawal (계약 · 청약철회 기록): when the account agreed, or null when it never did. */
 export type WithdrawalConsents = {
@@ -25,12 +47,20 @@ export type WithdrawalConsents = {
 export type PersonCheck = { key: string; phoneHash: string };
 
 export type Withdrawal = {
+  /** When the withdrawal took effect (a request's `effectiveAt`); retention periods count from it. */
   at: string;
+  /** When the member asked for it (탈퇴 신청); null for a record written without a request. */
+  requestedAt: string | null;
   requestId: string;
-  /** FN balance the member agreed to forfeit. */
+  /** FN balance forfeited when it took effect (the member agreed, at the request, to forfeit what remains then). */
   forfeitedFn: number;
-  /** Creator earnings waiting for settlement (정산 가능 + 정산 신청 중) the member agreed to forfeit. */
+  /** Creator earnings waiting for settlement (정산 가능 + 정산 신청 중) forfeited when it took effect, likewise. */
   forfeitedEarningsFn: number;
+  /**
+   * The amounts the member saw and agreed to forfeit at the 탈퇴 신청 (its consents), kept for audit next to what was
+   * forfeited 30 days later; null for a record written without a request.
+   */
+  consented: { fn: number; earningsFn: number } | null;
   /** Who withdrew (the admin directory keeps listing them as 탈퇴). */
   nickname: string;
   ssumnationId: string;
@@ -47,6 +77,8 @@ export type PastAccount = Withdrawal & { accountSince: string | null };
 
 type Store = {
   withdrawal: Withdrawal | null;
+  /** The slot account's 탈퇴 신청 until it is applied (then `withdrawal`) or cancelled at sign-in. */
+  request: WithdrawalRequest | null;
   /** Earlier withdrawals of the slot, before a 재가입 started a new account. Never removed (`…-wN` is the index). */
   past: PastAccount[];
   /** Local "YYYY-MM-DD HH:MM:SS" when the current account started (재가입); earlier wallet records are not its own. */
@@ -54,25 +86,44 @@ type Store = {
   /** The mock's secret for phone hashes (the backend keeps one outside the database). */
   phoneHashKey: string;
 };
-// V4: records keep their consents, the 본인 확인 값 and what was purged (V3: past accounts keep their start marker).
-const g = globalThis as typeof globalThis & { __ssumnationMockWithdrawalV4?: Store };
+// V5: the 탈퇴 신청 waiting for its date, records keep when it was asked (V4: consents, 본인 확인 값, purged
+// categories; V3: past accounts keep their start marker).
+const g = globalThis as typeof globalThis & { __ssumnationMockWithdrawalV5?: Store };
 export const withdrawalStore = (): Store =>
-  (g.__ssumnationMockWithdrawalV4 ??= { withdrawal: null, past: [], accountSince: null, phoneHashKey: "" });
+  (g.__ssumnationMockWithdrawalV5 ??= { withdrawal: null, request: null, past: [], accountSince: null, phoneHashKey: "" });
 
-/** The sample account's withdrawal, or null while it is active. */
+/** True from the request's `effectiveAt` on. */
+export const isRequestDue = (request: WithdrawalRequest, now = Date.now()) => Date.parse(request.effectiveAt) <= now;
+
+/** The sample account's withdrawal record, or null while it is active (or its request has not been applied yet). */
 export const withdrawalOf = () => withdrawalStore().withdrawal;
-export const isWithdrawn = () => withdrawalOf() !== null;
+/** The slot account's 탈퇴 신청 while it is not due yet (the 30 days are running), else null. */
+export const withdrawalRequestOf = (): WithdrawalRequest | null => {
+  const request = withdrawalStore().request;
+  return request && !isRequestDue(request) ? request : null;
+};
+/** True during the 30 days of a 탈퇴 신청: the account exists, unchanged, but cannot be used until it is cancelled. */
+export const isWithdrawalRequested = () => withdrawalRequestOf() !== null;
+/**
+ * True once the slot account has withdrawn: its record exists, or its 탈퇴 신청 is due (from `effectiveAt` on, also
+ * before ./withdrawalApply.ts has applied it).
+ */
+export const isWithdrawn = () => {
+  const { withdrawal, request } = withdrawalStore();
+  return withdrawal !== null || (request !== null && isRequestDue(request));
+};
 export const accountSince = () => withdrawalStore().accountSince;
 
 /**
  * The account a request acts for: the slot's account when its session was read (call it right after `getSession`).
  * `stillHere` answers whether that account still holds the slot, active — a request that awaits before it debits FN
  * (후원, 플랫폼 후원) checks it in the step that debits, so FN of the account that took the slot since (탈퇴, then 재가입)
- * are never spent for it. The debit-side counterpart of the credit check (wallet/inFlightCore.ts `landsHere`).
+ * are never spent for it. The debit-side counterpart of the credit check (wallet/inFlightCore.ts `landsHere`). A 탈퇴
+ * 신청 made meanwhile (another tab) counts too: the account cannot be used during its 30 days.
  */
 export function sessionAccount(): { account: string | null; stillHere: () => boolean } {
   const account = accountSince();
-  return { account, stillHere: () => !isWithdrawn() && accountSince() === account };
+  return { account, stillHere: () => !isWithdrawn() && !isWithdrawalRequested() && accountSince() === account };
 }
 
 /**
@@ -97,5 +148,6 @@ export function withdrawnAccounts(): { record: Withdrawal; account: string | nul
 export const isPurged = (account: string | null, category: RetentionCategory) =>
   withdrawnAccounts().some((a) => a.account === account && a.record.purged.includes(category));
 
-// recordWithdrawal and personKeyFor live in ./withdrawalRecord.ts (server-only: node:crypto). This module stays
-// free of Node built-ins because shared helpers (admin/memberCore → creators) are also bundled for the browser.
+// recordWithdrawal and personKeyFor live in ./withdrawalRecord.ts and applyDueWithdrawal in ./withdrawalApply.ts
+// (server-only: node:crypto and the stores a withdrawal clears). This module stays free of Node built-ins and server
+// imports because shared helpers (admin/memberCore → creators) are also bundled for the browser.

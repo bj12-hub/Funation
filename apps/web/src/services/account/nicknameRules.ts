@@ -27,8 +27,9 @@ export async function nicknamesTakenForMember(): Promise<Set<string>> {
 }
 
 /**
- * Names someone signing up cannot take. The mock's one account counts as another member while it is active;
- * whether a withdrawn account's nickname stays reserved is TBD (the mock frees it, as the account is gone).
+ * Names someone signing up cannot take. The mock's one account counts as another member while it is active and during
+ * the 30 days of its 탈퇴 신청 (the account still exists); whether a withdrawn account's nickname stays reserved is TBD
+ * (the mock frees it, as the account is gone).
  */
 export async function nicknamesTakenForSignup(): Promise<Set<string>> {
   const taken = await namesTakenByOthers();

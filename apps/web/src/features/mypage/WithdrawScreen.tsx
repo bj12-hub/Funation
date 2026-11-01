@@ -4,12 +4,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
-import { formatNumber } from "@/lib/format";
+import { formatNumber, kstIsoString } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { RETENTION_DEFAULTS_LABEL, RETENTION_RULES } from "@/services/account/retentionPolicy";
 import { withdrawAccount } from "@/services/account/withdrawal";
-import type { WithdrawalInfo } from "@/services/account/withdrawalTypes";
+import { WITHDRAWAL_GRACE_DAYS, type WithdrawalInfo } from "@/services/account/withdrawalTypes";
 import styles from "./withdraw.module.css";
+
+/** "2026.12.02": the Korean day the 탈퇴 takes effect. */
+const koreanDay = (iso: string) => kstIsoString(iso).slice(0, 10).replace(/-/g, ".");
 
 /**
  * 회원 탈퇴 — code-first (no Figma frame), route `/mypage/withdraw` (2026-10-04 결정: 남은 FN 소멸 동의 후 바로 탈퇴;
@@ -25,6 +28,9 @@ import styles from "./withdraw.module.css";
  * amounts shown: when a refresh brings other amounts, the member agrees again.
  * "탈퇴 후에도 보관하는 정보" lists what is kept and for how long from the shared retention list
  * (services/account/retentionPolicy.ts — 기본값, 법무 검토 전); posts are never deleted, so the effects say so.
+ * 2026-11-01 사용자 결정 (FLEXTV 조건 기본안) — 회원탈퇴 유예: the button sends a 탈퇴 신청. The member is signed out at
+ * once, the 탈퇴 takes effect WITHDRAWAL_GRACE_DAYS (30) days later and signing in before then can cancel it, so the
+ * effects open with that, the forfeits say "탈퇴가 적용되면", and the done view (SUCCESS) shows the date it takes effect.
  */
 export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
   const { t } = useI18n();
@@ -35,7 +41,8 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
   const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
+  // The 탈퇴 신청 went through: when it takes effect (ISO).
+  const [effectiveAt, setEffectiveAt] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   // One id per intended withdrawal: a double click or a retry after a lost response reuses it.
   const requestId = useRef<string | null>(null);
@@ -70,8 +77,8 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
     startTransition(async () => {
       try {
         const r = await withdrawAccount({ requestId: id, confirmed, forfeitAgreed: forfeit, earningsForfeitAgreed: earningsForfeit, fnBalance: info.fnBalance, unsettledFn: info.unsettledFn, password });
-        if (r.status === "WITHDRAWN") {
-          setDone(true);
+        if (r.status === "REQUESTED") {
+          setEffectiveAt(r.effectiveAt);
           return;
         }
         requestId.current = null;
@@ -113,14 +120,14 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
     });
   };
 
-  if (done) {
+  if (effectiveAt) {
     return (
       <div className={styles.content}>
         <section className={styles.done} role="status" aria-labelledby="withdraw-done">
           <h1 className={styles.title} id="withdraw-done">
             {t("myWithdraw.doneTitle")}
           </h1>
-          <p className={styles.subtitle}>{t("myWithdraw.doneDesc")}</p>
+          <p className={styles.subtitle}>{t("myWithdraw.doneDesc", { date: koreanDay(effectiveAt) })}</p>
           {/* A full load, so the header drops the signed-in member. */}
           <Button type="button" onClick={() => window.location.assign("/")}>
             {t("myWithdraw.home")}
@@ -244,12 +251,13 @@ export function WithdrawScreen({ info }: { info: WithdrawalInfo }) {
           {t("myWithdraw.effectsTitle")}
         </h2>
         <ul className={styles.effects}>
+          <li>{t("myWithdraw.effectRequest", { days: WITHDRAWAL_GRACE_DAYS })}</li>
           {hasFn && <li>{t("myWithdraw.effectFn", { amount: formatNumber(info.fnBalance) })}</li>}
           {hasEarnings && <li>{t("myWithdraw.effectEarnings", { amount: formatNumber(info.unsettledFn) })}</li>}
           <li>{t("myWithdraw.effectLinks")}</li>
           <li>{t("myWithdraw.effectRelogin")}</li>
           {info.creator && (
-            <li>{t("myWithdraw.effectCreator")}</li>
+            <li>{t("myWithdraw.effectCreator", { days: WITHDRAWAL_GRACE_DAYS })}</li>
           )}
           <li>{t("myWithdraw.effectPosts")}</li>
         </ul>

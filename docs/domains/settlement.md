@@ -33,7 +33,9 @@ Settlement rules remain subject to product, financial and legal approval.
 - **Withdrawn creators in the console (decided 2026-10-08).** Requests keep the start marker of the account that made them;
   a withdrawn creator's requests show the original nickname with a "탈퇴" badge, from the 탈퇴 on and after a 재가입.
 - **이용 정지 does not stop settlements (decided 2026-10-08).** A suspended creator's requests are reviewed, approved,
-  rejected and paid as usual; the suspension only closes the creator's own access (login, channel, keys).
+  rejected and paid as usual; the suspension only closes the creator's own access (login, channel, keys). Kept on
+  2026-11-02 when FLEXTV's conditions became the default ("정지 중 정산 · 환불은 지금 규칙(2026-10-08 결정)대로 유지"): FLEXTV's 정지 중 환전 지급 유예 · 신청 불가 and
+  적발 당일 후원 기부 are not taken.
 - **보류 / 보류 해제 (decided 2026-10-08).** An operator can put a request 심사 대기 or 승인 on 보류 when it needs a closer
   look (`POST /api/admin/settlements/[id]/hold`, `{ action: "HOLD" | "RELEASE", note, requestId }`). The memo (2–200 자) is
   required and stays with the operators; each action is audited (`SETTLEMENT_HOLD` / `SETTLEMENT_RELEASE`) and one console
