@@ -5,6 +5,7 @@ import { formatKstTime, formatNumber } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { platformLabel } from "@/lib/i18n/platformLabel";
 import type { MessageKey } from "@/lib/i18n/translate";
+import { unitText } from "@/lib/i18n/unitText";
 import {
   assignFeedEntry,
   cancelFeedEntry,
@@ -39,7 +40,6 @@ import {
   type FeedStatus,
   type FeedView
 } from "@/services/crew/crewTypes";
-import { unitLabel } from "@/types/donationUnit";
 import { DonorPanel } from "./DonorPanel";
 import { ExcelPanel, ExcelSummary } from "./ExcelPanel";
 import styles from "./crew.module.css";
@@ -71,7 +71,7 @@ type Filter = (typeof FILTERS)[number]["key"];
 const ALERT: Record<Exclude<FeedAlert, "ENDED">, MessageKey> = { HELD: "crewOpsFeed.alertHeld", QUEUED: "crewOpsFeed.alertQueued", SHOWING: "crewOpsFeed.alertShowing" };
 const time = (iso: string) => formatKstTime(iso, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 /** Entries carry a unit code; the label is what shows (5,000 원 · 100 별풍선). */
-const amountText = (amount: number, unit: ExcelUnit) => `${formatNumber(amount)} ${unitLabel(unit)}`;
+const amountText = (amount: number, unit: ExcelUnit, t: (key: MessageKey) => string) => `${formatNumber(amount)} ${unitText(unit, t)}`;
 /** What a dragged 후원 row carries (its entry id). */
 const DRAG_TYPE = "application/x-ssumnation-feed-entry";
 type Run = (action: () => Promise<BroadcastResult>, ok?: string) => void;
@@ -247,7 +247,7 @@ export function BroadcastFeed({
             <select className={`${styles.select} ${feed.grow}`} aria-label={t("crewOpsFeed.simUnitAria")} value={simUnit} onChange={(e) => setSimUnit(e.target.value as ExcelUnit)}>
               {EXCEL_UNITS.map((u) => (
                 <option key={u.key} value={u.key}>
-                  {u.platform ? `${platformLabel(u.platform, t)} · ${u.label}` : t("crewOpsFeed.simUnitSsumnation", { unit: u.label })}
+                  {u.platform ? `${platformLabel(u.platform, t)} · ${unitText(u.key, t)}` : t("crewOpsFeed.simUnitSsumnation", { unit: unitText(u.key, t) })}
                 </option>
               ))}
             </select>
@@ -446,7 +446,7 @@ function EntryRow({
             </span>
           )}
           {e.mergedDonor ?? e.donor}
-          {e.mergedDonor && <span className={feed.alias}>({e.donor})</span>} · {amountText(e.amount, e.unit)}
+          {e.mergedDonor && <span className={feed.alias}>({e.donor})</span>} · {amountText(e.amount, e.unit, t)}
           {e.platform && <span className={styles.chipOff}>{platformLabel(e.platform, t)}</span>}
           {e.source === "SIM" && <span className={styles.chipOff}>{t("crewOpsFeed.originSim")}</span>}
           {e.source === "BANK" && <span className={styles.chipOff}>{t("crewOpsFeed.originBank")}</span>}
