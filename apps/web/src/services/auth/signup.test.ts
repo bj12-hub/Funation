@@ -9,7 +9,7 @@ const valid = {
   email: "new@ssumnation.kr",
   password: "abcd123!",
   nickname: "새회원",
-  agreements: { youth: true, service: true, privacy: true, marketing: false }
+  agreements: { service: true, privacy: true, marketing: false }
 } as const;
 
 describe("signup", () => {

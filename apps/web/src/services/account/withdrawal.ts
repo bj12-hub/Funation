@@ -46,7 +46,7 @@ import type { PendingQuests, WithdrawResult, WithdrawalInfo } from "./withdrawal
  * fails, and so while an 출석 보상 is on its way to the balance (wallet/inFlightCore.ts). Opening the screen and pressing
  * 탈퇴 first wait a moment for those on their way to land, so both show the state after them. A credit that completes
  * after a withdrawal anyway lands on nobody (the charge is kept for the console, the 출석 보상 is not paid).
- * Retention (./retentionPolicy.ts — 기본값, 일반적인 기준, 법무 검토 전): the withdrawal record with the consents, the
+ * Retention (./retentionPolicy.ts — 기본값, 플렉스티비 기준, 법무 검토 전): the withdrawal record with the consents, the
  * payment, dispute and access records and the 본인 확인 값 stay until their dates (./retentionPurge.ts), posts stay up
  * under "탈퇴한 회원"; every other piece of personal data goes now.
  */

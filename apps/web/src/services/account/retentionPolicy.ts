@@ -1,8 +1,10 @@
 /**
- * 탈퇴 회원 정보 보관 기간 — 기본값 (일반적인 기준, 법무 검토 전).
+ * 탈퇴 회원 정보 보관 기간 — 기본값 (플렉스티비 기준, 법무 검토 전).
  *
  * The retention of withdrawal records and withdrawn members' data was TBD; on 2026-10-08 the user asked to start from
- * commonly used rules, so every period here is a default awaiting legal review, not a reviewed policy. This one list
+ * commonly used rules, and on 2026-11-01 to use FLEXTV's privacy policy as the default (Ssumnation runs on FLEXTV's
+ * backend since 2026-10-25): 아이디 · 본인 확인 값 탈퇴 후 6개월, 전자금융 거래 기록 5년 next to the 전자상거래법 ones.
+ * Every period is still a default awaiting legal review, not a reviewed policy. This one list
  * feeds the 회원 탈퇴 screen, the admin console's 회원 상세 and the privacy policy text; the mock purge
  * (./retentionPurge.ts) applies it. Client-safe: no server imports.
  *
@@ -12,18 +14,18 @@
  */
 
 /** How every screen and document labels these periods until the legal review. */
-export const RETENTION_DEFAULTS_LABEL = "기본값 (일반적인 기준, 법무 검토 전)";
+export const RETENTION_DEFAULTS_LABEL = "기본값 (플렉스티비 기준, 법무 검토 전)";
 
 /** 계약 · 청약철회 기록 (전자상거래법). */
 export const RETENTION_CONTRACT_YEARS = 5;
-/** 대금결제 · 재화 공급 기록 (전자상거래법). */
+/** 대금결제 · 재화 공급 기록 (전자상거래법) and 전자금융 거래 기록 (전자금융거래법) — both 5년. */
 export const RETENTION_PAYMENT_YEARS = 5;
 /** 소비자 불만 · 분쟁 처리 기록 (전자상거래법). */
 export const RETENTION_DISPUTE_YEARS = 3;
 /** 접속 기록 (통신비밀보호법). */
 export const RETENTION_ACCESS_LOG_MONTHS = 3;
-/** 부정 이용 방지용 본인 확인 값 (서비스 운영). */
-export const RETENTION_PERSON_KEY_YEARS = 1;
+/** 부정 이용 방지용 본인 확인 값 (서비스 운영) — 플렉스티비 기준 6개월 (was 1년 until 2026-11-01). */
+export const RETENTION_PERSON_KEY_MONTHS = 6;
 
 export type RetentionCategory = "CONTRACT" | "PAYMENT" | "DISPUTE" | "ACCESS_LOG" | "PERSON_KEY" | "POSTS";
 
@@ -53,10 +55,10 @@ export const RETENTION_RULES: readonly RetentionRule[] = Object.freeze(([
   },
   {
     category: "PAYMENT",
-    label: "대금결제 · 재화 공급 기록",
+    label: "대금결제 · 재화 공급 · 전자금융 거래 기록",
     months: RETENTION_PAYMENT_YEARS * 12,
     period: `${RETENTION_PAYMENT_YEARS}년`,
-    basis: "전자상거래법",
+    basis: "전자상거래법 · 전자금융거래법",
     covers: "FN 충전 · 환불 · 후원 · 정산 기록"
   },
   {
@@ -78,8 +80,8 @@ export const RETENTION_RULES: readonly RetentionRule[] = Object.freeze(([
   {
     category: "PERSON_KEY",
     label: "부정 이용 방지용 본인 확인 값",
-    months: RETENTION_PERSON_KEY_YEARS * 12,
-    period: `탈퇴 후 ${RETENTION_PERSON_KEY_YEARS}년`,
+    months: RETENTION_PERSON_KEY_MONTHS,
+    period: `탈퇴 후 ${RETENTION_PERSON_KEY_MONTHS}개월`,
     basis: "서비스 운영 (부정 이용 방지)",
     covers: "휴대폰 번호 기반 본인 키. 출석 · 이벤트 · 투표 · 룰렛 · 뽑기 1회 제한과 재가입 확인에 쓰임"
   },
