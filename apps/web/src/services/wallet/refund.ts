@@ -10,7 +10,7 @@ import { listChargeRecords } from "./walletHistory";
 import { REFUND_REASON_MAX, type RefundQuoteResult, type RefundRequestResult } from "./walletTypes";
 
 /**
- * FN 충전 환불 요청 — code-first (no Figma frame). The amounts follow the 환불 정책 기본값 (일반적인 기준, 법무 검토 전 —
+ * FN 충전 환불 요청 — code-first (no Figma frame). The amounts follow the 환불 정책 기본값 (플렉스티비 기준, 법무 검토 전 —
  * `refundPolicy.ts`): 청약철회 전액 취소, otherwise the charge's unused paid FN minus the fee, never used or free FN.
  * Everything is computed here; the browser only shows it. One request per charge, so a retried submit returns the
  * existing request as it is now (requested, approved or rejected). The payment provider's cancel API is TBD.

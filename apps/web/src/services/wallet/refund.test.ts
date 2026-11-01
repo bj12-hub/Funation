@@ -66,7 +66,7 @@ describe("충전 환불 요청", () => {
 });
 
 /**
- * 환불 정책 기본값 (일반적인 기준, 법무 검토 전) end to end, on a fresh account (재가입, so the sample history is not
+ * 환불 정책 기본값 (플렉스티비 기준, 법무 검토 전) end to end, on a fresh account (재가입, so the sample history is not
  * its own) with server dates set by fake timers. Days are October 2026, server time.
  */
 describe("충전 환불 정책 기본값", () => {

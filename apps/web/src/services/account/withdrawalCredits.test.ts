@@ -213,6 +213,11 @@ describe("회원 탈퇴 · 처리 중인 충전 (2026-10-10 결정)", () => {
   it("counts both kinds of 완료 · FN 미지급 (탈퇴) charge alike in the dashboard's 이번 달 충전, as 결제 · 환불 lists them", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date(2026, 9, 13, 12, 0, 0));
+    // The sample history is dated back from when it is seeded: seed it again under the faked date, so the 1-day-old
+    // 처리중 charge (ch1) falls in the dashboard's month whatever the real date is.
+    resetMockStores();
+    signIn(["SUPPORTER"]);
+    await settleSamplePlatformDonations();
     const m = await load();
     const { getAdminDashboard } = await import("@/services/admin/admin");
     // A payment that completes after the account went around the 탈퇴 block (kept apart, `uncreditedCharges`) …

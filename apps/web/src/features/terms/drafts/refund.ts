@@ -13,7 +13,7 @@ import { DEFAULTS_NOTE, effectiveLine } from "./common";
  * 3개월~5년, 만료 30일 전 안내); 이의신청 1개월 / 10일; 해외 신용카드 결제 환불 (60% 기준, 취소수수료 1천원 · 10% — only
  * once a 해외 결제 수단 is offered after the payment provider is connected, TBD); 부정 · 위법 구매의 승인 취소 · 회수
  * (FLEXTV's "중대한 위반이면 환불하지 않을 수 있음" is not taken: it conflicts with the 2026-10-08 rule that a 영구 정지
- * member's paid FN are refunded on request — clause 8 ② states that rule; the user decides); 계약 해제 · 해지와 효과,
+ * member's paid FN are refunded on request — clause 8 ② states that rule, which the user kept on 2026-11-02); 계약 해제 · 해지와 효과,
  * 양도 금지, 책임 제한, 회사 책임으로 손상 · 삭제된 유상 FN의 보상; 정책 변경 7일 (불리 30일) and 거부 10일 (30일). Dropped, as Ssumnation has none: 꿀 · 게임 콘텐츠, mobile in-app passes and
  * Google · Apple refunds, 교환권, 이용기간 연장 보상, the 고객센터 phone · fax.
  *
