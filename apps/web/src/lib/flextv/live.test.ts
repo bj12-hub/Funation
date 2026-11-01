@@ -52,8 +52,13 @@ describe("watching in FLEXTV's player", () => {
 
   it("plays a public stream in the embed, and keeps the room's settings to itself", () => {
     const watch = mapWatch(stream());
-    expect(watch).toEqual({ kind: "EMBED", streamId: "77", title: "저녁 방송", viewers: 42, startedAt: "2026-10-30T09:00:05.000Z", themeId: "5" });
+    expect(watch).toEqual({ kind: "EMBED", streamId: "77", title: "저녁 방송", viewers: 42, startedAt: "2026-10-30T09:00:05.000Z", themeId: "5", portrait: false });
     expect(JSON.stringify(watch)).not.toMatch(/secret|token|m3u8/);
+  });
+
+  it("tells a portrait stream from a landscape one by FLEXTV's 화면 방향", () => {
+    const at = (displayMode: unknown) => mapWatch({ status: 200, data: { stream: { id: 77, title: "세로 방송", displayMode }, status: { barrier: {} } } });
+    expect([at("portrait"), at("landscape"), at(undefined)].map((w) => w.kind === "EMBED" && w.portrait)).toEqual([true, false, false]);
   });
 
   it("sends a stream only some viewers may watch to FLEXTV", () => {

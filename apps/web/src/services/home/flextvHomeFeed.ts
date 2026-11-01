@@ -1,4 +1,5 @@
 import type { FlextvChannelRow } from "@/lib/flextv/channels";
+import { FLEXTV_DEFAULT_AVATAR } from "@/lib/flextv/placeholders";
 import { rankedChannels } from "@/services/creators/flextvCreators";
 import { getAllLiveChannels, type LiveChannel } from "@/services/live/liveChannels";
 import type { HeroSlide, HomeFeed, PopularCreator, TrendingVideo } from "./homeFeed";
@@ -12,7 +13,6 @@ import type { HeroSlide, HomeFeed, PopularCreator, TrendingVideo } from "./homeF
 const HERO_COUNT = 5;
 const TRENDING_COUNT = 8;
 const CREATOR_COUNT = 10;
-const DEFAULT_AVATAR = "/mock/creators/creator-1.png";
 const FLEXTV_LOGO = "/mock/room/logo-flextv.png";
 
 export const heroSlideOf = (c: LiveChannel): HeroSlide => ({
@@ -39,7 +39,7 @@ export const trendingOf = (c: LiveChannel, index: number): TrendingVideo => ({
 export const popularCreatorOf = (row: FlextvChannelRow): PopularCreator => ({
   id: row.channelId,
   name: row.name,
-  avatarUrl: row.thumbUrl ?? DEFAULT_AVATAR,
+  avatarUrl: row.thumbUrl ?? FLEXTV_DEFAULT_AVATAR,
   subscriberCount: row.followers,
   href: `/creators/${row.channelId}`,
   profile: { verified: false, status: row.description, tags: [], channels: [{ platform: "FLEXTV", logoUrl: FLEXTV_LOGO }] }

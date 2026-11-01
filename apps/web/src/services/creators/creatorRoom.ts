@@ -39,7 +39,7 @@ export type LiveStream = {
    * some viewers may watch it (19+, password, fan grade, full room), which FLEXTV's player in another site cannot tell
    * (it is always signed out there), so it is watched on FLEXTV.
    */
-  embed?: { playerUrl: string; streamId: string };
+  embed?: { playerUrl: string; streamId: string; portrait: boolean };
   onFlextv?: { url: string; reason: "ADULT" | "LOCKED" | "FAN_ONLY" | "FULL" | "BANNED" };
   /** A FLEXTV stream played here (phase 10): when it started, its 방송 카테고리, and its viewers and top donors now. */
   startedAt?: string | null;

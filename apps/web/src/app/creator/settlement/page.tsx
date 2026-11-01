@@ -9,7 +9,7 @@ import { getSettlementOverview } from "@/services/creator/settlement";
 
 // Figma: settlement-management 429:4 · 정산 자료 등록 필요 433:4 · 이미 등록 462:2 · 본인인증 필요 (code-first)
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getT())("studioSettlement.metaHome") };
+  return { title: (await getT())(FLEXTV_STUDIO ? "flextvSettlement.metaHome" : "studioSettlement.metaHome") };
 }
 export const dynamic = "force-dynamic";
 

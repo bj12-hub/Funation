@@ -74,7 +74,7 @@ export async function fetchLiveList(): Promise<FlextvLive[]> {
 
 export type Watch =
   /** Plays in FLEXTV's embeddable player for anyone. */
-  | { kind: "EMBED"; streamId: string; title: string; viewers: number | null; startedAt: string | null; themeId: string | null }
+  | { kind: "EMBED"; streamId: string; title: string; viewers: number | null; startedAt: string | null; themeId: string | null; portrait: boolean }
   /**
    * On air, but FLEXTV lets only some viewers in (19+, password, fan grade, full room). FLEXTV's player in another site
    * is always signed out (its cookies are not sent there), so these are watched on FLEXTV.
@@ -113,7 +113,9 @@ export function mapWatch({ status, data }: Pick<FlextvResponse, "status" | "data
       title: text(stream.title) || text(s.title),
       viewers: num(performance.viewerCount),
       startedAt: iso(s.startedAt) ?? iso(stream.createdAt),
-      themeId: codeOf(stream.themeId)
+      themeId: codeOf(stream.themeId),
+      // 화면 방향 as the streamer set it (FLEXTV's 방송 설정); anything else is a landscape stream.
+      portrait: stream.displayMode === "portrait"
     };
   }
   if (status === 400) {

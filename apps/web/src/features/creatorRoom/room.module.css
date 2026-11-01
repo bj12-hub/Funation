@@ -404,6 +404,12 @@
   line-height: 1.35;
 }
 
+/* A landscape FLEXTV stream: 16:9, so its player is not letterboxed in the portrait design's fixed height. */
+.player.playerWide {
+  height: auto;
+  aspect-ratio: 16 / 9;
+}
+
 /* FLEXTV's embeddable player fills the stream area (FLEXTV backend). */
 .embedFrame {
   position: absolute;

@@ -72,7 +72,9 @@ describe("라이브 목록 (FLEXTV)", () => {
       ["3021", "방송인", 50, "FLEXTV", "/creators/3021"]
     ]);
     expect(list[1].elapsedSeconds).toBeGreaterThanOrEqual(3_599);
-    expect(list[0].thumbnailUrl).toMatch(/^\/mock\/live\//);
+    // Without FLEXTV's pictures: neutral placeholders, not a mock stream's screen or a mock creator's face.
+    expect([list[0].thumbnailUrl, list[0].channelAvatarUrl]).toEqual(["/images/live-placeholder.svg", "/images/default-avatar.svg"]);
+    expect(list[1].thumbnailUrl).toBe("https://thumb.flextv.test/a.jpg");
     await getPopularLiveChannels();
     expect(calls.filter((c) => c.path === "/api/channels/live-list-main")).toHaveLength(1);
     // The public list: asked without the member's token.
