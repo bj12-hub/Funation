@@ -126,7 +126,7 @@ const day = (iso: string) => formatKstDate(iso);
 const dateTime = (at: string) => kstIsoString(at).replace("T", " ");
 
 /**
- * 환불 정책 요약 — 기본값 (일반적인 기준, 법무 검토 전), with the policy document. The policy lines are the services' wording
+ * 환불 정책 요약 — 기본값 (플렉스티비 기준, 법무 검토 전), with the policy document. The policy lines are the services' wording
  * and stay Korean until an approved translation exists (TBD); only the heading and the link follow the language.
  */
 function RefundPolicy() {
