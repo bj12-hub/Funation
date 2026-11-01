@@ -27,8 +27,8 @@ const SOURCES: { key: FeedSourceKey; label: string }[] = [
   { key: "FLEXTV", label: PLATFORM_LABEL.FLEXTV },
   { key: "BANK", label: "계좌" }
 ];
-/** Source labels that read differently per language; platform names show as written. */
-const SOURCE_KEY: Partial<Record<FeedSourceKey, MessageKey>> = { SSUMNATION: "crewOpsFeed.originSsumnation", BANK: "crewOpsFeed.originBank" };
+/** Source labels that read differently per language (치지직 reads CHZZK in English); other platform names show as written. */
+const SOURCE_KEY: Partial<Record<FeedSourceKey, MessageKey>> = { SSUMNATION: "crewOpsFeed.originSsumnation", CHZZK: "common.chzzk", BANK: "crewOpsFeed.originBank" };
 /** 원 is the 원화 기준 itself; every other unit takes a value from the creator. */
 const RATE_UNITS = EXCEL_UNITS.filter((u) => u.key !== "KRW");
 const toNumber = (s: string) => (s.trim() === "" ? null : Number(s.replace(/,/g, "")));

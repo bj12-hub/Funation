@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { formatKstTime } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
+import { platformLabel } from "@/lib/i18n/platformLabel";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { saveChatBot } from "@/services/broadcast/chatBot";
 import {
@@ -28,7 +29,7 @@ import {
   type ChatCommand
 } from "@/services/broadcast/chatBotTypes";
 import type { ChatAuthorRole } from "@/services/platforms/platformTypes";
-import { PLATFORM_LABEL, type Platform } from "@/types/platform";
+import type { Platform } from "@/types/platform";
 import crew from "../creatorStudio/crew/crew.module.css";
 import local from "./chatBot.module.css";
 import { PlatformMark } from "./PlatformMark";
@@ -124,7 +125,7 @@ export function ChatBotScreen({ view }: { view: ChatBotView }) {
     const s = fromDraft(draft);
     const hit = matchCommand(s, testText);
     if (!hit) return { tone: "muted", text: t("chatBot.testNotCommand") };
-    if (!s.platforms.includes(testPlatform)) return { tone: "muted", text: t("chatBot.testPlatformOff", { platform: PLATFORM_LABEL[testPlatform] }) };
+    if (!s.platforms.includes(testPlatform)) return { tone: "muted", text: t("chatBot.testPlatformOff", { platform: platformLabel(testPlatform, t) }) };
     const roles = TEST_ROLES.find((r) => r.key === testRole)!.roles;
     if (hit.kind === "COMMAND" && !canUse(hit.command.access, roles))
       return { tone: "muted", text: t(hit.command.access === "OWNER" ? "chatBot.testOwnerOnly" : "chatBot.testManagerOnly") };
@@ -164,8 +165,8 @@ export function ChatBotScreen({ view }: { view: ChatBotView }) {
                 checked={draft.platforms.includes(p)}
                 onChange={(e) => edit({ platforms: e.target.checked ? PLATFORMS.filter((x) => x === p || draft.platforms.includes(x)) : draft.platforms.filter((x) => x !== p) })}
               />
-              <PlatformMark platform={p} size="sm" />
-              {PLATFORM_LABEL[p]}
+              <PlatformMark platform={p} label={platformLabel(p, t)} size="sm" />
+              {platformLabel(p, t)}
               <span className={crew.muted} data-state={view.platforms[p]}>
                 {t(STATE_KEY[view.platforms[p]])}
               </span>
@@ -272,7 +273,7 @@ export function ChatBotScreen({ view }: { view: ChatBotView }) {
           <select className={crew.select} aria-label={t("chatBot.testPlatform")} value={testPlatform} onChange={(e) => setTestPlatform(e.target.value as Platform)}>
             {PLATFORMS.map((p) => (
               <option key={p} value={p}>
-                {PLATFORM_LABEL[p]}
+                {platformLabel(p, t)}
               </option>
             ))}
           </select>
@@ -302,7 +303,7 @@ export function ChatBotScreen({ view }: { view: ChatBotView }) {
             {view.log.map((e, i) => (
               <li key={`${e.at}-${i}`}>
                 <span className={crew.muted}>{formatKstTime(e.at, { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>
-                <PlatformMark platform={e.platform} size="sm" />
+                <PlatformMark platform={e.platform} label={platformLabel(e.platform, t)} size="sm" />
                 <span className={local.who}>
                   {e.nickname} <b>{e.trigger}</b>
                   {e.reply && <span className={crew.muted}> → {e.reply}</span>}

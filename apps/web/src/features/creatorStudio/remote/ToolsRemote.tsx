@@ -9,7 +9,6 @@ import styles from "../crew/crew.module.css";
 import { clock, timerSeconds } from "../widgets/timerMath";
 import remote from "./remote.module.css";
 
-export const signedSec = (s: number) => `${s > 0 ? "+" : "−"}${Math.abs(s)}초`;
 
 /**
  * 리모컨 "방송 도구" card — code-first. Timer start/pause/reset + 퀵 조정, 엔딩 크레딧 시작/중지.
