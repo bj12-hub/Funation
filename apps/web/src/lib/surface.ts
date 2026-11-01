@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { HELPER_PATH_HEADER, SURFACE_HEADER, type Surface } from "@/lib/helperRouting";
+import { HELPER_PATH_HEADER, SITE_PATH_HEADER, SURFACE_HEADER, type Surface } from "@/lib/helperRouting";
 import { safeRedirectPath } from "@/lib/safeRedirect";
 
 /**
@@ -13,4 +13,9 @@ export async function getSurface(): Promise<Surface> {
 /** The helper address the visitor opened (for `?next=` after sign-in), or "/". */
 export async function getHelperPath(): Promise<string> {
   return safeRedirectPath((await headers()).get(HELPER_PATH_HEADER) ?? undefined);
+}
+
+/** The site address the visitor opened (for `?next=` after sign-in), or "/". */
+export async function getSitePath(): Promise<string> {
+  return safeRedirectPath((await headers()).get(SITE_PATH_HEADER) ?? undefined);
 }

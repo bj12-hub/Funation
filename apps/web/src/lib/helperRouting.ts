@@ -13,6 +13,8 @@ import { WIDGET_HELPER_PATH, widgetPageOf } from "@/features/helper/widgetPages"
 export const SURFACE_HEADER = "x-ssumnation-surface";
 /** The helper path the visitor asked for (for `?next=` after sign-in); set by the middleware on the helper host only. */
 export const HELPER_PATH_HEADER = "x-ssumnation-helper-path";
+/** The site path the visitor asked for (for `?next=` after sign-in); set by the middleware on the site's host only. */
+export const SITE_PATH_HEADER = "x-ssumnation-site-path";
 /** Helper pages live under this segment; the helper host rewrites `/x` to `/helper/x`. */
 export const HELPER_SEGMENT = "/helper";
 
