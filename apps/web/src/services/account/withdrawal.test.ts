@@ -340,7 +340,7 @@ describe("회원 탈퇴", () => {
       password: "newpass12!",
       nickname: "다시왔어요",
       phoneVerificationToken: await phoneToken(),
-      agreements: { youth: true, service: true, privacy: true, marketing: true }
+      agreements: { service: true, privacy: true, marketing: true }
     } as const;
     expect(await m.signup(signupRequest)).toEqual({ status: "CREATED" });
     expect(m.isWithdrawn()).toBe(false);
@@ -376,7 +376,7 @@ describe("회원 탈퇴", () => {
 
     expect(await m.withdrawAccount(supporter())).toEqual({ status: "WITHDRAWN" });
     expect(
-      await m.signup({ email: "again@ssumnation.kr", password: "newpass12!", nickname: "다시왔어요", phoneVerificationToken: await phoneToken(), agreements: { youth: true, service: true, privacy: true, marketing: false } })
+      await m.signup({ email: "again@ssumnation.kr", password: "newpass12!", nickname: "다시왔어요", phoneVerificationToken: await phoneToken(), agreements: { service: true, privacy: true, marketing: false } })
     ).toEqual({ status: "CREATED" });
     signIn(["SUPPORTER"]);
     const fresh = (await identity.getSupporterIdentity())!;
@@ -396,7 +396,7 @@ describe("회원 탈퇴", () => {
     const before = m.settlement.requests.length;
     expect(await m.withdrawAccount({ ...supporter(), unsettledFn: earnings, earningsForfeitAgreed: true })).toEqual({ status: "WITHDRAWN" });
     expect(
-      await m.signup({ email: "again@ssumnation.kr", password: "newpass12!", nickname: "다시왔어요", phoneVerificationToken: await phoneToken(), agreements: { youth: true, service: true, privacy: true, marketing: false } })
+      await m.signup({ email: "again@ssumnation.kr", password: "newpass12!", nickname: "다시왔어요", phoneVerificationToken: await phoneToken(), agreements: { service: true, privacy: true, marketing: false } })
     ).toEqual({ status: "CREATED" });
     expect(m.settlement).toMatchObject({ requests: [], idempotency: {}, availableFn: 0, registration: null });
 
@@ -454,7 +454,7 @@ describe("회원 탈퇴", () => {
 
     await m.withdrawAccount(supporter());
     expect(
-      await m.signup({ email: "again@ssumnation.kr", password: "newpass12!", nickname: "다시왔어요", phoneVerificationToken: await phoneToken(), agreements: { youth: true, service: true, privacy: true, marketing: false } })
+      await m.signup({ email: "again@ssumnation.kr", password: "newpass12!", nickname: "다시왔어요", phoneVerificationToken: await phoneToken(), agreements: { service: true, privacy: true, marketing: false } })
     ).toEqual({ status: "CREATED" });
 
     // The new account in the slot neither owns nor can change what the withdrawn one wrote (it stays up as 탈퇴한 회원).
@@ -504,7 +504,7 @@ describe("회원 탈퇴", () => {
   it("does not touch accounts that never withdrew when someone signs up", async () => {
     const m = await load();
     expect(
-      await m.signup({ email: "new@ssumnation.kr", password: "abcd123!", nickname: "새회원", phoneVerificationToken: await phoneToken(), agreements: { youth: true, service: true, privacy: true, marketing: false } })
+      await m.signup({ email: "new@ssumnation.kr", password: "abcd123!", nickname: "새회원", phoneVerificationToken: await phoneToken(), agreements: { service: true, privacy: true, marketing: false } })
     ).toEqual({ status: "CREATED" });
     expect(m.account.nickname).toBe("홍길동");
     expect(m.account.fnBalance).toBe(5_000);

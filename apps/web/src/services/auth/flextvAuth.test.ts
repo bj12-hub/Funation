@@ -21,7 +21,7 @@ const REFRESH = "r".repeat(128);
 const profile = { id: 601924, loginId: "viewer01", nickname: "시청자", thumbUrl: null, memberDiv: 1, status: 1 };
 const signInBody = { ...profile, token: { accessToken: ACCESS, refreshToken: REFRESH, accessToken_ttl: 172_800, refreshToken_ttl: 2_592_000 }, member: profile };
 const tokenCookies = [`flx_oauth_access=${ACCESS}; Max-Age=172800; Path=/`, `flx_oauth_refresh=${REFRESH}; Max-Age=2592000; Path=/`];
-const agreements = { youth: true, service: true, privacy: true, marketing: false };
+const agreements = { service: true, privacy: true, marketing: false };
 
 type Call = { url: string; method: string; body: Record<string, unknown> | null; headers: Headers };
 let calls: Call[] = [];

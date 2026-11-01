@@ -63,7 +63,7 @@ describe("약관 · 정책 문서 (초안 본문, 2026-10-08)", () => {
   });
 
   it("shows the draft banner, 시행일 and version on every document", () => {
-    expect(TERMS_DRAFT.banner).toBe("초안 — 일반적인 기준으로 작성했고 법무 검토 전이에요. 정식 오픈 전에 바뀔 수 있어요.");
+    expect(TERMS_DRAFT.banner).toBe("초안 — 플렉스티비 약관의 조건을 기준으로 썸네이션에 맞게 고쳤고 법무 검토 전이에요. 정식 오픈 전에 바뀔 수 있어요.");
     expect(TERMS_DRAFT.effectiveDate).toBe("정식 오픈일 (TBD)");
     expect(TERMS_DRAFT.version).toBe("초안 v0.1");
     // The page shows them through termsPage messages (2026-11-01): Korean must read exactly as the documents do.
@@ -126,7 +126,7 @@ describe("약관 · 정책 문서 (초안 본문, 2026-10-08)", () => {
   // These periods must match services/account/retentionPolicy.ts (added on another branch with the same values).
   it("states the retention defaults in the privacy policy", () => {
     const retention = TERMS_DOCS.privacy.clauses[2].body.flatMap(blockTexts).join("\n");
-    for (const period of ["5년", "3년", "3개월", "탈퇴 후 1년", "탈퇴 즉시 파기", "탈퇴한 회원"]) expect(retention).toContain(period);
+    for (const period of ["5년", "3년", "3개월", "탈퇴 후 6개월", "탈퇴 즉시 파기", "탈퇴한 회원"]) expect(retention).toContain(period);
   });
 
   it("names every donation type of the 후원 screen in the service terms' 후원 definition", () => {
@@ -137,11 +137,15 @@ describe("약관 · 정책 문서 (초안 본문, 2026-10-08)", () => {
   });
 
   it("does not invent undecided money or policy numbers", () => {
+    // FN 가격 · 환율, 수익 배분, 정산 수수료 · 최소 금액 stay TBD: no 원 amounts and no percentages but the 10% refund fee
+    // and, in the refund policy only, FLEXTV's own numbers (2026-11-01): 연 15% 지연이자 and the 해외 신용카드 rule
+    // (60% · 90% · 1천원).
     for (const slug of TERMS_SLUGS) {
       const text = docText(slug);
-      // FN 가격 · 환율, 수익 배분, 정산 수수료 · 최소 금액: no 원 amounts or percentages other than the 10% refund fee.
-      expect(text, slug).not.toMatch(/\d[\d,]*\s*원/);
-      expect([...text.matchAll(/(\d+)\s*%/g)].map((m) => m[1]).filter((n) => n !== "10"), slug).toEqual([]);
+      const allowed = slug === "refund" ? ["10", "15", "60", "90"] : ["10"];
+      expect(text.replace(/1천원/g, ""), slug).not.toMatch(/\d[\d,]*\s*(천\s*)?원/);
+      expect([...text.matchAll(/(\d+)\s*%/g)].map((m) => m[1]).filter((n) => !allowed.includes(n)), slug).toEqual([]);
     }
+    expect(docText("refund")).toContain("1천원");
   });
 });
