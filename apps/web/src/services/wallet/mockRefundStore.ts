@@ -1,6 +1,6 @@
 /**
  * Development-only FN charge refund requests (code-first). The member files a request; an operator approves (FN is
- * taken back on the server) or rejects it in the admin console. The amounts follow the 환불 정책 기본값 (일반적인 기준,
+ * taken back on the server) or rejects it in the admin console. The amounts follow the 환불 정책 기본값 (플렉스티비 기준,
  * 법무 검토 전 — `refundPolicy.ts`), the KRW amount with them; how the payment provider pays it out is TBD.
  */
 

@@ -35,7 +35,7 @@ const payments: PaymentsView = {
     }
   ],
   balance: 0,
-  refundPolicy: { label: "기본값 (일반적인 기준, 법무 검토 전)", summary: "요약" }
+  refundPolicy: { label: "기본값 (플렉스티비 기준, 법무 검토 전)", summary: "요약" }
 };
 
 describe("withdrawn members in the console", () => {
