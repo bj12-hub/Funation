@@ -3,6 +3,7 @@ import { addFavorite, checkFavorite, fetchFavorites, removeFavorite, type Flextv
 import { FlextvUnavailableError } from "@/lib/flextv/client";
 import { isFlextvChannelId } from "@/lib/flextv/donation";
 import { fetchMyAccount } from "@/lib/flextv/member";
+import { FLEXTV_DEFAULT_AVATAR } from "@/lib/flextv/placeholders";
 import { createQueue } from "@/lib/flextv/queue";
 import { requestDeviceContext } from "@/lib/flextv/request";
 import { getFlextvAccessToken } from "@/lib/session";
@@ -18,12 +19,11 @@ import type { FavoriteCreator, FavoritesPage } from "./favorites";
 
 const serialize = createQueue("favorites");
 const PAGE_SIZE = 10;
-const DEFAULT_AVATAR = "/mock/creators/creator-1.png";
 
 export const favoriteOf = (row: FlextvChannelRow): FavoriteCreator => ({
   creatorId: row.channelId,
   name: row.name,
-  avatarUrl: row.thumbUrl ?? DEFAULT_AVATAR,
+  avatarUrl: row.thumbUrl ?? FLEXTV_DEFAULT_AVATAR,
   subscriberCount: row.followers,
   verified: false,
   isLive: row.live

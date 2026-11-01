@@ -1,4 +1,5 @@
 import { fetchRankedChannels, searchChannels, type FlextvChannelRow } from "@/lib/flextv/channels";
+import { FLEXTV_DEFAULT_AVATAR } from "@/lib/flextv/placeholders";
 import { getAllLiveChannels, type LiveChannel } from "@/services/live/liveChannels";
 import { CREATORS_PAGE_SIZE, type CreatorPage, type CreatorQuery, type CreatorSummary } from "./creators";
 
@@ -9,7 +10,6 @@ import { CREATORS_PAGE_SIZE, type CreatorPage, type CreatorQuery, type CreatorSu
  * ./creators.ts delegates here.
  */
 
-const DEFAULT_AVATAR = "/mock/creators/creator-1.png";
 const RANKING_TTL_MS = 60_000;
 const rankingCache = globalThis as typeof globalThis & { __ssumnationFlextvRanking?: { at: number; list: Promise<FlextvChannelRow[]> } };
 
@@ -28,7 +28,7 @@ export function creatorOfChannel(row: FlextvChannelRow, live: Map<string, LiveCh
   return {
     id: row.channelId,
     name: row.name,
-    avatarUrl: row.thumbUrl ?? DEFAULT_AVATAR,
+    avatarUrl: row.thumbUrl ?? FLEXTV_DEFAULT_AVATAR,
     description: row.description,
     categories: [],
     isLive: Boolean(now) || row.live,
