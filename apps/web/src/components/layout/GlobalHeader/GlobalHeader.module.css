@@ -286,6 +286,12 @@
   .rightSignedIn {
     gap: 16px;
   }
+
+  /* No room for the name beside 충전 · 알림 · 테마 · 언어 (it shrank to a letter or nothing): the avatar alone, as on phones. */
+  .profileName,
+  .caret {
+    display: none;
+  }
 }
 
 /* Phones: the header must fit 375px without a horizontal scroll (검색 · 충전 are hidden at the end of this file). */
@@ -307,11 +313,6 @@
 
   .loginButton {
     padding: 8px 16px;
-  }
-
-  .profileName,
-  .caret {
-    display: none;
   }
 }
 
