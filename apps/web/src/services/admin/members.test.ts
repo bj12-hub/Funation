@@ -37,7 +37,7 @@ describe("admin members", () => {
     const m = await load();
     const id = m.creatorMemberId("c1");
     expect((await m.suspendMember(OP, { id, days: 7, reason: "짧음", requestId: key(1) })).status).toBe("INVALID");
-    expect((await m.suspendMember(OP, { id, days: 3, reason: "운영 정책 위반 (테스트)", requestId: key(1) })).status).toBe("INVALID");
+    expect((await m.suspendMember(OP, { id, days: 2, reason: "운영 정책 위반 (테스트)", requestId: key(1) })).status).toBe("INVALID");
     expect(await m.suspendMember(OP, { id, days: 7, reason: "운영 정책 위반 (테스트)", requestId: key(2) })).toEqual({ status: "OK" });
     expect(await m.suspendMember(OP, { id, days: 7, reason: "운영 정책 위반 (테스트)", requestId: key(2) })).toEqual({ status: "OK" });
     expect((await m.suspendMember(OP, { id, days: 7, reason: "운영 정책 위반 (테스트)", requestId: key(3) })).status).toBe("INVALID");

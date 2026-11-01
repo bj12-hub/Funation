@@ -1875,7 +1875,7 @@ export const en: Messages = {
     chzzk: "CHZZK",
     marketing: "Marketing consent",
     // Consent / privacy wording: an approved translation is TBD (docs/development/i18n.md), so it stays Korean.
-    marketingConsent: "광고성 정보 수신 및 마케팅 활용 동의",
+    marketingConsent: "마케팅 활용 및 정보 수신 동의",
     saveError: "Couldn't save. Please try again shortly",
     withdraw: "Delete account"
   },
@@ -5795,7 +5795,7 @@ export const en: Messages = {
     effectiveDateValue: "Official launch date (TBD)",
     version: "Version",
     versionValue: "Draft v0.1",
-    draftBanner: "Draft: written to common standards and not yet reviewed by legal. It may change before the official launch.",
+    draftBanner: "Draft: based on FLEXTV's terms and adapted to Ssumnation, not yet reviewed by legal. It may change before the official launch.",
     toc: "Contents"
   },
   home: {

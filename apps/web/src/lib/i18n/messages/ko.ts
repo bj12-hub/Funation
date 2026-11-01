@@ -1904,7 +1904,7 @@ export const ko = {
     platformsNote: "방송 플랫폼 계정을 연동해 특별 리워드를 획득하세요.",
     chzzk: "치지직",
     marketing: "마케팅 수신 동의",
-    marketingConsent: "광고성 정보 수신 및 마케팅 활용 동의",
+    marketingConsent: "마케팅 활용 및 정보 수신 동의",
     saveError: "저장하지 못했습니다. 잠시 후 다시 시도해 주세요",
     withdraw: "회원 탈퇴"
   },
@@ -5883,7 +5883,7 @@ export const ko = {
     effectiveDateValue: "정식 오픈일 (TBD)",
     version: "버전",
     versionValue: "초안 v0.1",
-    draftBanner: "초안 — 일반적인 기준으로 작성했고 법무 검토 전이에요. 정식 오픈 전에 바뀔 수 있어요.",
+    draftBanner: "초안 — 플렉스티비 약관의 조건을 기준으로 썸네이션에 맞게 고쳤고 법무 검토 전이에요. 정식 오픈 전에 바뀔 수 있어요.",
     toc: "목차"
   },
   /** 홈 화면 (2026-11-01): UI text only — creator names, video titles, banners and notices are content. */

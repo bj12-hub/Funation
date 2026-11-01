@@ -73,7 +73,7 @@ describe("admin payments", () => {
     const m = await load();
     signIn(["ADMIN"]);
     const { refundPolicy } = (await m.getPaymentsView())!;
-    expect(refundPolicy.label).toBe("기본값 (일반적인 기준, 법무 검토 전)");
+    expect(refundPolicy.label).toBe("기본값 (플렉스티비 기준, 법무 검토 전)");
     expect(refundPolicy.summary).toContain("7일 이내");
     expect(refundPolicy.summary).toContain("수수료 10%");
     expect(refundPolicy.summary).toContain("원화 환불 금액은 환불 FN ÷ 충전 FN × 결제 금액, 원 미만 버림");

@@ -6,7 +6,7 @@ vi.mock("@/lib/session", () => mockSessionModule());
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 
 /**
- * 탈퇴 회원 정보 보관 (2026-10-08: 기본값 — 일반적인 기준, 법무 검토 전). One list of periods; each category of a
+ * 탈퇴 회원 정보 보관 (2026-10-08 기본값, 2026-11-01 플렉스티비 기준 — 법무 검토 전). One list of periods; each category of a
  * withdrawn account's data stays until its date and is removed or anonymised from then on; posts stay up under
  * "탈퇴한 회원"; the person key lets the same phone be the same person for a year after the withdrawal, not after.
  */
@@ -87,13 +87,13 @@ const signUp = (m: M, phone: string) => expect(m.startNewAccount({ nickname: "�
 describe("retention schedule", () => {
   it("lists every category once with its period, basis and what it covers, labelled as defaults", async () => {
     const m = await load();
-    expect(m.RETENTION_DEFAULTS_LABEL).toBe("기본값 (일반적인 기준, 법무 검토 전)");
+    expect(m.RETENTION_DEFAULTS_LABEL).toBe("기본값 (플렉스티비 기준, 법무 검토 전)");
     expect(m.RETENTION_RULES.map((r) => [r.category, r.label, r.period, r.basis, r.months])).toEqual([
       ["CONTRACT", "계약 · 청약철회 기록", "5년", "전자상거래법", 60],
-      ["PAYMENT", "대금결제 · 재화 공급 기록", "5년", "전자상거래법", 60],
+      ["PAYMENT", "대금결제 · 재화 공급 · 전자금융 거래 기록", "5년", "전자상거래법 · 전자금융거래법", 60],
       ["DISPUTE", "소비자 불만 · 분쟁 처리 기록", "3년", "전자상거래법", 36],
       ["ACCESS_LOG", "접속 기록", "3개월", "통신비밀보호법", 3],
-      ["PERSON_KEY", "부정 이용 방지용 본인 확인 값", "탈퇴 후 1년", "서비스 운영 (부정 이용 방지)", 12],
+      ["PERSON_KEY", "부정 이용 방지용 본인 확인 값", "탈퇴 후 6개월", "서비스 운영 (부정 이용 방지)", 6],
       ["POSTS", "게시물 (커뮤니티 글 · 댓글 · 채널 글)", "삭제하지 않음", "서비스 운영", null]
     ]);
     expect(m.retentionRule("PAYMENT").covers).toBe("FN 충전 · 환불 · 후원 · 정산 기록");
@@ -107,12 +107,12 @@ describe("retention schedule", () => {
       { category: "PAYMENT", until: "2031-10-08T03:00:00.000Z" },
       { category: "DISPUTE", until: "2029-10-08T03:00:00.000Z" },
       { category: "ACCESS_LOG", until: "2027-01-08T03:00:00.000Z" },
-      { category: "PERSON_KEY", until: "2027-10-08T03:00:00.000Z" },
+      { category: "PERSON_KEY", until: "2027-04-08T03:00:00.000Z" },
       { category: "POSTS", until: null }
     ]);
-    // 2026-11-30 KST + 3개월 → 2027-02-28 KST; 2028-02-29 KST + 1년 → 2029-02-28 KST.
+    // 2026-11-30 KST + 3개월 → 2027-02-28 KST; 2028-08-31 KST + 6개월 → 2029-02-28 KST.
     expect(m.retentionUntil("2026-11-30T01:00:00.000Z", "ACCESS_LOG")).toBe("2027-02-28T01:00:00.000Z");
-    expect(m.retentionUntil("2028-02-29T01:00:00.000Z", "PERSON_KEY")).toBe("2029-02-28T01:00:00.000Z");
+    expect(m.retentionUntil("2028-08-31T01:00:00.000Z", "PERSON_KEY")).toBe("2029-02-28T01:00:00.000Z");
     // 01:00 on 1월 31일 in Korea is still 1월 30일 in UTC: the Korean date decides (4월 30일 KST, not UTC).
     expect(m.retentionUntil("2027-01-30T16:00:00.000Z", "ACCESS_LOG")).toBe("2027-04-29T16:00:00.000Z");
     expect(() => m.retentionSchedule("not a date")).toThrow(RangeError);
@@ -181,7 +181,7 @@ describe("탈퇴 회원 정보 보관", () => {
     expect(m.accessLogOf(m.SAMPLE_MEMBER_ID)).toEqual([]);
     expect(record.purged).toEqual(["ACCESS_LOG"]);
 
-    // 본인 확인 값 — 탈퇴 후 1년.
+    // 본인 확인 값 — 탈퇴 후 6개월.
     await at(due.PERSON_KEY, -1);
     expect(record.person).not.toBeNull();
     await at(due.PERSON_KEY);
@@ -329,13 +329,13 @@ describe("탈퇴 회원 정보 보관", () => {
     const m = await load();
     await withdraw(m);
     const detail = (await m.getMemberDetail(m.SAMPLE_MEMBER_ID))!.member;
-    expect(detail.withdrawal!.retentionNote).toBe("기본값 (일반적인 기준, 법무 검토 전)");
+    expect(detail.withdrawal!.retentionNote).toBe("기본값 (플렉스티비 기준, 법무 검토 전)");
     expect(detail.withdrawal!.retention.map((r) => [r.label, r.period, r.until, r.purged])).toEqual([
       ["계약 · 청약철회 기록", "5년", "2031-10-08T03:00:00.000Z", false],
-      ["대금결제 · 재화 공급 기록", "5년", "2031-10-08T03:00:00.000Z", false],
+      ["대금결제 · 재화 공급 · 전자금융 거래 기록", "5년", "2031-10-08T03:00:00.000Z", false],
       ["소비자 불만 · 분쟁 처리 기록", "3년", "2029-10-08T03:00:00.000Z", false],
       ["접속 기록", "3개월", "2027-01-08T03:00:00.000Z", false],
-      ["부정 이용 방지용 본인 확인 값", "탈퇴 후 1년", "2027-10-08T03:00:00.000Z", false],
+      ["부정 이용 방지용 본인 확인 값", "탈퇴 후 6개월", "2027-04-08T03:00:00.000Z", false],
       ["게시물 (커뮤니티 글 · 댓글 · 채널 글)", "삭제하지 않음", null, false]
     ]);
     expect(detail.withdrawal!.retention[0]).toMatchObject({ basis: "전자상거래법", covers: "탈퇴 기록, 약관 동의 기록" });
@@ -361,7 +361,7 @@ describe("본인 확인 값 and the person key", () => {
   /** The sample event that is always running (mock events are dated relative to today). */
   const EVENT = "ev-first-donation";
 
-  it("lets the same phone be the same person up to a year after the withdrawal", async () => {
+  it("lets the same phone be the same person up to six months after the withdrawal", async () => {
     const m = await load();
     const { joinEvent } = await import("@/services/events/events");
     expect(await joinEvent(EVENT)).toEqual({ status: "JOINED" });
@@ -374,7 +374,7 @@ describe("본인 확인 값 and the person key", () => {
     expect(await m.getEvent(EVENT)).toMatchObject({ joined: true });
   });
 
-  it("drops the person key after that year: the same phone signs up as a new person", async () => {
+  it("drops the person key after those six months: the same phone signs up as a new person", async () => {
     const m = await load();
     const { joinEvent } = await import("@/services/events/events");
     expect(await joinEvent(EVENT)).toEqual({ status: "JOINED" });
@@ -390,18 +390,18 @@ describe("본인 확인 값 and the person key", () => {
     expect(await joinEvent(EVENT)).toEqual({ status: "JOINED" });
   });
 
-  it("counts the year from the person's latest withdrawal", async () => {
+  it("counts the six months from the person's latest withdrawal", async () => {
     const m = await load();
     const person = m.currentPersonKey();
     await withdraw(m);
-    // Back within the year with the same phone, then gone again three months later.
-    vi.setSystemTime(new Date("2027-04-08T03:00:00.000Z"));
+    // Back within the six months with the same phone, then gone again a month later.
+    vi.setSystemTime(new Date("2027-01-08T03:00:00.000Z"));
     signUp(m, "010-1234-5678");
     expect(m.currentPersonKey()).toBe(person);
-    vi.setSystemTime(new Date("2027-07-08T03:00:00.000Z"));
+    vi.setSystemTime(new Date("2027-02-08T03:00:00.000Z"));
     await withdraw(m, 2, "newpass12!");
-    // A year after the first withdrawal the first record's key is gone, the second one's is not.
-    vi.setSystemTime(new Date("2027-12-01T00:00:00.000Z"));
+    // Six months after the first withdrawal the first record's key is gone, the second one's is not.
+    vi.setSystemTime(new Date("2027-06-01T00:00:00.000Z"));
     signUp(m, "010-1234-5678");
     expect(m.currentPersonKey()).toBe(person);
     expect(m.withdrawnAccounts().map((a) => a.record.person?.key ?? null)).toEqual([null, person]);

@@ -15,7 +15,7 @@ import {
   type FnLedgerEvent
 } from "./refundPolicy";
 
-/** 환불 정책 기본값 (일반적인 기준, 법무 검토 전) — the pure rules; refund.test.ts runs them through the services. */
+/** 환불 정책 기본값 (플렉스티비 기준, 법무 검토 전) — the pure rules; refund.test.ts runs them through the services. */
 describe("환불 정책 기본값", () => {
   it("keeps the numbers in one place", () => {
     expect([REFUND_WITHDRAWAL_DAYS, REFUND_FEE_RATE]).toEqual([7, 0.1]);
@@ -95,7 +95,7 @@ describe("환불 정책 기본값", () => {
 
   it("tells the member and the console that a charge confirmed later counts from its 결제 확인 (기본값, 2026-10-13)", () => {
     // The member's summary sits under the 기본값 badge; the line follows the 청약철회 line.
-    expect(REFUND_POLICY_LABEL).toBe("기본값 (일반적인 기준, 법무 검토 전)");
+    expect(REFUND_POLICY_LABEL).toBe("기본값 (플렉스티비 기준, 법무 검토 전)");
     expect(REFUND_POLICY_LINES.slice(0, 2)).toEqual([
       "결제일로부터 7일 이내에 요청하고 충전한 FN을 하나도 쓰지 않았다면 전액 취소돼요 (수수료 없음).",
       "처리중이던 충전은 충전을 요청한 날이 아니라 결제가 확인된 날부터 7일을 계산해요."
