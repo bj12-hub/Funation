@@ -1,5 +1,6 @@
 import { fetchChannel } from "@/lib/flextv/donation";
 import { embedPlayerUrl, fetchWatch, flextvLiveUrl, type Watch } from "@/lib/flextv/live";
+import { FLEXTV_DEFAULT_AVATAR } from "@/lib/flextv/placeholders";
 import { getFlextvAccessToken } from "@/lib/session";
 import { loadFlextvCatalog } from "@/services/donations/flextvDonate";
 import type { CreatorRoom } from "./creatorRoom";
@@ -11,7 +12,6 @@ import type { CreatorRoom } from "./creatorRoom";
  * them). Server-only read; null when FLEXTV has no such channel.
  */
 
-const DEFAULT_AVATAR = "/mock/creators/creator-1.png";
 const OFFLINE_IMAGE = "/mock/room/offline.jpg";
 const FLEXTV_LOGO = "/mock/room/logo-flextv.png";
 
@@ -29,7 +29,7 @@ export async function getFlextvCreatorRoom(channelId: string): Promise<CreatorRo
     creatorId: channel.channelId,
     name: channel.owner.nickname,
     tagline: channel.description,
-    avatarUrl: channel.owner.thumbUrl ?? DEFAULT_AVATAR,
+    avatarUrl: channel.owner.thumbUrl ?? FLEXTV_DEFAULT_AVATAR,
     channels: [{ platform: "FLEXTV", logoUrl: FLEXTV_LOGO }],
     banner: null,
     stream: streamOf(channelId, watch, image),
@@ -50,7 +50,7 @@ function streamOf(channelId: string, watch: Watch, image: string): CreatorRoom["
         rankBadge: null,
         qualityLabel: "",
         goal: null,
-        embed: { playerUrl: embedPlayerUrl(channelId), streamId: watch.streamId }
+        embed: { playerUrl: embedPlayerUrl(channelId), streamId: watch.streamId, portrait: watch.portrait }
       };
     case "ON_FLEXTV":
       return {

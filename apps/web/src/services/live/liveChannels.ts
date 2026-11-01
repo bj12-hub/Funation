@@ -1,5 +1,6 @@
 import { fetchLiveList, type FlextvLive } from "@/lib/flextv/live";
 import { FLEXTV_LIVE } from "@/lib/flextv/mode";
+import { FLEXTV_DEFAULT_AVATAR, FLEXTV_NO_THUMBNAIL } from "@/lib/flextv/placeholders";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import type { Platform } from "@/types/platform";
 import { POPULAR_LIVE_COUNT, type LiveChannel } from "./liveTypes";
@@ -50,8 +51,8 @@ export function liveChannelOf(row: FlextvLive, now = Date.now()): LiveChannel {
     id: row.channelId,
     title: row.title,
     channelName: row.ownerNickname,
-    channelAvatarUrl: row.ownerThumbUrl ?? A(1),
-    thumbnailUrl: row.thumbnailUrl ?? T(1),
+    channelAvatarUrl: row.ownerThumbUrl ?? FLEXTV_DEFAULT_AVATAR,
+    thumbnailUrl: row.thumbnailUrl ?? FLEXTV_NO_THUMBNAIL,
     viewerCount: row.viewers,
     platform: "FLEXTV",
     elapsedSeconds: Number.isFinite(started) ? Math.max(0, Math.floor((now - started) / 1000)) : 0,

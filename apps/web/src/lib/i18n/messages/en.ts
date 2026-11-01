@@ -7310,6 +7310,7 @@ export const en: Messages = {
     addPrize: "+ Add prize"
   },
   flextvSettlement: {
+    metaHome: "Settlement status | Ssumnation Creator",
     homeTitle: "Settlement status",
     tileAvailable: "Available",
     tileInProgress: "In progress",
