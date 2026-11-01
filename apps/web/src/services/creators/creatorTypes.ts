@@ -30,3 +30,6 @@ export const CREATOR_SORT_LABEL: Record<CreatorSort, string> = {
   live: "라이브",
   recent: "최신순"
 };
+
+/** With FLEXTV (phase 7) there is no 최신순: FLEXTV lists no new channels. */
+export const FLEXTV_CREATOR_SORTS: readonly CreatorSort[] = ["popular", "live"];

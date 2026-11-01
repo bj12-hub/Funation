@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { CreatorRoomScreen } from "@/features/creatorRoom";
 import { fetchChannel, isFlextvChannelId } from "@/lib/flextv/donation";
-import { FLEXTV_DONATION } from "@/lib/flextv/mode";
+import { FLEXTV_DONATION, FLEXTV_SITE } from "@/lib/flextv/mode";
 import { getSession } from "@/lib/session";
 import { getMyAccount } from "@/services/account/myAccount";
 import { getMovedChannelHandle } from "@/services/channel/channel";
@@ -32,6 +32,8 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     const channel = await fetchChannel(id).catch(() => null);
     return { title: channel ? `${channel.owner.nickname} | Ssumnation` : (await getT())("room.meta") };
   }
+  // With FLEXTV (phase 7) the mock's creators are not shown.
+  if (FLEXTV_SITE) return { title: (await getT())("room.meta") };
   const creator = await getCreatorById(id);
   return { title: creator ? `${creator.name} | Ssumnation` : (await getT())("room.meta") };
 }
@@ -40,6 +42,8 @@ export default async function Page({ params, searchParams }: { params: Params; s
   const { id } = await params;
   const { tab, view, show } = await searchParams;
   if (FLEXTV_DONATION && isFlextvChannelId(id)) return <FlextvRoom channelId={id} view={tab === "donation" ? "home" : parseChannelView(view)} donationTab={tab === "donation"} />;
+  // With FLEXTV (phase 7) every list links FLEXTV's channels: the mock's creators are not shown.
+  if (FLEXTV_SITE) notFound();
   const postsShow = Math.min(Math.max(CHANNEL_POSTS_PAGE, Math.floor(Number(show)) || CHANNEL_POSTS_PAGE), 100);
   const channelView = tab === "donation" ? "home" : parseChannelView(view);
   const [room, account, favorite, crew, creator, ranking, posts, videos, vote, fanNotes] = await Promise.all([
@@ -86,17 +90,17 @@ export default async function Page({ params, searchParams }: { params: Params; s
  * Ssumnation's own parts of a room are empty here and not shown.
  */
 async function FlextvRoom({ channelId, view, donationTab }: { channelId: string; view: ChannelView; donationTab: boolean }) {
-  const [room, session, balance] = await Promise.all([getFlextvCreatorRoom(channelId), getSession(), getWalletBalance()]);
+  const [room, session, balance, favorite] = await Promise.all([getFlextvCreatorRoom(channelId), getSession(), getWalletBalance(), isFavorite(channelId)]);
   if (!room) notFound();
   return (
     <CreatorRoomScreen
       room={room}
       viewer={session ? { nickname: session.nickname, fnBalance: balance } : null}
-      isFavorite={false}
+      isFavorite={favorite}
       initialTab={donationTab || room.stream.status !== "LIVE" || !room.stream.embed ? "DONATION" : "CHAT"}
       view={view === "signatures" ? "signatures" : "home"}
       crew={{ members: [] }}
-      about={{ description: room.tagline, categories: [], subscriberCount: 0, joinedAt: "" }}
+      about={{ description: room.tagline, categories: [], subscriberCount: room.followers ?? 0, joinedAt: "" }}
       ranking={{ month: "", rows: [] }}
       posts={{ items: [], total: 0, hasMore: false }}
       postsShow={CHANNEL_POSTS_PAGE}

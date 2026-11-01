@@ -106,7 +106,10 @@ export async function CreatorRoomScreen({
               </ul>
             </div>
             <span className={styles.tagline}>{room.tagline}</span>
-            {!flextv && <span className={channel.subscribers}>{t("room.subscribers", { count: formatCompact(about.subscriberCount, locale) })}</span>}
+            {/* A FLEXTV channel shows its 즐겨찾기 count (phase 7); FLEXTV's 구독 is its paid membership. */}
+            <span className={channel.subscribers}>
+              {t(flextv ? "room.favoritesCount" : "room.subscribers", { count: formatCompact(about.subscriberCount, locale) })}
+            </span>
           </div>
         </div>
         <div className={styles.creatorActions}>
@@ -114,7 +117,7 @@ export async function CreatorRoomScreen({
           <Link href={donateHref} className={channel.donateButton} scroll={false}>
             {t("room.donate")}
           </Link>
-          {!flextv && <RoomActions creatorId={room.creatorId} name={room.name} initialFavorite={isFavorite} signedIn={viewer !== null} />}
+          <RoomActions creatorId={room.creatorId} name={room.name} initialFavorite={isFavorite} signedIn={viewer !== null} flextv={flextv} />
         </div>
       </div>
 

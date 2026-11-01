@@ -36,7 +36,7 @@ describe("studio sidebar active item", () => {
   it("offers only the pages connected to FLEXTV with its backend (phase 5)", () => {
     const flextv = studioGroups(true);
     const hrefs = flextv.flatMap((g) => g.items.map((i) => i.href));
-    expect(hrefs).toEqual(["/creator", "/creator/broadcast", "/creator/revenue", "/creator/donations?tab=list", "/creator/settlement", "/creator/settlement/register", "/creator/settlement/apply", "/creator/settlement/manage"]);
+    expect(hrefs).toEqual(["/creator", "/creator/settings", "/creator/broadcast", "/creator/revenue", "/creator/donations?tab=list", "/creator/settlement", "/creator/settlement/register", "/creator/settlement/apply", "/creator/settlement/manage"]);
     // Every one is a page the middleware serves with FLEXTV.
     for (const href of hrefs) expect(flextvStudioServes(href!.split("?")[0])).toBe(true);
     expect(studioActiveHref("/creator/donations", null, flextv)).toBe("/creator/donations?tab=list");

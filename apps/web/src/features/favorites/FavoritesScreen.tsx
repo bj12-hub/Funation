@@ -2,8 +2,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { SearchLargeIcon, VerifiedCheckIcon } from "@/components/icons";
 import { Button } from "@/components/ui/Button";
+import { FLEXTV_SITE } from "@/lib/flextv/mode";
 import { formatCompact } from "@/lib/format";
 import { getLocale, getT } from "@/lib/i18n/server";
+import { remote } from "@/lib/remoteImage";
 import type { FavoritesPage, PromotionBanner } from "@/services/favorites/favorites";
 import { RemoveFavoriteButtons } from "./RemoveFavoriteButtons";
 import styles from "./favorites.module.css";
@@ -90,7 +92,7 @@ export async function FavoritesScreen({ data, query, promotion }: Props) {
           {data.items.map((c) => (
             <li key={c.creatorId} className={styles.row}>
               <RemoveFavoriteButtons creatorId={c.creatorId} name={c.name} part="heart" />
-              <Image src={c.avatarUrl} alt="" width={48} height={48} className={styles.avatar} />
+              <Image src={c.avatarUrl} alt="" width={48} height={48} className={styles.avatar} unoptimized={remote(c.avatarUrl)} />
               <div className={styles.details}>
                 <span className={styles.nameRow}>
                   <Link href={`/creators/${c.creatorId}`} className={styles.name}>
@@ -102,7 +104,7 @@ export async function FavoritesScreen({ data, query, promotion }: Props) {
                     </span>
                   )}
                 </span>
-                <span className={styles.subs}>{t("myFavorites.subscribers", { count: formatCompact(c.subscriberCount, locale) })}</span>
+                <span className={styles.subs}>{t(FLEXTV_SITE ? "myFavorites.favorites" : "myFavorites.subscribers", { count: formatCompact(c.subscriberCount, locale) })}</span>
               </div>
               <span className={`${styles.status} ${c.isLive ? styles.live : ""}`}>{c.isLive ? t("myFavorites.live") : t("myFavorites.offline")}</span>
               <div className={styles.actions}>

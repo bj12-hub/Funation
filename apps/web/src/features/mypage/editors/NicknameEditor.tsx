@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
+import { FLEXTV_SITE } from "@/lib/flextv/mode";
+import { FLEXTV_NICKNAME_MAX, isFlextvNickname } from "@/lib/flextv/rules";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { isValidNickname } from "@/lib/validation";
@@ -25,8 +27,12 @@ type State =
   | { kind: "ERROR" }
   | { kind: "CHANGED"; value: string };
 
+/** With FLEXTV (phase 7) its nickname rule: members keep their FLEXTV nickname (lib/flextv/rules.ts). */
+const NICKNAME_MAX = FLEXTV_SITE ? FLEXTV_NICKNAME_MAX : 12;
+const isNickname = FLEXTV_SITE ? isFlextvNickname : isValidNickname;
+
 const NOTICES: Partial<Record<State["kind"], [MessageKey, MessageKey]>> = {
-  INVALID: ["myEdit.nickInvalid", "myEdit.nickInvalidHint"],
+  INVALID: ["myEdit.nickInvalid", FLEXTV_SITE ? "myEdit.flextvNickInvalidHint" : "myEdit.nickInvalidHint"],
   DUPLICATE: ["myEdit.nickDuplicate", "myEdit.nickDuplicateHint"],
   FORBIDDEN: ["myEdit.forbidden", "myEdit.nickForbiddenHint"]
 };
@@ -52,7 +58,7 @@ export function NicknameEditor({ triggerClassName }: { triggerClassName: string 
   }
 
   async function runCheck() {
-    if (!isValidNickname(value)) return setState({ kind: "INVALID" });
+    if (!isNickname(value)) return setState({ kind: "INVALID" });
     setBusy("check");
     try {
       const result = await checkNickname(value);
@@ -65,7 +71,7 @@ export function NicknameEditor({ triggerClassName }: { triggerClassName: string 
   }
 
   async function submit() {
-    if (!isValidNickname(value)) return setState({ kind: "INVALID" });
+    if (!isNickname(value)) return setState({ kind: "INVALID" });
     setBusy("submit");
     try {
       const result = await changeNickname(value);
@@ -128,8 +134,8 @@ export function NicknameEditor({ triggerClassName }: { triggerClassName: string 
                   id="nickname-input"
                   ref={inputRef}
                   className={`${styles.input} ${changed ? styles.changedValue : ""}`}
-                  placeholder={t("myEdit.nickPlaceholder")}
-                  maxLength={12}
+                  placeholder={FLEXTV_SITE ? t("auth.nicknamePlaceholder", { min: 2, max: NICKNAME_MAX }) : t("myEdit.nickPlaceholder")}
+                  maxLength={NICKNAME_MAX}
                   value={changed ? state.value : value}
                   readOnly={changed || limited}
                   aria-invalid={errored || undefined}
@@ -156,7 +162,7 @@ export function NicknameEditor({ triggerClassName }: { triggerClassName: string 
 
           <div id="nickname-notice" aria-live="polite">
             {state.kind === "AVAILABLE" && <p className={styles.available}>{t("myEdit.nickAvailable")}</p>}
-            {notice && <Notice tone="error" title={`! ${t(notice[0])}`} body={t(notice[1])} />}
+            {notice && <Notice tone="error" title={`! ${t(notice[0])}`} body={t(notice[1], { max: NICKNAME_MAX })} />}
             {state.kind === "LIMITED" && (
               <Notice tone="error" title={`! ${t("myEdit.nickLimited")}`} body={t("myEdit.nickLimitedHint", { date: formatKoreanDate(state.availableFrom, locale) })} />
             )}

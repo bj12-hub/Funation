@@ -19,6 +19,7 @@ const KIND_KEY: Record<NotificationKind, MessageKey> = {
   SETTLEMENT: "notifications.kindSettlement",
   EVENT: "notifications.kindEvent",
   NOTICE: "notifications.kindNotice",
+  LIVE: "notifications.kindLive",
   SYSTEM: "notifications.kindSystem"
 };
 
@@ -68,7 +69,7 @@ export function NotificationsScreen({ page, filter, show }: { page: Notification
                 <span className={styles.text}>
                   <span className={styles.meta}>
                     {t(KIND_KEY[n.kind])}
-                    {now !== null && ` · ${agoText(n.createdAt, now, t)}`}
+                    {now !== null && n.createdAt && ` · ${agoText(n.createdAt, now, t)}`}
                     {!n.read && <span className={styles.dot} aria-label={t("notifications.unread")} />}
                   </span>
                   <strong>{n.title}</strong>

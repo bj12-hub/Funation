@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { CommunityOutlineIcon, HomeIcon, StarIcon, UserIcon } from "@/components/icons";
+import { FLEXTV_SITE } from "@/lib/flextv/mode";
+import { flextvServesLink } from "@/lib/flextv/siteRoutes";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { GlobalHeader } from "../GlobalHeader";
@@ -19,6 +21,9 @@ const TABS: { href: string; label: MessageKey; Icon: typeof HomeIcon }[] = [
   { href: "/community", label: "side.community", Icon: CommunityOutlineIcon },
   { href: "/mypage", label: "side.groupMy", Icon: UserIcon }
 ];
+
+/** With FLEXTV, without the pages it has no backend for (lib/flextv/siteRoutes.ts). */
+const SITE_TABS = FLEXTV_SITE ? TABS.filter((tab) => flextvServesLink(tab.href)) : TABS;
 
 /**
  * Site shell for every (main) page — funnation structure: header on top, the side menu on the left on
@@ -61,7 +66,7 @@ export function AppShell({ user, children }: { user: SideNavUser | null; childre
         <div className={styles.main}>{children}</div>
       </div>
       <nav className={styles.tabBar} aria-label={t("common.mainMenu")}>
-        {TABS.map(({ href, label, Icon }) => {
+        {SITE_TABS.map(({ href, label, Icon }) => {
           const active = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
           return (
             <Link key={href} href={user || href === "/" ? href : `/login?next=${href}`} className={styles.tab} aria-current={active ? "page" : undefined}>

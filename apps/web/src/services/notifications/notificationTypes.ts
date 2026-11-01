@@ -3,7 +3,7 @@
  * Which events notify, retention, and push / e-mail delivery are TBD.
  */
 
-export type NotificationKind = "DONATION_SENT" | "DONATION_RECEIVED" | "CHARGE" | "REFUND" | "SETTLEMENT" | "EVENT" | "NOTICE" | "SYSTEM";
+export type NotificationKind = "DONATION_SENT" | "DONATION_RECEIVED" | "CHARGE" | "REFUND" | "SETTLEMENT" | "EVENT" | "NOTICE" | "LIVE" | "SYSTEM";
 
 export const NOTIFICATION_KIND_LABEL: Record<NotificationKind, { emoji: string; label: string }> = {
   DONATION_SENT: { emoji: "💝", label: "후원" },
@@ -15,10 +15,13 @@ export const NOTIFICATION_KIND_LABEL: Record<NotificationKind, { emoji: string; 
   /** 이벤트 보상 지급 · 당첨자 발표 (2026-10-09 결정). */
   EVENT: { emoji: "🎉", label: "이벤트" },
   NOTICE: { emoji: "📢", label: "공지" },
+  /** With FLEXTV (phase 7): a channel in the member's 즐겨찾기 went live. */
+  LIVE: { emoji: "📺", label: "방송 시작" },
   SYSTEM: { emoji: "✨", label: "안내" }
 };
 
-export type SiteNotification = { id: string; kind: NotificationKind; title: string; body: string; href: string; createdAt: string; read: boolean };
+/** `createdAt` is null for FLEXTV's 알림, which carry no time (phase 7). */
+export type SiteNotification = { id: string; kind: NotificationKind; title: string; body: string; href: string; createdAt: string | null; read: boolean };
 
 export type NotificationFilter = "ALL" | "UNREAD";
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ChevronDownIcon, MailIcon, MessageSquareIcon, PhoneIcon, SearchMediumIcon } from "@/components/icons";
+import { FLEXTV_SITE, FLEXTV_WEB_URL } from "@/lib/flextv/mode";
 import { formatKst, formatNumber } from "@/lib/format";
 import { getT } from "@/lib/i18n/server";
 import {
@@ -48,6 +49,8 @@ const faqHref = (category?: FaqCategory, q?: string) => {
 /**
  * Customer support — tabs follow funnation 고객센터 (공지사항 · 자주 묻는 질문 · 1:1 문의).
  * Figma 고객센터 4:7 (hero, search, FAQ accordion, 문의 방법) visuals are kept. Route `/support`.
+ * With FLEXTV (phase 7) FLEXTV's notices, questions and 1:1 문의: no categories or view counts, and a 문의 is written
+ * on FLEXTV's site.
  */
 export async function SupportScreen({ tab, notices, faqs, query, category, inquiries }: Props) {
   const t = await getT();
@@ -93,7 +96,7 @@ function NoticeList({ notices, t }: { notices: Notice[]; t: T }) {
             <strong className={local.noticeTitle}>{n.title}</strong>
             <span className={local.noticeSummary}>{n.summary}</span>
             <span className={local.noticeMeta}>
-              {n.date.replace(/-/g, ". ")}. · {t("support.views", { count: formatNumber(n.views) })}
+              {n.date.replace(/-/g, ". ")}.{!FLEXTV_SITE && ` · ${t("support.views", { count: formatNumber(n.views) })}`}
             </span>
           </Link>
         </li>
@@ -108,16 +111,18 @@ function FaqPanel({ faqs, query, category, t }: { faqs: FaqItem[]; query?: strin
       <h2 id="support-faq" className={local.srOnly}>
         {t("support.tabFaq")}
       </h2>
-      <nav className={local.chips} aria-label={t("support.faqCategories")}>
-        <Link href={faqHref(undefined, query)} className={local.chip} aria-current={!category ? "page" : undefined}>
-          {t("support.all")}
-        </Link>
-        {FAQ_CATEGORIES.map((c) => (
-          <Link key={c.key} href={faqHref(c.key, query)} className={local.chip} aria-current={category === c.key ? "page" : undefined}>
-            {t(FAQ_CATEGORY_KEY[c.key])}
+      {!FLEXTV_SITE && (
+        <nav className={local.chips} aria-label={t("support.faqCategories")}>
+          <Link href={faqHref(undefined, query)} className={local.chip} aria-current={!category ? "page" : undefined}>
+            {t("support.all")}
           </Link>
-        ))}
-      </nav>
+          {FAQ_CATEGORIES.map((c) => (
+            <Link key={c.key} href={faqHref(c.key, query)} className={local.chip} aria-current={category === c.key ? "page" : undefined}>
+              {t(FAQ_CATEGORY_KEY[c.key])}
+            </Link>
+          ))}
+        </nav>
+      )}
       {query && <p className={local.note}>{t("support.results", { query, count: faqs.length })}</p>}
       {faqs.length === 0 ? (
         <div className={styles.empty}>
@@ -133,13 +138,16 @@ function FaqPanel({ faqs, query, category, t }: { faqs: FaqItem[]; query?: strin
               <details className={styles.faq}>
                 <summary className={styles.faqQuestion}>
                   <span>
-                    <span className={local.faqCategory}>{t(FAQ_CATEGORY_KEY[faq.category])}</span>
+                    {!FLEXTV_SITE && <span className={local.faqCategory}>{t(FAQ_CATEGORY_KEY[faq.category])}</span>}
                     {faq.question}
                   </span>
                   <ChevronDownIcon className={styles.faqChevron} />
                 </summary>
                 <div className={styles.faqAnswer}>
-                  <p>{faq.answer ?? t("support.answerPending")}</p>
+                  {/* By position: FLEXTV's answers come as lines (lib/flextv/support.ts). */}
+                  {(faq.answer ?? t("support.answerPending")).split("\n").map((line, i) => (
+                    <p key={i}>{line}</p>
+                  ))}
                   {faq.link && (
                     <Link href={faq.link.href} className={styles.faqLink}>
                       {faq.link.label} →
@@ -176,7 +184,16 @@ function InquiryPanel({ inquiries, t }: { inquiries: Inquiry[] | null; t: T }) {
         </div>
       ) : (
         <>
-          <InquiryForm />
+          {FLEXTV_SITE ? (
+            <div className={local.empty}>
+              <p>{t("support.flextvInquiry")}</p>
+              <a href={`${FLEXTV_WEB_URL}/cs/inquiry`} target="_blank" rel="noopener noreferrer" className={styles.emptyLink}>
+                {t("support.flextvInquiryLink")}
+              </a>
+            </div>
+          ) : (
+            <InquiryForm />
+          )}
           <section className={styles.section} aria-labelledby="my-inquiries">
             <h2 id="my-inquiries" className={styles.sectionTitle}>
               {t("support.myInquiries")}
@@ -190,7 +207,7 @@ function InquiryPanel({ inquiries, t }: { inquiries: Inquiry[] | null; t: T }) {
                     <details className={local.notice}>
                       <summary className={local.inquirySummary}>
                         <span className={local.tags}>
-                          <span className={local.tag}>{t(FAQ_CATEGORY_KEY[q.category])}</span>
+                          {!FLEXTV_SITE && <span className={local.tag}>{t(FAQ_CATEGORY_KEY[q.category])}</span>}
                           <span className={`${local.tag} ${q.status === "ANSWERED" ? local.tagDone : ""}`}>{t(INQUIRY_STATUS_KEY[q.status])}</span>
                         </span>
                         <strong className={local.noticeTitle}>{q.title}</strong>

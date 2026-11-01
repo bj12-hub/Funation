@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BellOutlineIcon } from "@/components/icons";
+import { FLEXTV_SITE } from "@/lib/flextv/mode";
 import { agoText } from "@/features/notifications/agoText";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { getUnreadCount, listNotifications, markAllNotificationsRead, markNotificationRead } from "@/services/notifications/notifications";
@@ -91,7 +92,7 @@ export function NotificationBell() {
       <button
         type="button"
         className={styles.iconButton}
-        aria-label={unread ? `${t("common.notifications")} (${unread})` : t("common.notifications")}
+        aria-label={unread ? `${t("common.notifications")} (${FLEXTV_SITE ? t("flextvHeader.newNotifications") : unread})` : t("common.notifications")}
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={toggle}
@@ -99,7 +100,8 @@ export function NotificationBell() {
         <BellOutlineIcon />
         {unread > 0 && (
           <span className={styles.bellBadge} aria-hidden="true">
-            {unread > 99 ? "99+" : unread}
+            {/* FLEXTV tells only that there is something new (phase 7). */}
+            {FLEXTV_SITE ? "N" : unread > 99 ? "99+" : unread}
           </span>
         )}
       </button>
@@ -133,7 +135,7 @@ export function NotificationBell() {
                     <span className={styles.bellText}>
                       <strong>{n.title}</strong>
                       <span>{n.body}</span>
-                      <small>{agoText(n.createdAt, Date.now(), t)}</small>
+                      {n.createdAt && <small>{agoText(n.createdAt, Date.now(), t)}</small>}
                     </span>
                   </button>
                 </li>
