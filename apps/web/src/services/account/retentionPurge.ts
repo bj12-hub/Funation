@@ -12,9 +12,9 @@ import { mockCredits } from "@/services/wallet/mockCreditStore";
 import { mockFnSettlements } from "@/services/wallet/mockFnSettlementStore";
 import { mockRefunds } from "@/services/wallet/mockRefundStore";
 import { mockWallet } from "@/services/wallet/mockWalletStore";
-import { isRetentionExpired, retentionSchedule, type RetentionCategory } from "./retentionPolicy";
+import { isRetentionExpired, retentionSchedule, retentionUntil, type RetentionCategory } from "./retentionPolicy";
 import { applyDueWithdrawal } from "./withdrawalApply";
-import { accountAt, withdrawnAccounts, type Withdrawal } from "./withdrawalCore";
+import { accountAt, withdrawalStore, withdrawnAccounts, type CancelledWithdrawalRequest, type Withdrawal } from "./withdrawalCore";
 
 /**
  * Mock retention purge (./retentionPolicy.ts, 기본값 — 법무 검토 전): once a category's date has come, the withdrawn
@@ -81,11 +81,22 @@ const PURGE: Record<Exclude<RetentionCategory, "POSTS">, (t: Target) => void> = 
   },
 
   /**
-   * 계약 기록: the withdrawal record keeps only when it happened (the admin directory no longer lists the account), and
-   * the nickname stored with its kept posts, comments, channel posts, block entries and the reports about them goes.
+   * 계약 기록: the withdrawal record keeps only when it happened (the admin directory no longer lists the account) — its
+   * 탈퇴 신청 (when, the consented amounts) and the cancelled ones go with it — and the nickname stored with its kept
+   * posts, comments, channel posts, block entries and the reports about them goes.
    */
   CONTRACT: (t) => {
-    Object.assign(t.record, { requestedAt: null, requestId: "", forfeitedFn: 0, forfeitedEarningsFn: 0, nickname: WITHDRAWN_MEMBER_NAME, ssumnationId: "", consents: null });
+    Object.assign(t.record, {
+      requestedAt: null,
+      requestId: "",
+      forfeitedFn: 0,
+      forfeitedEarningsFn: 0,
+      consented: null,
+      cancelled: [],
+      nickname: WITHDRAWN_MEMBER_NAME,
+      ssumnationId: "",
+      consents: null
+    });
     for (const p of mockCommunity.posts) {
       if (p.authorId === t.memberId) p.authorName = WITHDRAWN_MEMBER_NAME;
       for (const c of p.comments) if (c.authorId === t.memberId) c.authorName = WITHDRAWN_MEMBER_NAME;
@@ -101,13 +112,23 @@ const PURGE: Record<Exclude<RetentionCategory, "POSTS">, (t: Target) => void> = 
 };
 
 /**
- * Removes or anonymises every withdrawn account's data whose retention date is at or before `now`. Idempotent: each
- * category of an account is purged once (`Withdrawal.purged`). A 탈퇴 신청 due by `now` is applied first
- * (./withdrawalApply.ts, 2026-11-01 사용자 결정), so its record — dated at its `effectiveAt` — is purged on the same
- * rules.
+ * 철회한 탈퇴 신청 (2026-11-02 사용자 결정) are 계약 기록 too: each goes 5 years after its 철회 (counted like the
+ * withdrawal record's 5 years, from the day it ended), on an active account and in a withdrawn account's record alike.
+ */
+const keptCancellations = (list: CancelledWithdrawalRequest[], now: Date) =>
+  list.filter((c) => !isRetentionExpired(retentionUntil(c.cancelledAt, "CONTRACT"), now));
+
+/**
+ * Removes or anonymises every withdrawn account's data whose retention date is at or before `now`, and cancelled 탈퇴
+ * 신청 past theirs. Idempotent: each category of an account is purged once (`Withdrawal.purged`). A 탈퇴 신청 due by
+ * `now` is applied first (./withdrawalApply.ts, 2026-11-01 사용자 결정), so its record — dated at its `effectiveAt` —
+ * is purged on the same rules.
  */
 export function purgeExpired(now: Date = new Date()) {
   applyDueWithdrawal(now);
+  const store = withdrawalStore();
+  store.cancelled = keptCancellations(store.cancelled, now);
+  for (const a of withdrawnAccounts()) a.record.cancelled = keptCancellations(a.record.cancelled, now);
   for (const a of withdrawnAccounts()) {
     const target: Target = { record: a.record, account: a.account, memberId: a.n === null ? SAMPLE_MEMBER_ID : withdrawnMemberId(a.n) };
     for (const due of retentionSchedule(a.record.at)) {
