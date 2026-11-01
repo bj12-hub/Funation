@@ -34,7 +34,11 @@ export const ko = {
     bellLoadError: "알림을 불러오지 못했어요.",
     bellEmpty: "새 알림이 없어요.",
     bellAll: "전체 알림 보기",
-    bannerMore: "자세히 보기 ›"
+    bannerMore: "자세히 보기 ›",
+    unitKrw: "원",
+    unitSoopBalloon: "별풍선",
+    unitChzzkCheese: "치즈",
+    unitFlextv: "FlexTV 후원"
   },
   /** 크루 점수 게임 (2026-11-01): the studio cards' UI text only — titles, signature and member names, results and OBS overlays stay as written. */
   crewGame: {
@@ -5944,6 +5948,22 @@ export const ko = {
     termsLoading: "약관을 불러오는 중…",
     globalErrorTitle: "일시적인 오류가 발생했어요",
     globalErrorBody: "잠시 후 다시 시도해 주세요."
+  },
+  /**
+   * 약관 · 정책 문서 화면의 틀 (2026-11-01): the menu, the draft badge and banner, 시행일 · 버전 and 목차. The draft values
+   * mirror TERMS_DRAFT in features/terms/drafts/common.ts. Document titles and bodies stay Korean until an approved
+   * translation exists.
+   */
+  termsPage: {
+    metaFallback: "약관",
+    docsAria: "약관·정책 문서",
+    draftBadge: "초안",
+    effectiveDate: "시행일",
+    effectiveDateValue: "정식 오픈일 (TBD)",
+    version: "버전",
+    versionValue: "초안 v0.1",
+    draftBanner: "초안 — 일반적인 기준으로 작성했고 법무 검토 전이에요. 정식 오픈 전에 바뀔 수 있어요.",
+    toc: "목차"
   },
   /** 홈 화면 (2026-11-01): UI text only — creator names, video titles, banners and notices are content. */
   home: {
