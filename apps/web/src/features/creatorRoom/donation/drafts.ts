@@ -10,10 +10,11 @@ import { parseYouTubeId, type DonationDetails } from "@/services/donations/donat
  * `expectedAmount` so a price changed meanwhile is refused instead of charged).
  */
 
-export type TextState = { amount: string; message: string; voiceId: string | null };
+/** `readAloud`: only where the catalog offers the choice (`readAloudChoice`). */
+export type TextState = { amount: string; message: string; voiceId: string | null; readAloud: boolean };
 export type MiniState = { amount: string; text: string; colorId: string; enterToSend: boolean };
 export type VideoState = { amount: string; url: string; start: string; end: string; terms: boolean };
-export type SignatureState = { signatureId: string | null; message: string };
+export type SignatureState = { signatureId: string | null; message: string; readAloud: boolean };
 export type WishlistState = { itemId: string | null; message: string; voiceId: string | null };
 
 /** `limitReached` comes from the room's 룰렛 status (today's 참여 가능 횟수); the server checks again. */
@@ -48,11 +49,11 @@ const korean: Translate = (key, vars) => translate(messagesFor("ko"), key, vars)
 export function initialStates(catalog: DonationCatalog): FormStates {
   const voiceId = catalog.voices[0]?.id ?? null;
   return {
-    TEXT: { amount: "", message: "", voiceId },
+    TEXT: { amount: "", message: "", voiceId, readAloud: true },
     MINI: { amount: "", text: "", colorId: catalog.miniColors[1]?.id ?? catalog.miniColors[0]?.id ?? "", enterToSend: true },
     VIDEO: { amount: "", url: "", start: "00:00", end: "00:30", terms: false },
     AUDIO: { amount: "", url: "", start: "00:00", end: "00:30", terms: false },
-    SIGNATURE: { signatureId: null, message: "" },
+    SIGNATURE: { signatureId: null, message: "", readAloud: true },
     WISHLIST: { itemId: null, message: "", voiceId },
     // 펀페이 1009:510: the 참여 금액 starts at the minimum.
     ROULETTE: { amount: String(catalog.roulette.minAmount), limitReached: false },
@@ -61,6 +62,10 @@ export function initialStates(catalog: DonationCatalog): FormStates {
     GACHA: { gachaId: catalog.gacha.find((x) => !x.soldOut)?.id ?? catalog.gacha[0]?.id ?? null, terms: false, limitReached: false }
   };
 }
+
+/** The confirm step's "메시지 읽어주기" row, where the room offers the choice and there is a message to read. */
+const readAloudRow = (catalog: DonationCatalog, s: { message: string; readAloud: boolean }, t: Translate) =>
+  catalog.readAloudChoice && s.message.trim() ? [{ label: t("roomDonate.readAloud"), value: t(s.readAloud ? "roomDonate.readAloudOn" : "roomDonate.readAloudOff") }] : [];
 
 /** Minutes + seconds → seconds, or null when not a valid positive time. */
 export function timeToSec(time: TimeLimit): number | null {
@@ -118,10 +123,13 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
       const min = catalog.minAmount.TEXT;
       const tooSmall = amount !== null && amount < min;
       return {
-        details: amount !== null && !tooSmall ? { type: "TEXT", amount, message: s.message.trim(), voiceId: s.voiceId } : null,
+        details:
+          amount !== null && !tooSmall
+            ? { type: "TEXT", amount, message: s.message.trim(), voiceId: s.voiceId, ...(catalog.readAloudChoice ? { readAloud: s.readAloud } : {}) }
+            : null,
         amount,
         error: tooSmall ? t("roomDonate.minAmount", { amount: formatNumber(min) }) : null,
-        summary: [{ label: t("roomDonate.message"), value: s.message.trim() || t("roomDonate.noMessage") }],
+        summary: [{ label: t("roomDonate.message"), value: s.message.trim() || t("roomDonate.noMessage") }, ...readAloudRow(catalog, s, t)],
         chatText: s.message.trim()
       };
     }
@@ -187,12 +195,15 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
       const s = states.SIGNATURE;
       const signature = catalog.signatures.find((x) => x.id === s.signatureId) ?? null;
       return {
-        details: signature ? { type: "SIGNATURE", signatureId: signature.id, message: s.message.trim(), expectedAmount: signature.price } : null,
+        details: signature
+          ? { type: "SIGNATURE", signatureId: signature.id, message: s.message.trim(), expectedAmount: signature.price, ...(catalog.readAloudChoice ? { readAloud: s.readAloud } : {}) }
+          : null,
         amount: signature?.price ?? null,
         error: null,
         summary: [
           { label: t("roomDonate.rowSignature"), value: signature?.name ?? "-" },
-          { label: t("roomDonate.shortMessage"), value: s.message.trim() || t("roomDonate.noMessage") }
+          { label: t("roomDonate.shortMessage"), value: s.message.trim() || t("roomDonate.noMessage") },
+          ...readAloudRow(catalog, s, t)
         ],
         chatText: `✨ ${signature?.name ?? ""}${s.message.trim() ? ` · ${s.message.trim()}` : ""}`
       };

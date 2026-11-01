@@ -2,6 +2,7 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import type { Platform } from "@/types/platform";
 import type { DonationCatalog } from "@/services/donations/donationCatalog";
 import { getDonationCatalog } from "@/services/donations/signatureCore";
+import type { RoomLive } from "@/services/live/roomLiveTypes";
 import { getCreatorById } from "./creators";
 
 /**
@@ -40,6 +41,10 @@ export type LiveStream = {
    */
   embed?: { playerUrl: string; streamId: string; portrait: boolean };
   onFlextv?: { url: string; reason: "ADULT" | "LOCKED" | "FAN_ONLY" | "FULL" | "BANNED" };
+  /** A FLEXTV stream played here (phase 10): when it started, its 방송 카테고리, and its viewers and top donors now. */
+  startedAt?: string | null;
+  category?: string | null;
+  live?: RoomLive;
 };
 
 export type OfflineStream = { status: "OFFLINE"; imageUrl: string };

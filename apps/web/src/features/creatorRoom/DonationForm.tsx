@@ -61,7 +61,8 @@ export function DonationForm({
   signedIn,
   fnBalance,
   onDonated,
-  extras = true
+  extras = true,
+  pick = null
 }: {
   creatorId: string;
   name: string;
@@ -74,6 +75,8 @@ export function DonationForm({
    * channel, which has none of them (FLEXTV backend).
    */
   extras?: boolean;
+  /** A signature picked elsewhere in the room (its 시그니처 tab): selects 시그니처 with it, once per `seq`. */
+  pick?: { signatureId: string; seq: number } | null;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -117,6 +120,17 @@ export function DonationForm({
   // so a retry after a lost answer, an edit or a toggle can never debit twice.
   const submitState = useRef<SubmitState<FormKey>>({ unsettled: null });
   const sending = useRef(false);
+
+  useEffect(() => {
+    if (!pick) return;
+    const index = donation.types.findIndex((t) => t.key === "SIGNATURE");
+    if (index < 0) return;
+    setTypeIndex(index);
+    setChipPage(Math.floor(index / CHIPS_PER_PAGE));
+    setStates((s) => ({ ...s, SIGNATURE: { ...s.SIGNATURE, signatureId: pick.signatureId } }));
+    // Only a new pick (seq) moves the form; the catalog does not change while the room is open.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pick?.seq]);
 
   const type = donation.types[typeIndex];
   const formKey = isFormKey(type.key) && type.available ? type.key : null;

@@ -29,6 +29,8 @@ beforeEach(() => {
   const g = globalThis as Record<string, unknown>;
   delete g.__ssumnationFlextvLive;
   delete g.__ssumnationFlextvChat;
+  delete g.__ssumnationFlextvRoomLive;
+  delete g.__ssumnationFlextvThemes;
   routes = {
     "/api/channels/live-list-main": () =>
       json({
@@ -78,6 +80,17 @@ describe("라이브 목록 (FLEXTV)", () => {
     // The public list: asked without the member's token.
     expect(calls[0].auth).toBeNull();
   });
+
+  it("gives each live FLEXTV's 방송 카테고리, and none when FLEXTV's categories cannot be read (phase 10)", async () => {
+    const rows = (await routes["/api/channels/live-list-main"]().json()) as { data: Record<string, unknown>[] };
+    routes["/api/channels/live-list-main"] = () => json({ data: [{ ...rows.data[0], themeId: 5 }, { ...rows.data[1], themeId: 99 }], count: 2 });
+    routes["/api/guest/themes"] = () => json([{ key: 1, value: "5", text: "토크/캠방" }, { key: 2, value: "9", text: "게임" }]);
+    const { getAllLiveChannels } = await import("./liveChannels");
+    expect((await getAllLiveChannels()).map((l) => [l.id, l.category])).toEqual([
+      ["3022", null],
+      ["3021", { id: "5", name: "토크/캠방" }]
+    ]);
+  });
 });
 
 describe("채널 방 영상 (FLEXTV)", () => {
@@ -85,6 +98,24 @@ describe("채널 방 영상 (FLEXTV)", () => {
     const { getFlextvCreatorRoom } = await import("@/services/creators/flextvChannel");
     const room = await getFlextvCreatorRoom("3021");
     expect(room?.stream).toMatchObject({ status: "LIVE", caption: "저녁 방송", viewerCount: 42, embed: { playerUrl: "https://www.flextv.test/embed/channels/3021/play", streamId: "77" } });
+  });
+
+  it("shows the stream's category, start and running figures under its player (phase 10)", async () => {
+    routes["/api/channels/3021/stream"] = () =>
+      json({ stream: { id: 77, title: "저녁 방송", themeId: 9, createdAt: "2026-10-30T09:00:00.000Z" }, status: { barrier: {}, performance: { viewerCount: 42 }, startedAt: "2026-10-30T09:00:03.000Z" } });
+    routes["/api/guest/themes"] = () => json([{ key: 2, value: "9", text: "게임" }]);
+    routes["/api/channels/3021/stream/player-count"] = () => json({ data: 57 });
+    routes["/v2/api/guest/RealTimeChannelRanking"] = () => json({ data: [{ id: 5, loginId: "fan05", rank: 1, nickname: "열혈팬", amount: 3000, thumbUrl: null }], count: 1 });
+    const { getFlextvCreatorRoom } = await import("@/services/creators/flextvChannel");
+    const room = await getFlextvCreatorRoom("3021");
+    expect(room?.stream).toMatchObject({
+      status: "LIVE",
+      viewerCount: 57,
+      startedAt: "2026-10-30T09:00:03.000Z",
+      category: "게임",
+      live: { viewers: 57, donors: [{ rank: 1, nickname: "열혈팬", amount: 3000, avatarUrl: null }] }
+    });
+    expect(JSON.stringify(room)).not.toContain("fan05");
   });
 
   it("sends a 19+ stream to FLEXTV, and shows an ended one as offline", async () => {

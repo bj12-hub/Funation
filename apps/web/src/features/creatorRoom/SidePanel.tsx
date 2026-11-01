@@ -1,24 +1,37 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { formatNumber } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { MessageKey } from "@/lib/i18n/translate";
+import { remote } from "@/lib/remoteImage";
 import type { CreatorRoom } from "@/services/creators/creatorRoom";
 import { ChatPanel } from "./ChatPanel";
 import { MOCK_MESSAGES, type ChatMessage } from "./chatMessages";
 import { DonationForm } from "./DonationForm";
 import { FlextvChat } from "./FlextvChat";
+import { StreamDonors } from "./RoomLive";
 import styles from "./room.module.css";
 
-export type Tab = "DONATION" | "CHAT";
+export type Tab = "DONATION" | "CHAT" | "SIGNATURES";
 
 const TABS: { key: Tab; label: MessageKey }[] = [
   { key: "DONATION", label: "room.tabDonate" },
   { key: "CHAT", label: "room.tabChat" }
 ];
 
-/** Figma 420×600 right panel: 후원하기 (610:138) / 채팅하기 (826:685). */
+/** A FLEXTV channel's room (phase 10, funnation's live room): 채팅 · 후원 · 시그니처. */
+const FLEXTV_TABS: { key: Tab; label: MessageKey }[] = [
+  { key: "CHAT", label: "room.tabChatShort" },
+  { key: "DONATION", label: "room.tabDonateShort" },
+  { key: "SIGNATURES", label: "room.tabSignatures" }
+];
+
+/**
+ * Figma 420×600 right panel: 후원하기 (610:138) / 채팅하기 (826:685). A FLEXTV channel's room (phase 10) has 채팅 (with
+ * 이번 방송 후원 랭킹 over it) · 후원 · 시그니처, after funnation's live room; 채팅 only while its stream plays here.
+ */
 export function SidePanel({
   room,
   signedIn,
@@ -38,8 +51,12 @@ export function SidePanel({
   // it here; otherwise 후원하기 only.
   const flextv = room.source === "FLEXTV";
   const flextvStream = flextv && room.stream.status === "LIVE" ? (room.stream.embed ?? null) : null;
-  const tabs = flextv && !flextvStream ? TABS.filter((item) => item.key === "DONATION") : TABS;
-  const [tab, setTab] = useState<Tab>(flextv && !flextvStream ? "DONATION" : initialTab);
+  const tabs = flextv
+    ? FLEXTV_TABS.filter((item) => (item.key !== "CHAT" || flextvStream) && (item.key !== "SIGNATURES" || room.donation.signatures.length > 0))
+    : TABS;
+  const [tab, setTab] = useState<Tab>(tabs.some((item) => item.key === initialTab) ? initialTab : tabs[0].key);
+  // A signature picked on the 시그니처 tab opens the 후원 tab with it chosen.
+  const [pick, setPick] = useState<{ signatureId: string; seq: number } | null>(null);
   // Local echo only; the realtime chat and donation feed are TBD.
   const [messages, setMessages] = useState<ChatMessage[]>(MOCK_MESSAGES);
   const sendChat = (text: string) =>
@@ -86,6 +103,7 @@ export function SidePanel({
           fnBalance={fnBalance}
           onDonated={announceDonation}
           extras={!flextv}
+          pick={pick}
         />
       </div>
       {!flextv && (
@@ -95,7 +113,35 @@ export function SidePanel({
       )}
       {flextvStream && (
         <div id="room-panel-CHAT" role="tabpanel" aria-labelledby="room-tab-CHAT" className={styles.tabPanel} hidden={tab !== "CHAT"}>
+          <StreamDonors />
           <FlextvChat channelId={room.creatorId} streamId={flextvStream.streamId} signedIn={signedIn} />
+        </div>
+      )}
+      {flextv && room.donation.signatures.length > 0 && (
+        <div id="room-panel-SIGNATURES" role="tabpanel" aria-labelledby="room-tab-SIGNATURES" className={styles.tabPanel} hidden={tab !== "SIGNATURES"}>
+          <ul className={styles.sigPicker} aria-label={t("room.tabSignatures")}>
+            {[...room.donation.signatures]
+              .sort((a, b) => a.rank - b.rank)
+              .map((s) => (
+                <li key={s.id}>
+                  <button
+                    type="button"
+                    className={styles.sigPick}
+                    title={t("room.sigPickTitle")}
+                    onClick={() => {
+                      setPick((p) => ({ signatureId: s.id, seq: (p?.seq ?? 0) + 1 }));
+                      setTab("DONATION");
+                    }}
+                  >
+                    <span className={styles.sigPickImage}>
+                      <Image src={s.imageUrl} alt="" fill sizes="120px" unoptimized={remote(s.imageUrl)} />
+                    </span>
+                    <strong className={styles.sigPickPrice}>{formatNumber(s.price)} FN</strong>
+                    <span className={styles.sigPickName}>{s.name}</span>
+                  </button>
+                </li>
+              ))}
+          </ul>
         </div>
       )}
     </section>

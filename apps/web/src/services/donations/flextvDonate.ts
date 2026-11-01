@@ -84,7 +84,9 @@ export function flextvCatalog(
     gacha: settings.gacha,
     // 그림 · 퀘스트 share the streamer's minimum and title length; the longest 퀘스트 time limit is theirs too.
     game: { minAmount: settings.game.minAmount, maxText: settings.game.maxTitle, maxTimeSec: settings.quest?.maxTimeSec ?? base.game.maxTimeSec },
-    ...(video?.enabled ? { mediaPricing: { VIDEO: { perSecond: video.perSecond, maxSec: video.maxSec } } } : {})
+    ...(video?.enabled ? { mediaPricing: { VIDEO: { perSecond: video.perSecond, maxSec: video.maxSec } } } : {}),
+    // FLEXTV reads a message aloud unless the supporter turns it off (phase 10); it is in chat either way.
+    readAloudChoice: true
   };
 }
 
@@ -92,7 +94,7 @@ export function flextvCatalog(
 export async function loadFlextvCatalog(channelId: string, token: string | null): Promise<DonationCatalog> {
   const [signatures, video, settings] = await Promise.all([
     fetchSignatures(channelId, token).catch(() => []),
-    fetchVideoSetting(channelId).catch(() => null),
+    fetchVideoSetting(channelId, token).catch(() => null),
     FLEXTV_SSUMNATION_API ? fetchDonationSettings(channelId).catch(() => NO_SETTINGS) : Promise.resolve(NO_SETTINGS)
   ]);
   return flextvCatalog(signatures, { video, settings });
@@ -104,6 +106,8 @@ type Parsed = {
   signatureCode: string | null;
   expectedAmount: number | null;
   message: string;
+  /** Read the message aloud (FLEXTV's TTS); off, it is only in chat. */
+  readAloud: boolean;
   key: string;
   /** 영상 후원 and Ssumnation's own types: the request as sent, checked against the channel's catalog at the send. */
   other: Record<string, unknown> | null;
@@ -120,7 +124,7 @@ export function parseDonation(input: unknown): Parsed | { invalid: string | null
   if ((r.nicknameId ?? null) !== null || (r.memberId ?? null) !== null) return { invalid: null };
   const message = cleanMessage(r.message) ?? "";
   if (message.length > FLEXTV_MESSAGE_MAX) return { invalid: `메시지는 ${FLEXTV_MESSAGE_MAX}자까지 쓸 수 있어요.` };
-  const base = { channelId: r.creatorId, message, key: r.idempotencyKey, other: null };
+  const base = { channelId: r.creatorId, message, readAloud: r.readAloud !== false, key: r.idempotencyKey, other: null };
   if (r.type === "TEXT") {
     const amount = r.amount;
     if (typeof amount !== "number" || !Number.isInteger(amount) || amount < 1 || amount > MAX_AMOUNT) return { invalid: null };
@@ -225,7 +229,7 @@ async function send(token: string, p: Parsed, entry: Entry): Promise<DonationRes
 
   let outcome: SendOutcome;
   try {
-    outcome = await sendDonation(token, context, { channelId: p.channelId, amount: required, signatureCode: p.signatureCode, message: video ? "" : p.message, video });
+    outcome = await sendDonation(token, context, { channelId: p.channelId, amount: required, signatureCode: p.signatureCode, message: video ? "" : p.message, video, readAloud: p.readAloud });
   } catch (error) {
     if (!(error instanceof FlextvUnavailableError)) throw error;
     entry.reconcile = settled;

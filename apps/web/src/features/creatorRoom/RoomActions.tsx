@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { addFavorite, removeFavorite } from "@/services/favorites/favorites";
+import { FlextvReportButton } from "../moderation/FlextvReportButton";
 import { ModerationActions } from "../moderation/ModerationActions";
 import styles from "./room.module.css";
 
@@ -13,7 +14,8 @@ type ToastState = { message: string; tone: "accent" | "neutral" } | null;
 
 /**
  * Figma 826:510 favorite toggle + 826:387 share modal. In a FLEXTV channel's room (phase 7) the 즐겨찾기 is FLEXTV's,
- * which asks for its 본인인증, a 쪽지 goes to the owner's 아이디 (`messageTo`, phase 9), and 신고 · 차단 are not there.
+ * which asks for its 본인인증, a 쪽지 goes to the owner's 아이디 (`messageTo`, phase 9), and 신고 is FLEXTV's 방송 신고
+ * (phase 10); there is no 차단.
  */
 export function RoomActions({
   creatorId,
@@ -93,7 +95,11 @@ export function RoomActions({
             {t("room.message")}
           </button>
         )}
-        {!flextv && <ModerationActions target={{ type: "CREATOR", id: creatorId }} signedIn={signedIn} block={false} className={styles.reportLink} />}
+        {flextv ? (
+          <FlextvReportButton channelId={creatorId} signedIn={signedIn} className={styles.reportLink} />
+        ) : (
+          <ModerationActions target={{ type: "CREATOR", id: creatorId }} signedIn={signedIn} block={false} className={styles.reportLink} />
+        )}
       </div>
       <ShareModal
         open={shareOpen}

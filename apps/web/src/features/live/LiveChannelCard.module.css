@@ -128,3 +128,14 @@
   color: var(--color-text-tertiary);
   font-size: var(--font-size-11);
 }
+
+/* FLEXTV 방송 카테고리 (phase 10) */
+.category {
+  align-self: flex-start;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-chip-bg);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-11);
+  font-weight: var(--font-weight-semibold);
+}

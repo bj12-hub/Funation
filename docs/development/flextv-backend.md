@@ -24,6 +24,7 @@ broadcasting is part of Ssumnation. The mock services are replaced area by area,
 | 7 | The remaining screens: 마이페이지, 즐겨찾기, 알림, 크리에이터 찾기, the home, 고객센터, 채널 설정; the rest not served | **done** (below, "7단계") |
 | 8 | The 위젯 page: 오버레이 테마 and the look of the overlays FLEXTV runs, kept by FLEXTV | **front done** (below, "8단계"), against contract §10 |
 | 9 | What FLEXTV already has an API for: 쪽지 · 차단, the room's 소식 · 팬 랭킹, 채팅 관리, 1:1 문의 작성, 이벤트, 명예의 전당 | **done** (below, "9단계") |
+| 10 | funnation's renewed structure (2026-10-30): the channel room's live info · 이번 방송 후원 랭킹 · 탭 · 방송 신고, the home's and `/live`'s 방송 카테고리, 방송 설정's 지금 방송 | **done** (below, "10단계") |
 
 One switch turns on every phase built so far. Since phase 7 no page a member reaches with FLEXTV shows the mock: what
 FLEXTV has no backend for is not served (below, "7단계"), so a production build no longer runs into a missing mock.
@@ -266,6 +267,27 @@ These pages are served again with FLEXTV (`lib/flextv/siteRoutes.ts`), and 채�
 `lib/flextv/messages.ts`, `room.ts`, `chatSettings.ts`, `support.ts`, `events.ts` and the `services/**/flextv*.ts`
 they serve.
 
+## 10단계 · 펀네이션 구성 (채널 방 · 홈 · 라이브 · 방송 설정)
+
+funnation.co.kr renewed itself (2026-10) into the shape planned for Ssumnation: its own live streaming beside YouTube
+lives, with watching, chat and donating on one screen. Ssumnation follows that structure on FLEXTV, whose broadcasting
+stays the streaming infrastructure (2026-10-30 결정, docs/product/open-decisions.md). Funnation's business rules (등급별
+수수료, 가입 이벤트 포인트) are not taken over.
+
+| Screen | FLEXTV | Notes |
+|---|---|---|
+| 채널 방, under the player (`/creators/[id]`) | `GET /api/channels/:id/stream?option=all` (`status.startedAt`, `stream.themeId`), `GET /api/guest/themes`, `GET /api/channels/:id/stream/player-count` | The stream's title, 방송 카테고리, 시청자 now and 방송 시간, as funnation's room shows them. The figures are asked again every 15 seconds while the page is visible, one read per channel serving every open room for 5 seconds |
+| 채널 방, over the chat | `GET /v2/api/guest/RealTimeChannelRanking?channelId=` | 이번 방송 후원 랭킹: FLEXTV's running stream's top three by 렉스 (FLEXTV clears it when the stream ends; its own site does not show it). Nickname, picture and amount; member numbers and 아이디 stay on the server |
+| 채널 방 탭 | — | 채팅 (while the stream plays here) · 후원 · 시그니처. A signature picked on 시그니처 opens 후원 with it chosen |
+| 후원 form | `POST /api/luv/send`, `GET /api/luv/effect-settings` | "메시지 읽어주기" (on by default): off sends no TTS effect, so the message is only in chat. 영상 후원's setting is now read with the member's token — FLEXTV serves `/api/luv/*` to members only, so it was never offered before |
+| 방송 신고 (the room's 신고) | `GET /api/guest/refcode/bjreportCategory`, `POST /api/cs/declaration-post` (multipart) | FLEXTV's 신고 form from a live room: 유형, 내용 (1000자), the streamer's member number as `targetId` (looked up on the server) and `reportTypes` 1; a 제목 "[방송 신고] 방송인" is filled in. Once per request id. Answered by FLEXTV's operators in FLEXTV's 신고 내역 |
+| 홈 · 썸네이션 라이브, `/live` | `GET /api/channels/live-list-main` (`themeId`), `GET /api/guest/themes` | FLEXTV's 방송 카테고리 as chips (the ones on air, most lives first) on the home's live block — renamed 썸네이션 라이브 — and on `/live` (`?category=`), which also sorts 시청자순 · 최신순. FLEXTV filters nothing by category, so the list is filtered here. The mock keeps no categories (2026-10-02) |
+| 방송 설정 · 지금 방송 (`/creator/broadcast`) | `GET /api/channels/:id/stream/players`, `…/stream/player-count-accumulate`, `POST …/stream/dumb` · `…/stream/kick` · `…/stream/freeze`, `POST /api/channels/:id/blacklist` | While on air: 방송 시간, 시청자 now and in all, 채팅 얼리기, a 미리보기 in FLEXTV's player, 이번 방송 후원 랭킹 and the first 50 in the room (방송인 · 매니저 · 열혈팬 · 팬 · 시청자) with 채팅 금지 (FLEXTV lifts it after 60 seconds), 내보내기 (once) and 블랙리스트 (listed, then out of the room, as FLEXTV's chat menu does). A viewer is named by 아이디 and looked up in the room when acted on |
+
+Code: `lib/flextv/live.ts` (viewers, top donors), `liveControl.ts`, `support.ts` (신고), `services/live/flextvRoomLive.ts`,
+`services/moderation/flextvReport.ts`, `services/creator/flextvLiveControl.ts` and the room, home, `/live` and 방송 설정
+screens.
+
 ## FLEXTV-side changes needed before opening to the public
 
 1. **본인인증 from Ssumnation.** FLEXTV charges only members who did its NICE 본인인증, and NICE returns to a fixed
@@ -288,6 +310,12 @@ they serve.
     mark one 알림 read or say when it came.
 11. **Linking and unlinking social logins** for an existing member (FLEXTV only signs up or in with them), if 마이페이지
     is to offer it as Ssumnation's design does.
+12. **다시보기 for viewers** (phase 10): FLEXTV keeps recorded streams for their streamer only
+    (`/api/my/stream/recorded-stream-list`), so a room cannot offer funnation's 다시보기 yet.
+13. **A source for 유튜브 라이브** (phase 10): funnation's home lists its creators' YouTube lives; FLEXTV has only its
+    curated YouTube videos (`/api/vod/view-youtube`), so the home shows 썸네이션 라이브 alone.
+14. **The live room's figures as events** (phase 10): FLEXTV's own room hears viewers and the stream's ranking over its
+    socket; Ssumnation asks every 15 seconds. `RealTimeChannelRanking` has the top three only and no stream id.
 
 ## Known limits
 
@@ -298,6 +326,8 @@ they serve.
   The 탈퇴 철회 card (회원탈퇴 유예, 2026-11-01) is the mock's: what FLEXTV answers during a 탈퇴 신청's 30 days is
   checked on staging.
 - A 간편 로그인 session ends with the browser (no "로그인 유지" choice on that path yet).
+- The room's 이번 방송 후원 랭킹 is FLEXTV's top three; 방송 설정's 시청자 list is the first 50; a 내보내기 does not keep
+  the viewer out (블랙리스트 does). The home has no 유튜브 라이브 row and the room no 다시보기 (above, items 12 and 13).
 - Payletter returns to a FLEXTV page that closes the window; a payment abandoned in the window stays "not completed"
   (FLEXTV records no failure for it).
 - Not connected: 내통장결제 (Hecto's SDK), 해외카드 (NICE), 현금영수증, refunds, pending 무통장 requests in 충전 내역.
