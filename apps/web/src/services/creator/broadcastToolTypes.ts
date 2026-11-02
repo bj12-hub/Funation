@@ -49,15 +49,21 @@ export const CREDITS_STYLES: { key: CreditsStyle; label: string }[] = [
   { key: "FILM", label: "영화 크레딧" },
   { key: "CRAWL", label: "스타워즈 크롤" }
 ];
-/** TODAY: today (Korea time) until now. CREW: the crew broadcast on now, or the last one that ended (its start ~ end). */
-export type CreditsPeriod = "TODAY" | "CREW";
+/**
+ * TODAY: today (Korea time) until now. CREW: the crew broadcast on now, or the last one that ended (its start ~ end).
+ * PROJECT (프로젝트 전체 — StreamDonate 엔딩 크레딧 "프리셋별 집계", 프리셋 = 프로젝트, 2026-11-02): every 회차 of the
+ * project of the crew broadcast on now, or of the last one that ended with a project — each 회차's start ~ end, members by
+ * their 회차 points added up as on 누적 기여도.
+ */
+export type CreditsPeriod = "TODAY" | "CREW" | "PROJECT";
 export const CREDITS_PERIODS: { key: CreditsPeriod; label: string }[] = [
   { key: "TODAY", label: "오늘" },
-  { key: "CREW", label: "크루 방송" }
+  { key: "CREW", label: "크루 방송" },
+  { key: "PROJECT", label: "프로젝트 전체" }
 ];
 /**
- * MVP 기준 (2026-10-28, StreamDonate 엔딩 크레딧 "MVP 기준 — 기여도 · 후원금액"): on the CREW period, the member with the
- * most crew points or the most FN sent for them during the broadcast. TODAY reads FN either way.
+ * MVP 기준 (2026-10-28, StreamDonate 엔딩 크레딧 "MVP 기준 — 기여도 · 후원금액"): on the CREW (and PROJECT) period, the
+ * member with the most crew points or the most FN sent for them during the broadcast (its 회차). TODAY reads FN either way.
  */
 export type CreditsMvpBasis = "POINTS" | "AMOUNT";
 export const CREDITS_MVP_BASES: { key: CreditsMvpBasis; label: string }[] = [
@@ -72,7 +78,8 @@ export const CREDITS_LIST_MAX = 30;
 /**
  * Sections in the order they roll; `max` = how many rows a list shows (`unit`: 명 or 개). Titles left blank use the default.
  * HOT 시그 · HIGH 시그 (2026-10-25, StreamDonate 참고 — 기본값): the signatures donations alerted as in the period — HOT by
- * how many times, HIGH by the largest donation that alerted as each.
+ * how many times, HIGH by the largest donation that alerted as each. 열혈 랭킹 (2026-11-02, StreamDonate 엔딩 크레딧 "열혈
+ * 랭킹" 참고 — 기본값): the channel's donors by everything they have sent so far, whatever the period; off by default.
  */
 export const CREDITS_SECTIONS = [
   { key: "total", label: "총 후원", title: "총 후원", list: false, unit: "명" },
@@ -81,10 +88,17 @@ export const CREDITS_SECTIONS = [
   { key: "donors", label: "후원 순위", title: "후원 순위", list: true, unit: "명" },
   { key: "hotSigs", label: "HOT 시그", title: "HOT 시그", list: true, unit: "개" },
   { key: "highSigs", label: "HIGH 시그", title: "HIGH 시그", list: true, unit: "개" },
-  { key: "members", label: "멤버별", title: "멤버별 순위", list: true, unit: "명" }
+  { key: "members", label: "멤버별", title: "멤버별 순위", list: true, unit: "명" },
+  { key: "fans", label: "열혈 랭킹", title: "열혈 랭킹", list: true, unit: "명" }
 ] as const;
 export type CreditsSectionKey = (typeof CREDITS_SECTIONS)[number]["key"];
 export type CreditsSection = { on: boolean; title: string; max: number };
+
+/**
+ * 집계 스냅샷 (2026-11-02, StreamDonate 엔딩 크레딧 "집계 스냅샷" 참고): the credits roll the numbers as they were at `at`
+ * (집계 고정) instead of live ones, for the 집계 기간 and MVP 기준 saved then — saving another releases it.
+ */
+export type CreditsSnapshot = { at: string; period: CreditsPeriod; mvpBasis: CreditsMvpBasis };
 
 /** `rollingSince` null = not rolling (overlay hidden); a new value restarts the roll. `thanks` roll last. */
 export type CreditsState = {
@@ -96,9 +110,11 @@ export type CreditsState = {
   mvpBasis: CreditsMvpBasis;
   sections: Record<CreditsSectionKey, CreditsSection>;
   rollingSince: string | null;
+  /** null = live numbers. */
+  snapshot: CreditsSnapshot | null;
 };
 
-export const DEFAULT_CREDITS: Omit<CreditsState, "rollingSince"> = {
+export const DEFAULT_CREDITS: Omit<CreditsState, "rollingSince" | "snapshot"> = {
   title: "오늘의 방송을 함께해 주신 분들",
   thanks: ["시청해 주신 모든 분들 감사합니다"],
   style: "FILM",
@@ -112,7 +128,8 @@ export const DEFAULT_CREDITS: Omit<CreditsState, "rollingSince"> = {
     donors: { on: true, title: "", max: 10 },
     hotSigs: { on: true, title: "", max: 5 },
     highSigs: { on: true, title: "", max: 5 },
-    members: { on: true, title: "", max: 10 }
+    members: { on: true, title: "", max: 10 },
+    fans: { on: false, title: "", max: 10 }
   }
 };
 
@@ -121,7 +138,7 @@ export const DEFAULT_CREDITS: Omit<CreditsState, "rollingSince"> = {
  * the 대체 메시지 rules replaced are left out); `total` counts every completed Ssumnation donation (FN). `members`: the
  * crew — FN sent for each member today, or the crew scoreboard's points (`unit` 점) on the CREW period. `mvp` = the
  * first member with more than 0 — on the CREW period by MVP 기준 (points, or FN sent for them during the broadcast). `periodLabel` names the period ("오늘" · the broadcast's title); `empty` = no crew
- * broadcast to read on the CREW period.
+ * broadcast to read on the CREW period (no project broadcast on PROJECT, members in 점 as on CREW).
  */
 export type CreditsData = {
   periodLabel: string;
@@ -135,6 +152,8 @@ export type CreditsData = {
   hotSigs: { rank: number; name: string; count: number }[];
   /** HIGH 시그: signatures by the largest donation that alerted as them (ties by name). */
   highSigs: { rank: number; name: string; fnAmount: number }[];
+  /** 열혈 랭킹: donors by all they have sent the channel until now (or the snapshot), by the 후원랭킹 rules. */
+  fans: { rank: number; name: string; fnAmount: number }[];
 };
 
 /**
