@@ -401,6 +401,23 @@ describe("누적 기여도", () => {
     expect(board.rows.map((r) => `${r.name} ${r.past}+${r.current}=${r.total}`)).toEqual(["하늘 12000+0=12000", "길동 5000+2000=7000", "바다 0+0=0"]);
     expect(m.cumulativeText(board.rows[1].total, board.unit)).toBe("7,000 FN");
 
+    // 둘 다 (2026-11-02): ranked by 기여도 as on 기여도, each member's 후원금 as on 후원금 beside it.
+    const amounts = new Map(board.rows.map((r) => [r.memberId, r]));
+    expect(await m.saveCumulative({ title: "", basis: "POINTS", rows: 10, showBreakdown: true, showRounds: true, placement: "FLOAT" })).toEqual({ status: "SAVED" });
+    const points = (await m.getBroadcastView())!.live!.cumulative;
+    expect(points).toMatchObject({ unit: "점", amountUnit: null, amountTotal: 0 });
+    expect(points.rows.every((r) => r.amount === null)).toBe(true);
+    expect(await m.saveCumulative({ title: "", basis: "BOTH", rows: 10, showBreakdown: true, showRounds: true, placement: "FLOAT" })).toEqual({ status: "SAVED" });
+    const both = (await m.getBroadcastView())!.live!.cumulative;
+    expect(both).toMatchObject({ unit: "점", amountUnit: "FN", total: points.total, amountTotal: 19_000 });
+    expect(both.rows.map((r) => [r.rank, r.name, r.total, r.amount])).toEqual(
+      points.rows.map((r) => {
+        const a = amounts.get(r.memberId)!;
+        return [r.rank, r.name, r.total, { past: a.past, current: a.current, total: a.total }];
+      })
+    );
+    expect(await m.saveCumulative({ title: "", basis: "AMOUNT", rows: 10, showBreakdown: true, showRounds: true, placement: "FLOAT" })).toEqual({ status: "SAVED" });
+
     // 원화 기준: every unit with its 환산값 (today's), before the 배수 규칙.
     expect(await m.setExcelSettings({ unit: "KRW", rates: { FN: 1.5 }, rules: [{ min: 1, multiplier: 2 }] })).toEqual({ status: "SAVED" });
     board = (await m.getBroadcastView())!.live!.cumulative;

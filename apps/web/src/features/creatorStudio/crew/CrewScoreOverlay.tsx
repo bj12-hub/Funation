@@ -379,7 +379,8 @@ export function TeamPrizeOverlay({ board, reloadSeq, theme }: { board: TeamPrize
 
 /**
  * 누적 기여도 overlay (`?cumulative`): the top members by their project total (ended 회차 + this one), with 지난 · 이번 회차
- * under each when chosen. Shown only while 방송 운영 has OBS에 표시 on.
+ * under each when chosen, and on 둘 다 (2026-11-02) the 기여도 in 점 with the 후원금 beside it. Shown only while 방송 운영
+ * has OBS에 표시 on.
  */
 export function CumulativeOverlay({ board, reloadSeq, theme }: { board: CumulativeLive | null; reloadSeq: number; theme: ResolvedTheme }) {
   useOverlayPage(reloadSeq);
@@ -405,7 +406,15 @@ export function CumulativeOverlay({ board, reloadSeq, theme }: { board: Cumulati
                 <i className={styles.dot} style={{ background: r.color }} aria-hidden="true" /> {r.name}
               </span>
               <span className={`${ov.muted} ${styles.prizeText}`}>{s.showBreakdown && `지난 ${cumulativeText(r.past, board.unit)} · 이번 ${cumulativeText(r.current, board.unit)}`}</span>
-              <span className={`${ov.display} ${styles.score}`}>{cumulativeText(r.total, board.unit)}</span>
+              <span className={`${ov.display} ${styles.score}`}>
+                {r.amount && board.amountUnit ? (
+                  <>
+                    {formatNumber(r.total)}점<small className={`${ov.muted} ${styles.scoreSide}`}> · {cumulativeText(r.amount.total, board.amountUnit)}</small>
+                  </>
+                ) : (
+                  cumulativeText(r.total, board.unit)
+                )}
+              </span>
             </li>
           ))}
         </ol>

@@ -4,14 +4,15 @@ import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { saveCumulative, setCumulativeVisible } from "@/services/crew/crewCumulative";
 import {
+  CUMULATIVE_BASES,
   CUMULATIVE_ROWS,
   CUMULATIVE_SORTS,
   CUMULATIVE_TITLE_DEFAULT,
   PRIZE_PLACEMENTS,
   PRIZE_TITLE_MAX,
-  WINDOW_GAUGE_BASES,
   cumulativeText,
   type BroadcastResult,
+  type CumulativeBasis,
   type CumulativeLive,
   type CumulativeSettings,
   type CumulativeSort
@@ -21,6 +22,7 @@ import styles from "./crew.module.css";
 import prize from "./prize.module.css";
 
 const SORT_KEY: Record<CumulativeSort, MessageKey> = { TOTAL: "crewOpsBoards.sortTotal", ORDER: "crewOpsBoards.sortOrder" };
+const BASIS_KEY: Record<CumulativeBasis, MessageKey> = { ...AMOUNT_BASIS_KEY, BOTH: "crewOpsBoards.basisBoth" };
 
 /**
  * 누적 기여도 — code-first (no Figma frame; StreamDonate 누적 기여도 참고, 2026-10-25), inside `/creator/crew/broadcast`. Each
@@ -80,9 +82,9 @@ export function CumulativePanel({
         <div className={prize.field}>
           <span className={styles.muted}>{t("crewOpsBoards.basisLabel")}</span>
           <span className={styles.segment} role="group" aria-label={t("crewOpsBoards.cumBasisAria")}>
-            {[...WINDOW_GAUGE_BASES].reverse().map((b) => (
+            {CUMULATIVE_BASES.map((b) => (
               <button key={b.key} type="button" aria-pressed={draft.basis === b.key} onClick={() => edit({ basis: b.key })}>
-                {t(AMOUNT_BASIS_KEY[b.key])}
+                {t(BASIS_KEY[b.key])}
               </button>
             ))}
           </span>
@@ -148,6 +150,7 @@ export function CumulativePanel({
                   </span>
                   <span className={prize.previewPrize}>
                     {t("crewOpsBoards.cumPastCurrent", { past: cumulativeText(r.past, board.unit), current: cumulativeText(r.current, board.unit) })}
+                    {r.amount && board.amountUnit && ` · ${t("crewOpsBoards.cumAmountSide", { amount: cumulativeText(r.amount.total, board.amountUnit) })}`}
                   </span>
                   <strong>{cumulativeText(r.total, board.unit)}</strong>
                 </li>
