@@ -1,11 +1,11 @@
 import { baseAmount, earlierRounds, excelOf, feedOf } from "./crewCore";
 import {
+  CUMULATIVE_BASES,
   CUMULATIVE_ROWS,
   CUMULATIVE_SORTS,
   DEFAULT_CUMULATIVE,
   PRIZE_PLACEMENTS,
   PRIZE_TITLE_MAX,
-  WINDOW_GAUGE_BASES,
   type CumulativeLive,
   type CumulativeRow,
   type CumulativeSettings,
@@ -16,7 +16,7 @@ import { mockCrew, type MockBroadcast } from "./mockCrewStore";
 /**
  * 누적 기여도 (server-only) — code-first, StreamDonate "누적 기여도(프리셋 모든 회차 누적 금액 · 기여도 오버레이)" 참고
  * (프리셋 = 프로젝트). Each member's final scores of the project's ended 회차 plus the live scoreboard — or, on 후원금, what
- * they received in each 회차 (2026-10-25). Display numbers only.
+ * they received in each 회차 (2026-10-25), or on 둘 다 both, ranked by the scores (2026-11-02). Display numbers only.
  */
 
 /** Settings saved before 집계 기준 (2026-10-25) read as 기여도, before 정렬 (2026-10-28) by total. */
@@ -31,7 +31,7 @@ export function parseCumulative(input: unknown, forbidden: string[]): Cumulative
   if (title.length > PRIZE_TITLE_MAX) return { message: `제목은 ${PRIZE_TITLE_MAX}자 이내로 입력해 주세요.` };
   if (forbidden.some((w) => title.toLowerCase().includes(w))) return { message: "사용할 수 없는 단어가 포함되어 있어요." };
   // A screen from before 집계 기준 sends none: 기여도, as before.
-  const basis = v.basis === undefined ? "POINTS" : WINDOW_GAUGE_BASES.find((b) => b.key === v.basis)?.key;
+  const basis = v.basis === undefined ? "POINTS" : CUMULATIVE_BASES.find((b) => b.key === v.basis)?.key;
   if (!basis) return { message: "집계 기준을 골라 주세요." };
   const rows = CUMULATIVE_ROWS.find((n) => n === v.rows);
   if (!rows) return { message: "보여 줄 멤버 수를 골라 주세요." };
@@ -60,38 +60,61 @@ function amountsOf(b: MockBroadcast): Map<string, number> {
 
 /**
  * The board of a live broadcast. `scoreboard`: its main scoreboard rows (the current 회차). Members are everyone with a
- * row now or a final score in an earlier 회차; ranked by total, ties by name — listed by rank, or on BJ 목록 순서 as in the
- * crew (those no longer in it after, by rank).
+ * row now or a final score in an earlier 회차 (and, on 후원금 · 둘 다, anyone who received some); ranked by total — the
+ * scores on 둘 다 — ties by name, listed by rank, or on BJ 목록 순서 as in the crew (those no longer in it after, by rank).
  */
 export function cumulativeLive(b: MockBroadcast, scoreboard: ScoreRow[]): CumulativeLive {
   const settings = cumulativeSettingsOf(b.channelId);
   const crew = new Map((mockCrew.crews[b.channelId] ?? []).map((m) => [m.id, m]));
   const rounds = earlierRounds(b);
-  const acc = new Map<string, { name: string; past: number; current: number }>();
-  const entry = (id: string, name: string) => acc.get(id) ?? acc.set(id, { name: crew.get(id)?.name ?? name, past: 0, current: 0 }).get(id)!;
-  if (settings.basis === "AMOUNT") {
+  type Acc = Map<string, { name: string; past: number; current: number }>;
+  const entry = (acc: Acc, id: string, name: string) => acc.get(id) ?? acc.set(id, { name: crew.get(id)?.name ?? name, past: 0, current: 0 }).get(id)!;
+  const points = () => {
+    const acc: Acc = new Map();
+    // Each 회차's own score: with 기여도 공유 the scores also hold earlier 회차, which are counted once, as their own.
+    for (const r of rounds) for (const f of r.final ?? []) entry(acc, f.memberId, f.name).past += f.score - (f.carried ?? 0);
+    for (const r of scoreboard) entry(acc, r.memberId, r.name).current += r.score - r.carried;
+    return acc;
+  };
+  const amounts = () => {
+    const acc: Acc = new Map();
     // A member no longer in the crew keeps the name of a 회차 they were on the board of.
     const names = new Map(rounds.flatMap((r) => (r.final ?? []).map((f) => [f.memberId, f.name] as const)));
-    const named = (id: string) => entry(id, names.get(id) ?? "삭제된 멤버");
+    const named = (id: string) => entry(acc, id, names.get(id) ?? "삭제된 멤버");
     for (const r of rounds) for (const [id, v] of amountsOf(r)) named(id).past += v;
-    for (const r of scoreboard) entry(r.memberId, r.name);
+    for (const r of scoreboard) entry(acc, r.memberId, r.name);
     for (const [id, v] of amountsOf(b)) named(id).current += v;
     for (const a of acc.values()) {
       a.past = Math.round(a.past);
       a.current = Math.round(a.current);
     }
-  } else {
-    // Each 회차's own score: with 기여도 공유 the scores also hold earlier 회차, which are counted once, as their own.
-    for (const r of rounds) for (const f of r.final ?? []) entry(f.memberId, f.name).past += f.score - (f.carried ?? 0);
-    for (const r of scoreboard) entry(r.memberId, r.name).current += r.score - r.carried;
-  }
-  const ranked: CumulativeRow[] = [...acc]
-    .map(([memberId, a]) => ({ memberId, name: a.name, color: crew.get(memberId)?.color ?? REMOVED_COLOR, rank: 0, past: a.past, current: a.current, total: a.past + a.current }))
+    return acc;
+  };
+  const main = settings.basis === "AMOUNT" ? amounts() : points();
+  // 둘 다: 후원금 beside the scores — a member who only received some still gets a line (0 points).
+  const side = settings.basis === "BOTH" ? amounts() : null;
+  if (side) for (const [id, a] of side) entry(main, id, a.name);
+  const amountOf = (id: string) => {
+    const a = side?.get(id);
+    return side ? { past: a?.past ?? 0, current: a?.current ?? 0, total: (a?.past ?? 0) + (a?.current ?? 0) } : null;
+  };
+  const ranked: CumulativeRow[] = [...main]
+    .map(([memberId, a]) => ({
+      memberId,
+      name: a.name,
+      color: crew.get(memberId)?.color ?? REMOVED_COLOR,
+      rank: 0,
+      past: a.past,
+      current: a.current,
+      total: a.past + a.current,
+      amount: amountOf(memberId)
+    }))
     .sort((x, y) => y.total - x.total || x.name.localeCompare(y.name))
     .map((r, i) => ({ ...r, rank: i + 1 }));
   const order = [...crew.keys()];
   const at = (id: string) => (order.includes(id) ? order.indexOf(id) : order.length);
   const rows = settings.sort === "ORDER" ? [...ranked].sort((x, y) => at(x.memberId) - at(y.memberId) || x.rank - y.rank) : ranked;
+  const amountUnit = excelOf(b.channelId).unit === "KRW" ? "원" : "FN";
   return {
     settings: structuredClone(settings),
     visible: !!b.cumulative?.visible,
@@ -99,6 +122,8 @@ export function cumulativeLive(b: MockBroadcast, scoreboard: ScoreRow[]): Cumula
     rounds: rounds.length + 1,
     rows,
     total: rows.reduce((s, r) => s + r.total, 0),
-    unit: settings.basis === "POINTS" ? "점" : excelOf(b.channelId).unit === "KRW" ? "원" : "FN"
+    unit: settings.basis === "AMOUNT" ? amountUnit : "점",
+    amountUnit: side ? amountUnit : null,
+    amountTotal: rows.reduce((s, r) => s + (r.amount?.total ?? 0), 0)
   };
 }

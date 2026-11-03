@@ -3,11 +3,22 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { formatNumber } from "@/lib/format";
+import { formatKst, formatNumber } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { ThemeChoiceField } from "@/features/overlayTheme/ThemeChoiceField";
-import { adjustTimer, configureTimer, controlCredits, controlTimer, saveCredits, saveMarquee, saveSubtitle, saveToolTheme, setTimerDonationLink } from "@/services/creator/broadcastTools";
+import {
+  adjustTimer,
+  configureTimer,
+  controlCredits,
+  controlTimer,
+  saveCredits,
+  saveMarquee,
+  saveSubtitle,
+  saveToolTheme,
+  setTimerDonationLink,
+  snapshotCredits
+} from "@/services/creator/broadcastTools";
 import type { OverlayThemeChoice } from "@/services/creator/overlayThemeTypes";
 import type { OverlayTarget } from "@/services/creator/alertTypes";
 import {
@@ -62,7 +73,7 @@ const TOOL_TEXT: Record<ToolKey, [MessageKey, MessageKey]> = {
   wheel: ["studioTools.toolWheel", "studioTools.toolWheelDesc"]
 };
 const STYLE_KEY: Record<CreditsStyle, MessageKey> = { FILM: "studioTools.styleFilm", CRAWL: "studioTools.styleCrawl" };
-const PERIOD_KEY: Record<CreditsPeriod, MessageKey> = { TODAY: "studioTools.periodToday", CREW: "studioTools.periodCrew" };
+const PERIOD_KEY: Record<CreditsPeriod, MessageKey> = { TODAY: "studioTools.periodToday", CREW: "studioTools.periodCrew", PROJECT: "studioTools.periodProject" };
 const MVP_KEY: Record<CreditsMvpBasis, MessageKey> = { POINTS: "studioTools.mvpPoints", AMOUNT: "studioTools.mvpAmount" };
 const SECTION_KEY: Record<CreditsSectionKey, MessageKey> = {
   total: "studioTools.sectionTotal",
@@ -71,12 +82,16 @@ const SECTION_KEY: Record<CreditsSectionKey, MessageKey> = {
   donors: "studioTools.sectionDonors",
   hotSigs: "studioTools.sectionHotSigs",
   highSigs: "studioTools.sectionHighSigs",
-  members: "studioTools.sectionMembers"
+  members: "studioTools.sectionMembers",
+  fans: "studioTools.sectionFans"
 };
+/** When the 집계 스냅샷 was taken, in Korea time. */
+const frozenAt = (iso: string) => formatKst(iso, { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
-/** One line of what the saved credits would roll now (the server's numbers for the saved period and sections). */
-function creditsPreview(d: CreditsData, s: CreditsState["sections"], t: T) {
-  if (d.empty) return t("studioTools.previewEmpty");
+/** One line of what the saved credits would roll now (the server's numbers for the saved period and sections, or frozen). */
+function creditsPreview(d: CreditsData, c: CreditsState, t: T) {
+  const s = c.sections;
+  if (d.empty) return t(c.period === "PROJECT" ? "studioTools.previewEmptyProject" : "studioTools.previewEmpty");
   // The server labels the TODAY period "오늘" and a crew broadcast by its title; crew points come as "점".
   const parts = [t("studioTools.previewHead", { period: d.periodLabel === "오늘" ? t("studioTools.periodToday") : d.periodLabel })];
   if (s.total.on) parts.push(t("studioTools.previewTotal", { amount: formatNumber(d.total) }));
@@ -93,7 +108,8 @@ function creditsPreview(d: CreditsData, s: CreditsState["sections"], t: T) {
   if (s.hotSigs.on) parts.push(d.hotSigs.length ? t("studioTools.previewHot", { name: d.hotSigs[0].name, count: d.hotSigs[0].count }) : t("studioTools.previewNoHot"));
   if (s.highSigs.on) parts.push(d.highSigs.length ? t("studioTools.previewHigh", { name: d.highSigs[0].name, amount: formatNumber(d.highSigs[0].fnAmount) }) : t("studioTools.previewNoHigh"));
   if (s.members.on) parts.push(t("studioTools.previewMembers", { count: d.members.length }));
-  return t("studioTools.previewBasis", { parts: parts.join(" · ") });
+  if (s.fans.on) parts.push(d.fans.length ? t("studioTools.previewFans", { name: d.fans[0].name, amount: formatNumber(d.fans[0].fnAmount) }) : t("studioTools.previewNoFans"));
+  return c.snapshot ? t("studioTools.previewFrozen", { parts: parts.join(" · "), time: frozenAt(c.snapshot.at) }) : t("studioTools.previewBasis", { parts: parts.join(" · ") });
 }
 
 /**
@@ -427,7 +443,7 @@ export function BroadcastToolsScreen({ view, overlayKey, switches }: { view: Too
                 </button>
               ))}
             </span>
-            {creditsPeriod === "CREW" && (
+            {creditsPeriod !== "TODAY" && (
               <>
                 <span className={styles.muted}>{t("studioTools.mvpBasis")}</span>
                 <span className={styles.segment} role="group" aria-label={t("studioTools.mvpBasis")}>
@@ -443,8 +459,11 @@ export function BroadcastToolsScreen({ view, overlayKey, switches }: { view: Too
           <p className={styles.note}>
             {creditsPeriod === "TODAY"
               ? t("studioTools.periodTodayNote")
-              : t("studioTools.periodCrewNote", { basis: mvpBasis === "AMOUNT" ? t("studioTools.mvpBasisAmountNote") : t("studioTools.mvpBasisPointsNote") })}{" "}
+              : t(creditsPeriod === "PROJECT" ? "studioTools.periodProjectNote" : "studioTools.periodCrewNote", {
+                  basis: mvpBasis === "AMOUNT" ? t("studioTools.mvpBasisAmountNote") : t("studioTools.mvpBasisPointsNote")
+                })}{" "}
             {t("studioTools.donorNamesNote")}
+            {sections.fans.on && ` ${t("studioTools.fansNote")}`}
           </p>
           <ul className={tools.sections} aria-label={t("studioTools.sectionsAria")}>
             {CREDITS_SECTIONS.map((meta) => {
@@ -494,7 +513,19 @@ export function BroadcastToolsScreen({ view, overlayKey, switches }: { view: Too
             value={thanks}
             onChange={(e) => setThanks(e.target.value)}
           />
-          <p className={styles.note}>{creditsPreview(view.credits, states.credits.sections, t)}</p>
+          <p className={styles.note}>{creditsPreview(view.credits, states.credits, t)}</p>
+          <div className={styles.addRow}>
+            <span className={styles.muted}>{states.credits.snapshot ? t("studioTools.snapshotOn", { time: frozenAt(states.credits.snapshot.at) }) : t("studioTools.snapshotOff")}</span>
+            <button type="button" className={styles.ghost} disabled={pending} onClick={() => run("credits", () => snapshotCredits("TAKE"), t("studioTools.snapshotTaken"))}>
+              {states.credits.snapshot ? t("studioTools.snapshotRetake") : t("studioTools.snapshotTake")}
+            </button>
+            {states.credits.snapshot && (
+              <button type="button" className={styles.ghost} disabled={pending} onClick={() => run("credits", () => snapshotCredits("RELEASE"), t("studioTools.snapshotReleased"))}>
+                {t("studioTools.snapshotRelease")}
+              </button>
+            )}
+          </div>
+          <p className={styles.note}>{t("studioTools.snapshotNote")}</p>
           <div className={styles.actions}>
             <span className={styles.muted}>{states.credits.rollingSince ? t("studioTools.rolling") : t("studioTools.idle")}</span>
             <button

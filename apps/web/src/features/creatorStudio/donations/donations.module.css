@@ -34,7 +34,7 @@
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  border-bottom: 1px solid #23234a;
+  border-bottom: 1px solid var(--color-border-strong);
   scrollbar-width: none;
 }
 
@@ -58,8 +58,8 @@ a.tab:hover {
 }
 
 .tabOn {
-  border-color: #23234a;
-  background: #121225;
+  border-color: var(--color-border-strong);
+  background: var(--color-surface);
   color: #ffffff;
   font-weight: var(--font-weight-bold);
 }
@@ -77,9 +77,9 @@ a.tab:hover {
   flex-direction: column;
   gap: 20px;
   padding: 28px;
-  border: 1px solid #23234a;
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-16);
-  background: #121225;
+  background: var(--color-surface);
 }
 
 .cardTitle {
@@ -91,7 +91,7 @@ a.tab:hover {
 
 .helper {
   margin: 0;
-  color: #64748b;
+  color: var(--color-text-tertiary);
   font-size: var(--font-size-13);
   line-height: 1.5;
 }
@@ -132,7 +132,7 @@ a.tab:hover {
 }
 
 .counter {
-  color: #64748b;
+  color: var(--color-text-tertiary);
   font-size: var(--font-size-12);
 }
 
@@ -163,9 +163,9 @@ a.tab:hover {
   align-items: center;
   min-width: 240px;
   padding: 0 16px;
-  border: 1px solid #20203e;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-8);
-  background: #1b1b3a;
+  background: var(--color-surface-raised);
 }
 
 .urlInput:focus-within {
@@ -174,7 +174,7 @@ a.tab:hover {
 
 .urlPrefix {
   flex-shrink: 0;
-  color: #64748b;
+  color: var(--color-text-tertiary);
   font-size: var(--font-size-14);
 }
 
@@ -194,9 +194,9 @@ a.tab:hover {
 .select,
 .searchInput {
   padding: 12px 16px;
-  border: 1px solid #20203e;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-8);
-  background: #1b1b3a;
+  background: var(--color-surface-raised);
   color: var(--color-text-primary);
   font-size: var(--font-size-14);
   color-scheme: dark;
@@ -238,7 +238,7 @@ a.tab:hover {
 
 .outlineBlue {
   border: 1px solid var(--color-info);
-  background: #1b1b3a;
+  background: var(--color-surface-raised);
   color: var(--color-info);
 }
 
@@ -314,15 +314,15 @@ a.tab:hover {
   align-items: center;
   gap: 8px;
   padding: 8px 12px 8px 16px;
-  border: 1px solid #20203e;
+  border: 1px solid var(--color-border);
   border-radius: 20px;
-  background: #1b1b3a;
+  background: var(--color-surface-raised);
   color: var(--color-text-primary);
   font-size: var(--font-size-13);
 }
 
 .chips button {
-  color: #ec4899;
+  color: var(--color-accent-text);
   font-size: var(--font-size-12);
 }
 
@@ -332,9 +332,9 @@ a.tab:hover {
 .periods {
   display: flex;
   padding: 4px;
-  border: 1px solid #23234a;
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-12);
-  background: #121225;
+  background: var(--color-surface);
 }
 
 .segment a {
@@ -348,7 +348,7 @@ a.tab:hover {
 }
 
 .segment .segmentOn {
-  background: rgba(139, 92, 246, 0.15);
+  background: rgba(207, 69, 39, 0.15);
   color: #ffffff;
   font-weight: var(--font-weight-bold);
 }
@@ -367,7 +367,7 @@ a.tab:hover {
 }
 
 .periods .periodOn {
-  background: #1b1b3a;
+  background: var(--color-surface-raised);
   color: #ffffff;
   font-weight: var(--font-weight-bold);
 }
@@ -388,9 +388,9 @@ a.tab:hover {
 
 .chip {
   padding: 10px 16px;
-  border: 1px solid #23234a;
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-8);
-  background: #121225;
+  background: var(--color-surface);
   color: #9ca3af;
   font-size: var(--font-size-14);
 }
@@ -409,7 +409,7 @@ a.tab:hover {
 }
 
 .chip.select {
-  background-color: #121225;
+  background-color: var(--color-surface);
 }
 
 .searchForm {
@@ -428,9 +428,9 @@ a.tab:hover {
 
 .dateRange input {
   padding: 10px 12px;
-  border: 1px solid #23234a;
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-8);
-  background: #121225;
+  background: var(--color-surface);
   color: #ffffff;
   font-size: var(--font-size-14);
   color-scheme: dark;
@@ -443,9 +443,9 @@ a.tab:hover {
 
 .table {
   overflow-x: auto;
-  border: 1px solid #23234a;
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-16);
-  background: #121225;
+  background: var(--color-surface);
 }
 
 .table table {
@@ -458,7 +458,7 @@ a.tab:hover {
 .table th,
 .table td {
   padding: 16px 24px 16px 0;
-  border-bottom: 1px solid #23234a;
+  border-bottom: 1px solid var(--color-border-strong);
   text-align: left;
   vertical-align: middle;
 }
@@ -474,7 +474,7 @@ a.tab:hover {
 }
 
 .table th {
-  background: #1b1b3a;
+  background: var(--color-surface-raised);
   color: #9ca3af;
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-bold);
@@ -545,9 +545,9 @@ a.tab:hover {
 }
 
 .badgeFailed {
-  border-color: #ec4899;
-  background: rgba(236, 72, 153, 0.13);
-  color: #ec4899;
+  border-color: var(--color-accent);
+  background: rgba(24, 128, 106, 0.13);
+  color: var(--color-accent-text);
 }
 
 .empty {
@@ -563,7 +563,7 @@ a.tab:hover {
   justify-content: space-between;
   gap: 12px;
   padding: 24px;
-  background: #1b1b3a;
+  background: var(--color-surface-raised);
 }
 
 .pagination {
@@ -574,9 +574,9 @@ a.tab:hover {
 .pageButton {
   min-width: 32px;
   padding: 8px;
-  border: 1px solid #23234a;
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-6);
-  background: #121225;
+  background: var(--color-surface);
   color: #9ca3af;
   font-size: var(--font-size-12);
   font-weight: var(--font-weight-semibold);
@@ -603,9 +603,9 @@ a.tab:hover {
   justify-content: space-between;
   gap: 24px;
   padding: 24px;
-  border: 1px solid #23234a;
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-16);
-  background: #121225;
+  background: var(--color-surface);
 }
 
 .topLeft {
@@ -641,7 +641,7 @@ a.tab:hover {
 .divider {
   width: 1px;
   height: 40px;
-  background: #23234a;
+  background: var(--color-surface-strong);
 }
 
 .avatar {
@@ -713,7 +713,7 @@ a.tab:hover {
 }
 
 .same {
-  color: #64748b;
+  color: var(--color-text-tertiary);
 }
 
 .up,
@@ -724,7 +724,7 @@ a.tab:hover {
 }
 
 .topRow {
-  background: #1c1135;
+  background: #2a1d17;
 }
 
 .rankCell {
@@ -803,7 +803,7 @@ a.tab:hover {
 .subTabs {
   display: flex;
   gap: 8px;
-  border-bottom: 1px solid #23234a;
+  border-bottom: 1px solid var(--color-border-strong);
 }
 
 .cardTitleSmall {
@@ -816,9 +816,9 @@ a.tab:hover {
 .ghostButton {
   flex-shrink: 0;
   padding: 8px 16px;
-  border: 1px solid #23234a;
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-8);
-  background: #121225;
+  background: var(--color-surface);
   color: #9ca3af;
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-semibold);
@@ -850,9 +850,9 @@ button.badge {
 
 .tierCard {
   overflow: hidden;
-  border: 1px solid #23234a;
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-12);
-  background: #121225;
+  background: var(--color-surface);
 }
 
 .tierOpen {
@@ -870,7 +870,7 @@ button.badge {
 }
 
 .tierOpen .tierHead {
-  background: rgba(139, 92, 246, 0.15);
+  background: rgba(207, 69, 39, 0.15);
 }
 
 .tierSummary {
@@ -912,7 +912,7 @@ button.badge {
   flex-direction: column;
   gap: 24px;
   padding: 32px;
-  border-top: 1px solid #23234a;
+  border-top: 1px solid var(--color-border-strong);
 }
 
 .field {
@@ -937,15 +937,15 @@ button.badge {
 }
 
 .uploadTile {
-  border: 1px dashed #20203e;
-  background: #080811;
+  border: 1px dashed var(--color-border);
+  background: var(--color-bg-page);
   color: #9ca3af;
   font-size: 24px;
 }
 
 .iconPreview {
-  border: 1px solid #23234a;
-  background: #1b1b3a;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface-raised);
   font-family: var(--font-latin);
   font-size: 32px;
 }
@@ -962,9 +962,9 @@ button.badge {
   gap: 8px;
   width: 200px;
   padding: 0 12px;
-  border: 1px solid #20203e;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-8);
-  background: #1b1b3a;
+  background: var(--color-surface-raised);
 }
 
 .colorField input:first-child {
@@ -1036,9 +1036,9 @@ button.badge {
   flex-direction: column;
   gap: 6px;
   padding: 16px 20px;
-  border: 1px solid #23234a;
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-12);
-  background: #121225;
+  background: var(--color-surface);
 }
 
 .listStats dt {

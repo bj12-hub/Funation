@@ -1,4 +1,4 @@
-/* 48 × 24 track, 20px knob, 2px inset */
+/* 48 × 24 track, 20px knob, 2px inset. Square-cornered with a teal "on" track since the 2026-11-03 refresh (code-first). */
 
 .track {
   display: flex;
@@ -7,13 +7,13 @@
   width: 48px;
   height: 24px;
   padding: 2px;
-  border-radius: var(--radius-12);
+  border-radius: var(--radius-4);
   background: var(--color-surface-strong);
   transition: background-color 0.15s ease;
 }
 
 .on {
-  background: var(--color-info);
+  background: var(--color-accent);
 }
 
 .knob {
@@ -22,7 +22,7 @@
   justify-content: center;
   width: 20px;
   height: 20px;
-  border-radius: 10px;
+  border-radius: var(--radius-2);
   background: var(--color-bg-light);
   transition: transform 0.15s ease;
 }

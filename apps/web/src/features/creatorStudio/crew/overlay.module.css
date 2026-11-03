@@ -120,6 +120,11 @@
   font-size: 1.05em;
 }
 
+/* 누적 기여도 둘 다 (2026-11-02): the 후원금 beside the 기여도. */
+.scoreSide {
+  font-size: 0.82em;
+}
+
 /* ── 실시간 배틀 ── */
 .battle {
   display: flex;

@@ -57,7 +57,7 @@ const sectionTitle = (s: CreditsState, key: CreditsSectionKey) => s.sections[key
 
 /**
  * The 엔딩 크레딧 in roll order (2026-10-23): title · period, 총 후원, MVP, 후원자 TOP 3, 후원 순위 (after the TOP 3 when both
- * are on), HOT 시그 · HIGH 시그 (2026-10-25), 멤버별, then the thanks. A section with nothing to show is skipped. The film roll draws lists in theme cards;
+ * are on), HOT 시그 · HIGH 시그 (2026-10-25), 멤버별, 열혈 랭킹 (2026-11-02), then the thanks. A section with nothing to show is skipped. The film roll draws lists in theme cards;
  * the 스타워즈 크롤 keeps plain lines (its own yellow text).
  */
 function CreditsBody({ state: s, data: d, crawl }: { state: CreditsState; data: CreditsData; crawl: boolean }) {
@@ -151,6 +151,20 @@ function CreditsBody({ state: s, data: d, crawl }: { state: CreditsState; data: 
                 <span className={crawl ? undefined : ov.display}>
                   {formatNumber(m.score)} {d.memberUnit}
                 </span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+      {s.sections.fans.on && d.fans.length > 0 && (
+        <section className={styles.creditsSection}>
+          <h2>{sectionTitle(s, "fans")}</h2>
+          <ol className={list}>
+            {d.fans.map((r) => (
+              <li key={r.rank}>
+                {rank(r.rank)}
+                <span className={crawl ? undefined : ov.label}>{r.name}</span>
+                <span className={crawl ? undefined : ov.display}>{formatNumber(r.fnAmount)} FN</span>
               </li>
             ))}
           </ol>

@@ -106,7 +106,7 @@
   height: 72px;
   border-radius: var(--radius-pill);
   background: var(--gradient-accent-button);
-  box-shadow: 0 8px 20px rgba(139, 92, 246, 0.31);
+  box-shadow: 0 8px 20px rgba(207, 69, 39, 0.31);
   color: var(--color-text-on-accent);
   font-family: var(--font-latin);
   font-size: 34px;

@@ -34,7 +34,9 @@ Confirmed:
   account as it was. Defaults (기본값) for the 30 days: the account and all its data are kept but cannot be used (no
   session, channel hidden and overlay · 매니저 채팅 · SMS 계좌후원 keys closed like a suspension, a waiting debit refused);
   operator decisions on what existed before the request (e.g. a 심사 대기 정산) still happen; its e-mail, nickname and phone
-  stay taken; password reset works. See docs/domains/wallet.md "회원 탈퇴". Not taken (2026-11-02, the user kept the 2026-10-08
+  stay taken; password reset works. See docs/domains/wallet.md "회원 탈퇴". 2026-11-02 (user): every 탈퇴 신청 and 철회 is
+  kept and listed on the admin 회원 상세 (탈퇴 신청 이력), kept like the withdrawal record as a 계약 기록 for 5 years — a
+  cancelled request from its 철회 (기본값), the applied one with the record. Not taken (2026-11-02, the user kept the 2026-10-08
   이용 정지 and money decision below): FLEXTV's 정지 중 환전 지급 유예 · 신청 불가, 적발 당일 후원 기부 and 중대한 위반 시
   환불 거절. Legal review still TBD.
 - Login lock (2026-10-08): 5 wrong passwords lock the account until a password reset — reset-only, no time-based unlock,
@@ -353,7 +355,8 @@ Confirmed:
   See docs/figma/code-first-screens.md
 - 표시 옵션 (2026-10-28, 기본값 — 일반적인 기준, StreamDonate 참고): 엔딩 크레딧 MVP 기준(크루 방송 기간 — 기여도 기본 / 후원금액 =
   방송 동안 멤버 지정 후원 FN), 누적 기여도 정렬(누적값 순 기본 / BJ 목록 순서 — 순위 뱃지 없음, 빠진 멤버는 뒤), 시그 빙고 잔여 시그
-  위치(판 아래 기본 / 판 위). 누적 기여도 "둘 다(금액 · 기여도 나란히)"는 TBD. See docs/figma/code-first-screens.md
+  위치(판 아래 기본 / 판 위). 누적 기여도 "둘 다(금액 · 기여도 나란히)"는 2026-11-02에 기본값으로 추가(기여도로 순위, 후원금을
+  옆에). See docs/figma/code-first-screens.md
 - 시그 카운트 선택한 멤버 · 출근 필터 · 순위표 제목 색 (2026-10-28, 기본값 — 일반적인 기준, StreamDonate 참고): 고른 멤버만 0건이어도 줄로(미지정은
   따로), 출근 BJ만(휴식 중 멤버 빼기, 기본 끔), 상품 순위표 · 팀 순위표 제목 색(기본 원래 색). See docs/figma/code-first-screens.md
 - 시그 벽지 (2026-10-28, 기본값 — 일반적인 기준, StreamDonate 참고): 시그니처 후원 1건마다 `?d=` 주소의 카드(이미지 · 감사 문구 · 금액),
@@ -394,6 +397,10 @@ Confirmed:
   곱함). 원소스에서 오버레이마다 따로 정하는 방식 · 미디어별 표시 시간은 만들지 않음. See docs/figma/code-first-screens.md
 - 조작형 럼블 OBS 서버 푸시 (2026-11-01, 기본값): OBS는 SSE 스트림(전투 중 50ms, 그 밖에는 바뀔 때 · 1초), 안 되면 0.1초 요청.
   조종 입력의 실시간 연결(WebSocket 등)은 실제 백엔드에서 정할 일 — TBD. See docs/figma/code-first-screens.md
+- 엔딩 크레딧 프로젝트 전체 · 열혈 랭킹 · 집계 고정 (2026-11-02, 기본값 — 일반적인 기준, StreamDonate 엔딩 크레딧 참고): 집계 기간
+  "프로젝트 전체" = 진행 중 · 마지막 프로젝트 방송의 모든 회차(회차마다 시작 ~ 종료, 멤버는 누적 기여도처럼 회차 점수 합), 섹션
+  "열혈 랭킹" = 기간과 상관없이 채널 누적 후원 순위(기본 꺼짐), "집계 고정" = 그 순간 숫자로 크레딧 고정(기간 · MVP 기준을 바꿔
+  저장하면 풀림). 회차별로 고르기(지난 회차 하나)는 없음. See docs/figma/code-first-screens.md
 
 Still TBD:
 

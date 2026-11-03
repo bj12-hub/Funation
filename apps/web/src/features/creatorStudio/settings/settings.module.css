@@ -490,9 +490,9 @@ input.input:focus,
   gap: 8px;
   margin: 0;
   padding: 12px 14px;
-  border: 1px solid rgba(139, 92, 246, 0.13);
+  border: 1px solid rgba(207, 69, 39, 0.13);
   border-radius: var(--radius-8);
-  background: #1a0a2e;
+  background: var(--color-surface-raised);
   color: var(--color-text-secondary);
   font-size: var(--font-size-12);
   line-height: 1.5;
@@ -553,7 +553,7 @@ input.input:focus,
   height: 88px;
   border: 2px dashed var(--color-border);
   border-radius: var(--radius-pill);
-  background: #16162d;
+  background: var(--color-surface);
   color: var(--color-text-secondary);
   font-size: var(--font-size-20);
 }

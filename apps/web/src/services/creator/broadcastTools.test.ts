@@ -105,15 +105,169 @@ describe("방송 도구", () => {
       memberUnit: "FN",
       mvp: { name: "하늘", score: 8_000, unit: "FN" },
       hotSigs: [],
-      highSigs: []
+      highSigs: [],
+      fans: [] // 열혈 랭킹 is off until switched on
     });
     expect((await getToolsView())!.credits).toEqual(view.data);
 
-    // Lists are cut to what the sections show: TOP 3 + 후원 순위 for donors, 멤버별 for members.
+    // Lists are cut to what the sections show: TOP 3 + 후원 순위 for donors, 멤버별 for members; none for a section that is off.
     await saveCredits(credits({ sections: { ...credits().sections, top3: { on: false, title: "", max: 3 }, donors: { on: true, title: "", max: 1 }, members: { on: true, title: "", max: 2 } } }));
     const cut = await getOverlayTool("credits", overlayKey);
     if (cut === "FORBIDDEN" || cut.tool !== "credits") throw new Error("expected credits");
     expect([cut.data.donors.length, cut.data.members.length]).toEqual([1, 2]);
+    await saveCredits(credits({ sections: { ...credits().sections, members: { on: false, title: "", max: 10 } } }));
+    const off = await getOverlayTool("credits", overlayKey);
+    if (off === "FORBIDDEN" || off.tool !== "credits") throw new Error("expected credits");
+    expect(off.data).toMatchObject({ members: [], mvp: { name: "하늘", score: 8_000, unit: "FN" } });
+  });
+
+  it("rolls 열혈 랭킹 — every donor of the channel by all they have sent, whatever the period", async () => {
+    vi.useFakeTimers({ now: new Date("2026-11-02T03:00:00Z"), toFake: ["Date"] });
+    const { saveCredits, getToolsView } = await load();
+    const { mockAlerts } = await import("./alertCore");
+    const { donorRanking } = await import("./widgetOverlayCore");
+    const now = Date.now();
+    const donation = (id: string, donor: string, fnAmount: number, extra: Record<string, unknown> = {}, at = now) =>
+      mockAlerts.items.push({ id, kind: "DONATION", donor, message: "", fnAmount, typeLabel: "일반 후원", createdAt: new Date(at).toISOString(), status: "DONE", ...extra });
+    donation("f1", "달빛", 30_000, { donorKey: "k1" });
+    donation("f2", "오랜팬", 500_000, { donorKey: "k9" }, now - 40 * 86_400_000); // 40 days ago
+    donation("f3", "익명", 900_000, { donorKey: null }); // 프로필 숨기기: never named
+    donation("f4", "대체 문구", 800_000, { donorKey: "k3", nameReplaced: true }); // 대체 메시지 rules: never named
+    donation("f5", "나중에", 700_000, { donorKey: "k8" }, now + 60_000); // after now: not yet
+    // A screen from before 열혈 랭킹 saves without it: off, as the default.
+    expect(await saveCredits(credits())).toEqual({ status: "SAVED" });
+    expect((await getToolsView())!.states.credits.sections.fans).toEqual({ on: false, title: "", max: 10 });
+
+    expect(await saveCredits(credits({ sections: { ...credits().sections, fans: { on: true, title: "", max: 3 } } }))).toEqual({ status: "SAVED" });
+    const d = (await getToolsView())!.credits;
+    expect(d.fans[0]).toEqual({ rank: 1, name: "오랜팬", fnAmount: 500_000 });
+    expect(d.fans).toEqual(donorRanking(mockAlerts.items, 0, now).slice(0, 3));
+    expect(d.fans.map((r) => r.name)).not.toContain("익명");
+    expect(d.fans.map((r) => r.name)).not.toContain("나중에");
+    // The period's own lists still read today only.
+    expect(d.donors.map((r) => r.name)).not.toContain("오랜팬");
+    expect((await saveCredits(credits({ sections: { ...credits().sections, fans: { on: true, title: "", max: 31 } } }))).status).toBe("INVALID");
+  });
+
+  it("reads every 회차 of the project on 프로젝트 전체, its points added up as on 누적 기여도", async () => {
+    vi.useFakeTimers({ now: new Date("2026-11-02T03:00:00Z"), toFake: ["Date"] });
+    const { saveCredits, getOverlayTool, overlayKey } = await load();
+    const { mockAlerts } = await import("./alertCore");
+    const bc = await import("@/services/crew/crewBroadcast");
+    const { mockCrew } = await import("@/services/crew/mockCrewStore");
+    const data = async () => {
+      const v = await getOverlayTool("credits", overlayKey);
+      if (v === "FORBIDDEN" || v.tool !== "credits") throw new Error("expected credits");
+      return v.data;
+    };
+    const donation = (id: string, donor: string, fnAmount: number) =>
+      mockAlerts.items.push({ id, kind: "DONATION", donor, donorKey: `k-${donor}`, message: "", fnAmount, typeLabel: "일반 후원", createdAt: new Date().toISOString(), status: "DONE" });
+    const at = (iso: string) => vi.setSystemTime(new Date(iso));
+    const start = async (project: string | null, carry?: boolean) => {
+      await bc.startBroadcast({ requestId: crypto.randomUUID(), title: "프로젝트 테스트", project, teamMode: false, carry });
+      return (await bc.getBroadcastView())!.live!.id;
+    };
+    expect(await saveCredits(credits({ period: "PROJECT" }))).toEqual({ status: "SAVED" });
+    expect(await data()).toMatchObject({ periodLabel: "프로젝트 방송 없음", empty: true, fans: [] });
+
+    // 1회차: 바다 +5,000점, 12,000 FN from 달빛.
+    at("2026-11-02T03:10:00Z");
+    const first = await start("시즌2");
+    at("2026-11-02T03:20:00Z");
+    donation("p1", "달빛", 12_000);
+    await bc.adjustScore({ broadcastId: first, memberId: "cm-s3", points: 5_000, adjustmentId: crypto.randomUUID() });
+    at("2026-11-02T03:30:00Z");
+    await bc.endBroadcast(first);
+    at("2026-11-02T03:40:00Z");
+    donation("p2", "사이손님", 50_000); // between the 회차: not counted
+
+    // 2회차 with 기여도 공유: the scoreboard carries 바다's 5,000, which counts once.
+    at("2026-11-02T04:00:00Z");
+    const second = await start("시즌2", true);
+    at("2026-11-02T04:10:00Z");
+    donation("p3", "초코", 8_000);
+    await bc.adjustScore({ broadcastId: second, memberId: "cm-s1", points: 3_000, adjustmentId: crypto.randomUUID() });
+    expect(await data()).toMatchObject({
+      periodLabel: "시즌2 전체 · 2회차",
+      empty: false,
+      total: 20_000,
+      donors: [
+        { rank: 1, name: "달빛", fnAmount: 12_000 },
+        { rank: 2, name: "초코", fnAmount: 8_000 }
+      ],
+      memberUnit: "점",
+      mvp: { name: "바다", score: 5_000, unit: "점" },
+      members: [
+        { rank: 1, name: "바다", score: 5_000 },
+        { rank: 2, name: "길동", score: 3_000 },
+        { rank: 3, name: "하늘", score: 0 }
+      ]
+    });
+    // 크루 방송 reads the 회차 on now only (its scoreboard with what it carried).
+    expect(await saveCredits(credits({ period: "CREW" }))).toEqual({ status: "SAVED" });
+    expect(await data()).toMatchObject({ periodLabel: "프로젝트 테스트 · 시즌2 2회차", total: 8_000, mvp: { name: "바다", score: 5_000 } });
+    // MVP 기준 후원금액 over the project: FN sent for each member during its 회차.
+    mockCrew.attributions.push({ donationId: "d-p", channelId: "studio", memberId: "cm-s1", fnAmount: 4_000, at: new Date().toISOString(), shownDonor: "초코" });
+    expect(await saveCredits(credits({ period: "PROJECT", mvpBasis: "AMOUNT" }))).toEqual({ status: "SAVED" });
+    expect((await data()).mvp).toEqual({ name: "길동", score: 4_000, unit: "FN" });
+
+    // A broadcast without a project after it: 프로젝트 전체 still reads the last project, ended.
+    at("2026-11-02T04:30:00Z");
+    await bc.endBroadcast(second);
+    at("2026-11-02T05:00:00Z");
+    await start(null);
+    donation("p4", "달빛", 1_000);
+    expect(await data()).toMatchObject({ periodLabel: "시즌2 전체 · 2회차", total: 20_000 });
+  });
+
+  it("freezes the numbers with 집계 고정 until 고정 해제 or another 집계 기간", async () => {
+    vi.useFakeTimers({ now: new Date("2026-11-02T03:00:00Z"), toFake: ["Date"] });
+    const { saveCredits, snapshotCredits, getOverlayTool, getToolsView, overlayKey } = await load();
+    const { mockAlerts } = await import("./alertCore");
+    const data = async () => {
+      const v = await getOverlayTool("credits", overlayKey);
+      if (v === "FORBIDDEN" || v.tool !== "credits") throw new Error("expected credits");
+      return v;
+    };
+    const donation = (id: string, donor: string, fnAmount: number) =>
+      mockAlerts.items.push({ id, kind: "DONATION", donor, donorKey: `k-${donor}`, message: "", fnAmount, typeLabel: "일반 후원", createdAt: new Date().toISOString(), status: "DONE" });
+    expect(await saveCredits(credits())).toEqual({ status: "SAVED" });
+    donation("z1", "달빛", 10_000);
+    donation("z2", "초코", 6_000);
+    const live = (await data()).data.total;
+
+    expect(await snapshotCredits("TAKE")).toEqual({ status: "SAVED" });
+    expect((await data()).state.snapshot).toEqual({ at: "2026-11-02T03:00:00.000Z", period: "TODAY", mvpBasis: "POINTS" });
+    vi.setSystemTime(new Date("2026-11-02T03:05:00Z"));
+    donation("z3", "새손님", 90_000); // after the freeze: not rolled
+    const frozen = (await data()).data;
+    expect(frozen.total).toBe(live);
+    expect(frozen.donors.map((r) => r.name)).not.toContain("새손님");
+    // Sections still cut the frozen rows; a list switched on later reads them too.
+    expect(await saveCredits(credits({ sections: { ...credits().sections, top3: { on: false, title: "", max: 3 }, donors: { on: true, title: "", max: 1 }, fans: { on: true, title: "", max: 30 } } }))).toEqual({ status: "SAVED" });
+    const cut = (await data()).data;
+    expect(cut.donors).toEqual([{ rank: 1, name: "달빛", fnAmount: 10_000 }]);
+    expect(cut.fans.map((r) => r.name)).not.toContain("새손님");
+    expect((await getToolsView())!.credits).toEqual(cut);
+
+    // Taking it again reads now; 고정 해제 goes back to live numbers.
+    expect(await snapshotCredits("TAKE")).toEqual({ status: "SAVED" });
+    expect((await data()).data.fans.map((r) => r.name)).toContain("새손님");
+    expect(await snapshotCredits("RELEASE")).toEqual({ status: "SAVED" });
+    expect((await data()).state.snapshot).toBeNull();
+    donation("z4", "막차", 1_000);
+    expect((await data()).data.total).toBe(live + 91_000);
+
+    // Saving another 집계 기간 releases it; 크루 방송 needs a broadcast to freeze.
+    expect(await snapshotCredits("TAKE")).toEqual({ status: "SAVED" });
+    expect(await saveCredits(credits({ period: "CREW" }))).toEqual({ status: "SAVED" });
+    expect((await data()).state.snapshot).toBeNull();
+    expect(await snapshotCredits("TAKE")).toEqual({ status: "INVALID", message: "고정할 크루 방송이 없어요." });
+    expect(await saveCredits(credits({ period: "PROJECT" }))).toEqual({ status: "SAVED" });
+    expect(await snapshotCredits("TAKE")).toEqual({ status: "INVALID", message: "고정할 프로젝트 방송이 없어요." });
+    expect((await snapshotCredits("KEEP")).status).toBe("INVALID");
+    signIn(["SUPPORTER"]);
+    expect(await snapshotCredits("RELEASE")).toEqual({ status: "UNAUTHORIZED" });
   });
 
   it("reads the crew broadcast on the 크루 방송 period: its scoreboard while live, its frozen result once ended", async () => {
