@@ -286,6 +286,12 @@
   .rightSignedIn {
     gap: 16px;
   }
+
+  /* No room for the name beside 충전 · 알림 · 테마 · 언어 (it shrank to a letter or nothing): the avatar alone, as on phones. */
+  .profileName,
+  .caret {
+    display: none;
+  }
 }
 
 /* Phones: the header must fit 375px without a horizontal scroll (검색 · 충전 are hidden at the end of this file). */
@@ -307,11 +313,6 @@
 
   .loginButton {
     padding: 8px 16px;
-  }
-
-  .profileName,
-  .caret {
-    display: none;
   }
 }
 
@@ -633,6 +634,14 @@
 @media (max-width: 680px) {
   .searchButton,
   .chargeChip {
+    display: none;
+  }
+}
+
+/* The studio header's logo with 스튜디오 and its four buttons need about 382px, so on narrower phones (375px, 360px
+   Galaxy) the channel picture was pushed past the edge. There the logo goes alone; its label still says 스튜디오 홈. */
+@media (max-width: 400px) {
+  .studioBadge {
     display: none;
   }
 }
