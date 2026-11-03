@@ -13,8 +13,10 @@
   white-space: nowrap;
 }
 
+/* Full width; two block buttons side by side (a modal footer) share the row instead of overflowing it. */
 .block {
   display: flex;
+  flex-shrink: 1;
   width: 100%;
   font-size: var(--font-size-16);
 }
