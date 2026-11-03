@@ -13,7 +13,7 @@
 
 .notice p {
   margin: 0;
-  color: #cbd5e1;
+  color: var(--color-text-soft);
   font-size: var(--font-size-13);
   line-height: 1.6;
 }
@@ -49,26 +49,26 @@
   min-width: 0;
   max-width: 100%;
   padding: 10px 12px;
-  border: 1px dashed #334155;
+  border: 1px dashed var(--color-border-strong);
   border-radius: var(--radius-8);
-  background: #1b1b3a;
-  color: #cbd5e1;
+  background: var(--color-surface-raised);
+  color: var(--color-text-soft);
   font-size: var(--font-size-14);
 }
 
 .fileInput::file-selector-button {
   margin-right: 12px;
   padding: 6px 12px;
-  border: 1px solid #23234a;
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-6);
-  background: #121225;
+  background: var(--color-surface);
   color: #ffffff;
   cursor: pointer;
 }
 
 .limits {
   margin: 0;
-  color: #64748b;
+  color: var(--color-text-tertiary);
   font-size: var(--font-size-12);
   line-height: 1.5;
 }
@@ -112,7 +112,7 @@
 
 .wrapTable {
   overflow-x: auto;
-  border: 1px solid #23234a;
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-12);
 }
 
@@ -126,7 +126,7 @@
 .wrapTable th,
 .wrapTable td {
   padding: 10px 12px;
-  border-bottom: 1px solid #23234a;
+  border-bottom: 1px solid var(--color-border-strong);
   color: #ffffff;
   font-size: var(--font-size-13);
   text-align: left;
@@ -134,7 +134,7 @@
 }
 
 .wrapTable th {
-  background: #1b1b3a;
+  background: var(--color-surface-raised);
   color: #9ca3af;
   font-weight: var(--font-weight-bold);
 }
@@ -202,7 +202,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
-  color: #cbd5e1;
+  color: var(--color-text-soft);
   font-size: var(--font-size-14);
 }
 
@@ -211,9 +211,9 @@
   min-width: 0;
   max-width: 320px;
   padding: 10px 12px;
-  border: 1px solid #20203e;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-8);
-  background: #1b1b3a;
+  background: var(--color-surface-raised);
   color: var(--color-text-primary);
   font-size: var(--font-size-14);
 }
@@ -226,7 +226,7 @@
 }
 
 .undone {
-  color: #64748b;
+  color: var(--color-text-tertiary);
   font-size: var(--font-size-12);
 }
 

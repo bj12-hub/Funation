@@ -10,76 +10,77 @@ import styles from "./studio.module.css";
 
 /**
  * Creator studio sidebar — groups follow the funnation studio (docs/architecture/information-architecture.md):
- * 내 채널 · 채널 · 방송 · 크루 방송 · 수익 · 정산 · 소식. Visual style keeps Figma 245:14 (240 wide).
+ * 내 채널 · 채널 · 방송 · 크루 방송 · 수익 · 정산 · 소식. Layout follows Figma 245:14 (240 wide); since the 2026-11-03 refresh
+ * (code-first) the items are text only — no emoji — and the current one has a vermilion bar on the left, like the site menu.
  * Items without `href` have no screen yet (준비 중). 후원관리+ tabs are linked individually by `?tab=`.
  *
  * Phones (≤ 767px, 기본값 — 일반적인 기준; code-first, no Figma frame): the menu folds behind a bar naming the current
- * page ("📊 대시보드 · 메뉴 ▾") so the page starts right under the header, and the bar opens the same grouped menu as
+ * page ("대시보드 · 메뉴 ▾") so the page starts right under the header, and the bar opens the same grouped menu as
  * a dropdown. Like the site drawer (AppShell) it closes on navigation, on Escape (focus back on the bar), on a tap
  * outside it (the dimmed page) and when focus leaves it. Wider screens never show the bar: the sidebar is unchanged.
  */
-type Item = { label: string; emoji: string; href?: string };
+type Item = { label: string; href?: string };
 type Group = { title: string | null; items: Item[] };
 
 const MOCK_GROUPS: Group[] = [
-  { title: null, items: [{ label: "대시보드", emoji: "📊", href: "/creator" }] },
+  { title: null, items: [{ label: "대시보드", href: "/creator" }] },
   {
     title: "채널",
     items: [
-      { label: "채널 설정", emoji: "⚙️", href: "/creator/settings" },
-      { label: "후원 페이지 설정", emoji: "🧾", href: "/creator/donations?tab=settings" },
-      { label: "칭호 관리", emoji: "🏅", href: "/creator/donations?tab=titles" },
-      { label: "유튜브 연동", emoji: "▶️", href: "/creator/youtube" },
-      { label: "영상 목록", emoji: "🎞️", href: "/creator/videos" }
+      { label: "채널 설정", href: "/creator/settings" },
+      { label: "후원 페이지 설정", href: "/creator/donations?tab=settings" },
+      { label: "칭호 관리", href: "/creator/donations?tab=titles" },
+      { label: "유튜브 연동", href: "/creator/youtube" },
+      { label: "영상 목록", href: "/creator/videos" }
     ]
   },
   {
     title: "방송",
     items: [
-      { label: "통합 채팅", emoji: "💬", href: "/creator/chat" },
-      { label: "채팅봇", emoji: "🤖", href: "/creator/chat/bot" },
-      { label: "위젯", emoji: "🔔", href: "/creator/widgets" },
-      { label: "방송 도구", emoji: "🛠️", href: "/creator/widgets/tools" },
-      { label: "시청자 참여", emoji: "🎮", href: "/creator/widgets/play" },
-      { label: "오버레이 주소", emoji: "🔗", href: "/creator/widgets/overlays" },
-      { label: "원소스 배치", emoji: "🧩", href: "/creator/widgets/onesource" },
-      { label: "커스텀 오버레이", emoji: "💻", href: "/creator/widgets/custom" },
-      { label: "외부 프로그램 연동", emoji: "🔌", href: "/creator/widgets/bridge" },
-      { label: "이미지·사운드", emoji: "🎵", href: "/creator/widgets/assets" },
-      { label: "음악 편집기", emoji: "🎚️", href: "/creator/widgets/music" },
-      { label: "리모컨", emoji: "🎛️", href: "/creator/remote" }
+      { label: "통합 채팅", href: "/creator/chat" },
+      { label: "채팅봇", href: "/creator/chat/bot" },
+      { label: "위젯", href: "/creator/widgets" },
+      { label: "방송 도구", href: "/creator/widgets/tools" },
+      { label: "시청자 참여", href: "/creator/widgets/play" },
+      { label: "오버레이 주소", href: "/creator/widgets/overlays" },
+      { label: "원소스 배치", href: "/creator/widgets/onesource" },
+      { label: "커스텀 오버레이", href: "/creator/widgets/custom" },
+      { label: "외부 프로그램 연동", href: "/creator/widgets/bridge" },
+      { label: "이미지·사운드", href: "/creator/widgets/assets" },
+      { label: "음악 편집기", href: "/creator/widgets/music" },
+      { label: "리모컨", href: "/creator/remote" }
     ]
   },
   {
     // funnation "엑셀방송".
     title: "크루 방송",
     items: [
-      { label: "크루 관리", emoji: "👥", href: "/creator/crew" },
-      { label: "방송 운영", emoji: "📋", href: "/creator/crew/broadcast" },
-      { label: "점수 게임", emoji: "🎰", href: "/creator/crew/games" }
+      { label: "크루 관리", href: "/creator/crew" },
+      { label: "방송 운영", href: "/creator/crew/broadcast" },
+      { label: "점수 게임", href: "/creator/crew/games" }
     ]
   },
   {
     title: "수익",
     items: [
-      { label: "수익 현황", emoji: "📊", href: "/creator/revenue" },
-      { label: "받은 후원", emoji: "💰", href: "/creator/donations?tab=list" },
-      { label: "후원 순위", emoji: "🏆", href: "/creator/donations?tab=ranking" },
-      { label: "후원 필터링", emoji: "🛡️", href: "/creator/donations?tab=filtering" },
-      { label: "내역 이관", emoji: "📥", href: "/creator/donations?tab=import" },
-      { label: "크리에이터 랭킹", emoji: "📈", href: "/creator/ranking" }
+      { label: "수익 현황", href: "/creator/revenue" },
+      { label: "받은 후원", href: "/creator/donations?tab=list" },
+      { label: "후원 순위", href: "/creator/donations?tab=ranking" },
+      { label: "후원 필터링", href: "/creator/donations?tab=filtering" },
+      { label: "내역 이관", href: "/creator/donations?tab=import" },
+      { label: "크리에이터 랭킹", href: "/creator/ranking" }
     ]
   },
   {
     title: "정산",
     items: [
-      { label: "정산 현황", emoji: "🧮", href: "/creator/settlement" },
-      { label: "정산 인증·등록", emoji: "🪪", href: "/creator/settlement/register" },
-      { label: "정산 신청", emoji: "💸", href: "/creator/settlement/apply" },
-      { label: "정산 관리", emoji: "🗂️", href: "/creator/settlement/manage" }
+      { label: "정산 현황", href: "/creator/settlement" },
+      { label: "정산 인증·등록", href: "/creator/settlement/register" },
+      { label: "정산 신청", href: "/creator/settlement/apply" },
+      { label: "정산 관리", href: "/creator/settlement/manage" }
     ]
   },
-  { title: null, items: [{ label: "소식", emoji: "📰", href: "/creator/updates" }] }
+  { title: null, items: [{ label: "소식", href: "/creator/updates" }] }
 ];
 
 /**
@@ -87,23 +88,23 @@ const MOCK_GROUPS: Group[] = [
  * is the only 후원관리 tab, and the 정산 계좌 is registered on FLEXTV's site. 채널 설정 is FLEXTV's 방송국 (phase 7).
  */
 const FLEXTV_GROUPS: Group[] = [
-  { title: null, items: [{ label: "대시보드", emoji: "📊", href: "/creator" }] },
-  { title: "채널", items: [{ label: "채널 설정", emoji: "⚙️", href: "/creator/settings" }] },
-  { title: "방송", items: [{ label: "방송 설정", emoji: "🎥", href: "/creator/broadcast" }] },
+  { title: null, items: [{ label: "대시보드", href: "/creator" }] },
+  { title: "채널", items: [{ label: "채널 설정", href: "/creator/settings" }] },
+  { title: "방송", items: [{ label: "방송 설정", href: "/creator/broadcast" }] },
   {
     title: "수익",
     items: [
-      { label: "수익 현황", emoji: "📊", href: "/creator/revenue" },
-      { label: "받은 후원", emoji: "💰", href: "/creator/donations?tab=list" }
+      { label: "수익 현황", href: "/creator/revenue" },
+      { label: "받은 후원", href: "/creator/donations?tab=list" }
     ]
   },
   {
     title: "정산",
     items: [
-      { label: "정산 현황", emoji: "🧮", href: "/creator/settlement" },
-      { label: "정산 계좌", emoji: "🪪", href: "/creator/settlement/register" },
-      { label: "정산 신청", emoji: "💸", href: "/creator/settlement/apply" },
-      { label: "정산 관리", emoji: "🗂️", href: "/creator/settlement/manage" }
+      { label: "정산 현황", href: "/creator/settlement" },
+      { label: "정산 계좌", href: "/creator/settlement/register" },
+      { label: "정산 신청", href: "/creator/settlement/apply" },
+      { label: "정산 관리", href: "/creator/settlement/manage" }
     ]
   }
 ];
@@ -118,9 +119,9 @@ export const studioGroups = (flextv: boolean, donationTypes = false): Group[] =>
           ...g,
           items: [
             ...g.items,
-            { label: "후원 종류 설정", emoji: "🎁", href: "/creator/donation-types" },
-            { label: "위젯", emoji: "🔔", href: "/creator/widgets" },
-            { label: "리모컨", emoji: "🎛️", href: "/creator/remote" }
+            { label: "후원 종류 설정", href: "/creator/donation-types" },
+            { label: "위젯", href: "/creator/widgets" },
+            { label: "리모컨", href: "/creator/remote" }
           ]
         }
       : g
@@ -141,9 +142,9 @@ export function studioActiveHref(pathname: string, tab: string | null, groups: G
 }
 
 /** The phone bar's label: the menu item of the current page, or the studio's name on a page outside the menu. */
-export function studioCurrentItem(active: string | null, groups: Group[] = GROUPS): { label: string; emoji: string | null; inMenu: boolean } {
+export function studioCurrentItem(active: string | null, groups: Group[] = GROUPS): { label: string; inMenu: boolean } {
   const item = active ? groups.flatMap((g) => g.items).find((i) => i.href === active) : undefined;
-  return item ? { label: item.label, emoji: item.emoji, inMenu: true } : { label: "크리에이터 스튜디오", emoji: null, inMenu: false };
+  return item ? { label: item.label, inMenu: true } : { label: "크리에이터 스튜디오", inMenu: false };
 }
 
 /**
@@ -253,11 +254,6 @@ export function CreatorSideNav({ donationTypes = false }: { donationTypes?: bool
     <nav className={styles.sidebar} aria-label={t("studioNav.menuAria")} data-open={open || undefined} onBlur={onBlur}>
       <button ref={buttonRef} type="button" className={styles.sideToggle} aria-expanded={open} aria-controls={STUDIO_MENU_ID} onClick={() => setOpen((v) => !v)}>
         <span className={styles.sideToggleCurrent}>
-          {current.emoji && (
-            <span className={styles.sideEmoji} aria-hidden="true">
-              {current.emoji}
-            </span>
-          )}
           <span className={styles.sideToggleLabel}>{label(current.label)}</span>
           {current.inMenu && <span className={styles.srOnly}>{` ${t("studioNav.currentPage")}`}</span>}
         </span>
@@ -275,14 +271,7 @@ export function CreatorSideNav({ donationTypes = false }: { donationTypes?: bool
             {g.title && <p className={styles.sideGroupTitle}>{label(g.title)}</p>}
             <ul>
               {g.items.map((item) => {
-                const content = (
-                  <>
-                    <span className={styles.sideEmoji} aria-hidden="true">
-                      {item.emoji}
-                    </span>
-                    {label(item.label)}
-                  </>
-                );
+                const content = label(item.label);
                 const isActive = item.href === active;
                 return (
                   <li key={item.label}>

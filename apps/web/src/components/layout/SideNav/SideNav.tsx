@@ -35,7 +35,8 @@ import styles from "./SideNav.module.css";
 /**
  * Site side menu — structure follows funnation (docs/research/funnation-reference.md §0):
  * profile card + 크리에이터 스튜디오 entry, then 둘러보기 · 후원 · 마이 · 더보기 groups.
- * Rendered on every (main) page by AppShell. Visual styles keep the Figma tokens (sidebar 617:344).
+ * Rendered on every (main) page by AppShell. Structure follows the Figma sidebar 617:344; the look was refreshed on
+ * 2026-11-03 (code-first, SideNav.module.css).
  */
 
 export type SideNavUser = {

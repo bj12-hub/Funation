@@ -341,7 +341,7 @@ describe("탈퇴 회원 정보 보관", () => {
       ["부정 이용 방지용 본인 확인 값", "탈퇴 후 6개월", "2027-04-08T03:00:00.000Z", false],
       ["게시물 (커뮤니티 글 · 댓글 · 채널 글)", "삭제하지 않음", null, false]
     ]);
-    expect(detail.withdrawal!.retention[0]).toMatchObject({ basis: "전자상거래법", covers: "탈퇴 기록, 약관 동의 기록" });
+    expect(detail.withdrawal!.retention[0]).toMatchObject({ basis: "전자상거래법", covers: "탈퇴 기록 (탈퇴 신청 · 철회 기록 포함), 약관 동의 기록" });
 
     // After a 재가입 the withdrawn account (`…-w1`) keeps its dates; a date that has come shows as purged.
     signUp(m, "010-0000-0000");
