@@ -5,6 +5,7 @@ import { GlobalHeader } from "@/components/layout/GlobalHeader";
 import { CreatorSideNav } from "@/features/creatorStudio/CreatorSideNav";
 import { getT } from "@/lib/i18n/server";
 import { getSession, hasRole } from "@/lib/session";
+import { getSitePath } from "@/lib/surface";
 import { getCreatorProfile } from "@/services/creator/creatorStudio";
 import styles from "@/features/creatorStudio/studio.module.css";
 
@@ -15,7 +16,9 @@ export default async function CreatorLayout({ children }: { children: ReactNode 
   // Route guard for UX only; every creator service re-checks the Creator role on the server
   // (getCreatorSession), and the real backend must enforce it on every request.
   const session = await getSession();
-  if (!session) redirect("/login?role=creator&next=/creator");
+  // After signing in, back to the studio page that was opened (it runs before that page's own redirect).
+  const signIn = async () => `/login?role=creator&next=${encodeURIComponent(await getSitePath())}`;
+  if (!session) redirect(await signIn());
 
   if (!hasRole(session, "CREATOR")) {
     // Code-first (no Figma frame): members become creators by creating a channel (approval TBD).
@@ -38,7 +41,7 @@ export default async function CreatorLayout({ children }: { children: ReactNode 
   }
 
   const profile = await getCreatorProfile();
-  if (!profile) redirect("/login?role=creator&next=/creator");
+  if (!profile) redirect(await signIn());
 
   // The studio keeps the dark theme (its Figma frames and several hardcoded colors are dark-only; light TBD).
   return (

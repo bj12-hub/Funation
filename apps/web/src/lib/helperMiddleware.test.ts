@@ -29,6 +29,19 @@ describe("middleware · surface header", () => {
     expect(overridden(res)).not.toContain("x-ssumnation-helper-path");
   });
 
+  it("sets the site path itself, over a client-sent one, for the sign-in return", () => {
+    vi.stubEnv("HELPER_HOST", "");
+    const res = middleware(request("http://localhost:3000/creator/donations?tab=quest", { host: "localhost:3000", "x-ssumnation-site-path": "//evil.com" }));
+    expect(forwarded(res, "x-ssumnation-site-path")).toBe("/creator/donations?tab=quest");
+  });
+
+  it("drops a client-sent site path on the helper host", () => {
+    vi.stubEnv("HELPER_HOST", "");
+    const res = middleware(request("http://localhost:3000/chat", { host: "helper.localhost:3000", "x-ssumnation-site-path": "/evil" }));
+    expect(forwarded(res, "x-ssumnation-site-path")).toBeNull();
+    expect(overridden(res)).not.toContain("x-ssumnation-site-path");
+  });
+
   it("marks helper requests and sets the helper path itself", () => {
     vi.stubEnv("HELPER_HOST", "");
     const res = middleware(request("http://localhost:3000/chat?tab=x", { host: "helper.localhost:3000", "x-ssumnation-surface": "site", "x-ssumnation-helper-path": "/evil" }));

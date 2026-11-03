@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
   HELPER_PATH_HEADER,
+  SITE_PATH_HEADER,
   SURFACE_HEADER,
   isHelperRequest,
   parseHostList,
@@ -24,6 +25,7 @@ export function middleware(request: NextRequest) {
 
   const headers = new Headers(request.headers);
   headers.delete(HELPER_PATH_HEADER);
+  headers.delete(SITE_PATH_HEADER);
   headers.set(SURFACE_HEADER, (helper ? "helper" : "site") satisfies Surface);
 
   if (!helper) {
@@ -31,6 +33,7 @@ export function middleware(request: NextRequest) {
     // An address no route matches, so the site's own 404 page answers (status 404).
     if (route.action === "notFound") return NextResponse.rewrite(new URL("/__helper-not-served", request.url), { request: { headers } });
     if (route.action === "redirectHost") return NextResponse.redirect(new URL(route.path, `${request.nextUrl.protocol}//${route.host}`));
+    headers.set(SITE_PATH_HEADER, `${pathname}${search}`);
     return NextResponse.next({ request: { headers } });
   }
 
