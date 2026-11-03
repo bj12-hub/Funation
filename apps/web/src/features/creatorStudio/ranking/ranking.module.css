@@ -35,13 +35,13 @@
 .tabs {
   display: flex;
   gap: 16px;
-  border-bottom: 1px solid #23234a;
+  border-bottom: 1px solid var(--color-border-strong);
 }
 
 .tab {
   position: relative;
   padding: 12px 16px 20px;
-  color: #94a3b8;
+  color: var(--color-text-secondary);
   font-size: var(--font-size-16);
   font-weight: var(--font-weight-medium);
   white-space: nowrap;
@@ -63,7 +63,7 @@
   width: 48px;
   height: 3px;
   border-radius: 99px;
-  background: #a855f7;
+  background: var(--color-primary);
   content: "";
   transform: translateX(-50%);
 }
@@ -76,9 +76,9 @@
   justify-content: space-between;
   gap: 24px;
   padding: 24px;
-  border: 1px solid #23234a;
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-16);
-  background: #12122b;
+  background: var(--color-surface);
 }
 
 .myLeft {
@@ -96,7 +96,7 @@
 
 .myLabel,
 .myStats dt {
-  color: #94a3b8;
+  color: var(--color-text-secondary);
   font-size: var(--font-size-13);
   white-space: nowrap;
   text-transform: uppercase;
@@ -118,14 +118,14 @@
 .myDivider {
   width: 1px;
   height: 40px;
-  background: #23234a;
+  background: var(--color-surface-strong);
 }
 
 .myAvatar {
   flex-shrink: 0;
   width: 48px;
   height: 48px;
-  border: 2px solid #a855f7;
+  border: 2px solid var(--color-primary);
   border-radius: 50%;
   object-fit: cover;
 }
@@ -147,7 +147,7 @@
 }
 
 .myName span {
-  color: #94a3b8;
+  color: var(--color-text-secondary);
   font-size: var(--font-size-13);
 }
 
@@ -202,9 +202,9 @@
   display: flex;
   gap: 4px;
   padding: 4px;
-  border: 1px solid #23234a;
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-12);
-  background: #12122b;
+  background: var(--color-surface);
 }
 
 .period {
@@ -217,14 +217,14 @@
 }
 
 .period:hover {
-  border-color: #23234a;
+  border-color: var(--color-border-strong);
   font-weight: var(--font-weight-semibold);
 }
 
 .periodOn,
 .periodOn:hover {
   border-color: transparent;
-  background: #1b1b3a;
+  background: var(--color-surface-raised);
   color: var(--color-text-on-accent);
   font-weight: var(--font-weight-medium);
 }
@@ -235,9 +235,9 @@
   gap: 8px;
   width: 280px;
   padding: 10px 16px;
-  border: 1px solid #23234a;
+  border: 1px solid var(--color-border-strong);
   border-radius: 10px;
-  background: #12122b;
+  background: var(--color-surface);
 }
 
 .search:focus-within {
@@ -259,16 +259,16 @@
 }
 
 .search input::placeholder {
-  color: #64748b;
+  color: var(--color-text-tertiary);
 }
 
 /* ── Table (405:52) ── */
 
 .table {
   overflow-x: auto;
-  border: 1px solid #23234a;
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-16);
-  background: #12122b;
+  background: var(--color-surface);
 }
 
 .table table {
@@ -281,7 +281,7 @@
 .table th,
 .table td {
   padding: 16px 32px 16px 0;
-  border-bottom: 1px solid #23234a;
+  border-bottom: 1px solid var(--color-border-strong);
   text-align: left;
   vertical-align: middle;
 }
@@ -297,8 +297,8 @@
 }
 
 .table th {
-  background: #1b1b3a;
-  color: #94a3b8;
+  background: var(--color-surface-raised);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-13);
   font-weight: var(--font-weight-semibold);
 }
@@ -334,7 +334,7 @@
 }
 
 .topRow {
-  background: #1c1135;
+  background: #2a1d17;
 }
 
 .rank {
@@ -371,7 +371,7 @@
 }
 
 .same {
-  color: #64748b;
+  color: var(--color-text-tertiary);
   font-weight: var(--font-weight-medium);
 }
 
@@ -416,7 +416,7 @@
 }
 
 .count {
-  color: #94a3b8 !important;
+  color: var(--color-text-secondary) !important;
   font-weight: var(--font-weight-medium);
 }
 
@@ -442,11 +442,11 @@
   justify-content: space-between;
   gap: 12px;
   padding: 24px;
-  background: #1b1b3a;
+  background: var(--color-surface-raised);
 }
 
 .total {
-  color: #94a3b8;
+  color: var(--color-text-secondary);
   font-size: var(--font-size-13);
 }
 
@@ -459,10 +459,10 @@
 .pageButton {
   min-width: 32px;
   padding: 8px 12px;
-  border: 1px solid #23234a;
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-6);
-  background: #12122b;
-  color: #94a3b8;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-12);
   font-weight: var(--font-weight-semibold);
   text-align: center;
@@ -473,8 +473,8 @@ a.pageButton:hover {
 }
 
 .pageCurrent {
-  border-color: #a855f7;
-  background: #a855f7;
+  border-color: var(--color-primary);
+  background: var(--color-primary);
   color: var(--color-text-on-accent);
   font-weight: var(--font-weight-bold);
 }

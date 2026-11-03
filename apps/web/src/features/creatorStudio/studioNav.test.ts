@@ -24,11 +24,11 @@ describe("studio sidebar active item", () => {
   });
 
   it("names the current page on the phone menu bar", () => {
-    expect(studioCurrentItem(studioActiveHref("/creator", null))).toEqual({ label: "대시보드", emoji: "📊", inMenu: true });
-    expect(studioCurrentItem(studioActiveHref("/creator/remote", null))).toMatchObject({ label: "리모컨", emoji: "🎛️" });
+    expect(studioCurrentItem(studioActiveHref("/creator", null))).toEqual({ label: "대시보드", inMenu: true });
+    expect(studioCurrentItem(studioActiveHref("/creator/remote", null))).toMatchObject({ label: "리모컨" });
     expect(studioCurrentItem(studioActiveHref("/creator/widgets/banner", null))).toMatchObject({ label: "위젯" });
     expect(studioCurrentItem(studioActiveHref("/creator/donations", "filtering"))).toMatchObject({ label: "후원 필터링" });
     // A page outside the menu shows the studio's name (and is not announced as a menu item).
-    expect(studioCurrentItem(studioActiveHref("/creator/unknown", null))).toEqual({ label: "크리에이터 스튜디오", emoji: null, inMenu: false });
+    expect(studioCurrentItem(studioActiveHref("/creator/unknown", null))).toEqual({ label: "크리에이터 스튜디오", inMenu: false });
   });
 });
