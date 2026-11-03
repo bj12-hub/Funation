@@ -8,6 +8,7 @@ import { formatNumber } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { Signature } from "@/services/donations/donationCatalog";
 import styles from "./donation.module.css";
+import { remote } from "@/lib/remoteImage";
 
 const FILTERS = [
   { key: "ALL", label: "roomDonate.filterAll", test: () => true },
@@ -146,7 +147,7 @@ function Body({ signatures, initial, onClose, onSelect }: { signatures: Signatur
               return (
                 <button key={s.id} type="button" role="radio" aria-checked={on} className={`${styles.popupCard} ${on ? styles.popupCardOn : ""}`} onClick={() => setChoice(s.id)}>
                   <span className={styles.popupThumb}>
-                    <Image src={s.imageUrl} alt="" fill sizes="246px" className={styles.popupImage} />
+                    <Image src={s.imageUrl} alt="" fill sizes="246px" className={styles.popupImage} unoptimized={remote(s.imageUrl)} />
                     {on && <span className={styles.selectedBadge}>{t("roomDonate.selectedBadge")}</span>}
                   </span>
                   <span className={styles.popupInfo}>

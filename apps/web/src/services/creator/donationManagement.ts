@@ -2,6 +2,8 @@
 
 import { toCsv } from "@/lib/csv";
 import { kstIsoString } from "@/lib/format";
+import { FLEXTV_SSUMNATION_API } from "@/lib/flextv/mode";
+import { flextvDecideReceivedQuest } from "./flextvBroadcastGames";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES } from "@/lib/validation";
@@ -205,6 +207,7 @@ function questDonations(): ReceivedDonation[] {
  * the same outcome is a no-op.
  */
 export async function decideReceivedQuest(input: unknown): Promise<QuestDecideResult> {
+  if (FLEXTV_SSUMNATION_API) return flextvDecideReceivedQuest(input);
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const v = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;

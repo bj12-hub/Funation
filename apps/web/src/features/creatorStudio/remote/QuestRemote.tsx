@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { FLEXTV_STUDIO } from "@/lib/flextv/mode";
 import { formatNumber } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { MessageKey } from "@/lib/i18n/translate";
@@ -115,7 +116,8 @@ export function QuestRemote({ view }: { view: QuestRemoteView }) {
         <h2 className={styles.cardTitle} id="quest-remote">
           {t("studioRemote.questTitle")}
         </h2>
-        <Link href="/creator/widgets?open=QUEST" className={styles.ghost}>
+        {/* With FLEXTV the settings are 후원 종류 설정 (phase 6). */}
+        <Link href={FLEXTV_STUDIO ? "/creator/donation-types" : "/creator/widgets?open=QUEST"} className={styles.ghost}>
           {t("studioRemote.widgetSettings")}
         </Link>
       </div>

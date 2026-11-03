@@ -1,5 +1,6 @@
 "use server";
 
+import { FLEXTV_STUDIO } from "@/lib/flextv/mode";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import type { UpdatePost, UpdatesView } from "./updatesTypes";
@@ -78,6 +79,8 @@ export async function getUpdates(): Promise<UpdatesView | null> {
 
 /** Dashboard card: the latest posts (read state unchanged). */
 export async function getLatestUpdates(limit = 3): Promise<UpdatesView | null> {
+  // The 소식 posts describe the mock studio's menus; with FLEXTV the dashboard shows none (phase 5).
+  if (FLEXTV_STUDIO) return null;
   assertMock();
   if (!(await getCreatorSession())) return null;
   return view(Math.min(Math.max(1, Math.floor(limit) || 3), 10));

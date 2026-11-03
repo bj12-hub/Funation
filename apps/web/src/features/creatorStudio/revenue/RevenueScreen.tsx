@@ -3,7 +3,8 @@ import { formatNumber } from "@/lib/format";
 import type { Locale } from "@/lib/i18n/config";
 import { getLocale, getT } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
-import type { RevenueOverview, RevenueShare } from "@/services/creator/creatorStudio";
+import type { AmountUnit, RevenueOverview, RevenueShare } from "@/services/creator/creatorStudio";
+import { formatAmount } from "../amount";
 import { SummaryCard, TopDonorsCard } from "../DashboardSummaryCards";
 import { RevenueChart } from "../RevenueChart";
 import summary from "../dashboardSummary.module.css";
@@ -13,7 +14,8 @@ import styles from "./revenue.module.css";
 /**
  * 수익 현황 — code-first, structure follows the funnation 수익 대시보드: 총 수익 · 미정산 · 오늘 후원 ·
  * 이번 달 tiles with 정산 요청, 일별 후원 추이 (30일), 월별 수익 추이 (6개월), 상위 후원자 and shortcuts.
- * Route `/creator/revenue`. ₩ amounts are server values (gross/net TBD); 미정산 is FN.
+ * Route `/creator/revenue`. ₩ amounts are server values (gross/net TBD); 미정산 is FN. With FLEXTV every amount is the
+ * 렉스 received (FN) and 수익원별 상세 is left out (FLEXTV does not tell the types apart).
  */
 /** 수익원 labels by the service's key; a key not listed shows the service's label. */
 const SOURCE_KEY: Record<string, MessageKey> = {
@@ -39,6 +41,7 @@ function monthLabel(label: string, locale: Locale) {
 
 export async function RevenueScreen({ data }: { data: RevenueOverview }) {
   const empty = data.totalRevenue === 0;
+  const { unit } = data;
   const [t, locale] = await Promise.all([getT(), getLocale()]);
   const shares = (items: RevenueShare[]) => items.map((i) => (SOURCE_KEY[i.key] ? { ...i, label: t(SOURCE_KEY[i.key]) } : i));
   return (
@@ -54,15 +57,17 @@ export async function RevenueScreen({ data }: { data: RevenueOverview }) {
       </header>
 
       <div className={styles.tiles}>
-        <Tile label={t("studioRevenue.total")} sub={t("studioRevenue.allTime")} value={`₩${formatNumber(data.totalRevenue)}`} />
+        <Tile label={t("studioRevenue.total")} sub={t("studioRevenue.allTime")} value={formatAmount(data.totalRevenue, unit)} />
         <Tile
           label={t("studioRevenue.unsettled")}
           sub={data.unsettledFn > 0 ? t("studioRevenue.unsettledSome") : t("studioRevenue.unsettledNone")}
           value={`${formatNumber(data.unsettledFn)} FN`}
         />
-        <Tile label={t("studioRevenue.today")} sub={t("studioRevenue.countValue", { count: formatNumber(data.today.count) })} value={`₩${formatNumber(data.today.amount)}`} />
-        <Tile label={t("studioRevenue.thisMonth")} sub={t("studioRevenue.sinceFirst")} value={`₩${formatNumber(data.thisMonth)}`} />
+        <Tile label={t("studioRevenue.today")} sub={t("studioRevenue.countValue", { count: formatNumber(data.today.count) })} value={formatAmount(data.today.amount, unit)} />
+        <Tile label={t("studioRevenue.thisMonth")} sub={t("studioRevenue.sinceFirst")} value={formatAmount(data.thisMonth, unit)} />
       </div>
+      {unit === "FN" && <p className={styles.subtitle}>{t("studioRevenue.flextvNote")}</p>}
+      {data.partial && <p className={styles.subtitle}>{t("studioRevenue.partial")}</p>}
 
       {empty ? (
         <p className={styles.empty}>{t("studioRevenue.empty")}</p>
@@ -73,26 +78,28 @@ export async function RevenueScreen({ data }: { data: RevenueOverview }) {
               {data.daily[0].label} ~ {data.daily[data.daily.length - 1].label} {t("studioRevenue.last30")}
             </p>
             <div className={studio.chartArea}>
-              <RevenueChart series={data.daily} fillId="revenue-fill-daily" />
+              <RevenueChart series={data.daily} fillId="revenue-fill-daily" unit={unit} />
             </div>
           </SummaryCard>
           <SummaryCard title={t("studioRevenue.monthly")} href="/creator/settlement/manage" linkLabel={t("studioRevenue.manage")}>
             <p className={styles.range}>{t("studioRevenue.last6")}</p>
             <div className={studio.chartArea}>
-              <RevenueChart series={data.monthly.map((m) => ({ ...m, label: monthLabel(m.label, locale) }))} fillId="revenue-fill-monthly" />
+              <RevenueChart series={data.monthly.map((m) => ({ ...m, label: monthLabel(m.label, locale) }))} fillId="revenue-fill-monthly" unit={unit} />
             </div>
           </SummaryCard>
-          <TopDonorsCard donors={data.topDonors} />
-          <section className={summary.card} aria-labelledby="revenue-sources">
-            <h2 id="revenue-sources" className={summary.title}>
-              {t("studioRevenue.sources")}
-            </h2>
-            <p className={styles.range}>
-              {t("studioRevenue.thisMonth")} · ₩{formatNumber(data.thisMonth)}
-            </p>
-            <ShareList title={t("studioRevenue.byType")} items={shares(data.bySource.types)} total={data.thisMonth} />
-            <ShareList title={t("studioRevenue.byRoute")} items={shares(data.bySource.routes)} total={data.thisMonth} />
-          </section>
+          <TopDonorsCard donors={data.topDonors} unit={unit} />
+          {data.bySource && (
+            <section className={summary.card} aria-labelledby="revenue-sources">
+              <h2 id="revenue-sources" className={summary.title}>
+                {t("studioRevenue.sources")}
+              </h2>
+              <p className={styles.range}>
+                {t("studioRevenue.thisMonth")} · {formatAmount(data.thisMonth, unit)}
+              </p>
+              <ShareList title={t("studioRevenue.byType")} items={shares(data.bySource.types)} total={data.thisMonth} unit={unit} />
+              <ShareList title={t("studioRevenue.byRoute")} items={shares(data.bySource.routes)} total={data.thisMonth} unit={unit} />
+            </section>
+          )}
           <section className={summary.card} aria-labelledby="revenue-links">
             <h2 id="revenue-links" className={summary.title}>
               {t("studioRevenue.shortcuts")}
@@ -125,7 +132,7 @@ export async function RevenueScreen({ data }: { data: RevenueOverview }) {
 }
 
 /** One breakdown: label, ₩ and share, with a bar (code-first, 2026-10-06). */
-function ShareList({ title, items, total }: { title: string; items: RevenueShare[]; total: number }) {
+function ShareList({ title, items, total, unit }: { title: string; items: RevenueShare[]; total: number; unit: AmountUnit }) {
   return (
     <div className={styles.shares}>
       <h3 className={styles.sharesTitle}>{title}</h3>
@@ -136,7 +143,7 @@ function ShareList({ title, items, total }: { title: string; items: RevenueShare
             <li key={i.key} className={styles.share}>
               <span className={styles.shareLabel}>{i.label}</span>
               <span className={styles.shareValue}>
-                ₩{formatNumber(i.amount)} <span className={styles.sharePct}>{pct}%</span>
+                {formatAmount(i.amount, unit)} <span className={styles.sharePct}>{pct}%</span>
               </span>
               <span className={styles.shareBar} aria-hidden="true">
                 <span style={{ width: `${pct}%` }} />

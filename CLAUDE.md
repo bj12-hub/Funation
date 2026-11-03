@@ -20,7 +20,8 @@ Runtime:
 
 - Node.js
 
-Backend framework and database are not finalized yet.
+Backend: FLEXTV's existing API (2026-10-25 결정), connected area by area behind switches — see
+`docs/development/flextv-backend.md`. Areas not connected yet still run on the mock services.
 
 ---
 

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { formatNumber } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
-import type { RankEntry } from "@/services/creator/creatorStudio";
+import type { AmountUnit, RankEntry } from "@/services/creator/creatorStudio";
+import { formatAmount } from "./amount";
 import styles from "./studio.module.css";
 
 const TABS = [
@@ -13,7 +13,7 @@ const TABS = [
 ] as const;
 
 /** Figma 245:14 최근 후원 순위 — 일간 / 주간(기본) / 월간 top 5. */
-export function RankingTabs({ rankings }: { rankings: Record<"day" | "week" | "month", RankEntry[]> }) {
+export function RankingTabs({ rankings, unit = "KRW" }: { rankings: Record<"day" | "week" | "month", RankEntry[]>; unit?: AmountUnit }) {
   const { t } = useI18n();
   const [tab, setTab] = useState<"day" | "week" | "month">("week");
   const list = rankings[tab];
@@ -45,7 +45,7 @@ export function RankingTabs({ rankings }: { rankings: Record<"day" | "week" | "m
               <li key={r.rank} className={styles.rankRow}>
                 <span className={styles.rankNo}>{r.rank}</span>
                 <span className={styles.rankName}>{r.donor}</span>
-                <span className={styles.money}>₩{formatNumber(r.amount)}</span>
+                <span className={styles.money}>{formatAmount(r.amount, unit)}</span>
               </li>
             ))}
           </ol>

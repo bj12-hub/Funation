@@ -1,9 +1,12 @@
 "use server";
 
+import { isFlextvChannelId } from "@/lib/flextv/donation";
+import { FLEXTV_DONATION } from "@/lib/flextv/mode";
 import { USE_MOCK } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { currentPersonKey } from "@/services/account/mockStore";
 import { accountSince } from "@/services/account/withdrawalCore";
+import { flextvRoomGames } from "./flextvGames";
 import { roomView } from "./rouletteCore";
 import type { RoomRoulette } from "./rouletteTypes";
 
@@ -14,6 +17,8 @@ import type { RoomRoulette } from "./rouletteTypes";
  * TBD: realtime push instead of polling.
  */
 export async function getRoomRoulette(channelId: unknown): Promise<RoomRoulette | null> {
+  // A FLEXTV channel's room (phase 6): FLEXTV keeps its spins.
+  if (FLEXTV_DONATION && isFlextvChannelId(channelId)) return (await flextvRoomGames(channelId))?.roulette ?? null;
   if (!USE_MOCK) throw new Error("Roulette API is not connected yet.");
   if (typeof channelId !== "string" || !/^[\w-]{1,40}$/.test(channelId)) return null;
   const session = await getSession();

@@ -1,3 +1,4 @@
+import { FLEXTV_DONATION, FLEXTV_SSUMNATION_API, FLEXTV_WALLET } from "@/lib/flextv/mode";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { mockAccount } from "@/services/account/mockStore";
@@ -31,6 +32,7 @@ import {
   type WalletOverview,
   type WalletSummary
 } from "./walletTypes";
+import * as flextvHistory from "./flextvHistory";
 
 export * from "./walletTypes";
 
@@ -48,12 +50,21 @@ const PAGE_SIZE = 10;
 // ── Reads ────────────────────────────────────────────────────────────────────
 
 export async function getWalletSummary(): Promise<WalletSummary | null> {
+  if (FLEXTV_WALLET) {
+    const balance = await flextvHistory.walletBalance();
+    // FLEXTV keeps no expiry per 렉스 that it shows (the terms give 5 years from the last use).
+    return balance === null ? null : { balance, available: balance, expiring: 0 };
+  }
   if (!USE_MOCK) throw new Error("Wallet API is not connected yet.");
   if (!(await getSession())) return null;
   return { balance: mockAccount.fnBalance, available: mockAccount.fnBalance, expiring: 0 };
 }
 
 export async function getChargeHistory(input: { period: Period; page?: number; all?: boolean }): Promise<HistoryPage<ChargeRecord> | null> {
+  if (FLEXTV_WALLET) {
+    const rows = await flextvHistory.chargeRecords(input.period.from);
+    return rows && paginate(rows.filter((c) => inPeriod(c.chargedAt, input.period)), input);
+  }
   if (!USE_MOCK) throw new Error("Wallet API is not connected yet.");
   if (!(await getSession())) return null;
   await mockDelay(300);
@@ -74,6 +85,7 @@ export async function getDonationHistory(input: {
   all?: boolean;
   filter?: DonationFilter;
 }): Promise<(HistoryPage<DonationRecord> & { totalFn: number }) | null> {
+  if (FLEXTV_DONATION) return flextvDonationHistory(input);
   if (!USE_MOCK) throw new Error("Wallet API is not connected yet.");
   const session = await getSession();
   if (!session) return null;
@@ -106,6 +118,30 @@ export async function getDonationHistory(input: {
   return { ...page, items, totalFn: rows.reduce((s, d) => s + d.fnAmount, 0) };
 }
 
+/**
+ * 후원 내역 on the FLEXTV backend: FLEXTV's sent donations as 기본 후원, searched by the recipient's name; with FLEXTV's
+ * Ssumnation endpoints (phase 6) the 퀘스트 후원 and 게임 후원 tabs are its quests and 룰렛 · 뽑기 with their state and
+ * results. The filters work as on the mock.
+ */
+async function flextvDonationHistory(input: { period: Period; category: DonationCategory; page?: number; all?: boolean; filter?: DonationFilter }) {
+  const own = input.category !== "basic";
+  if (own && !FLEXTV_SSUMNATION_API) return { ...paginate([], input), totalFn: 0 };
+  const rows = own ? await flextvHistory.ownTypeRecords(input.category as "quest" | "game", input.period.from) : await flextvHistory.donationRecords(input.period.from);
+  if (!rows) return null;
+  const f = input.filter ?? {};
+  const q = f.q?.trim().toLowerCase() ?? "";
+  const matching = rows
+    .filter(
+      (d) =>
+        inPeriod(d.donatedAt, input.period) &&
+        (!q || d.creatorName.toLowerCase().includes(q)) &&
+        (f.min === undefined || d.fnAmount >= f.min) &&
+        (f.max === undefined || d.fnAmount <= f.max)
+    )
+    .sort((a, b) => (f.sort === "oldest" ? a.donatedAt.localeCompare(b.donatedAt) : b.donatedAt.localeCompare(a.donatedAt)));
+  return { ...paginate(matching, input), totalFn: matching.reduce((s, d) => s + d.fnAmount, 0) };
+}
+
 function gameResultOf(id: string): string | null {
   const spin = spinState(id);
   if (spin) {
@@ -130,6 +166,7 @@ function gameResultOf(id: string): string | null {
  * of a failed 플랫폼 후원 coming back is an FN 반환 row (`?kind=RETURN`, 2026-10-09 결정), not 환불.
  */
 export async function getWalletOverview(input: { kind?: unknown; period?: unknown; page?: unknown }): Promise<WalletOverview | null> {
+  if (FLEXTV_WALLET) return flextvOverview(input);
   if (!USE_MOCK) throw new Error("Wallet API is not connected yet.");
   if (!(await getSession())) return null;
   const kind = LEDGER_FILTER_KINDS.find((k) => k === input.kind) ?? "all";
@@ -221,6 +258,39 @@ export async function getWalletOverview(input: { kind?: unknown; period?: unknow
     kind,
     period,
     entries: filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    page,
+    totalPages
+  };
+}
+
+/**
+ * FN Wallet on the FLEXTV backend: FLEXTV's 렉스 balance, its paid charges (충전) and the member's donations (사용).
+ * FLEXTV shows no 환불 · 반환 · 적립 rows yet, and nothing is held, so `locked` is 0.
+ */
+async function flextvOverview(input: { kind?: unknown; period?: unknown; page?: unknown }): Promise<WalletOverview | null> {
+  const kind = LEDGER_FILTER_KINDS.find((k) => k === input.kind) ?? "all";
+  const period: LedgerPeriod = LEDGER_PERIODS.some((p) => p.key === input.period) ? (input.period as LedgerPeriod) : "30";
+  const since = period === "all" ? null : toDateString(new Date(Date.now() - Number(period) * 86_400_000));
+  const ledger = await flextvHistory.walletLedger(since);
+  if (!ledger) return null;
+  const entries: LedgerEntry[] = [
+    ...ledger.charges.map(
+      (c): LedgerEntry => ({ id: c.id, kind: "CHARGE", description: `FN 충전 · ${c.methodLabel}`, deltaFn: c.fnAmount, statusLabel: CHARGE_STATUS_LABEL.COMPLETED, tone: "done", at: c.chargedAt.slice(0, 16) })
+    ),
+    ...ledger.spends
+  ]
+    .filter((e) => (kind === "all" || e.kind === kind) && (!since || e.at.slice(0, 10) >= since))
+    .sort((a, b) => b.at.localeCompare(a.at));
+  const totalPages = Math.max(1, Math.ceil(entries.length / PAGE_SIZE));
+  const n = Number(input.page);
+  const page = Number.isInteger(n) && n >= 1 && n <= totalPages ? n : 1;
+  return {
+    available: ledger.balance,
+    locked: 0,
+    totalUsed: ledger.spends.filter((s) => s.tone === "done").reduce((sum, s) => sum - s.deltaFn, 0),
+    kind,
+    period,
+    entries: entries.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
     page,
     totalPages
   };

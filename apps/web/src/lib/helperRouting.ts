@@ -61,12 +61,12 @@ export function isHelperRequest(host: string | null, forwardedHost: string | nul
 const under = (path: string, prefix: string) => path === prefix || path.startsWith(`${prefix}/`);
 
 /**
- * Site routes the helper host serves as they are: OBS overlays, pop-out windows, sign-in · sign-up · password reset,
- * 채널 만들기, the terms that sign-up links to, the media the overlays load, and the SMS 계좌후원 webhook — the helper's
+ * Site routes the helper host serves as they are: OBS overlays, pop-out windows, sign-in · sign-up · password reset and
+ * 간편 로그인 (`/auth/*`), 채널 만들기, the terms that sign-up links to, the media the overlays load, and the SMS 계좌후원 webhook — the helper's
  * 후원 연동 page hands out its address on the helper domain, and the key in it is the webhook's only credential, as on
  * the site. Everything else of the site (wallet, settlement, community, the admin API …) stays on the site's domain.
  */
-const SHARED_PREFIXES = ["/overlay", "/popout", "/login", "/signup", "/password-reset", "/channel/new", "/terms", "/api/custom-sound", "/api/media", "/api/bank-sms"];
+const SHARED_PREFIXES = ["/overlay", "/popout", "/login", "/signup", "/password-reset", "/auth", "/channel/new", "/terms", "/api/custom-sound", "/api/media", "/api/bank-sms"];
 
 /**
  * Studio addresses that the reused studio screens link to, mapped to their helper page. Longest prefix first; the

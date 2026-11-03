@@ -1,5 +1,7 @@
 "use server";
 
+import { FLEXTV_SSUMNATION_API } from "@/lib/flextv/mode";
+import { flextvRouletteButton, flextvRouletteRemote } from "./flextvBroadcastGames";
 import { USE_MOCK } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { STUDIO_CHANNEL } from "@/services/crew/mockCrewStore";
@@ -18,6 +20,7 @@ const assertMock = () => {
 };
 
 export async function getRouletteRemote(): Promise<RouletteRemoteView | null> {
+  if (FLEXTV_SSUMNATION_API) return flextvRouletteRemote();
   assertMock();
   if (!(await getCreatorSession())) return null;
   const st = readWidget("ROULETTE");
@@ -37,6 +40,7 @@ export async function getRouletteRemote(): Promise<RouletteRemoteView | null> {
 
 /** Starts the oldest waiting spin when the wheel is free. */
 export async function startNextSpin(): Promise<RouletteControlResult> {
+  if (FLEXTV_SSUMNATION_API) return flextvRouletteButton("start");
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (stageOf(STUDIO_CHANNEL)) return { status: "INVALID", message: "돌아가는 룰렛이 끝난 뒤 시작할 수 있어요." };
@@ -48,6 +52,7 @@ export async function startNextSpin(): Promise<RouletteControlResult> {
 
 /** 일시정지 stops 자동 시작 (a spin already turning finishes). */
 export async function setRoulettePaused(input: unknown): Promise<RouletteControlResult> {
+  if (FLEXTV_SSUMNATION_API) return flextvRouletteButton("pause", input);
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const paused = (input as { paused?: unknown } | null)?.paused;
@@ -58,6 +63,7 @@ export async function setRoulettePaused(input: unknown): Promise<RouletteControl
 
 /** ✓ 결과 공개 (결과 자동 노출 off): the stopped wheel shows its result now. Revealing twice is a no-op. */
 export async function revealRouletteSpin(input: unknown): Promise<RouletteControlResult> {
+  if (FLEXTV_SSUMNATION_API) return flextvRouletteButton("reveal", input);
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const id = (input as { spinId?: unknown } | null)?.spinId;
@@ -74,6 +80,7 @@ const SWITCHES = ["enabled", "autoStart", "autoReveal"] as const;
 
 /** 리모컨 스위치 (펀페이 1009:355): 후원 받기 · 룰렛 자동시작 · 결과 자동노출, the same values as 위젯 › 룰렛. */
 export async function setRouletteSwitch(input: unknown): Promise<RouletteControlResult> {
+  if (FLEXTV_SSUMNATION_API) return flextvRouletteButton("switch", input);
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const v = (typeof input === "object" && input !== null ? input : {}) as { key?: unknown; on?: unknown };
@@ -84,6 +91,7 @@ export async function setRouletteSwitch(input: unknown): Promise<RouletteControl
 
 /** 위젯 화면 숨기기: the roulette overlay shows nothing (spins and results still go on). */
 export async function setRouletteHidden(input: unknown): Promise<RouletteControlResult> {
+  if (FLEXTV_SSUMNATION_API) return flextvRouletteButton("hide", input);
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const hidden = (input as { hidden?: unknown } | null)?.hidden;
@@ -94,6 +102,7 @@ export async function setRouletteHidden(input: unknown): Promise<RouletteControl
 
 /** ✓ 완료: a shown result leaves the broadcast now. Finishing a finished spin again is a no-op. */
 export async function finishRouletteSpin(input: unknown): Promise<RouletteControlResult> {
+  if (FLEXTV_SSUMNATION_API) return flextvRouletteButton("finish", input);
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   const id = (input as { spinId?: unknown } | null)?.spinId;

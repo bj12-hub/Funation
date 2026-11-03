@@ -1,4 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { FLEXTV_AUTH, FLEXTV_STUDIO } from "@/lib/flextv/mode";
+import { cookieHeaderWith, refreshSessionCookies } from "@/lib/flextv/sessionRefresh";
+import { flextvStudioServes, isStudioPath } from "@/lib/flextv/studioRoutes";
 import {
   HELPER_PATH_HEADER,
   SURFACE_HEADER,
@@ -16,17 +19,36 @@ import {
  *
  * Every page request carries `x-ssumnation-surface` so layouts can pick their chrome; a value sent by the client is
  * overwritten here. This is navigation only — every page and server action still checks the session itself.
+ *
+ * With the FLEXTV backend it also renews the member's FLEXTV access token before it expires
+ * (lib/flextv/sessionRefresh.ts), for the browser and for the page rendered for this request, and sends the studio pages
+ * not connected to FLEXTV yet to the dashboard.
  */
 export function middleware(request: NextRequest) {
+  return FLEXTV_AUTH ? withSessionRefresh(request) : route(request, new Headers(request.headers));
+}
+
+async function withSessionRefresh(request: NextRequest) {
+  const headers = new Headers(request.headers);
+  const writes = await refreshSessionCookies(request.cookies);
+  if (writes) headers.set("cookie", cookieHeaderWith(request.headers.get("cookie"), writes));
+
+  const response = route(request, headers);
+  for (const { name, value, options } of writes ?? []) response.cookies.set(name, value, options);
+  return response;
+}
+
+function route(request: NextRequest, headers: Headers) {
   const { pathname, search } = request.nextUrl;
   const helperHosts = parseHostList(process.env.HELPER_HOST);
   const helper = isHelperRequest(request.headers.get("host"), request.headers.get("x-forwarded-host"), helperHosts);
 
-  const headers = new Headers(request.headers);
   headers.delete(HELPER_PATH_HEADER);
   headers.set(SURFACE_HEADER, (helper ? "helper" : "site") satisfies Surface);
 
   if (!helper) {
+    // With FLEXTV only the studio pages that run on it are served (lib/flextv/studioRoutes.ts).
+    if (FLEXTV_STUDIO && isStudioPath(pathname) && !flextvStudioServes(pathname)) return NextResponse.redirect(new URL("/creator", request.url));
     const route = routeSiteRequest(pathname, search, helperHosts);
     // An address no route matches, so the site's own 404 page answers (status 404).
     if (route.action === "notFound") return NextResponse.rewrite(new URL("/__helper-not-served", request.url), { request: { headers } });

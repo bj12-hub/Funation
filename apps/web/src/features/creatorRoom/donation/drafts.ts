@@ -149,20 +149,26 @@ export function buildDraft(key: FormKey, states: FormStates, catalog: DonationCa
     case "AUDIO": {
       const audio = key === "AUDIO";
       const s = states[key];
-      const amount = digits(s.amount);
       const min = audio ? catalog.minAmount.AUDIO : catalog.minAmount.VIDEO;
-      const tooSmall = amount !== null && amount < min;
       const videoId = s.url ? parseYouTubeId(s.url) : null;
       const start = parseClock(s.start);
       const end = parseClock(s.end);
       const rangeOk = start !== null && end !== null && end > start;
-      const error = tooSmall
-        ? t("roomDonate.minAmount", { amount: formatNumber(min) })
-        : s.url && !videoId
-          ? t("roomDonate.youtubeOnly")
-          : !rangeOk
-            ? t("roomDonate.rangeError")
-            : null;
+      // Priced by the second (a FLEXTV streamer's 영상 후원): the length sets the amount, within the streamer's limit.
+      const pricing = catalog.mediaPricing?.[key];
+      const length = rangeOk ? end - start : null;
+      const amount = pricing ? (length === null ? null : length * pricing.perSecond) : digits(s.amount);
+      const tooSmall = amount !== null && amount < min;
+      const tooLong = !!pricing && length !== null && length > pricing.maxSec;
+      const error = tooLong
+        ? t("roomDonate.maxSeconds", { max: formatNumber(pricing.maxSec) })
+        : tooSmall
+          ? t(pricing ? "roomDonate.minAmountLonger" : "roomDonate.minAmount", { amount: formatNumber(min) })
+          : s.url && !videoId
+            ? t("roomDonate.youtubeOnly")
+            : !rangeOk
+              ? t("roomDonate.rangeError")
+              : null;
       const complete = amount !== null && !error && videoId && s.terms && start !== null && end !== null;
       return {
         details: complete

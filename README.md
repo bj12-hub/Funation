@@ -18,8 +18,8 @@ Ssumnation is a broadcasting donation platform connecting **Creators** and **Sup
 | Frontend | Next.js |
 | Language | TypeScript |
 | Runtime | Node.js |
-| Backend | TBD |
-| Database | TBD |
+| Backend | FLEXTV's existing API, connected area by area (2026-10-25, `docs/development/flextv-backend.md`) |
+| Database | FLEXTV's (behind its API) |
 | Design | Figma |
 | Development | Claude |
 | Repository | GitHub |
@@ -114,7 +114,7 @@ keys, audit records, KST day boundaries); `docs/architecture/api-contract.md` li
 - `docs/architecture/api-contract.md` — mock → backend contract; `information-architecture.md` — menus and routes
 - `docs/figma/*` — Figma files, frames per screen (`site-design-system.md`) and screens built code-first
   (`code-first-screens.md`)
-- `docs/development/*` — workflow, helper and admin hosts, i18n, handoff notes
+- `docs/development/*` — workflow, helper and admin hosts, i18n, handoff notes, the FLEXTV backend (`flextv-backend.md`)
 
 ## Frontend
 
