@@ -6,6 +6,13 @@
  * excluding the 01–08 documentation boards. See docs/figma/design-tokens.md.
  *
  * Only reference these variables from components. Do not hardcode hex values.
+ *
+ * 2026-11-03 visual refresh (direction B "웜 블랙 · 버밀리언", code-first): the values no longer match the 펀페이 frames.
+ * Warm black neutrals instead of navy, vermilion primary, teal accent, butter live gold; the button and logo gradients are
+ * flat (the tokens stay gradients so `background-clip: text` and `background-image` uses keep working); shadows became
+ * hairlines; Archivo replaces Inter for Latin and numbers. Radius tokens keep their Figma names, but their values follow
+ * the smaller refreshed scale (6 and 8 → 4px, 12 and 16 → 6px, 20 → 8px). See docs/figma/design-tokens.md.
+ * OBS overlays read only their own --ov-* tokens (features/overlayTheme) and are unchanged.
  */
 
 /* Dark is the default theme (Figma). [data-theme="dark"] re-applies it inside a light page
@@ -15,62 +22,62 @@
   color-scheme: dark;
 
   /* ── Background / surface ─────────────────────────────── */
-  --color-bg-page: #080811;
-  --color-bg-subtle: #0d0d1a;
-  --color-surface: #121225;
-  --color-surface-raised: #1a1a2e;
-  --color-surface-strong: #20203e;
+  --color-bg-page: #131211;
+  --color-bg-subtle: #171615;
+  --color-surface: #1b1a18;
+  --color-surface-raised: #22201e;
+  --color-surface-strong: #2a2825;
   --color-overlay: rgba(0, 0, 0, 0.8);
-  --color-bg-footer: #000000;
+  --color-bg-footer: #0e0d0c;
   --color-bg-light: #ffffff;
 
   /* ── Border ───────────────────────────────────────────── */
-  --color-border: #20203e;
-  --color-border-strong: #29294b;
-  --color-border-emphasis: #30305a;
+  --color-border: #2e2b27;
+  --color-border-strong: #3a3632;
+  --color-border-emphasis: #4a453f;
 
   /* ── Text ─────────────────────────────────────────────── */
-  --color-text-primary: #f3f4f6;
-  --color-text-secondary: #9ca3af;
-  --color-text-tertiary: #6b7280;
-  --color-text-soft: #c0c0d0;
+  --color-text-primary: #f2ede6;
+  --color-text-secondary: #a8a196;
+  --color-text-tertiary: #857e74;
+  --color-text-soft: #cfc8be;
   /* Light grey secondary text on dark surfaces (was hard-coded #d1d5db). */
-  --color-text-dim: #d1d5db;
+  --color-text-dim: #d9d3ca;
   --color-text-inverse: #000000;
   --color-text-on-accent: #ffffff;
 
   /* ── Brand / accent ───────────────────────────────────── */
-  --color-primary: #8b5cf6;
-  --color-primary-soft: rgba(139, 92, 246, 0.15);
-  --color-primary-light: #a78bfa;
-  /* The brand purple as small text on a purple tint (chips, badges); light theme: a darker purple that keeps 4.5:1. */
+  --color-primary: #cf4527;
+  --color-primary-soft: rgba(207, 69, 39, 0.16);
+  --color-primary-light: #ff8a66;
+  /* The brand vermilion as small text on a vermilion tint (chips, badges); light theme: a darker shade that keeps 4.5:1. */
   --color-primary-text: var(--color-primary-light);
-  --color-accent: #ec4899;
-  /* The accent pink as text (light theme: a darker pink that keeps 4.5:1 on white). */
-  --color-accent-text: var(--color-accent);
+  --color-accent: #18806a;
+  /* The accent teal as text: lighter than the fill so it reads on dark surfaces (light theme: darker, 4.5:1 on white). */
+  --color-accent-text: #3dbfa6;
   --color-info: #3b82f6;
-  --color-live: #f5bf0a;
+  --color-live: #f2c14e;
   /* The live gold as small text on a surface or its tint (light theme: darker, 4.5:1). --color-live stays the fill. */
   --color-live-text: var(--color-live);
-  --color-highlight: #06b6d4;
-  /* The highlight cyan as text on a surface (light theme: darker, 4.5:1). Text over media keeps --color-highlight. */
+  --color-highlight: #3dbfa6;
+  /* The highlight teal as text on a surface (light theme: darker, 4.5:1). Text over media keeps --color-highlight. */
   --color-highlight-text: var(--color-highlight);
-  --color-accent-soft: rgba(236, 72, 153, 0.1);
-  --color-neutral-soft: rgba(156, 163, 175, 0.1);
-  --color-charge: #4a90e2;
-  --color-nav-active-bg: #1a1030;
+  --color-accent-soft: rgba(24, 128, 106, 0.12);
+  --color-neutral-soft: rgba(168, 161, 150, 0.1);
+  --color-charge: #18806a;
+  --color-nav-active-bg: #221f1c;
 
-  --gradient-brand: linear-gradient(90deg, #8b5cf6 0%, #ec4899 100%);
-  --gradient-cta: linear-gradient(90deg, #6366f1 0%, #4f46e5 100%);
-  --gradient-primary-button: linear-gradient(90deg, #8b5cf6 0%, #6366f1 100%);
-  --gradient-accent-button: linear-gradient(90deg, #8b5cf6 0%, #ec4899 100%);
+  --gradient-brand: linear-gradient(90deg, #cf4527 0%, #cf4527 100%);
+  --gradient-cta: linear-gradient(90deg, #cf4527 0%, #cf4527 100%);
+  --gradient-primary-button: linear-gradient(90deg, #cf4527 0%, #cf4527 100%);
+  --gradient-accent-button: linear-gradient(90deg, #cf4527 0%, #cf4527 100%);
 
   /* ── Media overlays (home 727:2742) ───────────────────── */
   --color-media-dim: rgba(0, 0, 0, 0.4);
   --color-media-badge: rgba(0, 0, 0, 0.7);
   --color-media-badge-border: rgba(255, 255, 255, 0.2);
   --color-media-text-muted: rgba(255, 255, 255, 0.8);
-  --gradient-hero-overlay: linear-gradient(158.75deg, rgba(8, 8, 17, 0.7) 25%, rgba(8, 8, 17, 0) 50%, #080811 75%);
+  --gradient-hero-overlay: linear-gradient(158.75deg, rgba(19, 18, 17, 0.7) 25%, rgba(19, 18, 17, 0) 50%, #131211 75%);
   --gradient-thumbnail-overlay: linear-gradient(150.64deg, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.7) 75%);
 
   /* ── Supporter ranking (hall of fame 3:637) ───────────── */
@@ -80,22 +87,22 @@
   --gradient-rank-gold: linear-gradient(90deg, #fbbf24 0%, #d97706 100%);
   --gradient-rank-silver: linear-gradient(90deg, #f3f4f6 0%, #9ca3af 100%);
   --gradient-rank-bronze: linear-gradient(90deg, #fdba74 0%, #b45309 100%);
-  --gradient-hof-hero-overlay: linear-gradient(162.28deg, rgba(8, 8, 17, 0.7) 25%, rgba(8, 8, 17, 0.5) 50%, #080811 75%);
+  --gradient-hof-hero-overlay: linear-gradient(162.28deg, rgba(19, 18, 17, 0.7) 25%, rgba(19, 18, 17, 0.5) 50%, #131211 75%);
 
   /* ── Modal (my page edit modals 743:1978) ────────────── */
-  --color-modal-bg: #18182e;
-  --color-modal-border: #3b3b68;
-  --color-modal-backdrop: rgba(5, 5, 10, 0.8);
-  --color-modal-field-border: #29294a;
-  --color-modal-field-bg: #0f1024;
+  --color-modal-bg: #1e1c1a;
+  --color-modal-border: #3a3632;
+  --color-modal-backdrop: rgba(10, 9, 8, 0.8);
+  --color-modal-field-border: #34302b;
+  --color-modal-field-bg: #161513;
   --color-success-text: #34d399;
   --color-success-soft: rgba(52, 211, 153, 0.09);
   --color-danger-soft: rgba(239, 68, 68, 0.08);
-  --color-notice-soft: rgba(139, 92, 246, 0.09);
+  --color-notice-soft: rgba(207, 69, 39, 0.09);
   --color-nickname-error: #fb7185;
-  --color-nickname-error-bg: #351a2a;
+  --color-nickname-error-bg: #35201b;
   --color-nickname-success-bg: #123128;
-  --color-photo-error-bg: #2b1723;
+  --color-photo-error-bg: #2e1d19;
   --color-photo-success-bg: #122a27;
   --shadow-modal: 0 24px 60px rgba(0, 0, 0, 0.6);
   --color-warning-text: #fbbf24;
@@ -108,44 +115,44 @@
   --color-kakao-banner-bg: #f9dd35;
   --color-kakao-banner-text: #1d161d;
   --color-kakao-banner-subtext: #3d363d;
-  --color-page-current: #4a4a6a;
+  --color-page-current: #4a453f;
 
   /* ── Creator room (826:685 · 610:138 · 710:195) ───────── */
-  --color-panel-field-bg: #191936;
-  --color-chip-bg: #1f1f3d;
-  --color-accent-tint: rgba(236, 72, 153, 0.14);
-  --color-channel-chip-bg: #24252a;
-  --color-channel-chip-border: #35363c;
+  --color-panel-field-bg: #1e1c1a;
+  --color-chip-bg: #262320;
+  --color-accent-tint: rgba(24, 128, 106, 0.16);
+  --color-channel-chip-bg: #262320;
+  --color-channel-chip-border: #3a3632;
   --color-player-scrim: rgba(0, 0, 0, 0.5);
-  --color-goal-bg: rgba(18, 18, 37, 0.75);
-  --color-offline-notice-bg: rgba(11, 9, 17, 0.87);
-  --color-toast-bg: rgba(41, 38, 48, 0.95);
-  --color-toast-border: #4a4554;
+  --color-goal-bg: rgba(27, 26, 24, 0.75);
+  --color-offline-notice-bg: rgba(14, 13, 12, 0.87);
+  --color-toast-bg: rgba(42, 39, 36, 0.95);
+  --color-toast-border: #4a453f;
   --color-toast-mark: #55d6a4;
   --gradient-player-controls: linear-gradient(172deg, transparent 25%, rgba(0, 0, 0, 0.9) 75%);
 
   /* ── FN history (640:2 · 632:4 · 643:4) ───────────────── */
-  --color-segment-bg: #161623;
+  --color-segment-bg: #1b1a18;
   --color-segment-active-bg: rgba(255, 255, 255, 0.12);
-  --color-segment-text: #646473;
-  --color-date-input-bg: #1e1e2a;
+  --color-segment-text: #7a746b;
+  --color-date-input-bg: #1e1c1a;
   --color-date-input-border: rgba(255, 255, 255, 0.08);
-  --color-fn-chip-bg: #1a1a3a;
-  --color-balance-label: #a5a5c7;
+  --color-fn-chip-bg: #2a2318;
+  --color-balance-label: #b5ac9f;
   --color-pill-processing-bg: #1c1400;
   --color-pill-completed-text: #4ade80;
   --color-pill-completed-bg: #052e16;
   --color-pill-cancelled-bg: #1c0a0a;
 
   /* ── FN charge (595:1869 · 601:839 · 587:147 · 739:*) ─── */
-  --color-charge-balance-bg: #292945;
-  --color-charge-option-on-bg: rgba(139, 92, 246, 0.13);
+  --color-charge-balance-bg: #2a2825;
+  --color-charge-option-on-bg: rgba(207, 69, 39, 0.13);
   --color-kakaopay-bg: #ffeb00;
   --color-kakaopay-text: #0d0d0d;
   --color-naverpay-bg: #03c75a;
   --color-card-scrim: rgba(0, 0, 0, 0.4);
-  --color-error-card-bg: #080811;
-  --color-error-chip-bg: #181832;
+  --color-error-card-bg: #131211;
+  --color-error-chip-bg: #22201e;
   --color-light-text: #1a1a1a;
   --color-light-text-sub: #757575;
   --color-light-text-muted: #555555;
@@ -153,23 +160,23 @@
   --color-light-tile-border: #e5e7eb;
   --color-light-tile-on-bg: #f0f6ff;
   --color-light-panel-bg: #f5f5f5;
-  --color-sheet-bg: #161630;
+  --color-sheet-bg: #1b1a18;
 
   /* ── Donation types (851:* · 875:1815) ────────────────── */
-  --color-text-faint: #696b7a;
-  --color-intro-bg: rgba(139, 92, 246, 0.1);
-  --color-popup-border: #3a3a64;
-  --color-popup-footer-bg: #0e0e1d;
-  --color-card-on-bg: #24172e;
+  --color-text-faint: #7a746b;
+  --color-intro-bg: rgba(207, 69, 39, 0.1);
+  --color-popup-border: #3a3632;
+  --color-popup-footer-bg: #161513;
+  --color-card-on-bg: #2e1e19;
   --shadow-popup: 0 24px 60px 4px rgba(0, 0, 0, 0.6);
   --color-lucky-emerald: #22c55e;
   --color-lucky-emerald-bg: #123d2c;
   --color-lucky-royal-bg: #4a3510;
 
   /* ── Auth extras (718:335 · 280:2) ─────────────────────── */
-  --color-recommend-bg: #19172d;
-  --color-recommend-border: #3a3568;
-  --color-recommend-icon-bg: #28224b;
+  --color-recommend-bg: #1e1c1a;
+  --color-recommend-border: #3a3632;
+  --color-recommend-icon-bg: #2e2520;
 
   /* ── Home popups (688:646 · 200:115 · 200:223) ─────────── */
   --color-profile-bg: #1e1f23;
@@ -181,42 +188,42 @@
   --color-notice-blue: #1c82ff;
   --color-notice-ink: #111115;
   --color-notice-muted: #66667a;
-  --color-notice-bar-bg: #101022;
-  --color-notice-dark-card: #16162a;
+  --color-notice-bar-bg: #171615;
+  --color-notice-dark-card: #1e1c1a;
   --color-notice-red: #ff3b30;
-  --color-notice-body: #a3a3c2;
-  --color-notice-check-border: #4d4d66;
-  --color-notice-check-label: #8e8ea8;
+  --color-notice-body: #b5ac9f;
+  --color-notice-check-border: #4a453f;
+  --color-notice-check-label: #9a9286;
 
   /* ── Settlement (429:4) ──────────────────────────────── */
-  --gradient-settlement-banner: linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #8b5cf6 100%);
+  --gradient-settlement-banner: linear-gradient(90deg, #9a3412 0%, #9a3412 100%);
   --color-settlement-track-off: rgba(255, 255, 255, 0.31);
   --color-settlement-label-off: rgba(255, 255, 255, 0.5);
   --color-settlement-icon-bg: rgba(255, 255, 255, 0.13);
-  --color-settlement-card-icon-bg: rgba(139, 92, 246, 0.13);
-  --color-settlement-choice-on: #1f1f3d;
-  --color-settlement-choice-off: #0b0813;
-  --color-settlement-choice-border: #2a2a4e;
-  --color-settlement-muted: #94a3b8;
-  --color-settlement-terms-text: #8f9cae;
-  --color-settlement-field-bar: #1a1a35;
+  --color-settlement-card-icon-bg: rgba(207, 69, 39, 0.13);
+  --color-settlement-choice-on: #262320;
+  --color-settlement-choice-off: #100f0e;
+  --color-settlement-choice-border: #34302b;
+  --color-settlement-muted: #a8a196;
+  --color-settlement-terms-text: #9a9286;
+  --color-settlement-field-bar: #1e1c1a;
   /* 정산 신청 (458:4 · 463:2 · 469:* · 473:2 · 477:2) */
-  --gradient-settlement-cash: linear-gradient(90deg, #3b82f6 0%, #6366f1 100%);
-  --color-settlement-cash-button: rgba(30, 30, 56, 0.4);
+  --gradient-settlement-cash: linear-gradient(90deg, #18806a 0%, #18806a 100%);
+  --color-settlement-cash-button: rgba(42, 39, 36, 0.4);
   --color-settlement-cash-border: rgba(255, 255, 255, 0.13);
-  --color-settlement-info-bar: #3b366b;
+  --color-settlement-info-bar: #3a3632;
   --color-settlement-pending-bar: #10b981;
   --color-settlement-toggle-bg: rgba(255, 255, 255, 0.2);
   --color-settlement-toggle-off-text: rgba(255, 255, 255, 0.53);
-  --color-settlement-toggle-on-text: #1e1e38;
+  --color-settlement-toggle-on-text: #1b1a18;
   --color-settlement-tab-active: rgba(255, 255, 255, 0.08);
   --color-settlement-tab-border: rgba(255, 255, 255, 0.1);
   --color-settlement-tab-text: rgba(255, 255, 255, 0.7);
   --color-settlement-bar: #60a5fa;
   --color-settlement-approved: #22c55e;
   --color-settlement-row-divider: rgba(255, 255, 255, 0.08);
-  --color-settlement-popup-bg: #1e1e2e;
-  --color-settlement-popup-box: #2a2a3c;
+  --color-settlement-popup-bg: #1e1c1a;
+  --color-settlement-popup-box: #2a2825;
   --color-settlement-done-bg: rgba(34, 197, 94, 0.15);
 
   /* ── Platform donation (817:9017 · 817:8317 · 817:9618) ── */
@@ -224,27 +231,27 @@
   --color-platform-live-bg: rgba(251, 113, 133, 0.13);
   --color-platform-offline: #68687a;
   --color-platform-offline-bg: rgba(104, 104, 122, 0.13);
-  --color-platform-selected-bg: rgba(139, 92, 246, 0.09);
+  --color-platform-selected-bg: rgba(207, 69, 39, 0.09);
   --color-platform-alert-bg: rgba(239, 68, 68, 0.09);
   --color-platform-alert-border: rgba(239, 68, 68, 0.33);
   --color-platform-success: #34d399;
   --color-platform-success-bg: rgba(52, 211, 153, 0.13);
-  --color-history-processing-bg: rgba(74, 144, 226, 0.13);
+  --color-history-processing-bg: rgba(24, 128, 106, 0.13);
   --color-history-refunding-bg: rgba(245, 191, 10, 0.13);
-  --color-history-refunded-bg: rgba(139, 92, 246, 0.13);
+  --color-history-refunded-bg: rgba(168, 161, 150, 0.13);
 
   /* ── Status ───────────────────────────────────────────── */
   --color-success: #10b981;
   --color-warning: #f97316;
   --color-danger: #ef4444;
   --color-error-text: #f87171;
-  --color-danger-surface: #2a1420;
-  --color-danger-border: #5a2837;
+  --color-danger-surface: #2c1714;
+  --color-danger-border: #5a2a22;
 
   /* ── Form ─────────────────────────────────────────────── */
-  --color-input-bg: #0e0e1f;
-  --color-button-disabled-bg: #25253a;
-  --color-button-secondary-bg: #1f1f3d;
+  --color-input-bg: #161513;
+  --color-button-disabled-bg: #2a2825;
+  --color-button-secondary-bg: #262320;
 
   /* ── Third-party brand (social login) ─────────────────── */
   --color-google-bg: #ffffff;
@@ -253,10 +260,10 @@
   --color-kakao-text: #181600;
 
   /* ── Typography ───────────────────────────────────────── */
-  /* --font-gothic / --font-inter come from next/font (app/layout.tsx) on <html>. */
+  /* --font-gothic / --font-archivo come from next/font (app/layout.tsx) on <html>. */
   /* The fallbacks keep the stacks valid where those classes are missing (global-error renders its own <html>). */
   --font-sans: var(--font-gothic, "Gothic A1"), "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
-  --font-latin: var(--font-inter, "Inter"), var(--font-sans);
+  --font-latin: var(--font-archivo, "Archivo"), var(--font-sans);
 
   --font-size-10: 10px;
   --font-size-11: 11px;
@@ -282,17 +289,17 @@
   /* ── Radius ───────────────────────────────────────────── */
   --radius-2: 2px;
   --radius-4: 4px;
-  --radius-6: 6px;
-  --radius-8: 8px;
-  --radius-12: 12px;
-  --radius-16: 16px;
-  --radius-20: 20px;
+  --radius-6: 4px;
+  --radius-8: 4px;
+  --radius-12: 6px;
+  --radius-16: 6px;
+  --radius-20: 8px;
   --radius-pill: 999px;
 
   /* ── Elevation ────────────────────────────────────────── */
-  --shadow-header: 0 8px 12px rgba(0, 0, 0, 0.4);
-  --shadow-card: 0 16px 32px rgba(0, 0, 0, 0.5);
-  --shadow-button: 0 4px 6px rgba(0, 0, 0, 0.2);
+  --shadow-header: 0 1px 0 var(--color-border);
+  --shadow-card: 0 0 0 1px var(--color-border);
+  --shadow-button: none;
 
   /* ── Layout ───────────────────────────────────────────── */
   --layout-max-width: 1440px;
@@ -310,67 +317,67 @@
 [data-theme="light"] {
   color-scheme: light;
 
-  --color-bg-page: #f6f6fb;
-  --color-bg-subtle: #eeeef6;
+  --color-bg-page: #f7f4ef;
+  --color-bg-subtle: #f0ece6;
   --color-surface: #ffffff;
-  --color-surface-raised: #f3f3f9;
-  --color-surface-strong: #e8e8f2;
-  --color-bg-footer: #eeeef4;
+  --color-surface-raised: #f5f2ed;
+  --color-surface-strong: #ebe6df;
+  --color-bg-footer: #efebe5;
 
-  --color-border: #e4e4ee;
-  --color-border-strong: #d6d6e4;
-  --color-border-emphasis: #c8c8dc;
+  --color-border: #e6e0d8;
+  --color-border-strong: #d9d2c8;
+  --color-border-emphasis: #c9c1b5;
 
-  --color-text-primary: #15151f;
-  --color-text-secondary: #5b5d6b;
-  --color-text-tertiary: #646675;
-  --color-text-soft: #3d3d4d;
-  --color-text-faint: #8a8c99;
-  --color-text-dim: #4b4b5c;
-  --color-accent-text: #be185d;
+  --color-text-primary: #1a1714;
+  --color-text-secondary: #5e574e;
+  --color-text-tertiary: #6b645a;
+  --color-text-soft: #3f3a34;
+  --color-text-faint: #8e877d;
+  --color-text-dim: #4e4840;
+  --color-accent-text: #0f6e5a;
 
   /* Status colors (AA on white, on their 13% tints and with white text on top). */
   --color-success: #047857;
   --color-platform-success: #047857;
   --color-platform-live: #be123c;
-  --color-charge: #2563eb;
+  --color-charge: #157a65;
   --color-gold: #b45309;
   --color-danger: #c81e1e;
 
-  /* Brand fills one shade darker so white labels on badges and buttons keep 4.5:1 (2026-10-05 결정; the dark
-     theme keeps the Figma colors). The logo gradient (--gradient-brand) stays. */
-  --color-primary: #7c3aed;
-  --color-accent: #db2777;
+  /* Brand fills one shade darker so white labels on badges and buttons keep 4.5:1 (2026-10-05 결정; since the
+     2026-11-03 refresh the dark values are vermilion · teal too). The logo fill (--gradient-brand) stays. */
+  --color-primary: #b8391a;
+  --color-accent: #157a65;
   --color-info: #2563eb;
-  --gradient-primary-button: linear-gradient(90deg, #7c3aed 0%, #4f46e5 100%);
-  --gradient-accent-button: linear-gradient(90deg, #7c3aed 0%, #db2777 100%);
-  --gradient-cta: linear-gradient(90deg, #4f46e5 0%, #4338ca 100%);
+  --gradient-primary-button: linear-gradient(90deg, #b8391a 0%, #b8391a 100%);
+  --gradient-accent-button: linear-gradient(90deg, #b8391a 0%, #b8391a 100%);
+  --gradient-cta: linear-gradient(90deg, #b8391a 0%, #b8391a 100%);
 
-  --color-primary-soft: rgba(139, 92, 246, 0.12);
-  --color-primary-light: #7c3aed;
+  --color-primary-soft: rgba(207, 69, 39, 0.12);
+  --color-primary-light: #b8391a;
   --color-live: #b98100;
 
   /* Text-only shades (2026-10-17 contrast pass, light only; the dark theme uses the tokens they point to). The fills
      stay as they are; these keep 4.5:1 as small text on white and on the matching 12–20% tints. */
-  --color-primary-text: #6d28d9;
+  --color-primary-text: #9a3412;
   --color-live-text: #8a6100;
-  --color-highlight-text: #0e7490;
-  --color-neutral-soft: rgba(107, 114, 128, 0.12);
-  --color-nav-active-bg: #efe9ff;
+  --color-highlight-text: #0f6e5a;
+  --color-neutral-soft: rgba(110, 102, 92, 0.12);
+  --color-nav-active-bg: #fbeae4;
 
-  --gradient-hero-overlay: linear-gradient(158.75deg, rgba(8, 8, 17, 0.7) 25%, rgba(8, 8, 17, 0) 50%, #f6f6fb 75%);
-  --gradient-hof-hero-overlay: linear-gradient(162.28deg, rgba(8, 8, 17, 0.7) 25%, rgba(8, 8, 17, 0.4) 50%, #f6f6fb 75%);
+  --gradient-hero-overlay: linear-gradient(158.75deg, rgba(19, 18, 17, 0.7) 25%, rgba(19, 18, 17, 0) 50%, #f7f4ef 75%);
+  --gradient-hof-hero-overlay: linear-gradient(162.28deg, rgba(19, 18, 17, 0.7) 25%, rgba(19, 18, 17, 0.4) 50%, #f7f4ef 75%);
 
   --color-modal-bg: #ffffff;
-  --color-modal-border: #e0e0ec;
-  --color-modal-backdrop: rgba(15, 15, 30, 0.45);
-  --color-modal-field-border: #d9d9e6;
-  --color-modal-field-bg: #f7f7fb;
-  --shadow-modal: 0 24px 60px rgba(20, 20, 50, 0.18);
-  --shadow-popup: 0 24px 60px 4px rgba(20, 20, 50, 0.18);
-  --shadow-header: 0 8px 12px rgba(20, 20, 50, 0.06);
-  --shadow-card: 0 16px 32px rgba(20, 20, 50, 0.1);
-  --shadow-button: 0 4px 6px rgba(20, 20, 50, 0.08);
+  --color-modal-border: #e6e0d8;
+  --color-modal-backdrop: rgba(26, 23, 20, 0.45);
+  --color-modal-field-border: #ddd6cc;
+  --color-modal-field-bg: #faf8f5;
+  --shadow-modal: 0 24px 60px rgba(40, 30, 20, 0.18);
+  --shadow-popup: 0 24px 60px 4px rgba(40, 30, 20, 0.18);
+  --shadow-header: 0 1px 0 var(--color-border);
+  --shadow-card: 0 0 0 1px var(--color-border);
+  --shadow-button: none;
 
   --color-success-text: #047857;
   --color-warning-text: #b45309;
@@ -385,48 +392,48 @@
   --color-danger-surface: #fdecef;
   --color-danger-border: #f5c2cc;
 
-  --color-page-current: #6d6d92;
-  --color-panel-field-bg: #f3f3f9;
-  --color-chip-bg: #eeeef7;
-  --color-channel-chip-bg: #f1f1f5;
-  --color-channel-chip-border: #dcdce4;
-  --color-segment-bg: #ececf4;
+  --color-page-current: #7a7268;
+  --color-panel-field-bg: #f5f2ed;
+  --color-chip-bg: #efeae3;
+  --color-channel-chip-bg: #f2eee8;
+  --color-channel-chip-border: #ddd6cc;
+  --color-segment-bg: #ede8e1;
   --color-segment-active-bg: #ffffff;
-  --color-segment-text: #5f5f6c;
+  --color-segment-text: #5e574e;
   --color-date-input-bg: #ffffff;
-  --color-date-input-border: #d9d9e6;
-  --color-fn-chip-bg: #efeefe;
-  --color-balance-label: #6a6a8a;
+  --color-date-input-border: #ddd6cc;
+  --color-fn-chip-bg: #fbf1d9;
+  --color-balance-label: #6b645a;
   --color-pill-processing-bg: #fff4d6;
   --color-pill-completed-text: #15803d;
   --color-pill-completed-bg: #dcfce7;
   --color-pill-cancelled-bg: #fee2e2;
-  --color-charge-balance-bg: #eeeef8;
+  --color-charge-balance-bg: #f2eee8;
   --color-error-card-bg: #ffffff;
-  --color-error-chip-bg: #eeeef7;
+  --color-error-chip-bg: #efeae3;
   --color-sheet-bg: #ffffff;
-  --color-popup-border: #dcdcea;
-  --color-popup-footer-bg: #f5f5fa;
-  --color-card-on-bg: #f3ecfd;
+  --color-popup-border: #e0d9cf;
+  --color-popup-footer-bg: #f7f4ef;
+  --color-card-on-bg: #fbeae4;
   --color-lucky-emerald-bg: #dcf5e7;
   --color-lucky-royal-bg: #fbeccb;
-  --color-recommend-bg: #f5f3ff;
-  --color-recommend-border: #ddd6fe;
-  --color-recommend-icon-bg: #ede9fe;
+  --color-recommend-bg: #fbf3ee;
+  --color-recommend-border: #f0d5ca;
+  --color-recommend-icon-bg: #f8e3da;
   --color-profile-bg: #ffffff;
-  --color-profile-footer-bg: #f5f5f7;
-  --color-profile-close-bg: #eeeef2;
-  --color-profile-text: #15151f;
-  --color-profile-muted: #6b6e78;
-  --color-notice-bar-bg: #eef0fb;
-  --color-notice-dark-card: #f4f4fa;
-  --color-notice-body: #55556e;
-  --color-notice-check-border: #c4c4d4;
-  --color-notice-check-label: #6e6e88;
+  --color-profile-footer-bg: #f5f2ed;
+  --color-profile-close-bg: #efeae3;
+  --color-profile-text: #1a1714;
+  --color-profile-muted: #6b645a;
+  --color-notice-bar-bg: #f2eee8;
+  --color-notice-dark-card: #f5f2ed;
+  --color-notice-body: #5e574e;
+  --color-notice-check-border: #c9c1b5;
+  --color-notice-check-label: #6b645a;
   /* OFFLINE pill text on its 13% tint (#7b7b8c was 3.5:1; 2026-10-17). */
-  --color-platform-offline: #5f5f6e;
+  --color-platform-offline: #5e574e;
 
   --color-input-bg: #ffffff;
-  --color-button-disabled-bg: #e4e4ec;
-  --color-button-secondary-bg: #ececf6;
+  --color-button-disabled-bg: #e6e0d8;
+  --color-button-secondary-bg: #efeae3;
 }
