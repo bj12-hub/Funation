@@ -28,6 +28,31 @@ Implementation: `apps/web/src/styles/tokens.css`
   colors/gradients, `--color-accent-soft`, `--color-neutral-soft`, `--color-bg-footer`,
   `--color-bg-light`, `--font-size-40` and `--shadow-button`, taken directly from that frame.
 
+## 2026-11-03 visual refresh — direction B "웜 블랙 · 버밀리언" (code-first)
+
+User request (2026-11-03): the colors and layout looked too much like funnation, and the design looked AI-made. Three
+directions were shown; the user picked **B (warm black · vermilion)** with the side menu kept and tidied. OBS overlay
+themes (`features/overlayTheme`, 2026-10-08) and the admin console (`apps/admin`, own `--adm-*` tokens) stay as they are.
+
+This is a **difference from Figma**: the 펀페이 frames and the "현재 구현" file's Site Color variables still hold the old
+navy · purple values. Token names are unchanged, so code keeps referencing the same variables.
+
+| Area | Figma (before) | Code since 2026-11-03 |
+|---|---|---|
+| Neutrals (dark) | navy `#080811` · `#121225` · `#1a1a2e` · `#20203e`, cool greys | warm black `#131211` · `#1b1a18` · `#22201e` · `#2a2825`, borders `#2e2b27` · `#3a3632`, text `#f2ede6` · `#a8a196` · `#857e74` |
+| Neutrals (light) | `#f6f6fb` · white · lavender greys | paper `#f7f4ef` · white · `#f5f2ed`, borders `#e6e0d8` · `#d9d2c8`, text `#1a1714` · `#5e574e` · `#6b645a` |
+| Primary | purple `#8b5cf6` (light `#7c3aed`) | vermilion `#cf4527` (light `#b8391a`), as text `#ff8a66` (light `#9a3412`) |
+| Accent | pink `#ec4899` (light `#db2777`) | teal `#18806a` (light `#157a65`), as text `#3dbfa6` (light `#0f6e5a`) |
+| Live · highlight · charge | gold `#f5bf0a` · cyan `#06b6d4` · blue `#4a90e2` | butter `#f2c14e` · teal `#3dbfa6` · teal `#18806a` (light `#157a65`) |
+| Gradients | purple → pink / indigo buttons and logo text, blue → purple settlement banner | flat: every `--gradient-*` button / logo / banner token is one color (`linear-gradient(c, c)`), so `background-clip: text` and image uses still work. Media scrims and rank medal gradients stay |
+| Shadows | `--shadow-header` · `--shadow-card` drop shadows, `--shadow-button` | hairlines (`0 1px 0 border`, `0 0 0 1px border`), button shadow none. Modal and popup shadows stay |
+| Radius | 2 · 4 · 6 · 8 · 12 · 16 · 20 · pill | same names, smaller values: 6 and 8 → 4px, 12 and 16 → 6px, 20 → 8px (2, 4 and pill unchanged). Literal `border-radius` values in modules are unchanged |
+| Latin / numbers | Inter (`--font-latin`) | Archivo (`--font-archivo`). Inter stays loaded only for the 미니멀 필 overlay theme |
+
+Status colors (success · danger · warning · info), third-party brand colors (Kakao, Naver Pay, Google, platform marks),
+media scrims and the overlay `--ov-*` tokens did not change. White on the new fills: vermilion 4.63:1 (light 5.77:1),
+teal 4.84:1 (light 5.25:1); the `onAccentTextGuard` rule (`--color-text-on-accent` stays white) still holds.
+
 ## Rules from the Figma board
 
 - User-facing UI must not expose supply discount rate, supply cost, or margin
