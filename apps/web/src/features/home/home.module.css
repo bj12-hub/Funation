@@ -23,23 +23,34 @@
 }
 
 /* ── Section header ───────────────────────────────── */
+/* 2026-11-03 refresh (code-first): title · a hairline rule that fills the row · aside / 전체보기 at the end. */
 
 .sectionHeader {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 16px;
+}
+
+.sectionHeader::after {
+  content: "";
+  flex: 1;
+  order: 1;
+  min-width: 24px;
+  border-top: 1px solid var(--color-border-emphasis);
 }
 
 .sectionTitle {
   margin: 0;
   color: var(--color-text-primary);
   font-size: var(--font-size-24);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-black);
+  letter-spacing: -0.02em;
   line-height: normal;
 }
 
 .sectionAside {
+  order: 2;
+  margin: 0;
   color: var(--color-text-secondary);
   font-size: var(--font-size-13);
   font-weight: var(--font-weight-semibold);
@@ -47,10 +58,14 @@
 
 .viewAll {
   display: flex;
+  order: 2;
   align-items: center;
   gap: 4px;
   color: var(--color-text-secondary);
   font-size: var(--font-size-14);
+  text-decoration: underline;
+  text-decoration-color: var(--color-border-emphasis);
+  text-underline-offset: 4px;
   white-space: nowrap;
 }
 
@@ -116,12 +131,22 @@
 .pillBadge {
   top: 8px;
   border: 1px solid var(--color-media-badge-border);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-2);
   background: var(--color-media-badge);
 }
 
+/* Rank (인기 라이브 영상 모음): a vermilion corner tab in Archivo instead of a glass pill (2026-11-03 refresh). */
 .pillStart {
-  left: 8px;
+  top: 0;
+  left: 0;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 0 0 var(--radius-4) 0;
+  background: var(--color-primary);
+  color: var(--color-text-on-accent);
+  font-family: var(--font-latin);
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-extrabold);
 }
 
 .pillEnd {

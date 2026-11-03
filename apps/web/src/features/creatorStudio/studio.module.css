@@ -67,7 +67,6 @@
   height: 40px;
   padding: 10px 16px;
   border-left: 3px solid transparent;
-  border-radius: 10px;
   color: var(--color-text-secondary);
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-medium);
@@ -78,24 +77,17 @@ a.sideItem:hover {
   color: var(--color-text-primary);
 }
 
+/* 2026-11-03 refresh: the bar alone marks the current item (no tinted fill), as in the site side menu. */
 .sideItemActive,
 a.sideItemActive:hover {
   border-left-color: var(--color-primary);
-  background: var(--color-primary-soft);
-  color: var(--color-text-on-accent);
+  color: var(--color-text-primary);
   font-weight: var(--font-weight-bold);
 }
 
 .sideItemOff {
   cursor: not-allowed;
   opacity: 0.55;
-}
-
-.sideEmoji {
-  display: flex;
-  justify-content: center;
-  width: 20px;
-  font-family: var(--font-latin);
 }
 
 /* Phone bar and its dimmed page: phones only (≤ 767px, Responsive below). */
@@ -256,11 +248,11 @@ a.sideItemActive:hover {
 }
 
 .bannerEvent {
-  border-color: rgba(236, 72, 153, 0.3);
+  border-color: rgba(24, 128, 106, 0.3);
 }
 
 .bannerAd {
-  border-color: rgba(99, 102, 241, 0.3);
+  border-color: rgba(207, 69, 39, 0.3);
 }
 
 /* ── Stats ── */
@@ -398,7 +390,7 @@ a.sideItemActive:hover {
 }
 
 .gridLine {
-  stroke: #242442;
+  stroke: var(--color-surface-strong);
   stroke-opacity: 0.5;
 }
 
@@ -414,17 +406,17 @@ a.sideItemActive:hover {
 }
 
 .pointHalo {
-  fill: rgba(139, 92, 246, 0.25);
+  fill: rgba(207, 69, 39, 0.25);
 }
 
 .pointDot {
   fill: var(--color-primary);
-  stroke: #080811;
+  stroke: var(--color-bg-page);
   stroke-width: 2;
 }
 
 .pointText {
-  fill: #ccbff2;
+  fill: var(--color-primary-light);
   font-size: 12px;
   font-weight: 700;
 }

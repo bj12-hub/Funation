@@ -437,8 +437,8 @@
 }
 
 .creatorMenuLogout {
-  background: rgba(237, 74, 153, 0.15);
-  color: #ed4a99;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-text);
 }
 
 .srOnly {

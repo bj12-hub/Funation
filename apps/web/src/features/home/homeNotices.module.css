@@ -41,7 +41,7 @@
   height: 48px;
   border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: var(--radius-pill);
-  background: #1a1a35;
+  background: #22201e;
   color: var(--color-text-on-accent);
   font-size: 24px;
 }
@@ -101,7 +101,7 @@
 }
 
 .warning .dot {
-  background: #3a3a55;
+  background: #4a453f;
 }
 
 .warning .dotOn {
@@ -340,7 +340,7 @@
 }
 
 .wordmark span {
-  color: #8a5cf5;
+  color: var(--color-primary);
 }
 
 .tag {
