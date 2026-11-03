@@ -160,6 +160,13 @@ export function signatureCredits(items: AlertItem[], from: number, to: number, s
   return { hot, high };
 }
 
+/** The alerts that count inside any of `windows` ([from, to] ms, inclusive) — for numbers over several broadcasts. */
+export const countedWithin = (items: AlertItem[], windows: [number, number][]) =>
+  items.filter((a) => {
+    const t = countedAt(a);
+    return windows.some(([from, to]) => t >= from && t <= to);
+  });
+
 /** Completed Ssumnation donations between `from` and `to` (ms, inclusive), in FN — 익명 included (no name is shown). */
 export const totalBetween = (items: AlertItem[], from: number, to: number) => sumBetween(items, from, to);
 

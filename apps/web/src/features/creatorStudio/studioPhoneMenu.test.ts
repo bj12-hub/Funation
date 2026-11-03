@@ -72,7 +72,7 @@ describe("스튜디오 메뉴 · 휴대폰 메뉴 바", () => {
     const m = await setup();
     const p = m.render();
     expect(p.button.props).toMatchObject({ type: "button", "aria-expanded": false, "aria-controls": m.STUDIO_MENU_ID });
-    expect(textOf(p.button)).toBe("📊대시보드 (현재 페이지)메뉴▾");
+    expect(textOf(p.button)).toBe("대시보드 (현재 페이지)메뉴▾");
     // The grouped menu is all there (CSS hides it on phones until the bar opens it).
     expect(p.link("/creator/remote")).toBeDefined();
     expect(p.link("/creator/chat")).toBeDefined();

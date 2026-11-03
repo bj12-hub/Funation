@@ -1,7 +1,7 @@
 import { createHmac, randomBytes, randomUUID } from "node:crypto";
 import { mockAccount, mockCredentials } from "./mockStore";
 import { isRetentionExpired, retentionUntil } from "./retentionPolicy";
-import { withdrawalStore, withdrawnAccounts, type Withdrawal, type WithdrawalConsents } from "./withdrawalCore";
+import { withdrawalStore, withdrawnAccounts, type CancelledWithdrawalRequest, type Withdrawal, type WithdrawalConsents } from "./withdrawalCore";
 
 /** Server-only half of ./withdrawalCore.ts: the parts that need node:crypto (the phone hash and new person keys). */
 
@@ -14,7 +14,8 @@ const phoneHash = (phone: string) => createHmac("sha256", hashKey()).update(phon
 /**
  * Records the slot account's withdrawal. The 본인 확인 값 moves out of the account's credentials into the record (the
  * phone only as a keyed hash); the caller destroys the rest of the account's personal data (./withdrawalApply.ts).
- * `requestedAt`: when the member asked (the 탈퇴 신청), null when written without one.
+ * `requestedAt`: when the member asked (the 탈퇴 신청), null when written without one; `cancelled`: the account's
+ * earlier 탈퇴 신청 it cancelled.
  */
 export function recordWithdrawal(r: {
   at: string;
@@ -23,6 +24,7 @@ export function recordWithdrawal(r: {
   forfeitedFn: number;
   forfeitedEarningsFn: number;
   consented?: { fn: number; earningsFn: number } | null;
+  cancelled?: CancelledWithdrawalRequest[];
   consents?: WithdrawalConsents;
 }): Withdrawal {
   const record: Withdrawal = {
@@ -32,6 +34,7 @@ export function recordWithdrawal(r: {
     forfeitedFn: r.forfeitedFn,
     forfeitedEarningsFn: r.forfeitedEarningsFn,
     consented: r.consented ?? null,
+    cancelled: r.cancelled ?? [],
     nickname: mockAccount.nickname,
     ssumnationId: mockAccount.ssumnationId,
     consents: r.consents ?? { chargeTerms: null, settlementTerms: null },

@@ -48,9 +48,35 @@ describe("회원 관리 · 탈퇴 신청", () => {
     expect(html).not.toContain("탈퇴한 회원은 이용 제한을 바꿀 수 없어요");
   });
 
+  it("lists every 탈퇴 신청 on 회원 상세 newest first, with how it ended and what the member agreed to", async () => {
+    const { MemberDetailScreen } = await import("./members/MemberScreens");
+    const withHistory: AdminMember = {
+      ...member(REQUEST),
+      withdrawalHistory: [
+        { ...REQUEST, consentedFn: 5_000, consentedEarningsFn: 30_000, outcome: "PENDING", endedAt: null },
+        { requestedAt: "2026-10-20T01:00:00.000Z", effectiveAt: "2026-11-19T01:00:00.000Z", consentedFn: 7_000, consentedEarningsFn: 0, outcome: "CANCELLED", endedAt: "2026-10-25T05:00:00.000Z" }
+      ]
+    };
+    const html = renderToStaticMarkup(createElement(MemberDetailScreen, { member: withHistory, audit: [] }));
+    expect(html).toContain("탈퇴 신청 이력");
+    const items = html.match(/<li>.*?<\/li>/g)!;
+    expect(items).toHaveLength(2);
+    expect(items[0]).toMatch(/<strong>대기 중<\/strong> · 신청 .+ · 2026\.12\.02 탈퇴 적용 예정 · 동의한 소멸 FN 5,000 FN · 정산 대기 수익 30,000 FN<\/li>/);
+    expect(items[1]).toMatch(/<strong>철회<\/strong> · 신청 .+ · 철회 .+ \(회원 로그인\) · 동의한 소멸 FN 7,000 FN<\/li>/);
+    expect(html).toContain("계약 기록으로 5년 보관해요");
+
+    const applied: AdminMember = {
+      ...member(null),
+      status: "WITHDRAWN",
+      withdrawal: { at: "2026-12-02T03:00:00.000Z", forfeitedFn: 5_000, forfeitedEarningsFn: 0, retentionNote: "기본값 (플렉스티비 기준, 법무 검토 전)", retention: [] },
+      withdrawalHistory: [{ requestedAt: "2026-11-02T03:00:00.000Z", effectiveAt: "2026-12-02T03:00:00.000Z", consentedFn: 5_000, consentedEarningsFn: 0, outcome: "APPLIED", endedAt: "2026-12-02T03:00:00.000Z" }]
+    };
+    expect(renderToStaticMarkup(createElement(MemberDetailScreen, { member: applied, audit: [] }))).toMatch(/<strong>탈퇴 적용<\/strong> · 신청 .+ · 탈퇴 적용 .+ · 동의한 소멸 FN 5,000 FN<\/li>/);
+  });
+
   it("shows nothing without a request, also from a site older than the field", async () => {
     const { MemberDetailScreen } = await import("./members/MemberScreens");
-    for (const m of [member(null), { ...member(null), withdrawalRequest: undefined }]) {
+    for (const m of [member(null), { ...member(null), withdrawalRequest: undefined, withdrawalHistory: undefined }, { ...member(null), withdrawalHistory: [] }]) {
       const html = renderToStaticMarkup(createElement(MemberDetailScreen, { member: m, audit: [] }));
       expect(html).not.toContain("탈퇴 신청");
     }

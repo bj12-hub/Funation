@@ -325,17 +325,29 @@ export type CumulativeRows = (typeof CUMULATIVE_ROWS)[number];
  * AMOUNT adds what each member received — 멤버 지정 후원 and 후원 리스트 entries assigned to them, in the 자동엑셀 unit (FN, or 원
  * on 원화 기준, with today's 환산값; a unit without one adds nothing), before 배수. `rows`: members shown on OBS;
  * `showBreakdown`: 지난 회차 · 이번 회차 under each total; `showRounds`: the 프로젝트 · N회차 chip; `placement` as on 상품 순위표.
- * `sort` (2026-10-28): by total with rank badges, or the crew's member order without them.
+ * `sort` (2026-10-28): by total with rank badges, or the crew's member order without them. BOTH (2026-11-02): ranked by
+ * 기여도 with each member's 후원금 beside it.
  */
 export type CumulativeSettings = {
   title: string;
-  basis: WindowGaugeBasis;
+  basis: CumulativeBasis;
   rows: CumulativeRows;
   sort: CumulativeSort;
   showBreakdown: boolean;
   showRounds: boolean;
   placement: PrizePlacement;
 };
+/**
+ * 집계 기준 of 누적 기여도: 기여도 · 후원금 (2026-10-25) and 둘 다 (2026-11-02, StreamDonate 누적 기여도 "금액 · 기여도
+ * 나란히" — ranked by 기여도, 기본값).
+ */
+export type CumulativeBasis = WindowGaugeBasis | "BOTH";
+export const CUMULATIVE_BASES: { key: CumulativeBasis; label: string }[] = [
+  { key: "POINTS", label: "기여도" },
+  { key: "AMOUNT", label: "후원금" },
+  { key: "BOTH", label: "둘 다" }
+];
+
 export const DEFAULT_CUMULATIVE: CumulativeSettings = { title: "", basis: "POINTS", rows: 10, sort: "TOTAL", showBreakdown: true, showRounds: true, placement: "FLOAT" };
 
 /**
@@ -348,14 +360,37 @@ export const CUMULATIVE_SORTS: { key: CumulativeSort; label: string }[] = [
   { key: "ORDER", label: "BJ 목록 순서" }
 ];
 
-/** `past`: this project's earlier 회차; `current`: this one (final scores and the live scoreboard, or amounts); ties by name. */
-export type CumulativeRow = { memberId: string; name: string; color: string; rank: number; past: number; current: number; total: number };
+/**
+ * `past`: this project's earlier 회차; `current`: this one (final scores and the live scoreboard, or amounts); ties by name.
+ * `amount`: the member's 후원금 the same way on 둘 다 (null otherwise).
+ */
+export type CumulativeRow = {
+  memberId: string;
+  name: string;
+  color: string;
+  rank: number;
+  past: number;
+  current: number;
+  total: number;
+  amount: { past: number; current: number; total: number } | null;
+};
 
 /**
  * 누적 기여도 of the live broadcast (OBS `?cumulative`): its project's ended 회차 plus this one. `project` null = started
  * without a project, so only this broadcast counts (`rounds` 1).
  */
-export type CumulativeLive = { settings: CumulativeSettings; visible: boolean; project: string | null; rounds: number; rows: CumulativeRow[]; total: number; unit: "점" | "FN" | "원" };
+export type CumulativeLive = {
+  settings: CumulativeSettings;
+  visible: boolean;
+  project: string | null;
+  rounds: number;
+  rows: CumulativeRow[];
+  total: number;
+  unit: "점" | "FN" | "원";
+  /** 둘 다: the unit of the rows' `amount` and their sum (null · 0 otherwise). */
+  amountUnit: "FN" | "원" | null;
+  amountTotal: number;
+};
 /** A 누적 기여도 number as shown: 기여도 plain (as before 집계 기준), 후원금 with its unit (12,000 FN · 12,000원). */
 export const cumulativeText = (v: number, unit: CumulativeLive["unit"]) => `${v.toLocaleString("ko-KR")}${unit === "원" ? "원" : unit === "FN" ? " FN" : ""}`;
 

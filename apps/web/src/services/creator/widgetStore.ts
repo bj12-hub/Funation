@@ -1,3 +1,4 @@
+import { kstDateString } from "@/lib/period";
 import { findAsset } from "./assetCore";
 import { DEFAULT_WIDGET_SETTINGS, type EditableWidgetKey, type WidgetSettingsMap } from "./widgetSettingsTypes";
 
@@ -5,11 +6,27 @@ import { DEFAULT_WIDGET_SETTINGS, type EditableWidgetKey, type WidgetSettingsMap
  * Server-only widget settings store (not a "use server" module): the settings actions write it and the
  * 후원 위젯 OBS overlays read it.
  */
+
+/**
+ * The defaults with their periods on the Korean calendar of `now`: 후원목표 this month, 총 후원 금액 this year. The
+ * Figma frames show 2026-09-01 ~ 2026-09-30 and 2026-01-01 ~ 2026-12-31, the month and year they were drawn in; kept as
+ * fixed dates they would leave a new channel's widgets counting nothing once those were over.
+ */
+export function defaultWidgetSettings(now = new Date()): WidgetSettingsMap {
+  const defaults = structuredClone(DEFAULT_WIDGET_SETTINGS);
+  const [year, month] = kstDateString(now).split("-");
+  const lastDay = new Date(Date.UTC(Number(year), Number(month), 0)).getUTCDate();
+  defaults.GOAL = { ...defaults.GOAL, from: `${year}-${month}-01`, to: `${year}-${month}-${lastDay}` };
+  defaults.TOTAL = { ...defaults.TOTAL, from: `${year}-01-01T00:00`, to: `${year}-12-31T23:59` };
+  return defaults;
+}
+
 const g = globalThis as typeof globalThis & { __ssumnationMockWidgetsV4?: WidgetSettingsMap };
-export const widgetStore = (g.__ssumnationMockWidgetsV4 ??= structuredClone(DEFAULT_WIDGET_SETTINGS));
+const initial = defaultWidgetSettings();
+export const widgetStore = (g.__ssumnationMockWidgetsV4 ??= initial);
 // A store created before a widget existed (e.g. 룰렛) starts that widget from its defaults.
-for (const key of Object.keys(DEFAULT_WIDGET_SETTINGS) as (keyof WidgetSettingsMap)[]) {
-  (widgetStore as Record<string, unknown>)[key] ??= structuredClone(DEFAULT_WIDGET_SETTINGS[key]);
+for (const key of Object.keys(initial) as (keyof WidgetSettingsMap)[]) {
+  (widgetStore as Record<string, unknown>)[key] ??= structuredClone(initial[key]);
 }
 
 /** A copy of one widget's settings; fields added later (e.g. 치지직 최근알림 문구) read with their defaults. */
