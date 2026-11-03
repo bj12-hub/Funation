@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
+import { FLEXTV_SITE } from "@/lib/flextv/mode";
+import { FLEXTV_PASSWORD_SPECIALS, isFlextvPassword } from "@/lib/flextv/rules";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { isValidPassword } from "@/lib/validation";
@@ -22,9 +24,10 @@ const ERRORS: Record<ErrorKind, { field: Field | null; text: MessageKey }> = {
   WRONG_CURRENT: { field: "current", text: "myEdit.pwWrongCurrent" },
   // Code-first (no Figma frame): the same 5-failure lock as the login (718:213); the server has ended the session.
   LOCKED: { field: "current", text: "my.passwordLocked" },
-  INVALID: { field: "next", text: "myEdit.pwInvalid" },
+  // With FLEXTV (phase 7) its rule (lib/flextv/rules.ts); FLEXTV refuses only the current password again.
+  INVALID: { field: "next", text: FLEXTV_SITE ? "myEdit.flextvPwInvalid" : "myEdit.pwInvalid" },
   MISMATCH: { field: "confirm", text: "myEdit.pwMismatch" },
-  REUSED: { field: "next", text: "myEdit.pwReused" },
+  REUSED: { field: "next", text: FLEXTV_SITE ? "myEdit.flextvPwReused" : "myEdit.pwReused" },
   ERROR: { field: null, text: "my.genericError" }
 };
 
@@ -53,7 +56,7 @@ export function PasswordEditor({ triggerClassName }: { triggerClassName: string 
 
   async function submit() {
     if (!values.current) return setError("WRONG_CURRENT");
-    if (!isValidPassword(values.next)) return setError("INVALID");
+    if (!(FLEXTV_SITE ? isFlextvPassword : isValidPassword)(values.next)) return setError("INVALID");
     if (values.next !== values.confirm) return setError("MISMATCH");
     setBusy(true);
     try {
@@ -160,7 +163,7 @@ export function PasswordEditor({ triggerClassName }: { triggerClassName: string 
             </div>
           ))}
           <div id="password-message" aria-live="polite" className={styles.content}>
-            {error && <Message tone="error" text={t(ERRORS[error].text)} />}
+            {error && <Message tone="error" text={t(ERRORS[error].text, { specials: FLEXTV_PASSWORD_SPECIALS })} />}
             {changed && <Message tone="success" text={t("myEdit.pwChanged")} />}
             {!changed && <p className={styles.footnote}>{t("myEdit.pwRule")}</p>}
           </div>

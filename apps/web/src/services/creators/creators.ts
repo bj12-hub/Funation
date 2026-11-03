@@ -1,6 +1,8 @@
+import { FLEXTV_SITE } from "@/lib/flextv/mode";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { isCreatorSuspended } from "@/services/admin/memberCore";
 import type { CreatorCategory, CreatorSort } from "./creatorTypes";
+import { flextvCreatorsPage } from "./flextvCreators";
 
 export { CREATOR_CATEGORY_LABEL, CREATOR_SORT_LABEL, type CreatorCategory, type CreatorSort } from "./creatorTypes";
 
@@ -8,6 +10,7 @@ export { CREATOR_CATEGORY_LABEL, CREATOR_SORT_LABEL, type CreatorCategory, type 
  * Creator directory contract.
  * Figma: ssumnation-all-creators-page 690:5 (route `/creators`)
  * Filtering, search, sorting and paging are server-side; the page passes URL params through.
+ * With FLEXTV (phase 7) FLEXTV's channels (./flextvCreators.ts).
  */
 
 export type CreatorSummary = {
@@ -62,6 +65,7 @@ export async function getAllCreatorsForAdmin(): Promise<CreatorSummary[]> {
 }
 
 export async function getCreators({ category, query, sort = "popular", page = 1 }: CreatorQuery): Promise<CreatorPage> {
+  if (FLEXTV_SITE) return flextvCreatorsPage({ query, sort, page });
   if (!USE_MOCK) throw new Error("Creator API is not connected yet.");
   await mockDelay(300);
 

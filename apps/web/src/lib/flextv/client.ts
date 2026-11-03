@@ -16,9 +16,11 @@ export class FlextvUnavailableError extends Error {
 }
 
 export type FlextvRequest = {
-  method?: "GET" | "POST" | "PUT";
+  method?: "GET" | "POST" | "PUT" | "DELETE";
   /** Sent as JSON (FLEXTV's body parser reads JSON and forms alike). */
   body?: Record<string, unknown>;
+  /** Sent as multipart/form-data instead, for FLEXTV's uploads (its multer reads files only from a multipart body). */
+  form?: FormData;
   /** FLEXTV access token, sent as `Authorization: Bearer`. */
   token?: string;
   /** The member's IP: FLEXTV trusts X-Forwarded-For (`app.proxy`) for its black-IP list, sign-up checks and login counts. */
@@ -41,9 +43,10 @@ export function flextvApiUrl(): string {
   return url.replace(/\/+$/, "");
 }
 
-export async function flextvRequest(path: string, { method = "GET", body, token, clientIp, userAgent }: FlextvRequest = {}): Promise<FlextvResponse> {
+export async function flextvRequest(path: string, { method = "GET", body, form, token, clientIp, userAgent }: FlextvRequest = {}): Promise<FlextvResponse> {
   const headers = new Headers({ Accept: "application/json", "User-Agent": userAgent || "Ssumnation" });
-  if (body) headers.set("Content-Type", "application/json");
+  // A form's Content-Type (with its boundary) is set by fetch.
+  if (body && !form) headers.set("Content-Type", "application/json");
   if (token) headers.set("Authorization", `Bearer ${token}`);
   if (clientIp) headers.set("X-Forwarded-For", clientIp);
   // Unset = FLEXTV's own members (2026-10-25 결정: 기존 FLEXTV 회원 그대로). A tenant code would scope sign-up to it.
@@ -55,7 +58,7 @@ export async function flextvRequest(path: string, { method = "GET", body, token,
     response = await fetch(`${flextvApiUrl()}${path}`, {
       method,
       headers,
-      body: body ? JSON.stringify(body) : undefined,
+      body: form ?? (body ? JSON.stringify(body) : undefined),
       cache: "no-store",
       redirect: "manual",
       signal: AbortSignal.timeout(TIMEOUT_MS)

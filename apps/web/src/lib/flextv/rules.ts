@@ -27,3 +27,14 @@ export const isFlextvNickname = (value: string) =>
   value.length >= 2 && value.length <= 10 && [...value].every((c) => /^[가-힣a-zA-Z0-9]$/.test(c) || NICKNAME_SPECIALS.includes(c));
 
 export const FLEXTV_NICKNAME_MAX = 10;
+
+/** FLEXTV's 채널 설정 form (its channel-setting page): 방송국 이름 2–15자, 소개 250자, 배너 JPG · PNG under 20MB. */
+export const CHANNEL_NAME_MIN = 2;
+export const CHANNEL_NAME_MAX = 15;
+export const CHANNEL_DESCRIPTION_MAX = 250;
+export const CHANNEL_BANNER_MAX_BYTES = 20 * 1024 * 1024;
+export const CHANNEL_BANNER_TYPES = ["image/jpeg", "image/png"] as const;
+
+/** The platforms FLEXTV's 방송국 홈페이지 form has a field for. */
+export const LINK_PLATFORMS = ["instagram", "youtube", "discord", "tiktok", "twitter"] as const;
+export type LinkPlatform = (typeof LINK_PLATFORMS)[number];

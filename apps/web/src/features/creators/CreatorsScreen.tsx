@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { PageChevronLeftIcon, PageChevronRightIcon } from "@/components/icons";
+import { FLEXTV_SITE } from "@/lib/flextv/mode";
 import { formatCompact } from "@/lib/format";
 import { getLocale, getT } from "@/lib/i18n/server";
 import type { MessageKey } from "@/lib/i18n/translate";
 import { CREATOR_SORT_LABEL, type CreatorPage, type CreatorSort } from "@/services/creators/creators";
+import { FLEXTV_CREATOR_SORTS } from "@/services/creators/creatorTypes";
 
 const SORT_KEY: Record<CreatorSort, MessageKey> = { popular: "creators.sortPopular", live: "creators.sortLive", recent: "creators.sortRecent" };
 import { CreatorCard } from "./CreatorCard";
@@ -32,7 +34,7 @@ export async function CreatorsScreen({ data, params }: { data: CreatorPage; para
       <div className={styles.controls}>
         <CreatorSearch key={params.query ?? ""} params={params} label={t("creators.search")} />
         <nav className={styles.sorts} aria-label={t("creators.sort")}>
-          {(Object.keys(CREATOR_SORT_LABEL) as CreatorSort[]).map((s) => (
+          {(FLEXTV_SITE ? FLEXTV_CREATOR_SORTS : (Object.keys(CREATOR_SORT_LABEL) as CreatorSort[])).map((s) => (
             <Link key={s} href={creatorsHref(params, { sort: s })} className={styles.sort} aria-current={sort === s ? "page" : undefined}>
               {t(SORT_KEY[s])}
             </Link>
@@ -51,7 +53,7 @@ export async function CreatorsScreen({ data, params }: { data: CreatorPage; para
         ) : (
           <div className={styles.grid}>
             {data.items.map((creator) => (
-              <CreatorCard key={creator.id} creator={creator} labels={{ subscribers: (count) => t("creators.subscribers", { count: formatCompact(count, locale) }), watching: (count) => t("creators.watching", { count }) }} />
+              <CreatorCard key={creator.id} creator={creator} labels={{ subscribers: (count) => t(FLEXTV_SITE ? "creators.favorites" : "creators.subscribers", { count: formatCompact(count, locale) }), watching: (count) => t("creators.watching", { count }) }} />
             ))}
           </div>
         )}

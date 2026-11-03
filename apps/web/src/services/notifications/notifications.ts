@@ -1,23 +1,30 @@
 "use server";
 
+import { FLEXTV_SITE } from "@/lib/flextv/mode";
 import { USE_MOCK } from "@/lib/mock";
 import { getSession } from "@/lib/session";
+import { flextvNotificationPage, flextvUnreadCount } from "./flextvNotifications";
 import { notificationStore } from "./notificationCore";
 import { NOTIFICATIONS_PAGE, type NotificationPage } from "./notificationTypes";
 
-/** 사이트 알림 Server Actions — code-first. Header bell + route `/notifications`. Signed-in members only. */
+/**
+ * 사이트 알림 Server Actions — code-first. Header bell + route `/notifications`. Signed-in members only.
+ * With FLEXTV (phase 7) FLEXTV's 알림 (./flextvNotifications.ts): reading them marks them read.
+ */
 
 const assertMock = () => {
   if (!USE_MOCK) throw new Error("Notification API is not connected yet.");
 };
 
 export async function getUnreadCount(): Promise<number | null> {
+  if (FLEXTV_SITE) return flextvUnreadCount();
   assertMock();
   if (!(await getSession())) return null;
   return notificationStore().items.filter((n) => !n.read).length;
 }
 
 export async function listNotifications(input: { filter?: unknown; show?: unknown } = {}): Promise<NotificationPage | null> {
+  if (FLEXTV_SITE) return flextvNotificationPage(input.filter);
   assertMock();
   if (!(await getSession())) return null;
   const all = notificationStore().items;
@@ -28,6 +35,8 @@ export async function listNotifications(input: { filter?: unknown; show?: unknow
 
 /** Idempotent. An unknown id is ignored (it may have aged out of the inbox). */
 export async function markNotificationRead(id: unknown): Promise<{ status: "OK" | "UNAUTHORIZED" }> {
+  // FLEXTV marks them read when they are listed.
+  if (FLEXTV_SITE) return { status: (await getSession()) ? "OK" : "UNAUTHORIZED" };
   assertMock();
   if (!(await getSession())) return { status: "UNAUTHORIZED" };
   const n = notificationStore().items.find((x) => x.id === id);
@@ -36,6 +45,7 @@ export async function markNotificationRead(id: unknown): Promise<{ status: "OK" 
 }
 
 export async function markAllNotificationsRead(): Promise<{ status: "OK" | "UNAUTHORIZED" }> {
+  if (FLEXTV_SITE) return { status: (await getSession()) ? "OK" : "UNAUTHORIZED" };
   assertMock();
   if (!(await getSession())) return { status: "UNAUTHORIZED" };
   for (const n of notificationStore().items) n.read = true;

@@ -33,7 +33,8 @@ export async function getFlextvCreatorRoom(channelId: string): Promise<CreatorRo
     channels: [{ platform: "FLEXTV", logoUrl: FLEXTV_LOGO }],
     banner: null,
     stream: streamOf(channelId, watch, image),
-    donation
+    donation,
+    followers: channel.followers
   };
 }
 

@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { HomeIcon, SearchOutlineIcon } from "@/components/icons";
 import { RoleChooser } from "@/features/auth/login/RoleChooser";
+import { FLEXTV_SITE } from "@/lib/flextv/mode";
+import { flextvServesLink } from "@/lib/flextv/siteRoutes";
 import { formatNumber } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { MessageKey } from "@/lib/i18n/translate";
@@ -52,6 +54,9 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/support", label: "nav.support" }
 ];
 
+/** With FLEXTV, without the pages it has no backend for (lib/flextv/siteRoutes.ts). */
+const SITE_NAV_ITEMS = FLEXTV_SITE ? NAV_ITEMS.filter((i) => flextvServesLink(i.href)) : NAV_ITEMS;
+
 type GlobalHeaderProps = {
   /** Signed-in user. `null` renders the guest state with the login button. */
   user: GlobalHeaderUser | null;
@@ -71,7 +76,7 @@ function isActive(pathname: string, href: string) {
 
 export function GlobalHeader({ user, showMenuButton = true, onMenuClick, creator = null, creatorRole = false, menuExpanded = true }: GlobalHeaderProps) {
   const pathname = usePathname() ?? "/";
-  const navItems = NAV_ITEMS;
+  const navItems = SITE_NAV_ITEMS;
   const [mobileOpen, setMobileOpen] = useState(false);
   const { t } = useI18n();
 

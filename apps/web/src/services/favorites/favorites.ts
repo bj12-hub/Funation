@@ -1,15 +1,18 @@
 "use server";
 
+import { FLEXTV_SITE } from "@/lib/flextv/mode";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { isCreatorSuspended } from "@/services/admin/memberCore";
 import { getCreatorById } from "@/services/creators/creators";
+import { flextvAddFavorite, flextvFavoritesPage, flextvIsFavorite, flextvRemoveFavorite, type FlextvFavoriteAdd } from "./flextvFavorites";
 
 /**
  * Favorite creators of the signed-in member.
  * Figma: ssumnation-favorites-page 735:3856 (route `/favorites`, signed-in members only)
  * Reads return `null` without a session; the removal action re-checks the session.
  * A suspended creator is hidden from the list while suspended and comes back after (2026-10-08 결정).
+ * With FLEXTV (phase 7) the member's FLEXTV 즐겨찾기, by FLEXTV channel id (./flextvFavorites.ts).
  */
 
 export type FavoriteCreator = {
@@ -40,6 +43,7 @@ export type PromotionBanner = {
 const PAGE_SIZE = 10;
 
 export async function getFavorites({ query, page = 1 }: { query?: string; page?: number }): Promise<FavoritesPage | null> {
+  if (FLEXTV_SITE) return flextvFavoritesPage({ query, page });
   if (!USE_MOCK) throw new Error("Favorites API is not connected yet.");
   if (!(await getSession())) return null;
   await mockDelay(300);
@@ -58,6 +62,7 @@ export async function getFavorites({ query, page = 1 }: { query?: string; page?:
 }
 
 export async function removeFavorite(creatorId: unknown): Promise<{ status: "REMOVED" | "NOT_FOUND" | "UNAUTHORIZED" }> {
+  if (FLEXTV_SITE) return flextvRemoveFavorite(creatorId);
   if (!USE_MOCK) throw new Error("Favorites API is not connected yet.");
   if (!(await getSession())) return { status: "UNAUTHORIZED" };
   await mockDelay(400);
@@ -70,13 +75,15 @@ export async function removeFavorite(creatorId: unknown): Promise<{ status: "REM
 
 /** Whether the signed-in member has favorited the creator (false for guests). */
 export async function isFavorite(creatorId: string): Promise<boolean> {
+  if (FLEXTV_SITE) return flextvIsFavorite(creatorId);
   if (!USE_MOCK) throw new Error("Favorites API is not connected yet.");
   if (!(await getSession())) return false;
   return favorites().some((f) => f.creatorId === creatorId);
 }
 
-/** Figma 826:510 — adds the creator; idempotent (adding twice keeps one entry). */
-export async function addFavorite(creatorId: unknown): Promise<{ status: "ADDED" | "NOT_FOUND" | "UNAUTHORIZED" }> {
+/** Figma 826:510 — adds the creator; idempotent (adding twice keeps one entry). FLEXTV asks for its 본인인증 first. */
+export async function addFavorite(creatorId: unknown): Promise<FlextvFavoriteAdd> {
+  if (FLEXTV_SITE) return flextvAddFavorite(creatorId);
   if (!USE_MOCK) throw new Error("Favorites API is not connected yet.");
   if (!(await getSession())) return { status: "UNAUTHORIZED" };
   if (typeof creatorId !== "string") return { status: "NOT_FOUND" };
@@ -98,7 +105,8 @@ export async function addFavorite(creatorId: unknown): Promise<{ status: "ADDED"
 }
 
 export async function getFavoritesPromotion(): Promise<PromotionBanner | null> {
-  if (!USE_MOCK) return null;
+  // The promotion is Ssumnation's own (TBD); FLEXTV has none to show.
+  if (FLEXTV_SITE || !USE_MOCK) return null;
   // Figma 735:3955 copy. The design says "투네이션", another company's brand; the mock uses Ssumnation.
   // TBD: the "1,000 FN" reward and title are promotion policy, and the CTA destination.
   return {

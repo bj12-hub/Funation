@@ -11,6 +11,7 @@ describe("the channel", () => {
     description: "매일 저녁 9시",
     backgroundImgUrl: "https://static.flextv.test/bg.jpg",
     isInLive: true,
+    stat: { numberOfViews: 900, numberOfSubs: 120 },
     owner: { id: 601924, loginId: "bj01", nickname: "방송인", thumbUrl: "https://static.flextv.test/p.png", PI: "Y" }
   };
 
@@ -21,6 +22,7 @@ describe("the channel", () => {
       description: "매일 저녁 9시",
       backgroundUrl: "https://static.flextv.test/bg.jpg",
       live: true,
+      followers: 120,
       owner: { memberId: 601924, loginId: "bj01", nickname: "방송인", thumbUrl: "https://static.flextv.test/p.png", verified: true }
     });
     expect(readChannel({ ...profile, owner: { ...profile.owner, PI: null, thumbUrl: "http://plain.test/p.png" } })?.owner).toMatchObject({ verified: false, thumbUrl: null });

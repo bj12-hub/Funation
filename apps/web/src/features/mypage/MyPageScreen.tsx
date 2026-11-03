@@ -242,7 +242,7 @@ export async function MyPageScreen({ account, grade, creator }: { account: MyAcc
   );
 }
 
-function Row({ label, children }: { label: string; children: ReactNode }) {
+export function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className={styles.row}>
       <Label text={label} />
@@ -252,7 +252,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 }
 
 /** `info` shows the Figma "i" marker; its help text is not defined yet (TBD). */
-function Label({ text, info = false }: { text: string; info?: boolean }) {
+export function Label({ text, info = false }: { text: string; info?: boolean }) {
   return (
     <span className={styles.label}>
       {text}

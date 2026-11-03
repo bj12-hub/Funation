@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
+import { FLEXTV_SITE } from "@/lib/flextv/mode";
 import { formatNumber } from "@/lib/format";
+import { remote } from "@/lib/remoteImage";
 import type { CreatorSummary } from "@/services/creators/creators";
 import styles from "./creatorsDirectory.module.css";
 
@@ -15,7 +17,7 @@ export function CreatorCard({ creator, labels }: { creator: CreatorSummary; labe
     <Link href={`/creators/${creator.id}`} className={styles.card} data-live={live || undefined}>
       <span className={styles.avatarWrap}>
         <span className={styles.ring}>
-          <Image src={creator.avatarUrl} alt="" width={64} height={64} className={styles.avatar} />
+          <Image src={creator.avatarUrl} alt="" width={64} height={64} className={styles.avatar} unoptimized={remote(creator.avatarUrl)} />
         </span>
         {live && <span className={styles.liveTag}>LIVE</span>}
       </span>
@@ -28,7 +30,8 @@ export function CreatorCard({ creator, labels }: { creator: CreatorSummary; labe
           {creator.description}
         </span>
         <span className={styles.meta}>
-          <span>{labels.subscribers(creator.subscriberCount)}</span>
+          {/* With FLEXTV its 즐겨찾기 count (phase 7, the page's label); its live list has none. */}
+          {!(FLEXTV_SITE && live && creator.subscriberCount === 0) && <span>{labels.subscribers(creator.subscriberCount)}</span>}
           {live && <span className={styles.watching}>{labels.watching(formatNumber(creator.viewerCount!))}</span>}
         </span>
       </span>

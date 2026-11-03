@@ -1,5 +1,6 @@
 "use server";
 
+import { FLEXTV_SITE } from "@/lib/flextv/mode";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getSession, revokeSession } from "@/lib/session";
 import { PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES, isValidSsumnationId, isValidPassword } from "@/lib/validation";
@@ -7,12 +8,14 @@ import { MOCK_FORBIDDEN_WORDS, MOCK_TAKEN_SSUMNATION_IDS, mockAccount, mockChang
 import { judgeNickname, nicknamesTakenForMember } from "./nicknameRules";
 import { clearPasswordFailures, currentAccountKey, isPasswordLocked, recordPasswordFailure } from "@/services/auth/loginLockCore";
 import { matchesContent } from "@/services/creator/assetCore";
+import { flextvChangeNickname, flextvChangePassword, flextvCheckNickname, flextvUploadProfilePhoto } from "./flextvAccount";
 
 /**
  * My page profile changes (Figma 743:1955 photo · 743:1997 nickname · 743:2040 ID · 743:2084 password).
  *
  * Server Actions: every call re-checks the session and re-validates the input; the browser's
- * checks are only for instant feedback. Policies marked TBD are not defined yet.
+ * checks are only for instant feedback. Policies marked TBD are not defined yet. With FLEXTV (phase 7) they delegate to
+ * ./flextvAccount.ts: FLEXTV's rules and account, no 썸네이션 ID.
  */
 
 export type NicknameCheckResult = { status: "AVAILABLE" } | { status: "INVALID" } | { status: "DUPLICATE" } | { status: "FORBIDDEN" };
@@ -76,12 +79,14 @@ function assertMock() {
 
 /** Nickname rules shared with sign-up (./nicknameRules.ts): format, forbidden words, 익명, other members' and channel names. */
 export async function checkNickname(nickname: unknown): Promise<NicknameCheckResult> {
+  if (FLEXTV_SITE) return flextvCheckNickname(nickname);
   assertMock();
   await mockDelay(300);
   return { status: judgeNickname(nickname, await nicknamesTakenForMember()) };
 }
 
 export async function changeNickname(nickname: unknown): Promise<NameChangeResult> {
+  if (FLEXTV_SITE) return flextvChangeNickname(nickname);
   assertMock();
   if (!(await getSession())) return { status: "UNAUTHORIZED" };
   await mockDelay(400);
@@ -97,6 +102,8 @@ export async function changeNickname(nickname: unknown): Promise<NameChangeResul
 }
 
 export async function changeSsumnationId(ssumnationId: unknown): Promise<IdChangeResult> {
+  // FLEXTV keeps the 아이디 a member signed up with.
+  if (FLEXTV_SITE) return { status: "INVALID" };
   assertMock();
   if (!(await getSession())) return { status: "UNAUTHORIZED" };
   await mockDelay(400);
@@ -117,6 +124,7 @@ export async function changeSsumnationId(ssumnationId: unknown): Promise<IdChang
 }
 
 export async function changePassword(input: { current: unknown; next: unknown; confirm: unknown }): Promise<PasswordChangeResult> {
+  if (FLEXTV_SITE) return flextvChangePassword(input);
   assertMock();
   if (!(await getSession())) return { status: "UNAUTHORIZED" };
   await mockDelay(400);
@@ -147,7 +155,7 @@ export async function changePassword(input: { current: unknown; next: unknown; c
 }
 
 export async function uploadProfilePhoto(formData: FormData): Promise<PhotoUploadResult> {
-  assertMock();
+  if (!FLEXTV_SITE) assertMock();
   if (!(await getSession())) return { status: "UNAUTHORIZED" };
   const file = formData.get("photo");
   if (!(file instanceof File)) return { status: "FAILED" };
@@ -156,6 +164,7 @@ export async function uploadProfilePhoto(formData: FormData): Promise<PhotoUploa
   // The bytes must really be that image type (a renamed file is refused).
   const bytes = Buffer.from(await file.arrayBuffer());
   if (!matchesContent(bytes, file.type)) return { status: "UNSUPPORTED" };
+  if (FLEXTV_SITE) return flextvUploadProfilePhoto(file);
   await mockDelay(600);
   // Mock storage: keep the image in memory as a data URL. The real backend stores it and returns a URL.
   mockAccount.avatarUrl = `data:${file.type};base64,${bytes.toString("base64")}`;

@@ -58,6 +58,8 @@ export type CreatorRoom = {
    * options only; Ssumnation's own parts (크루, 투표, 커뮤니티, 별명 …) are not there. Absent: a Ssumnation creator.
    */
   source?: "FLEXTV";
+  /** A FLEXTV channel's 즐겨찾기 count (phase 7). */
+  followers?: number;
 };
 
 export async function getCreatorRoom(creatorId: string): Promise<CreatorRoom | null> {

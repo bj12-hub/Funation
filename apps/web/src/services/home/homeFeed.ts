@@ -1,11 +1,14 @@
+import { FLEXTV_SITE } from "@/lib/flextv/mode";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { CREATOR_CATEGORY_LABEL, getCreatorById } from "@/services/creators/creators";
 import type { Platform } from "@/types/platform";
+import { flextvHomeFeed } from "./flextvHomeFeed";
 
 /**
  * Home feed contract (Figma 727:2742).
  * One request returns every home section so the page renders in a single round trip.
  * Platform-specific DTOs must be mapped to these types on the server (see PlatformAdapter).
+ * With FLEXTV (phase 7) FLEXTV's live streams and channel ranking (./flextvHomeFeed.ts).
  */
 
 export type { Platform } from "@/types/platform";
@@ -86,6 +89,7 @@ export type HomeFeed = {
 };
 
 export async function getHomeFeed(): Promise<HomeFeed> {
+  if (FLEXTV_SITE) return flextvHomeFeed();
   if (!USE_MOCK) throw new Error("Home feed API is not connected yet.");
   await mockDelay(300);
   const creators = await Promise.all(

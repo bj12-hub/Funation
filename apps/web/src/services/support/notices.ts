@@ -1,21 +1,25 @@
+import { FLEXTV_SITE } from "@/lib/flextv/mode";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
+import { flextvNotice, flextvNotices } from "./flextvSupport";
 import type { Notice } from "./supportTypes";
 
 /**
  * 공지사항 (funnation 고객센터 공지 structure). Seeded with our own copy; operators edit it in the admin
- * console (`/admin/content`). Views are sample numbers.
+ * console (`/admin/content`). Views are sample numbers. With FLEXTV (phase 7) FLEXTV's 공지사항 (./flextvSupport.ts).
  */
 const g = globalThis as typeof globalThis & { __ssumnationMockNoticesV1?: { items: Notice[] } };
 /** Server-only store shared with services/admin/content.ts. */
 export const noticeStore = () => (g.__ssumnationMockNoticesV1 ??= { items: structuredClone(SEED_NOTICES) });
 
 export async function getNotices(): Promise<Notice[]> {
+  if (FLEXTV_SITE) return flextvNotices();
   if (!USE_MOCK) throw new Error("Support API is not connected yet.");
   await mockDelay(150);
   return [...noticeStore().items].sort((a, b) => Number(b.important) - Number(a.important) || b.date.localeCompare(a.date));
 }
 
 export async function getNotice(id: string): Promise<Notice | null> {
+  if (FLEXTV_SITE) return flextvNotice(id);
   if (!USE_MOCK) throw new Error("Support API is not connected yet.");
   await mockDelay(100);
   return noticeStore().items.find((n) => n.id === id) ?? null;
