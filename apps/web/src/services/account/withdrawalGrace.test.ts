@@ -350,3 +350,99 @@ describe("회원탈퇴 유예 (탈퇴 철회 30일)", () => {
     expect(await m.login({ identifier: "user@ssumnation.kr", password: "newpass12!", keepSignedIn: false })).toEqual({ status: "SUCCESS" });
   });
 });
+
+/**
+ * 탈퇴 신청 · 철회 이력 — 2026-11-02 사용자 결정: every 탈퇴 신청 stays on the console's 회원 상세 with how it ended, kept
+ * like the withdrawal record (계약 기록 5년, 기본값): a cancelled one 5 years from its 철회, the applied one with the record.
+ */
+describe("탈퇴 신청 · 철회 이력", () => {
+  beforeEach(async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(T0);
+    resetMockStores();
+    cookieJar.clear();
+    await settleSamplePlatformDonations();
+    await settleSampleCharges();
+    const { startSession } = await import("@/lib/session");
+    await startSession({ keepSignedIn: false });
+    const { decideReceivedQuest } = await import("@/services/creator/donationManagement");
+    for (const id of ["q1", "q2"]) expect(await decideReceivedQuest({ id, outcome: "CANCELED" })).toMatchObject({ status: "OK" });
+  });
+  afterEach(() => vi.useRealTimers());
+
+  const history = async (m: M) => (await m.getMemberDetail(m.SAMPLE_MEMBER_ID))?.member.withdrawalHistory;
+  const CANCELLED_AT = "2026-11-05T00:00:00.000Z";
+
+  it("lists each request newest first — waiting, cancelled at sign-in, applied — and the withdrawal takes them into its record", async () => {
+    const m = await load();
+    const { info } = await requestWithdrawal(m);
+    const first = { requestedAt: T0.toISOString(), effectiveAt: EFFECTIVE_AT, consentedFn: 5_000, consentedEarningsFn: info.unsettledFn };
+    expect(await history(m)).toEqual([{ ...first, outcome: "PENDING", endedAt: null }]);
+
+    // A wrong password cancels nothing; the right one with 탈퇴 철회 ends it as cancelled at that moment.
+    vi.setSystemTime(new Date(CANCELLED_AT));
+    expect((await m.login({ identifier: ID, password: "wrong-pass1", keepSignedIn: false, cancelWithdrawal: true })).status).toBe("WRONG_PASSWORD");
+    expect((await m.login({ identifier: ID, password: PASSWORD, keepSignedIn: false })).status).toBe("WITHDRAWAL_PENDING");
+    expect(await history(m)).toEqual([{ ...first, outcome: "PENDING", endedAt: null }]);
+    expect(await m.login({ identifier: ID, password: PASSWORD, keepSignedIn: false, cancelWithdrawal: true })).toEqual({ status: "SUCCESS" });
+    const cancelled = { ...first, outcome: "CANCELLED", endedAt: CANCELLED_AT };
+    expect(await history(m)).toEqual([cancelled]);
+    expect(m.cancelWithdrawalRequest()).toBe(false); // nothing left to cancel
+
+    // Asked again later: the new one waits above the cancelled one.
+    vi.setSystemTime(new Date("2026-11-10T00:00:00.000Z"));
+    await signIn(m);
+    expect((await requestWithdrawal(m, 2)).result).toEqual({ status: "REQUESTED", effectiveAt: "2026-12-10T00:00:00.000Z" });
+    const second = { requestedAt: "2026-11-10T00:00:00.000Z", effectiveAt: "2026-12-10T00:00:00.000Z", consentedFn: 5_000, consentedEarningsFn: info.unsettledFn };
+    expect(await history(m)).toEqual([{ ...second, outcome: "PENDING", endedAt: null }, cancelled]);
+
+    // On its date it takes effect: the record keeps the cancelled request, the slot none.
+    vi.setSystemTime(new Date("2026-12-10T01:00:00.000Z"));
+    const detail = (await m.getMemberDetail(m.SAMPLE_MEMBER_ID))!.member;
+    expect(detail.status).toBe("WITHDRAWN");
+    expect(detail.withdrawalHistory).toEqual([{ ...second, outcome: "APPLIED", endedAt: "2026-12-10T00:00:00.000Z" }, cancelled]);
+    expect(m.withdrawalOf()!.cancelled).toEqual([expect.objectContaining({ requestId: key(1), cancelledAt: CANCELLED_AT })]);
+    expect(m.withdrawalStore().cancelled).toEqual([]);
+
+    // The cancelled request goes 5 years after its 철회 (Korean calendar), the applied one with the 탈퇴 기록.
+    vi.setSystemTime(Date.parse("2031-11-05T00:00:00.000Z") - 1);
+    expect(await history(m)).toHaveLength(2);
+    vi.setSystemTime(new Date("2031-11-05T00:00:00.000Z"));
+    expect(await history(m)).toEqual([{ ...second, outcome: "APPLIED", endedAt: "2026-12-10T00:00:00.000Z" }]);
+    vi.setSystemTime(new Date("2031-12-10T00:00:00.000Z"));
+    expect(await m.getMemberDetail(m.SAMPLE_MEMBER_ID)).toBeNull();
+    expect(m.withdrawalOf()).toMatchObject({ requestedAt: null, consented: null, cancelled: [], purged: expect.arrayContaining(["CONTRACT"]) });
+  });
+
+  it("keeps a cancelled request of an active account for 5 years from its 철회, and moves it with the account on a 재가입", async () => {
+    const m = await load();
+    expect((await requestWithdrawal(m)).result.status).toBe("REQUESTED");
+    vi.setSystemTime(new Date(CANCELLED_AT));
+    expect(await m.login({ identifier: ID, password: PASSWORD, keepSignedIn: false, cancelWithdrawal: true })).toEqual({ status: "SUCCESS" });
+    expect(await history(m)).toEqual([expect.objectContaining({ outcome: "CANCELLED", endedAt: CANCELLED_AT })]);
+
+    vi.setSystemTime(Date.parse("2031-11-05T00:00:00.000Z") - 1);
+    expect(await history(m)).toHaveLength(1);
+    vi.setSystemTime(new Date("2031-11-05T00:00:00.000Z"));
+    expect(await history(m)).toEqual([]);
+    expect(m.withdrawalStore().cancelled).toEqual([]);
+  });
+
+  it("shows a 재가입 account a clean history while the withdrawn one keeps its own", async () => {
+    const m = await load();
+    expect((await requestWithdrawal(m)).result.status).toBe("REQUESTED");
+    vi.setSystemTime(new Date(CANCELLED_AT));
+    expect(await m.login({ identifier: ID, password: PASSWORD, keepSignedIn: false, cancelWithdrawal: true })).toEqual({ status: "SUCCESS" });
+    await signIn(m);
+    expect((await requestWithdrawal(m, 2)).result.status).toBe("REQUESTED");
+    vi.setSystemTime(new Date("2026-12-06T00:00:00.000Z"));
+    const agreements = { service: true, privacy: true, marketing: false };
+    const token = await phoneToken("SIGNUP", "010-1234-5678");
+    expect(await m.signup({ email: "user@ssumnation.kr", password: "newpass12!", nickname: "다시왔어요", phoneVerificationToken: token, agreements })).toEqual({ status: "CREATED" });
+
+    expect(await history(m)).toEqual([]);
+    const { withdrawnMemberId } = await import("@/services/admin/memberCore");
+    const old = (await m.getMemberDetail(withdrawnMemberId(1)))!.member;
+    expect(old.withdrawalHistory.map((h) => h.outcome)).toEqual(["APPLIED", "CANCELLED"]);
+  });
+});

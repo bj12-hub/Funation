@@ -40,7 +40,6 @@ Changes from before:
 - **Not built yet:**
   - 서비스 소개 (`/about`)
   - 투네이션 내역 이관: built code-first in the studio instead (후원관리+ › 내역 이관, 2026-10-16 기본값 — TBD, docs/domains/donation-import.md); the public side menu has no entry, the studio sidebar has 수익 › 내역 이관.
-  - 알림 (notifications)
 
 ### Home (`/`)
 

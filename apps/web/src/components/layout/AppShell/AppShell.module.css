@@ -89,7 +89,8 @@
     color: var(--color-text-primary);
   }
 
+  /* Same vermilion as the side menu's current item (2026-11-03 refresh). */
   .tab[aria-current="page"] svg {
-    color: var(--color-accent-text);
+    color: var(--color-primary-light);
   }
 }

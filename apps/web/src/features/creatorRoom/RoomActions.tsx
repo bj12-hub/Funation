@@ -80,7 +80,7 @@ export function RoomActions({
           disabled={pending}
           onClick={toggleFavorite}
         >
-          ⭐ {favorite ? t("room.favoriteOn") : t("room.favorite")}
+          {favorite ? t("room.favoriteOn") : t("room.favorite")}
         </button>
         <button type="button" className={styles.actionButton} onClick={() => setShareOpen(true)}>
           {t("room.share")}

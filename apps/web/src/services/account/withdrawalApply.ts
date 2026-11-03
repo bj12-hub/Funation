@@ -45,6 +45,9 @@ export function applyDueWithdrawal(now: Date = new Date()): boolean {
   // Defensive: one account withdraws once (a request is never stored next to a record).
   if (store.withdrawal) return false;
   const at = request.effectiveAt;
+  // 탈퇴 신청 · 철회 이력: the account's cancelled requests go into the record with it (계약 기록).
+  const cancelled = store.cancelled;
+  store.cancelled = [];
   const balance = mockAccount.fnBalance;
   const earnings = request.creator ? unsettledFn() : 0;
   // The record keeps the consents (약관 동의 기록) and takes the 본인 확인 값 out of the credentials (the phone itself
@@ -56,6 +59,7 @@ export function applyDueWithdrawal(now: Date = new Date()): boolean {
     forfeitedFn: balance,
     forfeitedEarningsFn: earnings,
     consented: { fn: request.consentedFn, earningsFn: request.consentedEarningsFn },
+    cancelled,
     consents: { chargeTerms: mockWallet.chargeTermsAgreedAt, settlementTerms: mockSettlement.terms?.acceptedAt ?? null }
   });
   mockAccount.fnBalance = 0;

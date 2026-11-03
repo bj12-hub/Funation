@@ -1,18 +1,20 @@
-/* Figma sidebar 617:344 — 260px, bg #0d0d1a, right border */
+/* Figma sidebar 617:344 — 260px, bg #0d0d1a, right border.
+ * 2026-11-03 refresh (code-first): 232px on the page background, the profile / guest block is a plain section with a
+ * rule under it instead of a raised card, and the current item has a vermilion bar on the left instead of a filled row. */
 
 .sidebar {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  width: 260px;
+  width: 232px;
   height: 100%;
   overflow-y: auto;
   border-right: 1px solid var(--color-border);
-  background: var(--color-bg-subtle);
+  background: var(--color-bg-page);
 }
 
 .top {
-  padding: 16px 16px 0;
+  padding: 20px 20px 0;
 }
 
 /* ── Profile card (637:180) ───────────────────────── */
@@ -21,10 +23,8 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 16px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-12);
-  background: var(--color-surface-raised);
+  padding: 0 0 20px;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .profile {
@@ -35,8 +35,8 @@
 
 .avatar {
   flex-shrink: 0;
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-pill);
   object-fit: cover;
 }
@@ -89,8 +89,10 @@
 
 .balance strong {
   color: var(--color-text-primary);
-  font-size: var(--font-size-15);
+  font-family: var(--font-latin);
+  font-size: var(--font-size-16);
   font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
 }
 
 .outlineButton {
@@ -119,16 +121,28 @@
   line-height: 20px;
 }
 
+/* A text link with an arrow: the header already carries the filled 로그인 button. */
 .loginButton {
-  display: flex;
+  display: inline-flex;
+  align-self: flex-start;
   align-items: center;
-  justify-content: center;
-  padding: 10px 0;
-  border-radius: var(--radius-8);
-  background: var(--gradient-cta);
-  color: var(--color-text-on-accent);
-  font-size: var(--font-size-14);
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-4);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
   font-weight: var(--font-weight-bold);
+}
+
+.loginButton::after {
+  content: "→";
+  color: var(--color-primary-light);
+  font-family: var(--font-latin);
+}
+
+.loginButton:hover {
+  border-color: var(--color-primary);
 }
 
 /* ── Charge buttons (637:208) ─────────────────────── */
@@ -136,8 +150,8 @@
 .charge {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 20px 16px;
+  gap: 8px;
+  padding: 16px 20px;
 }
 
 .chargeButton {
@@ -169,9 +183,9 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 11px 24px;
+  padding: 9px 20px;
   color: var(--color-text-secondary);
-  font-size: var(--font-size-15);
+  font-size: var(--font-size-14);
   font-weight: var(--font-weight-medium);
   white-space: nowrap;
 }
@@ -182,9 +196,9 @@
 
 .menuItemActive,
 .menuItemActive:hover {
-  background: var(--color-nav-active-bg);
+  box-shadow: inset 3px 0 0 var(--color-primary);
   color: var(--color-text-primary);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-bold);
 }
 
 .menuItemDisabled:hover {
@@ -193,18 +207,18 @@
 
 .menuIcon {
   flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  color: var(--color-text-secondary);
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-tertiary);
 }
 
 .menuItemActive .menuIcon {
-  color: var(--color-accent-text);
+  color: var(--color-primary-light);
 }
 
 .badge {
-  padding: 2px 6px;
-  border-radius: var(--radius-4);
+  padding: 2px 5px;
+  border-radius: var(--radius-2);
   color: var(--color-text-on-accent);
   font-family: var(--font-latin);
   font-weight: var(--font-weight-extrabold);
@@ -212,12 +226,13 @@
 }
 
 .live {
-  background: var(--color-accent);
+  background: var(--color-primary);
   font-size: var(--font-size-10);
 }
 
 .event {
-  background: var(--color-primary);
+  background: var(--color-live);
+  color: var(--color-text-inverse);
   font-size: 9px;
 }
 
@@ -235,10 +250,11 @@
 
 .groupTitle {
   margin: 0;
-  padding: 10px 24px 4px;
+  padding: 12px 20px 6px;
   color: var(--color-text-tertiary);
-  font-size: var(--font-size-12);
+  font-size: var(--font-size-11);
   font-weight: var(--font-weight-bold);
+  letter-spacing: 0.04em;
 }
 
 .studioButton {
@@ -247,9 +263,8 @@
   justify-content: center;
   gap: 8px;
   padding: 10px 0;
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-8);
-  background: var(--color-primary-soft);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-4);
   color: var(--color-text-primary);
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-bold);
@@ -257,4 +272,8 @@
 
 .studioButton .menuIcon {
   color: var(--color-primary-light);
+}
+
+.studioButton:hover {
+  border-color: var(--color-primary);
 }

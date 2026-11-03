@@ -15,7 +15,15 @@ import type { AdminActor } from "./adminTypes";
 import { auditEntries, recordAudit } from "./auditCore";
 import { activeHold } from "./holdCore";
 import { SAMPLE_MEMBER_ID, creatorMemberId, isMemberSuspended, isPermanentlySuspended, isWithdrawnMember, memberStore, slotMemberAt, suspensionOf, withdrawnMemberId, type SuspendRequest } from "./memberCore";
-import { accountSince, withdrawalOf, withdrawalRequestOf, withdrawalStore, type Withdrawal } from "@/services/account/withdrawalCore";
+import {
+  accountSince,
+  withdrawalOf,
+  withdrawalRequestOf,
+  withdrawalStore,
+  type CancelledWithdrawalRequest,
+  type Withdrawal,
+  type WithdrawalRequest
+} from "@/services/account/withdrawalCore";
 import { RETENTION_DEFAULTS_LABEL, retentionRule, retentionSchedule } from "@/services/account/retentionPolicy";
 import { purgeExpired } from "@/services/account/retentionPurge";
 import {
@@ -31,7 +39,8 @@ import {
   type MemberFilter,
   type MemberFnSettlement,
   type MemberPage,
-  type MemberRetention
+  type MemberRetention,
+  type WithdrawalHistoryItem
 } from "./memberTypes";
 
 /**
@@ -54,17 +63,39 @@ const retentionOf = (w: Withdrawal): MemberRetention[] =>
     return { category, label: rule.label, period: rule.period, basis: rule.basis, covers: rule.covers, until, purged: w.purged.includes(category) };
   });
 
+/**
+ * 탈퇴 신청 이력 (2026-11-02 사용자 결정), newest first: the account's cancelled requests, then the one waiting
+ * (`pending`) or the one that took effect (`record` — none once its 계약 기록 is purged).
+ */
+function historyOf(cancelled: CancelledWithdrawalRequest[], pending: WithdrawalRequest | null, record: Withdrawal | null): WithdrawalHistoryItem[] {
+  const asked = (r: WithdrawalRequest) => ({ requestedAt: r.requestedAt, effectiveAt: r.effectiveAt, consentedFn: r.consentedFn, consentedEarningsFn: r.consentedEarningsFn });
+  const items: WithdrawalHistoryItem[] = cancelled.map((c) => ({ ...asked(c), outcome: "CANCELLED", endedAt: c.cancelledAt }));
+  if (pending) items.push({ ...asked(pending), outcome: "PENDING", endedAt: null });
+  if (record?.requestedAt) {
+    items.push({
+      requestedAt: record.requestedAt,
+      effectiveAt: record.at,
+      consentedFn: record.consented?.fn ?? 0,
+      consentedEarningsFn: record.consented?.earningsFn ?? 0,
+      outcome: "APPLIED",
+      endedAt: record.at
+    });
+  }
+  return items.reverse();
+}
+
 async function directory(): Promise<AdminMember[]> {
   // Data past its retention date goes before anything is shown (the purge runs lazily on reads).
   purgeExpired();
   const now = Date.now();
   const status = (id: string) => (isMemberSuspended(id, now) ? "SUSPENDED" : "ACTIVE") as AdminMember["status"];
-  const withStatus = (m: Omit<AdminMember, "status" | "suspension" | "withdrawal" | "withdrawalRequest">): AdminMember => ({
+  const withStatus = (m: Omit<AdminMember, "status" | "suspension" | "withdrawal" | "withdrawalRequest" | "withdrawalHistory">): AdminMember => ({
     ...m,
     status: status(m.id),
     suspension: isMemberSuspended(m.id, now) ? suspensionOf(m.id) : null,
     withdrawal: null,
-    withdrawalRequest: null
+    withdrawalRequest: null,
+    withdrawalHistory: []
   });
   const withdrawal = withdrawalOf();
   // 탈퇴 신청 (2026-11-01 사용자 결정): the sample account keeps its status while it waits (a due one was applied above).
@@ -85,7 +116,8 @@ async function directory(): Promise<AdminMember[]> {
       donationTotalFn: donatedBy(accountSince()),
       creatorId: null
     }),
-    withdrawalRequest: request ? { requestedAt: request.requestedAt, effectiveAt: request.effectiveAt } : null
+    withdrawalRequest: request ? { requestedAt: request.requestedAt, effectiveAt: request.effectiveAt } : null,
+    withdrawalHistory: historyOf(withdrawalStore().cancelled, request, null)
   };
   const record = (w: Withdrawal): AdminMember["withdrawal"] => ({
     at: w.at,
@@ -99,7 +131,14 @@ async function directory(): Promise<AdminMember[]> {
   // 회원 탈퇴: the sample member stays listed as 탈퇴 with what was forfeited.
   const sample: AdminMember | null = withdrawal
     ? listed(withdrawal)
-      ? { ...active, status: "WITHDRAWN", suspension: null, withdrawal: record(withdrawal), withdrawalRequest: null }
+      ? {
+          ...active,
+          status: "WITHDRAWN",
+          suspension: null,
+          withdrawal: record(withdrawal),
+          withdrawalRequest: null,
+          withdrawalHistory: historyOf(withdrawal.cancelled, null, withdrawal)
+        }
       : null
     : active;
   // After a 재가입 the slot is a new account; the withdrawn ones stay in the directory (mock ids `…-w1`, `…-w2`).
@@ -117,7 +156,8 @@ async function directory(): Promise<AdminMember[]> {
             status: "WITHDRAWN",
             suspension: null,
             withdrawal: record(w),
-            withdrawalRequest: null
+            withdrawalRequest: null,
+            withdrawalHistory: historyOf(w.cancelled, null, w)
           }
         ]
       : []
