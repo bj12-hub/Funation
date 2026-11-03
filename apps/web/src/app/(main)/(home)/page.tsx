@@ -1,4 +1,5 @@
 import { HomeScreen } from "@/features/home";
+import { FLEXTV_LIVE } from "@/lib/flextv/mode";
 import { getHomeFeed } from "@/services/home/homeFeed";
 import { getAllLiveChannels } from "@/services/live/liveChannels";
 
@@ -8,5 +9,5 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const [feed, liveChannels] = await Promise.all([getHomeFeed(), getAllLiveChannels()]);
-  return <HomeScreen feed={feed} liveChannels={liveChannels} />;
+  return <HomeScreen feed={feed} liveChannels={liveChannels} categoryLive={FLEXTV_LIVE} />;
 }

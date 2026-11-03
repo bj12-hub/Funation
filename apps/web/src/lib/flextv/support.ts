@@ -1,4 +1,5 @@
 import { FlextvUnavailableError, flextvRequest, isRecord, type FlextvRequest, type FlextvResponse } from "./client";
+import { readRefOptions } from "./studio";
 
 /**
  * FLEXTV's 고객센터 (phase 7, docs/development/flextv-backend.md "7단계") — server/routes/api/cs and v2/api/cs of
@@ -146,14 +147,17 @@ export async function fetchInquiryCategories(): Promise<InquiryCategory[]> {
 
 export type InquiryPost = { kind: "OK"; id: string } | { kind: "REFUSED"; message: string } | { kind: "UNAUTHORIZED" };
 
-/** FLEXTV answers `{ result: true, data: { id, … } }`, or `{ result: false, data: reason }` (a suspended member …). */
-export function mapInquiryPost({ status, data }: Pick<FlextvResponse, "status" | "data">): InquiryPost {
+/**
+ * FLEXTV answers `{ result: true, data: { id, … } }`, or `{ result: false, data: reason }` (a suspended member …). Its
+ * 신고 answers the same way (`refused`: the words when FLEXTV gives no reason).
+ */
+export function mapInquiryPost({ status, data }: Pick<FlextvResponse, "status" | "data">, refused = "문의를 접수하지 못했어요."): InquiryPost {
   if (status === 401) return { kind: "UNAUTHORIZED" };
   if (status === 200 && isRecord(data) && data.result === true && isRecord(data.data)) {
     const id = idOf(data.data.id);
     if (id) return { kind: "OK", id };
   }
-  if (status === 200 && isRecord(data) && data.result === false) return { kind: "REFUSED", message: text(data.data) || "문의를 접수하지 못했어요." };
+  if (status === 200 && isRecord(data) && data.result === false) return { kind: "REFUSED", message: text(data.data) || refused };
   throw new FlextvUnavailableError(`FLEXTV inquiry post answered ${status}`);
 }
 
@@ -169,4 +173,32 @@ export async function postInquiry(
   form.set("content", inquiry.content);
   if (inquiry.image) form.set("image", inquiry.image.blob, inquiry.image.filename);
   return mapInquiryPost(await flextvRequest("/api/cs/inquiry-post", { method: "POST", form, token, ...caller }));
+}
+
+/* ── 방송 신고 (phase 10) ────────────────────────────────── */
+
+/** `GET /api/guest/refcode/bjreportCategory`: `[{ key, value, text }]`, FLEXTV's 신고 유형 in its order. */
+export async function fetchReportCategories(): Promise<InquiryCategory[]> {
+  const response = await flextvRequest("/api/guest/refcode/bjreportCategory");
+  if (response.status !== 200) throw new FlextvUnavailableError(`FLEXTV report categories answered ${response.status}`);
+  return readRefOptions(response.data);
+}
+
+/**
+ * `POST /api/cs/declaration-post` as FLEXTV's 신고 form sends it from a live room: multipart 제목 · 유형 · 내용, the
+ * reported streamer's member number as `targetId` (FLEXTV finds the channel by it) and `reportTypes` 1 (방송). It goes
+ * to FLEXTV's operators, who answer it in the member's 신고 내역 on FLEXTV.
+ */
+export async function postBroadcastReport(
+  token: string,
+  report: { targetMemberId: number; title: string; category: string; content: string },
+  caller: Pick<FlextvRequest, "clientIp" | "userAgent">
+): Promise<InquiryPost> {
+  const form = new FormData();
+  form.set("title", report.title);
+  form.set("category", report.category);
+  form.set("content", report.content);
+  form.set("targetId", String(report.targetMemberId));
+  form.set("reportTypes", "1");
+  return mapInquiryPost(await flextvRequest("/api/cs/declaration-post", { method: "POST", form, token, ...caller }), "신고를 접수하지 못했어요.");
 }

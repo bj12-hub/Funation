@@ -157,6 +157,7 @@ export function TextFields({ value, onChange, catalog, balance, error }: Props<T
         placeholder={t("roomDonate.messagePlaceholder")}
         tall
       />
+      {catalog.readAloudChoice && <ReadAloudToggle checked={value.readAloud} onChange={(readAloud) => onChange({ ...value, readAloud })} />}
       {catalog.voices.map((v) => (
         <VoiceCard key={v.id} voice={v} selected={value.voiceId === v.id} onToggle={() => onChange({ ...value, voiceId: value.voiceId === v.id ? null : v.id })} />
       ))}
@@ -364,8 +365,15 @@ export function SignatureFields({ value, onChange, catalog, onOpenAll }: Props<S
         max={catalog.maxLength.message}
         placeholder={t("roomDonate.shortMessagePlaceholder")}
       />
+      {catalog.readAloudChoice && <ReadAloudToggle checked={value.readAloud} onChange={(readAloud) => onChange({ ...value, readAloud })} />}
     </>
   );
+}
+
+/** "메시지 읽어주기" (phase 10, a FLEXTV room): off, the message is not read aloud and only shows in chat. */
+function ReadAloudToggle({ checked, onChange }: { checked: boolean; onChange: (checked: boolean) => void }) {
+  const { t } = useI18n();
+  return <SwitchRow label={t("roomDonate.readAloud")} sub={t(checked ? "roomDonate.readAloudOnSub" : "roomDonate.readAloudOffSub")} checked={checked} onChange={onChange} />;
 }
 
 // ── 위시 후원 (851:5054) ──────────────────────────────────────────────────────

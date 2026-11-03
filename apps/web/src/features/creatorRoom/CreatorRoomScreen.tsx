@@ -17,6 +17,7 @@ import { Player } from "./Player";
 import { remote } from "@/lib/remoteImage";
 import { RoomActions } from "./RoomActions";
 import { RoomFanNotesCard } from "./RoomFanNotes";
+import { LiveInfo, RoomLiveProvider } from "./RoomLive";
 import { RoomVoteCard } from "./RoomVote";
 import { SidePanel } from "./SidePanel";
 import styles from "./room.module.css";
@@ -69,6 +70,8 @@ export async function CreatorRoomScreen({
   // A FLEXTV channel (FLEXTV backend): only FLEXTV's channel, 소식 and donation options — no 구독자 · 크루 · 투표 …
   const flextv = room.source === "FLEXTV";
   const flextvViews: ChannelView[] = room.donation.signatures.length > 0 ? ["home", "community", "signatures"] : ["home", "community"];
+  const live = flextv && room.stream.status === "LIVE" && room.stream.embed ? room.stream : null;
+  const side = <SidePanel key={initialTab} room={room} signedIn={viewer !== null} fnBalance={viewer?.fnBalance ?? null} nickname={viewer?.nickname ?? null} initialTab={initialTab} />;
   return (
     <div className={styles.page}>
       {room.banner && (
@@ -144,17 +147,30 @@ export async function CreatorRoomScreen({
         </section>
       )}
 
-      {view === "home" && (
-      <div className={styles.main}>
-        <div className={styles.playerColumn}>
-          <Player name={room.name} stream={room.stream} />
-          {room.stream.status === "LIVE" && <p className={styles.caption}>{room.stream.caption}</p>}
-          {!flextv && <RoomVoteCard channelId={room.creatorId} signedIn={viewer !== null} initial={vote} />}
-          {!flextv && <RoomFanNotesCard channelId={room.creatorId} signedIn={viewer !== null} initial={fanNotes} />}
-        </div>
-        <SidePanel key={initialTab} room={room} signedIn={viewer !== null} fnBalance={viewer?.fnBalance ?? null} nickname={viewer?.nickname ?? null} initialTab={initialTab} />
-      </div>
-      )}
+      {view === "home" &&
+        (live ? (
+          // A FLEXTV stream played here (phase 10): its title, category, viewers and 방송 시간 under the player, and
+          // 이번 방송 후원 랭킹 over the chat, from one poll.
+          <RoomLiveProvider channelId={room.creatorId} initial={live.live ?? { viewers: live.viewerCount, donors: [] }}>
+            <div className={styles.main}>
+              <div className={styles.playerColumn}>
+                <Player name={room.name} stream={room.stream} />
+                <LiveInfo title={live.caption} category={live.category ?? null} startedAt={live.startedAt ?? null} />
+              </div>
+              {side}
+            </div>
+          </RoomLiveProvider>
+        ) : (
+          <div className={styles.main}>
+            <div className={styles.playerColumn}>
+              <Player name={room.name} stream={room.stream} />
+              {room.stream.status === "LIVE" && <p className={styles.caption}>{room.stream.caption}</p>}
+              {!flextv && <RoomVoteCard channelId={room.creatorId} signedIn={viewer !== null} initial={vote} />}
+              {!flextv && <RoomFanNotesCard channelId={room.creatorId} signedIn={viewer !== null} initial={fanNotes} />}
+            </div>
+            {side}
+          </div>
+        ))}
       {view === "home" && (!flextv || news) && <ChannelHomeExtras creatorId={room.creatorId} ranking={ranking} posts={posts.items.slice(0, 3)} news={flextv ? news : undefined} />}
     </div>
   );

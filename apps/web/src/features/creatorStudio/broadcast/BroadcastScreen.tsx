@@ -20,7 +20,9 @@ import {
   type BroadcastView
 } from "@/services/creator/broadcastTypes";
 import { STREAM_POLICY } from "@/services/channel/streamerTypes";
+import type { LiveControlView } from "@/services/creator/flextvLiveControlTypes";
 import styles from "./broadcast.module.css";
+import { LiveControlPanel } from "./LiveControlPanel";
 
 const LOGIN = "/login?role=creator&next=/creator/broadcast";
 
@@ -31,8 +33,9 @@ const ENGINE_LABEL_KEY: Record<BroadcastEngine, MessageKey> = { ncp_llh: "flextv
  * 방송 설정 (phase 5; code-first, no Figma frame — FLEXTV's own broadcast page is the reference). Route
  * `/creator/broadcast`. OBS sends to FLEXTV with the 서버 and 스트림 키 below; the broadcast starts once OBS is sending,
  * and ends with 방송 종료 (stopping OBS leaves it open, as on FLEXTV). Every value is checked again on the server.
+ * Phase 10: while on air, 지금 방송 (`live`) — the stream's figures, 미리보기, top donors and the room's viewers.
  */
-export function BroadcastScreen({ view }: { view: BroadcastView }) {
+export function BroadcastScreen({ view, live = null }: { view: BroadcastView; live?: LiveControlView | null }) {
   const { t } = useI18n();
   const router = useRouter();
   const [toast, setToast] = useState<string | null>(null);
@@ -109,6 +112,7 @@ export function BroadcastScreen({ view }: { view: BroadcastView }) {
         )}
       </section>
 
+      {live && <LiveControlPanel key={live.channelId} initial={live} />}
       <StreamKeysCard view={view} onToast={setToast} />
       <BroadcastForm key={`${view.streaming}`} view={view} onResult={onResult} />
 
