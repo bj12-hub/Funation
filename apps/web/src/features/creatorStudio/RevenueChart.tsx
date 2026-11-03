@@ -59,8 +59,8 @@ export async function RevenueChart({ series, fillId = "revenue-fill" }: { series
     <svg className={styles.chart} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t("studioDashboard.chartAria", { list: series.map((s) => `${s.label} ${won(s.amount, locale)}`).join(", ") })}>
       <defs>
         <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="rgba(139,92,246,0.3)" />
-          <stop offset="100%" stopColor="rgba(139,92,246,0.01)" />
+          <stop offset="0%" stopColor="rgba(207,69,39,0.3)" />
+          <stop offset="100%" stopColor="rgba(207,69,39,0.01)" />
         </linearGradient>
       </defs>
       {ticks.map((tick) => (

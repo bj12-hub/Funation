@@ -12,7 +12,6 @@
   padding: 0 var(--layout-gutter);
   background: var(--color-bg-page);
   border-bottom: 1px solid var(--color-border);
-  box-shadow: var(--shadow-header);
 }
 
 /* Logo and nav keep their size; the profile name gives way on narrow screens. */
@@ -47,19 +46,29 @@
   gap: 8px;
 }
 
+/* Wordmark (2026-11-03 refresh, code-first): plain Archivo text behind a vermilion square, no gradient text. */
 .logoText {
-  font-size: var(--font-size-28);
-  font-weight: var(--font-weight-black);
-  background: var(--gradient-brand);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text-primary);
+  font-family: var(--font-latin);
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-extrabold);
+  letter-spacing: -0.02em;
   white-space: nowrap;
+}
+
+.logoText::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  background: var(--color-primary);
 }
 
 .logoBadge {
   padding: 2px 6px;
-  border-radius: var(--radius-4);
+  border-radius: var(--radius-2);
   background: var(--color-accent);
   color: var(--color-text-on-accent);
   font-size: var(--font-size-10);
@@ -144,8 +153,8 @@
 }
 
 .loginButton {
-  padding: 10px 24px;
-  border-radius: var(--radius-20);
+  padding: 9px 20px;
+  border-radius: var(--radius-4);
   background: var(--gradient-cta);
   color: var(--color-text-on-accent);
   font-size: var(--font-size-14);
@@ -428,8 +437,8 @@
 }
 
 .creatorMenuLogout {
-  background: rgba(237, 74, 153, 0.15);
-  color: #ed4a99;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-text);
 }
 
 .srOnly {
@@ -471,17 +480,18 @@
   height: 32px;
   padding: 0 12px 0 4px;
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-4);
   background: var(--color-surface-raised);
   color: var(--color-text-primary);
   font-family: var(--font-latin);
   font-size: var(--font-size-13);
   font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
 }
 
 .chargeLabel {
   padding: 3px 8px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-2);
   background: var(--color-charge);
   color: var(--color-text-on-accent);
   font-family: var(--font-sans);
@@ -491,7 +501,7 @@
 .studioBadge {
   padding: 3px 8px;
   border: 1px solid var(--color-primary);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-2);
   color: var(--color-primary-light);
   font-size: var(--font-size-12);
   font-weight: var(--font-weight-bold);

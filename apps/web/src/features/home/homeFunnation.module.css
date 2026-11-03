@@ -10,11 +10,19 @@
   padding: 24px 32px;
 }
 
+/* Same header as SectionHeader: title · a hairline rule · the text button (2026-11-03 refresh). */
 .blockHead {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
+}
+
+.blockHead::after {
+  content: "";
+  flex: 1;
+  order: 1;
+  min-width: 24px;
+  border-top: 1px solid var(--color-border-emphasis);
 }
 
 .blockTitle,
@@ -39,6 +47,7 @@
 
 .textButton {
   flex-shrink: 0;
+  order: 2;
   color: var(--color-text-secondary);
   font-size: var(--font-size-13);
   font-weight: var(--font-weight-medium);
@@ -77,11 +86,16 @@
   cursor: pointer;
 }
 
+/* A thin neutral ring (vermilion on hover) instead of the brand-gradient story ring (2026-11-03 refresh). */
 .stripRing {
   display: flex;
-  padding: 3px;
+  padding: 2px;
+  border: 1px solid var(--color-border-emphasis);
   border-radius: var(--radius-pill);
-  background: var(--gradient-brand);
+}
+
+.stripItem:hover .stripRing {
+  border-color: var(--color-primary);
 }
 
 .stripAvatar {
@@ -124,7 +138,7 @@
 }
 
 .tab[aria-selected="true"] {
-  border-bottom-color: var(--color-accent);
+  border-bottom-color: var(--color-primary);
   color: var(--color-text-primary);
   font-weight: var(--font-weight-bold);
 }
