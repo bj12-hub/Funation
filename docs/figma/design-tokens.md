@@ -34,8 +34,12 @@ User request (2026-11-03): the colors and layout looked too much like funnation,
 directions were shown; the user picked **B (warm black · vermilion)** with the side menu kept and tidied. OBS overlay
 themes (`features/overlayTheme`, 2026-10-08) and the admin console (`apps/admin`, own `--adm-*` tokens) stay as they are.
 
-This is a **difference from Figma**: the 펀페이 frames and the "현재 구현" file's Site Color variables still hold the old
-navy · purple values. Token names are unchanged, so code keeps referencing the same variables.
+This is a **difference from the original Figma**: the 펀페이 frames (read-only) keep the old navy · purple values. The
+"현재 구현" file (`PMnjPwrD3nAiItJxjaZ0qj`) was synced the same day: its Site Color variables (Dark · Light) and the
+Site Dimension radius values now match the table below (status colors, `text/on-accent` and `status/success*` · `danger*` ·
+`info` · `error-text` · `warning-text` unchanged), and the radius variables keep their names with the new values in their
+descriptions. What the Figma layouts still do not show is listed in `site-design-system.md`. Token names are unchanged, so
+code keeps referencing the same variables.
 
 | Area | Figma (before) | Code since 2026-11-03 |
 |---|---|---|
