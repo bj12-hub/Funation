@@ -92,6 +92,44 @@ Status: ✅ implemented · 🚧 placeholder (link works, screen pending)
 | 도우미 `/theme` · `/chat/manage` · `/tools` · `/signatures` · `/video` · `/drawing` · `/effects` · `/banner` · `/crew` · `/crew/broadcast` · `/overlays` · `/overlays/preview/[id]` · `/assets` · `/link` · `/youtube` · `/filtering` · `/remote` · `/remote/guide` | ✅ code-first | The studio OBS screens in the helper shell (same components and frames as their `/creator/...` routes above); `/filtering` = 후원관리+ 후원 필터링 tab as a page, `/theme` = 전체 테마 gallery. On the helper domain `/creator/*` links redirect here (`/creator/widgets?open=KEY` → that widget's page); `/widgets` → `/`. Figma page 12: HP12 · HP17 · HP20–HP24 · HP40 · HP41 · HP50–HP55 · HP60 · HP61 (ids in site-design-system.md) |
 | `/popout/remote` | ✅ code-first | 리모컨 on its own (no menu, dark): the 도우미 "리모컨 열기" window (1000 × 800) · 스튜디오 리모컨 "작은 창으로 열기" · OBS 사용자 지정 브라우저 독 · 휴대폰; creator session (signed out → login, signed in without a channel → 채널 만들기). Same controls as `/creator/remote` (W04 `218:5994`); Figma HP62 `332:7615` |
 
+## FLEXTV 모드 (`NEXT_PUBLIC_BACKEND=flextv`)
+
+Same routes, drawn for the FLEXTV backend on page **13 레이아웃 · FLEXTV 모드** `385:27456` (2026-10-28; sections and notes in [site-design-system.md](site-design-system.md)). Routes not listed keep the frames above.
+
+| Route | Figma frames (FLEXTV 모드) |
+|---|---|
+| `/messages` | F01 `387:2` |
+| `/mypage/blocks` | F02 `388:188` |
+| `/favorites` | F03 `388:413` |
+| `/notifications` | F04 `388:705` |
+| `/creators` | F05 `389:686` |
+| `/events` | F06 `389:967` |
+| `/events/[id]` | F07 `389:1206` |
+| `/hall-of-fame` | F08 `390:1176` |
+| `/support?tab=inquiry` | F09 `390:1612` |
+| `/mypage` | F14 `404:3992` |
+| `/channel/new` | F15 `404:4371` · F15b `404:4645` |
+| `/creators/[id]` | F10 `391:1506` · F12 `392:1906` |
+| `/creators/[id]?view=community` | F11 `391:29336` |
+| `/creators/[id]?tab=donation` | F13 `392:1833` |
+| `/login` | F20 `393:1996` |
+| `/signup` | F21 `393:2065` · F22 `393:2155` |
+| `/signup/social` | F23 `393:2240` |
+| `/wallet` | F24 `395:4126` · F25 `395:2669` · F26 `395:3088` · F27 `395:3507` |
+| `/wallet/charges` | F28 `395:31861` |
+| `/creator` | F40 `396:2907` |
+| `/creator/revenue` | F41 `396:3322` |
+| `/creator/donations?tab=list` | F42 `401:3366` |
+| `/creator/settlement` | F43 `401:3710` |
+| `/creator/settlement/apply` | F44 `401:4051` |
+| `/creator/settlement/manage` | F45 `401:4378` |
+| `/creator/settings` | F46 `403:3671` |
+| `/creator/broadcast` | F48 `398:3102` |
+| `/creator/chat` | F49 `399:3230` |
+| `/creator/donation-types` | F50 `400:3284` |
+| `/creator/widgets` | F51 `403:4007` |
+| `/creator/remote` | F52 `403:4514` |
+
 ## Link wiring
 
 | From | Element | To |

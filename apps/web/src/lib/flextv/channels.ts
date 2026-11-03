@@ -15,6 +15,8 @@ export type FlextvChannelRow = {
   channelId: string;
   /** The owner's nickname (the channel's name when FLEXTV has none). */
   name: string;
+  /** The owner's 아이디 (a 쪽지 goes to it). */
+  ownerLoginId: string;
   description: string;
   thumbUrl: string | null;
   live: boolean;
@@ -35,6 +37,7 @@ export function readChannelRow(raw: unknown): FlextvChannelRow | null {
   return {
     channelId: String(id),
     name: text(owner.nickname) || text(raw.name),
+    ownerLoginId: text(owner.loginId),
     description: text(raw.description),
     thumbUrl: httpsUrl(owner.thumbUrl),
     live: raw.isInLive === true || raw.isInLive === 1,

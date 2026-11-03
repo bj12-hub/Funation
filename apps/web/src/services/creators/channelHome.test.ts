@@ -21,7 +21,8 @@ describe("channel home", () => {
     const before = (await m.getChannelMonthlyRanking("c1"))!;
     expect(before.rows).toHaveLength(10);
     expect(before.rows.some((r) => r.me)).toBe(false);
-    expect(before.rows.map((r) => r.fnAmount)).toEqual([...before.rows.map((r) => r.fnAmount)].sort((a, b) => b - a));
+    const amounts = before.rows.map((r) => r.fnAmount ?? 0);
+    expect(amounts).toEqual([...amounts].sort((a, b) => b - a));
     expect(await m.getChannelMonthlyRanking("c1")).toEqual(before);
 
     await m.requestDonation({ creatorId: "c1", hideProfile: false, type: "TEXT", amount: 1_000_000, message: "", voiceId: null, idempotencyKey: key(1) });

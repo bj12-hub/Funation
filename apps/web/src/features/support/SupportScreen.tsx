@@ -13,6 +13,7 @@ import {
   type Notice,
   type SupportTab
 } from "@/services/support/supportTypes";
+import { FlextvInquiryForm } from "./FlextvInquiryForm";
 import { InquiryForm } from "./InquiryForm";
 import { FAQ_CATEGORY_KEY, INQUIRY_STATUS_KEY, NOTICE_CATEGORY_KEY, SUPPORT_TAB_KEY } from "./labels";
 import local from "./supportTabs.module.css";
@@ -37,6 +38,8 @@ type Props = {
   category?: FaqCategory;
   /** `null` = signed out. */
   inquiries: Inquiry[] | null;
+  /** With FLEXTV (phase 9): FLEXTV's 1:1 문의 유형; null when FLEXTV did not answer (its own form is linked instead). */
+  inquiryCategories?: { value: string; label: string }[] | null;
 };
 
 const faqHref = (category?: FaqCategory, q?: string) => {
@@ -49,10 +52,10 @@ const faqHref = (category?: FaqCategory, q?: string) => {
 /**
  * Customer support — tabs follow funnation 고객센터 (공지사항 · 자주 묻는 질문 · 1:1 문의).
  * Figma 고객센터 4:7 (hero, search, FAQ accordion, 문의 방법) visuals are kept. Route `/support`.
- * With FLEXTV (phase 7) FLEXTV's notices, questions and 1:1 문의: no categories or view counts, and a 문의 is written
- * on FLEXTV's site.
+ * With FLEXTV (phase 7) FLEXTV's notices, questions and 1:1 문의: no categories or view counts. A 문의 is written with
+ * FLEXTV's 유형 (phase 9).
  */
-export async function SupportScreen({ tab, notices, faqs, query, category, inquiries }: Props) {
+export async function SupportScreen({ tab, notices, faqs, query, category, inquiries, inquiryCategories = null }: Props) {
   const t = await getT();
   return (
     <div className={styles.page}>
@@ -77,7 +80,7 @@ export async function SupportScreen({ tab, notices, faqs, query, category, inqui
 
       {tab === "notices" && <NoticeList notices={notices} t={t} />}
       {tab === "faq" && <FaqPanel faqs={faqs} query={query} category={category} t={t} />}
-      {tab === "inquiry" && <InquiryPanel inquiries={inquiries} t={t} />}
+      {tab === "inquiry" && <InquiryPanel inquiries={inquiries} categories={inquiryCategories} t={t} />}
     </div>
   );
 }
@@ -163,7 +166,7 @@ function FaqPanel({ faqs, query, category, t }: { faqs: FaqItem[]; query?: strin
   );
 }
 
-function InquiryPanel({ inquiries, t }: { inquiries: Inquiry[] | null; t: T }) {
+function InquiryPanel({ inquiries, categories, t }: { inquiries: Inquiry[] | null; categories: Props["inquiryCategories"]; t: T }) {
   return (
     <>
       <ul className={styles.contacts} aria-label={t("support.contacts")}>
@@ -184,9 +187,11 @@ function InquiryPanel({ inquiries, t }: { inquiries: Inquiry[] | null; t: T }) {
         </div>
       ) : (
         <>
-          {FLEXTV_SITE ? (
+          {FLEXTV_SITE && categories ? (
+            <FlextvInquiryForm categories={categories} />
+          ) : FLEXTV_SITE ? (
             <div className={local.empty}>
-              <p>{t("support.flextvInquiry")}</p>
+              <p>{t("support.flextvInquiryUnavailable")}</p>
               <a href={`${FLEXTV_WEB_URL}/cs/inquiry`} target="_blank" rel="noopener noreferrer" className={styles.emptyLink}>
                 {t("support.flextvInquiryLink")}
               </a>

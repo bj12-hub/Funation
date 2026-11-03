@@ -1,10 +1,12 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
+import { FLEXTV_SITE } from "@/lib/flextv/mode";
 import { USE_MOCK } from "@/lib/mock";
 import { getSession } from "@/lib/session";
 import { shownMemberName } from "@/services/admin/memberCore";
 import { getCreatorById } from "@/services/creators/creators";
+import { flextvBlocks, flextvUnblock } from "@/services/messages/flextvMessages";
 import { blocksOf, moderationStore, resolveTarget } from "./moderationCore";
 import { REPORT_DETAIL_MAX, REPORT_REASONS, type BlockEntry, type BlockResult, type ReportReason, type ReportResult, type ReportTarget, type ReportTargetType } from "./moderationTypes";
 
@@ -88,6 +90,7 @@ export async function blockAuthorOf(input: unknown): Promise<BlockResult> {
 
 /** `id`: the block entry's id from listBlocks (never a member id). */
 export async function unblock(id: unknown): Promise<BlockResult> {
+  if (FLEXTV_SITE) return flextvUnblock(id);
   assertMock();
   const session = await getSession();
   if (!session) return { status: "UNAUTHORIZED" };
@@ -99,6 +102,7 @@ export async function unblock(id: unknown): Promise<BlockResult> {
 }
 
 export async function listBlocks(): Promise<BlockEntry[] | null> {
+  if (FLEXTV_SITE) return flextvBlocks();
   assertMock();
   const session = await getSession();
   if (!session) return null;

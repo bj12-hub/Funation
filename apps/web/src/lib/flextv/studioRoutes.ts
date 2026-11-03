@@ -8,6 +8,8 @@ export const FLEXTV_STUDIO_PATHS = [
   "/creator/broadcast",
   // Phase 7: 채널 설정 (the streamer's FLEXTV 방송국).
   "/creator/settings",
+  // Phase 9: 채팅 관리 (the channel's chat on FLEXTV).
+  "/creator/chat",
   // Phase 6: only with FLEXTV's Ssumnation endpoints (the pages answer 404 without them).
   "/creator/donation-types",
   "/creator/remote",

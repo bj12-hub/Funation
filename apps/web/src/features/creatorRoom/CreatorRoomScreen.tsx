@@ -6,11 +6,11 @@ import { platformLabel } from "@/lib/i18n/platformLabel";
 import { getLocale, getT } from "@/lib/i18n/server";
 import type { CreatorCategory } from "@/services/creators/creators";
 import type { CrewPublic, RoomFanNotes } from "@/services/crew/crewTypes";
-import type { ChannelPostsView, ChannelRanking } from "@/services/creators/channelTypes";
+import type { ChannelNews, ChannelPostsView, ChannelRanking } from "@/services/creators/channelTypes";
 import type { PublicChannelVideos } from "@/services/creators/channelVideos";
 import type { RoomVote } from "@/services/votes/voteTypes";
 import { ChannelCommunity, ChannelHomeExtras } from "./ChannelHome";
-import { AboutView, ChannelTabs, CrewView, SignaturesView, VideosView } from "./ChannelViews";
+import { AboutView, ChannelTabs, CrewView, NewsView, SignaturesView, VideosView } from "./ChannelViews";
 import type { ChannelView } from "./channelView";
 import channel from "./channel.module.css";
 import { Player } from "./Player";
@@ -42,7 +42,8 @@ export async function CreatorRoomScreen({
   postsShow,
   videos,
   vote,
-  fanNotes
+  fanNotes,
+  news
 }: {
   room: CreatorRoom;
   viewer: Viewer;
@@ -59,12 +60,15 @@ export async function CreatorRoomScreen({
   vote: RoomVote | null;
   /** 팬 메시지 · 요청사항 while the channel's crew broadcast takes notes (code-first). */
   fanNotes: RoomFanNotes | null;
+  /** A FLEXTV channel's 소식 (phase 9): its 커뮤니티 tab is "소식", FLEXTV's posts. */
+  news?: ChannelNews;
 }) {
   const t = await getT();
   const locale = await getLocale();
   const donateHref = `/creators/${room.creatorId}?tab=donation`;
-  // A FLEXTV channel (FLEXTV backend): only FLEXTV's channel and donation options — no 구독자 · 크루 · 투표 · 커뮤니티 …
+  // A FLEXTV channel (FLEXTV backend): only FLEXTV's channel, 소식 and donation options — no 구독자 · 크루 · 투표 …
   const flextv = room.source === "FLEXTV";
+  const flextvViews: ChannelView[] = room.donation.signatures.length > 0 ? ["home", "community", "signatures"] : ["home", "community"];
   return (
     <div className={styles.page}>
       {room.banner && (
@@ -117,17 +121,22 @@ export async function CreatorRoomScreen({
           <Link href={donateHref} className={channel.donateButton} scroll={false}>
             {t("room.donate")}
           </Link>
-          <RoomActions creatorId={room.creatorId} name={room.name} initialFavorite={isFavorite} signedIn={viewer !== null} flextv={flextv} />
+          <RoomActions creatorId={room.creatorId} name={room.name} initialFavorite={isFavorite} signedIn={viewer !== null} flextv={flextv} messageTo={room.ownerLoginId} />
         </div>
       </div>
 
-      <ChannelTabs creatorId={room.creatorId} active={view} only={flextv ? (room.donation.signatures.length > 0 ? ["home", "signatures"] : ["home"]) : undefined} />
+      <ChannelTabs creatorId={room.creatorId} active={view} only={flextv ? flextvViews : undefined} labels={flextv ? { community: t("roomChannel.news") } : undefined} />
 
       {view !== "home" && (
         <section className={channel.panel} aria-label={t("room.channelPanel")}>
           {view === "crew" && <CrewView crew={crew} name={room.name} />}
           {view === "videos" && videos && <VideosView name={room.name} data={videos} />}
-          {view === "community" && <ChannelCommunity creatorId={room.creatorId} name={room.name} view={posts} signedIn={viewer !== null} show={postsShow} />}
+          {view === "community" &&
+            (flextv ? (
+              news && <NewsView creatorId={room.creatorId} name={room.name} news={news} show={postsShow} />
+            ) : (
+              <ChannelCommunity creatorId={room.creatorId} name={room.name} view={posts} signedIn={viewer !== null} show={postsShow} />
+            ))}
           {view === "signatures" && <SignaturesView signatures={room.donation.signatures} donateHref={donateHref} />}
           {view === "about" && (
             <AboutView about={{ name: room.name, description: about.description, categories: about.categories, subscriberCount: about.subscriberCount, joinedAt: about.joinedAt, platforms: room.channels.map((c) => c.platform) }} />
@@ -146,7 +155,7 @@ export async function CreatorRoomScreen({
         <SidePanel key={initialTab} room={room} signedIn={viewer !== null} fnBalance={viewer?.fnBalance ?? null} nickname={viewer?.nickname ?? null} initialTab={initialTab} />
       </div>
       )}
-      {view === "home" && !flextv && <ChannelHomeExtras creatorId={room.creatorId} ranking={ranking} posts={posts.items.slice(0, 3)} />}
+      {view === "home" && (!flextv || news) && <ChannelHomeExtras creatorId={room.creatorId} ranking={ranking} posts={posts.items.slice(0, 3)} news={flextv ? news : undefined} />}
     </div>
   );
 }

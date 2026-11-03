@@ -24,6 +24,8 @@ export type FlextvMyAccount = {
   balance: number;
   /** FLEXTV has 알림 the member has not looked at (its `setting.notificationView`). */
   newNotifications: boolean;
+  /** Unread 쪽지 (FLEXTV's `numMsg`). */
+  unreadMessages: number;
 };
 
 const PROVIDERS: readonly FlextvSignUpProvider[] = ["kakao", "naver", "google", "twitch"];
@@ -43,7 +45,8 @@ export function readMyAccount(raw: unknown): FlextvMyAccount | null {
     hasPassword: p.passwordCheck !== true,
     verified: isRecord(p.PI),
     balance: Number.isSafeInteger(balance) && balance >= 0 ? balance : 0,
-    newNotifications: isRecord(p.setting) && p.setting.notificationView === 1
+    newNotifications: isRecord(p.setting) && p.setting.notificationView === 1,
+    unreadMessages: Number.isSafeInteger(Number(raw.numMsg)) && Number(raw.numMsg) > 0 ? Number(raw.numMsg) : 0
   };
 }
 

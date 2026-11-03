@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { FLEXTV_SITE } from "@/lib/flextv/mode";
 import { formatKstDate } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { unblock } from "@/services/moderation/moderation";
 import type { BlockEntry } from "@/services/moderation/moderationTypes";
 import styles from "./moderation.module.css";
 
-/** 차단 관리 — code-first (no Figma frame). Route `/mypage/blocks`. */
+/** 차단 관리 — code-first (no Figma frame). Route `/mypage/blocks`. With FLEXTV (phase 9) its 쪽지 차단. */
 export function BlocksScreen({ blocks }: { blocks: BlockEntry[] }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -32,9 +33,9 @@ export function BlocksScreen({ blocks }: { blocks: BlockEntry[] }) {
         {t("moderation.backToMy")}
       </Link>
       <h1 className={styles.title}>{t("moderation.blocksTitle")}</h1>
-      <p className={styles.muted}>{t("moderation.blocksNote")}</p>
+      <p className={styles.muted}>{t(FLEXTV_SITE ? "moderation.blocksNoteFlextv" : "moderation.blocksNote")}</p>
       {blocks.length === 0 ? (
-        <p className={styles.empty}>{t("moderation.blocksEmpty")}</p>
+        <p className={styles.empty}>{t(FLEXTV_SITE ? "moderation.blocksEmptyFlextv" : "moderation.blocksEmpty")}</p>
       ) : (
         <ul className={styles.blockList}>
           {blocks.map((b) => (

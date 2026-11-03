@@ -23,6 +23,7 @@ broadcasting is part of Ssumnation. The mock services are replaced area by area,
 | 6 | Ssumnation-only features (룰렛 · 뽑기 · 위시리스트 · 그림 · 미니 · 퀘스트) on new FLEXTV endpoints | **front done** (below, "6단계"): the rooms' types, 퀘스트, 후원 종류 설정, 후원 내역 · 받은 후원, the 리모컨 and the OBS overlays, against the contract; FLEXTV's endpoints are next |
 | 7 | The remaining screens: 마이페이지, 즐겨찾기, 알림, 크리에이터 찾기, the home, 고객센터, 채널 설정; the rest not served | **done** (below, "7단계") |
 | 8 | The 위젯 page: 오버레이 테마 and the look of the overlays FLEXTV runs, kept by FLEXTV | **front done** (below, "8단계"), against contract §10 |
+| 9 | What FLEXTV already has an API for: 쪽지 · 차단, the room's 소식 · 팬 랭킹, 채팅 관리, 1:1 문의 작성, 이벤트, 명예의 전당 | **done** (below, "9단계") |
 
 One switch turns on every phase built so far. Since phase 7 no page a member reaches with FLEXTV shows the mock: what
 FLEXTV has no backend for is not served (below, "7단계"), so a production build no longer runs into a missing mock.
@@ -222,12 +223,11 @@ The rest of what a member reaches runs on FLEXTV (`FLEXTV_SITE`), each through i
 | 알림 (bell, `/notifications`) | `GET /api/my/notification-list`; the profile's `setting.notificationView` | FLEXTV's latest ten, without times; reading them marks them read on FLEXTV, so the bell shows "N" while something is new. A channel's 알림 opens its room, FLEXTV's other pages its site |
 | 크리에이터 찾기 (`/creators`) | `GET /api/channels/rankings?sort=all`, `GET /api/channels/searchRankings`, the live list | 인기순 = FLEXTV's weekly ranking, 라이브 = its live list by viewers, a search its 방송국 검색; no categories and no 최신순 (FLEXTV has neither). One ranking read a minute per server |
 | 홈 | the live list and the ranking | The banner and 인기 라이브 영상 are the most watched streams, the strip the ranking. Ssumnation's promotion and arrival notices are its own content and are not shown |
-| 고객센터 (`/support`) | `GET /api/cs/notice-list`, `GET /api/cs/notice-page`, `GET /v2/api/cs/inquiry-list?boardType=2`, `GET /api/cs/inquiry-list` | FLEXTV's 공지사항 (published ones only) and 자주 묻는 질문, their editor HTML shown as plain paragraphs; the member's 1:1 문의 with FLEXTV's answers — written on FLEXTV's site (`/cs/inquiry`), like refunds. No categories or view counts |
+| 고객센터 (`/support`) | `GET /api/cs/notice-list`, `GET /api/cs/notice-page`, `GET /v2/api/cs/inquiry-list?boardType=2`, `GET /api/cs/inquiry-list` | FLEXTV's 공지사항 (published ones only) and 자주 묻는 질문, their editor HTML shown as plain paragraphs; the member's 1:1 문의 with FLEXTV's answers — written here since phase 9 (below, "9단계"). No categories or view counts |
 | 채널 설정 (`/creator/settings`) | `GET · PUT /api/my/channel/profile` (multipart), `GET /api/my/channel/:name`, `GET · POST /api/my/channel/external-link` | The FLEXTV 방송국: 이름 (2–15자, 중복 확인 again right before saving), 소개 (1–250자; FLEXTV cannot empty it), 배너 (JPG · PNG under 20MB, the bytes checked), the five platform links (FLEXTV's free links sent back unchanged). One change per call, as FLEXTV's form. The channel's picture is the streamer's profile picture (마이페이지) |
 
-**Not served with FLEXTV** (`lib/flextv/siteRoutes.ts`; the menus leave them out): 커뮤니티, 이벤트, 출석 체크, 명예의 전당,
-SOOP · FlexTV 플랫폼 후원, 마블 · 럼블 invitations, 쪽지, the supporter identity pages (칭호 · 후원 닉네임 · 내 랭킹 · 차단),
-회원 탈퇴 and password reset (FLEXTV's site) — sent home; the mock studio's OBS overlays, pop-outs and API routes — a 404
+**Not served with FLEXTV** (`lib/flextv/siteRoutes.ts`; the menus leave them out): 커뮤니티, 출석 체크, SOOP · FlexTV 플랫폼
+후원, 마블 · 럼블 invitations, the supporter identity pages (칭호 · 후원 닉네임 · 내 랭킹), 회원 탈퇴 and password reset (FLEXTV's site) — sent home; the mock studio's OBS overlays, pop-outs and API routes — a 404
 (the FLEXTV 위젯 overlays and the 리모컨 pop-out stay); a mock creator's room — a 404; the 도우미 domain's own pages — a 404.
 Which of Ssumnation's own areas come back on which backend is TBD. Code: `lib/flextv/member.ts`, `channels.ts`,
 `notifications.ts`, `support.ts`, `channelSettings.ts`, `siteRoutes.ts` and the `services/**/flextv*.ts` they serve.
@@ -247,6 +247,24 @@ Ssumnation checks every part before it is sent and reads the document leniently 
 the other widgets of the mock studio (후원 알림, 채팅, 목표, 자막 …) have no FLEXTV overlay and are not on the page. Code:
 `services/creator/flextvOverlayDesign.ts` (the document), `flextvOverlaySettings.ts` (which `overlayTheme.ts` and
 `widgetSettings.ts` delegate to), `lib/flextv/overlayDesign.ts`.
+
+## 9단계 · FLEXTV에 API가 있는 남은 기능
+
+What FLEXTV already has an API for, connected in order of who uses it (`FLEXTV_SITE`):
+
+| Screen | FLEXTV | Notes |
+|---|---|---|
+| 쪽지 (`/messages`, the room's ✉️) | `GET · POST /api/my/messages`, `POST /api/my/messages/read/:id`, `GET /api/my/messages/delete`, `GET /api/channels/channel-find` | FLEXTV's 받은 · 보낸 쪽지 (no 보관함 or 스팸함, no search), by the other member's 아이디. A 쪽지 goes to a member with a channel, after FLEXTV's 본인인증 — both checked here before FLEXTV would answer "FAIL"; 500자; once per request id. FLEXTV's own 쪽지 (선물 …) show by their title. The room's ✉️ writes to its owner |
+| 쪽지 차단 (`/mypage/blocks`, 쪽지's 차단) | `GET /api/my/member-messages-blackList`, `POST …-blackAdd`, `DELETE …-blackDelete` | A sender is blocked from their 쪽지 and unblocked by 아이디; FLEXTV's member numbers stay on the server |
+| 채널 방 소식 · 팬 랭킹 (`/creators/[id]`) | `GET /api/channels/:id/channel-notices`, `GET /api/channels/:id/fans?option=month` | The room's 홈 shows the month's 팬 랭킹 — asked as a visitor, so with 팬 등급 and without amounts; the viewer's row is marked — and the latest 소식; its 소식 tab lists them as FLEXTV's channel page does (title, picture, 필독 · 19), each opening on FLEXTV for its text and comments. The 소식 are asked with the member's token, so FLEXTV's own rules for them apply |
+| 채팅 관리 (`/creator/chat`) | `PUT /api/my/channel/broadcast/:id/{channel-notice,rule}`, `…/ban-word-{list,add,del}`, `GET · POST · DELETE /api/channels/:id/{managers,blacklist}`, `/api/my/channel/youtube-chat-link` | The chat pop-up 공지 and 규칙 (250자 each; empty takes one down; the box shows what FLEXTV kept after its word filter), the channel's 금지어 (30자, one of each), 매니저 and 블랙리스트 by 아이디 (FLEXTV's reasons shown: no such member, oneself, already there, not allowed), and the YouTube live chat FLEXTV brings in — a channel address, @handle or live video, shown in the chat or only received. Replaces the mock's 통합 채팅 address with FLEXTV |
+| 1:1 문의 작성 (`/support?tab=inquiry`) | `GET /api/guest/refcode/questionsCategory`, `POST /api/cs/inquiry-post` (multipart) | As FLEXTV's form: its 유형 (codes 1–19), 제목 50자, 내용 1000자, one PNG · JPG picture under 20MB (the bytes checked), FLEXTV's 결제 · 환불 안내 under its 유형 5; once per request id. When FLEXTV's 유형 cannot be read, FLEXTV's own form is linked |
+| 이벤트 (`/events`, `/events/[id]`) | `GET /api/cs/event-list?option=on\|off`, `GET /api/cs/event-page` | FLEXTV's 진행 중 and 종료 events; an event's text as paragraphs with its https pictures, never its HTML, and "FLEXTV에서 보기" to join it there (an event built into FLEXTV's site opens by its code). FLEXTV answers a missing event with a server error, so the list is asked to tell it from FLEXTV being down |
+| 명예의 전당 (`/hall-of-fame`) | `GET /api/events/find-hof_total_rankings?dateAt=YYYYMM` | FLEXTV's monthly top supporters by 후원 점수 with their 누적 뱃지, from January 2026; a supporter with a channel links to it; member numbers and 아이디 are not shown |
+
+These pages are served again with FLEXTV (`lib/flextv/siteRoutes.ts`), and 채팅 관리 is in the studio's menu. Code:
+`lib/flextv/messages.ts`, `room.ts`, `chatSettings.ts`, `support.ts`, `events.ts` and the `services/**/flextv*.ts`
+they serve.
 
 ## FLEXTV-side changes needed before opening to the public
 
@@ -287,8 +305,13 @@ the other widgets of the mock studio (후원 알림, 채팅, 목표, 자막 …)
 - 19+, password and fan-only streams are watched on FLEXTV (FLEXTV's player in another site is signed out).
 - 마이페이지: 본인인증, 회원 탈퇴 and the phone number change on FLEXTV's site; social logins cannot be linked later.
 - Studio: only the pages above run on FLEXTV. Of 위젯 · 오버레이 only the 테마 and the looks of 퀘스트 · 미니 · 룰렛 · 뽑기
-  (phase 8); 크루 방송, 채팅봇, 유튜브 연동, 소식, the other widgets and tools, and the 도우미 domain are not connected;
-  구독 정산 (FLEXTV's channel subscriptions) is not shown.
+  (phase 8); 크루 방송, 채팅봇, 유튜브 연동 (Ssumnation's own; FLEXTV's YouTube chat link is in 채팅 관리), 소식, the
+  other widgets and tools, and the 도우미 domain are not connected; 구독 정산 (FLEXTV's channel subscriptions) is not shown.
+- 채팅 관리: FLEXTV keeps the YouTube chat link for 24 hours after its last change; the 매니저 · 블랙리스트 are FLEXTV's
+  lists (a 매니저 may add to the 블랙리스트 in the chat, on FLEXTV).
+- 쪽지: FLEXTV's 받은 · 보낸 쪽지 only (no 보관함, 스팸함, search or moving); a 쪽지 goes only to a member with a channel.
+- The room's 소식 and 팬 랭킹 are read only; writing 소식, its comments and the 팬 등급 settings stay on FLEXTV.
+- 이벤트 are joined on FLEXTV; Ssumnation's own 이벤트 (참여 · 보상) and 출석 체크 are not served.
 - The admin console (`apps/admin`) still works on the mock; FLEXTV's members, payments and settlement are run in
   FLEXTV's own admin.
 - Studio figures are FLEXTV's 렉스 (FN); a period's figures add up at most 2,000 후원, and dates are FLEXTV's (KST).

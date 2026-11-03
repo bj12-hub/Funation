@@ -1,0 +1,113 @@
+/* 채팅 관리 with FLEXTV (phase 9): the parts ../broadcast/broadcast.module.css has no class for. */
+
+.words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.word {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 4px 4px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-13);
+}
+
+.wordRemove {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-16);
+  cursor: pointer;
+}
+
+.wordRemove:hover {
+  background: var(--color-surface-strong);
+  color: var(--color-text-primary);
+}
+
+.wordRemove:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.members {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.member {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-8);
+  background: var(--color-surface-raised);
+}
+
+.memberName {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  min-width: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+  overflow-wrap: anywhere;
+}
+
+.link {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 16px;
+  margin: 0;
+  font-size: var(--font-size-14);
+}
+
+.link dt {
+  color: var(--color-text-secondary);
+}
+
+.link dd {
+  margin: 0;
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-14);
+  cursor: pointer;
+}
+
+@media (max-width: 480px) {
+  .link {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .link dd + dt {
+    margin-top: 8px;
+  }
+}

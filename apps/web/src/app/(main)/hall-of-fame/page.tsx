@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { HallOfFameScreen } from "@/features/hallOfFame";
+import { FlextvHallOfFameScreen } from "@/features/hallOfFame/FlextvHallOfFameScreen";
+import { FLEXTV_SITE } from "@/lib/flextv/mode";
+import { getFlextvHallOfFame } from "@/services/hallOfFame/flextvHallOfFame";
 import { getT } from "@/lib/i18n/server";
 import {
   DEFAULT_RANKING_PERIOD,
@@ -22,6 +25,8 @@ const one = (v: string | string[] | undefined) => (typeof v === "string" ? v : u
 
 export default async function Page({ searchParams }: { searchParams: SearchParams }) {
   const raw = await searchParams;
+  // With FLEXTV (phase 9): FLEXTV's monthly 명예의 전당.
+  if (FLEXTV_SITE) return <FlextvHallOfFameScreen view={await getFlextvHallOfFame(one(raw.month))} />;
   const tab = parseHofTab(one(raw.tab));
   const period = one(raw.period);
   const selected = period && Object.hasOwn(RANKING_PERIOD_LABEL, period) ? (period as RankingPeriod) : DEFAULT_RANKING_PERIOD;

@@ -59,7 +59,8 @@ export function FlextvChannelSettingsScreen({ view }: { view: FlextvChannelSetti
       <h1 className={styles.pageTitle}>{t("flextvChannelSettings.title")}</h1>
       <p className={styles.help}>{t("flextvChannelSettings.intro")}</p>
       <NameCard current={view.name} settle={settle} />
-      <DescriptionCard current={view.description} settle={settle} />
+      {/* Keyed by the kept text: after a save the box shows what FLEXTV kept (it filters forbidden words out). */}
+      <DescriptionCard key={view.description} current={view.description} settle={settle} />
       <BannerCard current={view.bannerUrl} settle={settle} />
       <section className={styles.card} aria-labelledby="ch-avatar">
         <h2 id="ch-avatar" className={styles.cardTitle}>

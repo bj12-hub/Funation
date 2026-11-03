@@ -11,6 +11,7 @@ describe("a channel row", () => {
     expect(readChannelRow({ id: 3021, name: "방송국", description: "소개", isInLive: true, stat: { numberOfSubs: 120 }, owner, playerCount: 33 })).toEqual({
       channelId: "3021",
       name: "방송인",
+      ownerLoginId: "bj01",
       description: "소개",
       thumbUrl: "https://cdn.flextv.test/a.png",
       live: true,

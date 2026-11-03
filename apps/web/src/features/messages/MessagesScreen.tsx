@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { Modal } from "@/components/ui/Modal";
+import { FLEXTV_SITE } from "@/lib/flextv/mode";
 import { formatKst } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import type { MessageKey } from "@/lib/i18n/translate";
-import { deleteMessages, markMessageRead, moveMessages, sendMessage } from "@/services/messages/messages";
+import { blockMessageSender, deleteMessages, markMessageRead, moveMessages, sendMessage } from "@/services/messages/messages";
 import {
   MAILBOXES,
   MESSAGE_BODY_MAX,
@@ -32,7 +33,22 @@ const BOX_KEY: Record<Mailbox, { label: MessageKey; empty: MessageKey }> = {
   spam: { label: "messages.spam", empty: "messages.emptySpam" }
 };
 
-/** 쪽지 — code-first (no Figma frame). Route `/messages` (`?box=` `?q=` `?page=` `?size=` `?to=` opens compose). */
+/** With FLEXTV (phase 9): its 받은 · 보낸 쪽지 only — no 보관함, 스팸함 or search. */
+const BOXES = FLEXTV_SITE ? MAILBOXES.filter((b) => b.key === "inbox" || b.key === "sent") : MAILBOXES;
+
+/** With FLEXTV: 차단 the sender of a received 쪽지, as the screen's other actions answer (`gone`: the 쪽지 or sender is gone). */
+async function blockSenderOf(id: string, gone: string): Promise<MessageResult> {
+  const res = await blockMessageSender(id);
+  if (res.status === "OK") return { status: "SAVED" };
+  if (res.status === "UNAUTHORIZED") return { status: "UNAUTHORIZED" };
+  if (res.status === "INVALID") return { status: "INVALID", message: res.message };
+  return { status: "INVALID", message: gone };
+}
+
+/**
+ * 쪽지 — code-first (no Figma frame). Route `/messages` (`?box=` `?q=` `?page=` `?size=` `?to=` opens compose). With FLEXTV a
+ * 쪽지 goes to a streamer's 아이디, picked from the 즐겨찾기 or typed, and a received 쪽지's sender can be 차단.
+ */
 export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxView; recipients: Recipient[]; composeTo: string | null }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -94,7 +110,7 @@ export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxV
       </header>
 
       <nav className={styles.tabs} aria-label={t("messages.boxes")}>
-        {MAILBOXES.map((b) => (
+        {BOXES.map((b) => (
           <Link key={b.key} href={href({ box: b.key, page: "1", q: "" })} className={styles.tab} aria-current={view.box === b.key ? "page" : undefined}>
             {t(BOX_KEY[b.key].label)} <span className={styles.count}>{b.key === "inbox" && view.unread ? t("messages.newCount", { count: view.unread }) : view.counts[b.key]}</span>
           </Link>
@@ -102,27 +118,29 @@ export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxV
       </nav>
 
       <div className={styles.toolbar}>
-        <form action="/messages" className={styles.search} role="search">
-          <input type="hidden" name="box" value={view.box} />
-          {view.size !== MESSAGE_PAGE_SIZE && <input type="hidden" name="size" value={view.size} />}
-          <input name="q" defaultValue={view.q} placeholder={t("messages.searchPlaceholder")} aria-label={t("messages.searchAria")} maxLength={40} className={styles.input} />
-          <button type="submit" className={styles.ghost}>
-            {t("common.search")}
-          </button>
-        </form>
+        {!FLEXTV_SITE && (
+          <form action="/messages" className={styles.search} role="search">
+            <input type="hidden" name="box" value={view.box} />
+            {view.size !== MESSAGE_PAGE_SIZE && <input type="hidden" name="size" value={view.size} />}
+            <input name="q" defaultValue={view.q} placeholder={t("messages.searchPlaceholder")} aria-label={t("messages.searchAria")} maxLength={40} className={styles.input} />
+            <button type="submit" className={styles.ghost}>
+              {t("common.search")}
+            </button>
+          </form>
+        )}
         {received && (
           <div className={styles.bulk} aria-label={t("messages.selected")}>
-            {view.box !== "archive" && (
+            {!FLEXTV_SITE && view.box !== "archive" && (
               <button type="button" className={styles.ghost} disabled={!selected.length || pending} onClick={() => run(() => moveMessages({ ids: selected, to: "archive" }), t("messages.archived"))}>
                 {t("messages.archiveAction")}
               </button>
             )}
-            {view.box !== "inbox" && (
+            {!FLEXTV_SITE && view.box !== "inbox" && (
               <button type="button" className={styles.ghost} disabled={!selected.length || pending} onClick={() => run(() => moveMessages({ ids: selected, to: "inbox" }), t("messages.movedToInbox"))}>
                 {t("messages.toInbox")}
               </button>
             )}
-            {view.box !== "spam" && (
+            {!FLEXTV_SITE && view.box !== "spam" && (
               <button type="button" className={styles.ghost} disabled={!selected.length || pending} onClick={() => run(() => moveMessages({ ids: selected, to: "spam" }), t("messages.reportedSpam"))}>
                 {t("messages.reportSpam")}
               </button>
@@ -188,7 +206,17 @@ export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxV
                   {t("messages.reply")}
                 </button>
               )}
-              {openId === m.id && m.direction === "IN" && <ModerationActions target={{ type: "MESSAGE", id: m.id }} signedIn />}
+              {openId === m.id && m.direction === "IN" && !FLEXTV_SITE && <ModerationActions target={{ type: "MESSAGE", id: m.id }} signedIn />}
+              {openId === m.id && m.direction === "IN" && FLEXTV_SITE && (
+                <button
+                  type="button"
+                  className={styles.ghost}
+                  disabled={pending}
+                  onClick={() => run(() => blockSenderOf(m.id, t("messages.blockGone")), t("messages.blocked", { name: m.peerName }))}
+                >
+                  {t("messages.block")}
+                </button>
+              )}
             </li>
           ))}
         </ul>
@@ -244,17 +272,32 @@ export function MessagesScreen({ view, recipients, composeTo }: { view: MailboxV
           </>
         }
       >
-        <label className={styles.field}>
-          <span>{t("messages.to")}</span>
-          <select className={styles.input} value={to} onChange={(e) => setTo(e.target.value)}>
-            <option value="">{t("messages.chooseRecipient")}</option>
-            {recipients.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        {FLEXTV_SITE ? (
+          <label className={styles.field}>
+            <span>{t("messages.toLoginId")}</span>
+            {/* Any streamer's 아이디; the 즐겨찾기's streamers are offered. */}
+            <input className={styles.input} list="message-recipients" value={to} maxLength={40} placeholder={t("messages.toLoginIdPlaceholder")} onChange={(e) => setTo(e.target.value.trim())} />
+            <datalist id="message-recipients">
+              {recipients.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </datalist>
+          </label>
+        ) : (
+          <label className={styles.field}>
+            <span>{t("messages.to")}</span>
+            <select className={styles.input} value={to} onChange={(e) => setTo(e.target.value)}>
+              <option value="">{t("messages.chooseRecipient")}</option>
+              {recipients.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label className={styles.field}>
           <span>{t("messages.body")}</span>
           <textarea className={styles.textarea} value={body} maxLength={MESSAGE_BODY_MAX} onChange={(e) => setBody(e.target.value)} />

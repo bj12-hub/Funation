@@ -1,10 +1,10 @@
-import { FlextvUnavailableError, flextvRequest, isRecord } from "./client";
+import { FlextvUnavailableError, flextvRequest, isRecord, type FlextvRequest, type FlextvResponse } from "./client";
 
 /**
  * FLEXTV's 고객센터 (phase 7, docs/development/flextv-backend.md "7단계") — server/routes/api/cs and v2/api/cs of
- * FLEXTV's web repository: its 공지사항, 자주 묻는 질문 and the member's 1:1 문의. Their texts are HTML from FLEXTV's
- * editor; they are shown here as plain paragraphs (`htmlToParagraphs`), never as HTML. The `read*` functions are pure
- * (support.test.ts).
+ * FLEXTV's web repository: its 공지사항, 자주 묻는 질문 and the member's 1:1 문의 (written here too since phase 9).
+ * Their texts are HTML from FLEXTV's editor; they are shown here as plain paragraphs (`htmlToParagraphs`), never as
+ * HTML. The `read*` functions are pure (support.test.ts).
  */
 
 const num = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? value : typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value)) ? Number(value) : null);
@@ -118,4 +118,55 @@ export async function fetchMyInquiries(token: string): Promise<FlextvQuestion[] 
   if (response.status === 204) return [];
   if (response.status !== 200) throw new FlextvUnavailableError(`FLEXTV 1:1 문의 answered ${response.status}`);
   return readQuestions(response.data);
+}
+
+/* ── 1:1 문의 작성 (phase 9) ─────────────────────────────── */
+
+export type InquiryCategory = { value: string; label: string };
+
+/** `GET /api/guest/refcode/questionsCategory`: `[{ key, value, text }]`; FLEXTV takes codes 1–19 as 1:1 문의. */
+export function readInquiryCategories(data: unknown): InquiryCategory[] {
+  const rows = Array.isArray(data) ? data : [];
+  const seen = new Set<string>();
+  return rows.flatMap((row) => {
+    if (!isRecord(row)) return [];
+    const code = num(row.value);
+    const label = text(row.text).trim();
+    if (code === null || !Number.isInteger(code) || code < 1 || code > 19 || !label || seen.has(String(code))) return [];
+    seen.add(String(code));
+    return [{ value: String(code), label }];
+  });
+}
+
+export async function fetchInquiryCategories(): Promise<InquiryCategory[]> {
+  const response = await flextvRequest("/api/guest/refcode/questionsCategory");
+  if (response.status !== 200) throw new FlextvUnavailableError(`FLEXTV inquiry categories answered ${response.status}`);
+  return readInquiryCategories(response.data);
+}
+
+export type InquiryPost = { kind: "OK"; id: string } | { kind: "REFUSED"; message: string } | { kind: "UNAUTHORIZED" };
+
+/** FLEXTV answers `{ result: true, data: { id, … } }`, or `{ result: false, data: reason }` (a suspended member …). */
+export function mapInquiryPost({ status, data }: Pick<FlextvResponse, "status" | "data">): InquiryPost {
+  if (status === 401) return { kind: "UNAUTHORIZED" };
+  if (status === 200 && isRecord(data) && data.result === true && isRecord(data.data)) {
+    const id = idOf(data.data.id);
+    if (id) return { kind: "OK", id };
+  }
+  if (status === 200 && isRecord(data) && data.result === false) return { kind: "REFUSED", message: text(data.data) || "문의를 접수하지 못했어요." };
+  throw new FlextvUnavailableError(`FLEXTV inquiry post answered ${status}`);
+}
+
+/** As FLEXTV's form sends it: multipart, with the picture (when there is one) as `image`. */
+export async function postInquiry(
+  token: string,
+  inquiry: { title: string; content: string; category: string; image: { blob: Blob; filename: string } | null },
+  caller: Pick<FlextvRequest, "clientIp" | "userAgent">
+): Promise<InquiryPost> {
+  const form = new FormData();
+  form.set("title", inquiry.title);
+  form.set("category", inquiry.category);
+  form.set("content", inquiry.content);
+  if (inquiry.image) form.set("image", inquiry.image.blob, inquiry.image.filename);
+  return mapInquiryPost(await flextvRequest("/api/cs/inquiry-post", { method: "POST", form, token, ...caller }));
 }
