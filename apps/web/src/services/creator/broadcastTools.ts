@@ -4,8 +4,8 @@ import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { overlayKeyOpen } from "@/services/account/creatorAccess";
 import { MOCK_FORBIDDEN_WORDS } from "@/services/account/mockStore";
-import { liveBroadcastOf, scoreboardRows } from "@/services/crew/crewCore";
-import { STUDIO_CHANNEL, mockCrew } from "@/services/crew/mockCrewStore";
+import { earlierRounds, liveBroadcastOf, scoreboardRows } from "@/services/crew/crewCore";
+import { STUDIO_CHANNEL, mockCrew, type MockBroadcast } from "@/services/crew/mockCrewStore";
 import {
   BINGO_CELL_MAX,
   BINGO_SIZES,
@@ -49,6 +49,8 @@ import {
   isToolKey,
   type BingoSize,
   type CreditsData,
+  type CreditsMvpBasis,
+  type CreditsPeriod,
   type CreditsState,
   type OverlayTool,
   type TimerAction,
@@ -57,13 +59,13 @@ import {
   type TextSlot
 } from "./broadcastToolTypes";
 import { mockAlerts, overlaySignal } from "./alertCore";
-import { donorRanking, rankingSince, signatureCredits, totalBetween } from "./widgetOverlayCore";
+import { countedWithin, donorRanking, rankingSince, signatureCredits, totalBetween } from "./widgetOverlayCore";
 import { mockSignatures } from "@/services/donations/signatureCore";
 import { overlayTheme, readAppearance } from "./overlayThemeStore";
 import { isOverlayThemeChoice, type OverlayThemeChoice } from "./overlayThemeTypes";
 import { mockCreator } from "./mockCreatorStore";
 import { FONT_FAMILIES } from "./widgetSettingsTypes";
-import { queueWheelSpin, settleWheel, shiftTimer, stopWheelSpin, tools, wheelNow } from "./broadcastToolsCore";
+import { frozenCredits, queueWheelSpin, settleWheel, shiftTimer, stopWheelSpin, tools, wheelNow } from "./broadcastToolsCore";
 
 /**
  * 방송 도구 Server Actions — code-first (no Figma frame). Studio route `/creator/widgets/tools`,
@@ -81,70 +83,118 @@ const toolLook = () => (gt.__ssumnationMockToolThemeV1 ??= { theme: "INHERIT" })
 
 const bad = (s: string) => MOCK_FORBIDDEN_WORDS.some((w) => s.toLowerCase().includes(w));
 
-/** FN sent for each crew member (멤버 지정 후원) from `from` to `to`. */
-function sentBetween(from: number, to: number) {
+/** FN sent for each crew member (멤버 지정 후원) inside any of `windows` ([from, to] ms, inclusive). */
+function sentWithin(windows: [number, number][]) {
   const sent = new Map<string, number>();
   for (const a of mockCrew.attributions) {
     const t = Date.parse(a.at);
-    if (a.channelId === STUDIO_CHANNEL && t >= from && t <= to) sent.set(a.memberId, (sent.get(a.memberId) ?? 0) + a.fnAmount);
+    if (a.channelId === STUDIO_CHANNEL && windows.some(([from, to]) => t >= from && t <= to)) sent.set(a.memberId, (sent.get(a.memberId) ?? 0) + a.fnAmount);
   }
   return sent;
 }
 
 const byScore = (x: { name: string; score: number }, y: { name: string; score: number }) => y.score - x.score || x.name.localeCompare(y.name);
 
+const ranked = <T extends object>(rows: T[], max: number) => rows.slice(0, max).map((r, i) => ({ rank: i + 1, ...r }));
+
+/** The crew broadcast the period reads: the one on now, or the last one that ended (with a project, on PROJECT). */
+function creditsBroadcast(withProject: boolean): MockBroadcast | undefined {
+  const live = liveBroadcastOf(STUDIO_CHANNEL);
+  if (live && (!withProject || live.project)) return live;
+  return (mockCrew.broadcasts ?? [])
+    .filter((b) => b.channelId === STUDIO_CHANNEL && b.endedAt && (!withProject || b.project))
+    .sort((x, y) => y.startedAt.localeCompare(x.startedAt))[0];
+}
+
 /**
- * The credits' numbers for its period (see CreditsData). Lists are cut to what the sections show: donors to TOP 3 + 후원
- * 순위, members to 멤버별 (MVP is the first member either way, or by FN on MVP 기준 후원금액).
+ * The credits' numbers for a period (see CreditsData) with every row a section could show: donors to TOP 3 + 30, the
+ * other lists to 30 (cut by `cutCredits`). MVP is the first member, or by FN on MVP 기준 후원금액.
  */
-function creditsData(s: CreditsState, now = new Date()): CreditsData {
+function fullCredits(period: CreditsPeriod, mvpBasis: CreditsMvpBasis, now = new Date()): CreditsData {
   const items = mockAlerts.items;
   const crew = mockCrew.crews[STUDIO_CHANNEL] ?? [];
-  let from: number;
-  let to = now.getTime();
+  const at = now.getTime();
+  let windows: [number, number][];
   let periodLabel = "오늘";
   let members: { name: string; score: number }[];
   let byAmount: { name: string; score: number }[] | null = null;
-  if (s.period === "CREW") {
-    const ofChannel = (mockCrew.broadcasts ?? []).filter((b) => b.channelId === STUDIO_CHANNEL);
-    const b = liveBroadcastOf(STUDIO_CHANNEL) ?? [...ofChannel].filter((x) => x.endedAt).sort((x, y) => y.startedAt.localeCompare(x.startedAt))[0];
-    if (!b) return { periodLabel: "크루 방송 없음", empty: true, total: 0, donors: [], members: [], memberUnit: "점", mvp: null, hotSigs: [], highSigs: [] };
-    from = Date.parse(b.startedAt);
-    if (b.endedAt) to = Date.parse(b.endedAt);
-    periodLabel = b.project ? `${b.title} · ${b.project} ${b.round}회차` : b.title;
+  if (period === "CREW" || period === "PROJECT") {
+    const b = creditsBroadcast(period === "PROJECT");
+    if (!b) {
+      const none = period === "PROJECT" ? "프로젝트 방송 없음" : "크루 방송 없음";
+      return { periodLabel: none, empty: true, total: 0, donors: [], members: [], memberUnit: "점", mvp: null, hotSigs: [], highSigs: [], fans: [] };
+    }
+    // 프로젝트 전체: the project's ended 회차 before it, then itself — each from its start to its end (or now).
+    const rounds = period === "PROJECT" ? [...earlierRounds(b), b] : [b];
+    windows = rounds.map((r) => [Date.parse(r.startedAt), r.endedAt ? Date.parse(r.endedAt) : at]);
     // An ended broadcast keeps the ranking frozen at its end (members may be renamed or removed since).
-    const rows = b.final ?? scoreboardRows(b);
-    members = rows.map((r) => ({ name: r.name, score: r.score }));
-    if (s.mvpBasis === "AMOUNT") {
-      // MVP 기준 후원금액: FN sent for each member during the broadcast, named as on its scoreboard.
-      const names = new Map([...crew.map((m) => [m.id, m.name] as const), ...rows.map((r) => [r.memberId, r.name] as const)]);
-      byAmount = [...sentBetween(from, to)].filter(([id]) => names.has(id)).map(([id, score]) => ({ name: names.get(id)!, score })).sort(byScore);
+    const rowsOf = (r: MockBroadcast) => r.final ?? scoreboardRows(r);
+    if (period === "CREW") {
+      periodLabel = b.project ? `${b.title} · ${b.project} ${b.round}회차` : b.title;
+      members = rowsOf(b).map((r) => ({ name: r.name, score: r.score }));
+    } else {
+      periodLabel = `${b.project} 전체 · ${rounds.length}회차`;
+      // As 누적 기여도: each 회차's own points (with 기여도 공유 a score also holds earlier 회차, counted once as their own),
+      // named as on the latest 회차 the member was on.
+      const total = new Map<string, { name: string; score: number }>();
+      for (const r of rounds) {
+        for (const row of rowsOf(r)) total.set(row.memberId, { name: row.name, score: (total.get(row.memberId)?.score ?? 0) + row.score - (row.carried ?? 0) });
+      }
+      members = [...total.values()].sort(byScore);
+    }
+    if (mvpBasis === "AMOUNT") {
+      // MVP 기준 후원금액: FN sent for each member during the broadcast (its 회차), named as on its scoreboard.
+      const names = new Map([...crew.map((m) => [m.id, m.name] as const), ...rounds.flatMap((r) => rowsOf(r).map((row) => [row.memberId, row.name] as const))]);
+      byAmount = [...sentWithin(windows)].filter(([id]) => names.has(id)).map(([id, score]) => ({ name: names.get(id)!, score })).sort(byScore);
     }
   } else {
     // Today in the service's time (Asia/Seoul), as the 후원랭킹 widget's 일간.
-    from = rankingSince("일간", now);
-    const sent = sentBetween(from, to);
+    windows = [[rankingSince("일간", now), at]];
+    const sent = sentWithin(windows);
     members = crew
       .filter((m) => m.active || sent.has(m.id))
       .map((m) => ({ name: m.name, score: sent.get(m.id) ?? 0 }))
       .sort(byScore);
   }
-  const { top3, donors, members: memberSection, hotSigs, highSigs } = s.sections;
-  const donorRows = donorRanking(items, from, to).slice(0, (top3.on ? 3 : 0) + (donors.on ? donors.max : 0));
-  const sigs = signatureCredits(items, from, to, mockSignatures.items);
+  const inPeriod = countedWithin(items, windows);
+  const sigs = signatureCredits(inPeriod, 0, Infinity, mockSignatures.items);
   const first = (byAmount ?? members)[0];
-  const memberUnit = s.period === "CREW" ? "점" : "FN";
+  const memberUnit = period === "TODAY" ? "FN" : "점";
   return {
     periodLabel,
     empty: false,
-    total: totalBetween(items, from, to),
-    donors: donorRows,
-    members: members.slice(0, memberSection.max).map((m, i) => ({ rank: i + 1, ...m })),
+    total: totalBetween(inPeriod, 0, Infinity),
+    donors: donorRanking(inPeriod, 0, Infinity).slice(0, 3 + CREDITS_LIST_MAX),
+    members: ranked(members, CREDITS_LIST_MAX),
     memberUnit,
     mvp: first && first.score > 0 ? { ...first, unit: byAmount ? "FN" : memberUnit } : null,
-    hotSigs: sigs.hot.slice(0, hotSigs.max).map((r, i) => ({ rank: i + 1, ...r })),
-    highSigs: sigs.high.slice(0, highSigs.max).map((r, i) => ({ rank: i + 1, ...r }))
+    hotSigs: ranked(sigs.hot, CREDITS_LIST_MAX),
+    highSigs: ranked(sigs.high, CREDITS_LIST_MAX),
+    // 열혈 랭킹: everything sent to the channel until now, whatever the period.
+    fans: donorRanking(items, 0, at).slice(0, CREDITS_LIST_MAX)
   };
+}
+
+/**
+ * Lists cut to what the sections show: donors to TOP 3 + 후원 순위, the others to their 표시 인원 · 개수 — none for a section
+ * that is off (MVP still reads the whole member list).
+ */
+function cutCredits(d: CreditsData, s: CreditsState["sections"]): CreditsData {
+  const cut = <T,>(rows: T[], x: CreditsState["sections"][keyof CreditsState["sections"]]) => (x.on ? rows.slice(0, x.max) : []);
+  return {
+    ...d,
+    donors: d.donors.slice(0, (s.top3.on ? 3 : 0) + (s.donors.on ? s.donors.max : 0)),
+    members: cut(d.members, s.members),
+    hotSigs: cut(d.hotSigs, s.hotSigs),
+    highSigs: cut(d.highSigs, s.highSigs),
+    fans: cut(d.fans, s.fans)
+  };
+}
+
+/** The credits as they roll now: the numbers of the 집계 스냅샷 while one is on, live ones otherwise. */
+function creditsData(s: CreditsState, now = new Date()): CreditsData {
+  const frozen = s.snapshot && frozenCredits.at === s.snapshot.at ? frozenCredits.data : null;
+  return cutCredits(frozen ?? fullCredits(s.period, s.mvpBasis, now), s.sections);
 }
 
 export async function getToolsView(): Promise<ToolsView | null> {
@@ -336,8 +386,33 @@ export async function controlCredits(action: unknown): Promise<ToolResult> {
 }
 
 /**
+ * 집계 고정 · 고정 해제 (집계 스냅샷, 2026-11-02 — StreamDonate 엔딩 크레딧 "집계 스냅샷" 참고, 기본값): TAKE freezes the
+ * saved 집계 기간's numbers as they are now (taking again replaces them; 크루 방송 · 프로젝트 전체 need a broadcast to read),
+ * RELEASE goes back to live numbers. A roll in progress switches at once.
+ */
+export async function snapshotCredits(action: unknown): Promise<ToolResult> {
+  assertMock();
+  if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
+  if (action === "RELEASE") {
+    tools.credits.snapshot = null;
+    Object.assign(frozenCredits, { at: null, data: null });
+    return { status: "SAVED" };
+  }
+  if (action !== "TAKE") return { status: "INVALID", message: "알 수 없는 동작이에요." };
+  const now = new Date();
+  const { period, mvpBasis } = tools.credits;
+  const data = fullCredits(period, mvpBasis, now);
+  if (data.empty) return { status: "INVALID", message: period === "PROJECT" ? "고정할 프로젝트 방송이 없어요." : "고정할 크루 방송이 없어요." };
+  const at = now.toISOString();
+  Object.assign(frozenCredits, { at, data });
+  tools.credits.snapshot = { at, period, mvpBasis };
+  return { status: "SAVED" };
+}
+
+/**
  * 엔딩 크레딧 저장: 제목 · 감사 문구, 연출 방식 · 스크롤 시간 · 집계 기간 · MVP 기준 and each section's on/off · title (blank = the
- * default) · rows. A roll in progress keeps going with the new settings.
+ * default) · rows. A roll in progress keeps going with the new settings. A 집계 스냅샷 stays while the 집계 기간 and MVP 기준
+ * stay as frozen; saving others releases it.
  */
 export async function saveCredits(input: unknown): Promise<ToolResult> {
   assertMock();
@@ -381,7 +456,10 @@ export async function saveCredits(input: unknown): Promise<ToolResult> {
   const shown = [title, ...thanks, ...Object.values(sections).map((x) => x.title)];
   if (shown.some(bad)) return { status: "INVALID", message: "사용할 수 없는 단어가 포함되어 있어요." };
   await mockDelay(150);
-  tools.credits = { title, thanks, style, durationSec: d, period, mvpBasis, sections, rollingSince: tools.credits.rollingSince };
+  const kept = tools.credits.snapshot;
+  const snapshot = kept && kept.period === period && kept.mvpBasis === mvpBasis ? kept : null;
+  if (!snapshot) Object.assign(frozenCredits, { at: null, data: null });
+  tools.credits = { title, thanks, style, durationSec: d, period, mvpBasis, sections, rollingSince: tools.credits.rollingSince, snapshot };
   return { status: "SAVED" };
 }
 

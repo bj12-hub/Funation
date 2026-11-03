@@ -864,6 +864,7 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     title: "캠방 장비 교체 가자!",
     startAmount: 0,
     goalAmount: 100_000,
+    // Figma's example month; a channel starts on the current month (widgetStore.ts `defaultWidgetSettings`).
     from: "2026-09-01",
     to: "2026-09-30",
     showPercent: true,
@@ -882,6 +883,7 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettingsMap = {
     card: true,
     title: "총 후원 금액",
     template: "{total_amount}FN",
+    // Figma's example year; a channel starts on the current year (widgetStore.ts `defaultWidgetSettings`).
     from: "2026-01-01T00:00",
     to: "2026-12-31T23:59",
     titleFont: { family: "제주 고딕", size: 24, color: "#FFFFFF" },

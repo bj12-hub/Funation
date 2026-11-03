@@ -100,7 +100,7 @@
   border: 2px solid var(--color-accent);
   border-radius: var(--radius-pill);
   background: var(--color-surface-raised);
-  box-shadow: 0 0 8px rgba(236, 72, 153, 0.3);
+  box-shadow: 0 0 8px rgba(24, 128, 106, 0.3);
   font-family: var(--font-latin);
   font-size: var(--font-size-32);
 }
@@ -127,7 +127,7 @@
   border: 1px solid transparent;
   border-radius: var(--radius-12);
   background: var(--gradient-accent-button);
-  box-shadow: 0 4px 8px rgba(236, 72, 153, 0.4);
+  box-shadow: 0 4px 8px rgba(24, 128, 106, 0.4);
   color: var(--color-text-on-accent);
   font-size: var(--font-size-18);
   font-weight: var(--font-weight-extrabold);
@@ -382,7 +382,7 @@
 }
 
 .rewardClickable:hover {
-  box-shadow: 0 0 0 1px var(--color-accent), 0 8px 20px rgba(236, 72, 153, 0.2);
+  box-shadow: 0 0 0 1px var(--color-accent), 0 8px 20px rgba(24, 128, 106, 0.2);
 }
 
 .rewardHeader {
@@ -411,7 +411,7 @@
 
 .chipClaimable {
   border-color: var(--color-primary);
-  background: rgba(139, 92, 246, 0.2);
+  background: rgba(207, 69, 39, 0.2);
   color: var(--color-primary);
 }
 

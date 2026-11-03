@@ -30,13 +30,23 @@
   gap: 24px;
 }
 
+/* Wordmark as in the site header (2026-11-03 refresh): plain text behind a vermilion square. */
 .brand {
-  font-size: var(--font-size-28);
-  font-weight: var(--font-weight-black);
-  background: var(--gradient-brand);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text-primary);
+  font-family: var(--font-latin);
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-extrabold);
+  letter-spacing: -0.02em;
+}
+
+.brand::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  background: var(--color-primary);
 }
 
 .titleGroup {

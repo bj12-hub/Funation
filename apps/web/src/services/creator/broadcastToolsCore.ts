@@ -12,6 +12,7 @@ import {
   WHEEL_SPINS_KEPT,
   WHEEL_STOP_SEC,
   type BingoState,
+  type CreditsData,
   type TimerState,
   type ToolStates,
   type WheelSpin,
@@ -37,7 +38,7 @@ export const tools = (g.__ssumnationMockToolsV2 ??= {
   subtitle: { text: "", size: "M" },
   marquee: { lines: ["오늘도 방송에 와 주셔서 감사합니다!"], speed: "NORMAL" },
   timer: { mode: "COUNTDOWN", durationSec: 600, startedAt: null, elapsedBeforeSec: 0, donationSec: 0 },
-  credits: { ...structuredClone(DEFAULT_CREDITS), rollingSince: null },
+  credits: { ...structuredClone(DEFAULT_CREDITS), rollingSince: null, snapshot: null },
   bingo: sampleBingo(),
   text: { slots: emptySlots() },
   wheel: { settings: structuredClone(DEFAULT_WHEEL), spins: [] }
@@ -47,13 +48,22 @@ tools.bingo ??= sampleBingo();
 // Credits saved before the sections (2026-10-23) keep their title, thanks and roll; 크루 순위 포함 becomes 멤버별.
 if (!("sections" in tools.credits)) {
   const old = tools.credits as { title: string; thanks: string[]; includeCrew?: boolean; rollingSince: string | null };
-  tools.credits = { ...structuredClone(DEFAULT_CREDITS), title: old.title, thanks: old.thanks, rollingSince: old.rollingSince };
+  tools.credits = { ...structuredClone(DEFAULT_CREDITS), title: old.title, thanks: old.thanks, rollingSince: old.rollingSince, snapshot: null };
   tools.credits.sections.members.on = old.includeCrew !== false;
 }
 // HOT 시그 · HIGH 시그 (2026-10-25): sections saved before them start at their defaults.
 for (const meta of CREDITS_SECTIONS) tools.credits.sections[meta.key] ??= structuredClone(DEFAULT_CREDITS.sections[meta.key]);
-// MVP 기준 (2026-10-28): 기여도, as before.
+// MVP 기준 (2026-10-28): 기여도, as before. 집계 스냅샷 (2026-11-02): live numbers, as before.
 tools.credits.mvpBasis ??= "POINTS";
+tools.credits.snapshot ??= null;
+
+/**
+ * 집계 스냅샷 (2026-11-02): the credits' numbers frozen at `tools.credits.snapshot.at`, with every row a section could show
+ * (cut on read, so 표시 인원 can still change). Kept outside `tools` so the overlay's polled state stays small; numbers
+ * from another `at` are never read.
+ */
+const gs = globalThis as typeof globalThis & { __ssumnationMockCreditsSnapshotV1?: { at: string | null; data: CreditsData | null } };
+export const frozenCredits = (gs.__ssumnationMockCreditsSnapshotV1 ??= { at: null, data: null });
 // 타이머 후원 연동 and 텍스트 슬롯 (2026-10-23): off / empty for stores from before.
 tools.timer.donationSec ??= 0;
 tools.text ??= { slots: emptySlots() };

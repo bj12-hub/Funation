@@ -128,6 +128,20 @@ export type RetentionCategory = "CONTRACT" | "PAYMENT" | "DISPUTE" | "ACCESS_LOG
  * `until`: when the category's data goes (null = 삭제하지 않음); `purged`: it has gone.
  */
 export type MemberRetention = { category: RetentionCategory; label: string; period: string; basis: string; covers: string; until: string | null; purged: boolean };
+/**
+ * 탈퇴 신청 이력 (2026-11-02): one 탈퇴 신청 of the account and how it ended — PENDING: waiting for
+ * `effectiveAt`; CANCELLED: 탈퇴 철회 at sign-in, at `endedAt`; APPLIED: the 탈퇴 took effect at `endedAt`. With the
+ * amounts the member agreed to forfeit when asking (ISO times). Kept as 계약 기록 (5년, 기본값): a cancelled one from
+ * its 철회, the applied one with the withdrawal record.
+ */
+export type WithdrawalHistoryItem = {
+  requestedAt: string;
+  effectiveAt: string;
+  consentedFn: number;
+  consentedEarningsFn: number;
+  outcome: "PENDING" | "CANCELLED" | "APPLIED";
+  endedAt: string | null;
+};
 export type AdminMember = {
   id: string;
   nickname: string;
@@ -145,6 +159,8 @@ export type AdminMember = {
    * Absent from a site older than this field.
    */
   withdrawalRequest?: { requestedAt: string; effectiveAt: string } | null;
+  /** 탈퇴 신청 이력, newest first. Absent from a site older than this field. */
+  withdrawalHistory?: WithdrawalHistoryItem[];
   fnBalance: number;
   donationTotalFn: number;
   creatorId: string | null;
