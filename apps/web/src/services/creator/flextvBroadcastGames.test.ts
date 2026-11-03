@@ -40,6 +40,7 @@ beforeEach(() => {
   vi.stubEnv("FLEXTV_API_URL", "https://api.flextv.test");
   member.creator = true;
   calls = [];
+  delete (globalThis as Record<string, unknown>).__ssumnationFlextvOverlayDesigns;
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init: RequestInit = {}) => {
@@ -56,6 +57,7 @@ beforeEach(() => {
       if (p === "/api/ssumnation/my/games/gacha") return json({ stage: null, queue: [], recent: [], unclaimed: 0, hidden: false });
       if (p === "/api/ssumnation/my/overlay-key") return json({ key: init.method === "POST" ? "new-overlay-key-0000" : "overlay-key-00000000" });
       if (p === "/api/ssumnation/overlay/overlay-key-00000000/quest") return json({ quests: [{ id: "q7", title: "노래 한 곡", amount: 3000, endsAt: "2026-10-25T02:00:00Z", extendedMin: 0 }] });
+      if (p === "/api/ssumnation/overlay/overlay-key-00000000/design") return json({ design: { version: 1, appearance: { theme: "BOLD", accent: "#ff3366" }, quest: { theme: "INHERIT", enabled: true, style: "SIMPLE", maxCount: 1 } } });
       if (p.startsWith("/api/ssumnation/overlay/")) return json({ status: "NOT_FOUND" }, 404);
       if (p === "/api/ssumnation/my/donations")
         return json({
@@ -132,10 +134,12 @@ describe("the 리모컨's 룰렛 · 뽑기", () => {
 });
 
 describe("OBS overlays", () => {
-  it("draws FLEXTV's quests with Ssumnation's look, and serves neither unknown keys nor the alert overlay", async () => {
+  it("draws FLEXTV's quests in the streamer's design, and serves neither unknown keys nor the alert overlay", async () => {
     const { getOverlayWidget } = await import("./widgetOverlay");
     const quest = await getOverlayWidget("quest", "overlay-key-00000000");
-    expect(quest).toMatchObject({ widget: "quest", on: true, quests: [{ id: "q7", title: "노래 한 곡" }] });
+    expect(quest).toMatchObject({ widget: "quest", on: true, quests: [{ id: "q7", title: "노래 한 곡" }], theme: { theme: "BOLD", accent: "#FF3366" } });
+    // The quest part of the design is read leniently: its look, the rest the defaults.
+    expect(quest).toMatchObject({ settings: { style: "SIMPLE", maxCount: 1 } });
     expect(await getOverlayWidget("quest", "someone-elses-key-000")).toBe("FORBIDDEN");
     expect(await getOverlayWidget("goal", "overlay-key-00000000")).toBe("FORBIDDEN");
     const { getOverlayAlert } = await import("./alertRemote");

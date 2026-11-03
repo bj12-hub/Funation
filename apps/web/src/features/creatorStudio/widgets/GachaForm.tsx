@@ -24,6 +24,7 @@ import {
   type GachaStyle
 } from "@/services/creator/widgetSettingsTypes";
 import { CopyButton } from "../settings/SettingsCards";
+import { DesignOnlyNotice } from "./DesignOnlyNotice";
 import { ColorField, NumberField, Radios, Row, Section, Select, SwitchText } from "./fields";
 import { GachaView } from "./GameViews";
 import type { FormProps } from "./forms";
@@ -53,9 +54,11 @@ const newGacha = (n: number): Gacha => ({
 /**
  * 뽑기 후원 위젯 설정 — Figma 373:3675. Viewers draw from the creator room (뽑기 donation type); prizes are the
  * creator's (2026-10-04 결정: FN 지급 없음). 당첨 내역 and the 전광판 read the real draws. Odds disclosure and
- * legal review for paid draws are TBD.
+ * legal review for paid draws are TBD. With FLEXTV (`live.designOnly`, phase 8) the 뽑기 are 후원 종류 설정's: only their
+ * look, the 크레딧 and the 당첨 리스트's title and speed are set here.
  */
 export function GachaForm({ value: v, onChange, live }: FormProps<"GACHA">) {
+  const designOnly = live.designOnly === true;
   const set = <P extends keyof typeof v>(k: P, x: (typeof v)[P]) => onChange({ ...v, [k]: x });
   const [previewStyle, setPreviewStyle] = useState<GachaStyle>(v.gachas[0]?.style ?? "CAPSULE");
   const [selectedId, setSelectedId] = useState<string | null>(v.gachas[0]?.id ?? null);
@@ -100,60 +103,69 @@ export function GachaForm({ value: v, onChange, live }: FormProps<"GACHA">) {
       </PreviewStage>
       <Section title={t("widgetForm.theme")}>
         <ThemeChoiceField value={v.overlayTheme} onChange={(x) => set("overlayTheme", x)} appearance={live.appearance} />
+        {designOnly && <DesignOnlyNotice rules={t("widgetFormGacha.designRules")} />}
       </Section>
 
       <Section
         title={t("widgetFormGacha.list")}
         aside={
-          <div className={styles.inline}>
-            <button
-              type="button"
-              className={styles.dangerButton}
-              disabled={checked.length === 0}
-              onClick={() => {
-                set("gachas", v.gachas.filter((g) => !checked.includes(g.id)));
-                if (selectedId && checked.includes(selectedId)) setSelectedId(null);
-                setChecked([]);
-              }}
-            >
-              {t("widgetFormGacha.delete")}
-            </button>
-            <button
-              type="button"
-              className={styles.blueButton}
-              disabled={v.gachas.length >= GACHA_MAX}
-              onClick={() => {
-                const g = newGacha(v.gachas.length + 1);
-                set("gachas", [...v.gachas, g]);
-                setSelectedId(g.id);
-              }}
-            >
-              {t("widgetFormGacha.add")}
-            </button>
-          </div>
+          designOnly ? undefined : (
+            <div className={styles.inline}>
+              <button
+                type="button"
+                className={styles.dangerButton}
+                disabled={checked.length === 0}
+                onClick={() => {
+                  set("gachas", v.gachas.filter((g) => !checked.includes(g.id)));
+                  if (selectedId && checked.includes(selectedId)) setSelectedId(null);
+                  setChecked([]);
+                }}
+              >
+                {t("widgetFormGacha.delete")}
+              </button>
+              <button
+                type="button"
+                className={styles.blueButton}
+                disabled={v.gachas.length >= GACHA_MAX}
+                onClick={() => {
+                  const g = newGacha(v.gachas.length + 1);
+                  set("gachas", [...v.gachas, g]);
+                  setSelectedId(g.id);
+                }}
+              >
+                {t("widgetFormGacha.add")}
+              </button>
+            </div>
+          )
         }
       >
-        {v.gachas.length === 0 && <p className={styles.hint}>{t("widgetFormGacha.empty")}</p>}
+        {v.gachas.length === 0 && <p className={styles.hint}>{designOnly ? t("widgetFormGacha.emptyDesign") : t("widgetFormGacha.empty")}</p>}
         <ul className={styles.presetList}>
           {v.gachas.map((g) => (
             <li key={g.id} className={`${styles.preset} ${g.id === selectedId ? styles.presetOn : ""}`}>
               <div className={styles.presetHead}>
-                <label className={styles.radio}>
-                  <input
-                    type="checkbox"
-                    checked={checked.includes(g.id)}
-                    onChange={(e) => setChecked((c) => (e.target.checked ? [...c, g.id] : c.filter((x) => x !== g.id)))}
-                  />
-                  {g.name}
-                </label>
+                {designOnly ? (
+                  <span className={styles.radio}>{g.name}</span>
+                ) : (
+                  <label className={styles.radio}>
+                    <input
+                      type="checkbox"
+                      checked={checked.includes(g.id)}
+                      onChange={(e) => setChecked((c) => (e.target.checked ? [...c, g.id] : c.filter((x) => x !== g.id)))}
+                    />
+                    {g.name}
+                  </label>
+                )}
                 <span className={styles.suffix}>{formatNumber(g.price)}FN</span>
-                <Toggle label={t("widgetFormGacha.useNamed", { name: g.name })} checked={g.enabled} onChange={(x) => updateGacha(g.id, { enabled: x })} />
+                {!designOnly && <Toggle label={t("widgetFormGacha.useNamed", { name: g.name })} checked={g.enabled} onChange={(x) => updateGacha(g.id, { enabled: x })} />}
                 <button type="button" className={styles.linkButton} aria-expanded={g.id === selectedId} onClick={() => setSelectedId(g.id === selectedId ? null : g.id)}>
-                  {t("widgetForm.settings")} {g.id === selectedId ? "▲" : "▼"}
+                  {t(designOnly ? "widgetFormGacha.look" : "widgetForm.settings")} {g.id === selectedId ? "▲" : "▼"}
                 </button>
-                <button type="button" className={styles.purpleSmall} aria-expanded={historyFor === g.id} onClick={() => setHistoryFor(historyFor === g.id ? null : g.id)}>
-                  {t("widgetFormGacha.history")}
-                </button>
+                {!designOnly && (
+                  <button type="button" className={styles.purpleSmall} aria-expanded={historyFor === g.id} onClick={() => setHistoryFor(historyFor === g.id ? null : g.id)}>
+                    {t("widgetFormGacha.history")}
+                  </button>
+                )}
               </div>
               {historyFor === g.id && <WinTable wins={live.gachaWins.filter((w) => w.gacha === g.name)} />}
             </li>
@@ -161,7 +173,12 @@ export function GachaForm({ value: v, onChange, live }: FormProps<"GACHA">) {
         </ul>
       </Section>
 
-      {selected && <GachaDetail key={selected.id} gacha={selected} onChange={(patch) => updateGacha(selected.id, patch)} />}
+      {selected &&
+        (designOnly ? (
+          <GachaLook key={selected.id} gacha={selected} onChange={(patch) => updateGacha(selected.id, patch)} />
+        ) : (
+          <GachaDetail key={selected.id} gacha={selected} onChange={(patch) => updateGacha(selected.id, patch)} />
+        ))}
 
       <Section title={t("widgetFormGacha.credit")}>
         <div className={styles.rows}>
@@ -195,32 +212,38 @@ export function GachaForm({ value: v, onChange, live }: FormProps<"GACHA">) {
               <CopyButton value={`${origin}${live.gachaBoardUrl}`} label={t("widgetForm.copy")} className={styles.copyButton} />
             </div>
           </div>
-          <div className={styles.subCard}>
-            <strong>{t("widgetFormGacha.boardPreview")}</strong>
-            <WinTable wins={live.gachaWins} unclaimed={live.gachaUnclaimed} />
-          </div>
-          <Row label={t("widgetFormGacha.productType")}>
-            <Radios
-              name="board-type"
-              label={t("widgetFormGacha.productType")}
-              options={translatedOptions(GACHA_BOARD_TYPES, t)}
-              value={v.board.productType}
-              onChange={(x) => set("board", { ...v.board, productType: x })}
-            />
-          </Row>
+          {!designOnly && (
+            <>
+              <div className={styles.subCard}>
+                <strong>{t("widgetFormGacha.boardPreview")}</strong>
+                <WinTable wins={live.gachaWins} unclaimed={live.gachaUnclaimed} />
+              </div>
+              <Row label={t("widgetFormGacha.productType")}>
+                <Radios
+                  name="board-type"
+                  label={t("widgetFormGacha.productType")}
+                  options={translatedOptions(GACHA_BOARD_TYPES, t)}
+                  value={v.board.productType}
+                  onChange={(x) => set("board", { ...v.board, productType: x })}
+                />
+              </Row>
+            </>
+          )}
           <Row label={t("widgetFormGacha.boardTitle")} htmlFor="board-title">
             <input id="board-title" className={styles.input} maxLength={20} value={v.board.title} onChange={(e) => set("board", { ...v.board, title: e.target.value })} />
           </Row>
-          <Row label={t("widgetForm.period")}>
-            <Select
-              label={t("widgetForm.period")}
-              value={v.board.period}
-              options={GACHA_BOARD_PERIODS}
-              width={180}
-              format={(x) => optionText(x, t)}
-              onChange={(x) => set("board", { ...v.board, period: x })}
-            />
-          </Row>
+          {!designOnly && (
+            <Row label={t("widgetForm.period")}>
+              <Select
+                label={t("widgetForm.period")}
+                value={v.board.period}
+                options={GACHA_BOARD_PERIODS}
+                width={180}
+                format={(x) => optionText(x, t)}
+                onChange={(x) => set("board", { ...v.board, period: x })}
+              />
+            </Row>
+          )}
           <Row label={t("widgetForm.flowSpeed")}>
             <Radios
               name="board-speed"
@@ -260,6 +283,23 @@ function WinTable({ wins, unclaimed }: { wins: { gacha: string; prize: string; c
         ))}
       </tbody>
     </table>
+  );
+}
+
+/** With FLEXTV: a 뽑기's look only — its machine style and point color. */
+function GachaLook({ gacha: g, onChange }: { gacha: Gacha; onChange: (patch: Partial<Gacha>) => void }) {
+  const { t } = useI18n();
+  return (
+    <Section title={t("widgetFormGacha.lookTitle", { name: g.name })}>
+      <div className={styles.rows}>
+        <Row label={t("widgetFormGacha.style")}>
+          <Radios name={`${g.id}-style`} label={t("widgetFormGacha.style")} options={translatedOptions(GACHA_STYLES, t)} value={g.style} onChange={(x) => onChange({ style: x })} />
+        </Row>
+        <Row label={t("widgetFormGacha.pointColor")}>
+          <ColorField label={t("widgetFormGacha.pointColor")} value={g.pointColor} onChange={(x) => onChange({ pointColor: x })} />
+        </Row>
+      </div>
+    </Section>
   );
 }
 

@@ -11,6 +11,8 @@ export const FLEXTV_STUDIO_PATHS = [
   // Phase 6: only with FLEXTV's Ssumnation endpoints (the pages answer 404 without them).
   "/creator/donation-types",
   "/creator/remote",
+  // Phase 8: the theme and the look of the overlays FLEXTV runs (with its Ssumnation endpoints only, too).
+  "/creator/widgets",
   "/creator/revenue",
   "/creator/donations",
   "/creator/settlement",

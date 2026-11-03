@@ -19,10 +19,11 @@ import type { QuestStatus } from "./donationManagementTypes";
 import { isQuestAction, isQuestOutcome, QUEST_EXTEND_BOUNDS_TEXT, QUEST_EXTEND_MINUTES, type QuestAction, type QuestDecideResult, type QuestExtendResult, type QuestRemoteView } from "@/services/donations/questTypes";
 import type { GachaControlResult, GachaRemoteView } from "@/services/donations/gachaTypes";
 import type { RouletteControlResult, RouletteRemoteView } from "@/services/donations/rouletteTypes";
-import { DEFAULT_OVERLAY_APPEARANCE, resolveTheme } from "./overlayThemeTypes";
+import { designedSettings, lookOf } from "./flextvOverlayDesign";
+import { overlayDesign } from "./flextvOverlaySettings";
+import { resolveTheme } from "./overlayThemeTypes";
 import { studioContext } from "./flextvStudio";
 import type { OverlayWidget } from "./widgetOverlayTypes";
-import { DEFAULT_WIDGET_SETTINGS } from "./widgetSettingsTypes";
 
 /**
  * 퀘스트 · 리모컨 · OBS overlays of a FLEXTV channel (phase 6, docs/development/flextv-ssumnation-api.md §6–§9), behind
@@ -205,26 +206,35 @@ export async function flextvOverlayKey(reissue = false): Promise<string | null> 
 }
 
 /**
- * The 룰렛 · 뽑기 · 당첨 리스트 · 퀘스트 · 미니 overlays from FLEXTV's state, drawn with Ssumnation's default look (FLEXTV
- * keeps no overlay design). Every other overlay — and an unknown key — is FORBIDDEN (the page answers 404).
+ * The 룰렛 · 뽑기 · 당첨 리스트 · 퀘스트 · 미니 overlays from FLEXTV's state, drawn with the streamer's design (phase 8,
+ * §10: the 위젯 page's theme and looks, kept by FLEXTV). Every other overlay — and an unknown key — is FORBIDDEN (the page
+ * answers 404).
  */
 export async function flextvOverlayWidget(widget: unknown, key: unknown): Promise<OverlayWidget | "FORBIDDEN"> {
   if (!isOverlayGame(widget) || typeof key !== "string") return "FORBIDDEN";
-  const state = await fetchOverlay(key, widget).catch(() => null);
-  if (!state) return "FORBIDDEN";
-  const d = DEFAULT_WIDGET_SETTINGS;
+  const [state, design] = await Promise.all([fetchOverlay(key, widget).catch(() => null), overlayDesign(key)]);
+  if (!state || !design) return "FORBIDDEN";
+  const d = designedSettings(design, null);
   const common = { reloadSeq: 0, on: true, serverNow: new Date().toISOString() };
-  const theme = (choice: Parameters<typeof resolveTheme>[1]) => resolveTheme(DEFAULT_OVERLAY_APPEARANCE, choice);
+  const theme = (choice: Parameters<typeof resolveTheme>[1]) => resolveTheme(design.appearance, choice);
   switch (state.widget) {
     case "roulette":
       return { widget: "roulette", settings: d.ROULETTE, stage: state.stage, ...common, theme: theme(d.ROULETTE.theme) };
     case "gacha":
-      return { widget: "gacha", settings: d.GACHA, stage: state.stage, history: state.history.slice(0, d.GACHA.credit.historyCount), ...common, theme: theme(d.GACHA.overlayTheme) };
+      return {
+        widget: "gacha",
+        settings: d.GACHA,
+        // The machine in the 뽑기's own look (its style and point color).
+        stage: state.stage && { ...state.stage, ...lookOf(design, state.gachaId) },
+        history: state.history.slice(0, d.GACHA.credit.historyCount),
+        ...common,
+        theme: theme(d.GACHA.overlayTheme)
+      };
     case "gacha-board":
       return { widget: "gacha-board", settings: d.GACHA, board: { title: d.GACHA.board.title, speed: d.GACHA.board.speed, rows: state.rows }, ...common, theme: theme(d.GACHA.overlayTheme) };
     case "quest":
       return { widget: "quest", settings: d.QUEST, quests: state.quests.slice(0, d.QUEST.maxCount), ...common, theme: theme(d.QUEST.theme) };
     case "mini":
-      return { widget: "mini", settings: d.MINI, lines: state.lines, ...common, theme: theme(d.MINI.theme) };
+      return { widget: "mini", settings: d.MINI, lines: state.lines.filter((l) => l.fn >= d.MINI.minAmount).map((l) => ({ id: l.id, nickname: l.nickname, amount: l.amount, text: l.text })), ...common, theme: theme(d.MINI.theme) };
   }
 }

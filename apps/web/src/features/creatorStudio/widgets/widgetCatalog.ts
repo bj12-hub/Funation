@@ -23,6 +23,18 @@ const CREDITS = link("CREDITS", "🎬", "엔딩 크레딧", "방송 마무리에
 const TEXT_SLOTS = link("TEXT_SLOTS", "📝", "텍스트 슬롯", "문구를 슬롯 20개에 저장해 두고 슬롯마다 다른 주소로 띄웁니다.", "/creator/widgets/tools");
 const TIMER = link("TIMER", "⏱️", "타이머", "카운트다운 / 스톱워치 오버레이를 표시합니다.", "/creator/widgets/tools");
 
+/**
+ * With FLEXTV (phase 8): the overlays FLEXTV runs, whose look is set here, and the 리모컨 with their OBS addresses. The
+ * 후원 알림 is FLEXTV's 도우미.
+ */
+export const FLEXTV_ITEMS: CatalogItem[] = [
+  widget("QUEST", { title: "미션 · 퀘스트" }),
+  widget("MINI"),
+  widget("ROULETTE"),
+  widget("GACHA"),
+  link("REMOTE", "🎛️", "리모컨 · 오버레이 주소", "방송 중 퀘스트 · 룰렛 · 뽑기를 다루고, OBS에 넣을 오버레이 주소를 복사합니다.", "/creator/remote")
+];
+
 export const POPULAR: CatalogItem[] = [ALERT, widget("RANKING", { title: "후원자 랭킹" }), widget("GOAL", { title: "목표" })];
 
 export const GROUPS: CatalogGroup[] = [

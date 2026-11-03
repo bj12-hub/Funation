@@ -1,6 +1,7 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
+import { FLEXTV_SSUMNATION_API } from "@/lib/flextv/mode";
 import { USE_MOCK, mockDelay } from "@/lib/mock";
 import { getCreatorSession } from "@/lib/session";
 import { PROFILE_PHOTO_MAX_BYTES, PROFILE_PHOTO_TYPES } from "@/lib/validation";
@@ -17,6 +18,7 @@ import { STUDIO_CHANNEL, mockCrew } from "@/services/crew/mockCrewStore";
 import { crewRankingRows, donorTotals, sigWallRows, topDonation } from "./widgetOverlayCore";
 import { mockSignatures } from "@/services/donations/signatureCore";
 import { PARSERS } from "./widgetParsers";
+import { getFlextvWidgetDetail, saveFlextvWidget } from "./flextvOverlaySettings";
 import {
   CUSTOM_SOUND_MAX,
   CUSTOM_SOUND_MAX_BYTES,
@@ -42,6 +44,7 @@ import {
  * Widget settings — Figma 529:4 + popups 531:* (route `/creator/widgets`).
  * Server Actions re-check the session and fully validate each payload (see ./widgetParsers.ts).
  * TBD: creator role check, widget URL format/secret rotation, audit of setting changes, audio storage.
+ * With FLEXTV's Ssumnation endpoints (phase 8) the 룰렛 · 뽑기 · 퀘스트 · 미니 looks are FLEXTV's (./flextvOverlaySettings.ts).
  */
 
 const store = widgetStore;
@@ -60,6 +63,7 @@ const overlayPathFor = (key: string) => {
 };
 
 export async function getWidgetDetail(key: unknown): Promise<WidgetDetail | null> {
+  if (FLEXTV_SSUMNATION_API) return getFlextvWidgetDetail(key);
   assertMock();
   if (!(await getCreatorSession()) || !isEditableWidget(key)) return null;
   await mockDelay(300);
@@ -149,6 +153,7 @@ function withLiveSounds(s: WidgetSettingsMap["GACHA"]): WidgetSettingsMap["GACHA
 }
 
 export async function saveWidgetSettings(key: unknown, input: unknown): Promise<WidgetSaveResult> {
+  if (FLEXTV_SSUMNATION_API) return saveFlextvWidget(key, input);
   assertMock();
   if (!(await getCreatorSession())) return { status: "UNAUTHORIZED" };
   if (!isEditableWidget(key) || key === "CUSTOM_SOUND") return { status: "INVALID", message: "알 수 없는 위젯입니다." };

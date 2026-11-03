@@ -799,6 +799,8 @@ export type WidgetLiveData = {
   /** 시그 벽지 (2026-10-28): the latest 시그니처 후원 (newest first) and the overlay path each card adds `?d=<id>` to. */
   sigWalls: SigWallRow[];
   sigWallPath: string;
+  /** With FLEXTV (phase 8): only the look is set here — the rules (items, odds, prices, minimums) are 후원 종류 설정's. */
+  designOnly?: boolean;
 };
 
 export type CustomSoundResult =

@@ -96,7 +96,9 @@ describe("the 리모컨", () => {
 
 describe("overlays", () => {
   it("reads each game's state", () => {
-    expect(readOverlay("mini", { lines: [{ id: "m1", nickname: "팬", amount: 500, text: "안녕" }, { id: "m2", nickname: "팬" }] })).toEqual({ widget: "mini", lines: [{ id: "m1", nickname: "팬", amount: "500 FN", text: "안녕" }] });
+    expect(readOverlay("mini", { lines: [{ id: "m1", nickname: "팬", amount: 500, text: "안녕" }, { id: "m2", nickname: "팬" }] })).toEqual({ widget: "mini", lines: [{ id: "m1", nickname: "팬", amount: "500 FN", text: "안녕", fn: 500 }] });
+    // The 뽑기's id, for its look (phase 8).
+    expect(readOverlay("gacha", { stage: { id: "d1", gachaId: "g-1", status: "SPINNING", endsAt: "2026-10-25T02:00:00Z" }, history: [] })).toMatchObject({ gachaId: "g-1" });
     expect(readOverlay("quest", { quests: [{ id: "q7", title: "노래", amount: 3000, endsAt: "2026-10-25T02:00:00Z", extendedMin: 0 }] })).toMatchObject({ quests: [{ id: "q7", amount: 3000 }] });
     expect(readOverlay("roulette", { stage: null })).toEqual({ widget: "roulette", stage: null });
   });
